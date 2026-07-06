@@ -73,8 +73,8 @@ function Profile() {
 
         <Section title={t("profile.support")}>
           <Row to="/help" icon={<HelpCircle className="h-5 w-5" />} label={t("profile.help")} />
-          <Row icon={<FileText className="h-5 w-5" />} label={t("profile.terms")} />
-          <Row icon={<Shield className="h-5 w-5" />} label={t("profile.privacy")} />
+          <Row to="/content/terms" icon={<FileText className="h-5 w-5" />} label={t("profile.terms")} />
+          <Row to="/content/privacy" icon={<Shield className="h-5 w-5" />} label={t("profile.privacy")} />
         </Section>
 
         <div className="mt-6 space-y-2">

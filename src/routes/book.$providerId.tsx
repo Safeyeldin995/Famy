@@ -5,6 +5,7 @@ import {
   useProvider, useProviderServices, useCreateBooking, useAddresses,
 } from "@/lib/db/queries";
 import { useCreatePayment } from "@/lib/db/payment-queries";
+import { useBillingSettings, DEFAULT_BILLING_SETTINGS } from "@/lib/db/settings-queries";
 import { toUIProvider } from "@/lib/db/adapters";
 import { currentLang } from "@/lib/i18n";
 import { MapPin, Banknote, Check, Loader2 } from "lucide-react";
@@ -19,6 +20,7 @@ function Book() {
   const { providerId } = Route.useParams();
   const provQ = useProvider(providerId);
   const servicesQ = useProviderServices(providerId);
+  const billingQ = useBillingSettings();
   const addrsQ = useAddresses();
   const createBooking = useCreateBooking();
   const createPayment = useCreatePayment();
@@ -68,8 +70,8 @@ function Book() {
   const hours = parseInt(duration);
   const ratePerHour = Number(activeService?.price_override ?? p.hourlyRate);
   const subtotal = ratePerHour * hours;
-  const fee = 25;
-  const vat = Math.round(subtotal * 0.14);
+  const fee = billingQ.data?.platform_fee ?? DEFAULT_BILLING_SETTINGS.platform_fee;
+  const vat = Math.round(subtotal * ((billingQ.data?.vat_percent ?? DEFAULT_BILLING_SETTINGS.vat_percent) / 100));
   const total = subtotal + fee + vat;
 
   const durations = ["2h", "4h", "6h", "8h"];

@@ -13,6 +13,7 @@ import {
   useMyProviderServices,
   useToggleProviderService,
 } from "@/lib/db/provider-queries";
+import { useServiceAreasSettings } from "@/lib/db/settings-queries";
 import { FileText, ShieldCheck, LogOut, Globe, Camera, Loader2 } from "lucide-react";
 import { LanguageToggle, useLang } from "@/components/famio/LanguageToggle";
 
@@ -20,9 +21,8 @@ import { LanguageToggle, useLang } from "@/components/famio/LanguageToggle";
 
 export const Route = createFileRoute("/pro/profile")({ component: ProProfile });
 
-// Matches pro.onboarding.tsx and setup.tsx's area selector (PROV-01 / Sprint 1
-// Phase 2 adjustment #2) — Wave 1 launch geography only (BIZ-004).
-const CITY_OPTIONS = ["Sheikh Zayed", "6th of October"] as const;
+// Real city/area options now come from the shared useServiceAreasSettings()
+// source (also used by setup.tsx and pro.onboarding.tsx).
 
 function ProProfile() {
   const { t } = useTranslation();
@@ -33,6 +33,8 @@ function ProProfile() {
   const services = useAllServices();
   const mine = useMyProviderServices(provider?.id);
   const toggle = useToggleProviderService();
+  const areasQ = useServiceAreasSettings();
+  const cityOptions = (areasQ.data ?? []).filter((a) => a.enabled).map((a) => a.name);
   const nav = useNavigate();
   const qc = useQueryClient();
 
@@ -164,7 +166,7 @@ function ProProfile() {
             </div>
             <Field label={t("pro.onboarding.city")}>
               <div className="grid grid-cols-2 gap-2">
-                {CITY_OPTIONS.map((c) => (
+                {cityOptions.map((c) => (
                   <button
                     key={c}
                     type="button"

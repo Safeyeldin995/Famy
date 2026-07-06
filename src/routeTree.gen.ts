@@ -36,12 +36,16 @@ import { Route as ProDocumentsRouteImport } from './routes/pro.documents'
 import { Route as ProBookingsRouteImport } from './routes/pro.bookings'
 import { Route as ProAvailabilityRouteImport } from './routes/pro.availability'
 import { Route as MessagesIdRouteImport } from './routes/messages.$id'
+import { Route as ContentKeyRouteImport } from './routes/content.$key'
 import { Route as CategoryIdRouteImport } from './routes/category.$id'
 import { Route as BookingIdRouteImport } from './routes/booking.$id'
 import { Route as BookProviderIdRouteImport } from './routes/book.$providerId'
 import { Route as AuthSetPasswordRouteImport } from './routes/auth.set-password'
 import { Route as AuthForgotRouteImport } from './routes/auth.forgot'
+import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminProvidersRouteImport } from './routes/admin.providers'
+import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
+import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
 import { Route as AdminBookingsRouteImport } from './routes/admin.bookings'
 import { Route as ProBookingIdRouteImport } from './routes/pro.booking.$id'
 import { Route as AdminProviderIdRouteImport } from './routes/admin.provider.$id'
@@ -182,6 +186,11 @@ const MessagesIdRoute = MessagesIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => MessagesRoute,
 } as any)
+const ContentKeyRoute = ContentKeyRouteImport.update({
+  id: '/content/$key',
+  path: '/content/$key',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CategoryIdRoute = CategoryIdRouteImport.update({
   id: '/category/$id',
   path: '/category/$id',
@@ -207,9 +216,24 @@ const AuthForgotRoute = AuthForgotRouteImport.update({
   path: '/auth/forgot',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminProvidersRoute = AdminProvidersRouteImport.update({
   id: '/providers',
   path: '/providers',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPaymentsRoute = AdminPaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCustomersRoute = AdminCustomersRouteImport.update({
+  id: '/customers',
+  path: '/customers',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminBookingsRoute = AdminBookingsRouteImport.update({
@@ -250,12 +274,16 @@ export interface FileRoutesByFullPath {
   '/search': typeof SearchRoute
   '/setup': typeof SetupRoute
   '/admin/bookings': typeof AdminBookingsRoute
+  '/admin/customers': typeof AdminCustomersRoute
+  '/admin/payments': typeof AdminPaymentsRoute
   '/admin/providers': typeof AdminProvidersRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/set-password': typeof AuthSetPasswordRoute
   '/book/$providerId': typeof BookProviderIdRoute
   '/booking/$id': typeof BookingIdRoute
   '/category/$id': typeof CategoryIdRoute
+  '/content/$key': typeof ContentKeyRoute
   '/messages/$id': typeof MessagesIdRoute
   '/pro/availability': typeof ProAvailabilityRoute
   '/pro/bookings': typeof ProBookingsRoute
@@ -286,12 +314,16 @@ export interface FileRoutesByTo {
   '/search': typeof SearchRoute
   '/setup': typeof SetupRoute
   '/admin/bookings': typeof AdminBookingsRoute
+  '/admin/customers': typeof AdminCustomersRoute
+  '/admin/payments': typeof AdminPaymentsRoute
   '/admin/providers': typeof AdminProvidersRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/set-password': typeof AuthSetPasswordRoute
   '/book/$providerId': typeof BookProviderIdRoute
   '/booking/$id': typeof BookingIdRoute
   '/category/$id': typeof CategoryIdRoute
+  '/content/$key': typeof ContentKeyRoute
   '/messages/$id': typeof MessagesIdRoute
   '/pro/availability': typeof ProAvailabilityRoute
   '/pro/bookings': typeof ProBookingsRoute
@@ -326,12 +358,16 @@ export interface FileRoutesById {
   '/search': typeof SearchRoute
   '/setup': typeof SetupRoute
   '/admin/bookings': typeof AdminBookingsRoute
+  '/admin/customers': typeof AdminCustomersRoute
+  '/admin/payments': typeof AdminPaymentsRoute
   '/admin/providers': typeof AdminProvidersRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/set-password': typeof AuthSetPasswordRoute
   '/book/$providerId': typeof BookProviderIdRoute
   '/booking/$id': typeof BookingIdRoute
   '/category/$id': typeof CategoryIdRoute
+  '/content/$key': typeof ContentKeyRoute
   '/messages/$id': typeof MessagesIdRoute
   '/pro/availability': typeof ProAvailabilityRoute
   '/pro/bookings': typeof ProBookingsRoute
@@ -367,12 +403,16 @@ export interface FileRouteTypes {
     | '/search'
     | '/setup'
     | '/admin/bookings'
+    | '/admin/customers'
+    | '/admin/payments'
     | '/admin/providers'
+    | '/admin/settings'
     | '/auth/forgot'
     | '/auth/set-password'
     | '/book/$providerId'
     | '/booking/$id'
     | '/category/$id'
+    | '/content/$key'
     | '/messages/$id'
     | '/pro/availability'
     | '/pro/bookings'
@@ -403,12 +443,16 @@ export interface FileRouteTypes {
     | '/search'
     | '/setup'
     | '/admin/bookings'
+    | '/admin/customers'
+    | '/admin/payments'
     | '/admin/providers'
+    | '/admin/settings'
     | '/auth/forgot'
     | '/auth/set-password'
     | '/book/$providerId'
     | '/booking/$id'
     | '/category/$id'
+    | '/content/$key'
     | '/messages/$id'
     | '/pro/availability'
     | '/pro/bookings'
@@ -442,12 +486,16 @@ export interface FileRouteTypes {
     | '/search'
     | '/setup'
     | '/admin/bookings'
+    | '/admin/customers'
+    | '/admin/payments'
     | '/admin/providers'
+    | '/admin/settings'
     | '/auth/forgot'
     | '/auth/set-password'
     | '/book/$providerId'
     | '/booking/$id'
     | '/category/$id'
+    | '/content/$key'
     | '/messages/$id'
     | '/pro/availability'
     | '/pro/bookings'
@@ -486,6 +534,7 @@ export interface RootRouteChildren {
   BookProviderIdRoute: typeof BookProviderIdRoute
   BookingIdRoute: typeof BookingIdRoute
   CategoryIdRoute: typeof CategoryIdRoute
+  ContentKeyRoute: typeof ContentKeyRoute
   ProviderIdRoute: typeof ProviderIdRoute
 }
 
@@ -680,6 +729,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MessagesIdRouteImport
       parentRoute: typeof MessagesRoute
     }
+    '/content/$key': {
+      id: '/content/$key'
+      path: '/content/$key'
+      fullPath: '/content/$key'
+      preLoaderRoute: typeof ContentKeyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/category/$id': {
       id: '/category/$id'
       path: '/category/$id'
@@ -715,11 +771,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthForgotRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/providers': {
       id: '/admin/providers'
       path: '/providers'
       fullPath: '/admin/providers'
       preLoaderRoute: typeof AdminProvidersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/payments': {
+      id: '/admin/payments'
+      path: '/payments'
+      fullPath: '/admin/payments'
+      preLoaderRoute: typeof AdminPaymentsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/customers': {
+      id: '/admin/customers'
+      path: '/customers'
+      fullPath: '/admin/customers'
+      preLoaderRoute: typeof AdminCustomersRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/bookings': {
@@ -755,7 +832,10 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminBookingsRoute: typeof AdminBookingsRoute
+  AdminCustomersRoute: typeof AdminCustomersRoute
+  AdminPaymentsRoute: typeof AdminPaymentsRoute
   AdminProvidersRoute: typeof AdminProvidersRoute
+  AdminSettingsRoute: typeof AdminSettingsRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminCustomerIdRoute: typeof AdminCustomerIdRoute
   AdminProviderIdRoute: typeof AdminProviderIdRoute
@@ -763,7 +843,10 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminBookingsRoute: AdminBookingsRoute,
+  AdminCustomersRoute: AdminCustomersRoute,
+  AdminPaymentsRoute: AdminPaymentsRoute,
   AdminProvidersRoute: AdminProvidersRoute,
+  AdminSettingsRoute: AdminSettingsRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminCustomerIdRoute: AdminCustomerIdRoute,
   AdminProviderIdRoute: AdminProviderIdRoute,
@@ -832,6 +915,7 @@ const rootRouteChildren: RootRouteChildren = {
   BookProviderIdRoute: BookProviderIdRoute,
   BookingIdRoute: BookingIdRoute,
   CategoryIdRoute: CategoryIdRoute,
+  ContentKeyRoute: ContentKeyRoute,
   ProviderIdRoute: ProviderIdRoute,
 }
 export const routeTree = rootRouteImport

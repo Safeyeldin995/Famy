@@ -3,22 +3,22 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PhoneFrame, TopBar, Card, PrimaryButton } from "@/components/famio/ui";
 import { useCreateProvider, useMyProvider } from "@/lib/db/provider-queries";
+import { useServiceAreasSettings } from "@/lib/db/settings-queries";
 
 export const Route = createFileRoute("/pro/onboarding")({ component: Onboarding });
 
 const LANG_KEYS = ["arabic", "english", "french"] as const;
-// Matches the customer-side setup.tsx area selector (Sprint 1 Phase 2,
-// adjustment #2) — Wave 1 launch geography only (BIZ-004). Stored directly in
-// providers.city (a single free-text column, unlike addresses.city/area) since
-// splitting it into two columns would be a schema change outside this fix's
-// scope (PROV-01).
-const CITY_OPTIONS = ["Sheikh Zayed", "6th of October"] as const;
+// Real city/area options now come from the same Settings-backed
+// useServiceAreasSettings() source setup.tsx uses — providers and customers
+// share one admin-editable list, not two separately hardcoded ones.
 
 function Onboarding() {
   const { t } = useTranslation();
   const nav = useNavigate();
   const create = useCreateProvider();
   const existing = useMyProvider();
+  const areasQ = useServiceAreasSettings();
+  const cityOptions = (areasQ.data ?? []).filter((a) => a.enabled).map((a) => a.name);
 
   const [bioEn, setBioEn] = useState("");
   const [bioAr, setBioAr] = useState("");
@@ -61,7 +61,7 @@ function Onboarding() {
           </div>
           <Field label={t("pro.onboarding.city")}>
             <div className="grid grid-cols-2 gap-2">
-              {CITY_OPTIONS.map((c) => (
+              {cityOptions.map((c) => (
                 <button
                   key={c}
                   type="button"

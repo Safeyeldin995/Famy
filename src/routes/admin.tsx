@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, Link, useNavigate, useRouterState } from "@tan
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyRole } from "@/lib/db/provider-queries";
-import { Users, ClipboardList, ShieldCheck } from "lucide-react";
+import { Users, ClipboardList, ShieldCheck, Wallet, UserRound, Settings } from "lucide-react";
 import famyLogo from "@/assets/famy-wordmark.png.asset.json";
 
 export const Route = createFileRoute("/admin")({ component: AdminLayout });
@@ -41,7 +41,10 @@ function AdminLayout() {
   const tabs = [
     { to: "/admin", label: "Overview", icon: Users, exact: true },
     { to: "/admin/providers", label: "Providers", icon: ShieldCheck },
+    { to: "/admin/customers", label: "Customers", icon: UserRound },
     { to: "/admin/bookings", label: "Bookings", icon: ClipboardList },
+    { to: "/admin/payments", label: "Payments", icon: Wallet },
+    { to: "/admin/settings", label: "Settings", icon: Settings },
   ];
 
   return (

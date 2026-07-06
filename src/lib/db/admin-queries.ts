@@ -1,6 +1,42 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+export type AdminProviderFilter = "pending" | "verified" | "suspended" | "all";
+
+export function useAdminProviders(filter: AdminProviderFilter = "all") {
+  return useQuery({
+    queryKey: ['admin', 'providers', filter],
+    queryFn: async () => {
+      let q = supabase
+        .from('providers')
+        .select('*, profile:profiles(*), ratings:ratings_summary(*), trust:trust_scores(*)')
+        .order('created_at', { ascending: false });
+      if (filter === 'pending') q = q.eq('is_verified', false);
+      else if (filter === 'verified') q = q.eq('is_verified', true).eq('is_active', true);
+      else if (filter === 'suspended') q = q.eq('is_active', false).eq('is_verified', true);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useSetProviderActive() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
+      const { error } = await supabase
+        .from('providers')
+        .update({ is_active: active })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin'] });
+    },
+  });
+}
+
 export function usePendingProviders() {
   return useQuery({
     queryKey: ['admin', 'pending-providers'],
@@ -66,7 +102,12 @@ export function useAdminBookings(status?: string) {
     queryFn: async () => {
       let q = supabase
         .from('bookings')
-        .select('*, customer:profiles!bookings_customer_id_fkey(id, full_name, phone), provider:providers(id, profile:profiles(full_name))')
+        .select(`
+          *,
+          customer:profiles!bookings_customer_id_fkey(id, full_name, phone),
+          provider:providers(id, profile:profiles(full_name)),
+          payments(id, status, method, amount, created_at)
+        `)
         .order('created_at', { ascending: false })
         .limit(200);
       if (status) q = q.eq('status', status as any);
@@ -87,7 +128,157 @@ export function useUpdateBookingStatus() {
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'bookings'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'bookings'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'dashboard-kpis'] });
+      qc.invalidateQueries({ queryKey: ['my-bookings'] });
+      qc.invalidateQueries({ queryKey: ['provider-bookings'] });
+    },
+  });
+}
+
+export function useAdminCategories() {
+  return useQuery({
+    queryKey: ['admin', 'categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('sort_order');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useSetCategoryActive() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
+      const { error } = await supabase.from('categories').update({ is_active: active }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'categories'] });
+      qc.invalidateQueries({ queryKey: ['categories'] });
+    },
+  });
+}
+
+export function useUpdateCategoryNames() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, name_en, name_ar }: { id: string; name_en: string; name_ar: string }) => {
+      const { error } = await supabase.from('categories').update({ name_en, name_ar }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'categories'] });
+      qc.invalidateQueries({ queryKey: ['categories'] });
+    },
+  });
+}
+
+export function useAdminDashboardKpis() {
+  return useQuery({
+    queryKey: ['admin', 'dashboard-kpis'],
+    queryFn: async () => {
+      const [revenueRes, activeBookingsRes, pendingBookingsRes, activeProvidersRes, activeCustomersRes] = await Promise.all([
+        supabase.from('payments').select('amount').eq('status', 'captured'),
+        supabase.from('bookings').select('id', { count: 'exact', head: true }).in('status', ['confirmed', 'in_progress']),
+        supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('providers').select('id', { count: 'exact', head: true }).eq('is_active', true).eq('is_verified', true),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('is_suspended', false),
+      ]);
+      if (revenueRes.error) throw revenueRes.error;
+      if (activeBookingsRes.error) throw activeBookingsRes.error;
+      if (pendingBookingsRes.error) throw pendingBookingsRes.error;
+      if (activeProvidersRes.error) throw activeProvidersRes.error;
+      if (activeCustomersRes.error) throw activeCustomersRes.error;
+
+      const revenue = (revenueRes.data ?? []).reduce((sum, r: any) => sum + Number(r.amount ?? 0), 0);
+
+      return {
+        revenue,
+        activeBookings: activeBookingsRes.count ?? 0,
+        pendingBookings: pendingBookingsRes.count ?? 0,
+        activeProviders: activeProvidersRes.count ?? 0,
+        activeCustomers: activeCustomersRes.count ?? 0,
+      };
+    },
+  });
+}
+export function useAdminPayments(status?: string) {
+  return useQuery({
+    queryKey: ['admin', 'payments', status ?? 'all'],
+    queryFn: async () => {
+      let q = supabase
+        .from('payments')
+        .select(`
+          *,
+          booking:bookings(
+            id,
+            status,
+            provider:providers(id, profile:profiles(full_name)),
+            customer:profiles!bookings_customer_id_fkey(id, full_name, phone)
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .limit(300);
+      if (status) q = q.eq('status', status as any);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export type AdminCustomerFilter = "all" | "active" | "suspended" | "has_bookings" | "no_bookings";
+
+export function useAdminCustomers(filter: AdminCustomerFilter = "all") {
+  return useQuery({
+    queryKey: ['admin', 'customers', filter],
+    queryFn: async () => {
+      let pq = supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(300);
+      if (filter === 'active') pq = pq.eq('is_suspended', false);
+      else if (filter === 'suspended') pq = pq.eq('is_suspended', true);
+      const { data: profiles, error: pErr } = await pq;
+      if (pErr) throw pErr;
+      const ids = (profiles ?? []).map((p) => p.id);
+      if (ids.length === 0) return [];
+
+      const { data: bookings, error: bErr } = await supabase
+        .from('bookings')
+        .select('customer_id, status')
+        .in('customer_id', ids);
+      if (bErr) throw bErr;
+
+      const { data: payments, error: payErr } = await supabase
+        .from('payments')
+        .select('customer_id, amount, status')
+        .in('customer_id', ids)
+        .eq('status', 'captured');
+      if (payErr) throw payErr;
+
+      const rows = (profiles ?? []).map((p) => {
+        const myBookings = (bookings ?? []).filter((b) => b.customer_id === p.id);
+        const totalBookings = myBookings.length;
+        const completedBookings = myBookings.filter((b) => b.status === 'completed').length;
+        const cancelledBookings = myBookings.filter((b) => b.status === 'cancelled' || b.status === 'no_show').length;
+        const totalSpent = (payments ?? [])
+          .filter((pay) => pay.customer_id === p.id)
+          .reduce((sum, pay) => sum + Number(pay.amount ?? 0), 0);
+        return { ...p, totalBookings, completedBookings, cancelledBookings, totalSpent };
+      });
+
+      if (filter === 'has_bookings') return rows.filter((r) => r.totalBookings > 0);
+      if (filter === 'no_bookings') return rows.filter((r) => r.totalBookings === 0);
+      return rows;
+    },
   });
 }
 
@@ -103,12 +294,36 @@ export function useAdminCustomer(id: string) {
       if (error) throw error;
       const { data: bookings } = await supabase
         .from('bookings')
-        .select('id, status, scheduled_start, price_total')
+        .select('id, status, start_at, price_total')
         .eq('customer_id', id)
         .order('created_at', { ascending: false })
         .limit(50);
-      return { profile, bookings: bookings ?? [] };
+      const { data: payments } = await supabase
+        .from('payments')
+        .select('id, booking_id, method, amount, status, created_at')
+        .eq('customer_id', id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      return { profile, bookings: bookings ?? [], payments: payments ?? [] };
     },
     enabled: !!id,
+  });
+}
+
+export function useSetCustomerSuspended() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, suspended }: { id: string; suspended: boolean }) => {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_suspended: suspended })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'customer', vars.id] });
+      qc.invalidateQueries({ queryKey: ['admin', 'customers'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'dashboard-kpis'] });
+    },
   });
 }

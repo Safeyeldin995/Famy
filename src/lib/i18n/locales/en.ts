@@ -245,6 +245,8 @@ const en = {
     help: "Help center",
     terms: "Terms of service",
     privacy: "Privacy policy",
+    about: "About Famy",
+    contact: "Contact us",
     logout: "Log out",
     deleteAccount: "Delete account",
     version: "Famy · v1.0.0",

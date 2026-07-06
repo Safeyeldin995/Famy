@@ -247,6 +247,8 @@ const ar: Translation = {
     help: "مركز المساعدة",
     terms: "شروط الخدمة",
     privacy: "سياسة الخصوصية",
+    about: "عن فامي",
+    contact: "تواصل معنا",
     logout: "تسجيل الخروج",
     deleteAccount: "حذف الحساب",
     version: "فامي · الإصدار ١.٠.٠",

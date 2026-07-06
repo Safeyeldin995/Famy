@@ -5,15 +5,14 @@ import { toast } from "sonner";
 import { PhoneFrame, PrimaryButton, TopBar } from "@/components/famio/ui";
 import { useApp } from "@/lib/store";
 import { useUpdateProfile, useCreateAddress, useAddresses } from "@/lib/db/queries";
+import { useServiceAreasSettings } from "@/lib/db/settings-queries";
 import { Camera, MapPin } from "lucide-react";
 
 export const Route = createFileRoute("/setup")({ component: Setup });
 
-// These map to `addresses.area` (the neighborhood within Giza), not
-// `addresses.city` — Sheikh Zayed and 6th of October are both administratively
-// part of Giza Governorate, not cities in their own right (Sprint 1 Phase 2,
-// adjustment #2).
-const AREA_OPTIONS = ["Sheikh Zayed", "6th of October"] as const;
+// Real service areas now come from Settings (admin-editable); the two names
+// below are only the fallback used by useServiceAreasSettings() itself if no
+// `service_areas` settings row exists yet — see settings-queries.ts.
 const FIXED_CITY = "Giza";
 
 function Setup() {
@@ -24,6 +23,8 @@ function Setup() {
   const updateProfile = useUpdateProfile();
   const createAddress = useCreateAddress();
   const existingAddresses = useAddresses();
+  const areasQ = useServiceAreasSettings();
+  const areaOptions = (areasQ.data ?? []).filter((a) => a.enabled).map((a) => a.name);
 
   const update = (k: keyof typeof form, v: string) => setForm({ ...form, [k]: v });
   const valid = form.name.trim().length > 1 && form.address.trim().length > 2 && form.area.trim().length > 0;
@@ -88,7 +89,7 @@ function Setup() {
         <div>
           <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">{t("setup.area")}</label>
           <div className="mt-2 grid grid-cols-2 gap-3">
-            {AREA_OPTIONS.map((a) => (
+            {areaOptions.map((a) => (
               <button
                 key={a}
                 type="button"

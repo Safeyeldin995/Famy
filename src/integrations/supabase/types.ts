@@ -648,6 +648,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          is_suspended: boolean
           locale: string
           phone: string | null
           updated_at: string
@@ -659,6 +660,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          is_suspended?: boolean
           locale?: string
           phone?: string | null
           updated_at?: string
@@ -670,6 +672,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          is_suspended?: boolean
           locale?: string
           phone?: string | null
           updated_at?: string

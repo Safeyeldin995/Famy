@@ -96,6 +96,8 @@ export function useCapturePayment() {
     onSuccess: (_d, v) => {
       qc.invalidateQueries({ queryKey: ['payment', v.bookingId] });
       qc.invalidateQueries({ queryKey: ['provider-earnings'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'payments'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'dashboard-kpis'] });
     },
   });
 }
@@ -116,7 +118,11 @@ export function useRejectPayment() {
         .eq('id', paymentId);
       if (error) throw error;
     },
-    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['payment', v.bookingId] }),
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ['payment', v.bookingId] });
+      qc.invalidateQueries({ queryKey: ['admin', 'payments'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'dashboard-kpis'] });
+    },
   });
 }
 
@@ -132,6 +138,25 @@ export function useInstapayReceiver() {
       if (error) throw error;
       return (data?.value as { handle?: string; display_name?: string; note?: string } | null) ?? null;
     },
+  });
+}
+
+export function useUpdateInstapayReceiver() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ handle }: { handle: string }) => {
+      const { data: current } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'instapay_receiver')
+        .maybeSingle();
+      const existing = (current?.value as Record<string, unknown>) ?? {};
+      const { error } = await supabase
+        .from('settings')
+        .upsert({ key: 'instapay_receiver', value: { ...existing, handle } }, { onConflict: 'key' });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['instapay-receiver'] }),
   });
 }
 
