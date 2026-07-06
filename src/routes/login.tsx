@@ -6,7 +6,7 @@ import { Eye, EyeOff, User, Briefcase } from "lucide-react";
 import { PhoneFrame, PrimaryButton, TopBar } from "@/components/famio/ui";
 import { LanguageToggle } from "@/components/famio/LanguageToggle";
 import { useApp } from "@/lib/store";
-import famyLogo from "@/assets/famy-wordmark.png.asset.json";
+import famyLogo from "@/assets/famy-wordmark.png";
 import { otpService, normalizePhone, type Role } from "@/lib/otp/OtpService";
 import { resolveLandingForCurrentUser } from "@/lib/auth/landing";
 
@@ -103,7 +103,7 @@ function Login() {
     <PhoneFrame bg="bg-surface">
       <TopBar back={{ to: "/onboarding" }} right={<LanguageToggle variant="inline" />} />
       <div className="flex-1 px-6 pt-2">
-        <img src={famyLogo.url} alt={t("common.appName")} className="h-12 w-auto object-contain" />
+        <img src={famyLogo} alt={t("common.appName")} className="h-12 w-auto object-contain" />
         <p className="mt-3 text-[15px] text-muted-foreground">
           {mode === "signin" ? t("auth.signinBody", "Welcome back.") : t("auth.signupBody", "Create your Famy account.")}
         </p>
@@ -208,9 +208,9 @@ function Login() {
         {mode === "signup" && (
           <p className="mt-6 text-xs leading-relaxed text-muted-foreground">
             {t("auth.terms")}{" "}
-            <Link to="/content/$key" params={{ key: "terms" }} className="font-semibold text-navy">{t("auth.termsLink")}</Link>{" "}
+            <Link to="/help" className="font-semibold text-navy">{t("auth.termsLink")}</Link>{" "}
             {t("auth.and")}{" "}
-            <Link to="/content/$key" params={{ key: "privacy" }} className="font-semibold text-navy">{t("auth.privacyLink")}</Link>.
+            <Link to="/help" className="font-semibold text-navy">{t("auth.privacyLink")}</Link>.
           </p>
         )}
       </div>
