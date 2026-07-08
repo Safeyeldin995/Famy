@@ -4,8 +4,10 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { ProviderShell } from "@/components/famio/ProviderShell";
-import { TopBar, Card, PrimaryButton } from "@/components/famio/ui";
+import { TopBar, Card, PrimaryButton, Avatar } from "@/components/famio/ui";
 import { supabase } from "@/integrations/supabase/client";
+import { useAvatarUrl } from "@/lib/db/queries";
+import { useServiceAreasSettings } from "@/lib/db/settings-queries";
 import {
   useMyProvider,
   useUpdateProvider,
@@ -13,7 +15,6 @@ import {
   useMyProviderServices,
   useToggleProviderService,
 } from "@/lib/db/provider-queries";
-import { useServiceAreasSettings } from "@/lib/db/settings-queries";
 import { FileText, ShieldCheck, LogOut, Globe, Camera, Loader2 } from "lucide-react";
 import { LanguageToggle, useLang } from "@/components/famio/LanguageToggle";
 
@@ -33,8 +34,6 @@ function ProProfile() {
   const services = useAllServices();
   const mine = useMyProviderServices(provider?.id);
   const toggle = useToggleProviderService();
-  const areasQ = useServiceAreasSettings();
-  const cityOptions = (areasQ.data ?? []).filter((a) => a.enabled).map((a) => a.name);
   const nav = useNavigate();
   const qc = useQueryClient();
 
@@ -42,9 +41,11 @@ function ProProfile() {
   const [bioEn, setBioEn] = useState(""); const [bioAr, setBioAr] = useState("");
   const [years, setYears] = useState<number>(0); const [rate, setRate] = useState<number>(0);
   const [city, setCity] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const avatarQ = useAvatarUrl(provider?.profile?.avatar_url as string | undefined);
+  const areasQ = useServiceAreasSettings();
+  const cityOptions = (areasQ.data ?? []).filter((a) => a.enabled).map((a) => a.name);
 
   useEffect(() => {
     if (provider) {
@@ -53,18 +54,6 @@ function ProProfile() {
       setCity(provider.city ?? "");
     }
   }, [provider]);
-
-  // Resolve avatar — stored value is a storage path (private bucket); sign it for display.
-  useEffect(() => {
-    const v = provider?.profile?.avatar_url as string | undefined;
-    if (!v) { setAvatarUrl(null); return; }
-    if (v.startsWith("http")) { setAvatarUrl(v); return; }
-    let cancelled = false;
-    supabase.storage.from("avatars").createSignedUrl(v, 60 * 60).then(({ data }) => {
-      if (!cancelled) setAvatarUrl(data?.signedUrl ?? null);
-    });
-    return () => { cancelled = true; };
-  }, [provider?.profile?.avatar_url]);
 
   const onPickAvatar = async (file: File) => {
     try {
@@ -97,6 +86,7 @@ function ProProfile() {
   const handleSave = () => update.mutate({ bio_en: bioEn, bio_ar: bioAr, years_experience: years, hourly_rate: rate, city });
 
   const myIds = new Set((mine.data ?? []).map((s: any) => s.service_id));
+  const myStatus = new Map((mine.data ?? []).map((s: any) => [s.service_id, s.status]));
 
   const logout = async () => {
     await qc.cancelQueries(); qc.clear();
@@ -111,10 +101,10 @@ function ProProfile() {
       <div className="space-y-5 px-5 pb-6">
         <Card className="flex items-center gap-3 p-4">
           <div className="relative h-16 w-16 shrink-0">
-            <img
-              src={avatarUrl || `https://i.pravatar.cc/200?u=${provider.id}`}
+            <Avatar
+              src={avatarQ.data || `https://i.pravatar.cc/200?u=${provider.id}`}
               alt=""
-              className="h-16 w-16 rounded-2xl object-cover"
+              className="h-16 w-16 rounded-2xl"
             />
             <button
               type="button"
@@ -196,7 +186,15 @@ function ProProfile() {
               return (
                 <div key={s.id} className="flex items-center justify-between px-4 py-3">
                   <div className="min-w-0">
-                    <div className="text-sm font-semibold truncate">{sname}</div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="text-sm font-semibold truncate">{sname}</div>
+                      {on && myStatus.get(s.id) === "pending" && (
+                        <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">{t("pro.profile.servicePending")}</span>
+                      )}
+                      {on && myStatus.get(s.id) === "rejected" && (
+                        <span className="shrink-0 rounded-full bg-coral/15 px-2 py-0.5 text-[10px] font-bold text-coral">{t("pro.profile.serviceRejected")}</span>
+                      )}
+                    </div>
                     <div className="text-[11px] text-muted-foreground truncate">{cname}</div>
                   </div>
                   <button

@@ -23,6 +23,7 @@ export interface UIProvider {
   badges: string[];
   trustScore: number;
   gender: "Female" | "Male";
+  services: { name: string; status: "pending" | "approved" | "rejected" }[];
   gallery: string[];
   featured?: boolean;
 }
@@ -73,6 +74,12 @@ export function toUIProvider(row: any): UIProvider {
     badges,
     trustScore: Math.round(Number(trust?.score ?? 0)),
     gender: "Female",
+    services: (row.services ?? [])
+      .filter((ps: any) => ps.status === "approved" || ps.status === "pending")
+      .map((ps: any) => ({
+        name: (lang === "ar" ? ps.service?.name_ar : ps.service?.name_en) || ps.service?.name_en || "",
+        status: ps.status,
+      })),
     gallery: galleryFor(row.id),
     featured: !!row.is_top_pro,
   };

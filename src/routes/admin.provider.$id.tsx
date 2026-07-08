@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useAdminProvider, useSetProviderVerified, useSetProviderActive, useDocumentSignedUrl } from "@/lib/db/admin-queries";
+import { useAdminProvider, useSetProviderVerified, useSetProviderActive, useSetProviderServiceStatus, useDocumentSignedUrl } from "@/lib/db/admin-queries";
 import { ChevronLeft, FileText, ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/admin/provider/$id")({ component: AdminProvider });
@@ -10,6 +10,7 @@ function AdminProvider() {
   const q = useAdminProvider(id);
   const setVerified = useSetProviderVerified();
   const setActive = useSetProviderActive();
+  const setServiceStatus = useSetProviderServiceStatus();
   const sign = useDocumentSignedUrl();
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -80,6 +81,38 @@ function AdminProvider() {
                   </div>
                   <span className="text-[11px] font-semibold text-coral">Open</span>
                 </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section>
+        <h3 className="mb-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">Requested Services</h3>
+        {(p.services ?? []).length === 0 ? (
+          <p className="px-1 text-xs text-muted-foreground">No services requested.</p>
+        ) : (
+          <ul className="space-y-2">
+            {p.services.map((ps: any) => (
+              <li key={ps.id} className="flex items-center justify-between rounded-xl border border-border/60 bg-surface p-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">{ps.service?.name_en}</p>
+                  <p className="truncate text-[11px] text-muted-foreground">{ps.service?.category?.name_en} · {ps.status}</p>
+                </div>
+                {ps.status === "pending" && (
+                  <div className="flex shrink-0 gap-1.5">
+                    <button
+                      disabled={setServiceStatus.isPending}
+                      onClick={() => setServiceStatus.mutate({ providerServiceId: ps.id, status: "approved" })}
+                      className="rounded-lg bg-navy px-3 py-1.5 text-[11px] font-bold text-navy-foreground disabled:opacity-50"
+                    >Approve</button>
+                    <button
+                      disabled={setServiceStatus.isPending}
+                      onClick={() => setServiceStatus.mutate({ providerServiceId: ps.id, status: "rejected" })}
+                      className="rounded-lg border border-border px-3 py-1.5 text-[11px] font-bold disabled:opacity-50"
+                    >Reject</button>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

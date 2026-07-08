@@ -77,6 +77,22 @@ export function useConversations() {
   });
 }
 
+export function useConversationByBooking(bookingId: string | undefined) {
+  return useQuery({
+    enabled: !!bookingId,
+    queryKey: ['conversation-by-booking', bookingId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('booking_id', bookingId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data?.id ?? null;
+    },
+  });
+}
+
 export function useConversation(id: string | undefined) {
   return useQuery({
     enabled: !!id,

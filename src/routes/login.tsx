@@ -208,9 +208,9 @@ function Login() {
         {mode === "signup" && (
           <p className="mt-6 text-xs leading-relaxed text-muted-foreground">
             {t("auth.terms")}{" "}
-            <Link to="/help" className="font-semibold text-navy">{t("auth.termsLink")}</Link>{" "}
+            <Link to="/content/$key" params={{ key: "terms" }} className="font-semibold text-navy">{t("auth.termsLink")}</Link>{" "}
             {t("auth.and")}{" "}
-            <Link to="/help" className="font-semibold text-navy">{t("auth.privacyLink")}</Link>.
+            <Link to="/content/$key" params={{ key: "privacy" }} className="font-semibold text-navy">{t("auth.privacyLink")}</Link>.
           </p>
         )}
       </div>

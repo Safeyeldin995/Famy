@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { PhoneFrame, PrimaryButton, Card, Badge, BackButton } from "@/components/famio/ui";
+import { PhoneFrame, PrimaryButton, Card, Badge, BackButton, Avatar } from "@/components/famio/ui";
 import { PaymentBlock } from "@/components/famio/PaymentBlock";
 import { mockBookings, getProvider } from "@/lib/mock/data";
 import { useBooking, useFavoriteIds, useToggleFavorite } from "@/lib/db/queries";
@@ -7,6 +7,7 @@ import { toUIProvider } from "@/lib/db/adapters";
 import { currentLang } from "@/lib/i18n";
 import { formatEGP } from "@/lib/utils";
 import { Check, MapPin, Calendar, Clock, Phone, MessageCircle, Download, HelpCircle, AlertTriangle, Star, ShieldCheck, Bell, UserCheck } from "lucide-react";
+import { useConversationByBooking } from "@/lib/db/messaging";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -20,6 +21,7 @@ function BookingDetail() {
   const { t } = useTranslation();
   const realQ = useBooking(id);
   const real = realQ.data;
+  const convQ = useConversationByBooking(id);
   const lang = currentLang();
   const locale = lang === "ar" ? "ar-EG" : "en-US";
 
@@ -84,7 +86,7 @@ function BookingDetail() {
 
           <Card className="mt-8 p-5">
             <div className="flex items-center gap-3">
-              <img src={provider.avatar} className="h-14 w-14 rounded-2xl object-cover" />
+              <Avatar src={provider.avatar} className="h-14 w-14 rounded-2xl" />
               <div>
                 <div className="font-bold">{provider.name}</div>
                 <div className="text-xs text-muted-foreground">{booking.service}</div>
@@ -148,25 +150,35 @@ function BookingDetail() {
 
         <div className="-mt-10 flex-1 rounded-t-3xl bg-surface px-5 pb-8 pt-5">
           <Badge tone="mint"><span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" /> {t("bookingDetail.onTheWay")}</Badge>
-          <div className="mt-2 text-2xl font-extrabold">{t("bookingDetail.arrivingIn", { mins: 14 })}</div>
+          <div className="mt-2 text-2xl font-extrabold">{t("bookingDetail.inProgress", "Service in progress")}</div>
           <p className="text-sm text-muted-foreground">{t("bookingDetail.arrivingBody", { name: provider.name })}</p>
 
           <Card className="mt-5 p-4">
             <div className="flex items-center gap-3">
-              <img src={provider.avatar} className="h-14 w-14 rounded-2xl object-cover" />
+              <Avatar src={provider.avatar} className="h-14 w-14 rounded-2xl" />
               <div className="min-w-0 flex-1">
                 <div className="font-bold">{provider.name}</div>
                 <div className="text-xs text-muted-foreground">★ {provider.rating} · {provider.role}</div>
               </div>
               <div className="flex gap-2">
-                <Link
-                  to="/messages/$id"
-                  params={{ id: "m1" }}
-                  aria-label={`${t("chat.title")} ${provider.name}`}
-                  className="focus-ring grid h-11 w-11 place-items-center rounded-full bg-navy text-navy-foreground active:scale-95 transition-transform"
-                >
-                  <MessageCircle className="h-4 w-4" aria-hidden="true" />
-                </Link>
+                {convQ.data ? (
+                  <Link
+                    to="/messages/$id"
+                    params={{ id: convQ.data }}
+                    aria-label={`${t("chat.title")} ${provider.name}`}
+                    className="focus-ring grid h-11 w-11 place-items-center rounded-full bg-navy text-navy-foreground active:scale-95 transition-transform"
+                  >
+                    <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                  </Link>
+                ) : (
+                  <button
+                    disabled
+                    aria-label={t("chat.notYetAvailable", "Chat available once confirmed")}
+                    className="grid h-11 w-11 place-items-center rounded-full bg-surface-2 text-muted-foreground opacity-50"
+                  >
+                    <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                )}
                 <button
                   aria-label={`${t("providerProfile.call")} ${provider.name}`}
                   className="focus-ring grid h-11 w-11 place-items-center rounded-full bg-coral text-coral-foreground active:scale-95 transition-transform"
@@ -205,7 +217,7 @@ function BookingDetail() {
 
         <Card className="mt-8 p-5">
           <div className="flex items-center gap-3 border-b border-border pb-4">
-            <img src={provider.avatar} alt={provider.name} className="h-14 w-14 rounded-2xl object-cover" />
+            <Avatar src={provider.avatar} alt={provider.name} className="h-14 w-14 rounded-2xl" />
             <div className="min-w-0 flex-1">
               <div className="text-base font-bold">{provider.name}</div>
               <div className="text-xs text-muted-foreground">{booking.service}</div>
@@ -264,7 +276,13 @@ function BookingDetail() {
       </div>
 
       <div className="safe-bottom space-y-2 px-6 pt-4">
-        <PrimaryButton onClick={() => setView("active")}>{t("bookingDetail.trackBooking")}</PrimaryButton>
+        {real?.status === "in_progress" ? (
+          <PrimaryButton onClick={() => setView("active")}>{t("bookingDetail.trackBooking")}</PrimaryButton>
+        ) : (
+          <div className="rounded-2xl bg-surface-2 py-3 text-center text-sm font-semibold text-muted-foreground">
+            {t("bookingDetail.waitingForProvider", "Tracking will be available once your provider is on the way.")}
+          </div>
+        )}
         <Link to="/home" className="block py-3 text-center text-sm font-semibold text-muted-foreground">{t("bookingDetail.backHome")}</Link>
       </div>
     </PhoneFrame>

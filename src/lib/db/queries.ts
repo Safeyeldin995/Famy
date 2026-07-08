@@ -87,6 +87,40 @@ export function useCreateAddress() {
   });
 }
 
+// Completes the existing address capability (create already existed, this
+// is the missing update half) — lets setup.tsx edit a real existing
+// address instead of always creating a new one on every visit.
+export function useUpdateAddress() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      id: string;
+      line1: string;
+      line2?: string;
+      area?: string;
+      city: string;
+    }) => {
+      const { data, error } = await supabase
+        .from('addresses')
+        .update({
+          line1: input.line1,
+          line2: input.line2 ?? null,
+          area: input.area ?? null,
+          city: input.city,
+        })
+        .eq('id', input.id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['addresses'] });
+      qc.invalidateQueries({ queryKey: ['default-address'] });
+    },
+  });
+}
+
 // Single default (or most-recent) address for display purposes — e.g. the
 // location chip on Home and the "Addresses" row on Profile. Replaces the old
 // Zustand `profile.compound` read (no display should depend on local-only
@@ -139,7 +173,7 @@ export function useProviders(opts: { categorySlug?: string; limit?: number } = {
            profile:profiles(full_name, avatar_url),
            ratings:ratings_summary(rating_avg, rating_count),
            trust:trust_scores(score),
-           services:provider_services(service:services(id, slug, name_en, name_ar, category:categories(slug)))`,
+           services:provider_services(status, service:services(id, slug, name_en, name_ar, category:categories(slug)))`,
         )
         .eq('is_active', true)
         .eq('is_verified', true)
@@ -148,7 +182,7 @@ export function useProviders(opts: { categorySlug?: string; limit?: number } = {
       if (error) throw error;
       if (!opts.categorySlug) return data ?? [];
       return (data ?? []).filter((p: any) =>
-        p.services?.some((ps: any) => ps.service?.category?.slug === opts.categorySlug),
+        p.services?.some((ps: any) => ps.service?.category?.slug === opts.categorySlug && ps.status === 'approved'),
       );
     },
   });
@@ -163,13 +197,109 @@ export function useProvider(id: string | undefined) {
         .from('providers')
         .select(
           `*, profile:profiles(*), ratings:ratings_summary(*), trust:trust_scores(*),
-           services:provider_services(service:services(*)),
+           services:provider_services(status, service:services(*)),
            reviews(*)`,
         )
         .eq('id', id!)
         .maybeSingle();
       if (error) throw error;
       return data;
+    },
+  });
+}
+
+// ---------- Avatars ----------
+// Single shared resolver for the private `avatars` storage bucket. Reused
+// everywhere an avatar is displayed (customer/provider cards, profile
+// screens, booking detail) instead of duplicating the signing logic that
+// previously existed only in pro.profile.tsx. The bucket stays private —
+// this does not change the security model, it only makes the existing
+// signed-URL pattern consistent everywhere.
+//
+// `raw` is whatever is stored in `avatar_url`: null/undefined (no avatar),
+// a full http(s) URL (external fallback, e.g. pravatar — already public,
+// returned as-is), or a private storage path (needs signing).
+export function useAvatarUrl(raw: string | null | undefined) {
+  return useQuery({
+    enabled: !!raw,
+    // Re-sign automatically once the previous URL's 1-hour expiry is close,
+    // rather than only on mount — this is the actual root cause fix for the
+    // "sometimes shows old/broken image" glitch (Issue #4): a signed URL
+    // rendered once and never refreshed will 403 after an hour with no
+    // visible error, which reads as a random flicker.
+    queryKey: ['avatar-url', raw],
+    staleTime: 45 * 60 * 1000, // refetch a fresh signed URL after 45 min, before the 1h expiry hits
+    queryFn: async () => {
+      if (!raw) return null;
+      if (raw.startsWith("http")) return raw;
+      const { data, error } = await supabase.storage.from("avatars").createSignedUrl(raw, 60 * 60);
+      if (error) throw error;
+      return data?.signedUrl ?? null;
+    },
+  });
+}
+
+// ---------- Availability ----------
+// Resolves a provider's REAL open slots for a given date, replacing the
+// hardcoded timeSlots array that previously showed the same fixed times to
+// every customer regardless of the provider's actual schedule. Combines:
+//   1. availability_rules (weekly recurring pattern, by weekday)
+//   2. provider_vacations (date-range blocks)
+//   3. existing non-cancelled bookings that day (to exclude already-taken times)
+// The database's own overlap-exclusion constraint on `bookings` remains the
+// final safety net if two customers race for the same slot — this function
+// is a UX layer on top of that, not a replacement for it.
+export function useAvailableSlots(providerId: string | undefined, date: Date | null, slotMinutes = 120) {
+  return useQuery({
+    enabled: !!providerId && !!date,
+    queryKey: ['available-slots', providerId, date?.toDateString()],
+    queryFn: async () => {
+      const d = date!;
+      const weekday = d.getDay();
+      const dayStart = new Date(d); dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(d); dayEnd.setHours(23, 59, 59, 999);
+      const dateStr = dayStart.toISOString().slice(0, 10);
+
+      const [rulesRes, vacRes, bookingsRes] = await Promise.all([
+        supabase.from('availability_rules').select('start_time, end_time').eq('provider_id', providerId!).eq('weekday', weekday),
+        supabase.from('provider_vacations').select('start_date, end_date').eq('provider_id', providerId!).lte('start_date', dateStr).gte('end_date', dateStr),
+        supabase.from('bookings').select('start_at, end_at').eq('provider_id', providerId!).neq('status', 'cancelled')
+          .gte('start_at', dayStart.toISOString()).lte('start_at', dayEnd.toISOString()),
+      ]);
+      if (rulesRes.error) throw rulesRes.error;
+      if (vacRes.error) throw vacRes.error;
+      if (bookingsRes.error) throw bookingsRes.error;
+
+      // Provider is on vacation this date — no slots at all.
+      if ((vacRes.data ?? []).length > 0) return [];
+
+      const rules = rulesRes.data ?? [];
+      const booked = bookingsRes.data ?? [];
+      const slots: { label: string; start: Date; end: Date }[] = [];
+
+      for (const rule of rules) {
+        const [sh, sm] = rule.start_time.split(':').map(Number);
+        const [eh, em] = rule.end_time.split(':').map(Number);
+        let cursor = new Date(d); cursor.setHours(sh, sm, 0, 0);
+        const ruleEnd = new Date(d); ruleEnd.setHours(eh, em, 0, 0);
+
+        while (+cursor + slotMinutes * 60000 <= +ruleEnd) {
+          const slotEnd = new Date(+cursor + slotMinutes * 60000);
+          const overlapsBooking = booked.some((b: any) => {
+            const bs = new Date(b.start_at), be = new Date(b.end_at);
+            return +cursor < +be && +slotEnd > +bs;
+          });
+          if (!overlapsBooking) {
+            slots.push({
+              label: cursor.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+              start: new Date(cursor),
+              end: slotEnd,
+            });
+          }
+          cursor = new Date(+cursor + slotMinutes * 60000);
+        }
+      }
+      return slots;
     },
   });
 }
@@ -317,6 +447,25 @@ export function useAddresses() {
   });
 }
 
+// ---------- Support ----------
+// Reuses the exact pattern already established for useInstapayReceiver()
+// (payment-queries.ts) — reading a real key from the existing `settings`
+// table rather than hardcoding contact details in application code.
+export function useSupportContact() {
+  return useQuery({
+    queryKey: ['support-contact'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'support_contact')
+        .maybeSingle();
+      if (error) throw error;
+      return (data?.value as { phone?: string; whatsapp?: string; note?: string } | null) ?? null;
+    },
+  });
+}
+
 // ---------- Coupons ----------
 export async function validateCoupon(code: string, subtotal: number) {
   const { data, error } = await supabase
@@ -359,12 +508,17 @@ export function useProviderServices(providerId: string | undefined) {
     enabled: !!providerId,
     queryKey: ['provider-services', providerId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // `status` cast to `any` — generated Supabase types predate today's
+      // provider_services approval-status migration and will be
+      // regenerated once it's run against the real database (same pattern
+      // already used in admin-queries.ts for the identical reason).
+      const { data, error } = await (supabase
         .from('provider_services')
-        .select('price_override, service:services(*, category:categories(slug, name_en, name_ar))')
-        .eq('provider_id', providerId!);
+        .select('price_override, status, service:services(*, category:categories(slug, name_en, name_ar))') as any)
+        .eq('provider_id', providerId!)
+        .eq('status', 'approved');
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as any[];
     },
   });
 }

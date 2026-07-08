@@ -3,6 +3,7 @@ import { Star, ShieldCheck, Clock, Award } from "lucide-react";
 import type { Provider } from "@/lib/mock/data";
 import { formatEGP, formatNumber } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
+import { Avatar } from "@/components/famio/ui";
 
 export function ProviderCard({ p }: { p: Provider }) {
   const { t } = useTranslation();
@@ -24,11 +25,10 @@ export function ProviderCard({ p }: { p: Provider }) {
       )}
       <div className="flex items-center gap-3">
         <div className="relative shrink-0">
-          <img
+          <Avatar
             src={p.avatar}
             alt={p.name}
-            loading="lazy"
-            className="h-16 w-16 rounded-2xl object-cover"
+            className="h-16 w-16 rounded-2xl"
           />
           <span className="absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-full bg-success text-white ring-2 ring-surface" title={t("common.verified")}>
             <ShieldCheck className="h-3 w-3" />
@@ -89,11 +89,10 @@ export function ProviderTile({ p }: { p: Provider }) {
       className="focus-ring block w-44 shrink-0 overflow-hidden rounded-3xl bg-surface shadow-soft active:scale-[0.98] transition-transform"
     >
       <div className="relative h-40 w-full overflow-hidden">
-        <img
+        <Avatar
           src={p.avatar}
           alt={p.name}
-          loading="lazy"
-          className="h-full w-full object-cover"
+          className="h-full w-full"
         />
         {isTopPro && (
           <span className="absolute start-2 top-2 inline-flex items-center gap-1 rounded-full bg-navy/90 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur">

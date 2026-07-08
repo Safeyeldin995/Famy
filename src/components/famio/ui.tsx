@@ -2,6 +2,29 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { Home, Calendar, MessageCircle, User, ShieldCheck, AlertCircle, RefreshCw } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { useAvatarUrl } from "@/lib/db/queries";
+
+/**
+ * Single shared avatar renderer for the whole app (Issue #4 fix). Resolves
+ * the private `avatars` bucket's signed URL via useAvatarUrl() — the bucket
+ * stays private, this only makes the existing signing pattern (previously
+ * only in pro.profile.tsx) consistent everywhere an avatar is shown, instead
+ * of duplicating the same signing logic in seven different call sites.
+ */
+export function Avatar({
+  src,
+  alt = "",
+  className = "",
+}: {
+  src: string | null | undefined;
+  alt?: string;
+  className?: string;
+}) {
+  const q = useAvatarUrl(src);
+  if (q.isLoading) return <div className={`animate-pulse bg-surface-2 ${className}`} />;
+  if (!q.data) return <div className={`grid place-items-center bg-surface-2 text-muted-foreground ${className}`}><User className="h-1/2 w-1/2" /></div>;
+  return <img src={q.data} alt={alt} className={`object-cover ${className}`} />;
+}
 
 export function PhoneFrame({ children, bg = "bg-surface-2" }: { children: ReactNode; bg?: string }) {
   return (

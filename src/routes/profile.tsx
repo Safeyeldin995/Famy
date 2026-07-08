@@ -1,9 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { AppShell, TopBar, Card } from "@/components/famio/ui";
+import { AppShell, TopBar, Card, Avatar } from "@/components/famio/ui";
 import { LanguageToggle } from "@/components/famio/LanguageToggle";
 import { useApp } from "@/lib/store";
-import { useMyProfile, useDefaultAddress } from "@/lib/db/queries";
+import { useMyProfile, useDefaultAddress, useAvatarUrl } from "@/lib/db/queries";
 import { setLanguage, currentLang } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -14,6 +14,7 @@ export const Route = createFileRoute("/profile")({ component: Profile });
 function Profile() {
   const { reset } = useApp();
   const profileQ = useMyProfile();
+  const avatarQ = useAvatarUrl(profileQ.data?.avatar_url as string | undefined);
   const addressQ = useDefaultAddress();
   const nav = useNavigate();
   const qc = useQueryClient();
@@ -34,9 +35,13 @@ function Profile() {
       <div className="px-5">
         <Card className="p-5">
           <div className="flex items-center gap-4">
-            <div className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-navy text-2xl font-extrabold text-navy-foreground">
-              {profileQ.data?.full_name ? profileQ.data.full_name.charAt(0).toUpperCase() : "F"}
-            </div>
+            {avatarQ.data ? (
+              <Avatar src={avatarQ.data} className="h-16 w-16 shrink-0 rounded-2xl" />
+            ) : (
+              <div className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-navy text-2xl font-extrabold text-navy-foreground">
+                {profileQ.data?.full_name ? profileQ.data.full_name.charAt(0).toUpperCase() : "F"}
+              </div>
+            )}
             <div className="min-w-0">
               <div className="truncate text-lg font-extrabold">{profileQ.data?.full_name || t("profile.famioUser")}</div>
               <div className="truncate text-xs text-muted-foreground" dir="ltr">{profileQ.data?.phone || "—"}</div>

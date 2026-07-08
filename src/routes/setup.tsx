@@ -1,18 +1,17 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { PhoneFrame, PrimaryButton, TopBar } from "@/components/famio/ui";
+import { useQueryClient } from "@tanstack/react-query";
+import { PhoneFrame, PrimaryButton, TopBar, Avatar } from "@/components/famio/ui";
 import { useApp } from "@/lib/store";
-import { useUpdateProfile, useCreateAddress, useAddresses } from "@/lib/db/queries";
+import { useUpdateProfile, useCreateAddress, useUpdateAddress, useAddresses, useMyProfile, useAvatarUrl } from "@/lib/db/queries";
 import { useServiceAreasSettings } from "@/lib/db/settings-queries";
-import { Camera, MapPin } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Camera, MapPin, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/setup")({ component: Setup });
 
-// Real service areas now come from Settings (admin-editable); the two names
-// below are only the fallback used by useServiceAreasSettings() itself if no
-// `service_areas` settings row exists yet — see settings-queries.ts.
 const FIXED_CITY = "Giza";
 
 function Setup() {
@@ -20,47 +19,102 @@ function Setup() {
   const nav = useNavigate();
   const { t } = useTranslation();
   const [form, setForm] = useState({ ...profile, area: "" });
+  const [existingAddressId, setExistingAddressId] = useState<string | null>(null);
   const updateProfile = useUpdateProfile();
   const createAddress = useCreateAddress();
+  const updateAddress = useUpdateAddress();
   const existingAddresses = useAddresses();
   const areasQ = useServiceAreasSettings();
   const areaOptions = (areasQ.data ?? []).filter((a) => a.enabled).map((a) => a.name);
+  const myProfile = useMyProfile();
+  const qc = useQueryClient();
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const avatarQ = useAvatarUrl(myProfile.data?.avatar_url as string | undefined);
+
+  useEffect(() => {
+    if (myProfile.data?.full_name) {
+      setForm((f) => ({ ...f, name: myProfile.data!.full_name! }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myProfile.data?.full_name]);
+
+  useEffect(() => {
+    const list = existingAddresses.data;
+    if (!list || list.length === 0) return;
+    const def = list.find((a: any) => a.is_default) ?? list[0];
+    setExistingAddressId(def.id);
+    setForm((f) => ({
+      ...f,
+      area: def.area ?? "",
+      address: def.line1 ?? "",
+      compound: "",
+      building: "",
+      apartment: "",
+      notes: def.line2 ?? "",
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existingAddresses.data]);
+
+  const onPickAvatar = async (file: File) => {
+    try {
+      setUploading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("auth required");
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const path = `${user.id}/avatar-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { contentType: file.type, upsert: true });
+      if (upErr) throw upErr;
+      const { error: dbErr } = await supabase
+        .from("profiles")
+        .update({ avatar_url: path })
+        .eq("id", user.id);
+      if (dbErr) throw dbErr;
+      await qc.invalidateQueries({ queryKey: ["my-profile"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? t("setup.uploadFailed", "Could not upload photo."));
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const update = (k: keyof typeof form, v: string) => setForm({ ...form, [k]: v });
   const valid = form.name.trim().length > 1 && form.address.trim().length > 2 && form.area.trim().length > 0;
-  const saving = updateProfile.isPending || createAddress.isPending;
+  const saving = updateProfile.isPending || createAddress.isPending || updateAddress.isPending;
 
   const submit = async () => {
     if (!valid || saving) return;
-    // Guard against a false-positive `is_default` if this query hasn't
-    // resolved yet — refetch rather than trusting a possibly-stale/absent cache.
     if (existingAddresses.isLoading) {
       await existingAddresses.refetch();
     }
     try {
-      // full_name → profiles (identity data, per Sprint 1 Phase 2 scope).
       await updateProfile.mutateAsync({ full_name: form.name.trim() });
 
-      // address → addresses (existing table; no schema changes).
-      // `area` now holds the Sheikh Zayed / 6th of October selection, so
-      // `compound` (a free-text sub-neighborhood, e.g. "Allegria") has no
-      // dedicated column left — folded into line2 alongside apartment/
-      // building/notes, same treatment as notes already had.
       const line2Parts = [form.compound, form.apartment, form.building, form.notes].filter((v) => v.trim().length > 0);
-      const isFirstAddress = (existingAddresses.data?.length ?? 0) === 0;
-      await createAddress.mutateAsync({
-        label: "Home",
-        line1: form.address.trim(),
-        line2: line2Parts.length > 0 ? line2Parts.join(" · ") : undefined,
-        area: form.area,
-        city: FIXED_CITY,
-        country: "EG",
-        is_default: isFirstAddress,
-      });
 
-      // Keep Zustand's profile cache in sync for any screen still reading it
-      // (e.g. the avatar-initial display) — not a source of truth anymore,
-      // just a local display cache.
+      if (existingAddressId) {
+        await updateAddress.mutateAsync({
+          id: existingAddressId,
+          line1: form.address.trim(),
+          line2: line2Parts.length > 0 ? line2Parts.join(" · ") : undefined,
+          area: form.area,
+          city: FIXED_CITY,
+        });
+      } else {
+        const isFirstAddress = (existingAddresses.data?.length ?? 0) === 0;
+        await createAddress.mutateAsync({
+          label: "Home",
+          line1: form.address.trim(),
+          line2: line2Parts.length > 0 ? line2Parts.join(" · ") : undefined,
+          area: form.area,
+          city: FIXED_CITY,
+          country: "EG",
+          is_default: isFirstAddress,
+        });
+      }
+
       setProfile(form);
       nav({ to: "/home" });
     } catch (e: any) {
@@ -70,16 +124,37 @@ function Setup() {
 
   return (
     <PhoneFrame bg="bg-surface">
-      <TopBar title={t("setup.title")} />
+      <TopBar back={{ to: "/profile" }} title={t("setup.title")} />
       <div className="flex-1 space-y-5 px-6 pb-6 pt-2">
         <div className="flex flex-col items-center pb-2">
           <div className="relative">
-            <div className="grid h-24 w-24 place-items-center rounded-full bg-navy/10 text-3xl font-extrabold text-navy">
-              {form.name ? form.name.charAt(0).toUpperCase() : "F"}
-            </div>
-            <button className="absolute -bottom-1 -right-1 grid h-9 w-9 place-items-center rounded-full bg-coral text-coral-foreground shadow-card" aria-label={t("setup.photoHint")}>
-              <Camera className="h-4 w-4" />
+            {avatarQ.data ? (
+              <Avatar src={avatarQ.data} className="h-24 w-24 rounded-full" />
+            ) : (
+              <div className="grid h-24 w-24 place-items-center rounded-full bg-navy/10 text-3xl font-extrabold text-navy">
+                {form.name ? form.name.charAt(0).toUpperCase() : "F"}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+              className="absolute -bottom-1 -right-1 grid h-9 w-9 place-items-center rounded-full bg-coral text-coral-foreground shadow-card disabled:opacity-60"
+              aria-label={t("setup.photoHint")}
+            >
+              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
             </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) onPickAvatar(f);
+                e.target.value = "";
+              }}
+            />
           </div>
           <p className="mt-3 text-xs text-muted-foreground">{t("setup.photoHint")}</p>
         </div>
@@ -155,4 +230,3 @@ function Field({ label, value, onChange, placeholder }: { label: string; value: 
     </div>
   );
 }
-

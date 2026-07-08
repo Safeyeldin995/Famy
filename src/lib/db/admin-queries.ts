@@ -58,7 +58,7 @@ export function useAdminProvider(id: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('providers')
-        .select('*, profile:profiles(*), documents:provider_documents(*)')
+        .select('*, profile:profiles(*), documents:provider_documents(*), services:provider_services(id, status, service:services(id, name_en, name_ar, category:categories(name_en, name_ar)))')
         .eq('id', id)
         .maybeSingle();
       if (error) throw error;
@@ -76,6 +76,22 @@ export function useSetProviderVerified() {
         .from('providers')
         .update({ is_verified: verified, is_active: verified })
         .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin'] });
+    },
+  });
+}
+
+export function useSetProviderServiceStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ providerServiceId, status }: { providerServiceId: string; status: 'approved' | 'rejected' }) => {
+      const { error } = await supabase
+        .from('provider_services')
+        .update({ status } as any)
+        .eq('id', providerServiceId);
       if (error) throw error;
     },
     onSuccess: () => {

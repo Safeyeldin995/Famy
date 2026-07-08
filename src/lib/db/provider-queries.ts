@@ -104,6 +104,22 @@ export function useUpdateProvider() {
 
 // ---------- Bookings (provider side) ----------
 export function useProviderBookings(providerId: string | undefined) {
+  // Deliberately no polling and no Realtime subscription here.
+  //
+  // TanStack Query's default behavior already refetches this query on
+  // mount and on window/tab refocus — for a closed beta at expected scale
+  // (10-50 users, a handful of providers, low daily booking volume), that
+  // means a provider opening or returning to this screen sees any new
+  // request within a normal app-usage pattern, with zero added
+  // infrastructure.
+  //
+  // Realtime was evaluated and deliberately rejected for now: it requires
+  // publication management, websocket connection/reconnect handling, and
+  // subscription lifecycle cleanup — real, ongoing complexity that isn't
+  // justified until actual beta usage shows this default refetch behavior
+  // is insufflicient. Revisit only if real usage data (not assumption)
+  // shows providers missing requests because they leave the screen open
+  // and never refocus/remount it.
   return useQuery({
     enabled: !!providerId,
     queryKey: ['provider-bookings', providerId],
@@ -358,7 +374,7 @@ export function useMyProviderServices(providerId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('provider_services')
-        .select('service_id, price_override')
+        .select('service_id, price_override, status')
         .eq('provider_id', providerId!);
       if (error) throw error;
       return data ?? [];

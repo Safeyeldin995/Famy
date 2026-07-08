@@ -1,11 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { PhoneFrame, TopBar, PrimaryButton, Card, EmptyState } from "@/components/famio/ui";
+import { PhoneFrame, TopBar, PrimaryButton, Card, EmptyState, Avatar } from "@/components/famio/ui";
 import {
-  useProvider, useProviderServices, useCreateBooking, useAddresses,
+  useProvider, useProviderServices, useCreateBooking, useAddresses, validateCoupon, useAvailableSlots,
 } from "@/lib/db/queries";
 import { useCreatePayment } from "@/lib/db/payment-queries";
-import { useBillingSettings, DEFAULT_BILLING_SETTINGS } from "@/lib/db/settings-queries";
 import { toUIProvider } from "@/lib/db/adapters";
 import { currentLang } from "@/lib/i18n";
 import { MapPin, Banknote, Check, Loader2 } from "lucide-react";
@@ -13,6 +12,8 @@ import instapayLogo from "@/assets/instapay.png.asset.json";
 import { useTranslation } from "react-i18next";
 import { formatEGP, formatNumber } from "@/lib/format";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useBillingSettings, DEFAULT_BILLING_SETTINGS } from "@/lib/db/settings-queries";
 
 export const Route = createFileRoute("/book/$providerId")({ component: Book });
 
@@ -20,10 +21,10 @@ function Book() {
   const { providerId } = Route.useParams();
   const provQ = useProvider(providerId);
   const servicesQ = useProviderServices(providerId);
-  const billingQ = useBillingSettings();
   const addrsQ = useAddresses();
   const createBooking = useCreateBooking();
   const createPayment = useCreatePayment();
+  const billingQ = useBillingSettings();
   const { t } = useTranslation();
   const nav = useNavigate();
 
@@ -33,10 +34,15 @@ function Book() {
   const [duration, setDuration] = useState("4h");
   const [date, setDate] = useState<Date | null>(null);
   const [time, setTime] = useState<string | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null);
   const [address, setAddress] = useState("");
   const [addressId, setAddressId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   const [pay, setPay] = useState<"cash" | "instapay">("cash");
+  const [promoCode, setPromoCode] = useState("");
+  const [promoStatus, setPromoStatus] = useState<"idle" | "checking" | "applied" | "invalid">("idle");
+  const [promoDiscount, setPromoDiscount] = useState(0);
+  const [appliedCouponId, setAppliedCouponId] = useState<string | null>(null);
 
   // Seed the address step from the customer's real default/most-recent saved
   // address once it loads — replaces the old Zustand `profile.address` read
@@ -72,10 +78,10 @@ function Book() {
   const subtotal = ratePerHour * hours;
   const fee = billingQ.data?.platform_fee ?? DEFAULT_BILLING_SETTINGS.platform_fee;
   const vat = Math.round(subtotal * ((billingQ.data?.vat_percent ?? DEFAULT_BILLING_SETTINGS.vat_percent) / 100));
-  const total = subtotal + fee + vat;
+  const total = Math.max(0, subtotal + fee + vat - promoDiscount);
 
   const durations = ["2h", "4h", "6h", "8h"];
-  const timeSlots = ["8:00 AM", "10:00 AM", "12:00 PM", "2:00 PM", "4:00 PM", "6:00 PM"];
+  const slotsQ = useAvailableSlots(providerId, date, hours * 60 || 120);
 
   const canNext = () => {
     if (step === 0) return !!activeService;
@@ -85,17 +91,87 @@ function Book() {
     return true;
   };
 
-  const submit = async () => {
-    if (!activeService?.service?.id || !date || !time) return;
-    // Combine date + time
-    const [hh, mm, ampm] = time.match(/(\d+):(\d+)\s*(\w+)/)!.slice(1);
-    let h = parseInt(hh); if (ampm.toUpperCase() === "PM" && h !== 12) h += 12;
-    const start = new Date(date);
-    start.setHours(h, parseInt(mm), 0, 0);
-    const end = new Date(start.getTime() + hours * 60 * 60 * 1000);
+  const applyPromo = async () => {
+    const code = promoCode.trim();
+    if (!code) return;
+    setPromoStatus("checking");
     try {
-      // COD goes straight to confirmed per spec; InstaPay stays pending until proof reviewed.
-      const bookingStatus = pay === "cash" ? "confirmed" : "pending";
+      const result = await validateCoupon(code, subtotal);
+      if (result.ok) {
+        setPromoDiscount(result.discount);
+        setAppliedCouponId(result.coupon.id);
+        setPromoStatus("applied");
+        toast.success(t("bookFlow.promoApplied", { amount: formatEGP(result.discount) }));
+      } else {
+        setPromoDiscount(0);
+        setAppliedCouponId(null);
+        setPromoStatus("invalid");
+        toast.error(t(`bookFlow.promoError.${result.reason}`, t("bookFlow.promoError.not_found")));
+      }
+    } catch (e: any) {
+      setPromoDiscount(0);
+      setAppliedCouponId(null);
+      setPromoStatus("invalid");
+      toast.error(e?.message ?? t("bookFlow.promoError.not_found"));
+    }
+  };
+
+  const submit = async () => {
+    if (!activeService?.service?.id) {
+      toast.error(t("bookFlow.missingService", "Please select a service."));
+      return;
+    }
+    if (!date || !time) {
+      toast.error(t("bookFlow.missingSlot", "Please select an available time slot."));
+      return;
+    }
+    // Use the real slot's start/end (set when the customer picked it from
+    // real availability data) rather than re-parsing the display label —
+    // more robust than string-matching a locale-formatted time string.
+    let start: Date, end: Date;
+    if (selectedSlot) {
+      start = selectedSlot.start;
+      end = selectedSlot.end;
+    } else {
+      const [hh, mm, ampm] = time.match(/(\d+):(\d+)\s*(\w+)/)!.slice(1);
+      let h = parseInt(hh); if (ampm.toUpperCase() === "PM" && h !== 12) h += 12;
+      start = new Date(date);
+      start.setHours(h, parseInt(mm), 0, 0);
+      end = new Date(start.getTime() + hours * 60 * 60 * 1000);
+    }
+    try {
+      // UX-only pre-flight check. This does NOT guarantee consistency and
+      // must never be treated as the source of truth — a real race
+      // condition (two customers submitting at the same instant) can still
+      // pass this check for both. The database's bookings_no_overlap
+      // exclusion constraint (verified present in migration
+      // 20260627001502) is the sole authoritative guard; useCreateBooking()
+      // below still independently catches and surfaces that constraint's
+      // 23P01 error regardless of what this check finds. This exists only
+      // to give faster, more specific feedback in the common (non-race) case.
+      const { data: clashes, error: clashErr } = await supabase
+        .from("bookings")
+        .select("id")
+        .eq("provider_id", p.id)
+        .in("status", ["pending", "confirmed", "in_progress"])
+        .lt("start_at", end.toISOString())
+        .gt("end_at", start.toISOString())
+        .limit(1);
+      if (clashErr) throw clashErr;
+      if (clashes && clashes.length > 0) {
+        toast.error(t("bookFlow.slotTaken", "That time slot was just taken. Please pick another."));
+        setTime(null);
+        setSelectedSlot(null);
+        setStep(3);
+        return;
+      }
+
+      // Every booking starts pending, regardless of payment method — the
+      // provider's own accept/decline action (already built in
+      // pro.booking.$id.tsx, gated on status === "pending") is what actually
+      // moves a booking to "confirmed". Payment method (COD vs InstaPay)
+      // only affects the payment row's own status, not the booking's.
+      const bookingStatus = "pending";
       const booking = await createBooking.mutateAsync({
         provider_id: p.id,
         service_id: activeService.service.id,
@@ -103,7 +179,7 @@ function Book() {
         start_at: start.toISOString(),
         end_at: end.toISOString(),
         price_subtotal: subtotal,
-        price_discount: 0,
+        price_discount: promoDiscount,
         price_total: total,
         currency: "EGP",
         status: bookingStatus,
@@ -186,7 +262,7 @@ function Book() {
                 return (
                   <button
                     key={i}
-                    onClick={() => setDate(d)}
+                    onClick={() => { setDate(d); setTime(null); setSelectedSlot(null); }}
                     className={`flex flex-col items-center rounded-2xl px-2 py-3 transition-all ${isSel ? "bg-coral text-coral-foreground" : "bg-surface shadow-soft"}`}
                   >
                     <span className="text-[10px] font-bold uppercase">{d.toLocaleString(locale, { weekday: "short" })}</span>
@@ -201,17 +277,25 @@ function Book() {
 
         {step === 3 && (
           <Step title={t("bookFlow.timeTitle")} sub={t("bookFlow.timeSub")}>
-            <div className="grid grid-cols-3 gap-2">
-              {timeSlots.map((tm) => (
-                <button
-                  key={tm}
-                  onClick={() => setTime(tm)}
-                  className={`rounded-2xl py-3 text-sm font-bold ${time === tm ? "bg-navy text-navy-foreground" : "bg-surface shadow-soft"}`}
-                >
-                  {tm}
-                </button>
-              ))}
-            </div>
+            {slotsQ.isLoading ? (
+              <div className="grid grid-cols-3 gap-2">
+                {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-12 animate-pulse rounded-2xl bg-surface" />)}
+              </div>
+            ) : (slotsQ.data ?? []).length === 0 ? (
+              <EmptyState emoji="📅" title={t("bookFlow.noSlots")} body={t("bookFlow.noSlotsBody")} />
+            ) : (
+              <div className="grid grid-cols-3 gap-2">
+                {(slotsQ.data ?? []).map((slot) => (
+                  <button
+                    key={slot.label}
+                    onClick={() => { setTime(slot.label); setSelectedSlot({ start: slot.start, end: slot.end }); }}
+                    className={`rounded-2xl py-3 text-sm font-bold ${time === slot.label ? "bg-navy text-navy-foreground" : "bg-surface shadow-soft"}`}
+                  >
+                    {slot.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </Step>
         )}
 
@@ -270,7 +354,7 @@ function Book() {
           <Step title={t("bookFlow.summaryTitle")}>
             <Card className="p-4">
               <div className="flex items-center gap-3 border-b border-border pb-3">
-                <img src={p.avatar} className="h-14 w-14 rounded-2xl object-cover" />
+                <Avatar src={p.avatar} className="h-14 w-14 rounded-2xl" />
                 <div className="min-w-0">
                   <div className="font-bold">{p.name}</div>
                   <div className="text-xs text-muted-foreground">
@@ -282,10 +366,37 @@ function Book() {
               <Row label={t("bookFlow.rowTime")} value={time || t("bookFlow.dash")} />
               <Row label={t("bookFlow.rowAddress")} value={address || t("bookFlow.dash")} />
               {notes && <Row label={t("bookFlow.rowNotes")} value={notes} />}
+              <div className="mt-3 border-t border-border pt-3">
+                <div className="flex items-center gap-2">
+                  <input
+                    value={promoCode}
+                    onChange={(e) => { setPromoCode(e.target.value); if (promoStatus !== "idle") { setPromoStatus("idle"); setPromoDiscount(0); setAppliedCouponId(null); } }}
+                    placeholder={t("bookFlow.promoPlaceholder")}
+                    disabled={promoStatus === "applied"}
+                    className="h-11 min-w-0 flex-1 rounded-xl border border-border bg-surface px-3 text-sm font-semibold outline-none focus:border-navy disabled:opacity-60"
+                  />
+                  <button
+                    onClick={applyPromo}
+                    disabled={!promoCode.trim() || promoStatus === "checking" || promoStatus === "applied"}
+                    className="h-11 shrink-0 rounded-xl bg-navy px-4 text-sm font-bold text-navy-foreground disabled:opacity-50"
+                  >
+                    {promoStatus === "checking" ? <Loader2 className="h-4 w-4 animate-spin" /> : promoStatus === "applied" ? t("bookFlow.promoApplied2") : t("bookFlow.promoApply")}
+                  </button>
+                </div>
+                {promoStatus === "applied" && (
+                  <div className="mt-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-success">
+                    <Check className="h-3 w-3" aria-hidden="true" />
+                    {t("bookFlow.promoAppliedNote", { amount: formatEGP(promoDiscount) })}
+                  </div>
+                )}
+              </div>
               <div className="mt-3 border-t border-border pt-3 space-y-1.5 text-sm">
                 <Row label={t("bookFlow.rateLine", { rate: formatEGP(ratePerHour), hours: formatNumber(hours) })} value={formatEGP(subtotal)} small />
                 <Row label={t("bookFlow.serviceFee")} value={formatEGP(fee)} small />
                 <Row label={t("bookFlow.vat")} value={formatEGP(vat)} small />
+                {promoDiscount > 0 && (
+                  <Row label={t("bookFlow.promoDiscount")} value={`-${formatEGP(promoDiscount)}`} small />
+                )}
                 <div className="mt-2 flex items-center justify-between border-t border-border pt-2">
                   <span className="text-sm font-bold">{t("bookFlow.total")}</span>
                   <span className="text-lg font-extrabold text-navy">{formatEGP(total)}</span>
