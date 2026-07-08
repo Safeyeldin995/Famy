@@ -134,6 +134,8 @@ const en = {
     chooseService: "Choose your service",
     featured: "Featured Professionals",
     recent: "Recently booked",
+    recentEmpty: "No providers yet",
+    recentEmptyBody: "Check back soon as new professionals join Famy.",
     whyTrust: "Why families trust Famy",
     whyTrustBody: "Verified people. Insured visits. Real support, 24/7.",
     statFamilies: "Families",

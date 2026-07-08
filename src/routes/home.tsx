@@ -138,11 +138,14 @@ function Home() {
       <div className="mt-6">
         <SectionHeader title={t("home.recent")} />
         <div className="space-y-3 px-5">
-          {provsQ.isLoading && Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-24 rounded-3xl bg-surface animate-pulse" />
-          ))}
-          {provsQ.isError ? (
+          {provsQ.isLoading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="h-24 rounded-3xl bg-surface animate-pulse" />
+            ))
+          ) : provsQ.isError ? (
             <EmptyState emoji="⚠️" title={t("common.errorTitle", "Something went wrong")} body={t("common.tryAgain", "Please try again.")} />
+          ) : recent.length === 0 ? (
+            <EmptyState emoji="🧑‍🔧" title={t("home.recentEmpty")} body={t("home.recentEmptyBody")} />
           ) : (
             recent.map((p) => <ProviderCard key={p.id} p={p} />)
           )}

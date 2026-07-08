@@ -136,6 +136,8 @@ const ar: Translation = {
     chooseService: "اختر خدمتك",
     featured: "محترفون مميزون",
     recent: "حجوزات حديثة",
+    recentEmpty: "لا يوجد مزودون بعد",
+    recentEmptyBody: "تابعنا قريبًا مع انضمام محترفين جدد إلى فامي.",
     whyTrust: "لماذا تثق العائلات بفامي",
     whyTrustBody: "أشخاص موثوقون. زيارات مؤمّنة. دعم حقيقي ٢٤/٧.",
     statFamilies: "عائلة",
