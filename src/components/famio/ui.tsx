@@ -1,8 +1,10 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Calendar, MessageCircle, User, ShieldCheck, AlertCircle, RefreshCw } from "lucide-react";
+import { Home, Calendar, MessageCircle, User, ShieldCheck, AlertCircle, RefreshCw, Check } from "lucide-react";
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAvatarUrl } from "@/lib/db/queries";
+import { BOOKING_TIMELINE_STEPS } from "@/lib/utils";
 
 /**
  * Single shared avatar renderer for the whole app (Issue #4 fix). Resolves
@@ -193,9 +195,17 @@ export function PrimaryButton({
   );
 }
 
-export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
+export function Card({
+  children,
+  className = "",
+  onClick,
+}: {
+  children: ReactNode;
+  className?: string;
+  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
+}) {
   return (
-    <div className={`rounded-3xl bg-surface shadow-soft ${className}`}>{children}</div>
+    <div className={`rounded-3xl bg-surface shadow-soft ${className}`} onClick={onClick}>{children}</div>
   );
 }
 
@@ -348,6 +358,115 @@ export function ProviderCardSkeleton() {
         </div>
       </div>
     </div>
+  );
+}
+
+/* --------------------------- Booking lifecycle --------------------------- */
+
+/**
+ * Shared modal for any booking-lifecycle action that needs a confirmation
+ * step, optionally with a required reason (decline/cancel/no-show/dispute).
+ * Pass a distinct `key` at the call site when reusing one instance for
+ * different action kinds so the textarea resets between them.
+ */
+export function ReasonDialog({
+  open,
+  title,
+  body,
+  reasonPlaceholder,
+  confirmLabel,
+  cancelLabel,
+  confirmVariant = "coral",
+  requireReason = true,
+  pending = false,
+  onCancel,
+  onConfirm,
+}: {
+  open: boolean;
+  title: string;
+  body?: string;
+  reasonPlaceholder?: string;
+  confirmLabel: string;
+  cancelLabel: string;
+  confirmVariant?: "coral" | "navy";
+  requireReason?: boolean;
+  pending?: boolean;
+  onCancel: () => void;
+  onConfirm: (reason: string) => void;
+}) {
+  const [reason, setReason] = useState("");
+  if (!open) return null;
+  const canConfirm = !requireReason || reason.trim().length > 0;
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-6" onClick={onCancel}>
+      <Card className="w-full max-w-sm p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="text-base font-extrabold">{title}</div>
+        {body && <div className="mt-1 text-xs text-muted-foreground">{body}</div>}
+        {requireReason && (
+          <textarea
+            rows={3}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder={reasonPlaceholder}
+            className="mt-3 w-full resize-none rounded-2xl border border-border bg-surface-2 p-3 text-sm outline-none"
+          />
+        )}
+        <div className="mt-4 flex gap-2">
+          <button onClick={onCancel} disabled={pending} className="h-12 flex-1 rounded-2xl border border-border bg-surface text-sm font-bold disabled:opacity-50">
+            {cancelLabel}
+          </button>
+          <button
+            onClick={() => onConfirm(reason.trim())}
+            disabled={pending || !canConfirm}
+            className={`h-12 flex-1 rounded-2xl text-sm font-bold disabled:opacity-50 ${
+              confirmVariant === "coral" ? "bg-coral text-coral-foreground" : "bg-navy text-navy-foreground"
+            }`}
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+/** Step tracker for the real booking_status lifecycle — no fabricated
+ * per-step timestamps, just done/active/upcoming state derived from the
+ * booking's current status. `labelFor` lets customer/provider screens pull
+ * step labels from their own i18n namespace. */
+export function BookingTimeline({
+  status,
+  labelFor,
+}: {
+  status: string;
+  labelFor: (step: (typeof BOOKING_TIMELINE_STEPS)[number]) => string;
+}) {
+  const steps = BOOKING_TIMELINE_STEPS;
+  const idx = steps.indexOf(status as (typeof steps)[number]);
+  return (
+    <ol className="relative">
+      {steps.map((step, i) => {
+        const done = idx >= 0 && i <= idx;
+        const active = i === idx;
+        return (
+          <li key={step} className="flex gap-3 pb-4 last:pb-0">
+            <div className="flex flex-col items-center">
+              <span
+                className={`grid h-6 w-6 place-items-center rounded-full ${
+                  done ? "bg-navy text-navy-foreground" : "bg-muted text-muted-foreground"
+                } ${active ? "ring-4 ring-coral/30" : ""}`}
+              >
+                {done ? <Check className="h-3 w-3" /> : <span className="h-1.5 w-1.5 rounded-full bg-current" />}
+              </span>
+              {i < steps.length - 1 && <span className={`mt-1 w-0.5 flex-1 ${done ? "bg-navy" : "bg-border"}`} />}
+            </div>
+            <div className="pb-2 pt-0.5">
+              <div className={`text-sm font-bold ${done ? "" : "text-muted-foreground"}`}>{labelFor(step)}</div>
+            </div>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 

@@ -5,7 +5,7 @@ import { ProviderShell } from "@/components/famio/ProviderShell";
 import { TopBar, Chip, Card, Badge, EmptyState } from "@/components/famio/ui";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { useMyProvider, useProviderBookings } from "@/lib/db/provider-queries";
-import { bookingStatusTone, formatEGP } from "@/lib/utils";
+import { bookingStatusTone, formatEGP, BOOKING_ACTIVE_STATUSES } from "@/lib/utils";
 import { Calendar, Clock } from "lucide-react";
 
 export const Route = createFileRoute("/pro/bookings")({ component: ProBookings });
@@ -25,9 +25,10 @@ function ProBookings() {
     const all = q.data ?? [];
     return {
       requests: all.filter((b: any) => b.status === "pending"),
-      upcoming: all.filter((b: any) => ["confirmed", "in_progress"].includes(b.status))
+      upcoming: all
+        .filter((b: any) => BOOKING_ACTIVE_STATUSES.includes(b.status))
         .sort((a: any, b: any) => +new Date(a.start_at) - +new Date(b.start_at)),
-      history: all.filter((b: any) => ["completed", "cancelled", "no_show"].includes(b.status)),
+      history: all.filter((b: any) => ["completed", "cancelled", "no_show", "disputed"].includes(b.status)),
     };
   }, [q.data]);
 

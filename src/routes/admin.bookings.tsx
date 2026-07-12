@@ -135,7 +135,7 @@ function AdminBookings() {
 
                 {isOpen && (
                   <div className="mt-3">
-                    <PaymentBlock bookingId={b.id} viewer="admin" />
+                    <PaymentBlock bookingId={b.id} viewer="admin" bookingStatus={b.status} />
                   </div>
                 )}
               </li>

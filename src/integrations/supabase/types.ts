@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       addresses: {
@@ -227,13 +252,27 @@ export type Database = {
       bookings: {
         Row: {
           address_id: string | null
+          arrival_confirmed_at: string | null
+          arrival_confirmed_by: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          completed_at: string | null
+          completion_requested_at: string | null
           coupon_id: string | null
           created_at: string
           currency: string
           customer_id: string
           deleted_at: string | null
+          dispute_reason: string | null
+          dispute_resolved_at: string | null
+          dispute_resolved_by: string | null
+          disputed_at: string | null
           end_at: string
           id: string
+          no_show_party: string | null
+          no_show_reason: string | null
+          no_show_reported_by: string | null
           notes: string | null
           payment_id: string | null
           price_discount: number
@@ -243,17 +282,33 @@ export type Database = {
           service_id: string
           start_at: string
           status: Database["public"]["Enums"]["booking_status"]
+          status_changed_at: string | null
+          status_changed_by: string | null
           updated_at: string
         }
         Insert: {
           address_id?: string | null
+          arrival_confirmed_at?: string | null
+          arrival_confirmed_by?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          completed_at?: string | null
+          completion_requested_at?: string | null
           coupon_id?: string | null
           created_at?: string
           currency?: string
           customer_id: string
           deleted_at?: string | null
+          dispute_reason?: string | null
+          dispute_resolved_at?: string | null
+          dispute_resolved_by?: string | null
+          disputed_at?: string | null
           end_at: string
           id?: string
+          no_show_party?: string | null
+          no_show_reason?: string | null
+          no_show_reported_by?: string | null
           notes?: string | null
           payment_id?: string | null
           price_discount?: number
@@ -263,17 +318,33 @@ export type Database = {
           service_id: string
           start_at: string
           status?: Database["public"]["Enums"]["booking_status"]
+          status_changed_at?: string | null
+          status_changed_by?: string | null
           updated_at?: string
         }
         Update: {
           address_id?: string | null
+          arrival_confirmed_at?: string | null
+          arrival_confirmed_by?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          completed_at?: string | null
+          completion_requested_at?: string | null
           coupon_id?: string | null
           created_at?: string
           currency?: string
           customer_id?: string
           deleted_at?: string | null
+          dispute_reason?: string | null
+          dispute_resolved_at?: string | null
+          dispute_resolved_by?: string | null
+          disputed_at?: string | null
           end_at?: string
           id?: string
+          no_show_party?: string | null
+          no_show_reason?: string | null
+          no_show_reported_by?: string | null
           notes?: string | null
           payment_id?: string | null
           price_discount?: number
@@ -283,6 +354,8 @@ export type Database = {
           service_id?: string
           start_at?: string
           status?: Database["public"]["Enums"]["booking_status"]
+          status_changed_at?: string | null
+          status_changed_by?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -802,6 +875,7 @@ export type Database = {
           price_override: number | null
           provider_id: string
           service_id: string
+          status: string
         }
         Insert: {
           created_at?: string
@@ -809,6 +883,7 @@ export type Database = {
           price_override?: number | null
           provider_id: string
           service_id: string
+          status?: string
         }
         Update: {
           created_at?: string
@@ -816,6 +891,7 @@ export type Database = {
           price_override?: number | null
           provider_id?: string
           service_id?: string
+          status?: string
         }
         Relationships: [
           {
@@ -1371,6 +1447,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_not_suspended: { Args: { _user_id: string }; Returns: boolean }
       recompute_trust_score: {
         Args: { _provider_id: string }
         Returns: undefined
@@ -1381,7 +1458,12 @@ export type Database = {
       booking_status:
         | "pending"
         | "confirmed"
+        | "on_the_way"
+        | "arrived"
+        | "arrival_confirmed"
         | "in_progress"
+        | "completion_requested"
+        | "disputed"
         | "completed"
         | "cancelled"
         | "no_show"
@@ -1537,13 +1619,21 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["customer", "provider", "admin"],
       booking_status: [
         "pending",
         "confirmed",
+        "on_the_way",
+        "arrived",
+        "arrival_confirmed",
         "in_progress",
+        "completion_requested",
+        "disputed",
         "completed",
         "cancelled",
         "no_show",

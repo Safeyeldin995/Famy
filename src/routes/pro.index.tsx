@@ -5,7 +5,7 @@ import { Card, Badge, EmptyState, TopBar } from "@/components/famio/ui";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { useMyProvider, useProviderBookings, useProviderEarnings } from "@/lib/db/provider-queries";
 import { useNotifications } from "@/lib/db/queries";
-import { formatEGP, bookingStatusTone } from "@/lib/utils";
+import { formatEGP, bookingStatusTone, BOOKING_ACTIVE_STATUSES } from "@/lib/utils";
 import { Bell, ShieldCheck, Star, TrendingUp, Plane, AlertCircle } from "lucide-react";
 
 export const Route = createFileRoute("/pro/")({ component: ProDashboard });
@@ -25,7 +25,7 @@ function ProDashboard() {
   const pending = all.filter((b: any) => b.status === "pending");
   const today = new Date();
   const upcoming = all
-    .filter((b: any) => ["confirmed", "in_progress"].includes(b.status) && new Date(b.start_at) >= new Date(today.toDateString()))
+    .filter((b: any) => BOOKING_ACTIVE_STATUSES.includes(b.status) && new Date(b.start_at) >= new Date(today.toDateString()))
     .sort((a: any, b: any) => +new Date(a.start_at) - +new Date(b.start_at))
     .slice(0, 3);
 

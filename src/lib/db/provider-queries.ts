@@ -159,14 +159,26 @@ export function useProviderBooking(id: string | undefined) {
 export function useProviderUpdateBookingStatus() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await supabase.from('bookings').update({ status: status as any }).eq('id', id);
+    mutationFn: async ({
+      id,
+      status,
+      reason,
+      noShowParty,
+    }: { id: string; status: string; reason?: string; noShowParty?: 'customer' | 'provider' }) => {
+      const patch: Record<string, unknown> = { status };
+      if (status === 'cancelled' && reason) patch.cancellation_reason = reason;
+      if (status === 'no_show') {
+        patch.no_show_party = noShowParty;
+        if (reason) patch.no_show_reason = reason;
+      }
+      const { error } = await supabase.from('bookings').update(patch as any).eq('id', id);
       if (error) throw error;
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ['provider-bookings'] });
       qc.invalidateQueries({ queryKey: ['provider-booking', vars.id] });
       qc.invalidateQueries({ queryKey: ['provider-earnings'] });
+      qc.invalidateQueries({ queryKey: ['payment', vars.id] });
     },
   });
 }

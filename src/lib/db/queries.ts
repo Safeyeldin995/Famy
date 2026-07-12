@@ -369,11 +369,32 @@ export function useCreateBooking() {
 export function useUpdateBookingStatus() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: Tables['bookings']['Row']['status'] }) => {
-      const { error } = await supabase.from('bookings').update({ status }).eq('id', id);
+    mutationFn: async ({
+      id,
+      status,
+      reason,
+      noShowParty,
+    }: {
+      id: string;
+      status: Tables['bookings']['Row']['status'];
+      reason?: string;
+      noShowParty?: 'customer' | 'provider';
+    }) => {
+      const patch: Record<string, unknown> = { status };
+      if (status === 'cancelled' && reason) patch.cancellation_reason = reason;
+      if (status === 'no_show') {
+        patch.no_show_party = noShowParty;
+        if (reason) patch.no_show_reason = reason;
+      }
+      if (status === 'disputed' && reason) patch.dispute_reason = reason;
+      const { error } = await supabase.from('bookings').update(patch as any).eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['my-bookings'] }),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['my-bookings'] });
+      qc.invalidateQueries({ queryKey: ['booking', vars.id] });
+      qc.invalidateQueries({ queryKey: ['payment', vars.id] });
+    },
   });
 }
 

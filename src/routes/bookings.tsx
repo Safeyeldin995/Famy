@@ -12,7 +12,7 @@ export const Route = createFileRoute("/bookings")({ component: Bookings });
 type Tab = "upcoming" | "completed" | "cancelled";
 
 const TAB_STATUSES: Record<Tab, string[]> = {
-  upcoming: ["pending", "confirmed", "in_progress"],
+  upcoming: ["pending", "confirmed", "on_the_way", "arrived", "arrival_confirmed", "in_progress", "completion_requested", "disputed"],
   completed: ["completed"],
   cancelled: ["cancelled", "no_show"],
 };

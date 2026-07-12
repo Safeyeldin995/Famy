@@ -29,9 +29,12 @@ function statusTone(s: string) {
 export function PaymentBlock({
   bookingId,
   viewer,
+  bookingStatus,
 }: {
   bookingId: string;
   viewer: ViewerRole;
+  /** Booking's current lifecycle status — capture is DB-gated on 'completed', this mirrors that in the UI. */
+  bookingStatus?: string;
 }) {
   const q = useBookingPayment(bookingId);
   const receiverQ = useInstapayReceiver();
@@ -56,6 +59,7 @@ export function PaymentBlock({
   const isCash = p.method === "cash";
   const isInstapay = p.method === "instapay";
   const canConfirm = viewer === "admin" || viewer === "provider";
+  const captureAllowed = bookingStatus === "completed";
   const canUpload = viewer === "customer" && isInstapay && p.status === "pending_review";
 
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -189,13 +193,19 @@ export function PaymentBlock({
             </button>
           )}
           <div className="flex gap-2">
-            <button
-              onClick={onCapture}
-              disabled={capture.isPending}
-              className="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-navy text-sm font-bold text-navy-foreground active:scale-[0.98] disabled:opacity-50"
-            >
-              <Check className="h-4 w-4" /> {t("payment.markReceived")}
-            </button>
+            {captureAllowed ? (
+              <button
+                onClick={onCapture}
+                disabled={capture.isPending}
+                className="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-navy text-sm font-bold text-navy-foreground active:scale-[0.98] disabled:opacity-50"
+              >
+                <Check className="h-4 w-4" /> {t("payment.markReceived")}
+              </button>
+            ) : (
+              <div className="flex h-11 flex-1 items-center justify-center rounded-2xl bg-surface-2 px-3 text-center text-xs font-semibold text-muted-foreground">
+                {t("payment.waitingForCompletion")}
+              </div>
+            )}
             {isInstapay && (
               <button
                 onClick={() => setShowReject(true)}

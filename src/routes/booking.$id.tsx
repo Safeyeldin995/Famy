@@ -1,84 +1,162 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { PhoneFrame, PrimaryButton, Card, Badge, BackButton, Avatar } from "@/components/famio/ui";
+import { PhoneFrame, PrimaryButton, Card, Badge, BackButton, Avatar, BookingTimeline, ReasonDialog, ErrorState, EmptyState } from "@/components/famio/ui";
 import { PaymentBlock } from "@/components/famio/PaymentBlock";
-import { mockBookings, getProvider } from "@/lib/mock/data";
-import { useBooking, useFavoriteIds, useToggleFavorite, useBookingReview, useSubmitReview } from "@/lib/db/queries";
+import { useBooking, useFavoriteIds, useToggleFavorite, useBookingReview, useSubmitReview, useUpdateBookingStatus } from "@/lib/db/queries";
 import { toUIProvider } from "@/lib/db/adapters";
 import { currentLang } from "@/lib/i18n";
 import { formatEGP } from "@/lib/utils";
-import { Check, MapPin, Calendar, Clock, Phone, MessageCircle, Download, HelpCircle, AlertTriangle, Star, ShieldCheck, Bell, UserCheck } from "lucide-react";
+import { Check, MapPin, Calendar, Clock, Phone, MessageCircle, Download, HelpCircle, AlertTriangle, Star, ShieldCheck, Bell, UserCheck, X } from "lucide-react";
 import { useConversationByBooking } from "@/lib/db/messaging";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 
 
 export const Route = createFileRoute("/booking/$id")({
   component: BookingDetail,
 });
 
+const TRACKABLE_STATUSES = ["on_the_way", "arrived", "arrival_confirmed", "in_progress", "completion_requested"];
+
+type CustomerDialog = "" | "cancel" | "no_show" | "confirmArrival" | "confirmCompletion" | "dispute";
+
 function BookingDetail() {
   const { id } = Route.useParams();
   const { t } = useTranslation();
   const realQ = useBooking(id);
   const real = realQ.data;
+  const status: string | undefined = real?.status;
   const convQ = useConversationByBooking(id);
   const lang = currentLang();
   const locale = lang === "ar" ? "ar-EG" : "en-US";
-
-  // Real booking takes priority; fall back to mock for legacy demo links.
-  const fallback = mockBookings.find((b) => b.id === id) || mockBookings[0];
-  const provider = real?.provider
-    ? toUIProvider(real.provider)
-    : getProvider(fallback.providerId)!;
-
-  const startAt = real?.start_at ? new Date(real.start_at) : null;
-  const endAt = real?.end_at ? new Date(real.end_at) : null;
-  const durationH = startAt && endAt ? Math.round((+endAt - +startAt) / 36e5) : null;
-
-  type BookingView = {
-    id: string;
-    service: string;
-    date: string;
-    time: string;
-    duration: string;
-    address: string;
-    total: string;
-  };
-
-  const booking: BookingView = real
-    ? {
-        id: real.id.slice(0, 8).toUpperCase(),
-        service: ((lang === "ar" ? real.service?.name_ar : real.service?.name_en) || fallback.service) as string,
-        date: startAt!.toLocaleDateString(locale, { weekday: "short", month: "short", day: "numeric" }),
-        time: startAt!.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" }),
-        duration: `${durationH}h`,
-        address: real.address ? `${real.address.line1}, ${real.address.city}` : fallback.address,
-        total: formatEGP(Number(real.price_total ?? 0)),
-      }
-    : {
-        id: fallback.id,
-        service: fallback.service,
-        date: fallback.date,
-        time: fallback.time,
-        duration: fallback.duration,
-        address: fallback.address,
-        total: formatEGP(fallback.price),
-      };
-
-
-  // The booking's real status decides the completed screen — it is never a
-  // locally-toggled demo state. "confirmation" vs "active" stays a manual
-  // in-page navigation (tracking a still-in-progress booking), but a
-  // completed booking can never render anything else.
-  const [manualView, setManualView] = useState<"confirmation" | "active">("confirmation");
-  const view: "confirmation" | "active" | "completed" = real?.status === "completed" ? "completed" : manualView;
+  const updateStatus = useUpdateBookingStatus();
+  const [dialog, setDialog] = useState<CustomerDialog>("");
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const favIdsQ = useFavoriteIds();
   const toggleFav = useToggleFavorite();
-  const reviewQ = useBookingReview(view === "completed" ? id : undefined);
+  const reviewQ = useBookingReview(status === "completed" ? id : undefined);
   const submitReview = useSubmitReview();
   const nav = useNavigate();
+
+  const run = (
+    nextStatus: string,
+    extra?: { reason?: string; noShowParty?: "customer" | "provider" },
+    onSuccess?: () => void,
+  ) => {
+    if (!real) return;
+    updateStatus.mutate(
+      { id: real.id, status: nextStatus as any, ...extra },
+      {
+        onSuccess,
+        onError: (e: any) => toast.error(e?.message ?? t("common.somethingWentWrong")),
+      },
+    );
+  };
+
+  // Loading / error / not-found — the real database booking is the only
+  // source of truth here. No fallback to another booking is ever shown.
+  if (realQ.isLoading) {
+    return (
+      <PhoneFrame>
+        <div className="flex-1 space-y-4 px-6 pt-10">
+          <div className="mx-auto h-28 w-28 animate-pulse rounded-full bg-surface" />
+          <div className="h-40 animate-pulse rounded-3xl bg-surface" />
+          <div className="h-24 animate-pulse rounded-3xl bg-surface" />
+        </div>
+      </PhoneFrame>
+    );
+  }
+
+  if (realQ.isError) {
+    return (
+      <PhoneFrame>
+        <ErrorState onRetry={() => realQ.refetch()} />
+      </PhoneFrame>
+    );
+  }
+
+  if (!real) {
+    return (
+      <PhoneFrame>
+        <EmptyState
+          emoji="🔍"
+          title={t("bookingDetail.notFound")}
+          body={t("bookingDetail.notFoundBody")}
+          action={<Link to="/home" className="focus-ring inline-flex items-center rounded-2xl bg-navy px-4 py-3 text-sm font-bold text-navy-foreground">{t("bookingDetail.backHome")}</Link>}
+        />
+      </PhoneFrame>
+    );
+  }
+
+  const provider = toUIProvider(real.provider);
+  const startAt = new Date(real.start_at);
+  const endAt = new Date(real.end_at);
+  const durationH = Math.round((+endAt - +startAt) / 36e5);
+
+  const booking = {
+    id: real.id.slice(0, 8).toUpperCase(),
+    service: ((lang === "ar" ? real.service?.name_ar : real.service?.name_en) || "") as string,
+    date: startAt.toLocaleDateString(locale, { weekday: "short", month: "short", day: "numeric" }),
+    time: startAt.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" }),
+    duration: `${durationH}h`,
+    address: real.address ? `${real.address.line1}, ${real.address.city}` : t("bookingDetail.addressMissing"),
+    total: formatEGP(Number(real.price_total ?? 0)),
+  };
+
+  // The real database status is the only thing that decides which screen
+  // renders — there is no manual/local toggle a customer must press to see
+  // an action that needs their response.
+  const view: "closed" | "completed" | "tracking" | "upcoming" =
+    status === "completed" ? "completed"
+    : status === "cancelled" || status === "no_show" || status === "disputed" ? "closed"
+    : status && TRACKABLE_STATUSES.includes(status) ? "tracking"
+    : "upcoming";
+
+  if (view === "closed") {
+    const reason = real.cancellation_reason || real.no_show_reason || real.dispute_reason;
+    const title =
+      status === "cancelled" ? t("bookingDetail.closedCancelledTitle")
+      : status === "no_show" ? t("bookingDetail.closedNoShowTitle")
+      : t("bookingDetail.closedDisputedTitle");
+    return (
+      <PhoneFrame>
+        <div className="safe-top flex-1 px-6 pt-10">
+          <div className="text-center">
+            <div className="mx-auto grid h-24 w-24 place-items-center rounded-full bg-muted">
+              <div className="grid h-16 w-16 place-items-center rounded-full bg-surface text-muted-foreground"><X className="h-8 w-8" /></div>
+            </div>
+            <h1 className="mt-5 text-2xl font-extrabold">{title}</h1>
+            {status === "disputed" && <p className="mt-1 text-sm text-muted-foreground">{t("bookingDetail.closedDisputedBody")}</p>}
+          </div>
+
+          <Card className="mt-8 p-5">
+            <div className="flex items-center gap-3 border-b border-border pb-4">
+              <Avatar src={provider.avatar} className="h-14 w-14 rounded-2xl" />
+              <div className="min-w-0 flex-1">
+                <div className="font-bold">{provider.name}</div>
+                <div className="text-xs text-muted-foreground">{booking.service}</div>
+              </div>
+            </div>
+            <div className="mt-4 space-y-3 text-sm">
+              <Line icon={<Calendar className="h-4 w-4" />} label={booking.date} />
+              <Line icon={<Clock className="h-4 w-4" />} label={`${booking.time} · ${booking.duration}`} />
+              <Line icon={<MapPin className="h-4 w-4" />} label={booking.address} />
+            </div>
+            {reason && (
+              <div className="mt-4 rounded-2xl bg-surface-2 p-3">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{t("bookingDetail.reasonLabel")}</div>
+                <p className="mt-1 text-sm">{reason}</p>
+              </div>
+            )}
+          </Card>
+        </div>
+        <div className="safe-bottom px-6 pt-4">
+          <PrimaryButton onClick={() => nav({ to: "/home" })}>{t("bookingDetail.backHome")}</PrimaryButton>
+        </div>
+      </PhoneFrame>
+    );
+  }
 
   if (view === "completed") {
     const existingReview = reviewQ.data;
@@ -138,7 +216,7 @@ function BookingDetail() {
                 <PrimaryButton
                   className="mt-3 h-12 text-sm"
                   disabled={rating === 0 || submitReview.isPending}
-                  onClick={() => real && submitReview.mutate({ bookingId: real.id, providerId: provider.id, rating, comment })}
+                  onClick={() => submitReview.mutate({ bookingId: real.id, providerId: provider.id, rating, comment })}
                 >
                   {t("bookingDetail.submitReview")}
                 </PrimaryButton>
@@ -159,7 +237,14 @@ function BookingDetail() {
     );
   }
 
-  if (view === "active") {
+  if (view === "tracking") {
+    const headline =
+      status === "arrived" ? t("bookingDetail.arrivedBody", { name: provider.name })
+      : status === "arrival_confirmed" ? t("bookingDetail.arrivalConfirmedBody", { name: provider.name })
+      : status === "in_progress" ? t("bookingDetail.inProgressBody", { name: provider.name })
+      : status === "completion_requested" ? t("bookingDetail.completionRequestedBody", { name: provider.name })
+      : t("bookingDetail.arrivingBody", { name: provider.name });
+
     return (
       <PhoneFrame>
         <div className="relative h-64 w-full overflow-hidden bg-navy">
@@ -178,7 +263,7 @@ function BookingDetail() {
           </svg>
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-surface-2" />
           <div className="safe-top absolute inset-x-0 top-0 flex items-center justify-between px-5 py-3">
-            <BackButton back={() => setManualView("confirmation")} />
+            <BackButton back={() => nav({ to: "/bookings" })} />
             <button
               aria-label={t("bookingDetail.emergency")}
               className="focus-ring grid h-11 w-11 place-items-center rounded-full bg-coral text-coral-foreground shadow-card active:scale-95 transition-transform"
@@ -189,9 +274,9 @@ function BookingDetail() {
         </div>
 
         <div className="-mt-10 flex-1 rounded-t-3xl bg-surface px-5 pb-8 pt-5">
-          <Badge tone="mint"><span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" /> {t("bookingDetail.onTheWay")}</Badge>
+          <Badge tone="mint"><span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" /> {t(`status.${status}`, { defaultValue: status })}</Badge>
           <div className="mt-2 text-2xl font-extrabold">{t("bookingDetail.inProgress", "Service in progress")}</div>
-          <p className="text-sm text-muted-foreground">{t("bookingDetail.arrivingBody", { name: provider.name })}</p>
+          <p className="text-sm text-muted-foreground">{headline}</p>
 
           <Card className="mt-5 p-4">
             <div className="flex items-center gap-3">
@@ -230,14 +315,96 @@ function BookingDetail() {
           </Card>
 
           <Card className="mt-3 p-4">
-            <Timeline />
+            <BookingTimeline status={status ?? "on_the_way"} labelFor={(step) => t(`bookingDetail.timeline.${step}`)} />
           </Card>
 
-          <button className="mt-4 w-full rounded-2xl py-3 text-sm font-semibold text-destructive">{t("bookingDetail.cancel")}</button>
+          {status === "on_the_way" && (
+            <button onClick={() => setDialog("no_show")} disabled={updateStatus.isPending} className="mt-4 w-full rounded-2xl py-3 text-sm font-semibold text-coral disabled:opacity-50">
+              {t("bookingDetail.reportNoShow")}
+            </button>
+          )}
+
+          {status === "arrived" && (
+            <div className="mt-4 space-y-2">
+              <PrimaryButton onClick={() => setDialog("confirmArrival")} disabled={updateStatus.isPending}>{t("bookingDetail.confirmArrival")}</PrimaryButton>
+              <button onClick={() => setDialog("no_show")} disabled={updateStatus.isPending} className="w-full py-2 text-xs font-semibold text-coral disabled:opacity-50">
+                {t("bookingDetail.reportNoShow")}
+              </button>
+            </div>
+          )}
+
+          {status === "arrival_confirmed" && (
+            <div className="mt-4 rounded-2xl bg-surface-2 py-3 text-center text-sm font-semibold text-muted-foreground">
+              {t("bookingDetail.arrivalConfirmedBody", { name: provider.name })}
+            </div>
+          )}
+
+          {status === "completion_requested" && (
+            <div className="mt-4 space-y-2">
+              <PrimaryButton onClick={() => setDialog("confirmCompletion")} disabled={updateStatus.isPending}>{t("bookingDetail.confirmCompletion")}</PrimaryButton>
+              <button onClick={() => setDialog("dispute")} disabled={updateStatus.isPending} className="w-full py-2 text-xs font-semibold text-coral disabled:opacity-50">
+                {t("bookingDetail.disputeCompletion")}
+              </button>
+            </div>
+          )}
         </div>
+
+        <ReasonDialog
+          key={`no-show-${dialog}`}
+          open={dialog === "no_show"}
+          title={t("bookingDetail.noShowReasonTitle")}
+          body={t("bookingDetail.noShowIrreversible")}
+          reasonPlaceholder={t("bookingDetail.noShowReasonPlaceholder")}
+          confirmLabel={t("bookingDetail.confirmAction")}
+          cancelLabel={t("bookingDetail.keep")}
+          pending={updateStatus.isPending}
+          onCancel={() => setDialog("")}
+          onConfirm={(reason) => run("no_show", { reason, noShowParty: "provider" }, () => setDialog(""))}
+        />
+        <ReasonDialog
+          key={`confirm-arrival-${dialog}`}
+          open={dialog === "confirmArrival"}
+          title={t("bookingDetail.confirmArrivalTitle")}
+          body={t("bookingDetail.confirmArrivalBody")}
+          confirmLabel={t("bookingDetail.confirmAction")}
+          cancelLabel={t("bookingDetail.keep")}
+          requireReason={false}
+          confirmVariant="navy"
+          pending={updateStatus.isPending}
+          onCancel={() => setDialog("")}
+          onConfirm={() => run("arrival_confirmed", undefined, () => setDialog(""))}
+        />
+        <ReasonDialog
+          key={`confirm-completion-${dialog}`}
+          open={dialog === "confirmCompletion"}
+          title={t("bookingDetail.completionRequestedTitle")}
+          body={t("bookingDetail.completionRequestedBody", { name: provider.name })}
+          confirmLabel={t("bookingDetail.confirmCompletion")}
+          cancelLabel={t("bookingDetail.keep")}
+          requireReason={false}
+          confirmVariant="navy"
+          pending={updateStatus.isPending}
+          onCancel={() => setDialog("")}
+          onConfirm={() => run("completed", undefined, () => setDialog(""))}
+        />
+        <ReasonDialog
+          key={`dispute-${dialog}`}
+          open={dialog === "dispute"}
+          title={t("bookingDetail.disputeReasonTitle")}
+          body={t("bookingDetail.disputeIrreversible")}
+          reasonPlaceholder={t("bookingDetail.disputeReasonPlaceholder")}
+          confirmLabel={t("bookingDetail.confirmAction")}
+          cancelLabel={t("bookingDetail.keep")}
+          pending={updateStatus.isPending}
+          onCancel={() => setDialog("")}
+          onConfirm={(reason) => run("disputed", { reason }, () => setDialog(""))}
+        />
       </PhoneFrame>
     );
   }
+
+  // view === "upcoming" (pending / confirmed) — nothing to track yet.
+  const cancellable = status === "pending" || status === "confirmed";
 
   return (
     <PhoneFrame>
@@ -286,11 +453,9 @@ function BookingDetail() {
           />
         </div>
 
-        {real && (
-          <div className="mt-4">
-            <PaymentBlock bookingId={real.id} viewer="customer" />
-          </div>
-        )}
+        <div className="mt-4">
+          <PaymentBlock bookingId={real.id} viewer="customer" bookingStatus={status} />
+        </div>
 
         <Card className="mt-4 p-5">
           <div className="mb-3 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">{t("bookingDetail.whatsNext")}</div>
@@ -313,15 +478,29 @@ function BookingDetail() {
       </div>
 
       <div className="safe-bottom space-y-2 px-6 pt-4">
-        {real?.status === "in_progress" ? (
-          <PrimaryButton onClick={() => setManualView("active")}>{t("bookingDetail.trackBooking")}</PrimaryButton>
-        ) : (
-          <div className="rounded-2xl bg-surface-2 py-3 text-center text-sm font-semibold text-muted-foreground">
-            {t("bookingDetail.waitingForProvider", "Tracking will be available once your provider is on the way.")}
-          </div>
+        <div className="rounded-2xl bg-surface-2 py-3 text-center text-sm font-semibold text-muted-foreground">
+          {t("bookingDetail.waitingForProvider", "Tracking will be available once your provider is on the way.")}
+        </div>
+        {cancellable && (
+          <button onClick={() => setDialog("cancel")} disabled={updateStatus.isPending} className="w-full py-3 text-center text-sm font-semibold text-destructive disabled:opacity-50">
+            {t("bookingDetail.cancel")}
+          </button>
         )}
         <Link to="/home" className="block py-3 text-center text-sm font-semibold text-muted-foreground">{t("bookingDetail.backHome")}</Link>
       </div>
+
+      <ReasonDialog
+        key={`cancel-${dialog}`}
+        open={dialog === "cancel"}
+        title={t("bookingDetail.cancelReasonTitle")}
+        body={t("bookingDetail.cancelIrreversible")}
+        reasonPlaceholder={t("bookingDetail.cancelReasonPlaceholder")}
+        confirmLabel={t("bookingDetail.confirmAction")}
+        cancelLabel={t("bookingDetail.keep")}
+        pending={updateStatus.isPending}
+        onCancel={() => setDialog("")}
+        onConfirm={(reason) => run("cancelled", { reason }, () => setDialog(""))}
+      />
     </PhoneFrame>
   );
 }
@@ -407,35 +586,5 @@ function NextStep({ icon, title, body }: { icon: React.ReactNode; title: string;
         <div className="text-[11px] text-muted-foreground">{body}</div>
       </div>
     </li>
-  );
-}
-
-function Timeline() {
-  const { t } = useTranslation();
-  const items = [
-    { label: t("bookingDetail.timeline.confirmed"), time: t("bookingDetail.timeline.yesterday", { time: "8:12 PM" }), done: true },
-    { label: t("bookingDetail.timeline.matched"), time: t("bookingDetail.timeline.today", { time: "8:45 AM" }), done: true },
-    { label: t("bookingDetail.timeline.onway"), time: t("bookingDetail.timeline.now"), done: true, active: true },
-    { label: t("bookingDetail.timeline.arrival"), time: t("bookingDetail.timeline.eta", { time: "9:30 AM" }), done: false },
-    { label: t("bookingDetail.timeline.inProgress"), time: t("bookingDetail.timeline.dash"), done: false },
-    { label: t("bookingDetail.timeline.completed"), time: t("bookingDetail.timeline.dash"), done: false },
-  ];
-  return (
-    <ol className="relative">
-      {items.map((it, i) => (
-        <li key={i} className="flex gap-3 pb-4 last:pb-0">
-          <div className="flex flex-col items-center">
-            <span className={`grid h-6 w-6 place-items-center rounded-full ${it.done ? "bg-navy text-navy-foreground" : "bg-muted text-muted-foreground"} ${it.active ? "ring-4 ring-coral/30" : ""}`}>
-              {it.done ? <Check className="h-3 w-3" /> : <span className="h-1.5 w-1.5 rounded-full bg-current" />}
-            </span>
-            {i < items.length - 1 && <span className={`mt-1 w-0.5 flex-1 ${it.done ? "bg-navy" : "bg-border"}`} />}
-          </div>
-          <div className="pb-2">
-            <div className={`text-sm font-bold ${it.done ? "" : "text-muted-foreground"}`}>{it.label}</div>
-            <div className="text-[11px] text-muted-foreground">{it.time}</div>
-          </div>
-        </li>
-      ))}
-    </ol>
   );
 }
