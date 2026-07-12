@@ -80,7 +80,16 @@ export function useUploadPaymentProof() {
 export function useCapturePayment() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ paymentId }: { paymentId: string; bookingId: string }) => {
+    mutationFn: async ({ paymentId, bookingId }: { paymentId: string; bookingId: string }) => {
+      const { data: booking, error: bookingErr } = await supabase
+        .from('bookings')
+        .select('status')
+        .eq('id', bookingId)
+        .single();
+      if (bookingErr) throw bookingErr;
+      if (booking.status !== 'completed') {
+        throw new Error('Payment cannot be captured until the booking is completed.');
+      }
       const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase
         .from('payments')
