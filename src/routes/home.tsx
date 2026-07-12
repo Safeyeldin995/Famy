@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { AppShell, Card, SectionHeader, EmptyState } from "@/components/famio/ui";
 import { LanguageToggle } from "@/components/famio/LanguageToggle";
 import { ProviderTile, ProviderCard } from "@/components/famio/ProviderCard";
-import { useCategories, useProviders, useNotifications, useMyProfile, useDefaultAddress } from "@/lib/db/queries";
+import { useCategories, useProviders, useNotifications, useMyProfile, useDefaultAddress, useMyBookings } from "@/lib/db/queries";
 import { toUICategory, toUIProvider } from "@/lib/db/adapters";
 import { formatEGP } from "@/lib/utils";
 import { Search, MapPin, Bell, ShieldCheck, Sparkles } from "lucide-react";
@@ -31,12 +31,27 @@ function Home() {
   const catsQ = useCategories();
   const provsQ = useProviders({ limit: 20 });
   const notifsQ = useNotifications();
+  const bookingsQ = useMyBookings();
 
   const cats = useMemo(() => (catsQ.data ?? []).map(toUICategory), [catsQ.data, i18n.language]);
   const providers = useMemo(() => (provsQ.data ?? []).map(toUIProvider), [provsQ.data, i18n.language]);
 
   const featured = providers.filter((p) => p.featured).slice(0, 6);
-  const recent = providers.slice(0, 5);
+  // "Recently booked" must reflect the customer's own booking history, not
+  // an arbitrary slice of all verified providers — that mismatch is what
+  // rendered as unlabeled/blank-looking cards instead of a real empty state.
+  const recent = useMemo(() => {
+    const seen = new Set<string>();
+    const list: ReturnType<typeof toUIProvider>[] = [];
+    for (const b of bookingsQ.data ?? []) {
+      const p = (b as any).provider;
+      if (!p || seen.has(p.id)) continue;
+      seen.add(p.id);
+      list.push(toUIProvider(p));
+      if (list.length >= 5) break;
+    }
+    return list;
+  }, [bookingsQ.data, i18n.language]);
   const unread = (notifsQ.data ?? []).some((n: any) => !n.read_at);
 
   return (
@@ -138,11 +153,11 @@ function Home() {
       <div className="mt-6">
         <SectionHeader title={t("home.recent")} />
         <div className="space-y-3 px-5">
-          {provsQ.isLoading ? (
+          {bookingsQ.isLoading ? (
             Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="h-24 rounded-3xl bg-surface animate-pulse" />
             ))
-          ) : provsQ.isError ? (
+          ) : bookingsQ.isError ? (
             <EmptyState emoji="⚠️" title={t("common.errorTitle", "Something went wrong")} body={t("common.tryAgain", "Please try again.")} />
           ) : recent.length === 0 ? (
             <EmptyState emoji="🧑‍🔧" title={t("home.recentEmpty")} body={t("home.recentEmptyBody")} />
@@ -162,18 +177,6 @@ function Home() {
               <div className="text-sm font-extrabold">{t("home.whyTrust")}</div>
               <div className="text-xs text-muted-foreground">{t("home.whyTrustBody")}</div>
             </div>
-          </div>
-          <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-            {[
-              { n: "12k+", l: t("home.statFamilies") },
-              { n: "98%", l: t("home.statJobs") },
-              { n: "24/7", l: t("home.statSupport") },
-            ].map((s) => (
-              <div key={s.l} className="rounded-2xl bg-surface-2 py-3">
-                <div className="text-sm font-extrabold text-navy">{s.n}</div>
-                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{s.l}</div>
-              </div>
-            ))}
           </div>
         </Card>
       </div>

@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PhoneFrame, PrimaryButton, Card, Badge, BackButton, Avatar } from "@/components/famio/ui";
 import { PaymentBlock } from "@/components/famio/PaymentBlock";
 import { mockBookings, getProvider } from "@/lib/mock/data";
-import { useBooking, useFavoriteIds, useToggleFavorite } from "@/lib/db/queries";
+import { useBooking, useFavoriteIds, useToggleFavorite, useBookingReview, useSubmitReview } from "@/lib/db/queries";
 import { toUIProvider } from "@/lib/db/adapters";
 import { currentLang } from "@/lib/i18n";
 import { formatEGP } from "@/lib/utils";
@@ -66,13 +66,22 @@ function BookingDetail() {
       };
 
 
-  const [view, setView] = useState<"confirmation" | "active" | "completed">("confirmation");
+  // The booking's real status decides the completed screen — it is never a
+  // locally-toggled demo state. "confirmation" vs "active" stays a manual
+  // in-page navigation (tracking a still-in-progress booking), but a
+  // completed booking can never render anything else.
+  const [manualView, setManualView] = useState<"confirmation" | "active">("confirmation");
+  const view: "confirmation" | "active" | "completed" = real?.status === "completed" ? "completed" : manualView;
   const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
   const favIdsQ = useFavoriteIds();
   const toggleFav = useToggleFavorite();
+  const reviewQ = useBookingReview(view === "completed" ? id : undefined);
+  const submitReview = useSubmitReview();
   const nav = useNavigate();
 
   if (view === "completed") {
+    const existingReview = reviewQ.data;
     return (
       <PhoneFrame>
         <div className="safe-top flex-1 px-6 pt-10">
@@ -85,25 +94,56 @@ function BookingDetail() {
           </div>
 
           <Card className="mt-8 p-5">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 border-b border-border pb-4">
               <Avatar src={provider.avatar} className="h-14 w-14 rounded-2xl" />
-              <div>
+              <div className="min-w-0 flex-1">
                 <div className="font-bold">{provider.name}</div>
                 <div className="text-xs text-muted-foreground">{booking.service}</div>
               </div>
             </div>
-            <div className="mt-5 flex justify-center gap-2">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <button key={n} onClick={() => setRating(n)}>
-                  <Star className={`h-9 w-9 ${n <= rating ? "fill-warning text-warning" : "text-border"}`} />
-                </button>
-              ))}
+            <div className="mt-4 space-y-3 text-sm">
+              <Line icon={<Calendar className="h-4 w-4" />} label={booking.date} />
+              <Line icon={<Clock className="h-4 w-4" />} label={`${booking.time} · ${booking.duration}`} />
+              <Line icon={<MapPin className="h-4 w-4" />} label={booking.address} />
             </div>
-            <textarea
-              rows={3}
-              placeholder={t("bookingDetail.reviewPlaceholder")}
-              className="mt-4 w-full resize-none rounded-2xl bg-surface-2 p-3 text-sm outline-none"
-            />
+
+            {existingReview ? (
+              <>
+                <div className="mt-5 flex justify-center gap-2">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <Star key={n} className={`h-9 w-9 ${n <= existingReview.rating ? "fill-warning text-warning" : "text-border"}`} />
+                  ))}
+                </div>
+                {existingReview.comment && (
+                  <p className="mt-4 rounded-2xl bg-surface-2 p-3 text-sm text-muted-foreground">{existingReview.comment}</p>
+                )}
+                <div className="mt-3 text-center text-xs font-semibold text-success">{t("bookingDetail.reviewSubmitted")}</div>
+              </>
+            ) : (
+              <>
+                <div className="mt-5 flex justify-center gap-2">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button key={n} onClick={() => setRating(n)} aria-label={`${n}`}>
+                      <Star className={`h-9 w-9 ${n <= rating ? "fill-warning text-warning" : "text-border"}`} />
+                    </button>
+                  ))}
+                </div>
+                <textarea
+                  rows={3}
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder={t("bookingDetail.reviewPlaceholder")}
+                  className="mt-4 w-full resize-none rounded-2xl bg-surface-2 p-3 text-sm outline-none"
+                />
+                <PrimaryButton
+                  className="mt-3 h-12 text-sm"
+                  disabled={rating === 0 || submitReview.isPending}
+                  onClick={() => real && submitReview.mutate({ bookingId: real.id, providerId: provider.id, rating, comment })}
+                >
+                  {t("bookingDetail.submitReview")}
+                </PrimaryButton>
+              </>
+            )}
             <button
               onClick={() => toggleFav.mutate({ providerId: provider.id, on: !(favIdsQ.data ?? []).includes(provider.id) })}
               className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-coral"
@@ -138,7 +178,7 @@ function BookingDetail() {
           </svg>
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-surface-2" />
           <div className="safe-top absolute inset-x-0 top-0 flex items-center justify-between px-5 py-3">
-            <BackButton back={() => setView("confirmation")} />
+            <BackButton back={() => setManualView("confirmation")} />
             <button
               aria-label={t("bookingDetail.emergency")}
               className="focus-ring grid h-11 w-11 place-items-center rounded-full bg-coral text-coral-foreground shadow-card active:scale-95 transition-transform"
@@ -193,10 +233,7 @@ function BookingDetail() {
             <Timeline />
           </Card>
 
-          <button onClick={() => setView("completed")} className="mt-4 w-full rounded-2xl bg-surface-2 py-3 text-sm font-semibold text-muted-foreground">
-            {t("bookingDetail.demoComplete")}
-          </button>
-          <button className="mt-2 w-full rounded-2xl py-3 text-sm font-semibold text-destructive">{t("bookingDetail.cancel")}</button>
+          <button className="mt-4 w-full rounded-2xl py-3 text-sm font-semibold text-destructive">{t("bookingDetail.cancel")}</button>
         </div>
       </PhoneFrame>
     );
@@ -277,7 +314,7 @@ function BookingDetail() {
 
       <div className="safe-bottom space-y-2 px-6 pt-4">
         {real?.status === "in_progress" ? (
-          <PrimaryButton onClick={() => setView("active")}>{t("bookingDetail.trackBooking")}</PrimaryButton>
+          <PrimaryButton onClick={() => setManualView("active")}>{t("bookingDetail.trackBooking")}</PrimaryButton>
         ) : (
           <div className="rounded-2xl bg-surface-2 py-3 text-center text-sm font-semibold text-muted-foreground">
             {t("bookingDetail.waitingForProvider", "Tracking will be available once your provider is on the way.")}

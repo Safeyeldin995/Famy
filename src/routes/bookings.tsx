@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { AppShell, TopBar, Chip, Card, Badge, EmptyState } from "@/components/famio/ui";
+import { AppShell, TopBar, Chip, Card, Badge, EmptyState, Avatar } from "@/components/famio/ui";
 import { useMyBookings } from "@/lib/db/queries";
 import { bookingStatusTone, formatEGP } from "@/lib/utils";
 import { currentLang } from "@/lib/i18n";
@@ -49,7 +49,6 @@ function Bookings() {
         ) : (
           list.map((b: any) => {
             const profile = b.provider?.profile ?? {};
-            const avatar = profile.avatar_url || `https://i.pravatar.cc/300?u=${b.provider_id}`;
             const name = profile.full_name || t("profile.famioUser");
             const serviceLabel = (lang === "ar" ? b.service?.name_ar : b.service?.name_en) || "";
             const start = new Date(b.start_at);
@@ -62,7 +61,7 @@ function Bookings() {
               <Link key={b.id} to="/booking/$id" params={{ id: b.id }} className="block">
                 <Card className="p-4 active:scale-[0.99] transition-transform">
                   <div className="flex items-start gap-3">
-                    <img src={avatar} alt={name} loading="lazy" className="h-14 w-14 rounded-2xl object-cover" />
+                    <Avatar src={profile.avatar_url} alt={name} className="h-14 w-14 rounded-2xl" />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <div className="truncate text-sm font-bold">{name}</div>

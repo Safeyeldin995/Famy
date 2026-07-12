@@ -502,6 +502,51 @@ export function useProviderReviews(providerId: string | undefined) {
   });
 }
 
+// The customer's own review for a specific booking (if already submitted) —
+// drives the completed-booking screen so it shows the real submitted rating
+// instead of always rendering a blank, editable rating widget.
+export function useBookingReview(bookingId: string | undefined) {
+  return useQuery({
+    enabled: !!bookingId,
+    queryKey: ['booking-review', bookingId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('reviews')
+        .select('*')
+        .eq('booking_id', bookingId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useSubmitReview() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { bookingId: string; providerId: string; rating: number; comment?: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('auth required');
+      const { data, error } = await supabase
+        .from('reviews')
+        .insert({
+          booking_id: input.bookingId,
+          provider_id: input.providerId,
+          customer_id: user.id,
+          rating: input.rating,
+          comment: input.comment || null,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['booking-review', vars.bookingId] });
+    },
+  });
+}
+
 // ---------- Provider services (for booking) ----------
 export function useProviderServices(providerId: string | undefined) {
   return useQuery({

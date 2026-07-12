@@ -15,8 +15,7 @@ import {
 } from "@/lib/db/payment-queries";
 import { Card, Badge } from "@/components/famio/ui";
 import { formatEGP } from "@/lib/utils";
-import { Banknote, Upload, Check, X, Eye, Copy, ShieldCheck } from "lucide-react";
-import instapayLogo from "@/assets/instapay.png.asset.json";
+import { Banknote, Upload, Check, X, Eye, Copy, ShieldCheck, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 export type ViewerRole = "customer" | "provider" | "admin";
@@ -107,13 +106,9 @@ export function PaymentBlock({
     <Card className="space-y-3 p-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          {isCash ? (
-            <div className="grid h-8 w-8 place-items-center rounded-xl bg-navy/10 text-navy">
-              <Banknote className="h-4 w-4" />
-            </div>
-          ) : (
-            <img src={instapayLogo.url} alt="InstaPay" className="h-8 w-8 rounded-xl object-cover" />
-          )}
+          <div className="grid h-8 w-8 place-items-center rounded-xl bg-navy/10 text-navy">
+            {isCash ? <Banknote className="h-4 w-4" /> : <Wallet className="h-4 w-4" aria-label="InstaPay" />}
+          </div>
           <div>
             <div className="text-sm font-extrabold">
               {isCash ? t("bookFlow.payCash") : t("bookFlow.payInstapay")}
@@ -121,7 +116,7 @@ export function PaymentBlock({
             <div className="text-[11px] text-muted-foreground">{formatEGP(Number(p.amount ?? 0))}</div>
           </div>
         </div>
-        <Badge tone={statusTone(p.status)}>{String(p.status).replace("_", " ")}</Badge>
+        <Badge tone={statusTone(p.status)}>{t(`payment.status.${p.status}`, String(p.status).replace("_", " "))}</Badge>
       </div>
 
       {/* Customer InstaPay instructions + upload */}

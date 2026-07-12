@@ -189,8 +189,12 @@ const ar: Translation = {
   },
   status: {
     upcoming: "قادمة",
+    pending: "قيد الانتظار",
+    confirmed: "مؤكدة",
+    in_progress: "قيد التنفيذ",
     completed: "مكتملة",
     cancelled: "ملغاة",
+    no_show: "لم يحضر",
   },
   messages: {
     title: "الرسائل",
@@ -490,7 +494,6 @@ const ar: Translation = {
     arrivingBody: "{{name}} في الطريق إليك.",
     inProgress: "الخدمة قيد التنفيذ",
     waitingForProvider: "سيتوفر التتبع بمجرد أن يكون مقدم الخدمة في الطريق.",
-    demoComplete: "(تجريبي) وضع كمكتمل",
     cancel: "إلغاء الحجز",
     emergency: "دعم الطوارئ",
     completedTitle: "اكتمل الحجز",
@@ -499,6 +502,9 @@ const ar: Translation = {
     saveFavorite: "حفظ في المفضلة",
     savedFavorite: "تم الحفظ في المفضلة",
     submitBookAgain: "إرسال واحجز مرة أخرى",
+    submitReview: "إرسال التقييم",
+    reviewSubmitted: "شكرًا لتقييمك!",
+    yourRating: "تقييمك",
     timeline: {
       confirmed: "تم تأكيد الحجز",
       matched: "تم اختيار المحترف",
@@ -752,6 +758,12 @@ const ar: Translation = {
     rejectReasonPlaceholder: "السبب (اختياري)",
     cancel: "إلغاء",
     confirmReject: "تأكيد الرفض",
+    status: {
+      pending: "قيد الانتظار",
+      pending_review: "قيد الانتظار",
+      captured: "مقبول",
+      rejected: "مرفوض",
+    },
   },
 };
 export default ar;

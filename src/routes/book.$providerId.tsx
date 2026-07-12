@@ -65,6 +65,13 @@ function Book() {
     () => services.find((s: any) => s.service?.id === serviceId) ?? services[0],
     [services, serviceId],
   );
+  const hours = parseInt(duration);
+  // Must run unconditionally on every render (Rules of Hooks) — this was
+  // previously declared after the loading/not-found early returns below,
+  // so the hook count changed between the first render (still loading,
+  // returns early) and the next one, which crashes React with a hooks
+  // order mismatch as soon as the provider/services queries resolve.
+  const slotsQ = useAvailableSlots(providerId, date, hours * 60 || 120);
 
   if (provQ.isLoading || servicesQ.isLoading) {
     return <PhoneFrame><div className="grid flex-1 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-navy" /></div></PhoneFrame>;
@@ -73,7 +80,6 @@ function Book() {
     return <PhoneFrame><EmptyState emoji="🙈" title={t("bookFlow.notFound")} /></PhoneFrame>;
   }
 
-  const hours = parseInt(duration);
   const ratePerHour = Number(activeService?.price_override ?? p.hourlyRate);
   const subtotal = ratePerHour * hours;
   const fee = billingQ.data?.platform_fee ?? DEFAULT_BILLING_SETTINGS.platform_fee;
@@ -81,7 +87,6 @@ function Book() {
   const total = Math.max(0, subtotal + fee + vat - promoDiscount);
 
   const durations = ["2h", "4h", "6h", "8h"];
-  const slotsQ = useAvailableSlots(providerId, date, hours * 60 || 120);
 
   const canNext = () => {
     if (step === 0) return !!activeService;

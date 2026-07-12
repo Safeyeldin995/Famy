@@ -187,8 +187,12 @@ const en = {
   },
   status: {
     upcoming: "upcoming",
+    pending: "Pending",
+    confirmed: "Confirmed",
+    in_progress: "In progress",
     completed: "completed",
     cancelled: "cancelled",
+    no_show: "No-show",
   },
   messages: {
     title: "Messages",
@@ -488,7 +492,6 @@ const en = {
     arrivingBody: "{{name}} is on the way to your place.",
     inProgress: "Service in progress",
     waitingForProvider: "Tracking will be available once your provider is on the way.",
-    demoComplete: "(Demo) Mark as completed",
     cancel: "Cancel booking",
     emergency: "Emergency support",
     completedTitle: "Booking completed",
@@ -497,6 +500,9 @@ const en = {
     saveFavorite: "Save as favorite",
     savedFavorite: "Saved to favorites",
     submitBookAgain: "Submit & Book again",
+    submitReview: "Submit rating",
+    reviewSubmitted: "Thanks for your feedback!",
+    yourRating: "Your rating",
     timeline: {
       confirmed: "Booking confirmed",
       matched: "Professional matched",
@@ -750,6 +756,12 @@ const en = {
     rejectReasonPlaceholder: "Reason (optional)",
     cancel: "Cancel",
     confirmReject: "Confirm reject",
+    status: {
+      pending: "Pending",
+      pending_review: "Pending",
+      captured: "Approved",
+      rejected: "Rejected",
+    },
   },
 };
 export default en;

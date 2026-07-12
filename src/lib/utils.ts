@@ -11,8 +11,9 @@ export { formatEGP, formatNumber, formatDate, formatTime } from "./format";
 export function bookingStatusTone(
   status: "upcoming" | "completed" | "cancelled" | string,
 ): "navy" | "mint" | "muted" | "coral" {
-  if (status === "upcoming") return "navy";
   if (status === "completed") return "mint";
-  if (status === "cancelled") return "muted";
+  if (status === "cancelled" || status === "no_show") return "muted";
+  if (status === "pending") return "coral";
+  if (status === "confirmed" || status === "in_progress" || status === "upcoming") return "navy";
   return "muted";
 }

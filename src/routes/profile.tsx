@@ -58,7 +58,7 @@ function Profile() {
         </Section>
 
         <Section title={t("profile.preferences")}>
-          <Row icon={<Bell className="h-5 w-5" />} label={t("common.notifications")} />
+          <Row to="/notifications" icon={<Bell className="h-5 w-5" />} label={t("common.notifications")} />
           <button
             onClick={() => setLanguage(lang === "ar" ? "en" : "ar")}
             className="w-full text-start"
