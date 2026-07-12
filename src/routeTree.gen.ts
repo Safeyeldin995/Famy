@@ -43,6 +43,7 @@ import { Route as BookProviderIdRouteImport } from './routes/book.$providerId'
 import { Route as AuthSetPasswordRouteImport } from './routes/auth.set-password'
 import { Route as AuthForgotRouteImport } from './routes/auth.forgot'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
+import { Route as AdminServicesRouteImport } from './routes/admin.services'
 import { Route as AdminProvidersRouteImport } from './routes/admin.providers'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
@@ -221,6 +222,11 @@ const AdminSettingsRoute = AdminSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminServicesRoute = AdminServicesRouteImport.update({
+  id: '/services',
+  path: '/services',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminProvidersRoute = AdminProvidersRouteImport.update({
   id: '/providers',
   path: '/providers',
@@ -277,6 +283,7 @@ export interface FileRoutesByFullPath {
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/providers': typeof AdminProvidersRoute
+  '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/set-password': typeof AuthSetPasswordRoute
@@ -317,6 +324,7 @@ export interface FileRoutesByTo {
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/providers': typeof AdminProvidersRoute
+  '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/set-password': typeof AuthSetPasswordRoute
@@ -361,6 +369,7 @@ export interface FileRoutesById {
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/providers': typeof AdminProvidersRoute
+  '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/set-password': typeof AuthSetPasswordRoute
@@ -406,6 +415,7 @@ export interface FileRouteTypes {
     | '/admin/customers'
     | '/admin/payments'
     | '/admin/providers'
+    | '/admin/services'
     | '/admin/settings'
     | '/auth/forgot'
     | '/auth/set-password'
@@ -446,6 +456,7 @@ export interface FileRouteTypes {
     | '/admin/customers'
     | '/admin/payments'
     | '/admin/providers'
+    | '/admin/services'
     | '/admin/settings'
     | '/auth/forgot'
     | '/auth/set-password'
@@ -489,6 +500,7 @@ export interface FileRouteTypes {
     | '/admin/customers'
     | '/admin/payments'
     | '/admin/providers'
+    | '/admin/services'
     | '/admin/settings'
     | '/auth/forgot'
     | '/auth/set-password'
@@ -778,6 +790,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSettingsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/services': {
+      id: '/admin/services'
+      path: '/services'
+      fullPath: '/admin/services'
+      preLoaderRoute: typeof AdminServicesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/providers': {
       id: '/admin/providers'
       path: '/providers'
@@ -835,6 +854,7 @@ interface AdminRouteChildren {
   AdminCustomersRoute: typeof AdminCustomersRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
   AdminProvidersRoute: typeof AdminProvidersRoute
+  AdminServicesRoute: typeof AdminServicesRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminCustomerIdRoute: typeof AdminCustomerIdRoute
@@ -846,6 +866,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCustomersRoute: AdminCustomersRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,
   AdminProvidersRoute: AdminProvidersRoute,
+  AdminServicesRoute: AdminServicesRoute,
   AdminSettingsRoute: AdminSettingsRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminCustomerIdRoute: AdminCustomerIdRoute,

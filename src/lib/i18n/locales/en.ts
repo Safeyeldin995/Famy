@@ -778,6 +778,7 @@ const en = {
       servicesOffer: "Services I offer",
       servicePending: "Pending approval",
       serviceRejected: "Rejected",
+      serviceUnavailable: "Unavailable",
       more: "More",
       documentsRow: "Documents & verification",
       switchCustomer: "Switch to customer app",

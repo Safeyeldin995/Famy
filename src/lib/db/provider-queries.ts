@@ -384,9 +384,12 @@ export function useMyProviderServices(providerId: string | undefined) {
     enabled: !!providerId,
     queryKey: ['my-provider-services', providerId],
     queryFn: async () => {
+      // Joins the service (not just its id) so the profile screen can still
+      // show an already-assigned service that admin later deactivated,
+      // labeled unavailable, without dropping the underlying row.
       const { data, error } = await supabase
         .from('provider_services')
-        .select('service_id, price_override, status')
+        .select('service_id, price_override, status, service:services(id, name_en, name_ar, is_active, category:categories(name_en, name_ar))')
         .eq('provider_id', providerId!);
       if (error) throw error;
       return data ?? [];

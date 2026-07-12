@@ -87,6 +87,12 @@ function ProProfile() {
 
   const myIds = new Set((mine.data ?? []).map((s: any) => s.service_id));
   const myStatus = new Map((mine.data ?? []).map((s: any) => [s.service_id, s.status]));
+  // Already-assigned services that admin has since deactivated: excluded
+  // from `services` (useAllServices only lists active ones, so the
+  // provider can never newly select or reactivate one), but the
+  // provider_services row itself is never deleted — surface it here,
+  // read-only, so the provider can see why it's no longer bookable.
+  const inactiveMine = (mine.data ?? []).filter((s: any) => s.service && s.service.is_active === false);
 
   const logout = async () => {
     await qc.cancelQueries(); qc.clear();
@@ -205,6 +211,21 @@ function ProProfile() {
                     <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-soft transition-all ${on ? "left-[22px]" : "left-0.5"}`} />
                   </button>
 
+                </div>
+              );
+            })}
+            {inactiveMine.map((s: any) => {
+              const sname = lang === "ar" ? (s.service.name_ar ?? s.service.name_en) : (s.service.name_en ?? s.service.name_ar);
+              const cname = lang === "ar" ? (s.service.category?.name_ar ?? s.service.category?.name_en) : (s.service.category?.name_en ?? s.service.category?.name_ar);
+              return (
+                <div key={s.service_id} className="flex items-center justify-between px-4 py-3 opacity-60">
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold truncate">{sname}</div>
+                    <div className="text-[11px] text-muted-foreground truncate">{cname}</div>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-[10px] font-bold uppercase text-muted-foreground">
+                    {t("pro.profile.serviceUnavailable")}
+                  </span>
                 </div>
               );
             })}

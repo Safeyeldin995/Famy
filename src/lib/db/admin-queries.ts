@@ -195,6 +195,82 @@ export function useUpdateCategoryNames() {
   });
 }
 
+// ---------- Services ----------
+// Columns are selected explicitly (never `*`) so `deleted_at` is never
+// fetched into a UI-facing query.
+const SERVICE_COLUMNS =
+  'id, category_id, slug, name_en, name_ar, description_en, description_ar, base_price, duration_min, pricing_model, is_active, created_at, updated_at, category:categories(id, slug, name_en, name_ar)';
+
+export type AdminServiceInput = {
+  category_id: string;
+  slug: string;
+  name_en: string;
+  name_ar: string;
+  description_en: string | null;
+  description_ar: string | null;
+  base_price: number;
+  duration_min: number;
+  pricing_model: 'hourly' | 'fixed' | 'per_visit';
+  is_active: boolean;
+};
+
+export function useAdminServices() {
+  return useQuery({
+    queryKey: ['admin', 'services'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('services')
+        .select(SERVICE_COLUMNS)
+        .order('name_en');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useCreateService() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: AdminServiceInput) => {
+      const { data, error } = await supabase.from('services').insert(input as any).select(SERVICE_COLUMNS).single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'services'] });
+      qc.invalidateQueries({ queryKey: ['all-services'] });
+    },
+  });
+}
+
+export function useUpdateService() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...patch }: { id: string } & Partial<AdminServiceInput>) => {
+      const { error } = await supabase.from('services').update(patch as any).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'services'] });
+      qc.invalidateQueries({ queryKey: ['all-services'] });
+    },
+  });
+}
+
+export function useSetServiceActive() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
+      const { error } = await supabase.from('services').update({ is_active: active }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'services'] });
+      qc.invalidateQueries({ queryKey: ['all-services'] });
+    },
+  });
+}
+
 export function useAdminDashboardKpis() {
   return useQuery({
     queryKey: ['admin', 'dashboard-kpis'],

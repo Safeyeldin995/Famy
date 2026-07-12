@@ -780,6 +780,7 @@ const ar: Translation = {
       servicesOffer: "الخدمات التي أقدمها",
       servicePending: "بانتظار الموافقة",
       serviceRejected: "مرفوضة",
+      serviceUnavailable: "غير متاحة",
       more: "المزيد",
       documentsRow: "المستندات والتوثيق",
       switchCustomer: "التبديل إلى تطبيق العميل",

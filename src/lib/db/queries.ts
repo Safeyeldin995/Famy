@@ -574,15 +574,16 @@ export function useProviderServices(providerId: string | undefined) {
     enabled: !!providerId,
     queryKey: ['provider-services', providerId],
     queryFn: async () => {
-      // `status` cast to `any` — generated Supabase types predate today's
-      // provider_services approval-status migration and will be
-      // regenerated once it's run against the real database (same pattern
-      // already used in admin-queries.ts for the identical reason).
+      // `!inner` on the services join is required for `.eq('service.is_active', ...)`
+      // below to actually filter — a plain left-embed ignores nested-column
+      // filters. An inactive service must never be selectable for a new
+      // booking, even if the provider's own offering of it is still approved.
       const { data, error } = await (supabase
         .from('provider_services')
-        .select('price_override, status, service:services(*, category:categories(slug, name_en, name_ar))') as any)
+        .select('price_override, status, service:services!inner(*, category:categories(slug, name_en, name_ar))') as any)
         .eq('provider_id', providerId!)
-        .eq('status', 'approved');
+        .eq('status', 'approved')
+        .eq('service.is_active', true);
       if (error) throw error;
       return (data ?? []) as any[];
     },
