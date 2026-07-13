@@ -153,6 +153,26 @@ export function useUpdateBookingStatus() {
   });
 }
 
+export function useAdminResolveReschedule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { requestId: string; bookingId: string; action: 'accept' | 'reject'; reason: string }) => {
+      const { error } = await supabase.rpc('admin_resolve_reschedule', {
+        p_request_id: input.requestId,
+        p_action: input.action,
+        p_reason: input.reason,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['reschedule-requests', vars.bookingId] });
+      qc.invalidateQueries({ queryKey: ['admin', 'bookings'] });
+      qc.invalidateQueries({ queryKey: ['booking', vars.bookingId] });
+      qc.invalidateQueries({ queryKey: ['provider-booking', vars.bookingId] });
+    },
+  });
+}
+
 export function useAdminCategories() {
   return useQuery({
     queryKey: ['admin', 'categories'],

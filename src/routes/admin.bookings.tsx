@@ -1,9 +1,53 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useAdminBookings, useUpdateBookingStatus } from "@/lib/db/admin-queries";
+import { useAdminBookings, useUpdateBookingStatus, useAdminResolveReschedule } from "@/lib/db/admin-queries";
+import { useRescheduleRequests } from "@/lib/db/queries";
 import { PaymentBlock } from "@/components/famio/PaymentBlock";
 import { formatEGP } from "@/lib/utils";
 import { Search } from "lucide-react";
+
+function AdminRescheduleHistory({ bookingId, customerId }: { bookingId: string; customerId: string }) {
+  const reqQ = useRescheduleRequests(bookingId);
+  const resolve = useAdminResolveReschedule();
+  const [reason, setReason] = useState("");
+  const rows = reqQ.data ?? [];
+  const open = rows.find((r: any) => r.status === "pending");
+
+  if (rows.length === 0) return <p className="mt-3 text-xs text-muted-foreground">No reschedule history for this booking.</p>;
+
+  return (
+    <div className="mt-3 space-y-2 border-t border-border pt-3">
+      <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Reschedule history</p>
+      <ul className="space-y-1">
+        {rows.map((r: any) => (
+          <li key={r.id} className="text-xs text-muted-foreground">
+            {(r.requested_by === customerId ? "Customer" : "Provider")} proposed {new Date(r.proposed_start_at).toLocaleString()} — {r.status}
+            {r.response_reason ? ` (${r.response_reason})` : ""}
+          </li>
+        ))}
+      </ul>
+      {open && (
+        <div className="space-y-2 rounded-xl border border-coral/30 bg-coral/5 p-2">
+          <p className="text-[11px] font-bold text-coral">Admin intervene (audited — reason required)</p>
+          <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (required)"
+            className="h-9 w-full rounded-lg border border-border bg-surface px-2 text-xs" />
+          <div className="flex gap-2">
+            <button
+              disabled={!reason.trim() || resolve.isPending}
+              onClick={() => resolve.mutate({ requestId: open.id, bookingId, action: "accept", reason }, { onSuccess: () => setReason("") })}
+              className="rounded-lg bg-navy px-3 py-1.5 text-xs font-bold text-navy-foreground disabled:opacity-50"
+            >Force accept</button>
+            <button
+              disabled={!reason.trim() || resolve.isPending}
+              onClick={() => resolve.mutate({ requestId: open.id, bookingId, action: "reject", reason }, { onSuccess: () => setReason("") })}
+              className="rounded-lg border border-coral px-3 py-1.5 text-xs font-bold text-coral disabled:opacity-50"
+            >Force reject</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/admin/bookings")({ component: AdminBookings });
 
@@ -136,6 +180,7 @@ function AdminBookings() {
                 {isOpen && (
                   <div className="mt-3">
                     <PaymentBlock bookingId={b.id} viewer="admin" bookingStatus={b.status} />
+                    <AdminRescheduleHistory bookingId={b.id} customerId={b.customer_id} />
                   </div>
                 )}
               </li>

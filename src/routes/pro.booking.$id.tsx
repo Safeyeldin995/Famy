@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { ProviderShell } from "@/components/famio/ProviderShell";
 import { TopBar, Card, Badge, PrimaryButton, ErrorState, BookingTimeline, ReasonDialog } from "@/components/famio/ui";
 import { PaymentBlock } from "@/components/famio/PaymentBlock";
+import { RescheduleSection } from "@/components/famio/RescheduleSection";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { useProviderBooking, useProviderUpdateBookingStatus } from "@/lib/db/provider-queries";
 import { bookingStatusTone, formatEGP, BOOKING_TIMELINE_STEPS } from "@/lib/utils";
@@ -97,6 +98,15 @@ function ProBookingDetail() {
             <div className="mt-1 text-sm whitespace-pre-wrap">{b.notes}</div>
           </Card>
         )}
+
+        <RescheduleSection
+          bookingId={b.id}
+          viewer="provider"
+          customerId={b.customer_id}
+          status={b.status}
+          currentStart={b.start_at}
+          currentEnd={b.end_at}
+        />
 
         <Card className="space-y-2 p-4">
           <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("pro.booking.payment")}</div>

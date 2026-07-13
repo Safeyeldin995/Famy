@@ -443,6 +443,81 @@ export function useBooking(id: string | undefined) {
 
 
 
+// ---------- Rescheduling ----------
+export type RescheduleAction = 'accept' | 'reject' | 'counter';
+
+export function useRescheduleRequests(bookingId: string | undefined) {
+  return useQuery({
+    enabled: !!bookingId,
+    queryKey: ['reschedule-requests', bookingId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('booking_reschedule_requests')
+        .select('*')
+        .eq('booking_id', bookingId!)
+        .order('requested_at', { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+function invalidateRescheduleQueries(qc: ReturnType<typeof useQueryClient>, bookingId: string) {
+  qc.invalidateQueries({ queryKey: ['reschedule-requests', bookingId] });
+  qc.invalidateQueries({ queryKey: ['booking', bookingId] });
+  qc.invalidateQueries({ queryKey: ['provider-booking', bookingId] });
+  qc.invalidateQueries({ queryKey: ['my-bookings'] });
+  qc.invalidateQueries({ queryKey: ['provider-bookings'] });
+}
+
+export function useRequestReschedule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { bookingId: string; proposedStart: string; proposedEnd: string; reason?: string }) => {
+      const { data, error } = await supabase.rpc('request_reschedule', {
+        p_booking_id: input.bookingId,
+        p_proposed_start: input.proposedStart,
+        p_proposed_end: input.proposedEnd,
+        p_reason: input.reason ?? '',
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_d, vars) => invalidateRescheduleQueries(qc, vars.bookingId),
+  });
+}
+
+export function useRespondReschedule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      requestId: string; bookingId: string; action: RescheduleAction; reason?: string; counterStart?: string; counterEnd?: string;
+    }) => {
+      const { data, error } = await supabase.rpc('respond_reschedule', {
+        p_request_id: input.requestId,
+        p_action: input.action,
+        p_reason: input.reason,
+        p_counter_start: input.counterStart,
+        p_counter_end: input.counterEnd,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_d, vars) => invalidateRescheduleQueries(qc, vars.bookingId),
+  });
+}
+
+export function useCancelRescheduleRequest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { requestId: string; bookingId: string }) => {
+      const { error } = await supabase.rpc('cancel_reschedule_request', { p_request_id: input.requestId });
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => invalidateRescheduleQueries(qc, vars.bookingId),
+  });
+}
+
 export function useCreateBooking() {
   const qc = useQueryClient();
   return useMutation({

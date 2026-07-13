@@ -326,6 +326,75 @@ export type Database = {
           },
         ]
       }
+      booking_reschedule_requests: {
+        Row: {
+          booking_id: string
+          created_at: string
+          id: string
+          original_end_at: string
+          original_start_at: string
+          proposed_end_at: string
+          proposed_start_at: string
+          request_reason: string | null
+          requested_at: string
+          requested_by: string
+          responded_at: string | null
+          responded_by: string | null
+          responds_to_id: string | null
+          response_reason: string | null
+          status: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          id?: string
+          original_end_at: string
+          original_start_at: string
+          proposed_end_at: string
+          proposed_start_at: string
+          request_reason?: string | null
+          requested_at?: string
+          requested_by: string
+          responded_at?: string | null
+          responded_by?: string | null
+          responds_to_id?: string | null
+          response_reason?: string | null
+          status?: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          id?: string
+          original_end_at?: string
+          original_start_at?: string
+          proposed_end_at?: string
+          proposed_start_at?: string
+          request_reason?: string | null
+          requested_at?: string
+          requested_by?: string
+          responded_at?: string | null
+          responded_by?: string | null
+          responds_to_id?: string | null
+          response_reason?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_reschedule_requests_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_reschedule_requests_responds_to_id_fkey"
+            columns: ["responds_to_id"]
+            isOneToOne: false
+            referencedRelation: "booking_reschedule_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_status_history: {
         Row: {
           booking_id: string
@@ -1666,6 +1735,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_resolve_reschedule: {
+        Args: { p_action: string; p_reason: string; p_request_id: string }
+        Returns: undefined
+      }
+      cancel_reschedule_request: {
+        Args: { p_request_id: string }
+        Returns: undefined
+      }
+      check_booking_slot: {
+        Args: {
+          p_end: string
+          p_exclude_booking_id?: string
+          p_provider_id: string
+          p_start: string
+        }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1678,6 +1764,15 @@ export type Database = {
         Args: { _provider_id: string }
         Returns: undefined
       }
+      request_reschedule: {
+        Args: {
+          p_booking_id: string
+          p_proposed_end: string
+          p_proposed_start: string
+          p_reason: string
+        }
+        Returns: string
+      }
       resolve_zone: {
         Args: { p_lat: number; p_lng: number }
         Returns: {
@@ -1686,6 +1781,16 @@ export type Database = {
           travel_fee: number
           zone_id: string
         }[]
+      }
+      respond_reschedule: {
+        Args: {
+          p_action: string
+          p_counter_end?: string
+          p_counter_start?: string
+          p_reason?: string
+          p_request_id: string
+        }
+        Returns: string
       }
     }
     Enums: {

@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PhoneFrame, PrimaryButton, Card, Badge, BackButton, Avatar, BookingTimeline, ReasonDialog, ErrorState, EmptyState } from "@/components/famio/ui";
 import { PaymentBlock } from "@/components/famio/PaymentBlock";
+import { RescheduleSection } from "@/components/famio/RescheduleSection";
 import { useBooking, useFavoriteIds, useToggleFavorite, useBookingReview, useSubmitReview, useUpdateBookingStatus } from "@/lib/db/queries";
 import { toUIProvider } from "@/lib/db/adapters";
 import { currentLang } from "@/lib/i18n";
@@ -458,6 +459,15 @@ function BookingDetail() {
         <div className="mt-4">
           <PaymentBlock bookingId={real.id} viewer="customer" bookingStatus={status} />
         </div>
+
+        <RescheduleSection
+          bookingId={real.id}
+          viewer="customer"
+          customerId={real.customer_id}
+          status={status!}
+          currentStart={real.start_at}
+          currentEnd={real.end_at}
+        />
 
         <Card className="mt-4 p-5">
           <div className="mb-3 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">{t("bookingDetail.whatsNext")}</div>
