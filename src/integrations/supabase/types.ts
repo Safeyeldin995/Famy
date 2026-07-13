@@ -1055,6 +1055,7 @@ export type Database = {
       provider_services: {
         Row: {
           created_at: string
+          flagged_for_review: boolean
           id: string
           price_override: number | null
           provider_id: string
@@ -1063,6 +1064,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          flagged_for_review?: boolean
           id?: string
           price_override?: number | null
           provider_id: string
@@ -1071,6 +1073,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          flagged_for_review?: boolean
           id?: string
           price_override?: number | null
           provider_id?: string
@@ -1300,9 +1303,13 @@ export type Database = {
           duration_min: number
           id: string
           is_active: boolean
+          maximum_extras_total: number | null
+          maximum_price: number | null
+          minimum_price: number | null
           name_ar: string
           name_en: string
           pricing_model: string
+          provider_pricing_allowed: boolean
           slug: string
           updated_at: string
         }
@@ -1316,9 +1323,13 @@ export type Database = {
           duration_min?: number
           id?: string
           is_active?: boolean
+          maximum_extras_total?: number | null
+          maximum_price?: number | null
+          minimum_price?: number | null
           name_ar: string
           name_en: string
           pricing_model?: string
+          provider_pricing_allowed?: boolean
           slug: string
           updated_at?: string
         }
@@ -1332,9 +1343,13 @@ export type Database = {
           duration_min?: number
           id?: string
           is_active?: boolean
+          maximum_extras_total?: number | null
+          maximum_price?: number | null
+          minimum_price?: number | null
           name_ar?: string
           name_en?: string
           pricing_model?: string
+          provider_pricing_allowed?: boolean
           slug?: string
           updated_at?: string
         }

@@ -219,7 +219,7 @@ export function useUpdateCategoryNames() {
 // Columns are selected explicitly (never `*`) so `deleted_at` is never
 // fetched into a UI-facing query.
 const SERVICE_COLUMNS =
-  'id, category_id, slug, name_en, name_ar, description_en, description_ar, base_price, duration_min, pricing_model, is_active, created_at, updated_at, category:categories(id, slug, name_en, name_ar)';
+  'id, category_id, slug, name_en, name_ar, description_en, description_ar, base_price, duration_min, pricing_model, is_active, minimum_price, maximum_price, maximum_extras_total, provider_pricing_allowed, created_at, updated_at, category:categories(id, slug, name_en, name_ar)';
 
 export type AdminServiceInput = {
   category_id: string;
@@ -232,7 +232,38 @@ export type AdminServiceInput = {
   duration_min: number;
   pricing_model: 'hourly' | 'fixed' | 'per_visit';
   is_active: boolean;
+  minimum_price: number | null;
+  maximum_price: number | null;
+  maximum_extras_total: number | null;
+  provider_pricing_allowed: boolean;
 };
+
+export function useFlaggedProviderServices(serviceId: string | undefined) {
+  return useQuery({
+    enabled: !!serviceId,
+    queryKey: ['admin', 'flagged-provider-services', serviceId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('provider_services')
+        .select('id, provider_id, price_override, provider:providers(profile:profiles(full_name))')
+        .eq('service_id', serviceId!)
+        .eq('flagged_for_review', true);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useClearProviderServiceFlag() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id }: { id: string; serviceId: string }) => {
+      const { error } = await supabase.from('provider_services').update({ flagged_for_review: false }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['admin', 'flagged-provider-services', vars.serviceId] }),
+  });
+}
 
 export function useAdminServices() {
   return useQuery({

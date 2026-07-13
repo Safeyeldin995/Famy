@@ -5,6 +5,7 @@ import { Plus, Search } from "lucide-react";
 import {
   useAdminServices, useCreateService, useUpdateService, useSetServiceActive,
   useAdminCategories, type AdminServiceInput,
+  useFlaggedProviderServices, useClearProviderServiceFlag,
 } from "@/lib/db/admin-queries";
 
 export const Route = createFileRoute("/admin/services")({ component: AdminServices });
@@ -22,6 +23,10 @@ type ServiceForm = {
   base_price: string;
   duration_min: string;
   pricing_model: PricingModel;
+  minimum_price: string;
+  maximum_price: string;
+  maximum_extras_total: string;
+  provider_pricing_allowed: boolean;
 };
 
 const EMPTY_FORM: ServiceForm = {
@@ -34,6 +39,10 @@ const EMPTY_FORM: ServiceForm = {
   base_price: "0",
   duration_min: "60",
   pricing_model: "hourly",
+  minimum_price: "",
+  maximum_price: "",
+  maximum_extras_total: "",
+  provider_pricing_allowed: false,
 };
 
 function formFromService(s: any): ServiceForm {
@@ -47,6 +56,10 @@ function formFromService(s: any): ServiceForm {
     base_price: String(s.base_price ?? 0),
     duration_min: String(s.duration_min ?? 60),
     pricing_model: (s.pricing_model as PricingModel) ?? "hourly",
+    minimum_price: s.minimum_price != null ? String(s.minimum_price) : "",
+    maximum_price: s.maximum_price != null ? String(s.maximum_price) : "",
+    maximum_extras_total: s.maximum_extras_total != null ? String(s.maximum_extras_total) : "",
+    provider_pricing_allowed: !!s.provider_pricing_allowed,
   };
 }
 
@@ -66,6 +79,15 @@ function validate(f: ServiceForm, existingSlugs: Set<string>, editingSlug: strin
   if (!Number.isFinite(price) || price < 0) errors.base_price = "Must be 0 or more.";
   const duration = Number(f.duration_min);
   if (!Number.isFinite(duration) || duration <= 0) errors.duration_min = "Must be greater than 0.";
+  const min = f.minimum_price.trim() ? Number(f.minimum_price) : null;
+  const max = f.maximum_price.trim() ? Number(f.maximum_price) : null;
+  if (min != null && (!Number.isFinite(min) || min < 0)) errors.minimum_price = "Must be 0 or more.";
+  if (max != null && (!Number.isFinite(max) || max < 0)) errors.maximum_price = "Must be 0 or more.";
+  if (min != null && max != null && max < min) errors.maximum_price = "Must be greater than or equal to the minimum.";
+  if (f.maximum_extras_total.trim()) {
+    const extras = Number(f.maximum_extras_total);
+    if (!Number.isFinite(extras) || extras < 0) errors.maximum_extras_total = "Must be 0 or more.";
+  }
   return errors;
 }
 
@@ -81,6 +103,10 @@ function toInput(f: ServiceForm): AdminServiceInput {
     duration_min: Number(f.duration_min),
     pricing_model: f.pricing_model,
     is_active: true,
+    minimum_price: f.minimum_price.trim() ? Number(f.minimum_price) : null,
+    maximum_price: f.maximum_price.trim() ? Number(f.maximum_price) : null,
+    maximum_extras_total: f.maximum_extras_total.trim() ? Number(f.maximum_extras_total) : null,
+    provider_pricing_allowed: f.provider_pricing_allowed,
   };
 }
 
@@ -169,6 +195,53 @@ function ServiceFormFields({
           </select>
         </label>
       </div>
+
+      <div className="rounded-xl border border-border/60 p-3">
+        <label className="flex items-center gap-2 text-xs font-semibold">
+          <input type="checkbox" checked={form.provider_pricing_allowed} onChange={(e) => setForm({ ...form, provider_pricing_allowed: e.target.checked })} />
+          Allow providers to set their own price for this service
+        </label>
+        <div className="mt-3 grid grid-cols-3 gap-3">
+          <label className="block">
+            <span className="text-xs font-semibold text-muted-foreground">Minimum price (EGP)</span>
+            <input value={form.minimum_price} onChange={(e) => setForm({ ...form, minimum_price: e.target.value })} type="number" min={0} step={1}
+              className="mt-1 h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm" />
+            {errors.minimum_price && <p className="mt-1 text-[11px] font-semibold text-coral">{errors.minimum_price}</p>}
+          </label>
+          <label className="block">
+            <span className="text-xs font-semibold text-muted-foreground">Maximum price (EGP)</span>
+            <input value={form.maximum_price} onChange={(e) => setForm({ ...form, maximum_price: e.target.value })} type="number" min={0} step={1}
+              className="mt-1 h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm" />
+            {errors.maximum_price && <p className="mt-1 text-[11px] font-semibold text-coral">{errors.maximum_price}</p>}
+          </label>
+          <label className="block">
+            <span className="text-xs font-semibold text-muted-foreground">Max extras total (EGP)</span>
+            <input value={form.maximum_extras_total} onChange={(e) => setForm({ ...form, maximum_extras_total: e.target.value })} type="number" min={0} step={1}
+              className="mt-1 h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm" />
+            {errors.maximum_extras_total && <p className="mt-1 text-[11px] font-semibold text-coral">{errors.maximum_extras_total}</p>}
+          </label>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FlaggedProviders({ serviceId }: { serviceId: string }) {
+  const flaggedQ = useFlaggedProviderServices(serviceId);
+  const clearFlag = useClearProviderServiceFlag();
+  const rows = flaggedQ.data ?? [];
+  if (rows.length === 0) return null;
+  return (
+    <div className="mt-2 rounded-xl border border-amber-300 bg-amber-50 p-3">
+      <p className="text-[11px] font-bold text-amber-800">Providers outside current pricing limits — needs review</p>
+      <ul className="mt-1.5 space-y-1">
+        {rows.map((r: any) => (
+          <li key={r.id} className="flex items-center justify-between text-xs">
+            <span>{r.provider?.profile?.full_name ?? r.provider_id.slice(0, 8)} — {r.price_override} EGP</span>
+            <button onClick={() => clearFlag.mutate({ id: r.id, serviceId })} className="text-[11px] font-bold text-navy">Clear</button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -376,6 +449,7 @@ function AdminServices() {
                     </div>
                   </div>
                 )}
+                <FlaggedProviders serviceId={s.id} />
               </li>
             ))}
           </ul>

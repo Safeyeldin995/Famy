@@ -437,7 +437,7 @@ export function useMyProviderServices(providerId: string | undefined) {
       // labeled unavailable, without dropping the underlying row.
       const { data, error } = await supabase
         .from('provider_services')
-        .select('service_id, price_override, status, service:services(id, name_en, name_ar, is_active, category:categories(name_en, name_ar))')
+        .select('service_id, price_override, status, service:services(id, name_en, name_ar, is_active, provider_pricing_allowed, minimum_price, maximum_price, category:categories(name_en, name_ar))')
         .eq('provider_id', providerId!);
       if (error) throw error;
       return data ?? [];
@@ -466,6 +466,26 @@ export function useToggleProviderService() {
           .eq('service_id', serviceId);
         if (error) throw error;
       }
+    },
+    onSuccess: (_d, vars) =>
+      qc.invalidateQueries({ queryKey: ['my-provider-services', vars.providerId] }),
+  });
+}
+
+// Provider-set custom price for one of their services. The database
+// (trg_validate_provider_price) is the authoritative check against the
+// service's provider_pricing_allowed / minimum_price / maximum_price —
+// this can never be bypassed by calling the API directly.
+export function useSetProviderPrice() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ providerId, serviceId, price }: { providerId: string; serviceId: string; price: number | null }) => {
+      const { error } = await supabase
+        .from('provider_services')
+        .update({ price_override: price })
+        .eq('provider_id', providerId)
+        .eq('service_id', serviceId);
+      if (error) throw error;
     },
     onSuccess: (_d, vars) =>
       qc.invalidateQueries({ queryKey: ['my-provider-services', vars.providerId] }),

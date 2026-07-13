@@ -14,6 +14,7 @@ import {
   useAllServices,
   useMyProviderServices,
   useToggleProviderService,
+  useSetProviderPrice,
 } from "@/lib/db/provider-queries";
 import { FileText, ShieldCheck, LogOut, Globe, Camera, Loader2 } from "lucide-react";
 import { LanguageToggle, useLang } from "@/components/famio/LanguageToggle";
@@ -34,6 +35,9 @@ function ProProfile() {
   const services = useAllServices();
   const mine = useMyProviderServices(provider?.id);
   const toggle = useToggleProviderService();
+  const setPrice = useSetProviderPrice();
+  const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
+  const [priceErrors, setPriceErrors] = useState<Record<string, string>>({});
   const nav = useNavigate();
   const qc = useQueryClient();
 
@@ -87,6 +91,33 @@ function ProProfile() {
 
   const myIds = new Set((mine.data ?? []).map((s: any) => s.service_id));
   const myStatus = new Map((mine.data ?? []).map((s: any) => [s.service_id, s.status]));
+  const myPriceOverride = new Map((mine.data ?? []).map((s: any) => [s.service_id, s.price_override]));
+
+  const submitPrice = (serviceId: string, min: number | null, max: number | null) => {
+    const raw = priceDrafts[serviceId];
+    if (raw === undefined) return;
+    const trimmed = raw.trim();
+    const value = trimmed === "" ? null : Number(trimmed);
+    if (value !== null) {
+      if (!Number.isFinite(value) || value < 0) {
+        setPriceErrors((e) => ({ ...e, [serviceId]: t("pro.profile.priceInvalid", "Enter a valid price.") }));
+        return;
+      }
+      if (min != null && value < min) {
+        setPriceErrors((e) => ({ ...e, [serviceId]: t("pro.profile.priceBelowMin", { min }) }));
+        return;
+      }
+      if (max != null && value > max) {
+        setPriceErrors((e) => ({ ...e, [serviceId]: t("pro.profile.priceAboveMax", { max }) }));
+        return;
+      }
+    }
+    setPriceErrors((e) => ({ ...e, [serviceId]: "" }));
+    setPrice.mutate(
+      { providerId: provider.id, serviceId, price: value },
+      { onError: (e: any) => setPriceErrors((errs) => ({ ...errs, [serviceId]: e?.message ?? t("common.somethingWentWrong") })) },
+    );
+  };
   // Already-assigned services that admin has since deactivated: excluded
   // from `services` (useAllServices only lists active ones, so the
   // provider can never newly select or reactivate one), but the
@@ -189,28 +220,58 @@ function ProProfile() {
               const on = myIds.has(s.id);
               const sname = lang === "ar" ? (s.name_ar ?? s.name_en) : (s.name_en ?? s.name_ar);
               const cname = lang === "ar" ? (s.category?.name_ar ?? s.category?.name_en) : (s.category?.name_en ?? s.category?.name_ar);
+              const currentOverride = myPriceOverride.get(s.id);
+              const priceError = priceErrors[s.id];
               return (
-                <div key={s.id} className="flex items-center justify-between px-4 py-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <div className="text-sm font-semibold truncate">{sname}</div>
-                      {on && myStatus.get(s.id) === "pending" && (
-                        <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">{t("pro.profile.servicePending")}</span>
-                      )}
-                      {on && myStatus.get(s.id) === "rejected" && (
-                        <span className="shrink-0 rounded-full bg-coral/15 px-2 py-0.5 text-[10px] font-bold text-coral">{t("pro.profile.serviceRejected")}</span>
+                <div key={s.id} className="px-4 py-3">
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <div className="text-sm font-semibold truncate">{sname}</div>
+                        {on && myStatus.get(s.id) === "pending" && (
+                          <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">{t("pro.profile.servicePending")}</span>
+                        )}
+                        {on && myStatus.get(s.id) === "rejected" && (
+                          <span className="shrink-0 rounded-full bg-coral/15 px-2 py-0.5 text-[10px] font-bold text-coral">{t("pro.profile.serviceRejected")}</span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground truncate">{cname}</div>
+                    </div>
+                    <button
+                      onClick={() => toggle.mutate({ providerId: provider.id, serviceId: s.id, on: !on })}
+                      className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${on ? "bg-navy" : "bg-muted"}`}
+                      aria-pressed={on}
+                    >
+                      <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-soft transition-all ${on ? "left-[22px]" : "left-0.5"}`} />
+                    </button>
+                  </div>
+
+                  {on && s.provider_pricing_allowed && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <input
+                        type="number"
+                        min={0}
+                        step={1}
+                        placeholder={t("pro.profile.pricePlaceholder", "Your price (EGP/hr)")}
+                        value={priceDrafts[s.id] ?? (currentOverride != null ? String(currentOverride) : "")}
+                        onChange={(e) => setPriceDrafts((d) => ({ ...d, [s.id]: e.target.value }))}
+                        className="h-9 w-40 rounded-lg border border-border bg-surface px-2 text-xs"
+                      />
+                      <button
+                        onClick={() => submitPrice(s.id, s.minimum_price ?? null, s.maximum_price ?? null)}
+                        disabled={setPrice.isPending}
+                        className="rounded-lg bg-navy px-3 py-1.5 text-[11px] font-bold text-navy-foreground disabled:opacity-50"
+                      >
+                        {t("common.save")}
+                      </button>
+                      {(s.minimum_price != null || s.maximum_price != null) && (
+                        <span className="text-[10px] text-muted-foreground">
+                          {t("pro.profile.priceRange", { min: s.minimum_price ?? "—", max: s.maximum_price ?? "—" })}
+                        </span>
                       )}
                     </div>
-                    <div className="text-[11px] text-muted-foreground truncate">{cname}</div>
-                  </div>
-                  <button
-                    onClick={() => toggle.mutate({ providerId: provider.id, serviceId: s.id, on: !on })}
-                    className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${on ? "bg-navy" : "bg-muted"}`}
-                    aria-pressed={on}
-                  >
-                    <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-soft transition-all ${on ? "left-[22px]" : "left-0.5"}`} />
-                  </button>
-
+                  )}
+                  {priceError && <p className="mt-1 text-[11px] font-semibold text-coral">{priceError}</p>}
                 </div>
               );
             })}
