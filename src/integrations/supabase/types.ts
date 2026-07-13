@@ -326,6 +326,60 @@ export type Database = {
           },
         ]
       }
+      booking_requirement_selections: {
+        Row: {
+          booking_id: string
+          chosen_by: string
+          created_at: string
+          extra_fee: number
+          fulfillment_mode: string
+          id: string
+          name_ar: string
+          name_en: string
+          requirement_code: string
+          requirement_id: string | null
+        }
+        Insert: {
+          booking_id: string
+          chosen_by: string
+          created_at?: string
+          extra_fee?: number
+          fulfillment_mode: string
+          id?: string
+          name_ar: string
+          name_en: string
+          requirement_code: string
+          requirement_id?: string | null
+        }
+        Update: {
+          booking_id?: string
+          chosen_by?: string
+          created_at?: string
+          extra_fee?: number
+          fulfillment_mode?: string
+          id?: string
+          name_ar?: string
+          name_en?: string
+          requirement_code?: string
+          requirement_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_requirement_selections_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_requirement_selections_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "service_requirements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_reschedule_requests: {
         Row: {
           booking_id: string
@@ -463,6 +517,7 @@ export type Database = {
           price_subtotal: number
           price_total: number
           provider_id: string
+          requirement_selections: Json
           service_id: string
           start_at: string
           status: Database["public"]["Enums"]["booking_status"]
@@ -499,6 +554,7 @@ export type Database = {
           price_subtotal?: number
           price_total?: number
           provider_id: string
+          requirement_selections?: Json
           service_id: string
           start_at: string
           status?: Database["public"]["Enums"]["booking_status"]
@@ -535,6 +591,7 @@ export type Database = {
           price_subtotal?: number
           price_total?: number
           provider_id?: string
+          requirement_selections?: Json
           service_id?: string
           start_at?: string
           status?: Database["public"]["Enums"]["booking_status"]
@@ -1052,6 +1109,63 @@ export type Database = {
           },
         ]
       }
+      provider_requirement_fulfillments: {
+        Row: {
+          created_at: string
+          evidence_storage_path: string | null
+          id: string
+          notes: string | null
+          provider_id: string
+          requirement_id: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          evidence_storage_path?: string | null
+          id?: string
+          notes?: string | null
+          provider_id: string
+          requirement_id: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          evidence_storage_path?: string | null
+          id?: string
+          notes?: string | null
+          provider_id?: string
+          requirement_id?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_requirement_fulfillments_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_requirement_fulfillments_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "service_requirements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       provider_services: {
         Row: {
           created_at: string
@@ -1288,6 +1402,74 @@ export type Database = {
             columns: ["provider_id"]
             isOneToOne: false
             referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_requirements: {
+        Row: {
+          code: string
+          created_at: string
+          description_ar: string | null
+          description_en: string | null
+          evidence_required: boolean
+          fulfillment_mode: string
+          id: string
+          is_active: boolean
+          name_ar: string
+          name_en: string
+          provider_extra_fee: number
+          required_during_booking: boolean
+          required_for_provider_approval: boolean
+          requirement_type: string
+          service_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description_ar?: string | null
+          description_en?: string | null
+          evidence_required?: boolean
+          fulfillment_mode?: string
+          id?: string
+          is_active?: boolean
+          name_ar: string
+          name_en: string
+          provider_extra_fee?: number
+          required_during_booking?: boolean
+          required_for_provider_approval?: boolean
+          requirement_type: string
+          service_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description_ar?: string | null
+          description_en?: string | null
+          evidence_required?: boolean
+          fulfillment_mode?: string
+          id?: string
+          is_active?: boolean
+          name_ar?: string
+          name_en?: string
+          provider_extra_fee?: number
+          required_during_booking?: boolean
+          required_for_provider_approval?: boolean
+          requirement_type?: string
+          service_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_requirements_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
             referencedColumns: ["id"]
           },
         ]

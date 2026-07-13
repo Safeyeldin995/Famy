@@ -15,8 +15,12 @@ import {
   useMyProviderServices,
   useToggleProviderService,
   useSetProviderPrice,
+  useRequirementsForService,
+  useMyRequirementFulfillments,
+  useDeclareRequirement,
+  useUploadRequirementEvidence,
 } from "@/lib/db/provider-queries";
-import { FileText, ShieldCheck, LogOut, Globe, Camera, Loader2 } from "lucide-react";
+import { FileText, ShieldCheck, LogOut, Globe, Camera, Loader2, Upload } from "lucide-react";
 import { LanguageToggle, useLang } from "@/components/famio/LanguageToggle";
 
 
@@ -38,6 +42,7 @@ function ProProfile() {
   const setPrice = useSetProviderPrice();
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
   const [priceErrors, setPriceErrors] = useState<Record<string, string>>({});
+  const [expandedReqService, setExpandedReqService] = useState<string | null>(null);
   const nav = useNavigate();
   const qc = useQueryClient();
 
@@ -272,6 +277,15 @@ function ProProfile() {
                     </div>
                   )}
                   {priceError && <p className="mt-1 text-[11px] font-semibold text-coral">{priceError}</p>}
+                  {on && (
+                    <button
+                      onClick={() => setExpandedReqService(expandedReqService === s.id ? null : s.id)}
+                      className="mt-2 text-[11px] font-bold text-navy"
+                    >
+                      {expandedReqService === s.id ? t("pro.profile.hideRequirements", "Hide requirements") : t("pro.profile.showRequirements", "Requirements")}
+                    </button>
+                  )}
+                  {on && expandedReqService === s.id && <RequirementsChecklist providerId={provider.id} serviceId={s.id} />}
                 </div>
               );
             })}
@@ -310,6 +324,75 @@ function ProProfile() {
   );
 }
 
+
+const REQ_STATUS_TONE: Record<string, string> = {
+  pending: "bg-amber-100 text-amber-700",
+  passed: "bg-mint/20 text-success",
+  failed: "bg-coral/10 text-coral",
+  waived: "bg-muted text-muted-foreground",
+};
+
+function RequirementsChecklist({ providerId, serviceId }: { providerId: string; serviceId: string }) {
+  const { t } = useTranslation();
+  const reqQ = useRequirementsForService(serviceId);
+  const mineQ = useMyRequirementFulfillments(providerId);
+  const declare = useDeclareRequirement();
+  const upload = useUploadRequirementEvidence();
+  const [notesDraft, setNotesDraft] = useState<Record<string, string>>({});
+
+  const requirements = reqQ.data ?? [];
+  const mineByReq = new Map((mineQ.data ?? []).map((f: any) => [f.requirement_id, f]));
+
+  if (requirements.length === 0) return <p className="mt-2 text-[11px] text-muted-foreground">{t("pro.profile.noRequirements", "No requirements for this service.")}</p>;
+
+  return (
+    <ul className="mt-2 space-y-2">
+      {requirements.map((r: any) => {
+        const mine = mineByReq.get(r.id);
+        const status = mine?.status ?? "pending";
+        return (
+          <li key={r.id} className="rounded-xl border border-border/60 p-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 text-xs">
+                <span className="font-semibold">{r.name_en}</span>
+                {r.required_for_provider_approval && <span className="ml-1 text-[10px] text-coral">*</span>}
+              </div>
+              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${REQ_STATUS_TONE[status]}`}>{status}</span>
+            </div>
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+              <input
+                value={notesDraft[r.id] ?? mine?.notes ?? ""}
+                onChange={(e) => setNotesDraft((d) => ({ ...d, [r.id]: e.target.value }))}
+                placeholder={t("pro.profile.reqNotesPlaceholder", "Notes (optional)")}
+                className="h-8 min-w-0 flex-1 rounded-lg border border-border bg-surface px-2 text-[11px]"
+              />
+              <button
+                onClick={() => declare.mutate({ providerId, requirementId: r.id, notes: notesDraft[r.id] })}
+                disabled={declare.isPending}
+                className="rounded-lg bg-navy px-2 py-1.5 text-[11px] font-bold text-navy-foreground disabled:opacity-50"
+              >{t("common.save")}</button>
+              {r.evidence_required && (
+                <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-[11px] font-semibold">
+                  <Upload className="h-3 w-3" /> {mine?.evidence_storage_path ? t("pro.profile.reevidence", "Re-upload") : t("pro.profile.uploadEvidence", "Upload evidence")}
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) upload.mutate({ providerId, requirementId: r.id, file: f }, { onError: (e2: any) => toast.error(e2?.message ?? "Upload failed") });
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              )}
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return <label className="block"><div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>{children}</label>;

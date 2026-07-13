@@ -265,6 +265,109 @@ export function useClearProviderServiceFlag() {
   });
 }
 
+// ---------- Service requirements ----------
+export type AdminRequirementInput = {
+  service_id: string;
+  code: string;
+  name_en: string;
+  name_ar: string;
+  description_en: string | null;
+  description_ar: string | null;
+  requirement_type: 'equipment' | 'supplies' | 'certification' | 'training' | 'experience' | 'other';
+  required_for_provider_approval: boolean;
+  required_during_booking: boolean;
+  fulfillment_mode: 'customer' | 'provider' | 'either';
+  provider_extra_fee: number;
+  evidence_required: boolean;
+  is_active: boolean;
+};
+
+export function useAdminRequirements(serviceId: string | undefined) {
+  return useQuery({
+    enabled: !!serviceId,
+    queryKey: ['admin', 'requirements', serviceId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('service_requirements')
+        .select('*')
+        .eq('service_id', serviceId!)
+        .order('sort_order');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useCreateRequirement() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: AdminRequirementInput & { sort_order?: number }) => {
+      const { error } = await supabase.from('service_requirements').insert(input as any);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['admin', 'requirements', vars.service_id] }),
+  });
+}
+
+export function useUpdateRequirement() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, service_id, ...patch }: { id: string; service_id: string } & Partial<AdminRequirementInput>) => {
+      const { error } = await supabase.from('service_requirements').update(patch as any).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['admin', 'requirements', vars.service_id] }),
+  });
+}
+
+export function useReorderRequirement() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, sort_order }: { id: string; service_id: string; sort_order: number }) => {
+      const { error } = await supabase.from('service_requirements').update({ sort_order }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['admin', 'requirements', vars.service_id] }),
+  });
+}
+
+export function useAdminRequirementFulfillments(requirementId: string | undefined) {
+  return useQuery({
+    enabled: !!requirementId,
+    queryKey: ['admin', 'requirement-fulfillments', requirementId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('provider_requirement_fulfillments')
+        .select('*, provider:providers(profile:profiles(full_name))')
+        .eq('requirement_id', requirementId!)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useReviewRequirementFulfillment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, status, review_notes }: { id: string; requirementId: string; status: 'passed' | 'failed' | 'waived' | 'pending'; review_notes?: string }) => {
+      const { error } = await supabase.from('provider_requirement_fulfillments').update({ status, review_notes: review_notes ?? null }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['admin', 'requirement-fulfillments', vars.requirementId] }),
+  });
+}
+
+export function useAdminEvidenceSignedUrl() {
+  return useMutation({
+    mutationFn: async (path: string) => {
+      const { data, error } = await supabase.storage.from('provider-documents').createSignedUrl(path, 300);
+      if (error) throw error;
+      return data.signedUrl;
+    },
+  });
+}
+
 export function useAdminServices() {
   return useQuery({
     queryKey: ['admin', 'services'],

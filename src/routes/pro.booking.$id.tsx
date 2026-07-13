@@ -99,6 +99,20 @@ function ProBookingDetail() {
           </Card>
         )}
 
+        {Array.isArray(b.requirement_choices) && b.requirement_choices.length > 0 && (
+          <Card className="space-y-1.5 p-4">
+            <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("pro.booking.requirements", "Requirements")}</div>
+            {b.requirement_choices.map((r: any) => (
+              <div key={r.id} className="flex items-center justify-between text-sm">
+                <span>{lang === "ar" ? r.name_ar : r.name_en}</span>
+                <span className="text-xs font-semibold text-muted-foreground">
+                  {r.chosen_by === "provider" ? t("pro.booking.reqYouProvide", "You provide — {{fee}}", { fee: formatEGP(Number(r.extra_fee)) }) : t("pro.booking.reqCustomerProvides", "Customer provides")}
+                </span>
+              </div>
+            ))}
+          </Card>
+        )}
+
         <RescheduleSection
           bookingId={b.id}
           viewer="provider"

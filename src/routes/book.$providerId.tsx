@@ -5,6 +5,7 @@ import {
   useProvider, useProviderServices, useCreateBooking, useAddresses, validateCoupon, useAvailableSlots, useResolveZone,
 } from "@/lib/db/queries";
 import { useCreatePayment } from "@/lib/db/payment-queries";
+import { useRequirementsForService } from "@/lib/db/provider-queries";
 import { toUIProvider } from "@/lib/db/adapters";
 import { currentLang } from "@/lib/i18n";
 import { MapPin, Banknote, Check, Loader2, Home, Briefcase, Users, Plus } from "lucide-react";
@@ -28,7 +29,7 @@ function Book() {
   const { t } = useTranslation();
   const nav = useNavigate();
 
-  const stepKeys = ["service", "duration", "date", "time", "address", "notes", "summary", "payment"] as const;
+  const stepKeys = ["service", "duration", "date", "time", "address", "notes", "requirements", "summary", "payment"] as const;
   const [step, setStep] = useState(0);
   const [serviceId, setServiceId] = useState<string | null>(null);
   const [duration, setDuration] = useState("4h");
@@ -43,6 +44,7 @@ function Book() {
   const [promoStatus, setPromoStatus] = useState<"idle" | "checking" | "applied" | "invalid">("idle");
   const [promoDiscount, setPromoDiscount] = useState(0);
   const [appliedCouponId, setAppliedCouponId] = useState<string | null>(null);
+  const [requirementChoices, setRequirementChoices] = useState<Record<string, "customer" | "provider">>({});
 
   // Only addresses with a pinned location can back a real booking — the
   // server enforces this too (booking_locations snapshot trigger rejects a
@@ -81,6 +83,7 @@ function Book() {
   // returns early) and the next one, which crashes React with a hooks
   // order mismatch as soon as the provider/services queries resolve.
   const slotsQ = useAvailableSlots(providerId, date, hours * 60 || 120);
+  const requirementsQ = useRequirementsForService(activeService?.service?.id);
 
   if (provQ.isLoading || servicesQ.isLoading) {
     return <PhoneFrame><div className="grid flex-1 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-navy" /></div></PhoneFrame>;
@@ -93,7 +96,19 @@ function Book() {
   const subtotal = ratePerHour * hours;
   const fee = billingQ.data?.platform_fee ?? DEFAULT_BILLING_SETTINGS.platform_fee;
   const vat = Math.round(subtotal * ((billingQ.data?.vat_percent ?? DEFAULT_BILLING_SETTINGS.vat_percent) / 100));
-  const total = Math.max(0, subtotal + fee + vat - promoDiscount);
+
+  // Requirements that must be resolved before this booking can be created.
+  // The server re-derives/validates all of this itself (tg_validate_booking_service)
+  // — this is purely so the customer sees the right total and can't submit
+  // an incomplete "either" choice.
+  const bookingRequirements = (requirementsQ.data ?? []).filter((r: any) => r.required_during_booking);
+  const eitherRequirements = bookingRequirements.filter((r: any) => r.fulfillment_mode === "either");
+  const extrasTotal = bookingRequirements.reduce((sum: number, r: any) => {
+    if (r.fulfillment_mode === "provider") return sum + Number(r.provider_extra_fee);
+    if (r.fulfillment_mode === "either" && requirementChoices[r.id] === "provider") return sum + Number(r.provider_extra_fee);
+    return sum;
+  }, 0);
+  const total = Math.max(0, subtotal + fee + vat + extrasTotal - promoDiscount);
 
   const durations = ["2h", "4h", "6h", "8h"];
 
@@ -102,6 +117,7 @@ function Book() {
     if (step === 2) return !!date;
     if (step === 3) return !!time;
     if (step === 4) return !!addressId && !!zoneQ.data;
+    if (step === 6) return eitherRequirements.every((r: any) => !!requirementChoices[r.id]);
     return true;
   };
 
@@ -199,6 +215,7 @@ function Book() {
         currency: "EGP",
         status: bookingStatus,
         notes: notes || null,
+        requirement_selections: eitherRequirements.map((r: any) => ({ requirement_id: r.id, chosen_by: requirementChoices[r.id] })),
       } as any);
       // Create the matching payment row (pending for COD, pending_review for InstaPay).
       try {
@@ -393,6 +410,52 @@ function Book() {
         )}
 
         {step === 6 && (
+          <Step title={t("bookFlow.requirementsTitle", "Requirements")} sub={t("bookFlow.requirementsSub", "Some items for this service need to be arranged.")}>
+            {bookingRequirements.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{t("bookFlow.noRequirements", "Nothing extra needed for this service.")}</p>
+            ) : (
+              <div className="space-y-3">
+                {bookingRequirements.map((r: any) => {
+                  const name = lang === "ar" ? r.name_ar : r.name_en;
+                  if (r.fulfillment_mode !== "either") {
+                    return (
+                      <Card key={r.id} className="p-3 text-sm">
+                        <div className="font-bold">{name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {r.fulfillment_mode === "provider"
+                            ? t("bookFlow.reqProviderProvides", "Provided by your professional — {{fee}}", { fee: formatEGP(Number(r.provider_extra_fee)) })
+                            : t("bookFlow.reqYouProvide", "You provide this")}
+                        </div>
+                      </Card>
+                    );
+                  }
+                  const choice = requirementChoices[r.id];
+                  return (
+                    <Card key={r.id} className="p-3">
+                      <div className="text-sm font-bold">{name}</div>
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => setRequirementChoices((c) => ({ ...c, [r.id]: "customer" }))}
+                          className={`rounded-xl border p-2.5 text-xs font-bold ${choice === "customer" ? "border-navy bg-navy/[0.04] text-navy" : "border-border text-muted-foreground"}`}
+                        >
+                          {t("bookFlow.reqIWillProvide", "I will provide it")}
+                        </button>
+                        <button
+                          onClick={() => setRequirementChoices((c) => ({ ...c, [r.id]: "provider" }))}
+                          className={`rounded-xl border p-2.5 text-xs font-bold ${choice === "provider" ? "border-navy bg-navy/[0.04] text-navy" : "border-border text-muted-foreground"}`}
+                        >
+                          {t("bookFlow.reqProviderWillProvide", "Provider provides — {{fee}}", { fee: formatEGP(Number(r.provider_extra_fee)) })}
+                        </button>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </Step>
+        )}
+
+        {step === 7 && (
           <Step title={t("bookFlow.summaryTitle")}>
             <Card className="p-4">
               <div className="flex items-center gap-3 border-b border-border pb-3">
@@ -436,6 +499,9 @@ function Book() {
                 <Row label={t("bookFlow.rateLine", { rate: formatEGP(ratePerHour), hours: formatNumber(hours) })} value={formatEGP(subtotal)} small />
                 <Row label={t("bookFlow.serviceFee")} value={formatEGP(fee)} small />
                 <Row label={t("bookFlow.vat")} value={formatEGP(vat)} small />
+                {extrasTotal > 0 && (
+                  <Row label={t("bookFlow.extrasTotal", "Requirements")} value={formatEGP(extrasTotal)} small />
+                )}
                 {promoDiscount > 0 && (
                   <Row label={t("bookFlow.promoDiscount")} value={`-${formatEGP(promoDiscount)}`} small />
                 )}
@@ -452,7 +518,7 @@ function Book() {
           </Step>
         )}
 
-        {step === 7 && (
+        {step === 8 && (
           <Step title={t("bookFlow.paymentTitle")} sub={t("bookFlow.paymentSub")}>
             <div className="space-y-3">
               <PayOption icon={<Banknote className="h-5 w-5" />} label={t("bookFlow.payCash")} sub={t("bookFlow.payCashSub")} active={pay === "cash"} onClick={() => setPay("cash")} />
@@ -467,14 +533,14 @@ function Book() {
       </div>
 
       <div className="safe-bottom fixed inset-x-0 bottom-0 z-40 mx-auto max-w-md border-t border-border bg-surface px-5 pt-3">
-        {step === 7 && (
+        {step === 8 && (
           <div className="mb-3 flex items-center justify-between text-sm">
             <span className="text-muted-foreground">{t("bookFlow.total")}</span>
             <span className="text-lg font-extrabold text-navy">{formatEGP(total)}</span>
           </div>
         )}
-        <PrimaryButton variant={step === 7 ? "coral" : "navy"} onClick={next} disabled={!canNext() || createBooking.isPending}>
-          {createBooking.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : step === 7 ? t("bookFlow.payCta", { price: formatEGP(total) }) : step === 6 ? t("bookFlow.continueToPayment") : t("bookFlow.continue")}
+        <PrimaryButton variant={step === 8 ? "coral" : "navy"} onClick={next} disabled={!canNext() || createBooking.isPending}>
+          {createBooking.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : step === 8 ? t("bookFlow.payCta", { price: formatEGP(total) }) : step === 7 ? t("bookFlow.continueToPayment") : t("bookFlow.continue")}
         </PrimaryButton>
       </div>
     </PhoneFrame>

@@ -146,7 +146,7 @@ export function useProviderBooking(id: string | undefined) {
       const { data, error } = await supabase
         .from('bookings')
         .select(
-          `*, service:services(*), customer:profiles!bookings_customer_id_fkey(full_name, avatar_url, phone), location:booking_locations(*)`,
+          `*, service:services(*), customer:profiles!bookings_customer_id_fkey(full_name, avatar_url, phone), location:booking_locations(*), requirement_choices:booking_requirement_selections(*)`,
         )
         .eq('id', id!)
         .maybeSingle();
@@ -409,6 +409,74 @@ export async function getSignedDocumentUrl(path: string) {
     .createSignedUrl(path, 60 * 10);
   if (error) throw error;
   return data.signedUrl;
+}
+
+// ---------- Service requirements (provider declaration + evidence) ----------
+// Status can only ever be set by admin (trg_guard_requirement_fulfillment) —
+// a provider write here is silently kept at 'pending' regardless of what it
+// sends, so there is no self-approval path even via a direct API call.
+export function useRequirementsForService(serviceId: string | undefined) {
+  return useQuery({
+    enabled: !!serviceId,
+    queryKey: ['service-requirements', serviceId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('service_requirements')
+        .select('*')
+        .eq('service_id', serviceId!)
+        .eq('is_active', true)
+        .order('sort_order');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useMyRequirementFulfillments(providerId: string | undefined) {
+  return useQuery({
+    enabled: !!providerId,
+    queryKey: ['my-requirement-fulfillments', providerId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('provider_requirement_fulfillments')
+        .select('*')
+        .eq('provider_id', providerId!);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useDeclareRequirement() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ providerId, requirementId, notes }: { providerId: string; requirementId: string; notes?: string }) => {
+      const { error } = await supabase
+        .from('provider_requirement_fulfillments')
+        .upsert({ provider_id: providerId, requirement_id: requirementId, notes: notes ?? null }, { onConflict: 'provider_id,requirement_id' });
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['my-requirement-fulfillments', vars.providerId] }),
+  });
+}
+
+export function useUploadRequirementEvidence() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ providerId, requirementId, file }: { providerId: string; requirementId: string; file: File }) => {
+      const ext = file.name.split('.').pop() ?? 'bin';
+      const path = `${providerId}/requirement-${requirementId}-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from('provider-documents')
+        .upload(path, file, { contentType: file.type, upsert: false });
+      if (upErr) throw upErr;
+      const { error } = await supabase
+        .from('provider_requirement_fulfillments')
+        .upsert({ provider_id: providerId, requirement_id: requirementId, evidence_storage_path: path }, { onConflict: 'provider_id,requirement_id' });
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['my-requirement-fulfillments', vars.providerId] }),
+  });
 }
 
 // ---------- Provider services management ----------
