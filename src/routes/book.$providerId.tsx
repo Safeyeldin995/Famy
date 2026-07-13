@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { PhoneFrame, TopBar, PrimaryButton, Card, EmptyState, Avatar } from "@/components/famio/ui";
 import {
@@ -7,7 +7,7 @@ import {
 import { useCreatePayment } from "@/lib/db/payment-queries";
 import { toUIProvider } from "@/lib/db/adapters";
 import { currentLang } from "@/lib/i18n";
-import { MapPin, Banknote, Check, Loader2 } from "lucide-react";
+import { MapPin, Banknote, Check, Loader2, Home, Briefcase, Users, Plus } from "lucide-react";
 import instapayLogo from "@/assets/instapay.png.asset.json";
 import { useTranslation } from "react-i18next";
 import { formatEGP, formatNumber } from "@/lib/format";
@@ -44,15 +44,19 @@ function Book() {
   const [promoDiscount, setPromoDiscount] = useState(0);
   const [appliedCouponId, setAppliedCouponId] = useState<string | null>(null);
 
-  // Seed the address step from the customer's real default/most-recent saved
-  // address once it loads — replaces the old Zustand `profile.address` read
-  // (Sprint 1 Phase 2, adjustment #1). Only runs once, before the customer
-  // has interacted with this step, so it never clobbers their own edits.
+  // Only addresses with a pinned location can back a real booking — the
+  // server enforces this too (booking_locations snapshot trigger rejects a
+  // NULL lat/lng), this just keeps the picker from offering a dead end.
+  const bookableAddresses = (addrsQ.data ?? []).filter((a: any) => a.lat != null && a.lng != null);
+
+  // Seed the address step from the customer's real default/most-recent
+  // bookable saved address once it loads. Only runs once, before the
+  // customer has interacted with this step, so it never clobbers their edits.
   useEffect(() => {
-    if (addressId === null && address === "" && (addrsQ.data?.length ?? 0) > 0) {
-      const def = addrsQ.data!.find((a: any) => a.is_default) ?? addrsQ.data![0];
+    if (addressId === null && bookableAddresses.length > 0) {
+      const def = bookableAddresses.find((a: any) => a.is_default) ?? bookableAddresses[0];
       setAddressId(def.id);
-      setAddress(`${def.line1}${def.line2 ? ", " + def.line2 : ""}, ${def.city}`);
+      setAddress([def.street ?? def.line1, def.building, def.compound, def.area].filter(Boolean).join(", "));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addrsQ.data]);
@@ -92,7 +96,7 @@ function Book() {
     if (step === 0) return !!activeService;
     if (step === 2) return !!date;
     if (step === 3) return !!time;
-    if (step === 4) return address.trim().length > 3;
+    if (step === 4) return !!addressId;
     return true;
   };
 
@@ -306,40 +310,50 @@ function Book() {
 
         {step === 4 && (
           <Step title={t("bookFlow.addressTitle")} sub={t("bookFlow.addressSub")}>
-            {(addrsQ.data ?? []).length > 0 && (
-              <div className="mb-3 space-y-2">
-                {(addrsQ.data ?? []).map((a: any) => (
-                  <button
-                    key={a.id}
-                    onClick={() => { setAddressId(a.id); setAddress(`${a.line1}${a.line2 ? ", " + a.line2 : ""}, ${a.city}`); }}
-                    className={`flex w-full items-center gap-3 rounded-2xl p-3 text-start transition-all ${addressId === a.id ? "bg-surface ring-2 ring-navy" : "bg-surface shadow-soft"}`}
-                  >
-                    <MapPin className="h-4 w-4 text-coral" />
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-bold">{a.label || a.city}</div>
-                      <div className="truncate text-xs text-muted-foreground">{a.line1}</div>
-                    </div>
-                  </button>
-                ))}
+            {addrsQ.isLoading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 2 }).map((_, i) => <div key={i} className="h-16 animate-pulse rounded-2xl bg-surface" />)}
+              </div>
+            ) : bookableAddresses.length === 0 ? (
+              <EmptyState
+                emoji="📍"
+                title={t("bookFlow.noBookableAddress", "Add an address to continue")}
+                body={
+                  (addrsQ.data?.length ?? 0) > 0
+                    ? t("bookFlow.addressesNeedLocation", "Your saved addresses are missing a pinned location. Add one to book.")
+                    : t("bookFlow.noAddressesYet", "You haven't saved an address yet.")
+                }
+                action={
+                  <Link to="/addresses/new" className="focus-ring inline-flex items-center gap-1.5 rounded-2xl bg-navy px-4 py-3 text-sm font-bold text-navy-foreground">
+                    <Plus className="h-4 w-4" /> {t("addresses.addAddress", "Add address")}
+                  </Link>
+                }
+              />
+            ) : (
+              <div className="space-y-2">
+                {bookableAddresses.map((a: any) => {
+                  const Icon = a.label === "home" ? Home : a.label === "work" ? Briefcase : a.label === "family" ? Users : MapPin;
+                  const title = a.label === "other" ? a.custom_label || t("addresses.label.other") : t(`addresses.label.${a.label}`);
+                  const lineParts = [a.street ?? a.line1, a.building, a.compound, a.area].filter(Boolean);
+                  return (
+                    <button
+                      key={a.id}
+                      onClick={() => { setAddressId(a.id); setAddress(lineParts.join(", ")); }}
+                      className={`flex w-full items-center gap-3 rounded-2xl p-3 text-start transition-all ${addressId === a.id ? "bg-surface ring-2 ring-navy" : "bg-surface shadow-soft"}`}
+                    >
+                      <Icon className="h-4 w-4 shrink-0 text-coral" />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-bold">{title}</div>
+                        <div className="truncate text-xs text-muted-foreground">{lineParts.join(", ")}</div>
+                      </div>
+                    </button>
+                  );
+                })}
+                <Link to="/addresses/new" className="flex w-full items-center gap-2 rounded-2xl border border-dashed border-border p-3 text-sm font-bold text-navy">
+                  <Plus className="h-4 w-4" /> {t("addresses.addAddress", "Add address")}
+                </Link>
               </div>
             )}
-            <Card className="overflow-hidden">
-              <div aria-hidden="true" className="relative h-32" style={{ backgroundImage: "linear-gradient(135deg, hsl(var(--navy)) 0%, hsl(var(--navy) / 0.7) 60%, hsl(var(--mint) / 0.4) 100%)" }}>
-                <div className="h-full w-full bg-gradient-to-b from-transparent to-surface/80" />
-              </div>
-              <div className="p-4">
-                <div className="flex items-start gap-3">
-                  <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-coral" />
-                  <textarea
-                    rows={3}
-                    value={address}
-                    onChange={(e) => { setAddress(e.target.value); setAddressId(null); }}
-                    placeholder={t("bookFlow.addressSub")}
-                    className="min-w-0 flex-1 resize-none bg-transparent text-sm font-medium outline-none"
-                  />
-                </div>
-              </div>
-            </Card>
           </Step>
         )}
 

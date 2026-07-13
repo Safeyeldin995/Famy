@@ -127,7 +127,7 @@ export function useProviderBookings(providerId: string | undefined) {
       const { data, error } = await supabase
         .from('bookings')
         .select(
-          `*, service:services(*), customer:profiles!bookings_customer_id_fkey(full_name, avatar_url, phone), address:addresses(*)`,
+          `*, service:services(*), customer:profiles!bookings_customer_id_fkey(full_name, avatar_url, phone), location:booking_locations(*)`,
         )
         .eq('provider_id', providerId!)
         .order('start_at', { ascending: false })
@@ -146,7 +146,7 @@ export function useProviderBooking(id: string | undefined) {
       const { data, error } = await supabase
         .from('bookings')
         .select(
-          `*, service:services(*), customer:profiles!bookings_customer_id_fkey(full_name, avatar_url, phone), address:addresses(*)`,
+          `*, service:services(*), customer:profiles!bookings_customer_id_fkey(full_name, avatar_url, phone), location:booking_locations(*)`,
         )
         .eq('id', id!)
         .maybeSingle();

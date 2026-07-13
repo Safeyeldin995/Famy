@@ -100,7 +100,9 @@ function BookingDetail() {
     date: startAt.toLocaleDateString(locale, { weekday: "short", month: "short", day: "numeric" }),
     time: startAt.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" }),
     duration: `${durationH}h`,
-    address: real.address ? `${real.address.line1}, ${real.address.city}` : t("bookingDetail.addressMissing"),
+    address: real.location
+      ? [real.location.street, real.location.building, real.location.compound, real.location.city].filter(Boolean).join(", ")
+      : t("bookingDetail.addressMissing"),
     total: formatEGP(Number(real.price_total ?? 0)),
   };
 

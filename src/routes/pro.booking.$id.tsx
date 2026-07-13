@@ -32,8 +32,8 @@ function ProBookingDetail() {
   const end = new Date(b.end_at);
   const hours = Math.max(1, Math.round((+end - +start) / 36e5));
   const name = b.customer?.full_name || t("pro.common.customer");
-  const addr = b.address;
-  const addrLine = addr ? [addr.street, addr.building, addr.compound, addr.city].filter(Boolean).join(", ") : (b.notes ?? t("pro.booking.addressMissing"));
+  const addr = b.location;
+  const addrLine = addr ? [addr.street, addr.building, addr.compound, addr.city].filter(Boolean).join(", ") : t("pro.booking.addressMissing");
   const serviceName = lang === "ar" ? (b.service?.name_ar ?? b.service?.name_en) : (b.service?.name_en ?? b.service?.name_ar);
   const onTimeline = (BOOKING_TIMELINE_STEPS as readonly string[]).includes(b.status);
   const terminal = ["completed", "cancelled", "no_show", "disputed"].includes(b.status);

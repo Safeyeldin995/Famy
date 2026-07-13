@@ -23,6 +23,7 @@ import { Route as HelpRouteImport } from './routes/help'
 import { Route as FavoritesRouteImport } from './routes/favorites'
 import { Route as BookingsRouteImport } from './routes/bookings'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AddressesRouteImport } from './routes/addresses'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProIndexRouteImport } from './routes/pro.index'
 import { Route as MessagesIndexRouteImport } from './routes/messages.index'
@@ -48,6 +49,8 @@ import { Route as AdminProvidersRouteImport } from './routes/admin.providers'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
 import { Route as AdminBookingsRouteImport } from './routes/admin.bookings'
+import { Route as AddressesNewRouteImport } from './routes/addresses.new'
+import { Route as AddressesIdRouteImport } from './routes/addresses.$id'
 import { Route as ProBookingIdRouteImport } from './routes/pro.booking.$id'
 import { Route as AdminProviderIdRouteImport } from './routes/admin.provider.$id'
 import { Route as AdminCustomerIdRouteImport } from './routes/admin.customer.$id'
@@ -120,6 +123,11 @@ const BookingsRoute = BookingsRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AddressesRoute = AddressesRouteImport.update({
+  id: '/addresses',
+  path: '/addresses',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -247,6 +255,16 @@ const AdminBookingsRoute = AdminBookingsRouteImport.update({
   path: '/bookings',
   getParentRoute: () => AdminRoute,
 } as any)
+const AddressesNewRoute = AddressesNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AddressesRoute,
+} as any)
+const AddressesIdRoute = AddressesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AddressesRoute,
+} as any)
 const ProBookingIdRoute = ProBookingIdRouteImport.update({
   id: '/booking/$id',
   path: '/booking/$id',
@@ -265,6 +283,7 @@ const AdminCustomerIdRoute = AdminCustomerIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/addresses': typeof AddressesRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
   '/bookings': typeof BookingsRoute
   '/favorites': typeof FavoritesRoute
@@ -279,6 +298,8 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
   '/setup': typeof SetupRoute
+  '/addresses/$id': typeof AddressesIdRoute
+  '/addresses/new': typeof AddressesNewRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -309,6 +330,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/addresses': typeof AddressesRouteWithChildren
   '/bookings': typeof BookingsRoute
   '/favorites': typeof FavoritesRoute
   '/help': typeof HelpRoute
@@ -320,6 +342,8 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
   '/setup': typeof SetupRoute
+  '/addresses/$id': typeof AddressesIdRoute
+  '/addresses/new': typeof AddressesNewRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -351,6 +375,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/addresses': typeof AddressesRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
   '/bookings': typeof BookingsRoute
   '/favorites': typeof FavoritesRoute
@@ -365,6 +390,8 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
   '/setup': typeof SetupRoute
+  '/addresses/$id': typeof AddressesIdRoute
+  '/addresses/new': typeof AddressesNewRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -397,6 +424,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/addresses'
     | '/admin'
     | '/bookings'
     | '/favorites'
@@ -411,6 +439,8 @@ export interface FileRouteTypes {
     | '/profile'
     | '/search'
     | '/setup'
+    | '/addresses/$id'
+    | '/addresses/new'
     | '/admin/bookings'
     | '/admin/customers'
     | '/admin/payments'
@@ -441,6 +471,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/addresses'
     | '/bookings'
     | '/favorites'
     | '/help'
@@ -452,6 +483,8 @@ export interface FileRouteTypes {
     | '/profile'
     | '/search'
     | '/setup'
+    | '/addresses/$id'
+    | '/addresses/new'
     | '/admin/bookings'
     | '/admin/customers'
     | '/admin/payments'
@@ -482,6 +515,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/addresses'
     | '/admin'
     | '/bookings'
     | '/favorites'
@@ -496,6 +530,8 @@ export interface FileRouteTypes {
     | '/profile'
     | '/search'
     | '/setup'
+    | '/addresses/$id'
+    | '/addresses/new'
     | '/admin/bookings'
     | '/admin/customers'
     | '/admin/payments'
@@ -527,6 +563,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AddressesRoute: typeof AddressesRouteWithChildren
   AdminRoute: typeof AdminRouteWithChildren
   BookingsRoute: typeof BookingsRoute
   FavoritesRoute: typeof FavoritesRoute
@@ -648,6 +685,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/addresses': {
+      id: '/addresses'
+      path: '/addresses'
+      fullPath: '/addresses'
+      preLoaderRoute: typeof AddressesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -825,6 +869,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminBookingsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/addresses/new': {
+      id: '/addresses/new'
+      path: '/new'
+      fullPath: '/addresses/new'
+      preLoaderRoute: typeof AddressesNewRouteImport
+      parentRoute: typeof AddressesRoute
+    }
+    '/addresses/$id': {
+      id: '/addresses/$id'
+      path: '/$id'
+      fullPath: '/addresses/$id'
+      preLoaderRoute: typeof AddressesIdRouteImport
+      parentRoute: typeof AddressesRoute
+    }
     '/pro/booking/$id': {
       id: '/pro/booking/$id'
       path: '/booking/$id'
@@ -848,6 +906,20 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AddressesRouteChildren {
+  AddressesIdRoute: typeof AddressesIdRoute
+  AddressesNewRoute: typeof AddressesNewRoute
+}
+
+const AddressesRouteChildren: AddressesRouteChildren = {
+  AddressesIdRoute: AddressesIdRoute,
+  AddressesNewRoute: AddressesNewRoute,
+}
+
+const AddressesRouteWithChildren = AddressesRoute._addFileChildren(
+  AddressesRouteChildren,
+)
 
 interface AdminRouteChildren {
   AdminBookingsRoute: typeof AdminBookingsRoute
@@ -917,6 +989,7 @@ const ProRouteWithChildren = ProRoute._addFileChildren(ProRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AddressesRoute: AddressesRouteWithChildren,
   AdminRoute: AdminRouteWithChildren,
   BookingsRoute: BookingsRoute,
   FavoritesRoute: FavoritesRoute,

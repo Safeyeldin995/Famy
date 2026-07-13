@@ -47,11 +47,11 @@ function Setup() {
     setForm((f) => ({
       ...f,
       area: def.area ?? "",
-      address: def.line1 ?? "",
-      compound: "",
-      building: "",
-      apartment: "",
-      notes: def.line2 ?? "",
+      address: def.street ?? def.line1 ?? "",
+      compound: def.compound ?? "",
+      building: def.building ?? "",
+      apartment: def.apartment ?? "",
+      notes: def.access_notes ?? "",
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [existingAddresses.data]);
@@ -92,25 +92,29 @@ function Setup() {
     try {
       await updateProfile.mutateAsync({ full_name: form.name.trim() });
 
-      const line2Parts = [form.compound, form.apartment, form.building, form.notes].filter((v) => v.trim().length > 0);
-
       if (existingAddressId) {
         await updateAddress.mutateAsync({
           id: existingAddressId,
-          line1: form.address.trim(),
-          line2: line2Parts.length > 0 ? line2Parts.join(" · ") : undefined,
+          label: "home",
+          street: form.address.trim(),
+          compound: form.compound || undefined,
+          building: form.building || undefined,
+          apartment: form.apartment || undefined,
+          access_notes: form.notes || undefined,
           area: form.area,
           city: FIXED_CITY,
         });
       } else {
         const isFirstAddress = (existingAddresses.data?.length ?? 0) === 0;
         await createAddress.mutateAsync({
-          label: "Home",
-          line1: form.address.trim(),
-          line2: line2Parts.length > 0 ? line2Parts.join(" · ") : undefined,
+          label: "home",
+          street: form.address.trim(),
+          compound: form.compound || undefined,
+          building: form.building || undefined,
+          apartment: form.apartment || undefined,
+          access_notes: form.notes || undefined,
           area: form.area,
           city: FIXED_CITY,
-          country: "EG",
           is_default: isFirstAddress,
         });
       }

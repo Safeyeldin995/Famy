@@ -50,65 +50,59 @@ export function useUpdateProfile() {
   });
 }
 
+export type AddressLabel = 'home' | 'work' | 'family' | 'other';
+
+export type AddressInput = {
+  label: AddressLabel;
+  custom_label?: string | null;
+  city: string;
+  area?: string | null;
+  street: string;
+  building?: string | null;
+  floor?: string | null;
+  apartment?: string | null;
+  compound?: string | null;
+  landmark?: string | null;
+  access_notes?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  is_default?: boolean;
+};
+
+// line1/line2 are legacy required-for-compat columns nothing in the UI
+// reads anymore — derived here so every write still satisfies the schema.
+function toAddressRow(input: AddressInput) {
+  const line2Parts = [input.compound, input.building, input.apartment, input.access_notes].filter(
+    (v): v is string => !!v && v.trim().length > 0,
+  );
+  return {
+    label: input.label,
+    custom_label: input.label === 'other' ? (input.custom_label?.trim() || null) : null,
+    city: input.city,
+    area: input.area ?? null,
+    street: input.street,
+    building: input.building ?? null,
+    floor: input.floor ?? null,
+    apartment: input.apartment ?? null,
+    compound: input.compound ?? null,
+    landmark: input.landmark ?? null,
+    access_notes: input.access_notes ?? null,
+    lat: input.lat ?? null,
+    lng: input.lng ?? null,
+    line1: input.street,
+    line2: line2Parts.length > 0 ? line2Parts.join(' · ') : null,
+  };
+}
+
 export function useCreateAddress() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: {
-      label: string;
-      line1: string;
-      line2?: string;
-      area?: string;
-      city: string;
-      country?: string;
-      is_default?: boolean;
-    }) => {
+    mutationFn: async (input: AddressInput) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('auth required');
       const { data, error } = await supabase
         .from('addresses')
-        .insert({
-          user_id: user.id,
-          label: input.label,
-          line1: input.line1,
-          line2: input.line2 ?? null,
-          area: input.area ?? null,
-          city: input.city,
-          country: input.country ?? 'EG',
-          is_default: input.is_default ?? false,
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['addresses'] });
-    },
-  });
-}
-
-// Completes the existing address capability (create already existed, this
-// is the missing update half) — lets setup.tsx edit a real existing
-// address instead of always creating a new one on every visit.
-export function useUpdateAddress() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (input: {
-      id: string;
-      line1: string;
-      line2?: string;
-      area?: string;
-      city: string;
-    }) => {
-      const { data, error } = await supabase
-        .from('addresses')
-        .update({
-          line1: input.line1,
-          line2: input.line2 ?? null,
-          area: input.area ?? null,
-          city: input.city,
-        })
-        .eq('id', input.id)
+        .insert({ ...toAddressRow(input), user_id: user.id, is_default: input.is_default ?? false })
         .select()
         .single();
       if (error) throw error;
@@ -117,6 +111,67 @@ export function useUpdateAddress() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['addresses'] });
       qc.invalidateQueries({ queryKey: ['default-address'] });
+    },
+  });
+}
+
+export function useUpdateAddress() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: AddressInput & { id: string }) => {
+      const { data, error } = await supabase
+        .from('addresses')
+        .update(toAddressRow(input))
+        .eq('id', input.id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['addresses'] });
+      qc.invalidateQueries({ queryKey: ['address'] });
+      qc.invalidateQueries({ queryKey: ['default-address'] });
+    },
+  });
+}
+
+export function useDeleteAddress() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('addresses').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['addresses'] });
+      qc.invalidateQueries({ queryKey: ['default-address'] });
+    },
+  });
+}
+
+export function useSetDefaultAddress() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('addresses').update({ is_default: true }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['addresses'] });
+      qc.invalidateQueries({ queryKey: ['default-address'] });
+    },
+  });
+}
+
+export function useAddress(id: string | undefined) {
+  return useQuery({
+    enabled: !!id,
+    queryKey: ['address', id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('addresses').select('*').eq('id', id!).maybeSingle();
+      if (error) throw error;
+      return data;
     },
   });
 }
@@ -331,7 +386,7 @@ export function useBooking(id: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('bookings')
-        .select(`*, service:services(*), provider:providers(*, profile:profiles(full_name, avatar_url)), address:addresses(*)`)
+        .select(`*, service:services(*), provider:providers(*, profile:profiles(full_name, avatar_url)), location:booking_locations(*)`)
         .eq('id', id!)
         .maybeSingle();
       if (error) throw error;

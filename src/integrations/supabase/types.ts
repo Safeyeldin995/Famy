@@ -41,47 +41,71 @@ export type Database = {
     Tables: {
       addresses: {
         Row: {
+          access_notes: string | null
+          apartment: string | null
           area: string | null
+          building: string | null
           city: string
+          compound: string | null
           country: string
           created_at: string
+          custom_label: string | null
+          floor: string | null
           id: string
           is_default: boolean
-          label: string | null
+          label: string
+          landmark: string | null
           lat: number | null
           line1: string
           line2: string | null
           lng: number | null
+          street: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          access_notes?: string | null
+          apartment?: string | null
           area?: string | null
+          building?: string | null
           city: string
+          compound?: string | null
           country?: string
           created_at?: string
+          custom_label?: string | null
+          floor?: string | null
           id?: string
           is_default?: boolean
-          label?: string | null
+          label?: string
+          landmark?: string | null
           lat?: number | null
           line1: string
           line2?: string | null
           lng?: number | null
+          street?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          access_notes?: string | null
+          apartment?: string | null
           area?: string | null
+          building?: string | null
           city?: string
+          compound?: string | null
           country?: string
           created_at?: string
+          custom_label?: string | null
+          floor?: string | null
           id?: string
           is_default?: boolean
-          label?: string | null
+          label?: string
+          landmark?: string | null
           lat?: number | null
           line1?: string
           line2?: string | null
           lng?: number | null
+          street?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -207,6 +231,78 @@ export type Database = {
             columns: ["provider_id"]
             isOneToOne: false
             referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_locations: {
+        Row: {
+          access_notes: string | null
+          address_id: string | null
+          apartment: string | null
+          area: string | null
+          booking_id: string
+          building: string | null
+          city: string
+          compound: string | null
+          created_at: string
+          custom_label: string | null
+          floor: string | null
+          label: string
+          landmark: string | null
+          lat: number
+          lng: number
+          street: string | null
+        }
+        Insert: {
+          access_notes?: string | null
+          address_id?: string | null
+          apartment?: string | null
+          area?: string | null
+          booking_id: string
+          building?: string | null
+          city: string
+          compound?: string | null
+          created_at?: string
+          custom_label?: string | null
+          floor?: string | null
+          label: string
+          landmark?: string | null
+          lat: number
+          lng: number
+          street?: string | null
+        }
+        Update: {
+          access_notes?: string | null
+          address_id?: string | null
+          apartment?: string | null
+          area?: string | null
+          booking_id?: string
+          building?: string | null
+          city?: string
+          compound?: string | null
+          created_at?: string
+          custom_label?: string | null
+          floor?: string | null
+          label?: string
+          landmark?: string | null
+          lat?: number
+          lng?: number
+          street?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_locations_address_id_fkey"
+            columns: ["address_id"]
+            isOneToOne: false
+            referencedRelation: "addresses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_locations_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
         ]

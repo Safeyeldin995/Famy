@@ -52,7 +52,7 @@ function Profile() {
 
         <Section title={t("profile.myFamio")}>
           <Row to="/favorites" icon={<Heart className="h-5 w-5" />} label={t("profile.favorites")} />
-          <Row to="/setup" icon={<MapPin className="h-5 w-5" />} label={t("profile.addresses")} sub={addressQ.data?.area || t("profile.addAddress")} />
+          <Row to="/addresses" icon={<MapPin className="h-5 w-5" />} label={t("profile.addresses")} sub={addressQ.data?.area || t("profile.addAddress")} />
           <Row icon={<CreditCard className="h-5 w-5" />} label={t("profile.payment")} sub={t("profile.paymentSub")} />
           <Row icon={<Users className="h-5 w-5" />} label={t("profile.family")} sub={t("profile.familySub")} />
         </Section>
