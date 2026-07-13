@@ -419,3 +419,115 @@ export function useSetCustomerSuspended() {
     },
   });
 }
+
+// ---------- Zones ----------
+export type AdminZoneInput = {
+  name_en: string;
+  name_ar: string;
+  center_lat: number;
+  center_lng: number;
+  radius_km: number;
+  travel_fee: number;
+  is_active: boolean;
+};
+
+export function useAdminZones() {
+  return useQuery({
+    queryKey: ['admin', 'zones'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('zones').select('*').order('name_en');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useCreateZone() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: AdminZoneInput) => {
+      const { data, error } = await supabase.from('zones').insert(input as any).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'zones'] }),
+  });
+}
+
+export function useUpdateZone() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...patch }: { id: string } & Partial<AdminZoneInput>) => {
+      const { error } = await supabase.from('zones').update(patch as any).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'zones'] }),
+  });
+}
+
+export function useSetZoneActive() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
+      const { error } = await supabase.from('zones').update({ is_active: active }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'zones'] }),
+  });
+}
+
+export function useZoneServiceCoverage(zoneId: string | undefined) {
+  return useQuery({
+    enabled: !!zoneId,
+    queryKey: ['admin', 'zone-services', zoneId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('zone_services').select('service_id').eq('zone_id', zoneId!);
+      if (error) throw error;
+      return new Set((data ?? []).map((r) => r.service_id));
+    },
+  });
+}
+
+export function useSetZoneService() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ zoneId, serviceId, enabled }: { zoneId: string; serviceId: string; enabled: boolean }) => {
+      if (enabled) {
+        const { error } = await supabase.from('zone_services').insert({ zone_id: zoneId, service_id: serviceId });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('zone_services').delete().eq('zone_id', zoneId).eq('service_id', serviceId);
+        if (error) throw error;
+      }
+    },
+    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['admin', 'zone-services', vars.zoneId] }),
+  });
+}
+
+export function useZoneProviderCoverage(zoneId: string | undefined) {
+  return useQuery({
+    enabled: !!zoneId,
+    queryKey: ['admin', 'zone-providers', zoneId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('zone_providers').select('provider_id').eq('zone_id', zoneId!);
+      if (error) throw error;
+      return new Set((data ?? []).map((r) => r.provider_id));
+    },
+  });
+}
+
+export function useSetZoneProvider() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ zoneId, providerId, enabled }: { zoneId: string; providerId: string; enabled: boolean }) => {
+      if (enabled) {
+        const { error } = await supabase.from('zone_providers').insert({ zone_id: zoneId, provider_id: providerId });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('zone_providers').delete().eq('zone_id', zoneId).eq('provider_id', providerId);
+        if (error) throw error;
+      }
+    },
+    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['admin', 'zone-providers', vars.zoneId] }),
+  });
+}

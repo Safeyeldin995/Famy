@@ -488,6 +488,8 @@ const en = {
     noBookableAddress: "Add an address to continue",
     addressesNeedLocation: "Your saved addresses are missing a pinned location. Add one to book.",
     noAddressesYet: "You haven't saved an address yet.",
+    zoneServed: "Serves {{zone}}",
+    zoneNotServed: "This area is not currently served. Please choose another address.",
     notesTitle: "Anything to add?",
     notesSub: "Help your professional be ready.",
     notesPlaceholder: "E.g. The gate code is 1234. We have a friendly dog.",

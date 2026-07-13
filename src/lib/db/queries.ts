@@ -200,6 +200,24 @@ export function useDefaultAddress() {
   });
 }
 
+// ---------- Zones ----------
+// Resolves an address's coordinates to the nearest active zone (or none, if
+// the point falls outside every active zone's radius) — server-side only,
+// via the resolve_zone() RPC (haversine center+radius, no PostGIS on this
+// project). This is purely informational for the UI; the same resolution
+// runs again, authoritatively, inside the booking-creation DB trigger.
+export function useResolveZone(lat: number | null | undefined, lng: number | null | undefined) {
+  return useQuery({
+    enabled: lat != null && lng != null,
+    queryKey: ['resolve-zone', lat, lng],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('resolve_zone', { p_lat: lat!, p_lng: lng! });
+      if (error) throw error;
+      return data?.[0] ?? null;
+    },
+  });
+}
+
 // ---------- Categories ----------
 export function useCategories() {
   return useQuery({

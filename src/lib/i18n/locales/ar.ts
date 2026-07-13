@@ -490,6 +490,8 @@ const ar: Translation = {
     noBookableAddress: "أضف عنوانًا للمتابعة",
     addressesNeedLocation: "عناوينك المحفوظة تفتقد لموقع محدد على الخريطة. أضف موقعًا للحجز.",
     noAddressesYet: "لم تقم بحفظ عنوان بعد.",
+    zoneServed: "متوفرة في {{zone}}",
+    zoneNotServed: "هذه المنطقة غير مخدومة حاليًا. يرجى اختيار عنوان آخر.",
     notesTitle: "هل تريد إضافة شيء؟",
     notesSub: "ساعد المحترف على الاستعداد.",
     notesPlaceholder: "مثال: كود البوابة 1234. لدينا كلب لطيف.",

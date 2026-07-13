@@ -43,6 +43,7 @@ import { Route as BookingIdRouteImport } from './routes/booking.$id'
 import { Route as BookProviderIdRouteImport } from './routes/book.$providerId'
 import { Route as AuthSetPasswordRouteImport } from './routes/auth.set-password'
 import { Route as AuthForgotRouteImport } from './routes/auth.forgot'
+import { Route as AdminZonesRouteImport } from './routes/admin.zones'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminServicesRouteImport } from './routes/admin.services'
 import { Route as AdminProvidersRouteImport } from './routes/admin.providers'
@@ -225,6 +226,11 @@ const AuthForgotRoute = AuthForgotRouteImport.update({
   path: '/auth/forgot',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminZonesRoute = AdminZonesRouteImport.update({
+  id: '/zones',
+  path: '/zones',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminSettingsRoute = AdminSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -306,6 +312,7 @@ export interface FileRoutesByFullPath {
   '/admin/providers': typeof AdminProvidersRoute
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/zones': typeof AdminZonesRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/set-password': typeof AuthSetPasswordRoute
   '/book/$providerId': typeof BookProviderIdRoute
@@ -350,6 +357,7 @@ export interface FileRoutesByTo {
   '/admin/providers': typeof AdminProvidersRoute
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/zones': typeof AdminZonesRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/set-password': typeof AuthSetPasswordRoute
   '/book/$providerId': typeof BookProviderIdRoute
@@ -398,6 +406,7 @@ export interface FileRoutesById {
   '/admin/providers': typeof AdminProvidersRoute
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/zones': typeof AdminZonesRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/set-password': typeof AuthSetPasswordRoute
   '/book/$providerId': typeof BookProviderIdRoute
@@ -447,6 +456,7 @@ export interface FileRouteTypes {
     | '/admin/providers'
     | '/admin/services'
     | '/admin/settings'
+    | '/admin/zones'
     | '/auth/forgot'
     | '/auth/set-password'
     | '/book/$providerId'
@@ -491,6 +501,7 @@ export interface FileRouteTypes {
     | '/admin/providers'
     | '/admin/services'
     | '/admin/settings'
+    | '/admin/zones'
     | '/auth/forgot'
     | '/auth/set-password'
     | '/book/$providerId'
@@ -538,6 +549,7 @@ export interface FileRouteTypes {
     | '/admin/providers'
     | '/admin/services'
     | '/admin/settings'
+    | '/admin/zones'
     | '/auth/forgot'
     | '/auth/set-password'
     | '/book/$providerId'
@@ -827,6 +839,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthForgotRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/zones': {
+      id: '/admin/zones'
+      path: '/zones'
+      fullPath: '/admin/zones'
+      preLoaderRoute: typeof AdminZonesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/settings': {
       id: '/admin/settings'
       path: '/settings'
@@ -928,6 +947,7 @@ interface AdminRouteChildren {
   AdminProvidersRoute: typeof AdminProvidersRoute
   AdminServicesRoute: typeof AdminServicesRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminZonesRoute: typeof AdminZonesRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminCustomerIdRoute: typeof AdminCustomerIdRoute
   AdminProviderIdRoute: typeof AdminProviderIdRoute
@@ -940,6 +960,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminProvidersRoute: AdminProvidersRoute,
   AdminServicesRoute: AdminServicesRoute,
   AdminSettingsRoute: AdminSettingsRoute,
+  AdminZonesRoute: AdminZonesRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminCustomerIdRoute: AdminCustomerIdRoute,
   AdminProviderIdRoute: AdminProviderIdRoute,

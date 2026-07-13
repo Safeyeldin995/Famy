@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { PhoneFrame, TopBar, PrimaryButton, Card, EmptyState, Avatar } from "@/components/famio/ui";
 import {
-  useProvider, useProviderServices, useCreateBooking, useAddresses, validateCoupon, useAvailableSlots,
+  useProvider, useProviderServices, useCreateBooking, useAddresses, validateCoupon, useAvailableSlots, useResolveZone,
 } from "@/lib/db/queries";
 import { useCreatePayment } from "@/lib/db/payment-queries";
 import { toUIProvider } from "@/lib/db/adapters";
@@ -48,6 +48,11 @@ function Book() {
   // server enforces this too (booking_locations snapshot trigger rejects a
   // NULL lat/lng), this just keeps the picker from offering a dead end.
   const bookableAddresses = (addrsQ.data ?? []).filter((a: any) => a.lat != null && a.lng != null);
+  const selectedAddress = bookableAddresses.find((a: any) => a.id === addressId) ?? null;
+  // UX-only preview of the resolved service zone — the booking-creation DB
+  // trigger re-resolves this itself and is the sole authoritative guard
+  // (zone_id is never accepted from the client, see Module 2 migration).
+  const zoneQ = useResolveZone(selectedAddress?.lat, selectedAddress?.lng);
 
   // Seed the address step from the customer's real default/most-recent
   // bookable saved address once it loads. Only runs once, before the
@@ -96,7 +101,7 @@ function Book() {
     if (step === 0) return !!activeService;
     if (step === 2) return !!date;
     if (step === 3) return !!time;
-    if (step === 4) return !!addressId;
+    if (step === 4) return !!addressId && !!zoneQ.data;
     return true;
   };
 
@@ -352,6 +357,23 @@ function Book() {
                 <Link to="/addresses/new" className="flex w-full items-center gap-2 rounded-2xl border border-dashed border-border p-3 text-sm font-bold text-navy">
                   <Plus className="h-4 w-4" /> {t("addresses.addAddress", "Add address")}
                 </Link>
+              </div>
+            )}
+            {selectedAddress && (
+              <div className="mt-3">
+                {zoneQ.isLoading ? (
+                  <div className="h-10 animate-pulse rounded-xl bg-surface" />
+                ) : zoneQ.data ? (
+                  <div className="flex items-center gap-2 rounded-xl bg-mint/20 px-3 py-2.5 text-xs font-bold text-foreground">
+                    <MapPin className="h-3.5 w-3.5 text-navy" />
+                    {t("bookFlow.zoneServed", "Serves {{zone}}", { zone: lang === "ar" ? zoneQ.data.name_ar : zoneQ.data.name_en })}
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-2 rounded-xl bg-coral/10 px-3 py-2.5 text-xs font-bold text-coral">
+                    <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    {t("bookFlow.zoneNotServed", "This area is not currently served. Please choose another address.")}
+                  </div>
+                )}
               </div>
             )}
           </Step>

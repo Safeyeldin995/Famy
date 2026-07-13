@@ -253,6 +253,10 @@ export type Database = {
           lat: number
           lng: number
           street: string | null
+          travel_fee: number | null
+          zone_id: string | null
+          zone_name_ar: string | null
+          zone_name_en: string | null
         }
         Insert: {
           access_notes?: string | null
@@ -271,6 +275,10 @@ export type Database = {
           lat: number
           lng: number
           street?: string | null
+          travel_fee?: number | null
+          zone_id?: string | null
+          zone_name_ar?: string | null
+          zone_name_en?: string | null
         }
         Update: {
           access_notes?: string | null
@@ -289,6 +297,10 @@ export type Database = {
           lat?: number
           lng?: number
           street?: string | null
+          travel_fee?: number | null
+          zone_id?: string | null
+          zone_name_ar?: string | null
+          zone_name_en?: string | null
         }
         Relationships: [
           {
@@ -303,6 +315,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: true
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_locations_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "zones"
             referencedColumns: ["id"]
           },
         ]
@@ -1531,6 +1550,117 @@ export type Database = {
           },
         ]
       }
+      zone_providers: {
+        Row: {
+          created_at: string
+          id: string
+          provider_id: string
+          zone_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          provider_id: string
+          zone_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          provider_id?: string
+          zone_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zone_providers_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "zone_providers_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zone_services: {
+        Row: {
+          created_at: string
+          id: string
+          service_id: string
+          zone_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          service_id: string
+          zone_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          service_id?: string
+          zone_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zone_services_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "zone_services_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zones: {
+        Row: {
+          center_lat: number
+          center_lng: number
+          created_at: string
+          id: string
+          is_active: boolean
+          name_ar: string
+          name_en: string
+          radius_km: number
+          travel_fee: number
+          updated_at: string
+        }
+        Insert: {
+          center_lat: number
+          center_lng: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name_ar: string
+          name_en: string
+          radius_km: number
+          travel_fee?: number
+          updated_at?: string
+        }
+        Update: {
+          center_lat?: number
+          center_lng?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name_ar?: string
+          name_en?: string
+          radius_km?: number
+          travel_fee?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1547,6 +1677,15 @@ export type Database = {
       recompute_trust_score: {
         Args: { _provider_id: string }
         Returns: undefined
+      }
+      resolve_zone: {
+        Args: { p_lat: number; p_lng: number }
+        Returns: {
+          name_ar: string
+          name_en: string
+          travel_fee: number
+          zone_id: string
+        }[]
       }
     }
     Enums: {
