@@ -1,7 +1,70 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useAdminProvider, useSetProviderVerified, useSetProviderActive, useSetProviderServiceStatus, useDocumentSignedUrl } from "@/lib/db/admin-queries";
-import { ChevronLeft, FileText, ShieldCheck } from "lucide-react";
+import { useProviderAvailability, useProviderVacations, useAddVacation, useDeleteVacation } from "@/lib/db/provider-queries";
+import { ChevronLeft, FileText, ShieldCheck, Trash2 } from "lucide-react";
+
+const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function AvailabilitySection({ providerId }: { providerId: string }) {
+  const rulesQ = useProviderAvailability(providerId);
+  const vacQ = useProviderVacations(providerId);
+  const addVac = useAddVacation();
+  const delVac = useDeleteVacation();
+  const [start, setStart] = useState("");
+  const [end, setEnd] = useState("");
+  const [reason, setReason] = useState("");
+
+  const canBlock = !!start && !!end && reason.trim().length > 0;
+
+  return (
+    <section>
+      <h3 className="mb-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">Availability</h3>
+      <div className="rounded-xl border border-border/60 bg-surface p-3">
+        <p className="text-[11px] font-bold text-muted-foreground">Weekly hours</p>
+        {(rulesQ.data ?? []).length === 0 ? (
+          <p className="mt-1 text-xs text-muted-foreground">No weekly hours configured.</p>
+        ) : (
+          <ul className="mt-1 space-y-0.5 text-xs">
+            {rulesQ.data!.map((r: any) => (
+              <li key={r.id}>{DAY_LABELS[r.weekday]}: {r.start_time?.slice(0, 5)} – {r.end_time?.slice(0, 5)}</li>
+            ))}
+          </ul>
+        )}
+
+        <p className="mt-3 text-[11px] font-bold text-muted-foreground">Blocked periods</p>
+        {(vacQ.data ?? []).length === 0 ? (
+          <p className="mt-1 text-xs text-muted-foreground">None.</p>
+        ) : (
+          <ul className="mt-1 space-y-1">
+            {vacQ.data!.map((v: any) => (
+              <li key={v.id} className="flex items-center justify-between text-xs">
+                <span>{v.start_date} → {v.end_date}{v.reason ? ` — ${v.reason}` : ""}</span>
+                <button onClick={() => delVac.mutate({ id: v.id, providerId })} className="text-muted-foreground hover:text-coral"><Trash2 className="h-3.5 w-3.5" /></button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div className="mt-3 space-y-2 border-t border-border pt-3">
+          <p className="text-[11px] font-bold text-muted-foreground">Block a period (audited — reason required)</p>
+          <div className="flex flex-wrap gap-2">
+            <input type="date" value={start} onChange={(e) => setStart(e.target.value)} className="h-9 rounded-lg border border-border bg-surface px-2 text-xs" />
+            <input type="date" value={end} onChange={(e) => setEnd(e.target.value)} className="h-9 rounded-lg border border-border bg-surface px-2 text-xs" />
+          </div>
+          <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (required)" className="h-9 w-full rounded-lg border border-border bg-surface px-2 text-xs" />
+          <button
+            disabled={!canBlock || addVac.isPending}
+            onClick={() => { addVac.mutate({ providerId, start_date: start, end_date: end, reason }); setStart(""); setEnd(""); setReason(""); }}
+            className="rounded-lg bg-coral px-3 py-1.5 text-xs font-bold text-coral-foreground disabled:opacity-50"
+          >
+            {addVac.isPending ? "Blocking…" : "Block period"}
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 export const Route = createFileRoute("/admin/provider/$id")({ component: AdminProvider });
 
@@ -61,6 +124,8 @@ function AdminProvider() {
         </dl>
         {p.bio_en && <p className="mt-3 text-xs text-muted-foreground">{p.bio_en}</p>}
       </section>
+
+      <AvailabilitySection providerId={p.id} />
 
       <section>
         <h3 className="mb-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">Documents</h3>

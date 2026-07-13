@@ -313,15 +313,18 @@ export function useAvatarUrl(raw: string | null | undefined) {
 }
 
 // ---------- Availability ----------
+const ACTIVE_BOOKING_STATUSES = ['pending', 'confirmed', 'on_the_way', 'arrived', 'arrival_confirmed', 'in_progress', 'completion_requested'] as const;
+
 // Resolves a provider's REAL open slots for a given date, replacing the
 // hardcoded timeSlots array that previously showed the same fixed times to
 // every customer regardless of the provider's actual schedule. Combines:
 //   1. availability_rules (weekly recurring pattern, by weekday)
-//   2. provider_vacations (date-range blocks)
-//   3. existing non-cancelled bookings that day (to exclude already-taken times)
-// The database's own overlap-exclusion constraint on `bookings` remains the
-// final safety net if two customers race for the same slot — this function
-// is a UX layer on top of that, not a replacement for it.
+//   2. provider_vacations (date-range blocks) + availability_exceptions (single-day/partial blocks)
+//   3. providers.vacation_mode / min_notice_hours / max_advance_days / buffer_minutes
+//   4. existing active bookings that day (to exclude already-taken times, with buffer)
+// The database's own exclusion constraint + BEFORE INSERT validation trigger
+// on `bookings` remain the final, authoritative safety net if two customers
+// race for the same slot — this function is a UX layer on top of that.
 export function useAvailableSlots(providerId: string | undefined, date: Date | null, slotMinutes = 120) {
   return useQuery({
     enabled: !!providerId && !!date,
@@ -333,18 +336,34 @@ export function useAvailableSlots(providerId: string | undefined, date: Date | n
       const dayEnd = new Date(d); dayEnd.setHours(23, 59, 59, 999);
       const dateStr = dayStart.toISOString().slice(0, 10);
 
-      const [rulesRes, vacRes, bookingsRes] = await Promise.all([
+      const [providerRes, rulesRes, vacRes, excRes, bookingsRes] = await Promise.all([
+        supabase.from('providers').select('vacation_mode, min_notice_hours, max_advance_days, buffer_minutes').eq('id', providerId!).single(),
         supabase.from('availability_rules').select('start_time, end_time').eq('provider_id', providerId!).eq('weekday', weekday),
         supabase.from('provider_vacations').select('start_date, end_date').eq('provider_id', providerId!).lte('start_date', dateStr).gte('end_date', dateStr),
-        supabase.from('bookings').select('start_at, end_at').eq('provider_id', providerId!).neq('status', 'cancelled')
+        supabase.from('availability_exceptions').select('start_time, end_time, is_blocked, date, end_date').eq('provider_id', providerId!)
+          .lte('date', dateStr),
+        supabase.from('bookings').select('start_at, end_at').eq('provider_id', providerId!).in('status', ACTIVE_BOOKING_STATUSES)
           .gte('start_at', dayStart.toISOString()).lte('start_at', dayEnd.toISOString()),
       ]);
+      if (providerRes.error) throw providerRes.error;
       if (rulesRes.error) throw rulesRes.error;
       if (vacRes.error) throw vacRes.error;
+      if (excRes.error) throw excRes.error;
       if (bookingsRes.error) throw bookingsRes.error;
 
+      const provider = providerRes.data;
+      if (provider.vacation_mode) return [];
       // Provider is on vacation this date — no slots at all.
       if ((vacRes.data ?? []).length > 0) return [];
+
+      const exceptions = (excRes.data ?? []).filter((e: any) => e.is_blocked && (e.end_date ?? e.date) >= dateStr);
+      // A full-day exception (no start/end time) blocks the whole date.
+      if (exceptions.some((e: any) => !e.start_time || !e.end_time)) return [];
+
+      const now = new Date();
+      const earliestAllowed = new Date(now.getTime() + provider.min_notice_hours * 3600000);
+      const latestAllowed = new Date(now.getTime() + provider.max_advance_days * 86400000);
+      const bufferMs = provider.buffer_minutes * 60000;
 
       const rules = rulesRes.data ?? [];
       const booked = bookingsRes.data ?? [];
@@ -358,11 +377,20 @@ export function useAvailableSlots(providerId: string | undefined, date: Date | n
 
         while (+cursor + slotMinutes * 60000 <= +ruleEnd) {
           const slotEnd = new Date(+cursor + slotMinutes * 60000);
+          const withinWindow = cursor >= earliestAllowed && cursor <= latestAllowed;
           const overlapsBooking = booked.some((b: any) => {
-            const bs = new Date(b.start_at), be = new Date(b.end_at);
+            const bs = new Date(+new Date(b.start_at) - bufferMs), be = new Date(+new Date(b.end_at) + bufferMs);
             return +cursor < +be && +slotEnd > +bs;
           });
-          if (!overlapsBooking) {
+          const overlapsException = exceptions.some((e: any) => {
+            if (!e.start_time || !e.end_time) return true;
+            const [xsh, xsm] = e.start_time.split(':').map(Number);
+            const [xeh, xem] = e.end_time.split(':').map(Number);
+            const xs = new Date(d); xs.setHours(xsh, xsm, 0, 0);
+            const xe = new Date(d); xe.setHours(xeh, xem, 0, 0);
+            return +cursor < +xe && +slotEnd > +xs;
+          });
+          if (withinWindow && !overlapsBooking && !overlapsException) {
             slots.push({
               label: cursor.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
               start: new Date(cursor),

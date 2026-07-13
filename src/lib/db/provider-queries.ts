@@ -307,6 +307,54 @@ export function useDeleteVacation() {
   });
 }
 
+// ---------- Single-day exceptions (holidays / one-off blocked days) ----------
+// Reuses availability_exceptions — present since the initial schema but
+// previously unwired anywhere in the app.
+export function useProviderExceptions(providerId: string | undefined) {
+  return useQuery({
+    enabled: !!providerId,
+    queryKey: ['provider-exceptions', providerId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('availability_exceptions')
+        .select('*')
+        .eq('provider_id', providerId!)
+        .order('date', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useAddException() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { providerId: string; date: string; reason?: string }) => {
+      const { error } = await supabase.from('availability_exceptions').insert({
+        provider_id: input.providerId,
+        date: input.date,
+        is_blocked: true,
+        reason: input.reason ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) =>
+      qc.invalidateQueries({ queryKey: ['provider-exceptions', vars.providerId] }),
+  });
+}
+
+export function useDeleteException() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, providerId: _ }: { id: string; providerId: string }) => {
+      const { error } = await supabase.from('availability_exceptions').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) =>
+      qc.invalidateQueries({ queryKey: ['provider-exceptions', vars.providerId] }),
+  });
+}
+
 // ---------- Documents ----------
 export function useProviderDocuments(providerId: string | undefined) {
   return useQuery({

@@ -11,8 +11,11 @@ import {
   useProviderVacations,
   useAddVacation,
   useDeleteVacation,
+  useProviderExceptions,
+  useAddException,
+  useDeleteException,
 } from "@/lib/db/provider-queries";
-import { Plane, Trash2, Plus } from "lucide-react";
+import { Plane, Trash2, Plus, Timer } from "lucide-react";
 
 export const Route = createFileRoute("/pro/availability")({ component: AvailabilityPage });
 
@@ -35,18 +38,35 @@ function AvailabilityPage() {
   const provider = p.data as any;
   const availQ = useProviderAvailability(provider?.id);
   const vacQ = useProviderVacations(provider?.id);
+  const excQ = useProviderExceptions(provider?.id);
   const save = useReplaceAvailability();
   const updateProv = useUpdateProvider();
   const addVac = useAddVacation();
   const delVac = useDeleteVacation();
+  const addExc = useAddException();
+  const delExc = useDeleteException();
 
   const [rows, setRows] = useState<Row[]>([]);
   const [newVacStart, setNewVacStart] = useState("");
   const [newVacEnd, setNewVacEnd] = useState("");
+  const [newHoliday, setNewHoliday] = useState("");
+  const [newHolidayReason, setNewHolidayReason] = useState("");
+  const [rules, setRules] = useState({ buffer_minutes: "30", min_notice_hours: "4", max_advance_days: "60" });
 
   useEffect(() => {
     if (availQ.data) setRows(defaultRows(availQ.data));
   }, [availQ.data]);
+
+  useEffect(() => {
+    if (provider) {
+      setRules({
+        buffer_minutes: String(provider.buffer_minutes ?? 30),
+        min_notice_hours: String(provider.min_notice_hours ?? 4),
+        max_advance_days: String(provider.max_advance_days ?? 60),
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [provider?.id]);
 
   if (!provider) return <ProviderShell><div className="p-8 text-center text-sm">{t("pro.common.loading")}</div></ProviderShell>;
 
@@ -55,6 +75,20 @@ function AvailabilityPage() {
       providerId: provider.id,
       rules: rows.filter((r) => r.enabled).map((r) => ({ weekday: r.weekday, start_time: r.start_time, end_time: r.end_time })),
     });
+  };
+
+  const saveRules = () => {
+    updateProv.mutate({
+      buffer_minutes: Math.max(0, parseInt(rules.buffer_minutes) || 0),
+      min_notice_hours: Math.max(0, parseInt(rules.min_notice_hours) || 0),
+      max_advance_days: Math.max(1, parseInt(rules.max_advance_days) || 1),
+    });
+  };
+
+  const addHoliday = () => {
+    if (!newHoliday) return;
+    addExc.mutate({ providerId: provider.id, date: newHoliday, reason: newHolidayReason || undefined });
+    setNewHoliday(""); setNewHolidayReason("");
   };
 
   const addVacation = () => {
@@ -144,6 +178,60 @@ function AvailabilityPage() {
               </ul>
             )}
           </Card>
+        </div>
+
+        <div>
+          <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">{t("pro.schedule.holidays")}</h2>
+          <Card className="p-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+              <div className="flex-1">
+                <label className="text-[11px] text-muted-foreground">{t("pro.schedule.holidayDate")}</label>
+                <input type="date" value={newHoliday} onChange={(e) => setNewHoliday(e.target.value)} className="mt-1 h-10 w-full rounded-xl border border-border bg-surface px-2 text-sm" />
+              </div>
+              <div className="flex-1">
+                <label className="text-[11px] text-muted-foreground">{t("pro.schedule.holidayReason")}</label>
+                <input value={newHolidayReason} onChange={(e) => setNewHolidayReason(e.target.value)} className="mt-1 h-10 w-full rounded-xl border border-border bg-surface px-2 text-sm" />
+              </div>
+              <button onClick={addHoliday} disabled={!newHoliday || addExc.isPending} className="h-10 rounded-xl bg-navy px-4 text-sm font-bold text-navy-foreground disabled:opacity-50 inline-flex items-center gap-1"><Plus className="h-4 w-4" /> {t("pro.schedule.add")}</button>
+            </div>
+            {(excQ.data ?? []).length > 0 && (
+              <ul className="mt-3 divide-y divide-border">
+                {excQ.data!.map((e: any) => (
+                  <li key={e.id} className="flex items-center justify-between py-2.5">
+                    <div className="text-sm font-semibold">{e.date}{e.reason ? ` — ${e.reason}` : ""}</div>
+                    <button onClick={() => delExc.mutate({ id: e.id, providerId: provider.id })} className="grid h-9 w-9 place-items-center rounded-xl text-muted-foreground hover:text-coral"><Trash2 className="h-4 w-4" /></button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
+
+        <div>
+          <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">{t("pro.schedule.bookingRules")}</h2>
+          <Card className="flex items-center gap-3 p-4">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-navy/10 text-navy"><Timer className="h-5 w-5" /></div>
+            <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-3">
+              <label className="block">
+                <span className="text-[11px] text-muted-foreground">{t("pro.schedule.bufferMinutes")}</span>
+                <input type="number" min={0} step={5} value={rules.buffer_minutes} onChange={(e) => setRules({ ...rules, buffer_minutes: e.target.value })}
+                  className="mt-1 h-10 w-full rounded-xl border border-border bg-surface px-2 text-sm" />
+              </label>
+              <label className="block">
+                <span className="text-[11px] text-muted-foreground">{t("pro.schedule.minNoticeHours")}</span>
+                <input type="number" min={0} step={1} value={rules.min_notice_hours} onChange={(e) => setRules({ ...rules, min_notice_hours: e.target.value })}
+                  className="mt-1 h-10 w-full rounded-xl border border-border bg-surface px-2 text-sm" />
+              </label>
+              <label className="block">
+                <span className="text-[11px] text-muted-foreground">{t("pro.schedule.maxAdvanceDays")}</span>
+                <input type="number" min={1} step={1} value={rules.max_advance_days} onChange={(e) => setRules({ ...rules, max_advance_days: e.target.value })}
+                  className="mt-1 h-10 w-full rounded-xl border border-border bg-surface px-2 text-sm" />
+              </label>
+            </div>
+          </Card>
+          <PrimaryButton onClick={saveRules} disabled={updateProv.isPending} className="mt-3">
+            {updateProv.isPending ? t("pro.common.saving") : t("pro.schedule.saveRules")}
+          </PrimaryButton>
         </div>
       </div>
     </ProviderShell>

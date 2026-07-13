@@ -158,16 +158,17 @@ function Book() {
       // must never be treated as the source of truth — a real race
       // condition (two customers submitting at the same instant) can still
       // pass this check for both. The database's bookings_no_overlap
-      // exclusion constraint (verified present in migration
-      // 20260627001502) is the sole authoritative guard; useCreateBooking()
-      // below still independently catches and surfaces that constraint's
-      // 23P01 error regardless of what this check finds. This exists only
-      // to give faster, more specific feedback in the common (non-race) case.
+      // exclusion constraint (extended in migration 20260713150000 to cover
+      // every active-lifecycle status) is the sole authoritative guard;
+      // useCreateBooking() below still independently catches and surfaces
+      // that constraint's 23P01 error regardless of what this check finds.
+      // This exists only to give faster, more specific feedback in the
+      // common (non-race) case.
       const { data: clashes, error: clashErr } = await supabase
         .from("bookings")
         .select("id")
         .eq("provider_id", p.id)
-        .in("status", ["pending", "confirmed", "in_progress"])
+        .in("status", ["pending", "confirmed", "on_the_way", "arrived", "arrival_confirmed", "in_progress", "completion_requested"])
         .lt("start_at", end.toISOString())
         .gt("end_at", start.toISOString())
         .limit(1);
@@ -268,7 +269,7 @@ function Book() {
         {step === 2 && (
           <Step title={t("bookFlow.dateTitle")} sub={t("bookFlow.dateSub")}>
             <div className="grid grid-cols-4 gap-2">
-              {Array.from({ length: 12 }).map((_, i) => {
+              {Array.from({ length: Math.max(1, Math.min(30, (provQ.data as any)?.max_advance_days ?? 12)) }).map((_, i) => {
                 const d = new Date();
                 d.setDate(d.getDate() + i);
                 d.setHours(0, 0, 0, 0);
