@@ -121,7 +121,11 @@ function Book() {
     if (r.fulfillment_mode === "either" && requirementChoices[r.id] === "provider") return sum + Number(r.provider_extra_fee);
     return sum;
   }, 0);
-  const total = Math.max(0, subtotal + fee + vat + extrasTotal - promoDiscount);
+  // Zone travel fee — resolved the same way the server independently
+  // re-resolves and charges it at booking-creation time (tg_validate_booking_service);
+  // this is only the matching client-side estimate so the submitted total lines up.
+  const travelFee = Number(zoneQ.data?.travel_fee ?? 0);
+  const total = Math.max(0, subtotal + fee + vat + extrasTotal + travelFee - promoDiscount);
 
   const durations = ["2h", "4h", "6h", "8h"];
 
@@ -539,6 +543,9 @@ function Book() {
                 <Row label={t("bookFlow.vat")} value={formatEGP(vat)} small />
                 {extrasTotal > 0 && (
                   <Row label={t("bookFlow.extrasTotal", "Requirements")} value={formatEGP(extrasTotal)} small />
+                )}
+                {travelFee > 0 && (
+                  <Row label={t("bookFlow.travelFee", "Travel fee")} value={formatEGP(travelFee)} small />
                 )}
                 {promoDiscount > 0 && (
                   <Row label={t("bookFlow.promoDiscount")} value={`-${formatEGP(promoDiscount)}`} small />

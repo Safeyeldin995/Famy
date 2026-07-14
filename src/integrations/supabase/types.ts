@@ -514,8 +514,12 @@ export type Database = {
           notes: string | null
           payment_id: string | null
           price_discount: number
+          price_extras_total: number
+          price_platform_fee: number
           price_subtotal: number
           price_total: number
+          price_travel_fee: number
+          price_vat: number
           promo_code: string | null
           promo_code_id: string | null
           promo_description_ar: string | null
@@ -557,8 +561,12 @@ export type Database = {
           notes?: string | null
           payment_id?: string | null
           price_discount?: number
+          price_extras_total?: number
+          price_platform_fee?: number
           price_subtotal?: number
           price_total?: number
+          price_travel_fee?: number
+          price_vat?: number
           promo_code?: string | null
           promo_code_id?: string | null
           promo_description_ar?: string | null
@@ -600,8 +608,12 @@ export type Database = {
           notes?: string | null
           payment_id?: string | null
           price_discount?: number
+          price_extras_total?: number
+          price_platform_fee?: number
           price_subtotal?: number
           price_total?: number
+          price_travel_fee?: number
+          price_vat?: number
           promo_code?: string | null
           promo_code_id?: string | null
           promo_description_ar?: string | null
@@ -959,6 +971,138 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          amount: number
+          booking_id: string
+          captured_at: string | null
+          created_at: string
+          currency: string
+          customer_id: string
+          id: string
+          metadata: Json
+          method: Database["public"]["Enums"]["payment_method"] | null
+          payment_method_code: string | null
+          payment_method_id: string | null
+          payment_method_name_ar: string | null
+          payment_method_name_en: string | null
+          payment_method_snapshot: Json
+          payment_method_type: string | null
+          proof_path: string | null
+          proof_uploaded_at: string | null
+          provider_ref: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["payment_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          booking_id: string
+          captured_at?: string | null
+          created_at?: string
+          currency?: string
+          customer_id: string
+          id?: string
+          metadata?: Json
+          method?: Database["public"]["Enums"]["payment_method"] | null
+          payment_method_code?: string | null
+          payment_method_id?: string | null
+          payment_method_name_ar?: string | null
+          payment_method_name_en?: string | null
+          payment_method_snapshot?: Json
+          payment_method_type?: string | null
+          proof_path?: string | null
+          proof_uploaded_at?: string | null
+          provider_ref?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          booking_id?: string
+          captured_at?: string | null
+          created_at?: string
+          currency?: string
+          customer_id?: string
+          id?: string
+          metadata?: Json
+          method?: Database["public"]["Enums"]["payment_method"] | null
+          payment_method_code?: string | null
+          payment_method_id?: string | null
+          payment_method_name_ar?: string | null
+          payment_method_name_en?: string | null
+          payment_method_snapshot?: Json
+          payment_method_type?: string | null
+          proof_path?: string | null
+          proof_uploaded_at?: string | null
+          provider_ref?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          deleted_at: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          is_suspended: boolean
+          locale: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id: string
+          is_suspended?: boolean
+          locale?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          is_suspended?: boolean
+          locale?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       promo_code_categories: {
         Row: {
           category_id: string
@@ -1124,138 +1268,6 @@ export type Database = {
           updated_at?: string
           usage_count?: number
           usage_limit_per_customer?: number | null
-        }
-        Relationships: []
-      }
-      payments: {
-        Row: {
-          amount: number
-          booking_id: string
-          captured_at: string | null
-          created_at: string
-          currency: string
-          customer_id: string
-          id: string
-          metadata: Json
-          method: Database["public"]["Enums"]["payment_method"] | null
-          payment_method_code: string | null
-          payment_method_id: string | null
-          payment_method_name_ar: string | null
-          payment_method_name_en: string | null
-          payment_method_snapshot: Json
-          payment_method_type: string | null
-          proof_path: string | null
-          proof_uploaded_at: string | null
-          provider_ref: string | null
-          rejection_reason: string | null
-          reviewed_at: string | null
-          reviewed_by: string | null
-          status: Database["public"]["Enums"]["payment_status"]
-          updated_at: string
-        }
-        Insert: {
-          amount: number
-          booking_id: string
-          captured_at?: string | null
-          created_at?: string
-          currency?: string
-          customer_id: string
-          id?: string
-          metadata?: Json
-          method?: Database["public"]["Enums"]["payment_method"] | null
-          payment_method_code?: string | null
-          payment_method_id?: string | null
-          payment_method_name_ar?: string | null
-          payment_method_name_en?: string | null
-          payment_method_snapshot?: Json
-          payment_method_type?: string | null
-          proof_path?: string | null
-          proof_uploaded_at?: string | null
-          provider_ref?: string | null
-          rejection_reason?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          status?: Database["public"]["Enums"]["payment_status"]
-          updated_at?: string
-        }
-        Update: {
-          amount?: number
-          booking_id?: string
-          captured_at?: string | null
-          created_at?: string
-          currency?: string
-          customer_id?: string
-          id?: string
-          metadata?: Json
-          method?: Database["public"]["Enums"]["payment_method"] | null
-          payment_method_code?: string | null
-          payment_method_id?: string | null
-          payment_method_name_ar?: string | null
-          payment_method_name_en?: string | null
-          payment_method_snapshot?: Json
-          payment_method_type?: string | null
-          proof_path?: string | null
-          proof_uploaded_at?: string | null
-          provider_ref?: string | null
-          rejection_reason?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          status?: Database["public"]["Enums"]["payment_status"]
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "payments_booking_id_fkey"
-            columns: ["booking_id"]
-            isOneToOne: false
-            referencedRelation: "bookings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payments_payment_method_id_fkey"
-            columns: ["payment_method_id"]
-            isOneToOne: false
-            referencedRelation: "payment_methods"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      profiles: {
-        Row: {
-          avatar_url: string | null
-          created_at: string
-          deleted_at: string | null
-          email: string | null
-          full_name: string | null
-          id: string
-          is_suspended: boolean
-          locale: string
-          phone: string | null
-          updated_at: string
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string
-          deleted_at?: string | null
-          email?: string | null
-          full_name?: string | null
-          id: string
-          is_suspended?: boolean
-          locale?: string
-          phone?: string | null
-          updated_at?: string
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string
-          deleted_at?: string | null
-          email?: string | null
-          full_name?: string | null
-          id?: string
-          is_suspended?: boolean
-          locale?: string
-          phone?: string | null
-          updated_at?: string
         }
         Relationships: []
       }
