@@ -2,14 +2,15 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { PhoneFrame, TopBar, PrimaryButton, Card, EmptyState, Avatar } from "@/components/famio/ui";
 import {
-  useProvider, useProviderServices, useCreateBooking, useAddresses, validateCoupon, useAvailableSlots, useResolveZone,
+  useProvider, useProviderServices, useCreateBooking, useAddresses, useAvailableSlots, useResolveZone,
 } from "@/lib/db/queries";
+import { validatePromoCode } from "@/lib/db/promo-codes-queries";
 import { useCreatePayment } from "@/lib/db/payment-queries";
 import { useActivePaymentMethods } from "@/lib/db/payment-methods-queries";
 import { useRequirementsForService } from "@/lib/db/provider-queries";
 import { toUIProvider } from "@/lib/db/adapters";
 import { currentLang } from "@/lib/i18n";
-import { MapPin, Banknote, Check, Loader2, Home, Briefcase, Users, Plus, Copy, Wallet } from "lucide-react";
+import { MapPin, Banknote, Check, Loader2, Home, Briefcase, Users, Plus, Copy, Wallet, X } from "lucide-react";
 import instapayLogo from "@/assets/instapay.png.asset.json";
 import { useTranslation } from "react-i18next";
 import { formatEGP, formatNumber } from "@/lib/format";
@@ -45,7 +46,7 @@ function Book() {
   const [promoCode, setPromoCode] = useState("");
   const [promoStatus, setPromoStatus] = useState<"idle" | "checking" | "applied" | "invalid">("idle");
   const [promoDiscount, setPromoDiscount] = useState(0);
-  const [appliedCouponId, setAppliedCouponId] = useState<string | null>(null);
+  const [appliedPromoId, setAppliedPromoId] = useState<string | null>(null);
   const [requirementChoices, setRequirementChoices] = useState<Record<string, "customer" | "provider">>({});
 
   // Only addresses with a pinned location can back a real booking — the
@@ -139,21 +140,21 @@ function Book() {
     if (!code) return;
     setPromoStatus("checking");
     try {
-      const result = await validateCoupon(code, subtotal);
+      const result = await validatePromoCode(code, activeService?.service?.id ?? null, subtotal);
       if (result.ok) {
-        setPromoDiscount(result.discount);
-        setAppliedCouponId(result.coupon.id);
+        setPromoDiscount(result.discount_amount);
+        setAppliedPromoId(result.promo_code_id);
         setPromoStatus("applied");
-        toast.success(t("bookFlow.promoApplied", { amount: formatEGP(result.discount) }));
+        toast.success(t("bookFlow.promoApplied", { amount: formatEGP(result.discount_amount) }));
       } else {
         setPromoDiscount(0);
-        setAppliedCouponId(null);
+        setAppliedPromoId(null);
         setPromoStatus("invalid");
         toast.error(t(`bookFlow.promoError.${result.reason}`, t("bookFlow.promoError.not_found")));
       }
     } catch (e: any) {
       setPromoDiscount(0);
-      setAppliedCouponId(null);
+      setAppliedPromoId(null);
       setPromoStatus("invalid");
       toast.error(e?.message ?? t("bookFlow.promoError.not_found"));
     }
@@ -228,8 +229,9 @@ function Book() {
         start_at: start.toISOString(),
         end_at: end.toISOString(),
         price_subtotal: subtotal,
-        price_discount: promoDiscount,
+        price_discount: promoStatus === "applied" ? promoDiscount : 0,
         price_total: total,
+        promo_code_id: promoStatus === "applied" ? appliedPromoId : null,
         currency: "EGP",
         status: bookingStatus,
         notes: notes || null,
@@ -501,18 +503,28 @@ function Book() {
                 <div className="flex items-center gap-2">
                   <input
                     value={promoCode}
-                    onChange={(e) => { setPromoCode(e.target.value); if (promoStatus !== "idle") { setPromoStatus("idle"); setPromoDiscount(0); setAppliedCouponId(null); } }}
+                    onChange={(e) => { setPromoCode(e.target.value); if (promoStatus !== "idle") { setPromoStatus("idle"); setPromoDiscount(0); setAppliedPromoId(null); } }}
                     placeholder={t("bookFlow.promoPlaceholder")}
                     disabled={promoStatus === "applied"}
                     className="h-11 min-w-0 flex-1 rounded-xl border border-border bg-surface px-3 text-sm font-semibold outline-none focus:border-navy disabled:opacity-60"
                   />
-                  <button
-                    onClick={applyPromo}
-                    disabled={!promoCode.trim() || promoStatus === "checking" || promoStatus === "applied"}
-                    className="h-11 shrink-0 rounded-xl bg-navy px-4 text-sm font-bold text-navy-foreground disabled:opacity-50"
-                  >
-                    {promoStatus === "checking" ? <Loader2 className="h-4 w-4 animate-spin" /> : promoStatus === "applied" ? t("bookFlow.promoApplied2") : t("bookFlow.promoApply")}
-                  </button>
+                  {promoStatus === "applied" ? (
+                    <button
+                      onClick={() => { setPromoCode(""); setPromoStatus("idle"); setPromoDiscount(0); setAppliedPromoId(null); }}
+                      aria-label={t("bookFlow.promoRemove")}
+                      className="h-11 shrink-0 rounded-xl border border-border px-4 text-sm font-bold text-muted-foreground"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={applyPromo}
+                      disabled={!promoCode.trim() || promoStatus === "checking"}
+                      className="h-11 shrink-0 rounded-xl bg-navy px-4 text-sm font-bold text-navy-foreground disabled:opacity-50"
+                    >
+                      {promoStatus === "checking" ? <Loader2 className="h-4 w-4 animate-spin" /> : t("bookFlow.promoApply")}
+                    </button>
+                  )}
                 </div>
                 {promoStatus === "applied" && (
                   <div className="mt-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-success">

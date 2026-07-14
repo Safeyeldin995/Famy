@@ -516,6 +516,12 @@ export type Database = {
           price_discount: number
           price_subtotal: number
           price_total: number
+          promo_code: string | null
+          promo_code_id: string | null
+          promo_description_ar: string | null
+          promo_description_en: string | null
+          promo_discount_type: string | null
+          promo_discount_value: number | null
           provider_id: string
           requirement_selections: Json
           service_id: string
@@ -553,6 +559,12 @@ export type Database = {
           price_discount?: number
           price_subtotal?: number
           price_total?: number
+          promo_code?: string | null
+          promo_code_id?: string | null
+          promo_description_ar?: string | null
+          promo_description_en?: string | null
+          promo_discount_type?: string | null
+          promo_discount_value?: number | null
           provider_id: string
           requirement_selections?: Json
           service_id: string
@@ -590,6 +602,12 @@ export type Database = {
           price_discount?: number
           price_subtotal?: number
           price_total?: number
+          promo_code?: string | null
+          promo_code_id?: string | null
+          promo_description_ar?: string | null
+          promo_description_en?: string | null
+          promo_discount_type?: string | null
+          promo_discount_value?: number | null
           provider_id?: string
           requirement_selections?: Json
           service_id?: string
@@ -605,6 +623,13 @@ export type Database = {
             columns: ["address_id"]
             isOneToOne: false
             referencedRelation: "addresses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_promo_code_id_fkey"
+            columns: ["promo_code_id"]
+            isOneToOne: false
+            referencedRelation: "promo_codes"
             referencedColumns: ["id"]
           },
           {
@@ -931,6 +956,174 @@ export type Database = {
           name_en?: string
           public_config?: Json
           updated_at?: string
+        }
+        Relationships: []
+      }
+      promo_code_categories: {
+        Row: {
+          category_id: string
+          promo_code_id: string
+        }
+        Insert: {
+          category_id: string
+          promo_code_id: string
+        }
+        Update: {
+          category_id?: string
+          promo_code_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo_code_categories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promo_code_categories_promo_code_id_fkey"
+            columns: ["promo_code_id"]
+            isOneToOne: false
+            referencedRelation: "promo_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promo_code_redemptions: {
+        Row: {
+          booking_id: string
+          customer_id: string
+          discount_amount: number
+          id: string
+          promo_code_id: string
+          redeemed_at: string
+        }
+        Insert: {
+          booking_id: string
+          customer_id: string
+          discount_amount: number
+          id?: string
+          promo_code_id: string
+          redeemed_at?: string
+        }
+        Update: {
+          booking_id?: string
+          customer_id?: string
+          discount_amount?: number
+          id?: string
+          promo_code_id?: string
+          redeemed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo_code_redemptions_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promo_code_redemptions_promo_code_id_fkey"
+            columns: ["promo_code_id"]
+            isOneToOne: false
+            referencedRelation: "promo_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promo_code_services: {
+        Row: {
+          promo_code_id: string
+          service_id: string
+        }
+        Insert: {
+          promo_code_id: string
+          service_id: string
+        }
+        Update: {
+          promo_code_id?: string
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo_code_services_promo_code_id_fkey"
+            columns: ["promo_code_id"]
+            isOneToOne: false
+            referencedRelation: "promo_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promo_code_services_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promo_codes: {
+        Row: {
+          applicable_scope: string
+          code: string
+          created_at: string
+          created_by: string | null
+          description_ar: string | null
+          description_en: string | null
+          discount_type: string
+          discount_value: number
+          expires_at: string | null
+          first_booking_only: boolean
+          id: string
+          is_active: boolean
+          maximum_discount: number | null
+          minimum_booking_amount: number
+          starts_at: string | null
+          total_usage_limit: number | null
+          updated_at: string
+          usage_count: number
+          usage_limit_per_customer: number | null
+        }
+        Insert: {
+          applicable_scope?: string
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description_ar?: string | null
+          description_en?: string | null
+          discount_type: string
+          discount_value: number
+          expires_at?: string | null
+          first_booking_only?: boolean
+          id?: string
+          is_active?: boolean
+          maximum_discount?: number | null
+          minimum_booking_amount?: number
+          starts_at?: string | null
+          total_usage_limit?: number | null
+          updated_at?: string
+          usage_count?: number
+          usage_limit_per_customer?: number | null
+        }
+        Update: {
+          applicable_scope?: string
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description_ar?: string | null
+          description_en?: string | null
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          first_booking_only?: boolean
+          id?: string
+          is_active?: boolean
+          maximum_discount?: number | null
+          minimum_booking_amount?: number
+          starts_at?: string | null
+          total_usage_limit?: number | null
+          updated_at?: string
+          usage_count?: number
+          usage_limit_per_customer?: number | null
         }
         Relationships: []
       }
@@ -2065,6 +2258,10 @@ export type Database = {
           p_request_id: string
         }
         Returns: string
+      }
+      validate_promo_code: {
+        Args: { p_code: string; p_service_id: string; p_subtotal: number }
+        Returns: Json
       }
     }
     Enums: {

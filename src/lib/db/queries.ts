@@ -662,24 +662,6 @@ export function useSupportContact() {
   });
 }
 
-// ---------- Coupons ----------
-export async function validateCoupon(code: string, subtotal: number) {
-  const { data, error } = await supabase
-    .from('coupons')
-    .select('*')
-    .eq('code', code.toUpperCase())
-    .eq('is_active', true)
-    .maybeSingle();
-  if (error) throw error;
-  if (!data) return { ok: false as const, reason: 'not_found' };
-  if (data.expires_at && new Date(data.expires_at) < new Date()) return { ok: false as const, reason: 'expired' };
-  if (data.max_uses && data.uses_count >= data.max_uses) return { ok: false as const, reason: 'exhausted' };
-  if (subtotal < Number(data.min_total)) return { ok: false as const, reason: 'min_total' };
-  const discount =
-    data.type === 'percent' ? (subtotal * Number(data.value)) / 100 : Number(data.value);
-  return { ok: true as const, coupon: data, discount: Math.min(discount, subtotal) };
-}
-
 // ---------- Reviews ----------
 export function useProviderReviews(providerId: string | undefined) {
   return useQuery({
