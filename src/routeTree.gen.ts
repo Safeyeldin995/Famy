@@ -21,6 +21,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as FavoritesRouteImport } from './routes/favorites'
+import { Route as FamilyMembersRouteImport } from './routes/family-members'
 import { Route as BookingsRouteImport } from './routes/bookings'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AddressesRouteImport } from './routes/addresses'
@@ -37,6 +38,8 @@ import { Route as ProDocumentsRouteImport } from './routes/pro.documents'
 import { Route as ProBookingsRouteImport } from './routes/pro.bookings'
 import { Route as ProAvailabilityRouteImport } from './routes/pro.availability'
 import { Route as MessagesIdRouteImport } from './routes/messages.$id'
+import { Route as FamilyMembersNewRouteImport } from './routes/family-members.new'
+import { Route as FamilyMembersIdRouteImport } from './routes/family-members.$id'
 import { Route as ContentKeyRouteImport } from './routes/content.$key'
 import { Route as CategoryIdRouteImport } from './routes/category.$id'
 import { Route as BookingIdRouteImport } from './routes/booking.$id'
@@ -118,6 +121,11 @@ const FavoritesRoute = FavoritesRouteImport.update({
   path: '/favorites',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FamilyMembersRoute = FamilyMembersRouteImport.update({
+  id: '/family-members',
+  path: '/family-members',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BookingsRoute = BookingsRouteImport.update({
   id: '/bookings',
   path: '/bookings',
@@ -197,6 +205,16 @@ const MessagesIdRoute = MessagesIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => MessagesRoute,
+} as any)
+const FamilyMembersNewRoute = FamilyMembersNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => FamilyMembersRoute,
+} as any)
+const FamilyMembersIdRoute = FamilyMembersIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => FamilyMembersRoute,
 } as any)
 const ContentKeyRoute = ContentKeyRouteImport.update({
   id: '/content/$key',
@@ -304,6 +322,7 @@ export interface FileRoutesByFullPath {
   '/addresses': typeof AddressesRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
   '/bookings': typeof BookingsRoute
+  '/family-members': typeof FamilyMembersRouteWithChildren
   '/favorites': typeof FavoritesRoute
   '/help': typeof HelpRoute
   '/home': typeof HomeRoute
@@ -333,6 +352,8 @@ export interface FileRoutesByFullPath {
   '/booking/$id': typeof BookingIdRoute
   '/category/$id': typeof CategoryIdRoute
   '/content/$key': typeof ContentKeyRoute
+  '/family-members/$id': typeof FamilyMembersIdRoute
+  '/family-members/new': typeof FamilyMembersNewRoute
   '/messages/$id': typeof MessagesIdRoute
   '/pro/availability': typeof ProAvailabilityRoute
   '/pro/bookings': typeof ProBookingsRoute
@@ -353,6 +374,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/addresses': typeof AddressesRouteWithChildren
   '/bookings': typeof BookingsRoute
+  '/family-members': typeof FamilyMembersRouteWithChildren
   '/favorites': typeof FavoritesRoute
   '/help': typeof HelpRoute
   '/home': typeof HomeRoute
@@ -380,6 +402,8 @@ export interface FileRoutesByTo {
   '/booking/$id': typeof BookingIdRoute
   '/category/$id': typeof CategoryIdRoute
   '/content/$key': typeof ContentKeyRoute
+  '/family-members/$id': typeof FamilyMembersIdRoute
+  '/family-members/new': typeof FamilyMembersNewRoute
   '/messages/$id': typeof MessagesIdRoute
   '/pro/availability': typeof ProAvailabilityRoute
   '/pro/bookings': typeof ProBookingsRoute
@@ -402,6 +426,7 @@ export interface FileRoutesById {
   '/addresses': typeof AddressesRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
   '/bookings': typeof BookingsRoute
+  '/family-members': typeof FamilyMembersRouteWithChildren
   '/favorites': typeof FavoritesRoute
   '/help': typeof HelpRoute
   '/home': typeof HomeRoute
@@ -431,6 +456,8 @@ export interface FileRoutesById {
   '/booking/$id': typeof BookingIdRoute
   '/category/$id': typeof CategoryIdRoute
   '/content/$key': typeof ContentKeyRoute
+  '/family-members/$id': typeof FamilyMembersIdRoute
+  '/family-members/new': typeof FamilyMembersNewRoute
   '/messages/$id': typeof MessagesIdRoute
   '/pro/availability': typeof ProAvailabilityRoute
   '/pro/bookings': typeof ProBookingsRoute
@@ -454,6 +481,7 @@ export interface FileRouteTypes {
     | '/addresses'
     | '/admin'
     | '/bookings'
+    | '/family-members'
     | '/favorites'
     | '/help'
     | '/home'
@@ -483,6 +511,8 @@ export interface FileRouteTypes {
     | '/booking/$id'
     | '/category/$id'
     | '/content/$key'
+    | '/family-members/$id'
+    | '/family-members/new'
     | '/messages/$id'
     | '/pro/availability'
     | '/pro/bookings'
@@ -503,6 +533,7 @@ export interface FileRouteTypes {
     | '/'
     | '/addresses'
     | '/bookings'
+    | '/family-members'
     | '/favorites'
     | '/help'
     | '/home'
@@ -530,6 +561,8 @@ export interface FileRouteTypes {
     | '/booking/$id'
     | '/category/$id'
     | '/content/$key'
+    | '/family-members/$id'
+    | '/family-members/new'
     | '/messages/$id'
     | '/pro/availability'
     | '/pro/bookings'
@@ -551,6 +584,7 @@ export interface FileRouteTypes {
     | '/addresses'
     | '/admin'
     | '/bookings'
+    | '/family-members'
     | '/favorites'
     | '/help'
     | '/home'
@@ -580,6 +614,8 @@ export interface FileRouteTypes {
     | '/booking/$id'
     | '/category/$id'
     | '/content/$key'
+    | '/family-members/$id'
+    | '/family-members/new'
     | '/messages/$id'
     | '/pro/availability'
     | '/pro/bookings'
@@ -602,6 +638,7 @@ export interface RootRouteChildren {
   AddressesRoute: typeof AddressesRouteWithChildren
   AdminRoute: typeof AdminRouteWithChildren
   BookingsRoute: typeof BookingsRoute
+  FamilyMembersRoute: typeof FamilyMembersRouteWithChildren
   FavoritesRoute: typeof FavoritesRoute
   HelpRoute: typeof HelpRoute
   HomeRoute: typeof HomeRoute
@@ -707,6 +744,13 @@ declare module '@tanstack/react-router' {
       path: '/favorites'
       fullPath: '/favorites'
       preLoaderRoute: typeof FavoritesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/family-members': {
+      id: '/family-members'
+      path: '/family-members'
+      fullPath: '/family-members'
+      preLoaderRoute: typeof FamilyMembersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/bookings': {
@@ -820,6 +864,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/messages/$id'
       preLoaderRoute: typeof MessagesIdRouteImport
       parentRoute: typeof MessagesRoute
+    }
+    '/family-members/new': {
+      id: '/family-members/new'
+      path: '/new'
+      fullPath: '/family-members/new'
+      preLoaderRoute: typeof FamilyMembersNewRouteImport
+      parentRoute: typeof FamilyMembersRoute
+    }
+    '/family-members/$id': {
+      id: '/family-members/$id'
+      path: '/$id'
+      fullPath: '/family-members/$id'
+      preLoaderRoute: typeof FamilyMembersIdRouteImport
+      parentRoute: typeof FamilyMembersRoute
     }
     '/content/$key': {
       id: '/content/$key'
@@ -1010,6 +1068,20 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface FamilyMembersRouteChildren {
+  FamilyMembersIdRoute: typeof FamilyMembersIdRoute
+  FamilyMembersNewRoute: typeof FamilyMembersNewRoute
+}
+
+const FamilyMembersRouteChildren: FamilyMembersRouteChildren = {
+  FamilyMembersIdRoute: FamilyMembersIdRoute,
+  FamilyMembersNewRoute: FamilyMembersNewRoute,
+}
+
+const FamilyMembersRouteWithChildren = FamilyMembersRoute._addFileChildren(
+  FamilyMembersRouteChildren,
+)
+
 interface MessagesRouteChildren {
   MessagesIdRoute: typeof MessagesIdRoute
   MessagesIndexRoute: typeof MessagesIndexRoute
@@ -1055,6 +1127,7 @@ const rootRouteChildren: RootRouteChildren = {
   AddressesRoute: AddressesRouteWithChildren,
   AdminRoute: AdminRouteWithChildren,
   BookingsRoute: BookingsRoute,
+  FamilyMembersRoute: FamilyMembersRouteWithChildren,
   FavoritesRoute: FavoritesRoute,
   HelpRoute: HelpRoute,
   HomeRoute: HomeRoute,

@@ -146,7 +146,7 @@ export function useProviderBooking(id: string | undefined) {
       const { data, error } = await supabase
         .from('bookings')
         .select(
-          `*, service:services(*), customer:profiles!bookings_customer_id_fkey(full_name, avatar_url, phone), location:booking_locations(*), requirement_choices:booking_requirement_selections(*)`,
+          `*, service:services(*), customer:profiles!bookings_customer_id_fkey(full_name, avatar_url, phone), location:booking_locations(*), requirement_choices:booking_requirement_selections(*), family_member:booking_family_member_snapshots(*)`,
         )
         .eq('id', id!)
         .maybeSingle();

@@ -179,6 +179,20 @@ function AdminBookings() {
 
                 {isOpen && (
                   <div className="mt-3">
+                    {b.family_member && (
+                      <div className="mb-3 space-y-1 rounded-xl border border-border/60 bg-surface p-3 text-xs">
+                        <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Family member snapshot</p>
+                        <p><span className="text-muted-foreground">For:</span> {b.family_member.full_name} ({b.family_member.relationship === "other" ? (b.family_member.relationship_other || "other") : b.family_member.relationship})</p>
+                        {b.family_member.date_of_birth && <p><span className="text-muted-foreground">DOB:</span> {b.family_member.date_of_birth}</p>}
+                        {b.family_member.phone && <p><span className="text-muted-foreground">Phone:</span> {b.family_member.phone}</p>}
+                        {b.family_member.allergies && <p><span className="text-muted-foreground">Allergies:</span> {b.family_member.allergies}</p>}
+                        {b.family_member.medical_notes && <p><span className="text-muted-foreground">Medical notes:</span> {b.family_member.medical_notes}</p>}
+                        {b.family_member.access_notes && <p><span className="text-muted-foreground">Access notes:</span> {b.family_member.access_notes}</p>}
+                        {b.family_member.emergency_contact_name && (
+                          <p><span className="text-muted-foreground">Emergency contact:</span> {b.family_member.emergency_contact_name} {b.family_member.emergency_contact_phone && `(${b.family_member.emergency_contact_phone})`}</p>
+                        )}
+                      </div>
+                    )}
                     <PaymentBlock bookingId={b.id} viewer="admin" bookingStatus={b.status} />
                     <AdminRescheduleHistory bookingId={b.id} customerId={b.customer_id} />
                   </div>

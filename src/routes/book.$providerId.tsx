@@ -4,6 +4,7 @@ import { PhoneFrame, TopBar, PrimaryButton, Card, EmptyState, Avatar } from "@/c
 import {
   useProvider, useProviderServices, useCreateBooking, useAddresses, useAvailableSlots, useResolveZone,
 } from "@/lib/db/queries";
+import { useActiveFamilyMembers } from "@/lib/db/family-members-queries";
 import { validatePromoCode } from "@/lib/db/promo-codes-queries";
 import { useCreatePayment } from "@/lib/db/payment-queries";
 import { useActivePaymentMethods } from "@/lib/db/payment-methods-queries";
@@ -25,6 +26,7 @@ function Book() {
   const provQ = useProvider(providerId);
   const servicesQ = useProviderServices(providerId);
   const addrsQ = useAddresses();
+  const familyMembersQ = useActiveFamilyMembers();
   const createBooking = useCreateBooking();
   const createPayment = useCreatePayment();
   const methodsQ = useActivePaymentMethods();
@@ -32,7 +34,7 @@ function Book() {
   const { t } = useTranslation();
   const nav = useNavigate();
 
-  const stepKeys = ["service", "duration", "date", "time", "address", "notes", "requirements", "summary", "payment"] as const;
+  const stepKeys = ["service", "duration", "date", "time", "address", "forWhom", "notes", "requirements", "summary", "payment"] as const;
   const [step, setStep] = useState(0);
   const [serviceId, setServiceId] = useState<string | null>(null);
   const [duration, setDuration] = useState("4h");
@@ -41,6 +43,7 @@ function Book() {
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null);
   const [address, setAddress] = useState("");
   const [addressId, setAddressId] = useState<string | null>(null);
+  const [forWhom, setForWhom] = useState("myself");
   const [notes, setNotes] = useState("");
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
   const [promoCode, setPromoCode] = useState("");
@@ -105,6 +108,9 @@ function Book() {
     return <PhoneFrame><EmptyState emoji="🙈" title={t("bookFlow.notFound")} /></PhoneFrame>;
   }
 
+  const selectedFamilyMember = forWhom !== "myself" ? (familyMembersQ.data ?? []).find((m: any) => m.id === forWhom) : null;
+  const forWhomLabel = forWhom === "myself" ? t("bookFlow.forWhomMyself", "Myself") : (selectedFamilyMember?.full_name ?? t("bookFlow.dash"));
+
   const ratePerHour = Number(activeService?.price_override ?? p.hourlyRate);
   const subtotal = ratePerHour * hours;
   const fee = billingQ.data?.platform_fee ?? DEFAULT_BILLING_SETTINGS.platform_fee;
@@ -134,8 +140,9 @@ function Book() {
     if (step === 2) return !!date;
     if (step === 3) return !!time;
     if (step === 4) return !!addressId && !!zoneQ.data;
-    if (step === 6) return eitherRequirements.every((r: any) => !!requirementChoices[r.id]);
-    if (step === 8) return !!paymentMethodId;
+    if (step === 5) return forWhom === "myself" || (familyMembersQ.data ?? []).some((m: any) => m.id === forWhom);
+    if (step === 7) return eitherRequirements.every((r: any) => !!requirementChoices[r.id]);
+    if (step === 9) return !!paymentMethodId;
     return true;
   };
 
@@ -230,6 +237,7 @@ function Book() {
         provider_id: p.id,
         service_id: activeService.service.id,
         address_id: addressId,
+        family_member_id: forWhom === "myself" ? null : forWhom,
         start_at: start.toISOString(),
         end_at: end.toISOString(),
         price_subtotal: subtotal,
@@ -430,6 +438,52 @@ function Book() {
         )}
 
         {step === 5 && (
+          <Step title={t("bookFlow.forWhomTitle", "Who is this for?")} sub={t("bookFlow.forWhomSub", "Choose yourself or a saved family member.")}>
+            <div className="space-y-2">
+              <button
+                onClick={() => setForWhom("myself")}
+                className={`flex w-full items-center justify-between rounded-2xl p-4 text-start transition-all ${forWhom === "myself" ? "bg-navy text-navy-foreground" : "bg-surface shadow-soft"}`}
+              >
+                <span className="font-bold">{t("bookFlow.forWhomMyself", "Myself")}</span>
+                <span className={`grid h-6 w-6 place-items-center rounded-full border-2 ${forWhom === "myself" ? "border-white bg-white text-navy" : "border-border"}`}>
+                  {forWhom === "myself" && <Check className="h-3.5 w-3.5" />}
+                </span>
+              </button>
+              {familyMembersQ.isLoading ? (
+                <div className="h-16 animate-pulse rounded-2xl bg-surface" />
+              ) : (familyMembersQ.data ?? []).length === 0 ? (
+                <div className="rounded-2xl bg-surface-2 p-4 text-center text-xs text-muted-foreground">
+                  {t("bookFlow.noFamilyMembers", "You haven't added any family members yet.")}
+                </div>
+              ) : (
+                (familyMembersQ.data ?? []).map((m: any) => {
+                  const relationshipLabel = m.relationship === "other" ? (m.relationship_other || t("familyMembers.relationships.other")) : t(`familyMembers.relationships.${m.relationship}`);
+                  const active = forWhom === m.id;
+                  return (
+                    <button
+                      key={m.id}
+                      onClick={() => setForWhom(m.id)}
+                      className={`flex w-full items-center justify-between rounded-2xl p-4 text-start transition-all ${active ? "bg-navy text-navy-foreground" : "bg-surface shadow-soft"}`}
+                    >
+                      <span>
+                        <span className="block font-bold">{m.full_name}</span>
+                        <span className={`block text-xs ${active ? "text-white/70" : "text-muted-foreground"}`}>{relationshipLabel}</span>
+                      </span>
+                      <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border-2 ${active ? "border-white bg-white text-navy" : "border-border"}`}>
+                        {active && <Check className="h-3.5 w-3.5" />}
+                      </span>
+                    </button>
+                  );
+                })
+              )}
+              <Link to="/family-members/new" className="flex w-full items-center gap-2 rounded-2xl border border-dashed border-border p-3 text-sm font-bold text-navy">
+                <Plus className="h-4 w-4" /> {t("familyMembers.addMember", "Add family member")}
+              </Link>
+            </div>
+          </Step>
+        )}
+
+        {step === 6 && (
           <Step title={t("bookFlow.notesTitle")} sub={t("bookFlow.notesSub")}>
             <textarea
               rows={6}
@@ -441,7 +495,7 @@ function Book() {
           </Step>
         )}
 
-        {step === 6 && (
+        {step === 7 && (
           <Step title={t("bookFlow.requirementsTitle", "Requirements")} sub={t("bookFlow.requirementsSub", "Some items for this service need to be arranged.")}>
             {bookingRequirements.length === 0 ? (
               <p className="text-sm text-muted-foreground">{t("bookFlow.noRequirements", "Nothing extra needed for this service.")}</p>
@@ -487,7 +541,7 @@ function Book() {
           </Step>
         )}
 
-        {step === 7 && (
+        {step === 8 && (
           <Step title={t("bookFlow.summaryTitle")}>
             <Card className="p-4">
               <div className="flex items-center gap-3 border-b border-border pb-3">
@@ -499,6 +553,7 @@ function Book() {
                   </div>
                 </div>
               </div>
+              <Row label={t("bookFlow.rowForWhom", "For")} value={forWhomLabel} />
               <Row label={t("bookFlow.rowDate")} value={date ? date.toLocaleDateString(locale, { weekday: "short", month: "short", day: "numeric" }) : t("bookFlow.dash")} />
               <Row label={t("bookFlow.rowTime")} value={time || t("bookFlow.dash")} />
               <Row label={t("bookFlow.rowAddress")} value={address || t("bookFlow.dash")} />
@@ -563,7 +618,7 @@ function Book() {
           </Step>
         )}
 
-        {step === 8 && (
+        {step === 9 && (
           <Step title={t("bookFlow.paymentTitle")} sub={t("bookFlow.paymentSub")}>
             {methodsQ.isLoading ? (
               <div className="space-y-3">
@@ -611,14 +666,14 @@ function Book() {
       </div>
 
       <div className="safe-bottom fixed inset-x-0 bottom-0 z-40 mx-auto max-w-md border-t border-border bg-surface px-5 pt-3">
-        {step === 8 && (
+        {step === 9 && (
           <div className="mb-3 flex items-center justify-between text-sm">
             <span className="text-muted-foreground">{t("bookFlow.total")}</span>
             <span className="text-lg font-extrabold text-navy">{formatEGP(total)}</span>
           </div>
         )}
-        <PrimaryButton variant={step === 8 ? "coral" : "navy"} onClick={next} disabled={!canNext() || createBooking.isPending}>
-          {createBooking.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : step === 8 ? t("bookFlow.payCta", { price: formatEGP(total) }) : step === 7 ? t("bookFlow.continueToPayment") : t("bookFlow.continue")}
+        <PrimaryButton variant={step === 9 ? "coral" : "navy"} onClick={next} disabled={!canNext() || createBooking.isPending}>
+          {createBooking.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : step === 9 ? t("bookFlow.payCta", { price: formatEGP(total) }) : step === 8 ? t("bookFlow.continueToPayment") : t("bookFlow.continue")}
         </PrimaryButton>
       </div>
     </PhoneFrame>

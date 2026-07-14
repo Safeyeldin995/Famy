@@ -235,6 +235,72 @@ export type Database = {
           },
         ]
       }
+      booking_family_member_snapshots: {
+        Row: {
+          access_notes: string | null
+          allergies: string | null
+          booking_id: string
+          created_at: string
+          date_of_birth: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          family_member_id: string | null
+          full_name: string
+          gender: string | null
+          medical_notes: string | null
+          phone: string | null
+          relationship: string
+          relationship_other: string | null
+        }
+        Insert: {
+          access_notes?: string | null
+          allergies?: string | null
+          booking_id: string
+          created_at?: string
+          date_of_birth?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          family_member_id?: string | null
+          full_name: string
+          gender?: string | null
+          medical_notes?: string | null
+          phone?: string | null
+          relationship: string
+          relationship_other?: string | null
+        }
+        Update: {
+          access_notes?: string | null
+          allergies?: string | null
+          booking_id?: string
+          created_at?: string
+          date_of_birth?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          family_member_id?: string | null
+          full_name?: string
+          gender?: string | null
+          medical_notes?: string | null
+          phone?: string | null
+          relationship?: string
+          relationship_other?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_family_member_snapshots_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_family_member_snapshots_family_member_id_fkey"
+            columns: ["family_member_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_locations: {
         Row: {
           access_notes: string | null
@@ -507,6 +573,7 @@ export type Database = {
           dispute_resolved_by: string | null
           disputed_at: string | null
           end_at: string
+          family_member_id: string | null
           id: string
           no_show_party: string | null
           no_show_reason: string | null
@@ -554,6 +621,7 @@ export type Database = {
           dispute_resolved_by?: string | null
           disputed_at?: string | null
           end_at: string
+          family_member_id?: string | null
           id?: string
           no_show_party?: string | null
           no_show_reason?: string | null
@@ -601,6 +669,7 @@ export type Database = {
           dispute_resolved_by?: string | null
           disputed_at?: string | null
           end_at?: string
+          family_member_id?: string | null
           id?: string
           no_show_party?: string | null
           no_show_reason?: string | null
@@ -635,6 +704,13 @@ export type Database = {
             columns: ["address_id"]
             isOneToOne: false
             referencedRelation: "addresses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_family_member_id_fkey"
+            columns: ["family_member_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
             referencedColumns: ["id"]
           },
           {
@@ -823,6 +899,63 @@ export type Database = {
           type?: Database["public"]["Enums"]["coupon_type"]
           uses_count?: number
           value?: number
+        }
+        Relationships: []
+      }
+      family_members: {
+        Row: {
+          access_notes: string | null
+          allergies: string | null
+          created_at: string
+          customer_id: string
+          date_of_birth: string
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          full_name: string
+          gender: string | null
+          id: string
+          is_active: boolean
+          medical_notes: string | null
+          phone: string | null
+          relationship: string
+          relationship_other: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_notes?: string | null
+          allergies?: string | null
+          created_at?: string
+          customer_id: string
+          date_of_birth: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          full_name: string
+          gender?: string | null
+          id?: string
+          is_active?: boolean
+          medical_notes?: string | null
+          phone?: string | null
+          relationship: string
+          relationship_other?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_notes?: string | null
+          allergies?: string | null
+          created_at?: string
+          customer_id?: string
+          date_of_birth?: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          full_name?: string
+          gender?: string | null
+          id?: string
+          is_active?: boolean
+          medical_notes?: string | null
+          phone?: string | null
+          relationship?: string
+          relationship_other?: string | null
+          updated_at?: string
         }
         Relationships: []
       }

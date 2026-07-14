@@ -8,7 +8,7 @@ import { RescheduleSection } from "@/components/famio/RescheduleSection";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { useProviderBooking, useProviderUpdateBookingStatus } from "@/lib/db/provider-queries";
 import { bookingStatusTone, formatEGP, BOOKING_TIMELINE_STEPS } from "@/lib/utils";
-import { Calendar, Clock, MapPin, Phone, User as UserIcon } from "lucide-react";
+import { Calendar, Clock, MapPin, Phone, User as UserIcon, HeartPulse, AlertTriangle } from "lucide-react";
 import { useState } from "react";
 
 export const Route = createFileRoute("/pro/booking/$id")({ component: ProBookingDetail });
@@ -91,6 +91,43 @@ function ProBookingDetail() {
           <Row icon={<MapPin className="h-4 w-4" />} label={t("pro.booking.address")} value={addrLine} />
           {b.customer?.phone && <Row icon={<Phone className="h-4 w-4" />} label={t("pro.booking.phone")} value={<a href={`tel:${b.customer.phone}`} className="font-bold text-navy" dir="ltr">{b.customer.phone}</a>} />}
         </Card>
+
+        {b.family_member && (
+          <Card className="space-y-3 p-4">
+            <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("pro.booking.forWhom", "Service is for")}</div>
+            <Row
+              icon={<UserIcon className="h-4 w-4" />}
+              label={b.family_member.full_name}
+              value={
+                b.family_member.relationship === "self"
+                  ? t("pro.booking.forWhomMyself", "The customer")
+                  : b.family_member.relationship === "other"
+                    ? (b.family_member.relationship_other || t("familyMembers.relationships.other"))
+                    : t(`familyMembers.relationships.${b.family_member.relationship}`)
+              }
+            />
+            {b.family_member.allergies && (
+              <Row icon={<HeartPulse className="h-4 w-4" />} label={t("pro.booking.allergies", "Allergies")} value={b.family_member.allergies} />
+            )}
+            {b.family_member.medical_notes && (
+              <Row icon={<HeartPulse className="h-4 w-4" />} label={t("pro.booking.medicalNotes", "Medical notes")} value={b.family_member.medical_notes} />
+            )}
+            {b.family_member.access_notes && (
+              <Row icon={<AlertTriangle className="h-4 w-4" />} label={t("pro.booking.accessNotes", "Access notes")} value={b.family_member.access_notes} />
+            )}
+            {b.family_member.emergency_contact_name && (
+              <Row
+                icon={<Phone className="h-4 w-4" />}
+                label={t("pro.booking.emergencyContact", "Emergency contact")}
+                value={
+                  b.family_member.emergency_contact_phone
+                    ? <a href={`tel:${b.family_member.emergency_contact_phone}`} className="font-bold text-navy" dir="ltr">{b.family_member.emergency_contact_name} · {b.family_member.emergency_contact_phone}</a>
+                    : b.family_member.emergency_contact_name
+                }
+              />
+            )}
+          </Card>
+        )}
 
         {b.notes && (
           <Card className="p-4">
