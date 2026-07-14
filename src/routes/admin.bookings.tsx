@@ -1,10 +1,25 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { useAdminBookings, useUpdateBookingStatus, useAdminResolveReschedule } from "@/lib/db/admin-queries";
 import { useRescheduleRequests } from "@/lib/db/queries";
+import { useCancelBooking } from "@/lib/db/cancellation-queries";
+import { CancelBookingDialog } from "@/components/famio/ui";
 import { PaymentBlock } from "@/components/famio/PaymentBlock";
 import { formatEGP } from "@/lib/utils";
 import { Search } from "lucide-react";
+
+function AdminCancellationDetails({ cancellation }: { cancellation: any }) {
+  return (
+    <div className="mt-3 space-y-1 rounded-xl border border-border/60 bg-surface p-3 text-xs">
+      <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Cancellation details</p>
+      <p><span className="text-muted-foreground">Reason:</span> {cancellation.reason_name_en}</p>
+      {cancellation.note && <p><span className="text-muted-foreground">Note:</span> {cancellation.note}</p>}
+      <p><span className="text-muted-foreground">Cancelled by:</span> {cancellation.cancelled_by_role}</p>
+      <p><span className="text-muted-foreground">At:</span> {new Date(cancellation.cancelled_at).toLocaleString()}</p>
+    </div>
+  );
+}
 
 function AdminRescheduleHistory({ bookingId, customerId }: { bookingId: string; customerId: string }) {
   const reqQ = useRescheduleRequests(bookingId);
@@ -79,8 +94,11 @@ function AdminBookings() {
   const [status, setStatus] = useState<string>("");
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [cancelId, setCancelId] = useState<string | null>(null);
   const q = useAdminBookings(status || undefined);
   const update = useUpdateBookingStatus();
+  const cancelBooking = useCancelBooking();
+  const cancelTarget = (q.data ?? []).find((b: any) => b.id === cancelId) as any;
 
   const rows = useMemo(() => {
     const all = q.data ?? [];
@@ -164,11 +182,19 @@ function AdminBookings() {
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <select
                     value={b.status}
-                    onChange={(e) => update.mutate({ id: b.id, status: e.target.value })}
+                    onChange={(e) => update.mutate({ id: b.id, status: e.target.value }, { onError: (err: any) => toast.error(err?.message ?? "Could not update status.") })}
                     className="rounded-lg border border-border bg-surface px-2 py-1.5 text-xs"
                   >
                     {STATUS_FILTERS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
                   </select>
+                  {(b.status === "pending" || b.status === "confirmed") && (
+                    <button
+                      onClick={() => setCancelId(b.id)}
+                      className="rounded-lg border border-coral px-3 py-1.5 text-xs font-bold text-coral"
+                    >
+                      Cancel booking
+                    </button>
+                  )}
                   <button
                     onClick={() => setExpanded(isOpen ? null : b.id)}
                     className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground"
@@ -176,6 +202,8 @@ function AdminBookings() {
                     {isOpen ? "Hide payment details" : "View payment details"}
                   </button>
                 </div>
+
+                {b.status === "cancelled" && b.cancellation && <AdminCancellationDetails cancellation={b.cancellation} />}
 
                 {isOpen && (
                   <div className="mt-3">
@@ -202,6 +230,29 @@ function AdminBookings() {
           })}
         </ul>
       )}
+
+      <CancelBookingDialog
+        open={!!cancelId}
+        actorType="admin"
+        bookingStatus={cancelTarget?.status}
+        title="Cancel this booking?"
+        body="This is an audited support action. The customer and provider will be notified."
+        reasonLabel="Reason"
+        notePlaceholder="Add a note"
+        confirmLabel="Cancel booking"
+        cancelLabel="Keep booking"
+        pending={cancelBooking.isPending}
+        onCancel={() => setCancelId(null)}
+        onConfirm={(reasonId, note) =>
+          cancelBooking.mutate(
+            { bookingId: cancelId!, reasonId, note },
+            {
+              onSuccess: () => { setCancelId(null); toast.success("Booking cancelled."); },
+              onError: (e: any) => toast.error(e?.message ?? "Could not cancel this booking."),
+            },
+          )
+        }
+      />
     </div>
   );
 }

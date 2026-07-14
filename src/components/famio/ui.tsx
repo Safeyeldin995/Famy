@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAvatarUrl } from "@/lib/db/queries";
+import { useCancellationReasons, type CancellationReasonRow } from "@/lib/db/cancellation-queries";
+import { currentLang } from "@/lib/i18n";
 import { BOOKING_TIMELINE_STEPS } from "@/lib/utils";
 
 /**
@@ -421,6 +423,102 @@ export function ReasonDialog({
             className={`h-12 flex-1 rounded-2xl text-sm font-bold disabled:opacity-50 ${
               confirmVariant === "coral" ? "bg-coral text-coral-foreground" : "bg-navy text-navy-foreground"
             }`}
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+/**
+ * Cancellation confirmation dialog — customer/provider pick from the
+ * database-authoritative reason list (see cancel_booking() / Module 2), not
+ * free text. The RPC re-validates reason/status/note server-side regardless
+ * of what this form sends; this is UX, not the actual guard.
+ */
+export function CancelBookingDialog({
+  open,
+  actorType,
+  bookingStatus,
+  title,
+  body,
+  reasonLabel,
+  notePlaceholder,
+  confirmLabel,
+  cancelLabel,
+  pending = false,
+  onCancel,
+  onConfirm,
+}: {
+  open: boolean;
+  actorType: "customer" | "provider" | "admin";
+  bookingStatus: string | undefined;
+  title: string;
+  body?: string;
+  reasonLabel: string;
+  notePlaceholder: string;
+  confirmLabel: string;
+  cancelLabel: string;
+  pending?: boolean;
+  onCancel: () => void;
+  onConfirm: (reasonId: string, note: string) => void;
+}) {
+  const reasonsQ = useCancellationReasons(actorType);
+  const [reasonId, setReasonId] = useState("");
+  const [note, setNote] = useState("");
+  const isAr = currentLang() === "ar";
+  if (!open) return null;
+
+  const reasons = (reasonsQ.data ?? []).filter(
+    (r: CancellationReasonRow) => !bookingStatus || r.applicable_statuses.includes(bookingStatus as any),
+  );
+  const selected = reasons.find((r) => r.id === reasonId);
+  const canConfirm = !!selected && (!selected.requires_note || note.trim().length > 0);
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-6" onClick={onCancel}>
+      <Card className="w-full max-w-sm p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="text-base font-extrabold">{title}</div>
+        {body && <div className="mt-1 text-xs text-muted-foreground">{body}</div>}
+
+        <label className="mt-3 block">
+          <span className="text-xs font-semibold text-muted-foreground">{reasonLabel}</span>
+          {reasonsQ.isLoading ? (
+            <div className="mt-1 h-10 w-full animate-pulse rounded-2xl bg-surface-2" />
+          ) : (
+            <select
+              value={reasonId}
+              onChange={(e) => setReasonId(e.target.value)}
+              className="mt-1 h-11 w-full rounded-2xl border border-border bg-surface-2 px-3 text-sm outline-none"
+            >
+              <option value="" disabled>{reasonLabel}</option>
+              {reasons.map((r) => (
+                <option key={r.id} value={r.id}>{isAr ? r.name_ar : r.name_en}</option>
+              ))}
+            </select>
+          )}
+        </label>
+
+        {selected?.requires_note && (
+          <textarea
+            rows={3}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder={notePlaceholder}
+            className="mt-3 w-full resize-none rounded-2xl border border-border bg-surface-2 p-3 text-sm outline-none"
+          />
+        )}
+
+        <div className="mt-4 flex gap-2">
+          <button onClick={onCancel} disabled={pending} className="h-12 flex-1 rounded-2xl border border-border bg-surface text-sm font-bold disabled:opacity-50">
+            {cancelLabel}
+          </button>
+          <button
+            onClick={() => onConfirm(reasonId, note.trim())}
+            disabled={pending || !canConfirm}
+            className="h-12 flex-1 rounded-2xl bg-coral text-sm font-bold text-coral-foreground disabled:opacity-50"
           >
             {confirmLabel}
           </button>

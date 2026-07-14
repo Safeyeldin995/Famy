@@ -1,8 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { PhoneFrame, PrimaryButton, Card, Badge, BackButton, Avatar, BookingTimeline, ReasonDialog, ErrorState, EmptyState } from "@/components/famio/ui";
+import { PhoneFrame, PrimaryButton, Card, Badge, BackButton, Avatar, BookingTimeline, ReasonDialog, CancelBookingDialog, ErrorState, EmptyState } from "@/components/famio/ui";
 import { PaymentBlock } from "@/components/famio/PaymentBlock";
 import { RescheduleSection } from "@/components/famio/RescheduleSection";
 import { useBooking, useFavoriteIds, useToggleFavorite, useBookingReview, useSubmitReview, useUpdateBookingStatus } from "@/lib/db/queries";
+import { useCancelBooking, useBookingCancellation } from "@/lib/db/cancellation-queries";
 import { toUIProvider } from "@/lib/db/adapters";
 import { currentLang } from "@/lib/i18n";
 import { formatEGP } from "@/lib/utils";
@@ -31,6 +32,8 @@ function BookingDetail() {
   const lang = currentLang();
   const locale = lang === "ar" ? "ar-EG" : "en-US";
   const updateStatus = useUpdateBookingStatus();
+  const cancelBooking = useCancelBooking();
+  const cancellationQ = useBookingCancellation(status === "cancelled" ? id : undefined);
   const [dialog, setDialog] = useState<CustomerDialog>("");
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
@@ -117,7 +120,10 @@ function BookingDetail() {
     : "upcoming";
 
   if (view === "closed") {
-    const reason = real.cancellation_reason || real.no_show_reason || real.dispute_reason;
+    const cancellation = cancellationQ.data;
+    const reason = cancellation
+      ? (lang === "ar" ? cancellation.reason_name_ar : cancellation.reason_name_en)
+      : real.cancellation_reason || real.no_show_reason || real.dispute_reason;
     const title =
       status === "cancelled" ? t("bookingDetail.closedCancelledTitle")
       : status === "no_show" ? t("bookingDetail.closedNoShowTitle")
@@ -150,6 +156,17 @@ function BookingDetail() {
               <div className="mt-4 rounded-2xl bg-surface-2 p-3">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{t("bookingDetail.reasonLabel")}</div>
                 <p className="mt-1 text-sm">{reason}</p>
+                {cancellation?.note && <p className="mt-1 text-sm text-muted-foreground">{cancellation.note}</p>}
+              </div>
+            )}
+            {cancellation && (
+              <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                <p>
+                  {t("bookingDetail.cancelledBy")}: {t(`bookingDetail.cancelledByRole.${cancellation.cancelled_by_role}`)}
+                </p>
+                <p>
+                  {t("bookingDetail.cancelledAt")}: {new Date(cancellation.cancelled_at).toLocaleString(locale)}
+                </p>
               </div>
             )}
           </Card>
@@ -320,6 +337,10 @@ function BookingDetail() {
           <Card className="mt-3 p-4">
             <BookingTimeline status={status ?? "on_the_way"} labelFor={(step) => t(`bookingDetail.timeline.${step}`)} />
           </Card>
+
+          <p className="mt-3 rounded-2xl bg-surface-2 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">
+            {t("bookingDetail.cancelNoLongerAvailable")}
+          </p>
 
           {status === "on_the_way" && (
             <button onClick={() => setDialog("no_show")} disabled={updateStatus.isPending} className="mt-4 w-full rounded-2xl py-3 text-sm font-semibold text-coral disabled:opacity-50">
@@ -494,24 +515,34 @@ function BookingDetail() {
           {t("bookingDetail.waitingForProvider", "Tracking will be available once your provider is on the way.")}
         </div>
         {cancellable && (
-          <button onClick={() => setDialog("cancel")} disabled={updateStatus.isPending} className="w-full py-3 text-center text-sm font-semibold text-destructive disabled:opacity-50">
+          <button onClick={() => setDialog("cancel")} disabled={cancelBooking.isPending} className="w-full py-3 text-center text-sm font-semibold text-destructive disabled:opacity-50">
             {t("bookingDetail.cancel")}
           </button>
         )}
         <Link to="/home" className="block py-3 text-center text-sm font-semibold text-muted-foreground">{t("bookingDetail.backHome")}</Link>
       </div>
 
-      <ReasonDialog
-        key={`cancel-${dialog}`}
+      <CancelBookingDialog
         open={dialog === "cancel"}
+        actorType="customer"
+        bookingStatus={status}
         title={t("bookingDetail.cancelReasonTitle")}
         body={t("bookingDetail.cancelIrreversible")}
-        reasonPlaceholder={t("bookingDetail.cancelReasonPlaceholder")}
+        reasonLabel={t("bookingDetail.cancelReasonLabel")}
+        notePlaceholder={t("bookingDetail.cancelReasonPlaceholder")}
         confirmLabel={t("bookingDetail.confirmAction")}
         cancelLabel={t("bookingDetail.keep")}
-        pending={updateStatus.isPending}
+        pending={cancelBooking.isPending}
         onCancel={() => setDialog("")}
-        onConfirm={(reason) => run("cancelled", { reason }, () => setDialog(""))}
+        onConfirm={(reasonId, note) =>
+          cancelBooking.mutate(
+            { bookingId: real.id, reasonId, note },
+            {
+              onSuccess: () => setDialog(""),
+              onError: (e: any) => toast.error(e?.message ?? t("common.somethingWentWrong")),
+            },
+          )
+        }
       />
     </PhoneFrame>
   );

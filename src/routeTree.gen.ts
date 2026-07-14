@@ -54,6 +54,7 @@ import { Route as AdminPromoCodesRouteImport } from './routes/admin.promo-codes'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
 import { Route as AdminPaymentMethodsRouteImport } from './routes/admin.payment-methods'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
+import { Route as AdminCancellationReasonsRouteImport } from './routes/admin.cancellation-reasons'
 import { Route as AdminBookingsRouteImport } from './routes/admin.bookings'
 import { Route as AddressesNewRouteImport } from './routes/addresses.new'
 import { Route as AddressesIdRouteImport } from './routes/addresses.$id'
@@ -286,6 +287,12 @@ const AdminCustomersRoute = AdminCustomersRouteImport.update({
   path: '/customers',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminCancellationReasonsRoute =
+  AdminCancellationReasonsRouteImport.update({
+    id: '/cancellation-reasons',
+    path: '/cancellation-reasons',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminBookingsRoute = AdminBookingsRouteImport.update({
   id: '/bookings',
   path: '/bookings',
@@ -338,6 +345,7 @@ export interface FileRoutesByFullPath {
   '/addresses/$id': typeof AddressesIdRoute
   '/addresses/new': typeof AddressesNewRoute
   '/admin/bookings': typeof AdminBookingsRoute
+  '/admin/cancellation-reasons': typeof AdminCancellationReasonsRoute
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -388,6 +396,7 @@ export interface FileRoutesByTo {
   '/addresses/$id': typeof AddressesIdRoute
   '/addresses/new': typeof AddressesNewRoute
   '/admin/bookings': typeof AdminBookingsRoute
+  '/admin/cancellation-reasons': typeof AdminCancellationReasonsRoute
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -442,6 +451,7 @@ export interface FileRoutesById {
   '/addresses/$id': typeof AddressesIdRoute
   '/addresses/new': typeof AddressesNewRoute
   '/admin/bookings': typeof AdminBookingsRoute
+  '/admin/cancellation-reasons': typeof AdminCancellationReasonsRoute
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -497,6 +507,7 @@ export interface FileRouteTypes {
     | '/addresses/$id'
     | '/addresses/new'
     | '/admin/bookings'
+    | '/admin/cancellation-reasons'
     | '/admin/customers'
     | '/admin/payment-methods'
     | '/admin/payments'
@@ -547,6 +558,7 @@ export interface FileRouteTypes {
     | '/addresses/$id'
     | '/addresses/new'
     | '/admin/bookings'
+    | '/admin/cancellation-reasons'
     | '/admin/customers'
     | '/admin/payment-methods'
     | '/admin/payments'
@@ -600,6 +612,7 @@ export interface FileRouteTypes {
     | '/addresses/$id'
     | '/addresses/new'
     | '/admin/bookings'
+    | '/admin/cancellation-reasons'
     | '/admin/customers'
     | '/admin/payment-methods'
     | '/admin/payments'
@@ -977,6 +990,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCustomersRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/cancellation-reasons': {
+      id: '/admin/cancellation-reasons'
+      path: '/cancellation-reasons'
+      fullPath: '/admin/cancellation-reasons'
+      preLoaderRoute: typeof AdminCancellationReasonsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/bookings': {
       id: '/admin/bookings'
       path: '/bookings'
@@ -1038,6 +1058,7 @@ const AddressesRouteWithChildren = AddressesRoute._addFileChildren(
 
 interface AdminRouteChildren {
   AdminBookingsRoute: typeof AdminBookingsRoute
+  AdminCancellationReasonsRoute: typeof AdminCancellationReasonsRoute
   AdminCustomersRoute: typeof AdminCustomersRoute
   AdminPaymentMethodsRoute: typeof AdminPaymentMethodsRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
@@ -1053,6 +1074,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminBookingsRoute: AdminBookingsRoute,
+  AdminCancellationReasonsRoute: AdminCancellationReasonsRoute,
   AdminCustomersRoute: AdminCustomersRoute,
   AdminPaymentMethodsRoute: AdminPaymentMethodsRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,

@@ -123,7 +123,8 @@ export function useAdminBookings(status?: string) {
           customer:profiles!bookings_customer_id_fkey(id, full_name, phone),
           provider:providers(id, profile:profiles(full_name)),
           payments(id, status, method, amount, created_at),
-          family_member:booking_family_member_snapshots(*)
+          family_member:booking_family_member_snapshots(*),
+          cancellation:booking_cancellations(*)
         `)
         .order('created_at', { ascending: false })
         .limit(200);

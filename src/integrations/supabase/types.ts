@@ -235,6 +235,63 @@ export type Database = {
           },
         ]
       }
+      booking_cancellations: {
+        Row: {
+          booking_id: string
+          cancelled_at: string
+          cancelled_by_role: string
+          cancelled_by_user_id: string
+          id: string
+          note: string | null
+          previous_status: Database["public"]["Enums"]["booking_status"]
+          reason_code: string
+          reason_id: string | null
+          reason_name_ar: string
+          reason_name_en: string
+        }
+        Insert: {
+          booking_id: string
+          cancelled_at?: string
+          cancelled_by_role: string
+          cancelled_by_user_id: string
+          id?: string
+          note?: string | null
+          previous_status: Database["public"]["Enums"]["booking_status"]
+          reason_code: string
+          reason_id?: string | null
+          reason_name_ar: string
+          reason_name_en: string
+        }
+        Update: {
+          booking_id?: string
+          cancelled_at?: string
+          cancelled_by_role?: string
+          cancelled_by_user_id?: string
+          id?: string
+          note?: string | null
+          previous_status?: Database["public"]["Enums"]["booking_status"]
+          reason_code?: string
+          reason_id?: string | null
+          reason_name_ar?: string
+          reason_name_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_cancellations_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_cancellations_reason_id_fkey"
+            columns: ["reason_id"]
+            isOneToOne: false
+            referencedRelation: "cancellation_reasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_family_member_snapshots: {
         Row: {
           access_notes: string | null
@@ -735,6 +792,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      cancellation_reasons: {
+        Row: {
+          actor_type: string
+          applicable_statuses: Database["public"]["Enums"]["booking_status"][]
+          code: string
+          created_at: string
+          description_ar: string | null
+          description_en: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          name_ar: string
+          name_en: string
+          requires_note: boolean
+          updated_at: string
+        }
+        Insert: {
+          actor_type: string
+          applicable_statuses?: Database["public"]["Enums"]["booking_status"][]
+          code: string
+          created_at?: string
+          description_ar?: string | null
+          description_en?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name_ar: string
+          name_en: string
+          requires_note?: boolean
+          updated_at?: string
+        }
+        Update: {
+          actor_type?: string
+          applicable_statuses?: Database["public"]["Enums"]["booking_status"][]
+          code?: string
+          created_at?: string
+          description_ar?: string | null
+          description_en?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name_ar?: string
+          name_en?: string
+          requires_note?: boolean
+          updated_at?: string
+        }
+        Relationships: []
       }
       categories: {
         Row: {
@@ -2350,6 +2455,10 @@ export type Database = {
       admin_set_default_payment_method: {
         Args: { p_id: string }
         Returns: undefined
+      }
+      cancel_booking: {
+        Args: { p_booking_id: string; p_note?: string; p_reason_id: string }
+        Returns: string
       }
       cancel_reschedule_request: {
         Args: { p_request_id: string }

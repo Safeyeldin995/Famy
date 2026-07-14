@@ -2,11 +2,12 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { ProviderShell } from "@/components/famio/ProviderShell";
-import { TopBar, Card, Badge, PrimaryButton, ErrorState, BookingTimeline, ReasonDialog } from "@/components/famio/ui";
+import { TopBar, Card, Badge, PrimaryButton, ErrorState, BookingTimeline, ReasonDialog, CancelBookingDialog } from "@/components/famio/ui";
 import { PaymentBlock } from "@/components/famio/PaymentBlock";
 import { RescheduleSection } from "@/components/famio/RescheduleSection";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { useProviderBooking, useProviderUpdateBookingStatus } from "@/lib/db/provider-queries";
+import { useCancelBooking, useBookingCancellation } from "@/lib/db/cancellation-queries";
 import { bookingStatusTone, formatEGP, BOOKING_TIMELINE_STEPS } from "@/lib/utils";
 import { Calendar, Clock, MapPin, Phone, User as UserIcon, HeartPulse, AlertTriangle } from "lucide-react";
 import { useState } from "react";
@@ -23,6 +24,8 @@ function ProBookingDetail() {
   const nav = useNavigate();
   const q = useProviderBooking(id);
   const mut = useProviderUpdateBookingStatus();
+  const cancelBooking = useCancelBooking();
+  const cancellationQ = useBookingCancellation(q.data?.status === "cancelled" ? id : undefined);
   const [dialog, setDialog] = useState<DialogKind>("");
 
   if (q.isLoading) return <ProviderShell hideNav><TopBar back={{ to: "/pro/bookings" }} /><div className="h-64 animate-pulse rounded-3xl bg-surface mx-5" /></ProviderShell>;
@@ -78,8 +81,20 @@ function ProBookingDetail() {
             <div className="text-sm font-bold">
               {b.status === "disputed" ? t("pro.booking.disputedNotice") : String(t(`pro.statuses.${b.status}`, { defaultValue: b.status }))}
             </div>
-            {(b.cancellation_reason || b.no_show_reason || b.dispute_reason) && (
-              <p className="text-xs text-muted-foreground">{b.cancellation_reason || b.no_show_reason || b.dispute_reason}</p>
+            {b.status === "cancelled" && cancellationQ.data ? (
+              <>
+                <p className="text-xs text-muted-foreground">
+                  {lang === "ar" ? cancellationQ.data.reason_name_ar : cancellationQ.data.reason_name_en}
+                </p>
+                {cancellationQ.data.note && <p className="text-xs text-muted-foreground">{cancellationQ.data.note}</p>}
+                <p className="text-[11px] text-muted-foreground">
+                  {t("pro.booking.cancelledBy")}: {t(`pro.booking.cancelledByRole.${cancellationQ.data.cancelled_by_role}`)} · {new Date(cancellationQ.data.cancelled_at).toLocaleString(dateLoc)}
+                </p>
+              </>
+            ) : (
+              (b.cancellation_reason || b.no_show_reason || b.dispute_reason) && (
+                <p className="text-xs text-muted-foreground">{b.cancellation_reason || b.no_show_reason || b.dispute_reason}</p>
+              )
             )}
           </Card>
         )}
@@ -174,7 +189,7 @@ function ProBookingDetail() {
         <div className="mx-auto max-w-md px-5 pb-3">
           {b.status === "pending" && (
             <div className="flex gap-2">
-              <button onClick={() => setDialog("decline")} disabled={mut.isPending} className="focus-ring h-14 flex-1 rounded-2xl border border-coral bg-surface text-sm font-bold text-coral active:scale-[0.98] disabled:opacity-50">{t("pro.booking.decline")}</button>
+              <button onClick={() => setDialog("decline")} disabled={mut.isPending || cancelBooking.isPending} className="focus-ring h-14 flex-1 rounded-2xl border border-coral bg-surface text-sm font-bold text-coral active:scale-[0.98] disabled:opacity-50">{t("pro.booking.decline")}</button>
               <button onClick={() => run("confirmed")} disabled={mut.isPending} className="focus-ring h-14 flex-1 rounded-2xl bg-navy text-sm font-bold text-navy-foreground shadow-card active:scale-[0.98] disabled:opacity-50">{t("pro.booking.accept")}</button>
             </div>
           )}
@@ -182,8 +197,14 @@ function ProBookingDetail() {
           {b.status === "confirmed" && (
             <div className="space-y-2">
               <PrimaryButton onClick={() => run("on_the_way")} disabled={mut.isPending}>{t("pro.booking.onTheWay")}</PrimaryButton>
-              <button onClick={() => setDialog("cancel")} disabled={mut.isPending} className="w-full py-2 text-xs font-semibold text-muted-foreground disabled:opacity-50">{t("pro.booking.cancelJob")}</button>
+              <button onClick={() => setDialog("cancel")} disabled={mut.isPending || cancelBooking.isPending} className="w-full py-2 text-xs font-semibold text-muted-foreground disabled:opacity-50">{t("pro.booking.cancelJob")}</button>
             </div>
+          )}
+
+          {["on_the_way", "arrived", "arrival_confirmed", "in_progress", "completion_requested"].includes(b.status) && (
+            <p className="mb-2 rounded-2xl bg-surface-2 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">
+              {t("pro.booking.cancelNoLongerAvailable")}
+            </p>
           )}
 
           {b.status === "on_the_way" && (
@@ -218,17 +239,27 @@ function ProBookingDetail() {
         </div>
       </div>
 
-      <ReasonDialog
-        key={`decline-cancel-${dialog}`}
+      <CancelBookingDialog
         open={dialog === "decline" || dialog === "cancel"}
+        actorType="provider"
+        bookingStatus={b.status}
         title={dialog === "decline" ? t("pro.booking.declineConfirm") : t("pro.booking.cancelConfirm")}
         body={t("pro.booking.irreversible")}
-        reasonPlaceholder={t("pro.booking.reasonPlaceholder")}
+        reasonLabel={t("pro.booking.reasonLabel")}
+        notePlaceholder={t("pro.booking.reasonPlaceholder")}
         confirmLabel={t("pro.booking.confirm")}
         cancelLabel={t("pro.booking.keep")}
-        pending={mut.isPending}
+        pending={cancelBooking.isPending}
         onCancel={() => setDialog("")}
-        onConfirm={(reason) => run("cancelled", { reason }, () => setDialog(""))}
+        onConfirm={(reasonId, note) =>
+          cancelBooking.mutate(
+            { bookingId: b.id, reasonId, note },
+            {
+              onSuccess: () => setDialog(""),
+              onError: (e: any) => toast.error(e?.message ?? t("common.somethingWentWrong")),
+            },
+          )
+        }
       />
 
       <ReasonDialog
