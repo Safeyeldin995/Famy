@@ -6,6 +6,7 @@ import { useRescheduleRequests } from "@/lib/db/queries";
 import { useCancelBooking } from "@/lib/db/cancellation-queries";
 import { CancelBookingDialog } from "@/components/famio/ui";
 import { PaymentBlock } from "@/components/famio/PaymentBlock";
+import { BookingChatPanel } from "@/components/famio/BookingChatPanel";
 import { formatEGP } from "@/lib/utils";
 import { Search } from "lucide-react";
 
@@ -199,7 +200,7 @@ function AdminBookings() {
                     onClick={() => setExpanded(isOpen ? null : b.id)}
                     className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground"
                   >
-                    {isOpen ? "Hide payment details" : "View payment details"}
+                    {isOpen ? "Hide details" : "View payment & chat"}
                   </button>
                 </div>
 
@@ -223,6 +224,7 @@ function AdminBookings() {
                     )}
                     <PaymentBlock bookingId={b.id} viewer="admin" bookingStatus={b.status} />
                     <AdminRescheduleHistory bookingId={b.id} customerId={b.customer_id} />
+                    <BookingChatPanel bookingId={b.id} status={b.status} viewer="admin" />
                   </div>
                 )}
               </li>

@@ -449,6 +449,32 @@ export type Database = {
           },
         ]
       }
+      booking_message_reads: {
+        Row: {
+          booking_id: string
+          last_read_at: string
+          user_id: string
+        }
+        Insert: {
+          booking_id: string
+          last_read_at?: string
+          user_id: string
+        }
+        Update: {
+          booking_id?: string
+          last_read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_message_reads_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_requirement_selections: {
         Row: {
           booking_id: string
@@ -1099,21 +1125,30 @@ export type Database = {
           conversation_id: string
           created_at: string
           id: string
-          sender_id: string
+          message_type: string
+          sender_id: string | null
+          sender_role: string
+          system_key: string | null
         }
         Insert: {
           body: string
           conversation_id: string
           created_at?: string
           id?: string
-          sender_id: string
+          message_type?: string
+          sender_id?: string | null
+          sender_role: string
+          system_key?: string | null
         }
         Update: {
           body?: string
           conversation_id?: string
           created_at?: string
           id?: string
-          sender_id?: string
+          message_type?: string
+          sender_id?: string | null
+          sender_role?: string
+          system_key?: string | null
         }
         Relationships: [
           {

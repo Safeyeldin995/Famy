@@ -5,6 +5,7 @@ import { ProviderShell } from "@/components/famio/ProviderShell";
 import { TopBar, Card, Badge, PrimaryButton, ErrorState, BookingTimeline, ReasonDialog, CancelBookingDialog } from "@/components/famio/ui";
 import { PaymentBlock } from "@/components/famio/PaymentBlock";
 import { RescheduleSection } from "@/components/famio/RescheduleSection";
+import { BookingChatPanel } from "@/components/famio/BookingChatPanel";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { useProviderBooking, useProviderUpdateBookingStatus } from "@/lib/db/provider-queries";
 import { useCancelBooking, useBookingCancellation } from "@/lib/db/cancellation-queries";
@@ -182,6 +183,8 @@ function ProBookingDetail() {
         </Card>
 
         <PaymentBlock bookingId={b.id} viewer="provider" bookingStatus={b.status} />
+
+        <BookingChatPanel bookingId={b.id} status={b.status} viewer="provider" />
 
       </div>
 

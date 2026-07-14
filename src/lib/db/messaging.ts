@@ -117,18 +117,28 @@ export function useConversation(id: string | undefined) {
   });
 }
 
+export type BookingMessage = {
+  id: string;
+  sender_id: string | null;
+  sender_role: 'customer' | 'provider' | 'admin' | 'support' | 'system';
+  message_type: 'text' | 'system';
+  system_key: string | null;
+  body: string;
+  created_at: string;
+};
+
 export function useMessages(conversationId: string | undefined) {
   return useQuery({
     enabled: !!conversationId,
     queryKey: ['messages', conversationId],
-    queryFn: async () => {
+    queryFn: async (): Promise<BookingMessage[]> => {
       const { data, error } = await supabase
         .from('messages')
-        .select('id, sender_id, body, created_at')
+        .select('id, sender_id, sender_role, message_type, system_key, body, created_at')
         .eq('conversation_id', conversationId!)
         .order('created_at', { ascending: true });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as BookingMessage[];
     },
     refetchInterval: 5000,
   });
@@ -144,9 +154,12 @@ export function useSendMessage(conversationId: string | undefined) {
       if (containsContactInfo(trimmed)) throw new Error('contact_masked');
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('auth required');
+      // sender_id/sender_role/message_type/created_at are all re-derived and
+      // overwritten server-side (trg_messages_validate) — sent here only to
+      // satisfy the required-column insert shape.
       const { data, error } = await supabase
         .from('messages')
-        .insert({ conversation_id: conversationId, sender_id: user.id, body: trimmed })
+        .insert({ conversation_id: conversationId, sender_id: user.id, sender_role: 'customer', body: trimmed })
         .select()
         .single();
       if (error) {
@@ -159,6 +172,40 @@ export function useSendMessage(conversationId: string | undefined) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['messages', conversationId] });
       qc.invalidateQueries({ queryKey: ['conversations'] });
+    },
+  });
+}
+
+/** Which lifecycle phase a booking's chat is in — mirrors the DB-enforced
+ *  rules in trg_messages_validate exactly, so the UI never shows an
+ *  affordance the server would reject. */
+export type ChatPhase = 'unavailable' | 'writable' | 'readonly' | 'disputed';
+
+const WRITABLE_STATUSES = new Set([
+  'confirmed', 'on_the_way', 'arrived', 'arrival_confirmed', 'in_progress', 'completion_requested',
+]);
+const TERMINAL_STATUSES = new Set(['completed', 'cancelled', 'no_show']);
+
+export function chatPhaseForStatus(status: string | undefined): ChatPhase {
+  if (!status) return 'unavailable';
+  if (status === 'disputed') return 'disputed';
+  if (WRITABLE_STATUSES.has(status)) return 'writable';
+  if (TERMINAL_STATUSES.has(status)) return 'readonly';
+  return 'unavailable'; // pending
+}
+
+/** Mark the caller's own participation in a booking's chat as read up to
+ *  now. Self-only by RLS (booking_message_reads_self); never reveals or
+ *  depends on the other party's read state. */
+export function useMarkBookingMessagesRead() {
+  return useMutation({
+    mutationFn: async (bookingId: string) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { error } = await supabase
+        .from('booking_message_reads')
+        .upsert({ booking_id: bookingId, user_id: user.id, last_read_at: new Date().toISOString() }, { onConflict: 'booking_id,user_id' });
+      if (error) throw error;
     },
   });
 }

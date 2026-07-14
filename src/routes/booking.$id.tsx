@@ -7,8 +7,8 @@ import { useCancelBooking, useBookingCancellation } from "@/lib/db/cancellation-
 import { toUIProvider } from "@/lib/db/adapters";
 import { currentLang } from "@/lib/i18n";
 import { formatEGP } from "@/lib/utils";
-import { Check, MapPin, Calendar, Clock, Phone, MessageCircle, Download, HelpCircle, AlertTriangle, Star, ShieldCheck, Bell, UserCheck, X } from "lucide-react";
-import { useConversationByBooking } from "@/lib/db/messaging";
+import { Check, MapPin, Calendar, Clock, Phone, Download, HelpCircle, AlertTriangle, Star, ShieldCheck, Bell, UserCheck, X } from "lucide-react";
+import { BookingChatPanel } from "@/components/famio/BookingChatPanel";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -28,7 +28,6 @@ function BookingDetail() {
   const realQ = useBooking(id);
   const real = realQ.data;
   const status: string | undefined = real?.status;
-  const convQ = useConversationByBooking(id);
   const lang = currentLang();
   const locale = lang === "ar" ? "ar-EG" : "en-US";
   const updateStatus = useUpdateBookingStatus();
@@ -170,6 +169,8 @@ function BookingDetail() {
               </div>
             )}
           </Card>
+
+          <BookingChatPanel bookingId={real.id} status={status} viewer="customer" />
         </div>
         <div className="safe-bottom px-6 pt-4">
           <PrimaryButton onClick={() => nav({ to: "/home" })}>{t("bookingDetail.backHome")}</PrimaryButton>
@@ -249,6 +250,8 @@ function BookingDetail() {
               <Star className="h-4 w-4" /> {(favIdsQ.data ?? []).includes(provider.id) ? t("bookingDetail.savedFavorite") : t("bookingDetail.saveFavorite")}
             </button>
           </Card>
+
+          <BookingChatPanel bookingId={real.id} status={status} viewer="customer" />
         </div>
         <div className="safe-bottom space-y-2 px-6 pt-4">
           <PrimaryButton onClick={() => nav({ to: "/home" })}>{t("bookingDetail.submitBookAgain")}</PrimaryButton>
@@ -306,24 +309,6 @@ function BookingDetail() {
                 <div className="text-xs text-muted-foreground">★ {provider.rating} · {provider.role}</div>
               </div>
               <div className="flex gap-2">
-                {convQ.data ? (
-                  <Link
-                    to="/messages/$id"
-                    params={{ id: convQ.data }}
-                    aria-label={`${t("chat.title")} ${provider.name}`}
-                    className="focus-ring grid h-11 w-11 place-items-center rounded-full bg-navy text-navy-foreground active:scale-95 transition-transform"
-                  >
-                    <MessageCircle className="h-4 w-4" aria-hidden="true" />
-                  </Link>
-                ) : (
-                  <button
-                    disabled
-                    aria-label={t("chat.notYetAvailable", "Chat available once confirmed")}
-                    className="grid h-11 w-11 place-items-center rounded-full bg-surface-2 text-muted-foreground opacity-50"
-                  >
-                    <MessageCircle className="h-4 w-4" aria-hidden="true" />
-                  </button>
-                )}
                 <button
                   aria-label={`${t("providerProfile.call")} ${provider.name}`}
                   className="focus-ring grid h-11 w-11 place-items-center rounded-full bg-coral text-coral-foreground active:scale-95 transition-transform"
@@ -371,6 +356,8 @@ function BookingDetail() {
               </button>
             </div>
           )}
+
+          <BookingChatPanel bookingId={real.id} status={status} viewer="customer" />
         </div>
 
         <ReasonDialog
@@ -489,6 +476,8 @@ function BookingDetail() {
           currentStart={real.start_at}
           currentEnd={real.end_at}
         />
+
+        <BookingChatPanel bookingId={real.id} status={status} viewer="customer" />
 
         <Card className="mt-4 p-5">
           <div className="mb-3 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">{t("bookingDetail.whatsNext")}</div>
