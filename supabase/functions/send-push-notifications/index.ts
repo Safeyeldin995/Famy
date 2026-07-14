@@ -1,21 +1,24 @@
 // Famy Patch 3 / Module 4: push delivery worker.
 //
-// Invoked on a schedule (Supabase Edge Function Cron Trigger, or pg_cron +
-// pg_net). verify_jwt is left at true at the gateway, but that alone is NOT
-// sufficient authorization: verify_jwt only checks that the caller presented
-// *some* validly-signed project JWT, and the public anon key itself is one —
-// it ships in the browser bundle, so any anonymous caller could satisfy it.
-// The actual gate is the NOTIFICATION_WORKER_SECRET check below: only the
-// cron invocation (configured with that secret as a header) can run the
-// worker. It claims due public.notification_outbox rows via the atomic
-// claim_notification_outbox_batch() RPC (row-locked with FOR UPDATE SKIP
-// LOCKED so concurrent invocations never double-claim), sends one Web Push
-// message per active subscription for that recipient via standard VAPID
-// signing, and reports outcomes back onto the outbox row — it never returns
-// raw provider responses to the caller.
+// Internal Cron/worker endpoint only — never called from browser code, and
+// never linked to any user session. verify_jwt is disabled at the gateway
+// (supabase/config.toml) on purpose: verify_jwt only checks that the caller
+// presented *some* validly-signed project JWT, and the public anon key
+// itself is one (it ships in the browser bundle), so it could never actually
+// restrict this endpoint to server/cron callers. Authorization is instead
+// enforced entirely inside the function via the constant-time
+// NOTIFICATION_WORKER_SECRET / x-worker-secret check below, which runs
+// before any database work. No user, anon, publishable, or service-role key
+// is required (or accepted) from the caller — Cron only ever needs to know
+// the worker secret. It claims due public.notification_outbox rows via the
+// atomic claim_notification_outbox_batch() RPC (row-locked with FOR UPDATE
+// SKIP LOCKED so concurrent invocations never double-claim), sends one Web
+// Push message per active subscription for that recipient via standard
+// VAPID signing, and reports outcomes back onto the outbox row — it never
+// returns raw provider responses, secrets, or endpoints to the caller or logs.
 //
-// Requires these secrets to be set on the Supabase project (see the
-// deployment notes given to the operator; never committed to the repo):
+// Requires these secrets to be set on the Supabase project (via Vault /
+// `supabase secrets set`; never committed to the repo):
 //   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, NOTIFICATION_WORKER_SECRET
 // SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are injected automatically by
 // the Supabase Edge Runtime for every function.
@@ -52,6 +55,12 @@ function backoffMinutes(attempts: number): number {
 type OutboxRow = { id: string; notification_id: string; recipient_user_id: string; attempts: number };
 
 Deno.serve(async (req) => {
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "method_not_allowed" }), {
+      status: 405,
+      headers: { "Content-Type": "application/json", Allow: "POST" },
+    });
+  }
   if (!WORKER_SECRET) {
     return new Response(JSON.stringify({ error: "worker_not_configured" }), {
       status: 503,

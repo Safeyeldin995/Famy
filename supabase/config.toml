@@ -1,9 +1,11 @@
 project_id = "hmhtyytumagbputyydrn"
 
-# verify_jwt only checks that the caller presented a validly-signed project
-# JWT — the public anon key qualifies, so this is NOT a restriction to
-# server/cron callers. Real authorization is the NOTIFICATION_WORKER_SECRET
-# header check inside the function itself (see index.ts). Kept true here so
-# the setting is explicit rather than relying on the implicit default.
+# Internal Cron/worker endpoint only — never called from browser code.
+# Platform JWT verification is intentionally disabled: verify_jwt only checks
+# that the caller presented a validly-signed project JWT, and the public
+# anon key qualifies, so it can never restrict this to server/cron callers.
+# Authorization is enforced inside the function itself via the
+# NOTIFICATION_WORKER_SECRET x-worker-secret check (see index.ts); requests
+# without a valid secret get 401 before any database work runs.
 [functions.send-push-notifications]
-verify_jwt = true
+verify_jwt = false
