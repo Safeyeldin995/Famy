@@ -1,11 +1,13 @@
 /**
- * Payments data layer — COD + InstaPay (no gateway integration).
- * RLS does the heavy lifting; see migrations for who can read/write/update.
+ * Payments data layer — admin-configurable methods (no gateway integration
+ * for Paymob yet). RLS does the heavy lifting; see migrations for who can
+ * read/write/update. Payment method selection is validated and snapshotted
+ * server-side — see tg_snapshot_payment_method in
+ * 20260714120000_configurable_payment_methods.sql.
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-export type PaymentMethod = 'cash' | 'instapay';
 export type PaymentStatus = 'pending' | 'pending_review' | 'captured' | 'rejected';
 
 export function useBookingPayment(bookingId: string | undefined) {
@@ -31,22 +33,24 @@ export function useCreatePayment() {
   return useMutation({
     mutationFn: async (input: {
       bookingId: string;
-      method: PaymentMethod;
+      paymentMethodId: string;
+      /** Only used to pick the initial status (cash = pending, everything else needs review); the row's actual method details are copied server-side from payment_method_id. */
+      methodType: 'cash' | 'manual_transfer' | 'online';
       amount: number;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('auth required');
-      const status: PaymentStatus = input.method === 'cash' ? 'pending' : 'pending_review';
+      const status: PaymentStatus = input.methodType === 'cash' ? 'pending' : 'pending_review';
       const { data, error } = await supabase
         .from('payments')
         .insert({
           booking_id: input.bookingId,
           customer_id: user.id,
-          method: input.method as any,
+          payment_method_id: input.paymentMethodId,
           amount: input.amount,
           currency: 'EGP',
           status: status as any,
-        })
+        } as any)
         .select()
         .single();
       if (error) throw error;
@@ -132,40 +136,6 @@ export function useRejectPayment() {
       qc.invalidateQueries({ queryKey: ['admin', 'payments'] });
       qc.invalidateQueries({ queryKey: ['admin', 'dashboard-kpis'] });
     },
-  });
-}
-
-export function useInstapayReceiver() {
-  return useQuery({
-    queryKey: ['instapay-receiver'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('settings')
-        .select('value')
-        .eq('key', 'instapay_receiver')
-        .maybeSingle();
-      if (error) throw error;
-      return (data?.value as { handle?: string; display_name?: string; note?: string } | null) ?? null;
-    },
-  });
-}
-
-export function useUpdateInstapayReceiver() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ handle }: { handle: string }) => {
-      const { data: current } = await supabase
-        .from('settings')
-        .select('value')
-        .eq('key', 'instapay_receiver')
-        .maybeSingle();
-      const existing = (current?.value as Record<string, unknown>) ?? {};
-      const { error } = await supabase
-        .from('settings')
-        .upsert({ key: 'instapay_receiver', value: { ...existing, handle } }, { onConflict: 'key' });
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['instapay-receiver'] }),
   });
 }
 

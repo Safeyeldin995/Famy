@@ -1,7 +1,12 @@
 /**
  * Shared payment status card used on customer + provider + admin booking views.
- * Renders method/status, InstaPay instructions + proof upload (customer only when pending_review),
- * and confirm/reject actions (provider on booking + admin).
+ * Renders method/status, manual-transfer instructions + proof upload (customer
+ * only when pending_review), and confirm/reject actions (provider on booking + admin).
+ * Method name/instructions/receiver info come from the payment's own immutable
+ * payment_method_* snapshot columns — never a live lookup — so later admin edits
+ * to a payment method never change how a historical payment reads. Rows created
+ * before this snapshot existed fall back to the current active method config
+ * matched by the legacy `method` enum, best-effort only.
  */
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -10,11 +15,12 @@ import {
   useUploadPaymentProof,
   useCapturePayment,
   useRejectPayment,
-  useInstapayReceiver,
   getSignedProofUrl,
 } from "@/lib/db/payment-queries";
+import { useActivePaymentMethods } from "@/lib/db/payment-methods-queries";
 import { Card, Badge } from "@/components/famio/ui";
 import { formatEGP } from "@/lib/utils";
+import { currentLang } from "@/lib/i18n";
 import { Banknote, Upload, Check, X, Eye, Copy, ShieldCheck, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
@@ -37,11 +43,12 @@ export function PaymentBlock({
   bookingStatus?: string;
 }) {
   const q = useBookingPayment(bookingId);
-  const receiverQ = useInstapayReceiver();
+  const activeMethodsQ = useActivePaymentMethods();
   const upload = useUploadPaymentProof();
   const capture = useCapturePayment();
   const reject = useRejectPayment();
   const { t } = useTranslation();
+  const lang = currentLang();
   const [rejectReason, setRejectReason] = useState("");
   const [showReject, setShowReject] = useState(false);
 
@@ -56,11 +63,26 @@ export function PaymentBlock({
     );
   }
 
-  const isCash = p.method === "cash";
-  const isInstapay = p.method === "instapay";
+  // Rows written after 20260714120000 always carry their own snapshot. Older
+  // rows fall back to whatever the matching method currently looks like.
+  const legacyFallback = !p.payment_method_type
+    ? (activeMethodsQ.data ?? []).find((m) => m.code === p.method)
+    : null;
+  const methodType: string | null = p.payment_method_type ?? legacyFallback?.method_type ?? null;
+  const nameEn = p.payment_method_name_en ?? legacyFallback?.name_en ?? t("bookFlow.payCash");
+  const nameAr = p.payment_method_name_ar ?? legacyFallback?.name_ar ?? nameEn;
+  const instructions = p.payment_method_snapshot?.instructions_en
+    ? (lang === "ar" ? p.payment_method_snapshot?.instructions_ar : p.payment_method_snapshot?.instructions_en)
+    : (lang === "ar" ? legacyFallback?.instructions_ar : legacyFallback?.instructions_en);
+  const publicConfig: Record<string, any> = p.payment_method_snapshot?.public_config ?? legacyFallback?.public_config ?? {};
+  const receiverHandle = typeof publicConfig.handle === "string" ? publicConfig.handle : null;
+  const receiverNote = typeof publicConfig.note === "string" ? publicConfig.note : null;
+
+  const isCash = methodType === "cash";
+  const isManualTransfer = methodType === "manual_transfer";
   const canConfirm = viewer === "admin" || viewer === "provider";
   const captureAllowed = bookingStatus === "completed";
-  const canUpload = viewer === "customer" && isInstapay && p.status === "pending_review";
+  const canUpload = viewer === "customer" && isManualTransfer && p.status === "pending_review";
 
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -101,9 +123,13 @@ export function PaymentBlock({
   };
 
   const copyHandle = async () => {
-    const handle = receiverQ.data?.handle;
-    if (!handle) return;
-    try { await navigator.clipboard.writeText(handle); toast.success(t("payment.handleCopied")); } catch {}
+    if (!receiverHandle) return;
+    try {
+      await navigator.clipboard.writeText(receiverHandle);
+      toast.success(t("payment.handleCopied"));
+    } catch {
+      toast.error(t("payment.copyFailed"));
+    }
   };
 
   return (
@@ -111,25 +137,23 @@ export function PaymentBlock({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="grid h-8 w-8 place-items-center rounded-xl bg-navy/10 text-navy">
-            {isCash ? <Banknote className="h-4 w-4" /> : <Wallet className="h-4 w-4" aria-label="InstaPay" />}
+            {isCash ? <Banknote className="h-4 w-4" /> : <Wallet className="h-4 w-4" aria-label={nameEn} />}
           </div>
           <div>
-            <div className="text-sm font-extrabold">
-              {isCash ? t("bookFlow.payCash") : t("bookFlow.payInstapay")}
-            </div>
+            <div className="text-sm font-extrabold">{lang === "ar" ? nameAr : nameEn}</div>
             <div className="text-[11px] text-muted-foreground">{formatEGP(Number(p.amount ?? 0))}</div>
           </div>
         </div>
         <Badge tone={statusTone(p.status)}>{t(`payment.status.${p.status}`, String(p.status).replace("_", " "))}</Badge>
       </div>
 
-      {/* Customer InstaPay instructions + upload */}
-      {viewer === "customer" && isInstapay && p.status === "pending_review" && !p.proof_path && (
+      {/* Customer manual-transfer instructions + upload */}
+      {viewer === "customer" && isManualTransfer && p.status === "pending_review" && !p.proof_path && (
         <div className="space-y-3 rounded-2xl bg-surface-2 p-3">
           <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
             {t("payment.transferTo")}
           </div>
-          {receiverQ.data ? (
+          {receiverHandle ? (
             <>
               <button
                 onClick={copyHandle}
@@ -137,13 +161,13 @@ export function PaymentBlock({
                 aria-label={t("payment.copyHandle")}
               >
                 <div className="min-w-0">
-                  <div className="text-xs text-muted-foreground">{t("payment.instapayHandle")}</div>
-                  <div className="truncate text-sm font-extrabold text-navy" dir="ltr">{receiverQ.data.handle}</div>
+                  <div className="text-xs text-muted-foreground">{lang === "ar" ? nameAr : nameEn}</div>
+                  <div className="truncate text-sm font-extrabold text-navy" dir="ltr">{receiverHandle}</div>
                 </div>
                 <Copy className="h-4 w-4 text-muted-foreground" />
               </button>
-              {receiverQ.data.note && (
-                <p className="text-[11px] text-muted-foreground">{receiverQ.data.note}</p>
+              {(receiverNote || instructions) && (
+                <p className="text-[11px] text-muted-foreground">{receiverNote || instructions}</p>
               )}
             </>
           ) : (
@@ -157,7 +181,7 @@ export function PaymentBlock({
       )}
 
       {/* Proof uploaded — awaiting review */}
-      {isInstapay && p.proof_path && p.status === "pending_review" && (
+      {isManualTransfer && p.proof_path && p.status === "pending_review" && (
         <div className="flex items-center justify-between gap-2 rounded-2xl bg-surface-2 p-3">
           <div className="flex items-center gap-2 text-xs">
             <ShieldCheck className="h-4 w-4 text-success" />
@@ -176,7 +200,7 @@ export function PaymentBlock({
           {p.rejection_reason && (
             <p className="mt-1 text-[11px] text-muted-foreground">{p.rejection_reason}</p>
           )}
-          {viewer === "customer" && isInstapay && (
+          {viewer === "customer" && isManualTransfer && (
             <p className="mt-1 text-[11px] text-muted-foreground">
               {t("payment.rejectedRetry")}
             </p>
@@ -206,7 +230,7 @@ export function PaymentBlock({
                 {t("payment.waitingForCompletion")}
               </div>
             )}
-            {isInstapay && (
+            {isManualTransfer && (
               <button
                 onClick={() => setShowReject(true)}
                 className="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl border border-coral text-sm font-bold text-coral active:scale-[0.98]"

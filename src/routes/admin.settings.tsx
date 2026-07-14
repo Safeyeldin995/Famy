@@ -8,7 +8,6 @@ import {
 import {
   useAdminCategories, useSetCategoryActive, useUpdateCategoryNames,
 } from "@/lib/db/admin-queries";
-import { useInstapayReceiver, useUpdateInstapayReceiver } from "@/lib/db/payment-queries";
 import { toast } from "sonner";
 import { Save, Check } from "lucide-react";
 
@@ -62,14 +61,8 @@ function BillingSection() {
     if (q.data) { setVat(String(q.data.vat_percent)); setFee(String(q.data.platform_fee)); }
   }, [q.data]);
 
-  const receiverQ = useInstapayReceiver();
-  const updateReceiver = useUpdateInstapayReceiver();
-  const [handle, setHandle] = useState("");
-  const savedReceiver = useSavedFlash(updateReceiver.isPending);
-  useEffect(() => { if (receiverQ.data?.handle) setHandle(receiverQ.data.handle); }, [receiverQ.data]);
-
   return (
-    <SectionCard title="Payments" subtitle="These values are read directly by the booking flow — no hardcoded fallback is used once this is saved.">
+    <SectionCard title="Payments" subtitle="These values are read directly by the booking flow — no hardcoded fallback is used once this is saved. Payment methods (Cash, InstaPay, Paymob) are managed under Payment Methods.">
       <div className="grid grid-cols-2 gap-3">
         <label className="block">
           <span className="text-xs font-semibold text-muted-foreground">VAT (%)</span>
@@ -89,17 +82,6 @@ function BillingSection() {
           onError: (e: any) => toast.error(e?.message ?? "Could not save billing settings"),
         })}
       />
-
-      <div className="mt-4 border-t border-border/60 pt-4">
-        <span className="text-xs font-semibold text-muted-foreground">InstaPay receiving handle</span>
-        <input value={handle} onChange={(e) => setHandle(e.target.value)}
-          className="mt-1 h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm" dir="ltr" />
-        <div className="mt-2">
-          <SaveButton pending={updateReceiver.isPending} saved={savedReceiver} onClick={() => updateReceiver.mutate({ handle }, {
-            onError: (e: any) => toast.error(e?.message ?? "Could not save InstaPay handle"),
-          })} />
-        </div>
-      </div>
     </SectionCard>
   );
 }

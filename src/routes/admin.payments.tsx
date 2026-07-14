@@ -113,7 +113,7 @@ function AdminPayments() {
                     <div className="text-xs text-muted-foreground">{p.booking?.customer?.phone}</div>
                   </td>
                   <td className="px-4 py-3">{p.booking?.provider?.profile?.full_name || "—"}</td>
-                  <td className="px-4 py-3 capitalize">{p.method}</td>
+                  <td className="px-4 py-3 capitalize">{p.payment_method_name_en || p.method || "—"}</td>
                   <td className="px-4 py-3 font-semibold">{formatEGP(Number(p.amount ?? 0))}</td>
                   <td className="px-4 py-3">
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${statusTone(p.status)}`}>{p.status}</span>

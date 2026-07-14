@@ -645,9 +645,8 @@ export function useAddresses() {
 }
 
 // ---------- Support ----------
-// Reuses the exact pattern already established for useInstapayReceiver()
-// (payment-queries.ts) — reading a real key from the existing `settings`
-// table rather than hardcoding contact details in application code.
+// Reads a real key from the existing `settings` table rather than
+// hardcoding contact details in application code.
 export function useSupportContact() {
   return useQuery({
     queryKey: ['support-contact'],

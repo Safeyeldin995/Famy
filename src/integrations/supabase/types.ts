@@ -886,6 +886,54 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_methods: {
+        Row: {
+          code: string
+          created_at: string
+          display_order: number
+          id: string
+          instructions_ar: string | null
+          instructions_en: string | null
+          is_active: boolean
+          is_default: boolean
+          method_type: string
+          name_ar: string
+          name_en: string
+          public_config: Json
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          instructions_ar?: string | null
+          instructions_en?: string | null
+          is_active?: boolean
+          is_default?: boolean
+          method_type: string
+          name_ar: string
+          name_en: string
+          public_config?: Json
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          instructions_ar?: string | null
+          instructions_en?: string | null
+          is_active?: boolean
+          is_default?: boolean
+          method_type?: string
+          name_ar?: string
+          name_en?: string
+          public_config?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
@@ -896,7 +944,13 @@ export type Database = {
           customer_id: string
           id: string
           metadata: Json
-          method: Database["public"]["Enums"]["payment_method"]
+          method: Database["public"]["Enums"]["payment_method"] | null
+          payment_method_code: string | null
+          payment_method_id: string | null
+          payment_method_name_ar: string | null
+          payment_method_name_en: string | null
+          payment_method_snapshot: Json
+          payment_method_type: string | null
           proof_path: string | null
           proof_uploaded_at: string | null
           provider_ref: string | null
@@ -915,7 +969,13 @@ export type Database = {
           customer_id: string
           id?: string
           metadata?: Json
-          method: Database["public"]["Enums"]["payment_method"]
+          method?: Database["public"]["Enums"]["payment_method"] | null
+          payment_method_code?: string | null
+          payment_method_id?: string | null
+          payment_method_name_ar?: string | null
+          payment_method_name_en?: string | null
+          payment_method_snapshot?: Json
+          payment_method_type?: string | null
           proof_path?: string | null
           proof_uploaded_at?: string | null
           provider_ref?: string | null
@@ -934,7 +994,13 @@ export type Database = {
           customer_id?: string
           id?: string
           metadata?: Json
-          method?: Database["public"]["Enums"]["payment_method"]
+          method?: Database["public"]["Enums"]["payment_method"] | null
+          payment_method_code?: string | null
+          payment_method_id?: string | null
+          payment_method_name_ar?: string | null
+          payment_method_name_en?: string | null
+          payment_method_snapshot?: Json
+          payment_method_type?: string | null
           proof_path?: string | null
           proof_uploaded_at?: string | null
           provider_ref?: string | null
@@ -950,6 +1016,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
             referencedColumns: ["id"]
           },
         ]
@@ -1936,6 +2009,10 @@ export type Database = {
         Args: { p_action: string; p_reason: string; p_request_id: string }
         Returns: undefined
       }
+      admin_set_default_payment_method: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
       cancel_reschedule_request: {
         Args: { p_request_id: string }
         Returns: undefined
@@ -2014,7 +2091,7 @@ export type Database = {
       incident_severity: "low" | "medium" | "high" | "critical"
       incident_status: "open" | "investigating" | "resolved" | "dismissed"
       notification_channel: "in_app" | "email" | "sms" | "push" | "whatsapp"
-      payment_method: "card" | "wallet" | "cash" | "instapay"
+      payment_method: "card" | "wallet" | "cash" | "instapay" | "paymob"
       payment_status:
         | "pending"
         | "authorized"
@@ -2186,7 +2263,7 @@ export const Constants = {
       incident_severity: ["low", "medium", "high", "critical"],
       incident_status: ["open", "investigating", "resolved", "dismissed"],
       notification_channel: ["in_app", "email", "sms", "push", "whatsapp"],
-      payment_method: ["card", "wallet", "cash", "instapay"],
+      payment_method: ["card", "wallet", "cash", "instapay", "paymob"],
       payment_status: [
         "pending",
         "authorized",

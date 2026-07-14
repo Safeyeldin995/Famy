@@ -1,8 +1,8 @@
 /**
  * Platform settings data layer — generic key/value rows on the existing
- * `settings` table (already used by instapay_receiver in payment-queries.ts).
- * No new tables. RLS: settings_public_read (anon+authenticated) / 
- * settings_admin_write (admin only) already exist and are reused as-is.
+ * `settings` table. No new tables. RLS: settings_public_read
+ * (anon+authenticated) / settings_admin_write (admin only) already exist
+ * and are reused as-is.
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';

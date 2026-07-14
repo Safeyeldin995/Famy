@@ -79,7 +79,7 @@ function AdminCustomer() {
             {payments.map((pay: any) => (
               <li key={pay.id} className="flex items-center justify-between rounded-xl border border-border/60 bg-surface p-3 text-xs">
                 <div>
-                  <p className="font-semibold capitalize">{pay.method} · {pay.amount} EGP</p>
+                  <p className="font-semibold capitalize">{pay.payment_method_name_en || pay.method || "—"} · {pay.amount} EGP</p>
                   <p className="text-muted-foreground">{new Date(pay.created_at).toLocaleString()}</p>
                 </div>
                 <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase">{pay.status}</span>

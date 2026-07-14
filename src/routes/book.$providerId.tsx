@@ -5,10 +5,11 @@ import {
   useProvider, useProviderServices, useCreateBooking, useAddresses, validateCoupon, useAvailableSlots, useResolveZone,
 } from "@/lib/db/queries";
 import { useCreatePayment } from "@/lib/db/payment-queries";
+import { useActivePaymentMethods } from "@/lib/db/payment-methods-queries";
 import { useRequirementsForService } from "@/lib/db/provider-queries";
 import { toUIProvider } from "@/lib/db/adapters";
 import { currentLang } from "@/lib/i18n";
-import { MapPin, Banknote, Check, Loader2, Home, Briefcase, Users, Plus } from "lucide-react";
+import { MapPin, Banknote, Check, Loader2, Home, Briefcase, Users, Plus, Copy, Wallet } from "lucide-react";
 import instapayLogo from "@/assets/instapay.png.asset.json";
 import { useTranslation } from "react-i18next";
 import { formatEGP, formatNumber } from "@/lib/format";
@@ -25,6 +26,7 @@ function Book() {
   const addrsQ = useAddresses();
   const createBooking = useCreateBooking();
   const createPayment = useCreatePayment();
+  const methodsQ = useActivePaymentMethods();
   const billingQ = useBillingSettings();
   const { t } = useTranslation();
   const nav = useNavigate();
@@ -39,7 +41,7 @@ function Book() {
   const [address, setAddress] = useState("");
   const [addressId, setAddressId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
-  const [pay, setPay] = useState<"cash" | "instapay">("cash");
+  const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
   const [promoCode, setPromoCode] = useState("");
   const [promoStatus, setPromoStatus] = useState<"idle" | "checking" | "applied" | "invalid">("idle");
   const [promoDiscount, setPromoDiscount] = useState(0);
@@ -68,6 +70,16 @@ function Book() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addrsQ.data]);
 
+  // Auto-select the admin-configured default payment method once it loads —
+  // the customer can still change it in the payment step before confirming.
+  useEffect(() => {
+    if (paymentMethodId === null && (methodsQ.data?.length ?? 0) > 0) {
+      const methods = methodsQ.data!;
+      const def = methods.find((m) => m.is_default) ?? methods[0];
+      setPaymentMethodId(def.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [methodsQ.data]);
 
   const p = provQ.data ? toUIProvider(provQ.data) : null;
   const services = servicesQ.data ?? [];
@@ -118,6 +130,7 @@ function Book() {
     if (step === 3) return !!time;
     if (step === 4) return !!addressId && !!zoneQ.data;
     if (step === 6) return eitherRequirements.every((r: any) => !!requirementChoices[r.id]);
+    if (step === 8) return !!paymentMethodId;
     return true;
   };
 
@@ -153,6 +166,11 @@ function Book() {
     }
     if (!date || !time) {
       toast.error(t("bookFlow.missingSlot", "Please select an available time slot."));
+      return;
+    }
+    const selectedMethod = (methodsQ.data ?? []).find((m) => m.id === paymentMethodId);
+    if (!selectedMethod) {
+      toast.error(t("bookFlow.paymentFailed", "Could not record payment method"));
       return;
     }
     // Use the real slot's start/end (set when the customer picked it from
@@ -217,9 +235,17 @@ function Book() {
         notes: notes || null,
         requirement_selections: eitherRequirements.map((r: any) => ({ requirement_id: r.id, chosen_by: requirementChoices[r.id] })),
       } as any);
-      // Create the matching payment row (pending for COD, pending_review for InstaPay).
+      // Create the matching payment row (pending for cash, pending_review for
+      // anything requiring manual/online review). The server independently
+      // validates the method is active and copies its own snapshot — this
+      // client-picked id is just a selection, not a source of truth.
       try {
-        await createPayment.mutateAsync({ bookingId: booking.id, method: pay, amount: total });
+        await createPayment.mutateAsync({
+          bookingId: booking.id,
+          paymentMethodId: selectedMethod.id,
+          methodType: selectedMethod.method_type,
+          amount: total,
+        });
       } catch (pe: any) {
         // Don't lose the booking if the payment row insert fails — surface to the user but continue.
         console.error("payment row insert failed", pe);
@@ -520,10 +546,43 @@ function Book() {
 
         {step === 8 && (
           <Step title={t("bookFlow.paymentTitle")} sub={t("bookFlow.paymentSub")}>
-            <div className="space-y-3">
-              <PayOption icon={<Banknote className="h-5 w-5" />} label={t("bookFlow.payCash")} sub={t("bookFlow.payCashSub")} active={pay === "cash"} onClick={() => setPay("cash")} />
-              <PayOption icon={<img src={instapayLogo.url} alt="InstaPay" className="h-full w-full rounded-xl object-cover" />} label={t("bookFlow.payInstapay")} sub={t("bookFlow.payInstapaySub")} active={pay === "instapay"} onClick={() => setPay("instapay")} />
-            </div>
+            {methodsQ.isLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 2 }).map((_, i) => <div key={i} className="h-[72px] animate-pulse rounded-2xl bg-surface" />)}
+              </div>
+            ) : methodsQ.isError ? (
+              <div className="rounded-2xl bg-coral/10 p-4 text-center">
+                <p className="text-sm font-semibold text-coral">{t("bookFlow.paymentLoadError")}</p>
+                <button onClick={() => methodsQ.refetch()} className="mt-2 text-xs font-bold text-navy underline">{t("common.retry")}</button>
+              </div>
+            ) : (methodsQ.data ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">{t("bookFlow.paymentEmpty")}</p>
+            ) : (
+              <>
+                <div className="space-y-3">
+                  {methodsQ.data!.map((m) => {
+                    const label = lang === "ar" ? m.name_ar : m.name_en;
+                    const sub = (lang === "ar" ? m.instructions_ar : m.instructions_en) ?? undefined;
+                    const icon = m.method_type === "cash"
+                      ? <Banknote className="h-5 w-5" />
+                      : m.code === "instapay"
+                        ? <img src={instapayLogo.url} alt={label} className="h-full w-full rounded-xl object-cover" />
+                        : <Wallet className="h-5 w-5" />;
+                    return (
+                      <PayOption
+                        key={m.id}
+                        icon={icon}
+                        label={label}
+                        sub={sub}
+                        active={paymentMethodId === m.id}
+                        onClick={() => setPaymentMethodId(m.id)}
+                      />
+                    );
+                  })}
+                </div>
+                <PaymentMethodInstructions method={methodsQ.data!.find((m) => m.id === paymentMethodId) ?? null} lang={lang} t={t} />
+              </>
+            )}
             <div className="mt-4 flex items-center justify-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
               <Check className="h-3 w-3 text-success" aria-hidden="true" />
               {t("bookFlow.encrypted")}
@@ -544,6 +603,42 @@ function Book() {
         </PrimaryButton>
       </div>
     </PhoneFrame>
+  );
+}
+
+/** Receiver handle + Copy button for the selected method, when it has one (e.g. InstaPay). */
+function PaymentMethodInstructions({ method, lang, t }: { method: any; lang: string; t: (k: string, o?: any) => string }) {
+  if (!method) return null;
+  const config = (method.public_config ?? {}) as Record<string, unknown>;
+  const handle = typeof config.handle === "string" ? config.handle : null;
+  const note = typeof config.note === "string" ? config.note : null;
+  if (!handle) return null;
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(handle);
+      toast.success(t("payment.handleCopied"));
+    } catch {
+      toast.error(t("payment.copyFailed"));
+    }
+  };
+
+  return (
+    <div className="mt-3 space-y-2 rounded-2xl bg-surface-2 p-3">
+      <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{t("payment.transferTo")}</div>
+      <button
+        onClick={copy}
+        className="flex w-full items-center justify-between gap-2 rounded-xl bg-surface p-3 text-start active:scale-[0.99]"
+        aria-label={t("payment.copyHandle")}
+      >
+        <div className="min-w-0">
+          <div className="text-xs text-muted-foreground">{lang === "ar" ? method.name_ar : method.name_en}</div>
+          <div className="truncate text-sm font-extrabold text-navy" dir="ltr">{handle}</div>
+        </div>
+        <Copy className="h-4 w-4 text-muted-foreground" />
+      </button>
+      {note && <p className="text-[11px] text-muted-foreground">{note}</p>}
+    </div>
   );
 }
 
