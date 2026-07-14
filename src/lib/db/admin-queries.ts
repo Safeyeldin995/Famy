@@ -687,3 +687,124 @@ export function useSetZoneProvider() {
     onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['admin', 'zone-providers', vars.zoneId] }),
   });
 }
+
+// ---------- Notification campaigns ----------
+export type CampaignTarget = "customers" | "providers" | "all";
+
+export function useAdminCampaigns() {
+  return useQuery({
+    queryKey: ['admin', 'campaigns'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('notification_campaigns')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useAdminCampaignDeliveryCount(campaignId: string | undefined) {
+  return useQuery({
+    enabled: !!campaignId,
+    queryKey: ['admin', 'campaign-deliveries', campaignId],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('campaign_id', campaignId!);
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+}
+
+export function usePreviewCampaignAudience() {
+  return useMutation({
+    mutationFn: async (target: CampaignTarget) => {
+      const { data, error } = await supabase.rpc('admin_preview_campaign_audience', { p_target: target });
+      if (error) throw error;
+      return data as number;
+    },
+  });
+}
+
+export function useCreateCampaign() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      title_en: string; title_ar: string; body_en: string; body_ar: string;
+      target: CampaignTarget; channel_push: boolean; scheduled_for: string | null;
+    }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data, error } = await supabase
+        .from('notification_campaigns')
+        .insert({ ...input, created_by: user?.id })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'campaigns'] }),
+  });
+}
+
+export function useActivateCampaign() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (campaignId: string) => {
+      const { error } = await supabase.rpc('admin_activate_campaign', { p_campaign_id: campaignId });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'campaigns'] }),
+  });
+}
+
+export function useCancelCampaign() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (campaignId: string) => {
+      const { error } = await supabase.rpc('admin_cancel_campaign', { p_campaign_id: campaignId });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'campaigns'] }),
+  });
+}
+
+// ---------- Booking reminder rules ----------
+export function useAdminReminderRules() {
+  return useQuery({
+    queryKey: ['admin', 'reminder-rules'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('booking_reminder_rules')
+        .select('*')
+        .order('lead_minutes', { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useCreateReminderRule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (leadMinutes: number) => {
+      const { error } = await supabase.from('booking_reminder_rules').insert({ lead_minutes: leadMinutes });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'reminder-rules'] }),
+  });
+}
+
+export function useSetReminderRuleActive() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
+      const { error } = await supabase.from('booking_reminder_rules').update({ is_active: active }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'reminder-rules'] }),
+  });
+}

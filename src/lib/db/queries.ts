@@ -632,6 +632,21 @@ export function useNotifications() {
   });
 }
 
+// Server-backed unread count (COUNT via RLS-scoped query, not a client tally).
+export function useUnreadNotificationCount() {
+  return useQuery({
+    queryKey: ['notifications', 'unread-count'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .is('read_at', null);
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+}
+
 // ---------- Addresses ----------
 export function useAddresses() {
   return useQuery({
@@ -759,6 +774,126 @@ export function useMarkNotificationRead() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+  });
+}
+
+export function useMarkAllNotificationsRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read_at: new Date().toISOString() })
+        .is('read_at', null);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+  });
+}
+
+// ---------- Notification preferences ----------
+export type NotificationPreferences = {
+  user_id: string;
+  booking_push: boolean;
+  chat_push: boolean;
+  reminder_push: boolean;
+  support_push: boolean;
+  campaign_push: boolean;
+  campaign_in_app: boolean;
+};
+
+const DEFAULT_NOTIFICATION_PREFERENCES: Omit<NotificationPreferences, 'user_id'> = {
+  booking_push: true,
+  chat_push: true,
+  reminder_push: true,
+  support_push: true,
+  campaign_push: false,
+  campaign_in_app: true,
+};
+
+export function useNotificationPreferences() {
+  return useQuery({
+    queryKey: ['notification-preferences'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from('notification_preferences')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? { user_id: user.id, ...DEFAULT_NOTIFICATION_PREFERENCES }) as NotificationPreferences;
+    },
+  });
+}
+
+export function useUpdateNotificationPreferences() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (patch: Partial<Omit<NotificationPreferences, 'user_id'>>) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('auth required');
+      const { error } = await supabase
+        .from('notification_preferences')
+        .upsert({ user_id: user.id, ...patch }, { onConflict: 'user_id' });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notification-preferences'] }),
+  });
+}
+
+// ---------- Push subscriptions ----------
+export function useMyPushSubscriptions() {
+  return useQuery({
+    queryKey: ['push-subscriptions'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('push_subscriptions')
+        .select('id, device_label, created_at, last_seen_at, revoked_at')
+        .is('revoked_at', null)
+        .order('last_seen_at', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useRegisterPushSubscription() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { endpoint: string; p256dh: string; authKey: string; deviceLabel?: string }) => {
+      const { error } = await supabase.rpc('register_push_subscription', {
+        p_endpoint: input.endpoint,
+        p_p256dh: input.p256dh,
+        p_auth_key: input.authKey,
+        p_device_label: input.deviceLabel,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['push-subscriptions'] }),
+  });
+}
+
+export function useRevokePushSubscriptionByEndpoint() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (endpoint: string) => {
+      const { error } = await supabase.rpc('revoke_push_subscription', { p_endpoint: endpoint });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['push-subscriptions'] }),
+  });
+}
+
+export function useRevokePushSubscriptionById() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc('revoke_push_subscription_by_id', { p_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['push-subscriptions'] }),
   });
 }
 

@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { AppShell, Card, SectionHeader, EmptyState } from "@/components/famio/ui";
 import { LanguageToggle } from "@/components/famio/LanguageToggle";
 import { ProviderTile, ProviderCard } from "@/components/famio/ProviderCard";
-import { useCategories, useProviders, useNotifications, useMyProfile, useDefaultAddress, useMyBookings } from "@/lib/db/queries";
+import { useCategories, useProviders, useUnreadNotificationCount, useMyProfile, useDefaultAddress, useMyBookings } from "@/lib/db/queries";
 import { toUICategory, toUIProvider } from "@/lib/db/adapters";
 import { formatEGP } from "@/lib/utils";
 import { Search, MapPin, Bell, ShieldCheck, Sparkles } from "lucide-react";
@@ -30,7 +30,7 @@ function Home() {
 
   const catsQ = useCategories();
   const provsQ = useProviders({ limit: 20 });
-  const notifsQ = useNotifications();
+  const unreadQ = useUnreadNotificationCount();
   const bookingsQ = useMyBookings();
 
   const cats = useMemo(() => (catsQ.data ?? []).map(toUICategory), [catsQ.data, i18n.language]);
@@ -52,7 +52,7 @@ function Home() {
     }
     return list;
   }, [bookingsQ.data, i18n.language]);
-  const unread = (notifsQ.data ?? []).some((n: any) => !n.read_at);
+  const unread = (unreadQ.data ?? 0) > 0;
 
   return (
     <AppShell>

@@ -4,7 +4,7 @@ import { ProviderShell } from "@/components/famio/ProviderShell";
 import { Card, Badge, EmptyState, TopBar } from "@/components/famio/ui";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { useMyProvider, useProviderBookings, useProviderEarnings } from "@/lib/db/provider-queries";
-import { useNotifications } from "@/lib/db/queries";
+import { useUnreadNotificationCount } from "@/lib/db/queries";
 import { formatEGP, bookingStatusTone, BOOKING_ACTIVE_STATUSES } from "@/lib/utils";
 import { Bell, ShieldCheck, Star, TrendingUp, Plane, AlertCircle } from "lucide-react";
 
@@ -18,8 +18,8 @@ function ProDashboard() {
   const provider = p.data as any;
   const bookingsQ = useProviderBookings(provider?.id);
   const earningsQ = useProviderEarnings(provider?.id);
-  const notifQ = useNotifications();
-  const unread = (notifQ.data ?? []).filter((n: any) => !n.read_at).length;
+  const unreadQ = useUnreadNotificationCount();
+  const unread = unreadQ.data ?? 0;
 
   const all = bookingsQ.data ?? [];
   const pending = all.filter((b: any) => b.status === "pending");

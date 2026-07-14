@@ -20,7 +20,7 @@ import {
   useDeclareRequirement,
   useUploadRequirementEvidence,
 } from "@/lib/db/provider-queries";
-import { FileText, ShieldCheck, LogOut, Globe, Camera, Loader2, Upload } from "lucide-react";
+import { FileText, ShieldCheck, LogOut, Globe, Camera, Loader2, Upload, Bell } from "lucide-react";
 import { LanguageToggle, useLang } from "@/components/famio/LanguageToggle";
 
 
@@ -312,6 +312,7 @@ function ProProfile() {
           <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">{t("pro.profile.more")}</h2>
           <Card className="divide-y divide-border">
             <ProRow to="/pro/documents" icon={<FileText className="h-5 w-5" />} label={t("pro.profile.documentsRow")} />
+            <ProRow to="/pro/notification-preferences" icon={<Bell className="h-5 w-5" />} label={t("notifPrefs.title")} />
             <ProRow to="/home" icon={<Globe className="h-5 w-5" />} label={t("pro.profile.switchCustomer")} />
           </Card>
         </div>

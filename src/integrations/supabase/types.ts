@@ -475,6 +475,88 @@ export type Database = {
           },
         ]
       }
+      booking_reminder_rules: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          lead_minutes: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          lead_minutes: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          lead_minutes?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      booking_reminders: {
+        Row: {
+          booking_id: string
+          created_at: string
+          id: string
+          notification_id: string | null
+          recipient_user_id: string
+          rule_id: string
+          scheduled_for: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          id?: string
+          notification_id?: string | null
+          recipient_user_id: string
+          rule_id: string
+          scheduled_for: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          id?: string
+          notification_id?: string | null
+          recipient_user_id?: string
+          rule_id?: string
+          scheduled_for?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_reminders_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_reminders_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_reminders_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "booking_reminder_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_requirement_selections: {
         Row: {
           booking_id: string
@@ -1160,41 +1242,211 @@ export type Database = {
           },
         ]
       }
+      notification_campaigns: {
+        Row: {
+          body_ar: string
+          body_en: string
+          channel_push: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          recipient_count: number | null
+          scheduled_for: string | null
+          sent_at: string | null
+          status: string
+          target: string
+          title_ar: string
+          title_en: string
+          updated_at: string
+        }
+        Insert: {
+          body_ar: string
+          body_en: string
+          channel_push?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          recipient_count?: number | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string
+          target: string
+          title_ar: string
+          title_en: string
+          updated_at?: string
+        }
+        Update: {
+          body_ar?: string
+          body_en?: string
+          channel_push?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          recipient_count?: number | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string
+          target?: string
+          title_ar?: string
+          title_en?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      notification_outbox: {
+        Row: {
+          attempts: number
+          created_at: string
+          id: string
+          idempotency_key: string
+          last_error_safe: string | null
+          next_attempt_at: string
+          notification_id: string
+          processed_at: string | null
+          recipient_user_id: string
+          status: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          idempotency_key: string
+          last_error_safe?: string | null
+          next_attempt_at?: string
+          notification_id: string
+          processed_at?: string | null
+          recipient_user_id: string
+          status?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          idempotency_key?: string
+          last_error_safe?: string | null
+          next_attempt_at?: string
+          notification_id?: string
+          processed_at?: string | null
+          recipient_user_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_outbox_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_preferences: {
+        Row: {
+          booking_push: boolean
+          campaign_in_app: boolean
+          campaign_push: boolean
+          chat_push: boolean
+          reminder_push: boolean
+          support_push: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          booking_push?: boolean
+          campaign_in_app?: boolean
+          campaign_push?: boolean
+          chat_push?: boolean
+          reminder_push?: boolean
+          support_push?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          booking_push?: boolean
+          campaign_in_app?: boolean
+          campaign_push?: boolean
+          chat_push?: boolean
+          reminder_push?: boolean
+          support_push?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string | null
+          body_ar: string | null
+          body_en: string | null
+          booking_id: string | null
+          campaign_id: string | null
+          category: string
           channel: Database["public"]["Enums"]["notification_channel"]
           created_at: string
+          deep_link: string | null
           id: string
           payload: Json
           read_at: string | null
           title: string
+          title_ar: string | null
+          title_en: string | null
           type: string
           user_id: string
         }
         Insert: {
           body?: string | null
+          body_ar?: string | null
+          body_en?: string | null
+          booking_id?: string | null
+          campaign_id?: string | null
+          category?: string
           channel?: Database["public"]["Enums"]["notification_channel"]
           created_at?: string
+          deep_link?: string | null
           id?: string
           payload?: Json
           read_at?: string | null
           title: string
+          title_ar?: string | null
+          title_en?: string | null
           type: string
           user_id: string
         }
         Update: {
           body?: string | null
+          body_ar?: string | null
+          body_en?: string | null
+          booking_id?: string | null
+          campaign_id?: string | null
+          category?: string
           channel?: Database["public"]["Enums"]["notification_channel"]
           created_at?: string
+          deep_link?: string | null
           id?: string
           payload?: Json
           read_at?: string | null
           title?: string
+          title_ar?: string | null
+          title_en?: string | null
           type?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notifications_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "notification_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payment_methods: {
         Row: {
@@ -1874,6 +2126,42 @@ export type Database = {
           },
         ]
       }
+      push_subscriptions: {
+        Row: {
+          auth_key: string
+          created_at: string
+          device_label: string | null
+          endpoint: string
+          id: string
+          last_seen_at: string
+          p256dh: string
+          revoked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          auth_key: string
+          created_at?: string
+          device_label?: string | null
+          endpoint: string
+          id?: string
+          last_seen_at?: string
+          p256dh: string
+          revoked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          auth_key?: string
+          created_at?: string
+          device_label?: string | null
+          endpoint?: string
+          id?: string
+          last_seen_at?: string
+          p256dh?: string
+          revoked_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ratings_summary: {
         Row: {
           provider_id: string
@@ -2483,6 +2771,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_activate_campaign: {
+        Args: { p_campaign_id: string }
+        Returns: undefined
+      }
+      admin_cancel_campaign: {
+        Args: { p_campaign_id: string }
+        Returns: undefined
+      }
+      admin_preview_campaign_audience: {
+        Args: { p_target: string }
+        Returns: number
+      }
       admin_resolve_reschedule: {
         Args: { p_action: string; p_reason: string; p_request_id: string }
         Returns: undefined
@@ -2508,6 +2808,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      expand_campaign_recipients: {
+        Args: { p_campaign_id: string }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -2516,9 +2820,24 @@ export type Database = {
         Returns: boolean
       }
       is_not_suspended: { Args: { _user_id: string }; Returns: boolean }
+      mark_push_subscription_expired: {
+        Args: { p_endpoint: string }
+        Returns: undefined
+      }
+      process_due_campaigns: { Args: never; Returns: number }
+      process_due_reminders: { Args: never; Returns: number }
       recompute_trust_score: {
         Args: { _provider_id: string }
         Returns: undefined
+      }
+      register_push_subscription: {
+        Args: {
+          p_auth_key: string
+          p_device_label?: string
+          p_endpoint: string
+          p_p256dh: string
+        }
+        Returns: string
       }
       request_reschedule: {
         Args: {
@@ -2547,6 +2866,14 @@ export type Database = {
           p_request_id: string
         }
         Returns: string
+      }
+      revoke_push_subscription: {
+        Args: { p_endpoint: string }
+        Returns: undefined
+      }
+      revoke_push_subscription_by_id: {
+        Args: { p_id: string }
+        Returns: undefined
       }
       validate_promo_code: {
         Args: { p_code: string; p_service_id: string; p_subtotal: number }

@@ -7,6 +7,7 @@ import {
 } from "@/lib/db/settings-queries";
 import {
   useAdminCategories, useSetCategoryActive, useUpdateCategoryNames,
+  useAdminReminderRules, useCreateReminderRule, useSetReminderRuleActive,
 } from "@/lib/db/admin-queries";
 import { toast } from "sonner";
 import { Save, Check } from "lucide-react";
@@ -193,6 +194,58 @@ function ServiceAreasSection() {
   );
 }
 
+function ReminderRulesSection() {
+  const q = useAdminReminderRules();
+  const create = useCreateReminderRule();
+  const setActive = useSetReminderRuleActive();
+  const [leadMinutes, setLeadMinutes] = useState("");
+
+  const handleAdd = () => {
+    const n = Number(leadMinutes);
+    if (!Number.isFinite(n) || n <= 0) { toast.error("Enter a lead time in minutes greater than 0."); return; }
+    create.mutate(n, {
+      onSuccess: () => setLeadMinutes(""),
+      onError: (e: any) => toast.error(e?.message ?? "Could not add reminder rule"),
+    });
+  };
+
+  return (
+    <SectionCard title="Booking Reminders" subtitle="Lead-time offsets before a booking's start time. No rules means no reminders are sent.">
+      {q.isLoading ? (
+        <div className="h-16 animate-pulse rounded-xl bg-muted" />
+      ) : q.isError ? (
+        <p className="text-sm text-coral">Could not load reminder rules. Please refresh.</p>
+      ) : (q.data ?? []).length === 0 ? (
+        <p className="text-sm text-muted-foreground">No reminder rules configured yet.</p>
+      ) : (
+        <ul className="space-y-2">
+          {q.data!.map((r: any) => (
+            <li key={r.id} className="flex items-center justify-between rounded-xl border border-border/60 p-3">
+              <span className="text-sm font-semibold">{r.lead_minutes} minutes before</span>
+              <button
+                disabled={setActive.isPending}
+                onClick={() => setActive.mutate({ id: r.id, active: !r.is_active }, {
+                  onError: (e: any) => toast.error(e?.message ?? "Could not update reminder rule"),
+                })}
+                className={`rounded-lg px-3 py-1.5 text-xs font-bold disabled:opacity-50 ${r.is_active ? "border border-coral text-coral" : "bg-navy text-navy-foreground"}`}
+              >
+                {r.is_active ? "Disable" : "Enable"}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="flex items-center gap-2">
+        <input value={leadMinutes} onChange={(e) => setLeadMinutes(e.target.value)} type="number" min={1} placeholder="Minutes before start"
+          className="h-9 w-40 rounded-lg border border-border bg-surface px-2 text-xs" />
+        <button onClick={handleAdd} disabled={create.isPending} className="rounded-lg bg-navy px-3 py-1.5 text-xs font-bold text-navy-foreground disabled:opacity-50">
+          Add rule
+        </button>
+      </div>
+    </SectionCard>
+  );
+}
+
 const CONTENT_KEYS: { key: PlatformContentKey; label: string }[] = [
   { key: "terms", label: "Terms & Conditions" },
   { key: "privacy", label: "Privacy Policy" },
@@ -250,6 +303,7 @@ function AdminSettings() {
       <BillingSection />
       <CategoriesSection />
       <ServiceAreasSection />
+      <ReminderRulesSection />
       <PlatformContentSection />
     </div>
   );

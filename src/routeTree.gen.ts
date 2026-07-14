@@ -16,6 +16,7 @@ import { Route as ProRouteImport } from './routes/pro'
 import { Route as OtpRouteImport } from './routes/otp'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as NotificationPreferencesRouteImport } from './routes/notification-preferences'
 import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as HomeRouteImport } from './routes/home'
@@ -33,6 +34,7 @@ import { Route as ProviderIdRouteImport } from './routes/provider.$id'
 import { Route as ProProfileRouteImport } from './routes/pro.profile'
 import { Route as ProOnboardingRouteImport } from './routes/pro.onboarding'
 import { Route as ProNotificationsRouteImport } from './routes/pro.notifications'
+import { Route as ProNotificationPreferencesRouteImport } from './routes/pro.notification-preferences'
 import { Route as ProEarningsRouteImport } from './routes/pro.earnings'
 import { Route as ProDocumentsRouteImport } from './routes/pro.documents'
 import { Route as ProBookingsRouteImport } from './routes/pro.bookings'
@@ -55,6 +57,7 @@ import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
 import { Route as AdminPaymentMethodsRouteImport } from './routes/admin.payment-methods'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
 import { Route as AdminCancellationReasonsRouteImport } from './routes/admin.cancellation-reasons'
+import { Route as AdminCampaignsRouteImport } from './routes/admin.campaigns'
 import { Route as AdminBookingsRouteImport } from './routes/admin.bookings'
 import { Route as AddressesNewRouteImport } from './routes/addresses.new'
 import { Route as AddressesIdRouteImport } from './routes/addresses.$id'
@@ -95,6 +98,11 @@ const OnboardingRoute = OnboardingRouteImport.update({
 const NotificationsRoute = NotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationPreferencesRoute = NotificationPreferencesRouteImport.update({
+  id: '/notification-preferences',
+  path: '/notification-preferences',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MessagesRoute = MessagesRouteImport.update({
@@ -182,6 +190,12 @@ const ProNotificationsRoute = ProNotificationsRouteImport.update({
   path: '/notifications',
   getParentRoute: () => ProRoute,
 } as any)
+const ProNotificationPreferencesRoute =
+  ProNotificationPreferencesRouteImport.update({
+    id: '/notification-preferences',
+    path: '/notification-preferences',
+    getParentRoute: () => ProRoute,
+  } as any)
 const ProEarningsRoute = ProEarningsRouteImport.update({
   id: '/earnings',
   path: '/earnings',
@@ -293,6 +307,11 @@ const AdminCancellationReasonsRoute =
     path: '/cancellation-reasons',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminCampaignsRoute = AdminCampaignsRouteImport.update({
+  id: '/campaigns',
+  path: '/campaigns',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminBookingsRoute = AdminBookingsRouteImport.update({
   id: '/bookings',
   path: '/bookings',
@@ -335,6 +354,7 @@ export interface FileRoutesByFullPath {
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/messages': typeof MessagesRouteWithChildren
+  '/notification-preferences': typeof NotificationPreferencesRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/otp': typeof OtpRoute
@@ -345,6 +365,7 @@ export interface FileRoutesByFullPath {
   '/addresses/$id': typeof AddressesIdRoute
   '/addresses/new': typeof AddressesNewRoute
   '/admin/bookings': typeof AdminBookingsRoute
+  '/admin/campaigns': typeof AdminCampaignsRoute
   '/admin/cancellation-reasons': typeof AdminCancellationReasonsRoute
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
@@ -367,6 +388,7 @@ export interface FileRoutesByFullPath {
   '/pro/bookings': typeof ProBookingsRoute
   '/pro/documents': typeof ProDocumentsRoute
   '/pro/earnings': typeof ProEarningsRoute
+  '/pro/notification-preferences': typeof ProNotificationPreferencesRoute
   '/pro/notifications': typeof ProNotificationsRoute
   '/pro/onboarding': typeof ProOnboardingRoute
   '/pro/profile': typeof ProProfileRoute
@@ -387,6 +409,7 @@ export interface FileRoutesByTo {
   '/help': typeof HelpRoute
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
+  '/notification-preferences': typeof NotificationPreferencesRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/otp': typeof OtpRoute
@@ -396,6 +419,7 @@ export interface FileRoutesByTo {
   '/addresses/$id': typeof AddressesIdRoute
   '/addresses/new': typeof AddressesNewRoute
   '/admin/bookings': typeof AdminBookingsRoute
+  '/admin/campaigns': typeof AdminCampaignsRoute
   '/admin/cancellation-reasons': typeof AdminCancellationReasonsRoute
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
@@ -418,6 +442,7 @@ export interface FileRoutesByTo {
   '/pro/bookings': typeof ProBookingsRoute
   '/pro/documents': typeof ProDocumentsRoute
   '/pro/earnings': typeof ProEarningsRoute
+  '/pro/notification-preferences': typeof ProNotificationPreferencesRoute
   '/pro/notifications': typeof ProNotificationsRoute
   '/pro/onboarding': typeof ProOnboardingRoute
   '/pro/profile': typeof ProProfileRoute
@@ -441,6 +466,7 @@ export interface FileRoutesById {
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/messages': typeof MessagesRouteWithChildren
+  '/notification-preferences': typeof NotificationPreferencesRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/otp': typeof OtpRoute
@@ -451,6 +477,7 @@ export interface FileRoutesById {
   '/addresses/$id': typeof AddressesIdRoute
   '/addresses/new': typeof AddressesNewRoute
   '/admin/bookings': typeof AdminBookingsRoute
+  '/admin/campaigns': typeof AdminCampaignsRoute
   '/admin/cancellation-reasons': typeof AdminCancellationReasonsRoute
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
@@ -473,6 +500,7 @@ export interface FileRoutesById {
   '/pro/bookings': typeof ProBookingsRoute
   '/pro/documents': typeof ProDocumentsRoute
   '/pro/earnings': typeof ProEarningsRoute
+  '/pro/notification-preferences': typeof ProNotificationPreferencesRoute
   '/pro/notifications': typeof ProNotificationsRoute
   '/pro/onboarding': typeof ProOnboardingRoute
   '/pro/profile': typeof ProProfileRoute
@@ -497,6 +525,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/login'
     | '/messages'
+    | '/notification-preferences'
     | '/notifications'
     | '/onboarding'
     | '/otp'
@@ -507,6 +536,7 @@ export interface FileRouteTypes {
     | '/addresses/$id'
     | '/addresses/new'
     | '/admin/bookings'
+    | '/admin/campaigns'
     | '/admin/cancellation-reasons'
     | '/admin/customers'
     | '/admin/payment-methods'
@@ -529,6 +559,7 @@ export interface FileRouteTypes {
     | '/pro/bookings'
     | '/pro/documents'
     | '/pro/earnings'
+    | '/pro/notification-preferences'
     | '/pro/notifications'
     | '/pro/onboarding'
     | '/pro/profile'
@@ -549,6 +580,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/home'
     | '/login'
+    | '/notification-preferences'
     | '/notifications'
     | '/onboarding'
     | '/otp'
@@ -558,6 +590,7 @@ export interface FileRouteTypes {
     | '/addresses/$id'
     | '/addresses/new'
     | '/admin/bookings'
+    | '/admin/campaigns'
     | '/admin/cancellation-reasons'
     | '/admin/customers'
     | '/admin/payment-methods'
@@ -580,6 +613,7 @@ export interface FileRouteTypes {
     | '/pro/bookings'
     | '/pro/documents'
     | '/pro/earnings'
+    | '/pro/notification-preferences'
     | '/pro/notifications'
     | '/pro/onboarding'
     | '/pro/profile'
@@ -602,6 +636,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/login'
     | '/messages'
+    | '/notification-preferences'
     | '/notifications'
     | '/onboarding'
     | '/otp'
@@ -612,6 +647,7 @@ export interface FileRouteTypes {
     | '/addresses/$id'
     | '/addresses/new'
     | '/admin/bookings'
+    | '/admin/campaigns'
     | '/admin/cancellation-reasons'
     | '/admin/customers'
     | '/admin/payment-methods'
@@ -634,6 +670,7 @@ export interface FileRouteTypes {
     | '/pro/bookings'
     | '/pro/documents'
     | '/pro/earnings'
+    | '/pro/notification-preferences'
     | '/pro/notifications'
     | '/pro/onboarding'
     | '/pro/profile'
@@ -657,6 +694,7 @@ export interface RootRouteChildren {
   HomeRoute: typeof HomeRoute
   LoginRoute: typeof LoginRoute
   MessagesRoute: typeof MessagesRouteWithChildren
+  NotificationPreferencesRoute: typeof NotificationPreferencesRoute
   NotificationsRoute: typeof NotificationsRoute
   OnboardingRoute: typeof OnboardingRoute
   OtpRoute: typeof OtpRoute
@@ -722,6 +760,13 @@ declare module '@tanstack/react-router' {
       path: '/notifications'
       fullPath: '/notifications'
       preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notification-preferences': {
+      id: '/notification-preferences'
+      path: '/notification-preferences'
+      fullPath: '/notification-preferences'
+      preLoaderRoute: typeof NotificationPreferencesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/messages': {
@@ -841,6 +886,13 @@ declare module '@tanstack/react-router' {
       path: '/notifications'
       fullPath: '/pro/notifications'
       preLoaderRoute: typeof ProNotificationsRouteImport
+      parentRoute: typeof ProRoute
+    }
+    '/pro/notification-preferences': {
+      id: '/pro/notification-preferences'
+      path: '/notification-preferences'
+      fullPath: '/pro/notification-preferences'
+      preLoaderRoute: typeof ProNotificationPreferencesRouteImport
       parentRoute: typeof ProRoute
     }
     '/pro/earnings': {
@@ -997,6 +1049,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCancellationReasonsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/campaigns': {
+      id: '/admin/campaigns'
+      path: '/campaigns'
+      fullPath: '/admin/campaigns'
+      preLoaderRoute: typeof AdminCampaignsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/bookings': {
       id: '/admin/bookings'
       path: '/bookings'
@@ -1058,6 +1117,7 @@ const AddressesRouteWithChildren = AddressesRoute._addFileChildren(
 
 interface AdminRouteChildren {
   AdminBookingsRoute: typeof AdminBookingsRoute
+  AdminCampaignsRoute: typeof AdminCampaignsRoute
   AdminCancellationReasonsRoute: typeof AdminCancellationReasonsRoute
   AdminCustomersRoute: typeof AdminCustomersRoute
   AdminPaymentMethodsRoute: typeof AdminPaymentMethodsRoute
@@ -1074,6 +1134,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminBookingsRoute: AdminBookingsRoute,
+  AdminCampaignsRoute: AdminCampaignsRoute,
   AdminCancellationReasonsRoute: AdminCancellationReasonsRoute,
   AdminCustomersRoute: AdminCustomersRoute,
   AdminPaymentMethodsRoute: AdminPaymentMethodsRoute,
@@ -1123,6 +1184,7 @@ interface ProRouteChildren {
   ProBookingsRoute: typeof ProBookingsRoute
   ProDocumentsRoute: typeof ProDocumentsRoute
   ProEarningsRoute: typeof ProEarningsRoute
+  ProNotificationPreferencesRoute: typeof ProNotificationPreferencesRoute
   ProNotificationsRoute: typeof ProNotificationsRoute
   ProOnboardingRoute: typeof ProOnboardingRoute
   ProProfileRoute: typeof ProProfileRoute
@@ -1135,6 +1197,7 @@ const ProRouteChildren: ProRouteChildren = {
   ProBookingsRoute: ProBookingsRoute,
   ProDocumentsRoute: ProDocumentsRoute,
   ProEarningsRoute: ProEarningsRoute,
+  ProNotificationPreferencesRoute: ProNotificationPreferencesRoute,
   ProNotificationsRoute: ProNotificationsRoute,
   ProOnboardingRoute: ProOnboardingRoute,
   ProProfileRoute: ProProfileRoute,
@@ -1155,6 +1218,7 @@ const rootRouteChildren: RootRouteChildren = {
   HomeRoute: HomeRoute,
   LoginRoute: LoginRoute,
   MessagesRoute: MessagesRouteWithChildren,
+  NotificationPreferencesRoute: NotificationPreferencesRoute,
   NotificationsRoute: NotificationsRoute,
   OnboardingRoute: OnboardingRoute,
   OtpRoute: OtpRoute,

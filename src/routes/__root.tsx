@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useNavigate,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -117,6 +118,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
         <AuthCacheBridge />
+        <PushNavigationBridge />
         <Outlet />
       </LanguageProvider>
     </QueryClientProvider>
@@ -145,5 +147,26 @@ function AuthCacheBridge() {
     });
     return () => sub.subscription.unsubscribe();
   }, [qc]);
+  return null;
+}
+
+/**
+ * Fallback for notificationclick navigation: sw.js tries client.navigate()
+ * first (works in Chromium), but Safari/Firefox service workers can't
+ * navigate an existing client directly, so they postMessage the deep link
+ * here instead and this does the router navigation.
+ */
+function PushNavigationBridge() {
+  const nav = useNavigate();
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+    const onMessage = (event: MessageEvent) => {
+      if (event.data?.type === "famy-navigate" && typeof event.data.deepLink === "string") {
+        nav({ to: event.data.deepLink as any });
+      }
+    };
+    navigator.serviceWorker.addEventListener("message", onMessage);
+    return () => navigator.serviceWorker.removeEventListener("message", onMessage);
+  }, [nav]);
   return null;
 }
