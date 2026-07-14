@@ -1,1 +1,9 @@
 project_id = "hmhtyytumagbputyydrn"
+
+# verify_jwt only checks that the caller presented a validly-signed project
+# JWT — the public anon key qualifies, so this is NOT a restriction to
+# server/cron callers. Real authorization is the NOTIFICATION_WORKER_SECRET
+# header check inside the function itself (see index.ts). Kept true here so
+# the setting is explicit rather than relying on the implicit default.
+[functions.send-push-notifications]
+verify_jwt = true
