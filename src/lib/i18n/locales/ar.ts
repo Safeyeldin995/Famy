@@ -1515,6 +1515,7 @@ const ar: Translation = {
     services: {
       subtitle: "إدارة كتالوج الخدمات القابلة للحجز. يُفضَّل التعطيل بدلاً من الحذف عند الإمكان.",
       newService: "خدمة جديدة",
+      categoriesLoading: "جارٍ تحميل الفئات…",
       newServiceTitle: "خدمة جديدة",
       createService: "إنشاء الخدمة",
       searchPlaceholder: "ابحث بالاسم أو المعرّف…",

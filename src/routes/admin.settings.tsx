@@ -61,9 +61,28 @@ function BillingSection() {
   const [fee, setFee] = useState("");
   const saved = useSavedFlash(update.isPending);
 
+  // Initialize from the first successful load only — re-syncing on every
+  // q.data change (a background refetch, e.g. on window refocus) would
+  // silently discard whatever the admin is mid-typing.
+  const initialized = useState(() => ({ done: false }))[0];
   useEffect(() => {
-    if (q.data) { setVat(String(q.data.vat_percent)); setFee(String(q.data.platform_fee)); }
-  }, [q.data]);
+    if (q.data && !initialized.done) {
+      initialized.done = true;
+      setVat(String(q.data.vat_percent));
+      setFee(String(q.data.platform_fee));
+    }
+  }, [q.data, initialized]);
+
+  // Don't render editable inputs until the first load resolves — an input
+  // fillable before initialized.done is set is exactly the window where a
+  // background sync would silently discard it (see the effect above).
+  if (q.isLoading) {
+    return (
+      <SectionCard title={t("admin.settings.paymentsTitle")} subtitle={t("admin.settings.paymentsSubtitle")}>
+        <div className="h-16 animate-pulse rounded-xl bg-muted" />
+      </SectionCard>
+    );
+  }
 
   return (
     <SectionCard title={t("admin.settings.paymentsTitle")} subtitle={t("admin.settings.paymentsSubtitle")}>
@@ -165,7 +184,15 @@ function ServiceAreasSection() {
   const update = useUpdateServiceAreasSettings();
   const [areas, setAreas] = useState<{ name: string; enabled: boolean }[]>([]);
   const saved = useSavedFlash(update.isPending);
-  useEffect(() => { if (q.data) setAreas(q.data); }, [q.data]);
+  // Init once — see BillingSection for why re-syncing on every q.data change
+  // is unsafe (would silently revert an in-flight toggle).
+  const initialized = useState(() => ({ done: false }))[0];
+  useEffect(() => {
+    if (q.data && !initialized.done) {
+      initialized.done = true;
+      setAreas(q.data);
+    }
+  }, [q.data, initialized]);
 
   const toggle = (name: string) => {
     const next = areas.map((a) => (a.name === name ? { ...a, enabled: !a.enabled } : a));
@@ -266,7 +293,16 @@ function ContentEditor({ contentKey, label }: { contentKey: PlatformContentKey; 
   const [en, setEn] = useState("");
   const [ar, setAr] = useState("");
   const saved = useSavedFlash(update.isPending);
-  useEffect(() => { if (q.data) { setEn(q.data.body_en); setAr(q.data.body_ar); } }, [q.data]);
+  // Init once — see BillingSection for why re-syncing on every q.data change
+  // is unsafe (would silently discard in-progress edits).
+  const initialized = useState(() => ({ done: false }))[0];
+  useEffect(() => {
+    if (q.data && !initialized.done) {
+      initialized.done = true;
+      setEn(q.data.body_en);
+      setAr(q.data.body_ar);
+    }
+  }, [q.data, initialized]);
 
   return (
     <div className="rounded-xl border border-border/60 p-3">

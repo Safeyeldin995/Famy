@@ -1513,6 +1513,7 @@ const en = {
     services: {
       subtitle: "Manage the bookable service catalog. Deactivate instead of deleting where possible.",
       newService: "New service",
+      categoriesLoading: "Loading categories…",
       newServiceTitle: "New service",
       createService: "Create service",
       searchPlaceholder: "Search by name or slug…",

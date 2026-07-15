@@ -583,7 +583,9 @@ function AdminServices() {
         </div>
         <button
           onClick={startCreate}
-          className="focus-ring inline-flex items-center gap-1.5 rounded-xl bg-navy px-3 py-2 text-xs font-bold text-navy-foreground"
+          disabled={categories.length === 0}
+          title={categories.length === 0 ? t("admin.services.categoriesLoading") : undefined}
+          className="focus-ring inline-flex items-center gap-1.5 rounded-xl bg-navy px-3 py-2 text-xs font-bold text-navy-foreground disabled:opacity-50"
         >
           <Plus className="h-3.5 w-3.5" /> {t("admin.services.newService")}
         </button>
