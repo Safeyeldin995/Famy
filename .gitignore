@@ -23,13 +23,16 @@ npm-debug.log*
 
 # Editor
 .vscode/settings.json
+
 # Supabase local state
 supabase/.temp/
 
 # Allow environment template
 !.env.example
-# Supabase local state
-supabase/.temp/
 
-# Allow environment template
-!.env.example
+# Playwright QA harness runtime artifacts (never commit sessions/secrets/traces)
+qa/.auth/
+qa/report/
+test-results/
+playwright-report/
+blob-report/
