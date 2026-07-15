@@ -895,6 +895,13 @@ export type Database = {
             foreignKeyName: "bookings_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "admin_identity_conflicts"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "bookings_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -2272,6 +2279,13 @@ export type Database = {
             foreignKeyName: "providers_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: true
+            referencedRelation: "admin_identity_conflicts"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "providers_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -2901,38 +2915,44 @@ export type Database = {
       }
       zones: {
         Row: {
-          center_lat: number
-          center_lng: number
+          boundary_type: string
+          center_lat: number | null
+          center_lng: number | null
           created_at: string
           id: string
           is_active: boolean
           name_ar: string
           name_en: string
-          radius_km: number
+          polygon: Json | null
+          radius_km: number | null
           travel_fee: number
           updated_at: string
         }
         Insert: {
-          center_lat: number
-          center_lng: number
+          boundary_type?: string
+          center_lat?: number | null
+          center_lng?: number | null
           created_at?: string
           id?: string
           is_active?: boolean
           name_ar: string
           name_en: string
-          radius_km: number
+          polygon?: Json | null
+          radius_km?: number | null
           travel_fee?: number
           updated_at?: string
         }
         Update: {
-          center_lat?: number
-          center_lng?: number
+          boundary_type?: string
+          center_lat?: number | null
+          center_lng?: number | null
           created_at?: string
           id?: string
           is_active?: boolean
           name_ar?: string
           name_en?: string
-          radius_km?: number
+          polygon?: Json | null
+          radius_km?: number | null
           travel_fee?: number
           updated_at?: string
         }
@@ -2940,9 +2960,31 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      admin_identity_conflicts: {
+        Row: {
+          email: string | null
+          full_name: string | null
+          phone: string | null
+          roles: Database["public"]["Enums"]["app_role"][] | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      _segments_intersect: {
+        Args: {
+          ax: number
+          ay: number
+          bx: number
+          byy: number
+          cx: number
+          cy: number
+          dx: number
+          dy: number
+        }
+        Returns: boolean
+      }
       admin_activate_campaign: {
         Args: { p_campaign_id: string }
         Returns: undefined
@@ -3019,6 +3061,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      check_zone_overlap: {
+        Args: { p_exclude_zone_id?: string; p_polygon: Json }
+        Returns: {
+          name_ar: string
+          name_en: string
+          zone_id: string
+        }[]
+      }
       claim_notification_outbox_batch: {
         Args: { p_batch_size?: number; p_stale_minutes?: number }
         Returns: {
@@ -3075,6 +3125,11 @@ export type Database = {
         }
         Returns: string
       }
+      point_in_polygon: {
+        Args: { p_lat: number; p_lng: number; p_polygon: Json }
+        Returns: boolean
+      }
+      polygon_self_intersects: { Args: { p_polygon: Json }; Returns: boolean }
       process_due_campaigns: { Args: never; Returns: number }
       process_due_reminders: { Args: never; Returns: number }
       recompute_trust_score: {

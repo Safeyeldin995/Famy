@@ -579,15 +579,17 @@ export function useSetCustomerSuspended() {
 }
 
 // ---------- Zones ----------
+export type ZonePoint = { lat: number; lng: number };
+
 export type AdminZoneInput = {
   name_en: string;
   name_ar: string;
-  center_lat: number;
-  center_lng: number;
-  radius_km: number;
   travel_fee: number;
   is_active: boolean;
-};
+} & (
+  | { boundary_type: "polygon"; polygon: ZonePoint[]; center_lat: null; center_lng: null; radius_km: null }
+  | { boundary_type: "circle"; polygon: null; center_lat: number; center_lng: number; radius_km: number }
+);
 
 export function useAdminZones() {
   return useQuery({
@@ -631,6 +633,29 @@ export function useSetZoneActive() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'zones'] }),
+  });
+}
+
+export function useCheckZoneOverlap() {
+  return useMutation({
+    mutationFn: async ({ polygon, excludeZoneId }: { polygon: ZonePoint[]; excludeZoneId?: string }) => {
+      const { data, error } = await supabase.rpc("check_zone_overlap", {
+        p_polygon: polygon as any,
+        p_exclude_zone_id: excludeZoneId ?? undefined,
+      });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useTestPointInZone() {
+  return useMutation({
+    mutationFn: async ({ lat, lng }: { lat: number; lng: number }) => {
+      const { data, error } = await supabase.rpc("resolve_zone", { p_lat: lat, p_lng: lng });
+      if (error) throw error;
+      return data?.[0] ?? null;
+    },
   });
 }
 
