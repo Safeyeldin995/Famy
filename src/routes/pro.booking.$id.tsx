@@ -2,20 +2,29 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { ProviderShell } from "@/components/famio/ProviderShell";
-import { TopBar, Card, Badge, PrimaryButton, ErrorState, BookingTimeline, ReasonDialog, CancelBookingDialog } from "@/components/famio/ui";
+import { TopBar, Card, Badge, PrimaryButton, ErrorState, BookingTimeline, ReasonDialog, CancelBookingDialog, CaseDialog, SupportCasesCard } from "@/components/famio/ui";
 import { PaymentBlock } from "@/components/famio/PaymentBlock";
 import { RescheduleSection } from "@/components/famio/RescheduleSection";
 import { BookingChatPanel } from "@/components/famio/BookingChatPanel";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { useProviderBooking, useProviderUpdateBookingStatus } from "@/lib/db/provider-queries";
 import { useCancelBooking, useBookingCancellation } from "@/lib/db/cancellation-queries";
+import {
+  useBookingDisputes, useOpenDispute, activeDispute,
+  useBookingNoShowReports, useReportNoShow, activeNoShowReport,
+  useBookingSupportTickets, useCreateSupportTicket,
+  uploadCaseEvidence, type TicketCategory,
+} from "@/lib/db/case-queries";
 import { bookingStatusTone, formatEGP, BOOKING_TIMELINE_STEPS } from "@/lib/utils";
-import { Calendar, Clock, MapPin, Phone, User as UserIcon, HeartPulse, AlertTriangle } from "lucide-react";
+import { Calendar, Clock, MapPin, Phone, User as UserIcon, HeartPulse, AlertTriangle, LifeBuoy } from "lucide-react";
 import { useState } from "react";
 
 export const Route = createFileRoute("/pro/booking/$id")({ component: ProBookingDetail });
 
-type DialogKind = "" | "decline" | "cancel" | "no_show";
+const DISPUTE_ELIGIBLE_STATUSES = ["on_the_way", "arrived", "arrival_confirmed", "in_progress", "completion_requested"];
+const SUPPORT_CATEGORIES: TicketCategory[] = ["payment", "service_quality", "provider_behavior", "booking_issue", "app_issue", "other"];
+
+type DialogKind = "" | "decline" | "cancel" | "no_show" | "dispute" | "support";
 
 function ProBookingDetail() {
   const { t } = useTranslation();
@@ -28,6 +37,47 @@ function ProBookingDetail() {
   const cancelBooking = useCancelBooking();
   const cancellationQ = useBookingCancellation(q.data?.status === "cancelled" ? id : undefined);
   const [dialog, setDialog] = useState<DialogKind>("");
+
+  const disputesQ = useBookingDisputes(id);
+  const noShowReportsQ = useBookingNoShowReports(id);
+  const supportTicketsQ = useBookingSupportTickets(id);
+  const dispute = activeDispute(disputesQ.data);
+  const noShowReport = activeNoShowReport(noShowReportsQ.data);
+  const openDispute = useOpenDispute();
+  const reportNoShowMut = useReportNoShow();
+  const createTicket = useCreateSupportTicket();
+
+  const submitNoShow = async (reason: string, evidenceFile?: File) => {
+    try {
+      const evidencePaths = evidenceFile ? [await uploadCaseEvidence(id, evidenceFile)] : [];
+      await reportNoShowMut.mutateAsync({ bookingId: id, reason, evidencePaths });
+      setDialog("");
+      toast.success(t("pro.booking.caseSubmitted"));
+    } catch (e: any) {
+      toast.error(e?.message ?? t("common.somethingWentWrong"));
+    }
+  };
+
+  const submitDispute = async (reason: string, description: string, evidenceFile?: File) => {
+    try {
+      const evidencePaths = evidenceFile ? [await uploadCaseEvidence(id, evidenceFile)] : [];
+      await openDispute.mutateAsync({ bookingId: id, reason, description, evidencePaths });
+      setDialog("");
+      toast.success(t("pro.booking.caseSubmitted"));
+    } catch (e: any) {
+      toast.error(e?.message ?? t("common.somethingWentWrong"));
+    }
+  };
+
+  const submitSupport = async (category: TicketCategory, subject: string, description: string) => {
+    try {
+      await createTicket.mutateAsync({ bookingId: id, category, subject, description });
+      setDialog("");
+      toast.success(t("pro.booking.caseSubmitted"));
+    } catch (e: any) {
+      toast.error(e?.message ?? t("common.somethingWentWrong"));
+    }
+  };
 
   if (q.isLoading) return <ProviderShell hideNav><TopBar back={{ to: "/pro/bookings" }} /><div className="h-64 animate-pulse rounded-3xl bg-surface mx-5" /></ProviderShell>;
   if (q.isError || !q.data) return <ProviderShell hideNav><TopBar back={{ to: "/pro/bookings" }} /><ErrorState title={t("pro.booking.notFound")} /></ProviderShell>;
@@ -186,6 +236,11 @@ function ProBookingDetail() {
 
         <BookingChatPanel bookingId={b.id} status={b.status} viewer="provider" />
 
+        <SupportCasesCard tickets={supportTicketsQ.data ?? []} dispute={dispute} noShowReport={noShowReport} t={t} />
+        <button onClick={() => setDialog("support")} className="mt-2 flex w-full items-center justify-center gap-1.5 py-2 text-xs font-semibold text-muted-foreground">
+          <LifeBuoy className="h-3.5 w-3.5" aria-hidden="true" /> {t("pro.booking.openSupportTicket")}
+        </button>
+
       </div>
 
       <div className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-surface-2 via-surface-2/90 to-transparent pt-6 safe-bottom">
@@ -213,14 +268,18 @@ function ProBookingDetail() {
           {b.status === "on_the_way" && (
             <div className="space-y-2">
               <PrimaryButton onClick={() => run("arrived")} disabled={mut.isPending}>{t("pro.booking.iHaveArrived")}</PrimaryButton>
-              <button onClick={() => setDialog("no_show")} disabled={mut.isPending} className="w-full py-2 text-xs font-semibold text-coral disabled:opacity-50">{t("pro.booking.reportNoShow")}</button>
+              {!noShowReport && (
+                <button onClick={() => setDialog("no_show")} disabled={reportNoShowMut.isPending} className="w-full py-2 text-xs font-semibold text-coral disabled:opacity-50">{t("pro.booking.reportNoShow")}</button>
+              )}
             </div>
           )}
 
           {b.status === "arrived" && (
             <div className="space-y-2">
               <div className="rounded-2xl bg-surface-2 py-3 text-center text-sm font-semibold text-muted-foreground">{t("pro.booking.waitingArrivalConfirm")}</div>
-              <button onClick={() => setDialog("no_show")} disabled={mut.isPending} className="w-full py-2 text-xs font-semibold text-coral disabled:opacity-50">{t("pro.booking.reportNoShow")}</button>
+              {!noShowReport && (
+                <button onClick={() => setDialog("no_show")} disabled={reportNoShowMut.isPending} className="w-full py-2 text-xs font-semibold text-coral disabled:opacity-50">{t("pro.booking.reportNoShow")}</button>
+              )}
             </div>
           )}
 
@@ -230,6 +289,12 @@ function ProBookingDetail() {
 
           {b.status === "in_progress" && (
             <PrimaryButton onClick={() => run("completion_requested")} disabled={mut.isPending} variant="coral">{t("pro.booking.requestCompletion")}</PrimaryButton>
+          )}
+
+          {DISPUTE_ELIGIBLE_STATUSES.includes(b.status) && !dispute && (
+            <button onClick={() => setDialog("dispute")} disabled={openDispute.isPending} className="mt-2 w-full py-2 text-xs font-semibold text-coral disabled:opacity-50">
+              {t("pro.booking.disputeAction")}
+            </button>
           )}
 
           {b.status === "completion_requested" && (
@@ -265,17 +330,54 @@ function ProBookingDetail() {
         }
       />
 
-      <ReasonDialog
+      <CaseDialog
         key={`no-show-${dialog}`}
         open={dialog === "no_show"}
         title={t("pro.booking.noShowConfirmTitle")}
         body={t("pro.booking.irreversible")}
+        reasonLabel={t("pro.booking.reasonLabel")}
         reasonPlaceholder={t("pro.booking.reasonPlaceholder")}
+        showEvidence
+        evidenceLabel={t("pro.booking.attachEvidence")}
         confirmLabel={t("pro.booking.confirm")}
         cancelLabel={t("pro.booking.keep")}
-        pending={mut.isPending}
+        pending={reportNoShowMut.isPending}
         onCancel={() => setDialog("")}
-        onConfirm={(reason) => run("no_show", { reason, noShowParty: "customer" }, () => setDialog(""))}
+        onConfirm={({ reason, evidenceFile }) => submitNoShow(reason, evidenceFile)}
+      />
+      <CaseDialog
+        key={`dispute-${dialog}`}
+        open={dialog === "dispute"}
+        title={t("pro.booking.disputeReasonTitle")}
+        body={t("pro.booking.disputeIrreversible")}
+        reasonLabel={t("pro.booking.reasonLabel")}
+        reasonPlaceholder={t("pro.booking.reasonPlaceholder")}
+        descriptionLabel={t("pro.booking.descriptionLabel")}
+        descriptionPlaceholder={t("pro.booking.disputeDescriptionPlaceholder")}
+        showEvidence
+        evidenceLabel={t("pro.booking.attachEvidence")}
+        confirmLabel={t("pro.booking.confirm")}
+        cancelLabel={t("pro.booking.keep")}
+        pending={openDispute.isPending}
+        onCancel={() => setDialog("")}
+        onConfirm={({ reason, description, evidenceFile }) => submitDispute(reason, description ?? "", evidenceFile)}
+      />
+      <CaseDialog
+        key={`support-${dialog}`}
+        open={dialog === "support"}
+        title={t("pro.booking.supportDialogTitle")}
+        body={t("pro.booking.supportDialogBody")}
+        categoryOptions={SUPPORT_CATEGORIES.map((c) => ({ value: c, label: t(`pro.booking.supportCategories.${c}`) }))}
+        categoryLabel={t("pro.booking.categoryLabel")}
+        subjectLabel={t("pro.booking.subjectLabel")}
+        subjectPlaceholder={t("pro.booking.subjectPlaceholder")}
+        descriptionLabel={t("pro.booking.descriptionLabel")}
+        descriptionPlaceholder={t("pro.booking.supportDescriptionPlaceholder")}
+        confirmLabel={t("pro.booking.confirm")}
+        cancelLabel={t("pro.booking.keep")}
+        pending={createTicket.isPending}
+        onCancel={() => setDialog("")}
+        onConfirm={({ category, subject, description }) => submitSupport(category as TicketCategory, subject ?? "", description ?? "")}
       />
     </ProviderShell>
   );

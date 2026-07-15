@@ -2404,27 +2404,45 @@ export type Database = {
       }
       support_tickets: {
         Row: {
-          booking_id: string | null
+          assigned_admin_id: string | null
+          booking_id: string
+          category: string
           created_at: string
+          description: string
           id: string
+          opened_by_role: string
+          resolution_notes: string | null
+          resolved_at: string | null
           status: Database["public"]["Enums"]["ticket_status"]
           subject: string
           updated_at: string
           user_id: string
         }
         Insert: {
-          booking_id?: string | null
+          assigned_admin_id?: string | null
+          booking_id: string
+          category: string
           created_at?: string
+          description: string
           id?: string
+          opened_by_role: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
           status?: Database["public"]["Enums"]["ticket_status"]
           subject: string
           updated_at?: string
           user_id: string
         }
         Update: {
-          booking_id?: string | null
+          assigned_admin_id?: string | null
+          booking_id?: string
+          category?: string
           created_at?: string
+          description?: string
           id?: string
+          opened_by_role?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
           status?: Database["public"]["Enums"]["ticket_status"]
           subject?: string
           updated_at?: string
@@ -2443,6 +2461,7 @@ export type Database = {
       ticket_messages: {
         Row: {
           author_id: string
+          author_role: string
           body: string
           created_at: string
           id: string
@@ -2450,6 +2469,7 @@ export type Database = {
         }
         Insert: {
           author_id: string
+          author_role: string
           body: string
           created_at?: string
           id?: string
@@ -2457,6 +2477,7 @@ export type Database = {
         }
         Update: {
           author_id?: string
+          author_role?: string
           body?: string
           created_at?: string
           id?: string
@@ -2468,6 +2489,124 @@ export type Database = {
             columns: ["ticket_id"]
             isOneToOne: false
             referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      disputes: {
+        Row: {
+          admin_notes: string | null
+          booking_id: string
+          created_at: string
+          description: string
+          evidence_paths: string[]
+          id: string
+          opened_by: string
+          opened_by_role: string
+          previous_status: Database["public"]["Enums"]["booking_status"]
+          reason: string
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          booking_id: string
+          created_at?: string
+          description: string
+          evidence_paths?: string[]
+          id?: string
+          opened_by: string
+          opened_by_role: string
+          previous_status: Database["public"]["Enums"]["booking_status"]
+          reason: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          booking_id?: string
+          created_at?: string
+          description?: string
+          evidence_paths?: string[]
+          id?: string
+          opened_by?: string
+          opened_by_role?: string
+          previous_status?: Database["public"]["Enums"]["booking_status"]
+          reason?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disputes_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      no_show_reports: {
+        Row: {
+          admin_notes: string | null
+          booking_id: string
+          created_at: string
+          evidence_paths: string[]
+          id: string
+          previous_status: Database["public"]["Enums"]["booking_status"]
+          reason: string
+          reported_by: string
+          reported_party: string
+          reporter_role: string
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          booking_id: string
+          created_at?: string
+          evidence_paths?: string[]
+          id?: string
+          previous_status: Database["public"]["Enums"]["booking_status"]
+          reason: string
+          reported_by: string
+          reported_party: string
+          reporter_role: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          booking_id?: string
+          created_at?: string
+          evidence_paths?: string[]
+          id?: string
+          previous_status?: Database["public"]["Enums"]["booking_status"]
+          reason?: string
+          reported_by?: string
+          reported_party?: string
+          reporter_role?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "no_show_reports_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
         ]
@@ -2783,6 +2922,24 @@ export type Database = {
         Args: { p_target: string }
         Returns: number
       }
+      admin_resolve_dispute: {
+        Args: {
+          p_admin_notes?: string
+          p_booking_status?: string
+          p_dispute_id: string
+          p_status: string
+        }
+        Returns: string
+      }
+      admin_resolve_no_show: {
+        Args: {
+          p_admin_notes?: string
+          p_booking_status?: string
+          p_report_id: string
+          p_status: string
+        }
+        Returns: string
+      }
       admin_resolve_reschedule: {
         Args: { p_action: string; p_reason: string; p_request_id: string }
         Returns: undefined
@@ -2798,6 +2955,32 @@ export type Database = {
       cancel_reschedule_request: {
         Args: { p_request_id: string }
         Returns: undefined
+      }
+      create_support_ticket: {
+        Args: {
+          p_booking_id: string
+          p_category: string
+          p_description: string
+          p_subject: string
+        }
+        Returns: string
+      }
+      open_booking_dispute: {
+        Args: {
+          p_booking_id: string
+          p_description: string
+          p_evidence_paths?: string[]
+          p_reason: string
+        }
+        Returns: string
+      }
+      report_no_show: {
+        Args: {
+          p_booking_id: string
+          p_evidence_paths?: string[]
+          p_reason: string
+        }
+        Returns: string
       }
       check_booking_slot: {
         Args: {

@@ -1,13 +1,19 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { PhoneFrame, PrimaryButton, Card, Badge, BackButton, Avatar, BookingTimeline, ReasonDialog, CancelBookingDialog, ErrorState, EmptyState } from "@/components/famio/ui";
+import { PhoneFrame, PrimaryButton, Card, Badge, BackButton, Avatar, BookingTimeline, ReasonDialog, CancelBookingDialog, CaseDialog, SupportCasesCard, ErrorState, EmptyState } from "@/components/famio/ui";
 import { PaymentBlock } from "@/components/famio/PaymentBlock";
 import { RescheduleSection } from "@/components/famio/RescheduleSection";
 import { useBooking, useFavoriteIds, useToggleFavorite, useBookingReview, useSubmitReview, useUpdateBookingStatus } from "@/lib/db/queries";
 import { useCancelBooking, useBookingCancellation } from "@/lib/db/cancellation-queries";
+import {
+  useBookingDisputes, useOpenDispute, activeDispute,
+  useBookingNoShowReports, useReportNoShow, activeNoShowReport,
+  useBookingSupportTickets, useCreateSupportTicket,
+  uploadCaseEvidence, type TicketCategory,
+} from "@/lib/db/case-queries";
 import { toUIProvider } from "@/lib/db/adapters";
 import { currentLang } from "@/lib/i18n";
 import { formatEGP } from "@/lib/utils";
-import { Check, MapPin, Calendar, Clock, Phone, Download, HelpCircle, AlertTriangle, Star, ShieldCheck, Bell, UserCheck, X } from "lucide-react";
+import { Check, MapPin, Calendar, Clock, Phone, Download, HelpCircle, AlertTriangle, Star, ShieldCheck, Bell, UserCheck, X, LifeBuoy } from "lucide-react";
 import { BookingChatPanel } from "@/components/famio/BookingChatPanel";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -19,8 +25,10 @@ export const Route = createFileRoute("/booking/$id")({
 });
 
 const TRACKABLE_STATUSES = ["on_the_way", "arrived", "arrival_confirmed", "in_progress", "completion_requested"];
+const DISPUTE_ELIGIBLE_STATUSES = ["on_the_way", "arrived", "arrival_confirmed", "in_progress", "completion_requested"];
+const SUPPORT_CATEGORIES: TicketCategory[] = ["payment", "service_quality", "provider_behavior", "booking_issue", "app_issue", "other"];
 
-type CustomerDialog = "" | "cancel" | "no_show" | "confirmArrival" | "confirmCompletion" | "dispute";
+type CustomerDialog = "" | "cancel" | "no_show" | "confirmArrival" | "confirmCompletion" | "dispute" | "support";
 
 function BookingDetail() {
   const { id } = Route.useParams();
@@ -41,6 +49,50 @@ function BookingDetail() {
   const reviewQ = useBookingReview(status === "completed" ? id : undefined);
   const submitReview = useSubmitReview();
   const nav = useNavigate();
+
+  const disputesQ = useBookingDisputes(id);
+  const noShowReportsQ = useBookingNoShowReports(id);
+  const supportTicketsQ = useBookingSupportTickets(id);
+  const dispute = activeDispute(disputesQ.data);
+  const noShowReport = activeNoShowReport(noShowReportsQ.data);
+  const openDispute = useOpenDispute();
+  const reportNoShowMut = useReportNoShow();
+  const createTicket = useCreateSupportTicket();
+
+  const submitNoShow = async (reason: string, evidenceFile?: File) => {
+    if (!real) return;
+    try {
+      const evidencePaths = evidenceFile ? [await uploadCaseEvidence(real.id, evidenceFile)] : [];
+      await reportNoShowMut.mutateAsync({ bookingId: real.id, reason, evidencePaths });
+      setDialog("");
+      toast.success(t("bookingDetail.caseSubmitted"));
+    } catch (e: any) {
+      toast.error(e?.message ?? t("common.somethingWentWrong"));
+    }
+  };
+
+  const submitDispute = async (reason: string, description: string, evidenceFile?: File) => {
+    if (!real) return;
+    try {
+      const evidencePaths = evidenceFile ? [await uploadCaseEvidence(real.id, evidenceFile)] : [];
+      await openDispute.mutateAsync({ bookingId: real.id, reason, description, evidencePaths });
+      setDialog("");
+      toast.success(t("bookingDetail.caseSubmitted"));
+    } catch (e: any) {
+      toast.error(e?.message ?? t("common.somethingWentWrong"));
+    }
+  };
+
+  const submitSupport = async (category: TicketCategory, subject: string, description: string) => {
+    if (!real) return;
+    try {
+      await createTicket.mutateAsync({ bookingId: real.id, category, subject, description });
+      setDialog("");
+      toast.success(t("bookingDetail.caseSubmitted"));
+    } catch (e: any) {
+      toast.error(e?.message ?? t("common.somethingWentWrong"));
+    }
+  };
 
   const run = (
     nextStatus: string,
@@ -170,11 +222,34 @@ function BookingDetail() {
             )}
           </Card>
 
+          <SupportCasesCard tickets={supportTicketsQ.data ?? []} dispute={dispute} noShowReport={noShowReport} t={t} />
+          <button onClick={() => setDialog("support")} className="mt-2 flex w-full items-center justify-center gap-1.5 py-2 text-xs font-semibold text-muted-foreground">
+            <LifeBuoy className="h-3.5 w-3.5" aria-hidden="true" /> {t("bookingDetail.openSupportTicket")}
+          </button>
+
           <BookingChatPanel bookingId={real.id} status={status} viewer="customer" />
         </div>
         <div className="safe-bottom px-6 pt-4">
           <PrimaryButton onClick={() => nav({ to: "/home" })}>{t("bookingDetail.backHome")}</PrimaryButton>
         </div>
+
+        <CaseDialog
+          key={`support-closed-${dialog}`}
+          open={dialog === "support"}
+          title={t("bookingDetail.supportDialogTitle")}
+          body={t("bookingDetail.supportDialogBody")}
+          categoryOptions={SUPPORT_CATEGORIES.map((c) => ({ value: c, label: t(`bookingDetail.supportCategories.${c}`) }))}
+          categoryLabel={t("bookingDetail.categoryLabel")}
+          subjectLabel={t("bookingDetail.subjectLabel")}
+          subjectPlaceholder={t("bookingDetail.subjectPlaceholder")}
+          descriptionLabel={t("bookingDetail.descriptionLabel")}
+          descriptionPlaceholder={t("bookingDetail.supportDescriptionPlaceholder")}
+          confirmLabel={t("bookingDetail.confirmAction")}
+          cancelLabel={t("bookingDetail.keep")}
+          pending={createTicket.isPending}
+          onCancel={() => setDialog("")}
+          onConfirm={({ category, subject, description }) => submitSupport(category as TicketCategory, subject ?? "", description ?? "")}
+        />
       </PhoneFrame>
     );
   }
@@ -251,11 +326,34 @@ function BookingDetail() {
             </button>
           </Card>
 
+          <SupportCasesCard tickets={supportTicketsQ.data ?? []} dispute={dispute} noShowReport={noShowReport} t={t} />
+          <button onClick={() => setDialog("support")} className="mt-2 flex w-full items-center justify-center gap-1.5 py-2 text-xs font-semibold text-muted-foreground">
+            <LifeBuoy className="h-3.5 w-3.5" aria-hidden="true" /> {t("bookingDetail.openSupportTicket")}
+          </button>
+
           <BookingChatPanel bookingId={real.id} status={status} viewer="customer" />
         </div>
         <div className="safe-bottom space-y-2 px-6 pt-4">
           <PrimaryButton onClick={() => nav({ to: "/home" })}>{t("bookingDetail.submitBookAgain")}</PrimaryButton>
         </div>
+
+        <CaseDialog
+          key={`support-completed-${dialog}`}
+          open={dialog === "support"}
+          title={t("bookingDetail.supportDialogTitle")}
+          body={t("bookingDetail.supportDialogBody")}
+          categoryOptions={SUPPORT_CATEGORIES.map((c) => ({ value: c, label: t(`bookingDetail.supportCategories.${c}`) }))}
+          categoryLabel={t("bookingDetail.categoryLabel")}
+          subjectLabel={t("bookingDetail.subjectLabel")}
+          subjectPlaceholder={t("bookingDetail.subjectPlaceholder")}
+          descriptionLabel={t("bookingDetail.descriptionLabel")}
+          descriptionPlaceholder={t("bookingDetail.supportDescriptionPlaceholder")}
+          confirmLabel={t("bookingDetail.confirmAction")}
+          cancelLabel={t("bookingDetail.keep")}
+          pending={createTicket.isPending}
+          onCancel={() => setDialog("")}
+          onConfirm={({ category, subject, description }) => submitSupport(category as TicketCategory, subject ?? "", description ?? "")}
+        />
       </PhoneFrame>
     );
   }
@@ -327,8 +425,8 @@ function BookingDetail() {
             {t("bookingDetail.cancelNoLongerAvailable")}
           </p>
 
-          {status === "on_the_way" && (
-            <button onClick={() => setDialog("no_show")} disabled={updateStatus.isPending} className="mt-4 w-full rounded-2xl py-3 text-sm font-semibold text-coral disabled:opacity-50">
+          {status === "on_the_way" && !noShowReport && (
+            <button onClick={() => setDialog("no_show")} disabled={reportNoShowMut.isPending} className="mt-4 w-full rounded-2xl py-3 text-sm font-semibold text-coral disabled:opacity-50">
               {t("bookingDetail.reportNoShow")}
             </button>
           )}
@@ -336,9 +434,11 @@ function BookingDetail() {
           {status === "arrived" && (
             <div className="mt-4 space-y-2">
               <PrimaryButton onClick={() => setDialog("confirmArrival")} disabled={updateStatus.isPending}>{t("bookingDetail.confirmArrival")}</PrimaryButton>
-              <button onClick={() => setDialog("no_show")} disabled={updateStatus.isPending} className="w-full py-2 text-xs font-semibold text-coral disabled:opacity-50">
-                {t("bookingDetail.reportNoShow")}
-              </button>
+              {!noShowReport && (
+                <button onClick={() => setDialog("no_show")} disabled={reportNoShowMut.isPending} className="w-full py-2 text-xs font-semibold text-coral disabled:opacity-50">
+                  {t("bookingDetail.reportNoShow")}
+                </button>
+              )}
             </div>
           )}
 
@@ -349,28 +449,37 @@ function BookingDetail() {
           )}
 
           {status === "completion_requested" && (
-            <div className="mt-4 space-y-2">
-              <PrimaryButton onClick={() => setDialog("confirmCompletion")} disabled={updateStatus.isPending}>{t("bookingDetail.confirmCompletion")}</PrimaryButton>
-              <button onClick={() => setDialog("dispute")} disabled={updateStatus.isPending} className="w-full py-2 text-xs font-semibold text-coral disabled:opacity-50">
-                {t("bookingDetail.disputeCompletion")}
-              </button>
-            </div>
+            <PrimaryButton className="mt-4" onClick={() => setDialog("confirmCompletion")} disabled={updateStatus.isPending}>{t("bookingDetail.confirmCompletion")}</PrimaryButton>
           )}
+
+          {DISPUTE_ELIGIBLE_STATUSES.includes(status ?? "") && !dispute && (
+            <button onClick={() => setDialog("dispute")} disabled={openDispute.isPending} className="mt-2 w-full py-2 text-xs font-semibold text-coral disabled:opacity-50">
+              {t("bookingDetail.disputeCompletion")}
+            </button>
+          )}
+          <button onClick={() => setDialog("support")} className="mt-1 flex w-full items-center justify-center gap-1.5 py-2 text-xs font-semibold text-muted-foreground">
+            <LifeBuoy className="h-3.5 w-3.5" aria-hidden="true" /> {t("bookingDetail.openSupportTicket")}
+          </button>
+
+          <SupportCasesCard tickets={supportTicketsQ.data ?? []} dispute={dispute} noShowReport={noShowReport} t={t} />
 
           <BookingChatPanel bookingId={real.id} status={status} viewer="customer" />
         </div>
 
-        <ReasonDialog
+        <CaseDialog
           key={`no-show-${dialog}`}
           open={dialog === "no_show"}
           title={t("bookingDetail.noShowReasonTitle")}
           body={t("bookingDetail.noShowIrreversible")}
+          reasonLabel={t("bookingDetail.reasonLabel")}
           reasonPlaceholder={t("bookingDetail.noShowReasonPlaceholder")}
+          showEvidence
+          evidenceLabel={t("bookingDetail.attachEvidence")}
           confirmLabel={t("bookingDetail.confirmAction")}
           cancelLabel={t("bookingDetail.keep")}
-          pending={updateStatus.isPending}
+          pending={reportNoShowMut.isPending}
           onCancel={() => setDialog("")}
-          onConfirm={(reason) => run("no_show", { reason, noShowParty: "provider" }, () => setDialog(""))}
+          onConfirm={({ reason, evidenceFile }) => submitNoShow(reason, evidenceFile)}
         />
         <ReasonDialog
           key={`confirm-arrival-${dialog}`}
@@ -398,17 +507,39 @@ function BookingDetail() {
           onCancel={() => setDialog("")}
           onConfirm={() => run("completed", undefined, () => setDialog(""))}
         />
-        <ReasonDialog
+        <CaseDialog
           key={`dispute-${dialog}`}
           open={dialog === "dispute"}
           title={t("bookingDetail.disputeReasonTitle")}
           body={t("bookingDetail.disputeIrreversible")}
+          reasonLabel={t("bookingDetail.reasonLabel")}
           reasonPlaceholder={t("bookingDetail.disputeReasonPlaceholder")}
+          descriptionLabel={t("bookingDetail.descriptionLabel")}
+          descriptionPlaceholder={t("bookingDetail.disputeDescriptionPlaceholder")}
+          showEvidence
+          evidenceLabel={t("bookingDetail.attachEvidence")}
           confirmLabel={t("bookingDetail.confirmAction")}
           cancelLabel={t("bookingDetail.keep")}
-          pending={updateStatus.isPending}
+          pending={openDispute.isPending}
           onCancel={() => setDialog("")}
-          onConfirm={(reason) => run("disputed", { reason }, () => setDialog(""))}
+          onConfirm={({ reason, description, evidenceFile }) => submitDispute(reason, description ?? "", evidenceFile)}
+        />
+        <CaseDialog
+          key={`support-${dialog}`}
+          open={dialog === "support"}
+          title={t("bookingDetail.supportDialogTitle")}
+          body={t("bookingDetail.supportDialogBody")}
+          categoryOptions={SUPPORT_CATEGORIES.map((c) => ({ value: c, label: t(`bookingDetail.supportCategories.${c}`) }))}
+          categoryLabel={t("bookingDetail.categoryLabel")}
+          subjectLabel={t("bookingDetail.subjectLabel")}
+          subjectPlaceholder={t("bookingDetail.subjectPlaceholder")}
+          descriptionLabel={t("bookingDetail.descriptionLabel")}
+          descriptionPlaceholder={t("bookingDetail.supportDescriptionPlaceholder")}
+          confirmLabel={t("bookingDetail.confirmAction")}
+          cancelLabel={t("bookingDetail.keep")}
+          pending={createTicket.isPending}
+          onCancel={() => setDialog("")}
+          onConfirm={({ category, subject, description }) => submitSupport(category as TicketCategory, subject ?? "", description ?? "")}
         />
       </PhoneFrame>
     );
@@ -479,6 +610,11 @@ function BookingDetail() {
 
         <BookingChatPanel bookingId={real.id} status={status} viewer="customer" />
 
+        <SupportCasesCard tickets={supportTicketsQ.data ?? []} dispute={dispute} noShowReport={noShowReport} t={t} />
+        <button onClick={() => setDialog("support")} className="mt-2 flex w-full items-center justify-center gap-1.5 py-2 text-xs font-semibold text-muted-foreground">
+          <LifeBuoy className="h-3.5 w-3.5" aria-hidden="true" /> {t("bookingDetail.openSupportTicket")}
+        </button>
+
         <Card className="mt-4 p-5">
           <div className="mb-3 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">{t("bookingDetail.whatsNext")}</div>
           <ol className="space-y-3">
@@ -532,6 +668,24 @@ function BookingDetail() {
             },
           )
         }
+      />
+
+      <CaseDialog
+        key={`support-upcoming-${dialog}`}
+        open={dialog === "support"}
+        title={t("bookingDetail.supportDialogTitle")}
+        body={t("bookingDetail.supportDialogBody")}
+        categoryOptions={SUPPORT_CATEGORIES.map((c) => ({ value: c, label: t(`bookingDetail.supportCategories.${c}`) }))}
+        categoryLabel={t("bookingDetail.categoryLabel")}
+        subjectLabel={t("bookingDetail.subjectLabel")}
+        subjectPlaceholder={t("bookingDetail.subjectPlaceholder")}
+        descriptionLabel={t("bookingDetail.descriptionLabel")}
+        descriptionPlaceholder={t("bookingDetail.supportDescriptionPlaceholder")}
+        confirmLabel={t("bookingDetail.confirmAction")}
+        cancelLabel={t("bookingDetail.keep")}
+        pending={createTicket.isPending}
+        onCancel={() => setDialog("")}
+        onConfirm={({ category, subject, description }) => submitSupport(category as TicketCategory, subject ?? "", description ?? "")}
       />
     </PhoneFrame>
   );

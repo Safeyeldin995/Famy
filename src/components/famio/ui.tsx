@@ -528,6 +528,214 @@ export function CancelBookingDialog({
   );
 }
 
+/**
+ * Shared dialog for the three Module 1 case-opening flows (support request,
+ * dispute, no-show report) — same shell as ReasonDialog, with optional
+ * category/subject/description fields and an optional evidence upload,
+ * gated per-flow by the caller. Evidence is handed back as a raw File; the
+ * caller uploads it (case-evidence bucket) before calling its RPC, so this
+ * component stays storage-agnostic.
+ */
+export function CaseDialog({
+  open,
+  title,
+  body,
+  categoryOptions,
+  categoryLabel,
+  subjectLabel,
+  subjectPlaceholder,
+  reasonLabel,
+  reasonPlaceholder,
+  descriptionLabel,
+  descriptionPlaceholder,
+  showEvidence = false,
+  evidenceLabel,
+  confirmLabel,
+  cancelLabel,
+  pending = false,
+  onCancel,
+  onConfirm,
+}: {
+  open: boolean;
+  title: string;
+  body?: string;
+  categoryOptions?: { value: string; label: string }[];
+  categoryLabel?: string;
+  subjectLabel?: string;
+  subjectPlaceholder?: string;
+  reasonLabel?: string;
+  reasonPlaceholder?: string;
+  descriptionLabel?: string;
+  descriptionPlaceholder?: string;
+  showEvidence?: boolean;
+  evidenceLabel?: string;
+  confirmLabel: string;
+  cancelLabel: string;
+  pending?: boolean;
+  onCancel: () => void;
+  onConfirm: (payload: { category?: string; subject?: string; reason: string; description?: string; evidenceFile?: File }) => void;
+}) {
+  const [category, setCategory] = useState(categoryOptions?.[0]?.value ?? "");
+  const [subject, setSubject] = useState("");
+  const [reason, setReason] = useState("");
+  const [description, setDescription] = useState("");
+  const [evidenceFile, setEvidenceFile] = useState<File | undefined>(undefined);
+  if (!open) return null;
+
+  const requiresSubject = !!subjectLabel;
+  const requiresReason = !!reasonLabel;
+  const requiresDescription = !!descriptionLabel;
+  const canConfirm =
+    (!requiresReason || reason.trim().length > 0)
+    && (!requiresSubject || subject.trim().length > 0)
+    && (!requiresDescription || description.trim().length >= 10);
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-6" onClick={onCancel}>
+      <Card className="max-h-[85vh] w-full max-w-sm overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="text-base font-extrabold">{title}</div>
+        {body && <div className="mt-1 text-xs text-muted-foreground">{body}</div>}
+
+        {categoryOptions && (
+          <label className="mt-3 block">
+            <span className="text-xs font-semibold text-muted-foreground">{categoryLabel}</span>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="mt-1 h-11 w-full rounded-2xl border border-border bg-surface-2 px-3 text-sm outline-none"
+            >
+              {categoryOptions.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        {requiresSubject && (
+          <input
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            placeholder={subjectPlaceholder}
+            className="mt-3 h-11 w-full rounded-2xl border border-border bg-surface-2 px-3 text-sm outline-none"
+          />
+        )}
+
+        {requiresReason && (
+          <textarea
+            rows={2}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder={reasonPlaceholder}
+            className="mt-3 w-full resize-none rounded-2xl border border-border bg-surface-2 p-3 text-sm outline-none"
+          />
+        )}
+
+        {requiresDescription && (
+          <textarea
+            rows={3}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder={descriptionPlaceholder}
+            className="mt-3 w-full resize-none rounded-2xl border border-border bg-surface-2 p-3 text-sm outline-none"
+          />
+        )}
+
+        {showEvidence && (
+          <label className="mt-3 flex h-11 w-full cursor-pointer items-center justify-center rounded-2xl border-2 border-dashed border-border bg-surface-2 text-xs font-semibold text-muted-foreground">
+            {evidenceFile ? evidenceFile.name : evidenceLabel}
+            <input
+              type="file"
+              accept="image/*,application/pdf"
+              className="hidden"
+              onChange={(e) => setEvidenceFile(e.target.files?.[0])}
+            />
+          </label>
+        )}
+
+        <div className="mt-4 flex gap-2">
+          <button onClick={onCancel} disabled={pending} className="h-12 flex-1 rounded-2xl border border-border bg-surface text-sm font-bold disabled:opacity-50">
+            {cancelLabel}
+          </button>
+          <button
+            onClick={() =>
+              onConfirm({
+                category: categoryOptions ? category : undefined,
+                subject: requiresSubject ? subject.trim() : undefined,
+                reason: reason.trim(),
+                description: requiresDescription ? description.trim() : undefined,
+                evidenceFile,
+              })
+            }
+            disabled={pending || !canConfirm}
+            className="h-12 flex-1 rounded-2xl bg-coral text-sm font-bold text-coral-foreground disabled:opacity-50"
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function caseTone(status: string): "mint" | "coral" | "muted" {
+  if (status === "resolved" || status === "closed") return "mint";
+  if (status === "rejected") return "muted";
+  return "coral";
+}
+
+/** Compact list of any support tickets / dispute / no-show report tied to a
+ * booking — the "current case status" surface required by Module 1. Shared
+ * by both customer and provider booking-detail screens. No dedicated
+ * timeline table; created_at/resolved_at + admin notes on the case row
+ * itself are the timeline. */
+export function SupportCasesCard({
+  tickets,
+  dispute,
+  noShowReport,
+  t,
+}: {
+  tickets: { id: string; subject: string; status: string; resolution_notes: string | null }[];
+  dispute?: { reason: string; status: string; admin_notes: string | null };
+  noShowReport?: { reason: string; status: string; admin_notes: string | null };
+  t: (key: string, opts?: any) => string;
+}) {
+  if (tickets.length === 0 && !dispute && !noShowReport) return null;
+  return (
+    <Card className="mt-4 space-y-3 p-4">
+      <div className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">{t("bookingDetail.yourCases")}</div>
+      {tickets.map((tk) => (
+        <div key={tk.id} className="rounded-xl bg-surface-2 p-3 text-xs">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-bold">{tk.subject}</span>
+            <Badge tone={caseTone(tk.status)}>{t(`bookingDetail.caseStatus.${tk.status}`, { defaultValue: tk.status })}</Badge>
+          </div>
+          {tk.resolution_notes && <p className="mt-1 text-muted-foreground">{tk.resolution_notes}</p>}
+        </div>
+      ))}
+      {dispute && (
+        <div className="rounded-xl bg-surface-2 p-3 text-xs">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-bold">{t("bookingDetail.disputeCaseTitle")}</span>
+            <Badge tone={caseTone(dispute.status)}>{t(`bookingDetail.caseStatus.${dispute.status}`, { defaultValue: dispute.status })}</Badge>
+          </div>
+          <p className="mt-1 text-muted-foreground">{dispute.reason}</p>
+          {dispute.admin_notes && <p className="mt-1 text-muted-foreground">{dispute.admin_notes}</p>}
+        </div>
+      )}
+      {noShowReport && (
+        <div className="rounded-xl bg-surface-2 p-3 text-xs">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-bold">{t("bookingDetail.noShowCaseTitle")}</span>
+            <Badge tone={caseTone(noShowReport.status)}>{t(`bookingDetail.caseStatus.${noShowReport.status}`, { defaultValue: noShowReport.status })}</Badge>
+          </div>
+          <p className="mt-1 text-muted-foreground">{noShowReport.reason}</p>
+          {noShowReport.admin_notes && <p className="mt-1 text-muted-foreground">{noShowReport.admin_notes}</p>}
+        </div>
+      )}
+    </Card>
+  );
+}
+
 /** Step tracker for the real booking_status lifecycle — no fabricated
  * per-step timestamps, just done/active/upcoming state derived from the
  * booking's current status. `labelFor` lets customer/provider screens pull

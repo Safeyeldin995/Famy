@@ -56,6 +56,7 @@ import { Route as AdminPromoCodesRouteImport } from './routes/admin.promo-codes'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
 import { Route as AdminPaymentMethodsRouteImport } from './routes/admin.payment-methods'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
+import { Route as AdminCasesRouteImport } from './routes/admin.cases'
 import { Route as AdminCancellationReasonsRouteImport } from './routes/admin.cancellation-reasons'
 import { Route as AdminCampaignsRouteImport } from './routes/admin.campaigns'
 import { Route as AdminBookingsRouteImport } from './routes/admin.bookings'
@@ -301,6 +302,11 @@ const AdminCustomersRoute = AdminCustomersRouteImport.update({
   path: '/customers',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminCasesRoute = AdminCasesRouteImport.update({
+  id: '/cases',
+  path: '/cases',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCancellationReasonsRoute =
   AdminCancellationReasonsRouteImport.update({
     id: '/cancellation-reasons',
@@ -367,6 +373,7 @@ export interface FileRoutesByFullPath {
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/campaigns': typeof AdminCampaignsRoute
   '/admin/cancellation-reasons': typeof AdminCancellationReasonsRoute
+  '/admin/cases': typeof AdminCasesRoute
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -421,6 +428,7 @@ export interface FileRoutesByTo {
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/campaigns': typeof AdminCampaignsRoute
   '/admin/cancellation-reasons': typeof AdminCancellationReasonsRoute
+  '/admin/cases': typeof AdminCasesRoute
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -479,6 +487,7 @@ export interface FileRoutesById {
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/campaigns': typeof AdminCampaignsRoute
   '/admin/cancellation-reasons': typeof AdminCancellationReasonsRoute
+  '/admin/cases': typeof AdminCasesRoute
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -538,6 +547,7 @@ export interface FileRouteTypes {
     | '/admin/bookings'
     | '/admin/campaigns'
     | '/admin/cancellation-reasons'
+    | '/admin/cases'
     | '/admin/customers'
     | '/admin/payment-methods'
     | '/admin/payments'
@@ -592,6 +602,7 @@ export interface FileRouteTypes {
     | '/admin/bookings'
     | '/admin/campaigns'
     | '/admin/cancellation-reasons'
+    | '/admin/cases'
     | '/admin/customers'
     | '/admin/payment-methods'
     | '/admin/payments'
@@ -649,6 +660,7 @@ export interface FileRouteTypes {
     | '/admin/bookings'
     | '/admin/campaigns'
     | '/admin/cancellation-reasons'
+    | '/admin/cases'
     | '/admin/customers'
     | '/admin/payment-methods'
     | '/admin/payments'
@@ -1042,6 +1054,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCustomersRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/cases': {
+      id: '/admin/cases'
+      path: '/cases'
+      fullPath: '/admin/cases'
+      preLoaderRoute: typeof AdminCasesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/cancellation-reasons': {
       id: '/admin/cancellation-reasons'
       path: '/cancellation-reasons'
@@ -1119,6 +1138,7 @@ interface AdminRouteChildren {
   AdminBookingsRoute: typeof AdminBookingsRoute
   AdminCampaignsRoute: typeof AdminCampaignsRoute
   AdminCancellationReasonsRoute: typeof AdminCancellationReasonsRoute
+  AdminCasesRoute: typeof AdminCasesRoute
   AdminCustomersRoute: typeof AdminCustomersRoute
   AdminPaymentMethodsRoute: typeof AdminPaymentMethodsRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
@@ -1136,6 +1156,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminBookingsRoute: AdminBookingsRoute,
   AdminCampaignsRoute: AdminCampaignsRoute,
   AdminCancellationReasonsRoute: AdminCancellationReasonsRoute,
+  AdminCasesRoute: AdminCasesRoute,
   AdminCustomersRoute: AdminCustomersRoute,
   AdminPaymentMethodsRoute: AdminPaymentMethodsRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,
