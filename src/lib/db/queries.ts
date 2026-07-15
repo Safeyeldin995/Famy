@@ -239,8 +239,11 @@ export function useProviders(opts: { categorySlug?: string; limit?: number } = {
   return useQuery({
     queryKey: ['providers', opts],
     queryFn: async () => {
+      // eligible_providers already gates on verified + active + an approved,
+      // in-range-priced, zone-covered, requirements-met service — the full
+      // eligibility pipeline, not just verified/active (see provider_eligibility()).
       let q = supabase
-        .from('providers')
+        .from('eligible_providers')
         .select(
           `id, hourly_rate, years_experience, languages, city, is_top_pro, is_verified, response_time_min,
            profile:profiles(full_name, avatar_url),
@@ -248,8 +251,6 @@ export function useProviders(opts: { categorySlug?: string; limit?: number } = {
            trust:trust_scores(score),
            services:provider_services(status, service:services(id, slug, name_en, name_ar, category:categories(slug)))`,
         )
-        .eq('is_active', true)
-        .eq('is_verified', true)
         .limit(opts.limit ?? 50);
       const { data, error } = await q;
       if (error) throw error;

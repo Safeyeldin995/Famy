@@ -2,9 +2,43 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
-import { useAdminProvider, useSetProviderVerified, useSetProviderActive, useSetProviderServiceStatus, useDocumentSignedUrl } from "@/lib/db/admin-queries";
+import { useAdminProvider, useProviderEligibility, useSetProviderVerified, useSetProviderActive, useSetProviderServiceStatus, useDocumentSignedUrl } from "@/lib/db/admin-queries";
 import { useProviderAvailability, useProviderVacations, useAddVacation, useDeleteVacation } from "@/lib/db/provider-queries";
-import { ChevronLeft, FileText, ShieldCheck, Trash2 } from "lucide-react";
+import { ChevronLeft, FileText, ShieldCheck, Trash2, Check, X } from "lucide-react";
+
+function EligibilitySection({ providerId }: { providerId: string }) {
+  const { t } = useTranslation();
+  const q = useProviderEligibility(providerId);
+  if (q.isLoading || !q.data) return null;
+  const e = q.data;
+  const rows: Array<{ ok: boolean; label: string }> = [
+    { ok: e.verified, label: t("admin.provider.eligVerified") },
+    { ok: e.active, label: t("admin.provider.eligActive") },
+    { ok: e.has_approved_service, label: t("admin.provider.eligApprovedService") },
+    { ok: e.price_valid, label: t("admin.provider.eligPriceValid") },
+    { ok: e.zone_covered, label: t("admin.provider.eligZoneCovered") },
+    { ok: e.requirements_met, label: t("admin.provider.eligRequirementsMet") },
+  ];
+  return (
+    <section className="rounded-2xl border border-border/60 bg-surface p-4 shadow-card">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("admin.provider.eligibilityTitle")}</h3>
+        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${e.is_eligible ? "bg-mint/20 text-success" : "bg-coral/10 text-coral"}`}>
+          {e.is_eligible ? t("admin.providers.verified") : t("admin.providers.pending")}
+        </span>
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">{e.is_eligible ? t("admin.provider.eligibleBody") : t("admin.provider.notEligibleBody")}</p>
+      <ul className="mt-3 space-y-1.5">
+        {rows.map((r) => (
+          <li key={r.label} className="flex items-center gap-2 text-xs">
+            {r.ok ? <Check className="h-3.5 w-3.5 shrink-0 text-success" /> : <X className="h-3.5 w-3.5 shrink-0 text-coral" />}
+            <span className={r.ok ? "text-foreground" : "font-semibold text-coral"}>{r.label}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
 const DAY_LABEL_KEYS = [
   "admin.provider.daySun", "admin.provider.dayMon", "admin.provider.dayTue", "admin.provider.dayWed",
@@ -135,6 +169,8 @@ function AdminProvider() {
         </dl>
         {p.bio_en && <p className="mt-3 text-xs text-muted-foreground">{p.bio_en}</p>}
       </section>
+
+      <EligibilitySection providerId={p.id} />
 
       <AvailabilitySection providerId={p.id} />
 

@@ -68,6 +68,21 @@ export function useAdminProvider(id: string) {
   });
 }
 
+// Backs the Admin "why isn't this provider visible to customers" checklist —
+// same provider_eligibility() the customer-search eligible_providers view
+// uses, so the two can never disagree.
+export function useProviderEligibility(id: string) {
+  return useQuery({
+    queryKey: ['admin', 'provider-eligibility', id],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('provider_eligibility', { p_provider_id: id });
+      if (error) throw error;
+      return data?.[0] ?? null;
+    },
+    enabled: !!id,
+  });
+}
+
 export function useSetProviderVerified() {
   const qc = useQueryClient();
   return useMutation({
