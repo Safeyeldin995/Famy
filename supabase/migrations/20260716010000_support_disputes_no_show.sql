@@ -697,6 +697,13 @@ BEGIN
     RAISE EXCEPTION 'Please provide a more detailed description.' USING ERRCODE = '23514';
   END IF;
 
+  IF EXISTS (
+    SELECT 1 FROM unnest(COALESCE(p_evidence_paths, '{}')) AS ep(path)
+    WHERE left(ep.path, length(p_booking_id::text) + 1) IS DISTINCT FROM (p_booking_id::text || '/')
+  ) THEN
+    RAISE EXCEPTION 'Evidence must belong to this booking.' USING ERRCODE = '23514';
+  END IF;
+
   PERFORM set_config('app.dispute_in_progress', 'on', true);
   UPDATE public.bookings SET status = 'disputed', dispute_reason = btrim(p_reason) WHERE id = p_booking_id;
 
@@ -751,6 +758,13 @@ BEGIN
 
   IF p_reason IS NULL OR btrim(p_reason) = '' THEN
     RAISE EXCEPTION 'A reason is required.' USING ERRCODE = '23514';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM unnest(COALESCE(p_evidence_paths, '{}')) AS ep(path)
+    WHERE left(ep.path, length(p_booking_id::text) + 1) IS DISTINCT FROM (p_booking_id::text || '/')
+  ) THEN
+    RAISE EXCEPTION 'Evidence must belong to this booking.' USING ERRCODE = '23514';
   END IF;
 
   PERFORM set_config('app.no_show_in_progress', 'on', true);
