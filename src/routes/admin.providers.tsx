@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import {
   useAdminProviders, useSetProviderVerified, useSetProviderActive,
   type AdminProviderFilter,
@@ -18,6 +19,8 @@ const FILTERS: { key: AdminProviderFilter; label: string }[] = [
 function ProviderManagement() {
   const [filter, setFilter] = useState<AdminProviderFilter>("pending");
   const [query, setQuery] = useState("");
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
   const q = useAdminProviders(filter);
   const setVerified = useSetProviderVerified();
   const setActive = useSetProviderActive();
@@ -104,12 +107,15 @@ function ProviderManagement() {
                     <>
                       <button
                         disabled={setVerified.isPending}
-                        onClick={() => setVerified.mutate({ id: p.id, verified: true })}
+                        onClick={() => setVerified.mutate(
+                          { id: p.id, verified: true },
+                          { onError: (e: any) => toast.error(e?.message ?? "Could not approve this provider.") },
+                        )}
                         className="rounded-xl bg-navy px-4 py-2 text-xs font-bold text-navy-foreground disabled:opacity-50"
                       >Approve</button>
                       <button
                         disabled={setVerified.isPending}
-                        onClick={() => setVerified.mutate({ id: p.id, verified: false })}
+                        onClick={() => { setRejectingId(p.id); setRejectReason(""); }}
                         className="rounded-xl border border-border px-4 py-2 text-xs font-bold disabled:opacity-50"
                       >Reject</button>
                     </>
@@ -126,6 +132,32 @@ function ProviderManagement() {
                     </button>
                   )}
                 </div>
+                {rejectingId === p.id && (
+                  <div className="mt-3 space-y-2 rounded-xl border border-coral/30 bg-coral/5 p-3">
+                    <p className="text-[11px] font-bold text-coral">Rejection reason (audited — required)</p>
+                    <textarea
+                      value={rejectReason}
+                      onChange={(e) => setRejectReason(e.target.value)}
+                      rows={2}
+                      placeholder="Why is this application being rejected?"
+                      className="w-full resize-none rounded-lg border border-border bg-surface p-2 text-xs"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        disabled={!rejectReason.trim() || setVerified.isPending}
+                        onClick={() => setVerified.mutate(
+                          { id: p.id, verified: false, reason: rejectReason.trim() },
+                          {
+                            onSuccess: () => setRejectingId(null),
+                            onError: (e: any) => toast.error(e?.message ?? "Could not reject this provider."),
+                          },
+                        )}
+                        className="rounded-lg bg-coral px-3 py-1.5 text-xs font-bold text-coral-foreground disabled:opacity-50"
+                      >Confirm reject</button>
+                      <button onClick={() => setRejectingId(null)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold">Cancel</button>
+                    </div>
+                  </div>
+                )}
               </li>
             );
           })}

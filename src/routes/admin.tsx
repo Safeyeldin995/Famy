@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, Link, useNavigate, useRouterState } from "@tan
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyRole } from "@/lib/db/provider-queries";
-import { Users, ClipboardList, ShieldCheck, Wallet, UserRound, Settings, Layers, MapPin, CreditCard, Tag, Ban, Megaphone, LifeBuoy } from "lucide-react";
+import { Users, ClipboardList, ShieldCheck, Wallet, UserRound, Settings, Layers, MapPin, CreditCard, Tag, Ban, Megaphone, LifeBuoy, Activity, History } from "lucide-react";
 import famyLogo from "@/assets/famy-wordmark.png";
 
 export const Route = createFileRoute("/admin")({ component: AdminLayout });
@@ -40,6 +40,7 @@ function AdminLayout() {
 
   const tabs = [
     { to: "/admin", label: "Overview", icon: Users, exact: true },
+    { to: "/admin/operations", label: "Operations", icon: Activity },
     { to: "/admin/providers", label: "Providers", icon: ShieldCheck },
     { to: "/admin/customers", label: "Customers", icon: UserRound },
     { to: "/admin/bookings", label: "Bookings", icon: ClipboardList },
@@ -51,6 +52,7 @@ function AdminLayout() {
     { to: "/admin/promo-codes", label: "Promo Codes", icon: Tag },
     { to: "/admin/zones", label: "Zones", icon: MapPin },
     { to: "/admin/campaigns", label: "Campaigns", icon: Megaphone },
+    { to: "/admin/audit-log", label: "Audit Log", icon: History },
     { to: "/admin/settings", label: "Settings", icon: Settings },
   ];
 

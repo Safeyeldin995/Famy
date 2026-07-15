@@ -58,7 +58,7 @@ export function useAdminProvider(id: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('providers')
-        .select('*, profile:profiles(*), documents:provider_documents(*), services:provider_services(id, status, service:services(id, name_en, name_ar, category:categories(name_en, name_ar)))')
+        .select('*, profile:profiles(*), documents:provider_documents(*), services:provider_services(id, status, rejection_reason, service:services(id, name_en, name_ar, category:categories(name_en, name_ar)))')
         .eq('id', id)
         .maybeSingle();
       if (error) throw error;
@@ -71,11 +71,12 @@ export function useAdminProvider(id: string) {
 export function useSetProviderVerified() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, verified }: { id: string; verified: boolean }) => {
-      const { error } = await supabase
-        .from('providers')
-        .update({ is_verified: verified, is_active: verified })
-        .eq('id', id);
+    mutationFn: async ({ id, verified, reason }: { id: string; verified: boolean; reason?: string }) => {
+      const { error } = await supabase.rpc('admin_set_provider_verification', {
+        p_provider_id: id,
+        p_verified: verified,
+        p_reason: reason ?? null,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -87,11 +88,12 @@ export function useSetProviderVerified() {
 export function useSetProviderServiceStatus() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ providerServiceId, status }: { providerServiceId: string; status: 'approved' | 'rejected' }) => {
-      const { error } = await supabase
-        .from('provider_services')
-        .update({ status } as any)
-        .eq('id', providerServiceId);
+    mutationFn: async ({ providerServiceId, status, reason }: { providerServiceId: string; status: 'approved' | 'rejected'; reason?: string }) => {
+      const { error } = await supabase.rpc('admin_set_provider_service_status', {
+        p_id: providerServiceId,
+        p_status: status,
+        p_reason: reason ?? null,
+      });
       if (error) throw error;
     },
     onSuccess: () => {

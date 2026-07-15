@@ -55,11 +55,13 @@ import { Route as AdminProvidersRouteImport } from './routes/admin.providers'
 import { Route as AdminPromoCodesRouteImport } from './routes/admin.promo-codes'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
 import { Route as AdminPaymentMethodsRouteImport } from './routes/admin.payment-methods'
+import { Route as AdminOperationsRouteImport } from './routes/admin.operations'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
 import { Route as AdminCasesRouteImport } from './routes/admin.cases'
 import { Route as AdminCancellationReasonsRouteImport } from './routes/admin.cancellation-reasons'
 import { Route as AdminCampaignsRouteImport } from './routes/admin.campaigns'
 import { Route as AdminBookingsRouteImport } from './routes/admin.bookings'
+import { Route as AdminAuditLogRouteImport } from './routes/admin.audit-log'
 import { Route as AddressesNewRouteImport } from './routes/addresses.new'
 import { Route as AddressesIdRouteImport } from './routes/addresses.$id'
 import { Route as ProBookingIdRouteImport } from './routes/pro.booking.$id'
@@ -297,6 +299,11 @@ const AdminPaymentMethodsRoute = AdminPaymentMethodsRouteImport.update({
   path: '/payment-methods',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminOperationsRoute = AdminOperationsRouteImport.update({
+  id: '/operations',
+  path: '/operations',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCustomersRoute = AdminCustomersRouteImport.update({
   id: '/customers',
   path: '/customers',
@@ -321,6 +328,11 @@ const AdminCampaignsRoute = AdminCampaignsRouteImport.update({
 const AdminBookingsRoute = AdminBookingsRouteImport.update({
   id: '/bookings',
   path: '/bookings',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAuditLogRoute = AdminAuditLogRouteImport.update({
+  id: '/audit-log',
+  path: '/audit-log',
   getParentRoute: () => AdminRoute,
 } as any)
 const AddressesNewRoute = AddressesNewRouteImport.update({
@@ -370,11 +382,13 @@ export interface FileRoutesByFullPath {
   '/setup': typeof SetupRoute
   '/addresses/$id': typeof AddressesIdRoute
   '/addresses/new': typeof AddressesNewRoute
+  '/admin/audit-log': typeof AdminAuditLogRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/campaigns': typeof AdminCampaignsRoute
   '/admin/cancellation-reasons': typeof AdminCancellationReasonsRoute
   '/admin/cases': typeof AdminCasesRoute
   '/admin/customers': typeof AdminCustomersRoute
+  '/admin/operations': typeof AdminOperationsRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/promo-codes': typeof AdminPromoCodesRoute
@@ -425,11 +439,13 @@ export interface FileRoutesByTo {
   '/setup': typeof SetupRoute
   '/addresses/$id': typeof AddressesIdRoute
   '/addresses/new': typeof AddressesNewRoute
+  '/admin/audit-log': typeof AdminAuditLogRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/campaigns': typeof AdminCampaignsRoute
   '/admin/cancellation-reasons': typeof AdminCancellationReasonsRoute
   '/admin/cases': typeof AdminCasesRoute
   '/admin/customers': typeof AdminCustomersRoute
+  '/admin/operations': typeof AdminOperationsRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/promo-codes': typeof AdminPromoCodesRoute
@@ -484,11 +500,13 @@ export interface FileRoutesById {
   '/setup': typeof SetupRoute
   '/addresses/$id': typeof AddressesIdRoute
   '/addresses/new': typeof AddressesNewRoute
+  '/admin/audit-log': typeof AdminAuditLogRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/campaigns': typeof AdminCampaignsRoute
   '/admin/cancellation-reasons': typeof AdminCancellationReasonsRoute
   '/admin/cases': typeof AdminCasesRoute
   '/admin/customers': typeof AdminCustomersRoute
+  '/admin/operations': typeof AdminOperationsRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/promo-codes': typeof AdminPromoCodesRoute
@@ -544,11 +562,13 @@ export interface FileRouteTypes {
     | '/setup'
     | '/addresses/$id'
     | '/addresses/new'
+    | '/admin/audit-log'
     | '/admin/bookings'
     | '/admin/campaigns'
     | '/admin/cancellation-reasons'
     | '/admin/cases'
     | '/admin/customers'
+    | '/admin/operations'
     | '/admin/payment-methods'
     | '/admin/payments'
     | '/admin/promo-codes'
@@ -599,11 +619,13 @@ export interface FileRouteTypes {
     | '/setup'
     | '/addresses/$id'
     | '/addresses/new'
+    | '/admin/audit-log'
     | '/admin/bookings'
     | '/admin/campaigns'
     | '/admin/cancellation-reasons'
     | '/admin/cases'
     | '/admin/customers'
+    | '/admin/operations'
     | '/admin/payment-methods'
     | '/admin/payments'
     | '/admin/promo-codes'
@@ -657,11 +679,13 @@ export interface FileRouteTypes {
     | '/setup'
     | '/addresses/$id'
     | '/addresses/new'
+    | '/admin/audit-log'
     | '/admin/bookings'
     | '/admin/campaigns'
     | '/admin/cancellation-reasons'
     | '/admin/cases'
     | '/admin/customers'
+    | '/admin/operations'
     | '/admin/payment-methods'
     | '/admin/payments'
     | '/admin/promo-codes'
@@ -1047,6 +1071,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPaymentMethodsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/operations': {
+      id: '/admin/operations'
+      path: '/operations'
+      fullPath: '/admin/operations'
+      preLoaderRoute: typeof AdminOperationsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/customers': {
       id: '/admin/customers'
       path: '/customers'
@@ -1080,6 +1111,13 @@ declare module '@tanstack/react-router' {
       path: '/bookings'
       fullPath: '/admin/bookings'
       preLoaderRoute: typeof AdminBookingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/audit-log': {
+      id: '/admin/audit-log'
+      path: '/audit-log'
+      fullPath: '/admin/audit-log'
+      preLoaderRoute: typeof AdminAuditLogRouteImport
       parentRoute: typeof AdminRoute
     }
     '/addresses/new': {
@@ -1135,11 +1173,13 @@ const AddressesRouteWithChildren = AddressesRoute._addFileChildren(
 )
 
 interface AdminRouteChildren {
+  AdminAuditLogRoute: typeof AdminAuditLogRoute
   AdminBookingsRoute: typeof AdminBookingsRoute
   AdminCampaignsRoute: typeof AdminCampaignsRoute
   AdminCancellationReasonsRoute: typeof AdminCancellationReasonsRoute
   AdminCasesRoute: typeof AdminCasesRoute
   AdminCustomersRoute: typeof AdminCustomersRoute
+  AdminOperationsRoute: typeof AdminOperationsRoute
   AdminPaymentMethodsRoute: typeof AdminPaymentMethodsRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
   AdminPromoCodesRoute: typeof AdminPromoCodesRoute
@@ -1153,11 +1193,13 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminAuditLogRoute: AdminAuditLogRoute,
   AdminBookingsRoute: AdminBookingsRoute,
   AdminCampaignsRoute: AdminCampaignsRoute,
   AdminCancellationReasonsRoute: AdminCancellationReasonsRoute,
   AdminCasesRoute: AdminCasesRoute,
   AdminCustomersRoute: AdminCustomersRoute,
+  AdminOperationsRoute: AdminOperationsRoute,
   AdminPaymentMethodsRoute: AdminPaymentMethodsRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,
   AdminPromoCodesRoute: AdminPromoCodesRoute,

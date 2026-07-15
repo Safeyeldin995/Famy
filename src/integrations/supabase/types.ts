@@ -115,6 +115,9 @@ export type Database = {
         Row: {
           action: string
           actor_id: string | null
+          actor_role: string | null
+          booking_id: string | null
+          correlation_id: string | null
           created_at: string
           diff: Json | null
           entity: string
@@ -123,11 +126,15 @@ export type Database = {
           ip_address: unknown
           new_values: Json | null
           old_values: Json | null
+          reason: string | null
           user_agent: string | null
         }
         Insert: {
           action: string
           actor_id?: string | null
+          actor_role?: string | null
+          booking_id?: string | null
+          correlation_id?: string | null
           created_at?: string
           diff?: Json | null
           entity: string
@@ -136,11 +143,15 @@ export type Database = {
           ip_address?: unknown
           new_values?: Json | null
           old_values?: Json | null
+          reason?: string | null
           user_agent?: string | null
         }
         Update: {
           action?: string
           actor_id?: string | null
+          actor_role?: string | null
+          booking_id?: string | null
+          correlation_id?: string | null
           created_at?: string
           diff?: Json | null
           entity?: string
@@ -149,9 +160,18 @@ export type Database = {
           ip_address?: unknown
           new_values?: Json | null
           old_values?: Json | null
+          reason?: string | null
           user_agent?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       availability_exceptions: {
         Row: {
@@ -1976,6 +1996,7 @@ export type Database = {
           id: string
           price_override: number | null
           provider_id: string
+          rejection_reason: string | null
           service_id: string
           status: string
         }
@@ -1985,6 +2006,7 @@ export type Database = {
           id?: string
           price_override?: number | null
           provider_id: string
+          rejection_reason?: string | null
           service_id: string
           status?: string
         }
@@ -1994,6 +2016,7 @@ export type Database = {
           id?: string
           price_override?: number | null
           provider_id?: string
+          rejection_reason?: string | null
           service_id?: string
           status?: string
         }
@@ -2918,9 +2941,25 @@ export type Database = {
         Args: { p_campaign_id: string }
         Returns: undefined
       }
+      admin_operations_summary: {
+        Args: Record<PropertyKey, never>
+        Returns: { queue: string; item_count: number; oldest_at: string | null }[]
+      }
       admin_preview_campaign_audience: {
         Args: { p_target: string }
         Returns: number
+      }
+      admin_retry_notification: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      admin_set_provider_service_status: {
+        Args: { p_id: string; p_status: string; p_reason?: string | null }
+        Returns: undefined
+      }
+      admin_set_provider_verification: {
+        Args: { p_provider_id: string; p_verified: boolean; p_reason?: string | null }
+        Returns: undefined
       }
       admin_resolve_dispute: {
         Args: {

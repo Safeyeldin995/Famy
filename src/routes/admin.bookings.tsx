@@ -65,15 +65,22 @@ function AdminRescheduleHistory({ bookingId, customerId }: { bookingId: string; 
   );
 }
 
-export const Route = createFileRoute("/admin/bookings")({ component: AdminBookings });
+export const Route = createFileRoute("/admin/bookings")({
+  component: AdminBookings,
+  validateSearch: (search: Record<string, unknown>): { status?: string } => ({
+    ...(typeof search.status === "string" ? { status: search.status } : {}),
+  }),
+});
 
 // Real booking_status enum: pending, confirmed, in_progress, completed,
 // cancelled, no_show. "Accepted" in the product brief maps to "confirmed" —
-// there is no separate "accepted" state in the schema.
+// there is no separate "accepted" state in the schema. completion_requested
+// is included so the Operations dashboard can deep-link into it.
 const STATUS_FILTERS = [
   { key: "pending", label: "Pending" },
   { key: "confirmed", label: "Accepted" },
   { key: "in_progress", label: "In Progress" },
+  { key: "completion_requested", label: "Completion Requested" },
   { key: "completed", label: "Completed" },
   { key: "cancelled", label: "Cancelled" },
   { key: "no_show", label: "No-show" },
@@ -92,7 +99,8 @@ function paymentTone(status: string | undefined) {
 }
 
 function AdminBookings() {
-  const [status, setStatus] = useState<string>("");
+  const search = Route.useSearch();
+  const [status, setStatus] = useState<string>(search.status ?? "");
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [cancelId, setCancelId] = useState<string | null>(null);

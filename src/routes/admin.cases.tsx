@@ -10,7 +10,13 @@ import {
 } from "@/lib/db/case-queries";
 import { Search, Paperclip } from "lucide-react";
 
-export const Route = createFileRoute("/admin/cases")({ component: AdminCases });
+export const Route = createFileRoute("/admin/cases")({
+  component: AdminCases,
+  validateSearch: (search: Record<string, unknown>): { tab?: string; status?: string } => ({
+    ...(typeof search.tab === "string" ? { tab: search.tab } : {}),
+    ...(typeof search.status === "string" ? { status: search.status } : {}),
+  }),
+});
 
 type Tab = "support" | "disputes" | "no_shows";
 
@@ -247,8 +253,9 @@ function CaseRow({ tab, row, isOpen, onToggle }: { tab: Tab; row: any; isOpen: b
 }
 
 function AdminCases() {
-  const [tab, setTab] = useState<Tab>("support");
-  const [status, setStatus] = useState("");
+  const search = Route.useSearch();
+  const [tab, setTab] = useState<Tab>((search.tab as Tab) ?? "support");
+  const [status, setStatus] = useState(search.status ?? "");
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
 

@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { toast } from "sonner";
 import { useAdminProvider, useSetProviderVerified, useSetProviderActive, useSetProviderServiceStatus, useDocumentSignedUrl } from "@/lib/db/admin-queries";
 import { useProviderAvailability, useProviderVacations, useAddVacation, useDeleteVacation } from "@/lib/db/provider-queries";
 import { ChevronLeft, FileText, ShieldCheck, Trash2 } from "lucide-react";
@@ -76,6 +77,10 @@ function AdminProvider() {
   const setServiceStatus = useSetProviderServiceStatus();
   const sign = useDocumentSignedUrl();
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showRejectApplication, setShowRejectApplication] = useState(false);
+  const [applicationRejectReason, setApplicationRejectReason] = useState("");
+  const [rejectingServiceId, setRejectingServiceId] = useState<string | null>(null);
+  const [serviceRejectReason, setServiceRejectReason] = useState("");
 
   if (q.isLoading) return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
   const p: any = q.data;
@@ -159,23 +164,57 @@ function AdminProvider() {
         ) : (
           <ul className="space-y-2">
             {p.services.map((ps: any) => (
-              <li key={ps.id} className="flex items-center justify-between rounded-xl border border-border/60 bg-surface p-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold">{ps.service?.name_en}</p>
-                  <p className="truncate text-[11px] text-muted-foreground">{ps.service?.category?.name_en} · {ps.status}</p>
+              <li key={ps.id} className="rounded-xl border border-border/60 bg-surface p-3">
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold">{ps.service?.name_en}</p>
+                    <p className="truncate text-[11px] text-muted-foreground">{ps.service?.category?.name_en} · {ps.status}</p>
+                    {ps.status === "rejected" && ps.rejection_reason && (
+                      <p className="mt-0.5 text-[11px] text-coral">Reason: {ps.rejection_reason}</p>
+                    )}
+                  </div>
+                  {ps.status === "pending" && (
+                    <div className="flex shrink-0 gap-1.5">
+                      <button
+                        disabled={setServiceStatus.isPending}
+                        onClick={() => setServiceStatus.mutate(
+                          { providerServiceId: ps.id, status: "approved" },
+                          { onError: (e: any) => toast.error(e?.message ?? "Could not approve this service.") },
+                        )}
+                        className="rounded-lg bg-navy px-3 py-1.5 text-[11px] font-bold text-navy-foreground disabled:opacity-50"
+                      >Approve</button>
+                      <button
+                        disabled={setServiceStatus.isPending}
+                        onClick={() => { setRejectingServiceId(ps.id); setServiceRejectReason(""); }}
+                        className="rounded-lg border border-border px-3 py-1.5 text-[11px] font-bold disabled:opacity-50"
+                      >Reject</button>
+                    </div>
+                  )}
                 </div>
-                {ps.status === "pending" && (
-                  <div className="flex shrink-0 gap-1.5">
-                    <button
-                      disabled={setServiceStatus.isPending}
-                      onClick={() => setServiceStatus.mutate({ providerServiceId: ps.id, status: "approved" })}
-                      className="rounded-lg bg-navy px-3 py-1.5 text-[11px] font-bold text-navy-foreground disabled:opacity-50"
-                    >Approve</button>
-                    <button
-                      disabled={setServiceStatus.isPending}
-                      onClick={() => setServiceStatus.mutate({ providerServiceId: ps.id, status: "rejected" })}
-                      className="rounded-lg border border-border px-3 py-1.5 text-[11px] font-bold disabled:opacity-50"
-                    >Reject</button>
+                {rejectingServiceId === ps.id && (
+                  <div className="mt-2 space-y-2 rounded-lg border border-coral/30 bg-coral/5 p-2">
+                    <p className="text-[11px] font-bold text-coral">Rejection reason (audited — required)</p>
+                    <textarea
+                      value={serviceRejectReason}
+                      onChange={(e) => setServiceRejectReason(e.target.value)}
+                      rows={2}
+                      placeholder="Why is this service request being rejected?"
+                      className="w-full resize-none rounded-lg border border-border bg-surface p-2 text-xs"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        disabled={!serviceRejectReason.trim() || setServiceStatus.isPending}
+                        onClick={() => setServiceStatus.mutate(
+                          { providerServiceId: ps.id, status: "rejected", reason: serviceRejectReason.trim() },
+                          {
+                            onSuccess: () => setRejectingServiceId(null),
+                            onError: (e: any) => toast.error(e?.message ?? "Could not reject this service."),
+                          },
+                        )}
+                        className="rounded-lg bg-coral px-3 py-1.5 text-[11px] font-bold text-coral-foreground disabled:opacity-50"
+                      >Confirm reject</button>
+                      <button onClick={() => setRejectingServiceId(null)} className="rounded-lg border border-border px-3 py-1.5 text-[11px] font-bold">Cancel</button>
+                    </div>
                   </div>
                 )}
               </li>
@@ -189,12 +228,15 @@ function AdminProvider() {
           <>
             <button
               disabled={setVerified.isPending}
-              onClick={() => setVerified.mutate({ id: p.id, verified: true })}
+              onClick={() => setVerified.mutate(
+                { id: p.id, verified: true },
+                { onError: (e: any) => toast.error(e?.message ?? "Could not approve this provider.") },
+              )}
               className="flex-1 rounded-xl bg-navy py-3 text-sm font-bold text-navy-foreground disabled:opacity-50"
             >Approve</button>
             <button
               disabled={setVerified.isPending}
-              onClick={() => setVerified.mutate({ id: p.id, verified: false })}
+              onClick={() => { setApplicationRejectReason(""); setShowRejectApplication(true); }}
               className="flex-1 rounded-xl border border-border py-3 text-sm font-bold disabled:opacity-50"
             >Reject</button>
           </>
@@ -228,6 +270,36 @@ function AdminProvider() {
               <button onClick={toggleSuspend} disabled={setActive.isPending} className="h-11 flex-1 rounded-2xl bg-coral text-sm font-bold text-coral-foreground disabled:opacity-50">
                 {p.is_active ? "Confirm suspend" : "Unsuspend"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRejectApplication && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-6" onClick={() => setShowRejectApplication(false)}>
+          <div className="w-full max-w-sm rounded-3xl bg-surface p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="text-base font-extrabold">Reject this application?</div>
+            <p className="mt-1 text-xs text-muted-foreground">This is an audited action. A reason is required.</p>
+            <textarea
+              value={applicationRejectReason}
+              onChange={(e) => setApplicationRejectReason(e.target.value)}
+              rows={3}
+              placeholder="Reason (required)"
+              className="mt-3 w-full resize-none rounded-xl border border-border bg-surface p-2 text-sm"
+            />
+            <div className="mt-4 flex gap-2">
+              <button onClick={() => setShowRejectApplication(false)} className="h-11 flex-1 rounded-2xl border border-border bg-surface text-sm font-bold">Cancel</button>
+              <button
+                disabled={!applicationRejectReason.trim() || setVerified.isPending}
+                onClick={() => setVerified.mutate(
+                  { id: p.id, verified: false, reason: applicationRejectReason.trim() },
+                  {
+                    onSuccess: () => setShowRejectApplication(false),
+                    onError: (e: any) => toast.error(e?.message ?? "Could not reject this provider."),
+                  },
+                )}
+                className="h-11 flex-1 rounded-2xl bg-coral text-sm font-bold text-coral-foreground disabled:opacity-50"
+              >Confirm reject</button>
             </div>
           </div>
         </div>

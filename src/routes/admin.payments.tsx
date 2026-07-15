@@ -5,7 +5,12 @@ import { getSignedProofUrl } from "@/lib/db/payment-queries";
 import { formatEGP } from "@/lib/utils";
 import { Search, ExternalLink, Eye } from "lucide-react";
 
-export const Route = createFileRoute("/admin/payments")({ component: AdminPayments });
+export const Route = createFileRoute("/admin/payments")({
+  component: AdminPayments,
+  validateSearch: (search: Record<string, unknown>): { status?: string } => ({
+    ...(typeof search.status === "string" ? { status: search.status } : {}),
+  }),
+});
 
 const STATUS_OPTIONS = [
   "pending", "pending_review", "authorized", "captured", "rejected", "failed", "refunded", "partially_refunded",
@@ -19,7 +24,8 @@ function statusTone(status: string) {
 }
 
 function AdminPayments() {
-  const [status, setStatus] = useState<string>("");
+  const search = Route.useSearch();
+  const [status, setStatus] = useState<string>(search.status ?? "");
   const [query, setQuery] = useState("");
   const q = useAdminPayments(status || undefined);
 
