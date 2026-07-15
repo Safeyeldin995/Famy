@@ -75,7 +75,7 @@ export function useSetProviderVerified() {
       const { error } = await supabase.rpc('admin_set_provider_verification', {
         p_provider_id: id,
         p_verified: verified,
-        p_reason: reason ?? null,
+        p_reason: reason,
       });
       if (error) throw error;
     },
@@ -92,7 +92,7 @@ export function useSetProviderServiceStatus() {
       const { error } = await supabase.rpc('admin_set_provider_service_status', {
         p_id: providerServiceId,
         p_status: status,
-        p_reason: reason ?? null,
+        p_reason: reason,
       });
       if (error) throw error;
     },

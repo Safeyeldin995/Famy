@@ -1135,6 +1135,65 @@ export type Database = {
         }
         Relationships: []
       }
+      disputes: {
+        Row: {
+          admin_notes: string | null
+          booking_id: string
+          created_at: string
+          description: string
+          evidence_paths: string[]
+          id: string
+          opened_by: string
+          opened_by_role: string
+          previous_status: Database["public"]["Enums"]["booking_status"]
+          reason: string
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          booking_id: string
+          created_at?: string
+          description: string
+          evidence_paths?: string[]
+          id?: string
+          opened_by: string
+          opened_by_role: string
+          previous_status: Database["public"]["Enums"]["booking_status"]
+          reason: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          booking_id?: string
+          created_at?: string
+          description?: string
+          evidence_paths?: string[]
+          id?: string
+          opened_by?: string
+          opened_by_role?: string
+          previous_status?: Database["public"]["Enums"]["booking_status"]
+          reason?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disputes_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       family_members: {
         Row: {
           access_notes: string | null
@@ -1262,6 +1321,65 @@ export type Database = {
           },
         ]
       }
+      no_show_reports: {
+        Row: {
+          admin_notes: string | null
+          booking_id: string
+          created_at: string
+          evidence_paths: string[]
+          id: string
+          previous_status: Database["public"]["Enums"]["booking_status"]
+          reason: string
+          reported_by: string
+          reported_party: string
+          reporter_role: string
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          booking_id: string
+          created_at?: string
+          evidence_paths?: string[]
+          id?: string
+          previous_status: Database["public"]["Enums"]["booking_status"]
+          reason: string
+          reported_by: string
+          reported_party: string
+          reporter_role: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          booking_id?: string
+          created_at?: string
+          evidence_paths?: string[]
+          id?: string
+          previous_status?: Database["public"]["Enums"]["booking_status"]
+          reason?: string
+          reported_by?: string
+          reported_party?: string
+          reporter_role?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "no_show_reports_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_campaigns: {
         Row: {
           body_ar: string
@@ -1323,6 +1441,7 @@ export type Database = {
           next_attempt_at: string
           notification_id: string
           processed_at: string | null
+          processing_started_at: string | null
           recipient_user_id: string
           status: string
         }
@@ -1335,6 +1454,7 @@ export type Database = {
           next_attempt_at?: string
           notification_id: string
           processed_at?: string | null
+          processing_started_at?: string | null
           recipient_user_id: string
           status?: string
         }
@@ -1347,6 +1467,7 @@ export type Database = {
           next_attempt_at?: string
           notification_id?: string
           processed_at?: string | null
+          processing_started_at?: string | null
           recipient_user_id?: string
           status?: string
         }
@@ -2516,124 +2637,6 @@ export type Database = {
           },
         ]
       }
-      disputes: {
-        Row: {
-          admin_notes: string | null
-          booking_id: string
-          created_at: string
-          description: string
-          evidence_paths: string[]
-          id: string
-          opened_by: string
-          opened_by_role: string
-          previous_status: Database["public"]["Enums"]["booking_status"]
-          reason: string
-          resolved_at: string | null
-          resolved_by: string | null
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          admin_notes?: string | null
-          booking_id: string
-          created_at?: string
-          description: string
-          evidence_paths?: string[]
-          id?: string
-          opened_by: string
-          opened_by_role: string
-          previous_status: Database["public"]["Enums"]["booking_status"]
-          reason: string
-          resolved_at?: string | null
-          resolved_by?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          admin_notes?: string | null
-          booking_id?: string
-          created_at?: string
-          description?: string
-          evidence_paths?: string[]
-          id?: string
-          opened_by?: string
-          opened_by_role?: string
-          previous_status?: Database["public"]["Enums"]["booking_status"]
-          reason?: string
-          resolved_at?: string | null
-          resolved_by?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "disputes_booking_id_fkey"
-            columns: ["booking_id"]
-            isOneToOne: false
-            referencedRelation: "bookings"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      no_show_reports: {
-        Row: {
-          admin_notes: string | null
-          booking_id: string
-          created_at: string
-          evidence_paths: string[]
-          id: string
-          previous_status: Database["public"]["Enums"]["booking_status"]
-          reason: string
-          reported_by: string
-          reported_party: string
-          reporter_role: string
-          resolved_at: string | null
-          resolved_by: string | null
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          admin_notes?: string | null
-          booking_id: string
-          created_at?: string
-          evidence_paths?: string[]
-          id?: string
-          previous_status: Database["public"]["Enums"]["booking_status"]
-          reason: string
-          reported_by: string
-          reported_party: string
-          reporter_role: string
-          resolved_at?: string | null
-          resolved_by?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          admin_notes?: string | null
-          booking_id?: string
-          created_at?: string
-          evidence_paths?: string[]
-          id?: string
-          previous_status?: Database["public"]["Enums"]["booking_status"]
-          reason?: string
-          reported_by?: string
-          reported_party?: string
-          reporter_role?: string
-          resolved_at?: string | null
-          resolved_by?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "no_show_reports_booking_id_fkey"
-            columns: ["booking_id"]
-            isOneToOne: false
-            referencedRelation: "bookings"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       transactions: {
         Row: {
           amount: number
@@ -2942,24 +2945,16 @@ export type Database = {
         Returns: undefined
       }
       admin_operations_summary: {
-        Args: Record<PropertyKey, never>
-        Returns: { queue: string; item_count: number; oldest_at: string | null }[]
+        Args: never
+        Returns: {
+          item_count: number
+          oldest_at: string
+          queue: string
+        }[]
       }
       admin_preview_campaign_audience: {
         Args: { p_target: string }
         Returns: number
-      }
-      admin_retry_notification: {
-        Args: { p_id: string }
-        Returns: undefined
-      }
-      admin_set_provider_service_status: {
-        Args: { p_id: string; p_status: string; p_reason?: string | null }
-        Returns: undefined
-      }
-      admin_set_provider_verification: {
-        Args: { p_provider_id: string; p_verified: boolean; p_reason?: string | null }
-        Returns: undefined
       }
       admin_resolve_dispute: {
         Args: {
@@ -2983,9 +2978,22 @@ export type Database = {
         Args: { p_action: string; p_reason: string; p_request_id: string }
         Returns: undefined
       }
+      admin_retry_notification: { Args: { p_id: string }; Returns: undefined }
       admin_set_default_payment_method: {
         Args: { p_id: string }
         Returns: undefined
+      }
+      admin_set_provider_service_status: {
+        Args: { p_id: string; p_reason?: string; p_status: string }
+        Returns: undefined
+      }
+      admin_set_provider_verification: {
+        Args: { p_provider_id: string; p_reason?: string; p_verified: boolean }
+        Returns: undefined
+      }
+      audit_redact_jsonb: {
+        Args: { p_deny_keys: string[]; p_value: Json }
+        Returns: Json
       }
       cancel_booking: {
         Args: { p_booking_id: string; p_note?: string; p_reason_id: string }
@@ -2995,32 +3003,6 @@ export type Database = {
         Args: { p_request_id: string }
         Returns: undefined
       }
-      create_support_ticket: {
-        Args: {
-          p_booking_id: string
-          p_category: string
-          p_description: string
-          p_subject: string
-        }
-        Returns: string
-      }
-      open_booking_dispute: {
-        Args: {
-          p_booking_id: string
-          p_description: string
-          p_evidence_paths?: string[]
-          p_reason: string
-        }
-        Returns: string
-      }
-      report_no_show: {
-        Args: {
-          p_booking_id: string
-          p_evidence_paths?: string[]
-          p_reason: string
-        }
-        Returns: string
-      }
       check_booking_slot: {
         Args: {
           p_end: string
@@ -3029,6 +3011,37 @@ export type Database = {
           p_start: string
         }
         Returns: undefined
+      }
+      claim_notification_outbox_batch: {
+        Args: { p_batch_size?: number; p_stale_minutes?: number }
+        Returns: {
+          attempts: number
+          created_at: string
+          id: string
+          idempotency_key: string
+          last_error_safe: string | null
+          next_attempt_at: string
+          notification_id: string
+          processed_at: string | null
+          processing_started_at: string | null
+          recipient_user_id: string
+          status: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "notification_outbox"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      create_support_ticket: {
+        Args: {
+          p_booking_id: string
+          p_category: string
+          p_description: string
+          p_subject: string
+        }
+        Returns: string
       }
       expand_campaign_recipients: {
         Args: { p_campaign_id: string }
@@ -3046,6 +3059,15 @@ export type Database = {
         Args: { p_endpoint: string }
         Returns: undefined
       }
+      open_booking_dispute: {
+        Args: {
+          p_booking_id: string
+          p_description: string
+          p_evidence_paths?: string[]
+          p_reason: string
+        }
+        Returns: string
+      }
       process_due_campaigns: { Args: never; Returns: number }
       process_due_reminders: { Args: never; Returns: number }
       recompute_trust_score: {
@@ -3058,6 +3080,14 @@ export type Database = {
           p_device_label?: string
           p_endpoint: string
           p_p256dh: string
+        }
+        Returns: string
+      }
+      report_no_show: {
+        Args: {
+          p_booking_id: string
+          p_evidence_paths?: string[]
+          p_reason: string
         }
         Returns: string
       }

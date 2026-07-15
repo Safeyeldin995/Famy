@@ -1,4 +1,4 @@
-project_id = "hmhtyytumagbputyydrn"
+project_id = "mjhkaiabfnzewprcnojp"
 
 # Internal Cron/worker endpoint only — never called from browser code.
 # Platform JWT verification is intentionally disabled: verify_jwt only checks
