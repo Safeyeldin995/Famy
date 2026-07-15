@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { Plus, Search, MapPin } from "lucide-react";
 import {
   useAdminZones, useCreateZone, useUpdateZone, useSetZoneActive,
@@ -33,15 +34,15 @@ function formFromZone(z: any): ZoneForm {
   };
 }
 
-function validate(f: ZoneForm): Record<string, string> {
+function validate(f: ZoneForm, t: (key: string) => string): Record<string, string> {
   const errors: Record<string, string> = {};
-  if (!f.name_en.trim()) errors.name_en = "English name is required.";
-  if (!f.name_ar.trim()) errors.name_ar = "Arabic name is required.";
-  if (!isValidLatLng({ lat: f.center_lat ?? NaN, lng: f.center_lng ?? NaN })) errors.center = "Set the zone's center on the map.";
+  if (!f.name_en.trim()) errors.name_en = t("admin.cancellationReasons.nameEnRequired");
+  if (!f.name_ar.trim()) errors.name_ar = t("admin.cancellationReasons.nameArRequired");
+  if (!isValidLatLng({ lat: f.center_lat ?? NaN, lng: f.center_lng ?? NaN })) errors.center = t("admin.zones.setCenter");
   const radius = Number(f.radius_km);
-  if (!Number.isFinite(radius) || radius <= 0) errors.radius_km = "Must be greater than 0.";
+  if (!Number.isFinite(radius) || radius <= 0) errors.radius_km = t("admin.services.mustBeGreaterThanZero");
   const fee = Number(f.travel_fee);
-  if (!Number.isFinite(fee) || fee < 0) errors.travel_fee = "Must be 0 or more.";
+  if (!Number.isFinite(fee) || fee < 0) errors.travel_fee = t("admin.services.mustBeZeroOrMore");
   return errors;
 }
 
@@ -57,22 +58,23 @@ function toInput(f: ZoneForm, isActive: boolean): AdminZoneInput {
   };
 }
 
-function dbErrorMessage(e: any): string {
-  return e?.message ?? "Something went wrong. Please try again.";
+function dbErrorMessage(e: any, t: (key: string) => string): string {
+  return e?.message ?? t("admin.cancellationReasons.genericError");
 }
 
 function ZoneFormFields({ form, setForm, errors }: { form: ZoneForm; setForm: (f: ZoneForm) => void; errors: Record<string, string> }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
         <label className="block">
-          <span className="text-xs font-semibold text-muted-foreground">English name</span>
-          <input value={form.name_en} onChange={(e) => setForm({ ...form, name_en: e.target.value })}
+          <span className="text-xs font-semibold text-muted-foreground">{t("admin.cancellationReasons.nameEn")}</span>
+          <input dir="ltr" value={form.name_en} onChange={(e) => setForm({ ...form, name_en: e.target.value })}
             className="mt-1 h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm" />
           {errors.name_en && <p className="mt-1 text-[11px] font-semibold text-coral">{errors.name_en}</p>}
         </label>
         <label className="block">
-          <span className="text-xs font-semibold text-muted-foreground">Arabic name</span>
+          <span className="text-xs font-semibold text-muted-foreground">{t("admin.cancellationReasons.nameAr")}</span>
           <input value={form.name_ar} onChange={(e) => setForm({ ...form, name_ar: e.target.value })} dir="rtl"
             className="mt-1 h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm" />
           {errors.name_ar && <p className="mt-1 text-[11px] font-semibold text-coral">{errors.name_ar}</p>}
@@ -81,13 +83,13 @@ function ZoneFormFields({ form, setForm, errors }: { form: ZoneForm; setForm: (f
 
       <div className="grid grid-cols-2 gap-3">
         <label className="block">
-          <span className="text-xs font-semibold text-muted-foreground">Radius (km)</span>
+          <span className="text-xs font-semibold text-muted-foreground">{t("admin.zones.radiusKm")}</span>
           <input value={form.radius_km} onChange={(e) => setForm({ ...form, radius_km: e.target.value })} type="number" min={0.1} step={0.1}
             className="mt-1 h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm" />
           {errors.radius_km && <p className="mt-1 text-[11px] font-semibold text-coral">{errors.radius_km}</p>}
         </label>
         <label className="block">
-          <span className="text-xs font-semibold text-muted-foreground">Travel fee (EGP)</span>
+          <span className="text-xs font-semibold text-muted-foreground">{t("admin.zones.travelFee")}</span>
           <input value={form.travel_fee} onChange={(e) => setForm({ ...form, travel_fee: e.target.value })} type="number" min={0} step={1}
             className="mt-1 h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm" />
           {errors.travel_fee && <p className="mt-1 text-[11px] font-semibold text-coral">{errors.travel_fee}</p>}
@@ -95,7 +97,7 @@ function ZoneFormFields({ form, setForm, errors }: { form: ZoneForm; setForm: (f
       </div>
 
       <div>
-        <span className="text-xs font-semibold text-muted-foreground">Zone center</span>
+        <span className="text-xs font-semibold text-muted-foreground">{t("admin.zones.zoneCenter")}</span>
         <div className="mt-1 rounded-lg border border-border bg-surface p-2">
           <LocationPicker
             value={isValidLatLng({ lat: form.center_lat ?? NaN, lng: form.center_lng ?? NaN }) ? { lat: form.center_lat!, lng: form.center_lng! } : null}
@@ -109,6 +111,7 @@ function ZoneFormFields({ form, setForm, errors }: { form: ZoneForm; setForm: (f
 }
 
 function CoveragePanel({ zoneId }: { zoneId: string }) {
+  const { t } = useTranslation();
   const servicesQ = useAdminServices();
   const providersQ = useAdminProviders("verified");
   const zoneServicesQ = useZoneServiceCoverage(zoneId);
@@ -122,7 +125,7 @@ function CoveragePanel({ zoneId }: { zoneId: string }) {
   return (
     <div className="mt-4 grid grid-cols-2 gap-4 border-t border-border pt-4">
       <div>
-        <h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Services in this zone</h3>
+        <h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{t("admin.zones.servicesInZone")}</h3>
         <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto">
           {(servicesQ.data ?? []).map((s: any) => (
             <li key={s.id}>
@@ -130,7 +133,7 @@ function CoveragePanel({ zoneId }: { zoneId: string }) {
                 <input
                   type="checkbox"
                   checked={enabledServices.has(s.id)}
-                  onChange={(e) => setService.mutate({ zoneId, serviceId: s.id, enabled: e.target.checked }, { onError: (e2: any) => toast.error(dbErrorMessage(e2)) })}
+                  onChange={(e) => setService.mutate({ zoneId, serviceId: s.id, enabled: e.target.checked }, { onError: (e2: any) => toast.error(dbErrorMessage(e2, t)) })}
                 />
                 {s.name_en}
               </label>
@@ -139,7 +142,7 @@ function CoveragePanel({ zoneId }: { zoneId: string }) {
         </ul>
       </div>
       <div>
-        <h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Providers serving this zone</h3>
+        <h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{t("admin.zones.providersInZone")}</h3>
         <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto">
           {(providersQ.data ?? []).map((p: any) => (
             <li key={p.id}>
@@ -147,7 +150,7 @@ function CoveragePanel({ zoneId }: { zoneId: string }) {
                 <input
                   type="checkbox"
                   checked={coveredProviders.has(p.id)}
-                  onChange={(e) => setProvider.mutate({ zoneId, providerId: p.id, enabled: e.target.checked }, { onError: (e2: any) => toast.error(dbErrorMessage(e2)) })}
+                  onChange={(e) => setProvider.mutate({ zoneId, providerId: p.id, enabled: e.target.checked }, { onError: (e2: any) => toast.error(dbErrorMessage(e2, t)) })}
                 />
                 {p.profile?.full_name || p.id.slice(0, 8)}
               </label>
@@ -160,6 +163,7 @@ function CoveragePanel({ zoneId }: { zoneId: string }) {
 }
 
 function AdminZones() {
+  const { t } = useTranslation();
   const q = useAdminZones();
   const create = useCreateZone();
   const update = useUpdateZone();
@@ -195,12 +199,12 @@ function AdminZones() {
   };
 
   const submitCreate = () => {
-    const errors = validate(createForm);
+    const errors = validate(createForm, t);
     setCreateErrors(errors);
     if (Object.keys(errors).length > 0) return;
     create.mutate(toInput(createForm, true), {
-      onSuccess: () => { setCreating(false); toast.success("Zone created."); },
-      onError: (e: any) => toast.error(dbErrorMessage(e)),
+      onSuccess: () => { setCreating(false); toast.success(t("admin.zones.created")); },
+      onError: (e: any) => toast.error(dbErrorMessage(e, t)),
     });
   };
 
@@ -212,12 +216,12 @@ function AdminZones() {
   };
 
   const submitEdit = (z: any) => {
-    const errors = validate(editForm);
+    const errors = validate(editForm, t);
     setEditErrors(errors);
     if (Object.keys(errors).length > 0) return;
     update.mutate({ id: z.id, ...toInput(editForm, z.is_active) }, {
-      onSuccess: () => { setEditingId(null); toast.success("Zone updated."); },
-      onError: (e: any) => toast.error(dbErrorMessage(e)),
+      onSuccess: () => { setEditingId(null); toast.success(t("admin.zones.updated")); },
+      onError: (e: any) => toast.error(dbErrorMessage(e, t)),
     });
   };
 
@@ -225,24 +229,28 @@ function AdminZones() {
     <div className="px-5 py-5 space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Zones</h1>
-          <p className="text-xs text-muted-foreground">Manage service coverage areas. Deactivate instead of deleting where possible.</p>
+          <h1 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">{t("admin.layout.nav.zones")}</h1>
+          <p className="text-xs text-muted-foreground">{t("admin.zones.subtitle")}</p>
         </div>
-        <button onClick={startCreate} className="inline-flex items-center gap-1.5 rounded-xl bg-navy px-3 py-2 text-xs font-bold text-navy-foreground">
-          <Plus className="h-3.5 w-3.5" /> New zone
+        <button onClick={startCreate} className="focus-ring inline-flex items-center gap-1.5 rounded-xl bg-navy px-3 py-2 text-xs font-bold text-navy-foreground">
+          <Plus className="h-3.5 w-3.5" /> {t("admin.zones.newZone")}
         </button>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex h-10 min-w-[220px] flex-1 items-center gap-2 rounded-xl border border-border bg-surface px-3">
           <Search className="h-4 w-4 text-muted-foreground" />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name…" className="w-full bg-transparent text-sm outline-none" />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("admin.zones.searchPlaceholder")} className="w-full bg-transparent text-sm outline-none" />
         </div>
         <div className="flex gap-1 rounded-xl border border-border bg-surface p-1">
-          {(["all", "active", "inactive"] as const).map((f) => (
-            <button key={f} onClick={() => setStatusFilter(f)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-bold capitalize ${statusFilter === f ? "bg-navy text-navy-foreground" : "text-muted-foreground"}`}>
-              {f}
+          {([
+            { key: "all" as const, labelKey: "admin.providers.filterAll" },
+            { key: "active" as const, labelKey: "admin.customers.filterActive" },
+            { key: "inactive" as const, labelKey: "admin.cancellationReasons.inactive" },
+          ]).map((f) => (
+            <button key={f.key} onClick={() => setStatusFilter(f.key)}
+              className={`focus-ring rounded-lg px-3 py-1.5 text-xs font-bold ${statusFilter === f.key ? "bg-navy text-navy-foreground" : "text-muted-foreground"}`}>
+              {t(f.labelKey)}
             </button>
           ))}
         </div>
@@ -250,13 +258,13 @@ function AdminZones() {
 
       {creating && (
         <section className="rounded-2xl border border-border/60 bg-surface p-5 shadow-card">
-          <h2 className="text-sm font-extrabold">New zone</h2>
+          <h2 className="text-sm font-extrabold">{t("admin.zones.newZoneTitle")}</h2>
           <div className="mt-4"><ZoneFormFields form={createForm} setForm={setCreateForm} errors={createErrors} /></div>
           <div className="mt-4 flex gap-2">
-            <button onClick={submitCreate} disabled={create.isPending} className="rounded-lg bg-navy px-4 py-2 text-xs font-bold text-navy-foreground disabled:opacity-50">
-              {create.isPending ? "Creating…" : "Create zone"}
+            <button onClick={submitCreate} disabled={create.isPending} className="focus-ring rounded-lg bg-navy px-4 py-2 text-xs font-bold text-navy-foreground disabled:opacity-50">
+              {create.isPending ? t("admin.cancellationReasons.creating") : t("admin.zones.createZone")}
             </button>
-            <button onClick={() => setCreating(false)} className="rounded-lg border border-border px-4 py-2 text-xs font-bold">Cancel</button>
+            <button onClick={() => setCreating(false)} className="focus-ring rounded-lg border border-border px-4 py-2 text-xs font-bold">{t("common.cancel")}</button>
           </div>
         </section>
       )}
@@ -265,9 +273,9 @@ function AdminZones() {
         {q.isLoading ? (
           <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-16 animate-pulse rounded-xl bg-muted" />)}</div>
         ) : q.isError ? (
-          <p className="text-sm text-coral">Could not load zones. Please refresh.</p>
+          <p className="text-sm text-coral">{t("admin.zones.loadError")}</p>
         ) : rows.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No zones match this search/filter.</p>
+          <p className="text-sm text-muted-foreground">{t("admin.zones.noResults")}</p>
         ) : (
           <ul className="space-y-2">
             {rows.map((z: any) => (
@@ -276,10 +284,10 @@ function AdminZones() {
                   <div className="space-y-3">
                     <ZoneFormFields form={editForm} setForm={setEditForm} errors={editErrors} />
                     <div className="flex gap-2">
-                      <button onClick={() => submitEdit(z)} disabled={update.isPending} className="rounded-lg bg-navy px-3 py-1.5 text-xs font-bold text-navy-foreground disabled:opacity-50">
-                        {update.isPending ? "Saving…" : "Save"}
+                      <button onClick={() => submitEdit(z)} disabled={update.isPending} className="focus-ring rounded-lg bg-navy px-3 py-1.5 text-xs font-bold text-navy-foreground disabled:opacity-50">
+                        {update.isPending ? t("admin.cancellationReasons.saving") : t("common.save")}
                       </button>
-                      <button onClick={() => setEditingId(null)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold">Cancel</button>
+                      <button onClick={() => setEditingId(null)} className="focus-ring rounded-lg border border-border px-3 py-1.5 text-xs font-bold">{t("common.cancel")}</button>
                     </div>
                   </div>
                 ) : (
@@ -288,21 +296,21 @@ function AdminZones() {
                       <div className="flex flex-wrap items-center gap-1.5">
                         <MapPin className="h-3.5 w-3.5 text-coral" />
                         <p className="text-sm font-semibold">{z.name_en} <span className="text-muted-foreground">/ {z.name_ar}</span></p>
-                        {!z.is_active && <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">Inactive</span>}
+                        {!z.is_active && <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">{t("admin.cancellationReasons.inactive")}</span>}
                       </div>
-                      <p className="text-[11px] text-muted-foreground">{z.radius_km} km radius · {z.travel_fee} EGP travel fee</p>
+                      <p className="text-[11px] text-muted-foreground">{t("admin.zones.radiusAndFee", { radius: z.radius_km, fee: z.travel_fee })}</p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      <button onClick={() => setCoverageZoneId(coverageZoneId === z.id ? null : z.id)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold">
-                        {coverageZoneId === z.id ? "Hide coverage" : "Coverage"}
+                      <button onClick={() => setCoverageZoneId(coverageZoneId === z.id ? null : z.id)} className="focus-ring rounded-lg border border-border px-3 py-1.5 text-xs font-semibold">
+                        {coverageZoneId === z.id ? t("admin.zones.hideCoverage") : t("admin.zones.coverage")}
                       </button>
-                      <button onClick={() => startEdit(z)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold">Edit</button>
+                      <button onClick={() => startEdit(z)} className="focus-ring rounded-lg border border-border px-3 py-1.5 text-xs font-semibold">{t("common.edit")}</button>
                       <button
                         disabled={setActive.isPending}
-                        onClick={() => setActive.mutate({ id: z.id, active: !z.is_active }, { onError: (e: any) => toast.error(dbErrorMessage(e)) })}
-                        className={`rounded-lg px-3 py-1.5 text-xs font-bold disabled:opacity-50 ${z.is_active ? "border border-coral text-coral" : "bg-navy text-navy-foreground"}`}
+                        onClick={() => setActive.mutate({ id: z.id, active: !z.is_active }, { onError: (e: any) => toast.error(dbErrorMessage(e, t)) })}
+                        className={`focus-ring rounded-lg px-3 py-1.5 text-xs font-bold disabled:opacity-50 ${z.is_active ? "border border-coral text-coral" : "bg-navy text-navy-foreground"}`}
                       >
-                        {z.is_active ? "Deactivate" : "Activate"}
+                        {z.is_active ? t("admin.cancellationReasons.deactivate") : t("admin.cancellationReasons.activate")}
                       </button>
                     </div>
                   </div>

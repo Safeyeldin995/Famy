@@ -84,7 +84,7 @@ function DocumentsPage() {
                     <div className="text-[11px] text-muted-foreground">{new Date(d.created_at).toLocaleDateString()}</div>
                   </div>
                   <Badge tone={statusTone(d.status)}>{String(t(`pro.documents.status.${d.status}`, { defaultValue: d.status }))}</Badge>
-                  <button onClick={() => open(d.storage_path)} className="ml-1 grid h-9 w-9 place-items-center rounded-xl bg-surface-2"><Eye className="h-4 w-4" /></button>
+                  <button onClick={() => open(d.storage_path)} className="ms-1 grid h-9 w-9 place-items-center rounded-xl bg-surface-2"><Eye className="h-4 w-4" /></button>
                 </div>
               ))}
             </Card>

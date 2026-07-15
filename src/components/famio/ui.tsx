@@ -354,9 +354,9 @@ export function ProviderCardSkeleton() {
             <div className="skeleton h-4 w-14" />
           </div>
         </div>
-        <div className="space-y-2 text-right">
-          <div className="skeleton ml-auto h-4 w-14" />
-          <div className="skeleton ml-auto h-3 w-10" />
+        <div className="space-y-2 text-end">
+          <div className="skeleton ms-auto h-4 w-14" />
+          <div className="skeleton ms-auto h-3 w-10" />
         </div>
       </div>
     </div>

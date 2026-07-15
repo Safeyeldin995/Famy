@@ -30,7 +30,7 @@ export function ProviderCard({ p }: { p: Provider }) {
             alt={p.name}
             className="h-16 w-16 rounded-2xl"
           />
-          <span className="absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-full bg-success text-white ring-2 ring-surface" title={t("common.verified")}>
+          <span className="absolute -bottom-1 -end-1 grid h-5 w-5 place-items-center rounded-full bg-success text-white ring-2 ring-surface" title={t("common.verified")}>
             <ShieldCheck className="h-3 w-3" />
           </span>
         </div>

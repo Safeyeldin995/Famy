@@ -25,7 +25,7 @@ function Toggle({ on, onClick, disabled }: { on: boolean; onClick: () => void; d
       aria-pressed={on}
       className={`relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-50 ${on ? "bg-navy" : "bg-muted"}`}
     >
-      <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-soft transition-all ${on ? "left-[22px]" : "left-0.5"}`} />
+      <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-soft transition-all ${on ? "start-[22px]" : "start-0.5"}`} />
     </button>
   );
 }

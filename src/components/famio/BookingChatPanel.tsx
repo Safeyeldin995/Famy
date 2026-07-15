@@ -107,7 +107,7 @@ export function BookingChatPanel({ bookingId, status, viewer }: { bookingId: str
         {msgsQ.isLoading ? (
           <div className="space-y-2">
             <div className="h-10 w-2/3 animate-pulse rounded-2xl bg-surface-2" />
-            <div className="ml-auto h-10 w-2/3 animate-pulse rounded-2xl bg-surface-2" />
+            <div className="ms-auto h-10 w-2/3 animate-pulse rounded-2xl bg-surface-2" />
           </div>
         ) : msgsQ.isError ? (
           <div className="py-6 text-center">

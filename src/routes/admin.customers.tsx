@@ -1,20 +1,22 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAdminCustomers, type AdminCustomerFilter } from "@/lib/db/admin-queries";
 import { formatEGP } from "@/lib/utils";
 import { Search, ChevronRight } from "lucide-react";
 
 export const Route = createFileRoute("/admin/customers")({ component: CustomerManagement });
 
-const FILTERS: { key: AdminCustomerFilter; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "active", label: "Active" },
-  { key: "suspended", label: "Suspended" },
-  { key: "has_bookings", label: "Has bookings" },
-  { key: "no_bookings", label: "No bookings" },
+const FILTER_KEYS: { key: AdminCustomerFilter; labelKey: string }[] = [
+  { key: "all", labelKey: "admin.providers.filterAll" },
+  { key: "active", labelKey: "admin.customers.filterActive" },
+  { key: "suspended", labelKey: "admin.providers.filterSuspended" },
+  { key: "has_bookings", labelKey: "admin.customers.filterHasBookings" },
+  { key: "no_bookings", labelKey: "admin.customers.filterNoBookings" },
 ];
 
 function CustomerManagement() {
+  const { t } = useTranslation();
   const [filter, setFilter] = useState<AdminCustomerFilter>("all");
   const [query, setQuery] = useState("");
   const q = useAdminCustomers(filter);
@@ -34,8 +36,8 @@ function CustomerManagement() {
   return (
     <div className="px-5 py-5 space-y-4">
       <div>
-        <h1 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Customer Management</h1>
-        <p className="text-xs text-muted-foreground">Search, filter, and review booking/spend history.</p>
+        <h1 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">{t("admin.customers.title")}</h1>
+        <p className="text-xs text-muted-foreground">{t("admin.customers.subtitle")}</p>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -44,18 +46,18 @@ function CustomerManagement() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by name, phone or user ID…"
+            placeholder={t("admin.customers.searchPlaceholder")}
             className="w-full bg-transparent text-sm outline-none"
           />
         </div>
         <div className="flex flex-wrap gap-1 rounded-xl border border-border bg-surface p-1">
-          {FILTERS.map((f) => (
+          {FILTER_KEYS.map((f) => (
             <button
               key={f.key}
               onClick={() => setFilter(f.key)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-bold ${filter === f.key ? "bg-navy text-navy-foreground" : "text-muted-foreground"}`}
+              className={`focus-ring rounded-lg px-3 py-1.5 text-xs font-bold ${filter === f.key ? "bg-navy text-navy-foreground" : "text-muted-foreground"}`}
             >
-              {f.label}
+              {t(f.labelKey)}
             </button>
           ))}
         </div>
@@ -66,21 +68,21 @@ function CustomerManagement() {
           {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-20 animate-pulse rounded-2xl bg-muted" />)}
         </div>
       ) : q.isError ? (
-        <p className="text-sm text-coral">Could not load customers. Please refresh.</p>
+        <p className="text-sm text-coral">{t("admin.customers.loadError")}</p>
       ) : rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No customers match this search/filter.</p>
+        <p className="text-sm text-muted-foreground">{t("admin.customers.noResults")}</p>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-border/60 bg-surface shadow-card">
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-start text-sm">
             <thead className="border-b border-border/60 text-xs font-bold uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className="px-4 py-3">Customer</th>
-                <th className="px-4 py-3">Registered</th>
-                <th className="px-4 py-3">Total bookings</th>
-                <th className="px-4 py-3">Completed</th>
-                <th className="px-4 py-3">Cancelled</th>
-                <th className="px-4 py-3">Total spent</th>
-                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3 text-start">{t("admin.customers.customer")}</th>
+                <th className="px-4 py-3 text-start">{t("admin.customers.registered")}</th>
+                <th className="px-4 py-3 text-start">{t("admin.customers.totalBookings")}</th>
+                <th className="px-4 py-3 text-start">{t("admin.customers.completed")}</th>
+                <th className="px-4 py-3 text-start">{t("admin.customers.cancelled")}</th>
+                <th className="px-4 py-3 text-start">{t("admin.customers.totalSpent")}</th>
+                <th className="px-4 py-3 text-start">{t("admin.customers.status")}</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -88,8 +90,8 @@ function CustomerManagement() {
               {rows.map((c: any) => (
                 <tr key={c.id}>
                   <td className="px-4 py-3">
-                    <div className="font-semibold">{c.full_name || "Unnamed"}</div>
-                    <div className="text-xs text-muted-foreground">{c.phone}</div>
+                    <div className="font-semibold">{c.full_name || t("admin.provider.unnamed")}</div>
+                    <div dir="ltr" className="text-xs text-muted-foreground">{c.phone}</div>
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</td>
                   <td className="px-4 py-3">{c.totalBookings}</td>
@@ -98,12 +100,12 @@ function CustomerManagement() {
                   <td className="px-4 py-3 font-semibold">{formatEGP(c.totalSpent)}</td>
                   <td className="px-4 py-3">
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${c.is_suspended ? "bg-coral/10 text-coral" : "bg-mint/20 text-success"}`}>
-                      {c.is_suspended ? "Suspended" : "Active"}
+                      {c.is_suspended ? t("admin.providers.suspended") : t("admin.customers.active")}
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <Link to="/admin/customer/$id" params={{ id: c.id }} className="inline-flex items-center gap-1 text-xs font-semibold text-navy">
-                      View <ChevronRight className="h-3.5 w-3.5" />
+                    <Link to="/admin/customer/$id" params={{ id: c.id }} className="focus-ring inline-flex items-center gap-1 text-xs font-semibold text-navy">
+                      {t("admin.customers.view")} <ChevronRight className="rtl-flip h-3.5 w-3.5" />
                     </Link>
                   </td>
                 </tr>

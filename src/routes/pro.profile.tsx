@@ -356,7 +356,7 @@ function RequirementsChecklist({ providerId, serviceId }: { providerId: string; 
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 text-xs">
                 <span className="font-semibold">{r.name_en}</span>
-                {r.required_for_provider_approval && <span className="ml-1 text-[10px] text-coral">*</span>}
+                {r.required_for_provider_approval && <span className="ms-1 text-[10px] text-coral">*</span>}
               </div>
               <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${REQ_STATUS_TONE[status]}`}>{status}</span>
             </div>
