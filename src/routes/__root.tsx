@@ -99,7 +99,7 @@ function RootShell({ children }: { children: ReactNode }) {
   // before React renders so refresh/login never shows a brief reset to English.
   const langBootstrap = `(function(){try{var l=localStorage.getItem('famio.lang')==='ar'?'ar':'en';document.documentElement.lang=l;document.documentElement.dir=l==='ar'?'rtl':'ltr';document.documentElement.setAttribute('data-lang',l);}catch(e){}})();`;
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
         <script dangerouslySetInnerHTML={{ __html: langBootstrap }} />
