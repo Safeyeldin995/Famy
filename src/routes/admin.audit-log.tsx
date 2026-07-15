@@ -5,17 +5,38 @@ import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 
 export const Route = createFileRoute("/admin/audit-log")({ component: AdminAuditLog });
 
-const SENSITIVE_KEY_PATTERN = /password|token|secret|api[_-]?key|credential/i;
+const SENSITIVE_KEY_PATTERN = /password|token|secret|api[_-]?key|credential|authorization/i;
+
+/**
+ * Recursively strips sensitive-looking keys at every nesting depth, not
+ * just the top level — this is the render-time backstop for legacy/
+ * malformed audit rows written before server-side redaction existed (or by
+ * a future column the deny-list hasn't caught up with yet), since those
+ * rows are immutable and can never be rewritten in the database.
+ */
+function redactDeep(value: any): any {
+  if (Array.isArray(value)) return value.map(redactDeep);
+  if (value !== null && typeof value === "object") {
+    const out: Record<string, any> = {};
+    for (const [k, v] of Object.entries(value)) {
+      if (SENSITIVE_KEY_PATTERN.test(k)) continue;
+      out[k] = redactDeep(v);
+    }
+    return out;
+  }
+  return value;
+}
 
 function sanitizedEntries(obj: Record<string, any> | null | undefined): [string, any][] {
   if (!obj) return [];
-  return Object.entries(obj).filter(([k]) => !SENSITIVE_KEY_PATTERN.test(k));
+  return Object.entries(redactDeep(obj) as Record<string, any>);
 }
 
 function formatValue(v: any): string {
-  if (v === null || v === undefined) return "—";
-  if (typeof v === "object") return JSON.stringify(v);
-  return String(v);
+  const redacted = redactDeep(v);
+  if (redacted === null || redacted === undefined) return "—";
+  if (typeof redacted === "object") return JSON.stringify(redacted);
+  return String(redacted);
 }
 
 function actionTone(action: string) {
