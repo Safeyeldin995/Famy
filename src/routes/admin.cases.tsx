@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import {
   useAdminSupportTickets, useAdminUpdateSupportTicket,
+  useAdminAssignSupportTicketToMe,
   useAdminDisputes, useAdminResolveDispute,
   useAdminNoShowReports, useAdminResolveNoShow,
   getSignedEvidenceUrl,
@@ -79,6 +80,7 @@ function EvidenceLinks({ paths }: { paths: string[] | undefined }) {
 function SupportTicketDetail({ row }: { row: any }) {
   const { t } = useTranslation();
   const update = useAdminUpdateSupportTicket();
+  const assign = useAdminAssignSupportTicketToMe();
   const [status, setStatus] = useState<TicketStatus>(row.status);
   const [notes, setNotes] = useState(row.resolution_notes ?? "");
 
@@ -88,6 +90,16 @@ function SupportTicketDetail({ row }: { row: any }) {
       <p><span className="text-muted-foreground">{t("admin.cases.category")}:</span> {row.category}</p>
       <p><span className="text-muted-foreground">{t("admin.cases.openedBy")}:</span> {row.opened_by_role}</p>
       <p className="whitespace-pre-wrap">{row.description}</p>
+      <button
+        disabled={assign.isPending || !!row.assigned_admin_id}
+        onClick={() => assign.mutate(row.id, {
+          onSuccess: () => toast.success(t("admin.cases.assigned")),
+          onError: (e: any) => toast.error(e?.message ?? t("admin.cases.assignmentError")),
+        })}
+        className="focus-ring rounded-lg border border-border px-3 py-1.5 text-xs font-bold disabled:opacity-50"
+      >
+        {row.assigned_admin_id ? t("admin.cases.assigned") : assign.isPending ? t("admin.cases.assigning") : t("admin.cases.assignToMe")}
+      </button>
 
       <div className="space-y-2 rounded-xl border border-border/60 bg-surface-2 p-3">
         <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">{t("admin.cases.resolutionAudited")}</p>

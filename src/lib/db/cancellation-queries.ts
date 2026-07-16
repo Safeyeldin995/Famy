@@ -92,7 +92,7 @@ export function useUpdateCancellationReason() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...patch }: { id: string } & Partial<CancellationReasonInput>) => {
-      const { error } = await supabase.from('cancellation_reasons').update(patch as any).eq('id', id);
+      const { error } = await supabase.from('cancellation_reasons').update(patch as any).eq('id', id).select('id').single();
       if (error) throw error;
     },
     onSuccess: () => invalidateReasons(qc),
@@ -103,7 +103,7 @@ export function useSetCancellationReasonActive() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
-      const { error } = await supabase.from('cancellation_reasons').update({ is_active: active }).eq('id', id);
+      const { error } = await supabase.from('cancellation_reasons').update({ is_active: active }).eq('id', id).select('id').single();
       if (error) throw error;
     },
     onSuccess: () => invalidateReasons(qc),

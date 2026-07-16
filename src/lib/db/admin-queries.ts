@@ -370,7 +370,12 @@ export function useReviewRequirementFulfillment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, status, review_notes }: { id: string; requirementId: string; status: 'passed' | 'failed' | 'waived' | 'pending'; review_notes?: string }) => {
-      const { error } = await supabase.from('provider_requirement_fulfillments').update({ status, review_notes: review_notes ?? null }).eq('id', id);
+      const { error } = await supabase
+        .from('provider_requirement_fulfillments')
+        .update({ status, review_notes: review_notes ?? null })
+        .eq('id', id)
+        .select('id')
+        .single();
       if (error) throw error;
     },
     onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['admin', 'requirement-fulfillments', vars.requirementId] }),

@@ -191,6 +191,20 @@ export function useAdminUpdateSupportTicket() {
   });
 }
 
+export function useAdminAssignSupportTicketToMe() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError || !authData.user) throw authError ?? new Error('Admin authentication required.');
+      const { error } = await supabase.from('support_tickets').update({ assigned_admin_id: authData.user.id }).eq('id', id);
+      if (error) throw error;
+      return authData.user.id;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'support-tickets'] }),
+  });
+}
+
 // ---------- Disputes ----------
 
 export function useBookingDisputes(bookingId: string | undefined) {
