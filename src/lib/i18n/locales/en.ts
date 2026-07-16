@@ -1298,6 +1298,7 @@ const en = {
       eligPriceValid: "Approved service price is within admin limits",
       eligZoneCovered: "Covered by an active zone offering an approved service",
       eligRequirementsMet: "All mandatory requirements passed or waived",
+      eligAvailability: "Has bookable working hours",
     },
     customers: {
       title: "Customer Management",

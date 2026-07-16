@@ -18,6 +18,7 @@ function EligibilitySection({ providerId }: { providerId: string }) {
     { ok: e.price_valid, label: t("admin.provider.eligPriceValid") },
     { ok: e.zone_covered, label: t("admin.provider.eligZoneCovered") },
     { ok: e.requirements_met, label: t("admin.provider.eligRequirementsMet") },
+    { ok: e.has_availability, label: t("admin.provider.eligAvailability") },
   ];
   return (
     <section className="rounded-2xl border border-border/60 bg-surface p-4 shadow-card">

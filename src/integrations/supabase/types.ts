@@ -3275,6 +3275,7 @@ export type Database = {
         Returns: {
           active: boolean
           has_approved_service: boolean
+          has_availability: boolean
           is_eligible: boolean
           price_valid: boolean
           provider_id: string

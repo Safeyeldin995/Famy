@@ -1300,6 +1300,7 @@ const ar: Translation = {
       eligPriceValid: "سعر الخدمة المعتمدة ضمن الحدود المسموح بها",
       eligZoneCovered: "مغطّى بمنطقة نشطة تقدّم خدمة معتمدة",
       eligRequirementsMet: "جميع المتطلبات الإلزامية مقبولة أو مُعفاة",
+      eligAvailability: "لديه ساعات عمل قابلة للحجز",
     },
     customers: {
       title: "إدارة العملاء",
