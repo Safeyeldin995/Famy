@@ -1,7 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const PORT = 8099;
-const BASE_URL = `http://localhost:${PORT}`;
+const REMOTE_BASE_URL = process.env.PLAYWRIGHT_BASE_URL?.replace(/\/$/, "");
+const BASE_URL = REMOTE_BASE_URL || `http://localhost:${PORT}`;
 
 export default defineConfig({
   testDir: "./qa/tests",
@@ -27,12 +28,14 @@ export default defineConfig({
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
   ],
-  webServer: {
-    command: `npm run dev -- --port ${PORT} --strictPort`,
-    url: BASE_URL,
-    reuseExistingServer: false,
-    timeout: 60_000,
-    stdout: "pipe",
-    stderr: "pipe",
-  },
+  webServer: REMOTE_BASE_URL
+    ? undefined
+    : {
+        command: `npm run dev -- --port ${PORT} --strictPort`,
+        url: BASE_URL,
+        reuseExistingServer: false,
+        timeout: 60_000,
+        stdout: "pipe",
+        stderr: "pipe",
+      },
 });
