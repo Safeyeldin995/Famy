@@ -7,6 +7,7 @@ import { readRegistry } from "../registry.mjs";
 
 loadEnv();
 test.use({ storageState: path.resolve(process.cwd(), "qa/.auth/admin.json") });
+const QA_PASSWORD = "QaRuntime!2026Test";
 
 test("eligible provider appears in customer search; ineligible does not", async ({ page, browser }) => {
   // The QA provider fixture (global-setup) signed up and completed onboarding
@@ -19,10 +20,14 @@ test("eligible provider appears in customer search; ineligible does not", async 
   expect(provider).toBeTruthy();
   const providerId = provider!.id;
 
-  const anon = createClient(process.env.SUPABASE_URL ?? "", process.env.SUPABASE_PUBLISHABLE_KEY ?? "");
+  const customerEntry = registry.users.find((u: any) => u.key === "customer");
+  const customerClient = createClient(process.env.SUPABASE_URL ?? "", process.env.SUPABASE_PUBLISHABLE_KEY ?? "");
+  const customerEmail = `phone-${customerEntry.phone.replace(/\D/g, "")}@famio.local`;
+  const { error: customerSignInError } = await customerClient.auth.signInWithPassword({ email: customerEmail, password: QA_PASSWORD });
+  expect(customerSignInError).toBeFalsy();
 
   // 1) Not eligible yet: unverified, no service.
-  const beforeCheck = await anon.from("eligible_providers").select("id").eq("id", providerId).maybeSingle();
+  const beforeCheck = await customerClient.from("eligible_providers").select("id").eq("id", providerId).maybeSingle();
   expect(beforeCheck.data, "provider should not be eligible before setup").toBeNull();
 
   // 2) Real admin action: approve provider verification via the actual UI.
@@ -85,7 +90,7 @@ test("eligible provider appears in customer search; ineligible does not", async 
   expect(approvalAuditCount, "approval should create exactly one audit event").toBe(1);
 
   // 4) Now eligible, and visible through the real customer-facing gate.
-  const afterCheck = await anon.from("eligible_providers").select("id").eq("id", providerId).maybeSingle();
+  const afterCheck = await customerClient.from("eligible_providers").select("id").eq("id", providerId).maybeSingle();
   expect(afterCheck.data?.id, "provider should be eligible after verification + approved zone-covered service").toBe(providerId);
 
   const { data: eligDetail } = await supabaseAdmin.rpc("provider_eligibility", { p_provider_id: providerId });
