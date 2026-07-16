@@ -19,7 +19,11 @@ export const QA_PHONES = {
 };
 
 async function signUp(page: import("@playwright/test").Page, phone: string, role: "customer" | "provider") {
-  await page.goto("/login");
+  const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+  const loginPath = bypassSecret
+    ? `/login?x-vercel-protection-bypass=${encodeURIComponent(bypassSecret)}&x-vercel-set-bypass-cookie=true`
+    : "/login";
+  await page.goto(loginPath);
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(800); // let React hydrate before the first click
   await page.getByRole("button", { name: "Sign up", exact: true }).click();
@@ -34,6 +38,7 @@ async function signUp(page: import("@playwright/test").Page, phone: string, role
 async function globalSetup(config: FullConfig) {
   fs.mkdirSync(AUTH_DIR, { recursive: true });
   const baseURL = config.projects[0].use.baseURL as string;
+  const contextOptions = { baseURL };
   const browser = await chromium.launch();
 
   // Always start from a clean registry: each run mints fresh QA_ accounts
@@ -45,7 +50,7 @@ async function globalSetup(config: FullConfig) {
 
   // ---- QA customer ----
   {
-    const ctx = await browser.newContext({ baseURL });
+    const ctx = await browser.newContext(contextOptions);
     const page = await ctx.newPage();
     await signUp(page, QA_PHONES.customer, "customer");
     await page.waitForURL(/\/(setup|home)/, { timeout: 15_000 });
@@ -55,7 +60,7 @@ async function globalSetup(config: FullConfig) {
 
   // ---- QA provider (baseline, not yet eligible) ----
   {
-    const ctx = await browser.newContext({ baseURL });
+    const ctx = await browser.newContext(contextOptions);
     const page = await ctx.newPage();
     await signUp(page, QA_PHONES.provider, "provider");
     await page.waitForURL(/\/pro\/onboarding/, { timeout: 15_000 });
@@ -80,7 +85,7 @@ async function globalSetup(config: FullConfig) {
   // DB grant — there is no self-serve "become admin" UI by design, so a
   // service-role role grant IS the real operational path for this step. ----
   {
-    const ctx = await browser.newContext({ baseURL });
+    const ctx = await browser.newContext(contextOptions);
     const page = await ctx.newPage();
     await signUp(page, QA_PHONES.adminSeed, "customer");
     await page.waitForURL(/\/(setup|home)/, { timeout: 15_000 });

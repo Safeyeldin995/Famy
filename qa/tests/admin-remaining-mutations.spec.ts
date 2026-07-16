@@ -97,12 +97,14 @@ test("case assignment persists through Admin UI", async ({ page }) => {
   const { readErrors } = captureErrors(page);
   const reg = readRegistry();
   const admin = reg.users.find((u: any) => u.key === "adminSeed");
+  await supabaseAdmin.from("support_tickets").delete().ilike("subject", "QA_ assignment%");
   const { data: booking } = await supabaseAdmin.from("bookings").select("id,customer_id").eq("status", "cancelled").ilike("notes", "QA_%").limit(1).single();
   const subject = `QA_ assignment ${Date.now()}`;
-  const { data: ticket } = await supabaseAdmin.from("support_tickets").insert({
+  const { data: ticket, error: ticketError } = await supabaseAdmin.from("support_tickets").insert({
     booking_id: booking!.id, user_id: booking!.customer_id, opened_by_role: "customer", category: "other",
     subject, description: "QA_ assignment fixture", status: "open",
   }).select().single();
+  expect(ticketError).toBeNull();
   await page.goto("/admin/cases");
   const row = page.getByRole("listitem").filter({ hasText: subject });
   await row.getByRole("button", { name: /view details/i }).click();
@@ -120,23 +122,29 @@ test("case assignment persists through Admin UI", async ({ page }) => {
 
 test("case resolution requires notes and persists", async ({ page }) => {
   const { readErrors } = captureErrors(page);
+  await supabaseAdmin.from("support_tickets").delete().ilike("subject", "QA_ resolution%");
   const { data: booking } = await supabaseAdmin.from("bookings").select("id,customer_id").eq("status", "cancelled").ilike("notes", "QA_%").limit(1).single();
   const subject = `QA_ resolution ${Date.now()}`;
-  const { data: ticket } = await supabaseAdmin.from("support_tickets").insert({
+  const { data: ticket, error: ticketError } = await supabaseAdmin.from("support_tickets").insert({
     booking_id: booking!.id, user_id: booking!.customer_id, opened_by_role: "customer", category: "app_issue",
     subject, description: "QA_ resolution fixture", status: "open",
   }).select().single();
+  expect(ticketError).toBeNull();
   await page.goto("/admin/cases");
   const row = page.getByRole("listitem").filter({ hasText: subject });
   await row.getByRole("button", { name: /view details/i }).click();
   await row.locator("select").selectOption("resolved");
   const save = row.getByRole("button", { name: /^save$/i });
-  await save.click();
+  await expect(save).toBeDisabled();
   const { data: stillOpen } = await supabaseAdmin.from("support_tickets").select("status").eq("id", ticket!.id).single();
   expect(stillOpen!.status).toBe("open");
   await row.getByLabel(/resolution notes/i).fill("QA_ resolved safely");
-  await save.click();
-  await expect(row).toContainText(/resolved/i);
+  const [saveResponse] = await Promise.all([
+    page.waitForResponse((r) => r.url().includes("/rest/v1/support_tickets") && r.request().method() === "PATCH"),
+    save.click(),
+  ]);
+  expect(saveResponse.ok(), await saveResponse.text()).toBe(true);
+  await expect(save).toBeEnabled();
   await page.reload();
   const { data: stored } = await supabaseAdmin.from("support_tickets").select("status,resolution_notes,resolved_at").eq("id", ticket!.id).single();
   expect(stored).toMatchObject({ status: "resolved", resolution_notes: "QA_ resolved safely" });
