@@ -8,7 +8,7 @@ import { readRegistry } from "../registry.mjs";
 loadEnv();
 test.use({ storageState: path.resolve(process.cwd(), "qa/.auth/admin.json") });
 
-test("eligible provider appears in customer search; ineligible does not", async ({ page }) => {
+test("eligible provider appears in customer search; ineligible does not", async ({ page, browser }) => {
   // The QA provider fixture (global-setup) signed up and completed onboarding
   // for real, but has no service/zone yet — not eligible.
   const registry = readRegistry();
@@ -28,7 +28,8 @@ test("eligible provider appears in customer search; ineligible does not", async 
   // 2) Real admin action: approve provider verification via the actual UI.
   await page.goto(`/admin/provider/${providerId}`);
   const verifyButton = page.getByRole("button", { name: /^approve$/i }).first();
-  if (await verifyButton.isVisible()) await verifyButton.click();
+  await expect(verifyButton).toBeVisible({ timeout: 10_000 });
+  await verifyButton.click();
   await expect(page.getByText(/verified/i).first()).toBeVisible({ timeout: 10_000 });
 
   // 3) Give it one approved, in-range-priced, zone-covered, requirement-free service.
@@ -56,26 +57,32 @@ test("eligible provider appears in customer search; ineligible does not", async 
   await page.reload();
   const serviceRow = page.getByRole("listitem").filter({ hasText: service!.name_en });
   const approveServiceButton = serviceRow.getByRole("button", { name: /^approve$/i });
-  if (await approveServiceButton.isVisible()) {
-    const [approvalResponse] = await Promise.all([
-      page.waitForResponse((r) =>
-        r.url().includes("/rpc/admin_set_provider_service_status")
-        && (r.request().postData() ?? "").includes(ps!.id),
-      ),
-      approveServiceButton.click(),
-    ]);
-    expect(
-      approvalResponse.ok(),
-      `provider-service approval failed: ${approvalResponse.status()} ${await approvalResponse.text()}`,
-    ).toBe(true);
-    await page.reload();
-  }
+  await expect(approveServiceButton).toBeVisible({ timeout: 10_000 });
+  const [approvalResponse] = await Promise.all([
+    page.waitForResponse((r) =>
+      r.url().includes("/rpc/admin_set_provider_service_status")
+      && (r.request().postData() ?? "").includes(ps!.id),
+    ),
+    approveServiceButton.click(),
+  ]);
+  expect(
+    approvalResponse.ok(),
+    `provider-service approval failed: ${approvalResponse.status()} ${await approvalResponse.text()}`,
+  ).toBe(true);
+  await page.reload();
   const { data: approvedService } = await supabaseAdmin
     .from("provider_services")
     .select("status")
     .eq("id", ps!.id)
     .single();
   expect(approvedService!.status, "provider-service approval should persist").toBe("approved");
+  const { count: approvalAuditCount } = await supabaseAdmin
+    .from("audit_logs")
+    .select("id", { count: "exact", head: true })
+    .eq("entity", "provider_services")
+    .eq("entity_id", ps!.id)
+    .eq("action", "UPDATE");
+  expect(approvalAuditCount, "approval should create exactly one audit event").toBe(1);
 
   // 4) Now eligible, and visible through the real customer-facing gate.
   const afterCheck = await anon.from("eligible_providers").select("id").eq("id", providerId).maybeSingle();
@@ -84,11 +91,43 @@ test("eligible provider appears in customer search; ineligible does not", async 
   const { data: eligDetail } = await supabaseAdmin.rpc("provider_eligibility", { p_provider_id: providerId });
   expect(eligDetail?.[0]?.is_eligible).toBe(true);
 
+  const customerContext = await browser.newContext({
+    storageState: path.resolve(process.cwd(), "qa/.auth/customer.json"),
+  });
+  const customerPage = await customerContext.newPage();
+  await customerPage.goto("/search");
+  await expect(customerPage.locator(`a[href="/provider/${providerId}"]`)).toBeVisible({ timeout: 15_000 });
+  await customerContext.close();
+
+  const rejectionService = activeServices?.find((row) => row.id !== service!.id && !existingServiceIds.has(row.id));
+  expect(rejectionService, "an unused service should exist for rejection coverage").toBeTruthy();
+  const { data: rejectedPs, error: rejectedPsError } = await supabaseAdmin
+    .from("provider_services")
+    .insert({ provider_id: providerId, service_id: rejectionService!.id, status: "pending" })
+    .select()
+    .single();
+  expect(rejectedPsError).toBeFalsy();
+
+  await page.reload();
+  const rejectionRow = page.getByRole("listitem").filter({ hasText: rejectionService!.name_en });
+  await rejectionRow.getByRole("button", { name: /^reject$/i }).click();
+  const reasonInput = rejectionRow.getByLabel(/reason/i);
+  const confirmReject = rejectionRow.getByRole("button", { name: /confirm reject/i });
+  await expect(confirmReject).toBeDisabled();
+  await reasonInput.fill("QA_ rejection reason");
+  await expect(confirmReject).toBeEnabled();
+  await confirmReject.click();
+  await page.reload();
+  await expect(page.getByRole("listitem").filter({ hasText: rejectionService!.name_en })).toContainText(/rejected/i);
+  const { data: rejectedStored } = await supabaseAdmin.from("provider_services").select("status,rejection_reason").eq("id", rejectedPs!.id).single();
+  expect(rejectedStored).toMatchObject({ status: "rejected", rejection_reason: "QA_ rejection reason" });
+
   // cleanup QA fixture rows this test created directly (provider account itself
   // is cleaned by global-teardown).
   await supabaseAdmin.from("zone_providers").delete().eq("zone_id", zone!.id);
   await supabaseAdmin.from("zone_services").delete().eq("zone_id", zone!.id);
   await supabaseAdmin.from("zones").delete().eq("id", zone!.id);
   await supabaseAdmin.from("provider_services").delete().eq("id", ps!.id);
+  await supabaseAdmin.from("provider_services").delete().eq("id", rejectedPs!.id);
   await supabaseAdmin.from("availability_rules").delete().eq("provider_id", providerId);
 });

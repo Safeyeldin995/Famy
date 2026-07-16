@@ -15,9 +15,19 @@ const QA_TAGGED_TABLES = [
 export async function runTeardown() {
   const reg = readRegistry();
 
+  const { data: qaZones } = await supabaseAdmin.from("zones").select("id").ilike("name_en", "QA_%");
+  for (const zone of qaZones ?? []) {
+    await supabaseAdmin.from("zone_providers").delete().eq("zone_id", zone.id);
+    await supabaseAdmin.from("zone_services").delete().eq("zone_id", zone.id);
+  }
+
   for (const { table, column } of QA_TAGGED_TABLES) {
     const { error } = await supabaseAdmin.from(table).delete().ilike(column, "QA_%");
-    if (error) console.error(`[qa-teardown] ${table} cleanup error:`, error.message);
+    if (error && table === "zones") {
+      await supabaseAdmin.from("zones").update({ is_active: false }).ilike("name_en", "QA_%");
+    } else if (error && table !== "bookings") {
+      console.error(`[qa-teardown] ${table} cleanup error:`, error.message);
+    }
   }
 
   // Union registry-tracked ids with a profile-tag sweep, so accounts orphaned
@@ -28,13 +38,23 @@ export async function runTeardown() {
   for (const p of taggedProfiles ?? []) ids.add(p.id);
 
   for (const userId of ids) {
+    const { data: providers } = await supabaseAdmin.from("providers").select("id").eq("profile_id", userId);
+    for (const provider of providers ?? []) {
+      await supabaseAdmin.from("availability_rules").delete().eq("provider_id", provider.id);
+      await supabaseAdmin.from("provider_services").delete().eq("provider_id", provider.id);
+    }
     await supabaseAdmin.from("providers").delete().eq("profile_id", userId);
     await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
-    await supabaseAdmin.from("profiles").delete().eq("id", userId);
+    const { error: profileDeleteError } = await supabaseAdmin.from("profiles").delete().eq("id", userId);
+    if (profileDeleteError) {
+      await supabaseAdmin.from("providers").update({ is_active: false, is_verified: false }).eq("profile_id", userId);
+      await supabaseAdmin.auth.admin.updateUserById(userId, { ban_duration: "876000h" });
+      continue;
+    }
     const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
     if (error && error.message !== "User not found") console.error(`[qa-teardown] deleteUser ${userId} error:`, error.message);
   }
 
-  console.log(`[qa-teardown] removed ${ids.size} QA users and tagged rows.`);
+  console.log(`[qa-teardown] removed or disabled ${ids.size} QA users and tagged rows.`);
   writeRegistry({ users: [] });
 }
