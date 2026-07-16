@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useAdminCustomers, type AdminCustomerFilter } from "@/lib/db/admin-queries";
 import { formatEGP } from "@/lib/utils";
 import { Search, ChevronRight } from "lucide-react";
+import { AdminQueryError } from "@/components/admin/AdminQueryError";
 
 export const Route = createFileRoute("/admin/customers")({ component: CustomerManagement });
 
@@ -68,7 +69,7 @@ function CustomerManagement() {
           {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-20 animate-pulse rounded-2xl bg-muted" />)}
         </div>
       ) : q.isError ? (
-        <p className="text-sm text-coral">{t("admin.customers.loadError")}</p>
+        <AdminQueryError message={t("admin.customers.loadError")} error={q.error} onRetry={() => q.refetch()} />
       ) : rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t("admin.customers.noResults")}</p>
       ) : (

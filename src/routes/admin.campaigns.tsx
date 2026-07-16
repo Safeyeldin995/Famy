@@ -8,6 +8,7 @@ import {
   usePreviewCampaignAudience, useAdminCampaignDeliveryCount,
   type CampaignTarget,
 } from "@/lib/db/admin-queries";
+import { AdminQueryError } from "@/components/admin/AdminQueryError";
 
 export const Route = createFileRoute("/admin/campaigns")({ component: AdminCampaigns });
 
@@ -179,7 +180,7 @@ function AdminCampaigns() {
         {q.isLoading ? (
           <div className="mt-3 h-16 animate-pulse rounded-xl bg-muted" />
         ) : q.isError ? (
-          <p className="mt-3 text-sm text-coral">{t("admin.campaigns.loadError")}</p>
+          <div className="mt-3"><AdminQueryError message={t("admin.campaigns.loadError")} error={q.error} onRetry={() => q.refetch()} /></div>
         ) : (q.data ?? []).length === 0 ? (
           <p className="mt-3 text-sm text-muted-foreground">{t("admin.campaigns.noCampaigns")}</p>
         ) : (

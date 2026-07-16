@@ -25,11 +25,14 @@ export function useSetProviderActive() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('providers')
         .update({ is_active: active })
-        .eq('id', id);
+        .eq('id', id)
+        .select('is_active')
+        .single();
       if (error) throw error;
+      if (data.is_active !== active) throw new Error('Provider active status did not persist.');
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin'] });
@@ -93,6 +96,15 @@ export function useSetProviderVerified() {
         p_reason: reason,
       });
       if (error) throw error;
+      const { data: stored, error: readError } = await supabase
+        .from('providers')
+        .select('is_verified,is_active')
+        .eq('id', id)
+        .single();
+      if (readError) throw readError;
+      if (stored.is_verified !== verified || stored.is_active !== verified) {
+        throw new Error('Provider verification status did not persist.');
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin'] });
@@ -110,6 +122,16 @@ export function useSetProviderServiceStatus() {
         p_reason: reason,
       });
       if (error) throw error;
+      const { data: stored, error: readError } = await supabase
+        .from('provider_services')
+        .select('status,rejection_reason')
+        .eq('id', providerServiceId)
+        .single();
+      if (readError) throw readError;
+      if (stored.status !== status) throw new Error('Provider service status did not persist.');
+      if (status === 'rejected' && stored.rejection_reason !== reason?.trim()) {
+        throw new Error('Provider service rejection reason did not persist.');
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin'] });
@@ -210,8 +232,9 @@ export function useSetCategoryActive() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
-      const { error } = await supabase.from('categories').update({ is_active: active }).eq('id', id);
+      const { data, error } = await supabase.from('categories').update({ is_active: active }).eq('id', id).select('is_active').single();
       if (error) throw error;
+      if (data.is_active !== active) throw new Error('Category active status did not persist.');
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'categories'] });
@@ -224,8 +247,9 @@ export function useUpdateCategoryNames() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, name_en, name_ar }: { id: string; name_en: string; name_ar: string }) => {
-      const { error } = await supabase.from('categories').update({ name_en, name_ar }).eq('id', id);
+      const { data, error } = await supabase.from('categories').update({ name_en, name_ar }).eq('id', id).select('name_en,name_ar').single();
       if (error) throw error;
+      if (data.name_en !== name_en || data.name_ar !== name_ar) throw new Error('Category names did not persist.');
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'categories'] });
@@ -277,8 +301,9 @@ export function useClearProviderServiceFlag() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id }: { id: string; serviceId: string }) => {
-      const { error } = await supabase.from('provider_services').update({ flagged_for_review: false }).eq('id', id);
+      const { data, error } = await supabase.from('provider_services').update({ flagged_for_review: false }).eq('id', id).select('flagged_for_review').single();
       if (error) throw error;
+      if (data.flagged_for_review) throw new Error('Provider service review flag did not clear.');
     },
     onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['admin', 'flagged-provider-services', vars.serviceId] }),
   });
@@ -321,8 +346,9 @@ export function useCreateRequirement() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: AdminRequirementInput & { sort_order?: number }) => {
-      const { error } = await supabase.from('service_requirements').insert(input as any);
+      const { data, error } = await supabase.from('service_requirements').insert(input as any).select().single();
       if (error) throw error;
+      return data;
     },
     onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['admin', 'requirements', vars.service_id] }),
   });
@@ -332,8 +358,9 @@ export function useUpdateRequirement() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, service_id, ...patch }: { id: string; service_id: string } & Partial<AdminRequirementInput>) => {
-      const { error } = await supabase.from('service_requirements').update(patch as any).eq('id', id);
+      const { data, error } = await supabase.from('service_requirements').update(patch as any).eq('id', id).select().single();
       if (error) throw error;
+      return data;
     },
     onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['admin', 'requirements', vars.service_id] }),
   });
@@ -342,9 +369,22 @@ export function useUpdateRequirement() {
 export function useReorderRequirement() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, sort_order }: { id: string; service_id: string; sort_order: number }) => {
-      const { error } = await supabase.from('service_requirements').update({ sort_order }).eq('id', id);
-      if (error) throw error;
+    mutationFn: async ({
+      service_id,
+      first,
+      second,
+    }: {
+      service_id: string;
+      first: { id: string; sort_order: number };
+      second: { id: string; sort_order: number };
+    }) => {
+      const firstResult = await supabase.from('service_requirements').update({ sort_order: first.sort_order }).eq('id', first.id).select('sort_order').single();
+      if (firstResult.error) throw firstResult.error;
+      const secondResult = await supabase.from('service_requirements').update({ sort_order: second.sort_order }).eq('id', second.id).select('sort_order').single();
+      if (secondResult.error) throw secondResult.error;
+      if (firstResult.data.sort_order !== first.sort_order || secondResult.data.sort_order !== second.sort_order) {
+        throw new Error('Requirement order did not persist.');
+      }
     },
     onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['admin', 'requirements', vars.service_id] }),
   });
@@ -425,8 +465,9 @@ export function useUpdateService() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...patch }: { id: string } & Partial<AdminServiceInput>) => {
-      const { error } = await supabase.from('services').update(patch as any).eq('id', id);
+      const { data, error } = await supabase.from('services').update(patch as any).eq('id', id).select(SERVICE_COLUMNS).single();
       if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'services'] });
@@ -439,8 +480,9 @@ export function useSetServiceActive() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
-      const { error } = await supabase.from('services').update({ is_active: active }).eq('id', id);
+      const { data, error } = await supabase.from('services').update({ is_active: active }).eq('id', id).select('is_active').single();
       if (error) throw error;
+      if (data.is_active !== active) throw new Error('Service active status did not persist.');
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'services'] });
@@ -507,16 +549,13 @@ export type AdminCustomerFilter = "all" | "active" | "suspended" | "has_bookings
 
 export function useAdminCustomers(filter: AdminCustomerFilter = "all") {
   return useQuery({
-    queryKey: ['admin', 'customers', filter],
+    queryKey: ['admin', 'customers'],
     queryFn: async () => {
-      let pq = supabase
+      const { data: profiles, error: pErr } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(300);
-      if (filter === 'active') pq = pq.eq('is_suspended', false);
-      else if (filter === 'suspended') pq = pq.eq('is_suspended', true);
-      const { data: profiles, error: pErr } = await pq;
       if (pErr) throw pErr;
       const ids = (profiles ?? []).map((p) => p.id);
       if (ids.length === 0) return [];
@@ -534,19 +573,34 @@ export function useAdminCustomers(filter: AdminCustomerFilter = "all") {
         .eq('status', 'captured');
       if (payErr) throw payErr;
 
+      const bookingsByCustomer = new Map<string, typeof bookings>();
+      for (const booking of bookings ?? []) {
+        const current = bookingsByCustomer.get(booking.customer_id) ?? [];
+        current.push(booking);
+        bookingsByCustomer.set(booking.customer_id, current);
+      }
+      const spentByCustomer = new Map<string, number>();
+      for (const payment of payments ?? []) {
+        spentByCustomer.set(
+          payment.customer_id,
+          (spentByCustomer.get(payment.customer_id) ?? 0) + Number(payment.amount ?? 0),
+        );
+      }
       const rows = (profiles ?? []).map((p) => {
-        const myBookings = (bookings ?? []).filter((b) => b.customer_id === p.id);
+        const myBookings = bookingsByCustomer.get(p.id) ?? [];
         const totalBookings = myBookings.length;
         const completedBookings = myBookings.filter((b) => b.status === 'completed').length;
         const cancelledBookings = myBookings.filter((b) => b.status === 'cancelled' || b.status === 'no_show').length;
-        const totalSpent = (payments ?? [])
-          .filter((pay) => pay.customer_id === p.id)
-          .reduce((sum, pay) => sum + Number(pay.amount ?? 0), 0);
+        const totalSpent = spentByCustomer.get(p.id) ?? 0;
         return { ...p, totalBookings, completedBookings, cancelledBookings, totalSpent };
       });
-
-      if (filter === 'has_bookings') return rows.filter((r) => r.totalBookings > 0);
-      if (filter === 'no_bookings') return rows.filter((r) => r.totalBookings === 0);
+      return rows;
+    },
+    select: (rows) => {
+      if (filter === 'active') return rows.filter((row) => !row.is_suspended);
+      if (filter === 'suspended') return rows.filter((row) => row.is_suspended);
+      if (filter === 'has_bookings') return rows.filter((row) => row.totalBookings > 0);
+      if (filter === 'no_bookings') return rows.filter((row) => row.totalBookings === 0);
       return rows;
     },
   });
@@ -562,18 +616,20 @@ export function useAdminCustomer(id: string) {
         .eq('id', id)
         .maybeSingle();
       if (error) throw error;
-      const { data: bookings } = await supabase
+      const { data: bookings, error: bookingsError } = await supabase
         .from('bookings')
         .select('id, status, start_at, price_total')
         .eq('customer_id', id)
         .order('created_at', { ascending: false })
         .limit(50);
-      const { data: payments } = await supabase
+      if (bookingsError) throw bookingsError;
+      const { data: payments, error: paymentsError } = await supabase
         .from('payments')
         .select('id, booking_id, method, amount, status, created_at')
         .eq('customer_id', id)
         .order('created_at', { ascending: false })
         .limit(50);
+      if (paymentsError) throw paymentsError;
       return { profile, bookings: bookings ?? [], payments: payments ?? [] };
     },
     enabled: !!id,
@@ -584,11 +640,14 @@ export function useSetCustomerSuspended() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, suspended }: { id: string; suspended: boolean }) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .update({ is_suspended: suspended })
-        .eq('id', id);
+        .eq('id', id)
+        .select('is_suspended')
+        .single();
       if (error) throw error;
+      if (data.is_suspended !== suspended) throw new Error('Customer suspension status did not persist.');
     },
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ['admin', 'customer', vars.id] });
@@ -638,8 +697,9 @@ export function useUpdateZone() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...patch }: { id: string } & Partial<AdminZoneInput>) => {
-      const { error } = await supabase.from('zones').update(patch as any).eq('id', id);
+      const { data, error } = await supabase.from('zones').update(patch as any).eq('id', id).select().single();
       if (error) throw error;
+      return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'zones'] }),
   });
@@ -649,8 +709,9 @@ export function useSetZoneActive() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
-      const { error } = await supabase.from('zones').update({ is_active: active }).eq('id', id);
+      const { data, error } = await supabase.from('zones').update({ is_active: active }).eq('id', id).select('is_active').single();
       if (error) throw error;
+      if (data.is_active !== active) throw new Error('Zone active status did not persist.');
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'zones'] }),
   });
@@ -696,14 +757,27 @@ export function useSetZoneService() {
   return useMutation({
     mutationFn: async ({ zoneId, serviceId, enabled }: { zoneId: string; serviceId: string; enabled: boolean }) => {
       if (enabled) {
-        const { error } = await supabase.from('zone_services').insert({ zone_id: zoneId, service_id: serviceId });
+        const { error } = await supabase.from('zone_services').insert({ zone_id: zoneId, service_id: serviceId }).select('zone_id').single();
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('zone_services').delete().eq('zone_id', zoneId).eq('service_id', serviceId);
+        const { error } = await supabase.from('zone_services').delete().eq('zone_id', zoneId).eq('service_id', serviceId).select('zone_id').single();
         if (error) throw error;
       }
     },
-    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['admin', 'zone-services', vars.zoneId] }),
+    onMutate: async (vars) => {
+      const key = ['admin', 'zone-services', vars.zoneId] as const;
+      const previous = qc.getQueryData<Set<string>>(key);
+      const next = new Set(previous ?? []);
+      if (vars.enabled) next.add(vars.serviceId);
+      else next.delete(vars.serviceId);
+      qc.setQueryData(key, next);
+      await qc.cancelQueries({ queryKey: key });
+      return { key, previous };
+    },
+    onError: (_error, _vars, context) => {
+      if (context) qc.setQueryData(context.key, context.previous);
+    },
+    onSettled: (_d, _error, vars) => qc.invalidateQueries({ queryKey: ['admin', 'zone-services', vars.zoneId] }),
   });
 }
 
@@ -724,14 +798,27 @@ export function useSetZoneProvider() {
   return useMutation({
     mutationFn: async ({ zoneId, providerId, enabled }: { zoneId: string; providerId: string; enabled: boolean }) => {
       if (enabled) {
-        const { error } = await supabase.from('zone_providers').insert({ zone_id: zoneId, provider_id: providerId });
+        const { error } = await supabase.from('zone_providers').insert({ zone_id: zoneId, provider_id: providerId }).select('zone_id').single();
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('zone_providers').delete().eq('zone_id', zoneId).eq('provider_id', providerId);
+        const { error } = await supabase.from('zone_providers').delete().eq('zone_id', zoneId).eq('provider_id', providerId).select('zone_id').single();
         if (error) throw error;
       }
     },
-    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['admin', 'zone-providers', vars.zoneId] }),
+    onMutate: async (vars) => {
+      const key = ['admin', 'zone-providers', vars.zoneId] as const;
+      const previous = qc.getQueryData<Set<string>>(key);
+      const next = new Set(previous ?? []);
+      if (vars.enabled) next.add(vars.providerId);
+      else next.delete(vars.providerId);
+      qc.setQueryData(key, next);
+      await qc.cancelQueries({ queryKey: key });
+      return { key, previous };
+    },
+    onError: (_error, _vars, context) => {
+      if (context) qc.setQueryData(context.key, context.previous);
+    },
+    onSettled: (_d, _error, vars) => qc.invalidateQueries({ queryKey: ['admin', 'zone-providers', vars.zoneId] }),
   });
 }
 
@@ -803,6 +890,11 @@ export function useActivateCampaign() {
     mutationFn: async (campaignId: string) => {
       const { error } = await supabase.rpc('admin_activate_campaign', { p_campaign_id: campaignId });
       if (error) throw error;
+      const { data: stored, error: readError } = await supabase.from('notification_campaigns').select('status,scheduled_for').eq('id', campaignId).single();
+      if (readError) throw readError;
+      const scheduledFor = stored.scheduled_for ? new Date(stored.scheduled_for).getTime() : null;
+      const expectedStatus = scheduledFor && scheduledFor > Date.now() ? 'scheduled' : 'sent';
+      if (stored.status !== expectedStatus) throw new Error('Campaign activation did not persist.');
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'campaigns'] }),
   });
@@ -814,6 +906,9 @@ export function useCancelCampaign() {
     mutationFn: async (campaignId: string) => {
       const { error } = await supabase.rpc('admin_cancel_campaign', { p_campaign_id: campaignId });
       if (error) throw error;
+      const { data: stored, error: readError } = await supabase.from('notification_campaigns').select('status').eq('id', campaignId).single();
+      if (readError) throw readError;
+      if (stored.status !== 'cancelled') throw new Error('Campaign cancellation did not persist.');
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'campaigns'] }),
   });
@@ -838,8 +933,9 @@ export function useCreateReminderRule() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (leadMinutes: number) => {
-      const { error } = await supabase.from('booking_reminder_rules').insert({ lead_minutes: leadMinutes });
+      const { data, error } = await supabase.from('booking_reminder_rules').insert({ lead_minutes: leadMinutes }).select().single();
       if (error) throw error;
+      return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'reminder-rules'] }),
   });
@@ -849,8 +945,9 @@ export function useSetReminderRuleActive() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
-      const { error } = await supabase.from('booking_reminder_rules').update({ is_active: active }).eq('id', id);
+      const { data, error } = await supabase.from('booking_reminder_rules').update({ is_active: active }).eq('id', id).select('is_active').single();
       if (error) throw error;
+      if (data.is_active !== active) throw new Error('Reminder rule active status did not persist.');
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'reminder-rules'] }),
   });

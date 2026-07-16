@@ -7,6 +7,7 @@ import {
   type OperationsQueueKey,
 } from "@/lib/db/admin-operations-queries";
 import { AlertTriangle, RefreshCw } from "lucide-react";
+import { AdminQueryError } from "@/components/admin/AdminQueryError";
 
 export const Route = createFileRoute("/admin/operations")({ component: AdminOperations });
 
@@ -53,8 +54,8 @@ function QueueCard({
   );
 }
 
-function SectionShell({ title, count, isLoading, isError, isEmpty, children }: {
-  title: string; count: number; isLoading: boolean; isError: boolean; isEmpty: boolean; children: React.ReactNode;
+function SectionShell({ title, count, isLoading, isError, error, onRetry, isEmpty, children }: {
+  title: string; count: number; isLoading: boolean; isError: boolean; error?: unknown; onRetry: () => void; isEmpty: boolean; children: React.ReactNode;
 }) {
   const { t } = useTranslation();
   return (
@@ -69,7 +70,7 @@ function SectionShell({ title, count, isLoading, isError, isEmpty, children }: {
             {Array.from({ length: 2 }).map((_, i) => <div key={i} className="h-12 animate-pulse rounded-xl bg-muted" />)}
           </div>
         ) : isError ? (
-          <p className="text-xs text-coral">{t("admin.operations.queueError")}</p>
+          <AdminQueryError compact message={t("admin.operations.queueError")} error={error} onRetry={onRetry} />
         ) : isEmpty ? (
           <p className="text-xs text-muted-foreground">{t("admin.operations.queueEmpty")}</p>
         ) : children}
@@ -83,7 +84,7 @@ function PendingProviderServicesSection() {
   const q = useAdminPendingProviderServices();
   const rows = q.data ?? [];
   return (
-    <SectionShell title={t("admin.operations.pendingProviderServices")} count={rows.length} isLoading={q.isLoading} isError={q.isError} isEmpty={rows.length === 0}>
+    <SectionShell title={t("admin.operations.pendingProviderServices")} count={rows.length} isLoading={q.isLoading} isError={q.isError} error={q.error} onRetry={() => q.refetch()} isEmpty={rows.length === 0}>
       <ul className="space-y-1.5">
         {rows.map((r: any) => (
           <li key={r.id} className="flex items-center justify-between gap-2 rounded-xl border border-border/60 p-2 text-xs">
@@ -107,7 +108,7 @@ function FlaggedProviderPricingSection() {
   const q = useAdminFlaggedProviderPricing();
   const rows = q.data ?? [];
   return (
-    <SectionShell title={t("admin.operations.flaggedPricing")} count={rows.length} isLoading={q.isLoading} isError={q.isError} isEmpty={rows.length === 0}>
+    <SectionShell title={t("admin.operations.flaggedPricing")} count={rows.length} isLoading={q.isLoading} isError={q.isError} error={q.error} onRetry={() => q.refetch()} isEmpty={rows.length === 0}>
       <ul className="space-y-1.5">
         {rows.map((r: any) => (
           <li key={r.id} className="flex items-center justify-between gap-2 rounded-xl border border-border/60 p-2 text-xs">
@@ -130,7 +131,7 @@ function PendingRequirementReviewsSection() {
   const q = useAdminPendingRequirementReviews();
   const rows = q.data ?? [];
   return (
-    <SectionShell title={t("admin.operations.pendingRequirementReviews")} count={rows.length} isLoading={q.isLoading} isError={q.isError} isEmpty={rows.length === 0}>
+    <SectionShell title={t("admin.operations.pendingRequirementReviews")} count={rows.length} isLoading={q.isLoading} isError={q.isError} error={q.error} onRetry={() => q.refetch()} isEmpty={rows.length === 0}>
       <ul className="space-y-1.5">
         {rows.map((r: any) => (
           <li key={r.id} className="flex items-center justify-between gap-2 rounded-xl border border-border/60 p-2 text-xs">
@@ -157,7 +158,7 @@ function NotificationFailuresSection() {
   const retry = useAdminRetryNotification();
   const rows = q.data ?? [];
   return (
-    <SectionShell title={t("admin.operations.notificationFailures")} count={rows.length} isLoading={q.isLoading} isError={q.isError} isEmpty={rows.length === 0}>
+    <SectionShell title={t("admin.operations.notificationFailures")} count={rows.length} isLoading={q.isLoading} isError={q.isError} error={q.error} onRetry={() => q.refetch()} isEmpty={rows.length === 0}>
       <ul className="space-y-1.5">
         {rows.map((r) => (
           <li key={r.id} className="flex items-center justify-between gap-2 rounded-xl border border-border/60 p-2 text-xs">

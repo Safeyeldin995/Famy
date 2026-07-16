@@ -10,6 +10,7 @@ import {
   getSignedEvidenceUrl,
   type TicketStatus,
 } from "@/lib/db/case-queries";
+import { AdminQueryError } from "@/components/admin/AdminQueryError";
 import { Search, Paperclip } from "lucide-react";
 
 export const Route = createFileRoute("/admin/cases")({
@@ -83,6 +84,7 @@ function SupportTicketDetail({ row }: { row: any }) {
   const assign = useAdminAssignSupportTicketToMe();
   const [status, setStatus] = useState<TicketStatus>(row.status);
   const [notes, setNotes] = useState(row.resolution_notes ?? "");
+  const resolutionRequiresNotes = status === "resolved" || status === "closed";
 
   return (
     <div className="mt-3 space-y-3 border-t border-border pt-3 text-xs">
@@ -110,10 +112,10 @@ function SupportTicketDetail({ row }: { row: any }) {
           aria-label={t("admin.cases.resolutionNotesPlaceholder")}
           className="w-full resize-none rounded-lg border border-border bg-surface p-2 text-xs" />
         <button
-          disabled={update.isPending}
+          disabled={update.isPending || (resolutionRequiresNotes && !notes.trim())}
           onClick={() =>
             update.mutate(
-              { id: row.id, status, resolution_notes: notes || undefined },
+              { id: row.id, status, resolution_notes: notes.trim() || undefined },
               {
                 onSuccess: () => toast.success(t("admin.cases.ticketUpdated")),
                 onError: (e: any) => toast.error(e?.message ?? t("admin.cases.ticketUpdateError")),
@@ -122,7 +124,7 @@ function SupportTicketDetail({ row }: { row: any }) {
           }
           className="focus-ring rounded-lg bg-navy px-3 py-1.5 text-xs font-bold text-navy-foreground disabled:opacity-50"
         >
-          {t("common.save")}
+          {update.isPending ? t("admin.cancellationReasons.saving") : t("common.save")}
         </button>
       </div>
     </div>
@@ -288,6 +290,12 @@ function AdminCases() {
   const rows = (tab === "support" ? ticketsQ.data : tab === "disputes" ? disputesQ.data : noShowQ.data) ?? [];
   const isLoading = tab === "support" ? ticketsQ.isLoading : tab === "disputes" ? disputesQ.isLoading : noShowQ.isLoading;
   const isError = tab === "support" ? ticketsQ.isError : tab === "disputes" ? disputesQ.isError : noShowQ.isError;
+  const activeError = tab === "support" ? ticketsQ.error : tab === "disputes" ? disputesQ.error : noShowQ.error;
+  const retryActive = () => {
+    if (tab === "support") void ticketsQ.refetch();
+    else if (tab === "disputes") void disputesQ.refetch();
+    else void noShowQ.refetch();
+  };
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -347,7 +355,7 @@ function AdminCases() {
           {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-20 animate-pulse rounded-2xl bg-muted" />)}
         </div>
       ) : isError ? (
-        <p className="text-sm text-coral">{t("admin.cases.loadError")}</p>
+        <AdminQueryError message={t("admin.cases.loadError")} error={activeError} onRetry={retryActive} />
       ) : filtered.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t("admin.cases.noResults")}</p>
       ) : (

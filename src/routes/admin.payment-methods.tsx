@@ -8,6 +8,7 @@ import {
   useSetPaymentMethodActive, useSetPaymentMethodDisplayOrder, useSetDefaultPaymentMethod,
   type MethodType, type PaymentMethodInput, type PaymentMethodRow,
 } from "@/lib/db/payment-methods-queries";
+import { AdminQueryError } from "@/components/admin/AdminQueryError";
 
 export const Route = createFileRoute("/admin/payment-methods")({ component: AdminPaymentMethods });
 
@@ -273,8 +274,13 @@ function AdminPaymentMethods() {
     const target = rows[index + direction];
     const current = rows[index];
     if (!target || !current) return;
-    setOrder.mutate({ id: current.id, display_order: target.display_order });
-    setOrder.mutate({ id: target.id, display_order: current.display_order });
+    setOrder.mutate(
+      {
+        first: { id: current.id, display_order: target.display_order },
+        second: { id: target.id, display_order: current.display_order },
+      },
+      { onError: (e: any) => toast.error(dbErrorMessage(e, t)) },
+    );
   };
 
   return (
@@ -325,7 +331,7 @@ function AdminPaymentMethods() {
         {q.isLoading ? (
           <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-16 animate-pulse rounded-xl bg-muted" />)}</div>
         ) : q.isError ? (
-          <p className="text-sm text-coral">{t("admin.paymentMethods.loadError")}</p>
+          <AdminQueryError message={t("admin.paymentMethods.loadError")} error={q.error} onRetry={() => q.refetch()} />
         ) : rows.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("admin.paymentMethods.noResults")}</p>
         ) : (

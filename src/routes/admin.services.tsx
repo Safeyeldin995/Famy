@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { Plus, Search } from "lucide-react";
+import { AdminQueryError } from "@/components/admin/AdminQueryError";
 import {
   useAdminServices, useCreateService, useUpdateService, useSetServiceActive,
   useAdminCategories, type AdminServiceInput,
@@ -420,10 +421,17 @@ function RequirementsPanel({ serviceId }: { serviceId: string }) {
   const rows = q.data ?? [];
 
   const move = (index: number, dir: -1 | 1) => {
+    const current = rows[index];
     const other = rows[index + dir];
-    if (!other) return;
-    reorder.mutate({ id: rows[index].id, service_id: serviceId, sort_order: other.sort_order });
-    reorder.mutate({ id: other.id, service_id: serviceId, sort_order: rows[index].sort_order });
+    if (!current || !other) return;
+    reorder.mutate(
+      {
+        service_id: serviceId,
+        first: { id: current.id, sort_order: other.sort_order },
+        second: { id: other.id, sort_order: current.sort_order },
+      },
+      { onError: (e: any) => toast.error(dbErrorMessage(e, t)) },
+    );
   };
 
   return (
@@ -482,14 +490,15 @@ function RequirementsPanel({ serviceId }: { serviceId: string }) {
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
-                  <button onClick={() => move(i, -1)} disabled={i === 0} aria-label={t("admin.cancellationReasons.moveUp")} className="focus-ring rounded-lg border border-border px-2 py-1 text-[11px] disabled:opacity-30">↑</button>
-                  <button onClick={() => move(i, 1)} disabled={i === rows.length - 1} aria-label={t("admin.cancellationReasons.moveDown")} className="focus-ring rounded-lg border border-border px-2 py-1 text-[11px] disabled:opacity-30">↓</button>
+                  <button onClick={() => move(i, -1)} disabled={i === 0 || reorder.isPending} aria-label={t("admin.cancellationReasons.moveUp")} className="focus-ring rounded-lg border border-border px-2 py-1 text-[11px] disabled:opacity-30">↑</button>
+                  <button onClick={() => move(i, 1)} disabled={i === rows.length - 1 || reorder.isPending} aria-label={t("admin.cancellationReasons.moveDown")} className="focus-ring rounded-lg border border-border px-2 py-1 text-[11px] disabled:opacity-30">↓</button>
                   <button onClick={() => { setReviewingId(reviewingId === r.id ? null : r.id); }} className="focus-ring rounded-lg border border-border px-2 py-1 text-[11px] font-semibold">{t("admin.operations.review")}</button>
                   <button onClick={() => { setEditingId(r.id); setEditForm(requirementFormFromRow(r)); setCreating(false); }}
                     className="focus-ring rounded-lg border border-border px-2 py-1 text-[11px] font-semibold">{t("common.edit")}</button>
                   <button
+                    disabled={update.isPending}
                     onClick={() => update.mutate({ id: r.id, service_id: serviceId, is_active: !r.is_active })}
-                    className={`focus-ring rounded-lg px-2 py-1 text-[11px] font-bold ${r.is_active ? "border border-coral text-coral" : "bg-navy text-navy-foreground"}`}
+                    className={`focus-ring rounded-lg px-2 py-1 text-[11px] font-bold disabled:opacity-50 ${r.is_active ? "border border-coral text-coral" : "bg-navy text-navy-foreground"}`}
                   >{r.is_active ? t("admin.cancellationReasons.deactivate") : t("admin.cancellationReasons.activate")}</button>
                 </div>
               </div>
@@ -645,7 +654,7 @@ function AdminServices() {
             {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-16 animate-pulse rounded-xl bg-muted" />)}
           </div>
         ) : q.isError ? (
-          <p className="text-sm text-coral">{t("admin.services.loadError")}</p>
+          <AdminQueryError message={t("admin.services.loadError")} error={q.error} onRetry={() => q.refetch()} />
         ) : rows.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("admin.services.noResults")}</p>
         ) : (

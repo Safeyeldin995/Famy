@@ -10,6 +10,7 @@ import {
   useAdminServices, useAdminProviders, type AdminZoneInput,
 } from "@/lib/db/admin-queries";
 import { LocationPicker, isValidLatLng } from "@/components/famio/LocationPicker";
+import { AdminQueryError } from "@/components/admin/AdminQueryError";
 import { ZonePolygonEditor, type LatLng, type OtherZone } from "@/components/famio/ZonePolygonEditor";
 
 export const Route = createFileRoute("/admin/zones")({ component: AdminZones });
@@ -227,6 +228,7 @@ function CoveragePanel({ zoneId }: { zoneId: string }) {
                 <input
                   type="checkbox"
                   checked={enabledServices.has(s.id)}
+                  disabled={setService.isPending}
                   onChange={(e) => setService.mutate({ zoneId, serviceId: s.id, enabled: e.target.checked }, { onError: (e2: any) => toast.error(dbErrorMessage(e2, t)) })}
                 />
                 {s.name_en}
@@ -244,6 +246,7 @@ function CoveragePanel({ zoneId }: { zoneId: string }) {
                 <input
                   type="checkbox"
                   checked={coveredProviders.has(p.id)}
+                  disabled={setProvider.isPending}
                   onChange={(e) => setProvider.mutate({ zoneId, providerId: p.id, enabled: e.target.checked }, { onError: (e2: any) => toast.error(dbErrorMessage(e2, t)) })}
                 />
                 {p.profile?.full_name || p.id.slice(0, 8)}
@@ -378,7 +381,7 @@ function AdminZones() {
         {q.isLoading ? (
           <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-16 animate-pulse rounded-xl bg-muted" />)}</div>
         ) : q.isError ? (
-          <p className="text-sm text-coral">{t("admin.zones.loadError")}</p>
+          <AdminQueryError message={t("admin.zones.loadError")} error={q.error} onRetry={() => q.refetch()} />
         ) : rows.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("admin.zones.noResults")}</p>
         ) : (

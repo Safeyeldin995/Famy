@@ -181,8 +181,13 @@ export function useAdminUpdateSupportTicket() {
   return useMutation({
     mutationFn: async (input: { id: string; status?: TicketStatus; assigned_admin_id?: string | null; resolution_notes?: string }) => {
       const { id, ...patch } = input;
-      const { error } = await supabase.from('support_tickets').update(patch as any).eq('id', id);
+      const { data, error } = await supabase.from('support_tickets').update(patch as any).eq('id', id).select('id,status,resolution_notes,resolved_at').single();
       if (error) throw error;
+      if (input.status && data.status !== input.status) throw new Error('Support ticket status did not persist.');
+      if (input.resolution_notes !== undefined && data.resolution_notes !== input.resolution_notes) {
+        throw new Error('Support ticket resolution notes did not persist.');
+      }
+      return data;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'support-tickets'] });
@@ -197,8 +202,9 @@ export function useAdminAssignSupportTicketToMe() {
     mutationFn: async (id: string) => {
       const { data: authData, error: authError } = await supabase.auth.getUser();
       if (authError || !authData.user) throw authError ?? new Error('Admin authentication required.');
-      const { error } = await supabase.from('support_tickets').update({ assigned_admin_id: authData.user.id }).eq('id', id);
+      const { data, error } = await supabase.from('support_tickets').update({ assigned_admin_id: authData.user.id }).eq('id', id).select('assigned_admin_id').single();
       if (error) throw error;
+      if (data.assigned_admin_id !== authData.user.id) throw new Error('Support ticket assignment did not persist.');
       return authData.user.id;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'support-tickets'] }),
@@ -265,14 +271,27 @@ export function useAdminResolveDispute() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { disputeId: string; status: 'info_requested' | 'resolved' | 'rejected'; adminNotes?: string; bookingStatus?: 'completed' | 'cancelled' }) => {
-      const { data, error } = await supabase.rpc('admin_resolve_dispute', {
+      const { error } = await supabase.rpc('admin_resolve_dispute', {
         p_dispute_id: input.disputeId,
         p_status: input.status,
         p_admin_notes: input.adminNotes,
         p_booking_status: input.bookingStatus,
       });
       if (error) throw error;
-      return data as string;
+      const { data: stored, error: readError } = await supabase
+        .from('disputes')
+        .select('id,status,admin_notes,resolved_at')
+        .eq('id', input.disputeId)
+        .single();
+      if (readError) throw readError;
+      if (stored.status !== input.status) throw new Error('Dispute resolution did not persist.');
+      if (input.adminNotes !== undefined && stored.admin_notes !== input.adminNotes) {
+        throw new Error('Dispute resolution notes did not persist.');
+      }
+      if ((input.status === 'resolved' || input.status === 'rejected') && !stored.resolved_at) {
+        throw new Error('Dispute resolution timestamp did not persist.');
+      }
+      return stored;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'disputes'] });
@@ -341,14 +360,27 @@ export function useAdminResolveNoShow() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { reportId: string; status: 'info_requested' | 'resolved' | 'rejected'; adminNotes?: string; bookingStatus?: 'completed' | 'cancelled' }) => {
-      const { data, error } = await supabase.rpc('admin_resolve_no_show', {
+      const { error } = await supabase.rpc('admin_resolve_no_show', {
         p_report_id: input.reportId,
         p_status: input.status,
         p_admin_notes: input.adminNotes,
         p_booking_status: input.bookingStatus,
       });
       if (error) throw error;
-      return data as string;
+      const { data: stored, error: readError } = await supabase
+        .from('no_show_reports')
+        .select('id,status,admin_notes,resolved_at')
+        .eq('id', input.reportId)
+        .single();
+      if (readError) throw readError;
+      if (stored.status !== input.status) throw new Error('No-show resolution did not persist.');
+      if (input.adminNotes !== undefined && stored.admin_notes !== input.adminNotes) {
+        throw new Error('No-show resolution notes did not persist.');
+      }
+      if ((input.status === 'resolved' || input.status === 'rejected') && !stored.resolved_at) {
+        throw new Error('No-show resolution timestamp did not persist.');
+      }
+      return stored;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'no-show-reports'] });

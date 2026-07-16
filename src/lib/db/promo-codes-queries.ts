@@ -89,8 +89,9 @@ export function useUpdatePromoCode() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...patch }: { id: string } & Partial<PromoCodeInput>) => {
-      const { error } = await supabase.from('promo_codes').update(patch as any).eq('id', id);
+      const { data, error } = await supabase.from('promo_codes').update(patch as any).eq('id', id).select().single();
       if (error) throw error;
+      return data as PromoCodeRow;
     },
     onSuccess: () => invalidateAll(qc),
   });
@@ -100,8 +101,9 @@ export function useSetPromoCodeActive() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
-      const { error } = await supabase.from('promo_codes').update({ is_active: active }).eq('id', id);
+      const { data, error } = await supabase.from('promo_codes').update({ is_active: active }).eq('id', id).select('is_active').single();
       if (error) throw error;
+      if (data.is_active !== active) throw new Error('Promo code active status did not persist.');
     },
     onSuccess: () => invalidateAll(qc),
   });
@@ -143,6 +145,18 @@ export function useSetPromoCodeScope() {
       if (serviceIds.length > 0) {
         const ins2 = await supabase.from('promo_code_services').insert(serviceIds.map((service_id) => ({ promo_code_id: promoCodeId, service_id })));
         if (ins2.error) throw ins2.error;
+      }
+      const [storedCategories, storedServices] = await Promise.all([
+        supabase.from('promo_code_categories').select('category_id').eq('promo_code_id', promoCodeId),
+        supabase.from('promo_code_services').select('service_id').eq('promo_code_id', promoCodeId),
+      ]);
+      if (storedCategories.error) throw storedCategories.error;
+      if (storedServices.error) throw storedServices.error;
+      const actualCategories = (storedCategories.data ?? []).map((r) => r.category_id).sort();
+      const actualServices = (storedServices.data ?? []).map((r) => r.service_id).sort();
+      if (JSON.stringify(actualCategories) !== JSON.stringify([...categoryIds].sort()) ||
+          JSON.stringify(actualServices) !== JSON.stringify([...serviceIds].sort())) {
+        throw new Error('Promo code scope did not persist.');
       }
     },
     onSuccess: (_d, vars) => {

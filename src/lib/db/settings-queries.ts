@@ -43,10 +43,16 @@ export function useUpdateBillingSettings() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (value: BillingSettings) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('settings')
-        .upsert({ key: 'billing', value }, { onConflict: 'key' });
+        .upsert({ key: 'billing', value }, { onConflict: 'key' })
+        .select('value')
+        .single();
       if (error) throw error;
+      const stored = data.value as BillingSettings;
+      if (Number(stored.vat_percent) !== value.vat_percent || Number(stored.platform_fee) !== value.platform_fee) {
+        throw new Error('Billing settings did not persist.');
+      }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'billing'] }),
   });
@@ -78,10 +84,14 @@ export function useUpdateServiceAreasSettings() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (areas: { name: string; enabled: boolean }[]) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('settings')
-        .upsert({ key: 'service_areas', value: { areas } }, { onConflict: 'key' });
+        .upsert({ key: 'service_areas', value: { areas } }, { onConflict: 'key' })
+        .select('value')
+        .single();
       if (error) throw error;
+      const stored = (data.value as { areas?: { name: string; enabled: boolean }[] }).areas ?? [];
+      if (JSON.stringify(stored) !== JSON.stringify(areas)) throw new Error('Service area settings did not persist.');
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'service_areas'] }),
   });
@@ -109,10 +119,14 @@ export function useUpdatePlatformContent() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ key, body_en, body_ar }: { key: PlatformContentKey; body_en: string; body_ar: string }) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('settings')
-        .upsert({ key: `content_${key}`, value: { body_en, body_ar } }, { onConflict: 'key' });
+        .upsert({ key: `content_${key}`, value: { body_en, body_ar } }, { onConflict: 'key' })
+        .select('value')
+        .single();
       if (error) throw error;
+      const stored = data.value as { body_en?: string; body_ar?: string };
+      if (stored.body_en !== body_en || stored.body_ar !== body_ar) throw new Error('Platform content did not persist.');
     },
     onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['settings', 'content', vars.key] }),
   });

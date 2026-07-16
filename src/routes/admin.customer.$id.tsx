@@ -3,6 +3,8 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAdminCustomer, useSetCustomerSuspended } from "@/lib/db/admin-queries";
 import { ChevronLeft, ShieldAlert } from "lucide-react";
+import { toast } from "sonner";
+import { AdminQueryError } from "@/components/admin/AdminQueryError";
 
 export const Route = createFileRoute("/admin/customer/$id")({ component: AdminCustomer });
 
@@ -14,13 +16,19 @@ function AdminCustomer() {
   const [showConfirm, setShowConfirm] = useState(false);
 
   if (q.isLoading) return <div className="p-6 text-sm text-muted-foreground">{t("common.loading")}</div>;
+  if (q.isError) return <div className="p-6"><AdminQueryError message={t("admin.customers.loadError")} error={q.error} onRetry={() => q.refetch()} /></div>;
   const { profile, bookings, payments } = q.data ?? { profile: null, bookings: [], payments: [] };
   if (!profile) return <div className="p-6 text-sm text-muted-foreground">{t("admin.customer.notFound")}</div>;
 
   const isSuspended = !!profile.is_suspended;
   const toggleSuspend = () => {
-    setSuspended.mutate({ id, suspended: !isSuspended });
-    setShowConfirm(false);
+    setSuspended.mutate(
+      { id, suspended: !isSuspended },
+      {
+        onSuccess: () => setShowConfirm(false),
+        onError: (e: any) => toast.error(e?.message ?? t("admin.customer.suspendError")),
+      },
+    );
   };
 
   return (

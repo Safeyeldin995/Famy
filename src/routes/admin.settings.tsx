@@ -12,6 +12,7 @@ import {
 } from "@/lib/db/admin-queries";
 import { toast } from "sonner";
 import { Save, Check } from "lucide-react";
+import { AdminQueryError } from "@/components/admin/AdminQueryError";
 
 export const Route = createFileRoute("/admin/settings")({ component: AdminSettings });
 
@@ -39,17 +40,17 @@ function SaveButton({ onClick, pending, saved }: { onClick: () => void; pending:
   );
 }
 
-function useSavedFlash(pending: boolean) {
+function useSavedFlash(pending: boolean, succeeded: boolean) {
   const [saved, setSaved] = useState(false);
   const wasPending = useState(() => ({ prev: false }))[0];
   useEffect(() => {
-    if (wasPending.prev && !pending) {
+    if (wasPending.prev && !pending && succeeded) {
       setSaved(true);
       const t = setTimeout(() => setSaved(false), 1800);
       return () => clearTimeout(t);
     }
     wasPending.prev = pending;
-  }, [pending]);
+  }, [pending, succeeded]);
   return saved;
 }
 
@@ -59,7 +60,7 @@ function BillingSection() {
   const update = useUpdateBillingSettings();
   const [vat, setVat] = useState("");
   const [fee, setFee] = useState("");
-  const saved = useSavedFlash(update.isPending);
+  const saved = useSavedFlash(update.isPending, update.isSuccess);
 
   // Initialize from the first successful load only — re-syncing on every
   // q.data change (a background refetch, e.g. on window refocus) would
@@ -80,6 +81,13 @@ function BillingSection() {
     return (
       <SectionCard title={t("admin.settings.paymentsTitle")} subtitle={t("admin.settings.paymentsSubtitle")}>
         <div className="h-16 animate-pulse rounded-xl bg-muted" />
+      </SectionCard>
+    );
+  }
+  if (q.isError) {
+    return (
+      <SectionCard title={t("admin.settings.paymentsTitle")} subtitle={t("admin.settings.paymentsSubtitle")}>
+        <AdminQueryError compact message={t("admin.settings.billingLoadError")} error={q.error} onRetry={() => q.refetch()} />
       </SectionCard>
     );
   }
@@ -123,7 +131,7 @@ function CategoriesSection() {
       {q.isLoading ? (
         <div className="h-16 animate-pulse rounded-xl bg-muted" />
       ) : q.isError ? (
-        <p className="text-sm text-coral">{t("admin.settings.categoriesLoadError")}</p>
+        <AdminQueryError compact message={t("admin.settings.categoriesLoadError")} error={q.error} onRetry={() => q.refetch()} />
       ) : (
         <ul className="space-y-2">
           {(q.data ?? []).map((c: any) => (
@@ -136,14 +144,16 @@ function CategoriesSection() {
                     className="h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm" />
                   <div className="flex gap-2">
                     <button
-                      onClick={() => {
-                        updateNames.mutate({ id: c.id, name_en: nameEn, name_ar: nameAr }, {
+                      disabled={updateNames.isPending}
+                      onClick={() => updateNames.mutate(
+                        { id: c.id, name_en: nameEn, name_ar: nameAr },
+                        {
+                          onSuccess: () => setEditing(null),
                           onError: (e: any) => toast.error(e?.message ?? t("admin.settings.categorySaveError")),
-                        });
-                        setEditing(null);
-                      }}
-                      className="focus-ring rounded-lg bg-navy px-3 py-1.5 text-xs font-bold text-navy-foreground"
-                    >{t("common.save")}</button>
+                        },
+                      )}
+                      className="focus-ring rounded-lg bg-navy px-3 py-1.5 text-xs font-bold text-navy-foreground disabled:opacity-50"
+                    >{updateNames.isPending ? t("admin.cancellationReasons.saving") : t("common.save")}</button>
                     <button onClick={() => setEditing(null)} className="focus-ring rounded-lg border border-border px-3 py-1.5 text-xs font-bold">{t("common.cancel")}</button>
                   </div>
                 </div>
@@ -183,7 +193,7 @@ function ServiceAreasSection() {
   const q = useServiceAreasSettings();
   const update = useUpdateServiceAreasSettings();
   const [areas, setAreas] = useState<{ name: string; enabled: boolean }[]>([]);
-  const saved = useSavedFlash(update.isPending);
+  const saved = useSavedFlash(update.isPending, update.isSuccess);
   // Init once — see BillingSection for why re-syncing on every q.data change
   // is unsafe (would silently revert an in-flight toggle).
   const initialized = useState(() => ({ done: false }))[0];
@@ -205,15 +215,16 @@ function ServiceAreasSection() {
       {q.isLoading ? (
         <div className="h-16 animate-pulse rounded-xl bg-muted" />
       ) : q.isError ? (
-        <p className="text-sm text-coral">{t("admin.settings.serviceAreasLoadError")}</p>
+        <AdminQueryError compact message={t("admin.settings.serviceAreasLoadError")} error={q.error} onRetry={() => q.refetch()} />
       ) : (
         <ul className="space-y-2">
           {areas.map((a) => (
             <li key={a.name} className="flex items-center justify-between rounded-xl border border-border/60 p-3">
               <span className="text-sm font-semibold">{a.name}</span>
               <button
+                disabled={update.isPending}
                 onClick={() => toggle(a.name)}
-                className={`focus-ring rounded-lg px-3 py-1.5 text-xs font-bold ${a.enabled ? "border border-coral text-coral" : "bg-navy text-navy-foreground"}`}
+                className={`focus-ring rounded-lg px-3 py-1.5 text-xs font-bold disabled:opacity-50 ${a.enabled ? "border border-coral text-coral" : "bg-navy text-navy-foreground"}`}
               >
                 {a.enabled ? t("admin.settings.disable") : t("admin.settings.enable")}
               </button>
@@ -247,7 +258,7 @@ function ReminderRulesSection() {
       {q.isLoading ? (
         <div className="h-16 animate-pulse rounded-xl bg-muted" />
       ) : q.isError ? (
-        <p className="text-sm text-coral">{t("admin.settings.remindersLoadError")}</p>
+        <AdminQueryError compact message={t("admin.settings.remindersLoadError")} error={q.error} onRetry={() => q.refetch()} />
       ) : (q.data ?? []).length === 0 ? (
         <p className="text-sm text-muted-foreground">{t("admin.settings.noReminderRules")}</p>
       ) : (
@@ -292,7 +303,7 @@ function ContentEditor({ contentKey, label }: { contentKey: PlatformContentKey; 
   const update = useUpdatePlatformContent();
   const [en, setEn] = useState("");
   const [ar, setAr] = useState("");
-  const saved = useSavedFlash(update.isPending);
+  const saved = useSavedFlash(update.isPending, update.isSuccess);
   // Init once — see BillingSection for why re-syncing on every q.data change
   // is unsafe (would silently discard in-progress edits).
   const initialized = useState(() => ({ done: false }))[0];
@@ -309,6 +320,8 @@ function ContentEditor({ contentKey, label }: { contentKey: PlatformContentKey; 
       <p className="text-sm font-semibold">{label}</p>
       {q.isLoading ? (
         <div className="mt-2 h-24 animate-pulse rounded-lg bg-muted" />
+      ) : q.isError ? (
+        <AdminQueryError compact message={t("admin.settings.contentLoadError")} error={q.error} onRetry={() => q.refetch()} />
       ) : (
         <>
           <textarea dir="ltr" value={en} onChange={(e) => setEn(e.target.value)} rows={4} placeholder={t("admin.settings.englishContentPlaceholder")}
@@ -317,11 +330,11 @@ function ContentEditor({ contentKey, label }: { contentKey: PlatformContentKey; 
             className="mt-2 w-full resize-none rounded-lg border border-border bg-surface p-2 text-xs" />
         </>
       )}
-      <div className="mt-2">
+      {!q.isError && <div className="mt-2">
         <SaveButton pending={update.isPending} saved={saved} onClick={() => update.mutate({ key: contentKey, body_en: en, body_ar: ar }, {
           onError: (e: any) => toast.error(e?.message ?? t("admin.settings.contentSaveError")),
         })} />
-      </div>
+      </div>}
     </div>
   );
 }

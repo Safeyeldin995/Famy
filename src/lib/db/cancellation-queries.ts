@@ -113,9 +113,20 @@ export function useSetCancellationReasonActive() {
 export function useSetCancellationReasonDisplayOrder() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, display_order }: { id: string; display_order: number }) => {
-      const { error } = await supabase.from('cancellation_reasons').update({ display_order }).eq('id', id);
-      if (error) throw error;
+    mutationFn: async ({
+      first,
+      second,
+    }: {
+      first: { id: string; display_order: number };
+      second: { id: string; display_order: number };
+    }) => {
+      const firstResult = await supabase.from('cancellation_reasons').update({ display_order: first.display_order }).eq('id', first.id).select('display_order').single();
+      if (firstResult.error) throw firstResult.error;
+      const secondResult = await supabase.from('cancellation_reasons').update({ display_order: second.display_order }).eq('id', second.id).select('display_order').single();
+      if (secondResult.error) throw secondResult.error;
+      if (firstResult.data.display_order !== first.display_order || secondResult.data.display_order !== second.display_order) {
+        throw new Error('Cancellation reason order did not persist.');
+      }
     },
     onSuccess: () => invalidateReasons(qc),
   });

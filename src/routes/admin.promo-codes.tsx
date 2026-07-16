@@ -9,6 +9,7 @@ import {
   type DiscountType, type ApplicableScope, type PromoCodeInput, type PromoCodeRow,
 } from "@/lib/db/promo-codes-queries";
 import { useAdminCategories, useAdminServices } from "@/lib/db/admin-queries";
+import { AdminQueryError } from "@/components/admin/AdminQueryError";
 
 export const Route = createFileRoute("/admin/promo-codes")({ component: AdminPromoCodes });
 
@@ -426,7 +427,7 @@ function AdminPromoCodes() {
         {q.isLoading ? (
           <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-16 animate-pulse rounded-xl bg-muted" />)}</div>
         ) : q.isError ? (
-          <p className="text-sm text-coral">{t("admin.promoCodes.loadError")}</p>
+          <AdminQueryError message={t("admin.promoCodes.loadError")} error={q.error} onRetry={() => q.refetch()} />
         ) : rows.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("admin.promoCodes.noResults")}</p>
         ) : (

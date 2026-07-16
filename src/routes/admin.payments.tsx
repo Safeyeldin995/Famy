@@ -5,6 +5,7 @@ import { useAdminPayments } from "@/lib/db/admin-queries";
 import { getSignedProofUrl } from "@/lib/db/payment-queries";
 import { formatEGP } from "@/lib/utils";
 import { Search, ExternalLink, Eye } from "lucide-react";
+import { AdminQueryError } from "@/components/admin/AdminQueryError";
 
 export const Route = createFileRoute("/admin/payments")({
   component: AdminPayments,
@@ -93,7 +94,7 @@ function AdminPayments() {
           {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-16 animate-pulse rounded-2xl bg-muted" />)}
         </div>
       ) : q.isError ? (
-        <p className="text-sm text-coral">{t("admin.payments.loadError")}</p>
+        <AdminQueryError message={t("admin.payments.loadError")} error={q.error} onRetry={() => q.refetch()} />
       ) : rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t("admin.payments.noResults")}</p>
       ) : (

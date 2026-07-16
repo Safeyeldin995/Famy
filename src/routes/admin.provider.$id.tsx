@@ -5,11 +5,14 @@ import { useTranslation } from "react-i18next";
 import { useAdminProvider, useProviderEligibility, useSetProviderVerified, useSetProviderActive, useSetProviderServiceStatus, useDocumentSignedUrl } from "@/lib/db/admin-queries";
 import { useProviderAvailability, useProviderVacations, useAddVacation, useDeleteVacation } from "@/lib/db/provider-queries";
 import { ChevronLeft, FileText, ShieldCheck, Trash2, Check, X } from "lucide-react";
+import { AdminQueryError } from "@/components/admin/AdminQueryError";
 
 function EligibilitySection({ providerId }: { providerId: string }) {
   const { t } = useTranslation();
   const q = useProviderEligibility(providerId);
-  if (q.isLoading || !q.data) return null;
+  if (q.isLoading) return <div className="h-24 animate-pulse rounded-2xl bg-muted" />;
+  if (q.isError) return <AdminQueryError compact message={t("admin.providers.loadError")} error={q.error} onRetry={() => q.refetch()} />;
+  if (!q.data) return null;
   const e = q.data;
   const rows: Array<{ ok: boolean; label: string }> = [
     { ok: e.verified, label: t("admin.provider.eligVerified") },
@@ -124,6 +127,7 @@ function AdminProvider() {
   const [serviceRejectReason, setServiceRejectReason] = useState("");
 
   if (q.isLoading) return <div className="p-6 text-sm text-muted-foreground">{t("common.loading")}</div>;
+  if (q.isError) return <div className="p-6"><AdminQueryError message={t("admin.providers.loadError")} error={q.error} onRetry={() => q.refetch()} /></div>;
   const p: any = q.data;
   if (!p) return <div className="p-6 text-sm text-muted-foreground">{t("admin.provider.notFound")}</div>;
 
@@ -135,8 +139,13 @@ function AdminProvider() {
   };
 
   const toggleSuspend = () => {
-    setActive.mutate({ id: p.id, active: !p.is_active });
-    setShowConfirm(false);
+    setActive.mutate(
+      { id: p.id, active: !p.is_active },
+      {
+        onSuccess: () => setShowConfirm(false),
+        onError: (e: any) => toast.error(e?.message ?? t("admin.providers.approveError")),
+      },
+    );
   };
 
   return (

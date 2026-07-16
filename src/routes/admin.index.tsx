@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePendingProviders, useAdminDashboardKpis } from "@/lib/db/admin-queries";
 import { formatEGP } from "@/lib/utils";
 import { ShieldCheck, ClipboardList, Wallet, Clock, Users, UserCheck } from "lucide-react";
+import { AdminQueryError } from "@/components/admin/AdminQueryError";
 
 export const Route = createFileRoute("/admin/")({ component: AdminHome });
 
@@ -46,7 +47,7 @@ function AdminHome() {
             {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-20 animate-pulse rounded-2xl bg-muted" />)}
           </div>
         ) : kpis.isError ? (
-          <p className="mt-2 text-sm text-coral">{t("admin.index.kpiError")}</p>
+          <div className="mt-2"><AdminQueryError message={t("admin.index.kpiError")} error={kpis.error} onRetry={() => kpis.refetch()} /></div>
         ) : (
           <div className="mt-2 grid grid-cols-2 gap-3 lg:grid-cols-5">
             <KpiCard icon={Wallet} label={t("admin.index.revenue")} value={formatEGP(kpis.data!.revenue)} tone="text-navy" />

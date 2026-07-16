@@ -8,6 +8,7 @@ import {
   useSetCancellationReasonActive, useSetCancellationReasonDisplayOrder,
   type CancellationActorType, type CancellationReasonInput, type CancellationReasonRow,
 } from "@/lib/db/cancellation-queries";
+import { AdminQueryError } from "@/components/admin/AdminQueryError";
 
 export const Route = createFileRoute("/admin/cancellation-reasons")({ component: AdminCancellationReasons });
 
@@ -225,8 +226,13 @@ function AdminCancellationReasons() {
     const target = rows[index + direction];
     const current = rows[index];
     if (!target || !current || target.actor_type !== current.actor_type) return;
-    setOrder.mutate({ id: current.id, display_order: target.display_order });
-    setOrder.mutate({ id: target.id, display_order: current.display_order });
+    setOrder.mutate(
+      {
+        first: { id: current.id, display_order: target.display_order },
+        second: { id: target.id, display_order: current.display_order },
+      },
+      { onError: (e: any) => toast.error(dbErrorMessage(e, t)) },
+    );
   };
 
   return (
@@ -273,7 +279,7 @@ function AdminCancellationReasons() {
         {q.isLoading ? (
           <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-16 animate-pulse rounded-xl bg-muted" />)}</div>
         ) : q.isError ? (
-          <p className="text-sm text-coral">{t("admin.cancellationReasons.loadError")}</p>
+          <AdminQueryError message={t("admin.cancellationReasons.loadError")} error={q.error} onRetry={() => q.refetch()} />
         ) : rows.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("admin.cancellationReasons.noResults")}</p>
         ) : (

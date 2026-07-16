@@ -89,8 +89,9 @@ export function useUpdatePaymentMethod() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...patch }: { id: string } & Partial<PaymentMethodInput>) => {
-      const { error } = await supabase.from('payment_methods').update(patch as any).eq('id', id);
+      const { data, error } = await supabase.from('payment_methods').update(patch as any).eq('id', id).select().single();
       if (error) throw error;
+      return data as PaymentMethodRow;
     },
     onSuccess: () => invalidateAll(qc),
   });
@@ -100,8 +101,9 @@ export function useSetPaymentMethodActive() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
-      const { error } = await supabase.from('payment_methods').update({ is_active: active }).eq('id', id);
+      const { data, error } = await supabase.from('payment_methods').update({ is_active: active }).eq('id', id).select('is_active').single();
       if (error) throw error;
+      if (data.is_active !== active) throw new Error('Payment method active status did not persist.');
     },
     onSuccess: () => invalidateAll(qc),
   });
@@ -110,9 +112,20 @@ export function useSetPaymentMethodActive() {
 export function useSetPaymentMethodDisplayOrder() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, display_order }: { id: string; display_order: number }) => {
-      const { error } = await supabase.from('payment_methods').update({ display_order }).eq('id', id);
-      if (error) throw error;
+    mutationFn: async ({
+      first,
+      second,
+    }: {
+      first: { id: string; display_order: number };
+      second: { id: string; display_order: number };
+    }) => {
+      const firstResult = await supabase.from('payment_methods').update({ display_order: first.display_order }).eq('id', first.id).select('display_order').single();
+      if (firstResult.error) throw firstResult.error;
+      const secondResult = await supabase.from('payment_methods').update({ display_order: second.display_order }).eq('id', second.id).select('display_order').single();
+      if (secondResult.error) throw secondResult.error;
+      if (firstResult.data.display_order !== first.display_order || secondResult.data.display_order !== second.display_order) {
+        throw new Error('Payment method order did not persist.');
+      }
     },
     onSuccess: () => invalidateAll(qc),
   });
@@ -125,6 +138,9 @@ export function useSetDefaultPaymentMethod() {
     mutationFn: async (id: string) => {
       const { error } = await supabase.rpc('admin_set_default_payment_method', { p_id: id });
       if (error) throw error;
+      const { data: stored, error: readError } = await supabase.from('payment_methods').select('is_default').eq('id', id).single();
+      if (readError) throw readError;
+      if (!stored.is_default) throw new Error('Default payment method did not persist.');
     },
     onSuccess: () => invalidateAll(qc),
   });

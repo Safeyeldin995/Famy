@@ -10,6 +10,7 @@ import { PaymentBlock } from "@/components/famio/PaymentBlock";
 import { BookingChatPanel } from "@/components/famio/BookingChatPanel";
 import { formatEGP } from "@/lib/utils";
 import { Search } from "lucide-react";
+import { AdminQueryError } from "@/components/admin/AdminQueryError";
 
 function AdminCancellationDetails({ cancellation }: { cancellation: any }) {
   const { t } = useTranslation();
@@ -162,7 +163,7 @@ function AdminBookings() {
           {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-20 animate-pulse rounded-2xl bg-muted" />)}
         </div>
       ) : q.isError ? (
-        <p className="text-sm text-coral">{t("admin.bookings.loadError")}</p>
+        <AdminQueryError message={t("admin.bookings.loadError")} error={q.error} onRetry={() => q.refetch()} />
       ) : rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t("admin.bookings.noResults")}</p>
       ) : (

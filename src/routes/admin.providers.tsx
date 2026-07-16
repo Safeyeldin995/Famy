@@ -7,6 +7,7 @@ import {
   type AdminProviderFilter,
 } from "@/lib/db/admin-queries";
 import { Search, ChevronRight, ShieldCheck } from "lucide-react";
+import { AdminQueryError } from "@/components/admin/AdminQueryError";
 
 export const Route = createFileRoute("/admin/providers")({ component: ProviderManagement });
 
@@ -74,7 +75,7 @@ function ProviderManagement() {
           {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-24 animate-pulse rounded-2xl bg-muted" />)}
         </div>
       ) : q.isError ? (
-        <p className="text-sm text-coral">{t("admin.providers.loadError")}</p>
+        <AdminQueryError message={t("admin.providers.loadError")} error={q.error} onRetry={() => q.refetch()} />
       ) : rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t("admin.providers.noResults")}</p>
       ) : (
