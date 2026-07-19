@@ -112,19 +112,20 @@ export function useSetPaymentMethodActive() {
 export function useSetPaymentMethodDisplayOrder() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({
-      first,
-      second,
-    }: {
+    mutationFn: async ({ first, second }: {
       first: { id: string; display_order: number };
       second: { id: string; display_order: number };
     }) => {
-      const firstResult = await supabase.from('payment_methods').update({ display_order: first.display_order }).eq('id', first.id).select('display_order').single();
-      if (firstResult.error) throw firstResult.error;
-      const secondResult = await supabase.from('payment_methods').update({ display_order: second.display_order }).eq('id', second.id).select('display_order').single();
-      if (secondResult.error) throw secondResult.error;
-      if (firstResult.data.display_order !== first.display_order || secondResult.data.display_order !== second.display_order) {
-        throw new Error('Payment method order did not persist.');
+      const { data, error } = await supabase.rpc('admin_swap_payment_method_order', {
+        p_first_id: first.id,
+        p_second_id: second.id,
+      });
+      if (error) throw error;
+      const rows = data ?? [];
+      const storedFirst = rows.find((row: any) => row.id === first.id);
+      const storedSecond = rows.find((row: any) => row.id === second.id);
+      if (rows.length !== 2 || storedFirst?.display_order !== first.display_order || storedSecond?.display_order !== second.display_order) {
+        throw new Error('Payment method order swap did not persist atomically.');
       }
     },
     onSuccess: () => invalidateAll(qc),

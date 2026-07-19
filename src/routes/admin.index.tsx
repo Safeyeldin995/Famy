@@ -60,7 +60,9 @@ function AdminHome() {
       </div>
 
       <div className="space-y-3">
-        <Link to="/admin/providers" className="focus-ring flex items-center justify-between rounded-2xl border border-border/60 bg-surface p-4 shadow-card">
+        {pending.isError ? (
+          <AdminQueryError message={t("admin.providers.loadError")} error={pending.error} onRetry={() => pending.refetch()} />
+        ) : <Link to="/admin/providers" className="focus-ring flex items-center justify-between rounded-2xl border border-border/60 bg-surface p-4 shadow-card">
           <div className="flex items-center gap-3">
             <ShieldCheck className="h-5 w-5 text-coral" />
             <div>
@@ -69,10 +71,12 @@ function AdminHome() {
             </div>
           </div>
           <span className="rounded-full bg-coral/10 px-2 py-0.5 text-xs font-bold text-coral">
-            {pending.data?.length ?? 0}
+            {pending.isLoading ? "…" : pending.data?.length ?? 0}
           </span>
-        </Link>
-        <Link to="/admin/bookings" className="focus-ring flex items-center justify-between rounded-2xl border border-border/60 bg-surface p-4 shadow-card">
+        </Link>}
+        {bookingsCount.isError ? (
+          <AdminQueryError message={t("admin.bookings.loadError")} error={bookingsCount.error} onRetry={() => bookingsCount.refetch()} />
+        ) : <Link to="/admin/bookings" className="focus-ring flex items-center justify-between rounded-2xl border border-border/60 bg-surface p-4 shadow-card">
           <div className="flex items-center gap-3">
             <ClipboardList className="h-5 w-5 text-navy" />
             <div>
@@ -81,9 +85,9 @@ function AdminHome() {
             </div>
           </div>
           <span className="rounded-full bg-navy/10 px-2 py-0.5 text-xs font-bold text-navy">
-            {bookingsCount.data ?? 0}
+            {bookingsCount.isLoading ? "…" : bookingsCount.data ?? 0}
           </span>
-        </Link>
+        </Link>}
       </div>
     </div>
   );

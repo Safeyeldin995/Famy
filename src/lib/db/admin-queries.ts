@@ -179,11 +179,26 @@ export function useUpdateBookingStatus() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await supabase
+      const { data: updated, error } = await supabase
         .from('bookings')
         .update({ status: status as any })
-        .eq('id', id);
+        .eq('id', id)
+        .select('id,status')
+        .single();
       if (error) throw error;
+      if (updated.id !== id || updated.status !== status) {
+        throw new Error('Booking status update did not return the expected row.');
+      }
+      const { data: stored, error: readError } = await supabase
+        .from('bookings')
+        .select('id,status')
+        .eq('id', id)
+        .single();
+      if (readError) throw readError;
+      if (stored.id !== id || stored.status !== status) {
+        throw new Error('Booking status did not persist.');
+      }
+      return stored;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'bookings'] });
@@ -369,21 +384,21 @@ export function useUpdateRequirement() {
 export function useReorderRequirement() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({
-      service_id,
-      first,
-      second,
-    }: {
+    mutationFn: async ({ service_id, first, second }: {
       service_id: string;
       first: { id: string; sort_order: number };
       second: { id: string; sort_order: number };
     }) => {
-      const firstResult = await supabase.from('service_requirements').update({ sort_order: first.sort_order }).eq('id', first.id).select('sort_order').single();
-      if (firstResult.error) throw firstResult.error;
-      const secondResult = await supabase.from('service_requirements').update({ sort_order: second.sort_order }).eq('id', second.id).select('sort_order').single();
-      if (secondResult.error) throw secondResult.error;
-      if (firstResult.data.sort_order !== first.sort_order || secondResult.data.sort_order !== second.sort_order) {
-        throw new Error('Requirement order did not persist.');
+      const { data, error } = await supabase.rpc('admin_swap_service_requirement_order', {
+        p_first_id: first.id,
+        p_second_id: second.id,
+      });
+      if (error) throw error;
+      const rows = data ?? [];
+      const storedFirst = rows.find((row: any) => row.id === first.id);
+      const storedSecond = rows.find((row: any) => row.id === second.id);
+      if (rows.length !== 2 || storedFirst?.sort_order !== first.sort_order || storedSecond?.sort_order !== second.sort_order) {
+        throw new Error('Requirement order swap did not persist atomically.');
       }
     },
     onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['admin', 'requirements', vars.service_id] }),

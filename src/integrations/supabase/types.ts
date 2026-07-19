@@ -3170,6 +3170,18 @@ export type Database = {
         Args: { p_id: string }
         Returns: undefined
       }
+      admin_swap_cancellation_reason_order: {
+        Args: { p_first_id: string; p_second_id: string }
+        Returns: { display_order: number; id: string }[]
+      }
+      admin_swap_payment_method_order: {
+        Args: { p_first_id: string; p_second_id: string }
+        Returns: { display_order: number; id: string }[]
+      }
+      admin_swap_service_requirement_order: {
+        Args: { p_first_id: string; p_second_id: string }
+        Returns: { id: string; sort_order: number }[]
+      }
       admin_set_provider_service_status: {
         Args: { p_id: string; p_reason?: string; p_status: string }
         Returns: undefined

@@ -205,9 +205,16 @@ function ServiceAreasSection() {
   }, [q.data, initialized]);
 
   const toggle = (name: string) => {
+    const previous = areas;
     const next = areas.map((a) => (a.name === name ? { ...a, enabled: !a.enabled } : a));
     setAreas(next);
-    update.mutate(next, { onError: (e: any) => toast.error(e?.message ?? t("admin.settings.serviceAreaError")) });
+    update.mutate(next, {
+      onError: (e: any) => {
+        setAreas(previous);
+        void q.refetch();
+        toast.error(e?.message ?? t("admin.settings.serviceAreaError"));
+      },
+    });
   };
 
   return (

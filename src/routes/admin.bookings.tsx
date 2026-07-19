@@ -200,8 +200,9 @@ function AdminBookings() {
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <select
                     value={b.status}
+                    disabled={update.isPending}
                     onChange={(e) => update.mutate({ id: b.id, status: e.target.value }, { onError: (err: any) => toast.error(err?.message ?? t("admin.bookings.updateStatusError")) })}
-                    className="focus-ring rounded-lg border border-border bg-surface px-2 py-1.5 text-xs"
+                    className="focus-ring rounded-lg border border-border bg-surface px-2 py-1.5 text-xs disabled:opacity-50"
                   >
                     {STATUS_FILTERS.map((s) => <option key={s.key} value={s.key}>{t(s.labelKey)}</option>)}
                   </select>
