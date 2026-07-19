@@ -7,9 +7,14 @@ export function useAdminProviders(filter: AdminProviderFilter = "all") {
   return useQuery({
     queryKey: ['admin', 'providers', filter],
     queryFn: async () => {
+      const { data: identityRows, error: identityError } = await supabase.rpc('admin_provider_identity_ids');
+      if (identityError) throw identityError;
+      const providerIds = (identityRows ?? []).map((row) => row.provider_id);
+      if (providerIds.length === 0) return [];
       let q = supabase
         .from('providers')
         .select('*, profile:profiles(*), ratings:ratings_summary(*), trust:trust_scores(*)')
+        .in('id', providerIds)
         .order('created_at', { ascending: false });
       if (filter === 'pending') q = q.eq('is_verified', false);
       else if (filter === 'verified') q = q.eq('is_verified', true).eq('is_active', true);
@@ -44,9 +49,14 @@ export function usePendingProviders() {
   return useQuery({
     queryKey: ['admin', 'pending-providers'],
     queryFn: async () => {
+      const { data: identityRows, error: identityError } = await supabase.rpc('admin_provider_identity_ids');
+      if (identityError) throw identityError;
+      const providerIds = (identityRows ?? []).map((row) => row.provider_id);
+      if (providerIds.length === 0) return [];
       const { data, error } = await supabase
         .from('providers')
         .select('*, profile:profiles(*)')
+        .in('id', providerIds)
         .eq('is_verified', false)
         .order('created_at', { ascending: false });
       if (error) throw error;
@@ -72,15 +82,14 @@ export function useAdminProvider(id: string) {
 }
 
 // Backs the Admin "why isn't this provider visible to customers" checklist —
-// same provider_eligibility() the customer-search eligible_providers view
-// uses, so the two can never disagree.
+// same database eligibility engine used by Customer search/details.
 export function useProviderEligibility(id: string) {
   return useQuery({
     queryKey: ['admin', 'provider-eligibility', id],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('provider_eligibility', { p_provider_id: id });
+      const { data, error } = await supabase.rpc('provider_marketplace_eligibility', { p_provider_id: id });
       if (error) throw error;
-      return data?.[0] ?? null;
+      return data ?? [];
     },
     enabled: !!id,
   });
@@ -566,9 +575,14 @@ export function useAdminCustomers(filter: AdminCustomerFilter = "all") {
   return useQuery({
     queryKey: ['admin', 'customers'],
     queryFn: async () => {
+      const { data: identityRows, error: identityError } = await supabase.rpc('admin_customer_identity_ids');
+      if (identityError) throw identityError;
+      const customerIds = (identityRows ?? []).map((row) => row.user_id);
+      if (customerIds.length === 0) return [];
       const { data: profiles, error: pErr } = await supabase
         .from('profiles')
         .select('*')
+        .in('id', customerIds)
         .order('created_at', { ascending: false })
         .limit(300);
       if (pErr) throw pErr;
@@ -621,10 +635,29 @@ export function useAdminCustomers(filter: AdminCustomerFilter = "all") {
   });
 }
 
+export function useAdminIdentityConflicts() {
+  return useQuery({
+    queryKey: ['admin', 'identity-conflicts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('admin_identity_conflicts')
+        .select('*')
+        .order('issue_code');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
 export function useAdminCustomer(id: string) {
   return useQuery({
     queryKey: ['admin', 'customer', id],
     queryFn: async () => {
+      const { data: identityRows, error: identityError } = await supabase.rpc('admin_customer_identity_ids');
+      if (identityError) throw identityError;
+      if (!(identityRows ?? []).some((row) => row.user_id === id)) {
+        return { profile: null, bookings: [], payments: [] };
+      }
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')

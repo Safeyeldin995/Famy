@@ -17,8 +17,8 @@ function AdminLayout() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.auth.getUser();
-      if (!data.user) nav({ to: "/login", replace: true });
+      const { data } = await supabase.auth.getSession();
+      if (!data.session?.user) nav({ to: "/login", replace: true });
     })();
   }, [nav]);
 

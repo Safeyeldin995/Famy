@@ -127,7 +127,7 @@ export const verifyOtpFn = createServerFn({ method: "POST" })
         password: derivedPassword,
         email_confirm: true,
         phone_confirm: true,
-        user_metadata: { phone: data.phone },
+        user_metadata: { phone: data.phone, signup_role: data.role ?? "customer" },
       });
       if (error) throw error;
       userId = created.user!.id;
@@ -144,12 +144,22 @@ export const verifyOtpFn = createServerFn({ method: "POST" })
       if (error) throw error;
     }
 
-    // 3) Assign provider role for provider signups (idempotent).
-    if (data.purpose === "signup" && data.role === "provider" && userId) {
-      const { error: roleErr } = await supabaseAdmin
+    // 3) The auth-user trigger assigns exactly the signup-selected normal role.
+    // Verify it before returning a session so a partial identity can never enter
+    // onboarding. A failed new signup is torn down rather than silently repaired.
+    if (data.purpose === "signup" && userId) {
+      const expectedRole = data.role ?? "customer";
+      const { data: assignedRoles, error: roleErr } = await supabaseAdmin
         .from("user_roles")
-        .upsert({ user_id: userId, role: "provider" }, { onConflict: "user_id,role" });
-      if (roleErr) console.error("[otp.verify] role assign error", roleErr);
+        .select("role")
+        .eq("user_id", userId);
+      const normalRoles = (assignedRoles ?? [])
+        .map((row) => row.role)
+        .filter((role) => role === "customer" || role === "provider");
+      if (roleErr || normalRoles.length !== 1 || normalRoles[0] !== expectedRole) {
+        if (isNewUser) await supabaseAdmin.auth.admin.deleteUser(userId);
+        throw new Error(roleErr?.message ?? "signup_identity_assignment_failed");
+      }
     }
 
     // 4) Sign in server-side, return tokens for the client to setSession.

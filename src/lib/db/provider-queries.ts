@@ -9,7 +9,8 @@ export function useMyRole() {
   return useQuery({
     queryKey: ['my-role'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) return null;
       const { data } = await supabase
         .from('user_roles')
@@ -27,7 +28,8 @@ export function useMyProvider() {
   return useQuery({
     queryKey: ['my-provider'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) return null;
       const { data, error } = await supabase
         .from('providers')
@@ -52,30 +54,18 @@ export function useCreateProvider() {
       city: string;
       languages: string[];
     }) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) throw new Error('auth required');
 
-      const { error: roleErr } = await supabase
-        .from('user_roles')
-        .insert({ user_id: user.id, role: 'provider' });
-      if (roleErr && (roleErr as any).code !== '23505') throw roleErr;
-
-      const { data, error } = await supabase
-        .from('providers')
-        .insert({
-          profile_id: user.id,
-          bio_en: input.bio_en ?? '',
-          bio_ar: input.bio_ar ?? '',
-          years_experience: input.years_experience,
-          hourly_rate: input.hourly_rate,
-          city: input.city,
-          country: 'EG',
-          languages: input.languages,
-          is_active: true,
-          is_verified: false,
-        })
-        .select()
-        .single();
+      const { data, error } = await supabase.rpc('create_provider_profile', {
+        p_bio_en: input.bio_en ?? '',
+        p_bio_ar: input.bio_ar ?? '',
+        p_years_experience: input.years_experience,
+        p_hourly_rate: input.hourly_rate,
+        p_city: input.city,
+        p_languages: input.languages,
+      });
       if (error) throw error;
       return data;
     },
@@ -90,7 +80,8 @@ export function useUpdateProvider() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (patch: Record<string, any>) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) throw new Error('auth required');
       const { error } = await supabase
         .from('providers')
@@ -99,6 +90,20 @@ export function useUpdateProvider() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['my-provider'] }),
+  });
+}
+
+export function useMyMarketplaceEligibility(providerId: string | undefined) {
+  return useQuery({
+    enabled: !!providerId,
+    queryKey: ['provider-marketplace-eligibility', providerId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('provider_marketplace_eligibility', {
+        p_provider_id: providerId!,
+      });
+      if (error) throw error;
+      return data ?? [];
+    },
   });
 }
 

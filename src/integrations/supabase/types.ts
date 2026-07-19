@@ -3060,10 +3060,12 @@ export type Database = {
     Views: {
       admin_identity_conflicts: {
         Row: {
+          details: string | null
           email: string | null
           full_name: string | null
+          issue_code: string | null
           phone: string | null
-          roles: Database["public"]["Enums"]["app_role"][] | null
+          provider_id: string | null
           user_id: string | null
         }
         Relationships: []
@@ -3250,6 +3252,25 @@ export type Database = {
         }
         Returns: string
       }
+      create_provider_profile: {
+        Args: {
+          p_bio_ar: string
+          p_bio_en: string
+          p_city: string
+          p_hourly_rate: number
+          p_languages: string[]
+          p_years_experience: number
+        }
+        Returns: Database["public"]["Tables"]["providers"]["Row"]
+      }
+      admin_customer_identity_ids: {
+        Args: never
+        Returns: { user_id: string }[]
+      }
+      admin_provider_identity_ids: {
+        Args: never
+        Returns: { provider_id: string }[]
+      }
       expand_campaign_recipients: {
         Args: { p_campaign_id: string }
         Returns: number
@@ -3282,19 +3303,60 @@ export type Database = {
       polygon_self_intersects: { Args: { p_polygon: Json }; Returns: boolean }
       process_due_campaigns: { Args: never; Returns: number }
       process_due_reminders: { Args: never; Returns: number }
-      provider_eligibility: {
-        Args: { p_provider_id: string }
+      provider_marketplace_eligibility: {
+        Args: { p_address_id?: string; p_provider_id: string; p_service_id?: string }
         Returns: {
-          active: boolean
-          has_approved_service: boolean
-          has_availability: boolean
+          account_active: boolean
+          address_covered: boolean
+          availability_valid: boolean
+          effective_price: number
+          evidence_approved: boolean
+          failure_reasons: string[]
+          identity_valid: boolean
           is_eligible: boolean
+          maximum_price: number | null
+          minimum_price: number | null
+          operational_clear: boolean
           price_valid: boolean
           provider_id: string
-          requirements_met: boolean
+          requirements_complete: boolean
+          service_active: boolean
+          service_approved: boolean
+          service_id: string
+          service_name_ar: string
+          service_name_en: string
           verified: boolean
           zone_covered: boolean
         }[]
+      }
+      search_marketplace_providers: {
+        Args: { p_address_id?: string; p_service_id?: string }
+        Returns: {
+          avatar_url: string | null
+          bio_ar: string | null
+          bio_en: string | null
+          category_slug: string
+          city: string | null
+          full_name: string
+          hourly_rate: number
+          id: string
+          is_top_pro: boolean
+          is_verified: boolean
+          languages: string[]
+          rating_avg: number
+          rating_count: number
+          response_time_min: number | null
+          service_id: string
+          service_name_ar: string
+          service_name_en: string
+          service_slug: string
+          trust_score: number
+          years_experience: number
+        }[]
+      }
+      marketplace_provider_details: {
+        Args: { p_address_id?: string; p_provider_id: string }
+        Returns: Database["public"]["Functions"]["search_marketplace_providers"]["Returns"]
       }
       recompute_trust_score: {
         Args: { _provider_id: string }

@@ -16,7 +16,8 @@ export function useMyProfile() {
   return useQuery({
     queryKey: ['my-profile'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) return null;
       const { data, error } = await supabase
         .from('profiles')
@@ -33,7 +34,8 @@ export function useUpdateProfile() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { full_name: string }) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) throw new Error('auth required');
       const { data, error } = await supabase
         .from('profiles')
@@ -98,7 +100,8 @@ export function useCreateAddress() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: AddressInput) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) throw new Error('auth required');
       const { data, error } = await supabase
         .from('addresses')
@@ -184,7 +187,8 @@ export function useDefaultAddress() {
   return useQuery({
     queryKey: ['default-address'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) return null;
       const { data, error } = await supabase
         .from('addresses')
@@ -235,49 +239,88 @@ export function useCategories() {
 }
 
 // ---------- Providers ----------
-export function useProviders(opts: { categorySlug?: string; limit?: number } = {}) {
+function marketplaceRow(row: any) {
+  return {
+    id: row.id,
+    bio_en: row.bio_en,
+    bio_ar: row.bio_ar,
+    hourly_rate: row.hourly_rate,
+    years_experience: row.years_experience,
+    languages: row.languages,
+    city: row.city,
+    is_top_pro: row.is_top_pro,
+    is_verified: row.is_verified,
+    response_time_min: row.response_time_min,
+    profile: { full_name: row.full_name, avatar_url: row.avatar_url },
+    ratings: { rating_avg: row.rating_avg, rating_count: row.rating_count },
+    trust: { score: row.trust_score },
+    services: [{
+      status: 'approved',
+      service: {
+        id: row.service_id,
+        slug: row.service_slug,
+        name_en: row.service_name_en,
+        name_ar: row.service_name_ar,
+        category: { slug: row.category_slug },
+      },
+    }],
+  };
+}
+
+async function safeProviderDetails(providerId: string) {
+  const { data, error } = await supabase.rpc('marketplace_provider_details', {
+    p_provider_id: providerId,
+  });
+  if (error) throw error;
+  return data?.[0] ? marketplaceRow(data[0]) : null;
+}
+
+export function useProviders(opts: { categorySlug?: string; serviceId?: string; addressId?: string; limit?: number } = {}) {
   return useQuery({
     queryKey: ['providers', opts],
     queryFn: async () => {
-      // eligible_providers already gates on verified + active + an approved,
-      // in-range-priced, zone-covered, requirements-met service — the full
-      // eligibility pipeline, not just verified/active (see provider_eligibility()).
-      let q = supabase
-        .from('eligible_providers')
-        .select(
-          `id, hourly_rate, years_experience, languages, city, is_top_pro, is_verified, response_time_min,
-           profile:profiles(full_name, avatar_url),
-           ratings:ratings_summary(rating_avg, rating_count),
-           trust:trust_scores(score),
-           services:provider_services(status, service:services(id, slug, name_en, name_ar, category:categories(slug)))`,
-        )
-        .limit(opts.limit ?? 50);
-      const { data, error } = await q;
+      const args: { p_service_id?: string; p_address_id?: string } = {};
+      if (opts.serviceId) args.p_service_id = opts.serviceId;
+      if (opts.addressId) args.p_address_id = opts.addressId;
+      const { data, error } = await supabase.rpc('search_marketplace_providers', args);
       if (error) throw error;
-      if (!opts.categorySlug) return data ?? [];
-      return (data ?? []).filter((p: any) =>
-        p.services?.some((ps: any) => ps.service?.category?.slug === opts.categorySlug && ps.status === 'approved'),
-      );
+      const rows = (data ?? []).slice(0, opts.limit ?? 50);
+      if (opts.categorySlug && !opts.serviceId) {
+        return rows.filter((row) => row.category_slug === opts.categorySlug).map(marketplaceRow);
+      }
+      return rows.map(marketplaceRow);
     },
   });
 }
 
-export function useProvider(id: string | undefined) {
+export function useProvider(id: string | undefined, addressId?: string) {
   return useQuery({
     enabled: !!id,
-    queryKey: ['provider', id],
+    queryKey: ['provider', id, addressId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('providers')
-        .select(
-          `*, profile:profiles(*), ratings:ratings_summary(*), trust:trust_scores(*),
-           services:provider_services(status, service:services(*)),
-           reviews(*)`,
-        )
-        .eq('id', id!)
-        .maybeSingle();
+      const args: { p_provider_id: string; p_address_id?: string } = { p_provider_id: id! };
+      if (addressId) args.p_address_id = addressId;
+      const { data, error } = await supabase.rpc('marketplace_provider_details', args);
       if (error) throw error;
-      return data;
+      return data?.[0] ? marketplaceRow(data[0]) : null;
+    },
+  });
+}
+
+export function useMarketplaceServices(categorySlug?: string) {
+  return useQuery({
+    queryKey: ['marketplace-services', categorySlug ?? 'all'],
+    queryFn: async () => {
+      let query = supabase
+        .from('services')
+        .select('id,slug,name_en,name_ar,category:categories!inner(slug,name_en,name_ar)')
+        .eq('is_active', true)
+        .is('deleted_at', null)
+        .order('name_en');
+      if (categorySlug) query = query.eq('category.slug', categorySlug);
+      const { data, error } = await query;
+      if (error) throw error;
+      return data ?? [];
     },
   });
 }
@@ -411,17 +454,18 @@ export function useMyBookings() {
   return useQuery({
     queryKey: ['my-bookings'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) return [];
       const { data, error } = await supabase
         .from('bookings')
-        .select(
-          `*, service:services(*), provider:providers(*, profile:profiles(full_name, avatar_url))`,
-        )
+        .select(`*, service:services(*)`)
         .eq('customer_id', user.id)
         .order('start_at', { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      const providerIds = [...new Set((data ?? []).map((booking) => booking.provider_id))];
+      const providers = new Map((await Promise.all(providerIds.map(async (id) => [id, await safeProviderDetails(id)] as const))));
+      return (data ?? []).map((booking) => ({ ...booking, provider: providers.get(booking.provider_id) ?? null }));
     },
   });
 }
@@ -433,11 +477,12 @@ export function useBooking(id: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('bookings')
-        .select(`*, service:services(*), provider:providers(*, profile:profiles(full_name, avatar_url)), location:booking_locations(*)`)
+        .select(`*, service:services(*), location:booking_locations(*)`)
         .eq('id', id!)
         .maybeSingle();
       if (error) throw error;
-      return data;
+      if (!data) return null;
+      return { ...data, provider: await safeProviderDetails(data.provider_id) };
     },
   });
 }
@@ -523,7 +568,8 @@ export function useCreateBooking() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: Omit<Tables['bookings']['Insert'], 'customer_id'>) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) throw new Error('auth required');
       const { data, error } = await supabase
         .from('bookings')
@@ -580,14 +626,19 @@ export function useFavorites() {
   return useQuery({
     queryKey: ['favorites'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) return [];
       const { data, error } = await supabase
         .from('favorites')
-        .select('provider_id, provider:providers(*, profile:profiles(full_name, avatar_url))')
+        .select('provider_id')
         .eq('user_id', user.id);
       if (error) throw error;
-      return data ?? [];
+      const rows = await Promise.all((data ?? []).map(async (favorite) => ({
+        provider_id: favorite.provider_id,
+        provider: await safeProviderDetails(favorite.provider_id),
+      })));
+      return rows.filter((favorite) => favorite.provider !== null);
     },
   });
 }
@@ -596,7 +647,8 @@ export function useToggleFavorite() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ providerId, on }: { providerId: string; on: boolean }) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) throw new Error('auth required');
       if (on) {
         const { error } = await supabase.from('favorites').insert({ user_id: user.id, provider_id: providerId });
@@ -719,7 +771,8 @@ export function useSubmitReview() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { bookingId: string; providerId: string; rating: number; comment?: string }) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) throw new Error('auth required');
       const { data, error } = await supabase
         .from('reviews')
@@ -816,7 +869,8 @@ export function useNotificationPreferences() {
   return useQuery({
     queryKey: ['notification-preferences'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) return null;
       const { data, error } = await supabase
         .from('notification_preferences')
@@ -833,7 +887,8 @@ export function useUpdateNotificationPreferences() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (patch: Partial<Omit<NotificationPreferences, 'user_id'>>) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) throw new Error('auth required');
       const { error } = await supabase
         .from('notification_preferences')
@@ -903,7 +958,8 @@ export function useFavoriteIds() {
   return useQuery({
     queryKey: ['favorite-ids'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) return [] as string[];
       const { data, error } = await supabase
         .from('favorites')
