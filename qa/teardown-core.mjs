@@ -119,13 +119,14 @@ export async function runTeardown() {
     await assertQaIdentityDisabled(userId);
   }
 
-  const [{ data: activeZones }, { data: activeMethods }, { data: activeCampaigns }, { data: activeBookings }] = await Promise.all([
+  const [{ data: activeZones }, { data: activeServices }, { data: activeMethods }, { data: activeCampaigns }, { data: activeBookings }] = await Promise.all([
     supabaseAdmin.from("zones").select("id").ilike("name_en", "QA_%").eq("is_active", true),
+    supabaseAdmin.from("services").select("id").ilike("name_en", "QA_%").eq("is_active", true),
     supabaseAdmin.from("payment_methods").select("id").ilike("name_en", "QA_%").or("is_active.eq.true,is_default.eq.true"),
     supabaseAdmin.from("notification_campaigns").select("id").ilike("title_en", "QA_%").in("status", ["draft", "scheduled", "sending"]),
     supabaseAdmin.from("bookings").select("id").ilike("notes", "QA_%").in("status", ["pending", "confirmed", "in_progress"]),
   ]);
-  if (activeZones?.length || activeMethods?.length || activeCampaigns?.length || activeBookings?.length) {
+  if (activeZones?.length || activeServices?.length || activeMethods?.length || activeCampaigns?.length || activeBookings?.length) {
     throw new Error("[qa-teardown] active or globally influential QA records remain.");
   }
   await restorePendingRestorations();
