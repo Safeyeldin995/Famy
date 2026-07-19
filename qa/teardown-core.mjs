@@ -77,6 +77,11 @@ export async function runTeardown() {
     const { error } = await supabaseAdmin.from(table).delete().ilike(column, "QA_%");
     if (error && table === "zones") {
       await supabaseAdmin.from("zones").update({ is_active: false }).ilike("name_en", "QA_%");
+    } else if (error && table === "services") {
+      // Audited QA bookings are intentionally retained as cancelled history,
+      // so their referenced service cannot be hard-deleted. Neutralize it.
+      const { error: neutralizeServiceError } = await supabaseAdmin.from("services").update({ is_active: false }).ilike("name_en", "QA_%");
+      if (neutralizeServiceError) throw new Error(`[qa-teardown] could not neutralize QA services: ${neutralizeServiceError.message}`);
     } else if (error && table !== "bookings") {
       console.error(`[qa-teardown] ${table} cleanup error:`, error.message);
     }

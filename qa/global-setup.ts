@@ -65,10 +65,25 @@ async function globalSetup(config: FullConfig) {
   {
     const ctx = await browser.newContext(contextOptions);
     const page = await ctx.newPage();
+    const diagnostics: string[] = [];
+    page.on("console", (message) => { if (message.type() === "error") diagnostics.push(`console: ${message.text()}`); });
+    page.on("pageerror", (error) => diagnostics.push(`pageerror: ${error.message}`));
+    page.on("requestfailed", (request) => diagnostics.push(`requestfailed: ${request.method()} ${request.url()} ${request.failure()?.errorText}`));
+    page.on("response", (response) => { if (response.status() >= 400) diagnostics.push(`response: ${response.status()} ${response.request().method()} ${response.url()}`); });
     await signUp(page, QA_PHONES.provider, "provider");
     await page.waitForURL(/\/pro\/onboarding/, { timeout: 15_000 });
+    await page.locator("textarea").first().waitFor({ state: "visible", timeout: 15_000 }).catch(async (error) => {
+      const body = (await page.locator("body").innerText().catch(() => "<unavailable>" )).slice(0, 1000);
+      throw new Error(`Provider onboarding did not render at ${page.url()}: ${body}\n${diagnostics.join("\n")}\n${error.message}`);
+    });
     await page.getByLabel(/english bio|bio.*english/i).fill("QA_ automated test provider bio.").catch(async () => {
       await page.locator("textarea").first().fill("QA_ automated test provider bio.");
+    });
+    await page.getByLabel(/years|experience/i).fill("2").catch(async () => {
+      await page.locator('input[type="number"]').first().fill("2");
+    });
+    await page.getByLabel(/rate|price/i).fill("100").catch(async () => {
+      await page.locator('input[type="number"]').nth(1).fill("100");
     });
     // Pick the first enabled city option (label text is data-driven from admin settings).
     await page.locator("text=/./").first();
@@ -116,6 +131,22 @@ async function globalSetup(config: FullConfig) {
       .from("user_roles")
       .upsert({ user_id: adminEntry.userId, role: "admin" }, { onConflict: "user_id,role" });
     if (error) throw new Error(`Failed to grant QA admin role: ${error.message}`);
+  }
+
+  const customerEntry = reg.users.find((u: any) => u.key === "customer");
+  if (customerEntry) {
+    const { error } = await supabaseAdmin.from("addresses").insert({
+      user_id: customerEntry.userId,
+      label: "home",
+      city: "Cairo",
+      area: "QA_ Marketplace Area",
+      street: "QA_ Marketplace Street",
+      line1: "QA_ Marketplace Street",
+      lat: 30.01,
+      lng: 31.02,
+      is_default: true,
+    });
+    if (error) throw new Error(`Failed to create QA Customer marketplace address: ${error.message}`);
   }
 }
 
