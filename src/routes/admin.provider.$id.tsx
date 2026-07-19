@@ -12,34 +12,47 @@ function EligibilitySection({ providerId }: { providerId: string }) {
   const q = useProviderEligibility(providerId);
   if (q.isLoading) return <div className="h-24 animate-pulse rounded-2xl bg-muted" />;
   if (q.isError) return <AdminQueryError compact message={t("admin.providers.loadError")} error={q.error} onRetry={() => q.refetch()} />;
-  if (!q.data) return null;
-  const e = q.data;
-  const rows: Array<{ ok: boolean; label: string }> = [
-    { ok: e.verified, label: t("admin.provider.eligVerified") },
-    { ok: e.active, label: t("admin.provider.eligActive") },
-    { ok: e.has_approved_service, label: t("admin.provider.eligApprovedService") },
-    { ok: e.price_valid, label: t("admin.provider.eligPriceValid") },
-    { ok: e.zone_covered, label: t("admin.provider.eligZoneCovered") },
-    { ok: e.requirements_met, label: t("admin.provider.eligRequirementsMet") },
-    { ok: e.has_availability, label: t("admin.provider.eligAvailability") },
-  ];
+  const services = q.data ?? [];
+  const eligible = services.some((service) => service.is_eligible);
   return (
-    <section className="rounded-2xl border border-border/60 bg-surface p-4 shadow-card">
+    <section id="marketplace-eligibility" className="rounded-2xl border border-border/60 bg-surface p-4 shadow-card">
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("admin.provider.eligibilityTitle")}</h3>
-        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${e.is_eligible ? "bg-mint/20 text-success" : "bg-coral/10 text-coral"}`}>
-          {e.is_eligible ? t("admin.providers.verified") : t("admin.providers.pending")}
+        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${eligible ? "bg-mint/20 text-success" : "bg-coral/10 text-coral"}`}>
+          {t("admin.provider.marketplaceEligible", "Marketplace eligible")}: {eligible ? t("common.yes", "Yes") : t("common.no", "No")}
         </span>
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">{e.is_eligible ? t("admin.provider.eligibleBody") : t("admin.provider.notEligibleBody")}</p>
-      <ul className="mt-3 space-y-1.5">
-        {rows.map((r) => (
-          <li key={r.label} className="flex items-center gap-2 text-xs">
-            {r.ok ? <Check className="h-3.5 w-3.5 shrink-0 text-success" /> : <X className="h-3.5 w-3.5 shrink-0 text-coral" />}
-            <span className={r.ok ? "text-foreground" : "font-semibold text-coral"}>{r.label}</span>
-          </li>
-        ))}
-      </ul>
+      <p className="mt-1 text-xs text-muted-foreground">{eligible ? t("admin.provider.eligibleBody") : t("admin.provider.notEligibleBody")}</p>
+      {services.length === 0 ? (
+        <p className="mt-3 rounded-xl bg-coral/5 p-3 text-xs font-semibold text-coral">BLOCKED BY BUSINESS DATA — no Provider service is configured.</p>
+      ) : services.map((e) => {
+        const rows: Array<{ ok: boolean; label: string; to?: string }> = [
+          { ok: e.identity_valid, label: t("admin.provider.eligIdentity", "Provider identity is valid") },
+          { ok: e.account_active, label: t("admin.provider.eligActive"), to: "/admin/providers" },
+          { ok: e.verified, label: t("admin.provider.eligVerified"), to: "/admin/providers" },
+          { ok: e.service_approved, label: t("admin.provider.eligApprovedService"), to: "/admin/services" },
+          { ok: e.service_active, label: t("admin.provider.eligServiceActive", "Service is active and Customer-visible"), to: "/admin/services" },
+          { ok: e.price_valid, label: `${t("admin.provider.eligPriceValid")} (${e.effective_price}; ${e.minimum_price ?? "—"}–${e.maximum_price ?? "—"})`, to: "/admin/services" },
+          { ok: e.requirements_complete, label: t("admin.provider.eligRequirementsMet"), to: "/admin/services" },
+          { ok: e.evidence_approved, label: t("admin.provider.eligEvidence", "Required evidence is approved"), to: "/admin/services" },
+          { ok: e.zone_covered, label: t("admin.provider.eligZoneCovered"), to: "/admin/zones" },
+          { ok: e.availability_valid, label: t("admin.provider.eligAvailability"), to: "#provider-availability" },
+          { ok: e.operational_clear, label: t("admin.provider.eligOperational", "No blocking operational state"), to: "/admin/operations" },
+        ];
+        return <div key={e.service_id} className="mt-3 rounded-xl border border-border/60 p-3">
+          <div className="flex items-center justify-between gap-2 text-xs font-bold">
+            <span>{e.service_name_en}</span>
+            <span className={e.is_eligible ? "text-success" : "text-coral"}>{e.is_eligible ? "ELIGIBLE" : "BLOCKED BY BUSINESS DATA"}</span>
+          </div>
+          <ul className="mt-2 space-y-1.5">
+            {rows.map((r) => <li key={r.label} className="flex items-center gap-2 text-xs">
+              {r.ok ? <Check className="h-3.5 w-3.5 shrink-0 text-success" /> : <X className="h-3.5 w-3.5 shrink-0 text-coral" />}
+              {r.to ? <Link to={r.to as any} className={r.ok ? "text-foreground" : "font-semibold text-coral underline"}>{r.label}</Link> : <span>{r.label}</span>}
+            </li>)}
+          </ul>
+          {!e.is_eligible && <ul className="mt-2 list-disc ps-5 text-[11px] font-semibold text-coral">{e.failure_reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>}
+        </div>;
+      })}
     </section>
   );
 }
@@ -62,7 +75,7 @@ function AvailabilitySection({ providerId }: { providerId: string }) {
   const canBlock = !!start && !!end && reason.trim().length > 0;
 
   return (
-    <section>
+    <section id="provider-availability">
       <h3 className="mb-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("admin.provider.availability")}</h3>
       <div className="rounded-xl border border-border/60 bg-surface p-3">
         <p className="text-[11px] font-bold text-muted-foreground">{t("admin.provider.weeklyHours")}</p>

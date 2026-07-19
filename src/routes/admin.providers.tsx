@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import {
   useAdminProviders, useSetProviderVerified, useSetProviderActive,
-  type AdminProviderFilter,
+  useAdminIdentityConflicts, type AdminProviderFilter,
 } from "@/lib/db/admin-queries";
 import { Search, ChevronRight, ShieldCheck } from "lucide-react";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
@@ -25,6 +25,7 @@ function ProviderManagement() {
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const q = useAdminProviders(filter);
+  const conflictsQ = useAdminIdentityConflicts();
   const setVerified = useSetProviderVerified();
   const setActive = useSetProviderActive();
 
@@ -69,6 +70,22 @@ function ProviderManagement() {
           ))}
         </div>
       </div>
+
+      {(conflictsQ.data ?? []).length > 0 && (
+        <section className="rounded-2xl border border-coral/30 bg-coral/5 p-4" aria-label="Identity conflicts">
+          <h2 className="text-xs font-extrabold uppercase tracking-wider text-coral">Identity conflicts</h2>
+          <p className="mt-1 text-xs text-muted-foreground">These records are excluded from normal Customer and Provider lists. Linked history is preserved.</p>
+          <ul className="mt-2 space-y-2">
+            {conflictsQ.data!.map((conflict: any) => (
+              <li key={`${conflict.user_id}-${conflict.issue_code}`} className="rounded-xl bg-surface p-3 text-xs">
+                <div className="font-bold">{conflict.full_name || conflict.user_id}</div>
+                <div className="font-semibold text-coral">{conflict.details}</div>
+                {conflict.provider_id && <Link to="/admin/provider/$id" params={{ id: conflict.provider_id }} className="mt-1 inline-block font-bold text-navy underline">Open preserved Provider record</Link>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {q.isLoading ? (
         <div className="space-y-2">

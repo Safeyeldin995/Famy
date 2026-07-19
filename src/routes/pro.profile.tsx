@@ -19,6 +19,7 @@ import {
   useMyRequirementFulfillments,
   useDeclareRequirement,
   useUploadRequirementEvidence,
+  useMyMarketplaceEligibility,
 } from "@/lib/db/provider-queries";
 import { FileText, ShieldCheck, LogOut, Globe, Camera, Loader2, Upload, Bell } from "lucide-react";
 import { LanguageToggle, useLang } from "@/components/famio/LanguageToggle";
@@ -35,6 +36,7 @@ function ProProfile() {
   const lang = useLang();
   const p = useMyProvider();
   const provider = p.data as any;
+  const eligibilityQ = useMyMarketplaceEligibility(provider?.id);
   const update = useUpdateProvider();
   const services = useAllServices();
   const mine = useMyProviderServices(provider?.id);
@@ -183,6 +185,24 @@ function ProProfile() {
               {uploading ? t("pro.profile.uploading") : t("pro.profile.changePhoto")}
             </button>
           </div>
+        </Card>
+
+        <Card className="p-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-sm font-extrabold">{t("admin.provider.marketplaceEligible", "Marketplace eligible")}</div>
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${eligibilityQ.data?.some((row) => row.is_eligible) ? "bg-mint/20 text-success" : "bg-coral/10 text-coral"}`}>
+              {eligibilityQ.data?.some((row) => row.is_eligible) ? t("common.yes", "Yes") : t("common.no", "No")}
+            </span>
+          </div>
+          {eligibilityQ.isLoading ? <div className="mt-2 h-10 animate-pulse rounded-xl bg-muted" /> : (
+            <div className="mt-2 space-y-2">
+              {(eligibilityQ.data ?? []).map((row) => <div key={row.service_id} className="rounded-xl border border-border/60 p-2 text-xs">
+                <div className="font-bold">{lang === "ar" ? row.service_name_ar : row.service_name_en}</div>
+                {row.is_eligible ? <div className="mt-1 text-success">{t("admin.provider.eligibleBody")}</div> : <ul className="mt-1 list-disc ps-4 text-coral">{row.failure_reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>}
+              </div>)}
+              {!eligibilityQ.isLoading && (eligibilityQ.data ?? []).length === 0 && <div className="text-xs text-coral">BLOCKED BY BUSINESS DATA — no Provider service is configured.</div>}
+            </div>
+          )}
         </Card>
 
 

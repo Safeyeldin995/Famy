@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { PhoneFrame, TopBar, PrimaryButton, Badge, EmptyState } from "@/components/famio/ui";
-import { useProvider, useProviderReviews, useFavoriteIds, useToggleFavorite } from "@/lib/db/queries";
+import { useDefaultAddress, useProvider, useProviderReviews, useFavoriteIds, useToggleFavorite } from "@/lib/db/queries";
 import { toUIProvider } from "@/lib/db/adapters";
 import { useTranslation } from "react-i18next";
 import { formatEGP, formatNumber } from "@/lib/utils";
@@ -15,7 +15,8 @@ function badgeKey(b: string) {
 
 function ProviderProfile() {
   const { id } = Route.useParams();
-  const provQ = useProvider(id);
+  const addressQ = useDefaultAddress();
+  const provQ = useProvider(id, addressQ.data?.id);
   const reviewsQ = useProviderReviews(id);
   const favIdsQ = useFavoriteIds();
   const toggleFav = useToggleFavorite();

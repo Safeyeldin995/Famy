@@ -1,11 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PhoneFrame, TopBar, Chip, EmptyState } from "@/components/famio/ui";
 import { ProviderCard } from "@/components/famio/ProviderCard";
-import { useCategories, useProviders } from "@/lib/db/queries";
+import { useCategories, useMarketplaceServices, useProviders } from "@/lib/db/queries";
 import { toUICategory, toUIProvider } from "@/lib/db/adapters";
 import { formatEGP, formatNumber } from "@/lib/utils";
 import { Filter, SlidersHorizontal } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/category/$id")({ component: CategoryPage });
@@ -14,7 +14,12 @@ function CategoryPage() {
   const { id } = Route.useParams();
   const { t } = useTranslation();
   const catsQ = useCategories();
-  const provsQ = useProviders({ categorySlug: id, limit: 50 });
+  const servicesQ = useMarketplaceServices(id);
+  const [serviceId, setServiceId] = useState("");
+  useEffect(() => {
+    if (!serviceId && servicesQ.data?.[0]?.id) setServiceId(servicesQ.data[0].id);
+  }, [serviceId, servicesQ.data]);
+  const provsQ = useProviders({ categorySlug: id, serviceId: serviceId || undefined, limit: 50 });
   const [sort, setSort] = useState<"top" | "price" | "experience">("top");
 
   const cat = useMemo(() => {
@@ -43,6 +48,17 @@ function CategoryPage() {
       </div>
 
       <div className="-mt-4 flex-1 rounded-t-3xl bg-surface-2 px-5 pt-5 pb-24">
+        <label className="mb-4 block text-[11px] font-bold text-muted-foreground">
+          {t("search2.service", "Service")}
+          <select
+            aria-label={t("search2.service", "Service")}
+            value={serviceId}
+            onChange={(e) => setServiceId(e.target.value)}
+            className="mt-1 h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground"
+          >
+            {(servicesQ.data ?? []).map((service: any) => <option key={service.id} value={service.id}>{service.name_en}</option>)}
+          </select>
+        </label>
         <div className="mb-4 flex items-center justify-between">
           <div className="text-sm font-bold">
             {t("category.available", { count: sorted.length })}
