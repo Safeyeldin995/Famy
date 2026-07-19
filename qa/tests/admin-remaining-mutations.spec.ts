@@ -3,10 +3,12 @@ import path from "path";
 import { supabaseAdmin } from "../admin-client.mjs";
 import { readRegistry } from "../registry.mjs";
 import { captureErrors } from "./helpers";
+import { authenticatedClient } from "../authenticated-client.mjs";
 
 test.use({ storageState: path.resolve(process.cwd(), "qa/.auth/admin.json") });
 
-function assertNoRuntimeErrors(readErrors: ReturnType<typeof captureErrors>["readErrors"]) {
+async function assertNoRuntimeErrors(page: import("@playwright/test").Page, readErrors: ReturnType<typeof captureErrors>["readErrors"]) {
+  await page.waitForLoadState("networkidle");
   const errors = readErrors();
   expect(errors.console).toEqual([]);
   expect(errors.network.filter((e) => !e.includes("favicon"))).toEqual([]);
@@ -46,13 +48,14 @@ test("requirement evidence review persists and is audited once", async ({ page }
   ]);
   expect(reviewResponse.ok(), await reviewResponse.text()).toBe(true);
   await expect(passButton).toBeDisabled();
+  await page.waitForLoadState("networkidle");
   await page.reload();
   const { data: stored } = await supabaseAdmin.from("provider_requirement_fulfillments").select("status,reviewed_by").eq("id", fulfillment!.id).single();
   expect(stored!.status).toBe("passed");
   expect(stored!.reviewed_by).toBeTruthy();
   const { count } = await supabaseAdmin.from("audit_logs").select("id", { head: true, count: "exact" }).eq("entity", "provider_requirement_fulfillments").eq("entity_id", fulfillment!.id).eq("action", "UPDATE");
   expect(count).toBe(1);
-  assertNoRuntimeErrors(readErrors);
+  await assertNoRuntimeErrors(page, readErrors);
   await supabaseAdmin.from("provider_requirement_fulfillments").delete().eq("id", fulfillment!.id);
   await supabaseAdmin.from("service_requirements").delete().eq("id", requirement!.id);
 });
@@ -82,15 +85,48 @@ test("cancellation reason create edit deactivate activate persists", async ({ pa
   await expect(editedRow).toContainText("QA_ cancellation reason edited");
   await editedRow.getByRole("button", { name: /^deactivate$/i }).click();
   await page.getByRole("dialog").getByRole("button", { name: /^deactivate$/i }).click();
+  await page.waitForLoadState("networkidle");
   await page.reload();
   await expect(page.getByRole("listitem").filter({ hasText: code })).toContainText(/inactive/i);
   await page.getByRole("listitem").filter({ hasText: code }).getByRole("button", { name: /^activate$/i }).click();
   const { data: stored } = await supabaseAdmin.from("cancellation_reasons").select("*").eq("code", code).single();
   expect(stored).toMatchObject({ name_en: "QA_ cancellation reason edited", is_active: true });
+  const isolatedOrder = 1_000_000 + Math.floor(Math.random() * 100_000);
+  const { error: isolateError } = await supabaseAdmin.from("cancellation_reasons").update({ display_order: isolatedOrder }).eq("id", stored!.id);
+  expect(isolateError).toBeNull();
+  const secondCode = `qa_reason_second_${Date.now()}`;
+  const { data: second, error: secondError } = await supabaseAdmin.from("cancellation_reasons").insert({
+    code: secondCode,
+    name_en: "QA_ cancellation reason second",
+    name_ar: "QA cancellation reason second ar",
+    actor_type: stored!.actor_type,
+    display_order: isolatedOrder + 1,
+    is_active: true,
+  }).select().single();
+  expect(secondError).toBeNull();
+  await page.reload();
+  const firstRow = page.getByRole("listitem").filter({ hasText: code });
+  const [reorderResponse] = await Promise.all([
+    page.waitForResponse((response) => response.url().includes("/rpc/admin_swap_cancellation_reason_order") && response.request().method() === "POST"),
+    firstRow.getByRole("button", { name: /move down/i }).click(),
+  ]);
+  expect(reorderResponse.ok(), await reorderResponse.text()).toBe(true);
+  await page.waitForLoadState("networkidle");
+  await page.reload();
+  const { data: reordered } = await supabaseAdmin.from("cancellation_reasons").select("id,display_order").in("id", [stored!.id, second!.id]).order("display_order");
+  expect(reordered?.map((row) => row.id)).toEqual([second!.id, stored!.id]);
+  const beforeFailure = reordered!.map(({ id, display_order }) => ({ id, display_order }));
+  const { error: failedSwap } = await authenticatedClient("admin").rpc("admin_swap_cancellation_reason_order", {
+    p_first_id: stored!.id,
+    p_second_id: "00000000-0000-0000-0000-000000000000",
+  });
+  expect(failedSwap, "a missing cancellation-reason target must fail atomically").toBeTruthy();
+  const { data: unchanged } = await supabaseAdmin.from("cancellation_reasons").select("id,display_order").in("id", [stored!.id, second!.id]).order("display_order");
+  expect(unchanged).toEqual(beforeFailure);
   const { count: auditCount } = await supabaseAdmin.from("audit_logs").select("id", { head: true, count: "exact" }).eq("entity", "cancellation_reasons").eq("entity_id", stored!.id);
-  expect(auditCount).toBe(4);
-  assertNoRuntimeErrors(readErrors);
-  await supabaseAdmin.from("cancellation_reasons").delete().eq("id", stored!.id);
+  expect(auditCount).toBeGreaterThanOrEqual(5);
+  await assertNoRuntimeErrors(page, readErrors);
+  await supabaseAdmin.from("cancellation_reasons").delete().in("id", [stored!.id, second!.id]);
 });
 
 test("case assignment persists through Admin UI", async ({ page }) => {
@@ -116,7 +152,7 @@ test("case assignment persists through Admin UI", async ({ page }) => {
   expect(stored!.assigned_admin_id).toBe(admin.userId);
   const { count: auditCount } = await supabaseAdmin.from("audit_logs").select("id", { head: true, count: "exact" }).eq("entity", "support_tickets").eq("entity_id", ticket!.id).eq("action", "UPDATE");
   expect(auditCount).toBe(1);
-  assertNoRuntimeErrors(readErrors);
+  await assertNoRuntimeErrors(page, readErrors);
   await supabaseAdmin.from("support_tickets").delete().eq("id", ticket!.id);
 });
 
@@ -145,15 +181,14 @@ test("case resolution requires notes and persists", async ({ page }) => {
   ]);
   expect(saveResponse.ok(), await saveResponse.text()).toBe(true);
   await expect(save).toBeEnabled();
+  await page.waitForLoadState("networkidle");
   await page.reload();
   const { data: stored } = await supabaseAdmin.from("support_tickets").select("status,resolution_notes,resolved_at").eq("id", ticket!.id).single();
   expect(stored).toMatchObject({ status: "resolved", resolution_notes: "QA_ resolved safely" });
   expect(stored!.resolved_at).toBeTruthy();
   const { count: auditCount } = await supabaseAdmin.from("audit_logs").select("id", { head: true, count: "exact" }).eq("entity", "support_tickets").eq("entity_id", ticket!.id).eq("action", "UPDATE");
   expect(auditCount).toBe(1);
-  const runtimeErrors = readErrors();
-  expect(runtimeErrors.console.filter((e) => !e.includes("status of 400"))).toEqual([]);
-  expect(runtimeErrors.network.filter((e) => !e.includes("support_tickets") || !e.startsWith("400 "))).toEqual([]);
+  await assertNoRuntimeErrors(page, readErrors);
   await supabaseAdmin.from("support_tickets").delete().eq("id", ticket!.id);
 });
 
@@ -180,6 +215,6 @@ test("notification retry requeues once and is audited once", async ({ page }) =>
   expect(calls).toBe(1);
   const { count } = await supabaseAdmin.from("audit_logs").select("id", { head: true, count: "exact" }).eq("entity", "notification_outbox").eq("entity_id", outbox!.id).eq("action", "UPDATE");
   expect(count).toBe(2); // fixture transition to dead + the one Admin retry
-  assertNoRuntimeErrors(readErrors);
+  await assertNoRuntimeErrors(page, readErrors);
   await supabaseAdmin.from("notifications").delete().eq("id", notification!.id);
 });

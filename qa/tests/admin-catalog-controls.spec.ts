@@ -3,10 +3,17 @@ import path from "path";
 import { supabaseAdmin } from "../admin-client.mjs";
 import { readRegistry } from "../registry.mjs";
 import { captureErrors } from "./helpers";
+import {
+  assertSafeGlobalMutationTarget,
+  registerRestoration,
+  restoreRestoration,
+} from "../restoration-registry.mjs";
+import { authenticatedClient } from "../authenticated-client.mjs";
 
 test.use({ storageState: path.resolve(process.cwd(), "qa/.auth/admin.json") });
 
-function assertClean(readErrors: ReturnType<typeof captureErrors>["readErrors"]) {
+async function assertClean(page: Page, readErrors: ReturnType<typeof captureErrors>["readErrors"]) {
+  await page.waitForLoadState("networkidle");
   const errors = readErrors();
   expect(errors.console).toEqual([]);
   expect(errors.network.filter((entry) => !entry.includes("favicon"))).toEqual([]);
@@ -26,19 +33,26 @@ async function createPaymentMethod(page: Page, code: string, name: string) {
   await expect(page.getByText(name)).toBeVisible();
 }
 
-test("payment method edit, activation, default, and ordering persist", async ({ page }) => {
+test("payment method edit, activation, default, and ordering persist", async ({ page }, testInfo) => {
   test.slow();
+  assertSafeGlobalMutationTarget(testInfo.project.use.baseURL);
   const { readErrors } = captureErrors(page);
   const suffix = Date.now();
   const codeA = `qa_pm_a_${suffix}`;
   const codeB = `qa_pm_b_${suffix}`;
   const nameA = `QA_ payment A ${suffix}`;
   const nameB = `QA_ payment B ${suffix}`;
-  const { data: originalDefault } = await supabaseAdmin.from("payment_methods").select("id").eq("is_default", true).maybeSingle();
+  const { data: originalDefaults, error: defaultsError } = await supabaseAdmin.from("payment_methods").select("id,is_default").order("id");
+  expect(defaultsError).toBeNull();
+  expect(originalDefaults, "payment default state must be snapshotted before mutation").toBeTruthy();
+  const restorationId = `payment-defaults-${suffix}`;
+  registerRestoration({ id: restorationId, type: "payment_defaults", rows: originalDefaults });
+  let createdIds: string[] = [];
 
-  await page.goto("/admin/payment-methods");
-  await createPaymentMethod(page, codeA, nameA);
-  await createPaymentMethod(page, codeB, nameB);
+  try {
+    await page.goto("/admin/payment-methods");
+    await createPaymentMethod(page, codeA, nameA);
+    await createPaymentMethod(page, codeB, nameB);
 
   let rowA = page.getByRole("listitem").filter({ hasText: codeA });
   let rowB = page.getByRole("listitem").filter({ hasText: codeB });
@@ -65,6 +79,7 @@ test("payment method edit, activation, default, and ordering persist", async ({ 
   await expect(rowA).toContainText(/inactive/i);
   await rowA.getByRole("button", { name: /^activate$/i }).click();
 
+  await page.waitForLoadState("networkidle");
   await page.reload();
   const { data: stored } = await supabaseAdmin
     .from("payment_methods")
@@ -73,20 +88,39 @@ test("payment method edit, activation, default, and ordering persist", async ({ 
     .order("display_order");
   const storedA = stored!.find((method) => method.code === codeA)!;
   const storedB = stored!.find((method) => method.code === codeB)!;
+  createdIds = [storedA.id, storedB.id];
   expect(storedA).toMatchObject({ name_en: `${nameA} edited`, is_active: true });
   expect(storedB.is_default).toBe(true);
   expect(storedB.display_order).toBeLessThan(storedA.display_order);
+  const beforeFailedSwap = stored!.map(({ id, display_order }) => ({ id, display_order }));
+  const { error: forcedFailure } = await authenticatedClient("admin").rpc("admin_swap_payment_method_order", {
+    p_first_id: storedA.id,
+    p_second_id: "00000000-0000-0000-0000-000000000000",
+  });
+  expect(forcedFailure, "a missing swap target must fail").toBeTruthy();
+  const { data: afterFailedSwap } = await supabaseAdmin.from("payment_methods").select("id,display_order").in("id", [storedA.id, storedB.id]).order("display_order");
+  expect(afterFailedSwap).toEqual(beforeFailedSwap);
+  const { error: customerDenied } = await authenticatedClient("customer").rpc("admin_swap_payment_method_order", {
+    p_first_id: storedA.id,
+    p_second_id: storedB.id,
+  });
+  expect(customerDenied?.code).toBe("42501");
+  const { data: afterDeniedSwap } = await supabaseAdmin.from("payment_methods").select("id,display_order").in("id", [storedA.id, storedB.id]).order("display_order");
+  expect(afterDeniedSwap).toEqual(beforeFailedSwap);
   const { count: auditCount } = await supabaseAdmin
     .from("audit_logs")
     .select("id", { head: true, count: "exact" })
     .eq("entity", "payment_methods")
     .in("entity_id", [storedA.id, storedB.id]);
   expect(auditCount).toBeGreaterThanOrEqual(7);
-  assertClean(readErrors);
-
-  await supabaseAdmin.from("payment_methods").update({ is_default: false }).eq("id", storedB.id);
-  if (originalDefault) await supabaseAdmin.from("payment_methods").update({ is_default: true }).eq("id", originalDefault.id);
-  await supabaseAdmin.from("payment_methods").delete().in("id", [storedA.id, storedB.id]);
+  await assertClean(page, readErrors);
+  } finally {
+    await restoreRestoration(restorationId);
+    if (createdIds.length) await supabaseAdmin.from("payment_methods").delete().in("id", createdIds);
+    else await supabaseAdmin.from("payment_methods").delete().in("code", [codeA, codeB]);
+    const { data: restoredDefaults } = await supabaseAdmin.from("payment_methods").select("id").eq("is_default", true).order("id");
+    expect(restoredDefaults?.map((row) => row.id)).toEqual(originalDefaults!.filter((row) => row.is_default).map((row) => row.id));
+  }
 });
 
 test("service pricing, activation, and requirement controls persist", async ({ page }) => {
@@ -166,6 +200,7 @@ test("service pricing, activation, and requirement controls persist", async ({ p
   serviceHeader = serviceCard.locator(":scope > div").first();
   await serviceHeader.getByRole("button", { name: /^activate$/i }).click();
 
+  await page.waitForLoadState("networkidle");
   await page.reload();
   const { data: storedService } = await supabaseAdmin.from("services").select("*").eq("id", service!.id).single();
   expect(storedService).toMatchObject({
@@ -181,9 +216,17 @@ test("service pricing, activation, and requirement controls persist", async ({ p
     .order("sort_order");
   expect(storedRequirements![0].id).toBe(secondRequirement!.id);
   expect(storedRequirements![1]).toMatchObject({ id: firstRequirement!.id, name_en: `${requirementName} edited`, is_active: false });
+  const requirementOrder = storedRequirements!.map(({ id, sort_order }) => ({ id, sort_order }));
+  const { error: failedRequirementSwap } = await authenticatedClient("admin").rpc("admin_swap_service_requirement_order", {
+    p_first_id: firstRequirement!.id,
+    p_second_id: "00000000-0000-0000-0000-000000000000",
+  });
+  expect(failedRequirementSwap, "a missing requirement target must fail atomically").toBeTruthy();
+  const { data: unchangedRequirements } = await supabaseAdmin.from("service_requirements").select("id,sort_order").in("id", [firstRequirement!.id, secondRequirement!.id]).order("sort_order");
+  expect(unchangedRequirements).toEqual(requirementOrder);
   const { count: serviceAudits } = await supabaseAdmin.from("audit_logs").select("id", { head: true, count: "exact" }).eq("entity", "services").eq("entity_id", service!.id);
   expect(serviceAudits).toBeGreaterThanOrEqual(4);
-  assertClean(readErrors);
+  await assertClean(page, readErrors);
 
   await supabaseAdmin.from("service_requirements").delete().in("id", [firstRequirement!.id, secondRequirement!.id]);
   await supabaseAdmin.from("services").delete().eq("id", service!.id);
@@ -209,13 +252,14 @@ test("promo edit and activation persist without a silent scope write", async ({ 
   await page.getByRole("dialog").getByRole("button", { name: /^deactivate$/i }).click();
   await expect(row).toContainText(/inactive/i);
   await row.getByRole("button", { name: /^activate$/i }).click();
+  await page.waitForLoadState("networkidle");
   await page.reload();
 
   const { data: stored } = await supabaseAdmin.from("promo_codes").select("*").eq("code", code).single();
   expect(stored).toMatchObject({ description_en: description, is_active: true });
   const { count } = await supabaseAdmin.from("audit_logs").select("id", { head: true, count: "exact" }).eq("entity", "promo_codes").eq("entity_id", stored!.id);
   expect(count).toBeGreaterThanOrEqual(4);
-  assertClean(readErrors);
+  await assertClean(page, readErrors);
   await supabaseAdmin.from("promo_codes").delete().eq("id", stored!.id);
 });
 
@@ -265,6 +309,7 @@ test("zone edit, activation, and service/provider coverage persist", async ({ pa
     `provider coverage failed: ${providerCoverageResponse.status()} ${await providerCoverageResponse.text()}`,
   ).toBe(true);
   await expect(providerCheckbox).toBeChecked();
+  await page.waitForLoadState("networkidle");
   await page.reload();
 
   const { data: stored } = await supabaseAdmin.from("zones").select("travel_fee,is_active").eq("id", zone!.id).single();
@@ -275,7 +320,7 @@ test("zone edit, activation, and service/provider coverage persist", async ({ pa
   expect(providerCoverage).toBe(1);
   const { count: audits } = await supabaseAdmin.from("audit_logs").select("id", { count: "exact", head: true }).eq("entity", "zones").eq("entity_id", zone!.id);
   expect(audits).toBeGreaterThanOrEqual(3);
-  assertClean(readErrors);
+  await assertClean(page, readErrors);
 
   await supabaseAdmin.from("zone_services").delete().eq("zone_id", zone!.id);
   await supabaseAdmin.from("zone_providers").delete().eq("zone_id", zone!.id);

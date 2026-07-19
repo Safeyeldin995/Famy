@@ -3,6 +3,7 @@ import path from "path";
 import fs from "fs";
 import { supabaseAdmin } from "./admin-client.mjs";
 import { addUser, writeRegistry } from "./registry.mjs";
+import { restorePendingRestorations } from "./restoration-registry.mjs";
 
 const AUTH_DIR = path.resolve(process.cwd(), "qa/.auth");
 const QA_PASSWORD = "QaRuntime!2026Test";
@@ -36,6 +37,8 @@ async function signUp(page: import("@playwright/test").Page, phone: string, role
 }
 
 async function globalSetup(config: FullConfig) {
+  // Recover global rows first if a prior browser/worker process was interrupted.
+  await restorePendingRestorations();
   fs.mkdirSync(AUTH_DIR, { recursive: true });
   const baseURL = config.projects[0].use.baseURL as string;
   const contextOptions = { baseURL };

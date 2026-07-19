@@ -3,6 +3,11 @@ import path from "path";
 import { supabaseAdmin } from "../admin-client.mjs";
 import { readRegistry } from "../registry.mjs";
 import { captureErrors } from "./helpers";
+import {
+  assertSafeGlobalMutationTarget,
+  registerRestoration,
+  restoreRestoration,
+} from "../restoration-registry.mjs";
 
 test.use({ storageState: path.resolve(process.cwd(), "qa/.auth/admin.json") });
 
@@ -151,48 +156,62 @@ test("create a campaign draft and it persists", async ({ page }) => {
   await supabaseAdmin.from("notification_campaigns").delete().eq("id", scheduled!.id);
 });
 
-test("settings VAT update persists after refresh", async ({ page }) => {
-  // Known baseline (not "whatever the last run left") so this test doesn't
-  // depend on prior run state.
+test("settings VAT update persists after refresh and restores exactly", async ({ page }, testInfo) => {
+  assertSafeGlobalMutationTarget(testInfo.project.use.baseURL);
   const { data: before } = await supabaseAdmin.from("settings").select("value").eq("key", "billing").maybeSingle();
-  const originalValue = (before?.value as any) ?? { vat_percent: 14, platform_fee: 25 };
-  await supabaseAdmin.from("settings").upsert({ key: "billing", value: { vat_percent: 14, platform_fee: 25 } }, { onConflict: "key" });
-  const testValue = 19;
+  expect(before, "the original billing row must be read before mutation").toBeTruthy();
+  const originalValue = before!.value;
+  const originalVat = Number((originalValue as any).vat_percent);
+  const testValue = originalVat === 19 ? 18 : 19;
+  const restorationId = `billing-${Date.now()}`;
+  registerRestoration({ id: restorationId, type: "setting", key: "billing", existed: true, value: originalValue });
 
-  await page.goto("/admin/settings");
-  const vatInput = page.getByLabel(/vat/i);
-  await expect(vatInput).toHaveValue("14", { timeout: 10_000 }); // confirms the baseline actually loaded before we edit
-  await vatInput.fill(String(testValue));
-  const [saveResponse] = await Promise.all([
-    page.waitForResponse((r) => r.url().includes("/rest/v1/settings?on_conflict=key") && r.request().method() === "POST"),
-    page.getByRole("button", { name: /^save$/i }).first().click(),
-  ]);
-  expect(saveResponse.ok(), `settings save should succeed: ${saveResponse.status()} ${await saveResponse.text().catch(() => "")}`).toBe(true);
-  await expect(page.getByText(/saved/i).first()).toBeVisible({ timeout: 10_000 });
-
-  await page.reload();
-  await expect(page.getByLabel(/vat/i)).toHaveValue(String(testValue), { timeout: 10_000 });
-
-  const { data: after } = await supabaseAdmin.from("settings").select("value").eq("key", "billing").single();
-  expect(Number((after!.value as any).vat_percent)).toBe(testValue);
-
-  // restore original value so this test doesn't leave the DB changed
-  await supabaseAdmin.from("settings").upsert({ key: "billing", value: originalValue }, { onConflict: "key" });
+  try {
+    await page.goto("/admin/settings");
+    const vatInput = page.getByLabel(/vat/i);
+    await expect(vatInput).toHaveValue(String(originalVat), { timeout: 10_000 });
+    await vatInput.fill(String(testValue));
+    const [saveResponse] = await Promise.all([
+      page.waitForResponse((r) => r.url().includes("/rest/v1/settings?on_conflict=key") && r.request().method() === "POST"),
+      page.getByRole("button", { name: /^save$/i }).first().click(),
+    ]);
+    expect(saveResponse.ok(), `settings save should succeed: ${saveResponse.status()} ${await saveResponse.text().catch(() => "")}`).toBe(true);
+    await expect(page.getByText(/saved/i).first()).toBeVisible({ timeout: 10_000 });
+    await page.reload();
+    await expect(page.getByLabel(/vat/i)).toHaveValue(String(testValue), { timeout: 10_000 });
+    const { data: after } = await supabaseAdmin.from("settings").select("value").eq("key", "billing").single();
+    expect(Number((after!.value as any).vat_percent)).toBe(testValue);
+  } finally {
+    await restoreRestoration(restorationId);
+    const { data: restored } = await supabaseAdmin.from("settings").select("value").eq("key", "billing").single();
+    expect(restored!.value).toEqual(originalValue);
+  }
 });
 
-test("category, service area, reminder, and content settings persist", async ({ page }) => {
+test("category, service area, reminder, and content settings persist", async ({ page }, testInfo) => {
   test.slow();
+  assertSafeGlobalMutationTarget(testInfo.project.use.baseURL);
   const { readErrors } = captureErrors(page);
-  const { data: category } = await supabaseAdmin.from("categories").select("*").order("sort_order").limit(1).single();
+  const { data: category } = await supabaseAdmin.from("categories").select("id,slug,name_en,name_ar,is_active").order("sort_order").limit(1).single();
   const { data: areasRow } = await supabaseAdmin.from("settings").select("value").eq("key", "service_areas").maybeSingle();
-  const originalAreas = (areasRow?.value as any)?.areas ?? [
+  const originalAreasValue = areasRow?.value ?? { areas: [
     { name: "Sheikh Zayed", enabled: true },
     { name: "6th of October", enabled: true },
-  ];
+  ] };
+  const originalAreas = (originalAreasValue as any).areas;
   const { data: termsRow } = await supabaseAdmin.from("settings").select("value").eq("key", "content_terms").maybeSingle();
   const originalTerms = termsRow?.value ?? { body_en: "", body_ar: "" };
   const leadMinutes = 10_000 + Math.floor(Math.random() * 10_000);
-  let reminderId: string | undefined;
+  const restorationIds = {
+    category: `category-${Date.now()}`,
+    areas: `areas-${Date.now()}`,
+    terms: `terms-${Date.now()}`,
+    reminder: `reminder-${leadMinutes}`,
+  };
+  registerRestoration({ id: restorationIds.category, type: "category", row: category });
+  registerRestoration({ id: restorationIds.areas, type: "setting", key: "service_areas", existed: Boolean(areasRow), value: originalAreasValue });
+  registerRestoration({ id: restorationIds.terms, type: "setting", key: "content_terms", existed: Boolean(termsRow), value: originalTerms });
+  registerRestoration({ id: restorationIds.reminder, type: "delete_reminder", leadMinutes });
 
   try {
     await page.goto("/admin/settings");
@@ -240,7 +259,7 @@ test("category, service area, reminder, and content settings persist", async ({ 
     ]);
     expect(reminderCreateResponse.ok(), `reminder create should succeed: ${reminderCreateResponse.status()} ${await reminderCreateResponse.text().catch(() => "")}`).toBe(true);
     const { data: reminder } = await supabaseAdmin.from("booking_reminder_rules").select("*").eq("lead_minutes", leadMinutes).single();
-    reminderId = reminder!.id;
+    const reminderId = reminder!.id;
     const reminderRow = remindersSection.getByRole("listitem").filter({ hasText: String(leadMinutes) });
     const [reminderToggleResponse] = await Promise.all([
       page.waitForResponse((response) => response.url().includes("/rest/v1/booking_reminder_rules") && response.request().method() === "PATCH"),
@@ -268,9 +287,9 @@ test("category, service area, reminder, and content settings persist", async ({ 
     expect(errors.console).toEqual([]);
     expect(errors.network.filter((entry) => !entry.includes("favicon"))).toEqual([]);
   } finally {
-    await supabaseAdmin.from("categories").update({ name_en: category!.name_en, name_ar: category!.name_ar, is_active: category!.is_active }).eq("id", category!.id);
-    await supabaseAdmin.from("settings").upsert({ key: "service_areas", value: { areas: originalAreas } }, { onConflict: "key" });
-    await supabaseAdmin.from("settings").upsert({ key: "content_terms", value: originalTerms }, { onConflict: "key" });
-    if (reminderId) await supabaseAdmin.from("booking_reminder_rules").delete().eq("id", reminderId);
+    await restoreRestoration(restorationIds.reminder);
+    await restoreRestoration(restorationIds.category);
+    await restoreRestoration(restorationIds.areas);
+    await restoreRestoration(restorationIds.terms);
   }
 });

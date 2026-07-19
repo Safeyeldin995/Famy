@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "./admin-client.mjs";
 import { readRegistry, writeRegistry } from "./registry.mjs";
 import crypto from "crypto";
+import { assertNoPendingRestorations, restorePendingRestorations } from "./restoration-registry.mjs";
 
 /** Tables where QA_ write-tests may leave a row, keyed by the column that carries the QA_ tag. */
 const QA_TAGGED_TABLES = [
@@ -51,7 +52,20 @@ async function disableOrDeleteQaIdentity(userId) {
 }
 
 export async function runTeardown() {
+  // This is deliberately first and last: global settings must be restored even
+  // if identity/fixture cleanup later encounters retained history.
+  await restorePendingRestorations();
   const reg = readRegistry();
+
+  // Booking history/audit dependencies can make hard deletion impossible.
+  // First neutralize only reserved QA-tagged active rows so interruption can
+  // never leave a bookable/in-progress synthetic record behind.
+  const { error: neutralizeBookingsError } = await supabaseAdmin
+    .from("bookings")
+    .update({ status: "cancelled", cancellation_reason: "QA_ teardown recovery" })
+    .ilike("notes", "QA_%")
+    .in("status", ["pending", "confirmed", "in_progress"]);
+  if (neutralizeBookingsError) throw new Error(`[qa-teardown] could not neutralize active QA bookings: ${neutralizeBookingsError.message}`);
 
   const { data: qaZones } = await supabaseAdmin.from("zones").select("id").ilike("name_en", "QA_%");
   for (const zone of qaZones ?? []) {
@@ -99,6 +113,18 @@ export async function runTeardown() {
   for (const userId of ids) {
     await assertQaIdentityDisabled(userId);
   }
+
+  const [{ data: activeZones }, { data: activeMethods }, { data: activeCampaigns }, { data: activeBookings }] = await Promise.all([
+    supabaseAdmin.from("zones").select("id").ilike("name_en", "QA_%").eq("is_active", true),
+    supabaseAdmin.from("payment_methods").select("id").ilike("name_en", "QA_%").or("is_active.eq.true,is_default.eq.true"),
+    supabaseAdmin.from("notification_campaigns").select("id").ilike("title_en", "QA_%").in("status", ["draft", "scheduled", "sending"]),
+    supabaseAdmin.from("bookings").select("id").ilike("notes", "QA_%").in("status", ["pending", "confirmed", "in_progress"]),
+  ]);
+  if (activeZones?.length || activeMethods?.length || activeCampaigns?.length || activeBookings?.length) {
+    throw new Error("[qa-teardown] active or globally influential QA records remain.");
+  }
+  await restorePendingRestorations();
+  assertNoPendingRestorations();
 
   console.log(`[qa-teardown] removed or disabled ${ids.size} QA users and tagged rows.`);
   writeRegistry({ users: [] });

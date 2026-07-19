@@ -8,7 +8,9 @@ test.use({ storageState: path.resolve(process.cwd(), "qa/.auth/admin.json") });
 
 test("provider rejection, verification, suspension, and service review persist", async ({ page }) => {
   test.slow();
-  const { readErrors } = captureErrors(page);
+  const { readErrors } = captureErrors(page, {
+    allowHttpErrors: [{ status: 400, method: "POST", url: "/rest/v1/rpc/admin_set_provider_service_status" }],
+  });
   const suffix = Date.now();
   const providerUser = readRegistry().users.find((user: any) => user.key === "provider");
   const { data: provider, error: providerError } = await supabaseAdmin.from("providers").select("id,is_verified,is_active").eq("profile_id", providerUser.userId).single();
@@ -155,9 +157,10 @@ test("provider rejection, verification, suspension, and service review persist",
   storedProvider = await supabaseAdmin.from("providers").select("is_verified,is_active").eq("id", provider!.id).single();
   expect(storedProvider.data).toMatchObject({ is_verified: true, is_active: true });
 
+  await page.waitForLoadState("networkidle");
   const errors = readErrors();
-  expect(errors.console.filter((entry) => !entry.includes("status of 400"))).toEqual([]);
-  expect(errors.network.filter((entry) => !entry.startsWith("400 ") && !entry.includes("favicon"))).toEqual([]);
+  expect(errors.console).toEqual([]);
+  expect(errors.network.filter((entry) => !entry.includes("favicon"))).toEqual([]);
   const { count: providerAudits } = await supabaseAdmin.from("audit_logs").select("id", { head: true, count: "exact" }).eq("entity", "providers").eq("entity_id", provider!.id);
   const { count: rejectedServiceAudits } = await supabaseAdmin.from("audit_logs").select("id", { head: true, count: "exact" }).eq("entity", "provider_services").eq("entity_id", rejectedProviderServiceId);
   const { count: approvedServiceAudits } = await supabaseAdmin.from("audit_logs").select("id", { head: true, count: "exact" }).eq("entity", "provider_services").eq("entity_id", providerService!.id);
