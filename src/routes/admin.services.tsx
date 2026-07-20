@@ -352,7 +352,7 @@ function FulfillmentsReview({ requirementId }: { requirementId: string }) {
             {(["passed", "failed", "waived"] as const).map((s) => (
               <button
                 key={s}
-                disabled={review.isPending}
+                disabled={review.isPending || r.status === s}
                 onClick={() => review.mutate({ id: r.id, requirementId, status: s })}
                 className={`focus-ring rounded-lg px-2 py-1 text-[11px] font-bold disabled:opacity-50 ${r.status === s ? "bg-navy text-navy-foreground" : "border border-border"}`}
               >{s}</button>
