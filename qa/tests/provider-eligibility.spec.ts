@@ -6,6 +6,7 @@ import { authenticatedClient } from "../authenticated-client.mjs";
 import { loadEnv } from "../env.mjs";
 import { readRegistry } from "../registry.mjs";
 import { captureErrors } from "./helpers";
+import { assertResolveZoneMatches, deactivateCompetingPolygonZones } from "./marketplace-fixtures.mjs";
 
 loadEnv();
 test.use({ storageState: path.resolve(process.cwd(), "qa/.auth/admin.json") });
@@ -63,6 +64,7 @@ test("controlled Provider becomes visible, hides on suspension, and restores thr
   const customerErrors = captureErrors(customerPage);
   const providerErrors = captureErrors(providerPage);
   let bookingId: string | undefined;
+  let deactivatedZoneIds: string[] = [];
   const gotoAdmin = async (url: string) => {
     await page.goto(url);
     // AdminLayout starts two auth checks on each document load. Let both settle
@@ -134,6 +136,16 @@ test("controlled Provider becomes visible, hides on suspension, and restores thr
     await providerCoverage.click({ timeout: 15_000 });
     expect((await supabaseAdmin.from("zone_services").select("zone_id", { count: "exact", head: true }).eq("zone_id", zone!.id).eq("service_id", service!.id)).count).toBe(1);
     expect((await supabaseAdmin.from("zone_providers").select("zone_id", { count: "exact", head: true }).eq("zone_id", zone!.id).eq("provider_id", provider!.id)).count).toBe(1);
+
+    const { data: customerAddressCoords } = await supabaseAdmin.from("addresses")
+      .select("lat, lng")
+      .eq("user_id", customerUser.userId)
+      .eq("is_default", true)
+      .single();
+    expect(customerAddressCoords?.lat).toBeTruthy();
+    expect(customerAddressCoords?.lng).toBeTruthy();
+    deactivatedZoneIds = await deactivateCompetingPolygonZones(customerAddressCoords!.lat!, customerAddressCoords!.lng!, zone!.id);
+    await assertResolveZoneMatches(customerAddressCoords!.lat!, customerAddressCoords!.lng!, zone!.id);
 
     await providerPage.goto("/pro/availability");
     await providerPage.getByRole("button", { name: /^mon$/i }).click();
@@ -219,6 +231,9 @@ test("controlled Provider becomes visible, hides on suspension, and restores thr
     await supabaseAdmin.from("zone_providers").delete().eq("zone_id", zone!.id);
     await supabaseAdmin.from("zone_services").delete().eq("zone_id", zone!.id);
     await supabaseAdmin.from("zones").delete().eq("id", zone!.id);
+    for (const zoneId of deactivatedZoneIds) {
+      await supabaseAdmin.from("zones").update({ is_active: true }).eq("id", zoneId);
+    }
     await supabaseAdmin.from("availability_rules").delete().eq("provider_id", provider!.id);
     await supabaseAdmin.from("provider_requirement_fulfillments").delete().eq("id", fulfillment!.id);
     await supabaseAdmin.from("provider_services").delete().eq("id", providerService!.id);

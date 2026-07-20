@@ -33,7 +33,7 @@ export default defineConfig({
     : {
         command: `npm run dev -- --port ${PORT} --strictPort`,
         url: BASE_URL,
-        reuseExistingServer: false,
+        reuseExistingServer: true,
         timeout: 60_000,
         stdout: "pipe",
         stderr: "pipe",

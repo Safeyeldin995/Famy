@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "test:e2e": "playwright test",
-    "test:e2e:cleanup": "node qa/cleanup.mjs"
+    "test:e2e:cleanup": "node qa/cleanup.mjs",
+    "test:e2e:verify-residue": "node qa/verify-residue.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

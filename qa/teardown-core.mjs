@@ -1,6 +1,8 @@
 import { supabaseAdmin } from "./admin-client.mjs";
 import { readRegistry, writeRegistry } from "./registry.mjs";
 import crypto from "crypto";
+import fs from "fs";
+import path from "path";
 import { assertNoPendingRestorations, restorePendingRestorations } from "./restoration-registry.mjs";
 
 /** Tables where QA_ write-tests may leave a row, keyed by the column that carries the QA_ tag. */
@@ -132,6 +134,23 @@ export async function runTeardown() {
   await restorePendingRestorations();
   assertNoPendingRestorations();
 
+  const reportDir = path.resolve(process.cwd(), "qa/report");
+  fs.mkdirSync(reportDir, { recursive: true });
+  const { data: retainedProfiles } = await supabaseAdmin.from("profiles").select("id,full_name,is_suspended").ilike("full_name", "QA_%");
+  const retained = (retainedProfiles ?? []).map((profile) => ({
+    id: profile.id,
+    full_name: profile.full_name,
+    reason: "FK-bound or auth-delete-failed QA profile retained suspended/neutralized",
+  }));
+  fs.writeFileSync(path.join(reportDir, "residue.json"), JSON.stringify({
+    generated_at: new Date().toISOString(),
+    retained_profiles: retained,
+    retained_count: retained.length,
+  }, null, 2));
+
   console.log(`[qa-teardown] removed or disabled ${ids.size} QA users and tagged rows.`);
+  if (retained.length) {
+    console.log(`[qa-teardown] retained ${retained.length} FK-bound QA profile(s); see qa/report/residue.json`);
+  }
   writeRegistry({ users: [] });
 }

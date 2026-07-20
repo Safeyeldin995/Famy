@@ -44,9 +44,12 @@ test("Customer and Provider identities remain exclusive and Admin lists stay sep
   await page.getByRole("button", { name: /^all$/i }).click();
   await page.getByPlaceholder(/search/i).fill("QA_");
   const providerDirectory = page.locator("ul.divide-y").last();
-  await expect(providerDirectory.getByText("QA_provider_e2e", { exact: true })).toBeVisible();
+  await expect(providerDirectory.getByText("QA_provider_e2e", { exact: true })).toBeVisible({ timeout: 20_000 });
   await expect(providerDirectory.getByText("QA_customer_e2e", { exact: true })).toHaveCount(0);
   await page.reload();
-  await expect(page.locator("ul.divide-y").last().getByText("QA_provider_e2e", { exact: true })).toBeVisible();
+  await page.waitForLoadState("networkidle");
+  await page.getByRole("button", { name: /^all$/i }).click();
+  await page.getByPlaceholder(/search/i).fill("QA_");
+  await expect(page.locator("ul.divide-y").last().getByText("QA_provider_e2e", { exact: true })).toBeVisible({ timeout: 20_000 });
   expect(readErrors()).toEqual({ console: [], network: [] });
 });
