@@ -1,8 +1,11 @@
 # Famy Patch 2 — Identity and Provider Marketplace Matrix
 
-Verified 2026-07-19 against the local runtime and Vercel Preview deployment
-`dpl_2GJChbHqnHA1bMBzC6fD2qXfPMWH` using the real Supabase project
-`mjhkaiabfnzewprcnojp`. The complete relevant suite passed 43/43 on both targets.
+Verified 2026-07-20 against the local runtime using the real Supabase project
+`mjhkaiabfnzewprcnojp`. The complete relevant suite passed **46/46** locally
+(workers=1, retries=0). Artifact: `qa/report/full-suite-final.log` and
+`qa/report/results.json`.
+
+**2026-07-19** Preview baseline: deployment `dpl_2GJChbHqnHA1bMBzC6fD2qXfPMWH`, 43/43.
 
 ## Identity separation
 
@@ -60,15 +63,35 @@ The trusted service role remains able to create operational/QA fixtures; Custome
 inserts are role-validated and eligibility-gated. No anon or authenticated browser
 grant was added for the trigger or internal eligibility function.
 
+## Booking slot picker and early ineligibility gate
+
+| Control | Implementation | Proof |
+|---|---|---|
+| Customer-safe booking settings | `marketplace_provider_booking_settings` RPC (SECURITY DEFINER, customer-only) | `booking-slot-golden-path.spec.ts` golden + negative |
+| Slot resolution without raw Provider reads | `useAvailableSlots` + `useProviderBookingSettings` in `queries.ts` | Golden path selects real slots via RPC |
+| Early `/book/:providerId` gate | Route blocks wizard when booking settings RPC returns no row; shows controlled **Booking unavailable** | Negative test: empty RPC, no slots, no wizard, `23514` insert, booking count unchanged |
+| Admin suspend → customer cache | `invalidateCustomerMarketplaceQueries` + 5s visible-tab polling on marketplace queries | `marketplace-cache-reflection.spec.ts` |
+
 ## QA, persistence, and cleanup
 
-`provider-eligibility.spec.ts` and `role-exclusivity.spec.ts` use browser UI, real
-Supabase mutations, database postconditions, refresh persistence, and unexpected
+`provider-eligibility.spec.ts`, `role-exclusivity.spec.ts`, `booking-slot-golden-path.spec.ts`,
+`marketplace-cache-reflection.spec.ts`, and `booking-lifecycle.spec.ts` use browser UI,
+real Supabase mutations, database postconditions, refresh persistence, and unexpected
 console/request/response/transport failure capture. No success response is mocked.
+
+`booking-lifecycle.spec.ts` uses a self-contained fixture (`booking-lifecycle-fixtures.mjs`)
+with deterministic markers (`QA_booking_lifecycle_v1`) so retained cancelled bookings are
+reused without depending on shared mutable cancellation notes.
+
+Zone-isolated marketplace fixtures (`marketplace-fixtures.mjs`) deactivate competing polygon
+zones so `resolve_zone()` matches the fixture zone during booking inserts (eligibility
+checks any matching zone; booking triggers use a single resolved zone).
+
 Cleanup is idempotent. Temporary evidence, coverage, availability, requirements, and
 Provider-service rows are removed. Audited QA bookings that cannot be hard-deleted
 are cancelled and their uniquely tagged QA services are inactive; no active or
-globally influential QA state remains.
+globally influential QA state remains. Teardown retains FK-bound QA profiles
+(typically ~80) documented in `qa/report/residue.json`.
 
 ## Migrations
 
@@ -77,7 +100,7 @@ globally influential QA state remains.
 - `20260719022000_patch2_marketplace_return_types.sql`
 - `20260719023000_patch2_safe_provider_reads.sql`
 - `20260719024000_patch2_booking_service_role.sql`
+- `20260720010000_patch2_booking_slot_settings.sql`
 
 All are additive and applied to the linked Supabase project. RLS was tightened for
 Customer Provider reads; no existing migration was edited.
-
