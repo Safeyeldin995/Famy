@@ -6,6 +6,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { CUSTOMER_MARKETPLACE_REFETCH_MS, customerMarketplaceRefetchInterval } from '@/lib/db/marketplace-cache';
 import type { Database } from '@/integrations/supabase/types';
 
 type Tables = Database['public']['Tables'];
@@ -278,6 +279,8 @@ async function safeProviderDetails(providerId: string) {
 export function useProviders(opts: { categorySlug?: string; serviceId?: string; addressId?: string; limit?: number } = {}) {
   return useQuery({
     queryKey: ['providers', opts],
+    refetchInterval: customerMarketplaceRefetchInterval,
+    refetchIntervalInBackground: false,
     queryFn: async () => {
       const args: { p_service_id?: string; p_address_id?: string } = {};
       if (opts.serviceId) args.p_service_id = opts.serviceId;
@@ -297,6 +300,8 @@ export function useProvider(id: string | undefined, addressId?: string) {
   return useQuery({
     enabled: !!id,
     queryKey: ['provider', id, addressId],
+    refetchInterval: customerMarketplaceRefetchInterval,
+    refetchIntervalInBackground: false,
     queryFn: async () => {
       const args: { p_provider_id: string; p_address_id?: string } = { p_provider_id: id! };
       if (addressId) args.p_address_id = addressId;
@@ -359,6 +364,41 @@ export function useAvatarUrl(raw: string | null | undefined) {
 // ---------- Availability ----------
 const ACTIVE_BOOKING_STATUSES = ['pending', 'confirmed', 'on_the_way', 'arrived', 'arrival_confirmed', 'in_progress', 'completion_requested'] as const;
 
+type ProviderBookingSettings = {
+  vacation_mode: boolean;
+  min_notice_hours: number;
+  max_advance_days: number;
+  buffer_minutes: number;
+};
+
+async function fetchProviderBookingSettings(
+  providerId: string,
+  opts?: { serviceId?: string; addressId?: string },
+): Promise<ProviderBookingSettings | null> {
+  const args: { p_provider_id: string; p_service_id?: string; p_address_id?: string } = {
+    p_provider_id: providerId,
+  };
+  if (opts?.serviceId) args.p_service_id = opts.serviceId;
+  if (opts?.addressId) args.p_address_id = opts.addressId;
+  const { data, error } = await supabase.rpc('marketplace_provider_booking_settings', args);
+  if (error) throw error;
+  return data?.[0] ?? null;
+}
+
+export function useProviderBookingSettings(
+  providerId: string | undefined,
+  opts?: { serviceId?: string | null; addressId?: string | null },
+) {
+  return useQuery({
+    enabled: !!providerId,
+    queryKey: ['provider-booking-settings', providerId, opts?.serviceId ?? null, opts?.addressId ?? null],
+    queryFn: async () => fetchProviderBookingSettings(providerId!, {
+      serviceId: opts?.serviceId ?? undefined,
+      addressId: opts?.addressId ?? undefined,
+    }),
+  });
+}
+
 // Resolves a provider's REAL open slots for a given date, replacing the
 // hardcoded timeSlots array that previously showed the same fixed times to
 // every customer regardless of the provider's actual schedule. Combines:
@@ -369,10 +409,15 @@ const ACTIVE_BOOKING_STATUSES = ['pending', 'confirmed', 'on_the_way', 'arrived'
 // The database's own exclusion constraint + BEFORE INSERT validation trigger
 // on `bookings` remain the final, authoritative safety net if two customers
 // race for the same slot — this function is a UX layer on top of that.
-export function useAvailableSlots(providerId: string | undefined, date: Date | null, slotMinutes = 120) {
+export function useAvailableSlots(
+  providerId: string | undefined,
+  date: Date | null,
+  slotMinutes = 120,
+  opts?: { serviceId?: string | null; addressId?: string | null },
+) {
   return useQuery({
     enabled: !!providerId && !!date,
-    queryKey: ['available-slots', providerId, date?.toDateString()],
+    queryKey: ['available-slots', providerId, date?.toDateString(), slotMinutes, opts?.serviceId ?? null, opts?.addressId ?? null],
     queryFn: async () => {
       const d = date!;
       const weekday = d.getDay();
@@ -380,8 +425,13 @@ export function useAvailableSlots(providerId: string | undefined, date: Date | n
       const dayEnd = new Date(d); dayEnd.setHours(23, 59, 59, 999);
       const dateStr = dayStart.toISOString().slice(0, 10);
 
-      const [providerRes, rulesRes, vacRes, excRes, bookingsRes] = await Promise.all([
-        supabase.from('providers').select('vacation_mode, min_notice_hours, max_advance_days, buffer_minutes').eq('id', providerId!).single(),
+      const provider = await fetchProviderBookingSettings(providerId!, {
+        serviceId: opts?.serviceId ?? undefined,
+        addressId: opts?.addressId ?? undefined,
+      });
+      if (!provider) return [];
+
+      const [rulesRes, vacRes, excRes, bookingsRes] = await Promise.all([
         supabase.from('availability_rules').select('start_time, end_time').eq('provider_id', providerId!).eq('weekday', weekday),
         supabase.from('provider_vacations').select('start_date, end_date').eq('provider_id', providerId!).lte('start_date', dateStr).gte('end_date', dateStr),
         supabase.from('availability_exceptions').select('start_time, end_time, is_blocked, date, end_date').eq('provider_id', providerId!)
@@ -389,13 +439,11 @@ export function useAvailableSlots(providerId: string | undefined, date: Date | n
         supabase.from('bookings').select('start_at, end_at').eq('provider_id', providerId!).in('status', ACTIVE_BOOKING_STATUSES)
           .gte('start_at', dayStart.toISOString()).lte('start_at', dayEnd.toISOString()),
       ]);
-      if (providerRes.error) throw providerRes.error;
       if (rulesRes.error) throw rulesRes.error;
       if (vacRes.error) throw vacRes.error;
       if (excRes.error) throw excRes.error;
       if (bookingsRes.error) throw bookingsRes.error;
 
-      const provider = providerRes.data;
       if (provider.vacation_mode) return [];
       // Provider is on vacation this date — no slots at all.
       if ((vacRes.data ?? []).length > 0) return [];

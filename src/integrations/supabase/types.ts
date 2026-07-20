@@ -3358,6 +3358,15 @@ export type Database = {
         Args: { p_address_id?: string; p_provider_id: string }
         Returns: Database["public"]["Functions"]["search_marketplace_providers"]["Returns"]
       }
+      marketplace_provider_booking_settings: {
+        Args: { p_address_id?: string; p_provider_id: string; p_service_id?: string }
+        Returns: {
+          vacation_mode: boolean
+          min_notice_hours: number
+          max_advance_days: number
+          buffer_minutes: number
+        }[]
+      }
       recompute_trust_score: {
         Args: { _provider_id: string }
         Returns: undefined

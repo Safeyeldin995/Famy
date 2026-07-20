@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { PhoneFrame, TopBar, PrimaryButton, Card, EmptyState, Avatar } from "@/components/famio/ui";
 import {
   useProvider, useProviderServices, useCreateBooking, useAddresses, useAvailableSlots, useResolveZone,
+  useProviderBookingSettings,
 } from "@/lib/db/queries";
 import { useActiveFamilyMembers } from "@/lib/db/family-members-queries";
 import { validatePromoCode } from "@/lib/db/promo-codes-queries";
@@ -19,10 +20,16 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useBillingSettings, DEFAULT_BILLING_SETTINGS } from "@/lib/db/settings-queries";
 
-export const Route = createFileRoute("/book/$providerId")({ component: Book });
+export const Route = createFileRoute("/book/$providerId")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    serviceId: typeof search.serviceId === "string" ? search.serviceId : undefined,
+  }),
+  component: Book,
+});
 
 function Book() {
   const { providerId } = Route.useParams();
+  const { serviceId: searchServiceId } = Route.useSearch();
   const provQ = useProvider(providerId);
   const servicesQ = useProviderServices(providerId);
   const addrsQ = useAddresses();
@@ -36,7 +43,7 @@ function Book() {
 
   const stepKeys = ["service", "duration", "date", "time", "address", "forWhom", "notes", "requirements", "summary", "payment"] as const;
   const [step, setStep] = useState(0);
-  const [serviceId, setServiceId] = useState<string | null>(null);
+  const [serviceId, setServiceId] = useState<string | null>(searchServiceId ?? null);
   const [duration, setDuration] = useState("4h");
   const [date, setDate] = useState<Date | null>(null);
   const [time, setTime] = useState<string | null>(null);
@@ -56,6 +63,10 @@ function Book() {
   // server enforces this too (booking_locations snapshot trigger rejects a
   // NULL lat/lng), this just keeps the picker from offering a dead end.
   const bookableAddresses = (addrsQ.data ?? []).filter((a: any) => a.lat != null && a.lng != null);
+  const defaultBookableAddressId = bookableAddresses.find((a: any) => a.is_default)?.id ?? bookableAddresses[0]?.id;
+  const slotAddressId = addressId ?? defaultBookableAddressId ?? null;
+  const services = servicesQ.data ?? [];
+  const eligibilityServiceId = serviceId ?? services[0]?.service?.id ?? null;
   const selectedAddress = bookableAddresses.find((a: any) => a.id === addressId) ?? null;
   // UX-only preview of the resolved service zone — the booking-creation DB
   // trigger re-resolves this itself and is the sole authoritative guard
@@ -85,8 +96,6 @@ function Book() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [methodsQ.data]);
 
-  const p = provQ.data ? toUIProvider(provQ.data) : null;
-  const services = servicesQ.data ?? [];
   const lang = currentLang();
   const activeService = useMemo(
     () => services.find((s: any) => s.service?.id === serviceId) ?? services[0],
@@ -98,14 +107,52 @@ function Book() {
   // so the hook count changed between the first render (still loading,
   // returns early) and the next one, which crashes React with a hooks
   // order mismatch as soon as the provider/services queries resolve.
-  const slotsQ = useAvailableSlots(providerId, date, hours * 60 || 120);
+  const slotsQ = useAvailableSlots(providerId, date, hours * 60 || 120, {
+    serviceId: activeService?.service?.id ?? serviceId,
+    addressId: slotAddressId,
+  });
+  const bookingSettingsQ = useProviderBookingSettings(providerId, {
+    serviceId: eligibilityServiceId,
+    addressId: slotAddressId,
+  });
   const requirementsQ = useRequirementsForService(activeService?.service?.id);
 
-  if (provQ.isLoading || servicesQ.isLoading) {
+  if (provQ.isLoading || servicesQ.isLoading || bookingSettingsQ.isLoading) {
     return <PhoneFrame><div className="grid flex-1 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-navy" /></div></PhoneFrame>;
   }
+  if (!bookingSettingsQ.data) {
+    return (
+      <PhoneFrame>
+        <EmptyState
+          emoji="🚫"
+          title={t("bookFlow.unavailable")}
+          body={t("bookFlow.unavailableBody")}
+          action={(
+            <Link to="/search">
+              <PrimaryButton>{t("bookFlow.backToSearch")}</PrimaryButton>
+            </Link>
+          )}
+        />
+      </PhoneFrame>
+    );
+  }
+
+  const p = provQ.data ? toUIProvider(provQ.data) : null;
   if (!p) {
-    return <PhoneFrame><EmptyState emoji="🙈" title={t("bookFlow.notFound")} /></PhoneFrame>;
+    return (
+      <PhoneFrame>
+        <EmptyState
+          emoji="🚫"
+          title={t("bookFlow.unavailable")}
+          body={t("bookFlow.unavailableBody")}
+          action={(
+            <Link to="/search">
+              <PrimaryButton>{t("bookFlow.backToSearch")}</PrimaryButton>
+            </Link>
+          )}
+        />
+      </PhoneFrame>
+    );
   }
 
   const selectedFamilyMember = forWhom !== "myself" ? (familyMembersQ.data ?? []).find((m: any) => m.id === forWhom) : null;
@@ -326,7 +373,7 @@ function Book() {
         {step === 2 && (
           <Step title={t("bookFlow.dateTitle")} sub={t("bookFlow.dateSub")}>
             <div className="grid grid-cols-4 gap-2">
-              {Array.from({ length: Math.max(1, Math.min(30, (provQ.data as any)?.max_advance_days ?? 12)) }).map((_, i) => {
+              {Array.from({ length: Math.max(1, Math.min(30, bookingSettingsQ.data?.max_advance_days ?? 12)) }).map((_, i) => {
                 const d = new Date();
                 d.setDate(d.getDate() + i);
                 d.setHours(0, 0, 0, 0);

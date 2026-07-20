@@ -81,7 +81,7 @@ function Bookings() {
                   {tab !== "upcoming" && (
                     <div className="mt-3 flex gap-2 border-t border-border pt-3">
                       <button
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); nav({ to: "/book/$providerId", params: { providerId: b.provider_id } }); }}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); nav({ to: "/book/$providerId", params: { providerId: b.provider_id }, search: { serviceId: undefined } }); }}
                         className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-surface-2 py-2 text-xs font-bold"
                       >
                         <Repeat className="h-3.5 w-3.5" /> {t("bookings.bookAgain")}

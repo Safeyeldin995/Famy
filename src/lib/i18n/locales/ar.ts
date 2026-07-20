@@ -552,6 +552,9 @@ const ar: Translation = {
   },
   bookFlow: {
     notFound: "المحترف غير موجود",
+    unavailable: "الحجز غير متاح",
+    unavailableBody: "هذا المحترف لا يقبل حجوزات جديدة حالياً. تصفّح محترفين آخرين.",
+    backToSearch: "تصفّح المحترفين",
     paymentFailed: "تعذّر تسجيل طريقة الدفع",
     promoPlaceholder: "كود الخصم",
     promoApply: "تطبيق",

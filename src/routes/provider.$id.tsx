@@ -182,7 +182,7 @@ function ProviderProfile() {
           <ShieldCheck className="h-3 w-3 text-success" aria-hidden="true" />
           {t("providerProfile.freeCancel")}
         </div>
-        <PrimaryButton variant="coral" onClick={() => nav({ to: "/book/$providerId", params: { providerId: p.id } })}>
+        <PrimaryButton variant="coral" onClick={() => nav({ to: "/book/$providerId", params: { providerId: p.id }, search: { serviceId: undefined } })}>
           {t("providerProfile.bookNow", { price: formatEGP(p.hourlyRate, { perHour: true }) })}
         </PrimaryButton>
       </div>

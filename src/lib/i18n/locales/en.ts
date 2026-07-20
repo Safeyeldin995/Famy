@@ -550,6 +550,9 @@ const en = {
   },
   bookFlow: {
     notFound: "Provider not found",
+    unavailable: "Booking unavailable",
+    unavailableBody: "This provider isn't accepting bookings right now. Browse other providers instead.",
+    backToSearch: "Browse providers",
     paymentFailed: "Could not record payment method",
     promoPlaceholder: "Promo code",
     promoApply: "Apply",

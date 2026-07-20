@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { invalidateCustomerMarketplaceQueries } from '@/lib/db/marketplace-cache';
 
 export type AdminProviderFilter = "pending" | "verified" | "suspended" | "all";
 
@@ -39,8 +40,9 @@ export function useSetProviderActive() {
       if (error) throw error;
       if (data.is_active !== active) throw new Error('Provider active status did not persist.');
     },
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ['admin'] });
+      invalidateCustomerMarketplaceQueries(qc, vars.id);
     },
   });
 }
@@ -115,8 +117,9 @@ export function useSetProviderVerified() {
         throw new Error('Provider verification status did not persist.');
       }
     },
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ['admin'] });
+      invalidateCustomerMarketplaceQueries(qc, vars.id);
     },
   });
 }
@@ -144,6 +147,7 @@ export function useSetProviderServiceStatus() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin'] });
+      invalidateCustomerMarketplaceQueries(qc);
     },
   });
 }
@@ -329,7 +333,10 @@ export function useClearProviderServiceFlag() {
       if (error) throw error;
       if (data.flagged_for_review) throw new Error('Provider service review flag did not clear.');
     },
-    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['admin', 'flagged-provider-services', vars.serviceId] }),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'flagged-provider-services', vars.serviceId] });
+      invalidateCustomerMarketplaceQueries(qc);
+    },
   });
 }
 
@@ -374,7 +381,10 @@ export function useCreateRequirement() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['admin', 'requirements', vars.service_id] }),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'requirements', vars.service_id] });
+      invalidateCustomerMarketplaceQueries(qc);
+    },
   });
 }
 
@@ -386,7 +396,10 @@ export function useUpdateRequirement() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['admin', 'requirements', vars.service_id] }),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'requirements', vars.service_id] });
+      invalidateCustomerMarketplaceQueries(qc);
+    },
   });
 }
 
@@ -410,7 +423,10 @@ export function useReorderRequirement() {
         throw new Error('Requirement order swap did not persist atomically.');
       }
     },
-    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['admin', 'requirements', vars.service_id] }),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'requirements', vars.service_id] });
+      invalidateCustomerMarketplaceQueries(qc);
+    },
   });
 }
 
@@ -442,7 +458,10 @@ export function useReviewRequirementFulfillment() {
         .single();
       if (error) throw error;
     },
-    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['admin', 'requirement-fulfillments', vars.requirementId] }),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'requirement-fulfillments', vars.requirementId] });
+      invalidateCustomerMarketplaceQueries(qc);
+    },
   });
 }
 
@@ -481,6 +500,7 @@ export function useCreateService() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'services'] });
       qc.invalidateQueries({ queryKey: ['all-services'] });
+      invalidateCustomerMarketplaceQueries(qc);
     },
   });
 }
@@ -496,6 +516,7 @@ export function useUpdateService() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'services'] });
       qc.invalidateQueries({ queryKey: ['all-services'] });
+      invalidateCustomerMarketplaceQueries(qc);
     },
   });
 }
@@ -511,6 +532,7 @@ export function useSetServiceActive() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'services'] });
       qc.invalidateQueries({ queryKey: ['all-services'] });
+      invalidateCustomerMarketplaceQueries(qc);
     },
   });
 }
@@ -737,7 +759,10 @@ export function useCreateZone() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'zones'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'zones'] });
+      invalidateCustomerMarketplaceQueries(qc);
+    },
   });
 }
 
@@ -749,7 +774,10 @@ export function useUpdateZone() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'zones'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'zones'] });
+      invalidateCustomerMarketplaceQueries(qc);
+    },
   });
 }
 
@@ -761,7 +789,10 @@ export function useSetZoneActive() {
       if (error) throw error;
       if (data.is_active !== active) throw new Error('Zone active status did not persist.');
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'zones'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'zones'] });
+      invalidateCustomerMarketplaceQueries(qc);
+    },
   });
 }
 
@@ -825,7 +856,10 @@ export function useSetZoneService() {
     onError: (_error, _vars, context) => {
       if (context) qc.setQueryData(context.key, context.previous);
     },
-    onSettled: (_d, _error, vars) => qc.invalidateQueries({ queryKey: ['admin', 'zone-services', vars.zoneId] }),
+    onSettled: (_d, _error, vars) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'zone-services', vars.zoneId] });
+      invalidateCustomerMarketplaceQueries(qc);
+    },
   });
 }
 
@@ -866,7 +900,10 @@ export function useSetZoneProvider() {
     onError: (_error, _vars, context) => {
       if (context) qc.setQueryData(context.key, context.previous);
     },
-    onSettled: (_d, _error, vars) => qc.invalidateQueries({ queryKey: ['admin', 'zone-providers', vars.zoneId] }),
+    onSettled: (_d, _error, vars) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'zone-providers', vars.zoneId] });
+      invalidateCustomerMarketplaceQueries(qc, vars.providerId);
+    },
   });
 }
 
