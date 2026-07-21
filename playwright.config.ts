@@ -1,8 +1,13 @@
 import { defineConfig, devices } from "@playwright/test";
+import path from "path";
+import { loadEnv } from "./qa/env.mjs";
+
+loadEnv();
 
 const PORT = 8099;
 const REMOTE_BASE_URL = process.env.PLAYWRIGHT_BASE_URL?.replace(/\/$/, "");
 const BASE_URL = REMOTE_BASE_URL || `http://localhost:${PORT}`;
+const ANON_STORAGE_STATE = path.resolve(process.cwd(), "qa/.auth/anon.json");
 
 export default defineConfig({
   testDir: "./qa/tests",
@@ -21,6 +26,7 @@ export default defineConfig({
   globalTeardown: process.env.KEEP_QA_DATA ? undefined : "./qa/global-teardown.ts",
   use: {
     baseURL: BASE_URL,
+    storageState: ANON_STORAGE_STATE,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",

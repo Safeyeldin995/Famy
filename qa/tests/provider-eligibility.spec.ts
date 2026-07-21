@@ -129,11 +129,39 @@ test("controlled Provider becomes visible, hides on suspension, and restores thr
     await gotoAdmin("/admin/zones");
     const zoneRow = page.getByRole("listitem").filter({ hasText: zoneName });
     await zoneRow.getByRole("button", { name: /^coverage$/i }).click();
-    await zoneRow.getByLabel(serviceName).click({ timeout: 15_000 });
+    const [zoneServiceResponse] = await Promise.all([
+      page.waitForResponse((response) => {
+        const request = response.request();
+        const postData = request.postData() ?? "";
+        return (
+          response.url().includes("/rest/v1/zone_services") &&
+          request.method() === "POST" &&
+          postData.includes(zone!.id) &&
+          postData.includes(service!.id) &&
+          response.ok()
+        );
+      }),
+      zoneRow.getByLabel(serviceName).click({ timeout: 15_000 }),
+    ]);
+    expect(zoneServiceResponse.ok(), await zoneServiceResponse.text()).toBe(true);
     const providerCoverage = zoneRow.getByText("Providers serving this zone", { exact: true })
       .locator("..").getByRole("checkbox").first();
     await expect(providerCoverage).toBeEnabled({ timeout: 15_000 });
-    await providerCoverage.click({ timeout: 15_000 });
+    const [zoneProviderResponse] = await Promise.all([
+      page.waitForResponse((response) => {
+        const request = response.request();
+        const postData = request.postData() ?? "";
+        return (
+          response.url().includes("/rest/v1/zone_providers") &&
+          request.method() === "POST" &&
+          postData.includes(zone!.id) &&
+          postData.includes(provider!.id) &&
+          response.ok()
+        );
+      }),
+      providerCoverage.click({ timeout: 15_000 }),
+    ]);
+    expect(zoneProviderResponse.ok(), await zoneProviderResponse.text()).toBe(true);
     expect((await supabaseAdmin.from("zone_services").select("zone_id", { count: "exact", head: true }).eq("zone_id", zone!.id).eq("service_id", service!.id)).count).toBe(1);
     expect((await supabaseAdmin.from("zone_providers").select("zone_id", { count: "exact", head: true }).eq("zone_id", zone!.id).eq("provider_id", provider!.id)).count).toBe(1);
 
@@ -149,7 +177,15 @@ test("controlled Provider becomes visible, hides on suspension, and restores thr
 
     await providerPage.goto("/pro/availability");
     await providerPage.getByRole("button", { name: /^mon$/i }).click();
-    await providerPage.getByRole("button", { name: /save schedule/i }).click();
+    const [availabilityResponse] = await Promise.all([
+      providerPage.waitForResponse((response) =>
+        response.url().includes("/rest/v1/availability_rules") &&
+        response.request().method() === "POST" &&
+        response.ok(),
+      ),
+      providerPage.getByRole("button", { name: /save schedule/i }).click(),
+    ]);
+    expect(availabilityResponse.ok(), await availabilityResponse.text()).toBe(true);
     await expect(providerPage.getByText(/saved/i, { exact: true })).toBeVisible();
     await providerPage.reload();
     expect((await supabaseAdmin.from("availability_rules").select("id", { count: "exact", head: true }).eq("provider_id", provider!.id)).count).toBeGreaterThan(0);
@@ -193,7 +229,16 @@ test("controlled Provider becomes visible, hides on suspension, and restores thr
 
     await gotoAdmin(`/admin/provider/${provider!.id}`);
     await page.getByRole("button", { name: /suspend provider/i }).click();
-    await page.getByRole("dialog").getByRole("button", { name: /confirm suspend/i }).click();
+    const [suspendResponse] = await Promise.all([
+      page.waitForResponse((response) =>
+        response.url().includes("/rest/v1/providers") &&
+        response.url().includes(`id=eq.${provider!.id}`) &&
+        response.request().method() === "PATCH" &&
+        response.ok(),
+      ),
+      page.getByRole("dialog").getByRole("button", { name: /confirm suspend/i }).click(),
+    ]);
+    expect(suspendResponse.ok(), await suspendResponse.text()).toBe(true);
     await customerPage.goto("/search");
     await customerPage.getByLabel("Service").selectOption(service!.id);
     await expect(customerPage.locator(`a[href="/provider/${provider!.id}"]`)).toHaveCount(0);
@@ -201,7 +246,16 @@ test("controlled Provider becomes visible, hides on suspension, and restores thr
     await expect(customerPage.locator(`a[href="/provider/${provider!.id}"]`)).toHaveCount(0);
 
     await page.getByRole("button", { name: /unsuspend provider/i }).click();
-    await page.getByRole("dialog").getByRole("button", { name: /unsuspend provider/i }).click();
+    const [unsuspendResponse] = await Promise.all([
+      page.waitForResponse((response) =>
+        response.url().includes("/rest/v1/providers") &&
+        response.url().includes(`id=eq.${provider!.id}`) &&
+        response.request().method() === "PATCH" &&
+        response.ok(),
+      ),
+      page.getByRole("dialog").getByRole("button", { name: /unsuspend provider/i }).click(),
+    ]);
+    expect(unsuspendResponse.ok(), await unsuspendResponse.text()).toBe(true);
     await customerPage.goto("/search");
     await customerPage.getByLabel("Service").selectOption(service!.id);
     await expect(customerPage.locator(`a[href="/provider/${provider!.id}"]`)).toBeVisible();
