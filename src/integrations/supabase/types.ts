@@ -1673,6 +1673,39 @@ export type Database = {
         }
         Relationships: []
       }
+      password_setup_authorizations: {
+        Row: {
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          phone: string
+          purpose: Database["public"]["Enums"]["otp_purpose"]
+          signup_role: string | null
+          user_id: string
+        }
+        Insert: {
+          consumed_at?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          phone: string
+          purpose: Database["public"]["Enums"]["otp_purpose"]
+          signup_role?: string | null
+          user_id: string
+        }
+        Update: {
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          phone?: string
+          purpose?: Database["public"]["Enums"]["otp_purpose"]
+          signup_role?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       payment_methods: {
         Row: {
           code: string
@@ -3268,6 +3301,15 @@ export type Database = {
           p_purpose: Database["public"]["Enums"]["otp_purpose"]
           p_code: string
           p_max_attempts?: number
+        }
+        Returns: string
+      }
+      claim_password_setup_authorization: {
+        Args: {
+          p_auth_id: string
+          p_user_id: string
+          p_phone: string
+          p_purpose: Database["public"]["Enums"]["otp_purpose"]
         }
         Returns: string
       }

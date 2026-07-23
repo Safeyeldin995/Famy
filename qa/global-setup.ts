@@ -110,10 +110,7 @@ async function completeOtpEntry(
 ) {
   await page.waitForURL(/\/otp/, { timeout: 15_000 });
   const code = readQaE2eOtp(e164, purpose);
-  const inputs = page.locator('input[inputmode="numeric"]');
-  for (let i = 0; i < 6; i++) {
-    await inputs.nth(i).fill(code[i] ?? "");
-  }
+  await page.getByTestId("otp-input").fill(code);
   await page.waitForURL(/\/auth\/set-password/, { timeout: 15_000 });
 }
 
@@ -127,7 +124,9 @@ async function signUp(page: import("@playwright/test").Page, phone: string, role
   await page.locator('input[inputmode="tel"]').fill(phone);
   await page.getByRole("button", { name: "Send code", exact: true }).click();
   await completeOtpEntry(page, e164, "SIGNUP");
-  await page.locator('input[type="password"]').fill(QA_PASSWORD);
+  const passwordInputs = page.locator('input[type="password"]');
+  await passwordInputs.nth(0).fill(QA_PASSWORD);
+  await passwordInputs.nth(1).fill(QA_PASSWORD);
   await page.getByRole("button", { name: "Save", exact: true }).click();
 }
 

@@ -13,7 +13,7 @@ function Forgot() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const nav = useNavigate();
-  const { setProfile, setAuthIntent, setAuthed } = useApp();
+  const { setProfile } = useApp();
   const { t } = useTranslation();
   const valid = phone.replace(/\D/g, "").length >= 9;
 
@@ -25,18 +25,12 @@ function Forgot() {
     const send = await otpService.sendOtp(e164, "reset");
     if (!send.ok) {
       setLoading(false);
-      let m = t("auth.sendFailed", "Could not reset password.");
-      if (send.error === "no_account") {
-        m = t("auth.noAccount", "No account for this number.");
-      } else if (send.message) {
-        m = send.message;
-      }
+      const m = send.message ?? t("auth.sendFailed", "Could not reset password.");
       setErrorMsg(m);
       toast.error(m, { duration: 8000 });
       return;
     }
     setProfile({ phone: e164 });
-    setAuthIntent({ purpose: "reset" });
     setLoading(false);
     nav({ to: "/otp" });
   };

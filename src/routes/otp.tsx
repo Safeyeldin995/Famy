@@ -1,157 +1,179 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
 import { PhoneFrame, PrimaryButton, TopBar } from "@/components/famio/ui";
-import { useApp } from "@/lib/store";
-import { formatNumber } from "@/lib/utils";
+import type { AuthFlowPurpose } from "@/lib/auth/authIntent.types";
 import { otpService } from "@/lib/otp/OtpService";
+import { formatNumber } from "@/lib/utils";
 
-export const Route = createFileRoute("/otp")({ component: Otp });
+export const Route = createFileRoute("/otp")({
+  beforeLoad: async () => {
+    const context = await otpService.getOtpScreenContext();
+    if (!context.ok) {
+      throw redirect({ to: context.redirect, replace: true });
+    }
+    return { otpContext: context };
+  },
+  component: Otp,
+});
+
+function purposeCopy(purpose: AuthFlowPurpose, t: ReturnType<typeof useTranslation>["t"]) {
+  if (purpose === "reset") {
+    return {
+      title: t("auth.resetVerifyTitle", "Verify password reset"),
+      body: t("auth.resetVerifyBody", "Enter the code we sent to reset your password."),
+    };
+  }
+  return {
+    title: t("auth.signupVerifyTitle", "Verify your signup"),
+    body: t("auth.signupVerifyBody", "Enter the code we sent to finish creating your account."),
+  };
+}
 
 function Otp() {
+  const { otpContext } = Route.useRouteContext();
   const [code, setCode] = useState(["", "", "", "", "", ""]);
-  const refs = useRef<(HTMLInputElement | null)[]>([]);
-  const [timer, setTimer] = useState(30);
+  const [otpExpiresIn, setOtpExpiresIn] = useState(otpContext.otpExpiresIn);
+  const [resendAvailableIn, setResendAvailableIn] = useState(otpContext.resendAvailableIn);
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const verifyLock = useRef(false);
   const nav = useNavigate();
-  const { setAuthed, profile, authIntent } = useApp();
-  const { t } = useTranslation();
-
-  const purpose = authIntent?.purpose ?? "signup";
-  const role = authIntent?.role;
+  const { t, i18n } = useTranslation();
+  const copy = purposeCopy(otpContext.purpose, t);
 
   useEffect(() => {
-    refs.current[0]?.focus();
-    const id = setInterval(() => setTimer((x) => (x > 0 ? x - 1 : 0)), 1000);
-    return () => clearInterval(id);
+    const id = window.setInterval(() => {
+      setOtpExpiresIn((value) => Math.max(0, value - 1));
+      setResendAvailableIn((value) => Math.max(0, value - 1));
+    }, 1000);
+    return () => window.clearInterval(id);
   }, []);
 
-  const fillFrom = (i: number, raw: string) => {
-    const digits = raw.replace(/\D/g, "");
-    if (!digits) {
-      const next = [...code];
-      next[i] = "";
-      setCode(next);
-      return;
+  useEffect(() => {
+    if (otpExpiresIn === 0) {
+      void otpService.abandonOtpFlow().then(() => {
+        toast.error(t("auth.sessionExpired", "Your verification session expired. Start again."));
+        nav({ to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login", replace: true });
+      });
     }
-    const next = [...code];
-    let idx = i;
-    for (const ch of digits) {
-      if (idx >= next.length) break;
-      next[idx] = ch;
-      idx++;
-    }
-    setCode(next);
-    refs.current[Math.min(idx, next.length - 1)]?.focus();
-    if (next.every((c) => c) && !loading) verify(next.join(""));
-  };
+  }, [nav, otpContext.purpose, otpExpiresIn, t]);
 
-  const onPaste = (i: number, e: React.ClipboardEvent<HTMLInputElement>) => {
-    const text = e.clipboardData.getData("text");
-    if (/\d/.test(text)) {
-      e.preventDefault();
-      fillFrom(i, text);
-    }
-  };
-
-  const verify = async (val: string) => {
-    if (val.length < 6 || loading) return;
-    if (!profile.phone) {
-      toast.error(t("auth.missingPhone", "Phone missing. Please sign in again."));
-      nav({ to: "/login" });
-      return;
-    }
+  const verify = async (value: string) => {
+    if (value.length !== 6 || loading || verifyLock.current) return;
+    verifyLock.current = true;
     setLoading(true);
-    const res = await otpService.verifyOtp(profile.phone, val, purpose, role);
+    setErrorMsg(null);
+    const res = await otpService.verifyOtp(value);
     setLoading(false);
     if (!res.ok) {
-      const msg =
-        res.error === "invalid_code" ? t("auth.invalidCode", "Invalid code. Try again.")
-        : res.error === "expired" ? t("auth.codeExpired", "Code expired. Request a new one.")
-        : res.error === "max_attempts" ? t("auth.maxAttempts", "Too many attempts. Request a new code.")
-        : res.error === "already_registered" ? t("auth.alreadyRegistered", "Already registered. Please sign in.")
-        : res.error === "no_account" ? t("auth.noAccount", "No account for this number.")
-        : t("auth.verifyFailed", "Could not verify code. Try again.");
-      toast.error(msg);
-      if (res.error === "invalid_code") {
-        setCode(Array(code.length).fill(""));
-        refs.current[0]?.focus();
+      verifyLock.current = false;
+      if (res.error === "flow_mismatch") {
+        const msg = res.nextStep === "signup"
+          ? t("auth.verifyUseSignup", "This number is not registered yet. Create an account to continue.")
+          : t("auth.verifyUseSignin", "This number already has an account. Sign in or reset your password.");
+        setErrorMsg(msg);
+        toast.error(msg);
+        nav({ to: "/login", replace: true });
+        return;
       }
+      const msg = t("auth.invalidCode", "Invalid code. Try again.");
+      setErrorMsg(msg);
+      toast.error(msg);
+      setCode(["", "", "", "", "", ""]);
       return;
     }
-    setAuthed(true);
-    // After OTP we always force password setup (new account, or reset).
-    nav({ to: "/auth/set-password" });
+    nav({ to: "/auth/set-password", replace: true });
   };
 
   const resend = async () => {
-    if (timer > 0 || resending || !profile.phone) return;
+    if (resendAvailableIn > 0 || resending || loading) return;
     setResending(true);
-    const res = await otpService.sendOtp(profile.phone, purpose);
+    setErrorMsg(null);
+    const res = await otpService.resendOtp();
     setResending(false);
-    if (res.ok) {
-      setTimer(res.retryAfter ?? 30);
-      toast.success(t("auth.codeSent", "Code sent."));
-    } else {
-      let msg = t("auth.sendFailed", "Could not send code.");
-      if (res.error === "unverified_number") {
-        msg = "SMS provider is in trial mode and can't send to this number yet. Add this number to the Twilio verified-caller list, upgrade the Twilio account, or test with an already-verified number.";
-      } else if (res.error === "sms_blocked") {
-        msg = "SMS delivery is blocked for this number or prefix right now. Try another test number, or review SMS fraud/geo restrictions in the SMS provider account.";
-      } else if (res.error === "rate_limited") {
-        msg = t("auth.rateLimited", "Too many attempts. Try again in a minute.");
-      } else if (res.message) {
-        msg = res.message;
+    if (!res.ok) {
+      const msg = res.message ?? t("auth.sendFailed", "Could not send code. Try again later.");
+      setErrorMsg(msg);
+      toast.error(msg);
+      if (res.retryAfter) setResendAvailableIn(res.retryAfter);
+      if (res.error === "intent_missing") {
+        nav({ to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login", replace: true });
       }
-      toast.error(msg, { duration: 8000 });
+      return;
     }
+    setResendAvailableIn(res.retryAfter ?? 30);
+    setOtpExpiresIn(5 * 60);
+    toast.success(t("auth.codeSent", "Code sent."));
+  };
+
+  const changePhone = async () => {
+    await otpService.abandonOtpFlow();
+    nav({ to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login", replace: true });
   };
 
   return (
     <PhoneFrame bg="bg-surface">
-      <TopBar back={{ to: "/login" }} />
-      <div className="flex-1 px-6 pt-2">
-        <h1 className="text-3xl font-extrabold tracking-tight">{t("auth.verifyTitle")}</h1>
+      <TopBar back={{ to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login" }} />
+      <div className="flex-1 px-6 pt-2" dir={i18n.dir()}>
+        <h1 className="text-3xl font-extrabold tracking-tight">{copy.title}</h1>
         <p className="mt-2 text-[15px] text-muted-foreground">
-          {t("auth.verifyBody")}{" "}
-          <span className="font-semibold text-foreground" dir="ltr">{profile.phone || "+20 1XX XXX XXXX"}</span>
+          {copy.body}{" "}
+          <span className="font-semibold text-foreground" dir="ltr">{otpContext.maskedPhone}</span>
         </p>
 
-        <div className="mt-10 flex justify-between gap-2" dir="ltr">
-          {code.map((c, i) => (
-            <input
-              key={i}
-              ref={(el) => { refs.current[i] = el; }}
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
-              value={c}
-              onChange={(e) => fillFrom(i, e.target.value)}
-              onPaste={(e) => onPaste(i, e)}
-              onKeyDown={(e) => {
-                if (e.key === "Backspace" && !c && i > 0) refs.current[i - 1]?.focus();
-              }}
-              className={`h-14 w-12 rounded-2xl border-2 bg-surface text-center text-2xl font-extrabold outline-none transition-all ${
-                c ? "border-navy text-navy" : "border-border"
-              }`}
-            />
-          ))}
+        <OtpCodeInput
+          value={code}
+          onChange={setCode}
+          onComplete={verify}
+          disabled={loading || otpExpiresIn === 0}
+        />
+
+        <div className="mt-4 text-center text-sm text-muted-foreground">
+          {t("auth.codeExpiresIn", "Code expires in")}{" "}
+          <span className="font-bold text-foreground" dir="ltr">
+            {formatNumber(Math.floor(otpExpiresIn / 60))}:{String(otpExpiresIn % 60).padStart(2, "0")}
+          </span>
         </div>
 
-        <div className="mt-8 text-center text-sm text-muted-foreground">
-          {timer > 0 ? (
-            <>{t("auth.resendIn")} <span className="font-bold text-foreground">{formatNumber(timer)}s</span></>
+        <div className="mt-4 text-center text-sm text-muted-foreground">
+          {resendAvailableIn > 0 ? (
+            <>
+              {t("auth.resendIn")}{" "}
+              <span className="font-bold text-foreground" dir="ltr">{formatNumber(resendAvailableIn)}s</span>
+            </>
           ) : (
-            <button onClick={resend} disabled={resending} className="font-semibold text-navy disabled:opacity-50">
+            <button
+              type="button"
+              onClick={resend}
+              disabled={resending || loading}
+              className="font-semibold text-navy disabled:opacity-50"
+            >
               {resending ? t("common.sending", "Sending...") : t("auth.resend")}
             </button>
           )}
         </div>
+
+        <div className="mt-6 text-center">
+          <button type="button" onClick={changePhone} className="text-sm font-semibold text-navy">
+            {t("auth.changePhone", "Change phone number")}
+          </button>
+        </div>
+
+        {errorMsg && (
+          <div className="mt-6 rounded-2xl border border-coral/30 bg-coral/10 p-3 text-[13px] font-medium leading-relaxed text-coral">
+            {errorMsg}
+          </div>
+        )}
       </div>
       <div className="safe-bottom px-6 pt-4">
-        <PrimaryButton onClick={() => verify(code.join(""))} disabled={loading || code.some((c) => !c)}>
+        <PrimaryButton
+          onClick={() => verify(code.join(""))}
+          disabled={loading || code.some((digit) => !digit) || otpExpiresIn === 0}
+        >
           {loading ? t("common.verifying") : t("common.verify")}
         </PrimaryButton>
       </div>

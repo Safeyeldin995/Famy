@@ -21,7 +21,7 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const nav = useNavigate();
-  const { setProfile, setAuthed, setAuthIntent } = useApp();
+  const { setProfile, setAuthed } = useApp();
   const { t } = useTranslation();
 
   const phoneValid = phone.replace(/\D/g, "").length >= 9;
@@ -68,22 +68,15 @@ function Login() {
 
     // signup: OTP must be entered on /otp before account creation completes.
     setLoading(true);
-    const send = await otpService.sendOtp(e164, "signup");
+    const send = await otpService.sendOtp(e164, "signup", role);
     if (!send.ok) {
       setLoading(false);
-      let m = t("auth.sendFailed", "Could not create account.");
-      if (send.error === "already_registered") {
-        m = t("auth.alreadyRegistered", "This number is already registered. Please sign in.");
-        setMode("signin");
-      } else if (send.message) {
-        m = send.message;
-      }
+      const m = send.message ?? t("auth.sendFailed", "Could not create account.");
       setErrorMsg(m);
       toast.error(m, { duration: 8000 });
       return;
     }
     setProfile({ phone: e164 });
-    setAuthIntent({ purpose: "signup", role });
     setLoading(false);
     nav({ to: "/otp" });
   };

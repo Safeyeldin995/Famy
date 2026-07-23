@@ -5,7 +5,9 @@ import { loadEnv } from "./qa/env.mjs";
 loadEnv();
 
 const PORT = 8099;
-const REMOTE_BASE_URL = process.env.PLAYWRIGHT_BASE_URL?.replace(/\/$/, "");
+const REMOTE_BASE_URL = process.env.E2E_FORCE_LOCAL === "1"
+  ? undefined
+  : process.env.PLAYWRIGHT_BASE_URL?.replace(/\/$/, "");
 const BASE_URL = REMOTE_BASE_URL || `http://localhost:${PORT}`;
 const ANON_STORAGE_STATE = path.resolve(process.cwd(), "qa/.auth/anon.json");
 
@@ -46,6 +48,7 @@ export default defineConfig({
         env: {
           ...process.env,
           QA_E2E_OTP_CAPTURE: "1",
+          AUTH_INTENT_SECRET: process.env.AUTH_INTENT_SECRET ?? "qa-local-auth-intent-secret",
         },
       },
 });
