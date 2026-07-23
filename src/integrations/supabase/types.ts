@@ -1631,6 +1631,48 @@ export type Database = {
           },
         ]
       }
+      otp_verifications: {
+        Row: {
+          attempts: number
+          created_at: string
+          expires_at: string
+          id: string
+          ip_address: string | null
+          otp_hash: string
+          phone: string
+          purpose: Database["public"]["Enums"]["otp_purpose"]
+          request_id: string | null
+          used_at: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          expires_at: string
+          id?: string
+          ip_address?: string | null
+          otp_hash: string
+          phone: string
+          purpose: Database["public"]["Enums"]["otp_purpose"]
+          request_id?: string | null
+          used_at?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip_address?: string | null
+          otp_hash?: string
+          phone?: string
+          purpose?: Database["public"]["Enums"]["otp_purpose"]
+          request_id?: string | null
+          used_at?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       payment_methods: {
         Row: {
           code: string
@@ -3204,6 +3246,31 @@ export type Database = {
         Args: { p_request_id: string }
         Returns: undefined
       }
+      otp_begin_send: {
+        Args: {
+          p_phone: string
+          p_purpose: Database["public"]["Enums"]["otp_purpose"]
+          p_ip_address: string | null
+          p_user_agent: string | null
+          p_request_id: string
+          p_otp_hash: string
+          p_expires_at: string
+          p_phone_limit?: number
+          p_phone_window?: string
+          p_ip_limit?: number
+          p_ip_window?: string
+        }
+        Returns: string
+      }
+      otp_verify_and_consume: {
+        Args: {
+          p_phone: string
+          p_purpose: Database["public"]["Enums"]["otp_purpose"]
+          p_code: string
+          p_max_attempts?: number
+        }
+        Returns: string
+      }
       check_booking_slot: {
         Args: {
           p_end: string
@@ -3453,6 +3520,7 @@ export type Database = {
       incident_severity: "low" | "medium" | "high" | "critical"
       incident_status: "open" | "investigating" | "resolved" | "dismissed"
       notification_channel: "in_app" | "email" | "sms" | "push" | "whatsapp"
+      otp_purpose: "LOGIN" | "SIGNUP" | "RESET_PASSWORD"
       payment_method: "card" | "wallet" | "cash" | "instapay" | "paymob"
       payment_status:
         | "pending"
@@ -3625,6 +3693,7 @@ export const Constants = {
       incident_severity: ["low", "medium", "high", "critical"],
       incident_status: ["open", "investigating", "resolved", "dismissed"],
       notification_channel: ["in_app", "email", "sms", "push", "whatsapp"],
+      otp_purpose: ["LOGIN", "SIGNUP", "RESET_PASSWORD"],
       payment_method: ["card", "wallet", "cash", "instapay", "paymob"],
       payment_status: [
         "pending",

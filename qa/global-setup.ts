@@ -5,6 +5,7 @@ import { supabaseAdmin } from "./admin-client.mjs";
 import { addUser, writeRegistry } from "./registry.mjs";
 import { restorePendingRestorations } from "./restoration-registry.mjs";
 import { loadEnv, vercelBypassHeaders } from "./env.mjs";
+import { readQaE2eOtp } from "./read-e2e-otp.mjs";
 
 loadEnv();
 
@@ -102,7 +103,22 @@ export const QA_PHONES = {
   eligibleProvider: `10${runSuffix}04`,
 };
 
+async function completeOtpEntry(
+  page: import("@playwright/test").Page,
+  e164: string,
+  purpose: "SIGNUP" | "RESET_PASSWORD",
+) {
+  await page.waitForURL(/\/otp/, { timeout: 15_000 });
+  const code = readQaE2eOtp(e164, purpose);
+  const inputs = page.locator('input[inputmode="numeric"]');
+  for (let i = 0; i < 6; i++) {
+    await inputs.nth(i).fill(code[i] ?? "");
+  }
+  await page.waitForURL(/\/auth\/set-password/, { timeout: 15_000 });
+}
+
 async function signUp(page: import("@playwright/test").Page, phone: string, role: "customer" | "provider") {
+  const e164 = `+20${phone.replace(/^\+/, "")}`;
   await page.goto("/login");
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(800); // let React hydrate before the first click
@@ -110,12 +126,13 @@ async function signUp(page: import("@playwright/test").Page, phone: string, role
   await page.getByRole("button", { name: role === "provider" ? /service provider/i : /^customer$/i }).click();
   await page.locator('input[inputmode="tel"]').fill(phone);
   await page.getByRole("button", { name: "Send code", exact: true }).click();
-  await page.waitForURL(/\/auth\/set-password/, { timeout: 15_000 });
+  await completeOtpEntry(page, e164, "SIGNUP");
   await page.locator('input[type="password"]').fill(QA_PASSWORD);
   await page.getByRole("button", { name: "Save", exact: true }).click();
 }
 
 async function globalSetup(config: FullConfig) {
+  process.env.QA_E2E_OTP_CAPTURE = "1";
   // Recover global rows first if a prior browser/worker process was interrupted.
   await restorePendingRestorations();
   fs.mkdirSync(AUTH_DIR, { recursive: true });

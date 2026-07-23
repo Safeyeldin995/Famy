@@ -1,36 +1,29 @@
 /**
  * OTP & auth server functions.
- *
- * Signup flow:
- *   sendOtpFn({ phone, purpose: 'signup' }) — errors if phone already registered.
- *   verifyOtpFn({ phone, code, role }) — verifies, creates user, assigns role, signs in.
- *   Client then routes to /auth/set-password, where user sets a real password
- *   via `supabase.auth.updateUser({ password })` (signed-in client call).
- *
- * Returning sign-in:
- *   Pure client-side `supabase.auth.signInWithPassword({ email: authEmailForPhone(phone), password })`.
- *
- * Forgot password:
- *   sendOtpFn({ phone, purpose: 'reset' }) — errors if phone not registered.
- *   verifyOtpFn({ phone, code, purpose: 'reset' }) — verifies, rotates to derived
- *   password, signs user in. Client then forces /auth/set-password.
  */
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
+import { isValidE164Phone, normalizePhoneE164 } from "@/lib/otp/normalizePhone";
+import { toDbOtpPurpose } from "@/lib/otp/types";
 
 const SendSchema = z.object({
-  phone: z.string().regex(/^\+\d{8,15}$/, "Invalid E.164 phone"),
+  phone: z.string().min(1),
   purpose: z.enum(["signup", "reset"]),
 });
 const VerifySchema = z.object({
-  phone: z.string().regex(/^\+\d{8,15}$/, "Invalid E.164 phone"),
+  phone: z.string().min(1),
   code: z.string().regex(/^\d{4,8}$/, "Invalid code"),
   purpose: z.enum(["signup", "reset"]),
   role: z.enum(["customer", "provider"]).optional(),
 });
 
-function basicAuth(sid: string, token: string) {
-  return "Basic " + Buffer.from(`${sid}:${token}`).toString("base64");
+function parseCanonicalPhone(raw: string): string {
+  const phone = normalizePhoneE164(raw);
+  if (!isValidE164Phone(phone)) {
+    throw new Error("Invalid E.164 phone");
+  }
+  return phone;
 }
 
 /** Deterministic synthetic email used as the auth identifier for a phone. */
@@ -39,31 +32,20 @@ export function authEmailForPhone(phone: string) {
   return `phone-${digits}@famio.local`;
 }
 
-async function twilioVerifyFetch(path: string, body: Record<string, string>) {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const serviceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
-  if (!accountSid || !authToken || !serviceSid) {
-    throw new Error("Twilio not configured");
-  }
-  const url = `https://verify.twilio.com/v2/Services/${serviceSid}${path}`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: basicAuth(accountSid, authToken),
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams(body).toString(),
-  });
-  const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-  return { ok: res.ok, status: res.status, data };
+function requestMeta() {
+  const request = getRequest();
+  const ipAddress = request.headers.get("x-real-ip")
+    ?? request.headers.get("cf-connecting-ip")
+    ?? request.headers.get("x-vercel-forwarded-for")?.split(",").pop()?.trim()
+    ?? null;
+  const userAgent = request.headers.get("user-agent");
+  return { ipAddress, userAgent };
 }
 
 async function findUserIdByPhone(phone: string): Promise<string | null> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const authEmail = authEmailForPhone(phone);
   const phoneNoPlus = phone.replace(/^\+/, "");
-  // Paginate (admin.listUsers is paginated; scan first ~1000 users).
   for (let page = 1; page <= 5; page++) {
     const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
     if (error) throw error;
@@ -76,111 +58,143 @@ async function findUserIdByPhone(phone: string): Promise<string | null> {
   return null;
 }
 
+type VerifyAuthInput = z.infer<typeof VerifySchema> & { phone: string };
+
+async function completeVerifiedAuth(data: VerifyAuthInput) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { randomBytes } = await import("crypto");
+  const interimPassword = randomBytes(32).toString("base64url");
+  const authEmail = authEmailForPhone(data.phone);
+
+  let userId = await findUserIdByPhone(data.phone);
+  let isNewUser = false;
+
+  if (data.purpose === "signup") {
+    if (userId) return { ok: false as const, error: "already_registered" as const };
+    const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
+      email: authEmail,
+      phone: data.phone,
+      password: interimPassword,
+      email_confirm: true,
+      phone_confirm: true,
+      user_metadata: { phone: data.phone, signup_role: data.role ?? "customer" },
+    });
+    if (error) throw error;
+    userId = created.user!.id;
+    isNewUser = true;
+  } else {
+    if (!userId) return { ok: false as const, error: "no_account" as const };
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+      email: authEmail,
+      email_confirm: true,
+      password: interimPassword,
+      phone_confirm: true,
+    });
+    if (error) throw error;
+  }
+
+  if (data.purpose === "signup" && userId) {
+    const expectedRole = data.role ?? "customer";
+    const { data: assignedRoles, error: roleErr } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    const normalRoles = (assignedRoles ?? [])
+      .map((row) => row.role)
+      .filter((role) => role === "customer" || role === "provider");
+    if (roleErr || normalRoles.length !== 1 || normalRoles[0] !== expectedRole) {
+      if (isNewUser) await supabaseAdmin.auth.admin.deleteUser(userId);
+      throw new Error(roleErr?.message ?? "signup_identity_assignment_failed");
+    }
+  }
+
+  const { createClient } = await import("@supabase/supabase-js");
+  const supa = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
+    auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+  });
+  const { data: signed, error: signErr } = await supa.auth.signInWithPassword({
+    email: authEmail,
+    password: interimPassword,
+  });
+  if (signErr || !signed.session) {
+    console.error("[otp.verify] sign-in failed", signErr);
+    throw new Error(signErr?.message ?? "signin_failed");
+  }
+
+  return {
+    ok: true as const,
+    userId: userId!,
+    isNewUser,
+    access_token: signed.session.access_token,
+    refresh_token: signed.session.refresh_token,
+  };
+}
+
+function mapVerifyError(error: string) {
+  if (error === "expired") return { ok: false as const, error: "expired" as const };
+  if (error === "max_attempts") return { ok: false as const, error: "max_attempts" as const };
+  if (error === "invalid_code" || error === "not_found" || error === "already_used") {
+    return { ok: false as const, error: "invalid_code" as const };
+  }
+  return { ok: false as const, error: "unknown" as const };
+}
+
 export const sendOtpFn = createServerFn({ method: "POST" })
   .inputValidator((d) => SendSchema.parse(d))
   .handler(async ({ data }) => {
-    // ─────────────────────────────────────────────────────────────────────
-    // TEMPORARY: OTP disabled during pre-launch validation phase.
-    // Re-enable before accepting unmonitored public signups.
-    // Phone-number existence is still used to gate signup vs reset, but no
-    // SMS is sent and any code is accepted by verifyOtpFn below.
-    // ─────────────────────────────────────────────────────────────────────
-    const existingId = await findUserIdByPhone(data.phone);
+    const phone = parseCanonicalPhone(data.phone);
+    const existingId = await findUserIdByPhone(phone);
     if (data.purpose === "signup" && existingId) {
       return { ok: false as const, error: "already_registered" };
     }
     if (data.purpose === "reset" && !existingId) {
       return { ok: false as const, error: "no_account" };
     }
-    return { ok: true as const, retryAfter: 30 };
+
+    const { loadOtpCoreService } = await import("@/lib/otp/OtpCoreService.server");
+    const otp = await loadOtpCoreService();
+    const { ipAddress, userAgent } = requestMeta();
+    const generated = await otp.generateOTP({
+      phone,
+      purpose: toDbOtpPurpose(data.purpose),
+      ipAddress,
+      userAgent,
+    });
+
+    if (!generated.ok) {
+      const deliveryMessage = generated.error === "delivery_failed"
+        ? "Could not deliver the verification code. Try again later."
+        : generated.error === "temporarily_unavailable"
+          ? "Verification delivery is temporarily unavailable. Try again shortly."
+          : generated.error === "rate_limited_phone"
+            ? "Too many verification requests for this phone. Try again later."
+            : "Too many verification requests from this network. Try again later.";
+      return {
+        ok: false as const,
+        error: generated.error,
+        retryAfter: generated.retryAfter,
+        message: deliveryMessage,
+      };
+    }
+
+    return {
+      ok: true as const,
+      retryAfter: generated.retryAfter ?? 30,
+      requiresVerification: true as const,
+    };
   });
 
 export const verifyOtpFn = createServerFn({ method: "POST" })
   .inputValidator((d) => VerifySchema.parse(d))
   .handler(async ({ data }) => {
-    // ─────────────────────────────────────────────────────────────────────
-    // TEMPORARY: OTP disabled during pre-launch validation phase.
-    // Re-enable before accepting unmonitored public signups.
-    // We skip the Twilio VerificationCheck entirely and accept any code.
-    // ─────────────────────────────────────────────────────────────────────
-
-
-
-
-
-    // 2) Resolve / create the auth user.
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { createHmac } = await import("crypto");
-    const secret = process.env.OTP_SIGNIN_SECRET;
-    if (!secret) throw new Error("OTP_SIGNIN_SECRET missing");
-    const derivedPassword = createHmac("sha256", secret).update(data.phone).digest("hex");
-    const authEmail = authEmailForPhone(data.phone);
-
-    let userId = await findUserIdByPhone(data.phone);
-    let isNewUser = false;
-
-    if (data.purpose === "signup") {
-      if (userId) return { ok: false as const, error: "already_registered" as const };
-      const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
-        email: authEmail,
-        phone: data.phone,
-        password: derivedPassword,
-        email_confirm: true,
-        phone_confirm: true,
-        user_metadata: { phone: data.phone, signup_role: data.role ?? "customer" },
-      });
-      if (error) throw error;
-      userId = created.user!.id;
-      isNewUser = true;
-    } else {
-      // reset: rotate password to derived value so we can sign in deterministically.
-      if (!userId) return { ok: false as const, error: "no_account" as const };
-      const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-        email: authEmail,
-        email_confirm: true,
-        password: derivedPassword,
-        phone_confirm: true,
-      });
-      if (error) throw error;
-    }
-
-    // 3) The auth-user trigger assigns exactly the signup-selected normal role.
-    // Verify it before returning a session so a partial identity can never enter
-    // onboarding. A failed new signup is torn down rather than silently repaired.
-    if (data.purpose === "signup" && userId) {
-      const expectedRole = data.role ?? "customer";
-      const { data: assignedRoles, error: roleErr } = await supabaseAdmin
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId);
-      const normalRoles = (assignedRoles ?? [])
-        .map((row) => row.role)
-        .filter((role) => role === "customer" || role === "provider");
-      if (roleErr || normalRoles.length !== 1 || normalRoles[0] !== expectedRole) {
-        if (isNewUser) await supabaseAdmin.auth.admin.deleteUser(userId);
-        throw new Error(roleErr?.message ?? "signup_identity_assignment_failed");
-      }
-    }
-
-    // 4) Sign in server-side, return tokens for the client to setSession.
-    const { createClient } = await import("@supabase/supabase-js");
-    const supa = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
-      auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+    const phone = parseCanonicalPhone(data.phone);
+    const { loadOtpCoreService } = await import("@/lib/otp/OtpCoreService.server");
+    const otp = await loadOtpCoreService();
+    const verified = await otp.verifyOTP({
+      phone,
+      purpose: toDbOtpPurpose(data.purpose),
+      code: data.code,
     });
-    const { data: signed, error: signErr } = await supa.auth.signInWithPassword({
-      email: authEmail,
-      password: derivedPassword,
-    });
-    if (signErr || !signed.session) {
-      console.error("[otp.verify] sign-in failed", signErr);
-      throw new Error(signErr?.message ?? "signin_failed");
-    }
-
-    return {
-      ok: true as const,
-      userId: userId!,
-      isNewUser,
-      access_token: signed.session.access_token,
-      refresh_token: signed.session.refresh_token,
-    };
+    if (!verified.ok) return mapVerifyError(verified.error);
+    return completeVerifiedAuth({ ...data, phone });
   });

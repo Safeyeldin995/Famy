@@ -3,20 +3,31 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { sendOtpFn, verifyOtpFn, authEmailForPhone } from "@/lib/otp.functions";
+import { normalizePhoneE164 } from "@/lib/otp/normalizePhone";
 
 export type Purpose = "signup" | "reset";
 export type Role = "customer" | "provider";
 
-export type SendOtpResult = { ok: boolean; retryAfter?: number; error?: string; message?: string };
+export type SendOtpResult =
+  | { ok: true; retryAfter?: number; requiresVerification?: true }
+  | { ok: false; error?: string; message?: string; retryAfter?: number };
 export type VerifyOtpResult =
   | { ok: true; userId: string; isNewUser: boolean }
-  | { ok: false; error: "invalid_code" | "expired" | "max_attempts" | "already_registered" | "no_account" | "unknown"; message?: string };
+  | {
+      ok: false;
+      error:
+        | "invalid_code"
+        | "expired"
+        | "max_attempts"
+        | "already_registered"
+        | "no_account"
+        | "otp_verification_required"
+        | "unknown";
+      message?: string;
+    };
 
 export function normalizePhone(raw: string, defaultCountry = "20"): string {
-  const trimmed = raw.trim().replace(/[\s\-()]/g, "");
-  if (trimmed.startsWith("+")) return "+" + trimmed.slice(1).replace(/\D/g, "");
-  const digits = trimmed.replace(/\D/g, "").replace(/^0+/, "");
-  return "+" + defaultCountry + digits;
+  return normalizePhoneE164(raw, defaultCountry);
 }
 
 export const otpService = {

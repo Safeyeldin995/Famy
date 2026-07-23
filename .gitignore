@@ -32,6 +32,7 @@ supabase/.temp/
 
 # Playwright QA harness runtime artifacts (never commit sessions/secrets/traces)
 qa/.auth/
+qa/.otp-capture/
 qa/report/
 test-results/
 playwright-report/

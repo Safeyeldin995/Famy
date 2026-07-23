@@ -66,10 +66,7 @@ function Login() {
 
 
 
-    // signup: TEMPORARY — OTP disabled during pre-launch validation phase.
-    // Skip the /otp screen entirely; create the account immediately using a
-    // placeholder code that the server-side verify handler ignores. Re-enable
-    // OTP before accepting unmonitored public signups.
+    // signup: OTP must be entered on /otp before account creation completes.
     setLoading(true);
     const send = await otpService.sendOtp(e164, "signup");
     if (!send.ok) {
@@ -85,18 +82,10 @@ function Login() {
       toast.error(m, { duration: 8000 });
       return;
     }
-    const verify = await otpService.verifyOtp(e164, "000000", "signup", role);
-    setLoading(false);
-    if (!verify.ok) {
-      const m = verify.message ?? t("auth.verifyFailed", "Could not create account.");
-      setErrorMsg(m);
-      toast.error(m, { duration: 8000 });
-      return;
-    }
     setProfile({ phone: e164 });
     setAuthIntent({ purpose: "signup", role });
-    setAuthed(true);
-    nav({ to: "/auth/set-password" });
+    setLoading(false);
+    nav({ to: "/otp" });
   };
 
   return (

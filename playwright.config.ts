@@ -43,5 +43,9 @@ export default defineConfig({
         timeout: 60_000,
         stdout: "pipe",
         stderr: "pipe",
+        env: {
+          ...process.env,
+          QA_E2E_OTP_CAPTURE: "1",
+        },
       },
 });

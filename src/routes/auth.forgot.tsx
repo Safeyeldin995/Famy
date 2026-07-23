@@ -21,9 +21,6 @@ function Forgot() {
     if (!valid || loading) return;
     setErrorMsg(null);
     const e164 = normalizePhone(phone);
-    // TEMPORARY: OTP disabled during pre-launch validation phase.
-    // Phone alone is sufficient — go straight to set-password.
-    // Re-enable OTP before accepting unmonitored public resets.
     setLoading(true);
     const send = await otpService.sendOtp(e164, "reset");
     if (!send.ok) {
@@ -38,18 +35,10 @@ function Forgot() {
       toast.error(m, { duration: 8000 });
       return;
     }
-    const verify = await otpService.verifyOtp(e164, "000000", "reset");
-    setLoading(false);
-    if (!verify.ok) {
-      const m = verify.message ?? t("auth.verifyFailed", "Could not reset password.");
-      setErrorMsg(m);
-      toast.error(m, { duration: 8000 });
-      return;
-    }
     setProfile({ phone: e164 });
     setAuthIntent({ purpose: "reset" });
-    setAuthed(true);
-    nav({ to: "/auth/set-password" });
+    setLoading(false);
+    nav({ to: "/otp" });
   };
 
   return (
