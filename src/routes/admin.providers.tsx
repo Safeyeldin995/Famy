@@ -6,6 +6,7 @@ import {
   useAdminProviders, useSetProviderVerified, useSetProviderActive,
   useAdminIdentityConflicts, type AdminProviderFilter,
 } from "@/lib/db/admin-queries";
+import { useAdminOnboardingAction } from "@/lib/provider/onboarding-queries";
 import { Search, ChevronRight, ShieldCheck } from "lucide-react";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
 
@@ -28,6 +29,7 @@ function ProviderManagement() {
   const conflictsQ = useAdminIdentityConflicts();
   const setVerified = useSetProviderVerified();
   const setActive = useSetProviderActive();
+  const onboardingAction = useAdminOnboardingAction();
 
   const rows = useMemo(() => {
     const all = q.data ?? [];
@@ -125,19 +127,28 @@ function ProviderManagement() {
                 <div className="mt-3 flex flex-wrap gap-2">
                   {!p.is_verified ? (
                     <>
-                      <button
-                        disabled={setVerified.isPending}
-                        onClick={() => setVerified.mutate(
-                          { id: p.id, verified: true },
-                          { onError: (e: any) => toast.error(e?.message ?? t("admin.providers.approveError")) },
-                        )}
-                        className="focus-ring rounded-xl bg-navy px-4 py-2 text-xs font-bold text-navy-foreground disabled:opacity-50"
-                      >{t("admin.providers.approve")}</button>
-                      <button
-                        disabled={setVerified.isPending}
-                        onClick={() => { setRejectingId(p.id); setRejectReason(""); }}
-                        className="focus-ring rounded-xl border border-border px-4 py-2 text-xs font-bold disabled:opacity-50"
-                      >{t("admin.providers.reject")}</button>
+                      {["SUBMITTED", "UNDER_REVIEW"].includes(p.onboarding_status) && (
+                        <button
+                          disabled={onboardingAction.isPending}
+                          onClick={() => onboardingAction.mutate(
+                            {
+                              providerId: p.id,
+                              action: p.onboarding_status === "SUBMITTED" ? "start_review" : "approve",
+                            },
+                            { onError: (e: any) => toast.error(e?.message ?? t("admin.providers.approveError")) },
+                          )}
+                          className="focus-ring rounded-xl bg-navy px-4 py-2 text-xs font-bold text-navy-foreground disabled:opacity-50"
+                        >
+                          {p.onboarding_status === "SUBMITTED" ? t("admin.provider.startReview") : t("admin.providers.approve")}
+                        </button>
+                      )}
+                      {["SUBMITTED", "UNDER_REVIEW", "NEEDS_CHANGES"].includes(p.onboarding_status) && (
+                        <button
+                          disabled={setVerified.isPending}
+                          onClick={() => { setRejectingId(p.id); setRejectReason(""); }}
+                          className="focus-ring rounded-xl border border-border px-4 py-2 text-xs font-bold disabled:opacity-50"
+                        >{t("admin.providers.reject")}</button>
+                      )}
                     </>
                   ) : (
                     <button

@@ -196,13 +196,14 @@ test("notification retry requeues once and is audited once", async ({ page }) =>
   const { readErrors } = captureErrors(page);
   const reg = readRegistry();
   const admin = reg.users.find((u: any) => u.key === "adminSeed");
+  const safeFailure = `QA_ safe failure ${Date.now()}`;
   const { data: notification } = await supabaseAdmin.from("notifications").insert({
     user_id: admin.userId, title: "QA_ retry", type: "system", category: "system", channel: "in_app", payload: {},
   }).select().single();
   const { data: outbox } = await supabaseAdmin.from("notification_outbox").select("id").eq("notification_id", notification!.id).single();
-  await supabaseAdmin.from("notification_outbox").update({ status: "dead", attempts: 5, last_error_safe: "QA_ safe failure" }).eq("id", outbox!.id);
+  await supabaseAdmin.from("notification_outbox").update({ status: "dead", attempts: 5, last_error_safe: safeFailure }).eq("id", outbox!.id);
   await page.goto("/admin/operations");
-  const row = page.getByRole("listitem").filter({ hasText: "QA_ safe failure" });
+  const row = page.getByRole("listitem").filter({ hasText: safeFailure });
   const retry = row.getByRole("button", { name: /^retry$/i });
   await expect(retry).toBeVisible({ timeout: 15_000 });
   let calls = 0;

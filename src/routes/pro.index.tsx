@@ -57,14 +57,35 @@ function ProDashboard() {
           </Card>
         )}
 
-        {!provider?.is_verified && (
+        {!provider?.is_verified && provider?.onboarding_status && ["SUBMITTED", "UNDER_REVIEW"].includes(provider.onboarding_status) && (
+          <Card className="flex items-start gap-3 border border-amber-500/30 bg-amber-50 p-4">
+            <AlertCircle className="mt-0.5 h-5 w-5 text-amber-600" />
+            <div className="flex-1">
+              <div className="text-sm font-bold">{t("pro.onboardingWizard.status.UNDER_REVIEW")}</div>
+              <div className="text-xs text-muted-foreground">{t("pro.onboardingWizard.statusBody.UNDER_REVIEW")}</div>
+            </div>
+          </Card>
+        )}
+
+        {!provider?.is_verified && provider?.onboarding_status === "NEEDS_CHANGES" && (
+          <Card className="flex items-start gap-3 border border-coral/30 bg-coral/5 p-4">
+            <AlertCircle className="mt-0.5 h-5 w-5 text-coral" />
+            <div className="flex-1">
+              <div className="text-sm font-bold">{t("pro.onboardingWizard.status.NEEDS_CHANGES")}</div>
+              <div className="text-xs text-muted-foreground">{provider.review_reason_public ?? t("pro.onboardingWizard.changesRequired")}</div>
+            </div>
+            <Link to="/pro/onboarding" className="text-xs font-bold text-navy">{t("pro.dashboard.manage")}</Link>
+          </Card>
+        )}
+
+        {!provider?.is_verified && (!provider?.onboarding_status || provider?.onboarding_status === "DRAFT") && (
           <Card className="flex items-start gap-3 border border-amber-500/30 bg-amber-50 p-4">
             <AlertCircle className="mt-0.5 h-5 w-5 text-amber-600" />
             <div className="flex-1">
               <div className="text-sm font-bold">{t("pro.dashboard.verifyPending")}</div>
               <div className="text-xs text-muted-foreground">{t("pro.dashboard.verifyBody")}</div>
             </div>
-            <Link to="/pro/documents" className="text-xs font-bold text-navy">{t("pro.dashboard.upload")}</Link>
+            <Link to="/pro/onboarding" className="text-xs font-bold text-navy">{t("pro.dashboard.upload")}</Link>
           </Card>
         )}
 

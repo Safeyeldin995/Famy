@@ -1,6 +1,8 @@
 import { supabaseAdmin } from "../admin-client.mjs";
 import { readRegistry } from "../registry.mjs";
 import { authenticatedClient } from "../authenticated-client.mjs";
+import { completeProviderOnboarding } from "./onboarding-fixtures.mjs";
+import { resetRegistryProviderToDraft } from "./registry-fixtures.mjs";
 
 /** Deterministic markers owned exclusively by booking-lifecycle.spec.ts */
 export const BOOKING_LIFECYCLE_NOTES = "QA_booking_lifecycle_v1";
@@ -111,8 +113,8 @@ async function findReusableFixtureBooking(customerId) {
 export async function cleanupBookingLifecycleFixture(handle) {
   if (!handle) return;
 
-  if (handle.providerId && handle.providerSnapshot) {
-    await supabaseAdmin.from("providers").update(handle.providerSnapshot).eq("id", handle.providerId);
+  if (handle.providerUserId) {
+    await resetRegistryProviderToDraft(handle.providerUserId);
   }
   if (handle.providerServiceId) {
     await supabaseAdmin.from("provider_services").delete().eq("id", handle.providerServiceId);
@@ -150,38 +152,21 @@ export async function ensureBookingLifecycleFixture() {
 
   const reusableBookingId = await findReusableFixtureBooking(customer.userId);
   if (reusableBookingId) {
-    return { bookingId: reusableBookingId, retained: true };
+    console.info(
+      `[booking-lifecycle] Reused linked-database fixture booking ${reusableBookingId} (cancelled lifecycle residue; no fresh booking created).`,
+    );
+    return { bookingId: reusableBookingId, retained: true, reusedExisting: true };
   }
 
-  const { data: provider, error: providerLookupError } = await supabaseAdmin
-    .from("providers")
-    .select("id, is_active, is_verified, hourly_rate, max_advance_days, vacation_mode")
-    .eq("profile_id", providerUser.userId)
-    .single();
-  if (providerLookupError) throw providerLookupError;
-  const providerSnapshot = {
-    is_active: provider.is_active,
-    is_verified: provider.is_verified,
-    hourly_rate: provider.hourly_rate,
-    max_advance_days: provider.max_advance_days,
-    vacation_mode: provider.vacation_mode,
-  };
+  console.info("[booking-lifecycle] Creating fresh booking lifecycle fixture (provider onboarding + booking + cancellation).");
+
+  await resetRegistryProviderToDraft(providerUser.userId);
 
   let staged = {
-    providerId: provider.id,
-    providerSnapshot,
+    providerUserId: providerUser.userId,
   };
 
   try {
-    const { error: providerUpdateError } = await supabaseAdmin.from("providers").update({
-      is_active: true,
-      is_verified: true,
-      hourly_rate: 100,
-      max_advance_days: 365,
-      vacation_mode: false,
-    }).eq("id", provider.id);
-    if (providerUpdateError) throw providerUpdateError;
-
     const { data: category, error: categoryError } = await supabaseAdmin
       .from("categories")
       .select("id")
@@ -192,6 +177,37 @@ export async function ensureBookingLifecycleFixture() {
 
     const serviceId = await getOrCreateLifecycleService(category.id);
     staged.serviceId = serviceId;
+
+    const { data: zone, error: zoneError } = await supabaseAdmin.from("zones").insert({
+      name_en: ZONE_NAME,
+      name_ar: ZONE_NAME,
+      boundary_type: "polygon",
+      polygon: [{ lat: 30, lng: 31 }, { lat: 30, lng: 31.05 }, { lat: 30.03, lng: 31.02 }],
+      travel_fee: 0,
+      is_active: true,
+    }).select("id").single();
+    if (zoneError) throw zoneError;
+    staged.zoneId = zone.id;
+
+    await completeProviderOnboarding(providerUser.userId, { zoneId: zone.id });
+
+    const { data: provider, error: providerLookupError } = await supabaseAdmin
+      .from("providers")
+      .select("id, is_active, is_verified, hourly_rate, max_advance_days, vacation_mode, onboarding_status")
+      .eq("profile_id", providerUser.userId)
+      .single();
+    if (providerLookupError) throw providerLookupError;
+    if (provider.onboarding_status !== "APPROVED" || !provider.is_verified) {
+      throw new Error(`Booking lifecycle fixture provider is not approved: ${JSON.stringify(provider)}`);
+    }
+    staged.providerId = provider.id;
+
+    const { error: providerUpdateError } = await supabaseAdmin.from("providers").update({
+      hourly_rate: 100,
+      max_advance_days: 365,
+      vacation_mode: false,
+    }).eq("id", provider.id);
+    if (providerUpdateError) throw providerUpdateError;
 
     await supabaseAdmin.from("provider_services").delete().eq("provider_id", provider.id).eq("service_id", serviceId);
     const { data: providerService, error: providerServiceError } = await supabaseAdmin.from("provider_services").insert({
@@ -209,28 +225,23 @@ export async function ensureBookingLifecycleFixture() {
     });
     if (approvalError) throw approvalError;
 
-    const { data: zone, error: zoneError } = await supabaseAdmin.from("zones").insert({
-      name_en: ZONE_NAME,
-      name_ar: ZONE_NAME,
-      boundary_type: "polygon",
-      polygon: [{ lat: 30, lng: 31 }, { lat: 30, lng: 31.05 }, { lat: 30.03, lng: 31.02 }],
-      travel_fee: 0,
-      is_active: true,
-    }).select("id").single();
-    if (zoneError) throw zoneError;
-    staged.zoneId = zone.id;
-
     const { error: zoneServiceError } = await supabaseAdmin.from("zone_services").insert({
       zone_id: zone.id,
       service_id: serviceId,
     });
     if (zoneServiceError) throw zoneServiceError;
 
-    const { error: zoneProviderError } = await supabaseAdmin.from("zone_providers").insert({
-      zone_id: zone.id,
-      provider_id: provider.id,
-    });
-    if (zoneProviderError) throw zoneProviderError;
+    const { count: existingZoneProvider } = await supabaseAdmin.from("zone_providers")
+      .select("zone_id", { count: "exact", head: true })
+      .eq("zone_id", zone.id)
+      .eq("provider_id", provider.id);
+    if (!existingZoneProvider) {
+      const { error: zoneProviderError } = await supabaseAdmin.from("zone_providers").insert({
+        zone_id: zone.id,
+        provider_id: provider.id,
+      });
+      if (zoneProviderError) throw zoneProviderError;
+    }
 
     const { data: address, error: addressError } = await supabaseAdmin.from("addresses").insert({
       user_id: customer.userId,
@@ -293,14 +304,15 @@ export async function ensureBookingLifecycleFixture() {
     if (cancelError) throw cancelError;
     if (!cancellationId) throw new Error("cancel_booking returned no cancellation id.");
 
+    console.info(`[booking-lifecycle] Created fresh fixture booking ${booking.id} and cancelled it for lifecycle verification.`);
     return {
       bookingId: booking.id,
       retained: true,
+      reusedExisting: false,
       addressId: address.id,
       zoneId: zone.id,
       serviceId,
       providerId: provider.id,
-      providerSnapshot,
       providerServiceId: providerService.id,
       availabilityRuleId: availabilityRule.id,
       cancellationId,

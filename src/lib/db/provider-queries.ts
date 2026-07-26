@@ -33,7 +33,7 @@ export function useMyProvider() {
       if (!user) return null;
       const { data, error } = await supabase
         .from('providers')
-        .select(`*, profile:profiles(*), ratings:ratings_summary(*), trust:trust_scores(*)`)
+        .select(`id, profile_id, bio_en, bio_ar, years_experience, hourly_rate, city, country, languages, is_active, is_verified, is_top_pro, vacation_mode, onboarding_status, submitted_at, review_reason_public, review_reason_code, created_at, profile:profiles(*), ratings:ratings_summary(*), trust:trust_scores(*)`)
         .eq('profile_id', user.id)
         .maybeSingle();
       if (error) throw error;
@@ -377,35 +377,9 @@ export function useProviderDocuments(providerId: string | undefined) {
   });
 }
 
+/** @deprecated Use useSecureUploadDocument from onboarding-queries instead. */
 export function useUploadDocument() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async ({
-      providerId,
-      type,
-      file,
-    }: {
-      providerId: string;
-      type: string;
-      file: File;
-    }) => {
-      const ext = file.name.split('.').pop() ?? 'bin';
-      const path = `${providerId}/${type}-${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from('provider-documents')
-        .upload(path, file, { contentType: file.type, upsert: false });
-      if (upErr) throw upErr;
-      const { error: dbErr } = await supabase.from('provider_documents').insert({
-        provider_id: providerId,
-        type: type as any,
-        storage_path: path,
-        status: 'pending',
-      });
-      if (dbErr) throw dbErr;
-    },
-    onSuccess: (_d, vars) =>
-      qc.invalidateQueries({ queryKey: ['provider-documents', vars.providerId] }),
-  });
+  throw new Error('Legacy document upload is disabled. Use the onboarding wizard secure upload flow.');
 }
 
 export async function getSignedDocumentUrl(path: string) {

@@ -28,11 +28,8 @@ export interface UIProvider {
   featured?: boolean;
 }
 
-function avatarFor(profile: any, providerId: string): string {
-  return (
-    profile?.avatar_url ||
-    `https://i.pravatar.cc/300?u=${providerId}`
-  );
+function avatarFor(profile: any, _providerId: string): string {
+  return profile?.avatar_url ?? "";
 }
 
 function galleryFor(seed: string, n = 4): string[] {

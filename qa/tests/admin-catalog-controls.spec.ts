@@ -9,6 +9,8 @@ import {
   restoreRestoration,
 } from "../restoration-registry.mjs";
 import { authenticatedClient } from "../authenticated-client.mjs";
+import { completeProviderOnboarding } from "./onboarding-fixtures.mjs";
+import { resetRegistryProviderToDraft } from "./registry-fixtures.mjs";
 
 test.use({ storageState: path.resolve(process.cwd(), "qa/.auth/admin.json") });
 
@@ -280,8 +282,9 @@ test("zone edit, activation, and service/provider coverage persist", async ({ pa
   }).select().single();
   const { data: service } = await supabaseAdmin.from("services").select("id,name_en").eq("is_active", true).limit(1).single();
   const providerUser = readRegistry().users.find((user: any) => user.key === "provider");
-  const { data: provider } = await supabaseAdmin.from("providers").select("id,is_verified,is_active").eq("profile_id", providerUser.userId).single();
-  await supabaseAdmin.from("providers").update({ is_verified: true, is_active: true }).eq("id", provider!.id);
+  await completeProviderOnboarding(providerUser!.userId);
+  const { data: provider } = await supabaseAdmin.from("providers").select("id,is_verified,is_active,onboarding_status").eq("profile_id", providerUser!.userId).single();
+  expect(provider?.onboarding_status).toBe("APPROVED");
 
   await page.goto("/admin/zones");
   let row = page.getByRole("listitem").filter({ hasText: name });
@@ -325,5 +328,5 @@ test("zone edit, activation, and service/provider coverage persist", async ({ pa
   await supabaseAdmin.from("zone_services").delete().eq("zone_id", zone!.id);
   await supabaseAdmin.from("zone_providers").delete().eq("zone_id", zone!.id);
   await supabaseAdmin.from("zones").delete().eq("id", zone!.id);
-  await supabaseAdmin.from("providers").update({ is_verified: provider!.is_verified, is_active: provider!.is_active }).eq("id", provider!.id);
+  await resetRegistryProviderToDraft(providerUser!.userId);
 });

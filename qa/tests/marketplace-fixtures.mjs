@@ -1,6 +1,8 @@
 import { supabaseAdmin } from "../admin-client.mjs";
 import { readRegistry } from "../registry.mjs";
 import { authenticatedClient } from "../authenticated-client.mjs";
+import { completeProviderOnboarding } from "./onboarding-fixtures.mjs";
+import { resetRegistryProviderToDraft } from "./registry-fixtures.mjs";
 
 const DEFAULT_CUSTOMER_COORDS = { lat: 30.01, lng: 31.02 };
 const FIXTURE_ADDRESS_COORDS = { lat: 30.02, lng: 31.015 };
@@ -41,15 +43,10 @@ export async function assertResolveZoneMatches(lat, lng, expectedZoneId) {
 export async function createEligibleMarketplaceFixture(suffix) {
   const registry = readRegistry();
   const providerUserReg = registry.users.find((u) => u.key === "provider");
-  const { data: providerRow, error: providerError } = await supabaseAdmin.from("providers")
-    .select("id, profile_id, is_verified, is_active, vacation_mode")
-    .eq("profile_id", providerUserReg.userId)
-    .single();
-  if (providerError) throw providerError;
 
   const { data: lifecycleServices } = await supabaseAdmin.from("services").select("id").eq("slug", "qa-booking-lifecycle-v1");
   for (const lifecycleService of lifecycleServices ?? []) {
-    await supabaseAdmin.from("provider_services").delete().eq("provider_id", providerRow.id).eq("service_id", lifecycleService.id);
+    await supabaseAdmin.from("provider_services").delete().eq("service_id", lifecycleService.id);
     await supabaseAdmin.from("services").update({ is_active: false }).eq("id", lifecycleService.id);
   }
 
@@ -61,6 +58,26 @@ export async function createEligibleMarketplaceFixture(suffix) {
   const evidencePath = `${providerUserReg.userId}/QA_booking_${suffix}.pdf`;
   const admin = authenticatedClient("admin");
 
+  const { data: zone, error: zoneError } = await supabaseAdmin.from("zones").insert({
+    name_en: zoneName,
+    name_ar: zoneName,
+    boundary_type: "polygon",
+    is_active: true,
+    polygon: [{ lat: 30.015, lng: 31.01 }, { lat: 30.015, lng: 31.03 }, { lat: 30.03, lng: 31.015 }],
+    travel_fee: 0,
+  }).select().single();
+  if (zoneError) throw zoneError;
+
+  await completeProviderOnboarding(providerUserReg.userId, { zoneId: zone.id });
+
+  const { data: providerRow, error: providerError } = await supabaseAdmin.from("providers")
+    .select("id, profile_id, is_verified, is_active, vacation_mode, onboarding_status")
+    .eq("profile_id", providerUserReg.userId)
+    .single();
+  if (providerError) throw providerError;
+  if (providerRow.onboarding_status !== "APPROVED" || !providerRow.is_verified) {
+    throw new Error(`Fixture provider is not approved: ${JSON.stringify(providerRow)}`);
+  }
   const { data: service, error: serviceError } = await supabaseAdmin.from("services").insert({
     category_id: category.id,
     slug: `qa-booking-${suffix}`,
@@ -127,22 +144,6 @@ export async function createEligibleMarketplaceFixture(suffix) {
   });
   if (approvalError) throw approvalError;
 
-  const { error: verificationError } = await admin.rpc("admin_set_provider_verification", {
-    p_provider_id: providerRow.id,
-    p_verified: true,
-  });
-  if (verificationError) throw verificationError;
-
-  const { data: zone, error: zoneError } = await supabaseAdmin.from("zones").insert({
-    name_en: zoneName,
-    name_ar: zoneName,
-    boundary_type: "polygon",
-    is_active: true,
-    polygon: [{ lat: 30.015, lng: 31.01 }, { lat: 30.015, lng: 31.03 }, { lat: 30.03, lng: 31.015 }],
-    travel_fee: 0,
-  }).select().single();
-  if (zoneError) throw zoneError;
-
   const customer = registry.users.find((u) => u.key === "customer");
   const { data: priorAddress, error: priorAddressError } = await supabaseAdmin.from("addresses")
     .select("id, lat, lng")
@@ -159,8 +160,14 @@ export async function createEligibleMarketplaceFixture(suffix) {
 
   const { error: zoneServiceError } = await supabaseAdmin.from("zone_services").insert({ zone_id: zone.id, service_id: service.id });
   if (zoneServiceError) throw zoneServiceError;
-  const { error: zoneProviderError } = await supabaseAdmin.from("zone_providers").insert({ zone_id: zone.id, provider_id: providerRow.id });
-  if (zoneProviderError) throw zoneProviderError;
+  const { count: existingZoneProvider } = await supabaseAdmin.from("zone_providers")
+    .select("zone_id", { count: "exact", head: true })
+    .eq("zone_id", zone.id)
+    .eq("provider_id", providerRow.id);
+  if (!existingZoneProvider) {
+    const { error: zoneProviderError } = await supabaseAdmin.from("zone_providers").insert({ zone_id: zone.id, provider_id: providerRow.id });
+    if (zoneProviderError) throw zoneProviderError;
+  }
 
   const deactivatedZoneIds = await deactivateCompetingPolygonZones(
     FIXTURE_ADDRESS_COORDS.lat,
@@ -170,8 +177,6 @@ export async function createEligibleMarketplaceFixture(suffix) {
   await assertResolveZoneMatches(FIXTURE_ADDRESS_COORDS.lat, FIXTURE_ADDRESS_COORDS.lng, zone.id);
 
   const { error: providerStateError } = await supabaseAdmin.from("providers").update({
-    is_verified: true,
-    is_active: true,
     vacation_mode: false,
   }).eq("id", providerRow.id);
   if (providerStateError) throw providerStateError;
@@ -270,5 +275,5 @@ export async function cleanupEligibleMarketplaceFixture(fixture, bookingId) {
   await supabaseAdmin.from("provider_services").delete().eq("id", fixture.providerService.id);
   await supabaseAdmin.from("service_requirements").delete().eq("id", fixture.requirement.id);
   await supabaseAdmin.storage.from("provider-documents").remove([fixture.evidencePath]);
-  await supabaseAdmin.from("providers").update(fixture.originalProviderState).eq("id", fixture.provider.id);
+  await resetRegistryProviderToDraft(registry.users.find((u) => u.key === "provider").userId);
 }

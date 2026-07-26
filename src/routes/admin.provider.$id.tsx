@@ -3,6 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useAdminProvider, useProviderEligibility, useSetProviderVerified, useSetProviderActive, useSetProviderServiceStatus, useDocumentSignedUrl } from "@/lib/db/admin-queries";
+import { useAdminOnboardingAction, useAdminOnboardingReview, useReviewProviderDocument } from "@/lib/provider/onboarding-queries";
 import { useProviderAvailability, useProviderVacations, useAddVacation, useDeleteVacation } from "@/lib/db/provider-queries";
 import { ChevronLeft, FileText, ShieldCheck, Trash2, Check, X } from "lucide-react";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
@@ -137,7 +138,16 @@ function AdminProvider() {
   const [showRejectApplication, setShowRejectApplication] = useState(false);
   const [applicationRejectReason, setApplicationRejectReason] = useState("");
   const [rejectingServiceId, setRejectingServiceId] = useState<string | null>(null);
+  const onboardingAction = useAdminOnboardingAction();
+  const onboardingReview = useAdminOnboardingReview(id);
+  const reviewDocument = useReviewProviderDocument();
+  const [showRequestChanges, setShowRequestChanges] = useState(false);
+  const [changeReasonCode, setChangeReasonCode] = useState("missing_info");
+  const [changeReasonPublic, setChangeReasonPublic] = useState("");
+  const [changeNotesInternal, setChangeNotesInternal] = useState("");
   const [serviceRejectReason, setServiceRejectReason] = useState("");
+  const [rejectingDocId, setRejectingDocId] = useState<string | null>(null);
+  const [docRejectReason, setDocRejectReason] = useState("");
 
   if (q.isLoading) return <div className="p-6 text-sm text-muted-foreground">{t("common.loading")}</div>;
   if (q.isError) return <div className="p-6"><AdminQueryError message={t("admin.providers.loadError")} error={q.error} onRetry={() => q.refetch()} /></div>;
@@ -175,7 +185,7 @@ function AdminProvider() {
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1">
             <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${p.is_verified ? "bg-mint/20 text-success" : "bg-amber-100 text-amber-700"}`}>
-              {p.is_verified ? t("admin.providers.verified") : t("admin.providers.pending")}
+              {p.onboarding_status ?? (p.is_verified ? t("admin.providers.verified") : t("admin.providers.pending"))}
             </span>
             {suspended && (
               <span className="rounded-full bg-coral/10 px-2 py-0.5 text-[10px] font-bold uppercase text-coral">{t("admin.providers.suspended")}</span>
@@ -195,6 +205,31 @@ function AdminProvider() {
 
       <EligibilitySection providerId={p.id} />
 
+      <section className="rounded-2xl border border-border/60 bg-surface p-4 shadow-card">
+        <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("admin.provider.onboardingReview")}</h3>
+        {onboardingReview.isLoading ? (
+          <div className="mt-2 h-16 animate-pulse rounded-xl bg-muted" />
+        ) : (
+          <>
+            {p.submitted_at && <p className="mt-2 text-xs text-muted-foreground">{t("admin.provider.submittedAt", { date: new Date(p.submitted_at).toLocaleString() })}</p>}
+            {Array.isArray((onboardingReview.data as any)?.references) && (onboardingReview.data as any).references.length > 0 && (
+              <ul className="mt-3 space-y-1 text-xs">
+                {(onboardingReview.data as any).references.map((r: any) => (
+                  <li key={r.id}>{r.full_name} · {r.relationship} · {r.phone}</li>
+                ))}
+              </ul>
+            )}
+            {Array.isArray((onboardingReview.data as any)?.events) && (
+              <ul className="mt-3 max-h-32 space-y-1 overflow-y-auto text-[11px] text-muted-foreground">
+                {(onboardingReview.data as any).events.slice(0, 8).map((e: any, i: number) => (
+                  <li key={i}>{e.action} · {e.previous_status} → {e.new_status}</li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
+      </section>
+
       <AvailabilitySection providerId={p.id} />
 
       <section>
@@ -205,17 +240,44 @@ function AdminProvider() {
           <ul className="space-y-2">
             {p.documents.map((d: any) => (
               <li key={d.id}>
-                <button
-                  onClick={() => openDoc(d.storage_path)}
-                  className="focus-ring flex w-full items-center gap-3 rounded-xl border border-border/60 bg-surface p-3 text-start"
-                >
-                  <FileText className="h-4 w-4 shrink-0 text-navy" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">{d.type}</p>
-                    <p className="truncate text-[11px] text-muted-foreground">{d.status} · {new Date(d.created_at).toLocaleDateString()}</p>
+                <div className="flex w-full items-center gap-3 rounded-xl border border-border/60 bg-surface p-3">
+                  <button type="button" onClick={() => openDoc(d.storage_path)} className="focus-ring flex min-w-0 flex-1 items-center gap-3 text-start">
+                    <FileText className="h-4 w-4 shrink-0 text-navy" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold">{d.type}</p>
+                      <p className="truncate text-[11px] text-muted-foreground">{d.status} · {new Date(d.created_at).toLocaleDateString()}</p>
+                    </div>
+                  </button>
+                  {d.status === "pending" && (
+                    <div className="flex shrink-0 gap-1">
+                      <button
+                        disabled={reviewDocument.isPending}
+                        onClick={() => reviewDocument.mutate({ documentId: d.id, status: "approved" }, { onError: (e: any) => toast.error(e?.message ?? t("admin.provider.approveServiceError")) })}
+                        className="focus-ring rounded-lg bg-navy px-2 py-1 text-[10px] font-bold text-navy-foreground"
+                      >{t("admin.providers.approve")}</button>
+                      <button
+                        onClick={() => { setRejectingDocId(d.id); setDocRejectReason(""); }}
+                        className="focus-ring rounded-lg border border-border px-2 py-1 text-[10px] font-bold"
+                      >{t("admin.providers.reject")}</button>
+                    </div>
+                  )}
+                </div>
+                {rejectingDocId === d.id && (
+                  <div className="mt-2 space-y-2 rounded-lg border border-coral/30 bg-coral/5 p-2">
+                    <textarea value={docRejectReason} onChange={(e) => setDocRejectReason(e.target.value)} rows={2} placeholder={t("admin.provider.reasonRequired")} className="w-full resize-none rounded-lg border border-border bg-surface p-2 text-xs" />
+                    <div className="flex gap-2">
+                      <button
+                        disabled={!docRejectReason.trim() || reviewDocument.isPending}
+                        onClick={() => reviewDocument.mutate(
+                          { documentId: d.id, status: "rejected", reason: docRejectReason.trim() },
+                          { onSuccess: () => setRejectingDocId(null), onError: (e: any) => toast.error(e?.message ?? t("admin.provider.rejectServiceError")) },
+                        )}
+                        className="focus-ring rounded-lg bg-coral px-3 py-1.5 text-[11px] font-bold text-coral-foreground disabled:opacity-50"
+                      >{t("admin.providers.confirmReject")}</button>
+                      <button onClick={() => setRejectingDocId(null)} className="focus-ring rounded-lg border border-border px-3 py-1.5 text-[11px] font-bold">{t("common.cancel")}</button>
+                    </div>
                   </div>
-                  <span className="shrink-0 text-[11px] font-semibold text-coral">{t("admin.provider.open")}</span>
-                </button>
+                )}
               </li>
             ))}
           </ul>
@@ -289,24 +351,34 @@ function AdminProvider() {
         )}
       </section>
 
-      <div className="flex gap-2 pt-2">
-        {!p.is_verified ? (
+      <div className="flex flex-wrap gap-2 pt-2">
+        {["SUBMITTED", "UNDER_REVIEW"].includes(p.onboarding_status) && (
           <>
             <button
-              disabled={setVerified.isPending}
-              onClick={() => setVerified.mutate(
-                { id: p.id, verified: true },
+              disabled={onboardingAction.isPending}
+              onClick={() => onboardingAction.mutate(
+                { providerId: p.id, action: p.onboarding_status === "SUBMITTED" ? "start_review" : "approve" },
                 { onError: (e: any) => toast.error(e?.message ?? t("admin.providers.approveError")) },
               )}
               className="focus-ring flex-1 rounded-xl bg-navy py-3 text-sm font-bold text-navy-foreground disabled:opacity-50"
-            >{t("admin.providers.approve")}</button>
+            >
+              {p.onboarding_status === "SUBMITTED" ? t("admin.provider.startReview") : t("admin.providers.approve")}
+            </button>
+            {p.onboarding_status === "UNDER_REVIEW" && (
+              <button
+                disabled={onboardingAction.isPending}
+                onClick={() => { setChangeReasonPublic(""); setShowRequestChanges(true); }}
+                className="focus-ring flex-1 rounded-xl border border-border py-3 text-sm font-bold disabled:opacity-50"
+              >{t("admin.provider.requestChanges")}</button>
+            )}
             <button
-              disabled={setVerified.isPending}
+              disabled={setVerified.isPending || onboardingAction.isPending}
               onClick={() => { setApplicationRejectReason(""); setShowRejectApplication(true); }}
               className="focus-ring flex-1 rounded-xl border border-border py-3 text-sm font-bold disabled:opacity-50"
             >{t("admin.providers.reject")}</button>
           </>
-        ) : (
+        )}
+        {p.is_verified && (
           <button
             disabled={setActive.isPending}
             onClick={() => setShowConfirm(true)}
@@ -334,6 +406,45 @@ function AdminProvider() {
               <button onClick={toggleSuspend} disabled={setActive.isPending} className="focus-ring h-11 flex-1 rounded-2xl bg-coral text-sm font-bold text-coral-foreground disabled:opacity-50">
                 {p.is_active ? t("admin.provider.confirmSuspend") : t("admin.provider.unsuspendProvider")}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRequestChanges && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-6" onClick={() => setShowRequestChanges(false)}>
+          <div role="dialog" aria-modal="true" className="w-full max-w-sm rounded-3xl bg-surface p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="text-base font-extrabold">{t("admin.provider.requestChanges")}</div>
+            <textarea
+              value={changeReasonPublic}
+              onChange={(e) => setChangeReasonPublic(e.target.value)}
+              rows={3}
+              placeholder={t("admin.provider.reasonRequired")}
+              className="mt-3 w-full resize-none rounded-xl border border-border bg-surface p-2 text-sm"
+            />
+            <textarea
+              value={changeNotesInternal}
+              onChange={(e) => setChangeNotesInternal(e.target.value)}
+              rows={2}
+              placeholder={t("admin.provider.internalNotes")}
+              className="mt-2 w-full resize-none rounded-xl border border-border bg-surface p-2 text-xs"
+            />
+            <div className="mt-4 flex gap-2">
+              <button onClick={() => setShowRequestChanges(false)} className="focus-ring h-11 flex-1 rounded-2xl border border-border text-sm font-bold">{t("common.cancel")}</button>
+              <button
+                disabled={!changeReasonPublic.trim() || onboardingAction.isPending}
+                onClick={() => onboardingAction.mutate(
+                  {
+                    providerId: p.id,
+                    action: "request_changes",
+                    reasonCode: changeReasonCode,
+                    reasonPublic: changeReasonPublic.trim(),
+                    notesInternal: changeNotesInternal.trim() || undefined,
+                  },
+                  { onSuccess: () => setShowRequestChanges(false), onError: (e: any) => toast.error(e?.message ?? t("admin.providers.rejectError")) },
+                )}
+                className="focus-ring h-11 flex-1 rounded-2xl bg-coral text-sm font-bold text-coral-foreground disabled:opacity-50"
+              >{t("common.confirm")}</button>
             </div>
           </div>
         </div>

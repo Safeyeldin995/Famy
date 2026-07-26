@@ -7,6 +7,8 @@ import { loadEnv } from "../env.mjs";
 import { readRegistry } from "../registry.mjs";
 import { captureErrors } from "./helpers";
 import { assertResolveZoneMatches, deactivateCompetingPolygonZones } from "./marketplace-fixtures.mjs";
+import { completeProviderOnboarding } from "./onboarding-fixtures.mjs";
+import { resetRegistryProviderToDraft } from "./registry-fixtures.mjs";
 
 loadEnv();
 test.use({ storageState: path.resolve(process.cwd(), "qa/.auth/admin.json") });
@@ -17,6 +19,7 @@ test("controlled Provider becomes visible, hides on suspension, and restores thr
   const suffix = Date.now();
   const registry = readRegistry();
   const providerUser = registry.users.find((user: any) => user.key === "provider");
+  await resetRegistryProviderToDraft(providerUser!.userId);
   const { data: provider } = await supabaseAdmin.from("providers").select("id,is_verified,is_active,vacation_mode").eq("profile_id", providerUser.userId).single();
   const { data: providerProfile } = await supabaseAdmin.from("profiles").select("full_name").eq("id", providerUser.userId).single();
   const { data: category } = await supabaseAdmin.from("categories").select("id").eq("is_active", true).limit(1).single();
@@ -92,7 +95,7 @@ test("controlled Provider becomes visible, hides on suspension, and restores thr
 
     await gotoAdmin(`/admin/provider/${provider!.id}`);
     await expect(page.getByText("Marketplace eligible: No")).toBeVisible();
-    await expect(page.getByText("Provider is not verified", { exact: true })).toBeVisible();
+    await expect(page.getByText("Provider is not verified or onboarding is not approved", { exact: true })).toBeVisible();
     await expect(page.getByText("Provider-service relationship is not approved", { exact: true })).toBeVisible();
     await expect(page.getByText("Required evidence is missing or not approved", { exact: true })).toBeVisible();
     await expect(page.getByText("Active Provider and Service zone coverage is missing", { exact: true })).toBeVisible();
@@ -109,14 +112,11 @@ test("controlled Provider becomes visible, hides on suspension, and restores thr
     expect(evidenceResponse.ok(), await evidenceResponse.text()).toBe(true);
     await expect(requirementRow.getByRole("button", { name: "passed", exact: true })).toBeDisabled();
 
+    await completeProviderOnboarding(providerUser.userId, { zoneId: zone!.id, reset: false });
+    expect((await supabaseAdmin.from("providers").select("is_verified,is_active,onboarding_status").eq("id", provider!.id).single()).data)
+      .toMatchObject({ is_verified: true, is_active: true, onboarding_status: "APPROVED" });
+
     await gotoAdmin(`/admin/provider/${provider!.id}`);
-    const [verificationResponse] = await Promise.all([
-      page.waitForResponse((response) => response.url().includes("/rpc/admin_set_provider_verification") && response.request().method() === "POST"),
-      page.getByRole("button", { name: /^approve$/i }).last().click(),
-    ]);
-    expect(verificationResponse.ok(), await verificationResponse.text()).toBe(true);
-    expect((await supabaseAdmin.from("providers").select("is_verified,is_active").eq("id", provider!.id).single()).data)
-      .toMatchObject({ is_verified: true, is_active: true });
     const serviceRow = page.getByRole("listitem").filter({ hasText: serviceName });
     const [approvalResponse] = await Promise.all([
       page.waitForResponse((response) => response.url().includes("/rpc/admin_set_provider_service_status")),
@@ -129,41 +129,60 @@ test("controlled Provider becomes visible, hides on suspension, and restores thr
     await gotoAdmin("/admin/zones");
     const zoneRow = page.getByRole("listitem").filter({ hasText: zoneName });
     await zoneRow.getByRole("button", { name: /^coverage$/i }).click();
-    const [zoneServiceResponse] = await Promise.all([
-      page.waitForResponse((response) => {
-        const request = response.request();
-        const postData = request.postData() ?? "";
-        return (
-          response.url().includes("/rest/v1/zone_services") &&
-          request.method() === "POST" &&
-          postData.includes(zone!.id) &&
-          postData.includes(service!.id) &&
-          response.ok()
-        );
-      }),
-      zoneRow.getByLabel(serviceName).click({ timeout: 15_000 }),
-    ]);
-    expect(zoneServiceResponse.ok(), await zoneServiceResponse.text()).toBe(true);
+    const zoneServiceCheckbox = zoneRow.getByLabel(serviceName);
+    const { count: existingZoneService } = await supabaseAdmin.from("zone_services")
+      .select("zone_id", { count: "exact", head: true })
+      .eq("zone_id", zone!.id)
+      .eq("service_id", service!.id);
+    if (!existingZoneService) {
+      const [zoneServiceResponse] = await Promise.all([
+        page.waitForResponse((response) => {
+          const request = response.request();
+          const postData = request.postData() ?? "";
+          return (
+            response.url().includes("/rest/v1/zone_services") &&
+            request.method() === "POST" &&
+            postData.includes(zone!.id) &&
+            postData.includes(service!.id) &&
+            response.ok()
+          );
+        }),
+        zoneServiceCheckbox.click({ timeout: 15_000 }),
+      ]);
+      expect(zoneServiceResponse.ok(), await zoneServiceResponse.text()).toBe(true);
+    } else {
+      await expect(zoneServiceCheckbox).toBeChecked({ timeout: 15_000 });
+    }
     const providerCoverage = zoneRow.getByText("Providers serving this zone", { exact: true })
       .locator("..").getByRole("checkbox").first();
     await expect(providerCoverage).toBeEnabled({ timeout: 15_000 });
-    const [zoneProviderResponse] = await Promise.all([
-      page.waitForResponse((response) => {
-        const request = response.request();
-        const postData = request.postData() ?? "";
-        return (
-          response.url().includes("/rest/v1/zone_providers") &&
-          request.method() === "POST" &&
-          postData.includes(zone!.id) &&
-          postData.includes(provider!.id) &&
-          response.ok()
-        );
-      }),
-      providerCoverage.click({ timeout: 15_000 }),
-    ]);
-    expect(zoneProviderResponse.ok(), await zoneProviderResponse.text()).toBe(true);
+    const { count: existingZoneProvider } = await supabaseAdmin.from("zone_providers")
+      .select("zone_id", { count: "exact", head: true })
+      .eq("zone_id", zone!.id)
+      .eq("provider_id", provider!.id);
+    if (!existingZoneProvider) {
+      const [zoneProviderResponse] = await Promise.all([
+        page.waitForResponse((response) => {
+          const request = response.request();
+          const postData = request.postData() ?? "";
+          return (
+            response.url().includes("/rest/v1/zone_providers") &&
+            request.method() === "POST" &&
+            postData.includes(zone!.id) &&
+            postData.includes(provider!.id) &&
+            response.ok()
+          );
+        }),
+        providerCoverage.click({ timeout: 15_000 }),
+      ]);
+      expect(zoneProviderResponse.ok(), await zoneProviderResponse.text()).toBe(true);
+    } else {
+      await expect(providerCoverage).toBeChecked({ timeout: 15_000 });
+    }
     expect((await supabaseAdmin.from("zone_services").select("zone_id", { count: "exact", head: true }).eq("zone_id", zone!.id).eq("service_id", service!.id)).count).toBe(1);
     expect((await supabaseAdmin.from("zone_providers").select("zone_id", { count: "exact", head: true }).eq("zone_id", zone!.id).eq("provider_id", provider!.id)).count).toBe(1);
+    await expect(zoneServiceCheckbox).toBeChecked();
+    await expect(providerCoverage).toBeChecked();
 
     const { data: customerAddressCoords } = await supabaseAdmin.from("addresses")
       .select("lat, lng")
@@ -299,9 +318,7 @@ test("controlled Provider becomes visible, hides on suspension, and restores thr
       await supabaseAdmin.from("services").delete().eq("id", service!.id);
     }
     await supabaseAdmin.storage.from("provider-documents").remove([evidencePath]);
-    await supabaseAdmin.from("providers").update({
-      is_verified: provider!.is_verified, is_active: provider!.is_active, vacation_mode: provider!.vacation_mode,
-    }).eq("id", provider!.id);
+    await resetRegistryProviderToDraft(providerUser!.userId);
   }
 });
 

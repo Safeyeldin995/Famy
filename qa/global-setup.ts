@@ -4,6 +4,7 @@ import fs from "fs";
 import { supabaseAdmin } from "./admin-client.mjs";
 import { addUser, writeRegistry } from "./registry.mjs";
 import { restorePendingRestorations } from "./restoration-registry.mjs";
+import { resetRegistryProviderToDraft } from "./tests/registry-fixtures.mjs";
 import { loadEnv, vercelBypassHeaders } from "./env.mjs";
 import { readQaE2eOtp } from "./read-e2e-otp.mjs";
 
@@ -173,29 +174,10 @@ async function globalSetup(config: FullConfig) {
       page.on("response", (response) => { if (response.status() >= 400) diagnostics.push(`response: ${response.status()} ${response.request().method()} ${response.url()}`); });
       await signUp(page, QA_PHONES.provider, "provider");
       await page.waitForURL(/\/pro\/onboarding/, { timeout: 15_000 });
-      await page.locator("textarea").first().waitFor({ state: "visible", timeout: 15_000 }).catch(async (error) => {
+      await page.getByText(/personal details|البيانات الشخصية/i).waitFor({ state: "visible", timeout: 15_000 }).catch(async (error) => {
         const body = (await page.locator("body").innerText().catch(() => "<unavailable>" )).slice(0, 1000);
         throw new Error(`Provider onboarding did not render at ${page.url()}: ${body}\n${diagnostics.join("\n")}\n${error.message}`);
       });
-      await page.getByLabel(/english bio|bio.*english/i).fill("QA_ automated test provider bio.").catch(async () => {
-        await page.locator("textarea").first().fill("QA_ automated test provider bio.");
-      });
-      await page.getByLabel(/years|experience/i).fill("2").catch(async () => {
-        await page.locator('input[type="number"]').first().fill("2");
-      });
-      await page.getByLabel(/rate|price/i).fill("100").catch(async () => {
-        await page.locator('input[type="number"]').nth(1).fill("100");
-      });
-      // Pick the first enabled city option (label text is data-driven from admin settings).
-      await page.locator("text=/./").first();
-      const cityButtons = page.locator("button", { hasText: /.+/ });
-      await page.waitForTimeout(500); // settings query to populate city buttons
-      const cityCandidates = page.locator("div.grid.grid-cols-2 > button");
-      if (await cityCandidates.count() > 0) {
-        await cityCandidates.first().click();
-      }
-      await page.getByRole("button", { name: /continue|creating/i }).click();
-      await page.waitForURL(/\/pro\/documents|\/pro$/, { timeout: 15_000 }).catch(() => {});
       await ctx.storageState({ path: path.join(AUTH_DIR, "provider.json") });
       await ctx.close();
     }
@@ -249,6 +231,11 @@ async function globalSetup(config: FullConfig) {
       is_default: true,
     });
     if (error) throw new Error(`Failed to create QA Customer marketplace address: ${error.message}`);
+  }
+
+  const providerEntry = reg.users.find((u) => u.key === "provider");
+  if (providerEntry) {
+    await resetRegistryProviderToDraft(providerEntry.userId);
   }
 }
 

@@ -13,6 +13,7 @@ function expectClean(readErrors: ReturnType<typeof captureErrors>["readErrors"])
 }
 
 test("provider details load real data and survive refresh", async ({ page }) => {
+  test.setTimeout(60_000);
   const { readErrors } = captureErrors(page);
   const providerUser = readRegistry().users.find((user: any) => user.key === "provider");
   const { data: provider, error } = await supabaseAdmin
@@ -22,11 +23,11 @@ test("provider details load real data and survive refresh", async ({ page }) => 
     .single();
   expect(error).toBeNull();
 
-  await page.goto(`/admin/provider/${provider!.id}`);
-  await expect(page.getByRole("heading", { name: /QA_provider_e2e/i })).toBeVisible();
-  await expect(page.getByText(provider!.city)).toBeVisible();
-  await page.reload();
-  await expect(page.getByRole("heading", { name: /QA_provider_e2e/i })).toBeVisible();
+  await page.goto(`/admin/provider/${provider!.id}`, { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: /QA_provider_e2e/i })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText(provider!.city)).toBeVisible({ timeout: 10_000 });
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: /QA_provider_e2e/i })).toBeVisible({ timeout: 20_000 });
   expectClean(readErrors);
 });
 

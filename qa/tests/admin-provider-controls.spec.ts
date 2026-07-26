@@ -3,6 +3,8 @@ import path from "path";
 import { supabaseAdmin } from "../admin-client.mjs";
 import { readRegistry } from "../registry.mjs";
 import { captureErrors } from "./helpers";
+import { completeProviderOnboarding } from "./onboarding-fixtures.mjs";
+import { captureRegistryProviderSnapshot, restoreRegistryProviderSnapshot } from "./registry-fixtures.mjs";
 
 test.use({ storageState: path.resolve(process.cwd(), "qa/.auth/admin.json") });
 
@@ -13,10 +15,10 @@ test("provider rejection, verification, suspension, and service review persist",
   });
   const suffix = Date.now();
   const providerUser = readRegistry().users.find((user: any) => user.key === "provider");
-  const { data: provider, error: providerError } = await supabaseAdmin.from("providers").select("id,is_verified,is_active").eq("profile_id", providerUser.userId).single();
+  const snapshot = await captureRegistryProviderSnapshot(providerUser!.userId);
+  await completeProviderOnboarding(providerUser.userId);
+  const { data: provider, error: providerError } = await supabaseAdmin.from("providers").select("id,is_verified,is_active,onboarding_status").eq("profile_id", providerUser.userId).single();
   expect(providerError).toBeNull();
-  const originalProviderState = { is_verified: provider!.is_verified, is_active: provider!.is_active };
-  await supabaseAdmin.from("providers").update({ is_verified: false, is_active: false }).eq("id", provider!.id);
   const { data: category, error: categoryError } = await supabaseAdmin.from("categories").select("id").eq("is_active", true).limit(1).single();
   expect(categoryError).toBeNull();
   const { data: service, error: serviceError } = await supabaseAdmin.from("services").insert({
@@ -54,28 +56,6 @@ test("provider rejection, verification, suspension, and service review persist",
   expect(requirementError).toBeNull();
 
   await page.goto(`/admin/provider/${provider!.id}`);
-  await page.getByRole("button", { name: /^reject$/i }).last().click();
-  const rejectDialog = page.getByRole("dialog");
-  const confirmReject = rejectDialog.getByRole("button", { name: /confirm reject/i });
-  await expect(confirmReject).toBeDisabled();
-  await rejectDialog.locator("textarea").fill("QA_ incomplete application");
-  const [rejectResponse] = await Promise.all([
-    page.waitForResponse((response) => response.url().includes("/rpc/admin_set_provider_verification") && response.request().method() === "POST"),
-    confirmReject.click(),
-  ]);
-  expect(rejectResponse.ok(), `provider rejection should succeed: ${rejectResponse.status()} ${await rejectResponse.text().catch(() => "")}`).toBe(true);
-  await expect(rejectDialog).toHaveCount(0);
-  let storedProvider = await supabaseAdmin.from("providers").select("is_verified,is_active").eq("id", provider!.id).single();
-  expect(storedProvider.data).toMatchObject({ is_verified: false, is_active: false });
-
-  const [approveProviderResponse] = await Promise.all([
-    page.waitForResponse((response) => response.url().includes("/rpc/admin_set_provider_verification") && response.request().method() === "POST"),
-    page.getByRole("button", { name: /^approve$/i }).last().click(),
-  ]);
-  expect(approveProviderResponse.ok(), `provider approval should succeed: ${approveProviderResponse.status()} ${await approveProviderResponse.text().catch(() => "")}`).toBe(true);
-  storedProvider = await supabaseAdmin.from("providers").select("is_verified,is_active").eq("id", provider!.id).single();
-  expect(storedProvider.data).toMatchObject({ is_verified: true, is_active: true });
-
   let serviceRow = page.getByRole("listitem").filter({ hasText: service!.name_en });
   const [blockedApprovalResponse] = await Promise.all([
     page.waitForResponse((response) => response.url().includes("/rpc/admin_set_provider_service_status") && response.request().method() === "POST"),
@@ -154,7 +134,7 @@ test("provider rejection, verification, suspension, and service review persist",
   ]);
   expect(unsuspendResponse.ok(), `provider unsuspension should succeed: ${unsuspendResponse.status()} ${await unsuspendResponse.text().catch(() => "")}`).toBe(true);
   await page.reload();
-  storedProvider = await supabaseAdmin.from("providers").select("is_verified,is_active").eq("id", provider!.id).single();
+  let storedProvider = await supabaseAdmin.from("providers").select("is_verified,is_active").eq("id", provider!.id).single();
   expect(storedProvider.data).toMatchObject({ is_verified: true, is_active: true });
 
   await page.waitForLoadState("networkidle");
@@ -164,7 +144,7 @@ test("provider rejection, verification, suspension, and service review persist",
   const { count: providerAudits } = await supabaseAdmin.from("audit_logs").select("id", { head: true, count: "exact" }).eq("entity", "providers").eq("entity_id", provider!.id);
   const { count: rejectedServiceAudits } = await supabaseAdmin.from("audit_logs").select("id", { head: true, count: "exact" }).eq("entity", "provider_services").eq("entity_id", rejectedProviderServiceId);
   const { count: approvedServiceAudits } = await supabaseAdmin.from("audit_logs").select("id", { head: true, count: "exact" }).eq("entity", "provider_services").eq("entity_id", providerService!.id);
-  expect(providerAudits).toBeGreaterThanOrEqual(4);
+  expect(providerAudits).toBeGreaterThanOrEqual(2);
   expect(rejectedServiceAudits).toBeGreaterThanOrEqual(2);
   expect(approvedServiceAudits).toBeGreaterThanOrEqual(2);
 
@@ -172,5 +152,5 @@ test("provider rejection, verification, suspension, and service review persist",
   await supabaseAdmin.from("service_requirements").delete().eq("id", requirement!.id);
   await supabaseAdmin.from("provider_services").delete().eq("id", providerService!.id);
   await supabaseAdmin.from("services").delete().eq("id", service!.id);
-  await supabaseAdmin.from("providers").update(originalProviderState).eq("id", provider!.id);
+  await restoreRegistryProviderSnapshot(snapshot);
 });

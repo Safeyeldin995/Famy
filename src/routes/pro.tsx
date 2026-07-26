@@ -14,6 +14,9 @@ function ProviderLayout() {
   const provider = useMyProvider();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
+  const onOnboarding = pathname.startsWith("/pro/onboarding");
+  const onboardingStatus = (provider.data as any)?.onboarding_status as string | undefined;
+
   useEffect(() => {
     let unsub: any;
     (async () => {
@@ -27,6 +30,14 @@ function ProviderLayout() {
     return () => { unsub?.unsubscribe?.(); };
   }, [nav]);
 
+  useEffect(() => {
+    if (role.isLoading || provider.isLoading) return;
+    if (!provider.data || onOnboarding) return;
+    if (onboardingStatus === "DRAFT" || onboardingStatus === "NEEDS_CHANGES") {
+      nav({ to: "/pro/onboarding", replace: true });
+    }
+  }, [role.isLoading, provider.isLoading, provider.data, onboardingStatus, onOnboarding, nav]);
+
   if (role.isLoading || provider.isLoading) {
     return (
       <PhoneFrame>
@@ -38,8 +49,6 @@ function ProviderLayout() {
   }
 
   // Signed in but never enrolled as provider → onboarding gateway
-  const onOnboarding = pathname.startsWith("/pro/onboarding");
-
   if (!provider.data && !onOnboarding) {
 
     return (

@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { PhoneFrame, TopBar, PrimaryButton, Badge, EmptyState } from "@/components/famio/ui";
+import { PhoneFrame, TopBar, PrimaryButton, Badge, EmptyState, Avatar } from "@/components/famio/ui";
 import { useDefaultAddress, useProvider, useProviderReviews, useFavoriteIds, useToggleFavorite } from "@/lib/db/queries";
 import { toUIProvider } from "@/lib/db/adapters";
 import { useTranslation } from "react-i18next";
@@ -52,7 +52,7 @@ function ProviderProfile() {
     <PhoneFrame>
       <div className="relative">
         <div className="h-48 w-full overflow-hidden">
-          <img src={p.avatar} alt={p.name || t("provider2.unnamed", "Provider")} className="h-full w-full object-cover" />
+          <Avatar src={p.avatar} alt={p.name || t("provider2.unnamed", "Provider")} className="h-full w-full" />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
         </div>
         <TopBar

@@ -4,6 +4,7 @@ import { supabaseAdmin } from "../admin-client.mjs";
 import { authenticatedClient } from "../authenticated-client.mjs";
 import { readRegistry } from "../registry.mjs";
 import { captureErrors } from "./helpers";
+import { resetRegistryProviderToDraft } from "./registry-fixtures.mjs";
 
 test.use({ storageState: path.resolve(process.cwd(), "qa/.auth/admin.json") });
 
@@ -13,6 +14,7 @@ test("Customer and Provider identities remain exclusive and Admin lists stay sep
   const providerUser = registry.users.find((user: any) => user.key === "provider");
   expect(customer).toBeTruthy();
   expect(providerUser).toBeTruthy();
+  await resetRegistryProviderToDraft(providerUser!.userId);
 
   const customerRoles = await supabaseAdmin.from("user_roles").select("role").eq("user_id", customer.userId);
   const providerRoles = await supabaseAdmin.from("user_roles").select("role").eq("user_id", providerUser.userId);

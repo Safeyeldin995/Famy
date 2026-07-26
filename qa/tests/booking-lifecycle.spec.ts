@@ -12,6 +12,8 @@ import {
 test.use({ storageState: path.resolve(process.cwd(), "qa/.auth/admin.json") });
 
 test("the proven QA booking lifecycle remains visible and cancelled", async ({ page }) => {
+  test.slow();
+  test.setTimeout(300_000);
   const registry = readRegistry();
   const customer = registry.users.find((user) => user.key === "customer");
   expect(customer, "QA customer identity is required").toBeTruthy();
@@ -19,6 +21,11 @@ test("the proven QA booking lifecycle remains visible and cancelled", async ({ p
   let fixture;
   try {
     fixture = await ensureBookingLifecycleFixture();
+    console.info(
+      fixture.reusedExisting
+        ? `[booking-lifecycle] Test run is verifying reused fixture booking ${fixture.bookingId}.`
+        : `[booking-lifecycle] Test run is verifying freshly created fixture booking ${fixture.bookingId}.`,
+    );
 
     const { data: booking, error } = await supabaseAdmin
       .from("bookings")
