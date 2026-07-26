@@ -12,8 +12,8 @@ export function createSupabaseOtpStore(
       const { data, error } = await supabase.rpc("otp_begin_send", {
         p_phone: params.phone,
         p_purpose: params.purpose,
-        p_ip_address: params.ipAddress,
-        p_user_agent: params.userAgent,
+        p_ip_address: params.ipAddress ?? "",
+        p_user_agent: params.userAgent ?? "",
         p_request_id: params.requestId,
         p_otp_hash: params.otpHash,
         p_expires_at: params.expiresAtIso,
