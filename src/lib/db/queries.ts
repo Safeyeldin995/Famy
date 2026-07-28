@@ -7,6 +7,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { CUSTOMER_MARKETPLACE_REFETCH_MS, customerMarketplaceRefetchInterval } from '@/lib/db/marketplace-cache';
+import { mapBookingRpcError } from '@/lib/booking/errors';
+import { completeCreateBookingResult, createBookingFetcher } from '@/lib/booking/create-booking-result';
 import type { Database } from '@/integrations/supabase/types';
 
 type Tables = Database['public']['Tables'];
@@ -612,26 +614,50 @@ export function useCancelRescheduleRequest() {
   });
 }
 
+export type CreateBookingInput = {
+  provider_id: string;
+  service_id: string;
+  address_id: string;
+  start_at: string;
+  end_at: string;
+  idempotency_key: string;
+  family_member_id?: string | null;
+  notes?: string | null;
+  promo_code_id?: string | null;
+  requirement_selections?: Tables['bookings']['Insert']['requirement_selections'];
+};
+
+export type CreateBookingResult = Tables['bookings']['Row'] & {
+  idempotent_replay: boolean;
+  created: boolean;
+  fetch_degraded?: boolean;
+};
+
 export function useCreateBooking() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: Omit<Tables['bookings']['Insert'], 'customer_id'>) => {
+    mutationFn: async (input: CreateBookingInput): Promise<CreateBookingResult> => {
       const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user;
-      if (!user) throw new Error('auth required');
-      const { data, error } = await supabase
-        .from('bookings')
-        .insert({ ...input, customer_id: user.id })
-        .select()
-        .single();
-      // Postgres exclusion-constraint violation → friendly message
-      if (error) {
-        if ((error as any).code === '23P01') {
-          throw new Error('That time slot was just taken. Please pick another.');
-        }
-        throw error;
+      if (!session?.user) {
+        throw new Error('auth required');
       }
-      return data;
+      const { data, error } = await supabase.rpc('create_booking', {
+        p_provider_id: input.provider_id,
+        p_service_id: input.service_id,
+        p_address_id: input.address_id,
+        p_start_at: input.start_at,
+        p_end_at: input.end_at,
+        p_idempotency_key: input.idempotency_key,
+        p_family_member_id: input.family_member_id ?? undefined,
+        p_notes: input.notes ?? undefined,
+        p_promo_code_id: input.promo_code_id ?? undefined,
+        p_requirement_selections: (input.requirement_selections ?? []) as never,
+      });
+      if (error) {
+        throw mapBookingRpcError(error);
+      }
+      const payload = data as { booking_id: string; created: boolean; idempotent_replay: boolean };
+      return completeCreateBookingResult(payload, createBookingFetcher(supabase), { retryDelayMs: 250 });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['my-bookings'] }),
   });

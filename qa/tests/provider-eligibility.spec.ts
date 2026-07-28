@@ -91,7 +91,7 @@ test("controlled Provider becomes visible, hides on suspension, and restores thr
       start_at: blockedStart.toISOString(), end_at: new Date(blockedStart.getTime() + 60 * 60 * 1000).toISOString(),
       status: "pending", notes: "QA_ must be rejected while ineligible", price_subtotal: 100, price_total: 100,
     });
-    expect(blockedBooking.error?.code).toBe("23514");
+    expect(blockedBooking.error?.code).toBe("42501");
 
     await gotoAdmin(`/admin/provider/${provider!.id}`);
     await expect(page.getByText("Marketplace eligible: No")).toBeVisible();

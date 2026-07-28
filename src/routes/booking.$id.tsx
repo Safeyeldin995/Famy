@@ -18,6 +18,7 @@ import { BookingChatPanel } from "@/components/famio/BookingChatPanel";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { peekPendingPayment } from "@/lib/booking/post-create-payment";
 
 
 export const Route = createFileRoute("/booking/$id")({
@@ -58,6 +59,7 @@ function BookingDetail() {
   const openDispute = useOpenDispute();
   const reportNoShowMut = useReportNoShow();
   const createTicket = useCreateSupportTicket();
+  const pendingPaymentSelection = peekPendingPayment(id);
 
   const submitNoShow = async (reason: string, evidenceFile?: File) => {
     if (!real) return;
@@ -596,7 +598,13 @@ function BookingDetail() {
         </div>
 
         <div className="mt-4">
-          <PaymentBlock bookingId={real.id} viewer="customer" bookingStatus={status} />
+          <PaymentBlock
+            bookingId={real.id}
+            viewer="customer"
+            bookingStatus={status}
+            authoritativePriceTotal={real.price_total != null ? Number(real.price_total) : null}
+            pendingPaymentSelection={pendingPaymentSelection}
+          />
         </div>
 
         <RescheduleSection

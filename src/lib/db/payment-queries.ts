@@ -28,6 +28,21 @@ export function useBookingPayment(bookingId: string | undefined) {
   });
 }
 
+/** PATCH 6D: replace direct insert with a SECURITY DEFINER RPC that derives amount from bookings.price_total. */
+export function mapPaymentInsertError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  if (message.includes("Payment amount must match the booking total")) {
+    return "Payment amount does not match the booking total.";
+  }
+  if (message.includes("Payment customer does not match")) {
+    return "You cannot record payment for this booking.";
+  }
+  if (message.includes("Booking not found for this payment")) {
+    return "Booking not found for this payment.";
+  }
+  return message || "Could not record payment method";
+}
+
 export function useCreatePayment() {
   const qc = useQueryClient();
   return useMutation({
@@ -36,10 +51,24 @@ export function useCreatePayment() {
       paymentMethodId: string;
       /** Only used to pick the initial status (cash = pending, everything else needs review); the row's actual method details are copied server-side from payment_method_id. */
       methodType: 'cash' | 'manual_transfer' | 'online';
-      amount: number;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('auth required');
+
+      const { data: booking, error: bookingErr } = await supabase
+        .from('bookings')
+        .select('price_total, currency, customer_id')
+        .eq('id', input.bookingId)
+        .single();
+      if (bookingErr) throw bookingErr;
+      if (booking.customer_id !== user.id) {
+        throw new Error('You cannot record payment for this booking.');
+      }
+      const amount = Number(booking.price_total);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        throw new Error('Booking total is not available yet.');
+      }
+
       const status: PaymentStatus = input.methodType === 'cash' ? 'pending' : 'pending_review';
       const { data, error } = await supabase
         .from('payments')
@@ -47,8 +76,8 @@ export function useCreatePayment() {
           booking_id: input.bookingId,
           customer_id: user.id,
           payment_method_id: input.paymentMethodId,
-          amount: input.amount,
-          currency: 'EGP',
+          amount,
+          currency: booking.currency ?? 'EGP',
           status: status as any,
         } as any)
         .select()

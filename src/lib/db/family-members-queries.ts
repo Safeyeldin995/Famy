@@ -46,15 +46,21 @@ function toFamilyMemberRow(input: FamilyMemberInput) {
 export function useFamilyMembers() {
   return useQuery({
     queryKey: ['family-members'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+    queryFn: async ({ signal }) => {
+      if (signal.aborted) return [];
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) return [];
       const { data, error } = await supabase
         .from('family_members')
         .select('*')
         .eq('customer_id', user.id)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
+        .order('created_at', { ascending: false })
+        .abortSignal(signal);
+      if (error) {
+        if (signal.aborted) return [];
+        throw error;
+      }
       return data ?? [];
     },
   });
@@ -64,16 +70,22 @@ export function useFamilyMembers() {
 export function useActiveFamilyMembers() {
   return useQuery({
     queryKey: ['family-members', 'active'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+    queryFn: async ({ signal }) => {
+      if (signal.aborted) return [];
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) return [];
       const { data, error } = await supabase
         .from('family_members')
         .select('*')
         .eq('customer_id', user.id)
         .eq('is_active', true)
-        .order('full_name', { ascending: true });
-      if (error) throw error;
+        .order('full_name', { ascending: true })
+        .abortSignal(signal);
+      if (error) {
+        if (signal.aborted) return [];
+        throw error;
+      }
       return data ?? [];
     },
   });
@@ -99,7 +111,8 @@ export function useCreateFamilyMember() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: FamilyMemberInput) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) throw new Error('auth required');
       const { data, error } = await supabase
         .from('family_members')

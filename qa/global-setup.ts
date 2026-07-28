@@ -19,8 +19,24 @@ function isVercelLoginWall(text: string): boolean {
 }
 
 function isFamyLoginPage(text: string): boolean {
-  return text.includes("Welcome back") || text.includes("Sign in as") || text.includes("Send code");
+  return text.includes("Welcome back")
+    || text.includes("Sign in as")
+    || text.includes("Send code")
+    || text.includes("مرحبًا بعودتك")
+    || text.includes("إرسال الرمز");
 }
+
+async function pinEnglishLocale(context: import("@playwright/test").BrowserContext) {
+  await context.addInitScript(() => {
+    window.localStorage.setItem("famio.lang", "en");
+  });
+}
+
+const SIGNUP_TAB = /sign up|إنشاء حساب/i;
+const SEND_CODE = /send code|إرسال الرمز/i;
+const CUSTOMER_ROLE = /^customer$|^عميل$/i;
+const PROVIDER_ROLE = /service provider|مقدم خدمة/i;
+const SAVE_PASSWORD = /^save$|^حفظ$/i;
 
 /** Bootstrap Vercel Deployment Protection bypass cookies into qa/.auth/anon.json. */
 export async function bootstrapVercelBypassStorage(baseURL: string): Promise<void> {
@@ -104,6 +120,48 @@ export const QA_PHONES = {
   eligibleProvider: `10${runSuffix}04`,
 };
 
+async function collectAuthSetupDiagnostics(page: import("@playwright/test").Page, diagnostics: string[]) {
+  const url = page.url();
+  const visibleError = await page.locator(".text-coral").first().innerText().catch(() => "");
+  const body = (await page.locator("body").innerText().catch(() => "")).slice(0, 1200);
+  return [
+    `url=${url}`,
+    `visible_error=${visibleError || "(none)"}`,
+    `body=${body.replace(/\d{6}/g, "[REDACTED]")}`,
+    ...diagnostics,
+  ].join("\n");
+}
+
+async function waitForSignupMode(page: import("@playwright/test").Page) {
+  const signupTab = page.locator(".rounded-2xl.bg-surface-2.p-1").getByRole("button", { name: SIGNUP_TAB });
+  await signupTab.waitFor({ state: "visible", timeout: 10_000 });
+  await page.locator('input[inputmode="tel"]').click();
+
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    await signupTab.click();
+    const switched = await page
+      .waitForFunction(
+        () => /create your famy account|أنشئ حسابك/i.test(document.body.innerText),
+        undefined,
+        { timeout: 1500 },
+      )
+      .then(() => true)
+      .catch(() => false);
+    if (switched) return;
+  }
+
+  throw new Error("Signup mode did not activate after repeated tab clicks");
+}
+
+async function openLoginInEnglish(page: import("@playwright/test").Page) {
+  await page.goto("/login", { waitUntil: "domcontentloaded" });
+  await page.evaluate(() => {
+    window.localStorage.setItem("famio.lang", "en");
+  });
+  await page.reload({ waitUntil: "load" });
+  await page.locator('input[inputmode="tel"]').waitFor({ state: "visible", timeout: 15_000 });
+}
+
 async function completeOtpEntry(
   page: import("@playwright/test").Page,
   e164: string,
@@ -117,18 +175,35 @@ async function completeOtpEntry(
 
 async function signUp(page: import("@playwright/test").Page, phone: string, role: "customer" | "provider") {
   const e164 = `+20${phone.replace(/^\+/, "")}`;
-  await page.goto("/login");
-  await page.waitForLoadState("networkidle");
-  await page.waitForTimeout(800); // let React hydrate before the first click
-  await page.getByRole("button", { name: "Sign up", exact: true }).click();
-  await page.getByRole("button", { name: role === "provider" ? /service provider/i : /^customer$/i }).click();
+  const diagnostics: string[] = [];
+  page.on("console", (message) => { if (message.type() === "error") diagnostics.push(`console: ${message.text()}`); });
+  page.on("pageerror", (error) => diagnostics.push(`pageerror: ${error.message}`));
+  page.on("requestfailed", (request) => diagnostics.push(`requestfailed: ${request.method()} ${request.url()} ${request.failure()?.errorText}`));
+  page.on("response", (response) => {
+    const url = response.url();
+    if (response.status() >= 400 || url.includes("sendOtp") || url.includes("_serverFn")) {
+      diagnostics.push(`response: ${response.status()} ${response.request().method()} ${url}`);
+    }
+  });
+
+  await openLoginInEnglish(page);
+  await waitForSignupMode(page);
+  await page.getByRole("button", { name: role === "provider" ? PROVIDER_ROLE : CUSTOMER_ROLE }).click();
   await page.locator('input[inputmode="tel"]').fill(phone);
-  await page.getByRole("button", { name: "Send code", exact: true }).click();
+
+  const otpNavigation = page.waitForURL(/\/otp/, { timeout: 15_000 });
+  await page.getByRole("button", { name: SEND_CODE }).click();
+  try {
+    await otpNavigation;
+  } catch (error) {
+    throw new Error(`Signup did not reach /otp for ${role}:\n${await collectAuthSetupDiagnostics(page, diagnostics)}\n${(error as Error).message}`);
+  }
+
   await completeOtpEntry(page, e164, "SIGNUP");
   const passwordInputs = page.locator('input[type="password"]');
   await passwordInputs.nth(0).fill(QA_PASSWORD);
   await passwordInputs.nth(1).fill(QA_PASSWORD);
-  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByRole("button", { name: SAVE_PASSWORD }).click();
 }
 
 async function globalSetup(config: FullConfig) {
@@ -139,10 +214,12 @@ async function globalSetup(config: FullConfig) {
   const baseURL = config.projects[0].use.baseURL as string;
   await bootstrapVercelBypassStorage(baseURL);
 
-  const contextOptions = {
-    baseURL,
-    storageState: ANON_STATE_PATH,
-  };
+  const contextOptions: Parameters<typeof browser.newContext>[0] = { baseURL };
+  const bypassHeaders = vercelBypassHeaders();
+  if (bypassHeaders) {
+    contextOptions.storageState = ANON_STATE_PATH;
+    contextOptions.extraHTTPHeaders = bypassHeaders;
+  }
   const browser = await chromium.launch();
 
   // Always start from a clean registry: each run mints fresh QA_ accounts
@@ -156,6 +233,7 @@ async function globalSetup(config: FullConfig) {
     // ---- QA customer ----
     {
       const ctx = await browser.newContext(contextOptions);
+      await pinEnglishLocale(ctx);
       const page = await ctx.newPage();
       await signUp(page, QA_PHONES.customer, "customer");
       await page.waitForURL(/\/(setup|home)/, { timeout: 15_000 });
@@ -166,17 +244,13 @@ async function globalSetup(config: FullConfig) {
     // ---- QA provider (baseline, not yet eligible) ----
     {
       const ctx = await browser.newContext(contextOptions);
+      await pinEnglishLocale(ctx);
       const page = await ctx.newPage();
-      const diagnostics: string[] = [];
-      page.on("console", (message) => { if (message.type() === "error") diagnostics.push(`console: ${message.text()}`); });
-      page.on("pageerror", (error) => diagnostics.push(`pageerror: ${error.message}`));
-      page.on("requestfailed", (request) => diagnostics.push(`requestfailed: ${request.method()} ${request.url()} ${request.failure()?.errorText}`));
-      page.on("response", (response) => { if (response.status() >= 400) diagnostics.push(`response: ${response.status()} ${response.request().method()} ${response.url()}`); });
       await signUp(page, QA_PHONES.provider, "provider");
       await page.waitForURL(/\/pro\/onboarding/, { timeout: 15_000 });
       await page.getByText(/personal details|البيانات الشخصية/i).waitFor({ state: "visible", timeout: 15_000 }).catch(async (error) => {
         const body = (await page.locator("body").innerText().catch(() => "<unavailable>" )).slice(0, 1000);
-        throw new Error(`Provider onboarding did not render at ${page.url()}: ${body}\n${diagnostics.join("\n")}\n${error.message}`);
+        throw new Error(`Provider onboarding did not render at ${page.url()}: ${body}\n${error.message}`);
       });
       await ctx.storageState({ path: path.join(AUTH_DIR, "provider.json") });
       await ctx.close();
@@ -187,6 +261,7 @@ async function globalSetup(config: FullConfig) {
     // service-role role grant IS the real operational path for this step. ----
     {
       const ctx = await browser.newContext(contextOptions);
+      await pinEnglishLocale(ctx);
       const page = await ctx.newPage();
       await signUp(page, QA_PHONES.adminSeed, "customer");
       await page.waitForURL(/\/(setup|home)/, { timeout: 15_000 });

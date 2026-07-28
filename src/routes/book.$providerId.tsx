@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PhoneFrame, TopBar, PrimaryButton, Card, EmptyState, Avatar } from "@/components/famio/ui";
 import {
   useProvider, useProviderServices, useCreateBooking, useAddresses, useAvailableSlots, useResolveZone,
@@ -13,12 +13,15 @@ import { useRequirementsForService } from "@/lib/db/provider-queries";
 import { toUIProvider } from "@/lib/db/adapters";
 import { currentLang } from "@/lib/i18n";
 import { MapPin, Banknote, Check, Loader2, Home, Briefcase, Users, Plus, Copy, Wallet, X } from "lucide-react";
-import instapayLogo from "@/assets/instapay.png.asset.json";
 import { useTranslation } from "react-i18next";
 import { formatEGP, formatNumber } from "@/lib/format";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useBillingSettings, DEFAULT_BILLING_SETTINGS } from "@/lib/db/settings-queries";
+import { BookingError, getBookingErrorMessage, isSlotStaleBookingError } from "@/lib/booking/errors";
+import { bookingSubmissionFingerprint, resolveIdempotencyKey, type IdempotencyKeyState } from "@/lib/booking/idempotency";
+import { mapPaymentInsertError } from "@/lib/db/payment-queries";
+import { planPostCreatePayment, stashPendingPayment } from "@/lib/booking/post-create-payment";
 
 export const Route = createFileRoute("/book/$providerId")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -58,6 +61,7 @@ function Book() {
   const [promoDiscount, setPromoDiscount] = useState(0);
   const [appliedPromoId, setAppliedPromoId] = useState<string | null>(null);
   const [requirementChoices, setRequirementChoices] = useState<Record<string, "customer" | "provider">>({});
+  const idempotencyStateRef = useRef<IdempotencyKeyState | null>(null);
 
   // Only addresses with a pinned location can back a real booking — the
   // server enforces this too (booking_locations snapshot trigger rejects a
@@ -274,48 +278,61 @@ function Book() {
         return;
       }
 
-      // Every booking starts pending, regardless of payment method — the
-      // provider's own accept/decline action (already built in
-      // pro.booking.$id.tsx, gated on status === "pending") is what actually
-      // moves a booking to "confirmed". Payment method (COD vs InstaPay)
-      // only affects the payment row's own status, not the booking's.
-      const bookingStatus = "pending";
-      const booking = await createBooking.mutateAsync({
+      const submissionPayload = {
         provider_id: p.id,
         service_id: activeService.service.id,
-        address_id: addressId,
+        address_id: addressId!,
         family_member_id: forWhom === "myself" ? null : forWhom,
         start_at: start.toISOString(),
         end_at: end.toISOString(),
-        price_subtotal: subtotal,
-        price_discount: promoStatus === "applied" ? promoDiscount : 0,
-        price_total: total,
         promo_code_id: promoStatus === "applied" ? appliedPromoId : null,
-        currency: "EGP",
-        status: bookingStatus,
         notes: notes || null,
-        requirement_selections: eitherRequirements.map((r: any) => ({ requirement_id: r.id, chosen_by: requirementChoices[r.id] })),
-      } as any);
-      // Create the matching payment row (pending for cash, pending_review for
-      // anything requiring manual/online review). The server independently
-      // validates the method is active and copies its own snapshot — this
-      // client-picked id is just a selection, not a source of truth.
-      try {
-        await createPayment.mutateAsync({
-          bookingId: booking.id,
-          paymentMethodId: selectedMethod.id,
-          methodType: selectedMethod.method_type,
-          amount: total,
+        requirement_selections: eitherRequirements.map((r: any) => ({
+          requirement_id: r.id,
+          chosen_by: requirementChoices[r.id],
+        })),
+      };
+      const fingerprint = bookingSubmissionFingerprint(submissionPayload);
+      idempotencyStateRef.current = resolveIdempotencyKey(idempotencyStateRef.current, fingerprint);
+
+      const booking = await createBooking.mutateAsync({
+        ...submissionPayload,
+        idempotency_key: idempotencyStateRef.current.key,
+      });
+      const paymentPlan = planPostCreatePayment(booking, selectedMethod);
+      if (paymentPlan.action === "create_now") {
+        // Amount is loaded server-side from bookings.price_total inside useCreatePayment.
+        try {
+          await createPayment.mutateAsync({
+            bookingId: booking.id,
+            paymentMethodId: paymentPlan.paymentMethodId,
+            methodType: paymentPlan.methodType,
+          });
+        } catch (pe: unknown) {
+          console.error("payment row insert failed", pe);
+          toast.error(mapPaymentInsertError(pe) || t("bookFlow.paymentFailed", "Could not record payment method"));
+        }
+      } else {
+        stashPendingPayment(paymentPlan.bookingId, {
+          paymentMethodId: paymentPlan.paymentMethodId,
+          methodType: paymentPlan.methodType,
         });
-      } catch (pe: any) {
-        // Don't lose the booking if the payment row insert fails — surface to the user but continue.
-        console.error("payment row insert failed", pe);
-        toast.error(pe?.message || t("bookFlow.paymentFailed", "Could not record payment method"));
+        toast.info(t("bookFlow.paymentDeferred", "Your booking was created. Payment details will load on the booking page."));
       }
-      toast.success(t("bookFlow.created", "Booking created"));
+      if (!booking.idempotent_replay) {
+        toast.success(t("bookFlow.created", "Booking created"));
+      }
       nav({ to: "/booking/$id", params: { id: booking.id } });
     } catch (e: any) {
-      toast.error(e?.message || t("bookFlow.failed", "Could not create booking"));
+      const code = e instanceof BookingError ? e.code : null;
+      if (isSlotStaleBookingError(code)) {
+        toast.error(getBookingErrorMessage(e, (key, fallback) => t(key, fallback ?? "")));
+        setTime(null);
+        setSelectedSlot(null);
+        setStep(3);
+        return;
+      }
+      toast.error(getBookingErrorMessage(e, (key, fallback) => t(key, fallback ?? "")));
     }
   };
 
@@ -687,7 +704,7 @@ function Book() {
                     const icon = m.method_type === "cash"
                       ? <Banknote className="h-5 w-5" />
                       : m.code === "instapay"
-                        ? <img src={instapayLogo.url} alt={label} className="h-full w-full rounded-xl object-cover" />
+                        ? <img src="/instapay.svg" alt={label} className="h-full w-full rounded-xl object-cover" />
                         : <Wallet className="h-5 w-5" />;
                     return (
                       <PayOption

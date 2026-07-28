@@ -8,7 +8,7 @@
  * before this snapshot existed fall back to the current active method config
  * matched by the legacy `method` enum, best-effort only.
  */
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   useBookingPayment,
@@ -16,8 +16,15 @@ import {
   useCapturePayment,
   useRejectPayment,
   getSignedProofUrl,
+  useCreatePayment,
+  mapPaymentInsertError,
 } from "@/lib/db/payment-queries";
 import { useActivePaymentMethods } from "@/lib/db/payment-methods-queries";
+import {
+  clearPendingPayment,
+  isPaymentEligibleBookingStatus,
+  type PendingPaymentSelection,
+} from "@/lib/booking/post-create-payment";
 import { Card, Badge } from "@/components/famio/ui";
 import { formatEGP } from "@/lib/utils";
 import { currentLang } from "@/lib/i18n";
@@ -36,13 +43,20 @@ export function PaymentBlock({
   bookingId,
   viewer,
   bookingStatus,
+  authoritativePriceTotal,
+  pendingPaymentSelection,
 }: {
   bookingId: string;
   viewer: ViewerRole;
   /** Booking's current lifecycle status — capture is DB-gated on 'completed', this mirrors that in the UI. */
   bookingStatus?: string;
+  /** Authoritative booking total from the database — required before deferred payment recovery can run. */
+  authoritativePriceTotal?: number | null;
+  /** Wizard-stashed payment method when post-create booking fetch was degraded. */
+  pendingPaymentSelection?: PendingPaymentSelection | null;
 }) {
   const q = useBookingPayment(bookingId);
+  const createPayment = useCreatePayment();
   const activeMethodsQ = useActivePaymentMethods();
   const upload = useUploadPaymentProof();
   const capture = useCapturePayment();
@@ -51,14 +65,46 @@ export function PaymentBlock({
   const lang = currentLang();
   const [rejectReason, setRejectReason] = useState("");
   const [showReject, setShowReject] = useState(false);
+  const recoveryStartedRef = useRef(false);
 
-  if (q.isLoading) return <Card className="h-24 animate-pulse p-4"><span /></Card>;
+  const canRecoverDeferredPayment =
+    viewer === "customer"
+    && !q.data
+    && !q.isLoading
+    && !!pendingPaymentSelection
+    && authoritativePriceTotal != null
+    && Number.isFinite(Number(authoritativePriceTotal))
+    && Number(authoritativePriceTotal) > 0
+    && isPaymentEligibleBookingStatus(bookingStatus);
+
+  useEffect(() => {
+    if (!canRecoverDeferredPayment || recoveryStartedRef.current || createPayment.isPending) return;
+    recoveryStartedRef.current = true;
+    createPayment.mutateAsync({
+      bookingId,
+      paymentMethodId: pendingPaymentSelection!.paymentMethodId,
+      methodType: pendingPaymentSelection!.methodType,
+    }).then(() => {
+      clearPendingPayment(bookingId);
+    }).catch((e: unknown) => {
+      recoveryStartedRef.current = false;
+      toast.error(mapPaymentInsertError(e) || t("bookFlow.paymentFailed"));
+    });
+  }, [bookingId, canRecoverDeferredPayment, createPayment, pendingPaymentSelection, t]);
+
+  if (q.isLoading || (canRecoverDeferredPayment && !q.data)) {
+    return <Card className="h-24 animate-pulse p-4"><span /></Card>;
+  }
   const p = q.data as any;
   if (!p) {
     return (
       <Card className="p-4">
         <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("payment.title")}</div>
-        <div className="mt-1 text-sm text-muted-foreground">{t("payment.noneRecorded")}</div>
+        <div className="mt-1 text-sm text-muted-foreground">
+          {pendingPaymentSelection
+            ? t("bookFlow.paymentDeferred", "Your booking was created. Payment details will load on the booking page.")
+            : t("payment.noneRecorded")}
+        </div>
       </Card>
     );
   }

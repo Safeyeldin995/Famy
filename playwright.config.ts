@@ -41,7 +41,7 @@ export default defineConfig({
     : {
         command: `npm run dev -- --port ${PORT} --strictPort`,
         url: BASE_URL,
-        reuseExistingServer: true,
+        reuseExistingServer: process.env.E2E_REUSE_DEV_SERVER === "1",
         timeout: 60_000,
         stdout: "pipe",
         stderr: "pipe",
@@ -49,6 +49,8 @@ export default defineConfig({
           ...process.env,
           QA_E2E_OTP_CAPTURE: "1",
           AUTH_INTENT_SECRET: process.env.AUTH_INTENT_SECRET ?? "qa-local-auth-intent-secret",
+          OTP_PROVIDER: process.env.OTP_PROVIDER ?? "mock",
+          NODE_ENV: process.env.NODE_ENV ?? "development",
         },
       },
 });
