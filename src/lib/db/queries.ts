@@ -10,6 +10,15 @@ import { CUSTOMER_MARKETPLACE_REFETCH_MS, customerMarketplaceRefetchInterval } f
 import { mapBookingRpcError } from '@/lib/booking/errors';
 import { completeCreateBookingResult, createBookingFetcher } from '@/lib/booking/create-booking-result';
 import type { Database } from '@/integrations/supabase/types';
+import { useAuth } from '@/lib/auth/useAuth';
+import {
+  ADDRESSES_QUERY_ROOT,
+  ADDRESS_QUERY_ROOT,
+  DEFAULT_ADDRESS_QUERY_ROOT,
+  addressQueryKey,
+  addressesQueryKey,
+  defaultAddressQueryKey,
+} from '@/lib/db/address-query-keys';
 
 type Tables = Database['public']['Tables'];
 
@@ -114,9 +123,9 @@ export function useCreateAddress() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['addresses'] });
-      qc.invalidateQueries({ queryKey: ['default-address'] });
+    onSuccess: (_data, _input, _ctx) => {
+      qc.invalidateQueries({ queryKey: [ADDRESSES_QUERY_ROOT] });
+      qc.invalidateQueries({ queryKey: [DEFAULT_ADDRESS_QUERY_ROOT] });
     },
   });
 }
@@ -135,9 +144,9 @@ export function useUpdateAddress() {
       return data;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['addresses'] });
-      qc.invalidateQueries({ queryKey: ['address'] });
-      qc.invalidateQueries({ queryKey: ['default-address'] });
+      qc.invalidateQueries({ queryKey: [ADDRESSES_QUERY_ROOT] });
+      qc.invalidateQueries({ queryKey: [ADDRESS_QUERY_ROOT] });
+      qc.invalidateQueries({ queryKey: [DEFAULT_ADDRESS_QUERY_ROOT] });
     },
   });
 }
@@ -149,9 +158,9 @@ export function useDeleteAddress() {
       const { error } = await supabase.from('addresses').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['addresses'] });
-      qc.invalidateQueries({ queryKey: ['default-address'] });
+    onSuccess: (_data, _input, _ctx) => {
+      qc.invalidateQueries({ queryKey: [ADDRESSES_QUERY_ROOT] });
+      qc.invalidateQueries({ queryKey: [DEFAULT_ADDRESS_QUERY_ROOT] });
     },
   });
 }
@@ -163,19 +172,26 @@ export function useSetDefaultAddress() {
       const { error } = await supabase.from('addresses').update({ is_default: true }).eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['addresses'] });
-      qc.invalidateQueries({ queryKey: ['default-address'] });
+    onSuccess: (_data, _input, _ctx) => {
+      qc.invalidateQueries({ queryKey: [ADDRESSES_QUERY_ROOT] });
+      qc.invalidateQueries({ queryKey: [DEFAULT_ADDRESS_QUERY_ROOT] });
     },
   });
 }
 
 export function useAddress(id: string | undefined) {
+  const { user } = useAuth();
   return useQuery({
-    enabled: !!id,
-    queryKey: ['address', id],
+    enabled: !!id && !!user,
+    queryKey: user && id ? addressQueryKey(user.id, id) : [ADDRESS_QUERY_ROOT, 'anonymous', id],
     queryFn: async () => {
-      const { data, error } = await supabase.from('addresses').select('*').eq('id', id!).maybeSingle();
+      if (!user || !id) return null;
+      const { data, error } = await supabase
+        .from('addresses')
+        .select('*')
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -187,11 +203,11 @@ export function useAddress(id: string | undefined) {
 // Zustand `profile.compound` read (no display should depend on local-only
 // state per Sprint 1 Phase 2 adjustment #1).
 export function useDefaultAddress() {
+  const { user } = useAuth();
   return useQuery({
-    queryKey: ['default-address'],
+    enabled: !!user,
+    queryKey: user ? defaultAddressQueryKey(user.id) : [DEFAULT_ADDRESS_QUERY_ROOT, 'anonymous'],
     queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user;
       if (!user) return null;
       const { data, error } = await supabase
         .from('addresses')
@@ -776,10 +792,17 @@ export function useUnreadNotificationCount() {
 
 // ---------- Addresses ----------
 export function useAddresses() {
+  const { user } = useAuth();
   return useQuery({
-    queryKey: ['addresses'],
+    enabled: !!user,
+    queryKey: user ? addressesQueryKey(user.id) : [ADDRESSES_QUERY_ROOT, 'anonymous'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('addresses').select('*').order('created_at');
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('addresses')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at');
       if (error) throw error;
       return data ?? [];
     },

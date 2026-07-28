@@ -10,6 +10,7 @@ export default defineConfig({
       "src/lib/auth/__tests__/*.integration.test.ts",
       "src/lib/provider/__tests__/*.integration.test.ts",
       "src/lib/booking/__tests__/*.integration.test.ts",
+      "src/lib/db/__tests__/*.integration.test.ts",
     ],
     env: {
       OTP_INTEGRATION: "1",
