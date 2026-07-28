@@ -28,7 +28,9 @@ export function useBookingPayment(bookingId: string | undefined) {
   });
 }
 
-/** PATCH 6D: replace direct insert with a SECURITY DEFINER RPC that derives amount from bookings.price_total. */
+const GENERIC_PAYMENT_INSERT_ERROR = "Could not record payment method";
+
+/** Maps payment insert failures to user-safe text. Logs unknown technical details internally. */
 export function mapPaymentInsertError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error ?? "");
   if (message.includes("Payment amount must match the booking total")) {
@@ -40,9 +42,23 @@ export function mapPaymentInsertError(error: unknown): string {
   if (message.includes("Booking not found for this payment")) {
     return "Booking not found for this payment.";
   }
-  return message || "Could not record payment method";
+  if (
+    message === "You cannot record payment for this booking."
+    || message === "Booking total is not available yet."
+  ) {
+    return message;
+  }
+  if (message) {
+    console.error("[payment.insert] unmapped error:", message, error);
+  }
+  return GENERIC_PAYMENT_INSERT_ERROR;
 }
 
+/**
+ * Creates a payment row via direct insert. Amount is loaded from bookings.price_total
+ * before insert; trg_validate_payment_amount enforces the match server-side.
+ * PATCH 6D: move initialization into a SECURITY DEFINER RPC (not implemented here).
+ */
 export function useCreatePayment() {
   const qc = useQueryClient();
   return useMutation({
