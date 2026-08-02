@@ -10,11 +10,12 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "test:e2e": "playwright test",
+    "test:e2e": "node qa/run-with-qa-env.mjs playwright test",
     "test:e2e:cleanup": "node qa/cleanup.mjs",
-    "test:e2e:verify-residue": "node qa/verify-residue.mjs",
+    "test:e2e:verify-residue": "node qa/run-with-qa-env.mjs node qa/verify-residue.mjs",
     "test:unit": "vitest run --exclude 'src/**/*.integration.test.ts'",
-    "test:otp-integration": "vitest run --config vitest.otp-integration.config.ts"
+    "test:otp-integration": "node qa/run-with-qa-env.mjs vitest run --config vitest.otp-integration.config.ts",
+    "qa:preflight": "node qa/preflight.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

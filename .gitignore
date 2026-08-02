@@ -27,8 +27,9 @@ npm-debug.log*
 # Supabase local state
 supabase/.temp/
 
-# Allow environment template
+# Allow environment templates
 !.env.example
+!.env.qa.example
 
 # Playwright QA harness runtime artifacts (never commit sessions/secrets/traces)
 qa/.auth/

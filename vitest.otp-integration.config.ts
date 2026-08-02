@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [tsconfigPaths()],
   test: {
     environment: "node",
+    globalSetup: ["./qa/vitest-otp-global-setup.mjs"],
     include: [
       "src/lib/otp/__tests__/*.integration.test.ts",
       "src/lib/auth/__tests__/*.integration.test.ts",

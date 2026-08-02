@@ -1,6 +1,5 @@
-// QA-only helper: loads .env / .env.local into process.env for Node scripts
-// run directly (outside Vite). Never imported by app/browser code.
-// Never logs secret values.
+// Legacy helper for Vercel bypass headers only.
+// QA write paths must use load-qa-env.mjs (.env.qa.local) — never loadEnv() for Supabase credentials.
 import fs from 'fs';
 import path from 'path';
 

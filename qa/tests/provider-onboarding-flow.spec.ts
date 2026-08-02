@@ -3,16 +3,13 @@ import path from "path";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "../admin-client.mjs";
 import { authenticatedClient } from "../authenticated-client.mjs";
-import { loadEnv } from "../env.mjs";
 import { readRegistry } from "../registry.mjs";
 import { submitProviderOnboarding } from "./onboarding-fixtures.mjs";
 import { createEligibleMarketplaceFixture, cleanupEligibleMarketplaceFixture } from "./marketplace-fixtures.mjs";
 import { ensureRegistryProviderAvatar, resetRegistryProviderToDraft } from "./registry-fixtures.mjs";
 
-loadEnv();
-
-const supabaseUrl = process.env.SUPABASE_URL!;
-const anonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_ANON_KEY!;
+const supabaseUrl = process.env.QA_SUPABASE_URL!;
+const anonKey = process.env.QA_SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY!;
 
 test.describe("full provider onboarding lifecycle", () => {
   test.slow();

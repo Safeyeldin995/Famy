@@ -1,9 +1,13 @@
 import fs from "fs";
 import path from "path";
-import { loadEnv } from "./env.mjs";
-import { supabaseAdmin } from "./admin-client.mjs";
+import { loadQaEnv } from "./load-qa-env.mjs";
+import { runPreflightChecks } from "./env-guard.mjs";
+import { getSupabaseAdmin } from "./admin-client.mjs";
 
-loadEnv();
+loadQaEnv({ required: true });
+runPreflightChecks(process.env);
+
+const supabaseAdmin = getSupabaseAdmin();
 
 const reportDir = path.resolve(process.cwd(), "qa/report");
 const [{ data: activeZones }, { data: activeServices }, { data: activeMethods }, { data: activeCampaigns }, { data: activeBookings }, { data: retainedProfiles }] = await Promise.all([

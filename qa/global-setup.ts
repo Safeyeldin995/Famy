@@ -2,13 +2,23 @@ import { chromium, type FullConfig } from "@playwright/test";
 import path from "path";
 import fs from "fs";
 import { supabaseAdmin } from "./admin-client.mjs";
-import { addUser, writeRegistry } from "./registry.mjs";
+import { addUser, readRegistry, writeRegistry } from "./registry.mjs";
 import { restorePendingRestorations } from "./restoration-registry.mjs";
 import { resetRegistryProviderToDraft } from "./tests/registry-fixtures.mjs";
-import { loadEnv, vercelBypassHeaders } from "./env.mjs";
+import { vercelBypassHeaders } from "./env.mjs";
 import { readQaE2eOtp } from "./read-e2e-otp.mjs";
+import { assertQaWriteGuard, validateUiDatabaseAlignment } from "./env-guard.mjs";
+import { loadQaEnv } from "./load-qa-env.mjs";
+import { recoverRegistryOrphans } from "./orphan-recovery.mjs";
+import { findAuthUserByPhone } from "./list-users-paginated.mjs";
+import {
+  assertRuntimeIdentityMatchesQaGuard,
+  fetchRuntimeIdentity,
+} from "./runtime-identity-fetch.mjs";
+import { parseSupabaseProjectRef } from "./qa-identity.mjs";
 
-loadEnv();
+loadQaEnv({ required: true });
+assertQaWriteGuard(process.env);
 
 const AUTH_DIR = path.resolve(process.cwd(), "qa/.auth");
 const ANON_STATE_PATH = path.join(AUTH_DIR, "anon.json");
@@ -208,10 +218,27 @@ async function signUp(page: import("@playwright/test").Page, phone: string, role
 
 async function globalSetup(config: FullConfig) {
   process.env.QA_E2E_OTP_CAPTURE = "1";
+  const baseURL = config.projects[0].use.baseURL as string;
+  validateUiDatabaseAlignment({
+    playwrightBaseUrl: baseURL,
+    qaSupabaseUrl: process.env.QA_SUPABASE_URL,
+    viteSupabaseUrl: process.env.VITE_SUPABASE_URL,
+    qaAppOrigin: process.env.FAMY_QA_APP_ORIGIN,
+    productionAppOrigin: process.env.FAMY_PRODUCTION_APP_ORIGIN,
+  });
+
+  const runtimeIdentity = await fetchRuntimeIdentity(baseURL, vercelBypassHeaders());
+  assertRuntimeIdentityMatchesQaGuard(
+    runtimeIdentity,
+    parseSupabaseProjectRef(process.env.QA_SUPABASE_URL!),
+  );
+
   // Recover global rows first if a prior browser/worker process was interrupted.
   await restorePendingRestorations();
+  // Recover registry-tracked orphans from interrupted prior runs before minting new users.
+  await recoverRegistryOrphans();
+
   fs.mkdirSync(AUTH_DIR, { recursive: true });
-  const baseURL = config.projects[0].use.baseURL as string;
   await bootstrapVercelBypassStorage(baseURL);
 
   const contextOptions: Parameters<typeof browser.newContext>[0] = { baseURL };
@@ -222,11 +249,12 @@ async function globalSetup(config: FullConfig) {
   }
   const browser = await chromium.launch();
 
-  // Always start from a clean registry: each run mints fresh QA_ accounts
-  // (timestamp-suffixed phones), so a prior run's entries are guaranteed stale.
-  let reg: { users: any[]; qaPassword?: string; phones?: typeof QA_PHONES } = { users: [] };
-  reg.qaPassword = QA_PASSWORD;
-  reg.phones = QA_PHONES;
+  const existingReg = readRegistry();
+  let reg: { users: any[]; qaPassword?: string; phones?: typeof QA_PHONES } = {
+    users: existingReg.users ?? [],
+    qaPassword: QA_PASSWORD,
+    phones: QA_PHONES,
+  };
   writeRegistry(reg);
 
   try {
@@ -275,8 +303,7 @@ async function globalSetup(config: FullConfig) {
   // Resolve user ids + tag profiles as QA_ for identification, using service role.
   for (const [key, phone] of Object.entries(QA_PHONES)) {
     const e164 = `+20${phone}`;
-    const { data } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 200 });
-    const u = data.users.find((u) => u.phone === e164.replace("+", "") || u.phone === e164);
+    const u = await findAuthUserByPhone(supabaseAdmin, e164);
     if (u) {
       await supabaseAdmin.from("profiles").update({ full_name: `QA_${key}_e2e` }).eq("id", u.id);
       reg = addUser(reg, { key, userId: u.id, phone: e164 });

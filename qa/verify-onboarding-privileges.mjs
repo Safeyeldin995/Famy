@@ -1,16 +1,18 @@
 import { createClient } from "@supabase/supabase-js";
 import { execSync } from "child_process";
-import { loadEnv } from "./env.mjs";
+import { loadQaEnv } from "./load-qa-env.mjs";
+import { runPreflightChecks } from "./env-guard.mjs";
 import { authenticatedClient } from "./authenticated-client.mjs";
 
-loadEnv();
+loadQaEnv({ required: true });
+runPreflightChecks(process.env);
 
-const url = process.env.SUPABASE_URL;
-const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const anonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_ANON_KEY;
+const url = process.env.QA_SUPABASE_URL;
+const key = process.env.QA_SUPABASE_SECRET_KEY;
+const anonKey = process.env.QA_SUPABASE_PUBLISHABLE_KEY;
 
 if (!url || !key || !anonKey) {
-  console.error("Missing SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, or anon key");
+  console.error("Missing QA Supabase credentials in .env.qa.local");
   process.exit(1);
 }
 

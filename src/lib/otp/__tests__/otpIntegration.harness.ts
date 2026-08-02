@@ -19,8 +19,8 @@ function loadEnvFile(filePath: string) {
 loadEnvFile(path.resolve(process.cwd(), ".env"));
 loadEnvFile(path.resolve(process.cwd(), ".env.local"));
 
-export const supabaseUrl = process.env.SUPABASE_URL;
-export const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+export const supabaseUrl = process.env.QA_SUPABASE_URL ?? process.env.SUPABASE_URL;
+export const serviceRoleKey = process.env.QA_SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export function isOtpIntegrationMode(): boolean {
   return process.env.OTP_INTEGRATION === "1";
@@ -35,7 +35,7 @@ export function assertOtpIntegrationReady(reason: string): void {
 export function createOtpIntegrationClient(): SupabaseClient | null {
   if (!supabaseUrl || !serviceRoleKey) {
     assertOtpIntegrationReady(
-      "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required",
+      "QA_SUPABASE_URL and QA_SUPABASE_SECRET_KEY are required (load .env.qa.local via npm run test:otp-integration)",
     );
     return null;
   }
