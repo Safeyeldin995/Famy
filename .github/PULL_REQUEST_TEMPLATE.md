@@ -22,6 +22,7 @@
 | `npm run test:unit` | |
 | `npx tsc --noEmit` | |
 | `npm run build` | |
+| QA module syntax (`node --check` for every `qa/**/*.mjs`) | |
 
 ## Database migration
 
