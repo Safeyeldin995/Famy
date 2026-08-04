@@ -32,6 +32,7 @@ import {
 } from "../runtime-identity-fetch.mjs";
 import { handleQaMetaRequest } from "../runtime-identity-build.mjs";
 import { registryHasPendingOrphans } from "../orphan-recovery.mjs";
+import { configureRegistryRootForTests, resetRegistryRootForTests } from "../registry.mjs";
 
 const QA_URL = `https://${KNOWN_QA_PROJECT_REF}.supabase.co`;
 const PROD_URL = `https://${KNOWN_PRODUCTION_PROJECT_REF}.supabase.co`;
@@ -182,7 +183,7 @@ describe("runtime identity endpoint validation", () => {
 
 describe("cleanup argument parsing", () => {
   it("defaults to dry-run with no args", () => {
-    expect(parseCleanupArgs([])).toEqual({ mode: "dry-run", confirmValue: undefined });
+    expect(parseCleanupArgs([])).toEqual({ mode: "dry-run", confirmValue: undefined, planFingerprint: undefined });
   });
 
   it("rejects execute without confirmation", () => {
@@ -193,11 +194,29 @@ describe("cleanup argument parsing", () => {
     expect(parseCleanupArgs(["--execute", "--confirm=WRONG"]).mode).toBe("rejected");
   });
 
-  it("allows execute only with exact confirmation", () => {
-    expect(parseCleanupArgs(["--execute", "--confirm=I-UNDERSTAND-QA-CLEANUP"])).toEqual({
+  it("rejects execute without plan fingerprint", () => {
+    expect(parseCleanupArgs(["--execute", "--confirm=I-UNDERSTAND-QA-CLEANUP"]).mode).toBe("rejected");
+  });
+
+  it("allows execute only with exact confirmation and plan fingerprint", () => {
+    const fp = "a".repeat(64);
+    expect(parseCleanupArgs([
+      "--execute",
+      "--confirm=I-UNDERSTAND-QA-CLEANUP",
+      `--plan-fingerprint=${fp}`,
+    ])).toEqual({
       mode: "execute",
       confirmValue: "I-UNDERSTAND-QA-CLEANUP",
+      planFingerprint: fp,
     });
+  });
+
+  it("rejects malformed plan fingerprint values", () => {
+    expect(parseCleanupArgs([
+      "--execute",
+      "--confirm=I-UNDERSTAND-QA-CLEANUP",
+      "--plan-fingerprint=abc123",
+    ]).mode).toBe("rejected");
   });
 
   it("rejects unknown dangerous flags", () => {
@@ -275,21 +294,32 @@ describe("env file parser", () => {
 });
 
 describe("registry orphan lifecycle", () => {
-  const registryPath = path.resolve(process.cwd(), "qa/.auth/registry.json");
+  /** @type {string} */
+  let tmpDir = "";
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "qa-registry-orphan-"));
+    configureRegistryRootForTests(tmpDir);
+  });
 
   afterEach(() => {
-    try {
-      fs.unlinkSync(registryPath);
-    } catch {
-      // ignore
+    resetRegistryRootForTests();
+    if (tmpDir) {
+      try {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      } catch {
+        // ignore
+      }
     }
   });
 
   it("detects pending registry orphans without erasing first", () => {
-    fs.mkdirSync(path.dirname(registryPath), { recursive: true });
+    const registryPath = path.join(tmpDir, "registry.json");
+    const journalPath = path.join(tmpDir, "registry.journal.jsonl");
     fs.writeFileSync(registryPath, JSON.stringify({ users: [{ userId: "abc-123", key: "customer" }] }));
     expect(registryHasPendingOrphans()).toBe(true);
     fs.writeFileSync(registryPath, JSON.stringify({ users: [] }));
+    fs.writeFileSync(journalPath, "");
     expect(registryHasPendingOrphans()).toBe(false);
   });
 });
@@ -309,16 +339,34 @@ describe("runTeardownForUserIds destructive revalidation", () => {
         },
       },
       from: vi.fn((table: string) => ({
-        select: vi.fn(() => ({
-          eq: vi.fn((column: string, userId: string) => ({
-            maybeSingle: vi.fn(async () => ({
-              data: table === "profiles"
-                ? {
-                    full_name: userId === "good-user-001" ? "QA_customer_e2e" : "Real User",
-                  }
-                : null,
-            })),
-          })),
+        select: vi.fn((_cols?: string, opts?: { count?: string; head?: boolean }) => ({
+          eq: vi.fn((column: string, userId: string) => {
+            if (opts?.count === "exact" && opts?.head) {
+              return Promise.resolve({ count: 0, error: null });
+            }
+            if (table === "bookings" && column === "customer_id") {
+              return Promise.resolve({ data: [], error: null });
+            }
+            if (table === "providers" && column === "profile_id") {
+              return Promise.resolve({ data: [], error: null });
+            }
+            return {
+              maybeSingle: vi.fn(async () => ({
+                data: table === "profiles" && column === "id"
+                  ? {
+                      full_name: userId === "good-user-001" ? "QA_customer_e2e" : "Real User",
+                    }
+                  : null,
+              })),
+              in: vi.fn(async () => ({ data: [], error: null })),
+            };
+          }),
+          in: vi.fn(async () => ({ data: [], error: null })),
+          ilike: vi.fn(async () => ({ data: [], error: null })),
+        })),
+        delete: vi.fn(() => ({
+          eq: vi.fn(async () => ({ error: null })),
+          in: vi.fn(async () => ({ error: null })),
         })),
       })),
     };

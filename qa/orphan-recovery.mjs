@@ -1,5 +1,5 @@
 // Registry orphan recovery — cleans interrupted prior runs before minting new QA identities.
-import { readRegistry, writeRegistry } from "./registry.mjs";
+import { readRegistry, writeRegistry, removeRegistryUsers } from "./registry.mjs";
 import { getSupabaseAdmin } from "./admin-client.mjs";
 import { runTeardownForUserIds } from "./teardown-core.mjs";
 import { maskUserId } from "./qa-classification.mjs";
@@ -20,8 +20,15 @@ export async function recoverRegistryOrphans() {
     registryIds: userIds,
   });
 
-  const remainingIds = new Set(result.refused.map((row) => row.userId));
+  const remainingIds = new Set([
+    ...result.refused.map((row) => row.userId),
+    ...result.failed.map((row) => row.userId),
+    ...result.retained.map((row) => row.userId),
+  ]);
   const remainingUsers = (reg.users ?? []).filter((u) => remainingIds.has(u.userId));
+  if (result.succeeded.length) {
+    removeRegistryUsers(result.succeeded);
+  }
   writeRegistry({ ...reg, users: remainingUsers });
 
   const recovered = userIds.length - remainingIds.size;
@@ -29,6 +36,13 @@ export async function recoverRegistryOrphans() {
     for (const row of result.refused) {
       console.error(
         `[qa-orphan-recovery] refused ${maskUserId(row.userId)} (${row.reason})`,
+      );
+    }
+  }
+  if (result.failed.length) {
+    for (const row of result.failed) {
+      console.error(
+        `[qa-orphan-recovery] failed ${maskUserId(row.userId)} (${row.reason})`,
       );
     }
   }

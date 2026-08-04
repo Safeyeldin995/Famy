@@ -1,79 +1,64 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import {
   createOtpIntegrationClient,
   supabaseUrl,
 } from "@/lib/otp/__tests__/otpIntegration.harness";
+import { IntegrationFixtureRegistry } from "@/lib/qa/integrationFixtureRegistry";
+import {
+  cleanupProviderHarness,
+  createAuthedClient,
+  createRegisteredAuthUser,
+  registerQaService,
+  registerQaZone,
+  startRegisteredProvider,
+  withRegisteredEphemeralUser,
+  type ProviderHarnessContext,
+} from "./providerOnboarding.harness";
 
 const admin = createOtpIntegrationClient();
 const anonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_ANON_KEY;
 const describeIf = admin && supabaseUrl && anonKey ? describe : describe.skip;
 
 describeIf("provider onboarding RPC", () => {
+  const registry = new IntegrationFixtureRegistry({ suite: "providerOnboarding.integration" });
+  const ctx: ProviderHarnessContext = { registry, admin: admin!, anonKey: anonKey! };
   let providerUserId: string;
   let providerId: string;
   let adminUserId: string;
-  let providerClient: ReturnType<typeof createClient<Database>>;
-  let adminClient: ReturnType<typeof createClient<Database>>;
-  let seededZoneId: string | undefined;
-
-  async function createAuthedClient(email: string, password: string) {
-    const anon = createClient<Database>(supabaseUrl!, anonKey!, { auth: { autoRefreshToken: false, persistSession: false } });
-    const { data: signIn, error: signInErr } = await anon.auth.signInWithPassword({ email, password });
-    expect(signInErr).toBeNull();
-    return createClient<Database>(supabaseUrl!, anonKey!, {
-      global: { headers: { Authorization: `Bearer ${signIn!.session!.access_token}` } },
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-  }
+  let providerClient: SupabaseClient<Database>;
+  let adminClient: SupabaseClient<Database>;
 
   beforeAll(async () => {
-    const email = `qa-onboard-${Date.now()}@famio.local`;
-    const adminEmail = `qa-onboard-admin-${Date.now()}@famio.local`;
-    const { data: created, error } = await admin!.auth.admin.createUser({
+    const stamp = Date.now();
+    const email = `qa-onboard-${stamp}@famio.local`;
+    const adminEmail = `qa-onboard-admin-${stamp}@famio.local`;
+    providerUserId = await createRegisteredAuthUser(ctx, {
       email,
       password: "QaOnboard123!",
-      email_confirm: true,
+      role: "provider",
+      fullName: "QA Onboard",
+      phone: `+20100${stamp.toString().slice(-7)}`,
     });
-    expect(error).toBeNull();
-    providerUserId = created!.user!.id;
-    await admin!.from("user_roles").delete().eq("user_id", providerUserId).eq("role", "customer");
-    await admin!.from("user_roles").upsert({ user_id: providerUserId, role: "provider" });
-    await admin!.from("profiles").upsert({
-      id: providerUserId,
-      full_name: "QA Onboard",
-      phone: `+20100${Date.now().toString().slice(-7)}`,
-    });
-
-    const { data: adminCreated, error: adminCreateErr } = await admin!.auth.admin.createUser({
+    adminUserId = await createRegisteredAuthUser(ctx, {
       email: adminEmail,
       password: "QaAdminOnboard123!",
-      email_confirm: true,
+      role: "admin",
+      fullName: adminEmail,
+      phone: `+20101${stamp.toString().slice(-7)}`,
+      admin: true,
     });
-    expect(adminCreateErr).toBeNull();
-    adminUserId = adminCreated!.user!.id;
-    await admin!.from("user_roles").upsert({ user_id: adminUserId, role: "admin" });
 
-    providerClient = await createAuthedClient(email, "QaOnboard123!");
-    adminClient = await createAuthedClient(adminEmail, "QaAdminOnboard123!");
-
-    const { data: started, error: startErr } = await providerClient.rpc("provider_start_onboarding");
-    expect(startErr).toBeNull();
-    expect(started).toBeTruthy();
-    providerId = (started as { id: string }).id;
+    providerClient = await createAuthedClient(email, "QaOnboard123!", anonKey!);
+    adminClient = await createAuthedClient(adminEmail, "QaAdminOnboard123!", anonKey!);
+    providerId = await startRegisteredProvider(ctx, providerClient);
   });
 
   afterAll(async () => {
-    if (!admin || !providerId) return;
-    if (seededZoneId) await admin.from("zone_providers").delete().eq("zone_id", seededZoneId).eq("provider_id", providerId);
-    if (seededZoneId) await admin.from("zones").delete().eq("id", seededZoneId);
-    await admin.from("provider_onboarding_events").delete().eq("provider_id", providerId);
-    await admin.from("provider_references").delete().eq("provider_id", providerId);
-    await admin.from("provider_onboarding_details").delete().eq("provider_id", providerId);
-    await admin.from("providers").delete().eq("id", providerId);
-    if (providerUserId) await admin.auth.admin.deleteUser(providerUserId);
-    if (adminUserId) await admin.auth.admin.deleteUser(adminUserId);
+    if (!admin) return;
+    await cleanupProviderHarness(ctx);
   });
 
   it("reports incomplete completion for fresh draft provider", async () => {
@@ -144,60 +129,25 @@ describeIf("provider onboarding RPC", () => {
       },
     });
 
-    const { data: category } = await admin!.from("categories").select("id").eq("slug", "home-cleaning").maybeSingle();
-    let serviceId: string | undefined;
-    if (category?.id) {
-      const { data: existingService } = await admin!.from("services")
-        .select("id")
-        .eq("category_id", category.id)
-        .eq("is_active", true)
-        .limit(1)
-        .maybeSingle();
-      serviceId = existingService?.id;
-    }
-    if (!serviceId) {
-      let categoryId = category?.id;
-      if (!categoryId) {
-        const { data: createdCategory, error: categoryError } = await admin!.from("categories").insert({
-          slug: "home-cleaning",
-          name_en: "Home Cleaning",
-          name_ar: "Home Cleaning",
-          is_active: true,
-        }).select("id").single();
-        if (categoryError && !`${categoryError.message}`.includes("duplicate")) {
-          expect(categoryError).toBeNull();
-        } else if (!createdCategory?.id) {
-          const { data: existingCategory } = await admin!.from("categories").select("id").eq("slug", "home-cleaning").single();
-          categoryId = existingCategory?.id;
-        } else {
-          categoryId = createdCategory.id;
-        }
-      }
-      const { data: createdService, error: serviceError } = await admin!.from("services").insert({
-        category_id: categoryId!,
-        slug: `qa-onboard-service-${Date.now()}`,
-        name_en: "QA Onboard Service",
-        name_ar: "QA Onboard Service",
-        pricing_model: "hourly",
-        base_price: 100,
-        is_active: true,
-      }).select("id").single();
-      expect(serviceError).toBeNull();
-      serviceId = createdService!.id;
-    }
-    expect(serviceId).toBeTruthy();
-    await admin!.from("provider_services").upsert({ provider_id: providerId, service_id: serviceId!, status: "pending" });
+    const serviceId = await registerQaService(ctx, {
+      slug: `qa-onboard-service-${Date.now()}`,
+      name: "QA Onboard Service",
+    });
+    await admin!.from("provider_services").upsert({ provider_id: providerId, service_id: serviceId, status: "pending" });
+    ctx.registry.registerProviderService(providerId, serviceId);
 
-    const { data: zone, error: zoneError } = await admin!.from("zones").insert({
-      name_en: `QA Onboard Zone ${Date.now()}`,
-      name_ar: `QA Onboard Zone ${Date.now()}`,
-      boundary_type: "polygon",
-      is_active: true,
-      polygon: [{ lat: 30, lng: 31 }, { lat: 30, lng: 31.01 }, { lat: 30.01, lng: 31 }],
-    }).select("id").single();
-    expect(zoneError).toBeNull();
-    seededZoneId = zone!.id;
-    await admin!.from("zone_providers").upsert({ zone_id: zone!.id, provider_id: providerId });
+    const zoneId = await registerQaZone(ctx, {
+      name: `QA Onboard Zone ${Date.now()}`,
+      providerId,
+    });
+    await providerClient.rpc("provider_save_onboarding_section", {
+      p_section: "services",
+      p_payload: { service_ids: [serviceId] },
+    });
+    await providerClient.rpc("provider_save_onboarding_section", {
+      p_section: "coverage",
+      p_payload: { zone_ids: [zoneId] },
+    });
 
     for (const type of ["id_card_front", "id_card_back", "profile_photo"] as const) {
       await admin!.from("provider_documents").delete().eq("provider_id", providerId).eq("type", type);
@@ -365,40 +315,37 @@ describeIf("provider onboarding RPC", () => {
   });
 
   it("rejects legacy force-approve on draft provider", async () => {
-    const email = `qa-draft-force-${Date.now()}@famio.local`;
-    const { data: created } = await admin!.auth.admin.createUser({
-      email, password: "QaDraftForce123!", email_confirm: true,
+    await withRegisteredEphemeralUser(ctx, {
+      email: `qa-draft-force-${Date.now()}@famio.local`,
+      password: "QaDraftForce123!",
+      role: "provider",
+      fullName: "QA Draft Force",
+      phone: `+20100${Date.now().toString().slice(-7)}`,
+    }, async ({ client: draftClient, ephemeral }) => {
+      const { data: started, error: startErr } = await draftClient.rpc("provider_start_onboarding");
+      expect(startErr).toBeNull();
+      const draftId = (started as { id: string }).id;
+      ephemeral.registerProvider(draftId);
+      const { error } = await adminClient.rpc("admin_set_provider_verification", {
+        p_provider_id: draftId,
+        p_verified: true,
+      });
+      expect(error).not.toBeNull();
+      expect(error?.message).toMatch(/submitted or in-review|cannot be approved/i);
     });
-    const uid = created!.user!.id;
-    await admin!.from("user_roles").delete().eq("user_id", uid).eq("role", "customer");
-    await admin!.from("user_roles").upsert({ user_id: uid, role: "provider" });
-    await admin!.from("profiles").upsert({ id: uid, full_name: "QA Draft Force", phone: `+20100${Date.now().toString().slice(-7)}` });
-    const draftClient = await createAuthedClient(email, "QaDraftForce123!");
-    const { data: started, error: startErr } = await draftClient.rpc("provider_start_onboarding");
-    expect(startErr).toBeNull();
-    expect(started).toBeTruthy();
-    const draftId = (started as { id: string }).id;
-
-    const { error } = await adminClient.rpc("admin_set_provider_verification", {
-      p_provider_id: draftId,
-      p_verified: true,
-    });
-    expect(error).not.toBeNull();
-    expect(error?.message).toMatch(/submitted or in-review|cannot be approved/i);
-
-    await admin!.from("providers").delete().eq("id", draftId);
-    await admin!.auth.admin.deleteUser(uid);
   });
 
   it("denies cross-account completion queries", async () => {
-    const email = `qa-other-${Date.now()}@famio.local`;
-    const { data: other } = await admin!.auth.admin.createUser({
-      email, password: "QaOther123!", email_confirm: true,
+    await withRegisteredEphemeralUser(ctx, {
+      email: `qa-other-${Date.now()}@famio.local`,
+      password: "QaOther123!",
+      role: "customer",
+      fullName: "QA Other Customer",
+      phone: `+20102${Date.now().toString().slice(-7)}`,
+    }, async ({ client: otherClient }) => {
+      const { error } = await otherClient.rpc("provider_onboarding_completion", { p_provider_id: providerId });
+      expect(error).not.toBeNull();
     });
-    const otherClient = await createAuthedClient(email, "QaOther123!");
-    const { error } = await otherClient.rpc("provider_onboarding_completion", { p_provider_id: providerId });
-    expect(error).not.toBeNull();
-    await admin!.auth.admin.deleteUser(other!.user!.id);
   });
 
   it("denies provider self-approval of own documents", async () => {
@@ -445,17 +392,17 @@ describeIf("provider onboarding RPC", () => {
   });
 
   it("denies customer direct providers table reads", async () => {
-    const email = `qa-customer-read-${Date.now()}@famio.local`;
-    const { data: created } = await admin!.auth.admin.createUser({
-      email, password: "QaCustomerRead123!", email_confirm: true,
+    await withRegisteredEphemeralUser(ctx, {
+      email: `qa-customer-read-${Date.now()}@famio.local`,
+      password: "QaCustomerRead123!",
+      role: "customer",
+      fullName: "QA Customer Read",
+      phone: `+20103${Date.now().toString().slice(-7)}`,
+    }, async ({ client: customerClient }) => {
+      const { data, error } = await customerClient.from("providers").select("id, onboarding_status").eq("id", providerId);
+      expect(error).toBeNull();
+      expect(data ?? []).toEqual([]);
     });
-    const uid = created!.user!.id;
-    await admin!.from("user_roles").upsert({ user_id: uid, role: "customer" });
-    const customerClient = await createAuthedClient(email, "QaCustomerRead123!");
-    const { data, error } = await customerClient.from("providers").select("id, onboarding_status").eq("id", providerId);
-    expect(error).toBeNull();
-    expect(data ?? []).toEqual([]);
-    await admin!.auth.admin.deleteUser(uid);
   });
 
   it("denies direct apply_provider_onboarding_status from authenticated clients", async () => {

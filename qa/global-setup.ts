@@ -16,13 +16,13 @@ import {
   fetchRuntimeIdentity,
 } from "./runtime-identity-fetch.mjs";
 import { parseSupabaseProjectRef } from "./qa-identity.mjs";
+import { generateSecureRandomPassword } from "./teardown-terminal-disable.mjs";
 
 loadQaEnv({ required: true });
 assertQaWriteGuard(process.env);
 
 const AUTH_DIR = path.resolve(process.cwd(), "qa/.auth");
 const ANON_STATE_PATH = path.join(AUTH_DIR, "anon.json");
-const QA_PASSWORD = "QaRuntime!2026Test";
 
 function isVercelLoginWall(text: string): boolean {
   return text.includes("Log in to Vercel");
@@ -183,7 +183,12 @@ async function completeOtpEntry(
   await page.waitForURL(/\/auth\/set-password/, { timeout: 15_000 });
 }
 
-async function signUp(page: import("@playwright/test").Page, phone: string, role: "customer" | "provider") {
+async function signUp(
+  page: import("@playwright/test").Page,
+  phone: string,
+  role: "customer" | "provider",
+  qaPassword: string,
+) {
   const e164 = `+20${phone.replace(/^\+/, "")}`;
   const diagnostics: string[] = [];
   page.on("console", (message) => { if (message.type() === "error") diagnostics.push(`console: ${message.text()}`); });
@@ -211,8 +216,8 @@ async function signUp(page: import("@playwright/test").Page, phone: string, role
 
   await completeOtpEntry(page, e164, "SIGNUP");
   const passwordInputs = page.locator('input[type="password"]');
-  await passwordInputs.nth(0).fill(QA_PASSWORD);
-  await passwordInputs.nth(1).fill(QA_PASSWORD);
+  await passwordInputs.nth(0).fill(qaPassword);
+  await passwordInputs.nth(1).fill(qaPassword);
   await page.getByRole("button", { name: SAVE_PASSWORD }).click();
 }
 
@@ -250,9 +255,10 @@ async function globalSetup(config: FullConfig) {
   const browser = await chromium.launch();
 
   const existingReg = readRegistry();
+  const qaPassword = generateSecureRandomPassword();
   let reg: { users: any[]; qaPassword?: string; phones?: typeof QA_PHONES } = {
     users: existingReg.users ?? [],
-    qaPassword: QA_PASSWORD,
+    qaPassword,
     phones: QA_PHONES,
   };
   writeRegistry(reg);
@@ -263,7 +269,7 @@ async function globalSetup(config: FullConfig) {
       const ctx = await browser.newContext(contextOptions);
       await pinEnglishLocale(ctx);
       const page = await ctx.newPage();
-      await signUp(page, QA_PHONES.customer, "customer");
+      await signUp(page, QA_PHONES.customer, "customer", qaPassword);
       await page.waitForURL(/\/(setup|home)/, { timeout: 15_000 });
       await ctx.storageState({ path: path.join(AUTH_DIR, "customer.json") });
       await ctx.close();
@@ -274,7 +280,7 @@ async function globalSetup(config: FullConfig) {
       const ctx = await browser.newContext(contextOptions);
       await pinEnglishLocale(ctx);
       const page = await ctx.newPage();
-      await signUp(page, QA_PHONES.provider, "provider");
+      await signUp(page, QA_PHONES.provider, "provider", qaPassword);
       await page.waitForURL(/\/pro\/onboarding/, { timeout: 15_000 });
       await page.getByText(/personal details|البيانات الشخصية/i).waitFor({ state: "visible", timeout: 15_000 }).catch(async (error) => {
         const body = (await page.locator("body").innerText().catch(() => "<unavailable>" )).slice(0, 1000);
@@ -291,7 +297,7 @@ async function globalSetup(config: FullConfig) {
       const ctx = await browser.newContext(contextOptions);
       await pinEnglishLocale(ctx);
       const page = await ctx.newPage();
-      await signUp(page, QA_PHONES.adminSeed, "customer");
+      await signUp(page, QA_PHONES.adminSeed, "customer", qaPassword);
       await page.waitForURL(/\/(setup|home)/, { timeout: 15_000 });
       await ctx.storageState({ path: path.join(AUTH_DIR, "admin.json") });
       await ctx.close();

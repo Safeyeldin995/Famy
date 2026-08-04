@@ -1,41 +1,41 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import {
   createOtpIntegrationClient,
   supabaseUrl,
 } from "@/lib/otp/__tests__/otpIntegration.harness";
+import { IntegrationFixtureRegistry } from "@/lib/qa/integrationFixtureRegistry";
+import {
+  cleanupProviderHarness,
+  createAuthedClient,
+  createRegisteredAuthUser,
+  registerQaService,
+  registerQaZone,
+  startRegisteredProvider,
+  type ProviderHarnessContext,
+} from "./providerOnboarding.harness";
 
 const admin = createOtpIntegrationClient();
 const anonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_ANON_KEY;
 const describeIf = admin && supabaseUrl && anonKey ? describe : describe.skip;
 
 describeIf("provider onboarding details/references RLS", () => {
+  const registry = new IntegrationFixtureRegistry({ suite: "providerOnboardingDetailsRls.integration" });
+  const ctx: ProviderHarnessContext = { registry, admin: admin!, anonKey: anonKey! };
   let providerUserId: string;
   let otherProviderUserId: string;
   let customerUserId: string;
   let adminUserId: string;
   let providerId: string;
   let otherProviderId: string;
-  let providerClient: ReturnType<typeof createClient<Database>>;
-  let otherProviderClient: ReturnType<typeof createClient<Database>>;
-  let customerClient: ReturnType<typeof createClient<Database>>;
-  let adminClient: ReturnType<typeof createClient<Database>>;
-  let seededZoneId: string | undefined;
-  let seededServiceId: string | undefined;
-
-  async function createAuthedClient(email: string, password: string) {
-    const anon = createClient<Database>(supabaseUrl!, anonKey!, { auth: { autoRefreshToken: false, persistSession: false } });
-    const { data: signIn, error: signInErr } = await anon.auth.signInWithPassword({ email, password });
-    expect(signInErr).toBeNull();
-    return createClient<Database>(supabaseUrl!, anonKey!, {
-      global: { headers: { Authorization: `Bearer ${signIn!.session!.access_token}` } },
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-  }
+  let providerClient: SupabaseClient<Database>;
+  let otherProviderClient: SupabaseClient<Database>;
+  let customerClient: SupabaseClient<Database>;
+  let adminClient: SupabaseClient<Database>;
 
   async function assertOwnerCanSelect(
-    client: ReturnType<typeof createClient<Database>>,
+    client: SupabaseClient<Database>,
     targetProviderId: string,
   ) {
     const { data: details, error: detailsErr } = await client
@@ -55,7 +55,7 @@ describeIf("provider onboarding details/references RLS", () => {
   }
 
   async function assertOwnerWriteBlocked(
-    client: ReturnType<typeof createClient<Database>>,
+    client: SupabaseClient<Database>,
     targetProviderId: string,
   ) {
     const { data: beforeDetails } = await admin!
@@ -94,7 +94,7 @@ describeIf("provider onboarding details/references RLS", () => {
   }
 
   async function seedEditableSectionsFor(
-    client: ReturnType<typeof createClient<Database>>,
+    client: SupabaseClient<Database>,
     address = "123 QA RLS Street",
   ) {
     await client.rpc("provider_save_onboarding_section", {
@@ -128,50 +128,27 @@ describeIf("provider onboarding details/references RLS", () => {
       avatar_url: `https://cdn.example/qa-rls-avatar-${providerUserId}.jpg`,
     }).eq("id", providerUserId);
 
-    const { data: category } = await admin!.from("categories").select("id").eq("slug", "home-cleaning").maybeSingle();
-    let categoryId = category?.id;
-    if (!categoryId) {
-      const { data: createdCategory } = await admin!.from("categories").insert({
-        slug: "home-cleaning",
-        name_en: "Home Cleaning",
-        name_ar: "Home Cleaning",
-        is_active: true,
-      }).select("id").single();
-      categoryId = createdCategory!.id;
-    } else {
-      await admin!.from("categories").update({ is_active: true }).eq("id", categoryId);
-    }
-    const { data: service } = await admin!.from("services").insert({
-      category_id: categoryId!,
+    const seededServiceId = await registerQaService(ctx, {
       slug: `qa-rls-service-${Date.now()}`,
-      name_en: "QA RLS Service",
-      name_ar: "QA RLS Service",
-      pricing_model: "hourly",
-      base_price: 100,
-      is_active: true,
-    }).select("id").single();
-    seededServiceId = service!.id;
+      name: "QA RLS Service",
+    });
     await admin!.from("provider_services").upsert({ provider_id: providerId, service_id: seededServiceId, status: "pending" });
+    ctx.registry.registerProviderService(providerId, seededServiceId);
     await providerClient.rpc("provider_save_onboarding_section", {
       p_section: "services",
-      p_payload: { service_ids: [seededServiceId!] },
+      p_payload: { service_ids: [seededServiceId] },
     });
     await providerClient.rpc("provider_save_onboarding_section", {
       p_section: "experience",
       p_payload: { years_experience: 3, bio_en: "QA RLS bio", bio_ar: "", languages: ["en"] },
     });
-    const { data: zone } = await admin!.from("zones").insert({
-      name_en: `QA RLS Zone ${Date.now()}`,
-      name_ar: `QA RLS Zone ${Date.now()}`,
-      boundary_type: "polygon",
-      is_active: true,
-      polygon: [{ lat: 30, lng: 31 }, { lat: 30, lng: 31.01 }, { lat: 30.01, lng: 31 }],
-    }).select("id").single();
-    seededZoneId = zone!.id;
-    await admin!.from("zone_providers").upsert({ zone_id: seededZoneId, provider_id: providerId });
+    const seededZoneId = await registerQaZone(ctx, {
+      name: `QA RLS Zone ${Date.now()}`,
+      providerId,
+    });
     await providerClient.rpc("provider_save_onboarding_section", {
       p_section: "coverage",
-      p_payload: { zone_ids: [seededZoneId!] },
+      p_payload: { zone_ids: [seededZoneId] },
     });
     for (const type of ["id_card_front", "id_card_back", "profile_photo"] as const) {
       await admin!.from("provider_documents").delete().eq("provider_id", providerId).eq("type", type);
@@ -305,41 +282,31 @@ describeIf("provider onboarding details/references RLS", () => {
       avatar_url: `https://cdn.example/qa-rls-other-avatar-${otherProviderUserId}.jpg`,
     }).eq("id", otherProviderUserId);
 
-    const { data: category } = await admin!.from("categories").select("id").eq("slug", "home-cleaning").maybeSingle();
-    const categoryId = category!.id;
-    const { data: service } = await admin!.from("services").insert({
-      category_id: categoryId,
+    const otherServiceId = await registerQaService(ctx, {
       slug: `qa-rls-other-service-${Date.now()}`,
-      name_en: "QA RLS Other Service",
-      name_ar: "QA RLS Other Service",
-      pricing_model: "hourly",
-      base_price: 100,
-      is_active: true,
-    }).select("id").single();
+      name: "QA RLS Other Service",
+    });
     await admin!.from("provider_services").upsert({
       provider_id: otherProviderId,
-      service_id: service!.id,
+      service_id: otherServiceId,
       status: "pending",
     });
+    ctx.registry.registerProviderService(otherProviderId, otherServiceId);
     await otherProviderClient.rpc("provider_save_onboarding_section", {
       p_section: "services",
-      p_payload: { service_ids: [service!.id] },
+      p_payload: { service_ids: [otherServiceId] },
     });
     await otherProviderClient.rpc("provider_save_onboarding_section", {
       p_section: "experience",
       p_payload: { years_experience: 2, bio_en: "QA RLS other bio", bio_ar: "", languages: ["en"] },
     });
-    const { data: zone } = await admin!.from("zones").insert({
-      name_en: `QA RLS Other Zone ${Date.now()}`,
-      name_ar: `QA RLS Other Zone ${Date.now()}`,
-      boundary_type: "polygon",
-      is_active: true,
-      polygon: [{ lat: 30, lng: 31 }, { lat: 30, lng: 31.01 }, { lat: 30.01, lng: 31 }],
-    }).select("id").single();
-    await admin!.from("zone_providers").upsert({ zone_id: zone!.id, provider_id: otherProviderId });
+    const otherZoneId = await registerQaZone(ctx, {
+      name: `QA RLS Other Zone ${Date.now()}`,
+      providerId: otherProviderId,
+    });
     await otherProviderClient.rpc("provider_save_onboarding_section", {
       p_section: "coverage",
-      p_payload: { zone_ids: [zone!.id] },
+      p_payload: { zone_ids: [otherZoneId] },
     });
     for (const type of ["id_card_front", "id_card_back", "profile_photo"] as const) {
       await admin!.from("provider_documents").delete().eq("provider_id", otherProviderId).eq("type", type);
@@ -380,98 +347,55 @@ describeIf("provider onboarding details/references RLS", () => {
   }
 
   beforeAll(async () => {
-    const email = `qa-rls-${Date.now()}@famio.local`;
-    const otherEmail = `qa-rls-other-${Date.now()}@famio.local`;
-    const adminEmail = `qa-rls-admin-${Date.now()}@famio.local`;
-    const customerEmail = `qa-rls-customer-${Date.now()}@famio.local`;
+    const stamp = Date.now();
+    const email = `qa-rls-${stamp}@famio.local`;
+    const otherEmail = `qa-rls-other-${stamp}@famio.local`;
+    const adminEmail = `qa-rls-admin-${stamp}@famio.local`;
+    const customerEmail = `qa-rls-customer-${stamp}@famio.local`;
 
-    const { data: created, error } = await admin!.auth.admin.createUser({
+    providerUserId = await createRegisteredAuthUser(ctx, {
       email,
       password: "QaRls123!",
-      email_confirm: true,
+      role: "provider",
+      fullName: "QA RLS Provider",
+      phone: `+20100${stamp.toString().slice(-7)}`,
     });
-    expect(error).toBeNull();
-    providerUserId = created!.user!.id;
-    await admin!.from("user_roles").delete().eq("user_id", providerUserId).eq("role", "customer");
-    await admin!.from("user_roles").upsert({ user_id: providerUserId, role: "provider" });
-    await admin!.from("profiles").upsert({
-      id: providerUserId,
-      full_name: "QA RLS Provider",
-      phone: `+20100${Date.now().toString().slice(-7)}`,
-    });
-
-    const { data: otherCreated, error: otherErr } = await admin!.auth.admin.createUser({
+    otherProviderUserId = await createRegisteredAuthUser(ctx, {
       email: otherEmail,
       password: "QaRlsOther123!",
-      email_confirm: true,
+      role: "provider",
+      fullName: "QA RLS Other",
+      phone: `+20101${stamp.toString().slice(-7)}`,
     });
-    expect(otherErr).toBeNull();
-    otherProviderUserId = otherCreated!.user!.id;
-    await admin!.from("user_roles").delete().eq("user_id", otherProviderUserId).eq("role", "customer");
-    await admin!.from("user_roles").upsert({ user_id: otherProviderUserId, role: "provider" });
-    await admin!.from("profiles").upsert({
-      id: otherProviderUserId,
-      full_name: "QA RLS Other",
-      phone: `+20101${Date.now().toString().slice(-7)}`,
-    });
-
-    const { data: adminCreated, error: adminCreateErr } = await admin!.auth.admin.createUser({
+    adminUserId = await createRegisteredAuthUser(ctx, {
       email: adminEmail,
       password: "QaRlsAdmin123!",
-      email_confirm: true,
+      role: "admin",
+      fullName: adminEmail,
+      phone: `+20102${stamp.toString().slice(-7)}`,
+      admin: true,
     });
-    expect(adminCreateErr).toBeNull();
-    adminUserId = adminCreated!.user!.id;
-    await admin!.from("user_roles").upsert({ user_id: adminUserId, role: "admin" });
-
-    const { data: customerCreated, error: customerErr } = await admin!.auth.admin.createUser({
+    customerUserId = await createRegisteredAuthUser(ctx, {
       email: customerEmail,
       password: "QaRlsCustomer123!",
-      email_confirm: true,
-    });
-    expect(customerErr).toBeNull();
-    customerUserId = customerCreated!.user!.id;
-    await admin!.from("user_roles").upsert({ user_id: customerUserId, role: "customer" });
-    await admin!.from("profiles").upsert({
-      id: customerUserId,
-      full_name: "QA RLS Customer",
-      phone: `+20102${Date.now().toString().slice(-7)}`,
+      role: "customer",
+      fullName: "QA RLS Customer",
+      phone: `+20103${stamp.toString().slice(-7)}`,
     });
 
-    providerClient = await createAuthedClient(email, "QaRls123!");
-    otherProviderClient = await createAuthedClient(otherEmail, "QaRlsOther123!");
-    adminClient = await createAuthedClient(adminEmail, "QaRlsAdmin123!");
-    customerClient = await createAuthedClient(customerEmail, "QaRlsCustomer123!");
+    providerClient = await createAuthedClient(email, "QaRls123!", anonKey!);
+    otherProviderClient = await createAuthedClient(otherEmail, "QaRlsOther123!", anonKey!);
+    adminClient = await createAuthedClient(adminEmail, "QaRlsAdmin123!", anonKey!);
+    customerClient = await createAuthedClient(customerEmail, "QaRlsCustomer123!", anonKey!);
 
-    const { data: started, error: startErr } = await providerClient.rpc("provider_start_onboarding");
-    expect(startErr).toBeNull();
-    providerId = (started as { id: string }).id;
-    const { data: otherStarted, error: otherStartErr } = await otherProviderClient.rpc("provider_start_onboarding");
-    expect(otherStartErr).toBeNull();
-    otherProviderId = (otherStarted as { id: string }).id;
+    providerId = await startRegisteredProvider(ctx, providerClient);
+    otherProviderId = await startRegisteredProvider(ctx, otherProviderClient);
     await seedEditableSections();
   });
 
   afterAll(async () => {
-    if (!admin || !providerId) return;
-    if (seededZoneId) await admin.from("zone_providers").delete().eq("zone_id", seededZoneId).eq("provider_id", providerId);
-    if (seededZoneId) await admin.from("zones").delete().eq("id", seededZoneId);
-    if (seededServiceId) await admin.from("provider_services").delete().eq("service_id", seededServiceId);
-    if (seededServiceId) await admin.from("services").delete().eq("id", seededServiceId);
-    await admin.from("provider_onboarding_events").delete().eq("provider_id", providerId);
-    await admin.from("provider_references").delete().eq("provider_id", providerId);
-    await admin.from("provider_onboarding_details").delete().eq("provider_id", providerId);
-    if (otherProviderId) {
-      await admin.from("provider_onboarding_events").delete().eq("provider_id", otherProviderId);
-      await admin.from("provider_references").delete().eq("provider_id", otherProviderId);
-      await admin.from("provider_onboarding_details").delete().eq("provider_id", otherProviderId);
-    }
-    await admin.from("providers").delete().eq("profile_id", providerUserId);
-    await admin.from("providers").delete().eq("profile_id", otherProviderUserId);
-    if (providerUserId) await admin.auth.admin.deleteUser(providerUserId);
-    if (otherProviderUserId) await admin.auth.admin.deleteUser(otherProviderUserId);
-    if (adminUserId) await admin.auth.admin.deleteUser(adminUserId);
-    if (customerUserId) await admin.auth.admin.deleteUser(customerUserId);
+    if (!admin) return;
+    await cleanupProviderHarness(ctx);
   });
 
   it("allows DRAFT provider to read and edit own details/references", async () => {

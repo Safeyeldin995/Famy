@@ -2,12 +2,14 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const readRegistry = vi.fn();
 const writeRegistry = vi.fn();
+const removeRegistryUsers = vi.fn();
 const runTeardownForUserIds = vi.fn();
 const getSupabaseAdmin = vi.fn(() => ({}));
 
 vi.mock("../registry.mjs", () => ({
   readRegistry,
   writeRegistry,
+  removeRegistryUsers,
 }));
 
 vi.mock("../teardown-core.mjs", () => ({
@@ -22,6 +24,7 @@ describe("recoverRegistryOrphans", () => {
   beforeEach(() => {
     readRegistry.mockReset();
     writeRegistry.mockReset();
+    removeRegistryUsers.mockReset();
     runTeardownForUserIds.mockReset();
     getSupabaseAdmin.mockReset();
     getSupabaseAdmin.mockReturnValue({});
@@ -38,6 +41,8 @@ describe("recoverRegistryOrphans", () => {
     runTeardownForUserIds.mockResolvedValue({
       succeeded: ["good-user-001"],
       refused: [{ userId: "bad-user-0002", reason: "insufficient-qa-signals" }],
+      failed: [],
+      retained: [],
     });
 
     const { recoverRegistryOrphans } = await import("../orphan-recovery.mjs");
@@ -49,6 +54,7 @@ describe("recoverRegistryOrphans", () => {
       ["good-user-001", "bad-user-0002"],
       { execute: true, registryIds: ["good-user-001", "bad-user-0002"] },
     );
+    expect(removeRegistryUsers).toHaveBeenCalledWith(["good-user-001"]);
     expect(writeRegistry).toHaveBeenCalledWith({
       users: [{ userId: "bad-user-0002", key: "adminSeed" }],
       qaPassword: "secret",
@@ -71,6 +77,8 @@ describe("recoverRegistryOrphans", () => {
         { userId: "bad-1", reason: "insufficient-qa-signals" },
         { userId: "bad-2", reason: "insufficient-qa-signals" },
       ],
+      failed: [],
+      retained: [],
     });
 
     const { recoverRegistryOrphans } = await import("../orphan-recovery.mjs");
@@ -93,11 +101,14 @@ describe("recoverRegistryOrphans", () => {
     runTeardownForUserIds.mockResolvedValue({
       succeeded: ["good-1"],
       refused: [],
+      failed: [],
+      retained: [],
     });
 
     const { recoverRegistryOrphans } = await import("../orphan-recovery.mjs");
     const result = await recoverRegistryOrphans();
 
+    expect(removeRegistryUsers).toHaveBeenCalledWith(["good-1"]);
     expect(writeRegistry).toHaveBeenCalledWith({ users: [] });
     expect(result.recovered).toBe(1);
     expect(result.remaining).toBe(0);

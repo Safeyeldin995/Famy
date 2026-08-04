@@ -39,4 +39,11 @@ test-results/
 playwright-report/
 blob-report/
 
+# Account recovery credentials (never commit)
+recovery-codes.txt
+recovery-codes*.txt
+*-recovery-codes.txt
+*.recovery-codes.txt
+backup-recovery-codes*.txt
+
 .vercel

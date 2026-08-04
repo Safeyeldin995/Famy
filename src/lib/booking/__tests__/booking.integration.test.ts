@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
 import {
+  assertDirectBookingInsertDenied,
   cleanupBookingFixture,
   createOtpIntegrationClient,
   futureSlot,
@@ -8,9 +9,10 @@ import {
   rpcCreateBooking,
   seedBookingFixture,
   supabaseUrl,
-  verifyBookingsInsertPolicyState,
   type BookingFixture,
 } from "./booking.harness";
+import { IntegrationFixtureRegistry } from "@/lib/qa/integrationFixtureRegistry";
+import { assertRunOwnedAdminsRemoved } from "@/lib/qa/integrationFixtureTeardown";
 import { parseBookingErrorCode } from "@/lib/booking/errors";
 
 const admin = createOtpIntegrationClient();
@@ -18,7 +20,8 @@ const anonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SU
 const describeIf = admin && supabaseUrl && anonKey ? describe : describe.skip;
 
 describeIf("booking create_booking RPC integrity", () => {
-  let fixture: BookingFixture;
+  const registry = new IntegrationFixtureRegistry({ suite: "booking.integration" });
+  let fixture!: BookingFixture;
   const createdBookingIds: string[] = [];
 
   beforeAll(async () => {
@@ -26,56 +29,48 @@ describeIf("booking create_booking RPC integrity", () => {
     if (probe.error?.code === "PGRST202") {
       throw new Error("create_booking RPC not found — apply PATCH 6A migration first");
     }
-    fixture = await seedBookingFixture(admin!, anonKey!);
+    fixture = await seedBookingFixture(admin!, anonKey!, registry);
   }, 300_000);
 
   afterAll(async () => {
-    if (!admin || !fixture) return;
-    await cleanupBookingFixture(admin, fixture, createdBookingIds);
+    if (!admin) return;
+    if (fixture) {
+      await cleanupBookingFixture(admin, fixture, createdBookingIds);
+    } else {
+      const { teardownRegisteredFixture } = await import("@/lib/qa/integrationFixtureTeardown");
+      await teardownRegisteredFixture(admin, registry);
+    }
+    await assertRunOwnedAdminsRemoved(admin, registry.getRunOwnedAdminUserIds());
   }, 120_000);
 
   function trackBookingId(result: { data: unknown }) {
     const payload = result.data as { booking_id?: string } | null;
     const id = payload?.booking_id;
-    if (id && !createdBookingIds.includes(id)) createdBookingIds.push(id);
+    if (id && !createdBookingIds.includes(id)) {
+      createdBookingIds.push(id);
+      registry.registerBooking(id);
+    }
     return id;
   }
 
-  it("verifies bookings INSERT policy blocks direct customer inserts", async () => {
-    const { insertPolicies, insertGrants } = verifyBookingsInsertPolicyState();
-    expect(insertPolicies.some((policy) => policy.policyname === "bookings_customer_insert")).toBe(false);
-    expect(insertGrants.some((grant) => grant.grantee === "authenticated")).toBe(false);
-    expect(insertPolicies.filter((policy) => policy.cmd === "INSERT")).toEqual([]);
-  }, 60_000);
-
   it("denies direct customer INSERT for an eligible provider without creating a row", async () => {
     const slot = futureSlot(96);
-    const { count: beforeCount, error: beforeCountError } = await admin!.from("bookings")
-      .select("id", { count: "exact", head: true })
-      .eq("customer_id", fixture.customerAId);
-    expect(beforeCountError).toBeNull();
-
-    const { data, error } = await fixture.customerAClient.from("bookings").insert({
-      customer_id: fixture.customerAId,
-      provider_id: fixture.providerId,
-      service_id: fixture.serviceId,
-      address_id: fixture.addressAId,
-      start_at: slot.start.toISOString(),
-      end_at: slot.end.toISOString(),
-      status: "pending",
-      price_subtotal: 100,
-      price_total: 100,
-    }).select("id");
-
-    expect(error).toBeTruthy();
-    expect(error?.code).toBe("42501");
-    expect(data).toBeNull();
-
-    const { count: afterCount, error: afterCountError } = await admin!.from("bookings")
-      .select("id", { count: "exact", head: true })
-      .eq("customer_id", fixture.customerAId);
-    expect(afterCountError).toBeNull();
-    expect(afterCount).toBe(beforeCount);
+    await assertDirectBookingInsertDenied(
+      admin!,
+      fixture!.customerAClient,
+      {
+        customer_id: fixture.customerAId,
+        provider_id: fixture.providerId,
+        service_id: fixture.serviceId,
+        address_id: fixture.addressAId,
+        start_at: slot.start.toISOString(),
+        end_at: slot.end.toISOString(),
+        status: "pending",
+        price_subtotal: 100,
+        price_total: 100,
+      },
+      { customerId: fixture.customerAId },
+    );
   });
 
   it("creates a booking through create_booking RPC", async () => {

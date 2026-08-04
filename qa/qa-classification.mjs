@@ -6,6 +6,16 @@ export const QA_DETERMINISTIC_EMAIL_RE = /^qa-.*@famio\.local$/i;
 export const FAMIO_LOCAL_EMAIL_RE = /@famio\.local$/i;
 export const PHONE_FAMIO_EMAIL_RE = /^phone-.*@famio\.local$/i;
 
+/** Matches PostgreSQL ILIKE 'QA_%' and real fixtures like "QA Booking Provider". */
+export const QA_PROFILE_NAME_RE = /^QA./i;
+
+/**
+ * @param {string | null | undefined} fullName
+ */
+export function isQaProfileName(fullName) {
+  return typeof fullName === "string" && QA_PROFILE_NAME_RE.test(fullName);
+}
+
 /**
  * @param {string | null | undefined} email
  */
@@ -25,13 +35,16 @@ export function isHighConfidenceQaUser(signals) {
 /**
  * Final destructive cleanup gate — registry alone is never sufficient.
  * @param {QaUserSignals} signals
+ * @param {{ ignoreRegistry?: boolean }} [options]
  */
-export function isDestructiveCleanupEligible(signals) {
+export function isDestructiveCleanupEligible(signals, options = {}) {
   if (isDeterministicQaEmail(signals.email)) return true;
 
+  const registryOk = signals.inRegistry || options.ignoreRegistry;
+
   if (
-    signals.inRegistry
-    && signals.fullName?.startsWith("QA_")
+    registryOk
+    && isQaProfileName(signals.fullName)
     && signals.email
     && PHONE_FAMIO_EMAIL_RE.test(signals.email)
   ) {
@@ -39,8 +52,8 @@ export function isDestructiveCleanupEligible(signals) {
   }
 
   if (
-    signals.inRegistry
-    && signals.fullName?.startsWith("QA_")
+    registryOk
+    && isQaProfileName(signals.fullName)
     && signals.email
     && FAMIO_LOCAL_EMAIL_RE.test(signals.email)
     && !PHONE_FAMIO_EMAIL_RE.test(signals.email)

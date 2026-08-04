@@ -6,10 +6,10 @@ import { createClient } from "@supabase/supabase-js";
 import { loadQaEnv } from "./load-qa-env.mjs";
 import { assertQaWriteGuard } from "./env-guard.mjs";
 
-loadQaEnv({ required: true });
-assertQaWriteGuard(process.env);
-
 export function authenticatedClient(role) {
+  loadQaEnv({ required: true });
+  assertQaWriteGuard(process.env);
+
   const state = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), `qa/.auth/${role}.json`), "utf8"));
   const authItem = state.origins
     .flatMap((origin) => origin.localStorage ?? [])
