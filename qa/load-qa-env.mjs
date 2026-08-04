@@ -5,6 +5,35 @@ import path from "path";
 
 const QA_ENV_FILE = path.resolve(process.cwd(), ".env.qa.local");
 
+/** @type {string | null} */
+let testQaEnvFileOverride = null;
+
+function assertVitestRuntime() {
+  if (process.env.VITEST !== "true") {
+    throw new Error("[qa-env] Test-only QA env override is available only under Vitest.");
+  }
+}
+
+/**
+ * @param {string} filePath
+ */
+export function configureQaEnvFilePathForTests(filePath) {
+  assertVitestRuntime();
+  if (typeof filePath !== "string" || !filePath.trim()) {
+    throw new Error("[qa-env] Test QA env file path must be a non-empty string.");
+  }
+  testQaEnvFileOverride = path.resolve(filePath);
+}
+
+export function resetQaEnvFilePathForTests() {
+  assertVitestRuntime();
+  testQaEnvFileOverride = null;
+}
+
+export function isVitestQaEnvOverrideActive() {
+  return testQaEnvFileOverride !== null;
+}
+
 /**
  * @param {string} raw
  */
@@ -38,22 +67,25 @@ function applyEntries(entries, { override = false } = {}) {
  */
 export function loadQaEnv(options = {}) {
   const { required = true, inject } = options;
+  const envFile = qaEnvFilePath();
 
   if (inject) {
     applyEntries(inject, { override: true });
   }
 
-  if (!inject && !fs.existsSync(QA_ENV_FILE)) {
+  if (!inject && !fs.existsSync(envFile)) {
     if (required) {
       throw new Error(
-        "[qa-env] Missing .env.qa.local. Copy .env.qa.example to .env.qa.local and configure the Famy QA project.",
+        testQaEnvFileOverride
+          ? `[qa-env] Missing isolated test QA env file at ${envFile}.`
+          : "[qa-env] Missing .env.qa.local. Copy .env.qa.example to .env.qa.local and configure the Famy QA project.",
       );
     }
-    return { loaded: false, path: QA_ENV_FILE };
+    return { loaded: false, path: envFile };
   }
 
   if (!inject) {
-    const raw = fs.readFileSync(QA_ENV_FILE, "utf8");
+    const raw = fs.readFileSync(envFile, "utf8");
     applyEntries(parseEnvFile(raw), { override: true });
   }
 
@@ -69,9 +101,9 @@ export function loadQaEnv(options = {}) {
     process.env.SUPABASE_SERVICE_ROLE_KEY = process.env.QA_SUPABASE_SECRET_KEY;
   }
 
-  return { loaded: true, path: QA_ENV_FILE };
+  return { loaded: true, path: envFile };
 }
 
 export function qaEnvFilePath() {
-  return QA_ENV_FILE;
+  return testQaEnvFileOverride ?? QA_ENV_FILE;
 }

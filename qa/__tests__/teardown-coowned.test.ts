@@ -22,6 +22,7 @@ import {
 import { describeRetainedServiceTwoPass } from "../teardown-retained-services.mjs";
 import { configureRegistryRootForTests, resetRegistryRootForTests } from "../registry.mjs";
 import { useIsolatedRegistry } from "./registry-test-harness.ts";
+import { useIsolatedQaEnv } from "./qa-env-test-harness.ts";
 
 const PROJECT_REF = "bfwveoqbyqlhixjvdzha";
 
@@ -239,6 +240,7 @@ describe("co-owned plan normalization", () => {
 
 describe("co-owned execution", () => {
   useIsolatedRegistry();
+  useIsolatedQaEnv();
 
   afterEach(() => {
     vi.restoreAllMocks();

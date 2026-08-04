@@ -19,6 +19,7 @@ import { assessDestructiveCleanupEligibility } from "../teardown-core.mjs";
 import { makeLocatorFromKeys } from "../teardown-row-locators.mjs";
 import { assertNoWholePlanDeletionBypass, FORBIDDEN_TEARDOWN_BYPASS_NAMES } from "../teardown-fk-contract.mjs";
 import { useIsolatedRegistry } from "./registry-test-harness.ts";
+import { useIsolatedQaEnv } from "./qa-env-test-harness.ts";
 import {
   readRegistry,
   registerUserEntry,
@@ -253,6 +254,7 @@ function createStatefulTerminalAdmin(options: {
 
 describe("terminal disable lifecycle", () => {
   useIsolatedRegistry();
+  useIsolatedQaEnv();
 
   it("preserves QA profile evidence when auth delete is blocked and disables auth for real", async () => {
     const admin = createStatefulTerminalAdmin({ immutableTickets: true });

@@ -21,6 +21,7 @@ import {
   recordRecoveryFailure,
 } from "../registry.mjs";
 import { useIsolatedRegistry } from "./registry-test-harness.ts";
+import { useIsolatedQaEnv } from "./qa-env-test-harness.ts";
 
 function createDeleteTracker() {
   const calls = [];
@@ -193,6 +194,7 @@ describe("teardown operations ordering", () => {
 
 describe("runTeardownForUserIds eligibility and honesty", () => {
   useIsolatedRegistry();
+  useIsolatedQaEnv();
 
   it("performs zero mutations for ineligible candidates", async () => {
     const admin = createDeleteTracker();

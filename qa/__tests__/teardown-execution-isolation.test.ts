@@ -14,6 +14,7 @@ import {
   recordRecoveryFailure,
 } from "../registry.mjs";
 import { useIsolatedRegistry } from "./registry-test-harness.ts";
+import { useIsolatedQaEnv } from "./qa-env-test-harness.ts";
 
 const PROJECT_REF = "bfwveoqbyqlhixjvdzha";
 
@@ -169,6 +170,8 @@ function createTwoUserAdmin(options = {}) {
 }
 
 describe("guard before first mutation", () => {
+  useIsolatedQaEnv();
+
   it("causes zero mutations when QA guard fails immediately before execution", async () => {
     const envGuard = await import("../env-guard.mjs");
     const guardSpy = vi.spyOn(envGuard, "assertQaWriteGuard").mockImplementation(() => {
@@ -194,6 +197,7 @@ describe("guard before first mutation", () => {
 
 describe("executeApprovedCleanupPlan isolation", () => {
   useIsolatedRegistry();
+  useIsolatedQaEnv();
 
   it("allows user B to succeed when user A deletion fails", async () => {
     const admin = createTwoUserAdmin({ failDeleteUsers: ["user-a"] });

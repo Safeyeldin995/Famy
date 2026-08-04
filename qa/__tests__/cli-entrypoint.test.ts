@@ -6,7 +6,6 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { parseContainmentArgs, CONTAINMENT_CONFIRM_VALUE } from "../containment-args.mjs";
 import { isDirectExecution } from "../cli-entrypoint.mjs";
-import { main as runWithQaEnvMain } from "../run-with-qa-env.mjs";
 import {
   assertQaCliGuards,
   auditQaEntrypoints,
@@ -190,8 +189,17 @@ describe("native subprocess import safety", () => {
   });
 
   it("exported run-with-qa-env main fails closed without child args", () => {
-    const code = runWithQaEnvMain([]);
-    expect(code).toBe(1);
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "qa-run-with-qa-env-main-"));
+    const script = `
+      process.chdir(${JSON.stringify(tmpDir)});
+      const { main } = await import(${JSON.stringify(pathToFileURL(path.join(REPO_ROOT, "qa/run-with-qa-env.mjs")).href)});
+      const code = await main([]);
+      console.log("EXIT:" + code);
+    `;
+    const result = spawnNodeEval(script, tmpDir);
+    expect(result.status).toBe(0);
+    expect(result.stdout.trim()).toBe("EXIT:1");
+    expect(listCreatedPaths(tmpDir)).toEqual([]);
   });
 });
 
