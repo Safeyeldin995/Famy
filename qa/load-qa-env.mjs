@@ -62,11 +62,33 @@ function applyEntries(entries, { override = false } = {}) {
   }
 }
 
+function assertUnitTestUsesIsolatedQaEnv() {
+  if (process.env.VITEST !== "true" || process.env.VITEST_QA_UNIT_GUARD !== "1") {
+    return;
+  }
+  if (!testQaEnvFileOverride) {
+    throw new Error(
+      "[qa-env] Unit tests must call useIsolatedQaEnv() before guard-backed QA code. Refusing implicit .env.qa.local access.",
+    );
+  }
+  const repoEnv = path.resolve(process.cwd(), ".env.qa.local");
+  if (path.resolve(testQaEnvFileOverride) === repoEnv) {
+    throw new Error(
+      "[qa-env] Unit tests must not point the QA env override at the repository .env.qa.local.",
+    );
+  }
+}
+
 /**
  * @param {{ required?: boolean, inject?: Record<string, string> }} [options]
  */
 export function loadQaEnv(options = {}) {
   const { required = true, inject } = options;
+
+  if (required && !inject) {
+    assertUnitTestUsesIsolatedQaEnv();
+  }
+
   const envFile = qaEnvFilePath();
 
   if (inject) {

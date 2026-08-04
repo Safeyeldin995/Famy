@@ -252,6 +252,7 @@ describe("executeApprovedCleanupPlan isolation", () => {
 
 describe("registry and recovery per-user outcomes", () => {
   useIsolatedRegistry();
+  useIsolatedQaEnv();
 
   it("removes only succeeded user B from registry while retaining user A", async () => {
     registerUserEntry({ userId: "user-a", email: "qa-a@famio.local" });
@@ -282,6 +283,7 @@ describe("registry and recovery per-user outcomes", () => {
 
 describe("immutable support and audit residue", () => {
   useIsolatedRegistry();
+  useIsolatedQaEnv();
 
   it("detects immutable ticket rows during planning and does not schedule ticket_messages deletes", async () => {
     const admin = createTwoUserAdmin({ ticketMessageUsers: ["user-a"] });

@@ -23,8 +23,22 @@ afterEach(() => {
 });
 
 describe("loadQaEnv runtime safety", () => {
+  it("refuses unit tests without an isolated QA env override", () => {
+    resetQaEnvFilePathForTests();
+    const repoEnv = path.resolve(process.cwd(), ".env.qa.local");
+    const existsSpy = vi.spyOn(fs, "existsSync").mockImplementation((target) => {
+      if (path.resolve(String(target)) === repoEnv) return true;
+      return fs.existsSync(target);
+    });
+
+    expect(() => loadQaEnv({ required: true })).toThrow(/useIsolatedQaEnv/);
+    existsSpy.mockRestore();
+  });
+
   it("refuses normal execution without .env.qa.local", () => {
     resetQaEnvFilePathForTests();
+    const priorGuard = process.env.VITEST_QA_UNIT_GUARD;
+    delete process.env.VITEST_QA_UNIT_GUARD;
     const repoEnv = path.resolve(process.cwd(), ".env.qa.local");
     const existsSpy = vi.spyOn(fs, "existsSync").mockImplementation((target) => {
       if (path.resolve(String(target)) === repoEnv) return false;
@@ -33,6 +47,7 @@ describe("loadQaEnv runtime safety", () => {
 
     expect(() => loadQaEnv({ required: true })).toThrow(/Missing .env.qa.local/);
     existsSpy.mockRestore();
+    if (priorGuard !== undefined) process.env.VITEST_QA_UNIT_GUARD = priorGuard;
   });
 
   it("refuses test override outside Vitest", () => {
