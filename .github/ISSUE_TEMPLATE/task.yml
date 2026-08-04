@@ -1,0 +1,88 @@
+name: Task
+description: Spec for a scoped implementation or fix
+title: "[Task]: "
+labels:
+  - task
+body:
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective
+      description: What outcome this task must achieve
+      placeholder: Describe the goal in one or two sentences
+    validations:
+      required: true
+
+  - type: textarea
+    id: current_behavior
+    attributes:
+      label: Current behavior
+      description: What happens today
+    validations:
+      required: true
+
+  - type: textarea
+    id: required_behavior
+    attributes:
+      label: Required behavior
+      description: What must happen after the task is complete
+    validations:
+      required: true
+
+  - type: textarea
+    id: in_scope
+    attributes:
+      label: In scope
+      description: Files, modules, or workflows that may be changed
+    validations:
+      required: true
+
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Out of scope
+      description: Explicit exclusions to prevent scope creep
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance criteria
+      description: Checklist used to mark the task complete
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+    validations:
+      required: true
+
+  - type: textarea
+    id: safety_constraints
+    attributes:
+      label: Safety constraints
+      description: Production, QA, secrets, migration, or deployment restrictions
+      placeholder: |
+        - Do not push to main
+        - Do not run destructive QA cleanup
+    validations:
+      required: true
+
+  - type: textarea
+    id: verification_commands
+    attributes:
+      label: Verification commands
+      description: Exact local checks required before merge
+      placeholder: |
+        npm run test:unit
+        npx tsc --noEmit
+        npm run build
+    validations:
+      required: true
+
+  - type: input
+    id: product_decision_owner
+    attributes:
+      label: Product decision owner
+      description: Who approves product/UX decisions for this task
+    validations:
+      required: true
