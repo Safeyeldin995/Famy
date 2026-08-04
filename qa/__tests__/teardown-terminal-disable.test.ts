@@ -12,8 +12,11 @@ import {
 } from "../teardown-user-lifecycle.mjs";
 import {
   disableAuthIdentity,
+  executeTerminalDisable,
   generateSecureRandomPassword,
+  removePrivilegedAdminRole,
   verifyAuthDisabled,
+  verifyNoPrivilegedAdminRole,
 } from "../teardown-terminal-disable.mjs";
 import { assessDestructiveCleanupEligibility } from "../teardown-core.mjs";
 import { makeLocatorFromKeys } from "../teardown-row-locators.mjs";
@@ -462,5 +465,188 @@ describe("disableAuthIdentity unit", () => {
     expect(result.ok).toBe(true);
     expect(result.sessionVerified).toBe(false);
     expect(admin.auth.admin.signOut).not.toHaveBeenCalled();
+  });
+});
+
+function createAdminRoleAdmin(options: {
+  deleteAdminError?: boolean;
+  leaveAdminRoleAfterDelete?: boolean;
+  userId?: string;
+  otherUserId?: string;
+}) {
+  const userId = options.userId ?? "user-a";
+  const otherUserId = options.otherUserId ?? "user-b";
+  /** @type {Record<string, Set<string>>} */
+  const rolesByUser = {
+    [userId]: new Set(["customer", "admin"]),
+    [otherUserId]: new Set(["customer"]),
+  };
+
+  const admin = {
+    auth: {
+      admin: {
+        getUserById: vi.fn(async (id) => ({
+          data: {
+            user: {
+              id,
+              email: id === userId ? "qa-a@famio.local" : "qa-b@famio.local",
+              banned_until: new Date(Date.now() + 1e9).toISOString(),
+              ban_duration: "876000h",
+            },
+          },
+          error: null,
+        })),
+        updateUserById: vi.fn(async () => ({ data: { user: {} }, error: null })),
+        deleteUser: vi.fn(async () => ({ error: { message: "immutable fk block", code: "23503" } })),
+      },
+    },
+    from: vi.fn((table) => {
+      if (table === "profiles") {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn((column, id) => ({
+              maybeSingle: vi.fn(async () => ({
+                data: {
+                  id,
+                  full_name: "QA_test_user",
+                  is_suspended: true,
+                },
+                error: null,
+              })),
+            })),
+          })),
+          update: vi.fn(() => ({
+            eq: vi.fn(async () => ({ error: null })),
+          })),
+        };
+      }
+      if (table === "user_roles") {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn((column, value) => {
+              if (column !== "user_id") {
+                return Promise.resolve({ data: [], error: null });
+              }
+              const userRoles = rolesByUser[value] ?? new Set();
+              return Promise.resolve({
+                data: [...userRoles].map((role) => ({ role })),
+                error: null,
+              });
+            }),
+          })),
+          delete: vi.fn(() => {
+            /** @type {Record<string, string>} */
+            const filters: Record<string, string> = {};
+            const chain = {
+              eq(col: string, val: string) {
+                filters[col] = val;
+                return chain;
+              },
+              then(onFulfilled: (v: unknown) => unknown, onRejected?: (e: unknown) => unknown) {
+                if (options.deleteAdminError) {
+                  return Promise.resolve({ error: { message: "delete failed" } }).then(onFulfilled, onRejected);
+                }
+                if (filters.role === "admin" && filters.user_id) {
+                  if (!options.leaveAdminRoleAfterDelete) {
+                    rolesByUser[filters.user_id]?.delete("admin");
+                  }
+                }
+                return Promise.resolve({ error: null }).then(onFulfilled, onRejected);
+              },
+            };
+            return chain;
+          }),
+        };
+      }
+      return {
+        select: vi.fn((_cols, opts) => {
+          if (opts?.count === "exact" && opts?.head) {
+            return {
+              eq: vi.fn((column, value) => {
+                if (table === "audit_logs" && column === "actor_id") {
+                  return Promise.resolve({ count: value === userId ? 1 : 0, error: null });
+                }
+                return Promise.resolve({ count: 0, error: null });
+              }),
+            };
+          }
+          return {
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn(async () => ({ data: null, error: null })),
+            })),
+          };
+        }),
+      };
+    }),
+    _rolesByUser: rolesByUser,
+  };
+
+  return admin;
+}
+
+describe("privileged admin role removal", () => {
+  useIsolatedRegistry();
+  useIsolatedQaEnv();
+
+  it("allows verified terminal-disabled when admin role delete succeeds and verification passes", async () => {
+    const admin = createAdminRoleAdmin({});
+    const result = await executeTerminalDisable(admin, "user-a", { blockers: ["audit_logs(actor)"] });
+    expect(result.ok).toBe(true);
+    expect(result.verified).toBe(false);
+    expect(result.outcome).toBe("terminal_disabled_session_unverified");
+    expect(admin._rolesByUser["user-a"].has("admin")).toBe(false);
+    expect(admin._rolesByUser["user-a"].has("customer")).toBe(true);
+    const verify = await verifyNoPrivilegedAdminRole(admin, "user-a");
+    expect(verify.ok).toBe(true);
+  });
+
+  it("returns disable_failed when admin role delete returns an error", async () => {
+    const admin = createAdminRoleAdmin({ deleteAdminError: true });
+    const result = await executeTerminalDisable(admin, "user-a", { blockers: ["audit_logs(actor)"] });
+    expect(result.ok).toBe(false);
+    expect(result.verified).toBe(false);
+    expect(result.outcome).toBe("disable_failed");
+    expect(result.reason).toBe("admin-role-removal-failed");
+    expect(admin._rolesByUser["user-a"].has("admin")).toBe(true);
+  });
+
+  it("returns disable_failed when delete reports success but admin role remains", async () => {
+    const admin = createAdminRoleAdmin({ leaveAdminRoleAfterDelete: true });
+    const result = await executeTerminalDisable(admin, "user-a", { blockers: ["audit_logs(actor)"] });
+    expect(result.ok).toBe(false);
+    expect(result.verified).toBe(false);
+    expect(result.outcome).toBe("disable_failed");
+    expect(result.reason).toContain("admin-role-removal-failed");
+    expect(result.outcome).not.toBe("terminal_disabled_verified");
+    expect(result.outcome).not.toBe("succeeded");
+  });
+
+  it("does not remove non-admin roles", async () => {
+    const admin = createAdminRoleAdmin({});
+    await removePrivilegedAdminRole(admin, "user-a");
+    expect(admin._rolesByUser["user-a"].has("customer")).toBe(true);
+    expect(admin._rolesByUser["user-a"].has("admin")).toBe(false);
+  });
+
+  it("leaves non-target identities unaffected", async () => {
+    const admin = createAdminRoleAdmin({});
+    await executeTerminalDisable(admin, "user-a", { blockers: ["audit_logs(actor)"] });
+    expect(admin._rolesByUser["user-b"].has("customer")).toBe(true);
+    expect(admin._rolesByUser["user-b"].has("admin")).toBe(false);
+  });
+
+  it("retains identity in registry/recovery after admin-role failure", async () => {
+    registerUserEntry({ userId: "user-a", email: "qa-a@famio.local" });
+    const admin = createAdminRoleAdmin({ deleteAdminError: true });
+    const lifecycle = await executeUserCleanupLifecycle(admin, "user-a", {
+      deletions: [],
+      retained: [{ table: "audit_logs", id: "user-a", reason: "immutable-audit-log-block", ownerUserId: "user-a" }],
+    });
+    expect(lifecycle.outcome).toBe("disable_failed");
+    expect(lifecycle.reason).toBe("admin-role-removal-failed");
+    recordRecoveryFailure({ id: "user-a", kind: "user", reason: lifecycle.reason });
+    const reg = readRegistry();
+    expect(reg.users.some((u) => u.userId === "user-a")).toBe(true);
+    expect((reg.recovery ?? []).some((e) => e.id === "user-a")).toBe(true);
   });
 });

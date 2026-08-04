@@ -39,6 +39,10 @@ function createImmutableBookingAdmin() {
       "customer-user": { full_name: "QA_test", is_suspended: false },
       "provider-user": { full_name: "QA Booking Provider", is_suspended: false },
     },
+    roles: {
+      "customer-user": new Set(["admin"]),
+      "provider-user": new Set([]),
+    },
     auth: {
       "customer-user": {
         email: "qa-booking-a-1@famio.local",
@@ -128,7 +132,11 @@ function createImmutableBookingAdmin() {
             return Promise.resolve({ data: [], error: null });
           }
           if (table === "user_roles" && column === "user_id") {
-            return Promise.resolve({ data: [{ id: `${value}-admin`, role: "admin" }], error: null });
+            const roles = state.roles[value] ?? new Set();
+            return Promise.resolve({
+              data: [...roles].map((role) => ({ id: `${value}-${role}`, role })),
+              error: null,
+            });
           }
           return { maybeSingle: vi.fn(async () => ({ data: null, error: null })), in: vi.fn(async () => ({ data: [], error: null })) };
         }),
@@ -198,8 +206,8 @@ function createImmutableBookingAdmin() {
             if (table === "providers" && filters.id === "provider-1") {
               state.providers.delete("provider-1");
             }
-            if (table === "user_roles" && filters.role === "admin") {
-              // ok
+            if (table === "user_roles" && filters.role === "admin" && filters.user_id) {
+              state.roles[filters.user_id]?.delete("admin");
             }
             return Promise.resolve({ error: null }).then(onFulfilled, onRejected);
           },

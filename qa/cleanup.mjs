@@ -30,8 +30,13 @@ export async function main(argv = process.argv.slice(2)) {
     return 0;
   }
 
-  await runTeardown({ planFingerprint: parsed.planFingerprint });
-  return 0;
+  try {
+    const result = await runTeardown({ planFingerprint: parsed.planFingerprint });
+    return result.success ? 0 : 1;
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
 }
 
 runCliIfDirect(import.meta.url, () => main());

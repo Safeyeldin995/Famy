@@ -186,6 +186,25 @@ export async function removePrivilegedAdminRole(admin, userId) {
 }
 
 /**
+ * Fresh read verifying the privileged admin role was removed.
+ * @param {import('@supabase/supabase-js').SupabaseClient} admin
+ * @param {string} userId
+ */
+export async function verifyNoPrivilegedAdminRole(admin, userId) {
+  const { data, error } = await admin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId);
+  if (error) {
+    return { ok: false, reason: "admin-role-verify-error" };
+  }
+  if ((data ?? []).some((row) => row.role === "admin")) {
+    return { ok: false, reason: "admin-role-still-present" };
+  }
+  return { ok: true, reason: "no-admin-role" };
+}
+
+/**
  * Verify profile suspension using canonical multi-signal QA classification.
  * @param {import('@supabase/supabase-js').SupabaseClient} admin
  * @param {string} userId
@@ -250,7 +269,29 @@ export async function executeTerminalDisable(admin, userId, params) {
     };
   }
 
-  await removePrivilegedAdminRole(admin, userId);
+  const adminRoleRemoval = await removePrivilegedAdminRole(admin, userId);
+  if (!adminRoleRemoval.ok) {
+    return {
+      ok: false,
+      verified: false,
+      outcome: "disable_failed",
+      reason: "admin-role-removal-failed",
+      errors: [adminRoleRemoval.error],
+      sessionVerified: disable.sessionVerified,
+    };
+  }
+
+  const adminRoleCheck = await verifyNoPrivilegedAdminRole(admin, userId);
+  if (!adminRoleCheck.ok) {
+    return {
+      ok: false,
+      verified: false,
+      outcome: "disable_failed",
+      reason: `admin-role-removal-failed:${adminRoleCheck.reason}`,
+      errors: [],
+      sessionVerified: disable.sessionVerified,
+    };
+  }
 
   const profileCheck = await verifyProfileSuspendedQaEvidence(admin, userId);
   if (!profileCheck.ok) {

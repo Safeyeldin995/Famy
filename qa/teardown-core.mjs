@@ -29,6 +29,7 @@ import {
   buildCleanupPlan,
   sanitizePlanForReport,
 } from "./teardown-planner.mjs";
+import { computeHonestResidueMetrics } from "./teardown-residue-metrics.mjs";
 
 function guardBeforeWrite() {
   loadQaEnv({ required: true });
@@ -253,7 +254,14 @@ export async function executeApprovedCleanupPlan(admin, plan) {
     await disableRetainedProviders(admin, retainedProviderIds);
   }
 
-  return { succeeded, refused, failed, retained, resourceFailures, coOwnedFailures, outcomes };
+  const aborted = !coOwnedSlice.ok
+    && coOwnedDeletions.length > 0
+    && plan.eligibleUsers.length > 0
+    && plan.eligibleUsers.every((user) =>
+      coOwnedFailures.some((row) => row.ownerUserIds.includes(user.userId)),
+    );
+
+  return { succeeded, refused, failed, retained, resourceFailures, coOwnedFailures, outcomes, aborted };
 }
 
 /**
@@ -357,6 +365,127 @@ export async function runTeardownDryRun() {
 }
 
 /**
+ * Authoritative execute outcome for cleanup CLI exit codes.
+ * @param {{
+ *   plan: { retained: Array<{ table: string; reason: string }> };
+ *   users: {
+ *     succeeded: string[];
+ *     refused: Array<{ userId: string }>;
+ *     failed: Array<{ userId: string }>;
+ *     retained: Array<{ userId: string }>;
+ *     resourceFailures: Array<unknown>;
+ *     coOwnedFailures?: Array<unknown>;
+ *   };
+ *   honestMetrics: ReturnType<typeof computeHonestResidueMetrics>;
+ *   recoveryCount: number;
+ *   remainingCandidates: number;
+ *   aborted?: boolean;
+ * }} payload
+ */
+export function evaluateCleanupExecuteOutcome(payload) {
+  const {
+    plan,
+    users,
+    honestMetrics,
+    recoveryCount,
+    remainingCandidates,
+    aborted = false,
+  } = payload;
+
+  const failedUsers = users.failed.length;
+  const refusedUsers = users.refused.length;
+  const retainedUsers = users.retained.length;
+  const resourceFailures = users.resourceFailures.length;
+  const coOwnedFailures = users.coOwnedFailures?.length ?? 0;
+  const retainedOperationalResources = (plan.retained ?? []).filter(
+    (row) => row.table === "services" || row.table === "zones" || row.table === "payment_methods",
+  ).length;
+
+  const zeroBaselineAchieved =
+    !honestMetrics.active_operational_residue
+    && !honestMetrics.deletable_QA_resources
+    && recoveryCount === 0
+    && remainingCandidates === 0
+    && honestMetrics.terminal_disabled_identities === 0;
+
+  /** @type {string[]} */
+  const failureReasons = [];
+  if (aborted) failureReasons.push("aborted");
+  if (failedUsers) failureReasons.push(`failed_users=${failedUsers}`);
+  if (refusedUsers) failureReasons.push(`refused_users=${refusedUsers}`);
+  if (retainedUsers) failureReasons.push(`retained_users=${retainedUsers}`);
+  if (resourceFailures) failureReasons.push(`resource_failures=${resourceFailures}`);
+  if (coOwnedFailures) failureReasons.push(`co_owned_failures=${coOwnedFailures}`);
+  if (retainedOperationalResources) {
+    failureReasons.push(`retained_operational_resources=${retainedOperationalResources}`);
+  }
+  if (honestMetrics.terminal_disabled_identities) {
+    failureReasons.push(`terminal_disabled=${honestMetrics.terminal_disabled_identities}`);
+  }
+  if (!zeroBaselineAchieved) {
+    if (honestMetrics.active_operational_residue) {
+      failureReasons.push(`active_operational_residue=${honestMetrics.active_operational_residue}`);
+    }
+    if (honestMetrics.deletable_QA_resources) {
+      failureReasons.push(`deletable_qa_resources=${honestMetrics.deletable_QA_resources}`);
+    }
+    if (recoveryCount) failureReasons.push(`recovery_entries=${recoveryCount}`);
+    if (remainingCandidates) failureReasons.push(`remaining_candidates=${remainingCandidates}`);
+  }
+
+  const success =
+    !aborted
+    && failedUsers === 0
+    && refusedUsers === 0
+    && retainedUsers === 0
+    && resourceFailures === 0
+    && coOwnedFailures === 0
+    && retainedOperationalResources === 0
+    && zeroBaselineAchieved;
+
+  return {
+    success,
+    aborted,
+    zeroBaselineAchieved,
+    failureReasons,
+  };
+}
+
+/**
+ * @param {{
+ *   plan: { fingerprint: string };
+ *   users: {
+ *     succeeded: string[];
+ *     refused: Array<unknown>;
+ *     failed: Array<unknown>;
+ *     retained: Array<unknown>;
+ *     resourceFailures: Array<unknown>;
+ *   };
+ *   success: boolean;
+ *   aborted: boolean;
+ *   zeroBaselineAchieved: boolean;
+ *   failureReasons: string[];
+ *   honestMetrics?: ReturnType<typeof computeHonestResidueMetrics>;
+ * }} payload
+ */
+export function printCleanupExecuteSummary(payload) {
+  const { plan, users, success, aborted, zeroBaselineAchieved, failureReasons, honestMetrics } = payload;
+  console.log(`[qa-cleanup:execute] plan_fingerprint=${plan.fingerprint}`);
+  console.log(`[qa-cleanup:execute] succeeded=${users.succeeded.length} refused=${users.refused.length} failed=${users.failed.length} retained=${users.retained.length}`);
+  console.log(`[qa-cleanup:execute] resource_failures=${users.resourceFailures.length}`);
+  console.log(`[qa-cleanup:execute] zero_baseline=${zeroBaselineAchieved ? "achieved" : "not-achieved"}`);
+  console.log(`[qa-cleanup:execute] aborted=${aborted ? "true" : "false"}`);
+  console.log(`[qa-cleanup:execute] success=${success ? "true" : "false"}`);
+  if (failureReasons.length) {
+    console.log(`[qa-cleanup:execute] failure_reasons=${failureReasons.join(",")}`);
+  }
+  if (honestMetrics) {
+    console.log(`[qa-cleanup:execute] terminal_disabled_identities=${honestMetrics.terminal_disabled_identities}`);
+    console.log(`[qa-cleanup:execute] active_operational_residue=${honestMetrics.active_operational_residue}`);
+  }
+}
+
+/**
  * @param {{ planFingerprint?: string }} [options]
  */
 export async function runTeardown(options = {}) {
@@ -378,10 +507,19 @@ export async function runTeardown(options = {}) {
   fs.mkdirSync(reportDir, { recursive: true });
   const honestMetrics = computeHonestResidueMetrics({
     plan,
-    outcomes,
+    outcomes: userResult.outcomes,
     succeeded: userResult.succeeded,
     failed: userResult.failed,
     retainedUsers: userResult.retained,
+  });
+
+  const executeOutcome = evaluateCleanupExecuteOutcome({
+    plan,
+    users: userResult,
+    honestMetrics,
+    recoveryCount: recovery.length,
+    remainingCandidates: postPlan.counts.eligible_users,
+    aborted: userResult.aborted ?? false,
   });
 
   fs.writeFileSync(path.join(reportDir, "residue.json"), JSON.stringify({
@@ -408,13 +546,16 @@ export async function runTeardown(options = {}) {
   console.log(`[qa-teardown] remaining_candidate_users=${postPlan.counts.eligible_users}`);
   console.log(`[qa-teardown] remaining_owned_bookings=${postPlan.counts.unique_owned_bookings}`);
 
-  if (
-    honestMetrics.active_operational_residue
-    || honestMetrics.deletable_QA_resources
-    || recovery.length
-  ) {
+  if (!executeOutcome.zeroBaselineAchieved) {
     console.error("[qa-teardown] zero-baseline not achieved; see qa/report/residue.json");
   }
+
+  printCleanupExecuteSummary({
+    plan,
+    users: userResult,
+    honestMetrics,
+    ...executeOutcome,
+  });
 
   return {
     plan,
@@ -422,6 +563,8 @@ export async function runTeardown(options = {}) {
     postExecuteCounts: postPlan.counts,
     remainingCandidates: postPlan.counts.eligible_users,
     recoveryCount: recovery.length,
+    honestMetrics,
+    ...executeOutcome,
   };
 }
 
