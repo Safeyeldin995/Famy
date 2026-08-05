@@ -33,6 +33,7 @@ export const QA_ENTRYPOINT_CLASSIFICATION = {
   "read-e2e-otp.mjs": "pure-library",
   "registry.mjs": "pure-library",
   "restoration-registry.mjs": "pure-library",
+  "spawn-child.mjs": "pure-library",
   "run-with-qa-env.mjs": "wrapper-cli",
   "runtime-identity-build.mjs": "pure-library",
   "runtime-identity-fetch.mjs": "pure-library",
