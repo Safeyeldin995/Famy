@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -7,6 +8,7 @@ import { pathToFileURL } from "node:url";
 import {
   authenticateBookingCaller,
   BOOKING_CALLER_CLASS,
+  BOOKING_CALLER_SELECTION_POLICY,
   CALLER_AUTH_MODE,
   extractHashedTokenFromGenerateLink,
   revokeBookingCallerSession,
@@ -23,6 +25,7 @@ import { KNOWN_QA_PROJECT_REF } from "../qa-identity.mjs";
 
 const CALLER_ID = "f08b1111-1111-4111-8111-1111111174ff";
 const OTHER_ADMIN_ID = "aaaa1111-1111-4111-8111-111111111111";
+const THIRD_ADMIN_ID = "bbbb1111-1111-4111-8111-111111111111";
 const REASON_ID = "cccc1111-1111-4111-8111-111111111111";
 
 function eligibleAdmin(userId = CALLER_ID) {
@@ -96,6 +99,8 @@ describe("booking caller selection", () => {
     expect(result.ok).toBe(true);
     expect(result.caller?.userId).toBe(CALLER_ID);
     expect(result.caller?.callerClass).toBe(BOOKING_CALLER_CLASS);
+    expect(result.eligibleCount).toBe(1);
+    expect(result.selectionPolicy).toBe(BOOKING_CALLER_SELECTION_POLICY);
   });
 
   it("blocks planning when zero callers exist", () => {
@@ -107,13 +112,63 @@ describe("booking caller selection", () => {
     expect(result.blocked?.reason).toBe("zero-booking-callers");
   });
 
-  it("blocks planning when multiple callers exist", () => {
+  it("selects one deterministic caller when three eligible admins exist", () => {
     const result = selectBookingCaller([
       eligibleAdmin(CALLER_ID),
       eligibleAdmin(OTHER_ADMIN_ID),
+      eligibleAdmin(THIRD_ADMIN_ID),
     ], true);
+    expect(result.ok).toBe(true);
+    expect(result.eligibleCount).toBe(3);
+    expect(result.selectionPolicy).toBe(BOOKING_CALLER_SELECTION_POLICY);
+    expect(result.caller?.userId).toBe(OTHER_ADMIN_ID);
+  });
+
+  it("selects the same caller when candidate order is reversed", () => {
+    const forward = selectBookingCaller([
+      eligibleAdmin(CALLER_ID),
+      eligibleAdmin(OTHER_ADMIN_ID),
+      eligibleAdmin(THIRD_ADMIN_ID),
+    ], true);
+    const reversed = selectBookingCaller([
+      eligibleAdmin(THIRD_ADMIN_ID),
+      eligibleAdmin(OTHER_ADMIN_ID),
+      eligibleAdmin(CALLER_ID),
+    ], true);
+    expect(forward.caller?.userId).toBe(reversed.caller?.userId);
+    expect(forward.caller?.userId).toBe(OTHER_ADMIN_ID);
+  });
+
+  it("ignores duplicate candidate rows for the same user ID", () => {
+    const single = selectBookingCaller([eligibleAdmin(OTHER_ADMIN_ID)], true);
+    const duplicated = selectBookingCaller([
+      eligibleAdmin(OTHER_ADMIN_ID),
+      eligibleAdmin(OTHER_ADMIN_ID),
+      eligibleAdmin(OTHER_ADMIN_ID),
+    ], true);
+    expect(duplicated.ok).toBe(true);
+    expect(duplicated.eligibleCount).toBe(1);
+    expect(duplicated.caller?.userId).toBe(single.caller?.userId);
+  });
+
+  it("never selects ineligible, banned, suspended, non-admin, or non-QA users", () => {
+    const identities = [
+      { ...eligibleAdmin(CALLER_ID), hasAdminRole: false },
+      { ...eligibleAdmin(OTHER_ADMIN_ID), authBanned: true },
+      { ...eligibleAdmin(THIRD_ADMIN_ID), profileSuspended: true },
+      {
+        userId: "cccc1111-1111-4111-8111-111111111111",
+        email: "not-qa@example.com",
+        fullName: "Not QA",
+        authBanned: false,
+        profileSuspended: false,
+        hasAdminRole: true,
+        inRegistry: false,
+      },
+    ];
+    const result = selectBookingCaller(identities, true);
     expect(result.ok).toBe(false);
-    expect(result.blocked?.reason).toBe("multiple-booking-callers");
+    expect(result.blocked?.reason).toBe("zero-booking-callers");
   });
 
   it("rejects already-banned admin caller", () => {
@@ -560,36 +615,107 @@ describe("booking caller fingerprint and report hygiene", () => {
       currentState: "pending",
       intendedState: "cancelled",
     }];
-    const fp1 = fingerprintContainmentPlan(actions, KNOWN_QA_PROJECT_REF, {
-      bookingCallerUserId: CALLER_ID,
+    const shared = {
       bookingCallerClass: BOOKING_CALLER_CLASS,
       callerAuthMode: CALLER_AUTH_MODE,
+      bookingCallerSelectionPolicy: BOOKING_CALLER_SELECTION_POLICY,
+      eligibleCallerCount: 3,
       cancellationReasonId: REASON_ID,
       bookings: [{ id: actions[0].id, status: "pending" }],
+    };
+    const fp1 = fingerprintContainmentPlan(actions, KNOWN_QA_PROJECT_REF, {
+      ...shared,
+      bookingCallerUserId: CALLER_ID,
     });
     const fp2 = fingerprintContainmentPlan(actions, KNOWN_QA_PROJECT_REF, {
+      ...shared,
       bookingCallerUserId: OTHER_ADMIN_ID,
-      bookingCallerClass: BOOKING_CALLER_CLASS,
-      callerAuthMode: CALLER_AUTH_MODE,
-      cancellationReasonId: REASON_ID,
-      bookings: [{ id: actions[0].id, status: "pending" }],
     });
     expect(fp1).not.toBe(fp2);
     expect(fp1).not.toBe(INVALIDATED_CONTAINMENT_FINGERPRINT_V1);
     expect(fp1).not.toBe(INVALIDATED_CONTAINMENT_FINGERPRINT_V2);
   });
 
+  it("changes fingerprint when eligible caller count changes selection inputs", () => {
+    const actions = [{
+      entityType: "booking",
+      id: "4a221111-1111-4111-8111-111111116208",
+      actionType: "cancel_booking",
+      currentState: "pending",
+      intendedState: "cancelled",
+    }];
+    const fp1 = fingerprintContainmentPlan(actions, KNOWN_QA_PROJECT_REF, {
+      bookingCallerUserId: OTHER_ADMIN_ID,
+      bookingCallerClass: BOOKING_CALLER_CLASS,
+      callerAuthMode: CALLER_AUTH_MODE,
+      bookingCallerSelectionPolicy: BOOKING_CALLER_SELECTION_POLICY,
+      eligibleCallerCount: 3,
+      cancellationReasonId: REASON_ID,
+      bookings: [{ id: actions[0].id, status: "pending" }],
+    });
+    const fp2 = fingerprintContainmentPlan(actions, KNOWN_QA_PROJECT_REF, {
+      bookingCallerUserId: CALLER_ID,
+      bookingCallerClass: BOOKING_CALLER_CLASS,
+      callerAuthMode: CALLER_AUTH_MODE,
+      bookingCallerSelectionPolicy: BOOKING_CALLER_SELECTION_POLICY,
+      eligibleCallerCount: 1,
+      cancellationReasonId: REASON_ID,
+      bookings: [{ id: actions[0].id, status: "pending" }],
+    });
+    expect(fp1).not.toBe(fp2);
+  });
+
+  it("rejects a v3 fingerprint for a v4 plan at execute approval", () => {
+    const plan = buildPlanWithBookings({
+      identities: [
+        eligibleAdmin(CALLER_ID),
+        eligibleAdmin(OTHER_ADMIN_ID),
+        eligibleAdmin(THIRD_ADMIN_ID),
+      ],
+    });
+    expect(plan.version).toBe("6a.2-containment-v4");
+    const recomputedV3 = createHash("sha256").update(JSON.stringify({
+      version: "6a.2-containment-v3",
+      projectRef: KNOWN_QA_PROJECT_REF,
+      bookingCallerUserId: plan.bookingCaller?.userId ?? null,
+      bookingCallerClass: plan.bookingCaller?.callerClass ?? null,
+      callerAuthMode: plan.callerAuthMode,
+      cancellationReasonId: REASON_ID,
+      bookings: [{ id: "4a221111-1111-4111-8111-111111116208", status: "pending" }],
+      actions: plan.actions.map((row) => ({
+        entityType: row.entityType,
+        id: row.id,
+        actionType: row.actionType,
+        currentState: row.currentState,
+        intendedState: row.intendedState,
+      })).sort((a, b) => `${a.entityType}:${a.id}:${a.actionType}`.localeCompare(`${b.entityType}:${b.id}:${b.actionType}`)),
+    })).digest("hex");
+    expect(() => assertContainmentPlanApproved(plan as never, recomputedV3)).toThrow(/mismatch|invalidated/i);
+  });
+
   it("never puts tokens, email, password, or full UUID into plan/report", () => {
-    const plan = buildPlanWithBookings();
+    const plan = buildPlanWithBookings({
+      identities: [
+        eligibleAdmin(CALLER_ID),
+        eligibleAdmin(OTHER_ADMIN_ID),
+        eligibleAdmin(THIRD_ADMIN_ID),
+      ],
+    });
     expect(plan.callerAuthMode).toBe(CALLER_AUTH_MODE);
+    expect(plan.eligibleCallerCount).toBe(3);
+    expect(plan.callerSelectionPolicy).toBe(BOOKING_CALLER_SELECTION_POLICY);
     const report = sanitizeContainmentPlanForReport(plan);
     const serialized = JSON.stringify(report);
     expect(serialized).not.toMatch(/@/);
     expect(serialized).not.toMatch(/eyJ/);
     expect(serialized).not.toMatch(/password/i);
     expect(serialized).not.toMatch(CALLER_ID);
+    expect(serialized).not.toMatch(OTHER_ADMIN_ID);
+    expect(serialized).not.toMatch(THIRD_ADMIN_ID);
     expect(report.bookingCaller?.maskedId).toMatch(/^.{4}….{4}$/);
     expect(report.bookingCaller?.callerClass).toBe(BOOKING_CALLER_CLASS);
+    expect(report.eligibleCallerCount).toBe(3);
+    expect(report.callerSelectionPolicy).toBe(BOOKING_CALLER_SELECTION_POLICY);
   });
 });
 

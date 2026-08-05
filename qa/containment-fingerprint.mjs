@@ -8,6 +8,8 @@ import { CONTAINMENT_PLAN_VERSION } from "./containment-booking-lifecycle.mjs";
  *   bookingCallerUserId?: string | null;
  *   bookingCallerClass?: string | null;
  *   callerAuthMode?: string | null;
+ *   bookingCallerSelectionPolicy?: string | null;
+ *   eligibleCallerCount?: number | null;
  *   cancellationReasonId?: string | null;
  *   bookings?: Array<{ id: string; status: string }>;
  * }} [metadata]
@@ -37,6 +39,8 @@ export function fingerprintContainmentPlan(actions, projectRef, metadata = {}) {
     bookingCallerUserId: metadata.bookingCallerUserId ?? null,
     bookingCallerClass: metadata.bookingCallerClass ?? null,
     callerAuthMode: metadata.callerAuthMode ?? null,
+    bookingCallerSelectionPolicy: metadata.bookingCallerSelectionPolicy ?? null,
+    eligibleCallerCount: metadata.eligibleCallerCount ?? null,
     cancellationReasonId: metadata.cancellationReasonId ?? null,
     bookings,
     actions: canonical,
@@ -46,5 +50,5 @@ export function fingerprintContainmentPlan(actions, projectRef, metadata = {}) {
 /** Prior v1 fingerprint — must never match v3 plans. */
 export const INVALIDATED_CONTAINMENT_FINGERPRINT_V1 = "b93a81048c5677319c863653fa3673fc942d092cbac32da02f3537047fa28ccf";
 
-/** Prior v2 fingerprint — must never match v3 plans. */
+/** Prior v2 fingerprint — must never match v4 plans. */
 export const INVALIDATED_CONTAINMENT_FINGERPRINT_V2 = "2034db204e41b531ff0baf69d9173b41e03a8236721b2752bd0fcdae6080acb6";

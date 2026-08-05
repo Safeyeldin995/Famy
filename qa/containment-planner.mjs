@@ -133,6 +133,8 @@ export function finalizeContainmentPlan(plannedRows, projectRef, context = {}) {
 
   const bookingCaller = callerSelection.caller;
   const callerAuthMode = requiresBookingCaller ? CALLER_AUTH_MODE : null;
+  const eligibleCallerCount = callerSelection.eligibleCount ?? 0;
+  const callerSelectionPolicy = callerSelection.selectionPolicy ?? null;
   const fingerprint = fingerprintContainmentPlan(
     actions.map((row) => ({
       entityType: row.entityType,
@@ -146,6 +148,8 @@ export function finalizeContainmentPlan(plannedRows, projectRef, context = {}) {
       bookingCallerUserId: bookingCaller?.userId ?? null,
       bookingCallerClass: bookingCaller?.callerClass ?? null,
       callerAuthMode,
+      bookingCallerSelectionPolicy: callerSelectionPolicy,
+      eligibleCallerCount,
       cancellationReasonId: context.cancellationReasonId ?? null,
       bookings: bookingActions.map((row) => ({
         id: row.id,
@@ -161,6 +165,8 @@ export function finalizeContainmentPlan(plannedRows, projectRef, context = {}) {
     blocked: false,
     bookingCaller,
     callerAuthMode,
+    eligibleCallerCount,
+    callerSelectionPolicy,
     cancellationReasonId: context.cancellationReasonId ?? null,
     actions,
     excluded,
@@ -428,6 +434,8 @@ export function sanitizeContainmentPlanForReport(plan) {
     blockedReason: plan.blockedReason ?? null,
     bookingCaller: sanitizeBookingCallerForReport(plan.bookingCaller),
     callerAuthMode: plan.callerAuthMode ?? null,
+    eligibleCallerCount: plan.eligibleCallerCount ?? null,
+    callerSelectionPolicy: plan.callerSelectionPolicy ?? null,
     cancellationReasonId: plan.cancellationReasonId ?? null,
     counts: plan.counts,
     actions: plan.actions.map((row) => ({

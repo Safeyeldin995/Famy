@@ -3,7 +3,7 @@
  * Authoritative production path: public.cancel_booking(p_booking_id, p_reason_id, p_note)
  */
 
-export const CONTAINMENT_PLAN_VERSION = "6a.2-containment-v3";
+export const CONTAINMENT_PLAN_VERSION = "6a.2-containment-v4";
 
 /** Statuses treated as active operational residue by verify-residue.mjs */
 export const ACTIVE_BOOKING_STATUSES = ["pending", "confirmed", "in_progress"];

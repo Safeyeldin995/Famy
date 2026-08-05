@@ -8,6 +8,7 @@ import { parseContainmentArgs, CONTAINMENT_CONFIRM_VALUE } from "../containment-
 import {
   planBookingContainmentAction,
   QA_CONTAINMENT_REASON_CODE,
+  CONTAINMENT_PLAN_VERSION,
 } from "../containment-booking-lifecycle.mjs";
 import {
   identityNeedsContainment,
@@ -200,6 +201,7 @@ describe("containment fingerprint", () => {
   it("rejects invalidated v1 and v2 fingerprints at execute approval", () => {
     const plan = {
       blocked: false,
+      version: CONTAINMENT_PLAN_VERSION,
       fingerprint: "fresh-fingerprint",
     };
     expect(() => assertContainmentPlanApproved(plan as never, INVALIDATED_CONTAINMENT_FINGERPRINT_V1))

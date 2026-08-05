@@ -4,6 +4,23 @@ import { identityNeedsContainment } from "./containment-identity.mjs";
 
 export const BOOKING_CALLER_CLASS = "authenticated_qa_admin";
 export const CALLER_AUTH_MODE = "admin_generated_magiclink";
+/** Stable deterministic tie-break when multiple eligible QA admin callers exist. */
+export const BOOKING_CALLER_SELECTION_POLICY = "eligible-admin-user-id-asc-v1";
+
+/**
+ * @param {Array<{ userId: string }>} identities
+ */
+function dedupeIdentitiesByUserId(identities) {
+  const seen = new Set();
+  /** @type {typeof identities} */
+  const unique = [];
+  for (const identity of identities) {
+    if (seen.has(identity.userId)) continue;
+    seen.add(identity.userId);
+    unique.push(identity);
+  }
+  return unique;
+}
 
 /**
  * Select exactly one QA admin caller from identities included in the containment plan.
@@ -20,16 +37,21 @@ export const CALLER_AUTH_MODE = "admin_generated_magiclink";
  */
 export function selectBookingCaller(identities, requiresBookingCaller) {
   if (!requiresBookingCaller) {
-    return { ok: true, caller: null };
+    return {
+      ok: true,
+      caller: null,
+      eligibleCount: 0,
+      selectionPolicy: null,
+    };
   }
 
-  const eligible = (identities ?? []).filter((identity) => {
+  const eligible = dedupeIdentitiesByUserId((identities ?? []).filter((identity) => {
     if (!identityNeedsContainment(identity)) return false;
     if (!identity.hasAdminRole) return false;
     if (identity.authBanned) return false;
     if (identity.profileSuspended) return false;
     return true;
-  });
+  }));
 
   if (eligible.length === 0) {
     return {
@@ -41,17 +63,8 @@ export function selectBookingCaller(identities, requiresBookingCaller) {
     };
   }
 
-  if (eligible.length > 1) {
-    return {
-      ok: false,
-      blocked: {
-        reason: "multiple-booking-callers",
-        detail: `eligible_count=${eligible.length}`,
-      },
-    };
-  }
-
-  const selected = eligible[0];
+  const sorted = [...eligible].sort((left, right) => left.userId.localeCompare(right.userId));
+  const selected = sorted[0];
   return {
     ok: true,
     caller: {
@@ -59,6 +72,8 @@ export function selectBookingCaller(identities, requiresBookingCaller) {
       maskedId: maskUserId(selected.userId),
       callerClass: BOOKING_CALLER_CLASS,
     },
+    eligibleCount: eligible.length,
+    selectionPolicy: BOOKING_CALLER_SELECTION_POLICY,
   };
 }
 

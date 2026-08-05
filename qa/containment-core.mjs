@@ -24,6 +24,7 @@ import {
   INVALIDATED_CONTAINMENT_FINGERPRINT_V1,
   INVALIDATED_CONTAINMENT_FINGERPRINT_V2,
 } from "./containment-fingerprint.mjs";
+import { CONTAINMENT_PLAN_VERSION } from "./containment-booking-lifecycle.mjs";
 
 function guardBeforeContainmentWrite() {
   loadQaEnv({ required: true });
@@ -37,6 +38,9 @@ function guardBeforeContainmentWrite() {
 export function assertContainmentPlanApproved(freshPlan, expectedFingerprint) {
   if (freshPlan.blocked) {
     throw new Error(`[qa-containment] plan blocked: ${freshPlan.blockedReason ?? "unknown"}`);
+  }
+  if (freshPlan.version !== CONTAINMENT_PLAN_VERSION) {
+    throw new Error("[qa-containment] plan version mismatch — rebuild dry-run and re-approve");
   }
   if (!expectedFingerprint) {
     throw new Error("[qa-containment] execute requires --plan-fingerprint from dry-run");
@@ -394,7 +398,9 @@ function printDryRunSummary(plan) {
   console.log(`[qa-containment:dry-run] excluded_identities=${plan.counts.excluded_identities}`);
   console.log(`[qa-containment:dry-run] plan_fingerprint=${plan.fingerprint}`);
   if (plan.bookingCaller) {
+    console.log(`[qa-containment:dry-run] eligible_callers=${plan.eligibleCallerCount ?? 0}`);
     console.log(`[qa-containment:dry-run] booking_caller=${plan.bookingCaller.maskedId}:${plan.bookingCaller.callerClass}`);
+    console.log(`[qa-containment:dry-run] caller_selection_policy=${plan.callerSelectionPolicy ?? "(none)"}`);
   }
   if (plan.callerAuthMode) {
     console.log(`[qa-containment:dry-run] caller_auth_mode=${plan.callerAuthMode}`);
