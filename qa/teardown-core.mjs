@@ -302,6 +302,8 @@ export async function runTeardownForUserIds(admin, userIds, options = {}) {
     refused: userResult.refused,
     failed: userResult.failed,
     retained: userResult.retained,
+    resourceFailures: userResult.resourceFailures,
+    outcomes: userResult.outcomes,
     plan,
   };
 }
@@ -483,6 +485,79 @@ export function printCleanupExecuteSummary(payload) {
     console.log(`[qa-cleanup:execute] terminal_disabled_identities=${honestMetrics.terminal_disabled_identities}`);
     console.log(`[qa-cleanup:execute] active_operational_residue=${honestMetrics.active_operational_residue}`);
   }
+}
+
+/**
+ * Playwright global teardown — registry-scoped cleanup only.
+ * Never requires a reviewed cleanup fingerprint; does not run authoritative cleanup.
+ */
+export async function runPlaywrightGlobalTeardown() {
+  guardBeforeWrite();
+  const admin = getSupabaseAdmin();
+  await restorePendingRestorations();
+
+  const reg = readRegistry();
+  const registryUserIds = (reg.users ?? []).map((user) => user.userId).filter(Boolean);
+  const registryIds = new Set(registryUserIds);
+
+  if (!registryUserIds.length) {
+    console.log("[qa-teardown:e2e] no registry users; skipping destructive cleanup");
+    return {
+      skipped: true,
+      reason: "no_registry_users",
+      users: {
+        succeeded: [],
+        refused: [],
+        failed: [],
+        retained: [],
+        resourceFailures: [],
+      },
+    };
+  }
+
+  const userResult = await runTeardownForUserIds(admin, registryUserIds, {
+    execute: true,
+    registryIds: [...registryIds],
+  });
+  const plan = userResult.plan;
+  const recovery = readRegistry().recovery ?? [];
+
+  await restorePendingRestorations();
+  assertNoPendingRestorations();
+
+  const reportDir = path.resolve(process.cwd(), "qa/report");
+  fs.mkdirSync(reportDir, { recursive: true });
+  const honestMetrics = computeHonestResidueMetrics({
+    plan,
+    outcomes: userResult.outcomes,
+    succeeded: userResult.succeeded,
+    failed: userResult.failed,
+    retainedUsers: userResult.retained,
+  });
+
+  fs.writeFileSync(path.join(reportDir, "residue.json"), JSON.stringify({
+    generated_at: new Date().toISOString(),
+    mode: "playwright-global-teardown",
+    plan_fingerprint: plan.fingerprint,
+    succeeded_users: userResult.succeeded.map(maskUserId),
+    refused_users: userResult.refused.map((row) => ({ id: maskUserId(row.userId), reason: row.reason })),
+    failed_users: userResult.failed.map((row) => ({ id: maskUserId(row.userId), reason: row.reason })),
+    retained_users: userResult.retained.map((row) => ({ id: maskUserId(row.userId), reason: row.reason })),
+    retained_resources: plan.retained.map((row) => ({ table: row.table, id: maskUserId(row.id), reason: row.reason })),
+    honest_residue_metrics: honestMetrics,
+    recovery_entries: recovery.length,
+  }, null, 2));
+
+  console.log(`[qa-teardown:e2e] succeeded=${userResult.succeeded.length} refused=${userResult.refused.length} failed=${userResult.failed.length} retained=${userResult.retained.length}`);
+  console.log(`[qa-teardown:e2e] registry_users=${registryUserIds.length}`);
+
+  return {
+    skipped: false,
+    plan,
+    users: userResult,
+    honestMetrics,
+    recoveryCount: recovery.length,
+  };
 }
 
 /**

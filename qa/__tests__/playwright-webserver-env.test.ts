@@ -138,6 +138,13 @@ describe("playwright webServer deny-by-default env", () => {
     }
   });
 
+  it("maps QA secret to server-only SUPABASE_SERVICE_ROLE_KEY for OTP server functions", () => {
+    const normalized = getEffectiveNormalizedChildEnv(fakeParentEnv());
+    expect(normalized.SUPABASE_SERVICE_ROLE_KEY).toBe(FAKE_SECRET);
+    expectKeyAbsent(normalized, "QA_SUPABASE_SECRET_KEY");
+    expectKeyAbsent(normalized, "SUPABASE_SECRET_KEY");
+  });
+
   it("removes unknown secret-like and mixed-case parent variables after merge", () => {
     const parent = fakeParentEnv();
     const normalized = getEffectiveNormalizedChildEnv(parent);

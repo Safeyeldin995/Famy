@@ -1,3 +1,3 @@
-import { runTeardown } from "./teardown-core.mjs";
+import { runPlaywrightGlobalTeardown } from "./teardown-core.mjs";
 
-export default runTeardown;
+export default runPlaywrightGlobalTeardown;

@@ -4,6 +4,7 @@ import { execSync } from "node:child_process";
 const QA_TEST_GLOB = [
   "qa/__tests__/cli-entrypoint.test.ts",
   "qa/__tests__/cli-lifecycle.test.ts",
+  "qa/__tests__/playwright-global-teardown.test.ts",
   "qa/__tests__/teardown-coowned.test.ts",
   "qa/__tests__/containment-booking-caller.test.ts",
   "qa/__tests__/containment.test.ts",
