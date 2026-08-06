@@ -6,6 +6,10 @@ import { fileURLToPath } from "node:url";
 
 /** @type {Record<string, EntrypointClass>} */
 export const QA_ENTRYPOINT_CLASSIFICATION = {
+  "baseline-repair-args.mjs": "pure-library",
+  "baseline-repair-fingerprint.mjs": "pure-library",
+  "baseline-repair-planner.mjs": "pure-library",
+  "baseline-repair.mjs": "destructive-cli",
   "admin-client.mjs": "pure-library",
   "authenticated-client.mjs": "pure-library",
   "cleanup-args.mjs": "pure-library",
@@ -59,6 +63,7 @@ export const QA_ENTRYPOINT_CLASSIFICATION = {
 
 /** CLI modules that must not execute on import. */
 export const QA_CLI_GUARD_REQUIRED = [
+  "baseline-repair.mjs",
   "cleanup.mjs",
   "containment.mjs",
   "preflight.mjs",

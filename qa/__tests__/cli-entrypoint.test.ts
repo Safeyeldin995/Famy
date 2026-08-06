@@ -78,6 +78,7 @@ describe("cli entrypoint guards", () => {
     }
     expect(() => assertQaCliGuards(path.join(REPO_ROOT, "qa"))).not.toThrow();
     expect(QA_CLI_GUARD_REQUIRED).toEqual([
+      "baseline-repair.mjs",
       "cleanup.mjs",
       "containment.mjs",
       "preflight.mjs",
