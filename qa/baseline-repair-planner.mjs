@@ -12,6 +12,7 @@ import {
   BASELINE_REPAIR_PLAN_VERSION,
   fingerprintBaselineRepairPlan,
   hashBaselineRepairManifestIdentity,
+  INVALIDATED_BASELINE_REPAIR_FINGERPRINT_V1,
 } from "./baseline-repair-fingerprint.mjs";
 
 export const BASELINE_REPAIR_MANIFEST_FILENAME = "baseline-repair-targets.json";
@@ -21,6 +22,15 @@ export const PROVEN_QA_FIXTURE_ZONE_NAMES = [
   "QA_Patch2_BookingZone_1786005355558",
   "QA_booking_lifecycle_zone_v1",
   "QA_Patch2_BookingZone_1786005389666",
+];
+
+/** Exact leaked zone from provider-eligibility E2E — v2 repair allowlist only. */
+export const LEAKED_QA_FIXTURE_ZONE_NAME = "QA_Patch2_Zone_1786019593554";
+
+/** @type {readonly string[]} */
+export const BASELINE_REPAIR_V2_ZONE_NAMES = [
+  ...PROVEN_QA_FIXTURE_ZONE_NAMES,
+  LEAKED_QA_FIXTURE_ZONE_NAME,
 ];
 
 /** @type {Record<string, unknown>} */
@@ -109,7 +119,8 @@ export function validateBaselineRepairManifest(manifest) {
   }
 
   const zonesRaw = Array.isArray(row.zones) ? row.zones : [];
-  if (zonesRaw.length !== 3) {
+  const expectedZoneCount = BASELINE_REPAIR_V2_ZONE_NAMES.length;
+  if (zonesRaw.length !== expectedZoneCount) {
     return { ok: false, reason: "manifest-zone-count-invalid" };
   }
 
@@ -139,10 +150,10 @@ export function validateBaselineRepairManifest(manifest) {
     zones.push({ id, name });
   }
 
-  const provenNames = new Set(PROVEN_QA_FIXTURE_ZONE_NAMES);
+  const allowedNames = new Set(BASELINE_REPAIR_V2_ZONE_NAMES);
   const manifestNames = new Set(zones.map((zone) => zone.name));
-  if (manifestNames.size !== provenNames.size
-    || ![...provenNames].every((name) => manifestNames.has(name))) {
+  if (manifestNames.size !== allowedNames.size
+    || ![...allowedNames].every((name) => manifestNames.has(name))) {
     return { ok: false, reason: "manifest-zone-names-mismatch" };
   }
 
@@ -305,7 +316,8 @@ export function buildBaselineRepairPlanFromSnapshot(input) {
 
   const mutatingSettings = settingActions.filter((row) => row.actionType !== "noop");
   const mutatingZones = zoneActions.filter((row) => row.actionType !== "noop");
-  if (!blockedReason && (mutatingSettings.length > 2 || mutatingZones.length > 3)) {
+  const maxZoneMutations = input.manifest.zones.length === BASELINE_REPAIR_V2_ZONE_NAMES.length ? 1 : 3;
+  if (!blockedReason && (mutatingSettings.length > 2 || mutatingZones.length > maxZoneMutations)) {
     blockedReason = "scope-exceeds-authorized-targets";
   }
   if (!blockedReason && settingActions.some((row) => !REQUIRED_SETTINGS_KEYS.includes(row.key))) {
@@ -439,7 +451,7 @@ export async function discoverBaselineRepairTargets(admin) {
   const { data, error } = await admin
     .from("zones")
     .select("id,name_en,is_active")
-    .in("name_en", [...PROVEN_QA_FIXTURE_ZONE_NAMES]);
+    .in("name_en", [...BASELINE_REPAIR_V2_ZONE_NAMES]);
   if (error) {
     throw new Error(`[qa-baseline-repair] failed to discover QA fixture zones: ${error.message}`);
   }
@@ -449,7 +461,7 @@ export async function discoverBaselineRepairTargets(admin) {
   /** @type {Array<{ id: string; name: string }>} */
   const zones = [];
 
-  for (const name of PROVEN_QA_FIXTURE_ZONE_NAMES) {
+  for (const name of BASELINE_REPAIR_V2_ZONE_NAMES) {
     const row = byName.get(name);
     if (!row) {
       throw new Error(`[qa-baseline-repair] missing approved QA zone: ${name}`);
@@ -460,8 +472,8 @@ export async function discoverBaselineRepairTargets(admin) {
     zones.push({ id: row.id, name: row.name_en });
   }
 
-  if (zones.length !== 3) {
-    throw new Error(`[qa-baseline-repair] expected exactly 3 approved QA zones; found ${zones.length}`);
+  if (zones.length !== BASELINE_REPAIR_V2_ZONE_NAMES.length) {
+    throw new Error(`[qa-baseline-repair] expected exactly ${BASELINE_REPAIR_V2_ZONE_NAMES.length} approved QA zones; found ${zones.length}`);
   }
 
   return {
@@ -532,6 +544,9 @@ export function assertBaselineRepairPlanApproved(freshPlan, expectedFingerprint)
   }
   if (!expectedFingerprint) {
     throw new Error("[qa-baseline-repair] execute requires --plan-fingerprint from dry-run");
+  }
+  if (expectedFingerprint === INVALIDATED_BASELINE_REPAIR_FINGERPRINT_V1) {
+    throw new Error("[qa-baseline-repair] plan fingerprint invalidated — rebuild dry-run and re-approve");
   }
   if (freshPlan.fingerprint !== expectedFingerprint) {
     throw new Error("[qa-baseline-repair] plan fingerprint mismatch — rebuild dry-run and re-approve");

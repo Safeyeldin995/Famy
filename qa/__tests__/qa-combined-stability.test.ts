@@ -9,6 +9,7 @@ const QA_TEST_GLOB = [
   "qa/__tests__/playwright-global-teardown.test.ts",
   "qa/__tests__/teardown-coowned.test.ts",
   "qa/__tests__/containment-booking-caller.test.ts",
+  "qa/__tests__/provider-eligibility-registry.test.ts",
   "qa/__tests__/baseline-repair.test.ts",
   "qa/__tests__/containment.test.ts",
   "qa/__tests__/teardown-retained-provider.test.ts",
