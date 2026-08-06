@@ -3,14 +3,13 @@ import path from "path";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "../admin-client.mjs";
 import { authenticatedClient } from "../authenticated-client.mjs";
-import { loadEnv } from "../env.mjs";
-import { readRegistry } from "../registry.mjs";
+import { readRegistry, registerE2eRunResource } from "../registry.mjs";
 import { captureErrors } from "./helpers";
 import { assertResolveZoneMatches, deactivateCompetingPolygonZones } from "./marketplace-fixtures.mjs";
 import { completeProviderOnboarding } from "./onboarding-fixtures.mjs";
 import { resetRegistryProviderToDraft } from "./registry-fixtures.mjs";
 
-loadEnv();
+
 test.use({ storageState: path.resolve(process.cwd(), "qa/.auth/admin.json") });
 
 test("controlled Provider becomes visible, hides on suspension, and restores through the shared pipeline", async ({ page, browser }) => {
@@ -58,6 +57,7 @@ test("controlled Provider becomes visible, hides on suspension, and restores thr
     name_en: zoneName, name_ar: zoneName, boundary_type: "polygon", is_active: true,
     polygon: [{ lat: 30, lng: 31 }, { lat: 30, lng: 31.05 }, { lat: 30.03, lng: 31.02 }], travel_fee: 0,
   }).select().single();
+  registerE2eRunResource("zoneIds", zone!.id);
 
   const customerContext = await browser.newContext({ storageState: path.resolve(process.cwd(), "qa/.auth/customer.json") });
   const customerPage = await customerContext.newPage();

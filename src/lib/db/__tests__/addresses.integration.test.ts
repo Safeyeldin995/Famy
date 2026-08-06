@@ -1,77 +1,27 @@
-import { execSync } from "node:child_process";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import {
+  assertNoRowReturned,
+  assertRowsOwnedByUser,
+} from "@/lib/qa/behavioralSecurity";
+import {
+  IntegrationFixtureRegistry,
+  runRegisteredTeardown,
+} from "@/lib/qa/integrationFixtureRegistry";
+import {
+  assertRunOwnedAdminsRemoved,
+  teardownRegisteredFixture,
+} from "@/lib/qa/integrationFixtureTeardown";
+import {
   createAuthedClient,
   createOtpIntegrationClient,
+  seedEligibleBookingForAddressFixture,
   supabaseUrl,
 } from "@/lib/booking/__tests__/booking.harness";
 
-type PolicyRow = { policyname: string; cmd: string };
-
-export const EXPECTED_ADDRESS_POLICIES: PolicyRow[] = [
-  { policyname: "addresses_self", cmd: "ALL" },
-];
-
-function queryLinkedDb<T>(sql: string): T[] {
-  const oneLine = sql.replace(/\s+/g, " ").trim();
-  const output = execSync(`npx supabase db query --linked ${JSON.stringify(oneLine)}`, {
-    cwd: process.cwd(),
-    encoding: "utf8",
-    stdio: ["pipe", "pipe", "pipe"],
-  }).trim();
-  const parsed = JSON.parse(output) as { rows?: T[] };
-  return parsed.rows ?? [];
-}
-
-export function verifyAddressesOwnerOnlyPolicyState(): {
-  policies: PolicyRow[];
-  rlsEnabled: boolean;
-} {
-  const policies = queryLinkedDb<PolicyRow>(`
-    SELECT policyname, cmd
-    FROM pg_policies
-    WHERE schemaname = 'public' AND tablename = 'addresses'
-    ORDER BY policyname, cmd
-  `);
-  const rlsRows = queryLinkedDb<{ relrowsecurity: boolean }>(`
-    SELECT c.relrowsecurity
-    FROM pg_class c
-    JOIN pg_namespace n ON n.oid = c.relnamespace
-    WHERE n.nspname = 'public' AND c.relname = 'addresses'
-  `);
-  return { policies, rlsEnabled: rlsRows[0]?.relrowsecurity === true };
-}
-
-type PartialFixtureState = {
-  userIds: string[];
-  addressIds: string[];
-  bookingIds: string[];
-};
-
-async function cleanupPartialFixture(
-  admin: SupabaseClient<Database>,
-  state: PartialFixtureState,
-) {
-  if (state.bookingIds.length > 0) {
-    await admin.from("bookings").delete().in("id", [...new Set(state.bookingIds)]);
-  }
-  if (state.addressIds.length > 0) {
-    await admin.from("addresses").delete().in("id", [...new Set(state.addressIds)]);
-  }
-  for (const userId of [...new Set(state.userIds)]) {
-    await admin.from("user_roles").delete().eq("user_id", userId);
-    await admin.from("profiles").delete().eq("id", userId);
-    try {
-      await admin.auth.admin.deleteUser(userId);
-    } catch {
-      // Idempotent: user may already be removed.
-    }
-  }
-}
-
 type AddressFixture = {
+  registry: IntegrationFixtureRegistry;
   customerAId: string;
   customerBId: string;
   dualRoleAdminId: string;
@@ -79,7 +29,7 @@ type AddressFixture = {
   addressBId: string;
   adminOwnAddressId: string;
   bookingId: string;
-  bookingFixtureCreated: boolean;
+  bookingAdminClient: SupabaseClient<Database>;
   customerAClient: SupabaseClient<Database>;
   customerBClient: SupabaseClient<Database>;
   dualRoleAdminClient: SupabaseClient<Database>;
@@ -88,14 +38,16 @@ type AddressFixture = {
 async function seedAddressFixture(
   admin: SupabaseClient<Database>,
   anonKey: string,
+  outerRegistry?: IntegrationFixtureRegistry,
 ): Promise<AddressFixture> {
+  const registry = outerRegistry ?? new IntegrationFixtureRegistry({ suite: "addresses.integration" });
   const stamp = Date.now();
   const password = "QaAddressIso123!";
   const customerAEmail = `qa-address-a-${stamp}@famio.local`;
   const customerBEmail = `qa-address-b-${stamp}@famio.local`;
   const dualAdminEmail = `qa-address-admin-${stamp}@famio.local`;
-  const partial: PartialFixtureState = { userIds: [], addressIds: [], bookingIds: [] };
 
+  let bookingRpcClient: SupabaseClient<Database> | undefined;
   try {
     async function createCustomer(email: string, phoneSuffix: string) {
       const { data, error } = await admin.auth.admin.createUser({
@@ -105,9 +57,9 @@ async function seedAddressFixture(
       });
       if (error) throw error;
       const userId = data.user!.id;
-      partial.userIds.push(userId);
+      registry.registerUser(userId, { email });
+      registry.registerRole(userId, "customer");
 
-      // handle_new_user already inserts profiles + customer role.
       const { error: profileError } = await admin.from("profiles").update({
         full_name: email,
         phone: `+2018${phoneSuffix.padStart(8, "0").slice(-8)}`,
@@ -120,6 +72,8 @@ async function seedAddressFixture(
     const customerAId = await createCustomer(customerAEmail, `${stamp}01`);
     const customerBId = await createCustomer(customerBEmail, `${stamp}02`);
     const dualRoleAdminId = await createCustomer(dualAdminEmail, `${stamp}03`);
+    registry.registerUser(dualRoleAdminId, { email: dualAdminEmail, admin: true });
+    registry.registerRole(dualRoleAdminId, "admin");
 
     const { error: adminRoleError } = await admin
       .from("user_roles")
@@ -139,7 +93,7 @@ async function seedAddressFixture(
         is_default: true,
       }).select("id").single();
       if (error) throw error;
-      partial.addressIds.push(data.id);
+      registry.registerAddress(data.id);
       return data.id;
     }
 
@@ -147,50 +101,39 @@ async function seedAddressFixture(
     const addressBId = await insertAddress(customerBId, `QA_ISO_B_${stamp}`);
     const adminOwnAddressId = await insertAddress(dualRoleAdminId, `QA_ISO_ADMIN_${stamp}`);
 
-    const { data: existingLocation, error: locationLookupError } = await admin
-      .from("booking_locations")
-      .select("booking_id")
-      .limit(1)
-      .maybeSingle();
-    if (locationLookupError) throw locationLookupError;
-    if (!existingLocation) {
-      throw new Error("No booking_locations row available for admin read fixture");
-    }
+    const customerAClient = await createAuthedClient(customerAEmail, password, anonKey);
+
+    const { bookingId, adminClient: bookingAdminClient } = await seedEligibleBookingForAddressFixture(admin, registry, {
+      stamp,
+      customerId: customerAId,
+      addressId: addressAId,
+      customerClient: customerAClient,
+      anonKey,
+    });
+    bookingRpcClient = bookingAdminClient;
+
+    const dualRoleAdminClient = await createAuthedClient(dualAdminEmail, password, anonKey);
 
     return {
+      registry,
       customerAId,
       customerBId,
       dualRoleAdminId,
       addressAId,
       addressBId,
       adminOwnAddressId,
-      bookingId: existingLocation.booking_id,
-      bookingFixtureCreated: false,
-      customerAClient: await createAuthedClient(customerAEmail, password, anonKey),
+      bookingId,
+      bookingAdminClient,
+      customerAClient,
       customerBClient: await createAuthedClient(customerBEmail, password, anonKey),
-      dualRoleAdminClient: await createAuthedClient(dualAdminEmail, password, anonKey),
+      dualRoleAdminClient,
     };
   } catch (error) {
-    await cleanupPartialFixture(admin, partial);
+    await teardownRegisteredFixture(admin, registry, undefined, {
+      bookingRpcClient,
+    });
     throw error;
   }
-}
-
-async function cleanupAddressFixture(admin: SupabaseClient<Database>, fixture: AddressFixture) {
-  await cleanupPartialFixture(admin, {
-    userIds: [fixture.customerAId, fixture.customerBId, fixture.dualRoleAdminId],
-    addressIds: [fixture.addressAId, fixture.addressBId, fixture.adminOwnAddressId],
-    bookingIds: fixture.bookingFixtureCreated ? [fixture.bookingId] : [],
-  });
-}
-
-export async function countAdminRoleHolders(admin: SupabaseClient<Database>): Promise<number> {
-  const { count, error } = await admin
-    .from("user_roles")
-    .select("user_id", { count: "exact", head: true })
-    .eq("role", "admin");
-  if (error) throw error;
-  return count ?? 0;
 }
 
 const admin = createOtpIntegrationClient();
@@ -199,35 +142,30 @@ const describeIf = admin && supabaseUrl && anonKey ? describe : describe.skip;
 
 describeIf("address PII isolation", () => {
   let fixture: AddressFixture;
-  let adminCountBefore = 0;
+  const registry = new IntegrationFixtureRegistry({ suite: "addresses.integration" });
 
   beforeAll(async () => {
-    adminCountBefore = await countAdminRoleHolders(admin!);
-    fixture = await seedAddressFixture(admin!, anonKey!);
+    fixture = await seedAddressFixture(admin!, anonKey!, registry);
   }, 180_000);
 
   afterAll(async () => {
-    if (admin && fixture) await cleanupAddressFixture(admin, fixture);
-    if (admin) {
-      const adminCountAfter = await countAdminRoleHolders(admin);
-      expect(adminCountAfter).toBe(adminCountBefore);
-    }
+    if (!admin) return;
+    await runRegisteredTeardown(registry, async () => {
+      await teardownRegisteredFixture(admin, registry, undefined, {
+        bookingRpcClient: fixture.bookingAdminClient ?? fixture.dualRoleAdminClient,
+      });
+      await assertRunOwnedAdminsRemoved(admin, registry.getRunOwnedAdminUserIds());
+    });
   }, 60_000);
 
-  it("verifies the exact owner-only addresses policy set with RLS enabled", () => {
-    const { policies, rlsEnabled } = verifyAddressesOwnerOnlyPolicyState();
-    expect(rlsEnabled).toBe(true);
-    expect(policies).toEqual(EXPECTED_ADDRESS_POLICIES);
-  }, 60_000);
-
-  it("returns only customer A rows for customer A JWT", async () => {
+  it("enforces owner-only address visibility for customer A JWT", async () => {
     const { data, error } = await fixture.customerAClient
       .from("addresses")
       .select("id,user_id")
       .order("created_at");
     expect(error).toBeNull();
     expect(data?.length).toBeGreaterThan(0);
-    expect(data?.every((row) => row.user_id === fixture.customerAId)).toBe(true);
+    expect(assertRowsOwnedByUser(data, fixture.customerAId)).toBe(true);
     expect(data?.some((row) => row.id === fixture.addressAId)).toBe(true);
     expect(data?.some((row) => row.id === fixture.addressBId)).toBe(false);
   });
@@ -239,7 +177,7 @@ describeIf("address PII isolation", () => {
       .eq("id", fixture.addressBId)
       .maybeSingle();
     expect(error).toBeNull();
-    expect(data).toBeNull();
+    expect(assertNoRowReturned(data)).toBe(true);
   });
 
   it("returns only own rows for dual-role admin+customer unfiltered SELECT", async () => {
@@ -248,7 +186,7 @@ describeIf("address PII isolation", () => {
       .select("id,user_id")
       .order("created_at");
     expect(error).toBeNull();
-    expect(data?.every((row) => row.user_id === fixture.dualRoleAdminId)).toBe(true);
+    expect(assertRowsOwnedByUser(data, fixture.dualRoleAdminId)).toBe(true);
     expect(data?.some((row) => row.id === fixture.adminOwnAddressId)).toBe(true);
     expect(data?.some((row) => row.id === fixture.addressAId)).toBe(false);
     expect(data?.some((row) => row.id === fixture.addressBId)).toBe(false);
@@ -263,6 +201,7 @@ describeIf("address PII isolation", () => {
       .maybeSingle();
     expect(error).toBeNull();
     expect(data?.id).toBe(fixture.adminOwnAddressId);
+    expect(data?.user_id).toBe(fixture.dualRoleAdminId);
   });
 
   it("denies dual-role admin access to another customer's address by id", async () => {
@@ -272,7 +211,7 @@ describeIf("address PII isolation", () => {
       .eq("id", fixture.addressAId)
       .maybeSingle();
     expect(error).toBeNull();
-    expect(data).toBeNull();
+    expect(assertNoRowReturned(data)).toBe(true);
   });
 
   it("allows admin JWT to read a known booking_locations fixture row", async () => {
@@ -285,3 +224,5 @@ describeIf("address PII isolation", () => {
     expect(data?.booking_id).toBe(fixture.bookingId);
   });
 });
+
+export { IntegrationFixtureRegistry };

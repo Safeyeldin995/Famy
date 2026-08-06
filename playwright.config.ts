@@ -1,8 +1,14 @@
 import { defineConfig, devices } from "@playwright/test";
 import path from "path";
-import { loadEnv } from "./qa/env.mjs";
+import { loadQaEnv } from "./qa/load-qa-env.mjs";
+import { runPreflightChecks, validateUiDatabaseAlignment } from "./qa/env-guard.mjs";
+import {
+  assertWebServerEnvLeastPrivilege,
+  buildPlaywrightWebServerEnv,
+} from "./qa/playwright-webserver-env.mjs";
 
-loadEnv();
+loadQaEnv({ required: true });
+runPreflightChecks(process.env);
 
 const PORT = 8099;
 const REMOTE_BASE_URL = process.env.E2E_FORCE_LOCAL === "1"
@@ -10,6 +16,17 @@ const REMOTE_BASE_URL = process.env.E2E_FORCE_LOCAL === "1"
   : process.env.PLAYWRIGHT_BASE_URL?.replace(/\/$/, "");
 const BASE_URL = REMOTE_BASE_URL || `http://localhost:${PORT}`;
 const ANON_STORAGE_STATE = path.resolve(process.cwd(), "qa/.auth/anon.json");
+
+validateUiDatabaseAlignment({
+  playwrightBaseUrl: BASE_URL,
+  qaSupabaseUrl: process.env.QA_SUPABASE_URL,
+  viteSupabaseUrl: process.env.VITE_SUPABASE_URL,
+  qaAppOrigin: process.env.FAMY_QA_APP_ORIGIN,
+  productionAppOrigin: process.env.FAMY_PRODUCTION_APP_ORIGIN,
+});
+
+const webServerEnv = buildPlaywrightWebServerEnv(process.env);
+assertWebServerEnvLeastPrivilege(process.env, webServerEnv);
 
 export default defineConfig({
   testDir: "./qa/tests",
@@ -23,8 +40,6 @@ export default defineConfig({
     ["json", { outputFile: "qa/report/results.json" }],
   ],
   globalSetup: "./qa/global-setup.ts",
-  // KEEP_QA_DATA=1 skips automatic cleanup for interactive debugging; run
-  // `npm run test:e2e:cleanup` afterward to remove the QA_ accounts/records.
   globalTeardown: process.env.KEEP_QA_DATA ? undefined : "./qa/global-teardown.ts",
   use: {
     baseURL: BASE_URL,
@@ -45,12 +60,6 @@ export default defineConfig({
         timeout: 60_000,
         stdout: "pipe",
         stderr: "pipe",
-        env: {
-          ...process.env,
-          QA_E2E_OTP_CAPTURE: "1",
-          AUTH_INTENT_SECRET: process.env.AUTH_INTENT_SECRET ?? "qa-local-auth-intent-secret",
-          OTP_PROVIDER: process.env.OTP_PROVIDER ?? "mock",
-          NODE_ENV: process.env.NODE_ENV ?? "development",
-        },
+        env: webServerEnv,
       },
 });

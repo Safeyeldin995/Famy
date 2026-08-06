@@ -1,9 +1,6 @@
 import { supabaseAdmin } from "../admin-client.mjs";
 import { authenticatedClient } from "../authenticated-client.mjs";
-import { loadEnv } from "../env.mjs";
 import { ensureRegistryProviderAvatar, resetRegistryProviderToDraft } from "./registry-fixtures.mjs";
-
-loadEnv();
 
 const REGISTRY_PROVIDER_NAME = "QA_provider_e2e";
 

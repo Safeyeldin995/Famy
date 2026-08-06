@@ -1,21 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 import { execSync } from "child_process";
-import { loadEnv } from "./env.mjs";
+import { loadQaEnv } from "./load-qa-env.mjs";
+import { runPreflightChecks } from "./env-guard.mjs";
 import { authenticatedClient } from "./authenticated-client.mjs";
-
-loadEnv();
-
-const url = process.env.SUPABASE_URL;
-const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const anonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_ANON_KEY;
-
-if (!url || !key || !anonKey) {
-  console.error("Missing SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, or anon key");
-  process.exit(1);
-}
-
-const admin = createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
-const anon = createClient(url, anonKey, { auth: { autoRefreshToken: false, persistSession: false } });
+import { runCliIfDirect } from "./cli-entrypoint.mjs";
 
 function runSql(query) {
   const oneLine = query.replace(/\s+/g, " ").trim();
@@ -35,7 +23,25 @@ async function rpcDenied(client, fn, args) {
   return { denied: !!error, message: error?.message ?? "ok" };
 }
 
-async function main() {
+/**
+ * @returns {Promise<number>}
+ */
+export async function main() {
+  loadQaEnv({ required: true });
+  runPreflightChecks(process.env);
+
+  const url = process.env.QA_SUPABASE_URL;
+  const key = process.env.QA_SUPABASE_SECRET_KEY;
+  const anonKey = process.env.QA_SUPABASE_PUBLISHABLE_KEY;
+
+  if (!url || !key || !anonKey) {
+    console.error("Missing QA Supabase credentials in .env.qa.local");
+    return 1;
+  }
+
+  const admin = createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
+  const anon = createClient(url, anonKey, { auth: { autoRefreshToken: false, persistSession: false } });
+
   console.log("=== routine_privileges (authenticated) ===");
   console.log(runSql(`
     SELECT routine_name, grantee, privilege_type
@@ -58,7 +64,7 @@ async function main() {
   const providerId = provider?.id;
   if (!providerId) {
     console.error("No provider row available for RPC denial checks");
-    process.exit(1);
+    return 1;
   }
 
   console.log("\n=== RPC denial checks ===");
@@ -85,12 +91,14 @@ async function main() {
     checks.push(["customer.provider_onboarding_completion(other)", await rpcDenied(customerClient, "provider_onboarding_completion", { p_provider_id: providerId })]);
   }
 
+  let exitCode = 0;
   for (const [name, result] of checks) {
     console.log(`${name}: ${result.denied ? "DENIED" : "ALLOWED"} ${result.message}`);
-    if (!result.denied) process.exitCode = 1;
+    if (!result.denied) exitCode = 1;
   }
 
   console.log("\nPrivilege verification complete.");
+  return exitCode;
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+runCliIfDirect(import.meta.url, () => main());
