@@ -1,5 +1,5 @@
 import { getSupabaseAdmin } from "./admin-client.mjs";
-import { readRegistry, removeRegistryUsers, recordRecoveryFailure } from "./registry.mjs";
+import { readRegistry, removeRegistryUsers, recordRecoveryFailure, readE2eFixtureUserIds } from "./registry.mjs";
 import fs from "fs";
 import path from "path";
 import { assertNoPendingRestorations, restorePendingRestorations } from "./restoration-registry.mjs";
@@ -497,14 +497,14 @@ export async function runPlaywrightGlobalTeardown() {
   await restorePendingRestorations();
 
   const reg = readRegistry();
-  const registryUserIds = (reg.users ?? []).map((user) => user.userId).filter(Boolean);
+  const registryUserIds = readE2eFixtureUserIds();
   const registryIds = new Set(registryUserIds);
 
   if (!registryUserIds.length) {
-    console.log("[qa-teardown:e2e] no registry users; skipping destructive cleanup");
+    console.log("[qa-teardown:e2e] no e2e fixture snapshot; skipping destructive cleanup");
     return {
       skipped: true,
-      reason: "no_registry_users",
+      reason: "no_e2e_fixture_snapshot",
       users: {
         succeeded: [],
         refused: [],

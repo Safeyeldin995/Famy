@@ -316,9 +316,12 @@ describe("registry orphan lifecycle", () => {
   it("detects pending registry orphans without erasing first", () => {
     const registryPath = path.join(tmpDir, "registry.json");
     const journalPath = path.join(tmpDir, "registry.journal.jsonl");
-    fs.writeFileSync(registryPath, JSON.stringify({ users: [{ userId: "abc-123", key: "customer" }] }));
+    fs.writeFileSync(registryPath, JSON.stringify({
+      users: [{ userId: "abc-123", key: "customer" }],
+      e2eSnapshot: { userIds: ["abc-123"] },
+    }));
     expect(registryHasPendingOrphans()).toBe(true);
-    fs.writeFileSync(registryPath, JSON.stringify({ users: [] }));
+    fs.writeFileSync(registryPath, JSON.stringify({ users: [], e2eSnapshot: { userIds: [] } }));
     fs.writeFileSync(journalPath, "");
     expect(registryHasPendingOrphans()).toBe(false);
   });

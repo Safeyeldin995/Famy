@@ -2,7 +2,7 @@ import { chromium, type FullConfig } from "@playwright/test";
 import path from "path";
 import fs from "fs";
 import { supabaseAdmin } from "./admin-client.mjs";
-import { addUser, readRegistry, writeRegistry } from "./registry.mjs";
+import { addUser, publishE2eFixtureSnapshot, REGISTRY_SCHEMA_VERSION } from "./registry.mjs";
 import { restorePendingRestorations } from "./restoration-registry.mjs";
 import { resetRegistryProviderToDraft } from "./tests/registry-fixtures.mjs";
 import { vercelBypassHeaders } from "./env.mjs";
@@ -254,14 +254,26 @@ async function globalSetup(config: FullConfig) {
   }
   const browser = await chromium.launch();
 
-  const existingReg = readRegistry();
   const qaPassword = generateSecureRandomPassword();
-  let reg: { users: any[]; qaPassword?: string; phones?: typeof QA_PHONES } = {
-    users: existingReg.users ?? [],
+  const runId = String(Date.now());
+  let reg: {
+    schemaVersion: number;
+    users: any[];
+    qaPassword: string;
+    phones: typeof QA_PHONES;
+    e2eSnapshot: { runId: string; publishedAt: string | null; requiredKeys: string[]; userIds: string[] };
+  } = {
+    schemaVersion: REGISTRY_SCHEMA_VERSION,
+    users: [],
     qaPassword,
     phones: QA_PHONES,
+    e2eSnapshot: {
+      runId,
+      publishedAt: null,
+      requiredKeys: ["customer", "provider", "adminSeed"],
+      userIds: [],
+    },
   };
-  writeRegistry(reg);
 
   try {
     // ---- QA customer ----
@@ -345,6 +357,8 @@ async function globalSetup(config: FullConfig) {
   if (providerEntry) {
     await resetRegistryProviderToDraft(providerEntry.userId);
   }
+
+  publishE2eFixtureSnapshot(reg);
 }
 
 export default globalSetup;

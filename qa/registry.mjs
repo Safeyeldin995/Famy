@@ -6,6 +6,12 @@ import {
   canonicalQaRegistryDir,
 } from "./registry-integration-mode.mjs";
 
+/** @readonly */
+export const REGISTRY_SCHEMA_VERSION = 2;
+
+/** @readonly */
+export const E2E_REQUIRED_FIXTURE_KEYS = ["customer", "provider", "adminSeed"];
+
 /** @type {string | null} */
 let registryRootOverride = null;
 /** @type {boolean} */
@@ -179,25 +185,37 @@ export function readQaSyntheticPassword() {
   return password;
 }
 
+function mergeUserRecord(previous, entry) {
+  const prev = previous ?? {};
+  return {
+    ...prev,
+    userId: entry.userId,
+    email: typeof entry.email === "string" ? entry.email : prev.email,
+    suite: typeof entry.suite === "string" ? entry.suite : prev.suite,
+    runId: typeof entry.runId === "string" ? entry.runId : prev.runId,
+    key: typeof entry.key === "string" ? entry.key : prev.key,
+    phone: typeof entry.phone === "string" ? entry.phone : prev.phone,
+  };
+}
+
 /** Merge base registry + append-only journal into authoritative state. */
 export function mergeRegistryState() {
   const base = readRegistryBase();
-  /** @type {Map<string, { userId: string; email?: string; suite?: string; runId?: string }>} */
-  const usersById = new Map((base.users ?? []).map((user) => [user.userId, user]));
+  /** @type {Map<string, Record<string, unknown>>} */
+  const usersById = new Map((base.users ?? []).map((user) => [user.userId, { ...user }]));
   for (const entry of readJournalLines()) {
     if (entry.type === "user" && typeof entry.userId === "string") {
-      usersById.set(entry.userId, {
-        userId: entry.userId,
-        email: typeof entry.email === "string" ? entry.email : undefined,
-        suite: typeof entry.suite === "string" ? entry.suite : undefined,
-        runId: typeof entry.runId === "string" ? entry.runId : undefined,
-      });
+      usersById.set(entry.userId, mergeUserRecord(usersById.get(entry.userId), entry));
     }
     if (entry.type === "remove-user" && typeof entry.userId === "string") {
       usersById.delete(entry.userId);
     }
   }
   return {
+    schemaVersion: base.schemaVersion ?? REGISTRY_SCHEMA_VERSION,
+    qaPassword: base.qaPassword,
+    phones: base.phones,
+    e2eSnapshot: base.e2eSnapshot,
     users: [...usersById.values()],
     recovery: readRecoveryLines(),
   };
@@ -219,7 +237,7 @@ function appendRecovery(entry) {
 
 /**
  * Register a user before first mutation — merge-safe under lock.
- * @param {{ userId: string; email?: string; suite?: string; runId?: string }} entry
+ * @param {{ userId: string; email?: string; suite?: string; runId?: string; key?: string; phone?: string }} entry
  */
 export function registerUserEntry(entry) {
   if (!entry?.userId) {
@@ -232,6 +250,8 @@ export function registerUserEntry(entry) {
       email: entry.email,
       suite: entry.suite,
       runId: entry.runId,
+      key: entry.key,
+      phone: entry.phone,
       ts: Date.now(),
     });
   });
@@ -269,6 +289,93 @@ export function writeRegistry(reg) {
   });
 }
 
+/** Atomic registry publish — write temp file then rename. */
+export function writeRegistryAtomic(reg) {
+  withRegistryLock(() => {
+    const target = registryPath();
+    const tmp = `${target}.${process.pid}.${Date.now()}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(reg, null, 2));
+    fs.renameSync(tmp, target);
+  });
+}
+
+/**
+ * Validate the in-memory E2E fixture snapshot before publish.
+ * @param {Record<string, unknown>} reg
+ */
+export function assertE2eFixtureSnapshotComplete(reg) {
+  if (typeof reg.qaPassword !== "string" || reg.qaPassword.length === 0) {
+    throw new Error("[qa-registry] e2e fixture snapshot incomplete: qaPassword missing");
+  }
+  for (const key of E2E_REQUIRED_FIXTURE_KEYS) {
+    const user = (reg.users ?? []).find((row) => row.key === key);
+    if (!user?.userId) {
+      throw new Error(`[qa-registry] e2e fixture snapshot incomplete: missing fixture key ${key}`);
+    }
+  }
+}
+
+/**
+ * Publish the complete Playwright E2E fixture snapshot for cross-process reads.
+ * @param {Record<string, unknown>} reg
+ */
+export function publishE2eFixtureSnapshot(reg) {
+  assertE2eFixtureSnapshotComplete(reg);
+  const runId = typeof reg.e2eSnapshot?.runId === "string"
+    ? reg.e2eSnapshot.runId
+    : String(Date.now());
+  const fixtureUsers = (reg.users ?? []).filter((row) => typeof row.key === "string" && row.userId);
+  const userIds = [...new Set(fixtureUsers.map((row) => row.userId).filter(Boolean))];
+  const snapshot = {
+    schemaVersion: REGISTRY_SCHEMA_VERSION,
+    qaPassword: reg.qaPassword,
+    phones: reg.phones,
+    e2eSnapshot: {
+      runId,
+      publishedAt: new Date().toISOString(),
+      requiredKeys: [...E2E_REQUIRED_FIXTURE_KEYS],
+      userIds,
+    },
+    users: fixtureUsers,
+  };
+  writeRegistryAtomic(snapshot);
+  withRegistryLock(() => {
+    if (fs.existsSync(journalPath())) {
+      fs.writeFileSync(journalPath(), "");
+    }
+  });
+  return snapshot;
+}
+
+/** @returns {string[]} user ids scoped to the current published E2E fixture snapshot. */
+export function readE2eFixtureUserIds() {
+  const reg = readRegistry();
+  if (!Array.isArray(reg.e2eSnapshot?.userIds) || !reg.e2eSnapshot.userIds.length) {
+    return [];
+  }
+  return [...reg.e2eSnapshot.userIds];
+}
+
+/**
+ * Read a named E2E fixture identity; fails clearly when snapshot is incomplete.
+ * @param {string} key
+ */
+export function readE2eFixtureUser(key) {
+  const reg = readRegistry();
+  if (!reg.e2eSnapshot?.publishedAt) {
+    throw new Error(
+      "[qa-registry] e2e fixture snapshot not published. Run Playwright global setup first.",
+    );
+  }
+  const user = reg.users.find((row) => row.key === key);
+  if (!user?.userId) {
+    throw new Error(
+      `[qa-registry] e2e fixture identity missing: ${key}. Run Playwright global setup first.`,
+    );
+  }
+  return user;
+}
+
 export function addUser(reg, entry) {
   registerUserEntry(entry);
   reg.users.push(entry);
@@ -279,7 +386,13 @@ export function addUser(reg, entry) {
 export function compactRegistry() {
   withRegistryLock(() => {
     const merged = mergeRegistryState();
-    fs.writeFileSync(registryPath(), JSON.stringify({ users: merged.users }, null, 2));
+    fs.writeFileSync(registryPath(), JSON.stringify({
+      schemaVersion: merged.schemaVersion ?? REGISTRY_SCHEMA_VERSION,
+      qaPassword: merged.qaPassword,
+      phones: merged.phones,
+      e2eSnapshot: merged.e2eSnapshot,
+      users: merged.users,
+    }, null, 2));
     fs.writeFileSync(journalPath(), "");
   });
 }

@@ -36,11 +36,11 @@ describe("playwright global teardown lifecycle", () => {
     );
   });
 
-  it("skips destructive cleanup when global setup never registered users", async () => {
+  it("skips destructive cleanup when global setup never published a snapshot", async () => {
     writeRegistry({ users: [], qaPassword: "test-password" });
     const result = await runPlaywrightGlobalTeardown();
     expect(result.skipped).toBe(true);
-    expect(result.reason).toBe("no_registry_users");
+    expect(result.reason).toBe("no_e2e_fixture_snapshot");
   });
 });
 

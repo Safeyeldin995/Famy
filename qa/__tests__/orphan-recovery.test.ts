@@ -3,6 +3,13 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 const readRegistry = vi.fn();
 const writeRegistry = vi.fn();
 const removeRegistryUsers = vi.fn();
+const readE2eFixtureUserIds = vi.fn(() => {
+  const reg = readRegistry();
+  if (Array.isArray(reg.e2eSnapshot?.userIds) && reg.e2eSnapshot.userIds.length) {
+    return [...reg.e2eSnapshot.userIds];
+  }
+  return (reg.users ?? []).map((u: { userId?: string }) => u.userId).filter(Boolean);
+});
 const runTeardownForUserIds = vi.fn();
 const getSupabaseAdmin = vi.fn(() => ({}));
 
@@ -10,6 +17,7 @@ vi.mock("../registry.mjs", () => ({
   readRegistry,
   writeRegistry,
   removeRegistryUsers,
+  readE2eFixtureUserIds,
 }));
 
 vi.mock("../teardown-core.mjs", () => ({
@@ -25,6 +33,7 @@ describe("recoverRegistryOrphans", () => {
     readRegistry.mockReset();
     writeRegistry.mockReset();
     removeRegistryUsers.mockReset();
+    readE2eFixtureUserIds.mockClear();
     runTeardownForUserIds.mockReset();
     getSupabaseAdmin.mockReset();
     getSupabaseAdmin.mockReturnValue({});
@@ -37,6 +46,7 @@ describe("recoverRegistryOrphans", () => {
         { userId: "bad-user-0002", key: "adminSeed" },
       ],
       qaPassword: "secret",
+      e2eSnapshot: { userIds: ["good-user-001", "bad-user-0002"] },
     });
     runTeardownForUserIds.mockResolvedValue({
       succeeded: ["good-user-001"],
@@ -58,6 +68,7 @@ describe("recoverRegistryOrphans", () => {
     expect(writeRegistry).toHaveBeenCalledWith({
       users: [{ userId: "bad-user-0002", key: "adminSeed" }],
       qaPassword: "secret",
+      e2eSnapshot: null,
     });
     expect(result.recovered).toBe(1);
     expect(result.remaining).toBe(1);
@@ -70,6 +81,7 @@ describe("recoverRegistryOrphans", () => {
         { userId: "bad-1", key: "a" },
         { userId: "bad-2", key: "b" },
       ],
+      e2eSnapshot: { userIds: ["bad-1", "bad-2"] },
     });
     runTeardownForUserIds.mockResolvedValue({
       succeeded: [],
@@ -89,6 +101,7 @@ describe("recoverRegistryOrphans", () => {
         { userId: "bad-1", key: "a" },
         { userId: "bad-2", key: "b" },
       ],
+      e2eSnapshot: null,
     });
     expect(result.remaining).toBe(2);
     expect(result.recovered).toBe(0);
@@ -97,6 +110,7 @@ describe("recoverRegistryOrphans", () => {
   it("clears registry when all cleanups succeed", async () => {
     readRegistry.mockReturnValue({
       users: [{ userId: "good-1", key: "customer" }],
+      e2eSnapshot: { userIds: ["good-1"] },
     });
     runTeardownForUserIds.mockResolvedValue({
       succeeded: ["good-1"],
@@ -109,7 +123,10 @@ describe("recoverRegistryOrphans", () => {
     const result = await recoverRegistryOrphans();
 
     expect(removeRegistryUsers).toHaveBeenCalledWith(["good-1"]);
-    expect(writeRegistry).toHaveBeenCalledWith({ users: [] });
+    expect(writeRegistry).toHaveBeenCalledWith({
+      users: [],
+      e2eSnapshot: null,
+    });
     expect(result.recovered).toBe(1);
     expect(result.remaining).toBe(0);
   });

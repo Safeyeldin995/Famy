@@ -1,5 +1,10 @@
-// Registry orphan recovery — cleans interrupted prior runs before minting new QA identities.
-import { readRegistry, writeRegistry, removeRegistryUsers } from "./registry.mjs";
+// Registry orphan recovery — cleans interrupted prior E2E runs before minting new QA identities.
+import {
+  readRegistry,
+  writeRegistry,
+  removeRegistryUsers,
+  readE2eFixtureUserIds,
+} from "./registry.mjs";
 import { getSupabaseAdmin } from "./admin-client.mjs";
 import { runTeardownForUserIds } from "./teardown-core.mjs";
 import { maskUserId } from "./qa-classification.mjs";
@@ -9,7 +14,7 @@ import { maskUserId } from "./qa-classification.mjs";
  */
 export async function recoverRegistryOrphans() {
   const reg = readRegistry();
-  const userIds = [...new Set((reg.users ?? []).map((u) => u.userId).filter(Boolean))];
+  const userIds = [...new Set(readE2eFixtureUserIds())];
   if (!userIds.length) {
     return { recovered: 0, remaining: 0, remainingUserIds: [] };
   }
@@ -29,7 +34,13 @@ export async function recoverRegistryOrphans() {
   if (result.succeeded.length) {
     removeRegistryUsers(result.succeeded);
   }
-  writeRegistry({ ...reg, users: remainingUsers });
+  writeRegistry({
+    schemaVersion: reg.schemaVersion,
+    qaPassword: reg.qaPassword,
+    phones: reg.phones,
+    e2eSnapshot: null,
+    users: remainingUsers,
+  });
 
   const recovered = userIds.length - remainingIds.size;
   if (result.refused.length) {
@@ -55,6 +66,5 @@ export async function recoverRegistryOrphans() {
 }
 
 export function registryHasPendingOrphans() {
-  const reg = readRegistry();
-  return (reg.users?.length ?? 0) > 0;
+  return readE2eFixtureUserIds().length > 0;
 }
