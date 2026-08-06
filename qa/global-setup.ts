@@ -2,7 +2,8 @@ import { chromium, type FullConfig } from "@playwright/test";
 import path from "path";
 import fs from "fs";
 import { supabaseAdmin } from "./admin-client.mjs";
-import { addUser, publishE2eFixtureSnapshot, REGISTRY_SCHEMA_VERSION } from "./registry.mjs";
+import { addUser, publishE2eFixtureSnapshot, REGISTRY_SCHEMA_VERSION, createEmptyE2eResources } from "./registry.mjs";
+import { assertQaE2eBaselineReadOnly } from "./e2e-baseline.mjs";
 import { restorePendingRestorations } from "./restoration-registry.mjs";
 import { resetRegistryProviderToDraft } from "./tests/registry-fixtures.mjs";
 import { vercelBypassHeaders } from "./env.mjs";
@@ -243,6 +244,8 @@ async function globalSetup(config: FullConfig) {
   // Recover registry-tracked orphans from interrupted prior runs before minting new users.
   await recoverRegistryOrphans();
 
+  await assertQaE2eBaselineReadOnly(supabaseAdmin);
+
   fs.mkdirSync(AUTH_DIR, { recursive: true });
   await bootstrapVercelBypassStorage(baseURL);
 
@@ -261,7 +264,13 @@ async function globalSetup(config: FullConfig) {
     users: any[];
     qaPassword: string;
     phones: typeof QA_PHONES;
-    e2eSnapshot: { runId: string; publishedAt: string | null; requiredKeys: string[]; userIds: string[] };
+    e2eSnapshot: {
+      runId,
+      publishedAt: string | null;
+      requiredKeys: string[];
+      userIds: string[];
+      resources: ReturnType<typeof createEmptyE2eResources>;
+    };
   } = {
     schemaVersion: REGISTRY_SCHEMA_VERSION,
     users: [],
@@ -272,6 +281,7 @@ async function globalSetup(config: FullConfig) {
       publishedAt: null,
       requiredKeys: ["customer", "provider", "adminSeed"],
       userIds: [],
+      resources: createEmptyE2eResources(),
     },
   };
 

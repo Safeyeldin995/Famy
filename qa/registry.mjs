@@ -12,6 +12,27 @@ export const REGISTRY_SCHEMA_VERSION = 2;
 /** @readonly */
 export const E2E_REQUIRED_FIXTURE_KEYS = ["customer", "provider", "adminSeed"];
 
+/** @readonly */
+export const E2E_RESOURCE_TYPES = ["zoneIds", "serviceIds", "bookingIds", "providerIds"];
+
+/** @returns {Record<string, string[]>} */
+export function createEmptyE2eResources() {
+  return Object.fromEntries(E2E_RESOURCE_TYPES.map((type) => [type, []]));
+}
+
+/**
+ * @param {Record<string, string[]> | undefined} resources
+ * @returns {Record<string, string[]>}
+ */
+function normalizeE2eResources(resources) {
+  const normalized = createEmptyE2eResources();
+  for (const type of E2E_RESOURCE_TYPES) {
+    const ids = [...new Set((resources?.[type] ?? []).filter(Boolean))];
+    normalized[type] = ids.sort();
+  }
+  return normalized;
+}
+
 /** @type {string | null} */
 let registryRootOverride = null;
 /** @type {boolean} */
@@ -211,11 +232,27 @@ export function mergeRegistryState() {
       usersById.delete(entry.userId);
     }
   }
+  const runId = typeof base.e2eSnapshot?.runId === "string" ? base.e2eSnapshot.runId : null;
+  const resources = normalizeE2eResources(base.e2eSnapshot?.resources);
+  for (const entry of readJournalLines()) {
+    if (entry.type === "e2e-resource"
+      && entry.runId === runId
+      && typeof entry.resourceType === "string"
+      && typeof entry.id === "string"
+      && E2E_RESOURCE_TYPES.includes(entry.resourceType)) {
+      if (!resources[entry.resourceType].includes(entry.id)) {
+        resources[entry.resourceType].push(entry.id);
+        resources[entry.resourceType].sort();
+      }
+    }
+  }
   return {
     schemaVersion: base.schemaVersion ?? REGISTRY_SCHEMA_VERSION,
     qaPassword: base.qaPassword,
     phones: base.phones,
-    e2eSnapshot: base.e2eSnapshot,
+    e2eSnapshot: base.e2eSnapshot
+      ? { ...base.e2eSnapshot, resources: normalizeE2eResources(resources) }
+      : base.e2eSnapshot,
     users: [...usersById.values()],
     recovery: readRecoveryLines(),
   };
@@ -335,6 +372,7 @@ export function publishE2eFixtureSnapshot(reg) {
       publishedAt: new Date().toISOString(),
       requiredKeys: [...E2E_REQUIRED_FIXTURE_KEYS],
       userIds,
+      resources: createEmptyE2eResources(),
     },
     users: fixtureUsers,
   };
@@ -354,6 +392,42 @@ export function readE2eFixtureUserIds() {
     return [];
   }
   return [...reg.e2eSnapshot.userIds];
+}
+
+/** @returns {Record<string, string[]>} */
+export function readE2eSnapshotResources() {
+  const reg = readRegistry();
+  if (!reg.e2eSnapshot?.publishedAt) {
+    return createEmptyE2eResources();
+  }
+  return normalizeE2eResources(reg.e2eSnapshot.resources);
+}
+
+/**
+ * Register a current-run fixture resource for snapshot-scoped teardown.
+ * @param {"zoneIds"|"serviceIds"|"bookingIds"|"providerIds"} resourceType
+ * @param {string} id
+ */
+export function registerE2eRunResource(resourceType, id) {
+  if (!E2E_RESOURCE_TYPES.includes(resourceType)) {
+    throw new Error(`[qa-registry] unsupported e2e resource type: ${resourceType}`);
+  }
+  if (!id) {
+    throw new Error("[qa-registry] e2e resource id required");
+  }
+  const reg = readRegistry();
+  if (!reg.e2eSnapshot?.publishedAt || !reg.e2eSnapshot?.runId) {
+    throw new Error("[qa-registry] cannot register e2e resource before fixture snapshot is published");
+  }
+  withRegistryLock(() => {
+    appendJournal({
+      type: "e2e-resource",
+      resourceType,
+      id,
+      runId: reg.e2eSnapshot.runId,
+      ts: Date.now(),
+    });
+  });
 }
 
 /**

@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "./admin-client.mjs";
-import { readRegistry, removeRegistryUsers, recordRecoveryFailure, readE2eFixtureUserIds } from "./registry.mjs";
+import { readRegistry, removeRegistryUsers, recordRecoveryFailure, readE2eFixtureUserIds, readE2eSnapshotResources, E2E_RESOURCE_TYPES } from "./registry.mjs";
+import { runE2eSnapshotResourceTeardown } from "./e2e-resource-teardown.mjs";
 import fs from "fs";
 import path from "path";
 import { assertNoPendingRestorations, restorePendingRestorations } from "./restoration-registry.mjs";
@@ -519,6 +520,11 @@ export async function runPlaywrightGlobalTeardown() {
     execute: true,
     registryIds: [...registryIds],
   });
+  const resources = readE2eSnapshotResources();
+  const hasResources = E2E_RESOURCE_TYPES.some((type) => (resources[type] ?? []).length > 0);
+  const resourceResult = hasResources
+    ? await runE2eSnapshotResourceTeardown(admin, resources)
+    : { outcomes: [], failed: [], deactivated: [], deleted: [] };
   const plan = userResult.plan;
   const recovery = readRegistry().recovery ?? [];
 
@@ -544,17 +550,26 @@ export async function runPlaywrightGlobalTeardown() {
     failed_users: userResult.failed.map((row) => ({ id: maskUserId(row.userId), reason: row.reason })),
     retained_users: userResult.retained.map((row) => ({ id: maskUserId(row.userId), reason: row.reason })),
     retained_resources: plan.retained.map((row) => ({ table: row.table, id: maskUserId(row.id), reason: row.reason })),
+    e2e_resource_outcomes: resourceResult.outcomes.map((row) => ({
+      table: row.table,
+      id: maskUserId(row.id),
+      action: row.action,
+      reason: row.reason,
+    })),
     honest_residue_metrics: honestMetrics,
     recovery_entries: recovery.length,
   }, null, 2));
 
   console.log(`[qa-teardown:e2e] succeeded=${userResult.succeeded.length} refused=${userResult.refused.length} failed=${userResult.failed.length} retained=${userResult.retained.length}`);
   console.log(`[qa-teardown:e2e] registry_users=${registryUserIds.length}`);
+  console.log(`[qa-teardown:e2e] snapshot_resources=${E2E_RESOURCE_TYPES.map((type) => `${type}:${(resources[type] ?? []).length}`).join(" ")}`);
+  console.log(`[qa-teardown:e2e] resource_deleted=${resourceResult.deleted.length} resource_deactivated=${resourceResult.deactivated.length} resource_failed=${resourceResult.failed.length}`);
 
   return {
     skipped: false,
     plan,
     users: userResult,
+    resources: resourceResult,
     honestMetrics,
     recoveryCount: recovery.length,
   };

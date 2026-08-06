@@ -115,9 +115,15 @@ describe("E2E fixture registry contract", () => {
     expect(fs.readdirSync(root).some((name) => name.endsWith(".tmp"))).toBe(false);
   });
 
-  it("wrong registry root fails clearly", () => {
-    resetRegistryRootForTests();
-    expect(() => readE2eFixtureUser("customer")).toThrow(/Run Playwright global setup first/);
+  it("unpublished isolated registry root fails clearly", () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "qa-registry-missing-"));
+    try {
+      configureRegistryRootForTests(tmpDir);
+      expect(() => readE2eFixtureUser("customer")).toThrow(/fixture snapshot not published/);
+    } finally {
+      resetRegistryRootForTests();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 
   it("stale previous-run snapshot is not selected after publish", () => {

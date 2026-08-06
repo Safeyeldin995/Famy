@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "../admin-client.mjs";
-import { readRegistry } from "../registry.mjs";
+import { readRegistry, registerE2eRunResource } from "../registry.mjs";
 import { authenticatedClient } from "../authenticated-client.mjs";
 import { completeProviderOnboarding } from "./onboarding-fixtures.mjs";
 import { resetRegistryProviderToDraft } from "./registry-fixtures.mjs";
@@ -177,6 +177,7 @@ export async function ensureBookingLifecycleFixture() {
 
     const serviceId = await getOrCreateLifecycleService(category.id);
     staged.serviceId = serviceId;
+    registerE2eRunResource("serviceIds", serviceId);
 
     const { data: zone, error: zoneError } = await supabaseAdmin.from("zones").insert({
       name_en: ZONE_NAME,
@@ -188,6 +189,7 @@ export async function ensureBookingLifecycleFixture() {
     }).select("id").single();
     if (zoneError) throw zoneError;
     staged.zoneId = zone.id;
+    registerE2eRunResource("zoneIds", zone.id);
 
     await completeProviderOnboarding(providerUser.userId, { zoneId: zone.id });
 
