@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import path from "path";
 import { supabaseAdmin } from "../admin-client.mjs";
-import { readRegistry } from "../registry.mjs";
+import { readRegistry, registerE2eRunResource } from "../registry.mjs";
 import { captureErrors } from "./helpers";
 import { assertSafeGlobalMutationTarget } from "../restoration-registry.mjs";
 import { authenticatedClient } from "../authenticated-client.mjs";
@@ -48,6 +48,7 @@ test("booking status selector rejects zero-row writes, persists, and audits the 
     is_active: true,
   }).select().single();
   expect(zoneError).toBeNull();
+  registerE2eRunResource("zoneIds", zone!.id);
   const { error: zoneServiceError } = await supabaseAdmin.from("zone_services").insert({ zone_id: zone!.id, service_id: service!.id });
   expect(zoneServiceError).toBeNull();
   const { error: zoneProviderError } = await supabaseAdmin.from("zone_providers").insert({ zone_id: zone!.id, provider_id: provider!.id });

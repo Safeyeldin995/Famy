@@ -2,17 +2,28 @@ import { chromium, type FullConfig } from "@playwright/test";
 import path from "path";
 import fs from "fs";
 import { supabaseAdmin } from "./admin-client.mjs";
-import { addUser, writeRegistry } from "./registry.mjs";
+import { addUser, publishE2eFixtureSnapshot, REGISTRY_SCHEMA_VERSION, createEmptyE2eResources } from "./registry.mjs";
+import { assertQaE2eBaselineReadOnly } from "./e2e-baseline.mjs";
 import { restorePendingRestorations } from "./restoration-registry.mjs";
 import { resetRegistryProviderToDraft } from "./tests/registry-fixtures.mjs";
-import { loadEnv, vercelBypassHeaders } from "./env.mjs";
+import { vercelBypassHeaders } from "./env.mjs";
 import { readQaE2eOtp } from "./read-e2e-otp.mjs";
+import { assertQaWriteGuard, validateUiDatabaseAlignment } from "./env-guard.mjs";
+import { loadQaEnv } from "./load-qa-env.mjs";
+import { recoverRegistryOrphans } from "./orphan-recovery.mjs";
+import { findAuthUserByPhone } from "./list-users-paginated.mjs";
+import {
+  assertRuntimeIdentityMatchesQaGuard,
+  fetchRuntimeIdentity,
+} from "./runtime-identity-fetch.mjs";
+import { parseSupabaseProjectRef } from "./qa-identity.mjs";
+import { generateSecureRandomPassword } from "./teardown-terminal-disable.mjs";
 
-loadEnv();
+loadQaEnv({ required: true });
+assertQaWriteGuard(process.env);
 
 const AUTH_DIR = path.resolve(process.cwd(), "qa/.auth");
 const ANON_STATE_PATH = path.join(AUTH_DIR, "anon.json");
-const QA_PASSWORD = "QaRuntime!2026Test";
 
 function isVercelLoginWall(text: string): boolean {
   return text.includes("Log in to Vercel");
@@ -173,7 +184,12 @@ async function completeOtpEntry(
   await page.waitForURL(/\/auth\/set-password/, { timeout: 15_000 });
 }
 
-async function signUp(page: import("@playwright/test").Page, phone: string, role: "customer" | "provider") {
+async function signUp(
+  page: import("@playwright/test").Page,
+  phone: string,
+  role: "customer" | "provider",
+  qaPassword: string,
+) {
   const e164 = `+20${phone.replace(/^\+/, "")}`;
   const diagnostics: string[] = [];
   page.on("console", (message) => { if (message.type() === "error") diagnostics.push(`console: ${message.text()}`); });
@@ -201,17 +217,36 @@ async function signUp(page: import("@playwright/test").Page, phone: string, role
 
   await completeOtpEntry(page, e164, "SIGNUP");
   const passwordInputs = page.locator('input[type="password"]');
-  await passwordInputs.nth(0).fill(QA_PASSWORD);
-  await passwordInputs.nth(1).fill(QA_PASSWORD);
+  await passwordInputs.nth(0).fill(qaPassword);
+  await passwordInputs.nth(1).fill(qaPassword);
   await page.getByRole("button", { name: SAVE_PASSWORD }).click();
 }
 
 async function globalSetup(config: FullConfig) {
   process.env.QA_E2E_OTP_CAPTURE = "1";
+  const baseURL = config.projects[0].use.baseURL as string;
+  validateUiDatabaseAlignment({
+    playwrightBaseUrl: baseURL,
+    qaSupabaseUrl: process.env.QA_SUPABASE_URL,
+    viteSupabaseUrl: process.env.VITE_SUPABASE_URL,
+    qaAppOrigin: process.env.FAMY_QA_APP_ORIGIN,
+    productionAppOrigin: process.env.FAMY_PRODUCTION_APP_ORIGIN,
+  });
+
+  const runtimeIdentity = await fetchRuntimeIdentity(baseURL, vercelBypassHeaders());
+  assertRuntimeIdentityMatchesQaGuard(
+    runtimeIdentity,
+    parseSupabaseProjectRef(process.env.QA_SUPABASE_URL!),
+  );
+
   // Recover global rows first if a prior browser/worker process was interrupted.
   await restorePendingRestorations();
+  // Recover registry-tracked orphans from interrupted prior runs before minting new users.
+  await recoverRegistryOrphans();
+
+  await assertQaE2eBaselineReadOnly(supabaseAdmin);
+
   fs.mkdirSync(AUTH_DIR, { recursive: true });
-  const baseURL = config.projects[0].use.baseURL as string;
   await bootstrapVercelBypassStorage(baseURL);
 
   const contextOptions: Parameters<typeof browser.newContext>[0] = { baseURL };
@@ -222,12 +257,33 @@ async function globalSetup(config: FullConfig) {
   }
   const browser = await chromium.launch();
 
-  // Always start from a clean registry: each run mints fresh QA_ accounts
-  // (timestamp-suffixed phones), so a prior run's entries are guaranteed stale.
-  let reg: { users: any[]; qaPassword?: string; phones?: typeof QA_PHONES } = { users: [] };
-  reg.qaPassword = QA_PASSWORD;
-  reg.phones = QA_PHONES;
-  writeRegistry(reg);
+  const qaPassword = generateSecureRandomPassword();
+  const runId = String(Date.now());
+  let reg: {
+    schemaVersion: number;
+    users: any[];
+    qaPassword: string;
+    phones: typeof QA_PHONES;
+    e2eSnapshot: {
+      runId,
+      publishedAt: string | null;
+      requiredKeys: string[];
+      userIds: string[];
+      resources: ReturnType<typeof createEmptyE2eResources>;
+    };
+  } = {
+    schemaVersion: REGISTRY_SCHEMA_VERSION,
+    users: [],
+    qaPassword,
+    phones: QA_PHONES,
+    e2eSnapshot: {
+      runId,
+      publishedAt: null,
+      requiredKeys: ["customer", "provider", "adminSeed"],
+      userIds: [],
+      resources: createEmptyE2eResources(),
+    },
+  };
 
   try {
     // ---- QA customer ----
@@ -235,7 +291,7 @@ async function globalSetup(config: FullConfig) {
       const ctx = await browser.newContext(contextOptions);
       await pinEnglishLocale(ctx);
       const page = await ctx.newPage();
-      await signUp(page, QA_PHONES.customer, "customer");
+      await signUp(page, QA_PHONES.customer, "customer", qaPassword);
       await page.waitForURL(/\/(setup|home)/, { timeout: 15_000 });
       await ctx.storageState({ path: path.join(AUTH_DIR, "customer.json") });
       await ctx.close();
@@ -246,7 +302,7 @@ async function globalSetup(config: FullConfig) {
       const ctx = await browser.newContext(contextOptions);
       await pinEnglishLocale(ctx);
       const page = await ctx.newPage();
-      await signUp(page, QA_PHONES.provider, "provider");
+      await signUp(page, QA_PHONES.provider, "provider", qaPassword);
       await page.waitForURL(/\/pro\/onboarding/, { timeout: 15_000 });
       await page.getByText(/personal details|البيانات الشخصية/i).waitFor({ state: "visible", timeout: 15_000 }).catch(async (error) => {
         const body = (await page.locator("body").innerText().catch(() => "<unavailable>" )).slice(0, 1000);
@@ -263,7 +319,7 @@ async function globalSetup(config: FullConfig) {
       const ctx = await browser.newContext(contextOptions);
       await pinEnglishLocale(ctx);
       const page = await ctx.newPage();
-      await signUp(page, QA_PHONES.adminSeed, "customer");
+      await signUp(page, QA_PHONES.adminSeed, "customer", qaPassword);
       await page.waitForURL(/\/(setup|home)/, { timeout: 15_000 });
       await ctx.storageState({ path: path.join(AUTH_DIR, "admin.json") });
       await ctx.close();
@@ -275,8 +331,7 @@ async function globalSetup(config: FullConfig) {
   // Resolve user ids + tag profiles as QA_ for identification, using service role.
   for (const [key, phone] of Object.entries(QA_PHONES)) {
     const e164 = `+20${phone}`;
-    const { data } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 200 });
-    const u = data.users.find((u) => u.phone === e164.replace("+", "") || u.phone === e164);
+    const u = await findAuthUserByPhone(supabaseAdmin, e164);
     if (u) {
       await supabaseAdmin.from("profiles").update({ full_name: `QA_${key}_e2e` }).eq("id", u.id);
       reg = addUser(reg, { key, userId: u.id, phone: e164 });
@@ -312,6 +367,8 @@ async function globalSetup(config: FullConfig) {
   if (providerEntry) {
     await resetRegistryProviderToDraft(providerEntry.userId);
   }
+
+  publishE2eFixtureSnapshot(reg);
 }
 
 export default globalSetup;

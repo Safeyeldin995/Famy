@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "../admin-client.mjs";
-import { readRegistry } from "../registry.mjs";
+import { readRegistry, registerE2eRunResource } from "../registry.mjs";
 import { authenticatedClient } from "../authenticated-client.mjs";
 import { completeProviderOnboarding } from "./onboarding-fixtures.mjs";
 import { resetRegistryProviderToDraft } from "./registry-fixtures.mjs";
@@ -67,6 +67,7 @@ export async function createEligibleMarketplaceFixture(suffix) {
     travel_fee: 0,
   }).select().single();
   if (zoneError) throw zoneError;
+  registerE2eRunResource("zoneIds", zone.id);
 
   await completeProviderOnboarding(providerUserReg.userId, { zoneId: zone.id });
 
@@ -91,6 +92,7 @@ export async function createEligibleMarketplaceFixture(suffix) {
     is_active: true,
   }).select().single();
   if (serviceError) throw serviceError;
+  registerE2eRunResource("serviceIds", service.id);
 
   const { data: requirement, error: requirementError } = await supabaseAdmin.from("service_requirements").insert({
     service_id: service.id,
