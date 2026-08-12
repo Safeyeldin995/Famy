@@ -8,6 +8,7 @@ import {
   useMessages,
   useSendMessage,
   useMarkBookingMessagesRead,
+  resolveChatViewerUserId,
   chatPhaseForStatus,
   CONTACT_BLOCKED_MESSAGE,
   containsContactInfo,
@@ -52,7 +53,16 @@ export function BookingChatPanel({ bookingId, status, viewer }: { bookingId: str
   const canSend = viewer === "admin" ? phase === "disputed" : phase === "writable";
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setMeId(data.user?.id ?? null));
+    let active = true;
+    void resolveChatViewerUserId(
+      () => supabase.auth.getSession(),
+      () => active,
+    ).then((userId) => {
+      if (userId !== undefined) setMeId(userId);
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {

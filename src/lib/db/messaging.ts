@@ -209,3 +209,23 @@ export function useMarkBookingMessagesRead() {
     },
   });
 }
+
+type ChatViewerSession = {
+  session: { user: { id: string } } | null;
+};
+
+/** Local session is sufficient to label "mine" vs "theirs" in booking chat UI. */
+export async function resolveChatViewerUserId(
+  readSession: () => Promise<{ data: ChatViewerSession; error: Error | null }>,
+  isActive: () => boolean,
+): Promise<string | null | undefined> {
+  try {
+    const { data, error } = await readSession();
+    if (!isActive()) return undefined;
+    if (error) throw error;
+    return data.session?.user?.id ?? null;
+  } catch (error) {
+    if (!isActive()) return undefined;
+    throw error;
+  }
+}
