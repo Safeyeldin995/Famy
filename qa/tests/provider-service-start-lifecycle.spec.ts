@@ -69,9 +69,7 @@ async function expectProviderStatusBadge(providerPage: Page, statusLabel: RegExp
 }
 
 async function expectCustomerConfirmedUpcoming(customerPage: Page, bookingId: string) {
-  await customerPage.goto(`/booking/${bookingId}`, {
-    waitUntil: "networkidle",
-  });
+  await customerPage.goto(`/booking/${bookingId}`);
   await expect(customerPage.getByText(/Booking #.* is confirmed\./i)).toBeVisible({
     timeout: 20_000,
   });
@@ -82,9 +80,7 @@ async function expectCustomerTrackingState(
   bookingId: string,
   expectedHeadline: RegExp,
 ) {
-  await customerPage.goto(`/booking/${bookingId}`, {
-    waitUntil: "networkidle",
-  });
+  await customerPage.goto(`/booking/${bookingId}`);
   await expect(customerPage).toHaveURL(new RegExp(`/booking/${bookingId}$`));
   const trackingHeadline = customerPage
     .getByRole("paragraph")
@@ -166,9 +162,7 @@ test.describe("provider service start lifecycle", () => {
       await expectProviderStatusBadge(providerPage, /^Arrived$/i);
       await expectCustomerTrackingState(page, bookingId!, /has arrived at your location\.$/i);
 
-      await page.goto(`/booking/${bookingId}`, {
-        waitUntil: "networkidle",
-      });
+      await page.goto(`/booking/${bookingId}`);
       await page.getByRole("button", { name: /^confirm arrival$/i }).click();
       const confirmDialog = page.getByRole("dialog", {
         name: /^confirm your provider has arrived\?$/i,
@@ -216,6 +210,8 @@ test.describe("provider service start lifecycle", () => {
       expect(customerErrors.readErrors()).toEqual({ console: [], network: [] });
       expect(providerErrors.readErrors()).toEqual({ console: [], network: [] });
     } finally {
+      customerErrors.stopCapture();
+      providerErrors.stopCapture();
       try {
         await providerContext.close();
       } finally {
