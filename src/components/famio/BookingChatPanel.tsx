@@ -57,9 +57,13 @@ export function BookingChatPanel({ bookingId, status, viewer }: { bookingId: str
     void resolveChatViewerUserId(
       () => supabase.auth.getSession(),
       () => active,
-    ).then((userId) => {
-      if (userId !== undefined) setMeId(userId);
-    });
+    )
+      .then((userId) => {
+        if (userId !== undefined) setMeId(userId);
+      })
+      .catch((error) => {
+        if (active) console.error("[BookingChatPanel] Failed to resolve viewer identity", error);
+      });
     return () => {
       active = false;
     };
