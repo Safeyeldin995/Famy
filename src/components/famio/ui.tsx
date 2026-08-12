@@ -1,5 +1,14 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Calendar, MessageCircle, User, ShieldCheck, AlertCircle, RefreshCw, Check } from "lucide-react";
+import {
+  Home,
+  Calendar,
+  MessageCircle,
+  User,
+  ShieldCheck,
+  AlertCircle,
+  RefreshCw,
+  Check,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -26,16 +35,23 @@ export function Avatar({
 }) {
   const q = useAvatarUrl(src);
   if (q.isLoading) return <div className={`animate-pulse bg-surface-2 ${className}`} />;
-  if (!q.data) return <div className={`grid place-items-center bg-surface-2 text-muted-foreground ${className}`}><User className="h-1/2 w-1/2" /></div>;
+  if (!q.data)
+    return (
+      <div className={`grid place-items-center bg-surface-2 text-muted-foreground ${className}`}>
+        <User className="h-1/2 w-1/2" />
+      </div>
+    );
   return <img src={q.data} alt={alt} className={`object-cover ${className}`} />;
 }
 
-export function PhoneFrame({ children, bg = "bg-surface-2" }: { children: ReactNode; bg?: string }) {
-  return (
-    <div className={`mx-auto flex min-h-dvh w-full max-w-md flex-col ${bg}`}>
-      {children}
-    </div>
-  );
+export function PhoneFrame({
+  children,
+  bg = "bg-surface-2",
+}: {
+  children: ReactNode;
+  bg?: string;
+}) {
+  return <div className={`mx-auto flex min-h-dvh w-full max-w-md flex-col ${bg}`}>{children}</div>;
 }
 
 export function AppShell({
@@ -119,14 +135,12 @@ export function TopBar({
   transparent?: boolean;
 }) {
   return (
-    <div className={`safe-top sticky top-0 z-30 ${transparent ? "" : "bg-surface-2/90 backdrop-blur"}`}>
+    <div
+      className={`safe-top sticky top-0 z-30 ${transparent ? "" : "bg-surface-2/90 backdrop-blur"}`}
+    >
       <div className="flex items-center gap-2 px-4 py-3">
-        {back && (
-          <BackButton back={back} />
-        )}
-        {title && (
-          <h1 className="flex-1 truncate text-base font-bold text-foreground">{title}</h1>
-        )}
+        {back && <BackButton back={back} />}
+        {title && <h1 className="flex-1 truncate text-base font-bold text-foreground">{title}</h1>}
         {!title && <div className="flex-1" />}
         {right}
       </div>
@@ -136,7 +150,8 @@ export function TopBar({
 
 export function BackButton({ back }: { back: { to: string } | (() => void) }) {
   const { t } = useTranslation();
-  const cls = "focus-ring grid h-11 w-11 shrink-0 place-items-center rounded-full bg-surface shadow-soft active:scale-95 transition-transform";
+  const cls =
+    "focus-ring grid h-11 w-11 shrink-0 place-items-center rounded-full bg-surface shadow-soft active:scale-95 transition-transform";
   if (typeof back === "function") {
     return (
       <button onClick={back} className={cls} aria-label={t("common.back")} data-rtl-flip="true">
@@ -153,7 +168,17 @@ export function BackButton({ back }: { back: { to: string } | (() => void) }) {
 
 function ChevronLeft() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <polyline points="15 18 9 12 15 6" />
     </svg>
   );
@@ -180,10 +205,10 @@ export function PrimaryButton({
     variant === "navy"
       ? "bg-navy text-navy-foreground active:bg-navy/90 shadow-card hover:shadow-float"
       : variant === "coral"
-      ? "bg-coral text-coral-foreground active:bg-coral/90 shadow-card hover:shadow-float"
-      : variant === "outline"
-      ? "border border-border bg-surface text-foreground"
-      : "bg-transparent text-navy";
+        ? "bg-coral text-coral-foreground active:bg-coral/90 shadow-card hover:shadow-float"
+        : variant === "outline"
+          ? "border border-border bg-surface text-foreground"
+          : "bg-transparent text-navy";
   return (
     <button
       type={type}
@@ -207,7 +232,9 @@ export function Card({
   onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
 }) {
   return (
-    <div className={`rounded-3xl bg-surface shadow-soft ${className}`} onClick={onClick}>{children}</div>
+    <div className={`rounded-3xl bg-surface shadow-soft ${className}`} onClick={onClick}>
+      {children}
+    </div>
   );
 }
 
@@ -235,7 +262,13 @@ export function Chip({
   );
 }
 
-export function Badge({ children, tone = "navy" }: { children: ReactNode; tone?: "navy" | "coral" | "mint" | "muted" }) {
+export function Badge({
+  children,
+  tone = "navy",
+}: {
+  children: ReactNode;
+  tone?: "navy" | "coral" | "mint" | "muted";
+}) {
   const map = {
     navy: "bg-navy/10 text-navy",
     coral: "bg-coral/10 text-coral",
@@ -243,7 +276,9 @@ export function Badge({ children, tone = "navy" }: { children: ReactNode; tone?:
     muted: "bg-muted text-muted-foreground",
   } as const;
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${map[tone]}`}>
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${map[tone]}`}
+    >
       {children}
     </span>
   );
@@ -274,7 +309,9 @@ export function TrustChip({
       ? "bg-mint/25 text-foreground"
       : "bg-surface text-foreground border border-border";
   return (
-    <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${cls}`}>
+    <span
+      className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${cls}`}
+    >
       {icon ?? <ShieldCheck className="h-3 w-3 text-success" />}
       {children}
     </span>
@@ -320,7 +357,9 @@ export function ErrorState({
         <AlertCircle className="h-9 w-9" />
       </div>
       <div className="mt-5 text-base font-bold">{title ?? t("common.somethingWentWrong")}</div>
-      <p className="mx-auto mt-1 max-w-xs text-xs text-muted-foreground">{body ?? t("common.tryAgainSoon")}</p>
+      <p className="mx-auto mt-1 max-w-xs text-xs text-muted-foreground">
+        {body ?? t("common.tryAgainSoon")}
+      </p>
       <div className="mt-5 flex justify-center gap-2">
         {onRetry && (
           <button
@@ -400,7 +439,13 @@ export function ReasonDialog({
   if (!open) return null;
   const canConfirm = !requireReason || reason.trim().length > 0;
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-6" onClick={onCancel}>
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-6"
+      onClick={onCancel}
+    >
       <Card className="w-full max-w-sm p-5" onClick={(e) => e.stopPropagation()}>
         <div className="text-base font-extrabold">{title}</div>
         {body && <div className="mt-1 text-xs text-muted-foreground">{body}</div>}
@@ -414,14 +459,20 @@ export function ReasonDialog({
           />
         )}
         <div className="mt-4 flex gap-2">
-          <button onClick={onCancel} disabled={pending} className="h-12 flex-1 rounded-2xl border border-border bg-surface text-sm font-bold disabled:opacity-50">
+          <button
+            onClick={onCancel}
+            disabled={pending}
+            className="h-12 flex-1 rounded-2xl border border-border bg-surface text-sm font-bold disabled:opacity-50"
+          >
             {cancelLabel}
           </button>
           <button
             onClick={() => onConfirm(reason.trim())}
             disabled={pending || !canConfirm}
             className={`h-12 flex-1 rounded-2xl text-sm font-bold disabled:opacity-50 ${
-              confirmVariant === "coral" ? "bg-coral text-coral-foreground" : "bg-navy text-navy-foreground"
+              confirmVariant === "coral"
+                ? "bg-coral text-coral-foreground"
+                : "bg-navy text-navy-foreground"
             }`}
           >
             {confirmLabel}
@@ -472,7 +523,8 @@ export function CancelBookingDialog({
   if (!open) return null;
 
   const reasons = (reasonsQ.data ?? []).filter(
-    (r: CancellationReasonRow) => !bookingStatus || r.applicable_statuses.includes(bookingStatus as any),
+    (r: CancellationReasonRow) =>
+      !bookingStatus || r.applicable_statuses.includes(bookingStatus as any),
   );
   const selected = reasons.find((r) => r.id === reasonId);
   const canConfirm = !!selected && (!selected.requires_note || note.trim().length > 0);
@@ -493,9 +545,13 @@ export function CancelBookingDialog({
               onChange={(e) => setReasonId(e.target.value)}
               className="mt-1 h-11 w-full rounded-2xl border border-border bg-surface-2 px-3 text-sm outline-none"
             >
-              <option value="" disabled>{reasonLabel}</option>
+              <option value="" disabled>
+                {reasonLabel}
+              </option>
               {reasons.map((r) => (
-                <option key={r.id} value={r.id}>{isAr ? r.name_ar : r.name_en}</option>
+                <option key={r.id} value={r.id}>
+                  {isAr ? r.name_ar : r.name_en}
+                </option>
               ))}
             </select>
           )}
@@ -512,7 +568,11 @@ export function CancelBookingDialog({
         )}
 
         <div className="mt-4 flex gap-2">
-          <button onClick={onCancel} disabled={pending} className="h-12 flex-1 rounded-2xl border border-border bg-surface text-sm font-bold disabled:opacity-50">
+          <button
+            onClick={onCancel}
+            disabled={pending}
+            className="h-12 flex-1 rounded-2xl border border-border bg-surface text-sm font-bold disabled:opacity-50"
+          >
             {cancelLabel}
           </button>
           <button
@@ -573,7 +633,13 @@ export function CaseDialog({
   cancelLabel: string;
   pending?: boolean;
   onCancel: () => void;
-  onConfirm: (payload: { category?: string; subject?: string; reason: string; description?: string; evidenceFile?: File }) => void;
+  onConfirm: (payload: {
+    category?: string;
+    subject?: string;
+    reason: string;
+    description?: string;
+    evidenceFile?: File;
+  }) => void;
 }) {
   const [category, setCategory] = useState(categoryOptions?.[0]?.value ?? "");
   const [subject, setSubject] = useState("");
@@ -586,13 +652,16 @@ export function CaseDialog({
   const requiresReason = !!reasonLabel;
   const requiresDescription = !!descriptionLabel;
   const canConfirm =
-    (!requiresReason || reason.trim().length > 0)
-    && (!requiresSubject || subject.trim().length > 0)
-    && (!requiresDescription || description.trim().length >= 10);
+    (!requiresReason || reason.trim().length > 0) &&
+    (!requiresSubject || subject.trim().length > 0) &&
+    (!requiresDescription || description.trim().length >= 10);
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-6" onClick={onCancel}>
-      <Card className="max-h-[85vh] w-full max-w-sm overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
+      <Card
+        className="max-h-[85vh] w-full max-w-sm overflow-y-auto p-5"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="text-base font-extrabold">{title}</div>
         {body && <div className="mt-1 text-xs text-muted-foreground">{body}</div>}
 
@@ -605,7 +674,9 @@ export function CaseDialog({
               className="mt-1 h-11 w-full rounded-2xl border border-border bg-surface-2 px-3 text-sm outline-none"
             >
               {categoryOptions.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
               ))}
             </select>
           </label>
@@ -653,7 +724,11 @@ export function CaseDialog({
         )}
 
         <div className="mt-4 flex gap-2">
-          <button onClick={onCancel} disabled={pending} className="h-12 flex-1 rounded-2xl border border-border bg-surface text-sm font-bold disabled:opacity-50">
+          <button
+            onClick={onCancel}
+            disabled={pending}
+            className="h-12 flex-1 rounded-2xl border border-border bg-surface text-sm font-bold disabled:opacity-50"
+          >
             {cancelLabel}
           </button>
           <button
@@ -702,34 +777,50 @@ export function SupportCasesCard({
   if (tickets.length === 0 && !dispute && !noShowReport) return null;
   return (
     <Card className="mt-4 space-y-3 p-4">
-      <div className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">{t("bookingDetail.yourCases")}</div>
+      <div className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
+        {t("bookingDetail.yourCases")}
+      </div>
       {tickets.map((tk) => (
         <div key={tk.id} className="rounded-xl bg-surface-2 p-3 text-xs">
           <div className="flex items-center justify-between gap-2">
             <span className="font-bold">{tk.subject}</span>
-            <Badge tone={caseTone(tk.status)}>{t(`bookingDetail.caseStatus.${tk.status}`, { defaultValue: tk.status })}</Badge>
+            <Badge tone={caseTone(tk.status)}>
+              {t(`bookingDetail.caseStatus.${tk.status}`, { defaultValue: tk.status })}
+            </Badge>
           </div>
-          {tk.resolution_notes && <p className="mt-1 text-muted-foreground">{tk.resolution_notes}</p>}
+          {tk.resolution_notes && (
+            <p className="mt-1 text-muted-foreground">{tk.resolution_notes}</p>
+          )}
         </div>
       ))}
       {dispute && (
         <div className="rounded-xl bg-surface-2 p-3 text-xs">
           <div className="flex items-center justify-between gap-2">
             <span className="font-bold">{t("bookingDetail.disputeCaseTitle")}</span>
-            <Badge tone={caseTone(dispute.status)}>{t(`bookingDetail.caseStatus.${dispute.status}`, { defaultValue: dispute.status })}</Badge>
+            <Badge tone={caseTone(dispute.status)}>
+              {t(`bookingDetail.caseStatus.${dispute.status}`, { defaultValue: dispute.status })}
+            </Badge>
           </div>
           <p className="mt-1 text-muted-foreground">{dispute.reason}</p>
-          {dispute.admin_notes && <p className="mt-1 text-muted-foreground">{dispute.admin_notes}</p>}
+          {dispute.admin_notes && (
+            <p className="mt-1 text-muted-foreground">{dispute.admin_notes}</p>
+          )}
         </div>
       )}
       {noShowReport && (
         <div className="rounded-xl bg-surface-2 p-3 text-xs">
           <div className="flex items-center justify-between gap-2">
             <span className="font-bold">{t("bookingDetail.noShowCaseTitle")}</span>
-            <Badge tone={caseTone(noShowReport.status)}>{t(`bookingDetail.caseStatus.${noShowReport.status}`, { defaultValue: noShowReport.status })}</Badge>
+            <Badge tone={caseTone(noShowReport.status)}>
+              {t(`bookingDetail.caseStatus.${noShowReport.status}`, {
+                defaultValue: noShowReport.status,
+              })}
+            </Badge>
           </div>
           <p className="mt-1 text-muted-foreground">{noShowReport.reason}</p>
-          {noShowReport.admin_notes && <p className="mt-1 text-muted-foreground">{noShowReport.admin_notes}</p>}
+          {noShowReport.admin_notes && (
+            <p className="mt-1 text-muted-foreground">{noShowReport.admin_notes}</p>
+          )}
         </div>
       )}
     </Card>
@@ -762,12 +853,20 @@ export function BookingTimeline({
                   done ? "bg-navy text-navy-foreground" : "bg-muted text-muted-foreground"
                 } ${active ? "ring-4 ring-coral/30" : ""}`}
               >
-                {done ? <Check className="h-3 w-3" /> : <span className="h-1.5 w-1.5 rounded-full bg-current" />}
+                {done ? (
+                  <Check className="h-3 w-3" />
+                ) : (
+                  <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                )}
               </span>
-              {i < steps.length - 1 && <span className={`mt-1 w-0.5 flex-1 ${done ? "bg-navy" : "bg-border"}`} />}
+              {i < steps.length - 1 && (
+                <span className={`mt-1 w-0.5 flex-1 ${done ? "bg-navy" : "bg-border"}`} />
+              )}
             </div>
             <div className="pb-2 pt-0.5">
-              <div className={`text-sm font-bold ${done ? "" : "text-muted-foreground"}`}>{labelFor(step)}</div>
+              <div className={`text-sm font-bold ${done ? "" : "text-muted-foreground"}`}>
+                {labelFor(step)}
+              </div>
             </div>
           </li>
         );
@@ -778,7 +877,10 @@ export function BookingTimeline({
 
 export function ProviderTileSkeleton() {
   return (
-    <div className="w-44 shrink-0 overflow-hidden rounded-3xl bg-surface shadow-soft" aria-hidden="true">
+    <div
+      className="w-44 shrink-0 overflow-hidden rounded-3xl bg-surface shadow-soft"
+      aria-hidden="true"
+    >
       <div className="skeleton h-40 w-full rounded-none" />
       <div className="space-y-2 p-3">
         <div className="skeleton h-3.5 w-3/4" />
