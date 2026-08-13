@@ -124,12 +124,32 @@ function createFakeAdmin(options: FakeAdminOptions = {}) {
           })),
         };
       }
-      if (["zone_services", "zone_providers", "addresses"].includes(table)) {
+      if (["zone_services", "zone_providers"].includes(table)) {
         return {
           delete: forbiddenDelete,
           select: vi.fn(() => ({
             eq: vi.fn(async (_column: string, id: string) => ({
               count: childOverrides[id]?.[table as keyof typeof ZERO_CHILDREN] ?? 0,
+              error: null,
+            })),
+          })),
+        };
+      }
+      if (table === "addresses") {
+        return {
+          delete: forbiddenDelete,
+          select: vi.fn(() => ({
+            range: vi.fn(async (from: number, to: number) => ({
+              data: Object.entries(childOverrides)
+                .flatMap(([zoneId, counts], zoneIndex) =>
+                  Array.from({ length: counts.addresses ?? 0 }, (_unused, addressIndex) => ({
+                    id: `address-${zoneId}-${addressIndex}`,
+                    lat: zoneIndex + 1,
+                    lng: addressIndex + 1,
+                    resolvedZoneId: zoneId,
+                  })),
+                )
+                .slice(from, to + 1),
               error: null,
             })),
           })),
@@ -202,6 +222,10 @@ function createFakeAdmin(options: FakeAdminOptions = {}) {
         error: null,
       })),
     },
+    rpc: vi.fn(async (_name: string, args: { p_lat: number }) => {
+      const resolvedZoneId = Object.keys(childOverrides)[args.p_lat - 1];
+      return { data: resolvedZoneId ? [{ zone_id: resolvedZoneId }] : [], error: null };
+    }),
   };
 
   return { admin, updates, forbiddenDelete, forbiddenInsert, childOverrides };

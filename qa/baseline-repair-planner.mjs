@@ -96,8 +96,8 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const CHILD_TABLES = Object.freeze([
   { table: "zone_services", column: "zone_id" },
   { table: "zone_providers", column: "zone_id" },
-  { table: "addresses", column: "zone_id" },
 ]);
+const ADDRESS_PAGE_SIZE = 1000;
 
 export function baselineRepairManifestPath(cwd = process.cwd()) {
   return path.resolve(cwd, "qa/report", BASELINE_REPAIR_MANIFEST_FILENAME);
@@ -250,7 +250,9 @@ export function planSettingBaselineAction(key) {
 }
 
 function childrenAreZero(childCounts) {
-  return CHILD_TABLES.every(({ table }) => Number(childCounts?.[table]) === 0);
+  return ["zone_services", "zone_providers", "addresses"].every(
+    (key) => Number(childCounts?.[key]) === 0,
+  );
 }
 
 export function planZoneBaselineAction(manifestZone, liveSnapshot) {
@@ -406,7 +408,46 @@ export async function readZoneChildCounts(admin, zoneId) {
       );
     counts[table] = count ?? 0;
   }
+  counts.addresses = await countAddressesResolvedToZone(admin, zoneId);
   return counts;
+}
+
+/**
+ * Addresses are spatial children: the schema deliberately stores coordinates,
+ * not zone_id. Use the same authoritative resolver as booking eligibility and
+ * page through every coordinate-bearing address so the guard cannot truncate.
+ */
+export async function countAddressesResolvedToZone(admin, zoneId) {
+  let addressCount = 0;
+  let offset = 0;
+  while (true) {
+    const { data, error } = await admin
+      .from("addresses")
+      .select("id,lat,lng")
+      .range(offset, offset + ADDRESS_PAGE_SIZE - 1);
+    if (error) {
+      throw new Error(
+        `[qa-baseline-repair] failed to read addresses for zone ${maskUserId(zoneId)}: ${error.message}`,
+      );
+    }
+    const rows = data ?? [];
+    for (const address of rows) {
+      if (!Number.isFinite(address.lat) || !Number.isFinite(address.lng)) continue;
+      const { data: resolved, error: resolveError } = await admin.rpc("resolve_zone", {
+        p_lat: address.lat,
+        p_lng: address.lng,
+      });
+      if (resolveError) {
+        throw new Error(
+          `[qa-baseline-repair] failed to resolve address ${maskUserId(address.id)}: ${resolveError.message}`,
+        );
+      }
+      if (resolved?.[0]?.zone_id === zoneId) addressCount += 1;
+    }
+    if (rows.length < ADDRESS_PAGE_SIZE) break;
+    offset += ADDRESS_PAGE_SIZE;
+  }
+  return addressCount;
 }
 
 export async function readZoneSafetyState(admin, manifestZone) {
