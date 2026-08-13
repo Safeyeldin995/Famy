@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import path from "path";
 import { supabaseAdmin } from "../admin-client.mjs";
-import { readRegistry } from "../registry.mjs";
+import { readRegistry, registerE2eRunResource } from "../registry.mjs";
 import { captureErrors } from "./helpers";
 import {
   assertSafeGlobalMutationTarget,
@@ -133,8 +133,10 @@ test("service pricing, activation, and requirement controls persist", async ({ p
   const serviceName = `QA_ admin service ${suffix}`;
   const requirementName = `QA_ requirement ${suffix}`;
   const secondRequirementName = `QA_ requirement second ${suffix}`;
+  let serviceId: string | undefined;
 
-  await page.goto("/admin/services");
+  try {
+    await page.goto("/admin/services");
   const newService = page.getByRole("button", { name: /^new service$/i });
   await expect(newService).toBeEnabled({ timeout: 20_000 });
   await newService.click();
@@ -144,10 +146,37 @@ test("service pricing, activation, and requirement controls persist", async ({ p
   await createForm.getByLabel(/^slug$/i).fill(slug);
   await createForm.getByLabel(/base price/i).fill("120");
   await createForm.getByLabel(/duration/i).fill("45");
-  await createForm.getByRole("button", { name: /^create service$/i }).click();
-  await expect(page.getByText(serviceName)).toBeVisible();
+  const createServiceButton = createForm.getByRole("button", { name: /^create service$/i });
+  const [createServiceResponse] = await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/rest/v1/services") &&
+        response.request().method() === "POST",
+    ),
+    createServiceButton.click(),
+  ]);
+  const createServiceBody = await createServiceResponse.text();
+  expect(createServiceResponse.ok(), createServiceBody).toBe(true);
+  const createdService = JSON.parse(createServiceBody);
+  serviceId = createdService.id;
+  expect(createdService).toMatchObject({ slug, name_en: serviceName });
+  registerE2eRunResource("serviceIds", serviceId!);
 
-  let serviceCard = page.getByRole("listitem").filter({ hasText: serviceName }).first();
+  const { data: persistedService, error: persistedServiceError } = await supabaseAdmin
+    .from("services")
+    .select("id,slug,name_en,is_active")
+    .eq("id", serviceId!)
+    .single();
+  expect(persistedServiceError).toBeNull();
+  expect(persistedService).toMatchObject({
+    id: serviceId,
+    slug,
+    name_en: serviceName,
+    is_active: true,
+  });
+
+  let serviceCard = page.getByRole("listitem").filter({ hasText: slug }).first();
+  await expect(serviceCard).toContainText(serviceName);
   await serviceCard.getByRole("button", { name: /^edit$/i }).first().click();
   serviceCard = page.locator(`input[value="${slug}"]`).locator("xpath=ancestor::li[1]");
   await serviceCard.getByLabel(/minimum price/i).fill("100");
@@ -163,7 +192,11 @@ test("service pricing, activation, and requirement controls persist", async ({ p
   await serviceCard.getByRole("button", { name: /^add$/i }).click();
   await expect(serviceCard.getByText(requirementName)).toBeVisible();
 
-  const { data: service } = await supabaseAdmin.from("services").select("*").eq("slug", slug).single();
+  const { data: service } = await supabaseAdmin
+    .from("services")
+    .select("*")
+    .eq("id", serviceId!)
+    .single();
   const { data: firstRequirement } = await supabaseAdmin.from("service_requirements").select("*").eq("service_id", service!.id).eq("name_en", requirementName).single();
   const { data: secondRequirement } = await supabaseAdmin.from("service_requirements").insert({
     service_id: service!.id,
@@ -230,8 +263,16 @@ test("service pricing, activation, and requirement controls persist", async ({ p
   expect(serviceAudits).toBeGreaterThanOrEqual(4);
   await assertClean(page, readErrors);
 
-  await supabaseAdmin.from("service_requirements").delete().in("id", [firstRequirement!.id, secondRequirement!.id]);
-  await supabaseAdmin.from("services").delete().eq("id", service!.id);
+  } finally {
+    if (serviceId) {
+      await supabaseAdmin.from("service_requirements").delete().eq("service_id", serviceId);
+      await supabaseAdmin.from("services").update({ is_active: false }).eq("id", serviceId);
+      await supabaseAdmin.from("services").delete().eq("id", serviceId);
+    } else {
+      await supabaseAdmin.from("services").update({ is_active: false }).eq("slug", slug);
+      await supabaseAdmin.from("services").delete().eq("slug", slug);
+    }
+  }
 });
 
 test("promo edit and activation persist without a silent scope write", async ({ page }) => {
@@ -270,18 +311,27 @@ test("zone edit, activation, and service/provider coverage persist", async ({ pa
   const { readErrors } = captureErrors(page);
   const suffix = Date.now();
   const name = `QA_zone_controls_${suffix}`;
-  const { data: zone } = await supabaseAdmin.from("zones").insert({
-    name_en: name,
-    name_ar: "QA zone controls ar",
-    boundary_type: "circle",
-    center_lat: 30.05,
-    center_lng: 31.0,
-    radius_km: 2,
-    travel_fee: 5,
-    is_active: true,
-  }).select().single();
-  const { data: service } = await supabaseAdmin.from("services").select("id,name_en").eq("is_active", true).limit(1).single();
+  const { data: zone, error: zoneError } = await supabaseAdmin
+    .from("zones")
+    .insert({
+      name_en: name,
+      name_ar: "QA zone controls ar",
+      boundary_type: "circle",
+      center_lat: 30.05,
+      center_lng: 31.0,
+      radius_km: 2,
+      travel_fee: 5,
+      is_active: true,
+    })
+    .select()
+    .single();
+  expect(zoneError).toBeNull();
+  expect(zone).toBeTruthy();
+  registerE2eRunResource("zoneIds", zone!.id);
   const providerUser = readRegistry().users.find((user: any) => user.key === "provider");
+
+  try {
+  const { data: service } = await supabaseAdmin.from("services").select("id,name_en").eq("is_active", true).limit(1).single();
   await completeProviderOnboarding(providerUser!.userId);
   const { data: provider } = await supabaseAdmin.from("providers").select("id,is_verified,is_active,onboarding_status").eq("profile_id", providerUser!.userId).single();
   expect(provider?.onboarding_status).toBe("APPROVED");
@@ -325,8 +375,11 @@ test("zone edit, activation, and service/provider coverage persist", async ({ pa
   expect(audits).toBeGreaterThanOrEqual(3);
   await assertClean(page, readErrors);
 
-  await supabaseAdmin.from("zone_services").delete().eq("zone_id", zone!.id);
-  await supabaseAdmin.from("zone_providers").delete().eq("zone_id", zone!.id);
-  await supabaseAdmin.from("zones").delete().eq("id", zone!.id);
-  await resetRegistryProviderToDraft(providerUser!.userId);
+  } finally {
+    await supabaseAdmin.from("zone_services").delete().eq("zone_id", zone!.id);
+    await supabaseAdmin.from("zone_providers").delete().eq("zone_id", zone!.id);
+    await supabaseAdmin.from("zones").update({ is_active: false }).eq("id", zone!.id);
+    await supabaseAdmin.from("zones").delete().eq("id", zone!.id);
+    await resetRegistryProviderToDraft(providerUser!.userId);
+  }
 });
