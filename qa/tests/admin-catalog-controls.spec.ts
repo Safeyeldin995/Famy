@@ -21,6 +21,15 @@ async function assertClean(page: Page, readErrors: ReturnType<typeof captureErro
   expect(errors.network.filter((entry) => !entry.includes("favicon"))).toEqual([]);
 }
 
+function addCleanupError(errors: Error[], label: string, error: unknown) {
+  if (!error) return;
+  const message =
+    typeof error === "object" && error !== null && "message" in error
+      ? String(error.message)
+      : String(error);
+  errors.push(new Error(`${label}: ${message}`));
+}
+
 async function createPaymentMethod(page: Page, code: string, name: string) {
   await page.getByRole("button", { name: /^new method$/i }).click();
   await page.getByLabel(/^code$/i).fill(code);
@@ -137,46 +146,48 @@ test("service pricing, activation, and requirement controls persist", async ({ p
 
   try {
     await page.goto("/admin/services");
-  const newService = page.getByRole("button", { name: /^new service$/i });
-  await expect(newService).toBeEnabled({ timeout: 20_000 });
-  await newService.click();
-  const createForm = page.locator("section", { has: page.getByRole("heading", { name: /^new service$/i }) });
-  await createForm.getByLabel(/^english name$/i).fill(serviceName);
-  await createForm.getByLabel(/^arabic name$/i).fill("QA_ service ar");
-  await createForm.getByLabel(/^slug$/i).fill(slug);
-  await createForm.getByLabel(/base price/i).fill("120");
-  await createForm.getByLabel(/duration/i).fill("45");
-  const createServiceButton = createForm.getByRole("button", { name: /^create service$/i });
-  const [createServiceResponse] = await Promise.all([
-    page.waitForResponse(
-      (response) =>
-        response.url().includes("/rest/v1/services") &&
-        response.request().method() === "POST",
-    ),
-    createServiceButton.click(),
-  ]);
-  const createServiceBody = await createServiceResponse.text();
-  expect(createServiceResponse.ok(), createServiceBody).toBe(true);
-  const createdService = JSON.parse(createServiceBody);
-  serviceId = createdService.id;
-  expect(createdService).toMatchObject({ slug, name_en: serviceName });
-  registerE2eRunResource("serviceIds", serviceId!);
+    const newService = page.getByRole("button", { name: /^new service$/i });
+    await expect(newService).toBeEnabled({ timeout: 20_000 });
+    await newService.click();
+    const createForm = page.locator("section", {
+      has: page.getByRole("heading", { name: /^new service$/i }),
+    });
+    await createForm.getByLabel(/^english name$/i).fill(serviceName);
+    await createForm.getByLabel(/^arabic name$/i).fill("QA_ service ar");
+    await createForm.getByLabel(/^slug$/i).fill(slug);
+    await createForm.getByLabel(/base price/i).fill("120");
+    await createForm.getByLabel(/duration/i).fill("45");
+    const createServiceButton = createForm.getByRole("button", { name: /^create service$/i });
+    const [createServiceResponse] = await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.url().includes("/rest/v1/services") &&
+          response.request().method() === "POST",
+      ),
+      createServiceButton.click(),
+    ]);
+    const createServiceBody = await createServiceResponse.text();
+    expect(createServiceResponse.ok(), createServiceBody).toBe(true);
+    const createdService = JSON.parse(createServiceBody);
+    serviceId = createdService.id;
+    expect(createdService).toMatchObject({ slug, name_en: serviceName });
+    registerE2eRunResource("serviceIds", serviceId!);
 
-  const { data: persistedService, error: persistedServiceError } = await supabaseAdmin
-    .from("services")
-    .select("id,slug,name_en,is_active")
-    .eq("id", serviceId!)
-    .single();
-  expect(persistedServiceError).toBeNull();
-  expect(persistedService).toMatchObject({
-    id: serviceId,
-    slug,
-    name_en: serviceName,
-    is_active: true,
-  });
+    const { data: persistedService, error: persistedServiceError } = await supabaseAdmin
+      .from("services")
+      .select("id,slug,name_en,is_active")
+      .eq("id", serviceId!)
+      .single();
+    expect(persistedServiceError).toBeNull();
+    expect(persistedService).toMatchObject({
+      id: serviceId,
+      slug,
+      name_en: serviceName,
+      is_active: true,
+    });
 
-  let serviceCard = page.getByRole("listitem").filter({ hasText: slug }).first();
-  await expect(serviceCard).toContainText(serviceName);
+    let serviceCard = page.getByRole("listitem").filter({ hasText: slug }).first();
+    await expect(serviceCard).toContainText(serviceName);
   await serviceCard.getByRole("button", { name: /^edit$/i }).first().click();
   serviceCard = page.locator(`input[value="${slug}"]`).locator("xpath=ancestor::li[1]");
   await serviceCard.getByLabel(/minimum price/i).fill("100");
@@ -264,13 +275,35 @@ test("service pricing, activation, and requirement controls persist", async ({ p
   await assertClean(page, readErrors);
 
   } finally {
+    const cleanupErrors: Error[] = [];
     if (serviceId) {
-      await supabaseAdmin.from("service_requirements").delete().eq("service_id", serviceId);
-      await supabaseAdmin.from("services").update({ is_active: false }).eq("id", serviceId);
-      await supabaseAdmin.from("services").delete().eq("id", serviceId);
+      const { error: requirementsError } = await supabaseAdmin
+        .from("service_requirements")
+        .delete()
+        .eq("service_id", serviceId);
+      addCleanupError(cleanupErrors, "delete service requirements", requirementsError);
+
+      const { error: deactivateError } = await supabaseAdmin
+        .from("services")
+        .update({ is_active: false })
+        .eq("id", serviceId);
+      addCleanupError(cleanupErrors, "deactivate service", deactivateError);
+
+      const { error: deleteError } = await supabaseAdmin.from("services").delete().eq("id", serviceId);
+      addCleanupError(cleanupErrors, "delete service", deleteError);
     } else {
-      await supabaseAdmin.from("services").update({ is_active: false }).eq("slug", slug);
-      await supabaseAdmin.from("services").delete().eq("slug", slug);
+      const { error: deactivateError } = await supabaseAdmin
+        .from("services")
+        .update({ is_active: false })
+        .eq("slug", slug);
+      addCleanupError(cleanupErrors, "deactivate service by slug", deactivateError);
+
+      const { error: deleteError } = await supabaseAdmin.from("services").delete().eq("slug", slug);
+      addCleanupError(cleanupErrors, "delete service by slug", deleteError);
+    }
+
+    if (cleanupErrors.length > 0) {
+      throw new AggregateError(cleanupErrors, "Admin service fixture cleanup failed.");
     }
   }
 });
@@ -311,28 +344,42 @@ test("zone edit, activation, and service/provider coverage persist", async ({ pa
   const { readErrors } = captureErrors(page);
   const suffix = Date.now();
   const name = `QA_zone_controls_${suffix}`;
-  const { data: zone, error: zoneError } = await supabaseAdmin
-    .from("zones")
-    .insert({
-      name_en: name,
-      name_ar: "QA zone controls ar",
-      boundary_type: "circle",
-      center_lat: 30.05,
-      center_lng: 31.0,
-      radius_km: 2,
-      travel_fee: 5,
-      is_active: true,
-    })
-    .select()
-    .single();
-  expect(zoneError).toBeNull();
-  expect(zone).toBeTruthy();
-  registerE2eRunResource("zoneIds", zone!.id);
-  const providerUser = readRegistry().users.find((user: any) => user.key === "provider");
+  let zoneId: string | undefined;
+  let providerUserId: string | undefined;
 
   try {
-  const { data: service } = await supabaseAdmin.from("services").select("id,name_en").eq("is_active", true).limit(1).single();
-  await completeProviderOnboarding(providerUser!.userId);
+    const { data: zone, error: zoneError } = await supabaseAdmin
+      .from("zones")
+      .insert({
+        name_en: name,
+        name_ar: "QA zone controls ar",
+        boundary_type: "circle",
+        center_lat: 30.05,
+        center_lng: 31.0,
+        radius_km: 2,
+        travel_fee: 5,
+        is_active: true,
+      })
+      .select()
+      .single();
+    expect(zoneError).toBeNull();
+    expect(zone).toBeTruthy();
+    zoneId = zone!.id;
+    registerE2eRunResource("zoneIds", zoneId);
+
+    const providerUser = readRegistry().users.find((user) => user.key === "provider");
+    if (!providerUser?.userId) {
+      throw new Error("Registry provider user missing. Run Playwright global setup first.");
+    }
+    providerUserId = providerUser.userId;
+
+    const { data: service } = await supabaseAdmin
+      .from("services")
+      .select("id,name_en")
+      .eq("is_active", true)
+      .limit(1)
+      .single();
+    await completeProviderOnboarding(providerUserId);
   const { data: provider } = await supabaseAdmin.from("providers").select("id,is_verified,is_active,onboarding_status").eq("profile_id", providerUser!.userId).single();
   expect(provider?.onboarding_status).toBe("APPROVED");
 
@@ -376,10 +423,40 @@ test("zone edit, activation, and service/provider coverage persist", async ({ pa
   await assertClean(page, readErrors);
 
   } finally {
-    await supabaseAdmin.from("zone_services").delete().eq("zone_id", zone!.id);
-    await supabaseAdmin.from("zone_providers").delete().eq("zone_id", zone!.id);
-    await supabaseAdmin.from("zones").update({ is_active: false }).eq("id", zone!.id);
-    await supabaseAdmin.from("zones").delete().eq("id", zone!.id);
-    await resetRegistryProviderToDraft(providerUser!.userId);
+    const cleanupErrors: Error[] = [];
+    if (zoneId) {
+      const { error: serviceCoverageError } = await supabaseAdmin
+        .from("zone_services")
+        .delete()
+        .eq("zone_id", zoneId);
+      addCleanupError(cleanupErrors, "delete zone service coverage", serviceCoverageError);
+
+      const { error: providerCoverageError } = await supabaseAdmin
+        .from("zone_providers")
+        .delete()
+        .eq("zone_id", zoneId);
+      addCleanupError(cleanupErrors, "delete zone provider coverage", providerCoverageError);
+
+      const { error: deactivateError } = await supabaseAdmin
+        .from("zones")
+        .update({ is_active: false })
+        .eq("id", zoneId);
+      addCleanupError(cleanupErrors, "deactivate zone", deactivateError);
+
+      const { error: deleteError } = await supabaseAdmin.from("zones").delete().eq("id", zoneId);
+      addCleanupError(cleanupErrors, "delete zone", deleteError);
+    }
+
+    if (providerUserId) {
+      try {
+        await resetRegistryProviderToDraft(providerUserId);
+      } catch (error) {
+        addCleanupError(cleanupErrors, "restore registry provider", error);
+      }
+    }
+
+    if (cleanupErrors.length > 0) {
+      throw new AggregateError(cleanupErrors, "Admin zone fixture cleanup failed.");
+    }
   }
 });
