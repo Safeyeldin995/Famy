@@ -238,7 +238,9 @@ test.describe("booking completion lifecycle", () => {
       ).toHaveCount(0);
 
       await providerPage.goto(`/pro/booking/${bookingId}`);
-      const completedStatus = providerPage.getByText(/^Completed$/i);
+      const completedStatus = providerPage
+        .locator("span.inline-flex.items-center.gap-1.rounded-full")
+        .filter({ hasText: /^Completed$/i });
       await expect(completedStatus).toHaveCount(1);
       await expect(completedStatus).toBeVisible({ timeout: 20_000 });
       await expect(
