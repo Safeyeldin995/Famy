@@ -168,7 +168,7 @@ test.describe("booking completion lifecycle", () => {
 
       await providerPage.goto(`/pro/booking/${bookingId}`);
       const requestCompletion = providerPage.getByRole("button", {
-        name: /^request completion$/i,
+        name: /^mark job done$/i,
       });
       await expect(requestCompletion).toBeVisible({ timeout: 20_000 });
 
