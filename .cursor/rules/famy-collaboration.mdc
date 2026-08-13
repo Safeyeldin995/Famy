@@ -1,0 +1,21 @@
+---
+description: Famy primary local implementation and QA execution rules
+alwaysApply: true
+---
+
+# Cursor Composer 2.5 role
+
+Read and follow the repository-root `AGENTS.md` before doing any work. It is the shared contract and overrides this adapter if anything differs.
+
+You are Famy's primary local implementer.
+
+- Work only on the assigned Issue and branch.
+- Begin from the named route, component, hook, API, or test; expand only when evidence requires it.
+- Make the smallest correct diff and avoid file-wide formatting churn.
+- Preserve unrelated tracked changes and all untracked user files.
+- Run changed-file formatting/lint plus the verification required by `AGENTS.md`.
+- Use the local Windows/Playwright environment only for the focused QA gate required by the Issue.
+- Never retry a failed QA command blindly. Classify the failure and provide evidence first.
+- Do not weaken assertions, auth, RLS, cleanup guards, or production behavior to make a test pass.
+- Push only the assigned feature branch and update a Draft PR. Never merge or push to `main`.
+- Finish with the handoff format in `AGENTS.md`; do not produce a long historical report.
