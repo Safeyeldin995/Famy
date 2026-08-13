@@ -187,7 +187,7 @@ test.describe("booking completion lifecycle", () => {
         "in_progress",
         "completion_requested",
       ]);
-      const providerStatus = providerPage.getByText(/^Completion requested$/i);
+      const providerStatus = providerPage.getByText(/^Awaiting confirmation$/i);
       await expect(providerStatus).toHaveCount(1);
       await expect(providerStatus).toBeVisible({ timeout: 20_000 });
 
