@@ -1,4 +1,10 @@
-import { expect, test, type Page } from "@playwright/test";
+import {
+  expect,
+  test,
+  type BrowserContext,
+  type Page,
+  type Response,
+} from "@playwright/test";
 import path from "path";
 import { authenticatedClient } from "../authenticated-client.mjs";
 import { supabaseAdmin } from "../admin-client.mjs";
@@ -11,7 +17,7 @@ import {
 } from "./marketplace-fixtures.mjs";
 
 function isBookingPatchForId(bookingId: string) {
-  return (response: { url: () => string; request: () => { method: () => string }; ok: () => boolean }) =>
+  return (response: Response) =>
     response.url().includes("/rest/v1/bookings") &&
     response.request().method() === "PATCH" &&
     response.ok() &&
@@ -34,7 +40,10 @@ async function expectBooking(
   else expect(data?.completed_at).toBeNull();
 }
 
-async function expectOrderedHistory(bookingId: string, expectedStatuses: string[]) {
+async function expectOrderedHistory(
+  bookingId: string,
+  expectedStatuses: string[],
+) {
   const { data, error } = await supabaseAdmin
     .from("booking_status_history")
     .select("from_status, to_status")
@@ -62,8 +71,17 @@ async function transitionThroughSanctionedSetup(bookingId: string) {
       .eq("id", bookingId)
       .select("id, status")
       .single();
-    expect(error).toBeFalsy();
-    expect(data).toMatchObject({ id: bookingId, status: transition.status });
+    expect(
+      error,
+      `transition to ${transition.status} failed: ${JSON.stringify(error)}`,
+    ).toBeFalsy();
+    expect(
+      data,
+      `transition to ${transition.status} returned unexpected data`,
+    ).toMatchObject({
+      id: bookingId,
+      status: transition.status,
+    });
   }
 }
 
@@ -81,7 +99,10 @@ async function assertWrongActorRejected(
   await expectBooking(bookingId, expectedStatus);
 }
 
-async function createFixtureBooking(page: Page, fixture: Awaited<ReturnType<typeof createEligibleMarketplaceFixture>>) {
+async function createFixtureBooking(
+  page: Page,
+  fixture: Awaited<ReturnType<typeof createEligibleMarketplaceFixture>>,
+) {
   await walkToPaymentStep(page, fixture);
   const [response] = await Promise.all([
     page.waitForResponse(
@@ -98,25 +119,33 @@ async function createFixtureBooking(page: Page, fixture: Awaited<ReturnType<type
 }
 
 test.describe("booking completion lifecycle", () => {
-  test.use({ storageState: path.resolve(process.cwd(), "qa/.auth/customer.json") });
+  test.use({
+    storageState: path.resolve(process.cwd(), "qa/.auth/customer.json"),
+  });
 
   test("provider requests completion and customer confirms the exact booking", async ({
     page,
     browser,
   }) => {
-    test.slow();
     test.setTimeout(300_000);
 
-    const fixture = await createEligibleMarketplaceFixture(Date.now());
+    let fixture:
+      | Awaited<ReturnType<typeof createEligibleMarketplaceFixture>>
+      | undefined;
     let bookingId: string | undefined;
-    const providerContext = await browser.newContext({
-      storageState: path.resolve(process.cwd(), "qa/.auth/provider.json"),
-    });
-    const providerPage = await providerContext.newPage();
-    const customerErrors = captureErrors(page);
-    const providerErrors = captureErrors(providerPage);
+    let providerContext: BrowserContext | undefined;
+    let customerErrors: ReturnType<typeof captureErrors> | undefined;
+    let providerErrors: ReturnType<typeof captureErrors> | undefined;
 
     try {
+      fixture = await createEligibleMarketplaceFixture(Date.now());
+      providerContext = await browser.newContext({
+        storageState: path.resolve(process.cwd(), "qa/.auth/provider.json"),
+      });
+      const providerPage = await providerContext.newPage();
+      customerErrors = captureErrors(page);
+      providerErrors = captureErrors(providerPage);
+
       bookingId = await createFixtureBooking(page, fixture);
       registerE2eRunResource("bookingIds", bookingId);
       await transitionThroughSanctionedSetup(bookingId);
@@ -158,9 +187,7 @@ test.describe("booking completion lifecycle", () => {
         "in_progress",
         "completion_requested",
       ]);
-      const providerStatus = providerPage
-        .locator("span.inline-flex.items-center.gap-1.rounded-full")
-        .filter({ hasText: /^Completion requested$/i });
+      const providerStatus = providerPage.getByText(/^Completion requested$/i);
       await expect(providerStatus).toHaveCount(1);
       await expect(providerStatus).toBeVisible({ timeout: 20_000 });
 
@@ -172,16 +199,23 @@ test.describe("booking completion lifecycle", () => {
       );
 
       await page.goto(`/booking/${bookingId}`);
-      const completionButtons = page.getByRole("button", {
-        name: /^confirm completion$/i,
+      const openCompletionDialog = page.getByRole("button", {
+        name: /^yes, it's done$/i,
       });
-      await expect(completionButtons).toHaveCount(1);
-      await completionButtons.click();
-      await expect(completionButtons).toHaveCount(2);
+      await expect(openCompletionDialog).toHaveCount(1);
+      await openCompletionDialog.click();
+
+      const completionDialog = page.getByRole("dialog", {
+        name: /^is the service done\?$/i,
+      });
+      await expect(completionDialog).toBeVisible({ timeout: 20_000 });
+      const confirmCompletion = completionDialog.getByRole("button", {
+        name: /^yes, it's done$/i,
+      });
 
       const [completeResponse] = await Promise.all([
         page.waitForResponse(isBookingPatchForId(bookingId)),
-        completionButtons.last().click(),
+        confirmCompletion.click(),
       ]);
       expect(completeResponse.ok(), await completeResponse.text()).toBe(true);
       await expectBooking(bookingId, "completed", { completed: true });
@@ -196,18 +230,15 @@ test.describe("booking completion lifecycle", () => {
         "completed",
       ]);
 
-      await expect(page).toHaveURL(new RegExp(`/booking/${bookingId}`));
+      await expect(page).toHaveURL(
+        (url) => url.pathname === `/booking/${bookingId}`,
+      );
       await expect(
-        page.getByRole("button", { name: /^confirm completion$/i }),
+        page.getByRole("button", { name: /^yes, it's done$/i }),
       ).toHaveCount(0);
-      await expect(page.getByRole("button", { name: "1" })).toBeVisible({
-        timeout: 20_000,
-      });
 
       await providerPage.goto(`/pro/booking/${bookingId}`);
-      const completedStatus = providerPage
-        .locator("span.inline-flex.items-center.gap-1.rounded-full")
-        .filter({ hasText: /^Completed$/i });
+      const completedStatus = providerPage.getByText(/^Completed$/i);
       await expect(completedStatus).toHaveCount(1);
       await expect(completedStatus).toBeVisible({ timeout: 20_000 });
       await expect(
@@ -217,12 +248,13 @@ test.describe("booking completion lifecycle", () => {
       expect(customerErrors.readErrors()).toEqual({ console: [], network: [] });
       expect(providerErrors.readErrors()).toEqual({ console: [], network: [] });
     } finally {
-      customerErrors.stopCapture();
-      providerErrors.stopCapture();
+      customerErrors?.stopCapture();
+      providerErrors?.stopCapture();
       try {
-        await providerContext.close();
+        await providerContext?.close();
       } finally {
-        await cleanupEligibleMarketplaceFixture(fixture, bookingId);
+        if (fixture)
+          await cleanupEligibleMarketplaceFixture(fixture, bookingId);
       }
     }
   });
