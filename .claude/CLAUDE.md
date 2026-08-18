@@ -5,6 +5,6 @@ The authoritative Claude Sonnet instructions are in the repository-root `CLAUDE.
 Read, in order:
 
 1. `AGENTS.md` — shared Famy engineering contract
-2. `CLAUDE.md` — Claude Sonnet reviewer role
+2. `CLAUDE.md` — Claude Sonnet CTO/orchestrator role
 
 Do not duplicate or override those rules here.
