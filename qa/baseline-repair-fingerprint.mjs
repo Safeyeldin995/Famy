@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-export const BASELINE_REPAIR_PLAN_VERSION = "6a.2-baseline-repair-v3";
+export const BASELINE_REPAIR_PLAN_VERSION = "6a.2-baseline-repair-v4";
 
 /** Prior v1 fingerprint — must never match v2 plans. */
 export const INVALIDATED_BASELINE_REPAIR_FINGERPRINT_V1 =

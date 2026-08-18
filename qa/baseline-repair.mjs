@@ -185,6 +185,14 @@ export async function runBaselineRepairExecute(options = {}) {
 }
 
 /**
+ * @param {{ blocked: boolean }} plan
+ * @returns {number}
+ */
+export function dryRunExitCode(plan) {
+  return plan.blocked ? 2 : 0;
+}
+
+/**
  * @param {string[]} [argv]
  * @returns {Promise<number>}
  */
@@ -198,8 +206,8 @@ export async function main(argv = process.argv.slice(2)) {
     }
 
     if (parsed.mode === "dry-run") {
-      await runBaselineRepairDryRun();
-      return 0;
+      const plan = await runBaselineRepairDryRun();
+      return dryRunExitCode(plan);
     }
 
     const payload = await runBaselineRepairExecute({ planFingerprint: parsed.planFingerprint });

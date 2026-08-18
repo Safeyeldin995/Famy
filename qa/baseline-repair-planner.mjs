@@ -17,31 +17,25 @@ import {
 } from "./baseline-repair-fingerprint.mjs";
 
 export const BASELINE_REPAIR_MANIFEST_FILENAME = "baseline-repair-targets.json";
-export const BASELINE_REPAIR_MAX_ZONE_MUTATIONS = 8;
+export const BASELINE_REPAIR_MAX_ZONE_MUTATIONS = 6;
 
 /**
- * Exact v3 targets proven by qa/report/zone-ownership-inventory.json and its
- * full-ID residue inventory. This is intentionally compiled into the planner:
- * discovery may verify these tuples, but it may never broaden them.
+ * These 6 zones are proven child-free by the 2026-08-18 spatial inventory
+ * (qa/report/zone-v3-child-inventory.json). Two zones previously compiled
+ * into this list have been excluded because they are not proven safe:
+ *   - QA_booking_lifecycle_zone_v1: overlaps real customer addresses and
+ *     live pending/confirmed bookings.
+ *   - QA_status_selector_zone_1786617970885: has unproven registry
+ *     ownership.
+ * This is intentionally compiled into the planner: discovery may verify
+ * these tuples, but it may never broaden them.
  */
-export const BASELINE_REPAIR_V3_ZONES = Object.freeze([
-  {
-    id: "16079e5f-b915-4afa-aa64-2b5a40bd6597",
-    name: "QA_booking_lifecycle_zone_v1",
-    provenanceOwner: "booking-lifecycle-fixtures.mjs",
-    provenanceClass: "proven_fixture_v1",
-  },
+export const BASELINE_REPAIR_V4_ZONES = Object.freeze([
   {
     id: "5e8fdf99-4d6d-47a2-a686-38d4ce9cbf66",
     name: "QA_Patch2_BookingZone_1786618187940",
     provenanceOwner: "marketplace-fixtures.mjs",
     provenanceClass: "marketplace_e2e_leak",
-  },
-  {
-    id: "325e3a13-1355-4cde-84ff-9a396f305691",
-    name: "QA_status_selector_zone_1786617970885",
-    provenanceOwner: "admin-audit-fixes.spec.ts",
-    provenanceClass: "admin_audit_leak",
   },
   {
     id: "2cab8a7a-9a62-4448-af89-1337c56197a3",
@@ -126,7 +120,7 @@ export function createBaselineRepairManifest() {
   return {
     projectRef: KNOWN_QA_PROJECT_REF,
     settingsKeys: [...REQUIRED_SETTINGS_KEYS],
-    zones: BASELINE_REPAIR_V3_ZONES.map((zone) => ({ ...zone })),
+    zones: BASELINE_REPAIR_V4_ZONES.map((zone) => ({ ...zone })),
   };
 }
 
@@ -153,7 +147,7 @@ export function validateBaselineRepairManifest(manifest) {
   if (zonesRaw.length !== BASELINE_REPAIR_MAX_ZONE_MUTATIONS) {
     return { ok: false, reason: "manifest-zone-count-invalid" };
   }
-  const expectedById = new Map(BASELINE_REPAIR_V3_ZONES.map((zone) => [zone.id, zone]));
+  const expectedById = new Map(BASELINE_REPAIR_V4_ZONES.map((zone) => [zone.id, zone]));
   const seenIds = new Set();
   const seenNames = new Set();
   const zones = [];
@@ -257,7 +251,7 @@ function childrenAreZero(childCounts) {
 
 export function planZoneBaselineAction(manifestZone, liveSnapshot) {
   if (!manifestZone.name.startsWith("QA_")) return { blocked: true, reason: "non-qa-zone-name" };
-  const expected = BASELINE_REPAIR_V3_ZONES.find((zone) => zone.id === manifestZone.id);
+  const expected = BASELINE_REPAIR_V4_ZONES.find((zone) => zone.id === manifestZone.id);
   if (
     !expected ||
     expected.name !== manifestZone.name ||
@@ -334,7 +328,7 @@ export function buildBaselineRepairPlanFromSnapshot(input) {
     (zoneActions.length !== BASELINE_REPAIR_MAX_ZONE_MUTATIONS ||
       zoneActions.some((row) => row.actionType !== "deactivate_zone"))
   ) {
-    blockedReason = "scope-does-not-match-eight-targets";
+    blockedReason = `scope-does-not-match-${BASELINE_REPAIR_MAX_ZONE_MUTATIONS}-targets`;
   }
   if (
     !blockedReason &&
@@ -603,7 +597,9 @@ export async function executeBaselineRepairPlan(admin, plan) {
     actions.length !== BASELINE_REPAIR_MAX_ZONE_MUTATIONS ||
     actions.some((row) => row.actionType !== "deactivate_zone")
   ) {
-    throw new Error("[qa-baseline-repair] execute scope must be exactly eight zone deactivations");
+    throw new Error(
+      `[qa-baseline-repair] execute scope must be exactly ${BASELINE_REPAIR_MAX_ZONE_MUTATIONS} zone deactivations`,
+    );
   }
 
   await assertSettingsStillNoop(admin, plan);

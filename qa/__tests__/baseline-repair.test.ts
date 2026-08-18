@@ -16,7 +16,7 @@ import {
 import {
   assertBaselineRepairPlanApproved,
   BASELINE_REPAIR_MAX_ZONE_MUTATIONS,
-  BASELINE_REPAIR_V3_ZONES,
+  BASELINE_REPAIR_V4_ZONES,
   buildBaselineRepairPlanFromSnapshot,
   CANONICAL_BASELINE_SETTINGS,
   createBaselineRepairManifest,
@@ -28,6 +28,7 @@ import {
   validateBaselineRepairManifest,
   writeBaselineRepairManifest,
 } from "../baseline-repair-planner.mjs";
+import { dryRunExitCode } from "../baseline-repair.mjs";
 import { runPreflightChecks } from "../env-guard.mjs";
 import { KNOWN_PRODUCTION_PROJECT_REF, KNOWN_QA_PROJECT_REF } from "../qa-identity.mjs";
 
@@ -56,7 +57,7 @@ function settingsSnapshot() {
 
 function activeZoneSnapshot() {
   return Object.fromEntries(
-    BASELINE_REPAIR_V3_ZONES.map((zone) => [
+    BASELINE_REPAIR_V4_ZONES.map((zone) => [
       zone.id,
       {
         row: { id: zone.id, name_en: zone.name, is_active: true },
@@ -92,7 +93,7 @@ type FakeAdminOptions = {
 
 function createFakeAdmin(options: FakeAdminOptions = {}) {
   const zones = new Map(
-    BASELINE_REPAIR_V3_ZONES.map((zone) => [
+    BASELINE_REPAIR_V4_ZONES.map((zone) => [
       zone.id,
       {
         id: zone.id,
@@ -252,14 +253,19 @@ describe("baseline repair CLI args", () => {
 });
 
 describe("v3 exact manifest and provenance guards", () => {
-  it("binds exactly eight full ID/name/provenance tuples", () => {
+  it("binds exactly six full ID/name/provenance tuples", () => {
     const validated = validateBaselineRepairManifest(validManifest());
     expect(validated.ok).toBe(true);
-    expect(BASELINE_REPAIR_V3_ZONES).toHaveLength(8);
-    expect(new Set(BASELINE_REPAIR_V3_ZONES.map((row) => row.id)).size).toBe(8);
-    expect(new Set(BASELINE_REPAIR_V3_ZONES.map((row) => row.name)).size).toBe(8);
+    expect(BASELINE_REPAIR_MAX_ZONE_MUTATIONS).toBe(6);
+    expect(BASELINE_REPAIR_V4_ZONES).toHaveLength(6);
+    expect(new Set(BASELINE_REPAIR_V4_ZONES.map((row) => row.id)).size).toBe(
+      BASELINE_REPAIR_MAX_ZONE_MUTATIONS,
+    );
+    expect(new Set(BASELINE_REPAIR_V4_ZONES.map((row) => row.name)).size).toBe(
+      BASELINE_REPAIR_MAX_ZONE_MUTATIONS,
+    );
     expect(
-      BASELINE_REPAIR_V3_ZONES.every(
+      BASELINE_REPAIR_V4_ZONES.every(
         (row) =>
           row.name.startsWith("QA_") &&
           row.provenanceOwner.length > 0 &&
@@ -274,20 +280,20 @@ describe("v3 exact manifest and provenance guards", () => {
         .ok,
     ).toBe(false);
     expect(
-      validateBaselineRepairManifest(validManifest({ zones: BASELINE_REPAIR_V3_ZONES.slice(0, 7) }))
+      validateBaselineRepairManifest(validManifest({ zones: BASELINE_REPAIR_V4_ZONES.slice(0, 5) }))
         .ok,
     ).toBe(false);
     expect(
       validateBaselineRepairManifest(
         validManifest({
-          zones: [...BASELINE_REPAIR_V3_ZONES.slice(0, 7), BASELINE_REPAIR_V3_ZONES[0]],
+          zones: [...BASELINE_REPAIR_V4_ZONES.slice(0, 5), BASELINE_REPAIR_V4_ZONES[0]],
         }),
       ).ok,
     ).toBe(false);
     expect(
       validateBaselineRepairManifest(
         validManifest({
-          zones: BASELINE_REPAIR_V3_ZONES.map((row, index) =>
+          zones: BASELINE_REPAIR_V4_ZONES.map((row, index) =>
             index === 0 ? { ...row, id: "11111111-1111-4111-8111-111111111111" } : row,
           ),
         }),
@@ -296,7 +302,7 @@ describe("v3 exact manifest and provenance guards", () => {
     expect(
       validateBaselineRepairManifest(
         validManifest({
-          zones: BASELINE_REPAIR_V3_ZONES.map((row, index) =>
+          zones: BASELINE_REPAIR_V4_ZONES.map((row, index) =>
             index === 0 ? { ...row, name: `${row.name}_renamed` } : row,
           ),
         }),
@@ -305,12 +311,21 @@ describe("v3 exact manifest and provenance guards", () => {
     expect(
       validateBaselineRepairManifest(
         validManifest({
-          zones: BASELINE_REPAIR_V3_ZONES.map((row, index) =>
+          zones: BASELINE_REPAIR_V4_ZONES.map((row, index) =>
             index === 0 ? { ...row, provenanceClass: "unknown" } : row,
           ),
         }),
       ).ok,
     ).toBe(false);
+  });
+
+  it("never re-admits the two unsafe zones by name or id", () => {
+    const names = BASELINE_REPAIR_V4_ZONES.map((z) => z.name);
+    const ids = BASELINE_REPAIR_V4_ZONES.map((z) => z.id);
+    expect(names).not.toContain("QA_booking_lifecycle_zone_v1");
+    expect(ids).not.toContain("16079e5f-b915-4afa-aa64-2b5a40bd6597");
+    expect(names).not.toContain("QA_status_selector_zone_1786617970885");
+    expect(ids).not.toContain("325e3a13-1355-4cde-84ff-9a396f305691");
   });
 });
 
@@ -324,9 +339,9 @@ describe("settings and dry-run planning", () => {
     expect(planSettingBaselineAction("other")([])).toMatchObject({ blocked: true });
   });
 
-  it("plans exactly eight deactivations only when all exact rows are active and child-free", () => {
+  it("plans exactly six deactivations only when all exact rows are active and child-free", () => {
     const plan = validPlan();
-    expect(plan.version).toBe("6a.2-baseline-repair-v3");
+    expect(plan.version).toBe("6a.2-baseline-repair-v4");
     expect(plan.settings.every((row) => row.actionType === "noop")).toBe(true);
     expect(plan.zones).toHaveLength(BASELINE_REPAIR_MAX_ZONE_MUTATIONS);
     expect(
@@ -334,11 +349,11 @@ describe("settings and dry-run planning", () => {
         (row) => row.actionType === "deactivate_zone" && row.intendedIsActive === false,
       ),
     ).toBe(true);
-    expect(plan.counts.planned_mutations).toBe(8);
+    expect(plan.counts.planned_mutations).toBe(BASELINE_REPAIR_MAX_ZONE_MUTATIONS);
   });
 
   it("blocks missing, renamed, inactive, ID-mismatched, and nonzero-child live state", () => {
-    const target = BASELINE_REPAIR_V3_ZONES[0];
+    const target = BASELINE_REPAIR_V4_ZONES[0];
     expect(planZoneBaselineAction(target, null)).toMatchObject({ blocked: true });
     expect(
       planZoneBaselineAction(target, {
@@ -348,7 +363,7 @@ describe("settings and dry-run planning", () => {
     ).toMatchObject({ blocked: true });
     expect(
       planZoneBaselineAction(target, {
-        row: { id: BASELINE_REPAIR_V3_ZONES[1].id, name_en: target.name, is_active: true },
+        row: { id: BASELINE_REPAIR_V4_ZONES[1].id, name_en: target.name, is_active: true },
         childCounts: ZERO_CHILDREN,
       }),
     ).toMatchObject({ blocked: true });
@@ -366,7 +381,7 @@ describe("settings and dry-run planning", () => {
     ).toMatchObject({ blocked: true });
   });
 
-  it("blocks Production project refs and a scope that is not exactly eight", () => {
+  it("blocks Production project refs and a scope that is not exactly six", () => {
     const productionPlan = buildBaselineRepairPlanFromSnapshot({
       projectRef: KNOWN_PRODUCTION_PROJECT_REF,
       manifest: validManifest(),
@@ -383,14 +398,14 @@ describe("fingerprint and approval", () => {
     const base = validPlan();
     const reversed = buildBaselineRepairPlanFromSnapshot({
       projectRef: KNOWN_QA_PROJECT_REF,
-      manifest: validManifest({ zones: [...BASELINE_REPAIR_V3_ZONES].reverse() }),
+      manifest: validManifest({ zones: [...BASELINE_REPAIR_V4_ZONES].reverse() }),
       settingsByKey: settingsSnapshot(),
       zonesById: activeZoneSnapshot(),
     });
     expect(reversed.fingerprint).toBe(base.fingerprint);
 
     const children = activeZoneSnapshot();
-    children[BASELINE_REPAIR_V3_ZONES[0].id].childCounts.addresses = 1;
+    children[BASELINE_REPAIR_V4_ZONES[0].id].childCounts.addresses = 1;
     const blocked = buildBaselineRepairPlanFromSnapshot({
       projectRef: KNOWN_QA_PROJECT_REF,
       manifest: validManifest(),
@@ -410,16 +425,16 @@ describe("fingerprint and approval", () => {
     ).toThrow(/invalidated/i);
     expect(() => assertBaselineRepairPlanApproved(plan, "d".repeat(64))).toThrow(/mismatch/i);
     expect(() => assertBaselineRepairPlanApproved(plan, plan.fingerprint)).not.toThrow();
-    expect(BASELINE_REPAIR_PLAN_VERSION).toBe("6a.2-baseline-repair-v3");
+    expect(BASELINE_REPAIR_PLAN_VERSION).toBe("6a.2-baseline-repair-v4");
   });
 });
 
 describe("network-free execute safety", () => {
-  it("uses only eight conditional is_active=false updates and performs post-execute readback", async () => {
+  it("uses only six conditional is_active=false updates and performs post-execute readback", async () => {
     const fake = createFakeAdmin();
     const execution = await executeBaselineRepairPlan(fake.admin as never, validPlan());
     expect(execution.success).toBe(true);
-    expect(fake.updates).toHaveLength(8);
+    expect(fake.updates).toHaveLength(BASELINE_REPAIR_MAX_ZONE_MUTATIONS);
     expect(
       fake.updates.every(
         (row) =>
@@ -464,16 +479,16 @@ describe("network-free execute safety", () => {
   it("fails post-execute readback if children appear after the final mutation", async () => {
     const fake = createFakeAdmin({
       afterUpdate: (id, count, children) => {
-        if (count === 8) children[id] = { addresses: 1 };
+        if (count === BASELINE_REPAIR_MAX_ZONE_MUTATIONS) children[id] = { addresses: 1 };
       },
     });
     const execution = await executeBaselineRepairPlan(fake.admin as never, validPlan());
     expect(execution.success).toBe(false);
     expect(execution.verification?.reason).toMatch(/zone-readback-failed/i);
-    expect(fake.updates).toHaveLength(8);
+    expect(fake.updates).toHaveLength(BASELINE_REPAIR_MAX_ZONE_MUTATIONS);
   });
 
-  it("rejects a plan containing setting mutation or more than eight zone actions", async () => {
+  it("rejects a plan containing setting mutation or more than six zone actions", async () => {
     const fake = createFakeAdmin();
     await expect(
       executeBaselineRepairPlan(
@@ -492,7 +507,7 @@ describe("network-free execute safety", () => {
           zones: [...validPlan().zones, validPlan().zones[0]],
         } as never,
       ),
-    ).rejects.toThrow(/exactly eight/i);
+    ).rejects.toThrow(/exactly 6 zone deactivations/i);
     expect(fake.updates).toHaveLength(0);
   });
 });
@@ -501,8 +516,13 @@ describe("report, file, production, and import safety", () => {
   it("sanitizes full UUIDs from reports", () => {
     const report = sanitizeBaselineRepairPlanForReport(validPlan());
     const serialized = JSON.stringify(report);
-    for (const zone of BASELINE_REPAIR_V3_ZONES) expect(serialized).not.toContain(zone.id);
+    for (const zone of BASELINE_REPAIR_V4_ZONES) expect(serialized).not.toContain(zone.id);
     expect(report.zones.every((row) => !("id" in row))).toBe(true);
+  });
+
+  it("returns a non-zero exit code for a blocked dry-run plan", () => {
+    expect(dryRunExitCode({ blocked: true })).toBe(2);
+    expect(dryRunExitCode({ blocked: false })).toBe(0);
   });
 
   it("loads the compiled manifest when no report file exists and writes only validated manifests", () => {
