@@ -56,18 +56,19 @@ Do not rely on memory, prior conversations, or stale report files.
 
 Only one agent owns a phase at a time. Two agents must never edit the same branch concurrently.
 
-### Codex SOL — CTO and orchestrator
+### Claude Sonnet — CTO and orchestrator
 
-Codex owns:
+Claude owns:
 
 - Issue and PR orientation
 - Scope control and execution planning
 - GitHub status, CI, review, and merge-readiness checks
 - Selecting the next technically correct action
-- Small scoped implementation when it has the working tree
+- Directing Cursor's scoped local implementation and QA phase
+- Small scoped implementation when it owns the working tree
 - Final plain-language recommendation to the Product Owner
 
-Codex must not claim local QA ran when it cannot access the required QA environment, browser, or secrets.
+Claude must not claim local QA ran when it cannot access the required QA environment, browser, or secrets. Claude must not edit the same branch concurrently with Cursor.
 
 ### Cursor Composer 2.5 — local implementer
 
@@ -81,16 +82,18 @@ Cursor owns:
 
 Cursor must not broaden scope, run blind retries, merge to main, or start a second task on the same branch.
 
-### Claude Sonnet — independent reviewer
+### Codex SOL — independent auditor
 
-Claude owns:
+Codex owns:
 
-- One independent review of the completed diff
+- One independent read-only audit of the completed current diff
 - Security, correctness, data-integrity, test-quality, and scope checks
+- Verifying claimed checks against current branch and PR evidence
 - Classifying findings by severity
-- Verifying a correction when a blocking finding was fixed
+- Verifying a correction once when a blocking finding was fixed
+- Issuing the final audit verdict and required next gate
 
-Claude must not redesign the feature, reimplement the patch, or create repeated audit loops unless explicitly assigned implementation work.
+Codex must not redesign the feature, reimplement the patch, edit, commit, push, or create repeated audit loops unless Safeyeldin explicitly reassigns Codex as the implementer for a separate phase.
 
 ## Standard workflow
 
@@ -107,7 +110,7 @@ Every task follows this sequence:
 4. Local verification
    - Run the checks required by the change type.
 5. Independent review
-   - Claude or CodeRabbit reviews the complete current diff once.
+   - Codex or CodeRabbit reviews the complete current diff once.
 6. Focused QA
    - Run the smallest test that proves the changed behavior.
 7. Merge decision
