@@ -20,10 +20,14 @@ export async function resetRegistryProviderToDraft(providerUserId = registryProv
   });
   if (resetError) throw resetError;
 
-  await supabaseAdmin.from("profiles").update({
-    full_name: REGISTRY_PROVIDER_NAME,
-    avatar_url: null,
-  }).eq("id", providerUserId);
+  const { error: profileUpdateError } = await supabaseAdmin
+    .from("profiles")
+    .update({
+      full_name: REGISTRY_PROVIDER_NAME,
+      avatar_url: null,
+    })
+    .eq("id", providerUserId);
+  if (profileUpdateError) throw profileUpdateError;
 
   return created;
 }

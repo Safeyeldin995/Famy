@@ -56,14 +56,26 @@ function printDryRunSummary(plan) {
   console.log(`[qa-baseline-repair:dry-run] zone_targets=${plan.counts.zone_targets}`);
   console.log(`[qa-baseline-repair:dry-run] planned_mutations=${plan.counts.planned_mutations}`);
   console.log(`[qa-baseline-repair:dry-run] plan_fingerprint=${plan.fingerprint}`);
-  console.log(`[qa-baseline-repair:dry-run] setting_actions=${plan.settings.map((row) => `${row.key}:${row.actionType}`).join(", ") || "(none)"}`);
-  console.log(`[qa-baseline-repair:dry-run] zone_actions=${plan.zones.map((row) => `${row.name}:${row.maskedId}:${row.actionType}`).join(", ") || "(none)"}`);
+  console.log(
+    `[qa-baseline-repair:dry-run] setting_actions=${plan.settings.map((row) => `${row.key}:${row.actionType}`).join(", ") || "(none)"}`,
+  );
+  console.log(
+    `[qa-baseline-repair:dry-run] zone_actions=${plan.zones.map((row) => `${row.name}:${row.maskedId}:${row.actionType}`).join(", ") || "(none)"}`,
+  );
   if (plan.protectedCatalog) {
-    console.log(`[qa-baseline-repair:dry-run] protected_categories=${plan.protectedCatalog.categoryCount}`);
-    console.log(`[qa-baseline-repair:dry-run] protected_seeded_services=${plan.protectedCatalog.seededServiceCount}`);
-    console.log(`[qa-baseline-repair:dry-run] protected_storage_buckets=${plan.protectedCatalog.storageBucketCount}`);
+    console.log(
+      `[qa-baseline-repair:dry-run] protected_categories=${plan.protectedCatalog.categoryCount}`,
+    );
+    console.log(
+      `[qa-baseline-repair:dry-run] protected_seeded_services=${plan.protectedCatalog.seededServiceCount}`,
+    );
+    console.log(
+      `[qa-baseline-repair:dry-run] protected_storage_buckets=${plan.protectedCatalog.storageBucketCount}`,
+    );
   }
-  console.log("[qa-baseline-repair:dry-run] Execute requires: --execute --confirm=I-UNDERSTAND-QA-BASELINE-REPAIR --plan-fingerprint=<fingerprint>");
+  console.log(
+    "[qa-baseline-repair:dry-run] Execute requires: --execute --confirm=I-UNDERSTAND-QA-BASELINE-REPAIR --plan-fingerprint=<fingerprint>",
+  );
 }
 
 /**
@@ -74,16 +86,26 @@ function printExecuteSummary(payload) {
   console.log(`[qa-baseline-repair:execute] plan_version=${plan.version}`);
   console.log(`[qa-baseline-repair:execute] plan_fingerprint=${plan.fingerprint}`);
   console.log(`[qa-baseline-repair:execute] success=${success ? "true" : "false"}`);
-  console.log(`[qa-baseline-repair:execute] mutations_started=${execution.mutationsStarted ? "true" : "false"}`);
-  console.log(`[qa-baseline-repair:execute] masked_results=${execution.results.map((row) => `${row.entityType}:${row.maskedId}:${row.actionType}:${row.ok ? "ok" : "fail"}`).join(", ") || "(none)"}`);
+  console.log(
+    `[qa-baseline-repair:execute] mutations_started=${execution.mutationsStarted ? "true" : "false"}`,
+  );
+  console.log(
+    `[qa-baseline-repair:execute] masked_results=${execution.results.map((row) => `${row.entityType}:${row.maskedId}:${row.actionType}:${row.ok ? "ok" : "fail"}`).join(", ") || "(none)"}`,
+  );
   if (execution.verification?.protectedCatalog) {
     const counts = execution.verification.protectedCatalog;
     console.log(`[qa-baseline-repair:execute] protected_categories=${counts.categoryCount}`);
-    console.log(`[qa-baseline-repair:execute] protected_seeded_services=${counts.seededServiceCount}`);
-    console.log(`[qa-baseline-repair:execute] protected_storage_buckets=${counts.storageBucketCount}`);
+    console.log(
+      `[qa-baseline-repair:execute] protected_seeded_services=${counts.seededServiceCount}`,
+    );
+    console.log(
+      `[qa-baseline-repair:execute] protected_storage_buckets=${counts.storageBucketCount}`,
+    );
   }
   if (execution.verification?.reason) {
-    console.log(`[qa-baseline-repair:execute] verification_reason=${execution.verification.reason}`);
+    console.log(
+      `[qa-baseline-repair:execute] verification_reason=${execution.verification.reason}`,
+    );
   }
 }
 
@@ -102,8 +124,15 @@ async function loadPlanFromLiveQa() {
   const admin = getSupabaseAdmin();
   const plan = await buildBaselineRepairPlanFromAdmin(admin, projectRef, loaded.manifest);
   const protectedCatalog = await verifyProtectedCatalogCounts(admin);
+  const catalogBlocked = !protectedCatalog.ok;
   return {
-    plan: { ...plan, protectedCatalog },
+    plan: {
+      ...plan,
+      blocked: plan.blocked || catalogBlocked,
+      blockedReason: plan.blockedReason ?? (catalogBlocked ? "protected-catalog-drift" : null),
+      fingerprint: catalogBlocked ? null : plan.fingerprint,
+      protectedCatalog,
+    },
     manifestPath,
   };
 }
@@ -139,11 +168,28 @@ export async function runBaselineRepairExecute(options = {}) {
   }
   const projectRef = parseSupabaseProjectRef(process.env.QA_SUPABASE_URL);
   const freshPlan = await buildBaselineRepairPlanFromAdmin(admin, projectRef, loaded.manifest);
-  assertBaselineRepairPlanApproved(freshPlan, options.planFingerprint);
-  const execution = await executeBaselineRepairPlan(admin, freshPlan);
-  const payload = { plan: freshPlan, execution, success: execution.success };
+  const protectedCatalog = await verifyProtectedCatalogCounts(admin);
+  const guardedPlan = {
+    ...freshPlan,
+    blocked: freshPlan.blocked || !protectedCatalog.ok,
+    blockedReason:
+      freshPlan.blockedReason ?? (!protectedCatalog.ok ? "protected-catalog-drift" : null),
+    fingerprint: protectedCatalog.ok ? freshPlan.fingerprint : null,
+    protectedCatalog,
+  };
+  assertBaselineRepairPlanApproved(guardedPlan, options.planFingerprint);
+  const execution = await executeBaselineRepairPlan(admin, guardedPlan);
+  const payload = { plan: guardedPlan, execution, success: execution.success };
   printExecuteSummary(payload);
   return payload;
+}
+
+/**
+ * @param {{ blocked: boolean }} plan
+ * @returns {number}
+ */
+export function dryRunExitCode(plan) {
+  return plan.blocked ? 2 : 0;
 }
 
 /**
@@ -160,8 +206,8 @@ export async function main(argv = process.argv.slice(2)) {
     }
 
     if (parsed.mode === "dry-run") {
-      await runBaselineRepairDryRun();
-      return 0;
+      const plan = await runBaselineRepairDryRun();
+      return dryRunExitCode(plan);
     }
 
     const payload = await runBaselineRepairExecute({ planFingerprint: parsed.planFingerprint });
