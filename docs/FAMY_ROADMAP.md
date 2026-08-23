@@ -72,6 +72,64 @@ guessing at scope wastes a cycle when the audit would have taken an hour.
 | Provider payouts | **NOT STARTED — genuine gap, needs your decision** | `pro.earnings.tsx` is read-only (sums `payments` where `status='captured'`); its "Recent Payouts" section (line 51) is actually just completed bookings, not payout records — **mislabeled**, should read something like "Recent Completed Jobs" regardless of what's decided below. No `payouts` table, no admin payout-issuance UI, no QA spec, and no doc anywhere states payouts are intentionally manual/outside-app. |
 | Production deployment readiness | **NOT STARTED** | Only `docs/QA_ENVIRONMENT.md` exists; no Production runbook. Tracked as Milestone 3, not re-audited here — it's a "write it" task, not a "find it" task. |
 
+### CRITICAL — Production data hygiene (found 2026-08-23, Milestone 3)
+
+Read-only audit against live Production (project `mjhk…nojp`), run directly by
+Safeyeldin per the harness's own Production-access guardrail (a stricter,
+separate gate from `AGENTS.md`'s approval chain — it won't let Claude touch
+Production DB access via chat at all, even read-only).
+
+**Schema is fully in sync** — every recent migration (reviews, ratings_summary,
+payments proof columns, bookings idempotency, zones) is present and correct.
+No migration gap.
+
+**Data hygiene is not.** Two independent signals disagree sharply on scope:
+
+| Signal | Count | Share |
+|---|---|---|
+| `profiles.full_name ILIKE 'QA_%'` | 315 / 433 profiles | 73% |
+| `bookings.notes ILIKE 'QA_%'` | 155 / 396 bookings | 39% |
+| **`auth.users.email` ending `@famio.local`** (the actual QA fixture email domain) | **553 / 915 auth users** | **60%** |
+| `profiles` with empty/null `full_name` | 116 / 433 | 27% |
+
+The `@famio.local` figure is the reliable one — it's the literal email pattern
+QA fixtures use, not a fuzzy name match — and it's nearly double the "QA_"
+name-based count. There are also **482 auth users with no `profiles` row at
+all** (915 auth users vs. 433 profiles), which is its own separate question
+(orphaned signups? failed profile creation? unrelated to the QA question).
+
+**What's confirmed safe:**
+- Pollution is **historical only** — every QA-named row's `created_at` falls
+  between 2026-07-16 and 2026-08-02, right up to when the dedicated QA-tier
+  Supabase project appears to have been formalized (~2026-08-04 per git
+  history). Nothing new has landed since. This is cleanup of a past mistake,
+  not an active leak to plug.
+- **Zero real `payments` rows** are attached to any QA-looking booking —
+  financially clean.
+- 150 of 155 QA-looking bookings are already `cancelled` (inert).
+
+**What's not yet safe:**
+- **49 QA-looking profiles are not suspended** — live/active fake accounts
+  sitting in Production.
+- **5 QA-looking bookings are still `pending`** — could surface in a real
+  provider/admin workflow.
+- The full scope (553 `@famio.local` auth users vs. 315 QA-named profiles vs.
+  116 empty-name profiles vs. 482 profile-less auth users) has **not been
+  reconciled into one clear list** — these are four overlapping signals, not
+  yet cross-referenced into "here are exactly the N accounts that are fake."
+
+**Recommendation, not yet actioned:** this needs its own dedicated,
+purpose-built characterization-then-containment effort — explicitly **not**
+a reuse of any `qa/` tooling (every script there refuses to run outside the
+QA project ref by design, correctly), and explicitly **not** something to
+rush. Real Production data deserves more ceremony than QA fixture cleanup
+did, not less. Next step should be a full reconciliation query (one
+definitive list of exactly which accounts/bookings are fake, by the
+`@famio.local` signal primarily) before any containment plan is even drafted
+— and any actual mutation needs Safeyeldin's explicit, specifically-informed
+approval, the same way the QA zone deactivation did, but with a materially
+higher bar given real user data may be adjacent.
+
 ---
 
 ## Milestones
@@ -106,7 +164,9 @@ Concrete items, now that Milestone 1 removed the guesswork:
 4. Provider service-start lifecycle (if resumed per Milestone 0 item 4).
 
 ### Milestone 3 — Production readiness
-*Exit criteria: a reviewed, written Production deployment runbook (env vars, migration application order, rollback plan) exists alongside the QA one; a monitoring/alerting minimum (errors, failed payments, failed notifications) is wired up; one full dry-run of "deploy this exact `main` to Production" is reviewed and approved by you before it's ever executed for real.*
+*Exit criteria: a reviewed, written Production deployment runbook (env vars, migration application order, rollback plan) exists alongside the QA one; a monitoring/alerting minimum (errors, failed payments, failed notifications) is wired up; one full dry-run of "deploy this exact `main` to Production" is reviewed and approved by you before it's ever executed for real; **and the Production data hygiene finding below is reconciled and remediated.**
+
+**Confirmed 2026-08-23:** schema is fully in sync with `main` — no migration gap. **Not fine:** ~60% of Production auth users carry the QA-fixture email signature, historical (stopped ~Aug 2) but never cleaned up. See "CRITICAL — Production data hygiene" below. This blocks Milestone 4, not Milestone 3's other items — the runbook and monitoring work can proceed in parallel.
 
 This is the milestone where "destructive/Production/migration" approval gates in `AGENTS.md` matter most — expect this one to move slower and involve you directly at every step, by design.
 
