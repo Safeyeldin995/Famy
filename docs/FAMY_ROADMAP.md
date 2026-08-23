@@ -61,18 +61,14 @@ guessing at scope wastes a cycle when the audit would have taken an hour.
 |---|---|---|
 | **Issue #6** — Provider service-start lifecycle (`confirmed → on_the_way → arrived → arrival_confirmed → in_progress`) | Explicitly parked 2026-08-12 after a flaky final console assertion. A fresh spec exists uncommitted on `test/provider-service-start-lifecycle-v2` (now committed there as WIP, not run/validated). PR #7 (old attempt) is Draft and conflicts with `main`. | Needs your decision to resume — see Milestone 1 below |
 
-### UNVERIFIED — needs an audit before scoping
+### Milestone 1 audit results (2026-08-23)
 
-No commit history, spec file, or route was found for these. That doesn't
-prove they're missing — it means nobody has checked recently. First action
-on each is a short read-only audit, not a build task.
-
-| Item | Why it's flagged |
-|---|---|
-| Ratings / reviews | No route, no spec, no commit matching "rating"/"review" found anywhere. Either genuinely not built, or intentionally out of scope for beta — needs a product decision from you, not an engineering guess. |
-| Payment proof capture → admin verification, end-to-end | `admin.payments.tsx` and `payment_methods` exist and are tested from the admin side; customer-side proof upload UX and its E2E proof were not confirmed in this pass. |
-| Production deployment readiness (env parity, migration application process, monitoring/alerting) | Only QA-tier environment has a documented runbook (`docs/QA_ENVIRONMENT.md`). No equivalent Production runbook was found. |
-| Provider earnings / payout | `pro.earnings.tsx` route exists; no payout-issuance flow or spec found. May be intentionally read-only/manual for beta. |
+| Item | Verdict | Evidence |
+|---|---|---|
+| Ratings / reviews | **DONE (app code) / GAP (no E2E spec)** | `reviews` + `ratings_summary` tables (`20260627001502_...sql`); `useProviderReviews`/`useBookingReview`/`useSubmitReview` in `src/lib/db/queries.ts:836-882`; customer star+comment UI in `src/routes/booking.$id.tsx:259-320`; provider-facing display in `src/routes/provider.$id.tsx:88,99,168-172`. No `qa/tests/*.spec.ts` exercises this flow. |
+| Payment-proof capture → admin verification | **DONE (app code) / GAP (no E2E spec)** | Shared `src/components/famio/PaymentBlock.tsx` (customer upload UI, 10MB validation, awaiting-review state); `useUploadPaymentProof` in `src/lib/db/payment-queries.ts:108-125` uploads to `payment-proofs` bucket + updates `payments.proof_path`; RLS correctly scoped (`payments_customer_insert`, `payments_customer_update_proof` — locked after review). Zero E2E specs drive a real file upload through this flow; existing admin payment specs only exercise pre-seeded fixture data. |
+| Provider payouts | **NOT STARTED — genuine gap, needs your decision** | `pro.earnings.tsx` is read-only (sums `payments` where `status='captured'`); its "Recent Payouts" section (line 51) is actually just completed bookings, not payout records — **mislabeled**, should read something like "Recent Completed Jobs" regardless of what's decided below. No `payouts` table, no admin payout-issuance UI, no QA spec, and no doc anywhere states payouts are intentionally manual/outside-app. |
+| Production deployment readiness | **NOT STARTED** | Only `docs/QA_ENVIRONMENT.md` exists; no Production runbook. Tracked as Milestone 3, not re-audited here — it's a "write it" task, not a "find it" task. |
 
 ---
 
@@ -92,14 +88,20 @@ resist parallelizing across milestones, it's how scope drift happens.
 4. Decision from you: resume Issue #6 now, or keep it parked while other milestones proceed. Either is fine — just make it explicit so it stops being a silent loose end.
 
 ### Milestone 1 — Scope audit (read-only, fast)
-*Exit criteria: every UNVERIFIED item above is either reclassified as DONE/NOT STARTED with evidence, or turned into a scoped Issue with acceptance criteria — plus your explicit product decision on ratings/reviews and payouts (in-scope for beta or not).*
-
-This is deliberately cheap and fast — a day of grep/read, not a sprint. Its whole point is to stop the next milestones from being guesses.
+**Done 2026-08-23.** Results above. One open question for you: ratings/reviews
+and payment-proof capture are real, working features already — no decision
+needed there, just test coverage (Milestone 2). Payouts is the one genuine
+open product decision — see Milestone 2 below.
 
 ### Milestone 2 — Close genuine functional gaps found in Milestone 1
-*Exit criteria: every Issue opened in Milestone 1 that you confirmed as in-scope for beta is merged, tested, and evidenced — same bar as everything in "Confirmed DONE" above.*
+*Exit criteria: E2E coverage exists for ratings/reviews and payment-proof capture; the payout decision is made and either implemented or documented as intentionally manual; the "Recent Payouts" mislabel is fixed regardless.*
 
-Contents unknown until Milestone 1 lands. Likely candidates based on today's audit: customer-side payment proof upload E2E proof, provider service-start lifecycle (if resumed), ratings/reviews (if in scope).
+Concrete items, now that Milestone 1 removed the guesswork:
+
+1. **E2E spec: ratings/reviews** — customer submits a star rating + comment on a completed booking, provider sees it on their profile. No product decision needed, no code change expected unless the spec finds a real defect. (In flight — handed to Cursor.)
+2. **E2E spec: payment-proof capture** — customer uploads a proof file on a manual-transfer booking, admin sees and reviews it. No product decision needed. (In flight — handed to Cursor.)
+3. **Provider payouts** — needs your decision first: (a) build real in-app payout tracking/issuance for beta, or (b) keep it manual/outside-app and just fix the "Recent Payouts" → "Recent Completed Jobs" mislabel so the UI stops implying something happens that doesn't. Recommend (b) for a closed beta — payout automation is exactly the kind of scope a small beta doesn't need yet — but it's your call, not an engineering default.
+4. Provider service-start lifecycle (if resumed per Milestone 0 item 4).
 
 ### Milestone 3 — Production readiness
 *Exit criteria: a reviewed, written Production deployment runbook (env vars, migration application order, rollback plan) exists alongside the QA one; a monitoring/alerting minimum (errors, failed payments, failed notifications) is wired up; one full dry-run of "deploy this exact `main` to Production" is reviewed and approved by you before it's ever executed for real.*
