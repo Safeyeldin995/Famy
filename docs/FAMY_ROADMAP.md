@@ -118,17 +118,40 @@ all** (915 auth users vs. 433 profiles), which is its own separate question
   reconciled into one clear list** — these are four overlapping signals, not
   yet cross-referenced into "here are exactly the N accounts that are fake."
 
-**Recommendation, not yet actioned:** this needs its own dedicated,
-purpose-built characterization-then-containment effort — explicitly **not**
-a reuse of any `qa/` tooling (every script there refuses to run outside the
-QA project ref by design, correctly), and explicitly **not** something to
-rush. Real Production data deserves more ceremony than QA fixture cleanup
-did, not less. Next step should be a full reconciliation query (one
-definitive list of exactly which accounts/bookings are fake, by the
-`@famio.local` signal primarily) before any containment plan is even drafted
-— and any actual mutation needs Safeyeldin's explicit, specifically-informed
-approval, the same way the QA zone deactivation did, but with a materially
-higher bar given real user data may be adjacent.
+**Update 2026-08-23 — reconciled and independently audited (Cursor +
+Codex).** The picture is now much clearer, and simpler than the first pass
+suggested:
+
+| Question | Answer | Confidence |
+|---|---|---|
+| Are any of Production's 433 `profiles` real (non-test)? | **No — 0/433.** Every profile's owning auth user has the exact `@famio.local` test-domain email. Independently re-derived by Codex from scratch, exact match to Cursor's numbers (915 auth users, 433 profiles, 553 fake auth ids, 0 non-fake profiles). | High — two independent derivations agree exactly. |
+| Is the marketplace-activity blast radius bigger than "some bookings"? | **Yes — corrected from a BLOCKER-level error in the first pass.** Cursor's original join checked `providers.id` directly against fake auth ids, which is wrong (`providers.id` isn't the profile/auth id). The correct chain (`bookings.provider_id → providers.id → providers.profile_id`) shows **all 163 providers, all 396 bookings, all 208 addresses, and all 75 payments** in Production trace back to fake identities. Net effect: **100% of Production's marketplace activity so far — both customer and provider side — is dev/test data**, not a partial-pollution problem. | High — Codex caught this via independent re-derivation, not by trusting Cursor's join. |
+| Are the 362 profile-less, phone-only auth rows real people? | **Plausible but not proven.** All 362 have a phone number (197 confirmed, 165 not), no profile, no role, and an opaque non-email value in `auth.users.email` (not a real email, not null either — a 43-char opaque string, consistent with a phone-based signup path that doesn't collect email). Created in a tight 2026-07-16 to 2026-07-28 window across 8 signup days. Reads as genuine incomplete WhatsApp-OTP signups, but aggregate data alone can't prove every row is a real distinct person — treat as "likely real, unconfirmed," not fact. | Medium |
+| Why do 362 auth rows lack the profile+role the signup trigger should create? | **Open question, not yet investigated.** The trigger (`handle_new_user()`, confirmed present in `20260627001502_ad628300-597e-4e44-a327-c7e10f82290a.sql:68-78`) should create both on every signup — migration content is confirmed, but whether the trigger is actually enabled/firing correctly in Production was not verified. Flagged HIGH by Codex as a live data-integrity anomaly, separate from the test-data question. | Needs its own investigation before Milestone 3 closes. |
+
+**What this changes:** the original framing ("~60% polluted within an
+otherwise-real user base") was wrong in a way that matters — there is no
+partially-real user base to carefully preserve while removing fake rows.
+Every single completed signup (profile) in Production is test data, and
+every booking/provider/address/payment traces back to one. This makes the
+remediation question simpler, not harder: a full reset of
+Production's user-generated tables (`profiles`, `bookings`, `payments`,
+`providers`, `addresses`, `reviews`, `user_roles`, etc. — catalog/seed data
+like `categories`/`services`/`zones` is separate and not implicated) ahead
+of beta launch is very likely safe, since there is no real transactional
+data to lose. The only genuinely open question is what to do with the 362
+phone-only auth rows — they have zero attached data (no profile, no
+booking, no role), so the decision is only "delete these auth-only records
+too" vs. "preserve them as possible early beta-interest signups to follow
+up with," not a data-safety question.
+
+**Still not actioned, still needs your explicit approval:** no mutation of
+any kind has been performed. The 362-row trigger anomaly needs its own
+read-only investigation first (next Cursor task). Any actual reset/cleanup
+needs a purpose-built, reviewed, fingerprinted plan — explicitly not a
+reuse of `qa/` tooling — with your specific sign-off, the same discipline as
+the QA zone deactivation but at a materially higher bar given this is real
+Production.
 
 ---
 
