@@ -44,15 +44,16 @@ guessing at scope wastes a cycle when the audit would have taken an hour.
 | Payment authority hardening | PATCH 6A/6D (`56581f4`, `3e1e9a7`) |
 | Notifications + push delivery, worker auth hardening | commits `accaf25`, `04fcaff`, `066aeda` |
 | Support disputes & no-show workflows | commit `54d2e8a`, `admin-case-controls.spec.ts` |
-| Admin catalog self-cleaning E2E | PR #13 (with follow-up gap closure below) |
+| Admin catalog self-cleaning E2E | PR #13 |
 | QA report secret hygiene | PR #16 |
+| QA zone-residue deactivation (Issue #12) | PR #17, live-executed and verified |
+| Issue #12 closed: 58/58 full-E2E, residue-zero, catalog 6/18/4 — all independently re-verified against raw evidence, not self-reported | Issue #12, closed 2026-08-23 |
 
 ### OPEN — tracked, in progress
 
 | Item | Status | Blocking on |
 |---|---|---|
-| **Issue #12** — QA residue-zero gate | Zone residue fixed (PR #17, live-executed and verified). Still needs: clean 58/58 full-E2E on `main` with the contamination fix (in flight — Cursor result pending), protected-catalog re-verify, and a decision on rotating the already-leaked QA service-role key. | Your credential rotation decision; Cursor's clean re-run result |
-| **`admin-remaining-mutations.spec.ts`** cancellation-reason activate-persistence failure | Seen once today; historical evidence (Aug 19 clean log) suggests flaky, not regressed, since nothing touched that code path since. Confirming on the clean re-run. | Clean re-run result — if it fails twice, this becomes its own Issue |
+| Rotate the leaked QA service-role key (`qa/report/results.json`, pre-PR #16) | Not yet done — Supabase dashboard action only Safeyeldin can take. | Safeyeldin |
 
 ### PARKED
 
@@ -83,11 +84,11 @@ decision) per item, not as one giant batch. Ship milestones in order —
 resist parallelizing across milestones, it's how scope drift happens.
 
 ### Milestone 0 — Close what's already in flight
-*Exit criteria: Issue #12 closed with real evidence; Issue #6 has an explicit decision (resume or stay parked) with a paper trail either way.*
+*Exit criteria: Issue #6 has an explicit decision (resume or stay parked) with a paper trail either way.*
 
-1. Land the corrected clean full-E2E run (58/58) + residue-zero + protected-catalog evidence on Issue #12; close it.
-2. Rotate the leaked QA service-role key (your action) and decide on the old `qa/report/results.json` (recommend: delete, now that PR #16 prevents recurrence).
-3. Triage `admin-remaining-mutations` activate-persistence failure: confirm flaky (close, no action) or real (new Issue, own milestone).
+1. ~~Land the corrected clean full-E2E run (58/58) + residue-zero + protected-catalog evidence on Issue #12; close it.~~ **Done 2026-08-23**, independently re-verified.
+2. Rotate the leaked QA service-role key (your action) and decide on the old `qa/report/results.json` (recommend: delete, now that PR #16 prevents recurrence). **Still open.**
+3. ~~Triage `admin-remaining-mutations` activate-persistence failure~~ **Done** — passed cleanly on the corrected re-run, classified as contamination/flake, no new Issue needed.
 4. Decision from you: resume Issue #6 now, or keep it parked while other milestones proceed. Either is fine — just make it explicit so it stops being a silent loose end.
 
 ### Milestone 1 — Scope audit (read-only, fast)
