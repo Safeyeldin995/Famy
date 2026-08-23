@@ -124,34 +124,83 @@ suggested:
 
 | Question | Answer | Confidence |
 |---|---|---|
-| Are any of Production's 433 `profiles` real (non-test)? | **No — 0/433.** Every profile's owning auth user has the exact `@famio.local` test-domain email. Independently re-derived by Codex from scratch, exact match to Cursor's numbers (915 auth users, 433 profiles, 553 fake auth ids, 0 non-fake profiles). | High — two independent derivations agree exactly. |
-| Is the marketplace-activity blast radius bigger than "some bookings"? | **Yes — corrected from a BLOCKER-level error in the first pass.** Cursor's original join checked `providers.id` directly against fake auth ids, which is wrong (`providers.id` isn't the profile/auth id). The correct chain (`bookings.provider_id → providers.id → providers.profile_id`) shows **all 163 providers, all 396 bookings, all 208 addresses, and all 75 payments** in Production trace back to fake identities. Net effect: **100% of Production's marketplace activity so far — both customer and provider side — is dev/test data**, not a partial-pollution problem. | High — Codex caught this via independent re-derivation, not by trusting Cursor's join. |
-| Are the 362 profile-less, phone-only auth rows real people? | **Plausible but not proven.** All 362 have a phone number (197 confirmed, 165 not), no profile, no role, and an opaque non-email value in `auth.users.email` (not a real email, not null either — a 43-char opaque string, consistent with a phone-based signup path that doesn't collect email). Created in a tight 2026-07-16 to 2026-07-28 window across 8 signup days. Reads as genuine incomplete WhatsApp-OTP signups, but aggregate data alone can't prove every row is a real distinct person — treat as "likely real, unconfirmed," not fact. | Medium |
-| Why do 362 auth rows lack the profile+role the signup trigger should create? | **Open question, not yet investigated.** The trigger (`handle_new_user()`, confirmed present in `20260627001502_ad628300-597e-4e44-a327-c7e10f82290a.sql:68-78`) should create both on every signup — migration content is confirmed, but whether the trigger is actually enabled/firing correctly in Production was not verified. Flagged HIGH by Codex as a live data-integrity anomaly, separate from the test-data question. | Needs its own investigation before Milestone 3 closes. |
+| Are any of Production's 433 `profiles` real (non-test)? | **Retracted as stated — see round 3 below.** The "0/433" figure relied on `@famio.local` email as the fake signal, which round 3 showed is not reliable (the real phone-signup code produces the same domain). What's still solid: 230 profiles have the unambiguous literal `QA_` name prefix. The rest are genuinely uncertain, not "confirmed fake." | **Downgraded — do not treat as settled.** |
+| Is the marketplace-activity blast radius bigger than "some bookings"? | The *join logic* correction (following `providers.profile_id` instead of comparing `providers.id` directly) is still valid and important if/when a real fake-id set is established. But the **input set** (which ids count as "fake") is the part now in question, so the specific counts (163 providers, 396 bookings, 208 addresses, 75 payments) inherit that same uncertainty — the corrected *method* is right, the *scope* it was applied to needs re-establishing. | Method: High. Scope: unproven. |
+| Are the 362 profile-less, phone-only auth rows real people? | Still plausible, still unproven — unchanged by round 3. | Medium |
+| Why do 362 (and a related 271 profiles-missing-roles) auth rows lack what the signup trigger should create? | Still open. Live `pg_trigger` state could not be checked by either Cursor or Codex (no DB console access from local tooling) — needs the Dashboard SQL query below, run by Safeyeldin. Also found: the "orphan pattern stopped Jul 28" claim was itself wrong (16 more appeared Aug 2). | Needs the Dashboard check + Safeyeldin's institutional knowledge, see round 3. |
 
-**What this changes:** the original framing ("~60% polluted within an
-otherwise-real user base") was wrong in a way that matters — there is no
-partially-real user base to carefully preserve while removing fake rows.
-Every single completed signup (profile) in Production is test data, and
-every booking/provider/address/payment traces back to one. This makes the
-remediation question simpler, not harder: a full reset of
-Production's user-generated tables (`profiles`, `bookings`, `payments`,
-`providers`, `addresses`, `reviews`, `user_roles`, etc. — catalog/seed data
-like `categories`/`services`/`zones` is separate and not implicated) ahead
-of beta launch is very likely safe, since there is no real transactional
-data to lose. The only genuinely open question is what to do with the 362
-phone-only auth rows — they have zero attached data (no profile, no
-booking, no role), so the decision is only "delete these auth-only records
-too" vs. "preserve them as possible early beta-interest signups to follow
-up with," not a data-safety question.
+**What round 3 changes:** see the retraction directly below this table —
+the "100% test data, safe to reset" framing does not hold up and should not
+be acted on.
 
 **Still not actioned, still needs your explicit approval:** no mutation of
-any kind has been performed. The 362-row trigger anomaly needs its own
-read-only investigation first (next Cursor task). Any actual reset/cleanup
-needs a purpose-built, reviewed, fingerprinted plan — explicitly not a
-reuse of `qa/` tooling — with your specific sign-off, the same discipline as
-the QA zone deactivation but at a materially higher bar given this is real
-Production.
+any kind has been performed.
+
+**Update 2026-08-23, round 3 — retracting the "100% test data" framing
+above.** A follow-up investigation into why 362 signups were missing their
+profile/role (a separate HIGH item) surfaced a flaw in the core signal the
+"0/433 real profiles" conclusion was built on, caught by a second
+independent Codex audit:
+
+**`@famio.local` is not a reliable fake-data signal.** The app's real
+Production phone-signup code (`src/lib/auth/authEmail.ts`) synthesizes the
+exact same `phone-${digits}@famio.local` pattern for genuine users, because
+Supabase Auth needs an email-shaped identifier even for phone-only signup.
+So an `@famio.local` email means "this account signed up by phone" — real
+or fake — not "this is QA debris." Every earlier count built on that domain
+(the 553 figure, and by extension "0/433 profiles are real") is now
+**unproven, not disproven.**
+
+**What's still solid, unchanged across all three rounds:** the literal
+`QA_` name prefix (230 profiles, exact string match, not the earlier buggy
+`ilike` wildcard) is unambiguous — a real person does not accidentally name
+themselves that. Schema-sync findings and row counts (915 auth users, 433
+profiles) are also solid, independently reproduced multiple times. What's
+no longer solid: which of the remaining ~323 `@famio.local`-but-not-`QA_`-
+named accounts are test fixtures versus genuine early real signups. Also
+found: 271 profiles have no `user_roles` row (inverse anomaly, same
+Jul 16–28 cluster), and the "orphan pattern stopped Jul 28" claim was
+itself wrong — 16 more fake-signal orphans appeared Aug 2. Full detail:
+three rounds of Cursor investigation + two rounds of independent Codex
+audit, each round correcting the last, are preserved in this branch's PR
+history for anyone who wants the forensic trail.
+
+**Why this stops here instead of a fourth round:** three consecutive
+rounds of automated data-forensics each overturned the previous round's
+headline conclusion. That's a signal to stop iterating on process and ask
+the person who might just know the answer directly — **Safeyeldin: do you
+know, from memory, whether Famy had any genuine real-user signups before
+around early August 2026, or was all activity in Production through that
+point internal/dev/test by you and collaborators?** If you know the answer
+outright, that resolves this faster than a fourth investigation round
+could. If you don't know, the next step is a better signal than email-
+domain matching — e.g. cross-referencing against known QA test-run
+timestamps, or a specific test-phone-number range if one was used — before
+any remediation plan, surgical or full-reset, gets proposed.
+
+Separately, one small closeable gap: neither Cursor nor Codex could confirm
+the signup trigger's live enabled state from local tooling (no DB console
+access). Run this once in the Supabase Dashboard SQL editor for the
+Production project (read-only, safe):
+
+```sql
+SELECT tgname, tgenabled, pg_get_triggerdef(t.oid)
+FROM pg_trigger t
+JOIN pg_class c ON t.tgrelid = c.oid
+JOIN pg_namespace n ON c.relnamespace = n.oid
+WHERE n.nspname = 'auth' AND c.relname = 'users' AND NOT t.tgisinternal;
+```
+
+Expect `on_auth_user_created` with `tgenabled = 'O'` (enabled), pointing at
+`handle_new_user()`. Paste the result back whenever convenient — not
+blocking anything else.
+
+No mutation has been performed at any point in this investigation. Any
+actual reset/cleanup still needs a purpose-built, reviewed, fingerprinted
+plan — explicitly not a reuse of `qa/` tooling — with your specific
+sign-off, the same discipline as the QA zone deactivation but at a
+materially higher bar given this is real Production and the exact scope is
+now confirmed uncertain, not just unconfirmed.
 
 ---
 
