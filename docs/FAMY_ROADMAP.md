@@ -48,6 +48,8 @@ guessing at scope wastes a cycle when the audit would have taken an hour.
 | QA report secret hygiene | PR #16 |
 | QA zone-residue deactivation (Issue #12) | PR #17, live-executed and verified |
 | Issue #12 closed: 58/58 full-E2E, residue-zero, catalog 6/18/4 — all independently re-verified against raw evidence, not self-reported | Issue #12, closed 2026-08-23 |
+| Ratings/reviews E2E coverage | PR #19 |
+| Payment-proof capture E2E coverage (incl. RLS negative-path) | PR #20 |
 
 ### OPEN — tracked, in progress
 
@@ -98,9 +100,9 @@ open product decision — see Milestone 2 below.
 
 Concrete items, now that Milestone 1 removed the guesswork:
 
-1. **E2E spec: ratings/reviews** — customer submits a star rating + comment on a completed booking, provider sees it on their profile. No product decision needed, no code change expected unless the spec finds a real defect. (In flight — handed to Cursor.)
-2. **E2E spec: payment-proof capture** — customer uploads a proof file on a manual-transfer booking, admin sees and reviews it. No product decision needed. (In flight — handed to Cursor.)
-3. **Provider payouts** — needs your decision first: (a) build real in-app payout tracking/issuance for beta, or (b) keep it manual/outside-app and just fix the "Recent Payouts" → "Recent Completed Jobs" mislabel so the UI stops implying something happens that doesn't. Recommend (b) for a closed beta — payout automation is exactly the kind of scope a small beta doesn't need yet — but it's your call, not an engineering default.
+1. ~~**E2E spec: ratings/reviews**~~ **Done 2026-08-23** — `qa/tests/ratings-reviews.spec.ts`, 1/1 pass (independently reproduced), no app defects found. Full suite: 21→22 spec files, 58→59 tests.
+2. ~~**E2E spec: payment-proof capture**~~ **Done 2026-08-23** — `qa/tests/payment-proof-capture.spec.ts`, 1/1 pass (independently reproduced), no app defects found, including a verified RLS negative-path assertion. Full suite: 22→23 spec files, 59→60 tests.
+3. **Provider payouts** — still needs your decision: (a) build real in-app payout tracking/issuance for beta, or (b) keep it manual/outside-app and fix the "Recent Payouts" → "Recent Completed Jobs" mislabel. Both Cursor and I independently recommend (b) for a closed beta, but it's your call, not an engineering default.
 4. Provider service-start lifecycle (if resumed per Milestone 0 item 4).
 
 ### Milestone 3 — Production readiness
