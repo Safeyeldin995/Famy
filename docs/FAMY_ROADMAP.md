@@ -178,6 +178,52 @@ domain matching — e.g. cross-referencing against known QA test-run
 timestamps, or a specific test-phone-number range if one was used — before
 any remediation plan, surgical or full-reset, gets proposed.
 
+**Update 2026-08-23, round 4 — resolved by Safeyeldin directly, full reset
+now the agreed direction.** Confirmed: Famy has no public launch yet, no
+real users with an expectation of data persistence. This dissolves the
+forensic question above — it no longer matters which accounts are real vs.
+test, since none of them are real *users* in the sense that needs
+protecting. Decision: full reset of Production's user-generated data before
+beta launch, catalog/seed data preserved.
+
+**Stage 1 (dependency mapping), round 1 — Cursor, then corrected by Codex
+audit:** confirmed four tables have unconditional `BEFORE UPDATE OR DELETE`
+immutability triggers that fire even for `service_role` (`audit_logs`,
+`booking_cancellations`, `messages`, `ticket_messages` — exact migration
+lines in PR history), several RESTRICT/NO ACTION foreign keys block naive
+deletion, and `TRUNCATE … CASCADE` correctly bypasses row-level (not
+statement-level) triggers per Postgres semantics — confirmed against the
+actual migration files, not assumed.
+
+**Corrected finding — catalog scope was wrong.** Cursor's Stage 1 proposed
+keeping `services` (479 rows) and `zones` (416 rows) as-is, flagging them
+only as "likely QA-expanded." Codex's independent characterization, using a
+reliable signal this time (unlike `@famio.local` for users — Production's
+own product code does not auto-generate QA-shaped service/zone names, so
+literal `QA_`/`QA ` prefix matching is trustworthy here): **only 18 rows in
+`services` match the actual seed migration's exact slugs — the other 461
+are QA fixtures. All 416 `zones` rows are QA-fixture-shaped; zero are
+genuine.** Production currently has no real service-area coverage
+configured at all. All 40 `service_requirements` and all 352
+`booking_locations` depend on the QA-fixture catalog rows, not the seed
+ones.
+
+**Other corrections from the audit:** audit-log clearing must happen
+*after* scoped catalog deletion (deleting QA services/zones fires their own
+audit triggers, creating new rows that then also need clearing — not
+before, as Stage 1 first proposed); the storage-object inventory needs to
+be exhaustive/recursive, not a ~98-object shallow sample; `TRUNCATE …
+CASCADE`'s exact table closure needs to be catalog-derived and explicit,
+not left open-ended (Postgres CASCADE expands to every referencing table
+automatically, so the full closure must be enumerated and fingerprinted
+before any approval, not discovered at execute time). Minor: the "91% of
+rows are audit_logs" figure was arithmetically off — it's 93.12%.
+
+**Not yet ready for Stage 2 (QA-clone dry-run).** Stage 1 is being revised
+by Cursor to fold in these corrections, then goes back to Codex once more
+before Stage 2. No deletion/reset tooling has been written yet — Stage 1 is
+still read-only mapping and proposal-writing.
+
 Separately, one small closeable gap: neither Cursor nor Codex could confirm
 the signup trigger's live enabled state from local tooling (no DB console
 access). Run this once in the Supabase Dashboard SQL editor for the
