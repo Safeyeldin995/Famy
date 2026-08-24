@@ -219,10 +219,33 @@ automatically, so the full closure must be enumerated and fingerprinted
 before any approval, not discovered at execute time). Minor: the "91% of
 rows are audit_logs" figure was arithmetically off — it's 93.12%.
 
-**Not yet ready for Stage 2 (QA-clone dry-run).** Stage 1 is being revised
-by Cursor to fold in these corrections, then goes back to Codex once more
-before Stage 2. No deletion/reset tooling has been written yet — Stage 1 is
-still read-only mapping and proposal-writing.
+**Round 2 (Cursor revision) + round 3 (Codex re-audit), 2026-08-23/24:**
+catalog fingerprints (18 keep / 461 delete services, 416 zones, 40
+service_requirements, 352 booking_locations) independently re-confirmed
+exactly. Storage: 98 objects across 4 buckets, 0 need preserving (all
+QA-marked). Two BLOCKER items remained, both narrow and mechanical, not
+new scope surprises:
+
+1. **Closure list was internally inconsistent** — proposal's header said 42
+   tables, the appendix actually listed 53, and the real transitive
+   TRUNCATE-CASCADE closure is 51. Three tables (`services`,
+   `service_requirements`, `promo_code_services`) were miscategorized as
+   Phase A (truncate) closure when they're actually Phase B (targeted
+   service delete) territory. `user_roles` was missing from the appendix
+   entirely.
+2. **Audit/auth ordering could still fail** — Phase B's service deletes
+   fire `trg_audit_services`, writing new `audit_logs` rows with
+   `actor_id → auth.users`. Phase C then deletes `auth.users` while that FK
+   is still `NO ACTION` — audit_logs must be cleared *between* Phase B and
+   Phase C, not just moved to the very end as round 1's fix attempted.
+
+Both are fix-and-verify, not new investigation — Codex's own assessment:
+"After those corrections, the plan is suitable to proceed to a fingerprinted
+QA-clone dry-run." Sent back to Cursor for what should be the final Stage 1
+revision, with an added instruction to derive the TRUNCATE closure
+*programmatically* from the live FK graph rather than hand-enumerated (the
+42/53/51 mismatch is exactly the class of error manual tracking produces).
+No deletion/reset tooling has been written at any point in this process.
 
 Separately, one small closeable gap: neither Cursor nor Codex could confirm
 the signup trigger's live enabled state from local tooling (no DB console
