@@ -102,6 +102,8 @@ function printDryRunSummary(plan) {
     `[production-reset:dry-run] audit_no_trigger_on=${plan.auditTriggerVerification.noAuditOn.join(",")}`,
   );
 
+  console.log(`[production-reset:dry-run] phase_a_table_row_count_bindings=${Object.keys(plan.counts.tableCounts).length}`);
+
   console.log("[production-reset:dry-run] table_row_counts:");
   for (const [table, count] of Object.entries(plan.counts.tableCounts).sort((a, b) => b[1] - a[1])) {
     if (count > 0) {

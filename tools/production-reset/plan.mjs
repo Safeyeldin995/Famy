@@ -20,58 +20,6 @@ import {
 import { evaluateCatalogBlockingChecks } from "./blocking-predicates.mjs";
 import { fingerprintPlan } from "./fingerprint.mjs";
 
-const USER_ROW_TABLES = [
-  "audit_logs",
-  "booking_cancellations",
-  "booking_family_member_snapshots",
-  "booking_locations",
-  "booking_message_reads",
-  "booking_reminders",
-  "booking_requirement_selections",
-  "booking_reschedule_requests",
-  "booking_status_history",
-  "bookings",
-  "conversations",
-  "coupon_redemptions",
-  "disputes",
-  "family_members",
-  "favorites",
-  "messages",
-  "no_show_reports",
-  "notification_campaigns",
-  "notification_outbox",
-  "notifications",
-  "notification_preferences",
-  "otp_verifications",
-  "password_setup_authorizations",
-  "payments",
-  "profiles",
-  "promo_code_redemptions",
-  "provider_admin_internal_notes",
-  "provider_documents",
-  "provider_incidents",
-  "provider_onboarding_details",
-  "provider_onboarding_events",
-  "provider_references",
-  "provider_requirement_fulfillments",
-  "provider_services",
-  "provider_vacations",
-  "providers",
-  "push_subscriptions",
-  "ratings_summary",
-  "reviews",
-  "support_tickets",
-  "ticket_messages",
-  "transactions",
-  "trust_scores",
-  "user_roles",
-  "verification_records",
-  "zone_providers",
-  "addresses",
-  "availability_exceptions",
-  "availability_rules",
-];
-
 const AUTH_USERS_MAX_ROWS = 4000;
 const AUTH_USERS_PAGE_SIZE = 200;
 
@@ -163,6 +111,53 @@ function pickAllowlistedFields(source, keys) {
 }
 
 /**
+ * Row-count map keys must exactly match the programmatic Phase A closure — never a hand-maintained list.
+ *
+ * @param {Record<string, number>} tableCounts
+ * @param {string[]} phaseAClosure
+ */
+export function assertTableCountsKeysMatchPhaseAClosure(tableCounts, phaseAClosure) {
+  const countKeys = new Set(Object.keys(tableCounts));
+  const closureKeys = new Set(phaseAClosure);
+  const missing = phaseAClosure.filter((table) => !countKeys.has(table));
+  const extra = [...countKeys].filter((table) => !closureKeys.has(table));
+  if (missing.length > 0 || extra.length > 0) {
+    throw new Error(
+      `[production-reset] tableCounts/Phase A closure mismatch — missing: ${missing.join(", ") || "(none)"}; extra: ${extra.join(", ") || "(none)"}`,
+    );
+  }
+}
+
+/**
+ * @param {string[]} phaseAClosure
+ * @param {Record<string, number>} [countsByTable]
+ */
+export function buildPhaseATableRowCounts(phaseAClosure, countsByTable = {}) {
+  /** @type {Record<string, number>} */
+  const tableCounts = {};
+  for (const table of phaseAClosure) {
+    tableCounts[table] = countsByTable[table] ?? 0;
+  }
+  assertTableCountsKeysMatchPhaseAClosure(tableCounts, phaseAClosure);
+  return tableCounts;
+}
+
+/**
+ * Sum Phase A public rows for reporting. `zones` rows are counted separately via Phase B zone ID set.
+ *
+ * @param {Record<string, number>} tableCounts
+ * @param {string[]} phaseAClosure
+ */
+export function computeUserGeneratedPublicRows(tableCounts, phaseAClosure) {
+  let sum = 0;
+  for (const table of phaseAClosure) {
+    if (table === "zones") continue;
+    sum += tableCounts[table] ?? 0;
+  }
+  return sum;
+}
+
+/**
  * @param {{ url: string; serviceRoleKey: string; projectRef: string }} env
  * @param {{ loadFk?: typeof loadPublicFkEdges }} [options]
  */
@@ -194,12 +189,11 @@ export async function buildProductionResetPlan(env, options = {}) {
   });
 
   const tableCounts = {};
-  let userRowSum = 0;
-  for (const t of USER_ROW_TABLES) {
-    const c = await countTable(admin, t);
-    tableCounts[t] = c;
-    userRowSum += c;
+  for (const table of phaseAClosure) {
+    tableCounts[table] = await countTable(admin, table);
   }
+  assertTableCountsKeysMatchPhaseAClosure(tableCounts, phaseAClosure);
+  const userRowSum = computeUserGeneratedPublicRows(tableCounts, phaseAClosure);
 
   const authUserIds = await fetchAllAuthUserIds(admin);
 
@@ -394,8 +388,8 @@ export function buildProductionResetPlanFromSnapshot(snapshot) {
     zones: snapshot.zones,
   });
 
-  const tableCounts = snapshot.tableCounts ?? {};
-  const userRowSum = Object.values(tableCounts).reduce((sum, count) => sum + count, 0);
+  const tableCounts = buildPhaseATableRowCounts(phaseAClosure, snapshot.tableCounts ?? {});
+  const userRowSum = computeUserGeneratedPublicRows(tableCounts, phaseAClosure);
   const authUserIds = snapshot.authUserIds ?? [];
   const storageObjects = snapshot.storageObjects ?? [];
 

@@ -155,7 +155,10 @@
     "authUsers": 915,
     "storageObjects": 98,
     "tableCounts": {
+      "addresses": 208,
       "audit_logs": 77151,
+      "availability_exceptions": 0,
+      "availability_rules": 0,
       "booking_cancellations": 65,
       "booking_family_member_snapshots": 385,
       "booking_locations": 352,
@@ -174,8 +177,8 @@
       "no_show_reports": 3,
       "notification_campaigns": 0,
       "notification_outbox": 656,
-      "notifications": 656,
       "notification_preferences": 1,
+      "notifications": 656,
       "otp_verifications": 307,
       "password_setup_authorizations": 216,
       "payments": 75,
@@ -201,9 +204,8 @@
       "user_roles": 231,
       "verification_records": 0,
       "zone_providers": 0,
-      "addresses": 208,
-      "availability_exceptions": 0,
-      "availability_rules": 0
+      "zone_services": 0,
+      "zones": 416
     }
   },
   "storage": {
@@ -277,5 +279,5 @@
       }
     ]
   },
-  "fingerprint": "353d372ce2d8f8062c2ca69d47c292412200feab617ee19dcaac7ca8543df946"
+  "fingerprint": "388cf38c44e1d02190d72c0cea0e6f7fa57e302b77a225d9c363f43495c3b23f"
 }

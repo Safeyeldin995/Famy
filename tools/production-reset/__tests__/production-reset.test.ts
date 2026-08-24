@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { parseProductionResetArgs } from "../args.mjs";
-import { RESET_CONFIRM_VALUE, PRODUCTION_PROJECT_REF } from "../constants.mjs";
+import { RESET_CONFIRM_VALUE, PRODUCTION_PROJECT_REF, PHASE_A_TRUNCATE_ROOTS } from "../constants.mjs";
 import { evaluateCatalogBlockingChecks, EXPECTED_SEED_SERVICE_COUNT } from "../blocking-predicates.mjs";
 import { computeTruncateCascadeClosure } from "../fk-closure.mjs";
 import {
@@ -21,6 +21,8 @@ import {
 import { resolveLinkedSupabaseProjectRef } from "../linked-project-ref.mjs";
 import { loadProductionEnv } from "../load-production-env.mjs";
 import {
+  assertTableCountsKeysMatchPhaseAClosure,
+  buildPhaseATableRowCounts,
   buildProductionResetPlanFromSnapshot,
   dryRunExitCode,
   sanitizePlanForReport,
@@ -61,6 +63,19 @@ function qaZonesFixture(count = 2) {
   }));
 }
 
+function phaseAClosureFixture() {
+  return computeTruncateCascadeClosure(loadFkEdgesFromMigrations(), [...PHASE_A_TRUNCATE_ROOTS]);
+}
+
+function phaseATableCountsFixture(overrides: Record<string, number> = {}) {
+  return buildPhaseATableRowCounts(phaseAClosureFixture(), {
+    audit_logs: 1,
+    bookings: 1,
+    zone_services: 0,
+    ...overrides,
+  });
+}
+
 function validSnapshot(overrides = {}) {
   const services = [...seedServicesFixture(), ...qaDeleteServicesFixture()];
   const zones = qaZonesFixture();
@@ -78,7 +93,7 @@ function validSnapshot(overrides = {}) {
     })),
     authUserIds: ["40000000-0000-4000-8000-000000000001"],
     storageObjects: [{ bucket: "avatars", key: "40000000-0000-4000-8000-000000000001/photo.jpg" }],
-    tableCounts: { audit_logs: 1, bookings: 1 },
+    tableCounts: phaseATableCountsFixture(),
     ...overrides,
   };
 }
@@ -263,6 +278,26 @@ describe("catalog blocking predicates", () => {
   });
 });
 
+describe("phase A table row counts", () => {
+  it("binds row counts to exactly the programmatic Phase A closure table set", () => {
+    const plan = buildProductionResetPlanFromSnapshot(validSnapshot());
+    expect(() =>
+      assertTableCountsKeysMatchPhaseAClosure(plan.counts.tableCounts, plan.phaseA.truncateCascadeClosure),
+    ).not.toThrow();
+    expect(new Set(Object.keys(plan.counts.tableCounts))).toEqual(
+      new Set(plan.phaseA.truncateCascadeClosure),
+    );
+    expect(plan.phaseA.truncateCascadeClosure).toContain("zone_services");
+  });
+
+  it("throws when tableCounts keys drift from the Phase A closure", () => {
+    const closure = phaseAClosureFixture();
+    expect(() =>
+      assertTableCountsKeysMatchPhaseAClosure({ bookings: 1, extra_table: 2 }, closure),
+    ).toThrow(/mismatch/i);
+  });
+});
+
 describe("fingerprint sensitivity", () => {
   it("changes when one auth-user ID changes", () => {
     const base = buildProductionResetPlanFromSnapshot(validSnapshot());
@@ -288,7 +323,17 @@ describe("fingerprint sensitivity", () => {
     const base = buildProductionResetPlanFromSnapshot(validSnapshot());
     const changed = buildProductionResetPlanFromSnapshot(
       validSnapshot({
-        tableCounts: { audit_logs: 1, bookings: 999 },
+        tableCounts: phaseATableCountsFixture({ bookings: 999 }),
+      }),
+    );
+    expect(changed.fingerprint).not.toBe(base.fingerprint);
+  });
+
+  it("changes when zone_services row count changes", () => {
+    const base = buildProductionResetPlanFromSnapshot(validSnapshot());
+    const changed = buildProductionResetPlanFromSnapshot(
+      validSnapshot({
+        tableCounts: phaseATableCountsFixture({ zone_services: 999 }),
       }),
     );
     expect(changed.fingerprint).not.toBe(base.fingerprint);
