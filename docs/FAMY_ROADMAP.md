@@ -403,6 +403,29 @@ a regression test proving any relevant count change moves the fingerprint,
 and fix the two MEDIUM test-coverage gaps noted above. One more focused
 Codex pass after that, still before Stage 2 is discussed.
 
+**Round 6 fix (Cursor, commit `500b6fb`) + round 6 Codex verification,
+2026-08-24 — closer, but the row-count binding itself has a gap.** Codex
+confirmed the two MEDIUM test fixes and the fingerprint mechanism are both
+genuinely correct this time (stable table-name-sorted ordering verified by
+a differently-ordered-input probe, no caching/double-count bug, the
+`bookings` 1→999 regression test is real, the pg_constraint test now
+actually calls `loadPublicFkEdges()`, the required-edge/Phase-B-leak tests
+invoke the real validators). But the row-count map itself is incomplete:
+it covers 49 of the 51 Phase A closure tables. `zones` is fine (already
+bound separately via its own ID-set fingerprint), but **`zone_services` is
+bound nowhere** — neither its row count nor its row IDs are in the
+fingerprint. A new row in `zone_services` could still be swept by
+`TRUNCATE … CASCADE` under an unchanged, already-approved fingerprint —
+the same class of gap as round 5's finding, just narrower now (1 table
+instead of all of them).
+
+**PR #27 stays Draft, unmerged.** Sent back to Cursor for a narrow seventh
+round: derive the fingerprinted row-count table set directly from the
+actual Phase A closure (so it's structurally impossible to miss a table
+again), add a test asserting the row-count key set exactly equals the
+closure set, and a regression proving a `zone_services` count change moves
+the fingerprint. One more closing Codex pass after that.
+
 ---
 
 ## Milestones
