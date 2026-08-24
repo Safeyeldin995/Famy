@@ -3,8 +3,8 @@ import path from "path";
 import { loadQaEnv } from "./qa/load-qa-env.mjs";
 import { runPreflightChecks, validateUiDatabaseAlignment } from "./qa/env-guard.mjs";
 import {
-  assertWebServerEnvLeastPrivilege,
-  buildPlaywrightWebServerEnv,
+  assertPlaywrightWebServerConfigEnvSecretFree,
+  buildPlaywrightWebServerConfigEnv,
 } from "./qa/playwright-webserver-env.mjs";
 
 loadQaEnv({ required: true });
@@ -25,8 +25,8 @@ validateUiDatabaseAlignment({
   productionAppOrigin: process.env.FAMY_PRODUCTION_APP_ORIGIN,
 });
 
-const webServerEnv = buildPlaywrightWebServerEnv(process.env);
-assertWebServerEnvLeastPrivilege(process.env, webServerEnv);
+const webServerEnv = buildPlaywrightWebServerConfigEnv(process.env);
+assertPlaywrightWebServerConfigEnvSecretFree(webServerEnv);
 
 export default defineConfig({
   testDir: "./qa/tests",
@@ -54,7 +54,7 @@ export default defineConfig({
   webServer: REMOTE_BASE_URL
     ? undefined
     : {
-        command: `npm run dev -- --port ${PORT} --strictPort`,
+        command: `node qa/playwright-dev-server.mjs --port ${PORT} --strictPort`,
         url: BASE_URL,
         reuseExistingServer: process.env.E2E_REUSE_DEV_SERVER === "1",
         timeout: 60_000,

@@ -13,25 +13,61 @@ import {
   fingerprintBaselineRepairPlan,
   hashBaselineRepairManifestIdentity,
   INVALIDATED_BASELINE_REPAIR_FINGERPRINT_V1,
+  INVALIDATED_BASELINE_REPAIR_FINGERPRINT_V2,
 } from "./baseline-repair-fingerprint.mjs";
 
 export const BASELINE_REPAIR_MANIFEST_FILENAME = "baseline-repair-targets.json";
+export const BASELINE_REPAIR_MAX_ZONE_MUTATIONS = 6;
 
-/** @type {readonly string[]} */
-export const PROVEN_QA_FIXTURE_ZONE_NAMES = [
-  "QA_Patch2_BookingZone_1786005355558",
-  "QA_booking_lifecycle_zone_v1",
-  "QA_Patch2_BookingZone_1786005389666",
-];
-
-/** Exact leaked zone from provider-eligibility E2E — v2 repair allowlist only. */
-export const LEAKED_QA_FIXTURE_ZONE_NAME = "QA_Patch2_Zone_1786019593554";
-
-/** @type {readonly string[]} */
-export const BASELINE_REPAIR_V2_ZONE_NAMES = [
-  ...PROVEN_QA_FIXTURE_ZONE_NAMES,
-  LEAKED_QA_FIXTURE_ZONE_NAME,
-];
+/**
+ * These 6 zones are proven child-free by the 2026-08-18 spatial inventory
+ * (qa/report/zone-v3-child-inventory.json). Two zones previously compiled
+ * into this list have been excluded because they are not proven safe:
+ *   - QA_booking_lifecycle_zone_v1: overlaps real customer addresses and
+ *     live pending/confirmed bookings.
+ *   - QA_status_selector_zone_1786617970885: has unproven registry
+ *     ownership.
+ * This is intentionally compiled into the planner: discovery may verify
+ * these tuples, but it may never broaden them.
+ */
+export const BASELINE_REPAIR_V4_ZONES = Object.freeze([
+  {
+    id: "5e8fdf99-4d6d-47a2-a686-38d4ce9cbf66",
+    name: "QA_Patch2_BookingZone_1786618187940",
+    provenanceOwner: "marketplace-fixtures.mjs",
+    provenanceClass: "marketplace_e2e_leak",
+  },
+  {
+    id: "2cab8a7a-9a62-4448-af89-1337c56197a3",
+    name: "QA_Patch2_BookingZone_1786618162276",
+    provenanceOwner: "marketplace-fixtures.mjs",
+    provenanceClass: "marketplace_e2e_leak",
+  },
+  {
+    id: "fa07c30c-5fdb-4b91-8810-042392e89155",
+    name: "QA_Patch2_BookingZone_1786618227906",
+    provenanceOwner: "marketplace-fixtures.mjs",
+    provenanceClass: "marketplace_e2e_leak",
+  },
+  {
+    id: "a832d8d6-b8bf-4ec5-ad70-901e9f592dbd",
+    name: "QA_Patch2_BookingZone_1786618325877",
+    provenanceOwner: "marketplace-fixtures.mjs",
+    provenanceClass: "marketplace_e2e_leak",
+  },
+  {
+    id: "5d194025-a4b3-4a50-9923-cc75357fb4ce",
+    name: "QA_Patch2_BookingZone_1786618438975",
+    provenanceOwner: "marketplace-fixtures.mjs",
+    provenanceClass: "marketplace_e2e_leak",
+  },
+  {
+    id: "59eb5b1a-79f0-4c98-8a82-4a528a5bf1f6",
+    name: "QA_Patch2_Zone_1786618351949",
+    provenanceOwner: "provider-eligibility.spec.ts",
+    provenanceClass: "provider_eligibility_leak",
+  },
+]);
 
 /** @type {Record<string, unknown>} */
 export const CANONICAL_BASELINE_SETTINGS = {
@@ -50,160 +86,151 @@ const REQUIRED_STORAGE_BUCKETS = [
   "payment-proofs",
   "case-evidence",
 ];
-
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const CHILD_TABLES = Object.freeze([
+  { table: "zone_services", column: "zone_id" },
+  { table: "zone_providers", column: "zone_id" },
+]);
+const ADDRESS_PAGE_SIZE = 1000;
 
-/**
- * @param {string | null | undefined} projectRef
- */
+export function baselineRepairManifestPath(cwd = process.cwd()) {
+  return path.resolve(cwd, "qa/report", BASELINE_REPAIR_MANIFEST_FILENAME);
+}
+
 export function maskProjectRef(projectRef) {
   if (!projectRef || projectRef.length < 12) return "****";
   return `${projectRef.slice(0, 4)}…${projectRef.slice(-4)}`;
 }
 
-/**
- * @param {unknown} left
- * @param {unknown} right
- */
 export function valuesDeepEqual(left, right) {
   return stableJson(left) === stableJson(right);
 }
 
-/**
- * @param {unknown} value
- */
 function stableJson(value) {
-  if (value === null || typeof value !== "object") {
-    return JSON.stringify(value);
-  }
-  if (Array.isArray(value)) {
-    return `[${value.map((row) => stableJson(row)).join(",")}]`;
-  }
-  const keys = Object.keys(/** @type {Record<string, unknown>} */ (value)).sort();
-  return `{${keys.map((key) => `${JSON.stringify(key)}:${stableJson(/** @type {Record<string, unknown>} */ (value)[key])}`).join(",")}}`;
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
+  const record = /** @type {Record<string, unknown>} */ (value);
+  return `{${Object.keys(record)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${stableJson(record[key])}`)
+    .join(",")}}`;
 }
 
-/**
- * @param {string} [cwd]
- */
-export function baselineRepairManifestPath(cwd = process.cwd()) {
-  return path.resolve(cwd, "qa/report", BASELINE_REPAIR_MANIFEST_FILENAME);
+export function createBaselineRepairManifest() {
+  return {
+    projectRef: KNOWN_QA_PROJECT_REF,
+    settingsKeys: [...REQUIRED_SETTINGS_KEYS],
+    zones: BASELINE_REPAIR_V4_ZONES.map((zone) => ({ ...zone })),
+  };
 }
 
-/**
- * @param {unknown} manifest
- * @returns {{ ok: true; manifest: {
- *   generatedAt?: string;
- *   projectRef: string;
- *   settingsKeys: string[];
- *   zones: Array<{ id: string; name: string }>;
- * }} | { ok: false; reason: string }}
- */
+/** @param {unknown} manifest */
 export function validateBaselineRepairManifest(manifest) {
   if (!manifest || typeof manifest !== "object") {
     return { ok: false, reason: "manifest-missing-or-invalid" };
   }
-
   const row = /** @type {Record<string, unknown>} */ (manifest);
-  const projectRef = typeof row.projectRef === "string" ? row.projectRef : "";
-  if (projectRef !== KNOWN_QA_PROJECT_REF) {
+  if (row.projectRef !== KNOWN_QA_PROJECT_REF) {
     return { ok: false, reason: "manifest-project-ref-mismatch" };
   }
 
   const settingsKeys = Array.isArray(row.settingsKeys) ? row.settingsKeys.map(String) : [];
   const expectedSettings = [...REQUIRED_SETTINGS_KEYS].sort();
-  const actualSettings = [...settingsKeys].sort();
-  if (actualSettings.length !== expectedSettings.length
-    || !actualSettings.every((key, index) => key === expectedSettings[index])) {
+  if (
+    settingsKeys.length !== expectedSettings.length ||
+    ![...settingsKeys].sort().every((key, index) => key === expectedSettings[index])
+  ) {
     return { ok: false, reason: "manifest-settings-keys-invalid" };
   }
 
   const zonesRaw = Array.isArray(row.zones) ? row.zones : [];
-  const expectedZoneCount = BASELINE_REPAIR_V2_ZONE_NAMES.length;
-  if (zonesRaw.length !== expectedZoneCount) {
+  if (zonesRaw.length !== BASELINE_REPAIR_MAX_ZONE_MUTATIONS) {
     return { ok: false, reason: "manifest-zone-count-invalid" };
   }
-
-  /** @type {Array<{ id: string; name: string }>} */
-  const zones = [];
+  const expectedById = new Map(BASELINE_REPAIR_V4_ZONES.map((zone) => [zone.id, zone]));
   const seenIds = new Set();
   const seenNames = new Set();
+  const zones = [];
 
   for (const entry of zonesRaw) {
-    if (!entry || typeof entry !== "object") {
-      return { ok: false, reason: "manifest-zone-invalid" };
-    }
+    if (!entry || typeof entry !== "object") return { ok: false, reason: "manifest-zone-invalid" };
     const zone = /** @type {Record<string, unknown>} */ (entry);
     const id = typeof zone.id === "string" ? zone.id : "";
     const name = typeof zone.name === "string" ? zone.name : "";
-    if (!UUID_RE.test(id)) {
-      return { ok: false, reason: "manifest-zone-id-invalid" };
-    }
-    if (!name.startsWith("QA_")) {
-      return { ok: false, reason: "manifest-zone-non-qa" };
-    }
-    if (seenIds.has(id) || seenNames.has(name)) {
+    const provenanceOwner = typeof zone.provenanceOwner === "string" ? zone.provenanceOwner : "";
+    const provenanceClass = typeof zone.provenanceClass === "string" ? zone.provenanceClass : "";
+    if (!UUID_RE.test(id)) return { ok: false, reason: "manifest-zone-id-invalid" };
+    if (!name.startsWith("QA_")) return { ok: false, reason: "manifest-zone-non-qa" };
+    if (seenIds.has(id) || seenNames.has(name))
       return { ok: false, reason: "manifest-zone-duplicate" };
+    const expected = expectedById.get(id);
+    if (
+      !expected ||
+      expected.name !== name ||
+      expected.provenanceOwner !== provenanceOwner ||
+      expected.provenanceClass !== provenanceClass
+    ) {
+      return { ok: false, reason: "manifest-zone-tuple-mismatch" };
     }
     seenIds.add(id);
     seenNames.add(name);
-    zones.push({ id, name });
+    zones.push({ id, name, provenanceOwner, provenanceClass });
   }
-
-  const allowedNames = new Set(BASELINE_REPAIR_V2_ZONE_NAMES);
-  const manifestNames = new Set(zones.map((zone) => zone.name));
-  if (manifestNames.size !== allowedNames.size
-    || ![...allowedNames].every((name) => manifestNames.has(name))) {
-    return { ok: false, reason: "manifest-zone-names-mismatch" };
-  }
+  if (seenIds.size !== expectedById.size) return { ok: false, reason: "manifest-zone-missing" };
 
   return {
     ok: true,
     manifest: {
       generatedAt: typeof row.generatedAt === "string" ? row.generatedAt : undefined,
-      projectRef,
+      projectRef: KNOWN_QA_PROJECT_REF,
       settingsKeys: [...REQUIRED_SETTINGS_KEYS],
       zones: zones.sort((a, b) => a.id.localeCompare(b.id)),
     },
   };
 }
 
-/**
- * @param {string} manifestPath
- */
 export function loadBaselineRepairManifest(manifestPath = baselineRepairManifestPath()) {
   if (!fs.existsSync(manifestPath)) {
-    return { ok: false, reason: "manifest-file-missing" };
+    return validateBaselineRepairManifest(createBaselineRepairManifest());
   }
   try {
-    const parsed = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-    return validateBaselineRepairManifest(parsed);
+    return validateBaselineRepairManifest(JSON.parse(fs.readFileSync(manifestPath, "utf8")));
   } catch {
     return { ok: false, reason: "manifest-parse-error" };
   }
 }
 
-/**
- * @param {string} key
- * @param {Array<{ key?: string; value?: unknown }>} rows
- */
+export function writeBaselineRepairManifest(manifest, manifestPath = baselineRepairManifestPath()) {
+  const validated = validateBaselineRepairManifest(manifest);
+  if (!validated.ok)
+    throw new Error(`[qa-baseline-repair] refused to write invalid manifest: ${validated.reason}`);
+  fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
+  fs.writeFileSync(
+    manifestPath,
+    `${JSON.stringify(
+      {
+        generatedAt:
+          typeof manifest.generatedAt === "string"
+            ? manifest.generatedAt
+            : new Date().toISOString(),
+        ...validated.manifest,
+      },
+      null,
+      2,
+    )}\n`,
+    "utf8",
+  );
+  return manifestPath;
+}
+
 export function planSettingBaselineAction(key) {
-  const canonicalValue = CANONICAL_BASELINE_SETTINGS[key];
   return (rows) => {
-    if (rows.length > 1) {
-      return { blocked: true, reason: `duplicate-settings-${key}` };
-    }
-    if (rows.length === 0) {
-      return {
-        actionType: "insert_setting",
-        key,
-        beforeState: "absent",
-        beforeValue: null,
-        intendedValue: canonicalValue,
-      };
-    }
+    if (!REQUIRED_SETTINGS_KEYS.includes(key))
+      return { blocked: true, reason: "unexpected-settings-target" };
+    if (rows.length > 1) return { blocked: true, reason: `duplicate-settings-${key}` };
+    if (rows.length === 0) return { blocked: true, reason: `missing-settings-${key}` };
     const existing = rows[0]?.value;
-    if (!valuesDeepEqual(existing, canonicalValue)) {
+    if (!valuesDeepEqual(existing, CANONICAL_BASELINE_SETTINGS[key])) {
       return { blocked: true, reason: `conflicting-settings-${key}` };
     }
     return {
@@ -211,165 +238,126 @@ export function planSettingBaselineAction(key) {
       key,
       beforeState: "present",
       beforeValue: existing,
-      intendedValue: canonicalValue,
+      intendedValue: CANONICAL_BASELINE_SETTINGS[key],
     };
   };
 }
 
-/**
- * @param {{ id: string; name: string }} manifestZone
- * @param {{ id: string; name_en: string; is_active: boolean } | null | undefined} liveRow
- */
-export function planZoneBaselineAction(manifestZone, liveRow) {
-  if (!manifestZone.name.startsWith("QA_")) {
-    return { blocked: true, reason: "non-qa-zone-name" };
+function childrenAreZero(childCounts) {
+  return ["zone_services", "zone_providers", "addresses"].every(
+    (key) => Number(childCounts?.[key]) === 0,
+  );
+}
+
+export function planZoneBaselineAction(manifestZone, liveSnapshot) {
+  if (!manifestZone.name.startsWith("QA_")) return { blocked: true, reason: "non-qa-zone-name" };
+  const expected = BASELINE_REPAIR_V4_ZONES.find((zone) => zone.id === manifestZone.id);
+  if (
+    !expected ||
+    expected.name !== manifestZone.name ||
+    expected.provenanceOwner !== manifestZone.provenanceOwner ||
+    expected.provenanceClass !== manifestZone.provenanceClass
+  ) {
+    return { blocked: true, reason: `unproven-zone-${manifestZone.name}` };
   }
-  if (!liveRow) {
-    return { blocked: true, reason: `missing-zone-${manifestZone.name}` };
-  }
-  if (liveRow.id !== manifestZone.id) {
+  if (!liveSnapshot?.row) return { blocked: true, reason: `missing-zone-${manifestZone.name}` };
+  const liveRow = liveSnapshot.row;
+  if (liveRow.id !== manifestZone.id)
     return { blocked: true, reason: `zone-id-mismatch-${manifestZone.name}` };
-  }
-  if (liveRow.name_en !== manifestZone.name) {
+  if (liveRow.name_en !== manifestZone.name)
     return { blocked: true, reason: `zone-name-mismatch-${manifestZone.name}` };
-  }
-  if (!liveRow.name_en.startsWith("QA_")) {
-    return { blocked: true, reason: "non-qa-zone-live" };
-  }
-  if (liveRow.is_active) {
-    return {
-      actionType: "deactivate_zone",
-      id: manifestZone.id,
-      name: manifestZone.name,
-      beforeIsActive: true,
-      intendedIsActive: false,
-    };
-  }
+  if (!liveRow.name_en.startsWith("QA_")) return { blocked: true, reason: "non-qa-zone-live" };
+  if (!childrenAreZero(liveSnapshot.childCounts))
+    return { blocked: true, reason: `zone-children-nonzero-${manifestZone.name}` };
+  if (liveRow.is_active !== true)
+    return { blocked: true, reason: `zone-not-active-${manifestZone.name}` };
   return {
-    actionType: "noop",
+    actionType: "deactivate_zone",
     id: manifestZone.id,
     name: manifestZone.name,
-    beforeIsActive: false,
+    provenanceOwner: manifestZone.provenanceOwner,
+    provenanceClass: manifestZone.provenanceClass,
+    childCounts: { ...liveSnapshot.childCounts },
+    beforeIsActive: true,
     intendedIsActive: false,
   };
 }
 
-/**
- * @param {{
- *   projectRef: string;
- *   manifest: { settingsKeys: string[]; zones: Array<{ id: string; name: string }> };
- *   settingsByKey: Record<string, Array<{ key?: string; value?: unknown }>>;
- *   zonesById: Record<string, { id: string; name_en: string; is_active: boolean } | null>;
- * }} input
- */
 export function buildBaselineRepairPlanFromSnapshot(input) {
-  /** @type {string | null} */
-  let blockedReason = null;
-  /** @type {Array<{ key: string; beforeState: string; beforeValue: unknown; intendedValue: unknown; actionType: string }>} */
-  const settingActions = [];
-  /** @type {Array<{ id: string; name: string; beforeIsActive: boolean | null; intendedIsActive: boolean; actionType: string; maskedId: string }>} */
-  const zoneActions = [];
-
-  if (input.projectRef !== KNOWN_QA_PROJECT_REF) {
+  const validated = validateBaselineRepairManifest(input.manifest);
+  if (!validated.ok) {
     return finalizeBaselineRepairPlan({
       projectRef: input.projectRef,
-      manifest: input.manifest,
-      blockedReason: "project-ref-not-qa",
+      manifest: createBaselineRepairManifest(),
+      blockedReason: validated.reason,
       settingActions: [],
       zoneActions: [],
     });
   }
-
-  for (const key of [...REQUIRED_SETTINGS_KEYS].sort()) {
-    const planner = planSettingBaselineAction(key);
-    const result = planner(input.settingsByKey[key] ?? []);
-    if ("blocked" in result && result.blocked) {
-      blockedReason = result.reason ?? "settings-blocked";
-      break;
-    }
-    settingActions.push({
-      key: result.key,
-      beforeState: result.beforeState,
-      beforeValue: result.beforeValue,
-      intendedValue: result.intendedValue,
-      actionType: result.actionType,
-    });
-  }
+  const manifest = validated.manifest;
+  let blockedReason = input.projectRef === KNOWN_QA_PROJECT_REF ? null : "project-ref-not-qa";
+  const settingActions = [];
+  const zoneActions = [];
 
   if (!blockedReason) {
-    for (const manifestZone of [...input.manifest.zones].sort((a, b) => a.id.localeCompare(b.id))) {
-      const result = planZoneBaselineAction(manifestZone, input.zonesById[manifestZone.id] ?? null);
-      if ("blocked" in result && result.blocked) {
-        blockedReason = result.reason ?? "zone-blocked";
+    for (const key of [...REQUIRED_SETTINGS_KEYS].sort()) {
+      const result = planSettingBaselineAction(key)(input.settingsByKey[key] ?? []);
+      if (result.blocked) {
+        blockedReason = result.reason;
         break;
       }
-      zoneActions.push({
-        id: result.id,
-        name: result.name,
-        beforeIsActive: result.beforeIsActive,
-        intendedIsActive: result.intendedIsActive,
-        actionType: result.actionType,
-        maskedId: maskUserId(result.id),
-      });
+      settingActions.push(result);
+    }
+  }
+  if (!blockedReason) {
+    for (const manifestZone of manifest.zones) {
+      const result = planZoneBaselineAction(manifestZone, input.zonesById[manifestZone.id] ?? null);
+      if (result.blocked) {
+        blockedReason = result.reason;
+        break;
+      }
+      zoneActions.push({ ...result, maskedId: maskUserId(result.id) });
     }
   }
 
-  const mutatingSettings = settingActions.filter((row) => row.actionType !== "noop");
-  const mutatingZones = zoneActions.filter((row) => row.actionType !== "noop");
-  const maxZoneMutations = input.manifest.zones.length === BASELINE_REPAIR_V2_ZONE_NAMES.length ? 1 : 3;
-  if (!blockedReason && (mutatingSettings.length > 2 || mutatingZones.length > maxZoneMutations)) {
-    blockedReason = "scope-exceeds-authorized-targets";
+  if (!blockedReason && settingActions.some((row) => row.actionType !== "noop")) {
+    blockedReason = "setting-mutation-forbidden";
   }
-  if (!blockedReason && settingActions.some((row) => !REQUIRED_SETTINGS_KEYS.includes(row.key))) {
-    blockedReason = "unexpected-settings-target";
+  if (
+    !blockedReason &&
+    (zoneActions.length !== BASELINE_REPAIR_MAX_ZONE_MUTATIONS ||
+      zoneActions.some((row) => row.actionType !== "deactivate_zone"))
+  ) {
+    blockedReason = `scope-does-not-match-${BASELINE_REPAIR_MAX_ZONE_MUTATIONS}-targets`;
+  }
+  if (
+    !blockedReason &&
+    zoneActions.filter((row) => row.actionType === "deactivate_zone").length >
+      BASELINE_REPAIR_MAX_ZONE_MUTATIONS
+  ) {
+    blockedReason = "scope-exceeds-authorized-targets";
   }
 
   return finalizeBaselineRepairPlan({
     projectRef: input.projectRef,
-    manifest: input.manifest,
+    manifest,
     blockedReason,
     settingActions,
     zoneActions,
   });
 }
 
-/**
- * @param {{
- *   projectRef: string;
- *   manifest: { settingsKeys: string[]; zones: Array<{ id: string; name: string }> };
- *   blockedReason: string | null;
- *   settingActions: Array<{ key: string; beforeState: string; beforeValue: unknown; intendedValue: unknown; actionType: string }>;
- *   zoneActions: Array<{ id: string; name: string; beforeIsActive: boolean | null; intendedIsActive: boolean; actionType: string; maskedId: string }>;
- * }} input
- */
 export function finalizeBaselineRepairPlan(input) {
   const blocked = Boolean(input.blockedReason);
-  const manifestHash = hashBaselineRepairManifestIdentity({
-    projectRef: input.projectRef,
-    settingsKeys: input.manifest.settingsKeys,
-    zones: input.manifest.zones,
-  });
+  const manifestHash = hashBaselineRepairManifestIdentity(input.manifest);
   const fingerprintPayload = {
     projectRef: input.projectRef,
     blocked,
     blockedReason: input.blockedReason,
     manifestHash,
-    settings: input.settingActions.map((row) => ({
-      key: row.key,
-      beforeState: row.beforeState,
-      beforeValue: row.beforeValue,
-      intendedValue: row.intendedValue,
-      actionType: row.actionType,
-    })),
-    zones: input.zoneActions.map((row) => ({
-      id: row.id,
-      name: row.name,
-      beforeIsActive: row.beforeIsActive,
-      intendedIsActive: row.intendedIsActive,
-      actionType: row.actionType,
-    })),
+    settings: input.settingActions,
+    zones: input.zoneActions,
   };
-
   return {
     version: BASELINE_REPAIR_PLAN_VERSION,
     projectRef: input.projectRef,
@@ -383,128 +371,120 @@ export function finalizeBaselineRepairPlan(input) {
     counts: {
       setting_targets: input.settingActions.length,
       zone_targets: input.zoneActions.length,
-      planned_mutations: input.settingActions.filter((row) => row.actionType !== "noop").length
-        + input.zoneActions.filter((row) => row.actionType !== "noop").length,
+      planned_mutations:
+        input.settingActions.filter((row) => row.actionType !== "noop").length +
+        input.zoneActions.filter((row) => row.actionType !== "noop").length,
     },
   };
 }
 
-/**
- * @param {import('@supabase/supabase-js').SupabaseClient} admin
- */
 export async function readSettingsRowsForBaseline(admin) {
-  /** @type {Record<string, Array<{ key?: string; value?: unknown }>>} */
   const settingsByKey = {};
   for (const key of REQUIRED_SETTINGS_KEYS) {
     const { data, error } = await admin.from("settings").select("key,value").eq("key", key);
-    if (error) {
+    if (error)
       throw new Error(`[qa-baseline-repair] failed to read settings key ${key}: ${error.message}`);
-    }
     settingsByKey[key] = data ?? [];
   }
   return settingsByKey;
 }
 
-/**
- * @param {import('@supabase/supabase-js').SupabaseClient} admin
- * @param {Array<{ id: string; name: string }>} manifestZones
- */
-export async function readManifestZonesForBaseline(admin, manifestZones) {
-  /** @type {Record<string, { id: string; name_en: string; is_active: boolean } | null>} */
-  const zonesById = {};
-  for (const manifestZone of manifestZones) {
-    const { data, error } = await admin
-      .from("zones")
-      .select("id,name_en,is_active")
-      .eq("id", manifestZone.id)
-      .maybeSingle();
-    if (error) {
-      throw new Error(`[qa-baseline-repair] failed to read zone ${manifestZone.name}: ${error.message}`);
-    }
-    zonesById[manifestZone.id] = data
-      ? { id: data.id, name_en: data.name_en, is_active: Boolean(data.is_active) }
-      : null;
+export async function readZoneChildCounts(admin, zoneId) {
+  const counts = {};
+  for (const { table, column } of CHILD_TABLES) {
+    const { count, error } = await admin
+      .from(table)
+      .select("id", { count: "exact", head: true })
+      .eq(column, zoneId);
+    if (error)
+      throw new Error(
+        `[qa-baseline-repair] failed to count ${table} for zone ${maskUserId(zoneId)}: ${error.message}`,
+      );
+    counts[table] = count ?? 0;
   }
-  return zonesById;
+  counts.addresses = await countAddressesResolvedToZone(admin, zoneId);
+  return counts;
 }
 
 /**
- * @param {import('@supabase/supabase-js').SupabaseClient} admin
- * @param {string} projectRef
- * @param {{ settingsKeys: string[]; zones: Array<{ id: string; name: string }> }} manifest
+ * Addresses are spatial children: the schema deliberately stores coordinates,
+ * not zone_id. Use the same authoritative resolver as booking eligibility and
+ * page through every coordinate-bearing address so the guard cannot truncate.
  */
-export async function buildBaselineRepairPlanFromAdmin(admin, projectRef, manifest) {
-  const settingsByKey = await readSettingsRowsForBaseline(admin);
-  const zonesById = await readManifestZonesForBaseline(admin, manifest.zones);
-  return buildBaselineRepairPlanFromSnapshot({
-    projectRef,
-    manifest,
-    settingsByKey,
-    zonesById,
-  });
+export async function countAddressesResolvedToZone(admin, zoneId) {
+  let addressCount = 0;
+  let offset = 0;
+  while (true) {
+    const { data, error } = await admin
+      .from("addresses")
+      .select("id,lat,lng")
+      .range(offset, offset + ADDRESS_PAGE_SIZE - 1);
+    if (error) {
+      throw new Error(
+        `[qa-baseline-repair] failed to read addresses for zone ${maskUserId(zoneId)}: ${error.message}`,
+      );
+    }
+    const rows = data ?? [];
+    for (const address of rows) {
+      if (!Number.isFinite(address.lat) || !Number.isFinite(address.lng)) continue;
+      const { data: resolved, error: resolveError } = await admin.rpc("resolve_zone", {
+        p_lat: address.lat,
+        p_lng: address.lng,
+      });
+      if (resolveError) {
+        throw new Error(
+          `[qa-baseline-repair] failed to resolve address ${maskUserId(address.id)}: ${resolveError.message}`,
+        );
+      }
+      if (resolved?.[0]?.zone_id === zoneId) addressCount += 1;
+    }
+    if (rows.length < ADDRESS_PAGE_SIZE) break;
+    offset += ADDRESS_PAGE_SIZE;
+  }
+  return addressCount;
 }
 
-/**
- * @param {import('@supabase/supabase-js').SupabaseClient} admin
- */
-export async function discoverBaselineRepairTargets(admin) {
+export async function readZoneSafetyState(admin, manifestZone) {
   const { data, error } = await admin
     .from("zones")
     .select("id,name_en,is_active")
-    .in("name_en", [...BASELINE_REPAIR_V2_ZONE_NAMES]);
-  if (error) {
-    throw new Error(`[qa-baseline-repair] failed to discover QA fixture zones: ${error.message}`);
-  }
-
-  const found = data ?? [];
-  const byName = new Map(found.map((row) => [row.name_en, row]));
-  /** @type {Array<{ id: string; name: string }>} */
-  const zones = [];
-
-  for (const name of BASELINE_REPAIR_V2_ZONE_NAMES) {
-    const row = byName.get(name);
-    if (!row) {
-      throw new Error(`[qa-baseline-repair] missing approved QA zone: ${name}`);
-    }
-    if (!name.startsWith("QA_")) {
-      throw new Error(`[qa-baseline-repair] non-QA zone name in discovery: ${name}`);
-    }
-    zones.push({ id: row.id, name: row.name_en });
-  }
-
-  if (zones.length !== BASELINE_REPAIR_V2_ZONE_NAMES.length) {
-    throw new Error(`[qa-baseline-repair] expected exactly ${BASELINE_REPAIR_V2_ZONE_NAMES.length} approved QA zones; found ${zones.length}`);
-  }
-
+    .eq("id", manifestZone.id)
+    .maybeSingle();
+  if (error)
+    throw new Error(
+      `[qa-baseline-repair] failed to read zone ${manifestZone.name}: ${error.message}`,
+    );
   return {
-    generatedAt: new Date().toISOString(),
-    projectRef: KNOWN_QA_PROJECT_REF,
-    settingsKeys: [...REQUIRED_SETTINGS_KEYS],
-    zones: zones.sort((a, b) => a.id.localeCompare(b.id)),
+    row: data ? { id: data.id, name_en: data.name_en, is_active: Boolean(data.is_active) } : null,
+    childCounts: await readZoneChildCounts(admin, manifestZone.id),
   };
 }
 
-/**
- * @param {ReturnType<typeof discoverBaselineRepairTargets> extends Promise<infer P> ? P : never} manifest
- * @param {string} [manifestPath]
- */
-export function writeBaselineRepairManifest(manifest, manifestPath = baselineRepairManifestPath()) {
-  const validated = validateBaselineRepairManifest(manifest);
-  if (!validated.ok) {
-    throw new Error(`[qa-baseline-repair] refused to write invalid manifest: ${validated.reason}`);
+export async function readManifestZonesForBaseline(admin, manifestZones) {
+  const zonesById = {};
+  for (const zone of manifestZones) zonesById[zone.id] = await readZoneSafetyState(admin, zone);
+  return zonesById;
+}
+
+export async function buildBaselineRepairPlanFromAdmin(admin, projectRef, manifest) {
+  return buildBaselineRepairPlanFromSnapshot({
+    projectRef,
+    manifest,
+    settingsByKey: await readSettingsRowsForBaseline(admin),
+    zonesById: await readManifestZonesForBaseline(admin, manifest.zones),
+  });
+}
+
+export async function discoverBaselineRepairTargets(admin) {
+  const manifest = createBaselineRepairManifest();
+  const zonesById = await readManifestZonesForBaseline(admin, manifest.zones);
+  for (const zone of manifest.zones) {
+    const planned = planZoneBaselineAction(zone, zonesById[zone.id]);
+    if (planned.blocked) throw new Error(`[qa-baseline-repair] ${planned.reason}`);
   }
-  const payload = {
-    generatedAt: typeof manifest.generatedAt === "string" ? manifest.generatedAt : new Date().toISOString(),
-    ...validated.manifest,
-  };
-  fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
-  fs.writeFileSync(manifestPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
-  return manifestPath;
+  return { generatedAt: new Date().toISOString(), ...manifest };
 }
 
-/**
- * @param {ReturnType<typeof finalizeBaselineRepairPlan>} plan
- */
 export function sanitizeBaselineRepairPlanForReport(plan) {
   return {
     version: plan.version,
@@ -523,6 +503,9 @@ export function sanitizeBaselineRepairPlanForReport(plan) {
     zones: plan.zones.map((row) => ({
       maskedId: row.maskedId,
       name: row.name,
+      provenanceOwner: row.provenanceOwner,
+      provenanceClass: row.provenanceClass,
+      childCounts: row.childCounts,
       beforeIsActive: row.beforeIsActive,
       intendedIsActive: row.intendedIsActive,
       actionType: row.actionType,
@@ -531,155 +514,143 @@ export function sanitizeBaselineRepairPlanForReport(plan) {
   };
 }
 
-/**
- * @param {ReturnType<typeof finalizeBaselineRepairPlan>} freshPlan
- * @param {string | undefined} expectedFingerprint
- */
 export function assertBaselineRepairPlanApproved(freshPlan, expectedFingerprint) {
-  if (freshPlan.blocked) {
+  if (freshPlan.blocked)
     throw new Error(`[qa-baseline-repair] plan blocked: ${freshPlan.blockedReason ?? "unknown"}`);
-  }
-  if (freshPlan.version !== BASELINE_REPAIR_PLAN_VERSION) {
+  if (freshPlan.version !== BASELINE_REPAIR_PLAN_VERSION)
     throw new Error("[qa-baseline-repair] plan version mismatch — rebuild dry-run and re-approve");
-  }
-  if (!expectedFingerprint) {
+  if (!expectedFingerprint)
     throw new Error("[qa-baseline-repair] execute requires --plan-fingerprint from dry-run");
+  if (
+    [
+      INVALIDATED_BASELINE_REPAIR_FINGERPRINT_V1,
+      INVALIDATED_BASELINE_REPAIR_FINGERPRINT_V2,
+    ].includes(expectedFingerprint)
+  ) {
+    throw new Error(
+      "[qa-baseline-repair] plan fingerprint invalidated — rebuild dry-run and re-approve",
+    );
   }
-  if (expectedFingerprint === INVALIDATED_BASELINE_REPAIR_FINGERPRINT_V1) {
-    throw new Error("[qa-baseline-repair] plan fingerprint invalidated — rebuild dry-run and re-approve");
-  }
-  if (freshPlan.fingerprint !== expectedFingerprint) {
-    throw new Error("[qa-baseline-repair] plan fingerprint mismatch — rebuild dry-run and re-approve");
-  }
+  if (freshPlan.fingerprint !== expectedFingerprint)
+    throw new Error(
+      "[qa-baseline-repair] plan fingerprint mismatch — rebuild dry-run and re-approve",
+    );
 }
 
-/**
- * @param {import('@supabase/supabase-js').SupabaseClient} admin
- */
 export async function verifyProtectedCatalogCounts(admin) {
   const { count: categoryCount, error: categoryError } = await admin
     .from("categories")
     .select("id", { count: "exact", head: true })
     .eq("is_active", true);
-  if (categoryError) {
+  if (categoryError)
     throw new Error(`[qa-baseline-repair] failed to count categories: ${categoryError.message}`);
-  }
-
   const { count: seededServiceCount, error: serviceError } = await admin
     .from("services")
     .select("id", { count: "exact", head: true })
     .not("name_en", "ilike", "QA_%")
     .eq("is_active", true);
-  if (serviceError) {
-    throw new Error(`[qa-baseline-repair] failed to count seeded services: ${serviceError.message}`);
-  }
-
+  if (serviceError)
+    throw new Error(
+      `[qa-baseline-repair] failed to count seeded services: ${serviceError.message}`,
+    );
   const { data: buckets, error: bucketError } = await admin.storage.listBuckets();
-  if (bucketError) {
+  if (bucketError)
     throw new Error(`[qa-baseline-repair] failed to list storage buckets: ${bucketError.message}`);
-  }
   const bucketIds = new Set((buckets ?? []).map((row) => row.id));
-
-  const ok = categoryCount === EXPECTED_ACTIVE_CATEGORY_COUNT
-    && seededServiceCount === EXPECTED_SEEDED_NON_QA_SERVICE_COUNT
-    && bucketIds.size === EXPECTED_STORAGE_BUCKET_COUNT
-    && REQUIRED_STORAGE_BUCKETS.every((bucketId) => bucketIds.has(bucketId));
-
   return {
-    ok,
+    ok:
+      categoryCount === EXPECTED_ACTIVE_CATEGORY_COUNT &&
+      seededServiceCount === EXPECTED_SEEDED_NON_QA_SERVICE_COUNT &&
+      bucketIds.size === EXPECTED_STORAGE_BUCKET_COUNT &&
+      REQUIRED_STORAGE_BUCKETS.every((id) => bucketIds.has(id)),
     categoryCount,
     seededServiceCount,
     storageBucketCount: bucketIds.size,
   };
 }
 
-/**
- * @param {import('@supabase/supabase-js').SupabaseClient} admin
- * @param {ReturnType<typeof finalizeBaselineRepairPlan>} plan
- */
+async function assertSettingsStillNoop(admin, plan) {
+  const rows = await readSettingsRowsForBaseline(admin);
+  for (const action of plan.settings) {
+    const current = planSettingBaselineAction(action.key)(rows[action.key] ?? []);
+    if (
+      current.blocked ||
+      current.actionType !== "noop" ||
+      !valuesDeepEqual(current.beforeValue, action.beforeValue)
+    ) {
+      throw new Error(`[qa-baseline-repair] setting live state changed: ${action.key}`);
+    }
+  }
+}
+
+function assertCatalogSafe(catalog) {
+  if (!catalog.ok) throw new Error("[qa-baseline-repair] protected catalog drift detected");
+}
+
 export async function executeBaselineRepairPlan(admin, plan) {
-  if (plan.blocked) {
+  if (plan.blocked)
     throw new Error(`[qa-baseline-repair] plan blocked: ${plan.blockedReason ?? "unknown"}`);
+  if (plan.settings.some((row) => row.actionType !== "noop"))
+    throw new Error("[qa-baseline-repair] setting mutation forbidden");
+  const actions = plan.zones.filter((row) => row.actionType !== "noop");
+  if (
+    actions.length !== BASELINE_REPAIR_MAX_ZONE_MUTATIONS ||
+    actions.some((row) => row.actionType !== "deactivate_zone")
+  ) {
+    throw new Error(
+      `[qa-baseline-repair] execute scope must be exactly ${BASELINE_REPAIR_MAX_ZONE_MUTATIONS} zone deactivations`,
+    );
   }
 
-  /** @type {Array<{ entityType: string; maskedId: string; actionType: string; ok: boolean; reason?: string }>} */
+  await assertSettingsStillNoop(admin, plan);
+  assertCatalogSafe(await verifyProtectedCatalogCounts(admin));
   const results = [];
   let mutationsStarted = false;
 
-  const pushResult = (entry) => {
-    results.push(entry);
-  };
-
-  for (const action of plan.settings) {
-    if (action.actionType === "noop") continue;
-    if (action.actionType !== "insert_setting") {
-      pushResult({
-        entityType: "setting",
-        maskedId: action.key,
-        actionType: action.actionType,
-        ok: false,
-        reason: "unexpected-setting-action",
-      });
-      continue;
-    }
-    mutationsStarted = true;
-    const { error } = await admin.from("settings").insert({
-      key: action.key,
-      value: action.intendedValue,
-    });
-    pushResult({
-      entityType: "setting",
-      maskedId: action.key,
-      actionType: action.actionType,
-      ok: !error,
-      reason: error?.message,
-    });
-    if (error) {
-      return { success: false, mutationsStarted, results, verification: null };
-    }
-  }
-
-  for (const action of plan.zones) {
-    if (action.actionType === "noop") continue;
-    if (action.actionType !== "deactivate_zone") {
-      pushResult({
-        entityType: "zone",
-        maskedId: action.maskedId,
-        actionType: action.actionType,
-        ok: false,
-        reason: "unexpected-zone-action",
-      });
-      continue;
-    }
-    mutationsStarted = true;
-    const { error } = await admin.from("zones").update({ is_active: false }).eq("id", action.id);
-    pushResult({
-      entityType: "zone",
-      maskedId: action.maskedId,
-      actionType: action.actionType,
-      ok: !error,
-      reason: error?.message,
-    });
-    if (error) {
-      return { success: false, mutationsStarted, results, verification: null };
-    }
-  }
-
-  for (const action of plan.settings) {
-    const { data, error } = await admin.from("settings").select("value").eq("key", action.key).maybeSingle();
-    if (error || !data || !valuesDeepEqual(data.value, action.intendedValue)) {
+  for (const action of actions) {
+    const immediate = planZoneBaselineAction(action, await readZoneSafetyState(admin, action));
+    if (immediate.blocked) {
       return {
         success: false,
         mutationsStarted,
         results,
-        verification: { reason: `settings-readback-failed-${action.key}` },
+        verification: { reason: `pre-mutation-${immediate.reason}` },
       };
     }
+    assertCatalogSafe(await verifyProtectedCatalogCounts(admin));
+    mutationsStarted = true;
+    const { data, error } = await admin
+      .from("zones")
+      .update({ is_active: false })
+      .eq("id", action.id)
+      .eq("name_en", action.name)
+      .eq("is_active", true)
+      .select("id,name_en,is_active")
+      .maybeSingle();
+    const ok =
+      !error &&
+      data?.id === action.id &&
+      data?.name_en === action.name &&
+      data?.is_active === false;
+    results.push({
+      entityType: "zone",
+      maskedId: action.maskedId,
+      actionType: action.actionType,
+      ok,
+      reason: error?.message ?? (ok ? undefined : "conditional-deactivate-readback-mismatch"),
+    });
+    if (!ok) return { success: false, mutationsStarted, results, verification: null };
   }
 
-  for (const action of plan.zones) {
-    const { data, error } = await admin.from("zones").select("is_active").eq("id", action.id).maybeSingle();
-    if (error || !data || data.is_active !== false) {
+  for (const action of actions) {
+    const readback = await readZoneSafetyState(admin, action);
+    if (
+      !readback.row ||
+      readback.row.id !== action.id ||
+      readback.row.name_en !== action.name ||
+      readback.row.is_active !== false ||
+      !childrenAreZero(readback.childCounts)
+    ) {
       return {
         success: false,
         mutationsStarted,
@@ -688,11 +659,13 @@ export async function executeBaselineRepairPlan(admin, plan) {
       };
     }
   }
-
+  await assertSettingsStillNoop(admin, plan);
   const protectedCatalog = await verifyProtectedCatalogCounts(admin);
-  const success = results.every((row) => row.ok) && protectedCatalog.ok;
   return {
-    success,
+    success:
+      results.length === BASELINE_REPAIR_MAX_ZONE_MUTATIONS &&
+      results.every((row) => row.ok) &&
+      protectedCatalog.ok,
     mutationsStarted,
     results,
     verification: { protectedCatalog },

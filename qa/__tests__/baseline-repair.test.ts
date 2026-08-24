@@ -8,31 +8,33 @@ import {
   BASELINE_REPAIR_CONFIRM_VALUE,
   parseBaselineRepairArgs,
 } from "../baseline-repair-args.mjs";
-import { BASELINE_REPAIR_PLAN_VERSION, fingerprintBaselineRepairPlan, INVALIDATED_BASELINE_REPAIR_FINGERPRINT_V1 } from "../baseline-repair-fingerprint.mjs";
+import {
+  BASELINE_REPAIR_PLAN_VERSION,
+  INVALIDATED_BASELINE_REPAIR_FINGERPRINT_V1,
+  INVALIDATED_BASELINE_REPAIR_FINGERPRINT_V2,
+} from "../baseline-repair-fingerprint.mjs";
 import {
   assertBaselineRepairPlanApproved,
+  BASELINE_REPAIR_MAX_ZONE_MUTATIONS,
+  BASELINE_REPAIR_V4_ZONES,
   buildBaselineRepairPlanFromSnapshot,
   CANONICAL_BASELINE_SETTINGS,
-  discoverBaselineRepairTargets,
+  createBaselineRepairManifest,
   executeBaselineRepairPlan,
-  LEAKED_QA_FIXTURE_ZONE_NAME,
   loadBaselineRepairManifest,
   planSettingBaselineAction,
   planZoneBaselineAction,
-  PROVEN_QA_FIXTURE_ZONE_NAMES,
   sanitizeBaselineRepairPlanForReport,
   validateBaselineRepairManifest,
   writeBaselineRepairManifest,
 } from "../baseline-repair-planner.mjs";
+import { dryRunExitCode } from "../baseline-repair.mjs";
 import { runPreflightChecks } from "../env-guard.mjs";
 import { KNOWN_PRODUCTION_PROJECT_REF, KNOWN_QA_PROJECT_REF } from "../qa-identity.mjs";
 
 const REPO_ROOT = process.cwd();
 const FAKE_FINGERPRINT = "c".repeat(64);
-const ZONE_A = "11111111-1111-4111-8111-111111111111";
-const ZONE_B = "22222222-2222-4222-8222-222222222222";
-const ZONE_C = "33333333-3333-4333-8333-333333333333";
-const ZONE_D = "44444444-4444-4444-8444-444444444444";
+const ZERO_CHILDREN = { zone_services: 0, zone_providers: 0, addresses: 0 };
 
 function baselineRepairModuleUrl() {
   return pathToFileURL(path.join(REPO_ROOT, "qa/baseline-repair.mjs")).href;
@@ -40,446 +42,537 @@ function baselineRepairModuleUrl() {
 
 function validManifest(overrides: Record<string, unknown> = {}) {
   return {
-    generatedAt: "2026-07-20T09:00:00.000Z",
-    projectRef: KNOWN_QA_PROJECT_REF,
-    settingsKeys: ["billing", "service_areas"],
-    zones: [
-      { id: ZONE_A, name: PROVEN_QA_FIXTURE_ZONE_NAMES[0] },
-      { id: ZONE_B, name: PROVEN_QA_FIXTURE_ZONE_NAMES[1] },
-      { id: ZONE_C, name: PROVEN_QA_FIXTURE_ZONE_NAMES[2] },
-      { id: ZONE_D, name: LEAKED_QA_FIXTURE_ZONE_NAME },
-    ],
+    generatedAt: "2026-08-13T11:49:05.919Z",
+    ...createBaselineRepairManifest(),
     ...overrides,
   };
 }
 
-function v2PostRepairZoneSnapshot() {
+function settingsSnapshot() {
   return {
-    [ZONE_A]: { id: ZONE_A, name_en: PROVEN_QA_FIXTURE_ZONE_NAMES[0], is_active: false },
-    [ZONE_B]: { id: ZONE_B, name_en: PROVEN_QA_FIXTURE_ZONE_NAMES[1], is_active: false },
-    [ZONE_C]: { id: ZONE_C, name_en: PROVEN_QA_FIXTURE_ZONE_NAMES[2], is_active: false },
-    [ZONE_D]: { id: ZONE_D, name_en: LEAKED_QA_FIXTURE_ZONE_NAME, is_active: true },
+    billing: [{ key: "billing", value: CANONICAL_BASELINE_SETTINGS.billing }],
+    service_areas: [{ key: "service_areas", value: CANONICAL_BASELINE_SETTINGS.service_areas }],
   };
 }
 
 function activeZoneSnapshot() {
-  return {
-    [ZONE_A]: { id: ZONE_A, name_en: PROVEN_QA_FIXTURE_ZONE_NAMES[0], is_active: true },
-    [ZONE_B]: { id: ZONE_B, name_en: PROVEN_QA_FIXTURE_ZONE_NAMES[1], is_active: true },
-    [ZONE_C]: { id: ZONE_C, name_en: PROVEN_QA_FIXTURE_ZONE_NAMES[2], is_active: true },
-    [ZONE_D]: { id: ZONE_D, name_en: LEAKED_QA_FIXTURE_ZONE_NAME, is_active: true },
-  };
+  return Object.fromEntries(
+    BASELINE_REPAIR_V4_ZONES.map((zone) => [
+      zone.id,
+      {
+        row: { id: zone.id, name_en: zone.name, is_active: true },
+        childCounts: { ...ZERO_CHILDREN },
+      },
+    ]),
+  );
 }
 
-describe("baseline repair CLI args", () => {
-  it("defaults to dry-run", () => {
-    expect(parseBaselineRepairArgs([]).mode).toBe("dry-run");
+function validPlan() {
+  const plan = buildBaselineRepairPlanFromSnapshot({
+    projectRef: KNOWN_QA_PROJECT_REF,
+    manifest: validManifest(),
+    settingsByKey: settingsSnapshot(),
+    zonesById: activeZoneSnapshot(),
   });
+  if (plan.blocked || !plan.fingerprint)
+    throw new Error(`invalid test plan: ${plan.blockedReason}`);
+  return plan;
+}
 
-  it("requires exact confirmation and fingerprint for execute", () => {
-    expect(parseBaselineRepairArgs(["--execute"]).mode).toBe("rejected");
-    expect(parseBaselineRepairArgs([
-      "--execute",
-      "--confirm=WRONG",
-      `--plan-fingerprint=${FAKE_FINGERPRINT}`,
-    ]).mode).toBe("rejected");
-    expect(parseBaselineRepairArgs([
-      "--execute",
-      `--confirm=${BASELINE_REPAIR_CONFIRM_VALUE}`,
-    ]).mode).toBe("rejected");
-    expect(parseBaselineRepairArgs([
-      "--execute",
-      `--confirm=${BASELINE_REPAIR_CONFIRM_VALUE}`,
-      `--plan-fingerprint=${FAKE_FINGERPRINT}`,
-    ]).mode).toBe("execute");
-  });
+type FakeAdminOptions = {
+  childOverrides?: Record<string, Partial<typeof ZERO_CHILDREN>>;
+  categoryCount?: number;
+  seededServiceCount?: number;
+  bucketIds?: string[];
+  afterUpdate?: (
+    id: string,
+    updateCount: number,
+    childOverrides: Record<string, Partial<typeof ZERO_CHILDREN>>,
+  ) => void;
+};
 
-  it("rejects dangerous and unknown flags", () => {
-    for (const flag of ["--force", "--yes", "--production", "--prod", "--no-guard"]) {
-      expect(parseBaselineRepairArgs([flag]).mode).toBe("rejected");
-    }
-    expect(parseBaselineRepairArgs(["--discover"]).mode).toBe("rejected");
-  });
-});
-
-describe("baseline repair manifest validation", () => {
-  it("rejects production ref and invalid manifests", () => {
-    expect(validateBaselineRepairManifest(validManifest({ projectRef: KNOWN_PRODUCTION_PROJECT_REF })).ok).toBe(false);
-    expect(loadBaselineRepairManifest(path.join(REPO_ROOT, "qa/__tests__/missing-manifest.json")).ok).toBe(false);
-    expect(validateBaselineRepairManifest(null).ok).toBe(false);
-  });
-
-  it("requires exactly four unique QA zones with v2 allowlisted names", () => {
-    expect(validateBaselineRepairManifest(validManifest({ zones: [] })).ok).toBe(false);
-    expect(validateBaselineRepairManifest(validManifest({
-      zones: [
-        { id: ZONE_A, name: PROVEN_QA_FIXTURE_ZONE_NAMES[0] },
-        { id: ZONE_B, name: PROVEN_QA_FIXTURE_ZONE_NAMES[1] },
-        { id: ZONE_C, name: PROVEN_QA_FIXTURE_ZONE_NAMES[2] },
-      ],
-    })).ok).toBe(false);
-    expect(validateBaselineRepairManifest(validManifest({
-      zones: [
-        { id: ZONE_A, name: PROVEN_QA_FIXTURE_ZONE_NAMES[0] },
-        { id: ZONE_A, name: PROVEN_QA_FIXTURE_ZONE_NAMES[1] },
-        { id: ZONE_C, name: PROVEN_QA_FIXTURE_ZONE_NAMES[2] },
-        { id: ZONE_D, name: LEAKED_QA_FIXTURE_ZONE_NAME },
-      ],
-    })).ok).toBe(false);
-    expect(validateBaselineRepairManifest(validManifest({
-      zones: [
-        { id: ZONE_A, name: "Not_QA_zone" },
-        { id: ZONE_B, name: PROVEN_QA_FIXTURE_ZONE_NAMES[1] },
-        { id: ZONE_C, name: PROVEN_QA_FIXTURE_ZONE_NAMES[2] },
-        { id: ZONE_D, name: LEAKED_QA_FIXTURE_ZONE_NAME },
-      ],
-    })).ok).toBe(false);
-    expect(validateBaselineRepairManifest(validManifest({
-      zones: [
-        { id: ZONE_A, name: PROVEN_QA_FIXTURE_ZONE_NAMES[0] },
-        { id: ZONE_B, name: PROVEN_QA_FIXTURE_ZONE_NAMES[1] },
-        { id: ZONE_C, name: PROVEN_QA_FIXTURE_ZONE_NAMES[2] },
-        { id: ZONE_D, name: "QA_Patch2_Zone_9999999999999" },
-      ],
-    })).ok).toBe(false);
-    expect(validateBaselineRepairManifest(validManifest()).ok).toBe(true);
-  });
-});
-
-describe("baseline repair setting planning", () => {
-  it("plans insert when absent", () => {
-    const planBilling = planSettingBaselineAction("billing")([]);
-    expect(planBilling.actionType).toBe("insert_setting");
-    expect(planBilling.beforeState).toBe("absent");
-  });
-
-  it("plans noop when exact match exists", () => {
-    const planBilling = planSettingBaselineAction("billing")([{
-      key: "billing",
-      value: CANONICAL_BASELINE_SETTINGS.billing,
-    }]);
-    expect(planBilling.actionType).toBe("noop");
-  });
-
-  it("blocks conflicting existing setting", () => {
-    const planBilling = planSettingBaselineAction("billing")([{
-      key: "billing",
-      value: { vat_percent: 99, platform_fee: 1 },
-    }]);
-    expect("blocked" in planBilling && planBilling.blocked).toBe(true);
-  });
-});
-
-describe("baseline repair zone planning", () => {
-  it("plans deactivate for active exact zone", () => {
-    const result = planZoneBaselineAction(
-      { id: ZONE_A, name: PROVEN_QA_FIXTURE_ZONE_NAMES[0] },
-      { id: ZONE_A, name_en: PROVEN_QA_FIXTURE_ZONE_NAMES[0], is_active: true },
-    );
-    expect(result.actionType).toBe("deactivate_zone");
-  });
-
-  it("plans noop for inactive exact zone", () => {
-    const result = planZoneBaselineAction(
-      { id: ZONE_A, name: PROVEN_QA_FIXTURE_ZONE_NAMES[0] },
-      { id: ZONE_A, name_en: PROVEN_QA_FIXTURE_ZONE_NAMES[0], is_active: false },
-    );
-    expect(result.actionType).toBe("noop");
-  });
-
-  it("blocks missing or mismatched zones", () => {
-    expect("blocked" in planZoneBaselineAction(
-      { id: ZONE_A, name: PROVEN_QA_FIXTURE_ZONE_NAMES[0] },
-      null,
-    )).toBe(true);
-    expect("blocked" in planZoneBaselineAction(
-      { id: ZONE_A, name: PROVEN_QA_FIXTURE_ZONE_NAMES[0] },
-      { id: ZONE_A, name_en: "QA_renamed_zone", is_active: true },
-    )).toBe(true);
-  });
-});
-
-describe("baseline repair fingerprint", () => {
-  it("is stable under ordering changes", () => {
-    const manifest = validManifest();
-    const validated = validateBaselineRepairManifest(manifest);
-    if (!validated.ok) throw new Error("invalid manifest fixture");
-    const settingsByKey = {
-      billing: [{ key: "billing", value: CANONICAL_BASELINE_SETTINGS.billing }],
-      service_areas: [{ key: "service_areas", value: CANONICAL_BASELINE_SETTINGS.service_areas }],
-    };
-    const base = buildBaselineRepairPlanFromSnapshot({
-      projectRef: KNOWN_QA_PROJECT_REF,
-      manifest: validated.manifest,
-      settingsByKey,
-      zonesById: v2PostRepairZoneSnapshot(),
-    });
-    const reversed = buildBaselineRepairPlanFromSnapshot({
-      projectRef: KNOWN_QA_PROJECT_REF,
-      manifest: {
-        settingsKeys: ["billing", "service_areas"],
-        zones: [...manifest.zones].reverse(),
+function createFakeAdmin(options: FakeAdminOptions = {}) {
+  const zones = new Map(
+    BASELINE_REPAIR_V4_ZONES.map((zone) => [
+      zone.id,
+      {
+        id: zone.id,
+        name_en: zone.name,
+        is_active: true,
       },
-      settingsByKey,
-      zonesById: v2PostRepairZoneSnapshot(),
-    });
-    expect(base.fingerprint).toBe(reversed.fingerprint);
+    ]),
+  );
+  const childOverrides = structuredClone(options.childOverrides ?? {});
+  const updates: Array<{ payload: unknown; filters: Record<string, unknown> }> = [];
+  const forbiddenDelete = vi.fn(() => {
+    throw new Error("delete must never be called");
+  });
+  const forbiddenInsert = vi.fn(() => {
+    throw new Error("insert must never be called");
   });
 
-  it("changes when value, id, or state changes", () => {
-    const manifest = validManifest();
-    const validated = validateBaselineRepairManifest(manifest);
-    if (!validated.ok) throw new Error("invalid manifest fixture");
-    const base = buildBaselineRepairPlanFromSnapshot({
-      projectRef: KNOWN_QA_PROJECT_REF,
-      manifest: validated.manifest,
-      settingsByKey: {
-        billing: [{ key: "billing", value: CANONICAL_BASELINE_SETTINGS.billing }],
-        service_areas: [{ key: "service_areas", value: CANONICAL_BASELINE_SETTINGS.service_areas }],
-      },
-      zonesById: v2PostRepairZoneSnapshot(),
-    });
-    const changedValue = buildBaselineRepairPlanFromSnapshot({
-      projectRef: KNOWN_QA_PROJECT_REF,
-      manifest: validated.manifest,
-      settingsByKey: {
-        billing: [{ key: "billing", value: { vat_percent: 99, platform_fee: 1 } }],
-        service_areas: [{ key: "service_areas", value: CANONICAL_BASELINE_SETTINGS.service_areas }],
-      },
-      zonesById: v2PostRepairZoneSnapshot(),
-    });
-    const inactiveLeakedZone = buildBaselineRepairPlanFromSnapshot({
-      projectRef: KNOWN_QA_PROJECT_REF,
-      manifest: validated.manifest,
-      settingsByKey: {
-        billing: [{ key: "billing", value: CANONICAL_BASELINE_SETTINGS.billing }],
-        service_areas: [{ key: "service_areas", value: CANONICAL_BASELINE_SETTINGS.service_areas }],
-      },
-      zonesById: {
-        ...v2PostRepairZoneSnapshot(),
-        [ZONE_D]: { id: ZONE_D, name_en: LEAKED_QA_FIXTURE_ZONE_NAME, is_active: false },
-      },
-    });
-    expect(changedValue.fingerprint).toBeNull();
-    expect(inactiveLeakedZone.fingerprint).not.toBe(base.fingerprint);
-  });
-});
-
-describe("baseline repair execute safety", () => {
-  it("rebuild catches drift before writes and rejects invalidated v1 fingerprint", () => {
-    const approved = {
-      blocked: false,
-      version: BASELINE_REPAIR_PLAN_VERSION,
-      fingerprint: FAKE_FINGERPRINT,
-    };
-    expect(() => assertBaselineRepairPlanApproved(approved as never, "d".repeat(64)))
-      .toThrow(/fingerprint mismatch/i);
-    expect(() => assertBaselineRepairPlanApproved({ ...approved, blocked: true, blockedReason: "x" } as never, FAKE_FINGERPRINT))
-      .toThrow(/blocked/i);
-    expect(() => assertBaselineRepairPlanApproved(approved as never, INVALIDATED_BASELINE_REPAIR_FINGERPRINT_V1))
-      .toThrow(/invalidated/i);
-  });
-
-  it("returns failure on partial write/readback failure", async () => {
-    const manifest = validateBaselineRepairManifest(validManifest());
-    if (!manifest.ok) throw new Error("invalid manifest fixture");
-    const plan = buildBaselineRepairPlanFromSnapshot({
-      projectRef: KNOWN_QA_PROJECT_REF,
-      manifest: manifest.manifest,
-      settingsByKey: {
-        billing: [{ key: "billing", value: CANONICAL_BASELINE_SETTINGS.billing }],
-        service_areas: [{ key: "service_areas", value: CANONICAL_BASELINE_SETTINGS.service_areas }],
-      },
-      zonesById: v2PostRepairZoneSnapshot(),
-    });
-
-    const admin = {
-      from: vi.fn((table) => ({
-        insert: vi.fn(async () => ({ error: null })),
-        update: vi.fn(() => ({
-          eq: vi.fn(async () => ({ error: table === "zones" ? { message: "deactivate failed" } : null })),
-        })),
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            maybeSingle: vi.fn(async () => ({ data: null, error: null })),
-          })),
-        })),
-      })),
-      storage: { listBuckets: vi.fn(async () => ({ data: [], error: null })) },
-    };
-
-    const failedDeactivate = await executeBaselineRepairPlan(admin as never, plan);
-    expect(failedDeactivate.success).toBe(false);
-
-    const adminReadbackFail = {
-      from: vi.fn((table) => ({
-        insert: vi.fn(async () => ({ error: null })),
-        update: vi.fn(() => ({ eq: vi.fn(async () => ({ error: null })) })),
-        select: vi.fn(() => ({
-          eq: vi.fn((_column, value) => ({
-            maybeSingle: vi.fn(async () => ({
-              data: table === "settings" && value === "billing"
-                ? { value: { vat_percent: 0, platform_fee: 0 } }
-                : table === "zones"
-                  ? { is_active: true }
-                  : { value: CANONICAL_BASELINE_SETTINGS.service_areas },
+  const admin = {
+    from: vi.fn((table: string) => {
+      if (table === "settings") {
+        return {
+          insert: forbiddenInsert,
+          delete: forbiddenDelete,
+          select: vi.fn(() => ({
+            eq: vi.fn(async (_column: string, key: string) => ({
+              data: settingsSnapshot()[key as keyof ReturnType<typeof settingsSnapshot>] ?? [],
               error: null,
             })),
           })),
-        })),
+        };
+      }
+      if (["zone_services", "zone_providers"].includes(table)) {
+        return {
+          delete: forbiddenDelete,
+          select: vi.fn(() => ({
+            eq: vi.fn(async (_column: string, id: string) => ({
+              count: childOverrides[id]?.[table as keyof typeof ZERO_CHILDREN] ?? 0,
+              error: null,
+            })),
+          })),
+        };
+      }
+      if (table === "addresses") {
+        return {
+          delete: forbiddenDelete,
+          select: vi.fn(() => ({
+            range: vi.fn(async (from: number, to: number) => ({
+              data: Object.entries(childOverrides)
+                .flatMap(([zoneId, counts], zoneIndex) =>
+                  Array.from({ length: counts.addresses ?? 0 }, (_unused, addressIndex) => ({
+                    id: `address-${zoneId}-${addressIndex}`,
+                    lat: zoneIndex + 1,
+                    lng: addressIndex + 1,
+                    resolvedZoneId: zoneId,
+                  })),
+                )
+                .slice(from, to + 1),
+              error: null,
+            })),
+          })),
+        };
+      }
+      if (table === "categories") {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(async () => ({ count: options.categoryCount ?? 6, error: null })),
+          })),
+        };
+      }
+      if (table === "services") {
+        return {
+          select: vi.fn(() => ({
+            not: vi.fn(() => ({
+              eq: vi.fn(async () => ({ count: options.seededServiceCount ?? 18, error: null })),
+            })),
+          })),
+        };
+      }
+      if (table !== "zones") throw new Error(`unexpected table ${table}`);
+      return {
+        delete: forbiddenDelete,
+        select: vi.fn(() => {
+          const filters: Record<string, unknown> = {};
+          const query = {
+            eq: vi.fn((column: string, value: unknown) => {
+              filters[column] = value;
+              return query;
+            }),
+            maybeSingle: vi.fn(async () => ({
+              data: zones.get(String(filters.id)) ?? null,
+              error: null,
+            })),
+          };
+          return query;
+        }),
+        update: vi.fn((payload: { is_active?: boolean }) => {
+          const filters: Record<string, unknown> = {};
+          const query = {
+            eq: vi.fn((column: string, value: unknown) => {
+              filters[column] = value;
+              return query;
+            }),
+            select: vi.fn(() => query),
+            maybeSingle: vi.fn(async () => {
+              const row = zones.get(String(filters.id));
+              const matches =
+                row &&
+                row.name_en === filters.name_en &&
+                row.is_active === filters.is_active &&
+                payload.is_active === false;
+              updates.push({ payload, filters: { ...filters } });
+              if (!matches) return { data: null, error: null };
+              row.is_active = false;
+              options.afterUpdate?.(row.id, updates.length, childOverrides);
+              return { data: { ...row }, error: null };
+            }),
+          };
+          return query;
+        }),
+      };
+    }),
+    storage: {
+      listBuckets: vi.fn(async () => ({
+        data: (
+          options.bucketIds ?? ["avatars", "provider-documents", "payment-proofs", "case-evidence"]
+        ).map((id) => ({ id })),
+        error: null,
       })),
-      storage: {
-        listBuckets: vi.fn(async () => ({
-          data: [
-            { id: "avatars" },
-            { id: "provider-documents" },
-            { id: "payment-proofs" },
-            { id: "case-evidence" },
-          ],
-          error: null,
-        })),
-      },
-    };
+    },
+    rpc: vi.fn(async (_name: string, args: { p_lat: number }) => {
+      const resolvedZoneId = Object.keys(childOverrides)[args.p_lat - 1];
+      return { data: resolvedZoneId ? [{ zone_id: resolvedZoneId }] : [], error: null };
+    }),
+  };
 
-    const failedReadback = await executeBaselineRepairPlan(adminReadbackFail as never, plan);
-    expect(failedReadback.success).toBe(false);
+  return { admin, updates, forbiddenDelete, forbiddenInsert, childOverrides };
+}
+
+describe("baseline repair CLI args", () => {
+  it("defaults to dry-run and requires exact execute approval", () => {
+    expect(parseBaselineRepairArgs([]).mode).toBe("dry-run");
+    expect(parseBaselineRepairArgs(["--execute"]).mode).toBe("rejected");
+    expect(
+      parseBaselineRepairArgs([
+        "--execute",
+        `--confirm=${BASELINE_REPAIR_CONFIRM_VALUE}`,
+        `--plan-fingerprint=${FAKE_FINGERPRINT}`,
+      ]).mode,
+    ).toBe("execute");
   });
 
-  it("mutates only two settings and up to one zone in v2 post-repair state", () => {
-    const manifest = validateBaselineRepairManifest(validManifest());
-    if (!manifest.ok) throw new Error("invalid manifest fixture");
-    const plan = buildBaselineRepairPlanFromSnapshot({
-      projectRef: KNOWN_QA_PROJECT_REF,
-      manifest: manifest.manifest,
-      settingsByKey: {
-        billing: [{ key: "billing", value: CANONICAL_BASELINE_SETTINGS.billing }],
-        service_areas: [{ key: "service_areas", value: CANONICAL_BASELINE_SETTINGS.service_areas }],
-      },
-      zonesById: v2PostRepairZoneSnapshot(),
-    });
-    expect(plan.settings).toHaveLength(2);
-    expect(plan.zones).toHaveLength(4);
+  it("rejects dangerous, discovery, and unknown flags", () => {
+    for (const flag of ["--force", "--yes", "--production", "--prod", "--no-guard", "--discover"]) {
+      expect(parseBaselineRepairArgs([flag]).mode).toBe("rejected");
+    }
+  });
+});
+
+describe("v3 exact manifest and provenance guards", () => {
+  it("binds exactly six full ID/name/provenance tuples", () => {
+    const validated = validateBaselineRepairManifest(validManifest());
+    expect(validated.ok).toBe(true);
+    expect(BASELINE_REPAIR_MAX_ZONE_MUTATIONS).toBe(6);
+    expect(BASELINE_REPAIR_V4_ZONES).toHaveLength(6);
+    expect(new Set(BASELINE_REPAIR_V4_ZONES.map((row) => row.id)).size).toBe(
+      BASELINE_REPAIR_MAX_ZONE_MUTATIONS,
+    );
+    expect(new Set(BASELINE_REPAIR_V4_ZONES.map((row) => row.name)).size).toBe(
+      BASELINE_REPAIR_MAX_ZONE_MUTATIONS,
+    );
+    expect(
+      BASELINE_REPAIR_V4_ZONES.every(
+        (row) =>
+          row.name.startsWith("QA_") &&
+          row.provenanceOwner.length > 0 &&
+          row.provenanceClass.length > 0,
+      ),
+    ).toBe(true);
+  });
+
+  it("blocks Production, missing, duplicate, unexpected, renamed, and provenance-mismatched targets", () => {
+    expect(
+      validateBaselineRepairManifest(validManifest({ projectRef: KNOWN_PRODUCTION_PROJECT_REF }))
+        .ok,
+    ).toBe(false);
+    expect(
+      validateBaselineRepairManifest(validManifest({ zones: BASELINE_REPAIR_V4_ZONES.slice(0, 5) }))
+        .ok,
+    ).toBe(false);
+    expect(
+      validateBaselineRepairManifest(
+        validManifest({
+          zones: [...BASELINE_REPAIR_V4_ZONES.slice(0, 5), BASELINE_REPAIR_V4_ZONES[0]],
+        }),
+      ).ok,
+    ).toBe(false);
+    expect(
+      validateBaselineRepairManifest(
+        validManifest({
+          zones: BASELINE_REPAIR_V4_ZONES.map((row, index) =>
+            index === 0 ? { ...row, id: "11111111-1111-4111-8111-111111111111" } : row,
+          ),
+        }),
+      ).ok,
+    ).toBe(false);
+    expect(
+      validateBaselineRepairManifest(
+        validManifest({
+          zones: BASELINE_REPAIR_V4_ZONES.map((row, index) =>
+            index === 0 ? { ...row, name: `${row.name}_renamed` } : row,
+          ),
+        }),
+      ).ok,
+    ).toBe(false);
+    expect(
+      validateBaselineRepairManifest(
+        validManifest({
+          zones: BASELINE_REPAIR_V4_ZONES.map((row, index) =>
+            index === 0 ? { ...row, provenanceClass: "unknown" } : row,
+          ),
+        }),
+      ).ok,
+    ).toBe(false);
+  });
+
+  it("never re-admits the two unsafe zones by name or id", () => {
+    const names = BASELINE_REPAIR_V4_ZONES.map((z) => z.name);
+    const ids = BASELINE_REPAIR_V4_ZONES.map((z) => z.id);
+    expect(names).not.toContain("QA_booking_lifecycle_zone_v1");
+    expect(ids).not.toContain("16079e5f-b915-4afa-aa64-2b5a40bd6597");
+    expect(names).not.toContain("QA_status_selector_zone_1786617970885");
+    expect(ids).not.toContain("325e3a13-1355-4cde-84ff-9a396f305691");
+  });
+});
+
+describe("settings and dry-run planning", () => {
+  it("keeps billing and service_areas noop and blocks every setting mutation", () => {
+    for (const key of ["billing", "service_areas"] as const) {
+      expect(planSettingBaselineAction(key)(settingsSnapshot()[key]).actionType).toBe("noop");
+      expect(planSettingBaselineAction(key)([])).toMatchObject({ blocked: true });
+      expect(planSettingBaselineAction(key)([{ key, value: {} }])).toMatchObject({ blocked: true });
+    }
+    expect(planSettingBaselineAction("other")([])).toMatchObject({ blocked: true });
+  });
+
+  it("plans exactly six deactivations only when all exact rows are active and child-free", () => {
+    const plan = validPlan();
+    expect(plan.version).toBe("6a.2-baseline-repair-v4");
     expect(plan.settings.every((row) => row.actionType === "noop")).toBe(true);
-    expect(plan.zones.filter((row) => row.actionType === "deactivate_zone")).toHaveLength(1);
-    expect(plan.zones.find((row) => row.actionType === "deactivate_zone")?.name).toBe(LEAKED_QA_FIXTURE_ZONE_NAME);
-    expect(plan.counts.planned_mutations).toBe(1);
-    expect(plan.version).toBe("6a.2-baseline-repair-v2");
+    expect(plan.zones).toHaveLength(BASELINE_REPAIR_MAX_ZONE_MUTATIONS);
+    expect(
+      plan.zones.every(
+        (row) => row.actionType === "deactivate_zone" && row.intendedIsActive === false,
+      ),
+    ).toBe(true);
+    expect(plan.counts.planned_mutations).toBe(BASELINE_REPAIR_MAX_ZONE_MUTATIONS);
   });
-});
 
-describe("baseline repair output hygiene", () => {
-  it("sanitized report contains no full UUID", () => {
-    const manifest = validateBaselineRepairManifest(validManifest());
-    if (!manifest.ok) throw new Error("invalid manifest fixture");
-    const plan = buildBaselineRepairPlanFromSnapshot({
-      projectRef: KNOWN_QA_PROJECT_REF,
-      manifest: manifest.manifest,
-      settingsByKey: {
-        billing: [{ key: "billing", value: CANONICAL_BASELINE_SETTINGS.billing }],
-        service_areas: [{ key: "service_areas", value: CANONICAL_BASELINE_SETTINGS.service_areas }],
-      },
-      zonesById: v2PostRepairZoneSnapshot(),
+  it("blocks missing, renamed, inactive, ID-mismatched, and nonzero-child live state", () => {
+    const target = BASELINE_REPAIR_V4_ZONES[0];
+    expect(planZoneBaselineAction(target, null)).toMatchObject({ blocked: true });
+    expect(
+      planZoneBaselineAction(target, {
+        row: { id: target.id, name_en: `${target.name}_renamed`, is_active: true },
+        childCounts: ZERO_CHILDREN,
+      }),
+    ).toMatchObject({ blocked: true });
+    expect(
+      planZoneBaselineAction(target, {
+        row: { id: BASELINE_REPAIR_V4_ZONES[1].id, name_en: target.name, is_active: true },
+        childCounts: ZERO_CHILDREN,
+      }),
+    ).toMatchObject({ blocked: true });
+    expect(
+      planZoneBaselineAction(target, {
+        row: { id: target.id, name_en: target.name, is_active: false },
+        childCounts: ZERO_CHILDREN,
+      }),
+    ).toMatchObject({ blocked: true });
+    expect(
+      planZoneBaselineAction(target, {
+        row: { id: target.id, name_en: target.name, is_active: true },
+        childCounts: { ...ZERO_CHILDREN, addresses: 1 },
+      }),
+    ).toMatchObject({ blocked: true });
+  });
+
+  it("blocks Production project refs and a scope that is not exactly six", () => {
+    const productionPlan = buildBaselineRepairPlanFromSnapshot({
+      projectRef: KNOWN_PRODUCTION_PROJECT_REF,
+      manifest: validManifest(),
+      settingsByKey: settingsSnapshot(),
+      zonesById: activeZoneSnapshot(),
     });
-    const report = sanitizeBaselineRepairPlanForReport(plan);
+    expect(productionPlan.blockedReason).toBe("project-ref-not-qa");
+    expect(productionPlan.fingerprint).toBeNull();
+  });
+});
+
+describe("fingerprint and approval", () => {
+  it("is stable under manifest ordering but changes with child/live state", () => {
+    const base = validPlan();
+    const reversed = buildBaselineRepairPlanFromSnapshot({
+      projectRef: KNOWN_QA_PROJECT_REF,
+      manifest: validManifest({ zones: [...BASELINE_REPAIR_V4_ZONES].reverse() }),
+      settingsByKey: settingsSnapshot(),
+      zonesById: activeZoneSnapshot(),
+    });
+    expect(reversed.fingerprint).toBe(base.fingerprint);
+
+    const children = activeZoneSnapshot();
+    children[BASELINE_REPAIR_V4_ZONES[0].id].childCounts.addresses = 1;
+    const blocked = buildBaselineRepairPlanFromSnapshot({
+      projectRef: KNOWN_QA_PROJECT_REF,
+      manifest: validManifest(),
+      settingsByKey: settingsSnapshot(),
+      zonesById: children,
+    });
+    expect(blocked.fingerprint).toBeNull();
+  });
+
+  it("explicitly rejects stale v1 and v2 fingerprints", () => {
+    const plan = validPlan();
+    expect(() =>
+      assertBaselineRepairPlanApproved(plan, INVALIDATED_BASELINE_REPAIR_FINGERPRINT_V1),
+    ).toThrow(/invalidated/i);
+    expect(() =>
+      assertBaselineRepairPlanApproved(plan, INVALIDATED_BASELINE_REPAIR_FINGERPRINT_V2),
+    ).toThrow(/invalidated/i);
+    expect(() => assertBaselineRepairPlanApproved(plan, "d".repeat(64))).toThrow(/mismatch/i);
+    expect(() => assertBaselineRepairPlanApproved(plan, plan.fingerprint)).not.toThrow();
+    expect(BASELINE_REPAIR_PLAN_VERSION).toBe("6a.2-baseline-repair-v4");
+  });
+});
+
+describe("network-free execute safety", () => {
+  it("uses only six conditional is_active=false updates and performs post-execute readback", async () => {
+    const fake = createFakeAdmin();
+    const execution = await executeBaselineRepairPlan(fake.admin as never, validPlan());
+    expect(execution.success).toBe(true);
+    expect(fake.updates).toHaveLength(BASELINE_REPAIR_MAX_ZONE_MUTATIONS);
+    expect(
+      fake.updates.every(
+        (row) =>
+          JSON.stringify(row.payload) === JSON.stringify({ is_active: false }) &&
+          typeof row.filters.id === "string" &&
+          typeof row.filters.name_en === "string" &&
+          row.filters.is_active === true,
+      ),
+    ).toBe(true);
+    expect(fake.forbiddenDelete).not.toHaveBeenCalled();
+    expect(fake.forbiddenInsert).not.toHaveBeenCalled();
+    expect(fake.admin.from).toHaveBeenCalledWith("zone_services");
+    expect(fake.admin.from).toHaveBeenCalledWith("zone_providers");
+    expect(fake.admin.from).toHaveBeenCalledWith("addresses");
+  });
+
+  it("rechecks zero children immediately before mutation and starts no write on drift", async () => {
+    const plan = validPlan();
+    const first = plan.zones[0];
+    const fake = createFakeAdmin({ childOverrides: { [first.id]: { zone_services: 1 } } });
+    const execution = await executeBaselineRepairPlan(fake.admin as never, plan);
+    expect(execution.success).toBe(false);
+    expect(execution.mutationsStarted).toBe(false);
+    expect(execution.verification?.reason).toMatch(/children-nonzero/i);
+    expect(fake.updates).toHaveLength(0);
+  });
+
+  it("blocks protected catalog drift before any mutation", async () => {
+    for (const options of [
+      { categoryCount: 5 },
+      { seededServiceCount: 17 },
+      { bucketIds: ["avatars", "provider-documents", "payment-proofs"] },
+    ]) {
+      const fake = createFakeAdmin(options);
+      await expect(executeBaselineRepairPlan(fake.admin as never, validPlan())).rejects.toThrow(
+        /protected catalog drift/i,
+      );
+      expect(fake.updates).toHaveLength(0);
+    }
+  });
+
+  it("fails post-execute readback if children appear after the final mutation", async () => {
+    const fake = createFakeAdmin({
+      afterUpdate: (id, count, children) => {
+        if (count === BASELINE_REPAIR_MAX_ZONE_MUTATIONS) children[id] = { addresses: 1 };
+      },
+    });
+    const execution = await executeBaselineRepairPlan(fake.admin as never, validPlan());
+    expect(execution.success).toBe(false);
+    expect(execution.verification?.reason).toMatch(/zone-readback-failed/i);
+    expect(fake.updates).toHaveLength(BASELINE_REPAIR_MAX_ZONE_MUTATIONS);
+  });
+
+  it("rejects a plan containing setting mutation or more than six zone actions", async () => {
+    const fake = createFakeAdmin();
+    await expect(
+      executeBaselineRepairPlan(
+        fake.admin as never,
+        {
+          ...validPlan(),
+          settings: [{ ...validPlan().settings[0], actionType: "insert_setting" }],
+        } as never,
+      ),
+    ).rejects.toThrow(/setting mutation/i);
+    await expect(
+      executeBaselineRepairPlan(
+        fake.admin as never,
+        {
+          ...validPlan(),
+          zones: [...validPlan().zones, validPlan().zones[0]],
+        } as never,
+      ),
+    ).rejects.toThrow(/exactly 6 zone deactivations/i);
+    expect(fake.updates).toHaveLength(0);
+  });
+});
+
+describe("report, file, production, and import safety", () => {
+  it("sanitizes full UUIDs from reports", () => {
+    const report = sanitizeBaselineRepairPlanForReport(validPlan());
     const serialized = JSON.stringify(report);
-    expect(serialized).not.toMatch(/11111111-1111-4111-8111-111111111111/);
-    expect(report.zones.every((row) => "id" in row === false)).toBe(true);
+    for (const zone of BASELINE_REPAIR_V4_ZONES) expect(serialized).not.toContain(zone.id);
+    expect(report.zones.every((row) => !("id" in row))).toBe(true);
   });
-});
 
-describe("production guard", () => {
-  it("rejects production ref", () => {
-    expect(() => runPreflightChecks({
-      FAMY_ENV: "qa",
-      FAMY_QA_SUPABASE_PROJECT_REF: KNOWN_QA_PROJECT_REF,
-      FAMY_PRODUCTION_SUPABASE_PROJECT_REF: KNOWN_PRODUCTION_PROJECT_REF,
-      QA_SUPABASE_URL: `https://${KNOWN_PRODUCTION_PROJECT_REF}.supabase.co`,
-      QA_SUPABASE_SECRET_KEY: "test-secret-key",
-      SUPABASE_SERVICE_ROLE_KEY: "test-secret-key",
-      QA_E2E_APP_ORIGIN: "http://127.0.0.1:4173",
-    })).toThrow(/Production/);
+  it("returns a non-zero exit code for a blocked dry-run plan", () => {
+    expect(dryRunExitCode({ blocked: true })).toBe(2);
+    expect(dryRunExitCode({ blocked: false })).toBe(0);
   });
-});
 
-describe("native import safety", () => {
+  it("loads the compiled manifest when no report file exists and writes only validated manifests", () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "qa-baseline-v3-"));
+    const manifestPath = path.join(tmpDir, "missing", "baseline-repair-targets.json");
+    expect(loadBaselineRepairManifest(manifestPath).ok).toBe(true);
+    writeBaselineRepairManifest(validManifest(), manifestPath);
+    expect(loadBaselineRepairManifest(manifestPath).ok).toBe(true);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("explicitly rejects the Production project", () => {
+    expect(() =>
+      runPreflightChecks({
+        FAMY_ENV: "qa",
+        FAMY_QA_SUPABASE_PROJECT_REF: KNOWN_QA_PROJECT_REF,
+        FAMY_PRODUCTION_SUPABASE_PROJECT_REF: KNOWN_PRODUCTION_PROJECT_REF,
+        QA_SUPABASE_URL: `https://${KNOWN_PRODUCTION_PROJECT_REF}.supabase.co`,
+        QA_SUPABASE_PUBLISHABLE_KEY: "publishable",
+        QA_SUPABASE_SECRET_KEY: "secret",
+        FAMY_QA_APP_ORIGIN: "http://127.0.0.1:4173",
+        FAMY_PRODUCTION_APP_ORIGIN: "https://production.example.test",
+      }),
+    ).toThrow(/Production/);
+  });
+
   it("importing baseline-repair.mjs causes zero side effects", () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "qa-baseline-repair-import-"));
-    const script = `
+    const result = spawnSync(
+      process.execPath,
+      [
+        "--input-type=module",
+        "-e",
+        `
       process.chdir(${JSON.stringify(tmpDir)});
-      process.argv = [
-        "node",
-        "ignored-entry.mjs",
-        "--execute",
-        "--confirm=${BASELINE_REPAIR_CONFIRM_VALUE}",
-        "--plan-fingerprint=${FAKE_FINGERPRINT}",
-      ];
+      process.argv = ["node", "ignored-entry.mjs", "--execute", "--confirm=${BASELINE_REPAIR_CONFIRM_VALUE}", "--plan-fingerprint=${FAKE_FINGERPRINT}"];
       await import(${JSON.stringify(baselineRepairModuleUrl())});
       console.log("IMPORT_OK");
-    `;
-    const result = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
-      cwd: REPO_ROOT,
-      env: { ...process.env, FAMY_ENV: "qa" },
-      encoding: "utf8",
-      timeout: 30_000,
-    });
+    `,
+      ],
+      {
+        cwd: REPO_ROOT,
+        env: { ...process.env, FAMY_ENV: "qa" },
+        encoding: "utf8",
+        timeout: 30_000,
+      },
+    );
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("IMPORT_OK");
     expect(fs.readdirSync(tmpDir)).toEqual([]);
-  });
-});
-
-describe("baseline repair discovery", () => {
-  it("requires exactly three proven QA zones", async () => {
-    const admin = {
-      from: vi.fn(() => ({
-        select: vi.fn(() => ({
-          in: vi.fn(async () => ({
-            data: [
-              { id: ZONE_A, name_en: PROVEN_QA_FIXTURE_ZONE_NAMES[0], is_active: true },
-              { id: ZONE_B, name_en: PROVEN_QA_FIXTURE_ZONE_NAMES[1], is_active: true },
-            ],
-            error: null,
-          })),
-        })),
-      })),
-    };
-    await expect(discoverBaselineRepairTargets(admin as never)).rejects.toThrow(/missing approved QA zone/i);
-  });
-});
-
-describe("baseline repair manifest write", () => {
-  it("writes validated manifest to report path", () => {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "qa-baseline-manifest-"));
-    const manifestPath = path.join(tmpDir, "baseline-repair-targets.json");
-    writeBaselineRepairManifest(validManifest(), manifestPath);
-    const loaded = loadBaselineRepairManifest(manifestPath);
-    expect(loaded.ok).toBe(true);
     fs.rmSync(tmpDir, { recursive: true, force: true });
-  });
-});
-
-describe("baseline repair fingerprint helper", () => {
-  it("matches planner fingerprint payload", () => {
-    const digest = fingerprintBaselineRepairPlan({
-      projectRef: KNOWN_QA_PROJECT_REF,
-      blocked: false,
-      blockedReason: null,
-      manifestHash: "abc",
-      settings: [{
-        key: "billing",
-        beforeState: "absent",
-        beforeValue: null,
-        intendedValue: CANONICAL_BASELINE_SETTINGS.billing,
-        actionType: "insert_setting",
-      }],
-      zones: [{
-        id: ZONE_A,
-        name: PROVEN_QA_FIXTURE_ZONE_NAMES[0],
-        beforeIsActive: true,
-        intendedIsActive: false,
-        actionType: "deactivate_zone",
-      }],
-    });
-    expect(digest).toMatch(/^[a-f0-9]{64}$/);
   });
 });

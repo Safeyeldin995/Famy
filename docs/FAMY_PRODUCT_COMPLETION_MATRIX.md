@@ -13,3 +13,10 @@ Detailed Patch 1 evidence is recorded in
 
 Detailed Patch 2 evidence is recorded in
 `docs/FAMY_PATCH_2_MARKETPLACE_MATRIX.md`.
+
+**2026-08-23 note:** Patches 3–5 above are stale. That work was re-planned
+and largely executed as the finer-grained `PATCH 6x` series (booking
+lifecycle, payments, notifications, disputes) instead of this 3-patch shape.
+Current status and forward milestones are tracked in
+`docs/FAMY_ROADMAP.md` — treat this file's Patch 1/2 rows as still
+authoritative, but do not read Patch 3/4/5 as "not started."

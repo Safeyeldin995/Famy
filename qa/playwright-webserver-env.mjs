@@ -79,6 +79,15 @@ export const FORBIDDEN_WEBSERVER_ENV_KEYS = [
   "VITE_SUPABASE_SERVICE_ROLE_KEY",
 ];
 
+/**
+ * Keys that must never appear in Playwright's serialized config (e.g. JSON reporter
+ * output). The dev-server wrapper loads these directly from QA env at spawn time.
+ */
+export const WEBSERVER_CONFIG_SECRET_KEYS = [
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "AUTH_INTENT_SECRET",
+];
+
 /** Playwright controller-only variables that must never reach the webServer child. */
 export const PLAYWRIGHT_CONTROLLER_ONLY_KEYS = [
   "VERCEL_AUTOMATION_BYPASS_SECRET",
@@ -338,3 +347,47 @@ export const WEBSERVER_APPROVED_CHILD_KEYS = [
   ...WEBSERVER_APPLICATION_ALLOWLIST,
   ...WEBSERVER_RUNTIME_ALLOWLIST,
 ];
+
+const CONFIG_SECRET_KEYS = new Set(
+  WEBSERVER_CONFIG_SECRET_KEYS.map((key) => normalizeEnvKey(key)),
+);
+
+/**
+ * Build webServer.env for Playwright config serialization only — secret-free.
+ * Actual child secrets are injected by qa/playwright-dev-server.mjs at spawn.
+ * @param {EnvRecord} source
+ * @returns {EnvRecord}
+ */
+export function buildPlaywrightWebServerConfigEnv(source) {
+  const childEnv = buildPlaywrightWebServerEnv(source);
+  /** @type {EnvRecord} */
+  const configEnv = { FAMY_QA_DEV_SERVER_WRAPPER: "1" };
+  for (const [key, value] of Object.entries(childEnv)) {
+    if (CONFIG_SECRET_KEYS.has(normalizeEnvKey(key))) {
+      configEnv[key] = undefined;
+      continue;
+    }
+    configEnv[key] = value;
+  }
+  return configEnv;
+}
+
+/**
+ * Assert Playwright config env contains no secret material (post-serialization guard).
+ * @param {EnvRecord} configEnv
+ */
+export function assertPlaywrightWebServerConfigEnvSecretFree(configEnv) {
+  for (const [key, value] of Object.entries(configEnv)) {
+    if (value === undefined) continue;
+    if (CONFIG_SECRET_KEYS.has(normalizeEnvKey(key))) {
+      throw new Error(
+        `[qa-playwright] Secret key must not appear in Playwright config env: ${key}`,
+      );
+    }
+    if (isForbiddenWebServerKey(key)) {
+      throw new Error(
+        `[qa-playwright] Forbidden key must not appear in Playwright config env: ${key}`,
+      );
+    }
+  }
+}

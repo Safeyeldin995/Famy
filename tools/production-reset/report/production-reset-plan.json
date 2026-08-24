@@ -1,0 +1,233 @@
+{
+  "version": "production-reset-v1",
+  "maskedProjectRef": "bfwv…dzha",
+  "fkGraphSource": "migrations",
+  "linkedRefVerified": false,
+  "blocked": false,
+  "blockedReason": null,
+  "blockedReasons": [],
+  "blockingInputs": {
+    "seedServiceCount": 18,
+    "deleteServiceCount": 106,
+    "deleteServicesAllQaMarked": true,
+    "zoneCount": 120,
+    "zoneQaShapedCount": 120,
+    "zonesAllQaMarked": true,
+    "catalogTablesInPhaseAClosure": []
+  },
+  "phaseA": {
+    "truncateRoots": [
+      "bookings",
+      "providers",
+      "zones",
+      "profiles",
+      "user_roles",
+      "addresses",
+      "family_members",
+      "favorites",
+      "otp_verifications",
+      "password_setup_authorizations",
+      "push_subscriptions",
+      "notification_preferences",
+      "notification_campaigns"
+    ],
+    "truncateCascadeClosure": [
+      "addresses",
+      "audit_logs",
+      "availability_exceptions",
+      "availability_rules",
+      "booking_cancellations",
+      "booking_family_member_snapshots",
+      "booking_locations",
+      "booking_message_reads",
+      "booking_reminders",
+      "booking_requirement_selections",
+      "booking_reschedule_requests",
+      "booking_status_history",
+      "bookings",
+      "conversations",
+      "coupon_redemptions",
+      "disputes",
+      "family_members",
+      "favorites",
+      "messages",
+      "no_show_reports",
+      "notification_campaigns",
+      "notification_outbox",
+      "notification_preferences",
+      "notifications",
+      "otp_verifications",
+      "password_setup_authorizations",
+      "payments",
+      "profiles",
+      "promo_code_redemptions",
+      "provider_admin_internal_notes",
+      "provider_documents",
+      "provider_incidents",
+      "provider_onboarding_details",
+      "provider_onboarding_events",
+      "provider_references",
+      "provider_requirement_fulfillments",
+      "provider_services",
+      "provider_vacations",
+      "providers",
+      "push_subscriptions",
+      "ratings_summary",
+      "reviews",
+      "support_tickets",
+      "ticket_messages",
+      "transactions",
+      "trust_scores",
+      "user_roles",
+      "verification_records",
+      "zone_providers",
+      "zone_services",
+      "zones"
+    ],
+    "truncateCascadeClosureCount": 51
+  },
+  "phaseB": {
+    "serviceDeleteCount": 106,
+    "serviceKeepCount": 18,
+    "serviceDeleteFingerprint": "f42ae913dbe5a82b2c406c8b46d63bb55918846b03129e080ea87cab84d894b6",
+    "serviceKeepFingerprint": "a131f9e4204210d2fd7ba9a0f5c2ff681f2001b79b827abac5e4d20c7845aada",
+    "zoneDeleteCount": 120,
+    "zoneQaShapedCount": 120,
+    "zoneDeleteFingerprint": "a95f2614544a81c5cc8344186f81cfedd230b104350ebfbd143c52f7c9a16d65",
+    "serviceRequirementDeleteCount": 1,
+    "serviceRequirementDeleteFingerprint": "7c62b0d4d4441e45b46119369dc0427a011c78318455c97d246fce235574ee51",
+    "serviceDeleteCascadeTables": [
+      "promo_code_services",
+      "provider_services",
+      "service_requirements",
+      "services",
+      "zone_services"
+    ],
+    "auditWriters": [
+      "services"
+    ]
+  },
+  "phaseC": {
+    "authUsersDeleteCount": 267,
+    "requiresAuditClearBefore": true
+  },
+  "phaseD": {
+    "auditLogsFinalClear": true,
+    "description": "Safety-net audit_logs verify/clear after auth.users deletion"
+  },
+  "phaseE": {
+    "storageBuckets": [
+      "avatars",
+      "provider-documents",
+      "payment-proofs",
+      "case-evidence"
+    ],
+    "storageObjectCount": 48,
+    "storagePreserveCount": 0
+  },
+  "executeOrder": [
+    "Phase A: TRUNCATE phaseA.truncateRoots CASCADE (closure tables)",
+    "Phase B: DELETE fingerprinted non-seed services (fires trg_audit_services)",
+    "Phase B2: TRUNCATE audit_logs (post-service-delete, pre-auth)",
+    "Phase C: DELETE all auth.users via Auth Admin API",
+    "Phase D: TRUNCATE audit_logs (final safety-net verify/clear)",
+    "Phase E: DELETE all storage objects in four buckets"
+  ],
+  "auditTriggerVerification": {
+    "catalogTablesWithAuditTriggers": 25,
+    "noAuditOn": [
+      "auth.users",
+      "storage.objects"
+    ],
+    "phaseBWritesAudit": [
+      "services"
+    ]
+  },
+  "counts": {
+    "userGeneratedPublicRows": 12180,
+    "auditLogs": 9857,
+    "auditLogsPctOfUserRows": "80.93%",
+    "qaServicesDelete": 106,
+    "zonesDelete": 120,
+    "serviceRequirementsDelete": 1,
+    "bookingLocations": 184,
+    "scopedPublicRowRemovals": 12407,
+    "authUsers": 267,
+    "storageObjects": 48,
+    "tableCounts": {
+      "addresses": 79,
+      "audit_logs": 9857,
+      "availability_exceptions": 0,
+      "availability_rules": 0,
+      "booking_cancellations": 38,
+      "booking_family_member_snapshots": 208,
+      "booking_locations": 184,
+      "booking_message_reads": 69,
+      "booking_reminders": 0,
+      "booking_requirement_selections": 0,
+      "booking_reschedule_requests": 0,
+      "booking_status_history": 498,
+      "bookings": 230,
+      "conversations": 64,
+      "coupon_redemptions": 0,
+      "disputes": 0,
+      "family_members": 0,
+      "favorites": 0,
+      "messages": 192,
+      "no_show_reports": 0,
+      "notification_campaigns": 0,
+      "notification_outbox": 0,
+      "notification_preferences": 0,
+      "notifications": 0,
+      "otp_verifications": 162,
+      "password_setup_authorizations": 147,
+      "payments": 82,
+      "profiles": 251,
+      "promo_code_redemptions": 0,
+      "provider_admin_internal_notes": 0,
+      "provider_documents": 6,
+      "provider_incidents": 0,
+      "provider_onboarding_details": 2,
+      "provider_onboarding_events": 30,
+      "provider_references": 4,
+      "provider_requirement_fulfillments": 0,
+      "provider_services": 0,
+      "provider_vacations": 0,
+      "providers": 71,
+      "push_subscriptions": 0,
+      "ratings_summary": 0,
+      "reviews": 0,
+      "support_tickets": 0,
+      "ticket_messages": 0,
+      "transactions": 0,
+      "trust_scores": 2,
+      "user_roles": 4,
+      "verification_records": 0,
+      "zone_providers": 0,
+      "zone_services": 0,
+      "zones": 120
+    }
+  },
+  "storage": {
+    "byBucket": {
+      "avatars": {
+        "total": 47
+      },
+      "provider-documents": {
+        "total": 1
+      },
+      "payment-proofs": {
+        "total": 0
+      },
+      "case-evidence": {
+        "total": 0
+      }
+    },
+    "classification": {
+      "profile_row_present": 47,
+      "no_provider_row": 1
+    },
+    "avatarAuthOnlyNoProfile": []
+  },
+  "fingerprint": "bcbd38d876d9cecc4bb09eb66b2fe1954d0db6b363c6f40cac95fc5e5ee0eeee"
+}
