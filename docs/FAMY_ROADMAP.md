@@ -426,6 +426,48 @@ again), add a test asserting the row-count key set exactly equals the
 closure set, and a regression proving a `zone_services` count change moves
 the fingerprint. One more closing Codex pass after that.
 
+**Round 7 fix (Cursor, commit `f0f6751`) + round 7 Codex closing
+verification, 2026-08-24 — Stage 1 is complete. All BLOCKER/HIGH findings
+from all seven rounds are closed.** The fix was structural, not additive:
+`USER_ROW_TABLES` (the hand-maintained list that had drifted twice now —
+first the 42/53/51 closure mismatch, then the missing `zone_services`) is
+gone entirely. The row-count map is now derived directly from the same
+computed Phase A closure the planner already uses, with a runtime
+assertion (`assertTableCountsKeysMatchPhaseAClosure()`) that throws if the
+two ever diverge again — this class of bug is now structurally prevented,
+not just patched. Codex independently confirmed: the assertion runs and
+throws on both the live and snapshot code paths; `zones` is excluded only
+from the human-readable row-count *sum* (to avoid double-counting against
+its separate ID-set fingerprint) but its count is still fingerprinted;
+the fingerprint's 51-table map is complete on both paths. Codex also
+independently verified the `zone_services = 0` figure is a genuine
+Production fact, not a query bug — checked the migration's actual column
+names, ran an independent exact-count query (0, no error) and a
+known-column probe (0 rows, no schema error), and confirmed the planner's
+own counter throws on query errors rather than silently defaulting to
+zero.
+
+**Final tally across all seven rounds:** row-count/service/zone catalog
+fingerprints (18 keep / 461 delete services, 416 zones, 40
+service_requirements) — solid since round 2. Audit/auth deletion ordering,
+programmatic FK-closure derivation (51 tables), fail-closed catalog
+classification, migration-fallback validation, FK-graph Production-ref
+binding, and now a fully-bound, structurally-verified plan fingerprint —
+all independently Codex-confirmed, not self-reported. One narrow MEDIUM
+remains on record and is explicitly not blocking (a local, CLI-unreachable
+TOCTOU-style gap in the linked-ref check) — per `AGENTS.md`, MEDIUM
+findings don't force another round on their own.
+
+**PR #27 is ready to come out of Draft and merge as dry-run-only tooling**
+— merging still does not create or enable any execute path;
+`execute.mjs` is byte-identical to round 5 and still unconditionally
+throws. Per `AGENTS.md`'s merge-authority rule, this PR touches `tools/`,
+so it stays gated behind Safeyeldin's explicit approval regardless of
+audit outcome — Claude is not merging it autonomously. **Stage 2**
+(implementing an actual execute path, validated against a QA clone) is a
+separate phase requiring its own review, fingerprint gates, and explicit
+approval before any mutation — not yet started.
+
 ---
 
 ## Milestones
