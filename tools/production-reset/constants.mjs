@@ -3,6 +3,10 @@ export const PRODUCTION_PROJECT_REF = "mjhkaiabfnzewprcnojp";
 
 export const RESET_CONFIRM_VALUE = "I-UNDERSTAND-PRODUCTION-USER-DATA-RESET";
 
+/** Execute target identifiers (Stage 2+). */
+export const EXECUTE_TARGET_QA_CLONE = "qa-clone";
+export const EXECUTE_TARGET_PRODUCTION = "production";
+
 export const PLAN_VERSION = "production-reset-v1";
 
 /** Phase A: explicit TRUNCATE … CASCADE roots (public schema only). */

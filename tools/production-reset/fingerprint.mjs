@@ -41,7 +41,7 @@ export function buildOrderedTableRowCounts(tableCounts) {
 export function buildFingerprintInput(input) {
   return {
     version: input.version,
-    projectRef: PRODUCTION_PROJECT_REF,
+    projectRef: input.projectRef ?? PRODUCTION_PROJECT_REF,
     fkGraphSource: input.fkGraphSource,
     fkEdgesFingerprint: input.fkEdgesFingerprint,
     phaseATruncateRoots: input.phaseATruncateRoots,
@@ -79,6 +79,7 @@ export function fingerprintFromCanonicalInput(canonicalInput) {
  *   authUserIds: string[];
  *   storageObjects: Array<{ bucket: string; key: string }>;
  *   tableCounts: Record<string, number>;
+ *   projectRef?: string;
  *   executeOrder: string[];
  *   blockingInputs: object;
  * }} planParts
@@ -91,6 +92,7 @@ export function fingerprintPlan(planParts) {
     phaseATruncateRoots: [...planParts.phaseATruncateRoots].sort(),
     phaseAClosure: planParts.phaseAClosure,
     tableRowCounts: buildOrderedTableRowCounts(planParts.tableCounts),
+    projectRef: planParts.projectRef,
     serviceDeleteFingerprint: fingerprintSortedIds(planParts.serviceDeleteIds),
     serviceKeepFingerprint: fingerprintSortedIds(planParts.serviceKeepIds),
     serviceRequirementDeleteFingerprint: fingerprintSortedIds(planParts.serviceRequirementDeleteIds),

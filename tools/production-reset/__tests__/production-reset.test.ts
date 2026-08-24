@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { parseProductionResetArgs } from "../args.mjs";
-import { RESET_CONFIRM_VALUE, PRODUCTION_PROJECT_REF, PHASE_A_TRUNCATE_ROOTS } from "../constants.mjs";
+import {
+  RESET_CONFIRM_VALUE,
+  PRODUCTION_PROJECT_REF,
+  PHASE_A_TRUNCATE_ROOTS,
+  EXECUTE_TARGET_QA_CLONE,
+  EXECUTE_TARGET_PRODUCTION,
+} from "../constants.mjs";
 import { evaluateCatalogBlockingChecks, EXPECTED_SEED_SERVICE_COUNT } from "../blocking-predicates.mjs";
 import { computeTruncateCascadeClosure } from "../fk-closure.mjs";
 import {
@@ -25,10 +31,30 @@ import {
   buildPhaseATableRowCounts,
   buildProductionResetPlanFromSnapshot,
   dryRunExitCode,
+  fetchAllAuthUserIds,
   sanitizePlanForReport,
 } from "../plan.mjs";
 import { SEED_SERVICE_SLUGS } from "../seed-catalog.mjs";
 import { KNOWN_QA_PROJECT_REF } from "../../../qa/qa-identity.mjs";
+import {
+  assertExecuteTargetAllowed,
+  assertLiveFingerprintMatches,
+  assertSimulateModeRequired,
+  runProductionResetExecute,
+} from "../execute.mjs";
+import { assertCountsUnchanged, runSimulatedSqlTransaction } from "../execute-sql.mjs";
+import {
+  assertPhaseOrder,
+  collectStorageObjectKeys,
+  computeRollbackVerified,
+  EXECUTE_PHASE_ORDER,
+} from "../execute-phases.mjs";
+import { assertQaCloneDatabaseUrlIdentity } from "../load-qa-clone-env.mjs";
+import {
+  resolveProjectRefFromDatabaseUrl,
+  resolveProjectRefFromRestUrl,
+} from "../project-ref-from-url.mjs";
+import * as storageInventory from "../storage-inventory.mjs";
 
 const SYNTHETIC_EDGES = [
   { child: "payments", parent: "bookings", parentSchema: "public", onDelete: "CASCADE" },
@@ -98,6 +124,26 @@ function validSnapshot(overrides = {}) {
   };
 }
 
+function validExecuteArgs(fingerprint = "a".repeat(64)) {
+  return [
+    "--execute",
+    "--simulate",
+    `--target=${EXECUTE_TARGET_QA_CLONE}`,
+    `--confirm=${RESET_CONFIRM_VALUE}`,
+    `--plan-fingerprint=${fingerprint}`,
+  ];
+}
+
+function qaCloneEnvFixture() {
+  return {
+    url: `https://${KNOWN_QA_PROJECT_REF}.supabase.co`,
+    serviceRoleKey: "test-secret-key",
+    projectRef: KNOWN_QA_PROJECT_REF,
+    databaseUrl: null,
+    maskedProjectRef: `${KNOWN_QA_PROJECT_REF.slice(0, 4)}…${KNOWN_QA_PROJECT_REF.slice(-4)}`,
+  };
+}
+
 describe("production reset args", () => {
   it("defaults to dry-run with no flags", () => {
     expect(parseProductionResetArgs([])).toEqual({ mode: "dry-run" });
@@ -112,19 +158,195 @@ describe("production reset args", () => {
     expect(
       parseProductionResetArgs(["--execute", `--confirm=${RESET_CONFIRM_VALUE}`]).mode,
     ).toBe("rejected");
-  });
-
-  it("accepts full execute combo but dry-run ignores fingerprint-only", () => {
     expect(
       parseProductionResetArgs([
         "--execute",
         `--confirm=${RESET_CONFIRM_VALUE}`,
         `--plan-fingerprint=${"a".repeat(64)}`,
+        `--target=${EXECUTE_TARGET_QA_CLONE}`,
       ]).mode,
-    ).toBe("execute");
+    ).toBe("rejected");
+  });
+
+  it("rejects execute without --simulate", () => {
+    expect(
+      parseProductionResetArgs([
+        "--execute",
+        `--target=${EXECUTE_TARGET_QA_CLONE}`,
+        `--confirm=${RESET_CONFIRM_VALUE}`,
+        `--plan-fingerprint=${"a".repeat(64)}`,
+      ]).mode,
+    ).toBe("rejected");
+  });
+
+  it("accepts full QA-clone simulate execute combo", () => {
+    expect(parseProductionResetArgs(validExecuteArgs()).mode).toBe("execute");
+  });
+
+  it("allows dry-run with --target=qa-clone", () => {
+    expect(parseProductionResetArgs([`--target=${EXECUTE_TARGET_QA_CLONE}`]).mode).toBe("dry-run");
+  });
+
+  it("dry-run ignores fingerprint-only", () => {
     expect(
       parseProductionResetArgs([`--plan-fingerprint=${"b".repeat(64)}`]).mode,
     ).toBe("dry-run");
+  });
+});
+
+describe("execute gates", () => {
+  it("rejects --target=production unconditionally", () => {
+    expect(() => assertExecuteTargetAllowed(EXECUTE_TARGET_PRODUCTION)).toThrow(
+      /not available/i,
+    );
+    expect(
+      parseProductionResetArgs([
+        "--execute",
+        "--simulate",
+        `--target=${EXECUTE_TARGET_PRODUCTION}`,
+        `--confirm=${RESET_CONFIRM_VALUE}`,
+        `--plan-fingerprint=${"a".repeat(64)}`,
+      ]).mode,
+    ).toBe("execute");
+  });
+
+  it("requires simulate mode in execute path", () => {
+    expect(() => assertSimulateModeRequired(false)).toThrow(/not approved/i);
+  });
+
+  it("aborts when recomputed fingerprint differs from approved fingerprint", async () => {
+    const plan = buildProductionResetPlanFromSnapshot(validSnapshot());
+    await expect(
+      assertLiveFingerprintMatches(async () => plan, "b".repeat(64)),
+    ).rejects.toThrow(/fingerprint drift/i);
+  });
+
+  it("runs simulate execute when fingerprint matches at execute time", async () => {
+    const plan = buildProductionResetPlanFromSnapshot(validSnapshot());
+    const result = await runProductionResetExecute({
+      target: EXECUTE_TARGET_QA_CLONE,
+      simulate: true,
+      planFingerprint: plan.fingerprint!,
+      env: qaCloneEnvFixture(),
+      recomputePlan: async () => plan,
+      phaseRunner: async () => ({
+        simulate: true,
+        target: EXECUTE_TARGET_QA_CLONE,
+        phases: EXECUTE_PHASE_ORDER.map((phase) => ({ phase, description: phase })),
+        dataMutated: false,
+        rollbackVerified: true,
+      }),
+    });
+    expect(result.plan.fingerprint).toBe(plan.fingerprint);
+    expect(result.execution.dataMutated).toBe(false);
+  });
+
+  it("rejects production target inside execute even when args parse", async () => {
+    const plan = buildProductionResetPlanFromSnapshot(validSnapshot());
+    await expect(
+      runProductionResetExecute({
+        target: EXECUTE_TARGET_PRODUCTION,
+        simulate: true,
+        planFingerprint: plan.fingerprint!,
+        env: qaCloneEnvFixture(),
+        recomputePlan: async () => plan,
+      }),
+    ).rejects.toThrow(/not available/i);
+  });
+});
+
+describe("execute phase ordering and simulation rollback", () => {
+  it("locks phase order to A→B→B2→C→D→E", () => {
+    expect(EXECUTE_PHASE_ORDER).toEqual(["A", "B", "B2", "C", "D", "E"]);
+    assertPhaseOrder([...EXECUTE_PHASE_ORDER]);
+    expect(() => assertPhaseOrder(["A", "B", "C"])).toThrow(/Phase order mismatch/i);
+  });
+
+  it("verifies rollback wrapper leaves captured counts unchanged", async () => {
+    let executedSql = "";
+    const result = await runSimulatedSqlTransaction(
+      "postgresql://qa-clone.example/test",
+      ["TRUNCATE TABLE public.bookings RESTART IDENTITY CASCADE"],
+      {
+        execSql: (_url, sql) => {
+          executedSql = sql;
+        },
+        captureCounts: async () => ({ bookings: 5 }),
+        verifyCounts: assertCountsUnchanged,
+      },
+    );
+    expect(result.rolledBack).toBe(true);
+    expect(result.dataUnchangedVerified).toBe(true);
+    expect(executedSql).toContain("BEGIN");
+    expect(executedSql).toContain("ROLLBACK");
+  });
+
+  it("does not mark dataUnchangedVerified without captureCounts", async () => {
+    const result = await runSimulatedSqlTransaction(
+      "postgresql://postgres.bfwveoqbyqlhixjvdzha@db.bfwveoqbyqlhixjvdzha.supabase.co:5432/postgres",
+      ["TRUNCATE TABLE public.audit_logs RESTART IDENTITY"],
+      {
+        execSql: () => {},
+      },
+    );
+    expect(result.rolledBack).toBe(true);
+    expect(result.dataUnchangedVerified).toBe(false);
+  });
+
+  it("rollback_verified true only when every SQL phase proved data unchanged", () => {
+    const sqlPhase = (phase: string, verified: boolean) => ({
+      phase,
+      simulation: { dataUnchangedVerified: verified, mode: "rollback-transaction" },
+    });
+    const allVerified = [
+      sqlPhase("A", true),
+      { phase: "B" },
+      sqlPhase("B2", true),
+      { phase: "C" },
+      sqlPhase("D", true),
+      { phase: "E" },
+    ];
+    expect(computeRollbackVerified(allVerified, true).rollbackVerified).toBe(true);
+
+    const partial = [
+      sqlPhase("A", true),
+      { phase: "B" },
+      sqlPhase("B2", false),
+      { phase: "C" },
+      sqlPhase("D", true),
+      { phase: "E" },
+    ];
+    const result = computeRollbackVerified(partial, true);
+    expect(result.rollbackVerified).toBe(false);
+    expect(result.rollbackVerificationNote).toContain("B2");
+  });
+
+  it("rollback_verified false in plan-only mode without database URL", () => {
+    const result = computeRollbackVerified([], false);
+    expect(result.rollbackVerified).toBe(false);
+    expect(result.rollbackVerificationNote).toContain("plan-only");
+  });
+
+  it("rollback_verified false when SQL phases are duplicated or missing", () => {
+    const verified = (phase: string) => ({
+      phase,
+      simulation: { dataUnchangedVerified: true, mode: "rollback-transaction" },
+    });
+    expect(computeRollbackVerified([verified("A"), verified("A"), verified("D")], true).rollbackVerified).toBe(
+      false,
+    );
+    expect(
+      computeRollbackVerified([verified("A"), verified("B2"), verified("D"), verified("D")], true).rollbackVerified,
+    ).toBe(false);
+    expect(computeRollbackVerified([verified("A"), verified("B2")], true).rollbackVerificationNote).toMatch(
+      /missing D|incomplete/i,
+    );
+  });
+
+  it("throws when rollback verification detects drift", () => {
+    expect(() => assertCountsUnchanged({ bookings: 5 }, { bookings: 4 })).toThrow(
+      /Rollback verification failed/i,
+    );
   });
 });
 
@@ -344,6 +566,7 @@ describe("fingerprint sensitivity", () => {
     const tableCounts = { audit_logs: 1, bookings: 1 };
     const base = fingerprintPlan({
       version: "production-reset-v1",
+      projectRef: PRODUCTION_PROJECT_REF,
       fkGraphSource: "migrations",
       fkEdges: edges,
       phaseATruncateRoots: ["bookings"],
@@ -360,6 +583,7 @@ describe("fingerprint sensitivity", () => {
     });
     const changed = fingerprintPlan({
       version: "production-reset-v1",
+      projectRef: PRODUCTION_PROJECT_REF,
       fkGraphSource: "migrations",
       fkEdges: [...edges, { child: "synthetic", parent: "bookings", parentSchema: "public", onDelete: "CASCADE" }],
       phaseATruncateRoots: ["bookings"],
@@ -397,5 +621,128 @@ describe("report sanitization", () => {
     expect(sanitized).not.toHaveProperty("secretField");
     expect(sanitized).toHaveProperty("fingerprint");
     expect(sanitized).toHaveProperty("blockingInputs");
+  });
+});
+
+describe("Stage 2 round 2 safety fixes", () => {
+  it("rejects Production database URL even when REST URL is QA", () => {
+    const prodDb = `postgresql://postgres:${PRODUCTION_PROJECT_REF}@db.${PRODUCTION_PROJECT_REF}.supabase.co:5432/postgres`;
+    expect(() => assertQaCloneDatabaseUrlIdentity(prodDb, KNOWN_QA_PROJECT_REF)).toThrow(
+      /Production/,
+    );
+  });
+
+  it("rejects REST/database project ref mismatch", () => {
+    const qaDb = `postgresql://postgres:${KNOWN_QA_PROJECT_REF}@db.${KNOWN_QA_PROJECT_REF}.supabase.co:5432/postgres`;
+    expect(() => assertQaCloneDatabaseUrlIdentity(qaDb, "aaaaaaaaaaaaaaaaaaaa")).toThrow(
+      /does not match REST URL ref/i,
+    );
+  });
+
+  it("accepts matching REST and database project refs", () => {
+    const qaDb = `postgresql://postgres:${KNOWN_QA_PROJECT_REF}@db.${KNOWN_QA_PROJECT_REF}.supabase.co:5432/postgres`;
+    expect(assertQaCloneDatabaseUrlIdentity(qaDb, KNOWN_QA_PROJECT_REF)).toBe(KNOWN_QA_PROJECT_REF);
+  });
+
+  it("collects nested storage objects via shared inventory helper", async () => {
+    vi.spyOn(storageInventory, "inventoryStorageBuckets").mockResolvedValue({
+      avatars: {
+        total: 2,
+        keys: [{ key: "user/a.jpg", size: 1 }, { key: "user/nested/b.jpg", size: 1 }],
+      },
+      "provider-documents": { total: 0, keys: [] },
+      "payment-proofs": { total: 0, keys: [] },
+      "case-evidence": { total: 0, keys: [] },
+    });
+    const keys = await collectStorageObjectKeys({} as never);
+    expect(keys).toHaveLength(2);
+    expect(keys.map((row) => row.key)).toEqual(["user/a.jpg", "user/nested/b.jpg"]);
+    vi.restoreAllMocks();
+  });
+
+  it("throws when auth.users pagination exceeds 4000 rows", async () => {
+    const admin = {
+      auth: {
+        admin: {
+          listUsers: vi.fn(async ({ page }: { page: number }) => ({
+            data: {
+              users: Array.from({ length: 200 }, (_, index) => ({
+                id: `user-${page}-${index}`,
+              })),
+            },
+          })),
+        },
+      },
+    };
+    await expect(fetchAllAuthUserIds(admin as never)).rejects.toThrow(/exceeded 4000 rows/i);
+  });
+});
+
+describe("Stage 2 round 3 safety fixes", () => {
+  it("resolves database project ref only from hostname or username positions", () => {
+    const qaHostDb = `postgresql://postgres:secret@db.${KNOWN_QA_PROJECT_REF}.supabase.co:5432/postgres`;
+    expect(resolveProjectRefFromDatabaseUrl(qaHostDb)).toBe(KNOWN_QA_PROJECT_REF);
+
+    const qaUserDb = `postgresql://postgres.${KNOWN_QA_PROJECT_REF}:secret@aws-0-us-east-1.pooler.supabase.com:6543/postgres`;
+    expect(resolveProjectRefFromDatabaseUrl(qaUserDb)).toBe(KNOWN_QA_PROJECT_REF);
+  });
+
+  it("does not treat ref-shaped strings in password, path, or query as project refs", () => {
+    const prodHost = `db.${PRODUCTION_PROJECT_REF}.supabase.co`;
+    const craftedPassword = `postgresql://postgres:postgres.${KNOWN_QA_PROJECT_REF}@extra@${prodHost}:5432/postgres`;
+    expect(resolveProjectRefFromDatabaseUrl(craftedPassword)).toBe(PRODUCTION_PROJECT_REF);
+
+    const craftedPath = `postgresql://postgres:secret@${prodHost}:5432/postgres.${KNOWN_QA_PROJECT_REF}`;
+    expect(resolveProjectRefFromDatabaseUrl(craftedPath)).toBe(PRODUCTION_PROJECT_REF);
+
+    const craftedQuery = `postgresql://postgres:secret@${prodHost}:5432/postgres?user=postgres.${KNOWN_QA_PROJECT_REF}`;
+    expect(resolveProjectRefFromDatabaseUrl(craftedQuery)).toBe(PRODUCTION_PROJECT_REF);
+  });
+
+  it("rejects crafted database URL where password embeds QA ref but hostname is Production", () => {
+    const crafted = `postgresql://postgres:postgres.${KNOWN_QA_PROJECT_REF}@db.${PRODUCTION_PROJECT_REF}.supabase.co:5432/postgres`;
+    expect(resolveProjectRefFromDatabaseUrl(crafted)).toBe(PRODUCTION_PROJECT_REF);
+    expect(() => assertQaCloneDatabaseUrlIdentity(crafted, KNOWN_QA_PROJECT_REF)).toThrow(/Production|does not match/i);
+  });
+
+  it("fails closed when database URL ref cannot be resolved structurally", () => {
+    expect(resolveProjectRefFromDatabaseUrl("postgresql://postgres:secret@localhost:5432/postgres")).toBeNull();
+    expect(() =>
+      assertQaCloneDatabaseUrlIdentity("postgresql://postgres:secret@localhost:5432/postgres", KNOWN_QA_PROJECT_REF),
+    ).toThrow(/Cannot resolve project ref/i);
+  });
+
+  it("parses REST URL project ref from hostname only", () => {
+    expect(resolveProjectRefFromRestUrl(`https://${KNOWN_QA_PROJECT_REF}.supabase.co/`)).toBe(KNOWN_QA_PROJECT_REF);
+    expect(resolveProjectRefFromRestUrl(`https://evil.com/${KNOWN_QA_PROJECT_REF}`)).toBeNull();
+  });
+
+  it("invokes cross-spawn with npx and supabase db query args without shell strings", async () => {
+    vi.resetModules();
+    const sync = vi.fn(() => ({
+      status: 0,
+      stdout: "",
+      stderr: "",
+      error: undefined,
+    }));
+    vi.doMock("cross-spawn", () => ({
+      default: { sync },
+    }));
+
+    const { defaultExecSql } = await import("../execute-sql.mjs");
+    const databaseUrl = `postgresql://postgres:secret@db.${KNOWN_QA_PROJECT_REF}.supabase.co:5432/postgres`;
+    const sql = "BEGIN; SELECT 1; ROLLBACK;";
+
+    defaultExecSql(databaseUrl, sql);
+
+    expect(sync).toHaveBeenCalledOnce();
+    expect(sync).toHaveBeenCalledWith(
+      "npx",
+      ["supabase", "db", "query", "--db-url", databaseUrl, sql],
+      expect.objectContaining({ encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] }),
+    );
+
+    vi.doUnmock("cross-spawn");
+    vi.resetModules();
   });
 });
