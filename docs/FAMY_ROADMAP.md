@@ -245,7 +245,29 @@ QA-clone dry-run." Sent back to Cursor for what should be the final Stage 1
 revision, with an added instruction to derive the TRUNCATE closure
 *programmatically* from the live FK graph rather than hand-enumerated (the
 42/53/51 mismatch is exactly the class of error manual tracking produces).
-No deletion/reset tooling has been written at any point in this process.
+
+**Round 4, 2026-08-24 — actual tool code now exists, still dry-run only.**
+Both BLOCKERs fixed: the closure is now derived by a programmatic FK-graph
+walk (51 tables, header/appendix/actual counts all match), and `audit_logs`
+is cleared both between the service-delete phase and the auth-delete phase
+*and* again as a final safety-net pass. A real (not-yet-executable) tool
+exists at `tools/production-reset/` — deliberately outside `qa/` since that
+tree is QA-project-guarded by design; this one guards the opposite
+direction (refuses to run against anything but the Production ref). Ran its
+dry-run path once against live Production: exit 0, no mutation,
+`plan_fingerprint` computed, `blocked: false`. `execute.mjs` exists but
+throws "not implemented" — no execute path currently reachable at all.
+
+**One gap flagged by Cursor itself, not yet closed:** the FK closure was
+derived from migration *files*, not live `pg_constraint` — the same IPv6
+access block that's affected every round's attempt to query Postgres
+system catalogs directly. For something this destructive, "the files match
+what's actually deployed" needs confirming, not assumed. Folding this into
+the same Dashboard SQL check already pending from Safeyeldin (trigger
+state) — one more query added, still a single ask, not blocking anything
+else. Sent to Codex next for a full code audit of the tool itself (not just
+another numbers re-derivation) before Stage 2 (QA-clone dry-run of the
+execute path) is discussed.
 
 Separately, one small closeable gap: neither Cursor nor Codex could confirm
 the signup trigger's live enabled state from local tooling (no DB console
@@ -263,6 +285,32 @@ WHERE n.nspname = 'auth' AND c.relname = 'users' AND NOT t.tgisinternal;
 Expect `on_auth_user_created` with `tgenabled = 'O'` (enabled), pointing at
 `handle_new_user()`. Paste the result back whenever convenient — not
 blocking anything else.
+
+**Added 2026-08-24** — same trip to the Dashboard SQL editor, one more
+read-only query: confirm the Production reset tool's FK closure (derived
+from migration files, since local tooling can't reach `pg_constraint`
+directly) actually matches live schema state:
+
+```sql
+SELECT
+  tc.table_name AS referencing_table,
+  kcu.column_name AS referencing_column,
+  ccu.table_name AS referenced_table,
+  rc.delete_rule
+FROM information_schema.table_constraints tc
+JOIN information_schema.key_column_usage kcu
+  ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema
+JOIN information_schema.constraint_column_usage ccu
+  ON tc.constraint_name = ccu.constraint_name AND tc.table_schema = ccu.table_schema
+JOIN information_schema.referential_constraints rc
+  ON tc.constraint_name = rc.constraint_name AND tc.table_schema = rc.constraint_schema
+WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_schema = 'public'
+ORDER BY referencing_table;
+```
+
+Paste the result back and I'll have Cursor/Codex diff it against the tool's
+derived 51-table closure — this one also isn't blocking anything else in
+the meantime.
 
 No mutation has been performed at any point in this investigation. Any
 actual reset/cleanup still needs a purpose-built, reviewed, fingerprinted
