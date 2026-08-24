@@ -50,50 +50,18 @@ guessing at scope wastes a cycle when the audit would have taken an hour.
 | Issue #12 closed: 58/58 full-E2E, residue-zero, catalog 6/18/4 — all independently re-verified against raw evidence, not self-reported | Issue #12, closed 2026-08-23 |
 | Ratings/reviews E2E coverage | PR #19 |
 | Payment-proof capture E2E coverage (incl. RLS negative-path) | PR #20 |
+| Issue #6 closed: Provider service-start lifecycle (`confirmed → on_the_way → arrived → arrival_confirmed → in_progress`), clean console/network assertion, zero QA residue — independently re-run and verified by Codex against real QA, not self-reported | PR #7, Issue #6 closed 2026-08-24 |
 
 ### OPEN — tracked, in progress
 
 | Item | Status | Blocking on |
 |---|---|---|
 | Rotate the leaked QA service-role key (`qa/report/results.json`, pre-PR #16) | Not yet done — Supabase dashboard action only Safeyeldin can take. | Safeyeldin |
+| Four repository-wide high-severity dependency advisories (surfaced by `npm ci` during Codex's Issue #6 review, 2026-08-24) | Not yet triaged — unrelated to any recent PR, pre-existing. | Needs a dedicated `npm audit` review, not yet scheduled |
 
 ### PARKED
 
-None currently — Issue #6 below is the former entry here, resumed 2026-08-24.
-
-### Issue #6 — Provider service-start lifecycle, resumed 2026-08-24
-
-Parked 2026-08-12 after a flaky final console assertion; Safeyeldin decided
-today to resume rather than defer further. Cursor rebased PR #7
-(`test/provider-service-start-lifecycle`) onto current `main` (merge
-commit, not rebase, per the Lovable published-history rule) — the only
-conflict was in `BookingChatPanel.tsx`, resolved by keeping `main`'s
-version since the accessibility and auth-abort fixes this PR originally
-needed had already landed separately. Net diff against `main` is now
-exactly one file: the E2E spec itself. The original blocker — two
-`SupabaseAuthClient._getUser` `Failed to fetch` console errors during
-repeated customer hard navigation — is fixed by adding `waitUntil:
-"networkidle"` to the customer navigation helper; the spec's final
-assertion now requires literally zero console/network entries for both
-customer and provider, no allowlisting.
-
-Claude independently verified before sending to Codex: the PR's diff
-really is one file (226 insertions, no app-code drift), the spec file
-genuinely contains the `networkidle` wait and the strict empty-array
-assertions (not just claimed in prose), and GitHub Actions run
-`32720006833` on the exact reported commit (`28250e3`) is genuinely green
-— confirmed via the Actions API directly, not the pasted claim. That
-covers unit/typecheck/build only; the E2E Playwright run itself isn't part
-of CI in this project and needs independent execution against QA to
-verify, which is why this goes to Codex next rather than straight to a
-merge decision.
-
-**PR #7 stays Draft, unmerged.** Sent to Codex for independent review —
-this is the first review of new QA E2E work in a while, so it gets the
-full treatment (re-run the spec against real QA, verify residue, trace the
-merge-conflict resolution) rather than a documentation-only pass. Merge
-still requires Safeyeldin's explicit approval per the code-touching
-merge-authority rule.
+None currently.
 
 ### Milestone 1 audit results (2026-08-23)
 
@@ -703,12 +671,12 @@ decision) per item, not as one giant batch. Ship milestones in order —
 resist parallelizing across milestones, it's how scope drift happens.
 
 ### Milestone 0 — Close what's already in flight
-*Exit criteria: Issue #6 has an explicit decision (resume or stay parked) with a paper trail either way.*
+*Exit criteria met 2026-08-24: Issue #6 was resumed, its PR merged, and the Issue closed.*
 
 1. ~~Land the corrected clean full-E2E run (58/58) + residue-zero + protected-catalog evidence on Issue #12; close it.~~ **Done 2026-08-23**, independently re-verified.
 2. Rotate the leaked QA service-role key (your action) and decide on the old `qa/report/results.json` (recommend: delete, now that PR #16 prevents recurrence). **Still open.**
 3. ~~Triage `admin-remaining-mutations` activate-persistence failure~~ **Done** — passed cleanly on the corrected re-run, classified as contamination/flake, no new Issue needed.
-4. Decision from you: resume Issue #6 now, or keep it parked while other milestones proceed. Either is fine — just make it explicit so it stops being a silent loose end.
+4. ~~Decision from you: resume Issue #6 now, or keep it parked~~ **Done 2026-08-24** — resumed, PR #7 merged, Issue #6 closed. See Milestone 2 item 4.
 
 ### Milestone 1 — Scope audit (read-only, fast)
 **Done 2026-08-23.** Results above. One open question for you: ratings/reviews
@@ -723,8 +691,10 @@ Concrete items, now that Milestone 1 removed the guesswork:
 
 1. ~~**E2E spec: ratings/reviews**~~ **Done 2026-08-23** — `qa/tests/ratings-reviews.spec.ts`, 1/1 pass (independently reproduced), no app defects found. Full suite: 21→22 spec files, 58→59 tests.
 2. ~~**E2E spec: payment-proof capture**~~ **Done 2026-08-23** — `qa/tests/payment-proof-capture.spec.ts`, 1/1 pass (independently reproduced), no app defects found, including a verified RLS negative-path assertion. Full suite: 22→23 spec files, 59→60 tests.
-3. ~~**Provider payouts**~~ **Decided 2026-08-24 (Safeyeldin): manual/outside-app for now** — matches Cursor's and Claude's independent recommendation for a closed beta. The "Recent Payouts" → "Recent completed jobs" mislabel fix (`recentPayouts` key in `src/lib/i18n/locales/en.ts` + `ar.ts`) is drafted, pending merge — see PR link once opened. No `payouts` table or admin issuance UI needed for beta; revisit only if a future decision reverses this.
-4. Provider service-start lifecycle (Issue #6) — **resumed 2026-08-24 (Safeyeldin's decision)**, not deferred to post-Production. See dedicated entry below.
+3. ~~**Provider payouts**~~ **Decided and shipped 2026-08-24 (Safeyeldin): manual/outside-app for now** — matches Cursor's and Claude's independent recommendation for a closed beta. The "Recent Payouts" → "Recent completed jobs" mislabel fix (`recentPayouts` key in `src/lib/i18n/locales/en.ts` + `ar.ts`, PR #43) is merged. No `payouts` table or admin issuance UI needed for beta; revisit only if a future decision reverses this.
+4. ~~Provider service-start lifecycle (Issue #6)~~ **Done 2026-08-24** — resumed per Safeyeldin's decision, PR #7 rebased cleanly onto `main` (net diff: one file), original console-error blocker fixed via `networkidle` wait, independently re-verified against real QA by Codex (clean residue before/after, 1/1 pass, zero console/network errors, zero findings across all severity tiers), merged, Issue #6 closed.
+
+**Milestone 2 exit criteria met 2026-08-24** — all four items above are done.
 
 ### Milestone 3 — Production readiness
 *Exit criteria: a reviewed, written Production deployment runbook (env vars, migration application order, rollback plan) exists alongside the QA one; a monitoring/alerting minimum (errors, failed payments, failed notifications) is wired up; one full dry-run of "deploy this exact `main` to Production" is reviewed and approved by you before it's ever executed for real; **and the Production data hygiene finding below is reconciled and remediated.**
