@@ -265,9 +265,52 @@ system catalogs directly. For something this destructive, "the files match
 what's actually deployed" needs confirming, not assumed. Folding this into
 the same Dashboard SQL check already pending from Safeyeldin (trigger
 state) — one more query added, still a single ask, not blocking anything
-else. Sent to Codex next for a full code audit of the tool itself (not just
-another numbers re-derivation) before Stage 2 (QA-clone dry-run of the
-execute path) is discussed.
+else.
+
+**Round 5, 2026-08-24 — full code audit found the tool fails open, not
+closed. Not merged, not safe yet.** PR #27 (the tool, committed but held
+Draft/unmerged pending exactly this audit) is **not** cleared. Three real
+BLOCKER-class design flaws, none of them numbers-mismatches this time —
+actual safety-proof gaps:
+
+1. **FK-graph acquisition can silently mix projects.** The tool's live-
+   catalog attempt runs `npx supabase db query --linked` without verifying
+   *which* project the CLI is linked to — separately from the REST client,
+   which does correctly verify the Production ref. Right now the CLI
+   happens to be linked to QA, so this path fails and falls back to the
+   (correct, for now) migration-file parsing. But if that connectivity
+   started working without the link being checked, the tool would silently
+   combine an FK catalog from QA with row counts and target IDs from
+   Production — invalidating the whole closure proof without any error.
+2. **Catalog targeting fails open.** The planner does not actually block if
+   its safety assumptions stop holding — fewer than 18 seed services, a
+   non-seed service without a QA marker, a zone without a QA marker. It
+   just targets every non-seed service and every zone regardless, and
+   still reports `blocked: false`. Today's counts (18/461, 416/416)
+   happen to satisfy the safe boundary, but the tool isn't the thing
+   enforcing that — the boundary is only true by current coincidence, not
+   by design. This is the opposite of how the QA-side tooling in this
+   project works (baseline-repair, zone-deactivation both fail closed on
+   any drift).
+3. **Fingerprint doesn't bind the actual destructive targets.** It covers
+   the closure table list, the service/zone ID-set hashes, and aggregate
+   counts — but not exact auth-user IDs, exact storage object keys, the
+   seed-keep fingerprint (despite computing it), or the FK edges/cascade
+   modes themselves. An auth user or storage object could be swapped for a
+   different one while row counts stay flat, and the same fingerprint
+   would still validate against the wrong underlying data.
+
+Also HIGH: zero unit tests exist for any of this tool's logic (no
+equivalent to `qa/__tests__/zone-deactivation.test.ts`) — the FK-BFS,
+argument-matrix, and blocking-predicate logic are exactly what should be
+tested before anyone trusts them. Two MEDIUM items (auth pagination
+silently caps at 4,000/20 pages — not hit yet at 915 users but latent; the
+report sanitizer is a no-op, currently safe by luck not design) and one LOW
+(non-atomic report write).
+
+**PR #27 stays Draft, unmerged.** Sent back to Cursor for a hardening pass
+addressing all five recommended fixes — fail-closed catalog blocking above
+all else — before this goes to Codex once more.
 
 Separately, one small closeable gap: neither Cursor nor Codex could confirm
 the signup trigger's live enabled state from local tooling (no DB console
