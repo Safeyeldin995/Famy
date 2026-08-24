@@ -59,9 +59,41 @@ guessing at scope wastes a cycle when the audit would have taken an hour.
 
 ### PARKED
 
-| Item | Status | Reason |
-|---|---|---|
-| **Issue #6** — Provider service-start lifecycle (`confirmed → on_the_way → arrived → arrival_confirmed → in_progress`) | Explicitly parked 2026-08-12 after a flaky final console assertion. A fresh spec exists uncommitted on `test/provider-service-start-lifecycle-v2` (now committed there as WIP, not run/validated). PR #7 (old attempt) is Draft and conflicts with `main`. | Needs your decision to resume — see Milestone 1 below |
+None currently — Issue #6 below is the former entry here, resumed 2026-08-24.
+
+### Issue #6 — Provider service-start lifecycle, resumed 2026-08-24
+
+Parked 2026-08-12 after a flaky final console assertion; Safeyeldin decided
+today to resume rather than defer further. Cursor rebased PR #7
+(`test/provider-service-start-lifecycle`) onto current `main` (merge
+commit, not rebase, per the Lovable published-history rule) — the only
+conflict was in `BookingChatPanel.tsx`, resolved by keeping `main`'s
+version since the accessibility and auth-abort fixes this PR originally
+needed had already landed separately. Net diff against `main` is now
+exactly one file: the E2E spec itself. The original blocker — two
+`SupabaseAuthClient._getUser` `Failed to fetch` console errors during
+repeated customer hard navigation — is fixed by adding `waitUntil:
+"networkidle"` to the customer navigation helper; the spec's final
+assertion now requires literally zero console/network entries for both
+customer and provider, no allowlisting.
+
+Claude independently verified before sending to Codex: the PR's diff
+really is one file (226 insertions, no app-code drift), the spec file
+genuinely contains the `networkidle` wait and the strict empty-array
+assertions (not just claimed in prose), and GitHub Actions run
+`32720006833` on the exact reported commit (`28250e3`) is genuinely green
+— confirmed via the Actions API directly, not the pasted claim. That
+covers unit/typecheck/build only; the E2E Playwright run itself isn't part
+of CI in this project and needs independent execution against QA to
+verify, which is why this goes to Codex next rather than straight to a
+merge decision.
+
+**PR #7 stays Draft, unmerged.** Sent to Codex for independent review —
+this is the first review of new QA E2E work in a while, so it gets the
+full treatment (re-run the spec against real QA, verify residue, trace the
+merge-conflict resolution) rather than a documentation-only pass. Merge
+still requires Safeyeldin's explicit approval per the code-touching
+merge-authority rule.
 
 ### Milestone 1 audit results (2026-08-23)
 
