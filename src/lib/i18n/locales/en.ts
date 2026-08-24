@@ -90,8 +90,10 @@ const en = {
     roleCustomer: "Customer",
     roleProvider: "Service Provider",
     signInAs: "Sign in as",
-    noProviderAccount: "This number isn't registered as a provider. Switch to \"Customer\" above, or sign up as a provider first.",
-    providerNote: "Providers must complete verification and admin approval before receiving bookings.",
+    noProviderAccount:
+      'This number isn\'t registered as a provider. Switch to "Customer" above, or sign up as a provider first.',
+    providerNote:
+      "Providers must complete verification and admin approval before receiving bookings.",
     password: "Password",
     forgot: "Forgot password?",
     forgotTitle: "Reset password",
@@ -101,7 +103,8 @@ const en = {
     setPasswordFailed: "Could not set password.",
     passwordSet: "Password saved.",
     passwordSavedSignIn: "Password saved. Please sign in with your new password.",
-    passwordRestartRequired: "We could not finish setting your password. Please verify your phone again.",
+    passwordRestartRequired:
+      "We could not finish setting your password. Please verify your phone again.",
     ruleLen: "At least 8 characters",
     ruleLetter: "Contains a letter",
     ruleNumber: "Contains a number",
@@ -318,7 +321,8 @@ const en = {
     locationUnsupported: "Your browser doesn't support location services.",
     locationFailed: "Couldn't determine your location. You can still set it manually on the map.",
     permissionDeniedTitle: "Location access denied",
-    permissionDeniedBody: "Enable location access in your browser settings, or set the pin manually on the map above.",
+    permissionDeniedBody:
+      "Enable location access in your browser settings, or set the pin manually on the map above.",
     mapHint: "Tap or drag the pin to fine-tune your exact location.",
     mapLoading: "Loading map…",
     mapUnavailable: "Map unavailable right now",
@@ -329,10 +333,12 @@ const en = {
     addMember: "Add family member",
     empty: "No family members yet",
     emptyBody: "Add a family member to book services for them.",
-    privacyNotice: "Medical and access notes are only shared with the professional assigned to your booking, and only while that booking is active.",
+    privacyNotice:
+      "Medical and access notes are only shared with the professional assigned to your booking, and only while that booking is active.",
     inactive: "Inactive",
     deactivateTitle: "Remove this family member?",
-    deactivateBody: "Past bookings for them are not affected. They just won't be selectable for new bookings.",
+    deactivateBody:
+      "Past bookings for them are not affected. They just won't be selectable for new bookings.",
     saved: "Family member saved",
     notFound: "Family member not found",
     fullName: "Full name",
@@ -525,7 +531,8 @@ const en = {
     pushSection: "Push Notifications",
     pushUnavailable: "Push notifications aren't available yet.",
     pushUnsupported: "This browser doesn't support push notifications.",
-    pushBlocked: "Push notifications are blocked in your browser settings. Enable them for Famy to receive alerts here.",
+    pushBlocked:
+      "Push notifications are blocked in your browser settings. Enable them for Famy to receive alerts here.",
     pushOnThisDevice: "Push notifications are on for this device.",
     pushOffDescription: "Get notified instantly, even when Famy isn't open.",
     enable: "Enable",
@@ -533,7 +540,8 @@ const en = {
     disable: "Turn off",
     pushEnabled: "Push notifications enabled on this device.",
     pushDisabled: "Push notifications turned off on this device.",
-    pushDenied: "Permission was denied. Enable notifications for Famy in your browser settings to turn this on.",
+    pushDenied:
+      "Permission was denied. Enable notifications for Famy in your browser settings to turn this on.",
     pushFailed: "Couldn't set up push notifications. Please try again.",
     saveFailed: "Couldn't save your preference. Please try again.",
     devices: "Devices",
@@ -550,7 +558,8 @@ const en = {
     supportSub: "Replies from Famy support",
     marketing: "Offers & news",
     marketingSub: "Promotions and announcements",
-    inAppAlwaysOn: "You'll always see booking, chat, reminder, and support updates in your Notification Center — these toggles only control push alerts.",
+    inAppAlwaysOn:
+      "You'll always see booking, chat, reminder, and support updates in your Notification Center — these toggles only control push alerts.",
   },
   favs: {
     title: "Favorites",
@@ -568,12 +577,34 @@ const en = {
     faqsTitle: "FAQs",
     reportIssue: "Report a serious issue",
     urgentPrefill: "URGENT: I need help with a serious issue.",
-    faqs: [{"q":"How are professionals verified?","a":"Every Famy professional completes ID verification, background checks, and an in-person interview. Many also hold extra certifications like First Aid."},{"q":"Can I cancel a booking?","a":"Yes. Cancellations more than 6 hours before the booking are free. Within 6 hours, a small fee may apply."},{"q":"What if I'm not happy with the service?","a":"Reach out to support within 24 hours and we'll make it right — including a re-clean or refund where applicable."},{"q":"Is cash payment supported?","a":"Yes. You can pay in cash on arrival in addition to cards and mobile wallets."},{"q":"Which areas do you serve?","a":"We currently serve Sheikh Zayed and 6th of October, with more areas coming soon."}],
+    faqs: [
+      {
+        q: "How are professionals verified?",
+        a: "Every Famy professional completes ID verification, background checks, and an in-person interview. Many also hold extra certifications like First Aid.",
+      },
+      {
+        q: "Can I cancel a booking?",
+        a: "Yes. Cancellations more than 6 hours before the booking are free. Within 6 hours, a small fee may apply.",
+      },
+      {
+        q: "What if I'm not happy with the service?",
+        a: "Reach out to support within 24 hours and we'll make it right — including a re-clean or refund where applicable.",
+      },
+      {
+        q: "Is cash payment supported?",
+        a: "Yes. You can pay in cash on arrival in addition to cards and mobile wallets.",
+      },
+      {
+        q: "Which areas do you serve?",
+        a: "We currently serve Sheikh Zayed and 6th of October, with more areas coming soon.",
+      },
+    ],
   },
   bookFlow: {
     notFound: "Provider not found",
     unavailable: "Booking unavailable",
-    unavailableBody: "This provider isn't accepting bookings right now. Browse other providers instead.",
+    unavailableBody:
+      "This provider isn't accepting bookings right now. Browse other providers instead.",
     backToSearch: "Browse providers",
     paymentFailed: "Could not record payment method",
     paymentDeferred: "Your booking was created. Payment details will load on the booking page.",
@@ -608,10 +639,13 @@ const en = {
       PROVIDER_INELIGIBLE: "This provider is not available for booking right now.",
       SERVICE_UNAVAILABLE: "The selected service is no longer available.",
       ADDRESS_OUTSIDE_ZONE: "This address is outside the service area.",
-      AVAILABILITY_CHANGED: "Availability changed while you were booking. Please choose a new time.",
+      AVAILABILITY_CHANGED:
+        "Availability changed while you were booking. Please choose a new time.",
       INVALID_PROMO: "The promo code is no longer valid for this booking.",
-      INVALID_BOOKING_REQUEST: "We couldn't process this booking request. Please review your details.",
-      DUPLICATE_REQUEST_CONFLICT: "Your booking details changed since your last attempt. Please review and submit again.",
+      INVALID_BOOKING_REQUEST:
+        "We couldn't process this booking request. Please review your details.",
+      DUPLICATE_REQUEST_CONFLICT:
+        "Your booking details changed since your last attempt. Please review and submit again.",
       UNAUTHORIZED: "You are not authorized to create this booking.",
     },
     stepLabel: "Step {{current}} of {{total}}",
@@ -678,7 +712,8 @@ const en = {
     total: "Total",
     freeCancel: "Free cancellation up to 2 hours before",
     paymentTitle: "Payment",
-    paymentSub: "Pay cash on arrival, or transfer and upload your receipt — Famy confirms it manually.",
+    paymentSub:
+      "Pay cash on arrival, or transfer and upload your receipt — Famy confirms it manually.",
     paymentLoading: "Loading payment methods…",
     paymentLoadError: "Could not load payment methods.",
     paymentEmpty: "No payment methods are available right now. Please contact support.",
@@ -709,7 +744,8 @@ const en = {
     nextPayTitle: "Pay after the job",
     nextPayBody: "You'll only be charged when the visit is complete.",
     guaranteeTitle: "Famy Guarantee",
-    guaranteeBody: "Every visit is insured. Free cancellation up to 2h before. 24/7 family support.",
+    guaranteeBody:
+      "Every visit is insured. Free cancellation up to 2h before. 24/7 family support.",
     trackBooking: "Track booking",
     backHome: "Back to home",
     onTheWay: "On the way",
@@ -725,7 +761,8 @@ const en = {
     cancelReasonLabel: "Reason for cancelling",
     cancelReasonPlaceholder: "Add a note (required for this reason)",
     cancelIrreversible: "This cannot be undone.",
-    cancelNoLongerAvailable: "This booking has already started progressing and can no longer be cancelled here. Contact support if something's wrong.",
+    cancelNoLongerAvailable:
+      "This booking has already started progressing and can no longer be cancelled here. Contact support if something's wrong.",
     cancelledBy: "Cancelled by",
     cancelledByRole: {
       customer: "You",
@@ -810,7 +847,8 @@ const en = {
   bookingChat: {
     title: "Booking chat",
     unavailableTitle: "Chat becomes available after confirmation",
-    unavailableBody: "Once your provider confirms this booking, you'll be able to message each other here.",
+    unavailableBody:
+      "Once your provider confirms this booking, you'll be able to message each other here.",
     emptyTitle: "No messages yet",
     loadFailed: "Couldn't load messages.",
     retry: "Retry",
@@ -819,7 +857,8 @@ const en = {
     sendFailed: "Couldn't send. Please try again.",
     validationEmpty: "Message can't be empty.",
     closedBody: "This conversation is closed. You can still read the full history above.",
-    disputedBody: "This booking is under review. Famy support can see your history and will follow up here.",
+    disputedBody:
+      "This booking is under review. Famy support can see your history and will follow up here.",
     actor: {
       you: "You",
       customer: "Customer",
@@ -831,7 +870,8 @@ const en = {
       booking_confirmed: "Booking confirmed.",
       on_the_way: "Provider is on the way.",
       service_started: "Service started.",
-      completion_requested: "Provider marked the service as complete. Awaiting customer confirmation.",
+      completion_requested:
+        "Provider marked the service as complete. Awaiting customer confirmation.",
       booking_completed: "Booking completed.",
       booking_cancelled: "Booking cancelled.",
     },
@@ -955,7 +995,8 @@ const en = {
       backToJobs: "Back to jobs",
       declineConfirm: "Decline this request?",
       cancelConfirm: "Cancel this job?",
-      cancelNoLongerAvailable: "This job has already started progressing and can no longer be cancelled here. Contact support if something's wrong.",
+      cancelNoLongerAvailable:
+        "This job has already started progressing and can no longer be cancelled here. Contact support if something's wrong.",
       cancelledBy: "Cancelled by",
       cancelledByRole: {
         customer: "The customer",
@@ -1248,6 +1289,7 @@ const en = {
       nav: {
         overview: "Overview",
         operations: "Operations",
+        monitoring: "Monitoring",
         providers: "Providers",
         customers: "Customers",
         bookings: "Bookings",
@@ -1307,6 +1349,22 @@ const en = {
       retrySuccess: "Notification requeued.",
       retryError: "Could not retry this notification.",
     },
+    monitoring: {
+      subtitle:
+        "Closed-beta monitoring minimum — recent application errors, failed payments, and failed notifications.",
+      summaryError: "Could not load the monitoring summary.",
+      retry: "Retry",
+      queueError: "Could not load this monitoring list. Please refresh.",
+      queueEmpty: "Nothing here in the last 7 days.",
+      recentErrors: "Recent application errors",
+      recentErrorsBody: "Safe client/server error events logged in the last 7 days.",
+      failedPayments: "Failed or rejected payments",
+      failedPaymentsBody: "Payments that failed capture or were rejected in the last 7 days.",
+      failedNotifications: "Failed or dead notifications",
+      failedNotificationsBody:
+        "Push delivery failures from the notification outbox in the last 7 days.",
+      review: "Review",
+    },
     auditLog: {
       subtitle: "Immutable record of every sensitive admin action. Newest first.",
       allActions: "All actions",
@@ -1361,7 +1419,13 @@ const en = {
       rejectError: "Could not reject this provider.",
     },
     provider: {
-      daySun: "Sun", dayMon: "Mon", dayTue: "Tue", dayWed: "Wed", dayThu: "Thu", dayFri: "Fri", daySat: "Sat",
+      daySun: "Sun",
+      dayMon: "Mon",
+      dayTue: "Tue",
+      dayWed: "Wed",
+      dayThu: "Thu",
+      dayFri: "Fri",
+      daySat: "Sat",
       availability: "Availability",
       weeklyHours: "Weekly hours",
       noWeeklyHours: "No weekly hours configured.",
@@ -1395,7 +1459,8 @@ const en = {
       unsuspendProvider: "Unsuspend provider",
       suspendConfirmTitle: "Suspend this provider?",
       unsuspendConfirmTitle: "Unsuspend this provider?",
-      suspendConfirmBody: "The provider will be hidden from customers immediately and cannot receive new bookings until unsuspended.",
+      suspendConfirmBody:
+        "The provider will be hidden from customers immediately and cannot receive new bookings until unsuspended.",
       unsuspendConfirmBody: "The provider will become visible and bookable to customers again.",
       confirmSuspend: "Confirm suspend",
       rejectApplicationTitle: "Reject this application?",
@@ -1446,12 +1511,14 @@ const en = {
       noPayments: "No payments.",
       suspendConfirmTitle: "Suspend this account?",
       unsuspendConfirmTitle: "Unsuspend this account?",
-      suspendConfirmBody: "The customer will be blocked from creating new bookings. Existing bookings and profile data remain visible.",
+      suspendConfirmBody:
+        "The customer will be blocked from creating new bookings. Existing bookings and profile data remain visible.",
       unsuspendConfirmBody: "The customer will regain the ability to create new bookings.",
     },
     bookings: {
       title: "Booking Management",
-      subtitle: "Search, filter, and drill into any booking — including its linked customer, provider and payment.",
+      subtitle:
+        "Search, filter, and drill into any booking — including its linked customer, provider and payment.",
       searchPlaceholder: "Search by booking ID, customer or provider…",
       allStatuses: "All statuses",
       loadError: "Could not load bookings. Please refresh.",
@@ -1484,7 +1551,8 @@ const en = {
       forceAccept: "Force accept",
       forceReject: "Force reject",
       cancelDialogTitle: "Cancel this booking?",
-      cancelDialogBody: "This is an audited support action. The customer and provider will be notified.",
+      cancelDialogBody:
+        "This is an audited support action. The customer and provider will be notified.",
       addNote: "Add a note",
       keepBooking: "Keep booking",
       cancelSuccess: "Booking cancelled.",
@@ -1547,7 +1615,8 @@ const en = {
       reportRejectError: "Could not reject report.",
     },
     cancellationReasons: {
-      subtitle: "Reasons offered when a customer, provider, or support cancels a pending/confirmed booking. Deactivate instead of deleting — past cancellations keep their own snapshot regardless.",
+      subtitle:
+        "Reasons offered when a customer, provider, or support cancels a pending/confirmed booking. Deactivate instead of deleting — past cancellations keep their own snapshot regardless.",
       newReason: "New reason",
       searchPlaceholder: "Search by name or code…",
       actorAdmin: "Admin (support)",
@@ -1565,7 +1634,8 @@ const en = {
       deactivate: "Deactivate",
       activate: "Activate",
       deactivateConfirmTitle: "Deactivate this cancellation reason?",
-      deactivateConfirmBody: "Customers/providers/admins will no longer be able to select it for new cancellations. Existing cancellation records keep their own snapshot regardless.",
+      deactivateConfirmBody:
+        "Customers/providers/admins will no longer be able to select it for new cancellations. Existing cancellation records keep their own snapshot regardless.",
       code: "Code",
       codePlaceholder: "e.g. customer_other",
       actor: "Actor",
@@ -1587,7 +1657,8 @@ const en = {
       working: "Working…",
     },
     payments: {
-      subtitle: "Finance & fraud review — search or filter, open the related booking for full capture/reject actions.",
+      subtitle:
+        "Finance & fraud review — search or filter, open the related booking for full capture/reject actions.",
       searchPlaceholder: "Search by booking ID, payment ID, customer or provider…",
       loadError: "Could not load payments. Please refresh.",
       noResults: "No payments match this search/filter.",
@@ -1600,7 +1671,8 @@ const en = {
       openBookings: "Open bookings",
     },
     paymentMethods: {
-      subtitle: "Configure how customers pay. Deactivate instead of deleting — historical bookings keep their own snapshot regardless.",
+      subtitle:
+        "Configure how customers pay. Deactivate instead of deleting — historical bookings keep their own snapshot regardless.",
       newMethod: "New method",
       newMethodTitle: "New payment method",
       createMethod: "Create method",
@@ -1616,15 +1688,19 @@ const en = {
       receiverHandle: "Receiver handle (customer-visible)",
       receiverHandlePlaceholder: "e.g. famy@instapay",
       receiverNote: "Receiver note (customer-visible)",
-      customerSafeNote: "Only customer-safe data. Never enter API keys, secrets or tokens here — they are rejected by the database.",
-      onlineNotImplemented: "Online gateway processing isn't implemented yet — this method stays inactive regardless of the toggle below.",
+      customerSafeNote:
+        "Only customer-safe data. Never enter API keys, secrets or tokens here — they are rejected by the database.",
+      onlineNotImplemented:
+        "Online gateway processing isn't implemented yet — this method stays inactive regardless of the toggle below.",
       onlineNotImplementedShort: "Online gateway processing isn't implemented yet.",
       default: "Default",
       setDefault: "Set default",
       deactivateConfirmTitle: "Deactivate this payment method?",
-      deactivateConfirmBody: "Customers will no longer be able to select it for new bookings. Existing bookings and payments keep their own record of it regardless.",
+      deactivateConfirmBody:
+        "Customers will no longer be able to select it for new bookings. Existing bookings and payments keep their own record of it regardless.",
       setDefaultConfirmTitle: "Set as default payment method?",
-      setDefaultConfirmBody: "This will be pre-selected for customers during booking. The current default will no longer be selected automatically.",
+      setDefaultConfirmBody:
+        "This will be pre-selected for customers during booking. The current default will no longer be selected automatically.",
       codeExists: "A payment method with this code already exists.",
       created: "Payment method created.",
       updated: "Payment method updated.",
@@ -1632,7 +1708,8 @@ const en = {
       defaultUpdated: "Default payment method updated.",
     },
     services: {
-      subtitle: "Manage the bookable service catalog. Deactivate instead of deleting where possible.",
+      subtitle:
+        "Manage the bookable service catalog. Deactivate instead of deleting where possible.",
       newService: "New service",
       categoriesLoading: "Loading categories…",
       newServiceTitle: "New service",
@@ -1641,8 +1718,9 @@ const en = {
       allCategories: "All categories",
       loadError: "Could not load services. Please refresh.",
       noResults: "No services match this search/filter.",
-      deactivateConfirmTitle: "Deactivate \"{{name}}\"?",
-      deactivateConfirmBody: "New bookings for this service will stop immediately — customers and providers won't be able to select it anymore. Existing bookings and provider assignments are not affected and remain fully visible.",
+      deactivateConfirmTitle: 'Deactivate "{{name}}"?',
+      deactivateConfirmBody:
+        "New bookings for this service will stop immediately — customers and providers won't be able to select it anymore. Existing bookings and provider assignments are not affected and remain fully visible.",
       deactivating: "Deactivating…",
       categoryRequired: "Category is required.",
       slugRequired: "Slug is required.",
@@ -1683,7 +1761,8 @@ const en = {
       updated: "Service updated.",
     },
     promoCodes: {
-      subtitle: "Deactivate instead of deleting — historical bookings keep their own snapshot of the promo regardless.",
+      subtitle:
+        "Deactivate instead of deleting — historical bookings keep their own snapshot of the promo regardless.",
       newPromo: "New promo code",
       newPromoTitle: "New promo code",
       createPromo: "Create promo code",
@@ -1717,7 +1796,7 @@ const en = {
       created: "Promo code created.",
       updated: "Promo code updated.",
       deactivated: "Promo code deactivated.",
-      copied: "Copied \"{{code}}\" to clipboard.",
+      copied: 'Copied "{{code}}" to clipboard.',
       copyError: "Could not copy code.",
       copyCode: "Copy code",
       off: "off",
@@ -1725,7 +1804,8 @@ const en = {
       remaining: "{{count}} remaining",
       perCustomer: "{{count}} per customer",
       deactivateConfirmTitle: "Deactivate this promo code?",
-      deactivateConfirmBody: "Customers will no longer be able to apply it to new bookings. Bookings that already used it keep their own record regardless.",
+      deactivateConfirmBody:
+        "Customers will no longer be able to apply it to new bookings. Bookings that already used it keep their own record regardless.",
     },
     zones: {
       subtitle: "Manage service coverage areas. Deactivate instead of deleting where possible.",
@@ -1760,7 +1840,8 @@ const en = {
       fitToZone: "Fit to zone",
       undoPoint: "Undo last point",
       clearPolygon: "Clear polygon",
-      polygonHint: "Tap the map to add boundary points, drag a point to adjust it, or use the buttons to undo/clear.",
+      polygonHint:
+        "Tap the map to add boundary points, drag a point to adjust it, or use the buttons to undo/clear.",
       pointCount: "{{count}} points",
     },
     campaigns: {
@@ -1796,7 +1877,8 @@ const en = {
       subtitle: "Platform configuration — changes here have real, immediate effect on the app.",
       saved: "Saved",
       paymentsTitle: "Payments",
-      paymentsSubtitle: "These values are read directly by the booking flow — no hardcoded fallback is used once this is saved. Payment methods (Cash, InstaPay, Paymob) are managed under Payment Methods.",
+      paymentsSubtitle:
+        "These values are read directly by the booking flow — no hardcoded fallback is used once this is saved. Payment methods (Cash, InstaPay, Paymob) are managed under Payment Methods.",
       vatPercent: "VAT (%)",
       platformFee: "Platform fee (EGP, flat)",
       billingSaveError: "Could not save billing settings",
@@ -1809,11 +1891,13 @@ const en = {
       disable: "Disable",
       enable: "Enable",
       serviceAreasTitle: "Service Areas",
-      serviceAreasSubtitle: "Cities/districts customers and providers can select during onboarding.",
+      serviceAreasSubtitle:
+        "Cities/districts customers and providers can select during onboarding.",
       serviceAreasLoadError: "Could not load service areas. Please refresh.",
       serviceAreaError: "Could not update service area",
       remindersTitle: "Booking Reminders",
-      remindersSubtitle: "Lead-time offsets before a booking's start time. No rules means no reminders are sent.",
+      remindersSubtitle:
+        "Lead-time offsets before a booking's start time. No rules means no reminders are sent.",
       remindersLoadError: "Could not load reminder rules. Please refresh.",
       noReminderRules: "No reminder rules configured yet.",
       minutesBefore: "{{count}} minutes before",

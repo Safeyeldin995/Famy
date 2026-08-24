@@ -15,6 +15,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { LanguageProvider } from "../lib/i18n/LanguageProvider";
 import { supabase } from "../integrations/supabase/client";
+import { ClientErrorMonitoringBridge } from "../components/ClientErrorMonitoringBridge";
 
 import { useTranslation } from "react-i18next";
 
@@ -120,6 +121,7 @@ function RootComponent() {
       <LanguageProvider>
         <AuthCacheBridge />
         <PushNavigationBridge />
+        <ClientErrorMonitoringBridge />
         <Outlet />
         <Toaster />
       </LanguageProvider>

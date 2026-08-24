@@ -56,6 +56,7 @@ import { Route as AdminPromoCodesRouteImport } from './routes/admin.promo-codes'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
 import { Route as AdminPaymentMethodsRouteImport } from './routes/admin.payment-methods'
 import { Route as AdminOperationsRouteImport } from './routes/admin.operations'
+import { Route as AdminMonitoringRouteImport } from './routes/admin.monitoring'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
 import { Route as AdminCasesRouteImport } from './routes/admin.cases'
 import { Route as AdminCancellationReasonsRouteImport } from './routes/admin.cancellation-reasons'
@@ -64,6 +65,7 @@ import { Route as AdminBookingsRouteImport } from './routes/admin.bookings'
 import { Route as AdminAuditLogRouteImport } from './routes/admin.audit-log'
 import { Route as AddressesNewRouteImport } from './routes/addresses.new'
 import { Route as AddressesIdRouteImport } from './routes/addresses.$id'
+import { Route as _qaMonitoringErrorRouteImport } from './routes/__qa.monitoring-error'
 import { Route as ProBookingIdRouteImport } from './routes/pro.booking.$id'
 import { Route as AdminProviderIdRouteImport } from './routes/admin.provider.$id'
 import { Route as AdminCustomerIdRouteImport } from './routes/admin.customer.$id'
@@ -304,6 +306,11 @@ const AdminOperationsRoute = AdminOperationsRouteImport.update({
   path: '/operations',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminMonitoringRoute = AdminMonitoringRouteImport.update({
+  id: '/monitoring',
+  path: '/monitoring',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCustomersRoute = AdminCustomersRouteImport.update({
   id: '/customers',
   path: '/customers',
@@ -345,6 +352,11 @@ const AddressesIdRoute = AddressesIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AddressesRoute,
 } as any)
+const _qaMonitoringErrorRoute = _qaMonitoringErrorRouteImport.update({
+  id: '/__qa/monitoring-error',
+  path: '/monitoring-error',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProBookingIdRoute = ProBookingIdRouteImport.update({
   id: '/booking/$id',
   path: '/booking/$id',
@@ -380,6 +392,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
   '/setup': typeof SetupRoute
+  '/monitoring-error': typeof _qaMonitoringErrorRoute
   '/addresses/$id': typeof AddressesIdRoute
   '/addresses/new': typeof AddressesNewRoute
   '/admin/audit-log': typeof AdminAuditLogRoute
@@ -388,6 +401,7 @@ export interface FileRoutesByFullPath {
   '/admin/cancellation-reasons': typeof AdminCancellationReasonsRoute
   '/admin/cases': typeof AdminCasesRoute
   '/admin/customers': typeof AdminCustomersRoute
+  '/admin/monitoring': typeof AdminMonitoringRoute
   '/admin/operations': typeof AdminOperationsRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -437,6 +451,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
   '/setup': typeof SetupRoute
+  '/monitoring-error': typeof _qaMonitoringErrorRoute
   '/addresses/$id': typeof AddressesIdRoute
   '/addresses/new': typeof AddressesNewRoute
   '/admin/audit-log': typeof AdminAuditLogRoute
@@ -445,6 +460,7 @@ export interface FileRoutesByTo {
   '/admin/cancellation-reasons': typeof AdminCancellationReasonsRoute
   '/admin/cases': typeof AdminCasesRoute
   '/admin/customers': typeof AdminCustomersRoute
+  '/admin/monitoring': typeof AdminMonitoringRoute
   '/admin/operations': typeof AdminOperationsRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -498,6 +514,7 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
   '/setup': typeof SetupRoute
+  '/__qa/monitoring-error': typeof _qaMonitoringErrorRoute
   '/addresses/$id': typeof AddressesIdRoute
   '/addresses/new': typeof AddressesNewRoute
   '/admin/audit-log': typeof AdminAuditLogRoute
@@ -506,6 +523,7 @@ export interface FileRoutesById {
   '/admin/cancellation-reasons': typeof AdminCancellationReasonsRoute
   '/admin/cases': typeof AdminCasesRoute
   '/admin/customers': typeof AdminCustomersRoute
+  '/admin/monitoring': typeof AdminMonitoringRoute
   '/admin/operations': typeof AdminOperationsRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -560,6 +578,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/search'
     | '/setup'
+    | '/monitoring-error'
     | '/addresses/$id'
     | '/addresses/new'
     | '/admin/audit-log'
@@ -568,6 +587,7 @@ export interface FileRouteTypes {
     | '/admin/cancellation-reasons'
     | '/admin/cases'
     | '/admin/customers'
+    | '/admin/monitoring'
     | '/admin/operations'
     | '/admin/payment-methods'
     | '/admin/payments'
@@ -617,6 +637,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/search'
     | '/setup'
+    | '/monitoring-error'
     | '/addresses/$id'
     | '/addresses/new'
     | '/admin/audit-log'
@@ -625,6 +646,7 @@ export interface FileRouteTypes {
     | '/admin/cancellation-reasons'
     | '/admin/cases'
     | '/admin/customers'
+    | '/admin/monitoring'
     | '/admin/operations'
     | '/admin/payment-methods'
     | '/admin/payments'
@@ -677,6 +699,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/search'
     | '/setup'
+    | '/__qa/monitoring-error'
     | '/addresses/$id'
     | '/addresses/new'
     | '/admin/audit-log'
@@ -685,6 +708,7 @@ export interface FileRouteTypes {
     | '/admin/cancellation-reasons'
     | '/admin/cases'
     | '/admin/customers'
+    | '/admin/monitoring'
     | '/admin/operations'
     | '/admin/payment-methods'
     | '/admin/payments'
@@ -738,6 +762,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   SearchRoute: typeof SearchRoute
   SetupRoute: typeof SetupRoute
+  _qaMonitoringErrorRoute: typeof _qaMonitoringErrorRoute
   AuthForgotRoute: typeof AuthForgotRoute
   AuthSetPasswordRoute: typeof AuthSetPasswordRoute
   BookProviderIdRoute: typeof BookProviderIdRoute
@@ -1078,6 +1103,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminOperationsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/monitoring': {
+      id: '/admin/monitoring'
+      path: '/monitoring'
+      fullPath: '/admin/monitoring'
+      preLoaderRoute: typeof AdminMonitoringRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/customers': {
       id: '/admin/customers'
       path: '/customers'
@@ -1134,6 +1166,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AddressesIdRouteImport
       parentRoute: typeof AddressesRoute
     }
+    '/__qa/monitoring-error': {
+      id: '/__qa/monitoring-error'
+      path: '/monitoring-error'
+      fullPath: '/monitoring-error'
+      preLoaderRoute: typeof _qaMonitoringErrorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pro/booking/$id': {
       id: '/pro/booking/$id'
       path: '/booking/$id'
@@ -1179,6 +1218,7 @@ interface AdminRouteChildren {
   AdminCancellationReasonsRoute: typeof AdminCancellationReasonsRoute
   AdminCasesRoute: typeof AdminCasesRoute
   AdminCustomersRoute: typeof AdminCustomersRoute
+  AdminMonitoringRoute: typeof AdminMonitoringRoute
   AdminOperationsRoute: typeof AdminOperationsRoute
   AdminPaymentMethodsRoute: typeof AdminPaymentMethodsRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
@@ -1199,6 +1239,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCancellationReasonsRoute: AdminCancellationReasonsRoute,
   AdminCasesRoute: AdminCasesRoute,
   AdminCustomersRoute: AdminCustomersRoute,
+  AdminMonitoringRoute: AdminMonitoringRoute,
   AdminOperationsRoute: AdminOperationsRoute,
   AdminPaymentMethodsRoute: AdminPaymentMethodsRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,
@@ -1289,6 +1330,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   SearchRoute: SearchRoute,
   SetupRoute: SetupRoute,
+  _qaMonitoringErrorRoute: _qaMonitoringErrorRoute,
   AuthForgotRoute: AuthForgotRoute,
   AuthSetPasswordRoute: AuthSetPasswordRoute,
   BookProviderIdRoute: BookProviderIdRoute,

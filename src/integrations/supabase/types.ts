@@ -1207,6 +1207,33 @@ export type Database = {
           },
         ]
       }
+      error_logs: {
+        Row: {
+          context_label: string | null
+          context_route: string | null
+          created_at: string
+          id: string
+          message_safe: string
+          source: string
+        }
+        Insert: {
+          context_label?: string | null
+          context_route?: string | null
+          created_at?: string
+          id?: string
+          message_safe: string
+          source: string
+        }
+        Update: {
+          context_label?: string | null
+          context_route?: string | null
+          created_at?: string
+          id?: string
+          message_safe?: string
+          source?: string
+        }
+        Relationships: []
+      }
       family_members: {
         Row: {
           access_notes: string | null
@@ -3266,6 +3293,17 @@ export type Database = {
         Args: never
         Returns: {
           user_id: string
+        }[]
+      }
+      admin_monitoring_summary: {
+        Args: { p_since?: string }
+        Returns: {
+          failed_notifications: number
+          failed_payments: number
+          oldest_error_at: string | null
+          oldest_failed_notification_at: string | null
+          oldest_failed_payment_at: string | null
+          recent_errors: number
         }[]
       }
       admin_operations_summary: {
