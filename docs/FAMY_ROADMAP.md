@@ -502,6 +502,60 @@ Cursor reports back. Any actual QA-clone mutation — let alone Production —
 still requires a separate, explicit approval from Safeyeldin after that
 audit, per `AGENTS.md`'s destructive-QA-execution rule.
 
+**Stage 2 round 1 (Cursor, commit `9eb4167`) + full Codex code audit,
+2026-08-24 — two BLOCKERs, one HIGH found; this is real code, not just
+documentation, so it went through the same scrutiny as Stage 1's first
+audit round.** Claude independently read the diff before sending it to
+Codex (a first for this project — the stakes of writing actual execute
+logic warranted it) and found two of the issues Codex later confirmed.
+Mutation-path review passed: no Supabase `.delete()`/`.update()`/
+`.insert()`/`.upsert()`/`.admin.deleteUser()`/storage `.remove()` call
+exists anywhere in the new code — the only destructive operations are
+Phase A/B2/D `TRUNCATE` strings, and those only run inside a
+`BEGIN…ROLLBACK` wrapper. Codex independently confirmed the Supabase CLI
+(v2.109.1) runs a full SQL string as one call in one database session
+rather than splitting on semicolons, which is what makes the
+rollback-wrapper design sound in principle. But three real gaps remain:
+
+1. **BLOCKER — the SQL database URL isn't proven to belong to the same
+   project as the verified QA-clone REST URL.** The REST URL's project ref
+   is checked against Production; the separately-loaded database URL is
+   not cross-checked against anything. Codex's exact finding: a legitimate
+   QA REST URL paired with a **Production** database URL would pass every
+   existing guard and route the TRUNCATE transactions at Production — a
+   genuine Production-risk path that exists independently of the
+   `--target=production` flag rejection.
+2. **BLOCKER — `rollback_verified=true` can print without real
+   verification.** The before/after row-count check only runs if the
+   caller supplies `captureCounts`/`verifyCounts`; the real CLI entry point
+   never does. The code still reports rollback as verified whenever the
+   SQL didn't throw, regardless of whether data was actually confirmed
+   unchanged. Claude flagged this exact gap before sending to Codex, who
+   traced the false-positive path through `execute-phases.mjs` and
+   `execute.mjs` to confirm it's real. This matters because a future
+   approval decision could be based on evidence that only *looks* like a
+   confirmed rollback.
+3. **HIGH — Phase E's storage-object simulation misses everything not at a
+   bucket root.** It doesn't recurse into folders, so a live QA-clone check
+   found it would report 0 objects where the real (recursive) Stage 1
+   inventory correctly finds 48.
+
+Two MEDIUMs also flagged: the new auth-pagination code duplicates
+`plan.mjs`'s logic without carrying over the round-6 fail-closed fix (the
+same class of "duplicated instead of shared" bug as Stage 1's
+`zone_services` miss), and the SQL shell-command construction uses
+JSON-quoting inside a shell string rather than argument-safe process
+spawning.
+
+**PR #36 stays Draft, unmerged.** Sent back to Cursor for a fix round
+covering both BLOCKERs, the HIGH, and both MEDIUMs — with instructions to
+reuse Stage 1's existing recursive storage inventory and fail-closed auth
+pagination rather than re-deriving them, the same lesson as every
+duplicated-logic bug so far in this project. One more focused Codex pass
+after that. An isolated-Postgres live rollback verification, and any
+actual QA-clone mutation, remain separate, later, explicitly-approved
+steps — not implied by anything in this round.
+
 ---
 
 ## Milestones
