@@ -370,6 +370,39 @@ addressing all three BLOCKERs plus the two HIGH findings before Codex does
 one more focused (not full) verification pass. Stage 2 (QA-clone dry-run of
 an execute path) is still not on the table until that lands clean.
 
+**Round 5 fix (Cursor, commit `d66cbb1`) + round 5 Codex focused
+verification, 2026-08-24 — four of five findings closed, one BLOCKER
+remains.** Codex traced each new guard line-by-line and re-ran the live
+Production dry-run plus the 21-test suite itself rather than trusting
+Cursor's report:
+
+- **Closed:** catalog classification now fails closed (synthetic checks:
+  19 "seed" services blocks, a missing required FK edge throws, Phase B
+  catalog leakage throws); migration-fallback graph validation now throws
+  on an incomplete parse instead of silently trusting it; FK-graph source
+  is bound to the verified Production ref on the real CLI path (Codex flags
+  a MEDIUM-only theoretical gap: the ref is checked once before the query
+  runs, not re-checked after, and the ref/loader are injectable in code —
+  neither is reachable through the actual CLI, so not blocking).
+- **Still open — BLOCKER:** the new fingerprint hashes the exact auth-user
+  ID set and storage key set correctly, but does **not** bind Production's
+  per-table row counts. Codex proved this directly: changing `bookings`'
+  count to a synthetic 999 produced an unchanged fingerprint. Practically,
+  a new row landing in any Phase A table between plan approval and a future
+  execute run would still get swept by `TRUNCATE … CASCADE` under a
+  fingerprint that never noticed the drift — the exact class of gap the
+  fingerprint exists to catch.
+- **MEDIUM, not blocking:** one of the 21 tests (`"uses pg_constraint when
+  linked ref is Production"`) doesn't actually call the function it's named
+  for, and the required-edge/catalog-leak exception branches are proven by
+  ad hoc synthetic probes rather than durable regression tests.
+
+**PR #27 stays Draft, unmerged.** Sent back to Cursor for a narrow sixth
+round: bind the full deterministic row-count map into the fingerprint, add
+a regression test proving any relevant count change moves the fingerprint,
+and fix the two MEDIUM test-coverage gaps noted above. One more focused
+Codex pass after that, still before Stage 2 is discussed.
+
 ---
 
 ## Milestones
