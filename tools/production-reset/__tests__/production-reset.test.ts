@@ -42,7 +42,7 @@ import {
   assertSimulateModeRequired,
   runProductionResetExecute,
 } from "../execute.mjs";
-import { assertCountsUnchanged, runSimulatedSqlTransaction } from "../execute-sql.mjs";
+import { assertCountsUnchanged, defaultExecSql, runSimulatedSqlTransaction } from "../execute-sql.mjs";
 import {
   assertPhaseOrder,
   collectStorageObjectKeys,
@@ -50,6 +50,10 @@ import {
   EXECUTE_PHASE_ORDER,
 } from "../execute-phases.mjs";
 import { assertQaCloneDatabaseUrlIdentity } from "../load-qa-clone-env.mjs";
+import {
+  resolveProjectRefFromDatabaseUrl,
+  resolveProjectRefFromRestUrl,
+} from "../project-ref-from-url.mjs";
 import * as storageInventory from "../storage-inventory.mjs";
 
 const SYNTHETIC_EDGES = [
@@ -321,6 +325,22 @@ describe("execute phase ordering and simulation rollback", () => {
     const result = computeRollbackVerified([], false);
     expect(result.rollbackVerified).toBe(false);
     expect(result.rollbackVerificationNote).toContain("plan-only");
+  });
+
+  it("rollback_verified false when SQL phases are duplicated or missing", () => {
+    const verified = (phase: string) => ({
+      phase,
+      simulation: { dataUnchangedVerified: true, mode: "rollback-transaction" },
+    });
+    expect(computeRollbackVerified([verified("A"), verified("A"), verified("D")], true).rollbackVerified).toBe(
+      false,
+    );
+    expect(
+      computeRollbackVerified([verified("A"), verified("B2"), verified("D"), verified("D")], true).rollbackVerified,
+    ).toBe(false);
+    expect(computeRollbackVerified([verified("A"), verified("B2")], true).rollbackVerificationNote).toMatch(
+      /missing D|incomplete/i,
+    );
   });
 
   it("throws when rollback verification detects drift", () => {
@@ -655,5 +675,56 @@ describe("Stage 2 round 2 safety fixes", () => {
       },
     };
     await expect(fetchAllAuthUserIds(admin as never)).rejects.toThrow(/exceeded 4000 rows/i);
+  });
+});
+
+describe("Stage 2 round 3 safety fixes", () => {
+  it("resolves database project ref only from hostname or username positions", () => {
+    const qaHostDb = `postgresql://postgres:secret@db.${KNOWN_QA_PROJECT_REF}.supabase.co:5432/postgres`;
+    expect(resolveProjectRefFromDatabaseUrl(qaHostDb)).toBe(KNOWN_QA_PROJECT_REF);
+
+    const qaUserDb = `postgresql://postgres.${KNOWN_QA_PROJECT_REF}:secret@aws-0-us-east-1.pooler.supabase.com:6543/postgres`;
+    expect(resolveProjectRefFromDatabaseUrl(qaUserDb)).toBe(KNOWN_QA_PROJECT_REF);
+  });
+
+  it("does not treat ref-shaped strings in password, path, or query as project refs", () => {
+    const prodHost = `db.${PRODUCTION_PROJECT_REF}.supabase.co`;
+    const craftedPassword = `postgresql://postgres:postgres.${KNOWN_QA_PROJECT_REF}@extra@${prodHost}:5432/postgres`;
+    expect(resolveProjectRefFromDatabaseUrl(craftedPassword)).toBe(PRODUCTION_PROJECT_REF);
+
+    const craftedPath = `postgresql://postgres:secret@${prodHost}:5432/postgres.${KNOWN_QA_PROJECT_REF}`;
+    expect(resolveProjectRefFromDatabaseUrl(craftedPath)).toBe(PRODUCTION_PROJECT_REF);
+
+    const craftedQuery = `postgresql://postgres:secret@${prodHost}:5432/postgres?user=postgres.${KNOWN_QA_PROJECT_REF}`;
+    expect(resolveProjectRefFromDatabaseUrl(craftedQuery)).toBe(PRODUCTION_PROJECT_REF);
+  });
+
+  it("rejects crafted database URL where password embeds QA ref but hostname is Production", () => {
+    const crafted = `postgresql://postgres:postgres.${KNOWN_QA_PROJECT_REF}@db.${PRODUCTION_PROJECT_REF}.supabase.co:5432/postgres`;
+    expect(resolveProjectRefFromDatabaseUrl(crafted)).toBe(PRODUCTION_PROJECT_REF);
+    expect(() => assertQaCloneDatabaseUrlIdentity(crafted, KNOWN_QA_PROJECT_REF)).toThrow(/Production|does not match/i);
+  });
+
+  it("fails closed when database URL ref cannot be resolved structurally", () => {
+    expect(resolveProjectRefFromDatabaseUrl("postgresql://postgres:secret@localhost:5432/postgres")).toBeNull();
+    expect(() =>
+      assertQaCloneDatabaseUrlIdentity("postgresql://postgres:secret@localhost:5432/postgres", KNOWN_QA_PROJECT_REF),
+    ).toThrow(/Cannot resolve project ref/i);
+  });
+
+  it("parses REST URL project ref from hostname only", () => {
+    expect(resolveProjectRefFromRestUrl(`https://${KNOWN_QA_PROJECT_REF}.supabase.co/`)).toBe(KNOWN_QA_PROJECT_REF);
+    expect(resolveProjectRefFromRestUrl(`https://evil.com/${KNOWN_QA_PROJECT_REF}`)).toBeNull();
+  });
+
+  it("spawns supabase db query on Windows without EINVAL", () => {
+    const bogusDbUrl = `postgresql://postgres:invalid@db.${KNOWN_QA_PROJECT_REF}.supabase.co:5432/postgres`;
+    expect(() => defaultExecSql(bogusDbUrl, "SELECT 1;")).toThrow();
+    try {
+      defaultExecSql(bogusDbUrl, "SELECT 1;");
+    } catch (error) {
+      expect((error as NodeJS.ErrnoException).code).not.toBe("EINVAL");
+      expect(String(error)).not.toMatch(/EINVAL/i);
+    }
   });
 });

@@ -61,10 +61,29 @@ export function computeRollbackVerified(phases, databaseUrlConfigured) {
   }
 
   const sqlPhases = phases.filter((row) => SQL_SIMULATION_PHASES.includes(String(row.phase)));
-  const allVerified =
-    sqlPhases.length === SQL_SIMULATION_PHASES.length &&
-    sqlPhases.every((row) => row.simulation?.dataUnchangedVerified === true);
+  const observedNames = sqlPhases.map((row) => String(row.phase));
+  const expectedSet = new Set(SQL_SIMULATION_PHASES);
+  const observedSet = new Set(observedNames);
+  const hasExactPhases =
+    observedNames.length === SQL_SIMULATION_PHASES.length &&
+    observedSet.size === SQL_SIMULATION_PHASES.length &&
+    SQL_SIMULATION_PHASES.every((phase) => observedSet.has(phase));
 
+  if (!hasExactPhases) {
+    const missing = SQL_SIMULATION_PHASES.filter((phase) => !observedSet.has(phase));
+    const duplicates = SQL_SIMULATION_PHASES.filter(
+      (phase) => observedNames.filter((name) => name === phase).length > 1,
+    );
+    const parts = [];
+    if (missing.length) parts.push(`missing ${missing.join(", ")}`);
+    if (duplicates.length) parts.push(`duplicate ${duplicates.join(", ")}`);
+    return {
+      rollbackVerified: false,
+      rollbackVerificationNote: `SQL rollback phases incomplete — ${parts.join("; ") || "expected A, B2, D exactly once"}`,
+    };
+  }
+
+  const allVerified = sqlPhases.every((row) => row.simulation?.dataUnchangedVerified === true);
   if (allVerified) {
     return { rollbackVerified: true, rollbackVerificationNote: null };
   }
@@ -74,7 +93,7 @@ export function computeRollbackVerified(phases, databaseUrlConfigured) {
     .map((row) => row.phase);
   return {
     rollbackVerified: false,
-    rollbackVerificationNote: `SQL phases lacking row-count rollback proof: ${unverified.join(", ") || "missing phases"}`,
+    rollbackVerificationNote: `SQL phases lacking row-count rollback proof: ${unverified.join(", ")}`,
   };
 }
 

@@ -1,16 +1,26 @@
-import { execFileSync } from "node:child_process";
+import spawn from "cross-spawn";
 
 /**
  * @param {string} databaseUrl
  * @param {string} sql
  */
 export function defaultExecSql(databaseUrl, sql) {
-  const npx = process.platform === "win32" ? "npx.cmd" : "npx";
-  execFileSync(npx, ["supabase", "db", "query", "--db-url", databaseUrl, sql], {
+  const result = spawn.sync("npx", ["supabase", "db", "query", "--db-url", databaseUrl, sql], {
     cwd: process.cwd(),
     encoding: "utf8",
     stdio: ["pipe", "pipe", "pipe"],
   });
+
+  if (result.error) {
+    throw result.error;
+  }
+
+  if (result.status !== 0) {
+    const detail = [result.stderr, result.stdout].filter(Boolean).join("\n").trim();
+    throw new Error(
+      detail || `[production-reset:execute:simulate] supabase db query exited with status ${result.status}`,
+    );
+  }
 }
 
 /**
