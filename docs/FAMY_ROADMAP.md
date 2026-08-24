@@ -319,6 +319,57 @@ sign-off, the same discipline as the QA zone deactivation but at a
 materially higher bar given this is real Production and the exact scope is
 now confirmed uncertain, not just unconfirmed.
 
+**Round 5 (Codex full code audit), 2026-08-24 — PR #27 not safe to merge
+yet; three new BLOCKERs found in the tool code itself, not the numbers.**
+This was the first line-by-line code audit of `tools/production-reset/`
+(vs. earlier rounds' numbers re-derivation). Mutation-path review passed
+cleanly — no `.delete()`/`.update()`/`.insert()`/`.upsert()`/storage
+`.remove()`/destructive SQL exists anywhere reachable; `execute.mjs`
+unconditionally throws and no flag combination routes around it. But three
+flaws make the tool's safety *proof* invalid even though today's output
+happens to be correct:
+
+1. **FK-graph source isn't bound to the same project as the row counts.**
+   The tool verifies the Production ref for its REST/count queries, but
+   separately shells out to `npx supabase db query --linked` for the FK
+   graph without checking which project the CLI is linked to. Right now
+   that link points at QA, the query fails, and the tool silently falls
+   back to parsing migration files — so today's 51-table closure is fine.
+   But if that CLI link ever succeeds while still pointed at QA, the tool
+   would combine a QA FK catalog with Production row counts and IDs without
+   any error.
+2. **Catalog classification fails open, not closed.** The planner only
+   blocks if a KEEP (seed) table shows up inside the delete closure. It
+   never checks that exactly 18 seed services exist, that every non-seed
+   service actually carries a QA marker, or that the zone count matches the
+   QA-shaped count — it just targets "everything non-seed" and "every zone"
+   unconditionally. Today's Production data happens to satisfy 18/461/416
+   exactly, so it reports `blocked: false` correctly by accident, not by
+   the check actually working. Future catalog drift (a real zone added
+   without a QA marker, e.g.) would still report `blocked: false`.
+3. **The fingerprint doesn't bind every destructive target.** It covers the
+   closure table list, plan version, and service/zone *ID-set* fingerprints
+   — but not the Production project identity, the Phase A root list, exact
+   auth-user IDs (only their count), exact storage object keys (only their
+   count), or the FK edges/graph source itself. An auth user or storage
+   object could be swapped for a different one without changing the
+   fingerprint.
+
+Also flagged, not blocking: no unit tests exist for any of this tool's
+safety-critical logic (BFS closure, argument matrix, blocking predicates,
+fingerprint sensitivity) — HIGH; the migration-file FK fallback has no
+validation against an expected edge/closure list, so silent parser gaps
+could under-count the closure — HIGH; auth-user pagination silently caps at
+4,000 rather than erroring if exceeded, and the report sanitizer is
+currently a no-op allowlist — both MEDIUM; local report overwrites aren't
+atomic — LOW.
+
+**PR #27 stays Draft, unmerged**, per Codex's explicit recommendation and
+already-correct prior practice. Sent back to Cursor for a fifth revision
+addressing all three BLOCKERs plus the two HIGH findings before Codex does
+one more focused (not full) verification pass. Stage 2 (QA-clone dry-run of
+an execute path) is still not on the table until that lands clean.
+
 ---
 
 ## Milestones
