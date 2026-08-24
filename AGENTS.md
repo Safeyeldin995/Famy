@@ -199,9 +199,28 @@ Agents may autonomously:
 - open or update a Draft PR,
 - respond to verified review findings inside scope.
 
+### Merge authority
+
+Claude Sonnet may merge a PR into `main` on its own judgment only when
+**all** of the following hold:
+
+- the PR is documentation-only or reporting-only (e.g. `docs/`, roadmap
+  updates, audit-handoff notes) — **zero** files under application code,
+  `qa/`, `tools/`, migrations, config, or CI are touched,
+- the PR does not touch Production access, secrets, or credentials,
+- there are no open BLOCKER/HIGH findings against it.
+
+Any PR that touches code, `qa/`, `tools/`, migrations, CI, config, secrets,
+or anything Production-adjacent — however small — still requires
+Safeyeldin's explicit "yes" before merge, regardless of how the change is
+described. When in doubt, treat it as requiring approval.
+
+Cursor never merges to `main` under any circumstance (unchanged from
+"Agent ownership" above).
+
 Explicit Safeyeldin approval is required for:
 
-- merging into `main`,
+- merging into `main`, except the narrow docs/reporting-only case above,
 - Production access or deployment,
 - database migrations,
 - destructive or fingerprint-gated QA execution,
