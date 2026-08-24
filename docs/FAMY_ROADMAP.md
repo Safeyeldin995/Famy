@@ -56,6 +56,7 @@ guessing at scope wastes a cycle when the audit would have taken an hour.
 | Item | Status | Blocking on |
 |---|---|---|
 | Rotate the leaked QA service-role key (`qa/report/results.json`, pre-PR #16) | Not yet done — Supabase dashboard action only Safeyeldin can take. | Safeyeldin |
+| Four repository-wide high-severity dependency advisories (surfaced by `npm ci` during Codex's Issue #6 review, 2026-08-24) | Not yet triaged — unrelated to any recent PR, pre-existing. | Needs a dedicated `npm audit` review, not yet scheduled |
 
 ### PARKED
 
@@ -94,6 +95,29 @@ full treatment (re-run the spec against real QA, verify residue, trace the
 merge-conflict resolution) rather than a documentation-only pass. Merge
 still requires Safeyeldin's explicit approval per the code-touching
 merge-authority rule.
+
+**Codex independent review, 2026-08-24 — clean pass, zero findings.**
+Codex re-ran the spec against real QA itself rather than trusting the
+report: preflight clean, pre-run residue clean (250 baseline profiles),
+1/1 E2E pass in 4.6 minutes, both customer and provider sessions showed
+literally `console: [], network: []`, post-run residue clean (253
+retained profiles). Traced the `BookingChatPanel.tsx` merge resolution
+directly against `main` — confirmed `resolveChatViewerUserId` and the
+explicit rejection logging are both intact, no original lifecycle intent
+lost. Full verification matrix (540/540 unit tests, typecheck, build,
+lint/prettier, secret scan) all passed. Zero BLOCKER/HIGH/MEDIUM/LOW
+findings — an explicit zero across every severity tier, not just "nothing
+blocking."
+
+One side note from Codex's `npm ci` run, unrelated to this PR: four
+existing repository-wide high-severity dependency advisories were
+reported. Not this PR's concern (a one-file test-only change can't
+introduce a dependency advisory) — flagging here so it doesn't get lost,
+worth a separate look at some point.
+
+**PR #7 is audit-cleared to merge.** Still requires Safeyeldin's explicit
+approval per the code-touching merge-authority rule — Claude is bringing
+that recommendation now rather than merging autonomously.
 
 ### Milestone 1 audit results (2026-08-23)
 
