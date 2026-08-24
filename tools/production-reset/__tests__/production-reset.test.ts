@@ -42,7 +42,7 @@ import {
   assertSimulateModeRequired,
   runProductionResetExecute,
 } from "../execute.mjs";
-import { assertCountsUnchanged, defaultExecSql, runSimulatedSqlTransaction } from "../execute-sql.mjs";
+import { assertCountsUnchanged, runSimulatedSqlTransaction } from "../execute-sql.mjs";
 import {
   assertPhaseOrder,
   collectStorageObjectKeys,
@@ -717,14 +717,32 @@ describe("Stage 2 round 3 safety fixes", () => {
     expect(resolveProjectRefFromRestUrl(`https://evil.com/${KNOWN_QA_PROJECT_REF}`)).toBeNull();
   });
 
-  it("spawns supabase db query on Windows without EINVAL", () => {
-    const bogusDbUrl = `postgresql://postgres:invalid@db.${KNOWN_QA_PROJECT_REF}.supabase.co:5432/postgres`;
-    expect(() => defaultExecSql(bogusDbUrl, "SELECT 1;")).toThrow();
-    try {
-      defaultExecSql(bogusDbUrl, "SELECT 1;");
-    } catch (error) {
-      expect((error as NodeJS.ErrnoException).code).not.toBe("EINVAL");
-      expect(String(error)).not.toMatch(/EINVAL/i);
-    }
+  it("invokes cross-spawn with npx and supabase db query args without shell strings", async () => {
+    vi.resetModules();
+    const sync = vi.fn(() => ({
+      status: 0,
+      stdout: "",
+      stderr: "",
+      error: undefined,
+    }));
+    vi.doMock("cross-spawn", () => ({
+      default: { sync },
+    }));
+
+    const { defaultExecSql } = await import("../execute-sql.mjs");
+    const databaseUrl = `postgresql://postgres:secret@db.${KNOWN_QA_PROJECT_REF}.supabase.co:5432/postgres`;
+    const sql = "BEGIN; SELECT 1; ROLLBACK;";
+
+    defaultExecSql(databaseUrl, sql);
+
+    expect(sync).toHaveBeenCalledOnce();
+    expect(sync).toHaveBeenCalledWith(
+      "npx",
+      ["supabase", "db", "query", "--db-url", databaseUrl, sql],
+      expect.objectContaining({ encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] }),
+    );
+
+    vi.doUnmock("cross-spawn");
+    vi.resetModules();
   });
 });
