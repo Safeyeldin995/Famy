@@ -468,6 +468,40 @@ audit outcome — Claude is not merging it autonomously. **Stage 2**
 separate phase requiring its own review, fingerprint gates, and explicit
 approval before any mutation — not yet started.
 
+**Update 2026-08-24 — PR #27 approved and merged by Safeyeldin.** The
+Stage 1 dry-run tool is now on `main`. It still has no execute capability
+of any kind.
+
+**Stage 2 kicked off, 2026-08-24 (Safeyeldin: "you decide the best way"),
+scoped narrowly.** Sent to Cursor on a fresh branch
+(`feat/production-reset-execute-path`) to design and write the real
+execute path, but with the exact same discipline as every Stage 1 round —
+this task is still simulation-only, nothing may actually mutate, and
+Production remains completely out of reach:
+
+- `execute.mjs` gets a real implementation, gated behind the CLI's
+  existing `--execute`/confirm-phrase/`--plan-fingerprint` args, plus a
+  new internal gate: it must independently recompute the plan and
+  fingerprint at execute time and abort on any mismatch, rather than
+  trusting a fingerprint handed in from an earlier run — this closes the
+  "approved plan, but Production drifted before someone actually ran
+  execute" gap in principle, the live-execution analog of everything
+  Stage 1's seven rounds hardened on the read side.
+- A hard `--target=qa-clone` / `--target=production` gate is required, with
+  `--target=production` unconditionally rejected in this task — Production
+  execute capability does not exist yet, not even behind a flag.
+- The only mode allowed to actually run in this task is simulation (e.g.
+  transaction-rollback or explain-only) against a QA-clone connection,
+  verified to genuinely leave data unchanged, not committed to real Stage 1
+  discipline: full audit before anything beyond simulation is discussed.
+
+This is real execute-path code being written for the first time in this
+project, so it goes to Codex for a **full code audit** (the same rigor as
+Stage 1's first full-audit round, not incremental focused passes) once
+Cursor reports back. Any actual QA-clone mutation — let alone Production —
+still requires a separate, explicit approval from Safeyeldin after that
+audit, per `AGENTS.md`'s destructive-QA-execution rule.
+
 ---
 
 ## Milestones
