@@ -627,6 +627,40 @@ verification as evidence, not as a CI gate) and declare `cross-spawn` as a
 real dependency. Expected to be the closing round — Codex has already
 cleared everything security-relevant.
 
+**Stage 2 round 4 (Cursor, commits `5b8b199`/`de28107`) + Codex closing
+audit, 2026-08-24 — clean pass. All BLOCKER/HIGH/MEDIUM findings across
+all four Stage 2 rounds are closed.** The network test was replaced with a
+mocked `cross-spawn` assertion (no real process/network I/O), and
+`cross-spawn` is now a declared `dependencies` entry. Fixing the
+dependency triggered an `npm install` that dropped 69 lines from
+`package-lock.json` (nested `nitro`/`lru-cache@11.5.2` entries) — a second
+commit repaired it. Both Claude and Codex independently checked this
+repair rather than trusting the "fixed" claim: Claude confirmed valid JSON
+plus the expected entries were present; Codex went further and diffed the
+repaired lockfile against round 3's known-good version, confirming it's
+byte-for-byte identical plus exactly one new `cross-spawn` line — no
+unrelated version or integrity-hash drift — and ran `npm ci` (not just
+`npm install`) to prove it's genuinely installable. GitHub CI's required
+check was independently confirmed green by fetching the actual workflow
+run via the API, not by trusting the pasted link.
+
+Codex's closing sweep re-checked every finding from all four rounds
+together, not just round 4's two items: crafted-URL rejection, fail-closed
+identity checks, the Production/non-simulate gates, execute-time
+fingerprint recomputation, exact-membership rollback verification,
+recursive storage inventory, fail-closed auth pagination, and the
+mutation-path finding (still zero destructive Supabase calls, all SQL
+still routed through `BEGIN…ROLLBACK`) — all confirmed intact together, not
+just individually. **No new findings. No BLOCKER/HIGH/MEDIUM remains.**
+
+**PR #36 is audit-cleared to merge as dry-run-and-simulate-only tooling.**
+Per `AGENTS.md`'s merge-authority rule this PR touches `tools/`, so it
+still requires Safeyeldin's explicit approval regardless of the clean
+audit — merging still does not enable a database-connected simulation or
+any Production execution. The isolated live-Postgres rollback verification
+and any actual QA-clone mutation remain separate, later, explicitly-gated
+steps.
+
 ---
 
 ## Milestones
