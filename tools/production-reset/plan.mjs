@@ -1,7 +1,5 @@
-import crypto from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import {
-  CATALOG_KEEP_TABLES,
   PHASE_A_TRUNCATE_ROOTS,
   PLAN_VERSION,
   STORAGE_BUCKETS,
@@ -11,11 +9,7 @@ import {
   computeServiceDeleteCascadeTables,
   computeTruncateCascadeClosure,
 } from "./fk-closure.mjs";
-import {
-  fingerprintSortedIds,
-  isQaFixtureName,
-  SEED_SERVICE_SLUG_SET,
-} from "./seed-catalog.mjs";
+import { fingerprintSortedIds, SEED_SERVICE_SLUG_SET } from "./seed-catalog.mjs";
 import { maskProjectRef } from "./load-production-env.mjs";
 import { inventoryStorageBuckets, classifyStorageObject } from "./storage-inventory.mjs";
 import {
@@ -23,6 +17,8 @@ import {
   NO_AUDIT_TRIGGER_TARGETS,
   PHASE_B_AUDIT_WRITERS,
 } from "./audit-triggers-catalog.mjs";
+import { evaluateCatalogBlockingChecks } from "./blocking-predicates.mjs";
+import { fingerprintPlan } from "./fingerprint.mjs";
 
 const USER_ROW_TABLES = [
   "audit_logs",
@@ -76,6 +72,9 @@ const USER_ROW_TABLES = [
   "availability_rules",
 ];
 
+const AUTH_USERS_MAX_ROWS = 4000;
+const AUTH_USERS_PAGE_SIZE = 200;
+
 /**
  * @param {import("@supabase/supabase-js").SupabaseClient} admin
  * @param {string} table
@@ -89,19 +88,30 @@ async function countTable(admin, table) {
 /**
  * @param {import("@supabase/supabase-js").SupabaseClient} admin
  */
-async function countAuthUsers(admin) {
-  let total = 0;
-  for (let page = 1; page <= 20; page++) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+async function fetchAllAuthUserIds(admin) {
+  /** @type {string[]} */
+  const ids = [];
+  const maxPages = AUTH_USERS_MAX_ROWS / AUTH_USERS_PAGE_SIZE;
+  for (let page = 1; page <= maxPages; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({
+      page,
+      perPage: AUTH_USERS_PAGE_SIZE,
+    });
     if (error) throw error;
-    total += data.users.length;
-    if (data.users.length < 200) break;
+    ids.push(...data.users.map((user) => user.id));
+    if (data.users.length < AUTH_USERS_PAGE_SIZE) {
+      return ids;
+    }
   }
-  return total;
+  throw new Error(
+    `[production-reset] auth.users pagination exceeded ${AUTH_USERS_MAX_ROWS} rows — refusing truncated ID set`,
+  );
 }
 
 /**
  * @param {import("@supabase/supabase-js").SupabaseClient} admin
+ * @param {string} table
+ * @param {string} [cols]
  */
 async function fetchAllRows(admin, table, cols = "*") {
   const rows = [];
@@ -115,44 +125,73 @@ async function fetchAllRows(admin, table, cols = "*") {
   return rows;
 }
 
+/** @type {readonly string[]} */
+const REPORT_ALLOWLIST = [
+  "version",
+  "maskedProjectRef",
+  "fkGraphSource",
+  "linkedRefVerified",
+  "blocked",
+  "blockedReason",
+  "blockedReasons",
+  "blockingInputs",
+  "phaseA",
+  "phaseB",
+  "phaseC",
+  "phaseD",
+  "phaseE",
+  "executeOrder",
+  "auditTriggerVerification",
+  "counts",
+  "storage",
+  "fingerprint",
+];
+
 /**
- * @param {object} plan
+ * @param {Record<string, unknown>} source
+ * @param {readonly string[]} keys
  */
-export function fingerprintPlan(plan) {
-  const canonical = JSON.stringify({
-    version: plan.version,
-    phaseAClosure: plan.phaseA.truncateCascadeClosure,
-    serviceDeleteFingerprint: plan.phaseB.serviceDeleteFingerprint,
-    zoneDeleteFingerprint: plan.phaseB.zoneDeleteFingerprint,
-    rowCounts: plan.counts,
-  });
-  return crypto.createHash("sha256").update(canonical).digest("hex");
+function pickAllowlistedFields(source, keys) {
+  /** @type {Record<string, unknown>} */
+  const out = {};
+  for (const key of keys) {
+    if (Object.prototype.hasOwnProperty.call(source, key)) {
+      out[key] = source[key];
+    }
+  }
+  return out;
 }
 
 /**
  * @param {{ url: string; serviceRoleKey: string; projectRef: string }} env
+ * @param {{ loadFk?: typeof loadPublicFkEdges }} [options]
  */
-export async function buildProductionResetPlan(env) {
+export async function buildProductionResetPlan(env, options = {}) {
   const admin = createClient(env.url, env.serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  const { edges, source: fkSource } = loadPublicFkEdges();
+  const loadFk = options.loadFk ?? loadPublicFkEdges;
+  const { edges, source: fkSource, linkedRefVerified } = loadFk();
   const phaseAClosure = computeTruncateCascadeClosure(edges, [...PHASE_A_TRUNCATE_ROOTS]);
   const phaseBServiceCascadeTables = computeServiceDeleteCascadeTables(edges);
-
-  const catalogInClosure = phaseAClosure.filter((t) => CATALOG_KEEP_TABLES.has(t));
 
   const services = await fetchAllRows(admin, "services", "id, slug, name_en");
   const seedServices = services.filter((s) => SEED_SERVICE_SLUG_SET.has(s.slug));
   const deleteServices = services.filter((s) => !SEED_SERVICE_SLUG_SET.has(s.slug));
 
   const zones = await fetchAllRows(admin, "zones", "id, name_en");
-  const qaZones = zones.filter((z) => isQaFixtureName(z.name_en));
 
   const requirements = await fetchAllRows(admin, "service_requirements", "id, service_id");
   const deleteServiceIds = new Set(deleteServices.map((s) => s.id));
   const requirementsOnDelete = requirements.filter((r) => deleteServiceIds.has(r.service_id));
+
+  const blocking = evaluateCatalogBlockingChecks({
+    phaseAClosure,
+    seedServices,
+    deleteServices,
+    zones,
+  });
 
   const tableCounts = {};
   let userRowSum = 0;
@@ -162,7 +201,7 @@ export async function buildProductionResetPlan(env) {
     userRowSum += c;
   }
 
-  const authUsers = await countAuthUsers(admin);
+  const authUserIds = await fetchAllAuthUserIds(admin);
 
   const profiles = await fetchAllRows(admin, "profiles", "id");
   const profileIds = new Set(profiles.map((p) => p.id));
@@ -172,17 +211,19 @@ export async function buildProductionResetPlan(env) {
   const bookingIds = new Set(bookings.map((b) => b.id));
 
   const storage = await inventoryStorageBuckets(admin, STORAGE_BUCKETS);
+  /** @type {Array<{ bucket: string; key: string }>} */
+  const storageObjects = [];
   let storageTotal = 0;
   const storageByClass = {};
   for (const bucket of STORAGE_BUCKETS) {
     for (const obj of storage[bucket].keys) {
       storageTotal++;
+      storageObjects.push({ bucket, key: obj.key });
       const cls = classifyStorageObject(bucket, obj.key, profileIds, providerIds, bookingIds);
       storageByClass[cls] = (storageByClass[cls] ?? 0) + 1;
     }
   }
 
-  // Avatar auth-only check: folders with no profile but live auth.users
   const avatarAuthOnlySample = [];
   for (const obj of storage.avatars.keys) {
     const uid = obj.key.split("/")[0];
@@ -199,15 +240,25 @@ export async function buildProductionResetPlan(env) {
     userRowSum + deleteServices.length + zones.length + requirementsOnDelete.length;
 
   /** @type {const} */
+  const executeOrder = [
+    "Phase A: TRUNCATE phaseA.truncateRoots CASCADE (closure tables)",
+    "Phase B: DELETE fingerprinted non-seed services (fires trg_audit_services)",
+    "Phase B2: TRUNCATE audit_logs (post-service-delete, pre-auth)",
+    "Phase C: DELETE all auth.users via Auth Admin API",
+    "Phase D: TRUNCATE audit_logs (final safety-net verify/clear)",
+    "Phase E: DELETE all storage objects in four buckets",
+  ];
+
+  /** @type {const} */
   const plan = {
     version: PLAN_VERSION,
     maskedProjectRef: maskProjectRef(env.projectRef),
     fkGraphSource: fkSource,
-    blocked: catalogInClosure.length > 0,
-    blockedReason:
-      catalogInClosure.length > 0
-        ? `Phase A closure includes catalog tables: ${catalogInClosure.join(", ")}`
-        : null,
+    linkedRefVerified,
+    blocked: blocking.blocked,
+    blockedReason: blocking.blockedReason,
+    blockedReasons: blocking.blockedReasons,
+    blockingInputs: blocking.blockingInputs,
     phaseA: {
       truncateRoots: [...PHASE_A_TRUNCATE_ROOTS],
       truncateCascadeClosure: phaseAClosure,
@@ -216,17 +267,18 @@ export async function buildProductionResetPlan(env) {
     phaseB: {
       serviceDeleteCount: deleteServices.length,
       serviceKeepCount: seedServices.length,
-      serviceDeleteFingerprint: fingerprintSortedIds(deleteServices.map((s) => s.id)),
-      serviceKeepFingerprint: fingerprintSortedIds(seedServices.map((s) => s.id)),
+      serviceDeleteFingerprint: null,
+      serviceKeepFingerprint: null,
       zoneDeleteCount: zones.length,
-      zoneQaShapedCount: qaZones.length,
-      zoneDeleteFingerprint: fingerprintSortedIds(zones.map((z) => z.id)),
+      zoneQaShapedCount: blocking.blockingInputs.zoneQaShapedCount,
+      zoneDeleteFingerprint: null,
       serviceRequirementDeleteCount: requirementsOnDelete.length,
+      serviceRequirementDeleteFingerprint: null,
       serviceDeleteCascadeTables: phaseBServiceCascadeTables,
       auditWriters: PHASE_B_AUDIT_WRITERS,
     },
     phaseC: {
-      authUsersDeleteCount: authUsers,
+      authUsersDeleteCount: authUserIds.length,
       requiresAuditClearBefore: true,
     },
     phaseD: {
@@ -238,14 +290,7 @@ export async function buildProductionResetPlan(env) {
       storageObjectCount: storageTotal,
       storagePreserveCount: 0,
     },
-    executeOrder: [
-      "Phase A: TRUNCATE phaseA.truncateRoots CASCADE (closure tables)",
-      "Phase B: DELETE 461 fingerprinted non-seed services (fires trg_audit_services)",
-      "Phase B2: TRUNCATE audit_logs (post-service-delete, pre-auth)",
-      "Phase C: DELETE all auth.users via Auth Admin API",
-      "Phase D: TRUNCATE audit_logs (final safety-net verify/clear)",
-      "Phase E: DELETE all storage objects in four buckets",
-    ],
+    executeOrder,
     auditTriggerVerification: {
       catalogTablesWithAuditTriggers: AUDIT_TRIGGER_TABLES.length,
       noAuditOn: NO_AUDIT_TRIGGER_TARGETS,
@@ -260,7 +305,7 @@ export async function buildProductionResetPlan(env) {
       serviceRequirementsDelete: requirementsOnDelete.length,
       bookingLocations: tableCounts.booking_locations,
       scopedPublicRowRemovals: scopedPublicRows,
-      authUsers: authUsers,
+      authUsers: authUserIds.length,
       storageObjects: storageTotal,
       tableCounts,
     },
@@ -271,9 +316,33 @@ export async function buildProductionResetPlan(env) {
       classification: storageByClass,
       avatarAuthOnlyNoProfile: avatarAuthOnlySample,
     },
+    fingerprint: null,
   };
 
-  plan.fingerprint = fingerprintPlan(plan);
+  if (!blocking.blocked) {
+    plan.fingerprint = fingerprintPlan({
+      version: plan.version,
+      fkGraphSource: fkSource,
+      fkEdges: edges,
+      phaseATruncateRoots: plan.phaseA.truncateRoots,
+      phaseAClosure,
+      serviceDeleteIds: deleteServices.map((s) => s.id),
+      serviceKeepIds: seedServices.map((s) => s.id),
+      serviceRequirementDeleteIds: requirementsOnDelete.map((r) => r.id),
+      zoneDeleteIds: zones.map((z) => z.id),
+      authUserIds,
+      storageObjects,
+      executeOrder: [...executeOrder],
+      blockingInputs: blocking.blockingInputs,
+    });
+    plan.phaseB.serviceDeleteFingerprint = fingerprintSortedIds(deleteServices.map((s) => s.id));
+    plan.phaseB.serviceKeepFingerprint = fingerprintSortedIds(seedServices.map((s) => s.id));
+    plan.phaseB.zoneDeleteFingerprint = fingerprintSortedIds(zones.map((z) => z.id));
+    plan.phaseB.serviceRequirementDeleteFingerprint = fingerprintSortedIds(
+      requirementsOnDelete.map((r) => r.id),
+    );
+  }
+
   return plan;
 }
 
@@ -281,5 +350,154 @@ export async function buildProductionResetPlan(env) {
  * @param {Awaited<ReturnType<typeof buildProductionResetPlan>>} plan
  */
 export function sanitizePlanForReport(plan) {
+  return pickAllowlistedFields(plan, REPORT_ALLOWLIST);
+}
+
+/**
+ * @param {{ blocked: boolean }} plan
+ */
+export function dryRunExitCode(plan) {
+  return plan.blocked ? 2 : 0;
+}
+
+/**
+ * Build a plan from an in-memory snapshot (unit tests only).
+ *
+ * @param {{
+ *   projectRef: string;
+ *   fkGraphSource?: "pg_constraint" | "migrations";
+ *   linkedRefVerified?: boolean;
+ *   edges: import("./fk-graph.mjs").FkEdge[];
+ *   services: Array<{ id: string; slug: string; name_en?: string | null }>;
+ *   zones: Array<{ id: string; name_en?: string | null }>;
+ *   serviceRequirements?: Array<{ id: string; service_id: string }>;
+ *   authUserIds?: string[];
+ *   storageObjects?: Array<{ bucket: string; key: string }>;
+ *   tableCounts?: Record<string, number>;
+ * }} snapshot
+ */
+export function buildProductionResetPlanFromSnapshot(snapshot) {
+  const phaseAClosure = computeTruncateCascadeClosure(snapshot.edges, [...PHASE_A_TRUNCATE_ROOTS]);
+  const phaseBServiceCascadeTables = computeServiceDeleteCascadeTables(snapshot.edges);
+
+  const seedServices = snapshot.services.filter((s) => SEED_SERVICE_SLUG_SET.has(s.slug));
+  const deleteServices = snapshot.services.filter((s) => !SEED_SERVICE_SLUG_SET.has(s.slug));
+  const requirements = snapshot.serviceRequirements ?? [];
+  const deleteServiceIds = new Set(deleteServices.map((s) => s.id));
+  const requirementsOnDelete = requirements.filter((r) => deleteServiceIds.has(r.service_id));
+
+  const blocking = evaluateCatalogBlockingChecks({
+    phaseAClosure,
+    seedServices,
+    deleteServices,
+    zones: snapshot.zones,
+  });
+
+  const tableCounts = snapshot.tableCounts ?? {};
+  const userRowSum = Object.values(tableCounts).reduce((sum, count) => sum + count, 0);
+  const authUserIds = snapshot.authUserIds ?? [];
+  const storageObjects = snapshot.storageObjects ?? [];
+
+  const executeOrder = [
+    "Phase A: TRUNCATE phaseA.truncateRoots CASCADE (closure tables)",
+    "Phase B: DELETE fingerprinted non-seed services (fires trg_audit_services)",
+    "Phase B2: TRUNCATE audit_logs (post-service-delete, pre-auth)",
+    "Phase C: DELETE all auth.users via Auth Admin API",
+    "Phase D: TRUNCATE audit_logs (final safety-net verify/clear)",
+    "Phase E: DELETE all storage objects in four buckets",
+  ];
+
+  const plan = {
+    version: PLAN_VERSION,
+    maskedProjectRef: maskProjectRef(snapshot.projectRef),
+    fkGraphSource: snapshot.fkGraphSource ?? "migrations",
+    linkedRefVerified: snapshot.linkedRefVerified ?? false,
+    blocked: blocking.blocked,
+    blockedReason: blocking.blockedReason,
+    blockedReasons: blocking.blockedReasons,
+    blockingInputs: blocking.blockingInputs,
+    phaseA: {
+      truncateRoots: [...PHASE_A_TRUNCATE_ROOTS],
+      truncateCascadeClosure: phaseAClosure,
+      truncateCascadeClosureCount: phaseAClosure.length,
+    },
+    phaseB: {
+      serviceDeleteCount: deleteServices.length,
+      serviceKeepCount: seedServices.length,
+      serviceDeleteFingerprint: null,
+      serviceKeepFingerprint: null,
+      zoneDeleteCount: snapshot.zones.length,
+      zoneQaShapedCount: blocking.blockingInputs.zoneQaShapedCount,
+      zoneDeleteFingerprint: null,
+      serviceRequirementDeleteCount: requirementsOnDelete.length,
+      serviceRequirementDeleteFingerprint: null,
+      serviceDeleteCascadeTables: phaseBServiceCascadeTables,
+      auditWriters: PHASE_B_AUDIT_WRITERS,
+    },
+    phaseC: {
+      authUsersDeleteCount: authUserIds.length,
+      requiresAuditClearBefore: true,
+    },
+    phaseD: {
+      auditLogsFinalClear: true,
+      description: "Safety-net audit_logs verify/clear after auth.users deletion",
+    },
+    phaseE: {
+      storageBuckets: STORAGE_BUCKETS,
+      storageObjectCount: storageObjects.length,
+      storagePreserveCount: 0,
+    },
+    executeOrder,
+    auditTriggerVerification: {
+      catalogTablesWithAuditTriggers: AUDIT_TRIGGER_TABLES.length,
+      noAuditOn: NO_AUDIT_TRIGGER_TARGETS,
+      phaseBWritesAudit: PHASE_B_AUDIT_WRITERS,
+    },
+    counts: {
+      userGeneratedPublicRows: userRowSum,
+      auditLogs: tableCounts.audit_logs ?? 0,
+      auditLogsPctOfUserRows: "0.00%",
+      qaServicesDelete: deleteServices.length,
+      zonesDelete: snapshot.zones.length,
+      serviceRequirementsDelete: requirementsOnDelete.length,
+      bookingLocations: tableCounts.booking_locations ?? 0,
+      scopedPublicRowRemovals:
+        userRowSum +
+        deleteServices.length +
+        snapshot.zones.length +
+        requirementsOnDelete.length,
+      authUsers: authUserIds.length,
+      storageObjects: storageObjects.length,
+      tableCounts,
+    },
+    storage: {
+      byBucket: {},
+      classification: {},
+      avatarAuthOnlyNoProfile: [],
+    },
+    fingerprint: null,
+  };
+
+  if (!blocking.blocked) {
+    plan.fingerprint = fingerprintPlan({
+      version: plan.version,
+      fkGraphSource: plan.fkGraphSource,
+      fkEdges: snapshot.edges,
+      phaseATruncateRoots: plan.phaseA.truncateRoots,
+      phaseAClosure,
+      serviceDeleteIds: deleteServices.map((s) => s.id),
+      serviceKeepIds: seedServices.map((s) => s.id),
+      serviceRequirementDeleteIds: requirementsOnDelete.map((r) => r.id),
+      zoneDeleteIds: snapshot.zones.map((z) => z.id),
+      authUserIds,
+      storageObjects,
+      executeOrder: [...executeOrder],
+      blockingInputs: blocking.blockingInputs,
+    });
+  }
+
   return plan;
 }
+
+// Re-export for callers that imported fingerprintPlan from plan.mjs historically.
+export { fingerprintPlan } from "./fingerprint.mjs";

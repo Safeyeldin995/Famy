@@ -5,7 +5,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseProductionResetArgs } from "./args.mjs";
 import { loadProductionEnv } from "./load-production-env.mjs";
-import { buildProductionResetPlan, sanitizePlanForReport } from "./plan.mjs";
+import {
+  buildProductionResetPlan,
+  dryRunExitCode,
+  sanitizePlanForReport,
+} from "./plan.mjs";
 import { runProductionResetExecute } from "./execute.mjs";
 import { RESET_CONFIRM_VALUE } from "./constants.mjs";
 
@@ -15,11 +19,10 @@ import { RESET_CONFIRM_VALUE } from "./constants.mjs";
 function writePlanReport(plan) {
   const reportDir = path.resolve(process.cwd(), "tools/production-reset/report");
   fs.mkdirSync(reportDir, { recursive: true });
-  fs.writeFileSync(
-    path.join(reportDir, "production-reset-plan.json"),
-    `${JSON.stringify(sanitizePlanForReport(plan), null, 2)}\n`,
-    "utf8",
-  );
+  const finalPath = path.join(reportDir, "production-reset-plan.json");
+  const tempPath = path.join(reportDir, `.production-reset-plan.${process.pid}.tmp`);
+  fs.writeFileSync(tempPath, `${JSON.stringify(sanitizePlanForReport(plan), null, 2)}\n`, "utf8");
+  fs.renameSync(tempPath, finalPath);
 }
 
 /**
@@ -30,10 +33,16 @@ function printDryRunSummary(plan) {
   console.log(`[production-reset:dry-run] plan_version=${plan.version}`);
   console.log(`[production-reset:dry-run] masked_project_ref=${plan.maskedProjectRef}`);
   console.log(`[production-reset:dry-run] fk_graph_source=${plan.fkGraphSource}`);
+  console.log(`[production-reset:dry-run] linked_ref_verified=${plan.linkedRefVerified}`);
 
   if (plan.blocked) {
     console.log("[production-reset:dry-run] blocked=true");
     console.log(`[production-reset:dry-run] blocked_reason=${plan.blockedReason}`);
+    if (plan.blockedReasons?.length) {
+      console.log(
+        `[production-reset:dry-run] blocked_reasons=${plan.blockedReasons.join(";")}`,
+      );
+    }
     return;
   }
   console.log("[production-reset:dry-run] blocked=false");
@@ -51,10 +60,16 @@ function printDryRunSummary(plan) {
   console.log(
     `[production-reset:dry-run] phase_b_service_delete_fingerprint=${plan.phaseB.serviceDeleteFingerprint}`,
   );
+  console.log(
+    `[production-reset:dry-run] phase_b_service_keep_fingerprint=${plan.phaseB.serviceKeepFingerprint}`,
+  );
   console.log(`[production-reset:dry-run] phase_b_zone_delete_count=${plan.phaseB.zoneDeleteCount}`);
   console.log(`[production-reset:dry-run] phase_b_zone_delete_fingerprint=${plan.phaseB.zoneDeleteFingerprint}`);
   console.log(
     `[production-reset:dry-run] phase_b_service_requirements_delete=${plan.phaseB.serviceRequirementDeleteCount}`,
+  );
+  console.log(
+    `[production-reset:dry-run] phase_b_service_requirements_delete_fingerprint=${plan.phaseB.serviceRequirementDeleteFingerprint}`,
   );
   console.log(
     `[production-reset:dry-run] phase_b_service_delete_cascade_tables=${plan.phaseB.serviceDeleteCascadeTables.join(",")}`,
@@ -95,16 +110,10 @@ function printDryRunSummary(plan) {
   }
 
   console.log(`[production-reset:dry-run] plan_fingerprint=${plan.fingerprint}`);
+  console.log(`[production-reset:dry-run] plan_fingerprint_length=${plan.fingerprint?.length ?? 0}`);
   console.log(
     `[production-reset:dry-run] Execute requires: --execute --confirm=${RESET_CONFIRM_VALUE} --plan-fingerprint=<fingerprint>`,
   );
-}
-
-/**
- * @param {{ blocked: boolean }} plan
- */
-function dryRunExitCode(plan) {
-  return plan.blocked ? 2 : 0;
 }
 
 /**

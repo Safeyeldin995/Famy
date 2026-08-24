@@ -1,6 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
+import { PRODUCTION_PROJECT_REF } from "./constants.mjs";
+import { resolveLinkedSupabaseProjectRef } from "./linked-project-ref.mjs";
+import { validateMigrationFkGraphAndClosure } from "./fk-graph-validation.mjs";
 
 const FK_QUERY = `
 SELECT
@@ -29,30 +32,53 @@ ORDER BY child_table, parent_table;
  */
 
 /**
- * @returns {{ edges: FkEdge[]; source: "pg_constraint" | "migrations" }}
+ * @param {string | null | undefined} linkedRef
  */
-export function loadPublicFkEdges() {
-  try {
-    const raw = execSync(`npx supabase db query --linked ${JSON.stringify(FK_QUERY)}`, {
-      cwd: process.cwd(),
-      encoding: "utf8",
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    const edges = parseSupabaseDbQueryOutput(raw);
-    if (edges.length > 0) {
-      return { edges, source: "pg_constraint" };
+export function isProductionLinkedRef(linkedRef) {
+  return linkedRef === PRODUCTION_PROJECT_REF;
+}
+
+/**
+ * @param {{
+ *   cwd?: string;
+ *   linkedRef?: string | null;
+ *   execQuery?: (query: string) => string;
+ * }} [options]
+ * @returns {{ edges: FkEdge[]; source: "pg_constraint" | "migrations"; linkedRef: string | null; linkedRefVerified: boolean }}
+ */
+export function loadPublicFkEdges(options = {}) {
+  const cwd = options.cwd ?? process.cwd();
+  const linkedRef = options.linkedRef ?? resolveLinkedSupabaseProjectRef(cwd);
+
+  if (isProductionLinkedRef(linkedRef)) {
+    try {
+      const raw = options.execQuery
+        ? options.execQuery(FK_QUERY)
+        : execSync(`npx supabase db query --linked ${JSON.stringify(FK_QUERY)}`, {
+            cwd,
+            encoding: "utf8",
+            stdio: ["pipe", "pipe", "pipe"],
+          });
+      const edges = parseSupabaseDbQueryOutput(raw);
+      if (edges.length > 0) {
+        validateMigrationFkGraphAndClosure(edges);
+        return { edges, source: "pg_constraint", linkedRef, linkedRefVerified: true };
+      }
+    } catch {
+      // IPv6 / CLI unavailable / validation failure — fall back to migration-derived graph
     }
-  } catch {
-    // IPv6 / CLI unavailable — fall back to migration-derived graph
   }
-  return { edges: loadFkEdgesFromMigrations(), source: "migrations" };
+
+  const edges = loadFkEdgesFromMigrations(cwd);
+  validateMigrationFkGraphAndClosure(edges);
+  return { edges, source: "migrations", linkedRef, linkedRefVerified: isProductionLinkedRef(linkedRef) };
 }
 
 /**
  * @param {string} raw
  * @returns {FkEdge[]}
  */
-function parseSupabaseDbQueryOutput(raw) {
+export function parseSupabaseDbQueryOutput(raw) {
   /** @type {FkEdge[]} */
   const edges = [];
   const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
@@ -72,12 +98,65 @@ function parseSupabaseDbQueryOutput(raw) {
 }
 
 /**
- * Migration-derived FK edges for public.child → public.parent (and public → auth.users).
- * Kept in sync with applied migrations when live pg_constraint is unreachable.
+ * Parse FK edges from a SQL fragment (for tests and targeted validation).
+ * @param {string} sql
  * @returns {FkEdge[]}
  */
-export function loadFkEdgesFromMigrations() {
-  const migrationsDir = path.join(process.cwd(), "supabase", "migrations");
+export function parseFkEdgesFromSqlFragment(sql) {
+  /** @type {Map<string, FkEdge>} */
+  const edgeMap = new Map();
+
+  function add(child, parent, parentSchema, onDelete = "NO ACTION") {
+    const key = `${child}->${parentSchema}.${parent}`;
+    edgeMap.set(key, { child, parent, parentSchema, onDelete });
+  }
+
+  const publicRef = /REFERENCES\s+public\.(\w+)\([^)]+\)(?:\s+ON DELETE\s+(\w+(?:\s+\w+)?))?/gi;
+  const authRef = /REFERENCES\s+auth\.users\([^)]+\)(?:\s+ON DELETE\s+(\w+(?:\s+\w+)?))?/gi;
+
+  const createBlocks = sql.match(/CREATE TABLE(?: IF NOT EXISTS)?\s+public\.(\w+)[\s\S]*?;/gi) ?? [];
+  for (const block of createBlocks) {
+    const childMatch = block.match(/CREATE TABLE(?: IF NOT EXISTS)?\s+public\.(\w+)/i);
+    if (!childMatch) continue;
+    const child = childMatch[1];
+    let m;
+    publicRef.lastIndex = 0;
+    while ((m = publicRef.exec(block))) {
+      add(child, m[1], "public", normalizeOnDelete(m[2]));
+    }
+    authRef.lastIndex = 0;
+    while ((m = authRef.exec(block))) {
+      add(child, "users", "auth", normalizeOnDelete(m[1]));
+    }
+  }
+
+  const alterBlocks = sql.match(/ALTER TABLE\s+public\.(\w+)[\s\S]*?;/gi) ?? [];
+  for (const block of alterBlocks) {
+    const childMatch = block.match(/ALTER TABLE\s+public\.(\w+)/i);
+    if (!childMatch) continue;
+    const child = childMatch[1];
+    let m;
+    publicRef.lastIndex = 0;
+    while ((m = publicRef.exec(block))) {
+      add(child, m[1], "public", normalizeOnDelete(m[2]));
+    }
+    authRef.lastIndex = 0;
+    while ((m = authRef.exec(block))) {
+      add(child, "users", "auth", normalizeOnDelete(m[1]));
+    }
+  }
+
+  return [...edgeMap.values()];
+}
+
+/**
+ * Migration-derived FK edges for public.child → public.parent (and public → auth.users).
+ * Kept in sync with applied migrations when live pg_constraint is unreachable.
+ * @param {string} [cwd]
+ * @returns {FkEdge[]}
+ */
+export function loadFkEdgesFromMigrations(cwd = process.cwd()) {
+  const migrationsDir = path.join(cwd, "supabase", "migrations");
   const sql = fs
     .readdirSync(migrationsDir)
     .filter((n) => n.endsWith(".sql"))
@@ -127,7 +206,9 @@ export function loadFkEdgesFromMigrations() {
     }
   }
 
-  const fkConstraintBlocks = sql.match(/FOREIGN KEY[\s\S]*?REFERENCES\s+public\.(\w+)\([^)]+\)(?:\s+ON DELETE\s+(\w+(?:\s+\w+)?))?/gi) ?? [];
+  const fkConstraintBlocks =
+    sql.match(/FOREIGN KEY[\s\S]*?REFERENCES\s+public\.(\w+)\([^)]+\)(?:\s+ON DELETE\s+(\w+(?:\s+\w+)?))?/gi) ??
+    [];
   for (const block of fkConstraintBlocks) {
     const parentMatch = block.match(/REFERENCES\s+public\.(\w+)/i);
     const onDelMatch = block.match(/ON DELETE\s+(\w+(?:\s+\w+)?)/i);
