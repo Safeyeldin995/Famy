@@ -90,24 +90,30 @@ step that runs against Production without a human in the loop.
 
 ## Rollback plan
 
-**This is the biggest real gap in this runbook, not just a formality.**
-There are no down-migrations in this repo, and no rollback tooling exists
-anywhere in `qa/` or `tools/`. That means "rollback" for a bad Production
-migration currently has exactly two possible mechanisms, and this repo's
-tooling implements neither:
+**Resolved 2026-08-24 (Safeyeldin confirmed): PITR/backups are enabled on
+the Production Supabase project.** A real rollback mechanism does exist —
+this was the biggest open gap in this runbook, and it's now closed in
+principle. There are still no down-migrations and no rollback tooling
+anywhere in `qa/` or `tools/`, so "rollback" means using Supabase's own
+PITR restore (a dashboard/support action, not anything in this codebase),
+not reverting via a script here.
 
-1. **Point-in-time recovery (PITR)** via Supabase's own backup system, if
-   enabled on the Production project's plan tier. This is a
-   dashboard/support-ticket action, not something in this codebase.
-2. **A hand-written compensating migration** — i.e., accepting that
-   "rollback" means writing and reviewing a *new* forward migration that
-   undoes the damage, not reverting to a prior schema snapshot.
+**Still open, smaller item:** the exact PITR retention window (how far
+back restores can go) hasn't been confirmed yet — needed to state
+precisely what "how far can we roll back" means in practice. Until that's
+confirmed, treat the safe assumption as "restore is possible, but don't
+rely on a specific window without checking the Supabase dashboard's
+current backup settings at deploy time."
 
-**Open question for Safeyeldin:** is PITR/backup currently enabled on the
-Production Supabase project, and if so, what's the retention window? This
-determines whether option 1 is real. Until this is answered and written
-down here, the honest rollback plan is "stop, do not apply further
-migrations, write a reviewed compensating migration" — not "revert."
+Two mechanisms exist in total, in order of preference:
+
+1. **Point-in-time recovery (PITR)** — confirmed enabled. This is the
+   primary rollback path for a bad Production migration going forward.
+2. **A hand-written compensating migration** — for cases where a full PITR
+   restore is undesirable (e.g. it would also revert unrelated legitimate
+   writes that happened after the bad migration), accept that "rollback"
+   means writing and reviewing a *new* forward migration that undoes the
+   damage, not reverting to a prior schema snapshot.
 
 ## Monitoring / alerting minimum
 
