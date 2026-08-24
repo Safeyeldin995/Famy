@@ -1,11 +1,12 @@
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 
 /**
  * @param {string} databaseUrl
  * @param {string} sql
  */
 export function defaultExecSql(databaseUrl, sql) {
-  execSync(`npx supabase db query --db-url ${JSON.stringify(databaseUrl)} ${JSON.stringify(sql)}`, {
+  const npx = process.platform === "win32" ? "npx.cmd" : "npx";
+  execFileSync(npx, ["supabase", "db", "query", "--db-url", databaseUrl, sql], {
     cwd: process.cwd(),
     encoding: "utf8",
     stdio: ["pipe", "pipe", "pipe"],
@@ -36,17 +37,21 @@ export async function runSimulatedSqlTransaction(databaseUrl, statements, deps =
   execSql(databaseUrl, wrapped);
 
   const afterCounts = deps.captureCounts ? await deps.captureCounts() : null;
-  if (beforeCounts && afterCounts && deps.verifyCounts) {
-    deps.verifyCounts(beforeCounts, afterCounts);
-  } else if (beforeCounts && afterCounts) {
-    assertCountsUnchanged(beforeCounts, afterCounts);
+  let dataUnchangedVerified = false;
+  if (beforeCounts && afterCounts) {
+    if (deps.verifyCounts) {
+      deps.verifyCounts(beforeCounts, afterCounts);
+    } else {
+      assertCountsUnchanged(beforeCounts, afterCounts);
+    }
+    dataUnchangedVerified = true;
   }
 
   return {
     mode: "rollback-transaction",
     statements,
     rolledBack: true,
-    dataUnchangedVerified: Boolean(beforeCounts && afterCounts),
+    dataUnchangedVerified,
   };
 }
 

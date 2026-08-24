@@ -31,6 +31,7 @@ import {
   buildPhaseATableRowCounts,
   buildProductionResetPlanFromSnapshot,
   dryRunExitCode,
+  fetchAllAuthUserIds,
   sanitizePlanForReport,
 } from "../plan.mjs";
 import { SEED_SERVICE_SLUGS } from "../seed-catalog.mjs";
@@ -42,7 +43,14 @@ import {
   runProductionResetExecute,
 } from "../execute.mjs";
 import { assertCountsUnchanged, runSimulatedSqlTransaction } from "../execute-sql.mjs";
-import { assertPhaseOrder, EXECUTE_PHASE_ORDER } from "../execute-phases.mjs";
+import {
+  assertPhaseOrder,
+  collectStorageObjectKeys,
+  computeRollbackVerified,
+  EXECUTE_PHASE_ORDER,
+} from "../execute-phases.mjs";
+import { assertQaCloneDatabaseUrlIdentity } from "../load-qa-clone-env.mjs";
+import * as storageInventory from "../storage-inventory.mjs";
 
 const SYNTHETIC_EDGES = [
   { child: "payments", parent: "bookings", parentSchema: "public", onDelete: "CASCADE" },
@@ -264,8 +272,55 @@ describe("execute phase ordering and simulation rollback", () => {
       },
     );
     expect(result.rolledBack).toBe(true);
+    expect(result.dataUnchangedVerified).toBe(true);
     expect(executedSql).toContain("BEGIN");
     expect(executedSql).toContain("ROLLBACK");
+  });
+
+  it("does not mark dataUnchangedVerified without captureCounts", async () => {
+    const result = await runSimulatedSqlTransaction(
+      "postgresql://postgres.bfwveoqbyqlhixjvdzha@db.bfwveoqbyqlhixjvdzha.supabase.co:5432/postgres",
+      ["TRUNCATE TABLE public.audit_logs RESTART IDENTITY"],
+      {
+        execSql: () => {},
+      },
+    );
+    expect(result.rolledBack).toBe(true);
+    expect(result.dataUnchangedVerified).toBe(false);
+  });
+
+  it("rollback_verified true only when every SQL phase proved data unchanged", () => {
+    const sqlPhase = (phase: string, verified: boolean) => ({
+      phase,
+      simulation: { dataUnchangedVerified: verified, mode: "rollback-transaction" },
+    });
+    const allVerified = [
+      sqlPhase("A", true),
+      { phase: "B" },
+      sqlPhase("B2", true),
+      { phase: "C" },
+      sqlPhase("D", true),
+      { phase: "E" },
+    ];
+    expect(computeRollbackVerified(allVerified, true).rollbackVerified).toBe(true);
+
+    const partial = [
+      sqlPhase("A", true),
+      { phase: "B" },
+      sqlPhase("B2", false),
+      { phase: "C" },
+      sqlPhase("D", true),
+      { phase: "E" },
+    ];
+    const result = computeRollbackVerified(partial, true);
+    expect(result.rollbackVerified).toBe(false);
+    expect(result.rollbackVerificationNote).toContain("B2");
+  });
+
+  it("rollback_verified false in plan-only mode without database URL", () => {
+    const result = computeRollbackVerified([], false);
+    expect(result.rollbackVerified).toBe(false);
+    expect(result.rollbackVerificationNote).toContain("plan-only");
   });
 
   it("throws when rollback verification detects drift", () => {
@@ -546,5 +601,59 @@ describe("report sanitization", () => {
     expect(sanitized).not.toHaveProperty("secretField");
     expect(sanitized).toHaveProperty("fingerprint");
     expect(sanitized).toHaveProperty("blockingInputs");
+  });
+});
+
+describe("Stage 2 round 2 safety fixes", () => {
+  it("rejects Production database URL even when REST URL is QA", () => {
+    const prodDb = `postgresql://postgres:${PRODUCTION_PROJECT_REF}@db.${PRODUCTION_PROJECT_REF}.supabase.co:5432/postgres`;
+    expect(() => assertQaCloneDatabaseUrlIdentity(prodDb, KNOWN_QA_PROJECT_REF)).toThrow(
+      /Production/,
+    );
+  });
+
+  it("rejects REST/database project ref mismatch", () => {
+    const qaDb = `postgresql://postgres:${KNOWN_QA_PROJECT_REF}@db.${KNOWN_QA_PROJECT_REF}.supabase.co:5432/postgres`;
+    expect(() => assertQaCloneDatabaseUrlIdentity(qaDb, "aaaaaaaaaaaaaaaaaaaa")).toThrow(
+      /does not match REST URL ref/i,
+    );
+  });
+
+  it("accepts matching REST and database project refs", () => {
+    const qaDb = `postgresql://postgres:${KNOWN_QA_PROJECT_REF}@db.${KNOWN_QA_PROJECT_REF}.supabase.co:5432/postgres`;
+    expect(assertQaCloneDatabaseUrlIdentity(qaDb, KNOWN_QA_PROJECT_REF)).toBe(KNOWN_QA_PROJECT_REF);
+  });
+
+  it("collects nested storage objects via shared inventory helper", async () => {
+    vi.spyOn(storageInventory, "inventoryStorageBuckets").mockResolvedValue({
+      avatars: {
+        total: 2,
+        keys: [{ key: "user/a.jpg", size: 1 }, { key: "user/nested/b.jpg", size: 1 }],
+      },
+      "provider-documents": { total: 0, keys: [] },
+      "payment-proofs": { total: 0, keys: [] },
+      "case-evidence": { total: 0, keys: [] },
+    });
+    const keys = await collectStorageObjectKeys({} as never);
+    expect(keys).toHaveLength(2);
+    expect(keys.map((row) => row.key)).toEqual(["user/a.jpg", "user/nested/b.jpg"]);
+    vi.restoreAllMocks();
+  });
+
+  it("throws when auth.users pagination exceeds 4000 rows", async () => {
+    const admin = {
+      auth: {
+        admin: {
+          listUsers: vi.fn(async ({ page }: { page: number }) => ({
+            data: {
+              users: Array.from({ length: 200 }, (_, index) => ({
+                id: `user-${page}-${index}`,
+              })),
+            },
+          })),
+        },
+      },
+    };
+    await expect(fetchAllAuthUserIds(admin as never)).rejects.toThrow(/exceeded 4000 rows/i);
   });
 });

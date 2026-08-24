@@ -2,6 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { PRODUCTION_PROJECT_REF } from "./constants.mjs";
 import { maskProjectRef } from "./load-production-env.mjs";
+import {
+  resolveProjectRefFromDatabaseUrl,
+  resolveProjectRefFromRestUrl,
+} from "./project-ref-from-url.mjs";
 
 /**
  * @param {string} filePath
@@ -23,9 +27,38 @@ function loadEnvFile(filePath) {
 }
 
 /**
+ * Fail closed: database URL must resolve to the same project as the verified REST URL.
+ *
+ * @param {string} databaseUrl
+ * @param {string} restProjectRef
+ */
+export function assertQaCloneDatabaseUrlIdentity(databaseUrl, restProjectRef) {
+  const databaseProjectRef = resolveProjectRefFromDatabaseUrl(databaseUrl);
+  if (!databaseProjectRef) {
+    throw new Error(
+      "[production-reset:execute] Cannot resolve project ref from QA-clone database URL — refusing to proceed",
+    );
+  }
+
+  if (databaseProjectRef === PRODUCTION_PROJECT_REF) {
+    throw new Error(
+      `[production-reset:execute] Refusing QA-clone database URL: resolves to Production ${maskProjectRef(PRODUCTION_PROJECT_REF)}`,
+    );
+  }
+
+  if (databaseProjectRef !== restProjectRef) {
+    throw new Error(
+      `[production-reset:execute] QA-clone database URL project ref ${maskProjectRef(databaseProjectRef)} does not match REST URL ref ${maskProjectRef(restProjectRef)}`,
+    );
+  }
+
+  return databaseProjectRef;
+}
+
+/**
  * QA-clone credentials for execute/simulate — never Production.
  *
- * @returns {{ url: string; serviceRoleKey: string; projectRef: string; databaseUrl: string | null; maskedProjectRef: string }}
+ * @returns {{ url: string; serviceRoleKey: string; projectRef: string; databaseUrl: string | null; maskedProjectRef: string; databaseProjectRef: string | null }}
  */
 export function loadQaCloneEnv() {
   const root = process.cwd();
@@ -49,16 +82,21 @@ export function loadQaCloneEnv() {
     );
   }
 
-  const match = url.match(/https:\/\/([a-z0-9]+)\.supabase\.co/i);
-  const projectRef = match?.[1] ?? "";
+  const projectRef = resolveProjectRefFromRestUrl(url);
   if (!projectRef) {
     throw new Error("[production-reset:execute] QA-clone Supabase URL is missing or invalid");
   }
 
   if (projectRef === PRODUCTION_PROJECT_REF) {
     throw new Error(
-      `[production-reset:execute] Refusing QA-clone target: URL resolves to Production ${maskProjectRef(PRODUCTION_PROJECT_REF)}`,
+      `[production-reset:execute] Refusing QA-clone target: REST URL resolves to Production ${maskProjectRef(PRODUCTION_PROJECT_REF)}`,
     );
+  }
+
+  /** @type {string | null} */
+  let databaseProjectRef = null;
+  if (databaseUrl) {
+    databaseProjectRef = assertQaCloneDatabaseUrlIdentity(databaseUrl, projectRef);
   }
 
   return {
@@ -66,6 +104,7 @@ export function loadQaCloneEnv() {
     serviceRoleKey,
     projectRef,
     databaseUrl,
+    databaseProjectRef,
     maskedProjectRef: maskProjectRef(projectRef),
   };
 }

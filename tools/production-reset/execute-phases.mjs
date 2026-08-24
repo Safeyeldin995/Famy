@@ -1,10 +1,15 @@
 import { createClient } from "@supabase/supabase-js";
 import { STORAGE_BUCKETS } from "./constants.mjs";
 import { SEED_SERVICE_SLUG_SET, maskId } from "./seed-catalog.mjs";
+import { fetchAllAuthUserIds } from "./plan.mjs";
+import { inventoryStorageBuckets } from "./storage-inventory.mjs";
 import { runSimulatedSqlTransaction } from "./execute-sql.mjs";
 
 /** @type {readonly string[]} */
 export const EXECUTE_PHASE_ORDER = ["A", "B", "B2", "C", "D", "E"];
+
+/** SQL phases that must each prove rollback via row-count verification. */
+export const SQL_SIMULATION_PHASES = ["A", "B2", "D"];
 
 /**
  * @param {{ phaseA: { truncateRoots: string[] } }} plan
@@ -36,44 +41,41 @@ async function fetchDeleteServiceIds(admin) {
 /**
  * @param {import("@supabase/supabase-js").SupabaseClient} admin
  */
-async function fetchAuthUserIds(admin) {
-  /** @type {string[]} */
-  const ids = [];
-  for (let page = 1; page <= 20; page++) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
-    if (error) throw error;
-    ids.push(...data.users.map((user) => user.id));
-    if (data.users.length < 200) break;
-  }
-  return ids;
+export async function collectStorageObjectKeys(admin) {
+  const inventory = await inventoryStorageBuckets(admin, STORAGE_BUCKETS);
+  return STORAGE_BUCKETS.flatMap((bucket) =>
+    inventory[bucket].keys.map((obj) => ({ bucket, key: obj.key })),
+  );
 }
 
 /**
- * @param {import("@supabase/supabase-js").SupabaseClient} admin
+ * @param {Array<Record<string, unknown>>} phases
+ * @param {boolean} databaseUrlConfigured
  */
-async function listStorageObjectKeys(admin) {
-  /** @type {Array<{ bucket: string; key: string }>} */
-  const objects = [];
-  for (const bucket of STORAGE_BUCKETS) {
-    let offset = 0;
-    for (;;) {
-      const { data, error } = await admin.storage.from(bucket).list("", {
-        limit: 1000,
-        offset,
-        sortBy: { column: "name", order: "asc" },
-      });
-      if (error) throw error;
-      if (!data?.length) break;
-      for (const item of data) {
-        if (item.id !== null) {
-          objects.push({ bucket, key: item.name });
-        }
-      }
-      if (data.length < 1000) break;
-      offset += 1000;
-    }
+export function computeRollbackVerified(phases, databaseUrlConfigured) {
+  if (!databaseUrlConfigured) {
+    return {
+      rollbackVerified: false,
+      rollbackVerificationNote: "no-database-url — SQL phases ran in plan-only mode",
+    };
   }
-  return objects;
+
+  const sqlPhases = phases.filter((row) => SQL_SIMULATION_PHASES.includes(String(row.phase)));
+  const allVerified =
+    sqlPhases.length === SQL_SIMULATION_PHASES.length &&
+    sqlPhases.every((row) => row.simulation?.dataUnchangedVerified === true);
+
+  if (allVerified) {
+    return { rollbackVerified: true, rollbackVerificationNote: null };
+  }
+
+  const unverified = sqlPhases
+    .filter((row) => row.simulation?.dataUnchangedVerified !== true)
+    .map((row) => row.phase);
+  return {
+    rollbackVerified: false,
+    rollbackVerificationNote: `SQL phases lacking row-count rollback proof: ${unverified.join(", ") || "missing phases"}`,
+  };
 }
 
 /**
@@ -124,7 +126,7 @@ export async function runSimulatedExecutePhases(plan, env, deps = {}) {
     simulation: phaseB2,
   });
 
-  const authUserIds = await fetchAuthUserIds(admin);
+  const authUserIds = await fetchAllAuthUserIds(admin);
   phases.push({
     phase: "C",
     description: "DELETE auth.users via Auth Admin API",
@@ -143,7 +145,7 @@ export async function runSimulatedExecutePhases(plan, env, deps = {}) {
     simulation: phaseD,
   });
 
-  const storageObjects = await listStorageObjectKeys(admin);
+  const storageObjects = await collectStorageObjectKeys(admin);
   phases.push({
     phase: "E",
     description: "DELETE storage objects in four buckets",
@@ -155,14 +157,15 @@ export async function runSimulatedExecutePhases(plan, env, deps = {}) {
 
   assertPhaseOrder(phases.map((row) => row.phase));
 
+  const rollback = computeRollbackVerified(phases, Boolean(env.databaseUrl));
+
   return {
     simulate: true,
     target: "qa-clone",
     phases,
     dataMutated: false,
-    rollbackVerified: phases.some(
-      (row) => row.simulation?.dataUnchangedVerified || row.simulation?.rolledBack === true,
-    ),
+    rollbackVerified: rollback.rollbackVerified,
+    rollbackVerificationNote: rollback.rollbackVerificationNote,
   };
 }
 

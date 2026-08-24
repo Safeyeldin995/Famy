@@ -1,9 +1,11 @@
+import { createClient } from "@supabase/supabase-js";
 import {
   EXECUTE_TARGET_PRODUCTION,
   EXECUTE_TARGET_QA_CLONE,
 } from "./constants.mjs";
 import { buildProductionResetPlan } from "./plan.mjs";
 import { runSimulatedExecutePhases } from "./execute-phases.mjs";
+import { buildSqlRollbackDeps } from "./execute-rollback-deps.mjs";
 
 /**
  * Hard gate: Production execute is not available in Stage 2.
@@ -85,7 +87,16 @@ export async function runProductionResetExecute(options) {
 
   const livePlan = await assertLiveFingerprintMatches(recomputePlan, options.planFingerprint);
   const phaseRunner = options.phaseRunner ?? runSimulatedExecutePhases;
-  const execution = await phaseRunner(livePlan, options.env, options.sqlDeps ?? {});
+
+  let sqlDeps = options.sqlDeps;
+  if (!sqlDeps && options.env.databaseUrl) {
+    const admin = createClient(options.env.url, options.env.serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    sqlDeps = buildSqlRollbackDeps(admin, livePlan);
+  }
+
+  const execution = await phaseRunner(livePlan, options.env, sqlDeps ?? {});
 
   return {
     plan: livePlan,
@@ -103,6 +114,11 @@ export function printExecuteSimulateSummary(result) {
   console.log(`[production-reset:execute:simulate] plan_fingerprint=${plan.fingerprint}`);
   console.log(`[production-reset:execute:simulate] data_mutated=${execution.dataMutated}`);
   console.log(`[production-reset:execute:simulate] rollback_verified=${execution.rollbackVerified}`);
+  if (execution.rollbackVerificationNote) {
+    console.log(
+      `[production-reset:execute:simulate] rollback_verification_note=${execution.rollbackVerificationNote}`,
+    );
+  }
   console.log("[production-reset:execute:simulate] phases:");
   for (const phase of execution.phases) {
     console.log(`[production-reset:execute:simulate]   phase=${phase.phase} ${phase.description}`);
@@ -131,7 +147,7 @@ export function printExecuteSimulateSummary(result) {
     }
     if (phase.simulation) {
       console.log(
-        `[production-reset:execute:simulate]     simulation_mode=${phase.simulation.mode} rolled_back=${phase.simulation.rolledBack}`,
+        `[production-reset:execute:simulate]     simulation_mode=${phase.simulation.mode} rolled_back=${phase.simulation.rolledBack} data_unchanged_verified=${phase.simulation.dataUnchangedVerified}`,
       );
     }
     if (phase.simulateOnly) {
