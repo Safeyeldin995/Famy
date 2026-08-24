@@ -556,6 +556,47 @@ after that. An isolated-Postgres live rollback verification, and any
 actual QA-clone mutation, remain separate, later, explicitly-approved
 steps — not implied by anything in this round.
 
+**Stage 2 round 2 (Cursor, commit `e011daa`) + Codex focused re-audit,
+2026-08-24 — 4 of 5 findings closed, but the database-identity BLOCKER is
+still open in a more dangerous form, plus one new HIGH regression.** Claude
+independently traced all five fixes before sending to Codex and found them
+structurally sound; the audit caught what a structural read alone
+couldn't:
+
+- **Genuinely closed:** false `rollback_verified` reporting (real CLI path
+  now always wires row-count capture/verification when a database URL is
+  present, and requires all three SQL phases to verify — not just one);
+  Phase E storage undercounting (now reuses Stage 1's recursive inventory,
+  confirmed 48/48 against a live QA-clone check); the duplicated
+  auth-pagination logic (now reuses `plan.mjs`'s fail-closed function
+  directly).
+- **BLOCKER, still open — now a bypass, not just a gap.** The fix scans
+  the **entire raw URL string** for a ref-shaped pattern instead of
+  parsing structurally. Codex proved this is exploitable: a Production
+  database URL with a QA-shaped string placed in the **password** field
+  gets matched as QA — the exact "Production URL slips past the QA-clone
+  check" risk this was supposed to close is still open, just less likely
+  to trigger by accident. Needs structural URL parsing (hostname/username
+  only, never password/path/query), not smarter regexes.
+- **New HIGH — the shell-injection fix broke Windows.** Swapping to
+  `execFileSync("npx.cmd", ...)` (an argument array, correctly closing the
+  injection MEDIUM) fails with `EINVAL` on the actual Windows dev
+  environment this project runs in. The fix must be both injection-safe
+  and Windows-functional — Codex flagged the historical Node.js
+  `cmd.exe`-quoting footgun (CVE-2024-27980) as a reason not to solve this
+  by just adding `shell: true` back naively.
+- **MEDIUM, non-blocking:** `computeRollbackVerified()` checks "3 phases,
+  all verified" rather than "A, B2, D each present exactly once" — not
+  currently exploitable (protected upstream by the phase-order assertion)
+  but worth tightening for defense in depth.
+
+**PR #36 stays Draft, unmerged.** Sent back to Cursor for round 3: fix the
+URL parsing structurally with regression tests proving a ref-shaped string
+in the password/path/query can't be misread as the real ref, find a
+Windows-safe *and* injection-safe way to invoke the Supabase CLI (resolving
+the binary directly rather than through `npx` is the preferred fix), and
+tighten the phase-identity check. One more focused Codex pass after that.
+
 ---
 
 ## Milestones
