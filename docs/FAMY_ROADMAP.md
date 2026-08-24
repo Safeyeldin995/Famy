@@ -597,6 +597,36 @@ Windows-safe *and* injection-safe way to invoke the Supabase CLI (resolving
 the binary directly rather than through `npx` is the preferred fix), and
 tighten the phase-identity check. One more focused Codex pass after that.
 
+**Stage 2 round 3 (Cursor, commit `7f1b183`) + Codex focused re-audit,
+2026-08-24 — the security-relevant findings are done; one process/CI issue
+left.** Codex independently re-tried the exact crafted-URL bypass from last
+round (ref-shaped string in password, path, and query, plus a
+conflicting-hostname/username case) and confirmed the new structural
+`new URL()`-based parser rejects all of them correctly. The Windows spawn
+fix was verified with a real (not mocked) invocation. The phase-membership
+check correctly rejects missing and duplicate phases now. **All three
+prior findings — the BLOCKER, the HIGH, and the MEDIUM — are genuinely
+closed**, and Codex states no BLOCKER remains in the code itself.
+
+Two smaller things surfaced this round, one from each side:
+
+- Claude independently found (before sending to Codex) that the Windows
+  fix's `cross-spawn` import isn't declared in `package.json` — it only
+  works today because ESLint happens to pull it in transitively. Codex
+  confirmed this (MEDIUM) and recommends declaring it directly.
+- Codex found a new HIGH the fix itself introduced: the new
+  Windows-verification test makes a real network call to a bogus host,
+  which passes alone but times out under Vitest's 5-second limit when run
+  in the full parallel suite — reproduced failing twice locally and in
+  required GitHub CI (539/540).
+
+Neither is a data-safety issue — both are process/test-hygiene. **PR #36
+stays Draft, unmerged.** Sent back to Cursor for a small round 4: drop the
+network-calling test from the automated suite (keep the manual
+verification as evidence, not as a CI gate) and declare `cross-spawn` as a
+real dependency. Expected to be the closing round — Codex has already
+cleared everything security-relevant.
+
 ---
 
 ## Milestones
