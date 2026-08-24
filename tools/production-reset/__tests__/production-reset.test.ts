@@ -4,13 +4,13 @@ import { RESET_CONFIRM_VALUE, PRODUCTION_PROJECT_REF } from "../constants.mjs";
 import { evaluateCatalogBlockingChecks, EXPECTED_SEED_SERVICE_COUNT } from "../blocking-predicates.mjs";
 import { computeTruncateCascadeClosure } from "../fk-closure.mjs";
 import {
-  isProductionLinkedRef,
   loadPublicFkEdges,
   loadFkEdgesFromMigrations,
   parseFkEdgesFromSqlFragment,
 } from "../fk-graph.mjs";
 import {
   assertMigrationFkGraphComplete,
+  assertPhaseAClosureComplete,
   validateMigrationFkGraphAndClosure,
 } from "../fk-graph-validation.mjs";
 import {
@@ -136,21 +136,20 @@ describe("production identity guards", () => {
   });
 
   it("uses pg_constraint when linked ref is Production and query succeeds", () => {
-    const edges = [
-      { child: "payments", parent: "bookings", parentSchema: "public", onDelete: "CASCADE" },
-      { child: "provider_services", parent: "providers", parentSchema: "public", onDelete: "CASCADE" },
-      { child: "bookings", parent: "profiles", parentSchema: "public", onDelete: "RESTRICT" },
-      { child: "bookings", parent: "services", parentSchema: "public", onDelete: "RESTRICT" },
-      { child: "audit_logs", parent: "users", parentSchema: "auth", onDelete: "NO ACTION" },
-      { child: "user_roles", parent: "users", parentSchema: "auth", onDelete: "CASCADE" },
-      { child: "service_requirements", parent: "services", parentSchema: "public", onDelete: "CASCADE" },
-      { child: "zone_services", parent: "services", parentSchema: "public", onDelete: "CASCADE" },
-      { child: "zone_services", parent: "zones", parentSchema: "public", onDelete: "CASCADE" },
-    ];
-    // pad to minimum edge count with duplicates via manual list in validator - actually need 70 edges
-    // Instead use real migration graph validation path for non-production linked case
-    expect(isProductionLinkedRef(PRODUCTION_PROJECT_REF)).toBe(true);
-    expect(isProductionLinkedRef(KNOWN_QA_PROJECT_REF)).toBe(false);
+    const migrationEdges = loadFkEdgesFromMigrations();
+    const execQuery = vi.fn(() =>
+      migrationEdges.map((edge) => `${edge.child}|${edge.parent}|${edge.parentSchema}|${edge.onDelete}`).join("\n"),
+    );
+
+    const result = loadPublicFkEdges({
+      linkedRef: PRODUCTION_PROJECT_REF,
+      execQuery,
+    });
+
+    expect(execQuery).toHaveBeenCalledOnce();
+    expect(result.source).toBe("pg_constraint");
+    expect(result.linkedRefVerified).toBe(true);
+    expect(result.edges.length).toBeGreaterThan(0);
   });
 
   it("reads linked ref from supabase/.temp/project-ref when present", () => {
@@ -199,6 +198,20 @@ describe("fk closure and migration parsing", () => {
   it("throws when migration graph is obviously incomplete", () => {
     expect(() => assertMigrationFkGraphComplete([{ child: "payments", parent: "bookings", parentSchema: "public", onDelete: "CASCADE" }])).toThrow(
       /incomplete/i,
+    );
+  });
+
+  it("throws when a required FK edge is missing", () => {
+    const edges = loadFkEdgesFromMigrations().filter(
+      (edge) => !(edge.child === "payments" && edge.parent === "bookings"),
+    );
+    expect(() => assertMigrationFkGraphComplete(edges)).toThrow(/missing required edges.*payments->bookings/i);
+  });
+
+  it("throws when a Phase B catalog table leaks into the Phase A closure", () => {
+    const closure = validateMigrationFkGraphAndClosure(loadFkEdgesFromMigrations());
+    expect(() => assertPhaseAClosureComplete([...closure, "services"])).toThrow(
+      /Phase B catalog tables.*services/i,
     );
   });
 });
@@ -271,14 +284,26 @@ describe("fingerprint sensitivity", () => {
     expect(changed.fingerprint).not.toBe(base.fingerprint);
   });
 
+  it("changes when one table row count changes", () => {
+    const base = buildProductionResetPlanFromSnapshot(validSnapshot());
+    const changed = buildProductionResetPlanFromSnapshot(
+      validSnapshot({
+        tableCounts: { audit_logs: 1, bookings: 999 },
+      }),
+    );
+    expect(changed.fingerprint).not.toBe(base.fingerprint);
+  });
+
   it("changes when one FK edge changes", () => {
     const edges = loadFkEdgesFromMigrations();
+    const tableCounts = { audit_logs: 1, bookings: 1 };
     const base = fingerprintPlan({
       version: "production-reset-v1",
       fkGraphSource: "migrations",
       fkEdges: edges,
       phaseATruncateRoots: ["bookings"],
       phaseAClosure: ["bookings"],
+      tableCounts,
       serviceDeleteIds: ["a"],
       serviceKeepIds: ["b"],
       serviceRequirementDeleteIds: [],
@@ -294,6 +319,7 @@ describe("fingerprint sensitivity", () => {
       fkEdges: [...edges, { child: "synthetic", parent: "bookings", parentSchema: "public", onDelete: "CASCADE" }],
       phaseATruncateRoots: ["bookings"],
       phaseAClosure: ["bookings"],
+      tableCounts,
       serviceDeleteIds: ["a"],
       serviceKeepIds: ["b"],
       serviceRequirementDeleteIds: [],

@@ -25,6 +25,17 @@ export function fingerprintStorageObjectKeys(objects) {
 }
 
 /**
+ * Stable table-name → row-count map for fingerprint binding (sorted by table name).
+ *
+ * @param {Record<string, number>} tableCounts
+ */
+export function buildOrderedTableRowCounts(tableCounts) {
+  return Object.fromEntries(
+    Object.entries(tableCounts).sort(([left], [right]) => left.localeCompare(right)),
+  );
+}
+
+/**
  * @param {object} input
  */
 export function buildFingerprintInput(input) {
@@ -35,6 +46,7 @@ export function buildFingerprintInput(input) {
     fkEdgesFingerprint: input.fkEdgesFingerprint,
     phaseATruncateRoots: input.phaseATruncateRoots,
     phaseAClosure: input.phaseAClosure,
+    tableRowCounts: input.tableRowCounts,
     serviceDeleteFingerprint: input.serviceDeleteFingerprint,
     serviceKeepFingerprint: input.serviceKeepFingerprint,
     serviceRequirementDeleteFingerprint: input.serviceRequirementDeleteFingerprint,
@@ -66,6 +78,7 @@ export function fingerprintFromCanonicalInput(canonicalInput) {
  *   zoneDeleteIds: string[];
  *   authUserIds: string[];
  *   storageObjects: Array<{ bucket: string; key: string }>;
+ *   tableCounts: Record<string, number>;
  *   executeOrder: string[];
  *   blockingInputs: object;
  * }} planParts
@@ -77,6 +90,7 @@ export function fingerprintPlan(planParts) {
     fkEdgesFingerprint: fingerprintFkEdges(planParts.fkEdges),
     phaseATruncateRoots: [...planParts.phaseATruncateRoots].sort(),
     phaseAClosure: planParts.phaseAClosure,
+    tableRowCounts: buildOrderedTableRowCounts(planParts.tableCounts),
     serviceDeleteFingerprint: fingerprintSortedIds(planParts.serviceDeleteIds),
     serviceKeepFingerprint: fingerprintSortedIds(planParts.serviceKeepIds),
     serviceRequirementDeleteFingerprint: fingerprintSortedIds(planParts.serviceRequirementDeleteIds),
