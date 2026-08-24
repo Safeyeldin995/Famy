@@ -1,6 +1,6 @@
 {
   "version": "production-reset-v1",
-  "maskedProjectRef": "mjhk…nojp",
+  "maskedProjectRef": "bfwv…dzha",
   "fkGraphSource": "migrations",
   "linkedRefVerified": false,
   "blocked": false,
@@ -8,10 +8,10 @@
   "blockedReasons": [],
   "blockingInputs": {
     "seedServiceCount": 18,
-    "deleteServiceCount": 461,
+    "deleteServiceCount": 106,
     "deleteServicesAllQaMarked": true,
-    "zoneCount": 416,
-    "zoneQaShapedCount": 416,
+    "zoneCount": 120,
+    "zoneQaShapedCount": 120,
     "zonesAllQaMarked": true,
     "catalogTablesInPhaseAClosure": []
   },
@@ -87,15 +87,15 @@
     "truncateCascadeClosureCount": 51
   },
   "phaseB": {
-    "serviceDeleteCount": 461,
+    "serviceDeleteCount": 106,
     "serviceKeepCount": 18,
-    "serviceDeleteFingerprint": "eb3b4f63b9e77a3f6968df6c05208df4fa44c5882aae0fa76231d072a8947cca",
-    "serviceKeepFingerprint": "fdf890bce4d40422a10bc9c6605312610af06f90e1fb9407e784e1adb054a9c0",
-    "zoneDeleteCount": 416,
-    "zoneQaShapedCount": 416,
-    "zoneDeleteFingerprint": "260ed75153d24704ae96aa81b522b7a98466bbf63f155cdb2c774be43d0fad10",
-    "serviceRequirementDeleteCount": 40,
-    "serviceRequirementDeleteFingerprint": "258f58d460aa7a8f2f05fa09dd874c2ef1d3bf606abe21bc03fba4b477cf953d",
+    "serviceDeleteFingerprint": "f42ae913dbe5a82b2c406c8b46d63bb55918846b03129e080ea87cab84d894b6",
+    "serviceKeepFingerprint": "a131f9e4204210d2fd7ba9a0f5c2ff681f2001b79b827abac5e4d20c7845aada",
+    "zoneDeleteCount": 120,
+    "zoneQaShapedCount": 120,
+    "zoneDeleteFingerprint": "a95f2614544a81c5cc8344186f81cfedd230b104350ebfbd143c52f7c9a16d65",
+    "serviceRequirementDeleteCount": 1,
+    "serviceRequirementDeleteFingerprint": "7c62b0d4d4441e45b46119369dc0427a011c78318455c97d246fce235574ee51",
     "serviceDeleteCascadeTables": [
       "promo_code_services",
       "provider_services",
@@ -108,7 +108,7 @@
     ]
   },
   "phaseC": {
-    "authUsersDeleteCount": 915,
+    "authUsersDeleteCount": 267,
     "requiresAuditClearBefore": true
   },
   "phaseD": {
@@ -122,7 +122,7 @@
       "payment-proofs",
       "case-evidence"
     ],
-    "storageObjectCount": 98,
+    "storageObjectCount": 48,
     "storagePreserveCount": 0
   },
   "executeOrder": [
@@ -144,77 +144,77 @@
     ]
   },
   "counts": {
-    "userGeneratedPublicRows": 82855,
-    "auditLogs": 77151,
-    "auditLogsPctOfUserRows": "93.12%",
-    "qaServicesDelete": 461,
-    "zonesDelete": 416,
-    "serviceRequirementsDelete": 40,
-    "bookingLocations": 352,
-    "scopedPublicRowRemovals": 83772,
-    "authUsers": 915,
-    "storageObjects": 98,
+    "userGeneratedPublicRows": 12180,
+    "auditLogs": 9857,
+    "auditLogsPctOfUserRows": "80.93%",
+    "qaServicesDelete": 106,
+    "zonesDelete": 120,
+    "serviceRequirementsDelete": 1,
+    "bookingLocations": 184,
+    "scopedPublicRowRemovals": 12407,
+    "authUsers": 267,
+    "storageObjects": 48,
     "tableCounts": {
-      "addresses": 208,
-      "audit_logs": 77151,
+      "addresses": 79,
+      "audit_logs": 9857,
       "availability_exceptions": 0,
       "availability_rules": 0,
-      "booking_cancellations": 65,
-      "booking_family_member_snapshots": 385,
-      "booking_locations": 352,
-      "booking_message_reads": 0,
+      "booking_cancellations": 38,
+      "booking_family_member_snapshots": 208,
+      "booking_locations": 184,
+      "booking_message_reads": 69,
       "booking_reminders": 0,
       "booking_requirement_selections": 0,
       "booking_reschedule_requests": 0,
-      "booking_status_history": 652,
-      "bookings": 396,
-      "conversations": 73,
+      "booking_status_history": 498,
+      "bookings": 230,
+      "conversations": 64,
       "coupon_redemptions": 0,
-      "disputes": 3,
+      "disputes": 0,
       "family_members": 0,
       "favorites": 0,
-      "messages": 125,
-      "no_show_reports": 3,
+      "messages": 192,
+      "no_show_reports": 0,
       "notification_campaigns": 0,
-      "notification_outbox": 656,
-      "notification_preferences": 1,
-      "notifications": 656,
-      "otp_verifications": 307,
-      "password_setup_authorizations": 216,
-      "payments": 75,
-      "profiles": 433,
+      "notification_outbox": 0,
+      "notification_preferences": 0,
+      "notifications": 0,
+      "otp_verifications": 162,
+      "password_setup_authorizations": 147,
+      "payments": 82,
+      "profiles": 251,
       "promo_code_redemptions": 0,
       "provider_admin_internal_notes": 0,
-      "provider_documents": 72,
+      "provider_documents": 6,
       "provider_incidents": 0,
-      "provider_onboarding_details": 66,
-      "provider_onboarding_events": 349,
-      "provider_references": 48,
-      "provider_requirement_fulfillments": 3,
-      "provider_services": 3,
+      "provider_onboarding_details": 2,
+      "provider_onboarding_events": 30,
+      "provider_references": 4,
+      "provider_requirement_fulfillments": 0,
+      "provider_services": 0,
       "provider_vacations": 0,
-      "providers": 163,
+      "providers": 71,
       "push_subscriptions": 0,
       "ratings_summary": 0,
       "reviews": 0,
       "support_tickets": 0,
       "ticket_messages": 0,
       "transactions": 0,
-      "trust_scores": 163,
-      "user_roles": 231,
+      "trust_scores": 2,
+      "user_roles": 4,
       "verification_records": 0,
       "zone_providers": 0,
       "zone_services": 0,
-      "zones": 416
+      "zones": 120
     }
   },
   "storage": {
     "byBucket": {
       "avatars": {
-        "total": 54
+        "total": 47
       },
       "provider-documents": {
-        "total": 44
+        "total": 1
       },
       "payment-proofs": {
         "total": 0
@@ -224,60 +224,10 @@
       }
     },
     "classification": {
-      "auth_only_no_profile_row": 12,
-      "profile_row_present": 42,
-      "no_provider_row": 44
+      "profile_row_present": 47,
+      "no_provider_row": 1
     },
-    "avatarAuthOnlyNoProfile": [
-      {
-        "maskedId": "0358…200a",
-        "hasAuthUser": true
-      },
-      {
-        "maskedId": "146d…0a3e",
-        "hasAuthUser": true
-      },
-      {
-        "maskedId": "1622…d35e",
-        "hasAuthUser": true
-      },
-      {
-        "maskedId": "1a3e…2578",
-        "hasAuthUser": true
-      },
-      {
-        "maskedId": "1d48…d48f",
-        "hasAuthUser": true
-      },
-      {
-        "maskedId": "65e2…0eaf",
-        "hasAuthUser": true
-      },
-      {
-        "maskedId": "67d6…f31d",
-        "hasAuthUser": true
-      },
-      {
-        "maskedId": "689a…22f0",
-        "hasAuthUser": true
-      },
-      {
-        "maskedId": "97f9…7099",
-        "hasAuthUser": true
-      },
-      {
-        "maskedId": "b8d7…ea2d",
-        "hasAuthUser": true
-      },
-      {
-        "maskedId": "c46d…88b1",
-        "hasAuthUser": true
-      },
-      {
-        "maskedId": "d10e…8963",
-        "hasAuthUser": true
-      }
-    ]
+    "avatarAuthOnlyNoProfile": []
   },
-  "fingerprint": "388cf38c44e1d02190d72c0cea0e6f7fa57e302b77a225d9c363f43495c3b23f"
+  "fingerprint": "bcbd38d876d9cecc4bb09eb66b2fe1954d0db6b363c6f40cac95fc5e5ee0eeee"
 }

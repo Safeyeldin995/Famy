@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { parseProductionResetArgs } from "../args.mjs";
-import { RESET_CONFIRM_VALUE, PRODUCTION_PROJECT_REF, PHASE_A_TRUNCATE_ROOTS } from "../constants.mjs";
+import {
+  RESET_CONFIRM_VALUE,
+  PRODUCTION_PROJECT_REF,
+  PHASE_A_TRUNCATE_ROOTS,
+  EXECUTE_TARGET_QA_CLONE,
+  EXECUTE_TARGET_PRODUCTION,
+} from "../constants.mjs";
 import { evaluateCatalogBlockingChecks, EXPECTED_SEED_SERVICE_COUNT } from "../blocking-predicates.mjs";
 import { computeTruncateCascadeClosure } from "../fk-closure.mjs";
 import {
@@ -29,6 +35,14 @@ import {
 } from "../plan.mjs";
 import { SEED_SERVICE_SLUGS } from "../seed-catalog.mjs";
 import { KNOWN_QA_PROJECT_REF } from "../../../qa/qa-identity.mjs";
+import {
+  assertExecuteTargetAllowed,
+  assertLiveFingerprintMatches,
+  assertSimulateModeRequired,
+  runProductionResetExecute,
+} from "../execute.mjs";
+import { assertCountsUnchanged, runSimulatedSqlTransaction } from "../execute-sql.mjs";
+import { assertPhaseOrder, EXECUTE_PHASE_ORDER } from "../execute-phases.mjs";
 
 const SYNTHETIC_EDGES = [
   { child: "payments", parent: "bookings", parentSchema: "public", onDelete: "CASCADE" },
@@ -98,6 +112,26 @@ function validSnapshot(overrides = {}) {
   };
 }
 
+function validExecuteArgs(fingerprint = "a".repeat(64)) {
+  return [
+    "--execute",
+    "--simulate",
+    `--target=${EXECUTE_TARGET_QA_CLONE}`,
+    `--confirm=${RESET_CONFIRM_VALUE}`,
+    `--plan-fingerprint=${fingerprint}`,
+  ];
+}
+
+function qaCloneEnvFixture() {
+  return {
+    url: `https://${KNOWN_QA_PROJECT_REF}.supabase.co`,
+    serviceRoleKey: "test-secret-key",
+    projectRef: KNOWN_QA_PROJECT_REF,
+    databaseUrl: null,
+    maskedProjectRef: `${KNOWN_QA_PROJECT_REF.slice(0, 4)}…${KNOWN_QA_PROJECT_REF.slice(-4)}`,
+  };
+}
+
 describe("production reset args", () => {
   it("defaults to dry-run with no flags", () => {
     expect(parseProductionResetArgs([])).toEqual({ mode: "dry-run" });
@@ -112,19 +146,132 @@ describe("production reset args", () => {
     expect(
       parseProductionResetArgs(["--execute", `--confirm=${RESET_CONFIRM_VALUE}`]).mode,
     ).toBe("rejected");
-  });
-
-  it("accepts full execute combo but dry-run ignores fingerprint-only", () => {
     expect(
       parseProductionResetArgs([
         "--execute",
         `--confirm=${RESET_CONFIRM_VALUE}`,
         `--plan-fingerprint=${"a".repeat(64)}`,
+        `--target=${EXECUTE_TARGET_QA_CLONE}`,
       ]).mode,
-    ).toBe("execute");
+    ).toBe("rejected");
+  });
+
+  it("rejects execute without --simulate", () => {
+    expect(
+      parseProductionResetArgs([
+        "--execute",
+        `--target=${EXECUTE_TARGET_QA_CLONE}`,
+        `--confirm=${RESET_CONFIRM_VALUE}`,
+        `--plan-fingerprint=${"a".repeat(64)}`,
+      ]).mode,
+    ).toBe("rejected");
+  });
+
+  it("accepts full QA-clone simulate execute combo", () => {
+    expect(parseProductionResetArgs(validExecuteArgs()).mode).toBe("execute");
+  });
+
+  it("allows dry-run with --target=qa-clone", () => {
+    expect(parseProductionResetArgs([`--target=${EXECUTE_TARGET_QA_CLONE}`]).mode).toBe("dry-run");
+  });
+
+  it("dry-run ignores fingerprint-only", () => {
     expect(
       parseProductionResetArgs([`--plan-fingerprint=${"b".repeat(64)}`]).mode,
     ).toBe("dry-run");
+  });
+});
+
+describe("execute gates", () => {
+  it("rejects --target=production unconditionally", () => {
+    expect(() => assertExecuteTargetAllowed(EXECUTE_TARGET_PRODUCTION)).toThrow(
+      /not available/i,
+    );
+    expect(
+      parseProductionResetArgs([
+        "--execute",
+        "--simulate",
+        `--target=${EXECUTE_TARGET_PRODUCTION}`,
+        `--confirm=${RESET_CONFIRM_VALUE}`,
+        `--plan-fingerprint=${"a".repeat(64)}`,
+      ]).mode,
+    ).toBe("execute");
+  });
+
+  it("requires simulate mode in execute path", () => {
+    expect(() => assertSimulateModeRequired(false)).toThrow(/not approved/i);
+  });
+
+  it("aborts when recomputed fingerprint differs from approved fingerprint", async () => {
+    const plan = buildProductionResetPlanFromSnapshot(validSnapshot());
+    await expect(
+      assertLiveFingerprintMatches(async () => plan, "b".repeat(64)),
+    ).rejects.toThrow(/fingerprint drift/i);
+  });
+
+  it("runs simulate execute when fingerprint matches at execute time", async () => {
+    const plan = buildProductionResetPlanFromSnapshot(validSnapshot());
+    const result = await runProductionResetExecute({
+      target: EXECUTE_TARGET_QA_CLONE,
+      simulate: true,
+      planFingerprint: plan.fingerprint!,
+      env: qaCloneEnvFixture(),
+      recomputePlan: async () => plan,
+      phaseRunner: async () => ({
+        simulate: true,
+        target: EXECUTE_TARGET_QA_CLONE,
+        phases: EXECUTE_PHASE_ORDER.map((phase) => ({ phase, description: phase })),
+        dataMutated: false,
+        rollbackVerified: true,
+      }),
+    });
+    expect(result.plan.fingerprint).toBe(plan.fingerprint);
+    expect(result.execution.dataMutated).toBe(false);
+  });
+
+  it("rejects production target inside execute even when args parse", async () => {
+    const plan = buildProductionResetPlanFromSnapshot(validSnapshot());
+    await expect(
+      runProductionResetExecute({
+        target: EXECUTE_TARGET_PRODUCTION,
+        simulate: true,
+        planFingerprint: plan.fingerprint!,
+        env: qaCloneEnvFixture(),
+        recomputePlan: async () => plan,
+      }),
+    ).rejects.toThrow(/not available/i);
+  });
+});
+
+describe("execute phase ordering and simulation rollback", () => {
+  it("locks phase order to A→B→B2→C→D→E", () => {
+    expect(EXECUTE_PHASE_ORDER).toEqual(["A", "B", "B2", "C", "D", "E"]);
+    assertPhaseOrder([...EXECUTE_PHASE_ORDER]);
+    expect(() => assertPhaseOrder(["A", "B", "C"])).toThrow(/Phase order mismatch/i);
+  });
+
+  it("verifies rollback wrapper leaves captured counts unchanged", async () => {
+    let executedSql = "";
+    const result = await runSimulatedSqlTransaction(
+      "postgresql://qa-clone.example/test",
+      ["TRUNCATE TABLE public.bookings RESTART IDENTITY CASCADE"],
+      {
+        execSql: (_url, sql) => {
+          executedSql = sql;
+        },
+        captureCounts: async () => ({ bookings: 5 }),
+        verifyCounts: assertCountsUnchanged,
+      },
+    );
+    expect(result.rolledBack).toBe(true);
+    expect(executedSql).toContain("BEGIN");
+    expect(executedSql).toContain("ROLLBACK");
+  });
+
+  it("throws when rollback verification detects drift", () => {
+    expect(() => assertCountsUnchanged({ bookings: 5 }, { bookings: 4 })).toThrow(
+      /Rollback verification failed/i,
+    );
   });
 });
 
@@ -344,6 +491,7 @@ describe("fingerprint sensitivity", () => {
     const tableCounts = { audit_logs: 1, bookings: 1 };
     const base = fingerprintPlan({
       version: "production-reset-v1",
+      projectRef: PRODUCTION_PROJECT_REF,
       fkGraphSource: "migrations",
       fkEdges: edges,
       phaseATruncateRoots: ["bookings"],
@@ -360,6 +508,7 @@ describe("fingerprint sensitivity", () => {
     });
     const changed = fingerprintPlan({
       version: "production-reset-v1",
+      projectRef: PRODUCTION_PROJECT_REF,
       fkGraphSource: "migrations",
       fkEdges: [...edges, { child: "synthetic", parent: "bookings", parentSchema: "public", onDelete: "CASCADE" }],
       phaseATruncateRoots: ["bookings"],

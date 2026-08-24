@@ -1,17 +1,24 @@
 #!/usr/bin/env node
-/** Production user-data reset — dry-run by default. Refuses non-Production refs. */
+/** Production user-data reset — dry-run by default. Refuses non-Production refs for planning reads. */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseProductionResetArgs } from "./args.mjs";
 import { loadProductionEnv } from "./load-production-env.mjs";
+import { loadQaCloneEnv } from "./load-qa-clone-env.mjs";
 import {
   buildProductionResetPlan,
   dryRunExitCode,
   sanitizePlanForReport,
 } from "./plan.mjs";
-import { runProductionResetExecute } from "./execute.mjs";
-import { RESET_CONFIRM_VALUE } from "./constants.mjs";
+import {
+  runProductionResetExecute,
+  printExecuteSimulateSummary,
+} from "./execute.mjs";
+import {
+  RESET_CONFIRM_VALUE,
+  EXECUTE_TARGET_QA_CLONE,
+} from "./constants.mjs";
 
 /**
  * @param {Awaited<ReturnType<typeof buildProductionResetPlan>>} plan
@@ -27,11 +34,15 @@ function writePlanReport(plan) {
 
 /**
  * @param {Awaited<ReturnType<typeof buildProductionResetPlan>>} plan
+ * @param {{ target?: string }} [options]
  */
-function printDryRunSummary(plan) {
+function printDryRunSummary(plan, options = {}) {
   console.log("[production-reset:dry-run] No data was modified.");
   console.log(`[production-reset:dry-run] plan_version=${plan.version}`);
   console.log(`[production-reset:dry-run] masked_project_ref=${plan.maskedProjectRef}`);
+  if (options.target) {
+    console.log(`[production-reset:dry-run] target=${options.target}`);
+  }
   console.log(`[production-reset:dry-run] fk_graph_source=${plan.fkGraphSource}`);
   console.log(`[production-reset:dry-run] linked_ref_verified=${plan.linkedRefVerified}`);
 
@@ -102,7 +113,9 @@ function printDryRunSummary(plan) {
     `[production-reset:dry-run] audit_no_trigger_on=${plan.auditTriggerVerification.noAuditOn.join(",")}`,
   );
 
-  console.log(`[production-reset:dry-run] phase_a_table_row_count_bindings=${Object.keys(plan.counts.tableCounts).length}`);
+  console.log(
+    `[production-reset:dry-run] phase_a_table_row_count_bindings=${Object.keys(plan.counts.tableCounts).length}`,
+  );
 
   console.log("[production-reset:dry-run] table_row_counts:");
   for (const [table, count] of Object.entries(plan.counts.tableCounts).sort((a, b) => b[1] - a[1])) {
@@ -114,8 +127,24 @@ function printDryRunSummary(plan) {
   console.log(`[production-reset:dry-run] plan_fingerprint=${plan.fingerprint}`);
   console.log(`[production-reset:dry-run] plan_fingerprint_length=${plan.fingerprint?.length ?? 0}`);
   console.log(
-    `[production-reset:dry-run] Execute requires: --execute --confirm=${RESET_CONFIRM_VALUE} --plan-fingerprint=<fingerprint>`,
+    `[production-reset:dry-run] Execute requires: --execute --simulate --target=${EXECUTE_TARGET_QA_CLONE} --confirm=${RESET_CONFIRM_VALUE} --plan-fingerprint=<fingerprint>`,
   );
+}
+
+/**
+ * @param {ReturnType<typeof parseProductionResetArgs> & { mode: "execute" }} parsed
+ */
+async function runExecutePath(parsed) {
+  const qaEnv = loadQaCloneEnv();
+  const result = await runProductionResetExecute({
+    target: parsed.target,
+    simulate: parsed.simulate,
+    planFingerprint: parsed.planFingerprint,
+    env: qaEnv,
+    recomputePlan: () => buildProductionResetPlan(qaEnv),
+  });
+  printExecuteSimulateSummary(result);
+  return 0;
 }
 
 /**
@@ -128,20 +157,21 @@ export async function main(argv = process.argv.slice(2)) {
     return 1;
   }
 
-  const env = loadProductionEnv();
-  const plan = await buildProductionResetPlan(env);
-
   if (parsed.mode === "execute") {
-    if (plan.fingerprint !== parsed.planFingerprint) {
-      console.error("[production-reset:execute] plan fingerprint mismatch — re-run dry-run");
+    try {
+      return await runExecutePath(parsed);
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error));
       return 1;
     }
-    await runProductionResetExecute(plan, { planFingerprint: parsed.planFingerprint });
-    return 0;
   }
 
+  const env =
+    parsed.target === EXECUTE_TARGET_QA_CLONE ? loadQaCloneEnv() : loadProductionEnv();
+  const plan = await buildProductionResetPlan(env);
+
   writePlanReport(plan);
-  printDryRunSummary(plan);
+  printDryRunSummary(plan, { target: parsed.target });
   return dryRunExitCode(plan);
 }
 

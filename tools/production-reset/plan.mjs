@@ -316,6 +316,7 @@ export async function buildProductionResetPlan(env, options = {}) {
   if (!blocking.blocked) {
     plan.fingerprint = fingerprintPlan({
       version: plan.version,
+      projectRef: env.projectRef,
       fkGraphSource: fkSource,
       fkEdges: edges,
       phaseATruncateRoots: plan.phaseA.truncateRoots,
@@ -476,6 +477,7 @@ export function buildProductionResetPlanFromSnapshot(snapshot) {
   if (!blocking.blocked) {
     plan.fingerprint = fingerprintPlan({
       version: plan.version,
+      projectRef: snapshot.projectRef,
       fkGraphSource: plan.fkGraphSource,
       fkEdges: snapshot.edges,
       phaseATruncateRoots: plan.phaseA.truncateRoots,

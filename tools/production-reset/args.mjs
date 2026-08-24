@@ -1,7 +1,21 @@
-import { RESET_CONFIRM_VALUE } from "./constants.mjs";
+import {
+  RESET_CONFIRM_VALUE,
+  EXECUTE_TARGET_QA_CLONE,
+  EXECUTE_TARGET_PRODUCTION,
+} from "./constants.mjs";
 
 const DANGEROUS_FLAGS = new Set(["--force", "--yes", "--no-guard"]);
 const FINGERPRINT_RE = /^[a-f0-9]{64}$/;
+
+/**
+ * @param {string | undefined} target
+ */
+function parseTargetValue(target) {
+  if (target === EXECUTE_TARGET_QA_CLONE || target === EXECUTE_TARGET_PRODUCTION) {
+    return target;
+  }
+  return null;
+}
 
 /**
  * @param {string[]} [argv]
@@ -10,10 +24,13 @@ export function parseProductionResetArgs(argv) {
   const args = argv ?? [];
   const seen = new Set();
   let execute = false;
+  let simulate = false;
   /** @type {string | undefined} */
   let confirmValue;
   /** @type {string | undefined} */
   let planFingerprint;
+  /** @type {string | undefined} */
+  let target;
 
   for (const arg of args) {
     if (DANGEROUS_FLAGS.has(arg)) {
@@ -25,6 +42,14 @@ export function parseProductionResetArgs(argv) {
       }
       seen.add("--execute");
       execute = true;
+      continue;
+    }
+    if (arg === "--simulate") {
+      if (seen.has("--simulate")) {
+        return { mode: "rejected", error: "Duplicate flag: --simulate" };
+      }
+      seen.add("--simulate");
+      simulate = true;
       continue;
     }
     if (arg.startsWith("--confirm=")) {
@@ -52,6 +77,22 @@ export function parseProductionResetArgs(argv) {
       seen.add("--plan-fingerprint");
       continue;
     }
+    if (arg.startsWith("--target=")) {
+      if (seen.has("--target")) {
+        return { mode: "rejected", error: "Duplicate flag: --target" };
+      }
+      const value = arg.slice("--target=".length);
+      const parsedTarget = parseTargetValue(value);
+      if (!parsedTarget) {
+        return {
+          mode: "rejected",
+          error: `--target must be ${EXECUTE_TARGET_QA_CLONE} or ${EXECUTE_TARGET_PRODUCTION}`,
+        };
+      }
+      target = parsedTarget;
+      seen.add("--target");
+      continue;
+    }
     if (arg.startsWith("--")) {
       return { mode: "rejected", error: `Unknown flag: ${arg}` };
     }
@@ -59,8 +100,12 @@ export function parseProductionResetArgs(argv) {
   }
 
   if (!execute) {
-    return { mode: "dry-run", confirmValue, planFingerprint };
+    if (simulate) {
+      return { mode: "rejected", error: "--simulate requires --execute" };
+    }
+    return { mode: "dry-run", confirmValue, planFingerprint, target };
   }
+
   if (confirmValue !== RESET_CONFIRM_VALUE) {
     return {
       mode: "rejected",
@@ -70,5 +115,24 @@ export function parseProductionResetArgs(argv) {
   if (!planFingerprint) {
     return { mode: "rejected", error: "Execute requires --plan-fingerprint from dry-run" };
   }
-  return { mode: "execute", confirmValue, planFingerprint };
+  if (!target) {
+    return {
+      mode: "rejected",
+      error: `Execute requires --target=${EXECUTE_TARGET_QA_CLONE} or --target=${EXECUTE_TARGET_PRODUCTION}`,
+    };
+  }
+  if (!simulate) {
+    return {
+      mode: "rejected",
+      error: "Stage 2 execute requires --simulate (non-simulate mutations are not approved)",
+    };
+  }
+
+  return {
+    mode: "execute",
+    confirmValue,
+    planFingerprint,
+    target,
+    simulate,
+  };
 }
