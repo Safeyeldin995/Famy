@@ -1066,7 +1066,7 @@ const en = {
       last7: "Last 7 days",
       upcomingPipeline: "Upcoming pipeline",
       upcomingPipelineSub: "From accepted & in-progress jobs",
-      recentPayouts: "Recent payouts",
+      recentPayouts: "Recent completed jobs",
       noPayouts: "No completed jobs yet",
       noPayoutsBody: "Earnings will appear here after you complete jobs.",
     },

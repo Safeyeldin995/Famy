@@ -1068,7 +1068,7 @@ const ar: Translation = {
       last7: "آخر 7 أيام",
       upcomingPipeline: "المتوقع القادم",
       upcomingPipelineSub: "من المهام المقبولة وقيد التنفيذ",
-      recentPayouts: "المدفوعات الأخيرة",
+      recentPayouts: "آخر المهام المكتملة",
       noPayouts: "لا توجد مهام مكتملة بعد",
       noPayoutsBody: "ستظهر الأرباح هنا بعد إكمال المهام.",
     },
