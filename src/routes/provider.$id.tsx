@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { PhoneFrame, TopBar, PrimaryButton, Badge, EmptyState, Avatar } from "@/components/famio/ui";
+import { PhoneFrame, TopBar, PrimaryButton, EmptyState, Avatar, StatusPill } from "@/components/famio/ui";
 import { useDefaultAddress, useProvider, useProviderReviews, useFavoriteIds, useToggleFavorite } from "@/lib/db/queries";
 import { toUIProvider } from "@/lib/db/adapters";
 import { useTranslation } from "react-i18next";
@@ -75,9 +75,9 @@ function ProviderProfile() {
           }
         />
         <div className="pointer-events-none absolute inset-x-5 bottom-3 text-white">
-          <div className="flex items-center gap-2">
-            <Badge tone={p.role === "Angel" ? "coral" : "navy"}>{roleLabel}</Badge>
-            <Badge tone="mint"><ShieldCheck className="h-3 w-3" /> {t("providerProfile.trust", { score: formatNumber(p.trustScore) })}</Badge>
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusPill tone={p.role === "Angel" ? "brand" : "ink"}>{roleLabel}</StatusPill>
+            <StatusPill tone="success">{t("providerProfile.trust", { score: formatNumber(p.trustScore) })}</StatusPill>
           </div>
         </div>
       </div>

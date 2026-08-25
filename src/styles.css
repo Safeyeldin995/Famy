@@ -189,6 +189,11 @@
     radial-gradient(80% 55% at 0% 100%, color-mix(in oklch, var(--lavender) 20%, transparent), transparent 45%),
     linear-gradient(168deg, oklch(0.16 0.045 275) 0%, var(--ink) 48%, oklch(0.1 0.042 278) 100%);
 }
+@utility home-promo-block {
+  background:
+    radial-gradient(120% 100% at 100% 0%, color-mix(in oklch, white 18%, transparent), transparent 55%),
+    linear-gradient(135deg, var(--brand) 0%, oklch(0.48 0.24 22) 100%);
+}
 @utility tap-scale {
   transition: transform 180ms ease, background-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
   &:active {

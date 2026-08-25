@@ -268,6 +268,59 @@ export function Chip({
   );
 }
 
+export function StatusPill({
+  children,
+  tone = "brand",
+}: {
+  children: ReactNode;
+  tone?: "brand" | "ink" | "success" | "warning" | "muted";
+}) {
+  const map = {
+    brand: "bg-brand text-brand-foreground",
+    ink: "bg-ink text-ink-foreground",
+    success: "bg-success text-white",
+    warning: "bg-warning text-foreground",
+    muted: "bg-muted text-muted-foreground",
+  } as const;
+  return (
+    <span className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${map[tone]}`}>
+      {children}
+    </span>
+  );
+}
+
+export function SegmentedControl<T extends string>({
+  options,
+  value,
+  onChange,
+  className = "",
+}: {
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+  className?: string;
+}) {
+  return (
+    <div className={`rounded-[1.125rem] bg-surface-2 p-1 ${className}`}>
+      <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+        {options.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            aria-pressed={value === option.value}
+            className={`focus-ring tap-scale min-h-11 rounded-xl px-2 text-xs font-bold transition-all sm:text-sm ${
+              value === option.value ? "bg-surface text-foreground shadow-sm" : "text-muted-foreground"
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function Badge({ children, tone = "navy" }: { children: ReactNode; tone?: "navy" | "coral" | "mint" | "muted" }) {
   const map = {
     navy: "bg-navy/10 text-navy",

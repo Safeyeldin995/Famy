@@ -2,14 +2,14 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Eye, EyeOff, User, Briefcase, Phone } from "lucide-react";
+import { Eye, EyeOff, Phone } from "lucide-react";
 import { FamyWordmark } from "@/components/famio/FamyWordmark";
-import { PhoneFrame, PrimaryButton, TopBar } from "@/components/famio/ui";
+import { BackButton, PhoneFrame, PrimaryButton, SegmentedControl } from "@/components/famio/ui";
 import { LanguageToggle } from "@/components/famio/LanguageToggle";
 import { useApp } from "@/lib/store";
 import { otpService, normalizePhone, type Role } from "@/lib/otp/OtpService";
 import { resolveLandingForCurrentUser } from "@/lib/auth/landing";
-import { ICON_STROKE, ICON_STROKE_BOLD } from "@/lib/icons/constants";
+import { ICON_STROKE } from "@/lib/icons/constants";
 
 export const Route = createFileRoute("/login")({ component: Login });
 
@@ -77,76 +77,47 @@ function Login() {
 
   return (
     <PhoneFrame bg="bg-background">
-      <TopBar back={{ to: "/onboarding" }} right={<LanguageToggle variant="inline" />} transparent />
-
-      <div className="flex-1 overflow-y-auto px-5 pb-4 pt-1">
-        <FamyWordmark size="auth" />
-        <p className="mt-3 text-body text-muted-foreground">
+      <div className="home-ink-panel safe-top px-5 pb-10 pt-3 text-ink-foreground">
+        <div className="flex items-center justify-between gap-3">
+          <BackButton back={{ to: "/onboarding" }} />
+          <LanguageToggle variant="hero" />
+        </div>
+        <FamyWordmark size="auth" className="mt-8" />
+        <p className="mt-4 max-w-[18rem] text-sm text-white/75">
           {mode === "signin" ? t("auth.signinBody") : t("auth.signupBody")}
         </p>
+      </div>
 
-        {/* Identity */}
-        <section className="mt-8">
+      <div className="-mt-6 flex-1 overflow-y-auto rounded-t-[2rem] bg-background px-5 pb-4 pt-6">
+        <section>
           <p className="text-overline">{t("auth.accountMode")}</p>
-          <div className="mt-3 rounded-[1.125rem] bg-surface-2 p-1">
-            <div className="grid grid-cols-2 gap-1">
-              {(["signin", "signup"] as const).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setMode(m)}
-                  className={`focus-ring tap-scale min-h-11 rounded-xl text-sm font-semibold transition-all ${
-                    mode === m ? "bg-surface text-foreground shadow-sm" : "text-muted-foreground"
-                  }`}
-                >
-                  {m === "signin" ? t("auth.signIn") : t("auth.signUp")}
-                </button>
-              ))}
-            </div>
-          </div>
+          <SegmentedControl
+            className="mt-3"
+            value={mode}
+            onChange={setMode}
+            options={[
+              { value: "signin", label: t("auth.signIn") },
+              { value: "signup", label: t("auth.signUp") },
+            ]}
+          />
         </section>
 
-        {/* Role */}
         <section className="mt-8">
-          <p className="text-overline">
-            {mode === "signin" ? t("auth.signInAs") : t("auth.iAmA")}
-          </p>
-          <div className="mt-3 grid grid-cols-2 gap-2.5">
-            {([
-              { v: "customer" as Role, icon: User, label: t("auth.roleCustomer") },
-              { v: "provider" as Role, icon: Briefcase, label: t("auth.roleProvider") },
-            ]).map((r) => {
-              const Icon = r.icon;
-              const active = role === r.v;
-              return (
-                <button
-                  key={r.v}
-                  type="button"
-                  onClick={() => setRole(r.v)}
-                  className={`focus-ring tap-scale flex min-h-[4.25rem] items-center gap-3 rounded-xl border px-3.5 py-3 text-start transition-all ${
-                    active
-                      ? "border-ink/30 bg-ink/[0.04] ring-1 ring-ink/15"
-                      : "border-border/80 bg-surface"
-                  }`}
-                >
-                  <span
-                    className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${
-                      active ? "bg-ink text-ink-foreground" : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" strokeWidth={ICON_STROKE_BOLD} />
-                  </span>
-                  <span className="text-sm font-semibold text-foreground">{r.label}</span>
-                </button>
-              );
-            })}
-          </div>
-          {mode === "signup" && role === "provider" && (
+          <p className="text-overline">{mode === "signin" ? t("auth.signInAs") : t("auth.iAmA")}</p>
+          <SegmentedControl
+            className="mt-3"
+            value={role}
+            onChange={setRole}
+            options={[
+              { value: "customer", label: t("auth.roleCustomer") },
+              { value: "provider", label: t("auth.roleProvider") },
+            ]}
+          />
+          {mode === "signup" && role === "provider" ? (
             <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{t("auth.providerNote")}</p>
-          )}
+          ) : null}
         </section>
 
-        {/* Contact */}
         <section className="mt-8">
           <p className="text-overline">{t("auth.contactDetails")}</p>
           <div className="surface-card mt-3 space-y-4 p-4">
@@ -154,7 +125,7 @@ function Login() {
               <label className="text-xs font-semibold text-muted-foreground">{t("auth.phoneNumber")}</label>
               <div className="mt-2 flex min-h-[3.5rem] items-center gap-3 rounded-xl border border-border/80 bg-background px-3 focus-within:ring-2 focus-within:ring-ink/20">
                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand/12 text-brand">
-                  <Phone className="h-4 w-4" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
+                  <Phone className="h-4 w-4" strokeWidth={ICON_STROKE} aria-hidden="true" />
                 </span>
                 <span className="text-sm font-bold text-foreground" dir="ltr">
                   +20
@@ -172,7 +143,7 @@ function Login() {
               </div>
             </div>
 
-            {mode === "signin" && (
+            {mode === "signin" ? (
               <div>
                 <label className="text-xs font-semibold text-muted-foreground">{t("auth.password")}</label>
                 <div className="mt-2 flex min-h-[3.5rem] items-center gap-3 rounded-xl border border-border/80 bg-background px-3 focus-within:ring-2 focus-within:ring-ink/20">
@@ -190,11 +161,7 @@ function Login() {
                     aria-label={showPw ? t("auth.hidePassword") : t("auth.showPassword")}
                     className="focus-ring tap-scale grid h-10 w-10 min-h-10 min-w-10 place-items-center rounded-lg text-muted-foreground"
                   >
-                    {showPw ? (
-                      <EyeOff className="h-5 w-5" strokeWidth={ICON_STROKE} />
-                    ) : (
-                      <Eye className="h-5 w-5" strokeWidth={ICON_STROKE} />
-                    )}
+                    {showPw ? <EyeOff className="h-5 w-5" strokeWidth={ICON_STROKE} /> : <Eye className="h-5 w-5" strokeWidth={ICON_STROKE} />}
                   </button>
                 </div>
                 <div className="mt-2 text-end">
@@ -203,11 +170,11 @@ function Login() {
                   </Link>
                 </div>
               </div>
-            )}
+            ) : null}
           </div>
         </section>
 
-        {mode === "signup" && (
+        {mode === "signup" ? (
           <p className="mt-6 text-xs leading-relaxed text-muted-foreground">
             {t("auth.terms")}{" "}
             <Link to="/content/$key" params={{ key: "terms" }} className="font-semibold text-ink">
@@ -219,15 +186,15 @@ function Login() {
             </Link>
             .
           </p>
-        )}
+        ) : null}
       </div>
 
       <div className="safe-bottom border-t border-border/60 bg-surface/95 px-5 pt-3 backdrop-blur">
-        {errorMsg && (
+        {errorMsg ? (
           <div className="mb-3 rounded-xl border border-brand/25 bg-brand/10 p-3 text-[13px] font-medium leading-relaxed text-brand">
             {errorMsg}
           </div>
-        )}
+        ) : null}
         <PrimaryButton
           onClick={submit}
           disabled={loading || !phoneValid || (mode === "signin" && password.length < 1)}

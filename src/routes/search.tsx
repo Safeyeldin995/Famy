@@ -1,22 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { PhoneFrame, TopBar, Chip, EmptyState } from "@/components/famio/ui";
-import { ProviderCard } from "@/components/famio/ProviderCard";
+import { PhoneFrame, Chip, EmptyState } from "@/components/famio/ui";
+import { ProviderListRow, ProviderRatingMeta } from "@/components/famio/ProviderListRow";
 import { useAddresses, useMarketplaceServices, useProviders } from "@/lib/db/queries";
 import { toUIProvider } from "@/lib/db/adapters";
 import { currentLang } from "@/lib/i18n";
 import { useTranslation } from "react-i18next";
-import { Search as SearchIcon, SlidersHorizontal, X } from "lucide-react";
+import { Search as SearchIcon, X } from "lucide-react";
 import { ICON_STROKE, ICON_STROKE_BOLD } from "@/lib/icons/constants";
-import { formatNumber } from "@/lib/utils";
+import { formatEGP, formatNumber } from "@/lib/utils";
 
 export const Route = createFileRoute("/search")({ component: SearchPage });
+
+type Filter = "all" | "home-cleaning" | "babysitting" | "top";
 
 function SearchPage() {
   const { t } = useTranslation();
   const lang = currentLang();
   const [q, setQ] = useState("");
-  const [filter, setFilter] = useState<"all" | "home-cleaning" | "babysitting" | "top">("all");
+  const [filter, setFilter] = useState<Filter>("all");
   const [serviceId, setServiceId] = useState("");
   const [addressId, setAddressId] = useState("");
   const servicesQ = useMarketplaceServices();
@@ -42,12 +44,11 @@ function SearchPage() {
 
   return (
     <PhoneFrame bg="bg-background">
-      <TopBar back={{ to: "/home" }} title={t("search.title")} />
-
-      <div className="px-5">
-        <div className="surface-card flex min-h-[3.75rem] items-center gap-3 px-4 shadow-sm">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-ink/[0.06]">
-            <SearchIcon className="h-5 w-5 text-ink" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
+      <div className="home-ink-panel safe-top px-5 pb-8 pt-3 text-ink-foreground">
+        <h1 className="text-[1.5rem] font-extrabold leading-tight text-white">{t("search.title")}</h1>
+        <div className="mt-5 flex min-h-[3.75rem] items-center gap-3 rounded-[1.125rem] bg-white px-4 text-ink shadow-[0_16px_48px_-20px_oklch(0_0_0_/_0.55)]">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand/12">
+            <SearchIcon className="h-5 w-5 text-brand" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
           </span>
           <input
             autoFocus
@@ -58,6 +59,7 @@ function SearchPage() {
           />
           {q ? (
             <button
+              type="button"
               onClick={() => setQ("")}
               aria-label={t("common.cancel")}
               className="focus-ring tap-scale grid h-10 w-10 min-h-10 min-w-10 place-items-center rounded-xl bg-muted text-muted-foreground"
@@ -66,8 +68,10 @@ function SearchPage() {
             </button>
           ) : null}
         </div>
+      </div>
 
-        <div className="mt-4 flex gap-2 overflow-x-auto no-scrollbar pb-1">
+      <div className="-mt-5 rounded-t-[2rem] bg-background px-5 pb-10 pt-6">
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
           <Chip active={filter === "all"} onClick={() => setFilter("all")}>{t("common.seeAll")}</Chip>
           <Chip active={filter === "home-cleaning"} onClick={() => setFilter("home-cleaning")}>{t("categories.homeTitle")}</Chip>
           <Chip active={filter === "babysitting"} onClick={() => setFilter("babysitting")}>{t("categories.kidsTitle")}</Chip>
@@ -107,21 +111,29 @@ function SearchPage() {
         </div>
 
         {!provsQ.isLoading && !provsQ.isError && results.length > 0 ? (
-          <p className="text-overline mt-6 flex items-center gap-1.5">
-            <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} aria-hidden="true" />
-            {t("search2.resultsCount", { count: formatNumber(results.length) })}
-          </p>
+          <p className="text-overline mt-6">{t("search2.resultsCount", { count: formatNumber(results.length) })}</p>
         ) : null}
 
-        <div className="mt-4 space-y-3 pb-10">
+        <div className="mt-4 space-y-2">
           {provsQ.isLoading ? (
-            Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-24 animate-pulse rounded-[1.25rem] bg-muted" />)
+            Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-[4.75rem] animate-pulse rounded-[1.25rem] bg-muted" />)
           ) : provsQ.isError ? (
             <EmptyState icon="alert" title={t("common.errorTitle")} body={t("common.tryAgain")} />
           ) : results.length === 0 ? (
             <EmptyState icon="search" title={t("search2.noResults")} body={t("search2.noResultsBody")} />
           ) : (
-            results.map((p) => <ProviderCard key={p.id} p={p} />)
+            results.map((p) => (
+              <ProviderListRow
+                key={p.id}
+                to="/provider/$id"
+                params={{ id: p.id }}
+                avatar={p.avatar}
+                name={p.name}
+                subtitle={formatEGP(p.hourlyRate, { perHour: true })}
+                meta={<ProviderRatingMeta rating={p.rating} reviews={p.reviews} />}
+                pill={p.rating >= 4.9 ? { label: t("roles.topPro"), tone: "brand" } : undefined}
+              />
+            ))
           )}
         </div>
       </div>

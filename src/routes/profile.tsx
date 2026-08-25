@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { AppShell, TopBar, Card, Avatar, SecondaryButton } from "@/components/famio/ui";
+import { AppShell, Avatar, SecondaryButton } from "@/components/famio/ui";
 import { LanguageToggle } from "@/components/famio/LanguageToggle";
 import { useApp } from "@/lib/store";
 import { useMyProfile, useDefaultAddress, useAvatarUrl } from "@/lib/db/queries";
@@ -34,29 +34,34 @@ function Profile() {
 
   return (
     <AppShell>
-      <TopBar title={t("profile.title")} right={<LanguageToggle />} />
-      <div className="px-5">
-        <Card className="overflow-hidden p-0">
-          <div className="home-ink-panel px-5 py-5 text-ink-foreground">
-            <div className="flex items-center gap-4">
-              {avatarQ.data ? (
-                <Avatar src={avatarQ.data} className="h-16 w-16 shrink-0 rounded-2xl ring-2 ring-white/20" />
-              ) : (
-                <div className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-white/15 text-2xl font-extrabold ring-2 ring-white/20">
-                  {initial}
-                </div>
-              )}
-              <div className="min-w-0">
-                <div className="truncate text-lg font-extrabold">{profileQ.data?.full_name || t("profile.famioUser")}</div>
-                <div className="truncate text-xs text-white/70" dir="ltr">{profileQ.data?.phone || "—"}</div>
-                <Link to="/setup" className="mt-2 inline-block text-xs font-bold text-brand">
-                  {t("profile.editProfile")}
-                </Link>
+      <div className="home-ink-panel safe-top px-5 pb-8 pt-3 text-ink-foreground">
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-lg font-extrabold text-white">{t("profile.title")}</h1>
+          <LanguageToggle variant="hero" />
+        </div>
+        <div className="mt-8 flex flex-col items-center text-center">
+          <div className="relative grid h-24 w-24 place-items-center">
+            <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 100 100" aria-hidden="true">
+              <circle cx="50" cy="50" r="44" fill="none" stroke="oklch(1 0 0 / 0.15)" strokeWidth="6" />
+              <circle cx="50" cy="50" r="44" fill="none" stroke="oklch(0.72 0.18 35)" strokeWidth="6" strokeLinecap="round" strokeDasharray="276" strokeDashoffset="83" />
+            </svg>
+            {avatarQ.data ? (
+              <Avatar src={avatarQ.data} className="h-[4.5rem] w-[4.5rem] rounded-full ring-2 ring-white/25" />
+            ) : (
+              <div className="grid h-[4.5rem] w-[4.5rem] place-items-center rounded-full bg-white/15 text-2xl font-extrabold ring-2 ring-white/25">
+                {initial}
               </div>
-            </div>
+            )}
           </div>
-        </Card>
+          <div className="mt-4 max-w-full truncate text-xl font-extrabold text-white">{profileQ.data?.full_name || t("profile.famioUser")}</div>
+          <div className="mt-1 truncate text-xs text-white/70" dir="ltr">{profileQ.data?.phone || "—"}</div>
+          <Link to="/setup" className="mt-3 inline-block rounded-full bg-white/12 px-4 py-1.5 text-xs font-bold text-white">
+            {t("profile.editProfile")}
+          </Link>
+        </div>
+      </div>
 
+      <div className="-mt-5 rounded-t-[2rem] bg-background px-5 pb-6 pt-6">
         <Section title={t("profile.myFamio")}>
           <Row to="/favorites" icon={<Heart className="h-5 w-5" />} label={t("profile.favorites")} />
           <Row to="/addresses" icon={<MapPin className="h-5 w-5" />} label={t("profile.addresses")} sub={addressQ.data?.area || t("profile.addAddress")} />

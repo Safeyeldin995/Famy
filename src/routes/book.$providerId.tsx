@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { PhoneFrame, TopBar, PrimaryButton, Card, EmptyState, Avatar } from "@/components/famio/ui";
+import { PhoneFrame, TopBar, PrimaryButton, Card, EmptyState, Avatar, Chip, SegmentedControl } from "@/components/famio/ui";
 import {
   useProvider, useProviderServices, useCreateBooking, useAddresses, useAvailableSlots, useResolveZone,
   useProviderBookingSettings,
@@ -61,6 +61,7 @@ function Book() {
   const [promoDiscount, setPromoDiscount] = useState(0);
   const [appliedPromoId, setAppliedPromoId] = useState<string | null>(null);
   const [requirementChoices, setRequirementChoices] = useState<Record<string, "customer" | "provider">>({});
+  const [timeBand, setTimeBand] = useState<"all" | "morning" | "afternoon" | "evening">("all");
   const idempotencyStateRef = useRef<IdempotencyKeyState | null>(null);
 
   // Only addresses with a pinned location can back a real booking — the
@@ -120,6 +121,16 @@ function Book() {
     addressId: slotAddressId,
   });
   const requirementsQ = useRequirementsForService(activeService?.service?.id);
+  const filteredSlots = useMemo(() => {
+    const slots = slotsQ.data ?? [];
+    if (timeBand === "all") return slots;
+    return slots.filter((slot) => {
+      const hour = slot.start.getHours();
+      if (timeBand === "morning") return hour < 12;
+      if (timeBand === "afternoon") return hour >= 12 && hour < 17;
+      return hour >= 17;
+    });
+  }, [slotsQ.data, timeBand]);
 
   if (provQ.isLoading || servicesQ.isLoading || bookingSettingsQ.isLoading) {
     return <PhoneFrame><div className="grid flex-1 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-navy" /></div></PhoneFrame>;
@@ -350,13 +361,20 @@ function Book() {
 
   return (
     <PhoneFrame>
-      <TopBar back={typeof back === "function" ? back : { to: `/provider/${p.id}` }} title={t(`bookFlow.stepName.${stepKeys[step]}`)} />
-      <div className="px-5 pt-1">
-        <div className="mb-1 flex items-center justify-between text-xs font-semibold text-muted-foreground">
+      <div className="home-ink-panel safe-top px-5 pb-6 pt-3 text-ink-foreground">
+        <TopBar back={typeof back === "function" ? back : { to: `/provider/${p.id}` }} transparent />
+        <div className="mt-4 flex items-center gap-3">
+          <Avatar src={p.avatar} alt={p.name} className="h-12 w-12 shrink-0 rounded-full ring-2 ring-white/25" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-bold text-white">{p.name}</p>
+            <p className="text-xs text-white/70">{t(`bookFlow.stepName.${stepKeys[step]}`)}</p>
+          </div>
+        </div>
+        <div className="mt-4 flex items-center justify-between text-[11px] font-semibold text-white/70">
           <span>{t("bookFlow.stepLabel", { current: formatNumber(step + 1), total: formatNumber(stepKeys.length) })}</span>
           <span>{formatNumber(Math.round(((step + 1) / stepKeys.length) * 100))}%</span>
         </div>
-        <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/15">
           <div
             className="h-full rounded-full bg-brand transition-all duration-300"
             style={{ width: `${((step + 1) / stepKeys.length) * 100}%` }}
@@ -383,16 +401,11 @@ function Book() {
 
         {step === 1 && (
           <Step title={t("bookFlow.durationTitle")} sub={t("bookFlow.durationSub")}>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-wrap gap-2">
               {durations.map((d) => (
-                <button
-                  key={d}
-                  onClick={() => setDuration(d)}
-                  className={`rounded-[1.125rem] p-5 text-start transition-all tap-scale ${duration === d ? "bg-ink text-ink-foreground shadow-card" : "surface-card shadow-xs"}`}
-                >
-                  <div className="text-2xl font-extrabold">{durationLabel(d)}</div>
-                  <div className={`text-xs ${duration === d ? "text-white/70" : "text-muted-foreground"}`}>{formatEGP(ratePerHour * parseInt(d))}</div>
-                </button>
+                <Chip key={d} active={duration === d} onClick={() => setDuration(d)}>
+                  {durationLabel(d)} · {formatEGP(ratePerHour * parseInt(d))}
+                </Chip>
               ))}
             </div>
           </Step>
@@ -424,22 +437,33 @@ function Book() {
 
         {step === 3 && (
           <Step title={t("bookFlow.timeTitle")} sub={t("bookFlow.timeSub")}>
+            <SegmentedControl
+              className="mb-4"
+              value={timeBand}
+              onChange={setTimeBand}
+              options={[
+                { value: "all", label: t("bookFlow.timeAll") },
+                { value: "morning", label: t("bookFlow.timeMorning") },
+                { value: "afternoon", label: t("bookFlow.timeAfternoon") },
+                { value: "evening", label: t("bookFlow.timeEvening") },
+              ]}
+            />
             {slotsQ.isLoading ? (
               <div className="grid grid-cols-3 gap-2">
                 {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-12 animate-pulse rounded-2xl bg-surface" />)}
               </div>
-            ) : (slotsQ.data ?? []).length === 0 ? (
+            ) : filteredSlots.length === 0 ? (
               <EmptyState icon="calendar" title={t("bookFlow.noSlots")} body={t("bookFlow.noSlotsBody")} />
             ) : (
-              <div className="grid grid-cols-3 gap-2">
-                {(slotsQ.data ?? []).map((slot) => (
-                  <button
+              <div className="flex flex-wrap gap-2">
+                {filteredSlots.map((slot) => (
+                  <Chip
                     key={slot.label}
+                    active={time === slot.label}
                     onClick={() => { setTime(slot.label); setSelectedSlot({ start: slot.start, end: slot.end }); }}
-                    className={`rounded-xl py-3 text-sm font-bold tap-scale ${time === slot.label ? "bg-ink text-ink-foreground shadow-card" : "surface-card shadow-xs"}`}
                   >
                     {slot.label}
-                  </button>
+                  </Chip>
                 ))}
               </div>
             )}

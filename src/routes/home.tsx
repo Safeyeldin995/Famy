@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AppShell } from "@/components/famio/ui";
+import { HomeCategoryGrid } from "@/components/home/HomeCategoryGrid";
 import { HomeFeaturedCarousel } from "@/components/home/HomeFeaturedCarousel";
 import { HomeHeroPanel } from "@/components/home/HomeHeroPanel";
 import { HomePromoStrip } from "@/components/home/HomePromoStrip";
@@ -33,7 +34,7 @@ function Home() {
   useEffect(() => {
     const h = new Date().getHours();
     setGreeting(h < 12 ? t("greetings.morning") : h < 18 ? t("greetings.afternoon") : t("greetings.evening"));
-  }, [t]);
+  }, [t, i18n.language]);
   const first = profileQ.data?.full_name?.split(" ")[0] || t("greetings.there");
 
   const catsQ = useCategories();
@@ -68,11 +69,10 @@ function Home() {
         unread={unread}
         searchHint={t("home.searchHint")}
         headline={t("home.headline")}
-        categories={cats}
-        categoriesLoading={catsQ.isLoading}
       />
 
-      <div className="-mt-4 rounded-t-[2rem] bg-background pb-4 pt-2">
+      <div className="-mt-6 rounded-t-[2rem] bg-background pb-4">
+        <HomeCategoryGrid categories={cats} loading={catsQ.isLoading} />
         <HomeFeaturedCarousel providers={featured} />
         <HomeRebookRow providers={recent} loading={bookingsQ.isLoading} error={bookingsQ.isError} />
         <HomePromoStrip offer={PROMO} />
