@@ -74,7 +74,7 @@ function Home() {
         categoriesLoading={catsQ.isLoading}
       />
 
-      <div className="pb-4 pt-2">
+      <div className="-mt-4 rounded-t-[2rem] bg-background pb-4 pt-2">
         <HomeFeaturedCarousel providers={featured} />
         <HomeRebookRow providers={recent} loading={bookingsQ.isLoading} error={bookingsQ.isError} />
         <HomePromoStrip offer={PROMO} />

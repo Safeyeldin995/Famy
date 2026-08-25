@@ -92,7 +92,7 @@ function Login() {
                 type="button"
                 onClick={() => setMode(m)}
                 className={`focus-ring tap-scale min-h-11 rounded-xl text-sm font-bold transition-all ${
-                  mode === m ? "bg-brand text-brand-foreground shadow-xs" : "text-muted-foreground"
+                  mode === m ? "bg-ink text-ink-foreground shadow-soft" : "text-muted-foreground"
                 }`}
               >
                 {m === "signin" ? t("auth.signIn", "Sign in") : t("auth.signUp", "Sign up")}
@@ -117,12 +117,12 @@ function Login() {
                 type="button"
                 onClick={() => setRole(r.v)}
                 className={`focus-ring tap-scale surface-card flex min-h-[5.5rem] flex-col items-start gap-2 p-4 text-start transition-all ${
-                  active ? "border-brand/40 ring-1 ring-brand/25" : ""
+                  active ? "border-ink/35 ring-1 ring-ink/20" : ""
                 }`}
               >
                 <span
                   className={`grid h-10 w-10 place-items-center rounded-xl ${
-                    active ? "bg-brand/12 text-brand" : "bg-muted text-muted-foreground"
+                    active ? "bg-ink/10 text-ink" : "bg-muted text-muted-foreground"
                   }`}
                 >
                   <Icon className="h-5 w-5" strokeWidth={ICON_STROKE_BOLD} />
@@ -139,7 +139,7 @@ function Login() {
         )}
 
         <p className="text-overline mt-6">{t("auth.phoneNumber")}</p>
-        <div className="surface-card mt-3 flex min-h-[3.75rem] items-center gap-3 px-4 focus-within:ring-2 focus-within:ring-brand/30">
+        <div className="surface-card mt-3 flex min-h-[3.75rem] items-center gap-3 px-4 focus-within:ring-2 focus-within:ring-ink/25">
           <div className="flex shrink-0 items-center gap-2">
             <span className="grid h-9 w-9 place-items-center rounded-lg bg-brand/10 text-brand">
               <Phone className="h-4 w-4" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
@@ -163,7 +163,7 @@ function Login() {
         {mode === "signin" && (
           <>
             <p className="text-overline mt-5">{t("auth.password", "Password")}</p>
-            <div className="surface-card mt-3 flex min-h-[3.75rem] items-center gap-3 px-4 focus-within:ring-2 focus-within:ring-brand/30">
+            <div className="surface-card mt-3 flex min-h-[3.75rem] items-center gap-3 px-4 focus-within:ring-2 focus-within:ring-ink/25">
               <input
                 type={showPw ? "text" : "password"}
                 autoComplete="current-password"
@@ -186,7 +186,7 @@ function Login() {
               </button>
             </div>
             <div className="mt-3 text-end">
-              <Link to="/auth/forgot" className="text-sm font-semibold text-brand">
+              <Link to="/auth/forgot" className="text-sm font-semibold text-ink">
                 {t("auth.forgot", "Forgot password?")}
               </Link>
             </div>
@@ -196,11 +196,11 @@ function Login() {
         {mode === "signup" && (
           <p className="mt-6 text-xs leading-relaxed text-muted-foreground">
             {t("auth.terms")}{" "}
-            <Link to="/content/$key" params={{ key: "terms" }} className="font-semibold text-brand">
+            <Link to="/content/$key" params={{ key: "terms" }} className="font-semibold text-ink">
               {t("auth.termsLink")}
             </Link>{" "}
             {t("auth.and")}{" "}
-            <Link to="/content/$key" params={{ key: "privacy" }} className="font-semibold text-brand">
+            <Link to="/content/$key" params={{ key: "privacy" }} className="font-semibold text-ink">
               {t("auth.privacyLink")}
             </Link>
             .

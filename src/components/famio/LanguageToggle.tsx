@@ -13,7 +13,7 @@ export function LanguageToggle({ variant = "pill" }: { variant?: "pill" | "inlin
       <button
         onClick={click}
         aria-label={t("common.language")}
-        className="focus-ring inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-xs font-bold text-brand shadow-xs active:scale-95 transition-transform"
+        className="focus-ring inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-xs font-bold text-ink shadow-soft active:scale-95 transition-transform"
       >
         <Languages className="h-3.5 w-3.5" />
         {next === "ar" ? "العربية" : "English"}
@@ -25,7 +25,7 @@ export function LanguageToggle({ variant = "pill" }: { variant?: "pill" | "inlin
     <button
       onClick={click}
       aria-label={t("common.language")}
-      className="focus-ring grid h-11 w-11 place-items-center rounded-2xl bg-surface text-brand shadow-xs active:scale-95 transition-transform"
+      className="focus-ring grid h-11 w-11 place-items-center rounded-2xl bg-surface text-ink shadow-soft active:scale-95 transition-transform"
       title={t("common.language")}
     >
       <span className="text-[11px] font-extrabold">{lang === "ar" ? "EN" : "ع"}</span>
