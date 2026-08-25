@@ -14,7 +14,7 @@ export function HomeFeaturedCarousel({ providers }: { providers: Provider[] }) {
     <section className="mt-2">
       <div className="mb-4 flex items-end justify-between px-5">
         <div>
-          <p className="text-overline">{t("home.featuredSubtitle", "Top rated")}</p>
+          <p className="text-overline">{t("home.featuredSubtitle")}</p>
           <h2 className="text-title mt-1 text-foreground">{t("home.featured")}</h2>
         </div>
       </div>
@@ -25,7 +25,7 @@ export function HomeFeaturedCarousel({ providers }: { providers: Provider[] }) {
               key={provider.id}
               to="/provider/$id"
               params={{ id: provider.id }}
-              aria-label={`${provider.name}, ${provider.rating} stars`}
+              aria-label={t("providerCard.ariaLabel", { name: provider.name, rating: formatNumber(provider.rating) })}
               className="focus-ring tap-scale relative block w-[15.5rem] shrink-0 snap-start overflow-hidden rounded-[1.375rem] bg-ink shadow-card"
             >
               <div className="relative h-52 w-full">

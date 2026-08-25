@@ -68,7 +68,7 @@ export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { t } = useTranslation();
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40" aria-label="Primary">
+    <nav className="fixed inset-x-0 bottom-0 z-40" aria-label={t("nav.primary")}>
       <div className="mx-auto max-w-md">
         <div className="safe-bottom mx-3 mb-3 rounded-[1.25rem] border border-border/60 bg-surface/98 shadow-float backdrop-blur-xl">
           <ul className="grid grid-cols-4">
@@ -183,11 +183,11 @@ export function PrimaryButton({
 }) {
   const styles =
     variant === "navy"
-      ? "bg-ink text-ink-foreground active:bg-ink/90 shadow-card hover:shadow-float"
+      ? "bg-ink text-ink-foreground shadow-card hover:shadow-float active:bg-ink/92"
       : variant === "coral"
-      ? "bg-brand text-brand-foreground active:bg-brand/90 shadow-card hover:shadow-float"
+      ? "bg-brand text-brand-foreground shadow-card hover:shadow-float active:bg-brand/92"
       : variant === "outline"
-      ? "border border-border bg-surface text-foreground"
+      ? "border-2 border-border bg-surface text-foreground shadow-xs hover:bg-surface-2"
       : "bg-transparent text-ink";
   return (
     <button
@@ -195,7 +195,35 @@ export function PrimaryButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={ariaLabel}
-      className={`focus-ring inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-bold transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${styles} ${className}`}
+      className={`focus-ring tap-scale inline-flex h-14 w-full items-center justify-center gap-2 rounded-[1.125rem] text-base font-bold transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 ${styles} ${className}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function SecondaryButton({
+  children,
+  onClick,
+  type = "button",
+  disabled,
+  className = "",
+  "aria-label": ariaLabel,
+}: {
+  children: ReactNode;
+  onClick?: () => void;
+  type?: "button" | "submit";
+  disabled?: boolean;
+  className?: string;
+  "aria-label"?: string;
+}) {
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={ariaLabel}
+      className={`focus-ring tap-scale inline-flex h-11 min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground shadow-xs transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
     >
       {children}
     </button>
@@ -229,10 +257,10 @@ export function Chip({
     <button
       onClick={onClick}
       aria-pressed={active}
-      className={`focus-ring shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-all min-h-11 ${
+      className={`focus-ring shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all min-h-11 tap-scale ${
         active
-          ? "bg-navy text-navy-foreground shadow-soft"
-          : "bg-surface text-foreground border border-border"
+          ? "bg-ink text-ink-foreground shadow-soft"
+          : "border border-border bg-surface text-muted-foreground hover:text-foreground"
       }`}
     >
       {children}

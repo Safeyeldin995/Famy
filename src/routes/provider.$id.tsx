@@ -27,7 +27,7 @@ function ProviderProfile() {
     return <PhoneFrame><div className="px-5 py-10"><div className="h-72 rounded-3xl bg-surface animate-pulse" /></div></PhoneFrame>;
   }
   if (!provQ.data) {
-    return <PhoneFrame><TopBar back={{ to: "/home" }} /><EmptyState icon="user-x" title={t("provider2.notFound", "Pro not found")} /></PhoneFrame>;
+    return <PhoneFrame><TopBar back={{ to: "/home" }} /><EmptyState icon="user-x" title={t("provider2.notFound")} /></PhoneFrame>;
   }
 
   const p = toUIProvider(provQ.data);
@@ -52,7 +52,7 @@ function ProviderProfile() {
     <PhoneFrame>
       <div className="relative">
         <div className="h-48 w-full overflow-hidden">
-          <Avatar src={p.avatar} alt={p.name || t("provider2.unnamed", "Provider")} className="h-full w-full" />
+          <Avatar src={p.avatar} alt={p.name || t("provider2.unnamed")} className="h-full w-full" />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
         </div>
         <TopBar
@@ -60,7 +60,7 @@ function ProviderProfile() {
           transparent
           right={
             <div className="flex gap-2">
-              <button onClick={onShare} aria-label={t("common.share", "Share")} className="focus-ring grid h-10 w-10 place-items-center rounded-full bg-white/95 shadow-soft active:scale-95 transition-transform">
+              <button onClick={onShare} aria-label={t("common.share")} className="focus-ring tap-scale grid h-10 w-10 place-items-center rounded-full bg-white/95 shadow-soft active:scale-95 transition-transform">
                 <Share2 className="h-4 w-4" aria-hidden="true" />
               </button>
               <button
@@ -83,7 +83,7 @@ function ProviderProfile() {
       </div>
 
       <div className="px-5 pt-3 pb-1">
-        <h1 className="text-xl font-extrabold leading-tight text-foreground">{p.name || t("provider2.unnamed", "Provider")}</h1>
+        <h1 className="text-title text-foreground">{p.name || t("provider2.unnamed")}</h1>
         <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1"><Star className="h-3 w-3 fill-warning text-warning" /> {formatNumber(p.rating)} ({formatNumber(p.reviews)})</span>
           <span>·</span>
@@ -91,63 +91,66 @@ function ProviderProfile() {
         </div>
       </div>
 
-      <div className="mt-2 flex-1 rounded-t-3xl bg-surface-2 px-5 pt-5 pb-28">
-
-        <div className="grid grid-cols-3 gap-2">
+      <div className="mt-1 flex-1 rounded-t-[2rem] bg-background px-5 pt-5 pb-28">
+        <div className="grid grid-cols-3 gap-2.5">
           <Stat icon={<Briefcase className="h-4 w-4" />} label={t("providerProfile.jobs")} value={formatNumber(p.jobs)} />
           <Stat icon={<Calendar className="h-4 w-4" />} label={t("providerProfile.years")} value={formatNumber(p.yearsExp)} />
           <Stat icon={<Star className="h-4 w-4" />} label={t("providerProfile.rating")} value={formatNumber(Number(p.rating.toFixed(1)))} />
         </div>
 
-        <div className="mt-4 -mx-5 overflow-x-auto no-scrollbar">
-          <div className="flex gap-2 px-5">
+        <div className="mt-4 -mx-1 overflow-x-auto no-scrollbar">
+          <div className="flex gap-2 px-1">
             {p.badges.map((b) => (
-              <span key={b} className="inline-flex shrink-0 items-center gap-1 rounded-full bg-surface px-3 py-1.5 text-[11px] font-semibold shadow-soft">
-                <ShieldCheck className="h-3 w-3 text-success" aria-hidden="true" /> {t(`badges.${badgeKey(b)}`, b)}
+              <span key={b} className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border/70 bg-surface px-3 py-1.5 text-[11px] font-semibold shadow-xs">
+                <ShieldCheck className="h-3 w-3 text-brand" aria-hidden="true" /> {t(`badges.${badgeKey(b)}`, b)}
               </span>
             ))}
           </div>
         </div>
 
-        <Section title={t("providerProfile.about")}>
-          <p className="text-sm leading-relaxed text-foreground">{p.bio}</p>
-        </Section>
+        <ProfileSection title={t("providerProfile.about")}>
+          <p className="text-body leading-relaxed text-foreground">{p.bio}</p>
+        </ProfileSection>
 
-        <Section title={t("providerProfile.languages")}>
+        <ProfileSection title={t("providerProfile.languages")}>
           <div className="flex items-center gap-2 text-sm">
-            <Languages className="h-4 w-4 text-muted-foreground" />
+            <Languages className="h-4 w-4 text-brand" />
             {p.languages.map((l: string) => t(`pro.onboarding.langs.${l.toLowerCase()}`, l)).join(" · ")}
           </div>
-        </Section>
+        </ProfileSection>
 
-        <Section title={t("providerProfile.areas")}>
+        <ProfileSection title={t("providerProfile.areas")}>
           <div className="flex items-center gap-2 text-sm">
-            <MapPin className="h-4 w-4 text-coral" />
+            <MapPin className="h-4 w-4 text-brand" />
             {p.areas.join(" · ")}
           </div>
-        </Section>
+        </ProfileSection>
 
-        <Section title={t("providerProfile.gallery")}>
-          <div className="-mx-5 overflow-x-auto no-scrollbar">
-            <div className="flex gap-3 px-5">
+        <ProfileSection title={t("providerProfile.gallery")}>
+          <div className="-mx-1 overflow-x-auto no-scrollbar">
+            <div className="flex gap-3 px-1">
               {p.gallery.map((g, i) => (
-                <img key={g} src={g} alt={`${p.name} ${i + 1}`} loading="lazy" className="h-28 w-40 shrink-0 rounded-2xl object-cover" />
+                <img
+                  key={g}
+                  src={g}
+                  alt={t("providerProfile.galleryImageAlt", { name: p.name, index: i + 1 })}
+                  loading="lazy"
+                  className="h-28 w-40 shrink-0 rounded-2xl object-cover shadow-xs"
+                />
               ))}
             </div>
           </div>
-        </Section>
+        </ProfileSection>
 
-        <Section title={t("providerProfile.availability")}>
+        <ProfileSection title={t("providerProfile.availability")}>
           <div className="grid grid-cols-7 gap-1.5">
             {dayKeys.map((d, i) => {
               const busy = i === 4;
               return (
                 <div
                   key={d}
-                  className={`flex flex-col items-center gap-0.5 rounded-2xl px-1 py-2 text-center ${
-                    busy
-                      ? "bg-destructive/10 text-destructive"
-                      : "bg-success/15 text-success"
+                  className={`flex flex-col items-center gap-0.5 rounded-xl px-1 py-2 text-center ${
+                    busy ? "bg-destructive/10 text-destructive" : "bg-success/12 text-success"
                   }`}
                 >
                   <div className="text-[10px] font-bold uppercase leading-none">{t(`providerProfile.days.${d}`)}</div>
@@ -156,16 +159,15 @@ function ProviderProfile() {
               );
             })}
           </div>
-        </Section>
+        </ProfileSection>
 
-
-        <Section title={t("providerProfile.reviewsCount", { count: reviews.length })}>
+        <ProfileSection title={t("providerProfile.reviewsCount", { count: reviews.length })}>
           {reviews.length === 0 ? (
-            <p className="text-xs text-muted-foreground">{t("providerProfile.noReviews", "No reviews yet.")}</p>
+            <p className="text-xs text-muted-foreground">{t("providerProfile.noReviews")}</p>
           ) : (
             <div className="space-y-3">
               {reviews.slice(0, 5).map((r: any) => (
-                <div key={r.id} className="rounded-2xl bg-surface p-3 shadow-soft">
+                <div key={r.id} className="rounded-xl border border-border/70 bg-surface-2 p-3">
                   <div className="flex items-center gap-1 text-warning">
                     {Array.from({ length: r.rating }).map((_, i) => <Star key={i} className="h-3 w-3 fill-warning text-warning" />)}
                   </div>
@@ -174,7 +176,7 @@ function ProviderProfile() {
               ))}
             </div>
           )}
-        </Section>
+        </ProfileSection>
       </div>
 
       <div className="safe-bottom fixed inset-x-0 bottom-0 z-40 mx-auto max-w-md border-t border-border bg-surface px-5 pt-3">
@@ -192,19 +194,19 @@ function ProviderProfile() {
 
 function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-surface p-3 text-center shadow-soft">
-      <div className="mx-auto grid h-8 w-8 place-items-center rounded-xl bg-navy/10 text-navy">{icon}</div>
-      <div className="mt-1.5 text-base font-extrabold">{value}</div>
-      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
+    <div className="surface-card p-3 text-center shadow-xs">
+      <div className="mx-auto grid h-9 w-9 place-items-center rounded-xl bg-ink/10 text-ink">{icon}</div>
+      <div className="mt-1.5 text-base font-extrabold text-foreground">{value}</div>
+      <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
     </div>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function ProfileSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="mt-6">
-      <h2 className="mb-2 text-sm font-extrabold uppercase tracking-wide text-muted-foreground">{title}</h2>
-      {children}
-    </div>
+    <section className="mt-6">
+      <h2 className="text-overline mb-2">{title}</h2>
+      <div className="surface-card p-4 shadow-xs">{children}</div>
+    </section>
   );
 }

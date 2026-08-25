@@ -15,7 +15,11 @@ export function ProviderCard({ p }: { p: Provider }) {
     <Link
       to="/provider/$id"
       params={{ id: p.id }}
-      aria-label={`${p.name}, ${p.rating} stars, ${formatEGP(p.hourlyRate, { perHour: true })}`}
+      aria-label={t("providerCard.ariaLabelDetailed", {
+        name: p.name,
+        rating: formatNumber(p.rating),
+        price: formatEGP(p.hourlyRate, { perHour: true }),
+      })}
       className="focus-ring relative block rounded-[1.25rem] border border-border/50 bg-surface p-4 shadow-sm active:scale-[0.99] transition-transform"
     >
       {isTopPro && (
@@ -85,7 +89,7 @@ export function ProviderTile({ p }: { p: Provider }) {
     <Link
       to="/provider/$id"
       params={{ id: p.id }}
-      aria-label={`${p.name}, ${p.rating} stars`}
+      aria-label={t("providerCard.ariaLabel", { name: p.name, rating: formatNumber(p.rating) })}
       className="focus-ring block w-[11.5rem] shrink-0 overflow-hidden rounded-[1.25rem] border border-border/50 bg-surface shadow-sm active:scale-[0.98] transition-transform"
     >
       <div className="relative h-40 w-full overflow-hidden">

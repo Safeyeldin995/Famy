@@ -184,7 +184,11 @@ function Book() {
   const travelFee = Number(zoneQ.data?.travel_fee ?? 0);
   const total = Math.max(0, subtotal + fee + vat + extrasTotal + travelFee - promoDiscount);
 
-  const durations = ["2h", "4h", "6h", "8h"];
+  const durations = ["2h", "4h", "6h", "8h"] as const;
+  const durationLabel = (value: string) => {
+    const hours = parseInt(value, 10);
+    return t("bookFlow.durationShort", { hours: formatNumber(hours) });
+  };
 
   const canNext = () => {
     if (step === 0) return !!activeService;
@@ -347,17 +351,24 @@ function Book() {
   return (
     <PhoneFrame>
       <TopBar back={typeof back === "function" ? back : { to: `/provider/${p.id}` }} title={t(`bookFlow.stepName.${stepKeys[step]}`)} />
-      <div className="px-5">
-        <div className="mb-5 text-xs font-semibold text-muted-foreground">
-          {t("bookFlow.stepLabel", { current: formatNumber(step + 1), total: formatNumber(stepKeys.length) })}
+      <div className="px-5 pt-1">
+        <div className="mb-1 flex items-center justify-between text-xs font-semibold text-muted-foreground">
+          <span>{t("bookFlow.stepLabel", { current: formatNumber(step + 1), total: formatNumber(stepKeys.length) })}</span>
+          <span>{formatNumber(Math.round(((step + 1) / stepKeys.length) * 100))}%</span>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
+          <div
+            className="h-full rounded-full bg-brand transition-all duration-300"
+            style={{ width: `${((step + 1) / stepKeys.length) * 100}%` }}
+          />
         </div>
       </div>
 
-      <div className="flex-1 px-5 pb-28">
+      <div className="flex-1 px-5 pb-28 pt-4">
         {step === 0 && (
           <Step title={t("bookFlow.serviceTitle")} sub={t("bookFlow.serviceSub")}>
             {services.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("bookFlow.noServices", "This pro hasn't published services yet.")}</p>
+              <p className="text-sm text-muted-foreground">{t("bookFlow.noServices")}</p>
             ) : (
               <div className="space-y-3">
                 {services.map((s: any) => {
@@ -377,9 +388,9 @@ function Book() {
                 <button
                   key={d}
                   onClick={() => setDuration(d)}
-                  className={`rounded-2xl p-5 text-start transition-all ${duration === d ? "bg-navy text-navy-foreground" : "bg-surface shadow-soft"}`}
+                  className={`rounded-[1.125rem] p-5 text-start transition-all tap-scale ${duration === d ? "bg-ink text-ink-foreground shadow-card" : "surface-card shadow-xs"}`}
                 >
-                  <div className="text-2xl font-extrabold">{d}</div>
+                  <div className="text-2xl font-extrabold">{durationLabel(d)}</div>
                   <div className={`text-xs ${duration === d ? "text-white/70" : "text-muted-foreground"}`}>{formatEGP(ratePerHour * parseInt(d))}</div>
                 </button>
               ))}
@@ -399,7 +410,7 @@ function Book() {
                   <button
                     key={i}
                     onClick={() => { setDate(d); setTime(null); setSelectedSlot(null); }}
-                    className={`flex flex-col items-center rounded-2xl px-2 py-3 transition-all ${isSel ? "bg-coral text-coral-foreground" : "bg-surface shadow-soft"}`}
+                    className={`flex flex-col items-center rounded-xl px-2 py-3 transition-all tap-scale ${isSel ? "bg-brand text-brand-foreground shadow-card" : "surface-card shadow-xs"}`}
                   >
                     <span className="text-[10px] font-bold uppercase">{d.toLocaleString(locale, { weekday: "short" })}</span>
                     <span className="text-xl font-extrabold">{formatNumber(d.getDate())}</span>
@@ -425,7 +436,7 @@ function Book() {
                   <button
                     key={slot.label}
                     onClick={() => { setTime(slot.label); setSelectedSlot({ start: slot.start, end: slot.end }); }}
-                    className={`rounded-2xl py-3 text-sm font-bold ${time === slot.label ? "bg-navy text-navy-foreground" : "bg-surface shadow-soft"}`}
+                    className={`rounded-xl py-3 text-sm font-bold tap-scale ${time === slot.label ? "bg-ink text-ink-foreground shadow-card" : "surface-card shadow-xs"}`}
                   >
                     {slot.label}
                   </button>
@@ -661,10 +672,10 @@ function Book() {
                 <Row label={t("bookFlow.serviceFee")} value={formatEGP(fee)} small />
                 <Row label={t("bookFlow.vat")} value={formatEGP(vat)} small />
                 {extrasTotal > 0 && (
-                  <Row label={t("bookFlow.extrasTotal", "Requirements")} value={formatEGP(extrasTotal)} small />
+                  <Row label={t("bookFlow.extrasTotal")} value={formatEGP(extrasTotal)} small />
                 )}
                 {travelFee > 0 && (
-                  <Row label={t("bookFlow.travelFee", "Travel fee")} value={formatEGP(travelFee)} small />
+                  <Row label={t("bookFlow.travelFee")} value={formatEGP(travelFee)} small />
                 )}
                 {promoDiscount > 0 && (
                   <Row label={t("bookFlow.promoDiscount")} value={`-${formatEGP(promoDiscount)}`} small />
@@ -783,9 +794,9 @@ function PaymentMethodInstructions({ method, lang, t }: { method: any; lang: str
 function Step({ title, sub, children }: { title: string; sub?: string; children: React.ReactNode }) {
   return (
     <div className="animate-rise">
-      <h2 className="text-2xl font-extrabold tracking-tight">{title}</h2>
-      {sub && <p className="mt-1 text-sm text-muted-foreground">{sub}</p>}
-      <div className="mt-6">{children}</div>
+      <h2 className="text-title text-foreground">{title}</h2>
+      {sub ? <p className="mt-1 text-body text-muted-foreground">{sub}</p> : null}
+      <div className="surface-card mt-5 p-4 shadow-xs">{children}</div>
     </div>
   );
 }
@@ -793,12 +804,15 @@ function Step({ title, sub, children }: { title: string; sub?: string; children:
 function Option({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`flex w-full items-center justify-between rounded-2xl p-4 text-start transition-all ${active ? "bg-navy text-navy-foreground" : "bg-surface shadow-soft"}`}
+      className={`focus-ring tap-scale flex w-full min-h-[3.5rem] items-center justify-between rounded-xl border px-4 text-start transition-all ${
+        active ? "border-ink/30 bg-ink/[0.04] ring-1 ring-ink/15" : "border-border/80 bg-background"
+      }`}
     >
-      <span className="font-bold">{label}</span>
-      <span className={`grid h-6 w-6 place-items-center rounded-full border-2 ${active ? "border-white bg-white text-navy" : "border-border"}`}>
-        {active && <Check className="h-3.5 w-3.5" />}
+      <span className="font-bold text-foreground">{label}</span>
+      <span className={`grid h-6 w-6 place-items-center rounded-full border-2 ${active ? "border-ink bg-ink text-ink-foreground" : "border-border"}`}>
+        {active ? <Check className="h-3.5 w-3.5" /> : null}
       </span>
     </button>
   );
@@ -807,16 +821,19 @@ function Option({ active, onClick, label }: { active: boolean; onClick: () => vo
 function PayOption({ icon, label, sub, active, onClick }: any) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`flex w-full items-center gap-3 rounded-2xl p-4 text-start transition-all ${active ? "bg-surface ring-2 ring-navy" : "bg-surface shadow-soft"}`}
+      className={`focus-ring tap-scale flex w-full items-center gap-3 rounded-xl border p-4 text-start transition-all ${
+        active ? "border-ink/30 bg-ink/[0.04] ring-1 ring-ink/15" : "border-border/80 bg-background shadow-xs"
+      }`}
     >
-      <div className="grid h-11 w-11 place-items-center rounded-xl bg-navy/10 text-navy">{icon}</div>
+      <div className="grid h-11 w-11 place-items-center rounded-xl bg-ink/10 text-ink">{icon}</div>
       <div className="min-w-0 flex-1">
-        <div className="text-sm font-bold">{label}</div>
+        <div className="text-sm font-bold text-foreground">{label}</div>
         <div className="text-xs text-muted-foreground">{sub}</div>
       </div>
-      <span className={`grid h-6 w-6 place-items-center rounded-full border-2 ${active ? "border-navy bg-navy text-white" : "border-border"}`}>
-        {active && <Check className="h-3.5 w-3.5" />}
+      <span className={`grid h-6 w-6 place-items-center rounded-full border-2 ${active ? "border-ink bg-ink text-ink-foreground" : "border-border"}`}>
+        {active ? <Check className="h-3.5 w-3.5" /> : null}
       </span>
     </button>
   );

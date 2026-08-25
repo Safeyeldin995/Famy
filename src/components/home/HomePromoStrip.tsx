@@ -5,8 +5,6 @@ import { ICON_STROKE, ICON_STROKE_BOLD } from "@/lib/icons/constants";
 type PromoOffer = {
   id: string;
   code: string;
-  title: string;
-  subtitle: string;
 };
 
 export function HomePromoStrip({ offer }: { offer: PromoOffer }) {
@@ -21,10 +19,10 @@ export function HomePromoStrip({ offer }: { offer: PromoOffer }) {
           </span>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-bold text-foreground">
-              {t(`home.offers.${offer.id}Title`, offer.title)}
-            </p>
-            <p className="mt-0.5 truncate text-xs text-muted-foreground">
-              {t(`home.offers.${offer.id}Subtitle`, offer.subtitle)}
+            {t(`home.offers.${offer.id}Title`)}
+          </p>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+            {t(`home.offers.${offer.id}Subtitle`)}
             </p>
           </div>
           <span

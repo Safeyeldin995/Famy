@@ -1,11 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { AppShell, TopBar, Chip, Card, Badge, EmptyState, Avatar } from "@/components/famio/ui";
+import { AppShell, TopBar, Chip, Badge, EmptyState, Avatar, SecondaryButton } from "@/components/famio/ui";
 import { useMyBookings } from "@/lib/db/queries";
-import { bookingStatusTone, formatEGP } from "@/lib/utils";
+import { bookingStatusTone, formatEGP, formatNumber } from "@/lib/utils";
 import { currentLang } from "@/lib/i18n";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Calendar, Clock, Repeat, Download } from "lucide-react";
+import { Calendar, Clock, Repeat, Download, ChevronRight } from "lucide-react";
+import { ICON_STROKE } from "@/lib/icons/constants";
 
 export const Route = createFileRoute("/bookings")({ component: Bookings });
 
@@ -33,17 +34,31 @@ function Bookings() {
   return (
     <AppShell>
       <TopBar title={t("bookings.title")} />
-      <div className="flex gap-2 px-5 pb-4">
-        <Chip active={tab === "upcoming"} onClick={() => setTab("upcoming")}>{t("bookings.upcoming")}</Chip>
-        <Chip active={tab === "completed"} onClick={() => setTab("completed")}>{t("bookings.completed")}</Chip>
-        <Chip active={tab === "cancelled"} onClick={() => setTab("cancelled")}>{t("bookings.cancelled")}</Chip>
+
+      <div className="px-5 pb-4">
+        <div className="rounded-[1.125rem] bg-surface-2 p-1">
+          <div className="grid grid-cols-3 gap-1">
+            {(["upcoming", "completed", "cancelled"] as const).map((key) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setTab(key)}
+                className={`focus-ring tap-scale min-h-11 rounded-xl text-xs font-bold transition-all sm:text-sm ${
+                  tab === key ? "bg-surface text-foreground shadow-sm" : "text-muted-foreground"
+                }`}
+              >
+                {t(`bookings.${key}`)}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
-      <div className="space-y-3 px-5">
+      <div className="space-y-3 px-5 pb-6">
         {q.isLoading ? (
-          Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-28 rounded-3xl bg-surface animate-pulse" />)
+          Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-32 animate-pulse rounded-[1.25rem] bg-muted" />)
         ) : q.isError ? (
-          <EmptyState icon="alert" title={t("common.errorTitle", "Something went wrong")} body={t("common.tryAgain", "Please try again.")} />
+          <EmptyState icon="alert" title={t("common.errorTitle")} body={t("common.tryAgain")} />
         ) : list.length === 0 ? (
           <Empty tab={tab} />
         ) : (
@@ -58,42 +73,57 @@ function Bookings() {
             const timeLabel = start.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" });
             const shortId = b.id.slice(0, 8).toUpperCase();
             return (
-              <Link key={b.id} to="/booking/$id" params={{ id: b.id }} className="block">
-                <Card className="p-4 active:scale-[0.99] transition-transform">
-                  <div className="flex items-start gap-3">
-                    <Avatar src={profile.avatar_url} alt={name} className="h-14 w-14 rounded-2xl" />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <div className="truncate text-sm font-bold">{name}</div>
-                        <Badge tone={bookingStatusTone(b.status)}>{t(`status.${b.status}` as any, b.status) as string}</Badge>
+              <article key={b.id} className="surface-card overflow-hidden shadow-sm">
+                <Link to="/booking/$id" params={{ id: b.id }} className="focus-ring tap-scale block p-4">
+                  <div className="flex gap-0">
+                    <div className="w-1 shrink-0 rounded-full bg-brand" aria-hidden="true" />
+                    <div className="min-w-0 flex-1 ps-3">
+                      <div className="flex items-start gap-3">
+                        <Avatar src={profile.avatar_url} alt={name} className="h-14 w-14 rounded-xl" />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-bold text-foreground">{name}</p>
+                              <p className="mt-0.5 truncate text-xs text-muted-foreground">{serviceLabel}</p>
+                            </div>
+                            <Badge tone={bookingStatusTone(b.status)}>{t(`status.${b.status}` as any, b.status) as string}</Badge>
+                          </div>
+                          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                            <span className="inline-flex items-center gap-1">
+                              <Calendar className="h-3 w-3" strokeWidth={ICON_STROKE} aria-hidden="true" /> {dateLabel}
+                            </span>
+                            <span className="inline-flex items-center gap-1">
+                              <Clock className="h-3 w-3" strokeWidth={ICON_STROKE} aria-hidden="true" /> {timeLabel} · {t("bookings.hoursShort", { hours: formatNumber(hours) })}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="shrink-0 text-end">
+                          <p className="text-sm font-extrabold text-ink">{formatEGP(Number(b.price_total ?? 0))}</p>
+                          <p className="mt-0.5 text-[10px] text-muted-foreground" dir="ltr">#{shortId}</p>
+                        </div>
                       </div>
-                      <div className="mt-0.5 truncate text-xs text-muted-foreground">{serviceLabel}</div>
-                      <div className="mt-2 flex items-center gap-3 text-[11px] text-muted-foreground">
-                        <span className="inline-flex items-center gap-1"><Calendar className="h-3 w-3" aria-hidden="true" /> {dateLabel}</span>
-                        <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" aria-hidden="true" /> {timeLabel} · {hours}h</span>
-                      </div>
-                    </div>
-                    <div className="text-end">
-                      <div className="text-sm font-extrabold text-navy">{formatEGP(Number(b.price_total ?? 0))}</div>
-                      <div className="text-[10px] text-muted-foreground" dir="ltr">#{shortId}</div>
+                      {tab === "upcoming" ? (
+                        <div className="mt-3 flex justify-end">
+                          <ChevronRight className="h-4 w-4 text-muted-foreground rtl-flip" strokeWidth={ICON_STROKE} aria-hidden="true" />
+                        </div>
+                      ) : null}
                     </div>
                   </div>
-                  {tab !== "upcoming" && (
-                    <div className="mt-3 flex gap-2 border-t border-border pt-3">
-                      <button
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); nav({ to: "/book/$providerId", params: { providerId: b.provider_id }, search: { serviceId: undefined } }); }}
-                        className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-surface-2 py-2 text-xs font-bold"
-                      >
-                        <Repeat className="h-3.5 w-3.5" /> {t("bookings.bookAgain")}
-                      </button>
-                      {/* Invoice download reuses booking.$id.tsx's downloadReceipt logic — not
-                          wired here yet since that function isn't currently exported/shared
-                          (Sprint 5 audit finding, deferred to avoid an out-of-scope refactor). */}
-                      <button className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-surface-2 py-2 text-xs font-bold"><Download className="h-3.5 w-3.5" /> {t("bookings.invoice")}</button>
-                    </div>
-                  )}
-                </Card>
-              </Link>
+                </Link>
+                {tab !== "upcoming" ? (
+                  <div className="flex gap-2 border-t border-border/70 px-4 pb-4 pt-3">
+                    <SecondaryButton
+                      className="flex-1"
+                      onClick={() => nav({ to: "/book/$providerId", params: { providerId: b.provider_id }, search: { serviceId: undefined } })}
+                    >
+                      <Repeat className="h-3.5 w-3.5" /> {t("bookings.bookAgain")}
+                    </SecondaryButton>
+                    <SecondaryButton className="flex-1">
+                      <Download className="h-3.5 w-3.5" /> {t("bookings.invoice")}
+                    </SecondaryButton>
+                  </div>
+                ) : null}
+              </article>
             );
           })
         )}
@@ -112,7 +142,7 @@ function Empty({ tab }: { tab: string }) {
       action={
         <Link
           to="/home"
-          className="focus-ring inline-flex h-11 items-center rounded-2xl bg-navy px-5 text-sm font-bold text-navy-foreground"
+          className="focus-ring tap-scale inline-flex h-11 min-h-11 items-center justify-center rounded-[1.125rem] bg-ink px-5 text-sm font-bold text-ink-foreground shadow-card"
         >
           {t("bookings.browse")}
         </Link>

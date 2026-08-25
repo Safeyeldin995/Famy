@@ -60,7 +60,7 @@ export function HomeHeroPanel({
 
       <div className="mt-8">
         <p className="text-sm font-medium text-white/70">
-          {greeting}, {firstName}
+          {t("greetings.withName", { greeting, name: firstName })}
         </p>
         <h1 className="mt-2 max-w-[16rem] text-[1.875rem] font-extrabold leading-[1.1] tracking-tight text-white">
           {headline}

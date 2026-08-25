@@ -22,8 +22,6 @@ export const Route = createFileRoute("/home")({ component: Home });
 const PROMO = {
   id: "o1",
   code: "FAMY20",
-  title: "20% off your first booking",
-  subtitle: "Welcome to Famy",
 };
 
 function Home() {

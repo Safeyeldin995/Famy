@@ -4,13 +4,17 @@ import { PhoneFrame, TopBar, Chip, EmptyState } from "@/components/famio/ui";
 import { ProviderCard } from "@/components/famio/ProviderCard";
 import { useAddresses, useMarketplaceServices, useProviders } from "@/lib/db/queries";
 import { toUIProvider } from "@/lib/db/adapters";
+import { currentLang } from "@/lib/i18n";
 import { useTranslation } from "react-i18next";
-import { Search as SearchIcon, X } from "lucide-react";
+import { Search as SearchIcon, SlidersHorizontal, X } from "lucide-react";
+import { ICON_STROKE, ICON_STROKE_BOLD } from "@/lib/icons/constants";
+import { formatNumber } from "@/lib/utils";
 
 export const Route = createFileRoute("/search")({ component: SearchPage });
 
 function SearchPage() {
   const { t } = useTranslation();
+  const lang = currentLang();
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<"all" | "home-cleaning" | "babysitting" | "top">("all");
   const [serviceId, setServiceId] = useState("");
@@ -37,63 +41,83 @@ function SearchPage() {
   }, [q, filter, provsQ.data]);
 
   return (
-    <PhoneFrame>
+    <PhoneFrame bg="bg-background">
       <TopBar back={{ to: "/home" }} title={t("search.title")} />
+
       <div className="px-5">
-        <div className="flex h-14 items-center gap-3 rounded-2xl bg-surface px-4 shadow-soft">
-          <SearchIcon className="h-5 w-5 text-muted-foreground" />
+        <div className="surface-card flex min-h-[3.75rem] items-center gap-3 px-4 shadow-sm">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-ink/[0.06]">
+            <SearchIcon className="h-5 w-5 text-ink" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
+          </span>
           <input
             autoFocus
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={t("search2.placeholder")}
-            className="min-w-0 flex-1 bg-transparent text-[15px] outline-none"
+            className="min-w-0 flex-1 bg-transparent text-base font-medium outline-none placeholder:text-muted-foreground"
           />
-          {q && (
-            <button onClick={() => setQ("")} aria-label={t("common.cancel")} className="focus-ring grid h-11 w-11 place-items-center rounded-full bg-muted active:scale-95 transition-transform">
-              <X className="h-3.5 w-3.5" aria-hidden="true" />
+          {q ? (
+            <button
+              onClick={() => setQ("")}
+              aria-label={t("common.cancel")}
+              className="focus-ring tap-scale grid h-10 w-10 min-h-10 min-w-10 place-items-center rounded-xl bg-muted text-muted-foreground"
+            >
+              <X className="h-4 w-4" strokeWidth={ICON_STROKE} aria-hidden="true" />
             </button>
-          )}
+          ) : null}
         </div>
 
-        <div className="mt-4 flex gap-2 overflow-x-auto no-scrollbar">
+        <div className="mt-4 flex gap-2 overflow-x-auto no-scrollbar pb-1">
           <Chip active={filter === "all"} onClick={() => setFilter("all")}>{t("common.seeAll")}</Chip>
           <Chip active={filter === "home-cleaning"} onClick={() => setFilter("home-cleaning")}>{t("categories.homeTitle")}</Chip>
           <Chip active={filter === "babysitting"} onClick={() => setFilter("babysitting")}>{t("categories.kidsTitle")}</Chip>
           <Chip active={filter === "top"} onClick={() => setFilter("top")}>{t("category.sortTop")}</Chip>
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <label className="text-[11px] font-bold text-muted-foreground">
-            {t("search2.service", "Service")}
+        <div className="surface-card mt-4 grid grid-cols-2 gap-3 p-3">
+          <label className="block">
+            <span className="text-overline">{t("search2.service")}</span>
             <select
-              aria-label={t("search2.service", "Service")}
+              aria-label={t("search2.service")}
               value={serviceId}
               onChange={(e) => setServiceId(e.target.value)}
-              className="mt-1 h-10 w-full rounded-xl border border-border bg-surface px-2 text-xs text-foreground"
+              className="focus-ring mt-1.5 h-11 w-full rounded-xl border border-border/80 bg-background px-3 text-sm font-medium text-foreground"
             >
-              <option value="">{t("search2.allServices", "All services")}</option>
-              {(servicesQ.data ?? []).map((service: any) => <option key={service.id} value={service.id}>{service.name_en}</option>)}
+              <option value="">{t("search2.allServices")}</option>
+              {(servicesQ.data ?? []).map((service: any) => (
+                <option key={service.id} value={service.id}>
+                  {lang === "ar" ? service.name_ar || service.name_en : service.name_en || service.name_ar}
+                </option>
+              ))}
             </select>
           </label>
-          <label className="text-[11px] font-bold text-muted-foreground">
-            {t("search2.address", "Address")}
+          <label className="block">
+            <span className="text-overline">{t("search2.address")}</span>
             <select
-              aria-label={t("search2.address", "Address")}
+              aria-label={t("search2.address")}
               value={selectedAddressId ?? ""}
               onChange={(e) => setAddressId(e.target.value)}
-              className="mt-1 h-10 w-full rounded-xl border border-border bg-surface px-2 text-xs text-foreground"
+              className="focus-ring mt-1.5 h-11 w-full rounded-xl border border-border/80 bg-background px-3 text-sm font-medium text-foreground"
             >
-              {(addressesQ.data ?? []).map((address) => <option key={address.id} value={address.id}>{address.area || address.city}</option>)}
+              {(addressesQ.data ?? []).map((address) => (
+                <option key={address.id} value={address.id}>{address.area || address.city}</option>
+              ))}
             </select>
           </label>
         </div>
 
-        <div className="mt-5 space-y-3 pb-10">
+        {!provsQ.isLoading && !provsQ.isError && results.length > 0 ? (
+          <p className="text-overline mt-6 flex items-center gap-1.5">
+            <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} aria-hidden="true" />
+            {t("search2.resultsCount", { count: formatNumber(results.length) })}
+          </p>
+        ) : null}
+
+        <div className="mt-4 space-y-3 pb-10">
           {provsQ.isLoading ? (
-            Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-24 rounded-3xl bg-surface animate-pulse" />)
+            Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-24 animate-pulse rounded-[1.25rem] bg-muted" />)
           ) : provsQ.isError ? (
-            <EmptyState icon="alert" title={t("common.errorTitle", "Something went wrong")} body={t("common.tryAgain", "Please try again.")} />
+            <EmptyState icon="alert" title={t("common.errorTitle")} body={t("common.tryAgain")} />
           ) : results.length === 0 ? (
             <EmptyState icon="search" title={t("search2.noResults")} body={t("search2.noResultsBody")} />
           ) : (

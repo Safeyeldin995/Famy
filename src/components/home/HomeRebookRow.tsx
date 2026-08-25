@@ -33,8 +33,8 @@ export function HomeRebookRow({
       ) : error ? (
         <EmptyState
           icon="alert"
-          title={t("common.errorTitle", "Something went wrong")}
-          body={t("common.tryAgain", "Please try again.")}
+          title={t("common.errorTitle")}
+          body={t("common.tryAgain")}
         />
       ) : providers.length === 0 ? (
         <EmptyState icon="user" title={t("home.recentEmpty")} body={t("home.recentEmptyBody")} />

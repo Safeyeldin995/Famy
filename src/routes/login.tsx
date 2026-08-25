@@ -39,7 +39,7 @@ function Login() {
       const res = await otpService.signInWithPassword(e164, password);
       setLoading(false);
       if (!res.ok) {
-        const m = t("auth.invalidCredentials", "Wrong phone or password.");
+        const m = t("auth.invalidCredentials");
         setErrorMsg(m);
         toast.error(m);
         return;
@@ -51,7 +51,7 @@ function Login() {
         if (landing === "/pro") {
           nav({ to: "/pro" });
         } else {
-          const m = t("auth.noProviderAccount", "This number has no provider account. Sign up as a provider first.");
+          const m = t("auth.noProviderAccount");
           setErrorMsg(m);
           toast.error(m);
         }
@@ -65,7 +65,7 @@ function Login() {
     const send = await otpService.sendOtp(e164, "signup", role);
     if (!send.ok) {
       setLoading(false);
-      const m = send.message ?? t("auth.sendFailed", "Could not create account.");
+      const m = send.message ?? t("auth.sendFailed");
       setErrorMsg(m);
       toast.error(m, { duration: 8000 });
       return;
@@ -78,120 +78,134 @@ function Login() {
   return (
     <PhoneFrame bg="bg-background">
       <TopBar back={{ to: "/onboarding" }} right={<LanguageToggle variant="inline" />} transparent />
-      <div className="flex-1 px-5 pt-1">
+
+      <div className="flex-1 overflow-y-auto px-5 pb-4 pt-1">
         <FamyWordmark size="auth" />
-        <p className="mt-4 text-body text-muted-foreground">
-          {mode === "signin" ? t("auth.signinBody", "Welcome back.") : t("auth.signupBody", "Create your Famy account.")}
+        <p className="mt-3 text-body text-muted-foreground">
+          {mode === "signin" ? t("auth.signinBody") : t("auth.signupBody")}
         </p>
 
-        <div className="surface-card mt-6 p-1.5">
-          <div className="grid grid-cols-2 gap-1">
-            {(["signin", "signup"] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setMode(m)}
-                className={`focus-ring tap-scale min-h-11 rounded-xl text-sm font-bold transition-all ${
-                  mode === m ? "bg-ink text-ink-foreground shadow-soft" : "text-muted-foreground"
-                }`}
-              >
-                {m === "signin" ? t("auth.signIn", "Sign in") : t("auth.signUp", "Sign up")}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <p className="text-overline mt-6">
-          {mode === "signin" ? t("auth.signInAs", "Sign in as") : t("auth.iAmA", "I am a")}
-        </p>
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          {([
-            { v: "customer" as Role, icon: User, label: t("auth.roleCustomer", "Customer") },
-            { v: "provider" as Role, icon: Briefcase, label: t("auth.roleProvider", "Service Provider") },
-          ]).map((r) => {
-            const Icon = r.icon;
-            const active = role === r.v;
-            return (
-              <button
-                key={r.v}
-                type="button"
-                onClick={() => setRole(r.v)}
-                className={`focus-ring tap-scale surface-card flex min-h-[5.5rem] flex-col items-start gap-2 p-4 text-start transition-all ${
-                  active ? "border-ink/35 ring-1 ring-ink/20" : ""
-                }`}
-              >
-                <span
-                  className={`grid h-10 w-10 place-items-center rounded-xl ${
-                    active ? "bg-ink/10 text-ink" : "bg-muted text-muted-foreground"
+        {/* Identity */}
+        <section className="mt-8">
+          <p className="text-overline">{t("auth.accountMode")}</p>
+          <div className="mt-3 rounded-[1.125rem] bg-surface-2 p-1">
+            <div className="grid grid-cols-2 gap-1">
+              {(["signin", "signup"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMode(m)}
+                  className={`focus-ring tap-scale min-h-11 rounded-xl text-sm font-semibold transition-all ${
+                    mode === m ? "bg-surface text-foreground shadow-sm" : "text-muted-foreground"
                   }`}
                 >
-                  <Icon className="h-5 w-5" strokeWidth={ICON_STROKE_BOLD} />
-                </span>
-                <span className="text-sm font-bold text-foreground">{r.label}</span>
-              </button>
-            );
-          })}
-        </div>
-        {mode === "signup" && role === "provider" && (
-          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-            {t("auth.providerNote", "Providers must complete verification and admin approval before receiving bookings.")}
-          </p>
-        )}
-
-        <p className="text-overline mt-6">{t("auth.phoneNumber")}</p>
-        <div className="surface-card mt-3 flex min-h-[3.75rem] items-center gap-3 px-4 focus-within:ring-2 focus-within:ring-ink/25">
-          <div className="flex shrink-0 items-center gap-2">
-            <span className="grid h-9 w-9 place-items-center rounded-lg bg-brand/10 text-brand">
-              <Phone className="h-4 w-4" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
-            </span>
-            <span className="text-sm font-bold text-foreground" dir="ltr">
-              +20
-            </span>
+                  {m === "signin" ? t("auth.signIn") : t("auth.signUp")}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="h-7 w-px bg-border" />
-          <input
-            inputMode="tel"
-            dir="ltr"
-            autoComplete="tel"
-            placeholder={t("auth.phonePlaceholder")}
-            value={phone}
-            onChange={(e) => setPhone(e.target.value.replace(/[^\d ]/g, ""))}
-            className="min-w-0 flex-1 bg-transparent text-base font-semibold outline-none placeholder:text-muted-foreground/60"
-          />
-        </div>
+        </section>
 
-        {mode === "signin" && (
-          <>
-            <p className="text-overline mt-5">{t("auth.password", "Password")}</p>
-            <div className="surface-card mt-3 flex min-h-[3.75rem] items-center gap-3 px-4 focus-within:ring-2 focus-within:ring-ink/25">
-              <input
-                type={showPw ? "text" : "password"}
-                autoComplete="current-password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="min-w-0 flex-1 bg-transparent text-base font-semibold outline-none placeholder:text-muted-foreground/60"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPw((v) => !v)}
-                aria-label={showPw ? t("auth.hidePassword", "Hide password") : t("auth.showPassword", "Show password")}
-                className="focus-ring tap-scale grid h-11 w-11 min-h-11 min-w-11 place-items-center rounded-xl text-muted-foreground"
-              >
-                {showPw ? (
-                  <EyeOff className="h-5 w-5" strokeWidth={ICON_STROKE} />
-                ) : (
-                  <Eye className="h-5 w-5" strokeWidth={ICON_STROKE} />
-                )}
-              </button>
+        {/* Role */}
+        <section className="mt-8">
+          <p className="text-overline">
+            {mode === "signin" ? t("auth.signInAs") : t("auth.iAmA")}
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-2.5">
+            {([
+              { v: "customer" as Role, icon: User, label: t("auth.roleCustomer") },
+              { v: "provider" as Role, icon: Briefcase, label: t("auth.roleProvider") },
+            ]).map((r) => {
+              const Icon = r.icon;
+              const active = role === r.v;
+              return (
+                <button
+                  key={r.v}
+                  type="button"
+                  onClick={() => setRole(r.v)}
+                  className={`focus-ring tap-scale flex min-h-[4.25rem] items-center gap-3 rounded-xl border px-3.5 py-3 text-start transition-all ${
+                    active
+                      ? "border-ink/30 bg-ink/[0.04] ring-1 ring-ink/15"
+                      : "border-border/80 bg-surface"
+                  }`}
+                >
+                  <span
+                    className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${
+                      active ? "bg-ink text-ink-foreground" : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" strokeWidth={ICON_STROKE_BOLD} />
+                  </span>
+                  <span className="text-sm font-semibold text-foreground">{r.label}</span>
+                </button>
+              );
+            })}
+          </div>
+          {mode === "signup" && role === "provider" && (
+            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{t("auth.providerNote")}</p>
+          )}
+        </section>
+
+        {/* Contact */}
+        <section className="mt-8">
+          <p className="text-overline">{t("auth.contactDetails")}</p>
+          <div className="surface-card mt-3 space-y-4 p-4">
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground">{t("auth.phoneNumber")}</label>
+              <div className="mt-2 flex min-h-[3.5rem] items-center gap-3 rounded-xl border border-border/80 bg-background px-3 focus-within:ring-2 focus-within:ring-ink/20">
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand/12 text-brand">
+                  <Phone className="h-4 w-4" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
+                </span>
+                <span className="text-sm font-bold text-foreground" dir="ltr">
+                  +20
+                </span>
+                <div className="h-6 w-px bg-border" />
+                <input
+                  inputMode="tel"
+                  dir="ltr"
+                  autoComplete="tel"
+                  placeholder={t("auth.phonePlaceholder")}
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value.replace(/[^\d ]/g, ""))}
+                  className="min-w-0 flex-1 bg-transparent text-base font-semibold outline-none placeholder:text-muted-foreground/60"
+                />
+              </div>
             </div>
-            <div className="mt-3 text-end">
-              <Link to="/auth/forgot" className="text-sm font-semibold text-ink">
-                {t("auth.forgot", "Forgot password?")}
-              </Link>
-            </div>
-          </>
-        )}
+
+            {mode === "signin" && (
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground">{t("auth.password")}</label>
+                <div className="mt-2 flex min-h-[3.5rem] items-center gap-3 rounded-xl border border-border/80 bg-background px-3 focus-within:ring-2 focus-within:ring-ink/20">
+                  <input
+                    type={showPw ? "text" : "password"}
+                    autoComplete="current-password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="min-w-0 flex-1 bg-transparent text-base font-semibold outline-none placeholder:text-muted-foreground/60"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPw((v) => !v)}
+                    aria-label={showPw ? t("auth.hidePassword") : t("auth.showPassword")}
+                    className="focus-ring tap-scale grid h-10 w-10 min-h-10 min-w-10 place-items-center rounded-lg text-muted-foreground"
+                  >
+                    {showPw ? (
+                      <EyeOff className="h-5 w-5" strokeWidth={ICON_STROKE} />
+                    ) : (
+                      <Eye className="h-5 w-5" strokeWidth={ICON_STROKE} />
+                    )}
+                  </button>
+                </div>
+                <div className="mt-2 text-end">
+                  <Link to="/auth/forgot" className="text-xs font-semibold text-ink underline-offset-2 hover:underline">
+                    {t("auth.forgot")}
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
 
         {mode === "signup" && (
           <p className="mt-6 text-xs leading-relaxed text-muted-foreground">
@@ -208,9 +222,9 @@ function Login() {
         )}
       </div>
 
-      <div className="safe-bottom px-5 pt-4">
+      <div className="safe-bottom border-t border-border/60 bg-surface/95 px-5 pt-3 backdrop-blur">
         {errorMsg && (
-          <div className="mb-3 rounded-2xl border border-brand/25 bg-brand/10 p-3 text-[13px] font-medium leading-relaxed text-brand">
+          <div className="mb-3 rounded-xl border border-brand/25 bg-brand/10 p-3 text-[13px] font-medium leading-relaxed text-brand">
             {errorMsg}
           </div>
         )}
@@ -220,10 +234,10 @@ function Login() {
         >
           {loading
             ? mode === "signin"
-              ? t("common.signingIn", "Signing in…")
-              : t("common.sending", "Sending…")
+              ? t("common.signingIn")
+              : t("common.sending")
             : mode === "signin"
-              ? t("auth.signIn", "Sign in")
+              ? t("auth.signIn")
               : t("common.sendCode")}
         </PrimaryButton>
       </div>
