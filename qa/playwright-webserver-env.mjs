@@ -25,6 +25,9 @@ export const WEBSERVER_APPLICATION_ALLOWLIST = [
   "VITE_FIREBASE_STORAGE_BUCKET",
   "VITE_FIREBASE_MESSAGING_SENDER_ID",
   "VITE_FIREBASE_APP_ID",
+  "FIREBASE_PROJECT_ID",
+  "FIREBASE_CLIENT_EMAIL",
+  "FIREBASE_PRIVATE_KEY",
   "NODE_ENV",
 ];
 
@@ -82,7 +85,12 @@ export const FORBIDDEN_WEBSERVER_ENV_KEYS = [
  * Keys that must never appear in Playwright's serialized config (e.g. JSON reporter
  * output). The dev-server wrapper loads these directly from QA env at spawn time.
  */
-export const WEBSERVER_CONFIG_SECRET_KEYS = ["SUPABASE_SERVICE_ROLE_KEY", "AUTH_INTENT_SECRET"];
+export const WEBSERVER_CONFIG_SECRET_KEYS = [
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "AUTH_INTENT_SECRET",
+  "FIREBASE_PRIVATE_KEY",
+  "FIREBASE_CLIENT_EMAIL",
+];
 
 /** Playwright controller-only variables that must never reach the webServer child. */
 export const PLAYWRIGHT_CONTROLLER_ONLY_KEYS = ["VERCEL_AUTOMATION_BYPASS_SECRET"];
@@ -194,6 +202,9 @@ function buildApprovedApplicationValues(source) {
     VITE_FIREBASE_STORAGE_BUCKET: source.VITE_FIREBASE_STORAGE_BUCKET ?? "",
     VITE_FIREBASE_MESSAGING_SENDER_ID: source.VITE_FIREBASE_MESSAGING_SENDER_ID ?? "",
     VITE_FIREBASE_APP_ID: source.VITE_FIREBASE_APP_ID ?? "",
+    FIREBASE_PROJECT_ID: source.FIREBASE_PROJECT_ID ?? "",
+    FIREBASE_CLIENT_EMAIL: source.FIREBASE_CLIENT_EMAIL ?? "",
+    FIREBASE_PRIVATE_KEY: source.FIREBASE_PRIVATE_KEY ?? "",
     NODE_ENV: source.NODE_ENV ?? "development",
   };
 }

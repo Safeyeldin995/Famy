@@ -111,6 +111,10 @@ const en = {
     invalidCode: "Invalid code. Try again.",
     codeSent: "Code sent.",
     sendFailed: "Could not send code. Try again later.",
+    firebaseSendFailed: "Could not send verification SMS. Try again later.",
+    firebaseStartFailed: "Could not start phone verification. Try again.",
+    firebaseSessionLost:
+      "Your SMS verification session expired on this page. Tap resend to get a new code.",
     sessionExpired: "Your verification session expired. Start again.",
     verifyUseSignin: "This number already has an account. Sign in or reset your password.",
     verifyUseSignup: "This number is not registered yet. Create an account to continue.",

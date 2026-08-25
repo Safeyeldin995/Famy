@@ -5,7 +5,12 @@ import { toast } from "sonner";
 import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
 import { PhoneFrame, PrimaryButton, TopBar } from "@/components/famio/ui";
 import type { AuthFlowPurpose } from "@/lib/auth/authIntent.types";
-import { resendPhoneOtpFlow, verifyPhoneOtpCode } from "@/lib/otp/phoneOtpFlow";
+import {
+  hasFirebasePhoneVerificationSession,
+  phoneOtpFlowErrorMessage,
+  resendPhoneOtpFlow,
+  verifyPhoneOtpCode,
+} from "@/lib/otp/phoneOtpFlow";
 import { otpService } from "@/lib/otp/OtpService";
 import { useApp } from "@/lib/store";
 import { formatNumber } from "@/lib/utils";
@@ -65,6 +70,17 @@ function Otp() {
     }
   }, [nav, otpContext.purpose, otpExpiresIn, t]);
 
+  useEffect(() => {
+    if (otpContext.delivery !== "firebase") return;
+    if (!hasFirebasePhoneVerificationSession()) {
+      const msg = t(
+        "auth.firebaseSessionLost",
+        "Your SMS verification session expired on this page. Tap resend to get a new code.",
+      );
+      setErrorMsg(msg);
+    }
+  }, [otpContext.delivery, t]);
+
   const verify = async (value: string) => {
     if (value.length !== 6 || loading || verifyLock.current) return;
     verifyLock.current = true;
@@ -90,6 +106,13 @@ function Otp() {
         nav({ to: "/login", replace: true });
         return;
       }
+      if (res.error === "firebase_session_lost") {
+        const msg = phoneOtpFlowErrorMessage("firebase_session_lost", t);
+        setErrorMsg(msg);
+        toast.error(msg);
+        setCode(["", "", "", "", "", ""]);
+        return;
+      }
       const msg = t("auth.invalidCode", "Invalid code. Try again.");
       setErrorMsg(msg);
       toast.error(msg);
@@ -110,10 +133,10 @@ function Otp() {
     }
     setResending(true);
     setErrorMsg(null);
-    const res = await resendPhoneOtpFlow(profile.phone);
+    const res = await resendPhoneOtpFlow(profile.phone, { languageCode: i18n.language });
     setResending(false);
     if (!res.ok) {
-      const msg = res.message ?? t("auth.sendFailed", "Could not send code. Try again later.");
+      const msg = phoneOtpFlowErrorMessage(res.error, t);
       setErrorMsg(msg);
       toast.error(msg);
       if (res.retryAfter) setResendAvailableIn(res.retryAfter);

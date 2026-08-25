@@ -8,7 +8,7 @@ import { LanguageToggle } from "@/components/famio/LanguageToggle";
 import { useApp } from "@/lib/store";
 import famyLogo from "@/assets/famy-wordmark.png";
 import { otpService, normalizePhone, type Role } from "@/lib/otp/OtpService";
-import { startPhoneOtpFlow } from "@/lib/otp/phoneOtpFlow";
+import { startPhoneOtpFlow, phoneOtpFlowErrorMessage } from "@/lib/otp/phoneOtpFlow";
 import { resolveLandingForCurrentUser } from "@/lib/auth/landing";
 
 export const Route = createFileRoute("/login")({ component: Login });
@@ -23,7 +23,7 @@ function Login() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const nav = useNavigate();
   const { setProfile, setAuthed } = useApp();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const phoneValid = phone.replace(/\D/g, "").length >= 9;
 
@@ -69,10 +69,10 @@ function Login() {
 
     // signup: OTP must be entered on /otp before account creation completes.
     setLoading(true);
-    const send = await startPhoneOtpFlow(e164, "signup", role);
+    const send = await startPhoneOtpFlow(e164, "signup", role, { languageCode: i18n.language });
     if (!send.ok) {
       setLoading(false);
-      const m = send.message ?? t("auth.sendFailed", "Could not create account.");
+      const m = phoneOtpFlowErrorMessage(send.error, t);
       setErrorMsg(m);
       toast.error(m, { duration: 8000 });
       return;

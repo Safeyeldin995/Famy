@@ -1,7 +1,9 @@
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import {
   getAuth,
+  PhoneAuthProvider,
   RecaptchaVerifier,
+  signInWithCredential,
   signInWithPhoneNumber,
   signOut,
   type Auth,
@@ -17,10 +19,22 @@ type FirebaseClientConfig = {
   appId: string;
 };
 
+const VERIFICATION_ID_STORAGE_KEY = "famy.firebase.verificationId";
+
 export class FirebaseClientConfigurationError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "FirebaseClientConfigurationError";
+  }
+}
+
+export class FirebasePhoneVerificationSessionError extends Error {
+  readonly code: "session_lost" | "not_started";
+
+  constructor(message: string, code: "session_lost" | "not_started") {
+    super(message);
+    this.name = "FirebasePhoneVerificationSessionError";
+    this.code = code;
   }
 }
 
@@ -58,12 +72,41 @@ let firebaseAuth: Auth | undefined;
 let recaptchaVerifier: RecaptchaVerifier | undefined;
 let confirmationResult: ConfirmationResult | undefined;
 
+function persistVerificationId(verificationId: string) {
+  sessionStorage.setItem(VERIFICATION_ID_STORAGE_KEY, verificationId);
+}
+
+function readStoredVerificationId(): string | null {
+  return sessionStorage.getItem(VERIFICATION_ID_STORAGE_KEY);
+}
+
+function clearStoredVerificationId() {
+  sessionStorage.removeItem(VERIFICATION_ID_STORAGE_KEY);
+}
+
+export function hasFirebasePhoneVerificationSession(): boolean {
+  if (typeof window === "undefined") return false;
+  return !!confirmationResult || !!readStoredVerificationId();
+}
+
+export function clearFirebasePhoneVerificationSession(): void {
+  confirmationResult = undefined;
+  if (typeof window !== "undefined") {
+    clearStoredVerificationId();
+  }
+}
+
 export function getFirebaseAuthApp(): Auth {
   if (firebaseAuth) return firebaseAuth;
   const config = readFirebaseClientConfig();
   firebaseApp = getApps().length > 0 ? getApps()[0]! : initializeApp(config);
   firebaseAuth = getAuth(firebaseApp);
   return firebaseAuth;
+}
+
+function resolveFirebaseAuthLanguage(languageCode?: string): string {
+  if (languageCode?.toLowerCase().startsWith("ar")) return "ar";
+  return "en";
 }
 
 function getRecaptchaContainer(containerId: string): HTMLElement {
@@ -86,31 +129,59 @@ export async function ensureInvisibleRecaptcha(containerId = "firebase-recaptcha
 
 export async function sendFirebasePhoneOtp(
   phoneE164: string,
-  containerId = "firebase-recaptcha",
+  options: { containerId?: string; languageCode?: string } = {},
 ): Promise<void> {
   if (typeof window === "undefined") {
     throw new Error("Firebase phone OTP can only run in the browser");
   }
+  const containerId = options.containerId ?? "firebase-recaptcha";
+  const auth = getFirebaseAuthApp();
+  auth.languageCode = resolveFirebaseAuthLanguage(options.languageCode);
   await ensureInvisibleRecaptcha(containerId);
   if (!recaptchaVerifier) {
     throw new Error("Firebase reCAPTCHA is not ready");
   }
-  confirmationResult = await signInWithPhoneNumber(
-    getFirebaseAuthApp(),
-    phoneE164,
-    recaptchaVerifier,
-  );
+  confirmationResult = await signInWithPhoneNumber(auth, phoneE164, recaptchaVerifier);
+  persistVerificationId(confirmationResult.verificationId);
+}
+
+async function completeFirebasePhoneVerification(code: string): Promise<string> {
+  const auth = getFirebaseAuthApp();
+
+  if (confirmationResult) {
+    const credential = await confirmationResult.confirm(code);
+    const idToken = await credential.user.getIdToken();
+    await signOut(auth);
+    confirmationResult = undefined;
+    clearStoredVerificationId();
+    return idToken;
+  }
+
+  const verificationId = readStoredVerificationId();
+  if (!verificationId) {
+    throw new FirebasePhoneVerificationSessionError(
+      "Firebase phone verification session expired",
+      "session_lost",
+    );
+  }
+
+  const credential = PhoneAuthProvider.credential(verificationId, code);
+  const userCredential = await signInWithCredential(auth, credential);
+  const idToken = await userCredential.user.getIdToken();
+  await signOut(auth);
+  confirmationResult = undefined;
+  clearStoredVerificationId();
+  return idToken;
 }
 
 export async function confirmFirebasePhoneOtp(code: string): Promise<string> {
-  if (!confirmationResult) {
-    throw new Error("Firebase phone verification has not started");
+  if (!confirmationResult && !readStoredVerificationId()) {
+    throw new FirebasePhoneVerificationSessionError(
+      "Firebase phone verification has not started",
+      "not_started",
+    );
   }
-  const credential = await confirmationResult.confirm(code);
-  const idToken = await credential.user.getIdToken();
-  await signOut(getFirebaseAuthApp());
-  confirmationResult = undefined;
-  return idToken;
+  return completeFirebasePhoneVerification(code);
 }
 
 export function resetFirebasePhoneOtpSessionForTests(): void {
@@ -118,4 +189,7 @@ export function resetFirebasePhoneOtpSessionForTests(): void {
   confirmationResult = undefined;
   firebaseAuth = undefined;
   firebaseApp = undefined;
+  if (typeof window !== "undefined") {
+    clearStoredVerificationId();
+  }
 }

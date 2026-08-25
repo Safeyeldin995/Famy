@@ -45,6 +45,7 @@ describe("verifyFirebasePhoneIdToken", () => {
     const verifyToken = vi.fn().mockResolvedValue(decodedBase);
     const result = await verifyFirebasePhoneIdToken("valid-token", "+201012345678", verifyToken);
     expect(result).toEqual({ ok: true, phoneE164: "+201012345678", decoded: decodedBase });
+    expect(verifyToken).toHaveBeenCalledWith("valid-token");
   });
 
   it("rejects expired or invalid tokens", async () => {

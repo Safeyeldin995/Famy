@@ -84,7 +84,8 @@ function mapVerifyTokenError(error: unknown): FirebasePhoneTokenVerifyError {
 export async function verifyFirebasePhoneIdToken(
   idToken: string,
   expectedPhoneE164: string,
-  verifyToken: FirebaseIdTokenVerifier = (token) => getFirebaseAdminAuth().verifyIdToken(token),
+  verifyToken: FirebaseIdTokenVerifier = (token) =>
+    getFirebaseAdminAuth().verifyIdToken(token, true),
 ): Promise<FirebasePhoneTokenVerifyResult> {
   let decoded: DecodedIdToken;
   try {

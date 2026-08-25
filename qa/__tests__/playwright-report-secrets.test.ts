@@ -28,9 +28,17 @@ function fakeParentEnv() {
 
 describe("Playwright config env is secret-free by construction", () => {
   it("buildPlaywrightWebServerConfigEnv omits service-role and auth-intent secrets", () => {
-    const configEnv = buildPlaywrightWebServerConfigEnv(fakeParentEnv());
+    const configEnv = buildPlaywrightWebServerConfigEnv({
+      ...fakeParentEnv(),
+      FIREBASE_PROJECT_ID: "famy-fa9ad",
+      FIREBASE_CLIENT_EMAIL: "firebase-adminsdk@test.iam.gserviceaccount.com",
+      FIREBASE_PRIVATE_KEY: "-----BEGIN PRIVATE KEY-----\\nabc\\n-----END PRIVATE KEY-----",
+    });
     expect(configEnv.SUPABASE_SERVICE_ROLE_KEY).toBeUndefined();
     expect(configEnv.AUTH_INTENT_SECRET).toBeUndefined();
+    expect(configEnv.FIREBASE_PRIVATE_KEY).toBeUndefined();
+    expect(configEnv.FIREBASE_CLIENT_EMAIL).toBeUndefined();
+    expect(configEnv.FIREBASE_PROJECT_ID).toBe("famy-fa9ad");
     expect(configEnv.FAMY_QA_DEV_SERVER_WRAPPER).toBe("1");
     expect(configEnv.VITE_SUPABASE_URL).toBe("https://bfwveoqbyqlhixjvdzha.supabase.co");
   });
@@ -45,10 +53,18 @@ describe("Playwright config env is secret-free by construction", () => {
   });
 
   it("dev-server wrapper still receives secrets via effective child env", () => {
-    const parent = fakeParentEnv();
+    const parent = {
+      ...fakeParentEnv(),
+      FIREBASE_PROJECT_ID: "famy-fa9ad",
+      FIREBASE_CLIENT_EMAIL: "firebase-adminsdk@test.iam.gserviceaccount.com",
+      FIREBASE_PRIVATE_KEY: "-----BEGIN PRIVATE KEY-----\\nabc\\n-----END PRIVATE KEY-----",
+    };
     const normalized = getEffectiveNormalizedChildEnv(parent, buildPlaywrightWebServerEnv(parent));
     expect(normalized.SUPABASE_SERVICE_ROLE_KEY).toBe(FAKE_JWT);
     expect(normalized.AUTH_INTENT_SECRET).toBe("test-auth-intent-secret");
+    expect(normalized.FIREBASE_PROJECT_ID).toBe("famy-fa9ad");
+    expect(normalized.FIREBASE_CLIENT_EMAIL).toBe("firebase-adminsdk@test.iam.gserviceaccount.com");
+    expect(normalized.FIREBASE_PRIVATE_KEY).toContain("BEGIN PRIVATE KEY");
   });
 });
 
@@ -60,6 +76,9 @@ describe("QA report secret sentinel", () => {
     expect(findSecretPatternsInText('{"SUPABASE_SERVICE_ROLE_KEY":"not-empty"}').length).toBeGreaterThan(
       0,
     );
+    expect(
+      findSecretPatternsInText('{"FIREBASE_PRIVATE_KEY":"-----BEGIN PRIVATE KEY-----abc"}').length,
+    ).toBeGreaterThan(0);
   });
 
   it("passes on secret-free report content", () => {

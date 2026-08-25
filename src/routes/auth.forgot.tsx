@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { PhoneFrame, PrimaryButton, TopBar } from "@/components/famio/ui";
 import { useApp } from "@/lib/store";
 import { otpService, normalizePhone } from "@/lib/otp/OtpService";
-import { startPhoneOtpFlow } from "@/lib/otp/phoneOtpFlow";
+import { startPhoneOtpFlow, phoneOtpFlowErrorMessage } from "@/lib/otp/phoneOtpFlow";
 
 export const Route = createFileRoute("/auth/forgot")({ component: Forgot });
 
@@ -15,7 +15,7 @@ function Forgot() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const nav = useNavigate();
   const { setProfile } = useApp();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const valid = phone.replace(/\D/g, "").length >= 9;
 
   const submit = async () => {
@@ -23,10 +23,10 @@ function Forgot() {
     setErrorMsg(null);
     const e164 = normalizePhone(phone);
     setLoading(true);
-    const send = await startPhoneOtpFlow(e164, "reset");
+    const send = await startPhoneOtpFlow(e164, "reset", undefined, { languageCode: i18n.language });
     if (!send.ok) {
       setLoading(false);
-      const m = send.message ?? t("auth.sendFailed", "Could not reset password.");
+      const m = phoneOtpFlowErrorMessage(send.error, t);
       setErrorMsg(m);
       toast.error(m, { duration: 8000 });
       return;
