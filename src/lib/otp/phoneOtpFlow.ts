@@ -108,7 +108,7 @@ export async function verifyPhoneOtpCode(code: string) {
     } catch (error) {
       if (
         error instanceof FirebasePhoneVerificationSessionError &&
-        error.code === "session_lost"
+        (error.code === "session_lost" || error.code === "not_started")
       ) {
         return { ok: false as const, error: "firebase_session_lost" as const };
       }

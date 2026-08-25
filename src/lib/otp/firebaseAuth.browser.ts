@@ -72,21 +72,49 @@ let firebaseAuth: Auth | undefined;
 let recaptchaVerifier: RecaptchaVerifier | undefined;
 let confirmationResult: ConfirmationResult | undefined;
 
-function persistVerificationId(verificationId: string) {
-  sessionStorage.setItem(VERIFICATION_ID_STORAGE_KEY, verificationId);
+function getSessionStorage(): Storage | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+function persistVerificationId(verificationId: string): void {
+  const storage = getSessionStorage();
+  if (!storage) return;
+  try {
+    storage.setItem(VERIFICATION_ID_STORAGE_KEY, verificationId);
+  } catch {
+    // Fail-soft: in-memory confirmationResult still works for this page load.
+  }
 }
 
 function readStoredVerificationId(): string | null {
-  return sessionStorage.getItem(VERIFICATION_ID_STORAGE_KEY);
+  const storage = getSessionStorage();
+  if (!storage) return null;
+  try {
+    return storage.getItem(VERIFICATION_ID_STORAGE_KEY);
+  } catch {
+    return null;
+  }
 }
 
-function clearStoredVerificationId() {
-  sessionStorage.removeItem(VERIFICATION_ID_STORAGE_KEY);
+function clearStoredVerificationId(): void {
+  const storage = getSessionStorage();
+  if (!storage) return;
+  try {
+    storage.removeItem(VERIFICATION_ID_STORAGE_KEY);
+  } catch {
+    // Fail-soft: verified token must still be returned to the caller.
+  }
 }
 
 export function hasFirebasePhoneVerificationSession(): boolean {
   if (typeof window === "undefined") return false;
-  return !!confirmationResult || !!readStoredVerificationId();
+  if (confirmationResult) return true;
+  return !!readStoredVerificationId();
 }
 
 export function clearFirebasePhoneVerificationSession(): void {
