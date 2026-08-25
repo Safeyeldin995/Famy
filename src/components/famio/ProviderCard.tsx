@@ -19,7 +19,7 @@ export function ProviderCard({ p }: { p: Provider }) {
       className="focus-ring relative block rounded-[1.25rem] border border-border/50 bg-surface p-4 shadow-sm active:scale-[0.99] transition-transform"
     >
       {isTopPro && (
-        <span className="absolute -top-2 start-4 inline-flex items-center gap-1 rounded-full bg-navy px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-navy-foreground shadow-soft">
+        <span className="absolute -top-2 start-4 inline-flex items-center gap-1 rounded-full bg-brand/12 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand shadow-xs">
           <Award className="h-3 w-3" /> {t("roles.topPro")}
         </span>
       )}
@@ -38,7 +38,7 @@ export function ProviderCard({ p }: { p: Provider }) {
           <div className="flex items-center gap-2">
             <h3 className="truncate text-[15px] font-bold text-foreground">{p.name}</h3>
             <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
-              p.role === "Angel" ? "bg-coral/10 text-coral" : "bg-navy/10 text-navy"
+              p.role === "Angel" ? "bg-brand/10 text-brand" : "bg-muted text-foreground"
             }`}>{t(roleKey)}</span>
           </div>
           <p className="mt-0.5 truncate text-xs text-muted-foreground">

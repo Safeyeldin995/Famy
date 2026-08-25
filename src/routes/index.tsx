@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useApp } from "@/lib/store";
 import { resolveLandingForCurrentUser } from "@/lib/auth/landing";
 import { useMyProfile } from "@/lib/db/queries";
-import famyLogo from "@/assets/famy-wordmark.png";
+import { FamyWordmark } from "@/components/famio/FamyWordmark";
 
 export const Route = createFileRoute("/")({
   component: Splash,
@@ -38,9 +38,9 @@ function Splash() {
 
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center bg-white text-navy">
+    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center bg-background text-foreground">
       <div className="animate-pop">
-        <img src={famyLogo} alt={t("common.appName")} className="h-28 w-auto object-contain" />
+        <FamyWordmark size="splash" />
       </div>
 
     </div>

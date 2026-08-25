@@ -124,7 +124,7 @@ export function TopBar({
   transparent?: boolean;
 }) {
   return (
-    <div className={`safe-top sticky top-0 z-30 ${transparent ? "" : "bg-surface-2/90 backdrop-blur"}`}>
+    <div className={`safe-top sticky top-0 z-30 ${transparent ? "" : "bg-background/90 backdrop-blur"}`}>
       <div className="flex items-center gap-2 px-4 py-3">
         {back && (
           <BackButton back={back} />
@@ -141,7 +141,7 @@ export function TopBar({
 
 export function BackButton({ back }: { back: { to: string } | (() => void) }) {
   const { t } = useTranslation();
-  const cls = "focus-ring grid h-11 w-11 shrink-0 place-items-center rounded-full bg-surface shadow-soft active:scale-95 transition-transform";
+  const cls = "focus-ring grid h-11 w-11 shrink-0 place-items-center rounded-full bg-surface shadow-xs active:scale-95 transition-transform";
   if (typeof back === "function") {
     return (
       <button onClick={back} className={cls} aria-label={t("common.back")} data-rtl-flip="true">
@@ -183,12 +183,12 @@ export function PrimaryButton({
 }) {
   const styles =
     variant === "navy"
-      ? "bg-navy text-navy-foreground active:bg-navy/90 shadow-card hover:shadow-float"
+      ? "bg-brand text-brand-foreground active:bg-brand/90 shadow-sm hover:shadow-soft"
       : variant === "coral"
-      ? "bg-coral text-coral-foreground active:bg-coral/90 shadow-card hover:shadow-float"
+      ? "bg-brand text-brand-foreground active:bg-brand/90 shadow-sm hover:shadow-soft"
       : variant === "outline"
       ? "border border-border bg-surface text-foreground"
-      : "bg-transparent text-navy";
+      : "bg-transparent text-brand";
   return (
     <button
       type={type}
