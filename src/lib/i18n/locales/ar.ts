@@ -152,6 +152,9 @@ const ar: Translation = {
   },
   home: {
     searchHint: "ابحث عن مساعدة…",
+    servicesSubtitle: "الخدمات",
+    featuredSubtitle: "الأعلى تقييمًا",
+    recentSubtitle: "سجلّك",
     trust1: "محترفون موثوقون",
     trust2: "زيارات مؤمّنة",
     trust3: "دعم ٢٤/٧",

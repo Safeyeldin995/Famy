@@ -150,6 +150,9 @@ const en = {
   },
   home: {
     searchHint: "Search for help…",
+    servicesSubtitle: "Services",
+    featuredSubtitle: "Top rated",
+    recentSubtitle: "Your history",
     trust1: "Verified pros",
     trust2: "Insured visits",
     trust3: "24/7 support",

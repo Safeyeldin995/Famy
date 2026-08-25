@@ -16,7 +16,7 @@ export function ProviderCard({ p }: { p: Provider }) {
       to="/provider/$id"
       params={{ id: p.id }}
       aria-label={`${p.name}, ${p.rating} stars, ${formatEGP(p.hourlyRate, { perHour: true })}`}
-      className="focus-ring relative block rounded-3xl bg-surface p-4 shadow-soft active:scale-[0.99] transition-transform"
+      className="focus-ring relative block rounded-[1.25rem] border border-border/50 bg-surface p-4 shadow-sm active:scale-[0.99] transition-transform"
     >
       {isTopPro && (
         <span className="absolute -top-2 start-4 inline-flex items-center gap-1 rounded-full bg-navy px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-navy-foreground shadow-soft">
@@ -86,7 +86,7 @@ export function ProviderTile({ p }: { p: Provider }) {
       to="/provider/$id"
       params={{ id: p.id }}
       aria-label={`${p.name}, ${p.rating} stars`}
-      className="focus-ring block w-44 shrink-0 overflow-hidden rounded-3xl bg-surface shadow-soft active:scale-[0.98] transition-transform"
+      className="focus-ring block w-[11.5rem] shrink-0 overflow-hidden rounded-[1.25rem] border border-border/50 bg-surface shadow-sm active:scale-[0.98] transition-transform"
     >
       <div className="relative h-40 w-full overflow-hidden">
         <Avatar

@@ -41,7 +41,7 @@ export function PhoneFrame({ children, bg = "bg-surface-2" }: { children: ReactN
 export function AppShell({
   children,
   hideNav = false,
-  bg = "bg-surface-2",
+  bg = "bg-background",
 }: {
   children: ReactNode;
   hideNav?: boolean;
@@ -68,7 +68,7 @@ export function BottomNav() {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40" aria-label="Primary">
       <div className="mx-auto max-w-md">
-        <div className="safe-bottom mx-3 mb-3 rounded-3xl border border-border/60 bg-surface/95 shadow-float backdrop-blur-xl">
+        <div className="safe-bottom mx-3 mb-3 rounded-[1.375rem] border border-border/50 bg-surface/95 shadow-float backdrop-blur-xl">
           <ul className="grid grid-cols-4">
             {tabs.map((tab) => {
               const active = pathname === tab.to || pathname.startsWith(tab.to + "/");
@@ -80,17 +80,19 @@ export function BottomNav() {
                     to={tab.to}
                     aria-label={label}
                     aria-current={active ? "page" : undefined}
-                    className="focus-ring flex min-h-11 flex-col items-center gap-1 px-2 pt-3 pb-2 rounded-2xl"
+                    className="focus-ring flex min-h-11 flex-col items-center gap-1 px-2 pt-2.5 pb-2 rounded-2xl"
                   >
                     <span
-                      className={`grid h-9 w-12 place-items-center rounded-2xl transition-all ${
-                        active ? "bg-navy text-navy-foreground" : "text-muted-foreground"
+                      className={`grid h-10 w-12 place-items-center rounded-2xl transition-all duration-200 ${
+                        active
+                          ? "bg-navy text-navy-foreground shadow-sm"
+                          : "text-muted-foreground"
                       }`}
                     >
-                      <Icon className="h-5 w-5" strokeWidth={2.2} />
+                      <Icon className="h-5 w-5" strokeWidth={active ? 2.4 : 2} />
                     </span>
                     <span
-                      className={`text-[11px] font-semibold ${
+                      className={`text-[10px] font-semibold tracking-wide ${
                         active ? "text-navy" : "text-muted-foreground"
                       }`}
                     >
