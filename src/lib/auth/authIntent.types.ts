@@ -9,6 +9,7 @@ export type OtpScreenContext =
       role?: AuthFlowRole;
       otpExpiresIn: number;
       resendAvailableIn: number;
+      delivery: "server" | "firebase";
     }
   | {
       ok: false;

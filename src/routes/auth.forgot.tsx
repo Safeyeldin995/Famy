@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { PhoneFrame, PrimaryButton, TopBar } from "@/components/famio/ui";
 import { useApp } from "@/lib/store";
 import { otpService, normalizePhone } from "@/lib/otp/OtpService";
+import { startPhoneOtpFlow } from "@/lib/otp/phoneOtpFlow";
 
 export const Route = createFileRoute("/auth/forgot")({ component: Forgot });
 
@@ -22,7 +23,7 @@ function Forgot() {
     setErrorMsg(null);
     const e164 = normalizePhone(phone);
     setLoading(true);
-    const send = await otpService.sendOtp(e164, "reset");
+    const send = await startPhoneOtpFlow(e164, "reset");
     if (!send.ok) {
       setLoading(false);
       const m = send.message ?? t("auth.sendFailed", "Could not reset password.");
@@ -38,10 +39,16 @@ function Forgot() {
   return (
     <PhoneFrame bg="bg-surface">
       <TopBar back={{ to: "/login" }} />
+      <div id="firebase-recaptcha" className="hidden" aria-hidden="true" />
       <div className="flex-1 px-6 pt-2">
-        <h1 className="text-3xl font-extrabold tracking-tight">{t("auth.forgotTitle", "Reset password")}</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight">
+          {t("auth.forgotTitle", "Reset password")}
+        </h1>
         <p className="mt-2 text-[15px] text-muted-foreground">
-          {t("auth.forgotBody", "Enter your phone. We'll send a verification code so you can set a new password.")}
+          {t(
+            "auth.forgotBody",
+            "Enter your phone. We'll send a verification code so you can set a new password.",
+          )}
         </p>
 
         <label className="mt-8 block text-xs font-bold uppercase tracking-wide text-muted-foreground">
@@ -50,7 +57,9 @@ function Forgot() {
         <div className="mt-2 flex h-16 items-center gap-3 rounded-2xl border border-border bg-surface px-4 focus-within:border-navy">
           <div className="flex shrink-0 items-center gap-2">
             <span className="text-xl">🇪🇬</span>
-            <span className="text-base font-bold" dir="ltr">+20</span>
+            <span className="text-base font-bold" dir="ltr">
+              +20
+            </span>
           </div>
           <div className="h-7 w-px bg-border" />
           <input

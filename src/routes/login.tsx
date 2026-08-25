@@ -8,6 +8,7 @@ import { LanguageToggle } from "@/components/famio/LanguageToggle";
 import { useApp } from "@/lib/store";
 import famyLogo from "@/assets/famy-wordmark.png";
 import { otpService, normalizePhone, type Role } from "@/lib/otp/OtpService";
+import { startPhoneOtpFlow } from "@/lib/otp/phoneOtpFlow";
 import { resolveLandingForCurrentUser } from "@/lib/auth/landing";
 
 export const Route = createFileRoute("/login")({ component: Login });
@@ -52,7 +53,10 @@ function Login() {
         if (landing === "/pro") {
           nav({ to: "/pro" });
         } else {
-          const m = t("auth.noProviderAccount", "This number has no provider account. Sign up as a provider first.");
+          const m = t(
+            "auth.noProviderAccount",
+            "This number has no provider account. Sign up as a provider first.",
+          );
           setErrorMsg(m);
           toast.error(m);
         }
@@ -63,12 +67,9 @@ function Login() {
       return;
     }
 
-
-
-
     // signup: OTP must be entered on /otp before account creation completes.
     setLoading(true);
-    const send = await otpService.sendOtp(e164, "signup", role);
+    const send = await startPhoneOtpFlow(e164, "signup", role);
     if (!send.ok) {
       setLoading(false);
       const m = send.message ?? t("auth.sendFailed", "Could not create account.");
@@ -84,10 +85,13 @@ function Login() {
   return (
     <PhoneFrame bg="bg-surface">
       <TopBar back={{ to: "/onboarding" }} right={<LanguageToggle variant="inline" />} />
+      <div id="firebase-recaptcha" className="hidden" aria-hidden="true" />
       <div className="flex-1 px-6 pt-2">
         <img src={famyLogo} alt={t("common.appName")} className="h-12 w-auto object-contain" />
         <p className="mt-3 text-[15px] text-muted-foreground">
-          {mode === "signin" ? t("auth.signinBody", "Welcome back.") : t("auth.signupBody", "Create your Famy account.")}
+          {mode === "signin"
+            ? t("auth.signinBody", "Welcome back.")
+            : t("auth.signupBody", "Create your Famy account.")}
         </p>
 
         {/* Mode tabs */}
@@ -110,10 +114,14 @@ function Login() {
           {mode === "signin" ? t("auth.signInAs", "Sign in as") : t("auth.iAmA", "I am a")}
         </label>
         <div className="mt-2 grid grid-cols-2 gap-3">
-          {([
+          {[
             { v: "customer" as Role, icon: User, label: t("auth.roleCustomer", "Customer") },
-            { v: "provider" as Role, icon: Briefcase, label: t("auth.roleProvider", "Service Provider") },
-          ]).map((r) => {
+            {
+              v: "provider" as Role,
+              icon: Briefcase,
+              label: t("auth.roleProvider", "Service Provider"),
+            },
+          ].map((r) => {
             const Icon = r.icon;
             const active = role === r.v;
             return (
@@ -124,7 +132,9 @@ function Login() {
                   active ? "border-navy bg-navy/[0.04]" : "border-border bg-surface"
                 }`}
               >
-                <span className={`grid h-9 w-9 place-items-center rounded-xl ${active ? "bg-navy text-navy-foreground" : "bg-surface-2 text-muted-foreground"}`}>
+                <span
+                  className={`grid h-9 w-9 place-items-center rounded-xl ${active ? "bg-navy text-navy-foreground" : "bg-surface-2 text-muted-foreground"}`}
+                >
                   <Icon className="h-5 w-5" />
                 </span>
                 <span className="text-sm font-bold">{r.label}</span>
@@ -134,10 +144,12 @@ function Login() {
         </div>
         {mode === "signup" && role === "provider" && (
           <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-            {t("auth.providerNote", "Providers must complete verification and admin approval before receiving bookings.")}
+            {t(
+              "auth.providerNote",
+              "Providers must complete verification and admin approval before receiving bookings.",
+            )}
           </p>
         )}
-
 
         {/* Phone */}
         <label className="mt-6 block text-xs font-bold uppercase tracking-wide text-muted-foreground">
@@ -146,7 +158,9 @@ function Login() {
         <div className="mt-2 flex h-16 items-center gap-3 rounded-2xl border border-border bg-surface px-4 focus-within:border-navy">
           <div className="flex shrink-0 items-center gap-2">
             <span className="text-xl">🇪🇬</span>
-            <span className="text-base font-bold" dir="ltr">+20</span>
+            <span className="text-base font-bold" dir="ltr">
+              +20
+            </span>
           </div>
           <div className="h-7 w-px bg-border" />
           <input
@@ -175,7 +189,11 @@ function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="min-w-0 flex-1 bg-transparent text-base font-semibold outline-none placeholder:text-muted-foreground/60"
               />
-              <button onClick={() => setShowPw((v) => !v)} aria-label="toggle password" className="text-muted-foreground">
+              <button
+                onClick={() => setShowPw((v) => !v)}
+                aria-label="toggle password"
+                className="text-muted-foreground"
+              >
                 {showPw ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
@@ -190,9 +208,18 @@ function Login() {
         {mode === "signup" && (
           <p className="mt-6 text-xs leading-relaxed text-muted-foreground">
             {t("auth.terms")}{" "}
-            <Link to="/content/$key" params={{ key: "terms" }} className="font-semibold text-navy">{t("auth.termsLink")}</Link>{" "}
+            <Link to="/content/$key" params={{ key: "terms" }} className="font-semibold text-navy">
+              {t("auth.termsLink")}
+            </Link>{" "}
             {t("auth.and")}{" "}
-            <Link to="/content/$key" params={{ key: "privacy" }} className="font-semibold text-navy">{t("auth.privacyLink")}</Link>.
+            <Link
+              to="/content/$key"
+              params={{ key: "privacy" }}
+              className="font-semibold text-navy"
+            >
+              {t("auth.privacyLink")}
+            </Link>
+            .
           </p>
         )}
       </div>
@@ -205,15 +232,15 @@ function Login() {
         )}
         <PrimaryButton
           onClick={submit}
-          disabled={
-            loading ||
-            !phoneValid ||
-            (mode === "signin" && password.length < 1)
-          }
+          disabled={loading || !phoneValid || (mode === "signin" && password.length < 1)}
         >
           {loading
-            ? (mode === "signin" ? t("common.signingIn", "Signing in…") : t("common.sending", "Sending…"))
-            : (mode === "signin" ? t("auth.signIn", "Sign in") : t("common.sendCode"))}
+            ? mode === "signin"
+              ? t("common.signingIn", "Signing in…")
+              : t("common.sending", "Sending…")
+            : mode === "signin"
+              ? t("auth.signIn", "Sign in")
+              : t("common.sendCode")}
         </PrimaryButton>
       </div>
     </PhoneFrame>
