@@ -1,13 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AppShell, EmptyState } from "@/components/famio/ui";
-import { ProviderTile, ProviderCard } from "@/components/famio/ProviderCard";
-import { HomeHero } from "@/components/home/HomeHero";
-import { HomePromos } from "@/components/home/HomePromos";
-import { HomeCategories } from "@/components/home/HomeCategories";
-import { HomeSection } from "@/components/home/HomeSection";
-import { HomeTrustBanner } from "@/components/home/HomeTrustBanner";
+import { AppShell } from "@/components/famio/ui";
+import { HomeFeaturedCarousel } from "@/components/home/HomeFeaturedCarousel";
+import { HomeHeroPanel } from "@/components/home/HomeHeroPanel";
+import { HomePromoStrip } from "@/components/home/HomePromoStrip";
+import { HomeRebookRow } from "@/components/home/HomeRebookRow";
+import { HomeTrustLine } from "@/components/home/HomeTrustLine";
 import {
   useCategories,
   useProviders,
@@ -20,22 +19,12 @@ import { toUICategory, toUIProvider } from "@/lib/db/adapters";
 
 export const Route = createFileRoute("/home")({ component: Home });
 
-const OFFERS = [
-  {
-    id: "o1",
-    code: "FAMY20",
-    gradient: "from-navy to-[#2a4490]",
-    title: "20% off your first booking",
-    subtitle: "Welcome to Famy",
-  },
-  {
-    id: "o2",
-    code: "WEEKEND15",
-    gradient: "from-coral to-[#ff9588]",
-    title: "Weekend cleans, weekday peace",
-    subtitle: "Book Sat-Sun, save 15%",
-  },
-];
+const PROMO = {
+  id: "o1",
+  code: "FAMY20",
+  title: "20% off your first booking",
+  subtitle: "Welcome to Famy",
+};
 
 function Home() {
   const profileQ = useMyProfile();
@@ -73,58 +62,25 @@ function Home() {
   const unread = (unreadQ.data ?? 0) > 0;
 
   return (
-    <AppShell bg="bg-background">
-      <HomeHero
+    <AppShell bg="bg-background" hideNav={false}>
+      <HomeHeroPanel
         greeting={greeting}
         firstName={first}
         location={addressQ.data?.area || t("common.location")}
         unread={unread}
         searchHint={t("home.searchHint")}
-        trustLabels={[t("home.trust1"), t("home.trust2"), t("home.trust3")]}
+        headline={t("home.headline")}
+        categories={cats}
+        categoriesLoading={catsQ.isLoading}
       />
 
-      <HomePromos offers={OFFERS} />
-
-      <HomeCategories categories={cats} loading={catsQ.isLoading} error={catsQ.isError} />
-
-      {featured.length > 0 ? (
-        <HomeSection title={t("home.featured")} subtitle={t("home.featuredSubtitle", "Top rated")}>
-          <div className="overflow-x-auto no-scrollbar snap-x snap-mandatory">
-            <div className="flex gap-3 px-5 pb-1">
-              {featured.map((provider) => (
-                <div key={provider.id} className="snap-start">
-                  <ProviderTile p={provider} />
-                </div>
-              ))}
-            </div>
-          </div>
-        </HomeSection>
-      ) : null}
-
-      <HomeSection title={t("home.recent")} subtitle={t("home.recentSubtitle", "Your history")}>
-        <div className="space-y-3 px-5">
-          {bookingsQ.isLoading ? (
-            Array.from({ length: 3 }).map((_, index) => (
-              <div key={index} className="surface-card h-24 animate-pulse bg-surface-2" />
-            ))
-          ) : bookingsQ.isError ? (
-            <EmptyState
-              emoji="⚠️"
-              title={t("common.errorTitle", "Something went wrong")}
-              body={t("common.tryAgain", "Please try again.")}
-            />
-          ) : recent.length === 0 ? (
-            <EmptyState emoji="🧑‍🔧" title={t("home.recentEmpty")} body={t("home.recentEmptyBody")} />
-          ) : (
-            recent.map((provider) => <ProviderCard key={provider.id} p={provider} />)
-          )}
-        </div>
-      </HomeSection>
-
-      <div className="mt-8">
-        <HomeTrustBanner />
+      <div className="-mt-4 rounded-t-[2rem] bg-background pb-4 pt-2">
+        <HomeFeaturedCarousel providers={featured} />
+        <HomeRebookRow providers={recent} loading={bookingsQ.isLoading} error={bookingsQ.isError} />
+        <HomePromoStrip offer={PROMO} />
+        <HomeTrustLine />
       </div>
-      <div className="h-6" />
+      <div className="h-4" />
     </AppShell>
   );
 }

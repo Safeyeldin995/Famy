@@ -100,8 +100,9 @@ export function ProviderTile({ p }: { p: Provider }) {
           </span>
         )}
         <div className="absolute inset-x-2 bottom-2 flex items-center justify-between">
-          <span className="rounded-full bg-black/55 px-2 py-1 text-[10px] font-bold text-white backdrop-blur">
-            ★ {formatNumber(p.rating)}
+          <span className="rounded-full bg-black/55 px-2 py-1 text-[10px] font-bold text-white backdrop-blur inline-flex items-center gap-1">
+            <Star className="h-3 w-3 fill-warning text-warning" strokeWidth={2} aria-hidden="true" />
+            {formatNumber(p.rating)}
           </span>
           <span className={`rounded-full px-2 py-1 text-[10px] font-bold backdrop-blur ${
             p.role === "Angel" ? "bg-coral/90 text-coral-foreground" : "bg-navy/90 text-navy-foreground"

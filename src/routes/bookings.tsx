@@ -43,7 +43,7 @@ function Bookings() {
         {q.isLoading ? (
           Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-28 rounded-3xl bg-surface animate-pulse" />)
         ) : q.isError ? (
-          <EmptyState emoji="⚠️" title={t("common.errorTitle", "Something went wrong")} body={t("common.tryAgain", "Please try again.")} />
+          <EmptyState icon="alert" title={t("common.errorTitle", "Something went wrong")} body={t("common.tryAgain", "Please try again.")} />
         ) : list.length === 0 ? (
           <Empty tab={tab} />
         ) : (
@@ -106,7 +106,7 @@ function Empty({ tab }: { tab: string }) {
   const { t } = useTranslation();
   return (
     <EmptyState
-      emoji="📅"
+      icon="calendar"
       title={t("bookings.emptyTitle", { tab: t(`bookings.${tab}`) })}
       body={t("bookings.emptyBody")}
       action={

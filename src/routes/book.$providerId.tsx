@@ -128,7 +128,7 @@ function Book() {
     return (
       <PhoneFrame>
         <EmptyState
-          emoji="🚫"
+          icon="ban"
           title={t("bookFlow.unavailable")}
           body={t("bookFlow.unavailableBody")}
           action={(
@@ -146,7 +146,7 @@ function Book() {
     return (
       <PhoneFrame>
         <EmptyState
-          emoji="🚫"
+          icon="ban"
           title={t("bookFlow.unavailable")}
           body={t("bookFlow.unavailableBody")}
           action={(
@@ -418,7 +418,7 @@ function Book() {
                 {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-12 animate-pulse rounded-2xl bg-surface" />)}
               </div>
             ) : (slotsQ.data ?? []).length === 0 ? (
-              <EmptyState emoji="📅" title={t("bookFlow.noSlots")} body={t("bookFlow.noSlotsBody")} />
+              <EmptyState icon="calendar" title={t("bookFlow.noSlots")} body={t("bookFlow.noSlotsBody")} />
             ) : (
               <div className="grid grid-cols-3 gap-2">
                 {(slotsQ.data ?? []).map((slot) => (
@@ -443,7 +443,7 @@ function Book() {
               </div>
             ) : bookableAddresses.length === 0 ? (
               <EmptyState
-                emoji="📍"
+                icon="map-pin"
                 title={t("bookFlow.noBookableAddress", "Add an address to continue")}
                 body={
                   (addrsQ.data?.length ?? 0) > 0

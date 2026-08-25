@@ -50,7 +50,7 @@ function EarningsPage() {
         <div>
           <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">{t("pro.earnings.recentPayouts")}</h2>
           {completed.length === 0 ? (
-            <EmptyState emoji="💼" title={t("pro.earnings.noPayouts")} body={t("pro.earnings.noPayoutsBody")} />
+            <EmptyState icon="briefcase" title={t("pro.earnings.noPayouts")} body={t("pro.earnings.noPayoutsBody")} />
           ) : (
             <Card className="divide-y divide-border">
               {completed.map((b: any) => {

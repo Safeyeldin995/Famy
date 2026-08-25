@@ -110,9 +110,9 @@ function ProDashboard() {
           {bookingsQ.isLoading ? (
             <div className="h-24 animate-pulse rounded-3xl bg-surface" />
           ) : bookingsQ.isError ? (
-            <EmptyState emoji="⚠️" title={t("common.errorTitle", "Something went wrong")} body={t("common.tryAgain", "Please try again.")} />
+            <EmptyState icon="alert" title={t("common.errorTitle", "Something went wrong")} body={t("common.tryAgain", "Please try again.")} />
           ) : pending.length === 0 ? (
-            <EmptyState emoji="📥" title={t("pro.dashboard.noRequests")} body={t("pro.dashboard.noRequestsBody")} />
+            <EmptyState icon="inbox" title={t("pro.dashboard.noRequests")} body={t("pro.dashboard.noRequestsBody")} />
           ) : (
             <div className="space-y-3">
               {pending.slice(0, 3).map((b: any) => (

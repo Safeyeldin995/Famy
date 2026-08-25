@@ -27,7 +27,7 @@ function ProviderProfile() {
     return <PhoneFrame><div className="px-5 py-10"><div className="h-72 rounded-3xl bg-surface animate-pulse" /></div></PhoneFrame>;
   }
   if (!provQ.data) {
-    return <PhoneFrame><TopBar back={{ to: "/home" }} /><EmptyState emoji="🙈" title={t("provider2.notFound", "Pro not found")} /></PhoneFrame>;
+    return <PhoneFrame><TopBar back={{ to: "/home" }} /><EmptyState icon="user-x" title={t("provider2.notFound", "Pro not found")} /></PhoneFrame>;
   }
 
   const p = toUIProvider(provQ.data);

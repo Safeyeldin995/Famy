@@ -31,7 +31,7 @@ function FamilyMembers() {
           <ErrorState onRetry={() => membersQ.refetch()} />
         ) : members.length === 0 ? (
           <EmptyState
-            emoji="👪"
+            icon="users"
             title={t("familyMembers.empty", "No family members yet")}
             body={t("familyMembers.emptyBody", "Add a family member to book services for them.")}
             action={

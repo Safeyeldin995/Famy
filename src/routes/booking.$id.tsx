@@ -137,7 +137,7 @@ function BookingDetail() {
     return (
       <PhoneFrame>
         <EmptyState
-          emoji="🔍"
+          icon="search"
           title={t("bookingDetail.notFound")}
           body={t("bookingDetail.notFoundBody")}
           action={<Link to="/home" className="focus-ring inline-flex items-center rounded-2xl bg-navy px-4 py-3 text-sm font-bold text-navy-foreground">{t("bookingDetail.backHome")}</Link>}
@@ -406,7 +406,10 @@ function BookingDetail() {
               <Avatar src={provider.avatar} className="h-14 w-14 rounded-2xl" />
               <div className="min-w-0 flex-1">
                 <div className="font-bold">{provider.name}</div>
-                <div className="text-xs text-muted-foreground">★ {provider.rating} · {provider.role}</div>
+                <div className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                  <Star className="h-3 w-3 fill-warning text-warning" strokeWidth={2} aria-hidden="true" />
+                  {provider.rating} · {provider.role}
+                </div>
               </div>
               <div className="flex gap-2">
                 <button

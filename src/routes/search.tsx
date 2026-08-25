@@ -93,9 +93,9 @@ function SearchPage() {
           {provsQ.isLoading ? (
             Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-24 rounded-3xl bg-surface animate-pulse" />)
           ) : provsQ.isError ? (
-            <EmptyState emoji="⚠️" title={t("common.errorTitle", "Something went wrong")} body={t("common.tryAgain", "Please try again.")} />
+            <EmptyState icon="alert" title={t("common.errorTitle", "Something went wrong")} body={t("common.tryAgain", "Please try again.")} />
           ) : results.length === 0 ? (
-            <EmptyState emoji="🔍" title={t("search2.noResults")} body={t("search2.noResultsBody")} />
+            <EmptyState icon="search" title={t("search2.noResults")} body={t("search2.noResultsBody")} />
           ) : (
             results.map((p) => <ProviderCard key={p.id} p={p} />)
           )}

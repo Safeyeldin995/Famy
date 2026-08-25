@@ -52,7 +52,7 @@ function ProBookings() {
         {q.isLoading ? (
           Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-24 animate-pulse rounded-3xl bg-surface" />)
         ) : list.length === 0 ? (
-          <EmptyState emoji={tab === "requests" ? "📥" : "📅"} title={t("pro.bookings.empty", { tab: tabLabel })} body={emptyBody} />
+          <EmptyState icon={tab === "requests" ? "inbox" : "calendar"} title={t("pro.bookings.empty", { tab: tabLabel })} body={emptyBody} />
         ) : (
           list.map((b: any) => {
             const start = new Date(b.start_at);

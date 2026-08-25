@@ -49,9 +49,9 @@ function NotificationsPage() {
         {q.isLoading ? (
           <div className="h-20 animate-pulse rounded-3xl bg-surface" />
         ) : q.isError ? (
-          <EmptyState emoji="⚠️" title={t("common.errorTitle", "Something went wrong")} body={t("common.tryAgain", "Please try again.")} />
+          <EmptyState icon="alert" title={t("common.errorTitle", "Something went wrong")} body={t("common.tryAgain", "Please try again.")} />
         ) : items.length === 0 ? (
-          <EmptyState emoji="🔔" title={t("notifs.empty")} body={t("notifs.emptyBody")} />
+          <EmptyState icon="bell" title={t("notifs.empty")} body={t("notifs.emptyBody")} />
         ) : (
           <div className="space-y-2">
             {items.map((n: any) => {

@@ -7,6 +7,8 @@ import { useAvatarUrl } from "@/lib/db/queries";
 import { useCancellationReasons, type CancellationReasonRow } from "@/lib/db/cancellation-queries";
 import { currentLang } from "@/lib/i18n";
 import { BOOKING_TIMELINE_STEPS } from "@/lib/utils";
+import { EMPTY_STATE_ICONS, type EmptyStateIconName } from "@/lib/icons/emptyStateIcons";
+import { ICON_STROKE } from "@/lib/icons/constants";
 
 /**
  * Single shared avatar renderer for the whole app (Issue #4 fix). Resolves
@@ -68,7 +70,7 @@ export function BottomNav() {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40" aria-label="Primary">
       <div className="mx-auto max-w-md">
-        <div className="safe-bottom mx-3 mb-3 rounded-[1.375rem] border border-border/50 bg-surface/95 shadow-float backdrop-blur-xl">
+        <div className="safe-bottom mx-3 mb-3 rounded-[1.25rem] border border-border/60 bg-surface/98 shadow-float backdrop-blur-xl">
           <ul className="grid grid-cols-4">
             {tabs.map((tab) => {
               const active = pathname === tab.to || pathname.startsWith(tab.to + "/");
@@ -80,20 +82,21 @@ export function BottomNav() {
                     to={tab.to}
                     aria-label={label}
                     aria-current={active ? "page" : undefined}
-                    className="focus-ring flex min-h-11 flex-col items-center gap-1 px-2 pt-2.5 pb-2 rounded-2xl"
+                    className="focus-ring tap-scale flex min-h-11 flex-col items-center gap-1 px-2 pt-2.5 pb-2 rounded-2xl"
                   >
                     <span
-                      className={`grid h-10 w-12 place-items-center rounded-2xl transition-all duration-200 ${
-                        active
-                          ? "bg-navy text-navy-foreground shadow-sm"
-                          : "text-muted-foreground"
+                      className={`relative grid h-10 w-12 place-items-center rounded-2xl transition-all duration-200 ${
+                        active ? "text-brand" : "text-muted-foreground"
                       }`}
                     >
-                      <Icon className="h-5 w-5" strokeWidth={active ? 2.4 : 2} />
+                      <Icon className="h-5 w-5" strokeWidth={active ? 2.25 : 1.75} />
+                      {active ? (
+                        <span className="absolute -bottom-0.5 h-1 w-1 rounded-full bg-brand" aria-hidden="true" />
+                      ) : null}
                     </span>
                     <span
                       className={`text-[10px] font-semibold tracking-wide ${
-                        active ? "text-navy" : "text-muted-foreground"
+                        active ? "text-foreground" : "text-muted-foreground"
                       }`}
                     >
                       {label}
@@ -284,24 +287,25 @@ export function TrustChip({
 }
 
 export function EmptyState({
-  emoji = "✨",
+  icon = "default",
   title,
   body,
   action,
 }: {
-  emoji?: string;
+  icon?: EmptyStateIconName;
   title: string;
   body?: string;
   action?: ReactNode;
 }) {
+  const Icon = EMPTY_STATE_ICONS[icon];
   return (
-    <div className="py-16 text-center animate-rise">
-      <div className="mx-auto grid h-24 w-24 place-items-center rounded-3xl bg-surface text-4xl shadow-soft">
-        {emoji}
+    <div className="py-12 text-center animate-rise">
+      <div className="mx-auto grid h-20 w-20 place-items-center rounded-2xl border border-border/70 bg-muted/40 text-muted-foreground">
+        <Icon className="h-9 w-9" strokeWidth={ICON_STROKE} aria-hidden="true" />
       </div>
-      <div className="mt-5 text-base font-bold">{title}</div>
-      {body && <p className="mx-auto mt-1 max-w-xs text-xs text-muted-foreground">{body}</p>}
-      {action && <div className="mt-5 flex justify-center">{action}</div>}
+      <div className="mt-4 text-base font-bold text-foreground">{title}</div>
+      {body ? <p className="mx-auto mt-1.5 max-w-xs text-sm text-muted-foreground">{body}</p> : null}
+      {action ? <div className="mt-5 flex justify-center">{action}</div> : null}
     </div>
   );
 }
