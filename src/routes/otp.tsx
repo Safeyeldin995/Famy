@@ -5,7 +5,14 @@ import { toast } from "sonner";
 import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
 import { PhoneFrame, PrimaryButton, TopBar } from "@/components/famio/ui";
 import type { AuthFlowPurpose } from "@/lib/auth/authIntent.types";
+import {
+  hasFirebasePhoneVerificationSession,
+  phoneOtpFlowErrorMessage,
+  resendPhoneOtpFlow,
+  verifyPhoneOtpCode,
+} from "@/lib/otp/phoneOtpFlow";
 import { otpService } from "@/lib/otp/OtpService";
+import { useApp } from "@/lib/store";
 import { formatNumber } from "@/lib/utils";
 
 export const Route = createFileRoute("/otp")({
@@ -34,6 +41,7 @@ function purposeCopy(purpose: AuthFlowPurpose, t: ReturnType<typeof useTranslati
 
 function Otp() {
   const { otpContext } = Route.useRouteContext();
+  const { profile } = useApp();
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [otpExpiresIn, setOtpExpiresIn] = useState(otpContext.otpExpiresIn);
   const [resendAvailableIn, setResendAvailableIn] = useState(otpContext.resendAvailableIn);
@@ -62,22 +70,47 @@ function Otp() {
     }
   }, [nav, otpContext.purpose, otpExpiresIn, t]);
 
+  useEffect(() => {
+    if (otpContext.delivery !== "firebase") return;
+    if (!hasFirebasePhoneVerificationSession()) {
+      const msg = t(
+        "auth.firebaseSessionLost",
+        "Your SMS verification session expired on this page. Tap resend to get a new code.",
+      );
+      setErrorMsg(msg);
+    }
+  }, [otpContext.delivery, t]);
+
   const verify = async (value: string) => {
     if (value.length !== 6 || loading || verifyLock.current) return;
     verifyLock.current = true;
     setLoading(true);
     setErrorMsg(null);
-    const res = await otpService.verifyOtp(value);
+    const res = await verifyPhoneOtpCode(value);
     setLoading(false);
     if (!res.ok) {
       verifyLock.current = false;
       if (res.error === "flow_mismatch") {
-        const msg = res.nextStep === "signup"
-          ? t("auth.verifyUseSignup", "This number is not registered yet. Create an account to continue.")
-          : t("auth.verifyUseSignin", "This number already has an account. Sign in or reset your password.");
+        const msg =
+          res.nextStep === "signup"
+            ? t(
+                "auth.verifyUseSignup",
+                "This number is not registered yet. Create an account to continue.",
+              )
+            : t(
+                "auth.verifyUseSignin",
+                "This number already has an account. Sign in or reset your password.",
+              );
         setErrorMsg(msg);
         toast.error(msg);
         nav({ to: "/login", replace: true });
+        return;
+      }
+      if (res.error === "firebase_session_lost") {
+        const msg = phoneOtpFlowErrorMessage("firebase_session_lost", t);
+        setErrorMsg(msg);
+        toast.error(msg);
+        setCode(["", "", "", "", "", ""]);
         return;
       }
       const msg = t("auth.invalidCode", "Invalid code. Try again.");
@@ -91,18 +124,22 @@ function Otp() {
 
   const resend = async () => {
     if (resendAvailableIn > 0 || resending || loading) return;
+    if (otpContext.delivery === "firebase" && !profile.phone) {
+      const msg = t("auth.sessionExpired", "Your verification session expired. Start again.");
+      setErrorMsg(msg);
+      toast.error(msg);
+      nav({ to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login", replace: true });
+      return;
+    }
     setResending(true);
     setErrorMsg(null);
-    const res = await otpService.resendOtp();
+    const res = await resendPhoneOtpFlow(profile.phone, { languageCode: i18n.language });
     setResending(false);
     if (!res.ok) {
-      const msg = res.message ?? t("auth.sendFailed", "Could not send code. Try again later.");
+      const msg = phoneOtpFlowErrorMessage(res.error, t);
       setErrorMsg(msg);
       toast.error(msg);
       if (res.retryAfter) setResendAvailableIn(res.retryAfter);
-      if (res.error === "intent_missing") {
-        nav({ to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login", replace: true });
-      }
       return;
     }
     setResendAvailableIn(res.retryAfter ?? 30);
@@ -118,11 +155,14 @@ function Otp() {
   return (
     <PhoneFrame bg="bg-surface">
       <TopBar back={{ to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login" }} />
+      <div id="firebase-recaptcha" className="hidden" aria-hidden="true" />
       <div className="flex-1 px-6 pt-2" dir={i18n.dir()}>
         <h1 className="text-3xl font-extrabold tracking-tight">{copy.title}</h1>
         <p className="mt-2 text-[15px] text-muted-foreground">
           {copy.body}{" "}
-          <span className="font-semibold text-foreground" dir="ltr">{otpContext.maskedPhone}</span>
+          <span className="font-semibold text-foreground" dir="ltr">
+            {otpContext.maskedPhone}
+          </span>
         </p>
 
         <OtpCodeInput
@@ -135,7 +175,8 @@ function Otp() {
         <div className="mt-4 text-center text-sm text-muted-foreground">
           {t("auth.codeExpiresIn", "Code expires in")}{" "}
           <span className="font-bold text-foreground" dir="ltr">
-            {formatNumber(Math.floor(otpExpiresIn / 60))}:{String(otpExpiresIn % 60).padStart(2, "0")}
+            {formatNumber(Math.floor(otpExpiresIn / 60))}:
+            {String(otpExpiresIn % 60).padStart(2, "0")}
           </span>
         </div>
 
@@ -143,7 +184,9 @@ function Otp() {
           {resendAvailableIn > 0 ? (
             <>
               {t("auth.resendIn")}{" "}
-              <span className="font-bold text-foreground" dir="ltr">{formatNumber(resendAvailableIn)}s</span>
+              <span className="font-bold text-foreground" dir="ltr">
+                {formatNumber(resendAvailableIn)}s
+              </span>
             </>
           ) : (
             <button

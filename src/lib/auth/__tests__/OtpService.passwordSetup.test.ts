@@ -25,8 +25,10 @@ vi.mock("@/lib/otp.functions", async (importOriginal) => {
     getOtpScreenContextFn: vi.fn(),
     getSetPasswordContextFn: vi.fn(),
     sendOtpFn: vi.fn(),
+    beginFirebaseOtpFn: vi.fn(),
     resendOtpFn: vi.fn(),
     verifyOtpFn: vi.fn(),
+    verifyFirebaseOtpFn: vi.fn(),
     abandonOtpFlowFn: vi.fn(),
   };
 });

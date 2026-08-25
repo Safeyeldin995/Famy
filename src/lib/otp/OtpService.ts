@@ -4,11 +4,13 @@
 import { supabase } from "@/integrations/supabase/client";
 import {
   abandonOtpFlowFn,
+  beginFirebaseOtpFn,
   completePasswordSetupFn,
   getOtpScreenContextFn,
   getSetPasswordContextFn,
   resendOtpFn,
   sendOtpFn,
+  verifyFirebaseOtpFn,
   verifyOtpFn,
 } from "@/lib/otp.functions";
 import { authEmailForPhone } from "@/lib/auth/authEmail";
@@ -40,7 +42,10 @@ export type CompletePasswordSetupResult =
       passwordUpdated?: boolean;
     };
 
-function logClientPasswordSetupSession(stage: string, details: Record<string, string | boolean | null | undefined>) {
+function logClientPasswordSetupSession(
+  stage: string,
+  details: Record<string, string | boolean | null | undefined>,
+) {
   if (!import.meta.env.DEV) return;
   console.info("[password.setup.session]", stage, details);
 }
@@ -67,6 +72,19 @@ export const otpService = {
     }
   },
 
+  async beginFirebaseOtp(phone: string, purpose: Purpose, role?: Role): Promise<SendOtpResult> {
+    try {
+      const res = await beginFirebaseOtpFn({ data: { phone, purpose, role } });
+      return res as SendOtpResult;
+    } catch {
+      return {
+        ok: false,
+        error: "send_failed",
+        message: "Could not start phone verification. Try again later.",
+      };
+    }
+  },
+
   async resendOtp(): Promise<SendOtpResult> {
     try {
       const res = await resendOtpFn();
@@ -87,6 +105,26 @@ export const otpService = {
       if (error) return { ok: false, error: "unknown" };
       const { data: sessionData } = await supabase.auth.getSession();
       logClientPasswordSetupSession("client-after-verify-otp", {
+        hasSession: !!sessionData.session,
+        userId: sessionData.session?.user?.id ?? null,
+      });
+      return { ok: true, userId: res.userId, isNewUser: res.isNewUser };
+    } catch {
+      return { ok: false, error: "unknown" };
+    }
+  },
+
+  async verifyFirebaseOtp(idToken: string): Promise<VerifyOtpResult> {
+    try {
+      const res = (await verifyFirebaseOtpFn({ data: { idToken } })) as any;
+      if (!res.ok) return res;
+      const { error } = await supabase.auth.setSession({
+        access_token: res.access_token,
+        refresh_token: res.refresh_token,
+      });
+      if (error) return { ok: false, error: "unknown" };
+      const { data: sessionData } = await supabase.auth.getSession();
+      logClientPasswordSetupSession("client-after-verify-firebase-otp", {
         hasSession: !!sessionData.session,
         userId: sessionData.session?.user?.id ?? null,
       });
@@ -122,7 +160,9 @@ export const otpService = {
           return {
             ok: false,
             error: "restart_required",
-            message: res.message ?? "We could not finish setting your password. Please verify your phone again.",
+            message:
+              res.message ??
+              "We could not finish setting your password. Please verify your phone again.",
             nextStep: res.nextStep,
           };
         }
@@ -137,7 +177,8 @@ export const otpService = {
         }
         return {
           ok: false,
-          error: (res.error ?? "authorization_missing") as "authorization_missing" | "restart_required" | "sign_in_required",
+          error: (res.error ?? "authorization_missing") as
+            "authorization_missing" | "restart_required" | "sign_in_required",
           message: res.message ?? "Could not set password. Try again.",
           nextStep: res.nextStep,
         };
@@ -150,7 +191,9 @@ export const otpService = {
       });
 
       if (signInError) {
-        logClientPasswordSetupSession("client-signin-failed", { code: signInError.code ?? "unknown" });
+        logClientPasswordSetupSession("client-signin-failed", {
+          code: signInError.code ?? "unknown",
+        });
         return {
           ok: false,
           error: "sign_in_required",
@@ -159,7 +202,10 @@ export const otpService = {
         };
       }
 
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
       logClientPasswordSetupSession("client-after-complete", {
         hasSession: !!user,
         userId: user?.id ?? null,

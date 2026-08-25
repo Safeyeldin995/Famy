@@ -18,6 +18,16 @@ export const WEBSERVER_APPLICATION_ALLOWLIST = [
   "QA_E2E_OTP_CAPTURE",
   "AUTH_INTENT_SECRET",
   "OTP_PROVIDER",
+  "VITE_OTP_PROVIDER",
+  "VITE_FIREBASE_API_KEY",
+  "VITE_FIREBASE_AUTH_DOMAIN",
+  "VITE_FIREBASE_PROJECT_ID",
+  "VITE_FIREBASE_STORAGE_BUCKET",
+  "VITE_FIREBASE_MESSAGING_SENDER_ID",
+  "VITE_FIREBASE_APP_ID",
+  "FIREBASE_PROJECT_ID",
+  "FIREBASE_CLIENT_EMAIL",
+  "FIREBASE_PRIVATE_KEY",
   "NODE_ENV",
 ];
 
@@ -56,18 +66,10 @@ export const PLAYWRIGHT_DEFAULT_ENVIRONMENT_VARIABLES = {
 };
 
 /** Playwright defaults suppressed from the webServer child (not approved). */
-export const PLAYWRIGHT_DEFAULT_SUPPRESSED_KEYS = [
-  "BROWSER",
-  "FORCE_COLOR",
-  "DEBUG_COLORS",
-];
+export const PLAYWRIGHT_DEFAULT_SUPPRESSED_KEYS = ["BROWSER", "FORCE_COLOR", "DEBUG_COLORS"];
 
 /** Exact runtime keys blocked from inheritance (code injection / redirection). */
-export const RUNTIME_BLOCKED_EXACT_KEYS = [
-  "NODE_OPTIONS",
-  "NODE_PATH",
-  "NODE",
-];
+export const RUNTIME_BLOCKED_EXACT_KEYS = ["NODE_OPTIONS", "NODE_PATH", "NODE"];
 
 /** Known Admin/service-role aliases — always blocked even when absent from parent. */
 export const FORBIDDEN_WEBSERVER_ENV_KEYS = [
@@ -86,27 +88,25 @@ export const FORBIDDEN_WEBSERVER_ENV_KEYS = [
 export const WEBSERVER_CONFIG_SECRET_KEYS = [
   "SUPABASE_SERVICE_ROLE_KEY",
   "AUTH_INTENT_SECRET",
+  "FIREBASE_PRIVATE_KEY",
+  "FIREBASE_CLIENT_EMAIL",
 ];
 
 /** Playwright controller-only variables that must never reach the webServer child. */
-export const PLAYWRIGHT_CONTROLLER_ONLY_KEYS = [
-  "VERCEL_AUTOMATION_BYPASS_SECRET",
-];
+export const PLAYWRIGHT_CONTROLLER_ONLY_KEYS = ["VERCEL_AUTOMATION_BYPASS_SECRET"];
 
 /** @typedef {Record<string, string | undefined>} EnvRecord */
 
 const APPROVED_APPLICATION = new Set(
   WEBSERVER_APPLICATION_ALLOWLIST.map((key) => key.toUpperCase()),
 );
-const APPROVED_RUNTIME = new Set(
-  WEBSERVER_RUNTIME_ALLOWLIST.map((key) => key.toUpperCase()),
-);
+const APPROVED_RUNTIME = new Set(WEBSERVER_RUNTIME_ALLOWLIST.map((key) => key.toUpperCase()));
 const FORBIDDEN = new Set(
-  [...FORBIDDEN_WEBSERVER_ENV_KEYS, ...PLAYWRIGHT_CONTROLLER_ONLY_KEYS].map((key) => key.toUpperCase()),
+  [...FORBIDDEN_WEBSERVER_ENV_KEYS, ...PLAYWRIGHT_CONTROLLER_ONLY_KEYS].map((key) =>
+    key.toUpperCase(),
+  ),
 );
-const RUNTIME_BLOCKED_EXACT = new Set(
-  RUNTIME_BLOCKED_EXACT_KEYS.map((key) => key.toUpperCase()),
-);
+const RUNTIME_BLOCKED_EXACT = new Set(RUNTIME_BLOCKED_EXACT_KEYS.map((key) => key.toUpperCase()));
 const PLAYWRIGHT_DEFAULT_SUPPRESSED = new Set(
   PLAYWRIGHT_DEFAULT_SUPPRESSED_KEYS.map((key) => key.toUpperCase()),
 );
@@ -195,6 +195,16 @@ function buildApprovedApplicationValues(source) {
     QA_E2E_OTP_CAPTURE: "1",
     AUTH_INTENT_SECRET: source.AUTH_INTENT_SECRET ?? "qa-local-auth-intent-secret",
     OTP_PROVIDER: source.OTP_PROVIDER ?? "mock",
+    VITE_OTP_PROVIDER: source.VITE_OTP_PROVIDER ?? source.OTP_PROVIDER ?? "mock",
+    VITE_FIREBASE_API_KEY: source.VITE_FIREBASE_API_KEY ?? "",
+    VITE_FIREBASE_AUTH_DOMAIN: source.VITE_FIREBASE_AUTH_DOMAIN ?? "",
+    VITE_FIREBASE_PROJECT_ID: source.VITE_FIREBASE_PROJECT_ID ?? "",
+    VITE_FIREBASE_STORAGE_BUCKET: source.VITE_FIREBASE_STORAGE_BUCKET ?? "",
+    VITE_FIREBASE_MESSAGING_SENDER_ID: source.VITE_FIREBASE_MESSAGING_SENDER_ID ?? "",
+    VITE_FIREBASE_APP_ID: source.VITE_FIREBASE_APP_ID ?? "",
+    FIREBASE_PROJECT_ID: source.FIREBASE_PROJECT_ID ?? "",
+    FIREBASE_CLIENT_EMAIL: source.FIREBASE_CLIENT_EMAIL ?? "",
+    FIREBASE_PRIVATE_KEY: source.FIREBASE_PRIVATE_KEY ?? "",
     NODE_ENV: source.NODE_ENV ?? "development",
   };
 }
@@ -316,19 +326,13 @@ export function assertWebServerEnvLeastPrivilege(parentEnv, webServerEnvOverride
       );
     }
     if (isRuntimeBlockedParentKey(key)) {
-      throw new Error(
-        `[qa-playwright] Blocked runtime key survived Playwright env merge: ${key}`,
-      );
+      throw new Error(`[qa-playwright] Blocked runtime key survived Playwright env merge: ${key}`);
     }
     if (PLAYWRIGHT_DEFAULT_SUPPRESSED.has(normalizeEnvKey(key))) {
-      throw new Error(
-        `[qa-playwright] Playwright default key survived suppression: ${key}`,
-      );
+      throw new Error(`[qa-playwright] Playwright default key survived suppression: ${key}`);
     }
     if (!isApprovedChildKey(key)) {
-      throw new Error(
-        `[qa-playwright] Unknown parent key survived deny-by-default filter: ${key}`,
-      );
+      throw new Error(`[qa-playwright] Unknown parent key survived deny-by-default filter: ${key}`);
     }
   }
 
@@ -348,9 +352,7 @@ export const WEBSERVER_APPROVED_CHILD_KEYS = [
   ...WEBSERVER_RUNTIME_ALLOWLIST,
 ];
 
-const CONFIG_SECRET_KEYS = new Set(
-  WEBSERVER_CONFIG_SECRET_KEYS.map((key) => normalizeEnvKey(key)),
-);
+const CONFIG_SECRET_KEYS = new Set(WEBSERVER_CONFIG_SECRET_KEYS.map((key) => normalizeEnvKey(key)));
 
 /**
  * Build webServer.env for Playwright config serialization only — secret-free.
