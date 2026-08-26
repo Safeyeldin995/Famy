@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { ProviderListRow, ProviderRatingMeta } from "@/components/famio/ProviderListRow";
 import { EmptyState } from "@/components/famio/ui";
-import type { Provider } from "@/lib/mock/data";
+import type { UIProvider } from "@/lib/db/adapters";
 import { formatEGP } from "@/lib/utils";
 
 export function HomeRebookRow({
@@ -9,11 +9,13 @@ export function HomeRebookRow({
   loading,
   error,
 }: {
-  providers: Provider[];
+  providers: UIProvider[];
   loading: boolean;
   error: boolean;
 }) {
   const { t } = useTranslation();
+
+  if (!loading && !error && providers.length === 0) return null;
 
   return (
     <section className="mt-8 px-5">
@@ -30,8 +32,6 @@ export function HomeRebookRow({
         </div>
       ) : error ? (
         <EmptyState icon="alert" title={t("common.errorTitle")} body={t("common.tryAgain")} />
-      ) : providers.length === 0 ? (
-        <EmptyState icon="user" title={t("home.recentEmpty")} body={t("home.recentEmptyBody")} />
       ) : (
         <div className="space-y-2">
           {providers.map((provider) => (
