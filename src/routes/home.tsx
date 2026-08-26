@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { AppShell, Avatar } from "@/components/famio/ui";
 import { HomeCategoryGrid } from "@/components/home/HomeCategoryGrid";
 import { HomePromos } from "@/components/home/HomePromoStrip";
+import { HomeRebookRow } from "@/components/home/HomeRebookRow";
 import {
   useCategories,
   useProviders,
@@ -13,6 +14,7 @@ import {
   useMyBookings,
 } from "@/lib/db/queries";
 import { useFeaturedPromoCodes } from "@/lib/db/promo-codes-queries";
+import { rebookProvidersFromBookings } from "@/lib/home/rebookProviders";
 import { toUICategory, toUIProvider } from "@/lib/db/adapters";
 import { MapPin, Search, Bell, Star } from "lucide-react";
 import { ICON_STROKE, ICON_STROKE_BOLD } from "@/lib/icons/constants";
@@ -42,6 +44,10 @@ function Home() {
   const providers = useMemo(() => (provsQ.data ?? []).map(toUIProvider), [provsQ.data, i18n.language]);
 
   const featured = providers.filter((p) => p.featured).slice(0, 6);
+  const rebookProviders = useMemo(
+    () => rebookProvidersFromBookings(bookingsQ.data ?? []),
+    [bookingsQ.data, i18n.language],
+  );
   const unread = (unreadQ.data ?? 0) > 0;
 
   return (
@@ -85,6 +91,12 @@ function Home() {
       <HomeCategoryGrid categories={cats} loading={catsQ.isLoading} />
 
       <HomePromos offers={featuredPromosQ.data ?? []} />
+
+      <HomeRebookRow
+        providers={rebookProviders}
+        loading={bookingsQ.isLoading}
+        error={bookingsQ.isError}
+      />
 
       {/* Horizontal scrolling featured pros (large portrait cards) */}
       <section className="mt-10 px-0 pb-8">
