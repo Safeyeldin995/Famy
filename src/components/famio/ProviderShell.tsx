@@ -6,7 +6,7 @@ import { PhoneFrame } from "@/components/famio/ui";
 
 export function ProviderShell({ children, hideNav = false }: { children: ReactNode; hideNav?: boolean }) {
   return (
-    <PhoneFrame>
+    <PhoneFrame bg="bg-background">
       <main className={`flex-1 ${hideNav ? "" : "pb-24"}`}>{children}</main>
       {!hideNav && <ProviderBottomNav />}
     </PhoneFrame>
@@ -41,12 +41,12 @@ export function ProviderBottomNav() {
                   >
                     <span
                       className={`grid h-9 w-12 place-items-center rounded-2xl transition-all ${
-                        active ? "bg-navy text-navy-foreground" : "text-muted-foreground"
+                        active ? "bg-brand text-brand-foreground shadow-card" : "text-muted-foreground"
                       }`}
                     >
                       <Icon className="h-5 w-5" strokeWidth={2.2} />
                     </span>
-                    <span className={`text-[10px] font-semibold ${active ? "text-navy" : "text-muted-foreground"}`}>
+                    <span className={`text-[10px] font-semibold ${active ? "text-brand" : "text-muted-foreground"}`}>
                       {t(tab.labelKey)}
                     </span>
                   </Link>

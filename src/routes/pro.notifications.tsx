@@ -38,7 +38,7 @@ function NotificationsPage() {
             <button
               onClick={() => markAll.mutate()}
               disabled={markAll.isPending}
-              className="text-xs font-bold text-navy disabled:opacity-50"
+              className="text-xs font-bold text-brand disabled:opacity-50"
             >
               {t("notifs.markAllRead")}
             </button>
@@ -49,9 +49,9 @@ function NotificationsPage() {
         {q.isLoading ? (
           <div className="h-20 animate-pulse rounded-3xl bg-surface" />
         ) : q.isError ? (
-          <EmptyState emoji="⚠️" title={t("common.errorTitle", "Something went wrong")} body={t("common.tryAgain", "Please try again.")} />
+          <EmptyState icon="alert" title={t("common.errorTitle", "Something went wrong")} body={t("common.tryAgain", "Please try again.")} />
         ) : items.length === 0 ? (
-          <EmptyState emoji="🔔" title={t("notifs.empty")} body={t("notifs.emptyBody")} />
+          <EmptyState icon="bell" title={t("notifs.empty")} body={t("notifs.emptyBody")} />
         ) : (
           <div className="space-y-2">
             {items.map((n: any) => {
@@ -60,7 +60,7 @@ function NotificationsPage() {
                 <Card key={n.id} className={`p-4 ${n.read_at ? "opacity-70" : ""}`}>
                   <button onClick={() => openNotification(n)} className="block w-full text-left">
                     <div className="flex items-start gap-3">
-                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-navy/10 text-navy"><Bell className="h-5 w-5" /></div>
+                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-navy/10 text-brand"><Bell className="h-5 w-5" /></div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <div className="truncate text-sm font-bold">{title}</div>

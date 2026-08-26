@@ -81,7 +81,7 @@ function CategoryPage() {
           </div>
         ) : sorted.length === 0 ? (
           <EmptyState
-            emoji="🔎"
+            icon="search"
             title={t("category.empty", "No pros available yet")}
             body={t("category.emptyBody", "We're onboarding more pros in your area. Check back soon.")}
           />

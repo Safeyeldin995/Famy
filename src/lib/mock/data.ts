@@ -96,7 +96,6 @@ export const categories = [
     description: "Verified housekeepers for deep cleans, weekly visits, and special occasions.",
     color: "var(--sky)",
     tint: "oklch(0.96 0.04 235)",
-    icon: "🏡",
     fromPrice: 150,
   },
   {
@@ -106,7 +105,6 @@ export const categories = [
     description: "Trained caregivers and certified Angels for the moments that matter most.",
     color: "var(--coral)",
     tint: "oklch(0.96 0.04 25)",
-    icon: "🧸",
     fromPrice: 180,
   },
 ];

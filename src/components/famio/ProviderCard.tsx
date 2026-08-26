@@ -15,11 +15,15 @@ export function ProviderCard({ p }: { p: Provider }) {
     <Link
       to="/provider/$id"
       params={{ id: p.id }}
-      aria-label={`${p.name}, ${p.rating} stars, ${formatEGP(p.hourlyRate, { perHour: true })}`}
-      className="focus-ring relative block rounded-3xl bg-surface p-4 shadow-soft active:scale-[0.99] transition-transform"
+      aria-label={t("providerCard.ariaLabelDetailed", {
+        name: p.name,
+        rating: formatNumber(p.rating),
+        price: formatEGP(p.hourlyRate, { perHour: true }),
+      })}
+      className="focus-ring relative block rounded-[1.25rem] border border-border/50 bg-surface p-4 shadow-sm active:scale-[0.99] transition-transform"
     >
       {isTopPro && (
-        <span className="absolute -top-2 start-4 inline-flex items-center gap-1 rounded-full bg-navy px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-navy-foreground shadow-soft">
+        <span className="absolute -top-2 start-4 inline-flex items-center gap-1 rounded-full bg-ink px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ink-foreground shadow-soft">
           <Award className="h-3 w-3" /> {t("roles.topPro")}
         </span>
       )}
@@ -38,7 +42,7 @@ export function ProviderCard({ p }: { p: Provider }) {
           <div className="flex items-center gap-2">
             <h3 className="truncate text-[15px] font-bold text-foreground">{p.name}</h3>
             <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
-              p.role === "Angel" ? "bg-coral/10 text-coral" : "bg-navy/10 text-navy"
+              p.role === "Angel" ? "bg-brand/12 text-brand" : "bg-ink/10 text-ink"
             }`}>{t(roleKey)}</span>
           </div>
           <p className="mt-0.5 truncate text-xs text-muted-foreground">
@@ -85,8 +89,8 @@ export function ProviderTile({ p }: { p: Provider }) {
     <Link
       to="/provider/$id"
       params={{ id: p.id }}
-      aria-label={`${p.name}, ${p.rating} stars`}
-      className="focus-ring block w-44 shrink-0 overflow-hidden rounded-3xl bg-surface shadow-soft active:scale-[0.98] transition-transform"
+      aria-label={t("providerCard.ariaLabel", { name: p.name, rating: formatNumber(p.rating) })}
+      className="focus-ring block w-[11.5rem] shrink-0 overflow-hidden rounded-[1.25rem] border border-border/50 bg-surface shadow-sm active:scale-[0.98] transition-transform"
     >
       <div className="relative h-40 w-full overflow-hidden">
         <Avatar
@@ -100,8 +104,9 @@ export function ProviderTile({ p }: { p: Provider }) {
           </span>
         )}
         <div className="absolute inset-x-2 bottom-2 flex items-center justify-between">
-          <span className="rounded-full bg-black/55 px-2 py-1 text-[10px] font-bold text-white backdrop-blur">
-            ★ {formatNumber(p.rating)}
+          <span className="rounded-full bg-black/55 px-2 py-1 text-[10px] font-bold text-white backdrop-blur inline-flex items-center gap-1">
+            <Star className="h-3 w-3 fill-warning text-warning" strokeWidth={2} aria-hidden="true" />
+            {formatNumber(p.rating)}
           </span>
           <span className={`rounded-full px-2 py-1 text-[10px] font-bold backdrop-blur ${
             p.role === "Angel" ? "bg-coral/90 text-coral-foreground" : "bg-navy/90 text-navy-foreground"

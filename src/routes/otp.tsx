@@ -153,18 +153,18 @@ function Otp() {
   };
 
   return (
-    <PhoneFrame bg="bg-surface">
-      <TopBar back={{ to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login" }} />
+    <PhoneFrame bg="bg-background">
+      <TopBar back={{ to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login" }} transparent />
       <div id="firebase-recaptcha" className="hidden" aria-hidden="true" />
-      <div className="flex-1 px-6 pt-2" dir={i18n.dir()}>
-        <h1 className="text-3xl font-extrabold tracking-tight">{copy.title}</h1>
-        <p className="mt-2 text-[15px] text-muted-foreground">
+      <div className="px-6 pt-2">
+        <h1 className="text-[26px] font-black leading-tight tracking-tight text-foreground">{copy.title}</h1>
+        <p className="mt-2 text-sm font-semibold leading-relaxed text-muted-foreground">
           {copy.body}{" "}
-          <span className="font-semibold text-foreground" dir="ltr">
-            {otpContext.maskedPhone}
-          </span>
+          <span className="font-black text-foreground" dir="ltr">{otpContext.maskedPhone}</span>
         </p>
+      </div>
 
+      <div className="flex-1 px-6 pt-8" dir={i18n.dir()}>
         <OtpCodeInput
           value={code}
           onChange={setCode}
@@ -172,28 +172,25 @@ function Otp() {
           disabled={loading || otpExpiresIn === 0}
         />
 
-        <div className="mt-4 text-center text-sm text-muted-foreground">
+        <div className="mt-6 text-center text-sm font-semibold text-muted-foreground">
           {t("auth.codeExpiresIn", "Code expires in")}{" "}
-          <span className="font-bold text-foreground" dir="ltr">
-            {formatNumber(Math.floor(otpExpiresIn / 60))}:
-            {String(otpExpiresIn % 60).padStart(2, "0")}
+          <span className="font-black text-foreground" dir="ltr">
+            {formatNumber(Math.floor(otpExpiresIn / 60))}:{String(otpExpiresIn % 60).padStart(2, "0")}
           </span>
         </div>
 
-        <div className="mt-4 text-center text-sm text-muted-foreground">
+        <div className="mt-4 text-center text-sm font-semibold text-muted-foreground">
           {resendAvailableIn > 0 ? (
             <>
               {t("auth.resendIn")}{" "}
-              <span className="font-bold text-foreground" dir="ltr">
-                {formatNumber(resendAvailableIn)}s
-              </span>
+              <span className="font-black text-foreground" dir="ltr">{formatNumber(resendAvailableIn)}s</span>
             </>
           ) : (
             <button
               type="button"
               onClick={resend}
               disabled={resending || loading}
-              className="font-semibold text-navy disabled:opacity-50"
+              className="font-black text-brand disabled:opacity-50"
             >
               {resending ? t("common.sending", "Sending...") : t("auth.resend")}
             </button>
@@ -201,21 +198,20 @@ function Otp() {
         </div>
 
         <div className="mt-6 text-center">
-          <button type="button" onClick={changePhone} className="text-sm font-semibold text-navy">
+          <button type="button" onClick={changePhone} className="text-sm font-bold text-muted-foreground">
             {t("auth.changePhone", "Change phone number")}
           </button>
         </div>
 
         {errorMsg && (
-          <div className="mt-6 rounded-2xl border border-coral/30 bg-coral/10 p-3 text-[13px] font-medium leading-relaxed text-coral">
-            {errorMsg}
-          </div>
+          <p className="mt-6 text-center text-sm font-bold text-destructive px-1">{errorMsg}</p>
         )}
       </div>
-      <div className="safe-bottom px-6 pt-4">
+      <div className="safe-bottom p-5">
         <PrimaryButton
           onClick={() => verify(code.join(""))}
           disabled={loading || code.some((digit) => !digit) || otpExpiresIn === 0}
+          className="shadow-float h-14"
         >
           {loading ? t("common.verifying") : t("common.verify")}
         </PrimaryButton>

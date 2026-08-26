@@ -1,10 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { useTranslation } from "react-i18next";
 import { useApp } from "@/lib/store";
 import { resolveLandingForCurrentUser } from "@/lib/auth/landing";
 import { useMyProfile } from "@/lib/db/queries";
-import famyLogo from "@/assets/famy-wordmark.png";
+import { FamyWordmark } from "@/components/famio/FamyWordmark";
 
 export const Route = createFileRoute("/")({
   component: Splash,
@@ -13,7 +12,6 @@ export const Route = createFileRoute("/")({
 function Splash() {
   const navigate = useNavigate();
   const { onboarded } = useApp();
-  const { t } = useTranslation();
   // profile.isLoading gates the redirect below so we never navigate off a
   // stale/incomplete read of `useMyProfile()`.
   const profileQ = useMyProfile();
@@ -36,14 +34,11 @@ function Splash() {
     return () => { cancelled = true; clearTimeout(tm); };
   }, [navigate, onboarded, profileQ.isLoading, profileQ.data?.full_name]);
 
-
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center bg-white text-navy">
+    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center bg-background text-foreground">
       <div className="animate-pop">
-        <img src={famyLogo} alt={t("common.appName")} className="h-28 w-auto object-contain" />
+        <FamyWordmark size="splash" />
       </div>
-
     </div>
   );
 }
-

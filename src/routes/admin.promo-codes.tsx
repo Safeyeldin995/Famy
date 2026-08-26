@@ -27,6 +27,7 @@ type PromoForm = {
   usage_limit_per_customer: string;
   first_booking_only: boolean;
   applicable_scope: ApplicableScope;
+  is_featured: boolean;
 };
 
 const EMPTY_FORM: PromoForm = {
@@ -34,7 +35,7 @@ const EMPTY_FORM: PromoForm = {
   discount_type: "fixed", discount_value: "", maximum_discount: "",
   minimum_booking_amount: "0", starts_at: "", expires_at: "",
   total_usage_limit: "", usage_limit_per_customer: "1",
-  first_booking_only: false, applicable_scope: "all",
+  first_booking_only: false, applicable_scope: "all", is_featured: false,
 };
 
 function toDatetimeLocal(iso: string | null): string {
@@ -59,6 +60,7 @@ function formFromRow(p: PromoCodeRow): PromoForm {
     usage_limit_per_customer: p.usage_limit_per_customer != null ? String(p.usage_limit_per_customer) : "",
     first_booking_only: p.first_booking_only,
     applicable_scope: p.applicable_scope,
+    is_featured: p.is_featured,
   };
 }
 
@@ -105,6 +107,7 @@ function toInput(f: PromoForm, is_active: boolean): PromoCodeInput {
     first_booking_only: f.first_booking_only,
     applicable_scope: f.applicable_scope,
     is_active,
+    is_featured: f.is_featured,
   };
 }
 
@@ -248,10 +251,16 @@ function PromoFormFields({
             className="mt-1 h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm" />
           {errors.expires_at && <p className="mt-1 text-[11px] font-semibold text-coral">{errors.expires_at}</p>}
         </label>
-        <label className="flex h-9 cursor-pointer items-center gap-2">
-          <input type="checkbox" checked={form.first_booking_only} onChange={(e) => setForm({ ...form, first_booking_only: e.target.checked })} />
-          <span className="text-xs font-semibold text-muted-foreground">{t("admin.promoCodes.firstBookingOnly")}</span>
-        </label>
+        <div className="space-y-2">
+          <label className="flex h-9 cursor-pointer items-center gap-2">
+            <input type="checkbox" checked={form.first_booking_only} onChange={(e) => setForm({ ...form, first_booking_only: e.target.checked })} />
+            <span className="text-xs font-semibold text-muted-foreground">{t("admin.promoCodes.firstBookingOnly")}</span>
+          </label>
+          <label className="flex cursor-pointer items-center gap-2">
+            <input type="checkbox" checked={form.is_featured} onChange={(e) => setForm({ ...form, is_featured: e.target.checked })} />
+            <span className="text-xs font-semibold text-muted-foreground">{t("admin.promoCodes.featured")}</span>
+          </label>
+        </div>
       </div>
     </div>
   );
@@ -466,6 +475,7 @@ function AdminPromoCodes() {
                               {p.discount_type === "percentage" ? `${p.discount_value}%` : `${p.discount_value} EGP`} {t("admin.promoCodes.off")}
                             </span>
                             {!p.is_active && <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">{t("admin.cancellationReasons.inactive")}</span>}
+                            {p.is_featured && <span className="rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-bold uppercase text-brand">{t("admin.promoCodes.featured")}</span>}
                           </div>
                           {p.description_en && <p className="text-[11px] text-muted-foreground">{p.description_en}</p>}
                           <p className="text-[11px] text-muted-foreground">
