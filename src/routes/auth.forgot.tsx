@@ -37,16 +37,14 @@ function Forgot() {
 
   return (
     <PhoneFrame bg="bg-background">
-      <div className="safe-top bg-brand px-2 pb-8 pt-2">
-        <TopBar back={{ to: "/login" }} transparent />
-        <div className="px-4 pt-2">
-          <h1 className="text-[26px] font-black leading-tight tracking-tight text-white">
-            {t("auth.forgotTitle", "Reset password")}
-          </h1>
-          <p className="mt-2 text-sm font-semibold leading-relaxed text-white/85">
-            {t("auth.forgotBody", "Enter your phone. We'll send a verification code so you can set a new password.")}
-          </p>
-        </div>
+      <TopBar back={{ to: "/login" }} transparent />
+      <div className="px-6 pt-2">
+        <h1 className="text-[26px] font-black leading-tight tracking-tight text-foreground">
+          {t("auth.forgotTitle", "Reset password")}
+        </h1>
+        <p className="mt-2 text-sm font-semibold leading-relaxed text-muted-foreground">
+          {t("auth.forgotBody", "Enter your phone. We'll send a verification code so you can set a new password.")}
+        </p>
       </div>
 
       <div className="flex-1 px-5 pt-6">

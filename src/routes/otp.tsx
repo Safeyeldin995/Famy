@@ -117,15 +117,13 @@ function Otp() {
 
   return (
     <PhoneFrame bg="bg-background">
-      <div className="safe-top bg-brand px-2 pb-8 pt-2">
-        <TopBar back={{ to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login" }} transparent />
-        <div className="px-4 pt-2">
-          <h1 className="text-[26px] font-black leading-tight tracking-tight text-white">{copy.title}</h1>
-          <p className="mt-2 text-sm font-semibold leading-relaxed text-white/85">
-            {copy.body}{" "}
-            <span className="font-black text-white" dir="ltr">{otpContext.maskedPhone}</span>
-          </p>
-        </div>
+      <TopBar back={{ to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login" }} transparent />
+      <div className="px-6 pt-2">
+        <h1 className="text-[26px] font-black leading-tight tracking-tight text-foreground">{copy.title}</h1>
+        <p className="mt-2 text-sm font-semibold leading-relaxed text-muted-foreground">
+          {copy.body}{" "}
+          <span className="font-black text-foreground" dir="ltr">{otpContext.maskedPhone}</span>
+        </p>
       </div>
 
       <div className="flex-1 px-6 pt-8" dir={i18n.dir()}>
