@@ -155,7 +155,7 @@ function ProBookingDetail() {
           <Row icon={<Calendar className="h-4 w-4" />} label={t("pro.booking.date")} value={start.toLocaleDateString(dateLoc, { weekday: "long", month: "short", day: "numeric", year: "numeric" })} />
           <Row icon={<Clock className="h-4 w-4" />} label={t("pro.booking.time")} value={`${start.toLocaleTimeString(dateLoc, { hour: "numeric", minute: "2-digit" })} · ${hours}h`} />
           <Row icon={<MapPin className="h-4 w-4" />} label={t("pro.booking.address")} value={addrLine} />
-          {b.customer?.phone && <Row icon={<Phone className="h-4 w-4" />} label={t("pro.booking.phone")} value={<a href={`tel:${b.customer.phone}`} className="font-bold text-navy" dir="ltr">{b.customer.phone}</a>} />}
+          {b.customer?.phone && <Row icon={<Phone className="h-4 w-4" />} label={t("pro.booking.phone")} value={<a href={`tel:${b.customer.phone}`} className="font-bold text-brand" dir="ltr">{b.customer.phone}</a>} />}
         </Card>
 
         {b.family_member && (
@@ -187,7 +187,7 @@ function ProBookingDetail() {
                 label={t("pro.booking.emergencyContact", "Emergency contact")}
                 value={
                   b.family_member.emergency_contact_phone
-                    ? <a href={`tel:${b.family_member.emergency_contact_phone}`} className="font-bold text-navy" dir="ltr">{b.family_member.emergency_contact_name} · {b.family_member.emergency_contact_phone}</a>
+                    ? <a href={`tel:${b.family_member.emergency_contact_phone}`} className="font-bold text-brand" dir="ltr">{b.family_member.emergency_contact_name} · {b.family_member.emergency_contact_phone}</a>
                     : b.family_member.emergency_contact_name
                 }
               />
@@ -229,7 +229,7 @@ function ProBookingDetail() {
           <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("pro.booking.payment")}</div>
           <div className="flex items-center justify-between"><span className="text-sm">{t("pro.booking.subtotal")}</span><span>{formatEGP(Number(b.price_subtotal ?? 0))}</span></div>
           {Number(b.price_discount ?? 0) > 0 && <div className="flex items-center justify-between text-coral"><span className="text-sm">{t("pro.booking.discount")}</span><span>−{formatEGP(Number(b.price_discount))}</span></div>}
-          <div className="flex items-center justify-between border-t border-border pt-2"><span className="text-sm font-bold">{t("pro.booking.total")}</span><span className="text-base font-extrabold text-navy">{formatEGP(Number(b.price_total ?? 0))}</span></div>
+          <div className="flex items-center justify-between border-t border-border pt-2"><span className="text-sm font-bold">{t("pro.booking.total")}</span><span className="text-base font-extrabold text-brand">{formatEGP(Number(b.price_total ?? 0))}</span></div>
         </Card>
 
         <PaymentBlock bookingId={b.id} viewer="provider" bookingStatus={b.status} />
@@ -248,7 +248,7 @@ function ProBookingDetail() {
           {b.status === "pending" && (
             <div className="flex gap-2">
               <button onClick={() => setDialog("decline")} disabled={mut.isPending || cancelBooking.isPending} className="focus-ring h-14 flex-1 rounded-2xl border border-coral bg-surface text-sm font-bold text-coral active:scale-[0.98] disabled:opacity-50">{t("pro.booking.decline")}</button>
-              <button onClick={() => run("confirmed")} disabled={mut.isPending} className="focus-ring h-14 flex-1 rounded-2xl bg-navy text-sm font-bold text-navy-foreground shadow-card active:scale-[0.98] disabled:opacity-50">{t("pro.booking.accept")}</button>
+              <button onClick={() => run("confirmed")} disabled={mut.isPending} className="focus-ring h-14 flex-1 rounded-2xl bg-brand text-sm font-bold text-brand-foreground shadow-card active:scale-[0.98] disabled:opacity-50">{t("pro.booking.accept")}</button>
             </div>
           )}
 
@@ -386,7 +386,7 @@ function ProBookingDetail() {
 function Row({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-navy/10 text-navy">{icon}</div>
+      <div className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand">{icon}</div>
       <div className="min-w-0 flex-1">
         <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
         <div className="text-sm font-semibold">{value}</div>

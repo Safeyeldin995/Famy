@@ -2,15 +2,22 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ProviderShell } from "@/components/famio/ProviderShell";
-import { TopBar, Chip, Card, Badge, EmptyState } from "@/components/famio/ui";
+import { TopBar, SegmentedControl, Card, EmptyState, Avatar, StatusPill } from "@/components/famio/ui";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { useMyProvider, useProviderBookings } from "@/lib/db/provider-queries";
-import { bookingStatusTone, formatEGP, BOOKING_ACTIVE_STATUSES } from "@/lib/utils";
+import { formatEGP, BOOKING_ACTIVE_STATUSES } from "@/lib/utils";
 import { Calendar, Clock } from "lucide-react";
 
 export const Route = createFileRoute("/pro/bookings")({ component: ProBookings });
 
 type Tab = "requests" | "upcoming" | "history";
+
+function statusTone(status: string): "brand" | "success" | "warning" | "muted" {
+  if (status === "pending") return "warning";
+  if (status === "completed") return "success";
+  if (status === "cancelled" || status === "no_show") return "muted";
+  return "brand";
+}
 
 function ProBookings() {
   const { t } = useTranslation();
@@ -42,15 +49,21 @@ function ProBookings() {
   return (
     <ProviderShell>
       <TopBar title={t("pro.bookings.title")} />
-      <div className="flex gap-2 px-5 pb-4">
-        <Chip active={tab === "requests"} onClick={() => setTab("requests")}>{t("pro.bookings.requests")} ({lists.requests.length})</Chip>
-        <Chip active={tab === "upcoming"} onClick={() => setTab("upcoming")}>{t("pro.bookings.upcoming")}</Chip>
-        <Chip active={tab === "history"} onClick={() => setTab("history")}>{t("pro.bookings.history")}</Chip>
+      <div className="px-5 pb-4">
+        <SegmentedControl
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: "requests", label: `${t("pro.bookings.requests")} (${lists.requests.length})` },
+            { value: "upcoming", label: t("pro.bookings.upcoming") },
+            { value: "history", label: t("pro.bookings.history") },
+          ]}
+        />
       </div>
 
-      <div className="space-y-3 px-5">
+      <div className="space-y-2 px-5 pb-6">
         {q.isLoading ? (
-          Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-24 animate-pulse rounded-3xl bg-surface" />)
+          Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-[4.75rem] animate-pulse rounded-[1.25rem] bg-muted" />)
         ) : list.length === 0 ? (
           <EmptyState icon={tab === "requests" ? "inbox" : "calendar"} title={t("pro.bookings.empty", { tab: tabLabel })} body={emptyBody} />
         ) : (
@@ -63,12 +76,12 @@ function ProBookings() {
             return (
               <Link key={b.id} to="/pro/booking/$id" params={{ id: b.id }} className="block">
                 <Card className="p-4 active:scale-[0.99] transition-transform">
-                  <div className="flex items-start gap-3">
-                    <img src={b.customer?.avatar_url || `https://i.pravatar.cc/100?u=${b.customer_id}`} alt={name} loading="lazy" className="h-14 w-14 rounded-2xl object-cover" />
+                  <div className="flex items-center gap-3">
+                    <Avatar src={b.customer?.avatar_url} alt={name} className="h-14 w-14 shrink-0 rounded-full ring-2 ring-surface-2" />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <div className="truncate text-sm font-bold">{name}</div>
-                        <Badge tone={bookingStatusTone(b.status)}>{String(t(`pro.statuses.${b.status}`, { defaultValue: b.status }))}</Badge>
+                        <StatusPill tone={statusTone(b.status)}>{String(t(`pro.statuses.${b.status}`, { defaultValue: b.status }))}</StatusPill>
                       </div>
                       <div className="mt-0.5 truncate text-xs text-muted-foreground">{serviceName}</div>
                       <div className="mt-2 flex items-center gap-3 text-[11px] text-muted-foreground">
@@ -77,7 +90,7 @@ function ProBookings() {
                       </div>
                     </div>
                     <div className="text-end">
-                      <div className="text-sm font-extrabold text-navy">{formatEGP(Number(b.price_total ?? 0))}</div>
+                      <div className="text-sm font-extrabold text-brand">{formatEGP(Number(b.price_total ?? 0))}</div>
                     </div>
                   </div>
                 </Card>

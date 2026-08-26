@@ -1,11 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ProviderShell } from "@/components/famio/ProviderShell";
-import { Card, Badge, EmptyState, TopBar } from "@/components/famio/ui";
+import { Card, EmptyState, TopBar, Avatar, StatusPill } from "@/components/famio/ui";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { useMyProvider, useProviderBookings, useProviderEarnings } from "@/lib/db/provider-queries";
 import { useUnreadNotificationCount } from "@/lib/db/queries";
-import { formatEGP, bookingStatusTone, BOOKING_ACTIVE_STATUSES } from "@/lib/utils";
+import { formatEGP, BOOKING_ACTIVE_STATUSES } from "@/lib/utils";
 import { Bell, ShieldCheck, Star, TrendingUp, Plane, AlertCircle } from "lucide-react";
 
 export const Route = createFileRoute("/pro/")({ component: ProDashboard });
@@ -53,7 +53,7 @@ function ProDashboard() {
               <div className="text-sm font-bold">{t("pro.dashboard.vacationOn")}</div>
               <div className="text-xs text-muted-foreground">{t("pro.dashboard.vacationOnBody")}</div>
             </div>
-            <Link to="/pro/availability" className="text-xs font-bold text-navy">{t("pro.dashboard.manage")}</Link>
+            <Link to="/pro/availability" className="text-xs font-bold text-brand">{t("pro.dashboard.manage")}</Link>
           </Card>
         )}
 
@@ -74,7 +74,7 @@ function ProDashboard() {
               <div className="text-sm font-bold">{t("pro.onboardingWizard.status.NEEDS_CHANGES")}</div>
               <div className="text-xs text-muted-foreground">{provider.review_reason_public ?? t("pro.onboardingWizard.changesRequired")}</div>
             </div>
-            <Link to="/pro/onboarding" className="text-xs font-bold text-navy">{t("pro.dashboard.manage")}</Link>
+            <Link to="/pro/onboarding" className="text-xs font-bold text-brand">{t("pro.dashboard.manage")}</Link>
           </Card>
         )}
 
@@ -85,19 +85,19 @@ function ProDashboard() {
               <div className="text-sm font-bold">{t("pro.dashboard.verifyPending")}</div>
               <div className="text-xs text-muted-foreground">{t("pro.dashboard.verifyBody")}</div>
             </div>
-            <Link to="/pro/onboarding" className="text-xs font-bold text-navy">{t("pro.dashboard.upload")}</Link>
+            <Link to="/pro/onboarding" className="text-xs font-bold text-brand">{t("pro.dashboard.upload")}</Link>
           </Card>
         )}
 
         <div className="grid grid-cols-2 gap-3">
           <Card className="p-4">
             <div className="flex items-center gap-2 text-xs text-muted-foreground"><TrendingUp className="h-3.5 w-3.5" /> {t("pro.dashboard.earningsMtd")}</div>
-            <div className="mt-1 text-2xl font-extrabold text-navy">{formatEGP(earningsQ.data?.mtd ?? 0)}</div>
+            <div className="mt-1 text-2xl font-extrabold text-brand">{formatEGP(earningsQ.data?.mtd ?? 0)}</div>
             <Link to="/pro/earnings" className="mt-1 inline-block text-[11px] font-bold text-muted-foreground">{t("pro.dashboard.viewDetails")}</Link>
           </Card>
           <Card className="p-4">
             <div className="flex items-center gap-2 text-xs text-muted-foreground"><ShieldCheck className="h-3.5 w-3.5" /> {t("pro.dashboard.trustScore")}</div>
-            <div className="mt-1 text-2xl font-extrabold text-navy">{trust ? Math.round(trust) : "—"}</div>
+            <div className="mt-1 text-2xl font-extrabold text-brand">{trust ? Math.round(trust) : "—"}</div>
             <div className="mt-1 text-[11px] text-muted-foreground inline-flex items-center gap-1"><Star className="h-3 w-3 fill-amber-400 text-amber-400" /> {rating ? Number(rating).toFixed(2) : "—"} · {t("pro.dashboard.reviews", { count: ratingCount })}</div>
           </Card>
         </div>
@@ -105,7 +105,7 @@ function ProDashboard() {
         <div>
           <div className="mb-2 flex items-center justify-between px-1">
             <h2 className="text-base font-extrabold">{t("pro.dashboard.newRequests")}</h2>
-            {pending.length > 0 && <Link to="/pro/bookings" className="text-xs font-bold text-navy">{t("pro.common.seeAll")}</Link>}
+            {pending.length > 0 && <Link to="/pro/bookings" className="text-xs font-bold text-brand">{t("pro.common.seeAll")}</Link>}
           </div>
           {bookingsQ.isLoading ? (
             <div className="h-24 animate-pulse rounded-3xl bg-surface" />
@@ -125,7 +125,7 @@ function ProDashboard() {
         <div>
           <div className="mb-2 flex items-center justify-between px-1">
             <h2 className="text-base font-extrabold">{t("pro.dashboard.upcoming")}</h2>
-            <Link to="/pro/bookings" className="text-xs font-bold text-navy">{t("pro.common.seeAll")}</Link>
+            <Link to="/pro/bookings" className="text-xs font-bold text-brand">{t("pro.common.seeAll")}</Link>
           </div>
           {upcoming.length === 0 ? (
             <Card className="p-4 text-center text-xs text-muted-foreground">{t("pro.dashboard.noUpcoming")}</Card>
@@ -145,19 +145,19 @@ function BookingRow({ b, cta, lang, dateLoc, t }: { b: any; cta?: string; lang: 
   return (
     <Link to="/pro/booking/$id" params={{ id: b.id }} className="block">
       <Card className="flex items-center gap-3 p-3 active:scale-[0.99] transition-transform">
-        <img src={b.customer?.avatar_url || `https://i.pravatar.cc/100?u=${b.customer_id}`} alt={name} loading="lazy" className="h-12 w-12 rounded-xl object-cover" />
+        <Avatar src={b.customer?.avatar_url} alt={name} className="h-12 w-12 shrink-0 rounded-full ring-2 ring-surface-2" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <div className="truncate text-sm font-bold">{name}</div>
-            <Badge tone={bookingStatusTone(b.status)}>{String(t(`pro.statuses.${b.status}`, { defaultValue: b.status }))}</Badge>
+            <StatusPill tone={b.status === "pending" ? "warning" : "brand"}>{String(t(`pro.statuses.${b.status}`, { defaultValue: b.status }))}</StatusPill>
           </div>
           <div className="truncate text-[11px] text-muted-foreground">
             {serviceName ?? t("pro.common.service")} · {start.toLocaleDateString(dateLoc, { weekday: "short", month: "short", day: "numeric" })} · {start.toLocaleTimeString(dateLoc, { hour: "numeric", minute: "2-digit" })}
           </div>
         </div>
         <div className="text-end">
-          <div className="text-sm font-extrabold text-navy">{formatEGP(Number(b.price_total ?? 0))}</div>
-          {cta && <div className="text-[10px] font-bold text-coral">{cta} →</div>}
+          <div className="text-sm font-extrabold text-brand">{formatEGP(Number(b.price_total ?? 0))}</div>
+          {cta && <div className="text-[10px] font-bold text-brand">{cta} →</div>}
         </div>
       </Card>
     </Link>

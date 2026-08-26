@@ -24,26 +24,26 @@ function EarningsPage() {
     <ProviderShell>
       <TopBar title={t("pro.earnings.title")} />
       <div className="space-y-5 px-5 pb-6">
-        <Card className="p-5">
-          <div className="text-xs uppercase tracking-wider text-muted-foreground">{t("pro.earnings.totalEarned")}</div>
-          <div className="mt-1 text-4xl font-extrabold text-navy">{formatEGP(e.data?.total ?? 0)}</div>
-          <div className="mt-1 text-[11px] text-muted-foreground">{t("pro.earnings.fromCompleted", { count: e.data?.completedCount ?? 0 })}</div>
+        <Card className="home-promo-block p-5 text-brand-foreground">
+          <div className="text-xs uppercase tracking-wider text-white/80">{t("pro.earnings.totalEarned")}</div>
+          <div className="mt-1 text-4xl font-extrabold text-white">{formatEGP(e.data?.total ?? 0)}</div>
+          <div className="mt-1 text-[11px] text-white/80">{t("pro.earnings.fromCompleted", { count: e.data?.completedCount ?? 0 })}</div>
         </Card>
 
         <div className="grid grid-cols-2 gap-3">
           <Card className="p-4">
             <div className="flex items-center gap-2 text-xs text-muted-foreground"><TrendingUp className="h-3.5 w-3.5" /> {t("pro.earnings.thisMonth")}</div>
-            <div className="mt-1 text-xl font-extrabold text-navy">{formatEGP(e.data?.mtd ?? 0)}</div>
+            <div className="mt-1 text-xl font-extrabold text-brand">{formatEGP(e.data?.mtd ?? 0)}</div>
           </Card>
           <Card className="p-4">
             <div className="flex items-center gap-2 text-xs text-muted-foreground"><Clock4 className="h-3.5 w-3.5" /> {t("pro.earnings.last7")}</div>
-            <div className="mt-1 text-xl font-extrabold text-navy">{formatEGP(e.data?.last7 ?? 0)}</div>
+            <div className="mt-1 text-xl font-extrabold text-brand">{formatEGP(e.data?.last7 ?? 0)}</div>
           </Card>
         </div>
 
         <Card className="p-4">
           <div className="flex items-center gap-2 text-xs text-muted-foreground"><CheckCircle2 className="h-3.5 w-3.5" /> {t("pro.earnings.upcomingPipeline")}</div>
-          <div className="mt-1 text-xl font-extrabold text-navy">{formatEGP(e.data?.upcomingPipeline ?? 0)}</div>
+          <div className="mt-1 text-xl font-extrabold text-brand">{formatEGP(e.data?.upcomingPipeline ?? 0)}</div>
           <div className="text-[11px] text-muted-foreground">{t("pro.earnings.upcomingPipelineSub")}</div>
         </Card>
 
@@ -61,7 +61,7 @@ function EarningsPage() {
                       <div className="truncate text-sm font-bold">{b.customer?.full_name || t("pro.common.customer")}</div>
                       <div className="text-[11px] text-muted-foreground">{sname} · {new Date(b.start_at).toLocaleDateString(dateLoc)}</div>
                     </div>
-                    <div className="text-sm font-extrabold text-navy">{formatEGP(Number(b.price_total ?? 0))}</div>
+                    <div className="text-sm font-extrabold text-brand">{formatEGP(Number(b.price_total ?? 0))}</div>
                   </div>
                 );
               })}

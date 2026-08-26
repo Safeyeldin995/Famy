@@ -38,7 +38,7 @@ function NotificationsPage() {
             <button
               onClick={() => markAll.mutate()}
               disabled={markAll.isPending}
-              className="text-xs font-bold text-navy disabled:opacity-50"
+              className="text-xs font-bold text-brand disabled:opacity-50"
             >
               {t("notifs.markAllRead")}
             </button>
@@ -60,7 +60,7 @@ function NotificationsPage() {
                 <Card key={n.id} className={`p-4 ${n.read_at ? "opacity-70" : ""}`}>
                   <button onClick={() => openNotification(n)} className="block w-full text-left">
                     <div className="flex items-start gap-3">
-                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-navy/10 text-navy"><Bell className="h-5 w-5" /></div>
+                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-navy/10 text-brand"><Bell className="h-5 w-5" /></div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <div className="truncate text-sm font-bold">{title}</div>
