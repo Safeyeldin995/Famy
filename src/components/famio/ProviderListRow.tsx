@@ -31,7 +31,7 @@ export function ProviderListRow({
     <Link
       to={to as any}
       params={params as any}
-      className={`focus-ring tap-scale flex items-center gap-4 rounded-[2rem] border border-border/50 bg-surface-elevated p-4 shadow-sm transition-shadow hover:shadow-md ${className}`}
+      className={`focus-ring tap-scale flex items-center gap-4 rounded-[2rem] border border-border/50 bg-surface-elevated p-4 shadow-sm transition-shadow hover:shadow-md hover:border-brand/30 ${className}`}
     >
       <Avatar src={avatar} alt={name} className="h-16 w-16 shrink-0 shadow-sm" />
       <div className="min-w-0 flex-1">

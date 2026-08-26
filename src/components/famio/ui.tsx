@@ -255,10 +255,10 @@ export function Chip({
     <button
       onClick={onClick}
       aria-pressed={active}
-      className={`focus-ring shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all min-h-11 tap-scale ${
+      className={`focus-ring shrink-0 rounded-full px-5 py-2.5 text-[13px] font-bold transition-all min-h-11 tap-scale ${
         active
-          ? "bg-brand text-brand-foreground shadow-soft"
-          : "border border-border bg-surface text-muted-foreground hover:text-foreground"
+          ? "bg-brand text-brand-foreground shadow-sm"
+          : "border border-border/60 bg-surface text-muted-foreground hover:bg-surface-2 hover:text-foreground"
       }`}
     >
       {children}
@@ -274,14 +274,14 @@ export function StatusPill({
   tone?: "brand" | "ink" | "success" | "warning" | "muted";
 }) {
   const map = {
-    brand: "bg-brand text-brand-foreground",
-    ink: "bg-ink text-ink-foreground",
-    success: "bg-success text-white",
-    warning: "bg-warning text-foreground",
+    brand: "bg-brand/10 text-brand",
+    ink: "bg-ink/10 text-ink",
+    success: "bg-success/15 text-success",
+    warning: "bg-warning/15 text-warning",
     muted: "bg-muted text-muted-foreground",
   } as const;
   return (
-    <span className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${map[tone]}`}>
+    <span className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1.5 text-[10px] font-black uppercase tracking-widest ${map[tone]}`}>
       {children}
     </span>
   );
@@ -299,16 +299,16 @@ export function SegmentedControl<T extends string>({
   className?: string;
 }) {
   return (
-    <div className={`rounded-[1.125rem] bg-surface-2 p-1 ${className}`}>
-      <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+    <div className={`rounded-full bg-surface-2 p-1.5 border border-border/50 ${className}`}>
+      <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
         {options.map((option) => (
           <button
             key={option.value}
             type="button"
             onClick={() => onChange(option.value)}
             aria-pressed={value === option.value}
-            className={`focus-ring tap-scale min-h-11 rounded-xl px-2 text-xs font-bold transition-all sm:text-sm ${
-              value === option.value ? "bg-brand text-brand-foreground shadow-sm" : "text-muted-foreground"
+            className={`focus-ring tap-scale min-h-12 rounded-full px-3 text-[13px] font-black uppercase tracking-wider transition-all sm:text-sm ${
+              value === option.value ? "bg-surface-elevated text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {option.label}
@@ -333,16 +333,14 @@ export function RoleSelectCard({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`focus-ring tap-scale relative flex min-h-[4.5rem] flex-col items-start justify-center rounded-[1.125rem] border-2 px-4 py-3 text-start transition-all ${
-        active ? "border-brand bg-brand/8 shadow-sm" : "border-border/80 bg-surface shadow-xs"
+      className={`focus-ring tap-scale relative flex min-h-[4.5rem] flex-col items-start justify-center rounded-[1.25rem] border px-4 py-3 text-start transition-all ${
+        active ? "border-brand bg-brand/5 shadow-sm" : "border-border/60 bg-surface shadow-xs hover:bg-surface-2"
       }`}
     >
-      {active ? (
-        <span className="absolute end-3 top-3 grid h-5 w-5 place-items-center rounded-full bg-brand text-brand-foreground">
-          <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" />
-        </span>
-      ) : null}
-      <span className="text-sm font-bold text-foreground">{label}</span>
+      <span className="absolute end-4 top-1/2 -translate-y-1/2 grid h-6 w-6 place-items-center rounded-full border-2 transition-colors" style={{ borderColor: active ? "var(--color-brand)" : "var(--color-border)", backgroundColor: active ? "var(--color-brand)" : "transparent" }}>
+        {active ? <Check className="h-4 w-4 text-brand-foreground" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" /> : null}
+      </span>
+      <span className={`text-[13px] font-extrabold pr-8 ${active ? "text-brand" : "text-muted-foreground"}`}>{label}</span>
     </button>
   );
 }

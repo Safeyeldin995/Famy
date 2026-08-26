@@ -15,7 +15,7 @@ export function CategoryIcon({ slug, className = "h-14 w-14" }: { slug: string; 
   const Icon = style.Icon;
   return (
     <span className={`grid shrink-0 place-items-center rounded-2xl ${style.tint} ${className}`}>
-      <Icon className="h-7 w-7" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
+      <Icon className="h-6 w-6" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
     </span>
   );
 }

@@ -198,12 +198,12 @@
   background: var(--surface-2);
   border: 1px solid var(--border);
 }
-@utility category-tint-sky { background: oklch(0.97 0 0); color: var(--ink); border: 1px solid var(--border); }
-@utility category-tint-pink { background: oklch(0.97 0 0); color: var(--ink); border: 1px solid var(--border); }
-@utility category-tint-mint { background: oklch(0.97 0 0); color: var(--ink); border: 1px solid var(--border); }
-@utility category-tint-orange { background: oklch(0.97 0 0); color: var(--ink); border: 1px solid var(--border); }
-@utility category-tint-lavender { background: oklch(0.97 0 0); color: var(--ink); border: 1px solid var(--border); }
-@utility category-tint-peach { background: oklch(0.97 0 0); color: var(--ink); border: 1px solid var(--border); }
+@utility category-tint-sky { background: oklch(0.95 0.03 235); color: oklch(0.5 0.15 235); border: 1px solid color-mix(in oklch, oklch(0.5 0.15 235) 15%, transparent); }
+@utility category-tint-pink { background: oklch(0.95 0.03 350); color: oklch(0.55 0.2 350); border: 1px solid color-mix(in oklch, oklch(0.55 0.2 350) 15%, transparent); }
+@utility category-tint-mint { background: oklch(0.95 0.03 168); color: oklch(0.5 0.15 168); border: 1px solid color-mix(in oklch, oklch(0.5 0.15 168) 15%, transparent); }
+@utility category-tint-orange { background: oklch(0.95 0.04 55); color: oklch(0.55 0.18 55); border: 1px solid color-mix(in oklch, oklch(0.55 0.18 55) 15%, transparent); }
+@utility category-tint-lavender { background: oklch(0.95 0.03 295); color: oklch(0.5 0.15 295); border: 1px solid color-mix(in oklch, oklch(0.5 0.15 295) 15%, transparent); }
+@utility category-tint-peach { background: oklch(0.95 0.04 35); color: oklch(0.55 0.18 35); border: 1px solid color-mix(in oklch, oklch(0.55 0.18 35) 15%, transparent); }
 @utility tap-scale {
   transition: transform 180ms ease, background-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
   &:active {

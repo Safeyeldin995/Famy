@@ -10,11 +10,10 @@ export function HomeFeaturedCarousel({ providers }: { providers: Provider[] }) {
 
   return (
     <section className="mt-8 px-5">
-      <div className="mb-4">
-        <p className="text-overline">{t("home.featuredSubtitle")}</p>
-        <h2 className="text-title mt-1 text-foreground">{t("home.featured")}</h2>
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-lg font-extrabold tracking-tight text-foreground">{t("home.featured")}</h2>
       </div>
-      <div className="space-y-2">
+      <div className="space-y-3">
         {providers.map((provider) => (
           <ProviderListRow
             key={provider.id}
