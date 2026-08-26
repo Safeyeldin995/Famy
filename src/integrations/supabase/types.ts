@@ -1973,6 +1973,7 @@ export type Database = {
           first_booking_only: boolean
           id: string
           is_active: boolean
+          is_featured: boolean
           maximum_discount: number | null
           minimum_booking_amount: number
           starts_at: string | null
@@ -1994,6 +1995,7 @@ export type Database = {
           first_booking_only?: boolean
           id?: string
           is_active?: boolean
+          is_featured?: boolean
           maximum_discount?: number | null
           minimum_booking_amount?: number
           starts_at?: string | null
@@ -2015,6 +2017,7 @@ export type Database = {
           first_booking_only?: boolean
           id?: string
           is_active?: boolean
+          is_featured?: boolean
           maximum_discount?: number | null
           minimum_booking_amount?: number
           starts_at?: string | null
@@ -3897,6 +3900,19 @@ export type Database = {
           service_slug: string
           trust_score: number
           years_experience: number
+        }[]
+      }
+      get_active_featured_promo_codes: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          code: string
+          description_en: string | null
+          description_ar: string | null
+          discount_type: string
+          discount_value: number
+          minimum_booking_amount: number
+          expires_at: string | null
         }[]
       }
       validate_promo_code: {

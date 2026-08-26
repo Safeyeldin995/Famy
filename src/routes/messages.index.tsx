@@ -28,15 +28,9 @@ function Messages() {
         {isLoading ? (
           <div className="py-20 text-center text-sm text-muted-foreground">{t("common.loading", "Loading…")}</div>
         ) : isError ? (
-          <EmptyState emoji="⚠️" title={t("common.errorTitle", "Something went wrong")} body={t("common.tryAgain", "Please try again.")} />
+          <EmptyState icon="alert" title={t("common.errorTitle", "Something went wrong")} body={t("common.tryAgain", "Please try again.")} />
         ) : convs.length === 0 ? (
-          <div className="py-20 text-center">
-            <div className="mx-auto grid h-24 w-24 place-items-center rounded-3xl bg-surface text-4xl shadow-soft">💬</div>
-            <div className="mt-5 text-base font-bold">{t("messages.emptyTitle")}</div>
-            <div className="mt-2 text-xs text-muted-foreground">
-              {t("messages.emptyBody")}
-            </div>
-          </div>
+          <EmptyState icon="message" title={t("messages.emptyTitle")} body={t("messages.emptyBody")} />
         ) : (
           <ul className="divide-y divide-border rounded-3xl bg-surface shadow-soft">
             {convs.map((c) => (

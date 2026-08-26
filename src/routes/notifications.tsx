@@ -51,9 +51,9 @@ function Notifications() {
             {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-20 rounded-2xl bg-surface animate-pulse" />)}
           </div>
         ) : q.isError ? (
-          <EmptyState emoji="⚠️" title={t("common.errorTitle", "Something went wrong")} body={t("common.tryAgain", "Please try again.")} />
+          <EmptyState icon="alert" title={t("common.errorTitle", "Something went wrong")} body={t("common.tryAgain", "Please try again.")} />
         ) : items.length === 0 ? (
-          <EmptyState emoji="🔔" title={t("notifs.empty")} />
+          <EmptyState icon="bell" title={t("notifs.empty")} />
         ) : (
           <ul className="space-y-2">
             {items.map((n: any) => {

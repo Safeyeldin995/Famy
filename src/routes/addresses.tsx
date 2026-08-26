@@ -27,7 +27,7 @@ function Addresses() {
           Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-24 animate-pulse rounded-3xl bg-surface" />)
         ) : addresses.length === 0 ? (
           <EmptyState
-            emoji="📍"
+            icon="map-pin"
             title={t("addresses.empty", "No saved addresses yet")}
             body={t("addresses.emptyBody", "Add an address to book services faster.")}
             action={

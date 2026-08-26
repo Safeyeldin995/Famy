@@ -155,7 +155,7 @@ function ProProfile() {
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
               aria-label={t("pro.profile.changePhoto")}
-              className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full bg-navy text-white shadow-soft ring-2 ring-white active:scale-95 disabled:opacity-60"
+              className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full bg-brand text-white shadow-soft ring-2 ring-white active:scale-95 disabled:opacity-60"
             >
               {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
             </button>
@@ -180,7 +180,7 @@ function ProProfile() {
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
-              className="mt-1 text-[11px] font-bold text-navy disabled:opacity-60"
+              className="mt-1 text-[11px] font-bold text-brand disabled:opacity-60"
             >
               {uploading ? t("pro.profile.uploading") : t("pro.profile.changePhoto")}
             </button>
@@ -224,7 +224,7 @@ function ProProfile() {
                     type="button"
                     onClick={() => setCity(c)}
                     className={`h-10 rounded-xl border text-sm font-semibold transition-all ${
-                      city === c ? "border-navy bg-navy/[0.04] text-navy" : "border-border bg-surface text-muted-foreground"
+                      city === c ? "border-brand bg-brand/[0.04] text-brand" : "border-border bg-surface text-muted-foreground"
                     }`}
                   >
                     {c}
@@ -264,7 +264,7 @@ function ProProfile() {
                     </div>
                     <button
                       onClick={() => toggle.mutate({ providerId: provider.id, serviceId: s.id, on: !on })}
-                      className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${on ? "bg-navy" : "bg-muted"}`}
+                      className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${on ? "bg-brand" : "bg-muted"}`}
                       aria-pressed={on}
                     >
                       <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-soft transition-all ${on ? "left-[22px]" : "left-0.5"}`} />
@@ -285,7 +285,7 @@ function ProProfile() {
                       <button
                         onClick={() => submitPrice(s.id, s.minimum_price ?? null, s.maximum_price ?? null)}
                         disabled={setPrice.isPending}
-                        className="rounded-lg bg-navy px-3 py-1.5 text-[11px] font-bold text-navy-foreground disabled:opacity-50"
+                        className="rounded-lg bg-brand px-3 py-1.5 text-[11px] font-bold text-brand-foreground disabled:opacity-50"
                       >
                         {t("common.save")}
                       </button>
@@ -300,7 +300,7 @@ function ProProfile() {
                   {on && (
                     <button
                       onClick={() => setExpandedReqService(expandedReqService === s.id ? null : s.id)}
-                      className="mt-2 text-[11px] font-bold text-navy"
+                      className="mt-2 text-[11px] font-bold text-brand"
                     >
                       {expandedReqService === s.id ? t("pro.profile.hideRequirements", "Hide requirements") : t("pro.profile.showRequirements", "Requirements")}
                     </button>
@@ -390,7 +390,7 @@ function RequirementsChecklist({ providerId, serviceId }: { providerId: string; 
               <button
                 onClick={() => declare.mutate({ providerId, requirementId: r.id, notes: notesDraft[r.id] })}
                 disabled={declare.isPending}
-                className="rounded-lg bg-navy px-2 py-1.5 text-[11px] font-bold text-navy-foreground disabled:opacity-50"
+                className="rounded-lg bg-brand px-2 py-1.5 text-[11px] font-bold text-brand-foreground disabled:opacity-50"
               >{t("common.save")}</button>
               {r.evidence_required && (
                 <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-[11px] font-semibold">
@@ -422,7 +422,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function ProRow({ to, icon, label }: { to: string; icon: React.ReactNode; label: string }) {
   return (
     <Link to={to as any} className="flex items-center gap-3 px-4 py-3.5 active:bg-surface-2">
-      <div className="grid h-10 w-10 place-items-center rounded-xl bg-navy/10 text-navy">{icon}</div>
+      <div className="grid h-10 w-10 place-items-center rounded-xl bg-brand/10 text-brand">{icon}</div>
       <div className="flex-1 text-sm font-bold">{label}</div>
     </Link>
   );
