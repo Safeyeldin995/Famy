@@ -28,8 +28,20 @@ export type PromoCodeRow = {
   first_booking_only: boolean;
   applicable_scope: ApplicableScope;
   is_active: boolean;
+  is_featured: boolean;
   created_at: string;
   updated_at: string;
+};
+
+export type FeaturedPromoCode = {
+  id: string;
+  code: string;
+  description_en: string | null;
+  description_ar: string | null;
+  discount_type: DiscountType;
+  discount_value: number;
+  minimum_booking_amount: number;
+  expires_at: string | null;
 };
 
 export type PromoCodeInput = {
@@ -47,6 +59,7 @@ export type PromoCodeInput = {
   first_booking_only: boolean;
   applicable_scope: ApplicableScope;
   is_active: boolean;
+  is_featured: boolean;
 };
 
 function invalidateAll(qc: ReturnType<typeof useQueryClient>) {
@@ -169,6 +182,18 @@ export type PromoValidationResult =
   | { ok: true; promo_code_id: string; code: string; discount_type: DiscountType; discount_value: number; discount_amount: number; description_en: string | null; description_ar: string | null }
   | { ok: false; reason: string };
 
+/** Customer-facing: featured promo codes via narrow SECURITY DEFINER RPC. */
+export function useFeaturedPromoCodes() {
+  return useQuery({
+    queryKey: ['featured-promo-codes'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_active_featured_promo_codes');
+      if (error) throw error;
+      return (data ?? []) as FeaturedPromoCode[];
+    },
+  });
+}
+
 /** Customer-facing: validates a single code server-side. Never exposes the
  * broader promo inventory — see validate_promo_code() in the migration. */
 export async function validatePromoCode(code: string, serviceId: string | null, subtotal: number): Promise<PromoValidationResult> {
@@ -181,6 +206,19 @@ export async function validatePromoCode(code: string, serviceId: string | null, 
   return data as unknown as PromoValidationResult;
 }
 
+export type PromoRedemptionRow = {
+  id: string;
+  promo_code_id: string;
+  booking_id: string;
+  discount_amount: number;
+  redeemed_at: string;
+  bookings: {
+    promo_code: string | null;
+    promo_description_en: string | null;
+    promo_description_ar: string | null;
+  } | null;
+};
+
 /** Customer-facing: this customer's own redemption history only (RLS-enforced). */
 export function useMyPromoRedemptions() {
   return useQuery({
@@ -190,11 +228,11 @@ export function useMyPromoRedemptions() {
       if (!user) return [];
       const { data, error } = await supabase
         .from('promo_code_redemptions')
-        .select('*')
+        .select('id, promo_code_id, booking_id, discount_amount, redeemed_at, bookings(promo_code, promo_description_en, promo_description_ar)')
         .eq('customer_id', user.id)
         .order('redeemed_at', { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as PromoRedemptionRow[];
     },
   });
 }

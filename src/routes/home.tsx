@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AppShell, Avatar } from "@/components/famio/ui";
 import { HomeCategoryGrid } from "@/components/home/HomeCategoryGrid";
+import { HomePromos } from "@/components/home/HomePromoStrip";
 import {
   useCategories,
   useProviders,
@@ -11,6 +12,7 @@ import {
   useDefaultAddress,
   useMyBookings,
 } from "@/lib/db/queries";
+import { useFeaturedPromoCodes } from "@/lib/db/promo-codes-queries";
 import { toUICategory, toUIProvider } from "@/lib/db/adapters";
 import { MapPin, Search, Bell, Star } from "lucide-react";
 import { ICON_STROKE, ICON_STROKE_BOLD } from "@/lib/icons/constants";
@@ -34,6 +36,7 @@ function Home() {
   const provsQ = useProviders({ limit: 20 });
   const unreadQ = useUnreadNotificationCount();
   const bookingsQ = useMyBookings();
+  const featuredPromosQ = useFeaturedPromoCodes();
 
   const cats = useMemo(() => (catsQ.data ?? []).map(toUICategory), [catsQ.data, i18n.language]);
   const providers = useMemo(() => (provsQ.data ?? []).map(toUIProvider), [provsQ.data, i18n.language]);
@@ -80,6 +83,8 @@ function Home() {
 
       {/* Grid of categories using photo-driven look or ultra-minimal icons */}
       <HomeCategoryGrid categories={cats} loading={catsQ.isLoading} />
+
+      <HomePromos offers={featuredPromosQ.data ?? []} />
 
       {/* Horizontal scrolling featured pros (large portrait cards) */}
       <section className="mt-10 px-0 pb-8">

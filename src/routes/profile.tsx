@@ -7,7 +7,7 @@ import { useMyProfile, useDefaultAddress, useAvatarUrl } from "@/lib/db/queries"
 import { setLanguage, currentLang } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
-import { MapPin, CreditCard, Users, Bell, Globe, HelpCircle, FileText, Shield, LogOut, ChevronRight, Heart } from "lucide-react";
+import { MapPin, CreditCard, Users, Bell, Globe, HelpCircle, FileText, Shield, LogOut, ChevronRight, Heart, Tag } from "lucide-react";
 import { ICON_STROKE } from "@/lib/icons/constants";
 
 export const Route = createFileRoute("/profile")({ component: Profile });
@@ -64,6 +64,7 @@ function Profile() {
       <div className="px-5 pb-6">
         <Section title={t("profile.myFamio")}>
           <Row to="/favorites" icon={<Heart className="h-5 w-5" />} label={t("profile.favorites")} />
+          <Row to="/promo-codes" icon={<Tag className="h-5 w-5" />} label={t("profile.promoCodes")} sub={t("profile.promoCodesSub")} />
           <Row to="/addresses" icon={<MapPin className="h-5 w-5" />} label={t("profile.addresses")} sub={addressQ.data?.area || t("profile.addAddress")} />
           <Row icon={<CreditCard className="h-5 w-5" />} label={t("profile.payment")} sub={t("profile.paymentSub")} />
           <Row to="/family-members" icon={<Users className="h-5 w-5" />} label={t("profile.family")} sub={t("profile.familySub")} />
