@@ -70,9 +70,6 @@ const en = {
     there: "there",
     withName: "{{greeting}}, {{name}}",
   },
-  splash: {
-    tagline: "Verified home help, right when your family needs it.",
-  },
   onboarding: {
     skip: "Skip",
     slide1Title: "Trusted professionals",

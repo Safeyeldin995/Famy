@@ -75,7 +75,7 @@
   --mint: oklch(0.75 0.15 168);
   --lavender: oklch(0.68 0.14 295);
   /* Warm cream canvas */
-  --background: oklch(0.975 0.012 85);
+  --background: oklch(0.99 0 0);
   --foreground: oklch(0.14 0.035 272);
   --surface: oklch(0.99 0.004 272);
   --surface-2: oklch(0.935 0.018 272);
