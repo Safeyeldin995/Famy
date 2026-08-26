@@ -8,7 +8,7 @@ import { useCancellationReasons, type CancellationReasonRow } from "@/lib/db/can
 import { currentLang } from "@/lib/i18n";
 import { BOOKING_TIMELINE_STEPS } from "@/lib/utils";
 import { EMPTY_STATE_ICONS, type EmptyStateIconName } from "@/lib/icons/emptyStateIcons";
-import { ICON_STROKE } from "@/lib/icons/constants";
+import { ICON_STROKE, ICON_STROKE_BOLD } from "@/lib/icons/constants";
 
 /**
  * Single shared avatar renderer for the whole app (Issue #4 fix). Resolves
