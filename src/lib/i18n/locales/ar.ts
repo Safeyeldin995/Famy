@@ -98,7 +98,6 @@ const ar: Translation = {
     demoTip: "ملاحظة: أي ٦ أرقام تعمل في هذه التجربة",
     signIn: "تسجيل الدخول",
     signUp: "إنشاء حساب",
-    signinBody: "مرحبًا بعودتك.",
     signupBody: "أنشئ حسابك على فامي.",
     iAmA: "أنا",
     roleCustomer: "عميل",

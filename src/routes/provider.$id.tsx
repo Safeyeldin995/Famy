@@ -146,7 +146,7 @@ function ProviderProfile() {
                   <div key={r.id} className="rounded-2xl border border-border/70 bg-surface p-4 shadow-sm">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <Avatar src={r.author_avatar} fallback={r.author_name?.charAt(0) || "U"} className="h-10 w-10" />
+                        <Avatar src={r.author_avatar} className="h-10 w-10 rounded-full" />
                         <div>
                           <p className="text-sm font-bold text-foreground">{r.author_name || t("providerProfile.anonymous")}</p>
                           <p className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString(t("common.langShortEn") === "EN" ? "en" : "ar")}</p>

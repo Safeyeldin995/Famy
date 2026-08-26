@@ -96,7 +96,6 @@ const en = {
     demoTip: "Tip: any 6 digits work in this demo",
     signIn: "Sign in",
     signUp: "Sign up",
-    signinBody: "Welcome back.",
     signupBody: "Create your Famy account.",
     iAmA: "I am a",
     roleCustomer: "Customer",

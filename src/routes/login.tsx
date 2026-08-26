@@ -77,20 +77,27 @@ function Login() {
 
   return (
     <PhoneFrame bg="bg-background">
-      <div className="safe-top px-5 pb-4 pt-6">
+      <div className="safe-top bg-brand px-5 pb-9 pt-6">
         <div className="flex items-center justify-between gap-3">
-          <button onClick={() => nav({ to: "/onboarding" })} aria-label={t("common.back")} className="focus-ring tap-scale grid h-10 w-10 shrink-0 place-items-center rounded-full bg-surface-2 text-foreground" data-rtl-flip="true">
+          <button onClick={() => nav({ to: "/onboarding" })} aria-label={t("common.back")} className="focus-ring tap-scale grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/15 text-white" data-rtl-flip="true">
             <ArrowRight className="h-5 w-5" strokeWidth={ICON_STROKE_BOLD} />
           </button>
-          <LanguageToggle variant="inline" />
+          <LanguageToggle variant="hero" />
         </div>
-        <FamyWordmark size="auth" className="mx-auto mt-12" />
-        <p className="mx-auto mt-6 max-w-[18rem] text-center text-sm font-semibold leading-relaxed text-muted-foreground">
-          {mode === "signin" ? t("auth.signinBody") : t("auth.signupBody")}
-        </p>
+        <div className="mx-auto mt-8 w-fit rounded-3xl bg-white px-5 py-3.5 shadow-sm">
+          <FamyWordmark size="header" />
+        </div>
+        <h1 className="mx-auto mt-6 text-center text-[28px] font-black leading-tight tracking-tight text-white">
+          {mode === "signin" ? t("auth.signIn") : t("auth.signUp")}
+        </h1>
+        {mode === "signup" ? (
+          <p className="mx-auto mt-2 max-w-[18rem] text-center text-sm font-semibold leading-relaxed text-white/85">
+            {t("auth.signupBody")}
+          </p>
+        ) : null}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 pb-8 pt-2">
+      <div className="flex-1 overflow-y-auto px-5 pb-8 pt-6">
         <SegmentedControl
           value={mode}
           onChange={setMode}
