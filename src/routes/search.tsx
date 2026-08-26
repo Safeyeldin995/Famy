@@ -1,18 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { PhoneFrame, TopBar, Chip, EmptyState } from "@/components/famio/ui";
-import { ProviderCard } from "@/components/famio/ProviderCard";
+import { PhoneFrame, Chip, EmptyState } from "@/components/famio/ui";
+import { ProviderListRow, ProviderRatingMeta } from "@/components/famio/ProviderListRow";
 import { useAddresses, useMarketplaceServices, useProviders } from "@/lib/db/queries";
 import { toUIProvider } from "@/lib/db/adapters";
+import { currentLang } from "@/lib/i18n";
 import { useTranslation } from "react-i18next";
 import { Search as SearchIcon, X } from "lucide-react";
+import { ICON_STROKE, ICON_STROKE_BOLD } from "@/lib/icons/constants";
+import { formatEGP, formatNumber } from "@/lib/utils";
 
 export const Route = createFileRoute("/search")({ component: SearchPage });
 
+type Filter = "all" | "home-cleaning" | "babysitting" | "top";
+
 function SearchPage() {
   const { t } = useTranslation();
+  const lang = currentLang();
   const [q, setQ] = useState("");
-  const [filter, setFilter] = useState<"all" | "home-cleaning" | "babysitting" | "top">("all");
+  const [filter, setFilter] = useState<Filter>("all");
   const [serviceId, setServiceId] = useState("");
   const [addressId, setAddressId] = useState("");
   const servicesQ = useMarketplaceServices();
@@ -37,67 +43,95 @@ function SearchPage() {
   }, [q, filter, provsQ.data]);
 
   return (
-    <PhoneFrame>
-      <TopBar back={{ to: "/home" }} title={t("search.title")} />
-      <div className="px-5">
-        <div className="flex h-14 items-center gap-3 rounded-2xl bg-surface px-4 shadow-soft">
-          <SearchIcon className="h-5 w-5 text-muted-foreground" />
+    <PhoneFrame bg="bg-background">
+      <div className="safe-top px-5 pb-4 pt-6">
+        <h1 className="text-3xl font-extrabold tracking-tight text-foreground">{t("search.title")}</h1>
+        <div className="mt-5 flex h-14 items-center gap-3 rounded-full border border-border/70 bg-surface px-5 shadow-sm focus-within:border-brand focus-within:ring-1 focus-within:ring-brand">
+          <SearchIcon className="h-5 w-5 shrink-0 text-muted-foreground" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
           <input
             autoFocus
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={t("search2.placeholder")}
-            className="min-w-0 flex-1 bg-transparent text-[15px] outline-none"
+            className="min-w-0 flex-1 bg-transparent text-[15px] font-bold outline-none placeholder:text-muted-foreground placeholder:font-semibold"
           />
-          {q && (
-            <button onClick={() => setQ("")} aria-label={t("common.cancel")} className="focus-ring grid h-11 w-11 place-items-center rounded-full bg-muted active:scale-95 transition-transform">
-              <X className="h-3.5 w-3.5" aria-hidden="true" />
+          {q ? (
+            <button
+              type="button"
+              onClick={() => setQ("")}
+              aria-label={t("common.cancel")}
+              className="focus-ring tap-scale grid h-8 w-8 shrink-0 place-items-center rounded-full bg-surface-2 text-muted-foreground hover:bg-muted"
+            >
+              <X className="h-4 w-4" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
             </button>
-          )}
+          ) : null}
         </div>
+      </div>
 
-        <div className="mt-4 flex gap-2 overflow-x-auto no-scrollbar">
+      <div className="px-5 pb-10 pt-2">
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
           <Chip active={filter === "all"} onClick={() => setFilter("all")}>{t("common.seeAll")}</Chip>
           <Chip active={filter === "home-cleaning"} onClick={() => setFilter("home-cleaning")}>{t("categories.homeTitle")}</Chip>
           <Chip active={filter === "babysitting"} onClick={() => setFilter("babysitting")}>{t("categories.kidsTitle")}</Chip>
           <Chip active={filter === "top"} onClick={() => setFilter("top")}>{t("category.sortTop")}</Chip>
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <label className="text-[11px] font-bold text-muted-foreground">
-            {t("search2.service", "Service")}
+        <div className="mt-5 rounded-[2rem] border border-border/50 bg-surface-elevated p-4 shadow-sm grid grid-cols-2 gap-4">
+          <label className="block">
+            <span className="text-xs font-bold text-muted-foreground">{t("search2.service")}</span>
             <select
-              aria-label={t("search2.service", "Service")}
+              aria-label={t("search2.service")}
               value={serviceId}
               onChange={(e) => setServiceId(e.target.value)}
-              className="mt-1 h-10 w-full rounded-xl border border-border bg-surface px-2 text-xs text-foreground"
+              className="focus-ring mt-1.5 h-12 w-full rounded-xl bg-surface-2 px-3 text-sm font-bold text-foreground focus:outline-none"
             >
-              <option value="">{t("search2.allServices", "All services")}</option>
-              {(servicesQ.data ?? []).map((service: any) => <option key={service.id} value={service.id}>{service.name_en}</option>)}
+              <option value="">{t("search2.allServices")}</option>
+              {(servicesQ.data ?? []).map((service: any) => (
+                <option key={service.id} value={service.id}>
+                  {lang === "ar" ? service.name_ar || service.name_en : service.name_en || service.name_ar}
+                </option>
+              ))}
             </select>
           </label>
-          <label className="text-[11px] font-bold text-muted-foreground">
-            {t("search2.address", "Address")}
+          <label className="block">
+            <span className="text-xs font-bold text-muted-foreground">{t("search2.address")}</span>
             <select
-              aria-label={t("search2.address", "Address")}
+              aria-label={t("search2.address")}
               value={selectedAddressId ?? ""}
               onChange={(e) => setAddressId(e.target.value)}
-              className="mt-1 h-10 w-full rounded-xl border border-border bg-surface px-2 text-xs text-foreground"
+              className="focus-ring mt-1.5 h-12 w-full rounded-xl bg-surface-2 px-3 text-sm font-bold text-foreground focus:outline-none"
             >
-              {(addressesQ.data ?? []).map((address) => <option key={address.id} value={address.id}>{address.area || address.city}</option>)}
+              {(addressesQ.data ?? []).map((address) => (
+                <option key={address.id} value={address.id}>{address.area || address.city}</option>
+              ))}
             </select>
           </label>
         </div>
 
-        <div className="mt-5 space-y-3 pb-10">
+        {!provsQ.isLoading && !provsQ.isError && results.length > 0 ? (
+          <p className="mt-6 text-sm font-extrabold tracking-tight text-foreground">{t("search2.resultsCount", { count: formatNumber(results.length) })}</p>
+        ) : null}
+
+        <div className="mt-4 space-y-3">
           {provsQ.isLoading ? (
-            Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-24 rounded-3xl bg-surface animate-pulse" />)
+            Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-24 animate-pulse rounded-[2rem] bg-surface-2" />)
           ) : provsQ.isError ? (
-            <EmptyState emoji="⚠️" title={t("common.errorTitle", "Something went wrong")} body={t("common.tryAgain", "Please try again.")} />
+            <EmptyState icon="alert" title={t("common.errorTitle")} body={t("common.tryAgain")} />
           ) : results.length === 0 ? (
-            <EmptyState emoji="🔍" title={t("search2.noResults")} body={t("search2.noResultsBody")} />
+            <EmptyState icon="search" title={t("search2.noResults")} body={t("search2.noResultsBody")} />
           ) : (
-            results.map((p) => <ProviderCard key={p.id} p={p} />)
+            results.map((p) => (
+              <ProviderListRow
+                key={p.id}
+                to="/provider/$id"
+                params={{ id: p.id }}
+                avatar={p.avatar}
+                name={p.name}
+                subtitle={formatEGP(p.hourlyRate, { perHour: true })}
+                meta={<ProviderRatingMeta rating={p.rating} reviews={p.reviews} />}
+                pill={p.rating >= 4.9 ? { label: t("roles.topPro"), tone: "brand" } : undefined}
+              />
+            ))
           )}
         </div>
       </div>

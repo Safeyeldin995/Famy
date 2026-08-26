@@ -32,7 +32,7 @@ export function OtpCodeInput({ value, onChange, onComplete, disabled }: OtpCodeI
   };
 
   return (
-    <div className="mt-10 flex justify-between gap-2" dir="ltr" role="group" aria-labelledby={`${groupId}-label`}>
+    <div className="mt-8 flex justify-between gap-2.5" dir="ltr" role="group" aria-labelledby={`${groupId}-label`}>
       <span id={`${groupId}-label`} className="sr-only">
         {t("auth.otpInputLabel", "Six-digit verification code")}
       </span>
@@ -66,8 +66,8 @@ export function OtpCodeInput({ value, onChange, onComplete, disabled }: OtpCodeI
               focusAt(result.focusIndex);
             }
           }}
-          className={`h-14 w-12 rounded-2xl border-2 bg-surface text-center text-2xl font-extrabold outline-none transition-all ${
-            digit ? "border-navy text-navy" : "border-border"
+          className={`h-16 w-12 rounded-2xl border-2 bg-surface-elevated text-center text-3xl font-black outline-none transition-all ${
+            digit ? "border-brand text-brand" : "border-border/70"
           } disabled:opacity-50`}
         />
       ))}

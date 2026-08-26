@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { PhoneFrame, TopBar, PrimaryButton, Card, EmptyState, Avatar } from "@/components/famio/ui";
+import { PhoneFrame, TopBar, PrimaryButton, Card, EmptyState, Avatar, Chip, SegmentedControl } from "@/components/famio/ui";
 import {
   useProvider, useProviderServices, useCreateBooking, useAddresses, useAvailableSlots, useResolveZone,
   useProviderBookingSettings,
@@ -12,7 +12,7 @@ import { useActivePaymentMethods } from "@/lib/db/payment-methods-queries";
 import { useRequirementsForService } from "@/lib/db/provider-queries";
 import { toUIProvider } from "@/lib/db/adapters";
 import { currentLang } from "@/lib/i18n";
-import { MapPin, Banknote, Check, Loader2, Home, Briefcase, Users, Plus, Copy, Wallet, X } from "lucide-react";
+import { MapPin, Banknote, Check, Loader2, Home, Briefcase, Users, Plus, Copy, Wallet, X, Lock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { formatEGP, formatNumber } from "@/lib/format";
 import { toast } from "sonner";
@@ -61,6 +61,7 @@ function Book() {
   const [promoDiscount, setPromoDiscount] = useState(0);
   const [appliedPromoId, setAppliedPromoId] = useState<string | null>(null);
   const [requirementChoices, setRequirementChoices] = useState<Record<string, "customer" | "provider">>({});
+  const [timeBand, setTimeBand] = useState<"all" | "morning" | "afternoon" | "evening">("all");
   const idempotencyStateRef = useRef<IdempotencyKeyState | null>(null);
 
   // Only addresses with a pinned location can back a real booking — the
@@ -120,6 +121,16 @@ function Book() {
     addressId: slotAddressId,
   });
   const requirementsQ = useRequirementsForService(activeService?.service?.id);
+  const filteredSlots = useMemo(() => {
+    const slots = slotsQ.data ?? [];
+    if (timeBand === "all") return slots;
+    return slots.filter((slot) => {
+      const hour = slot.start.getHours();
+      if (timeBand === "morning") return hour < 12;
+      if (timeBand === "afternoon") return hour >= 12 && hour < 17;
+      return hour >= 17;
+    });
+  }, [slotsQ.data, timeBand]);
 
   if (provQ.isLoading || servicesQ.isLoading || bookingSettingsQ.isLoading) {
     return <PhoneFrame><div className="grid flex-1 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-navy" /></div></PhoneFrame>;
@@ -128,7 +139,7 @@ function Book() {
     return (
       <PhoneFrame>
         <EmptyState
-          emoji="🚫"
+          icon="ban"
           title={t("bookFlow.unavailable")}
           body={t("bookFlow.unavailableBody")}
           action={(
@@ -146,7 +157,7 @@ function Book() {
     return (
       <PhoneFrame>
         <EmptyState
-          emoji="🚫"
+          icon="ban"
           title={t("bookFlow.unavailable")}
           body={t("bookFlow.unavailableBody")}
           action={(
@@ -184,7 +195,11 @@ function Book() {
   const travelFee = Number(zoneQ.data?.travel_fee ?? 0);
   const total = Math.max(0, subtotal + fee + vat + extrasTotal + travelFee - promoDiscount);
 
-  const durations = ["2h", "4h", "6h", "8h"];
+  const durations = ["2h", "4h", "6h", "8h"] as const;
+  const durationLabel = (value: string) => {
+    const hours = parseInt(value, 10);
+    return t("bookFlow.durationShort", { hours: formatNumber(hours) });
+  };
 
   const canNext = () => {
     if (step === 0) return !!activeService;
@@ -346,18 +361,28 @@ function Book() {
 
   return (
     <PhoneFrame>
-      <TopBar back={typeof back === "function" ? back : { to: `/provider/${p.id}` }} title={t(`bookFlow.stepName.${stepKeys[step]}`)} />
-      <div className="px-5">
-        <div className="mb-5 text-xs font-semibold text-muted-foreground">
-          {t("bookFlow.stepLabel", { current: formatNumber(step + 1), total: formatNumber(stepKeys.length) })}
+      <div className="home-hero-shell safe-top px-5 pb-4 pt-3">
+        <TopBar back={typeof back === "function" ? back : { to: `/provider/${p.id}` }} transparent />
+        <div className="mt-2 flex items-center gap-4">
+          <Avatar src={p.avatar} alt={p.name} className="h-14 w-14 shrink-0 shadow-sm" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-lg font-extrabold tracking-tight text-foreground">{p.name}</p>
+            <p className="mt-0.5 text-xs font-bold uppercase tracking-wider text-brand">{t(`bookFlow.stepName.${stepKeys[step]}`)}</p>
+          </div>
+        </div>
+        <div className="mt-5 h-2 overflow-hidden rounded-full bg-surface-2">
+          <div
+            className="h-full rounded-full bg-brand transition-all duration-500 ease-out"
+            style={{ width: `${((step + 1) / stepKeys.length) * 100}%` }}
+          />
         </div>
       </div>
 
-      <div className="flex-1 px-5 pb-28">
+      <div className="flex-1 px-5 pb-32 pt-6">
         {step === 0 && (
           <Step title={t("bookFlow.serviceTitle")} sub={t("bookFlow.serviceSub")}>
             {services.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("bookFlow.noServices", "This pro hasn't published services yet.")}</p>
+              <p className="text-sm text-muted-foreground">{t("bookFlow.noServices")}</p>
             ) : (
               <div className="space-y-3">
                 {services.map((s: any) => {
@@ -372,16 +397,11 @@ function Book() {
 
         {step === 1 && (
           <Step title={t("bookFlow.durationTitle")} sub={t("bookFlow.durationSub")}>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-wrap gap-2">
               {durations.map((d) => (
-                <button
-                  key={d}
-                  onClick={() => setDuration(d)}
-                  className={`rounded-2xl p-5 text-start transition-all ${duration === d ? "bg-navy text-navy-foreground" : "bg-surface shadow-soft"}`}
-                >
-                  <div className="text-2xl font-extrabold">{d}</div>
-                  <div className={`text-xs ${duration === d ? "text-white/70" : "text-muted-foreground"}`}>{formatEGP(ratePerHour * parseInt(d))}</div>
-                </button>
+                <Chip key={d} active={duration === d} onClick={() => setDuration(d)}>
+                  {durationLabel(d)} · {formatEGP(ratePerHour * parseInt(d))}
+                </Chip>
               ))}
             </div>
           </Step>
@@ -399,7 +419,7 @@ function Book() {
                   <button
                     key={i}
                     onClick={() => { setDate(d); setTime(null); setSelectedSlot(null); }}
-                    className={`flex flex-col items-center rounded-2xl px-2 py-3 transition-all ${isSel ? "bg-coral text-coral-foreground" : "bg-surface shadow-soft"}`}
+                    className={`flex flex-col items-center rounded-xl px-2 py-3 transition-all tap-scale ${isSel ? "bg-brand text-brand-foreground shadow-card" : "surface-card shadow-xs"}`}
                   >
                     <span className="text-[10px] font-bold uppercase">{d.toLocaleString(locale, { weekday: "short" })}</span>
                     <span className="text-xl font-extrabold">{formatNumber(d.getDate())}</span>
@@ -413,22 +433,33 @@ function Book() {
 
         {step === 3 && (
           <Step title={t("bookFlow.timeTitle")} sub={t("bookFlow.timeSub")}>
+            <SegmentedControl
+              className="mb-4"
+              value={timeBand}
+              onChange={setTimeBand}
+              options={[
+                { value: "all", label: t("bookFlow.timeAll") },
+                { value: "morning", label: t("bookFlow.timeMorning") },
+                { value: "afternoon", label: t("bookFlow.timeAfternoon") },
+                { value: "evening", label: t("bookFlow.timeEvening") },
+              ]}
+            />
             {slotsQ.isLoading ? (
               <div className="grid grid-cols-3 gap-2">
                 {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-12 animate-pulse rounded-2xl bg-surface" />)}
               </div>
-            ) : (slotsQ.data ?? []).length === 0 ? (
-              <EmptyState emoji="📅" title={t("bookFlow.noSlots")} body={t("bookFlow.noSlotsBody")} />
+            ) : filteredSlots.length === 0 ? (
+              <EmptyState icon="calendar" title={t("bookFlow.noSlots")} body={t("bookFlow.noSlotsBody")} />
             ) : (
-              <div className="grid grid-cols-3 gap-2">
-                {(slotsQ.data ?? []).map((slot) => (
-                  <button
+              <div className="flex flex-wrap gap-2">
+                {filteredSlots.map((slot) => (
+                  <Chip
                     key={slot.label}
+                    active={time === slot.label}
                     onClick={() => { setTime(slot.label); setSelectedSlot({ start: slot.start, end: slot.end }); }}
-                    className={`rounded-2xl py-3 text-sm font-bold ${time === slot.label ? "bg-navy text-navy-foreground" : "bg-surface shadow-soft"}`}
                   >
                     {slot.label}
-                  </button>
+                  </Chip>
                 ))}
               </div>
             )}
@@ -443,7 +474,7 @@ function Book() {
               </div>
             ) : bookableAddresses.length === 0 ? (
               <EmptyState
-                emoji="📍"
+                icon="map-pin"
                 title={t("bookFlow.noBookableAddress", "Add an address to continue")}
                 body={
                   (addrsQ.data?.length ?? 0) > 0
@@ -661,10 +692,10 @@ function Book() {
                 <Row label={t("bookFlow.serviceFee")} value={formatEGP(fee)} small />
                 <Row label={t("bookFlow.vat")} value={formatEGP(vat)} small />
                 {extrasTotal > 0 && (
-                  <Row label={t("bookFlow.extrasTotal", "Requirements")} value={formatEGP(extrasTotal)} small />
+                  <Row label={t("bookFlow.extrasTotal")} value={formatEGP(extrasTotal)} small />
                 )}
                 {travelFee > 0 && (
-                  <Row label={t("bookFlow.travelFee", "Travel fee")} value={formatEGP(travelFee)} small />
+                  <Row label={t("bookFlow.travelFee")} value={formatEGP(travelFee)} small />
                 )}
                 {promoDiscount > 0 && (
                   <Row label={t("bookFlow.promoDiscount")} value={`-${formatEGP(promoDiscount)}`} small />
@@ -736,8 +767,8 @@ function Book() {
             <span className="text-lg font-extrabold text-navy">{formatEGP(total)}</span>
           </div>
         )}
-        <PrimaryButton variant={step === 9 ? "coral" : "navy"} onClick={next} disabled={!canNext() || createBooking.isPending}>
-          {createBooking.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : step === 9 ? t("bookFlow.payCta", { price: formatEGP(total) }) : step === 8 ? t("bookFlow.continueToPayment") : t("bookFlow.continue")}
+        <PrimaryButton onClick={next} disabled={!canNext() || createBooking.isPending}>
+          {createBooking.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : step === 9 ? (<><Lock className="h-4 w-4" aria-hidden="true" /> {t("bookFlow.payCta", { price: formatEGP(total) })}</>) : step === 8 ? t("bookFlow.continueToPayment") : t("bookFlow.continue")}
         </PrimaryButton>
       </div>
     </PhoneFrame>
@@ -783,9 +814,9 @@ function PaymentMethodInstructions({ method, lang, t }: { method: any; lang: str
 function Step({ title, sub, children }: { title: string; sub?: string; children: React.ReactNode }) {
   return (
     <div className="animate-rise">
-      <h2 className="text-2xl font-extrabold tracking-tight">{title}</h2>
-      {sub && <p className="mt-1 text-sm text-muted-foreground">{sub}</p>}
-      <div className="mt-6">{children}</div>
+      <h2 className="text-title text-foreground">{title}</h2>
+      {sub ? <p className="mt-1 text-body text-muted-foreground">{sub}</p> : null}
+      <div className="surface-card mt-5 p-4 shadow-xs">{children}</div>
     </div>
   );
 }
@@ -793,12 +824,15 @@ function Step({ title, sub, children }: { title: string; sub?: string; children:
 function Option({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`flex w-full items-center justify-between rounded-2xl p-4 text-start transition-all ${active ? "bg-navy text-navy-foreground" : "bg-surface shadow-soft"}`}
+      className={`focus-ring tap-scale flex w-full min-h-[3.5rem] items-center justify-between rounded-xl border px-4 text-start transition-all ${
+        active ? "border-ink/30 bg-ink/[0.04] ring-1 ring-ink/15" : "border-border/80 bg-background"
+      }`}
     >
-      <span className="font-bold">{label}</span>
-      <span className={`grid h-6 w-6 place-items-center rounded-full border-2 ${active ? "border-white bg-white text-navy" : "border-border"}`}>
-        {active && <Check className="h-3.5 w-3.5" />}
+      <span className="font-bold text-foreground">{label}</span>
+      <span className={`grid h-6 w-6 place-items-center rounded-full border-2 ${active ? "border-ink bg-ink text-ink-foreground" : "border-border"}`}>
+        {active ? <Check className="h-3.5 w-3.5" /> : null}
       </span>
     </button>
   );
@@ -807,16 +841,19 @@ function Option({ active, onClick, label }: { active: boolean; onClick: () => vo
 function PayOption({ icon, label, sub, active, onClick }: any) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`flex w-full items-center gap-3 rounded-2xl p-4 text-start transition-all ${active ? "bg-surface ring-2 ring-navy" : "bg-surface shadow-soft"}`}
+      className={`focus-ring tap-scale flex w-full items-center gap-3 rounded-xl border p-4 text-start transition-all ${
+        active ? "border-ink/30 bg-ink/[0.04] ring-1 ring-ink/15" : "border-border/80 bg-background shadow-xs"
+      }`}
     >
-      <div className="grid h-11 w-11 place-items-center rounded-xl bg-navy/10 text-navy">{icon}</div>
+      <div className="grid h-11 w-11 place-items-center rounded-xl bg-ink/10 text-ink">{icon}</div>
       <div className="min-w-0 flex-1">
-        <div className="text-sm font-bold">{label}</div>
+        <div className="text-sm font-bold text-foreground">{label}</div>
         <div className="text-xs text-muted-foreground">{sub}</div>
       </div>
-      <span className={`grid h-6 w-6 place-items-center rounded-full border-2 ${active ? "border-navy bg-navy text-white" : "border-border"}`}>
-        {active && <Check className="h-3.5 w-3.5" />}
+      <span className={`grid h-6 w-6 place-items-center rounded-full border-2 ${active ? "border-ink bg-ink text-ink-foreground" : "border-border"}`}>
+        {active ? <Check className="h-3.5 w-3.5" /> : null}
       </span>
     </button>
   );

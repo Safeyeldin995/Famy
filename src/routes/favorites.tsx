@@ -23,10 +23,10 @@ function Favorites() {
         {q.isLoading ? (
           Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-24 rounded-3xl bg-surface animate-pulse" />)
         ) : q.isError ? (
-          <EmptyState emoji="⚠️" title={t("common.errorTitle", "Something went wrong")} body={t("common.tryAgain", "Please try again.")} />
+          <EmptyState icon="alert" title={t("common.errorTitle", "Something went wrong")} body={t("common.tryAgain", "Please try again.")} />
         ) : saved.length === 0 ? (
           <EmptyState
-            emoji="💖"
+            icon="heart"
             title={t("favs.emptyTitle")}
             body={t("favs.emptyBody")}
             action={

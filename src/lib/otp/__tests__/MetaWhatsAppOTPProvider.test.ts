@@ -68,9 +68,9 @@ describe("MetaWhatsAppOTPProvider", () => {
   });
 
   it("sends a successful Meta template request", async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(
-      jsonResponse(200, { messages: [{ id: "wamid.TEST123" }] }),
-    );
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(200, { messages: [{ id: "wamid.TEST123" }] }));
     const info = vi.spyOn(console, "info").mockImplementation(() => {});
     const provider = new MetaWhatsAppOTPProvider({ config: baseConfig, fetchImpl });
 
@@ -90,9 +90,9 @@ describe("MetaWhatsAppOTPProvider", () => {
   });
 
   it("does not retry 400 responses", async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(
-      jsonResponse(400, { error: { code: 100, message: "Invalid parameter" } }),
-    );
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(400, { error: { code: 100, message: "Invalid parameter" } }));
     const provider = new MetaWhatsAppOTPProvider({ config: baseConfig, fetchImpl });
 
     await expect(provider.sendOTP("+201221000633", "ignored", meta)).rejects.toMatchObject({
@@ -139,10 +139,12 @@ describe("MetaWhatsAppOTPProvider", () => {
     const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(400, { error: { code: 100 } }));
     const provider = new MetaWhatsAppOTPProvider({ config: baseConfig, fetchImpl });
 
-    await expect(provider.sendOTP("+201221000633", "ignored", meta)).rejects.toSatisfy((error: unknown) => {
-      const text = JSON.stringify(error);
-      return !text.includes("test-access-token");
-    });
+    await expect(provider.sendOTP("+201221000633", "ignored", meta)).rejects.toSatisfy(
+      (error: unknown) => {
+        const text = JSON.stringify(error);
+        return !text.includes("test-access-token");
+      },
+    );
   });
 
   it("fails closed when Meta env is missing", () => {
@@ -186,7 +188,24 @@ describe("resolveOtpProvider", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("OTP_PROVIDER", "mock");
     const { resolveOtpProvider } = await import("../otpProvider.server");
-    await expect(resolveOtpProvider()).rejects.toThrow(/Production requires OTP_PROVIDER=meta/);
+    await expect(resolveOtpProvider()).rejects.toThrow(
+      /Production requires OTP_PROVIDER=meta or OTP_PROVIDER=firebase/,
+    );
+  });
+
+  it("allows firebase provider in production", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("OTP_PROVIDER", "firebase");
+    const { resolveOtpProvider } = await import("../otpProvider.server");
+    const provider = await resolveOtpProvider();
+    await expect(
+      provider.sendOTP("+201012345678", "msg", {
+        purpose: "SIGNUP",
+        otp: "123456",
+        timestamp: new Date(),
+        requestId: "11111111-1111-1111-1111-111111111111",
+      }),
+    ).rejects.toThrow(/client SDK/);
   });
 
   it("allows mock only when explicitly configured in test", async () => {
@@ -200,7 +219,12 @@ describe("resolveOtpProvider", () => {
 
 describe("delivery failure invalidates undelivered OTP row", () => {
   it("aborts the stored OTP when provider delivery fails", async () => {
-    const rows: Array<{ phone: string; purpose: string; request_id: string; used_at: string | null }> = [];
+    const rows: Array<{
+      phone: string;
+      purpose: string;
+      request_id: string;
+      used_at: string | null;
+    }> = [];
 
     const store = {
       async beginSend(params: any) {
@@ -217,7 +241,10 @@ describe("delivery failure invalidates undelivered OTP row", () => {
       },
       async abortUndeliveredOtp(params: any) {
         const idx = rows.findIndex(
-          (r) => r.phone === params.phone && r.purpose === params.purpose && r.request_id === params.requestId,
+          (r) =>
+            r.phone === params.phone &&
+            r.purpose === params.purpose &&
+            r.request_id === params.requestId,
         );
         if (idx >= 0) rows.splice(idx, 1);
       },

@@ -1,33 +1,30 @@
 import type { OTPProvider } from "./OtpProvider";
 import { assertMockOtpProviderAllowed } from "./MockOTPProvider.server";
+import { resolveOtpProviderKind } from "./otpProviderKind.server";
 
-function isProductionRuntime(): boolean {
-  return process.env.NODE_ENV === "production";
+function createFirebaseNoopProvider(): OTPProvider {
+  return {
+    async sendOTP() {
+      throw new Error("Firebase OTP delivery is handled by the client SDK.");
+    },
+  };
 }
 
 export async function resolveOtpProvider(): Promise<OTPProvider> {
-  const configured = process.env.OTP_PROVIDER?.trim();
+  const kind = resolveOtpProviderKind();
 
-  if (isProductionRuntime()) {
-    if (configured !== "meta") {
-      throw new Error("Production requires OTP_PROVIDER=meta.");
-    }
-    const { createMetaWhatsAppOTPProvider } = await import("./MetaWhatsAppOTPProvider.server");
-    return createMetaWhatsAppOTPProvider();
+  if (kind === "firebase") {
+    return createFirebaseNoopProvider();
   }
 
-  if (configured === "mock") {
+  if (kind === "mock") {
     assertMockOtpProviderAllowed();
     const { getMockOtpProvider } = await import("./MockOTPProvider.server");
     return getMockOtpProvider();
   }
 
-  if (configured === "meta") {
-    const { createMetaWhatsAppOTPProvider } = await import("./MetaWhatsAppOTPProvider.server");
-    return createMetaWhatsAppOTPProvider();
-  }
-
-  throw new Error(
-    "OTP_PROVIDER must be set explicitly: use OTP_PROVIDER=mock for local/test or OTP_PROVIDER=meta for WhatsApp delivery.",
-  );
+  const { createMetaWhatsAppOTPProvider } = await import("./MetaWhatsAppOTPProvider.server");
+  return createMetaWhatsAppOTPProvider();
 }
+
+export { resolveOtpProviderKind, isFirebaseOtpProvider } from "./otpProviderKind.server";

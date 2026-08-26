@@ -58,6 +58,8 @@
     "cross-spawn": "^7.0.6",
     "date-fns": "^4.4.0",
     "embla-carousel-react": "^8.6.0",
+    "firebase": "^12.18.0",
+    "firebase-admin": "^14.3.0",
     "i18next": "^26.3.2",
     "i18next-browser-languagedetector": "^8.2.1",
     "input-otp": "^1.4.2",

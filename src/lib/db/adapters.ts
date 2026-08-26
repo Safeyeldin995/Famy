@@ -87,19 +87,18 @@ export interface UICategory {
   title: string;
   subtitle: string;
   description: string;
-  icon: string;
   tint: string;
   color: string;
   fromPrice: number;
 }
 
-const CATEGORY_VISUALS: Record<string, { icon: string; tint: string; color: string; fromPrice: number }> = {
-  "home-cleaning": { icon: "🏡", tint: "oklch(0.96 0.04 235)", color: "var(--navy)", fromPrice: 150 },
-  babysitting:    { icon: "🧸", tint: "oklch(0.96 0.04 25)",  color: "var(--coral)", fromPrice: 180 },
-  "elderly-care": { icon: "🤝", tint: "oklch(0.96 0.04 160)", color: "var(--mint)",  fromPrice: 220 },
-  cooking:        { icon: "🍳", tint: "oklch(0.96 0.05 80)",  color: "var(--warning)", fromPrice: 200 },
-  tutoring:       { icon: "📚", tint: "oklch(0.96 0.04 290)", color: "var(--navy)", fromPrice: 250 },
-  "pet-care":     { icon: "🐾", tint: "oklch(0.96 0.04 200)", color: "var(--navy)", fromPrice: 140 },
+const CATEGORY_VISUALS: Record<string, { tint: string; color: string; fromPrice: number }> = {
+  "home-cleaning": { tint: "oklch(0.96 0.04 235)", color: "var(--brand)", fromPrice: 150 },
+  babysitting: { tint: "oklch(0.96 0.04 25)", color: "var(--brand)", fromPrice: 180 },
+  "elderly-care": { tint: "oklch(0.96 0.04 160)", color: "var(--mint)", fromPrice: 220 },
+  cooking: { tint: "oklch(0.96 0.05 80)", color: "var(--warning)", fromPrice: 200 },
+  tutoring: { tint: "oklch(0.96 0.04 290)", color: "var(--ink)", fromPrice: 250 },
+  "pet-care": { tint: "oklch(0.96 0.04 200)", color: "var(--ink)", fromPrice: 140 },
 };
 
 export function toUICategory(row: any): UICategory {

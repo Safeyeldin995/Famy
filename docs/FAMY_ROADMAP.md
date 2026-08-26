@@ -703,6 +703,22 @@ Concrete items, now that Milestone 1 removed the guesswork:
 
 **Confirmed 2026-08-23:** schema is fully in sync with `main` — no migration gap. **Not fine:** ~60% of Production auth users carry the QA-fixture email signature, historical (stopped ~Aug 2) but never cleaned up. See "CRITICAL — Production data hygiene" below. This blocks Milestone 4, not Milestone 3's other items — the runbook and monitoring work can proceed in parallel.
 
+**Monitoring/alerting minimum kicked off, 2026-08-24.** Investigated first:
+failed payments and failed/dead notifications are already technically
+queryable (`admin.payments.tsx`'s status filter, `notification_outbox`'s
+status column) but nothing surfaces them proactively, and **application
+errors have zero tracking today** — no error table, no client/server
+capture, nothing. Sent to Cursor scoped deliberately to avoid a new
+third-party service (that would be a cost/product decision needing
+Safeyeldin's approval, not necessary for a beta-minimum bar): a new
+`error_logs` table (QA-only for now, same as any other migration), a
+top-level error boundary + server-side capture logging to it, and one
+admin page surfacing recent errors + failed-payment count + failed/dead
+notification count. Explicitly out of scope for this round: any actual
+alerting/paging (who gets notified and how is a real product decision,
+saved as a follow-up ask). Draft PR expected, then Codex review, same as
+every other code change.
+
 This is the milestone where "destructive/Production/migration" approval gates in `AGENTS.md` matter most — expect this one to move slower and involve you directly at every step, by design.
 
 ### Milestone 4 — Closed beta launch

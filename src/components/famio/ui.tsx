@@ -7,6 +7,8 @@ import { useAvatarUrl } from "@/lib/db/queries";
 import { useCancellationReasons, type CancellationReasonRow } from "@/lib/db/cancellation-queries";
 import { currentLang } from "@/lib/i18n";
 import { BOOKING_TIMELINE_STEPS } from "@/lib/utils";
+import { EMPTY_STATE_ICONS, type EmptyStateIconName } from "@/lib/icons/emptyStateIcons";
+import { ICON_STROKE, ICON_STROKE_BOLD } from "@/lib/icons/constants";
 
 /**
  * Single shared avatar renderer for the whole app (Issue #4 fix). Resolves
@@ -41,7 +43,7 @@ export function PhoneFrame({ children, bg = "bg-surface-2" }: { children: ReactN
 export function AppShell({
   children,
   hideNav = false,
-  bg = "bg-surface-2",
+  bg = "bg-background",
 }: {
   children: ReactNode;
   hideNav?: boolean;
@@ -66,9 +68,9 @@ export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { t } = useTranslation();
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40" aria-label="Primary">
+    <nav className="fixed inset-x-0 bottom-0 z-40" aria-label={t("nav.primary")}>
       <div className="mx-auto max-w-md">
-        <div className="safe-bottom mx-3 mb-3 rounded-3xl border border-border/60 bg-surface/95 shadow-float backdrop-blur-xl">
+        <div className="safe-bottom mx-3 mb-3 rounded-[1.25rem] border border-border/60 bg-surface/98 shadow-float backdrop-blur-xl">
           <ul className="grid grid-cols-4">
             {tabs.map((tab) => {
               const active = pathname === tab.to || pathname.startsWith(tab.to + "/");
@@ -80,18 +82,19 @@ export function BottomNav() {
                     to={tab.to}
                     aria-label={label}
                     aria-current={active ? "page" : undefined}
-                    className="focus-ring flex min-h-11 flex-col items-center gap-1 px-2 pt-3 pb-2 rounded-2xl"
+                    className="focus-ring tap-scale flex min-h-11 flex-col items-center gap-1 px-2 pt-2.5 pb-2 rounded-2xl"
                   >
                     <span
-                      className={`grid h-9 w-12 place-items-center rounded-2xl transition-all ${
-                        active ? "bg-navy text-navy-foreground" : "text-muted-foreground"
+                      className={`relative grid h-10 w-12 place-items-center rounded-2xl transition-all duration-200 ${
+                        active ? "bg-brand text-brand-foreground shadow-card" : "text-muted-foreground"
                       }`}
                     >
-                      <Icon className="h-5 w-5" strokeWidth={2.2} />
+                      <Icon className="h-5 w-5" strokeWidth={active ? 2.25 : 1.75} />
+                      {active ? null : null}
                     </span>
                     <span
-                      className={`text-[11px] font-semibold ${
-                        active ? "text-navy" : "text-muted-foreground"
+                      className={`text-[10px] font-semibold tracking-wide ${
+                        active ? "text-foreground" : "text-muted-foreground"
                       }`}
                     >
                       {label}
@@ -119,7 +122,7 @@ export function TopBar({
   transparent?: boolean;
 }) {
   return (
-    <div className={`safe-top sticky top-0 z-30 ${transparent ? "" : "bg-surface-2/90 backdrop-blur"}`}>
+    <div className={`safe-top sticky top-0 z-30 ${transparent ? "" : "bg-surface-2/95 backdrop-blur"}`}>
       <div className="flex items-center gap-2 px-4 py-3">
         {back && (
           <BackButton back={back} />
@@ -164,7 +167,7 @@ export function PrimaryButton({
   onClick,
   type = "button",
   disabled,
-  variant = "navy",
+  variant = "coral",
   className = "",
   "aria-label": ariaLabel,
 }: {
@@ -178,19 +181,47 @@ export function PrimaryButton({
 }) {
   const styles =
     variant === "navy"
-      ? "bg-navy text-navy-foreground active:bg-navy/90 shadow-card hover:shadow-float"
+      ? "bg-ink text-ink-foreground shadow-sm hover:shadow-md active:bg-ink/90"
       : variant === "coral"
-      ? "bg-coral text-coral-foreground active:bg-coral/90 shadow-card hover:shadow-float"
+      ? "bg-brand text-brand-foreground shadow-sm hover:shadow-md active:bg-brand/90"
       : variant === "outline"
-      ? "border border-border bg-surface text-foreground"
-      : "bg-transparent text-navy";
+      ? "border-2 border-border/80 bg-surface text-foreground shadow-none hover:bg-surface-2"
+      : "bg-transparent text-foreground hover:bg-surface-2";
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled}
       aria-label={ariaLabel}
-      className={`focus-ring inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-bold transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${styles} ${className}`}
+      className={`focus-ring tap-scale inline-flex h-14 w-full items-center justify-center gap-2 rounded-full text-[15px] font-extrabold tracking-wide transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 ${styles} ${className}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function SecondaryButton({
+  children,
+  onClick,
+  type = "button",
+  disabled,
+  className = "",
+  "aria-label": ariaLabel,
+}: {
+  children: ReactNode;
+  onClick?: () => void;
+  type?: "button" | "submit";
+  disabled?: boolean;
+  className?: string;
+  "aria-label"?: string;
+}) {
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={ariaLabel}
+      className={`focus-ring tap-scale inline-flex h-12 min-h-12 items-center justify-center gap-2 rounded-full border border-border/60 bg-surface px-5 text-sm font-extrabold text-foreground shadow-none transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
     >
       {children}
     </button>
@@ -207,7 +238,7 @@ export function Card({
   onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
 }) {
   return (
-    <div className={`rounded-3xl bg-surface shadow-soft ${className}`} onClick={onClick}>{children}</div>
+    <div className={`rounded-3xl bg-surface-elevated border border-border/40 shadow-sm ${className}`} onClick={onClick}>{children}</div>
   );
 }
 
@@ -224,13 +255,92 @@ export function Chip({
     <button
       onClick={onClick}
       aria-pressed={active}
-      className={`focus-ring shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-all min-h-11 ${
+      className={`focus-ring shrink-0 rounded-full px-5 py-2.5 text-[13px] font-bold transition-all min-h-11 tap-scale ${
         active
-          ? "bg-navy text-navy-foreground shadow-soft"
-          : "bg-surface text-foreground border border-border"
+          ? "bg-brand text-brand-foreground shadow-sm"
+          : "border border-border/60 bg-surface text-muted-foreground hover:bg-surface-2 hover:text-foreground"
       }`}
     >
       {children}
+    </button>
+  );
+}
+
+export function StatusPill({
+  children,
+  tone = "brand",
+}: {
+  children: ReactNode;
+  tone?: "brand" | "ink" | "success" | "warning" | "muted";
+}) {
+  const map = {
+    brand: "bg-brand/10 text-brand",
+    ink: "bg-ink/10 text-ink",
+    success: "bg-success/15 text-success",
+    warning: "bg-warning/15 text-warning",
+    muted: "bg-muted text-muted-foreground",
+  } as const;
+  return (
+    <span className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1.5 text-[10px] font-black uppercase tracking-widest ${map[tone]}`}>
+      {children}
+    </span>
+  );
+}
+
+export function SegmentedControl<T extends string>({
+  options,
+  value,
+  onChange,
+  className = "",
+}: {
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+  className?: string;
+}) {
+  return (
+    <div className={`rounded-full bg-surface-2 p-1.5 border border-border/50 ${className}`}>
+      <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+        {options.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            aria-pressed={value === option.value}
+            className={`focus-ring tap-scale min-h-12 rounded-full px-3 text-[13px] font-black uppercase tracking-wider transition-all sm:text-sm ${
+              value === option.value ? "bg-surface-elevated text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function RoleSelectCard({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`focus-ring tap-scale relative flex min-h-[4.5rem] flex-col items-start justify-center rounded-[1.25rem] border px-4 py-3 text-start transition-all ${
+        active ? "border-brand bg-brand/5 shadow-sm" : "border-border/60 bg-surface shadow-xs hover:bg-surface-2"
+      }`}
+    >
+      <span className="absolute end-4 top-1/2 -translate-y-1/2 grid h-6 w-6 place-items-center rounded-full border-2 transition-colors" style={{ borderColor: active ? "var(--color-brand)" : "var(--color-border)", backgroundColor: active ? "var(--color-brand)" : "transparent" }}>
+        {active ? <Check className="h-4 w-4 text-brand-foreground" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" /> : null}
+      </span>
+      <span className={`text-[13px] font-extrabold pr-8 ${active ? "text-brand" : "text-muted-foreground"}`}>{label}</span>
     </button>
   );
 }
@@ -282,24 +392,25 @@ export function TrustChip({
 }
 
 export function EmptyState({
-  emoji = "✨",
+  icon = "default",
   title,
   body,
   action,
 }: {
-  emoji?: string;
+  icon?: EmptyStateIconName;
   title: string;
   body?: string;
   action?: ReactNode;
 }) {
+  const Icon = EMPTY_STATE_ICONS[icon];
   return (
-    <div className="py-16 text-center animate-rise">
-      <div className="mx-auto grid h-24 w-24 place-items-center rounded-3xl bg-surface text-4xl shadow-soft">
-        {emoji}
+    <div className="py-12 text-center animate-rise">
+      <div className="mx-auto grid h-20 w-20 place-items-center rounded-2xl border border-border/70 bg-muted/40 text-muted-foreground">
+        <Icon className="h-9 w-9" strokeWidth={ICON_STROKE} aria-hidden="true" />
       </div>
-      <div className="mt-5 text-base font-bold">{title}</div>
-      {body && <p className="mx-auto mt-1 max-w-xs text-xs text-muted-foreground">{body}</p>}
-      {action && <div className="mt-5 flex justify-center">{action}</div>}
+      <div className="mt-4 text-base font-bold text-foreground">{title}</div>
+      {body ? <p className="mx-auto mt-1.5 max-w-xs text-sm text-muted-foreground">{body}</p> : null}
+      {action ? <div className="mt-5 flex justify-center">{action}</div> : null}
     </div>
   );
 }

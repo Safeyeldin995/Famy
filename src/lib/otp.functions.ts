@@ -37,6 +37,9 @@ const SendSchema = z.object({
 const VerifySchema = z.object({
   code: z.string().regex(/^\d{6}$/, "Invalid code"),
 });
+const VerifyFirebaseSchema = z.object({
+  idToken: z.string().min(20),
+});
 const PasswordSchema = z.object({
   password: z.string().min(8),
 });
@@ -51,10 +54,11 @@ function parseCanonicalPhone(raw: string): string {
 
 function requestMeta() {
   const request = getRequest();
-  const ipAddress = request.headers.get("x-real-ip")
-    ?? request.headers.get("cf-connecting-ip")
-    ?? request.headers.get("x-vercel-forwarded-for")?.split(",").pop()?.trim()
-    ?? null;
+  const ipAddress =
+    request.headers.get("x-real-ip") ??
+    request.headers.get("cf-connecting-ip") ??
+    request.headers.get("x-vercel-forwarded-for")?.split(",").pop()?.trim() ??
+    null;
   const userAgent = request.headers.get("user-agent");
   return { ipAddress, userAgent };
 }
@@ -159,19 +163,63 @@ function mapVerifyError(error: string) {
   return { ok: false as const, error: "invalid_code" as const };
 }
 
+async function finalizeOtpVerification(pending: {
+  phone: string;
+  purpose: "signup" | "reset";
+  role?: "customer" | "provider";
+}) {
+  const existingUserId = await findUserIdByPhone(pending.phone);
+  if (pending.purpose === "signup" && existingUserId) {
+    clearOtpPendingIntent();
+    return { ok: false as const, error: "flow_mismatch" as const, nextStep: "signin" as const };
+  }
+  if (pending.purpose === "reset" && !existingUserId) {
+    clearOtpPendingIntent();
+    return { ok: false as const, error: "flow_mismatch" as const, nextStep: "signup" as const };
+  }
+
+  const authResult = await completeVerifiedAuth({
+    phone: pending.phone,
+    purpose: pending.purpose,
+    role: pending.role,
+  });
+
+  const authId = await createPasswordSetupAuthorization({
+    userId: authResult.userId,
+    phone: pending.phone,
+    purpose: toDbOtpPurpose(pending.purpose),
+    role: pending.role,
+  });
+
+  clearOtpPendingIntent();
+  setSetPasswordIntent({ authId });
+
+  logPasswordSetupSession("after-verify-otp", {
+    userId: authResult.userId,
+    hasInterimSession: true,
+  });
+
+  return authResult;
+}
+
 function intentRedirectForPurpose(purpose: "signup" | "reset"): "/login" | "/auth/forgot" {
   return purpose === "reset" ? "/auth/forgot" : "/login";
 }
 
 function sanitizePasswordUpdateError(error: unknown): string {
-  const code = typeof error === "object" && error && "code" in error
-    ? String((error as { code?: string }).code ?? "unknown")
-    : "unknown";
+  const code =
+    typeof error === "object" && error && "code" in error
+      ? String((error as { code?: string }).code ?? "unknown")
+      : "unknown";
   console.error("[password.setup] update failed", { code });
   return code;
 }
 
-async function verifyPasswordSignIn(userId: string, authEmail: string, password: string): Promise<boolean> {
+async function verifyPasswordSignIn(
+  userId: string,
+  authEmail: string,
+  password: string,
+): Promise<boolean> {
   const { createClient } = await import("@supabase/supabase-js");
   const supa = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
     auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
@@ -194,31 +242,59 @@ async function verifyPasswordSignIn(userId: string, authEmail: string, password:
   return true;
 }
 
-export const getOtpScreenContextFn = createServerFn({ method: "GET" }).handler(async (): Promise<OtpScreenContext> => {
-  const pending = readOtpPendingIntent();
-  if (!pending) {
-    return { ok: false, redirect: "/login" };
-  }
+export const getOtpScreenContextFn = createServerFn({ method: "GET" }).handler(
+  async (): Promise<OtpScreenContext> => {
+    const pending = readOtpPendingIntent();
+    if (!pending) {
+      return { ok: false, redirect: "/login" };
+    }
 
-  const now = Math.floor(Date.now() / 1000);
-  if (pending.otpExp <= now) {
-    clearOtpPendingIntent();
-    return { ok: false, redirect: intentRedirectForPurpose(pending.purpose) };
-  }
+    const now = Math.floor(Date.now() / 1000);
+    if (pending.otpExp <= now) {
+      clearOtpPendingIntent();
+      return { ok: false, redirect: intentRedirectForPurpose(pending.purpose) };
+    }
 
+    const { resolveOtpProviderKind } = await import("@/lib/otp/otpProviderKind.server");
+    const delivery = resolveOtpProviderKind() === "firebase" ? "firebase" : "server";
+
+    return {
+      ok: true,
+      maskedPhone: maskPhoneE164(pending.phone),
+      purpose: pending.purpose,
+      role: pending.role,
+      otpExpiresIn: Math.max(0, pending.otpExp - now),
+      resendAvailableIn: Math.max(0, pending.resendAt - now),
+      delivery,
+    };
+  },
+);
+
+export const getSetPasswordContextFn = createServerFn({ method: "GET" }).handler(
+  async (): Promise<SetPasswordContext> => {
+    return resolveSetPasswordContextFromCookie();
+  },
+);
+
+async function prepareFirebaseOtpIntent(params: {
+  phone: string;
+  purpose: "signup" | "reset";
+  role?: "customer" | "provider";
+}) {
+  const phone = parseCanonicalPhone(params.phone);
+  setOtpPendingIntent({
+    phone,
+    purpose: params.purpose,
+    role: params.purpose === "signup" ? params.role : undefined,
+    retryAfterSeconds: 30,
+  });
+  clearSetPasswordIntent();
   return {
-    ok: true,
-    maskedPhone: maskPhoneE164(pending.phone),
-    purpose: pending.purpose,
-    role: pending.role,
-    otpExpiresIn: Math.max(0, pending.otpExp - now),
-    resendAvailableIn: Math.max(0, pending.resendAt - now),
+    ok: true as const,
+    retryAfter: 30,
+    requiresVerification: true as const,
   };
-});
-
-export const getSetPasswordContextFn = createServerFn({ method: "GET" }).handler(async (): Promise<SetPasswordContext> => {
-  return resolveSetPasswordContextFromCookie();
-});
+}
 
 async function issueOtpSend(params: {
   phone: string;
@@ -238,11 +314,12 @@ async function issueOtpSend(params: {
   });
 
   if (!generated.ok) {
-    const deliveryMessage = generated.error === "delivery_failed"
-      ? "Could not deliver the verification code. Try again later."
-      : generated.error === "temporarily_unavailable"
-        ? "Verification delivery is temporarily unavailable. Try again shortly."
-        : "Too many verification requests. Try again later.";
+    const deliveryMessage =
+      generated.error === "delivery_failed"
+        ? "Could not deliver the verification code. Try again later."
+        : generated.error === "temporarily_unavailable"
+          ? "Verification delivery is temporarily unavailable. Try again shortly."
+          : "Too many verification requests. Try again later.";
     return {
       ok: false as const,
       error: generated.error,
@@ -268,12 +345,40 @@ async function issueOtpSend(params: {
 
 export const sendOtpFn = createServerFn({ method: "POST" })
   .inputValidator((d) => SendSchema.parse(d))
-  .handler(async ({ data }) => issueOtpSend(data));
+  .handler(async ({ data }) => {
+    const { isFirebaseOtpProvider } = await import("@/lib/otp/otpProviderKind.server");
+    if (isFirebaseOtpProvider()) {
+      return {
+        ok: false as const,
+        error: "provider_mismatch" as const,
+        message: "Use the Firebase phone verification flow for this environment.",
+      };
+    }
+    return issueOtpSend(data);
+  });
+
+export const beginFirebaseOtpFn = createServerFn({ method: "POST" })
+  .inputValidator((d) => SendSchema.parse(d))
+  .handler(async ({ data }) => {
+    const { isFirebaseOtpProvider } = await import("@/lib/otp/otpProviderKind.server");
+    if (!isFirebaseOtpProvider()) {
+      return {
+        ok: false as const,
+        error: "provider_mismatch" as const,
+        message: "Firebase OTP is not active in this environment.",
+      };
+    }
+    return prepareFirebaseOtpIntent(data);
+  });
 
 export const resendOtpFn = createServerFn({ method: "POST" }).handler(async () => {
   const pending = readOtpPendingIntent();
   if (!pending) {
-    return { ok: false as const, error: "intent_missing" as const, message: "Verification session expired. Start again." };
+    return {
+      ok: false as const,
+      error: "intent_missing" as const,
+      message: "Verification session expired. Start again.",
+    };
   }
 
   const now = Math.floor(Date.now() / 1000);
@@ -284,6 +389,15 @@ export const resendOtpFn = createServerFn({ method: "POST" }).handler(async () =
       retryAfter: pending.resendAt - now,
       message: "Please wait before requesting another code.",
     };
+  }
+
+  const { isFirebaseOtpProvider } = await import("@/lib/otp/otpProviderKind.server");
+  if (isFirebaseOtpProvider()) {
+    return prepareFirebaseOtpIntent({
+      phone: pending.phone,
+      purpose: pending.purpose,
+      role: pending.role,
+    });
   }
 
   return issueOtpSend({
@@ -316,38 +430,35 @@ export const verifyOtpFn = createServerFn({ method: "POST" })
     });
     if (!verified.ok) return mapVerifyError(verified.error);
 
-    const existingUserId = await findUserIdByPhone(pending.phone);
-    if (pending.purpose === "signup" && existingUserId) {
-      clearOtpPendingIntent();
-      return { ok: false as const, error: "flow_mismatch" as const, nextStep: "signin" as const };
+    return finalizeOtpVerification(pending);
+  });
+
+export const verifyFirebaseOtpFn = createServerFn({ method: "POST" })
+  .inputValidator((d) => VerifyFirebaseSchema.parse(d))
+  .handler(async ({ data }) => {
+    const { isFirebaseOtpProvider } = await import("@/lib/otp/otpProviderKind.server");
+    if (!isFirebaseOtpProvider()) {
+      return { ok: false as const, error: "invalid_code" as const };
     }
-    if (pending.purpose === "reset" && !existingUserId) {
-      clearOtpPendingIntent();
-      return { ok: false as const, error: "flow_mismatch" as const, nextStep: "signup" as const };
+
+    const pending = readOtpPendingIntent();
+    if (!pending) {
+      return { ok: false as const, error: "invalid_code" as const };
     }
 
-    const authResult = await completeVerifiedAuth({
-      phone: pending.phone,
-      purpose: pending.purpose,
-      role: pending.role,
-    });
+    const now = Math.floor(Date.now() / 1000);
+    if (pending.otpExp <= now) {
+      clearOtpPendingIntent();
+      return { ok: false as const, error: "invalid_code" as const };
+    }
 
-    const authId = await createPasswordSetupAuthorization({
-      userId: authResult.userId,
-      phone: pending.phone,
-      purpose: toDbOtpPurpose(pending.purpose),
-      role: pending.role,
-    });
+    const { verifyFirebasePhoneIdToken } = await import("@/lib/otp/firebaseAdmin.server");
+    const verified = await verifyFirebasePhoneIdToken(data.idToken, pending.phone);
+    if (!verified.ok) {
+      return { ok: false as const, error: "invalid_code" as const };
+    }
 
-    clearOtpPendingIntent();
-    setSetPasswordIntent({ authId });
-
-    logPasswordSetupSession("after-verify-otp", {
-      userId: authResult.userId,
-      hasInterimSession: true,
-    });
-
-    return authResult;
+    return finalizeOtpVerification(pending);
   });
 
 export const completePasswordSetupFn = createServerFn({ method: "POST" })
@@ -355,7 +466,11 @@ export const completePasswordSetupFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const cookieIntent = readSetPasswordIntent();
     if (!cookieIntent?.authId) {
-      return { ok: false as const, error: "authorization_missing" as const, message: "Could not set password. Try again." };
+      return {
+        ok: false as const,
+        error: "authorization_missing" as const,
+        message: "Could not set password. Try again.",
+      };
     }
 
     const requestUserId = await getRequestBearerUserId();
@@ -366,13 +481,21 @@ export const completePasswordSetupFn = createServerFn({ method: "POST" })
     });
     if (!requestUserId) {
       clearSetPasswordIntent();
-      return { ok: false as const, error: "authorization_missing" as const, message: "Could not set password. Try again." };
+      return {
+        ok: false as const,
+        error: "authorization_missing" as const,
+        message: "Could not set password. Try again.",
+      };
     }
 
     const row = await readPasswordSetupAuthorization(cookieIntent.authId);
     if (!row || !isPasswordSetupAuthorizationActive(row) || row.user_id !== requestUserId) {
       clearSetPasswordIntent();
-      return { ok: false as const, error: "authorization_missing" as const, message: "Could not set password. Try again." };
+      return {
+        ok: false as const,
+        error: "authorization_missing" as const,
+        message: "Could not set password. Try again.",
+      };
     }
 
     const claimed = await claimPasswordSetupAuthorization({
@@ -384,7 +507,11 @@ export const completePasswordSetupFn = createServerFn({ method: "POST" })
 
     if (claimed !== "ok") {
       clearSetPasswordIntent();
-      return { ok: false as const, error: "authorization_missing" as const, message: "Could not set password. Try again." };
+      return {
+        ok: false as const,
+        error: "authorization_missing" as const,
+        message: "Could not set password. Try again.",
+      };
     }
 
     const purpose = fromDbOtpPurpose(row.purpose);

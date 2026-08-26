@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SetupRouteImport } from './routes/setup'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as PromoCodesRouteImport } from './routes/promo-codes'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ProRouteImport } from './routes/pro'
 import { Route as OtpRouteImport } from './routes/otp'
@@ -78,6 +79,11 @@ const SetupRoute = SetupRouteImport.update({
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PromoCodesRoute = PromoCodesRouteImport.update({
+  id: '/promo-codes',
+  path: '/promo-codes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -390,6 +396,7 @@ export interface FileRoutesByFullPath {
   '/otp': typeof OtpRoute
   '/pro': typeof ProRouteWithChildren
   '/profile': typeof ProfileRoute
+  '/promo-codes': typeof PromoCodesRoute
   '/search': typeof SearchRoute
   '/setup': typeof SetupRoute
   '/monitoring-error': typeof _qaMonitoringErrorRoute
@@ -449,6 +456,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/otp': typeof OtpRoute
   '/profile': typeof ProfileRoute
+  '/promo-codes': typeof PromoCodesRoute
   '/search': typeof SearchRoute
   '/setup': typeof SetupRoute
   '/monitoring-error': typeof _qaMonitoringErrorRoute
@@ -512,6 +520,7 @@ export interface FileRoutesById {
   '/otp': typeof OtpRoute
   '/pro': typeof ProRouteWithChildren
   '/profile': typeof ProfileRoute
+  '/promo-codes': typeof PromoCodesRoute
   '/search': typeof SearchRoute
   '/setup': typeof SetupRoute
   '/__qa/monitoring-error': typeof _qaMonitoringErrorRoute
@@ -576,6 +585,7 @@ export interface FileRouteTypes {
     | '/otp'
     | '/pro'
     | '/profile'
+    | '/promo-codes'
     | '/search'
     | '/setup'
     | '/monitoring-error'
@@ -635,6 +645,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/otp'
     | '/profile'
+    | '/promo-codes'
     | '/search'
     | '/setup'
     | '/monitoring-error'
@@ -697,6 +708,7 @@ export interface FileRouteTypes {
     | '/otp'
     | '/pro'
     | '/profile'
+    | '/promo-codes'
     | '/search'
     | '/setup'
     | '/__qa/monitoring-error'
@@ -760,6 +772,7 @@ export interface RootRouteChildren {
   OtpRoute: typeof OtpRoute
   ProRoute: typeof ProRouteWithChildren
   ProfileRoute: typeof ProfileRoute
+  PromoCodesRoute: typeof PromoCodesRoute
   SearchRoute: typeof SearchRoute
   SetupRoute: typeof SetupRoute
   _qaMonitoringErrorRoute: typeof _qaMonitoringErrorRoute
@@ -786,6 +799,13 @@ declare module '@tanstack/react-router' {
       path: '/search'
       fullPath: '/search'
       preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/promo-codes': {
+      id: '/promo-codes'
+      path: '/promo-codes'
+      fullPath: '/promo-codes'
+      preLoaderRoute: typeof PromoCodesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -1328,6 +1348,7 @@ const rootRouteChildren: RootRouteChildren = {
   OtpRoute: OtpRoute,
   ProRoute: ProRouteWithChildren,
   ProfileRoute: ProfileRoute,
+  PromoCodesRoute: PromoCodesRoute,
   SearchRoute: SearchRoute,
   SetupRoute: SetupRoute,
   _qaMonitoringErrorRoute: _qaMonitoringErrorRoute,
