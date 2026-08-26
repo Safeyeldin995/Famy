@@ -506,6 +506,7 @@ const en = {
     gallery: "Gallery",
     availability: "Availability this week",
     reviewsCount: "Reviews ({{count}})",
+    reviewsOnly: "Reviews",
     noReviews: "No reviews yet.",
     galleryImageAlt: "{{name}} photo {{index}}",
     free: "Free",

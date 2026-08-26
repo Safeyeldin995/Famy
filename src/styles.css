@@ -171,41 +171,39 @@
   color: var(--muted-foreground);
 }
 
-/* Surfaces */
+/* Modern UI Shadows & Blur Panels */
+@utility glass-panel {
+  background: color-mix(in oklch, var(--surface) 85%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
 @utility surface-card {
   background: var(--surface);
-  border: 1px solid color-mix(in oklch, var(--border) 85%, transparent);
-  border-radius: var(--radius-2xl);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-3xl);
+  box-shadow: 0 4px 24px -10px oklch(0 0 0 / 0.08);
 }
 @utility surface-elevated {
-  background: var(--surface-elevated);
-  border: 1px solid color-mix(in oklch, var(--border) 75%, transparent);
-  box-shadow: var(--shadow-card);
+  background: var(--card);
+  border-radius: var(--radius-3xl);
+  box-shadow: 0 12px 48px -12px oklch(0 0 0 / 0.12);
 }
 @utility home-hero-shell {
-  background:
-    radial-gradient(120% 80% at 100% 0%, color-mix(in oklch, var(--brand) 12%, transparent), transparent 55%),
-    radial-gradient(90% 60% at 0% 100%, color-mix(in oklch, var(--lavender) 10%, transparent), transparent 50%),
-    var(--background);
+  background: var(--background);
 }
 @utility home-ink-panel {
-  background:
-    radial-gradient(120% 80% at 100% 0%, color-mix(in oklch, var(--brand) 12%, transparent), transparent 55%),
-    radial-gradient(90% 60% at 0% 100%, color-mix(in oklch, var(--lavender) 10%, transparent), transparent 50%),
-    var(--background);
+  background: var(--ink);
+  color: var(--ink-foreground);
 }
 @utility home-promo-block {
-  background:
-    radial-gradient(120% 100% at 100% 0%, color-mix(in oklch, white 22%, transparent), transparent 55%),
-    linear-gradient(135deg, var(--brand) 0%, oklch(0.68 0.17 35) 100%);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
 }
-@utility category-tint-sky { background: oklch(0.94 0.04 235); color: oklch(0.52 0.14 235); }
-@utility category-tint-pink { background: oklch(0.94 0.04 350); color: oklch(0.58 0.18 350); }
-@utility category-tint-mint { background: oklch(0.94 0.04 168); color: oklch(0.52 0.12 168); }
-@utility category-tint-orange { background: oklch(0.94 0.05 55); color: oklch(0.58 0.16 55); }
-@utility category-tint-lavender { background: oklch(0.94 0.04 295); color: oklch(0.52 0.14 295); }
-@utility category-tint-peach { background: oklch(0.95 0.04 45); color: oklch(0.58 0.14 45); }
+@utility category-tint-sky { background: oklch(0.97 0 0); color: var(--ink); border: 1px solid var(--border); }
+@utility category-tint-pink { background: oklch(0.97 0 0); color: var(--ink); border: 1px solid var(--border); }
+@utility category-tint-mint { background: oklch(0.97 0 0); color: var(--ink); border: 1px solid var(--border); }
+@utility category-tint-orange { background: oklch(0.97 0 0); color: var(--ink); border: 1px solid var(--border); }
+@utility category-tint-lavender { background: oklch(0.97 0 0); color: var(--ink); border: 1px solid var(--border); }
+@utility category-tint-peach { background: oklch(0.97 0 0); color: var(--ink); border: 1px solid var(--border); }
 @utility tap-scale {
   transition: transform 180ms ease, background-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
   &:active {

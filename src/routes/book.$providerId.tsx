@@ -363,26 +363,22 @@ function Book() {
     <PhoneFrame>
       <div className="home-hero-shell safe-top px-5 pb-4 pt-3">
         <TopBar back={typeof back === "function" ? back : { to: `/provider/${p.id}` }} transparent />
-        <div className="mt-2 flex items-center gap-3">
-          <Avatar src={p.avatar} alt={p.name} className="h-12 w-12 shrink-0 rounded-full ring-2 ring-brand/20" />
+        <div className="mt-2 flex items-center gap-4">
+          <Avatar src={p.avatar} alt={p.name} className="h-14 w-14 shrink-0 shadow-sm" />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-bold text-foreground">{p.name}</p>
-            <p className="text-xs text-muted-foreground">{t(`bookFlow.stepName.${stepKeys[step]}`)}</p>
+            <p className="truncate text-lg font-extrabold tracking-tight text-foreground">{p.name}</p>
+            <p className="mt-0.5 text-xs font-bold uppercase tracking-wider text-brand">{t(`bookFlow.stepName.${stepKeys[step]}`)}</p>
           </div>
         </div>
-        <div className="mt-4 flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
-          <span>{t("bookFlow.stepLabel", { current: formatNumber(step + 1), total: formatNumber(stepKeys.length) })}</span>
-          <span>{formatNumber(Math.round(((step + 1) / stepKeys.length) * 100))}%</span>
-        </div>
-        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-2">
+        <div className="mt-5 h-2 overflow-hidden rounded-full bg-surface-2">
           <div
-            className="h-full rounded-full bg-brand transition-all duration-300"
+            className="h-full rounded-full bg-brand transition-all duration-500 ease-out"
             style={{ width: `${((step + 1) / stepKeys.length) * 100}%` }}
           />
         </div>
       </div>
 
-      <div className="flex-1 px-5 pb-28 pt-4">
+      <div className="flex-1 px-5 pb-32 pt-6">
         {step === 0 && (
           <Step title={t("bookFlow.serviceTitle")} sub={t("bookFlow.serviceSub")}>
             {services.length === 0 ? (

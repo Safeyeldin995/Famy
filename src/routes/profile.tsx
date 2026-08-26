@@ -34,31 +34,29 @@ function Profile() {
 
   return (
     <AppShell>
-      <div className="home-hero-shell safe-top px-5 pb-6 pt-3">
+      <div className="safe-top px-5 pb-6 pt-6">
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-lg font-extrabold text-foreground">{t("profile.title")}</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">{t("profile.title")}</h1>
           <LanguageToggle variant="inline" />
         </div>
-        <div className="mt-6 flex items-center gap-4">
-          <div className="relative grid h-20 w-20 place-items-center">
-            <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 100 100" aria-hidden="true">
-              <circle cx="50" cy="50" r="44" fill="none" stroke="oklch(0.9 0.02 85)" strokeWidth="6" />
-              <circle cx="50" cy="50" r="44" fill="none" stroke="oklch(0.74 0.16 25)" strokeWidth="6" strokeLinecap="round" strokeDasharray="276" strokeDashoffset="83" />
-            </svg>
+        <div className="mt-8 flex items-center gap-5">
+          <div className="relative grid h-24 w-24 place-items-center">
             {avatarQ.data ? (
-              <Avatar src={avatarQ.data} className="h-[4.25rem] w-[4.25rem] rounded-full ring-2 ring-surface" />
+              <Avatar src={avatarQ.data} className="h-24 w-24 rounded-full ring-4 ring-background shadow-md object-cover" />
             ) : (
-              <div className="grid h-[4.25rem] w-[4.25rem] place-items-center rounded-full bg-surface-2 text-2xl font-extrabold ring-2 ring-surface">
+              <div className="grid h-24 w-24 place-items-center rounded-full bg-surface-2 text-3xl font-extrabold ring-4 ring-background shadow-md text-muted-foreground">
                 {initial}
               </div>
             )}
+            <div className="absolute -bottom-2 -right-2">
+              <Link to="/setup" className="focus-ring tap-scale grid h-10 w-10 place-items-center rounded-full bg-brand text-brand-foreground shadow-md border-2 border-background">
+                <FileText className="h-4 w-4" strokeWidth={2.5} />
+              </Link>
+            </div>
           </div>
           <div className="min-w-0 flex-1">
             <div className="truncate text-xl font-extrabold text-foreground">{profileQ.data?.full_name || t("profile.famioUser")}</div>
-            <div className="truncate text-xs text-muted-foreground" dir="ltr">{profileQ.data?.phone || "—"}</div>
-            <Link to="/setup" className="mt-2 inline-block rounded-full bg-brand/10 px-3 py-1 text-xs font-bold text-brand">
-              {t("profile.editProfile")}
-            </Link>
+            <div className="truncate text-sm font-bold text-muted-foreground mt-0.5" dir="ltr">{profileQ.data?.phone || "—"}</div>
           </div>
         </div>
       </div>
@@ -111,22 +109,22 @@ function Profile() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="mt-6">
-      <h2 className="text-overline mb-2 px-1">{title}</h2>
-      <div className="surface-card divide-y divide-border overflow-hidden">{children}</div>
+    <div className="mt-8">
+      <h2 className="mb-3 px-1 text-xs font-black uppercase tracking-widest text-muted-foreground">{title}</h2>
+      <div className="rounded-[2rem] bg-surface-elevated shadow-sm border border-border/40 overflow-hidden divide-y divide-border/50">{children}</div>
     </div>
   );
 }
 
 function Row({ icon, label, sub, to }: { icon: React.ReactNode; label: string; sub?: string; to?: string }) {
   const inner = (
-    <div className="flex items-center gap-3 px-4 py-3.5 active:bg-surface-2">
-      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand">{icon}</div>
+    <div className="focus-ring tap-scale flex items-center gap-4 px-5 py-4 transition-colors hover:bg-surface-2">
+      <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-surface text-foreground shadow-sm border border-border/40">{icon}</div>
       <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-bold">{label}</div>
-        {sub ? <div className="truncate text-[11px] text-muted-foreground">{sub}</div> : null}
+        <div className="truncate text-base font-extrabold text-foreground">{label}</div>
+        {sub ? <div className="truncate text-[11px] font-bold text-muted-foreground mt-0.5">{sub}</div> : null}
       </div>
-      <ChevronRight className="h-4 w-4 text-muted-foreground rtl-flip" strokeWidth={ICON_STROKE} />
+      <ChevronRight className="h-5 w-5 text-muted-foreground rtl-flip" strokeWidth={ICON_STROKE} />
     </div>
   );
   if (to) return <Link to={to as any} className="block w-full">{inner}</Link>;

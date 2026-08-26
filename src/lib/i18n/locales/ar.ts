@@ -508,6 +508,7 @@ const ar: Translation = {
     gallery: "الصور",
     availability: "التوفر هذا الأسبوع",
     reviewsCount: "التقييمات ({{count}})",
+    reviewsOnly: "التقييمات",
     noReviews: "لا توجد تقييمات بعد.",
     galleryImageAlt: "صورة {{name}} {{index}}",
     free: "متاح",

@@ -181,19 +181,19 @@ export function PrimaryButton({
 }) {
   const styles =
     variant === "navy"
-      ? "bg-ink text-ink-foreground shadow-card hover:shadow-float active:bg-ink/92"
+      ? "bg-ink text-ink-foreground shadow-sm hover:shadow-md active:bg-ink/90"
       : variant === "coral"
-      ? "bg-brand text-brand-foreground shadow-card hover:shadow-float active:bg-brand/92"
+      ? "bg-brand text-brand-foreground shadow-sm hover:shadow-md active:bg-brand/90"
       : variant === "outline"
-      ? "border-2 border-brand bg-surface text-brand shadow-xs hover:bg-brand/5"
-      : "bg-transparent text-ink";
+      ? "border-2 border-border/80 bg-surface text-foreground shadow-none hover:bg-surface-2"
+      : "bg-transparent text-foreground hover:bg-surface-2";
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled}
       aria-label={ariaLabel}
-      className={`focus-ring tap-scale inline-flex h-14 w-full items-center justify-center gap-2 rounded-[1.125rem] text-base font-bold transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 ${styles} ${className}`}
+      className={`focus-ring tap-scale inline-flex h-14 w-full items-center justify-center gap-2 rounded-full text-[15px] font-extrabold tracking-wide transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 ${styles} ${className}`}
     >
       {children}
     </button>
@@ -221,7 +221,7 @@ export function SecondaryButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={ariaLabel}
-      className={`focus-ring tap-scale inline-flex h-11 min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground shadow-xs transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+      className={`focus-ring tap-scale inline-flex h-12 min-h-12 items-center justify-center gap-2 rounded-full border border-border/60 bg-surface px-5 text-sm font-extrabold text-foreground shadow-none transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
     >
       {children}
     </button>
@@ -238,7 +238,7 @@ export function Card({
   onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
 }) {
   return (
-    <div className={`rounded-3xl bg-surface shadow-soft ${className}`} onClick={onClick}>{children}</div>
+    <div className={`rounded-3xl bg-surface-elevated border border-border/40 shadow-sm ${className}`} onClick={onClick}>{children}</div>
   );
 }
 

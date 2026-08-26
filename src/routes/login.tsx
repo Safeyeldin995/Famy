@@ -2,14 +2,14 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Eye, EyeOff, Phone } from "lucide-react";
+import { Eye, EyeOff, Phone, ArrowRight } from "lucide-react";
 import { FamyWordmark } from "@/components/famio/FamyWordmark";
 import { BackButton, PhoneFrame, PrimaryButton, RoleSelectCard, SegmentedControl } from "@/components/famio/ui";
 import { LanguageToggle } from "@/components/famio/LanguageToggle";
 import { useApp } from "@/lib/store";
 import { otpService, normalizePhone, type Role } from "@/lib/otp/OtpService";
 import { resolveLandingForCurrentUser } from "@/lib/auth/landing";
-import { ICON_STROKE } from "@/lib/icons/constants";
+import { ICON_STROKE, ICON_STROKE_BOLD } from "@/lib/icons/constants";
 
 export const Route = createFileRoute("/login")({ component: Login });
 
@@ -77,18 +77,20 @@ function Login() {
 
   return (
     <PhoneFrame bg="bg-background">
-      <div className="home-hero-shell safe-top px-5 pb-4 pt-3">
+      <div className="safe-top px-5 pb-4 pt-6">
         <div className="flex items-center justify-between gap-3">
-          <BackButton back={{ to: "/onboarding" }} />
+          <button onClick={() => nav({ to: "/onboarding" })} aria-label={t("common.back")} className="focus-ring tap-scale grid h-10 w-10 shrink-0 place-items-center rounded-full bg-surface-2 text-foreground" data-rtl-flip="true">
+            <ArrowRight className="h-5 w-5" strokeWidth={ICON_STROKE_BOLD} />
+          </button>
           <LanguageToggle variant="inline" />
         </div>
-        <FamyWordmark size="auth" className="mx-auto mt-8" />
-        <p className="mx-auto mt-4 max-w-[18rem] text-center text-sm text-muted-foreground">
+        <FamyWordmark size="auth" className="mx-auto mt-12" />
+        <p className="mx-auto mt-6 max-w-[18rem] text-center text-sm font-semibold leading-relaxed text-muted-foreground">
           {mode === "signin" ? t("auth.signinBody") : t("auth.signupBody")}
         </p>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 pb-4 pt-2">
+      <div className="flex-1 overflow-y-auto px-5 pb-8 pt-2">
         <SegmentedControl
           value={mode}
           onChange={setMode}
@@ -99,8 +101,8 @@ function Login() {
         />
 
         <section className="mt-8">
-          <p className="text-overline">{mode === "signin" ? t("auth.signInAs") : t("auth.iAmA")}</p>
-          <div className="mt-3 grid grid-cols-2 gap-2.5">
+          <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">{mode === "signin" ? t("auth.signInAs") : t("auth.iAmA")}</p>
+          <div className="mt-4 grid grid-cols-2 gap-3">
             <RoleSelectCard
               label={t("auth.roleCustomer")}
               active={role === "customer"}
@@ -113,19 +115,19 @@ function Login() {
             />
           </div>
           {mode === "signup" && role === "provider" ? (
-            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{t("auth.providerNote")}</p>
+            <p className="mt-3 text-[11px] font-bold leading-relaxed text-muted-foreground">{t("auth.providerNote")}</p>
           ) : null}
         </section>
 
         <section className="mt-8">
-          <p className="text-overline">{t("auth.contactDetails")}</p>
-          <div className="surface-card mt-3 space-y-4 p-4">
+          <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">{t("auth.contactDetails")}</p>
+          <div className="mt-4 space-y-4 rounded-[2.5rem] border border-border/50 bg-surface-elevated p-6 shadow-sm">
             <div>
-              <label className="text-xs font-semibold text-muted-foreground">{t("auth.phoneNumber")}</label>
-              <div className="mt-2 flex min-h-[3.5rem] items-center gap-3 rounded-xl border border-border/80 bg-background px-3 focus-within:ring-2 focus-within:ring-brand/25">
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-surface-2 text-[10px] font-extrabold text-foreground" aria-hidden="true">EG</span>
-                <span className="text-sm font-bold text-foreground" dir="ltr">+20</span>
-                <div className="h-6 w-px bg-border" />
+              <label className="text-xs font-bold text-muted-foreground">{t("auth.phoneNumber")}</label>
+              <div className="mt-2 flex h-14 items-center gap-3 rounded-2xl bg-surface-2 px-4 focus-within:border-brand focus-within:ring-1 focus-within:ring-brand">
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-background text-[10px] font-black text-foreground shadow-xs border border-border/50" aria-hidden="true">EG</span>
+                <span className="text-[15px] font-black text-foreground" dir="ltr">+20</span>
+                <div className="h-6 w-px bg-border/80" />
                 <input
                   inputMode="tel"
                   dir="ltr"
@@ -133,68 +135,69 @@ function Login() {
                   placeholder={t("auth.phonePlaceholder")}
                   value={phone}
                   onChange={(e) => setPhone(e.target.value.replace(/[^\d ]/g, ""))}
-                  className="min-w-0 flex-1 bg-transparent text-base font-semibold outline-none placeholder:text-muted-foreground/60"
+                  className="min-w-0 flex-1 bg-transparent text-[15px] font-black outline-none placeholder:text-muted-foreground/60"
                 />
               </div>
             </div>
 
             {mode === "signin" ? (
               <div>
-                <label className="text-xs font-semibold text-muted-foreground">{t("auth.password")}</label>
-                <div className="mt-2 flex min-h-[3.5rem] items-center gap-3 rounded-xl border border-border/80 bg-background px-3 focus-within:ring-2 focus-within:ring-brand/25">
+                <label className="text-xs font-bold text-muted-foreground">{t("auth.password")}</label>
+                <div className="mt-2 flex h-14 items-center gap-3 rounded-2xl bg-surface-2 px-4 focus-within:border-brand focus-within:ring-1 focus-within:ring-brand">
                   <input
                     type={showPw ? "text" : "password"}
                     autoComplete="current-password"
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="min-w-0 flex-1 bg-transparent text-base font-semibold outline-none placeholder:text-muted-foreground/60"
+                    className="min-w-0 flex-1 bg-transparent text-[15px] font-black tracking-widest outline-none placeholder:text-muted-foreground/60"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPw((v) => !v)}
                     aria-label={showPw ? t("auth.hidePassword") : t("auth.showPassword")}
-                    className="focus-ring tap-scale grid h-10 w-10 min-h-10 min-w-10 place-items-center rounded-lg text-muted-foreground"
+                    className="focus-ring tap-scale grid h-10 w-10 min-h-10 min-w-10 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                   >
                     {showPw ? <EyeOff className="h-5 w-5" strokeWidth={ICON_STROKE} /> : <Eye className="h-5 w-5" strokeWidth={ICON_STROKE} />}
                   </button>
                 </div>
-                <div className="mt-2 text-end">
-                  <Link to="/auth/forgot" className="text-xs font-semibold text-brand underline-offset-2 hover:underline">
+                <div className="mt-4 flex justify-end">
+                  <Link to="/auth/forgot" className="text-[13px] font-extrabold text-brand transition-colors hover:text-brand/80">
                     {t("auth.forgot")}
                   </Link>
                 </div>
               </div>
             ) : null}
           </div>
+          {errorMsg ? <p className="mt-4 text-sm font-bold text-destructive px-1">{errorMsg}</p> : null}
         </section>
 
         {mode === "signup" ? (
-          <p className="mt-6 text-xs leading-relaxed text-muted-foreground">
+          <p className="mt-8 text-xs font-semibold leading-relaxed text-muted-foreground text-center px-4">
             {t("auth.terms")}{" "}
-            <Link to="/content/$key" params={{ key: "terms" }} className="font-semibold text-brand">
+            <Link to="/content/$key" params={{ key: "terms" }} className="font-extrabold text-brand">
               {t("auth.termsLink")}
             </Link>{" "}
             {t("auth.and")}{" "}
-            <Link to="/content/$key" params={{ key: "privacy" }} className="font-semibold text-brand">
+            <Link to="/content/$key" params={{ key: "privacy" }} className="font-extrabold text-brand">
               {t("auth.privacyLink")}
             </Link>
             .
           </p>
         ) : null}
 
-        <p className="mt-6 text-center text-sm text-muted-foreground">
+        <p className="mt-8 text-center text-[13px] font-bold text-muted-foreground">
           {mode === "signin" ? (
             <>
               {t("auth.newHere")}{" "}
-              <button type="button" onClick={() => setMode("signup")} className="font-bold text-brand">
+              <button type="button" onClick={() => setMode("signup")} className="font-black text-brand underline-offset-2 hover:underline">
                 {t("auth.createAccountLink")}
               </button>
             </>
           ) : (
             <>
               {t("auth.alreadyHave")}{" "}
-              <button type="button" onClick={() => setMode("signin")} className="font-bold text-brand">
+              <button type="button" onClick={() => setMode("signin")} className="font-black text-brand underline-offset-2 hover:underline">
                 {t("auth.signInLink")}
               </button>
             </>
@@ -202,23 +205,13 @@ function Login() {
         </p>
       </div>
 
-      <div className="safe-bottom border-t border-border/60 bg-surface/95 px-5 pt-3 backdrop-blur">
-        {errorMsg ? (
-          <div className="mb-3 rounded-xl border border-brand/25 bg-brand/10 p-3 text-[13px] font-medium leading-relaxed text-brand">
-            {errorMsg}
-          </div>
-        ) : null}
+      <div className="safe-bottom p-5">
         <PrimaryButton
           onClick={submit}
-          disabled={loading || !phoneValid || (mode === "signin" && password.length < 1)}
+          disabled={!phoneValid || (mode === "signin" && password.length < 1) || loading}
+          className="shadow-float h-14"
         >
-          {loading
-            ? mode === "signin"
-              ? t("common.signingIn")
-              : t("common.sending")
-            : mode === "signin"
-              ? t("auth.signIn")
-              : t("common.sendCode")}
+          {loading ? t("auth.sending") : mode === "signin" ? t("auth.signIn") : t("auth.signUp")}
         </PrimaryButton>
       </div>
     </PhoneFrame>

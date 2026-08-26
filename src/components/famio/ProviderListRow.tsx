@@ -31,16 +31,16 @@ export function ProviderListRow({
     <Link
       to={to as any}
       params={params as any}
-      className={`focus-ring tap-scale flex min-h-[4.75rem] items-center gap-3 rounded-[1.25rem] bg-surface px-3 py-3 shadow-sm ${className}`}
+      className={`focus-ring tap-scale flex items-center gap-4 rounded-[2rem] border border-border/50 bg-surface-elevated p-4 shadow-sm transition-shadow hover:shadow-md ${className}`}
     >
-      <Avatar src={avatar} alt={name} className="h-14 w-14 shrink-0 rounded-full ring-2 ring-surface-2" />
+      <Avatar src={avatar} alt={name} className="h-16 w-16 shrink-0 shadow-sm" />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <p className="truncate text-sm font-bold text-foreground">{name}</p>
+          <p className="truncate text-base font-extrabold text-foreground">{name}</p>
           {pill ? <StatusPill tone={pill.tone ?? "brand"}>{pill.label}</StatusPill> : null}
         </div>
-        {subtitle ? <p className="mt-0.5 truncate text-xs text-muted-foreground">{subtitle}</p> : null}
-        {meta ? <div className="mt-1.5 flex items-center gap-1 text-xs font-semibold text-foreground">{meta}</div> : null}
+        {subtitle ? <p className="mt-0.5 truncate text-xs font-bold text-brand">{subtitle}</p> : null}
+        {meta ? <div className="mt-1.5 flex items-center gap-1 text-xs font-bold text-muted-foreground">{meta}</div> : null}
       </div>
       {trailing}
     </Link>
