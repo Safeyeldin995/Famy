@@ -59,11 +59,11 @@
 
 :root {
   --radius: 1rem;
-  /* Famy brand accent — confident saturated coral */
-  --brand: oklch(0.58 0.22 22);
+  /* Famy brand accent — warm coral primary (actions, active states) */
+  --brand: oklch(0.74 0.16 25);
   --brand-foreground: oklch(0.99 0.005 250);
-  /* Deep ink surfaces — hero panels, editorial cards, primary CTAs */
-  --ink: oklch(0.13 0.04 272);
+  /* Navy ink — headings and secondary text, not primary buttons */
+  --ink: oklch(0.22 0.05 272);
   --ink-foreground: oklch(0.98 0.005 250);
   /* Legacy aliases */
   --navy: var(--ink);
@@ -74,8 +74,8 @@
   --sky: oklch(0.72 0.14 235);
   --mint: oklch(0.75 0.15 168);
   --lavender: oklch(0.68 0.14 295);
-  /* Cool tinted canvas — premium fintech feel */
-  --background: oklch(0.955 0.014 272);
+  /* Warm cream canvas */
+  --background: oklch(0.975 0.012 85);
   --foreground: oklch(0.14 0.035 272);
   --surface: oklch(0.99 0.004 272);
   --surface-2: oklch(0.935 0.018 272);
@@ -183,17 +183,29 @@
   border: 1px solid color-mix(in oklch, var(--border) 75%, transparent);
   box-shadow: var(--shadow-card);
 }
+@utility home-hero-shell {
+  background:
+    radial-gradient(120% 80% at 100% 0%, color-mix(in oklch, var(--brand) 12%, transparent), transparent 55%),
+    radial-gradient(90% 60% at 0% 100%, color-mix(in oklch, var(--lavender) 10%, transparent), transparent 50%),
+    var(--background);
+}
 @utility home-ink-panel {
   background:
-    radial-gradient(130% 95% at 100% -5%, color-mix(in oklch, var(--brand) 30%, transparent), transparent 52%),
-    radial-gradient(80% 55% at 0% 100%, color-mix(in oklch, var(--lavender) 20%, transparent), transparent 45%),
-    linear-gradient(168deg, oklch(0.16 0.045 275) 0%, var(--ink) 48%, oklch(0.1 0.042 278) 100%);
+    radial-gradient(120% 80% at 100% 0%, color-mix(in oklch, var(--brand) 12%, transparent), transparent 55%),
+    radial-gradient(90% 60% at 0% 100%, color-mix(in oklch, var(--lavender) 10%, transparent), transparent 50%),
+    var(--background);
 }
 @utility home-promo-block {
   background:
-    radial-gradient(120% 100% at 100% 0%, color-mix(in oklch, white 18%, transparent), transparent 55%),
-    linear-gradient(135deg, var(--brand) 0%, oklch(0.48 0.24 22) 100%);
+    radial-gradient(120% 100% at 100% 0%, color-mix(in oklch, white 22%, transparent), transparent 55%),
+    linear-gradient(135deg, var(--brand) 0%, oklch(0.68 0.17 35) 100%);
 }
+@utility category-tint-sky { background: oklch(0.94 0.04 235); color: oklch(0.52 0.14 235); }
+@utility category-tint-pink { background: oklch(0.94 0.04 350); color: oklch(0.58 0.18 350); }
+@utility category-tint-mint { background: oklch(0.94 0.04 168); color: oklch(0.52 0.12 168); }
+@utility category-tint-orange { background: oklch(0.94 0.05 55); color: oklch(0.58 0.16 55); }
+@utility category-tint-lavender { background: oklch(0.94 0.04 295); color: oklch(0.52 0.14 295); }
+@utility category-tint-peach { background: oklch(0.95 0.04 45); color: oklch(0.58 0.14 45); }
 @utility tap-scale {
   transition: transform 180ms ease, background-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
   &:active {

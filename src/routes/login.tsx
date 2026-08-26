@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Eye, EyeOff, Phone } from "lucide-react";
 import { FamyWordmark } from "@/components/famio/FamyWordmark";
-import { BackButton, PhoneFrame, PrimaryButton, SegmentedControl } from "@/components/famio/ui";
+import { BackButton, PhoneFrame, PrimaryButton, RoleSelectCard, SegmentedControl } from "@/components/famio/ui";
 import { LanguageToggle } from "@/components/famio/LanguageToggle";
 import { useApp } from "@/lib/store";
 import { otpService, normalizePhone, type Role } from "@/lib/otp/OtpService";
@@ -77,42 +77,41 @@ function Login() {
 
   return (
     <PhoneFrame bg="bg-background">
-      <div className="home-ink-panel safe-top px-5 pb-10 pt-3 text-ink-foreground">
+      <div className="home-hero-shell safe-top px-5 pb-4 pt-3">
         <div className="flex items-center justify-between gap-3">
           <BackButton back={{ to: "/onboarding" }} />
-          <LanguageToggle variant="hero" />
+          <LanguageToggle variant="inline" />
         </div>
-        <FamyWordmark size="auth" className="mt-8" />
-        <p className="mt-4 max-w-[18rem] text-sm text-white/75">
+        <FamyWordmark size="auth" className="mx-auto mt-8" />
+        <p className="mx-auto mt-4 max-w-[18rem] text-center text-sm text-muted-foreground">
           {mode === "signin" ? t("auth.signinBody") : t("auth.signupBody")}
         </p>
       </div>
 
-      <div className="-mt-6 flex-1 overflow-y-auto rounded-t-[2rem] bg-background px-5 pb-4 pt-6">
-        <section>
-          <p className="text-overline">{t("auth.accountMode")}</p>
-          <SegmentedControl
-            className="mt-3"
-            value={mode}
-            onChange={setMode}
-            options={[
-              { value: "signin", label: t("auth.signIn") },
-              { value: "signup", label: t("auth.signUp") },
-            ]}
-          />
-        </section>
+      <div className="flex-1 overflow-y-auto px-5 pb-4 pt-2">
+        <SegmentedControl
+          value={mode}
+          onChange={setMode}
+          options={[
+            { value: "signin", label: t("auth.signIn") },
+            { value: "signup", label: t("auth.signUp") },
+          ]}
+        />
 
         <section className="mt-8">
           <p className="text-overline">{mode === "signin" ? t("auth.signInAs") : t("auth.iAmA")}</p>
-          <SegmentedControl
-            className="mt-3"
-            value={role}
-            onChange={setRole}
-            options={[
-              { value: "customer", label: t("auth.roleCustomer") },
-              { value: "provider", label: t("auth.roleProvider") },
-            ]}
-          />
+          <div className="mt-3 grid grid-cols-2 gap-2.5">
+            <RoleSelectCard
+              label={t("auth.roleCustomer")}
+              active={role === "customer"}
+              onClick={() => setRole("customer")}
+            />
+            <RoleSelectCard
+              label={t("auth.roleProvider")}
+              active={role === "provider"}
+              onClick={() => setRole("provider")}
+            />
+          </div>
           {mode === "signup" && role === "provider" ? (
             <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{t("auth.providerNote")}</p>
           ) : null}
@@ -123,13 +122,9 @@ function Login() {
           <div className="surface-card mt-3 space-y-4 p-4">
             <div>
               <label className="text-xs font-semibold text-muted-foreground">{t("auth.phoneNumber")}</label>
-              <div className="mt-2 flex min-h-[3.5rem] items-center gap-3 rounded-xl border border-border/80 bg-background px-3 focus-within:ring-2 focus-within:ring-ink/20">
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand/12 text-brand">
-                  <Phone className="h-4 w-4" strokeWidth={ICON_STROKE} aria-hidden="true" />
-                </span>
-                <span className="text-sm font-bold text-foreground" dir="ltr">
-                  +20
-                </span>
+              <div className="mt-2 flex min-h-[3.5rem] items-center gap-3 rounded-xl border border-border/80 bg-background px-3 focus-within:ring-2 focus-within:ring-brand/25">
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-surface-2 text-[10px] font-extrabold text-foreground" aria-hidden="true">EG</span>
+                <span className="text-sm font-bold text-foreground" dir="ltr">+20</span>
                 <div className="h-6 w-px bg-border" />
                 <input
                   inputMode="tel"
@@ -146,7 +141,7 @@ function Login() {
             {mode === "signin" ? (
               <div>
                 <label className="text-xs font-semibold text-muted-foreground">{t("auth.password")}</label>
-                <div className="mt-2 flex min-h-[3.5rem] items-center gap-3 rounded-xl border border-border/80 bg-background px-3 focus-within:ring-2 focus-within:ring-ink/20">
+                <div className="mt-2 flex min-h-[3.5rem] items-center gap-3 rounded-xl border border-border/80 bg-background px-3 focus-within:ring-2 focus-within:ring-brand/25">
                   <input
                     type={showPw ? "text" : "password"}
                     autoComplete="current-password"
@@ -165,7 +160,7 @@ function Login() {
                   </button>
                 </div>
                 <div className="mt-2 text-end">
-                  <Link to="/auth/forgot" className="text-xs font-semibold text-ink underline-offset-2 hover:underline">
+                  <Link to="/auth/forgot" className="text-xs font-semibold text-brand underline-offset-2 hover:underline">
                     {t("auth.forgot")}
                   </Link>
                 </div>
@@ -177,16 +172,34 @@ function Login() {
         {mode === "signup" ? (
           <p className="mt-6 text-xs leading-relaxed text-muted-foreground">
             {t("auth.terms")}{" "}
-            <Link to="/content/$key" params={{ key: "terms" }} className="font-semibold text-ink">
+            <Link to="/content/$key" params={{ key: "terms" }} className="font-semibold text-brand">
               {t("auth.termsLink")}
             </Link>{" "}
             {t("auth.and")}{" "}
-            <Link to="/content/$key" params={{ key: "privacy" }} className="font-semibold text-ink">
+            <Link to="/content/$key" params={{ key: "privacy" }} className="font-semibold text-brand">
               {t("auth.privacyLink")}
             </Link>
             .
           </p>
         ) : null}
+
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          {mode === "signin" ? (
+            <>
+              {t("auth.newHere")}{" "}
+              <button type="button" onClick={() => setMode("signup")} className="font-bold text-brand">
+                {t("auth.createAccountLink")}
+              </button>
+            </>
+          ) : (
+            <>
+              {t("auth.alreadyHave")}{" "}
+              <button type="button" onClick={() => setMode("signin")} className="font-bold text-brand">
+                {t("auth.signInLink")}
+              </button>
+            </>
+          )}
+        </p>
       </div>
 
       <div className="safe-bottom border-t border-border/60 bg-surface/95 px-5 pt-3 backdrop-blur">

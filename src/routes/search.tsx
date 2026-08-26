@@ -44,12 +44,10 @@ function SearchPage() {
 
   return (
     <PhoneFrame bg="bg-background">
-      <div className="home-ink-panel safe-top px-5 pb-8 pt-3 text-ink-foreground">
-        <h1 className="text-[1.5rem] font-extrabold leading-tight text-white">{t("search.title")}</h1>
-        <div className="mt-5 flex min-h-[3.75rem] items-center gap-3 rounded-[1.125rem] bg-white px-4 text-ink shadow-[0_16px_48px_-20px_oklch(0_0_0_/_0.55)]">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand/12">
-            <SearchIcon className="h-5 w-5 text-brand" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
-          </span>
+      <div className="home-hero-shell safe-top px-5 pb-4 pt-3">
+        <h1 className="text-[1.5rem] font-extrabold leading-tight text-foreground">{t("search.title")}</h1>
+        <div className="mt-4 flex min-h-[3.5rem] items-center gap-3 rounded-[1.125rem] border border-border/70 bg-surface px-4 shadow-sm">
+          <SearchIcon className="h-5 w-5 shrink-0 text-muted-foreground" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
           <input
             autoFocus
             value={q}
@@ -70,7 +68,7 @@ function SearchPage() {
         </div>
       </div>
 
-      <div className="-mt-5 rounded-t-[2rem] bg-background px-5 pb-10 pt-6">
+      <div className="px-5 pb-10 pt-2">
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
           <Chip active={filter === "all"} onClick={() => setFilter("all")}>{t("common.seeAll")}</Chip>
           <Chip active={filter === "home-cleaning"} onClick={() => setFilter("home-cleaning")}>{t("categories.homeTitle")}</Chip>

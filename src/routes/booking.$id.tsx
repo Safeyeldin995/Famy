@@ -18,6 +18,7 @@ import { BookingChatPanel } from "@/components/famio/BookingChatPanel";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { BookingSuccessIllustration } from "@/components/famio/BookingSuccessIllustration";
 import { peekPendingPayment } from "@/lib/booking/post-create-payment";
 
 
@@ -370,18 +371,18 @@ function BookingDetail() {
 
     return (
       <PhoneFrame>
-        <div className="relative h-64 w-full overflow-hidden bg-navy">
+        <div className="relative h-64 w-full overflow-hidden bg-surface-2">
           <div
             aria-hidden="true"
-            className="absolute inset-0 opacity-60"
+            className="absolute inset-0 opacity-90"
             style={{
               backgroundImage:
-                "linear-gradient(135deg, hsl(var(--navy)) 0%, hsl(var(--navy) / 0.7) 60%, hsl(var(--mint) / 0.4) 100%), repeating-linear-gradient(45deg, transparent 0 22px, rgba(255,255,255,0.06) 22px 23px), repeating-linear-gradient(-45deg, transparent 0 22px, rgba(255,255,255,0.06) 22px 23px)",
+                "linear-gradient(180deg, oklch(0.94 0.02 85) 0%, oklch(0.92 0.03 235 / 0.35) 100%), repeating-linear-gradient(0deg, transparent 0 24px, rgba(0,0,0,0.03) 24px 25px), repeating-linear-gradient(90deg, transparent 0 24px, rgba(0,0,0,0.03) 24px 25px)",
             }}
           />
           <svg className="absolute inset-0 h-full w-full" viewBox="0 0 600 400" preserveAspectRatio="none" aria-hidden="true">
             <path d="M60 340 Q 200 260 300 240 T 540 80" fill="none" stroke="hsl(var(--coral))" strokeWidth="5" strokeLinecap="round" strokeDasharray="2 14" opacity="0.9" />
-            <circle cx="60" cy="340" r="9" fill="hsl(var(--surface))" stroke="hsl(var(--navy))" strokeWidth="3" />
+            <circle cx="60" cy="340" r="9" fill="oklch(0.74 0.16 25)" stroke="white" strokeWidth="3" />
             <circle cx="540" cy="80" r="10" fill="hsl(var(--coral))" />
           </svg>
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-surface-2" />
@@ -555,14 +556,10 @@ function BookingDetail() {
 
   return (
     <PhoneFrame>
-      <div className="safe-top flex-1 px-6 pt-10">
+      <div className="safe-top flex-1 px-6 pt-8">
         <div className="text-center">
-          <div className="animate-pop mx-auto grid h-28 w-28 place-items-center rounded-full bg-coral/15">
-            <div className="grid h-20 w-20 place-items-center rounded-full bg-coral text-coral-foreground shadow-card">
-              <Check className="h-10 w-10" strokeWidth={3} />
-            </div>
-          </div>
-          <h1 className="mt-6 text-2xl font-extrabold">{t("bookingDetail.allSet")}</h1>
+          <BookingSuccessIllustration className="mx-auto h-36 w-36" />
+          <h1 className="mt-6 text-2xl font-extrabold text-foreground">{t("bookingDetail.allSet")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{t("bookingDetail.confirmedNumber", { id: booking.id })}</p>
         </div>
 
@@ -705,7 +702,7 @@ function BookingDetail() {
 function Line({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-navy/10 text-navy">{icon}</div>
+      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand">{icon}</div>
       <span className="pt-1.5 font-medium">{label}</span>
     </div>
   );

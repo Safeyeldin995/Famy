@@ -7,7 +7,6 @@ import { HomeFeaturedCarousel } from "@/components/home/HomeFeaturedCarousel";
 import { HomeHeroPanel } from "@/components/home/HomeHeroPanel";
 import { HomePromoStrip } from "@/components/home/HomePromoStrip";
 import { HomeRebookRow } from "@/components/home/HomeRebookRow";
-import { HomeTrustLine } from "@/components/home/HomeTrustLine";
 import {
   useCategories,
   useProviders,
@@ -68,15 +67,13 @@ function Home() {
         location={addressQ.data?.area || t("common.location")}
         unread={unread}
         searchHint={t("home.searchHint")}
-        headline={t("home.headline")}
       />
 
-      <div className="-mt-6 rounded-t-[2rem] bg-background pb-4">
+      <div className="pb-4">
+        <HomePromoStrip offer={PROMO} />
         <HomeCategoryGrid categories={cats} loading={catsQ.isLoading} />
         <HomeFeaturedCarousel providers={featured} />
         <HomeRebookRow providers={recent} loading={bookingsQ.isLoading} error={bookingsQ.isError} />
-        <HomePromoStrip offer={PROMO} />
-        <HomeTrustLine />
       </div>
       <div className="h-4" />
     </AppShell>

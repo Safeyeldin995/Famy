@@ -86,13 +86,11 @@ export function BottomNav() {
                   >
                     <span
                       className={`relative grid h-10 w-12 place-items-center rounded-2xl transition-all duration-200 ${
-                        active ? "text-brand" : "text-muted-foreground"
+                        active ? "bg-brand text-brand-foreground shadow-card" : "text-muted-foreground"
                       }`}
                     >
                       <Icon className="h-5 w-5" strokeWidth={active ? 2.25 : 1.75} />
-                      {active ? (
-                        <span className="absolute -bottom-0.5 h-1 w-1 rounded-full bg-brand" aria-hidden="true" />
-                      ) : null}
+                      {active ? null : null}
                     </span>
                     <span
                       className={`text-[10px] font-semibold tracking-wide ${
@@ -169,7 +167,7 @@ export function PrimaryButton({
   onClick,
   type = "button",
   disabled,
-  variant = "navy",
+  variant = "coral",
   className = "",
   "aria-label": ariaLabel,
 }: {
@@ -187,7 +185,7 @@ export function PrimaryButton({
       : variant === "coral"
       ? "bg-brand text-brand-foreground shadow-card hover:shadow-float active:bg-brand/92"
       : variant === "outline"
-      ? "border-2 border-border bg-surface text-foreground shadow-xs hover:bg-surface-2"
+      ? "border-2 border-brand bg-surface text-brand shadow-xs hover:bg-brand/5"
       : "bg-transparent text-ink";
   return (
     <button
@@ -259,7 +257,7 @@ export function Chip({
       aria-pressed={active}
       className={`focus-ring shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all min-h-11 tap-scale ${
         active
-          ? "bg-ink text-ink-foreground shadow-soft"
+          ? "bg-brand text-brand-foreground shadow-soft"
           : "border border-border bg-surface text-muted-foreground hover:text-foreground"
       }`}
     >
@@ -310,7 +308,7 @@ export function SegmentedControl<T extends string>({
             onClick={() => onChange(option.value)}
             aria-pressed={value === option.value}
             className={`focus-ring tap-scale min-h-11 rounded-xl px-2 text-xs font-bold transition-all sm:text-sm ${
-              value === option.value ? "bg-surface text-foreground shadow-sm" : "text-muted-foreground"
+              value === option.value ? "bg-brand text-brand-foreground shadow-sm" : "text-muted-foreground"
             }`}
           >
             {option.label}
@@ -318,6 +316,34 @@ export function SegmentedControl<T extends string>({
         ))}
       </div>
     </div>
+  );
+}
+
+export function RoleSelectCard({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`focus-ring tap-scale relative flex min-h-[4.5rem] flex-col items-start justify-center rounded-[1.125rem] border-2 px-4 py-3 text-start transition-all ${
+        active ? "border-brand bg-brand/8 shadow-sm" : "border-border/80 bg-surface shadow-xs"
+      }`}
+    >
+      {active ? (
+        <span className="absolute end-3 top-3 grid h-5 w-5 place-items-center rounded-full bg-brand text-brand-foreground">
+          <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" />
+        </span>
+      ) : null}
+      <span className="text-sm font-bold text-foreground">{label}</span>
+    </button>
   );
 }
 

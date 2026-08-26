@@ -34,7 +34,6 @@ function ProviderProfile() {
   const reviews = reviewsQ.data ?? [];
   const isFav = (favIdsQ.data ?? []).includes(p.id);
   const dayKeys = ["mon","tue","wed","thu","fri","sat","sun"] as const;
-  const roleLabel = t(p.role === "Angel" ? "roles.angel" : "roles.professional");
 
   const onShare = async () => {
     const url = window.location.href;
@@ -49,49 +48,50 @@ function ProviderProfile() {
   };
 
   return (
-    <PhoneFrame>
-      <div className="relative">
-        <div className="h-48 w-full overflow-hidden">
-          <Avatar src={p.avatar} alt={p.name || t("provider2.unnamed")} className="h-full w-full" />
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+    <PhoneFrame bg="bg-background">
+      <TopBar
+        back={{ to: "/home" }}
+        right={
+          <div className="flex gap-2">
+            <button onClick={onShare} aria-label={t("common.share")} className="focus-ring tap-scale grid h-10 w-10 place-items-center rounded-full bg-surface shadow-soft">
+              <Share2 className="h-4 w-4" aria-hidden="true" />
+            </button>
+            <button
+              onClick={() => toggleFav.mutate({ providerId: p.id, on: !isFav })}
+              aria-label={isFav ? t("provider2.removeFromFavorites") : t("provider2.addToFavorites")}
+              aria-pressed={isFav}
+              className="focus-ring grid h-10 w-10 place-items-center rounded-full bg-surface shadow-soft"
+            >
+              <Heart key={String(isFav)} className={`h-4 w-4 ${isFav ? "fill-brand text-brand animate-heart-pop" : ""}`} aria-hidden="true" />
+            </button>
+          </div>
+        }
+      />
+
+      <div className="px-5 pb-28">
+        <div className="relative overflow-hidden rounded-[1.5rem] bg-surface shadow-card">
+          <Avatar src={p.avatar} alt={p.name || t("provider2.unnamed")} className="aspect-[4/3] h-auto w-full rounded-none" />
+          {p.rating >= 4.8 ? (
+            <span className="absolute end-3 top-3">
+              <StatusPill tone="brand">{t("providerProfile.topRated")}</StatusPill>
+            </span>
+          ) : null}
         </div>
-        <TopBar
-          back={{ to: "/home" }}
-          transparent
-          right={
-            <div className="flex gap-2">
-              <button onClick={onShare} aria-label={t("common.share")} className="focus-ring tap-scale grid h-10 w-10 place-items-center rounded-full bg-white/95 shadow-soft active:scale-95 transition-transform">
-                <Share2 className="h-4 w-4" aria-hidden="true" />
-              </button>
-              <button
-                onClick={() => toggleFav.mutate({ providerId: p.id, on: !isFav })}
-                aria-label={isFav ? t("provider2.removeFromFavorites") : t("provider2.addToFavorites")}
-                aria-pressed={isFav}
-                className="focus-ring grid h-10 w-10 place-items-center rounded-full bg-white/95 shadow-soft active:scale-95 transition-transform"
-              >
-                <Heart key={String(isFav)} className={`h-4 w-4 ${isFav ? "fill-coral text-coral animate-heart-pop" : ""}`} aria-hidden="true" />
-              </button>
-            </div>
-          }
-        />
-        <div className="pointer-events-none absolute inset-x-5 bottom-3 text-white">
-          <div className="flex flex-wrap items-center gap-2">
-            <StatusPill tone={p.role === "Angel" ? "brand" : "ink"}>{roleLabel}</StatusPill>
-            <StatusPill tone="success">{t("providerProfile.trust", { score: formatNumber(p.trustScore) })}</StatusPill>
+
+        <div className="mt-4">
+          <h1 className="text-[1.375rem] font-extrabold text-foreground">{p.name || t("provider2.unnamed")}</h1>
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
+            <span className="inline-flex items-center gap-1 font-semibold text-foreground">
+              <Star className="h-4 w-4 fill-warning text-warning" /> {formatNumber(p.rating)}
+            </span>
+            <span className="text-muted-foreground">({formatNumber(p.reviews)})</span>
+            <span className="font-extrabold text-brand">{formatEGP(p.hourlyRate, { perHour: true })}</span>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <StatusPill tone="success">{t("providerProfile.idVerified")}</StatusPill>
+            <StatusPill tone="success">{t("providerProfile.backgroundChecked")}</StatusPill>
           </div>
         </div>
-      </div>
-
-      <div className="px-5 pt-3 pb-1">
-        <h1 className="text-title text-foreground">{p.name || t("provider2.unnamed")}</h1>
-        <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1"><Star className="h-3 w-3 fill-warning text-warning" /> {formatNumber(p.rating)} ({formatNumber(p.reviews)})</span>
-          <span>·</span>
-          <span className="font-semibold text-foreground">{formatEGP(p.hourlyRate, { perHour: true })}</span>
-        </div>
-      </div>
-
-      <div className="mt-1 flex-1 rounded-t-[2rem] bg-background px-5 pt-5 pb-28">
         <div className="grid grid-cols-3 gap-2.5">
           <Stat icon={<Briefcase className="h-4 w-4" />} label={t("providerProfile.jobs")} value={formatNumber(p.jobs)} />
           <Stat icon={<Calendar className="h-4 w-4" />} label={t("providerProfile.years")} value={formatNumber(p.yearsExp)} />
@@ -184,8 +184,8 @@ function ProviderProfile() {
           <ShieldCheck className="h-3 w-3 text-success" aria-hidden="true" />
           {t("providerProfile.freeCancel")}
         </div>
-        <PrimaryButton variant="coral" onClick={() => nav({ to: "/book/$providerId", params: { providerId: p.id }, search: { serviceId: undefined } })}>
-          {t("providerProfile.bookNow", { price: formatEGP(p.hourlyRate, { perHour: true }) })}
+        <PrimaryButton onClick={() => nav({ to: "/book/$providerId", params: { providerId: p.id }, search: { serviceId: undefined } })}>
+          {t("providerProfile.bookWith", { name: p.name.split(" ")[0] || p.name })}
         </PrimaryButton>
       </div>
     </PhoneFrame>
@@ -195,7 +195,7 @@ function ProviderProfile() {
 function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="surface-card p-3 text-center shadow-xs">
-      <div className="mx-auto grid h-9 w-9 place-items-center rounded-xl bg-ink/10 text-ink">{icon}</div>
+      <div className="mx-auto grid h-9 w-9 place-items-center rounded-xl bg-brand/10 text-brand">{icon}</div>
       <div className="mt-1.5 text-base font-extrabold text-foreground">{value}</div>
       <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
     </div>

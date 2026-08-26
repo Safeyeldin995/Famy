@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowUpRight, Bell, MapPin, Search } from "lucide-react";
+import { Bell, ChevronDown, Search } from "lucide-react";
+import { Headphones, ShieldCheck, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { LanguageToggle } from "@/components/famio/LanguageToggle";
+import { TrustChip } from "@/components/famio/ui";
 import { ICON_STROKE, ICON_STROKE_BOLD } from "@/lib/icons/constants";
 
 export function HomeHeroPanel({
@@ -10,59 +11,63 @@ export function HomeHeroPanel({
   location,
   unread,
   searchHint,
-  headline,
 }: {
   greeting: string;
   firstName: string;
   location: string;
   unread: boolean;
   searchHint: string;
-  headline: string;
 }) {
   const { t } = useTranslation();
+  const trustItems = [
+    { icon: ShieldCheck, label: t("home.trust1") },
+    { icon: Sparkles, label: t("home.trust2") },
+    { icon: Headphones, label: t("home.trust3") },
+  ] as const;
 
   return (
-    <header className="home-ink-panel safe-top px-5 pb-10 pt-3 text-ink-foreground">
-      <div className="flex items-center justify-between gap-3">
-        <div className="inline-flex min-h-11 max-w-[72%] items-center gap-2 rounded-full bg-white/12 px-3.5 py-2 backdrop-blur-sm">
-          <MapPin className="h-4 w-4 shrink-0 text-brand" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
-          <span className="truncate text-sm font-semibold">{location}</span>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <LanguageToggle variant="hero" />
+    <header className="home-hero-shell safe-top px-5 pb-2 pt-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-[1.625rem] font-extrabold leading-tight tracking-tight text-foreground">
+            {t("home.greetingLine", { timeGreeting: greeting, firstName })}
+          </h1>
           <Link
-            to="/notifications"
-            aria-label={t("common.notifications")}
-            className="focus-ring tap-scale relative grid h-11 w-11 min-h-11 min-w-11 place-items-center rounded-full bg-white/12 backdrop-blur-sm"
+            to="/addresses"
+            className="focus-ring tap-scale mt-3 inline-flex max-w-full items-center gap-1.5 rounded-full border border-border/70 bg-surface px-3.5 py-2 text-sm font-semibold text-foreground shadow-xs"
           >
-            <Bell className="h-5 w-5" strokeWidth={ICON_STROKE} aria-hidden="true" />
-            {unread ? (
-              <span className="absolute end-2 top-2 h-2 w-2 rounded-full bg-brand ring-2 ring-ink" aria-hidden="true" />
-            ) : null}
+            <span className="truncate">{location}</span>
+            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={ICON_STROKE} aria-hidden="true" />
           </Link>
         </div>
-      </div>
-
-      <div className="mt-10">
-        <p className="text-sm font-medium text-white/75">
-          {t("home.greetingLine", { timeGreeting: greeting, firstName })}
-        </p>
-        <h1 className="mt-3 max-w-[17rem] text-[2rem] font-extrabold leading-[1.08] tracking-tight text-white">
-          {headline}
-        </h1>
+        <Link
+          to="/notifications"
+          aria-label={t("common.notifications")}
+          className="focus-ring tap-scale relative grid h-11 w-11 min-h-11 min-w-11 shrink-0 place-items-center rounded-full bg-surface shadow-soft"
+        >
+          <Bell className="h-5 w-5 text-foreground" strokeWidth={ICON_STROKE} aria-hidden="true" />
+          {unread ? (
+            <span className="absolute end-2 top-2 h-2 w-2 rounded-full bg-brand ring-2 ring-surface" aria-hidden="true" />
+          ) : null}
+        </Link>
       </div>
 
       <Link
         to="/search"
         aria-label={t("common.search")}
-        className="focus-ring tap-scale mt-8 flex min-h-[3.75rem] items-center gap-3 rounded-[1.125rem] bg-white px-4 text-ink shadow-[0_16px_48px_-20px_oklch(0_0_0_/_0.55)]"
+        className="focus-ring tap-scale mt-5 flex min-h-[3.5rem] items-center gap-3 rounded-[1.125rem] border border-border/70 bg-surface px-4 shadow-sm"
       >
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand/12">
-          <Search className="h-5 w-5 text-brand" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
-        </span>
+        <Search className="h-5 w-5 shrink-0 text-muted-foreground" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
         <span className="flex-1 text-base font-medium text-muted-foreground">{searchHint}</span>
-        <ArrowUpRight className="h-5 w-5 shrink-0 text-brand rtl-flip" strokeWidth={ICON_STROKE} aria-hidden="true" />
       </Link>
+
+      <div className="mt-4 flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+        {trustItems.map(({ icon: Icon, label }) => (
+          <TrustChip key={label} tone="success" icon={<Icon className="h-3 w-3 text-success" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />}>
+            {label}
+          </TrustChip>
+        ))}
+      </div>
     </header>
   );
 }

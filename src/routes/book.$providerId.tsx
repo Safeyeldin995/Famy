@@ -12,7 +12,7 @@ import { useActivePaymentMethods } from "@/lib/db/payment-methods-queries";
 import { useRequirementsForService } from "@/lib/db/provider-queries";
 import { toUIProvider } from "@/lib/db/adapters";
 import { currentLang } from "@/lib/i18n";
-import { MapPin, Banknote, Check, Loader2, Home, Briefcase, Users, Plus, Copy, Wallet, X } from "lucide-react";
+import { MapPin, Banknote, Check, Loader2, Home, Briefcase, Users, Plus, Copy, Wallet, X, Lock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { formatEGP, formatNumber } from "@/lib/format";
 import { toast } from "sonner";
@@ -361,20 +361,20 @@ function Book() {
 
   return (
     <PhoneFrame>
-      <div className="home-ink-panel safe-top px-5 pb-6 pt-3 text-ink-foreground">
+      <div className="home-hero-shell safe-top px-5 pb-4 pt-3">
         <TopBar back={typeof back === "function" ? back : { to: `/provider/${p.id}` }} transparent />
-        <div className="mt-4 flex items-center gap-3">
-          <Avatar src={p.avatar} alt={p.name} className="h-12 w-12 shrink-0 rounded-full ring-2 ring-white/25" />
+        <div className="mt-2 flex items-center gap-3">
+          <Avatar src={p.avatar} alt={p.name} className="h-12 w-12 shrink-0 rounded-full ring-2 ring-brand/20" />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-bold text-white">{p.name}</p>
-            <p className="text-xs text-white/70">{t(`bookFlow.stepName.${stepKeys[step]}`)}</p>
+            <p className="truncate text-sm font-bold text-foreground">{p.name}</p>
+            <p className="text-xs text-muted-foreground">{t(`bookFlow.stepName.${stepKeys[step]}`)}</p>
           </div>
         </div>
-        <div className="mt-4 flex items-center justify-between text-[11px] font-semibold text-white/70">
+        <div className="mt-4 flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
           <span>{t("bookFlow.stepLabel", { current: formatNumber(step + 1), total: formatNumber(stepKeys.length) })}</span>
           <span>{formatNumber(Math.round(((step + 1) / stepKeys.length) * 100))}%</span>
         </div>
-        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/15">
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-2">
           <div
             className="h-full rounded-full bg-brand transition-all duration-300"
             style={{ width: `${((step + 1) / stepKeys.length) * 100}%` }}
@@ -771,8 +771,8 @@ function Book() {
             <span className="text-lg font-extrabold text-navy">{formatEGP(total)}</span>
           </div>
         )}
-        <PrimaryButton variant={step === 9 ? "coral" : "navy"} onClick={next} disabled={!canNext() || createBooking.isPending}>
-          {createBooking.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : step === 9 ? t("bookFlow.payCta", { price: formatEGP(total) }) : step === 8 ? t("bookFlow.continueToPayment") : t("bookFlow.continue")}
+        <PrimaryButton onClick={next} disabled={!canNext() || createBooking.isPending}>
+          {createBooking.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : step === 9 ? (<><Lock className="h-4 w-4" aria-hidden="true" /> {t("bookFlow.payCta", { price: formatEGP(total) })}</>) : step === 8 ? t("bookFlow.continueToPayment") : t("bookFlow.continue")}
         </PrimaryButton>
       </div>
     </PhoneFrame>
