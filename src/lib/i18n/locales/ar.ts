@@ -72,6 +72,9 @@ const ar: Translation = {
     there: "بك",
     withName: "{{greeting}} {{name}}",
   },
+  splash: {
+    tagline: "مساعدة منزلية موثوقة، في الوقت الذي تحتاجها عائلتك.",
+  },
   onboarding: {
     skip: "تخطي",
     slide1Title: "محترفون موثوقون",
