@@ -40,7 +40,7 @@ export const REJECTED_PLAN_FINGERPRINT_V3 = "ef10ea3a2337d3d51b6a4191fd2cd09a3e1
  * @param {string} ownerUserId
  * @param {PlanRetained[]} retained
  */
-async function collectBookingChildIds(admin, bookingIds, ownerUserId, retained) {
+export async function collectBookingChildIds(admin, bookingIds, ownerUserId, retained) {
   /** @type {PlanDeletion[]} */
   const deletions = [];
 
