@@ -65,10 +65,20 @@ export async function probeOtpRpcs(
   return undefined;
 }
 
+function suffixHashDigits(suffix: string): string {
+  let hash = 0;
+  for (let i = 0; i < suffix.length; i += 1) {
+    hash = (hash * 31 + suffix.charCodeAt(i)) >>> 0;
+  }
+  return String(hash % 10_000).padStart(4, "0");
+}
+
 export function uniqueTestPhone(suffix = ""): string {
   const suffixDigits = suffix.replace(/\D/g, "");
-  const tail = `${Date.now()}${suffixDigits}`.slice(-8);
-  return `+2019${tail.padStart(8, "0").slice(-8)}`;
+  const hashPart = suffixHashDigits(suffix);
+  const timePart = String(Date.now() % 10_000).padStart(4, "0");
+  const tail = `${suffixDigits}${hashPart}${timePart}`.slice(-8).padStart(8, "0");
+  return `+2019${tail}`;
 }
 
 export async function cleanupOtpRows(supabase: SupabaseClient, phone: string): Promise<void> {
