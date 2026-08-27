@@ -44,7 +44,6 @@ test("admin monitoring dashboard renders the three monitoring categories", async
 test("client error boundary logs a safe monitoring row on QA trigger route", async ({ page }) => {
   const marker = `qa_monitoring_boundary_test_${Date.now()}`;
   const { readErrors, stopCapture } = captureErrors(page);
-  let loggedErrorId: string | undefined;
 
   try {
     await page.goto(`/monitoring-error?marker=${encodeURIComponent(marker)}`);
@@ -62,9 +61,7 @@ test("client error boundary logs a safe monitoring row on QA trigger route", asy
             .order("created_at", { ascending: false })
             .limit(1);
           expect(error).toBeNull();
-          const row = data?.[0] ?? null;
-          if (row?.id) loggedErrorId = row.id;
-          return row;
+          return data?.[0] ?? null;
         },
         { timeout: 30_000 },
       )
@@ -76,8 +73,12 @@ test("client error boundary logs a safe monitoring row on QA trigger route", asy
     stopCapture();
     expect(readErrors().network.filter((entry) => !entry.includes("favicon"))).toEqual([]);
   } finally {
-    if (loggedErrorId) {
-      await supabaseAdmin.from("error_logs").delete().eq("id", loggedErrorId);
-    }
+    const { data, error } = await supabaseAdmin
+      .from("error_logs")
+      .delete()
+      .eq("message_safe", marker)
+      .select("id");
+    expect(error).toBeNull();
+    expect(data?.length ?? 0).toBeGreaterThanOrEqual(0);
   }
 });

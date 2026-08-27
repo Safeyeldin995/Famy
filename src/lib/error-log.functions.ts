@@ -16,7 +16,7 @@ export const logClientErrorFn = createServerFn({ method: "POST" })
   .validator((data) => ClientErrorSchema.parse(data))
   .handler(async ({ data }) => {
     const { assertClientErrorLogRateLimit } = await import("./error-log-rate-limit.server");
-    if (!assertClientErrorLogRateLimit()) {
+    if (!(await assertClientErrorLogRateLimit())) {
       return { ok: true as const };
     }
 

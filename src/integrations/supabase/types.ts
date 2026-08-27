@@ -1234,6 +1234,24 @@ export type Database = {
         }
         Relationships: []
       }
+      error_log_rate_limits: {
+        Row: {
+          rate_key: string
+          request_count: number
+          window_start: string
+        }
+        Insert: {
+          rate_key: string
+          request_count?: number
+          window_start: string
+        }
+        Update: {
+          rate_key?: string
+          request_count?: number
+          window_start?: string
+        }
+        Relationships: []
+      }
       family_members: {
         Row: {
           access_notes: string | null
@@ -3308,6 +3326,14 @@ export type Database = {
           oldest_failed_payment_at: string | null
           recent_errors: number
         }[]
+      }
+      error_log_client_rate_limit_allow: {
+        Args: {
+          p_limit?: number
+          p_rate_key: string
+          p_window_seconds?: number
+        }
+        Returns: boolean
       }
       admin_operations_summary: {
         Args: never

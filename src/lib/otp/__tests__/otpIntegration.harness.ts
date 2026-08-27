@@ -66,7 +66,8 @@ export async function probeOtpRpcs(
 }
 
 export function uniqueTestPhone(suffix = ""): string {
-  const tail = `${Date.now()}${suffix}`.slice(-8);
+  const suffixDigits = suffix.replace(/\D/g, "");
+  const tail = `${Date.now()}${suffixDigits}`.slice(-8);
   return `+2019${tail.padStart(8, "0").slice(-8)}`;
 }
 

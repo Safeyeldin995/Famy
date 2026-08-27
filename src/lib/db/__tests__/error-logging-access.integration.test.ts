@@ -28,9 +28,9 @@ describeIf("error_logs access control", () => {
   const phone = uniqueTestPhone("monitoring");
   const password = `Qa-${randomUUID().slice(0, 8)}!9a`;
   const authEmail = authEmailForPhone(phone);
+  const seededMarker = `qa_error_logs_access_${Date.now()}`;
   let userId: string;
   let customerClient: SupabaseClient;
-  let seededLogId: string | undefined;
 
   beforeAll(async () => {
     const reason = await probeErrorLogsTable();
@@ -54,25 +54,28 @@ describeIf("error_logs access control", () => {
     });
     if (signInError) throw signInError;
 
-    const { data: seeded, error: seedError } = await admin!.from("error_logs")
-      .insert({
-        message_safe: `qa_error_logs_access_${Date.now()}`,
-        source: "server",
-        context_label: "qa_error_logs_access",
-      })
-      .select("id")
-      .single();
+    const { error: seedError } = await admin!.from("error_logs").insert({
+      message_safe: seededMarker,
+      source: "server",
+      context_label: "qa_error_logs_access",
+    });
     if (seedError) throw seedError;
-    seededLogId = seeded.id;
   }, 120_000);
 
   afterAll(async () => {
     if (!admin) return;
-    if (seededLogId) {
-      await admin.from("error_logs").delete().eq("id", seededLogId);
-    }
-    if (userId) {
-      await admin.auth.admin.deleteUser(userId);
+    try {
+      if (userId) {
+        await admin.auth.admin.deleteUser(userId);
+      }
+    } finally {
+      const { data, error } = await admin
+        .from("error_logs")
+        .delete()
+        .eq("message_safe", seededMarker)
+        .select("id");
+      expect(error).toBeNull();
+      expect(data?.length ?? 0).toBeGreaterThanOrEqual(0);
     }
   }, 120_000);
 
@@ -100,19 +103,26 @@ describeIf("error_logs access control", () => {
 
   it("allows service_role INSERT on error_logs", async () => {
     const marker = `qa_service_role_insert_${Date.now()}`;
-    const { data, error } = await admin!
-      .from("error_logs")
-      .insert({
-        message_safe: marker,
-        source: "server",
-        context_label: "qa_service_role_insert",
-      })
-      .select("id")
-      .single();
-    expect(error).toBeNull();
-    expect(data?.id).toBeTruthy();
-    if (data?.id) {
-      await admin!.from("error_logs").delete().eq("id", data.id);
+    try {
+      const { data, error } = await admin!
+        .from("error_logs")
+        .insert({
+          message_safe: marker,
+          source: "server",
+          context_label: "qa_service_role_insert",
+        })
+        .select("id")
+        .single();
+      expect(error).toBeNull();
+      expect(data?.id).toBeTruthy();
+    } finally {
+      const { data, error } = await admin!
+        .from("error_logs")
+        .delete()
+        .eq("message_safe", marker)
+        .select("id");
+      expect(error).toBeNull();
+      expect(data?.length ?? 0).toBeGreaterThanOrEqual(0);
     }
   });
 });

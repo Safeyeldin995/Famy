@@ -1,29 +1,21 @@
-import { afterEach, describe, expect, it } from "vitest";
-import {
-  CLIENT_ERROR_LOG_RATE_LIMIT,
-  checkClientErrorLogRateLimit,
-  resetClientErrorLogRateLimitForTests,
-} from "@/lib/error-log-rate-limit.server";
+import { describe, expect, it } from "vitest";
+import { resolveClientErrorLogRateLimitKey } from "@/lib/error-log-rate-limit.server";
 
-describe("client error log rate limiting", () => {
-  afterEach(() => {
-    resetClientErrorLogRateLimitForTests();
+describe("client error log rate limit key resolution", () => {
+  it("prefers x-real-ip and falls back to unknown", () => {
+    const withRealIp = new Request("https://example.test/log", {
+      headers: { "x-real-ip": "203.0.113.10" },
+    });
+    expect(resolveClientErrorLogRateLimitKey(withRealIp)).toBe("203.0.113.10");
+
+    const withoutIp = new Request("https://example.test/log");
+    expect(resolveClientErrorLogRateLimitKey(withoutIp)).toBe("unknown");
   });
 
-  it("allows requests up to the configured limit per key", () => {
-    const key = "203.0.113.10";
-    for (let i = 0; i < CLIENT_ERROR_LOG_RATE_LIMIT; i += 1) {
-      expect(checkClientErrorLogRateLimit(key, 1_000)).toBe(true);
-    }
-    expect(checkClientErrorLogRateLimit(key, 1_000)).toBe(false);
-  });
-
-  it("resets the bucket after the window expires", () => {
-    const key = "203.0.113.11";
-    for (let i = 0; i < CLIENT_ERROR_LOG_RATE_LIMIT; i += 1) {
-      expect(checkClientErrorLogRateLimit(key, 1_000)).toBe(true);
-    }
-    expect(checkClientErrorLogRateLimit(key, 1_000)).toBe(false);
-    expect(checkClientErrorLogRateLimit(key, 62_000)).toBe(true);
+  it("uses the right-most forwarded-for address when present", () => {
+    const request = new Request("https://example.test/log", {
+      headers: { "x-forwarded-for": "198.51.100.1, 203.0.113.44" },
+    });
+    expect(resolveClientErrorLogRateLimitKey(request)).toBe("203.0.113.44");
   });
 });

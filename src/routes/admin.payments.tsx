@@ -45,10 +45,12 @@ function AdminPayments() {
   const [status, setStatus] = useState<string>(
     typeof urlStatusFilter === "string" ? urlStatusFilter : "",
   );
+  const [urlFilterOverridden, setUrlFilterOverridden] = useState(false);
   const [query, setQuery] = useState("");
-  const activeStatusFilter = Array.isArray(urlStatusFilter)
-    ? urlStatusFilter
-    : status || undefined;
+  const activeStatusFilter =
+    Array.isArray(urlStatusFilter) && !urlFilterOverridden
+      ? urlStatusFilter
+      : status || undefined;
   const q = useAdminPayments(activeStatusFilter);
 
   const rows = useMemo(() => {
@@ -100,7 +102,10 @@ function AdminPayments() {
         </div>
         <select
           value={status}
-          onChange={(e) => setStatus(e.target.value)}
+          onChange={(e) => {
+            setUrlFilterOverridden(true);
+            setStatus(e.target.value);
+          }}
           className="focus-ring h-10 rounded-xl border border-border bg-surface px-3 text-sm"
         >
           <option value="">{t("admin.bookings.allStatuses")}</option>
