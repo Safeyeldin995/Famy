@@ -9,8 +9,9 @@ import { AdminQueryError } from "@/components/admin/AdminQueryError";
 
 export const Route = createFileRoute("/admin/payments")({
   component: AdminPayments,
-  validateSearch: (search: Record<string, unknown>): { status?: string } => ({
+  validateSearch: (search: Record<string, unknown>): { status?: string; statuses?: string } => ({
     ...(typeof search.status === "string" ? { status: search.status } : {}),
+    ...(typeof search.statuses === "string" ? { statuses: search.statuses } : {}),
   }),
 });
 
@@ -25,12 +26,30 @@ function statusTone(status: string) {
   return "bg-muted text-muted-foreground";
 }
 
+function resolvePaymentStatusFilter(search: { status?: string; statuses?: string }): string | string[] | undefined {
+  if (search.statuses) {
+    const statuses = search.statuses
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
+    if (statuses.length > 1) return statuses;
+    if (statuses.length === 1) return statuses[0];
+  }
+  return search.status || undefined;
+}
+
 function AdminPayments() {
   const { t } = useTranslation();
   const search = Route.useSearch();
-  const [status, setStatus] = useState<string>(search.status ?? "");
+  const urlStatusFilter = resolvePaymentStatusFilter(search);
+  const [status, setStatus] = useState<string>(
+    typeof urlStatusFilter === "string" ? urlStatusFilter : "",
+  );
   const [query, setQuery] = useState("");
-  const q = useAdminPayments(status || undefined);
+  const activeStatusFilter = Array.isArray(urlStatusFilter)
+    ? urlStatusFilter
+    : status || undefined;
+  const q = useAdminPayments(activeStatusFilter);
 
   const rows = useMemo(() => {
     const all = q.data ?? [];

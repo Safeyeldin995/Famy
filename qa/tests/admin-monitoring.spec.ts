@@ -44,42 +44,40 @@ test("admin monitoring dashboard renders the three monitoring categories", async
 test("client error boundary logs a safe monitoring row on QA trigger route", async ({ page }) => {
   const marker = `qa_monitoring_boundary_test_${Date.now()}`;
   const { readErrors, stopCapture } = captureErrors(page);
+  let loggedErrorId: string | undefined;
 
-  await page.goto(`/monitoring-error?marker=${encodeURIComponent(marker)}`);
-  await expect(page.getByText(/something went wrong|try again soon/i)).toBeVisible({
-    timeout: 20_000,
-  });
-
-  await expect
-    .poll(
-      async () => {
-        const { data, error } = await supabaseAdmin
-          .from("error_logs")
-          .select("id, message_safe, source, context_label")
-          .eq("message_safe", "qa_monitoring_boundary_test")
-          .order("created_at", { ascending: false })
-          .limit(1);
-        expect(error).toBeNull();
-        return data?.[0] ?? null;
-      },
-      { timeout: 30_000 },
-    )
-    .toMatchObject({
-      message_safe: "qa_monitoring_boundary_test",
-      source: "client",
+  try {
+    await page.goto(`/monitoring-error?marker=${encodeURIComponent(marker)}`);
+    await expect(page.getByText(/something went wrong|try again soon/i)).toBeVisible({
+      timeout: 20_000,
     });
 
-  const logged = await supabaseAdmin
-    .from("error_logs")
-    .select("id")
-    .eq("message_safe", "qa_monitoring_boundary_test")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (logged.data?.id) {
-    await supabaseAdmin.from("error_logs").delete().eq("id", logged.data.id);
-  }
+    await expect
+      .poll(
+        async () => {
+          const { data, error } = await supabaseAdmin
+            .from("error_logs")
+            .select("id, message_safe, source, context_label")
+            .eq("message_safe", marker)
+            .order("created_at", { ascending: false })
+            .limit(1);
+          expect(error).toBeNull();
+          const row = data?.[0] ?? null;
+          if (row?.id) loggedErrorId = row.id;
+          return row;
+        },
+        { timeout: 30_000 },
+      )
+      .toMatchObject({
+        message_safe: marker,
+        source: "client",
+      });
 
-  stopCapture();
-  expect(readErrors().network.filter((entry) => !entry.includes("favicon"))).toEqual([]);
+    stopCapture();
+    expect(readErrors().network.filter((entry) => !entry.includes("favicon"))).toEqual([]);
+  } finally {
+    if (loggedErrorId) {
+      await supabaseAdmin.from("error_logs").delete().eq("id", loggedErrorId);
+    }
+  }
 });

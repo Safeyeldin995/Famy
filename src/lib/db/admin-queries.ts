@@ -566,7 +566,7 @@ export function useAdminDashboardKpis() {
     },
   });
 }
-export function useAdminPayments(status?: string) {
+export function useAdminPayments(status?: string | string[]) {
   return useQuery({
     queryKey: ['admin', 'payments', status ?? 'all'],
     queryFn: async () => {
@@ -583,7 +583,11 @@ export function useAdminPayments(status?: string) {
         `)
         .order('created_at', { ascending: false })
         .limit(300);
-      if (status) q = q.eq('status', status as any);
+      if (Array.isArray(status)) {
+        if (status.length > 0) q = q.in('status', status as any);
+      } else if (status) {
+        q = q.eq('status', status as any);
+      }
       const { data, error } = await q;
       if (error) throw error;
       return data ?? [];

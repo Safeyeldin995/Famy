@@ -148,7 +148,7 @@ function AdminMonitoring() {
             description={t("admin.monitoring.failedPaymentsBody")}
             count={summary?.failed_payments ?? 0}
             to="/admin/payments"
-            search={{ status: "failed" }}
+            search={{ statuses: "failed,rejected" }}
           />
           <SummaryCard
             title={t("admin.monitoring.failedNotifications")}

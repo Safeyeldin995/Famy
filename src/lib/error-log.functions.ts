@@ -15,6 +15,11 @@ const ClientErrorSchema = z.object({
 export const logClientErrorFn = createServerFn({ method: "POST" })
   .validator((data) => ClientErrorSchema.parse(data))
   .handler(async ({ data }) => {
+    const { assertClientErrorLogRateLimit } = await import("./error-log-rate-limit.server");
+    if (!assertClientErrorLogRateLimit()) {
+      return { ok: true as const };
+    }
+
     const { logErrorEvent } = await import("./error-logging.server");
     await logErrorEvent({
       source: "client",

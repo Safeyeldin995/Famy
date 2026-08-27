@@ -60,11 +60,13 @@ export function useAdminMonitoringSummary() {
 
 export function useAdminRecentErrorLogs() {
   return useQuery({
-    queryKey: ["admin", "monitoring", "error-logs"],
+    queryKey: ["admin", "monitoring", "error-logs", MONITORING_WINDOW_DAYS],
     queryFn: async () => {
+      const since = new Date(Date.now() - MONITORING_WINDOW_DAYS * 86_400_000).toISOString();
       const { data, error } = await supabase
         .from("error_logs")
         .select("id, created_at, message_safe, source, context_route, context_label")
+        .gte("created_at", since)
         .order("created_at", { ascending: false })
         .limit(ROW_LIMIT);
       if (error) throw error;
