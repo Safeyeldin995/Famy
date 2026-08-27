@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-export const STALE_QA_SERVICES_PLAN_VERSION = "stale-inactive-qa-services-v2";
+export const STALE_QA_SERVICES_PLAN_VERSION = "stale-inactive-qa-services-v1";
 
 /**
  * @param {{
@@ -29,13 +29,6 @@ export const STALE_QA_SERVICES_PLAN_VERSION = "stale-inactive-qa-services-v2";
  *     phase?: string | null;
  *     resourceKey?: string | null;
  *   }>;
- *   overrideImmutableHistory?: boolean;
- *   immutableOverrideCounts?: {
- *     audit_logs: number;
- *     booking_cancellations: number;
- *     messages: number;
- *     conversations: number;
- *   };
  * }} payload
  */
 export function fingerprintStaleQaServicesPlan(payload) {
@@ -62,7 +55,7 @@ export function fingerprintStaleQaServicesPlan(payload) {
     }))
     .sort((a, b) =>
       `${a.phase}:${a.table}:${a.resourceKey ?? ""}:${a.keyCount}`.localeCompare(
-        `${b.phase}:${b.table}:${b.resourceKey ?? ""}:${b.keyCount}`,
+        `${b.phase}:${a.table}:${b.resourceKey ?? ""}:${b.keyCount}`,
       ),
     );
 
@@ -76,7 +69,7 @@ export function fingerprintStaleQaServicesPlan(payload) {
     }))
     .sort((a, b) =>
       `${a.phase ?? ""}:${a.table}:${a.id}:${a.reason}`.localeCompare(
-        `${b.phase ?? ""}:${b.table}:${b.id}:${b.reason}`,
+        `${b.phase ?? ""}:${a.table}:${b.id}:${b.reason}`,
       ),
     );
 
@@ -85,13 +78,6 @@ export function fingerprintStaleQaServicesPlan(payload) {
       JSON.stringify({
         version: STALE_QA_SERVICES_PLAN_VERSION,
         projectRef: payload.projectRef,
-        overrideImmutableHistory: payload.overrideImmutableHistory ?? false,
-        immutableOverrideCounts: payload.immutableOverrideCounts ?? {
-          audit_logs: 0,
-          booking_cancellations: 0,
-          messages: 0,
-          conversations: 0,
-        },
         services,
         deletions,
         retained,

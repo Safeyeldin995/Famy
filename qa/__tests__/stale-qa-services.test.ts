@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   STALE_QA_SERVICES_CONFIRM_VALUE,
-  STALE_QA_SERVICES_OVERRIDE_CONFIRM_VALUE,
   parseStaleQaServicesArgs,
 } from "../stale-qa-services-args.mjs";
 import { fingerprintStaleQaServicesPlan } from "../stale-qa-services-fingerprint.mjs";
@@ -10,10 +9,7 @@ import { KNOWN_QA_PROJECT_REF } from "../qa-identity.mjs";
 
 describe("stale QA services args", () => {
   it("defaults to dry-run", () => {
-    expect(parseStaleQaServicesArgs([])).toEqual({
-      mode: "dry-run",
-      overrideImmutableHistory: false,
-    });
+    expect(parseStaleQaServicesArgs([])).toEqual({ mode: "dry-run" });
   });
 
   it("requires confirm phrase and fingerprint for execute", () => {
@@ -27,21 +23,13 @@ describe("stale QA services args", () => {
     ).toBe("execute");
   });
 
-  it("rejects override flag without override confirm", () => {
+  it("rejects removed immutable-history override flags", () => {
     expect(parseStaleQaServicesArgs(["--override-immutable-history"]).mode).toBe("rejected");
-  });
-
-  it("accepts override only when both override flags are present", () => {
     expect(
       parseStaleQaServicesArgs([
-        "--override-immutable-history",
-        `--override-confirm=${STALE_QA_SERVICES_OVERRIDE_CONFIRM_VALUE}`,
-      ]),
-    ).toEqual({
-      mode: "dry-run",
-      overrideImmutableHistory: true,
-      overrideConfirmValue: STALE_QA_SERVICES_OVERRIDE_CONFIRM_VALUE,
-    });
+        "--override-confirm=I-UNDERSTAND-THIS-PERMANENTLY-DELETES-QA-AUDIT-HISTORY",
+      ]).mode,
+    ).toBe("rejected");
   });
 
   it("rejects dangerous flags", () => {
@@ -85,13 +73,6 @@ describe("stale QA services fingerprint", () => {
   it("is stable for identical plans", () => {
     const payload = {
       projectRef: KNOWN_QA_PROJECT_REF,
-      overrideImmutableHistory: false,
-      immutableOverrideCounts: {
-        audit_logs: 0,
-        booking_cancellations: 0,
-        messages: 0,
-        conversations: 0,
-      },
       services: [
         {
           id: "11111111-1111-1111-1111-111111111111",
@@ -112,29 +93,5 @@ describe("stale QA services fingerprint", () => {
     const second = fingerprintStaleQaServicesPlan(payload);
     expect(first).toMatch(/^[a-f0-9]{64}$/);
     expect(second).toBe(first);
-  });
-
-  it("changes when override mode is enabled", () => {
-    const base = {
-      projectRef: KNOWN_QA_PROJECT_REF,
-      services: [],
-      deletions: [],
-      retained: [],
-      immutableOverrideCounts: {
-        audit_logs: 1,
-        booking_cancellations: 2,
-        messages: 3,
-        conversations: 4,
-      },
-    };
-    const withoutOverride = fingerprintStaleQaServicesPlan({
-      ...base,
-      overrideImmutableHistory: false,
-    });
-    const withOverride = fingerprintStaleQaServicesPlan({
-      ...base,
-      overrideImmutableHistory: true,
-    });
-    expect(withoutOverride).not.toBe(withOverride);
   });
 });
