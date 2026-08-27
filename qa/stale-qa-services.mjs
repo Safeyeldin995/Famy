@@ -45,11 +45,32 @@ function printDryRunSummary(plan) {
   console.log("[qa-stale-services:dry-run] No data was modified.");
   console.log(`[qa-stale-services:dry-run] plan_version=${plan.version}`);
   console.log(`[qa-stale-services:dry-run] masked_project_ref=${plan.maskedProjectRef}`);
+  console.log(
+    `[qa-stale-services:dry-run] override_immutable_history=${plan.overrideImmutableHistory ? "true" : "false"}`,
+  );
   console.log(`[qa-stale-services:dry-run] service_targets=${plan.counts.service_targets}`);
   console.log(`[qa-stale-services:dry-run] deletable_services=${plan.counts.deletable_services}`);
   console.log(`[qa-stale-services:dry-run] retained_services=${plan.counts.retained_services}`);
   console.log(`[qa-stale-services:dry-run] planned_deletions=${plan.counts.planned_deletions}`);
   console.log(`[qa-stale-services:dry-run] planned_tables=${plan.counts.planned_tables}`);
+
+  if (plan.overrideImmutableHistory) {
+    console.log("[qa-stale-services:dry-run] *** IMMUTABLE HISTORY OVERRIDE ACTIVE ***");
+    console.log(
+      `[qa-stale-services:dry-run] OVERRIDE_PERMANENT_DELETE_audit_logs=${plan.immutableOverrideCounts.audit_logs}`,
+    );
+    console.log(
+      `[qa-stale-services:dry-run] OVERRIDE_PERMANENT_DELETE_booking_cancellations=${plan.immutableOverrideCounts.booking_cancellations}`,
+    );
+    console.log(
+      `[qa-stale-services:dry-run] OVERRIDE_PERMANENT_DELETE_messages=${plan.immutableOverrideCounts.messages}`,
+    );
+    console.log(
+      `[qa-stale-services:dry-run] OVERRIDE_PERMANENT_DELETE_conversations=${plan.immutableOverrideCounts.conversations}`,
+    );
+    console.log("[qa-stale-services:dry-run] *** END IMMUTABLE HISTORY OVERRIDE COUNTS ***");
+  }
+
   console.log(`[qa-stale-services:dry-run] plan_fingerprint=${plan.fingerprint}`);
 
   for (const row of plan.deletionSummary) {
@@ -68,9 +89,15 @@ function printDryRunSummary(plan) {
     );
   }
 
-  console.log(
-    "[qa-stale-services:dry-run] Execute requires: --execute --confirm=I-UNDERSTAND-QA-STALE-SERVICE-CLEANUP --plan-fingerprint=<fingerprint>",
-  );
+  if (plan.overrideImmutableHistory) {
+    console.log(
+      "[qa-stale-services:dry-run] Execute requires: --execute --confirm=I-UNDERSTAND-QA-STALE-SERVICE-CLEANUP --override-immutable-history --override-confirm=I-UNDERSTAND-THIS-PERMANENTLY-DELETES-QA-AUDIT-HISTORY --plan-fingerprint=<fingerprint>",
+    );
+  } else {
+    console.log(
+      "[qa-stale-services:dry-run] Execute requires: --execute --confirm=I-UNDERSTAND-QA-STALE-SERVICE-CLEANUP --plan-fingerprint=<fingerprint>",
+    );
+  }
 }
 
 /**
@@ -80,6 +107,9 @@ function printExecuteSummary(payload) {
   const { plan, execution, success } = payload;
   console.log(`[qa-stale-services:execute] plan_version=${plan.version}`);
   console.log(`[qa-stale-services:execute] plan_fingerprint=${plan.fingerprint}`);
+  console.log(
+    `[qa-stale-services:execute] override_immutable_history=${plan.overrideImmutableHistory ? "true" : "false"}`,
+  );
   console.log(`[qa-stale-services:execute] success=${success ? "true" : "false"}`);
   console.log(
     `[qa-stale-services:execute] planned_deletions=${plan.counts.planned_deletions}:deletable_services=${plan.counts.deletable_services}`,
@@ -91,11 +121,14 @@ function printExecuteSummary(payload) {
   }
 }
 
-export async function runStaleQaServicesDryRun() {
+/**
+ * @param {{ overrideImmutableHistory?: boolean }} [options]
+ */
+export async function runStaleQaServicesDryRun(options = {}) {
   guardBeforeStaleQaServicesRead();
   const admin = getSupabaseAdmin();
   const projectRef = parseSupabaseProjectRef(process.env.QA_SUPABASE_URL);
-  const plan = await buildStaleQaServicesPlanFromAdmin(admin, projectRef);
+  const plan = await buildStaleQaServicesPlanFromAdmin(admin, projectRef, options);
   const report = sanitizeStaleQaServicesPlanForReport(plan);
   writeStaleQaServicesPlanReport(report);
   printDryRunSummary(plan);
@@ -103,13 +136,13 @@ export async function runStaleQaServicesDryRun() {
 }
 
 /**
- * @param {{ planFingerprint?: string }} [options]
+ * @param {{ planFingerprint?: string; overrideImmutableHistory?: boolean }} [options]
  */
 export async function runStaleQaServicesExecute(options = {}) {
   guardBeforeStaleQaServicesWrite();
   const admin = getSupabaseAdmin();
   const projectRef = parseSupabaseProjectRef(process.env.QA_SUPABASE_URL);
-  const freshPlan = await buildStaleQaServicesPlanFromAdmin(admin, projectRef);
+  const freshPlan = await buildStaleQaServicesPlanFromAdmin(admin, projectRef, options);
   assertStaleQaServicesPlanApproved(freshPlan, options.planFingerprint);
   const execution = await executeStaleQaServicesPlan(admin, freshPlan);
   const payload = { plan: freshPlan, execution, success: execution.success };
@@ -130,12 +163,19 @@ export async function main(argv = process.argv.slice(2)) {
       return 1;
     }
 
+    const planOptions = {
+      overrideImmutableHistory: parsed.overrideImmutableHistory ?? false,
+    };
+
     if (parsed.mode === "dry-run") {
-      await runStaleQaServicesDryRun();
+      await runStaleQaServicesDryRun(planOptions);
       return 0;
     }
 
-    const payload = await runStaleQaServicesExecute({ planFingerprint: parsed.planFingerprint });
+    const payload = await runStaleQaServicesExecute({
+      planFingerprint: parsed.planFingerprint,
+      ...planOptions,
+    });
     return payload.success ? 0 : 1;
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
