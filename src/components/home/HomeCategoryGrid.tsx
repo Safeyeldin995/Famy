@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
+import { QueryError } from "@/components/famio/QueryError";
 import { CategoryIcon } from "@/components/home/CategoryIcon";
 import { formatEGP } from "@/lib/utils";
 import { ArrowRight } from "lucide-react";
@@ -13,11 +14,23 @@ type CategoryItem = {
 export function HomeCategoryGrid({
   categories,
   loading,
+  error,
+  onRetry,
 }: {
   categories: CategoryItem[];
   loading: boolean;
+  error?: boolean;
+  onRetry?: () => void;
 }) {
   const { t } = useTranslation();
+
+  if (!loading && error && onRetry) {
+    return (
+      <section className="px-5 pt-4">
+        <QueryError compact onRetry={onRetry} />
+      </section>
+    );
+  }
 
   return (
     <section className="px-5 pt-4">

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { ProviderShell } from "@/components/famio/ProviderShell";
 import { TopBar, Card, PrimaryButton, Avatar } from "@/components/famio/ui";
+import { QueryError } from "@/components/famio/QueryError";
 import { supabase } from "@/integrations/supabase/client";
 import { useAvatarUrl } from "@/lib/db/queries";
 import { useServiceAreasSettings } from "@/lib/db/settings-queries";
@@ -91,6 +92,18 @@ function ProProfile() {
   };
 
 
+
+  if (p.isLoading) {
+    return <ProviderShell><div className="p-8 text-center text-sm">{t("pro.common.loading")}</div></ProviderShell>;
+  }
+
+  if (p.isError) {
+    return (
+      <ProviderShell>
+        <QueryError onRetry={() => p.refetch()} />
+      </ProviderShell>
+    );
+  }
 
   if (!provider) return <ProviderShell><div className="p-8 text-center text-sm">{t("pro.common.loading")}</div></ProviderShell>;
 
@@ -194,7 +207,11 @@ function ProProfile() {
               {eligibilityQ.data?.some((row) => row.is_eligible) ? t("common.yes", "Yes") : t("common.no", "No")}
             </span>
           </div>
-          {eligibilityQ.isLoading ? <div className="mt-2 h-10 animate-pulse rounded-xl bg-muted" /> : (
+          {eligibilityQ.isLoading ? <div className="mt-2 h-10 animate-pulse rounded-xl bg-muted" /> : eligibilityQ.isError ? (
+            <div className="mt-2">
+              <QueryError compact onRetry={() => eligibilityQ.refetch()} />
+            </div>
+          ) : (
             <div className="mt-2 space-y-2">
               {(eligibilityQ.data ?? []).map((row) => <div key={row.service_id} className="rounded-xl border border-border/60 p-2 text-xs">
                 <div className="font-bold">{lang === "ar" ? row.service_name_ar : row.service_name_en}</div>
@@ -217,6 +234,11 @@ function ProProfile() {
               <Field label={t("pro.onboarding.rate")}><input type="number" min={0} value={rate} onChange={(e) => setRate(Number(e.target.value))} className="h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm" /></Field>
             </div>
             <Field label={t("pro.onboarding.city")}>
+              {areasQ.isError ? (
+                <div className="mt-2">
+                  <QueryError compact onRetry={() => areasQ.refetch()} />
+                </div>
+              ) : (
               <div className="grid grid-cols-2 gap-2">
                 {cityOptions.map((c) => (
                   <button
@@ -231,6 +253,7 @@ function ProProfile() {
                   </button>
                 ))}
               </div>
+              )}
             </Field>
             <PrimaryButton onClick={handleSave} disabled={update.isPending}>{update.isPending ? t("pro.common.saving") : t("pro.common.save")}</PrimaryButton>
             {update.isSuccess && <div className="text-center text-xs font-semibold text-success">{t("pro.common.saved")}</div>}
@@ -240,6 +263,9 @@ function ProProfile() {
         {/* Services */}
         <div>
           <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">{t("pro.profile.servicesOffer")}</h2>
+          {services.isError || mine.isError ? (
+            <QueryError compact onRetry={() => { void services.refetch(); void mine.refetch(); }} />
+          ) : (
           <Card className="divide-y divide-border">
             {(services.data ?? []).map((s: any) => {
               const on = myIds.has(s.id);
@@ -325,6 +351,7 @@ function ProProfile() {
               );
             })}
           </Card>
+          )}
         </div>
 
         {/* Links */}

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { PhoneFrame, PrimaryButton, TopBar, Avatar } from "@/components/famio/ui";
+import { QueryError } from "@/components/famio/QueryError";
 import { useApp } from "@/lib/store";
 import { useUpdateProfile, useCreateAddress, useUpdateAddress, useAddresses, useMyProfile, useAvatarUrl } from "@/lib/db/queries";
 import { useServiceAreasSettings } from "@/lib/db/settings-queries";
@@ -83,6 +84,33 @@ function Setup() {
   const update = (k: keyof typeof form, v: string) => setForm({ ...form, [k]: v });
   const valid = form.name.trim().length > 1 && form.address.trim().length > 2 && form.area.trim().length > 0;
   const saving = updateProfile.isPending || createAddress.isPending || updateAddress.isPending;
+
+  if (myProfile.isLoading || existingAddresses.isLoading || areasQ.isLoading) {
+    return (
+      <PhoneFrame bg="bg-surface">
+        <TopBar back={{ to: "/profile" }} title={t("setup.title")} />
+        <div className="grid flex-1 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-navy" /></div>
+      </PhoneFrame>
+    );
+  }
+
+  if (myProfile.isError) {
+    return (
+      <PhoneFrame bg="bg-surface">
+        <TopBar back={{ to: "/profile" }} title={t("setup.title")} />
+        <QueryError onRetry={() => myProfile.refetch()} />
+      </PhoneFrame>
+    );
+  }
+
+  if (existingAddresses.isError) {
+    return (
+      <PhoneFrame bg="bg-surface">
+        <TopBar back={{ to: "/profile" }} title={t("setup.title")} />
+        <QueryError onRetry={() => existingAddresses.refetch()} />
+      </PhoneFrame>
+    );
+  }
 
   const submit = async () => {
     if (!valid || saving) return;
@@ -167,6 +195,11 @@ function Setup() {
 
         <div>
           <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">{t("setup.area")}</label>
+          {areasQ.isError ? (
+            <div className="mt-2">
+              <QueryError compact onRetry={() => areasQ.refetch()} />
+            </div>
+          ) : (
           <div className="mt-2 grid grid-cols-2 gap-3">
             {areaOptions.map((a) => (
               <button
@@ -181,6 +214,7 @@ function Setup() {
               </button>
             ))}
           </div>
+          )}
         </div>
 
         <Field label={t("setup.compound")} value={form.compound} onChange={(v) => update("compound", v)} placeholder={t("setup.compoundPlaceholder")} />

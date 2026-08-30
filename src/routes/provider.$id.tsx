@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { PhoneFrame, TopBar, PrimaryButton, EmptyState, Avatar, StatusPill } from "@/components/famio/ui";
+import { QueryError } from "@/components/famio/QueryError";
 import { useDefaultAddress, useProvider, useProviderReviews, useFavoriteIds, useToggleFavorite } from "@/lib/db/queries";
 import { toUIProvider } from "@/lib/db/adapters";
 import { useTranslation } from "react-i18next";
@@ -26,6 +27,14 @@ function ProviderProfile() {
 
   if (provQ.isLoading) {
     return <PhoneFrame><div className="px-5 py-10"><div className="h-72 rounded-3xl bg-surface animate-pulse" /></div></PhoneFrame>;
+  }
+  if (provQ.isError) {
+    return (
+      <PhoneFrame>
+        <TopBar back={{ to: "/home" }} />
+        <QueryError onRetry={() => provQ.refetch()} />
+      </PhoneFrame>
+    );
   }
   if (!provQ.data) {
     return <PhoneFrame><TopBar back={{ to: "/home" }} /><EmptyState icon="user-x" title={t("provider2.notFound")} /></PhoneFrame>;
@@ -138,7 +147,9 @@ function ProviderProfile() {
           </ProfileSection>
           
           <ProfileSection title={t("providerProfile.reviewsCount", { count: reviews.length })}>
-            {reviews.length === 0 ? (
+            {reviewsQ.isError ? (
+              <QueryError compact onRetry={() => reviewsQ.refetch()} />
+            ) : reviews.length === 0 ? (
               <p className="text-sm text-muted-foreground">{t("providerProfile.noReviews")}</p>
             ) : (
               <div className="space-y-3">

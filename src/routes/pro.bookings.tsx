@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ProviderShell } from "@/components/famio/ProviderShell";
 import { TopBar, SegmentedControl, Card, EmptyState, Avatar, StatusPill } from "@/components/famio/ui";
+import { QueryError } from "@/components/famio/QueryError";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { useMyProvider, useProviderBookings } from "@/lib/db/provider-queries";
 import { formatEGP, BOOKING_ACTIVE_STATUSES } from "@/lib/utils";
@@ -39,6 +40,24 @@ function ProBookings() {
     };
   }, [q.data]);
 
+  if (p.isLoading) {
+    return (
+      <ProviderShell>
+        <div className="px-5 py-20">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-navy/20 border-t-navy" />
+        </div>
+      </ProviderShell>
+    );
+  }
+
+  if (p.isError) {
+    return (
+      <ProviderShell>
+        <QueryError onRetry={() => p.refetch()} />
+      </ProviderShell>
+    );
+  }
+
   const list = lists[tab];
   const tabLabel = t(`pro.bookings.${tab}`);
   const emptyBody =
@@ -66,6 +85,8 @@ function ProBookings() {
       <div className="space-y-4 px-5 pb-28">
         {q.isLoading ? (
           Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-28 animate-pulse rounded-[2rem] bg-surface-2" />)
+        ) : q.isError ? (
+          <QueryError onRetry={() => q.refetch()} />
         ) : list.length === 0 ? (
           <EmptyState icon={tab === "requests" ? "inbox" : "calendar"} title={t("pro.bookings.empty", { tab: tabLabel })} body={emptyBody} />
         ) : (

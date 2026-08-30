@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PhoneFrame, TopBar, Card } from "@/components/famio/ui";
+import { QueryError } from "@/components/famio/QueryError";
 import { usePlatformContent, type PlatformContentKey } from "@/lib/db/settings-queries";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { useTranslation } from "react-i18next";
@@ -33,6 +34,8 @@ function ContentPage() {
         <Card className="p-5">
           {q.isLoading ? (
             <div className="h-40 animate-pulse rounded-xl bg-muted" />
+          ) : q.isError ? (
+            <QueryError compact onRetry={() => q.refetch()} />
           ) : body ? (
             <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{body}</p>
           ) : (

@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PhoneFrame, TopBar, Chip, EmptyState } from "@/components/famio/ui";
+import { QueryError } from "@/components/famio/QueryError";
 import { ProviderCard } from "@/components/famio/ProviderCard";
 import { useCategories, useMarketplaceServices, useProviders } from "@/lib/db/queries";
 import { toUICategory, toUIProvider } from "@/lib/db/adapters";
@@ -48,8 +49,21 @@ function CategoryPage() {
       </div>
 
       <div className="-mt-4 flex-1 rounded-t-3xl bg-surface-2 px-5 pt-5 pb-24">
+        {catsQ.isError ? (
+          <div className="mb-4">
+            <QueryError compact onRetry={() => catsQ.refetch()} />
+          </div>
+        ) : null}
+
         <label className="mb-4 block text-[11px] font-bold text-muted-foreground">
           {t("search2.service", "Service")}
+          {servicesQ.isLoading ? (
+            <div className="mt-1 h-11 animate-pulse rounded-xl bg-surface" />
+          ) : servicesQ.isError ? (
+            <div className="mt-2">
+              <QueryError compact onRetry={() => servicesQ.refetch()} />
+            </div>
+          ) : (
           <select
             aria-label={t("search2.service", "Service")}
             value={serviceId}
@@ -58,6 +72,7 @@ function CategoryPage() {
           >
             {(servicesQ.data ?? []).map((service: any) => <option key={service.id} value={service.id}>{service.name_en}</option>)}
           </select>
+          )}
         </label>
         <div className="mb-4 flex items-center justify-between">
           <div className="text-sm font-bold">
@@ -79,6 +94,8 @@ function CategoryPage() {
           <div className="space-y-3">
             {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-24 rounded-3xl bg-surface animate-pulse" />)}
           </div>
+        ) : provsQ.isError ? (
+          <QueryError onRetry={() => provsQ.refetch()} />
         ) : sorted.length === 0 ? (
           <EmptyState
             icon="search"

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { PhoneFrame, TopBar } from "@/components/famio/ui";
+import { QueryError } from "@/components/famio/QueryError";
 import { OnboardingWizard } from "@/components/provider/OnboardingWizard";
 import { useMyProvider } from "@/lib/db/provider-queries";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +31,15 @@ function OnboardingRoute() {
         <div className="grid min-h-[50vh] place-items-center">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-navy/20 border-t-navy" />
         </div>
+      </PhoneFrame>
+    );
+  }
+
+  if (providerQ.isError) {
+    return (
+      <PhoneFrame>
+        <TopBar back={{ to: "/pro" }} title={t("pro.onboardingWizard.title")} />
+        <QueryError onRetry={() => providerQ.refetch()} />
       </PhoneFrame>
     );
   }

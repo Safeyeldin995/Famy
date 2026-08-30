@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ProviderShell } from "@/components/famio/ProviderShell";
 import { TopBar, Card, PrimaryButton } from "@/components/famio/ui";
+import { QueryError } from "@/components/famio/QueryError";
 import {
   useMyProvider,
   useProviderAvailability,
@@ -68,6 +69,18 @@ function AvailabilityPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [provider?.id]);
 
+  if (p.isLoading) {
+    return <ProviderShell><div className="p-8 text-center text-sm">{t("pro.common.loading")}</div></ProviderShell>;
+  }
+
+  if (p.isError) {
+    return (
+      <ProviderShell>
+        <QueryError onRetry={() => p.refetch()} />
+      </ProviderShell>
+    );
+  }
+
   if (!provider) return <ProviderShell><div className="p-8 text-center text-sm">{t("pro.common.loading")}</div></ProviderShell>;
 
   const handleSave = () => {
@@ -118,6 +131,9 @@ function AvailabilityPage() {
 
         <div>
           <h2 className="mb-3 px-1 text-sm font-extrabold tracking-tight text-foreground">{t("pro.schedule.weeklyHours")}</h2>
+          {availQ.isError ? (
+            <QueryError compact onRetry={() => availQ.refetch()} />
+          ) : (
           <Card className="divide-y divide-border/50 noPad">
             {rows.map((r) => (
               <div key={r.weekday} className="flex items-center gap-3 px-5 py-4">
@@ -147,7 +163,8 @@ function AvailabilityPage() {
               </div>
             ))}
           </Card>
-          <PrimaryButton onClick={handleSave} disabled={save.isPending} className="mt-4">
+          )}
+          <PrimaryButton onClick={handleSave} disabled={save.isPending || availQ.isError} className="mt-4">
             {save.isPending ? t("pro.common.saving") : t("pro.schedule.saveSchedule")}
           </PrimaryButton>
           {save.isSuccess && <div className="mt-3 text-center text-xs font-bold text-success">{t("pro.common.saved")}</div>}
@@ -155,6 +172,9 @@ function AvailabilityPage() {
 
         <div>
           <h2 className="mb-3 px-1 text-sm font-extrabold tracking-tight text-foreground">{t("pro.schedule.vacations")}</h2>
+          {vacQ.isError ? (
+            <QueryError compact onRetry={() => vacQ.refetch()} />
+          ) : (
           <Card className="p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
               <div className="flex-1">
@@ -178,10 +198,14 @@ function AvailabilityPage() {
               </ul>
             )}
           </Card>
+          )}
         </div>
 
         <div>
           <h2 className="mb-3 px-1 text-sm font-extrabold tracking-tight text-foreground">{t("pro.schedule.holidays")}</h2>
+          {excQ.isError ? (
+            <QueryError compact onRetry={() => excQ.refetch()} />
+          ) : (
           <Card className="p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
               <div className="flex-1">
@@ -208,6 +232,7 @@ function AvailabilityPage() {
               </ul>
             )}
           </Card>
+          )}
         </div>
 
         <div>

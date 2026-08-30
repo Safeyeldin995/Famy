@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { PhoneFrame, TopBar } from "@/components/famio/ui";
+import { QueryError } from "@/components/famio/QueryError";
 import { AddressForm, addressFormValueToInput, emptyAddressFormValue } from "@/components/famio/AddressForm";
 import { useAddresses, useCreateAddress } from "@/lib/db/queries";
 
@@ -30,6 +31,9 @@ function NewAddress() {
     <PhoneFrame bg="bg-surface">
       <TopBar back={{ to: "/addresses" }} title={t("addresses.addAddress", "Add address")} />
       <div className="flex-1 px-6 pb-10 pt-2">
+        {addressesQ.isError ? (
+          <QueryError onRetry={() => addressesQ.refetch()} />
+        ) : (
         <AddressForm
           value={value}
           onChange={setValue}
@@ -37,6 +41,7 @@ function NewAddress() {
           submitting={createAddress.isPending}
           submitLabel={t("common.save")}
         />
+        )}
       </div>
     </PhoneFrame>
   );
