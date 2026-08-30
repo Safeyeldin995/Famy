@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { PhoneFrame, TopBar, ErrorState } from "@/components/famio/ui";
+import { QueryError } from "@/components/famio/QueryError";
 import { AddressForm, addressFormValueToInput, addressRowToFormValue, emptyAddressFormValue, type AddressFormValue } from "@/components/famio/AddressForm";
 import { useAddress, useUpdateAddress } from "@/lib/db/queries";
 
@@ -40,6 +41,14 @@ function EditAddress() {
       <PhoneFrame>
         <TopBar back={{ to: "/addresses" }} title={t("common.edit")} />
         <div className="grid flex-1 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-navy" /></div>
+      </PhoneFrame>
+    );
+  }
+  if (addressQ.isError) {
+    return (
+      <PhoneFrame>
+        <TopBar back={{ to: "/addresses" }} title={t("common.edit")} />
+        <QueryError onRetry={() => addressQ.refetch()} />
       </PhoneFrame>
     );
   }

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyProvider, useMyRole } from "@/lib/db/provider-queries";
 import { PhoneFrame } from "@/components/famio/ui";
+import { QueryError } from "@/components/famio/QueryError";
 
 export const Route = createFileRoute("/pro")({ component: ProviderLayout });
 
@@ -44,6 +45,22 @@ function ProviderLayout() {
         <div className="grid min-h-dvh place-items-center px-8">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-navy/20 border-t-navy" />
         </div>
+      </PhoneFrame>
+    );
+  }
+
+  if (role.isError) {
+    return (
+      <PhoneFrame>
+        <QueryError onRetry={() => role.refetch()} />
+      </PhoneFrame>
+    );
+  }
+
+  if (provider.isError) {
+    return (
+      <PhoneFrame>
+        <QueryError onRetry={() => provider.refetch()} />
       </PhoneFrame>
     );
   }

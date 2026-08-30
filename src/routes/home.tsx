@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AppShell, Avatar } from "@/components/famio/ui";
+import { QueryError } from "@/components/famio/QueryError";
 import { HomeCategoryGrid } from "@/components/home/HomeCategoryGrid";
 import { HomePromos } from "@/components/home/HomePromoStrip";
 import { HomeRebookRow } from "@/components/home/HomeRebookRow";
@@ -60,14 +61,16 @@ function Home() {
             className="focus-ring tap-scale inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1.5 text-xs font-bold text-foreground"
           >
             <MapPin className="h-3.5 w-3.5" strokeWidth={ICON_STROKE_BOLD} />
-            <span className="max-w-[12rem] truncate">{addressQ.data?.area || t("common.location")}</span>
+            <span className="max-w-[12rem] truncate">
+              {addressQ.isError ? t("common.location") : addressQ.data?.area || t("common.location")}
+            </span>
           </Link>
           <Link
             to="/notifications"
             className="focus-ring tap-scale relative grid h-10 w-10 place-items-center rounded-full bg-surface-2 text-foreground"
           >
             <Bell className="h-4 w-4" strokeWidth={ICON_STROKE} />
-            {unread && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-brand ring-2 ring-background" />}
+            {!unreadQ.isError && unread && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-brand ring-2 ring-background" />}
           </Link>
         </div>
 
@@ -77,6 +80,22 @@ function Home() {
             {first}.
           </h1>
         </div>
+
+        {profileQ.isError && (
+          <div className="mt-4">
+            <QueryError compact onRetry={() => profileQ.refetch()} />
+          </div>
+        )}
+        {addressQ.isError && (
+          <div className="mt-4">
+            <QueryError compact onRetry={() => addressQ.refetch()} />
+          </div>
+        )}
+        {unreadQ.isError && (
+          <div className="mt-4">
+            <QueryError compact onRetry={() => unreadQ.refetch()} />
+          </div>
+        )}
 
         <Link
           to="/search"
@@ -88,14 +107,26 @@ function Home() {
       </header>
 
       {/* Grid of categories using photo-driven look or ultra-minimal icons */}
-      <HomeCategoryGrid categories={cats} loading={catsQ.isLoading} />
+      <HomeCategoryGrid
+        categories={cats}
+        loading={catsQ.isLoading}
+        error={catsQ.isError}
+        onRetry={() => catsQ.refetch()}
+      />
 
-      <HomePromos offers={featuredPromosQ.data ?? []} />
+      {featuredPromosQ.isLoading ? null : featuredPromosQ.isError ? (
+        <div className="mt-8 px-5">
+          <QueryError compact onRetry={() => featuredPromosQ.refetch()} />
+        </div>
+      ) : (
+        <HomePromos offers={featuredPromosQ.data ?? []} />
+      )}
 
       <HomeRebookRow
         providers={rebookProviders}
         loading={bookingsQ.isLoading}
         error={bookingsQ.isError}
+        onRetry={() => bookingsQ.refetch()}
       />
 
       {/* Horizontal scrolling featured pros (large portrait cards) */}
@@ -104,7 +135,16 @@ function Home() {
           <h2 className="text-lg font-extrabold tracking-tight text-foreground">{t("home.featured")}</h2>
         </div>
         <div className="flex gap-4 overflow-x-auto px-5 pb-4 no-scrollbar">
-          {featured.map((p) => (
+          {provsQ.isLoading ? (
+            Array.from({ length: 3 }).map((_, index) => (
+              <div key={index} className="h-64 w-48 shrink-0 animate-pulse rounded-[2rem] bg-surface-2" />
+            ))
+          ) : provsQ.isError ? (
+            <div className="w-full py-4">
+              <QueryError compact onRetry={() => provsQ.refetch()} />
+            </div>
+          ) : (
+          featured.map((p) => (
             <Link
               key={p.id}
               to="/provider/$id"
@@ -121,7 +161,8 @@ function Home() {
                 </div>
               </div>
             </Link>
-          ))}
+          ))
+          )}
         </div>
       </section>
     </AppShell>

@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
+import { QueryError } from "@/components/famio/QueryError";
 import { ProviderListRow, ProviderRatingMeta } from "@/components/famio/ProviderListRow";
-import { EmptyState } from "@/components/famio/ui";
 import type { UIProvider } from "@/lib/db/adapters";
 import { formatEGP } from "@/lib/utils";
 
@@ -8,10 +8,12 @@ export function HomeRebookRow({
   providers,
   loading,
   error,
+  onRetry,
 }: {
   providers: UIProvider[];
   loading: boolean;
   error: boolean;
+  onRetry?: () => void;
 }) {
   const { t } = useTranslation();
 
@@ -30,8 +32,8 @@ export function HomeRebookRow({
             <div key={index} className="h-[4.75rem] animate-pulse rounded-[1.25rem] bg-muted" />
           ))}
         </div>
-      ) : error ? (
-        <EmptyState icon="alert" title={t("common.errorTitle")} body={t("common.tryAgain")} />
+      ) : error && onRetry ? (
+        <QueryError compact onRetry={onRetry} />
       ) : (
         <div className="space-y-2">
           {providers.map((provider) => (

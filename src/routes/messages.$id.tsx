@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PhoneFrame } from "@/components/famio/ui";
+import { QueryError } from "@/components/famio/QueryError";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Send, ShieldCheck } from "lucide-react";
@@ -41,6 +42,30 @@ function Chat() {
   const otherName = other?.full_name || t("profile.famioUser");
   const otherAvatar = other?.avatar_url;
   const sendFailedMsg = t("messages.sendFailed");
+
+  if (conv.isLoading || msgs.isLoading) {
+    return (
+      <PhoneFrame bg="bg-surface-2">
+        <div className="grid flex-1 place-items-center px-6 text-sm text-muted-foreground">{t("common.loading", "Loading…")}</div>
+      </PhoneFrame>
+    );
+  }
+
+  if (conv.isError) {
+    return (
+      <PhoneFrame bg="bg-surface-2">
+        <QueryError onRetry={() => conv.refetch()} />
+      </PhoneFrame>
+    );
+  }
+
+  if (msgs.isError) {
+    return (
+      <PhoneFrame bg="bg-surface-2">
+        <QueryError onRetry={() => msgs.refetch()} />
+      </PhoneFrame>
+    );
+  }
 
   const handleSend = () => {
     const t = text.trim();

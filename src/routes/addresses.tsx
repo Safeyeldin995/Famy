@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { PhoneFrame, TopBar, Card, EmptyState, ReasonDialog, PrimaryButton } from "@/components/famio/ui";
+import { QueryError } from "@/components/famio/QueryError";
 import { useAddresses, useDeleteAddress, useSetDefaultAddress } from "@/lib/db/queries";
 import { Home, Briefcase, Users, MapPin, Star, Pencil, Trash2, Plus } from "lucide-react";
 
@@ -25,6 +26,8 @@ function Addresses() {
       <div className="flex-1 space-y-3 px-5 pb-28 pt-2">
         {addressesQ.isLoading ? (
           Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-24 animate-pulse rounded-3xl bg-surface" />)
+        ) : addressesQ.isError ? (
+          <QueryError onRetry={() => addressesQ.refetch()} />
         ) : addresses.length === 0 ? (
           <EmptyState
             icon="map-pin"
