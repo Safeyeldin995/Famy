@@ -7,6 +7,7 @@ test.use({ storageState: path.resolve(process.cwd(), "qa/.auth/admin.json") });
 const SCREENS: Array<{ path: string; heading: RegExp }> = [
   { path: "/admin", heading: /overview|kpi|dashboard/i },
   { path: "/admin/operations", heading: /operations/i },
+  { path: "/admin/monitoring", heading: /monitoring/i },
   { path: "/admin/providers", heading: /providers/i },
   { path: "/admin/customers", heading: /customers/i },
   { path: "/admin/bookings", heading: /bookings/i },

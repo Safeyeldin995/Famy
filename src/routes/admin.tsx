@@ -4,7 +4,24 @@ import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyRole } from "@/lib/db/provider-queries";
 import { LanguageToggle } from "@/components/famio/LanguageToggle";
-import { Users, ClipboardList, ShieldCheck, Wallet, UserRound, Settings, Layers, MapPin, CreditCard, Tag, Ban, Megaphone, LifeBuoy, Activity, History } from "lucide-react";
+import {
+  Users,
+  ClipboardList,
+  ShieldCheck,
+  Wallet,
+  UserRound,
+  Settings,
+  Layers,
+  MapPin,
+  CreditCard,
+  Tag,
+  Ban,
+  Megaphone,
+  LifeBuoy,
+  Activity,
+  History,
+  Radar,
+} from "lucide-react";
 import famyLogo from "@/assets/famy-wordmark.png";
 
 export const Route = createFileRoute("/admin")({ component: AdminLayout });
@@ -24,7 +41,11 @@ function AdminLayout() {
 
   if (role.isLoading) {
     return (
-      <div className="grid min-h-dvh place-items-center bg-background" role="status" aria-live="polite">
+      <div
+        className="grid min-h-dvh place-items-center bg-background"
+        role="status"
+        aria-live="polite"
+      >
         <div className="h-10 w-10 animate-spin rounded-full border-4 border-navy/20 border-t-navy" />
         <span className="sr-only">{t("common.loading")}</span>
       </div>
@@ -37,7 +58,9 @@ function AdminLayout() {
         <ShieldCheck className="h-10 w-10 text-coral" />
         <h1 className="text-xl font-extrabold">{t("admin.layout.adminOnlyTitle")}</h1>
         <p className="text-sm text-muted-foreground">{t("admin.layout.adminOnlyBody")}</p>
-        <Link to="/home" className="mt-2 text-sm font-semibold text-navy">{t("admin.layout.backToApp")}</Link>
+        <Link to="/home" className="mt-2 text-sm font-semibold text-navy">
+          {t("admin.layout.backToApp")}
+        </Link>
       </div>
     );
   }
@@ -45,11 +68,16 @@ function AdminLayout() {
   const tabs = [
     { to: "/admin", label: t("admin.layout.nav.overview"), icon: Users, exact: true },
     { to: "/admin/operations", label: t("admin.layout.nav.operations"), icon: Activity },
+    { to: "/admin/monitoring", label: t("admin.layout.nav.monitoring"), icon: Radar },
     { to: "/admin/providers", label: t("admin.layout.nav.providers"), icon: ShieldCheck },
     { to: "/admin/customers", label: t("admin.layout.nav.customers"), icon: UserRound },
     { to: "/admin/bookings", label: t("admin.layout.nav.bookings"), icon: ClipboardList },
     { to: "/admin/cases", label: t("admin.layout.nav.cases"), icon: LifeBuoy },
-    { to: "/admin/cancellation-reasons", label: t("admin.layout.nav.cancellationReasons"), icon: Ban },
+    {
+      to: "/admin/cancellation-reasons",
+      label: t("admin.layout.nav.cancellationReasons"),
+      icon: Ban,
+    },
     { to: "/admin/payments", label: t("admin.layout.nav.payments"), icon: Wallet },
     { to: "/admin/payment-methods", label: t("admin.layout.nav.paymentMethods"), icon: CreditCard },
     { to: "/admin/services", label: t("admin.layout.nav.services"), icon: Layers },
@@ -66,14 +94,21 @@ function AdminLayout() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
           <div className="flex items-center gap-3">
             <img src={famyLogo} alt="Famy" className="h-7 w-auto object-contain" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-coral">{t("admin.layout.badge")}</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-coral">
+              {t("admin.layout.badge")}
+            </span>
           </div>
           <div className="flex items-center gap-3">
             <LanguageToggle variant="inline" />
             <button
-              onClick={async () => { await supabase.auth.signOut(); nav({ to: "/login", replace: true }); }}
+              onClick={async () => {
+                await supabase.auth.signOut();
+                nav({ to: "/login", replace: true });
+              }}
               className="focus-ring rounded-md text-xs font-semibold text-muted-foreground hover:text-foreground"
-            >{t("admin.layout.signOut")}</button>
+            >
+              {t("admin.layout.signOut")}
+            </button>
           </div>
         </div>
       </header>
@@ -84,8 +119,11 @@ function AdminLayout() {
               const active = tab.exact ? pathname === tab.to : pathname.startsWith(tab.to);
               const Icon = tab.icon;
               return (
-                <Link key={tab.to} to={tab.to}
-                  className={`focus-ring flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold ${active ? "bg-navy text-navy-foreground" : "text-muted-foreground hover:bg-muted"}`}>
+                <Link
+                  key={tab.to}
+                  to={tab.to}
+                  className={`focus-ring flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold ${active ? "bg-navy text-navy-foreground" : "text-muted-foreground hover:bg-muted"}`}
+                >
                   <Icon className="h-4 w-4" />
                   {tab.label}
                 </Link>
@@ -98,8 +136,11 @@ function AdminLayout() {
             {tabs.map((tab) => {
               const active = tab.exact ? pathname === tab.to : pathname.startsWith(tab.to);
               return (
-                <Link key={tab.to} to={tab.to}
-                  className={`focus-ring whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold ${active ? "bg-navy text-navy-foreground" : "bg-muted text-muted-foreground"}`}>
+                <Link
+                  key={tab.to}
+                  to={tab.to}
+                  className={`focus-ring whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold ${active ? "bg-navy text-navy-foreground" : "bg-muted text-muted-foreground"}`}
+                >
                   {tab.label}
                 </Link>
               );

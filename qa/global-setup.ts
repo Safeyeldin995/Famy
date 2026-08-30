@@ -144,7 +144,7 @@ async function collectAuthSetupDiagnostics(page: import("@playwright/test").Page
 }
 
 async function waitForSignupMode(page: import("@playwright/test").Page) {
-  const signupTab = page.locator(".rounded-2xl.bg-surface-2.p-1").getByRole("button", { name: SIGNUP_TAB });
+  const signupTab = page.getByRole("button", { name: SIGNUP_TAB });
   await signupTab.waitFor({ state: "visible", timeout: 10_000 });
   await page.locator('input[inputmode="tel"]').click();
 

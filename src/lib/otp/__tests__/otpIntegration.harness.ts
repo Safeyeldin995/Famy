@@ -65,9 +65,28 @@ export async function probeOtpRpcs(
   return undefined;
 }
 
+function suffixHashDigits(suffix: string): string {
+  let hash = 0;
+  for (let i = 0; i < suffix.length; i += 1) {
+    hash = (hash * 31 + suffix.charCodeAt(i)) >>> 0;
+  }
+  return String(hash % 10_000).padStart(4, "0");
+}
+
+/** Monotonic within-process sequence; guarantees distinct phones per call in one run. */
+let testPhoneSequence = 0;
+
 export function uniqueTestPhone(suffix = ""): string {
-  const tail = `${Date.now()}${suffix}`.slice(-8);
-  return `+2019${tail.padStart(8, "0").slice(-8)}`;
+  testPhoneSequence += 1;
+  const suffixDigits = suffix.replace(/\D/g, "");
+  const hashPart = suffixHashDigits(suffix);
+  const timePart = String(Date.now() % 10_000).padStart(4, "0");
+  const mixPart = `${suffixDigits}${hashPart}${timePart}`.slice(-4).padStart(4, "0");
+  const tail =
+    testPhoneSequence <= 9999
+      ? `${String(testPhoneSequence).padStart(4, "0")}${mixPart}`
+      : String(testPhoneSequence).padStart(8, "0");
+  return `+2019${tail}`;
 }
 
 export async function cleanupOtpRows(supabase: SupabaseClient, phone: string): Promise<void> {

@@ -1207,6 +1207,51 @@ export type Database = {
           },
         ]
       }
+      error_logs: {
+        Row: {
+          context_label: string | null
+          context_route: string | null
+          created_at: string
+          id: string
+          message_safe: string
+          source: string
+        }
+        Insert: {
+          context_label?: string | null
+          context_route?: string | null
+          created_at?: string
+          id?: string
+          message_safe: string
+          source: string
+        }
+        Update: {
+          context_label?: string | null
+          context_route?: string | null
+          created_at?: string
+          id?: string
+          message_safe?: string
+          source?: string
+        }
+        Relationships: []
+      }
+      error_log_rate_limits: {
+        Row: {
+          rate_key: string
+          request_count: number
+          window_start: string
+        }
+        Insert: {
+          rate_key: string
+          request_count?: number
+          window_start: string
+        }
+        Update: {
+          rate_key?: string
+          request_count?: number
+          window_start?: string
+        }
+        Relationships: []
+      }
       family_members: {
         Row: {
           access_notes: string | null
@@ -3270,6 +3315,25 @@ export type Database = {
         Returns: {
           user_id: string
         }[]
+      }
+      admin_monitoring_summary: {
+        Args: { p_since?: string }
+        Returns: {
+          failed_notifications: number
+          failed_payments: number
+          oldest_error_at: string | null
+          oldest_failed_notification_at: string | null
+          oldest_failed_payment_at: string | null
+          recent_errors: number
+        }[]
+      }
+      error_log_client_rate_limit_allow: {
+        Args: {
+          p_limit?: number
+          p_rate_key: string
+          p_window_seconds?: number
+        }
+        Returns: boolean
       }
       admin_operations_summary: {
         Args: never
