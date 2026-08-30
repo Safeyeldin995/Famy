@@ -73,11 +73,19 @@ function suffixHashDigits(suffix: string): string {
   return String(hash % 10_000).padStart(4, "0");
 }
 
+/** Monotonic within-process sequence; guarantees distinct phones per call in one run. */
+let testPhoneSequence = 0;
+
 export function uniqueTestPhone(suffix = ""): string {
+  testPhoneSequence += 1;
   const suffixDigits = suffix.replace(/\D/g, "");
   const hashPart = suffixHashDigits(suffix);
   const timePart = String(Date.now() % 10_000).padStart(4, "0");
-  const tail = `${suffixDigits}${hashPart}${timePart}`.slice(-8).padStart(8, "0");
+  const mixPart = `${suffixDigits}${hashPart}${timePart}`.slice(-4).padStart(4, "0");
+  const tail =
+    testPhoneSequence <= 9999
+      ? `${String(testPhoneSequence).padStart(4, "0")}${mixPart}`
+      : String(testPhoneSequence).padStart(8, "0");
   return `+2019${tail}`;
 }
 

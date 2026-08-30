@@ -19,4 +19,27 @@ describe("uniqueTestPhone", () => {
     expect(phoneA).toMatch(/^\+2019\d{8}$/);
     expect(phoneB).toMatch(/^\+2019\d{8}$/);
   });
+
+  it("never collides across a large batch of suffixes in the same run", () => {
+    const suffixes = [
+      "aaa",
+      "kms",
+      "a",
+      "b",
+      "bc",
+      "v1",
+      "v2",
+      "v3",
+      "v4",
+      "v5",
+      "monitoring",
+      ...Array.from({ length: 200 }, (_, index) => `suffix-${index}`),
+    ];
+    const phones = suffixes.map((suffix) => uniqueTestPhone(suffix));
+    expect(new Set(phones).size).toBe(suffixes.length);
+    expect(phones[suffixes.indexOf("aaa")]).not.toBe(phones[suffixes.indexOf("kms")]);
+    for (const phone of phones) {
+      expect(phone).toMatch(/^\+2019\d{8}$/);
+    }
+  });
 });
