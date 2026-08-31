@@ -1346,6 +1346,11 @@ const en = {
     rejectReasonPlaceholder: "Reason (optional)",
     cancel: "Cancel",
     confirmReject: "Confirm reject",
+    paymobInstructions: "You will complete payment securely on Paymob's checkout page.",
+    paymobContinue: "Continue to payment",
+    paymobStarting: "Opening checkout…",
+    paymobConfirming: "Confirming your payment. This usually takes a few seconds.",
+    paymobStartFailed: "Could not start online payment. Try again or contact support.",
     status: {
       pending: "Pending",
       pending_review: "Pending",

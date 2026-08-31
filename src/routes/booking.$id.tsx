@@ -34,6 +34,9 @@ type CustomerDialog = "" | "cancel" | "no_show" | "confirmArrival" | "confirmCom
 
 function BookingDetail() {
   const { id } = Route.useParams();
+  const locationSearch = Route.useSearch() as { paymob_return?: string; paymob_checkout?: string };
+  const paymobReturn = locationSearch.paymob_return === "1";
+  const paymobCheckout = locationSearch.paymob_checkout === "1";
   const { t } = useTranslation();
   const realQ = useBooking(id);
   const real = realQ.data;
@@ -604,6 +607,8 @@ function BookingDetail() {
             bookingStatus={status}
             authoritativePriceTotal={real.price_total != null ? Number(real.price_total) : null}
             pendingPaymentSelection={pendingPaymentSelection}
+            paymobReturn={paymobReturn}
+            autoStartPaymobCheckout={paymobCheckout}
           />
         </div>
 

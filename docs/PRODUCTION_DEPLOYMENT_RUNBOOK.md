@@ -46,10 +46,22 @@ the source of truth.
 | `FAMY_PRODUCTION_APP_ORIGIN` | Canonical Production app URL, used by guardrails/tests that must never target Production |
 | `FAMY_ENV` | Tier marker some code paths branch on |
 | `VERCEL_AUTOMATION_BYPASS_SECRET` | Vercel's own automation-bypass mechanism for protected deployments, if in use |
+| `PAYMOB_SECRET_KEY` | Paymob Egypt Intention API secret key (`Authorization: Token …`) — server-only, never client |
+| `PAYMOB_PUBLIC_KEY` | Paymob public key for Unified Checkout redirect URL — server-only (checkout URL is returned to authenticated clients, not embedded in the bundle) |
+| `PAYMOB_HMAC_SECRET` | Paymob Transaction Processed webhook HMAC secret — server-only |
+| `PAYMOB_INTEGRATION_ID` | Paymob card/wallet integration ID passed to Intention API |
+| `PAYMOB_NOTIFICATION_URL` | Optional override for Paymob webhook URL; defaults to `${SUPABASE_URL}/functions/v1/paymob-webhook` |
 
 ### Supabase Edge Function secrets (set via Supabase dashboard/CLI, separate from Vercel)
 
-Only `send-push-notifications` exists today (`supabase/functions/send-push-notifications`):
+Only `send-push-notifications` and `paymob-webhook` exist today:
+
+| Function | Secrets / notes |
+|---|---|
+| `send-push-notifications` | See table below |
+| `paymob-webhook` | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `PAYMOB_HMAC_SECRET` — `verify_jwt = false`; HMAC on `?hmac=` query param is the only auth gate (see `supabase/functions/paymob-webhook/index.ts`) |
+
+`send-push-notifications` secrets:
 
 | Variable | Purpose |
 |---|---|

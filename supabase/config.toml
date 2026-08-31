@@ -9,3 +9,9 @@ project_id = "famy-local"
 # without a valid secret get 401 before any database work runs.
 [functions.send-push-notifications]
 verify_jwt = false
+
+# Paymob Transaction Processed webhook — Paymob cannot present a Supabase JWT.
+# Authorization is enforced inside the function via HMAC-SHA512 on the `hmac`
+# query parameter (see paymob-webhook/index.ts).
+[functions.paymob-webhook]
+verify_jwt = false

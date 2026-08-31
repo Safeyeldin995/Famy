@@ -7,7 +7,8 @@ import {
 } from "@/lib/db/queries";
 import { useActiveFamilyMembers } from "@/lib/db/family-members-queries";
 import { validatePromoCode } from "@/lib/db/promo-codes-queries";
-import { useCreatePayment } from "@/lib/db/payment-queries";
+import { useCreatePayment, mapPaymentInsertError } from "@/lib/db/payment-queries";
+import { redirectToPaymobCheckout } from "@/lib/paymob/paymobRedirect";
 import { useActivePaymentMethods } from "@/lib/db/payment-methods-queries";
 import { useRequirementsForService } from "@/lib/db/provider-queries";
 import { toUIProvider } from "@/lib/db/adapters";
@@ -20,7 +21,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useBillingSettings, DEFAULT_BILLING_SETTINGS } from "@/lib/db/settings-queries";
 import { BookingError, getBookingErrorMessage, isSlotStaleBookingError } from "@/lib/booking/errors";
 import { bookingSubmissionFingerprint, resolveIdempotencyKey, type IdempotencyKeyState } from "@/lib/booking/idempotency";
-import { mapPaymentInsertError } from "@/lib/db/payment-queries";
 import { planPostCreatePayment, stashPendingPayment } from "@/lib/booking/post-create-payment";
 
 export const Route = createFileRoute("/book/$providerId")({
@@ -315,14 +315,23 @@ function Book() {
         idempotency_key: idempotencyStateRef.current.key,
       });
       const paymentPlan = planPostCreatePayment(booking, selectedMethod);
+      let onlineCheckoutStarted = false;
       if (paymentPlan.action === "create_now") {
         // Amount is loaded server-side from bookings.price_total inside useCreatePayment.
         try {
-          await createPayment.mutateAsync({
+          const payment = await createPayment.mutateAsync({
             bookingId: booking.id,
             paymentMethodId: paymentPlan.paymentMethodId,
             methodType: paymentPlan.methodType,
           });
+          if (paymentPlan.methodType === "online" && payment?.id) {
+            const checkout = await redirectToPaymobCheckout(booking.id, payment.id);
+            if (checkout.ok) {
+              onlineCheckoutStarted = true;
+            } else {
+              toast.error(checkout.message || t("payment.paymobStartFailed", "Could not start online payment."));
+            }
+          }
         } catch (pe: unknown) {
           console.error("payment row insert failed", pe);
           toast.error(mapPaymentInsertError(pe) || t("bookFlow.paymentFailed", "Could not record payment method"));
@@ -337,7 +346,12 @@ function Book() {
       if (!booking.idempotent_replay) {
         toast.success(t("bookFlow.created", "Booking created"));
       }
-      nav({ to: "/booking/$id", params: { id: booking.id } });
+      if (onlineCheckoutStarted) return;
+      nav({
+        to: "/booking/$id",
+        params: { id: booking.id },
+        search: selectedMethod.method_type === "online" ? { paymob_checkout: "1" } : undefined,
+      });
     } catch (e: any) {
       const code = e instanceof BookingError ? e.code : null;
       if (isSlotStaleBookingError(code)) {

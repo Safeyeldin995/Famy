@@ -1338,6 +1338,11 @@ const ar: Translation = {
     rejectReasonPlaceholder: "السبب (اختياري)",
     cancel: "إلغاء",
     confirmReject: "تأكيد الرفض",
+    paymobInstructions: "ستكمل الدفع بشكل آمن على صفحة Paymob.",
+    paymobContinue: "متابعة الدفع",
+    paymobStarting: "جاري فتح صفحة الدفع…",
+    paymobConfirming: "جاري تأكيد دفعتك. عادةً يستغرق ذلك بضع ثوانٍ.",
+    paymobStartFailed: "تعذر بدء الدفع الإلكتروني. حاول مرة أخرى أو تواصل مع الدعم.",
     status: {
       pending: "قيد الانتظار",
       pending_review: "قيد الانتظار",
