@@ -25,12 +25,28 @@ function resolveNotificationUrl(env: NodeJS.ProcessEnv): string | null {
   return `${supabaseUrl.replace(/\/$/, "")}/functions/v1/paymob-webhook`;
 }
 
+function assertSecureNotificationUrl(url: string): void {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new PaymobConfigurationError("PAYMOB_NOTIFICATION_URL is not a valid URL");
+  }
+  const isLocalHttp =
+    parsed.protocol === "http:" && (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1");
+  if (parsed.protocol !== "https:" && !isLocalHttp) {
+    throw new PaymobConfigurationError(
+      "PAYMOB_NOTIFICATION_URL must use https (plaintext http is only allowed for localhost)",
+    );
+  }
+}
+
 function resolveAppOrigin(env: NodeJS.ProcessEnv): string {
   const origin = (
-    env.FAMY_QA_APP_ORIGIN
-    ?? env.FAMY_PRODUCTION_APP_ORIGIN
-    ?? env.VITE_APP_ORIGIN
-    ?? "http://localhost:8099"
+    env.FAMY_QA_APP_ORIGIN ??
+    env.FAMY_PRODUCTION_APP_ORIGIN ??
+    env.VITE_APP_ORIGIN ??
+    "http://localhost:8099"
   ).trim();
   return origin.replace(/\/$/, "");
 }
@@ -51,6 +67,7 @@ export function readPaymobConfig(env: NodeJS.ProcessEnv = process.env): PaymobCo
   if (!notificationUrl) {
     throw new PaymobConfigurationError("PAYMOB_NOTIFICATION_URL or SUPABASE_URL is not configured");
   }
+  assertSecureNotificationUrl(notificationUrl);
 
   return {
     secretKey,
@@ -72,7 +89,11 @@ export function isPaymobConfigured(env: NodeJS.ProcessEnv = process.env): boolea
   }
 }
 
-export function buildPaymobUnifiedCheckoutUrl(publicKey: string, clientSecret: string, baseUrl = PAYMOB_EGYPT_BASE_URL): string {
+export function buildPaymobUnifiedCheckoutUrl(
+  publicKey: string,
+  clientSecret: string,
+  baseUrl = PAYMOB_EGYPT_BASE_URL,
+): string {
   const url = new URL("/unifiedcheckout/", baseUrl);
   url.searchParams.set("publicKey", publicKey);
   url.searchParams.set("clientSecret", clientSecret);

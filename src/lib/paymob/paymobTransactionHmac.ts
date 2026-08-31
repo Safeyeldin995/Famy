@@ -48,7 +48,10 @@ export const PAYMOB_TRANSACTION_HMAC_FIELD_ORDER = [
   "success",
 ] as const;
 
-function fieldValue(obj: PaymobTransactionHmacSource, key: (typeof PAYMOB_TRANSACTION_HMAC_FIELD_ORDER)[number]): unknown {
+function fieldValue(
+  obj: PaymobTransactionHmacSource,
+  key: (typeof PAYMOB_TRANSACTION_HMAC_FIELD_ORDER)[number],
+): unknown {
   switch (key) {
     case "order.id":
       return obj.order?.id;
@@ -65,11 +68,9 @@ function fieldValue(obj: PaymobTransactionHmacSource, key: (typeof PAYMOB_TRANSA
 
 /** Concatenate the 20 Paymob transaction HMAC fields with no separator. */
 export function buildPaymobTransactionHmacPayload(obj: PaymobTransactionHmacSource): string {
-  return PAYMOB_TRANSACTION_HMAC_FIELD_ORDER
-    .map((key) => {
-      const value = fieldValue(obj, key);
-      if (value === null || value === undefined) return "";
-      return String(value);
-    })
-    .join("");
+  return PAYMOB_TRANSACTION_HMAC_FIELD_ORDER.map((key) => {
+    const value = fieldValue(obj, key);
+    if (value === null || value === undefined) return "";
+    return String(value);
+  }).join("");
 }

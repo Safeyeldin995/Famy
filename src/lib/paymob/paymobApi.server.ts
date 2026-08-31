@@ -68,7 +68,7 @@ export async function createPaymobIntention(
   }
 
   const data = (await response.json()) as PaymobIntentionResponse;
-  if (!data.client_secret) {
+  if (!data.client_secret || !data.id) {
     throw new Error("Paymob checkout response was incomplete.");
   }
 

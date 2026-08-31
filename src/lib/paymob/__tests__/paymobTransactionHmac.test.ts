@@ -4,10 +4,7 @@ import {
   buildPaymobTransactionHmacPayload,
   PAYMOB_TRANSACTION_HMAC_FIELD_ORDER,
 } from "../paymobTransactionHmac";
-import {
-  computePaymobTransactionHmacHex,
-  verifyPaymobTransactionHmac,
-} from "../paymobHmac.server";
+import { computePaymobTransactionHmacHex, verifyPaymobTransactionHmac } from "../paymobHmac.server";
 
 const PAYMOB_DOC_SAMPLE = {
   amount_cents: "100000",

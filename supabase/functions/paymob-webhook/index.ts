@@ -40,7 +40,10 @@ type PaymobTransaction = Record<string, unknown> & {
   source_data?: { pan?: unknown; sub_type?: unknown; type?: unknown } | null;
 };
 
-function fieldValue(obj: PaymobTransaction, key: (typeof PAYMOB_TRANSACTION_HMAC_FIELD_ORDER)[number]): unknown {
+function fieldValue(
+  obj: PaymobTransaction,
+  key: (typeof PAYMOB_TRANSACTION_HMAC_FIELD_ORDER)[number],
+): unknown {
   switch (key) {
     case "order.id":
       return obj.order?.id;
@@ -56,13 +59,11 @@ function fieldValue(obj: PaymobTransaction, key: (typeof PAYMOB_TRANSACTION_HMAC
 }
 
 function buildPaymobTransactionHmacPayload(obj: PaymobTransaction): string {
-  return PAYMOB_TRANSACTION_HMAC_FIELD_ORDER
-    .map((key) => {
-      const value = fieldValue(obj, key);
-      if (value === null || value === undefined) return "";
-      return String(value);
-    })
-    .join("");
+  return PAYMOB_TRANSACTION_HMAC_FIELD_ORDER.map((key) => {
+    const value = fieldValue(obj, key);
+    if (value === null || value === undefined) return "";
+    return String(value);
+  }).join("");
 }
 
 function timingSafeEqual(a: string, b: string): boolean {
