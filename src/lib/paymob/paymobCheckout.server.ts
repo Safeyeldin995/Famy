@@ -26,7 +26,7 @@ type ProfileRow = {
   phone: string | null;
 };
 
-type SupabaseAdminClient = {
+export type SupabaseAdminClient = {
   from: (table: string) => any;
   rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
 };

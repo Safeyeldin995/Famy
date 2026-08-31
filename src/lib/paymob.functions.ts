@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getRequestBearerUserId } from "@/lib/auth/requestAuth.server";
+import type { SupabaseAdminClient } from "@/lib/paymob/paymobCheckout.server";
 
 const CreatePaymobCheckoutSchema = z.object({
   bookingId: z.string().uuid(),
@@ -17,7 +18,7 @@ export const createPaymobCheckoutFn = createServerFn({ method: "POST" })
     const { createPaymobCheckoutForPayment } = await import("@/lib/paymob/paymobCheckout.server");
 
     return createPaymobCheckoutForPayment({
-      supabaseAdmin,
+      supabaseAdmin: supabaseAdmin as unknown as SupabaseAdminClient,
       userId,
       bookingId: data.bookingId,
       paymentId: data.paymentId,

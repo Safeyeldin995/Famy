@@ -77,7 +77,7 @@ export function PaymentBlock({
   const [paymobStarting, setPaymobStarting] = useState(false);
   const recoveryStartedRef = useRef(false);
   const paymobAutoStartedRef = useRef(false);
-  const paymentStatusRef = useRef<string | undefined>();
+  const paymentStatusRef = useRef<string | undefined>(undefined);
   const refetchPaymentRef = useRef(q.refetch);
   refetchPaymentRef.current = q.refetch;
 

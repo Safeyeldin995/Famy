@@ -5,8 +5,8 @@ export type PaymobReturnPollingOptions = {
   refetch: () => void | Promise<unknown>;
   intervalMs?: number;
   maxAttempts?: number;
-  setIntervalFn?: (fn: () => void, ms: number) => number;
-  clearIntervalFn?: (id: number) => void;
+  setIntervalFn?: (fn: () => void, ms: number) => ReturnType<typeof setInterval>;
+  clearIntervalFn?: (id: ReturnType<typeof setInterval>) => void;
 };
 
 export function runPaymobReturnPolling(options: PaymobReturnPollingOptions): () => void {
