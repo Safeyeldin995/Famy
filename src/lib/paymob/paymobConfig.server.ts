@@ -33,7 +33,8 @@ function assertSecureNotificationUrl(url: string): void {
     throw new PaymobConfigurationError("PAYMOB_NOTIFICATION_URL is not a valid URL");
   }
   const isLocalHttp =
-    parsed.protocol === "http:" && (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1");
+    parsed.protocol === "http:" &&
+    (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1");
   if (parsed.protocol !== "https:" && !isLocalHttp) {
     throw new PaymobConfigurationError(
       "PAYMOB_NOTIFICATION_URL must use https (plaintext http is only allowed for localhost)",
@@ -42,12 +43,8 @@ function assertSecureNotificationUrl(url: string): void {
 }
 
 function resolveAppOrigin(env: NodeJS.ProcessEnv): string {
-  const origin = (
-    env.FAMY_QA_APP_ORIGIN ??
-    env.FAMY_PRODUCTION_APP_ORIGIN ??
-    env.VITE_APP_ORIGIN ??
-    "http://localhost:8099"
-  ).trim();
+  const candidates = [env.FAMY_QA_APP_ORIGIN, env.FAMY_PRODUCTION_APP_ORIGIN, env.VITE_APP_ORIGIN];
+  const origin = candidates.map((c) => c?.trim()).find((c) => !!c) ?? "http://localhost:8099";
   return origin.replace(/\/$/, "");
 }
 

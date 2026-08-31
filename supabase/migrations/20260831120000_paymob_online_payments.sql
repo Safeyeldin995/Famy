@@ -59,6 +59,7 @@ DECLARE
   v_outcome text;
   v_new_status public.payment_status;
   v_inserted boolean := false;
+  v_ignored_reason text;
 BEGIN
   IF p_paymob_transaction_id IS NULL OR p_paymob_transaction_id <= 0 THEN
     RAISE EXCEPTION 'Invalid Paymob transaction id' USING ERRCODE = '22023';
@@ -90,8 +91,18 @@ BEGIN
     v_new_status := 'rejected';
   END IF;
 
+  IF v_payment.status = 'captured' THEN
+    v_ignored_reason := 'already_captured';
+  ELSIF v_payment.status = 'rejected' AND v_new_status <> 'rejected' THEN
+    v_ignored_reason := 'already_rejected';
+  END IF;
+
   INSERT INTO public.paymob_webhook_events (paymob_transaction_id, payment_id, outcome)
-  VALUES (p_paymob_transaction_id, p_payment_id, v_outcome)
+  VALUES (
+    p_paymob_transaction_id,
+    p_payment_id,
+    CASE WHEN v_ignored_reason IS NOT NULL THEN 'ignored' ELSE v_outcome END
+  )
   ON CONFLICT (paymob_transaction_id) DO NOTHING
   RETURNING true INTO v_inserted;
 
@@ -99,21 +110,11 @@ BEGIN
     RETURN jsonb_build_object('duplicate', true);
   END IF;
 
-  IF v_payment.status = 'captured' THEN
+  IF v_ignored_reason IS NOT NULL THEN
     RETURN jsonb_build_object(
       'ok', true,
       'ignored', true,
-      'reason', 'already_captured',
-      'payment_id', p_payment_id,
-      'status', v_payment.status
-    );
-  END IF;
-
-  IF v_payment.status = 'rejected' AND v_new_status <> 'rejected' THEN
-    RETURN jsonb_build_object(
-      'ok', true,
-      'ignored', true,
-      'reason', 'already_rejected',
+      'reason', v_ignored_reason,
       'payment_id', p_payment_id,
       'status', v_payment.status
     );

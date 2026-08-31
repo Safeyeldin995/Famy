@@ -172,15 +172,22 @@ export function PaymentBlock({
   const nameEn = p.payment_method_name_en ?? legacyFallback?.name_en ?? t("bookFlow.payCash");
   const nameAr = p.payment_method_name_ar ?? legacyFallback?.name_ar ?? nameEn;
   const instructions = (() => {
-    const snapshot = p.payment_method_snapshot as { instructions_en?: string | null; instructions_ar?: string | null } | null;
+    const snapshot = p.payment_method_snapshot as {
+      instructions_en?: string | null;
+      instructions_ar?: string | null;
+    } | null;
     if (snapshot?.instructions_en) {
       return lang === "ar" ? snapshot.instructions_ar : snapshot.instructions_en;
     }
     return lang === "ar" ? legacyFallback?.instructions_ar : legacyFallback?.instructions_en;
   })();
-  const publicConfig: Record<string, unknown> = (p.payment_method_snapshot as Record<string, unknown> | null)?.public_config as Record<string, unknown>
-    ?? legacyFallback?.public_config
-    ?? {};
+  const publicConfig: Record<string, unknown> =
+    ((p.payment_method_snapshot as Record<string, unknown> | null)?.public_config as Record<
+      string,
+      unknown
+    >) ??
+    legacyFallback?.public_config ??
+    {};
   const receiverHandle = typeof publicConfig.handle === "string" ? publicConfig.handle : null;
   const receiverNote = typeof publicConfig.note === "string" ? publicConfig.note : null;
 

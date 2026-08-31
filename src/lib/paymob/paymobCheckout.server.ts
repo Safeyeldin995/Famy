@@ -26,9 +26,23 @@ type ProfileRow = {
   phone: string | null;
 };
 
+type PostgrestResult = Promise<{ data: unknown; error: { message: string } | null }>;
+
+type SupabaseQueryBuilder = {
+  select: (columns: string) => SupabaseQueryBuilder;
+  eq: (column: string, value: unknown) => SupabaseQueryBuilder;
+  order: (column: string, opts?: { ascending?: boolean }) => SupabaseQueryBuilder;
+  limit: (count: number) => SupabaseQueryBuilder;
+  maybeSingle: () => PostgrestResult;
+  single: () => PostgrestResult;
+};
+
 export type SupabaseAdminClient = {
-  from: (table: string) => any;
-  rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
+  from: (table: string) => SupabaseQueryBuilder;
+  rpc: (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
 };
 
 function bookingAmountCents(amount: number): number {
@@ -74,23 +88,24 @@ export async function createPaymobCheckoutForPayment(input: {
     throw new Error("You cannot pay for this booking.");
   }
 
-  const paymentSelect = "id, booking_id, customer_id, amount, currency, status, payment_method_code, payment_method_type";
+  const paymentSelect =
+    "id, booking_id, customer_id, amount, currency, status, payment_method_code, payment_method_type";
   const paymentQuery = input.paymentId
     ? input.supabaseAdmin
-      .from("payments")
-      .select(paymentSelect)
-      .eq("id", input.paymentId)
-      .eq("booking_id", input.bookingId)
-      .eq("customer_id", input.userId)
-      .maybeSingle()
+        .from("payments")
+        .select(paymentSelect)
+        .eq("id", input.paymentId)
+        .eq("booking_id", input.bookingId)
+        .eq("customer_id", input.userId)
+        .maybeSingle()
     : input.supabaseAdmin
-      .from("payments")
-      .select(paymentSelect)
-      .eq("booking_id", input.bookingId)
-      .eq("customer_id", input.userId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+        .from("payments")
+        .select(paymentSelect)
+        .eq("booking_id", input.bookingId)
+        .eq("customer_id", input.userId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
   const { data: paymentData, error: paymentErr } = await paymentQuery;
   if (paymentErr || !paymentData) throw new Error("Payment not found for this booking.");
@@ -103,16 +118,19 @@ export async function createPaymobCheckoutForPayment(input: {
   const authoritativeAmount = Number(bookingRow.price_total);
   const paymentAmount = Number(payment.amount);
   if (
-    !Number.isFinite(authoritativeAmount)
-    || authoritativeAmount <= 0
-    || Math.abs(authoritativeAmount - paymentAmount) > 0.01
+    !Number.isFinite(authoritativeAmount) ||
+    authoritativeAmount <= 0 ||
+    Math.abs(authoritativeAmount - paymentAmount) > 0.01
   ) {
     throw new Error("Payment amount does not match the booking total.");
   }
 
-  const { data: reservation, error: reserveErr } = await input.supabaseAdmin.rpc("paymob_reserve_checkout", {
-    p_payment_id: payment.id,
-  });
+  const { data: reservation, error: reserveErr } = await input.supabaseAdmin.rpc(
+    "paymob_reserve_checkout",
+    {
+      p_payment_id: payment.id,
+    },
+  );
   if (reserveErr) {
     if (reserveErr.message.includes("already in progress")) {
       throw new Error("Paymob checkout is already in progress for this payment.");
@@ -157,12 +175,14 @@ export async function createPaymobCheckoutForPayment(input: {
       country: "EGY",
       state: "Cairo",
     },
-    items: [{
-      name: serviceName,
-      amount: amountCents,
-      description: `Booking ${bookingRow.id.slice(0, 8)}`,
-      quantity: 1,
-    }],
+    items: [
+      {
+        name: serviceName,
+        amount: amountCents,
+        description: `Booking ${bookingRow.id.slice(0, 8)}`,
+        quantity: 1,
+      },
+    ],
   });
 
   const { error: storeErr } = await input.supabaseAdmin.rpc("paymob_store_checkout_intention", {
@@ -173,6 +193,15 @@ export async function createPaymobCheckoutForPayment(input: {
   });
   if (storeErr) {
     console.error("[paymob.checkout] failed to persist intention metadata", storeErr.message);
+    const { error: releaseErr } = await input.supabaseAdmin.rpc(
+      "paymob_release_checkout_reservation",
+      {
+        p_payment_id: payment.id,
+      },
+    );
+    if (releaseErr) {
+      console.error("[paymob.checkout] failed to release checkout reservation", releaseErr.message);
+    }
     throw new Error("Could not save Paymob checkout details.");
   }
 

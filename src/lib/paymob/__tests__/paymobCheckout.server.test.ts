@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createPaymobCheckoutForPayment } from "../paymobCheckout.server";
+import { createPaymobCheckoutForPayment, type SupabaseAdminClient } from "../paymobCheckout.server";
 
 type PaymentRecord = {
   id: string;
@@ -20,7 +20,10 @@ function createMockSupabase(initialPayment: PaymentRecord) {
 
   const withLock = async <T>(fn: () => Promise<T> | T): Promise<T> => {
     const run = chain.then(fn);
-    chain = run.then(() => undefined, () => undefined);
+    chain = run.then(
+      () => undefined,
+      () => undefined,
+    );
     return run;
   };
 
@@ -38,7 +41,10 @@ function createMockSupabase(initialPayment: PaymentRecord) {
             };
           }
           if (payment.metadata.paymob_checkout_reservation) {
-            return { data: null, error: { message: "Paymob checkout is already in progress for this payment" } };
+            return {
+              data: null,
+              error: { message: "Paymob checkout is already in progress for this payment" },
+            };
           }
           payment.metadata = {
             ...payment.metadata,
@@ -80,7 +86,12 @@ function createMockSupabase(initialPayment: PaymentRecord) {
           }),
         }),
         maybeSingle: async () => ({
-          data: table === "payments" ? buildPaymentRow() : table === "profiles" ? buildProfileRow() : null,
+          data:
+            table === "payments"
+              ? buildPaymentRow()
+              : table === "profiles"
+                ? buildProfileRow()
+                : null,
           error: null,
         }),
         single: async () => ({
@@ -111,7 +122,8 @@ vi.mock("../paymobConfig.server", () => ({
     notificationUrl: "https://example.test/functions/v1/paymob-webhook",
     appOrigin: "http://localhost:8099",
   }),
-  buildPaymobBookingReturnUrl: (origin: string, bookingId: string) => `${origin}/booking/${bookingId}?paymob_return=1`,
+  buildPaymobBookingReturnUrl: (origin: string, bookingId: string) =>
+    `${origin}/booking/${bookingId}?paymob_return=1`,
 }));
 
 vi.mock("../paymobApi.server", () => ({
@@ -146,25 +158,27 @@ describe("createPaymobCheckoutForPayment concurrency", () => {
     });
 
     const firstPromise = createPaymobCheckoutForPayment({
-      supabaseAdmin: mock as any,
+      supabaseAdmin: mock as unknown as SupabaseAdminClient,
       userId: "user-1",
       bookingId: "book-1",
       paymentId: "pay-1",
     });
 
     await Promise.resolve();
-    await expect(createPaymobCheckoutForPayment({
-      supabaseAdmin: mock as any,
-      userId: "user-1",
-      bookingId: "book-1",
-      paymentId: "pay-1",
-    })).rejects.toThrow("already in progress");
+    await expect(
+      createPaymobCheckoutForPayment({
+        supabaseAdmin: mock as unknown as SupabaseAdminClient,
+        userId: "user-1",
+        bookingId: "book-1",
+        paymentId: "pay-1",
+      }),
+    ).rejects.toThrow("already in progress");
 
     releaseIntention?.();
     const first = await firstPromise;
 
     const reused = await createPaymobCheckoutForPayment({
-      supabaseAdmin: mock as any,
+      supabaseAdmin: mock as unknown as SupabaseAdminClient,
       userId: "user-1",
       bookingId: "book-1",
       paymentId: "pay-1",
