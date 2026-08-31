@@ -26,6 +26,11 @@ type ProfileRow = {
   phone: string | null;
 };
 
+type SupabaseAdminClient = {
+  from: (table: string) => any;
+  rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
+};
+
 function bookingAmountCents(amount: number): number {
   return Math.round(amount * 100);
 }
@@ -51,9 +56,7 @@ function defaultBillingFromProfile(profile: ProfileRow | null | undefined): {
 }
 
 export async function createPaymobCheckoutForPayment(input: {
-  supabaseAdmin: {
-    from: (table: string) => any;
-  };
+  supabaseAdmin: SupabaseAdminClient;
   userId: string;
   bookingId: string;
   paymentId?: string;
@@ -96,12 +99,6 @@ export async function createPaymobCheckoutForPayment(input: {
   if (payment.payment_method_code !== "paymob" || payment.payment_method_type !== "online") {
     throw new Error("This booking is not using Paymob online payment.");
   }
-  if (payment.status === "captured") {
-    throw new Error("This payment is already completed.");
-  }
-  if (payment.status === "rejected") {
-    throw new Error("This payment was rejected. Start a new booking payment if needed.");
-  }
 
   const authoritativeAmount = Number(bookingRow.price_total);
   const paymentAmount = Number(payment.amount);
@@ -111,6 +108,26 @@ export async function createPaymobCheckoutForPayment(input: {
     || Math.abs(authoritativeAmount - paymentAmount) > 0.01
   ) {
     throw new Error("Payment amount does not match the booking total.");
+  }
+
+  const { data: reservation, error: reserveErr } = await input.supabaseAdmin.rpc("paymob_reserve_checkout", {
+    p_payment_id: payment.id,
+  });
+  if (reserveErr) {
+    if (reserveErr.message.includes("already in progress")) {
+      throw new Error("Paymob checkout is already in progress for this payment.");
+    }
+    throw new Error(reserveErr.message || "Could not reserve Paymob checkout.");
+  }
+
+  const reservationRow = reservation as {
+    reused?: boolean;
+    checkout_url?: string;
+    payment_id?: string;
+  } | null;
+
+  if (reservationRow?.reused && reservationRow.checkout_url) {
+    return { checkoutUrl: reservationRow.checkout_url, paymentId: payment.id };
   }
 
   const { data: profile } = await input.supabaseAdmin
@@ -148,18 +165,15 @@ export async function createPaymobCheckoutForPayment(input: {
     }],
   });
 
-  const { error: metaErr } = await input.supabaseAdmin
-    .from("payments")
-    .update({
-      provider_ref: intention.intentionId,
-      metadata: {
-        paymob_intention_id: intention.intentionId,
-        paymob_checkout_started_at: new Date().toISOString(),
-      },
-    })
-    .eq("id", payment.id);
-  if (metaErr) {
-    console.error("[paymob.checkout] failed to persist intention metadata", metaErr.message);
+  const { error: storeErr } = await input.supabaseAdmin.rpc("paymob_store_checkout_intention", {
+    p_payment_id: payment.id,
+    p_intention_id: intention.intentionId,
+    p_checkout_url: intention.checkoutUrl,
+    p_extra_metadata: {},
+  });
+  if (storeErr) {
+    console.error("[paymob.checkout] failed to persist intention metadata", storeErr.message);
+    throw new Error("Could not save Paymob checkout details.");
   }
 
   return { checkoutUrl: intention.checkoutUrl, paymentId: payment.id };

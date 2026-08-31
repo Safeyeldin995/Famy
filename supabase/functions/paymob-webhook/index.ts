@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
   }
 
   const receivedHmac = new URL(req.url).searchParams.get("hmac");
-  let body: { type?: string; obj?: PaymobTransaction };
+  let body: unknown;
   try {
     body = await req.json();
   } catch {
@@ -133,8 +133,16 @@ Deno.serve(async (req) => {
     });
   }
 
-  const obj = body.obj;
-  if (!obj || body.type !== "TRANSACTION") {
+  if (body === null || typeof body !== "object" || Array.isArray(body)) {
+    return new Response(JSON.stringify({ error: "invalid_body" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const typedBody = body as { type?: string; obj?: PaymobTransaction };
+  const obj = typedBody.obj;
+  if (!obj || typedBody.type !== "TRANSACTION") {
     return new Response(JSON.stringify({ ok: true, ignored: true }), {
       status: 200,
       headers: { "Content-Type": "application/json" },

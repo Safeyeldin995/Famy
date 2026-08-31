@@ -26,6 +26,8 @@ import {
   type PendingPaymentSelection,
 } from "@/lib/booking/post-create-payment";
 import { redirectToPaymobCheckout } from "@/lib/paymob/paymobRedirect";
+import { runPaymobReturnPolling } from "@/lib/paymob/paymobReturnPolling";
+import type { Tables } from "@/integrations/supabase/types";
 import { Card, Badge } from "@/components/famio/ui";
 import { formatEGP } from "@/lib/utils";
 import { currentLang } from "@/lib/i18n";
@@ -75,7 +77,9 @@ export function PaymentBlock({
   const [paymobStarting, setPaymobStarting] = useState(false);
   const recoveryStartedRef = useRef(false);
   const paymobAutoStartedRef = useRef(false);
-  const paymobPollStartedRef = useRef(false);
+  const paymentStatusRef = useRef<string | undefined>();
+  const refetchPaymentRef = useRef(q.refetch);
+  refetchPaymentRef.current = q.refetch;
 
   const canRecoverDeferredPayment =
     viewer === "customer"
@@ -111,7 +115,7 @@ export function PaymentBlock({
     });
   }, [bookingId, canRecoverDeferredPayment, createPayment, pendingPaymentSelection, t]);
 
-  const payment = q.data as any;
+  const payment = q.data as Tables<"payments"> | null | undefined;
   const legacyFallback = payment && !payment.payment_method_type
     ? (activeMethodsQ.data ?? []).find((m) => m.code === payment.method)
     : null;
@@ -132,19 +136,17 @@ export function PaymentBlock({
     });
   }, [autoStartPaymobCheckout, bookingId, isOnline, payment?.id, payment?.status, t, viewer]);
 
+  paymentStatusRef.current = payment?.status;
+
   useEffect(() => {
-    if (!paymobReturn || paymobPollStartedRef.current || viewer !== "customer") return;
-    if (!payment || !isOnline) return;
-    if (payment.status === "captured" || payment.status === "rejected") return;
-    paymobPollStartedRef.current = true;
-    let attempts = 0;
-    const timer = window.setInterval(() => {
-      attempts += 1;
-      q.refetch();
-      if (attempts >= 15) window.clearInterval(timer);
-    }, 2000);
-    return () => window.clearInterval(timer);
-  }, [isOnline, paymobReturn, payment, q, viewer]);
+    if (!paymobReturn || viewer !== "customer" || !isOnline) return;
+    return runPaymobReturnPolling({
+      enabled: true,
+      isOnline,
+      getPaymentStatus: () => paymentStatusRef.current,
+      refetch: () => refetchPaymentRef.current(),
+    });
+  }, [paymobReturn, viewer, isOnline, bookingId]);
 
   if (q.isLoading || (canRecoverDeferredPayment && !q.data)) {
     return <Card className="h-24 animate-pulse p-4"><span /></Card>;
@@ -169,10 +171,16 @@ export function PaymentBlock({
   const resolvedIsOnline = resolvedMethodType === "online";
   const nameEn = p.payment_method_name_en ?? legacyFallback?.name_en ?? t("bookFlow.payCash");
   const nameAr = p.payment_method_name_ar ?? legacyFallback?.name_ar ?? nameEn;
-  const instructions = p.payment_method_snapshot?.instructions_en
-    ? (lang === "ar" ? p.payment_method_snapshot?.instructions_ar : p.payment_method_snapshot?.instructions_en)
-    : (lang === "ar" ? legacyFallback?.instructions_ar : legacyFallback?.instructions_en);
-  const publicConfig: Record<string, any> = p.payment_method_snapshot?.public_config ?? legacyFallback?.public_config ?? {};
+  const instructions = (() => {
+    const snapshot = p.payment_method_snapshot as { instructions_en?: string | null; instructions_ar?: string | null } | null;
+    if (snapshot?.instructions_en) {
+      return lang === "ar" ? snapshot.instructions_ar : snapshot.instructions_en;
+    }
+    return lang === "ar" ? legacyFallback?.instructions_ar : legacyFallback?.instructions_en;
+  })();
+  const publicConfig: Record<string, unknown> = (p.payment_method_snapshot as Record<string, unknown> | null)?.public_config as Record<string, unknown>
+    ?? legacyFallback?.public_config
+    ?? {};
   const receiverHandle = typeof publicConfig.handle === "string" ? publicConfig.handle : null;
   const receiverNote = typeof publicConfig.note === "string" ? publicConfig.note : null;
 
