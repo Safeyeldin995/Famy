@@ -89,8 +89,23 @@ export async function createPaymobIntention(
   }
 
   if (!response.ok) {
-    const detail = await response.text();
+    let detail = "";
+    try {
+      detail = await response.text();
+    } catch (err) {
+      throw new PaymobIntentionIndeterminateError("Could not read Paymob's error response.", { cause: err });
+    }
     console.error("[paymob.intention] create failed", response.status, detail.slice(0, 500));
+    // A 4xx proves Paymob rejected the request before creating anything
+    // (request-shape/auth validation happens before any side effect). A 5xx
+    // can occur after Paymob's backend already processed the request (e.g. a
+    // gateway/proxy timing out on the way back), so it's not a proven
+    // rejection — treat it the same as an indeterminate network failure.
+    if (response.status >= 500) {
+      throw new PaymobIntentionIndeterminateError(
+        `Paymob server error (${response.status}); intention creation outcome is unknown.`,
+      );
+    }
     throw new PaymobIntentionRejectedError("Could not start Paymob checkout.");
   }
 

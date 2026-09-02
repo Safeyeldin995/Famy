@@ -56,7 +56,7 @@ describe("createPaymobIntention failure classification", () => {
     );
   });
 
-  it("throws PaymobIntentionRejectedError on a clean non-2xx response", async () => {
+  it("throws PaymobIntentionRejectedError on a 4xx response (proven rejection before creation)", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => ({
@@ -68,6 +68,38 @@ describe("createPaymobIntention failure classification", () => {
 
     await expect(createPaymobIntention(config, input)).rejects.toBeInstanceOf(
       PaymobIntentionRejectedError,
+    );
+  });
+
+  it("throws PaymobIntentionIndeterminateError on a 5xx response (may have processed before failing)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: false,
+        status: 502,
+        text: async () => "bad gateway",
+      })),
+    );
+
+    await expect(createPaymobIntention(config, input)).rejects.toBeInstanceOf(
+      PaymobIntentionIndeterminateError,
+    );
+  });
+
+  it("throws PaymobIntentionIndeterminateError when a non-2xx response body can't be read", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: false,
+        status: 400,
+        text: async () => {
+          throw new Error("stream already consumed");
+        },
+      })),
+    );
+
+    await expect(createPaymobIntention(config, input)).rejects.toBeInstanceOf(
+      PaymobIntentionIndeterminateError,
     );
   });
 
