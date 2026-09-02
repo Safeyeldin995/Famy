@@ -25,10 +25,13 @@ import {
   isPaymentEligibleBookingStatus,
   type PendingPaymentSelection,
 } from "@/lib/booking/post-create-payment";
+import { redirectToPaymobCheckout } from "@/lib/paymob/paymobRedirect";
+import { runPaymobReturnPolling } from "@/lib/paymob/paymobReturnPolling";
+import type { Tables } from "@/integrations/supabase/types";
 import { Card, Badge } from "@/components/famio/ui";
 import { formatEGP } from "@/lib/utils";
 import { currentLang } from "@/lib/i18n";
-import { Banknote, Upload, Check, X, Eye, Copy, ShieldCheck, Wallet } from "lucide-react";
+import { Banknote, Upload, Check, X, Eye, Copy, ShieldCheck, Wallet, ExternalLink, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export type ViewerRole = "customer" | "provider" | "admin";
@@ -45,6 +48,8 @@ export function PaymentBlock({
   bookingStatus,
   authoritativePriceTotal,
   pendingPaymentSelection,
+  paymobReturn,
+  autoStartPaymobCheckout,
 }: {
   bookingId: string;
   viewer: ViewerRole;
@@ -54,6 +59,10 @@ export function PaymentBlock({
   authoritativePriceTotal?: number | null;
   /** Wizard-stashed payment method when post-create booking fetch was degraded. */
   pendingPaymentSelection?: PendingPaymentSelection | null;
+  /** Customer returned from Paymob hosted checkout — poll until webhook updates status. */
+  paymobReturn?: boolean;
+  /** After deferred payment recovery for online, jump straight to Paymob checkout. */
+  autoStartPaymobCheckout?: boolean;
 }) {
   const q = useBookingPayment(bookingId);
   const createPayment = useCreatePayment();
@@ -65,7 +74,12 @@ export function PaymentBlock({
   const lang = currentLang();
   const [rejectReason, setRejectReason] = useState("");
   const [showReject, setShowReject] = useState(false);
+  const [paymobStarting, setPaymobStarting] = useState(false);
   const recoveryStartedRef = useRef(false);
+  const paymobAutoStartedRef = useRef(false);
+  const paymentStatusRef = useRef<string | undefined>(undefined);
+  const refetchPaymentRef = useRef(q.refetch);
+  refetchPaymentRef.current = q.refetch;
 
   const canRecoverDeferredPayment =
     viewer === "customer"
@@ -80,22 +94,64 @@ export function PaymentBlock({
   useEffect(() => {
     if (!canRecoverDeferredPayment || recoveryStartedRef.current || createPayment.isPending) return;
     recoveryStartedRef.current = true;
+    const selection = pendingPaymentSelection!;
     createPayment.mutateAsync({
       bookingId,
-      paymentMethodId: pendingPaymentSelection!.paymentMethodId,
-      methodType: pendingPaymentSelection!.methodType,
-    }).then(() => {
+      paymentMethodId: selection.paymentMethodId,
+      methodType: selection.methodType,
+    }).then(async (payment) => {
       clearPendingPayment(bookingId);
+      if (selection.methodType === "online" && payment?.id) {
+        setPaymobStarting(true);
+        const result = await redirectToPaymobCheckout(bookingId, payment.id);
+        if (!result.ok) {
+          setPaymobStarting(false);
+          toast.error(result.message || t("payment.paymobStartFailed"));
+        }
+      }
     }).catch((e: unknown) => {
       recoveryStartedRef.current = false;
       toast.error(mapPaymentInsertError(e) || t("bookFlow.paymentFailed"));
     });
   }, [bookingId, canRecoverDeferredPayment, createPayment, pendingPaymentSelection, t]);
 
+  const payment = q.data as Tables<"payments"> | null | undefined;
+  const legacyFallback = payment && !payment.payment_method_type
+    ? (activeMethodsQ.data ?? []).find((m) => m.code === payment.method)
+    : null;
+  const methodType: string | null = payment?.payment_method_type ?? legacyFallback?.method_type ?? null;
+  const isOnline = methodType === "online";
+
+  useEffect(() => {
+    if (!autoStartPaymobCheckout || paymobAutoStartedRef.current || !payment?.id || !isOnline) return;
+    if (payment.status !== "pending" || viewer !== "customer") return;
+    paymobAutoStartedRef.current = true;
+    setPaymobStarting(true);
+    redirectToPaymobCheckout(bookingId, payment.id).then((result) => {
+      if (!result.ok) {
+        paymobAutoStartedRef.current = false;
+        setPaymobStarting(false);
+        toast.error(result.message || t("payment.paymobStartFailed"));
+      }
+    });
+  }, [autoStartPaymobCheckout, bookingId, isOnline, payment?.id, payment?.status, t, viewer]);
+
+  paymentStatusRef.current = payment?.status;
+
+  useEffect(() => {
+    if (!paymobReturn || viewer !== "customer" || !isOnline) return;
+    return runPaymobReturnPolling({
+      enabled: true,
+      isOnline,
+      getPaymentStatus: () => paymentStatusRef.current,
+      refetch: () => refetchPaymentRef.current(),
+    });
+  }, [paymobReturn, viewer, isOnline, bookingId]);
+
   if (q.isLoading || (canRecoverDeferredPayment && !q.data)) {
     return <Card className="h-24 animate-pulse p-4"><span /></Card>;
   }
-  const p = q.data as any;
+  const p = payment;
   if (!p) {
     return (
       <Card className="p-4">
@@ -111,24 +167,45 @@ export function PaymentBlock({
 
   // Rows written after 20260714120000 always carry their own snapshot. Older
   // rows fall back to whatever the matching method currently looks like.
-  const legacyFallback = !p.payment_method_type
-    ? (activeMethodsQ.data ?? []).find((m) => m.code === p.method)
-    : null;
-  const methodType: string | null = p.payment_method_type ?? legacyFallback?.method_type ?? null;
+  const resolvedMethodType: string | null = p.payment_method_type ?? legacyFallback?.method_type ?? null;
+  const resolvedIsOnline = resolvedMethodType === "online";
   const nameEn = p.payment_method_name_en ?? legacyFallback?.name_en ?? t("bookFlow.payCash");
   const nameAr = p.payment_method_name_ar ?? legacyFallback?.name_ar ?? nameEn;
-  const instructions = p.payment_method_snapshot?.instructions_en
-    ? (lang === "ar" ? p.payment_method_snapshot?.instructions_ar : p.payment_method_snapshot?.instructions_en)
-    : (lang === "ar" ? legacyFallback?.instructions_ar : legacyFallback?.instructions_en);
-  const publicConfig: Record<string, any> = p.payment_method_snapshot?.public_config ?? legacyFallback?.public_config ?? {};
+  const instructions = (() => {
+    const snapshot = p.payment_method_snapshot as {
+      instructions_en?: string | null;
+      instructions_ar?: string | null;
+    } | null;
+    if (snapshot?.instructions_en) {
+      return lang === "ar" ? snapshot.instructions_ar : snapshot.instructions_en;
+    }
+    return lang === "ar" ? legacyFallback?.instructions_ar : legacyFallback?.instructions_en;
+  })();
+  const publicConfig: Record<string, unknown> =
+    ((p.payment_method_snapshot as Record<string, unknown> | null)?.public_config as Record<
+      string,
+      unknown
+    >) ??
+    legacyFallback?.public_config ??
+    {};
   const receiverHandle = typeof publicConfig.handle === "string" ? publicConfig.handle : null;
   const receiverNote = typeof publicConfig.note === "string" ? publicConfig.note : null;
 
-  const isCash = methodType === "cash";
-  const isManualTransfer = methodType === "manual_transfer";
+  const isCash = resolvedMethodType === "cash";
+  const isManualTransfer = resolvedMethodType === "manual_transfer";
   const canConfirm = viewer === "admin" || viewer === "provider";
   const captureAllowed = bookingStatus === "completed";
   const canUpload = viewer === "customer" && isManualTransfer && p.status === "pending_review";
+  const canPayOnline = viewer === "customer" && resolvedIsOnline && p.status === "pending";
+
+  const onStartPaymob = async () => {
+    setPaymobStarting(true);
+    const result = await redirectToPaymobCheckout(bookingId, p.id);
+    if (!result.ok) {
+      setPaymobStarting(false);
+      toast.error(result.message || t("payment.paymobStartFailed"));
+    }
+  };
 
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -193,6 +270,28 @@ export function PaymentBlock({
         <Badge tone={statusTone(p.status)}>{t(`payment.status.${p.status}`, String(p.status).replace("_", " "))}</Badge>
       </div>
 
+      {/* Customer online checkout (Paymob) */}
+      {canPayOnline && (
+        <div className="space-y-3 rounded-2xl bg-surface-2 p-3">
+          <p className="text-[11px] text-muted-foreground">
+            {paymobReturn && p.status === "pending"
+              ? t("payment.paymobConfirming")
+              : t("payment.paymobInstructions")}
+          </p>
+          <button
+            type="button"
+            onClick={onStartPaymob}
+            disabled={paymobStarting}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-navy text-sm font-bold text-navy-foreground active:scale-[0.98] disabled:opacity-50"
+          >
+            {paymobStarting
+              ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              : <ExternalLink className="h-4 w-4" aria-hidden="true" />}
+            {paymobStarting ? t("payment.paymobStarting") : t("payment.paymobContinue")}
+          </button>
+        </div>
+      )}
+
       {/* Customer manual-transfer instructions + upload */}
       {viewer === "customer" && isManualTransfer && p.status === "pending_review" && !p.proof_path && (
         <div className="space-y-3 rounded-2xl bg-surface-2 p-3">
@@ -255,7 +354,7 @@ export function PaymentBlock({
       )}
 
       {/* Provider/Admin actions */}
-      {canConfirm && (p.status === "pending" || p.status === "pending_review") && (
+      {canConfirm && !resolvedIsOnline && (p.status === "pending" || p.status === "pending_review") && (
         <div className="space-y-2 border-t border-border pt-3">
           {p.proof_path && (
             <button onClick={openProof} className="flex w-full items-center justify-center gap-2 rounded-xl bg-surface-2 py-2 text-xs font-bold">

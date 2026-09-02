@@ -1,9 +1,8 @@
 /**
- * Payments data layer — admin-configurable methods (no gateway integration
- * for Paymob yet). RLS does the heavy lifting; see migrations for who can
- * read/write/update. Payment method selection is validated and snapshotted
- * server-side — see tg_snapshot_payment_method in
- * 20260714120000_configurable_payment_methods.sql.
+ * Payments data layer — admin-configurable methods plus Paymob online checkout.
+ * RLS does the heavy lifting; see migrations for who can read/write/update.
+ * Payment method selection is validated and snapshotted server-side — see
+ * tg_snapshot_payment_method in 20260714120000_configurable_payment_methods.sql.
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -65,7 +64,7 @@ export function useCreatePayment() {
     mutationFn: async (input: {
       bookingId: string;
       paymentMethodId: string;
-      /** Only used to pick the initial status (cash = pending, everything else needs review); the row's actual method details are copied server-side from payment_method_id. */
+      /** Only used to pick the initial status (manual_transfer = pending_review; cash/online = pending); the row's actual method details are copied server-side from payment_method_id. */
       methodType: 'cash' | 'manual_transfer' | 'online';
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -85,7 +84,7 @@ export function useCreatePayment() {
         throw new Error('Booking total is not available yet.');
       }
 
-      const status: PaymentStatus = input.methodType === 'cash' ? 'pending' : 'pending_review';
+      const status: PaymentStatus = input.methodType === 'manual_transfer' ? 'pending_review' : 'pending';
       const { data, error } = await supabase
         .from('payments')
         .insert({
