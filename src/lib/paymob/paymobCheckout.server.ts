@@ -217,7 +217,12 @@ export async function createPaymobCheckoutForPayment(input: {
   });
   if (storeErr) {
     console.error("[paymob.checkout] failed to persist intention metadata", storeErr.message);
-    await releaseReservation();
+    // Unlike the createPaymobIntention failure above, Paymob has DEFINITELY
+    // created a live intention by this point — we're just failing to record
+    // it locally. Releasing here would let an immediate retry create a
+    // second live intention for the same payment on top of the one that
+    // already exists. Keep the reservation; it self-expires after 15
+    // minutes if the storage failure isn't transient.
     throw new Error("Could not save Paymob checkout details.");
   }
 

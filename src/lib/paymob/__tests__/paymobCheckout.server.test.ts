@@ -21,6 +21,7 @@ type PaymentRecord = {
 
 function createMockSupabase(initialPayment: PaymentRecord) {
   const payment = { ...initialPayment, metadata: { ...initialPayment.metadata } };
+  const state = { failNextStore: false };
   let chain = Promise.resolve();
 
   const withLock = async <T>(fn: () => Promise<T> | T): Promise<T> => {
@@ -34,6 +35,7 @@ function createMockSupabase(initialPayment: PaymentRecord) {
 
   return {
     payment,
+    state,
     async rpc(fn: string, args: Record<string, unknown>) {
       return withLock(async () => {
         if (fn === "paymob_reserve_checkout") {
@@ -59,6 +61,10 @@ function createMockSupabase(initialPayment: PaymentRecord) {
           return { data: { reused: false, payment_id: payment.id }, error: null };
         }
         if (fn === "paymob_store_checkout_intention") {
+          if (state.failNextStore) {
+            state.failNextStore = false;
+            return { data: null, error: { message: "simulated storage failure" } };
+          }
           payment.provider_ref = String(args.p_intention_id);
           payment.metadata = {
             ...payment.metadata,
@@ -280,6 +286,45 @@ describe("createPaymobCheckoutForPayment concurrency", () => {
         userId: "user-1",
         bookingId: "book-3",
         paymentId: "pay-3",
+      }),
+    ).rejects.toThrow("already in progress");
+  });
+
+  it("keeps the reservation when Paymob succeeds but local storage fails, blocking an immediate retry", async () => {
+    intentionGate = Promise.resolve();
+
+    const mock = createMockSupabase({
+      id: "pay-4",
+      booking_id: "book-4",
+      customer_id: "user-1",
+      amount: 100,
+      currency: "EGP",
+      status: "pending",
+      payment_method_code: "paymob",
+      payment_method_type: "online",
+      provider_ref: null,
+      metadata: {},
+    });
+
+    mock.state.failNextStore = true;
+
+    await expect(
+      createPaymobCheckoutForPayment({
+        supabaseAdmin: mock as unknown as SupabaseAdminClient,
+        userId: "user-1",
+        bookingId: "book-4",
+        paymentId: "pay-4",
+      }),
+    ).rejects.toThrow("Could not save Paymob checkout details.");
+
+    expect(mock.payment.metadata.paymob_checkout_reservation).toBeDefined();
+
+    await expect(
+      createPaymobCheckoutForPayment({
+        supabaseAdmin: mock as unknown as SupabaseAdminClient,
+        userId: "user-1",
+        bookingId: "book-4",
+        paymentId: "pay-4",
       }),
     ).rejects.toThrow("already in progress");
   });
