@@ -1,5 +1,5 @@
 import { readPaymobConfig } from "./paymobConfig.server";
-import { createPaymobIntention } from "./paymobApi.server";
+import { createPaymobIntention, PaymobIntentionIndeterminateError } from "./paymobApi.server";
 import { buildPaymobBookingReturnUrl } from "./paymobConfig.server";
 
 type BookingRow = {
@@ -197,11 +197,15 @@ export async function createPaymobCheckoutForPayment(input: {
       ],
     });
   } catch (err) {
-    // Ambiguous outcome: the request may have failed before Paymob ever saw it,
-    // or Paymob may have created the intention while the response was lost.
-    // Releasing here favors availability (a fast retry) over the rarer case of
-    // an orphaned, never-charged intention on Paymob's side.
-    await releaseReservation();
+    if (!(err instanceof PaymobIntentionIndeterminateError)) {
+      // Paymob explicitly rejected the request (bad request, malformed response) —
+      // proven no intention was created, safe to release immediately.
+      await releaseReservation();
+    }
+    // else: we don't know whether Paymob created the intention (network error,
+    // timeout, lost response). Keep the reservation so a fast retry can't create
+    // a second live intention for the same payment — it self-expires after 15
+    // minutes if nothing else resolves it.
     throw err;
   }
 

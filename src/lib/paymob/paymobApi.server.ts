@@ -34,6 +34,28 @@ export type PaymobIntentionResponse = {
   status?: string;
 };
 
+/**
+ * The request never got a response from Paymob (network error, timeout,
+ * connection reset). Paymob may or may not have created the intention —
+ * callers must not treat this the same as a clean rejection (which proves
+ * nothing was created): don't release a checkout reservation on this error,
+ * only on PaymobIntentionRejectedError below.
+ */
+export class PaymobIntentionIndeterminateError extends Error {
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = "PaymobIntentionIndeterminateError";
+  }
+}
+
+/** Paymob received the request and explicitly rejected or malformed-responded to it — no intention was created. */
+export class PaymobIntentionRejectedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PaymobIntentionRejectedError";
+  }
+}
+
 export async function createPaymobIntention(
   config: PaymobConfig,
   input: CreatePaymobIntentionInput,
@@ -52,24 +74,29 @@ export async function createPaymobIntention(
     },
   };
 
-  const response = await fetch(`${config.baseUrl}/v1/intention/`, {
-    method: "POST",
-    headers: {
-      Authorization: `Token ${config.secretKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${config.baseUrl}/v1/intention/`, {
+      method: "POST",
+      headers: {
+        Authorization: `Token ${config.secretKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (err) {
+    throw new PaymobIntentionIndeterminateError("Could not reach Paymob to start checkout.", { cause: err });
+  }
 
   if (!response.ok) {
     const detail = await response.text();
     console.error("[paymob.intention] create failed", response.status, detail.slice(0, 500));
-    throw new Error("Could not start Paymob checkout.");
+    throw new PaymobIntentionRejectedError("Could not start Paymob checkout.");
   }
 
   const data = (await response.json()) as PaymobIntentionResponse;
   if (!data.client_secret || !data.id) {
-    throw new Error("Paymob checkout response was incomplete.");
+    throw new PaymobIntentionRejectedError("Paymob checkout response was incomplete.");
   }
 
   return {

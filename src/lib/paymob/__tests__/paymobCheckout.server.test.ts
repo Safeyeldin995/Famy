@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { createPaymobCheckoutForPayment, type SupabaseAdminClient } from "../paymobCheckout.server";
-import { createPaymobIntention } from "../paymobApi.server";
+import {
+  createPaymobIntention,
+  PaymobIntentionIndeterminateError,
+  PaymobIntentionRejectedError,
+} from "../paymobApi.server";
 
 type PaymentRecord = {
   id: string;
@@ -132,17 +136,21 @@ vi.mock("../paymobConfig.server", () => ({
     `${origin}/booking/${bookingId}?paymob_return=1`,
 }));
 
-vi.mock("../paymobApi.server", () => ({
-  createPaymobIntention: vi.fn(async (_config, input) => {
-    await intentionGate;
-    const intentionId = `intent-${input.specialReference}`;
-    return {
-      checkoutUrl: `https://accept.paymob.com/unifiedcheckout/?publicKey=test&clientSecret=${intentionId}`,
-      intentionId,
-      clientSecret: intentionId,
-    };
-  }),
-}));
+vi.mock("../paymobApi.server", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../paymobApi.server")>();
+  return {
+    ...actual,
+    createPaymobIntention: vi.fn(async (_config, input) => {
+      await intentionGate;
+      const intentionId = `intent-${input.specialReference}`;
+      return {
+        checkoutUrl: `https://accept.paymob.com/unifiedcheckout/?publicKey=test&clientSecret=${intentionId}`,
+        intentionId,
+        clientSecret: intentionId,
+      };
+    }),
+  };
+});
 
 describe("createPaymobCheckoutForPayment concurrency", () => {
   it("rejects a second checkout while the first intention is still being created, then reuses the stored checkout", async () => {
@@ -194,7 +202,7 @@ describe("createPaymobCheckoutForPayment concurrency", () => {
     expect(mock.payment.metadata.paymob_intention_id).toBe("intent-pay-1");
   });
 
-  it("releases the reservation when createPaymobIntention fails, allowing an immediate retry", async () => {
+  it("releases the reservation when Paymob explicitly rejects the intention request, allowing an immediate retry", async () => {
     intentionGate = Promise.resolve();
 
     const mock = createMockSupabase({
@@ -210,7 +218,9 @@ describe("createPaymobCheckoutForPayment concurrency", () => {
       metadata: {},
     });
 
-    vi.mocked(createPaymobIntention).mockRejectedValueOnce(new Error("Paymob API unreachable"));
+    vi.mocked(createPaymobIntention).mockRejectedValueOnce(
+      new PaymobIntentionRejectedError("Could not start Paymob checkout."),
+    );
 
     await expect(
       createPaymobCheckoutForPayment({
@@ -219,7 +229,7 @@ describe("createPaymobCheckoutForPayment concurrency", () => {
         bookingId: "book-2",
         paymentId: "pay-2",
       }),
-    ).rejects.toThrow("Paymob API unreachable");
+    ).rejects.toThrow("Could not start Paymob checkout.");
 
     expect(mock.payment.metadata.paymob_checkout_reservation).toBeUndefined();
 
@@ -231,5 +241,46 @@ describe("createPaymobCheckoutForPayment concurrency", () => {
     });
 
     expect(retried.checkoutUrl).toContain("intent-pay-2");
+  });
+
+  it("keeps the reservation when the Paymob request outcome is indeterminate, blocking an immediate retry", async () => {
+    intentionGate = Promise.resolve();
+
+    const mock = createMockSupabase({
+      id: "pay-3",
+      booking_id: "book-3",
+      customer_id: "user-1",
+      amount: 100,
+      currency: "EGP",
+      status: "pending",
+      payment_method_code: "paymob",
+      payment_method_type: "online",
+      provider_ref: null,
+      metadata: {},
+    });
+
+    vi.mocked(createPaymobIntention).mockRejectedValueOnce(
+      new PaymobIntentionIndeterminateError("Could not reach Paymob to start checkout."),
+    );
+
+    await expect(
+      createPaymobCheckoutForPayment({
+        supabaseAdmin: mock as unknown as SupabaseAdminClient,
+        userId: "user-1",
+        bookingId: "book-3",
+        paymentId: "pay-3",
+      }),
+    ).rejects.toThrow("Could not reach Paymob to start checkout.");
+
+    expect(mock.payment.metadata.paymob_checkout_reservation).toBeDefined();
+
+    await expect(
+      createPaymobCheckoutForPayment({
+        supabaseAdmin: mock as unknown as SupabaseAdminClient,
+        userId: "user-1",
+        bookingId: "book-3",
+        paymentId: "pay-3",
+      }),
+    ).rejects.toThrow("already in progress");
   });
 });
