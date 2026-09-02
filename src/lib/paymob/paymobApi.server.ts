@@ -94,9 +94,17 @@ export async function createPaymobIntention(
     throw new PaymobIntentionRejectedError("Could not start Paymob checkout.");
   }
 
-  const data = (await response.json()) as PaymobIntentionResponse;
+  // A 2xx response proves Paymob accepted and processed the request — it does
+  // NOT prove no intention was created if we then fail to read the confirmation.
+  // Both cases below are indeterminate, not a proven rejection.
+  let data: PaymobIntentionResponse;
+  try {
+    data = (await response.json()) as PaymobIntentionResponse;
+  } catch (err) {
+    throw new PaymobIntentionIndeterminateError("Paymob checkout response could not be parsed.", { cause: err });
+  }
   if (!data.client_secret || !data.id) {
-    throw new PaymobIntentionRejectedError("Paymob checkout response was incomplete.");
+    throw new PaymobIntentionIndeterminateError("Paymob checkout response was incomplete.");
   }
 
   return {
