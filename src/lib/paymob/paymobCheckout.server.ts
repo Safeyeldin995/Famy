@@ -159,31 +159,51 @@ export async function createPaymobCheckoutForPayment(input: {
   const amountCents = bookingAmountCents(paymentAmount);
   const currency = (payment.currency || bookingRow.currency || "EGP").toUpperCase();
 
-  const intention = await createPaymobIntention(config, {
-    amountCents,
-    currency,
-    specialReference: payment.id,
-    notificationUrl: config.notificationUrl,
-    redirectionUrl: buildPaymobBookingReturnUrl(config.appOrigin, bookingRow.id),
-    billingData: {
-      ...billing,
-      street: "NA",
-      building: "NA",
-      floor: "NA",
-      apartment: "NA",
-      city: "Cairo",
-      country: "EGY",
-      state: "Cairo",
-    },
-    items: [
-      {
-        name: serviceName,
-        amount: amountCents,
-        description: `Booking ${bookingRow.id.slice(0, 8)}`,
-        quantity: 1,
+  const releaseReservation = async () => {
+    const { error: releaseErr } = await input.supabaseAdmin.rpc(
+      "paymob_release_checkout_reservation",
+      { p_payment_id: payment.id },
+    );
+    if (releaseErr) {
+      console.error("[paymob.checkout] failed to release checkout reservation", releaseErr.message);
+    }
+  };
+
+  let intention: Awaited<ReturnType<typeof createPaymobIntention>>;
+  try {
+    intention = await createPaymobIntention(config, {
+      amountCents,
+      currency,
+      specialReference: payment.id,
+      notificationUrl: config.notificationUrl,
+      redirectionUrl: buildPaymobBookingReturnUrl(config.appOrigin, bookingRow.id),
+      billingData: {
+        ...billing,
+        street: "NA",
+        building: "NA",
+        floor: "NA",
+        apartment: "NA",
+        city: "Cairo",
+        country: "EGY",
+        state: "Cairo",
       },
-    ],
-  });
+      items: [
+        {
+          name: serviceName,
+          amount: amountCents,
+          description: `Booking ${bookingRow.id.slice(0, 8)}`,
+          quantity: 1,
+        },
+      ],
+    });
+  } catch (err) {
+    // Ambiguous outcome: the request may have failed before Paymob ever saw it,
+    // or Paymob may have created the intention while the response was lost.
+    // Releasing here favors availability (a fast retry) over the rarer case of
+    // an orphaned, never-charged intention on Paymob's side.
+    await releaseReservation();
+    throw err;
+  }
 
   const { error: storeErr } = await input.supabaseAdmin.rpc("paymob_store_checkout_intention", {
     p_payment_id: payment.id,
@@ -193,15 +213,7 @@ export async function createPaymobCheckoutForPayment(input: {
   });
   if (storeErr) {
     console.error("[paymob.checkout] failed to persist intention metadata", storeErr.message);
-    const { error: releaseErr } = await input.supabaseAdmin.rpc(
-      "paymob_release_checkout_reservation",
-      {
-        p_payment_id: payment.id,
-      },
-    );
-    if (releaseErr) {
-      console.error("[paymob.checkout] failed to release checkout reservation", releaseErr.message);
-    }
+    await releaseReservation();
     throw new Error("Could not save Paymob checkout details.");
   }
 

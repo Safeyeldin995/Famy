@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createPaymobCheckoutForPayment, type SupabaseAdminClient } from "../paymobCheckout.server";
+import { createPaymobIntention } from "../paymobApi.server";
 
 type PaymentRecord = {
   id: string;
@@ -62,6 +63,11 @@ function createMockSupabase(initialPayment: PaymentRecord) {
             paymob_checkout_started_at: new Date().toISOString(),
           };
           delete payment.metadata.paymob_checkout_reservation;
+          return { data: null, error: null };
+        }
+        if (fn === "paymob_release_checkout_reservation") {
+          delete payment.metadata.paymob_checkout_reservation;
+          delete payment.metadata.paymob_checkout_reserved_at;
           return { data: null, error: null };
         }
         return { data: null, error: { message: `unknown rpc ${fn}` } };
@@ -186,5 +192,44 @@ describe("createPaymobCheckoutForPayment concurrency", () => {
 
     expect(reused.checkoutUrl).toBe(first.checkoutUrl);
     expect(mock.payment.metadata.paymob_intention_id).toBe("intent-pay-1");
+  });
+
+  it("releases the reservation when createPaymobIntention fails, allowing an immediate retry", async () => {
+    intentionGate = Promise.resolve();
+
+    const mock = createMockSupabase({
+      id: "pay-2",
+      booking_id: "book-2",
+      customer_id: "user-1",
+      amount: 100,
+      currency: "EGP",
+      status: "pending",
+      payment_method_code: "paymob",
+      payment_method_type: "online",
+      provider_ref: null,
+      metadata: {},
+    });
+
+    vi.mocked(createPaymobIntention).mockRejectedValueOnce(new Error("Paymob API unreachable"));
+
+    await expect(
+      createPaymobCheckoutForPayment({
+        supabaseAdmin: mock as unknown as SupabaseAdminClient,
+        userId: "user-1",
+        bookingId: "book-2",
+        paymentId: "pay-2",
+      }),
+    ).rejects.toThrow("Paymob API unreachable");
+
+    expect(mock.payment.metadata.paymob_checkout_reservation).toBeUndefined();
+
+    const retried = await createPaymobCheckoutForPayment({
+      supabaseAdmin: mock as unknown as SupabaseAdminClient,
+      userId: "user-1",
+      bookingId: "book-2",
+      paymentId: "pay-2",
+    });
+
+    expect(retried.checkoutUrl).toContain("intent-pay-2");
   });
 });
