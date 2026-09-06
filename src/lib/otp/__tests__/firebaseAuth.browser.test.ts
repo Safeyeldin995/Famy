@@ -5,6 +5,7 @@ const mockGetIdToken = vi.fn();
 const mockSignOut = vi.fn().mockResolvedValue(undefined);
 const mockSignInWithPhoneNumber = vi.fn();
 const mockSignInWithCredential = vi.fn();
+const mockClear = vi.fn().mockResolvedValue(undefined);
 const mockRender = vi.fn().mockResolvedValue(undefined);
 
 vi.mock("firebase/app", () => ({
@@ -14,8 +15,12 @@ vi.mock("firebase/app", () => ({
 
 vi.mock("firebase/auth", () => ({
   getAuth: vi.fn(() => ({})),
-  RecaptchaVerifier: vi.fn(function RecaptchaVerifier(this: { render: () => Promise<void> }) {
+  RecaptchaVerifier: vi.fn(function RecaptchaVerifier(this: {
+    render: () => Promise<void>;
+    clear: () => Promise<void>;
+  }) {
     this.render = mockRender;
+    this.clear = mockClear;
   }),
   signInWithPhoneNumber: (...args: unknown[]) => mockSignInWithPhoneNumber(...args),
   signInWithCredential: (...args: unknown[]) => mockSignInWithCredential(...args),
@@ -141,6 +146,52 @@ describe("firebaseAuth.browser sessionStorage fail-soft", () => {
     expect(hasFirebasePhoneVerificationSession()).toBe(true);
     await expect(confirmFirebasePhoneOtp("123456")).resolves.toBe("firebase-id-token");
     expect(mockSignInWithCredential).toHaveBeenCalledOnce();
+  });
+
+  it("rebuilds reCAPTCHA after the previous container is removed from the DOM", async () => {
+    const containers = new Map<string, HTMLElement>();
+    const bodyChildren: HTMLElement[] = [];
+    const body = {
+      contains(node: unknown) {
+        return bodyChildren.includes(node as HTMLElement);
+      },
+      appendChild(node: HTMLElement) {
+        bodyChildren.push(node);
+        return node;
+      },
+    };
+
+    const mountContainer = () => {
+      const node = {
+        id: "firebase-recaptcha",
+        remove() {
+          const index = bodyChildren.indexOf(node as HTMLElement);
+          if (index >= 0) bodyChildren.splice(index, 1);
+          containers.delete("firebase-recaptcha");
+        },
+      } as HTMLElement;
+      containers.set(node.id, node);
+      body.appendChild(node);
+      return node;
+    };
+
+    vi.stubGlobal("document", {
+      body,
+      getElementById: (id: string) => containers.get(id) ?? null,
+    });
+
+    const loginContainer = mountContainer();
+    const { sendFirebasePhoneOtp } = await import("../firebaseAuth.browser");
+    await sendFirebasePhoneOtp("+201012345678");
+    expect(mockRender).toHaveBeenCalledTimes(1);
+
+    loginContainer.remove();
+
+    mountContainer();
+    await sendFirebasePhoneOtp("+201012345678");
+    expect(mockClear).toHaveBeenCalled();
+    expect(mockRender).toHaveBeenCalledTimes(2);
+    expect(mockSignInWithPhoneNumber).toHaveBeenCalledTimes(2);
   });
 });
 

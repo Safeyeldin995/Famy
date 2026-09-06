@@ -6,6 +6,10 @@ import { PhoneFrame, PrimaryButton, TopBar } from "@/components/famio/ui";
 import { useApp } from "@/lib/store";
 import { otpService, normalizePhone } from "@/lib/otp/OtpService";
 import { startPhoneOtpFlow, phoneOtpFlowErrorMessage } from "@/lib/otp/phoneOtpFlow";
+import {
+  FIREBASE_RECAPTCHA_CONTAINER_CLASS,
+  FIREBASE_RECAPTCHA_CONTAINER_ID,
+} from "@/lib/otp/firebaseAuth.browser";
 
 export const Route = createFileRoute("/auth/forgot")({ component: Forgot });
 
@@ -39,7 +43,11 @@ function Forgot() {
   return (
     <PhoneFrame bg="bg-background">
       <TopBar back={{ to: "/login" }} transparent />
-      <div id="firebase-recaptcha" className="hidden" aria-hidden="true" />
+      <div
+        id={FIREBASE_RECAPTCHA_CONTAINER_ID}
+        className={FIREBASE_RECAPTCHA_CONTAINER_CLASS}
+        aria-hidden="true"
+      />
       <div className="px-6 pt-2">
         <h1 className="text-[26px] font-black leading-tight tracking-tight text-foreground">
           {t("auth.forgotTitle", "Reset password")}

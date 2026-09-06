@@ -20,6 +20,10 @@ type FirebaseClientConfig = {
 };
 
 const VERIFICATION_ID_STORAGE_KEY = "famy.firebase.verificationId";
+export const FIREBASE_RECAPTCHA_CONTAINER_ID = "firebase-recaptcha";
+/** Firebase reCAPTCHA must not use display:none — it breaks widget layout callbacks. */
+export const FIREBASE_RECAPTCHA_CONTAINER_CLASS =
+  "pointer-events-none fixed left-0 top-0 h-px w-px overflow-hidden opacity-0";
 
 export class FirebaseClientConfigurationError extends Error {
   constructor(message: string) {
@@ -70,6 +74,7 @@ export function readFirebaseClientConfig(
 let firebaseApp: FirebaseApp | undefined;
 let firebaseAuth: Auth | undefined;
 let recaptchaVerifier: RecaptchaVerifier | undefined;
+let recaptchaContainerId: string | undefined;
 let confirmationResult: ConfirmationResult | undefined;
 
 function getSessionStorage(): Storage | null {
@@ -145,13 +150,73 @@ function getRecaptchaContainer(containerId: string): HTMLElement {
   return container;
 }
 
-export async function ensureInvisibleRecaptcha(containerId = "firebase-recaptcha"): Promise<void> {
+function isRecaptchaContainerMounted(containerId: string): boolean {
+  const container = document.getElementById(containerId);
+  if (!container) return false;
+  const body = document.body;
+  if (!body || typeof body.contains !== "function") return true;
+  return body.contains(container);
+}
+
+function logFirebaseSendClient(
+  outcome: "start" | "success" | "failure",
+  details: Record<string, string | boolean | undefined> = {},
+): void {
+  if (outcome === "failure") {
+    console.error("[otp.firebase.send.client]", { outcome, ...details });
+    return;
+  }
+  console.info("[otp.firebase.send.client]", { outcome, ...details });
+}
+
+function sanitizeFirebaseClientError(error: unknown): {
+  errorName?: string;
+  code?: string;
+  message?: string;
+} {
+  const errorName = error instanceof Error ? error.name : "Error";
+  const code =
+    typeof error === "object" && error && "code" in error
+      ? String((error as { code?: string }).code ?? "")
+      : undefined;
+  const message =
+    error instanceof Error ? error.message.slice(0, 120) : String(error).slice(0, 120);
+  return {
+    errorName,
+    code: code || undefined,
+    message,
+  };
+}
+
+async function clearRecaptchaVerifier(): Promise<void> {
+  if (!recaptchaVerifier) return;
+  try {
+    await recaptchaVerifier.clear();
+  } catch {
+    // Widget may already be torn down with its container.
+  }
+  recaptchaVerifier = undefined;
+  recaptchaContainerId = undefined;
+}
+
+export async function ensureInvisibleRecaptcha(
+  containerId = FIREBASE_RECAPTCHA_CONTAINER_ID,
+): Promise<void> {
   if (typeof window === "undefined") return;
   const auth = getFirebaseAuthApp();
-  if (recaptchaVerifier) return;
+  if (
+    recaptchaVerifier &&
+    recaptchaContainerId === containerId &&
+    isRecaptchaContainerMounted(containerId)
+  ) {
+    return;
+  }
+
+  await clearRecaptchaVerifier();
   recaptchaVerifier = new RecaptchaVerifier(auth, getRecaptchaContainer(containerId), {
     size: "invisible",
   });
+  recaptchaContainerId = containerId;
   await recaptchaVerifier.render();
 }
 
@@ -162,15 +227,28 @@ export async function sendFirebasePhoneOtp(
   if (typeof window === "undefined") {
     throw new Error("Firebase phone OTP can only run in the browser");
   }
-  const containerId = options.containerId ?? "firebase-recaptcha";
+  const containerId = options.containerId ?? FIREBASE_RECAPTCHA_CONTAINER_ID;
   const auth = getFirebaseAuthApp();
   auth.languageCode = resolveFirebaseAuthLanguage(options.languageCode);
-  await ensureInvisibleRecaptcha(containerId);
-  if (!recaptchaVerifier) {
-    throw new Error("Firebase reCAPTCHA is not ready");
+
+  logFirebaseSendClient("start", {
+    containerMounted: isRecaptchaContainerMounted(containerId),
+    verifierCached: Boolean(recaptchaVerifier),
+  });
+
+  try {
+    await ensureInvisibleRecaptcha(containerId);
+    if (!recaptchaVerifier) {
+      throw new Error("Firebase reCAPTCHA is not ready");
+    }
+    confirmationResult = await signInWithPhoneNumber(auth, phoneE164, recaptchaVerifier);
+    persistVerificationId(confirmationResult.verificationId);
+    logFirebaseSendClient("success");
+  } catch (error) {
+    logFirebaseSendClient("failure", sanitizeFirebaseClientError(error));
+    await clearRecaptchaVerifier();
+    throw error;
   }
-  confirmationResult = await signInWithPhoneNumber(auth, phoneE164, recaptchaVerifier);
-  persistVerificationId(confirmationResult.verificationId);
 }
 
 async function completeFirebasePhoneVerification(code: string): Promise<string> {
@@ -213,7 +291,7 @@ export async function confirmFirebasePhoneOtp(code: string): Promise<string> {
 }
 
 export function resetFirebasePhoneOtpSessionForTests(): void {
-  recaptchaVerifier = undefined;
+  void clearRecaptchaVerifier();
   confirmationResult = undefined;
   firebaseAuth = undefined;
   firebaseApp = undefined;
