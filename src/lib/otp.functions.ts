@@ -100,6 +100,7 @@ type VerifiedAuthInput = {
 };
 
 async function completeVerifiedAuth(data: VerifiedAuthInput) {
+  const isSignup = data.purpose === "signup";
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { randomBytes } = await import("crypto");
@@ -121,7 +122,7 @@ async function completeVerifiedAuth(data: VerifiedAuthInput) {
       if (error) {
         console.error("[otp.verify.completeAuth]", {
           stage: "create_or_update_user",
-          isSignup: data.purpose === "signup",
+          isSignup,
           errorCode: authErrorCode(error),
         });
         throw error;
@@ -139,7 +140,7 @@ async function completeVerifiedAuth(data: VerifiedAuthInput) {
       if (error) {
         console.error("[otp.verify.completeAuth]", {
           stage: "create_or_update_user",
-          isSignup: data.purpose === "signup",
+          isSignup,
           errorCode: authErrorCode(error),
         });
         throw error;
