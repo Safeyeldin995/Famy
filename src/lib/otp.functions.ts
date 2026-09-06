@@ -516,6 +516,7 @@ export const verifyOtpFn = createServerFn({ method: "POST" })
 export const verifyFirebaseOtpFn = createServerFn({ method: "POST" })
   .inputValidator((d) => VerifyFirebaseSchema.parse(d))
   .handler(async ({ data }) => {
+    console.info("[otp.verify.handler]", { stage: "entered" });
     const { isFirebaseOtpProvider } = await import("@/lib/otp/otpProviderKind.server");
     if (!isFirebaseOtpProvider()) {
       return { ok: false as const, error: "invalid_code" as const };
@@ -557,7 +558,13 @@ export const verifyFirebaseOtpFn = createServerFn({ method: "POST" })
     }
 
     try {
-      return await finalizeOtpVerification(pending);
+      const result = await finalizeOtpVerification(pending);
+      console.info("[otp.verify.handler]", {
+        stage: "returning",
+        ok: result.ok,
+        resultKeys: Object.keys(result),
+      });
+      return result;
     } catch (error) {
       console.error("[otp.verify.handler]", {
         stage: "finalize_unexpected",
