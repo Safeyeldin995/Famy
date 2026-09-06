@@ -193,6 +193,27 @@ describe("firebaseAuth.browser sessionStorage fail-soft", () => {
     expect(mockRender).toHaveBeenCalledTimes(2);
     expect(mockSignInWithPhoneNumber).toHaveBeenCalledTimes(2);
   });
+
+  it("logs sanitized Firebase verify failures without leaking the code", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockConfirm.mockRejectedValueOnce({ code: "auth/invalid-verification-code", message: "bad code" });
+
+    const { sendFirebasePhoneOtp, confirmFirebasePhoneOtp } = await import("../firebaseAuth.browser");
+    await sendFirebasePhoneOtp("+201012345678");
+
+    await expect(confirmFirebasePhoneOtp("123456")).rejects.toMatchObject({
+      code: "auth/invalid-verification-code",
+    });
+    expect(errorSpy).toHaveBeenCalledWith(
+      "[otp.firebase.verify.client]",
+      expect.objectContaining({
+        outcome: "failure",
+        path: "confirmation_result",
+        code: "auth/invalid-verification-code",
+      }),
+    );
+    expect(JSON.stringify(errorSpy.mock.calls)).not.toContain("123456");
+  });
 });
 
 describe("phoneOtpFlow firebase session errors", () => {

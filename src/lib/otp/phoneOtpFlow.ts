@@ -104,7 +104,15 @@ export async function verifyPhoneOtpCode(code: string) {
     try {
       const { confirmFirebasePhoneOtp } = await import("@/lib/otp/firebaseAuth.browser");
       const idToken = await confirmFirebasePhoneOtp(code);
-      return otpService.verifyFirebaseOtp(idToken);
+      const serverResult = await otpService.verifyFirebaseOtp(idToken);
+      if (!serverResult.ok) {
+        console.error("[otp.firebase.verify.client]", {
+          outcome: "failure",
+          stage: "server",
+          error: serverResult.error,
+        });
+      }
+      return serverResult;
     } catch (error) {
       if (
         error instanceof FirebasePhoneVerificationSessionError &&

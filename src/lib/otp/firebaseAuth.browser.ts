@@ -194,6 +194,17 @@ function sanitizeFirebaseClientError(error: unknown): {
   };
 }
 
+function logFirebaseVerifyClient(
+  outcome: "start" | "success" | "failure",
+  details: Record<string, string | boolean | undefined> = {},
+): void {
+  if (outcome === "failure") {
+    console.error("[otp.firebase.verify.client]", { outcome, ...details });
+    return;
+  }
+  console.info("[otp.firebase.verify.client]", { outcome, ...details });
+}
+
 async function clearRecaptchaVerifier(): Promise<void> {
   if (!recaptchaVerifier) return;
   try {
@@ -256,31 +267,59 @@ export async function sendFirebasePhoneOtp(
 
 async function completeFirebasePhoneVerification(code: string): Promise<string> {
   const auth = getFirebaseAuthApp();
+  const trimmedCode = code.trim();
+  const usingConfirmationResult = Boolean(confirmationResult);
+  const hasStoredVerificationId = Boolean(readStoredVerificationId());
 
-  if (confirmationResult) {
-    const credential = await confirmationResult.confirm(code);
-    const idToken = await credential.user.getIdToken();
+  logFirebaseVerifyClient("start", {
+    path: usingConfirmationResult ? "confirmation_result" : "session_storage",
+    hasStoredVerificationId,
+  });
+
+  try {
+    if (confirmationResult) {
+      const credential = await confirmationResult.confirm(trimmedCode);
+      const idToken = await credential.user.getIdToken();
+      await signOut(auth);
+      confirmationResult = undefined;
+      clearStoredVerificationId();
+      logFirebaseVerifyClient("success", { path: "confirmation_result" });
+      return idToken;
+    }
+
+    const verificationId = readStoredVerificationId();
+    if (!verificationId) {
+      throw new FirebasePhoneVerificationSessionError(
+        "Firebase phone verification session expired",
+        "session_lost",
+      );
+    }
+
+    const credential = PhoneAuthProvider.credential(verificationId, trimmedCode);
+    const userCredential = await signInWithCredential(auth, credential);
+    const idToken = await userCredential.user.getIdToken();
     await signOut(auth);
     confirmationResult = undefined;
     clearStoredVerificationId();
+    logFirebaseVerifyClient("success", { path: "session_storage" });
     return idToken;
+  } catch (error) {
+    if (
+      error instanceof FirebasePhoneVerificationSessionError &&
+      (error.code === "session_lost" || error.code === "not_started")
+    ) {
+      logFirebaseVerifyClient("failure", {
+        path: usingConfirmationResult ? "confirmation_result" : "session_storage",
+        reason: error.code,
+      });
+      throw error;
+    }
+    logFirebaseVerifyClient("failure", {
+      path: usingConfirmationResult ? "confirmation_result" : "session_storage",
+      ...sanitizeFirebaseClientError(error),
+    });
+    throw error;
   }
-
-  const verificationId = readStoredVerificationId();
-  if (!verificationId) {
-    throw new FirebasePhoneVerificationSessionError(
-      "Firebase phone verification session expired",
-      "session_lost",
-    );
-  }
-
-  const credential = PhoneAuthProvider.credential(verificationId, code);
-  const userCredential = await signInWithCredential(auth, credential);
-  const idToken = await userCredential.user.getIdToken();
-  await signOut(auth);
-  confirmationResult = undefined;
-  clearStoredVerificationId();
-  return idToken;
 }
 
 export async function confirmFirebasePhoneOtp(code: string): Promise<string> {

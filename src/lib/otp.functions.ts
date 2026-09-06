@@ -489,8 +489,26 @@ export const verifyFirebaseOtpFn = createServerFn({ method: "POST" })
     }
 
     const { verifyFirebasePhoneIdToken } = await import("@/lib/otp/firebaseAdmin.server");
-    const verified = await verifyFirebasePhoneIdToken(data.idToken, pending.phone);
+    let verified;
+    try {
+      verified = await verifyFirebasePhoneIdToken(data.idToken, pending.phone);
+    } catch (error) {
+      const errorName = error instanceof Error ? error.name : "Error";
+      const message =
+        error instanceof Error ? error.message.slice(0, 120) : String(error).slice(0, 120);
+      console.error("[otp.firebase.verify.server]", {
+        outcome: "failure",
+        reason: "verify_threw",
+        errorName,
+        message,
+      });
+      return { ok: false as const, error: "invalid_code" as const };
+    }
     if (!verified.ok) {
+      console.error("[otp.firebase.verify.server]", {
+        outcome: "failure",
+        reason: verified.error,
+      });
       return { ok: false as const, error: "invalid_code" as const };
     }
 
