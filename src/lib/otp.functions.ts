@@ -360,15 +360,51 @@ export const sendOtpFn = createServerFn({ method: "POST" })
 export const beginFirebaseOtpFn = createServerFn({ method: "POST" })
   .inputValidator((d) => SendSchema.parse(d))
   .handler(async ({ data }) => {
-    const { isFirebaseOtpProvider } = await import("@/lib/otp/otpProviderKind.server");
-    if (!isFirebaseOtpProvider()) {
+    const {
+      classifyFirebaseOtpBeginError,
+      isAuthIntentSecretConfigured,
+      logFirebaseOtpBeginFailure,
+      maskPhoneSuffix,
+    } = await import("@/lib/otp/firebaseOtpDiagnostics.server");
+    const { getOtpProviderConfigurationStatus } = await import("@/lib/otp/otpProviderKind.server");
+
+    const phoneSuffix = maskPhoneSuffix(data.phone);
+    const providerStatus = getOtpProviderConfigurationStatus();
+    const configuredOtpProvider = providerStatus.ok ? providerStatus.kind : providerStatus.configured;
+
+    if (!providerStatus.ok || providerStatus.kind !== "firebase") {
+      logFirebaseOtpBeginFailure({
+        reason: "provider_mismatch",
+        configuredOtpProvider,
+        authIntentSecretConfigured: isAuthIntentSecretConfigured(),
+        phoneSuffix,
+      });
       return {
         ok: false as const,
         error: "provider_mismatch" as const,
         message: "Firebase OTP is not active in this environment.",
       };
     }
-    return prepareFirebaseOtpIntent(data);
+
+    try {
+      return await prepareFirebaseOtpIntent(data);
+    } catch (error) {
+      const classified = classifyFirebaseOtpBeginError(error);
+      logFirebaseOtpBeginFailure({
+        reason: classified.reason,
+        configuredOtpProvider,
+        authIntentSecretConfigured: isAuthIntentSecretConfigured(),
+        phoneSuffix,
+        errorName: classified.errorName,
+        errorCode: classified.errorCode,
+        errorMessage: classified.errorMessage,
+      });
+      return {
+        ok: false as const,
+        error: classified.reason,
+        message: "Could not start phone verification. Try again.",
+      };
+    }
   });
 
 export const resendOtpFn = createServerFn({ method: "POST" }).handler(async () => {

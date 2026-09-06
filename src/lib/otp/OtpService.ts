@@ -75,8 +75,20 @@ export const otpService = {
   async beginFirebaseOtp(phone: string, purpose: Purpose, role?: Role): Promise<SendOtpResult> {
     try {
       const res = await beginFirebaseOtpFn({ data: { phone, purpose, role } });
+      if (!res.ok) {
+        console.error("[otp.firebase.begin.client]", {
+          error: res.error,
+          message: typeof res.message === "string" ? res.message.slice(0, 120) : undefined,
+        });
+      }
       return res as SendOtpResult;
-    } catch {
+    } catch (error) {
+      const message = error instanceof Error ? error.message.slice(0, 120) : "request_failed";
+      console.error("[otp.firebase.begin.client]", {
+        error: "request_failed",
+        errorName: error instanceof Error ? error.name : "Error",
+        message,
+      });
       return {
         ok: false,
         error: "send_failed",
