@@ -556,7 +556,17 @@ export const verifyFirebaseOtpFn = createServerFn({ method: "POST" })
       return { ok: false as const, error: "invalid_code" as const };
     }
 
-    return finalizeOtpVerification(pending);
+    try {
+      return await finalizeOtpVerification(pending);
+    } catch (error) {
+      console.error("[otp.verify.handler]", {
+        stage: "finalize_unexpected",
+        errorName: error instanceof Error ? error.name : "Error",
+        message:
+          error instanceof Error ? error.message.slice(0, 120) : String(error).slice(0, 120),
+      });
+      return { ok: false as const, error: "invalid_code" as const };
+    }
   });
 
 export const completePasswordSetupFn = createServerFn({ method: "POST" })
