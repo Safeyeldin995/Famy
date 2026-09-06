@@ -86,7 +86,7 @@ describe("firebaseAuth.browser sessionStorage fail-soft", () => {
 
   afterEach(async () => {
     const { resetFirebasePhoneOtpSessionForTests } = await import("../firebaseAuth.browser");
-    resetFirebasePhoneOtpSessionForTests();
+    await resetFirebasePhoneOtpSessionForTests();
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
     vi.clearAllMocks();
@@ -140,7 +140,7 @@ describe("firebaseAuth.browser sessionStorage fail-soft", () => {
     await sendFirebasePhoneOtp("+201012345678");
     expect(storage.store.get("famy.firebase.verificationId")).toBe("verification-id-123");
 
-    resetFirebasePhoneOtpSessionForTests();
+    await resetFirebasePhoneOtpSessionForTests();
     storage.store.set("famy.firebase.verificationId", "verification-id-123");
 
     expect(hasFirebasePhoneVerificationSession()).toBe(true);

@@ -74,7 +74,7 @@ export function readFirebaseClientConfig(
 let firebaseApp: FirebaseApp | undefined;
 let firebaseAuth: Auth | undefined;
 let recaptchaVerifier: RecaptchaVerifier | undefined;
-let recaptchaContainerId: string | undefined;
+let recaptchaContainerNode: HTMLElement | undefined;
 let confirmationResult: ConfirmationResult | undefined;
 
 function getSessionStorage(): Storage | null {
@@ -150,12 +150,18 @@ function getRecaptchaContainer(containerId: string): HTMLElement {
   return container;
 }
 
-function isRecaptchaContainerMounted(containerId: string): boolean {
-  const container = document.getElementById(containerId);
-  if (!container) return false;
+function hasRecaptchaContainerElement(containerId: string): boolean {
+  return document.getElementById(containerId) !== null;
+}
+
+function isRecaptchaVerifierBoundToContainer(containerId: string): boolean {
+  if (!recaptchaVerifier || !recaptchaContainerNode) return false;
+  const currentContainer = document.getElementById(containerId);
+  if (!currentContainer) return false;
+  if (currentContainer !== recaptchaContainerNode) return false;
   const body = document.body;
   if (!body || typeof body.contains !== "function") return true;
-  return body.contains(container);
+  return body.contains(currentContainer);
 }
 
 function logFirebaseSendClient(
@@ -196,7 +202,7 @@ async function clearRecaptchaVerifier(): Promise<void> {
     // Widget may already be torn down with its container.
   }
   recaptchaVerifier = undefined;
-  recaptchaContainerId = undefined;
+  recaptchaContainerNode = undefined;
 }
 
 export async function ensureInvisibleRecaptcha(
@@ -204,19 +210,16 @@ export async function ensureInvisibleRecaptcha(
 ): Promise<void> {
   if (typeof window === "undefined") return;
   const auth = getFirebaseAuthApp();
-  if (
-    recaptchaVerifier &&
-    recaptchaContainerId === containerId &&
-    isRecaptchaContainerMounted(containerId)
-  ) {
+  if (recaptchaVerifier && isRecaptchaVerifierBoundToContainer(containerId)) {
     return;
   }
 
   await clearRecaptchaVerifier();
-  recaptchaVerifier = new RecaptchaVerifier(auth, getRecaptchaContainer(containerId), {
+  const containerNode = getRecaptchaContainer(containerId);
+  recaptchaContainerNode = containerNode;
+  recaptchaVerifier = new RecaptchaVerifier(auth, containerNode, {
     size: "invisible",
   });
-  recaptchaContainerId = containerId;
   await recaptchaVerifier.render();
 }
 
@@ -232,7 +235,7 @@ export async function sendFirebasePhoneOtp(
   auth.languageCode = resolveFirebaseAuthLanguage(options.languageCode);
 
   logFirebaseSendClient("start", {
-    containerMounted: isRecaptchaContainerMounted(containerId),
+    containerMounted: hasRecaptchaContainerElement(containerId),
     verifierCached: Boolean(recaptchaVerifier),
   });
 
@@ -290,8 +293,8 @@ export async function confirmFirebasePhoneOtp(code: string): Promise<string> {
   return completeFirebasePhoneVerification(code);
 }
 
-export function resetFirebasePhoneOtpSessionForTests(): void {
-  void clearRecaptchaVerifier();
+export async function resetFirebasePhoneOtpSessionForTests(): Promise<void> {
+  await clearRecaptchaVerifier();
   confirmationResult = undefined;
   firebaseAuth = undefined;
   firebaseApp = undefined;
