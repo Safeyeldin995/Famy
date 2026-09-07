@@ -12,4 +12,9 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  nitro: {
+    preset: "vercel",
+    // @ts-expect-error nitro vercel options exist at runtime but are missing from lovable types
+    vercel: { entryFormat: "node" },
+  },
 });
