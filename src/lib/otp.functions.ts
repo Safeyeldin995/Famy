@@ -516,61 +516,71 @@ export const verifyOtpFn = createServerFn({ method: "POST" })
 export const verifyFirebaseOtpFn = createServerFn({ method: "POST" })
   .inputValidator((d) => VerifyFirebaseSchema.parse(d))
   .handler(async ({ data }) => {
-    console.info("[otp.verify.handler]", { stage: "entered" });
-    const { isFirebaseOtpProvider } = await import("@/lib/otp/otpProviderKind.server");
-    if (!isFirebaseOtpProvider()) {
-      return { ok: false as const, error: "invalid_code" as const };
-    }
-
-    const pending = readOtpPendingIntent();
-    if (!pending) {
-      return { ok: false as const, error: "invalid_code" as const };
-    }
-
-    const now = Math.floor(Date.now() / 1000);
-    if (pending.otpExp <= now) {
-      clearOtpPendingIntent();
-      return { ok: false as const, error: "invalid_code" as const };
-    }
-
-    const { verifyFirebasePhoneIdToken } = await import("@/lib/otp/firebaseAdmin.server");
-    let verified;
     try {
-      verified = await verifyFirebasePhoneIdToken(data.idToken, pending.phone);
-    } catch (error) {
-      const errorName = error instanceof Error ? error.name : "Error";
-      const message =
-        error instanceof Error ? error.message.slice(0, 120) : String(error).slice(0, 120);
-      console.error("[otp.firebase.verify.server]", {
-        outcome: "failure",
-        reason: "verify_threw",
-        errorName,
-        message,
-      });
-      return { ok: false as const, error: "invalid_code" as const };
-    }
-    if (!verified.ok) {
-      console.error("[otp.firebase.verify.server]", {
-        outcome: "failure",
-        reason: verified.error,
-      });
-      return { ok: false as const, error: "invalid_code" as const };
-    }
+      console.error("[otp.verify.handler]", { stage: "entered" });
+      const { isFirebaseOtpProvider } = await import("@/lib/otp/otpProviderKind.server");
+      if (!isFirebaseOtpProvider()) {
+        return { ok: false as const, error: "invalid_code" as const };
+      }
 
-    try {
-      const result = await finalizeOtpVerification(pending);
-      console.info("[otp.verify.handler]", {
-        stage: "returning",
-        ok: result.ok,
-        resultKeys: Object.keys(result),
-      });
-      return result;
+      const pending = readOtpPendingIntent();
+      if (!pending) {
+        return { ok: false as const, error: "invalid_code" as const };
+      }
+
+      const now = Math.floor(Date.now() / 1000);
+      if (pending.otpExp <= now) {
+        clearOtpPendingIntent();
+        return { ok: false as const, error: "invalid_code" as const };
+      }
+
+      const { verifyFirebasePhoneIdToken } = await import("@/lib/otp/firebaseAdmin.server");
+      let verified;
+      try {
+        verified = await verifyFirebasePhoneIdToken(data.idToken, pending.phone);
+      } catch (error) {
+        const errorName = error instanceof Error ? error.name : "Error";
+        const message =
+          error instanceof Error ? error.message.slice(0, 120) : String(error).slice(0, 120);
+        console.error("[otp.firebase.verify.server]", {
+          outcome: "failure",
+          reason: "verify_threw",
+          errorName,
+          message,
+        });
+        return { ok: false as const, error: "invalid_code" as const };
+      }
+      if (!verified.ok) {
+        console.error("[otp.firebase.verify.server]", {
+          outcome: "failure",
+          reason: verified.error,
+        });
+        return { ok: false as const, error: "invalid_code" as const };
+      }
+
+      try {
+        const result = await finalizeOtpVerification(pending);
+        console.error("[otp.verify.handler]", {
+          stage: "returning",
+          ok: result.ok,
+          resultKeys: Object.keys(result),
+        });
+        return result;
+      } catch (error) {
+        console.error("[otp.verify.handler]", {
+          stage: "finalize_unexpected",
+          errorName: error instanceof Error ? error.name : "Error",
+          message:
+            error instanceof Error ? error.message.slice(0, 120) : String(error).slice(0, 120),
+        });
+        return { ok: false as const, error: "invalid_code" as const };
+      }
     } catch (error) {
       console.error("[otp.verify.handler]", {
-        stage: "finalize_unexpected",
+        stage: "handler_threw",
         errorName: error instanceof Error ? error.name : "Error",
         message:
-          error instanceof Error ? error.message.slice(0, 120) : String(error).slice(0, 120),
+          error instanceof Error ? error.message.slice(0, 160) : String(error).slice(0, 160),
       });
       return { ok: false as const, error: "invalid_code" as const };
     }
