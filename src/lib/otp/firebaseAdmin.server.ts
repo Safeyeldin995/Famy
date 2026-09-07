@@ -68,7 +68,12 @@ export type FirebasePhoneTokenVerifyError =
 
 export type FirebasePhoneTokenVerifyResult =
   | { ok: true; phoneE164: string; decoded: DecodedIdToken }
-  | { ok: false; error: FirebasePhoneTokenVerifyError };
+  | {
+      ok: false;
+      error: FirebasePhoneTokenVerifyError;
+      errorCode?: string;
+      errorMessage?: string;
+    };
 
 export type FirebaseIdTokenVerifier = (idToken: string) => Promise<DecodedIdToken>;
 
@@ -91,7 +96,18 @@ export async function verifyFirebasePhoneIdToken(
   try {
     decoded = await verifyToken(idToken);
   } catch (error) {
-    return { ok: false, error: mapVerifyTokenError(error) };
+    const code =
+      typeof error === "object" && error && "code" in error
+        ? String((error as { code?: string }).code)
+        : "unknown";
+    const message =
+      error instanceof Error ? error.message.slice(0, 160) : String(error).slice(0, 160);
+    return {
+      ok: false,
+      error: mapVerifyTokenError(error),
+      errorCode: code,
+      errorMessage: message,
+    };
   }
 
   if (!decoded.phone_number) {

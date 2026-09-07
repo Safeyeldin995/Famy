@@ -51,7 +51,12 @@ describe("verifyFirebasePhoneIdToken", () => {
   it("rejects expired or invalid tokens", async () => {
     const verifyToken = vi.fn().mockRejectedValue({ code: "auth/id-token-expired" });
     const result = await verifyFirebasePhoneIdToken("expired-token", "+201012345678", verifyToken);
-    expect(result).toEqual({ ok: false, error: "expired_token" });
+    expect(result).toEqual({
+      ok: false,
+      error: "expired_token",
+      errorCode: "auth/id-token-expired",
+      errorMessage: "[object Object]",
+    });
   });
 
   it("rejects tokens without a phone number claim", async () => {

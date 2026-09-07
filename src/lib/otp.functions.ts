@@ -554,6 +554,8 @@ export const verifyFirebaseOtpFn = createServerFn({ method: "POST" })
         console.error("[otp.firebase.verify.server]", {
           outcome: "failure",
           reason: verified.error,
+          errorCode: verified.errorCode,
+          errorMessage: verified.errorMessage,
         });
         return { ok: false as const, error: "invalid_code" as const };
       }
