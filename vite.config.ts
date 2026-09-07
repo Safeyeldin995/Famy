@@ -16,5 +16,6 @@ export default defineConfig({
     preset: "vercel",
     // @ts-expect-error nitro vercel options exist at runtime but are missing from lovable types
     vercel: { entryFormat: "node" },
+    traceDeps: ["firebase-admin*", "@firebase/app*", "@firebase/auth*"],
   },
 });
