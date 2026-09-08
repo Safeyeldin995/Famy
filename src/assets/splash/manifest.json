@@ -1,0 +1,50 @@
+{
+  "source": {
+    "width": 1774,
+    "height": 887
+  },
+  "assembled": {
+    "width": 1092,
+    "height": 344,
+    "fam": {
+      "x": 0,
+      "y": 0,
+      "width": 814,
+      "height": 304
+    },
+    "y": {
+      "x": 830,
+      "y": 18,
+      "width": 262,
+      "height": 326
+    }
+  },
+  "assets": {
+    "fam": {
+      "file": "fam-white.png",
+      "x": 0,
+      "y": 0,
+      "width": 814,
+      "height": 304
+    },
+    "yBody": {
+      "file": "y-body-white.png",
+      "x": 830,
+      "y": 18,
+      "width": 262,
+      "height": 326
+    },
+    "yEyes": {
+      "file": "y-eyes-white.png",
+      "x": 830,
+      "y": 18,
+      "width": 262,
+      "height": 326,
+      "eyesBandHeight": 78
+    }
+  },
+  "colors": {
+    "background": "#F10E72",
+    "foreground": "#FFFFFF"
+  }
+}

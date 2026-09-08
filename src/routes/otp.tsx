@@ -3,7 +3,9 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
-import { PhoneFrame, PrimaryButton, TopBar } from "@/components/famio/ui";
+import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
+import { CustomerFloatingPanel } from "@/components/famio/CustomerFloatingPanel";
+import { PhoneFrame, PrimaryButton } from "@/components/famio/ui";
 import type { AuthFlowPurpose } from "@/lib/auth/authIntent.types";
 import {
   hasFirebasePhoneVerificationSession,
@@ -153,18 +155,16 @@ function Otp() {
   };
 
   return (
-    <PhoneFrame bg="bg-background">
-      <TopBar back={{ to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login" }} transparent />
+    <PhoneFrame bg="bg-[#F10E72]">
+      <CustomerPageHero
+        title={copy.title}
+        subtitle={`${copy.body} ${otpContext.maskedPhone}`}
+        backTo={otpContext.purpose === "reset" ? "/auth/forgot" : "/login"}
+      />
       <div id="firebase-recaptcha" className="hidden" aria-hidden="true" />
-      <div className="px-6 pt-2">
-        <h1 className="text-[26px] font-black leading-tight tracking-tight text-foreground">{copy.title}</h1>
-        <p className="mt-2 text-sm font-semibold leading-relaxed text-muted-foreground">
-          {copy.body}{" "}
-          <span className="font-black text-foreground" dir="ltr">{otpContext.maskedPhone}</span>
-        </p>
-      </div>
 
-      <div className="flex-1 px-6 pt-8" dir={i18n.dir()}>
+      <CustomerFloatingPanel className="mx-5 -mt-8 flex-1" >
+      <div dir={i18n.dir()}>
         <OtpCodeInput
           value={code}
           onChange={setCode}
@@ -207,15 +207,17 @@ function Otp() {
           <p className="mt-6 text-center text-sm font-bold text-destructive px-1">{errorMsg}</p>
         )}
       </div>
-      <div className="safe-bottom p-5">
+
+      <div className="mt-6">
         <PrimaryButton
           onClick={() => verify(code.join(""))}
           disabled={loading || code.some((digit) => !digit) || otpExpiresIn === 0}
-          className="shadow-float h-14"
+          className="h-14 w-full shadow-float"
         >
           {loading ? t("common.verifying") : t("common.verify")}
         </PrimaryButton>
       </div>
+      </CustomerFloatingPanel>
     </PhoneFrame>
   );
 }

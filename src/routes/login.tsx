@@ -2,15 +2,16 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Eye, EyeOff, Phone, ArrowRight } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { FamyWordmark } from "@/components/famio/FamyWordmark";
-import { BackButton, PhoneFrame, PrimaryButton, RoleSelectCard, SegmentedControl } from "@/components/famio/ui";
+import { CustomerFloatingPanel } from "@/components/famio/CustomerFloatingPanel";
+import { PhoneFrame, PrimaryButton, RoleSelectCard, SegmentedControl } from "@/components/famio/ui";
 import { LanguageToggle } from "@/components/famio/LanguageToggle";
 import { useApp } from "@/lib/store";
 import { otpService, normalizePhone, type Role } from "@/lib/otp/OtpService";
 import { startPhoneOtpFlow, phoneOtpFlowErrorMessage } from "@/lib/otp/phoneOtpFlow";
 import { resolveLandingForCurrentUser } from "@/lib/auth/landing";
-import { ICON_STROKE, ICON_STROKE_BOLD } from "@/lib/icons/constants";
+import { ICON_STROKE } from "@/lib/icons/constants";
 
 export const Route = createFileRoute("/login")({ component: Login });
 
@@ -65,7 +66,6 @@ function Login() {
       return;
     }
 
-    // signup: OTP must be entered on /otp before account creation completes.
     setLoading(true);
     const send = await startPhoneOtpFlow(e164, "signup", role, { languageCode: i18n.language });
     if (!send.ok) {
@@ -81,27 +81,25 @@ function Login() {
   };
 
   return (
-    <PhoneFrame bg="bg-background">
+    <PhoneFrame bg="bg-[#F10E72]">
       <div id="firebase-recaptcha" className="hidden" aria-hidden="true" />
-      <div className="safe-top px-5 pb-4 pt-6">
-        <div className="flex items-center justify-between gap-3">
-          <button onClick={() => nav({ to: "/onboarding" })} aria-label={t("common.back")} className="focus-ring tap-scale grid h-10 w-10 shrink-0 place-items-center rounded-full bg-surface-2 text-foreground" data-rtl-flip="true">
-            <ArrowRight className="h-5 w-5" strokeWidth={ICON_STROKE_BOLD} />
-          </button>
+
+      <header className="safe-top px-5 pb-24 pt-4">
+        <div className="flex items-center justify-end">
           <LanguageToggle variant="inline" />
         </div>
-        <FamyWordmark size="header" className="mx-auto mt-8" />
-        <h1 className="mx-auto mt-6 text-center text-[28px] font-black leading-tight tracking-tight text-foreground">
+        <FamyWordmark size="auth" variant="white" className="mx-auto mt-6" />
+        <h1 className="mx-auto mt-8 text-center text-[1.75rem] font-extrabold leading-tight text-white">
           {mode === "signin" ? t("auth.signIn") : t("auth.signUp")}
         </h1>
         {mode === "signup" ? (
-          <p className="mx-auto mt-2 max-w-[18rem] text-center text-sm font-semibold leading-relaxed text-muted-foreground">
+          <p className="mx-auto mt-2 max-w-[18rem] text-center text-sm font-semibold leading-relaxed text-white/80">
             {t("auth.signupBody")}
           </p>
         ) : null}
-      </div>
+      </header>
 
-      <div className="flex-1 overflow-y-auto px-5 pb-8 pt-6">
+      <CustomerFloatingPanel className="mx-5 -mt-14 flex-1 space-y-6">
         <SegmentedControl
           value={mode}
           onChange={setMode}
@@ -111,9 +109,9 @@ function Login() {
           ]}
         />
 
-        <section className="mt-8">
-          <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">{mode === "signin" ? t("auth.signInAs") : t("auth.iAmA")}</p>
-          <div className="mt-4 grid grid-cols-2 gap-3">
+        <section>
+          <p className="text-overline">{mode === "signin" ? t("auth.signInAs") : t("auth.iAmA")}</p>
+          <div className="mt-3 grid grid-cols-2 gap-3">
             <RoleSelectCard
               label={t("auth.roleCustomer")}
               active={role === "customer"}
@@ -126,17 +124,24 @@ function Login() {
             />
           </div>
           {mode === "signup" && role === "provider" ? (
-            <p className="mt-3 text-[11px] font-bold leading-relaxed text-muted-foreground">{t("auth.providerNote")}</p>
+            <p className="mt-3 text-[11px] font-bold leading-relaxed text-muted-foreground">
+              {t("auth.providerNote")}
+            </p>
           ) : null}
         </section>
 
-        <section className="mt-8">
-          <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">{t("auth.contactDetails")}</p>
-          <div className="mt-4 space-y-4 rounded-[2.5rem] border border-border/50 bg-surface-elevated p-6 shadow-sm">
+        <section>
+          <p className="text-overline">{t("auth.contactDetails")}</p>
+          <div className="mt-3 space-y-4">
             <div>
               <label className="text-xs font-bold text-muted-foreground">{t("auth.phoneNumber")}</label>
               <div className="mt-2 flex h-14 items-center gap-3 rounded-2xl bg-surface-2 px-4 focus-within:border-brand focus-within:ring-1 focus-within:ring-brand">
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-background text-[10px] font-black text-foreground shadow-xs border border-border/50" aria-hidden="true">EG</span>
+                <span
+                  className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-background text-[10px] font-black text-foreground shadow-xs border border-border/50"
+                  aria-hidden="true"
+                >
+                  EG
+                </span>
                 <span className="text-[15px] font-black text-foreground" dir="ltr">+20</span>
                 <div className="h-6 w-px bg-border/80" />
                 <input
@@ -169,22 +174,26 @@ function Login() {
                     aria-label={showPw ? t("auth.hidePassword") : t("auth.showPassword")}
                     className="focus-ring tap-scale grid h-10 w-10 min-h-10 min-w-10 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                   >
-                    {showPw ? <EyeOff className="h-5 w-5" strokeWidth={ICON_STROKE} /> : <Eye className="h-5 w-5" strokeWidth={ICON_STROKE} />}
+                    {showPw ? (
+                      <EyeOff className="h-5 w-5" strokeWidth={ICON_STROKE} />
+                    ) : (
+                      <Eye className="h-5 w-5" strokeWidth={ICON_STROKE} />
+                    )}
                   </button>
                 </div>
-                <div className="mt-4 flex justify-end">
-                  <Link to="/auth/forgot" className="text-[13px] font-extrabold text-brand transition-colors hover:text-brand/80">
+                <div className="mt-3 flex justify-end">
+                  <Link to="/auth/forgot" className="text-[13px] font-extrabold text-brand">
                     {t("auth.forgot")}
                   </Link>
                 </div>
               </div>
             ) : null}
           </div>
-          {errorMsg ? <p className="mt-4 text-sm font-bold text-destructive px-1">{errorMsg}</p> : null}
+          {errorMsg ? <p className="mt-3 text-sm font-bold text-destructive">{errorMsg}</p> : null}
         </section>
 
         {mode === "signup" ? (
-          <p className="mt-8 text-xs font-semibold leading-relaxed text-muted-foreground text-center px-4">
+          <p className="text-xs font-semibold leading-relaxed text-muted-foreground text-center">
             {t("auth.terms")}{" "}
             <Link to="/content/$key" params={{ key: "terms" }} className="font-extrabold text-brand">
               {t("auth.termsLink")}
@@ -197,30 +206,36 @@ function Login() {
           </p>
         ) : null}
 
-        <p className="mt-8 text-center text-[13px] font-bold text-muted-foreground">
+        <p className="text-center text-[13px] font-bold text-muted-foreground">
           {mode === "signin" ? (
             <>
               {t("auth.newHere")}{" "}
-              <button type="button" onClick={() => setMode("signup")} className="font-black text-brand underline-offset-2 hover:underline">
+              <button
+                type="button"
+                onClick={() => setMode("signup")}
+                className="font-black text-brand underline-offset-2 hover:underline"
+              >
                 {t("auth.createAccountLink")}
               </button>
             </>
           ) : (
             <>
               {t("auth.alreadyHave")}{" "}
-              <button type="button" onClick={() => setMode("signin")} className="font-black text-brand underline-offset-2 hover:underline">
+              <button
+                type="button"
+                onClick={() => setMode("signin")}
+                className="font-black text-brand underline-offset-2 hover:underline"
+              >
                 {t("auth.signInLink")}
               </button>
             </>
           )}
         </p>
-      </div>
 
-      <div className="safe-bottom p-5">
         <PrimaryButton
           onClick={submit}
           disabled={!phoneValid || (mode === "signin" && password.length < 1) || loading}
-          className="shadow-float h-14"
+          className="h-14 w-full shadow-float"
         >
           {loading
             ? mode === "signin"
@@ -230,7 +245,7 @@ function Login() {
               ? t("auth.signIn", "Sign in")
               : t("common.sendCode")}
         </PrimaryButton>
-      </div>
+      </CustomerFloatingPanel>
     </PhoneFrame>
   );
 }

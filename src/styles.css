@@ -59,9 +59,9 @@
 
 :root {
   --radius: 1rem;
-  /* Famy brand accent — hot magenta-pink primary (actions, active states) */
-  --brand: oklch(0.62 0.245 5);
-  --brand-foreground: oklch(0.995 0.002 350);
+  /* Famy brand accent — approved logo pink #F10E72 */
+  --brand: #F10E72;
+  --brand-foreground: #ffffff;
   /* Deep ink — headings and secondary text, not primary buttons */
   --ink: oklch(0.2 0.03 340);
   --ink-foreground: oklch(0.99 0.002 350);
@@ -214,7 +214,7 @@
 }
 /* Pink status hero — "your expert is on the way" moment */
 @utility brand-hero {
-  background: linear-gradient(155deg, var(--brand) 0%, oklch(0.5 0.2 355) 100%);
+  background: #F10E72;
   color: var(--brand-foreground);
 }
 @utility category-tint-sky { background: oklch(0.95 0.03 235); color: oklch(0.5 0.15 235); border: 1px solid color-mix(in oklch, oklch(0.5 0.15 235) 15%, transparent); }
@@ -240,47 +240,6 @@
 @utility no-scrollbar {
   scrollbar-width: none;
   &::-webkit-scrollbar { display: none; }
-}
-
-@keyframes famy-splash-y-in {
-  0% { opacity: 0; transform: translateY(12px) scale(0.85); }
-  55% { opacity: 1; transform: translateY(-4px) scale(1.04); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes famy-splash-smile-draw {
-  0% { opacity: 0; stroke-dashoffset: 48; }
-  35% { opacity: 0; stroke-dashoffset: 48; }
-  100% { opacity: 1; stroke-dashoffset: 0; }
-}
-@keyframes famy-splash-y-stroke {
-  0% { stroke-dashoffset: 72; opacity: 0; }
-  100% { stroke-dashoffset: 0; opacity: 1; }
-}
-@keyframes famy-splash-glow {
-  0%, 100% { transform: scale(1); opacity: 0.35; }
-  50% { transform: scale(1.12); opacity: 0.55; }
-}
-
-.famy-splash-mark .famy-splash-y {
-  animation: famy-splash-y-in 900ms cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
-  animation-delay: 180ms;
-}
-.famy-splash-mark .famy-splash-y-stroke {
-  stroke-dasharray: 72;
-  animation: famy-splash-y-stroke 700ms ease-out both;
-  animation-delay: 280ms;
-}
-.famy-splash-mark .famy-splash-y-stroke-delay {
-  animation-delay: 380ms;
-}
-.famy-splash-mark .famy-splash-smile {
-  stroke-dasharray: 48;
-  animation: famy-splash-smile-draw 800ms cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
-  animation-delay: 520ms;
-}
-.famy-splash-mark .famy-splash-word {
-  opacity: 0;
-  animation: famio-rise 600ms ease-out both;
 }
 
 @keyframes famio-pop {
