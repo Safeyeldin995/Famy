@@ -123,7 +123,7 @@ export function LocationPicker({
           type="button"
           onClick={() => setRecenterSignal((s) => s + 1)}
           aria-label={t("addresses.recenter", "Recenter")}
-          className="focus-ring absolute bottom-3 end-3 z-[500] grid h-10 w-10 place-items-center rounded-full bg-surface text-navy shadow-card active:scale-95"
+          className="focus-ring absolute bottom-3 end-3 z-[500] grid h-10 w-10 place-items-center rounded-full bg-surface text-brand shadow-card active:scale-95"
         >
           <Crosshair className="h-4 w-4" />
         </button>
@@ -137,7 +137,7 @@ export function LocationPicker({
           type="button"
           onClick={useCurrentLocation}
           disabled={locating}
-          className="focus-ring inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-navy/10 px-3 py-2 text-xs font-bold text-navy disabled:opacity-60"
+          className="focus-ring inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand/8 px-3.5 py-2 text-xs font-extrabold text-brand disabled:opacity-60"
         >
           {locating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LocateFixed className="h-3.5 w-3.5" />}
           {t("addresses.useCurrentLocation", "Use current location")}
@@ -194,7 +194,7 @@ function MapUnavailable({ onRetry }: { onRetry: () => void }) {
         <button
           type="button"
           onClick={onRetry}
-          className="focus-ring mt-1 inline-flex items-center gap-1.5 rounded-xl bg-navy px-3 py-2 text-xs font-bold text-navy-foreground"
+          className="focus-ring mt-1 inline-flex items-center gap-1.5 rounded-full bg-brand px-3.5 py-2 text-xs font-extrabold text-brand-foreground"
         >
           <RefreshCw className="h-3.5 w-3.5" /> {t("common.retry")}
         </button>

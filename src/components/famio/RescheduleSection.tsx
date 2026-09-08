@@ -129,10 +129,10 @@ export function RescheduleSection({
 
           {awaitingMe ? (
             <div className="mt-3 flex flex-wrap gap-2">
-              <button onClick={submitAccept} disabled={respond.isPending} className="inline-flex items-center gap-1.5 rounded-xl bg-navy px-3 py-2 text-xs font-bold text-navy-foreground disabled:opacity-50">
+              <button onClick={submitAccept} disabled={respond.isPending} className="inline-flex items-center gap-1.5 rounded-full bg-brand px-3.5 py-2 text-xs font-extrabold text-brand-foreground disabled:opacity-50">
                 <Check className="h-3.5 w-3.5" /> {t("reschedule.accept", "Accept")}
               </button>
-              <button onClick={() => setRejectOpen(true)} disabled={respond.isPending} className="inline-flex items-center gap-1.5 rounded-xl bg-coral/10 px-3 py-2 text-xs font-bold text-coral disabled:opacity-50">
+              <button onClick={() => setRejectOpen(true)} disabled={respond.isPending} className="inline-flex items-center gap-1.5 rounded-full bg-brand/8 px-3.5 py-2 text-xs font-extrabold text-brand disabled:opacity-50">
                 <X className="h-3.5 w-3.5" /> {t("reschedule.reject", "Decline")}
               </button>
               {viewer === "provider" && (
@@ -159,7 +159,7 @@ export function RescheduleSection({
                 className="h-10 w-full rounded-xl border border-border bg-surface px-2 text-sm" />
               <input value={counterReason} onChange={(e) => setCounterReason(e.target.value)} placeholder={t("reschedule.reasonOptional", "Reason (optional)")}
                 className="h-10 w-full rounded-xl border border-border bg-surface px-2 text-sm" />
-              <button onClick={submitCounter} disabled={respond.isPending} className="h-10 w-full rounded-xl bg-navy text-sm font-bold text-navy-foreground disabled:opacity-50">
+              <button onClick={submitCounter} disabled={respond.isPending} className="h-10 w-full rounded-full bg-brand text-sm font-extrabold text-brand-foreground disabled:opacity-50">
                 {respond.isPending ? t("common.saving") : t("reschedule.sendProposal", "Send proposal")}
               </button>
             </div>
@@ -176,14 +176,14 @@ export function RescheduleSection({
             <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t("reschedule.reasonOptional", "Reason (optional)")}
               className="h-10 w-full rounded-xl border border-border bg-surface px-2 text-sm" />
             <div className="flex gap-2">
-              <button onClick={submitRequest} disabled={requestReschedule.isPending} className="h-10 flex-1 rounded-xl bg-navy text-sm font-bold text-navy-foreground disabled:opacity-50">
+              <button onClick={submitRequest} disabled={requestReschedule.isPending} className="h-10 flex-1 rounded-full bg-brand text-sm font-extrabold text-brand-foreground disabled:opacity-50">
                 {requestReschedule.isPending ? t("common.saving") : t("reschedule.sendRequest", "Send request")}
               </button>
               <button onClick={() => setShowRequestForm(false)} className="h-10 rounded-xl border border-border px-4 text-sm font-bold">{t("common.cancel")}</button>
             </div>
           </div>
         ) : viewer === "customer" ? (
-          <button onClick={() => setShowRequestForm(true)} className="text-sm font-bold text-navy">{t("reschedule.requestButton", "Request a different time")}</button>
+          <button onClick={() => setShowRequestForm(true)} className="text-sm font-extrabold text-brand">{t("reschedule.requestButton", "Request a different time")}</button>
         ) : (
           <p className="text-xs text-muted-foreground">{t("reschedule.noneOpen", "No open reschedule request.")}</p>
         )
