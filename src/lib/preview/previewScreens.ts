@@ -65,6 +65,14 @@ export const PREVIEW_FEATURED: PreviewScreen[] = [
     descriptionFallback: "Your account and preferences",
     featured: true,
   },
+  {
+    to: "/preview/provider/p1",
+    labelKey: "preview.provider",
+    fallback: "Provider profile",
+    descriptionKey: "providerProfile.about",
+    descriptionFallback: "Professional details & availability",
+    featured: true,
+  },
 ];
 
 export const PREVIEW_SCREEN_GROUPS: {

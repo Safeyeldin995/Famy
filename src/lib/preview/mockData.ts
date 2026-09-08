@@ -164,7 +164,45 @@ export function seedPreviewQueries(qc: import("@tanstack/react-query").QueryClie
   qc.setQueryData(["providers", { categorySlug: "home-cleaning", serviceId: undefined, limit: 50 }], [p1]);
   qc.setQueryData(["providers", { serviceId: undefined, addressId: undefined, limit: 60 }], [p1, p2, p3]);
   qc.setQueryData(["provider", "p1", undefined], p1);
-  qc.setQueryData(["provider-reviews", "p1"], []);
+  qc.setQueryData(["provider-reviews", "p1"], [
+    {
+      id: "rev-1",
+      rating: 5,
+      comment: "Mona was punctual, thorough, and so kind with our home.",
+      author_name: "Sara M.",
+      author_avatar: "https://i.pravatar.cc/240?img=12",
+      created_at: new Date(Date.now() - 86400000 * 12).toISOString(),
+    },
+    {
+      id: "rev-2",
+      rating: 5,
+      comment: "Booked twice — both visits were excellent.",
+      author_name: "Nadia K.",
+      author_avatar: "https://i.pravatar.cc/240?img=25",
+      created_at: new Date(Date.now() - 86400000 * 28).toISOString(),
+    },
+  ]);
+  qc.setQueryData(["provider-availability", "p1"], [
+    { weekday: 1, start_time: "09:00", end_time: "18:00" },
+    { weekday: 2, start_time: "09:00", end_time: "18:00" },
+    { weekday: 3, start_time: "09:00", end_time: "18:00" },
+    { weekday: 4, start_time: "09:00", end_time: "18:00" },
+    { weekday: 5, start_time: "09:00", end_time: "16:00" },
+    { weekday: 6, start_time: "10:00", end_time: "14:00" },
+  ]);
+  qc.setQueryData(["provider-availability", "p2"], [
+    { weekday: 0, start_time: "08:00", end_time: "20:00" },
+    { weekday: 1, start_time: "08:00", end_time: "20:00" },
+    { weekday: 2, start_time: "08:00", end_time: "20:00" },
+    { weekday: 3, start_time: "08:00", end_time: "20:00" },
+    { weekday: 4, start_time: "08:00", end_time: "20:00" },
+  ]);
+  qc.setQueryData(["provider-availability", "p3"], [
+    { weekday: 1, start_time: "11:00", end_time: "19:00" },
+    { weekday: 3, start_time: "11:00", end_time: "19:00" },
+    { weekday: 5, start_time: "11:00", end_time: "19:00" },
+    { weekday: 6, start_time: "11:00", end_time: "19:00" },
+  ]);
   qc.setQueryData(["favorite-ids"], []);
   qc.setQueryData(["favorites"], [{ provider_id: "p1", provider: p1 }]);
   qc.setQueryData(["featured-promo-codes"], [
