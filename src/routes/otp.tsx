@@ -6,7 +6,7 @@ import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
 import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
 import { CustomerFloatingPanel } from "@/components/famio/CustomerFloatingPanel";
 import { PhoneFrame, PrimaryButton } from "@/components/famio/ui";
-import type { AuthFlowPurpose } from "@/lib/auth/authIntent.types";
+import type { AuthFlowPurpose, OtpScreenContext } from "@/lib/auth/authIntent.types";
 import {
   hasFirebasePhoneVerificationSession,
   phoneOtpFlowErrorMessage,
@@ -41,8 +41,20 @@ function purposeCopy(purpose: AuthFlowPurpose, t: ReturnType<typeof useTranslati
   };
 }
 
+export type OtpContextData = Extract<OtpScreenContext, { ok: true }>;
+
 function Otp() {
   const { otpContext } = Route.useRouteContext();
+  return <OtpScreen otpContext={otpContext} />;
+}
+
+export function OtpScreen({
+  otpContext,
+  previewMode = false,
+}: {
+  otpContext: OtpContextData;
+  previewMode?: boolean;
+}) {
   const { profile } = useApp();
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [otpExpiresIn, setOtpExpiresIn] = useState(otpContext.otpExpiresIn);
@@ -64,16 +76,16 @@ function Otp() {
   }, []);
 
   useEffect(() => {
-    if (otpExpiresIn === 0) {
-      void otpService.abandonOtpFlow().then(() => {
-        toast.error(t("auth.sessionExpired", "Your verification session expired. Start again."));
-        nav({ to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login", replace: true });
-      });
-    }
-  }, [nav, otpContext.purpose, otpExpiresIn, t]);
+    if (otpExpiresIn !== 0) return;
+    if (previewMode) return;
+    void otpService.abandonOtpFlow().then(() => {
+      toast.error(t("auth.sessionExpired", "Your verification session expired. Start again."));
+      nav({ to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login", replace: true });
+    });
+  }, [nav, otpContext.purpose, otpExpiresIn, previewMode, t]);
 
   useEffect(() => {
-    if (otpContext.delivery !== "firebase") return;
+    if (previewMode || otpContext.delivery !== "firebase") return;
     if (!hasFirebasePhoneVerificationSession()) {
       const msg = t(
         "auth.firebaseSessionLost",
@@ -81,9 +93,13 @@ function Otp() {
       );
       setErrorMsg(msg);
     }
-  }, [otpContext.delivery, t]);
+  }, [otpContext.delivery, previewMode, t]);
 
   const verify = async (value: string) => {
+    if (previewMode) {
+      toast.message(t("preview.otpHint", "Preview only — OTP verification is disabled."));
+      return;
+    }
     if (value.length !== 6 || loading || verifyLock.current) return;
     verifyLock.current = true;
     setLoading(true);
@@ -125,6 +141,10 @@ function Otp() {
   };
 
   const resend = async () => {
+    if (previewMode) {
+      toast.message(t("preview.otpHint", "Preview only — OTP verification is disabled."));
+      return;
+    }
     if (resendAvailableIn > 0 || resending || loading) return;
     if (otpContext.delivery === "firebase" && !profile.phone) {
       const msg = t("auth.sessionExpired", "Your verification session expired. Start again.");
@@ -150,6 +170,10 @@ function Otp() {
   };
 
   const changePhone = async () => {
+    if (previewMode) {
+      nav({ to: "/preview/login", replace: true });
+      return;
+    }
     await otpService.abandonOtpFlow();
     nav({ to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login", replace: true });
   };

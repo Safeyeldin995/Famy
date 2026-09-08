@@ -241,4 +241,53 @@ export function seedPreviewQueries(qc: import("@tanstack/react-query").QueryClie
   qc.setQueryData(["avatar-url", "https://i.pravatar.cc/240?img=32"], "https://i.pravatar.cc/240?img=32");
   qc.setQueryData(["avatar-url", "https://i.pravatar.cc/240?img=45"], "https://i.pravatar.cc/240?img=45");
   qc.setQueryData(["support-contact"], { phone: "+201000000000", whatsapp: "+201000000000", note: "Preview" });
+  qc.setQueryData(["settings", "billing"], { vat_percent: 14, platform_fee: 25 });
+  qc.setQueryData(["settings", "service_areas"], [
+    { name: "Maadi", enabled: true },
+    { name: "Sheikh Zayed", enabled: true },
+    { name: "6th of October", enabled: true },
+  ]);
+  qc.setQueryData(["provider-services", "p1"], [
+    {
+      price_override: null,
+      status: "approved",
+      service: {
+        id: "svc-clean",
+        slug: "home-cleaning",
+        name_en: "Deep home clean",
+        name_ar: "تنظيف منزل عميق",
+        is_active: true,
+        category: { slug: "home-cleaning", name_en: "Home cleaning", name_ar: "تنظيف المنزل" },
+      },
+    },
+  ]);
+  qc.setQueryData(["provider-booking-settings", "p1", null, "addr-1"], {
+    vacation_mode: false,
+    min_notice_hours: 2,
+    max_advance_days: 30,
+    buffer_minutes: 30,
+  });
+  qc.setQueryData(["provider-booking-settings", "p1", "svc-clean", "addr-1"], {
+    vacation_mode: false,
+    min_notice_hours: 2,
+    max_advance_days: 30,
+    buffer_minutes: 30,
+  });
+  qc.setQueryData(["payment-methods", "active"], [
+    {
+      id: "pm-cash",
+      code: "cash",
+      name_en: "Cash on arrival",
+      name_ar: "نقداً عند الوصول",
+      instructions_en: null,
+      instructions_ar: null,
+      method_type: "cash",
+      is_active: true,
+      is_default: true,
+      display_order: 1,
+      public_config: {},
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+  ]);
 }

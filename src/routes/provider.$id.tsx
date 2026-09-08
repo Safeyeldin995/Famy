@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
+import { isPreviewRoute } from "@/lib/preview/constants";
 import { previewPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/provider/$id")({ component: ProviderProfile });
@@ -270,7 +271,7 @@ export function ProviderProfileContent({ providerId }: { providerId: string }) {
           className="w-full h-14 rounded-full text-lg shadow-float"
           onClick={() =>
             nav({
-              to: "/book/$providerId",
+              to: isPreviewRoute() ? "/preview/book/$providerId" : "/book/$providerId",
               params: { providerId: p.id },
               search: { serviceId: undefined },
             })

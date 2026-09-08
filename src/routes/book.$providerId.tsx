@@ -69,6 +69,16 @@ export const Route = createFileRoute("/book/$providerId")({
 function Book() {
   const { providerId } = Route.useParams();
   const { serviceId: searchServiceId } = Route.useSearch();
+  return <BookContent providerId={providerId} searchServiceId={searchServiceId} />;
+}
+
+export function BookContent({
+  providerId,
+  searchServiceId,
+}: {
+  providerId: string;
+  searchServiceId?: string;
+}) {
   const provQ = useProvider(providerId);
   const servicesQ = useProviderServices(providerId);
   const addrsQ = useAddresses();
