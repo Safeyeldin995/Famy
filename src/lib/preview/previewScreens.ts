@@ -26,6 +26,14 @@ export const PREVIEW_FEATURED: PreviewScreen[] = [
     featured: true,
   },
   {
+    to: "/preview/onboarding",
+    labelKey: "preview.onboarding",
+    fallback: "Onboarding",
+    descriptionKey: "preview.onboardingDesc",
+    descriptionFallback: "3-step intro with illustrations",
+    featured: true,
+  },
+  {
     to: "/preview/home",
     labelKey: "nav.home",
     fallback: "Home",

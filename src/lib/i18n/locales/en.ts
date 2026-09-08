@@ -78,7 +78,7 @@ const en = {
     slide2Body: "Pick a date, choose a time, and meet your match — all in a few taps.",
     slide3Title: "Peace of mind",
     slide3Body: "Every booking is backed by the Famy guarantee. Real support, real people.",
-    pageOf: "{{current}} / {{total}}",
+    pageOf: "{{current}} of {{total}}",
   },
   auth: {
     welcomeTitle: "Welcome to Famy",

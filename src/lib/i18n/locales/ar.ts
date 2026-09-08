@@ -80,7 +80,7 @@ const ar: Translation = {
     slide2Body: "اختر التاريخ والوقت وتعرف على من يناسبك — ببضع نقرات.",
     slide3Title: "راحة بال",
     slide3Body: "كل حجز محمي بضمان فامي. دعم حقيقي من أشخاص حقيقيين.",
-    pageOf: "{{current}} / {{total}}",
+    pageOf: "{{current}} من {{total}}",
   },
   auth: {
     welcomeTitle: "أهلا بك في فامي",
