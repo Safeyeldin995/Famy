@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { PhoneFrame, TopBar, Card, EmptyState, ReasonDialog, PrimaryButton } from "@/components/famio/ui";
+import { PhoneFrame, Card, EmptyState, ReasonDialog, PrimaryButton } from "@/components/famio/ui";
+import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
 import { QueryError } from "@/components/famio/QueryError";
 import { useAddresses, useDeleteAddress, useSetDefaultAddress } from "@/lib/db/queries";
 import { Home, Briefcase, Users, MapPin, Star, Pencil, Trash2, Plus } from "lucide-react";
@@ -21,11 +22,17 @@ function Addresses() {
   const addresses = addressesQ.data ?? [];
 
   return (
-    <PhoneFrame>
-      <TopBar back={{ to: "/profile" }} title={t("addresses.title", "Saved Addresses")} />
+    <PhoneFrame bg="bg-background">
+      <CustomerPageHero
+        title={t("addresses.title", "Saved Addresses")}
+        subtitle={t("addresses.emptyBody", "Add an address to book services faster.")}
+        backTo="/profile"
+      />
       <div className="flex-1 space-y-3 px-5 pb-28 pt-2">
         {addressesQ.isLoading ? (
-          Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-24 animate-pulse rounded-3xl bg-surface-2" />)
+          Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-24 animate-pulse rounded-3xl bg-surface-2" />
+          ))
         ) : addressesQ.isError ? (
           <QueryError onRetry={() => addressesQ.refetch()} />
         ) : addresses.length === 0 ? (
@@ -34,7 +41,10 @@ function Addresses() {
             title={t("addresses.empty", "No saved addresses yet")}
             body={t("addresses.emptyBody", "Add an address to book services faster.")}
             action={
-              <Link to="/addresses/new" className="focus-ring inline-flex items-center gap-1.5 rounded-2xl bg-brand px-5 py-3 text-sm font-extrabold text-brand-foreground">
+              <Link
+                to="/addresses/new"
+                className="focus-ring inline-flex items-center gap-1.5 rounded-2xl bg-brand px-5 py-3 text-sm font-extrabold text-brand-foreground"
+              >
                 <Plus className="h-4 w-4" /> {t("addresses.addAddress", "Add address")}
               </Link>
             }
@@ -42,7 +52,10 @@ function Addresses() {
         ) : (
           addresses.map((a: any) => {
             const Icon = LABEL_ICON[a.label as keyof typeof LABEL_ICON] ?? MapPin;
-            const title = a.label === "other" ? a.custom_label || t("addresses.label.other") : t(`addresses.label.${a.label}`);
+            const title =
+              a.label === "other"
+                ? a.custom_label || t("addresses.label.other")
+                : t(`addresses.label.${a.label}`);
             const lineParts = [a.street ?? a.line1, a.building, a.compound, a.area].filter(Boolean);
             return (
               <Card key={a.id} className="p-4">
@@ -55,20 +68,30 @@ function Addresses() {
                       <span className="truncate text-[15px] font-extrabold">{title}</span>
                       {a.is_default && (
                         <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-brand/8 px-2 py-0.5 text-[10px] font-bold text-brand">
-                          <Star className="h-2.5 w-2.5 fill-brand" /> {t("addresses.default", "Default")}
+                          <Star className="h-2.5 w-2.5 fill-brand" />{" "}
+                          {t("addresses.default", "Default")}
                         </span>
                       )}
                     </div>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">{lineParts.join(", ") || "—"}</p>
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                      {lineParts.join(", ") || "—"}
+                    </p>
                     {(a.lat == null || a.lng == null) && (
-                      <p className="mt-1 text-[10px] font-semibold text-brand">{t("addresses.missingLocation", "No location set")}</p>
+                      <p className="mt-1 text-[10px] font-semibold text-brand">
+                        {t("addresses.missingLocation", "No location set")}
+                      </p>
                     )}
                   </div>
                 </div>
                 <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
                   {!a.is_default && (
                     <button
-                      onClick={() => setDefault.mutate(a.id, { onError: (e: any) => toast.error(e?.message ?? t("common.somethingWentWrong")) })}
+                      onClick={() =>
+                        setDefault.mutate(a.id, {
+                          onError: (e: any) =>
+                            toast.error(e?.message ?? t("common.somethingWentWrong")),
+                        })
+                      }
                       disabled={setDefault.isPending}
                       className="focus-ring flex-1 rounded-full bg-surface-2 py-2.5 text-[11px] font-extrabold disabled:opacity-60"
                     >

@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { AppShell, TopBar, EmptyState } from "@/components/famio/ui";
+import { AppShell, EmptyState } from "@/components/famio/ui";
+import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
 import { useTranslation } from "react-i18next";
 import { useConversations } from "@/lib/db/messaging";
 
@@ -23,14 +24,24 @@ function Messages() {
 
   return (
     <AppShell>
-      <TopBar title={t("messages.title")} />
-      <div className="px-5">
+      <CustomerPageHero title={t("messages.title")} subtitle={t("messages.chatNotice")} />
+      <div className="px-5 pt-2">
         {isLoading ? (
-          <div className="py-20 text-center text-sm text-muted-foreground">{t("common.loading", "Loading…")}</div>
+          <div className="py-20 text-center text-sm text-muted-foreground">
+            {t("common.loading", "Loading…")}
+          </div>
         ) : isError ? (
-          <EmptyState icon="alert" title={t("common.errorTitle", "Something went wrong")} body={t("common.tryAgain", "Please try again.")} />
+          <EmptyState
+            icon="alert"
+            title={t("common.errorTitle", "Something went wrong")}
+            body={t("common.tryAgain", "Please try again.")}
+          />
         ) : convs.length === 0 ? (
-          <EmptyState icon="message" title={t("messages.emptyTitle")} body={t("messages.emptyBody")} />
+          <EmptyState
+            icon="message"
+            title={t("messages.emptyTitle")}
+            body={t("messages.emptyBody")}
+          />
         ) : (
           <ul className="space-y-2.5 pb-6">
             {convs.map((c) => (
@@ -42,7 +53,11 @@ function Messages() {
                 >
                   <div className="relative shrink-0">
                     {c.other_avatar ? (
-                      <img src={c.other_avatar} alt="" className="h-14 w-14 rounded-full object-cover" />
+                      <img
+                        src={c.other_avatar}
+                        alt=""
+                        className="h-14 w-14 rounded-full object-cover"
+                      />
                     ) : (
                       <div className="grid h-14 w-14 place-items-center rounded-full bg-brand/10 text-lg font-black text-brand">
                         {c.other_name.slice(0, 1).toUpperCase()}
@@ -52,8 +67,12 @@ function Messages() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-3">
-                      <span className="truncate text-[15px] font-extrabold text-foreground">{c.other_name}</span>
-                      <span className="shrink-0 text-[11px] font-bold text-muted-foreground">{formatTime(c.last_time)}</span>
+                      <span className="truncate text-[15px] font-extrabold text-foreground">
+                        {c.other_name}
+                      </span>
+                      <span className="shrink-0 text-[11px] font-bold text-muted-foreground">
+                        {formatTime(c.last_time)}
+                      </span>
                     </div>
                     <div className="mt-0.5 truncate text-xs font-medium text-muted-foreground">
                       {c.last_message ?? t("messages.sayHello")}

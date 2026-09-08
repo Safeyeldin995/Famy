@@ -3,10 +3,18 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { PhoneFrame, PrimaryButton, TopBar, Avatar } from "@/components/famio/ui";
+import { PhoneFrame, PrimaryButton, Avatar } from "@/components/famio/ui";
+import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
 import { QueryError } from "@/components/famio/QueryError";
 import { useApp } from "@/lib/store";
-import { useUpdateProfile, useCreateAddress, useUpdateAddress, useAddresses, useMyProfile, useAvatarUrl } from "@/lib/db/queries";
+import {
+  useUpdateProfile,
+  useCreateAddress,
+  useUpdateAddress,
+  useAddresses,
+  useMyProfile,
+  useAvatarUrl,
+} from "@/lib/db/queries";
 import { useServiceAreasSettings } from "@/lib/db/settings-queries";
 import { supabase } from "@/integrations/supabase/client";
 import { Camera, MapPin, Loader2 } from "lucide-react";
@@ -54,13 +62,14 @@ function Setup() {
       apartment: def.apartment ?? "",
       notes: def.access_notes ?? "",
     }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [existingAddresses.data]);
 
   const onPickAvatar = async (file: File) => {
     try {
       setUploading(true);
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("auth required");
       const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
       const path = `${user.id}/avatar-${Date.now()}.${ext}`;
@@ -82,22 +91,25 @@ function Setup() {
   };
 
   const update = (k: keyof typeof form, v: string) => setForm({ ...form, [k]: v });
-  const valid = form.name.trim().length > 1 && form.address.trim().length > 2 && form.area.trim().length > 0;
+  const valid =
+    form.name.trim().length > 1 && form.address.trim().length > 2 && form.area.trim().length > 0;
   const saving = updateProfile.isPending || createAddress.isPending || updateAddress.isPending;
 
   if (myProfile.isLoading || existingAddresses.isLoading || areasQ.isLoading) {
     return (
-      <PhoneFrame bg="bg-surface">
-        <TopBar back={{ to: "/profile" }} title={t("setup.title")} />
-        <div className="grid flex-1 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-brand" /></div>
+      <PhoneFrame bg="bg-background">
+        <CustomerPageHero title={t("setup.title")} backTo="/profile" />
+        <div className="grid flex-1 place-items-center">
+          <Loader2 className="h-6 w-6 animate-spin text-brand" />
+        </div>
       </PhoneFrame>
     );
   }
 
   if (myProfile.isError) {
     return (
-      <PhoneFrame bg="bg-surface">
-        <TopBar back={{ to: "/profile" }} title={t("setup.title")} />
+      <PhoneFrame bg="bg-background">
+        <CustomerPageHero title={t("setup.title")} backTo="/profile" />
         <QueryError onRetry={() => myProfile.refetch()} />
       </PhoneFrame>
     );
@@ -105,8 +117,8 @@ function Setup() {
 
   if (existingAddresses.isError) {
     return (
-      <PhoneFrame bg="bg-surface">
-        <TopBar back={{ to: "/profile" }} title={t("setup.title")} />
+      <PhoneFrame bg="bg-background">
+        <CustomerPageHero title={t("setup.title")} backTo="/profile" />
         <QueryError onRetry={() => existingAddresses.refetch()} />
       </PhoneFrame>
     );
@@ -155,8 +167,8 @@ function Setup() {
   };
 
   return (
-    <PhoneFrame bg="bg-surface">
-      <TopBar back={{ to: "/profile" }} title={t("setup.title")} />
+    <PhoneFrame bg="bg-background">
+      <CustomerPageHero title={t("setup.title")} backTo="/profile" />
       <div className="flex-1 space-y-5 px-6 pb-32 pt-2">
         <div className="flex flex-col items-center pb-2">
           <div className="relative">
@@ -174,7 +186,11 @@ function Setup() {
               className="absolute -bottom-1 -right-1 grid h-9 w-9 place-items-center rounded-full bg-brand text-brand-foreground shadow-card disabled:opacity-60"
               aria-label={t("setup.photoHint")}
             >
-              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+              {uploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Camera className="h-4 w-4" />
+              )}
             </button>
             <input
               ref={fileRef}
@@ -191,38 +207,64 @@ function Setup() {
           <p className="mt-3 text-xs text-muted-foreground">{t("setup.photoHint")}</p>
         </div>
 
-        <Field label={t("setup.name")} value={form.name} onChange={(v) => update("name", v)} placeholder={t("setup.namePlaceholder")} />
+        <Field
+          label={t("setup.name")}
+          value={form.name}
+          onChange={(v) => update("name", v)}
+          placeholder={t("setup.namePlaceholder")}
+        />
 
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">{t("setup.area")}</label>
+          <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            {t("setup.area")}
+          </label>
           {areasQ.isError ? (
             <div className="mt-2">
               <QueryError compact onRetry={() => areasQ.refetch()} />
             </div>
           ) : (
-          <div className="mt-2 grid grid-cols-2 gap-3">
-            {areaOptions.map((a) => (
-              <button
-                key={a}
-                type="button"
-                onClick={() => update("area", a)}
-                className={`focus-ring tap-scale h-14 rounded-[1.25rem] border text-sm font-extrabold transition-all ${
-                  form.area === a ? "border-brand bg-brand/5 text-brand" : "border-border bg-surface text-muted-foreground"
-                }`}
-              >
-                {a}
-              </button>
-            ))}
-          </div>
+            <div className="mt-2 grid grid-cols-2 gap-3">
+              {areaOptions.map((a) => (
+                <button
+                  key={a}
+                  type="button"
+                  onClick={() => update("area", a)}
+                  className={`focus-ring tap-scale h-14 rounded-[1.25rem] border text-sm font-extrabold transition-all ${
+                    form.area === a
+                      ? "border-brand bg-brand/5 text-brand"
+                      : "border-border bg-surface text-muted-foreground"
+                  }`}
+                >
+                  {a}
+                </button>
+              ))}
+            </div>
           )}
         </div>
 
-        <Field label={t("setup.compound")} value={form.compound} onChange={(v) => update("compound", v)} placeholder={t("setup.compoundPlaceholder")} />
-        <Field label={t("setup.building")} value={form.building} onChange={(v) => update("building", v)} placeholder={t("setup.buildingPlaceholder")} />
-        <Field label={t("setup.apartment")} value={form.apartment} onChange={(v) => update("apartment", v)} placeholder={t("setup.apartmentPlaceholder")} />
+        <Field
+          label={t("setup.compound")}
+          value={form.compound}
+          onChange={(v) => update("compound", v)}
+          placeholder={t("setup.compoundPlaceholder")}
+        />
+        <Field
+          label={t("setup.building")}
+          value={form.building}
+          onChange={(v) => update("building", v)}
+          placeholder={t("setup.buildingPlaceholder")}
+        />
+        <Field
+          label={t("setup.apartment")}
+          value={form.apartment}
+          onChange={(v) => update("apartment", v)}
+          placeholder={t("setup.apartmentPlaceholder")}
+        />
 
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">{t("setup.address")}</label>
+          <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            {t("setup.address")}
+          </label>
           <div className="mt-2 flex items-start gap-3 rounded-2xl border border-border bg-surface px-4 py-3">
             <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
             <textarea
@@ -236,7 +278,9 @@ function Setup() {
         </div>
 
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">{t("setup.notes")}</label>
+          <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            {t("setup.notes")}
+          </label>
           <textarea
             rows={2}
             placeholder={t("setup.notesPlaceholder")}
@@ -255,10 +299,22 @@ function Setup() {
   );
 }
 
-function Field({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder: string }) {
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
   return (
     <div>
-      <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</label>
+      <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </label>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}

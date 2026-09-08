@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PhoneFrame, TopBar, Card } from "@/components/famio/ui";
+import { PhoneFrame, Card } from "@/components/famio/ui";
+import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
 import { QueryError } from "@/components/famio/QueryError";
 import { usePlatformContent, type PlatformContentKey } from "@/lib/db/settings-queries";
 import { useLang } from "@/components/famio/LanguageToggle";
@@ -28,18 +29,22 @@ function ContentPage() {
   const body = lang === "ar" ? q.data?.body_ar : q.data?.body_en;
 
   return (
-    <PhoneFrame>
-      <TopBar back={{ to: "/profile" }} title={title} />
-      <div className="px-5 pb-10">
+    <PhoneFrame bg="bg-background">
+      <CustomerPageHero title={title} backTo="/profile" />
+      <div className="px-5 pb-10 pt-2">
         <Card className="p-5">
           {q.isLoading ? (
             <div className="h-40 animate-pulse rounded-xl bg-muted" />
           ) : q.isError ? (
             <QueryError compact onRetry={() => q.refetch()} />
           ) : body ? (
-            <p className="whitespace-pre-wrap text-[15px] font-medium leading-relaxed text-foreground">{body}</p>
+            <p className="whitespace-pre-wrap text-[15px] font-medium leading-relaxed text-foreground">
+              {body}
+            </p>
           ) : (
-            <p className="text-sm text-muted-foreground">{t("content.empty", "This content hasn't been added yet.")}</p>
+            <p className="text-sm text-muted-foreground">
+              {t("content.empty", "This content hasn't been added yet.")}
+            </p>
           )}
         </Card>
       </div>

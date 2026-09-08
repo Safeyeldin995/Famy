@@ -2,8 +2,13 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { PhoneFrame, TopBar } from "@/components/famio/ui";
-import { FamilyMemberForm, emptyFamilyMemberFormValue, familyMemberFormValueToInput } from "@/components/famio/FamilyMemberForm";
+import { PhoneFrame } from "@/components/famio/ui";
+import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
+import {
+  FamilyMemberForm,
+  emptyFamilyMemberFormValue,
+  familyMemberFormValueToInput,
+} from "@/components/famio/FamilyMemberForm";
 import { useCreateFamilyMember } from "@/lib/db/family-members-queries";
 
 export const Route = createFileRoute("/family-members/new")({ component: NewFamilyMember });
@@ -25,8 +30,11 @@ function NewFamilyMember() {
   };
 
   return (
-    <PhoneFrame bg="bg-surface">
-      <TopBar back={{ to: "/family-members" }} title={t("familyMembers.addMember", "Add family member")} />
+    <PhoneFrame bg="bg-background">
+      <CustomerPageHero
+        title={t("familyMembers.addMember", "Add family member")}
+        backTo="/family-members"
+      />
       <div className="flex-1 px-6 pb-10 pt-2">
         <FamilyMemberForm
           value={value}

@@ -2,9 +2,17 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { PhoneFrame, TopBar, Card, EmptyState, ErrorState, ReasonDialog, PrimaryButton } from "@/components/famio/ui";
+import {
+  PhoneFrame,
+  Card,
+  EmptyState,
+  ErrorState,
+  ReasonDialog,
+  PrimaryButton,
+} from "@/components/famio/ui";
+import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
 import { useFamilyMembers, useDeactivateFamilyMember } from "@/lib/db/family-members-queries";
-import { ShieldCheck, Pencil, Trash2, Plus, Users } from "lucide-react";
+import { Pencil, Trash2, Plus, Users } from "lucide-react";
 
 export const Route = createFileRoute("/family-members")({ component: FamilyMembers });
 
@@ -17,16 +25,17 @@ function FamilyMembers() {
   const members = membersQ.data ?? [];
 
   return (
-    <PhoneFrame>
-      <TopBar back={{ to: "/profile" }} title={t("familyMembers.title", "Family Members")} />
+    <PhoneFrame bg="bg-background">
+      <CustomerPageHero
+        title={t("familyMembers.title", "Family Members")}
+        subtitle={t("familyMembers.privacyNotice")}
+        backTo="/profile"
+      />
       <div className="flex-1 space-y-3 px-5 pb-28 pt-2">
-        <div className="flex items-start gap-2.5 rounded-[1.5rem] bg-success/8 p-4 text-[11px] font-medium leading-relaxed text-foreground">
-          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-          <span>{t("familyMembers.privacyNotice", "Medical and access notes are only shared with the professional assigned to your booking, and only while that booking is active.")}</span>
-        </div>
-
         {membersQ.isLoading ? (
-          Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-24 animate-pulse rounded-3xl bg-surface-2" />)
+          Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-24 animate-pulse rounded-3xl bg-surface-2" />
+          ))
         ) : membersQ.isError ? (
           <ErrorState onRetry={() => membersQ.refetch()} />
         ) : members.length === 0 ? (
@@ -35,14 +44,20 @@ function FamilyMembers() {
             title={t("familyMembers.empty", "No family members yet")}
             body={t("familyMembers.emptyBody", "Add a family member to book services for them.")}
             action={
-              <Link to="/family-members/new" className="focus-ring inline-flex items-center gap-1.5 rounded-2xl bg-brand px-5 py-3 text-sm font-extrabold text-brand-foreground">
+              <Link
+                to="/family-members/new"
+                className="focus-ring inline-flex items-center gap-1.5 rounded-2xl bg-brand px-5 py-3 text-sm font-extrabold text-brand-foreground"
+              >
                 <Plus className="h-4 w-4" /> {t("familyMembers.addMember", "Add family member")}
               </Link>
             }
           />
         ) : (
           members.map((m: any) => {
-            const relationshipLabel = m.relationship === "other" ? (m.relationship_other || t("familyMembers.relationships.other")) : t(`familyMembers.relationships.${m.relationship}`);
+            const relationshipLabel =
+              m.relationship === "other"
+                ? m.relationship_other || t("familyMembers.relationships.other")
+                : t(`familyMembers.relationships.${m.relationship}`);
             return (
               <Card key={m.id} className={`p-4 ${!m.is_active ? "opacity-60" : ""}`}>
                 <div className="flex items-start gap-3">
@@ -58,7 +73,9 @@ function FamilyMembers() {
                         </span>
                       )}
                     </div>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">{relationshipLabel}</p>
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                      {relationshipLabel}
+                    </p>
                   </div>
                 </div>
                 {m.is_active && (
@@ -97,7 +114,10 @@ function FamilyMembers() {
       <ReasonDialog
         open={!!deactivateId}
         title={t("familyMembers.deactivateTitle", "Remove this family member?")}
-        body={t("familyMembers.deactivateBody", "Past bookings for them are not affected. They just won't be selectable for new bookings.")}
+        body={t(
+          "familyMembers.deactivateBody",
+          "Past bookings for them are not affected. They just won't be selectable for new bookings.",
+        )}
         confirmLabel={deactivate.isPending ? "…" : t("common.delete")}
         cancelLabel={t("common.cancel")}
         confirmVariant="coral"

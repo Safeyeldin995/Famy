@@ -1,5 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { AppShell, TopBar, EmptyState, SecondaryButton, SegmentedControl, StatusPill, Avatar } from "@/components/famio/ui";
+import {
+  AppShell,
+  EmptyState,
+  SecondaryButton,
+  SegmentedControl,
+  StatusPill,
+  Avatar,
+} from "@/components/famio/ui";
+import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
+import { CustomerFloatingPanel } from "@/components/famio/CustomerFloatingPanel";
 import { useMyBookings } from "@/lib/db/queries";
 import { bookingStatusTone, formatEGP, formatNumber } from "@/lib/utils";
 import { currentLang } from "@/lib/i18n";
@@ -13,7 +22,16 @@ export const Route = createFileRoute("/bookings")({ component: Bookings });
 type Tab = "upcoming" | "completed" | "cancelled";
 
 const TAB_STATUSES: Record<Tab, string[]> = {
-  upcoming: ["pending", "confirmed", "on_the_way", "arrived", "arrival_confirmed", "in_progress", "completion_requested", "disputed"],
+  upcoming: [
+    "pending",
+    "confirmed",
+    "on_the_way",
+    "arrived",
+    "arrival_confirmed",
+    "in_progress",
+    "completion_requested",
+    "disputed",
+  ],
   completed: ["completed"],
   cancelled: ["cancelled", "no_show"],
 };
@@ -41,23 +59,26 @@ function Bookings() {
 
   return (
     <AppShell>
-      <TopBar title={t("bookings.title")} />
-
-      <div className="px-5 pb-4">
-        <SegmentedControl
-          value={tab}
-          onChange={setTab}
-          options={[
-            { value: "upcoming", label: t("bookings.upcoming") },
-            { value: "completed", label: t("bookings.completed") },
-            { value: "cancelled", label: t("bookings.cancelled") },
-          ]}
-        />
+      <CustomerPageHero title={t("bookings.title")} />
+      <div className="px-5">
+        <CustomerFloatingPanel className="!p-3">
+          <SegmentedControl
+            value={tab}
+            onChange={setTab}
+            options={[
+              { value: "upcoming", label: t("bookings.upcoming") },
+              { value: "completed", label: t("bookings.completed") },
+              { value: "cancelled", label: t("bookings.cancelled") },
+            ]}
+          />
+        </CustomerFloatingPanel>
       </div>
 
-      <div className="space-y-2 px-5 pb-6">
+      <div className="mt-5 space-y-2 px-5 pb-6">
         {q.isLoading ? (
-          Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-[5.5rem] animate-pulse rounded-[1.75rem] bg-surface-2" />)
+          Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-[5.5rem] animate-pulse rounded-[1.75rem] bg-surface-2" />
+          ))
         ) : q.isError ? (
           <EmptyState icon="alert" title={t("common.errorTitle")} body={t("common.tryAgain")} />
         ) : list.length === 0 ? (
@@ -70,36 +91,72 @@ function Bookings() {
             const start = new Date(b.start_at);
             const end = new Date(b.end_at);
             const hours = Math.max(1, Math.round((+end - +start) / 36e5));
-            const dateLabel = start.toLocaleDateString(locale, { weekday: "short", month: "short", day: "numeric" });
-            const timeLabel = start.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" });
+            const dateLabel = start.toLocaleDateString(locale, {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+            });
+            const timeLabel = start.toLocaleTimeString(locale, {
+              hour: "numeric",
+              minute: "2-digit",
+            });
             const shortId = b.id.slice(0, 8).toUpperCase();
             return (
-              <article key={b.id} className="overflow-hidden rounded-[1.75rem] border border-border/50 bg-surface-elevated shadow-sm">
-                <Link to="/booking/$id" params={{ id: b.id }} className="focus-ring tap-scale block p-4">
+              <article
+                key={b.id}
+                className="overflow-hidden rounded-[1.75rem] border border-border/50 bg-surface-elevated shadow-sm"
+              >
+                <Link
+                  to="/booking/$id"
+                  params={{ id: b.id }}
+                  className="focus-ring tap-scale block p-4"
+                >
                   <div className="flex items-center gap-3">
-                    <Avatar src={profile.avatar_url} alt={name} className="h-14 w-14 shrink-0 rounded-full ring-2 ring-border/60" />
+                    <Avatar
+                      src={profile.avatar_url}
+                      alt={name}
+                      className="h-14 w-14 shrink-0 rounded-full ring-2 ring-border/60"
+                    />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <p className="truncate text-sm font-bold text-foreground">{name}</p>
-                          <p className="mt-0.5 truncate text-xs text-muted-foreground">{serviceLabel}</p>
+                          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                            {serviceLabel}
+                          </p>
                         </div>
-                        <StatusPill tone={statusPillTone(b.status)}>{t(`status.${b.status}` as any, b.status) as string}</StatusPill>
+                        <StatusPill tone={statusPillTone(b.status)}>
+                          {t(`status.${b.status}` as any, b.status) as string}
+                        </StatusPill>
                       </div>
                       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
                         <span className="inline-flex items-center gap-1">
-                          <Calendar className="h-3 w-3" strokeWidth={ICON_STROKE} aria-hidden="true" /> {dateLabel}
+                          <Calendar
+                            className="h-3 w-3"
+                            strokeWidth={ICON_STROKE}
+                            aria-hidden="true"
+                          />{" "}
+                          {dateLabel}
                         </span>
                         <span className="inline-flex items-center gap-1">
-                          <Clock className="h-3 w-3" strokeWidth={ICON_STROKE} aria-hidden="true" /> {timeLabel} · {t("bookings.hoursShort", { hours: formatNumber(hours) })}
+                          <Clock className="h-3 w-3" strokeWidth={ICON_STROKE} aria-hidden="true" />{" "}
+                          {timeLabel} · {t("bookings.hoursShort", { hours: formatNumber(hours) })}
                         </span>
                       </div>
                     </div>
                     <div className="shrink-0 text-end">
-                      <p className="text-sm font-extrabold text-brand">{formatEGP(Number(b.price_total ?? 0))}</p>
-                      <p className="mt-0.5 text-[10px] text-muted-foreground" dir="ltr">#{shortId}</p>
+                      <p className="text-sm font-extrabold text-brand">
+                        {formatEGP(Number(b.price_total ?? 0))}
+                      </p>
+                      <p className="mt-0.5 text-[10px] text-muted-foreground" dir="ltr">
+                        #{shortId}
+                      </p>
                       {tab === "upcoming" ? (
-                        <ChevronRight className="mt-1 ms-auto h-4 w-4 text-muted-foreground rtl-flip" strokeWidth={ICON_STROKE} aria-hidden="true" />
+                        <ChevronRight
+                          className="mt-1 ms-auto h-4 w-4 text-muted-foreground rtl-flip"
+                          strokeWidth={ICON_STROKE}
+                          aria-hidden="true"
+                        />
                       ) : null}
                     </div>
                   </div>
@@ -108,7 +165,13 @@ function Bookings() {
                   <div className="flex gap-2 border-t border-border/70 px-4 pb-4 pt-3">
                     <SecondaryButton
                       className="flex-1"
-                      onClick={() => nav({ to: "/book/$providerId", params: { providerId: b.provider_id }, search: { serviceId: undefined } })}
+                      onClick={() =>
+                        nav({
+                          to: "/book/$providerId",
+                          params: { providerId: b.provider_id },
+                          search: { serviceId: undefined },
+                        })
+                      }
                     >
                       <Repeat className="h-3.5 w-3.5" /> {t("bookings.bookAgain")}
                     </SecondaryButton>

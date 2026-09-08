@@ -1,5 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { PhoneFrame } from "@/components/famio/ui";
+import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
 import { QueryError } from "@/components/famio/QueryError";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -46,7 +47,9 @@ function Chat() {
   if (conv.isLoading || msgs.isLoading) {
     return (
       <PhoneFrame bg="bg-surface-2">
-        <div className="grid flex-1 place-items-center px-6 text-sm text-muted-foreground">{t("common.loading", "Loading…")}</div>
+        <div className="grid flex-1 place-items-center px-6 text-sm text-muted-foreground">
+          {t("common.loading", "Loading…")}
+        </div>
       </PhoneFrame>
     );
   }
@@ -87,39 +90,27 @@ function Chat() {
   };
 
   return (
-    <PhoneFrame bg="bg-surface-2">
-      {/* Header */}
-      <div className="safe-top sticky top-0 z-30 border-b border-border/50 bg-surface/85 backdrop-blur-xl">
-        <div className="flex items-center gap-3 px-4 py-3">
-          <Link
-            to="/messages"
-            aria-label={t("messages.back")}
-            data-rtl-flip="true"
-            className="focus-ring grid h-11 w-11 place-items-center rounded-full border border-border/50 bg-surface active:scale-95 transition-transform"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6" /></svg>
-          </Link>
-          <div className="relative">
-            {otherAvatar ? (
-              <img src={otherAvatar} alt="" className="h-11 w-11 rounded-full object-cover" />
-            ) : (
-              <div className="grid h-11 w-11 place-items-center rounded-full bg-brand/10 text-sm font-black text-brand">
-                {otherName.slice(0, 1).toUpperCase()}
-              </div>
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
-              <div className="truncate text-[15px] font-extrabold">{otherName}</div>
-              <ShieldCheck className="h-3.5 w-3.5 text-success" aria-label={t("messages.verified")} />
+    <PhoneFrame bg="bg-background">
+      <CustomerPageHero
+        title={otherName}
+        subtitle={t("messages.chatNotice")}
+        backTo="/messages"
+        right={
+          otherAvatar ? (
+            <img
+              src={otherAvatar}
+              alt=""
+              className="h-11 w-11 rounded-full border-2 border-white/30 object-cover"
+            />
+          ) : (
+            <div className="grid h-11 w-11 place-items-center rounded-full border border-white/25 bg-white/15 text-sm font-black text-white">
+              {otherName.slice(0, 1).toUpperCase()}
             </div>
-            <div className="text-[11px] font-medium text-muted-foreground">{t("messages.chatNotice")}</div>
-          </div>
-        </div>
-      </div>
+          )
+        }
+      />
 
-      {/* Messages */}
-      <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto px-3 py-4">
+      <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto bg-surface-2 px-3 py-4">
         <div className="my-3 flex justify-center">
           <div className="inline-flex items-center gap-1.5 rounded-full bg-mint/30 px-3 py-1.5 text-[11px] font-medium text-foreground">
             <ShieldCheck className="h-3 w-3 text-success" />
@@ -129,15 +120,28 @@ function Chat() {
         {(msgs.data ?? []).map((m: any) => {
           const mine = m.sender_id === meId;
           return (
-            <div key={m.id} className={`flex items-end gap-2 ${mine ? "justify-end" : "justify-start"}`}>
+            <div
+              key={m.id}
+              className={`flex items-end gap-2 ${mine ? "justify-end" : "justify-start"}`}
+            >
               {!mine && otherAvatar && (
-                <img src={otherAvatar} alt="" className="h-7 w-7 shrink-0 rounded-full object-cover" />
+                <img
+                  src={otherAvatar}
+                  alt=""
+                  className="h-7 w-7 shrink-0 rounded-full object-cover"
+                />
               )}
-              <div className={`max-w-[78%] rounded-[1.25rem] px-4 py-2.5 text-sm leading-snug ${
-                mine ? "bg-brand text-brand-foreground rounded-br-md" : "bg-surface text-foreground border border-border/50 shadow-xs rounded-bl-md"
-              }`}>
+              <div
+                className={`max-w-[78%] rounded-[1.25rem] px-4 py-2.5 text-sm leading-snug ${
+                  mine
+                    ? "bg-brand text-brand-foreground rounded-br-md"
+                    : "bg-surface text-foreground border border-border/50 shadow-xs rounded-bl-md"
+                }`}
+              >
                 <div className="whitespace-pre-wrap break-words">{m.body}</div>
-                <div className={`mt-1 text-[10px] ${mine ? "text-white/70" : "text-muted-foreground"}`}>
+                <div
+                  className={`mt-1 text-[10px] ${mine ? "text-white/70" : "text-muted-foreground"}`}
+                >
                   {nowStr(m.created_at)}
                 </div>
               </div>
@@ -158,7 +162,10 @@ function Chat() {
           <div className="flex min-w-0 flex-1 items-center gap-1 rounded-full bg-surface-2 px-4">
             <input
               value={text}
-              onChange={(e) => { setText(e.target.value); if (warning) setWarning(null); }}
+              onChange={(e) => {
+                setText(e.target.value);
+                if (warning) setWarning(null);
+              }}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
               placeholder={t("messages.placeholder")}
               className="h-12 min-w-0 flex-1 bg-transparent text-sm font-medium outline-none placeholder:text-muted-foreground"
