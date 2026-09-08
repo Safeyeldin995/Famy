@@ -387,8 +387,8 @@ function BookingDetail() {
           <span className="mt-6 inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest">
             <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" /> {t(`status.${status}`, { defaultValue: status })}
           </span>
-          <div className="mt-2 text-[28px] font-black leading-tight tracking-tight">{t("bookingDetail.inProgress", "Service in progress")}</div>
-          <p className="mt-1 text-sm font-semibold opacity-85">{headline}</p>
+          <div className="mt-2 text-[28px] font-black leading-tight tracking-tight">{headline}</div>
+          <p className="mt-1 text-sm font-semibold opacity-85">{booking.service}</p>
 
           <div className="mt-6 flex items-center gap-4 rounded-[1.75rem] bg-white/15 p-3.5 backdrop-blur">
             <Avatar src={provider.avatar} alt={provider.name} className="h-16 w-16 shrink-0 rounded-full ring-2 ring-white/40" />
