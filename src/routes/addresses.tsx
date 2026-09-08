@@ -25,7 +25,7 @@ function Addresses() {
       <TopBar back={{ to: "/profile" }} title={t("addresses.title", "Saved Addresses")} />
       <div className="flex-1 space-y-3 px-5 pb-28 pt-2">
         {addressesQ.isLoading ? (
-          Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-24 animate-pulse rounded-3xl bg-surface" />)
+          Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-24 animate-pulse rounded-3xl bg-surface-2" />)
         ) : addressesQ.isError ? (
           <QueryError onRetry={() => addressesQ.refetch()} />
         ) : addresses.length === 0 ? (
@@ -34,7 +34,7 @@ function Addresses() {
             title={t("addresses.empty", "No saved addresses yet")}
             body={t("addresses.emptyBody", "Add an address to book services faster.")}
             action={
-              <Link to="/addresses/new" className="focus-ring inline-flex items-center gap-1.5 rounded-2xl bg-navy px-4 py-3 text-sm font-bold text-navy-foreground">
+              <Link to="/addresses/new" className="focus-ring inline-flex items-center gap-1.5 rounded-2xl bg-brand px-5 py-3 text-sm font-extrabold text-brand-foreground">
                 <Plus className="h-4 w-4" /> {t("addresses.addAddress", "Add address")}
               </Link>
             }
@@ -47,21 +47,21 @@ function Addresses() {
             return (
               <Card key={a.id} className="p-4">
                 <div className="flex items-start gap-3">
-                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-navy/10 text-navy">
+                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand/8 text-brand">
                     <Icon className="h-5 w-5" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="truncate text-sm font-bold">{title}</span>
+                      <span className="truncate text-[15px] font-extrabold">{title}</span>
                       {a.is_default && (
-                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-coral/10 px-2 py-0.5 text-[10px] font-bold text-coral">
-                          <Star className="h-2.5 w-2.5 fill-coral" /> {t("addresses.default", "Default")}
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-brand/8 px-2 py-0.5 text-[10px] font-bold text-brand">
+                          <Star className="h-2.5 w-2.5 fill-brand" /> {t("addresses.default", "Default")}
                         </span>
                       )}
                     </div>
                     <p className="mt-0.5 truncate text-xs text-muted-foreground">{lineParts.join(", ") || "—"}</p>
                     {(a.lat == null || a.lng == null) && (
-                      <p className="mt-1 text-[10px] font-semibold text-coral">{t("addresses.missingLocation", "No location set")}</p>
+                      <p className="mt-1 text-[10px] font-semibold text-brand">{t("addresses.missingLocation", "No location set")}</p>
                     )}
                   </div>
                 </div>
@@ -70,7 +70,7 @@ function Addresses() {
                     <button
                       onClick={() => setDefault.mutate(a.id, { onError: (e: any) => toast.error(e?.message ?? t("common.somethingWentWrong")) })}
                       disabled={setDefault.isPending}
-                      className="flex-1 rounded-xl bg-surface-2 py-2 text-[11px] font-bold disabled:opacity-60"
+                      className="focus-ring flex-1 rounded-full bg-surface-2 py-2.5 text-[11px] font-extrabold disabled:opacity-60"
                     >
                       {t("addresses.makeDefault", "Make default")}
                     </button>
@@ -78,13 +78,13 @@ function Addresses() {
                   <Link
                     to="/addresses/$id"
                     params={{ id: a.id }}
-                    className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-surface-2 py-2 text-[11px] font-bold"
+                    className="focus-ring flex flex-1 items-center justify-center gap-1 rounded-full bg-surface-2 py-2.5 text-[11px] font-extrabold"
                   >
                     <Pencil className="h-3 w-3" /> {t("common.edit")}
                   </Link>
                   <button
                     onClick={() => setDeleteId(a.id)}
-                    className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-coral/10 py-2 text-[11px] font-bold text-coral"
+                    className="focus-ring flex flex-1 items-center justify-center gap-1 rounded-full bg-brand/8 py-2.5 text-[11px] font-extrabold text-brand"
                   >
                     <Trash2 className="h-3 w-3" /> {t("common.delete")}
                   </button>
@@ -96,7 +96,7 @@ function Addresses() {
       </div>
 
       {addresses.length > 0 && (
-        <div className="safe-bottom fixed inset-x-0 bottom-0 z-40 mx-auto max-w-md border-t border-border bg-surface px-5 pt-3">
+        <div className="action-bar safe-bottom px-5 pt-3">
           <Link to="/addresses/new">
             <PrimaryButton>
               <Plus className="h-4 w-4" /> {t("addresses.addAddress", "Add address")}

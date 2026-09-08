@@ -26,7 +26,7 @@ function ProviderProfile() {
   const nav = useNavigate();
 
   if (provQ.isLoading) {
-    return <PhoneFrame><div className="px-5 py-10"><div className="h-72 rounded-3xl bg-surface animate-pulse" /></div></PhoneFrame>;
+    return <PhoneFrame><div className="px-5 py-10"><div className="h-72 rounded-3xl bg-surface-2 animate-pulse" /></div></PhoneFrame>;
   }
   if (provQ.isError) {
     return (
@@ -154,7 +154,7 @@ function ProviderProfile() {
             ) : (
               <div className="space-y-3">
                 {reviews.slice(0, 5).map((r: any) => (
-                  <div key={r.id} className="rounded-2xl border border-border/70 bg-surface p-4 shadow-sm">
+                  <div key={r.id} className="rounded-[1.5rem] border border-border/50 bg-surface-elevated p-4 shadow-sm">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <Avatar src={r.author_avatar} className="h-10 w-10 rounded-full" />
@@ -177,7 +177,7 @@ function ProviderProfile() {
         </div>
       </div>
 
-      <div className="safe-bottom fixed inset-x-0 bottom-0 z-40 mx-auto max-w-md bg-background/90 px-5 pb-5 pt-4 backdrop-blur-xl border-t border-border/40 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+      <div className="action-bar safe-bottom px-5 pb-5 pt-4">
         <div className="mb-3 flex items-center justify-center gap-1.5 text-xs font-bold text-muted-foreground">
           <ShieldCheck className="h-4 w-4 text-success" aria-hidden="true" />
           {t("providerProfile.freeCancel")}
@@ -192,7 +192,7 @@ function ProviderProfile() {
 
 function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-surface-2 p-3 text-center border border-border/50">
+    <div className="rounded-[1.25rem] bg-surface-2 p-3 text-center">
       <div className="mx-auto grid h-10 w-10 place-items-center rounded-full bg-surface text-foreground shadow-sm">{icon}</div>
       <div className="mt-2 text-lg font-black text-foreground">{value}</div>
       <div className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{label}</div>

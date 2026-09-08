@@ -19,9 +19,9 @@ function Favorites() {
   return (
     <PhoneFrame>
       <TopBar back={{ to: "/profile" }} title={t("favs.title")} />
-      <div className="space-y-3 px-5 pb-10">
+      <div className="space-y-3 px-5 pb-12 pt-1">
         {q.isLoading ? (
-          Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-24 rounded-3xl bg-surface animate-pulse" />)
+          Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-24 rounded-3xl bg-surface-2 animate-pulse" />)
         ) : q.isError ? (
           <EmptyState icon="alert" title={t("common.errorTitle", "Something went wrong")} body={t("common.tryAgain", "Please try again.")} />
         ) : saved.length === 0 ? (
@@ -30,7 +30,7 @@ function Favorites() {
             title={t("favs.emptyTitle")}
             body={t("favs.emptyBody")}
             action={
-              <Link to="/home" className="focus-ring inline-flex h-11 items-center rounded-2xl bg-navy px-5 text-sm font-bold text-navy-foreground">
+              <Link to="/home" className="focus-ring inline-flex h-11 items-center rounded-2xl bg-brand px-6 text-sm font-extrabold text-brand-foreground">
                 {t("favs.browse")}
               </Link>
             }

@@ -70,7 +70,7 @@ export function BottomNav() {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40" aria-label={t("nav.primary")}>
       <div className="mx-auto max-w-md">
-        <div className="safe-bottom mx-3 mb-3 rounded-[1.25rem] border border-border/60 bg-surface/98 shadow-float backdrop-blur-xl">
+        <div className="safe-bottom mx-3 mb-3 rounded-[1.75rem] border border-border/50 bg-surface/85 shadow-float backdrop-blur-2xl">
           <ul className="grid grid-cols-4">
             {tabs.map((tab) => {
               const active = pathname === tab.to || pathname.startsWith(tab.to + "/");
@@ -82,19 +82,18 @@ export function BottomNav() {
                     to={tab.to}
                     aria-label={label}
                     aria-current={active ? "page" : undefined}
-                    className="focus-ring tap-scale flex min-h-11 flex-col items-center gap-1 px-2 pt-2.5 pb-2 rounded-2xl"
+                    className="focus-ring tap-scale flex min-h-11 flex-col items-center gap-1 px-2 pt-2.5 pb-2 rounded-[1.5rem]"
                   >
                     <span
-                      className={`relative grid h-10 w-12 place-items-center rounded-2xl transition-all duration-200 ${
-                        active ? "bg-brand text-brand-foreground shadow-card" : "text-muted-foreground"
+                      className={`relative grid h-9 w-14 place-items-center rounded-full transition-all duration-200 ${
+                        active ? "bg-brand/12 text-brand" : "text-muted-foreground"
                       }`}
                     >
-                      <Icon className="h-5 w-5" strokeWidth={active ? 2.25 : 1.75} />
-                      {active ? null : null}
+                      <Icon className="h-5 w-5" strokeWidth={active ? 2.5 : 1.75} />
                     </span>
                     <span
-                      className={`text-[10px] font-semibold tracking-wide ${
-                        active ? "text-foreground" : "text-muted-foreground"
+                      className={`text-[10px] font-extrabold tracking-wide ${
+                        active ? "text-brand" : "text-muted-foreground"
                       }`}
                     >
                       {label}
@@ -122,13 +121,13 @@ export function TopBar({
   transparent?: boolean;
 }) {
   return (
-    <div className={`safe-top sticky top-0 z-30 ${transparent ? "" : "bg-surface-2/95 backdrop-blur"}`}>
-      <div className="flex items-center gap-2 px-4 py-3">
+    <div className={`safe-top sticky top-0 z-30 ${transparent ? "" : "glass-panel"}`}>
+      <div className="flex items-center gap-3 px-4 py-3">
         {back && (
           <BackButton back={back} />
         )}
         {title && (
-          <h1 className="flex-1 truncate text-base font-bold text-foreground">{title}</h1>
+          <h1 className="flex-1 truncate text-xl font-extrabold tracking-tight text-foreground">{title}</h1>
         )}
         {!title && <div className="flex-1" />}
         {right}
@@ -139,7 +138,7 @@ export function TopBar({
 
 export function BackButton({ back }: { back: { to: string } | (() => void) }) {
   const { t } = useTranslation();
-  const cls = "focus-ring grid h-11 w-11 shrink-0 place-items-center rounded-full bg-surface shadow-soft active:scale-95 transition-transform";
+  const cls = "focus-ring grid h-11 w-11 shrink-0 place-items-center rounded-full border border-border/50 bg-surface text-foreground shadow-xs active:scale-95 transition-transform";
   if (typeof back === "function") {
     return (
       <button onClick={back} className={cls} aria-label={t("common.back")} data-rtl-flip="true">
@@ -183,7 +182,7 @@ export function PrimaryButton({
     variant === "navy"
       ? "bg-ink text-ink-foreground shadow-sm hover:shadow-md active:bg-ink/90"
       : variant === "coral"
-      ? "bg-brand text-brand-foreground shadow-sm hover:shadow-md active:bg-brand/90"
+      ? "bg-brand text-brand-foreground shadow-[0_10px_26px_-12px_var(--brand)] hover:shadow-[0_14px_32px_-12px_var(--brand)] active:bg-brand/90"
       : variant === "outline"
       ? "border-2 border-border/80 bg-surface text-foreground shadow-none hover:bg-surface-2"
       : "bg-transparent text-foreground hover:bg-surface-2";
@@ -238,7 +237,7 @@ export function Card({
   onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
 }) {
   return (
-    <div className={`rounded-3xl bg-surface-elevated border border-border/40 shadow-sm ${className}`} onClick={onClick}>{children}</div>
+    <div className={`rounded-[1.75rem] bg-surface-elevated border border-border/50 shadow-sm ${className}`} onClick={onClick}>{children}</div>
   );
 }
 
@@ -255,10 +254,10 @@ export function Chip({
     <button
       onClick={onClick}
       aria-pressed={active}
-      className={`focus-ring shrink-0 rounded-full px-5 py-2.5 text-[13px] font-bold transition-all min-h-11 tap-scale ${
+      className={`focus-ring shrink-0 rounded-full px-5 py-2.5 text-[13px] font-extrabold transition-all min-h-11 tap-scale ${
         active
-          ? "bg-brand text-brand-foreground shadow-sm"
-          : "border border-border/60 bg-surface text-muted-foreground hover:bg-surface-2 hover:text-foreground"
+          ? "bg-brand text-brand-foreground shadow-[0_8px_20px_-10px_var(--brand)]"
+          : "border border-transparent bg-surface-2 text-muted-foreground hover:bg-muted hover:text-foreground"
       }`}
     >
       {children}
@@ -299,7 +298,7 @@ export function SegmentedControl<T extends string>({
   className?: string;
 }) {
   return (
-    <div className={`rounded-full bg-surface-2 p-1.5 border border-border/50 ${className}`}>
+    <div className={`rounded-full bg-surface-2 p-1.5 ${className}`}>
       <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
         {options.map((option) => (
           <button
@@ -308,7 +307,7 @@ export function SegmentedControl<T extends string>({
             onClick={() => onChange(option.value)}
             aria-pressed={value === option.value}
             className={`focus-ring tap-scale min-h-12 rounded-full px-3 text-[13px] font-black uppercase tracking-wider transition-all sm:text-sm ${
-              value === option.value ? "bg-surface-elevated text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              value === option.value ? "bg-surface-elevated text-brand shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {option.label}
@@ -405,11 +404,11 @@ export function EmptyState({
   const Icon = EMPTY_STATE_ICONS[icon];
   return (
     <div className="py-12 text-center animate-rise">
-      <div className="mx-auto grid h-20 w-20 place-items-center rounded-2xl border border-border/70 bg-muted/40 text-muted-foreground">
+      <div className="mx-auto grid h-20 w-20 place-items-center rounded-[1.75rem] bg-brand/8 text-brand">
         <Icon className="h-9 w-9" strokeWidth={ICON_STROKE} aria-hidden="true" />
       </div>
-      <div className="mt-4 text-base font-bold text-foreground">{title}</div>
-      {body ? <p className="mx-auto mt-1.5 max-w-xs text-sm text-muted-foreground">{body}</p> : null}
+      <div className="mt-4 text-lg font-extrabold tracking-tight text-foreground">{title}</div>
+      {body ? <p className="mx-auto mt-1.5 max-w-xs text-sm font-medium text-muted-foreground">{body}</p> : null}
       {action ? <div className="mt-5 flex justify-center">{action}</div> : null}
     </div>
   );
@@ -427,23 +426,23 @@ export function ErrorState({
   const { t } = useTranslation();
   return (
     <div className="py-16 px-6 text-center animate-rise">
-      <div className="mx-auto grid h-20 w-20 place-items-center rounded-3xl bg-coral/10 text-coral shadow-soft">
+      <div className="mx-auto grid h-20 w-20 place-items-center rounded-[1.75rem] bg-brand/10 text-brand">
         <AlertCircle className="h-9 w-9" />
       </div>
-      <div className="mt-5 text-base font-bold">{title ?? t("common.somethingWentWrong")}</div>
-      <p className="mx-auto mt-1 max-w-xs text-xs text-muted-foreground">{body ?? t("common.tryAgainSoon")}</p>
+      <div className="mt-5 text-lg font-extrabold tracking-tight">{title ?? t("common.somethingWentWrong")}</div>
+      <p className="mx-auto mt-1 max-w-xs text-xs font-medium text-muted-foreground">{body ?? t("common.tryAgainSoon")}</p>
       <div className="mt-5 flex justify-center gap-2">
         {onRetry && (
           <button
             onClick={onRetry}
-            className="focus-ring inline-flex items-center gap-1.5 rounded-2xl bg-navy px-4 py-3 text-sm font-bold text-navy-foreground"
+            className="focus-ring tap-scale inline-flex items-center gap-1.5 rounded-full bg-brand px-5 py-3 text-sm font-extrabold text-brand-foreground"
           >
             <RefreshCw className="h-4 w-4" /> {t("common.retry")}
           </button>
         )}
         <Link
           to="/home"
-          className="focus-ring inline-flex items-center rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-bold"
+          className="focus-ring tap-scale inline-flex items-center rounded-full border border-border bg-surface px-5 py-3 text-sm font-extrabold"
         >
           {t("common.backHome")}
         </Link>
@@ -531,14 +530,14 @@ export function ReasonDialog({
           />
         )}
         <div className="mt-4 flex gap-2">
-          <button onClick={onCancel} disabled={pending} className="h-12 flex-1 rounded-2xl border border-border bg-surface text-sm font-bold disabled:opacity-50">
+          <button onClick={onCancel} disabled={pending} className="h-12 flex-1 rounded-full border border-border bg-surface text-sm font-extrabold disabled:opacity-50">
             {cancelLabel}
           </button>
           <button
             onClick={() => onConfirm(reason.trim())}
             disabled={pending || !canConfirm}
-            className={`h-12 flex-1 rounded-2xl text-sm font-bold disabled:opacity-50 ${
-              confirmVariant === "coral" ? "bg-coral text-coral-foreground" : "bg-navy text-navy-foreground"
+            className={`h-12 flex-1 rounded-full text-sm font-extrabold disabled:opacity-50 ${
+              confirmVariant === "coral" ? "bg-brand text-brand-foreground" : "bg-ink text-ink-foreground"
             }`}
           >
             {confirmLabel}
@@ -629,13 +628,13 @@ export function CancelBookingDialog({
         )}
 
         <div className="mt-4 flex gap-2">
-          <button onClick={onCancel} disabled={pending} className="h-12 flex-1 rounded-2xl border border-border bg-surface text-sm font-bold disabled:opacity-50">
+          <button onClick={onCancel} disabled={pending} className="h-12 flex-1 rounded-full border border-border bg-surface text-sm font-extrabold disabled:opacity-50">
             {cancelLabel}
           </button>
           <button
             onClick={() => onConfirm(reasonId, note.trim())}
             disabled={pending || !canConfirm}
-            className="h-12 flex-1 rounded-2xl bg-coral text-sm font-bold text-coral-foreground disabled:opacity-50"
+            className="h-12 flex-1 rounded-full bg-brand text-sm font-extrabold text-brand-foreground disabled:opacity-50"
           >
             {confirmLabel}
           </button>
@@ -770,7 +769,7 @@ export function CaseDialog({
         )}
 
         <div className="mt-4 flex gap-2">
-          <button onClick={onCancel} disabled={pending} className="h-12 flex-1 rounded-2xl border border-border bg-surface text-sm font-bold disabled:opacity-50">
+          <button onClick={onCancel} disabled={pending} className="h-12 flex-1 rounded-full border border-border bg-surface text-sm font-extrabold disabled:opacity-50">
             {cancelLabel}
           </button>
           <button
@@ -784,7 +783,7 @@ export function CaseDialog({
               })
             }
             disabled={pending || !canConfirm}
-            className="h-12 flex-1 rounded-2xl bg-coral text-sm font-bold text-coral-foreground disabled:opacity-50"
+            className="h-12 flex-1 rounded-full bg-brand text-sm font-extrabold text-brand-foreground disabled:opacity-50"
           >
             {confirmLabel}
           </button>
@@ -876,15 +875,15 @@ export function BookingTimeline({
             <div className="flex flex-col items-center">
               <span
                 className={`grid h-6 w-6 place-items-center rounded-full ${
-                  done ? "bg-navy text-navy-foreground" : "bg-muted text-muted-foreground"
-                } ${active ? "ring-4 ring-coral/30" : ""}`}
+                  done ? "bg-brand text-brand-foreground" : "bg-muted text-muted-foreground"
+                } ${active ? "ring-4 ring-brand/20" : ""}`}
               >
                 {done ? <Check className="h-3 w-3" /> : <span className="h-1.5 w-1.5 rounded-full bg-current" />}
               </span>
-              {i < steps.length - 1 && <span className={`mt-1 w-0.5 flex-1 ${done ? "bg-navy" : "bg-border"}`} />}
+              {i < steps.length - 1 && <span className={`mt-1 w-0.5 flex-1 ${done ? "bg-brand" : "bg-border"}`} />}
             </div>
             <div className="pb-2 pt-0.5">
-              <div className={`text-sm font-bold ${done ? "" : "text-muted-foreground"}`}>{labelFor(step)}</div>
+              <div className={`text-sm font-extrabold ${done ? "" : "text-muted-foreground"}`}>{labelFor(step)}</div>
             </div>
           </li>
         );

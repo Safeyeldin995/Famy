@@ -74,13 +74,13 @@ function Profile() {
           <Row to="/notifications" icon={<Bell className="h-5 w-5" />} label={t("common.notifications")} />
           <Row to="/notification-preferences" icon={<Bell className="h-5 w-5" />} label={t("notifPrefs.title")} />
           <button type="button" onClick={() => setLanguage(lang === "ar" ? "en" : "ar")} className="w-full text-start">
-            <div className="flex items-center gap-3 px-4 py-3.5 active:bg-surface-2">
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand">
+            <div className="flex items-center gap-4 px-5 py-4 active:bg-surface-2">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-brand/8 text-brand">
                 <Globe className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-bold">{t("profile.language")}</div>
-                <div className="truncate text-[11px] text-muted-foreground">
+                <div className="truncate text-base font-extrabold text-foreground">{t("profile.language")}</div>
+                <div className="truncate text-[11px] font-bold text-muted-foreground mt-0.5">
                   {lang === "ar" ? t("common.arabic") : t("common.english")}
                 </div>
               </div>
@@ -120,7 +120,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Row({ icon, label, sub, to }: { icon: React.ReactNode; label: string; sub?: string; to?: string }) {
   const inner = (
     <div className="focus-ring tap-scale flex items-center gap-4 px-5 py-4 transition-colors hover:bg-surface-2">
-      <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-surface text-foreground shadow-sm border border-border/40">{icon}</div>
+      <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-brand/8 text-brand">{icon}</div>
       <div className="min-w-0 flex-1">
         <div className="truncate text-base font-extrabold text-foreground">{label}</div>
         {sub ? <div className="truncate text-[11px] font-bold text-muted-foreground mt-0.5">{sub}</div> : null}

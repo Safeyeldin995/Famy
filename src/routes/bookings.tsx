@@ -57,7 +57,7 @@ function Bookings() {
 
       <div className="space-y-2 px-5 pb-6">
         {q.isLoading ? (
-          Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-[4.75rem] animate-pulse rounded-[1.25rem] bg-muted" />)
+          Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-[5.5rem] animate-pulse rounded-[1.75rem] bg-surface-2" />)
         ) : q.isError ? (
           <EmptyState icon="alert" title={t("common.errorTitle")} body={t("common.tryAgain")} />
         ) : list.length === 0 ? (
@@ -74,7 +74,7 @@ function Bookings() {
             const timeLabel = start.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" });
             const shortId = b.id.slice(0, 8).toUpperCase();
             return (
-              <article key={b.id} className="surface-card overflow-hidden shadow-sm">
+              <article key={b.id} className="overflow-hidden rounded-[1.75rem] border border-border/50 bg-surface-elevated shadow-sm">
                 <Link to="/booking/$id" params={{ id: b.id }} className="focus-ring tap-scale block p-4">
                   <div className="flex items-center gap-3">
                     <Avatar src={profile.avatar_url} alt={name} className="h-14 w-14 shrink-0 rounded-full ring-2 ring-border/60" />
@@ -96,7 +96,7 @@ function Bookings() {
                       </div>
                     </div>
                     <div className="shrink-0 text-end">
-                      <p className="text-sm font-extrabold text-ink">{formatEGP(Number(b.price_total ?? 0))}</p>
+                      <p className="text-sm font-extrabold text-brand">{formatEGP(Number(b.price_total ?? 0))}</p>
                       <p className="mt-0.5 text-[10px] text-muted-foreground" dir="ltr">#{shortId}</p>
                       {tab === "upcoming" ? (
                         <ChevronRight className="mt-1 ms-auto h-4 w-4 text-muted-foreground rtl-flip" strokeWidth={ICON_STROKE} aria-hidden="true" />
@@ -136,7 +136,7 @@ function Empty({ tab }: { tab: string }) {
       action={
         <Link
           to="/home"
-          className="focus-ring tap-scale inline-flex h-11 min-h-11 items-center justify-center rounded-[1.125rem] bg-ink px-5 text-sm font-bold text-ink-foreground shadow-card"
+          className="focus-ring tap-scale inline-flex h-12 min-h-12 items-center justify-center rounded-full bg-brand px-6 text-sm font-extrabold text-brand-foreground shadow-[0_10px_26px_-12px_var(--brand)]"
         >
           {t("bookings.browse")}
         </Link>

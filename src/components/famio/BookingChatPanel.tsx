@@ -126,7 +126,7 @@ export function BookingChatPanel({ bookingId, status, viewer }: { bookingId: str
         ) : msgsQ.isError ? (
           <div className="py-6 text-center">
             <p className="text-xs text-muted-foreground">{t("bookingChat.loadFailed", "Couldn't load messages.")}</p>
-            <button onClick={() => msgsQ.refetch()} className="mt-2 text-xs font-bold text-navy">{t("bookingChat.retry", "Retry")}</button>
+            <button onClick={() => msgsQ.refetch()} className="mt-2 text-xs font-bold text-brand">{t("bookingChat.retry", "Retry")}</button>
           </div>
         ) : messages.length === 0 ? (
           <div className="py-6 text-center">
@@ -148,7 +148,7 @@ export function BookingChatPanel({ bookingId, status, viewer }: { bookingId: str
               <div key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
                 <span className="mb-0.5 px-1 text-[10px] font-semibold text-muted-foreground">{actorLabel(t, viewer, m.sender_role)}</span>
                 <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-snug ${
-                  mine ? "bg-navy text-navy-foreground rounded-br-md" : "bg-surface-2 text-foreground rounded-bl-md"
+                  mine ? "bg-brand text-brand-foreground rounded-br-md" : "bg-surface-2 text-foreground rounded-bl-md"
                 }`}>
                   <div className="whitespace-pre-wrap break-words">{m.body}</div>
                   <div className={`mt-1 text-[10px] ${mine ? "text-white/70" : "text-muted-foreground"}`}>{timeOf(m.created_at)}</div>
@@ -188,7 +188,7 @@ export function BookingChatPanel({ bookingId, status, viewer }: { bookingId: str
               onClick={handleSend}
               aria-label={t("bookingChat.send", "Send")}
               disabled={!text.trim() || send.isPending}
-              className="focus-ring grid h-11 w-11 shrink-0 place-items-center rounded-full bg-navy text-navy-foreground shadow-soft transition-transform active:scale-95 disabled:opacity-40"
+              className="focus-ring grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand text-brand-foreground shadow-soft transition-transform active:scale-95 disabled:opacity-40"
             >
               <Send className="h-4 w-4" />
             </button>

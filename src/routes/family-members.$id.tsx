@@ -39,7 +39,7 @@ function EditFamilyMember() {
     return (
       <PhoneFrame>
         <TopBar back={{ to: "/family-members" }} title={t("common.edit")} />
-        <div className="grid flex-1 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-navy" /></div>
+        <div className="grid flex-1 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-brand" /></div>
       </PhoneFrame>
     );
   }

@@ -89,7 +89,7 @@ function Setup() {
     return (
       <PhoneFrame bg="bg-surface">
         <TopBar back={{ to: "/profile" }} title={t("setup.title")} />
-        <div className="grid flex-1 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-navy" /></div>
+        <div className="grid flex-1 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-brand" /></div>
       </PhoneFrame>
     );
   }
@@ -157,13 +157,13 @@ function Setup() {
   return (
     <PhoneFrame bg="bg-surface">
       <TopBar back={{ to: "/profile" }} title={t("setup.title")} />
-      <div className="flex-1 space-y-5 px-6 pb-6 pt-2">
+      <div className="flex-1 space-y-5 px-6 pb-32 pt-2">
         <div className="flex flex-col items-center pb-2">
           <div className="relative">
             {avatarQ.data ? (
               <Avatar src={avatarQ.data} className="h-24 w-24 rounded-full" />
             ) : (
-              <div className="grid h-24 w-24 place-items-center rounded-full bg-navy/10 text-3xl font-extrabold text-navy">
+              <div className="grid h-24 w-24 place-items-center rounded-full bg-brand/8 text-3xl font-black text-brand">
                 {form.name ? form.name.charAt(0).toUpperCase() : "F"}
               </div>
             )}
@@ -171,7 +171,7 @@ function Setup() {
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
-              className="absolute -bottom-1 -right-1 grid h-9 w-9 place-items-center rounded-full bg-coral text-coral-foreground shadow-card disabled:opacity-60"
+              className="absolute -bottom-1 -right-1 grid h-9 w-9 place-items-center rounded-full bg-brand text-brand-foreground shadow-card disabled:opacity-60"
               aria-label={t("setup.photoHint")}
             >
               {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
@@ -206,8 +206,8 @@ function Setup() {
                 key={a}
                 type="button"
                 onClick={() => update("area", a)}
-                className={`h-14 rounded-2xl border text-sm font-semibold transition-all ${
-                  form.area === a ? "border-navy bg-navy/[0.04] text-navy" : "border-border bg-surface text-muted-foreground"
+                className={`focus-ring tap-scale h-14 rounded-[1.25rem] border text-sm font-extrabold transition-all ${
+                  form.area === a ? "border-brand bg-brand/5 text-brand" : "border-border bg-surface text-muted-foreground"
                 }`}
               >
                 {a}
@@ -224,7 +224,7 @@ function Setup() {
         <div>
           <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">{t("setup.address")}</label>
           <div className="mt-2 flex items-start gap-3 rounded-2xl border border-border bg-surface px-4 py-3">
-            <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-coral" />
+            <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
             <textarea
               rows={2}
               placeholder={t("setup.addressPlaceholder")}
@@ -242,11 +242,11 @@ function Setup() {
             placeholder={t("setup.notesPlaceholder")}
             value={form.notes}
             onChange={(e) => update("notes", e.target.value)}
-            className="mt-2 w-full resize-none rounded-2xl border border-border bg-surface px-4 py-3 text-[15px] outline-none focus:border-navy"
+            className="mt-2 w-full resize-none rounded-2xl border border-border bg-surface px-4 py-3 text-[15px] outline-none focus:border-brand"
           />
         </div>
       </div>
-      <div className="safe-bottom border-t border-border bg-surface px-6 pt-4">
+      <div className="action-bar safe-bottom px-6 pt-4">
         <PrimaryButton onClick={submit} disabled={!valid || saving}>
           {saving ? t("common.saving", "Saving…") : t("common.continue")}
         </PrimaryButton>
@@ -263,7 +263,7 @@ function Field({ label, value, onChange, placeholder }: { label: string; value: 
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="mt-2 h-14 w-full rounded-2xl border border-border bg-surface px-4 text-[15px] font-medium outline-none focus:border-navy"
+        className="mt-2 h-14 w-full rounded-[1.25rem] border border-border bg-surface px-4 text-[15px] font-semibold outline-none focus:border-brand"
       />
     </div>
   );

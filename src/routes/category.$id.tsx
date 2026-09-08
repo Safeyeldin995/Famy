@@ -36,29 +36,38 @@ function CategoryPage() {
   );
 
   return (
-    <PhoneFrame>
-      <div className="relative">
-        <div className="h-44 w-full" style={{ background: `linear-gradient(135deg, var(--navy), oklch(0.42 0.16 268))` }}>
-          <TopBar back={{ to: "/home" }} right={<button aria-label={t("category.filters")} className="grid h-10 w-10 place-items-center rounded-full bg-white/15 text-white backdrop-blur"><Filter className="h-4 w-4" /></button>} transparent />
-          <div className="px-5 pb-4 text-white">
-            <div className="text-xs font-semibold opacity-80">{cat?.subtitle ?? ""}</div>
-            <div className="text-2xl font-extrabold">{cat?.title ?? "—"}</div>
-            <div className="mt-1 max-w-xs text-xs text-white/80">{cat?.description ?? ""}</div>
-          </div>
+    <PhoneFrame bg="bg-background">
+      <div className="safe-top px-5 pb-5">
+        <TopBar
+          back={{ to: "/home" }}
+          right={(
+            <button
+              aria-label={t("category.filters")}
+              className="focus-ring tap-scale grid h-11 w-11 place-items-center rounded-full bg-brand/8 text-brand"
+            >
+              <Filter className="h-4 w-4" />
+            </button>
+          )}
+          transparent
+        />
+        <div className="mt-2">
+          <div className="text-[11px] font-black uppercase tracking-widest text-brand">{cat?.subtitle ?? ""}</div>
+          <h1 className="mt-1 text-3xl font-extrabold leading-[1.1] tracking-tight text-foreground">{cat?.title ?? "—"}</h1>
+          <p className="mt-2 max-w-xs text-sm font-medium text-muted-foreground">{cat?.description ?? ""}</p>
         </div>
       </div>
 
-      <div className="-mt-4 flex-1 rounded-t-3xl bg-surface-2 px-5 pt-5 pb-24">
+      <div className="flex-1 px-5 pb-24">
         {catsQ.isError ? (
           <div className="mb-4">
             <QueryError compact onRetry={() => catsQ.refetch()} />
           </div>
         ) : null}
 
-        <label className="mb-4 block text-[11px] font-bold text-muted-foreground">
+        <label className="mb-4 block text-xs font-bold text-muted-foreground">
           {t("search2.service", "Service")}
           {servicesQ.isLoading ? (
-            <div className="mt-1 h-11 animate-pulse rounded-xl bg-surface" />
+            <div className="mt-1.5 h-12 animate-pulse rounded-2xl bg-surface-2" />
           ) : servicesQ.isError ? (
             <div className="mt-2">
               <QueryError compact onRetry={() => servicesQ.refetch()} />
@@ -68,18 +77,18 @@ function CategoryPage() {
             aria-label={t("search2.service", "Service")}
             value={serviceId}
             onChange={(e) => setServiceId(e.target.value)}
-            className="mt-1 h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground"
+            className="focus-ring mt-1.5 h-12 w-full rounded-2xl bg-surface-2 px-4 text-sm font-bold text-foreground focus:outline-none"
           >
             {(servicesQ.data ?? []).map((service: any) => <option key={service.id} value={service.id}>{service.name_en}</option>)}
           </select>
           )}
         </label>
-        <div className="mb-4 flex items-center justify-between">
-          <div className="text-sm font-bold">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="min-w-0 text-sm font-extrabold tracking-tight text-foreground">
             {t("category.available", { count: sorted.length })}
-            {cat && <> · {t("category.fromPriceHr", { price: formatEGP(cat.fromPrice) })}</>}
+            {cat && <> · <span className="text-brand">{t("category.fromPriceHr", { price: formatEGP(cat.fromPrice) })}</span></>}
           </div>
-          <Link to="/search" className="inline-flex items-center gap-1 rounded-full bg-surface px-3 py-1.5 text-xs font-bold shadow-soft">
+          <Link to="/search" className="focus-ring tap-scale inline-flex shrink-0 items-center gap-1 rounded-full bg-surface-2 px-3.5 py-2 text-xs font-extrabold text-foreground">
             <SlidersHorizontal className="h-3.5 w-3.5" /> {t("category.filters")}
           </Link>
         </div>
@@ -92,7 +101,7 @@ function CategoryPage() {
 
         {provsQ.isLoading ? (
           <div className="space-y-3">
-            {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-24 rounded-3xl bg-surface animate-pulse" />)}
+            {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-28 rounded-[1.75rem] bg-surface-2 animate-pulse" />)}
           </div>
         ) : provsQ.isError ? (
           <QueryError onRetry={() => provsQ.refetch()} />

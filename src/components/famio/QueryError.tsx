@@ -17,8 +17,8 @@ export function QueryError({ title, body, error, onRetry, compact = false }: Que
 
   if (compact) {
     return (
-      <div className="rounded-2xl border border-coral/30 bg-coral/5 px-4 py-4 text-center">
-        <p className="text-sm font-bold text-coral">{heading}</p>
+      <div className="rounded-[1.5rem] border border-brand/20 bg-brand/5 px-4 py-4 text-center">
+        <p className="text-sm font-extrabold text-brand">{heading}</p>
         <p className="mx-auto mt-1 max-w-xs text-xs text-muted-foreground">{body ?? t("common.tryAgain")}</p>
         {detail && detail !== heading && (
           <p className="mx-auto mt-1 max-w-xs break-words text-[11px] text-muted-foreground" dir="ltr">
@@ -28,7 +28,7 @@ export function QueryError({ title, body, error, onRetry, compact = false }: Que
         <button
           type="button"
           onClick={onRetry}
-          className="focus-ring mt-3 inline-flex items-center gap-1.5 rounded-xl bg-navy px-4 py-2.5 text-xs font-bold text-navy-foreground"
+          className="focus-ring tap-scale mt-3 inline-flex items-center gap-1.5 rounded-full bg-brand px-4 py-2.5 text-xs font-extrabold text-brand-foreground"
         >
           <RefreshCw className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />
           {t("common.retry")}
@@ -39,11 +39,11 @@ export function QueryError({ title, body, error, onRetry, compact = false }: Que
 
   return (
     <div className="py-12 text-center animate-rise">
-      <div className="mx-auto grid h-20 w-20 place-items-center rounded-2xl border border-border/70 bg-coral/10 text-coral">
+      <div className="mx-auto grid h-20 w-20 place-items-center rounded-[1.75rem] bg-brand/10 text-brand">
         <AlertCircle className="h-9 w-9" strokeWidth={ICON_STROKE} aria-hidden="true" />
       </div>
-      <div className="mt-4 text-base font-bold text-foreground">{heading}</div>
-      <p className="mx-auto mt-1.5 max-w-xs text-sm text-muted-foreground">{body ?? t("common.tryAgain")}</p>
+      <div className="mt-4 text-lg font-extrabold tracking-tight text-foreground">{heading}</div>
+      <p className="mx-auto mt-1.5 max-w-xs text-sm font-medium text-muted-foreground">{body ?? t("common.tryAgain")}</p>
       {detail && detail !== heading && (
         <p className="mx-auto mt-1 max-w-xs break-words text-[11px] text-muted-foreground" dir="ltr">
           {detail}
@@ -53,7 +53,7 @@ export function QueryError({ title, body, error, onRetry, compact = false }: Que
         <button
           type="button"
           onClick={onRetry}
-          className="focus-ring inline-flex items-center gap-1.5 rounded-2xl bg-navy px-4 py-3 text-sm font-bold text-navy-foreground"
+          className="focus-ring tap-scale inline-flex items-center gap-1.5 rounded-full bg-brand px-5 py-3 text-sm font-extrabold text-brand-foreground"
         >
           <RefreshCw className="h-4 w-4" strokeWidth={ICON_STROKE} />
           {t("common.retry")}

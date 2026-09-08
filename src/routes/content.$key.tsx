@@ -37,7 +37,7 @@ function ContentPage() {
           ) : q.isError ? (
             <QueryError compact onRetry={() => q.refetch()} />
           ) : body ? (
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{body}</p>
+            <p className="whitespace-pre-wrap text-[15px] font-medium leading-relaxed text-foreground">{body}</p>
           ) : (
             <p className="text-sm text-muted-foreground">{t("content.empty", "This content hasn't been added yet.")}</p>
           )}

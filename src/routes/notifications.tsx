@@ -38,7 +38,7 @@ function Notifications() {
             <button
               onClick={() => markAllRead.mutate()}
               disabled={markAllRead.isPending}
-              className="text-xs font-bold text-navy disabled:opacity-50"
+              className="shrink-0 text-xs font-extrabold text-brand disabled:opacity-50"
             >
               {t("notifs.markAllRead")}
             </button>
@@ -48,14 +48,14 @@ function Notifications() {
       <div className="px-5">
         {q.isLoading ? (
           <div className="space-y-2">
-            {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-20 rounded-2xl bg-surface animate-pulse" />)}
+            {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-20 rounded-2xl bg-surface-2 animate-pulse" />)}
           </div>
         ) : q.isError ? (
           <EmptyState icon="alert" title={t("common.errorTitle", "Something went wrong")} body={t("common.tryAgain", "Please try again.")} />
         ) : items.length === 0 ? (
           <EmptyState icon="bell" title={t("notifs.empty")} />
         ) : (
-          <ul className="space-y-2">
+          <ul className="space-y-2.5 pb-6">
             {items.map((n: any) => {
               const unread = !n.read_at;
               const isOffer = n.category === "campaign";
@@ -64,15 +64,15 @@ function Notifications() {
                 <li
                   key={n.id}
                   onClick={() => openNotification(n)}
-                  className={`flex items-start gap-3 rounded-2xl p-4 cursor-pointer ${unread ? "bg-surface shadow-soft" : "bg-surface-2"}`}
+                  className={`flex cursor-pointer items-start gap-3.5 rounded-[1.5rem] border p-4 transition-colors ${unread ? "border-brand/20 bg-surface-elevated shadow-sm" : "border-transparent bg-surface-2"}`}
                 >
-                  <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl ${isOffer ? "bg-coral/15 text-coral" : "bg-navy/10 text-navy"}`}>
+                  <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-full ${isOffer ? "bg-brand text-brand-foreground" : "bg-brand/8 text-brand"}`}>
                     {isOffer ? <Sparkles className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="truncate text-sm font-bold">{title}</span>
-                      {unread && <span className="h-2 w-2 shrink-0 rounded-full bg-coral" />}
+                      <span className="truncate text-sm font-extrabold">{title}</span>
+                      {unread && <span className="h-2 w-2 shrink-0 rounded-full bg-brand" />}
                     </div>
                     {body && <p className="text-xs text-muted-foreground">{body}</p>}
                     <div className="mt-1 text-[10px] text-muted-foreground">{formatDate(new Date(n.created_at), { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</div>
