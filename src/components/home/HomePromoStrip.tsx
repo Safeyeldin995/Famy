@@ -20,7 +20,7 @@ export function HomePromoStrip({ offer }: { offer: FeaturedPromoCode }) {
   const title = promoDiscountLabel(offer, t);
 
   return (
-    <div className="home-ink-panel relative w-[17rem] shrink-0 snap-start overflow-hidden rounded-[1.75rem] px-5 py-5 shadow-card">
+    <div className="home-ink-panel relative isolate w-[17rem] shrink-0 snap-start overflow-hidden rounded-[1.75rem] px-5 py-5 shadow-card">
       <div className="relative z-10">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-white/85">
           <Tag className="h-3 w-3" strokeWidth={ICON_STROKE} aria-hidden="true" />
@@ -41,10 +41,6 @@ export function HomePromoStrip({ offer }: { offer: FeaturedPromoCode }) {
           <Copy className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} aria-hidden="true" />
         </button>
       </div>
-      <span
-        className="pointer-events-none absolute -end-8 -top-8 h-28 w-28 rounded-full bg-brand/30 blur-xl"
-        aria-hidden="true"
-      />
     </div>
   );
 }
