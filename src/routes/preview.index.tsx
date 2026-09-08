@@ -1,20 +1,55 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { PhoneFrame } from "@/components/famio/ui";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
-import { PREVIEW_SCREEN_GROUPS } from "@/lib/preview/previewScreens";
+import { PREVIEW_FEATURED, PREVIEW_SCREEN_GROUPS } from "@/lib/preview/previewScreens";
 
 export const Route = createFileRoute("/preview/")({
   component: PreviewHub,
 });
+
+function PreviewScreenLink({
+  to,
+  title,
+  description,
+  featured = false,
+}: {
+  to: string;
+  title: string;
+  description?: string;
+  featured?: boolean;
+}) {
+  return (
+    <Link
+      to={to as "/preview/home"}
+      className={`focus-ring tap-scale flex items-center justify-between gap-3 rounded-[1.5rem] border px-4 py-4 shadow-sm ${
+        featured
+          ? "border-brand/30 bg-brand/[0.06]"
+          : "border-border/50 bg-surface-elevated"
+      }`}
+    >
+      <div className="min-w-0 text-start">
+        <span className="block text-sm font-extrabold text-foreground">{title}</span>
+        {description ? (
+          <span className="mt-0.5 block text-xs font-semibold text-muted-foreground">{description}</span>
+        ) : null}
+      </div>
+      <ArrowRight
+        className="h-4 w-4 shrink-0 text-brand rtl-flip"
+        strokeWidth={ICON_STROKE_BOLD}
+        aria-hidden="true"
+      />
+    </Link>
+  );
+}
 
 function PreviewHub() {
   const { t } = useTranslation();
 
   return (
     <PhoneFrame bg="bg-background">
-      <header className="brand-hero safe-top px-5 pb-8 pt-4">
+      <header className="brand-hero safe-top shrink-0 px-5 pb-8 pt-4">
         <h1 className="text-[1.75rem] font-extrabold leading-tight text-white">
           {t("preview.hubTitle", "Famy design preview")}
         </h1>
@@ -23,7 +58,34 @@ function PreviewHub() {
         </p>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-5 pb-10 pt-2">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-5 pb-10 pt-4">
+        <section className="mb-8">
+          <div className="mb-3 flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-brand" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
+            <h2 className="text-xs font-extrabold uppercase tracking-wider text-brand">
+              {t("preview.featured", "Start here")}
+            </h2>
+          </div>
+          <ul className="space-y-2">
+            {PREVIEW_FEATURED.map((screen) => (
+              <li key={screen.to}>
+                <PreviewScreenLink
+                  to={screen.to}
+                  title={t(screen.labelKey, screen.fallback)}
+                  description={
+                    screen.descriptionFallback
+                      ? t(screen.descriptionKey ?? screen.labelKey, {
+                          defaultValue: screen.descriptionFallback,
+                        })
+                      : undefined
+                  }
+                  featured
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+
         {PREVIEW_SCREEN_GROUPS.map((group) => (
           <section key={group.titleKey} className="mb-8">
             <h2 className="mb-3 text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
@@ -32,19 +94,10 @@ function PreviewHub() {
             <ul className="space-y-2">
               {group.screens.map((screen) => (
                 <li key={screen.to}>
-                  <Link
-                    to={screen.to as "/preview/home"}
-                    className="focus-ring tap-scale flex items-center justify-between rounded-[1.5rem] border border-border/50 bg-surface-elevated px-4 py-4 shadow-sm"
-                  >
-                    <span className="text-sm font-extrabold text-foreground">
-                      {t(screen.labelKey, screen.fallback ?? screen.labelKey)}
-                    </span>
-                    <ArrowRight
-                      className="h-4 w-4 shrink-0 text-brand rtl-flip"
-                      strokeWidth={ICON_STROKE_BOLD}
-                      aria-hidden="true"
-                    />
-                  </Link>
+                  <PreviewScreenLink
+                    to={screen.to}
+                    title={t(screen.labelKey, screen.fallback)}
+                  />
                 </li>
               ))}
             </ul>

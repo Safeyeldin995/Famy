@@ -2,12 +2,24 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useMemo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { ChevronLeft } from "lucide-react";
 import { createPreviewQueryClient, installPreviewFetchGuard } from "@/lib/preview/createPreviewQueryClient";
+import { PREVIEW_FULL_BLEED_PREFIXES } from "@/lib/preview/previewScreens";
+import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
+
+function isHubIndex(pathname: string) {
+  return pathname === "/preview" || pathname === "/preview/";
+}
 
 export function PreviewShell({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const hideBanner = pathname === "/preview/splash";
+  const fullBleed = PREVIEW_FULL_BLEED_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+  const showBanner = !fullBleed;
+  const showFloatingHub = fullBleed && !isHubIndex(pathname);
+
   const qc = useMemo(() => {
     installPreviewFetchGuard();
     return createPreviewQueryClient();
@@ -15,16 +27,29 @@ export function PreviewShell({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={qc}>
-      {!hideBanner ? (
-        <div className="brand-hero px-4 py-2 text-center text-[11px] font-bold text-white">
-          {t("preview.banner", "Design preview — sample data only, no sign-in required")}
-          {" · "}
-          <Link to="/preview" className="underline underline-offset-2">
+      <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
+        {showBanner ? (
+          <div className="brand-hero shrink-0 px-4 py-2 text-center text-[11px] font-bold text-white">
+            {t("preview.banner", "Design preview — sample data only, no sign-in required")}
+            {" · "}
+            <Link to="/preview" className="underline underline-offset-2">
+              {t("preview.allScreens", "All screens")}
+            </Link>
+          </div>
+        ) : null}
+
+        {showFloatingHub ? (
+          <Link
+            to="/preview"
+            className="safe-top fixed start-4 top-2 z-[120] inline-flex items-center gap-1 rounded-full border border-white/30 bg-black/25 px-3 py-2 text-[11px] font-extrabold text-white backdrop-blur-sm"
+          >
+            <ChevronLeft className="h-3.5 w-3.5 rtl-flip" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
             {t("preview.allScreens", "All screens")}
           </Link>
-        </div>
-      ) : null}
-      {children}
+        ) : null}
+
+        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+      </div>
     </QueryClientProvider>
   );
 }
