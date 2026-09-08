@@ -13,6 +13,8 @@ import {
   CONTACT_BLOCKED_MESSAGE,
   containsContactInfo,
 } from "@/lib/db/messaging";
+import { isPreviewRoute, PREVIEW_USER_ID } from "@/lib/preview/constants";
+import { previewPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/messages/$id")({ component: Chat });
 
@@ -22,6 +24,11 @@ function nowStr(iso: string) {
 
 function Chat() {
   const { id } = Route.useParams();
+  return <ChatContent conversationId={id} />;
+}
+
+export function ChatContent({ conversationId }: { conversationId: string }) {
+  const id = conversationId;
   const conv = useConversation(id);
   const msgs = useMessages(id);
   const send = useSendMessage(id);
@@ -32,6 +39,10 @@ function Chat() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (isPreviewRoute()) {
+      setMeId(PREVIEW_USER_ID);
+      return;
+    }
     supabase.auth.getUser().then(({ data }) => setMeId(data.user?.id ?? null));
   }, []);
 
@@ -94,7 +105,7 @@ function Chat() {
       <CustomerPageHero
         title={otherName}
         subtitle={t("messages.chatNotice")}
-        backTo="/messages"
+        backTo={previewPath("/messages")}
         right={
           otherAvatar ? (
             <img

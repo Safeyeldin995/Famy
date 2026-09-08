@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { ICON_STROKE, ICON_STROKE_BOLD } from "@/lib/icons/constants";
 import { formatEGP } from "@/lib/utils";
+import { previewPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/home")({ component: Home });
 
@@ -41,7 +42,7 @@ function SectionHeader({ overline, title }: { overline: string; title: string })
         <p className="text-overline">{overline}</p>
         <h2 className="text-title mt-1 text-foreground">{title}</h2>
       </div>
-      <Link to="/search" className="focus-ring shrink-0 text-xs font-extrabold text-brand">
+      <Link to={previewPath("/search")} className="focus-ring shrink-0 text-xs font-extrabold text-brand">
         {t("common.seeAll")}
       </Link>
     </div>
@@ -101,7 +102,7 @@ function Home() {
 
         <div className="relative z-10 flex items-center justify-between gap-3">
           <Link
-            to="/addresses"
+            to={previewPath("/addresses")}
             className="focus-ring tap-scale inline-flex min-w-0 items-center gap-1.5 rounded-full border border-white/25 bg-white/15 px-3.5 py-2 text-xs font-extrabold text-white backdrop-blur-sm"
           >
             <MapPin
@@ -121,7 +122,7 @@ function Home() {
             />
           </Link>
           <Link
-            to="/notifications"
+            to={previewPath("/notifications")}
             aria-label={t("common.notifications")}
             className="focus-ring tap-scale relative grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/25 bg-white/15 text-white backdrop-blur-sm"
           >
@@ -144,7 +145,7 @@ function Home() {
 
       <div className="px-5">
         <Link
-          to="/search"
+          to={previewPath("/search")}
           className="focus-ring tap-scale relative z-10 -mt-10 flex items-center gap-3 rounded-[1.5rem] border border-border/40 bg-surface p-3 shadow-float"
         >
           <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[1.125rem] bg-brand text-brand-foreground">

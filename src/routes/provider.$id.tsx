@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
+import { previewPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/provider/$id")({ component: ProviderProfile });
 
@@ -32,8 +33,8 @@ function badgeKey(b: string) {
   return b.toLowerCase().replace(/[^a-z0-9]+/g, "_");
 }
 
-function ProviderProfile() {
-  const { id } = Route.useParams();
+export function ProviderProfileContent({ providerId }: { providerId: string }) {
+  const id = providerId;
   const addressQ = useDefaultAddress();
   const provQ = useProvider(id, addressQ.data?.id);
   const reviewsQ = useProviderReviews(id);
@@ -60,10 +61,12 @@ function ProviderProfile() {
     );
   }
   if (!provQ.data) {
-    <PhoneFrame bg="bg-background">
-      <CustomerPageHero title={t("provider2.notFound")} backTo="/home" />
-      <EmptyState icon="user-x" title={t("provider2.notFound")} />
-    </PhoneFrame>;
+    return (
+      <PhoneFrame bg="bg-background">
+        <CustomerPageHero title={t("provider2.notFound")} backTo="/home" />
+        <EmptyState icon="user-x" title={t("provider2.notFound")} />
+      </PhoneFrame>
+    );
   }
 
   const p = toUIProvider(provQ.data);
@@ -89,7 +92,7 @@ function ProviderProfile() {
     <PhoneFrame bg="bg-background">
       <div className="absolute top-0 z-10 w-full px-5 pb-4 pt-3 safe-top flex justify-between items-center">
         <button
-          onClick={() => nav({ to: "/home" })}
+          onClick={() => nav({ to: previewPath("/home") })}
           aria-label={t("common.back")}
           className="focus-ring tap-scale grid h-11 w-11 place-items-center rounded-full border border-white/25 bg-white/15 text-white backdrop-blur-sm"
           data-rtl-flip="true"
@@ -301,4 +304,9 @@ function ProfileSection({ title, children }: { title: string; children: React.Re
       <div>{children}</div>
     </section>
   );
+}
+
+function ProviderProfile() {
+  const { id } = Route.useParams();
+  return <ProviderProfileContent providerId={id} />;
 }

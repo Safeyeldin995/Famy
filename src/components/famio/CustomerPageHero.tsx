@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronLeft } from "lucide-react";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
+import { previewPath } from "@/lib/preview/previewPath";
 
 export function CustomerPageHero({
   title,
@@ -23,7 +24,8 @@ export function CustomerPageHero({
   const backClass =
     "focus-ring tap-scale grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/25 bg-white/15 text-white backdrop-blur-sm";
 
-  const hasBack = Boolean(backTo || onBack);
+  const resolvedBackTo = backTo ? previewPath(backTo) : undefined;
+  const hasBack = Boolean(resolvedBackTo || onBack);
 
   return (
     <header className="brand-hero safe-top relative overflow-hidden rounded-b-[2.5rem] px-5 pb-14 pt-3">
@@ -37,9 +39,9 @@ export function CustomerPageHero({
       />
 
       <div className="relative z-10 flex items-center justify-between gap-3">
-        {backTo ? (
+        {resolvedBackTo ? (
           <Link
-            to={backTo}
+            to={resolvedBackTo}
             aria-label={t("common.back")}
             data-rtl-flip="true"
             className={backClass}

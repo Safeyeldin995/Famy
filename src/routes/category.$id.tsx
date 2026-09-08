@@ -14,8 +14,8 @@ import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
 
 export const Route = createFileRoute("/category/$id")({ component: CategoryPage });
 
-function CategoryPage() {
-  const { id } = Route.useParams();
+export function CategoryPageContent({ categoryId }: { categoryId: string }) {
+  const id = categoryId;
   const { t } = useTranslation();
   const catsQ = useCategories();
   const servicesQ = useMarketplaceServices(id);
@@ -150,4 +150,9 @@ function CategoryPage() {
       </div>
     </PhoneFrame>
   );
+}
+
+function CategoryPage() {
+  const { id } = Route.useParams();
+  return <CategoryPageContent categoryId={id} />;
 }

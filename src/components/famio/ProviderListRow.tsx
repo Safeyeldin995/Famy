@@ -5,6 +5,7 @@ import { Avatar } from "@/components/famio/ui";
 import { StatusPill } from "@/components/famio/ui";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
 import { formatNumber } from "@/lib/utils";
+import { isPreviewRoute } from "@/lib/preview/constants";
 
 export function ProviderListRow({
   to,
@@ -27,9 +28,12 @@ export function ProviderListRow({
   trailing?: ReactNode;
   className?: string;
 }) {
+  const resolvedTo =
+    isPreviewRoute() && to === "/provider/$id" ? "/preview/provider/$id" : to;
+
   return (
     <Link
-      to={to as any}
+      to={resolvedTo as any}
       params={params as any}
       className={`focus-ring tap-scale flex items-center gap-4 rounded-[2rem] border border-border/50 bg-surface-elevated p-4 shadow-sm transition-shadow hover:shadow-md hover:border-brand/30 ${className}`}
     >

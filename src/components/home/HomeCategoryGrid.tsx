@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { QueryError } from "@/components/famio/QueryError";
 import { CategoryIllustration } from "@/components/home/CategoryIllustration";
 import { categoryTint } from "@/components/home/categoryTint";
+import { isPreviewRoute } from "@/lib/preview/constants";
 import { formatEGP } from "@/lib/utils";
 import { ArrowRight } from "lucide-react";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
@@ -52,7 +53,7 @@ export function HomeCategoryGrid({
       {lead ? (
         <Link
           key={lead.id}
-          to="/category/$id"
+          to={isPreviewRoute() ? "/preview/category/$id" : "/category/$id"}
           params={{ id: lead.id }}
           className={`focus-ring tap-scale relative col-span-2 flex min-h-[8rem] items-center overflow-hidden rounded-[1.75rem] p-5 shadow-sm ${categoryTint(lead.id)}`}
         >
@@ -77,7 +78,7 @@ export function HomeCategoryGrid({
       {rest.map((category) => (
         <Link
           key={category.id}
-          to="/category/$id"
+          to={isPreviewRoute() ? "/preview/category/$id" : "/category/$id"}
           params={{ id: category.id }}
           className={`focus-ring tap-scale relative flex min-h-[9.5rem] flex-col justify-end overflow-hidden rounded-[1.75rem] p-4 shadow-sm ${categoryTint(category.id)}`}
         >

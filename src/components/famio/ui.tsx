@@ -9,6 +9,7 @@ import { currentLang } from "@/lib/i18n";
 import { BOOKING_TIMELINE_STEPS } from "@/lib/utils";
 import { EMPTY_STATE_ICONS, type EmptyStateIconName } from "@/lib/icons/emptyStateIcons";
 import { ICON_STROKE, ICON_STROKE_BOLD } from "@/lib/icons/constants";
+import { isPreviewRoute } from "@/lib/preview/constants";
 
 /**
  * Single shared avatar renderer for the whole app (Issue #4 fix). Resolves
@@ -73,13 +74,14 @@ export function BottomNav() {
         <div className="safe-bottom mx-3 mb-3 rounded-[1.75rem] border border-border/50 bg-surface/85 shadow-float backdrop-blur-2xl">
           <ul className="grid grid-cols-4">
             {tabs.map((tab) => {
-              const active = pathname === tab.to || pathname.startsWith(tab.to + "/");
+              const to = isPreviewRoute() ? `/preview${tab.to}` : tab.to;
+              const active = pathname === to || pathname.startsWith(to + "/");
               const Icon = tab.icon;
               const label = t(tab.labelKey);
               return (
                 <li key={tab.to}>
                   <Link
-                    to={tab.to}
+                    to={to}
                     aria-label={label}
                     aria-current={active ? "page" : undefined}
                     className="focus-ring tap-scale flex min-h-11 flex-col items-center gap-1 px-2 pt-2.5 pb-2 rounded-[1.5rem]"
