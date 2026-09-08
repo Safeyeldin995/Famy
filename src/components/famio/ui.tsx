@@ -1,5 +1,15 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Calendar, MessageCircle, User, ShieldCheck, AlertCircle, RefreshCw, Check } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import {
+  Home,
+  Calendar,
+  MessageCircle,
+  User,
+  ShieldCheck,
+  AlertCircle,
+  RefreshCw,
+  Check,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -324,24 +334,45 @@ export function RoleSelectCard({
   label,
   active,
   onClick,
+  icon: Icon,
 }: {
   label: string;
   active: boolean;
   onClick: () => void;
+  icon?: LucideIcon;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`focus-ring tap-scale relative flex min-h-[4.5rem] flex-col items-start justify-center rounded-[1.25rem] border px-4 py-3 text-start transition-all ${
-        active ? "border-brand bg-brand/5 shadow-sm" : "border-border/60 bg-surface shadow-xs hover:bg-surface-2"
+      className={`focus-ring tap-scale relative flex min-h-[4.5rem] items-center gap-3 rounded-2xl border px-4 py-3.5 text-start transition-all ${
+        active ? "border-brand bg-brand/[0.04] shadow-sm" : "border-border/70 bg-white shadow-xs hover:bg-surface-2"
       }`}
     >
-      <span className="absolute end-4 top-1/2 -translate-y-1/2 grid h-6 w-6 place-items-center rounded-full border-2 transition-colors" style={{ borderColor: active ? "var(--color-brand)" : "var(--color-border)", backgroundColor: active ? "var(--color-brand)" : "transparent" }}>
-        {active ? <Check className="h-4 w-4 text-brand-foreground" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" /> : null}
+      {Icon ? (
+        <span
+          className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
+            active ? "bg-brand/10 text-brand" : "bg-surface-2 text-muted-foreground"
+          }`}
+        >
+          <Icon className="h-5 w-5" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
+        </span>
+      ) : null}
+      <span className={`min-w-0 flex-1 text-[13px] font-extrabold ${active ? "text-foreground" : "text-foreground/80"}`}>
+        {label}
       </span>
-      <span className={`text-[13px] font-extrabold pr-8 ${active ? "text-brand" : "text-muted-foreground"}`}>{label}</span>
+      <span
+        className="grid h-6 w-6 shrink-0 place-items-center rounded-full border-2 transition-colors"
+        style={{
+          borderColor: active ? "var(--color-brand)" : "var(--color-border)",
+          backgroundColor: active ? "var(--color-brand)" : "transparent",
+        }}
+      >
+        {active ? (
+          <Check className="h-3.5 w-3.5 text-brand-foreground" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
+        ) : null}
+      </span>
     </button>
   );
 }
