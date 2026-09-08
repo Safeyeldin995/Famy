@@ -7,6 +7,7 @@ import { LanguageToggle } from "@/components/famio/LanguageToggle";
 import { useApp } from "@/lib/store";
 import { useMyProfile, useDefaultAddress, useAvatarUrl } from "@/lib/db/queries";
 import { setLanguage, currentLang } from "@/lib/i18n";
+import { previewPath } from "@/lib/preview/previewPath";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -22,6 +23,7 @@ import {
   ChevronRight,
   Heart,
   Tag,
+  Pencil,
 } from "lucide-react";
 import { ICON_STROKE } from "@/lib/icons/constants";
 
@@ -49,24 +51,32 @@ function Profile() {
 
   return (
     <AppShell>
-      <CustomerPageHero title={t("profile.title")} right={<LanguageToggle variant="hero" />} />
+      <CustomerPageHero
+        title={t("profile.title")}
+        subtitle={t("profile.subtitle")}
+        right={<LanguageToggle variant="hero" />}
+      />
       <div className="px-5">
         <CustomerFloatingPanel>
           <div className="flex items-center gap-5">
             <div className="relative grid h-20 w-20 place-items-center">
               {avatarQ.data ? (
-                <Avatar src={avatarQ.data} className="h-20 w-20 rounded-full object-cover" />
+                <Avatar
+                  src={avatarQ.data}
+                  className="h-20 w-20 rounded-full object-cover ring-2 ring-brand/15"
+                />
               ) : (
-                <div className="grid h-20 w-20 place-items-center rounded-full bg-surface-2 text-2xl font-extrabold text-muted-foreground">
+                <div className="grid h-20 w-20 place-items-center rounded-full bg-surface-2 text-2xl font-extrabold text-muted-foreground ring-2 ring-border/50">
                   {initial}
                 </div>
               )}
               <div className="absolute -bottom-1 -end-1">
                 <Link
-                  to="/setup"
+                  to={previewPath("/setup")}
                   className="focus-ring tap-scale grid h-9 w-9 place-items-center rounded-full border-2 border-surface bg-brand text-brand-foreground shadow-md"
+                  aria-label={t("profile.editProfile")}
                 >
-                  <FileText className="h-3.5 w-3.5" strokeWidth={2.5} />
+                  <Pencil className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden="true" />
                 </Link>
               </div>
             </div>
@@ -85,18 +95,18 @@ function Profile() {
       <div className="px-5 pb-6 pt-2">
         <Section title={t("profile.myFamio")}>
           <Row
-            to="/favorites"
+            to={previewPath("/favorites")}
             icon={<Heart className="h-5 w-5" />}
             label={t("profile.favorites")}
           />
           <Row
-            to="/promo-codes"
+            to={previewPath("/promo-codes")}
             icon={<Tag className="h-5 w-5" />}
             label={t("profile.promoCodes")}
             sub={t("profile.promoCodesSub")}
           />
           <Row
-            to="/addresses"
+            to={previewPath("/addresses")}
             icon={<MapPin className="h-5 w-5" />}
             label={t("profile.addresses")}
             sub={addressQ.data?.area || t("profile.addAddress")}
@@ -107,7 +117,7 @@ function Profile() {
             sub={t("profile.paymentSub")}
           />
           <Row
-            to="/family-members"
+            to={previewPath("/family-members")}
             icon={<Users className="h-5 w-5" />}
             label={t("profile.family")}
             sub={t("profile.familySub")}
@@ -116,12 +126,12 @@ function Profile() {
 
         <Section title={t("profile.preferences")}>
           <Row
-            to="/notifications"
+            to={previewPath("/notifications")}
             icon={<Bell className="h-5 w-5" />}
             label={t("common.notifications")}
           />
           <Row
-            to="/notification-preferences"
+            to={previewPath("/notification-preferences")}
             icon={<Bell className="h-5 w-5" />}
             label={t("notifPrefs.title")}
           />
@@ -132,26 +142,31 @@ function Profile() {
           >
             <div className="flex items-center gap-4 px-5 py-4 active:bg-surface-2">
               <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-brand/8 text-brand">
-                <Globe className="h-5 w-5" />
+                <Globe className="h-5 w-5" aria-hidden="true" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="truncate text-base font-extrabold text-foreground">
                   {t("profile.language")}
                 </div>
-                <div className="truncate text-[11px] font-bold text-muted-foreground mt-0.5">
+                <div className="mt-0.5 truncate text-[11px] font-bold text-muted-foreground">
                   {lang === "ar" ? t("common.arabic") : t("common.english")}
                 </div>
               </div>
               <ChevronRight
                 className="h-4 w-4 text-muted-foreground rtl-flip"
                 strokeWidth={ICON_STROKE}
+                aria-hidden="true"
               />
             </div>
           </button>
         </Section>
 
         <Section title={t("profile.support")}>
-          <Row to="/help" icon={<HelpCircle className="h-5 w-5" />} label={t("profile.help")} />
+          <Row
+            to={previewPath("/help")}
+            icon={<HelpCircle className="h-5 w-5" />}
+            label={t("profile.help")}
+          />
           <Row
             to="/content/terms"
             icon={<FileText className="h-5 w-5" />}
@@ -165,15 +180,16 @@ function Profile() {
         </Section>
 
         <div className="mt-6 space-y-2">
-          <SecondaryButton className="w-full !h-12 !text-destructive" onClick={handleLogout}>
-            <LogOut className="h-4 w-4" /> {t("profile.logout")}
+          <SecondaryButton className="w-full !h-12 !rounded-full !text-destructive" onClick={handleLogout}>
+            <LogOut className="h-4 w-4" aria-hidden="true" />
+            {t("profile.logout")}
           </SecondaryButton>
           <button type="button" className="w-full py-3 text-xs font-semibold text-muted-foreground">
             {t("profile.deleteAccount")}
           </button>
         </div>
 
-        <div className="pt-6 pb-2 text-center text-[11px] text-muted-foreground">
+        <div className="pb-2 pt-6 text-center text-[11px] text-muted-foreground">
           {t("profile.version")}
         </div>
       </div>
@@ -187,7 +203,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <h2 className="mb-3 px-1 text-xs font-black uppercase tracking-widest text-muted-foreground">
         {title}
       </h2>
-      <div className="rounded-[2rem] bg-surface-elevated shadow-sm border border-border/40 overflow-hidden divide-y divide-border/50">
+      <div className="overflow-hidden rounded-[1.75rem] border border-border/50 bg-surface-elevated shadow-sm divide-y divide-border/50">
         {children}
       </div>
     </div>
@@ -213,7 +229,7 @@ function Row({
       <div className="min-w-0 flex-1">
         <div className="truncate text-base font-extrabold text-foreground">{label}</div>
         {sub ? (
-          <div className="truncate text-[11px] font-bold text-muted-foreground mt-0.5">{sub}</div>
+          <div className="mt-0.5 truncate text-[11px] font-bold text-muted-foreground">{sub}</div>
         ) : null}
       </div>
       <ChevronRight className="h-5 w-5 text-muted-foreground rtl-flip" strokeWidth={ICON_STROKE} />

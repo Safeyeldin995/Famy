@@ -229,8 +229,12 @@ const en = {
   },
   bookings: {
     title: "My bookings",
+    subtitle: "Upcoming visits and booking history",
+    subtitleUpcoming: "Your scheduled appointments",
+    subtitleHistory: "Visits you've completed",
+    subtitleCancelled: "Cancelled and missed appointments",
     upcoming: "Upcoming",
-    completed: "Completed",
+    completed: "History",
     cancelled: "Cancelled",
     bookAgain: "Book again",
     invoice: "Invoice",
@@ -297,6 +301,7 @@ const en = {
   },
   profile: {
     title: "Profile",
+    subtitle: "Your account and preferences",
     famioUser: "Famy user",
     editProfile: "Edit profile",
     myFamio: "My Famy",
@@ -340,6 +345,8 @@ const en = {
   },
   addresses: {
     title: "Saved Addresses",
+    subtitle: "Save places for faster booking",
+    summary: "{{count}} saved",
     addAddress: "Add address",
     empty: "No saved addresses yet",
     emptyBody: "Add an address to book services faster.",

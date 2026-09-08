@@ -46,7 +46,11 @@ function EditAddress() {
   if (addressQ.isLoading) {
     return (
       <PhoneFrame bg="bg-background">
-        <CustomerPageHero title={t("common.edit")} backTo="/addresses" />
+        <CustomerPageHero
+          title={t("common.edit")}
+          subtitle={t("addresses.subtitle")}
+          backTo="/addresses"
+        />
         <div className="grid flex-1 place-items-center">
           <Loader2 className="h-6 w-6 animate-spin text-brand" />
         </div>
@@ -56,7 +60,11 @@ function EditAddress() {
   if (addressQ.isError) {
     return (
       <PhoneFrame bg="bg-background">
-        <CustomerPageHero title={t("common.edit")} backTo="/addresses" />
+        <CustomerPageHero
+          title={t("common.edit")}
+          subtitle={t("addresses.subtitle")}
+          backTo="/addresses"
+        />
         <QueryError onRetry={() => addressQ.refetch()} />
       </PhoneFrame>
     );
@@ -64,7 +72,11 @@ function EditAddress() {
   if (!addressQ.data) {
     return (
       <PhoneFrame bg="bg-background">
-        <CustomerPageHero title={t("common.edit")} backTo="/addresses" />
+        <CustomerPageHero
+          title={t("common.edit")}
+          subtitle={t("addresses.subtitle")}
+          backTo="/addresses"
+        />
         <ErrorState title={t("addresses.notFound", "Address not found")} />
       </PhoneFrame>
     );
@@ -72,8 +84,12 @@ function EditAddress() {
 
   return (
     <PhoneFrame bg="bg-background">
-      <CustomerPageHero title={t("common.edit")} backTo="/addresses" />
-      <div className="flex-1 px-6 pb-10 pt-2">
+      <CustomerPageHero
+        title={t("common.edit")}
+        subtitle={t("addresses.subtitle")}
+        backTo="/addresses"
+      />
+      <div className="flex-1 px-5 pb-10 pt-2">
         <AddressForm
           value={value}
           onChange={setValue}

@@ -41,6 +41,30 @@ export const PREVIEW_FEATURED: PreviewScreen[] = [
     descriptionFallback: "Customer home screen",
     featured: true,
   },
+  {
+    to: "/preview/bookings",
+    labelKey: "bookings.title",
+    fallback: "Bookings",
+    descriptionKey: "bookings.subtitle",
+    descriptionFallback: "Upcoming visits and booking history",
+    featured: true,
+  },
+  {
+    to: "/preview/addresses",
+    labelKey: "addresses.title",
+    fallback: "Addresses",
+    descriptionKey: "addresses.subtitle",
+    descriptionFallback: "Save places for faster booking",
+    featured: true,
+  },
+  {
+    to: "/preview/profile",
+    labelKey: "profile.title",
+    fallback: "Profile",
+    descriptionKey: "profile.subtitle",
+    descriptionFallback: "Your account and preferences",
+    featured: true,
+  },
 ];
 
 export const PREVIEW_SCREEN_GROUPS: {

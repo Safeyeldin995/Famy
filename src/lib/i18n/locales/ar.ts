@@ -229,8 +229,12 @@ const ar: Translation = {
   },
   bookings: {
     title: "حجوزاتي",
+    subtitle: "المواعيد القادمة وسجل الحجوزات",
+    subtitleUpcoming: "مواعيدك المجدولة",
+    subtitleHistory: "الزيارات التي أتممتها",
+    subtitleCancelled: "الحجوزات الملغاة والفائتة",
     upcoming: "قادمة",
-    completed: "مكتملة",
+    completed: "السجل",
     cancelled: "ملغاة",
     bookAgain: "احجز مرة أخرى",
     invoice: "الفاتورة",
@@ -297,6 +301,7 @@ const ar: Translation = {
   },
   profile: {
     title: "حسابي",
+    subtitle: "حسابك وتفضيلاتك",
     famioUser: "مستخدم فامي",
     editProfile: "تعديل الملف",
     myFamio: "حسابي في فامي",
@@ -340,6 +345,8 @@ const ar: Translation = {
   },
   addresses: {
     title: "العناوين المحفوظة",
+    subtitle: "احفظ أماكنك للحجز بسرعة",
+    summary: "{{count}} محفوظ",
     addAddress: "أضف عنوانا",
     empty: "لا توجد عناوين محفوظة بعد",
     emptyBody: "أضف عنوانا لحجز الخدمات بشكل أسرع.",

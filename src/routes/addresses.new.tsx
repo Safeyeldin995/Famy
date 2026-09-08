@@ -37,8 +37,12 @@ function NewAddress() {
 
   return (
     <PhoneFrame bg="bg-background">
-      <CustomerPageHero title={t("addresses.addAddress", "Add address")} backTo="/addresses" />
-      <div className="flex-1 px-6 pb-10 pt-2">
+      <CustomerPageHero
+        title={t("addresses.addAddress", "Add address")}
+        subtitle={t("addresses.subtitle")}
+        backTo="/addresses"
+      />
+      <div className="flex-1 px-5 pb-10 pt-2">
         {addressesQ.isError ? (
           <QueryError onRetry={() => addressesQ.refetch()} />
         ) : (

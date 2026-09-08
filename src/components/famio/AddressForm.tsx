@@ -94,8 +94,8 @@ export function AddressForm({
               key={key}
               type="button"
               onClick={() => set("label", key)}
-              className={`flex flex-col items-center gap-1.5 rounded-2xl border py-3 text-[11px] font-bold transition-all ${
-                value.label === key ? "border-brand bg-brand/5 text-brand" : "border-border bg-surface text-muted-foreground"
+              className={`flex flex-col items-center gap-1.5 rounded-[1.25rem] border py-3 text-[11px] font-bold transition-all ${
+                value.label === key ? "border-brand bg-brand/5 text-brand" : "border-border/80 bg-surface text-muted-foreground"
               }`}
             >
               <Icon className="h-4 w-4" />
@@ -108,7 +108,7 @@ export function AddressForm({
             value={value.customLabel}
             onChange={(e) => set("customLabel", e.target.value)}
             placeholder={t("addresses.customLabelPlaceholder", "e.g. Grandma's house")}
-            className="mt-2 h-12 w-full rounded-2xl border border-border bg-surface px-4 text-sm font-medium outline-none focus:border-brand"
+            className="mt-2 h-12 w-full rounded-2xl border border-border/80 bg-surface px-4 text-sm font-medium outline-none focus:border-brand"
           />
         )}
         {touched && value.label === "other" && value.customLabel.trim().length === 0 && (
@@ -125,7 +125,7 @@ export function AddressForm({
               type="button"
               onClick={() => set("area", a)}
               className={`h-14 rounded-2xl border text-sm font-semibold transition-all ${
-                value.area === a ? "border-brand bg-brand/5 text-brand" : "border-border bg-surface text-muted-foreground"
+                value.area === a ? "border-brand bg-brand/5 text-brand" : "border-border/80 bg-surface text-muted-foreground"
               }`}
             >
               {a}
@@ -155,7 +155,7 @@ export function AddressForm({
           placeholder={t("setup.notesPlaceholder")}
           value={value.accessNotes}
           onChange={(e) => set("accessNotes", e.target.value)}
-          className="mt-2 w-full resize-none rounded-2xl border border-border bg-surface px-4 py-3 text-[15px] outline-none focus:border-brand"
+          className="mt-2 w-full resize-none rounded-2xl border border-border/80 bg-surface px-4 py-3 text-[15px] outline-none focus:border-brand"
         />
       </div>
 
@@ -245,7 +245,7 @@ function Field({ label, value, onChange, placeholder }: { label: string; value: 
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="mt-2 h-14 w-full rounded-2xl border border-border bg-surface px-4 text-[15px] font-medium outline-none focus:border-brand"
+        className="mt-2 h-14 w-full rounded-2xl border border-border/80 bg-surface px-4 text-[15px] font-medium outline-none focus:border-brand"
       />
     </div>
   );

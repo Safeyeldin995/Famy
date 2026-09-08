@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   AppShell,
   EmptyState,
+  PrimaryButton,
   SecondaryButton,
   SegmentedControl,
   StatusPill,
@@ -12,6 +13,7 @@ import { CustomerFloatingPanel } from "@/components/famio/CustomerFloatingPanel"
 import { useMyBookings } from "@/lib/db/queries";
 import { bookingStatusTone, formatEGP, formatNumber } from "@/lib/utils";
 import { currentLang } from "@/lib/i18n";
+import { previewBookPath, previewPath } from "@/lib/preview/previewPath";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Calendar, Clock, Repeat, Download, ChevronRight } from "lucide-react";
@@ -36,6 +38,12 @@ const TAB_STATUSES: Record<Tab, string[]> = {
   cancelled: ["cancelled", "no_show"],
 };
 
+const TAB_SUBTITLE: Record<Tab, string> = {
+  upcoming: "bookings.subtitleUpcoming",
+  completed: "bookings.subtitleHistory",
+  cancelled: "bookings.subtitleCancelled",
+};
+
 function statusPillTone(status: string): "brand" | "ink" | "success" | "warning" | "muted" {
   const tone = bookingStatusTone(status);
   if (tone === "mint") return "success";
@@ -57,11 +65,21 @@ function Bookings() {
     return all.filter((b: any) => TAB_STATUSES[tab].includes(b.status));
   }, [q.data, tab]);
 
+  const tabLabel = t(`bookings.${tab}`);
+
   return (
     <AppShell>
-      <CustomerPageHero title={t("bookings.title")} />
+      <CustomerPageHero title={t("bookings.title")} subtitle={t(TAB_SUBTITLE[tab])} />
       <div className="px-5">
         <CustomerFloatingPanel className="!p-3">
+          <div className="mb-3 flex items-center justify-between gap-3 px-1">
+            <p className="text-sm font-extrabold text-foreground">{tabLabel}</p>
+            {!q.isLoading && !q.isError ? (
+              <span className="rounded-full bg-surface-2 px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
+                {list.length}
+              </span>
+            ) : null}
+          </div>
           <SegmentedControl
             value={tab}
             onChange={setTab}
@@ -74,7 +92,7 @@ function Bookings() {
         </CustomerFloatingPanel>
       </div>
 
-      <div className="mt-5 space-y-2 px-5 pb-6">
+      <div className="mt-5 space-y-2.5 px-5 pb-6">
         {q.isLoading ? (
           Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="h-[5.5rem] animate-pulse rounded-[1.75rem] bg-surface-2" />
@@ -101,10 +119,15 @@ function Bookings() {
               minute: "2-digit",
             });
             const shortId = b.id.slice(0, 8).toUpperCase();
+            const isPast = tab !== "upcoming";
             return (
               <article
                 key={b.id}
-                className="overflow-hidden rounded-[1.75rem] border border-border/50 bg-surface-elevated shadow-sm"
+                className={`overflow-hidden rounded-[1.75rem] border shadow-sm ${
+                  isPast
+                    ? "border-border/40 bg-surface-2"
+                    : "border-border/50 bg-surface-elevated"
+                }`}
               >
                 <Link
                   to="/booking/$id"
@@ -115,7 +138,9 @@ function Bookings() {
                     <Avatar
                       src={profile.avatar_url}
                       alt={name}
-                      className="h-14 w-14 shrink-0 rounded-full ring-2 ring-border/60"
+                      className={`h-14 w-14 shrink-0 rounded-full ring-2 ${
+                        isPast ? "ring-border/40 opacity-90" : "ring-border/60"
+                      }`}
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
@@ -135,23 +160,25 @@ function Bookings() {
                             className="h-3 w-3"
                             strokeWidth={ICON_STROKE}
                             aria-hidden="true"
-                          />{" "}
+                          />
                           {dateLabel}
                         </span>
                         <span className="inline-flex items-center gap-1">
-                          <Clock className="h-3 w-3" strokeWidth={ICON_STROKE} aria-hidden="true" />{" "}
+                          <Clock className="h-3 w-3" strokeWidth={ICON_STROKE} aria-hidden="true" />
                           {timeLabel} · {t("bookings.hoursShort", { hours: formatNumber(hours) })}
                         </span>
                       </div>
                     </div>
                     <div className="shrink-0 text-end">
-                      <p className="text-sm font-extrabold text-brand">
+                      <p
+                        className={`text-sm font-extrabold ${isPast ? "text-foreground" : "text-brand"}`}
+                      >
                         {formatEGP(Number(b.price_total ?? 0))}
                       </p>
                       <p className="mt-0.5 text-[10px] text-muted-foreground" dir="ltr">
                         #{shortId}
                       </p>
-                      {tab === "upcoming" ? (
+                      {!isPast ? (
                         <ChevronRight
                           className="mt-1 ms-auto h-4 w-4 text-muted-foreground rtl-flip"
                           strokeWidth={ICON_STROKE}
@@ -161,22 +188,23 @@ function Bookings() {
                     </div>
                   </div>
                 </Link>
-                {tab !== "upcoming" ? (
+                {isPast ? (
                   <div className="flex gap-2 border-t border-border/70 px-4 pb-4 pt-3">
                     <SecondaryButton
-                      className="flex-1"
+                      className="flex-1 !rounded-[1.25rem]"
                       onClick={() =>
                         nav({
-                          to: "/book/$providerId",
-                          params: { providerId: b.provider_id },
+                          to: previewBookPath(b.provider_id),
                           search: { serviceId: undefined },
                         })
                       }
                     >
-                      <Repeat className="h-3.5 w-3.5" /> {t("bookings.bookAgain")}
+                      <Repeat className="h-3.5 w-3.5" aria-hidden="true" />
+                      {t("bookings.bookAgain")}
                     </SecondaryButton>
-                    <SecondaryButton className="flex-1">
-                      <Download className="h-3.5 w-3.5" /> {t("bookings.invoice")}
+                    <SecondaryButton className="flex-1 !rounded-[1.25rem]">
+                      <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                      {t("bookings.invoice")}
                     </SecondaryButton>
                   </div>
                 ) : null}
@@ -189,7 +217,7 @@ function Bookings() {
   );
 }
 
-function Empty({ tab }: { tab: string }) {
+function Empty({ tab }: { tab: Tab }) {
   const { t } = useTranslation();
   return (
     <EmptyState
@@ -197,11 +225,8 @@ function Empty({ tab }: { tab: string }) {
       title={t("bookings.emptyTitle", { tab: t(`bookings.${tab}`) })}
       body={t("bookings.emptyBody")}
       action={
-        <Link
-          to="/home"
-          className="focus-ring tap-scale inline-flex h-12 min-h-12 items-center justify-center rounded-full bg-brand px-6 text-sm font-extrabold text-brand-foreground shadow-[0_10px_26px_-12px_var(--brand)]"
-        >
-          {t("bookings.browse")}
+        <Link to={previewPath("/home")}>
+          <PrimaryButton className="!h-12 px-6">{t("bookings.browse")}</PrimaryButton>
         </Link>
       }
     />

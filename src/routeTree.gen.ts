@@ -92,6 +92,8 @@ import { Route as PreviewProviderIdRouteImport } from './routes/preview.provider
 import { Route as PreviewChatIdRouteImport } from './routes/preview.chat.$id'
 import { Route as PreviewCategoryIdRouteImport } from './routes/preview.category.$id'
 import { Route as PreviewBookProviderIdRouteImport } from './routes/preview.book.$providerId'
+import { Route as PreviewAddressesNewRouteImport } from './routes/preview.addresses.new'
+import { Route as PreviewAddressesIdRouteImport } from './routes/preview.addresses.$id'
 import { Route as AdminProviderIdRouteImport } from './routes/admin.provider.$id'
 import { Route as AdminCustomerIdRouteImport } from './routes/admin.customer.$id'
 
@@ -513,6 +515,16 @@ const PreviewBookProviderIdRoute = PreviewBookProviderIdRouteImport.update({
   path: '/book/$providerId',
   getParentRoute: () => PreviewRoute,
 } as any)
+const PreviewAddressesNewRoute = PreviewAddressesNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => PreviewAddressesRoute,
+} as any)
+const PreviewAddressesIdRoute = PreviewAddressesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => PreviewAddressesRoute,
+} as any)
 const AdminProviderIdRoute = AdminProviderIdRouteImport.update({
   id: '/provider/$id',
   path: '/provider/$id',
@@ -572,7 +584,7 @@ export interface FileRoutesByFullPath {
   '/family-members/$id': typeof FamilyMembersIdRoute
   '/family-members/new': typeof FamilyMembersNewRoute
   '/messages/$id': typeof MessagesIdRoute
-  '/preview/addresses': typeof PreviewAddressesRoute
+  '/preview/addresses': typeof PreviewAddressesRouteWithChildren
   '/preview/bookings': typeof PreviewBookingsRoute
   '/preview/family-members': typeof PreviewFamilyMembersRoute
   '/preview/favorites': typeof PreviewFavoritesRoute
@@ -605,6 +617,8 @@ export interface FileRoutesByFullPath {
   '/pro/': typeof ProIndexRoute
   '/admin/customer/$id': typeof AdminCustomerIdRoute
   '/admin/provider/$id': typeof AdminProviderIdRoute
+  '/preview/addresses/$id': typeof PreviewAddressesIdRoute
+  '/preview/addresses/new': typeof PreviewAddressesNewRoute
   '/preview/book/$providerId': typeof PreviewBookProviderIdRoute
   '/preview/category/$id': typeof PreviewCategoryIdRoute
   '/preview/chat/$id': typeof PreviewChatIdRoute
@@ -655,7 +669,7 @@ export interface FileRoutesByTo {
   '/family-members/$id': typeof FamilyMembersIdRoute
   '/family-members/new': typeof FamilyMembersNewRoute
   '/messages/$id': typeof MessagesIdRoute
-  '/preview/addresses': typeof PreviewAddressesRoute
+  '/preview/addresses': typeof PreviewAddressesRouteWithChildren
   '/preview/bookings': typeof PreviewBookingsRoute
   '/preview/family-members': typeof PreviewFamilyMembersRoute
   '/preview/favorites': typeof PreviewFavoritesRoute
@@ -688,6 +702,8 @@ export interface FileRoutesByTo {
   '/pro': typeof ProIndexRoute
   '/admin/customer/$id': typeof AdminCustomerIdRoute
   '/admin/provider/$id': typeof AdminProviderIdRoute
+  '/preview/addresses/$id': typeof PreviewAddressesIdRoute
+  '/preview/addresses/new': typeof PreviewAddressesNewRoute
   '/preview/book/$providerId': typeof PreviewBookProviderIdRoute
   '/preview/category/$id': typeof PreviewCategoryIdRoute
   '/preview/chat/$id': typeof PreviewChatIdRoute
@@ -743,7 +759,7 @@ export interface FileRoutesById {
   '/family-members/$id': typeof FamilyMembersIdRoute
   '/family-members/new': typeof FamilyMembersNewRoute
   '/messages/$id': typeof MessagesIdRoute
-  '/preview/addresses': typeof PreviewAddressesRoute
+  '/preview/addresses': typeof PreviewAddressesRouteWithChildren
   '/preview/bookings': typeof PreviewBookingsRoute
   '/preview/family-members': typeof PreviewFamilyMembersRoute
   '/preview/favorites': typeof PreviewFavoritesRoute
@@ -776,6 +792,8 @@ export interface FileRoutesById {
   '/pro/': typeof ProIndexRoute
   '/admin/customer/$id': typeof AdminCustomerIdRoute
   '/admin/provider/$id': typeof AdminProviderIdRoute
+  '/preview/addresses/$id': typeof PreviewAddressesIdRoute
+  '/preview/addresses/new': typeof PreviewAddressesNewRoute
   '/preview/book/$providerId': typeof PreviewBookProviderIdRoute
   '/preview/category/$id': typeof PreviewCategoryIdRoute
   '/preview/chat/$id': typeof PreviewChatIdRoute
@@ -865,6 +883,8 @@ export interface FileRouteTypes {
     | '/pro/'
     | '/admin/customer/$id'
     | '/admin/provider/$id'
+    | '/preview/addresses/$id'
+    | '/preview/addresses/new'
     | '/preview/book/$providerId'
     | '/preview/category/$id'
     | '/preview/chat/$id'
@@ -948,6 +968,8 @@ export interface FileRouteTypes {
     | '/pro'
     | '/admin/customer/$id'
     | '/admin/provider/$id'
+    | '/preview/addresses/$id'
+    | '/preview/addresses/new'
     | '/preview/book/$providerId'
     | '/preview/category/$id'
     | '/preview/chat/$id'
@@ -1035,6 +1057,8 @@ export interface FileRouteTypes {
     | '/pro/'
     | '/admin/customer/$id'
     | '/admin/provider/$id'
+    | '/preview/addresses/$id'
+    | '/preview/addresses/new'
     | '/preview/book/$providerId'
     | '/preview/category/$id'
     | '/preview/chat/$id'
@@ -1656,6 +1680,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewBookProviderIdRouteImport
       parentRoute: typeof PreviewRoute
     }
+    '/preview/addresses/new': {
+      id: '/preview/addresses/new'
+      path: '/new'
+      fullPath: '/preview/addresses/new'
+      preLoaderRoute: typeof PreviewAddressesNewRouteImport
+      parentRoute: typeof PreviewAddressesRoute
+    }
+    '/preview/addresses/$id': {
+      id: '/preview/addresses/$id'
+      path: '/$id'
+      fullPath: '/preview/addresses/$id'
+      preLoaderRoute: typeof PreviewAddressesIdRouteImport
+      parentRoute: typeof PreviewAddressesRoute
+    }
     '/admin/provider/$id': {
       id: '/admin/provider/$id'
       path: '/provider/$id'
@@ -1759,8 +1797,21 @@ const MessagesRouteWithChildren = MessagesRoute._addFileChildren(
   MessagesRouteChildren,
 )
 
+interface PreviewAddressesRouteChildren {
+  PreviewAddressesIdRoute: typeof PreviewAddressesIdRoute
+  PreviewAddressesNewRoute: typeof PreviewAddressesNewRoute
+}
+
+const PreviewAddressesRouteChildren: PreviewAddressesRouteChildren = {
+  PreviewAddressesIdRoute: PreviewAddressesIdRoute,
+  PreviewAddressesNewRoute: PreviewAddressesNewRoute,
+}
+
+const PreviewAddressesRouteWithChildren =
+  PreviewAddressesRoute._addFileChildren(PreviewAddressesRouteChildren)
+
 interface PreviewRouteChildren {
-  PreviewAddressesRoute: typeof PreviewAddressesRoute
+  PreviewAddressesRoute: typeof PreviewAddressesRouteWithChildren
   PreviewBookingsRoute: typeof PreviewBookingsRoute
   PreviewFamilyMembersRoute: typeof PreviewFamilyMembersRoute
   PreviewFavoritesRoute: typeof PreviewFavoritesRoute
@@ -1786,7 +1837,7 @@ interface PreviewRouteChildren {
 }
 
 const PreviewRouteChildren: PreviewRouteChildren = {
-  PreviewAddressesRoute: PreviewAddressesRoute,
+  PreviewAddressesRoute: PreviewAddressesRouteWithChildren,
   PreviewBookingsRoute: PreviewBookingsRoute,
   PreviewFamilyMembersRoute: PreviewFamilyMembersRoute,
   PreviewFavoritesRoute: PreviewFavoritesRoute,
