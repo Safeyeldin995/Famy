@@ -1,4 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query';
+import { isPreviewRoute } from '@/lib/preview/constants';
 
 /** Customer marketplace queries that must refresh after Admin eligibility changes. */
 export function invalidateCustomerMarketplaceQueries(qc: QueryClient, providerId?: string) {
@@ -24,6 +25,7 @@ export const CUSTOMER_MARKETPLACE_REFETCH_MS = 5_000;
 
 /** Poll only while the tab is visible; marketplace search/detail routes mount these hooks. */
 export function customerMarketplaceRefetchInterval() {
+  if (isPreviewRoute()) return false;
   if (typeof document !== 'undefined' && document.hidden) return false;
   return CUSTOMER_MARKETPLACE_REFETCH_MS;
 }

@@ -163,8 +163,11 @@ export function seedPreviewQueries(qc: import("@tanstack/react-query").QueryClie
   qc.setQueryData(["providers", { categorySlug: "home-cleaning", serviceId: "svc-clean", limit: 50 }], [p1]);
   qc.setQueryData(["providers", { categorySlug: "home-cleaning", serviceId: undefined, limit: 50 }], [p1]);
   qc.setQueryData(["providers", { serviceId: undefined, addressId: undefined, limit: 60 }], [p1, p2, p3]);
-  qc.setQueryData(["provider", "p1", undefined], p1);
-  qc.setQueryData(["provider-reviews", "p1"], [
+  for (const provider of [p1, p2, p3]) {
+    qc.setQueryData(["provider", provider.id, undefined], provider);
+    qc.setQueryData(["provider", provider.id, previewAddresses[0].id], provider);
+  }
+  qc.setQueryData(["reviews", "p1"], [
     {
       id: "rev-1",
       rating: 5,
