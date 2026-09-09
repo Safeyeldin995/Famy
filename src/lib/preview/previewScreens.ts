@@ -6,17 +6,10 @@ export type PreviewScreen = {
   descriptionKey?: string;
   descriptionFallback?: string;
   featured?: boolean;
+  badge?: "new" | "updated";
 };
 
 export const PREVIEW_FEATURED: PreviewScreen[] = [
-  {
-    to: "/preview/login",
-    labelKey: "preview.registration",
-    fallback: "Registration",
-    descriptionKey: "preview.registrationDesc",
-    descriptionFallback: "Sign in & sign up — new design",
-    featured: true,
-  },
   {
     to: "/preview/splash",
     labelKey: "preview.splash",
@@ -32,46 +25,68 @@ export const PREVIEW_FEATURED: PreviewScreen[] = [
     descriptionKey: "preview.onboardingDesc",
     descriptionFallback: "3-step intro with illustrations",
     featured: true,
+    badge: "updated",
+  },
+  {
+    to: "/preview/login",
+    labelKey: "preview.registration",
+    fallback: "Registration",
+    descriptionKey: "preview.registrationDesc",
+    descriptionFallback: "Sign in & sign up — new design",
+    featured: true,
   },
   {
     to: "/preview/home",
     labelKey: "nav.home",
     fallback: "Home",
     descriptionKey: "preview.homeDesc",
-    descriptionFallback: "Customer home screen",
-    featured: true,
-  },
-  {
-    to: "/preview/bookings",
-    labelKey: "bookings.title",
-    fallback: "Bookings",
-    descriptionKey: "bookings.subtitle",
-    descriptionFallback: "Upcoming visits and booking history",
-    featured: true,
-  },
-  {
-    to: "/preview/addresses",
-    labelKey: "addresses.title",
-    fallback: "Addresses",
-    descriptionKey: "addresses.subtitle",
-    descriptionFallback: "Save places for faster booking",
-    featured: true,
-  },
-  {
-    to: "/preview/profile",
-    labelKey: "profile.title",
-    fallback: "Profile",
-    descriptionKey: "profile.subtitle",
-    descriptionFallback: "Your account and preferences",
+    descriptionFallback: "Customer home — categories & featured pros",
     featured: true,
   },
   {
     to: "/preview/provider/p1",
     labelKey: "preview.provider",
     fallback: "Provider profile",
-    descriptionKey: "providerProfile.about",
-    descriptionFallback: "Professional details & availability",
+    descriptionKey: "preview.providerDesc",
+    descriptionFallback: "Pink hero, week availability & reviews",
     featured: true,
+    badge: "updated",
+  },
+  {
+    to: "/preview/book/p1",
+    labelKey: "preview.booking",
+    fallback: "Book a pro",
+    descriptionKey: "preview.bookingDesc",
+    descriptionFallback: "Merged schedule — date & time dropdowns",
+    featured: true,
+    badge: "updated",
+  },
+  {
+    to: "/preview/bookings",
+    labelKey: "bookings.title",
+    fallback: "Bookings",
+    descriptionKey: "preview.bookingsDesc",
+    descriptionFallback: "Upcoming visits & history tabs",
+    featured: true,
+    badge: "updated",
+  },
+  {
+    to: "/preview/addresses",
+    labelKey: "addresses.title",
+    fallback: "Addresses",
+    descriptionKey: "preview.addressesDesc",
+    descriptionFallback: "Saved places — list, add & edit",
+    featured: true,
+    badge: "updated",
+  },
+  {
+    to: "/preview/profile",
+    labelKey: "profile.title",
+    fallback: "Profile",
+    descriptionKey: "preview.profileDesc",
+    descriptionFallback: "Account hub with pink hero",
+    featured: true,
+    badge: "updated",
   },
 ];
 
@@ -107,18 +122,40 @@ export const PREVIEW_SCREEN_GROUPS: {
         labelKey: "categories.homeTitle",
         fallback: "Home cleaning category",
       },
-      { to: "/preview/provider/p1", labelKey: "preview.provider", fallback: "Provider profile" },
-      { to: "/preview/book/p1", labelKey: "preview.booking", fallback: "Book a pro" },
+      {
+        to: "/preview/provider/p1",
+        labelKey: "preview.provider",
+        fallback: "Provider profile",
+        badge: "updated",
+      },
+      {
+        to: "/preview/book/p1",
+        labelKey: "preview.booking",
+        fallback: "Book a pro",
+        descriptionKey: "preview.bookingDesc",
+        descriptionFallback: "Merged schedule — date & time dropdowns",
+        badge: "updated",
+      },
     ],
   },
   {
     titleKey: "preview.groupTabs",
     titleFallback: "Main tabs",
     screens: [
-      { to: "/preview/bookings", labelKey: "bookings.title", fallback: "Bookings" },
+      {
+        to: "/preview/bookings",
+        labelKey: "bookings.title",
+        fallback: "Bookings",
+        badge: "updated",
+      },
       { to: "/preview/messages", labelKey: "messages.title", fallback: "Messages" },
       { to: "/preview/chat/conv-1", labelKey: "preview.chat", fallback: "Chat thread" },
-      { to: "/preview/profile", labelKey: "profile.title", fallback: "Profile" },
+      {
+        to: "/preview/profile",
+        labelKey: "profile.title",
+        fallback: "Profile",
+        badge: "updated",
+      },
     ],
   },
   {
@@ -126,7 +163,24 @@ export const PREVIEW_SCREEN_GROUPS: {
     titleFallback: "Account & settings",
     screens: [
       { to: "/preview/favorites", labelKey: "profile.favorites", fallback: "Favorites" },
-      { to: "/preview/addresses", labelKey: "addresses.title", fallback: "Addresses" },
+      {
+        to: "/preview/addresses",
+        labelKey: "addresses.title",
+        fallback: "Addresses",
+        badge: "updated",
+      },
+      {
+        to: "/preview/addresses/new",
+        labelKey: "preview.addressNew",
+        fallback: "Add address",
+        badge: "updated",
+      },
+      {
+        to: "/preview/addresses/addr-1",
+        labelKey: "preview.addressEdit",
+        fallback: "Edit address",
+        badge: "updated",
+      },
       { to: "/preview/family-members", labelKey: "familyMembers.title", fallback: "Family members" },
       { to: "/preview/notifications", labelKey: "common.notifications", fallback: "Notifications" },
       {
