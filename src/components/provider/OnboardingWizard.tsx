@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import { Upload } from "lucide-react";
-import { PhoneFrame, TopBar, Card, PrimaryButton, Badge } from "@/components/famio/ui";
+import { PhoneFrame, Card, PrimaryButton, Badge } from "@/components/famio/ui";
+import { ProviderPageHero } from "@/components/famio/ProviderPageHero";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { useMyProvider, useProviderDocuments } from "@/lib/db/provider-queries";
 import {
@@ -193,8 +194,8 @@ export function OnboardingWizard() {
   if (!editable && status && status !== "DRAFT") {
     const submittedRefs = refsQ.data ?? [];
     return (
-      <PhoneFrame>
-        <TopBar back={{ to: "/pro" }} title={t("pro.onboardingWizard.title")} />
+      <PhoneFrame bg="bg-[#FEFAFC]">
+        <ProviderPageHero title={t("pro.onboardingWizard.title")} backTo="/pro" compact />
         <div className="space-y-4 px-5 pb-10" dir={lang === "ar" ? "rtl" : "ltr"}>
           <Card className="p-4">
             <Badge tone="muted">{t(`pro.onboardingWizard.status.${status}`, status)}</Badge>
@@ -233,8 +234,8 @@ export function OnboardingWizard() {
   }
 
   return (
-    <PhoneFrame>
-      <TopBar back={{ to: "/pro" }} title={t("pro.onboardingWizard.title")} />
+    <PhoneFrame bg="bg-[#FEFAFC]">
+      <ProviderPageHero title={t("pro.onboardingWizard.title")} backTo="/pro" compact />
       <div className="space-y-4 px-5 pb-10" dir={lang === "ar" ? "rtl" : "ltr"}>
         <div>
           <div className="mb-1 flex justify-between text-xs font-semibold text-muted-foreground">
@@ -242,7 +243,7 @@ export function OnboardingWizard() {
             <span>{progress}%</span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-surface-2">
-            <div className="h-full rounded-full bg-navy transition-all" style={{ width: `${progress}%` }} />
+            <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${progress}%` }} />
           </div>
         </div>
 
@@ -273,7 +274,7 @@ export function OnboardingWizard() {
             <Field label={t("pro.onboardingWizard.address")}>
               <textarea value={address} onChange={(e) => setAddress(e.target.value)} rows={2} className="h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm" />
             </Field>
-            <label className="flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-navy/30 text-sm font-bold text-navy">
+            <label className="flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-brand/30 text-sm font-bold text-brand">
               <Upload className="h-4 w-4" />
               {t("pro.onboardingWizard.uploadPhoto")}
               <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadAvatar(e.target.files[0])} />
@@ -290,7 +291,7 @@ export function OnboardingWizard() {
                   key={s.id}
                   type="button"
                   onClick={() => setSelectedServices((prev) => (on ? prev.filter((x) => x !== s.id) : [...prev, s.id]))}
-                  className={`w-full rounded-xl border px-3 py-3 text-start text-sm font-semibold ${on ? "border-navy bg-navy/5" : "border-border"}`}
+                  className={`w-full rounded-xl border px-3 py-3 text-start text-sm font-semibold ${on ? "border-brand bg-brand/5" : "border-border"}`}
                 >
                   {lang === "ar" ? s.name_ar : s.name_en}
                   <div className="text-xs text-muted-foreground">{lang === "ar" ? s.category?.name_ar : s.category?.name_en}</div>
@@ -323,7 +324,7 @@ export function OnboardingWizard() {
                         key={g}
                         type="button"
                         onClick={() => setChildGroups((s) => (s.includes(g) ? s.filter((x) => x !== g) : [...s, g]))}
-                        className={`rounded-full px-3 py-1 text-xs font-bold ${childGroups.includes(g) ? "bg-navy text-navy-foreground" : "border border-border"}`}
+                        className={`rounded-full px-3 py-1 text-xs font-bold ${childGroups.includes(g) ? "bg-brand text-brand-foreground" : "border border-border"}`}
                       >
                         {t(`pro.onboardingWizard.ageGroups.${g}`)}
                       </button>
@@ -352,7 +353,7 @@ export function OnboardingWizard() {
                   key={z.id}
                   type="button"
                   onClick={() => setSelectedZones((prev) => (on ? prev.filter((x) => x !== z.id) : [...prev, z.id]))}
-                  className={`w-full rounded-xl border px-3 py-3 text-start text-sm font-semibold ${on ? "border-navy bg-navy/5" : "border-border"}`}
+                  className={`w-full rounded-xl border px-3 py-3 text-start text-sm font-semibold ${on ? "border-brand bg-brand/5" : "border-border"}`}
                 >
                   {lang === "ar" ? z.name_ar : z.name_en}
                 </button>

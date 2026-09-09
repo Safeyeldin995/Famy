@@ -3,11 +3,12 @@ import { LayoutDashboard, ClipboardList, CalendarRange, Wallet, User } from "luc
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { PhoneFrame } from "@/components/famio/ui";
+import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
 
 export function ProviderShell({ children, hideNav = false }: { children: ReactNode; hideNav?: boolean }) {
   return (
-    <PhoneFrame bg="bg-background">
-      <main className={`flex-1 ${hideNav ? "" : "pb-24"}`}>{children}</main>
+    <PhoneFrame bg="bg-[#FEFAFC]">
+      <main className={`flex-1 ${hideNav ? "" : "pb-[5.5rem]"}`}>{children}</main>
       {!hideNav && <ProviderBottomNav />}
     </PhoneFrame>
   );
@@ -24,10 +25,11 @@ const tabs = [
 export function ProviderBottomNav() {
   const { t } = useTranslation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40" aria-label={t("pro.nav.navAria")}>
       <div className="mx-auto max-w-md">
-        <div className="safe-bottom mx-3 mb-3 rounded-3xl border border-border/60 bg-surface/95 shadow-float backdrop-blur-xl">
+        <div className="safe-bottom border-t border-border/50 bg-surface/95 backdrop-blur-md">
           <ul className="grid grid-cols-5">
             {tabs.map((tab) => {
               const active = tab.to === "/pro" ? pathname === "/pro" : pathname.startsWith(tab.to);
@@ -37,16 +39,16 @@ export function ProviderBottomNav() {
                   <Link
                     to={tab.to}
                     aria-current={active ? "page" : undefined}
-                    className="focus-ring flex min-h-11 flex-col items-center gap-1 px-1 pt-3 pb-2 rounded-2xl"
+                    className="focus-ring flex min-h-12 flex-col items-center justify-center gap-0.5 px-1 py-2"
                   >
+                    <Icon
+                      className={`h-5 w-5 ${active ? "text-brand" : "text-muted-foreground"}`}
+                      strokeWidth={active ? ICON_STROKE_BOLD : 2}
+                      aria-hidden="true"
+                    />
                     <span
-                      className={`grid h-9 w-12 place-items-center rounded-2xl transition-all ${
-                        active ? "bg-brand text-brand-foreground shadow-card" : "text-muted-foreground"
-                      }`}
+                      className={`max-w-full truncate text-[10px] font-bold ${active ? "text-brand" : "text-muted-foreground"}`}
                     >
-                      <Icon className="h-5 w-5" strokeWidth={2.2} />
-                    </span>
-                    <span className={`text-[10px] font-semibold ${active ? "text-brand" : "text-muted-foreground"}`}>
                       {t(tab.labelKey)}
                     </span>
                   </Link>

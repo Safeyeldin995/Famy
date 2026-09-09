@@ -4,7 +4,8 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { ProviderShell } from "@/components/famio/ProviderShell";
-import { TopBar, Card, PrimaryButton, Avatar } from "@/components/famio/ui";
+import { ProviderPageHero } from "@/components/famio/ProviderPageHero";
+import { Card, PrimaryButton, Avatar } from "@/components/famio/ui";
 import { QueryError } from "@/components/famio/QueryError";
 import { supabase } from "@/integrations/supabase/client";
 import { useAvatarUrl } from "@/lib/db/queries";
@@ -154,9 +155,13 @@ function ProProfile() {
 
   return (
     <ProviderShell>
-      <TopBar title={t("pro.profile.title")} right={<LanguageToggle variant="inline" />} />
-      <div className="space-y-5 px-5 pb-6">
-        <Card className="flex items-center gap-3 p-4">
+      <ProviderPageHero
+        title={t("pro.profile.title")}
+        compact
+        right={<LanguageToggle variant="hero" />}
+      />
+      <div className="space-y-5 px-5 pb-28 pt-2">
+        <Card className="flex items-center gap-3 rounded-[1.25rem] p-4">
           <div className="relative h-16 w-16 shrink-0">
             <Avatar
               src={avatarQ.data || `https://i.pravatar.cc/200?u=${provider.id}`}

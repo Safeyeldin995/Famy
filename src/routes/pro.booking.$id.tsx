@@ -2,7 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { ProviderShell } from "@/components/famio/ProviderShell";
-import { TopBar, Card, Badge, PrimaryButton, ErrorState, BookingTimeline, ReasonDialog, CancelBookingDialog, CaseDialog, SupportCasesCard } from "@/components/famio/ui";
+import { ProviderPageHero } from "@/components/famio/ProviderPageHero";
+import { Card, Badge, PrimaryButton, ErrorState, BookingTimeline, CancelBookingDialog, CaseDialog, SupportCasesCard } from "@/components/famio/ui";
 import { PaymentBlock } from "@/components/famio/PaymentBlock";
 import { RescheduleSection } from "@/components/famio/RescheduleSection";
 import { BookingChatPanel } from "@/components/famio/BookingChatPanel";
@@ -79,8 +80,22 @@ function ProBookingDetail() {
     }
   };
 
-  if (q.isLoading) return <ProviderShell hideNav><TopBar back={{ to: "/pro/bookings" }} /><div className="h-64 animate-pulse rounded-3xl bg-surface mx-5" /></ProviderShell>;
-  if (q.isError || !q.data) return <ProviderShell hideNav><TopBar back={{ to: "/pro/bookings" }} /><ErrorState title={t("pro.booking.notFound")} /></ProviderShell>;
+  if (q.isLoading) {
+    return (
+      <ProviderShell hideNav>
+        <ProviderPageHero title={t("pro.booking.title")} backTo="/pro/bookings" compact />
+        <div className="mx-5 h-64 animate-pulse rounded-[1.25rem] bg-surface-2" />
+      </ProviderShell>
+    );
+  }
+  if (q.isError || !q.data) {
+    return (
+      <ProviderShell hideNav>
+        <ProviderPageHero title={t("pro.booking.title")} backTo="/pro/bookings" compact />
+        <ErrorState title={t("pro.booking.notFound")} />
+      </ProviderShell>
+    );
+  }
 
   const b = q.data as any;
   const start = new Date(b.start_at);
@@ -109,9 +124,9 @@ function ProBookingDetail() {
 
   return (
     <ProviderShell hideNav>
-      <TopBar back={{ to: "/pro/bookings" }} title={t("pro.booking.title")} />
-      <div className="space-y-4 px-5 pb-32">
-        <Card className="p-4">
+      <ProviderPageHero title={t("pro.booking.title")} backTo="/pro/bookings" compact />
+      <div className="space-y-4 px-5 pb-32 pt-2">
+        <Card className="rounded-[1.25rem] p-4">
           <div className="flex items-start gap-3">
             <img src={b.customer?.avatar_url || `https://i.pravatar.cc/200?u=${b.customer_id}`} alt={name} className="h-16 w-16 rounded-2xl object-cover" />
             <div className="min-w-0 flex-1">

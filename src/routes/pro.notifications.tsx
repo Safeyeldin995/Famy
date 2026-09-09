@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ProviderShell } from "@/components/famio/ProviderShell";
-import { TopBar, Card, EmptyState } from "@/components/famio/ui";
+import { ProviderPageHero } from "@/components/famio/ProviderPageHero";
+import { Card, EmptyState } from "@/components/famio/ui";
 import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead } from "@/lib/db/queries";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { Bell } from "lucide-react";
@@ -30,22 +31,23 @@ function NotificationsPage() {
 
   return (
     <ProviderShell hideNav>
-      <TopBar
-        back={{ to: "/pro" }}
+      <ProviderPageHero
         title={t("notifs.title")}
+        backTo="/pro"
+        compact
         right={
           hasUnread ? (
             <button
               onClick={() => markAll.mutate()}
               disabled={markAll.isPending}
-              className="text-xs font-bold text-brand disabled:opacity-50"
+              className="rounded-full bg-white/15 px-3 py-1.5 text-[11px] font-extrabold text-white disabled:opacity-50"
             >
               {t("notifs.markAllRead")}
             </button>
           ) : undefined
         }
       />
-      <div className="px-5 pb-6">
+      <div className="px-5 pb-10 pt-2">
         {q.isLoading ? (
           <div className="h-20 animate-pulse rounded-3xl bg-surface" />
         ) : q.isError ? (
@@ -57,10 +59,10 @@ function NotificationsPage() {
             {items.map((n: any) => {
               const { title, body } = notifText(n, lang);
               return (
-                <Card key={n.id} className={`p-4 ${n.read_at ? "opacity-70" : ""}`}>
+                <Card key={n.id} className={`rounded-[1.25rem] p-4 ${n.read_at ? "opacity-70" : ""}`}>
                   <button onClick={() => openNotification(n)} className="block w-full text-left">
                     <div className="flex items-start gap-3">
-                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-navy/10 text-brand"><Bell className="h-5 w-5" /></div>
+                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand"><Bell className="h-5 w-5" /></div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <div className="truncate text-sm font-bold">{title}</div>
