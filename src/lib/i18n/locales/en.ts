@@ -82,6 +82,7 @@ const en = {
   },
   preview: {
     hubTitle: "Famy design preview",
+    hubShort: "Hub",
     hubBody: "Tap any screen below. No sign-in or OTP needed.",
     featured: "Start here",
     badgeNew: "New",

@@ -84,6 +84,7 @@ const ar: Translation = {
   },
   preview: {
     hubTitle: "معاينة تصميم فامي",
+    hubShort: "القائمة",
     hubBody: "اضغط على أي شاشة أدناه. لا حاجة لتسجيل الدخول أو رمز التحقق.",
     featured: "ابدأ من هنا",
     badgeNew: "جديد",
