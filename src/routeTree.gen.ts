@@ -33,6 +33,7 @@ import { Route as ProIndexRouteImport } from './routes/pro.index'
 import { Route as PreviewIndexRouteImport } from './routes/preview.index'
 import { Route as MessagesIndexRouteImport } from './routes/messages.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AddressesIndexRouteImport } from './routes/addresses.index'
 import { Route as ProviderIdRouteImport } from './routes/provider.$id'
 import { Route as ProProfileRouteImport } from './routes/pro.profile'
 import { Route as ProOnboardingRouteImport } from './routes/pro.onboarding'
@@ -87,6 +88,7 @@ import { Route as AdminAuditLogRouteImport } from './routes/admin.audit-log'
 import { Route as AddressesNewRouteImport } from './routes/addresses.new'
 import { Route as AddressesIdRouteImport } from './routes/addresses.$id'
 import { Route as _qaMonitoringErrorRouteImport } from './routes/__qa.monitoring-error'
+import { Route as PreviewAddressesIndexRouteImport } from './routes/preview.addresses.index'
 import { Route as ProBookingIdRouteImport } from './routes/pro.booking.$id'
 import { Route as PreviewProviderIdRouteImport } from './routes/preview.provider.$id'
 import { Route as PreviewChatIdRouteImport } from './routes/preview.chat.$id'
@@ -216,6 +218,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const AddressesIndexRoute = AddressesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AddressesRoute,
 } as any)
 const ProviderIdRoute = ProviderIdRouteImport.update({
   id: '/provider/$id',
@@ -490,6 +497,11 @@ const _qaMonitoringErrorRoute = _qaMonitoringErrorRouteImport.update({
   path: '/monitoring-error',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PreviewAddressesIndexRoute = PreviewAddressesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PreviewAddressesRoute,
+} as any)
 const ProBookingIdRoute = ProBookingIdRouteImport.update({
   id: '/booking/$id',
   path: '/booking/$id',
@@ -611,6 +623,7 @@ export interface FileRoutesByFullPath {
   '/pro/onboarding': typeof ProOnboardingRoute
   '/pro/profile': typeof ProProfileRoute
   '/provider/$id': typeof ProviderIdRoute
+  '/addresses/': typeof AddressesIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/messages/': typeof MessagesIndexRoute
   '/preview/': typeof PreviewIndexRoute
@@ -624,10 +637,10 @@ export interface FileRoutesByFullPath {
   '/preview/chat/$id': typeof PreviewChatIdRoute
   '/preview/provider/$id': typeof PreviewProviderIdRoute
   '/pro/booking/$id': typeof ProBookingIdRoute
+  '/preview/addresses/': typeof PreviewAddressesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/addresses': typeof AddressesRouteWithChildren
   '/bookings': typeof BookingsRoute
   '/family-members': typeof FamilyMembersRouteWithChildren
   '/favorites': typeof FavoritesRoute
@@ -669,7 +682,6 @@ export interface FileRoutesByTo {
   '/family-members/$id': typeof FamilyMembersIdRoute
   '/family-members/new': typeof FamilyMembersNewRoute
   '/messages/$id': typeof MessagesIdRoute
-  '/preview/addresses': typeof PreviewAddressesRouteWithChildren
   '/preview/bookings': typeof PreviewBookingsRoute
   '/preview/family-members': typeof PreviewFamilyMembersRoute
   '/preview/favorites': typeof PreviewFavoritesRoute
@@ -696,6 +708,7 @@ export interface FileRoutesByTo {
   '/pro/onboarding': typeof ProOnboardingRoute
   '/pro/profile': typeof ProProfileRoute
   '/provider/$id': typeof ProviderIdRoute
+  '/addresses': typeof AddressesIndexRoute
   '/admin': typeof AdminIndexRoute
   '/messages': typeof MessagesIndexRoute
   '/preview': typeof PreviewIndexRoute
@@ -709,6 +722,7 @@ export interface FileRoutesByTo {
   '/preview/chat/$id': typeof PreviewChatIdRoute
   '/preview/provider/$id': typeof PreviewProviderIdRoute
   '/pro/booking/$id': typeof ProBookingIdRoute
+  '/preview/addresses': typeof PreviewAddressesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -786,6 +800,7 @@ export interface FileRoutesById {
   '/pro/onboarding': typeof ProOnboardingRoute
   '/pro/profile': typeof ProProfileRoute
   '/provider/$id': typeof ProviderIdRoute
+  '/addresses/': typeof AddressesIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/messages/': typeof MessagesIndexRoute
   '/preview/': typeof PreviewIndexRoute
@@ -799,6 +814,7 @@ export interface FileRoutesById {
   '/preview/chat/$id': typeof PreviewChatIdRoute
   '/preview/provider/$id': typeof PreviewProviderIdRoute
   '/pro/booking/$id': typeof ProBookingIdRoute
+  '/preview/addresses/': typeof PreviewAddressesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -877,6 +893,7 @@ export interface FileRouteTypes {
     | '/pro/onboarding'
     | '/pro/profile'
     | '/provider/$id'
+    | '/addresses/'
     | '/admin/'
     | '/messages/'
     | '/preview/'
@@ -890,10 +907,10 @@ export interface FileRouteTypes {
     | '/preview/chat/$id'
     | '/preview/provider/$id'
     | '/pro/booking/$id'
+    | '/preview/addresses/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/addresses'
     | '/bookings'
     | '/family-members'
     | '/favorites'
@@ -935,7 +952,6 @@ export interface FileRouteTypes {
     | '/family-members/$id'
     | '/family-members/new'
     | '/messages/$id'
-    | '/preview/addresses'
     | '/preview/bookings'
     | '/preview/family-members'
     | '/preview/favorites'
@@ -962,6 +978,7 @@ export interface FileRouteTypes {
     | '/pro/onboarding'
     | '/pro/profile'
     | '/provider/$id'
+    | '/addresses'
     | '/admin'
     | '/messages'
     | '/preview'
@@ -975,6 +992,7 @@ export interface FileRouteTypes {
     | '/preview/chat/$id'
     | '/preview/provider/$id'
     | '/pro/booking/$id'
+    | '/preview/addresses'
   id:
     | '__root__'
     | '/'
@@ -1051,6 +1069,7 @@ export interface FileRouteTypes {
     | '/pro/onboarding'
     | '/pro/profile'
     | '/provider/$id'
+    | '/addresses/'
     | '/admin/'
     | '/messages/'
     | '/preview/'
@@ -1064,6 +1083,7 @@ export interface FileRouteTypes {
     | '/preview/chat/$id'
     | '/preview/provider/$id'
     | '/pro/booking/$id'
+    | '/preview/addresses/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1266,6 +1286,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/addresses/': {
+      id: '/addresses/'
+      path: '/'
+      fullPath: '/addresses/'
+      preLoaderRoute: typeof AddressesIndexRouteImport
+      parentRoute: typeof AddressesRoute
     }
     '/provider/$id': {
       id: '/provider/$id'
@@ -1645,6 +1672,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof _qaMonitoringErrorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/preview/addresses/': {
+      id: '/preview/addresses/'
+      path: '/'
+      fullPath: '/preview/addresses/'
+      preLoaderRoute: typeof PreviewAddressesIndexRouteImport
+      parentRoute: typeof PreviewAddressesRoute
+    }
     '/pro/booking/$id': {
       id: '/pro/booking/$id'
       path: '/booking/$id'
@@ -1714,11 +1748,13 @@ declare module '@tanstack/react-router' {
 interface AddressesRouteChildren {
   AddressesIdRoute: typeof AddressesIdRoute
   AddressesNewRoute: typeof AddressesNewRoute
+  AddressesIndexRoute: typeof AddressesIndexRoute
 }
 
 const AddressesRouteChildren: AddressesRouteChildren = {
   AddressesIdRoute: AddressesIdRoute,
   AddressesNewRoute: AddressesNewRoute,
+  AddressesIndexRoute: AddressesIndexRoute,
 }
 
 const AddressesRouteWithChildren = AddressesRoute._addFileChildren(
@@ -1800,11 +1836,13 @@ const MessagesRouteWithChildren = MessagesRoute._addFileChildren(
 interface PreviewAddressesRouteChildren {
   PreviewAddressesIdRoute: typeof PreviewAddressesIdRoute
   PreviewAddressesNewRoute: typeof PreviewAddressesNewRoute
+  PreviewAddressesIndexRoute: typeof PreviewAddressesIndexRoute
 }
 
 const PreviewAddressesRouteChildren: PreviewAddressesRouteChildren = {
   PreviewAddressesIdRoute: PreviewAddressesIdRoute,
   PreviewAddressesNewRoute: PreviewAddressesNewRoute,
+  PreviewAddressesIndexRoute: PreviewAddressesIndexRoute,
 }
 
 const PreviewAddressesRouteWithChildren =

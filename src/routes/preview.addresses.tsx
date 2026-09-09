@@ -1,6 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Route as AddressesRoute } from "./addresses";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
-const Addresses = AddressesRoute.options.component!;
+export const Route = createFileRoute("/preview/addresses")({
+  component: PreviewAddressesLayout,
+});
 
-export const Route = createFileRoute("/preview/addresses")({ component: Addresses });
+function PreviewAddressesLayout() {
+  return <Outlet />;
+}

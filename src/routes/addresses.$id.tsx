@@ -14,6 +14,7 @@ import {
   type AddressFormValue,
 } from "@/components/famio/AddressForm";
 import { useAddress, useUpdateAddress } from "@/lib/db/queries";
+import { previewPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/addresses/$id")({ component: EditAddress });
 
@@ -37,7 +38,7 @@ function EditAddress() {
     try {
       await updateAddress.mutateAsync({ id, ...addressFormValueToInput(value) });
       toast.success(t("addresses.saved", "Address saved"));
-      nav({ to: "/addresses" });
+      nav({ to: previewPath("/addresses") as "/addresses" });
     } catch (e: any) {
       toast.error(e?.message ?? t("setup.saveFailed", "Could not save your profile."));
     }

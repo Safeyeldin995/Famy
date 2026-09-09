@@ -57,6 +57,7 @@ import {
 } from "@/lib/booking/idempotency";
 import { planPostCreatePayment, stashPendingPayment } from "@/lib/booking/post-create-payment";
 import { BookScheduleStep } from "@/components/famio/BookScheduleStep";
+import { previewPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/book/$providerId")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -653,7 +654,7 @@ export function BookContent({
                 }
                 action={
                   <Link
-                    to="/addresses/new"
+                    to={previewPath("/addresses/new") as "/addresses/new"}
                     className="focus-ring tap-scale inline-flex items-center gap-1.5 rounded-full bg-brand px-5 py-3 text-sm font-extrabold text-brand-foreground"
                   >
                     <Plus className="h-4 w-4" /> {t("addresses.addAddress", "Add address")}
@@ -698,7 +699,7 @@ export function BookContent({
                   );
                 })}
                 <Link
-                  to="/addresses/new"
+                  to={previewPath("/addresses/new") as "/addresses/new"}
                   className="focus-ring flex w-full items-center gap-2 rounded-[1.25rem] border border-dashed border-brand/40 p-3.5 text-sm font-extrabold text-brand"
                 >
                   <Plus className="h-4 w-4" /> {t("addresses.addAddress", "Add address")}

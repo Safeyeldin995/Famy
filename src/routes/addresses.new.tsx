@@ -11,6 +11,7 @@ import {
   emptyAddressFormValue,
 } from "@/components/famio/AddressForm";
 import { useAddresses, useCreateAddress } from "@/lib/db/queries";
+import { previewPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/addresses/new")({ component: NewAddress });
 
@@ -29,7 +30,7 @@ function NewAddress() {
         is_default: isFirst || value.isDefault,
       });
       toast.success(t("addresses.saved", "Address saved"));
-      nav({ to: "/addresses" });
+      nav({ to: previewPath("/addresses") as "/addresses" });
     } catch (e: any) {
       toast.error(e?.message ?? t("setup.saveFailed", "Could not save your profile."));
     }

@@ -1,5 +1,5 @@
 import { PREVIEW_USER_ID } from "@/lib/preview/constants";
-import { addressesQueryKey, defaultAddressQueryKey } from "@/lib/db/address-query-keys";
+import { addressesQueryKey, addressQueryKey, defaultAddressQueryKey } from "@/lib/db/address-query-keys";
 
 const cat = (slug: string, en: string, ar: string, order: number) => ({
   id: slug,
@@ -201,6 +201,7 @@ export function seedPreviewQueries(qc: import("@tanstack/react-query").QueryClie
   qc.setQueryData(["my-profile"], profile);
   qc.setQueryData(defaultAddressQueryKey(PREVIEW_USER_ID), previewAddresses[0]);
   qc.setQueryData(addressesQueryKey(PREVIEW_USER_ID), previewAddresses);
+  qc.setQueryData(addressQueryKey(PREVIEW_USER_ID, previewAddresses[0].id), previewAddresses[0]);
   qc.setQueryData(["notifications", "unread-count"], 2);
   qc.setQueryData(["my-bookings"], previewBookings);
   qc.setQueryData(["categories"], [
