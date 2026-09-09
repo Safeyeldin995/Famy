@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { PhoneFrame, PrimaryButton, EmptyState, Avatar, StatusPill } from "@/components/famio/ui";
 import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
 import { CustomerFloatingPanel } from "@/components/famio/CustomerFloatingPanel";
+import { ProviderWeekAvailability } from "@/components/famio/ProviderWeekAvailability";
 import { QueryError } from "@/components/famio/QueryError";
 import {
   useDefaultAddress,
@@ -31,16 +32,6 @@ import { previewBookPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/provider/$id")({ component: ProviderProfile });
 
-const DISPLAY_DAYS = [
-  { key: "mon", weekday: 1 },
-  { key: "tue", weekday: 2 },
-  { key: "wed", weekday: 3 },
-  { key: "thu", weekday: 4 },
-  { key: "fri", weekday: 5 },
-  { key: "sat", weekday: 6 },
-  { key: "sun", weekday: 0 },
-] as const;
-
 function heroActionClass() {
   return "focus-ring tap-scale grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/25 bg-white/15 text-white backdrop-blur-sm";
 }
@@ -56,6 +47,7 @@ export function ProviderProfileContent({ providerId }: { providerId: string }) {
   const { t } = useTranslation();
   const nav = useNavigate();
   const lang = currentLang();
+  const locale = lang === "ar" ? "ar-EG" : "en-US";
 
   if (provQ.isLoading) {
     return (
@@ -92,8 +84,6 @@ export function ProviderProfileContent({ providerId }: { providerId: string }) {
   const p = toUIProvider(provQ.data);
   const reviews = reviewsQ.data ?? [];
   const isFav = (favIdsQ.data ?? []).includes(p.id);
-  const availableWeekdays = new Set((availQ.data ?? []).map((r) => r.weekday));
-  const hasAvailability = availableWeekdays.size > 0;
   const categoryLabel =
     p.services.find((s) => s.status === "approved")?.name ||
     p.categorySlug.replace(/-/g, " ");
@@ -261,51 +251,11 @@ export function ProviderProfileContent({ providerId }: { providerId: string }) {
         )}
 
         <ProfileCard title={t("providerProfile.availability")}>
-          {availQ.isLoading ? (
-            <div className="grid grid-cols-7 gap-1.5">
-              {DISPLAY_DAYS.map((d) => (
-                <div key={d.key} className="h-14 animate-pulse rounded-xl bg-surface-2" />
-              ))}
-            </div>
-          ) : !hasAvailability ? (
-            <p className="text-sm font-medium text-muted-foreground">
-              {t("providerProfile.noAvailability")}
-            </p>
-          ) : (
-            <>
-              <div className="grid grid-cols-7 gap-1.5">
-                {DISPLAY_DAYS.map((d) => {
-                  const open = hasAvailability && availableWeekdays.has(d.weekday);
-                  return (
-                    <div
-                      key={d.key}
-                      className={`flex flex-col items-center gap-1 rounded-xl px-1 py-3 text-center transition-colors ${
-                        open ? "bg-brand/10 text-brand" : "bg-surface-2 text-muted-foreground"
-                      }`}
-                    >
-                      <div className="text-[10px] font-extrabold uppercase leading-none">
-                        {t(`providerProfile.days.${d.key}`)}
-                      </div>
-                      <div
-                        className={`h-1.5 w-1.5 rounded-full ${open ? "bg-brand" : "bg-border"}`}
-                        aria-hidden="true"
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="mt-3 flex items-center justify-center gap-4 text-[11px] font-bold text-muted-foreground">
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-brand" aria-hidden="true" />
-                  {t("providerProfile.free")}
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-border" aria-hidden="true" />
-                  {t("providerProfile.busy")}
-                </span>
-              </div>
-            </>
-          )}
+          <ProviderWeekAvailability
+            rules={availQ.data ?? []}
+            loading={availQ.isLoading}
+            locale={locale}
+          />
         </ProfileCard>
 
         {p.gallery.length > 0 ? (
