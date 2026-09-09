@@ -49,6 +49,16 @@ function groupRulesByWeekday(rules: AvailabilityRule[]) {
   return map;
 }
 
+function dateKey(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function startOfDay(date: Date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
 export function ProviderWeekAvailability({
   rules,
   loading,
@@ -60,6 +70,7 @@ export function ProviderWeekAvailability({
 }) {
   const { t } = useTranslation();
   const today = useMemo(() => new Date(), []);
+  const todayStart = useMemo(() => startOfDay(today), [today]);
   const weekDays = useMemo(() => {
     const monday = startOfWeekMonday(today);
     return Array.from({ length: 7 }, (_, index) => {
@@ -69,27 +80,33 @@ export function ProviderWeekAvailability({
     });
   }, [today]);
 
+  const visibleDays = useMemo(() => {
+    const upcoming = weekDays.filter((day) => day.date >= todayStart);
+    if (upcoming.length > 0) return upcoming;
+    return [{ date: todayStart, weekday: todayStart.getDay() }];
+  }, [weekDays, todayStart]);
+
   const rulesByWeekday = useMemo(() => groupRulesByWeekday(rules), [rules]);
   const hasAvailability = rulesByWeekday.size > 0;
 
-  const defaultWeekday = useMemo(() => {
-    const todayWeekday = today.getDay();
-    if (rulesByWeekday.has(todayWeekday)) return todayWeekday;
-    const firstOpen = weekDays.find((day) => rulesByWeekday.has(day.weekday));
-    return firstOpen?.weekday ?? todayWeekday;
-  }, [rulesByWeekday, today, weekDays]);
+  const defaultDateKey = useMemo(() => {
+    const todayKey = dateKey(todayStart);
+    if (visibleDays.some((day) => dateKey(day.date) === todayKey)) return todayKey;
+    const firstOpen = visibleDays.find((day) => rulesByWeekday.has(day.weekday));
+    return dateKey((firstOpen ?? visibleDays[0]).date);
+  }, [rulesByWeekday, todayStart, visibleDays]);
 
-  const [selectedWeekday, setSelectedWeekday] = useState(defaultWeekday);
+  const [selectedDateKey, setSelectedDateKey] = useState(defaultDateKey);
 
   useEffect(() => {
-    setSelectedWeekday(defaultWeekday);
-  }, [defaultWeekday]);
+    setSelectedDateKey(defaultDateKey);
+  }, [defaultDateKey]);
 
   if (loading) {
     return (
       <div className="space-y-4">
         <div className="flex gap-2">
-          {Array.from({ length: 7 }).map((_, i) => (
+          {Array.from({ length: Math.max(visibleDays.length, 4) }).map((_, i) => (
             <div key={i} className="h-[4.5rem] min-w-[3.25rem] flex-1 animate-pulse rounded-[1.25rem] bg-surface-2" />
           ))}
         </div>
@@ -106,16 +123,17 @@ export function ProviderWeekAvailability({
     );
   }
 
-  const selectedDay = weekDays.find((day) => day.weekday === selectedWeekday) ?? weekDays[0];
-  const selectedRules = rulesByWeekday.get(selectedWeekday) ?? [];
+  const selectedDay =
+    visibleDays.find((day) => dateKey(day.date) === selectedDateKey) ?? visibleDays[0];
+  const selectedRules = rulesByWeekday.get(selectedDay.weekday) ?? [];
   const selectedOpen = selectedRules.length > 0;
 
   return (
     <div className="space-y-4">
       <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-        {weekDays.map((day) => {
+        {visibleDays.map((day) => {
           const open = rulesByWeekday.has(day.weekday);
-          const selected = selectedWeekday === day.weekday;
+          const selected = selectedDateKey === dateKey(day.date);
           const isToday = isSameCalendarDay(day.date, today);
           const dayLabel = day.date.toLocaleDateString(locale, { weekday: "short" });
 
@@ -123,7 +141,7 @@ export function ProviderWeekAvailability({
             <button
               key={day.date.toISOString()}
               type="button"
-              onClick={() => setSelectedWeekday(day.weekday)}
+              onClick={() => setSelectedDateKey(dateKey(day.date))}
               className={`focus-ring tap-scale relative flex min-w-[3.25rem] flex-1 flex-col items-center rounded-[1.25rem] border px-2 py-3 transition-all ${
                 selected
                   ? open
@@ -204,17 +222,17 @@ export function ProviderWeekAvailability({
       </div>
 
       <div className="space-y-2">
-        {weekDays.map((day) => {
+        {visibleDays.map((day) => {
           const open = rulesByWeekday.has(day.weekday);
           const dayRules = rulesByWeekday.get(day.weekday) ?? [];
           const isToday = isSameCalendarDay(day.date, today);
-          const selected = selectedWeekday === day.weekday;
+          const selected = selectedDateKey === dateKey(day.date);
 
           return (
             <button
               key={`summary-${day.date.toISOString()}`}
               type="button"
-              onClick={() => setSelectedWeekday(day.weekday)}
+              onClick={() => setSelectedDateKey(dateKey(day.date))}
               className={`focus-ring flex w-full items-center justify-between gap-3 rounded-[1rem] border px-3 py-2.5 text-start transition-colors ${
                 selected
                   ? open
