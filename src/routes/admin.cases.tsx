@@ -15,7 +15,7 @@ import { adminPath } from "@/lib/preview/previewPath";
 import { Search, Paperclip } from "lucide-react";
 
 export const Route = createFileRoute("/admin/cases")({
-  component: AdminCases,
+  component: AdminCasesRoute,
   validateSearch: (search: Record<string, unknown>): { tab?: string; status?: string } => ({
     ...(typeof search.tab === "string" ? { tab: search.tab } : {}),
     ...(typeof search.status === "string" ? { status: search.status } : {}),
@@ -276,9 +276,8 @@ function CaseRow({ tab, row, isOpen, onToggle }: { tab: Tab; row: any; isOpen: b
   );
 }
 
-function AdminCases() {
+export function AdminCases({ search }: { search: { tab?: string; status?: string } }) {
   const { t } = useTranslation();
-  const search = Route.useSearch();
   const [tab, setTab] = useState<Tab>((search.tab as Tab) ?? "support");
   const [status, setStatus] = useState(search.status ?? "");
   const [query, setQuery] = useState("");
@@ -368,4 +367,9 @@ function AdminCases() {
       )}
     </div>
   );
+}
+
+function AdminCasesRoute() {
+  const search = Route.useSearch();
+  return <AdminCases search={search} />;
 }

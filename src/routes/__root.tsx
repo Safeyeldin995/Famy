@@ -142,11 +142,13 @@ function AuthCacheBridge() {
       if (event === "SIGNED_OUT") {
         qc.removeQueries({ queryKey: ["my-role"] });
         qc.removeQueries({ queryKey: ["my-provider"] });
+        qc.removeQueries({ queryKey: ["pro-notifications"] });
         return;
       }
       if (event === "SIGNED_IN" || event === "USER_UPDATED") {
         qc.invalidateQueries({ queryKey: ["my-role"] });
         qc.invalidateQueries({ queryKey: ["my-provider"] });
+        qc.removeQueries({ queryKey: ["pro-notifications"] });
       }
     });
     return () => sub.subscription.unsubscribe();

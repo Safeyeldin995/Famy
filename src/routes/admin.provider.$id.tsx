@@ -125,11 +125,10 @@ function AvailabilitySection({ providerId }: { providerId: string }) {
   );
 }
 
-export const Route = createFileRoute("/admin/provider/$id")({ component: AdminProvider });
+export const Route = createFileRoute("/admin/provider/$id")({ component: AdminProviderRoute });
 
-function AdminProvider() {
+export function AdminProvider({ id }: { id: string }) {
   const { t } = useTranslation();
-  const { id } = Route.useParams();
   const q = useAdminProvider(id);
   const setVerified = useSetProviderVerified();
   const setActive = useSetProviderActive();
@@ -483,4 +482,9 @@ function AdminProvider() {
       )}
     </div>
   );
+}
+
+function AdminProviderRoute() {
+  const { id } = Route.useParams();
+  return <AdminProvider id={id} />;
 }

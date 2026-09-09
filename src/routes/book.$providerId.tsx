@@ -124,6 +124,7 @@ export function BookContent({
   >({});
   const [timeBand, setTimeBand] = useState<"all" | "morning" | "afternoon" | "evening">("all");
   const [scanningSchedule, setScanningSchedule] = useState(false);
+  const userPickedDateRef = useRef(false);
   const idempotencyStateRef = useRef<IdempotencyKeyState | null>(null);
 
   // Only addresses with a pinned location can back a real booking — the
@@ -209,6 +210,14 @@ export function BookContent({
       return;
     }
     if (slotsQ.isLoading || slotsQ.isFetching) return;
+    if (slotsQ.isError) {
+      setScanningSchedule(false);
+      return;
+    }
+    if (userPickedDateRef.current) {
+      setScanningSchedule(false);
+      return;
+    }
     if ((slotsQ.data?.length ?? 0) > 0) {
       setScanningSchedule(false);
       return;
@@ -233,6 +242,7 @@ export function BookContent({
     date,
     slotsQ.isLoading,
     slotsQ.isFetching,
+    slotsQ.isError,
     slotsQ.data,
     bookingSettingsQ.data?.max_advance_days,
   ]);
@@ -618,7 +628,10 @@ export function BookContent({
               filteredSlots={filteredSlots}
               hasSlotsForSelectedDate={(slotsQ.data?.length ?? 0) > 0}
               scanning={scanningSchedule}
+              availabilityError={slotsQ.isError}
               onDateChange={(d) => {
+                userPickedDateRef.current = true;
+                setScanningSchedule(false);
                 setDate(d);
                 setTime(null);
                 setSelectedSlot(null);

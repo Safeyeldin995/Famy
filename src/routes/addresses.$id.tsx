@@ -16,10 +16,9 @@ import {
 import { useAddress, useUpdateAddress } from "@/lib/db/queries";
 import { previewPath } from "@/lib/preview/previewPath";
 
-export const Route = createFileRoute("/addresses/$id")({ component: EditAddress });
+export const Route = createFileRoute("/addresses/$id")({ component: EditAddressRoute });
 
-function EditAddress() {
-  const { id } = Route.useParams();
+export function EditAddress({ id }: { id: string }) {
   const { t } = useTranslation();
   const nav = useNavigate();
   const addressQ = useAddress(id);
@@ -101,4 +100,9 @@ function EditAddress() {
       </div>
     </PhoneFrame>
   );
+}
+
+function EditAddressRoute() {
+  const { id } = Route.useParams();
+  return <EditAddress id={id} />;
 }

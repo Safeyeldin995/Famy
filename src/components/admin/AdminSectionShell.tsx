@@ -23,14 +23,16 @@ export function AdminSectionShell({
   errorMessage?: string;
   isEmpty?: boolean;
   emptyTitle?: string;
-  children: ReactNode;
+  children: ReactNode | (() => ReactNode);
 }) {
   return (
     <AdminCard>
       <div className="mb-3 flex items-center justify-between gap-2">
         <h2 className="text-sm font-extrabold text-foreground">{title}</h2>
         {count !== undefined ? (
-          <span className="rounded-md bg-brand/10 px-2 py-0.5 text-[10px] font-bold text-brand">{count}</span>
+          <span className="rounded-md bg-brand/10 px-2 py-0.5 text-[10px] font-bold text-brand">
+            {count}
+          </span>
         ) : null}
       </div>
       <AdminQueryState

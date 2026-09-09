@@ -55,7 +55,7 @@ function AuthModeTabs({
   );
 }
 
-function Login() {
+export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -71,7 +71,7 @@ function Login() {
   const screenTitle = mode === "signin" ? t("auth.signIn") : t("auth.signUp");
 
   const submit = async () => {
-    if (loading) return;
+    if (previewMode || loading) return;
     setErrorMsg(null);
     const e164 = normalizePhone(phone);
     if (!phoneValid) return;

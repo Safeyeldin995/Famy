@@ -75,7 +75,7 @@ function AdminRescheduleHistory({ bookingId, customerId }: { bookingId: string; 
 }
 
 export const Route = createFileRoute("/admin/bookings")({
-  component: AdminBookings,
+  component: AdminBookingsRoute,
   validateSearch: (search: Record<string, unknown>): { status?: string } => ({
     ...(typeof search.status === "string" ? { status: search.status } : {}),
   }),
@@ -107,9 +107,8 @@ function paymentTone(status: string | undefined) {
   return "bg-amber-100 text-amber-700";
 }
 
-function AdminBookings() {
+export function AdminBookings({ search }: { search: { status?: string } }) {
   const { t } = useTranslation();
-  const search = Route.useSearch();
   const [status, setStatus] = useState<string>(search.status ?? "");
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -276,4 +275,9 @@ function AdminBookings() {
       />
     </div>
   );
+}
+
+function AdminBookingsRoute() {
+  const search = Route.useSearch();
+  return <AdminBookings search={search} />;
 }

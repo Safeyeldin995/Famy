@@ -611,7 +611,7 @@ function seedPreviewProviderQueries(qc: import("@tanstack/react-query").QueryCli
     { id: "zone-maadi", name_en: "Maadi", name_ar: "المعادي" },
     { id: "zone-zayed", name_en: "Sheikh Zayed", name_ar: "الشيخ زايد" },
   ]);
-  qc.setQueryData(["pro-notifications"], [
+  qc.setQueryData(["pro-notifications", PREVIEW_USER_ID], [
     {
       id: "pn1",
       title_en: "New booking request",
@@ -635,7 +635,7 @@ function seedPreviewProviderQueries(qc: import("@tanstack/react-query").QueryCli
       deep_link: "/pro/earnings",
     },
   ]);
-  qc.setQueryData(["pro-notifications", "unread-count"], 1);
+  qc.setQueryData(["pro-notifications", "unread-count", PREVIEW_USER_ID], 1);
   qc.setQueryData(["provider-references", PREVIEW_PROVIDER_ID], [
     {
       id: "ref-1",

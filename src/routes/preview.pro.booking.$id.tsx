@@ -1,6 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Route as ProBookingRoute } from "./pro.booking.$id";
+import { ProBookingDetail } from "./pro.booking.$id";
 
-const ProBookingDetail = ProBookingRoute.options.component!;
+export const Route = createFileRoute("/preview/pro/booking/$id")({
+  component: PreviewProBooking,
+});
 
-export const Route = createFileRoute("/preview/pro/booking/$id")({ component: ProBookingDetail });
+function PreviewProBooking() {
+  const { id } = Route.useParams();
+  return <ProBookingDetail id={id} />;
+}

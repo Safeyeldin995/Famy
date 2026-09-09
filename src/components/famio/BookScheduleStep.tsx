@@ -95,6 +95,7 @@ export function BookScheduleStep({
   filteredSlots,
   hasSlotsForSelectedDate,
   scanning,
+  availabilityError,
   onDateChange,
   onTimeChange,
   onTimeBandChange,
@@ -108,6 +109,7 @@ export function BookScheduleStep({
   filteredSlots: BookSlot[];
   hasSlotsForSelectedDate: boolean;
   scanning: boolean;
+  availabilityError?: boolean;
   onDateChange: (date: Date) => void;
   onTimeChange: (label: string, slot: { start: Date; end: Date }) => void;
   onTimeBandChange: (band: TimeBand) => void;
@@ -125,8 +127,8 @@ export function BookScheduleStep({
   }, [maxAdvanceDays, today]);
 
   const selectedDateKey = date ? dateKey(date) : "";
-  const showEmptyDay = !!date && !slotsLoading && !scanning && !hasSlotsForSelectedDate;
-  const timeDisabled = slotsLoading || scanning || showEmptyDay || filteredSlots.length === 0;
+  const showEmptyDay = !!date && !slotsLoading && !scanning && !availabilityError && !hasSlotsForSelectedDate;
+  const timeDisabled = slotsLoading || scanning || availabilityError || showEmptyDay || filteredSlots.length === 0;
 
   const formatDayLabel = (day: Date) => {
     const isToday = dateKey(day) === dateKey(today);
@@ -207,6 +209,14 @@ export function BookScheduleStep({
                 ? t("bookFlow.scanningDates", "Finding the next available day…")
                 : t("common.loading")}
             </p>
+          </div>
+        ) : availabilityError ? (
+          <div className="mt-3 rounded-[1.25rem] border border-destructive/25 bg-destructive/[0.06] p-4">
+            <EmptyState
+              icon="calendar"
+              title={t("common.errorTitle", "Something went wrong")}
+              body={t("bookFlow.slotsLoadError")}
+            />
           </div>
         ) : showEmptyDay ? (
           <div className="mt-3 rounded-[1.25rem] border border-destructive/25 bg-destructive/[0.06] p-4">

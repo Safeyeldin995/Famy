@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import { AdminQueryError } from "./AdminQueryError";
 import { AdminEmptyState } from "./AdminEmptyState";
 
+type AdminQueryStateChildren = ReactNode | (() => ReactNode);
+
 export function AdminQueryState({
   isLoading,
   isError,
@@ -24,7 +26,7 @@ export function AdminQueryState({
   emptyTitle?: string;
   emptyBody?: string;
   skeletonCount?: number;
-  children: ReactNode;
+  children: AdminQueryStateChildren;
 }) {
   const { t } = useTranslation();
 
@@ -49,8 +51,10 @@ export function AdminQueryState({
   }
 
   if (isEmpty) {
-    return <AdminEmptyState title={emptyTitle ?? t("common.noResults", "No results")} body={emptyBody} />;
+    return (
+      <AdminEmptyState title={emptyTitle ?? t("common.noResults", "No results")} body={emptyBody} />
+    );
   }
 
-  return <>{children}</>;
+  return <>{typeof children === "function" ? children() : children}</>;
 }

@@ -1,6 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Route as AdminRoute } from "./admin.provider.$id";
+import { AdminProvider } from "./admin.provider.$id";
 
-const Page = AdminRoute.options.component!;
+export const Route = createFileRoute("/preview/admin/provider/$id")({
+  component: PreviewAdminProvider,
+});
 
-export const Route = createFileRoute("/preview/admin/provider/$id")({ component: Page });
+function PreviewAdminProvider() {
+  const { id } = Route.useParams();
+  return <AdminProvider id={id} />;
+}

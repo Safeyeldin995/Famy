@@ -9,7 +9,7 @@ import { AdminQueryError } from "@/components/admin/AdminQueryError";
 import { adminPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/admin/payments")({
-  component: AdminPayments,
+  component: AdminPaymentsRoute,
   validateSearch: (search: Record<string, unknown>): { status?: string; statuses?: string } => ({
     ...(typeof search.status === "string" ? { status: search.status } : {}),
     ...(typeof search.statuses === "string" ? { statuses: search.statuses } : {}),
@@ -39,9 +39,8 @@ function resolvePaymentStatusFilter(search: { status?: string; statuses?: string
   return search.status || undefined;
 }
 
-function AdminPayments() {
+export function AdminPayments({ search }: { search: { status?: string; statuses?: string } }) {
   const { t } = useTranslation();
-  const search = Route.useSearch();
   const urlStatusFilter = resolvePaymentStatusFilter(search);
   const [status, setStatus] = useState<string>(
     typeof urlStatusFilter === "string" ? urlStatusFilter : "",
@@ -178,4 +177,9 @@ function AdminPayments() {
       )}
     </div>
   );
+}
+
+function AdminPaymentsRoute() {
+  const search = Route.useSearch();
+  return <AdminPayments search={search} />;
 }

@@ -1,6 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Route as AdminRoute } from "./admin.bookings";
+import { AdminBookings } from "./admin.bookings";
 
-const Page = AdminRoute.options.component!;
+export const Route = createFileRoute("/preview/admin/bookings")({
+  validateSearch: (search: Record<string, unknown>): { status?: string } => ({
+    ...(typeof search.status === "string" ? { status: search.status } : {}),
+  }),
+  component: PreviewAdminBookings,
+});
 
-export const Route = createFileRoute("/preview/admin/bookings")({ component: Page });
+function PreviewAdminBookings() {
+  const search = Route.useSearch();
+  return <AdminBookings search={search} />;
+}

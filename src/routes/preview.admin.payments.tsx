@@ -1,6 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Route as AdminRoute } from "./admin.payments";
+import { AdminPayments } from "./admin.payments";
 
-const Page = AdminRoute.options.component!;
+export const Route = createFileRoute("/preview/admin/payments")({
+  validateSearch: (search: Record<string, unknown>): { status?: string; statuses?: string } => ({
+    ...(typeof search.status === "string" ? { status: search.status } : {}),
+    ...(typeof search.statuses === "string" ? { statuses: search.statuses } : {}),
+  }),
+  component: PreviewAdminPayments,
+});
 
-export const Route = createFileRoute("/preview/admin/payments")({ component: Page });
+function PreviewAdminPayments() {
+  const search = Route.useSearch();
+  return <AdminPayments search={search} />;
+}

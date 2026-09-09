@@ -21,18 +21,17 @@ import { Calendar, Clock, MapPin, Phone, User as UserIcon, HeartPulse, AlertTria
 import { useState } from "react";
 import { proPath } from "@/lib/preview/previewPath";
 
-export const Route = createFileRoute("/pro/booking/$id")({ component: ProBookingDetail });
+export const Route = createFileRoute("/pro/booking/$id")({ component: ProBookingDetailRoute });
 
 const DISPUTE_ELIGIBLE_STATUSES = ["on_the_way", "arrived", "arrival_confirmed", "in_progress", "completion_requested"];
 const SUPPORT_CATEGORIES: TicketCategory[] = ["payment", "service_quality", "provider_behavior", "booking_issue", "app_issue", "other"];
 
 type DialogKind = "" | "decline" | "cancel" | "no_show" | "dispute" | "support";
 
-function ProBookingDetail() {
+export function ProBookingDetail({ id }: { id: string }) {
   const { t } = useTranslation();
   const lang = useLang();
   const dateLoc = lang === "ar" ? "ar-EG" : "en-US";
-  const { id } = Route.useParams();
   const nav = useNavigate();
   const q = useProviderBooking(id);
   const mut = useProviderUpdateBookingStatus();
@@ -397,6 +396,11 @@ function ProBookingDetail() {
       />
     </ProviderShell>
   );
+}
+
+function ProBookingDetailRoute() {
+  const { id } = Route.useParams();
+  return <ProBookingDetail id={id} />;
 }
 
 function Row({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {

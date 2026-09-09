@@ -7,11 +7,10 @@ import { toast } from "sonner";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
 import { adminPath } from "@/lib/preview/previewPath";
 
-export const Route = createFileRoute("/admin/customer/$id")({ component: AdminCustomer });
+export const Route = createFileRoute("/admin/customer/$id")({ component: AdminCustomerRoute });
 
-function AdminCustomer() {
+export function AdminCustomer({ id }: { id: string }) {
   const { t } = useTranslation();
-  const { id } = Route.useParams();
   const q = useAdminCustomer(id);
   const setSuspended = useSetCustomerSuspended();
   const [showConfirm, setShowConfirm] = useState(false);
@@ -120,4 +119,9 @@ function AdminCustomer() {
       )}
     </div>
   );
+}
+
+function AdminCustomerRoute() {
+  const { id } = Route.useParams();
+  return <AdminCustomer id={id} />;
 }
