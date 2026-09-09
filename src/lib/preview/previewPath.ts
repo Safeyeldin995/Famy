@@ -1,5 +1,13 @@
 import { isPreviewRoute } from "@/lib/preview/constants";
 
+/** Customer-tab paths that should resolve to their Famy Pro equivalents. */
+const PRO_ROUTE_ALIASES: Record<string, string> = {
+  "/bookings": "/pro/bookings",
+  "/notifications": "/pro/notifications",
+  "/profile": "/pro/profile",
+  "/notification-preferences": "/pro/notification-preferences",
+};
+
 /** Strips the /preview prefix from pro routes for active-tab matching. */
 export function normalizeProPathname(pathname: string) {
   if (pathname.startsWith("/preview/pro")) {
@@ -9,13 +17,20 @@ export function normalizeProPathname(pathname: string) {
   return pathname;
 }
 
-/** Rewrites /pro/* paths to /preview/pro/* when browsing the design preview. */
+/** Rewrites pro paths (and customer aliases) for preview/pro browsing. */
 export function proPath(path: string) {
-  if (!isPreviewRoute()) return path;
-  if (path === "/pro" || path.startsWith("/pro/")) {
-    return `/preview${path}`;
+  const resolved = PRO_ROUTE_ALIASES[path] ?? path;
+  if (!isPreviewRoute()) return resolved;
+  if (resolved === "/pro" || resolved.startsWith("/pro/")) {
+    return `/preview${resolved}`;
   }
-  return path;
+  return resolved;
+}
+
+/** Customer-app path — applies /preview/* rewrite when in design preview. */
+export function customerPath(path: string) {
+  if (!isPreviewRoute()) return path;
+  return previewPath(path);
 }
 
 const PREVIEW_PATHS: Record<string, string> = {

@@ -3,7 +3,8 @@ import { useTranslation } from "react-i18next";
 import { ProviderShell } from "@/components/famio/ProviderShell";
 import { ProviderPageHero } from "@/components/famio/ProviderPageHero";
 import { Card, EmptyState } from "@/components/famio/ui";
-import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead } from "@/lib/db/queries";
+import { useMarkNotificationRead, useMarkAllNotificationsRead } from "@/lib/db/queries";
+import { useProNotifications } from "@/lib/db/provider-queries";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { Bell } from "lucide-react";
 import { proPath } from "@/lib/preview/previewPath";
@@ -19,7 +20,7 @@ function NotificationsPage() {
   const { t } = useTranslation();
   const lang = useLang();
   const nav = useNavigate();
-  const q = useNotifications();
+  const q = useProNotifications();
   const mark = useMarkNotificationRead();
   const markAll = useMarkAllNotificationsRead();
   const items = q.data ?? [];

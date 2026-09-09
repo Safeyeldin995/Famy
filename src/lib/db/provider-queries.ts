@@ -107,6 +107,36 @@ export function useMyMarketplaceEligibility(providerId: string | undefined) {
   });
 }
 
+// ---------- Notifications (provider app — same table, pro-scoped cache key) ----------
+export function useProNotifications() {
+  return useQuery({
+    queryKey: ['pro-notifications'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useProUnreadNotificationCount() {
+  return useQuery({
+    queryKey: ['pro-notifications', 'unread-count'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .is('read_at', null);
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+}
+
 // ---------- Bookings (provider side) ----------
 export function useProviderBookings(providerId: string | undefined) {
   // Deliberately no polling and no Realtime subscription here.

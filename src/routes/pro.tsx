@@ -7,6 +7,7 @@ import { PhoneFrame } from "@/components/famio/ui";
 import { QueryError } from "@/components/famio/QueryError";
 import { FamyWordmark } from "@/components/famio/FamyWordmark";
 import { Loader2 } from "lucide-react";
+import { customerPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/pro")({ component: ProviderLayout });
 
@@ -84,7 +85,7 @@ function ProviderLayout() {
           >
             {t("pro.gateway.become")}
           </Link>
-          <Link to="/home" className="text-xs font-semibold text-muted-foreground">
+          <Link to={customerPath("/home") as "/home"} className="text-xs font-semibold text-muted-foreground">
             {t("pro.gateway.backCustomer")}
           </Link>
         </div>

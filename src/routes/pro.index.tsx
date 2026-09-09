@@ -6,8 +6,7 @@ import { ProviderFloatingPanel } from "@/components/famio/ProviderFloatingPanel"
 import { ProviderSectionHeader } from "@/components/famio/ProviderSectionHeader";
 import { EmptyState, Avatar } from "@/components/famio/ui";
 import { useLang } from "@/components/famio/LanguageToggle";
-import { useMyProvider, useProviderBookings, useProviderEarnings } from "@/lib/db/provider-queries";
-import { useUnreadNotificationCount } from "@/lib/db/queries";
+import { useMyProvider, useProviderBookings, useProviderEarnings, useProUnreadNotificationCount } from "@/lib/db/provider-queries";
 import { formatEGP, BOOKING_ACTIVE_STATUSES } from "@/lib/utils";
 import type { ReactNode } from "react";
 import { Bell, ShieldCheck, Star, TrendingUp, Plane, AlertCircle } from "lucide-react";
@@ -24,7 +23,7 @@ function ProDashboard() {
   const provider = p.data as any;
   const bookingsQ = useProviderBookings(provider?.id);
   const earningsQ = useProviderEarnings(provider?.id);
-  const unreadQ = useUnreadNotificationCount();
+  const unreadQ = useProUnreadNotificationCount();
   const unread = unreadQ.data ?? 0;
 
   const all = bookingsQ.data ?? [];
