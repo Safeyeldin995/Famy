@@ -6,6 +6,7 @@ import { getSignedProofUrl } from "@/lib/db/payment-queries";
 import { formatEGP } from "@/lib/utils";
 import { Search, ExternalLink, Eye } from "lucide-react";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
+import { adminPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/admin/payments")({
   component: AdminPayments,
@@ -163,7 +164,7 @@ function AdminPayments() {
                   </td>
                   <td className="px-4 py-3">
                     <Link
-                      to="/admin/bookings"
+                      to={adminPath("/admin/bookings") as "/admin/bookings"}
                       className="focus-ring inline-flex items-center gap-1 text-xs font-semibold text-brand"
                     >
                       {t("admin.payments.openBookings")} <ExternalLink className="h-3.5 w-3.5" />

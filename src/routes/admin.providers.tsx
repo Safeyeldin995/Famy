@@ -9,6 +9,7 @@ import {
 import { useAdminOnboardingAction } from "@/lib/provider/onboarding-queries";
 import { Search, ChevronRight, ShieldCheck } from "lucide-react";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
+import { adminPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/admin/providers")({ component: ProviderManagement });
 
@@ -82,7 +83,7 @@ function ProviderManagement() {
               <li key={`${conflict.user_id}-${conflict.issue_code}`} className="rounded-xl bg-surface p-3 text-xs">
                 <div className="font-bold">{conflict.full_name || conflict.user_id}</div>
                 <div className="font-semibold text-coral">{conflict.details}</div>
-                {conflict.provider_id && <Link to="/admin/provider/$id" params={{ id: conflict.provider_id }} className="mt-1 inline-block font-bold text-brand underline">Open preserved Provider record</Link>}
+                {conflict.provider_id && <Link to={adminPath("/admin/provider/$id") as "/admin/provider/$id"} params={{ id: conflict.provider_id }} className="mt-1 inline-block font-bold text-brand underline">Open preserved Provider record</Link>}
               </li>
             ))}
           </ul>
@@ -104,7 +105,7 @@ function ProviderManagement() {
             return (
               <li key={p.id} className="px-5 py-4">
                 <div className="flex items-start justify-between gap-3">
-                  <Link to="/admin/provider/$id" params={{ id: p.id }} className="focus-ring min-w-0 flex-1">
+                  <Link to={adminPath("/admin/provider/$id") as "/admin/provider/$id"} params={{ id: p.id }} className="focus-ring min-w-0 flex-1">
                     <p className="truncate text-sm font-bold">{p.profile?.full_name || t("admin.providers.unnamed")}</p>
                     <p className="truncate text-xs text-muted-foreground">{p.city} · {t("admin.providers.hourlyRate", { rate: p.hourly_rate })} · {t("admin.providers.yearsExp", { years: p.years_experience })}</p>
                     <p dir="ltr" className="mt-1 text-[11px] text-muted-foreground">{p.profile?.phone}</p>

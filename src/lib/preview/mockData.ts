@@ -368,6 +368,7 @@ export function seedPreviewQueries(qc: import("@tanstack/react-query").QueryClie
   });
   seedPreviewAvailableSlots(qc);
   seedPreviewProviderQueries(qc);
+  seedPreviewAdminQueries(qc);
   qc.setQueryData(["resolve-zone", 29.96, 31.25], {
     id: "zone-maadi",
     name_en: "Maadi",
@@ -700,4 +701,436 @@ function seedPreviewProviderQueries(qc: import("@tanstack/react-query").QueryCli
       qc.setQueryData(["messages", "conv-pro-pending"], previewBookingMessages);
     }
   }
+}
+
+const PREVIEW_ADMIN_PROVIDER_PENDING = "p-pending";
+
+function buildAdminPreviewProviders() {
+  const verified = {
+    id: PREVIEW_PROVIDER_ID,
+    city: "Cairo",
+    hourly_rate: 180,
+    years_experience: 5,
+    is_verified: true,
+    is_active: true,
+    created_at: new Date(Date.now() - 86400000 * 90).toISOString(),
+    profile: { full_name: "Mona Adel", phone: "+201098765432", avatar_url: "https://i.pravatar.cc/240?img=47" },
+    ratings: { rating_avg: 4.9, rating_count: 128 },
+    trust: { score: 92 },
+  };
+  const pending = {
+    id: PREVIEW_ADMIN_PROVIDER_PENDING,
+    city: "Giza",
+    hourly_rate: 150,
+    years_experience: 3,
+    is_verified: false,
+    is_active: false,
+    created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
+    profile: { full_name: "Nadia Kamal", phone: "+201055544433", avatar_url: "https://i.pravatar.cc/240?img=32" },
+    ratings: { rating_avg: 0, rating_count: 0 },
+    trust: { score: 0 },
+  };
+  const suspended = {
+    id: "p-suspended",
+    city: "Alexandria",
+    hourly_rate: 200,
+    years_experience: 8,
+    is_verified: true,
+    is_active: false,
+    created_at: new Date(Date.now() - 86400000 * 120).toISOString(),
+    profile: { full_name: "Layla Farouk", phone: "+201066677788", avatar_url: "https://i.pravatar.cc/240?img=45" },
+    ratings: { rating_avg: 4.2, rating_count: 34 },
+    trust: { score: 71 },
+  };
+  return [verified, pending, suspended];
+}
+
+function buildAdminPreviewBookings() {
+  const start = new Date();
+  start.setDate(start.getDate() + 2);
+  start.setHours(10, 0, 0, 0);
+  const end = new Date(start);
+  end.setHours(14, 0, 0, 0);
+  return [
+    {
+      id: "admin-booking-1",
+      status: "confirmed",
+      start_at: start.toISOString(),
+      end_at: end.toISOString(),
+      price_total: 720,
+      customer_id: PREVIEW_USER_ID,
+      provider_id: PREVIEW_PROVIDER_ID,
+      created_at: new Date(Date.now() - 86400000).toISOString(),
+      customer: { id: PREVIEW_USER_ID, full_name: "Sara Hassan", phone: "+201012345678" },
+      provider: { id: PREVIEW_PROVIDER_ID, profile: { full_name: "Mona Adel" } },
+      payments: [{ id: "pay-1", status: "captured", method: "cash", amount: 720, created_at: start.toISOString() }],
+      family_member: null,
+      cancellation: null,
+    },
+    {
+      id: "admin-booking-2",
+      status: "pending",
+      start_at: new Date(Date.now() + 86400000).toISOString(),
+      end_at: new Date(Date.now() + 86400000 + 10800000).toISOString(),
+      price_total: 540,
+      customer_id: PREVIEW_USER_ID,
+      provider_id: PREVIEW_PROVIDER_ID,
+      created_at: new Date().toISOString(),
+      customer: { id: PREVIEW_USER_ID, full_name: "Sara Hassan", phone: "+201012345678" },
+      provider: { id: PREVIEW_PROVIDER_ID, profile: { full_name: "Mona Adel" } },
+      payments: [{ id: "pay-2", status: "pending", method: "cash", amount: 540, created_at: new Date().toISOString() }],
+      family_member: null,
+      cancellation: null,
+    },
+  ];
+}
+
+export function seedPreviewAdminQueries(qc: import("@tanstack/react-query").QueryClient) {
+  const providers = buildAdminPreviewProviders();
+  const bookings = buildAdminPreviewBookings();
+  const now = new Date().toISOString();
+  const categories = [
+    {
+      id: "cat-clean",
+      slug: "home-cleaning",
+      name_en: "Home cleaning",
+      name_ar: "تنظيف المنزل",
+      is_active: true,
+      sort_order: 1,
+    },
+    {
+      id: "cat-kids",
+      slug: "babysitting",
+      name_en: "Babysitting",
+      name_ar: "جليسة أطفال",
+      is_active: true,
+      sort_order: 2,
+    },
+  ];
+  const services = [
+    {
+      id: "svc-clean",
+      category_id: "cat-clean",
+      slug: "home-cleaning",
+      name_en: "Deep home clean",
+      name_ar: "تنظيف منزل عميق",
+      description_en: "Full home deep clean",
+      description_ar: "تنظيف منزل عميق",
+      base_price: 180,
+      duration_min: 240,
+      pricing_model: "hourly" as const,
+      is_active: true,
+      minimum_price: 120,
+      maximum_price: 600,
+      maximum_extras_total: 200,
+      provider_pricing_allowed: true,
+      created_at: now,
+      updated_at: now,
+      category: categories[0],
+    },
+  ];
+  const customers = [
+    {
+      id: PREVIEW_USER_ID,
+      full_name: "Sara Hassan",
+      phone: "+201012345678",
+      avatar_url: null,
+      is_suspended: false,
+      created_at: new Date(Date.now() - 86400000 * 60).toISOString(),
+      totalBookings: 3,
+      completedBookings: 2,
+      cancelledBookings: 0,
+      totalSpent: 1260,
+    },
+    {
+      id: "cust-2",
+      full_name: "Omar Hassan",
+      phone: "+201099988877",
+      avatar_url: null,
+      is_suspended: false,
+      created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
+      totalBookings: 0,
+      completedBookings: 0,
+      cancelledBookings: 0,
+      totalSpent: 0,
+    },
+  ];
+
+  qc.setQueryData(["admin", "dashboard-kpis"], {
+    revenue: 24800,
+    activeBookings: 12,
+    pendingBookings: 4,
+    activeProviders: 28,
+    activeCustomers: 156,
+  });
+  qc.setQueryData(["admin", "bookings-count"], 47);
+  qc.setQueryData(["admin", "pending-providers"], [providers[1]]);
+  for (const filter of ["pending", "verified", "suspended", "all"] as const) {
+    let rows = providers;
+    if (filter === "pending") rows = providers.filter((p) => !p.is_verified);
+    else if (filter === "verified") rows = providers.filter((p) => p.is_verified && p.is_active);
+    else if (filter === "suspended") rows = providers.filter((p) => p.is_verified && !p.is_active);
+    qc.setQueryData(["admin", "providers", filter], rows);
+  }
+  qc.setQueryData(["admin", "provider", PREVIEW_PROVIDER_ID], {
+    ...providers[0],
+    documents: [{ id: "doc-1", document_type: "national_id", status: "approved" }],
+    services: [
+      {
+        id: "ps-1",
+        status: "approved",
+        rejection_reason: null,
+        service: {
+          id: "svc-clean",
+          name_en: "Deep home clean",
+          name_ar: "تنظيف منزل عميق",
+          category: { name_en: "Home cleaning", name_ar: "تنظيف المنزل" },
+        },
+      },
+    ],
+  });
+  qc.setQueryData(["admin", "provider", PREVIEW_ADMIN_PROVIDER_PENDING], {
+    ...providers[1],
+    documents: [{ id: "doc-2", document_type: "national_id", status: "pending" }],
+    services: [],
+  });
+  qc.setQueryData(["admin", "provider-eligibility", PREVIEW_PROVIDER_ID], [
+    {
+      account_active: true,
+      verified: true,
+      service_approved: true,
+      service_active: true,
+      price_valid: true,
+      requirements_complete: true,
+      evidence_approved: true,
+      zone_covered: true,
+      operational_clear: true,
+      effective_price: "EGP 180/hr",
+      minimum_price: 120,
+      maximum_price: 600,
+    },
+  ]);
+  qc.setQueryData(["admin", "provider-onboarding-review", PREVIEW_ADMIN_PROVIDER_PENDING], {
+    status: "SUBMITTED",
+    submitted_at: new Date(Date.now() - 86400000).toISOString(),
+  });
+  qc.setQueryData(["admin", "identity-conflicts"], []);
+  qc.setQueryData(["admin", "customers"], customers);
+  qc.setQueryData(["admin", "customer", PREVIEW_USER_ID], {
+    profile: customers[0],
+    bookings: bookings.map((b) => ({
+      id: b.id,
+      status: b.status,
+      start_at: b.start_at,
+      price_total: b.price_total,
+    })),
+    payments: bookings.flatMap((b) => b.payments),
+  });
+  for (const status of ["all", "confirmed", "pending", "completed", "cancelled"]) {
+    const rows =
+      status === "all" ? bookings : bookings.filter((b) => b.status === status);
+    qc.setQueryData(["admin", "bookings", status], rows);
+  }
+  qc.setQueryData(["admin", "payments", "all"], [
+    {
+      id: "pay-1",
+      status: "captured",
+      method: "cash",
+      amount: 720,
+      created_at: now,
+      booking: {
+        id: "admin-booking-1",
+        status: "confirmed",
+        provider: { id: PREVIEW_PROVIDER_ID, profile: { full_name: "Mona Adel" } },
+        customer: { id: PREVIEW_USER_ID, full_name: "Sara Hassan", phone: "+201012345678" },
+      },
+    },
+  ]);
+  qc.setQueryData(["admin", "categories"], categories);
+  qc.setQueryData(["admin", "services"], services);
+  qc.setQueryData(["admin", "zones"], [
+    {
+      id: "zone-maadi",
+      name_en: "Maadi",
+      name_ar: "المعادي",
+      travel_fee: 0,
+      is_active: true,
+      boundary_type: "circle",
+      center_lat: 29.96,
+      center_lng: 31.25,
+      radius_km: 5,
+      polygon: null,
+    },
+  ]);
+  qc.setQueryData(["admin", "zone-services", "zone-maadi"], new Set(["svc-clean"]));
+  qc.setQueryData(["admin", "zone-providers", "zone-maadi"], new Set([PREVIEW_PROVIDER_ID]));
+  qc.setQueryData(["admin", "promo-codes"], [
+    {
+      id: "promo1",
+      code: "FAMY20",
+      description_en: "20% off first booking",
+      description_ar: "خصم ٢٠٪ على أول حجز",
+      discount_type: "percentage",
+      discount_value: 20,
+      is_active: true,
+      expires_at: null,
+      created_at: now,
+    },
+  ]);
+  qc.setQueryData(["admin", "payment-methods"], [
+    {
+      id: "pm-cash",
+      code: "cash",
+      name_en: "Cash on arrival",
+      name_ar: "نقداً عند الوصول",
+      method_type: "cash",
+      is_active: true,
+      is_default: true,
+      display_order: 1,
+      public_config: {},
+      created_at: now,
+      updated_at: now,
+    },
+  ]);
+  qc.setQueryData(["admin", "cancellation-reasons", "all"], [
+    {
+      id: "cr-1",
+      actor_type: "customer",
+      name_en: "Schedule conflict",
+      name_ar: "تعارض في المواعيد",
+      is_active: true,
+      sort_order: 1,
+    },
+  ]);
+  qc.setQueryData(["admin", "campaigns"], [
+    {
+      id: "camp-1",
+      title_en: "Welcome back",
+      title_ar: "أهلاً بعودتك",
+      body_en: "Book again this week and save 15%",
+      body_ar: "احجز مرة أخرى هذا الأسبوع ووفر ١٥٪",
+      target: "customers",
+      channel_push: true,
+      status: "draft",
+      scheduled_for: null,
+      created_at: now,
+    },
+  ]);
+  qc.setQueryData(["admin", "reminder-rules"], [
+    { id: "rr-1", lead_minutes: 1440, is_active: true },
+    { id: "rr-2", lead_minutes: 120, is_active: true },
+  ]);
+  qc.setQueryData(["admin", "operations-summary"], [
+    { queue: "pending_provider_services", item_count: 2, oldest_at: now },
+    { queue: "pending_requirement_reviews", item_count: 1, oldest_at: now },
+    { queue: "flagged_provider_pricing", item_count: 0, oldest_at: null },
+    { queue: "open_disputes", item_count: 1, oldest_at: now },
+    { queue: "open_no_show_reports", item_count: 0, oldest_at: null },
+    { queue: "open_support_tickets", item_count: 2, oldest_at: now },
+    { queue: "stuck_completion_requests", item_count: 1, oldest_at: now },
+    { queue: "payments_needing_review", item_count: 1, oldest_at: now },
+    { queue: "notification_delivery_failures", item_count: 1, oldest_at: now },
+  ]);
+  qc.setQueryData(["admin", "operations", "pending-provider-services"], [
+    {
+      id: "ps-pending",
+      provider_id: PREVIEW_ADMIN_PROVIDER_PENDING,
+      created_at: now,
+      provider: { id: PREVIEW_ADMIN_PROVIDER_PENDING, profile: { full_name: "Nadia Kamal" } },
+      service: { name_en: "Deep home clean", name_ar: "تنظيف منزل عميق" },
+    },
+  ]);
+  qc.setQueryData(["admin", "operations", "flagged-provider-pricing"], []);
+  qc.setQueryData(["admin", "operations", "pending-requirement-reviews"], []);
+  qc.setQueryData(["admin", "operations", "notification-failures"], [
+    {
+      id: "nf-1",
+      recipient_user_id: PREVIEW_USER_ID,
+      status: "failed",
+      attempts: 3,
+      last_error_safe: "Push token expired",
+      created_at: now,
+      next_attempt_at: now,
+    },
+  ]);
+  qc.setQueryData(["admin", "monitoring-summary", 7], {
+    recent_errors: 2,
+    failed_payments: 1,
+    failed_notifications: 1,
+    oldest_error_at: now,
+    oldest_failed_payment_at: now,
+    oldest_failed_notification_at: now,
+  });
+  qc.setQueryData(["admin", "monitoring", "error-logs", 7], [
+    {
+      id: "err-1",
+      created_at: now,
+      message_safe: "Payment webhook timeout",
+      source: "edge",
+      context_route: "/payments",
+      context_label: "capture",
+    },
+  ]);
+  qc.setQueryData(["admin", "monitoring", "failed-payments"], [
+    { id: "fp-1", status: "failed", created_at: now, booking_id: "admin-booking-2" },
+  ]);
+  qc.setQueryData(["admin", "monitoring", "failed-notifications"], [
+    {
+      id: "fn-1",
+      status: "failed",
+      attempts: 2,
+      last_error_safe: "Invalid device token",
+      created_at: now,
+    },
+  ]);
+  qc.setQueryData(["admin", "support-tickets", {}], [
+    {
+      id: "ticket-1",
+      status: "open",
+      category: "booking",
+      subject: "Provider arrived late",
+      created_at: now,
+      booking_id: "admin-booking-1",
+      customer_id: PREVIEW_USER_ID,
+    },
+  ]);
+  qc.setQueryData(["admin", "disputes", {}], [
+    {
+      id: "dispute-1",
+      status: "open",
+      created_at: now,
+      booking_id: "admin-booking-1",
+      customer_id: PREVIEW_USER_ID,
+      provider_id: PREVIEW_PROVIDER_ID,
+      reason: "Service quality concern",
+    },
+  ]);
+  qc.setQueryData(["admin", "no-show-reports", {}], []);
+  qc.setQueryData(["admin", "audit-log", "entities"], {
+    actions: ["booking.status_changed", "provider.verified"],
+    entities: ["bookings", "providers"],
+    actors: [{ id: PREVIEW_USER_ID, name: "Admin User" }],
+  });
+  qc.setQueryData(["admin", "audit-log", {}, 0], {
+    rows: [
+      {
+        id: "audit-1",
+        actor_id: PREVIEW_USER_ID,
+        actor_role: "admin",
+        action: "provider.verified",
+        entity: "providers",
+        entity_id: PREVIEW_PROVIDER_ID,
+        booking_id: null,
+        reason: "Documents approved",
+        correlation_id: null,
+        old_values: { is_verified: false },
+        new_values: { is_verified: true },
+        diff: null,
+        created_at: now,
+        booking: null,
+        actor_name: "Admin User",
+      },
+    ],
+    total: 1,
+  });
 }

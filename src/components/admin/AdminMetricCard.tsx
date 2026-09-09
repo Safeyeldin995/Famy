@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { adminPath } from "@/lib/preview/previewPath";
 import type { AdminTone } from "./statusTones";
 import { adminToneClass } from "./statusTones";
 
@@ -36,7 +37,7 @@ export function AdminMetricCard({
 
   if (to) {
     return (
-      <Link to={to as "/admin"} className={`focus-ring ${className}`}>
+      <Link to={adminPath(to) as "/admin"} className={`focus-ring ${className}`}>
         {inner}
       </Link>
     );

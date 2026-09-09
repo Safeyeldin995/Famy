@@ -8,6 +8,7 @@ import {
 } from "@/lib/db/admin-operations-queries";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
+import { adminPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/admin/operations")({ component: AdminOperations });
 
@@ -38,7 +39,7 @@ function QueueCard({
   const { t } = useTranslation();
   return (
     <Link
-      to={to as any}
+      to={adminPath(to) as any}
       search={search as any}
       className="focus-ring flex flex-col justify-between rounded-2xl border border-border/60 bg-surface p-4 shadow-sm transition hover:border-brand/40"
     >
@@ -93,7 +94,7 @@ function PendingProviderServicesSection() {
               <span className="text-muted-foreground"> — {r.service?.name_en}</span>
               <p className="text-[10px] text-muted-foreground">{t("admin.operations.requestedOn", { date: new Date(r.created_at).toLocaleDateString() })}</p>
             </div>
-            <Link to="/admin/provider/$id" params={{ id: r.provider_id }} className="focus-ring shrink-0 rounded-lg border border-border px-2 py-1 font-semibold text-brand">
+            <Link to={adminPath("/admin/provider/$id") as "/admin/provider/$id"} params={{ id: r.provider_id }} className="focus-ring shrink-0 rounded-lg border border-border px-2 py-1 font-semibold text-brand">
               {t("admin.operations.review")}
             </Link>
           </li>
@@ -116,7 +117,7 @@ function FlaggedProviderPricingSection() {
               <span className="font-semibold">{r.provider?.profile?.full_name ?? r.provider_id.slice(0, 8)}</span>
               <span className="text-muted-foreground" dir="ltr"> — {r.service?.name_en} · {r.price_override} EGP</span>
             </div>
-            <Link to="/admin/services" className="focus-ring shrink-0 rounded-lg border border-border px-2 py-1 font-semibold text-brand">
+            <Link to={adminPath("/admin/services") as "/admin/services"} className="focus-ring shrink-0 rounded-lg border border-border px-2 py-1 font-semibold text-brand">
               {t("admin.operations.review")}
             </Link>
           </li>
@@ -142,7 +143,7 @@ function PendingRequirementReviewsSection() {
                 {r.evidence_storage_path ? t("admin.operations.evidenceSubmitted") : t("admin.operations.evidenceMissing")} · {new Date(r.created_at).toLocaleDateString()}
               </p>
             </div>
-            <Link to="/admin/services" className="focus-ring shrink-0 rounded-lg border border-border px-2 py-1 font-semibold text-brand">
+            <Link to={adminPath("/admin/services") as "/admin/services"} className="focus-ring shrink-0 rounded-lg border border-border px-2 py-1 font-semibold text-brand">
               {t("admin.operations.review")}
             </Link>
           </li>

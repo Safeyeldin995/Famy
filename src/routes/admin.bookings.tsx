@@ -11,6 +11,7 @@ import { BookingChatPanel } from "@/components/famio/BookingChatPanel";
 import { formatEGP } from "@/lib/utils";
 import { Search } from "lucide-react";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
+import { adminPath } from "@/lib/preview/previewPath";
 
 function AdminCancellationDetails({ cancellation }: { cancellation: any }) {
   const { t } = useTranslation();
@@ -176,11 +177,11 @@ function AdminBookings() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-bold">
-                      <Link to="/admin/provider/$id" params={{ id: b.provider?.id }} className="text-brand hover:underline">
+                      <Link to={adminPath("/admin/provider/$id") as "/admin/provider/$id"} params={{ id: b.provider?.id }} className="text-brand hover:underline">
                         {b.provider?.profile?.full_name || t("admin.bookings.provider")}
                       </Link>
                       {" → "}
-                      <Link to="/admin/customer/$id" params={{ id: b.customer_id }} className="text-brand hover:underline">
+                      <Link to={adminPath("/admin/customer/$id") as "/admin/customer/$id"} params={{ id: b.customer_id }} className="text-brand hover:underline">
                         {b.customer?.full_name || t("admin.bookings.customer")}
                       </Link>
                     </p>

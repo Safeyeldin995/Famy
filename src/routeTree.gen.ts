@@ -61,6 +61,7 @@ import { Route as PreviewForgotRouteImport } from './routes/preview.forgot'
 import { Route as PreviewFavoritesRouteImport } from './routes/preview.favorites'
 import { Route as PreviewFamilyMembersRouteImport } from './routes/preview.family-members'
 import { Route as PreviewBookingsRouteImport } from './routes/preview.bookings'
+import { Route as PreviewAdminRouteImport } from './routes/preview.admin'
 import { Route as PreviewAddressesRouteImport } from './routes/preview.addresses'
 import { Route as MessagesIdRouteImport } from './routes/messages.$id'
 import { Route as FamilyMembersNewRouteImport } from './routes/family-members.new'
@@ -90,6 +91,7 @@ import { Route as AddressesNewRouteImport } from './routes/addresses.new'
 import { Route as AddressesIdRouteImport } from './routes/addresses.$id'
 import { Route as _qaMonitoringErrorRouteImport } from './routes/__qa.monitoring-error'
 import { Route as PreviewProIndexRouteImport } from './routes/preview.pro.index'
+import { Route as PreviewAdminIndexRouteImport } from './routes/preview.admin.index'
 import { Route as PreviewAddressesIndexRouteImport } from './routes/preview.addresses.index'
 import { Route as ProBookingIdRouteImport } from './routes/pro.booking.$id'
 import { Route as PreviewProviderIdRouteImport } from './routes/preview.provider.$id'
@@ -104,11 +106,28 @@ import { Route as PreviewProAvailabilityRouteImport } from './routes/preview.pro
 import { Route as PreviewChatIdRouteImport } from './routes/preview.chat.$id'
 import { Route as PreviewCategoryIdRouteImport } from './routes/preview.category.$id'
 import { Route as PreviewBookProviderIdRouteImport } from './routes/preview.book.$providerId'
+import { Route as PreviewAdminZonesRouteImport } from './routes/preview.admin.zones'
+import { Route as PreviewAdminSettingsRouteImport } from './routes/preview.admin.settings'
+import { Route as PreviewAdminServicesRouteImport } from './routes/preview.admin.services'
+import { Route as PreviewAdminProvidersRouteImport } from './routes/preview.admin.providers'
+import { Route as PreviewAdminPromoCodesRouteImport } from './routes/preview.admin.promo-codes'
+import { Route as PreviewAdminPaymentsRouteImport } from './routes/preview.admin.payments'
+import { Route as PreviewAdminPaymentMethodsRouteImport } from './routes/preview.admin.payment-methods'
+import { Route as PreviewAdminOperationsRouteImport } from './routes/preview.admin.operations'
+import { Route as PreviewAdminMonitoringRouteImport } from './routes/preview.admin.monitoring'
+import { Route as PreviewAdminCustomersRouteImport } from './routes/preview.admin.customers'
+import { Route as PreviewAdminCasesRouteImport } from './routes/preview.admin.cases'
+import { Route as PreviewAdminCancellationReasonsRouteImport } from './routes/preview.admin.cancellation-reasons'
+import { Route as PreviewAdminCampaignsRouteImport } from './routes/preview.admin.campaigns'
+import { Route as PreviewAdminBookingsRouteImport } from './routes/preview.admin.bookings'
+import { Route as PreviewAdminAuditLogRouteImport } from './routes/preview.admin.audit-log'
 import { Route as PreviewAddressesNewRouteImport } from './routes/preview.addresses.new'
 import { Route as PreviewAddressesIdRouteImport } from './routes/preview.addresses.$id'
 import { Route as AdminProviderIdRouteImport } from './routes/admin.provider.$id'
 import { Route as AdminCustomerIdRouteImport } from './routes/admin.customer.$id'
 import { Route as PreviewProBookingIdRouteImport } from './routes/preview.pro.booking.$id'
+import { Route as PreviewAdminProviderIdRouteImport } from './routes/preview.admin.provider.$id'
+import { Route as PreviewAdminCustomerIdRouteImport } from './routes/preview.admin.customer.$id'
 
 const SetupRoute = SetupRouteImport.update({
   id: '/setup',
@@ -372,6 +391,11 @@ const PreviewBookingsRoute = PreviewBookingsRouteImport.update({
   path: '/bookings',
   getParentRoute: () => PreviewRoute,
 } as any)
+const PreviewAdminRoute = PreviewAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => PreviewRoute,
+} as any)
 const PreviewAddressesRoute = PreviewAddressesRouteImport.update({
   id: '/addresses',
   path: '/addresses',
@@ -518,6 +542,11 @@ const PreviewProIndexRoute = PreviewProIndexRouteImport.update({
   path: '/',
   getParentRoute: () => PreviewProRoute,
 } as any)
+const PreviewAdminIndexRoute = PreviewAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PreviewAdminRoute,
+} as any)
 const PreviewAddressesIndexRoute = PreviewAddressesIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -589,6 +618,83 @@ const PreviewBookProviderIdRoute = PreviewBookProviderIdRouteImport.update({
   path: '/book/$providerId',
   getParentRoute: () => PreviewRoute,
 } as any)
+const PreviewAdminZonesRoute = PreviewAdminZonesRouteImport.update({
+  id: '/zones',
+  path: '/zones',
+  getParentRoute: () => PreviewAdminRoute,
+} as any)
+const PreviewAdminSettingsRoute = PreviewAdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => PreviewAdminRoute,
+} as any)
+const PreviewAdminServicesRoute = PreviewAdminServicesRouteImport.update({
+  id: '/services',
+  path: '/services',
+  getParentRoute: () => PreviewAdminRoute,
+} as any)
+const PreviewAdminProvidersRoute = PreviewAdminProvidersRouteImport.update({
+  id: '/providers',
+  path: '/providers',
+  getParentRoute: () => PreviewAdminRoute,
+} as any)
+const PreviewAdminPromoCodesRoute = PreviewAdminPromoCodesRouteImport.update({
+  id: '/promo-codes',
+  path: '/promo-codes',
+  getParentRoute: () => PreviewAdminRoute,
+} as any)
+const PreviewAdminPaymentsRoute = PreviewAdminPaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
+  getParentRoute: () => PreviewAdminRoute,
+} as any)
+const PreviewAdminPaymentMethodsRoute =
+  PreviewAdminPaymentMethodsRouteImport.update({
+    id: '/payment-methods',
+    path: '/payment-methods',
+    getParentRoute: () => PreviewAdminRoute,
+  } as any)
+const PreviewAdminOperationsRoute = PreviewAdminOperationsRouteImport.update({
+  id: '/operations',
+  path: '/operations',
+  getParentRoute: () => PreviewAdminRoute,
+} as any)
+const PreviewAdminMonitoringRoute = PreviewAdminMonitoringRouteImport.update({
+  id: '/monitoring',
+  path: '/monitoring',
+  getParentRoute: () => PreviewAdminRoute,
+} as any)
+const PreviewAdminCustomersRoute = PreviewAdminCustomersRouteImport.update({
+  id: '/customers',
+  path: '/customers',
+  getParentRoute: () => PreviewAdminRoute,
+} as any)
+const PreviewAdminCasesRoute = PreviewAdminCasesRouteImport.update({
+  id: '/cases',
+  path: '/cases',
+  getParentRoute: () => PreviewAdminRoute,
+} as any)
+const PreviewAdminCancellationReasonsRoute =
+  PreviewAdminCancellationReasonsRouteImport.update({
+    id: '/cancellation-reasons',
+    path: '/cancellation-reasons',
+    getParentRoute: () => PreviewAdminRoute,
+  } as any)
+const PreviewAdminCampaignsRoute = PreviewAdminCampaignsRouteImport.update({
+  id: '/campaigns',
+  path: '/campaigns',
+  getParentRoute: () => PreviewAdminRoute,
+} as any)
+const PreviewAdminBookingsRoute = PreviewAdminBookingsRouteImport.update({
+  id: '/bookings',
+  path: '/bookings',
+  getParentRoute: () => PreviewAdminRoute,
+} as any)
+const PreviewAdminAuditLogRoute = PreviewAdminAuditLogRouteImport.update({
+  id: '/audit-log',
+  path: '/audit-log',
+  getParentRoute: () => PreviewAdminRoute,
+} as any)
 const PreviewAddressesNewRoute = PreviewAddressesNewRouteImport.update({
   id: '/new',
   path: '/new',
@@ -613,6 +719,16 @@ const PreviewProBookingIdRoute = PreviewProBookingIdRouteImport.update({
   id: '/booking/$id',
   path: '/booking/$id',
   getParentRoute: () => PreviewProRoute,
+} as any)
+const PreviewAdminProviderIdRoute = PreviewAdminProviderIdRouteImport.update({
+  id: '/provider/$id',
+  path: '/provider/$id',
+  getParentRoute: () => PreviewAdminRoute,
+} as any)
+const PreviewAdminCustomerIdRoute = PreviewAdminCustomerIdRouteImport.update({
+  id: '/customer/$id',
+  path: '/customer/$id',
+  getParentRoute: () => PreviewAdminRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -664,6 +780,7 @@ export interface FileRoutesByFullPath {
   '/family-members/new': typeof FamilyMembersNewRoute
   '/messages/$id': typeof MessagesIdRoute
   '/preview/addresses': typeof PreviewAddressesRouteWithChildren
+  '/preview/admin': typeof PreviewAdminRouteWithChildren
   '/preview/bookings': typeof PreviewBookingsRoute
   '/preview/family-members': typeof PreviewFamilyMembersRoute
   '/preview/favorites': typeof PreviewFavoritesRoute
@@ -700,6 +817,21 @@ export interface FileRoutesByFullPath {
   '/admin/provider/$id': typeof AdminProviderIdRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
   '/preview/addresses/new': typeof PreviewAddressesNewRoute
+  '/preview/admin/audit-log': typeof PreviewAdminAuditLogRoute
+  '/preview/admin/bookings': typeof PreviewAdminBookingsRoute
+  '/preview/admin/campaigns': typeof PreviewAdminCampaignsRoute
+  '/preview/admin/cancellation-reasons': typeof PreviewAdminCancellationReasonsRoute
+  '/preview/admin/cases': typeof PreviewAdminCasesRoute
+  '/preview/admin/customers': typeof PreviewAdminCustomersRoute
+  '/preview/admin/monitoring': typeof PreviewAdminMonitoringRoute
+  '/preview/admin/operations': typeof PreviewAdminOperationsRoute
+  '/preview/admin/payment-methods': typeof PreviewAdminPaymentMethodsRoute
+  '/preview/admin/payments': typeof PreviewAdminPaymentsRoute
+  '/preview/admin/promo-codes': typeof PreviewAdminPromoCodesRoute
+  '/preview/admin/providers': typeof PreviewAdminProvidersRoute
+  '/preview/admin/services': typeof PreviewAdminServicesRoute
+  '/preview/admin/settings': typeof PreviewAdminSettingsRoute
+  '/preview/admin/zones': typeof PreviewAdminZonesRoute
   '/preview/book/$providerId': typeof PreviewBookProviderIdRoute
   '/preview/category/$id': typeof PreviewCategoryIdRoute
   '/preview/chat/$id': typeof PreviewChatIdRoute
@@ -714,7 +846,10 @@ export interface FileRoutesByFullPath {
   '/preview/provider/$id': typeof PreviewProviderIdRoute
   '/pro/booking/$id': typeof ProBookingIdRoute
   '/preview/addresses/': typeof PreviewAddressesIndexRoute
+  '/preview/admin/': typeof PreviewAdminIndexRoute
   '/preview/pro/': typeof PreviewProIndexRoute
+  '/preview/admin/customer/$id': typeof PreviewAdminCustomerIdRoute
+  '/preview/admin/provider/$id': typeof PreviewAdminProviderIdRoute
   '/preview/pro/booking/$id': typeof PreviewProBookingIdRoute
 }
 export interface FileRoutesByTo {
@@ -795,6 +930,21 @@ export interface FileRoutesByTo {
   '/admin/provider/$id': typeof AdminProviderIdRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
   '/preview/addresses/new': typeof PreviewAddressesNewRoute
+  '/preview/admin/audit-log': typeof PreviewAdminAuditLogRoute
+  '/preview/admin/bookings': typeof PreviewAdminBookingsRoute
+  '/preview/admin/campaigns': typeof PreviewAdminCampaignsRoute
+  '/preview/admin/cancellation-reasons': typeof PreviewAdminCancellationReasonsRoute
+  '/preview/admin/cases': typeof PreviewAdminCasesRoute
+  '/preview/admin/customers': typeof PreviewAdminCustomersRoute
+  '/preview/admin/monitoring': typeof PreviewAdminMonitoringRoute
+  '/preview/admin/operations': typeof PreviewAdminOperationsRoute
+  '/preview/admin/payment-methods': typeof PreviewAdminPaymentMethodsRoute
+  '/preview/admin/payments': typeof PreviewAdminPaymentsRoute
+  '/preview/admin/promo-codes': typeof PreviewAdminPromoCodesRoute
+  '/preview/admin/providers': typeof PreviewAdminProvidersRoute
+  '/preview/admin/services': typeof PreviewAdminServicesRoute
+  '/preview/admin/settings': typeof PreviewAdminSettingsRoute
+  '/preview/admin/zones': typeof PreviewAdminZonesRoute
   '/preview/book/$providerId': typeof PreviewBookProviderIdRoute
   '/preview/category/$id': typeof PreviewCategoryIdRoute
   '/preview/chat/$id': typeof PreviewChatIdRoute
@@ -809,7 +959,10 @@ export interface FileRoutesByTo {
   '/preview/provider/$id': typeof PreviewProviderIdRoute
   '/pro/booking/$id': typeof ProBookingIdRoute
   '/preview/addresses': typeof PreviewAddressesIndexRoute
+  '/preview/admin': typeof PreviewAdminIndexRoute
   '/preview/pro': typeof PreviewProIndexRoute
+  '/preview/admin/customer/$id': typeof PreviewAdminCustomerIdRoute
+  '/preview/admin/provider/$id': typeof PreviewAdminProviderIdRoute
   '/preview/pro/booking/$id': typeof PreviewProBookingIdRoute
 }
 export interface FileRoutesById {
@@ -862,6 +1015,7 @@ export interface FileRoutesById {
   '/family-members/new': typeof FamilyMembersNewRoute
   '/messages/$id': typeof MessagesIdRoute
   '/preview/addresses': typeof PreviewAddressesRouteWithChildren
+  '/preview/admin': typeof PreviewAdminRouteWithChildren
   '/preview/bookings': typeof PreviewBookingsRoute
   '/preview/family-members': typeof PreviewFamilyMembersRoute
   '/preview/favorites': typeof PreviewFavoritesRoute
@@ -898,6 +1052,21 @@ export interface FileRoutesById {
   '/admin/provider/$id': typeof AdminProviderIdRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
   '/preview/addresses/new': typeof PreviewAddressesNewRoute
+  '/preview/admin/audit-log': typeof PreviewAdminAuditLogRoute
+  '/preview/admin/bookings': typeof PreviewAdminBookingsRoute
+  '/preview/admin/campaigns': typeof PreviewAdminCampaignsRoute
+  '/preview/admin/cancellation-reasons': typeof PreviewAdminCancellationReasonsRoute
+  '/preview/admin/cases': typeof PreviewAdminCasesRoute
+  '/preview/admin/customers': typeof PreviewAdminCustomersRoute
+  '/preview/admin/monitoring': typeof PreviewAdminMonitoringRoute
+  '/preview/admin/operations': typeof PreviewAdminOperationsRoute
+  '/preview/admin/payment-methods': typeof PreviewAdminPaymentMethodsRoute
+  '/preview/admin/payments': typeof PreviewAdminPaymentsRoute
+  '/preview/admin/promo-codes': typeof PreviewAdminPromoCodesRoute
+  '/preview/admin/providers': typeof PreviewAdminProvidersRoute
+  '/preview/admin/services': typeof PreviewAdminServicesRoute
+  '/preview/admin/settings': typeof PreviewAdminSettingsRoute
+  '/preview/admin/zones': typeof PreviewAdminZonesRoute
   '/preview/book/$providerId': typeof PreviewBookProviderIdRoute
   '/preview/category/$id': typeof PreviewCategoryIdRoute
   '/preview/chat/$id': typeof PreviewChatIdRoute
@@ -912,7 +1081,10 @@ export interface FileRoutesById {
   '/preview/provider/$id': typeof PreviewProviderIdRoute
   '/pro/booking/$id': typeof ProBookingIdRoute
   '/preview/addresses/': typeof PreviewAddressesIndexRoute
+  '/preview/admin/': typeof PreviewAdminIndexRoute
   '/preview/pro/': typeof PreviewProIndexRoute
+  '/preview/admin/customer/$id': typeof PreviewAdminCustomerIdRoute
+  '/preview/admin/provider/$id': typeof PreviewAdminProviderIdRoute
   '/preview/pro/booking/$id': typeof PreviewProBookingIdRoute
 }
 export interface FileRouteTypes {
@@ -966,6 +1138,7 @@ export interface FileRouteTypes {
     | '/family-members/new'
     | '/messages/$id'
     | '/preview/addresses'
+    | '/preview/admin'
     | '/preview/bookings'
     | '/preview/family-members'
     | '/preview/favorites'
@@ -1002,6 +1175,21 @@ export interface FileRouteTypes {
     | '/admin/provider/$id'
     | '/preview/addresses/$id'
     | '/preview/addresses/new'
+    | '/preview/admin/audit-log'
+    | '/preview/admin/bookings'
+    | '/preview/admin/campaigns'
+    | '/preview/admin/cancellation-reasons'
+    | '/preview/admin/cases'
+    | '/preview/admin/customers'
+    | '/preview/admin/monitoring'
+    | '/preview/admin/operations'
+    | '/preview/admin/payment-methods'
+    | '/preview/admin/payments'
+    | '/preview/admin/promo-codes'
+    | '/preview/admin/providers'
+    | '/preview/admin/services'
+    | '/preview/admin/settings'
+    | '/preview/admin/zones'
     | '/preview/book/$providerId'
     | '/preview/category/$id'
     | '/preview/chat/$id'
@@ -1016,7 +1204,10 @@ export interface FileRouteTypes {
     | '/preview/provider/$id'
     | '/pro/booking/$id'
     | '/preview/addresses/'
+    | '/preview/admin/'
     | '/preview/pro/'
+    | '/preview/admin/customer/$id'
+    | '/preview/admin/provider/$id'
     | '/preview/pro/booking/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -1097,6 +1288,21 @@ export interface FileRouteTypes {
     | '/admin/provider/$id'
     | '/preview/addresses/$id'
     | '/preview/addresses/new'
+    | '/preview/admin/audit-log'
+    | '/preview/admin/bookings'
+    | '/preview/admin/campaigns'
+    | '/preview/admin/cancellation-reasons'
+    | '/preview/admin/cases'
+    | '/preview/admin/customers'
+    | '/preview/admin/monitoring'
+    | '/preview/admin/operations'
+    | '/preview/admin/payment-methods'
+    | '/preview/admin/payments'
+    | '/preview/admin/promo-codes'
+    | '/preview/admin/providers'
+    | '/preview/admin/services'
+    | '/preview/admin/settings'
+    | '/preview/admin/zones'
     | '/preview/book/$providerId'
     | '/preview/category/$id'
     | '/preview/chat/$id'
@@ -1111,7 +1317,10 @@ export interface FileRouteTypes {
     | '/preview/provider/$id'
     | '/pro/booking/$id'
     | '/preview/addresses'
+    | '/preview/admin'
     | '/preview/pro'
+    | '/preview/admin/customer/$id'
+    | '/preview/admin/provider/$id'
     | '/preview/pro/booking/$id'
   id:
     | '__root__'
@@ -1163,6 +1372,7 @@ export interface FileRouteTypes {
     | '/family-members/new'
     | '/messages/$id'
     | '/preview/addresses'
+    | '/preview/admin'
     | '/preview/bookings'
     | '/preview/family-members'
     | '/preview/favorites'
@@ -1199,6 +1409,21 @@ export interface FileRouteTypes {
     | '/admin/provider/$id'
     | '/preview/addresses/$id'
     | '/preview/addresses/new'
+    | '/preview/admin/audit-log'
+    | '/preview/admin/bookings'
+    | '/preview/admin/campaigns'
+    | '/preview/admin/cancellation-reasons'
+    | '/preview/admin/cases'
+    | '/preview/admin/customers'
+    | '/preview/admin/monitoring'
+    | '/preview/admin/operations'
+    | '/preview/admin/payment-methods'
+    | '/preview/admin/payments'
+    | '/preview/admin/promo-codes'
+    | '/preview/admin/providers'
+    | '/preview/admin/services'
+    | '/preview/admin/settings'
+    | '/preview/admin/zones'
     | '/preview/book/$providerId'
     | '/preview/category/$id'
     | '/preview/chat/$id'
@@ -1213,7 +1438,10 @@ export interface FileRouteTypes {
     | '/preview/provider/$id'
     | '/pro/booking/$id'
     | '/preview/addresses/'
+    | '/preview/admin/'
     | '/preview/pro/'
+    | '/preview/admin/customer/$id'
+    | '/preview/admin/provider/$id'
     | '/preview/pro/booking/$id'
   fileRoutesById: FileRoutesById
 }
@@ -1614,6 +1842,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewBookingsRouteImport
       parentRoute: typeof PreviewRoute
     }
+    '/preview/admin': {
+      id: '/preview/admin'
+      path: '/admin'
+      fullPath: '/preview/admin'
+      preLoaderRoute: typeof PreviewAdminRouteImport
+      parentRoute: typeof PreviewRoute
+    }
     '/preview/addresses': {
       id: '/preview/addresses'
       path: '/addresses'
@@ -1817,6 +2052,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewProIndexRouteImport
       parentRoute: typeof PreviewProRoute
     }
+    '/preview/admin/': {
+      id: '/preview/admin/'
+      path: '/'
+      fullPath: '/preview/admin/'
+      preLoaderRoute: typeof PreviewAdminIndexRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
     '/preview/addresses/': {
       id: '/preview/addresses/'
       path: '/'
@@ -1915,6 +2157,111 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewBookProviderIdRouteImport
       parentRoute: typeof PreviewRoute
     }
+    '/preview/admin/zones': {
+      id: '/preview/admin/zones'
+      path: '/zones'
+      fullPath: '/preview/admin/zones'
+      preLoaderRoute: typeof PreviewAdminZonesRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/admin/settings': {
+      id: '/preview/admin/settings'
+      path: '/settings'
+      fullPath: '/preview/admin/settings'
+      preLoaderRoute: typeof PreviewAdminSettingsRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/admin/services': {
+      id: '/preview/admin/services'
+      path: '/services'
+      fullPath: '/preview/admin/services'
+      preLoaderRoute: typeof PreviewAdminServicesRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/admin/providers': {
+      id: '/preview/admin/providers'
+      path: '/providers'
+      fullPath: '/preview/admin/providers'
+      preLoaderRoute: typeof PreviewAdminProvidersRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/admin/promo-codes': {
+      id: '/preview/admin/promo-codes'
+      path: '/promo-codes'
+      fullPath: '/preview/admin/promo-codes'
+      preLoaderRoute: typeof PreviewAdminPromoCodesRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/admin/payments': {
+      id: '/preview/admin/payments'
+      path: '/payments'
+      fullPath: '/preview/admin/payments'
+      preLoaderRoute: typeof PreviewAdminPaymentsRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/admin/payment-methods': {
+      id: '/preview/admin/payment-methods'
+      path: '/payment-methods'
+      fullPath: '/preview/admin/payment-methods'
+      preLoaderRoute: typeof PreviewAdminPaymentMethodsRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/admin/operations': {
+      id: '/preview/admin/operations'
+      path: '/operations'
+      fullPath: '/preview/admin/operations'
+      preLoaderRoute: typeof PreviewAdminOperationsRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/admin/monitoring': {
+      id: '/preview/admin/monitoring'
+      path: '/monitoring'
+      fullPath: '/preview/admin/monitoring'
+      preLoaderRoute: typeof PreviewAdminMonitoringRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/admin/customers': {
+      id: '/preview/admin/customers'
+      path: '/customers'
+      fullPath: '/preview/admin/customers'
+      preLoaderRoute: typeof PreviewAdminCustomersRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/admin/cases': {
+      id: '/preview/admin/cases'
+      path: '/cases'
+      fullPath: '/preview/admin/cases'
+      preLoaderRoute: typeof PreviewAdminCasesRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/admin/cancellation-reasons': {
+      id: '/preview/admin/cancellation-reasons'
+      path: '/cancellation-reasons'
+      fullPath: '/preview/admin/cancellation-reasons'
+      preLoaderRoute: typeof PreviewAdminCancellationReasonsRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/admin/campaigns': {
+      id: '/preview/admin/campaigns'
+      path: '/campaigns'
+      fullPath: '/preview/admin/campaigns'
+      preLoaderRoute: typeof PreviewAdminCampaignsRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/admin/bookings': {
+      id: '/preview/admin/bookings'
+      path: '/bookings'
+      fullPath: '/preview/admin/bookings'
+      preLoaderRoute: typeof PreviewAdminBookingsRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/admin/audit-log': {
+      id: '/preview/admin/audit-log'
+      path: '/audit-log'
+      fullPath: '/preview/admin/audit-log'
+      preLoaderRoute: typeof PreviewAdminAuditLogRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
     '/preview/addresses/new': {
       id: '/preview/addresses/new'
       path: '/new'
@@ -1949,6 +2296,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/preview/pro/booking/$id'
       preLoaderRoute: typeof PreviewProBookingIdRouteImport
       parentRoute: typeof PreviewProRoute
+    }
+    '/preview/admin/provider/$id': {
+      id: '/preview/admin/provider/$id'
+      path: '/provider/$id'
+      fullPath: '/preview/admin/provider/$id'
+      preLoaderRoute: typeof PreviewAdminProviderIdRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/admin/customer/$id': {
+      id: '/preview/admin/customer/$id'
+      path: '/customer/$id'
+      fullPath: '/preview/admin/customer/$id'
+      preLoaderRoute: typeof PreviewAdminCustomerIdRouteImport
+      parentRoute: typeof PreviewAdminRoute
     }
   }
 }
@@ -2056,6 +2417,52 @@ const PreviewAddressesRouteChildren: PreviewAddressesRouteChildren = {
 const PreviewAddressesRouteWithChildren =
   PreviewAddressesRoute._addFileChildren(PreviewAddressesRouteChildren)
 
+interface PreviewAdminRouteChildren {
+  PreviewAdminAuditLogRoute: typeof PreviewAdminAuditLogRoute
+  PreviewAdminBookingsRoute: typeof PreviewAdminBookingsRoute
+  PreviewAdminCampaignsRoute: typeof PreviewAdminCampaignsRoute
+  PreviewAdminCancellationReasonsRoute: typeof PreviewAdminCancellationReasonsRoute
+  PreviewAdminCasesRoute: typeof PreviewAdminCasesRoute
+  PreviewAdminCustomersRoute: typeof PreviewAdminCustomersRoute
+  PreviewAdminMonitoringRoute: typeof PreviewAdminMonitoringRoute
+  PreviewAdminOperationsRoute: typeof PreviewAdminOperationsRoute
+  PreviewAdminPaymentMethodsRoute: typeof PreviewAdminPaymentMethodsRoute
+  PreviewAdminPaymentsRoute: typeof PreviewAdminPaymentsRoute
+  PreviewAdminPromoCodesRoute: typeof PreviewAdminPromoCodesRoute
+  PreviewAdminProvidersRoute: typeof PreviewAdminProvidersRoute
+  PreviewAdminServicesRoute: typeof PreviewAdminServicesRoute
+  PreviewAdminSettingsRoute: typeof PreviewAdminSettingsRoute
+  PreviewAdminZonesRoute: typeof PreviewAdminZonesRoute
+  PreviewAdminIndexRoute: typeof PreviewAdminIndexRoute
+  PreviewAdminCustomerIdRoute: typeof PreviewAdminCustomerIdRoute
+  PreviewAdminProviderIdRoute: typeof PreviewAdminProviderIdRoute
+}
+
+const PreviewAdminRouteChildren: PreviewAdminRouteChildren = {
+  PreviewAdminAuditLogRoute: PreviewAdminAuditLogRoute,
+  PreviewAdminBookingsRoute: PreviewAdminBookingsRoute,
+  PreviewAdminCampaignsRoute: PreviewAdminCampaignsRoute,
+  PreviewAdminCancellationReasonsRoute: PreviewAdminCancellationReasonsRoute,
+  PreviewAdminCasesRoute: PreviewAdminCasesRoute,
+  PreviewAdminCustomersRoute: PreviewAdminCustomersRoute,
+  PreviewAdminMonitoringRoute: PreviewAdminMonitoringRoute,
+  PreviewAdminOperationsRoute: PreviewAdminOperationsRoute,
+  PreviewAdminPaymentMethodsRoute: PreviewAdminPaymentMethodsRoute,
+  PreviewAdminPaymentsRoute: PreviewAdminPaymentsRoute,
+  PreviewAdminPromoCodesRoute: PreviewAdminPromoCodesRoute,
+  PreviewAdminProvidersRoute: PreviewAdminProvidersRoute,
+  PreviewAdminServicesRoute: PreviewAdminServicesRoute,
+  PreviewAdminSettingsRoute: PreviewAdminSettingsRoute,
+  PreviewAdminZonesRoute: PreviewAdminZonesRoute,
+  PreviewAdminIndexRoute: PreviewAdminIndexRoute,
+  PreviewAdminCustomerIdRoute: PreviewAdminCustomerIdRoute,
+  PreviewAdminProviderIdRoute: PreviewAdminProviderIdRoute,
+}
+
+const PreviewAdminRouteWithChildren = PreviewAdminRoute._addFileChildren(
+  PreviewAdminRouteChildren,
+)
+
 interface PreviewProRouteChildren {
   PreviewProAvailabilityRoute: typeof PreviewProAvailabilityRoute
   PreviewProBookingsRoute: typeof PreviewProBookingsRoute
@@ -2089,6 +2496,7 @@ const PreviewProRouteWithChildren = PreviewProRoute._addFileChildren(
 
 interface PreviewRouteChildren {
   PreviewAddressesRoute: typeof PreviewAddressesRouteWithChildren
+  PreviewAdminRoute: typeof PreviewAdminRouteWithChildren
   PreviewBookingsRoute: typeof PreviewBookingsRoute
   PreviewFamilyMembersRoute: typeof PreviewFamilyMembersRoute
   PreviewFavoritesRoute: typeof PreviewFavoritesRoute
@@ -2116,6 +2524,7 @@ interface PreviewRouteChildren {
 
 const PreviewRouteChildren: PreviewRouteChildren = {
   PreviewAddressesRoute: PreviewAddressesRouteWithChildren,
+  PreviewAdminRoute: PreviewAdminRouteWithChildren,
   PreviewBookingsRoute: PreviewBookingsRoute,
   PreviewFamilyMembersRoute: PreviewFamilyMembersRoute,
   PreviewFavoritesRoute: PreviewFavoritesRoute,

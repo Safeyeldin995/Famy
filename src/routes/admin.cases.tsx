@@ -11,6 +11,7 @@ import {
   type TicketStatus,
 } from "@/lib/db/case-queries";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
+import { adminPath } from "@/lib/preview/previewPath";
 import { Search, Paperclip } from "lucide-react";
 
 export const Route = createFileRoute("/admin/cases")({
@@ -48,14 +49,14 @@ function BookingContext({ row }: { row: any }) {
       <span dir="ltr" className="font-mono">{row.booking_id}</span>
       {booking?.status && <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase">{booking.status}</span>}
       {booking?.customer?.full_name && booking?.customer_id && (
-        <Link to="/admin/customer/$id" params={{ id: booking.customer_id }} className="text-brand hover:underline">
+        <Link to={adminPath("/admin/customer/$id") as "/admin/customer/$id"} params={{ id: booking.customer_id }} className="text-brand hover:underline">
           {booking.customer.full_name}
         </Link>
       )}
       {booking?.provider?.profile?.full_name && booking?.provider?.id && (
         <>
           {" → "}
-          <Link to="/admin/provider/$id" params={{ id: booking.provider.id }} className="text-brand hover:underline">
+          <Link to={adminPath("/admin/provider/$id") as "/admin/provider/$id"} params={{ id: booking.provider.id }} className="text-brand hover:underline">
             {booking.provider.profile.full_name}
           </Link>
         </>

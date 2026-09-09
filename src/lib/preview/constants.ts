@@ -11,3 +11,7 @@ export function isPreviewRoute(pathname = typeof window !== "undefined" ? window
 export function isPreviewProRoute(pathname = typeof window !== "undefined" ? window.location.pathname : "") {
   return pathname === "/preview/pro" || pathname.startsWith("/preview/pro/");
 }
+
+export function isPreviewAdminRoute(pathname = typeof window !== "undefined" ? window.location.pathname : "") {
+  return pathname === "/preview/admin" || pathname.startsWith("/preview/admin/");
+}

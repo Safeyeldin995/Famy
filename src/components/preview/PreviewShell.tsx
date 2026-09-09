@@ -4,6 +4,7 @@ import { useMemo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronLeft, LayoutGrid } from "lucide-react";
 import { createPreviewQueryClient, installPreviewFetchGuard } from "@/lib/preview/createPreviewQueryClient";
+import { isPreviewAdminRoute } from "@/lib/preview/constants";
 import { PREVIEW_FULL_BLEED_PREFIXES } from "@/lib/preview/previewScreens";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
 
@@ -17,8 +18,9 @@ export function PreviewShell({ children }: { children: ReactNode }) {
   const fullBleed = PREVIEW_FULL_BLEED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
-  const showBanner = !fullBleed;
-  const showFloatingHub = !isHubIndex(pathname);
+  const isAdminPreview = isPreviewAdminRoute(pathname);
+  const showBanner = !fullBleed && !isAdminPreview;
+  const showFloatingHub = !isHubIndex(pathname) && !isAdminPreview;
 
   const qc = useMemo(() => {
     installPreviewFetchGuard();
@@ -27,7 +29,9 @@ export function PreviewShell({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={qc}>
-      <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
+      <div
+        className={`mx-auto flex min-h-dvh w-full flex-col ${isAdminPreview ? "max-w-none" : "max-w-md"}`}
+      >
         {showBanner ? (
           <div className="brand-hero shrink-0 px-4 py-2 text-center text-[11px] font-bold text-white">
             {t("preview.banner", "Design preview — sample data only, no sign-in required")}

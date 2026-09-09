@@ -27,6 +27,24 @@ export function proPath(path: string) {
   return resolved;
 }
 
+/** Strips the /preview prefix from admin routes for active-tab matching. */
+export function normalizeAdminPathname(pathname: string) {
+  if (pathname.startsWith("/preview/admin")) {
+    const stripped = pathname.slice("/preview".length);
+    return stripped === "" ? "/admin" : stripped;
+  }
+  return pathname;
+}
+
+/** Rewrites admin paths for preview/admin browsing. */
+export function adminPath(path: string) {
+  if (!isPreviewRoute()) return path;
+  if (path === "/admin" || path.startsWith("/admin/")) {
+    return `/preview${path}`;
+  }
+  return path;
+}
+
 /** Customer-app path — applies /preview/* rewrite when in design preview. */
 export function customerPath(path: string) {
   if (!isPreviewRoute()) return path;

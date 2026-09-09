@@ -5,6 +5,7 @@ import { useAdminCustomer, useSetCustomerSuspended } from "@/lib/db/admin-querie
 import { ChevronLeft, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
+import { adminPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/admin/customer/$id")({ component: AdminCustomer });
 
@@ -33,7 +34,7 @@ function AdminCustomer() {
 
   return (
     <div className="px-5 py-4 space-y-4">
-      <Link to="/admin/bookings" className="focus-ring inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground" aria-label={t("common.back")}>
+      <Link to={adminPath("/admin/bookings") as "/admin/bookings"} className="focus-ring inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground" aria-label={t("common.back")}>
         <ChevronLeft className="h-4 w-4" /> {t("common.back")}
       </Link>
 

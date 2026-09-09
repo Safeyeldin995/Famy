@@ -7,6 +7,7 @@ import { useAdminOnboardingAction, useAdminOnboardingReview, useReviewProviderDo
 import { useProviderAvailability, useProviderVacations, useAddVacation, useDeleteVacation } from "@/lib/db/provider-queries";
 import { ChevronLeft, FileText, ShieldCheck, Trash2, Check, X } from "lucide-react";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
+import { adminPath } from "@/lib/preview/previewPath";
 
 function EligibilitySection({ providerId }: { providerId: string }) {
   const { t } = useTranslation();
@@ -48,7 +49,7 @@ function EligibilitySection({ providerId }: { providerId: string }) {
           <ul className="mt-2 space-y-1.5">
             {rows.map((r) => <li key={r.label} className="flex items-center gap-2 text-xs">
               {r.ok ? <Check className="h-3.5 w-3.5 shrink-0 text-success" /> : <X className="h-3.5 w-3.5 shrink-0 text-coral" />}
-              {r.to ? <Link to={r.to as any} className={r.ok ? "text-foreground" : "font-semibold text-coral underline"}>{r.label}</Link> : <span>{r.label}</span>}
+              {r.to ? <Link to={adminPath(r.to) as any} className={r.ok ? "text-foreground" : "font-semibold text-coral underline"}>{r.label}</Link> : <span>{r.label}</span>}
             </li>)}
           </ul>
           {!e.is_eligible && <ul className="mt-2 list-disc ps-5 text-[11px] font-semibold text-coral">{e.failure_reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>}
@@ -173,7 +174,7 @@ function AdminProvider() {
 
   return (
     <div className="px-5 py-4 space-y-4">
-      <Link to="/admin/providers" className="focus-ring inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground" aria-label={t("common.back")}>
+      <Link to={adminPath("/admin/providers") as "/admin/providers"} className="focus-ring inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground" aria-label={t("common.back")}>
         <ChevronLeft className="h-4 w-4" /> {t("common.back")}
       </Link>
 

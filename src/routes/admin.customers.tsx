@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAdminCustomers, type AdminCustomerFilter } from "@/lib/db/admin-queries";
 import { formatEGP } from "@/lib/utils";
+import { adminPath } from "@/lib/preview/previewPath";
 import { ChevronRight } from "lucide-react";
 import {
   AdminPage,
@@ -95,7 +96,7 @@ function CustomerManagement() {
                   </AdminStatusBadge>
                 </AdminTableTd>
                 <AdminTableTd>
-                  <Link to="/admin/customer/$id" params={{ id: c.id }} className="focus-ring inline-flex items-center gap-1 text-xs font-semibold text-brand">
+                  <Link to={adminPath("/admin/customer/$id") as "/admin/customer/$id"} params={{ id: c.id }} className="focus-ring inline-flex items-center gap-1 text-xs font-semibold text-brand">
                     {t("admin.customers.view")} <ChevronRight className="rtl-flip h-3.5 w-3.5" />
                   </Link>
                 </AdminTableTd>

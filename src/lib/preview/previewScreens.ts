@@ -97,6 +97,15 @@ export const PREVIEW_FEATURED: PreviewScreen[] = [
     featured: true,
     badge: "updated",
   },
+  {
+    to: "/preview/admin",
+    labelKey: "preview.adminDashboard",
+    fallback: "Admin panel",
+    descriptionKey: "preview.adminDashboardDesc",
+    descriptionFallback: "Redesigned ops console — pink brand, full sidebar",
+    featured: true,
+    badge: "new",
+  },
 ];
 
 export const PREVIEW_SCREEN_GROUPS: {
@@ -260,6 +269,84 @@ export const PREVIEW_SCREEN_GROUPS: {
       },
     ],
   },
+  {
+    titleKey: "preview.groupAdmin",
+    titleFallback: "Famy Admin",
+    screens: [
+      {
+        to: "/preview/admin",
+        labelKey: "preview.adminOverview",
+        fallback: "Overview",
+        badge: "new",
+      },
+      {
+        to: "/preview/admin/operations",
+        labelKey: "admin.layout.nav.operations",
+        fallback: "Operations",
+        badge: "new",
+      },
+      {
+        to: "/preview/admin/monitoring",
+        labelKey: "admin.layout.nav.monitoring",
+        fallback: "Monitoring",
+        badge: "new",
+      },
+      {
+        to: "/preview/admin/providers",
+        labelKey: "admin.layout.nav.providers",
+        fallback: "Providers",
+        badge: "new",
+      },
+      {
+        to: "/preview/admin/provider/p1",
+        labelKey: "preview.adminProvider",
+        fallback: "Provider detail",
+        badge: "new",
+      },
+      {
+        to: "/preview/admin/customers",
+        labelKey: "admin.layout.nav.customers",
+        fallback: "Customers",
+        badge: "new",
+      },
+      {
+        to: "/preview/admin/bookings",
+        labelKey: "admin.layout.nav.bookings",
+        fallback: "Bookings",
+        badge: "new",
+      },
+      {
+        to: "/preview/admin/cases",
+        labelKey: "admin.layout.nav.cases",
+        fallback: "Cases",
+        badge: "new",
+      },
+      {
+        to: "/preview/admin/payments",
+        labelKey: "admin.layout.nav.payments",
+        fallback: "Payments",
+        badge: "new",
+      },
+      {
+        to: "/preview/admin/services",
+        labelKey: "admin.layout.nav.services",
+        fallback: "Services",
+        badge: "new",
+      },
+      {
+        to: "/preview/admin/zones",
+        labelKey: "admin.layout.nav.zones",
+        fallback: "Zones",
+        badge: "new",
+      },
+      {
+        to: "/preview/admin/settings",
+        labelKey: "admin.layout.nav.settings",
+        fallback: "Settings",
+        badge: "new",
+      },
+    ],
+  },
 ];
 
 /** Routes that use full-bleed layouts (no preview banner). */
@@ -270,4 +357,5 @@ export const PREVIEW_FULL_BLEED_PREFIXES = [
   "/preview/otp",
   "/preview/setup",
   "/preview/forgot",
+  "/preview/admin",
 ];
