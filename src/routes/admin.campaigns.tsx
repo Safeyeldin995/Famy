@@ -65,7 +65,7 @@ function CampaignForm({ onCreated }: { onCreated: () => void }) {
   };
 
   return (
-    <div className="rounded-2xl border border-border/60 bg-surface p-5 shadow-card">
+    <div className="rounded-2xl border border-border/60 bg-surface p-5 shadow-sm">
       <h2 className="text-sm font-extrabold">{t("admin.campaigns.newCampaign")}</h2>
       <p className="mt-0.5 text-xs text-muted-foreground">{t("admin.campaigns.draftsNote")}</p>
 
@@ -109,7 +109,7 @@ function CampaignForm({ onCreated }: { onCreated: () => void }) {
       )}
 
       <button onClick={handleCreate} disabled={create.isPending || !valid}
-        className="focus-ring mt-4 rounded-xl bg-navy px-4 py-2 text-xs font-bold text-navy-foreground disabled:opacity-50">
+        className="focus-ring mt-4 rounded-xl bg-brand px-4 py-2 text-xs font-bold text-brand-foreground disabled:opacity-50">
         {create.isPending ? t("admin.cancellationReasons.saving") : t("admin.campaigns.saveDraft")}
       </button>
     </div>
@@ -142,7 +142,7 @@ function CampaignRow({ c }: { c: any }) {
             <button
               onClick={() => activate.mutate(c.id, { onError: (e: any) => toast.error(e?.message ?? t("admin.campaigns.activateError")) })}
               disabled={activate.isPending}
-              className="focus-ring inline-flex items-center gap-1 rounded-lg bg-navy px-3 py-1.5 text-[11px] font-bold text-navy-foreground disabled:opacity-50"
+              className="focus-ring inline-flex items-center gap-1 rounded-lg bg-brand px-3 py-1.5 text-[11px] font-bold text-brand-foreground disabled:opacity-50"
             >
               <Send className="h-3 w-3" /> {t("admin.campaigns.activate")}
             </button>
@@ -169,13 +169,13 @@ function AdminCampaigns() {
   return (
     <div className="space-y-4 px-5 py-5">
       <div className="flex items-center gap-2">
-        <Megaphone className="h-4 w-4 text-navy" />
+        <Megaphone className="h-4 w-4 text-brand" />
         <h1 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">{t("admin.layout.nav.campaigns")}</h1>
       </div>
 
       <CampaignForm onCreated={() => q.refetch()} />
 
-      <div className="rounded-2xl border border-border/60 bg-surface p-5 shadow-card">
+      <div className="rounded-2xl border border-border/60 bg-surface p-5 shadow-sm">
         <h2 className="text-sm font-extrabold">{t("admin.layout.nav.campaigns")}</h2>
         {q.isLoading ? (
           <div className="mt-3 h-16 animate-pulse rounded-xl bg-muted" />

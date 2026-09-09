@@ -40,14 +40,14 @@ function QueueCard({
     <Link
       to={to as any}
       search={search as any}
-      className="focus-ring flex flex-col justify-between rounded-2xl border border-border/60 bg-surface p-4 shadow-card transition hover:border-navy/40"
+      className="focus-ring flex flex-col justify-between rounded-2xl border border-border/60 bg-surface p-4 shadow-sm transition hover:border-brand/40"
     >
       <div>
         <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{title}</p>
         <p className="mt-1 text-2xl font-extrabold">{count}</p>
         <p className="mt-1 text-[11px] text-muted-foreground">{description}</p>
       </div>
-      <p className="mt-3 text-[11px] font-semibold text-navy">
+      <p className="mt-3 text-[11px] font-semibold text-brand">
         {count > 0 ? t("admin.operations.oldestWaiting", { age: formatAge(t, oldestAt) }) : t("admin.operations.nothingPending")}
       </p>
     </Link>
@@ -59,7 +59,7 @@ function SectionShell({ title, count, isLoading, isError, error, onRetry, isEmpt
 }) {
   const { t } = useTranslation();
   return (
-    <section className="rounded-2xl border border-border/60 bg-surface p-4 shadow-card">
+    <section className="rounded-2xl border border-border/60 bg-surface p-4 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{title}</h3>
         <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold">{count}</span>
@@ -93,7 +93,7 @@ function PendingProviderServicesSection() {
               <span className="text-muted-foreground"> — {r.service?.name_en}</span>
               <p className="text-[10px] text-muted-foreground">{t("admin.operations.requestedOn", { date: new Date(r.created_at).toLocaleDateString() })}</p>
             </div>
-            <Link to="/admin/provider/$id" params={{ id: r.provider_id }} className="focus-ring shrink-0 rounded-lg border border-border px-2 py-1 font-semibold text-navy">
+            <Link to="/admin/provider/$id" params={{ id: r.provider_id }} className="focus-ring shrink-0 rounded-lg border border-border px-2 py-1 font-semibold text-brand">
               {t("admin.operations.review")}
             </Link>
           </li>
@@ -116,7 +116,7 @@ function FlaggedProviderPricingSection() {
               <span className="font-semibold">{r.provider?.profile?.full_name ?? r.provider_id.slice(0, 8)}</span>
               <span className="text-muted-foreground" dir="ltr"> — {r.service?.name_en} · {r.price_override} EGP</span>
             </div>
-            <Link to="/admin/services" className="focus-ring shrink-0 rounded-lg border border-border px-2 py-1 font-semibold text-navy">
+            <Link to="/admin/services" className="focus-ring shrink-0 rounded-lg border border-border px-2 py-1 font-semibold text-brand">
               {t("admin.operations.review")}
             </Link>
           </li>
@@ -142,7 +142,7 @@ function PendingRequirementReviewsSection() {
                 {r.evidence_storage_path ? t("admin.operations.evidenceSubmitted") : t("admin.operations.evidenceMissing")} · {new Date(r.created_at).toLocaleDateString()}
               </p>
             </div>
-            <Link to="/admin/services" className="focus-ring shrink-0 rounded-lg border border-border px-2 py-1 font-semibold text-navy">
+            <Link to="/admin/services" className="focus-ring shrink-0 rounded-lg border border-border px-2 py-1 font-semibold text-brand">
               {t("admin.operations.review")}
             </Link>
           </li>
@@ -176,7 +176,7 @@ function NotificationFailuresSection() {
                 onSuccess: () => toast.success(t("admin.operations.retrySuccess")),
                 onError: (e: any) => toast.error(e?.message ?? t("admin.operations.retryError")),
               })}
-              className="focus-ring inline-flex shrink-0 items-center gap-1 rounded-lg bg-navy px-2 py-1 text-[11px] font-bold text-navy-foreground disabled:opacity-50"
+              className="focus-ring inline-flex shrink-0 items-center gap-1 rounded-lg bg-brand px-2 py-1 text-[11px] font-bold text-brand-foreground disabled:opacity-50"
             >
               <RefreshCw className="h-3 w-3" /> {t("admin.operations.retry")}
             </button>

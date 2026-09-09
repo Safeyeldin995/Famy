@@ -37,7 +37,7 @@ function AdminCustomer() {
         <ChevronLeft className="h-4 w-4" /> {t("common.back")}
       </Link>
 
-      <section className="rounded-2xl border border-border/60 bg-surface p-4 shadow-card">
+      <section className="rounded-2xl border border-border/60 bg-surface p-4 shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-base font-extrabold">{profile.full_name || t("admin.provider.unnamed")}</h2>
@@ -53,7 +53,7 @@ function AdminCustomer() {
           onClick={() => setShowConfirm(true)}
           disabled={setSuspended.isPending}
           className={`focus-ring mt-4 flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold disabled:opacity-50 ${
-            isSuspended ? "bg-navy text-navy-foreground" : "border border-coral text-coral"
+            isSuspended ? "bg-brand text-brand-foreground" : "border border-coral text-coral"
           }`}
         >
           <ShieldAlert className="h-4 w-4" />

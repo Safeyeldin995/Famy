@@ -59,7 +59,7 @@ function AdminRescheduleHistory({ bookingId, customerId }: { bookingId: string; 
             <button
               disabled={!reason.trim() || resolve.isPending}
               onClick={() => resolve.mutate({ requestId: open.id, bookingId, action: "accept", reason }, { onSuccess: () => setReason("") })}
-              className="focus-ring rounded-lg bg-navy px-3 py-1.5 text-xs font-bold text-navy-foreground disabled:opacity-50"
+              className="focus-ring rounded-lg bg-brand px-3 py-1.5 text-xs font-bold text-brand-foreground disabled:opacity-50"
             >{t("admin.bookings.forceAccept")}</button>
             <button
               disabled={!reason.trim() || resolve.isPending}
@@ -167,7 +167,7 @@ function AdminBookings() {
       ) : rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t("admin.bookings.noResults")}</p>
       ) : (
-        <ul className="divide-y divide-border/60 rounded-2xl border border-border/60 bg-surface shadow-card">
+        <ul className="divide-y divide-border/60 rounded-2xl border border-border/60 bg-surface shadow-sm">
           {rows.map((b: any) => {
             const payment = latestPayment(b.payments);
             const isOpen = expanded === b.id;
@@ -176,11 +176,11 @@ function AdminBookings() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-bold">
-                      <Link to="/admin/provider/$id" params={{ id: b.provider?.id }} className="text-navy hover:underline">
+                      <Link to="/admin/provider/$id" params={{ id: b.provider?.id }} className="text-brand hover:underline">
                         {b.provider?.profile?.full_name || t("admin.bookings.provider")}
                       </Link>
                       {" → "}
-                      <Link to="/admin/customer/$id" params={{ id: b.customer_id }} className="text-navy hover:underline">
+                      <Link to="/admin/customer/$id" params={{ id: b.customer_id }} className="text-brand hover:underline">
                         {b.customer?.full_name || t("admin.bookings.customer")}
                       </Link>
                     </p>

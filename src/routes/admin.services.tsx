@@ -247,7 +247,7 @@ function FlaggedProviders({ serviceId }: { serviceId: string }) {
         {rows.map((r: any) => (
           <li key={r.id} className="flex items-center justify-between text-xs">
             <span>{r.provider?.profile?.full_name ?? r.provider_id.slice(0, 8)} — {r.price_override} EGP</span>
-            <button onClick={() => clearFlag.mutate({ id: r.id, serviceId })} className="focus-ring text-[11px] font-bold text-navy">{t("admin.services.clear")}</button>
+            <button onClick={() => clearFlag.mutate({ id: r.id, serviceId })} className="focus-ring text-[11px] font-bold text-brand">{t("admin.services.clear")}</button>
           </li>
         ))}
       </ul>
@@ -354,7 +354,7 @@ function FulfillmentsReview({ requirementId }: { requirementId: string }) {
                 key={s}
                 disabled={review.isPending || r.status === s}
                 onClick={() => review.mutate({ id: r.id, requirementId, status: s })}
-                className={`focus-ring rounded-lg px-2 py-1 text-[11px] font-bold disabled:opacity-50 ${r.status === s ? "bg-navy text-navy-foreground" : "border border-border"}`}
+                className={`focus-ring rounded-lg px-2 py-1 text-[11px] font-bold disabled:opacity-50 ${r.status === s ? "bg-brand text-brand-foreground" : "border border-border"}`}
               >{s}</button>
             ))}
           </div>
@@ -438,7 +438,7 @@ function RequirementsPanel({ serviceId }: { serviceId: string }) {
     <div className="mt-3 border-t border-border pt-3">
       <div className="flex items-center justify-between">
         <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">{t("admin.services.requirements")}</p>
-        <button onClick={() => { setCreating((v) => !v); setEditingId(null); }} className="focus-ring text-[11px] font-bold text-navy">
+        <button onClick={() => { setCreating((v) => !v); setEditingId(null); }} className="focus-ring text-[11px] font-bold text-brand">
           {creating ? t("common.cancel") : t("admin.services.addRequirement")}
         </button>
       </div>
@@ -452,7 +452,7 @@ function RequirementsPanel({ serviceId }: { serviceId: string }) {
               { onSuccess: () => { setCreating(false); setForm(EMPTY_REQ_FORM); toast.success(t("admin.services.requirementAdded")); }, onError: (e: any) => toast.error(dbErrorMessage(e, t)) },
             )}
             disabled={create.isPending || !form.code.trim() || !form.name_en.trim() || !form.name_ar.trim()}
-            className="focus-ring mt-2 rounded-lg bg-navy px-3 py-1.5 text-xs font-bold text-navy-foreground disabled:opacity-50"
+            className="focus-ring mt-2 rounded-lg bg-brand px-3 py-1.5 text-xs font-bold text-brand-foreground disabled:opacity-50"
           >{create.isPending ? t("admin.services.adding") : t("admin.services.add")}</button>
         </div>
       )}
@@ -472,7 +472,7 @@ function RequirementsPanel({ serviceId }: { serviceId: string }) {
                       { onSuccess: () => { setEditingId(null); toast.success(t("admin.services.requirementUpdated")); }, onError: (e: any) => toast.error(dbErrorMessage(e, t)) },
                     )}
                     disabled={update.isPending}
-                    className="focus-ring rounded-lg bg-navy px-3 py-1.5 text-xs font-bold text-navy-foreground disabled:opacity-50"
+                    className="focus-ring rounded-lg bg-brand px-3 py-1.5 text-xs font-bold text-brand-foreground disabled:opacity-50"
                   >{t("common.save")}</button>
                   <button onClick={() => setEditingId(null)} className="focus-ring rounded-lg border border-border px-3 py-1.5 text-xs font-bold">{t("common.cancel")}</button>
                 </div>
@@ -498,7 +498,7 @@ function RequirementsPanel({ serviceId }: { serviceId: string }) {
                   <button
                     disabled={update.isPending}
                     onClick={() => update.mutate({ id: r.id, service_id: serviceId, is_active: !r.is_active })}
-                    className={`focus-ring rounded-lg px-2 py-1 text-[11px] font-bold disabled:opacity-50 ${r.is_active ? "border border-coral text-coral" : "bg-navy text-navy-foreground"}`}
+                    className={`focus-ring rounded-lg px-2 py-1 text-[11px] font-bold disabled:opacity-50 ${r.is_active ? "border border-coral text-coral" : "bg-brand text-brand-foreground"}`}
                   >{r.is_active ? t("admin.cancellationReasons.deactivate") : t("admin.cancellationReasons.activate")}</button>
                 </div>
               </div>
@@ -594,7 +594,7 @@ function AdminServices() {
           onClick={startCreate}
           disabled={categories.length === 0}
           title={categories.length === 0 ? t("admin.services.categoriesLoading") : undefined}
-          className="focus-ring inline-flex items-center gap-1.5 rounded-xl bg-navy px-3 py-2 text-xs font-bold text-navy-foreground disabled:opacity-50"
+          className="focus-ring inline-flex items-center gap-1.5 rounded-xl bg-brand px-3 py-2 text-xs font-bold text-brand-foreground disabled:opacity-50"
         >
           <Plus className="h-3.5 w-3.5" /> {t("admin.services.newService")}
         </button>
@@ -624,7 +624,7 @@ function AdminServices() {
             <button
               key={f.key}
               onClick={() => setStatusFilter(f.key)}
-              className={`focus-ring rounded-lg px-3 py-1.5 text-xs font-bold ${statusFilter === f.key ? "bg-navy text-navy-foreground" : "text-muted-foreground"}`}
+              className={`focus-ring rounded-lg px-3 py-1.5 text-xs font-bold ${statusFilter === f.key ? "bg-brand text-brand-foreground" : "text-muted-foreground"}`}
             >
               {t(f.labelKey)}
             </button>
@@ -633,14 +633,14 @@ function AdminServices() {
       </div>
 
       {creating && (
-        <section className="rounded-2xl border border-border/60 bg-surface p-5 shadow-card">
+        <section className="rounded-2xl border border-border/60 bg-surface p-5 shadow-sm">
           <h2 className="text-sm font-extrabold">{t("admin.services.newServiceTitle")}</h2>
           <div className="mt-4">
             <ServiceFormFields form={createForm} setForm={setCreateForm} errors={createErrors} categories={categories} />
           </div>
           <div className="mt-4 flex gap-2">
             <button onClick={submitCreate} disabled={create.isPending}
-              className="focus-ring rounded-lg bg-navy px-4 py-2 text-xs font-bold text-navy-foreground disabled:opacity-50">
+              className="focus-ring rounded-lg bg-brand px-4 py-2 text-xs font-bold text-brand-foreground disabled:opacity-50">
               {create.isPending ? t("admin.cancellationReasons.creating") : t("admin.services.createService")}
             </button>
             <button onClick={() => setCreating(false)} className="focus-ring rounded-lg border border-border px-4 py-2 text-xs font-bold">{t("common.cancel")}</button>
@@ -648,7 +648,7 @@ function AdminServices() {
         </section>
       )}
 
-      <section className="rounded-2xl border border-border/60 bg-surface p-5 shadow-card">
+      <section className="rounded-2xl border border-border/60 bg-surface p-5 shadow-sm">
         {q.isLoading ? (
           <div className="space-y-2">
             {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-16 animate-pulse rounded-xl bg-muted" />)}
@@ -666,7 +666,7 @@ function AdminServices() {
                     <ServiceFormFields form={editForm} setForm={setEditForm} errors={editErrors} categories={categories} />
                     <div className="flex gap-2">
                       <button onClick={() => submitEdit(s)} disabled={update.isPending}
-                        className="focus-ring rounded-lg bg-navy px-3 py-1.5 text-xs font-bold text-navy-foreground disabled:opacity-50">
+                        className="focus-ring rounded-lg bg-brand px-3 py-1.5 text-xs font-bold text-brand-foreground disabled:opacity-50">
                         {update.isPending ? t("admin.cancellationReasons.saving") : t("common.save")}
                       </button>
                       <button onClick={() => setEditingId(null)} className="focus-ring rounded-lg border border-border px-3 py-1.5 text-xs font-bold">{t("common.cancel")}</button>
@@ -692,7 +692,7 @@ function AdminServices() {
                           if (s.is_active) setConfirmDeactivateId(s.id);
                           else setActive.mutate({ id: s.id, active: true }, { onError: (e: any) => toast.error(dbErrorMessage(e, t)) });
                         }}
-                        className={`focus-ring rounded-lg px-3 py-1.5 text-xs font-bold disabled:opacity-50 ${s.is_active ? "border border-coral text-coral" : "bg-navy text-navy-foreground"}`}
+                        className={`focus-ring rounded-lg px-3 py-1.5 text-xs font-bold disabled:opacity-50 ${s.is_active ? "border border-coral text-coral" : "bg-brand text-brand-foreground"}`}
                       >
                         {s.is_active ? t("admin.cancellationReasons.deactivate") : t("admin.cancellationReasons.activate")}
                       </button>

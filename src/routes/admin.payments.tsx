@@ -122,7 +122,7 @@ function AdminPayments() {
       ) : rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t("admin.payments.noResults")}</p>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-border/60 bg-surface shadow-card">
+        <div className="overflow-x-auto rounded-2xl border border-border/60 bg-surface shadow-sm">
           <table className="w-full text-start text-sm">
             <thead className="border-b border-border/60 text-xs font-bold uppercase tracking-wide text-muted-foreground">
               <tr>
@@ -154,7 +154,7 @@ function AdminPayments() {
                   <td className="px-4 py-3 text-xs text-muted-foreground">{new Date(p.created_at).toLocaleString()}</td>
                   <td className="px-4 py-3">
                     {p.proof_path ? (
-                      <button onClick={() => openProof(p.proof_path)} className="focus-ring inline-flex items-center gap-1 text-xs font-semibold text-navy">
+                      <button onClick={() => openProof(p.proof_path)} className="focus-ring inline-flex items-center gap-1 text-xs font-semibold text-brand">
                         <Eye className="h-3.5 w-3.5" /> {t("admin.payments.view")}
                       </button>
                     ) : (
@@ -164,7 +164,7 @@ function AdminPayments() {
                   <td className="px-4 py-3">
                     <Link
                       to="/admin/bookings"
-                      className="focus-ring inline-flex items-center gap-1 text-xs font-semibold text-navy"
+                      className="focus-ring inline-flex items-center gap-1 text-xs font-semibold text-brand"
                     >
                       {t("admin.payments.openBookings")} <ExternalLink className="h-3.5 w-3.5" />
                     </Link>

@@ -16,7 +16,7 @@ function EligibilitySection({ providerId }: { providerId: string }) {
   const services = q.data ?? [];
   const eligible = services.some((service) => service.is_eligible);
   return (
-    <section id="marketplace-eligibility" className="rounded-2xl border border-border/60 bg-surface p-4 shadow-card">
+    <section id="marketplace-eligibility" className="rounded-2xl border border-border/60 bg-surface p-4 shadow-sm">
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("admin.provider.eligibilityTitle")}</h3>
         <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${eligible ? "bg-mint/20 text-success" : "bg-coral/10 text-coral"}`}>
@@ -177,7 +177,7 @@ function AdminProvider() {
         <ChevronLeft className="h-4 w-4" /> {t("common.back")}
       </Link>
 
-      <section className="rounded-2xl border border-border/60 bg-surface p-4 shadow-card">
+      <section className="rounded-2xl border border-border/60 bg-surface p-4 shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-base font-extrabold">{p.profile?.full_name || t("admin.provider.unnamed")}</h2>
@@ -205,7 +205,7 @@ function AdminProvider() {
 
       <EligibilitySection providerId={p.id} />
 
-      <section className="rounded-2xl border border-border/60 bg-surface p-4 shadow-card">
+      <section className="rounded-2xl border border-border/60 bg-surface p-4 shadow-sm">
         <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("admin.provider.onboardingReview")}</h3>
         {onboardingReview.isLoading ? (
           <div className="mt-2 h-16 animate-pulse rounded-xl bg-muted" />
@@ -242,7 +242,7 @@ function AdminProvider() {
               <li key={d.id}>
                 <div className="flex w-full items-center gap-3 rounded-xl border border-border/60 bg-surface p-3">
                   <button type="button" onClick={() => openDoc(d.storage_path)} className="focus-ring flex min-w-0 flex-1 items-center gap-3 text-start">
-                    <FileText className="h-4 w-4 shrink-0 text-navy" />
+                    <FileText className="h-4 w-4 shrink-0 text-brand" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold">{d.type}</p>
                       <p className="truncate text-[11px] text-muted-foreground">{d.status} · {new Date(d.created_at).toLocaleDateString()}</p>
@@ -253,7 +253,7 @@ function AdminProvider() {
                       <button
                         disabled={reviewDocument.isPending}
                         onClick={() => reviewDocument.mutate({ documentId: d.id, status: "approved" }, { onError: (e: any) => toast.error(e?.message ?? t("admin.provider.approveServiceError")) })}
-                        className="focus-ring rounded-lg bg-navy px-2 py-1 text-[10px] font-bold text-navy-foreground"
+                        className="focus-ring rounded-lg bg-brand px-2 py-1 text-[10px] font-bold text-brand-foreground"
                       >{t("admin.providers.approve")}</button>
                       <button
                         onClick={() => { setRejectingDocId(d.id); setDocRejectReason(""); }}
@@ -308,7 +308,7 @@ function AdminProvider() {
                           { providerServiceId: ps.id, status: "approved" },
                           { onError: (e: any) => toast.error(e?.message ?? t("admin.provider.approveServiceError")) },
                         )}
-                        className="focus-ring rounded-lg bg-navy px-3 py-1.5 text-[11px] font-bold text-navy-foreground disabled:opacity-50"
+                        className="focus-ring rounded-lg bg-brand px-3 py-1.5 text-[11px] font-bold text-brand-foreground disabled:opacity-50"
                       >{t("admin.providers.approve")}</button>
                       <button
                         disabled={setServiceStatus.isPending}
@@ -360,7 +360,7 @@ function AdminProvider() {
                 { providerId: p.id, action: p.onboarding_status === "SUBMITTED" ? "start_review" : "approve" },
                 { onError: (e: any) => toast.error(e?.message ?? t("admin.providers.approveError")) },
               )}
-              className="focus-ring flex-1 rounded-xl bg-navy py-3 text-sm font-bold text-navy-foreground disabled:opacity-50"
+              className="focus-ring flex-1 rounded-xl bg-brand py-3 text-sm font-bold text-brand-foreground disabled:opacity-50"
             >
               {p.onboarding_status === "SUBMITTED" ? t("admin.provider.startReview") : t("admin.providers.approve")}
             </button>
@@ -383,7 +383,7 @@ function AdminProvider() {
             disabled={setActive.isPending}
             onClick={() => setShowConfirm(true)}
             className={`focus-ring flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold disabled:opacity-50 ${
-              p.is_active ? "border border-coral text-coral" : "bg-navy text-navy-foreground"
+              p.is_active ? "border border-coral text-coral" : "bg-brand text-brand-foreground"
             }`}
           >
             <ShieldCheck className="h-4 w-4" />

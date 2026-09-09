@@ -35,7 +35,7 @@ function SummaryCard({
 
   if (!to) {
     return (
-      <div className="rounded-2xl border border-border/60 bg-surface p-4 shadow-card">{body}</div>
+      <div className="rounded-2xl border border-border/60 bg-surface p-4 shadow-sm">{body}</div>
     );
   }
 
@@ -43,7 +43,7 @@ function SummaryCard({
     <Link
       to={to}
       search={search}
-      className="focus-ring rounded-2xl border border-border/60 bg-surface p-4 shadow-card transition hover:border-navy/40"
+      className="focus-ring rounded-2xl border border-border/60 bg-surface p-4 shadow-sm transition hover:border-brand/40"
     >
       {body}
     </Link>
@@ -71,7 +71,7 @@ function SectionShell({
 }) {
   const { t } = useTranslation();
   return (
-    <section className="rounded-2xl border border-border/60 bg-surface p-4 shadow-card">
+    <section className="rounded-2xl border border-border/60 bg-surface p-4 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
           {title}
@@ -222,7 +222,7 @@ function AdminMonitoring() {
                 <Link
                   to="/admin/payments"
                   search={{ status: row.status }}
-                  className="focus-ring shrink-0 rounded-lg border border-border px-2 py-1 font-semibold text-navy"
+                  className="focus-ring shrink-0 rounded-lg border border-border px-2 py-1 font-semibold text-brand"
                 >
                   {t("admin.monitoring.review")}
                 </Link>

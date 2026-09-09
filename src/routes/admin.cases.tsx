@@ -48,14 +48,14 @@ function BookingContext({ row }: { row: any }) {
       <span dir="ltr" className="font-mono">{row.booking_id}</span>
       {booking?.status && <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase">{booking.status}</span>}
       {booking?.customer?.full_name && booking?.customer_id && (
-        <Link to="/admin/customer/$id" params={{ id: booking.customer_id }} className="text-navy hover:underline">
+        <Link to="/admin/customer/$id" params={{ id: booking.customer_id }} className="text-brand hover:underline">
           {booking.customer.full_name}
         </Link>
       )}
       {booking?.provider?.profile?.full_name && booking?.provider?.id && (
         <>
           {" → "}
-          <Link to="/admin/provider/$id" params={{ id: booking.provider.id }} className="text-navy hover:underline">
+          <Link to="/admin/provider/$id" params={{ id: booking.provider.id }} className="text-brand hover:underline">
             {booking.provider.profile.full_name}
           </Link>
         </>
@@ -70,7 +70,7 @@ function EvidenceLinks({ paths }: { paths: string[] | undefined }) {
   return (
     <div className="flex flex-wrap gap-2">
       {paths.map((p, i) => (
-        <button key={p} onClick={() => openEvidence(p, t)} className="focus-ring flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[11px] font-semibold text-navy">
+        <button key={p} onClick={() => openEvidence(p, t)} className="focus-ring flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[11px] font-semibold text-brand">
           <Paperclip className="h-3 w-3" /> {t("admin.cases.evidence", { n: i + 1 })}
         </button>
       ))}
@@ -122,7 +122,7 @@ function SupportTicketDetail({ row }: { row: any }) {
               },
             )
           }
-          className="focus-ring rounded-lg bg-navy px-3 py-1.5 text-xs font-bold text-navy-foreground disabled:opacity-50"
+          className="focus-ring rounded-lg bg-brand px-3 py-1.5 text-xs font-bold text-brand-foreground disabled:opacity-50"
         >
           {update.isPending ? t("admin.cancellationReasons.saving") : t("common.save")}
         </button>
@@ -174,7 +174,7 @@ function DisputeDetail({ row }: { row: any }) {
                 onSuccess: () => toast.success(t("admin.cases.disputeResolved")),
                 onError: (e: any) => toast.error(e?.message ?? t("admin.cases.disputeResolveError")),
               })}
-              className="focus-ring rounded-lg bg-navy px-3 py-1.5 text-xs font-bold text-navy-foreground disabled:opacity-50"
+              className="focus-ring rounded-lg bg-brand px-3 py-1.5 text-xs font-bold text-brand-foreground disabled:opacity-50"
             >{t("admin.cases.resolve")}</button>
             <button
               disabled={!notes.trim() || resolve.isPending}
@@ -233,7 +233,7 @@ function NoShowDetail({ row }: { row: any }) {
                 onSuccess: () => toast.success(t("admin.cases.reportResolved")),
                 onError: (e: any) => toast.error(e?.message ?? t("admin.cases.reportResolveError")),
               })}
-              className="focus-ring rounded-lg bg-navy px-3 py-1.5 text-xs font-bold text-navy-foreground disabled:opacity-50"
+              className="focus-ring rounded-lg bg-brand px-3 py-1.5 text-xs font-bold text-brand-foreground disabled:opacity-50"
             >{t("admin.cases.resolve")}</button>
             <button
               disabled={!notes.trim() || resolve.isPending}
@@ -327,7 +327,7 @@ function AdminCases() {
           <button
             key={tOpt.key}
             onClick={() => { setTab(tOpt.key); setStatus(""); setExpanded(null); }}
-            className={`focus-ring rounded-full px-3 py-1.5 text-xs font-bold ${tab === tOpt.key ? "bg-navy text-navy-foreground" : "bg-muted text-muted-foreground"}`}
+            className={`focus-ring rounded-full px-3 py-1.5 text-xs font-bold ${tab === tOpt.key ? "bg-brand text-brand-foreground" : "bg-muted text-muted-foreground"}`}
           >
             {t(tOpt.labelKey)}
           </button>
@@ -359,7 +359,7 @@ function AdminCases() {
       ) : filtered.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t("admin.cases.noResults")}</p>
       ) : (
-        <ul className="divide-y divide-border/60 rounded-2xl border border-border/60 bg-surface shadow-card">
+        <ul className="divide-y divide-border/60 rounded-2xl border border-border/60 bg-surface shadow-sm">
           {filtered.map((row: any) => (
             <CaseRow key={row.id} tab={tab} row={row} isOpen={expanded === row.id} onToggle={() => setExpanded(expanded === row.id ? null : row.id)} />
           ))}

@@ -18,7 +18,7 @@ export const Route = createFileRoute("/admin/settings")({ component: AdminSettin
 
 function SectionCard({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-border/60 bg-surface p-5 shadow-card">
+    <section className="rounded-2xl border border-border/60 bg-surface p-5 shadow-sm">
       <h2 className="text-sm font-extrabold">{title}</h2>
       {subtitle && <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>}
       <div className="mt-4 space-y-3">{children}</div>
@@ -32,7 +32,7 @@ function SaveButton({ onClick, pending, saved }: { onClick: () => void; pending:
     <button
       onClick={onClick}
       disabled={pending}
-      className="focus-ring inline-flex items-center gap-2 rounded-xl bg-navy px-4 py-2 text-xs font-bold text-navy-foreground disabled:opacity-50"
+      className="focus-ring inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2 text-xs font-bold text-brand-foreground disabled:opacity-50"
     >
       {saved ? <Check className="h-3.5 w-3.5" /> : <Save className="h-3.5 w-3.5" />}
       {pending ? t("admin.cancellationReasons.saving") : saved ? t("admin.settings.saved") : t("common.save")}
@@ -152,7 +152,7 @@ function CategoriesSection() {
                           onError: (e: any) => toast.error(e?.message ?? t("admin.settings.categorySaveError")),
                         },
                       )}
-                      className="focus-ring rounded-lg bg-navy px-3 py-1.5 text-xs font-bold text-navy-foreground disabled:opacity-50"
+                      className="focus-ring rounded-lg bg-brand px-3 py-1.5 text-xs font-bold text-brand-foreground disabled:opacity-50"
                     >{updateNames.isPending ? t("admin.cancellationReasons.saving") : t("common.save")}</button>
                     <button onClick={() => setEditing(null)} className="focus-ring rounded-lg border border-border px-3 py-1.5 text-xs font-bold">{t("common.cancel")}</button>
                   </div>
@@ -173,7 +173,7 @@ function CategoriesSection() {
                       onClick={() => setActive.mutate({ id: c.id, active: !c.is_active }, {
                         onError: (e: any) => toast.error(e?.message ?? t("admin.settings.categoryUpdateError")),
                       })}
-                      className={`focus-ring rounded-lg px-3 py-1.5 text-xs font-bold disabled:opacity-50 ${c.is_active ? "border border-coral text-coral" : "bg-navy text-navy-foreground"}`}
+                      className={`focus-ring rounded-lg px-3 py-1.5 text-xs font-bold disabled:opacity-50 ${c.is_active ? "border border-coral text-coral" : "bg-brand text-brand-foreground"}`}
                     >
                       {c.is_active ? t("admin.settings.disable") : t("admin.settings.enable")}
                     </button>
@@ -231,7 +231,7 @@ function ServiceAreasSection() {
               <button
                 disabled={update.isPending}
                 onClick={() => toggle(a.name)}
-                className={`focus-ring rounded-lg px-3 py-1.5 text-xs font-bold disabled:opacity-50 ${a.enabled ? "border border-coral text-coral" : "bg-navy text-navy-foreground"}`}
+                className={`focus-ring rounded-lg px-3 py-1.5 text-xs font-bold disabled:opacity-50 ${a.enabled ? "border border-coral text-coral" : "bg-brand text-brand-foreground"}`}
               >
                 {a.enabled ? t("admin.settings.disable") : t("admin.settings.enable")}
               </button>
@@ -278,7 +278,7 @@ function ReminderRulesSection() {
                 onClick={() => setActive.mutate({ id: r.id, active: !r.is_active }, {
                   onError: (e: any) => toast.error(e?.message ?? t("admin.settings.reminderUpdateError")),
                 })}
-                className={`focus-ring rounded-lg px-3 py-1.5 text-xs font-bold disabled:opacity-50 ${r.is_active ? "border border-coral text-coral" : "bg-navy text-navy-foreground"}`}
+                className={`focus-ring rounded-lg px-3 py-1.5 text-xs font-bold disabled:opacity-50 ${r.is_active ? "border border-coral text-coral" : "bg-brand text-brand-foreground"}`}
               >
                 {r.is_active ? t("admin.settings.disable") : t("admin.settings.enable")}
               </button>
@@ -289,7 +289,7 @@ function ReminderRulesSection() {
       <div className="flex items-center gap-2">
         <input value={leadMinutes} onChange={(e) => setLeadMinutes(e.target.value)} type="number" min={1} placeholder={t("admin.settings.minutesBeforeStart")}
           className="h-9 w-40 rounded-lg border border-border bg-surface px-2 text-xs" />
-        <button onClick={handleAdd} disabled={create.isPending} className="focus-ring rounded-lg bg-navy px-3 py-1.5 text-xs font-bold text-navy-foreground disabled:opacity-50">
+        <button onClick={handleAdd} disabled={create.isPending} className="focus-ring rounded-lg bg-brand px-3 py-1.5 text-xs font-bold text-brand-foreground disabled:opacity-50">
           {t("admin.settings.addRule")}
         </button>
       </div>
