@@ -253,7 +253,9 @@ export const PREVIEW_SCREEN_GROUPS: {
       {
         to: "/preview/pro/onboarding",
         labelKey: "preview.proOnboarding",
-        fallback: "Onboarding wizard",
+        fallback: "Onboarding application",
+        descriptionKey: "preview.proOnboardingDesc",
+        descriptionFallback: "6-step provider signup — full interactive flow",
         badge: "updated",
       },
     ],

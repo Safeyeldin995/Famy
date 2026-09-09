@@ -150,7 +150,7 @@ function ProProfile() {
   const logout = async () => {
     await qc.cancelQueries(); qc.clear();
     await supabase.auth.signOut();
-    nav({ to: "/login", replace: true });
+    nav({ to: previewPath("/login") as "/login", replace: true });
   };
 
 
@@ -221,7 +221,7 @@ function ProProfile() {
             <div className="mt-2 space-y-2">
               {(eligibilityQ.data ?? []).map((row) => <div key={row.service_id} className="rounded-xl border border-border/60 p-2 text-xs">
                 <div className="font-bold">{lang === "ar" ? row.service_name_ar : row.service_name_en}</div>
-                {row.is_eligible ? <div className="mt-1 text-success">{t("admin.provider.eligibleBody")}</div> : <ul className="mt-1 list-disc ps-4 text-coral">{row.failure_reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>}
+                {row.is_eligible ? <div className="mt-1 text-success">{t("admin.provider.eligibleBody")}</div> : <ul className="mt-1 list-disc ps-4 text-coral">{(row.failure_reasons ?? []).map((reason) => <li key={reason}>{reason}</li>)}</ul>}
               </div>)}
               {!eligibilityQ.isLoading && (eligibilityQ.data ?? []).length === 0 && <div className="text-xs text-coral">BLOCKED BY BUSINESS DATA — no Provider service is configured.</div>}
             </div>

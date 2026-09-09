@@ -1,6 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Route as ProOnboardingRoute } from "./pro.onboarding";
+import { ProviderOnboardingFlow } from "@/components/provider/ProviderOnboardingFlow";
 
-const ProOnboarding = ProOnboardingRoute.options.component!;
+export const Route = createFileRoute("/preview/pro/onboarding")({
+  component: PreviewProOnboarding,
+});
 
-export const Route = createFileRoute("/preview/pro/onboarding")({ component: ProOnboarding });
+function PreviewProOnboarding() {
+  return <ProviderOnboardingFlow previewMode />;
+}

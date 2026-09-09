@@ -526,10 +526,24 @@ function seedPreviewProviderQueries(qc: import("@tanstack/react-query").QueryCli
     },
   ]);
   qc.setQueryData(["provider-marketplace-eligibility", PREVIEW_PROVIDER_ID], [
-    { service_id: "svc-clean", eligible: true, reason_code: null },
+    {
+      service_id: "svc-clean",
+      service_name_en: "Deep home clean",
+      service_name_ar: "تنظيف منزل عميق",
+      is_eligible: true,
+      failure_reasons: [],
+    },
+    {
+      service_id: "svc-kids",
+      service_name_en: "Babysitting",
+      service_name_ar: "جليسة أطفال",
+      is_eligible: false,
+      failure_reasons: ["Complete babysitting requirements in profile"],
+    },
   ]);
   qc.setQueryData(["my-provider-services", PREVIEW_PROVIDER_ID], [
     {
+      service_id: "svc-clean",
       price_override: null,
       status: "approved",
       service: {
@@ -538,7 +552,10 @@ function seedPreviewProviderQueries(qc: import("@tanstack/react-query").QueryCli
         name_en: "Deep home clean",
         name_ar: "تنظيف منزل عميق",
         is_active: true,
-        category: { slug: "home-cleaning", name_en: "Home cleaning", name_ar: "تنظيف المنزل" },
+        provider_pricing_allowed: true,
+        minimum_price: 120,
+        maximum_price: 600,
+        category: { name_en: "Home cleaning", name_ar: "تنظيف المنزل" },
       },
     },
   ]);
@@ -565,7 +582,7 @@ function seedPreviewProviderQueries(qc: import("@tanstack/react-query").QueryCli
   qc.setQueryData(["provider-onboarding-snapshot"], {
     exists: true,
     profile: myProvider.profile,
-    provider: { onboarding_status: "APPROVED" },
+    provider: { onboarding_status: "DRAFT" },
     details: {
       date_of_birth: "1990-04-18",
       gender: "female",
@@ -605,8 +622,38 @@ function seedPreviewProviderQueries(qc: import("@tanstack/react-query").QueryCli
     },
   ]);
 
+  const previewBookingMessages = [
+    {
+      id: "pm-1",
+      conversation_id: "conv-pro-pending",
+      sender_id: PREVIEW_USER_ID,
+      sender_role: "customer",
+      message_type: "text",
+      system_key: null,
+      body: "Hi Mona! Please bring eco-friendly products if possible.",
+      created_at: new Date(Date.now() - 3600000).toISOString(),
+    },
+    {
+      id: "pm-2",
+      conversation_id: "conv-pro-pending",
+      sender_id: PREVIEW_USER_ID,
+      sender_role: "provider",
+      message_type: "text",
+      system_key: null,
+      body: "Of course — I always use gentle, family-safe supplies.",
+      created_at: new Date(Date.now() - 3000000).toISOString(),
+    },
+  ];
+
   for (const booking of previewProviderBookings) {
-    qc.setQueryData(["provider-booking", booking.id], booking);
+    const enriched = {
+      ...booking,
+      price_subtotal: booking.price_total,
+      price_discount: 0,
+      notes: booking.status === "pending" ? "Please ring the intercom — apartment 4B." : null,
+      requirement_choices: [],
+    };
+    qc.setQueryData(["provider-booking", booking.id], enriched);
     qc.setQueryData(["booking-disputes", booking.id], []);
     qc.setQueryData(["booking-no-show-reports", booking.id], []);
     qc.setQueryData(["booking-support-tickets", booking.id], []);
@@ -615,7 +662,17 @@ function seedPreviewProviderQueries(qc: import("@tanstack/react-query").QueryCli
       booking_id: booking.id,
       status: booking.status === "completed" ? "captured" : "pending",
       amount: booking.price_total,
+      method: "cash",
+      payment_method_code: "cash",
+      payment_method_name_en: "Cash on arrival",
+      payment_method_name_ar: "نقداً عند الوصول",
       captured_at: booking.status === "completed" ? booking.end_at : null,
+      created_at: booking.start_at,
+      updated_at: booking.start_at,
     });
+    if (booking.status === "pending") {
+      qc.setQueryData(["conversation-by-booking", booking.id], "conv-pro-pending");
+      qc.setQueryData(["messages", "conv-pro-pending"], previewBookingMessages);
+    }
   }
 }

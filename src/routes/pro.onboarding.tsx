@@ -4,7 +4,8 @@ import { useTranslation } from "react-i18next";
 import { PhoneFrame } from "@/components/famio/ui";
 import { ProviderPageHero } from "@/components/famio/ProviderPageHero";
 import { QueryError } from "@/components/famio/QueryError";
-import { OnboardingWizard } from "@/components/provider/OnboardingWizard";
+import { ProviderOnboardingFlow } from "@/components/provider/ProviderOnboardingFlow";
+import { isPreviewRoute } from "@/lib/preview/constants";
 import { useMyProvider } from "@/lib/db/provider-queries";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
@@ -16,6 +17,7 @@ function OnboardingRoute() {
   const providerQ = useMyProvider();
 
   useEffect(() => {
+    if (isPreviewRoute()) return;
     (async () => {
       const {
         data: { session },
@@ -48,5 +50,5 @@ function OnboardingRoute() {
     );
   }
 
-  return <OnboardingWizard />;
+  return <ProviderOnboardingFlow />;
 }
