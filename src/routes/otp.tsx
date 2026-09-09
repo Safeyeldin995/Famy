@@ -155,7 +155,6 @@ function Otp() {
   return (
     <PhoneFrame bg="bg-background">
       <TopBar back={{ to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login" }} transparent />
-      <div id="firebase-recaptcha" className="hidden" aria-hidden="true" />
       <div className="px-6 pt-2">
         <h1 className="text-[26px] font-black leading-tight tracking-tight text-foreground">{copy.title}</h1>
         <p className="mt-2 text-sm font-semibold leading-relaxed text-muted-foreground">

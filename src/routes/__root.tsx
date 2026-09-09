@@ -122,6 +122,7 @@ function RootComponent() {
         <PushNavigationBridge />
         <ClientErrorMonitoringBridge />
         <Outlet />
+        <div id="firebase-recaptcha" className="hidden" aria-hidden="true" />
         <Toaster />
       </LanguageProvider>
     </QueryClientProvider>
