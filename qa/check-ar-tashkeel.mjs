@@ -31,12 +31,17 @@ export function checkArLocaleTashkeel(arPath = DEFAULT_AR_PATH) {
   return { ok: true, count: 0, message: "ar.ts: no tashkeel characters found" };
 }
 
-const cliPath = process.argv[2] ?? process.env.AR_LOCALE_PATH ?? DEFAULT_AR_PATH;
-const result = checkArLocaleTashkeel(cliPath);
+const invokedDirectly =
+  !!process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
-if (!result.ok) {
-  console.error(result.message);
-  process.exit(1);
+if (invokedDirectly) {
+  const cliPath = process.argv[2] ?? process.env.AR_LOCALE_PATH ?? DEFAULT_AR_PATH;
+  const result = checkArLocaleTashkeel(cliPath);
+
+  if (!result.ok) {
+    console.error(result.message);
+    process.exit(1);
+  }
+
+  console.log(result.message);
 }
-
-console.log(result.message);
