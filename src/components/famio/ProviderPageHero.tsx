@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronLeft } from "lucide-react";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
+import { proPath } from "@/lib/preview/previewPath";
 
 export function ProviderPageHero({
   title,
@@ -39,7 +40,7 @@ export function ProviderPageHero({
       <div className="relative z-10 flex items-center justify-between gap-3">
         {backTo ? (
           <Link
-            to={backTo as "/pro"}
+            to={proPath(backTo) as "/pro"}
             aria-label={t("common.back")}
             data-rtl-flip="true"
             className={backClass}

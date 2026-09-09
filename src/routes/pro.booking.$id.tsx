@@ -19,6 +19,7 @@ import {
 import { bookingStatusTone, formatEGP, BOOKING_TIMELINE_STEPS } from "@/lib/utils";
 import { Calendar, Clock, MapPin, Phone, User as UserIcon, HeartPulse, AlertTriangle, LifeBuoy } from "lucide-react";
 import { useState } from "react";
+import { proPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/pro/booking/$id")({ component: ProBookingDetail });
 
@@ -317,7 +318,7 @@ function ProBookingDetail() {
           )}
 
           {terminal && (
-            <button onClick={() => nav({ to: "/pro/bookings" })} className="focus-ring h-14 w-full rounded-2xl border border-border bg-surface text-sm font-bold">{t("pro.booking.backToJobs")}</button>
+            <button onClick={() => nav({ to: proPath("/pro/bookings") as "/pro/bookings" })} className="focus-ring h-14 w-full rounded-2xl border border-border bg-surface text-sm font-bold">{t("pro.booking.backToJobs")}</button>
           )}
         </div>
       </div>

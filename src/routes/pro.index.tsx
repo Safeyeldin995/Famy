@@ -12,6 +12,7 @@ import { formatEGP, BOOKING_ACTIVE_STATUSES } from "@/lib/utils";
 import type { ReactNode } from "react";
 import { Bell, ShieldCheck, Star, TrendingUp, Plane, AlertCircle } from "lucide-react";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
+import { proPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/pro/")({ component: ProDashboard });
 
@@ -47,7 +48,7 @@ function ProDashboard() {
         subtitle={provider?.name}
         right={
           <Link
-            to="/pro/notifications"
+            to={proPath("/pro/notifications") as "/pro/notifications"}
             className="focus-ring relative grid h-10 w-10 place-items-center rounded-xl border border-white/25 bg-white/15 text-white backdrop-blur-sm"
           >
             <Bell className="h-5 w-5" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
@@ -61,7 +62,7 @@ function ProDashboard() {
       <div className="px-5">
         <ProviderFloatingPanel className="grid grid-cols-2 gap-3 !p-3">
           <Link
-            to="/pro/earnings"
+            to={proPath("/pro/earnings") as "/pro/earnings"}
             className="focus-ring tap-scale rounded-[1rem] bg-brand p-4 text-brand-foreground"
           >
             <div className="flex items-center gap-1.5 text-[11px] font-bold opacity-90">
@@ -94,7 +95,7 @@ function ProDashboard() {
             body={t("pro.dashboard.vacationOnBody")}
             action={
               <Link
-                to="/pro/availability"
+                to={proPath("/pro/availability") as "/pro/availability"}
                 className="shrink-0 rounded-full bg-brand px-3 py-2 text-[11px] font-extrabold text-brand-foreground"
               >
                 {t("pro.dashboard.manage")}
@@ -122,7 +123,7 @@ function ProDashboard() {
             body={provider.review_reason_public ?? t("pro.onboardingWizard.changesRequired")}
             action={
               <Link
-                to="/pro/onboarding"
+                to={proPath("/pro/onboarding") as "/pro/onboarding"}
                 className="shrink-0 rounded-full bg-destructive px-3 py-2 text-[11px] font-extrabold text-destructive-foreground"
               >
                 {t("pro.dashboard.manage")}
@@ -140,7 +141,7 @@ function ProDashboard() {
             body={t("pro.dashboard.verifyBody")}
             action={
               <Link
-                to="/pro/onboarding"
+                to={proPath("/pro/onboarding") as "/pro/onboarding"}
                 className="shrink-0 rounded-full bg-warning px-3 py-2 text-[11px] font-extrabold text-warning-foreground"
               >
                 {t("pro.dashboard.upload")}
@@ -155,7 +156,7 @@ function ProDashboard() {
             action={
               pending.length > 0 ? (
                 <Link
-                  to="/pro/bookings"
+                  to={proPath("/pro/bookings") as "/pro/bookings"}
                   className="text-xs font-extrabold text-brand"
                 >
                   {t("pro.common.seeAll")}
@@ -195,7 +196,7 @@ function ProDashboard() {
           <ProviderSectionHeader
             title={t("pro.dashboard.upcoming")}
             action={
-              <Link to="/pro/bookings" className="text-xs font-extrabold text-brand">
+              <Link to={proPath("/pro/bookings") as "/pro/bookings"} className="text-xs font-extrabold text-brand">
                 {t("pro.common.seeAll")}
               </Link>
             }
@@ -271,7 +272,7 @@ function BookingRow({
 
   return (
     <Link
-      to="/pro/booking/$id"
+      to={proPath("/pro/booking/$id") as "/pro/booking/$id"}
       params={{ id: b.id }}
       className="focus-ring tap-scale block rounded-[1.25rem] border border-border/50 bg-surface p-4 shadow-xs"
     >

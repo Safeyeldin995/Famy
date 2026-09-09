@@ -18,6 +18,7 @@ import {
   type OnboardingSection,
 } from "@/lib/provider/onboarding-queries";
 import { supabase } from "@/integrations/supabase/client";
+import { proPath } from "@/lib/preview/previewPath";
 
 const STEPS: OnboardingSection[] = ["personal", "services", "experience", "coverage", "references", "review"];
 
@@ -136,7 +137,7 @@ export function OnboardingWizard() {
         await saveSection.mutateAsync({ section: "review", payload: { confirmed } });
         const res = await submit.mutateAsync();
         if (!res.ok) throw new Error("submission_incomplete");
-        nav({ to: "/pro", replace: true });
+        nav({ to: proPath("/pro") as "/pro", replace: true });
         return;
       }
       if (step < STEPS.length - 1) setStep(step + 1);

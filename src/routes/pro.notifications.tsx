@@ -6,6 +6,7 @@ import { Card, EmptyState } from "@/components/famio/ui";
 import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead } from "@/lib/db/queries";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { Bell } from "lucide-react";
+import { proPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/pro/notifications")({ component: NotificationsPage });
 
@@ -26,7 +27,7 @@ function NotificationsPage() {
 
   const openNotification = (n: any) => {
     if (!n.read_at) mark.mutate(n.id);
-    if (n.deep_link) nav({ to: n.deep_link as any });
+    if (n.deep_link) nav({ to: proPath(n.deep_link) as any });
   };
 
   return (

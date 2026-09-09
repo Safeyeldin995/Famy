@@ -9,6 +9,7 @@ import { useLang } from "@/components/famio/LanguageToggle";
 import { useMyProvider, useProviderBookings } from "@/lib/db/provider-queries";
 import { formatEGP, BOOKING_ACTIVE_STATUSES } from "@/lib/utils";
 import { Calendar, Clock, Loader2 } from "lucide-react";
+import { proPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/pro/bookings")({ component: ProBookings });
 
@@ -96,7 +97,7 @@ function ProBookings() {
             const name = b.customer?.full_name || t("pro.common.customer");
             const serviceName = lang === "ar" ? (b.service?.name_ar ?? b.service?.name_en) : (b.service?.name_en ?? b.service?.name_ar);
             return (
-              <Link key={b.id} to="/pro/booking/$id" params={{ id: b.id }} className="focus-ring tap-scale block rounded-[1.25rem] border border-border/50 bg-surface p-4 shadow-xs">
+              <Link key={b.id} to={proPath("/pro/booking/$id") as "/pro/booking/$id"} params={{ id: b.id }} className="focus-ring tap-scale block rounded-[1.25rem] border border-border/50 bg-surface p-4 shadow-xs">
                 <div className="flex items-center gap-4">
                   <Avatar src={b.customer?.avatar_url} alt={name} className="h-14 w-14 shrink-0 shadow-sm" />
                   <div className="min-w-0 flex-1">

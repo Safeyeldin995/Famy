@@ -88,6 +88,15 @@ export const PREVIEW_FEATURED: PreviewScreen[] = [
     featured: true,
     badge: "updated",
   },
+  {
+    to: "/preview/pro",
+    labelKey: "preview.proDashboard",
+    fallback: "Pro dashboard",
+    descriptionKey: "preview.proDashboardDesc",
+    descriptionFallback: "Provider home — jobs, earnings & trust score",
+    featured: true,
+    badge: "updated",
+  },
 ];
 
 export const PREVIEW_SCREEN_GROUPS: {
@@ -190,6 +199,63 @@ export const PREVIEW_SCREEN_GROUPS: {
       },
       { to: "/preview/help", labelKey: "helpC.title", fallback: "Help" },
       { to: "/preview/promo-codes", labelKey: "promoCodes.title", fallback: "Promo codes" },
+    ],
+  },
+  {
+    titleKey: "preview.groupPro",
+    titleFallback: "Famy Pro",
+    screens: [
+      {
+        to: "/preview/pro",
+        labelKey: "preview.proDashboard",
+        fallback: "Dashboard",
+        badge: "updated",
+      },
+      {
+        to: "/preview/pro/bookings",
+        labelKey: "pro.nav.jobs",
+        fallback: "Jobs",
+        badge: "updated",
+      },
+      {
+        to: "/preview/pro/booking/booking-pro-pending-1",
+        labelKey: "preview.proBooking",
+        fallback: "Job detail (pending request)",
+      },
+      {
+        to: "/preview/pro/availability",
+        labelKey: "pro.nav.schedule",
+        fallback: "Schedule",
+        badge: "updated",
+      },
+      {
+        to: "/preview/pro/earnings",
+        labelKey: "pro.nav.earnings",
+        fallback: "Earnings",
+        badge: "updated",
+      },
+      {
+        to: "/preview/pro/profile",
+        labelKey: "pro.nav.profile",
+        fallback: "Profile",
+        badge: "updated",
+      },
+      {
+        to: "/preview/pro/notifications",
+        labelKey: "common.notifications",
+        fallback: "Notifications",
+      },
+      {
+        to: "/preview/pro/notification-preferences",
+        labelKey: "notificationPreferences.title",
+        fallback: "Notification preferences",
+      },
+      {
+        to: "/preview/pro/onboarding",
+        labelKey: "preview.proOnboarding",
+        fallback: "Onboarding wizard",
+        badge: "updated",
+      },
     ],
   },
 ];

@@ -1,4 +1,4 @@
-import { PREVIEW_USER_ID } from "@/lib/preview/constants";
+import { PREVIEW_PROVIDER_ID, PREVIEW_USER_ID } from "@/lib/preview/constants";
 import { addressesQueryKey, addressQueryKey, defaultAddressQueryKey } from "@/lib/db/address-query-keys";
 
 const cat = (slug: string, en: string, ar: string, order: number) => ({
@@ -367,6 +367,7 @@ export function seedPreviewQueries(qc: import("@tanstack/react-query").QueryClie
     buffer_minutes: 30,
   });
   seedPreviewAvailableSlots(qc);
+  seedPreviewProviderQueries(qc);
   qc.setQueryData(["resolve-zone", 29.96, 31.25], {
     id: "zone-maadi",
     name_en: "Maadi",
@@ -390,4 +391,231 @@ export function seedPreviewQueries(qc: import("@tanstack/react-query").QueryClie
       updated_at: new Date().toISOString(),
     },
   ]);
+}
+
+const previewCustomer = {
+  full_name: "Sara Hassan",
+  avatar_url: "https://i.pravatar.cc/240?img=12",
+  phone: "+201012345678",
+};
+
+const previewBookingLocation = {
+  street: "Road 9",
+  building: "12",
+  compound: "Degla",
+  city: "Giza",
+  area: "Maadi",
+};
+
+const previewService = {
+  id: "svc-clean",
+  slug: "home-cleaning",
+  name_en: "Deep home clean",
+  name_ar: "تنظيف منزل عميق",
+};
+
+function buildPreviewProviderBookings() {
+  const pendingStart = new Date();
+  pendingStart.setDate(pendingStart.getDate() + 1);
+  pendingStart.setHours(14, 0, 0, 0);
+  const pendingEnd = new Date(pendingStart);
+  pendingEnd.setHours(pendingStart.getHours() + 3);
+
+  const confirmedStart = new Date();
+  confirmedStart.setDate(confirmedStart.getDate() + 3);
+  confirmedStart.setHours(10, 0, 0, 0);
+  const confirmedEnd = new Date(confirmedStart);
+  confirmedEnd.setHours(confirmedStart.getHours() + 4);
+
+  const completedStart = new Date();
+  completedStart.setDate(completedStart.getDate() - 4);
+  completedStart.setHours(11, 0, 0, 0);
+  const completedEnd = new Date(completedStart);
+  completedEnd.setHours(completedStart.getHours() + 3);
+
+  const base = {
+    provider_id: PREVIEW_PROVIDER_ID,
+    customer_id: PREVIEW_USER_ID,
+    service: previewService,
+    customer: previewCustomer,
+    location: previewBookingLocation,
+  };
+
+  return [
+    {
+      ...base,
+      id: "booking-pro-pending-1",
+      status: "pending",
+      start_at: pendingStart.toISOString(),
+      end_at: pendingEnd.toISOString(),
+      price_total: 540,
+      total_price: 540,
+    },
+    {
+      ...base,
+      id: "booking-pro-confirmed-1",
+      status: "confirmed",
+      start_at: confirmedStart.toISOString(),
+      end_at: confirmedEnd.toISOString(),
+      price_total: 720,
+      total_price: 720,
+    },
+    {
+      ...base,
+      id: "booking-pro-completed-1",
+      status: "completed",
+      start_at: completedStart.toISOString(),
+      end_at: completedEnd.toISOString(),
+      price_total: 540,
+      total_price: 540,
+    },
+  ];
+}
+
+function seedPreviewProviderQueries(qc: import("@tanstack/react-query").QueryClient) {
+  const previewProviderBookings = buildPreviewProviderBookings();
+  const myProvider = {
+    id: PREVIEW_PROVIDER_ID,
+    profile_id: PREVIEW_USER_ID,
+    name: "Mona Adel",
+    bio_en: p1.bio_en,
+    bio_ar: p1.bio_ar,
+    years_experience: 5,
+    hourly_rate: 180,
+    city: "Cairo",
+    country: "EG",
+    languages: ["ar", "en"],
+    is_active: true,
+    is_verified: true,
+    is_top_pro: true,
+    vacation_mode: false,
+    onboarding_status: "APPROVED",
+    submitted_at: new Date(Date.now() - 86400000 * 30).toISOString(),
+    review_reason_public: null,
+    review_reason_code: null,
+    created_at: new Date(Date.now() - 86400000 * 90).toISOString(),
+    profile: {
+      id: PREVIEW_USER_ID,
+      full_name: "Mona Adel",
+      avatar_url: "https://i.pravatar.cc/240?img=47",
+      phone: "+201098765432",
+    },
+    ratings: [{ rating_avg: 4.9, rating_count: 128 }],
+    trust: [{ score: 92 }],
+  };
+
+  qc.setQueryData(["my-role"], "provider");
+  qc.setQueryData(["my-provider"], myProvider);
+  qc.setQueryData(["provider-bookings", PREVIEW_PROVIDER_ID], previewProviderBookings);
+  qc.setQueryData(["provider-earnings", PREVIEW_PROVIDER_ID], {
+    total: 12480,
+    mtd: 3240,
+    last7: 1860,
+    completedCount: 41,
+    upcomingPipeline: 1260,
+  });
+  qc.setQueryData(["provider-vacations", PREVIEW_PROVIDER_ID], []);
+  qc.setQueryData(["provider-exceptions", PREVIEW_PROVIDER_ID], []);
+  qc.setQueryData(["provider-documents", PREVIEW_PROVIDER_ID], [
+    {
+      id: "doc-1",
+      provider_id: PREVIEW_PROVIDER_ID,
+      document_type: "national_id",
+      status: "approved",
+      created_at: new Date(Date.now() - 86400000 * 20).toISOString(),
+    },
+  ]);
+  qc.setQueryData(["provider-marketplace-eligibility", PREVIEW_PROVIDER_ID], [
+    { service_id: "svc-clean", eligible: true, reason_code: null },
+  ]);
+  qc.setQueryData(["my-provider-services", PREVIEW_PROVIDER_ID], [
+    {
+      price_override: null,
+      status: "approved",
+      service: {
+        id: "svc-clean",
+        slug: "home-cleaning",
+        name_en: "Deep home clean",
+        name_ar: "تنظيف منزل عميق",
+        is_active: true,
+        category: { slug: "home-cleaning", name_en: "Home cleaning", name_ar: "تنظيف المنزل" },
+      },
+    },
+  ]);
+  qc.setQueryData(["my-requirement-fulfillments", PREVIEW_PROVIDER_ID], []);
+  qc.setQueryData(["service-requirements", "svc-clean"], []);
+  qc.setQueryData(["all-services"], [
+    {
+      id: "svc-clean",
+      slug: "home-cleaning",
+      name_en: "Deep home clean",
+      name_ar: "تنظيف منزل عميق",
+      is_active: true,
+      category: { slug: "home-cleaning", name_en: "Home cleaning", name_ar: "تنظيف المنزل" },
+    },
+    {
+      id: "svc-kids",
+      slug: "babysitting",
+      name_en: "Babysitting",
+      name_ar: "جليسة أطفال",
+      is_active: true,
+      category: { slug: "babysitting", name_en: "Babysitting", name_ar: "جليسة أطفال" },
+    },
+  ]);
+  qc.setQueryData(["provider-onboarding-snapshot"], {
+    exists: true,
+    profile: myProvider.profile,
+    provider: { onboarding_status: "APPROVED" },
+    details: {
+      date_of_birth: "1990-04-18",
+      gender: "female",
+      governorate: "Cairo",
+      area: "Maadi",
+      full_address: "Road 9, Degla, Giza",
+    },
+    completion: { ok: true, complete: true, errors: {} },
+  });
+  qc.setQueryData(["provider-onboarding-completion", PREVIEW_PROVIDER_ID], {
+    ok: true,
+    complete: true,
+    errors: {},
+  });
+  qc.setQueryData(["phase1-services"], [
+    {
+      id: "svc-clean",
+      slug: "home-cleaning",
+      name_en: "Deep home clean",
+      name_ar: "تنظيف منزل عميق",
+      category: { slug: "home-cleaning", name_en: "Home cleaning", name_ar: "تنظيف المنزل" },
+    },
+  ]);
+  qc.setQueryData(["active-zones"], [
+    { id: "zone-maadi", name_en: "Maadi", name_ar: "المعادي" },
+    { id: "zone-zayed", name_en: "Sheikh Zayed", name_ar: "الشيخ زايد" },
+  ]);
+  qc.setQueryData(["provider-references", PREVIEW_PROVIDER_ID], [
+    {
+      id: "ref-1",
+      provider_id: PREVIEW_PROVIDER_ID,
+      full_name: "Nadia Kamal",
+      relationship: "former_client",
+      phone: "+201011122233",
+      notes: "Regular weekly clean for 6 months",
+      sort_order: 1,
+    },
+  ]);
+
+  for (const booking of previewProviderBookings) {
+    qc.setQueryData(["provider-booking", booking.id], booking);
+    qc.setQueryData(["booking-disputes", booking.id], []);
+    qc.setQueryData(["booking-no-show-reports", booking.id], []);
+    qc.setQueryData(["booking-support-tickets", booking.id], []);
+    qc.setQueryData(["payment", booking.id], {
+      id: `pay-${booking.id}`,
+      booking_id: booking.id,
+      status: booking.status === "completed" ? "captured" : "pending",
+      amount: booking.price_total,
+      captured_at: booking.status === "completed" ? booking.end_at : null,
+    });
+  }
 }

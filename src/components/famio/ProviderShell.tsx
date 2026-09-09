@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { PhoneFrame } from "@/components/famio/ui";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
+import { normalizeProPathname, proPath } from "@/lib/preview/previewPath";
 
 export function ProviderShell({ children, hideNav = false }: { children: ReactNode; hideNav?: boolean }) {
   return (
@@ -25,6 +26,7 @@ const tabs = [
 export function ProviderBottomNav() {
   const { t } = useTranslation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navPath = normalizeProPathname(pathname);
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40" aria-label={t("pro.nav.navAria")}>
@@ -32,12 +34,13 @@ export function ProviderBottomNav() {
         <div className="safe-bottom border-t border-border/50 bg-surface/95 backdrop-blur-md">
           <ul className="grid grid-cols-5">
             {tabs.map((tab) => {
-              const active = tab.to === "/pro" ? pathname === "/pro" : pathname.startsWith(tab.to);
+              const active =
+                tab.to === "/pro" ? navPath === "/pro" || navPath === "/pro/" : navPath.startsWith(tab.to);
               const Icon = tab.icon;
               return (
                 <li key={tab.to}>
                   <Link
-                    to={tab.to}
+                    to={proPath(tab.to) as "/pro"}
                     aria-current={active ? "page" : undefined}
                     className="focus-ring flex min-h-12 flex-col items-center justify-center gap-0.5 px-1 py-2"
                   >

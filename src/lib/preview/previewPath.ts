@@ -1,5 +1,23 @@
 import { isPreviewRoute } from "@/lib/preview/constants";
 
+/** Strips the /preview prefix from pro routes for active-tab matching. */
+export function normalizeProPathname(pathname: string) {
+  if (pathname.startsWith("/preview/pro")) {
+    const stripped = pathname.slice("/preview".length);
+    return stripped === "" ? "/pro" : stripped;
+  }
+  return pathname;
+}
+
+/** Rewrites /pro/* paths to /preview/pro/* when browsing the design preview. */
+export function proPath(path: string) {
+  if (!isPreviewRoute()) return path;
+  if (path === "/pro" || path.startsWith("/pro/")) {
+    return `/preview${path}`;
+  }
+  return path;
+}
+
 const PREVIEW_PATHS: Record<string, string> = {
   "/home": "/preview/home",
   "/search": "/preview/search",

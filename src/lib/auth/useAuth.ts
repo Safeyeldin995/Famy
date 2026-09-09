@@ -6,7 +6,7 @@ import { useEffect, useState, useCallback } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
-import { isPreviewRoute, PREVIEW_USER_ID } from '@/lib/preview/constants';
+import { isPreviewProRoute, isPreviewRoute, PREVIEW_USER_ID } from '@/lib/preview/constants';
 
 type Role = Database['public']['Enums']['app_role'];
 
@@ -24,7 +24,7 @@ export function useAuth() {
     if (isPreviewRoute()) {
       setSession({} as Session);
       setUser(previewUser());
-      setRoles(['customer']);
+      setRoles(isPreviewProRoute() ? ['provider'] : ['customer']);
       setLoading(false);
       return;
     }
