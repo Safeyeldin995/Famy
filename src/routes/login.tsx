@@ -82,7 +82,6 @@ function Login() {
 
   return (
     <PhoneFrame bg="bg-background">
-      <div id="firebase-recaptcha" className="hidden" aria-hidden="true" />
       <div className="safe-top px-5 pb-4 pt-6">
         <div className="flex items-center justify-between gap-3">
           <button onClick={() => nav({ to: "/onboarding" })} aria-label={t("common.back")} className="focus-ring tap-scale grid h-10 w-10 shrink-0 place-items-center rounded-full bg-surface-2 text-foreground" data-rtl-flip="true">

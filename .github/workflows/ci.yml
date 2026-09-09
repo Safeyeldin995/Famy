@@ -53,3 +53,6 @@ jobs:
         shell: bash
         run: |
           find qa -type f -name '*.mjs' -print0 | xargs -0 -n1 node --check
+
+      - name: Guard single Firebase reCAPTCHA container
+        run: node qa/check-firebase-recaptcha-container.mjs
