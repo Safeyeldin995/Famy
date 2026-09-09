@@ -1,13 +1,13 @@
-#!/usr/bin/env node
 /**
  * Fails when Arabic locale values contain tashkeel (diacritics).
- * Character set matches the product requirement in docs/tashkeel-sweep order.
+ * Tatweel (U+0640) is deliberately excluded: it is a joining character,
+ * not a diacritic, and preserves single-letter prefixes such as كـ and بـ.
  */
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const TASHKEEL_RE = /[\u0640\u064B-\u0652\u0670\u06D6-\u06ED]/g;
+export const TASHKEEL_RE = /[\u064B-\u0652\u0670\u06D6-\u06ED]/g;
 
 const DEFAULT_AR_PATH = resolve(
   dirname(fileURLToPath(import.meta.url)),

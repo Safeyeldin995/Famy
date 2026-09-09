@@ -9,6 +9,10 @@ const REPO_ROOT = process.cwd();
 const AR_PATH = path.join(REPO_ROOT, "src/lib/i18n/locales/ar.ts");
 
 describe("check-ar-tashkeel", () => {
+  it("preserves tatweel joining characters", () => {
+    expect(countTashkeel("تسجيل الدخول كـ احجز بـ {{price}}")).toBe(0);
+  });
+
   it("detects tashkeel characters in sample text", () => {
     expect(countTashkeel("حاليًا")).toBe(1);
     expect(countTashkeel("حدّث")).toBe(1);

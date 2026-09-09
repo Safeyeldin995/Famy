@@ -102,7 +102,7 @@ const ar: Translation = {
     iAmA: "أنا",
     roleCustomer: "عميل",
     roleProvider: "مقدم خدمة",
-    signInAs: "تسجيل الدخول ك",
+    signInAs: "تسجيل الدخول كـ",
     accountMode: "الحساب",
     contactDetails: "بيانات التواصل",
     noProviderAccount:
@@ -509,7 +509,7 @@ const ar: Translation = {
     notFound: "الفئة غير موجودة",
   },
   provider2: {
-    bookFor: "احجز ب {{price}}",
+    bookFor: "احجز بـ {{price}}",
     bookingFee: "شامل رسوم الخدمة",
     perHour: "للساعة",
     photos: "الصور",
