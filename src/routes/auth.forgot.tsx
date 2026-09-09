@@ -39,7 +39,6 @@ function Forgot() {
   return (
     <PhoneFrame bg="bg-background">
       <TopBar back={{ to: "/login" }} transparent />
-      <div id="firebase-recaptcha" className="hidden" aria-hidden="true" />
       <div className="px-6 pt-2">
         <h1 className="text-[26px] font-black leading-tight tracking-tight text-foreground">
           {t("auth.forgotTitle", "Reset password")}

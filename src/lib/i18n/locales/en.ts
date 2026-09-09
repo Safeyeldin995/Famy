@@ -160,6 +160,8 @@ const en = {
     sendFailed: "Could not send code. Try again later.",
     firebaseSendFailed: "Could not send verification SMS. Try again later.",
     firebaseStartFailed: "Could not start phone verification. Try again.",
+    firebaseRecaptchaUnavailable:
+      "Phone verification is temporarily unavailable. Refresh the page and try again.",
     firebaseSessionLost:
       "Your SMS verification session expired on this page. Tap resend to get a new code.",
     sessionExpired: "Your verification session expired. Start again.",

@@ -185,7 +185,7 @@ export function OtpScreen({
         subtitle={`${copy.body} ${otpContext.maskedPhone}`}
         backTo={otpContext.purpose === "reset" ? "/auth/forgot" : "/login"}
       />
-      <div id="firebase-recaptcha" className="hidden" aria-hidden="true" />
+
 
       <CustomerFloatingPanel className="mx-5 -mt-8 flex-1" >
       <div dir={i18n.dir()}>

@@ -1,12 +1,16 @@
 import { isClientFirebaseOtpProvider } from "@/lib/otp/otpProviderConfig";
 import { otpService, type Purpose, type Role } from "@/lib/otp/OtpService";
-import { FirebasePhoneVerificationSessionError } from "@/lib/otp/firebaseAuth.browser";
+import {
+  FirebasePhoneVerificationSessionError,
+  FirebaseRecaptchaContainerError,
+} from "@/lib/otp/firebaseAuth.browser";
 import type { TFunction } from "i18next";
 
 export type PhoneOtpFlowError =
   | "send_failed"
   | "firebase_start_failed"
   | "firebase_send_failed"
+  | "firebase_recaptcha_unavailable"
   | "firebase_session_lost"
   | "rate_limited"
   | "intent_missing";
@@ -25,6 +29,8 @@ export function phoneOtpFlowErrorMessage(error: PhoneOtpFlowError, t: TFunction)
       return t("auth.firebaseSendFailed");
     case "firebase_start_failed":
       return t("auth.firebaseStartFailed");
+    case "firebase_recaptcha_unavailable":
+      return t("auth.firebaseRecaptchaUnavailable");
     case "firebase_session_lost":
       return t("auth.firebaseSessionLost");
     case "rate_limited":
@@ -56,8 +62,11 @@ export async function startPhoneOtpFlow(
       const { sendFirebasePhoneOtp } = await import("@/lib/otp/firebaseAuth.browser");
       await sendFirebasePhoneOtp(phoneE164, { languageCode: options.languageCode });
       return { ok: true };
-    } catch {
+    } catch (error) {
       await otpService.abandonOtpFlow();
+      if (error instanceof FirebaseRecaptchaContainerError) {
+        return { ok: false, error: "firebase_recaptcha_unavailable" };
+      }
       return { ok: false, error: "firebase_send_failed" };
     }
   }
@@ -94,7 +103,10 @@ export async function resendPhoneOtpFlow(
     const { sendFirebasePhoneOtp } = await import("@/lib/otp/firebaseAuth.browser");
     await sendFirebasePhoneOtp(phoneE164, { languageCode: options.languageCode });
     return { ok: true, retryAfter: refresh.retryAfter ?? 30 };
-  } catch {
+  } catch (error) {
+    if (error instanceof FirebaseRecaptchaContainerError) {
+      return { ok: false, error: "firebase_recaptcha_unavailable" };
+    }
     return { ok: false, error: "firebase_send_failed" };
   }
 }

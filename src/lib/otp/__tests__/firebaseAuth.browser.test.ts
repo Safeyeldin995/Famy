@@ -6,6 +6,8 @@ const mockSignOut = vi.fn().mockResolvedValue(undefined);
 const mockSignInWithPhoneNumber = vi.fn();
 const mockSignInWithCredential = vi.fn();
 const mockRender = vi.fn().mockResolvedValue(undefined);
+const mockClear = vi.fn();
+let lastRecaptchaContainer: unknown;
 
 vi.mock("firebase/app", () => ({
   initializeApp: vi.fn(() => ({ name: "test-app" })),
@@ -14,8 +16,14 @@ vi.mock("firebase/app", () => ({
 
 vi.mock("firebase/auth", () => ({
   getAuth: vi.fn(() => ({})),
-  RecaptchaVerifier: vi.fn(function RecaptchaVerifier(this: { render: () => Promise<void> }) {
+  RecaptchaVerifier: vi.fn(function RecaptchaVerifierMock(
+    this: { render: typeof mockRender; clear: typeof mockClear },
+    _auth: unknown,
+    container: unknown,
+  ) {
+    lastRecaptchaContainer = container;
     this.render = mockRender;
+    this.clear = mockClear;
   }),
   signInWithPhoneNumber: (...args: unknown[]) => mockSignInWithPhoneNumber(...args),
   signInWithCredential: (...args: unknown[]) => mockSignInWithCredential(...args),
@@ -59,13 +67,72 @@ function createMemorySessionStorage() {
   };
 }
 
+type TestDomNode = {
+  id: string;
+  className: string;
+  parentNode: unknown;
+  detached: boolean;
+  remove: () => void;
+  setAttribute: (name: string, value: string) => void;
+};
+
+function installTestDom() {
+  const nodesById = new Map<string, TestDomNode>();
+  const attached = new Set<TestDomNode>();
+
+  const body = {
+    appendChild(node: TestDomNode) {
+      node.parentNode = body;
+      node.detached = false;
+      attached.add(node);
+      if (node.id) nodesById.set(node.id, node);
+      return node;
+    },
+  };
+
+  vi.stubGlobal("document", {
+    body,
+    getElementById(id: string) {
+      const node = nodesById.get(id);
+      if (!node || node.detached || !attached.has(node)) return null;
+      return node;
+    },
+    contains(node: TestDomNode) {
+      return attached.has(node) && !node.detached;
+    },
+    createElement() {
+      return {
+        id: "",
+        className: "",
+        parentNode: null,
+        detached: true,
+        remove() {
+          this.detached = true;
+          attached.delete(this);
+          if (this.id) nodesById.delete(this.id);
+        },
+        setAttribute() {},
+      } satisfies TestDomNode;
+    },
+  });
+}
+
+function mountRecaptchaContainer(id = "firebase-recaptcha"): TestDomNode {
+  document.getElementById(id)?.remove();
+  const container = document.createElement("div") as unknown as TestDomNode;
+  container.id = id;
+  container.className = "hidden";
+  container.setAttribute("aria-hidden", "true");
+  document.body.appendChild(container as unknown as Node);
+  return container;
+}
+
 describe("firebaseAuth.browser sessionStorage fail-soft", () => {
   beforeEach(() => {
     stubFirebaseClientEnv();
     vi.stubGlobal("window", globalThis);
-    vi.stubGlobal("document", {
-      getElementById: vi.fn(() => ({})),
-    });
+    installTestDom();
+    mountRecaptchaContainer();
     mockSignInWithPhoneNumber.mockResolvedValue({
       verificationId: "verification-id-123",
       confirm: mockConfirm,
@@ -141,6 +208,55 @@ describe("firebaseAuth.browser sessionStorage fail-soft", () => {
     expect(hasFirebasePhoneVerificationSession()).toBe(true);
     await expect(confirmFirebasePhoneOtp("123456")).resolves.toBe("firebase-id-token");
     expect(mockSignInWithCredential).toHaveBeenCalledOnce();
+  });
+});
+
+describe("firebaseAuth.browser reCAPTCHA lifecycle", () => {
+  beforeEach(() => {
+    stubFirebaseClientEnv();
+    vi.stubGlobal("window", globalThis);
+    installTestDom();
+    mockSignInWithPhoneNumber.mockResolvedValue({
+      verificationId: "verification-id-123",
+      confirm: mockConfirm,
+    });
+  });
+
+  afterEach(async () => {
+    const { resetFirebasePhoneOtpSessionForTests } = await import("../firebaseAuth.browser");
+    resetFirebasePhoneOtpSessionForTests();
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    vi.clearAllMocks();
+  });
+
+  it("rebinds to a new live container after navigation detaches the old node", async () => {
+    const containerA = mountRecaptchaContainer();
+    const { ensureInvisibleRecaptcha } = await import("../firebaseAuth.browser");
+
+    const { RecaptchaVerifier } = await import("firebase/auth");
+
+    await ensureInvisibleRecaptcha();
+    expect(RecaptchaVerifier).toHaveBeenCalledTimes(1);
+    expect(lastRecaptchaContainer).toBe(containerA);
+
+    containerA.remove();
+    const containerB = mountRecaptchaContainer();
+
+    await ensureInvisibleRecaptcha();
+    expect(mockClear).toHaveBeenCalledTimes(1);
+    expect(RecaptchaVerifier).toHaveBeenCalledTimes(2);
+    expect(lastRecaptchaContainer).toBe(containerB);
+  });
+
+  it("throws a typed error when the reCAPTCHA container is missing", async () => {
+    const { ensureInvisibleRecaptcha, FirebaseRecaptchaContainerError } = await import(
+      "../firebaseAuth.browser"
+    );
+
+    await expect(ensureInvisibleRecaptcha("firebase-recaptcha")).rejects.toBeInstanceOf(
+      FirebaseRecaptchaContainerError,
+    );
   });
 });
 

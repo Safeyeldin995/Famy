@@ -123,7 +123,7 @@ function Login() {
 
   return (
     <PhoneFrame bg="bg-white">
-      <div id="firebase-recaptcha" className="hidden" aria-hidden="true" />
+
 
       <header className="brand-hero safe-top relative overflow-hidden rounded-b-[2.5rem] px-5 pb-8 pt-4">
         <div className="relative z-10 flex items-start justify-between gap-3">

@@ -38,6 +38,17 @@ export class FirebasePhoneVerificationSessionError extends Error {
   }
 }
 
+export class FirebaseRecaptchaContainerError extends Error {
+  readonly code = "missing" as const;
+  readonly containerId: string;
+
+  constructor(containerId: string) {
+    super(`Firebase reCAPTCHA container #${containerId} is not available`);
+    this.name = "FirebaseRecaptchaContainerError";
+    this.containerId = containerId;
+  }
+}
+
 export function readFirebaseClientConfig(
   env: Record<string, string | undefined> = import.meta.env,
 ): FirebaseClientConfig {
@@ -70,6 +81,7 @@ export function readFirebaseClientConfig(
 let firebaseApp: FirebaseApp | undefined;
 let firebaseAuth: Auth | undefined;
 let recaptchaVerifier: RecaptchaVerifier | undefined;
+let recaptchaContainer: HTMLElement | undefined;
 let confirmationResult: ConfirmationResult | undefined;
 
 function getSessionStorage(): Storage | null {
@@ -140,18 +152,41 @@ function resolveFirebaseAuthLanguage(languageCode?: string): string {
 function getRecaptchaContainer(containerId: string): HTMLElement {
   const container = document.getElementById(containerId);
   if (!container) {
-    throw new Error(`Missing Firebase reCAPTCHA container #${containerId}`);
+    throw new FirebaseRecaptchaContainerError(containerId);
   }
   return container;
 }
 
+function clearRecaptchaVerifier(): void {
+  if (!recaptchaVerifier) return;
+  try {
+    recaptchaVerifier.clear();
+  } catch {
+    // Fail-soft: detached containers may already be gone.
+  }
+  recaptchaVerifier = undefined;
+  recaptchaContainer = undefined;
+}
+
+function isRecaptchaVerifierBoundToContainer(container: HTMLElement): boolean {
+  return (
+    !!recaptchaVerifier &&
+    recaptchaContainer === container &&
+    document.contains(container)
+  );
+}
+
 export async function ensureInvisibleRecaptcha(containerId = "firebase-recaptcha"): Promise<void> {
   if (typeof window === "undefined") return;
+  const container = getRecaptchaContainer(containerId);
+  if (isRecaptchaVerifierBoundToContainer(container)) return;
+
+  clearRecaptchaVerifier();
   const auth = getFirebaseAuthApp();
-  if (recaptchaVerifier) return;
-  recaptchaVerifier = new RecaptchaVerifier(auth, getRecaptchaContainer(containerId), {
+  recaptchaVerifier = new RecaptchaVerifier(auth, container, {
     size: "invisible",
   });
+  recaptchaContainer = container;
   await recaptchaVerifier.render();
 }
 
@@ -213,7 +248,7 @@ export async function confirmFirebasePhoneOtp(code: string): Promise<string> {
 }
 
 export function resetFirebasePhoneOtpSessionForTests(): void {
-  recaptchaVerifier = undefined;
+  clearRecaptchaVerifier();
   confirmationResult = undefined;
   firebaseAuth = undefined;
   firebaseApp = undefined;
