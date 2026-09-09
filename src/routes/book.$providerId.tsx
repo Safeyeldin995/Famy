@@ -55,6 +55,7 @@ import {
   resolveIdempotencyKey,
   type IdempotencyKeyState,
 } from "@/lib/booking/idempotency";
+import { planPostCreatePayment, stashPendingPayment } from "@/lib/booking/post-create-payment";
 import { BookScheduleStep } from "@/components/famio/BookScheduleStep";
 
 export const Route = createFileRoute("/book/$providerId")({
