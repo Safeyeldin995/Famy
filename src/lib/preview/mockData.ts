@@ -144,6 +144,57 @@ export const previewMessages = [
   },
 ];
 
+function buildPreviewSlots(dayOffset: number, slotMinutes: number) {
+  const day = new Date();
+  day.setHours(0, 0, 0, 0);
+  day.setDate(day.getDate() + dayOffset);
+  const now = new Date();
+  const minNoticeMs = 2 * 3600000;
+  const starts = [9, 10, 11, 13, 14, 15];
+  const slots: { label: string; start: Date; end: Date }[] = [];
+
+  for (const hour of starts) {
+    const start = new Date(day);
+    start.setHours(hour, 0, 0, 0);
+    const end = new Date(+start + slotMinutes * 60000);
+    if (end.getHours() > 18 || (end.getHours() === 18 && end.getMinutes() > 0)) continue;
+    if (start.getTime() < now.getTime() + minNoticeMs) continue;
+    slots.push({
+      label: start.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
+      start: new Date(start),
+      end,
+    });
+  }
+
+  return slots;
+}
+
+function seedPreviewAvailableSlots(qc: import("@tanstack/react-query").QueryClient) {
+  const providerId = "p1";
+  const slotDurations = [120, 240, 360, 480];
+  const serviceIds: Array<string | null> = [null, "svc-clean"];
+  const addressIds: Array<string | null> = [null, "addr-1"];
+
+  for (let dayOffset = 0; dayOffset < 14; dayOffset += 1) {
+    const day = new Date();
+    day.setHours(0, 0, 0, 0);
+    day.setDate(day.getDate() + dayOffset);
+    const dateKey = day.toDateString();
+
+    for (const slotMinutes of slotDurations) {
+      const slots = buildPreviewSlots(dayOffset, slotMinutes);
+      for (const serviceId of serviceIds) {
+        for (const addressId of addressIds) {
+          qc.setQueryData(
+            ["available-slots", providerId, dateKey, slotMinutes, serviceId, addressId],
+            slots,
+          );
+        }
+      }
+    }
+  }
+}
+
 export function seedPreviewQueries(qc: import("@tanstack/react-query").QueryClient) {
   const profile = { id: PREVIEW_USER_ID, full_name: "Sara Hassan", phone: "+201012345678", avatar_url: null };
 
@@ -313,6 +364,13 @@ export function seedPreviewQueries(qc: import("@tanstack/react-query").QueryClie
     min_notice_hours: 2,
     max_advance_days: 30,
     buffer_minutes: 30,
+  });
+  seedPreviewAvailableSlots(qc);
+  qc.setQueryData(["resolve-zone", 29.96, 31.25], {
+    id: "zone-maadi",
+    name_en: "Maadi",
+    name_ar: "المعادي",
+    travel_fee: 0,
   });
   qc.setQueryData(["payment-methods", "active"], [
     {

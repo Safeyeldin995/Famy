@@ -6,8 +6,6 @@ import {
   Card,
   EmptyState,
   Avatar,
-  Chip,
-  SegmentedControl,
 } from "@/components/famio/ui";
 import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
 import { CustomerFloatingPanel } from "@/components/famio/CustomerFloatingPanel";
@@ -57,7 +55,7 @@ import {
   resolveIdempotencyKey,
   type IdempotencyKeyState,
 } from "@/lib/booking/idempotency";
-import { planPostCreatePayment, stashPendingPayment } from "@/lib/booking/post-create-payment";
+import { BookScheduleStep } from "@/components/famio/BookScheduleStep";
 
 export const Route = createFileRoute("/book/$providerId")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -93,8 +91,7 @@ export function BookContent({
   const stepKeys = [
     "service",
     "duration",
-    "date",
-    "time",
+    "schedule",
     "address",
     "forWhom",
     "notes",
@@ -102,6 +99,7 @@ export function BookContent({
     "summary",
     "payment",
   ] as const;
+  const SCHEDULE_STEP = 2;
   const [step, setStep] = useState(0);
   const [serviceId, setServiceId] = useState<string | null>(searchServiceId ?? null);
   const [duration, setDuration] = useState("4h");
@@ -123,6 +121,7 @@ export function BookContent({
     Record<string, "customer" | "provider">
   >({});
   const [timeBand, setTimeBand] = useState<"all" | "morning" | "afternoon" | "evening">("all");
+  const [scanningSchedule, setScanningSchedule] = useState(false);
   const idempotencyStateRef = useRef<IdempotencyKeyState | null>(null);
 
   // Only addresses with a pinned location can back a real booking — the
@@ -195,6 +194,46 @@ export function BookContent({
       return hour >= 17;
     });
   }, [slotsQ.data, timeBand]);
+
+  useEffect(() => {
+    if (step !== SCHEDULE_STEP) {
+      setScanningSchedule(false);
+      return;
+    }
+    if (!date) {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      setDate(d);
+      return;
+    }
+    if (slotsQ.isLoading || slotsQ.isFetching) return;
+    if ((slotsQ.data?.length ?? 0) > 0) {
+      setScanningSchedule(false);
+      return;
+    }
+
+    const maxDays = bookingSettingsQ.data?.max_advance_days ?? 12;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dayIndex = Math.round((date.getTime() - today.getTime()) / 86400000);
+    if (dayIndex + 1 < maxDays) {
+      setScanningSchedule(true);
+      const next = new Date(date);
+      next.setDate(next.getDate() + 1);
+      setDate(next);
+      setTime(null);
+      setSelectedSlot(null);
+      return;
+    }
+    setScanningSchedule(false);
+  }, [
+    step,
+    date,
+    slotsQ.isLoading,
+    slotsQ.isFetching,
+    slotsQ.data,
+    bookingSettingsQ.data?.max_advance_days,
+  ]);
 
   if (provQ.isLoading || servicesQ.isLoading || bookingSettingsQ.isLoading) {
     return (
@@ -284,13 +323,12 @@ export function BookContent({
 
   const canNext = () => {
     if (step === 0) return !!activeService;
-    if (step === 2) return !!date;
-    if (step === 3) return !!time;
-    if (step === 4) return !!addressId && !!zoneQ.data;
-    if (step === 5)
+    if (step === SCHEDULE_STEP) return !!date && !!time;
+    if (step === 3) return !!addressId && !!zoneQ.data;
+    if (step === 4)
       return forWhom === "myself" || (familyMembersQ.data ?? []).some((m: any) => m.id === forWhom);
-    if (step === 7) return eitherRequirements.every((r: any) => !!requirementChoices[r.id]);
-    if (step === 9) return !!paymentMethodId;
+    if (step === 6) return eitherRequirements.every((r: any) => !!requirementChoices[r.id]);
+    if (step === 8) return !!paymentMethodId;
     return true;
   };
 
@@ -380,7 +418,7 @@ export function BookContent({
         toast.error(t("bookFlow.slotTaken", "That time slot was just taken. Please pick another."));
         setTime(null);
         setSelectedSlot(null);
-        setStep(3);
+        setStep(SCHEDULE_STEP);
         return;
       }
 
@@ -460,7 +498,7 @@ export function BookContent({
         toast.error(getBookingErrorMessage(e, (key, fallback) => t(key, fallback ?? "")));
         setTime(null);
         setSelectedSlot(null);
-        setStep(3);
+        setStep(SCHEDULE_STEP);
         return;
       }
       toast.error(getBookingErrorMessage(e, (key, fallback) => t(key, fallback ?? "")));
@@ -566,85 +604,33 @@ export function BookContent({
           </Step>
         )}
 
-        {step === 2 && (
-          <Step title={t("bookFlow.dateTitle")} sub={t("bookFlow.dateSub")}>
-            <div className="grid grid-cols-4 gap-2">
-              {Array.from({
-                length: Math.max(1, Math.min(30, bookingSettingsQ.data?.max_advance_days ?? 12)),
-              }).map((_, i) => {
-                const d = new Date();
-                d.setDate(d.getDate() + i);
-                d.setHours(0, 0, 0, 0);
-                const isSel = date?.toDateString() === d.toDateString();
-                return (
-                  <button
-                    key={i}
-                    onClick={() => {
-                      setDate(d);
-                      setTime(null);
-                      setSelectedSlot(null);
-                    }}
-                    className={`focus-ring flex flex-col items-center rounded-[1.25rem] border px-2 py-3 transition-all tap-scale ${isSel ? "border-brand bg-brand text-brand-foreground shadow-[0_10px_24px_-14px_var(--brand)]" : "border-border/60 bg-surface-elevated shadow-xs"}`}
-                  >
-                    <span className="text-[10px] font-black uppercase">
-                      {d.toLocaleString(locale, { weekday: "short" })}
-                    </span>
-                    <span className="text-xl font-black">{formatNumber(d.getDate())}</span>
-                    <span className="text-[10px]">
-                      {d.toLocaleString(locale, { month: "short" })}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+        {step === SCHEDULE_STEP && (
+          <Step title={t("bookFlow.scheduleTitle")} sub={t("bookFlow.scheduleSub")}>
+            <BookScheduleStep
+              locale={locale}
+              maxAdvanceDays={bookingSettingsQ.data?.max_advance_days ?? 12}
+              date={date}
+              time={time}
+              timeBand={timeBand}
+              slotsLoading={slotsQ.isLoading || slotsQ.isFetching}
+              filteredSlots={filteredSlots}
+              hasSlotsForSelectedDate={(slotsQ.data?.length ?? 0) > 0}
+              scanning={scanningSchedule}
+              onDateChange={(d) => {
+                setDate(d);
+                setTime(null);
+                setSelectedSlot(null);
+              }}
+              onTimeChange={(label, slot) => {
+                setTime(label);
+                setSelectedSlot(slot);
+              }}
+              onTimeBandChange={setTimeBand}
+            />
           </Step>
         )}
 
         {step === 3 && (
-          <Step title={t("bookFlow.timeTitle")} sub={t("bookFlow.timeSub")}>
-            <SegmentedControl
-              className="mb-4"
-              value={timeBand}
-              onChange={setTimeBand}
-              options={[
-                { value: "all", label: t("bookFlow.timeAll") },
-                { value: "morning", label: t("bookFlow.timeMorning") },
-                { value: "afternoon", label: t("bookFlow.timeAfternoon") },
-                { value: "evening", label: t("bookFlow.timeEvening") },
-              ]}
-            />
-            {slotsQ.isLoading ? (
-              <div className="grid grid-cols-3 gap-2">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="h-12 animate-pulse rounded-2xl bg-surface-2" />
-                ))}
-              </div>
-            ) : filteredSlots.length === 0 ? (
-              <EmptyState
-                icon="calendar"
-                title={t("bookFlow.noSlots")}
-                body={t("bookFlow.noSlotsBody")}
-              />
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {filteredSlots.map((slot) => (
-                  <Chip
-                    key={slot.label}
-                    active={time === slot.label}
-                    onClick={() => {
-                      setTime(slot.label);
-                      setSelectedSlot({ start: slot.start, end: slot.end });
-                    }}
-                  >
-                    {slot.label}
-                  </Chip>
-                ))}
-              </div>
-            )}
-          </Step>
-        )}
-
-        {step === 4 && (
           <Step title={t("bookFlow.addressTitle")} sub={t("bookFlow.addressSub")}>
             {addrsQ.isLoading ? (
               <div className="space-y-2">
@@ -743,7 +729,7 @@ export function BookContent({
           </Step>
         )}
 
-        {step === 5 && (
+        {step === 4 && (
           <Step
             title={t("bookFlow.forWhomTitle", "Who is this for?")}
             sub={t("bookFlow.forWhomSub", "Choose yourself or a saved family member.")}
@@ -806,7 +792,7 @@ export function BookContent({
           </Step>
         )}
 
-        {step === 6 && (
+        {step === 5 && (
           <Step title={t("bookFlow.notesTitle")} sub={t("bookFlow.notesSub")}>
             <textarea
               rows={6}
@@ -818,7 +804,7 @@ export function BookContent({
           </Step>
         )}
 
-        {step === 7 && (
+        {step === 6 && (
           <Step
             title={t("bookFlow.requirementsTitle", "Requirements")}
             sub={t("bookFlow.requirementsSub", "Some items for this service need to be arranged.")}
@@ -879,7 +865,7 @@ export function BookContent({
           </Step>
         )}
 
-        {step === 8 && (
+        {step === 7 && (
           <Step title={t("bookFlow.summaryTitle")}>
             <Card className="p-4">
               <div className="flex items-center gap-3 border-b border-border pb-3">
@@ -999,7 +985,7 @@ export function BookContent({
           </Step>
         )}
 
-        {step === 9 && (
+        {step === 8 && (
           <Step title={t("bookFlow.paymentTitle")} sub={t("bookFlow.paymentSub")}>
             {methodsQ.isLoading ? (
               <div className="space-y-3">
@@ -1079,12 +1065,12 @@ export function BookContent({
         <PrimaryButton onClick={next} disabled={!canNext() || createBooking.isPending}>
           {createBooking.isPending ? (
             <Loader2 className="h-5 w-5 animate-spin" />
-          ) : step === 9 ? (
+          ) : step === 8 ? (
             <>
               <Lock className="h-4 w-4" aria-hidden="true" />{" "}
               {t("bookFlow.payCta", { price: formatEGP(total) })}
             </>
-          ) : step === 8 ? (
+          ) : step === 7 ? (
             t("bookFlow.continueToPayment")
           ) : (
             t("bookFlow.continue")
