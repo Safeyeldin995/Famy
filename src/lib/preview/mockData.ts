@@ -1,5 +1,19 @@
-import { PREVIEW_PROVIDER_ID, PREVIEW_USER_ID } from "@/lib/preview/constants";
+import { PREVIEW_NOW_ISO, PREVIEW_PROVIDER_ID, PREVIEW_USER_ID } from "@/lib/preview/constants";
 import { addressesQueryKey, addressQueryKey, defaultAddressQueryKey } from "@/lib/db/address-query-keys";
+
+const DAY_MS = 86_400_000;
+const HOUR_MS = 3_600_000;
+const PREVIEW_NOW_MS = Date.parse(PREVIEW_NOW_ISO);
+
+function previewIso(offsetMs = 0) {
+  return new Date(PREVIEW_NOW_MS + offsetMs).toISOString();
+}
+
+function previewUtc(daysOffset: number, hour: number, minute = 0) {
+  const d = new Date(PREVIEW_NOW_MS + daysOffset * DAY_MS);
+  d.setUTCHours(hour, minute, 0, 0);
+  return d;
+}
 
 const cat = (slug: string, en: string, ar: string, order: number) => ({
   id: slug,
@@ -52,11 +66,8 @@ const p1 = providerRow("p1", "Mona Adel", 180, 4.9, 128, "home-cleaning", "https
 const p2 = providerRow("p2", "Nour Ibrahim", 220, 4.8, 96, "babysitting", "https://i.pravatar.cc/240?img=32");
 const p3 = providerRow("p3", "Hala Mostafa", 200, 4.9, 74, "cooking", "https://i.pravatar.cc/240?img=45");
 
-const start = new Date();
-start.setDate(start.getDate() + 2);
-start.setHours(10, 0, 0, 0);
-const end = new Date(start);
-end.setHours(start.getHours() + 3);
+const start = previewUtc(2, 10);
+const end = previewUtc(2, 13);
 
 export const previewAddresses = [
   {
@@ -98,8 +109,8 @@ export const previewBookings = [
     provider_id: "p2",
     customer_id: PREVIEW_USER_ID,
     status: "completed",
-    start_at: new Date(Date.now() - 86400000 * 5).toISOString(),
-    end_at: new Date(Date.now() - 86400000 * 5 + 7200000).toISOString(),
+    start_at: previewIso(-DAY_MS * 5),
+    end_at: previewIso(-DAY_MS * 5 + 2 * HOUR_MS),
     price_total: 440,
     service: { name_en: "Babysitting", name_ar: "جليسة أطفال" },
     provider: p2,
@@ -112,11 +123,11 @@ export const previewConversations = [
     booking_id: "booking-preview-1",
     customer_id: PREVIEW_USER_ID,
     provider_user_id: "provider-user-1",
-    updated_at: new Date().toISOString(),
+    updated_at: previewIso(),
     other_name: "Mona Adel",
     other_avatar: "https://i.pravatar.cc/240?img=47",
     last_message: "I'll arrive 10 minutes early to set up.",
-    last_time: new Date().toISOString(),
+    last_time: previewIso(),
   },
 ];
 
@@ -126,41 +137,37 @@ export const previewMessages = [
     conversation_id: "conv-1",
     sender_id: "provider-user-1",
     body: "Hi Sara! Looking forward to your booking tomorrow.",
-    created_at: new Date(Date.now() - 3600000).toISOString(),
+    created_at: previewIso(-HOUR_MS),
   },
   {
     id: "m2",
     conversation_id: "conv-1",
     sender_id: PREVIEW_USER_ID,
     body: "Great, please ring the intercom when you arrive.",
-    created_at: new Date(Date.now() - 3000000).toISOString(),
+    created_at: previewIso(-HOUR_MS + 10 * 60_000),
   },
   {
     id: "m3",
     conversation_id: "conv-1",
     sender_id: "provider-user-1",
     body: "I'll arrive 10 minutes early to set up.",
-    created_at: new Date().toISOString(),
+    created_at: previewIso(),
   },
 ];
 
 function buildPreviewSlots(dayOffset: number, slotMinutes: number) {
-  const day = new Date();
-  day.setHours(0, 0, 0, 0);
-  day.setDate(day.getDate() + dayOffset);
-  const now = new Date();
-  const minNoticeMs = 2 * 3600000;
+  const now = new Date(PREVIEW_NOW_MS);
+  const minNoticeMs = 2 * HOUR_MS;
   const starts = [9, 10, 11, 13, 14, 15];
   const slots: { label: string; start: Date; end: Date }[] = [];
 
   for (const hour of starts) {
-    const start = new Date(day);
-    start.setHours(hour, 0, 0, 0);
-    const end = new Date(+start + slotMinutes * 60000);
-    if (end.getHours() > 18 || (end.getHours() === 18 && end.getMinutes() > 0)) continue;
+    const start = previewUtc(dayOffset, hour);
+    const end = new Date(+start + slotMinutes * 60_000);
+    if (end.getUTCHours() > 18 || (end.getUTCHours() === 18 && end.getUTCMinutes() > 0)) continue;
     if (start.getTime() < now.getTime() + minNoticeMs) continue;
     slots.push({
-      label: start.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
+      label: start.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", timeZone: "UTC" }),
       start: new Date(start),
       end,
     });
@@ -176,9 +183,7 @@ function seedPreviewAvailableSlots(qc: import("@tanstack/react-query").QueryClie
   const addressIds: Array<string | null> = [null, "addr-1"];
 
   for (let dayOffset = 0; dayOffset < 14; dayOffset += 1) {
-    const day = new Date();
-    day.setHours(0, 0, 0, 0);
-    day.setDate(day.getDate() + dayOffset);
+    const day = previewUtc(dayOffset, 0, 0);
     const dateKey = day.toDateString();
 
     for (const slotMinutes of slotDurations) {
@@ -226,7 +231,7 @@ export function seedPreviewQueries(qc: import("@tanstack/react-query").QueryClie
       comment: "Mona was punctual, thorough, and so kind with our home.",
       author_name: "Sara M.",
       author_avatar: "https://i.pravatar.cc/240?img=12",
-      created_at: new Date(Date.now() - 86400000 * 12).toISOString(),
+      created_at: previewIso(-DAY_MS * 12),
     },
     {
       id: "rev-2",
@@ -234,7 +239,7 @@ export function seedPreviewQueries(qc: import("@tanstack/react-query").QueryClie
       comment: "Booked twice — both visits were excellent.",
       author_name: "Nadia K.",
       author_avatar: "https://i.pravatar.cc/240?img=25",
-      created_at: new Date(Date.now() - 86400000 * 28).toISOString(),
+      created_at: previewIso(-DAY_MS * 28),
     },
   ]);
   qc.setQueryData(["provider-availability", "p1"], [
@@ -305,7 +310,7 @@ export function seedPreviewQueries(qc: import("@tanstack/react-query").QueryClie
       body_ar: "ستزورك منى يوم الخميس الساعة ١٠ صباحاً.",
       read_at: null,
       category: "booking",
-      created_at: new Date().toISOString(),
+      created_at: previewIso(),
       deep_link: "/bookings",
     },
     {
@@ -314,9 +319,9 @@ export function seedPreviewQueries(qc: import("@tanstack/react-query").QueryClie
       body_en: "Use code FAMY20 before it expires.",
       title_ar: "خصم ٢٠٪",
       body_ar: "استخدمي الكود FAMY20",
-      read_at: new Date().toISOString(),
+      read_at: previewIso(),
       category: "campaign",
-      created_at: new Date(Date.now() - 86400000).toISOString(),
+      created_at: previewIso(-DAY_MS),
       deep_link: null,
     },
   ]);
@@ -388,8 +393,8 @@ export function seedPreviewQueries(qc: import("@tanstack/react-query").QueryClie
       is_default: true,
       display_order: 1,
       public_config: {},
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      created_at: previewIso(),
+      updated_at: previewIso(),
     },
   ]);
 }
@@ -416,23 +421,12 @@ const previewService = {
 };
 
 function buildPreviewProviderBookings() {
-  const pendingStart = new Date();
-  pendingStart.setDate(pendingStart.getDate() + 1);
-  pendingStart.setHours(14, 0, 0, 0);
-  const pendingEnd = new Date(pendingStart);
-  pendingEnd.setHours(pendingStart.getHours() + 3);
-
-  const confirmedStart = new Date();
-  confirmedStart.setDate(confirmedStart.getDate() + 3);
-  confirmedStart.setHours(10, 0, 0, 0);
-  const confirmedEnd = new Date(confirmedStart);
-  confirmedEnd.setHours(confirmedStart.getHours() + 4);
-
-  const completedStart = new Date();
-  completedStart.setDate(completedStart.getDate() - 4);
-  completedStart.setHours(11, 0, 0, 0);
-  const completedEnd = new Date(completedStart);
-  completedEnd.setHours(completedStart.getHours() + 3);
+  const pendingStart = previewUtc(1, 14);
+  const pendingEnd = previewUtc(1, 17);
+  const confirmedStart = previewUtc(3, 10);
+  const confirmedEnd = previewUtc(3, 14);
+  const completedStart = previewUtc(-4, 11);
+  const completedEnd = previewUtc(-4, 14);
 
   const base = {
     provider_id: PREVIEW_PROVIDER_ID,
@@ -491,10 +485,10 @@ function seedPreviewProviderQueries(qc: import("@tanstack/react-query").QueryCli
     is_top_pro: true,
     vacation_mode: false,
     onboarding_status: "APPROVED",
-    submitted_at: new Date(Date.now() - 86400000 * 30).toISOString(),
+    submitted_at: previewIso(-DAY_MS * 30),
     review_reason_public: null,
     review_reason_code: null,
-    created_at: new Date(Date.now() - 86400000 * 90).toISOString(),
+    created_at: previewIso(-DAY_MS * 90),
     profile: {
       id: PREVIEW_USER_ID,
       full_name: "Mona Adel",
@@ -523,7 +517,7 @@ function seedPreviewProviderQueries(qc: import("@tanstack/react-query").QueryCli
       provider_id: PREVIEW_PROVIDER_ID,
       document_type: "national_id",
       status: "approved",
-      created_at: new Date(Date.now() - 86400000 * 20).toISOString(),
+      created_at: previewIso(-DAY_MS * 20),
     },
   ]);
   qc.setQueryData(["provider-marketplace-eligibility", PREVIEW_PROVIDER_ID], [
@@ -620,7 +614,7 @@ function seedPreviewProviderQueries(qc: import("@tanstack/react-query").QueryCli
       body_ar: "سارة حسن طلبت تنظيف منزل عميق غداً الساعة ٢ مساءً.",
       read_at: null,
       category: "booking",
-      created_at: new Date().toISOString(),
+      created_at: previewIso(),
       deep_link: "/pro/bookings",
     },
     {
@@ -629,9 +623,9 @@ function seedPreviewProviderQueries(qc: import("@tanstack/react-query").QueryCli
       body_en: "EGP 540 was captured for your completed visit.",
       title_ar: "تم استلام الدفع",
       body_ar: "تم استلام ٥٤٠ جنيه عن الزيارة المكتملة.",
-      read_at: new Date(Date.now() - 86400000).toISOString(),
+      read_at: previewIso(-DAY_MS),
       category: "payment",
-      created_at: new Date(Date.now() - 86400000).toISOString(),
+      created_at: previewIso(-DAY_MS),
       deep_link: "/pro/earnings",
     },
   ]);
@@ -657,7 +651,7 @@ function seedPreviewProviderQueries(qc: import("@tanstack/react-query").QueryCli
       message_type: "text",
       system_key: null,
       body: "Hi Mona! Please bring eco-friendly products if possible.",
-      created_at: new Date(Date.now() - 3600000).toISOString(),
+      created_at: previewIso(-HOUR_MS),
     },
     {
       id: "pm-2",
@@ -667,7 +661,7 @@ function seedPreviewProviderQueries(qc: import("@tanstack/react-query").QueryCli
       message_type: "text",
       system_key: null,
       body: "Of course — I always use gentle, family-safe supplies.",
-      created_at: new Date(Date.now() - 3000000).toISOString(),
+      created_at: previewIso(-HOUR_MS + 10 * 60_000),
     },
   ];
 
@@ -713,7 +707,7 @@ function buildAdminPreviewProviders() {
     years_experience: 5,
     is_verified: true,
     is_active: true,
-    created_at: new Date(Date.now() - 86400000 * 90).toISOString(),
+    created_at: previewIso(-DAY_MS * 90),
     profile: { full_name: "Mona Adel", phone: "+201098765432", avatar_url: "https://i.pravatar.cc/240?img=47" },
     ratings: { rating_avg: 4.9, rating_count: 128 },
     trust: { score: 92 },
@@ -725,7 +719,7 @@ function buildAdminPreviewProviders() {
     years_experience: 3,
     is_verified: false,
     is_active: false,
-    created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
+    created_at: previewIso(-DAY_MS * 3),
     profile: { full_name: "Nadia Kamal", phone: "+201055544433", avatar_url: "https://i.pravatar.cc/240?img=32" },
     ratings: { rating_avg: 0, rating_count: 0 },
     trust: { score: 0 },
@@ -737,7 +731,7 @@ function buildAdminPreviewProviders() {
     years_experience: 8,
     is_verified: true,
     is_active: false,
-    created_at: new Date(Date.now() - 86400000 * 120).toISOString(),
+    created_at: previewIso(-DAY_MS * 120),
     profile: { full_name: "Layla Farouk", phone: "+201066677788", avatar_url: "https://i.pravatar.cc/240?img=45" },
     ratings: { rating_avg: 4.2, rating_count: 34 },
     trust: { score: 71 },
@@ -746,11 +740,8 @@ function buildAdminPreviewProviders() {
 }
 
 function buildAdminPreviewBookings() {
-  const start = new Date();
-  start.setDate(start.getDate() + 2);
-  start.setHours(10, 0, 0, 0);
-  const end = new Date(start);
-  end.setHours(14, 0, 0, 0);
+  const start = previewUtc(2, 10);
+  const end = previewUtc(2, 14);
   return [
     {
       id: "admin-booking-1",
@@ -760,7 +751,7 @@ function buildAdminPreviewBookings() {
       price_total: 720,
       customer_id: PREVIEW_USER_ID,
       provider_id: PREVIEW_PROVIDER_ID,
-      created_at: new Date(Date.now() - 86400000).toISOString(),
+      created_at: previewIso(-DAY_MS),
       customer: { id: PREVIEW_USER_ID, full_name: "Sara Hassan", phone: "+201012345678" },
       provider: { id: PREVIEW_PROVIDER_ID, profile: { full_name: "Mona Adel" } },
       payments: [{ id: "pay-1", status: "captured", method: "cash", amount: 720, created_at: start.toISOString() }],
@@ -770,15 +761,15 @@ function buildAdminPreviewBookings() {
     {
       id: "admin-booking-2",
       status: "pending",
-      start_at: new Date(Date.now() + 86400000).toISOString(),
-      end_at: new Date(Date.now() + 86400000 + 10800000).toISOString(),
+      start_at: previewIso(DAY_MS),
+      end_at: previewIso(DAY_MS + 3 * HOUR_MS),
       price_total: 540,
       customer_id: PREVIEW_USER_ID,
       provider_id: PREVIEW_PROVIDER_ID,
-      created_at: new Date().toISOString(),
+      created_at: previewIso(),
       customer: { id: PREVIEW_USER_ID, full_name: "Sara Hassan", phone: "+201012345678" },
       provider: { id: PREVIEW_PROVIDER_ID, profile: { full_name: "Mona Adel" } },
-      payments: [{ id: "pay-2", status: "pending", method: "cash", amount: 540, created_at: new Date().toISOString() }],
+      payments: [{ id: "pay-2", status: "pending", method: "cash", amount: 540, created_at: previewIso() }],
       family_member: null,
       cancellation: null,
     },
@@ -788,7 +779,7 @@ function buildAdminPreviewBookings() {
 export function seedPreviewAdminQueries(qc: import("@tanstack/react-query").QueryClient) {
   const providers = buildAdminPreviewProviders();
   const bookings = buildAdminPreviewBookings();
-  const now = new Date().toISOString();
+  const now = previewIso();
   const categories = [
     {
       id: "cat-clean",
@@ -836,7 +827,7 @@ export function seedPreviewAdminQueries(qc: import("@tanstack/react-query").Quer
       phone: "+201012345678",
       avatar_url: null,
       is_suspended: false,
-      created_at: new Date(Date.now() - 86400000 * 60).toISOString(),
+      created_at: previewIso(-DAY_MS * 60),
       totalBookings: 3,
       completedBookings: 2,
       cancelledBookings: 0,
@@ -848,7 +839,7 @@ export function seedPreviewAdminQueries(qc: import("@tanstack/react-query").Quer
       phone: "+201099988877",
       avatar_url: null,
       is_suspended: false,
-      created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
+      created_at: previewIso(-DAY_MS * 10),
       totalBookings: 0,
       completedBookings: 0,
       cancelledBookings: 0,
@@ -896,23 +887,32 @@ export function seedPreviewAdminQueries(qc: import("@tanstack/react-query").Quer
   });
   qc.setQueryData(["admin", "provider-eligibility", PREVIEW_PROVIDER_ID], [
     {
+      provider_id: PREVIEW_PROVIDER_ID,
+      service_id: "svc-clean",
+      service_name_en: "Deep home clean",
+      service_name_ar: "تنظيف منزل عميق",
+      identity_valid: true,
       account_active: true,
       verified: true,
       service_approved: true,
       service_active: true,
+      effective_price: 180,
+      minimum_price: 120,
+      maximum_price: 600,
       price_valid: true,
       requirements_complete: true,
       evidence_approved: true,
       zone_covered: true,
+      address_covered: true,
+      availability_valid: true,
       operational_clear: true,
-      effective_price: "EGP 180/hr",
-      minimum_price: 120,
-      maximum_price: 600,
+      is_eligible: true,
+      failure_reasons: [],
     },
   ]);
   qc.setQueryData(["admin", "provider-onboarding-review", PREVIEW_ADMIN_PROVIDER_PENDING], {
     status: "SUBMITTED",
-    submitted_at: new Date(Date.now() - 86400000).toISOString(),
+    submitted_at: previewIso(-DAY_MS),
   });
   qc.setQueryData(["admin", "identity-conflicts"], []);
   qc.setQueryData(["admin", "customers"], customers);
