@@ -9,6 +9,7 @@ import {
 import { useAdminOnboardingAction } from "@/lib/provider/onboarding-queries";
 import { Search, ChevronRight, ShieldCheck } from "lucide-react";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
+import { adminPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/admin/providers")({ component: ProviderManagement });
 
@@ -65,7 +66,7 @@ function ProviderManagement() {
             <button
               key={f.key}
               onClick={() => setFilter(f.key)}
-              className={`focus-ring rounded-lg px-3 py-1.5 text-xs font-bold ${filter === f.key ? "bg-navy text-navy-foreground" : "text-muted-foreground"}`}
+              className={`focus-ring rounded-lg px-3 py-1.5 text-xs font-bold ${filter === f.key ? "bg-brand text-brand-foreground" : "text-muted-foreground"}`}
             >
               {t(f.labelKey)}
             </button>
@@ -82,7 +83,7 @@ function ProviderManagement() {
               <li key={`${conflict.user_id}-${conflict.issue_code}`} className="rounded-xl bg-surface p-3 text-xs">
                 <div className="font-bold">{conflict.full_name || conflict.user_id}</div>
                 <div className="font-semibold text-coral">{conflict.details}</div>
-                {conflict.provider_id && <Link to="/admin/provider/$id" params={{ id: conflict.provider_id }} className="mt-1 inline-block font-bold text-navy underline">Open preserved Provider record</Link>}
+                {conflict.provider_id && <Link to={adminPath("/admin/provider/$id") as "/admin/provider/$id"} params={{ id: conflict.provider_id }} className="mt-1 inline-block font-bold text-brand underline">Open preserved Provider record</Link>}
               </li>
             ))}
           </ul>
@@ -98,18 +99,18 @@ function ProviderManagement() {
       ) : rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t("admin.providers.noResults")}</p>
       ) : (
-        <ul className="divide-y divide-border/60 rounded-2xl border border-border/60 bg-surface shadow-card">
+        <ul className="divide-y divide-border/60 rounded-2xl border border-border/60 bg-surface shadow-sm">
           {rows.map((p: any) => {
             const suspended = p.is_verified && !p.is_active;
             return (
               <li key={p.id} className="px-5 py-4">
                 <div className="flex items-start justify-between gap-3">
-                  <Link to="/admin/provider/$id" params={{ id: p.id }} className="focus-ring min-w-0 flex-1">
+                  <Link to={adminPath("/admin/provider/$id") as "/admin/provider/$id"} params={{ id: p.id }} className="focus-ring min-w-0 flex-1">
                     <p className="truncate text-sm font-bold">{p.profile?.full_name || t("admin.providers.unnamed")}</p>
                     <p className="truncate text-xs text-muted-foreground">{p.city} · {t("admin.providers.hourlyRate", { rate: p.hourly_rate })} · {t("admin.providers.yearsExp", { years: p.years_experience })}</p>
                     <p dir="ltr" className="mt-1 text-[11px] text-muted-foreground">{p.profile?.phone}</p>
                     <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] font-semibold">
-                      <span className="text-navy">{t("admin.providers.trust", { score: Math.round(Number(p.trust?.score ?? 0)) })}</span>
+                      <span className="text-brand">{t("admin.providers.trust", { score: Math.round(Number(p.trust?.score ?? 0)) })}</span>
                       <span className="text-amber-600">★ {Number(p.ratings?.rating_avg ?? 0).toFixed(1)}</span>
                       <span className="text-muted-foreground">{t("admin.providers.jobs", { count: Number(p.ratings?.rating_count ?? 0) })}</span>
                     </div>
@@ -137,7 +138,7 @@ function ProviderManagement() {
                             },
                             { onError: (e: any) => toast.error(e?.message ?? t("admin.providers.approveError")) },
                           )}
-                          className="focus-ring rounded-xl bg-navy px-4 py-2 text-xs font-bold text-navy-foreground disabled:opacity-50"
+                          className="focus-ring rounded-xl bg-brand px-4 py-2 text-xs font-bold text-brand-foreground disabled:opacity-50"
                         >
                           {p.onboarding_status === "SUBMITTED" ? t("admin.provider.startReview") : t("admin.providers.approve")}
                         </button>
@@ -155,7 +156,7 @@ function ProviderManagement() {
                       disabled={setActive.isPending}
                       onClick={() => setActive.mutate({ id: p.id, active: !p.is_active })}
                       className={`focus-ring inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold disabled:opacity-50 ${
-                        p.is_active ? "border border-coral text-coral" : "bg-navy text-navy-foreground"
+                        p.is_active ? "border border-coral text-coral" : "bg-brand text-brand-foreground"
                       }`}
                     >
                       <ShieldCheck className="h-3.5 w-3.5" />

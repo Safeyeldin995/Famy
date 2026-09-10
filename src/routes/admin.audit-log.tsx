@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAdminAuditLogs, useAdminAuditLogEntities, type AuditLogFilters, type AuditLogRow } from "@/lib/db/admin-audit-queries";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { adminPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/admin/audit-log")({ component: AdminAuditLog });
 
@@ -115,7 +116,7 @@ function AuditRow({ row, isOpen, onToggle }: { row: AuditLogRow; isOpen: boolean
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1 text-[11px]">
           {row.booking && (
-            <Link to="/admin/bookings" search={{ status: row.booking.status }} onClick={(e) => e.stopPropagation()} className="font-semibold text-navy hover:underline">
+            <Link to={adminPath("/admin/bookings") as "/admin/bookings"} search={{ status: row.booking.status }} onClick={(e) => e.stopPropagation()} className="font-semibold text-brand hover:underline">
               {t("admin.auditLog.booking")} <span dir="ltr">{row.booking_id?.slice(0, 8)}</span>
             </Link>
           )}
@@ -223,7 +224,7 @@ function AdminAuditLog() {
         <p className="text-sm text-muted-foreground">{t("admin.auditLog.noResults")}</p>
       ) : (
         <>
-          <ul className="divide-y divide-border/60 rounded-2xl border border-border/60 bg-surface shadow-card">
+          <ul className="divide-y divide-border/60 rounded-2xl border border-border/60 bg-surface shadow-sm">
             {q.data!.rows.map((row) => (
               <AuditRow key={row.id} row={row} isOpen={expanded === row.id} onToggle={() => setExpanded(expanded === row.id ? null : row.id)} />
             ))}

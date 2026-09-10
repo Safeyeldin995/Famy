@@ -1,44 +1,71 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useApp } from "@/lib/store";
 import { resolveLandingForCurrentUser } from "@/lib/auth/landing";
 import { useMyProfile } from "@/lib/db/queries";
-import { FamyWordmark } from "@/components/famio/FamyWordmark";
+import { FamySplashScreen } from "@/components/famio/FamySplashScreen";
+import {
+  markFamySplashPlayed,
+  shouldPlayFamySplash,
+} from "@/lib/splash/famySplashState";
 
 export const Route = createFileRoute("/")({
   component: Splash,
 });
 
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduced(mq.matches);
+    const onChange = () => setReduced(mq.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  return reduced;
+}
+
 function Splash() {
   const navigate = useNavigate();
   const { onboarded } = useApp();
-  // profile.isLoading gates the redirect below so we never navigate off a
-  // stale/incomplete read of `useMyProfile()`.
   const profileQ = useMyProfile();
+  const reducedMotion = usePrefersReducedMotion();
+  const playAnimation = shouldPlayFamySplash();
+
+  const [animationComplete, setAnimationComplete] = useState(!playAnimation);
+  const appReady = !profileQ.isLoading;
+
+  const goNext = useCallback(async () => {
+    markFamySplashPlayed();
+    if (!onboarded) {
+      navigate({ to: "/onboarding", replace: true });
+      return;
+    }
+    const landing = await resolveLandingForCurrentUser();
+    if (!landing) {
+      navigate({ to: "/login", replace: true });
+      return;
+    }
+    if (!profileQ.data?.full_name) {
+      navigate({ to: "/setup", replace: true });
+      return;
+    }
+    navigate({ to: "/home", replace: true });
+  }, [navigate, onboarded, profileQ.data?.full_name]);
 
   useEffect(() => {
-    if (profileQ.isLoading) return;
-    let cancelled = false;
-    const tm = setTimeout(async () => {
-      if (!onboarded) return navigate({ to: "/onboarding" });
-      // Real Supabase session check — replaces the old Zustand `authed` flag,
-      // which could silently disagree with the actual session (STATE-01).
-      const landing = await resolveLandingForCurrentUser();
-      if (cancelled) return;
-      if (!landing) return navigate({ to: "/login" });
-      // Real `profiles.full_name` check — replaces the old Zustand
-      // `profile.name` flag, which never reflected the database (AUTH-01).
-      if (!profileQ.data?.full_name) return navigate({ to: "/setup" });
-      navigate({ to: "/home" });
-    }, 1600);
-    return () => { cancelled = true; clearTimeout(tm); };
-  }, [navigate, onboarded, profileQ.isLoading, profileQ.data?.full_name]);
+    if (!animationComplete || !appReady) return;
+    void goNext();
+  }, [animationComplete, appReady, goNext]);
 
-  return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center bg-background text-foreground">
-      <div className="animate-pop">
-        <FamyWordmark size="splash" />
-      </div>
-    </div>
-  );
+  if (playAnimation) {
+    return (
+      <FamySplashScreen
+        reducedMotion={reducedMotion}
+        onAnimationComplete={() => setAnimationComplete(true)}
+      />
+    );
+  }
+
+  return null;
 }

@@ -3,6 +3,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/lib/auth/useAuth';
 
 // ---------- Identity ----------
 export function useMyRole() {
@@ -103,6 +104,40 @@ export function useMyMarketplaceEligibility(providerId: string | undefined) {
       });
       if (error) throw error;
       return data ?? [];
+    },
+  });
+}
+
+// ---------- Notifications (provider app — same table, pro-scoped cache key) ----------
+export function useProNotifications() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['pro-notifications', user?.id ?? 'anonymous'],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useProUnreadNotificationCount() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['pro-notifications', 'unread-count', user?.id ?? 'anonymous'],
+    enabled: !!user,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .is('read_at', null);
+      if (error) throw error;
+      return count ?? 0;
     },
   });
 }

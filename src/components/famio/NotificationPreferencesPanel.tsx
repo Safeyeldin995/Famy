@@ -23,7 +23,7 @@ function Toggle({ on, onClick, disabled }: { on: boolean; onClick: () => void; d
       onClick={onClick}
       disabled={disabled}
       aria-pressed={on}
-      className={`relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-50 ${on ? "bg-navy" : "bg-muted"}`}
+      className={`relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-50 ${on ? "bg-brand" : "bg-muted"}`}
     >
       <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-soft transition-all ${on ? "start-[22px]" : "start-0.5"}`} />
     </button>
@@ -109,14 +109,14 @@ export function NotificationPreferencesPanel() {
               {availability === "unsupported" ? t("notifPrefs.pushUnsupported") : t("notifPrefs.pushUnavailable")}
             </p>
           ) : availability === "denied" ? (
-            <p className="text-xs text-coral">{t("notifPrefs.pushBlocked")}</p>
+            <p className="text-xs text-brand">{t("notifPrefs.pushBlocked")}</p>
           ) : availability === "granted" && (devicesQ.data ?? []).length > 0 ? (
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs text-muted-foreground">{t("notifPrefs.pushOnThisDevice")}</p>
               <button
                 onClick={handleDisablePush}
                 disabled={enabling}
-                className="shrink-0 rounded-lg border border-coral px-3 py-1.5 text-xs font-bold text-coral disabled:opacity-50"
+                className="shrink-0 rounded-lg border border-brand px-3 py-1.5 text-xs font-bold text-brand disabled:opacity-50"
               >
                 {t("notifPrefs.disable")}
               </button>
@@ -127,7 +127,7 @@ export function NotificationPreferencesPanel() {
               <button
                 onClick={handleEnablePush}
                 disabled={enabling}
-                className="shrink-0 rounded-lg bg-navy px-3 py-1.5 text-xs font-bold text-navy-foreground disabled:opacity-50"
+                className="shrink-0 rounded-lg bg-brand px-3.5 py-1.5 text-xs font-extrabold text-brand-foreground disabled:opacity-50"
               >
                 {enabling ? t("notifPrefs.enabling") : t("notifPrefs.enable")}
               </button>
@@ -163,7 +163,7 @@ export function NotificationPreferencesPanel() {
       <div>
         <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">{t("notifPrefs.categories")}</h2>
         {prefsQ.isLoading ? (
-          <div className="h-32 animate-pulse rounded-3xl bg-surface" />
+          <div className="h-32 animate-pulse rounded-3xl bg-surface-2" />
         ) : (
           <Card className="divide-y divide-border">
             {categories.map((c) => (

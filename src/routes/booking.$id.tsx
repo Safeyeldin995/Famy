@@ -18,7 +18,6 @@ import { BookingChatPanel } from "@/components/famio/BookingChatPanel";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { BookingSuccessIllustration } from "@/components/famio/BookingSuccessIllustration";
 import { peekPendingPayment } from "@/lib/booking/post-create-payment";
 
 
@@ -121,9 +120,9 @@ function BookingDetail() {
     return (
       <PhoneFrame>
         <div className="flex-1 space-y-4 px-6 pt-10">
-          <div className="mx-auto h-28 w-28 animate-pulse rounded-full bg-surface" />
-          <div className="h-40 animate-pulse rounded-3xl bg-surface" />
-          <div className="h-24 animate-pulse rounded-3xl bg-surface" />
+          <div className="mx-auto h-28 w-28 animate-pulse rounded-full bg-surface-2" />
+          <div className="h-40 animate-pulse rounded-3xl bg-surface-2" />
+          <div className="h-24 animate-pulse rounded-3xl bg-surface-2" />
         </div>
       </PhoneFrame>
     );
@@ -144,7 +143,7 @@ function BookingDetail() {
           icon="search"
           title={t("bookingDetail.notFound")}
           body={t("bookingDetail.notFoundBody")}
-          action={<Link to="/home" className="focus-ring inline-flex items-center rounded-2xl bg-navy px-4 py-3 text-sm font-bold text-navy-foreground">{t("bookingDetail.backHome")}</Link>}
+          action={<Link to="/home" className="focus-ring tap-scale inline-flex items-center rounded-full bg-brand px-5 py-3 text-sm font-extrabold text-brand-foreground">{t("bookingDetail.backHome")}</Link>}
         />
       </PhoneFrame>
     );
@@ -198,7 +197,7 @@ function BookingDetail() {
 
           <Card className="mt-8 p-5">
             <div className="flex items-center gap-3 border-b border-border pb-4">
-              <Avatar src={provider.avatar} className="h-14 w-14 rounded-2xl" />
+              <Avatar src={provider.avatar} className="h-14 w-14 rounded-full" />
               <div className="min-w-0 flex-1">
                 <div className="font-bold">{provider.name}</div>
                 <div className="text-xs text-muted-foreground">{booking.service}</div>
@@ -275,7 +274,7 @@ function BookingDetail() {
 
           <Card className="mt-8 p-5">
             <div className="flex items-center gap-3 border-b border-border pb-4">
-              <Avatar src={provider.avatar} className="h-14 w-14 rounded-2xl" />
+              <Avatar src={provider.avatar} className="h-14 w-14 rounded-full" />
               <div className="min-w-0 flex-1">
                 <div className="font-bold">{provider.name}</div>
                 <div className="text-xs text-muted-foreground">{booking.service}</div>
@@ -326,7 +325,7 @@ function BookingDetail() {
             )}
             <button
               onClick={() => toggleFav.mutate({ providerId: provider.id, on: !(favIdsQ.data ?? []).includes(provider.id) })}
-              className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-coral"
+              className="mt-3 inline-flex items-center gap-2 text-sm font-extrabold text-brand"
             >
               <Star className="h-4 w-4" /> {(favIdsQ.data ?? []).includes(provider.id) ? t("bookingDetail.savedFavorite") : t("bookingDetail.saveFavorite")}
             </button>
@@ -373,60 +372,44 @@ function BookingDetail() {
       : t("bookingDetail.arrivingBody", { name: provider.name });
 
     return (
-      <PhoneFrame>
-        <div className="relative h-64 w-full overflow-hidden bg-surface-2">
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 opacity-90"
-            style={{
-              backgroundImage:
-                "linear-gradient(180deg, oklch(0.94 0.02 85) 0%, oklch(0.92 0.03 235 / 0.35) 100%), repeating-linear-gradient(0deg, transparent 0 24px, rgba(0,0,0,0.03) 24px 25px), repeating-linear-gradient(90deg, transparent 0 24px, rgba(0,0,0,0.03) 24px 25px)",
-            }}
-          />
-          <svg className="absolute inset-0 h-full w-full" viewBox="0 0 600 400" preserveAspectRatio="none" aria-hidden="true">
-            <path d="M60 340 Q 200 260 300 240 T 540 80" fill="none" stroke="hsl(var(--coral))" strokeWidth="5" strokeLinecap="round" strokeDasharray="2 14" opacity="0.9" />
-            <circle cx="60" cy="340" r="9" fill="oklch(0.74 0.16 25)" stroke="white" strokeWidth="3" />
-            <circle cx="540" cy="80" r="10" fill="hsl(var(--coral))" />
-          </svg>
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-surface-2" />
-          <div className="safe-top absolute inset-x-0 top-0 flex items-center justify-between px-5 py-3">
+      <PhoneFrame bg="bg-background">
+        <div className="brand-hero safe-top rounded-b-[2.5rem] px-5 pb-7 pt-3">
+          <div className="flex items-center justify-between">
             <BackButton back={() => nav({ to: "/bookings" })} />
             <button
               aria-label={t("bookingDetail.emergency")}
-              className="focus-ring grid h-11 w-11 place-items-center rounded-full bg-coral text-coral-foreground shadow-card active:scale-95 transition-transform"
+              className="focus-ring grid h-11 w-11 place-items-center rounded-full bg-white/20 text-current backdrop-blur active:scale-95 transition-transform"
             >
               <AlertTriangle className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
-        </div>
 
-        <div className="-mt-10 flex-1 rounded-t-3xl bg-surface px-5 pb-8 pt-5">
-          <Badge tone="mint"><span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" /> {t(`status.${status}`, { defaultValue: status })}</Badge>
-          <div className="mt-2 text-2xl font-extrabold">{t("bookingDetail.inProgress", "Service in progress")}</div>
-          <p className="text-sm text-muted-foreground">{headline}</p>
+          <span className="mt-6 inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest">
+            <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" /> {t(`status.${status}`, { defaultValue: status })}
+          </span>
+          <div className="mt-2 text-[28px] font-black leading-tight tracking-tight">{headline}</div>
+          <p className="mt-1 text-sm font-semibold opacity-85">{booking.service}</p>
 
-          <Card className="mt-5 p-4">
-            <div className="flex items-center gap-3">
-              <Avatar src={provider.avatar} className="h-14 w-14 rounded-2xl" />
-              <div className="min-w-0 flex-1">
-                <div className="font-bold">{provider.name}</div>
-                <div className="text-xs text-muted-foreground inline-flex items-center gap-1">
-                  <Star className="h-3 w-3 fill-warning text-warning" strokeWidth={2} aria-hidden="true" />
-                  {provider.rating} · {provider.role}
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  aria-label={`${t("providerProfile.call")} ${provider.name}`}
-                  className="focus-ring grid h-11 w-11 place-items-center rounded-full bg-coral text-coral-foreground active:scale-95 transition-transform"
-                >
-                  <Phone className="h-4 w-4" aria-hidden="true" />
-                </button>
+          <div className="mt-6 flex items-center gap-4 rounded-[1.75rem] bg-white/15 p-3.5 backdrop-blur">
+            <Avatar src={provider.avatar} alt={provider.name} className="h-16 w-16 shrink-0 rounded-full ring-2 ring-white/40" />
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-base font-extrabold">{provider.name}</div>
+              <div className="mt-0.5 inline-flex items-center gap-1 text-xs font-semibold opacity-85">
+                <Star className="h-3 w-3 fill-current" strokeWidth={2} aria-hidden="true" />
+                {provider.rating} · {provider.role}
               </div>
             </div>
-          </Card>
+            <button
+              aria-label={`${t("providerProfile.call")} ${provider.name}`}
+              className="focus-ring grid h-12 w-12 shrink-0 place-items-center rounded-full bg-surface text-brand shadow-card active:scale-95 transition-transform"
+            >
+              <Phone className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
 
-          <Card className="mt-3 p-4">
+        <div className="flex-1 px-5 pb-8 pt-5">
+          <Card className="p-4">
             <BookingTimeline status={status ?? "on_the_way"} labelFor={(step) => t(`bookingDetail.timeline.${step}`)} />
           </Card>
 
@@ -435,7 +418,7 @@ function BookingDetail() {
           </p>
 
           {status === "on_the_way" && !noShowReport && (
-            <button onClick={() => setDialog("no_show")} disabled={reportNoShowMut.isPending} className="mt-4 w-full rounded-2xl py-3 text-sm font-semibold text-coral disabled:opacity-50">
+            <button onClick={() => setDialog("no_show")} disabled={reportNoShowMut.isPending} className="mt-4 w-full rounded-full py-3 text-sm font-extrabold text-brand disabled:opacity-50">
               {t("bookingDetail.reportNoShow")}
             </button>
           )}
@@ -444,7 +427,7 @@ function BookingDetail() {
             <div className="mt-4 space-y-2">
               <PrimaryButton onClick={() => setDialog("confirmArrival")} disabled={updateStatus.isPending}>{t("bookingDetail.confirmArrival")}</PrimaryButton>
               {!noShowReport && (
-                <button onClick={() => setDialog("no_show")} disabled={reportNoShowMut.isPending} className="w-full py-2 text-xs font-semibold text-coral disabled:opacity-50">
+                <button onClick={() => setDialog("no_show")} disabled={reportNoShowMut.isPending} className="w-full py-2 text-xs font-extrabold text-brand disabled:opacity-50">
                   {t("bookingDetail.reportNoShow")}
                 </button>
               )}
@@ -462,7 +445,7 @@ function BookingDetail() {
           )}
 
           {DISPUTE_ELIGIBLE_STATUSES.includes(status ?? "") && !dispute && (
-            <button onClick={() => setDialog("dispute")} disabled={openDispute.isPending} className="mt-2 w-full py-2 text-xs font-semibold text-coral disabled:opacity-50">
+            <button onClick={() => setDialog("dispute")} disabled={openDispute.isPending} className="mt-2 w-full py-2 text-xs font-extrabold text-brand disabled:opacity-50">
               {t("bookingDetail.disputeCompletion")}
             </button>
           )}
@@ -498,7 +481,7 @@ function BookingDetail() {
           confirmLabel={t("bookingDetail.confirmAction")}
           cancelLabel={t("bookingDetail.keep")}
           requireReason={false}
-          confirmVariant="navy"
+          confirmVariant="coral"
           pending={updateStatus.isPending}
           onCancel={() => setDialog("")}
           onConfirm={() => run("arrival_confirmed", undefined, () => setDialog(""))}
@@ -511,7 +494,7 @@ function BookingDetail() {
           confirmLabel={t("bookingDetail.confirmCompletion")}
           cancelLabel={t("bookingDetail.keep")}
           requireReason={false}
-          confirmVariant="navy"
+          confirmVariant="coral"
           pending={updateStatus.isPending}
           onCancel={() => setDialog("")}
           onConfirm={() => run("completed", undefined, () => setDialog(""))}
@@ -558,22 +541,32 @@ function BookingDetail() {
   const cancellable = status === "pending" || status === "confirmed";
 
   return (
-    <PhoneFrame>
-      <div className="safe-top flex-1 px-6 pt-8">
-        <div className="text-center">
-          <BookingSuccessIllustration className="mx-auto h-36 w-36" />
-          <h1 className="mt-6 text-2xl font-extrabold text-foreground">{t("bookingDetail.allSet")}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{t("bookingDetail.confirmedNumber", { id: booking.id })}</p>
-        </div>
+    <PhoneFrame bg="bg-background">
+      <div className="brand-hero safe-top rounded-b-[2.5rem] px-6 pb-7 pt-6">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest">
+          {t(`status.${status}`, { defaultValue: status })}
+        </span>
+        <h1 className="mt-2 text-[28px] font-black leading-tight tracking-tight">{t("bookingDetail.allSet")}</h1>
+        <p className="mt-1 text-sm font-semibold opacity-85">{t("bookingDetail.confirmedNumber", { id: booking.id })}</p>
 
-        <Card className="mt-8 p-5">
+        <div className="mt-6 flex items-center gap-4 rounded-[1.75rem] bg-white/15 p-3.5 backdrop-blur">
+          <Avatar src={provider.avatar} alt={provider.name} className="h-16 w-16 shrink-0 rounded-full ring-2 ring-white/40" />
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-base font-extrabold">{provider.name}</div>
+            <div className="mt-0.5 truncate text-xs font-semibold opacity-85">{booking.service}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 px-6 pt-6">
+        <Card className="p-5">
           <div className="flex items-center gap-3 border-b border-border pb-4">
-            <Avatar src={provider.avatar} alt={provider.name} className="h-14 w-14 rounded-2xl" />
+            <Avatar src={provider.avatar} alt={provider.name} className="h-14 w-14 rounded-full" />
             <div className="min-w-0 flex-1">
-              <div className="text-base font-bold">{provider.name}</div>
+              <div className="text-base font-extrabold">{provider.name}</div>
               <div className="text-xs text-muted-foreground">{booking.service}</div>
             </div>
-            <Badge tone="navy">{provider.role}</Badge>
+            <Badge tone="coral">{provider.role}</Badge>
           </div>
           <div className="mt-4 space-y-3 text-sm">
             <Line icon={<Calendar className="h-4 w-4" />} label={booking.date} />
@@ -715,9 +708,9 @@ function Line({ icon, label }: { icon: React.ReactNode; label: string }) {
 
 function Action({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick?: () => void }) {
   return (
-    <button onClick={onClick} className="rounded-2xl bg-surface p-3 text-center shadow-soft active:scale-95">
-      <div className="mx-auto grid h-9 w-9 place-items-center rounded-xl bg-navy/10 text-navy">{icon}</div>
-      <div className="mt-1.5 text-[11px] font-semibold">{label}</div>
+    <button onClick={onClick} className="focus-ring rounded-[1.25rem] border border-border/50 bg-surface-elevated p-3 text-center shadow-xs active:scale-95">
+      <div className="mx-auto grid h-10 w-10 place-items-center rounded-full bg-brand/8 text-brand">{icon}</div>
+      <div className="mt-1.5 text-[11px] font-extrabold">{label}</div>
     </button>
   );
 }
@@ -779,7 +772,7 @@ function downloadIcs(b: { id: string; title: string; description: string; locati
 function NextStep({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
   return (
     <li className="flex items-start gap-3">
-      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-navy/10 text-navy">{icon}</div>
+      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand/8 text-brand">{icon}</div>
       <div className="min-w-0">
         <div className="text-sm font-bold">{title}</div>
         <div className="text-[11px] text-muted-foreground">{body}</div>

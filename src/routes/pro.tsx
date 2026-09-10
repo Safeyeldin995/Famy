@@ -5,6 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMyProvider, useMyRole } from "@/lib/db/provider-queries";
 import { PhoneFrame } from "@/components/famio/ui";
 import { QueryError } from "@/components/famio/QueryError";
+import { FamyWordmark } from "@/components/famio/FamyWordmark";
+import { Loader2 } from "lucide-react";
+import { customerPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/pro")({ component: ProviderLayout });
 
@@ -28,7 +31,9 @@ function ProviderLayout() {
       });
       unsub = sub.data.subscription;
     })();
-    return () => { unsub?.unsubscribe?.(); };
+    return () => {
+      unsub?.unsubscribe?.();
+    };
   }, [nav]);
 
   useEffect(() => {
@@ -41,9 +46,9 @@ function ProviderLayout() {
 
   if (role.isLoading || provider.isLoading) {
     return (
-      <PhoneFrame>
+      <PhoneFrame bg="bg-[#FEFAFC]">
         <div className="grid min-h-dvh place-items-center px-8">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-navy/20 border-t-navy" />
+          <Loader2 className="h-8 w-8 animate-spin text-brand" aria-hidden="true" />
         </div>
       </PhoneFrame>
     );
@@ -51,7 +56,7 @@ function ProviderLayout() {
 
   if (role.isError) {
     return (
-      <PhoneFrame>
+      <PhoneFrame bg="bg-[#FEFAFC]">
         <QueryError onRetry={() => role.refetch()} />
       </PhoneFrame>
     );
@@ -59,25 +64,30 @@ function ProviderLayout() {
 
   if (provider.isError) {
     return (
-      <PhoneFrame>
+      <PhoneFrame bg="bg-[#FEFAFC]">
         <QueryError onRetry={() => provider.refetch()} />
       </PhoneFrame>
     );
   }
 
-  // Signed in but never enrolled as provider → onboarding gateway
   if (!provider.data && !onOnboarding) {
-
     return (
-      <PhoneFrame>
-        <div className="flex min-h-dvh flex-col items-center justify-center gap-4 px-8 text-center">
-          <div className="grid h-24 w-24 place-items-center rounded-3xl bg-navy text-3xl font-extrabold text-navy-foreground">F</div>
-          <h1 className="text-2xl font-extrabold">{t("pro.gateway.title")}</h1>
-          <p className="text-sm text-muted-foreground">{t("pro.gateway.body")}</p>
-          <Link to="/pro/onboarding" className="mt-2 inline-flex h-14 w-full max-w-xs items-center justify-center rounded-2xl bg-navy text-base font-bold text-navy-foreground shadow-card">
+      <PhoneFrame bg="bg-[#FEFAFC]">
+        <div className="flex min-h-dvh flex-col items-center justify-center gap-5 px-8 text-center">
+          <div className="brand-hero flex w-full max-w-xs flex-col items-center rounded-[1.75rem] px-6 py-8">
+            <FamyWordmark size="compact" variant="white" />
+          </div>
+          <h1 className="text-2xl font-extrabold text-foreground">{t("pro.gateway.title")}</h1>
+          <p className="text-sm font-medium text-muted-foreground">{t("pro.gateway.body")}</p>
+          <Link
+            to="/pro/onboarding"
+            className="focus-ring tap-scale mt-2 inline-flex h-12 w-full max-w-xs items-center justify-center rounded-2xl bg-brand text-sm font-extrabold text-brand-foreground shadow-sm"
+          >
             {t("pro.gateway.become")}
           </Link>
-          <Link to="/home" className="text-xs font-semibold text-muted-foreground">{t("pro.gateway.backCustomer")}</Link>
+          <Link to={customerPath("/home") as "/home"} className="text-xs font-semibold text-muted-foreground">
+            {t("pro.gateway.backCustomer")}
+          </Link>
         </div>
       </PhoneFrame>
     );

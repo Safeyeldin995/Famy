@@ -6,8 +6,13 @@ import { useEffect, useState, useCallback } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
+import { isPreviewProRoute, isPreviewRoute, PREVIEW_USER_ID } from '@/lib/preview/constants';
 
 type Role = Database['public']['Enums']['app_role'];
+
+function previewUser(): User {
+  return { id: PREVIEW_USER_ID, app_metadata: {}, user_metadata: {}, aud: 'authenticated', created_at: '' } as User;
+}
 
 export function useAuth() {
   const [session, setSession] = useState<Session | null>(null);
@@ -16,6 +21,13 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (isPreviewRoute()) {
+      setSession({} as Session);
+      setUser(previewUser());
+      setRoles(isPreviewProRoute() ? ['provider'] : ['customer']);
+      setLoading(false);
+      return;
+    }
     // 1) subscribe FIRST to avoid missing the SIGNED_IN event
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);

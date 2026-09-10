@@ -1,8 +1,21 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { PhoneFrame, TopBar, PrimaryButton, Card, EmptyState, Avatar, Chip, SegmentedControl } from "@/components/famio/ui";
 import {
-  useProvider, useProviderServices, useCreateBooking, useAddresses, useAvailableSlots, useResolveZone,
+  PhoneFrame,
+  PrimaryButton,
+  Card,
+  EmptyState,
+  Avatar,
+} from "@/components/famio/ui";
+import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
+import { CustomerFloatingPanel } from "@/components/famio/CustomerFloatingPanel";
+import {
+  useProvider,
+  useProviderServices,
+  useCreateBooking,
+  useAddresses,
+  useAvailableSlots,
+  useResolveZone,
   useProviderBookingSettings,
 } from "@/lib/db/queries";
 import { useActiveFamilyMembers } from "@/lib/db/family-members-queries";
@@ -13,15 +26,38 @@ import { useActivePaymentMethods } from "@/lib/db/payment-methods-queries";
 import { useRequirementsForService } from "@/lib/db/provider-queries";
 import { toUIProvider } from "@/lib/db/adapters";
 import { currentLang } from "@/lib/i18n";
-import { MapPin, Banknote, Check, Loader2, Home, Briefcase, Users, Plus, Copy, Wallet, X, Lock } from "lucide-react";
+import {
+  MapPin,
+  Banknote,
+  Check,
+  Loader2,
+  Home,
+  Briefcase,
+  Users,
+  Plus,
+  Copy,
+  Wallet,
+  X,
+  Lock,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { formatEGP, formatNumber } from "@/lib/format";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useBillingSettings, DEFAULT_BILLING_SETTINGS } from "@/lib/db/settings-queries";
-import { BookingError, getBookingErrorMessage, isSlotStaleBookingError } from "@/lib/booking/errors";
-import { bookingSubmissionFingerprint, resolveIdempotencyKey, type IdempotencyKeyState } from "@/lib/booking/idempotency";
+import {
+  BookingError,
+  getBookingErrorMessage,
+  isSlotStaleBookingError,
+} from "@/lib/booking/errors";
+import {
+  bookingSubmissionFingerprint,
+  resolveIdempotencyKey,
+  type IdempotencyKeyState,
+} from "@/lib/booking/idempotency";
 import { planPostCreatePayment, stashPendingPayment } from "@/lib/booking/post-create-payment";
+import { BookScheduleStep } from "@/components/famio/BookScheduleStep";
+import { previewPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/book/$providerId")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -33,6 +69,16 @@ export const Route = createFileRoute("/book/$providerId")({
 function Book() {
   const { providerId } = Route.useParams();
   const { serviceId: searchServiceId } = Route.useSearch();
+  return <BookContent providerId={providerId} searchServiceId={searchServiceId} />;
+}
+
+export function BookContent({
+  providerId,
+  searchServiceId,
+}: {
+  providerId: string;
+  searchServiceId?: string;
+}) {
   const provQ = useProvider(providerId);
   const servicesQ = useProviderServices(providerId);
   const addrsQ = useAddresses();
@@ -44,7 +90,18 @@ function Book() {
   const { t } = useTranslation();
   const nav = useNavigate();
 
-  const stepKeys = ["service", "duration", "date", "time", "address", "forWhom", "notes", "requirements", "summary", "payment"] as const;
+  const stepKeys = [
+    "service",
+    "duration",
+    "schedule",
+    "address",
+    "forWhom",
+    "notes",
+    "requirements",
+    "summary",
+    "payment",
+  ] as const;
+  const SCHEDULE_STEP = 2;
   const [step, setStep] = useState(0);
   const [serviceId, setServiceId] = useState<string | null>(searchServiceId ?? null);
   const [duration, setDuration] = useState("4h");
@@ -57,18 +114,25 @@ function Book() {
   const [notes, setNotes] = useState("");
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
   const [promoCode, setPromoCode] = useState("");
-  const [promoStatus, setPromoStatus] = useState<"idle" | "checking" | "applied" | "invalid">("idle");
+  const [promoStatus, setPromoStatus] = useState<"idle" | "checking" | "applied" | "invalid">(
+    "idle",
+  );
   const [promoDiscount, setPromoDiscount] = useState(0);
   const [appliedPromoId, setAppliedPromoId] = useState<string | null>(null);
-  const [requirementChoices, setRequirementChoices] = useState<Record<string, "customer" | "provider">>({});
+  const [requirementChoices, setRequirementChoices] = useState<
+    Record<string, "customer" | "provider">
+  >({});
   const [timeBand, setTimeBand] = useState<"all" | "morning" | "afternoon" | "evening">("all");
+  const [scanningSchedule, setScanningSchedule] = useState(false);
+  const userPickedDateRef = useRef(false);
   const idempotencyStateRef = useRef<IdempotencyKeyState | null>(null);
 
   // Only addresses with a pinned location can back a real booking — the
   // server enforces this too (booking_locations snapshot trigger rejects a
   // NULL lat/lng), this just keeps the picker from offering a dead end.
   const bookableAddresses = (addrsQ.data ?? []).filter((a: any) => a.lat != null && a.lng != null);
-  const defaultBookableAddressId = bookableAddresses.find((a: any) => a.is_default)?.id ?? bookableAddresses[0]?.id;
+  const defaultBookableAddressId =
+    bookableAddresses.find((a: any) => a.is_default)?.id ?? bookableAddresses[0]?.id;
   const slotAddressId = addressId ?? defaultBookableAddressId ?? null;
   const services = servicesQ.data ?? [];
   const eligibilityServiceId = serviceId ?? services[0]?.service?.id ?? null;
@@ -85,7 +149,9 @@ function Book() {
     if (addressId === null && bookableAddresses.length > 0) {
       const def = bookableAddresses.find((a: any) => a.is_default) ?? bookableAddresses[0];
       setAddressId(def.id);
-      setAddress([def.street ?? def.line1, def.building, def.compound, def.area].filter(Boolean).join(", "));
+      setAddress(
+        [def.street ?? def.line1, def.building, def.compound, def.area].filter(Boolean).join(", "),
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addrsQ.data]);
@@ -132,8 +198,63 @@ function Book() {
     });
   }, [slotsQ.data, timeBand]);
 
+  useEffect(() => {
+    if (step !== SCHEDULE_STEP) {
+      setScanningSchedule(false);
+      return;
+    }
+    if (!date) {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      setDate(d);
+      return;
+    }
+    if (slotsQ.isLoading || slotsQ.isFetching) return;
+    if (slotsQ.isError) {
+      setScanningSchedule(false);
+      return;
+    }
+    if (userPickedDateRef.current) {
+      setScanningSchedule(false);
+      return;
+    }
+    if ((slotsQ.data?.length ?? 0) > 0) {
+      setScanningSchedule(false);
+      return;
+    }
+
+    const maxDays = bookingSettingsQ.data?.max_advance_days ?? 12;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dayIndex = Math.round((date.getTime() - today.getTime()) / 86400000);
+    if (dayIndex + 1 < maxDays) {
+      setScanningSchedule(true);
+      const next = new Date(date);
+      next.setDate(next.getDate() + 1);
+      setDate(next);
+      setTime(null);
+      setSelectedSlot(null);
+      return;
+    }
+    setScanningSchedule(false);
+  }, [
+    step,
+    date,
+    slotsQ.isLoading,
+    slotsQ.isFetching,
+    slotsQ.isError,
+    slotsQ.data,
+    bookingSettingsQ.data?.max_advance_days,
+  ]);
+
   if (provQ.isLoading || servicesQ.isLoading || bookingSettingsQ.isLoading) {
-    return <PhoneFrame><div className="grid flex-1 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-navy" /></div></PhoneFrame>;
+    return (
+      <PhoneFrame>
+        <div className="grid flex-1 place-items-center">
+          <Loader2 className="h-6 w-6 animate-spin text-brand" />
+        </div>
+      </PhoneFrame>
+    );
   }
   if (!bookingSettingsQ.data) {
     return (
@@ -142,11 +263,11 @@ function Book() {
           icon="ban"
           title={t("bookFlow.unavailable")}
           body={t("bookFlow.unavailableBody")}
-          action={(
+          action={
             <Link to="/search">
               <PrimaryButton>{t("bookFlow.backToSearch")}</PrimaryButton>
             </Link>
-          )}
+          }
         />
       </PhoneFrame>
     );
@@ -160,33 +281,44 @@ function Book() {
           icon="ban"
           title={t("bookFlow.unavailable")}
           body={t("bookFlow.unavailableBody")}
-          action={(
+          action={
             <Link to="/search">
               <PrimaryButton>{t("bookFlow.backToSearch")}</PrimaryButton>
             </Link>
-          )}
+          }
         />
       </PhoneFrame>
     );
   }
 
-  const selectedFamilyMember = forWhom !== "myself" ? (familyMembersQ.data ?? []).find((m: any) => m.id === forWhom) : null;
-  const forWhomLabel = forWhom === "myself" ? t("bookFlow.forWhomMyself", "Myself") : (selectedFamilyMember?.full_name ?? t("bookFlow.dash"));
+  const selectedFamilyMember =
+    forWhom !== "myself" ? (familyMembersQ.data ?? []).find((m: any) => m.id === forWhom) : null;
+  const forWhomLabel =
+    forWhom === "myself"
+      ? t("bookFlow.forWhomMyself", "Myself")
+      : (selectedFamilyMember?.full_name ?? t("bookFlow.dash"));
 
   const ratePerHour = Number(activeService?.price_override ?? p.hourlyRate);
   const subtotal = ratePerHour * hours;
   const fee = billingQ.data?.platform_fee ?? DEFAULT_BILLING_SETTINGS.platform_fee;
-  const vat = Math.round(subtotal * ((billingQ.data?.vat_percent ?? DEFAULT_BILLING_SETTINGS.vat_percent) / 100));
+  const vat = Math.round(
+    subtotal * ((billingQ.data?.vat_percent ?? DEFAULT_BILLING_SETTINGS.vat_percent) / 100),
+  );
 
   // Requirements that must be resolved before this booking can be created.
   // The server re-derives/validates all of this itself (tg_validate_booking_service)
   // — this is purely so the customer sees the right total and can't submit
   // an incomplete "either" choice.
-  const bookingRequirements = (requirementsQ.data ?? []).filter((r: any) => r.required_during_booking);
-  const eitherRequirements = bookingRequirements.filter((r: any) => r.fulfillment_mode === "either");
+  const bookingRequirements = (requirementsQ.data ?? []).filter(
+    (r: any) => r.required_during_booking,
+  );
+  const eitherRequirements = bookingRequirements.filter(
+    (r: any) => r.fulfillment_mode === "either",
+  );
   const extrasTotal = bookingRequirements.reduce((sum: number, r: any) => {
     if (r.fulfillment_mode === "provider") return sum + Number(r.provider_extra_fee);
-    if (r.fulfillment_mode === "either" && requirementChoices[r.id] === "provider") return sum + Number(r.provider_extra_fee);
+    if (r.fulfillment_mode === "either" && requirementChoices[r.id] === "provider")
+      return sum + Number(r.provider_extra_fee);
     return sum;
   }, 0);
   // Zone travel fee — resolved the same way the server independently
@@ -203,12 +335,12 @@ function Book() {
 
   const canNext = () => {
     if (step === 0) return !!activeService;
-    if (step === 2) return !!date;
-    if (step === 3) return !!time;
-    if (step === 4) return !!addressId && !!zoneQ.data;
-    if (step === 5) return forWhom === "myself" || (familyMembersQ.data ?? []).some((m: any) => m.id === forWhom);
-    if (step === 7) return eitherRequirements.every((r: any) => !!requirementChoices[r.id]);
-    if (step === 9) return !!paymentMethodId;
+    if (step === SCHEDULE_STEP) return !!date && !!time;
+    if (step === 3) return !!addressId && !!zoneQ.data;
+    if (step === 4)
+      return forWhom === "myself" || (familyMembersQ.data ?? []).some((m: any) => m.id === forWhom);
+    if (step === 6) return eitherRequirements.every((r: any) => !!requirementChoices[r.id]);
+    if (step === 8) return !!paymentMethodId;
     return true;
   };
 
@@ -260,7 +392,8 @@ function Book() {
       end = selectedSlot.end;
     } else {
       const [hh, mm, ampm] = time.match(/(\d+):(\d+)\s*(\w+)/)!.slice(1);
-      let h = parseInt(hh); if (ampm.toUpperCase() === "PM" && h !== 12) h += 12;
+      let h = parseInt(hh);
+      if (ampm.toUpperCase() === "PM" && h !== 12) h += 12;
       start = new Date(date);
       start.setHours(h, parseInt(mm), 0, 0);
       end = new Date(start.getTime() + hours * 60 * 60 * 1000);
@@ -280,7 +413,15 @@ function Book() {
         .from("bookings")
         .select("id")
         .eq("provider_id", p.id)
-        .in("status", ["pending", "confirmed", "on_the_way", "arrived", "arrival_confirmed", "in_progress", "completion_requested"])
+        .in("status", [
+          "pending",
+          "confirmed",
+          "on_the_way",
+          "arrived",
+          "arrival_confirmed",
+          "in_progress",
+          "completion_requested",
+        ])
         .lt("start_at", end.toISOString())
         .gt("end_at", start.toISOString())
         .limit(1);
@@ -289,7 +430,7 @@ function Book() {
         toast.error(t("bookFlow.slotTaken", "That time slot was just taken. Please pick another."));
         setTime(null);
         setSelectedSlot(null);
-        setStep(3);
+        setStep(SCHEDULE_STEP);
         return;
       }
 
@@ -329,19 +470,30 @@ function Book() {
             if (checkout.ok) {
               onlineCheckoutStarted = true;
             } else {
-              toast.error(checkout.message || t("payment.paymobStartFailed", "Could not start online payment."));
+              toast.error(
+                checkout.message ||
+                  t("payment.paymobStartFailed", "Could not start online payment."),
+              );
             }
           }
         } catch (pe: unknown) {
           console.error("payment row insert failed", pe);
-          toast.error(mapPaymentInsertError(pe) || t("bookFlow.paymentFailed", "Could not record payment method"));
+          toast.error(
+            mapPaymentInsertError(pe) ||
+              t("bookFlow.paymentFailed", "Could not record payment method"),
+          );
         }
       } else {
         stashPendingPayment(paymentPlan.bookingId, {
           paymentMethodId: paymentPlan.paymentMethodId,
           methodType: paymentPlan.methodType,
         });
-        toast.info(t("bookFlow.paymentDeferred", "Your booking was created. Payment details will load on the booking page."));
+        toast.info(
+          t(
+            "bookFlow.paymentDeferred",
+            "Your booking was created. Payment details will load on the booking page.",
+          ),
+        );
       }
       if (!booking.idempotent_replay) {
         toast.success(t("bookFlow.created", "Booking created"));
@@ -358,7 +510,7 @@ function Book() {
         toast.error(getBookingErrorMessage(e, (key, fallback) => t(key, fallback ?? "")));
         setTime(null);
         setSelectedSlot(null);
-        setStep(3);
+        setStep(SCHEDULE_STEP);
         return;
       }
       toast.error(getBookingErrorMessage(e, (key, fallback) => t(key, fallback ?? "")));
@@ -370,21 +522,38 @@ function Book() {
     else submit();
   };
 
-  const back = step === 0 ? { to: "/provider/$id" as const, params: { id: p.id } } : () => setStep(step - 1);
   const locale = lang === "ar" ? "ar-EG" : "en-US";
+  const addressChipLabel = selectedAddress
+    ? [selectedAddress.area, selectedAddress.street ?? selectedAddress.line1]
+        .filter(Boolean)
+        .join(" · ")
+    : null;
+
+  const handleBack = () => {
+    if (step === 0) nav({ to: "/provider/$id", params: { id: p.id } });
+    else setStep(step - 1);
+  };
 
   return (
-    <PhoneFrame>
-      <div className="home-hero-shell safe-top px-5 pb-4 pt-3">
-        <TopBar back={typeof back === "function" ? back : { to: `/provider/${p.id}` }} transparent />
-        <div className="mt-2 flex items-center gap-4">
-          <Avatar src={p.avatar} alt={p.name} className="h-14 w-14 shrink-0 shadow-sm" />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-lg font-extrabold tracking-tight text-foreground">{p.name}</p>
-            <p className="mt-0.5 text-xs font-bold uppercase tracking-wider text-brand">{t(`bookFlow.stepName.${stepKeys[step]}`)}</p>
-          </div>
-        </div>
-        <div className="mt-5 h-2 overflow-hidden rounded-full bg-surface-2">
+    <PhoneFrame bg="bg-background">
+      <CustomerPageHero
+        title={p.name}
+        subtitle={t(`bookFlow.stepName.${stepKeys[step]}`)}
+        onBack={handleBack}
+      />
+
+      <div className="px-5">
+        {addressChipLabel ? (
+          <CustomerFloatingPanel className="!py-3">
+            <div className="inline-flex max-w-full items-center gap-1.5 text-xs font-extrabold text-foreground">
+              <MapPin className="h-3.5 w-3.5 shrink-0 text-brand" aria-hidden="true" />
+              <span className="truncate">{addressChipLabel}</span>
+            </div>
+          </CustomerFloatingPanel>
+        ) : null}
+        <div
+          className={`${addressChipLabel ? "mt-4" : "-mt-8"} h-2 overflow-hidden rounded-full bg-surface-2`}
+        >
           <div
             className="h-full rounded-full bg-brand transition-all duration-500 ease-out"
             style={{ width: `${((step + 1) / stepKeys.length) * 100}%` }}
@@ -392,7 +561,7 @@ function Book() {
         </div>
       </div>
 
-      <div className="flex-1 px-5 pb-32 pt-6">
+      <div className="flex-1 px-5 pb-40 pt-6">
         {step === 0 && (
           <Step title={t("bookFlow.serviceTitle")} sub={t("bookFlow.serviceSub")}>
             {services.length === 0 ? (
@@ -400,9 +569,17 @@ function Book() {
             ) : (
               <div className="space-y-3">
                 {services.map((s: any) => {
-                  const label = (lang === "ar" ? s.service?.name_ar : s.service?.name_en) || s.service?.name_en;
+                  const label =
+                    (lang === "ar" ? s.service?.name_ar : s.service?.name_en) || s.service?.name_en;
                   const active = (serviceId ?? services[0].service?.id) === s.service?.id;
-                  return <Option key={s.service.id} active={active} onClick={() => setServiceId(s.service.id)} label={label} />;
+                  return (
+                    <Option
+                      key={s.service.id}
+                      active={active}
+                      onClick={() => setServiceId(s.service.id)}
+                      label={label}
+                    />
+                  );
                 })}
               </div>
             )}
@@ -411,33 +588,27 @@ function Book() {
 
         {step === 1 && (
           <Step title={t("bookFlow.durationTitle")} sub={t("bookFlow.durationSub")}>
-            <div className="flex flex-wrap gap-2">
-              {durations.map((d) => (
-                <Chip key={d} active={duration === d} onClick={() => setDuration(d)}>
-                  {durationLabel(d)} · {formatEGP(ratePerHour * parseInt(d))}
-                </Chip>
-              ))}
-            </div>
-          </Step>
-        )}
-
-        {step === 2 && (
-          <Step title={t("bookFlow.dateTitle")} sub={t("bookFlow.dateSub")}>
-            <div className="grid grid-cols-4 gap-2">
-              {Array.from({ length: Math.max(1, Math.min(30, bookingSettingsQ.data?.max_advance_days ?? 12)) }).map((_, i) => {
-                const d = new Date();
-                d.setDate(d.getDate() + i);
-                d.setHours(0, 0, 0, 0);
-                const isSel = date?.toDateString() === d.toDateString();
+            <div className="grid grid-cols-2 gap-3">
+              {durations.map((d) => {
+                const active = duration === d;
                 return (
                   <button
-                    key={i}
-                    onClick={() => { setDate(d); setTime(null); setSelectedSlot(null); }}
-                    className={`flex flex-col items-center rounded-xl px-2 py-3 transition-all tap-scale ${isSel ? "bg-brand text-brand-foreground shadow-card" : "surface-card shadow-xs"}`}
+                    key={d}
+                    type="button"
+                    onClick={() => setDuration(d)}
+                    aria-pressed={active}
+                    className={`focus-ring tap-scale flex min-h-[5.5rem] flex-col items-start justify-center gap-1 rounded-[1.5rem] border px-4 py-4 text-start transition-all ${
+                      active
+                        ? "border-brand bg-brand text-brand-foreground shadow-[0_12px_28px_-14px_var(--brand)]"
+                        : "border-border/60 bg-surface-elevated text-foreground shadow-xs"
+                    }`}
                   >
-                    <span className="text-[10px] font-bold uppercase">{d.toLocaleString(locale, { weekday: "short" })}</span>
-                    <span className="text-xl font-extrabold">{formatNumber(d.getDate())}</span>
-                    <span className="text-[10px]">{d.toLocaleString(locale, { month: "short" })}</span>
+                    <span className="text-lg font-black tracking-tight">{durationLabel(d)}</span>
+                    <span
+                      className={`text-sm font-extrabold ${active ? "text-brand-foreground/90" : "text-brand"}`}
+                    >
+                      {formatEGP(ratePerHour * parseInt(d))}
+                    </span>
                   </button>
                 );
               })}
@@ -445,46 +616,42 @@ function Book() {
           </Step>
         )}
 
-        {step === 3 && (
-          <Step title={t("bookFlow.timeTitle")} sub={t("bookFlow.timeSub")}>
-            <SegmentedControl
-              className="mb-4"
-              value={timeBand}
-              onChange={setTimeBand}
-              options={[
-                { value: "all", label: t("bookFlow.timeAll") },
-                { value: "morning", label: t("bookFlow.timeMorning") },
-                { value: "afternoon", label: t("bookFlow.timeAfternoon") },
-                { value: "evening", label: t("bookFlow.timeEvening") },
-              ]}
+        {step === SCHEDULE_STEP && (
+          <Step title={t("bookFlow.scheduleTitle")} sub={t("bookFlow.scheduleSub")}>
+            <BookScheduleStep
+              locale={locale}
+              maxAdvanceDays={bookingSettingsQ.data?.max_advance_days ?? 12}
+              date={date}
+              time={time}
+              timeBand={timeBand}
+              slotsLoading={slotsQ.isLoading || slotsQ.isFetching}
+              filteredSlots={filteredSlots}
+              hasSlotsForSelectedDate={(slotsQ.data?.length ?? 0) > 0}
+              scanning={scanningSchedule}
+              availabilityError={slotsQ.isError}
+              onDateChange={(d) => {
+                userPickedDateRef.current = true;
+                setScanningSchedule(false);
+                setDate(d);
+                setTime(null);
+                setSelectedSlot(null);
+              }}
+              onTimeChange={(label, slot) => {
+                setTime(label);
+                setSelectedSlot(slot);
+              }}
+              onTimeBandChange={setTimeBand}
             />
-            {slotsQ.isLoading ? (
-              <div className="grid grid-cols-3 gap-2">
-                {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-12 animate-pulse rounded-2xl bg-surface" />)}
-              </div>
-            ) : filteredSlots.length === 0 ? (
-              <EmptyState icon="calendar" title={t("bookFlow.noSlots")} body={t("bookFlow.noSlotsBody")} />
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {filteredSlots.map((slot) => (
-                  <Chip
-                    key={slot.label}
-                    active={time === slot.label}
-                    onClick={() => { setTime(slot.label); setSelectedSlot({ start: slot.start, end: slot.end }); }}
-                  >
-                    {slot.label}
-                  </Chip>
-                ))}
-              </div>
-            )}
           </Step>
         )}
 
-        {step === 4 && (
+        {step === 3 && (
           <Step title={t("bookFlow.addressTitle")} sub={t("bookFlow.addressSub")}>
             {addrsQ.isLoading ? (
               <div className="space-y-2">
-                {Array.from({ length: 2 }).map((_, i) => <div key={i} className="h-16 animate-pulse rounded-2xl bg-surface" />)}
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <div key={i} className="h-16 animate-pulse rounded-2xl bg-surface-2" />
+                ))}
               </div>
             ) : bookableAddresses.length === 0 ? (
               <EmptyState
@@ -492,11 +659,17 @@ function Book() {
                 title={t("bookFlow.noBookableAddress", "Add an address to continue")}
                 body={
                   (addrsQ.data?.length ?? 0) > 0
-                    ? t("bookFlow.addressesNeedLocation", "Your saved addresses are missing a pinned location. Add one to book.")
+                    ? t(
+                        "bookFlow.addressesNeedLocation",
+                        "Your saved addresses are missing a pinned location. Add one to book.",
+                      )
                     : t("bookFlow.noAddressesYet", "You haven't saved an address yet.")
                 }
                 action={
-                  <Link to="/addresses/new" className="focus-ring inline-flex items-center gap-1.5 rounded-2xl bg-navy px-4 py-3 text-sm font-bold text-navy-foreground">
+                  <Link
+                    to={previewPath("/addresses/new") as "/addresses/new"}
+                    className="focus-ring tap-scale inline-flex items-center gap-1.5 rounded-full bg-brand px-5 py-3 text-sm font-extrabold text-brand-foreground"
+                  >
                     <Plus className="h-4 w-4" /> {t("addresses.addAddress", "Add address")}
                   </Link>
                 }
@@ -504,24 +677,44 @@ function Book() {
             ) : (
               <div className="space-y-2">
                 {bookableAddresses.map((a: any) => {
-                  const Icon = a.label === "home" ? Home : a.label === "work" ? Briefcase : a.label === "family" ? Users : MapPin;
-                  const title = a.label === "other" ? a.custom_label || t("addresses.label.other") : t(`addresses.label.${a.label}`);
-                  const lineParts = [a.street ?? a.line1, a.building, a.compound, a.area].filter(Boolean);
+                  const Icon =
+                    a.label === "home"
+                      ? Home
+                      : a.label === "work"
+                        ? Briefcase
+                        : a.label === "family"
+                          ? Users
+                          : MapPin;
+                  const title =
+                    a.label === "other"
+                      ? a.custom_label || t("addresses.label.other")
+                      : t(`addresses.label.${a.label}`);
+                  const lineParts = [a.street ?? a.line1, a.building, a.compound, a.area].filter(
+                    Boolean,
+                  );
                   return (
                     <button
                       key={a.id}
-                      onClick={() => { setAddressId(a.id); setAddress(lineParts.join(", ")); }}
-                      className={`flex w-full items-center gap-3 rounded-2xl p-3 text-start transition-all ${addressId === a.id ? "bg-surface ring-2 ring-navy" : "bg-surface shadow-soft"}`}
+                      onClick={() => {
+                        setAddressId(a.id);
+                        setAddress(lineParts.join(", "));
+                      }}
+                      className={`focus-ring tap-scale flex w-full items-center gap-3 rounded-[1.25rem] border p-3.5 text-start transition-all ${addressId === a.id ? "border-brand bg-brand/5" : "border-border/60 bg-surface-elevated"}`}
                     >
-                      <Icon className="h-4 w-4 shrink-0 text-coral" />
+                      <Icon className="h-4 w-4 shrink-0 text-brand" />
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-bold">{title}</div>
-                        <div className="truncate text-xs text-muted-foreground">{lineParts.join(", ")}</div>
+                        <div className="truncate text-xs text-muted-foreground">
+                          {lineParts.join(", ")}
+                        </div>
                       </div>
                     </button>
                   );
                 })}
-                <Link to="/addresses/new" className="flex w-full items-center gap-2 rounded-2xl border border-dashed border-border p-3 text-sm font-bold text-navy">
+                <Link
+                  to={previewPath("/addresses/new") as "/addresses/new"}
+                  className="focus-ring flex w-full items-center gap-2 rounded-[1.25rem] border border-dashed border-brand/40 p-3.5 text-sm font-extrabold text-brand"
+                >
                   <Plus className="h-4 w-4" /> {t("addresses.addAddress", "Add address")}
                 </Link>
               </div>
@@ -529,16 +722,21 @@ function Book() {
             {selectedAddress && (
               <div className="mt-3">
                 {zoneQ.isLoading ? (
-                  <div className="h-10 animate-pulse rounded-xl bg-surface" />
+                  <div className="h-10 animate-pulse rounded-xl bg-surface-2" />
                 ) : zoneQ.data ? (
-                  <div className="flex items-center gap-2 rounded-xl bg-mint/20 px-3 py-2.5 text-xs font-bold text-foreground">
-                    <MapPin className="h-3.5 w-3.5 text-navy" />
-                    {t("bookFlow.zoneServed", "Serves {{zone}}", { zone: lang === "ar" ? zoneQ.data.name_ar : zoneQ.data.name_en })}
+                  <div className="flex items-center gap-2 rounded-full bg-success/10 px-3.5 py-2.5 text-xs font-bold text-foreground">
+                    <MapPin className="h-3.5 w-3.5 text-success" />
+                    {t("bookFlow.zoneServed", "Serves {{zone}}", {
+                      zone: lang === "ar" ? zoneQ.data.name_ar : zoneQ.data.name_en,
+                    })}
                   </div>
                 ) : (
-                  <div className="flex items-start gap-2 rounded-xl bg-coral/10 px-3 py-2.5 text-xs font-bold text-coral">
+                  <div className="flex items-start gap-2 rounded-[1.25rem] bg-brand/8 px-3.5 py-2.5 text-xs font-bold text-brand">
                     <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                    {t("bookFlow.zoneNotServed", "This area is not currently served. Please choose another address.")}
+                    {t(
+                      "bookFlow.zoneNotServed",
+                      "This area is not currently served. Please choose another address.",
+                    )}
                   </div>
                 )}
               </div>
@@ -546,68 +744,90 @@ function Book() {
           </Step>
         )}
 
-        {step === 5 && (
-          <Step title={t("bookFlow.forWhomTitle", "Who is this for?")} sub={t("bookFlow.forWhomSub", "Choose yourself or a saved family member.")}>
+        {step === 4 && (
+          <Step
+            title={t("bookFlow.forWhomTitle", "Who is this for?")}
+            sub={t("bookFlow.forWhomSub", "Choose yourself or a saved family member.")}
+          >
             <div className="space-y-2">
               <button
                 onClick={() => setForWhom("myself")}
-                className={`flex w-full items-center justify-between rounded-2xl p-4 text-start transition-all ${forWhom === "myself" ? "bg-navy text-navy-foreground" : "bg-surface shadow-soft"}`}
+                className={`focus-ring tap-scale flex w-full items-center justify-between rounded-[1.25rem] border p-4 text-start transition-all ${forWhom === "myself" ? "border-brand bg-brand/5" : "border-border/60 bg-surface-elevated"}`}
               >
                 <span className="font-bold">{t("bookFlow.forWhomMyself", "Myself")}</span>
-                <span className={`grid h-6 w-6 place-items-center rounded-full border-2 ${forWhom === "myself" ? "border-white bg-white text-navy" : "border-border"}`}>
+                <span
+                  className={`grid h-6 w-6 place-items-center rounded-full border-2 ${forWhom === "myself" ? "border-brand bg-brand text-brand-foreground" : "border-border"}`}
+                >
                   {forWhom === "myself" && <Check className="h-3.5 w-3.5" />}
                 </span>
               </button>
               {familyMembersQ.isLoading ? (
-                <div className="h-16 animate-pulse rounded-2xl bg-surface" />
+                <div className="h-16 animate-pulse rounded-2xl bg-surface-2" />
               ) : (familyMembersQ.data ?? []).length === 0 ? (
                 <div className="rounded-2xl bg-surface-2 p-4 text-center text-xs text-muted-foreground">
                   {t("bookFlow.noFamilyMembers", "You haven't added any family members yet.")}
                 </div>
               ) : (
                 (familyMembersQ.data ?? []).map((m: any) => {
-                  const relationshipLabel = m.relationship === "other" ? (m.relationship_other || t("familyMembers.relationships.other")) : t(`familyMembers.relationships.${m.relationship}`);
+                  const relationshipLabel =
+                    m.relationship === "other"
+                      ? m.relationship_other || t("familyMembers.relationships.other")
+                      : t(`familyMembers.relationships.${m.relationship}`);
                   const active = forWhom === m.id;
                   return (
                     <button
                       key={m.id}
                       onClick={() => setForWhom(m.id)}
-                      className={`flex w-full items-center justify-between rounded-2xl p-4 text-start transition-all ${active ? "bg-navy text-navy-foreground" : "bg-surface shadow-soft"}`}
+                      className={`focus-ring tap-scale flex w-full items-center justify-between rounded-[1.25rem] border p-4 text-start transition-all ${active ? "border-brand bg-brand/5" : "border-border/60 bg-surface-elevated"}`}
                     >
                       <span>
                         <span className="block font-bold">{m.full_name}</span>
-                        <span className={`block text-xs ${active ? "text-white/70" : "text-muted-foreground"}`}>{relationshipLabel}</span>
+                        <span
+                          className={`block text-xs ${active ? "text-white/70" : "text-muted-foreground"}`}
+                        >
+                          {relationshipLabel}
+                        </span>
                       </span>
-                      <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border-2 ${active ? "border-white bg-white text-navy" : "border-border"}`}>
+                      <span
+                        className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border-2 ${active ? "border-brand bg-brand text-brand-foreground" : "border-border"}`}
+                      >
                         {active && <Check className="h-3.5 w-3.5" />}
                       </span>
                     </button>
                   );
                 })
               )}
-              <Link to="/family-members/new" className="flex w-full items-center gap-2 rounded-2xl border border-dashed border-border p-3 text-sm font-bold text-navy">
+              <Link
+                to="/family-members/new"
+                className="focus-ring flex w-full items-center gap-2 rounded-[1.25rem] border border-dashed border-brand/40 p-3.5 text-sm font-extrabold text-brand"
+              >
                 <Plus className="h-4 w-4" /> {t("familyMembers.addMember", "Add family member")}
               </Link>
             </div>
           </Step>
         )}
 
-        {step === 6 && (
+        {step === 5 && (
           <Step title={t("bookFlow.notesTitle")} sub={t("bookFlow.notesSub")}>
             <textarea
               rows={6}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder={t("bookFlow.notesPlaceholder")}
-              className="w-full resize-none rounded-2xl border border-border bg-surface p-4 text-[15px] outline-none focus:border-navy"
+              className="w-full resize-none rounded-[1.25rem] border border-border bg-surface p-4 text-[15px] outline-none focus:border-brand"
             />
           </Step>
         )}
 
-        {step === 7 && (
-          <Step title={t("bookFlow.requirementsTitle", "Requirements")} sub={t("bookFlow.requirementsSub", "Some items for this service need to be arranged.")}>
+        {step === 6 && (
+          <Step
+            title={t("bookFlow.requirementsTitle", "Requirements")}
+            sub={t("bookFlow.requirementsSub", "Some items for this service need to be arranged.")}
+          >
             {bookingRequirements.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("bookFlow.noRequirements", "Nothing extra needed for this service.")}</p>
+              <p className="text-sm text-muted-foreground">
+                {t("bookFlow.noRequirements", "Nothing extra needed for this service.")}
+              </p>
             ) : (
               <div className="space-y-3">
                 {bookingRequirements.map((r: any) => {
@@ -618,7 +838,11 @@ function Book() {
                         <div className="font-bold">{name}</div>
                         <div className="text-xs text-muted-foreground">
                           {r.fulfillment_mode === "provider"
-                            ? t("bookFlow.reqProviderProvides", "Provided by your professional — {{fee}}", { fee: formatEGP(Number(r.provider_extra_fee)) })
+                            ? t(
+                                "bookFlow.reqProviderProvides",
+                                "Provided by your professional — {{fee}}",
+                                { fee: formatEGP(Number(r.provider_extra_fee)) },
+                              )
                             : t("bookFlow.reqYouProvide", "You provide this")}
                         </div>
                       </Card>
@@ -630,16 +854,22 @@ function Book() {
                       <div className="text-sm font-bold">{name}</div>
                       <div className="mt-2 grid grid-cols-2 gap-2">
                         <button
-                          onClick={() => setRequirementChoices((c) => ({ ...c, [r.id]: "customer" }))}
-                          className={`rounded-xl border p-2.5 text-xs font-bold ${choice === "customer" ? "border-navy bg-navy/[0.04] text-navy" : "border-border text-muted-foreground"}`}
+                          onClick={() =>
+                            setRequirementChoices((c) => ({ ...c, [r.id]: "customer" }))
+                          }
+                          className={`rounded-xl border p-2.5 text-xs font-bold ${choice === "customer" ? "border-brand bg-brand/5 text-brand" : "border-border text-muted-foreground"}`}
                         >
                           {t("bookFlow.reqIWillProvide", "I will provide it")}
                         </button>
                         <button
-                          onClick={() => setRequirementChoices((c) => ({ ...c, [r.id]: "provider" }))}
-                          className={`rounded-xl border p-2.5 text-xs font-bold ${choice === "provider" ? "border-navy bg-navy/[0.04] text-navy" : "border-border text-muted-foreground"}`}
+                          onClick={() =>
+                            setRequirementChoices((c) => ({ ...c, [r.id]: "provider" }))
+                          }
+                          className={`rounded-xl border p-2.5 text-xs font-bold ${choice === "provider" ? "border-brand bg-brand/5 text-brand" : "border-border text-muted-foreground"}`}
                         >
-                          {t("bookFlow.reqProviderWillProvide", "Provider provides — {{fee}}", { fee: formatEGP(Number(r.provider_extra_fee)) })}
+                          {t("bookFlow.reqProviderWillProvide", "Provider provides — {{fee}}", {
+                            fee: formatEGP(Number(r.provider_extra_fee)),
+                          })}
                         </button>
                       </div>
                     </Card>
@@ -650,7 +880,7 @@ function Book() {
           </Step>
         )}
 
-        {step === 8 && (
+        {step === 7 && (
           <Step title={t("bookFlow.summaryTitle")}>
             <Card className="p-4">
               <div className="flex items-center gap-3 border-b border-border pb-3">
@@ -658,12 +888,26 @@ function Book() {
                 <div className="min-w-0">
                   <div className="font-bold">{p.name}</div>
                   <div className="text-xs text-muted-foreground">
-                    {(lang === "ar" ? activeService?.service?.name_ar : activeService?.service?.name_en) || ""} · {duration}
+                    {(lang === "ar"
+                      ? activeService?.service?.name_ar
+                      : activeService?.service?.name_en) || ""}{" "}
+                    · {duration}
                   </div>
                 </div>
               </div>
               <Row label={t("bookFlow.rowForWhom", "For")} value={forWhomLabel} />
-              <Row label={t("bookFlow.rowDate")} value={date ? date.toLocaleDateString(locale, { weekday: "short", month: "short", day: "numeric" }) : t("bookFlow.dash")} />
+              <Row
+                label={t("bookFlow.rowDate")}
+                value={
+                  date
+                    ? date.toLocaleDateString(locale, {
+                        weekday: "short",
+                        month: "short",
+                        day: "numeric",
+                      })
+                    : t("bookFlow.dash")
+                }
+              />
               <Row label={t("bookFlow.rowTime")} value={time || t("bookFlow.dash")} />
               <Row label={t("bookFlow.rowAddress")} value={address || t("bookFlow.dash")} />
               {notes && <Row label={t("bookFlow.rowNotes")} value={notes} />}
@@ -671,16 +915,28 @@ function Book() {
                 <div className="flex items-center gap-2">
                   <input
                     value={promoCode}
-                    onChange={(e) => { setPromoCode(e.target.value); if (promoStatus !== "idle") { setPromoStatus("idle"); setPromoDiscount(0); setAppliedPromoId(null); } }}
+                    onChange={(e) => {
+                      setPromoCode(e.target.value);
+                      if (promoStatus !== "idle") {
+                        setPromoStatus("idle");
+                        setPromoDiscount(0);
+                        setAppliedPromoId(null);
+                      }
+                    }}
                     placeholder={t("bookFlow.promoPlaceholder")}
                     disabled={promoStatus === "applied"}
-                    className="h-11 min-w-0 flex-1 rounded-xl border border-border bg-surface px-3 text-sm font-semibold outline-none focus:border-navy disabled:opacity-60"
+                    className="h-12 min-w-0 flex-1 rounded-full bg-surface-2 px-4 text-sm font-bold outline-none focus:ring-1 focus:ring-brand disabled:opacity-60"
                   />
                   {promoStatus === "applied" ? (
                     <button
-                      onClick={() => { setPromoCode(""); setPromoStatus("idle"); setPromoDiscount(0); setAppliedPromoId(null); }}
+                      onClick={() => {
+                        setPromoCode("");
+                        setPromoStatus("idle");
+                        setPromoDiscount(0);
+                        setAppliedPromoId(null);
+                      }}
                       aria-label={t("bookFlow.promoRemove")}
-                      className="h-11 shrink-0 rounded-xl border border-border px-4 text-sm font-bold text-muted-foreground"
+                      className="h-12 shrink-0 rounded-full border border-border px-4 text-sm font-bold text-muted-foreground"
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -688,9 +944,13 @@ function Book() {
                     <button
                       onClick={applyPromo}
                       disabled={!promoCode.trim() || promoStatus === "checking"}
-                      className="h-11 shrink-0 rounded-xl bg-navy px-4 text-sm font-bold text-navy-foreground disabled:opacity-50"
+                      className="h-12 shrink-0 rounded-full bg-brand px-5 text-sm font-extrabold text-brand-foreground disabled:opacity-50"
                     >
-                      {promoStatus === "checking" ? <Loader2 className="h-4 w-4 animate-spin" /> : t("bookFlow.promoApply")}
+                      {promoStatus === "checking" ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        t("bookFlow.promoApply")
+                      )}
                     </button>
                   )}
                 </div>
@@ -702,7 +962,14 @@ function Book() {
                 )}
               </div>
               <div className="mt-3 border-t border-border pt-3 space-y-1.5 text-sm">
-                <Row label={t("bookFlow.rateLine", { rate: formatEGP(ratePerHour), hours: formatNumber(hours) })} value={formatEGP(subtotal)} small />
+                <Row
+                  label={t("bookFlow.rateLine", {
+                    rate: formatEGP(ratePerHour),
+                    hours: formatNumber(hours),
+                  })}
+                  value={formatEGP(subtotal)}
+                  small
+                />
                 <Row label={t("bookFlow.serviceFee")} value={formatEGP(fee)} small />
                 <Row label={t("bookFlow.vat")} value={formatEGP(vat)} small />
                 {extrasTotal > 0 && (
@@ -712,11 +979,17 @@ function Book() {
                   <Row label={t("bookFlow.travelFee")} value={formatEGP(travelFee)} small />
                 )}
                 {promoDiscount > 0 && (
-                  <Row label={t("bookFlow.promoDiscount")} value={`-${formatEGP(promoDiscount)}`} small />
+                  <Row
+                    label={t("bookFlow.promoDiscount")}
+                    value={`-${formatEGP(promoDiscount)}`}
+                    small
+                  />
                 )}
                 <div className="mt-2 flex items-center justify-between border-t border-border pt-2">
                   <span className="text-sm font-bold">{t("bookFlow.total")}</span>
-                  <span className="text-lg font-extrabold text-navy">{formatEGP(total)}</span>
+                  <span className="text-xl font-black tracking-tight text-brand">
+                    {formatEGP(total)}
+                  </span>
                 </div>
                 <div className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
                   <Check className="h-3 w-3 text-success" aria-hidden="true" />
@@ -727,16 +1000,23 @@ function Book() {
           </Step>
         )}
 
-        {step === 9 && (
+        {step === 8 && (
           <Step title={t("bookFlow.paymentTitle")} sub={t("bookFlow.paymentSub")}>
             {methodsQ.isLoading ? (
               <div className="space-y-3">
-                {Array.from({ length: 2 }).map((_, i) => <div key={i} className="h-[72px] animate-pulse rounded-2xl bg-surface" />)}
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <div key={i} className="h-[72px] animate-pulse rounded-2xl bg-surface-2" />
+                ))}
               </div>
             ) : methodsQ.isError ? (
-              <div className="rounded-2xl bg-coral/10 p-4 text-center">
-                <p className="text-sm font-semibold text-coral">{t("bookFlow.paymentLoadError")}</p>
-                <button onClick={() => methodsQ.refetch()} className="mt-2 text-xs font-bold text-navy underline">{t("common.retry")}</button>
+              <div className="rounded-[1.25rem] bg-brand/8 p-4 text-center">
+                <p className="text-sm font-bold text-brand">{t("bookFlow.paymentLoadError")}</p>
+                <button
+                  onClick={() => methodsQ.refetch()}
+                  className="mt-2 text-xs font-extrabold text-brand underline"
+                >
+                  {t("common.retry")}
+                </button>
               </div>
             ) : (methodsQ.data ?? []).length === 0 ? (
               <p className="text-sm text-muted-foreground">{t("bookFlow.paymentEmpty")}</p>
@@ -745,12 +1025,20 @@ function Book() {
                 <div className="space-y-3">
                   {methodsQ.data!.map((m) => {
                     const label = lang === "ar" ? m.name_ar : m.name_en;
-                    const sub = (lang === "ar" ? m.instructions_ar : m.instructions_en) ?? undefined;
-                    const icon = m.method_type === "cash"
-                      ? <Banknote className="h-5 w-5" />
-                      : m.code === "instapay"
-                        ? <img src="/instapay.svg" alt={label} className="h-full w-full rounded-xl object-cover" />
-                        : <Wallet className="h-5 w-5" />;
+                    const sub =
+                      (lang === "ar" ? m.instructions_ar : m.instructions_en) ?? undefined;
+                    const icon =
+                      m.method_type === "cash" ? (
+                        <Banknote className="h-5 w-5" />
+                      ) : m.code === "instapay" ? (
+                        <img
+                          src="/instapay.svg"
+                          alt={label}
+                          className="h-full w-full rounded-xl object-cover"
+                        />
+                      ) : (
+                        <Wallet className="h-5 w-5" />
+                      );
                     return (
                       <PayOption
                         key={m.id}
@@ -763,7 +1051,11 @@ function Book() {
                     );
                   })}
                 </div>
-                <PaymentMethodInstructions method={methodsQ.data!.find((m) => m.id === paymentMethodId) ?? null} lang={lang} t={t} />
+                <PaymentMethodInstructions
+                  method={methodsQ.data!.find((m) => m.id === paymentMethodId) ?? null}
+                  lang={lang}
+                  t={t}
+                />
               </>
             )}
             <div className="mt-4 flex items-center justify-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
@@ -774,15 +1066,30 @@ function Book() {
         )}
       </div>
 
-      <div className="safe-bottom fixed inset-x-0 bottom-0 z-40 mx-auto max-w-md border-t border-border bg-surface px-5 pt-3">
-        {step === 9 && (
-          <div className="mb-3 flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">{t("bookFlow.total")}</span>
-            <span className="text-lg font-extrabold text-navy">{formatEGP(total)}</span>
+      <div className="action-bar safe-bottom px-5 pt-3">
+        {step >= 1 && (
+          <div className="mb-3 flex items-baseline justify-between">
+            <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+              {t("bookFlow.total")}
+            </span>
+            <span className="text-2xl font-black tracking-tight text-foreground">
+              {formatEGP(total)}
+            </span>
           </div>
         )}
         <PrimaryButton onClick={next} disabled={!canNext() || createBooking.isPending}>
-          {createBooking.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : step === 9 ? (<><Lock className="h-4 w-4" aria-hidden="true" /> {t("bookFlow.payCta", { price: formatEGP(total) })}</>) : step === 8 ? t("bookFlow.continueToPayment") : t("bookFlow.continue")}
+          {createBooking.isPending ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : step === 8 ? (
+            <>
+              <Lock className="h-4 w-4" aria-hidden="true" />{" "}
+              {t("bookFlow.payCta", { price: formatEGP(total) })}
+            </>
+          ) : step === 7 ? (
+            t("bookFlow.continueToPayment")
+          ) : (
+            t("bookFlow.continue")
+          )}
         </PrimaryButton>
       </div>
     </PhoneFrame>
@@ -790,7 +1097,15 @@ function Book() {
 }
 
 /** Receiver handle + Copy button for the selected method, when it has one (e.g. InstaPay). */
-function PaymentMethodInstructions({ method, lang, t }: { method: any; lang: string; t: (k: string, o?: any) => string }) {
+function PaymentMethodInstructions({
+  method,
+  lang,
+  t,
+}: {
+  method: any;
+  lang: string;
+  t: (k: string, o?: any) => string;
+}) {
   if (!method) return null;
   const config = (method.public_config ?? {}) as Record<string, unknown>;
   const handle = typeof config.handle === "string" ? config.handle : null;
@@ -808,15 +1123,21 @@ function PaymentMethodInstructions({ method, lang, t }: { method: any; lang: str
 
   return (
     <div className="mt-3 space-y-2 rounded-2xl bg-surface-2 p-3">
-      <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{t("payment.transferTo")}</div>
+      <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+        {t("payment.transferTo")}
+      </div>
       <button
         onClick={copy}
         className="flex w-full items-center justify-between gap-2 rounded-xl bg-surface p-3 text-start active:scale-[0.99]"
         aria-label={t("payment.copyHandle")}
       >
         <div className="min-w-0">
-          <div className="text-xs text-muted-foreground">{lang === "ar" ? method.name_ar : method.name_en}</div>
-          <div className="truncate text-sm font-extrabold text-navy" dir="ltr">{handle}</div>
+          <div className="text-xs text-muted-foreground">
+            {lang === "ar" ? method.name_ar : method.name_en}
+          </div>
+          <div className="truncate text-sm font-extrabold text-brand" dir="ltr">
+            {handle}
+          </div>
         </div>
         <Copy className="h-4 w-4 text-muted-foreground" />
       </button>
@@ -825,27 +1146,47 @@ function PaymentMethodInstructions({ method, lang, t }: { method: any; lang: str
   );
 }
 
-function Step({ title, sub, children }: { title: string; sub?: string; children: React.ReactNode }) {
+function Step({
+  title,
+  sub,
+  children,
+}: {
+  title: string;
+  sub?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="animate-rise">
-      <h2 className="text-title text-foreground">{title}</h2>
-      {sub ? <p className="mt-1 text-body text-muted-foreground">{sub}</p> : null}
-      <div className="surface-card mt-5 p-4 shadow-xs">{children}</div>
+      <h2 className="text-2xl font-extrabold tracking-tight text-foreground">{title}</h2>
+      {sub ? <p className="mt-1.5 text-body font-medium text-muted-foreground">{sub}</p> : null}
+      <div className="mt-5 rounded-[1.75rem] border border-border/50 bg-surface-elevated p-4 shadow-sm">
+        {children}
+      </div>
     </div>
   );
 }
 
-function Option({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
+function Option({
+  active,
+  onClick,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`focus-ring tap-scale flex w-full min-h-[3.5rem] items-center justify-between rounded-xl border px-4 text-start transition-all ${
-        active ? "border-ink/30 bg-ink/[0.04] ring-1 ring-ink/15" : "border-border/80 bg-background"
+      className={`focus-ring tap-scale flex w-full min-h-[3.75rem] items-center justify-between rounded-[1.25rem] border px-4 text-start transition-all ${
+        active ? "border-brand bg-brand/5" : "border-border/60 bg-surface-elevated"
       }`}
     >
       <span className="font-bold text-foreground">{label}</span>
-      <span className={`grid h-6 w-6 place-items-center rounded-full border-2 ${active ? "border-ink bg-ink text-ink-foreground" : "border-border"}`}>
+      <span
+        className={`grid h-6 w-6 place-items-center rounded-full border-2 ${active ? "border-brand bg-brand text-brand-foreground" : "border-border"}`}
+      >
         {active ? <Check className="h-3.5 w-3.5" /> : null}
       </span>
     </button>
@@ -857,16 +1198,20 @@ function PayOption({ icon, label, sub, active, onClick }: any) {
     <button
       type="button"
       onClick={onClick}
-      className={`focus-ring tap-scale flex w-full items-center gap-3 rounded-xl border p-4 text-start transition-all ${
-        active ? "border-ink/30 bg-ink/[0.04] ring-1 ring-ink/15" : "border-border/80 bg-background shadow-xs"
+      className={`focus-ring tap-scale flex w-full items-center gap-3 rounded-[1.25rem] border p-4 text-start transition-all ${
+        active ? "border-brand bg-brand/5" : "border-border/60 bg-surface-elevated shadow-xs"
       }`}
     >
-      <div className="grid h-11 w-11 place-items-center rounded-xl bg-ink/10 text-ink">{icon}</div>
+      <div className="grid h-11 w-11 place-items-center rounded-2xl bg-brand/8 text-brand">
+        {icon}
+      </div>
       <div className="min-w-0 flex-1">
         <div className="text-sm font-bold text-foreground">{label}</div>
         <div className="text-xs text-muted-foreground">{sub}</div>
       </div>
-      <span className={`grid h-6 w-6 place-items-center rounded-full border-2 ${active ? "border-ink bg-ink text-ink-foreground" : "border-border"}`}>
+      <span
+        className={`grid h-6 w-6 place-items-center rounded-full border-2 ${active ? "border-brand bg-brand text-brand-foreground" : "border-border"}`}
+      >
         {active ? <Check className="h-3.5 w-3.5" /> : null}
       </span>
     </button>
@@ -875,7 +1220,9 @@ function PayOption({ icon, label, sub, active, onClick }: any) {
 
 function Row({ label, value, small }: { label: string; value: string; small?: boolean }) {
   return (
-    <div className={`mt-2 flex items-start justify-between gap-3 ${small ? "text-xs text-muted-foreground" : "text-sm"}`}>
+    <div
+      className={`mt-2 flex items-start justify-between gap-3 ${small ? "text-xs text-muted-foreground" : "text-sm"}`}
+    >
       <span>{label}</span>
       <span className={small ? "" : "font-semibold text-end"}>{value}</span>
     </div>

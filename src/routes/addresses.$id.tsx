@@ -3,15 +3,22 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { PhoneFrame, TopBar, ErrorState } from "@/components/famio/ui";
+import { PhoneFrame, ErrorState } from "@/components/famio/ui";
+import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
 import { QueryError } from "@/components/famio/QueryError";
-import { AddressForm, addressFormValueToInput, addressRowToFormValue, emptyAddressFormValue, type AddressFormValue } from "@/components/famio/AddressForm";
+import {
+  AddressForm,
+  addressFormValueToInput,
+  addressRowToFormValue,
+  emptyAddressFormValue,
+  type AddressFormValue,
+} from "@/components/famio/AddressForm";
 import { useAddress, useUpdateAddress } from "@/lib/db/queries";
+import { previewPath } from "@/lib/preview/previewPath";
 
-export const Route = createFileRoute("/addresses/$id")({ component: EditAddress });
+export const Route = createFileRoute("/addresses/$id")({ component: EditAddressRoute });
 
-function EditAddress() {
-  const { id } = Route.useParams();
+export function EditAddress({ id }: { id: string }) {
   const { t } = useTranslation();
   const nav = useNavigate();
   const addressQ = useAddress(id);
@@ -30,7 +37,7 @@ function EditAddress() {
     try {
       await updateAddress.mutateAsync({ id, ...addressFormValueToInput(value) });
       toast.success(t("addresses.saved", "Address saved"));
-      nav({ to: "/addresses" });
+      nav({ to: previewPath("/addresses") as "/addresses" });
     } catch (e: any) {
       toast.error(e?.message ?? t("setup.saveFailed", "Could not save your profile."));
     }
@@ -38,33 +45,51 @@ function EditAddress() {
 
   if (addressQ.isLoading) {
     return (
-      <PhoneFrame>
-        <TopBar back={{ to: "/addresses" }} title={t("common.edit")} />
-        <div className="grid flex-1 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-navy" /></div>
+      <PhoneFrame bg="bg-background">
+        <CustomerPageHero
+          title={t("common.edit")}
+          subtitle={t("addresses.subtitle")}
+          backTo="/addresses"
+        />
+        <div className="grid flex-1 place-items-center">
+          <Loader2 className="h-6 w-6 animate-spin text-brand" />
+        </div>
       </PhoneFrame>
     );
   }
   if (addressQ.isError) {
     return (
-      <PhoneFrame>
-        <TopBar back={{ to: "/addresses" }} title={t("common.edit")} />
+      <PhoneFrame bg="bg-background">
+        <CustomerPageHero
+          title={t("common.edit")}
+          subtitle={t("addresses.subtitle")}
+          backTo="/addresses"
+        />
         <QueryError onRetry={() => addressQ.refetch()} />
       </PhoneFrame>
     );
   }
   if (!addressQ.data) {
     return (
-      <PhoneFrame>
-        <TopBar back={{ to: "/addresses" }} title={t("common.edit")} />
+      <PhoneFrame bg="bg-background">
+        <CustomerPageHero
+          title={t("common.edit")}
+          subtitle={t("addresses.subtitle")}
+          backTo="/addresses"
+        />
         <ErrorState title={t("addresses.notFound", "Address not found")} />
       </PhoneFrame>
     );
   }
 
   return (
-    <PhoneFrame bg="bg-surface">
-      <TopBar back={{ to: "/addresses" }} title={t("common.edit")} />
-      <div className="flex-1 px-6 pb-10 pt-2">
+    <PhoneFrame bg="bg-background">
+      <CustomerPageHero
+        title={t("common.edit")}
+        subtitle={t("addresses.subtitle")}
+        backTo="/addresses"
+      />
+      <div className="flex-1 px-5 pb-10 pt-2">
         <AddressForm
           value={value}
           onChange={setValue}
@@ -75,4 +100,9 @@ function EditAddress() {
       </div>
     </PhoneFrame>
   );
+}
+
+function EditAddressRoute() {
+  const { id } = Route.useParams();
+  return <EditAddress id={id} />;
 }

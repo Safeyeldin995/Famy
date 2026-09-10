@@ -1,6 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { PhoneFrame, TopBar, EmptyState } from "@/components/famio/ui";
-import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead } from "@/lib/db/queries";
+import { PhoneFrame, EmptyState } from "@/components/famio/ui";
+import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
+import {
+  useNotifications,
+  useMarkNotificationRead,
+  useMarkAllNotificationsRead,
+} from "@/lib/db/queries";
 import { useTranslation } from "react-i18next";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { Bell, Sparkles } from "lucide-react";
@@ -9,7 +14,8 @@ import { formatDate } from "@/lib/utils";
 export const Route = createFileRoute("/notifications")({ component: Notifications });
 
 function notifText(n: any, lang: string) {
-  if (lang === "ar") return { title: n.title_ar || n.title_en || n.title, body: n.body_ar || n.body_en || n.body };
+  if (lang === "ar")
+    return { title: n.title_ar || n.title_en || n.title, body: n.body_ar || n.body_en || n.body };
   return { title: n.title_en || n.title, body: n.body_en || n.body };
 }
 
@@ -29,33 +35,39 @@ function Notifications() {
   };
 
   return (
-    <PhoneFrame>
-      <TopBar
-        back={{ to: "/home" }}
+    <PhoneFrame bg="bg-background">
+      <CustomerPageHero
         title={t("notifs.title")}
+        backTo="/home"
         right={
           hasUnread ? (
             <button
               onClick={() => markAllRead.mutate()}
               disabled={markAllRead.isPending}
-              className="text-xs font-bold text-navy disabled:opacity-50"
+              className="focus-ring shrink-0 rounded-full border border-white/25 bg-white/15 px-3.5 py-2 text-xs font-extrabold text-white backdrop-blur-sm disabled:opacity-50"
             >
               {t("notifs.markAllRead")}
             </button>
           ) : undefined
         }
       />
-      <div className="px-5">
+      <div className="px-5 pt-2">
         {q.isLoading ? (
           <div className="space-y-2">
-            {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-20 rounded-2xl bg-surface animate-pulse" />)}
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-20 rounded-2xl bg-surface-2 animate-pulse" />
+            ))}
           </div>
         ) : q.isError ? (
-          <EmptyState icon="alert" title={t("common.errorTitle", "Something went wrong")} body={t("common.tryAgain", "Please try again.")} />
+          <EmptyState
+            icon="alert"
+            title={t("common.errorTitle", "Something went wrong")}
+            body={t("common.tryAgain", "Please try again.")}
+          />
         ) : items.length === 0 ? (
           <EmptyState icon="bell" title={t("notifs.empty")} />
         ) : (
-          <ul className="space-y-2">
+          <ul className="space-y-2.5 pb-6">
             {items.map((n: any) => {
               const unread = !n.read_at;
               const isOffer = n.category === "campaign";
@@ -64,18 +76,27 @@ function Notifications() {
                 <li
                   key={n.id}
                   onClick={() => openNotification(n)}
-                  className={`flex items-start gap-3 rounded-2xl p-4 cursor-pointer ${unread ? "bg-surface shadow-soft" : "bg-surface-2"}`}
+                  className={`flex cursor-pointer items-start gap-3.5 rounded-[1.5rem] border p-4 transition-colors ${unread ? "border-brand/20 bg-surface-elevated shadow-sm" : "border-transparent bg-surface-2"}`}
                 >
-                  <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl ${isOffer ? "bg-coral/15 text-coral" : "bg-navy/10 text-navy"}`}>
+                  <div
+                    className={`grid h-11 w-11 shrink-0 place-items-center rounded-full ${isOffer ? "bg-brand text-brand-foreground" : "bg-brand/8 text-brand"}`}
+                  >
                     {isOffer ? <Sparkles className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="truncate text-sm font-bold">{title}</span>
-                      {unread && <span className="h-2 w-2 shrink-0 rounded-full bg-coral" />}
+                      <span className="truncate text-sm font-extrabold">{title}</span>
+                      {unread && <span className="h-2 w-2 shrink-0 rounded-full bg-brand" />}
                     </div>
                     {body && <p className="text-xs text-muted-foreground">{body}</p>}
-                    <div className="mt-1 text-[10px] text-muted-foreground">{formatDate(new Date(n.created_at), { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</div>
+                    <div className="mt-1 text-[10px] text-muted-foreground">
+                      {formatDate(new Date(n.created_at), {
+                        month: "short",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })}
+                    </div>
                   </div>
                 </li>
               );

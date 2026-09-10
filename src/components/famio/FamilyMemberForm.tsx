@@ -138,7 +138,7 @@ export function FamilyMemberForm({
               type="button"
               onClick={() => set("relationship", r)}
               className={`rounded-2xl border py-3 text-[11px] font-bold transition-all ${
-                value.relationship === r ? "border-navy bg-navy/[0.04] text-navy" : "border-border bg-surface text-muted-foreground"
+                value.relationship === r ? "border-brand bg-brand/5 text-brand" : "border-border bg-surface text-muted-foreground"
               }`}
             >
               {t(`familyMembers.relationships.${r}`)}
@@ -152,7 +152,7 @@ export function FamilyMemberForm({
               value={value.relationshipOther}
               onChange={(e) => set("relationshipOther", e.target.value)}
               placeholder={t("familyMembers.relationshipOtherPlaceholder", "e.g. Cousin")}
-              className="mt-2 h-12 w-full rounded-2xl border border-border bg-surface px-4 text-sm font-medium outline-none focus:border-navy"
+              className="mt-2 h-12 w-full rounded-2xl border border-border bg-surface px-4 text-sm font-medium outline-none focus:border-brand"
             />
             {touched && !relationshipOtherValid && <ErrorText>{t("validation.required")}</ErrorText>}
           </>
@@ -168,7 +168,7 @@ export function FamilyMemberForm({
           value={value.dateOfBirth}
           max={today}
           onChange={(e) => set("dateOfBirth", e.target.value)}
-          className="mt-2 h-14 w-full rounded-2xl border border-border bg-surface px-4 text-[15px] font-medium outline-none focus:border-navy"
+          className="mt-2 h-14 w-full rounded-2xl border border-border bg-surface px-4 text-[15px] font-medium outline-none focus:border-brand"
         />
         {touched && !dobValid && <ErrorText>{t("familyMembers.dobFuture", "Date of birth cannot be in the future")}</ErrorText>}
       </div>
@@ -184,7 +184,7 @@ export function FamilyMemberForm({
               type="button"
               onClick={() => set("gender", value.gender === g ? "" : g)}
               className={`rounded-2xl border py-3 text-[11px] font-bold transition-all ${
-                value.gender === g ? "border-navy bg-navy/[0.04] text-navy" : "border-border bg-surface text-muted-foreground"
+                value.gender === g ? "border-brand bg-brand/5 text-brand" : "border-border bg-surface text-muted-foreground"
               }`}
             >
               {t(`familyMembers.genders.${g}`)}
@@ -250,7 +250,7 @@ export function FamilyMemberForm({
 }
 
 function ErrorText({ children }: { children: React.ReactNode }) {
-  return <p className="mt-1 text-[11px] font-semibold text-coral">{children}</p>;
+  return <p className="mt-1 text-[11px] font-semibold text-brand">{children}</p>;
 }
 
 function Field({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder: string }) {
@@ -261,7 +261,7 @@ function Field({ label, value, onChange, placeholder }: { label: string; value: 
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="mt-2 h-14 w-full rounded-2xl border border-border bg-surface px-4 text-[15px] font-medium outline-none focus:border-navy"
+        className="mt-2 h-14 w-full rounded-2xl border border-border bg-surface px-4 text-[15px] font-medium outline-none focus:border-brand"
       />
     </div>
   );
@@ -276,7 +276,7 @@ function TextArea({ label, value, onChange, placeholder }: { label: string; valu
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="mt-2 w-full resize-none rounded-2xl border border-border bg-surface px-4 py-3 text-[15px] outline-none focus:border-navy"
+        className="mt-2 w-full resize-none rounded-2xl border border-border bg-surface px-4 py-3 text-[15px] outline-none focus:border-brand"
       />
     </div>
   );

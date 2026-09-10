@@ -94,8 +94,8 @@ export function AddressForm({
               key={key}
               type="button"
               onClick={() => set("label", key)}
-              className={`flex flex-col items-center gap-1.5 rounded-2xl border py-3 text-[11px] font-bold transition-all ${
-                value.label === key ? "border-navy bg-navy/[0.04] text-navy" : "border-border bg-surface text-muted-foreground"
+              className={`flex flex-col items-center gap-1.5 rounded-[1.25rem] border py-3 text-[11px] font-bold transition-all ${
+                value.label === key ? "border-brand bg-brand/5 text-brand" : "border-border/80 bg-surface text-muted-foreground"
               }`}
             >
               <Icon className="h-4 w-4" />
@@ -108,11 +108,11 @@ export function AddressForm({
             value={value.customLabel}
             onChange={(e) => set("customLabel", e.target.value)}
             placeholder={t("addresses.customLabelPlaceholder", "e.g. Grandma's house")}
-            className="mt-2 h-12 w-full rounded-2xl border border-border bg-surface px-4 text-sm font-medium outline-none focus:border-navy"
+            className="mt-2 h-12 w-full rounded-2xl border border-border/80 bg-surface px-4 text-sm font-medium outline-none focus:border-brand"
           />
         )}
         {touched && value.label === "other" && value.customLabel.trim().length === 0 && (
-          <p className="mt-1 text-[11px] font-semibold text-coral">{t("validation.required")}</p>
+          <p className="mt-1 text-[11px] font-semibold text-brand">{t("validation.required")}</p>
         )}
       </div>
 
@@ -125,18 +125,18 @@ export function AddressForm({
               type="button"
               onClick={() => set("area", a)}
               className={`h-14 rounded-2xl border text-sm font-semibold transition-all ${
-                value.area === a ? "border-navy bg-navy/[0.04] text-navy" : "border-border bg-surface text-muted-foreground"
+                value.area === a ? "border-brand bg-brand/5 text-brand" : "border-border/80 bg-surface text-muted-foreground"
               }`}
             >
               {a}
             </button>
           ))}
         </div>
-        {touched && !value.area && <p className="mt-1 text-[11px] font-semibold text-coral">{t("validation.required")}</p>}
+        {touched && !value.area && <p className="mt-1 text-[11px] font-semibold text-brand">{t("validation.required")}</p>}
       </div>
 
       <Field label={t("setup.address")} value={value.street} onChange={(v) => set("street", v)} placeholder={t("setup.addressPlaceholder")} />
-      {touched && value.street.trim().length < 2 && <p className="-mt-3 text-[11px] font-semibold text-coral">{t("validation.required")}</p>}
+      {touched && value.street.trim().length < 2 && <p className="-mt-3 text-[11px] font-semibold text-brand">{t("validation.required")}</p>}
 
       <div className="grid grid-cols-2 gap-3">
         <Field label={t("setup.compound")} value={value.compound} onChange={(v) => set("compound", v)} placeholder={t("setup.compoundPlaceholder")} />
@@ -155,7 +155,7 @@ export function AddressForm({
           placeholder={t("setup.notesPlaceholder")}
           value={value.accessNotes}
           onChange={(e) => set("accessNotes", e.target.value)}
-          className="mt-2 w-full resize-none rounded-2xl border border-border bg-surface px-4 py-3 text-[15px] outline-none focus:border-navy"
+          className="mt-2 w-full resize-none rounded-2xl border border-border/80 bg-surface px-4 py-3 text-[15px] outline-none focus:border-brand"
         />
       </div>
 
@@ -169,7 +169,7 @@ export function AddressForm({
         </Card>
         {!isValidLatLng({ lat: value.lat ?? NaN, lng: value.lng ?? NaN }) && (
           <p className="mt-2 flex items-start gap-1.5 text-[11px] font-semibold text-muted-foreground">
-            <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-coral" />
+            <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-brand" />
             {t("addresses.noCoordsWarning", "Without a pinned location, this address can't be used to book a service.")}
           </p>
         )}
@@ -182,11 +182,11 @@ export function AddressForm({
           className="flex w-full items-center justify-between rounded-2xl bg-surface px-4 py-3.5 shadow-soft"
         >
           <span className="flex items-center gap-2 text-sm font-bold">
-            <Star className={`h-4 w-4 ${value.isDefault ? "fill-coral text-coral" : "text-muted-foreground"}`} />
+            <Star className={`h-4 w-4 ${value.isDefault ? "fill-brand text-brand" : "text-muted-foreground"}`} />
             {t("addresses.setAsDefault", "Set as default address")}
           </span>
           <span
-            className={`grid h-6 w-11 items-center rounded-full px-0.5 transition-all ${value.isDefault ? "justify-end bg-navy" : "justify-start bg-border"}`}
+            className={`grid h-6 w-11 items-center rounded-full px-0.5 transition-all ${value.isDefault ? "justify-end bg-brand" : "justify-start bg-border"}`}
           >
             <span className="h-5 w-5 rounded-full bg-white shadow" />
           </span>
@@ -245,7 +245,7 @@ function Field({ label, value, onChange, placeholder }: { label: string; value: 
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="mt-2 h-14 w-full rounded-2xl border border-border bg-surface px-4 text-[15px] font-medium outline-none focus:border-navy"
+        className="mt-2 h-14 w-full rounded-2xl border border-border/80 bg-surface px-4 text-[15px] font-medium outline-none focus:border-brand"
       />
     </div>
   );

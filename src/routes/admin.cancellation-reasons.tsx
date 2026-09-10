@@ -145,7 +145,7 @@ function ConfirmDialog({ title, body, confirmLabel, pending, onConfirm, onCancel
         <p className="mt-1 text-xs text-muted-foreground">{body}</p>
         <div className="mt-4 flex gap-2">
           <button onClick={onCancel} className="focus-ring h-11 flex-1 rounded-xl border border-border text-sm font-bold">{t("common.cancel")}</button>
-          <button onClick={onConfirm} disabled={pending} className="focus-ring h-11 flex-1 rounded-xl bg-navy text-sm font-bold text-navy-foreground disabled:opacity-50">
+          <button onClick={onConfirm} disabled={pending} className="focus-ring h-11 flex-1 rounded-xl bg-brand text-sm font-bold text-brand-foreground disabled:opacity-50">
             {pending ? t("admin.cancellationReasons.working") : confirmLabel}
           </button>
         </div>
@@ -242,7 +242,7 @@ function AdminCancellationReasons() {
           <h1 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">{t("admin.layout.nav.cancellationReasons")}</h1>
           <p className="text-xs text-muted-foreground">{t("admin.cancellationReasons.subtitle")}</p>
         </div>
-        <button onClick={startCreate} className="focus-ring inline-flex items-center gap-1.5 rounded-xl bg-navy px-3 py-2 text-xs font-bold text-navy-foreground">
+        <button onClick={startCreate} className="focus-ring inline-flex items-center gap-1.5 rounded-xl bg-brand px-3 py-2 text-xs font-bold text-brand-foreground">
           <Plus className="h-3.5 w-3.5" /> {t("admin.cancellationReasons.newReason")}
         </button>
       </div>
@@ -255,7 +255,7 @@ function AdminCancellationReasons() {
         <div className="flex flex-wrap gap-1 rounded-xl border border-border bg-surface p-1">
           {(["all", ...ACTOR_TYPES.map((a) => a.value)] as const).map((f) => (
             <button key={f} onClick={() => setActorFilter(f)}
-              className={`focus-ring rounded-lg px-3 py-1.5 text-xs font-bold capitalize ${actorFilter === f ? "bg-navy text-navy-foreground" : "text-muted-foreground"}`}>
+              className={`focus-ring rounded-lg px-3 py-1.5 text-xs font-bold capitalize ${actorFilter === f ? "bg-brand text-brand-foreground" : "text-muted-foreground"}`}>
               {f === "all" ? t("admin.providers.filterAll") : t(ACTOR_TYPES.find((a) => a.value === f)?.labelKey ?? "")}
             </button>
           ))}
@@ -263,11 +263,11 @@ function AdminCancellationReasons() {
       </div>
 
       {creating && (
-        <section className="rounded-2xl border border-border/60 bg-surface p-5 shadow-card">
+        <section className="rounded-2xl border border-border/60 bg-surface p-5 shadow-sm">
           <h2 className="text-sm font-extrabold">{t("admin.cancellationReasons.newReasonTitle")}</h2>
           <div className="mt-4"><ReasonFormFields form={createForm} setForm={setCreateForm} errors={createErrors} /></div>
           <div className="mt-4 flex gap-2">
-            <button onClick={submitCreate} disabled={create.isPending} className="focus-ring rounded-lg bg-navy px-4 py-2 text-xs font-bold text-navy-foreground disabled:opacity-50">
+            <button onClick={submitCreate} disabled={create.isPending} className="focus-ring rounded-lg bg-brand px-4 py-2 text-xs font-bold text-brand-foreground disabled:opacity-50">
               {create.isPending ? t("admin.cancellationReasons.creating") : t("admin.cancellationReasons.createReason")}
             </button>
             <button onClick={() => setCreating(false)} className="focus-ring rounded-lg border border-border px-4 py-2 text-xs font-bold">{t("common.cancel")}</button>
@@ -275,7 +275,7 @@ function AdminCancellationReasons() {
         </section>
       )}
 
-      <section className="rounded-2xl border border-border/60 bg-surface p-5 shadow-card">
+      <section className="rounded-2xl border border-border/60 bg-surface p-5 shadow-sm">
         {q.isLoading ? (
           <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-16 animate-pulse rounded-xl bg-muted" />)}</div>
         ) : q.isError ? (
@@ -290,7 +290,7 @@ function AdminCancellationReasons() {
                   <div className="space-y-3">
                     <ReasonFormFields form={editForm} setForm={setEditForm} errors={editErrors} lockCode />
                     <div className="flex gap-2">
-                      <button onClick={() => submitEdit(r)} disabled={update.isPending} className="focus-ring rounded-lg bg-navy px-3 py-1.5 text-xs font-bold text-navy-foreground disabled:opacity-50">
+                      <button onClick={() => submitEdit(r)} disabled={update.isPending} className="focus-ring rounded-lg bg-brand px-3 py-1.5 text-xs font-bold text-brand-foreground disabled:opacity-50">
                         {update.isPending ? t("admin.cancellationReasons.saving") : t("common.save")}
                       </button>
                       <button onClick={() => setEditingId(null)} className="focus-ring rounded-lg border border-border px-3 py-1.5 text-xs font-bold">{t("common.cancel")}</button>
@@ -311,7 +311,7 @@ function AdminCancellationReasons() {
                         <div className="flex flex-wrap items-center gap-1.5">
                           <p className="text-sm font-semibold">{r.name_en} <span className="text-muted-foreground">/ {r.name_ar}</span></p>
                           <span dir="ltr" className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">{r.code}</span>
-                          <span className="rounded-full bg-navy/10 px-2 py-0.5 text-[10px] font-bold uppercase text-navy">{r.actor_type}</span>
+                          <span className="rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-bold uppercase text-brand">{r.actor_type}</span>
                           {r.requires_note && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-700">{t("admin.cancellationReasons.noteRequired")}</span>}
                           {!r.is_active && <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">{t("admin.cancellationReasons.inactive")}</span>}
                         </div>
@@ -331,7 +331,7 @@ function AdminCancellationReasons() {
                         <button
                           disabled={setActive.isPending}
                           onClick={() => activate(r)}
-                          className="focus-ring rounded-lg bg-navy px-3 py-1.5 text-xs font-bold text-navy-foreground disabled:opacity-50"
+                          className="focus-ring rounded-lg bg-brand px-3 py-1.5 text-xs font-bold text-brand-foreground disabled:opacity-50"
                         >
                           {t("admin.cancellationReasons.activate")}
                         </button>

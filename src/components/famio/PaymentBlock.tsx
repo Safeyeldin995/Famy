@@ -259,7 +259,7 @@ export function PaymentBlock({
     <Card className="space-y-3 p-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="grid h-8 w-8 place-items-center rounded-xl bg-navy/10 text-navy">
+          <div className="grid h-9 w-9 place-items-center rounded-full bg-brand/8 text-brand">
             {isCash ? <Banknote className="h-4 w-4" /> : <Wallet className="h-4 w-4" aria-label={nameEn} />}
           </div>
           <div>
@@ -282,7 +282,7 @@ export function PaymentBlock({
             type="button"
             onClick={onStartPaymob}
             disabled={paymobStarting}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-navy text-sm font-bold text-navy-foreground active:scale-[0.98] disabled:opacity-50"
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-brand text-sm font-extrabold text-brand-foreground active:scale-[0.98] disabled:opacity-50"
           >
             {paymobStarting
               ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -307,7 +307,7 @@ export function PaymentBlock({
               >
                 <div className="min-w-0">
                   <div className="text-xs text-muted-foreground">{lang === "ar" ? nameAr : nameEn}</div>
-                  <div className="truncate text-sm font-extrabold text-navy" dir="ltr">{receiverHandle}</div>
+                  <div className="truncate text-sm font-extrabold text-brand" dir="ltr">{receiverHandle}</div>
                 </div>
                 <Copy className="h-4 w-4 text-muted-foreground" />
               </button>
@@ -318,7 +318,7 @@ export function PaymentBlock({
           ) : (
             <p className="text-[11px] text-muted-foreground">{t("payment.handleNotConfigured")}</p>
           )}
-          <label className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-navy/30 bg-navy/5 text-sm font-bold text-navy active:scale-[0.98]">
+          <label className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-brand/30 bg-brand/5 text-sm font-extrabold text-brand active:scale-[0.98]">
             <Upload className="h-4 w-4" /> {upload.isPending ? t("payment.uploading") : t("payment.uploadReceipt")}
             <input type="file" accept="image/*,application/pdf" onChange={onFile} disabled={upload.isPending} className="hidden" />
           </label>
@@ -340,8 +340,8 @@ export function PaymentBlock({
 
       {/* Rejected — show reason + retry for customer */}
       {p.status === "rejected" && (
-        <div className="rounded-2xl bg-coral/10 p-3">
-          <div className="text-xs font-extrabold text-coral">{t("payment.rejectedTitle")}</div>
+        <div className="rounded-2xl bg-brand/8 p-3">
+          <div className="text-xs font-extrabold text-brand">{t("payment.rejectedTitle")}</div>
           {p.rejection_reason && (
             <p className="mt-1 text-[11px] text-muted-foreground">{p.rejection_reason}</p>
           )}
@@ -366,7 +366,7 @@ export function PaymentBlock({
               <button
                 onClick={onCapture}
                 disabled={capture.isPending}
-                className="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-navy text-sm font-bold text-navy-foreground active:scale-[0.98] disabled:opacity-50"
+                className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full bg-brand text-sm font-extrabold text-brand-foreground active:scale-[0.98] disabled:opacity-50"
               >
                 <Check className="h-4 w-4" /> {t("payment.markReceived")}
               </button>
@@ -378,7 +378,7 @@ export function PaymentBlock({
             {isManualTransfer && (
               <button
                 onClick={() => setShowReject(true)}
-                className="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl border border-coral text-sm font-bold text-coral active:scale-[0.98]"
+                className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full border border-brand text-sm font-extrabold text-brand active:scale-[0.98]"
               >
                 <X className="h-4 w-4" /> {t("payment.reject")}
               </button>
@@ -411,7 +411,7 @@ export function PaymentBlock({
             />
             <div className="mt-4 flex gap-2">
               <button onClick={() => setShowReject(false)} className="h-12 flex-1 rounded-2xl border border-border bg-surface text-sm font-bold">{t("payment.cancel")}</button>
-              <button onClick={onReject} disabled={reject.isPending} className="h-12 flex-1 rounded-2xl bg-coral text-sm font-bold text-coral-foreground disabled:opacity-50">{t("payment.confirmReject")}</button>
+              <button onClick={onReject} disabled={reject.isPending} className="h-12 flex-1 rounded-full bg-brand text-sm font-extrabold text-brand-foreground disabled:opacity-50">{t("payment.confirmReject")}</button>
             </div>
           </div>
         </div>

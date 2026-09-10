@@ -9,7 +9,7 @@ import { startPhoneOtpFlow, phoneOtpFlowErrorMessage } from "@/lib/otp/phoneOtpF
 
 export const Route = createFileRoute("/auth/forgot")({ component: Forgot });
 
-function Forgot() {
+export function Forgot({ previewMode = false }: { previewMode?: boolean } = {}) {
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -19,7 +19,7 @@ function Forgot() {
   const valid = phone.replace(/\D/g, "").length >= 9;
 
   const submit = async () => {
-    if (!valid || loading) return;
+    if (previewMode || !valid || loading) return;
     setErrorMsg(null);
     const e164 = normalizePhone(phone);
     setLoading(true);

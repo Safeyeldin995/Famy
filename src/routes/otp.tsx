@@ -3,8 +3,10 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
-import { PhoneFrame, PrimaryButton, TopBar } from "@/components/famio/ui";
-import type { AuthFlowPurpose } from "@/lib/auth/authIntent.types";
+import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
+import { CustomerFloatingPanel } from "@/components/famio/CustomerFloatingPanel";
+import { PhoneFrame, PrimaryButton } from "@/components/famio/ui";
+import type { AuthFlowPurpose, OtpScreenContext } from "@/lib/auth/authIntent.types";
 import {
   hasFirebasePhoneVerificationSession,
   phoneOtpFlowErrorMessage,
@@ -39,8 +41,20 @@ function purposeCopy(purpose: AuthFlowPurpose, t: ReturnType<typeof useTranslati
   };
 }
 
+export type OtpContextData = Extract<OtpScreenContext, { ok: true }>;
+
 function Otp() {
   const { otpContext } = Route.useRouteContext();
+  return <OtpScreen otpContext={otpContext} />;
+}
+
+export function OtpScreen({
+  otpContext,
+  previewMode = false,
+}: {
+  otpContext: OtpContextData;
+  previewMode?: boolean;
+}) {
   const { profile } = useApp();
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [otpExpiresIn, setOtpExpiresIn] = useState(otpContext.otpExpiresIn);
@@ -62,16 +76,16 @@ function Otp() {
   }, []);
 
   useEffect(() => {
-    if (otpExpiresIn === 0) {
-      void otpService.abandonOtpFlow().then(() => {
-        toast.error(t("auth.sessionExpired", "Your verification session expired. Start again."));
-        nav({ to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login", replace: true });
-      });
-    }
-  }, [nav, otpContext.purpose, otpExpiresIn, t]);
+    if (otpExpiresIn !== 0) return;
+    if (previewMode) return;
+    void otpService.abandonOtpFlow().then(() => {
+      toast.error(t("auth.sessionExpired", "Your verification session expired. Start again."));
+      nav({ to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login", replace: true });
+    });
+  }, [nav, otpContext.purpose, otpExpiresIn, previewMode, t]);
 
   useEffect(() => {
-    if (otpContext.delivery !== "firebase") return;
+    if (previewMode || otpContext.delivery !== "firebase") return;
     if (!hasFirebasePhoneVerificationSession()) {
       const msg = t(
         "auth.firebaseSessionLost",
@@ -79,9 +93,13 @@ function Otp() {
       );
       setErrorMsg(msg);
     }
-  }, [otpContext.delivery, t]);
+  }, [otpContext.delivery, previewMode, t]);
 
   const verify = async (value: string) => {
+    if (previewMode) {
+      toast.message(t("preview.otpHint", "Preview only — OTP verification is disabled."));
+      return;
+    }
     if (value.length !== 6 || loading || verifyLock.current) return;
     verifyLock.current = true;
     setLoading(true);
@@ -123,6 +141,10 @@ function Otp() {
   };
 
   const resend = async () => {
+    if (previewMode) {
+      toast.message(t("preview.otpHint", "Preview only — OTP verification is disabled."));
+      return;
+    }
     if (resendAvailableIn > 0 || resending || loading) return;
     if (otpContext.delivery === "firebase" && !profile.phone) {
       const msg = t("auth.sessionExpired", "Your verification session expired. Start again.");
@@ -148,22 +170,25 @@ function Otp() {
   };
 
   const changePhone = async () => {
+    if (previewMode) {
+      nav({ to: "/preview/login", replace: true });
+      return;
+    }
     await otpService.abandonOtpFlow();
     nav({ to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login", replace: true });
   };
 
   return (
-    <PhoneFrame bg="bg-background">
-      <TopBar back={{ to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login" }} transparent />
-      <div className="px-6 pt-2">
-        <h1 className="text-[26px] font-black leading-tight tracking-tight text-foreground">{copy.title}</h1>
-        <p className="mt-2 text-sm font-semibold leading-relaxed text-muted-foreground">
-          {copy.body}{" "}
-          <span className="font-black text-foreground" dir="ltr">{otpContext.maskedPhone}</span>
-        </p>
-      </div>
+    <PhoneFrame bg="bg-[#F10E72]">
+      <CustomerPageHero
+        title={copy.title}
+        subtitle={`${copy.body} ${otpContext.maskedPhone}`}
+        backTo={otpContext.purpose === "reset" ? "/auth/forgot" : "/login"}
+      />
 
-      <div className="flex-1 px-6 pt-8" dir={i18n.dir()}>
+
+      <CustomerFloatingPanel className="mx-5 -mt-8 flex-1" >
+      <div dir={i18n.dir()}>
         <OtpCodeInput
           value={code}
           onChange={setCode}
@@ -206,15 +231,17 @@ function Otp() {
           <p className="mt-6 text-center text-sm font-bold text-destructive px-1">{errorMsg}</p>
         )}
       </div>
-      <div className="safe-bottom p-5">
+
+      <div className="mt-6">
         <PrimaryButton
           onClick={() => verify(code.join(""))}
           disabled={loading || code.some((digit) => !digit) || otpExpiresIn === 0}
-          className="shadow-float h-14"
+          className="h-14 w-full shadow-float"
         >
           {loading ? t("common.verifying") : t("common.verify")}
         </PrimaryButton>
       </div>
+      </CustomerFloatingPanel>
     </PhoneFrame>
   );
 }

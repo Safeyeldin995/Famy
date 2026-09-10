@@ -924,7 +924,10 @@ export function useMarkNotificationRead() {
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['notifications'] });
+      qc.invalidateQueries({ queryKey: ['pro-notifications'] });
+    },
   });
 }
 
@@ -938,7 +941,10 @@ export function useMarkAllNotificationsRead() {
         .is('read_at', null);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['notifications'] });
+      qc.invalidateQueries({ queryKey: ['pro-notifications'] });
+    },
   });
 }
 

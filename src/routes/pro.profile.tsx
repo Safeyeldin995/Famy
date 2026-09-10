@@ -4,7 +4,8 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { ProviderShell } from "@/components/famio/ProviderShell";
-import { TopBar, Card, PrimaryButton, Avatar } from "@/components/famio/ui";
+import { ProviderPageHero } from "@/components/famio/ProviderPageHero";
+import { Card, PrimaryButton, Avatar } from "@/components/famio/ui";
 import { QueryError } from "@/components/famio/QueryError";
 import { supabase } from "@/integrations/supabase/client";
 import { useAvatarUrl } from "@/lib/db/queries";
@@ -24,6 +25,7 @@ import {
 } from "@/lib/db/provider-queries";
 import { FileText, ShieldCheck, LogOut, Globe, Camera, Loader2, Upload, Bell } from "lucide-react";
 import { LanguageToggle, useLang } from "@/components/famio/LanguageToggle";
+import { customerPath, proPath } from "@/lib/preview/previewPath";
 
 
 
@@ -148,15 +150,19 @@ function ProProfile() {
   const logout = async () => {
     await qc.cancelQueries(); qc.clear();
     await supabase.auth.signOut();
-    nav({ to: "/login", replace: true });
+    nav({ to: customerPath("/login") as "/login", replace: true });
   };
 
 
   return (
     <ProviderShell>
-      <TopBar title={t("pro.profile.title")} right={<LanguageToggle variant="inline" />} />
-      <div className="space-y-5 px-5 pb-6">
-        <Card className="flex items-center gap-3 p-4">
+      <ProviderPageHero
+        title={t("pro.profile.title")}
+        compact
+        right={<LanguageToggle variant="hero" />}
+      />
+      <div className="space-y-5 px-5 pb-28 pt-2">
+        <Card className="flex items-center gap-3 rounded-[1.25rem] p-4">
           <div className="relative h-16 w-16 shrink-0">
             <Avatar
               src={avatarQ.data || `https://i.pravatar.cc/200?u=${provider.id}`}
@@ -215,7 +221,7 @@ function ProProfile() {
             <div className="mt-2 space-y-2">
               {(eligibilityQ.data ?? []).map((row) => <div key={row.service_id} className="rounded-xl border border-border/60 p-2 text-xs">
                 <div className="font-bold">{lang === "ar" ? row.service_name_ar : row.service_name_en}</div>
-                {row.is_eligible ? <div className="mt-1 text-success">{t("admin.provider.eligibleBody")}</div> : <ul className="mt-1 list-disc ps-4 text-coral">{row.failure_reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>}
+                {row.is_eligible ? <div className="mt-1 text-success">{t("admin.provider.eligibleBody")}</div> : <ul className="mt-1 list-disc ps-4 text-coral">{(row.failure_reasons ?? []).map((reason) => <li key={reason}>{reason}</li>)}</ul>}
               </div>)}
               {!eligibilityQ.isLoading && (eligibilityQ.data ?? []).length === 0 && <div className="text-xs text-coral">BLOCKED BY BUSINESS DATA — no Provider service is configured.</div>}
             </div>
@@ -358,9 +364,9 @@ function ProProfile() {
         <div>
           <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">{t("pro.profile.more")}</h2>
           <Card className="divide-y divide-border">
-            <ProRow to="/pro/documents" icon={<FileText className="h-5 w-5" />} label={t("pro.profile.documentsRow")} />
-            <ProRow to="/pro/notification-preferences" icon={<Bell className="h-5 w-5" />} label={t("notifPrefs.title")} />
-            <ProRow to="/home" icon={<Globe className="h-5 w-5" />} label={t("pro.profile.switchCustomer")} />
+            <ProRow to={proPath("/pro/documents")} icon={<FileText className="h-5 w-5" />} label={t("pro.profile.documentsRow")} />
+            <ProRow to={proPath("/pro/notification-preferences")} icon={<Bell className="h-5 w-5" />} label={t("notifPrefs.title")} />
+            <ProRow to={customerPath("/home")} icon={<Globe className="h-5 w-5" />} label={t("pro.profile.switchCustomer")} />
           </Card>
         </div>
 

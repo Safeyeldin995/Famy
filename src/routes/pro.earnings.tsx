@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ProviderShell } from "@/components/famio/ProviderShell";
-import { TopBar, Card, EmptyState } from "@/components/famio/ui";
+import { ProviderPageHero } from "@/components/famio/ProviderPageHero";
+import { Card } from "@/components/famio/ui";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { useMyProvider, useProviderBookings, useProviderEarnings } from "@/lib/db/provider-queries";
 import { formatEGP } from "@/lib/utils";
@@ -22,12 +23,10 @@ function EarningsPage() {
 
   return (
     <ProviderShell>
-      <div className="safe-top px-5 pb-4 pt-6">
-        <h1 className="text-3xl font-extrabold tracking-tight text-foreground">{t("pro.earnings.title")}</h1>
-      </div>
+      <ProviderPageHero title={t("pro.earnings.title")} compact />
 
-      <div className="space-y-6 px-5 pb-28">
-        <div className="flex flex-col justify-between rounded-[2rem] bg-brand p-6 text-brand-foreground shadow-float">
+      <div className="space-y-5 px-5 pb-28 pt-2">
+        <div className="flex flex-col justify-between rounded-[1.25rem] bg-brand p-5 text-brand-foreground shadow-sm">
           <div>
             <div className="text-sm font-bold opacity-80 uppercase tracking-widest">{t("pro.earnings.totalEarned")}</div>
             <div className="mt-2 text-[2.5rem] font-black leading-none">{formatEGP(e.data?.total ?? 0)}</div>

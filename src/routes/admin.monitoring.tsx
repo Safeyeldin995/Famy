@@ -9,6 +9,7 @@ import {
   useAdminRecentFailedPayments,
   type FailedNotificationRow,
 } from "@/lib/db/admin-monitoring-queries";
+import { adminPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/admin/monitoring")({ component: AdminMonitoring });
 
@@ -35,15 +36,15 @@ function SummaryCard({
 
   if (!to) {
     return (
-      <div className="rounded-2xl border border-border/60 bg-surface p-4 shadow-card">{body}</div>
+      <div className="rounded-2xl border border-border/60 bg-surface p-4 shadow-sm">{body}</div>
     );
   }
 
   return (
     <Link
-      to={to}
+      to={typeof to === "string" ? (adminPath(to) as typeof to) : to}
       search={search}
-      className="focus-ring rounded-2xl border border-border/60 bg-surface p-4 shadow-card transition hover:border-navy/40"
+      className="focus-ring rounded-2xl border border-border/60 bg-surface p-4 shadow-sm transition hover:border-brand/40"
     >
       {body}
     </Link>
@@ -71,7 +72,7 @@ function SectionShell({
 }) {
   const { t } = useTranslation();
   return (
-    <section className="rounded-2xl border border-border/60 bg-surface p-4 shadow-card">
+    <section className="rounded-2xl border border-border/60 bg-surface p-4 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
           {title}
@@ -147,14 +148,14 @@ function AdminMonitoring() {
             title={t("admin.monitoring.failedPayments")}
             description={t("admin.monitoring.failedPaymentsBody")}
             count={summary?.failed_payments ?? 0}
-            to="/admin/payments"
+            to={adminPath("/admin/payments") as "/admin/payments"}
             search={{ statuses: "failed,rejected" }}
           />
           <SummaryCard
             title={t("admin.monitoring.failedNotifications")}
             description={t("admin.monitoring.failedNotificationsBody")}
             count={summary?.failed_notifications ?? 0}
-            to="/admin/operations"
+            to={adminPath("/admin/operations") as "/admin/operations"}
           />
         </div>
       )}
@@ -220,9 +221,9 @@ function AdminMonitoring() {
                   </p>
                 </div>
                 <Link
-                  to="/admin/payments"
+                  to={adminPath("/admin/payments") as "/admin/payments"}
                   search={{ status: row.status }}
-                  className="focus-ring shrink-0 rounded-lg border border-border px-2 py-1 font-semibold text-navy"
+                  className="focus-ring shrink-0 rounded-lg border border-border px-2 py-1 font-semibold text-brand"
                 >
                   {t("admin.monitoring.review")}
                 </Link>

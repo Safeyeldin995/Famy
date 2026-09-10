@@ -154,7 +154,7 @@ function PromoFormFields({
             {categories.map((c: any) => {
               const checked = scope.categoryIds.includes(c.id);
               return (
-                <label key={c.id} className={`flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${checked ? "border-navy bg-navy/10 text-navy" : "border-border text-muted-foreground"}`}>
+                <label key={c.id} className={`flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${checked ? "border-brand bg-brand/10 text-brand" : "border-border text-muted-foreground"}`}>
                   <input type="checkbox" checked={checked} className="hidden"
                     onChange={() => setScope({ ...scope, categoryIds: checked ? scope.categoryIds.filter((id) => id !== c.id) : [...scope.categoryIds, c.id] })} />
                   {c.name_en}
@@ -171,7 +171,7 @@ function PromoFormFields({
             {services.map((s: any) => {
               const checked = scope.serviceIds.includes(s.id);
               return (
-                <label key={s.id} className={`flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${checked ? "border-navy bg-navy/10 text-navy" : "border-border text-muted-foreground"}`}>
+                <label key={s.id} className={`flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${checked ? "border-brand bg-brand/10 text-brand" : "border-border text-muted-foreground"}`}>
                   <input type="checkbox" checked={checked} className="hidden"
                     onChange={() => setScope({ ...scope, serviceIds: checked ? scope.serviceIds.filter((id) => id !== s.id) : [...scope.serviceIds, s.id] })} />
                   {s.name_en}
@@ -277,7 +277,7 @@ function ConfirmDialog({ title, body, confirmLabel, pending, onConfirm, onCancel
         <p className="mt-1 text-xs text-muted-foreground">{body}</p>
         <div className="mt-4 flex gap-2">
           <button onClick={onCancel} className="focus-ring h-11 flex-1 rounded-xl border border-border text-sm font-bold">{t("common.cancel")}</button>
-          <button onClick={onConfirm} disabled={pending} className="focus-ring h-11 flex-1 rounded-xl bg-navy text-sm font-bold text-navy-foreground disabled:opacity-50">
+          <button onClick={onConfirm} disabled={pending} className="focus-ring h-11 flex-1 rounded-xl bg-brand text-sm font-bold text-brand-foreground disabled:opacity-50">
             {pending ? t("admin.cancellationReasons.working") : confirmLabel}
           </button>
         </div>
@@ -393,7 +393,7 @@ function AdminPromoCodes() {
           <h1 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">{t("admin.layout.nav.promoCodes")}</h1>
           <p className="text-xs text-muted-foreground">{t("admin.promoCodes.subtitle")}</p>
         </div>
-        <button onClick={startCreate} className="focus-ring inline-flex items-center gap-1.5 rounded-xl bg-navy px-3 py-2 text-xs font-bold text-navy-foreground">
+        <button onClick={startCreate} className="focus-ring inline-flex items-center gap-1.5 rounded-xl bg-brand px-3 py-2 text-xs font-bold text-brand-foreground">
           <Plus className="h-3.5 w-3.5" /> {t("admin.promoCodes.newPromo")}
         </button>
       </div>
@@ -410,7 +410,7 @@ function AdminPromoCodes() {
             { key: "inactive" as const, labelKey: "admin.cancellationReasons.inactive" },
           ]).map((f) => (
             <button key={f.key} onClick={() => setStatusFilter(f.key)}
-              className={`focus-ring rounded-lg px-3 py-1.5 text-xs font-bold ${statusFilter === f.key ? "bg-navy text-navy-foreground" : "text-muted-foreground"}`}>
+              className={`focus-ring rounded-lg px-3 py-1.5 text-xs font-bold ${statusFilter === f.key ? "bg-brand text-brand-foreground" : "text-muted-foreground"}`}>
               {t(f.labelKey)}
             </button>
           ))}
@@ -418,13 +418,13 @@ function AdminPromoCodes() {
       </div>
 
       {creating && (
-        <section className="rounded-2xl border border-border/60 bg-surface p-5 shadow-card">
+        <section className="rounded-2xl border border-border/60 bg-surface p-5 shadow-sm">
           <h2 className="text-sm font-extrabold">{t("admin.promoCodes.newPromoTitle")}</h2>
           <div className="mt-4">
             <PromoFormFields form={createForm} setForm={setCreateForm} errors={createErrors} categories={categories} services={services} scope={createScope} setScope={setCreateScope} />
           </div>
           <div className="mt-4 flex gap-2">
-            <button onClick={submitCreate} disabled={create.isPending} className="focus-ring rounded-lg bg-navy px-4 py-2 text-xs font-bold text-navy-foreground disabled:opacity-50">
+            <button onClick={submitCreate} disabled={create.isPending} className="focus-ring rounded-lg bg-brand px-4 py-2 text-xs font-bold text-brand-foreground disabled:opacity-50">
               {create.isPending ? t("admin.cancellationReasons.creating") : t("admin.promoCodes.createPromo")}
             </button>
             <button onClick={() => setCreating(false)} className="focus-ring rounded-lg border border-border px-4 py-2 text-xs font-bold">{t("common.cancel")}</button>
@@ -432,7 +432,7 @@ function AdminPromoCodes() {
         </section>
       )}
 
-      <section className="rounded-2xl border border-border/60 bg-surface p-5 shadow-card">
+      <section className="rounded-2xl border border-border/60 bg-surface p-5 shadow-sm">
         {q.isLoading ? (
           <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-16 animate-pulse rounded-xl bg-muted" />)}</div>
         ) : q.isError ? (
@@ -455,7 +455,7 @@ function AdminPromoCodes() {
                         lockCode
                       />
                       <div className="flex gap-2">
-                        <button onClick={() => submitEdit(p)} disabled={update.isPending} className="focus-ring rounded-lg bg-navy px-3 py-1.5 text-xs font-bold text-navy-foreground disabled:opacity-50">
+                        <button onClick={() => submitEdit(p)} disabled={update.isPending} className="focus-ring rounded-lg bg-brand px-3 py-1.5 text-xs font-bold text-brand-foreground disabled:opacity-50">
                           {update.isPending ? t("admin.cancellationReasons.saving") : t("common.save")}
                         </button>
                         <button onClick={() => setEditingId(null)} className="focus-ring rounded-lg border border-border px-3 py-1.5 text-xs font-bold">{t("common.cancel")}</button>
@@ -500,7 +500,7 @@ function AdminPromoCodes() {
                           <button
                             disabled={setActive.isPending}
                             onClick={() => activate(p)}
-                            className="focus-ring rounded-lg bg-navy px-3 py-1.5 text-xs font-bold text-navy-foreground disabled:opacity-50"
+                            className="focus-ring rounded-lg bg-brand px-3 py-1.5 text-xs font-bold text-brand-foreground disabled:opacity-50"
                           >
                             {t("admin.cancellationReasons.activate")}
                           </button>

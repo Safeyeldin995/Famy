@@ -1,4 +1,4 @@
-import { Copy } from "lucide-react";
+import { Copy, Tag } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { ICON_STROKE } from "@/lib/icons/constants";
@@ -20,47 +20,38 @@ export function HomePromoStrip({ offer }: { offer: FeaturedPromoCode }) {
   const title = promoDiscountLabel(offer, t);
 
   return (
-    <section className="mt-8 px-5">
-      <div className="home-promo-block relative overflow-hidden rounded-[1.375rem] px-5 py-6 shadow-card">
-        <div className="relative z-10 max-w-[70%]">
-          <p className="text-overline text-muted-foreground">{t("home.offers.promoLabel")}</p>
-          <p className="mt-2 text-[1.375rem] font-extrabold leading-tight text-foreground">{title}</p>
-          {description ? (
-            <p className="mt-2 text-sm text-muted-foreground">{description}</p>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => void copyPromoCode(offer.code, t)}
-            aria-label={t("promoCodes.copyCode")}
-            className="focus-ring tap-scale mt-4 inline-flex items-center gap-1 rounded-full bg-brand px-3 py-1.5 text-[11px] font-bold text-brand-foreground"
-            dir="ltr"
-          >
-            {offer.code}
-            <Copy className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} aria-hidden="true" />
-          </button>
-        </div>
-        <svg
-          viewBox="0 0 120 120"
-          className="pointer-events-none absolute -end-2 bottom-0 h-28 w-28 opacity-90"
-          aria-hidden="true"
+    <div className="home-ink-panel relative isolate w-[17rem] shrink-0 snap-start overflow-hidden rounded-[1.75rem] px-5 py-5 shadow-card">
+      <div className="relative z-10">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-white/85">
+          <Tag className="h-3 w-3" strokeWidth={ICON_STROKE} aria-hidden="true" />
+          {t("home.offers.promoLabel")}
+        </span>
+        <p className="mt-3 text-[1.25rem] font-extrabold leading-tight">{title}</p>
+        {description ? (
+          <p className="mt-1.5 line-clamp-2 text-xs opacity-75">{description}</p>
+        ) : null}
+        <button
+          type="button"
+          onClick={() => void copyPromoCode(offer.code, t)}
+          aria-label={t("promoCodes.copyCode")}
+          className="focus-ring tap-scale mt-4 inline-flex items-center gap-1.5 rounded-full bg-brand px-3.5 py-2 text-[11px] font-extrabold text-brand-foreground"
+          dir="ltr"
         >
-          <circle cx="78" cy="42" r="16" fill="oklch(0.74 0.16 25 / 0.18)" />
-          <rect x="52" y="62" width="36" height="28" rx="8" fill="oklch(0.74 0.16 25 / 0.14)" />
-          <circle cx="64" cy="34" r="10" fill="oklch(0.74 0.16 25 / 0.35)" />
-          <path d="M58 52c4-8 12-10 18-10s14 2 18 10" fill="oklch(0.74 0.16 25 / 0.28)" />
-        </svg>
+          {offer.code}
+          <Copy className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} aria-hidden="true" />
+        </button>
       </div>
-    </section>
+    </div>
   );
 }
 
 export function HomePromos({ offers }: { offers: FeaturedPromoCode[] }) {
   if (offers.length === 0) return null;
   return (
-    <>
+    <section className="mt-8 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-1 no-scrollbar">
       {offers.map((offer) => (
         <HomePromoStrip key={offer.id} offer={offer} />
       ))}
-    </>
+    </section>
   );
 }

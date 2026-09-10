@@ -2,7 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { ProviderShell } from "@/components/famio/ProviderShell";
-import { TopBar, Card, Badge, PrimaryButton, ErrorState, BookingTimeline, ReasonDialog, CancelBookingDialog, CaseDialog, SupportCasesCard } from "@/components/famio/ui";
+import { ProviderPageHero } from "@/components/famio/ProviderPageHero";
+import { Card, Badge, PrimaryButton, ErrorState, BookingTimeline, CancelBookingDialog, CaseDialog, SupportCasesCard } from "@/components/famio/ui";
 import { PaymentBlock } from "@/components/famio/PaymentBlock";
 import { RescheduleSection } from "@/components/famio/RescheduleSection";
 import { BookingChatPanel } from "@/components/famio/BookingChatPanel";
@@ -18,19 +19,19 @@ import {
 import { bookingStatusTone, formatEGP, BOOKING_TIMELINE_STEPS } from "@/lib/utils";
 import { Calendar, Clock, MapPin, Phone, User as UserIcon, HeartPulse, AlertTriangle, LifeBuoy } from "lucide-react";
 import { useState } from "react";
+import { proPath } from "@/lib/preview/previewPath";
 
-export const Route = createFileRoute("/pro/booking/$id")({ component: ProBookingDetail });
+export const Route = createFileRoute("/pro/booking/$id")({ component: ProBookingDetailRoute });
 
 const DISPUTE_ELIGIBLE_STATUSES = ["on_the_way", "arrived", "arrival_confirmed", "in_progress", "completion_requested"];
 const SUPPORT_CATEGORIES: TicketCategory[] = ["payment", "service_quality", "provider_behavior", "booking_issue", "app_issue", "other"];
 
 type DialogKind = "" | "decline" | "cancel" | "no_show" | "dispute" | "support";
 
-function ProBookingDetail() {
+export function ProBookingDetail({ id }: { id: string }) {
   const { t } = useTranslation();
   const lang = useLang();
   const dateLoc = lang === "ar" ? "ar-EG" : "en-US";
-  const { id } = Route.useParams();
   const nav = useNavigate();
   const q = useProviderBooking(id);
   const mut = useProviderUpdateBookingStatus();
@@ -79,8 +80,22 @@ function ProBookingDetail() {
     }
   };
 
-  if (q.isLoading) return <ProviderShell hideNav><TopBar back={{ to: "/pro/bookings" }} /><div className="h-64 animate-pulse rounded-3xl bg-surface mx-5" /></ProviderShell>;
-  if (q.isError || !q.data) return <ProviderShell hideNav><TopBar back={{ to: "/pro/bookings" }} /><ErrorState title={t("pro.booking.notFound")} /></ProviderShell>;
+  if (q.isLoading) {
+    return (
+      <ProviderShell hideNav>
+        <ProviderPageHero title={t("pro.booking.title")} backTo="/pro/bookings" compact />
+        <div className="mx-5 h-64 animate-pulse rounded-[1.25rem] bg-surface-2" />
+      </ProviderShell>
+    );
+  }
+  if (q.isError || !q.data) {
+    return (
+      <ProviderShell hideNav>
+        <ProviderPageHero title={t("pro.booking.title")} backTo="/pro/bookings" compact />
+        <ErrorState title={t("pro.booking.notFound")} />
+      </ProviderShell>
+    );
+  }
 
   const b = q.data as any;
   const start = new Date(b.start_at);
@@ -109,9 +124,9 @@ function ProBookingDetail() {
 
   return (
     <ProviderShell hideNav>
-      <TopBar back={{ to: "/pro/bookings" }} title={t("pro.booking.title")} />
-      <div className="space-y-4 px-5 pb-32">
-        <Card className="p-4">
+      <ProviderPageHero title={t("pro.booking.title")} backTo="/pro/bookings" compact />
+      <div className="space-y-4 px-5 pb-32 pt-2">
+        <Card className="rounded-[1.25rem] p-4">
           <div className="flex items-start gap-3">
             <img src={b.customer?.avatar_url || `https://i.pravatar.cc/200?u=${b.customer_id}`} alt={name} className="h-16 w-16 rounded-2xl object-cover" />
             <div className="min-w-0 flex-1">
@@ -302,7 +317,7 @@ function ProBookingDetail() {
           )}
 
           {terminal && (
-            <button onClick={() => nav({ to: "/pro/bookings" })} className="focus-ring h-14 w-full rounded-2xl border border-border bg-surface text-sm font-bold">{t("pro.booking.backToJobs")}</button>
+            <button onClick={() => nav({ to: proPath("/pro/bookings") as "/pro/bookings" })} className="focus-ring h-14 w-full rounded-2xl border border-border bg-surface text-sm font-bold">{t("pro.booking.backToJobs")}</button>
           )}
         </div>
       </div>
@@ -381,6 +396,11 @@ function ProBookingDetail() {
       />
     </ProviderShell>
   );
+}
+
+function ProBookingDetailRoute() {
+  const { id } = Route.useParams();
+  return <ProBookingDetail id={id} />;
 }
 
 function Row({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {

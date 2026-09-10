@@ -1,18 +1,21 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PhoneFrame, TopBar, Chip, EmptyState } from "@/components/famio/ui";
-import { QueryError } from "@/components/famio/QueryError";
-import { ProviderCard } from "@/components/famio/ProviderCard";
-import { useCategories, useMarketplaceServices, useProviders } from "@/lib/db/queries";
-import { toUICategory, toUIProvider } from "@/lib/db/adapters";
-import { formatEGP, formatNumber } from "@/lib/utils";
-import { Filter, SlidersHorizontal } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { PhoneFrame, Chip, EmptyState } from "@/components/famio/ui";
+import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
+import { CustomerFloatingPanel } from "@/components/famio/CustomerFloatingPanel";
+import { QueryError } from "@/components/famio/QueryError";
+import { ProviderListRow, ProviderRatingMeta } from "@/components/famio/ProviderListRow";
+import { useCategories, useMarketplaceServices, useProviders } from "@/lib/db/queries";
+import { toUICategory, toUIProvider } from "@/lib/db/adapters";
+import { formatEGP } from "@/lib/utils";
+import { SlidersHorizontal } from "lucide-react";
+import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
 
 export const Route = createFileRoute("/category/$id")({ component: CategoryPage });
 
-function CategoryPage() {
-  const { id } = Route.useParams();
+export function CategoryPageContent({ categoryId }: { categoryId: string }) {
+  const id = categoryId;
   const { t } = useTranslation();
   const catsQ = useCategories();
   const servicesQ = useMarketplaceServices(id);
@@ -24,93 +27,132 @@ function CategoryPage() {
   const [sort, setSort] = useState<"top" | "price" | "experience">("top");
 
   const cat = useMemo(() => {
-    const row = (catsQ.data ?? []).find((c: any) => c.slug === id);
+    const row = (catsQ.data ?? []).find((c: { slug: string }) => c.slug === id);
     return row ? toUICategory(row) : null;
   }, [catsQ.data, id]);
 
   const list = useMemo(() => (provsQ.data ?? []).map(toUIProvider), [provsQ.data]);
   const sorted = [...list].sort((a, b) =>
-    sort === "price" ? a.hourlyRate - b.hourlyRate :
-    sort === "experience" ? b.yearsExp - a.yearsExp :
-    b.rating - a.rating
+    sort === "price"
+      ? a.hourlyRate - b.hourlyRate
+      : sort === "experience"
+        ? b.yearsExp - a.yearsExp
+        : b.rating - a.rating,
   );
 
   return (
-    <PhoneFrame>
-      <div className="relative">
-        <div className="h-44 w-full" style={{ background: `linear-gradient(135deg, var(--navy), oklch(0.42 0.16 268))` }}>
-          <TopBar back={{ to: "/home" }} right={<button aria-label={t("category.filters")} className="grid h-10 w-10 place-items-center rounded-full bg-white/15 text-white backdrop-blur"><Filter className="h-4 w-4" /></button>} transparent />
-          <div className="px-5 pb-4 text-white">
-            <div className="text-xs font-semibold opacity-80">{cat?.subtitle ?? ""}</div>
-            <div className="text-2xl font-extrabold">{cat?.title ?? "—"}</div>
-            <div className="mt-1 max-w-xs text-xs text-white/80">{cat?.description ?? ""}</div>
+    <PhoneFrame bg="bg-background">
+      <CustomerPageHero
+        title={cat?.title ?? "—"}
+        subtitle={cat?.description ?? cat?.subtitle ?? ""}
+        backTo="/home"
+        right={
+          <Link
+            to="/search"
+            className="focus-ring tap-scale inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/15 px-3.5 py-2 text-xs font-extrabold text-white backdrop-blur-sm"
+          >
+            <SlidersHorizontal
+              className="h-3.5 w-3.5"
+              strokeWidth={ICON_STROKE_BOLD}
+              aria-hidden="true"
+            />
+            {t("category.filters")}
+          </Link>
+        }
+      />
+
+      <div className="px-5">
+        <CustomerFloatingPanel>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-extrabold tracking-tight text-foreground">
+              {t("category.available", { count: sorted.length })}
+            </p>
+            {cat ? (
+              <p className="shrink-0 text-sm font-extrabold text-brand">
+                {t("category.fromPriceHr", { price: formatEGP(cat.fromPrice) })}
+              </p>
+            ) : null}
           </div>
-        </div>
+
+          {servicesQ.isLoading ? (
+            <div className="mt-3 h-12 animate-pulse rounded-full bg-surface-2" />
+          ) : servicesQ.isError ? (
+            <div className="mt-3">
+              <QueryError compact onRetry={() => servicesQ.refetch()} />
+            </div>
+          ) : (
+            <select
+              aria-label={t("search2.service")}
+              value={serviceId}
+              onChange={(e) => setServiceId(e.target.value)}
+              className="focus-ring mt-3 h-12 w-full rounded-full bg-surface-2 px-4 text-sm font-bold text-foreground focus:outline-none"
+            >
+              {(servicesQ.data ?? []).map((service: { id: string; name_en: string }) => (
+                <option key={service.id} value={service.id}>
+                  {service.name_en}
+                </option>
+              ))}
+            </select>
+          )}
+        </CustomerFloatingPanel>
       </div>
 
-      <div className="-mt-4 flex-1 rounded-t-3xl bg-surface-2 px-5 pt-5 pb-24">
+      <div className="flex-1 px-5 pb-24 pt-5">
         {catsQ.isError ? (
           <div className="mb-4">
             <QueryError compact onRetry={() => catsQ.refetch()} />
           </div>
         ) : null}
 
-        <label className="mb-4 block text-[11px] font-bold text-muted-foreground">
-          {t("search2.service", "Service")}
-          {servicesQ.isLoading ? (
-            <div className="mt-1 h-11 animate-pulse rounded-xl bg-surface" />
-          ) : servicesQ.isError ? (
-            <div className="mt-2">
-              <QueryError compact onRetry={() => servicesQ.refetch()} />
-            </div>
-          ) : (
-          <select
-            aria-label={t("search2.service", "Service")}
-            value={serviceId}
-            onChange={(e) => setServiceId(e.target.value)}
-            className="mt-1 h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground"
-          >
-            {(servicesQ.data ?? []).map((service: any) => <option key={service.id} value={service.id}>{service.name_en}</option>)}
-          </select>
-          )}
-        </label>
-        <div className="mb-4 flex items-center justify-between">
-          <div className="text-sm font-bold">
-            {t("category.available", { count: sorted.length })}
-            {cat && <> · {t("category.fromPriceHr", { price: formatEGP(cat.fromPrice) })}</>}
-          </div>
-          <Link to="/search" className="inline-flex items-center gap-1 rounded-full bg-surface px-3 py-1.5 text-xs font-bold shadow-soft">
-            <SlidersHorizontal className="h-3.5 w-3.5" /> {t("category.filters")}
-          </Link>
-        </div>
-
         <div className="mb-4 flex gap-2 overflow-x-auto no-scrollbar">
-          <Chip active={sort === "top"} onClick={() => setSort("top")}>{t("category.sortTop")}</Chip>
-          <Chip active={sort === "price"} onClick={() => setSort("price")}>{t("category.sortPrice")}</Chip>
-          <Chip active={sort === "experience"} onClick={() => setSort("experience")}>{t("category.sortExperience")}</Chip>
+          <Chip active={sort === "top"} onClick={() => setSort("top")}>
+            {t("category.sortTop")}
+          </Chip>
+          <Chip active={sort === "price"} onClick={() => setSort("price")}>
+            {t("category.sortPrice")}
+          </Chip>
+          <Chip active={sort === "experience"} onClick={() => setSort("experience")}>
+            {t("category.sortExperience")}
+          </Chip>
         </div>
 
         {provsQ.isLoading ? (
-          <div className="space-y-3">
-            {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-24 rounded-3xl bg-surface animate-pulse" />)}
+          <div className="space-y-2.5">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-24 animate-pulse rounded-[2rem] bg-surface-2" />
+            ))}
           </div>
         ) : provsQ.isError ? (
           <QueryError onRetry={() => provsQ.refetch()} />
         ) : sorted.length === 0 ? (
-          <EmptyState
-            icon="search"
-            title={t("category.empty", "No pros available yet")}
-            body={t("category.emptyBody", "We're onboarding more pros in your area. Check back soon.")}
-          />
+          <EmptyState icon="search" title={t("category.empty")} body={t("category.emptyBody")} />
         ) : (
-          <>
-            <div className="space-y-3">
-              {sorted.map((p) => <ProviderCard key={p.id} p={p} />)}
-            </div>
-            <div className="mt-3 text-center text-[11px] text-muted-foreground">{formatNumber(sorted.length)}</div>
-          </>
+          <div className="space-y-2.5">
+            {sorted.map((p) => (
+              <ProviderListRow
+                key={p.id}
+                to="/provider/$id"
+                params={{ id: p.id }}
+                avatar={p.avatar}
+                name={p.name}
+                subtitle={formatEGP(p.hourlyRate, { perHour: true })}
+                meta={<ProviderRatingMeta rating={p.rating} reviews={p.reviews} />}
+                pill={p.rating >= 4.9 ? { label: t("roles.topPro"), tone: "brand" } : undefined}
+                trailing={
+                  <span className="shrink-0 rounded-full bg-brand px-3.5 py-2 text-[11px] font-extrabold text-brand-foreground">
+                    {t("provider.bookNow")}
+                  </span>
+                }
+              />
+            ))}
+          </div>
         )}
       </div>
     </PhoneFrame>
   );
+}
+
+function CategoryPage() {
+  const { id } = Route.useParams();
+  return <CategoryPageContent categoryId={id} />;
 }

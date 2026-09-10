@@ -2,12 +2,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ProviderShell } from "@/components/famio/ProviderShell";
-import { TopBar, SegmentedControl, Card, EmptyState, Avatar, StatusPill } from "@/components/famio/ui";
+import { ProviderPageHero } from "@/components/famio/ProviderPageHero";
+import { SegmentedControl, EmptyState, Avatar, StatusPill } from "@/components/famio/ui";
 import { QueryError } from "@/components/famio/QueryError";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { useMyProvider, useProviderBookings } from "@/lib/db/provider-queries";
 import { formatEGP, BOOKING_ACTIVE_STATUSES } from "@/lib/utils";
-import { Calendar, Clock } from "lucide-react";
+import { Calendar, Clock, Loader2 } from "lucide-react";
+import { proPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/pro/bookings")({ component: ProBookings });
 
@@ -44,7 +46,7 @@ function ProBookings() {
     return (
       <ProviderShell>
         <div className="px-5 py-20">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-navy/20 border-t-navy" />
+          <Loader2 className="h-8 w-8 animate-spin text-brand" />
         </div>
       </ProviderShell>
     );
@@ -67,10 +69,8 @@ function ProBookings() {
 
   return (
     <ProviderShell>
-      <div className="safe-top px-5 pb-4 pt-6">
-        <h1 className="text-3xl font-extrabold tracking-tight text-foreground">{t("pro.bookings.title")}</h1>
-      </div>
-      <div className="px-5 pb-5">
+      <ProviderPageHero title={t("pro.bookings.title")} compact />
+      <div className="px-5 pb-4 pt-2">
         <SegmentedControl
           value={tab}
           onChange={setTab}
@@ -97,7 +97,7 @@ function ProBookings() {
             const name = b.customer?.full_name || t("pro.common.customer");
             const serviceName = lang === "ar" ? (b.service?.name_ar ?? b.service?.name_en) : (b.service?.name_en ?? b.service?.name_ar);
             return (
-              <Link key={b.id} to="/pro/booking/$id" params={{ id: b.id }} className="focus-ring tap-scale block rounded-[2rem] border border-border/50 bg-surface-elevated p-5 shadow-sm transition-shadow hover:shadow-md">
+              <Link key={b.id} to={proPath("/pro/booking/$id") as "/pro/booking/$id"} params={{ id: b.id }} className="focus-ring tap-scale block rounded-[1.25rem] border border-border/50 bg-surface p-4 shadow-xs">
                 <div className="flex items-center gap-4">
                   <Avatar src={b.customer?.avatar_url} alt={name} className="h-14 w-14 shrink-0 shadow-sm" />
                   <div className="min-w-0 flex-1">

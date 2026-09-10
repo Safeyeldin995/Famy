@@ -157,7 +157,7 @@ function ZoneFormFields({ form, setForm, errors, otherZones, excludeZoneId }: {
         <div className="mt-1 flex gap-1 rounded-xl border border-border bg-surface p-1">
           {(["polygon", "circle"] as const).map((bt) => (
             <button key={bt} type="button" onClick={() => setForm({ ...form, boundary_type: bt })}
-              className={`focus-ring flex-1 rounded-lg px-3 py-1.5 text-xs font-bold ${form.boundary_type === bt ? "bg-navy text-navy-foreground" : "text-muted-foreground"}`}>
+              className={`focus-ring flex-1 rounded-lg px-3 py-1.5 text-xs font-bold ${form.boundary_type === bt ? "bg-brand text-brand-foreground" : "text-muted-foreground"}`}>
               {bt === "polygon" ? t("admin.zones.polygonMode") : t("admin.zones.circleMode")}
             </button>
           ))}
@@ -330,13 +330,13 @@ function AdminZones() {
           <h1 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">{t("admin.layout.nav.zones")}</h1>
           <p className="text-xs text-muted-foreground">{t("admin.zones.subtitle")}</p>
         </div>
-        <button onClick={startCreate} className="focus-ring inline-flex items-center gap-1.5 rounded-xl bg-navy px-3 py-2 text-xs font-bold text-navy-foreground">
+        <button onClick={startCreate} className="focus-ring inline-flex items-center gap-1.5 rounded-xl bg-brand px-3 py-2 text-xs font-bold text-brand-foreground">
           <Plus className="h-3.5 w-3.5" /> {t("admin.zones.newZone")}
         </button>
       </div>
 
       {!creating && !editingId && allOtherZones.length > 0 && (
-        <section className="rounded-2xl border border-border/60 bg-surface p-5 shadow-card">
+        <section className="rounded-2xl border border-border/60 bg-surface p-5 shadow-sm">
           <h2 className="text-sm font-extrabold">{t("admin.zones.overviewTitle")}</h2>
           <p className="text-xs text-muted-foreground">{t("admin.zones.overviewHint")}</p>
           <div className="mt-3">
@@ -357,7 +357,7 @@ function AdminZones() {
             { key: "inactive" as const, labelKey: "admin.cancellationReasons.inactive" },
           ]).map((f) => (
             <button key={f.key} onClick={() => setStatusFilter(f.key)}
-              className={`focus-ring rounded-lg px-3 py-1.5 text-xs font-bold ${statusFilter === f.key ? "bg-navy text-navy-foreground" : "text-muted-foreground"}`}>
+              className={`focus-ring rounded-lg px-3 py-1.5 text-xs font-bold ${statusFilter === f.key ? "bg-brand text-brand-foreground" : "text-muted-foreground"}`}>
               {t(f.labelKey)}
             </button>
           ))}
@@ -365,11 +365,11 @@ function AdminZones() {
       </div>
 
       {creating && (
-        <section className="rounded-2xl border border-border/60 bg-surface p-5 shadow-card">
+        <section className="rounded-2xl border border-border/60 bg-surface p-5 shadow-sm">
           <h2 className="text-sm font-extrabold">{t("admin.zones.newZoneTitle")}</h2>
           <div className="mt-4"><ZoneFormFields form={createForm} setForm={setCreateForm} errors={createErrors} otherZones={allOtherZones} /></div>
           <div className="mt-4 flex gap-2">
-            <button onClick={submitCreate} disabled={create.isPending} className="focus-ring rounded-lg bg-navy px-4 py-2 text-xs font-bold text-navy-foreground disabled:opacity-50">
+            <button onClick={submitCreate} disabled={create.isPending} className="focus-ring rounded-lg bg-brand px-4 py-2 text-xs font-bold text-brand-foreground disabled:opacity-50">
               {create.isPending ? t("admin.cancellationReasons.creating") : t("admin.zones.createZone")}
             </button>
             <button onClick={() => setCreating(false)} className="focus-ring rounded-lg border border-border px-4 py-2 text-xs font-bold">{t("common.cancel")}</button>
@@ -377,7 +377,7 @@ function AdminZones() {
         </section>
       )}
 
-      <section className="rounded-2xl border border-border/60 bg-surface p-5 shadow-card">
+      <section className="rounded-2xl border border-border/60 bg-surface p-5 shadow-sm">
         {q.isLoading ? (
           <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-16 animate-pulse rounded-xl bg-muted" />)}</div>
         ) : q.isError ? (
@@ -392,7 +392,7 @@ function AdminZones() {
                   <div className="space-y-3">
                     <ZoneFormFields form={editForm} setForm={setEditForm} errors={editErrors} otherZones={allOtherZones.filter((o) => o.id !== z.id)} excludeZoneId={z.id} />
                     <div className="flex gap-2">
-                      <button onClick={() => submitEdit(z)} disabled={update.isPending} className="focus-ring rounded-lg bg-navy px-3 py-1.5 text-xs font-bold text-navy-foreground disabled:opacity-50">
+                      <button onClick={() => submitEdit(z)} disabled={update.isPending} className="focus-ring rounded-lg bg-brand px-3 py-1.5 text-xs font-bold text-brand-foreground disabled:opacity-50">
                         {update.isPending ? t("admin.cancellationReasons.saving") : t("common.save")}
                       </button>
                       <button onClick={() => setEditingId(null)} className="focus-ring rounded-lg border border-border px-3 py-1.5 text-xs font-bold">{t("common.cancel")}</button>
@@ -420,7 +420,7 @@ function AdminZones() {
                       <button
                         disabled={setActive.isPending}
                         onClick={() => setActive.mutate({ id: z.id, active: !z.is_active }, { onError: (e: any) => toast.error(dbErrorMessage(e, t)) })}
-                        className={`focus-ring rounded-lg px-3 py-1.5 text-xs font-bold disabled:opacity-50 ${z.is_active ? "border border-coral text-coral" : "bg-navy text-navy-foreground"}`}
+                        className={`focus-ring rounded-lg px-3 py-1.5 text-xs font-bold disabled:opacity-50 ${z.is_active ? "border border-coral text-coral" : "bg-brand text-brand-foreground"}`}
                       >
                         {z.is_active ? t("admin.cancellationReasons.deactivate") : t("admin.cancellationReasons.activate")}
                       </button>
