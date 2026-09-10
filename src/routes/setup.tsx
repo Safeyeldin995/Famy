@@ -17,9 +17,13 @@ import {
 } from "@/lib/db/queries";
 import { useServiceAreasSettings } from "@/lib/db/settings-queries";
 import { supabase } from "@/integrations/supabase/client";
+import { requireAuthSession } from "@/lib/auth/requireAuthSession";
 import { Camera, MapPin, Loader2 } from "lucide-react";
 
-export const Route = createFileRoute("/setup")({ component: Setup });
+export const Route = createFileRoute("/setup")({
+  beforeLoad: requireAuthSession,
+  component: Setup,
+});
 
 const FIXED_CITY = "Giza";
 
