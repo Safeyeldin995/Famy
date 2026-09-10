@@ -547,6 +547,8 @@ const en = {
     sortPrice: "Best price",
     sortExperience: "Most experience",
     notFound: "Category not found",
+    empty: "No professionals available",
+    emptyBody: "No eligible professionals for this service right now. Try another service or check back later.",
   },
   provider2: {
     bookFor: "Book for {{price}}",
