@@ -3,6 +3,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { isQaCatalogLabel } from "@/lib/catalog/qaCatalog";
 
 export type OnboardingStatus =
   | "DRAFT"
@@ -57,7 +58,8 @@ export function usePhase1Services() {
         .order("name_en");
       if (error) throw error;
       return (data ?? []).filter((s: any) =>
-        s.category?.slug === "home-cleaning" || s.category?.slug === "babysitting",
+        (s.category?.slug === "home-cleaning" || s.category?.slug === "babysitting") &&
+        !isQaCatalogLabel(s.name_en, s.name_ar, s.slug, s.category?.name_en, s.category?.name_ar),
       );
     },
   });
@@ -73,7 +75,7 @@ export function useActiveZones() {
         .eq("is_active", true)
         .order("name_en");
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).filter((z) => !isQaCatalogLabel(z.name_en, z.name_ar));
     },
   });
 }

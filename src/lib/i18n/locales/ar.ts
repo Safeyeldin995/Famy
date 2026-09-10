@@ -547,6 +547,8 @@ const ar: Translation = {
     sortPrice: "الأفضل سعرا",
     sortExperience: "الأكثر خبرة",
     notFound: "الفئة غير موجودة",
+    empty: "لا يوجد محترفون متاحون",
+    emptyBody: "لا يوجد محترفون مؤهلون لهذه الخدمة حاليا. جرب خدمة أخرى أو عد لاحقا.",
   },
   provider2: {
     bookFor: "احجز بـ {{price}}",

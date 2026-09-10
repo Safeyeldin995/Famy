@@ -19,6 +19,7 @@ import {
   addressesQueryKey,
   defaultAddressQueryKey,
 } from '@/lib/db/address-query-keys';
+import { isQaCatalogLabel } from '@/lib/catalog/qaCatalog';
 
 type Tables = Database['public']['Tables'];
 
@@ -252,7 +253,7 @@ export function useCategories() {
         .eq('is_active', true)
         .order('sort_order');
       if (error) throw error;
-      return data;
+      return (data ?? []).filter((row) => !isQaCatalogLabel(row.name_en, row.name_ar, row.slug));
     },
   });
 }
@@ -305,7 +306,17 @@ export function useProviders(opts: { categorySlug?: string; serviceId?: string; 
       if (opts.addressId) args.p_address_id = opts.addressId;
       const { data, error } = await supabase.rpc('search_marketplace_providers', args);
       if (error) throw error;
-      const rows = (data ?? []).slice(0, opts.limit ?? 50);
+      const rows = (data ?? [])
+        .filter(
+          (row) =>
+            !isQaCatalogLabel(
+              row.full_name,
+              row.service_name_en,
+              row.service_name_ar,
+              row.category_slug,
+            ),
+        )
+        .slice(0, opts.limit ?? 50);
       if (opts.categorySlug && !opts.serviceId) {
         return rows.filter((row) => row.category_slug === opts.categorySlug).map(marketplaceRow);
       }
@@ -343,7 +354,17 @@ export function useMarketplaceServices(categorySlug?: string) {
       if (categorySlug) query = query.eq('category.slug', categorySlug);
       const { data, error } = await query;
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).filter(
+        (row) =>
+          !isQaCatalogLabel(
+            row.name_en,
+            row.name_ar,
+            row.slug,
+            row.category?.name_en,
+            row.category?.name_ar,
+            row.category?.slug,
+          ),
+      );
     },
   });
 }
