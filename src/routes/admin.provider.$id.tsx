@@ -52,7 +52,7 @@ function EligibilitySection({ providerId }: { providerId: string }) {
               {r.to ? <Link to={adminPath(r.to) as any} className={r.ok ? "text-foreground" : "font-semibold text-coral underline"}>{r.label}</Link> : <span>{r.label}</span>}
             </li>)}
           </ul>
-          {!e.is_eligible && <ul className="mt-2 list-disc ps-5 text-[11px] font-semibold text-coral">{e.failure_reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>}
+          {!e.is_eligible && <ul className="mt-2 list-disc ps-5 text-[11px] font-semibold text-coral">{(e.failure_reasons ?? []).map((reason) => <li key={reason}>{reason}</li>)}</ul>}
         </div>;
       })}
     </section>
