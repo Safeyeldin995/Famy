@@ -56,3 +56,6 @@ jobs:
 
       - name: Guard single Firebase reCAPTCHA container
         run: node qa/check-firebase-recaptcha-container.mjs
+
+      - name: Check Arabic locale for tashkeel
+        run: node qa/check-ar-tashkeel.mjs

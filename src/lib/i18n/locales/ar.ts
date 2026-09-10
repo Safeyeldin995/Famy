@@ -136,7 +136,8 @@ const ar: Translation = {
     signInAs: "تسجيل الدخول كـ",
     accountMode: "الحساب",
     contactDetails: "بيانات التواصل",
-    noProviderAccount: 'هذا الرقم غير مسجل كمقدم خدمة. اختر "عميل" أعلاه، أو سجل كمقدم خدمة أولا.',
+    noProviderAccount:
+      'هذا الرقم غير مسجل كمقدم خدمة. اختر "عميل" أعلاه، أو سجل كمقدم خدمة أولا.',
     providerNote: "يجب على مقدمي الخدمة إكمال التحقق وموافقة الإدارة قبل استقبال الحجوزات.",
     password: "كلمة المرور",
     forgot: "نسيت كلمة المرور؟",
@@ -157,7 +158,8 @@ const ar: Translation = {
     sendFailed: "تعذر إرسال الرمز. حاول مرة أخرى لاحقا.",
     firebaseSendFailed: "تعذر إرسال رسالة التحقق. حاول مرة أخرى لاحقا.",
     firebaseStartFailed: "تعذر بدء التحقق من الهاتف. حاول مرة أخرى.",
-    firebaseRecaptchaUnavailable: "التحقق من الهاتف غير متاح حاليا. حدث الصفحة وحاول مرة أخرى.",
+    firebaseRecaptchaUnavailable:
+      "التحقق من الهاتف غير متاح حاليا. حدث الصفحة وحاول مرة أخرى.",
     firebaseSessionLost:
       "انتهت جلسة التحقق عبر الرسائل على هذه الصفحة. اضغط إعادة الإرسال للحصول على رمز جديد.",
     sessionExpired: "انتهت جلسة التحقق. ابدأ من جديد.",
@@ -369,7 +371,7 @@ const ar: Translation = {
     expires: "ينتهي في {{date}}",
     minSpend: "الحد الأدنى {{amount}}",
     copyCode: "نسخ الرمز",
-    copied: 'تم نسخ "{{code}}".',
+    copied: "تم نسخ \"{{code}}\".",
     copyError: "تعذر نسخ الرمز.",
     discountFixed: "خصم {{amount}}",
     discountPercent: "خصم {{value}}٪",
