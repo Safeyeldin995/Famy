@@ -6,6 +6,7 @@ import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
 import { CustomerFloatingPanel } from "@/components/famio/CustomerFloatingPanel";
 import { QueryError } from "@/components/famio/QueryError";
 import { ProviderListRow, ProviderRatingMeta } from "@/components/famio/ProviderListRow";
+import { useLang } from "@/components/famio/LanguageToggle";
 import { useCategories, useMarketplaceServices, useProviders } from "@/lib/db/queries";
 import { toUICategory, toUIProvider } from "@/lib/db/adapters";
 import { formatEGP } from "@/lib/utils";
@@ -17,6 +18,7 @@ export const Route = createFileRoute("/category/$id")({ component: CategoryPage 
 export function CategoryPageContent({ categoryId }: { categoryId: string }) {
   const id = categoryId;
   const { t } = useTranslation();
+  const lang = useLang();
   const catsQ = useCategories();
   const servicesQ = useMarketplaceServices(id);
   const [serviceId, setServiceId] = useState("");
@@ -87,11 +89,13 @@ export function CategoryPageContent({ categoryId }: { categoryId: string }) {
               onChange={(e) => setServiceId(e.target.value)}
               className="focus-ring mt-3 h-12 w-full rounded-full bg-surface-2 px-4 text-sm font-bold text-foreground focus:outline-none"
             >
-              {(servicesQ.data ?? []).map((service: { id: string; name_en: string }) => (
-                <option key={service.id} value={service.id}>
-                  {service.name_en}
-                </option>
-              ))}
+              {(servicesQ.data ?? []).map(
+                (service: { id: string; name_en: string; name_ar?: string }) => (
+                  <option key={service.id} value={service.id}>
+                    {lang === "ar" ? service.name_ar || service.name_en : service.name_en}
+                  </option>
+                ),
+              )}
             </select>
           )}
         </CustomerFloatingPanel>
