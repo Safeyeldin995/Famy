@@ -17,7 +17,9 @@ import {
 } from "@/lib/db/queries";
 import { useServiceAreasSettings } from "@/lib/db/settings-queries";
 import { supabase } from "@/integrations/supabase/client";
-import { Camera, MapPin, Loader2 } from "lucide-react";
+import { LocationPicker, isValidLatLng } from "@/components/famio/LocationPicker";
+import { Card } from "@/components/famio/ui";
+import { AlertTriangle, Camera, MapPin, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/setup")({ component: Setup });
 
@@ -29,6 +31,7 @@ function Setup() {
   const { t } = useTranslation();
   const [form, setForm] = useState({ ...profile, area: "" });
   const [existingAddressId, setExistingAddressId] = useState<string | null>(null);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const updateProfile = useUpdateProfile();
   const createAddress = useCreateAddress();
   const updateAddress = useUpdateAddress();
@@ -62,6 +65,9 @@ function Setup() {
       apartment: def.apartment ?? "",
       notes: def.access_notes ?? "",
     }));
+    if (isValidLatLng({ lat: def.lat ?? NaN, lng: def.lng ?? NaN })) {
+      setCoords({ lat: def.lat as number, lng: def.lng as number });
+    }
   }, [existingAddresses.data]);
 
   const onPickAvatar = async (file: File) => {
@@ -143,6 +149,8 @@ function Setup() {
           access_notes: form.notes || undefined,
           area: form.area,
           city: FIXED_CITY,
+          lat: coords?.lat ?? null,
+          lng: coords?.lng ?? null,
         });
       } else {
         const isFirstAddress = (existingAddresses.data?.length ?? 0) === 0;
@@ -155,6 +163,8 @@ function Setup() {
           access_notes: form.notes || undefined,
           area: form.area,
           city: FIXED_CITY,
+          lat: coords?.lat ?? null,
+          lng: coords?.lng ?? null,
           is_default: isFirstAddress,
         });
       }
@@ -275,6 +285,24 @@ function Setup() {
               className="min-w-0 flex-1 resize-none bg-transparent text-[15px] font-medium outline-none placeholder:text-muted-foreground/60"
             />
           </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            {t("addresses.location", "Location on map")}
+          </label>
+          <Card className="mt-2 p-3">
+            <LocationPicker value={coords} onChange={(pos) => setCoords(pos)} />
+          </Card>
+          {!isValidLatLng(coords) && (
+            <p className="mt-2 flex items-start gap-1.5 text-[11px] font-semibold text-muted-foreground">
+              <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-brand" />
+              {t(
+                "addresses.noCoordsWarning",
+                "Without a pinned location, this address can't be used to book a service.",
+              )}
+            </p>
+          )}
         </div>
 
         <div>

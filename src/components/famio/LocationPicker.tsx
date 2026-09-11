@@ -2,14 +2,13 @@ import { Component, Suspense, lazy, useCallback, useRef, useState, type ReactNod
 import { useTranslation } from "react-i18next";
 import { LocateFixed, MapPin, MapPinOff, Crosshair, Loader2, RefreshCw } from "lucide-react";
 import type { LatLng } from "./LocationPickerMap";
+import { isValidLatLng } from "@/lib/geo/latLng";
 
 const LazyMap = lazy(() => import("./LocationPickerMap"));
 
 const GIZA_FALLBACK: LatLng = { lat: 29.9765, lng: 30.9317 }; // Sheikh Zayed / 6th of October area
 
-function isValidLatLng(v: LatLng | null | undefined): v is LatLng {
-  return !!v && Number.isFinite(v.lat) && Number.isFinite(v.lng) && v.lat >= -90 && v.lat <= 90 && v.lng >= -180 && v.lng <= 180;
-}
+
 
 class MapErrorBoundary extends Component<{ children: ReactNode; fallback: ReactNode; resetKey: number }, { hasError: boolean }> {
   constructor(props: { children: ReactNode; fallback: ReactNode; resetKey: number }) {
