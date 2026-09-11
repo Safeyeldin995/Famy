@@ -9,6 +9,7 @@ import { useMyProfile, useDefaultAddress, useAvatarUrl } from "@/lib/db/queries"
 import { setLanguage, currentLang } from "@/lib/i18n";
 import { previewPath } from "@/lib/preview/previewPath";
 import { supabase } from "@/integrations/supabase/client";
+import { AuthGate } from "@/components/famio/AuthGate";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   MapPin,
@@ -27,7 +28,15 @@ import {
 } from "lucide-react";
 import { ICON_STROKE } from "@/lib/icons/constants";
 
-export const Route = createFileRoute("/profile")({ component: Profile });
+export const Route = createFileRoute("/profile")({ component: ProfileRoute });
+
+function ProfileRoute() {
+  return (
+    <AuthGate>
+      <Profile />
+    </AuthGate>
+  );
+}
 
 function Profile() {
   const { reset } = useApp();

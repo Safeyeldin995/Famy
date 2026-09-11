@@ -17,9 +17,18 @@ import {
 } from "@/lib/db/queries";
 import { useServiceAreasSettings } from "@/lib/db/settings-queries";
 import { supabase } from "@/integrations/supabase/client";
+import { AuthGate } from "@/components/famio/AuthGate";
 import { Camera, MapPin, Loader2 } from "lucide-react";
 
-export const Route = createFileRoute("/setup")({ component: Setup });
+export const Route = createFileRoute("/setup")({ component: SetupRoute });
+
+function SetupRoute() {
+  return (
+    <AuthGate>
+      <Setup />
+    </AuthGate>
+  );
+}
 
 const FIXED_CITY = "Giza";
 
