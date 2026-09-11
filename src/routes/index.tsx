@@ -33,6 +33,7 @@ function Splash() {
   const playAnimation = shouldPlayFamySplash();
 
   const [animationComplete, setAnimationComplete] = useState(!playAnimation);
+  const onSplashComplete = useCallback(() => setAnimationComplete(true), []);
   const appReady = !profileQ.isLoading;
 
   const goNext = useCallback(async () => {
@@ -62,7 +63,7 @@ function Splash() {
     return (
       <FamySplashScreen
         reducedMotion={reducedMotion}
-        onAnimationComplete={() => setAnimationComplete(true)}
+        onAnimationComplete={onSplashComplete}
       />
     );
   }

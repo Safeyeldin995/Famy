@@ -67,11 +67,18 @@ export function FamySplashScreen({
   const logoHeight = FAMY_SPLASH_ASSEMBLED.height * scale;
   const { fam, y } = FAMY_SPLASH_ASSEMBLED;
 
+  // Held in refs so `finish` and the animation effect keep a stable identity. A caller that
+  // passes an inline arrow (the normal React idiom) must not be able to restart the animation.
+  const onCompleteRef = useRef(onAnimationComplete);
+  useEffect(() => {
+    onCompleteRef.current = onAnimationComplete;
+  }, [onAnimationComplete]);
+
   const finish = useCallback(() => {
     if (completedRef.current) return;
     completedRef.current = true;
-    onAnimationComplete();
-  }, [onAnimationComplete]);
+    onCompleteRef.current();
+  }, []);
 
   useEffect(() => {
     const onResize = () => setLogoWidth(logoWidthPx());
@@ -127,6 +134,11 @@ export function FamySplashScreen({
     [scale, y.width, y.height],
   );
 
+  const applyFrameRef = useRef(applyFrame);
+  useEffect(() => {
+    applyFrameRef.current = applyFrame;
+  }, [applyFrame]);
+
   useEffect(() => {
     if (!assets) return;
 
@@ -142,17 +154,18 @@ export function FamySplashScreen({
     };
 
     if (reducedMotion) {
-      applyFrame(finalState);
+      applyFrameRef.current(finalState);
       finish();
       return;
     }
 
-    startRef.current = performance.now();
+    // Never rewind a run that has already started.
+    if (startRef.current === null) startRef.current = performance.now();
 
     const tick = (now: number) => {
       const t = (now - (startRef.current ?? now)) / 1000;
       const state = famySplashState(t);
-      applyFrame(state);
+      applyFrameRef.current(state);
       if (state.animationComplete) {
         finish();
         return;
@@ -164,7 +177,7 @@ export function FamySplashScreen({
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
-  }, [assets, reducedMotion, applyFrame, finish]);
+  }, [assets, reducedMotion, finish]);
 
   return (
     <div
