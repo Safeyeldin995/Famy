@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -31,6 +31,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { proPath } from "@/lib/preview/previewPath";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
+import { buildReferencesPayload } from "@/lib/provider/onboardingReferences";
+import { useAvatarUrl } from "@/lib/db/queries";
 
 const STEPS: OnboardingSection[] = ["personal", "services", "experience", "coverage", "references", "review"];
 
@@ -110,9 +112,14 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
   const [ref2, setRef2] = useState(previewMode ? PREVIEW_DEFAULTS.ref2 : { full_name: "", relationship: "", phone: "", notes: "" });
   const [confirmed, setConfirmed] = useState(false);
   const [uploadedDocs, setUploadedDocs] = useState<Record<string, boolean>>({});
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [avatarPath, setAvatarPath] = useState<string | null>(null);
+  const formHydrated = useRef(previewMode);
+  const signedAvatar = useAvatarUrl(avatarPath ?? (profile.avatar_url as string | undefined));
+  const shownPhoto = photoPreview || signedAvatar.data;
 
   useEffect(() => {
-    if (previewMode || !snapshot?.exists) return;
+    if (previewMode || !snapshot?.exists || formHydrated.current) return;
     setLegalName(profile.full_name ?? "");
     setDob(details.date_of_birth ?? "");
     setGender(details.gender ?? "");
@@ -128,7 +135,46 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
     setNewborn(!!details.newborn_experience);
     setFirstAid(!!details.first_aid_training);
     setConfirmed(!!details.accuracy_confirmed_at);
-  }, [previewMode, snapshot?.exists, profile, details, provider]);
+    setAvatarPath((profile.avatar_url as string | undefined) ?? null);
+    const snapshotServices = Array.isArray(snapshot.services) ? snapshot.services : [];
+    if (snapshotServices.length) {
+      setSelectedServices(
+        snapshotServices
+          .map((s: { service_id?: string }) => s.service_id)
+          .filter((id: string | undefined): id is string => Boolean(id)),
+      );
+    }
+    const snapshotZones = Array.isArray(snapshot.zones) ? snapshot.zones : [];
+    if (snapshotZones.length) {
+      setSelectedZones(
+        snapshotZones.map((z: { id?: string }) => z.id).filter((id: string | undefined): id is string => Boolean(id)),
+      );
+    }
+    const snapshotRefs = Array.isArray(snapshot.references) ? snapshot.references : [];
+    if (snapshotRefs[0]) {
+      setRef1({
+        full_name: snapshotRefs[0].full_name ?? "",
+        relationship: snapshotRefs[0].relationship ?? "",
+        phone: snapshotRefs[0].phone ?? "",
+        notes: snapshotRefs[0].notes ?? "",
+      });
+    }
+    if (snapshotRefs[1]) {
+      setRef2({
+        full_name: snapshotRefs[1].full_name ?? "",
+        relationship: snapshotRefs[1].relationship ?? "",
+        phone: snapshotRefs[1].phone ?? "",
+        notes: snapshotRefs[1].notes ?? "",
+      });
+    }
+    formHydrated.current = true;
+  }, [previewMode, snapshot, profile, details, provider]);
+
+  useEffect(() => {
+    return () => {
+      if (photoPreview?.startsWith("blob:")) URL.revokeObjectURL(photoPreview);
+    };
+  }, [photoPreview]);
 
   const current = STEPS[step];
   const progress = Math.round(((step + 1) / STEPS.length) * 100);
@@ -175,7 +221,16 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
       } else if (current === "coverage") {
         await saveSection.mutateAsync({ section: "coverage", payload: { zone_ids: selectedZones } });
       } else if (current === "references") {
-        await saveSection.mutateAsync({ section: "references", payload: { references: [ref1, ref2] } });
+        const packed = buildReferencesPayload(ref1, ref2);
+        if (!packed.ok) {
+          setErr(
+            packed.error === "ref1"
+              ? t("pro.onboardingWizard.ref1Required")
+              : t("pro.onboardingWizard.ref2Incomplete"),
+          );
+          return;
+        }
+        await saveSection.mutateAsync({ section: "references", payload: { references: packed.references } });
       } else if (current === "review") {
         await saveSection.mutateAsync({ section: "review", payload: { confirmed } });
         const res = await submit.mutateAsync();
@@ -205,6 +260,9 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
         setErr(t("pro.onboardingWizard.uploadError"));
         return;
       }
+      if (photoPreview?.startsWith("blob:")) URL.revokeObjectURL(photoPreview);
+      const objectUrl = URL.createObjectURL(file);
+      setPhotoPreview(objectUrl);
       const storagePath = `${provider.profile_id}/avatar-${crypto.randomUUID()}.${ext === "jpeg" ? "jpg" : ext}`;
       const { error: upErr } = await supabase.storage.from("avatars").upload(storagePath, file, {
         contentType: file.type,
@@ -222,9 +280,8 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
         setErr(t("pro.onboardingWizard.uploadProfileError"));
         return;
       }
+      setAvatarPath(storagePath);
       await uploadDoc.mutateAsync({ type: "profile_photo", file });
-      providerQ.refetch();
-      snapshotQ.refetch();
     } catch {
       setErr(t("pro.onboardingWizard.uploadError"));
     }
@@ -303,7 +360,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
           <div className="h-2 overflow-hidden rounded-full bg-surface-2">
             <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${progress}%` }} />
           </div>
-          <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1">
+          <div className="mt-3 flex flex-wrap gap-1.5">
             {STEPS.map((s, idx) => {
               const Icon = STEP_META[s].icon;
               const active = idx === step;
@@ -330,15 +387,19 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
         </ProviderFloatingPanel>
       </div>
 
-      <div className="space-y-4 px-5 pb-10 pt-4" dir={lang === "ar" ? "rtl" : "ltr"}>
+      <div className="min-w-0 space-y-4 overflow-x-hidden px-5 pb-10 pt-4" dir={lang === "ar" ? "rtl" : "ltr"}>
         {current === "personal" && (
           <Card className="space-y-4 rounded-[1.25rem] p-4">
-            <label className="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border border-dashed border-brand/30 bg-brand/[0.04] px-4 py-6">
-              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-brand/10 text-brand">
-                <Camera className="h-6 w-6" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
+            <label className="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border border-dashed border-brand/30 bg-brand/[0.04] px-4 py-5">
+              <div className="grid h-20 w-20 place-items-center overflow-hidden rounded-2xl bg-brand/10 text-brand">
+                {shownPhoto ? (
+                  <img src={shownPhoto} alt="" className="h-20 w-20 object-cover" />
+                ) : (
+                  <Camera className="h-6 w-6" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
+                )}
               </div>
-              <span className="text-sm font-extrabold text-brand">{t("pro.onboardingWizard.uploadPhoto")}</span>
-              <span className="text-[11px] font-medium text-muted-foreground">{t("pro.onboardingWizard.photoHint", "Clear face photo — JPG or PNG")}</span>
+              <span className="text-sm font-bold text-brand">{t("pro.onboardingWizard.uploadPhoto")}</span>
+              <span className="text-[11px] font-medium text-muted-foreground">{t("pro.onboardingWizard.photoHint")}</span>
               <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadAvatar(e.target.files[0])} />
             </label>
             <Field label={t("pro.onboardingWizard.legalName")}>
@@ -373,7 +434,10 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
 
         {current === "services" && (
           <Card className="space-y-2 rounded-[1.25rem] p-4">
-            <p className="mb-2 text-xs font-semibold text-muted-foreground">{t("pro.onboardingWizard.servicesHint", "Choose the services you want to offer on Famy.")}</p>
+            <p className="mb-2 text-xs font-semibold text-muted-foreground">{t("pro.onboardingWizard.servicesHint")}</p>
+            {(servicesQ.data ?? []).length === 0 ? (
+              <p className="text-sm font-medium text-muted-foreground">{t("pro.onboardingWizard.servicesEmpty")}</p>
+            ) : null}
             {(servicesQ.data ?? []).map((s: any) => {
               const on = selectedServices.includes(s.id);
               return (
@@ -381,12 +445,12 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                   key={s.id}
                   type="button"
                   onClick={() => setSelectedServices((prev) => (on ? prev.filter((x) => x !== s.id) : [...prev, s.id]))}
-                  className={`w-full rounded-2xl border px-4 py-4 text-start transition-colors ${
+                  className={`w-full rounded-2xl border px-3 py-3 text-start transition-colors ${
                     on ? "border-brand bg-brand/[0.06] shadow-sm" : "border-border/60 bg-surface"
                   }`}
                 >
-                  <div className="text-sm font-extrabold text-foreground">{lang === "ar" ? s.name_ar : s.name_en}</div>
-                  <div className="mt-0.5 text-xs font-medium text-muted-foreground">
+                  <div className="break-words text-sm font-bold text-foreground">{lang === "ar" ? s.name_ar : s.name_en}</div>
+                  <div className="mt-0.5 break-words text-xs font-medium text-muted-foreground">
                     {lang === "ar" ? s.category?.name_ar : s.category?.name_en}
                   </div>
                 </button>
@@ -400,12 +464,15 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
             <Field label={t("pro.onboarding.years")}>
               <input type="number" min={0} value={years} onChange={(e) => setYears(Number(e.target.value))} className={inputClass} />
             </Field>
-            <Field label={t("pro.onboarding.bioEn")}>
-              <textarea value={bioEn} onChange={(e) => setBioEn(e.target.value)} rows={4} className={`${inputClass} min-h-[6rem] py-3`} />
-            </Field>
-            <Field label={t("pro.onboarding.bioAr")}>
-              <textarea value={bioAr} onChange={(e) => setBioAr(e.target.value)} rows={4} dir="rtl" className={`${inputClass} min-h-[6rem] py-3`} />
-            </Field>
+            {lang === "ar" ? (
+              <Field label={t("pro.onboarding.bioAr")}>
+                <textarea value={bioAr} onChange={(e) => setBioAr(e.target.value)} rows={4} dir="rtl" className={`${inputClass} min-h-[6rem] py-3`} />
+              </Field>
+            ) : (
+              <Field label={t("pro.onboarding.bioEn")}>
+                <textarea value={bioEn} onChange={(e) => setBioEn(e.target.value)} rows={4} className={`${inputClass} min-h-[6rem] py-3`} />
+              </Field>
+            )}
             <Field label={t("pro.onboardingWizard.previousWork")}>
               <textarea value={previousWork} onChange={(e) => setPreviousWork(e.target.value)} rows={3} className={`${inputClass} min-h-[5rem] py-3`} />
             </Field>
@@ -442,7 +509,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
 
         {current === "coverage" && (
           <Card className="space-y-2 rounded-[1.25rem] p-4">
-            <p className="mb-2 text-xs font-semibold text-muted-foreground">{t("pro.onboardingWizard.coverageHint", "Select the areas where you can accept jobs.")}</p>
+            <p className="mb-2 text-xs font-semibold text-muted-foreground">{t("pro.onboardingWizard.coverageHint")}</p>
             {(zonesQ.data ?? []).map((z: any) => {
               const on = selectedZones.includes(z.id);
               return (
@@ -450,7 +517,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                   key={z.id}
                   type="button"
                   onClick={() => setSelectedZones((prev) => (on ? prev.filter((x) => x !== z.id) : [...prev, z.id]))}
-                  className={`w-full rounded-2xl border px-4 py-4 text-start text-sm font-extrabold ${
+                  className={`w-full rounded-2xl border px-3 py-3 text-start text-sm font-bold break-words ${
                     on ? "border-brand bg-brand/[0.06]" : "border-border/60"
                   }`}
                 >
@@ -465,8 +532,15 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
           <div className="space-y-3">
             {[ref1, ref2].map((ref, idx) => (
               <Card key={idx} className="space-y-3 rounded-[1.25rem] p-4">
-                <div className="text-xs font-extrabold uppercase tracking-wider text-brand">
-                  {t("pro.onboardingWizard.reference", { n: idx + 1 })}
+                <div className="flex items-baseline justify-between gap-2">
+                  <div className="text-xs font-extrabold uppercase tracking-wider text-brand">
+                    {t("pro.onboardingWizard.reference", { n: idx + 1 })}
+                  </div>
+                  {idx === 1 ? (
+                    <span className="text-[11px] font-semibold text-muted-foreground">
+                      {t("pro.onboardingWizard.referenceOptional")}
+                    </span>
+                  ) : null}
                 </div>
                 <input
                   placeholder={t("pro.onboardingWizard.refName")}
@@ -486,6 +560,13 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                   onChange={(e) => (idx === 0 ? setRef1 : setRef2)({ ...ref, phone: e.target.value })}
                   className={inputClass}
                   inputMode="tel"
+                />
+                <textarea
+                  placeholder={t("pro.onboardingWizard.refNotes")}
+                  value={ref.notes}
+                  onChange={(e) => (idx === 0 ? setRef1 : setRef2)({ ...ref, notes: e.target.value })}
+                  rows={2}
+                  className={`${inputClass} min-h-[4.5rem] py-3`}
                 />
               </Card>
             ))}
@@ -532,13 +613,13 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
             <button
               type="button"
               onClick={() => setStep(step - 1)}
-              className="focus-ring h-14 flex-1 rounded-2xl border border-border/60 bg-surface text-sm font-extrabold text-foreground"
+              className="focus-ring h-12 flex-1 rounded-2xl border border-border/60 bg-surface text-sm font-bold text-foreground"
             >
               {t("common.back")}
             </button>
           )}
           <PrimaryButton
-            className="flex-[2] !h-14"
+            className="flex-[2] !h-12"
             onClick={saveCurrent}
             disabled={!previewMode && (saveSection.isPending || submit.isPending || uploadDoc.isPending)}
           >

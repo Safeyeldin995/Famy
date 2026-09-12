@@ -8,7 +8,6 @@ import { ProviderPageHero } from "@/components/famio/ProviderPageHero";
 import { Card, PrimaryButton, Avatar } from "@/components/famio/ui";
 import { QueryError } from "@/components/famio/QueryError";
 import { supabase } from "@/integrations/supabase/client";
-import { useAvatarUrl } from "@/lib/db/queries";
 import { useServiceAreasSettings } from "@/lib/db/settings-queries";
 import {
   useMyProvider,
@@ -23,7 +22,7 @@ import {
   useUploadRequirementEvidence,
   useMyMarketplaceEligibility,
 } from "@/lib/db/provider-queries";
-import { FileText, ShieldCheck, LogOut, Globe, Camera, Loader2, Upload, Bell } from "lucide-react";
+import { FileText, ShieldCheck, LogOut, Camera, Loader2, Upload, Bell } from "lucide-react";
 import { LanguageToggle, useLang } from "@/components/famio/LanguageToggle";
 import { customerPath, proPath } from "@/lib/preview/previewPath";
 
@@ -56,22 +55,28 @@ function ProProfile() {
   const [years, setYears] = useState<number>(0); const [rate, setRate] = useState<number>(0);
   const [city, setCity] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
-  const avatarQ = useAvatarUrl(provider?.profile?.avatar_url as string | undefined);
+  const profileHydrated = useRef(false);
   const areasQ = useServiceAreasSettings();
   const cityOptions = (areasQ.data ?? []).filter((a) => a.enabled).map((a) => a.name);
 
   useEffect(() => {
-    if (provider) {
-      setBioEn(provider.bio_en ?? ""); setBioAr(provider.bio_ar ?? "");
-      setYears(provider.years_experience ?? 0); setRate(Number(provider.hourly_rate ?? 0));
-      setCity(provider.city ?? "");
-    }
+    if (!provider || profileHydrated.current) return;
+    setBioEn(provider.bio_en ?? ""); setBioAr(provider.bio_ar ?? "");
+    setYears(provider.years_experience ?? 0); setRate(Number(provider.hourly_rate ?? 0));
+    setCity(provider.city ?? "");
+    profileHydrated.current = true;
   }, [provider]);
 
   const onPickAvatar = async (file: File) => {
     try {
       setUploading(true);
+      const objectUrl = URL.createObjectURL(file);
+      setPhotoPreview((prev) => {
+        if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+        return objectUrl;
+      });
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("auth required");
       const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
@@ -86,6 +91,7 @@ function ProProfile() {
         .eq("id", user.id);
       if (dbErr) throw dbErr;
       await qc.invalidateQueries({ queryKey: ["my-provider"] });
+      await qc.invalidateQueries({ queryKey: ["avatar-url"] });
     } catch (e: any) {
       toast.error(e?.message ?? t("pro.profile.uploadFailed"));
     } finally {
@@ -161,14 +167,18 @@ function ProProfile() {
         compact
         right={<LanguageToggle variant="hero" />}
       />
-      <div className="space-y-5 px-5 pb-28 pt-2">
+      <div className="min-w-0 space-y-5 overflow-x-hidden px-5 pb-28 pt-2">
         <Card className="flex items-center gap-3 rounded-[1.25rem] p-4">
           <div className="relative h-16 w-16 shrink-0">
-            <Avatar
-              src={avatarQ.data || `https://i.pravatar.cc/200?u=${provider.id}`}
-              alt=""
-              className="h-16 w-16 rounded-2xl"
-            />
+            {photoPreview ? (
+              <img src={photoPreview} alt="" className="h-16 w-16 rounded-2xl object-cover" />
+            ) : (
+              <Avatar
+                src={provider?.profile?.avatar_url}
+                alt=""
+                className="h-16 w-16 rounded-2xl"
+              />
+            )}
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
@@ -191,7 +201,7 @@ function ProProfile() {
             />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-base font-extrabold">{provider.profile?.full_name || t("pro.profile.famioUser")}</div>
+            <div className="break-words text-base font-bold leading-snug">{provider.profile?.full_name || t("pro.profile.famioUser")}</div>
             <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground">
               {provider.is_verified ? <><ShieldCheck className="h-3 w-3 text-success" /> {t("pro.profile.verified")}</> : t("pro.profile.verificationPending")}
             </div>
@@ -220,8 +230,8 @@ function ProProfile() {
           ) : (
             <div className="mt-2 space-y-2">
               {(eligibilityQ.data ?? []).map((row) => <div key={row.service_id} className="rounded-xl border border-border/60 p-2 text-xs">
-                <div className="font-bold">{lang === "ar" ? row.service_name_ar : row.service_name_en}</div>
-                {row.is_eligible ? <div className="mt-1 text-success">{t("admin.provider.eligibleBody")}</div> : <ul className="mt-1 list-disc ps-4 text-coral">{(row.failure_reasons ?? []).map((reason) => <li key={reason}>{reason}</li>)}</ul>}
+                <div className="break-words font-bold">{lang === "ar" ? row.service_name_ar : row.service_name_en}</div>
+                {row.is_eligible ? <div className="mt-1 text-success">{t("admin.provider.eligibleBody")}</div> : <ul className="mt-1 list-disc break-words ps-4 text-coral">{(row.failure_reasons ?? []).map((reason) => <li key={reason}>{reason}</li>)}</ul>}
               </div>)}
               {!eligibilityQ.isLoading && (eligibilityQ.data ?? []).length === 0 && <div className="text-xs text-coral">BLOCKED BY BUSINESS DATA — no Provider service is configured.</div>}
             </div>
@@ -233,8 +243,11 @@ function ProProfile() {
         <div>
           <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">{t("pro.profile.about")}</h2>
           <Card className="space-y-3 p-4">
-            <Field label={t("pro.onboarding.bioEn")}><textarea value={bioEn} onChange={(e) => setBioEn(e.target.value)} rows={3} className="w-full rounded-xl border border-border bg-surface p-2 text-sm" /></Field>
-            <Field label={t("pro.onboarding.bioAr")}><textarea value={bioAr} onChange={(e) => setBioAr(e.target.value)} rows={3} dir="rtl" className="w-full rounded-xl border border-border bg-surface p-2 text-sm" /></Field>
+            {lang === "ar" ? (
+              <Field label={t("pro.onboarding.bioAr")}><textarea value={bioAr} onChange={(e) => setBioAr(e.target.value)} rows={3} dir="rtl" className="w-full rounded-xl border border-border bg-surface p-2 text-sm" /></Field>
+            ) : (
+              <Field label={t("pro.onboarding.bioEn")}><textarea value={bioEn} onChange={(e) => setBioEn(e.target.value)} rows={3} className="w-full rounded-xl border border-border bg-surface p-2 text-sm" /></Field>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <Field label={t("pro.onboarding.years")}><input type="number" min={0} value={years} onChange={(e) => setYears(Number(e.target.value))} className="h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm" /></Field>
               <Field label={t("pro.onboarding.rate")}><input type="number" min={0} value={rate} onChange={(e) => setRate(Number(e.target.value))} className="h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm" /></Field>
@@ -251,7 +264,7 @@ function ProProfile() {
                     key={c}
                     type="button"
                     onClick={() => setCity(c)}
-                    className={`h-10 rounded-xl border text-sm font-semibold transition-all ${
+                    className={`h-10 truncate rounded-xl border px-2 text-xs font-semibold transition-all ${
                       city === c ? "border-brand bg-brand/[0.04] text-brand" : "border-border bg-surface text-muted-foreground"
                     }`}
                   >
@@ -282,9 +295,9 @@ function ProProfile() {
               return (
                 <div key={s.id} className="px-4 py-3">
                   <div className="flex items-center justify-between">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <div className="text-sm font-semibold truncate">{sname}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start gap-1.5">
+                        <div className="break-words text-sm font-semibold leading-snug">{sname}</div>
                         {on && myStatus.get(s.id) === "pending" && (
                           <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">{t("pro.profile.servicePending")}</span>
                         )}
@@ -292,7 +305,7 @@ function ProProfile() {
                           <span className="shrink-0 rounded-full bg-coral/15 px-2 py-0.5 text-[10px] font-bold text-coral">{t("pro.profile.serviceRejected")}</span>
                         )}
                       </div>
-                      <div className="text-[11px] text-muted-foreground truncate">{cname}</div>
+                      <div className="break-words text-[11px] text-muted-foreground">{cname}</div>
                     </div>
                     <button
                       onClick={() => toggle.mutate({ providerId: provider.id, serviceId: s.id, on: !on })}
@@ -304,7 +317,7 @@ function ProProfile() {
                   </div>
 
                   {on && s.provider_pricing_allowed && (
-                    <div className="mt-2 flex items-center gap-2">
+                    <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2">
                       <input
                         type="number"
                         min={0}
@@ -366,7 +379,6 @@ function ProProfile() {
           <Card className="divide-y divide-border">
             <ProRow to={proPath("/pro/documents")} icon={<FileText className="h-5 w-5" />} label={t("pro.profile.documentsRow")} />
             <ProRow to={proPath("/pro/notification-preferences")} icon={<Bell className="h-5 w-5" />} label={t("notifPrefs.title")} />
-            <ProRow to={customerPath("/home")} icon={<Globe className="h-5 w-5" />} label={t("pro.profile.switchCustomer")} />
           </Card>
         </div>
 
