@@ -3,7 +3,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { isQaCatalogLabel, isQaCatalogService } from "@/lib/catalog/qaCatalog";
+import { isQaCatalogService, isQaFixtureName } from "@/lib/catalog/qaCatalog";
 
 export type OnboardingStatus =
   | "DRAFT"
@@ -76,7 +76,7 @@ export function useActiveZones() {
         .eq("is_active", true)
         .order("name_en");
       if (error) throw error;
-      return (data ?? []).filter((z) => !isQaCatalogLabel(z.name_en, z.name_ar));
+      return (data ?? []).filter((z) => !isQaFixtureName(z.name_en, z.name_ar));
     },
   });
 }

@@ -1,55 +1,73 @@
 import { describe, expect, it } from "vitest";
-import { isQaCatalogLabel, isQaCatalogService } from "@/lib/catalog/qaCatalog";
+import {
+  isQaCatalogService,
+  isQaCatalogSlug,
+  isQaFixtureName,
+} from "@/lib/catalog/qaCatalog";
 
-describe("isQaCatalogLabel", () => {
-  it("matches Production QA fixture prefixes", () => {
-    expect(isQaCatalogLabel("QA Booking Service 1785235277607")).toBe(true);
-    expect(isQaCatalogLabel("QA_RLS Service")).toBe(true);
-    expect(isQaCatalogLabel("QA RLS Other Service")).toBe(true);
-    expect(isQaCatalogLabel("QA RLS Service")).toBe(true);
+describe("isQaCatalogSlug", () => {
+  it("matches the Production fixture slug shapes", () => {
+    expect(isQaCatalogSlug("qa-booking-service-1785235277607")).toBe(true);
+    expect(isQaCatalogSlug("qa_rls_service")).toBe(true);
+    expect(isQaCatalogSlug("QA-Patch2-Marketplace")).toBe(true);
   });
 
-  it("matches trailing QA_ category names without hiding FAQ", () => {
-    expect(isQaCatalogLabel("Home Cleaning QA_")).toBe(true);
-    expect(isQaCatalogLabel("Home Cleaning QA_ ")).toBe(true);
-    expect(isQaCatalogLabel("FAQ")).toBe(false);
-    expect(isQaCatalogLabel("Frequently asked questions")).toBe(false);
+  it("keeps every real catalog slug", () => {
+    for (const slug of [
+      "home-cleaning",
+      "deep-home-cleaning",
+      "regular-home-cleaning",
+      "babysitting",
+      "tutoring",
+      "quarterly-deep-clean",
+      "qatar-special",
+    ]) {
+      expect(isQaCatalogSlug(slug)).toBe(false);
+    }
   });
 
-  it("does not match real catalog names", () => {
-    expect(isQaCatalogLabel("Deep Home Cleaning")).toBe(false);
-    expect(isQaCatalogLabel("Move-in / Move-out Cleaning")).toBe(false);
-    expect(isQaCatalogLabel("Regular Home Cleaning")).toBe(false);
-    expect(isQaCatalogLabel("Full-Day Babysitting")).toBe(false);
-    expect(isQaCatalogLabel("تنظيف منزل عميق")).toBe(false);
-    expect(isQaCatalogLabel("Babysitting")).toBe(false);
+  it("ignores null and empty input", () => {
+    expect(isQaCatalogSlug(null, undefined, "")).toBe(false);
+  });
+});
+
+describe("isQaFixtureName", () => {
+  it("matches a fixture name prefix", () => {
+    expect(isQaFixtureName("QA Booking Service 1785235277607")).toBe(true);
+    expect(isQaFixtureName("QA_RLS Zone")).toBe(true);
+  });
+
+  it("does NOT match a trailing QA_ token", () => {
+    // The real Production category is named "Home Cleaning QA_". Matching a trailing
+    // token hid it and all three of its services.
+    expect(isQaFixtureName("Home Cleaning QA_")).toBe(false);
+  });
+
+  it("keeps ordinary names", () => {
+    expect(isQaFixtureName("Deep Home Cleaning")).toBe(false);
+    expect(isQaFixtureName("FAQ Support")).toBe(false);
+    expect(isQaFixtureName("تنظيف منزل عميق")).toBe(false);
   });
 });
 
 describe("isQaCatalogService", () => {
-  it("hides a real-looking service when its category is a QA fixture", () => {
-    expect(
-      isQaCatalogService({
-        name_en: "Deep Home Cleaning",
-        name_ar: "تنظيف منزل عميق",
-        slug: "deep-home-cleaning",
-        category: {
-          name_en: "Home Cleaning QA_",
-          name_ar: "Home Cleaning QA_",
-          slug: "home-cleaning",
-        },
-      }),
-    ).toBe(true);
+  it("hides a fixture service", () => {
+    expect(isQaCatalogService({ slug: "qa-booking-service-1", category: { slug: "qa-cat" } })).toBe(
+      true,
+    );
   });
 
-  it("keeps a real service under a real category", () => {
-    expect(
-      isQaCatalogService({
-        name_en: "Deep Home Cleaning",
-        name_ar: "تنظيف منزل عميق",
-        slug: "deep-home-cleaning",
-        category: { name_en: "Home Cleaning", name_ar: "تنظيف المنزل", slug: "home-cleaning" },
-      }),
-    ).toBe(false);
+  it("hides a real service that sits under a fixture category", () => {
+    expect(isQaCatalogService({ slug: "regular-home-cleaning", category: { slug: "qa_cat" } })).toBe(
+      true,
+    );
+  });
+
+  it("keeps the real Home Cleaning services even though the category NAME contains QA_", () => {
+    // Regression: the Production category display name is "Home Cleaning QA_" while its
+    // slug is the clean "home-cleaning".
+    for (const slug of ["deep-home-cleaning", "regular-home-cleaning", "move-in-move-out-cleaning"]) {
+      expect(isQaCatalogService({ slug, category: { slug: "home-cleaning" } })).toBe(false);
+    }
   });
 });

@@ -1,35 +1,35 @@
 /**
- * QA fixture catalog rows use a `QA_` / `QA ` prefix, or a trailing `QA_`
- * token on the category name (e.g. "Home Cleaning QA_"). Real catalog names
- * do not. `FAQ` and ordinary product names must stay visible.
+ * Identifies QA fixture rows so they never reach customers or provider onboarding.
+ *
+ * Catalog rows are matched on their SLUG, not their display name.
+ *
+ * Display names are admin-editable and one genuine Production category is named
+ * "Home Cleaning QA_". Matching display names therefore hid the real Home Cleaning
+ * category and all three of its services. Slugs are stable identifiers and do not have
+ * that problem: verified against Production, slug and name agree on all 479 service rows,
+ * so the slug alone identifies every fixture with no false positives.
+ *
+ * Rows without a slug (zones, provider display names) fall back to a strict prefix match.
  */
-const QA_PREFIX_RE = /^QA[_\s-]/i;
-const QA_TOKEN_RE = /(^|[\s_-])QA_/i;
+const QA_SLUG_RE = /^qa[-_\s]/i;
+const QA_NAME_PREFIX_RE = /^QA[_\s]/i;
 
-export function isQaCatalogLabel(...names: Array<string | null | undefined>): boolean {
-  return names.some((name) => {
-    const value = (name ?? "").trim();
-    if (!value) return false;
-    return QA_PREFIX_RE.test(value) || QA_TOKEN_RE.test(value);
-  });
+/** Authoritative check for catalog rows that have a slug. */
+export function isQaCatalogSlug(...slugs: Array<string | null | undefined>): boolean {
+  return slugs.some((slug) => QA_SLUG_RE.test((slug ?? "").trim()));
+}
+
+/**
+ * Fallback for records with no slug. Prefix only — never a trailing token, so an admin
+ * renaming something to "… QA_" cannot hide a real record.
+ */
+export function isQaFixtureName(...names: Array<string | null | undefined>): boolean {
+  return names.some((name) => QA_NAME_PREFIX_RE.test((name ?? "").trim()));
 }
 
 export function isQaCatalogService(row: {
-  name_en?: string | null;
-  name_ar?: string | null;
   slug?: string | null;
-  category?: {
-    name_en?: string | null;
-    name_ar?: string | null;
-    slug?: string | null;
-  } | null;
+  category?: { slug?: string | null } | null;
 }): boolean {
-  return isQaCatalogLabel(
-    row.name_en,
-    row.name_ar,
-    row.slug,
-    row.category?.name_en,
-    row.category?.name_ar,
-    row.category?.slug,
-  );
+  return isQaCatalogSlug(row.slug, row.category?.slug);
 }

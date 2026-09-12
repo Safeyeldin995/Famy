@@ -19,7 +19,7 @@ import {
   addressesQueryKey,
   defaultAddressQueryKey,
 } from '@/lib/db/address-query-keys';
-import { isQaCatalogLabel, isQaCatalogService } from '@/lib/catalog/qaCatalog';
+import { isQaCatalogService, isQaCatalogSlug, isQaFixtureName } from '@/lib/catalog/qaCatalog';
 
 type Tables = Database['public']['Tables'];
 
@@ -253,7 +253,7 @@ export function useCategories() {
         .eq('is_active', true)
         .order('sort_order');
       if (error) throw error;
-      return (data ?? []).filter((row) => !isQaCatalogLabel(row.name_en, row.name_ar, row.slug));
+      return (data ?? []).filter((row) => !isQaCatalogSlug(row.slug));
     },
   });
 }
@@ -309,12 +309,7 @@ export function useProviders(opts: { categorySlug?: string; serviceId?: string; 
       const rows = (data ?? [])
         .filter(
           (row) =>
-            !isQaCatalogLabel(
-              row.full_name,
-              row.service_name_en,
-              row.service_name_ar,
-              row.category_slug,
-            ),
+            !isQaCatalogSlug(row.category_slug) && !isQaFixtureName(row.full_name),
         )
         .slice(0, opts.limit ?? 50);
       if (opts.categorySlug && !opts.serviceId) {
