@@ -45,7 +45,7 @@ export function Avatar({
 
 export function PhoneFrame({ children, bg = "bg-surface-2" }: { children: ReactNode; bg?: string }) {
   return (
-    <div className={`mx-auto flex min-h-dvh w-full max-w-md flex-col ${bg}`}>
+    <div className={`mx-auto flex min-h-dvh w-full min-w-0 max-w-md flex-col overflow-x-hidden ${bg}`}>
       {children}
     </div>
   );

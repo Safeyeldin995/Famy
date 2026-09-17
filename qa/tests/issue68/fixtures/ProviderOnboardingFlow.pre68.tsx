@@ -32,7 +32,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { proPath } from "@/lib/preview/previewPath";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
 import { buildReferencesPayload } from "@/lib/provider/onboardingReferences";
-import { mapSnapshotToOnboardingFormState } from "@/lib/provider/onboardingHydration";
 import { useAvatarUrl } from "@/lib/db/queries";
 
 const STEPS: OnboardingSection[] = ["personal", "services", "experience", "coverage", "references", "review"];
@@ -63,7 +62,7 @@ const PREVIEW_DEFAULTS = {
   ref2: { full_name: "Layla Hassan", relationship: "neighbor", phone: "+201022233344", notes: "" },
 };
 
-export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: boolean }) {
+export function ProviderOnboardingFlowPre68({ previewMode = false }: { previewMode?: boolean }) {
   const { t } = useTranslation();
   const lang = useLang();
   const nav = useNavigate();
@@ -121,29 +120,55 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
 
   useEffect(() => {
     if (previewMode || !snapshot?.exists || formHydrated.current) return;
-    const hydrated = mapSnapshotToOnboardingFormState(snapshot);
-    setLegalName(hydrated.legalName);
-    setDob(hydrated.dob);
-    setGender(hydrated.gender);
-    setGovernorate(hydrated.governorate);
-    setArea(hydrated.area);
-    setAddress(hydrated.address);
-    setYears(hydrated.years);
-    setBioEn(hydrated.bioEn);
-    setBioAr(hydrated.bioAr);
-    setPreviousWork(hydrated.previousWork);
-    setLangs(hydrated.langs);
-    setChildGroups(hydrated.childGroups);
-    setNewborn(hydrated.newborn);
-    setFirstAid(hydrated.firstAid);
-    setConfirmed(hydrated.confirmed);
-    setAvatarPath(hydrated.avatarPath);
-    if (hydrated.selectedServices.length) setSelectedServices(hydrated.selectedServices);
-    if (hydrated.selectedZones.length) setSelectedZones(hydrated.selectedZones);
-    if (hydrated.ref1.full_name || hydrated.ref1.phone) setRef1(hydrated.ref1);
-    if (hydrated.ref2.full_name || hydrated.ref2.phone) setRef2(hydrated.ref2);
+    setLegalName(profile.full_name ?? "");
+    setDob(details.date_of_birth ?? "");
+    setGender(details.gender ?? "");
+    setGovernorate(details.governorate ?? "");
+    setArea(details.area ?? provider?.city ?? "");
+    setAddress(details.full_address ?? "");
+    setYears(provider?.years_experience ?? 1);
+    setBioEn(provider?.bio_en ?? "");
+    setBioAr(provider?.bio_ar ?? "");
+    setPreviousWork(details.previous_work ?? "");
+    setLangs(provider?.languages ?? ["arabic"]);
+    setChildGroups(details.child_age_groups ?? []);
+    setNewborn(!!details.newborn_experience);
+    setFirstAid(!!details.first_aid_training);
+    setConfirmed(!!details.accuracy_confirmed_at);
+    setAvatarPath((profile.avatar_url as string | undefined) ?? null);
+    const snapshotServices = Array.isArray(snapshot.services) ? snapshot.services : [];
+    if (snapshotServices.length) {
+      setSelectedServices(
+        snapshotServices
+          .map((s: { service_id?: string }) => s.service_id)
+          .filter((id: string | undefined): id is string => Boolean(id)),
+      );
+    }
+    const snapshotZones = Array.isArray(snapshot.zones) ? snapshot.zones : [];
+    if (snapshotZones.length) {
+      setSelectedZones(
+        snapshotZones.map((z: { id?: string }) => z.id).filter((id: string | undefined): id is string => Boolean(id)),
+      );
+    }
+    const snapshotRefs = Array.isArray(snapshot.references) ? snapshot.references : [];
+    if (snapshotRefs[0]) {
+      setRef1({
+        full_name: snapshotRefs[0].full_name ?? "",
+        relationship: snapshotRefs[0].relationship ?? "",
+        phone: snapshotRefs[0].phone ?? "",
+        notes: snapshotRefs[0].notes ?? "",
+      });
+    }
+    if (snapshotRefs[1]) {
+      setRef2({
+        full_name: snapshotRefs[1].full_name ?? "",
+        relationship: snapshotRefs[1].relationship ?? "",
+        phone: snapshotRefs[1].phone ?? "",
+        notes: snapshotRefs[1].notes ?? "",
+      });
+    }
     formHydrated.current = true;
-  }, [previewMode, snapshot]);
+  }, [previewMode, snapshot, profile, details, provider]);
 
   useEffect(() => {
     return () => {
