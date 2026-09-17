@@ -4,19 +4,13 @@
  * All Supabase reads/writes are routed through this module so routes stay
  * unaware of the backend transport. Replace mock imports with these hooks.
  */
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import {
-  CUSTOMER_MARKETPLACE_REFETCH_MS,
-  customerMarketplaceRefetchInterval,
-} from "@/lib/db/marketplace-cache";
-import { mapBookingRpcError } from "@/lib/booking/errors";
-import {
-  completeCreateBookingResult,
-  createBookingFetcher,
-} from "@/lib/booking/create-booking-result";
-import type { Database } from "@/integrations/supabase/types";
-import { useAuth } from "@/lib/auth/useAuth";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { CUSTOMER_MARKETPLACE_REFETCH_MS, customerMarketplaceRefetchInterval } from '@/lib/db/marketplace-cache';
+import { mapBookingRpcError } from '@/lib/booking/errors';
+import { completeCreateBookingResult, createBookingFetcher } from '@/lib/booking/create-booking-result';
+import type { Database } from '@/integrations/supabase/types';
+import { useAuth } from '@/lib/auth/useAuth';
 import {
   ADDRESSES_QUERY_ROOT,
   ADDRESS_QUERY_ROOT,
@@ -24,26 +18,24 @@ import {
   addressQueryKey,
   addressesQueryKey,
   defaultAddressQueryKey,
-} from "@/lib/db/address-query-keys";
-import { isQaCatalogService, isQaCatalogSlug, isQaFixtureName } from "@/lib/catalog/qaCatalog";
+} from '@/lib/db/address-query-keys';
+import { isQaCatalogService, isQaCatalogSlug, isQaFixtureName } from '@/lib/catalog/qaCatalog';
 
-type Tables = Database["public"]["Tables"];
+type Tables = Database['public']['Tables'];
 
 // ---------- My Profile (real Supabase session + profiles table — replaces
 // the old Zustand-only `authed`/`profile.name` pattern) ----------
 export function useMyProfile() {
   return useQuery({
-    queryKey: ["my-profile"],
+    queryKey: ['my-profile'],
     queryFn: async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       const user = session?.user;
       if (!user) return null;
       const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
         .maybeSingle();
       if (error) throw error;
       return data;
@@ -55,27 +47,25 @@ export function useUpdateProfile() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { full_name: string }) => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       const user = session?.user;
-      if (!user) throw new Error("auth required");
+      if (!user) throw new Error('auth required');
       const { data, error } = await supabase
-        .from("profiles")
+        .from('profiles')
         .update({ full_name: input.full_name })
-        .eq("id", user.id)
+        .eq('id', user.id)
         .select()
         .single();
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["my-profile"] });
+      qc.invalidateQueries({ queryKey: ['my-profile'] });
     },
   });
 }
 
-export type AddressLabel = "home" | "work" | "family" | "other";
+export type AddressLabel = 'home' | 'work' | 'family' | 'other';
 
 export type AddressInput = {
   label: AddressLabel;
@@ -102,7 +92,7 @@ function toAddressRow(input: AddressInput) {
   );
   return {
     label: input.label,
-    custom_label: input.label === "other" ? input.custom_label?.trim() || null : null,
+    custom_label: input.label === 'other' ? (input.custom_label?.trim() || null) : null,
     city: input.city,
     area: input.area ?? null,
     street: input.street,
@@ -115,7 +105,7 @@ function toAddressRow(input: AddressInput) {
     lat: input.lat ?? null,
     lng: input.lng ?? null,
     line1: input.street,
-    line2: line2Parts.length > 0 ? line2Parts.join(" · ") : null,
+    line2: line2Parts.length > 0 ? line2Parts.join(' · ') : null,
   };
 }
 
@@ -123,13 +113,11 @@ export function useCreateAddress() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: AddressInput) => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       const user = session?.user;
-      if (!user) throw new Error("auth required");
+      if (!user) throw new Error('auth required');
       const { data, error } = await supabase
-        .from("addresses")
+        .from('addresses')
         .insert({ ...toAddressRow(input), user_id: user.id, is_default: input.is_default ?? false })
         .select()
         .single();
@@ -148,9 +136,9 @@ export function useUpdateAddress() {
   return useMutation({
     mutationFn: async (input: AddressInput & { id: string }) => {
       const { data, error } = await supabase
-        .from("addresses")
+        .from('addresses')
         .update(toAddressRow(input))
-        .eq("id", input.id)
+        .eq('id', input.id)
         .select()
         .single();
       if (error) throw error;
@@ -168,7 +156,7 @@ export function useDeleteAddress() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("addresses").delete().eq("id", id);
+      const { error } = await supabase.from('addresses').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: (_data, _input, _ctx) => {
@@ -182,7 +170,7 @@ export function useSetDefaultAddress() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("addresses").update({ is_default: true }).eq("id", id);
+      const { error } = await supabase.from('addresses').update({ is_default: true }).eq('id', id);
       if (error) throw error;
     },
     onSuccess: (_data, _input, _ctx) => {
@@ -196,14 +184,14 @@ export function useAddress(id: string | undefined) {
   const { user } = useAuth();
   return useQuery({
     enabled: !!id && !!user,
-    queryKey: user && id ? addressQueryKey(user.id, id) : [ADDRESS_QUERY_ROOT, "anonymous", id],
+    queryKey: user && id ? addressQueryKey(user.id, id) : [ADDRESS_QUERY_ROOT, 'anonymous', id],
     queryFn: async () => {
       if (!user || !id) return null;
       const { data, error } = await supabase
-        .from("addresses")
-        .select("*")
-        .eq("id", id)
-        .eq("user_id", user.id)
+        .from('addresses')
+        .select('*')
+        .eq('id', id)
+        .eq('user_id', user.id)
         .maybeSingle();
       if (error) throw error;
       return data;
@@ -219,15 +207,15 @@ export function useDefaultAddress() {
   const { user } = useAuth();
   return useQuery({
     enabled: !!user,
-    queryKey: user ? defaultAddressQueryKey(user.id) : [DEFAULT_ADDRESS_QUERY_ROOT, "anonymous"],
+    queryKey: user ? defaultAddressQueryKey(user.id) : [DEFAULT_ADDRESS_QUERY_ROOT, 'anonymous'],
     queryFn: async () => {
       if (!user) return null;
       const { data, error } = await supabase
-        .from("addresses")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("is_default", { ascending: false })
-        .order("created_at", { ascending: false })
+        .from('addresses')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('is_default', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
       if (error) throw error;
@@ -245,9 +233,9 @@ export function useDefaultAddress() {
 export function useResolveZone(lat: number | null | undefined, lng: number | null | undefined) {
   return useQuery({
     enabled: lat != null && lng != null,
-    queryKey: ["resolve-zone", lat, lng],
+    queryKey: ['resolve-zone', lat, lng],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("resolve_zone", { p_lat: lat!, p_lng: lng! });
+      const { data, error } = await supabase.rpc('resolve_zone', { p_lat: lat!, p_lng: lng! });
       if (error) throw error;
       return data?.[0] ?? null;
     },
@@ -257,13 +245,13 @@ export function useResolveZone(lat: number | null | undefined, lng: number | nul
 // ---------- Categories ----------
 export function useCategories() {
   return useQuery({
-    queryKey: ["categories"],
+    queryKey: ['categories'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("categories")
-        .select("*")
-        .eq("is_active", true)
-        .order("sort_order");
+        .from('categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order');
       if (error) throw error;
       return (data ?? []).filter((row) => !isQaCatalogSlug(row.slug));
     },
@@ -286,41 +274,37 @@ function marketplaceRow(row: any) {
     profile: { full_name: row.full_name, avatar_url: row.avatar_url },
     ratings: { rating_avg: row.rating_avg, rating_count: row.rating_count },
     trust: { score: row.trust_score },
-    services: [
-      {
-        status: "approved",
-        service: {
-          id: row.service_id,
-          slug: row.service_slug,
-          name_en: row.service_name_en,
-          name_ar: row.service_name_ar,
-          category: { slug: row.category_slug },
-        },
+    services: [{
+      status: 'approved',
+      service: {
+        id: row.service_id,
+        slug: row.service_slug,
+        name_en: row.service_name_en,
+        name_ar: row.service_name_ar,
+        category: { slug: row.category_slug },
       },
-    ],
+    }],
   };
 }
 
 async function safeProviderDetails(providerId: string) {
-  const { data, error } = await supabase.rpc("marketplace_provider_details", {
+  const { data, error } = await supabase.rpc('marketplace_provider_details', {
     p_provider_id: providerId,
   });
   if (error) throw error;
   return data?.[0] ? marketplaceRow(data[0]) : null;
 }
 
-export function useProviders(
-  opts: { categorySlug?: string; serviceId?: string; addressId?: string; limit?: number } = {},
-) {
+export function useProviders(opts: { categorySlug?: string; serviceId?: string; addressId?: string; limit?: number } = {}) {
   return useQuery({
-    queryKey: ["providers", opts],
+    queryKey: ['providers', opts],
     refetchInterval: customerMarketplaceRefetchInterval,
     refetchIntervalInBackground: false,
     queryFn: async () => {
       const args: { p_service_id?: string; p_address_id?: string } = {};
       if (opts.serviceId) args.p_service_id = opts.serviceId;
       if (opts.addressId) args.p_address_id = opts.addressId;
-      const { data, error } = await supabase.rpc("search_marketplace_providers", args);
+      const { data, error } = await supabase.rpc('search_marketplace_providers', args);
       if (error) throw error;
       const rows = (data ?? [])
         .filter(
@@ -340,13 +324,13 @@ export function useProviders(
 export function useProvider(id: string | undefined, addressId?: string) {
   return useQuery({
     enabled: !!id,
-    queryKey: ["provider", id, addressId],
+    queryKey: ['provider', id, addressId],
     refetchInterval: customerMarketplaceRefetchInterval,
     refetchIntervalInBackground: false,
     queryFn: async () => {
       const args: { p_provider_id: string; p_address_id?: string } = { p_provider_id: id! };
       if (addressId) args.p_address_id = addressId;
-      const { data, error } = await supabase.rpc("marketplace_provider_details", args);
+      const { data, error } = await supabase.rpc('marketplace_provider_details', args);
       if (error) throw error;
       return data?.[0] ? marketplaceRow(data[0]) : null;
     },
@@ -355,15 +339,15 @@ export function useProvider(id: string | undefined, addressId?: string) {
 
 export function useMarketplaceServices(categorySlug?: string) {
   return useQuery({
-    queryKey: ["marketplace-services", categorySlug ?? "all"],
+    queryKey: ['marketplace-services', categorySlug ?? 'all'],
     queryFn: async () => {
       let query = supabase
-        .from("services")
-        .select("id,slug,name_en,name_ar,category:categories!inner(slug,name_en,name_ar)")
-        .eq("is_active", true)
-        .is("deleted_at", null)
-        .order("name_en");
-      if (categorySlug) query = query.eq("category.slug", categorySlug);
+        .from('services')
+        .select('id,slug,name_en,name_ar,category:categories!inner(slug,name_en,name_ar)')
+        .eq('is_active', true)
+        .is('deleted_at', null)
+        .order('name_en');
+      if (categorySlug) query = query.eq('category.slug', categorySlug);
       const { data, error } = await query;
       if (error) throw error;
       return (data ?? []).filter((row) => !isQaCatalogService(row));
@@ -390,7 +374,7 @@ export function useAvatarUrl(raw: string | null | undefined) {
     // "sometimes shows old/broken image" glitch (Issue #4): a signed URL
     // rendered once and never refreshed will 403 after an hour with no
     // visible error, which reads as a random flicker.
-    queryKey: ["avatar-url", raw],
+    queryKey: ['avatar-url', raw],
     staleTime: 45 * 60 * 1000, // refetch a fresh signed URL after 45 min, before the 1h expiry hits
     queryFn: async () => {
       if (!raw) return null;
@@ -403,15 +387,7 @@ export function useAvatarUrl(raw: string | null | undefined) {
 }
 
 // ---------- Availability ----------
-const ACTIVE_BOOKING_STATUSES = [
-  "pending",
-  "confirmed",
-  "on_the_way",
-  "arrived",
-  "arrival_confirmed",
-  "in_progress",
-  "completion_requested",
-] as const;
+const ACTIVE_BOOKING_STATUSES = ['pending', 'confirmed', 'on_the_way', 'arrived', 'arrival_confirmed', 'in_progress', 'completion_requested'] as const;
 
 type ProviderBookingSettings = {
   vacation_mode: boolean;
@@ -429,7 +405,7 @@ async function fetchProviderBookingSettings(
   };
   if (opts?.serviceId) args.p_service_id = opts.serviceId;
   if (opts?.addressId) args.p_address_id = opts.addressId;
-  const { data, error } = await supabase.rpc("marketplace_provider_booking_settings", args);
+  const { data, error } = await supabase.rpc('marketplace_provider_booking_settings', args);
   if (error) throw error;
   return data?.[0] ?? null;
 }
@@ -440,17 +416,11 @@ export function useProviderBookingSettings(
 ) {
   return useQuery({
     enabled: !!providerId,
-    queryKey: [
-      "provider-booking-settings",
-      providerId,
-      opts?.serviceId ?? null,
-      opts?.addressId ?? null,
-    ],
-    queryFn: async () =>
-      fetchProviderBookingSettings(providerId!, {
-        serviceId: opts?.serviceId ?? undefined,
-        addressId: opts?.addressId ?? undefined,
-      }),
+    queryKey: ['provider-booking-settings', providerId, opts?.serviceId ?? null, opts?.addressId ?? null],
+    queryFn: async () => fetchProviderBookingSettings(providerId!, {
+      serviceId: opts?.serviceId ?? undefined,
+      addressId: opts?.addressId ?? undefined,
+    }),
   });
 }
 
@@ -472,21 +442,12 @@ export function useAvailableSlots(
 ) {
   return useQuery({
     enabled: !!providerId && !!date,
-    queryKey: [
-      "available-slots",
-      providerId,
-      date?.toDateString(),
-      slotMinutes,
-      opts?.serviceId ?? null,
-      opts?.addressId ?? null,
-    ],
+    queryKey: ['available-slots', providerId, date?.toDateString(), slotMinutes, opts?.serviceId ?? null, opts?.addressId ?? null],
     queryFn: async () => {
       const d = date!;
       const weekday = d.getDay();
-      const dayStart = new Date(d);
-      dayStart.setHours(0, 0, 0, 0);
-      const dayEnd = new Date(d);
-      dayEnd.setHours(23, 59, 59, 999);
+      const dayStart = new Date(d); dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(d); dayEnd.setHours(23, 59, 59, 999);
       const dateStr = dayStart.toISOString().slice(0, 10);
 
       const provider = await fetchProviderBookingSettings(providerId!, {
@@ -496,29 +457,12 @@ export function useAvailableSlots(
       if (!provider) return [];
 
       const [rulesRes, vacRes, excRes, bookingsRes] = await Promise.all([
-        supabase
-          .from("availability_rules")
-          .select("start_time, end_time")
-          .eq("provider_id", providerId!)
-          .eq("weekday", weekday),
-        supabase
-          .from("provider_vacations")
-          .select("start_date, end_date")
-          .eq("provider_id", providerId!)
-          .lte("start_date", dateStr)
-          .gte("end_date", dateStr),
-        supabase
-          .from("availability_exceptions")
-          .select("start_time, end_time, is_blocked, date, end_date")
-          .eq("provider_id", providerId!)
-          .lte("date", dateStr),
-        supabase
-          .from("bookings")
-          .select("start_at, end_at")
-          .eq("provider_id", providerId!)
-          .in("status", ACTIVE_BOOKING_STATUSES)
-          .gte("start_at", dayStart.toISOString())
-          .lte("start_at", dayEnd.toISOString()),
+        supabase.from('availability_rules').select('start_time, end_time').eq('provider_id', providerId!).eq('weekday', weekday),
+        supabase.from('provider_vacations').select('start_date, end_date').eq('provider_id', providerId!).lte('start_date', dateStr).gte('end_date', dateStr),
+        supabase.from('availability_exceptions').select('start_time, end_time, is_blocked, date, end_date').eq('provider_id', providerId!)
+          .lte('date', dateStr),
+        supabase.from('bookings').select('start_at, end_at').eq('provider_id', providerId!).in('status', ACTIVE_BOOKING_STATUSES)
+          .gte('start_at', dayStart.toISOString()).lte('start_at', dayEnd.toISOString()),
       ]);
       if (rulesRes.error) throw rulesRes.error;
       if (vacRes.error) throw vacRes.error;
@@ -529,9 +473,7 @@ export function useAvailableSlots(
       // Provider is on vacation this date — no slots at all.
       if ((vacRes.data ?? []).length > 0) return [];
 
-      const exceptions = (excRes.data ?? []).filter(
-        (e: any) => e.is_blocked && (e.end_date ?? e.date) >= dateStr,
-      );
+      const exceptions = (excRes.data ?? []).filter((e: any) => e.is_blocked && (e.end_date ?? e.date) >= dateStr);
       // A full-day exception (no start/end time) blocks the whole date.
       if (exceptions.some((e: any) => !e.start_time || !e.end_time)) return [];
 
@@ -545,34 +487,29 @@ export function useAvailableSlots(
       const slots: { label: string; start: Date; end: Date }[] = [];
 
       for (const rule of rules) {
-        const [sh, sm] = rule.start_time.split(":").map(Number);
-        const [eh, em] = rule.end_time.split(":").map(Number);
-        let cursor = new Date(d);
-        cursor.setHours(sh, sm, 0, 0);
-        const ruleEnd = new Date(d);
-        ruleEnd.setHours(eh, em, 0, 0);
+        const [sh, sm] = rule.start_time.split(':').map(Number);
+        const [eh, em] = rule.end_time.split(':').map(Number);
+        let cursor = new Date(d); cursor.setHours(sh, sm, 0, 0);
+        const ruleEnd = new Date(d); ruleEnd.setHours(eh, em, 0, 0);
 
         while (+cursor + slotMinutes * 60000 <= +ruleEnd) {
           const slotEnd = new Date(+cursor + slotMinutes * 60000);
           const withinWindow = cursor >= earliestAllowed && cursor <= latestAllowed;
           const overlapsBooking = booked.some((b: any) => {
-            const bs = new Date(+new Date(b.start_at) - bufferMs),
-              be = new Date(+new Date(b.end_at) + bufferMs);
+            const bs = new Date(+new Date(b.start_at) - bufferMs), be = new Date(+new Date(b.end_at) + bufferMs);
             return +cursor < +be && +slotEnd > +bs;
           });
           const overlapsException = exceptions.some((e: any) => {
             if (!e.start_time || !e.end_time) return true;
-            const [xsh, xsm] = e.start_time.split(":").map(Number);
-            const [xeh, xem] = e.end_time.split(":").map(Number);
-            const xs = new Date(d);
-            xs.setHours(xsh, xsm, 0, 0);
-            const xe = new Date(d);
-            xe.setHours(xeh, xem, 0, 0);
+            const [xsh, xsm] = e.start_time.split(':').map(Number);
+            const [xeh, xem] = e.end_time.split(':').map(Number);
+            const xs = new Date(d); xs.setHours(xsh, xsm, 0, 0);
+            const xe = new Date(d); xe.setHours(xeh, xem, 0, 0);
             return +cursor < +xe && +slotEnd > +xs;
           });
           if (withinWindow && !overlapsBooking && !overlapsException) {
             slots.push({
-              label: cursor.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
+              label: cursor.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
               start: new Date(cursor),
               end: slotEnd,
             });
@@ -588,29 +525,20 @@ export function useAvailableSlots(
 // ---------- Bookings ----------
 export function useMyBookings() {
   return useQuery({
-    queryKey: ["my-bookings"],
+    queryKey: ['my-bookings'],
     queryFn: async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       const user = session?.user;
       if (!user) return [];
       const { data, error } = await supabase
-        .from("bookings")
+        .from('bookings')
         .select(`*, service:services(*)`)
-        .eq("customer_id", user.id)
-        .order("start_at", { ascending: false });
+        .eq('customer_id', user.id)
+        .order('start_at', { ascending: false });
       if (error) throw error;
       const providerIds = [...new Set((data ?? []).map((booking) => booking.provider_id))];
-      const providers = new Map(
-        await Promise.all(
-          providerIds.map(async (id) => [id, await safeProviderDetails(id)] as const),
-        ),
-      );
-      return (data ?? []).map((booking) => ({
-        ...booking,
-        provider: providers.get(booking.provider_id) ?? null,
-      }));
+      const providers = new Map((await Promise.all(providerIds.map(async (id) => [id, await safeProviderDetails(id)] as const))));
+      return (data ?? []).map((booking) => ({ ...booking, provider: providers.get(booking.provider_id) ?? null }));
     },
   });
 }
@@ -618,12 +546,12 @@ export function useMyBookings() {
 export function useBooking(id: string | undefined) {
   return useQuery({
     enabled: !!id,
-    queryKey: ["booking", id],
+    queryKey: ['booking', id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("bookings")
+        .from('bookings')
         .select(`*, service:services(*), location:booking_locations(*)`)
-        .eq("id", id!)
+        .eq('id', id!)
         .maybeSingle();
       if (error) throw error;
       if (!data) return null;
@@ -632,19 +560,21 @@ export function useBooking(id: string | undefined) {
   });
 }
 
+
+
 // ---------- Rescheduling ----------
-export type RescheduleAction = "accept" | "reject" | "counter";
+export type RescheduleAction = 'accept' | 'reject' | 'counter';
 
 export function useRescheduleRequests(bookingId: string | undefined) {
   return useQuery({
     enabled: !!bookingId,
-    queryKey: ["reschedule-requests", bookingId],
+    queryKey: ['reschedule-requests', bookingId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("booking_reschedule_requests")
-        .select("*")
-        .eq("booking_id", bookingId!)
-        .order("requested_at", { ascending: true });
+        .from('booking_reschedule_requests')
+        .select('*')
+        .eq('booking_id', bookingId!)
+        .order('requested_at', { ascending: true });
       if (error) throw error;
       return data ?? [];
     },
@@ -652,27 +582,22 @@ export function useRescheduleRequests(bookingId: string | undefined) {
 }
 
 function invalidateRescheduleQueries(qc: ReturnType<typeof useQueryClient>, bookingId: string) {
-  qc.invalidateQueries({ queryKey: ["reschedule-requests", bookingId] });
-  qc.invalidateQueries({ queryKey: ["booking", bookingId] });
-  qc.invalidateQueries({ queryKey: ["provider-booking", bookingId] });
-  qc.invalidateQueries({ queryKey: ["my-bookings"] });
-  qc.invalidateQueries({ queryKey: ["provider-bookings"] });
+  qc.invalidateQueries({ queryKey: ['reschedule-requests', bookingId] });
+  qc.invalidateQueries({ queryKey: ['booking', bookingId] });
+  qc.invalidateQueries({ queryKey: ['provider-booking', bookingId] });
+  qc.invalidateQueries({ queryKey: ['my-bookings'] });
+  qc.invalidateQueries({ queryKey: ['provider-bookings'] });
 }
 
 export function useRequestReschedule() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: {
-      bookingId: string;
-      proposedStart: string;
-      proposedEnd: string;
-      reason?: string;
-    }) => {
-      const { data, error } = await supabase.rpc("request_reschedule", {
+    mutationFn: async (input: { bookingId: string; proposedStart: string; proposedEnd: string; reason?: string }) => {
+      const { data, error } = await supabase.rpc('request_reschedule', {
         p_booking_id: input.bookingId,
         p_proposed_start: input.proposedStart,
         p_proposed_end: input.proposedEnd,
-        p_reason: input.reason ?? "",
+        p_reason: input.reason ?? '',
       });
       if (error) throw error;
       return data;
@@ -685,14 +610,9 @@ export function useRespondReschedule() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: {
-      requestId: string;
-      bookingId: string;
-      action: RescheduleAction;
-      reason?: string;
-      counterStart?: string;
-      counterEnd?: string;
+      requestId: string; bookingId: string; action: RescheduleAction; reason?: string; counterStart?: string; counterEnd?: string;
     }) => {
-      const { data, error } = await supabase.rpc("respond_reschedule", {
+      const { data, error } = await supabase.rpc('respond_reschedule', {
         p_request_id: input.requestId,
         p_action: input.action,
         p_reason: input.reason,
@@ -710,9 +630,7 @@ export function useCancelRescheduleRequest() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { requestId: string; bookingId: string }) => {
-      const { error } = await supabase.rpc("cancel_reschedule_request", {
-        p_request_id: input.requestId,
-      });
+      const { error } = await supabase.rpc('cancel_reschedule_request', { p_request_id: input.requestId });
       if (error) throw error;
     },
     onSuccess: (_d, vars) => invalidateRescheduleQueries(qc, vars.bookingId),
@@ -729,10 +647,10 @@ export type CreateBookingInput = {
   family_member_id?: string | null;
   notes?: string | null;
   promo_code_id?: string | null;
-  requirement_selections?: Tables["bookings"]["Insert"]["requirement_selections"];
+  requirement_selections?: Tables['bookings']['Insert']['requirement_selections'];
 };
 
-export type CreateBookingResult = Tables["bookings"]["Row"] & {
+export type CreateBookingResult = Tables['bookings']['Row'] & {
   idempotent_replay: boolean;
   created: boolean;
   fetch_degraded?: boolean;
@@ -742,13 +660,11 @@ export function useCreateBooking() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: CreateBookingInput): Promise<CreateBookingResult> => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
-        throw new Error("auth required");
+        throw new Error('auth required');
       }
-      const { data, error } = await supabase.rpc("create_booking", {
+      const { data, error } = await supabase.rpc('create_booking', {
         p_provider_id: input.provider_id,
         p_service_id: input.service_id,
         p_address_id: input.address_id,
@@ -764,11 +680,9 @@ export function useCreateBooking() {
         throw mapBookingRpcError(error);
       }
       const payload = data as { booking_id: string; created: boolean; idempotent_replay: boolean };
-      return completeCreateBookingResult(payload, createBookingFetcher(supabase), {
-        retryDelayMs: 250,
-      });
+      return completeCreateBookingResult(payload, createBookingFetcher(supabase), { retryDelayMs: 250 });
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["my-bookings"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['my-bookings'] }),
   });
 }
 
@@ -782,27 +696,24 @@ export function useUpdateBookingStatus() {
       noShowParty,
     }: {
       id: string;
-      status: Tables["bookings"]["Row"]["status"];
+      status: Tables['bookings']['Row']['status'];
       reason?: string;
-      noShowParty?: "customer" | "provider";
+      noShowParty?: 'customer' | 'provider';
     }) => {
       const patch: Record<string, unknown> = { status };
-      if (status === "cancelled" && reason) patch.cancellation_reason = reason;
-      if (status === "no_show") {
+      if (status === 'cancelled' && reason) patch.cancellation_reason = reason;
+      if (status === 'no_show') {
         patch.no_show_party = noShowParty;
         if (reason) patch.no_show_reason = reason;
       }
-      if (status === "disputed" && reason) patch.dispute_reason = reason;
-      const { error } = await supabase
-        .from("bookings")
-        .update(patch as any)
-        .eq("id", id);
+      if (status === 'disputed' && reason) patch.dispute_reason = reason;
+      const { error } = await supabase.from('bookings').update(patch as any).eq('id', id);
       if (error) throw error;
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ["my-bookings"] });
-      qc.invalidateQueries({ queryKey: ["booking", vars.id] });
-      qc.invalidateQueries({ queryKey: ["payment", vars.id] });
+      qc.invalidateQueries({ queryKey: ['my-bookings'] });
+      qc.invalidateQueries({ queryKey: ['booking', vars.id] });
+      qc.invalidateQueries({ queryKey: ['payment', vars.id] });
     },
   });
 }
@@ -810,24 +721,20 @@ export function useUpdateBookingStatus() {
 // ---------- Favorites ----------
 export function useFavorites() {
   return useQuery({
-    queryKey: ["favorites"],
+    queryKey: ['favorites'],
     queryFn: async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       const user = session?.user;
       if (!user) return [];
       const { data, error } = await supabase
-        .from("favorites")
-        .select("provider_id")
-        .eq("user_id", user.id);
+        .from('favorites')
+        .select('provider_id')
+        .eq('user_id', user.id);
       if (error) throw error;
-      const rows = await Promise.all(
-        (data ?? []).map(async (favorite) => ({
-          provider_id: favorite.provider_id,
-          provider: await safeProviderDetails(favorite.provider_id),
-        })),
-      );
+      const rows = await Promise.all((data ?? []).map(async (favorite) => ({
+        provider_id: favorite.provider_id,
+        provider: await safeProviderDetails(favorite.provider_id),
+      })));
       return rows.filter((favorite) => favorite.provider !== null);
     },
   });
@@ -837,28 +744,24 @@ export function useToggleFavorite() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ providerId, on }: { providerId: string; on: boolean }) => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       const user = session?.user;
-      if (!user) throw new Error("auth required");
+      if (!user) throw new Error('auth required');
       if (on) {
-        const { error } = await supabase
-          .from("favorites")
-          .insert({ user_id: user.id, provider_id: providerId });
-        if (error && (error as any).code !== "23505") throw error;
+        const { error } = await supabase.from('favorites').insert({ user_id: user.id, provider_id: providerId });
+        if (error && (error as any).code !== '23505') throw error;
       } else {
         const { error } = await supabase
-          .from("favorites")
+          .from('favorites')
           .delete()
-          .eq("user_id", user.id)
-          .eq("provider_id", providerId);
+          .eq('user_id', user.id)
+          .eq('provider_id', providerId);
         if (error) throw error;
       }
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["favorites"] });
-      qc.invalidateQueries({ queryKey: ["favorite-ids"] });
+      qc.invalidateQueries({ queryKey: ['favorites'] });
+      qc.invalidateQueries({ queryKey: ['favorite-ids'] });
     },
   });
 }
@@ -866,12 +769,12 @@ export function useToggleFavorite() {
 // ---------- Notifications ----------
 export function useNotifications() {
   return useQuery({
-    queryKey: ["notifications"],
+    queryKey: ['notifications'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("notifications")
-        .select("*")
-        .order("created_at", { ascending: false })
+        .from('notifications')
+        .select('*')
+        .order('created_at', { ascending: false })
         .limit(50);
       if (error) throw error;
       return data ?? [];
@@ -882,12 +785,12 @@ export function useNotifications() {
 // Server-backed unread count (COUNT via RLS-scoped query, not a client tally).
 export function useUnreadNotificationCount() {
   return useQuery({
-    queryKey: ["notifications", "unread-count"],
+    queryKey: ['notifications', 'unread-count'],
     queryFn: async () => {
       const { count, error } = await supabase
-        .from("notifications")
-        .select("*", { count: "exact", head: true })
-        .is("read_at", null);
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .is('read_at', null);
       if (error) throw error;
       return count ?? 0;
     },
@@ -899,14 +802,14 @@ export function useAddresses() {
   const { user } = useAuth();
   return useQuery({
     enabled: !!user,
-    queryKey: user ? addressesQueryKey(user.id) : [ADDRESSES_QUERY_ROOT, "anonymous"],
+    queryKey: user ? addressesQueryKey(user.id) : [ADDRESSES_QUERY_ROOT, 'anonymous'],
     queryFn: async () => {
       if (!user) return [];
       const { data, error } = await supabase
-        .from("addresses")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at");
+        .from('addresses')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at');
       if (error) throw error;
       return data ?? [];
     },
@@ -918,12 +821,12 @@ export function useAddresses() {
 // hardcoding contact details in application code.
 export function useSupportContact() {
   return useQuery({
-    queryKey: ["support-contact"],
+    queryKey: ['support-contact'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("settings")
-        .select("value")
-        .eq("key", "support_contact")
+        .from('settings')
+        .select('value')
+        .eq('key', 'support_contact')
         .maybeSingle();
       if (error) throw error;
       return (data?.value as { phone?: string; whatsapp?: string; note?: string } | null) ?? null;
@@ -935,13 +838,13 @@ export function useSupportContact() {
 export function useProviderReviews(providerId: string | undefined) {
   return useQuery({
     enabled: !!providerId,
-    queryKey: ["reviews", providerId],
+    queryKey: ['reviews', providerId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("reviews")
-        .select("id, rating, comment, created_at")
-        .eq("provider_id", providerId!)
-        .order("created_at", { ascending: false })
+        .from('reviews')
+        .select('id, rating, comment, created_at')
+        .eq('provider_id', providerId!)
+        .order('created_at', { ascending: false })
         .limit(20);
       if (error) throw error;
       return data ?? [];
@@ -955,12 +858,12 @@ export function useProviderReviews(providerId: string | undefined) {
 export function useBookingReview(bookingId: string | undefined) {
   return useQuery({
     enabled: !!bookingId,
-    queryKey: ["booking-review", bookingId],
+    queryKey: ['booking-review', bookingId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("reviews")
-        .select("*")
-        .eq("booking_id", bookingId!)
+        .from('reviews')
+        .select('*')
+        .eq('booking_id', bookingId!)
         .maybeSingle();
       if (error) throw error;
       return data;
@@ -971,19 +874,12 @@ export function useBookingReview(bookingId: string | undefined) {
 export function useSubmitReview() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: {
-      bookingId: string;
-      providerId: string;
-      rating: number;
-      comment?: string;
-    }) => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+    mutationFn: async (input: { bookingId: string; providerId: string; rating: number; comment?: string }) => {
+      const { data: { session } } = await supabase.auth.getSession();
       const user = session?.user;
-      if (!user) throw new Error("auth required");
+      if (!user) throw new Error('auth required');
       const { data, error } = await supabase
-        .from("reviews")
+        .from('reviews')
         .insert({
           booking_id: input.bookingId,
           provider_id: input.providerId,
@@ -997,7 +893,7 @@ export function useSubmitReview() {
       return data;
     },
     onSuccess: (_data, vars) => {
-      qc.invalidateQueries({ queryKey: ["booking-review", vars.bookingId] });
+      qc.invalidateQueries({ queryKey: ['booking-review', vars.bookingId] });
     },
   });
 }
@@ -1006,22 +902,18 @@ export function useSubmitReview() {
 export function useProviderServices(providerId: string | undefined) {
   return useQuery({
     enabled: !!providerId,
-    queryKey: ["provider-services", providerId],
+    queryKey: ['provider-services', providerId],
     queryFn: async () => {
       // `!inner` on the services join is required for `.eq('service.is_active', ...)`
       // below to actually filter — a plain left-embed ignores nested-column
       // filters. An inactive service must never be selectable for a new
       // booking, even if the provider's own offering of it is still approved.
-      const { data, error } = await (
-        supabase
-          .from("provider_services")
-          .select(
-            "price_override, status, service:services!inner(*, category:categories(slug, name_en, name_ar))",
-          ) as any
-      )
-        .eq("provider_id", providerId!)
-        .eq("status", "approved")
-        .eq("service.is_active", true);
+      const { data, error } = await (supabase
+        .from('provider_services')
+        .select('price_override, status, service:services!inner(*, category:categories(slug, name_en, name_ar))') as any)
+        .eq('provider_id', providerId!)
+        .eq('status', 'approved')
+        .eq('service.is_active', true);
       if (error) throw error;
       return (data ?? []) as any[];
     },
@@ -1034,14 +926,14 @@ export function useMarkNotificationRead() {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("notifications")
+        .from('notifications')
         .update({ read_at: new Date().toISOString() })
-        .eq("id", id);
+        .eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["notifications"] });
-      qc.invalidateQueries({ queryKey: ["pro-notifications"] });
+      qc.invalidateQueries({ queryKey: ['notifications'] });
+      qc.invalidateQueries({ queryKey: ['pro-notifications'] });
     },
   });
 }
@@ -1051,14 +943,14 @@ export function useMarkAllNotificationsRead() {
   return useMutation({
     mutationFn: async () => {
       const { error } = await supabase
-        .from("notifications")
+        .from('notifications')
         .update({ read_at: new Date().toISOString() })
-        .is("read_at", null);
+        .is('read_at', null);
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["notifications"] });
-      qc.invalidateQueries({ queryKey: ["pro-notifications"] });
+      qc.invalidateQueries({ queryKey: ['notifications'] });
+      qc.invalidateQueries({ queryKey: ['pro-notifications'] });
     },
   });
 }
@@ -1074,7 +966,7 @@ export type NotificationPreferences = {
   campaign_in_app: boolean;
 };
 
-const DEFAULT_NOTIFICATION_PREFERENCES: Omit<NotificationPreferences, "user_id"> = {
+const DEFAULT_NOTIFICATION_PREFERENCES: Omit<NotificationPreferences, 'user_id'> = {
   booking_push: true,
   chat_push: true,
   reminder_push: true,
@@ -1085,23 +977,18 @@ const DEFAULT_NOTIFICATION_PREFERENCES: Omit<NotificationPreferences, "user_id">
 
 export function useNotificationPreferences() {
   return useQuery({
-    queryKey: ["notification-preferences"],
+    queryKey: ['notification-preferences'],
     queryFn: async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       const user = session?.user;
       if (!user) return null;
       const { data, error } = await supabase
-        .from("notification_preferences")
-        .select("*")
-        .eq("user_id", user.id)
+        .from('notification_preferences')
+        .select('*')
+        .eq('user_id', user.id)
         .maybeSingle();
       if (error) throw error;
-      return (data ?? {
-        user_id: user.id,
-        ...DEFAULT_NOTIFICATION_PREFERENCES,
-      }) as NotificationPreferences;
+      return (data ?? { user_id: user.id, ...DEFAULT_NOTIFICATION_PREFERENCES }) as NotificationPreferences;
     },
   });
 }
@@ -1109,31 +996,29 @@ export function useNotificationPreferences() {
 export function useUpdateNotificationPreferences() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (patch: Partial<Omit<NotificationPreferences, "user_id">>) => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+    mutationFn: async (patch: Partial<Omit<NotificationPreferences, 'user_id'>>) => {
+      const { data: { session } } = await supabase.auth.getSession();
       const user = session?.user;
-      if (!user) throw new Error("auth required");
+      if (!user) throw new Error('auth required');
       const { error } = await supabase
-        .from("notification_preferences")
-        .upsert({ user_id: user.id, ...patch }, { onConflict: "user_id" });
+        .from('notification_preferences')
+        .upsert({ user_id: user.id, ...patch }, { onConflict: 'user_id' });
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["notification-preferences"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notification-preferences'] }),
   });
 }
 
 // ---------- Push subscriptions ----------
 export function useMyPushSubscriptions() {
   return useQuery({
-    queryKey: ["push-subscriptions"],
+    queryKey: ['push-subscriptions'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("push_subscriptions")
-        .select("id, device_label, created_at, last_seen_at, revoked_at")
-        .is("revoked_at", null)
-        .order("last_seen_at", { ascending: false });
+        .from('push_subscriptions')
+        .select('id, device_label, created_at, last_seen_at, revoked_at')
+        .is('revoked_at', null)
+        .order('last_seen_at', { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
@@ -1143,13 +1028,8 @@ export function useMyPushSubscriptions() {
 export function useRegisterPushSubscription() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: {
-      endpoint: string;
-      p256dh: string;
-      authKey: string;
-      deviceLabel?: string;
-    }) => {
-      const { error } = await supabase.rpc("register_push_subscription", {
+    mutationFn: async (input: { endpoint: string; p256dh: string; authKey: string; deviceLabel?: string }) => {
+      const { error } = await supabase.rpc('register_push_subscription', {
         p_endpoint: input.endpoint,
         p_p256dh: input.p256dh,
         p_auth_key: input.authKey,
@@ -1157,7 +1037,7 @@ export function useRegisterPushSubscription() {
       });
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["push-subscriptions"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['push-subscriptions'] }),
   });
 }
 
@@ -1165,10 +1045,10 @@ export function useRevokePushSubscriptionByEndpoint() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (endpoint: string) => {
-      const { error } = await supabase.rpc("revoke_push_subscription", { p_endpoint: endpoint });
+      const { error } = await supabase.rpc('revoke_push_subscription', { p_endpoint: endpoint });
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["push-subscriptions"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['push-subscriptions'] }),
   });
 }
 
@@ -1176,29 +1056,28 @@ export function useRevokePushSubscriptionById() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.rpc("revoke_push_subscription_by_id", { p_id: id });
+      const { error } = await supabase.rpc('revoke_push_subscription_by_id', { p_id: id });
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["push-subscriptions"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['push-subscriptions'] }),
   });
 }
 
 // ---------- Favorite IDs ----------
 export function useFavoriteIds() {
   return useQuery({
-    queryKey: ["favorite-ids"],
+    queryKey: ['favorite-ids'],
     queryFn: async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       const user = session?.user;
       if (!user) return [] as string[];
       const { data, error } = await supabase
-        .from("favorites")
-        .select("provider_id")
-        .eq("user_id", user.id);
+        .from('favorites')
+        .select('provider_id')
+        .eq('user_id', user.id);
       if (error) throw error;
       return (data ?? []).map((r) => r.provider_id);
     },
   });
 }
+
