@@ -1285,6 +1285,8 @@ const ar: Translation = {
       photoHint: "صورة واضحة للوجه — JPG أو PNG",
       servicesHint: "اختر الخدمات التي تريد تقديمها على فامي.",
       servicesEmpty: "لا توجد خدمات متاحة للتقديم الآن.",
+      savedSelectionsLoading: "جار تحميل اختياراتك المحفوظة...",
+      savedSelectionsError: "تعذر تحميل اختياراتك المحفوظة. حفظ هذه الخطوة متوقف حتى يتم التحميل.",
       coverageHint: "اختر المناطق التي يمكنك قبول المهام فيها.",
       previousWork: "العمل السابق ذو الصلة",
       childAgeGroups: "الفئات العمرية المقبولة",

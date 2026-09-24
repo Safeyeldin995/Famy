@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { mapSnapshotToOnboardingFormState } from "@/lib/provider/onboardingHydration";
+import {
+  buildCoverageSavePayload,
+  mapSavedReferences,
+  mapSavedServiceIds,
+  mapSavedZoneIds,
+  mapSnapshotToOnboardingFormState,
+} from "@/lib/provider/onboardingHydration";
 
 const SNAPSHOT_WITH_PROVIDER = {
   exists: true,
@@ -87,5 +93,120 @@ describe("mapSnapshotToOnboardingFormState", () => {
     });
 
     expect(state.area).toBe("Giza");
+  });
+
+  it("does not map services, zones, or references from the snapshot", () => {
+    const state = mapSnapshotToOnboardingFormState(SNAPSHOT_WITH_PROVIDER);
+    expect(state).not.toHaveProperty("selectedServices");
+    expect(state).not.toHaveProperty("selectedZones");
+    expect(state).not.toHaveProperty("ref1");
+    expect(state).not.toHaveProperty("ref2");
+  });
+});
+
+describe("mapSavedServiceIds", () => {
+  it("returns unique service ids and ignores blanks", () => {
+    expect(
+      mapSavedServiceIds([
+        { service_id: "svc-clean" },
+        { service_id: "svc-clean" },
+        { service_id: null },
+        { service_id: "" },
+      ]),
+    ).toEqual(["svc-clean"]);
+  });
+
+  it("returns an empty list for null or missing rows", () => {
+    expect(mapSavedServiceIds(null)).toEqual([]);
+    expect(mapSavedServiceIds(undefined)).toEqual([]);
+    expect(mapSavedServiceIds([])).toEqual([]);
+  });
+});
+
+describe("mapSavedZoneIds", () => {
+  it("returns unique zone ids and ignores blanks", () => {
+    expect(
+      mapSavedZoneIds([{ zone_id: "zone-maadi" }, { zone_id: "zone-zayed" }, { zone_id: null }]),
+    ).toEqual(["zone-maadi", "zone-zayed"]);
+  });
+});
+
+describe("mapSavedReferences", () => {
+  it("sorts by sort_order into the two reference slots", () => {
+    const mapped = mapSavedReferences([
+      {
+        full_name: "Second",
+        relationship: "neighbor",
+        phone: "+201022233344",
+        notes: "",
+        sort_order: 2,
+      },
+      {
+        full_name: "First",
+        relationship: "former_client",
+        phone: "+201011122233",
+        notes: "weekly",
+        sort_order: 1,
+      },
+    ]);
+
+    expect(mapped.ref1.full_name).toBe("First");
+    expect(mapped.ref1.notes).toBe("weekly");
+    expect(mapped.ref2.full_name).toBe("Second");
+  });
+
+  it("keeps the second slot empty when only one reference is saved", () => {
+    const mapped = mapSavedReferences([
+      {
+        full_name: "Only",
+        relationship: "client",
+        phone: "+201011122233",
+        notes: null,
+        sort_order: 1,
+      },
+    ]);
+
+    expect(mapped.ref1.full_name).toBe("Only");
+    expect(mapped.ref2).toEqual({ full_name: "", relationship: "", phone: "", notes: "" });
+  });
+});
+
+describe("buildCoverageSavePayload", () => {
+  it("blocks save when saved zones have not loaded", () => {
+    expect(buildCoverageSavePayload("loading", ["zone-maadi"], ["zone-maadi"])).toEqual({
+      ok: false,
+      error: "not_loaded",
+    });
+  });
+
+  it("blocks save when the saved-zone query failed", () => {
+    expect(buildCoverageSavePayload("error", ["zone-maadi"], ["zone-maadi"])).toEqual({
+      ok: false,
+      error: "load_failed",
+    });
+  });
+
+  it("rejects an empty or fully inactive selection", () => {
+    expect(buildCoverageSavePayload("ready", [], ["zone-maadi"])).toEqual({
+      ok: false,
+      error: "zone_required",
+    });
+    expect(buildCoverageSavePayload("ready", ["zone-old"], ["zone-maadi"])).toEqual({
+      ok: false,
+      error: "zone_required",
+    });
+  });
+
+  it("sends only currently active zone ids", () => {
+    expect(
+      buildCoverageSavePayload(
+        "ready",
+        ["zone-maadi", "zone-old", "zone-zayed"],
+        ["zone-maadi", "zone-zayed"],
+      ),
+    ).toEqual({
+      ok: true,
+      zone_ids: ["zone-maadi", "zone-zayed"],
+    });
   });
 });

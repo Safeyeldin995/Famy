@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 const PORT = 8100;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
+const useChromium = process.env.ISSUE68_BROWSER === "chromium";
 
 export default defineConfig({
   testDir: "./qa/tests/issue68",
@@ -17,11 +18,13 @@ export default defineConfig({
   },
   projects: [
     {
-      name: "msedge",
-      use: {
-        ...devices["Desktop Edge"],
-        channel: "msedge",
-      },
+      name: useChromium ? "chromium" : "msedge",
+      use: useChromium
+        ? { ...devices["Desktop Chrome"], channel: "chrome" }
+        : {
+            ...devices["Desktop Edge"],
+            channel: "msedge",
+          },
     },
   ],
   webServer: {

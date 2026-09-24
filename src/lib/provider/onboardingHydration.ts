@@ -31,14 +31,6 @@ export type OnboardingSnapshotData = {
     first_aid_training?: boolean | null;
     accuracy_confirmed_at?: string | null;
   } | null;
-  services?: Array<{ service_id?: string | null }>;
-  zones?: Array<{ id?: string | null }>;
-  references?: Array<{
-    full_name?: string | null;
-    relationship?: string | null;
-    phone?: string | null;
-    notes?: string | null;
-  }>;
 };
 
 export type OnboardingFormHydration = {
@@ -58,10 +50,18 @@ export type OnboardingFormHydration = {
   firstAid: boolean;
   confirmed: boolean;
   avatarPath: string | null;
-  selectedServices: string[];
-  selectedZones: string[];
-  ref1: OnboardingReferenceForm;
-  ref2: OnboardingReferenceForm;
+};
+
+export type SavedSelectionLoadState = "loading" | "error" | "ready";
+
+export type SavedServiceRow = { service_id?: string | null };
+export type SavedZoneRow = { zone_id?: string | null };
+export type SavedReferenceRow = {
+  full_name?: string | null;
+  relationship?: string | null;
+  phone?: string | null;
+  notes?: string | null;
+  sort_order?: number | null;
 };
 
 const EMPTY_REF: OnboardingReferenceForm = {
@@ -78,10 +78,6 @@ export function mapSnapshotToOnboardingFormState(
   const profile = snapshot.profile ?? {};
   const details = snapshot.details ?? {};
   const snapshotProvider = snapshot.provider ?? {};
-
-  const snapshotServices = Array.isArray(snapshot.services) ? snapshot.services : [];
-  const snapshotZones = Array.isArray(snapshot.zones) ? snapshot.zones : [];
-  const snapshotRefs = Array.isArray(snapshot.references) ? snapshot.references : [];
 
   return {
     legalName: profile.full_name ?? "",
@@ -100,25 +96,77 @@ export function mapSnapshotToOnboardingFormState(
     firstAid: !!details.first_aid_training,
     confirmed: !!details.accuracy_confirmed_at,
     avatarPath: profile.avatar_url ?? null,
-    selectedServices: snapshotServices
-      .map((s) => s.service_id)
-      .filter((id): id is string => Boolean(id)),
-    selectedZones: snapshotZones.map((z) => z.id).filter((id): id is string => Boolean(id)),
-    ref1: snapshotRefs[0]
-      ? {
-          full_name: snapshotRefs[0].full_name ?? "",
-          relationship: snapshotRefs[0].relationship ?? "",
-          phone: snapshotRefs[0].phone ?? "",
-          notes: snapshotRefs[0].notes ?? "",
-        }
-      : EMPTY_REF,
-    ref2: snapshotRefs[1]
-      ? {
-          full_name: snapshotRefs[1].full_name ?? "",
-          relationship: snapshotRefs[1].relationship ?? "",
-          phone: snapshotRefs[1].phone ?? "",
-          notes: snapshotRefs[1].notes ?? "",
-        }
-      : EMPTY_REF,
+  };
+}
+
+export function savedSelectionLoadState(query: {
+  isSuccess: boolean;
+  isError: boolean;
+}): SavedSelectionLoadState {
+  if (query.isError) return "error";
+  if (query.isSuccess) return "ready";
+  return "loading";
+}
+
+export function mapSavedServiceIds(rows: SavedServiceRow[] | null | undefined): string[] {
+  return [
+    ...new Set((rows ?? []).map((row) => row.service_id).filter((id): id is string => Boolean(id))),
+  ];
+}
+
+export function mapSavedZoneIds(rows: SavedZoneRow[] | null | undefined): string[] {
+  return [
+    ...new Set((rows ?? []).map((row) => row.zone_id).filter((id): id is string => Boolean(id))),
+  ];
+}
+
+function toReferenceForm(row?: SavedReferenceRow | null): OnboardingReferenceForm {
+  if (!row) return { ...EMPTY_REF };
+  return {
+    full_name: row.full_name ?? "",
+    relationship: row.relationship ?? "",
+    phone: row.phone ?? "",
+    notes: row.notes ?? "",
+  };
+}
+
+export function mapSavedReferences(rows: SavedReferenceRow[] | null | undefined): {
+  ref1: OnboardingReferenceForm;
+  ref2: OnboardingReferenceForm;
+} {
+  const sorted = [...(rows ?? [])].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  return {
+    ref1: toReferenceForm(sorted[0]),
+    ref2: toReferenceForm(sorted[1]),
+  };
+}
+
+export function buildCoverageSavePayload(
+  loadState: SavedSelectionLoadState,
+  selectedZoneIds: string[],
+  activeZoneIds: string[],
+):
+  | { ok: true; zone_ids: string[] }
+  | { ok: false; error: "not_loaded" | "load_failed" | "zone_required" } {
+  if (loadState === "loading") return { ok: false, error: "not_loaded" };
+  if (loadState === "error") return { ok: false, error: "load_failed" };
+  const zone_ids = selectedZoneIds.filter((id) => activeZoneIds.includes(id));
+  if (zone_ids.length === 0) return { ok: false, error: "zone_required" };
+  return { ok: true, zone_ids };
+}
+
+export function buildServicesSavePayload(
+  loadState: SavedSelectionLoadState,
+  selectedServiceIds: string[],
+  savedServiceIds: string[],
+  offeredServiceIds: string[],
+): { ok: true; service_ids: string[] } | { ok: false; error: "not_loaded" | "load_failed" } {
+  if (loadState === "loading") return { ok: false, error: "not_loaded" };
+  if (loadState === "error") return { ok: false, error: "load_failed" };
+  const saved = new Set(savedServiceIds);
+  const offered = new Set(offeredServiceIds);
+  return {
+    ok: true,
+    service_ids: selectedServiceIds.filter((id) => !saved.has(id) && offered.has(id)),
   };
 }

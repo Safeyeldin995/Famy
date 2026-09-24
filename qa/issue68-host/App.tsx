@@ -7,6 +7,7 @@ import {
   createRouter,
 } from "@tanstack/react-router";
 import { ProviderOnboardingFlow } from "@/components/provider/ProviderOnboardingFlow";
+import { OnboardingRoute } from "@/routes/pro.onboarding";
 import { LanguageProvider } from "@/lib/i18n/LanguageProvider";
 import { useProviders } from "@/lib/db/queries";
 import { Toaster } from "@/components/ui/sonner";
@@ -95,7 +96,25 @@ const proRoute = createRoute({
   },
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, onboardingRoute, marketplaceRoute, proRoute]);
+const proOnboardingRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/pro/onboarding",
+  component: function ProOnboardingHarness() {
+    return (
+      <div data-testid="issue68-pro-onboarding">
+        <OnboardingRoute />
+      </div>
+    );
+  },
+});
+
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  onboardingRoute,
+  marketplaceRoute,
+  proRoute,
+  proOnboardingRoute,
+]);
 const router = createRouter({ routeTree });
 
 export function App() {

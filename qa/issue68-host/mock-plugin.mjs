@@ -75,10 +75,15 @@ function createState(repoRoot) {
     repoRoot,
     snapshotDelayMs: 0,
     providerDelayMs: 0,
+    scenario: "default",
+    providerStarted: false,
     unexpectedServer: [],
     saves: [],
     snapshot: 0,
     provider: 0,
+    startOnboarding: 0,
+    savedSelections: 0,
+    references: 0,
     storageAvatars: 0,
     profileUpdate: 0,
     prepareDocument: 0,
@@ -94,6 +99,9 @@ function resetCounts(state) {
   state.saves = [];
   state.snapshot = 0;
   state.provider = 0;
+  state.startOnboarding = 0;
+  state.savedSelections = 0;
+  state.references = 0;
   state.storageAvatars = 0;
   state.profileUpdate = 0;
   state.prepareDocument = 0;
@@ -101,6 +109,7 @@ function resetCounts(state) {
   state.finalizeDocument = 0;
   state.marketplace = 0;
   state.log = [];
+  state.providerStarted = state.scenario !== "new-provider";
 }
 
 export function buildSnapshot() {
@@ -152,6 +161,79 @@ export function buildProviderRow() {
       avatar_url: "avatars/test.jpg",
     },
   };
+}
+
+export function buildProviderServicesRows() {
+  return [
+    {
+      id: "ps-clean",
+      provider_id: MOCK_PROVIDER_ID,
+      service_id: "svc-clean",
+      status: "pending",
+      price_override: null,
+      flagged_for_review: false,
+      rejection_reason: null,
+      created_at: "2026-09-01T00:00:00+00:00",
+    },
+  ];
+}
+
+export function buildZoneProviderRows() {
+  return [
+    {
+      id: "zp-maadi",
+      provider_id: MOCK_PROVIDER_ID,
+      zone_id: "zone-maadi",
+      created_at: "2026-09-01T00:00:00+00:00",
+    },
+    {
+      id: "zp-zayed",
+      provider_id: MOCK_PROVIDER_ID,
+      zone_id: "zone-zayed",
+      created_at: "2026-09-01T00:00:00+00:00",
+    },
+  ];
+}
+
+export function buildReferenceRows() {
+  return [
+    {
+      id: "ref-1",
+      provider_id: MOCK_PROVIDER_ID,
+      full_name: "Nadia Kamal",
+      relationship: "former_client",
+      phone: "+201011122233",
+      notes: "Weekly clean for 6 months",
+      sort_order: 1,
+      created_at: "2026-09-01T00:00:00+00:00",
+      updated_at: "2026-09-01T00:00:00+00:00",
+    },
+    {
+      id: "ref-2",
+      provider_id: MOCK_PROVIDER_ID,
+      full_name: "Layla Hassan",
+      relationship: "neighbor",
+      phone: "+201022233344",
+      notes: "",
+      sort_order: 2,
+      created_at: "2026-09-01T00:00:00+00:00",
+      updated_at: "2026-09-01T00:00:00+00:00",
+    },
+  ];
+}
+
+function sendNoRowObject(res) {
+  sendJson(
+    res,
+    406,
+    {
+      code: "PGRST116",
+      details: "The result contains 0 rows",
+      hint: null,
+      message: "JSON object requested, multiple (or no) rows returned",
+    },
+    { "content-type": "application/vnd.pgrst.object+json; charset=utf-8" },
+  );
 }
 
 function buildMarketplaceRows() {
@@ -265,7 +347,19 @@ async function handleSupabase(state, req, res) {
     if (state.snapshotDelayMs) await new Promise((r) => setTimeout(r, state.snapshotDelayMs));
     state.snapshot += 1;
     state.log.push(`snapshot#${state.snapshot}`);
+    if (state.scenario === "new-provider" && !state.providerStarted) {
+      sendJson(res, 200, { exists: false });
+      return;
+    }
     sendJson(res, 200, buildSnapshot());
+    return;
+  }
+
+  if (p === "/rest/v1/rpc/provider_start_onboarding") {
+    state.startOnboarding += 1;
+    state.providerStarted = true;
+    state.log.push("startOnboarding");
+    sendJson(res, 200, { ok: true, provider_id: MOCK_PROVIDER_ID });
     return;
   }
 
@@ -327,8 +421,14 @@ async function handleSupabase(state, req, res) {
     if (state.providerDelayMs) await new Promise((r) => setTimeout(r, state.providerDelayMs));
     state.provider += 1;
     state.log.push(`provider#${state.provider}`);
+    if (state.scenario === "new-provider" && !state.providerStarted) {
+      if (wantsObject(req)) sendNoRowObject(res);
+      else sendJson(res, 200, []);
+      return;
+    }
     const row = buildProviderRow();
-    if (wantsObject(req)) sendJson(res, 200, row, { "content-type": "application/vnd.pgrst.object+json" });
+    if (wantsObject(req))
+      sendJson(res, 200, row, { "content-type": "application/vnd.pgrst.object+json" });
     else sendJson(res, 200, [row]);
     return;
   }
@@ -355,11 +455,48 @@ async function handleSupabase(state, req, res) {
   }
 
   if (p.startsWith("/rest/v1/zones")) {
-    sendJson(res, 200, [{ id: "zone-maadi", name_en: "Maadi", name_ar: "Maadi" }]);
+    sendJson(res, 200, [
+      { id: "zone-maadi", name_en: "Maadi", name_ar: "Maadi" },
+      { id: "zone-zayed", name_en: "Zayed", name_ar: "Zayed" },
+    ]);
     return;
   }
 
-  if (p.startsWith("/rest/v1/provider_documents") || p.startsWith("/rest/v1/provider_references")) {
+  if (p.startsWith("/rest/v1/provider_services") || p.startsWith("/rest/v1/zone_providers")) {
+    state.savedSelections += 1;
+    state.log.push(
+      p.startsWith("/rest/v1/provider_services") ? "provider_services" : "zone_providers",
+    );
+    if (state.scenario === "saved-data-error") {
+      sendJson(res, 500, { code: "PGRST000", message: "Could not query saved selections" });
+      return;
+    }
+    if (state.scenario === "returning") {
+      sendJson(
+        res,
+        200,
+        p.startsWith("/rest/v1/provider_services")
+          ? buildProviderServicesRows()
+          : buildZoneProviderRows(),
+      );
+      return;
+    }
+    sendJson(res, 200, []);
+    return;
+  }
+
+  if (p.startsWith("/rest/v1/provider_references")) {
+    state.references += 1;
+    state.log.push("provider_references");
+    if (state.scenario === "saved-data-error") {
+      sendJson(res, 500, { code: "PGRST000", message: "Could not query saved references" });
+      return;
+    }
+    sendJson(res, 200, state.scenario === "returning" ? buildReferenceRows() : []);
+    return;
+  }
+
+  if (p.startsWith("/rest/v1/provider_documents")) {
     sendJson(res, 200, []);
     return;
   }
@@ -407,6 +544,12 @@ export function issue68MockPlugin(repoRoot) {
           if (url.pathname === "/__issue68/config" && req.method === "POST") {
             const raw = await readBody(req);
             const body = JSON.parse(raw.toString("utf8") || "{}");
+            state.scenario =
+              body.scenario === "returning" ||
+              body.scenario === "new-provider" ||
+              body.scenario === "saved-data-error"
+                ? body.scenario
+                : "default";
             resetCounts(state);
             state.snapshotDelayMs = Number(body.snapshotDelayMs) || 0;
             state.providerDelayMs = Number(body.providerDelayMs) || 0;
@@ -418,6 +561,9 @@ export function issue68MockPlugin(repoRoot) {
             sendJson(res, 200, {
               snapshot: state.snapshot,
               provider: state.provider,
+              startOnboarding: state.startOnboarding,
+              savedSelections: state.savedSelections,
+              references: state.references,
               storageAvatars: state.storageAvatars,
               profileUpdate: state.profileUpdate,
               prepareDocument: state.prepareDocument,
@@ -426,6 +572,8 @@ export function issue68MockPlugin(repoRoot) {
               marketplace: state.marketplace,
               saves: state.saves,
               log: state.log,
+              scenario: state.scenario,
+              providerStarted: state.providerStarted,
             });
             return;
           }
@@ -437,7 +585,12 @@ export function issue68MockPlugin(repoRoot) {
 
           if (url.pathname === "/__issue68/avatar.jpg") {
             res.writeHead(200, { "content-type": "image/jpeg" });
-            res.end(Buffer.from("/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxAQEBUQEBAVFRUVFRUVFRUVFRUVFRUWFxUVFRUYHSggGBolGxUVITEhJSkrLi4uFx8zODMtNygtLisBCgoKDg0OGxAQGy0lHyUtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAAEAAQMBIgACEQEDEQH/xAAXAAEBAQEAAAAAAAAAAAAAAAAAAQID/8QAFhEBAQEAAAAAAAAAAAAAAAAAAAER/9oADAMBAAIQAxAAAAG6P//Z", "base64"));
+            res.end(
+              Buffer.from(
+                "/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxAQEBUQEBAVFRUVFRUVFRUVFRUVFRUWFxUVFRUYHSggGBolGxUVITEhJSkrLi4uFx8zODMtNygtLisBCgoKDg0OGxAQGy0lHyUtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAAEAAQMBIgACEQEDEQH/xAAXAAEBAQEAAAAAAAAAAAAAAAAAAQID/8QAFhEBAQEAAAAAAAAAAAAAAAAAAAER/9oADAMBAAIQAxAAAAG6P//Z",
+                "base64",
+              ),
+            );
             return;
           }
 

@@ -18,6 +18,7 @@ const HARNESS_FILES = [
   "qa/tests/issue68/fixtures/ProviderOnboardingFlow.pre68.tsx",
   "qa/tests/issue68/mock-supabase.mjs",
   "qa/tests/issue68/onboarding-hydration.spec.ts",
+  "qa/tests/issue68/onboarding-saved-selections.spec.ts",
 ];
 
 function sha256(buffer) {
@@ -33,7 +34,10 @@ export function verifyLegacyFixture(repoRoot) {
     repoRoot,
     `${LEGACY_SOURCE_COMMIT}:src/components/provider/ProviderOnboardingFlow.tsx`,
   ).toString("utf8");
-  const fixturePath = path.join(repoRoot, "qa/tests/issue68/fixtures/ProviderOnboardingFlow.pre68.tsx");
+  const fixturePath = path.join(
+    repoRoot,
+    "qa/tests/issue68/fixtures/ProviderOnboardingFlow.pre68.tsx",
+  );
   const fixture = readFileSync(fixturePath, "utf8");
   const expected = original.replace(
     /export function ProviderOnboardingFlow\b/,

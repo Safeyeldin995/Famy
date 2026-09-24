@@ -1296,6 +1296,8 @@ const en = {
       photoHint: "Clear face photo — JPG or PNG",
       servicesHint: "Choose the services you want to offer on Famy.",
       servicesEmpty: "No services are available to offer right now.",
+      savedSelectionsLoading: "Loading your saved selections…",
+      savedSelectionsError: "Could not load your saved selections. Saving this step is blocked.",
       coverageHint: "Select the areas where you can accept jobs.",
       previousWork: "Relevant previous work",
       childAgeGroups: "Child age groups accepted",

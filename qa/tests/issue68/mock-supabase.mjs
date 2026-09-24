@@ -48,6 +48,7 @@ function isLocalUrl(url) {
  *   providerDelayMs?: number;
  *   snapshotDelayMs?: number;
  *   lang?: "en" | "ar";
+ *   scenario?: "default" | "returning" | "new-provider" | "saved-data-error";
  * }} [options]
  */
 export async function installIssue68Mocks(page, options = {}) {
@@ -58,6 +59,7 @@ export async function installIssue68Mocks(page, options = {}) {
     data: {
       snapshotDelayMs: options.snapshotDelayMs ?? 0,
       providerDelayMs: options.providerDelayMs ?? 0,
+      scenario: options.scenario ?? "default",
     },
   });
 
@@ -127,6 +129,14 @@ export async function openExperienceStep(page, impl = "current", lang = "en") {
   const experienceName = lang === "ar" ? "الخبرة" : "Experience";
   await page.getByRole("button", { name: experienceName, exact: true }).click();
   await page.locator('input[type="number"]').first().waitFor({ state: "visible", timeout: 15_000 });
+}
+
+export async function gotoProOnboardingRoute(page) {
+  await page.goto("/pro/onboarding");
+}
+
+export async function openOnboardingStep(page, name) {
+  await page.getByRole("button", { name, exact: true }).click();
 }
 
 export const QA_AVATAR_JPEG = Buffer.from(

@@ -97,6 +97,25 @@ export function useMyReferences(providerId: string | undefined) {
   });
 }
 
+export function useMySavedSelections(providerId: string | undefined) {
+  return useQuery({
+    enabled: !!providerId,
+    queryKey: ["provider-saved-selections", providerId],
+    queryFn: async () => {
+      const [servicesRes, zonesRes] = await Promise.all([
+        supabase.from("provider_services").select("service_id").eq("provider_id", providerId!),
+        supabase.from("zone_providers").select("zone_id").eq("provider_id", providerId!),
+      ]);
+      if (servicesRes.error) throw servicesRes.error;
+      if (zonesRes.error) throw zonesRes.error;
+      return {
+        services: servicesRes.data ?? [],
+        zones: zonesRes.data ?? [],
+      };
+    },
+  });
+}
+
 export function useSaveOnboardingSection() {
   const qc = useQueryClient();
   return useMutation({
@@ -112,6 +131,7 @@ export function useSaveOnboardingSection() {
       qc.invalidateQueries({ queryKey: ["provider-onboarding-snapshot"] });
       qc.invalidateQueries({ queryKey: ["my-provider"] });
       qc.invalidateQueries({ queryKey: ["provider-references"] });
+      qc.invalidateQueries({ queryKey: ["provider-saved-selections"] });
       qc.invalidateQueries({ queryKey: ["provider-onboarding-completion"] });
     },
   });
