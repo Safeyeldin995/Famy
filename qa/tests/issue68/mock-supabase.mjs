@@ -47,6 +47,7 @@ function isLocalUrl(url) {
  * @param {{
  *   providerDelayMs?: number;
  *   snapshotDelayMs?: number;
+ *   zonesDelayMs?: number;
  *   lang?: "en" | "ar";
  *   scenario?: "default" | "returning" | "new-provider" | "saved-data-error";
  * }} [options]
@@ -59,6 +60,7 @@ export async function installIssue68Mocks(page, options = {}) {
     data: {
       snapshotDelayMs: options.snapshotDelayMs ?? 0,
       providerDelayMs: options.providerDelayMs ?? 0,
+      zonesDelayMs: options.zonesDelayMs ?? 0,
       scenario: options.scenario ?? "default",
     },
   });

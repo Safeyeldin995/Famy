@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildCoverageSavePayload,
+  combineSavedSelectionLoadState,
   mapSavedReferences,
   mapSavedServiceIds,
   mapSavedZoneIds,
@@ -208,5 +209,38 @@ describe("buildCoverageSavePayload", () => {
       ok: true,
       zone_ids: ["zone-maadi", "zone-zayed"],
     });
+  });
+
+  it("does not report zone_required while the active-zone catalog is still loading", () => {
+    const catalogStillLoading = combineSavedSelectionLoadState("ready", "loading");
+    expect(catalogStillLoading).toBe("loading");
+    expect(buildCoverageSavePayload(catalogStillLoading, ["zone-maadi", "zone-zayed"], [])).toEqual(
+      {
+        ok: false,
+        error: "not_loaded",
+      },
+    );
+  });
+
+  it("permits a valid saved selection after the catalog is ready", () => {
+    const bothReady = combineSavedSelectionLoadState("ready", "ready");
+    expect(
+      buildCoverageSavePayload(
+        bothReady,
+        ["zone-maadi", "zone-zayed"],
+        ["zone-maadi", "zone-zayed"],
+      ),
+    ).toEqual({
+      ok: true,
+      zone_ids: ["zone-maadi", "zone-zayed"],
+    });
+  });
+});
+
+describe("combineSavedSelectionLoadState", () => {
+  it("prefers error, then loading, then ready", () => {
+    expect(combineSavedSelectionLoadState("ready", "error")).toBe("error");
+    expect(combineSavedSelectionLoadState("ready", "loading")).toBe("loading");
+    expect(combineSavedSelectionLoadState("ready", "ready")).toBe("ready");
   });
 });

@@ -79,6 +79,37 @@ test.describe("Issue #69 saved onboarding selections", () => {
     await mocks.assertIsolated();
   });
 
+  test("coverage waits for the active-zone catalog before saving a valid selection", async ({
+    page,
+  }) => {
+    const mocks = await installIssue68Mocks(page, {
+      scenario: "returning",
+      zonesDelayMs: 4000,
+    });
+    await gotoOnboardingHarness(page, "current");
+    await openOnboardingStep(page, "Coverage");
+
+    await expect(page.getByText("Loading your saved selections…")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Continue" })).toBeDisabled();
+    await page.getByRole("button", { name: "Continue" }).click({ force: true });
+    expect((await mocks.getCalls()).saves).toEqual([]);
+    await expect(page.getByText("Select at least one service zone.")).toHaveCount(0);
+
+    await expect(page.getByRole("button", { name: "Maadi", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Continue" })).toBeEnabled();
+    await page.getByRole("button", { name: "Continue" }).click();
+
+    await expect
+      .poll(async () => {
+        const coverage = (await mocks.getCalls()).saves.find(
+          (save) => save.p_section === "coverage",
+        );
+        return coverage?.p_payload?.zone_ids ?? null;
+      })
+      .toEqual(["zone-maadi", "zone-zayed"]);
+    await mocks.assertIsolated();
+  });
+
   test("failed saved-data queries block coverage and references saves", async ({ page }) => {
     const mocks = await installIssue68Mocks(page, { scenario: "saved-data-error" });
     await gotoOnboardingHarness(page, "current");

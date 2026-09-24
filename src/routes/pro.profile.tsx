@@ -22,7 +22,7 @@ import {
   useUploadRequirementEvidence,
   useMyMarketplaceEligibility,
 } from "@/lib/db/provider-queries";
-import { FileText, ShieldCheck, LogOut, Camera, Loader2, Upload, Bell } from "lucide-react";
+import { FileText, ShieldCheck, LogOut, Globe, Camera, Loader2, Upload, Bell } from "lucide-react";
 import { LanguageToggle, useLang } from "@/components/famio/LanguageToggle";
 import { customerPath, proPath } from "@/lib/preview/previewPath";
 
@@ -379,6 +379,7 @@ function ProProfile() {
           <Card className="divide-y divide-border">
             <ProRow to={proPath("/pro/documents")} icon={<FileText className="h-5 w-5" />} label={t("pro.profile.documentsRow")} />
             <ProRow to={proPath("/pro/notification-preferences")} icon={<Bell className="h-5 w-5" />} label={t("notifPrefs.title")} />
+            <ProRow to={customerPath("/home")} icon={<Globe className="h-5 w-5" />} label={t("pro.profile.switchCustomer")} />
           </Card>
         </div>
 

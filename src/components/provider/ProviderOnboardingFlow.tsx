@@ -40,6 +40,7 @@ import {
   mapSavedServiceIds,
   mapSavedZoneIds,
   mapSnapshotToOnboardingFormState,
+  combineSavedSelectionLoadState,
   savedSelectionLoadState,
 } from "@/lib/provider/onboardingHydration";
 import { useAvatarUrl } from "@/lib/db/queries";
@@ -114,6 +115,10 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
   const savedSelectionsQ = useMySavedSelections(providerId);
   const docsQ = useProviderDocuments(providerId);
   const selectionsLoadState = previewMode ? "ready" : savedSelectionLoadState(savedSelectionsQ);
+  const zonesCatalogLoadState = previewMode ? "ready" : savedSelectionLoadState(zonesQ);
+  const coverageLoadState = previewMode
+    ? "ready"
+    : combineSavedSelectionLoadState(selectionsLoadState, zonesCatalogLoadState);
   const referencesLoadState = previewMode ? "ready" : savedSelectionLoadState(refsQ);
   const savedServiceIds = mapSavedServiceIds(savedSelectionsQ.data?.services);
   const activeZoneIds = (zonesQ.data ?? []).map((z: { id: string }) => z.id);
@@ -212,9 +217,9 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
   const progress = Math.round(((step + 1) / STEPS.length) * 100);
   const sectionSaveBlocked =
     !previewMode &&
-    ((current === "services" || current === "coverage") && selectionsLoadState !== "ready"
-      ? true
-      : current === "references" && referencesLoadState !== "ready");
+    ((current === "services" && selectionsLoadState !== "ready") ||
+      (current === "coverage" && coverageLoadState !== "ready") ||
+      (current === "references" && referencesLoadState !== "ready"));
 
   const babysittingSelected = useMemo(() => {
     const services = servicesQ.data ?? [];
@@ -284,7 +289,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
           payload: { service_ids: packed.service_ids },
         });
       } else if (current === "coverage") {
-        const packed = buildCoverageSavePayload(selectionsLoadState, selectedZones, activeZoneIds);
+        const packed = buildCoverageSavePayload(coverageLoadState, selectedZones, activeZoneIds);
         if (!packed.ok) {
           setErr(
             packed.error === "zone_required"
@@ -727,12 +732,12 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
             <p className="mb-2 text-xs font-semibold text-muted-foreground">
               {t("pro.onboardingWizard.coverageHint")}
             </p>
-            {selectionsLoadState === "loading" ? (
+            {coverageLoadState === "loading" ? (
               <p className="text-sm font-medium text-muted-foreground">
                 {t("pro.onboardingWizard.savedSelectionsLoading")}
               </p>
             ) : null}
-            {selectionsLoadState === "error" ? (
+            {coverageLoadState === "error" ? (
               <p className="text-sm font-bold text-coral">
                 {t("pro.onboardingWizard.savedSelectionsError")}
               </p>
@@ -743,7 +748,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                 <button
                   key={z.id}
                   type="button"
-                  disabled={selectionsLoadState !== "ready"}
+                  disabled={coverageLoadState !== "ready"}
                   onClick={() =>
                     setSelectedZones((prev) =>
                       on ? prev.filter((x) => x !== z.id) : [...prev, z.id],
@@ -751,7 +756,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                   }
                   className={`w-full rounded-2xl border px-3 py-3 text-start text-sm font-bold break-words ${
                     on ? "border-brand bg-brand/[0.06]" : "border-border/60"
-                  } ${selectionsLoadState !== "ready" ? "opacity-70" : ""}`}
+                  } ${coverageLoadState !== "ready" ? "opacity-70" : ""}`}
                 >
                   {lang === "ar" ? z.name_ar : z.name_en}
                 </button>

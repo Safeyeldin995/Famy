@@ -108,6 +108,14 @@ export function savedSelectionLoadState(query: {
   return "loading";
 }
 
+export function combineSavedSelectionLoadState(
+  ...states: SavedSelectionLoadState[]
+): SavedSelectionLoadState {
+  if (states.includes("error")) return "error";
+  if (states.includes("loading")) return "loading";
+  return "ready";
+}
+
 export function mapSavedServiceIds(rows: SavedServiceRow[] | null | undefined): string[] {
   return [
     ...new Set((rows ?? []).map((row) => row.service_id).filter((id): id is string => Boolean(id))),

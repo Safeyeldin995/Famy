@@ -75,6 +75,7 @@ function createState(repoRoot) {
     repoRoot,
     snapshotDelayMs: 0,
     providerDelayMs: 0,
+    zonesDelayMs: 0,
     scenario: "default",
     providerStarted: false,
     unexpectedServer: [],
@@ -455,6 +456,7 @@ async function handleSupabase(state, req, res) {
   }
 
   if (p.startsWith("/rest/v1/zones")) {
+    if (state.zonesDelayMs) await new Promise((r) => setTimeout(r, state.zonesDelayMs));
     sendJson(res, 200, [
       { id: "zone-maadi", name_en: "Maadi", name_ar: "Maadi" },
       { id: "zone-zayed", name_en: "Zayed", name_ar: "Zayed" },
@@ -553,6 +555,7 @@ export function issue68MockPlugin(repoRoot) {
             resetCounts(state);
             state.snapshotDelayMs = Number(body.snapshotDelayMs) || 0;
             state.providerDelayMs = Number(body.providerDelayMs) || 0;
+            state.zonesDelayMs = Number(body.zonesDelayMs) || 0;
             sendJson(res, 200, { ok: true });
             return;
           }
