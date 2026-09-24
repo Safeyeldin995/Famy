@@ -4,6 +4,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth/useAuth';
+import { isQaCatalogService } from '@/lib/catalog/qaCatalog';
 
 // ---------- Identity ----------
 export function useMyRole() {
@@ -504,7 +505,7 @@ export function useAllServices() {
         .eq('is_active', true)
         .order('name_en');
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).filter((row) => !isQaCatalogService(row));
     },
   });
 }

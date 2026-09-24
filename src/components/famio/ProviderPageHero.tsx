@@ -64,10 +64,14 @@ export function ProviderPageHero({
       </div>
 
       <div className={`relative z-10 ${hasBack || right ? "mt-3" : "mt-1"}`}>
-        <h1 className="text-[1.5rem] font-extrabold leading-tight tracking-tight text-white">
+        <h1 className="break-words text-xl font-extrabold leading-snug tracking-tight text-white">
           {title}
         </h1>
-        {subtitle ? <p className="mt-1.5 text-sm font-medium text-white/80">{subtitle}</p> : null}
+        {subtitle ? (
+          <p className="mt-1 break-words text-sm font-medium leading-snug text-white/80">
+            {subtitle}
+          </p>
+        ) : null}
         {children}
       </div>
     </header>

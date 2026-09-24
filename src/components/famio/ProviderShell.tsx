@@ -9,7 +9,7 @@ import { normalizeProPathname, proPath } from "@/lib/preview/previewPath";
 export function ProviderShell({ children, hideNav = false }: { children: ReactNode; hideNav?: boolean }) {
   return (
     <PhoneFrame bg="bg-[#FEFAFC]">
-      <main className={`flex-1 ${hideNav ? "" : "pb-[5.5rem]"}`}>{children}</main>
+      <main className={`min-w-0 flex-1 overflow-x-hidden ${hideNav ? "" : "pb-[5.5rem]"}`}>{children}</main>
       {!hideNav && <ProviderBottomNav />}
     </PhoneFrame>
   );
