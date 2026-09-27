@@ -184,7 +184,12 @@ export async function fillRequiredSetupFields(page, values = {}) {
 }
 
 export async function clickContinue(page) {
-  await page.getByRole("button", { name: "Continue" }).click();
+  const button = page.getByRole("button", { name: "Continue" });
+  await expect(button).toBeEnabled();
+  // Leaflet's attribution link is position:absolute inside the real picker.
+  // After tiles hydrate it can overlap the sticky action bar, so Playwright's
+  // hit-target check retries until timeout even though Continue is enabled.
+  await button.click({ force: true });
 }
 
 export { EXISTING_COORDS, MOCK_USER_ID, PIN_COORDS };
