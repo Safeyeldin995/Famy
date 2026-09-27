@@ -3,6 +3,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { isQaCatalogService, isQaFixtureName } from "@/lib/catalog/qaCatalog";
 
 export type OnboardingStatus =
   | "DRAFT"
@@ -56,8 +57,10 @@ export function usePhase1Services() {
         .eq("is_active", true)
         .order("name_en");
       if (error) throw error;
-      return (data ?? []).filter((s: any) =>
-        s.category?.slug === "home-cleaning" || s.category?.slug === "babysitting",
+      return (data ?? []).filter(
+        (s: any) =>
+          (s.category?.slug === "home-cleaning" || s.category?.slug === "babysitting") &&
+          !isQaCatalogService(s),
       );
     },
   });
@@ -73,7 +76,7 @@ export function useActiveZones() {
         .eq("is_active", true)
         .order("name_en");
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).filter((z) => !isQaFixtureName(z.name_en, z.name_ar));
     },
   });
 }
@@ -94,6 +97,25 @@ export function useMyReferences(providerId: string | undefined) {
   });
 }
 
+export function useMySavedSelections(providerId: string | undefined) {
+  return useQuery({
+    enabled: !!providerId,
+    queryKey: ["provider-saved-selections", providerId],
+    queryFn: async () => {
+      const [servicesRes, zonesRes] = await Promise.all([
+        supabase.from("provider_services").select("service_id").eq("provider_id", providerId!),
+        supabase.from("zone_providers").select("zone_id").eq("provider_id", providerId!),
+      ]);
+      if (servicesRes.error) throw servicesRes.error;
+      if (zonesRes.error) throw zonesRes.error;
+      return {
+        services: servicesRes.data ?? [],
+        zones: zonesRes.data ?? [],
+      };
+    },
+  });
+}
+
 export function useSaveOnboardingSection() {
   const qc = useQueryClient();
   return useMutation({
@@ -109,6 +131,7 @@ export function useSaveOnboardingSection() {
       qc.invalidateQueries({ queryKey: ["provider-onboarding-snapshot"] });
       qc.invalidateQueries({ queryKey: ["my-provider"] });
       qc.invalidateQueries({ queryKey: ["provider-references"] });
+      qc.invalidateQueries({ queryKey: ["provider-saved-selections"] });
       qc.invalidateQueries({ queryKey: ["provider-onboarding-completion"] });
     },
   });
