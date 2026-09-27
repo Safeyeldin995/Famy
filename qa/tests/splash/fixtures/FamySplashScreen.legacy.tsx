@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import famWhite from "@/assets/splash/fam-white.png";
 import yBodyWhite from "@/assets/splash/y-body-white.png";
 import yEyesWhite from "@/assets/splash/y-eyes-white.png";
@@ -45,20 +45,7 @@ function logoWidthPx() {
   return Math.min(window.innerWidth * LOGO_WIDTH_RATIO, LOGO_MAX_WIDTH_PX);
 }
 
-function assembledSplashState() {
-  return {
-    ...famySplashState(999),
-    smileOpacity: 1,
-    smileScale: 1,
-    smileOffsetY: 0,
-    smileMoveProgress: 1,
-    wordRevealProgress: 1,
-    animationComplete: true,
-    eyesClosed: false,
-  };
-}
-
-export function FamySplashScreen({
+export function FamySplashScreenLegacy({
   onAnimationComplete,
   reducedMotion = false,
 }: {
@@ -117,11 +104,8 @@ export function FamySplashScreen({
     if (loadFailed) finish();
   }, [loadFailed, finish]);
 
-  const lastStateRef = useRef<ReturnType<typeof famySplashState> | null>(null);
-
   const applyFrame = useCallback(
     (state: ReturnType<typeof famySplashState>) => {
-      lastStateRef.current = state;
       const yPos = famySplashYPosition(state.smileMoveProgress, state.smileOffsetY);
       const yStyle: Partial<CSSStyleDeclaration> = {
         left: `${yPos.x * scale}px`,
@@ -151,26 +135,26 @@ export function FamySplashScreen({
   );
 
   const applyFrameRef = useRef(applyFrame);
-  applyFrameRef.current = applyFrame;
-
-  // After complete (and in reduced-motion) there is no RAF. A later parent
-  // re-render or resize still updates React styles for "fam" and can reset the
-  // "y" inline styles; reapply the last/final frame without restarting or
-  // calling finish again.
-  useLayoutEffect(() => {
-    if (!assets) return;
-    if (completedRef.current || reducedMotion) {
-      applyFrame(assembledSplashState());
-      return;
-    }
-    if (lastStateRef.current) applyFrame(lastStateRef.current);
-  });
+  useEffect(() => {
+    applyFrameRef.current = applyFrame;
+  }, [applyFrame]);
 
   useEffect(() => {
     if (!assets) return;
 
+    const finalState = {
+      ...famySplashState(999),
+      smileOpacity: 1,
+      smileScale: 1,
+      smileOffsetY: 0,
+      smileMoveProgress: 1,
+      wordRevealProgress: 1,
+      animationComplete: true,
+      eyesClosed: false,
+    };
+
     if (reducedMotion) {
-      applyFrameRef.current(assembledSplashState());
+      applyFrameRef.current(finalState);
       finish();
       return;
     }
