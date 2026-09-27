@@ -132,6 +132,16 @@ test.describe("Issue #70 signed-in /setup address browser harness", () => {
     await page
       .getByPlaceholder("Street, landmark, gate number…")
       .fill("Villa 8, Allegria Gate 4 - revised");
+    const continueHit = await page.getByRole("button", { name: "Continue" }).evaluate((el) => {
+      const box = el.getBoundingClientRect();
+      const node = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+      return { tag: node?.tagName ?? "", text: node?.textContent?.trim() ?? "" };
+    });
+    expect(
+      continueHit.tag,
+      "Continue must remain the hit target after editing a field above the map",
+    ).toBe("BUTTON");
+    expect(continueHit.text).toBe("Continue");
     await clickContinue(page);
     await expect(page.getByTestId("issue70-home")).toBeVisible({ timeout: 15_000 });
 

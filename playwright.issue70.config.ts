@@ -16,17 +16,27 @@ export default defineConfig({
     baseURL: BASE_URL,
     trace: "retain-on-failure",
   },
-  projects: [
-    {
-      name: useChromium ? "chromium" : "msedge",
-      use: useChromium
-        ? { ...devices["Desktop Chrome"], channel: "chrome" }
-        : {
-            ...devices["Desktop Edge"],
-            channel: "msedge",
-          },
-    },
-  ],
+  projects: useChromium
+    ? [
+        {
+          name: "chromium-desktop",
+          use: { ...devices["Desktop Chrome"], channel: "chrome" },
+        },
+        {
+          name: "chromium-mobile",
+          use: { ...devices["Pixel 5"], channel: "chrome" },
+        },
+      ]
+    : [
+        {
+          name: "msedge-desktop",
+          use: { ...devices["Desktop Edge"], channel: "msedge" },
+        },
+        {
+          name: "msedge-mobile",
+          use: { ...devices["Pixel 5"], channel: "msedge" },
+        },
+      ],
   webServer: {
     command: `node qa/issue70-dev-server.mjs --port ${PORT} --strictPort`,
     url: `${BASE_URL}/__issue70/identity`,

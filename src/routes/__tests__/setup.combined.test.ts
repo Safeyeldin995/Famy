@@ -63,5 +63,8 @@ describe("combined /setup after AuthGate + coordinate merge", () => {
     expect(locationPickerSource).toContain("onClick={useCurrentLocation}");
     expect(locationPickerSource.match(/geolocation\.getCurrentPosition/g)).toHaveLength(1);
     expect(locationPickerSource).not.toMatch(/useEffect\([\s\S]*getCurrentPosition/);
+    expect(locationPickerSource).toContain(
+      'className="relative isolate h-56 overflow-hidden rounded-2xl bg-surface-2"',
+    );
   });
 });

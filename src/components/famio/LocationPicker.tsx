@@ -8,9 +8,10 @@ const LazyMap = lazy(() => import("./LocationPickerMap"));
 
 const GIZA_FALLBACK: LatLng = { lat: 29.9765, lng: 30.9317 }; // Sheikh Zayed / 6th of October area
 
-
-
-class MapErrorBoundary extends Component<{ children: ReactNode; fallback: ReactNode; resetKey: number }, { hasError: boolean }> {
+class MapErrorBoundary extends Component<
+  { children: ReactNode; fallback: ReactNode; resetKey: number },
+  { hasError: boolean }
+> {
   constructor(props: { children: ReactNode; fallback: ReactNode; resetKey: number }) {
     super(props);
     this.state = { hasError: false };
@@ -54,7 +55,9 @@ export function LocationPicker({
 
   const useCurrentLocation = useCallback(() => {
     if (!("geolocation" in navigator)) {
-      setGeoError(t("addresses.locationUnsupported", "Your browser doesn't support location services."));
+      setGeoError(
+        t("addresses.locationUnsupported", "Your browser doesn't support location services."),
+      );
       return;
     }
     setLocating(true);
@@ -71,7 +74,12 @@ export function LocationPicker({
         if (err.code === err.PERMISSION_DENIED) {
           setPermissionDenied(true);
         } else {
-          setGeoError(t("addresses.locationFailed", "Couldn't determine your location. You can still set it manually on the map."));
+          setGeoError(
+            t(
+              "addresses.locationFailed",
+              "Couldn't determine your location. You can still set it manually on the map.",
+            ),
+          );
         }
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 },
@@ -97,12 +105,9 @@ export function LocationPicker({
 
   return (
     <div className={className}>
-      <div className="relative h-56 overflow-hidden rounded-2xl bg-surface-2">
+      <div className="relative isolate h-56 overflow-hidden rounded-2xl bg-surface-2">
         {!tileFailing ? (
-          <MapErrorBoundary
-            resetKey={mapKey}
-            fallback={<MapUnavailable onRetry={retryMap} />}
-          >
+          <MapErrorBoundary resetKey={mapKey} fallback={<MapUnavailable onRetry={retryMap} />}>
             <Suspense fallback={<MapLoading />}>
               <LazyMap
                 key={mapKey}
@@ -130,7 +135,9 @@ export function LocationPicker({
 
       <div className="mt-3 flex items-center justify-between gap-3">
         <div className="min-w-0 text-xs font-semibold text-muted-foreground" dir="ltr">
-          {isValidLatLng(value) ? `${value.lat.toFixed(6)}, ${value.lng.toFixed(6)}` : t("addresses.noLocationYet", "No location set yet")}
+          {isValidLatLng(value)
+            ? `${value.lat.toFixed(6)}, ${value.lng.toFixed(6)}`
+            : t("addresses.noLocationYet", "No location set yet")}
         </div>
         <button
           type="button"
@@ -138,7 +145,11 @@ export function LocationPicker({
           disabled={locating}
           className="focus-ring inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand/8 px-3.5 py-2 text-xs font-extrabold text-brand disabled:opacity-60"
         >
-          {locating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LocateFixed className="h-3.5 w-3.5" />}
+          {locating ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <LocateFixed className="h-3.5 w-3.5" />
+          )}
           {t("addresses.useCurrentLocation", "Use current location")}
         </button>
       </div>
@@ -147,7 +158,9 @@ export function LocationPicker({
         <div className="mt-3 flex items-start gap-3 rounded-2xl bg-coral/10 p-3 text-coral">
           <MapPinOff className="mt-0.5 h-4 w-4 shrink-0" />
           <div className="min-w-0 flex-1">
-            <div className="text-xs font-bold">{t("addresses.permissionDeniedTitle", "Location access denied")}</div>
+            <div className="text-xs font-bold">
+              {t("addresses.permissionDeniedTitle", "Location access denied")}
+            </div>
             <p className="mt-0.5 text-[11px] leading-relaxed text-coral/90">
               {t(
                 "addresses.permissionDeniedBody",
@@ -186,9 +199,14 @@ function MapUnavailable({ onRetry }: { onRetry: () => void }) {
     <div className="grid h-full w-full place-items-center px-6 text-center">
       <div className="flex flex-col items-center gap-2">
         <MapPinOff className="h-6 w-6 text-muted-foreground" />
-        <span className="text-xs font-bold">{t("addresses.mapUnavailable", "Map unavailable right now")}</span>
+        <span className="text-xs font-bold">
+          {t("addresses.mapUnavailable", "Map unavailable right now")}
+        </span>
         <span className="text-[11px] text-muted-foreground">
-          {t("addresses.mapUnavailableBody", "Your location is still saved. You can retry loading the map.")}
+          {t(
+            "addresses.mapUnavailableBody",
+            "Your location is still saved. You can retry loading the map.",
+          )}
         </span>
         <button
           type="button"
