@@ -107,6 +107,7 @@
     "vitest": "^3.2.4"
   },
   "overrides": {
-    "jose": "^4.15.9"
+    "jose": "^4.15.9",
+    "browserslist": "4.28.7"
   }
 }
