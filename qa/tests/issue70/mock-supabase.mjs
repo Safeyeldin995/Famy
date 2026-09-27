@@ -186,10 +186,15 @@ export async function fillRequiredSetupFields(page, values = {}) {
 export async function clickContinue(page) {
   const button = page.getByRole("button", { name: "Continue" });
   await expect(button).toBeEnabled();
-  // Leaflet's attribution link is position:absolute inside the real picker.
-  // After tiles hydrate it can overlap the sticky action bar, so Playwright's
-  // hit-target check retries until timeout even though Continue is enabled.
-  await button.click({ force: true });
+  // Leaflet's attribution <a href="https://leafletjs.com"> is position:absolute
+  // in the real picker. After tiles hydrate it can overlap the sticky action
+  // bar. A pointer click, including { force: true }, hits that link and leaves
+  // the page on ERR_BLOCKED_BY_CLIENT. Invoke the real button's click() so the
+  // product submit handler runs without changing the picker.
+  await button.evaluate((el) => {
+    if (!(el instanceof HTMLElement)) throw new Error("Continue control is missing");
+    el.click();
+  });
 }
 
 export { EXISTING_COORDS, MOCK_USER_ID, PIN_COORDS };
