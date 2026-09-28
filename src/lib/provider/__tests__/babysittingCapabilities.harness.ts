@@ -5,6 +5,16 @@ import {
   assertRunOwnedAdminsRemoved,
   teardownRegisteredFixture,
 } from "@/lib/qa/integrationFixtureTeardown";
+import {
+  assertOwnerApprovedTeardown,
+  buildBabysittingTeardownPlan,
+  buildPendingTeardownRecord,
+  containmentSnapshotFrom,
+  persistPendingTeardown,
+  PendingBabysittingTeardownError,
+  type OwnerTeardownApproval,
+  type PendingBabysittingTeardown,
+} from "@/lib/qa/babysittingApprovedTeardown";
 // @ts-expect-error — .mjs module has no generated declarations
 import { containIntegrationFixtureResidue } from "../../../../qa/containment-integration.mjs";
 import {
@@ -19,60 +29,94 @@ import {
 
 export type { ProviderHarnessContext };
 
-export { createAuthedClient, futureSlot, rpcCreateBooking };
-
-const FINGERPRINT_HEX = /^[0-9a-f]{64}$/i;
+export { createAuthedClient, futureSlot, rpcCreateBooking, PendingBabysittingTeardownError };
 
 function requireWrite(error: { message: string } | null, label: string) {
   if (error) throw new Error(`${label}: ${error.message}`);
 }
 
-/**
- * Snapshot-scoped babysitting QA teardown.
- * Dry-runs containment first and requires the current 64-char fingerprint,
- * then calls shared teardownRegisteredFixture with bookingRpcClient.
- * That shared helper performs snapshot integrationMode execute — not
- * standalone qa/containment.mjs --execute.
- */
-export async function cleanupBabysittingQaFixture(
+const DEFAULT_PENDING_PATH = "qa/report/pr67-babysitting-pending-teardown.json";
+
+async function dryRunBabysittingTeardownPlan(
   ctx: ProviderHarnessContext,
-  bookingRpcClient?: SupabaseClient<Database>,
+  snapshot = ctx.registry.snapshot(),
 ) {
-  const state = ctx.registry.snapshot();
-  const needsContainment =
-    state.userIds.length > 0 ||
-    state.bookingIds.length > 0 ||
-    state.serviceIds.length > 0 ||
-    state.providerIds.length > 0;
+  const dryRun = await containIntegrationFixtureResidue(
+    ctx.admin,
+    containmentSnapshotFrom(snapshot),
+    { dryRun: true },
+  );
+  return buildBabysittingTeardownPlan(snapshot, dryRun.plan);
+}
 
-  if (needsContainment) {
-    const dryRun = await containIntegrationFixtureResidue(
-      ctx.admin,
-      {
-        userIds: state.userIds,
-        adminUserIds: state.adminUserIds,
-        serviceIds: state.serviceIds,
-        providerIds: state.providerIds,
-        bookingIds: state.bookingIds,
-      },
-      { dryRun: true },
-    );
-    const fingerprint = dryRun.plan?.fingerprint;
-    if (typeof fingerprint !== "string" || !FINGERPRINT_HEX.test(fingerprint)) {
-      throw new Error(
-        `[qa-containment] babysitting fixture dry-run fingerprint missing or malformed: ${String(fingerprint)}`,
-      );
-    }
-  }
+/**
+ * Stage 1: read-only dry-run. Persists pending fixture state. Zero teardown writes.
+ * Residue remains active until a separately approved resume.
+ */
+export async function prepareBabysittingTeardownDryRun(
+  ctx: ProviderHarnessContext,
+  options?: { persistPath?: string; adminEmail?: string | null },
+): Promise<PendingBabysittingTeardown> {
+  const plan = await dryRunBabysittingTeardownPlan(ctx);
+  const pending = buildPendingTeardownRecord(plan, { adminEmail: options?.adminEmail });
+  persistPendingTeardown(pending, options?.persistPath ?? DEFAULT_PENDING_PATH);
+  return pending;
+}
 
-  if (state.bookingIds.length > 0 && !bookingRpcClient) {
+/**
+ * Stage 2: execute the owner-approved reviewed plan. Does not seed or recreate fixtures.
+ * Fail-closed on missing/malformed/mismatched approval or a drifted current plan.
+ */
+export async function resumeApprovedBabysittingTeardown(
+  ctx: ProviderHarnessContext,
+  bookingRpcClient: SupabaseClient<Database> | undefined,
+  approval: OwnerTeardownApproval,
+  options?: { currentPlan?: ReturnType<typeof buildBabysittingTeardownPlan> },
+) {
+  const placeholder = buildBabysittingTeardownPlan(ctx.registry.snapshot(), {
+    fingerprint: "0".repeat(64),
+    actions: [],
+  });
+  assertOwnerApprovedTeardown({
+    approval,
+    currentPlan: options?.currentPlan ?? approval?.plan ?? placeholder,
+  });
+  const currentPlan =
+    options?.currentPlan ?? (await dryRunBabysittingTeardownPlan(ctx, approval.plan.snapshot));
+  assertOwnerApprovedTeardown({ approval, currentPlan });
+
+  const approvedSnapshot = approval.plan.snapshot;
+  if (approvedSnapshot.bookingIds.length > 0 && !bookingRpcClient) {
     throw new Error(
       "[qa-containment] babysitting fixture teardown requires bookingRpcClient before pending-booking cancel",
     );
   }
 
-  await teardownRegisteredFixture(ctx.admin, ctx.registry, undefined, { bookingRpcClient });
-  await assertRunOwnedAdminsRemoved(ctx.admin, ctx.registry.getRunOwnedAdminUserIds());
+  await teardownRegisteredFixture(ctx.admin, ctx.registry, approvedSnapshot, {
+    bookingRpcClient,
+    approval: {
+      snapshot: approvedSnapshot,
+      containmentPlan: approval.plan.containment.plan as {
+        fingerprint: string;
+        actions?: Array<{ actionType: string }>;
+      },
+      expectedContainmentFingerprint: approval.plan.containment.fingerprint,
+    },
+  });
+  await assertRunOwnedAdminsRemoved(ctx.admin, approvedSnapshot.adminUserIds);
+}
+
+/**
+ * Mutating-suite afterAll: always dry-run + persist pending. Never auto-approves
+ * the fingerprint just generated in this process.
+ */
+export async function cleanupBabysittingQaFixture(
+  ctx: ProviderHarnessContext,
+  _bookingRpcClient?: SupabaseClient<Database>,
+  options?: { persistPath?: string; adminEmail?: string | null },
+) {
+  const pending = await prepareBabysittingTeardownDryRun(ctx, options);
+  throw new PendingBabysittingTeardownError(pending);
 }
 
 export function monthsBeforeUtc(date: Date, months: number): string {
@@ -450,6 +494,7 @@ export async function seedBabysittingQaFixture(ctx: ProviderHarnessContext) {
     otherClient,
     providerAdminClient,
     cleaningClient,
+    adminEmail,
   };
 }
 

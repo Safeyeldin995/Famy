@@ -46,10 +46,14 @@ describe("PR67 babysitting QA execution packet", () => {
     ]);
     expect(credentialedTestCommand().join(" ")).not.toContain("--execute");
     expect(blockedUntilSeparateOwnerYes().join(" ")).toMatch(/Production|merge|--execute/i);
-    expect(PR67_FIXTURE_SCOPE).toMatch(/64-char plan fingerprint/);
-    expect(PR67_FIXTURE_SCOPE).toMatch(/bookingRpcClient/);
-    expect(PR67_FIXTURE_SCOPE).toMatch(/integrationMode execute/);
+    expect(PR67_FIXTURE_SCOPE).toMatch(/Two-stage teardown/);
+    expect(PR67_FIXTURE_SCOPE).toMatch(/zero teardown writes/);
+    expect(PR67_FIXTURE_SCOPE).toMatch(/owner-supplied reviewed fingerprint/);
+    expect(PR67_FIXTURE_SCOPE).toMatch(/no silent replan/);
     expect(PR67_FIXTURE_SCOPE).toMatch(/Standalone qa\/containment\.mjs --execute/);
     expect(PR67_FIXTURE_SCOPE).not.toMatch(/No cleanup execute\./);
+    expect(PR67_FIXTURE_SCOPE).not.toMatch(
+      /then teardownRegisteredFixture with bookingRpcClient \(snapshot integrationMode execute\)/,
+    );
   });
 });

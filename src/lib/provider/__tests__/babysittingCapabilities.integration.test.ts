@@ -2,6 +2,10 @@
  * Credentialed QA suite. Skips without env. Not native PG17 from PGlite.
  * This file is not executed remotely in the current correction; it remains
  * skip-without-env until a separate owner-approved QA run.
+ *
+ * afterAll is stage-1 dry-run only: persist pending teardown, perform zero
+ * teardown writes, leave residue active. Resume is a separate owner-approved
+ * call and must not reseed.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
@@ -43,7 +47,10 @@ describeIf("babysitting capabilities credentialed QA", () => {
 
   afterAll(async () => {
     if (!admin) return;
-    await cleanupBabysittingQaFixture(ctx, fixture?.adminClient);
+    await cleanupBabysittingQaFixture(ctx, fixture?.adminClient, {
+      persistPath: "qa/report/pr67-babysitting-pending-teardown.json",
+      adminEmail: fixture?.adminEmail,
+    });
   }, 120_000);
 
   function trackBooking(result: { data: unknown }) {

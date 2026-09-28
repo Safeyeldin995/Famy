@@ -4,7 +4,7 @@
  */
 import { mergeRegistryState } from "./registry.mjs";
 import { buildContainmentPlanFromSnapshot } from "./containment-planner.mjs";
-import { executeContainmentPlan } from "./containment-core.mjs";
+import { assertContainmentPlanApproved, executeContainmentPlan } from "./containment-core.mjs";
 import { parseSupabaseProjectRef } from "./qa-identity.mjs";
 import { isAuthBanned } from "./containment-identity.mjs";
 
@@ -25,27 +25,38 @@ export async function buildIntegrationContainmentPlan(admin, snapshot) {
   /** @type {Array<Awaited<ReturnType<typeof buildIdentitySnapshotRow>>>} */
   const identities = [];
   for (const userId of snapshot.userIds ?? []) {
-    identities.push(await buildIdentitySnapshotRow(admin, userId, {
-      inRegistry: registryUsers.has(userId),
-      isAdmin: (snapshot.adminUserIds ?? []).includes(userId),
-    }));
+    identities.push(
+      await buildIdentitySnapshotRow(admin, userId, {
+        inRegistry: registryUsers.has(userId),
+        isAdmin: (snapshot.adminUserIds ?? []).includes(userId),
+      }),
+    );
   }
 
   let services = [];
   if (snapshot.serviceIds?.length) {
-    const { data } = await admin.from("services").select("id,name_en,is_active").in("id", snapshot.serviceIds);
+    const { data } = await admin
+      .from("services")
+      .select("id,name_en,is_active")
+      .in("id", snapshot.serviceIds);
     services = data ?? [];
   }
 
   let providers = [];
   if (snapshot.providerIds?.length) {
-    const { data } = await admin.from("providers").select("id,is_active,vacation_mode").in("id", snapshot.providerIds);
+    const { data } = await admin
+      .from("providers")
+      .select("id,is_active,vacation_mode")
+      .in("id", snapshot.providerIds);
     providers = data ?? [];
   }
 
   let bookings = [];
   if (snapshot.bookingIds?.length) {
-    const { data } = await admin.from("bookings").select("id,status,notes").in("id", snapshot.bookingIds);
+    const { data } = await admin
+      .from("bookings")
+      .select("id,status,notes")
+      .in("id", snapshot.bookingIds);
     const ids = (data ?? []).map((row) => row.id);
     const { data: cancellations } = ids.length
       ? await admin.from("booking_cancellations").select("booking_id").in("booking_id", ids)
@@ -101,17 +112,33 @@ async function buildIdentitySnapshotRow(admin, userId, hints) {
  *   providerIds?: string[];
  *   bookingIds?: string[];
  * }} snapshot
- * @param {{ bookingRpcClient?: import('@supabase/supabase-js').SupabaseClient; dryRun?: boolean }} [options]
+ * @param {{
+ *   bookingRpcClient?: import('@supabase/supabase-js').SupabaseClient;
+ *   dryRun?: boolean;
+ *   approvedPlan?: Awaited<ReturnType<typeof buildIntegrationContainmentPlan>>;
+ *   expectedFingerprint?: string;
+ * }} [options]
  */
 export async function containIntegrationFixtureResidue(admin, snapshot, options = {}) {
-  const plan = await buildIntegrationContainmentPlan(admin, snapshot);
   if (options.dryRun) {
+    const plan = await buildIntegrationContainmentPlan(admin, snapshot);
     return { plan, execution: null };
+  }
+
+  /** @type {Awaited<ReturnType<typeof buildIntegrationContainmentPlan>>} */
+  let plan;
+  if (options.approvedPlan) {
+    assertContainmentPlanApproved(options.approvedPlan, options.expectedFingerprint);
+    plan = options.approvedPlan;
+  } else {
+    plan = await buildIntegrationContainmentPlan(admin, snapshot);
   }
 
   const needsBookingClient = plan.actions.some((row) => row.actionType === "cancel_booking");
   if (needsBookingClient && !options.bookingRpcClient) {
-    throw new Error("[qa-containment] integration requires bookingRpcClient before booking mutation");
+    throw new Error(
+      "[qa-containment] integration requires bookingRpcClient before booking mutation",
+    );
   }
 
   const execution = await executeContainmentPlan(admin, plan, {
