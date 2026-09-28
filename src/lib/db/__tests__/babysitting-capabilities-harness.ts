@@ -6,8 +6,14 @@ const MIGRATIONS_DIR = path.resolve(process.cwd(), "supabase/migrations");
 
 export const BABYSITTING_MIGRATION = "20260912090000_babysitting_capabilities.sql";
 export const DECLARATION_MIGRATION = "20260928081021_babysitting_declaration_save.sql";
+export const REQUEST_UPDATED_DETAILS_MIGRATION =
+  "20260928093002_approved_request_updated_details.sql";
 export const CREATE_BOOKING_MIGRATION = "20260724010000_booking_create_rpc_idempotency.sql";
 export const RESPOND_RESCHEDULE_MIGRATION = "20260713180000_secure-booking-rescheduling.sql";
+export const APPLY_ONBOARDING_STATUS_MIGRATION = "20260723080000_provider_internal_notes_table.sql";
+export const ONBOARDING_SUBMIT_MIGRATION =
+  "20260723050000_provider_onboarding_security_remediation.sql";
+export const REQUIRED_DOCUMENTS_MIGRATION = "20260723040000_provider_onboarding_hardening.sql";
 
 export const TABLE_PRIVILEGES = [
   "SELECT",
@@ -304,6 +310,21 @@ export function extractPublicFunctionSql(fileName: string, functionName: string)
   }
   const end = sql.indexOf("\n", grantAt);
   return `${sql.slice(start, end === -1 ? sql.length : end + 1).trimEnd()}\n`;
+}
+
+/** Load a function plus its following REVOKE/GRANT lines, stopping at the next CREATE or NOTIFY. */
+export function extractPublicFunctionBlock(fileName: string, functionName: string): string {
+  const sql = readMigration(fileName);
+  const startToken = `CREATE OR REPLACE FUNCTION public.${functionName}(`;
+  const start = sql.indexOf(startToken);
+  if (start < 0) {
+    throw new Error(`Missing ${startToken} in ${fileName}`);
+  }
+  const markers = ["\nCREATE OR REPLACE FUNCTION", "\nNOTIFY ", "\nALTER TABLE "]
+    .map((token) => sql.indexOf(token, start + startToken.length))
+    .filter((index) => index >= 0);
+  const end = markers.length ? Math.min(...markers) : sql.length;
+  return `${sql.slice(start, end).trimEnd()}\n`;
 }
 
 export async function queryRows<T extends Record<string, unknown>>(

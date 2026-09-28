@@ -1622,6 +1622,10 @@ const ar: Translation = {
       submittedAt: "تاريخ الإرسال {{date}}",
       startReview: "بدء المراجعة",
       requestChanges: "طلب تعديلات",
+      requestUpdatedDetails: "طلب تفاصيل محدثة",
+      requestUpdatedDetailsBody:
+        "سيغادر مقدم الخدمة السوق حتى يصرح بالتفاصيل المطلوبة وتعيد الموافقة عليه. الحجوزات الحالية تبقى. السبب الظاهر للعميل مطلوب.",
+      requestUpdatedDetailsConfirm: "طلب التفاصيل",
       internalNotes: "ملاحظات داخلية (للمسؤول فقط)",
       eligibilityTitle: "الظهور في تطبيق العملاء",
       eligibleBody: "هذا المزود مرئي ومتاح للحجز من قبل العملاء.",

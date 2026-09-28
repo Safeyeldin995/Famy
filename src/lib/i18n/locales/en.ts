@@ -1635,6 +1635,10 @@ const en = {
       submittedAt: "Submitted {{date}}",
       startReview: "Start review",
       requestChanges: "Request changes",
+      requestUpdatedDetails: "Request updated details",
+      requestUpdatedDetailsBody:
+        "The provider will leave the marketplace until they declare required details and you re-approve them. Existing bookings are kept. A customer-visible reason is required.",
+      requestUpdatedDetailsConfirm: "Request details",
       internalNotes: "Internal notes (admin only)",
       eligibilityTitle: "Customer-app visibility",
       eligibleBody: "This provider is visible and bookable by customers.",

@@ -255,7 +255,14 @@ export function useAdminOnboardingAction() {
   return useMutation({
     mutationFn: async (input: {
       providerId: string;
-      action: "start_review" | "approve" | "request_changes" | "reject" | "suspend" | "unsuspend";
+      action:
+        | "start_review"
+        | "approve"
+        | "request_changes"
+        | "request_updated_details"
+        | "reject"
+        | "suspend"
+        | "unsuspend";
       reasonCode?: string;
       reasonPublic?: string;
       notesInternal?: string;
@@ -278,4 +285,8 @@ export function useAdminOnboardingAction() {
 
 export function onboardingEditable(status: OnboardingStatus | undefined) {
   return status === "DRAFT" || status === "NEEDS_CHANGES";
+}
+
+export function canRequestUpdatedDetails(status: OnboardingStatus | undefined) {
+  return status === "APPROVED";
 }
