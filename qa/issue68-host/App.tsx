@@ -6,7 +6,6 @@ import {
   createRoute,
   createRouter,
 } from "@tanstack/react-router";
-import { useState } from "react";
 import { ProviderOnboardingFlow } from "@/components/provider/ProviderOnboardingFlow";
 import { OnboardingRoute } from "@/routes/pro.onboarding";
 import { BookContent } from "@/routes/book.$providerId";
@@ -16,7 +15,7 @@ import { useProviders } from "@/lib/db/queries";
 import { Toaster } from "@/components/ui/sonner";
 import { ProviderOnboardingFlowPre68 } from "../tests/issue68/fixtures/ProviderOnboardingFlow.pre68";
 import { MOCK_PROVIDER_ID } from "./constants.mjs";
-import type { OnboardingStatus } from "@/lib/provider/onboarding-queries";
+import { useAdminOnboardingReview, type OnboardingStatus } from "@/lib/provider/onboarding-queries";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -117,15 +116,14 @@ const adminUpdatedDetailsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/admin-updated-details",
   component: function AdminUpdatedDetailsHarness() {
-    const [status, setStatus] = useState<OnboardingStatus>("APPROVED");
+    const review = useAdminOnboardingReview(MOCK_PROVIDER_ID);
+    const status = (
+      review.data as { provider?: { onboarding_status?: OnboardingStatus } } | undefined
+    )?.provider?.onboarding_status;
     return (
       <div data-testid="issue68-admin-updated-details">
-        <div data-testid="onboarding-status">{status}</div>
-        <RequestUpdatedDetailsAction
-          providerId={MOCK_PROVIDER_ID}
-          onboardingStatus={status}
-          onActionSuccess={() => setStatus("NEEDS_CHANGES")}
-        />
+        <div data-testid="onboarding-status">{status ?? "loading"}</div>
+        <RequestUpdatedDetailsAction providerId={MOCK_PROVIDER_ID} onboardingStatus={status} />
       </div>
     );
   },

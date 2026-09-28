@@ -93,6 +93,9 @@ function createState(repoRoot) {
     finalizeDocument: 0,
     marketplace: 0,
     adminActions: [],
+    adminReviews: 0,
+    adminProviderStatus: "APPROVED",
+    lastAdminReview: null,
     log: [],
     snapshotPatch: null,
     lastSnapshot: null,
@@ -114,6 +117,9 @@ function resetCounts(state) {
   state.finalizeDocument = 0;
   state.marketplace = 0;
   state.adminActions = [];
+  state.adminReviews = 0;
+  state.adminProviderStatus = "APPROVED";
+  state.lastAdminReview = null;
   state.log = [];
   state.snapshotPatch = null;
   state.lastSnapshot = null;
@@ -392,6 +398,29 @@ async function handleSupabase(state, req, res) {
     return;
   }
 
+  if (p === "/rest/v1/rpc/admin_provider_onboarding_review") {
+    state.adminReviews += 1;
+    const payload = {
+      provider: {
+        id: MOCK_PROVIDER_ID,
+        onboarding_status: state.adminProviderStatus,
+      },
+      profile: {},
+      details: null,
+      age_group_capabilities: [],
+      references: [],
+      documents: [],
+      services: [],
+      zones: [],
+      events: [],
+      completion: {},
+    };
+    state.lastAdminReview = payload;
+    state.log.push(`adminReview#${state.adminReviews}`);
+    sendJson(res, 200, payload);
+    return;
+  }
+
   if (p === "/rest/v1/rpc/admin_provider_onboarding_action") {
     const raw = await readBody(req);
     let payload = {};
@@ -402,6 +431,9 @@ async function handleSupabase(state, req, res) {
     }
     state.adminActions.push(payload);
     state.log.push("adminOnboardingAction");
+    if (payload.p_action === "request_updated_details") {
+      state.adminProviderStatus = "NEEDS_CHANGES";
+    }
     sendJson(res, 200, null);
     return;
   }
@@ -830,6 +862,9 @@ export function issue68MockPlugin(repoRoot) {
               finalizeDocument: state.finalizeDocument,
               marketplace: state.marketplace,
               adminActions: state.adminActions,
+              adminReviews: state.adminReviews,
+              adminProviderStatus: state.adminProviderStatus,
+              lastAdminReview: state.lastAdminReview,
               saves: state.saves,
               log: state.log,
               scenario: state.scenario,

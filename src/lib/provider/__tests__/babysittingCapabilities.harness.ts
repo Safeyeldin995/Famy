@@ -1,9 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { IntegrationFixtureRegistry } from "@/lib/qa/integrationFixtureRegistry";
 import { futureSlot, rpcCreateBooking } from "@/lib/booking/__tests__/booking.harness";
 import {
-  cleanupProviderHarness,
+  assertRunOwnedAdminsRemoved,
+  teardownRegisteredFixture,
+} from "@/lib/qa/integrationFixtureTeardown";
+// @ts-expect-error — .mjs module has no generated declarations
+import { containIntegrationFixtureResidue } from "../../../../qa/containment-integration.mjs";
+import {
   createAuthedClient,
   createRegisteredAuthUser,
   registerQaService,
@@ -15,10 +19,66 @@ import {
 
 export type { ProviderHarnessContext };
 
-export { cleanupProviderHarness, createAuthedClient, futureSlot, rpcCreateBooking };
+export { createAuthedClient, futureSlot, rpcCreateBooking };
+
+const FINGERPRINT_HEX = /^[0-9a-f]{64}$/i;
+
+function requireWrite(error: { message: string } | null, label: string) {
+  if (error) throw new Error(`${label}: ${error.message}`);
+}
+
+/**
+ * Snapshot-scoped babysitting QA teardown.
+ * Dry-runs containment first and requires the current 64-char fingerprint,
+ * then calls shared teardownRegisteredFixture with bookingRpcClient.
+ * That shared helper performs snapshot integrationMode execute — not
+ * standalone qa/containment.mjs --execute.
+ */
+export async function cleanupBabysittingQaFixture(
+  ctx: ProviderHarnessContext,
+  bookingRpcClient?: SupabaseClient<Database>,
+) {
+  const state = ctx.registry.snapshot();
+  const needsContainment =
+    state.userIds.length > 0 ||
+    state.bookingIds.length > 0 ||
+    state.serviceIds.length > 0 ||
+    state.providerIds.length > 0;
+
+  if (needsContainment) {
+    const dryRun = await containIntegrationFixtureResidue(
+      ctx.admin,
+      {
+        userIds: state.userIds,
+        adminUserIds: state.adminUserIds,
+        serviceIds: state.serviceIds,
+        providerIds: state.providerIds,
+        bookingIds: state.bookingIds,
+      },
+      { dryRun: true },
+    );
+    const fingerprint = dryRun.plan?.fingerprint;
+    if (typeof fingerprint !== "string" || !FINGERPRINT_HEX.test(fingerprint)) {
+      throw new Error(
+        `[qa-containment] babysitting fixture dry-run fingerprint missing or malformed: ${String(fingerprint)}`,
+      );
+    }
+  }
+
+  if (state.bookingIds.length > 0 && !bookingRpcClient) {
+    throw new Error(
+      "[qa-containment] babysitting fixture teardown requires bookingRpcClient before pending-booking cancel",
+    );
+  }
+
+  await teardownRegisteredFixture(ctx.admin, ctx.registry, undefined, { bookingRpcClient });
+  await assertRunOwnedAdminsRemoved(ctx.admin, ctx.registry.getRunOwnedAdminUserIds());
+}
 
 export function monthsBeforeUtc(date: Date, months: number): string {
-  const copy = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() - months, date.getUTCDate()));
+  const copy = new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth() - months, date.getUTCDate()),
+  );
   return copy.toISOString().slice(0, 10);
 }
 
@@ -37,11 +97,19 @@ export async function requireBabysittingCatalogue(admin: SupabaseClient<Database
   if (codes.join(",") !== "newborn,infant,toddler,preschool,school_age,teenager") {
     throw new Error(`Unexpected child_age_groups catalogue: ${JSON.stringify(data)}`);
   }
-  const { error: maxError } = await admin.from("providers").select("max_children_per_booking").limit(1);
+  const { error: maxError } = await admin
+    .from("providers")
+    .select("max_children_per_booking")
+    .limit(1);
   if (maxError) {
-    throw new Error(`providers.max_children_per_booking missing — apply Phase A first: ${maxError.message}`);
+    throw new Error(
+      `providers.max_children_per_booking missing — apply Phase A first: ${maxError.message}`,
+    );
   }
-  const { error: capError } = await admin.from("provider_age_group_capabilities").select("provider_id").limit(1);
+  const { error: capError } = await admin
+    .from("provider_age_group_capabilities")
+    .select("provider_id")
+    .limit(1);
   if (capError) {
     throw new Error(
       `provider_age_group_capabilities missing — apply Phase A first: ${capError.message}`,
@@ -62,10 +130,14 @@ async function completeAndApproveProvider(
     babysitting: boolean;
   },
 ) {
-  await ctx.admin.from("profiles").update({
-    avatar_url: `https://cdn.example/qa-babysit-${args.providerUserId}.jpg`,
-    full_name: "QA Babysitting Provider",
-  }).eq("id", args.providerUserId);
+  const profileUpdate = await ctx.admin
+    .from("profiles")
+    .update({
+      avatar_url: `https://cdn.example/qa-babysit-${args.providerUserId}.jpg`,
+      full_name: "QA Babysitting Provider",
+    })
+    .eq("id", args.providerUserId);
+  requireWrite(profileUpdate.error, "profiles.update");
 
   const experience = args.babysitting
     ? {
@@ -79,23 +151,29 @@ async function completeAndApproveProvider(
     : { years_experience: 3, bio_en: "QA cleaning bio", bio_ar: "", languages: ["en"] };
 
   const sections = [
-    ["personal", {
-      legal_name: "QA Babysitting Provider",
-      date_of_birth: "1990-01-01",
-      gender: "female",
-      governorate: "Cairo",
-      area: "Maadi",
-      full_address: "123 QA Babysitting Street",
-    }],
+    [
+      "personal",
+      {
+        legal_name: "QA Babysitting Provider",
+        date_of_birth: "1990-01-01",
+        gender: "female",
+        governorate: "Cairo",
+        area: "Maadi",
+        full_address: "123 QA Babysitting Street",
+      },
+    ],
     ["services", { service_ids: [args.serviceId] }],
     ["experience", experience],
     ["coverage", { zone_ids: [args.zoneId] }],
-    ["references", {
-      references: [
-        { full_name: "Ref One", relationship: "Friend", phone: "+201011122233" },
-        { full_name: "Ref Two", relationship: "Neighbor", phone: "+201022233344" },
-      ],
-    }],
+    [
+      "references",
+      {
+        references: [
+          { full_name: "Ref One", relationship: "Friend", phone: "+201011122233" },
+          { full_name: "Ref Two", relationship: "Neighbor", phone: "+201022233344" },
+        ],
+      },
+    ],
   ] as const;
 
   for (const [section, payload] of sections) {
@@ -104,10 +182,21 @@ async function completeAndApproveProvider(
       p_payload: payload as never,
     });
     if (saved.error) throw saved.error;
+    if (section === "services") {
+      ctx.registry.registerProviderService(args.providerId, args.serviceId);
+    }
+    if (section === "coverage") {
+      ctx.registry.registerZoneProvider(args.zoneId, args.providerId);
+    }
   }
 
   for (const type of ["id_card_front", "id_card_back", "profile_photo"] as const) {
-    await ctx.admin.from("provider_documents").delete().eq("provider_id", args.providerId).eq("type", type);
+    const removed = await ctx.admin
+      .from("provider_documents")
+      .delete()
+      .eq("provider_id", args.providerId)
+      .eq("type", type);
+    requireWrite(removed.error, `provider_documents.delete:${type}`);
     const doc = await ctx.admin.from("provider_documents").insert({
       provider_id: args.providerId,
       type,
@@ -135,10 +224,12 @@ async function completeAndApproveProvider(
   });
   if (startReview.error) throw startReview.error;
 
-  const { data: docs } = await ctx.admin.from("provider_documents")
+  const docs = await ctx.admin
+    .from("provider_documents")
     .select("id")
     .eq("provider_id", args.providerId);
-  for (const doc of docs ?? []) {
+  requireWrite(docs.error, "provider_documents.select");
+  for (const doc of docs.data ?? []) {
     const reviewed = await args.adminClient.rpc("admin_review_provider_document", {
       p_document_id: doc.id,
       p_status: "approved",
@@ -152,7 +243,8 @@ async function completeAndApproveProvider(
   });
   if (approve.error) throw approve.error;
 
-  const { data: providerService, error: psError } = await ctx.admin.from("provider_services")
+  const { data: providerService, error: psError } = await ctx.admin
+    .from("provider_services")
     .select("id")
     .eq("provider_id", args.providerId)
     .eq("service_id", args.serviceId)
@@ -163,17 +255,30 @@ async function completeAndApproveProvider(
     p_status: "approved",
   });
   if (serviceApproval.error) throw serviceApproval.error;
-  await ctx.admin.from("provider_services").update({ price_override: 100 }).eq("id", providerService.id);
-  await ctx.admin.from("providers").update({ hourly_rate: 100, vacation_mode: false, is_active: true }).eq("id", args.providerId);
+  const priced = await ctx.admin
+    .from("provider_services")
+    .update({ price_override: 100 })
+    .eq("id", providerService.id);
+  requireWrite(priced.error, "provider_services.price_override");
+  const rates = await ctx.admin
+    .from("providers")
+    .update({ hourly_rate: 100, vacation_mode: false, is_active: true })
+    .eq("id", args.providerId);
+  requireWrite(rates.error, "providers.hourly_rate");
 
-  await ctx.admin.from("availability_rules").delete().eq("provider_id", args.providerId);
+  const clearedRules = await ctx.admin
+    .from("availability_rules")
+    .delete()
+    .eq("provider_id", args.providerId);
+  requireWrite(clearedRules.error, "availability_rules.delete");
   for (const weekday of [0, 1, 2, 3, 4, 5, 6]) {
-    await ctx.admin.from("availability_rules").insert({
+    const rule = await ctx.admin.from("availability_rules").insert({
       provider_id: args.providerId,
       weekday,
       start_time: "08:00",
       end_time: "20:00",
     });
+    requireWrite(rule.error, `availability_rules.insert:${weekday}`);
   }
 }
 
@@ -223,7 +328,10 @@ export async function seedBabysittingQaFixture(ctx: ProviderHarnessContext) {
     phone: `+20114${stamp.toString().slice(-7)}`,
     admin: true,
   });
-  await ctx.admin.from("user_roles").upsert({ user_id: providerAdminUserId, role: "admin" });
+  const providerAdminRole = await ctx.admin
+    .from("user_roles")
+    .upsert({ user_id: providerAdminUserId, role: "admin" });
+  requireWrite(providerAdminRole.error, "user_roles.provider_admin");
   const cleaningUserId = await createRegisteredAuthUser(ctx, {
     email: cleaningEmail,
     password: "QaBabysitCL123!",
@@ -236,7 +344,11 @@ export async function seedBabysittingQaFixture(ctx: ProviderHarnessContext) {
   const adminClient = await createAuthedClient(adminEmail, "QaBabysitA123!", ctx.anonKey);
   const customerClient = await createAuthedClient(customerEmail, "QaBabysitC123!", ctx.anonKey);
   const otherClient = await createAuthedClient(otherEmail, "QaBabysitO123!", ctx.anonKey);
-  const providerAdminClient = await createAuthedClient(providerAdminEmail, "QaBabysitPA123!", ctx.anonKey);
+  const providerAdminClient = await createAuthedClient(
+    providerAdminEmail,
+    "QaBabysitPA123!",
+    ctx.anonKey,
+  );
   const cleaningClient = await createAuthedClient(cleaningEmail, "QaBabysitCL123!", ctx.anonKey);
 
   const providerId = await startRegisteredProvider(ctx, providerClient);
@@ -257,16 +369,26 @@ export async function seedBabysittingQaFixture(ctx: ProviderHarnessContext) {
   });
   const isolated = { lat: 1.001, lng: 1.001 };
   const zoneId = await registerQaZone(ctx, { name: `QA_ babysit zone ${stamp}` });
-  await ctx.admin.from("zones").update({
-    polygon: [
-      { lat: 1.0, lng: 1.0 },
-      { lat: 1.0, lng: 1.02 },
-      { lat: 1.02, lng: 1.0 },
-    ],
-  }).eq("id", zoneId);
-  await ctx.admin.from("zone_services").insert({ zone_id: zoneId, service_id: babysittingServiceId });
-  await ctx.admin.from("zone_services").insert({ zone_id: zoneId, service_id: cleaningServiceId });
+  const zoneShape = await ctx.admin
+    .from("zones")
+    .update({
+      polygon: [
+        { lat: 1.0, lng: 1.0 },
+        { lat: 1.0, lng: 1.02 },
+        { lat: 1.02, lng: 1.0 },
+      ],
+    })
+    .eq("id", zoneId);
+  requireWrite(zoneShape.error, "zones.polygon");
+  const babysittingZoneService = await ctx.admin
+    .from("zone_services")
+    .insert({ zone_id: zoneId, service_id: babysittingServiceId });
+  requireWrite(babysittingZoneService.error, "zone_services.babysitting");
   ctx.registry.registerZoneService(zoneId, babysittingServiceId);
+  const cleaningZoneService = await ctx.admin
+    .from("zone_services")
+    .insert({ zone_id: zoneId, service_id: cleaningServiceId });
+  requireWrite(cleaningZoneService.error, "zone_services.cleaning");
   ctx.registry.registerZoneService(zoneId, cleaningServiceId);
 
   await completeAndApproveProvider(ctx, {
@@ -289,21 +411,20 @@ export async function seedBabysittingQaFixture(ctx: ProviderHarnessContext) {
     zoneId,
     babysitting: false,
   });
-  ctx.registry.registerZoneProvider(zoneId, providerId);
-  ctx.registry.registerZoneProvider(zoneId, cleaningProviderId);
-  ctx.registry.registerProviderService(providerId, babysittingServiceId);
-  ctx.registry.registerProviderService(cleaningProviderId, cleaningServiceId);
-
-  const { data: address, error: addressError } = await ctx.admin.from("addresses").insert({
-    user_id: customerId,
-    label: "home",
-    line1: "QA Babysit Home",
-    area: "Isolated",
-    city: "QA",
-    lat: isolated.lat,
-    lng: isolated.lng,
-    is_default: true,
-  }).select("id").single();
+  const { data: address, error: addressError } = await ctx.admin
+    .from("addresses")
+    .insert({
+      user_id: customerId,
+      label: "home",
+      line1: "QA Babysit Home",
+      area: "Isolated",
+      city: "QA",
+      lat: isolated.lat,
+      lng: isolated.lng,
+      is_default: true,
+    })
+    .select("id")
+    .single();
   if (addressError) throw addressError;
   ctx.registry.registerAddress(address.id);
 
@@ -337,13 +458,17 @@ export async function insertOwnedChild(
   customerId: string,
   dateOfBirth: string,
 ) {
-  const { data, error } = await ctx.admin.from("family_members").insert({
-    customer_id: customerId,
-    full_name: "QA Toddler",
-    relationship: "daughter",
-    date_of_birth: dateOfBirth,
-    is_active: true,
-  }).select("id").single();
+  const { data, error } = await ctx.admin
+    .from("family_members")
+    .insert({
+      customer_id: customerId,
+      full_name: "QA Toddler",
+      relationship: "daughter",
+      date_of_birth: dateOfBirth,
+      is_active: true,
+    })
+    .select("id")
+    .single();
   if (error) throw error;
   return data.id;
 }

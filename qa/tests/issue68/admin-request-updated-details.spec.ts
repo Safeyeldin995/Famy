@@ -8,6 +8,10 @@ test.describe("admin request updated details dialog", () => {
     await page.goto("/admin-updated-details");
     await expect(page.getByTestId("onboarding-status")).toHaveText("APPROVED");
 
+    const before = await mocks.getCalls();
+    expect(before.adminReviews).toBeGreaterThanOrEqual(1);
+    expect(before.lastAdminReview?.provider?.onboarding_status).toBe("APPROVED");
+
     const open = page.getByRole("button", { name: "Request updated details" });
     await expect(open).toBeVisible();
     await open.click();
@@ -34,6 +38,17 @@ test.describe("admin request updated details dialog", () => {
       p_reason_code: "updated_details_required",
       p_reason_public: "Need babysitting age-group declaration",
     });
+
+    await expect
+      .poll(async () => {
+        const calls = await mocks.getCalls();
+        return (
+          calls.adminReviews >= before.adminReviews + 1 &&
+          calls.lastAdminReview?.provider?.onboarding_status === "NEEDS_CHANGES" &&
+          calls.adminProviderStatus === "NEEDS_CHANGES"
+        );
+      })
+      .toBe(true);
 
     await expect(page.getByTestId("onboarding-status")).toHaveText("NEEDS_CHANGES");
     await expect(page.getByRole("button", { name: "Request updated details" })).toHaveCount(0);
