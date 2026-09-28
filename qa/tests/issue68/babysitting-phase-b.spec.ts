@@ -6,22 +6,33 @@ import {
 } from "./mock-supabase.mjs";
 import { MOCK_PROVIDER_ID } from "../../issue68-host/constants.mjs";
 
+async function continueFromServiceToForWhom(page) {
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByRole("heading", { name: "Pick date & time" })).toBeVisible();
+  const time = page.getByRole("combobox", { name: /Time/ });
+  await expect(time).toBeVisible();
+  await time.selectOption({ index: 1 });
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+}
+
 test.describe("Phase B babysitting declaration and one-child booking UI", () => {
   test("onboarding experience saves catalogue capabilities and max children", async ({ page }) => {
     const mocks = await installIssue68Mocks(page, { scenario: "default" });
     await gotoOnboardingHarness(page, "current");
     await openOnboardingStep(page, "Services");
-    await page.getByRole("button", { name: "Babysitting", exact: true }).click();
+    await page.getByRole("button", { name: /^Babysitting/ }).click();
     await page.getByRole("button", { name: "Continue" }).click();
 
-    await expect(page.getByText("Infants")).toBeVisible();
-    await expect(page.getByText("Toddlers")).toBeVisible();
-    await expect(page.getByText("Teenagers")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Infants", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Toddlers", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Teenagers", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "School", exact: true })).toHaveCount(0);
 
     const maxChildren = page.locator('input[type="number"]').nth(1);
     await maxChildren.fill("2");
-    await page.getByRole("button", { name: "Infants" }).click();
+    await page.getByRole("button", { name: "Infants", exact: true }).click();
     await page.getByRole("button", { name: "Continue" }).click();
 
     await expect
@@ -52,7 +63,10 @@ test.describe("Phase B babysitting declaration and one-child booking UI", () => 
     const years = page.locator('input[type="number"]').first();
     await years.fill("11");
     await expect(years).toHaveValue("11");
-    await expect(legalName).toHaveValue("Unsaved legal name edit");
+    await openOnboardingStep(page, "Personal details");
+    await expect(page.getByRole("textbox", { name: "Full legal name" })).toHaveValue(
+      "Unsaved legal name edit",
+    );
     await mocks.assertIsolated();
   });
 
@@ -62,17 +76,7 @@ test.describe("Phase B babysitting declaration and one-child booking UI", () => 
     const sitMocks = await installIssue68Mocks(page, { scenario: "book-babysitting" });
     await page.goto(`/book/${MOCK_PROVIDER_ID}?serviceId=svc-sit`);
     await expect(page.getByText("Babysitting").first()).toBeVisible({ timeout: 15_000 });
-    await page.getByRole("button", { name: "Continue" }).click();
-    await page.getByRole("button", { name: "Continue" }).click();
-    const firstSlot = page
-      .getByRole("button")
-      .filter({ hasText: /AM|PM|ص|م/ })
-      .first();
-    if (await firstSlot.isVisible().catch(() => false)) {
-      await firstSlot.click();
-    }
-    await page.getByRole("button", { name: "Continue" }).click();
-    await page.getByRole("button", { name: "Continue" }).click();
+    await continueFromServiceToForWhom(page);
     await expect(page.getByText("Which child is this for?")).toBeVisible();
     await expect(page.getByRole("button", { name: "Myself", exact: true })).toHaveCount(0);
     await expect(page.getByText("Layla")).toBeVisible();
@@ -84,17 +88,7 @@ test.describe("Phase B babysitting declaration and one-child booking UI", () => 
     const cleanMocks = await installIssue68Mocks(page, { scenario: "book-cleaning" });
     await page.goto(`/book/${MOCK_PROVIDER_ID}?serviceId=svc-clean`);
     await expect(page.getByText("Deep Home Cleaning").first()).toBeVisible({ timeout: 15_000 });
-    await page.getByRole("button", { name: "Continue" }).click();
-    await page.getByRole("button", { name: "Continue" }).click();
-    const cleanSlot = page
-      .getByRole("button")
-      .filter({ hasText: /AM|PM|ص|م/ })
-      .first();
-    if (await cleanSlot.isVisible().catch(() => false)) {
-      await cleanSlot.click();
-    }
-    await page.getByRole("button", { name: "Continue" }).click();
-    await page.getByRole("button", { name: "Continue" }).click();
+    await continueFromServiceToForWhom(page);
     await expect(page.getByRole("button", { name: "Myself", exact: true })).toBeVisible();
     await cleanMocks.assertIsolated();
   });
