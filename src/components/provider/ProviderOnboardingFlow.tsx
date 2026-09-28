@@ -24,6 +24,7 @@ import {
   useMySavedSelections,
   useOnboardingSnapshot,
   usePhase1Services,
+  useChildAgeGroups,
   useSaveOnboardingSection,
   useSecureUploadDocument,
   useSubmitOnboarding,
@@ -43,6 +44,13 @@ import {
   combineSavedSelectionLoadState,
   savedSelectionLoadState,
 } from "@/lib/provider/onboardingHydration";
+import {
+  CATALOGUE_AGE_GROUP_CODES,
+  buildAgeGroupCapabilitiesPayload,
+  catalogueLabel,
+  type AgeGroupCapabilityForm,
+  type ChildAgeGroupRow,
+} from "@/lib/provider/ageGroupCapabilities";
 import { useAvatarUrl } from "@/lib/db/queries";
 
 const STEPS: OnboardingSection[] = [
@@ -96,6 +104,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
   const submit = useSubmitOnboarding();
   const uploadDoc = useSecureUploadDocument();
   const servicesQ = usePhase1Services();
+  const catalogueQ = useChildAgeGroups();
   const zonesQ = useActiveZones();
 
   const provider = providerQ.data as any;
@@ -140,6 +149,8 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
   );
   const [langs, setLangs] = useState<string[]>(["arabic"]);
   const [childGroups, setChildGroups] = useState<string[]>([]);
+  const [capabilityForms, setCapabilityForms] = useState<AgeGroupCapabilityForm[]>([]);
+  const [maxChildren, setMaxChildren] = useState<number | "">(previewMode ? 2 : "");
   const [newborn, setNewborn] = useState(false);
   const [firstAid, setFirstAid] = useState(false);
   const [selectedServices, setSelectedServices] = useState<string[]>(
@@ -180,6 +191,8 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
     setPreviousWork(hydrated.previousWork);
     setLangs(hydrated.langs);
     setChildGroups(hydrated.childGroups);
+    setCapabilityForms(hydrated.capabilityForms);
+    setMaxChildren(hydrated.maxChildren ?? "");
     setNewborn(hydrated.newborn);
     setFirstAid(hydrated.firstAid);
     setConfirmed(hydrated.confirmed);
@@ -228,6 +241,39 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
     );
   }, [selectedServices, servicesQ.data]);
 
+  const ageGroupCatalogue: ChildAgeGroupRow[] = useMemo(() => {
+    const rows = (catalogueQ.data ?? []) as ChildAgeGroupRow[];
+    if (rows.length > 0) return rows;
+    return CATALOGUE_AGE_GROUP_CODES.map((code, index) => ({
+      code,
+      sort_order: index + 1,
+    }));
+  }, [catalogueQ.data]);
+
+  const toggleAgeGroup = (code: string, verified: boolean) => {
+    if (verified || !editable) return;
+    setChildGroups((current) => {
+      const next = current.includes(code)
+        ? current.filter((item) => item !== code)
+        : [...current, code];
+      return next;
+    });
+    setCapabilityForms((current) => {
+      if (current.some((row) => row.code === code)) return current;
+      return [...current, { code, years_experience: null, note: "", verified: false }];
+    });
+  };
+
+  const updateCapabilityForm = (code: string, patch: Partial<AgeGroupCapabilityForm>) => {
+    setCapabilityForms((current) => {
+      const existing = current.find((row) => row.code === code);
+      if (existing) {
+        return current.map((row) => (row.code === code ? { ...row, ...patch } : row));
+      }
+      return [...current, { code, years_experience: null, note: "", verified: false, ...patch }];
+    });
+  };
+
   const saveCurrent = async () => {
     setErr("");
     try {
@@ -256,18 +302,32 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
           },
         });
       } else if (current === "experience") {
+        const experiencePayload: Record<string, unknown> = {
+          years_experience: years,
+          bio_en: bioEn,
+          bio_ar: bioAr,
+          previous_work: previousWork,
+          languages: langs,
+          newborn_experience: newborn,
+          first_aid_training: firstAid,
+        };
+        if (babysittingSelected) {
+          const selectedCodes = [
+            ...new Set([
+              ...childGroups,
+              ...capabilityForms.filter((row) => row.verified).map((row) => row.code),
+            ]),
+          ];
+          experiencePayload.age_group_capabilities = buildAgeGroupCapabilitiesPayload(
+            selectedCodes,
+            capabilityForms,
+          );
+          experiencePayload.max_children_per_booking =
+            maxChildren === "" ? null : Number(maxChildren);
+        }
         await saveSection.mutateAsync({
           section: "experience",
-          payload: {
-            years_experience: years,
-            bio_en: bioEn,
-            bio_ar: bioAr,
-            previous_work: previousWork,
-            languages: langs,
-            child_age_groups: childGroups,
-            newborn_experience: newborn,
-            first_aid_training: firstAid,
-          },
+          payload: experiencePayload,
         });
       } else if (current === "services") {
         const packed = buildServicesSavePayload(
@@ -682,28 +742,98 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
             </Field>
             {babysittingSelected && (
               <div className="space-y-3 rounded-2xl border border-border/50 bg-surface-2/50 p-4">
+                <Field label={t("pro.onboardingWizard.maxChildren")}>
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={maxChildren}
+                    disabled={!editable}
+                    onChange={(e) =>
+                      setMaxChildren(e.target.value === "" ? "" : Number(e.target.value))
+                    }
+                    className={inputClass}
+                  />
+                </Field>
                 <Field label={t("pro.onboardingWizard.childAgeGroups")}>
                   <div className="flex flex-wrap gap-2">
-                    {["newborn", "toddler", "school"].map((g) => (
-                      <button
-                        key={g}
-                        type="button"
-                        onClick={() =>
-                          setChildGroups((s) =>
-                            s.includes(g) ? s.filter((x) => x !== g) : [...s, g],
-                          )
-                        }
-                        className={`rounded-full px-3 py-1.5 text-xs font-extrabold ${
-                          childGroups.includes(g)
-                            ? "bg-brand text-brand-foreground"
-                            : "border border-border bg-surface"
-                        }`}
-                      >
-                        {t(`pro.onboardingWizard.ageGroups.${g}`)}
-                      </button>
-                    ))}
+                    {ageGroupCatalogue.map((group) => {
+                      const form = capabilityForms.find((row) => row.code === group.code);
+                      const verified = Boolean(form?.verified);
+                      const on = childGroups.includes(group.code) || verified;
+                      return (
+                        <button
+                          key={group.code}
+                          type="button"
+                          disabled={!editable || verified}
+                          onClick={() => toggleAgeGroup(group.code, verified)}
+                          className={`rounded-full px-3 py-1.5 text-xs font-extrabold ${
+                            on
+                              ? "bg-brand text-brand-foreground"
+                              : "border border-border bg-surface"
+                          } ${!editable || verified ? "opacity-80" : ""}`}
+                        >
+                          {catalogueLabel(group, lang === "ar" ? "ar" : "en") ||
+                            t(`pro.onboardingWizard.ageGroups.${group.code}`, group.code)}
+                        </button>
+                      );
+                    })}
                   </div>
                 </Field>
+                {ageGroupCatalogue
+                  .filter(
+                    (group) =>
+                      childGroups.includes(group.code) ||
+                      capabilityForms.some((row) => row.code === group.code && row.verified),
+                  )
+                  .map((group) => {
+                    const form = capabilityForms.find((row) => row.code === group.code);
+                    const verified = Boolean(form?.verified);
+                    const locked = !editable || verified;
+                    return (
+                      <div
+                        key={`years-${group.code}`}
+                        className="space-y-2 rounded-xl border border-border/40 p-3"
+                      >
+                        <div className="text-xs font-extrabold text-foreground">
+                          {catalogueLabel(group, lang === "ar" ? "ar" : "en") ||
+                            t(`pro.onboardingWizard.ageGroups.${group.code}`, group.code)}
+                          {verified ? (
+                            <span className="ms-2 font-semibold text-muted-foreground">
+                              {t("pro.onboardingWizard.verifiedClaim")}
+                            </span>
+                          ) : null}
+                        </div>
+                        <Field label={t("pro.onboardingWizard.yearsWithGroup")}>
+                          <input
+                            type="number"
+                            min={0}
+                            max={60}
+                            disabled={locked}
+                            value={form?.years_experience ?? ""}
+                            onChange={(e) =>
+                              updateCapabilityForm(group.code, {
+                                years_experience:
+                                  e.target.value === "" ? null : Number(e.target.value),
+                              })
+                            }
+                            className={inputClass}
+                          />
+                        </Field>
+                        <Field label={t("pro.onboardingWizard.groupNote")}>
+                          <textarea
+                            rows={2}
+                            disabled={locked}
+                            value={form?.note ?? ""}
+                            onChange={(e) =>
+                              updateCapabilityForm(group.code, { note: e.target.value })
+                            }
+                            className={`${inputClass} min-h-[3.5rem] py-2`}
+                          />
+                        </Field>
+                      </div>
+                    );
+                  })}
                 <label className="flex items-center gap-2 text-sm font-medium">
                   <input
                     type="checkbox"

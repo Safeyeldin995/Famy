@@ -103,6 +103,33 @@ describe("mapSnapshotToOnboardingFormState", () => {
     expect(state).not.toHaveProperty("ref1");
     expect(state).not.toHaveProperty("ref2");
   });
+
+  it("hydrates capabilities and max children from snapshot, not legacy child_age_groups", () => {
+    const state = mapSnapshotToOnboardingFormState({
+      ...SNAPSHOT_WITH_PROVIDER,
+      provider: { ...SNAPSHOT_WITH_PROVIDER.provider, max_children_per_booking: 3 },
+      age_group_capabilities: [
+        { code: "toddler", years_experience: 4, note: "naps", verified_at: "2026-09-01T00:00:00Z" },
+        { code: "infant", years_experience: 1, note: null, verified_at: null },
+      ],
+    });
+    expect(state.childGroups).toEqual(["toddler", "infant"]);
+    expect(state.maxChildren).toBe(3);
+    expect(state.capabilityForms[0]).toMatchObject({
+      code: "toddler",
+      verified: true,
+      note: "naps",
+    });
+    expect(state.capabilityForms[1]?.verified).toBe(false);
+  });
+
+  it("does not invent catalogue claims from a legacy child_age_groups array", () => {
+    const state = mapSnapshotToOnboardingFormState(SNAPSHOT_WITH_PROVIDER);
+    expect(SNAPSHOT_WITH_PROVIDER.details.child_age_groups).toEqual(["school"]);
+    expect(state.childGroups).toEqual([]);
+    expect(state.capabilityForms).toEqual([]);
+    expect(state.maxChildren).toBeNull();
+  });
 });
 
 describe("mapSavedServiceIds", () => {

@@ -5,6 +5,7 @@ import path from "node:path";
 const MIGRATIONS_DIR = path.resolve(process.cwd(), "supabase/migrations");
 
 export const BABYSITTING_MIGRATION = "20260912090000_babysitting_capabilities.sql";
+export const DECLARATION_MIGRATION = "20260928081021_babysitting_declaration_save.sql";
 
 export const TABLE_PRIVILEGES = [
   "SELECT",
@@ -317,6 +318,10 @@ export async function grantPermissiveTableAcls(db: PGlite, tableName: string): P
 
 export async function applyBabysittingMigration(db: PGlite): Promise<void> {
   await applySql(db, readMigration(BABYSITTING_MIGRATION));
+}
+
+export async function applyDeclarationMigration(db: PGlite): Promise<void> {
+  await applySql(db, readMigration(DECLARATION_MIGRATION));
 }
 
 export async function tablePrivilegeMatrix(db: PGlite, tableName: string): Promise<PrivilegeRow[]> {

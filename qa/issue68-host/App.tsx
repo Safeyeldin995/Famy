@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-router";
 import { ProviderOnboardingFlow } from "@/components/provider/ProviderOnboardingFlow";
 import { OnboardingRoute } from "@/routes/pro.onboarding";
+import { BookContent } from "@/routes/book.$providerId";
 import { LanguageProvider } from "@/lib/i18n/LanguageProvider";
 import { useProviders } from "@/lib/db/queries";
 import { Toaster } from "@/components/ui/sonner";
@@ -108,12 +109,30 @@ const proOnboardingRoute = createRoute({
   },
 });
 
+const bookRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/book/$providerId",
+  validateSearch: (search: Record<string, unknown>) => ({
+    serviceId: typeof search.serviceId === "string" ? search.serviceId : undefined,
+  }),
+  component: function BookHarness() {
+    const { providerId } = bookRoute.useParams();
+    const { serviceId } = bookRoute.useSearch();
+    return (
+      <div data-testid="issue68-book">
+        <BookContent providerId={providerId} searchServiceId={serviceId} />
+      </div>
+    );
+  },
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   onboardingRoute,
   marketplaceRoute,
   proRoute,
   proOnboardingRoute,
+  bookRoute,
 ]);
 const router = createRouter({ routeTree });
 

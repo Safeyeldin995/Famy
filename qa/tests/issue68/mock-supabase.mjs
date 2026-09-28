@@ -52,6 +52,12 @@ function isLocalUrl(url) {
  *   scenario?: "default" | "returning" | "new-provider" | "saved-data-error";
  * }} [options]
  */
+function isImageCdn(url) {
+  return (
+    url.includes("picsum.photos") || url.includes("pravatar.cc") || url.includes("i.pravatar.cc")
+  );
+}
+
 export async function installIssue68Mocks(page, options = {}) {
   const blockedExternal = [];
   const lang = options.lang === "ar" ? "ar" : "en";
@@ -77,6 +83,17 @@ export async function installIssue68Mocks(page, options = {}) {
     const url = route.request().url();
     if (isLocalUrl(url)) {
       await route.continue();
+      return;
+    }
+    if (isImageCdn(url)) {
+      await route.fulfill({
+        status: 200,
+        contentType: "image/jpeg",
+        body: Buffer.from(
+          "/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxAQEBUQEBAVFRUVFRUVFRUVFRUVFRUWFxUVFRUYHSggGBolGxUVITEhJSkrLi4uFx8zODMtNygtLisBCgoKDg0OGxAQGy0lHyUtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAAEAAQMBIgACEQEDEQH/xAAXAAEBAQEAAAAAAAAAAAAAAAAAAQID/8QAFhEBAQEAAAAAAAAAAAAAAAAAAAER/9oADAMBAAIQAxAAAAG6P//Z",
+          "base64",
+        ),
+      });
       return;
     }
     blockedExternal.push(url);

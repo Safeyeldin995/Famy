@@ -1,12 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  PhoneFrame,
-  PrimaryButton,
-  Card,
-  EmptyState,
-  Avatar,
-} from "@/components/famio/ui";
+import { PhoneFrame, PrimaryButton, Card, EmptyState, Avatar } from "@/components/famio/ui";
 import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
 import { CustomerFloatingPanel } from "@/components/famio/CustomerFloatingPanel";
 import {
@@ -58,6 +52,14 @@ import {
 import { planPostCreatePayment, stashPendingPayment } from "@/lib/booking/post-create-payment";
 import { BookScheduleStep } from "@/components/famio/BookScheduleStep";
 import { previewPath } from "@/lib/preview/previewPath";
+import {
+  bookingFamilyMemberId,
+  canContinueForWhom,
+  defaultForWhom,
+  familyMemberSelectableForBabysitting,
+  isBabysittingCategorySlug,
+  showMyselfOption,
+} from "@/lib/booking/babysittingRecipient";
 
 export const Route = createFileRoute("/book/$providerId")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -172,6 +174,7 @@ export function BookContent({
     () => services.find((s: any) => s.service?.id === serviceId) ?? services[0],
     [services, serviceId],
   );
+  const isBabysitting = isBabysittingCategorySlug(activeService?.service?.category?.slug);
   const hours = parseInt(duration);
   // Must run unconditionally on every render (Rules of Hooks) — this was
   // previously declared after the loading/not-found early returns below,
@@ -187,6 +190,15 @@ export function BookContent({
     addressId: slotAddressId,
   });
   const requirementsQ = useRequirementsForService(activeService?.service?.id);
+
+  useEffect(() => {
+    if (isBabysitting && forWhom === "myself") {
+      setForWhom(defaultForWhom(true));
+    } else if (!isBabysitting && forWhom === "") {
+      setForWhom(defaultForWhom(false));
+    }
+  }, [isBabysitting, forWhom]);
+
   const filteredSlots = useMemo(() => {
     const slots = slotsQ.data ?? [];
     if (timeBand === "all") return slots;
@@ -292,7 +304,9 @@ export function BookContent({
   }
 
   const selectedFamilyMember =
-    forWhom !== "myself" ? (familyMembersQ.data ?? []).find((m: any) => m.id === forWhom) : null;
+    forWhom !== "myself" && forWhom !== ""
+      ? (familyMembersQ.data ?? []).find((m: any) => m.id === forWhom)
+      : null;
   const forWhomLabel =
     forWhom === "myself"
       ? t("bookFlow.forWhomMyself", "Myself")
@@ -338,7 +352,12 @@ export function BookContent({
     if (step === SCHEDULE_STEP) return !!date && !!time;
     if (step === 3) return !!addressId && !!zoneQ.data;
     if (step === 4)
-      return forWhom === "myself" || (familyMembersQ.data ?? []).some((m: any) => m.id === forWhom);
+      return canContinueForWhom({
+        isBabysitting,
+        forWhom,
+        members: familyMembersQ.data ?? [],
+        startAt: selectedSlot?.start ?? null,
+      });
     if (step === 6) return eitherRequirements.every((r: any) => !!requirementChoices[r.id]);
     if (step === 8) return !!paymentMethodId;
     return true;
@@ -438,7 +457,7 @@ export function BookContent({
         provider_id: p.id,
         service_id: activeService.service.id,
         address_id: addressId!,
-        family_member_id: forWhom === "myself" ? null : forWhom,
+        family_member_id: bookingFamilyMemberId(forWhom),
         start_at: start.toISOString(),
         end_at: end.toISOString(),
         promo_code_id: promoStatus === "applied" ? appliedPromoId : null,
@@ -746,26 +765,41 @@ export function BookContent({
 
         {step === 4 && (
           <Step
-            title={t("bookFlow.forWhomTitle", "Who is this for?")}
-            sub={t("bookFlow.forWhomSub", "Choose yourself or a saved family member.")}
+            title={t(
+              isBabysitting ? "bookFlow.forWhomChildTitle" : "bookFlow.forWhomTitle",
+              isBabysitting ? "Which child is this for?" : "Who is this for?",
+            )}
+            sub={t(
+              isBabysitting ? "bookFlow.forWhomChildSub" : "bookFlow.forWhomSub",
+              isBabysitting
+                ? "Babysitting bookings are for one saved child."
+                : "Choose yourself or a saved family member.",
+            )}
           >
             <div className="space-y-2">
-              <button
-                onClick={() => setForWhom("myself")}
-                className={`focus-ring tap-scale flex w-full items-center justify-between rounded-[1.25rem] border p-4 text-start transition-all ${forWhom === "myself" ? "border-brand bg-brand/5" : "border-border/60 bg-surface-elevated"}`}
-              >
-                <span className="font-bold">{t("bookFlow.forWhomMyself", "Myself")}</span>
-                <span
-                  className={`grid h-6 w-6 place-items-center rounded-full border-2 ${forWhom === "myself" ? "border-brand bg-brand text-brand-foreground" : "border-border"}`}
+              {showMyselfOption(isBabysitting) ? (
+                <button
+                  onClick={() => setForWhom("myself")}
+                  className={`focus-ring tap-scale flex w-full items-center justify-between rounded-[1.25rem] border p-4 text-start transition-all ${forWhom === "myself" ? "border-brand bg-brand/5" : "border-border/60 bg-surface-elevated"}`}
                 >
-                  {forWhom === "myself" && <Check className="h-3.5 w-3.5" />}
-                </span>
-              </button>
+                  <span className="font-bold">{t("bookFlow.forWhomMyself", "Myself")}</span>
+                  <span
+                    className={`grid h-6 w-6 place-items-center rounded-full border-2 ${forWhom === "myself" ? "border-brand bg-brand text-brand-foreground" : "border-border"}`}
+                  >
+                    {forWhom === "myself" && <Check className="h-3.5 w-3.5" />}
+                  </span>
+                </button>
+              ) : null}
               {familyMembersQ.isLoading ? (
                 <div className="h-16 animate-pulse rounded-2xl bg-surface-2" />
               ) : (familyMembersQ.data ?? []).length === 0 ? (
                 <div className="rounded-2xl bg-surface-2 p-4 text-center text-xs text-muted-foreground">
-                  {t("bookFlow.noFamilyMembers", "You haven't added any family members yet.")}
+                  {t(
+                    isBabysitting ? "bookFlow.forWhomNeedChild" : "bookFlow.noFamilyMembers",
+                    isBabysitting
+                      ? "Add a child family member to book babysitting."
+                      : "You haven't added any family members yet.",
+                  )}
                 </div>
               ) : (
                 (familyMembersQ.data ?? []).map((m: any) => {
@@ -773,12 +807,16 @@ export function BookContent({
                     m.relationship === "other"
                       ? m.relationship_other || t("familyMembers.relationships.other")
                       : t(`familyMembers.relationships.${m.relationship}`);
+                  const selectable = isBabysitting
+                    ? familyMemberSelectableForBabysitting(m, selectedSlot?.start ?? null)
+                    : { ok: true };
                   const active = forWhom === m.id;
                   return (
                     <button
                       key={m.id}
-                      onClick={() => setForWhom(m.id)}
-                      className={`focus-ring tap-scale flex w-full items-center justify-between rounded-[1.25rem] border p-4 text-start transition-all ${active ? "border-brand bg-brand/5" : "border-border/60 bg-surface-elevated"}`}
+                      disabled={!selectable.ok}
+                      onClick={() => selectable.ok && setForWhom(m.id)}
+                      className={`focus-ring tap-scale flex w-full items-center justify-between rounded-[1.25rem] border p-4 text-start transition-all ${active ? "border-brand bg-brand/5" : "border-border/60 bg-surface-elevated"} ${!selectable.ok ? "opacity-50" : ""}`}
                     >
                       <span>
                         <span className="block font-bold">{m.full_name}</span>
@@ -786,6 +824,9 @@ export function BookContent({
                           className={`block text-xs ${active ? "text-white/70" : "text-muted-foreground"}`}
                         >
                           {relationshipLabel}
+                          {!selectable.ok
+                            ? ` — ${t("bookFlow.forWhomAgeOutOfRange", "This child is outside the supported 0–215 month range for the selected time.")}`
+                            : ""}
                         </span>
                       </span>
                       <span
