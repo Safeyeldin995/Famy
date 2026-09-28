@@ -36,6 +36,37 @@ function requireWrite(error: { message: string } | null, label: string) {
   if (error) throw new Error(`${label}: ${error.message}`);
 }
 
+export const FIXTURE_HOURLY_RATE = 100;
+
+export type ServicePricingMode = {
+  provider_pricing_allowed: boolean;
+  minimum_price: number | null;
+  maximum_price: number | null;
+};
+
+/**
+ * Choose the DB-legal fixture price for a service.
+ * When provider-set pricing is disallowed, booking uses providers.hourly_rate
+ * and price_override must stay null (trg_validate_provider_price).
+ */
+export function planFixtureProviderPricing(
+  service: ServicePricingMode,
+  desiredRate = FIXTURE_HOURLY_RATE,
+): { hourlyRate: number; priceOverride: number | null } {
+  const min = service.minimum_price;
+  const max = service.maximum_price;
+  if (min != null && max != null && min > max) {
+    throw new Error("service pricing limits are inverted");
+  }
+  let rate = desiredRate;
+  if (min != null && rate < min) rate = min;
+  if (max != null && rate > max) rate = max;
+  if (!service.provider_pricing_allowed) {
+    return { hourlyRate: rate, priceOverride: null };
+  }
+  return { hourlyRate: rate, priceOverride: rate };
+}
+
 async function dryRunBabysittingTeardownPlan(
   ctx: ProviderHarnessContext,
   snapshot = ctx.registry.snapshot(),
@@ -292,14 +323,31 @@ async function completeAndApproveProvider(
     p_status: "approved",
   });
   if (serviceApproval.error) throw serviceApproval.error;
-  const priced = await ctx.admin
-    .from("provider_services")
-    .update({ price_override: 100 })
-    .eq("id", providerService.id);
-  requireWrite(priced.error, "provider_services.price_override");
+  const { data: servicePricing, error: servicePricingError } = await ctx.admin
+    .from("services")
+    .select("provider_pricing_allowed, minimum_price, maximum_price")
+    .eq("id", args.serviceId)
+    .single();
+  if (servicePricingError) throw servicePricingError;
+  const pricing = planFixtureProviderPricing({
+    provider_pricing_allowed: servicePricing.provider_pricing_allowed,
+    minimum_price: servicePricing.minimum_price,
+    maximum_price: servicePricing.maximum_price,
+  });
+  if (pricing.priceOverride !== null) {
+    const priced = await ctx.admin
+      .from("provider_services")
+      .update({ price_override: pricing.priceOverride })
+      .eq("id", providerService.id);
+    requireWrite(priced.error, "provider_services.price_override");
+  }
   const rates = await ctx.admin
     .from("providers")
-    .update({ hourly_rate: 100, vacation_mode: false, is_active: true })
+    .update({
+      hourly_rate: pricing.hourlyRate,
+      vacation_mode: false,
+      is_active: true,
+    })
     .eq("id", args.providerId);
   requireWrite(rates.error, "providers.hourly_rate");
 
