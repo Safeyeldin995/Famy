@@ -6,13 +6,17 @@ import {
   createRoute,
   createRouter,
 } from "@tanstack/react-router";
+import { useState } from "react";
 import { ProviderOnboardingFlow } from "@/components/provider/ProviderOnboardingFlow";
 import { OnboardingRoute } from "@/routes/pro.onboarding";
 import { BookContent } from "@/routes/book.$providerId";
+import { RequestUpdatedDetailsAction } from "@/components/admin/RequestUpdatedDetailsAction";
 import { LanguageProvider } from "@/lib/i18n/LanguageProvider";
 import { useProviders } from "@/lib/db/queries";
 import { Toaster } from "@/components/ui/sonner";
 import { ProviderOnboardingFlowPre68 } from "../tests/issue68/fixtures/ProviderOnboardingFlow.pre68";
+import { MOCK_PROVIDER_ID } from "./constants.mjs";
+import type { OnboardingStatus } from "@/lib/provider/onboarding-queries";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -109,6 +113,24 @@ const proOnboardingRoute = createRoute({
   },
 });
 
+const adminUpdatedDetailsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin-updated-details",
+  component: function AdminUpdatedDetailsHarness() {
+    const [status, setStatus] = useState<OnboardingStatus>("APPROVED");
+    return (
+      <div data-testid="issue68-admin-updated-details">
+        <div data-testid="onboarding-status">{status}</div>
+        <RequestUpdatedDetailsAction
+          providerId={MOCK_PROVIDER_ID}
+          onboardingStatus={status}
+          onActionSuccess={() => setStatus("NEEDS_CHANGES")}
+        />
+      </div>
+    );
+  },
+});
+
 const bookRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/book/$providerId",
@@ -132,6 +154,7 @@ const routeTree = rootRoute.addChildren([
   marketplaceRoute,
   proRoute,
   proOnboardingRoute,
+  adminUpdatedDetailsRoute,
   bookRoute,
 ]);
 const router = createRouter({ routeTree });

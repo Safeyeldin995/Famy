@@ -92,6 +92,7 @@ function createState(repoRoot) {
     storageDocuments: 0,
     finalizeDocument: 0,
     marketplace: 0,
+    adminActions: [],
     log: [],
     snapshotPatch: null,
     lastSnapshot: null,
@@ -112,6 +113,7 @@ function resetCounts(state) {
   state.storageDocuments = 0;
   state.finalizeDocument = 0;
   state.marketplace = 0;
+  state.adminActions = [];
   state.log = [];
   state.snapshotPatch = null;
   state.lastSnapshot = null;
@@ -387,6 +389,20 @@ async function handleSupabase(state, req, res) {
     state.marketplace += 1;
     state.log.push("marketplace");
     sendJson(res, 200, buildMarketplaceRows());
+    return;
+  }
+
+  if (p === "/rest/v1/rpc/admin_provider_onboarding_action") {
+    const raw = await readBody(req);
+    let payload = {};
+    try {
+      payload = JSON.parse(raw.toString("utf8") || "{}");
+    } catch {
+      payload = { raw: raw.toString("utf8") };
+    }
+    state.adminActions.push(payload);
+    state.log.push("adminOnboardingAction");
+    sendJson(res, 200, null);
     return;
   }
 
@@ -813,6 +829,7 @@ export function issue68MockPlugin(repoRoot) {
               storageDocuments: state.storageDocuments,
               finalizeDocument: state.finalizeDocument,
               marketplace: state.marketplace,
+              adminActions: state.adminActions,
               saves: state.saves,
               log: state.log,
               scenario: state.scenario,

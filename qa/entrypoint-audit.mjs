@@ -56,6 +56,7 @@ export const QA_ENTRYPOINT_CLASSIFICATION = {
   "teardown-terminal-disable.mjs": "pure-library",
   "teardown-user-lifecycle.mjs": "pure-library",
   "teardown-verification.mjs": "pure-library",
+  "pr67-babysitting-qa-packet.mjs": "pure-library",
   "verify-onboarding-privileges.mjs": "remote-read-cli",
   "verify-residue.mjs": "remote-read-cli",
   "vitest-otp-global-setup.mjs": "pure-library",

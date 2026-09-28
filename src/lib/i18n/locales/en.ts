@@ -1637,7 +1637,7 @@ const en = {
       requestChanges: "Request changes",
       requestUpdatedDetails: "Request updated details",
       requestUpdatedDetailsBody:
-        "The provider will leave the marketplace until they declare required details and you re-approve them. Existing bookings are kept. A customer-visible reason is required.",
+        "The provider will leave the marketplace until they declare required details and you re-approve them. Existing bookings are kept. A provider-visible reason is required.",
       requestUpdatedDetailsConfirm: "Request details",
       internalNotes: "Internal notes (admin only)",
       eligibilityTitle: "Customer-app visibility",

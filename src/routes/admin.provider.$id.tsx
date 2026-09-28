@@ -3,7 +3,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useAdminProvider, useProviderEligibility, useSetProviderVerified, useSetProviderActive, useSetProviderServiceStatus, useDocumentSignedUrl } from "@/lib/db/admin-queries";
-import { useAdminOnboardingAction, useAdminOnboardingReview, useReviewProviderDocument, canRequestUpdatedDetails } from "@/lib/provider/onboarding-queries";
+import { useAdminOnboardingAction, useAdminOnboardingReview, useReviewProviderDocument } from "@/lib/provider/onboarding-queries";
+import { RequestUpdatedDetailsAction } from "@/components/admin/RequestUpdatedDetailsAction";
 import { useProviderAvailability, useProviderVacations, useAddVacation, useDeleteVacation } from "@/lib/db/provider-queries";
 import { ChevronLeft, FileText, ShieldCheck, Trash2, Check, X } from "lucide-react";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
@@ -142,12 +143,9 @@ export function AdminProvider({ id }: { id: string }) {
   const onboardingReview = useAdminOnboardingReview(id);
   const reviewDocument = useReviewProviderDocument();
   const [showRequestChanges, setShowRequestChanges] = useState(false);
-  const [showRequestUpdatedDetails, setShowRequestUpdatedDetails] = useState(false);
   const [changeReasonCode, setChangeReasonCode] = useState("missing_info");
   const [changeReasonPublic, setChangeReasonPublic] = useState("");
   const [changeNotesInternal, setChangeNotesInternal] = useState("");
-  const [updatedDetailsReasonPublic, setUpdatedDetailsReasonPublic] = useState("");
-  const [updatedDetailsNotesInternal, setUpdatedDetailsNotesInternal] = useState("");
   const [serviceRejectReason, setServiceRejectReason] = useState("");
   const [rejectingDocId, setRejectingDocId] = useState<string | null>(null);
   const [docRejectReason, setDocRejectReason] = useState("");
@@ -381,13 +379,7 @@ export function AdminProvider({ id }: { id: string }) {
             >{t("admin.providers.reject")}</button>
           </>
         )}
-        {canRequestUpdatedDetails(p.onboarding_status) && (
-          <button
-            disabled={onboardingAction.isPending}
-            onClick={() => { setUpdatedDetailsReasonPublic(""); setUpdatedDetailsNotesInternal(""); setShowRequestUpdatedDetails(true); }}
-            className="focus-ring flex-1 rounded-xl border border-border py-3 text-sm font-bold disabled:opacity-50"
-          >{t("admin.provider.requestUpdatedDetails")}</button>
-        )}
+        <RequestUpdatedDetailsAction providerId={p.id} onboardingStatus={p.onboarding_status} />
         {p.is_verified && (
           <button
             disabled={setActive.isPending}
@@ -455,46 +447,6 @@ export function AdminProvider({ id }: { id: string }) {
                 )}
                 className="focus-ring h-11 flex-1 rounded-2xl bg-coral text-sm font-bold text-coral-foreground disabled:opacity-50"
               >{t("common.confirm")}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showRequestUpdatedDetails && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-6" onClick={() => setShowRequestUpdatedDetails(false)}>
-          <div role="dialog" aria-modal="true" className="w-full max-w-sm rounded-3xl bg-surface p-5" onClick={(e) => e.stopPropagation()}>
-            <div className="text-base font-extrabold">{t("admin.provider.requestUpdatedDetails")}</div>
-            <p className="mt-1 text-xs text-muted-foreground">{t("admin.provider.requestUpdatedDetailsBody")}</p>
-            <textarea
-              value={updatedDetailsReasonPublic}
-              onChange={(e) => setUpdatedDetailsReasonPublic(e.target.value)}
-              rows={3}
-              placeholder={t("admin.provider.reasonRequired")}
-              className="mt-3 w-full resize-none rounded-xl border border-border bg-surface p-2 text-sm"
-            />
-            <textarea
-              value={updatedDetailsNotesInternal}
-              onChange={(e) => setUpdatedDetailsNotesInternal(e.target.value)}
-              rows={2}
-              placeholder={t("admin.provider.internalNotes")}
-              className="mt-2 w-full resize-none rounded-xl border border-border bg-surface p-2 text-xs"
-            />
-            <div className="mt-4 flex gap-2">
-              <button onClick={() => setShowRequestUpdatedDetails(false)} className="focus-ring h-11 flex-1 rounded-2xl border border-border text-sm font-bold">{t("common.cancel")}</button>
-              <button
-                disabled={!updatedDetailsReasonPublic.trim() || onboardingAction.isPending}
-                onClick={() => onboardingAction.mutate(
-                  {
-                    providerId: p.id,
-                    action: "request_updated_details",
-                    reasonCode: "updated_details_required",
-                    reasonPublic: updatedDetailsReasonPublic.trim(),
-                    notesInternal: updatedDetailsNotesInternal.trim() || undefined,
-                  },
-                  { onSuccess: () => setShowRequestUpdatedDetails(false), onError: (e: any) => toast.error(e?.message ?? t("admin.providers.rejectError")) },
-                )}
-                className="focus-ring h-11 flex-1 rounded-2xl bg-coral text-sm font-bold text-coral-foreground disabled:opacity-50"
-              >{t("admin.provider.requestUpdatedDetailsConfirm")}</button>
             </div>
           </div>
         </div>
