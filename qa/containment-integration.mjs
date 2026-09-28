@@ -9,6 +9,7 @@ import { parseSupabaseProjectRef } from "./qa-identity.mjs";
 import { isAuthBanned } from "./containment-identity.mjs";
 
 /**
+ * Shared snapshot load for integration residue. Does not select a booking caller.
  * @param {import('@supabase/supabase-js').SupabaseClient} admin
  * @param {{
  *   userIds: string[];
@@ -18,7 +19,7 @@ import { isAuthBanned } from "./containment-identity.mjs";
  *   bookingIds?: string[];
  * }} snapshot
  */
-export async function buildIntegrationContainmentPlan(admin, snapshot) {
+export async function loadIntegrationContainmentSnapshot(admin, snapshot) {
   const projectRef = parseSupabaseProjectRef(process.env.QA_SUPABASE_URL);
   const registryUsers = new Map((mergeRegistryState().users ?? []).map((row) => [row.userId, row]));
 
@@ -68,13 +69,29 @@ export async function buildIntegrationContainmentPlan(admin, snapshot) {
     }));
   }
 
+  return { projectRef, identities, services, providers, bookings };
+}
+
+export async function buildIntegrationContainmentPlan(admin, snapshot) {
+  const input = await loadIntegrationContainmentSnapshot(admin, snapshot);
   return buildContainmentPlanFromSnapshot({
-    projectRef,
-    identities,
-    services,
-    providers,
-    bookings,
+    ...input,
     standaloneBookingCaller: false,
+  });
+}
+
+/**
+ * PR67 babysitting stage-1/resume producer. Same snapshot load as shared
+ * integration containment, but binds an eligible run-owned caller when
+ * snapshot-scoped pending bookings need cancel. Shared suites stay on
+ * buildIntegrationContainmentPlan (standaloneBookingCaller: false).
+ */
+export async function buildBabysittingFixtureContainmentPlan(admin, snapshot) {
+  const input = await loadIntegrationContainmentSnapshot(admin, snapshot);
+  return buildContainmentPlanFromSnapshot({
+    ...input,
+    standaloneBookingCaller: true,
+    fixtureScopedBookings: true,
   });
 }
 

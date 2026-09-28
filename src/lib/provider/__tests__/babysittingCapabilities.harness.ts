@@ -17,7 +17,7 @@ import {
   type PendingBabysittingTeardown,
 } from "@/lib/qa/babysittingApprovedTeardown";
 // @ts-expect-error — .mjs module has no generated declarations
-import { containIntegrationFixtureResidue } from "../../../../qa/containment-integration.mjs";
+import { buildBabysittingFixtureContainmentPlan } from "../../../../qa/containment-integration.mjs";
 import {
   createAuthedClient,
   createRegisteredAuthUser,
@@ -40,12 +40,11 @@ async function dryRunBabysittingTeardownPlan(
   ctx: ProviderHarnessContext,
   snapshot = ctx.registry.snapshot(),
 ) {
-  const dryRun = await containIntegrationFixtureResidue(
+  const plan = await buildBabysittingFixtureContainmentPlan(
     ctx.admin,
     containmentSnapshotFrom(snapshot),
-    { dryRun: true },
   );
-  return buildBabysittingTeardownPlan(snapshot, dryRun.plan);
+  return buildBabysittingTeardownPlan(snapshot, plan);
 }
 
 /**

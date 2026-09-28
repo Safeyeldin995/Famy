@@ -11,7 +11,7 @@ import { CONTAINMENT_PLAN_VERSION } from "./containment-booking-lifecycle.mjs";
 import { assertContainmentPlanApproved } from "./containment-core.mjs";
 import { CONTAINMENT_CONFIRM_VALUE } from "./containment-args.mjs";
 
-export const BABYSITTING_TEARDOWN_PLAN_VERSION = "pr67-babysitting-teardown-v2";
+export const BABYSITTING_TEARDOWN_PLAN_VERSION = "pr67-babysitting-teardown-v3";
 export const FINGERPRINT_HEX = /^[0-9a-f]{64}$/;
 export const PENDING_TEARDOWN_STATUS = "pending_owner_approval";
 export const DEFAULT_PENDING_TEARDOWN_PATH = "qa/report/pr67-babysitting-pending-teardown.json";
@@ -150,6 +150,14 @@ export function assertExecutableContainmentIntegrity(containment) {
   ) {
     throw new Error(
       "[qa-containment] containment summary actions disagree with executable plan actions",
+    );
+  }
+  const needsCaller = canonicalContainmentActions(executable.actions).some(
+    (row) => row.actionType === "cancel_booking",
+  );
+  if (needsCaller && !executable.bookingCaller?.userId) {
+    throw new Error(
+      "[qa-containment] babysitting teardown plan requires a bound run-owned booking caller before pending-booking cancel",
     );
   }
   return recomputed;

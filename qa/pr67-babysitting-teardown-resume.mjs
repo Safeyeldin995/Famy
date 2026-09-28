@@ -10,7 +10,7 @@ import { runPreflightChecks } from "./env-guard.mjs";
 import { getSupabaseAdmin } from "./admin-client.mjs";
 import { runCliIfDirect } from "./cli-entrypoint.mjs";
 import {
-  buildIntegrationContainmentPlan,
+  buildBabysittingFixtureContainmentPlan,
   containIntegrationFixtureResidue,
 } from "./containment-integration.mjs";
 import { authenticateBookingCaller } from "./containment-booking-caller.mjs";
@@ -139,26 +139,33 @@ export async function executeApprovedBabysittingSnapshotTeardown(
 }
 
 export async function rebuildCurrentBabysittingTeardownPlan(admin, reviewedPlan) {
-  const currentContainment = await buildIntegrationContainmentPlan(
+  const currentContainment = await buildBabysittingFixtureContainmentPlan(
     admin,
     containmentSnapshotFrom(reviewedPlan.snapshot),
   );
   return buildBabysittingTeardownPlan(reviewedPlan.snapshot, currentContainment);
 }
 
-async function resolveBookingRpcClient(admin, reviewedPlan) {
-  const bookingIds = reviewedPlan.snapshot.bookingIds ?? [];
-  if (!bookingIds.length) return undefined;
+/**
+ * Resolve the fingerprinted run-owned caller. Does not accept an injected RPC client.
+ * @param {import("@supabase/supabase-js").SupabaseClient} admin
+ * @param {object} reviewedPlan
+ * @param {Parameters<typeof authenticateBookingCaller>[2]} [authDeps]
+ */
+export async function resolveBabysittingBookingRpcClient(admin, reviewedPlan, authDeps) {
+  const actions = reviewedPlan.containment?.plan?.actions ?? [];
+  const needsCancel = actions.some((row) => row.actionType === "cancel_booking");
+  if (!needsCancel) return undefined;
   const callerUserId = reviewedPlan.containment.plan?.bookingCaller?.userId;
   if (!callerUserId) {
     throw new Error(
-      "[qa-containment] babysitting fixture teardown requires bookingRpcClient before pending-booking cancel",
+      "[qa-containment] babysitting teardown plan requires a bound run-owned booking caller before pending-booking cancel",
     );
   }
-  const auth = await authenticateBookingCaller(admin, callerUserId);
+  const auth = await authenticateBookingCaller(admin, callerUserId, authDeps);
   if (!auth.ok || !auth.rpcClient) {
     throw new Error(
-      `[qa-containment] babysitting fixture teardown requires bookingRpcClient before pending-booking cancel (${auth.reason ?? "caller-authentication-failed"})`,
+      `[qa-containment] babysitting fixture teardown requires an eligible run-owned booking caller before pending-booking cancel (${auth.reason ?? "caller-authentication-failed"})`,
     );
   }
   return auth.rpcClient;
@@ -166,13 +173,13 @@ async function resolveBookingRpcClient(admin, reviewedPlan) {
 
 /**
  * Operational resume. Always rebuilds the current plan from live snapshot IDs
- * (no currentPlan / rebuild injection). Fail-closed on missing approval or drift.
+ * (no currentPlan / bookingRpcClient injection). Fail-closed on missing approval or drift.
  * @param {{
  *   mode: "verify" | "execute";
  *   pending: ReturnType<typeof parsePendingTeardown>;
  *   ownerFingerprint: string;
  *   admin: import("@supabase/supabase-js").SupabaseClient;
- *   bookingRpcClient?: import("@supabase/supabase-js").SupabaseClient;
+ *   authDeps?: Parameters<typeof authenticateBookingCaller>[2];
  * }} args
  */
 export async function resumeBabysittingTeardownFromPending(args) {
@@ -198,19 +205,17 @@ export async function resumeBabysittingTeardownFromPending(args) {
       mode: "verify",
       writesPerformed: false,
       residueActive: true,
+      residueVerified: false,
       fingerprint: ownerFingerprint,
       currentFingerprint: fingerprintBabysittingTeardownPlan(currentPlan),
     };
   }
 
-  const bookingRpcClient =
-    args.bookingRpcClient ?? (await resolveBookingRpcClient(args.admin, args.pending.plan));
-
-  if ((args.pending.plan.snapshot.bookingIds ?? []).length && !bookingRpcClient) {
-    throw new Error(
-      "[qa-containment] babysitting fixture teardown requires bookingRpcClient before pending-booking cancel",
-    );
-  }
+  const bookingRpcClient = await resolveBabysittingBookingRpcClient(
+    args.admin,
+    args.pending.plan,
+    args.authDeps,
+  );
 
   await executeApprovedBabysittingSnapshotTeardown(
     args.admin,
@@ -223,8 +228,10 @@ export async function resumeBabysittingTeardownFromPending(args) {
   return {
     mode: "execute",
     writesPerformed: true,
-    residueActive: false,
+    residueActive: true,
+    residueVerified: false,
     fingerprint: ownerFingerprint,
+    note: "Approved writes ran; exit 0 is not authoritative clean residue. Run verify-residue after owner-approved QA access.",
   };
 }
 
@@ -305,6 +312,9 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
             status: "executed",
             fingerprint: result.fingerprint,
             writesPerformed: true,
+            residueActive: true,
+            residueVerified: false,
+            note: result.note,
           },
           null,
           2,

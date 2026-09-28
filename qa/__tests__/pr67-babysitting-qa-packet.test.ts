@@ -55,7 +55,9 @@ describe("PR67 babysitting QA execution packet", () => {
     expect(PR67_FIXTURE_SCOPE).toMatch(/zero teardown writes/);
     expect(PR67_FIXTURE_SCOPE).toMatch(/PR67_TEARDOWN_PLAN_FINGERPRINT/);
     expect(PR67_FIXTURE_SCOPE).toMatch(/qa\/pr67-babysitting-teardown-resume\.mjs/);
-    expect(PR67_FIXTURE_SCOPE).toMatch(/never auto-approved/);
+    expect(PR67_FIXTURE_SCOPE).toMatch(/bound run-owned booking caller/);
+    expect(PR67_FIXTURE_SCOPE).toMatch(/injected bookingRpcClient/);
+    expect(PR67_FIXTURE_SCOPE).toMatch(/not authoritative clean residue/);
     expect(PR67_FIXTURE_SCOPE).toMatch(/no silent replan/);
     expect(PR67_FIXTURE_SCOPE).toMatch(/Standalone qa\/containment\.mjs --execute/);
     expect(PR67_PENDING_TEARDOWN_FILE).toBe("qa/report/pr67-babysitting-pending-teardown.json");

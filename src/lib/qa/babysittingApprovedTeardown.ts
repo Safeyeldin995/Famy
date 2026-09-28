@@ -3,7 +3,7 @@ import type { FixtureRegistrySnapshot } from "@/lib/qa/integrationFixtureRegistr
 import * as teardownPlan from "../../../qa/babysitting-teardown-plan.mjs";
 
 export const BABYSITTING_TEARDOWN_PLAN_VERSION =
-  teardownPlan.BABYSITTING_TEARDOWN_PLAN_VERSION as "pr67-babysitting-teardown-v2";
+  teardownPlan.BABYSITTING_TEARDOWN_PLAN_VERSION as "pr67-babysitting-teardown-v3";
 export const FINGERPRINT_HEX = teardownPlan.FINGERPRINT_HEX as RegExp;
 export const PENDING_TEARDOWN_STATUS =
   teardownPlan.PENDING_TEARDOWN_STATUS as "pending_owner_approval";

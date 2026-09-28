@@ -21,21 +21,53 @@ import {
 } from "../pr67-babysitting-teardown-resume.mjs";
 
 const currentContainmentHolder = { plan: null };
+const callerAuthHolder: {
+  result: { ok: boolean; rpcClient?: { rpc: ReturnType<typeof vi.fn> }; reason?: string } | null;
+} = { result: null };
+
+vi.mock("../containment-booking-caller.mjs", async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    authenticateBookingCaller: vi.fn(async () => {
+      if (!callerAuthHolder.result) {
+        return { ok: false, reason: "caller-authentication-failed" };
+      }
+      return callerAuthHolder.result;
+    }),
+  };
+});
 
 vi.mock("../containment-integration.mjs", () => ({
-  containIntegrationFixtureResidue: vi.fn(async (_admin, _snapshot, options) => ({
-    plan: options?.approvedPlan ?? { fingerprint: "c".repeat(64), actions: [] },
-    execution: {
-      results: [
-        { ok: true, maskedId: "qa-u…ser", entityType: "identity", actionType: "disable_auth" },
-      ],
-    },
-  })),
-  buildIntegrationContainmentPlan: vi.fn(async () => {
+  containIntegrationFixtureResidue: vi.fn(async (_admin, _snapshot, options) => {
+    const cancels = (options?.approvedPlan?.actions ?? []).filter(
+      (row: { actionType: string }) => row.actionType === "cancel_booking",
+    );
+    for (const action of cancels) {
+      if (!options?.bookingRpcClient?.rpc) {
+        throw new Error("missing resolved booking client");
+      }
+      await options.bookingRpcClient.rpc("cancel_booking", { p_booking_id: action.id });
+    }
+    return {
+      plan: options?.approvedPlan ?? { fingerprint: "c".repeat(64), actions: [] },
+      execution: {
+        results: [
+          { ok: true, maskedId: "qa-u…ser", entityType: "identity", actionType: "disable_auth" },
+        ],
+      },
+    };
+  }),
+  buildBabysittingFixtureContainmentPlan: vi.fn(async () => {
     if (!currentContainmentHolder.plan) {
-      throw new Error("buildIntegrationContainmentPlan must be configured for this test");
+      throw new Error("buildBabysittingFixtureContainmentPlan must be configured for this test");
     }
     return currentContainmentHolder.plan;
+  }),
+  buildIntegrationContainmentPlan: vi.fn(async () => {
+    throw new Error(
+      "shared buildIntegrationContainmentPlan must not be used by babysitting resume",
+    );
   }),
 }));
 
@@ -194,7 +226,6 @@ describe("PR67 babysitting teardown resume CLI", () => {
         pending,
         ownerFingerprint: "",
         admin,
-        bookingRpcClient: admin,
       }),
     ).rejects.toThrow(/requires owner-approved plan fingerprint/i);
     expect(writes).toEqual([]);
@@ -205,7 +236,6 @@ describe("PR67 babysitting teardown resume CLI", () => {
         pending,
         ownerFingerprint: "d".repeat(64),
         admin,
-        bookingRpcClient: admin,
       }),
     ).rejects.toThrow(/does not match the bound reviewed plan/i);
     expect(writes).toEqual([]);
@@ -227,7 +257,6 @@ describe("PR67 babysitting teardown resume CLI", () => {
         pending,
         ownerFingerprint: pending.fingerprint,
         admin,
-        bookingRpcClient: admin,
       }),
     ).rejects.toThrow(/drifted from the owner-approved fingerprint/i);
     expect(writes).toEqual([]);
@@ -247,7 +276,6 @@ describe("PR67 babysitting teardown resume CLI", () => {
         pending: tamperedPending,
         ownerFingerprint: pending.fingerprint,
         admin,
-        bookingRpcClient: admin,
       }),
     ).rejects.toThrow(/disagree with executable plan actions|does not match the bound/i);
     expect(writes).toEqual([]);
@@ -281,20 +309,28 @@ describe("PR67 babysitting teardown resume CLI", () => {
     const pending = samplePending();
     const { admin, writes } = trackingAdmin();
     currentContainmentHolder.plan = pending.plan.containment.plan;
+    const rpc = vi.fn(async () => ({ data: null, error: null }));
+    callerAuthHolder.result = { ok: true, rpcClient: { rpc } };
     const result = await resumeBabysittingTeardownFromPending({
       mode: "execute",
       pending,
       ownerFingerprint: pending.fingerprint,
       admin,
-      bookingRpcClient: admin,
     });
     expect(result.writesPerformed).toBe(true);
+    expect(result.residueActive).toBe(true);
+    expect(result.residueVerified).toBe(false);
+    expect(rpc).toHaveBeenCalledWith(
+      "cancel_booking",
+      expect.objectContaining({ p_booking_id: "book-1" }),
+    );
     expect(writes.some((row) => row.startsWith("zone_providers.delete"))).toBe(true);
     expect(writes.some((row) => row.startsWith("zone_services.delete"))).toBe(true);
     expect(writes.some((row) => row.startsWith("provider_services.delete"))).toBe(true);
     expect(writes.some((row) => row.startsWith("addresses.delete"))).toBe(true);
     expect(writes.some((row) => row.startsWith("zones.delete"))).toBe(true);
     expect(admin.from.mock.calls.map((call) => call[0])).not.toContain("unapproved-table");
+    callerAuthHolder.result = null;
   });
 
   it("verify mode rebuilds current plan and performs zero writes", async () => {
@@ -306,7 +342,6 @@ describe("PR67 babysitting teardown resume CLI", () => {
       pending,
       ownerFingerprint: pending.fingerprint,
       admin,
-      bookingRpcClient: admin,
     });
     expect(result.mode).toBe("verify");
     expect(result.writesPerformed).toBe(false);
@@ -366,8 +401,8 @@ describe("PR67 babysitting teardown resume CLI", () => {
     rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it("plan version is the executable v2 contract", () => {
-    expect(BABYSITTING_TEARDOWN_PLAN_VERSION).toBe("pr67-babysitting-teardown-v2");
+  it("plan version is the executable v3 contract", () => {
+    expect(BABYSITTING_TEARDOWN_PLAN_VERSION).toBe("pr67-babysitting-teardown-v3");
     const pending = samplePending();
     expect(fingerprintBabysittingTeardownPlan(pending.plan)).toBe(pending.fingerprint);
   });

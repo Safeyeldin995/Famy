@@ -48,6 +48,12 @@ vi.mock("../../../../qa/containment-integration.mjs", () => ({
       };
     },
   ),
+  buildBabysittingFixtureContainmentPlan: vi.fn(async () => {
+    if (!dryRunHolder.plan) {
+      throw new Error("buildBabysittingFixtureContainmentPlan must be configured for this test");
+    }
+    return dryRunHolder.plan;
+  }),
 }));
 
 vi.mock("../../../../qa/registry.mjs", () => ({
@@ -407,6 +413,6 @@ describe("babysitting owner-approved teardown", () => {
     expect(error.message).toMatch(/fixtures remain active/i);
     expect(error.pending.writesPerformed).toBe(false);
     expect(error.pending.residueActive).toBe(true);
-    expect(BABYSITTING_TEARDOWN_PLAN_VERSION).toBe("pr67-babysitting-teardown-v2");
+    expect(BABYSITTING_TEARDOWN_PLAN_VERSION).toBe("pr67-babysitting-teardown-v3");
   });
 });
