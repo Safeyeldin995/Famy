@@ -93,6 +93,8 @@ function createState(repoRoot) {
     finalizeDocument: 0,
     marketplace: 0,
     log: [],
+    snapshotPatch: null,
+    lastSnapshot: null,
   };
 }
 
@@ -111,11 +113,13 @@ function resetCounts(state) {
   state.finalizeDocument = 0;
   state.marketplace = 0;
   state.log = [];
+  state.snapshotPatch = null;
+  state.lastSnapshot = null;
   state.providerStarted = state.scenario !== "new-provider";
 }
 
-export function buildSnapshot() {
-  return {
+export function buildSnapshot(patch = null) {
+  const base = {
     exists: true,
     provider: {
       id: MOCK_PROVIDER_ID,
@@ -145,6 +149,14 @@ export function buildSnapshot() {
     },
     age_group_capabilities: [{ code: "toddler", years_experience: 4, note: "", verified_at: null }],
     completion: { ok: true, complete: false, errors: {} },
+  };
+  if (!patch) return base;
+  return {
+    ...base,
+    ...patch,
+    provider: { ...base.provider, ...(patch.provider ?? {}) },
+    profile: { ...base.profile, ...(patch.profile ?? {}) },
+    details: { ...base.details, ...(patch.details ?? {}) },
   };
 }
 
@@ -352,10 +364,14 @@ async function handleSupabase(state, req, res) {
     state.snapshot += 1;
     state.log.push(`snapshot#${state.snapshot}`);
     if (state.scenario === "new-provider" && !state.providerStarted) {
-      sendJson(res, 200, { exists: false });
+      const empty = { exists: false };
+      state.lastSnapshot = empty;
+      sendJson(res, 200, empty);
       return;
     }
-    sendJson(res, 200, buildSnapshot());
+    const payload = buildSnapshot(state.snapshotPatch);
+    state.lastSnapshot = payload;
+    sendJson(res, 200, payload);
     return;
   }
 
@@ -776,6 +792,14 @@ export function issue68MockPlugin(repoRoot) {
             return;
           }
 
+          if (url.pathname === "/__issue68/snapshot" && req.method === "POST") {
+            const raw = await readBody(req);
+            const body = JSON.parse(raw.toString("utf8") || "{}");
+            state.snapshotPatch = body && typeof body === "object" ? body : null;
+            sendJson(res, 200, { ok: true });
+            return;
+          }
+
           if (url.pathname === "/__issue68/calls") {
             sendJson(res, 200, {
               snapshot: state.snapshot,
@@ -793,6 +817,7 @@ export function issue68MockPlugin(repoRoot) {
               log: state.log,
               scenario: state.scenario,
               providerStarted: state.providerStarted,
+              lastSnapshot: state.lastSnapshot,
             });
             return;
           }

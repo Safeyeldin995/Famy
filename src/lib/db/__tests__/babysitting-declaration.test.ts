@@ -7,14 +7,19 @@ import {
   asUser,
   BOOKING_END,
   BOOKING_START,
+  CREATE_BOOKING_MIGRATION,
   createDisposableDb,
+  extractPublicFunctionSql,
   IDS,
   queryRows,
+  RESPOND_RESCHEDULE_MIGRATION,
   seedIdentities,
   tryAsUser,
 } from "./babysitting-capabilities-harness";
 
 const DECLARATION_FIXTURE_SQL = `
+-- Limited unrelated-helper stubs for PGlite. create_booking / respond_reschedule
+-- are loaded unchanged from tracked migrations below.
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS phone text;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS avatar_url text;
 ALTER TABLE public.providers ADD COLUMN IF NOT EXISTS bio_en text NOT NULL DEFAULT '';
@@ -42,6 +47,9 @@ ALTER TABLE public.zones ADD COLUMN IF NOT EXISTS name_ar text;
 ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS idempotency_key uuid;
 ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS request_fingerprint text;
 ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS currency text;
+CREATE UNIQUE INDEX IF NOT EXISTS bookings_customer_idempotency_unique
+  ON public.bookings (customer_id, idempotency_key)
+  WHERE idempotency_key IS NOT NULL;
 ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS requirement_selections jsonb DEFAULT '[]'::jsonb;
 ALTER TABLE public.provider_services ADD COLUMN IF NOT EXISTS id uuid DEFAULT gen_random_uuid();
 
@@ -133,131 +141,11 @@ RETURNS TABLE (is_eligible boolean)
 LANGUAGE sql STABLE AS $$ SELECT true; $$;
 `;
 
-const CREATE_BOOKING_SQL = `
-CREATE OR REPLACE FUNCTION public.create_booking(
-  p_provider_id uuid,
-  p_service_id uuid,
-  p_address_id uuid,
-  p_start_at timestamptz,
-  p_end_at timestamptz,
-  p_idempotency_key uuid,
-  p_family_member_id uuid DEFAULT NULL,
-  p_notes text DEFAULT NULL,
-  p_promo_code_id uuid DEFAULT NULL,
-  p_requirement_selections jsonb DEFAULT '[]'::jsonb
-) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE
-  v_uid uuid := auth.uid();
-  v_fingerprint text;
-  v_existing RECORD;
-  v_booking_id uuid;
-  v_created boolean := false;
-BEGIN
-  IF v_uid IS NULL THEN
-    RAISE EXCEPTION 'BOOKING_UNAUTHORIZED: Authentication required.' USING ERRCODE = '42501';
-  END IF;
-  IF public.is_not_suspended(v_uid) IS NOT TRUE THEN
-    RAISE EXCEPTION 'BOOKING_UNAUTHORIZED: Account is suspended.' USING ERRCODE = '42501';
-  END IF;
-  IF p_idempotency_key IS NULL THEN
-    RAISE EXCEPTION 'BOOKING_INVALID_BOOKING_REQUEST: Idempotency key is required.' USING ERRCODE = '23514';
-  END IF;
-  IF p_start_at IS NULL OR p_end_at IS NULL OR p_end_at <= p_start_at THEN
-    RAISE EXCEPTION 'BOOKING_INVALID_BOOKING_REQUEST: Invalid booking time range.' USING ERRCODE = '23514';
-  END IF;
-
-  v_fingerprint := public.booking_request_fingerprint(
-    p_provider_id, p_service_id, p_address_id, p_start_at, p_end_at,
-    p_family_member_id, p_notes, p_promo_code_id, coalesce(p_requirement_selections, '[]'::jsonb)
-  );
-
-  PERFORM pg_advisory_xact_lock(hashtext(v_uid::text || ':' || p_idempotency_key::text));
-
-  SELECT id, request_fingerprint INTO v_existing
-  FROM public.bookings
-  WHERE customer_id = v_uid AND idempotency_key = p_idempotency_key;
-
-  IF FOUND THEN
-    IF v_existing.request_fingerprint IS DISTINCT FROM v_fingerprint THEN
-      RAISE EXCEPTION 'BOOKING_DUPLICATE_REQUEST_CONFLICT: Idempotency key reused with different booking details.' USING ERRCODE = '23514';
-    END IF;
-    RETURN jsonb_build_object('booking_id', v_existing.id, 'created', false, 'idempotent_replay', true);
-  END IF;
-
-  IF NOT EXISTS (
-    SELECT 1 FROM public.marketplace_eligibility_internal(p_provider_id, p_service_id, p_address_id) e
-    WHERE e.is_eligible
-  ) THEN
-    RAISE EXCEPTION 'BOOKING_PROVIDER_INELIGIBLE: Provider is not eligible for this service and address.' USING ERRCODE = '23514';
-  END IF;
-
-  PERFORM set_config('app.create_booking_in_progress', 'on', true);
-
-  INSERT INTO public.bookings (
-    customer_id, provider_id, service_id, address_id,
-    start_at, end_at, status, notes, family_member_id,
-    requirement_selections, promo_code_id,
-    price_subtotal, price_discount, price_total,
-    price_platform_fee, price_vat, price_extras_total, price_travel_fee,
-    idempotency_key, request_fingerprint, currency
-  ) VALUES (
-    v_uid, p_provider_id, p_service_id, p_address_id,
-    p_start_at, p_end_at, 'pending', NULLIF(btrim(p_notes), ''), p_family_member_id,
-    coalesce(p_requirement_selections, '[]'::jsonb), p_promo_code_id,
-    0, 0, 0, 0, 0, 0, 0,
-    p_idempotency_key, v_fingerprint, 'EGP'
-  ) RETURNING id INTO v_booking_id;
-  v_created := true;
-
-  RETURN jsonb_build_object('booking_id', v_booking_id, 'created', v_created, 'idempotent_replay', false);
-END;
-$$;
-REVOKE ALL ON FUNCTION public.create_booking(uuid,uuid,uuid,timestamptz,timestamptz,uuid,uuid,text,uuid,jsonb) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.create_booking(uuid,uuid,uuid,timestamptz,timestamptz,uuid,uuid,text,uuid,jsonb) TO authenticated;
-`;
-
-const RESPOND_RESCHEDULE_SQL = `
-CREATE OR REPLACE FUNCTION public.respond_reschedule(
-  p_request_id uuid, p_action text, p_reason text DEFAULT NULL,
-  p_counter_start timestamptz DEFAULT NULL, p_counter_end timestamptz DEFAULT NULL
-)
-RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE
-  v_req RECORD;
-  v_booking RECORD;
-  v_is_provider boolean;
-  v_expected_responder_is_provider boolean;
-BEGIN
-  IF p_action NOT IN ('accept', 'reject', 'counter') THEN
-    RAISE EXCEPTION 'Invalid action.' USING ERRCODE = '23514';
-  END IF;
-  SELECT * INTO v_req FROM public.booking_reschedule_requests WHERE id = p_request_id;
-  IF NOT FOUND OR v_req.status <> 'pending' THEN
-    RAISE EXCEPTION 'This reschedule request is no longer open.' USING ERRCODE = '23514';
-  END IF;
-  SELECT * INTO v_booking FROM public.bookings WHERE id = v_req.booking_id;
-  v_is_provider := EXISTS (SELECT 1 FROM public.providers p WHERE p.id = v_booking.provider_id AND p.profile_id = auth.uid());
-  v_expected_responder_is_provider := (v_req.requested_by = v_booking.customer_id);
-  IF v_expected_responder_is_provider AND NOT v_is_provider THEN
-    RAISE EXCEPTION 'Only the provider can respond to this request.' USING ERRCODE = '42501';
-  END IF;
-  IF NOT v_expected_responder_is_provider AND v_booking.customer_id <> auth.uid() THEN
-    RAISE EXCEPTION 'Only the customer can respond to this request.' USING ERRCODE = '42501';
-  END IF;
-  IF p_action = 'accept' THEN
-    PERFORM public.check_booking_slot(v_booking.provider_id, v_req.proposed_start_at, v_req.proposed_end_at, v_booking.id);
-    PERFORM set_config('app.reschedule_in_progress', 'on', true);
-    UPDATE public.bookings SET start_at = v_req.proposed_start_at, end_at = v_req.proposed_end_at WHERE id = v_booking.id;
-    UPDATE public.booking_reschedule_requests
-      SET status = 'accepted', responded_by = auth.uid(), response_reason = p_reason, responded_at = now()
-      WHERE id = p_request_id;
-  END IF;
-  RETURN p_request_id;
-END;
-$$;
-REVOKE ALL ON FUNCTION public.respond_reschedule(uuid, text, text, timestamptz, timestamptz) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.respond_reschedule(uuid, text, text, timestamptz, timestamptz) TO authenticated;
-`;
+const CREATE_BOOKING_SQL = extractPublicFunctionSql(CREATE_BOOKING_MIGRATION, "create_booking");
+const RESPOND_RESCHEDULE_SQL = extractPublicFunctionSql(
+  RESPOND_RESCHEDULE_MIGRATION,
+  "respond_reschedule",
+);
 
 async function readyDb(): Promise<PGlite> {
   const db = await createDisposableDb();
@@ -297,6 +185,15 @@ describe("babysitting declaration phase B", () => {
   afterEach(async () => {
     await db?.close();
     db = undefined;
+  });
+
+  it("loads unchanged create_booking and respond_reschedule bodies from tracked migrations", () => {
+    expect(CREATE_BOOKING_SQL).toContain("hashtextextended(");
+    expect(CREATE_BOOKING_SQL).toContain("WHEN unique_violation THEN");
+    expect(CREATE_BOOKING_SQL).toContain("WHEN exclusion_violation THEN");
+    expect(RESPOND_RESCHEDULE_SQL).toContain("p_action = 'reject'");
+    expect(RESPOND_RESCHEDULE_SQL).toContain("counter_proposed");
+    expect(RESPOND_RESCHEDULE_SQL).not.toMatch(/hashtext\(/);
   });
 
   it("saves capabilities through the authenticated RPC and rejects unauthorized callers", async () => {
@@ -550,6 +447,25 @@ describe("babysitting declaration phase B", () => {
       [IDS.provider],
     );
     expect(adminOther.ok).toBe(false);
+
+    await db.exec(`
+      BEGIN;
+      SELECT set_config('app.onboarding_status_transition', '1', true);
+      UPDATE public.providers SET onboarding_status = 'APPROVED' WHERE id = '${IDS.provider}';
+      COMMIT;
+    `);
+    const approvedSave = await tryAsUser(
+      db,
+      IDS.providerUser,
+      `SELECT public.provider_save_onboarding_section('experience', $1::jsonb)`,
+      [
+        JSON.stringify({
+          max_children_per_booking: 1,
+          age_group_capabilities: [{ code: "toddler" }],
+        }),
+      ],
+    );
+    expect(approvedSave.ok).toBe(false);
   });
 
   it("calls authenticated create_booking and authorized reschedule across age bands", async () => {
@@ -626,6 +542,36 @@ describe("babysitting declaration phase B", () => {
     expect(crossBand.ok).toBe(false);
     expect(crossBand.error ?? "").toMatch(/BOOKING_PROVIDER_INELIGIBLE|does not support/);
 
+    const rolledBack = await queryRows<{ start_at: string; status: string; req_status: string }>(
+      db,
+      `SELECT b.start_at::text AS start_at, b.status,
+              r.status AS req_status
+       FROM public.bookings b
+       JOIN public.booking_reschedule_requests r ON r.booking_id = b.id
+       WHERE b.id = $1 AND r.id = $2`,
+      [bookingId, reqRows[0]?.id],
+    );
+    expect(rolledBack[0]?.start_at).toContain("2026-09-28");
+    expect(rolledBack[0]?.req_status).toBe("pending");
+
+    const rejected = await tryAsUser(
+      db,
+      IDS.providerUser,
+      `SELECT public.respond_reschedule($1::uuid, 'reject', 'outside my hours')`,
+      [reqRows[0]?.id],
+    );
+    expect(rejected.ok).toBe(true);
+    const afterReject = await queryRows<{ start_at: string; req_status: string }>(
+      db,
+      `SELECT b.start_at::text AS start_at, r.status AS req_status
+       FROM public.bookings b
+       JOIN public.booking_reschedule_requests r ON r.booking_id = b.id
+       WHERE b.id = $1 AND r.id = $2`,
+      [bookingId, reqRows[0]?.id],
+    );
+    expect(afterReject[0]?.start_at).toContain("2026-09-28");
+    expect(afterReject[0]?.req_status).toBe("rejected");
+
     const sameBandReq = await queryRows<{ id: string }>(
       db,
       `INSERT INTO public.booking_reschedule_requests (
@@ -648,13 +594,116 @@ describe("babysitting declaration phase B", () => {
       [sameBandReq[0]?.id],
     );
     expect(sameBand.ok).toBe(true);
+    const accepted = await queryRows<{ start_at: string; req_status: string }>(
+      db,
+      `SELECT b.start_at::text AS start_at, r.status AS req_status
+       FROM public.bookings b
+       JOIN public.booking_reschedule_requests r ON r.booking_id = b.id
+       WHERE b.id = $1 AND r.id = $2`,
+      [bookingId, sameBandReq[0]?.id],
+    );
+    expect(accepted[0]?.start_at).toContain("2026-09-29");
+    expect(accepted[0]?.req_status).toBe("accepted");
 
     const unchanged = await tryAsUser(
       db,
       IDS.customer,
-      `UPDATE public.bookings SET notes = 'keep start' WHERE id = $1`,
+      `UPDATE public.bookings SET notes = 'keep start', start_at = start_at WHERE id = $1`,
       [bookingId],
     );
     expect(unchanged.ok).toBe(true);
+    const stillSameBand = await queryRows<{ start_at: string; notes: string }>(
+      db,
+      `SELECT start_at::text AS start_at, notes FROM public.bookings WHERE id = $1`,
+      [bookingId],
+    );
+    expect(stillSameBand[0]?.start_at).toContain("2026-09-29");
+    expect(stillSameBand[0]?.notes).toBe("keep start");
+  });
+
+  it("blocks babysitting completion without max or capabilities and keeps reference/coverage rules", async () => {
+    db = await readyDb();
+
+    const missingBoth = await asUser(db, IDS.providerUser, async () =>
+      queryRows<{ provider_onboarding_completion: { errors: Record<string, string> } }>(
+        db!,
+        `SELECT public.provider_onboarding_completion($1)`,
+        [IDS.provider],
+      ),
+    );
+    expect(missingBoth[0]?.provider_onboarding_completion.errors.experience).toBe(
+      "babysitting_details_required",
+    );
+    expect(missingBoth[0]?.provider_onboarding_completion.errors.references).toBe(
+      "reference_required",
+    );
+    expect(missingBoth[0]?.provider_onboarding_completion.errors.coverage).toBeUndefined();
+
+    await db.exec(`
+      UPDATE public.providers SET max_children_per_booking = 2 WHERE id = '${IDS.provider}'
+    `);
+    const missingCaps = await asUser(db, IDS.providerUser, async () =>
+      queryRows<{ provider_onboarding_completion: { errors: Record<string, string> } }>(
+        db!,
+        `SELECT public.provider_onboarding_completion($1)`,
+        [IDS.provider],
+      ),
+    );
+    expect(missingCaps[0]?.provider_onboarding_completion.errors.experience).toBe(
+      "babysitting_details_required",
+    );
+
+    await db.exec(`
+      UPDATE public.providers SET max_children_per_booking = NULL WHERE id = '${IDS.provider}';
+      INSERT INTO public.provider_age_group_capabilities (provider_id, age_group_code)
+      VALUES ('${IDS.provider}', 'toddler');
+    `);
+    const missingMax = await asUser(db, IDS.providerUser, async () =>
+      queryRows<{ provider_onboarding_completion: { errors: Record<string, string> } }>(
+        db!,
+        `SELECT public.provider_onboarding_completion($1)`,
+        [IDS.provider],
+      ),
+    );
+    expect(missingMax[0]?.provider_onboarding_completion.errors.experience).toBe(
+      "babysitting_details_required",
+    );
+
+    await db.exec(`
+      UPDATE public.providers SET max_children_per_booking = 2 WHERE id = '${IDS.provider}'
+    `);
+    const babysittingReady = await asUser(db, IDS.providerUser, async () =>
+      queryRows<{ provider_onboarding_completion: { errors: Record<string, string> } }>(
+        db!,
+        `SELECT public.provider_onboarding_completion($1)`,
+        [IDS.provider],
+      ),
+    );
+    expect(babysittingReady[0]?.provider_onboarding_completion.errors.experience).toBeUndefined();
+    expect(babysittingReady[0]?.provider_onboarding_completion.errors.references).toBe(
+      "reference_required",
+    );
+
+    await db.exec(`
+      DELETE FROM public.provider_services
+      WHERE provider_id = '${IDS.provider}' AND service_id = '${IDS.babysittingService}';
+      DELETE FROM public.zone_providers WHERE provider_id = '${IDS.provider}';
+      UPDATE public.providers SET max_children_per_booking = NULL WHERE id = '${IDS.provider}';
+      DELETE FROM public.provider_age_group_capabilities WHERE provider_id = '${IDS.provider}';
+    `);
+    const cleaningOnly = await asUser(db, IDS.providerUser, async () =>
+      queryRows<{ provider_onboarding_completion: { errors: Record<string, string> } }>(
+        db!,
+        `SELECT public.provider_onboarding_completion($1)`,
+        [IDS.provider],
+      ),
+    );
+    expect(cleaningOnly[0]?.provider_onboarding_completion.errors.experience).not.toBe(
+      "babysitting_details_required",
+    );
+    expect(cleaningOnly[0]?.provider_onboarding_completion.errors.references).toBe(
+      "reference_required",
+    );
+    expect(cleaningOnly[0]?.provider_onboarding_completion.errors.coverage).toBe("zone_required");
   });
 });

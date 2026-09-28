@@ -6,6 +6,8 @@ const MIGRATIONS_DIR = path.resolve(process.cwd(), "supabase/migrations");
 
 export const BABYSITTING_MIGRATION = "20260912090000_babysitting_capabilities.sql";
 export const DECLARATION_MIGRATION = "20260928081021_babysitting_declaration_save.sql";
+export const CREATE_BOOKING_MIGRATION = "20260724010000_booking_create_rpc_idempotency.sql";
+export const RESPOND_RESCHEDULE_MIGRATION = "20260713180000_secure-booking-rescheduling.sql";
 
 export const TABLE_PRIVILEGES = [
   "SELECT",
@@ -285,6 +287,23 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO service_role;
 
 export function readMigration(fileName: string): string {
   return readFileSync(path.join(MIGRATIONS_DIR, fileName), "utf8");
+}
+
+/** Load an unchanged CREATE FUNCTION ... GRANT EXECUTE body from a tracked migration. */
+export function extractPublicFunctionSql(fileName: string, functionName: string): string {
+  const sql = readMigration(fileName);
+  const startToken = `CREATE OR REPLACE FUNCTION public.${functionName}(`;
+  const start = sql.indexOf(startToken);
+  if (start < 0) {
+    throw new Error(`Missing ${startToken} in ${fileName}`);
+  }
+  const grantToken = `GRANT EXECUTE ON FUNCTION public.${functionName}(`;
+  const grantAt = sql.indexOf(grantToken, start);
+  if (grantAt < 0) {
+    throw new Error(`Missing ${grantToken} in ${fileName}`);
+  }
+  const end = sql.indexOf("\n", grantAt);
+  return `${sql.slice(start, end === -1 ? sql.length : end + 1).trimEnd()}\n`;
 }
 
 export async function queryRows<T extends Record<string, unknown>>(

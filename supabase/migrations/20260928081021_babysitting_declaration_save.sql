@@ -6,6 +6,12 @@
 --     / tg_guard_provider_onboarding_fields
 --     (20260723030000_provider_onboarding_verification.sql)
 -- Additive only. Does not rewrite 20260912090000.
+--
+-- Rollout prerequisite (do not silently backfill max_children or flip status):
+-- existing APPROVED babysitters cannot declare capabilities or
+-- max_children_per_booking because save is DRAFT/NEEDS_CHANGES-only and the
+-- maximum is nullable. They need an explicitly approved review transition
+-- into NEEDS_CHANGES (or equivalent editable status) before they can declare.
 
 -- ---------------------------------------------------------------------------
 -- max_children_per_booking is RPC-only. No authenticated/anon/admin table write.

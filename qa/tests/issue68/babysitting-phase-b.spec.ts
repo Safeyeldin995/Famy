@@ -3,6 +3,7 @@ import {
   gotoOnboardingHarness,
   installIssue68Mocks,
   openOnboardingStep,
+  QA_AVATAR_JPEG,
 } from "./mock-supabase.mjs";
 import { MOCK_PROVIDER_ID } from "../../issue68-host/constants.mjs";
 
@@ -57,16 +58,97 @@ test.describe("Phase B babysitting declaration and one-child booking UI", () => 
 
   test("unsaved experience years survive a snapshot refetch", async ({ page }) => {
     const mocks = await installIssue68Mocks(page, { snapshotDelayMs: 0 });
-    const legalName = await gotoOnboardingHarness(page, "current");
-    await legalName.fill("Unsaved legal name edit");
+    await gotoOnboardingHarness(page, "current");
+    await openOnboardingStep(page, "Services");
+    await page.getByRole("button", { name: /^Babysitting/ }).click();
     await openOnboardingStep(page, "Experience");
-    const years = page.locator('input[type="number"]').first();
-    await years.fill("11");
-    await expect(years).toHaveValue("11");
+
+    const bioEn = page.getByRole("textbox", { name: "Bio (English)" });
+    await expect(bioEn).toHaveValue("Persisted EN bio issue68");
+    await bioEn.fill("Unsaved EN bio");
+    const maxChildren = page.getByLabel("Maximum children per booking");
+    await expect(maxChildren).toHaveValue("2");
+    await maxChildren.fill("7");
+    const toddlerYears = page.getByLabel("Years of experience with this age group");
+    await expect(toddlerYears).toHaveValue("4");
+    await toddlerYears.fill("11");
+    await page.getByRole("button", { name: "Infants", exact: true }).click();
+
+    const before = await mocks.getCalls();
+    expect(before.snapshot).toBeGreaterThanOrEqual(1);
+
+    await mocks.setSnapshot({
+      provider: {
+        bio_en: "SERVER OVERWRITE EN",
+        bio_ar: "سيرة مستبدلة",
+        years_experience: 1,
+        max_children_per_booking: 9,
+      },
+      age_group_capabilities: [
+        { code: "preschool", years_experience: 1, note: "server", verified_at: null },
+      ],
+    });
+
     await openOnboardingStep(page, "Personal details");
-    await expect(page.getByRole("textbox", { name: "Full legal name" })).toHaveValue(
-      "Unsaved legal name edit",
+    await page.locator('input[type="file"]').first().setInputFiles({
+      name: "qa-avatar.jpg",
+      mimeType: "image/jpeg",
+      buffer: QA_AVATAR_JPEG,
+    });
+
+    await expect
+      .poll(async () => {
+        const calls = await mocks.getCalls();
+        return (
+          calls.snapshot >= before.snapshot + 1 &&
+          calls.lastSnapshot?.provider?.max_children_per_booking === 9 &&
+          calls.lastSnapshot?.provider?.bio_en === "SERVER OVERWRITE EN"
+        );
+      })
+      .toBe(true);
+
+    await openOnboardingStep(page, "Experience");
+    await expect(page.getByRole("textbox", { name: "Bio (English)" })).toHaveValue(
+      "Unsaved EN bio",
     );
+    await expect(page.getByLabel("Maximum children per booking")).toHaveValue("7");
+    await expect(page.getByLabel("Years of experience with this age group").nth(1)).toHaveValue(
+      "11",
+    );
+    await expect(page.getByRole("button", { name: "Infants", exact: true })).toHaveClass(
+      /bg-brand/,
+    );
+    await expect(page.getByRole("button", { name: "Toddlers", exact: true })).toHaveClass(
+      /bg-brand/,
+    );
+    await expect(
+      page.getByRole("button", { name: "Preschool children", exact: true }),
+    ).not.toHaveClass(/bg-brand/);
+
+    await page.getByRole("button", { name: "Continue" }).click();
+    await expect
+      .poll(async () => {
+        const experience = (await mocks.getCalls()).saves.find(
+          (save) => save.p_section === "experience",
+        );
+        return experience?.p_payload ?? null;
+      })
+      .toMatchObject({
+        bio_en: "Unsaved EN bio",
+        bio_ar: "سيرة عربية محفوظة",
+        max_children_per_booking: 7,
+      });
+    const experience = (await mocks.getCalls()).saves.find(
+      (save) => save.p_section === "experience",
+    );
+    expect(experience.p_payload.age_group_capabilities.map((row) => row.code).sort()).toEqual([
+      "infant",
+      "toddler",
+    ]);
+    expect(
+      experience.p_payload.age_group_capabilities.find((row) => row.code === "toddler")
+        .years_experience,
+    ).toBe(11);
     await mocks.assertIsolated();
   });
 

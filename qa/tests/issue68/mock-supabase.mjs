@@ -105,6 +105,12 @@ export async function installIssue68Mocks(page, options = {}) {
     async getCalls() {
       return page.request.get("/__issue68/calls").then((res) => res.json());
     },
+    async setSnapshot(patch) {
+      const res = await page.request.post("/__issue68/snapshot", { data: patch });
+      if (!res.ok()) {
+        throw new Error(`issue68 snapshot override failed: ${res.status()}`);
+      }
+    },
     async getNetwork() {
       return page.request.get("/__issue68/network").then((res) => res.json());
     },
