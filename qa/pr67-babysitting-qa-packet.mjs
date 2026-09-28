@@ -10,6 +10,10 @@ export const PR67_MIGRATIONS = Object.freeze([
 
 export const PR67_FIXTURE_SUITE = "babysittingCapabilities.integration";
 
+export const PR67_PENDING_TEARDOWN_FILE = "qa/report/pr67-babysitting-pending-teardown.json";
+export const PR67_TEARDOWN_FINGERPRINT_ENV = "PR67_TEARDOWN_PLAN_FINGERPRINT";
+export const PR67_TEARDOWN_RESUME_CLI = "qa/pr67-babysitting-teardown-resume.mjs";
+
 export const PR67_REMOTE_EXECUTION_AUTHORIZED = false;
 
 /** SQL editor / psql probes. Not PostgREST. */
@@ -41,12 +45,36 @@ export function credentialedTestCommand() {
   ];
 }
 
+export function teardownResumeVerifyCommand() {
+  return Object.freeze([
+    "node",
+    "qa/run-with-qa-env.mjs",
+    "node",
+    PR67_TEARDOWN_RESUME_CLI,
+    `--pending-file=${PR67_PENDING_TEARDOWN_FILE}`,
+  ]);
+}
+
+export function teardownResumeExecuteCommand() {
+  return Object.freeze([
+    "node",
+    "qa/run-with-qa-env.mjs",
+    "node",
+    PR67_TEARDOWN_RESUME_CLI,
+    "--execute",
+    "--confirm=I-UNDERSTAND-QA-CONTAINMENT",
+    `--pending-file=${PR67_PENDING_TEARDOWN_FILE}`,
+    "--plan-fingerprint=<owner-approved-reviewed-hex>",
+  ]);
+}
+
 export function requiredReadOnlyCommands() {
   return Object.freeze([
     ["npm", "run", "qa:preflight"],
     ["node", "qa/run-with-qa-env.mjs", "node", "qa/verify-residue.mjs"],
     ["node", "qa/run-with-qa-env.mjs", "node", "qa/containment.mjs"],
     ["node", "qa/run-with-qa-env.mjs", "node", "qa/cleanup.mjs"],
+    teardownResumeVerifyCommand(),
   ]);
 }
 
@@ -54,7 +82,7 @@ export function blockedUntilSeparateOwnerYes() {
   return Object.freeze([
     "QA apply of the three unpublished migrations",
     "credentialed npm run test:otp-integration against QA",
-    "PR67 babysitting teardown resume (owner-approved fingerprint)",
+    "PR67 babysitting teardown resume execute (owner-approved fingerprint)",
     "standalone qa/containment.mjs --execute",
     "cleanup --execute",
     "baseline-repair --execute",
@@ -63,7 +91,7 @@ export function blockedUntilSeparateOwnerYes() {
 }
 
 export const PR67_FIXTURE_SCOPE =
-  "IntegrationFixtureRegistry snapshot only. Seeded babysitting category (never create shared categories). QA_ prefixed services/zones/users. Two-stage teardown: (1) mutating-suite afterAll is a dry-run only — persist pending snapshot+plan, zero teardown writes, residue stays active; (2) resumeApprovedBabysittingTeardown with an owner-supplied reviewed fingerprint and that pending file, without reseeding. Shared teardown executes the approved containment plan as-is (no silent replan) and writes only approved snapshot targets. Standalone qa/containment.mjs --execute and qa/cleanup.mjs --execute remain blocked. No unrelated-user scans.";
+  "IntegrationFixtureRegistry snapshot only. Seeded babysitting category (never create shared categories). QA_ prefixed services/zones/users. Two-stage teardown: (1) mutating-suite afterAll is a dry-run only — persist pending snapshot+plan, zero teardown writes, residue stays active; (2) qa/pr67-babysitting-teardown-resume.mjs with PR67_TEARDOWN_PLAN_FINGERPRINT and that pending file, without reseeding or currentPlan injection. Verify rebuilds the live plan and writes nothing; execute requires --execute --confirm=I-UNDERSTAND-QA-CONTAINMENT plus the reviewed fingerprint. The pending file fingerprint is never auto-approved. Shared teardown executes the approved containment plan as-is (no silent replan) after executable-plan integrity, and writes only approved snapshot targets including link/row deletes. Standalone qa/containment.mjs --execute and qa/cleanup.mjs --execute remain blocked. No unrelated-user scans.";
 
 export function printPacket() {
   const packet = {
@@ -74,12 +102,15 @@ export function printPacket() {
     schemaChecks: PR67_SCHEMA_CHECKS,
     requiredReadOnlyCommands: requiredReadOnlyCommands(),
     credentialedTestCommand: credentialedTestCommand(),
+    teardownResumeVerifyCommand: teardownResumeVerifyCommand(),
+    teardownResumeExecuteCommand: teardownResumeExecuteCommand(),
     fingerprintRules: [
       "Do not auto-approve a fingerprint generated in the same mutating execution. Format-only 64-char checks are not approval.",
-      "Stage 1 dry-run persists qa/report/pr67-babysitting-pending-teardown.json (residueActive=true, writesPerformed=false). Review that file.",
-      "Stage 2 resume: PR67_TEARDOWN_PLAN_FINGERPRINT=<hex> plus the pending file. Fail-closed on absent/malformed/mismatched fingerprint or a drifted snapshot/containment plan. Executes the reviewed plan, not a rebuilt one.",
-      "Shared teardown with approval uses the bound snapshot and approvedPlan; it does not discard approval and replan. Other suites that omit approval are unchanged.",
-      "Standalone containment/cleanup --execute still require a separate reviewed dry-run, the exact current fingerprint, and owner yes. Never pass --execute in this packet.",
+      "Stage 1 dry-run persists qa/report/pr67-babysitting-pending-teardown.json (residueActive=true, writesPerformed=false, automaticContainmentIsReadOnly=false). Review that file. Do not rerun the mutating suite to resume cleanup.",
+      "Stage 2a verify (zero writes): node qa/run-with-qa-env.mjs node qa/pr67-babysitting-teardown-resume.mjs --pending-file=qa/report/pr67-babysitting-pending-teardown.json. Rebuilds the current executable plan; fail-closed on drift. Does not treat the pending fingerprint as approval.",
+      "Stage 2b execute: PR67_TEARDOWN_PLAN_FINGERPRINT=<reviewed-hex> node qa/run-with-qa-env.mjs node qa/pr67-babysitting-teardown-resume.mjs --execute --confirm=I-UNDERSTAND-QA-CONTAINMENT --pending-file=qa/report/pr67-babysitting-pending-teardown.json --plan-fingerprint=<reviewed-hex>. Fail-closed on absent/malformed/mismatched fingerprint, summary-vs-executable discrepancy, or a drifted snapshot/containment plan. Executes the reviewed executable plan, not a rebuilt one.",
+      "Shared teardown with approval recomputes fingerprintContainmentPlan from deserialized executable actions before any write (including zone/service/provider link deletes). It does not discard approval and replan. Other suites that omit approval are unchanged.",
+      "Standalone containment/cleanup --execute still require a separate reviewed dry-run, the exact current fingerprint, and owner yes. Never pass those --execute flags in this packet.",
       "Stop on FAMY_ENV / project-ref mismatch.",
     ],
     blockedUntilSeparateOwnerYes: blockedUntilSeparateOwnerYes(),

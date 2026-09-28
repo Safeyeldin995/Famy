@@ -2,14 +2,19 @@ import { describe, expect, it } from "vitest";
 import {
   PR67_FIXTURE_SUITE,
   PR67_MIGRATIONS,
+  PR67_PENDING_TEARDOWN_FILE,
   PR67_POSTGREST_CHECKS,
   PR67_REMOTE_EXECUTION_AUTHORIZED,
   PR67_SCHEMA_CHECKS,
   PR67_SQL_CHECKS,
   PR67_FIXTURE_SCOPE,
+  PR67_TEARDOWN_FINGERPRINT_ENV,
+  PR67_TEARDOWN_RESUME_CLI,
   blockedUntilSeparateOwnerYes,
   credentialedTestCommand,
   requiredReadOnlyCommands,
+  teardownResumeExecuteCommand,
+  teardownResumeVerifyCommand,
 } from "../pr67-babysitting-qa-packet.mjs";
 
 describe("PR67 babysitting QA execution packet", () => {
@@ -48,9 +53,22 @@ describe("PR67 babysitting QA execution packet", () => {
     expect(blockedUntilSeparateOwnerYes().join(" ")).toMatch(/Production|merge|--execute/i);
     expect(PR67_FIXTURE_SCOPE).toMatch(/Two-stage teardown/);
     expect(PR67_FIXTURE_SCOPE).toMatch(/zero teardown writes/);
-    expect(PR67_FIXTURE_SCOPE).toMatch(/owner-supplied reviewed fingerprint/);
+    expect(PR67_FIXTURE_SCOPE).toMatch(/PR67_TEARDOWN_PLAN_FINGERPRINT/);
+    expect(PR67_FIXTURE_SCOPE).toMatch(/qa\/pr67-babysitting-teardown-resume\.mjs/);
+    expect(PR67_FIXTURE_SCOPE).toMatch(/never auto-approved/);
     expect(PR67_FIXTURE_SCOPE).toMatch(/no silent replan/);
     expect(PR67_FIXTURE_SCOPE).toMatch(/Standalone qa\/containment\.mjs --execute/);
+    expect(PR67_PENDING_TEARDOWN_FILE).toBe("qa/report/pr67-babysitting-pending-teardown.json");
+    expect(PR67_TEARDOWN_FINGERPRINT_ENV).toBe("PR67_TEARDOWN_PLAN_FINGERPRINT");
+    expect(PR67_TEARDOWN_RESUME_CLI).toBe("qa/pr67-babysitting-teardown-resume.mjs");
+    expect(teardownResumeVerifyCommand().join(" ")).toContain(PR67_TEARDOWN_RESUME_CLI);
+    expect(teardownResumeVerifyCommand().join(" ")).not.toContain("--execute");
+    expect(teardownResumeExecuteCommand().join(" ")).toContain("--execute");
+    expect(teardownResumeExecuteCommand().join(" ")).toContain("--plan-fingerprint=");
+    expect(teardownResumeExecuteCommand().join(" ")).not.toMatch(/[0-9a-f]{64}/);
+    expect(requiredReadOnlyCommands().some((row) => row.includes(PR67_TEARDOWN_RESUME_CLI))).toBe(
+      true,
+    );
     expect(PR67_FIXTURE_SCOPE).not.toMatch(/No cleanup execute\./);
     expect(PR67_FIXTURE_SCOPE).not.toMatch(
       /then teardownRegisteredFixture with bookingRpcClient \(snapshot integrationMode execute\)/,

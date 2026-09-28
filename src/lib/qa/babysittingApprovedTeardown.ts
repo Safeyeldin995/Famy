@@ -1,11 +1,13 @@
-import { createHash } from "node:crypto";
-import { mkdirSync, writeFileSync } from "node:fs";
-import path from "node:path";
 import type { FixtureRegistrySnapshot } from "@/lib/qa/integrationFixtureRegistry";
+// @ts-expect-error — .mjs module has no generated declarations
+import * as teardownPlan from "../../../qa/babysitting-teardown-plan.mjs";
 
-export const BABYSITTING_TEARDOWN_PLAN_VERSION = "pr67-babysitting-teardown-v1";
-export const FINGERPRINT_HEX = /^[0-9a-f]{64}$/;
-export const PENDING_TEARDOWN_STATUS = "pending_owner_approval";
+export const BABYSITTING_TEARDOWN_PLAN_VERSION =
+  teardownPlan.BABYSITTING_TEARDOWN_PLAN_VERSION as "pr67-babysitting-teardown-v2";
+export const FINGERPRINT_HEX = teardownPlan.FINGERPRINT_HEX as RegExp;
+export const PENDING_TEARDOWN_STATUS =
+  teardownPlan.PENDING_TEARDOWN_STATUS as "pending_owner_approval";
+export const DEFAULT_PENDING_TEARDOWN_PATH = teardownPlan.DEFAULT_PENDING_TEARDOWN_PATH as string;
 
 export type ContainmentAction = {
   entityType: string;
@@ -57,137 +59,40 @@ export class PendingBabysittingTeardownError extends Error {
   }
 }
 
-function sortedIds(ids: string[]) {
-  return [...ids].sort();
-}
+export const fingerprintBabysittingTeardownPlan =
+  teardownPlan.fingerprintBabysittingTeardownPlan as (plan: BabysittingTeardownPlan) => string;
 
-function sortedLinks<T extends Record<string, string>>(links: T[], key: (row: T) => string) {
-  return [...links].sort((a, b) => key(a).localeCompare(key(b)));
-}
-
-function canonicalSnapshot(snapshot: FixtureRegistrySnapshot) {
-  return {
-    runId: snapshot.runId,
-    suite: snapshot.suite ?? null,
-    userIds: sortedIds(snapshot.userIds),
-    adminUserIds: sortedIds(snapshot.adminUserIds),
-    addressIds: sortedIds(snapshot.addressIds),
-    bookingIds: sortedIds(snapshot.bookingIds),
-    serviceIds: sortedIds(snapshot.serviceIds),
-    zoneIds: sortedIds(snapshot.zoneIds),
-    providerIds: sortedIds(snapshot.providerIds),
-    paymentIds: sortedIds(snapshot.paymentIds),
-    zoneProviderLinks: sortedLinks(
-      snapshot.zoneProviderLinks,
-      (row) => `${row.zoneId}:${row.providerId}`,
-    ),
-    zoneServiceLinks: sortedLinks(
-      snapshot.zoneServiceLinks,
-      (row) => `${row.zoneId}:${row.serviceId}`,
-    ),
-    providerServiceLinks: sortedLinks(
-      snapshot.providerServiceLinks,
-      (row) => `${row.providerId}:${row.serviceId}`,
-    ),
-  };
-}
-
-export function fingerprintBabysittingTeardownPlan(plan: BabysittingTeardownPlan): string {
-  if (plan.version !== BABYSITTING_TEARDOWN_PLAN_VERSION) {
-    throw new Error(
-      `[qa-containment] unsupported babysitting teardown plan version: ${String(plan.version)}`,
-    );
-  }
-  const actions = [...plan.containment.actions]
-    .map((row) => ({
-      entityType: row.entityType,
-      id: row.id,
-      actionType: row.actionType,
-    }))
-    .sort((a, b) =>
-      `${a.entityType}:${a.id}:${a.actionType}`.localeCompare(
-        `${b.entityType}:${b.id}:${b.actionType}`,
-      ),
-    );
-  return createHash("sha256")
-    .update(
-      JSON.stringify({
-        version: plan.version,
-        snapshot: canonicalSnapshot(plan.snapshot),
-        containmentFingerprint: plan.containment.fingerprint,
-        actions,
-      }),
-    )
-    .digest("hex");
-}
-
-export function assertOwnerApprovedTeardown(args: {
+export const assertOwnerApprovedTeardown = teardownPlan.assertOwnerApprovedTeardown as (args: {
   approval?: OwnerTeardownApproval | null;
-  currentPlan: BabysittingTeardownPlan;
-}) {
-  const approval = args.approval;
-  if (!approval?.fingerprint) {
-    throw new Error(
-      "[qa-containment] babysitting teardown requires owner-approved plan fingerprint from a reviewed dry-run",
-    );
-  }
-  if (!FINGERPRINT_HEX.test(approval.fingerprint)) {
-    throw new Error(
-      "[qa-containment] babysitting teardown fingerprint malformed — expected 64-char sha256 hex",
-    );
-  }
-  if (!approval.plan) {
-    throw new Error(
-      "[qa-containment] babysitting teardown requires the reviewed plan bound to that fingerprint",
-    );
-  }
-  const bound = fingerprintBabysittingTeardownPlan(approval.plan);
-  if (bound !== approval.fingerprint) {
-    throw new Error("[qa-containment] approval fingerprint does not match the bound reviewed plan");
-  }
-  const current = fingerprintBabysittingTeardownPlan(args.currentPlan);
-  if (current !== approval.fingerprint) {
-    throw new Error(
-      "[qa-containment] teardown plan drifted from the owner-approved fingerprint — rebuild dry-run and re-approve",
-    );
-  }
-}
+  currentPlan?: BabysittingTeardownPlan;
+}) => void;
 
-export function buildPendingTeardownRecord(
+export const assertApprovedExecutablePlan = teardownPlan.assertApprovedExecutablePlan as (
+  executablePlan: Record<string, unknown>,
+  expectedFingerprint: string,
+) => string;
+
+export const buildPendingTeardownRecord = teardownPlan.buildPendingTeardownRecord as (
   plan: BabysittingTeardownPlan,
   extras?: { adminEmail?: string | null },
-): PendingBabysittingTeardown {
-  const fingerprint = fingerprintBabysittingTeardownPlan(plan);
-  return {
-    status: PENDING_TEARDOWN_STATUS,
-    residueActive: true,
-    automaticContainmentIsReadOnly: false,
-    writesPerformed: false,
-    fingerprint,
-    plan,
-    adminEmail: extras?.adminEmail ?? null,
-    resume:
-      "Fixtures remain active. This record is a dry-run, not cleanup. Do not rerun the mutating suite. Review the fingerprint, then resume with PR67_TEARDOWN_PLAN_FINGERPRINT and this pending file.",
-  };
-}
+) => PendingBabysittingTeardown;
 
-export function persistPendingTeardown(pending: PendingBabysittingTeardown, persistPath: string) {
-  mkdirSync(path.dirname(persistPath), { recursive: true });
-  writeFileSync(persistPath, `${JSON.stringify(pending, null, 2)}\n`);
-  return persistPath;
-}
+export const persistPendingTeardown = teardownPlan.persistPendingTeardown as (
+  pending: PendingBabysittingTeardown,
+  persistPath: string,
+) => string;
 
-export function containmentSnapshotFrom(snapshot: FixtureRegistrySnapshot) {
-  return {
-    userIds: snapshot.userIds,
-    adminUserIds: snapshot.adminUserIds,
-    serviceIds: snapshot.serviceIds,
-    providerIds: snapshot.providerIds,
-    bookingIds: snapshot.bookingIds,
-  };
-}
+export const containmentSnapshotFrom = teardownPlan.containmentSnapshotFrom as (
+  snapshot: FixtureRegistrySnapshot,
+) => {
+  userIds: string[];
+  adminUserIds: string[];
+  serviceIds: string[];
+  providerIds: string[];
+  bookingIds: string[];
+};
 
-export function buildBabysittingTeardownPlan(
+export const buildBabysittingTeardownPlan = teardownPlan.buildBabysittingTeardownPlan as (
   snapshot: FixtureRegistrySnapshot,
   containmentPlan: {
     fingerprint?: string | null;
@@ -195,21 +100,14 @@ export function buildBabysittingTeardownPlan(
     actions?: ContainmentAction[];
     blocked?: boolean;
   } & Record<string, unknown>,
-): BabysittingTeardownPlan {
-  const fingerprint = containmentPlan.fingerprint;
-  if (typeof fingerprint !== "string" || !FINGERPRINT_HEX.test(fingerprint)) {
-    throw new Error(
-      `[qa-containment] babysitting dry-run containment fingerprint missing or malformed: ${String(fingerprint)}`,
-    );
-  }
-  return {
-    version: BABYSITTING_TEARDOWN_PLAN_VERSION,
-    snapshot,
-    containment: {
-      fingerprint,
-      version: containmentPlan.version,
-      actions: containmentPlan.actions ?? [],
-      plan: containmentPlan,
-    },
-  };
-}
+) => BabysittingTeardownPlan;
+
+export const recomputeContainmentPlanFingerprint =
+  teardownPlan.recomputeContainmentPlanFingerprint as (
+    executablePlan: Record<string, unknown>,
+  ) => string;
+
+export const withComputedContainmentFingerprint =
+  teardownPlan.withComputedContainmentFingerprint as <T extends Record<string, unknown>>(
+    executablePlan: T,
+  ) => T & { fingerprint: string };

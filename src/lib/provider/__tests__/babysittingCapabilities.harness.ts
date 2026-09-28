@@ -10,6 +10,7 @@ import {
   buildBabysittingTeardownPlan,
   buildPendingTeardownRecord,
   containmentSnapshotFrom,
+  DEFAULT_PENDING_TEARDOWN_PATH,
   persistPendingTeardown,
   PendingBabysittingTeardownError,
   type OwnerTeardownApproval,
@@ -35,8 +36,6 @@ function requireWrite(error: { message: string } | null, label: string) {
   if (error) throw new Error(`${label}: ${error.message}`);
 }
 
-const DEFAULT_PENDING_PATH = "qa/report/pr67-babysitting-pending-teardown.json";
-
 async function dryRunBabysittingTeardownPlan(
   ctx: ProviderHarnessContext,
   snapshot = ctx.registry.snapshot(),
@@ -59,30 +58,25 @@ export async function prepareBabysittingTeardownDryRun(
 ): Promise<PendingBabysittingTeardown> {
   const plan = await dryRunBabysittingTeardownPlan(ctx);
   const pending = buildPendingTeardownRecord(plan, { adminEmail: options?.adminEmail });
-  persistPendingTeardown(pending, options?.persistPath ?? DEFAULT_PENDING_PATH);
+  persistPendingTeardown(pending, options?.persistPath ?? DEFAULT_PENDING_TEARDOWN_PATH);
   return pending;
 }
 
 /**
  * Stage 2: execute the owner-approved reviewed plan. Does not seed or recreate fixtures.
- * Fail-closed on missing/malformed/mismatched approval or a drifted current plan.
+ * Always rebuilds the current dry-run (no currentPlan injection). Fail-closed on
+ * missing/malformed/mismatched approval or a drifted current plan.
  */
 export async function resumeApprovedBabysittingTeardown(
   ctx: ProviderHarnessContext,
   bookingRpcClient: SupabaseClient<Database> | undefined,
   approval: OwnerTeardownApproval,
-  options?: { currentPlan?: ReturnType<typeof buildBabysittingTeardownPlan> },
 ) {
-  const placeholder = buildBabysittingTeardownPlan(ctx.registry.snapshot(), {
-    fingerprint: "0".repeat(64),
-    actions: [],
-  });
   assertOwnerApprovedTeardown({
     approval,
-    currentPlan: options?.currentPlan ?? approval?.plan ?? placeholder,
+    currentPlan: approval?.plan,
   });
-  const currentPlan =
-    options?.currentPlan ?? (await dryRunBabysittingTeardownPlan(ctx, approval.plan.snapshot));
+  const currentPlan = await dryRunBabysittingTeardownPlan(ctx, approval.plan.snapshot);
   assertOwnerApprovedTeardown({ approval, currentPlan });
 
   const approvedSnapshot = approval.plan.snapshot;

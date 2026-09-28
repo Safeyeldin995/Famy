@@ -8,6 +8,8 @@ import {
 import { recordRecoveryFailure } from "../../../qa/registry.mjs";
 // @ts-expect-error — .mjs module has no generated declarations
 import { containIntegrationFixtureResidue } from "../../../qa/containment-integration.mjs";
+// @ts-expect-error — .mjs module has no generated declarations
+import { assertApprovedExecutablePlan } from "../../../qa/babysitting-teardown-plan.mjs";
 
 export type ApprovedFixtureTeardown = {
   snapshot: FixtureRegistrySnapshot;
@@ -38,13 +40,7 @@ export async function teardownRegisteredFixture(
 ) {
   const approval = options?.approval;
   if (approval) {
-    const expected = approval.expectedContainmentFingerprint;
-    const bound = approval.containmentPlan?.fingerprint;
-    if (!expected || !bound || expected !== bound) {
-      throw new Error(
-        "[qa-containment] fixture teardown approval is missing or does not match the bound containment plan",
-      );
-    }
+    assertApprovedExecutablePlan(approval.containmentPlan, approval.expectedContainmentFingerprint);
   }
 
   const state = approval?.snapshot ?? snapshot ?? registry.snapshot();
