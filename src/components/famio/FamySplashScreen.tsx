@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import famWhite from "@/assets/splash/fam-white.png";
 import yBodyWhite from "@/assets/splash/y-body-white.png";
 import yEyesWhite from "@/assets/splash/y-eyes-white.png";
@@ -45,6 +45,19 @@ function logoWidthPx() {
   return Math.min(window.innerWidth * LOGO_WIDTH_RATIO, LOGO_MAX_WIDTH_PX);
 }
 
+function assembledSplashState() {
+  return {
+    ...famySplashState(999),
+    smileOpacity: 1,
+    smileScale: 1,
+    smileOffsetY: 0,
+    smileMoveProgress: 1,
+    wordRevealProgress: 1,
+    animationComplete: true,
+    eyesClosed: false,
+  };
+}
+
 export function FamySplashScreen({
   onAnimationComplete,
   reducedMotion = false,
@@ -67,11 +80,18 @@ export function FamySplashScreen({
   const logoHeight = FAMY_SPLASH_ASSEMBLED.height * scale;
   const { fam, y } = FAMY_SPLASH_ASSEMBLED;
 
+  // Held in refs so `finish` and the animation effect keep a stable identity. A caller that
+  // passes an inline arrow (the normal React idiom) must not be able to restart the animation.
+  const onCompleteRef = useRef(onAnimationComplete);
+  useEffect(() => {
+    onCompleteRef.current = onAnimationComplete;
+  }, [onAnimationComplete]);
+
   const finish = useCallback(() => {
     if (completedRef.current) return;
     completedRef.current = true;
-    onAnimationComplete();
-  }, [onAnimationComplete]);
+    onCompleteRef.current();
+  }, []);
 
   useEffect(() => {
     const onResize = () => setLogoWidth(logoWidthPx());
@@ -97,8 +117,11 @@ export function FamySplashScreen({
     if (loadFailed) finish();
   }, [loadFailed, finish]);
 
+  const lastStateRef = useRef<ReturnType<typeof famySplashState> | null>(null);
+
   const applyFrame = useCallback(
     (state: ReturnType<typeof famySplashState>) => {
+      lastStateRef.current = state;
       const yPos = famySplashYPosition(state.smileMoveProgress, state.smileOffsetY);
       const yStyle: Partial<CSSStyleDeclaration> = {
         left: `${yPos.x * scale}px`,
@@ -127,32 +150,38 @@ export function FamySplashScreen({
     [scale, y.width, y.height],
   );
 
+  const applyFrameRef = useRef(applyFrame);
+  applyFrameRef.current = applyFrame;
+
+  // After complete (and in reduced-motion) there is no RAF. A later parent
+  // re-render or resize still updates React styles for "fam" and can reset the
+  // "y" inline styles; reapply the last/final frame without restarting or
+  // calling finish again.
+  useLayoutEffect(() => {
+    if (!assets) return;
+    if (completedRef.current || reducedMotion) {
+      applyFrame(assembledSplashState());
+      return;
+    }
+    if (lastStateRef.current) applyFrame(lastStateRef.current);
+  });
+
   useEffect(() => {
     if (!assets) return;
 
-    const finalState = {
-      ...famySplashState(999),
-      smileOpacity: 1,
-      smileScale: 1,
-      smileOffsetY: 0,
-      smileMoveProgress: 1,
-      wordRevealProgress: 1,
-      animationComplete: true,
-      eyesClosed: false,
-    };
-
     if (reducedMotion) {
-      applyFrame(finalState);
+      applyFrameRef.current(assembledSplashState());
       finish();
       return;
     }
 
-    startRef.current = performance.now();
+    // Never rewind a run that has already started.
+    if (startRef.current === null) startRef.current = performance.now();
 
     const tick = (now: number) => {
       const t = (now - (startRef.current ?? now)) / 1000;
       const state = famySplashState(t);
-      applyFrame(state);
+      applyFrameRef.current(state);
       if (state.animationComplete) {
         finish();
         return;
@@ -164,7 +193,7 @@ export function FamySplashScreen({
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
-  }, [assets, reducedMotion, applyFrame, finish]);
+  }, [assets, reducedMotion, finish]);
 
   return (
     <div

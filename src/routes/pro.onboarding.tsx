@@ -7,14 +7,16 @@ import { QueryError } from "@/components/famio/QueryError";
 import { ProviderOnboardingFlow } from "@/components/provider/ProviderOnboardingFlow";
 import { isPreviewRoute } from "@/lib/preview/constants";
 import { useMyProvider } from "@/lib/db/provider-queries";
+import { useOnboardingSnapshot } from "@/lib/provider/onboarding-queries";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/pro/onboarding")({ component: OnboardingRoute });
 
-function OnboardingRoute() {
+export function OnboardingRoute() {
   const { t } = useTranslation();
   const providerQ = useMyProvider();
+  const snapshotQ = useOnboardingSnapshot();
 
   useEffect(() => {
     if (isPreviewRoute()) return;
@@ -25,10 +27,11 @@ function OnboardingRoute() {
       if (!session?.user) return;
       if (!providerQ.data && !providerQ.isLoading) {
         await supabase.rpc("provider_start_onboarding");
-        providerQ.refetch();
+        await providerQ.refetch();
+        await snapshotQ.refetch();
       }
     })();
-  }, [providerQ.data, providerQ.isLoading]);
+  }, [providerQ.data, providerQ.isLoading, providerQ.refetch, snapshotQ.refetch]);
 
   if (providerQ.isLoading) {
     return (

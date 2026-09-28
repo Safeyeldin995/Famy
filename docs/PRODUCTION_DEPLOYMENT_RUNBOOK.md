@@ -126,6 +126,67 @@ partially-applied or re-run state fails safely rather than corrupting
 data — this pattern held up in practice on 2026-08-27 even with the
 already-applied-migrations surprise above.
 
+## Monitoring table privilege reconciliation (2026-09-28)
+
+Production received an approved permission hardening on 2026-09-28 that
+is not a 1:1 match for historical repository migration names/versions.
+This section records that mapping and the safe follow-up plan. It is
+documentation only: do not repair `supabase_migrations` history, do not
+rename already-applied remote versions, and do not replay the live
+originals.
+
+| Applied on Production (2026-09-28) | Production version | Repository file |
+|---|---|---|
+| `error_logs_monitoring` | `20260928070210` | `supabase/migrations/20260824150000_error_logs_monitoring.sql` |
+| `error_logs_client_privileges_hardening` | `20260928070424` | no historical repo file; same ACLs are reproduced by `20260928120000_monitoring_table_privilege_hardening.sql` |
+| `featured_promo_codes` | `20260928070446` | `supabase/migrations/20260826150000_featured_promo_codes.sql` |
+| `error_log_client_rate_limits_hardened` | `20260928070732` | existing `20260827120000_error_log_client_rate_limits.sql` plus the table `REVOKE`/`GRANT` now in `20260928120000_monitoring_table_privilege_hardening.sql` |
+
+Live Production table ACLs after that change (RLS and the admin-only
+`error_logs_admin_read` SELECT policy were left in place):
+
+- `error_logs`: `REVOKE ALL PRIVILEGES` from `PUBLIC`, `anon`,
+  `authenticated`; `GRANT SELECT` to `authenticated`; `GRANT ALL
+  PRIVILEGES` to `service_role`.
+- `error_log_rate_limits`: `REVOKE ALL PRIVILEGES` from `PUBLIC`,
+  `anon`, `authenticated`; `GRANT ALL PRIVILEGES` to `service_role`.
+- Limiter RPC `error_log_client_rate_limit_allow(text, int, int)`:
+  execute revoked from `PUBLIC` / `anon` / `authenticated`, granted to
+  `service_role`.
+
+### Safe reconciliation plan (not yet executed)
+
+1. Keep every already-published historical migration file unchanged.
+2. Do not `INSERT`/`UPDATE`/`DELETE` Production `supabase_migrations`
+   rows to force-name-match the repository.
+3. Do not re-run `20260824150000`, `20260826150000`, or
+   `20260827120000` on Production. Those objects already exist;
+   `CREATE POLICY` without `IF NOT EXISTS` would fail, and replaying is
+   out of scope.
+4. After merge approval, apply **only** the new forward migration
+   `20260928120000_monitoring_table_privilege_hardening.sql` through the
+   documented SQL Editor process, after a read-only privilege check and
+   an explicit Product Owner yes. The statements are idempotent
+   `REVOKE`/`GRANT` matching the already-live ACLs, so a healthy
+   Production SQL Editor apply is an ACL no-op only. Pasting this file
+   in the SQL Editor does **not** insert a `supabase_migrations` row
+   and does **not** create a repository version stamp. ACL application
+   and migration-history recording are separate operations.
+5. Do not `ALTER DEFAULT PRIVILEGES` schema-wide. Other tables' ACLs
+   are out of scope.
+6. QA/local databases that already applied the repository timestamps
+   (not the Production `20260928*` names) should also apply
+   `20260928120000` once. A SQL Editor apply there is likewise ACL-only
+   and does not stamp history. A migration runner that records versions
+   is independent of Production SQL Editor applies.
+7. Repairing or inserting Production `supabase_migrations` rows so the
+   repository version `20260928120000` appears in remote history is a
+   separately gated operation. It is not implied by applying the
+   GRANT/REVOKE SQL and is not authorized by this Issue.
+
+This Issue does not authorize Production/QA migration execution,
+history repair, credentials access, or cleanup.
+
 ## Rollback plan
 
 **Resolved 2026-08-24 (Safeyeldin confirmed): PITR/backups are enabled on
