@@ -168,13 +168,21 @@ Live Production table ACLs after that change (RLS and the admin-only
    documented SQL Editor process, after a read-only privilege check and
    an explicit Product Owner yes. The statements are idempotent
    `REVOKE`/`GRANT` matching the already-live ACLs, so a healthy
-   Production apply is a no-op on privileges plus a new repository
-   version stamp.
+   Production SQL Editor apply is an ACL no-op only. Pasting this file
+   in the SQL Editor does **not** insert a `supabase_migrations` row
+   and does **not** create a repository version stamp. ACL application
+   and migration-history recording are separate operations.
 5. Do not `ALTER DEFAULT PRIVILEGES` schema-wide. Other tables' ACLs
    are out of scope.
 6. QA/local databases that already applied the repository timestamps
    (not the Production `20260928*` names) should also apply
-   `20260928120000` once, the same way as any other forward migration.
+   `20260928120000` once. A SQL Editor apply there is likewise ACL-only
+   and does not stamp history. A migration runner that records versions
+   is independent of Production SQL Editor applies.
+7. Repairing or inserting Production `supabase_migrations` rows so the
+   repository version `20260928120000` appears in remote history is a
+   separately gated operation. It is not implied by applying the
+   GRANT/REVOKE SQL and is not authorized by this Issue.
 
 This Issue does not authorize Production/QA migration execution,
 history repair, credentials access, or cleanup.
