@@ -8,6 +8,8 @@ export const BABYSITTING_MIGRATION = "20260912090000_babysitting_capabilities.sq
 export const DECLARATION_MIGRATION = "20260928081021_babysitting_declaration_save.sql";
 export const REQUEST_UPDATED_DETAILS_MIGRATION =
   "20260928093002_approved_request_updated_details.sql";
+export const MARKETPLACE_BOOKABILITY_MIGRATION =
+  "20260929082421_marketplace_babysitting_bookability.sql";
 export const CREATE_BOOKING_MIGRATION = "20260724010000_booking_create_rpc_idempotency.sql";
 export const RESPOND_RESCHEDULE_MIGRATION = "20260713180000_secure-booking-rescheduling.sql";
 export const APPLY_ONBOARDING_STATUS_MIGRATION = "20260723080000_provider_internal_notes_table.sql";
@@ -362,6 +364,10 @@ export async function applyBabysittingMigration(db: PGlite): Promise<void> {
 
 export async function applyDeclarationMigration(db: PGlite): Promise<void> {
   await applySql(db, readMigration(DECLARATION_MIGRATION));
+}
+
+export async function applyMarketplaceBookabilityMigration(db: PGlite): Promise<void> {
+  await applySql(db, readMigration(MARKETPLACE_BOOKABILITY_MIGRATION));
 }
 
 export async function tablePrivilegeMatrix(db: PGlite, tableName: string): Promise<PrivilegeRow[]> {
