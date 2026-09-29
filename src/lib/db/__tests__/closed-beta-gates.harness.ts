@@ -2,6 +2,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { readMigration } from "./monitoring-privilege-harness";
 
 export const CLOSED_BETA_MIGRATION = "20260929095936_closed_beta_babysitting_tutoring.sql";
+export const DUAL_SERVICE_DISCOVERY_MIGRATION = "20260929113552_dual_service_marketplace_discovery.sql";
 
 const BOOTSTRAP_SQL = `
 CREATE SCHEMA IF NOT EXISTS auth;

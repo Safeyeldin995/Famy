@@ -101,7 +101,7 @@ BEGIN
   END IF;
 
   RETURN QUERY
-  SELECT DISTINCT ON (p.id, s.id)
+  SELECT DISTINCT ON (p.id)
     p.id, pr.full_name, pr.avatar_url, p.bio_en, p.bio_ar, e.effective_price,
     p.years_experience, p.languages, p.city, p.is_top_pro, p.is_verified,
     p.response_time_min, s.id, s.slug, s.name_en, s.name_ar, c.slug,
@@ -114,7 +114,7 @@ BEGIN
   LEFT JOIN public.ratings_summary rs ON rs.provider_id = p.id
   LEFT JOIN public.trust_scores ts ON ts.provider_id = p.id
   WHERE public.is_phase1_category_slug(c.slug)
-  ORDER BY p.id, s.id, p.is_top_pro DESC, COALESCE(rs.rating_avg, 0) DESC;
+  ORDER BY p.id, p.is_top_pro DESC, COALESCE(rs.rating_avg, 0) DESC;
 END;
 $$;
 

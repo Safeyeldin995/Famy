@@ -3,6 +3,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { readMigration } from "./monitoring-privilege-harness";
 import {
   CLOSED_BETA_MIGRATION,
+  DUAL_SERVICE_DISCOVERY_MIGRATION,
   createClosedBetaGatesDb,
   runSqlExpectError,
   seedCategoryService,
@@ -182,6 +183,19 @@ describe("closed beta marketplace and booking gates", () => {
       "Dual Service Provider",
       [babysitting.serviceId, tutoring.serviceId],
     );
+
+    // QA already has the historical migration. Prove the forward migration
+    // corrects that state rather than silently testing an edited old file.
+    await db.exec("BEGIN");
+    await db.query(`SELECT set_config('request.jwt.claim.sub', $1, true)`, [customerId]);
+    const oldRows = await db.query<{ id: string }>(
+      `SELECT id FROM public.search_marketplace_providers(NULL, $1::uuid)`,
+      [addressId],
+    );
+    await db.exec("ROLLBACK");
+    expect(oldRows.rows.filter((row) => row.id === dualProviderId)).toHaveLength(1);
+
+    await db.exec(readMigration(DUAL_SERVICE_DISCOVERY_MIGRATION));
 
     await db.exec("BEGIN");
     await db.query(`SELECT set_config('request.jwt.claim.sub', $1, true)`, [customerId]);
