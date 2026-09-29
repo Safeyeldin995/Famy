@@ -35,18 +35,26 @@ function spawnNodeEval(source: string, tmpDir: string) {
   });
 }
 
+function thenableQuery(result: { data: unknown[]; error: null }) {
+  const chain = {
+    eq: () => chain,
+    or: () => chain,
+    in: () => chain,
+    ilike: () => chain,
+    then: (resolve: (value: typeof result) => unknown, reject?: (reason: unknown) => unknown) =>
+      Promise.resolve(result).then(resolve, reject),
+  };
+  return chain;
+}
+
 function mockSupabaseAdmin(activeServices: boolean) {
   return {
     from: (table: string) => ({
-      select: () => ({
-        ilike: () => ({
-          eq: async () => ({
-            data: activeServices && table === "services" ? [{ id: "svc", name_en: "QA_test" }] : [],
-          }),
-          or: async () => ({ data: [] }),
-          in: async () => ({ data: [] }),
+      select: () =>
+        thenableQuery({
+          data: activeServices && table === "services" ? [{ id: "svc", name_en: "QA_test" }] : [],
+          error: null,
         }),
-      }),
     }),
   };
 }
@@ -86,12 +94,15 @@ describe("cli lifecycle shutdown", () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "qa-spawn-close-"));
     const marker = path.join(tmpDir, "marker.log");
     const childScript = path.join(tmpDir, "child.mjs");
-    fs.writeFileSync(childScript, `
+    fs.writeFileSync(
+      childScript,
+      `
       import fs from "node:fs";
       fs.appendFileSync(${JSON.stringify(marker)}, "start\\n");
       await new Promise((resolve) => setTimeout(resolve, 50));
       fs.appendFileSync(${JSON.stringify(marker)}, "end\\n");
-    `);
+    `,
+    );
 
     const code = await spawnChildAndWait(process.execPath, [childScript], {
       ...process.env,
@@ -129,22 +140,28 @@ describe("cli lifecycle shutdown", () => {
 
   it("run-with-qa-env wrapper waits for child close before exiting cleanly", () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "qa-wrapper-close-"));
-    fs.writeFileSync(path.join(tmpDir, ".env.qa.local"), [
-      "FAMY_ENV=qa",
-      "FAMY_QA_SUPABASE_PROJECT_REF=bfwveoqbyqlhixjvdzha",
-      "FAMY_PRODUCTION_SUPABASE_PROJECT_REF=mjhkaiabfnzewprcnojp",
-      "QA_SUPABASE_URL=https://bfwveoqbyqlhixjvdzha.supabase.co",
-      "QA_SUPABASE_PUBLISHABLE_KEY=test-publishable-key",
-      "QA_SUPABASE_SECRET_KEY=test-secret-key",
-      "FAMY_QA_APP_ORIGIN=http://localhost:5173",
-      "FAMY_PRODUCTION_APP_ORIGIN=https://example.com",
-      "",
-    ].join("\n"));
+    fs.writeFileSync(
+      path.join(tmpDir, ".env.qa.local"),
+      [
+        "FAMY_ENV=qa",
+        "FAMY_QA_SUPABASE_PROJECT_REF=bfwveoqbyqlhixjvdzha",
+        "FAMY_PRODUCTION_SUPABASE_PROJECT_REF=mjhkaiabfnzewprcnojp",
+        "QA_SUPABASE_URL=https://bfwveoqbyqlhixjvdzha.supabase.co",
+        "QA_SUPABASE_PUBLISHABLE_KEY=test-publishable-key",
+        "QA_SUPABASE_SECRET_KEY=test-secret-key",
+        "FAMY_QA_APP_ORIGIN=http://localhost:5173",
+        "FAMY_PRODUCTION_APP_ORIGIN=https://example.com",
+        "",
+      ].join("\n"),
+    );
     const childScript = path.join(tmpDir, "child-wrapper.mjs");
-    fs.writeFileSync(childScript, `
+    fs.writeFileSync(
+      childScript,
+      `
       import fs from "node:fs";
       fs.appendFileSync("wrapper-marker.log", "child-done\\n");
-    `);
+    `,
+    );
 
     const script = `
       process.argv = ["node", ${JSON.stringify(path.join(REPO_ROOT, "qa/run-with-qa-env.mjs"))}, ${JSON.stringify(process.execPath)}, ${JSON.stringify(childScript)}];
@@ -189,11 +206,17 @@ describe("cli lifecycle shutdown", () => {
 describe("verify-residue main with isolated QA env", () => {
   /** @type {string} */
   let envFile = "";
+  /** @type {string} */
+  let tmpDir = "";
+  const previousCwd = process.cwd();
 
   beforeEach(async () => {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "qa-residue-main-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "qa-residue-main-"));
+    const runDir = path.join(tmpDir, "run");
+    fs.mkdirSync(runDir);
     envFile = path.join(tmpDir, ".env.qa.local");
     fs.writeFileSync(envFile, buildFakeQaEnvFileContent(), "utf8");
+    process.chdir(runDir);
     vi.resetModules();
     const { configureQaEnvFilePathForTests, loadQaEnv } = await import("../load-qa-env.mjs");
     configureQaEnvFilePathForTests(envFile);
@@ -201,10 +224,12 @@ describe("verify-residue main with isolated QA env", () => {
   });
 
   afterEach(async () => {
+    process.chdir(previousCwd);
     vi.doUnmock("../admin-client.mjs");
     vi.resetModules();
     const { resetQaEnvFilePathForTests } = await import("../load-qa-env.mjs");
     resetQaEnvFilePathForTests();
+    if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it("clean verifier main propagates exit 0", async () => {
