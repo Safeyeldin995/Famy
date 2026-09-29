@@ -20,7 +20,8 @@ import {
   defaultAddressQueryKey,
 } from '@/lib/db/address-query-keys';
 import { isClosedBetaCategorySlug } from '@/lib/catalog/closedBetaCategories';
-import { isQaCatalogService, isQaCatalogSlug, isQaFixtureName } from '@/lib/catalog/qaCatalog';
+import { isQaCatalogService, isQaCatalogSlug } from '@/lib/catalog/qaCatalog';
+import { selectMarketplaceProviderRows } from '@/lib/db/marketplaceProviderRows';
 
 type Tables = Database['public']['Tables'];
 
@@ -309,18 +310,7 @@ export function useProviders(opts: { categorySlug?: string; serviceId?: string; 
       if (opts.addressId) args.p_address_id = opts.addressId;
       const { data, error } = await supabase.rpc('search_marketplace_providers', args);
       if (error) throw error;
-      const rows = (data ?? [])
-        .filter(
-          (row) =>
-            !isQaCatalogSlug(row.category_slug, row.service_slug) &&
-            !isQaFixtureName(row.full_name) &&
-            isClosedBetaCategorySlug(row.category_slug),
-        )
-        .slice(0, opts.limit ?? 50);
-      if (opts.categorySlug && !opts.serviceId) {
-        return rows.filter((row) => row.category_slug === opts.categorySlug).map(marketplaceRow);
-      }
-      return rows.map(marketplaceRow);
+      return selectMarketplaceProviderRows(data ?? [], opts).map(marketplaceRow);
     },
   });
 }

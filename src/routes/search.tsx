@@ -28,6 +28,7 @@ function SearchPage() {
   const selectedAddressId =
     addressId || (addressesQ.data ?? []).find((a) => a.is_default)?.id || addressesQ.data?.[0]?.id;
   const provsQ = useProviders({
+    categorySlug: filter === "babysitting" || filter === "tutoring" ? filter : undefined,
     serviceId: serviceId || undefined,
     addressId: selectedAddressId,
     limit: 60,
