@@ -15,6 +15,8 @@ import {
 } from "@/lib/otp/__tests__/otpIntegration.harness";
 import { IntegrationFixtureRegistry } from "@/lib/qa/integrationFixtureRegistry";
 import { parseBookingErrorCode } from "@/lib/booking/errors";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 import {
   cleanupBabysittingQaFixture,
   futureSlot,
@@ -46,6 +48,19 @@ const CROSS_BAND_ELIGIBILITY_MARKER =
   /BOOKING_PROVIDER_INELIGIBLE|does not support this child age group/i;
 
 /** Join PostgREST fields. Trigger RAISE inside respond_reschedule may not sit on message. */
+async function searchProviderIds(
+  client: SupabaseClient<Database>,
+  serviceId: string,
+  addressId: string,
+): Promise<string[]> {
+  const { data, error } = await client.rpc("search_marketplace_providers", {
+    p_service_id: serviceId,
+    p_address_id: addressId,
+  });
+  if (error) throw error;
+  return (data ?? []).map((row) => row.id);
+}
+
 function bookingRpcErrorSurface(
   error:
     | {
@@ -331,6 +346,83 @@ describeIf("babysitting capabilities credentialed QA", () => {
     });
     expect(restored.error, restored.error?.message).toBeNull();
     expect(trackBooking(restored)).toBeTruthy();
+  });
+
+  it("hides undeclared babysitting in customer search while cleaning stays visible, then shows after declaration", async () => {
+    const dualProviderId = fixture!.cleaningProviderId;
+    const { data: beforeMax } = await admin!
+      .from("providers")
+      .select("max_children_per_booking, onboarding_status")
+      .eq("id", dualProviderId)
+      .single();
+    expect(beforeMax?.onboarding_status).toBe("APPROVED");
+    expect(beforeMax?.max_children_per_booking).toBeNull();
+
+    const babysittingHidden = await searchProviderIds(
+      fixture!.customerClient,
+      fixture!.babysittingServiceId,
+      fixture!.addressId,
+    );
+    expect(babysittingHidden).not.toContain(dualProviderId);
+    expect(babysittingHidden).toContain(fixture!.providerId);
+
+    const cleaningVisible = await searchProviderIds(
+      fixture!.customerClient,
+      fixture!.cleaningServiceId,
+      fixture!.addressId,
+    );
+    expect(cleaningVisible).toContain(dualProviderId);
+
+    const requested = await fixture!.adminClient.rpc("admin_provider_onboarding_action", {
+      p_provider_id: dualProviderId,
+      p_action: "request_updated_details",
+      p_reason_code: "updated_details_required",
+      p_reason_public: "Need babysitting age-group declaration for dual-service provider",
+    });
+    expect(requested.error, requested.error?.message).toBeNull();
+
+    const duringReview = await searchProviderIds(
+      fixture!.customerClient,
+      fixture!.cleaningServiceId,
+      fixture!.addressId,
+    );
+    expect(duringReview).not.toContain(dualProviderId);
+
+    const saved = await fixture!.cleaningClient.rpc("provider_save_onboarding_section", {
+      p_section: "experience",
+      p_payload: {
+        bio_en: "QA cleaning bio",
+        years_experience: 3,
+        age_group_capabilities: [{ code: "toddler", years_experience: 3 }],
+        max_children_per_booking: 2,
+      },
+    });
+    expect(saved.error, saved.error?.message).toBeNull();
+
+    const submitted = await fixture!.cleaningClient.rpc("provider_submit_onboarding");
+    expect(submitted.error).toBeNull();
+    expect((submitted.data as { ok?: boolean; status?: string }).ok).toBe(true);
+    expect((submitted.data as { status?: string }).status).toBe("SUBMITTED");
+
+    const reapproved = await fixture!.adminClient.rpc("admin_provider_onboarding_action", {
+      p_provider_id: dualProviderId,
+      p_action: "approve",
+    });
+    expect(reapproved.error, reapproved.error?.message).toBeNull();
+
+    const babysittingVisible = await searchProviderIds(
+      fixture!.customerClient,
+      fixture!.babysittingServiceId,
+      fixture!.addressId,
+    );
+    expect(babysittingVisible).toContain(dualProviderId);
+
+    const cleaningStillVisible = await searchProviderIds(
+      fixture!.customerClient,
+      fixture!.cleaningServiceId,
+      fixture!.addressId,
+    );
+    expect(cleaningStillVisible).toContain(dualProviderId);
   });
 
   it("accepts same-band reschedule, rejects cross-band, and keeps cleaning create", async () => {

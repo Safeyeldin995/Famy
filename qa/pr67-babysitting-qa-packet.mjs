@@ -6,7 +6,11 @@ export const PR67_MIGRATIONS = Object.freeze([
   "20260912090000_babysitting_capabilities.sql",
   "20260928081021_babysitting_declaration_save.sql",
   "20260928093002_approved_request_updated_details.sql",
+  "20260929082421_marketplace_babysitting_bookability.sql",
 ]);
+
+/** QA preflight 2026-09-28: A/B/C/D already applied. Never reapply on QA. */
+export const PR67_QA_MIGRATIONS_ALREADY_APPLIED = true;
 
 export const PR67_FIXTURE_SUITE = "babysittingCapabilities.integration";
 
@@ -20,7 +24,7 @@ export const PR67_REMOTE_EXECUTION_AUTHORIZED = false;
 export const PR67_SQL_CHECKS = Object.freeze([
   "select version() as pg_version",
   "select proname from pg_proc where proname in ('provider_save_onboarding_section','admin_provider_onboarding_action','create_booking','request_reschedule','respond_reschedule','provider_submit_onboarding','apply_provider_onboarding_status')",
-  "select version from supabase_migrations.schema_migrations where version in ('20260912090000','20260928081021','20260928093002') order by version",
+  "select version from supabase_migrations.schema_migrations where version in ('20260912090000','20260928081021','20260928093002','20260929082421') order by version",
 ]);
 
 /** PostgREST table probes after owner-approved QA access. Not information_schema privilege catalogs. */
@@ -80,7 +84,7 @@ export function requiredReadOnlyCommands() {
 
 export function blockedUntilSeparateOwnerYes() {
   return Object.freeze([
-    "QA apply of the three unpublished migrations",
+    "QA reapply of A/B/C/D (already applied on QA preflight 2026-09-28 — verify only, never reapply)",
     "credentialed npm run test:otp-integration against QA",
     "PR67 babysitting teardown resume execute (owner-approved fingerprint)",
     "standalone qa/containment.mjs --execute",
@@ -96,6 +100,7 @@ export const PR67_FIXTURE_SCOPE =
 export function printPacket() {
   const packet = {
     remoteExecutionAuthorized: PR67_REMOTE_EXECUTION_AUTHORIZED,
+    qaMigrationsAlreadyApplied: PR67_QA_MIGRATIONS_ALREADY_APPLIED,
     migrationsInFilenameOrder: PR67_MIGRATIONS,
     fixtureSuite: PR67_FIXTURE_SUITE,
     fixtureScope: PR67_FIXTURE_SCOPE,

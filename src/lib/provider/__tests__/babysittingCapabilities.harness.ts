@@ -367,6 +367,53 @@ async function completeAndApproveProvider(
   }
 }
 
+/** Attach an extra approved service without declaration or hourly_rate changes. */
+export async function attachApprovedProviderService(
+  ctx: ProviderHarnessContext,
+  args: {
+    providerId: string;
+    serviceId: string;
+    adminClient: SupabaseClient<Database>;
+  },
+) {
+  const inserted = await ctx.admin
+    .from("provider_services")
+    .insert({
+      provider_id: args.providerId,
+      service_id: args.serviceId,
+      status: "pending",
+    })
+    .select("id")
+    .single();
+  if (inserted.error) throw inserted.error;
+  ctx.registry.registerProviderService(args.providerId, args.serviceId);
+
+  const serviceApproval = await args.adminClient.rpc("admin_set_provider_service_status", {
+    p_id: inserted.data.id,
+    p_status: "approved",
+  });
+  if (serviceApproval.error) throw serviceApproval.error;
+
+  const { data: servicePricing, error: servicePricingError } = await ctx.admin
+    .from("services")
+    .select("provider_pricing_allowed, minimum_price, maximum_price")
+    .eq("id", args.serviceId)
+    .single();
+  if (servicePricingError) throw servicePricingError;
+  const pricing = planFixtureProviderPricing({
+    provider_pricing_allowed: servicePricing.provider_pricing_allowed,
+    minimum_price: servicePricing.minimum_price,
+    maximum_price: servicePricing.maximum_price,
+  });
+  if (pricing.priceOverride !== null) {
+    const priced = await ctx.admin
+      .from("provider_services")
+      .update({ price_override: pricing.priceOverride })
+      .eq("id", inserted.data.id);
+    requireWrite(priced.error, "provider_services.price_override");
+  }
+}
+
 export async function seedBabysittingQaFixture(ctx: ProviderHarnessContext) {
   const stamp = Date.now();
   const providerEmail = `qa-babysit-p-${stamp}@famio.local`;
@@ -495,6 +542,11 @@ export async function seedBabysittingQaFixture(ctx: ProviderHarnessContext) {
     serviceId: cleaningServiceId,
     zoneId,
     babysitting: false,
+  });
+  await attachApprovedProviderService(ctx, {
+    providerId: cleaningProviderId,
+    serviceId: babysittingServiceId,
+    adminClient,
   });
   const { data: address, error: addressError } = await ctx.admin
     .from("addresses")
