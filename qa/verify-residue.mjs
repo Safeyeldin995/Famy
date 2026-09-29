@@ -8,33 +8,21 @@ import { runCliIfDirect } from "./cli-entrypoint.mjs";
 export const RESIDUE_CLEAN_LOG = "[qa-residue] clean.";
 export const RESIDUE_READ_FAILED_LOG = "[qa-residue] read failed:";
 
+/** PostgREST `PGRSTnnn` or PostgreSQL SQLSTATE. Anything else is `unknown`. */
+export const ALLOWED_RESIDUE_ERROR_CODE = /^(?:PGRST[0-9]{3}|[0-9A-Z]{5})$/;
+
 const RETAINED_PROFILE_REASON =
   "Retained only when FK-bound or auth deletion failed; must remain suspended/neutralized";
 
 /**
- * @param {unknown} value
- */
-function sanitizeResidueErrorText(value) {
-  if (typeof value !== "string" || !value.trim()) return "query-failed";
-  return value
-    .replace(/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, "[redacted]")
-    .replace(/\b(?:sb_secret_|sb_publishable_|service_role)[A-Za-z0-9_-]*/gi, "[redacted]")
-    .replace(/Bearer\s+\S+/gi, "Bearer [redacted]")
-    .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, "[redacted]")
-    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[redacted]")
-    .slice(0, 180);
-}
-
-/**
  * @param {unknown} error
- * @returns {{ code: string, message: string }}
+ * @returns {"unknown" | string}
  */
-export function safeResidueReadError(error) {
+export function allowlistedResidueErrorCode(error) {
   const record =
     error && typeof error === "object" ? /** @type {Record<string, unknown>} */ (error) : null;
-  const code =
-    typeof record?.code === "string" && record.code.trim() ? record.code.trim() : "unknown";
-  return { code, message: sanitizeResidueErrorText(record?.message) };
+  const code = typeof record?.code === "string" ? record.code.trim() : "";
+  return ALLOWED_RESIDUE_ERROR_CODE.test(code) ? code : "unknown";
 }
 
 /**
@@ -50,8 +38,7 @@ export function isSuccessfulResidueRead(result) {
  * @param {{ data?: unknown, error?: unknown } | null | undefined} result
  */
 export function formatResidueReadFailure(label, result) {
-  const { code, message } = safeResidueReadError(result?.error);
-  return `${RESIDUE_READ_FAILED_LOG} ${label} code=${code} message=${message}`;
+  return `${RESIDUE_READ_FAILED_LOG} ${label} code=${allowlistedResidueErrorCode(result?.error)}`;
 }
 
 /**

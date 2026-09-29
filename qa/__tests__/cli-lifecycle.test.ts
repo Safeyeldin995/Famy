@@ -206,11 +206,17 @@ describe("cli lifecycle shutdown", () => {
 describe("verify-residue main with isolated QA env", () => {
   /** @type {string} */
   let envFile = "";
+  /** @type {string} */
+  let tmpDir = "";
+  const previousCwd = process.cwd();
 
   beforeEach(async () => {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "qa-residue-main-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "qa-residue-main-"));
+    const runDir = path.join(tmpDir, "run");
+    fs.mkdirSync(runDir);
     envFile = path.join(tmpDir, ".env.qa.local");
     fs.writeFileSync(envFile, buildFakeQaEnvFileContent(), "utf8");
+    process.chdir(runDir);
     vi.resetModules();
     const { configureQaEnvFilePathForTests, loadQaEnv } = await import("../load-qa-env.mjs");
     configureQaEnvFilePathForTests(envFile);
@@ -218,10 +224,12 @@ describe("verify-residue main with isolated QA env", () => {
   });
 
   afterEach(async () => {
+    process.chdir(previousCwd);
     vi.doUnmock("../admin-client.mjs");
     vi.resetModules();
     const { resetQaEnvFilePathForTests } = await import("../load-qa-env.mjs");
     resetQaEnvFilePathForTests();
+    if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it("clean verifier main propagates exit 0", async () => {
