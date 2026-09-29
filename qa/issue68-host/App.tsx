@@ -8,10 +8,14 @@ import {
 } from "@tanstack/react-router";
 import { ProviderOnboardingFlow } from "@/components/provider/ProviderOnboardingFlow";
 import { OnboardingRoute } from "@/routes/pro.onboarding";
+import { BookContent } from "@/routes/book.$providerId";
+import { RequestUpdatedDetailsAction } from "@/components/admin/RequestUpdatedDetailsAction";
 import { LanguageProvider } from "@/lib/i18n/LanguageProvider";
 import { useProviders } from "@/lib/db/queries";
 import { Toaster } from "@/components/ui/sonner";
 import { ProviderOnboardingFlowPre68 } from "../tests/issue68/fixtures/ProviderOnboardingFlow.pre68";
+import { MOCK_PROVIDER_ID } from "./constants.mjs";
+import { useAdminOnboardingReview, type OnboardingStatus } from "@/lib/provider/onboarding-queries";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -108,12 +112,48 @@ const proOnboardingRoute = createRoute({
   },
 });
 
+const adminUpdatedDetailsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin-updated-details",
+  component: function AdminUpdatedDetailsHarness() {
+    const review = useAdminOnboardingReview(MOCK_PROVIDER_ID);
+    const status = (
+      review.data as { provider?: { onboarding_status?: OnboardingStatus } } | undefined
+    )?.provider?.onboarding_status;
+    return (
+      <div data-testid="issue68-admin-updated-details">
+        <div data-testid="onboarding-status">{status ?? "loading"}</div>
+        <RequestUpdatedDetailsAction providerId={MOCK_PROVIDER_ID} onboardingStatus={status} />
+      </div>
+    );
+  },
+});
+
+const bookRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/book/$providerId",
+  validateSearch: (search: Record<string, unknown>) => ({
+    serviceId: typeof search.serviceId === "string" ? search.serviceId : undefined,
+  }),
+  component: function BookHarness() {
+    const { providerId } = bookRoute.useParams();
+    const { serviceId } = bookRoute.useSearch();
+    return (
+      <div data-testid="issue68-book">
+        <BookContent providerId={providerId} searchServiceId={serviceId} />
+      </div>
+    );
+  },
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   onboardingRoute,
   marketplaceRoute,
   proRoute,
   proOnboardingRoute,
+  adminUpdatedDetailsRoute,
+  bookRoute,
 ]);
 const router = createRouter({ routeTree });
 

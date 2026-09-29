@@ -52,6 +52,12 @@ function isLocalUrl(url) {
  *   scenario?: "default" | "returning" | "new-provider" | "saved-data-error";
  * }} [options]
  */
+function isImageCdn(url) {
+  return (
+    url.includes("picsum.photos") || url.includes("pravatar.cc") || url.includes("i.pravatar.cc")
+  );
+}
+
 export async function installIssue68Mocks(page, options = {}) {
   const blockedExternal = [];
   const lang = options.lang === "ar" ? "ar" : "en";
@@ -79,6 +85,17 @@ export async function installIssue68Mocks(page, options = {}) {
       await route.continue();
       return;
     }
+    if (isImageCdn(url)) {
+      await route.fulfill({
+        status: 200,
+        contentType: "image/jpeg",
+        body: Buffer.from(
+          "/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxAQEBUQEBAVFRUVFRUVFRUVFRUVFRUWFxUVFRUYHSggGBolGxUVITEhJSkrLi4uFx8zODMtNygtLisBCgoKDg0OGxAQGy0lHyUtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAAEAAQMBIgACEQEDEQH/xAAXAAEBAQEAAAAAAAAAAAAAAAAAAQID/8QAFhEBAQEAAAAAAAAAAAAAAAAAAAER/9oADAMBAAIQAxAAAAG6P//Z",
+          "base64",
+        ),
+      });
+      return;
+    }
     blockedExternal.push(url);
     await route.abort("blockedbyclient");
   });
@@ -87,6 +104,12 @@ export async function installIssue68Mocks(page, options = {}) {
     getBlockedExternal: () => [...blockedExternal],
     async getCalls() {
       return page.request.get("/__issue68/calls").then((res) => res.json());
+    },
+    async setSnapshot(patch) {
+      const res = await page.request.post("/__issue68/snapshot", { data: patch });
+      if (!res.ok()) {
+        throw new Error(`issue68 snapshot override failed: ${res.status()}`);
+      }
     },
     async getNetwork() {
       return page.request.get("/__issue68/network").then((res) => res.json());

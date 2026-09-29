@@ -46,6 +46,8 @@ describe("booking recipient policy", () => {
         categorySlug: "babysitting",
         forWhom: "child-1",
         familyMemberIds: ["child-1"],
+        members: [{ id: "child-1", date_of_birth: "2024-09-28" }],
+        startAt: "2026-09-28T10:00:00Z",
       }),
     ).toBe(true);
   });

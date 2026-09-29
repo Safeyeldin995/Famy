@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useAdminProvider, useProviderEligibility, useSetProviderVerified, useSetProviderActive, useSetProviderServiceStatus, useDocumentSignedUrl } from "@/lib/db/admin-queries";
 import { useAdminOnboardingAction, useAdminOnboardingReview, useReviewProviderDocument } from "@/lib/provider/onboarding-queries";
+import { RequestUpdatedDetailsAction } from "@/components/admin/RequestUpdatedDetailsAction";
 import { useProviderAvailability, useProviderVacations, useAddVacation, useDeleteVacation } from "@/lib/db/provider-queries";
 import { ChevronLeft, FileText, ShieldCheck, Trash2, Check, X } from "lucide-react";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
@@ -378,6 +379,7 @@ export function AdminProvider({ id }: { id: string }) {
             >{t("admin.providers.reject")}</button>
           </>
         )}
+        <RequestUpdatedDetailsAction providerId={p.id} onboardingStatus={p.onboarding_status} />
         {p.is_verified && (
           <button
             disabled={setActive.isPending}

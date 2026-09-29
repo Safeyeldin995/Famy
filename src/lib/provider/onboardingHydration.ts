@@ -1,3 +1,8 @@
+import {
+  mapCapabilitiesFromSnapshot,
+  type AgeGroupCapabilityForm,
+} from "@/lib/provider/ageGroupCapabilities";
+
 export type OnboardingReferenceForm = {
   full_name: string;
   relationship: string;
@@ -18,7 +23,14 @@ export type OnboardingSnapshotData = {
     years_experience?: number | null;
     languages?: string[] | null;
     city?: string | null;
+    max_children_per_booking?: number | null;
   };
+  age_group_capabilities?: Array<{
+    code?: string | null;
+    years_experience?: number | null;
+    note?: string | null;
+    verified_at?: string | null;
+  }> | null;
   details?: {
     date_of_birth?: string | null;
     gender?: string | null;
@@ -46,6 +58,8 @@ export type OnboardingFormHydration = {
   previousWork: string;
   langs: string[];
   childGroups: string[];
+  capabilityForms: AgeGroupCapabilityForm[];
+  maxChildren: number | null;
   newborn: boolean;
   firstAid: boolean;
   confirmed: boolean;
@@ -78,6 +92,7 @@ export function mapSnapshotToOnboardingFormState(
   const profile = snapshot.profile ?? {};
   const details = snapshot.details ?? {};
   const snapshotProvider = snapshot.provider ?? {};
+  const capabilityForms = mapCapabilitiesFromSnapshot(snapshot.age_group_capabilities);
 
   return {
     legalName: profile.full_name ?? "",
@@ -91,7 +106,9 @@ export function mapSnapshotToOnboardingFormState(
     bioAr: snapshotProvider.bio_ar ?? "",
     previousWork: details.previous_work ?? "",
     langs: snapshotProvider.languages ?? ["arabic"],
-    childGroups: details.child_age_groups ?? [],
+    childGroups: capabilityForms.map((row) => row.code),
+    capabilityForms,
+    maxChildren: snapshotProvider.max_children_per_booking ?? null,
     newborn: !!details.newborn_experience,
     firstAid: !!details.first_aid_training,
     confirmed: !!details.accuracy_confirmed_at,
