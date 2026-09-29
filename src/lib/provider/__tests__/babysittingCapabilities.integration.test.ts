@@ -25,6 +25,14 @@ import {
   seedBabysittingQaFixture,
   type ProviderHarnessContext,
 } from "./babysittingCapabilities.harness";
+import {
+  dateOfBirthForWholeMonthsUtc,
+  FIXTURE_MAX_ADVANCE_DAYS,
+  planCrossBandRescheduleUtc,
+  PRESCHOOL_MIN_MONTHS,
+  TODDLER_MAX_MONTHS,
+} from "./babysittingCrossBandWindow";
+import { ageInWholeMonthsUtc } from "@/lib/booking/childAgeMonths";
 
 const admin = createOtpIntegrationClient();
 const anonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_ANON_KEY;
@@ -327,11 +335,8 @@ describeIf("babysitting capabilities credentialed QA", () => {
 
   it("accepts same-band reschedule, rejects cross-band, and keeps cleaning create", async () => {
     const start = futureSlot(216);
-    const childId = await insertOwnedChild(
-      ctx,
-      fixture!.customerId,
-      monthsBeforeUtc(start.start, 35),
-    );
+    const dateOfBirth = dateOfBirthForWholeMonthsUtc(start.start, TODDLER_MAX_MONTHS);
+    const childId = await insertOwnedChild(ctx, fixture!.customerId, dateOfBirth);
     const created = await rpcCreateBooking(fixture!.customerClient, {
       provider_id: fixture!.providerId,
       service_id: fixture!.babysittingServiceId,
@@ -358,15 +363,15 @@ describeIf("babysitting capabilities credentialed QA", () => {
     });
     expect(sameAccept.error, sameAccept.error?.message).toBeNull();
 
-    const crossStart = new Date(
-      Date.UTC(
-        start.start.getUTCFullYear(),
-        start.start.getUTCMonth() + 2,
-        start.start.getUTCDate(),
-        10,
-        0,
-        0,
-      ),
+    const crossStart = planCrossBandRescheduleUtc({
+      originalStart: start.start,
+      dateOfBirth,
+    });
+    expect(ageInWholeMonthsUtc(dateOfBirth, start.start)).toBe(TODDLER_MAX_MONTHS);
+    expect(ageInWholeMonthsUtc(dateOfBirth, sameBandEnd)).toBe(TODDLER_MAX_MONTHS);
+    expect(ageInWholeMonthsUtc(dateOfBirth, crossStart)).toBe(PRESCHOOL_MIN_MONTHS);
+    expect(crossStart.getTime() - Date.now()).toBeLessThanOrEqual(
+      FIXTURE_MAX_ADVANCE_DAYS * 86_400_000,
     );
     const cross = await fixture!.customerClient.rpc("request_reschedule", {
       p_booking_id: bookingId,
