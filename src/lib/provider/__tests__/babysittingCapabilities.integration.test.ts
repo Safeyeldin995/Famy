@@ -1,7 +1,7 @@
 /**
  * Credentialed QA suite. Skips without env. Not native PG17 from PGlite.
- * This file is not executed remotely in the current correction; it remains
- * skip-without-env until a separate owner-approved QA run.
+ * Helper tests for the cross-band error surface always run. The credentialed
+ * describe remains skip-without-env and is not rerun remotely in this slice.
  *
  * afterAll is stage-1 dry-run only: persist pending teardown, perform zero
  * teardown writes, leave residue active. Resume is a separate owner-approved
@@ -33,6 +33,70 @@ const describeIf = admin && supabaseUrl && anonKey ? describe : describe.skip;
 function errorText(error: { message?: string; code?: string } | null | undefined) {
   return `${error?.message ?? ""} ${error?.code ?? ""}`;
 }
+
+const CROSS_BAND_ELIGIBILITY_MARKER =
+  /BOOKING_PROVIDER_INELIGIBLE|does not support this child age group/i;
+
+/** Join PostgREST fields. Trigger RAISE inside respond_reschedule may not sit on message. */
+function bookingRpcErrorSurface(
+  error:
+    | {
+        message?: string | null;
+        details?: string | null;
+        hint?: string | null;
+        code?: string | null;
+      }
+    | null
+    | undefined,
+): string {
+  return [error?.message, error?.details, error?.hint, error?.code]
+    .filter((part): part is string => typeof part === "string" && part.trim().length > 0)
+    .join("\n");
+}
+
+describe("cross-band reschedule error surface", () => {
+  it("fails closed when there is no error payload", () => {
+    expect(bookingRpcErrorSurface(null)).not.toMatch(CROSS_BAND_ELIGIBILITY_MARKER);
+  });
+
+  it("finds the eligibility marker in details when message is a PostgREST wrap", () => {
+    expect(
+      bookingRpcErrorSurface({
+        message: "JSON object requested, multiple (or no) rows returned",
+        details: "BOOKING_PROVIDER_INELIGIBLE: Provider does not support this child age group.",
+        hint: "",
+        code: "23514",
+      }),
+    ).toMatch(CROSS_BAND_ELIGIBILITY_MARKER);
+    expect(
+      parseBookingErrorCode("JSON object requested, multiple (or no) rows returned"),
+    ).toBeNull();
+  });
+
+  it("finds the eligibility marker after an ERROR: prefix on message", () => {
+    expect(
+      bookingRpcErrorSurface({
+        message:
+          "ERROR: BOOKING_PROVIDER_INELIGIBLE: Provider does not support this child age group.",
+        code: "23514",
+      }),
+    ).toMatch(CROSS_BAND_ELIGIBILITY_MARKER);
+    expect(
+      parseBookingErrorCode(
+        "ERROR: BOOKING_PROVIDER_INELIGIBLE: Provider does not support this child age group.",
+      ),
+    ).toBeNull();
+  });
+
+  it("does not treat a generic check_violation as the eligibility marker", () => {
+    expect(
+      bookingRpcErrorSurface({
+        message: "check_violation",
+        code: "23514",
+      }),
+    ).not.toMatch(CROSS_BAND_ELIGIBILITY_MARKER);
+  });
+});
 
 describeIf("babysitting capabilities credentialed QA", () => {
   const registry = new IntegrationFixtureRegistry({ suite: "babysittingCapabilities.integration" });
@@ -315,8 +379,17 @@ describeIf("babysitting capabilities credentialed QA", () => {
       p_request_id: cross.data as string,
       p_action: "accept",
     });
-    expect(parseBookingErrorCode(crossAccept.error?.message)).toBe("PROVIDER_INELIGIBLE");
-    expect(errorText(crossAccept.error)).toMatch(/does not support this child age group/i);
+    const crossError = crossAccept.error;
+    expect(crossError, "cross-band accept must fail with a non-null RPC error").not.toBeNull();
+    expect(
+      bookingRpcErrorSurface(crossError),
+      `cross-band error surface: ${JSON.stringify({
+        message: crossError?.message ?? null,
+        details: crossError?.details ?? null,
+        hint: crossError?.hint ?? null,
+        code: crossError?.code ?? null,
+      })}`,
+    ).toMatch(CROSS_BAND_ELIGIBILITY_MARKER);
 
     const { data: requestState } = await admin!
       .from("booking_reschedule_requests")
