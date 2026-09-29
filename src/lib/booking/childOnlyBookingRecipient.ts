@@ -1,12 +1,16 @@
-import { isClosedBetaCategorySlug } from "@/lib/catalog/closedBetaCategories";
+/** Babysitting-only booking recipient rules (Issue #78 UI). Tutoring allows Myself or any owned member. */
 
-/** Babysitting and tutoring require one saved customer-owned child (no Myself). */
+export function isBabysittingBookingCategory(categorySlug: string | null | undefined) {
+  return categorySlug === "babysitting";
+}
+
+/** @deprecated use isBabysittingBookingCategory — babysitting only, not tutoring */
 export function isChildOnlyBookingCategory(categorySlug: string | null | undefined) {
-  return isClosedBetaCategorySlug(categorySlug);
+  return isBabysittingBookingCategory(categorySlug);
 }
 
 export function shouldShowMyselfBookingOption(categorySlug: string | null | undefined) {
-  return !isChildOnlyBookingCategory(categorySlug);
+  return !isBabysittingBookingCategory(categorySlug);
 }
 
 export function resolveBookingFamilyMemberId(args: {
@@ -22,7 +26,7 @@ export function isForWhomStepComplete(args: {
   forWhom: string;
   familyMemberIds: string[];
 }) {
-  if (isChildOnlyBookingCategory(args.categorySlug)) {
+  if (isBabysittingBookingCategory(args.categorySlug)) {
     return args.familyMemberIds.includes(args.forWhom);
   }
   return args.forWhom === "myself" || args.familyMemberIds.includes(args.forWhom);

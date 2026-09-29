@@ -1,43 +1,51 @@
 import { describe, expect, it } from "vitest";
 import {
-  isChildOnlyBookingCategory,
+  isBabysittingBookingCategory,
   isForWhomStepComplete,
   resolveBookingFamilyMemberId,
   shouldShowMyselfBookingOption,
 } from "@/lib/booking/childOnlyBookingRecipient";
 
-describe("childOnlyBookingRecipient", () => {
-  it("treats babysitting and tutoring as child-only", () => {
-    expect(isChildOnlyBookingCategory("babysitting")).toBe(true);
-    expect(isChildOnlyBookingCategory("tutoring")).toBe(true);
-    expect(isChildOnlyBookingCategory("home-cleaning")).toBe(false);
+describe("booking recipient policy", () => {
+  it("requires a saved child for babysitting only", () => {
+    expect(isBabysittingBookingCategory("babysitting")).toBe(true);
+    expect(isBabysittingBookingCategory("tutoring")).toBe(false);
+    expect(isBabysittingBookingCategory("home-cleaning")).toBe(false);
   });
 
-  it("hides Myself for child-only categories", () => {
-    expect(shouldShowMyselfBookingOption("tutoring")).toBe(false);
+  it("allows Myself for tutoring and hides it for babysitting", () => {
+    expect(shouldShowMyselfBookingOption("tutoring")).toBe(true);
+    expect(shouldShowMyselfBookingOption("babysitting")).toBe(false);
     expect(shouldShowMyselfBookingOption("home-cleaning")).toBe(true);
   });
 
-  it("requires a saved family member for child-only booking steps", () => {
+  it("accepts Myself or any owned member for tutoring", () => {
     expect(
       isForWhomStepComplete({
         categorySlug: "tutoring",
+        forWhom: "myself",
+        familyMemberIds: [],
+      }),
+    ).toBe(true);
+    expect(
+      isForWhomStepComplete({
+        categorySlug: "tutoring",
+        forWhom: "adult-1",
+        familyMemberIds: ["adult-1"],
+      }),
+    ).toBe(true);
+    expect(
+      isForWhomStepComplete({
+        categorySlug: "babysitting",
         forWhom: "myself",
         familyMemberIds: ["child-1"],
       }),
     ).toBe(false);
     expect(
       isForWhomStepComplete({
-        categorySlug: "tutoring",
+        categorySlug: "babysitting",
         forWhom: "child-1",
         familyMemberIds: ["child-1"],
-      }),
-    ).toBe(true);
-    expect(
-      isForWhomStepComplete({
-        categorySlug: "home-cleaning",
-        forWhom: "myself",
-        familyMemberIds: [],
       }),
     ).toBe(true);
   });
@@ -46,8 +54,8 @@ describe("childOnlyBookingRecipient", () => {
     expect(
       resolveBookingFamilyMemberId({ categorySlug: "tutoring", forWhom: "myself" }),
     ).toBeNull();
-    expect(resolveBookingFamilyMemberId({ categorySlug: "tutoring", forWhom: "child-1" })).toBe(
-      "child-1",
+    expect(resolveBookingFamilyMemberId({ categorySlug: "tutoring", forWhom: "member-1" })).toBe(
+      "member-1",
     );
   });
 });
