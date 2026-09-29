@@ -160,4 +160,44 @@ describe("closed beta marketplace and booking gates", () => {
     expect([tutoring.serviceId, babysitting.serviceId, cleaning.serviceId].length).toBe(3);
     expect([tutoringProviderId, babysittingProviderId, cleaningProviderId].length).toBe(3);
   });
+
+  it("returns one row per eligible closed-beta service so dual-service providers appear in both category searches", async () => {
+    db = await createClosedBetaGatesDb();
+    const customerId = "00000000-0000-0000-0000-000000000003";
+    const addressId = "00000000-0000-0000-0000-000000000004";
+
+    await db.query(`INSERT INTO public.user_roles (user_id, role) VALUES ($1, 'customer')`, [
+      customerId,
+    ]);
+    await db.query(
+      `INSERT INTO public.addresses (id, user_id, is_default) VALUES ($1, $2, true)`,
+      [addressId, customerId],
+    );
+
+    const babysitting = await seedCategoryService(db, "babysitting", "dual-care");
+    const tutoring = await seedCategoryService(db, "tutoring", "dual-tutor");
+    const dualProviderId = await seedEligibleProvider(
+      db,
+      "00000000-0000-0000-0000-000000000020",
+      "Dual Service Provider",
+      [babysitting.serviceId, tutoring.serviceId],
+    );
+
+    await db.exec("BEGIN");
+    await db.query(`SELECT set_config('request.jwt.claim.sub', $1, true)`, [customerId]);
+    const rows = await db.query<{ id: string; category_slug: string; full_name: string }>(
+      `SELECT id, category_slug, full_name FROM public.search_marketplace_providers(NULL, $1::uuid)`,
+      [addressId],
+    );
+    await db.exec("ROLLBACK");
+
+    const dualRows = rows.rows.filter((row) => row.id === dualProviderId);
+    expect(dualRows).toHaveLength(2);
+    expect(dualRows.map((row) => row.category_slug).sort()).toEqual(["babysitting", "tutoring"]);
+
+    const babysittingSearch = rows.rows.filter((row) => row.category_slug === "babysitting");
+    const tutoringSearch = rows.rows.filter((row) => row.category_slug === "tutoring");
+    expect(babysittingSearch.some((row) => row.full_name === "Dual Service Provider")).toBe(true);
+    expect(tutoringSearch.some((row) => row.full_name === "Dual Service Provider")).toBe(true);
+  });
 });

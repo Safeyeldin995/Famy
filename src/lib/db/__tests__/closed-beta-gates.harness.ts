@@ -203,8 +203,9 @@ export async function seedEligibleProvider(
   db: PGlite,
   profileId: string,
   fullName: string,
-  serviceId: string,
+  serviceIds: string | string[],
 ): Promise<string> {
+  const services = Array.isArray(serviceIds) ? serviceIds : [serviceIds];
   await db.query(`INSERT INTO public.profiles (id, full_name) VALUES ($1, $2)`, [
     profileId,
     fullName,
@@ -218,12 +219,14 @@ export async function seedEligibleProvider(
     [profileId],
   );
   const providerId = provider.rows[0]!.id;
-  await db.query(
-    `
-      INSERT INTO public.provider_services (provider_id, service_id)
-      VALUES ($1, $2)
-    `,
-    [providerId, serviceId],
-  );
+  for (const serviceId of services) {
+    await db.query(
+      `
+        INSERT INTO public.provider_services (provider_id, service_id)
+        VALUES ($1, $2)
+      `,
+      [providerId, serviceId],
+    );
+  }
   return providerId;
 }
