@@ -32,6 +32,9 @@ export const QA_ENTRYPOINT_CLASSIFICATION = {
   "orphan-recovery.mjs": "pure-library",
   "playwright-webserver-env.mjs": "pure-library",
   "preflight.mjs": "safe-readonly-cli",
+  "pr67-babysitting-qa-packet.mjs": "pure-library",
+  "babysitting-teardown-plan.mjs": "pure-library",
+  "pr67-babysitting-teardown-resume.mjs": "destructive-cli",
   "qa-classification.mjs": "pure-library",
   "qa-identity.mjs": "pure-library",
   "read-e2e-otp.mjs": "pure-library",
@@ -66,6 +69,7 @@ export const QA_CLI_GUARD_REQUIRED = [
   "baseline-repair.mjs",
   "cleanup.mjs",
   "containment.mjs",
+  "pr67-babysitting-teardown-resume.mjs",
   "preflight.mjs",
   "verify-residue.mjs",
   "run-with-qa-env.mjs",
@@ -77,7 +81,8 @@ export const QA_CLI_GUARD_REQUIRED = [
  */
 export function auditQaEntrypoints(qaRoot) {
   const root = qaRoot ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)));
-  const files = fs.readdirSync(root)
+  const files = fs
+    .readdirSync(root)
     .filter((name) => name.endsWith(".mjs") && !name.startsWith("."))
     .sort();
 
@@ -88,8 +93,9 @@ export function auditQaEntrypoints(qaRoot) {
     const classification = QA_ENTRYPOINT_CLASSIFICATION[file] ?? "pure-library";
     const guardRequired = QA_CLI_GUARD_REQUIRED.includes(file);
     const source = fs.readFileSync(path.join(root, file), "utf8");
-    const hasGuard = source.includes("runCliIfDirect(import.meta.url")
-      || source.includes("isDirectExecution(import.meta.url");
+    const hasGuard =
+      source.includes("runCliIfDirect(import.meta.url") ||
+      source.includes("isDirectExecution(import.meta.url");
     const hasExportedMain = /export (async )?function main/.test(source);
     rows.push({ file, classification, guardRequired, hasGuard, hasExportedMain });
   }
@@ -101,8 +107,8 @@ export function auditQaEntrypoints(qaRoot) {
  * @param {string} [qaRoot]
  */
 export function assertQaCliGuards(qaRoot) {
-  const violations = auditQaEntrypoints(qaRoot).filter((row) =>
-    row.guardRequired && (!row.hasGuard || !row.hasExportedMain),
+  const violations = auditQaEntrypoints(qaRoot).filter(
+    (row) => row.guardRequired && (!row.hasGuard || !row.hasExportedMain),
   );
   if (violations.length) {
     throw new Error(

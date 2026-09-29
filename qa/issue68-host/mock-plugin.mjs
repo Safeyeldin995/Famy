@@ -77,6 +77,7 @@ function createState(repoRoot) {
     providerDelayMs: 0,
     zonesDelayMs: 0,
     scenario: "default",
+    bookKind: "cleaning",
     providerStarted: false,
     unexpectedServer: [],
     saves: [],
@@ -91,7 +92,13 @@ function createState(repoRoot) {
     storageDocuments: 0,
     finalizeDocument: 0,
     marketplace: 0,
+    adminActions: [],
+    adminReviews: 0,
+    adminProviderStatus: "APPROVED",
+    lastAdminReview: null,
     log: [],
+    snapshotPatch: null,
+    lastSnapshot: null,
   };
 }
 
@@ -109,12 +116,18 @@ function resetCounts(state) {
   state.storageDocuments = 0;
   state.finalizeDocument = 0;
   state.marketplace = 0;
+  state.adminActions = [];
+  state.adminReviews = 0;
+  state.adminProviderStatus = "APPROVED";
+  state.lastAdminReview = null;
   state.log = [];
+  state.snapshotPatch = null;
+  state.lastSnapshot = null;
   state.providerStarted = state.scenario !== "new-provider";
 }
 
-export function buildSnapshot() {
-  return {
+export function buildSnapshot(patch = null) {
+  const base = {
     exists: true,
     provider: {
       id: MOCK_PROVIDER_ID,
@@ -124,6 +137,7 @@ export function buildSnapshot() {
       years_experience: 9,
       languages: ["arabic", "english"],
       city: "Maadi",
+      max_children_per_booking: 2,
     },
     profile: {
       full_name: "Mona Adel",
@@ -141,7 +155,16 @@ export function buildSnapshot() {
       newborn_experience: false,
       first_aid_training: false,
     },
+    age_group_capabilities: [{ code: "toddler", years_experience: 4, note: "", verified_at: null }],
     completion: { ok: true, complete: false, errors: {} },
+  };
+  if (!patch) return base;
+  return {
+    ...base,
+    ...patch,
+    provider: { ...base.provider, ...(patch.provider ?? {}) },
+    profile: { ...base.profile, ...(patch.profile ?? {}) },
+    details: { ...base.details, ...(patch.details ?? {}) },
   };
 }
 
@@ -349,10 +372,14 @@ async function handleSupabase(state, req, res) {
     state.snapshot += 1;
     state.log.push(`snapshot#${state.snapshot}`);
     if (state.scenario === "new-provider" && !state.providerStarted) {
-      sendJson(res, 200, { exists: false });
+      const empty = { exists: false };
+      state.lastSnapshot = empty;
+      sendJson(res, 200, empty);
       return;
     }
-    sendJson(res, 200, buildSnapshot());
+    const payload = buildSnapshot(state.snapshotPatch);
+    state.lastSnapshot = payload;
+    sendJson(res, 200, payload);
     return;
   }
 
@@ -368,6 +395,46 @@ async function handleSupabase(state, req, res) {
     state.marketplace += 1;
     state.log.push("marketplace");
     sendJson(res, 200, buildMarketplaceRows());
+    return;
+  }
+
+  if (p === "/rest/v1/rpc/admin_provider_onboarding_review") {
+    state.adminReviews += 1;
+    const payload = {
+      provider: {
+        id: MOCK_PROVIDER_ID,
+        onboarding_status: state.adminProviderStatus,
+      },
+      profile: {},
+      details: null,
+      age_group_capabilities: [],
+      references: [],
+      documents: [],
+      services: [],
+      zones: [],
+      events: [],
+      completion: {},
+    };
+    state.lastAdminReview = payload;
+    state.log.push(`adminReview#${state.adminReviews}`);
+    sendJson(res, 200, payload);
+    return;
+  }
+
+  if (p === "/rest/v1/rpc/admin_provider_onboarding_action") {
+    const raw = await readBody(req);
+    let payload = {};
+    try {
+      payload = JSON.parse(raw.toString("utf8") || "{}");
+    } catch {
+      payload = { raw: raw.toString("utf8") };
+    }
+    state.adminActions.push(payload);
+    state.log.push("adminOnboardingAction");
+    if (payload.p_action === "request_updated_details") {
+      state.adminProviderStatus = "NEEDS_CHANGES";
+    }
+    sendJson(res, 200, null);
     return;
   }
 
@@ -449,7 +516,76 @@ async function handleSupabase(state, req, res) {
         slug: "deep-home-cleaning",
         name_en: "Deep Home Cleaning",
         name_ar: "Deep Home Cleaning",
+        is_active: true,
         category: { slug: "home-cleaning", name_en: "Home Cleaning", name_ar: "Home Cleaning" },
+      },
+      {
+        id: "svc-sit",
+        slug: "babysitting",
+        name_en: "Babysitting",
+        name_ar: "مجالسة الأطفال",
+        is_active: true,
+        category: { slug: "babysitting", name_en: "Babysitting", name_ar: "مجالسة الأطفال" },
+      },
+    ]);
+    return;
+  }
+
+  if (p.startsWith("/rest/v1/child_age_groups")) {
+    sendJson(res, 200, [
+      {
+        code: "newborn",
+        name_en: "Newborns",
+        name_ar: "حديثو الولادة",
+        min_months: 0,
+        max_months: 2,
+        sort_order: 1,
+        is_active: true,
+      },
+      {
+        code: "infant",
+        name_en: "Infants",
+        name_ar: "الرضع",
+        min_months: 3,
+        max_months: 11,
+        sort_order: 2,
+        is_active: true,
+      },
+      {
+        code: "toddler",
+        name_en: "Toddlers",
+        name_ar: "الأطفال الصغار",
+        min_months: 12,
+        max_months: 35,
+        sort_order: 3,
+        is_active: true,
+      },
+      {
+        code: "preschool",
+        name_en: "Preschool children",
+        name_ar: "أطفال ما قبل المدرسة",
+        min_months: 36,
+        max_months: 71,
+        sort_order: 4,
+        is_active: true,
+      },
+      {
+        code: "school_age",
+        name_en: "School-age children",
+        name_ar: "أطفال المدارس",
+        min_months: 72,
+        max_months: 155,
+        sort_order: 5,
+        is_active: true,
+      },
+      {
+        code: "teenager",
+        name_en: "Teenagers",
+        name_ar: "المراهقون",
+        min_months: 156,
+        max_months: 215,
+        sort_order: 6,
+        is_active: true,
       },
     ]);
     return;
@@ -465,6 +601,32 @@ async function handleSupabase(state, req, res) {
   }
 
   if (p.startsWith("/rest/v1/provider_services") || p.startsWith("/rest/v1/zone_providers")) {
+    if (state.scenario === "book-babysitting" || state.scenario === "book-cleaning") {
+      if (p.startsWith("/rest/v1/zone_providers")) {
+        sendJson(res, 200, []);
+        return;
+      }
+      const babysitting = state.bookKind === "babysitting";
+      sendJson(res, 200, [
+        {
+          price_override: 120,
+          status: "approved",
+          service: {
+            id: babysitting ? "svc-sit" : "svc-clean",
+            slug: babysitting ? "babysitting" : "deep-home-cleaning",
+            name_en: babysitting ? "Babysitting" : "Deep Home Cleaning",
+            name_ar: babysitting ? "مجالسة الأطفال" : "Deep Home Cleaning",
+            is_active: true,
+            category: {
+              slug: babysitting ? "babysitting" : "home-cleaning",
+              name_en: babysitting ? "Babysitting" : "Home Cleaning",
+              name_ar: babysitting ? "مجالسة الأطفال" : "Home Cleaning",
+            },
+          },
+        },
+      ]);
+      return;
+    }
     state.savedSelections += 1;
     state.log.push(
       p.startsWith("/rest/v1/provider_services") ? "provider_services" : "zone_providers",
@@ -504,7 +666,122 @@ async function handleSupabase(state, req, res) {
   }
 
   if (p.startsWith("/rest/v1/user_roles")) {
-    sendJson(res, 200, [{ role: "provider" }]);
+    const role =
+      state.scenario === "book-babysitting" || state.scenario === "book-cleaning"
+        ? "customer"
+        : "provider";
+    sendJson(res, 200, [{ role }]);
+    return;
+  }
+
+  if (p === "/rest/v1/rpc/marketplace_provider_details") {
+    const babysitting = state.bookKind === "babysitting";
+    sendJson(res, 200, [
+      {
+        id: MOCK_PROVIDER_ID,
+        full_name: "Mona Adel",
+        avatar_url: "",
+        bio_en: "Persisted EN bio issue68",
+        bio_ar: "سيرة عربية محفوظة",
+        hourly_rate: 120,
+        years_experience: 9,
+        languages: ["arabic"],
+        city: "Maadi",
+        is_top_pro: false,
+        is_verified: true,
+        response_time_min: 15,
+        rating_avg: 4.8,
+        rating_count: 10,
+        trust_score: 80,
+        category_slug: babysitting ? "babysitting" : "home-cleaning",
+        service_id: babysitting ? "svc-sit" : "svc-clean",
+        service_slug: babysitting ? "babysitting" : "deep-home-cleaning",
+        service_name_en: babysitting ? "Babysitting" : "Deep Home Cleaning",
+        service_name_ar: babysitting ? "مجالسة الأطفال" : "Deep Home Cleaning",
+      },
+    ]);
+    return;
+  }
+
+  if (p === "/rest/v1/rpc/marketplace_provider_booking_settings") {
+    sendJson(res, 200, [
+      { vacation_mode: false, min_notice_hours: 2, max_advance_days: 12, buffer_minutes: 0 },
+    ]);
+    return;
+  }
+
+  if (p === "/rest/v1/rpc/resolve_zone") {
+    sendJson(res, 200, [
+      { zone_id: "zone-maadi", name_en: "Maadi", name_ar: "Maadi", travel_fee: 0 },
+    ]);
+    return;
+  }
+
+  if (p.startsWith("/rest/v1/addresses")) {
+    sendJson(res, 200, [
+      {
+        id: "addr-1",
+        user_id: MOCK_USER_ID,
+        label: "Home",
+        line1: "Road 9",
+        street: "Road 9",
+        area: "Maadi",
+        city: "Cairo",
+        lat: 29.96,
+        lng: 31.25,
+        is_default: true,
+        created_at: "2026-09-01T00:00:00+00:00",
+      },
+    ]);
+    return;
+  }
+
+  if (p.startsWith("/rest/v1/family_members")) {
+    sendJson(res, 200, [
+      {
+        id: "child-1",
+        customer_id: MOCK_USER_ID,
+        full_name: "Layla",
+        relationship: "daughter",
+        date_of_birth: "2024-09-28",
+        is_active: true,
+      },
+    ]);
+    return;
+  }
+
+  if (p.startsWith("/rest/v1/availability_rules")) {
+    sendJson(res, 200, [{ start_time: "09:00:00", end_time: "17:00:00" }]);
+    return;
+  }
+
+  if (
+    p.startsWith("/rest/v1/provider_vacations") ||
+    p.startsWith("/rest/v1/availability_exceptions")
+  ) {
+    sendJson(res, 200, []);
+    return;
+  }
+
+  if (p.startsWith("/rest/v1/bookings")) {
+    sendJson(res, 200, []);
+    return;
+  }
+
+  if (p.startsWith("/rest/v1/payment_methods")) {
+    sendJson(res, 200, [
+      { id: "pm-1", name_en: "Cash", name_ar: "كاش", is_active: true, is_default: true },
+    ]);
+    return;
+  }
+
+  if (p.startsWith("/rest/v1/settings")) {
+    sendJson(res, 200, { value: { platform_fee: 25, vat_percent: 14 } });
+    return;
+  }
+
+  if (p.startsWith("/rest/v1/service_requirements")) {
+    sendJson(res, 200, []);
     return;
   }
 
@@ -549,13 +826,24 @@ export function issue68MockPlugin(repoRoot) {
             state.scenario =
               body.scenario === "returning" ||
               body.scenario === "new-provider" ||
-              body.scenario === "saved-data-error"
+              body.scenario === "saved-data-error" ||
+              body.scenario === "book-babysitting" ||
+              body.scenario === "book-cleaning"
                 ? body.scenario
                 : "default";
             resetCounts(state);
+            state.bookKind = body.scenario === "book-babysitting" ? "babysitting" : "cleaning";
             state.snapshotDelayMs = Number(body.snapshotDelayMs) || 0;
             state.providerDelayMs = Number(body.providerDelayMs) || 0;
             state.zonesDelayMs = Number(body.zonesDelayMs) || 0;
+            sendJson(res, 200, { ok: true });
+            return;
+          }
+
+          if (url.pathname === "/__issue68/snapshot" && req.method === "POST") {
+            const raw = await readBody(req);
+            const body = JSON.parse(raw.toString("utf8") || "{}");
+            state.snapshotPatch = body && typeof body === "object" ? body : null;
             sendJson(res, 200, { ok: true });
             return;
           }
@@ -573,10 +861,15 @@ export function issue68MockPlugin(repoRoot) {
               storageDocuments: state.storageDocuments,
               finalizeDocument: state.finalizeDocument,
               marketplace: state.marketplace,
+              adminActions: state.adminActions,
+              adminReviews: state.adminReviews,
+              adminProviderStatus: state.adminProviderStatus,
+              lastAdminReview: state.lastAdminReview,
               saves: state.saves,
               log: state.log,
               scenario: state.scenario,
               providerStarted: state.providerStarted,
+              lastSnapshot: state.lastSnapshot,
             });
             return;
           }

@@ -195,6 +195,7 @@ export function finalizeContainmentPlan(plannedRows, projectRef, context = {}) {
  *   bookings?: Array<{ id: string; status: string; notes?: string | null; hasCancellationRecord?: boolean }>;
  *   cancellationReasonId?: string | null;
  *   standaloneBookingCaller?: boolean;
+ *   fixtureScopedBookings?: boolean;
  * }} input
  */
 export function buildContainmentPlanFromSnapshot(input) {
@@ -259,7 +260,8 @@ export function buildContainmentPlanFromSnapshot(input) {
   for (const booking of input.bookings ?? []) {
     const action = planBookingContainmentAction({
       ...booking,
-      isQaTagged: isQaTaggedBookingNotes(booking.notes),
+      // fixtureScopedBookings is babysitting-only; standalone admin planning stays notes-tagged.
+      isQaTagged: Boolean(input.fixtureScopedBookings) || isQaTaggedBookingNotes(booking.notes),
     });
     plannedRows.push({
       kind: "plan",

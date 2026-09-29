@@ -14,7 +14,7 @@ import { formatEGP, formatNumber } from "@/lib/utils";
 
 export const Route = createFileRoute("/search")({ component: SearchPage });
 
-type Filter = "all" | "home-cleaning" | "babysitting" | "top";
+type Filter = "all" | "babysitting" | "tutoring" | "top";
 
 function SearchPage() {
   const { t } = useTranslation();
@@ -28,6 +28,7 @@ function SearchPage() {
   const selectedAddressId =
     addressId || (addressesQ.data ?? []).find((a) => a.is_default)?.id || addressesQ.data?.[0]?.id;
   const provsQ = useProviders({
+    categorySlug: filter === "babysitting" || filter === "tutoring" ? filter : undefined,
     serviceId: serviceId || undefined,
     addressId: selectedAddressId,
     limit: 60,
@@ -37,8 +38,8 @@ function SearchPage() {
     const term = q.trim().toLowerCase();
     const list = (provsQ.data ?? []).map(toUIProvider);
     return list.filter((p) => {
-      if (filter === "home-cleaning" && p.categorySlug !== "home-cleaning") return false;
       if (filter === "babysitting" && p.categorySlug !== "babysitting") return false;
+      if (filter === "tutoring" && p.categorySlug !== "tutoring") return false;
       if (filter === "top" && p.rating < 4.85) return false;
       if (!term) return true;
       return (
@@ -85,11 +86,11 @@ function SearchPage() {
           <Chip active={filter === "all"} onClick={() => setFilter("all")}>
             {t("common.seeAll")}
           </Chip>
-          <Chip active={filter === "home-cleaning"} onClick={() => setFilter("home-cleaning")}>
-            {t("categories.homeTitle")}
-          </Chip>
           <Chip active={filter === "babysitting"} onClick={() => setFilter("babysitting")}>
             {t("categories.kidsTitle")}
+          </Chip>
+          <Chip active={filter === "tutoring"} onClick={() => setFilter("tutoring")}>
+            {t("categories.tutorTitle")}
           </Chip>
           <Chip active={filter === "top"} onClick={() => setFilter("top")}>
             {t("category.sortTop")}

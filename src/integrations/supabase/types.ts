@@ -1035,6 +1035,39 @@ export type Database = {
           },
         ]
       }
+      child_age_groups: {
+        Row: {
+          code: string
+          created_at: string
+          is_active: boolean
+          max_months: number
+          min_months: number
+          name_ar: string
+          name_en: string
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          is_active?: boolean
+          max_months: number
+          min_months: number
+          name_ar: string
+          name_en: string
+          sort_order: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          is_active?: boolean
+          max_months?: number
+          min_months?: number
+          name_ar?: string
+          name_en?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           booking_id: string
@@ -2215,6 +2248,42 @@ export type Database = {
           },
         ]
       }
+      provider_age_group_capabilities: {
+        Row: {
+          age_group_code: string
+          created_at: string
+          id: string
+          note: string | null
+          provider_id: string
+          updated_at: string
+          verified_at: string | null
+          verified_by: string | null
+          years_experience: number | null
+        }
+        Insert: {
+          age_group_code: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          provider_id: string
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          years_experience?: number | null
+        }
+        Update: {
+          age_group_code?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          provider_id?: string
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          years_experience?: number | null
+        }
+        Relationships: []
+      }
       provider_onboarding_details: {
         Row: {
           accuracy_confirmed_at: string | null
@@ -2528,6 +2597,7 @@ export type Database = {
           languages: string[]
           last_review_at: string | null
           max_advance_days: number
+          max_children_per_booking: number | null
           min_notice_hours: number
           onboarding_status: Database["public"]["Enums"]["provider_onboarding_status"]
           profile_id: string
@@ -2556,6 +2626,7 @@ export type Database = {
           languages?: string[]
           last_review_at?: string | null
           max_advance_days?: number
+          max_children_per_booking?: number | null
           min_notice_hours?: number
           onboarding_status?: Database["public"]["Enums"]["provider_onboarding_status"]
           profile_id: string
@@ -2584,6 +2655,7 @@ export type Database = {
           languages?: string[]
           last_review_at?: string | null
           max_advance_days?: number
+          max_children_per_booking?: number | null
           min_notice_hours?: number
           onboarding_status?: Database["public"]["Enums"]["provider_onboarding_status"]
           profile_id?: string
@@ -3560,6 +3632,7 @@ export type Database = {
           languages: string[]
           last_review_at: string | null
           max_advance_days: number
+          max_children_per_booking: number | null
           min_notice_hours: number
           onboarding_status: Database["public"]["Enums"]["provider_onboarding_status"]
           profile_id: string
@@ -3809,6 +3882,7 @@ export type Database = {
           languages: string[]
           last_review_at: string | null
           max_advance_days: number
+          max_children_per_booking: number | null
           min_notice_hours: number
           onboarding_status: Database["public"]["Enums"]["provider_onboarding_status"]
           profile_id: string
@@ -3865,6 +3939,7 @@ export type Database = {
           languages: string[]
           last_review_at: string | null
           max_advance_days: number
+          max_children_per_booking: number | null
           min_notice_hours: number
           onboarding_status: Database["public"]["Enums"]["provider_onboarding_status"]
           profile_id: string

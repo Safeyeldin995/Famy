@@ -19,7 +19,9 @@ import {
   addressesQueryKey,
   defaultAddressQueryKey,
 } from '@/lib/db/address-query-keys';
-import { isQaCatalogService, isQaCatalogSlug, isQaFixtureName } from '@/lib/catalog/qaCatalog';
+import { isClosedBetaCategorySlug } from '@/lib/catalog/closedBetaCategories';
+import { isQaCatalogService, isQaCatalogSlug } from '@/lib/catalog/qaCatalog';
+import { selectMarketplaceProviderRows } from '@/lib/db/marketplaceProviderRows';
 
 type Tables = Database['public']['Tables'];
 
@@ -253,7 +255,9 @@ export function useCategories() {
         .eq('is_active', true)
         .order('sort_order');
       if (error) throw error;
-      return (data ?? []).filter((row) => !isQaCatalogSlug(row.slug));
+      return (data ?? [])
+        .filter((row) => !isQaCatalogSlug(row.slug))
+        .filter((row) => isClosedBetaCategorySlug(row.slug));
     },
   });
 }
@@ -306,17 +310,7 @@ export function useProviders(opts: { categorySlug?: string; serviceId?: string; 
       if (opts.addressId) args.p_address_id = opts.addressId;
       const { data, error } = await supabase.rpc('search_marketplace_providers', args);
       if (error) throw error;
-      const rows = (data ?? [])
-        .filter(
-          (row) =>
-            !isQaCatalogSlug(row.category_slug, row.service_slug) &&
-            !isQaFixtureName(row.full_name),
-        )
-        .slice(0, opts.limit ?? 50);
-      if (opts.categorySlug && !opts.serviceId) {
-        return rows.filter((row) => row.category_slug === opts.categorySlug).map(marketplaceRow);
-      }
-      return rows.map(marketplaceRow);
+      return selectMarketplaceProviderRows(data ?? [], opts).map(marketplaceRow);
     },
   });
 }
@@ -350,7 +344,9 @@ export function useMarketplaceServices(categorySlug?: string) {
       if (categorySlug) query = query.eq('category.slug', categorySlug);
       const { data, error } = await query;
       if (error) throw error;
-      return (data ?? []).filter((row) => !isQaCatalogService(row));
+      return (data ?? [])
+        .filter((row) => !isQaCatalogService(row))
+        .filter((row) => isClosedBetaCategorySlug(row.category?.slug));
     },
   });
 }

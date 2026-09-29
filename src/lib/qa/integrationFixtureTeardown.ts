@@ -8,10 +8,26 @@ import {
 import { recordRecoveryFailure } from "../../../qa/registry.mjs";
 // @ts-expect-error — .mjs module has no generated declarations
 import { containIntegrationFixtureResidue } from "../../../qa/containment-integration.mjs";
+// @ts-expect-error — .mjs module has no generated declarations
+import { assertApprovedExecutablePlan } from "../../../qa/babysitting-teardown-plan.mjs";
+
+export type ApprovedFixtureTeardown = {
+  snapshot: FixtureRegistrySnapshot;
+  containmentPlan: {
+    fingerprint: string;
+    actions?: Array<{ actionType: string }>;
+    [key: string]: unknown;
+  };
+  expectedContainmentFingerprint: string;
+};
 
 /**
  * Tear down non-user fixture rows, then operational-contain snapshot-scoped residue.
  * Never deletes auth.users, profiles, bookings, or immutable history.
+ *
+ * When `approval` is supplied, every write uses that reviewed snapshot and the
+ * approved containment plan is executed as-is (no silent replan). Other suites
+ * that omit `approval` keep the previous unreviewed execute path.
  */
 export async function teardownRegisteredFixture(
   admin: SupabaseClient<Database>,
@@ -19,55 +35,88 @@ export async function teardownRegisteredFixture(
   snapshot?: FixtureRegistrySnapshot,
   options?: {
     bookingRpcClient?: SupabaseClient<Database>;
+    approval?: ApprovedFixtureTeardown;
   },
 ) {
-  const state = snapshot ?? registry.snapshot();
+  const approval = options?.approval;
+  if (approval) {
+    assertApprovedExecutablePlan(approval.containmentPlan, approval.expectedContainmentFingerprint);
+  }
+
+  const state = approval?.snapshot ?? snapshot ?? registry.snapshot();
 
   for (const link of state.zoneProviderLinks) {
-    await admin.from("zone_providers").delete()
+    await admin
+      .from("zone_providers")
+      .delete()
       .eq("zone_id", link.zoneId)
       .eq("provider_id", link.providerId);
   }
   for (const link of state.zoneServiceLinks) {
-    await admin.from("zone_services").delete()
+    await admin
+      .from("zone_services")
+      .delete()
       .eq("zone_id", link.zoneId)
       .eq("service_id", link.serviceId);
   }
   for (const link of state.providerServiceLinks) {
-    await admin.from("provider_services").delete()
+    await admin
+      .from("provider_services")
+      .delete()
       .eq("provider_id", link.providerId)
       .eq("service_id", link.serviceId);
   }
 
   if (
-    state.userIds.length
-    || state.bookingIds.length
-    || state.serviceIds.length
-    || state.providerIds.length
+    state.userIds.length ||
+    state.bookingIds.length ||
+    state.serviceIds.length ||
+    state.providerIds.length
   ) {
-    const containment = await containIntegrationFixtureResidue(admin, {
-      userIds: state.userIds,
-      adminUserIds: state.adminUserIds,
-      serviceIds: state.serviceIds,
-      providerIds: state.providerIds,
-      bookingIds: state.bookingIds,
-    }, {
-      bookingRpcClient: options?.bookingRpcClient,
-    });
+    const containment = await containIntegrationFixtureResidue(
+      admin,
+      {
+        userIds: state.userIds,
+        adminUserIds: state.adminUserIds,
+        serviceIds: state.serviceIds,
+        providerIds: state.providerIds,
+        bookingIds: state.bookingIds,
+      },
+      {
+        bookingRpcClient: options?.bookingRpcClient,
+        ...(approval
+          ? {
+              approvedPlan: approval.containmentPlan,
+              expectedFingerprint: approval.expectedContainmentFingerprint,
+            }
+          : {}),
+      },
+    );
 
     if (containment.execution) {
       for (const row of containment.execution.results) {
         if (!row.ok) {
-          registry.markCleanupFailed(row.maskedId, row.entityType, row.reason ?? "containment-failed");
+          registry.markCleanupFailed(
+            row.maskedId,
+            row.entityType,
+            row.reason ?? "containment-failed",
+          );
         }
       }
-      const failed = containment.execution.aborted
-        || containment.execution.results.some((row: { ok: boolean }) => !row.ok);
+      const failed =
+        containment.execution.aborted ||
+        containment.execution.results.some((row: { ok: boolean }) => !row.ok);
       if (failed) {
-        const summary = containment.execution.results
-          .filter((row: { ok: boolean }) => !row.ok)
-          .map((row: { entityType: string; maskedId: string; actionType: string }) => `${row.entityType}:${row.maskedId}:${row.actionType}`)
-          .join(", ") || containment.execution.reason || "containment-aborted";
+        const summary =
+          containment.execution.results
+            .filter((row: { ok: boolean }) => !row.ok)
+            .map(
+              (row: { entityType: string; maskedId: string; actionType: string }) =>
+                `${row.entityType}:${row.maskedId}:${row.actionType}`,
+            )
+            .join(", ") ||
+          containment.execution.reason ||
+          "containment-aborted";
         throw new Error(`[qa-containment] integration fixture containment incomplete: ${summary}`);
       }
     }
@@ -84,7 +133,10 @@ export async function teardownRegisteredFixture(
   for (const zoneId of state.zoneIds) {
     const { error } = await admin.from("zones").delete().eq("id", zoneId);
     if (error) {
-      const { error: deactivateError } = await admin.from("zones").update({ is_active: false }).eq("id", zoneId);
+      const { error: deactivateError } = await admin
+        .from("zones")
+        .update({ is_active: false })
+        .eq("id", zoneId);
       if (deactivateError) {
         registry.markCleanupFailed(zoneId, "zone", deactivateError.message);
         recordRecoveryFailure({
