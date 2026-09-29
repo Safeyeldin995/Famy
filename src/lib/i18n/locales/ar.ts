@@ -241,6 +241,9 @@ const ar: Translation = {
     kidsTitle: "فامي كيدز",
     kidsSubtitle: "جليسات أطفال",
     kidsDescription: "مربيات مدربات و«إينجلز» معتمدات للحظات الأهم.",
+    tutorTitle: "فامي تيوتور",
+    tutorSubtitle: "دروس خصوصية",
+    tutorDescription: "مدرسون موثوقون للواجبات والمواد الدراسية واللغات.",
   },
   roles: {
     professional: "محترفة",

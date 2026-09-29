@@ -243,6 +243,9 @@ const en = {
     kidsTitle: "Famy Kids",
     kidsSubtitle: "Babysitting",
     kidsDescription: "Trained caregivers and certified Angels for the moments that matter most.",
+    tutorTitle: "Famy Tutors",
+    tutorSubtitle: "Tutoring",
+    tutorDescription: "Verified tutors for homework support, school subjects, and languages.",
   },
   roles: {
     professional: "Professional",

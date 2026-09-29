@@ -1,12 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  PhoneFrame,
-  PrimaryButton,
-  Card,
-  EmptyState,
-  Avatar,
-} from "@/components/famio/ui";
+import { PhoneFrame, PrimaryButton, Card, EmptyState, Avatar } from "@/components/famio/ui";
 import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
 import { CustomerFloatingPanel } from "@/components/famio/CustomerFloatingPanel";
 import {
@@ -58,6 +52,12 @@ import {
 import { planPostCreatePayment, stashPendingPayment } from "@/lib/booking/post-create-payment";
 import { BookScheduleStep } from "@/components/famio/BookScheduleStep";
 import { previewPath } from "@/lib/preview/previewPath";
+import {
+  isForWhomStepComplete,
+  resolveBookingFamilyMemberId,
+  shouldShowMyselfBookingOption,
+} from "@/lib/booking/childOnlyBookingRecipient";
+import { isClosedBetaCategorySlug } from "@/lib/catalog/closedBetaCategories";
 
 export const Route = createFileRoute("/book/$providerId")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -134,7 +134,13 @@ export function BookContent({
   const defaultBookableAddressId =
     bookableAddresses.find((a: any) => a.is_default)?.id ?? bookableAddresses[0]?.id;
   const slotAddressId = addressId ?? defaultBookableAddressId ?? null;
-  const services = servicesQ.data ?? [];
+  const services = useMemo(
+    () =>
+      (servicesQ.data ?? []).filter((row: { service?: { category?: { slug?: string } } }) =>
+        isClosedBetaCategorySlug(row.service?.category?.slug),
+      ),
+    [servicesQ.data],
+  );
   const eligibilityServiceId = serviceId ?? services[0]?.service?.id ?? null;
   const selectedAddress = bookableAddresses.find((a: any) => a.id === addressId) ?? null;
   // UX-only preview of the resolved service zone — the booking-creation DB
@@ -171,6 +177,11 @@ export function BookContent({
   const activeService = useMemo(
     () => services.find((s: any) => s.service?.id === serviceId) ?? services[0],
     [services, serviceId],
+  );
+  const bookingCategorySlug = activeService?.service?.category?.slug as string | undefined;
+  const familyMemberIds = useMemo(
+    () => (familyMembersQ.data ?? []).map((member: { id: string }) => member.id),
+    [familyMembersQ.data],
   );
   const hours = parseInt(duration);
   // Must run unconditionally on every render (Rules of Hooks) — this was
@@ -337,8 +348,13 @@ export function BookContent({
     if (step === 0) return !!activeService;
     if (step === SCHEDULE_STEP) return !!date && !!time;
     if (step === 3) return !!addressId && !!zoneQ.data;
-    if (step === 4)
-      return forWhom === "myself" || (familyMembersQ.data ?? []).some((m: any) => m.id === forWhom);
+    if (step === 4) {
+      return isForWhomStepComplete({
+        categorySlug: bookingCategorySlug,
+        forWhom,
+        familyMemberIds,
+      });
+    }
     if (step === 6) return eitherRequirements.every((r: any) => !!requirementChoices[r.id]);
     if (step === 8) return !!paymentMethodId;
     return true;
@@ -438,7 +454,10 @@ export function BookContent({
         provider_id: p.id,
         service_id: activeService.service.id,
         address_id: addressId!,
-        family_member_id: forWhom === "myself" ? null : forWhom,
+        family_member_id: resolveBookingFamilyMemberId({
+          categorySlug: bookingCategorySlug,
+          forWhom,
+        }),
         start_at: start.toISOString(),
         end_at: end.toISOString(),
         promo_code_id: promoStatus === "applied" ? appliedPromoId : null,
@@ -750,17 +769,26 @@ export function BookContent({
             sub={t("bookFlow.forWhomSub", "Choose yourself or a saved family member.")}
           >
             <div className="space-y-2">
-              <button
-                onClick={() => setForWhom("myself")}
-                className={`focus-ring tap-scale flex w-full items-center justify-between rounded-[1.25rem] border p-4 text-start transition-all ${forWhom === "myself" ? "border-brand bg-brand/5" : "border-border/60 bg-surface-elevated"}`}
-              >
-                <span className="font-bold">{t("bookFlow.forWhomMyself", "Myself")}</span>
-                <span
-                  className={`grid h-6 w-6 place-items-center rounded-full border-2 ${forWhom === "myself" ? "border-brand bg-brand text-brand-foreground" : "border-border"}`}
+              {shouldShowMyselfBookingOption(bookingCategorySlug) ? (
+                <button
+                  onClick={() => setForWhom("myself")}
+                  className={`focus-ring tap-scale flex w-full items-center justify-between rounded-[1.25rem] border p-4 text-start transition-all ${forWhom === "myself" ? "border-brand bg-brand/5" : "border-border/60 bg-surface-elevated"}`}
                 >
-                  {forWhom === "myself" && <Check className="h-3.5 w-3.5" />}
-                </span>
-              </button>
+                  <span className="font-bold">{t("bookFlow.forWhomMyself", "Myself")}</span>
+                  <span
+                    className={`grid h-6 w-6 place-items-center rounded-full border-2 ${forWhom === "myself" ? "border-brand bg-brand text-brand-foreground" : "border-border"}`}
+                  >
+                    {forWhom === "myself" && <Check className="h-3.5 w-3.5" />}
+                  </span>
+                </button>
+              ) : (
+                <p className="rounded-[1.25rem] border border-border/60 bg-surface-elevated px-4 py-3 text-xs font-semibold text-muted-foreground">
+                  {t(
+                    "bookFlow.childOnlyRecipientHint",
+                    "Choose one saved child from your family list for this booking.",
+                  )}
+                </p>
+              )}
               {familyMembersQ.isLoading ? (
                 <div className="h-16 animate-pulse rounded-2xl bg-surface-2" />
               ) : (familyMembersQ.data ?? []).length === 0 ? (

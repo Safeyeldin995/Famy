@@ -19,6 +19,7 @@ import {
   addressesQueryKey,
   defaultAddressQueryKey,
 } from '@/lib/db/address-query-keys';
+import { isClosedBetaCategorySlug } from '@/lib/catalog/closedBetaCategories';
 import { isQaCatalogService, isQaCatalogSlug, isQaFixtureName } from '@/lib/catalog/qaCatalog';
 
 type Tables = Database['public']['Tables'];
@@ -253,7 +254,9 @@ export function useCategories() {
         .eq('is_active', true)
         .order('sort_order');
       if (error) throw error;
-      return (data ?? []).filter((row) => !isQaCatalogSlug(row.slug));
+      return (data ?? [])
+        .filter((row) => !isQaCatalogSlug(row.slug))
+        .filter((row) => isClosedBetaCategorySlug(row.slug));
     },
   });
 }
@@ -310,7 +313,8 @@ export function useProviders(opts: { categorySlug?: string; serviceId?: string; 
         .filter(
           (row) =>
             !isQaCatalogSlug(row.category_slug, row.service_slug) &&
-            !isQaFixtureName(row.full_name),
+            !isQaFixtureName(row.full_name) &&
+            isClosedBetaCategorySlug(row.category_slug),
         )
         .slice(0, opts.limit ?? 50);
       if (opts.categorySlug && !opts.serviceId) {
@@ -350,7 +354,9 @@ export function useMarketplaceServices(categorySlug?: string) {
       if (categorySlug) query = query.eq('category.slug', categorySlug);
       const { data, error } = await query;
       if (error) throw error;
-      return (data ?? []).filter((row) => !isQaCatalogService(row));
+      return (data ?? [])
+        .filter((row) => !isQaCatalogService(row))
+        .filter((row) => isClosedBetaCategorySlug(row.category?.slug));
     },
   });
 }
