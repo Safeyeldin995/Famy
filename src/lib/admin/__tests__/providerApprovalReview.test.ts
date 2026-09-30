@@ -1,0 +1,302 @@
+import { describe, expect, it } from "vitest";
+import i18n from "@/lib/i18n";
+import {
+  deriveAdminApprovalDecision,
+  documentBlockersFromReview,
+  extractAdminActionErrorText,
+  formatAdminActionErrorMessage,
+  formatAdminAuditEventLine,
+  translateAdminActionError,
+  translateAdminOnboardingActionError,
+} from "@/lib/admin/providerApprovalReview";
+
+const POSTGREST_INCOMPLETE_APPROVE_ERROR = {
+  message: "Application is incomplete and cannot be approved.",
+  code: "23514",
+  details: null,
+  hint: null,
+};
+
+const POSTGREST_DOCUMENTS_NOT_APPROVED_ERROR = {
+  message: "Required identity documents must be approved before provider approval.",
+  code: "23514",
+  details: null,
+  hint: null,
+};
+
+const POSTGREST_STALE_APPROVE_STATUS_ERROR = {
+  message: "Only submitted or in-review applications can be approved.",
+  code: "23514",
+  details: null,
+  hint: null,
+};
+
+describe("deriveAdminApprovalDecision", () => {
+  it("marks complete applications with approved documents as ready to approve", () => {
+    const decision = deriveAdminApprovalDecision({
+      onboardingStatus: "UNDER_REVIEW",
+      completion: { ok: true, complete: true, errors: {} },
+      reviewDocuments: [
+        { type: "id_card_front", status: "approved" },
+        { type: "id_card_back", status: "approved" },
+      ],
+      isLoading: false,
+      isError: false,
+    });
+    expect(decision.summaryKind).toBe("ready");
+    expect(decision.canApprove).toBe(true);
+    expect(decision.showApproveAction).toBe(true);
+  });
+
+  it("surfaces server completion errors for incomplete applications", () => {
+    const decision = deriveAdminApprovalDecision({
+      onboardingStatus: "UNDER_REVIEW",
+      completion: {
+        ok: true,
+        complete: false,
+        errors: { experience: "experience_incomplete", services: "service_required" },
+      },
+      reviewDocuments: [
+        { type: "id_card_front", status: "approved" },
+        { type: "id_card_back", status: "approved" },
+      ],
+      isLoading: false,
+      isError: false,
+    });
+    expect(decision.summaryKind).toBe("incomplete");
+    expect(decision.canApprove).toBe(false);
+    expect(decision.completionBlockers).toHaveLength(2);
+    expect(decision.approveDisabledReasonKey).toBe(
+      "admin.provider.approvalReview.approveBlockedIncomplete",
+    );
+  });
+
+  it("blocks approval when required documents are pending or rejected", () => {
+    const pending = deriveAdminApprovalDecision({
+      onboardingStatus: "UNDER_REVIEW",
+      completion: { ok: true, complete: true, errors: {} },
+      reviewDocuments: [
+        { type: "id_card_front", status: "pending" },
+        { type: "id_card_back", status: "approved" },
+      ],
+      isLoading: false,
+      isError: false,
+    });
+    expect(pending.summaryKind).toBe("documents_pending");
+    expect(pending.canApprove).toBe(false);
+
+    const rejected = deriveAdminApprovalDecision({
+      onboardingStatus: "UNDER_REVIEW",
+      completion: { ok: true, complete: true, errors: {} },
+      reviewDocuments: [
+        { type: "id_card_front", status: "rejected" },
+        { type: "id_card_back", status: "approved" },
+      ],
+      isLoading: false,
+      isError: false,
+    });
+    expect(rejected.summaryKind).toBe("documents_rejected");
+    expect(rejected.canApprove).toBe(false);
+  });
+
+  it("returns loading and error phases without enabling approval", () => {
+    const loading = deriveAdminApprovalDecision({
+      onboardingStatus: "UNDER_REVIEW",
+      completion: undefined,
+      reviewDocuments: [],
+      isLoading: true,
+      isError: false,
+    });
+    expect(loading.summaryKind).toBe("loading");
+    expect(loading.canApprove).toBe(false);
+
+    const error = deriveAdminApprovalDecision({
+      onboardingStatus: "UNDER_REVIEW",
+      completion: undefined,
+      reviewDocuments: [],
+      isLoading: false,
+      isError: true,
+    });
+    expect(error.summaryKind).toBe("error");
+    expect(error.canApprove).toBe(false);
+  });
+
+  it("shows start review only for submitted applications", () => {
+    const submitted = deriveAdminApprovalDecision({
+      onboardingStatus: "SUBMITTED",
+      completion: { ok: true, complete: false, errors: { personal: "phone_required" } },
+      reviewDocuments: [],
+      isLoading: false,
+      isError: false,
+    });
+    expect(submitted.canStartReview).toBe(true);
+    expect(submitted.showApproveAction).toBe(false);
+  });
+});
+
+describe("documentBlockersFromReview", () => {
+  it("derives missing, pending, and rejected identity document blockers from review rows", () => {
+    const { blockers, counts } = documentBlockersFromReview([
+      { type: "id_card_front", status: "pending" },
+    ]);
+    expect(counts.pending).toBe(1);
+    expect(counts.missingRequiredTypes).toBe(1);
+    expect(blockers.some((b) => b.errorCode === "document_pending_review")).toBe(true);
+    expect(blockers.some((b) => b.errorCode === "national_id_required")).toBe(true);
+  });
+
+  it("blocks when one front ID row is approved and another is still pending (server parity)", () => {
+    const decision = deriveAdminApprovalDecision({
+      onboardingStatus: "UNDER_REVIEW",
+      completion: { ok: true, complete: true, errors: {} },
+      reviewDocuments: [
+        { id: "a", type: "id_card_front", status: "approved" },
+        { id: "b", type: "id_card_front", status: "pending" },
+        { type: "id_card_back", status: "approved" },
+      ],
+      isLoading: false,
+      isError: false,
+    });
+    expect(decision.canApprove).toBe(false);
+    expect(decision.summaryKind).toBe("documents_pending");
+    expect(decision.documentBlockers.some((b) => b.documentType === "id_card_front")).toBe(true);
+  });
+
+  it("surfaces rejected blocker when one front ID row is approved and another rejected", () => {
+    const decision = deriveAdminApprovalDecision({
+      onboardingStatus: "UNDER_REVIEW",
+      completion: { ok: true, complete: true, errors: {} },
+      reviewDocuments: [
+        { id: "a", type: "id_card_front", status: "approved" },
+        { id: "b", type: "id_card_front", status: "rejected" },
+        { type: "id_card_back", status: "approved" },
+      ],
+      isLoading: false,
+      isError: false,
+    });
+    expect(decision.canApprove).toBe(false);
+    expect(decision.summaryKind).toBe("documents_rejected");
+    expect(decision.documentBlockers.some((b) => b.errorCode === "document_rejected")).toBe(true);
+  });
+
+  it("allows approval when all rows for each required ID type are approved", () => {
+    const decision = deriveAdminApprovalDecision({
+      onboardingStatus: "UNDER_REVIEW",
+      completion: { ok: true, complete: true, errors: {} },
+      reviewDocuments: [
+        { id: "a", type: "id_card_front", status: "approved" },
+        { id: "b", type: "id_card_front", status: "approved" },
+        { type: "id_card_back", status: "approved" },
+      ],
+      isLoading: false,
+      isError: false,
+    });
+    expect(decision.canApprove).toBe(true);
+    expect(decision.summaryKind).toBe("ready");
+    expect(decision.documentBlockers).toHaveLength(0);
+  });
+
+  it("blocks when a required ID type is missing entirely", () => {
+    const decision = deriveAdminApprovalDecision({
+      onboardingStatus: "UNDER_REVIEW",
+      completion: { ok: true, complete: true, errors: {} },
+      reviewDocuments: [{ type: "id_card_front", status: "approved" }],
+      isLoading: false,
+      isError: false,
+    });
+    expect(decision.canApprove).toBe(false);
+    expect(decision.documentBlockers.some((b) => b.errorCode === "national_id_required")).toBe(true);
+  });
+});
+
+describe("extractAdminActionErrorText", () => {
+  it("reads message from PostgREST-style error objects", () => {
+    expect(extractAdminActionErrorText(POSTGREST_INCOMPLETE_APPROVE_ERROR)).toBe(
+      "Application is incomplete and cannot be approved.",
+    );
+  });
+
+  it("does not stringify unknown objects into [object Object]", () => {
+    expect(extractAdminActionErrorText({ code: "23514" })).toBeNull();
+    expect(extractAdminActionErrorText({})).toBeNull();
+  });
+});
+
+describe("translateAdminActionError", () => {
+  it("maps known server approval failures to translation keys", () => {
+    expect(
+      translateAdminActionError("Application is incomplete and cannot be approved."),
+    ).toBe("admin.provider.approvalReview.serverErrors.incomplete");
+    expect(
+      translateAdminActionError(
+        "Required identity documents must be approved before provider approval.",
+      ),
+    ).toBe("admin.provider.approvalReview.serverErrors.documentsNotApproved");
+    expect(translateAdminOnboardingActionError).toBe(translateAdminActionError);
+  });
+
+  it("returns null for unknown messages so callers can use a safe fallback", () => {
+    expect(translateAdminActionError("unexpected internal detail")).toBeNull();
+  });
+});
+
+describe("formatAdminActionErrorMessage (admin review toast path)", () => {
+  it("translates PostgREST incomplete approval rejection in English", async () => {
+    await i18n.changeLanguage("en");
+    const msg = formatAdminActionErrorMessage(i18n.t.bind(i18n), POSTGREST_INCOMPLETE_APPROVE_ERROR);
+    expect(msg).toBe("Application is incomplete and cannot be approved.");
+    expect(msg).not.toContain("[object Object]");
+  });
+
+  it("translates document-approval PostgREST rejection in Arabic", async () => {
+    await i18n.changeLanguage("ar");
+    const msg = formatAdminActionErrorMessage(
+      i18n.t.bind(i18n),
+      POSTGREST_DOCUMENTS_NOT_APPROVED_ERROR,
+    );
+    expect(msg).toBe("يجب اعتماد مستندات الهوية المطلوبة قبل الموافقة.");
+    await i18n.changeLanguage("en");
+  });
+
+  it("maps stale-state server rejection after displayed eligibility", async () => {
+    await i18n.changeLanguage("en");
+    const msg = formatAdminActionErrorMessage(
+      i18n.t.bind(i18n),
+      POSTGREST_STALE_APPROVE_STATUS_ERROR,
+    );
+    expect(msg).toBe("Only submitted or in-review applications can be approved.");
+  });
+
+  it("uses safe fallback for malformed or unknown errors", async () => {
+    await i18n.changeLanguage("en");
+    expect(formatAdminActionErrorMessage(i18n.t.bind(i18n), { code: "23514" })).toBe(
+      "This action could not be completed. Refresh the page and try again.",
+    );
+    expect(formatAdminActionErrorMessage(i18n.t.bind(i18n), null)).toBe(
+      "This action could not be completed. Refresh the page and try again.",
+    );
+  });
+
+  it("translates document review reject-without-reason server error", async () => {
+    await i18n.changeLanguage("en");
+    const msg = formatAdminActionErrorMessage(i18n.t.bind(i18n), {
+      message: "A reason is required to reject a document.",
+      code: "23514",
+    });
+    expect(msg).toBe("A reason is required to reject a document.");
+  });
+});
+
+describe("formatAdminAuditEventLine", () => {
+  it("renders translated audit action and onboarding statuses", async () => {
+    await i18n.changeLanguage("en");
+    const line = formatAdminAuditEventLine(i18n.t.bind(i18n), {
+      action: "start_review",
+      previous_status: "SUBMITTED",
+      new_status: "UNDER_REVIEW",
+    });
+    expect(line).toContain("Review started");
+    expect(line).toContain("Submitted");
+    expect(line).toContain("Under review");
+  });
+});
