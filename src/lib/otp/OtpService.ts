@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   abandonOtpFlowFn,
   beginFirebaseOtpFn,
+  confirmFirebaseOtpSentFn,
   completePasswordSetupFn,
   getOtpScreenContextFn,
   getSetPasswordContextFn,
@@ -82,6 +83,15 @@ export const otpService = {
         error: "send_failed",
         message: "Could not start phone verification. Try again later.",
       };
+    }
+  },
+
+  async confirmFirebaseOtpSent(): Promise<{ ok: boolean; error?: string }> {
+    try {
+      const res = await confirmFirebaseOtpSentFn();
+      return res as { ok: boolean; error?: string };
+    } catch {
+      return { ok: false, error: "intent_missing" };
     }
   },
 

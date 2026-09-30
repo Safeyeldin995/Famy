@@ -7,6 +7,7 @@ import { z } from "zod";
 import {
   clearOtpPendingIntent,
   clearSetPasswordIntent,
+  confirmOtpPendingDelivery,
   maskPhoneE164,
   readOtpPendingIntent,
   readSetPasswordIntent,
@@ -249,6 +250,11 @@ export const getOtpScreenContextFn = createServerFn({ method: "GET" }).handler(
       return { ok: false, redirect: "/login" };
     }
 
+    if (pending.deliveryConfirmed === false) {
+      clearOtpPendingIntent();
+      return { ok: false, redirect: intentRedirectForPurpose(pending.purpose) };
+    }
+
     const now = Math.floor(Date.now() / 1000);
     if (pending.otpExp <= now) {
       clearOtpPendingIntent();
@@ -287,6 +293,7 @@ async function prepareFirebaseOtpIntent(params: {
     purpose: params.purpose,
     role: params.purpose === "signup" ? params.role : undefined,
     retryAfterSeconds: 30,
+    deliveryConfirmed: false,
   });
   clearSetPasswordIntent();
   return {
@@ -333,6 +340,7 @@ async function issueOtpSend(params: {
     purpose: params.purpose,
     role: params.purpose === "signup" ? params.role : undefined,
     retryAfterSeconds: generated.retryAfter ?? 30,
+    deliveryConfirmed: true,
   });
   clearSetPasswordIntent();
 
@@ -356,6 +364,13 @@ export const sendOtpFn = createServerFn({ method: "POST" })
     }
     return issueOtpSend(data);
   });
+
+export const confirmFirebaseOtpSentFn = createServerFn({ method: "POST" }).handler(async () => {
+  if (!confirmOtpPendingDelivery()) {
+    return { ok: false as const, error: "intent_missing" as const };
+  }
+  return { ok: true as const };
+});
 
 export const beginFirebaseOtpFn = createServerFn({ method: "POST" })
   .inputValidator((d) => SendSchema.parse(d))
@@ -411,7 +426,7 @@ export const verifyOtpFn = createServerFn({ method: "POST" })
   .inputValidator((d) => VerifySchema.parse(d))
   .handler(async ({ data }) => {
     const pending = readOtpPendingIntent();
-    if (!pending) {
+    if (!pending || pending.deliveryConfirmed === false) {
       return { ok: false as const, error: "invalid_code" as const };
     }
 
@@ -442,7 +457,7 @@ export const verifyFirebaseOtpFn = createServerFn({ method: "POST" })
     }
 
     const pending = readOtpPendingIntent();
-    if (!pending) {
+    if (!pending || pending.deliveryConfirmed === false) {
       return { ok: false as const, error: "invalid_code" as const };
     }
 

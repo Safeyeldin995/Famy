@@ -19,6 +19,8 @@ export type OtpPendingIntent = SignedPayload & {
   role?: AuthFlowRole;
   otpExp: number;
   resendAt: number;
+  /** False for Firebase until client SMS send succeeds; server OTP sets true on issue. */
+  deliveryConfirmed?: boolean;
 };
 
 export type SetPasswordIntent = SignedPayload & {
@@ -102,6 +104,7 @@ export function setOtpPendingIntent(params: {
   purpose: AuthFlowPurpose;
   role?: AuthFlowRole;
   retryAfterSeconds: number;
+  deliveryConfirmed?: boolean;
 }): void {
   const now = Math.floor(Date.now() / 1000);
   const payload: OtpPendingIntent = {
@@ -112,8 +115,20 @@ export function setOtpPendingIntent(params: {
     otpExp: now + OTP_TTL_SECONDS,
     resendAt: now + params.retryAfterSeconds,
     exp: now + OTP_TTL_SECONDS,
+    deliveryConfirmed: params.deliveryConfirmed ?? true,
   };
   setCookie(OTP_PENDING_COOKIE, signPayload(payload), cookieOptions(OTP_TTL_SECONDS));
+}
+
+/** Marks Firebase (or other client-delivered) OTP as successfully sent without resetting TTL. */
+export function confirmOtpPendingDelivery(): boolean {
+  const pending = readOtpPendingIntent();
+  if (!pending || pending.deliveryConfirmed !== false) return false;
+  const now = Math.floor(Date.now() / 1000);
+  const maxAge = Math.max(1, pending.exp - now);
+  const updated: OtpPendingIntent = { ...pending, deliveryConfirmed: true };
+  setCookie(OTP_PENDING_COOKIE, signPayload(updated), cookieOptions(maxAge));
+  return true;
 }
 
 export function readOtpPendingIntent(): OtpPendingIntent | null {

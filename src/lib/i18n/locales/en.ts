@@ -158,6 +158,10 @@ const en = {
     invalidCode: "Invalid code. Try again.",
     codeSent: "Code sent.",
     sendFailed: "Could not send code. Try again later.",
+    deliveryUnavailable:
+      "Verification delivery is temporarily unavailable. Wait a moment and try again.",
+    rateLimited: "Too many attempts. Try again in {{time}}.",
+    durationSeconds: "{{formatted}} s",
     firebaseSendFailed: "Could not send verification SMS. Try again later.",
     firebaseStartFailed: "Could not start phone verification. Try again.",
     firebaseRecaptchaUnavailable:

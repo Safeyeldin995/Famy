@@ -4,10 +4,13 @@ import {
   FirebasePhoneVerificationSessionError,
   FirebaseRecaptchaContainerError,
 } from "@/lib/otp/firebaseAuth.browser";
+import { formatOtpSecondsDuration } from "@/lib/auth/otpCountdown";
 import type { TFunction } from "i18next";
 
 export type PhoneOtpFlowError =
   | "send_failed"
+  | "delivery_failed"
+  | "temporarily_unavailable"
   | "firebase_start_failed"
   | "firebase_send_failed"
   | "firebase_recaptcha_unavailable"
@@ -16,14 +19,17 @@ export type PhoneOtpFlowError =
   | "intent_missing";
 
 type StartPhoneOtpResult =
-  | { ok: true; retryAfter?: number }
-  | { ok: false; error: PhoneOtpFlowError; retryAfter?: number };
+  { ok: true; retryAfter?: number } | { ok: false; error: PhoneOtpFlowError; retryAfter?: number };
 
 type PhoneOtpFlowOptions = {
   languageCode?: string;
 };
 
-export function phoneOtpFlowErrorMessage(error: PhoneOtpFlowError, t: TFunction): string {
+export function phoneOtpFlowErrorMessage(
+  error: PhoneOtpFlowError,
+  t: TFunction,
+  retryAfter?: number,
+): string {
   switch (error) {
     case "firebase_send_failed":
       return t("auth.firebaseSendFailed");
@@ -34,12 +40,31 @@ export function phoneOtpFlowErrorMessage(error: PhoneOtpFlowError, t: TFunction)
     case "firebase_session_lost":
       return t("auth.firebaseSessionLost");
     case "rate_limited":
-      return t("auth.sendFailed");
+      return retryAfter && retryAfter > 0
+        ? t("auth.rateLimited", { time: formatOtpSecondsDuration(retryAfter, t) })
+        : t("auth.sendFailed");
+    case "delivery_failed":
+    case "temporarily_unavailable":
+      return t("auth.deliveryUnavailable");
     case "intent_missing":
       return t("auth.sessionExpired");
     default:
       return t("auth.sendFailed");
   }
+}
+
+function mapServerSendError(error: string | undefined): PhoneOtpFlowError {
+  if (error === "rate_limited" || error === "rate_limited_phone" || error === "rate_limited_ip") {
+    return "rate_limited";
+  }
+  if (error === "delivery_failed") return "delivery_failed";
+  if (error === "temporarily_unavailable") return "temporarily_unavailable";
+  return "send_failed";
+}
+
+async function confirmClientOtpDelivery(): Promise<boolean> {
+  const res = await otpService.confirmFirebaseOtpSent();
+  return res.ok;
 }
 
 export async function startPhoneOtpFlow(
@@ -61,6 +86,11 @@ export async function startPhoneOtpFlow(
     try {
       const { sendFirebasePhoneOtp } = await import("@/lib/otp/firebaseAuth.browser");
       await sendFirebasePhoneOtp(phoneE164, { languageCode: options.languageCode });
+      const confirmed = await confirmClientOtpDelivery();
+      if (!confirmed) {
+        await otpService.abandonOtpFlow();
+        return { ok: false, error: "firebase_send_failed" };
+      }
       return { ok: true };
     } catch (error) {
       await otpService.abandonOtpFlow();
@@ -75,11 +105,11 @@ export async function startPhoneOtpFlow(
   if (!send.ok) {
     return {
       ok: false,
-      error: send.error === "rate_limited" ? "rate_limited" : "send_failed",
+      error: mapServerSendError(send.error),
       retryAfter: send.retryAfter,
     };
   }
-  return { ok: true };
+  return { ok: true, retryAfter: send.retryAfter };
 }
 
 export async function resendPhoneOtpFlow(
@@ -88,9 +118,11 @@ export async function resendPhoneOtpFlow(
 ): Promise<StartPhoneOtpResult> {
   const refresh = await otpService.resendOtp();
   if (!refresh.ok) {
+    const mapped =
+      refresh.error === "intent_missing" ? "intent_missing" : mapServerSendError(refresh.error);
     return {
       ok: false,
-      error: refresh.error === "rate_limited" ? "rate_limited" : "intent_missing",
+      error: mapped,
       retryAfter: refresh.retryAfter,
     };
   }
@@ -102,6 +134,10 @@ export async function resendPhoneOtpFlow(
   try {
     const { sendFirebasePhoneOtp } = await import("@/lib/otp/firebaseAuth.browser");
     await sendFirebasePhoneOtp(phoneE164, { languageCode: options.languageCode });
+    const confirmed = await confirmClientOtpDelivery();
+    if (!confirmed) {
+      return { ok: false, error: "firebase_send_failed" };
+    }
     return { ok: true, retryAfter: refresh.retryAfter ?? 30 };
   } catch (error) {
     if (error instanceof FirebaseRecaptchaContainerError) {

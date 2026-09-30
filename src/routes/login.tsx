@@ -8,6 +8,7 @@ import { PhoneFrame, PrimaryButton, RoleSelectCard } from "@/components/famio/ui
 import { LanguageToggle } from "@/components/famio/LanguageToggle";
 import { useApp } from "@/lib/store";
 import { otpService, normalizePhone, type Role } from "@/lib/otp/OtpService";
+import { normalizeDigitsToWestern } from "@/lib/otp/normalizePhone";
 import { startPhoneOtpFlow, phoneOtpFlowErrorMessage } from "@/lib/otp/phoneOtpFlow";
 import { resolveLandingForCurrentUser } from "@/lib/auth/landing";
 import { previewPath } from "@/lib/preview/previewPath";
@@ -67,7 +68,7 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
   const { setProfile, setAuthed } = useApp();
   const { t, i18n } = useTranslation();
 
-  const phoneValid = phone.replace(/\D/g, "").length >= 9;
+  const phoneValid = normalizeDigitsToWestern(phone).replace(/\D/g, "").length >= 9;
   const screenTitle = mode === "signin" ? t("auth.signIn") : t("auth.signUp");
 
   const submit = async () => {
@@ -111,7 +112,7 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
     const send = await startPhoneOtpFlow(e164, "signup", role, { languageCode: i18n.language });
     if (!send.ok) {
       setLoading(false);
-      const m = phoneOtpFlowErrorMessage(send.error, t);
+      const m = phoneOtpFlowErrorMessage(send.error, t, send.retryAfter);
       setErrorMsg(m);
       toast.error(m, { duration: 8000 });
       return;
@@ -123,11 +124,13 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
 
   return (
     <PhoneFrame bg="bg-white">
-
-
       <header className="brand-hero safe-top relative overflow-hidden rounded-b-[2.5rem] px-5 pb-8 pt-4">
         <div className="relative z-10 flex items-start justify-between gap-3">
-          <FamyWordmark size="compact" variant="white" className="!h-11 max-w-[9.5rem] object-contain object-left" />
+          <FamyWordmark
+            size="compact"
+            variant="white"
+            className="!h-11 max-w-[9.5rem] object-contain object-left"
+          />
           <LanguageToggle variant="hero" />
         </div>
         <h1 className="relative z-10 mt-8 text-[1.75rem] font-extrabold leading-tight text-white">
@@ -183,9 +186,14 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
                 >
                   <span aria-hidden="true">🇪🇬</span>
                   <span>EG</span>
-                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={ICON_STROKE_BOLD} />
+                  <ChevronDown
+                    className="h-3.5 w-3.5 text-muted-foreground"
+                    strokeWidth={ICON_STROKE_BOLD}
+                  />
                 </button>
-                <span className="text-[15px] font-extrabold text-foreground" dir="ltr">+20</span>
+                <span className="text-[15px] font-extrabold text-foreground" dir="ltr">
+                  +20
+                </span>
                 <div className="h-6 w-px bg-border/80" />
                 <input
                   inputMode="tel"
@@ -225,7 +233,10 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
                   </button>
                 </div>
                 <div className="mt-3 flex justify-end">
-                  <Link to={previewPath("/auth/forgot")} className="text-[13px] font-extrabold text-brand">
+                  <Link
+                    to={previewPath("/auth/forgot")}
+                    className="text-[13px] font-extrabold text-brand"
+                  >
                     {t("auth.forgot")}
                   </Link>
                 </div>
@@ -238,11 +249,19 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
         {mode === "signup" ? (
           <p className="mt-6 text-xs font-semibold leading-relaxed text-muted-foreground">
             {t("auth.terms")}{" "}
-            <Link to="/content/$key" params={{ key: "terms" }} className="font-extrabold text-brand">
+            <Link
+              to="/content/$key"
+              params={{ key: "terms" }}
+              className="font-extrabold text-brand"
+            >
               {t("auth.termsLink")}
             </Link>{" "}
             {t("auth.and")}{" "}
-            <Link to="/content/$key" params={{ key: "privacy" }} className="font-extrabold text-brand">
+            <Link
+              to="/content/$key"
+              params={{ key: "privacy" }}
+              className="font-extrabold text-brand"
+            >
               {t("auth.privacyLink")}
             </Link>
             .

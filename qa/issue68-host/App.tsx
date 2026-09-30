@@ -20,6 +20,7 @@ import { MOCK_PROVIDER_ID } from "./constants.mjs";
 import { useAdminOnboardingReview, type OnboardingStatus } from "@/lib/provider/onboarding-queries";
 import { FamilyMembers } from "@/routes/family-members";
 import { NewFamilyMember } from "@/routes/family-members.new";
+import { OtpCountdownProbe } from "./OtpCountdownProbe";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -157,6 +158,14 @@ const adminUpdatedDetailsRoute = createRoute({
   },
 });
 
+const otpUiProbeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/otp-ui-probe",
+  component: function OtpUiProbeHarness() {
+    return <OtpCountdownProbe />;
+  },
+});
+
 const familyMembersNewRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/family-members/new",
@@ -209,6 +218,7 @@ const routeTree = rootRoute.addChildren([
   adminProviderReviewRoute,
   familyMembersNewRoute,
   familyMembersRoute,
+  otpUiProbeRoute,
   bookRoute,
 ]);
 const router = createRouter({ routeTree });
