@@ -10,6 +10,7 @@ import {
   familyMemberFormValueToInput,
 } from "@/components/famio/FamilyMemberForm";
 import { useCreateFamilyMember } from "@/lib/db/family-members-queries";
+import { familyMemberErrorMessageKey } from "@/lib/db/familyMemberErrors";
 
 export const Route = createFileRoute("/family-members/new")({ component: NewFamilyMember });
 
@@ -24,8 +25,8 @@ function NewFamilyMember() {
       await createMember.mutateAsync(familyMemberFormValueToInput(value));
       toast.success(t("familyMembers.saved", "Family member saved"));
       nav({ to: "/family-members" });
-    } catch (e: any) {
-      toast.error(e?.message ?? t("common.somethingWentWrong"));
+    } catch (e: unknown) {
+      toast.error(t(familyMemberErrorMessageKey(e)));
     }
   };
 
