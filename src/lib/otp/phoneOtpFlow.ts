@@ -19,7 +19,8 @@ export type PhoneOtpFlowError =
   | "intent_missing";
 
 type StartPhoneOtpResult =
-  { ok: true; retryAfter?: number } | { ok: false; error: PhoneOtpFlowError; retryAfter?: number };
+  | { ok: true; retryAfter?: number }
+  | { ok: false; error: PhoneOtpFlowError; retryAfter?: number; flowAbandoned?: boolean };
 
 type PhoneOtpFlowOptions = {
   languageCode?: string;
@@ -136,14 +137,16 @@ export async function resendPhoneOtpFlow(
     await sendFirebasePhoneOtp(phoneE164, { languageCode: options.languageCode });
     const confirmed = await confirmClientOtpDelivery();
     if (!confirmed) {
-      return { ok: false, error: "firebase_send_failed" };
+      await otpService.abandonOtpFlow();
+      return { ok: false, error: "firebase_send_failed", flowAbandoned: true };
     }
     return { ok: true, retryAfter: refresh.retryAfter ?? 30 };
   } catch (error) {
+    await otpService.abandonOtpFlow();
     if (error instanceof FirebaseRecaptchaContainerError) {
-      return { ok: false, error: "firebase_recaptcha_unavailable" };
+      return { ok: false, error: "firebase_recaptcha_unavailable", flowAbandoned: true };
     }
-    return { ok: false, error: "firebase_send_failed" };
+    return { ok: false, error: "firebase_send_failed", flowAbandoned: true };
   }
 }
 

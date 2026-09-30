@@ -78,6 +78,31 @@ describe("phoneOtpFlow", () => {
     expect(mockOtp.abandonOtpFlow).toHaveBeenCalledTimes(1);
   });
 
+  it("abandons Firebase flow when resend confirm fails so the prior code is not stuck invalid", async () => {
+    mockFirebaseProvider.isClient = true;
+    mockOtp.resendOtp.mockResolvedValue({ ok: true, retryAfter: 30 });
+    const { sendFirebasePhoneOtp } = await import("@/lib/otp/firebaseAuth.browser");
+    vi.mocked(sendFirebasePhoneOtp).mockResolvedValue(undefined);
+    mockOtp.confirmFirebaseOtpSent.mockResolvedValue({ ok: false });
+
+    const { resendPhoneOtpFlow } = await import("../phoneOtpFlow");
+    const res = await resendPhoneOtpFlow("+201012345678");
+    expect(res).toEqual({ ok: false, error: "firebase_send_failed", flowAbandoned: true });
+    expect(mockOtp.abandonOtpFlow).toHaveBeenCalledTimes(1);
+  });
+
+  it("abandons Firebase flow when resend SMS send throws", async () => {
+    mockFirebaseProvider.isClient = true;
+    mockOtp.resendOtp.mockResolvedValue({ ok: true, retryAfter: 30 });
+    const { sendFirebasePhoneOtp } = await import("@/lib/otp/firebaseAuth.browser");
+    vi.mocked(sendFirebasePhoneOtp).mockRejectedValue(new Error("network"));
+
+    const { resendPhoneOtpFlow } = await import("../phoneOtpFlow");
+    const res = await resendPhoneOtpFlow("+201012345678");
+    expect(res).toEqual({ ok: false, error: "firebase_send_failed", flowAbandoned: true });
+    expect(mockOtp.abandonOtpFlow).toHaveBeenCalledTimes(1);
+  });
+
   it("maps rate limit errors to localized wait guidance", async () => {
     const { phoneOtpFlowErrorMessage } = await import("../phoneOtpFlow");
     await i18n.changeLanguage("ar");

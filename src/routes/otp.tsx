@@ -160,8 +160,15 @@ export function OtpScreen({
     setResending(false);
     if (!res.ok) {
       const msg = phoneOtpFlowErrorMessage(res.error, t, res.retryAfter);
-      setErrorMsg(msg);
       toast.error(msg);
+      if (res.flowAbandoned) {
+        nav({
+          to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login",
+          replace: true,
+        });
+        return;
+      }
+      setErrorMsg(msg);
       if (res.retryAfter) setResendAvailableIn(res.retryAfter);
       return;
     }
