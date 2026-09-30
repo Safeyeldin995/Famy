@@ -214,7 +214,8 @@ export function documentBlockersFromReview(
       });
       continue;
     }
-    if (!ofType.some((row) => row.status === "approved")) {
+    // Match provider_required_documents_approved: every row for the type must be approved.
+    if (ofType.some((row) => row.status !== "approved")) {
       pending += 1;
       blockers.push({
         id: `document:pending:${docType}`,

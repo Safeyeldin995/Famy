@@ -144,6 +144,69 @@ describe("documentBlockersFromReview", () => {
     expect(blockers.some((b) => b.errorCode === "document_pending_review")).toBe(true);
     expect(blockers.some((b) => b.errorCode === "national_id_required")).toBe(true);
   });
+
+  it("blocks when one front ID row is approved and another is still pending (server parity)", () => {
+    const decision = deriveAdminApprovalDecision({
+      onboardingStatus: "UNDER_REVIEW",
+      completion: { ok: true, complete: true, errors: {} },
+      reviewDocuments: [
+        { id: "a", type: "id_card_front", status: "approved" },
+        { id: "b", type: "id_card_front", status: "pending" },
+        { type: "id_card_back", status: "approved" },
+      ],
+      isLoading: false,
+      isError: false,
+    });
+    expect(decision.canApprove).toBe(false);
+    expect(decision.summaryKind).toBe("documents_pending");
+    expect(decision.documentBlockers.some((b) => b.documentType === "id_card_front")).toBe(true);
+  });
+
+  it("surfaces rejected blocker when one front ID row is approved and another rejected", () => {
+    const decision = deriveAdminApprovalDecision({
+      onboardingStatus: "UNDER_REVIEW",
+      completion: { ok: true, complete: true, errors: {} },
+      reviewDocuments: [
+        { id: "a", type: "id_card_front", status: "approved" },
+        { id: "b", type: "id_card_front", status: "rejected" },
+        { type: "id_card_back", status: "approved" },
+      ],
+      isLoading: false,
+      isError: false,
+    });
+    expect(decision.canApprove).toBe(false);
+    expect(decision.summaryKind).toBe("documents_rejected");
+    expect(decision.documentBlockers.some((b) => b.errorCode === "document_rejected")).toBe(true);
+  });
+
+  it("allows approval when all rows for each required ID type are approved", () => {
+    const decision = deriveAdminApprovalDecision({
+      onboardingStatus: "UNDER_REVIEW",
+      completion: { ok: true, complete: true, errors: {} },
+      reviewDocuments: [
+        { id: "a", type: "id_card_front", status: "approved" },
+        { id: "b", type: "id_card_front", status: "approved" },
+        { type: "id_card_back", status: "approved" },
+      ],
+      isLoading: false,
+      isError: false,
+    });
+    expect(decision.canApprove).toBe(true);
+    expect(decision.summaryKind).toBe("ready");
+    expect(decision.documentBlockers).toHaveLength(0);
+  });
+
+  it("blocks when a required ID type is missing entirely", () => {
+    const decision = deriveAdminApprovalDecision({
+      onboardingStatus: "UNDER_REVIEW",
+      completion: { ok: true, complete: true, errors: {} },
+      reviewDocuments: [{ type: "id_card_front", status: "approved" }],
+      isLoading: false,
+      isError: false,
+    });
+    expect(decision.canApprove).toBe(false);
+    expect(decision.documentBlockers.some((b) => b.errorCode === "national_id_required")).toBe(true);
+  });
 });
 
 describe("extractAdminActionErrorText", () => {
