@@ -37,6 +37,7 @@ describe("phoneOtpFlow", () => {
     vi.clearAllMocks();
     mockFirebaseProvider.isClient = false;
     mockOtp.confirmFirebaseOtpSent.mockResolvedValue({ ok: true });
+    mockOtp.abandonOtpFlow.mockResolvedValue({ ok: true });
     await i18n.changeLanguage("en");
   });
 
@@ -87,7 +88,12 @@ describe("phoneOtpFlow", () => {
 
     const { resendPhoneOtpFlow } = await import("../phoneOtpFlow");
     const res = await resendPhoneOtpFlow("+201012345678");
-    expect(res).toEqual({ ok: false, error: "firebase_send_failed", flowAbandoned: true });
+    expect(res).toEqual({
+      ok: false,
+      error: "firebase_send_failed",
+      flowAbandoned: true,
+      intentCleared: true,
+    });
     expect(mockOtp.abandonOtpFlow).toHaveBeenCalledTimes(1);
   });
 
@@ -99,9 +105,31 @@ describe("phoneOtpFlow", () => {
 
     const { resendPhoneOtpFlow } = await import("../phoneOtpFlow");
     const res = await resendPhoneOtpFlow("+201012345678");
-    expect(res).toEqual({ ok: false, error: "firebase_send_failed", flowAbandoned: true });
+    expect(res).toEqual({
+      ok: false,
+      error: "firebase_send_failed",
+      flowAbandoned: true,
+      intentCleared: true,
+    });
     expect(mockOtp.abandonOtpFlow).toHaveBeenCalledTimes(1);
     expect(mockOtp.confirmFirebaseOtpSent).not.toHaveBeenCalled();
+  });
+
+  it("returns send failure without throwing when abandonOtpFlow rejects after resend failure", async () => {
+    mockFirebaseProvider.isClient = true;
+    mockOtp.resendOtp.mockResolvedValue({ ok: true, retryAfter: 30 });
+    mockOtp.abandonOtpFlow.mockRejectedValue(new Error("network"));
+    const { sendFirebasePhoneOtp } = await import("@/lib/otp/firebaseAuth.browser");
+    vi.mocked(sendFirebasePhoneOtp).mockRejectedValue(new Error("sms failed"));
+
+    const { resendPhoneOtpFlow } = await import("../phoneOtpFlow");
+    const res = await resendPhoneOtpFlow("+201012345678");
+    expect(res).toEqual({
+      ok: false,
+      error: "firebase_send_failed",
+      flowAbandoned: true,
+      intentCleared: false,
+    });
   });
 
   it("returns success when Firebase resend send and confirm succeed", async () => {

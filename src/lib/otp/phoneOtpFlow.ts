@@ -20,7 +20,15 @@ export type PhoneOtpFlowError =
 
 type StartPhoneOtpResult =
   | { ok: true; retryAfter?: number }
-  | { ok: false; error: PhoneOtpFlowError; retryAfter?: number; flowAbandoned?: boolean };
+  | {
+      ok: false;
+      error: PhoneOtpFlowError;
+      retryAfter?: number;
+      /** Client should leave the OTP screen; pending delivery is unusable. */
+      flowAbandoned?: boolean;
+      /** True only when the server confirmed clearing the pending intent. */
+      intentCleared?: boolean;
+    };
 
 type PhoneOtpFlowOptions = {
   languageCode?: string;
@@ -68,6 +76,24 @@ async function confirmClientOtpDelivery(): Promise<boolean> {
   return res.ok;
 }
 
+/** Best-effort server cancel; never throws. Returns whether clear was confirmed. */
+async function bestEffortAbandonOtpFlow(): Promise<boolean> {
+  try {
+    const res = await otpService.abandonOtpFlow();
+    return res?.ok === true;
+  } catch {
+    return false;
+  }
+}
+
+async function abandonAfterFailedFirebaseClientSend(): Promise<{
+  flowAbandoned: true;
+  intentCleared: boolean;
+}> {
+  const intentCleared = await bestEffortAbandonOtpFlow();
+  return { flowAbandoned: true, intentCleared };
+}
+
 export async function startPhoneOtpFlow(
   phoneE164: string,
   purpose: Purpose,
@@ -89,12 +115,12 @@ export async function startPhoneOtpFlow(
       await sendFirebasePhoneOtp(phoneE164, { languageCode: options.languageCode });
       const confirmed = await confirmClientOtpDelivery();
       if (!confirmed) {
-        await otpService.abandonOtpFlow();
+        await bestEffortAbandonOtpFlow();
         return { ok: false, error: "firebase_send_failed" };
       }
       return { ok: true };
     } catch (error) {
-      await otpService.abandonOtpFlow();
+      await bestEffortAbandonOtpFlow();
       if (error instanceof FirebaseRecaptchaContainerError) {
         return { ok: false, error: "firebase_recaptcha_unavailable" };
       }
@@ -137,16 +163,31 @@ export async function resendPhoneOtpFlow(
     await sendFirebasePhoneOtp(phoneE164, { languageCode: options.languageCode });
     const confirmed = await confirmClientOtpDelivery();
     if (!confirmed) {
-      await otpService.abandonOtpFlow();
-      return { ok: false, error: "firebase_send_failed", flowAbandoned: true };
+      const abandoned = await abandonAfterFailedFirebaseClientSend();
+      return {
+        ok: false,
+        error: "firebase_send_failed",
+        flowAbandoned: abandoned.flowAbandoned,
+        intentCleared: abandoned.intentCleared,
+      };
     }
     return { ok: true, retryAfter: refresh.retryAfter ?? 30 };
   } catch (error) {
-    await otpService.abandonOtpFlow();
+    const abandoned = await abandonAfterFailedFirebaseClientSend();
     if (error instanceof FirebaseRecaptchaContainerError) {
-      return { ok: false, error: "firebase_recaptcha_unavailable", flowAbandoned: true };
+      return {
+        ok: false,
+        error: "firebase_recaptcha_unavailable",
+        flowAbandoned: abandoned.flowAbandoned,
+        intentCleared: abandoned.intentCleared,
+      };
     }
-    return { ok: false, error: "firebase_send_failed", flowAbandoned: true };
+    return {
+      ok: false,
+      error: "firebase_send_failed",
+      flowAbandoned: abandoned.flowAbandoned,
+      intentCleared: abandoned.intentCleared,
+    };
   }
 }
 

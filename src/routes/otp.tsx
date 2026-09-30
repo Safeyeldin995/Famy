@@ -156,25 +156,39 @@ export function OtpScreen({
     }
     setResending(true);
     setErrorMsg(null);
-    const res = await resendPhoneOtpFlow(profile.phone, { languageCode: i18n.language });
-    setResending(false);
-    if (!res.ok) {
-      const msg = phoneOtpFlowErrorMessage(res.error, t, res.retryAfter);
-      toast.error(msg);
-      if (res.flowAbandoned) {
-        nav({
-          to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login",
-          replace: true,
-        });
+    try {
+      const res = await resendPhoneOtpFlow(profile.phone, { languageCode: i18n.language });
+      if (!res.ok) {
+        const msg = phoneOtpFlowErrorMessage(res.error, t, res.retryAfter);
+        toast.error(msg);
+        if (res.flowAbandoned) {
+          if (res.intentCleared === false) {
+            setErrorMsg(msg);
+          }
+          nav({
+            to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login",
+            replace: true,
+          });
+          return;
+        }
+        setErrorMsg(msg);
+        if (res.retryAfter) setResendAvailableIn(res.retryAfter);
         return;
       }
+      setResendAvailableIn(res.retryAfter ?? 30);
+      setOtpExpiresIn(5 * 60);
+      toast.success(t("auth.codeSent", "Code sent."));
+    } catch {
+      const msg = phoneOtpFlowErrorMessage("firebase_send_failed", t);
+      toast.error(msg);
       setErrorMsg(msg);
-      if (res.retryAfter) setResendAvailableIn(res.retryAfter);
-      return;
+      nav({
+        to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login",
+        replace: true,
+      });
+    } finally {
+      setResending(false);
     }
-    setResendAvailableIn(res.retryAfter ?? 30);
-    setOtpExpiresIn(5 * 60);
-    toast.success(t("auth.codeSent", "Code sent."));
   };
 
   const changePhone = async () => {

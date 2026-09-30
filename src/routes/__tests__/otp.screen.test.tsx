@@ -197,4 +197,45 @@ describe("OtpScreen Firebase resend failures", () => {
     expect(mockToast.success).not.toHaveBeenCalled();
     expect(mockNav).not.toHaveBeenCalled();
   });
+
+  it("still leaves OTP screen when abandon could not be confirmed (intentCleared false)", async () => {
+    await i18n.changeLanguage("en");
+    mockResendPhoneOtpFlow.mockResolvedValue({
+      ok: false,
+      error: "firebase_send_failed",
+      flowAbandoned: true,
+      intentCleared: false,
+    });
+
+    const user = userEvent.setup();
+    render(<OtpScreen otpContext={firebaseContext} />);
+    await user.click(screen.getByRole("button", { name: /Resend code/i }));
+
+    await waitFor(() => {
+      expect(mockToast.error).toHaveBeenCalledWith(
+        "Could not send verification SMS. Try again later.",
+      );
+      expect(mockNav).toHaveBeenCalledWith({ to: "/login", replace: true });
+    });
+    expect(screen.queryByRole("button", { name: /Sending/i })).toBeNull();
+    expect(screen.getByRole("button", { name: /Resend code/i })).toBeTruthy();
+  });
+
+  it("clears resend loading when resendPhoneOtpFlow rejects unexpectedly", async () => {
+    await i18n.changeLanguage("en");
+    mockResendPhoneOtpFlow.mockRejectedValue(new Error("transport"));
+
+    const user = userEvent.setup();
+    render(<OtpScreen otpContext={firebaseContext} />);
+    await user.click(screen.getByRole("button", { name: /Resend code/i }));
+
+    await waitFor(() => {
+      expect(mockToast.error).toHaveBeenCalledWith(
+        "Could not send verification SMS. Try again later.",
+      );
+      expect(mockNav).toHaveBeenCalledWith({ to: "/login", replace: true });
+    });
+    expect(screen.queryByRole("button", { name: /Sending/i })).toBeNull();
+    expect(screen.getByRole("button", { name: /Resend code/i })).toBeTruthy();
+  });
 });
