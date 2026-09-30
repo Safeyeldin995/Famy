@@ -49,7 +49,8 @@ function isLocalUrl(url) {
  *   snapshotDelayMs?: number;
  *   zonesDelayMs?: number;
  *   lang?: "en" | "ar";
- *   scenario?: "default" | "returning" | "new-provider" | "saved-data-error";
+ *   scenario?: "default" | "returning" | "new-provider" | "saved-data-error" | "admin-services-catalog";
+ *   adminCatalogToggleFail?: boolean;
  * }} [options]
  */
 function isImageCdn(url) {
@@ -72,6 +73,7 @@ export async function installIssue68Mocks(page, options = {}) {
       adminReviewDelayMs: options.adminReviewDelayMs ?? 0,
       adminApproveReject: options.adminApproveReject ?? null,
       adminDocumentReviewFail: options.adminDocumentReviewFail ?? null,
+      adminCatalogToggleFail: options.adminCatalogToggleFail === true,
     },
   });
 
