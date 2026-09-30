@@ -70,12 +70,149 @@ function installOutboundGuard(state) {
   wrapOutgoing(https, state);
 }
 
+function sendPostgrestError(res, status, message, code = "23514") {
+  sendJson(res, status, { message, code, details: null, hint: null });
+}
+
+function approvedIdentityDocuments() {
+  return [
+    {
+      id: "doc-front",
+      type: "id_card_front",
+      status: "approved",
+      storage_path: `${MOCK_PROVIDER_ID}/id_card_front/mock.jpg`,
+      created_at: "2026-09-01T00:00:00+00:00",
+    },
+    {
+      id: "doc-back",
+      type: "id_card_back",
+      status: "approved",
+      storage_path: `${MOCK_PROVIDER_ID}/id_card_back/mock.jpg`,
+      created_at: "2026-09-01T00:00:00+00:00",
+    },
+  ];
+}
+
+function documentsForApprovalScenario(scenario) {
+  if (scenario === "docs_pending") {
+    return [
+      {
+        id: "doc-front",
+        type: "id_card_front",
+        status: "pending",
+        storage_path: `${MOCK_PROVIDER_ID}/id_card_front/mock.jpg`,
+        created_at: "2026-09-01T00:00:00+00:00",
+      },
+      {
+        id: "doc-back",
+        type: "id_card_back",
+        status: "approved",
+        storage_path: `${MOCK_PROVIDER_ID}/id_card_back/mock.jpg`,
+        created_at: "2026-09-01T00:00:00+00:00",
+      },
+    ];
+  }
+  if (scenario === "docs_rejected") {
+    return [
+      {
+        id: "doc-front",
+        type: "id_card_front",
+        status: "rejected",
+        storage_path: `${MOCK_PROVIDER_ID}/id_card_front/mock.jpg`,
+        created_at: "2026-09-01T00:00:00+00:00",
+      },
+      {
+        id: "doc-back",
+        type: "id_card_back",
+        status: "approved",
+        storage_path: `${MOCK_PROVIDER_ID}/id_card_back/mock.jpg`,
+        created_at: "2026-09-01T00:00:00+00:00",
+      },
+    ];
+  }
+  return approvedIdentityDocuments();
+}
+
+function completionForApprovalScenario(scenario) {
+  if (scenario === "incomplete") {
+    return { ok: true, complete: false, errors: { experience: "experience_incomplete" } };
+  }
+  return { ok: true, complete: true, errors: {} };
+}
+
+function usesAdminApprovalHarness(state) {
+  return (
+    typeof state.adminApprovalScenario === "string" &&
+    state.adminApprovalScenario !== "legacy"
+  );
+}
+
+export function buildAdminProviderDetail(state) {
+  const scenario = state.adminApprovalScenario;
+  const documents = documentsForApprovalScenario(scenario);
+  return {
+    id: MOCK_PROVIDER_ID,
+    profile_id: MOCK_USER_ID,
+    bio_en: "Persisted EN bio issue68",
+    bio_ar: "سيرة عربية محفوظة",
+    years_experience: 9,
+    languages: ["arabic", "english"],
+    city: "Maadi",
+    hourly_rate: 120,
+    onboarding_status: "UNDER_REVIEW",
+    submitted_at: "2026-09-01T10:00:00+00:00",
+    is_verified: false,
+    is_active: true,
+    profile: {
+      id: MOCK_USER_ID,
+      full_name: "Mona Adel",
+      phone: "+201026868002",
+      email: "issue68@famio.local",
+      avatar_url: "avatars/test.jpg",
+    },
+    documents,
+    services: [],
+    trust: { score: 80 },
+    ratings: { rating_avg: 4.5, rating_count: 2 },
+  };
+}
+
+export function buildAdminOnboardingReviewPayload(state) {
+  const scenario = state.adminApprovalScenario;
+  const documents = documentsForApprovalScenario(scenario);
+  return {
+    provider: {
+      id: MOCK_PROVIDER_ID,
+      onboarding_status: "UNDER_REVIEW",
+    },
+    profile: {},
+    details: null,
+    age_group_capabilities: [],
+    references: [],
+    documents,
+    services: [],
+    zones: [],
+    events: [
+      {
+        action: "start_review",
+        previous_status: "SUBMITTED",
+        new_status: "UNDER_REVIEW",
+      },
+    ],
+    completion: completionForApprovalScenario(scenario),
+  };
+}
+
 function createState(repoRoot) {
   return {
     repoRoot,
     snapshotDelayMs: 0,
     providerDelayMs: 0,
     zonesDelayMs: 0,
+    adminApprovalScenario: "legacy",
+    adminReviewDelayMs: 0,
+    adminApproveReject: null,
+    adminDocumentReviewFail: null,
     scenario: "default",
     bookKind: "cleaning",
     providerStarted: false,
@@ -400,21 +537,31 @@ async function handleSupabase(state, req, res) {
 
   if (p === "/rest/v1/rpc/admin_provider_onboarding_review") {
     state.adminReviews += 1;
-    const payload = {
-      provider: {
-        id: MOCK_PROVIDER_ID,
-        onboarding_status: state.adminProviderStatus,
-      },
-      profile: {},
-      details: null,
-      age_group_capabilities: [],
-      references: [],
-      documents: [],
-      services: [],
-      zones: [],
-      events: [],
-      completion: {},
-    };
+    if (usesAdminApprovalHarness(state) && state.adminApprovalScenario === "review_error") {
+      state.log.push(`adminReviewError#${state.adminReviews}`);
+      sendPostgrestError(res, 400, "Review fetch failed", "PGRST116");
+      return;
+    }
+    if (usesAdminApprovalHarness(state) && state.adminReviewDelayMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, state.adminReviewDelayMs));
+    }
+    const payload = usesAdminApprovalHarness(state)
+      ? buildAdminOnboardingReviewPayload(state)
+      : {
+          provider: {
+            id: MOCK_PROVIDER_ID,
+            onboarding_status: state.adminProviderStatus,
+          },
+          profile: {},
+          details: null,
+          age_group_capabilities: [],
+          references: [],
+          documents: [],
+          services: [],
+          zones: [],
+          events: [],
+          completion: {},
+        };
     state.lastAdminReview = payload;
     state.log.push(`adminReview#${state.adminReviews}`);
     sendJson(res, 200, payload);
@@ -431,10 +578,45 @@ async function handleSupabase(state, req, res) {
     }
     state.adminActions.push(payload);
     state.log.push("adminOnboardingAction");
+    if (
+      payload.p_action === "approve" &&
+      state.adminApproveReject === "incomplete"
+    ) {
+      sendPostgrestError(
+        res,
+        400,
+        "Application is incomplete and cannot be approved.",
+        "23514",
+      );
+      return;
+    }
     if (payload.p_action === "request_updated_details") {
       state.adminProviderStatus = "NEEDS_CHANGES";
     }
     sendJson(res, 200, null);
+    return;
+  }
+
+  if (p === "/rest/v1/rpc/admin_review_provider_document") {
+    if (state.adminDocumentReviewFail === "reason_required") {
+      sendPostgrestError(res, 400, "A reason is required to reject a document.", "23514");
+      return;
+    }
+    if (state.adminDocumentReviewFail === "documents_not_approved") {
+      sendPostgrestError(
+        res,
+        400,
+        "Required identity documents must be approved before provider approval.",
+        "23514",
+      );
+      return;
+    }
+    sendJson(res, 200, null);
+    return;
+  }
+
+  if (p === "/rest/v1/rpc/provider_marketplace_eligibility") {
+    sendJson(res, 200, []);
     return;
   }
 
@@ -494,7 +676,7 @@ async function handleSupabase(state, req, res) {
       else sendJson(res, 200, []);
       return;
     }
-    const row = buildProviderRow();
+    const row = usesAdminApprovalHarness(state) ? buildAdminProviderDetail(state) : buildProviderRow();
     if (wantsObject(req))
       sendJson(res, 200, row, { "content-type": "application/vnd.pgrst.object+json" });
     else sendJson(res, 200, [row]);
@@ -751,7 +933,15 @@ async function handleSupabase(state, req, res) {
   }
 
   if (p.startsWith("/rest/v1/availability_rules")) {
-    sendJson(res, 200, [{ start_time: "09:00:00", end_time: "17:00:00" }]);
+    sendJson(res, 200, [
+      {
+        id: "rule-1",
+        provider_id: MOCK_PROVIDER_ID,
+        weekday: 1,
+        start_time: "09:00:00",
+        end_time: "17:00:00",
+      },
+    ]);
     return;
   }
 
@@ -836,6 +1026,18 @@ export function issue68MockPlugin(repoRoot) {
             state.snapshotDelayMs = Number(body.snapshotDelayMs) || 0;
             state.providerDelayMs = Number(body.providerDelayMs) || 0;
             state.zonesDelayMs = Number(body.zonesDelayMs) || 0;
+            state.adminApprovalScenario =
+              typeof body.adminApprovalScenario === "string"
+                ? body.adminApprovalScenario
+                : "legacy";
+            state.adminReviewDelayMs = Number(body.adminReviewDelayMs) || 0;
+            state.adminApproveReject =
+              body.adminApproveReject === "incomplete" ? "incomplete" : null;
+            state.adminDocumentReviewFail =
+              body.adminDocumentReviewFail === "reason_required" ||
+              body.adminDocumentReviewFail === "documents_not_approved"
+                ? body.adminDocumentReviewFail
+                : null;
             sendJson(res, 200, { ok: true });
             return;
           }
@@ -864,6 +1066,7 @@ export function issue68MockPlugin(repoRoot) {
               adminActions: state.adminActions,
               adminReviews: state.adminReviews,
               adminProviderStatus: state.adminProviderStatus,
+              adminApprovalScenario: state.adminApprovalScenario,
               lastAdminReview: state.lastAdminReview,
               saves: state.saves,
               log: state.log,

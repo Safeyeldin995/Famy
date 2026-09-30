@@ -68,6 +68,10 @@ export async function installIssue68Mocks(page, options = {}) {
       providerDelayMs: options.providerDelayMs ?? 0,
       zonesDelayMs: options.zonesDelayMs ?? 0,
       scenario: options.scenario ?? "default",
+      adminApprovalScenario: options.adminApprovalScenario ?? "legacy",
+      adminReviewDelayMs: options.adminReviewDelayMs ?? 0,
+      adminApproveReject: options.adminApproveReject ?? null,
+      adminDocumentReviewFail: options.adminDocumentReviewFail ?? null,
     },
   });
 

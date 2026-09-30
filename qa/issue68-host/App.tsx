@@ -10,6 +10,7 @@ import { ProviderOnboardingFlow } from "@/components/provider/ProviderOnboarding
 import { OnboardingRoute } from "@/routes/pro.onboarding";
 import { BookContent } from "@/routes/book.$providerId";
 import { RequestUpdatedDetailsAction } from "@/components/admin/RequestUpdatedDetailsAction";
+import { AdminProvider } from "@/routes/admin.provider.$id";
 import { LanguageProvider } from "@/lib/i18n/LanguageProvider";
 import { useProviders } from "@/lib/db/queries";
 import { Toaster } from "@/components/ui/sonner";
@@ -112,6 +113,18 @@ const proOnboardingRoute = createRoute({
   },
 });
 
+const adminProviderReviewRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin-provider-review",
+  component: function AdminProviderReviewHarness() {
+    return (
+      <div data-testid="issue68-admin-provider-review">
+        <AdminProvider id={MOCK_PROVIDER_ID} />
+      </div>
+    );
+  },
+});
+
 const adminUpdatedDetailsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/admin-updated-details",
@@ -153,6 +166,7 @@ const routeTree = rootRoute.addChildren([
   proRoute,
   proOnboardingRoute,
   adminUpdatedDetailsRoute,
+  adminProviderReviewRoute,
   bookRoute,
 ]);
 const router = createRouter({ routeTree });
