@@ -12,9 +12,7 @@ import {
 import { useCreateFamilyMember } from "@/lib/db/family-members-queries";
 import { familyMemberErrorMessageKey } from "@/lib/db/familyMemberErrors";
 
-export const Route = createFileRoute("/family-members/new")({ component: NewFamilyMember });
-
-function NewFamilyMember() {
+export function NewFamilyMember() {
   const { t } = useTranslation();
   const nav = useNavigate();
   const createMember = useCreateFamilyMember();
@@ -48,3 +46,5 @@ function NewFamilyMember() {
     </PhoneFrame>
   );
 }
+
+export const Route = createFileRoute("/family-members/new")({ component: NewFamilyMember });

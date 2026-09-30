@@ -18,6 +18,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { ProviderOnboardingFlowPre68 } from "../tests/issue68/fixtures/ProviderOnboardingFlow.pre68";
 import { MOCK_PROVIDER_ID } from "./constants.mjs";
 import { useAdminOnboardingReview, type OnboardingStatus } from "@/lib/provider/onboarding-queries";
+import { FamilyMembers } from "@/routes/family-members";
+import { NewFamilyMember } from "@/routes/family-members.new";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -155,6 +157,30 @@ const adminUpdatedDetailsRoute = createRoute({
   },
 });
 
+const familyMembersNewRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/family-members/new",
+  component: function FamilyMembersNewHarness() {
+    return (
+      <div data-testid="issue68-family-members-new">
+        <NewFamilyMember />
+      </div>
+    );
+  },
+});
+
+const familyMembersRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/family-members",
+  component: function FamilyMembersHarness() {
+    return (
+      <div data-testid="issue68-family-members">
+        <FamilyMembers />
+      </div>
+    );
+  },
+});
+
 const bookRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/book/$providerId",
@@ -181,6 +207,8 @@ const routeTree = rootRoute.addChildren([
   adminUpdatedDetailsRoute,
   adminServicesCatalogRoute,
   adminProviderReviewRoute,
+  familyMembersNewRoute,
+  familyMembersRoute,
   bookRoute,
 ]);
 const router = createRouter({ routeTree });

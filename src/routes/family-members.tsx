@@ -14,9 +14,7 @@ import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
 import { useFamilyMembers, useDeactivateFamilyMember } from "@/lib/db/family-members-queries";
 import { Pencil, Trash2, Plus, Users } from "lucide-react";
 
-export const Route = createFileRoute("/family-members")({ component: FamilyMembers });
-
-function FamilyMembers() {
+export function FamilyMembers() {
   const { t } = useTranslation();
   const nav = useNavigate();
   const membersQ = useFamilyMembers();
@@ -134,3 +132,5 @@ function FamilyMembers() {
     </PhoneFrame>
   );
 }
+
+export const Route = createFileRoute("/family-members")({ component: FamilyMembers });

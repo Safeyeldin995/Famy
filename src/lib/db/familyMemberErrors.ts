@@ -4,10 +4,13 @@ export function familyMemberErrorMessageKey(error: unknown): string {
   if (!e) return "common.somethingWentWrong";
   if (e.code === "23514") {
     const msg = (e.message ?? "").toLowerCase();
+    if (msg.includes("emergency contact phone is required")) {
+      return "familyMembers.emergencyPhoneRequired";
+    }
     if (msg.includes("phone number must be in a valid international format")) {
       return "validation.invalidPhone";
     }
-    if (msg.includes("emergency contact phone")) {
+    if (msg.includes("emergency contact phone number must be")) {
       return "validation.invalidPhone";
     }
     if (msg.includes("custom relationship label")) {
@@ -15,9 +18,6 @@ export function familyMemberErrorMessageKey(error: unknown): string {
     }
     if (msg.includes("date of birth cannot be in the future")) {
       return "familyMembers.dobFuture";
-    }
-    if (msg.includes("emergency contact phone is required")) {
-      return "familyMembers.emergencyPhoneRequired";
     }
   }
   return "common.somethingWentWrong";
