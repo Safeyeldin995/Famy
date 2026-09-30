@@ -1979,8 +1979,9 @@ const en = {
         outsideLaunch: "Outside launch",
         testData: "Test data",
         outsideLaunchNote:
-          "These services are kept for history and future launch. Activating one here does not make its category bookable during closed beta.",
-        testDataNote: "QA fixture rows only. They never appear in launch or outside-launch views.",
+          "These services are kept for history and future launch. Deactivating one here does not make its category bookable during closed beta.",
+        testDataNote:
+          "QA fixture rows only. They never appear in launch or outside-launch views. Active fixtures can be deactivated here; launch activation stays in Launch services.",
         outsideLaunchBadge: "Outside closed beta",
         statusActive: "Active",
         statusInactive: "Inactive",

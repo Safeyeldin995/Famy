@@ -497,6 +497,21 @@ function buildAdminCatalogServices() {
     },
     {
       ...serviceDefaults,
+      id: "svc-clean-off",
+      category_id: cat["home-cleaning"].id,
+      slug: "standard-cleaning-inactive",
+      name_en: "Standard Cleaning (inactive)",
+      name_ar: "تنظيف عادي (غير نشط)",
+      is_active: false,
+      category: {
+        id: cat["home-cleaning"].id,
+        slug: cat["home-cleaning"].slug,
+        name_en: cat["home-cleaning"].name_en,
+        name_ar: cat["home-cleaning"].name_ar,
+      },
+    },
+    {
+      ...serviceDefaults,
       id: "svc-qa",
       category_id: cat["home-cleaning"].id,
       slug: "qa-booking-service-1785235277607",

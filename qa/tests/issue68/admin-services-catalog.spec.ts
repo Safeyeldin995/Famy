@@ -28,6 +28,11 @@ async function expectInViewport(locator: Locator, page: Page) {
   expect(box.y + box.height).toBeLessThanOrEqual(viewport.height + 2);
 }
 
+async function confirmDeactivate(page: Page, confirmLabel: string | RegExp) {
+  const dialog = page.locator(".rounded-xl.border.border-coral\\/40").last();
+  await dialog.getByRole("button", { name: confirmLabel }).click();
+}
+
 test.describe("admin services catalogue views", () => {
   test("default launch view shows babysitting/tutoring only, including inactive launch rows", async ({
     page,
@@ -47,47 +52,120 @@ test.describe("admin services catalogue views", () => {
     await mocks.assertIsolated();
   });
 
-  test("secondary views partition QA and outside-launch rows without writes", async ({ page }) => {
+  test("secondary views partition rows; active fixtures get Deactivate only (no launch Activate)", async ({
+    page,
+  }) => {
     const mocks = await gotoCatalog(page);
     await page.getByRole("tab", { name: "Outside launch" }).click();
     await expect(
       page.getByRole("listitem").filter({ hasText: "Deep Home Cleaning" }),
     ).toBeVisible();
-    await expect(page.getByText("Outside closed beta")).toBeVisible();
-    await expect(page.getByRole("listitem").filter({ hasText: "QA Booking Service" })).toHaveCount(
-      0,
-    );
-    await expect(page.getByRole("listitem").filter({ hasText: "Babysitting" })).toHaveCount(0);
+    await expect(
+      page.getByRole("listitem").filter({ hasText: "Deep Home Cleaning" }).getByText("Outside closed beta"),
+    ).toBeVisible();
+    await expect(
+      page
+        .getByRole("listitem")
+        .filter({ hasText: "Deep Home Cleaning" })
+        .getByRole("button", { name: "Deactivate" }),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Activate for launch" })).toHaveCount(0);
 
     await page.getByRole("tab", { name: "Test data" }).click();
     await expect(
       page.getByRole("listitem").filter({ hasText: "QA Booking Service" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: /activate for launch|deactivate for launch/i }),
-    ).toHaveCount(0);
-    await expect(page.getByRole("listitem").filter({ hasText: "Deep Home Cleaning" })).toHaveCount(
-      0,
-    );
+      page
+        .getByRole("listitem")
+        .filter({ hasText: "QA Booking Service" })
+        .getByRole("button", { name: "Deactivate" }),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: /activate for launch/i })).toHaveCount(0);
 
     expect((await mocks.getCalls()).servicePatches).toEqual([]);
     await mocks.assertIsolated();
   });
 
-  test("activates inactive launch service through existing mutation path", async ({ page }) => {
+  test("deactivates active QA fixture after confirmation (exact service id patch)", async ({
+    page,
+  }) => {
     const mocks = await gotoCatalog(page);
-    const row = page.getByRole("listitem").filter({ hasText: "Tutoring (inactive)" });
-    await row.getByRole("button", { name: "Activate for launch" }).click();
+    await page.getByRole("tab", { name: "Test data" }).click();
+    const row = page.getByRole("listitem").filter({ hasText: "QA Booking Service" });
+    await row.getByRole("button", { name: "Deactivate" }).click();
+    await confirmDeactivate(page, "Deactivate");
+    await expect.poll(async () => (await mocks.getCalls()).servicePatches.length).toBe(1);
+    expect((await mocks.getCalls()).servicePatches[0]).toEqual({
+      id: "svc-qa",
+      patch: { is_active: false },
+    });
+    await expect(row.getByText("Inactive", { exact: true })).toBeVisible();
+    await mocks.assertIsolated();
+  });
+
+  test("deactivates active outside-launch service after confirmation", async ({ page }) => {
+    const mocks = await gotoCatalog(page);
+    await page.getByRole("tab", { name: "Outside launch" }).click();
+    const row = page.getByRole("listitem").filter({ hasText: "Deep Home Cleaning" });
+    await row.getByRole("button", { name: "Deactivate" }).click();
+    await confirmDeactivate(page, "Deactivate");
+    await expect.poll(async () => (await mocks.getCalls()).servicePatches.length).toBe(1);
+    expect((await mocks.getCalls()).servicePatches[0]).toMatchObject({
+      id: "svc-clean",
+      patch: { is_active: false },
+    });
+    await mocks.assertIsolated();
+  });
+
+  test("cancelling deactivation confirmation performs no write", async ({ page }) => {
+    const mocks = await gotoCatalog(page);
+    await page.getByRole("tab", { name: "Test data" }).click();
+    const row = page.getByRole("listitem").filter({ hasText: "QA Booking Service" });
+    await row.getByRole("button", { name: "Deactivate" }).click();
+    await page.getByRole("button", { name: "Cancel" }).click();
+    expect((await mocks.getCalls()).servicePatches).toEqual([]);
+    await expect(row.getByText("Active", { exact: true })).toBeVisible();
+    await mocks.assertIsolated();
+  });
+
+  test("inactive secondary-view rows stay visible without any activation control", async ({
+    page,
+  }) => {
+    const mocks = await gotoCatalog(page);
+    await page.getByRole("tab", { name: "Outside launch" }).click();
+    const row = page.getByRole("listitem").filter({ hasText: "Standard Cleaning (inactive)" });
+    await expect(row).toBeVisible();
+    await expect(row.getByRole("button", { name: "Deactivate" })).toHaveCount(0);
+    await expect(row.getByRole("button", { name: /activate for launch/i })).toHaveCount(0);
+    await expect(row.getByRole("button", { name: "Activate" })).toHaveCount(0);
+    await mocks.assertIsolated();
+  });
+
+  test("launch view still activates inactive services and deactivates active ones", async ({
+    page,
+  }) => {
+    const mocks = await gotoCatalog(page);
+    const inactiveRow = page.getByRole("listitem").filter({ hasText: "Tutoring (inactive)" });
+    await inactiveRow.getByRole("button", { name: "Activate for launch" }).click();
     await expect.poll(async () => (await mocks.getCalls()).servicePatches.length).toBe(1);
     expect((await mocks.getCalls()).servicePatches[0]).toMatchObject({
       id: "svc-tutor",
       patch: { is_active: true },
     });
-    await expect.poll(async () => row.getByText("Active", { exact: true }).isVisible()).toBe(true);
+
+    const activeRow = page.getByRole("listitem").filter({ hasText: "Babysitting" }).first();
+    await activeRow.getByRole("button", { name: "Deactivate for launch" }).click();
+    await confirmDeactivate(page, "Deactivate for launch");
+    await expect.poll(async () => (await mocks.getCalls()).servicePatches.length).toBe(2);
+    expect((await mocks.getCalls()).servicePatches[1]).toMatchObject({
+      id: "svc-sit",
+      patch: { is_active: false },
+    });
     await mocks.assertIsolated();
   });
 
-  test("shows translated error and keeps saved inactive state when toggle fails", async ({
+  test("mutation failure surfaces mock error text and keeps persisted inactive badge", async ({
     page,
   }) => {
     const mocks = await installIssue68Mocks(page, {
@@ -97,6 +175,7 @@ test.describe("admin services catalogue views", () => {
     await page.goto("/admin-services-catalog");
     const row = page.getByRole("listitem").filter({ hasText: "Tutoring (inactive)" });
     await row.getByRole("button", { name: "Activate for launch" }).click();
+    // Harness returns a fixed English PostgREST-style message; not i18n-translated in this mock.
     await expect(page.getByText("Could not update service active status.")).toBeVisible();
     await expect(row.getByText("Inactive", { exact: true })).toBeVisible();
     expect((await mocks.getCalls()).servicePatches).toHaveLength(1);

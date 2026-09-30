@@ -1160,10 +1160,22 @@ export function AdminServices() {
                               : t("admin.services.catalogViews.activateLaunch")}
                         </button>
                       )}
+                      {(catalogView === "outside_launch" || catalogView === "test_data") &&
+                        s.is_active && (
+                          <button
+                            disabled={setActive.isPending}
+                            onClick={() => setConfirmDeactivateId(s.id)}
+                            className="focus-ring min-h-11 rounded-lg border border-coral px-3 py-1.5 text-xs font-bold text-coral disabled:opacity-50"
+                          >
+                            {setActive.isPending
+                              ? t("admin.cancellationReasons.saving")
+                              : t("admin.cancellationReasons.deactivate")}
+                          </button>
+                        )}
                     </div>
                   </div>
                 )}
-                {confirmDeactivateId === s.id && catalogView === "launch" && (
+                {confirmDeactivateId === s.id && (
                   <div className="mt-3 rounded-xl border border-coral/40 bg-coral/5 p-3">
                     <p className="text-xs font-bold text-coral">
                       {t("admin.services.deactivateConfirmTitle", {
@@ -1189,7 +1201,9 @@ export function AdminServices() {
                       >
                         {setActive.isPending
                           ? t("admin.services.deactivating")
-                          : t("admin.services.catalogViews.deactivateLaunch")}
+                          : catalogView === "launch"
+                            ? t("admin.services.catalogViews.deactivateLaunch")
+                            : t("admin.cancellationReasons.deactivate")}
                       </button>
                       <button
                         onClick={() => setConfirmDeactivateId(null)}
