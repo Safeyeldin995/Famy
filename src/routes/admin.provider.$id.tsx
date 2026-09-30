@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { useAdminProvider, useProviderEligibility, useSetProviderVerified, useSetProviderActive, useSetProviderServiceStatus, useDocumentSignedUrl } from "@/lib/db/admin-queries";
 import { useAdminOnboardingAction, useAdminOnboardingReview, useReviewProviderDocument } from "@/lib/provider/onboarding-queries";
@@ -9,21 +8,14 @@ import { RequestUpdatedDetailsAction } from "@/components/admin/RequestUpdatedDe
 import { ProviderApprovalDecisionSummary } from "@/components/admin/ProviderApprovalDecisionSummary";
 import {
   deriveAdminApprovalDecision,
-  translateAdminOnboardingActionError,
+  formatAdminActionErrorMessage,
+  formatAdminAuditEventLine,
   type OnboardingCompletionPayload,
 } from "@/lib/admin/providerApprovalReview";
 import { useProviderAvailability, useProviderVacations, useAddVacation, useDeleteVacation } from "@/lib/db/provider-queries";
 import { ChevronLeft, FileText, ShieldCheck, Trash2, Check, X } from "lucide-react";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
 import { adminPath } from "@/lib/preview/previewPath";
-
-function adminActionErrorMessage(t: TFunction, error: unknown): string {
-  const message = error instanceof Error ? error.message : String(error ?? "");
-  const key = translateAdminOnboardingActionError(message);
-  return String(
-    key ? t(key) : t("admin.provider.approvalReview.serverErrors.fallback"),
-  );
-}
 
 function EligibilitySection({ providerId }: { providerId: string }) {
   const { t } = useTranslation();
@@ -266,7 +258,7 @@ export function AdminProvider({ id }: { id: string }) {
               onClick={() =>
                 onboardingAction.mutate(
                   { providerId: p.id, action: "start_review" },
-                  { onError: (e) => toast.error(adminActionErrorMessage(t, e)) },
+                  { onError: (e) => toast.error(formatAdminActionErrorMessage(t, e)) },
                 )
               }
               className="focus-ring min-h-11 flex-1 rounded-xl bg-brand py-3 text-sm font-bold text-brand-foreground disabled:opacity-50"
@@ -281,7 +273,7 @@ export function AdminProvider({ id }: { id: string }) {
               onClick={() =>
                 onboardingAction.mutate(
                   { providerId: p.id, action: "approve" },
-                  { onError: (e) => toast.error(adminActionErrorMessage(t, e)) },
+                  { onError: (e) => toast.error(formatAdminActionErrorMessage(t, e)) },
                 )
               }
               className="focus-ring min-h-11 flex-1 rounded-xl bg-brand py-3 text-sm font-bold text-brand-foreground disabled:opacity-50"
@@ -359,9 +351,7 @@ export function AdminProvider({ id }: { id: string }) {
                 </summary>
                 <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto text-[11px] text-muted-foreground">
                   {reviewPayload.events.slice(0, 12).map((e, i) => (
-                    <li key={i}>
-                      {e.action} · {e.previous_status} → {e.new_status}
-                    </li>
+                    <li key={i}>{formatAdminAuditEventLine(t, e)}</li>
                   ))}
                 </ul>
               </details>
@@ -397,7 +387,15 @@ export function AdminProvider({ id }: { id: string }) {
                     <div className="flex shrink-0 gap-1">
                       <button
                         disabled={reviewDocument.isPending}
-                        onClick={() => reviewDocument.mutate({ documentId: d.id, status: "approved" }, { onError: (e: any) => toast.error(e?.message ?? t("admin.provider.approveServiceError")) })}
+                        onClick={() =>
+                          reviewDocument.mutate(
+                            { documentId: d.id, status: "approved" },
+                            {
+                              onError: (e) =>
+                                toast.error(formatAdminActionErrorMessage(t, e)),
+                            },
+                          )
+                        }
                         className="focus-ring rounded-lg bg-brand px-2 py-1 text-[10px] font-bold text-brand-foreground"
                       >{t("admin.providers.approve")}</button>
                       <button
@@ -415,7 +413,10 @@ export function AdminProvider({ id }: { id: string }) {
                         disabled={!docRejectReason.trim() || reviewDocument.isPending}
                         onClick={() => reviewDocument.mutate(
                           { documentId: d.id, status: "rejected", reason: docRejectReason.trim() },
-                          { onSuccess: () => setRejectingDocId(null), onError: (e: any) => toast.error(e?.message ?? t("admin.provider.rejectServiceError")) },
+                          {
+                            onSuccess: () => setRejectingDocId(null),
+                            onError: (e) => toast.error(formatAdminActionErrorMessage(t, e)),
+                          },
                         )}
                         className="focus-ring rounded-lg bg-coral px-3 py-1.5 text-[11px] font-bold text-coral-foreground disabled:opacity-50"
                       >{t("admin.providers.confirmReject")}</button>
@@ -440,7 +441,10 @@ export function AdminProvider({ id }: { id: string }) {
                 <div className="flex items-center justify-between">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold">{ps.service?.name_en}</p>
-                    <p className="truncate text-[11px] text-muted-foreground">{ps.service?.category?.name_en} · {ps.status}</p>
+                    <p className="truncate text-[11px] text-muted-foreground">
+                      {ps.service?.category?.name_en} ·{" "}
+                      {String(t(`admin.provider.serviceStatus.${ps.status}`, ps.status))}
+                    </p>
                     {ps.status === "rejected" && ps.rejection_reason && (
                       <p className="mt-0.5 text-[11px] text-coral">{t("admin.provider.reasonPrefix", { reason: ps.rejection_reason })}</p>
                     )}
@@ -561,7 +565,7 @@ export function AdminProvider({ id }: { id: string }) {
                     reasonPublic: changeReasonPublic.trim(),
                     notesInternal: changeNotesInternal.trim() || undefined,
                   },
-                  { onSuccess: () => setShowRequestChanges(false), onError: (e) => toast.error(adminActionErrorMessage(t, e)) },
+                  { onSuccess: () => setShowRequestChanges(false), onError: (e) => toast.error(formatAdminActionErrorMessage(t, e)) },
                 )}
                 className="focus-ring h-11 flex-1 rounded-2xl bg-coral text-sm font-bold text-coral-foreground disabled:opacity-50"
               >{t("common.confirm")}</button>
@@ -591,7 +595,7 @@ export function AdminProvider({ id }: { id: string }) {
                   { id: p.id, verified: false, reason: applicationRejectReason.trim() },
                   {
                     onSuccess: () => setShowRejectApplication(false),
-                    onError: (e) => toast.error(adminActionErrorMessage(t, e)),
+                    onError: (e) => toast.error(formatAdminActionErrorMessage(t, e)),
                   },
                 )}
                 className="focus-ring h-11 flex-1 rounded-2xl bg-coral text-sm font-bold text-coral-foreground disabled:opacity-50"

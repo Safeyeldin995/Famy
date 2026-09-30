@@ -1,9 +1,35 @@
 import { describe, expect, it } from "vitest";
+import i18n from "@/lib/i18n";
 import {
   deriveAdminApprovalDecision,
   documentBlockersFromReview,
+  extractAdminActionErrorText,
+  formatAdminActionErrorMessage,
+  formatAdminAuditEventLine,
+  translateAdminActionError,
   translateAdminOnboardingActionError,
 } from "@/lib/admin/providerApprovalReview";
+
+const POSTGREST_INCOMPLETE_APPROVE_ERROR = {
+  message: "Application is incomplete and cannot be approved.",
+  code: "23514",
+  details: null,
+  hint: null,
+};
+
+const POSTGREST_DOCUMENTS_NOT_APPROVED_ERROR = {
+  message: "Required identity documents must be approved before provider approval.",
+  code: "23514",
+  details: null,
+  hint: null,
+};
+
+const POSTGREST_STALE_APPROVE_STATUS_ERROR = {
+  message: "Only submitted or in-review applications can be approved.",
+  code: "23514",
+  details: null,
+  hint: null,
+};
 
 describe("deriveAdminApprovalDecision", () => {
   it("marks complete applications with approved documents as ready to approve", () => {
@@ -120,19 +146,94 @@ describe("documentBlockersFromReview", () => {
   });
 });
 
-describe("translateAdminOnboardingActionError", () => {
+describe("extractAdminActionErrorText", () => {
+  it("reads message from PostgREST-style error objects", () => {
+    expect(extractAdminActionErrorText(POSTGREST_INCOMPLETE_APPROVE_ERROR)).toBe(
+      "Application is incomplete and cannot be approved.",
+    );
+  });
+
+  it("does not stringify unknown objects into [object Object]", () => {
+    expect(extractAdminActionErrorText({ code: "23514" })).toBeNull();
+    expect(extractAdminActionErrorText({})).toBeNull();
+  });
+});
+
+describe("translateAdminActionError", () => {
   it("maps known server approval failures to translation keys", () => {
     expect(
-      translateAdminOnboardingActionError("Application is incomplete and cannot be approved."),
+      translateAdminActionError("Application is incomplete and cannot be approved."),
     ).toBe("admin.provider.approvalReview.serverErrors.incomplete");
     expect(
-      translateAdminOnboardingActionError(
+      translateAdminActionError(
         "Required identity documents must be approved before provider approval.",
       ),
     ).toBe("admin.provider.approvalReview.serverErrors.documentsNotApproved");
+    expect(translateAdminOnboardingActionError).toBe(translateAdminActionError);
   });
 
   it("returns null for unknown messages so callers can use a safe fallback", () => {
-    expect(translateAdminOnboardingActionError("unexpected internal detail")).toBeNull();
+    expect(translateAdminActionError("unexpected internal detail")).toBeNull();
+  });
+});
+
+describe("formatAdminActionErrorMessage (admin review toast path)", () => {
+  it("translates PostgREST incomplete approval rejection in English", async () => {
+    await i18n.changeLanguage("en");
+    const msg = formatAdminActionErrorMessage(i18n.t.bind(i18n), POSTGREST_INCOMPLETE_APPROVE_ERROR);
+    expect(msg).toBe("Application is incomplete and cannot be approved.");
+    expect(msg).not.toContain("[object Object]");
+  });
+
+  it("translates document-approval PostgREST rejection in Arabic", async () => {
+    await i18n.changeLanguage("ar");
+    const msg = formatAdminActionErrorMessage(
+      i18n.t.bind(i18n),
+      POSTGREST_DOCUMENTS_NOT_APPROVED_ERROR,
+    );
+    expect(msg).toBe("يجب اعتماد مستندات الهوية المطلوبة قبل الموافقة.");
+    await i18n.changeLanguage("en");
+  });
+
+  it("maps stale-state server rejection after displayed eligibility", async () => {
+    await i18n.changeLanguage("en");
+    const msg = formatAdminActionErrorMessage(
+      i18n.t.bind(i18n),
+      POSTGREST_STALE_APPROVE_STATUS_ERROR,
+    );
+    expect(msg).toBe("Only submitted or in-review applications can be approved.");
+  });
+
+  it("uses safe fallback for malformed or unknown errors", async () => {
+    await i18n.changeLanguage("en");
+    expect(formatAdminActionErrorMessage(i18n.t.bind(i18n), { code: "23514" })).toBe(
+      "This action could not be completed. Refresh the page and try again.",
+    );
+    expect(formatAdminActionErrorMessage(i18n.t.bind(i18n), null)).toBe(
+      "This action could not be completed. Refresh the page and try again.",
+    );
+  });
+
+  it("translates document review reject-without-reason server error", async () => {
+    await i18n.changeLanguage("en");
+    const msg = formatAdminActionErrorMessage(i18n.t.bind(i18n), {
+      message: "A reason is required to reject a document.",
+      code: "23514",
+    });
+    expect(msg).toBe("A reason is required to reject a document.");
+  });
+});
+
+describe("formatAdminAuditEventLine", () => {
+  it("renders translated audit action and onboarding statuses", async () => {
+    await i18n.changeLanguage("en");
+    const line = formatAdminAuditEventLine(i18n.t.bind(i18n), {
+      action: "start_review",
+      previous_status: "SUBMITTED",
+      new_status: "UNDER_REVIEW",
+    });
+    expect(line).toContain("Review started");
+    expect(line).toContain("Submitted");
+    expect(line).toContain("Under review");
   });
 });

@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next";
 import type { OnboardingStatus } from "@/lib/provider/onboarding-queries";
 
 export type OnboardingCompletionPayload = {
@@ -63,32 +64,106 @@ export function onboardingCompletionErrorKey(errorCode: string): string {
   return `pro.onboardingWizard.errors.${errorCode}`;
 }
 
-export function translateAdminOnboardingActionError(message: string | undefined | null): string | null {
+const ADMIN_ACTION_ERROR_RULES: Array<{ pattern: RegExp; key: string }> = [
+  {
+    pattern: /Application is incomplete and cannot be approved/i,
+    key: "admin.provider.approvalReview.serverErrors.incomplete",
+  },
+  {
+    pattern: /Required identity documents must be approved/i,
+    key: "admin.provider.approvalReview.serverErrors.documentsNotApproved",
+  },
+  {
+    pattern: /Rejected required documents must be replaced/i,
+    key: "admin.provider.approvalReview.serverErrors.documentsRejected",
+  },
+  {
+    pattern: /Only submitted applications can enter review/i,
+    key: "admin.provider.approvalReview.serverErrors.startReviewInvalid",
+  },
+  {
+    pattern: /Only submitted or in-review applications can be approved/i,
+    key: "admin.provider.approvalReview.serverErrors.approveInvalidStatus",
+  },
+  {
+    pattern: /A reason is required to reject a document/i,
+    key: "admin.provider.approvalReview.serverErrors.documentRejectReasonRequired",
+  },
+  {
+    pattern: /Document not found/i,
+    key: "admin.provider.approvalReview.serverErrors.documentNotFound",
+  },
+  {
+    pattern: /Invalid document review status/i,
+    key: "admin.provider.approvalReview.serverErrors.documentReviewInvalid",
+  },
+  {
+    pattern: /Admin authorization required/i,
+    key: "admin.provider.approvalReview.serverErrors.adminAuthRequired",
+  },
+];
+
+/** Safely read a user-facing message from Error instances or PostgREST-style objects. */
+export function extractAdminActionErrorText(error: unknown): string | null {
+  if (error == null) return null;
+  if (typeof error === "string") {
+    const trimmed = error.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+  if (error instanceof Error) {
+    const trimmed = error.message?.trim();
+    return trimmed && trimmed.length > 0 ? trimmed : null;
+  }
+  if (typeof error === "object") {
+    const record = error as Record<string, unknown>;
+    for (const field of ["message", "error_description", "msg"] as const) {
+      const value = record[field];
+      if (typeof value === "string" && value.trim().length > 0) {
+        return value.trim();
+      }
+    }
+  }
+  return null;
+}
+
+export function translateAdminActionError(message: string | undefined | null): string | null {
   if (!message) return null;
   const normalized = message.trim();
-  const rules: Array<{ pattern: RegExp; key: string }> = [
-    {
-      pattern: /Application is incomplete and cannot be approved/i,
-      key: "admin.provider.approvalReview.serverErrors.incomplete",
-    },
-    {
-      pattern: /Required identity documents must be approved/i,
-      key: "admin.provider.approvalReview.serverErrors.documentsNotApproved",
-    },
-    {
-      pattern: /Rejected required documents must be replaced/i,
-      key: "admin.provider.approvalReview.serverErrors.documentsRejected",
-    },
-    {
-      pattern: /Only submitted applications can enter review/i,
-      key: "admin.provider.approvalReview.serverErrors.startReviewInvalid",
-    },
-    {
-      pattern: /Only submitted or in-review applications can be approved/i,
-      key: "admin.provider.approvalReview.serverErrors.approveInvalidStatus",
-    },
-  ];
-  return rules.find((rule) => rule.pattern.test(normalized))?.key ?? null;
+  return ADMIN_ACTION_ERROR_RULES.find((rule) => rule.pattern.test(normalized))?.key ?? null;
+}
+
+/** @deprecated Use translateAdminActionError */
+export const translateAdminOnboardingActionError = translateAdminActionError;
+
+/** Toast copy for admin onboarding/document actions (matches admin.provider.$id onError). */
+export function formatAdminActionErrorMessage(
+  t: TFunction,
+  error: unknown,
+  fallbackKey = "admin.provider.approvalReview.serverErrors.fallback",
+): string {
+  const text = extractAdminActionErrorText(error);
+  const key = translateAdminActionError(text);
+  return String(key ? t(key) : t(fallbackKey));
+}
+
+export function formatOnboardingStatusLabel(
+  t: TFunction,
+  status: string | null | undefined,
+): string {
+  if (!status) return String(t("admin.provider.approvalReview.statusUnknown"));
+  return String(t(`pro.onboardingWizard.status.${status}`, status));
+}
+
+export function formatAdminAuditEventLine(
+  t: TFunction,
+  event: { action?: string; previous_status?: string; new_status?: string },
+): string {
+  const actionLabel = event.action
+    ? String(t(`admin.provider.approvalReview.auditActions.${event.action}`, event.action))
+    : String(t("admin.provider.approvalReview.statusUnknown"));
+  const from = formatOnboardingStatusLabel(t, event.previous_status);
+  const to = formatOnboardingStatusLabel(t, event.new_status);
+  return `${actionLabel} · ${from} → ${to}`;
 }
 
 function completionBlockersFromPayload(
