@@ -7,6 +7,7 @@ export default defineConfig({
     environment: "node",
     include: [
       "src/**/*.test.ts",
+      "src/**/*.test.tsx",
       "src/**/*.integration.test.ts",
       "qa/__tests__/**/*.test.ts",
       "tools/production-reset/__tests__/**/*.test.ts",
