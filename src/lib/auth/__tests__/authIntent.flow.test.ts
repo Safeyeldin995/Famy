@@ -93,6 +93,21 @@ describe("auth intent cookies", () => {
     expect(readOtpPendingIntent()?.deliveryConfirmed).toBe(true);
   });
 
+  it("clearOtpPendingIntent drops unconfirmed pending login after failed Firebase resend abandon", async () => {
+    const { setOtpPendingIntent, readOtpPendingIntent, clearOtpPendingIntent } =
+      await import("../authIntent.server");
+
+    setOtpPendingIntent({
+      phone: "+201221000633",
+      purpose: "signup",
+      retryAfterSeconds: 30,
+      deliveryConfirmed: false,
+    });
+    expect(readOtpPendingIntent()?.deliveryConfirmed).toBe(false);
+    clearOtpPendingIntent();
+    expect(readOtpPendingIntent()).toBeNull();
+  });
+
   it("expires OTP pending intent after ttl", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-07-22T12:00:00.000Z"));

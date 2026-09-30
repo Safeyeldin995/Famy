@@ -101,6 +101,40 @@ describe("phoneOtpFlow", () => {
     const res = await resendPhoneOtpFlow("+201012345678");
     expect(res).toEqual({ ok: false, error: "firebase_send_failed", flowAbandoned: true });
     expect(mockOtp.abandonOtpFlow).toHaveBeenCalledTimes(1);
+    expect(mockOtp.confirmFirebaseOtpSent).not.toHaveBeenCalled();
+  });
+
+  it("returns success when Firebase resend send and confirm succeed", async () => {
+    mockFirebaseProvider.isClient = true;
+    mockOtp.resendOtp.mockResolvedValue({ ok: true, retryAfter: 45 });
+    const { sendFirebasePhoneOtp } = await import("@/lib/otp/firebaseAuth.browser");
+    vi.mocked(sendFirebasePhoneOtp).mockResolvedValue(undefined);
+    mockOtp.confirmFirebaseOtpSent.mockResolvedValue({ ok: true });
+
+    const { resendPhoneOtpFlow } = await import("../phoneOtpFlow");
+    const res = await resendPhoneOtpFlow("+201012345678", { languageCode: "en" });
+    expect(res).toEqual({ ok: true, retryAfter: 45 });
+    expect(mockOtp.abandonOtpFlow).not.toHaveBeenCalled();
+    expect(mockOtp.confirmFirebaseOtpSent).toHaveBeenCalledTimes(1);
+  });
+
+  it("still verifies after a successful Firebase resend", async () => {
+    mockFirebaseProvider.isClient = true;
+    mockOtp.resendOtp.mockResolvedValue({ ok: true, retryAfter: 30 });
+    const { sendFirebasePhoneOtp, confirmFirebasePhoneOtp } =
+      await import("@/lib/otp/firebaseAuth.browser");
+    vi.mocked(sendFirebasePhoneOtp).mockResolvedValue(undefined);
+    mockOtp.confirmFirebaseOtpSent.mockResolvedValue({ ok: true });
+    vi.mocked(confirmFirebasePhoneOtp).mockResolvedValue("firebase-id-token");
+    mockOtp.verifyFirebaseOtp.mockResolvedValue({ ok: true });
+
+    const { resendPhoneOtpFlow, verifyPhoneOtpCode } = await import("../phoneOtpFlow");
+    const resend = await resendPhoneOtpFlow("+201012345678");
+    expect(resend.ok).toBe(true);
+
+    const verify = await verifyPhoneOtpCode("123456");
+    expect(verify).toEqual({ ok: true });
+    expect(mockOtp.verifyFirebaseOtp).toHaveBeenCalledWith("firebase-id-token");
   });
 
   it("maps rate limit errors to localized wait guidance", async () => {
