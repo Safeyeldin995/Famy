@@ -15,7 +15,7 @@ import {
 } from "@/lib/otp/phoneOtpFlow";
 import { otpService } from "@/lib/otp/OtpService";
 import { useApp } from "@/lib/store";
-import { formatNumber } from "@/lib/utils";
+import { formatOtpExpiryClock, formatOtpSecondsDuration } from "@/lib/auth/otpCountdown";
 
 export const Route = createFileRoute("/otp")({
   beforeLoad: async () => {
@@ -68,12 +68,13 @@ export function OtpScreen({
   const copy = purposeCopy(otpContext.purpose, t);
 
   useEffect(() => {
+    if (previewMode) return;
     const id = window.setInterval(() => {
       setOtpExpiresIn((value) => Math.max(0, value - 1));
       setResendAvailableIn((value) => Math.max(0, value - 1));
     }, 1000);
     return () => window.clearInterval(id);
-  }, []);
+  }, [previewMode]);
 
   useEffect(() => {
     if (otpExpiresIn !== 0) return;
@@ -155,18 +156,39 @@ export function OtpScreen({
     }
     setResending(true);
     setErrorMsg(null);
-    const res = await resendPhoneOtpFlow(profile.phone, { languageCode: i18n.language });
-    setResending(false);
-    if (!res.ok) {
-      const msg = phoneOtpFlowErrorMessage(res.error, t);
-      setErrorMsg(msg);
+    try {
+      const res = await resendPhoneOtpFlow(profile.phone, { languageCode: i18n.language });
+      if (!res.ok) {
+        const msg = phoneOtpFlowErrorMessage(res.error, t, res.retryAfter);
+        toast.error(msg);
+        if (res.flowAbandoned) {
+          if (res.intentCleared === false) {
+            setErrorMsg(msg);
+          }
+          nav({
+            to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login",
+            replace: true,
+          });
+          return;
+        }
+        setErrorMsg(msg);
+        if (res.retryAfter) setResendAvailableIn(res.retryAfter);
+        return;
+      }
+      setResendAvailableIn(res.retryAfter ?? 30);
+      setOtpExpiresIn(5 * 60);
+      toast.success(t("auth.codeSent", "Code sent."));
+    } catch {
+      const msg = phoneOtpFlowErrorMessage("firebase_send_failed", t);
       toast.error(msg);
-      if (res.retryAfter) setResendAvailableIn(res.retryAfter);
-      return;
+      setErrorMsg(msg);
+      nav({
+        to: otpContext.purpose === "reset" ? "/auth/forgot" : "/login",
+        replace: true,
+      });
+    } finally {
+      setResending(false);
     }
-    setResendAvailableIn(res.retryAfter ?? 30);
-    setOtpExpiresIn(5 * 60);
-    toast.success(t("auth.codeSent", "Code sent."));
   };
 
   const changePhone = async () => {
@@ -186,61 +208,64 @@ export function OtpScreen({
         backTo={otpContext.purpose === "reset" ? "/auth/forgot" : "/login"}
       />
 
+      <CustomerFloatingPanel className="mx-5 -mt-8 flex-1">
+        <div dir={i18n.dir()}>
+          <OtpCodeInput
+            value={code}
+            onChange={setCode}
+            onComplete={verify}
+            disabled={loading || otpExpiresIn === 0}
+          />
 
-      <CustomerFloatingPanel className="mx-5 -mt-8 flex-1" >
-      <div dir={i18n.dir()}>
-        <OtpCodeInput
-          value={code}
-          onChange={setCode}
-          onComplete={verify}
-          disabled={loading || otpExpiresIn === 0}
-        />
+          <div className="mt-6 text-center text-sm font-semibold text-muted-foreground">
+            {t("auth.codeExpiresIn", "Code expires in")}{" "}
+            <span className="font-black text-foreground">{formatOtpExpiryClock(otpExpiresIn)}</span>
+          </div>
 
-        <div className="mt-6 text-center text-sm font-semibold text-muted-foreground">
-          {t("auth.codeExpiresIn", "Code expires in")}{" "}
-          <span className="font-black text-foreground" dir="ltr">
-            {formatNumber(Math.floor(otpExpiresIn / 60))}:{String(otpExpiresIn % 60).padStart(2, "0")}
-          </span>
-        </div>
+          <div className="mt-4 text-center text-sm font-semibold text-muted-foreground">
+            {resendAvailableIn > 0 ? (
+              <>
+                {t("auth.resendIn")}{" "}
+                <span className="font-black text-foreground">
+                  {formatOtpSecondsDuration(resendAvailableIn, t)}
+                </span>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={resend}
+                disabled={resending || loading}
+                className="font-black text-brand disabled:opacity-50"
+              >
+                {resending ? t("common.sending", "Sending...") : t("auth.resend")}
+              </button>
+            )}
+          </div>
 
-        <div className="mt-4 text-center text-sm font-semibold text-muted-foreground">
-          {resendAvailableIn > 0 ? (
-            <>
-              {t("auth.resendIn")}{" "}
-              <span className="font-black text-foreground" dir="ltr">{formatNumber(resendAvailableIn)}s</span>
-            </>
-          ) : (
+          <div className="mt-6 text-center">
             <button
               type="button"
-              onClick={resend}
-              disabled={resending || loading}
-              className="font-black text-brand disabled:opacity-50"
+              onClick={changePhone}
+              className="text-sm font-bold text-muted-foreground"
             >
-              {resending ? t("common.sending", "Sending...") : t("auth.resend")}
+              {t("auth.changePhone", "Change phone number")}
             </button>
+          </div>
+
+          {errorMsg && (
+            <p className="mt-6 text-center text-sm font-bold text-destructive px-1">{errorMsg}</p>
           )}
         </div>
 
-        <div className="mt-6 text-center">
-          <button type="button" onClick={changePhone} className="text-sm font-bold text-muted-foreground">
-            {t("auth.changePhone", "Change phone number")}
-          </button>
+        <div className="mt-6">
+          <PrimaryButton
+            onClick={() => verify(code.join(""))}
+            disabled={loading || code.some((digit) => !digit) || otpExpiresIn === 0}
+            className="h-14 w-full shadow-float"
+          >
+            {loading ? t("common.verifying") : t("common.verify")}
+          </PrimaryButton>
         </div>
-
-        {errorMsg && (
-          <p className="mt-6 text-center text-sm font-bold text-destructive px-1">{errorMsg}</p>
-        )}
-      </div>
-
-      <div className="mt-6">
-        <PrimaryButton
-          onClick={() => verify(code.join(""))}
-          disabled={loading || code.some((digit) => !digit) || otpExpiresIn === 0}
-          className="h-14 w-full shadow-float"
-        >
-          {loading ? t("common.verifying") : t("common.verify")}
-        </PrimaryButton>
-      </div>
       </CustomerFloatingPanel>
     </PhoneFrame>
   );
