@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -14,10 +14,9 @@ import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
 import { useFamilyMembers, useDeactivateFamilyMember } from "@/lib/db/family-members-queries";
 import { Pencil, Trash2, Plus, Users } from "lucide-react";
 
-export const Route = createFileRoute("/family-members")({ component: FamilyMembers });
-
-function FamilyMembers() {
+export function FamilyMembers() {
   const { t } = useTranslation();
+  const nav = useNavigate();
   const membersQ = useFamilyMembers();
   const deactivate = useDeactivateFamilyMember();
   const [deactivateId, setDeactivateId] = useState<string | null>(null);
@@ -103,11 +102,9 @@ function FamilyMembers() {
 
       {members.length > 0 && (
         <div className="action-bar safe-bottom px-5 pt-3">
-          <Link to="/family-members/new">
-            <PrimaryButton>
-              <Plus className="h-4 w-4" /> {t("familyMembers.addMember", "Add family member")}
-            </PrimaryButton>
-          </Link>
+          <PrimaryButton onClick={() => nav({ to: "/family-members/new" })}>
+            <Plus className="h-4 w-4" /> {t("familyMembers.addMember", "Add family member")}
+          </PrimaryButton>
         </div>
       )}
 
@@ -135,3 +132,5 @@ function FamilyMembers() {
     </PhoneFrame>
   );
 }
+
+export const Route = createFileRoute("/family-members")({ component: FamilyMembers });

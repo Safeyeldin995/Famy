@@ -49,7 +49,14 @@ function isLocalUrl(url) {
  *   snapshotDelayMs?: number;
  *   zonesDelayMs?: number;
  *   lang?: "en" | "ar";
- *   scenario?: "default" | "returning" | "new-provider" | "saved-data-error" | "admin-services-catalog";
+ *   scenario?:
+ *     | "default"
+ *     | "returning"
+ *     | "new-provider"
+ *     | "saved-data-error"
+ *     | "admin-services-catalog"
+ *     | "family-members-populated"
+ *     | "family-members-empty";
  *   adminCatalogToggleFail?: boolean;
  * }} [options]
  */

@@ -1,18 +1,63 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Loader2 } from "lucide-react";
 import { PrimaryButton } from "@/components/famio/ui";
-import { normalizePhone } from "@/lib/otp/OtpService";
+import { normalizePhoneE164 } from "@/lib/otp/normalizePhone";
 import type { FamilyMemberInput, Relationship } from "@/lib/db/family-members-queries";
 
-const RELATIONSHIPS: Relationship[] = ["spouse", "son", "daughter", "father", "mother", "sibling", "grandparent", "other"];
+const RELATIONSHIPS: Relationship[] = [
+  "spouse",
+  "son",
+  "daughter",
+  "father",
+  "mother",
+  "sibling",
+  "grandparent",
+  "other",
+];
 const GENDERS = ["male", "female", "other"] as const;
 const PHONE_RE = /^\+\d{8,15}$/;
 
-function isValidOptionalPhone(raw: string): boolean {
+export function isValidOptionalPhone(raw: string): boolean {
   const trimmed = raw.trim();
   if (!trimmed) return true;
-  return PHONE_RE.test(normalizePhone(trimmed));
+  return PHONE_RE.test(normalizePhoneE164(trimmed));
+}
+
+export function validateFamilyMemberFormValue(
+  value: FamilyMemberFormValue,
+  today: string,
+): {
+  valid: boolean;
+  dobValid: boolean;
+  relationshipOtherValid: boolean;
+  phoneValid: boolean;
+  emergencyPhoneValid: boolean;
+  emergencyValid: boolean;
+} {
+  const dobValid = !!value.dateOfBirth && value.dateOfBirth <= today;
+  const relationshipOtherValid =
+    value.relationship !== "other" || value.relationshipOther.trim().length > 0;
+  const emergencyValid =
+    !value.emergencyContactName.trim() || value.emergencyContactPhone.trim().length > 0;
+  const phoneValid = isValidOptionalPhone(value.phone);
+  const emergencyPhoneValid = isValidOptionalPhone(value.emergencyContactPhone);
+  const valid =
+    value.fullName.trim().length > 0 &&
+    !!value.relationship &&
+    relationshipOtherValid &&
+    dobValid &&
+    emergencyValid &&
+    phoneValid &&
+    emergencyPhoneValid;
+  return {
+    valid,
+    dobValid,
+    relationshipOtherValid,
+    phoneValid,
+    emergencyPhoneValid,
+    emergencyValid,
+  };
 }
 
 export type FamilyMemberFormValue = {
@@ -52,12 +97,14 @@ export function familyMemberFormValueToInput(v: FamilyMemberFormValue): FamilyMe
     relationship_other: v.relationship === "other" ? v.relationshipOther.trim() : null,
     date_of_birth: v.dateOfBirth,
     gender: v.gender || null,
-    phone: v.phone.trim() ? normalizePhone(v.phone.trim()) : null,
+    phone: v.phone.trim() ? normalizePhoneE164(v.phone.trim()) : null,
     allergies: v.allergies.trim() || null,
     medical_notes: v.medicalNotes.trim() || null,
     access_notes: v.accessNotes.trim() || null,
     emergency_contact_name: v.emergencyContactName.trim() || null,
-    emergency_contact_phone: v.emergencyContactPhone.trim() ? normalizePhone(v.emergencyContactPhone.trim()) : null,
+    emergency_contact_phone: v.emergencyContactPhone.trim()
+      ? normalizePhoneE164(v.emergencyContactPhone.trim())
+      : null,
   };
 }
 
@@ -94,22 +141,17 @@ export function FamilyMemberForm({
   const [touched, setTouched] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
 
-  const set = <K extends keyof FamilyMemberFormValue>(k: K, v: FamilyMemberFormValue[K]) => onChange({ ...value, [k]: v });
+  const set = <K extends keyof FamilyMemberFormValue>(k: K, v: FamilyMemberFormValue[K]) =>
+    onChange({ ...value, [k]: v });
 
-  const dobValid = !!value.dateOfBirth && value.dateOfBirth <= today;
-  const relationshipOtherValid = value.relationship !== "other" || value.relationshipOther.trim().length > 0;
-  const emergencyValid = !value.emergencyContactName.trim() || value.emergencyContactPhone.trim().length > 0;
-  const phoneValid = isValidOptionalPhone(value.phone);
-  const emergencyPhoneValid = isValidOptionalPhone(value.emergencyContactPhone);
-
-  const valid =
-    value.fullName.trim().length > 0 &&
-    !!value.relationship &&
-    relationshipOtherValid &&
-    dobValid &&
-    emergencyValid &&
-    phoneValid &&
-    emergencyPhoneValid;
+  const {
+    valid,
+    phoneValid,
+    emergencyPhoneValid,
+    emergencyValid,
+    dobValid,
+    relationshipOtherValid,
+  } = useMemo(() => validateFamilyMemberFormValue(value, today), [value, today]);
 
   const submit = () => {
     setTouched(true);
@@ -125,7 +167,9 @@ export function FamilyMemberForm({
         onChange={(v) => set("fullName", v)}
         placeholder={t("familyMembers.fullNamePlaceholder", "e.g. Layla Ahmed")}
       />
-      {touched && value.fullName.trim().length === 0 && <ErrorText>{t("validation.required")}</ErrorText>}
+      {touched && value.fullName.trim().length === 0 && (
+        <ErrorText>{t("validation.required")}</ErrorText>
+      )}
 
       <div>
         <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
@@ -138,7 +182,9 @@ export function FamilyMemberForm({
               type="button"
               onClick={() => set("relationship", r)}
               className={`rounded-2xl border py-3 text-[11px] font-bold transition-all ${
-                value.relationship === r ? "border-brand bg-brand/5 text-brand" : "border-border bg-surface text-muted-foreground"
+                value.relationship === r
+                  ? "border-brand bg-brand/5 text-brand"
+                  : "border-border bg-surface text-muted-foreground"
               }`}
             >
               {t(`familyMembers.relationships.${r}`)}
@@ -154,7 +200,9 @@ export function FamilyMemberForm({
               placeholder={t("familyMembers.relationshipOtherPlaceholder", "e.g. Cousin")}
               className="mt-2 h-12 w-full rounded-2xl border border-border bg-surface px-4 text-sm font-medium outline-none focus:border-brand"
             />
-            {touched && !relationshipOtherValid && <ErrorText>{t("validation.required")}</ErrorText>}
+            {touched && !relationshipOtherValid && (
+              <ErrorText>{t("validation.required")}</ErrorText>
+            )}
           </>
         )}
       </div>
@@ -170,12 +218,19 @@ export function FamilyMemberForm({
           onChange={(e) => set("dateOfBirth", e.target.value)}
           className="mt-2 h-14 w-full rounded-2xl border border-border bg-surface px-4 text-[15px] font-medium outline-none focus:border-brand"
         />
-        {touched && !dobValid && <ErrorText>{t("familyMembers.dobFuture", "Date of birth cannot be in the future")}</ErrorText>}
+        {touched && !dobValid && (
+          <ErrorText>
+            {t("familyMembers.dobFuture", "Date of birth cannot be in the future")}
+          </ErrorText>
+        )}
       </div>
 
       <div>
         <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
-          {t("familyMembers.gender", "Gender")} <span className="normal-case text-muted-foreground/70">({t("familyMembers.optional", "optional")})</span>
+          {t("familyMembers.gender", "Gender")}{" "}
+          <span className="normal-case text-muted-foreground/70">
+            ({t("familyMembers.optional", "optional")})
+          </span>
         </label>
         <div className="mt-2 grid grid-cols-3 gap-2">
           {GENDERS.map((g) => (
@@ -184,7 +239,9 @@ export function FamilyMemberForm({
               type="button"
               onClick={() => set("gender", value.gender === g ? "" : g)}
               className={`rounded-2xl border py-3 text-[11px] font-bold transition-all ${
-                value.gender === g ? "border-brand bg-brand/5 text-brand" : "border-border bg-surface text-muted-foreground"
+                value.gender === g
+                  ? "border-brand bg-brand/5 text-brand"
+                  : "border-border bg-surface text-muted-foreground"
               }`}
             >
               {t(`familyMembers.genders.${g}`)}
@@ -213,7 +270,10 @@ export function FamilyMemberForm({
         label={`${t("familyMembers.medicalNotes", "Medical notes")} (${t("familyMembers.optional", "optional")})`}
         value={value.medicalNotes}
         onChange={(v) => set("medicalNotes", v)}
-        placeholder={t("familyMembers.medicalNotesPlaceholder", "Anything the provider should know")}
+        placeholder={t(
+          "familyMembers.medicalNotesPlaceholder",
+          "Anything the provider should know",
+        )}
       />
       <TextArea
         label={`${t("familyMembers.accessNotes", "Access notes")} (${t("familyMembers.optional", "optional")})`}
@@ -224,7 +284,10 @@ export function FamilyMemberForm({
 
       <div className="space-y-3 rounded-2xl bg-surface-2 p-4">
         <div className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-          {t("familyMembers.emergencyContact", "Emergency contact")} <span className="normal-case text-muted-foreground/70">({t("familyMembers.optional", "optional")})</span>
+          {t("familyMembers.emergencyContact", "Emergency contact")}{" "}
+          <span className="normal-case text-muted-foreground/70">
+            ({t("familyMembers.optional", "optional")})
+          </span>
         </div>
         <Field
           label={t("familyMembers.emergencyContactName", "Name")}
@@ -238,11 +301,20 @@ export function FamilyMemberForm({
           onChange={(v) => set("emergencyContactPhone", v)}
           placeholder={t("familyMembers.phonePlaceholder", "01xxxxxxxxx")}
         />
-        {touched && !emergencyValid && <ErrorText>{t("familyMembers.emergencyPhoneRequired", "Emergency contact phone is required when a name is provided")}</ErrorText>}
-        {touched && emergencyValid && !emergencyPhoneValid && <ErrorText>{t("validation.invalidPhone")}</ErrorText>}
+        {touched && !emergencyValid && (
+          <ErrorText>
+            {t(
+              "familyMembers.emergencyPhoneRequired",
+              "Emergency contact phone is required when a name is provided",
+            )}
+          </ErrorText>
+        )}
+        {touched && emergencyValid && !emergencyPhoneValid && (
+          <ErrorText>{t("validation.invalidPhone")}</ErrorText>
+        )}
       </div>
 
-      <PrimaryButton onClick={submit} disabled={submitting}>
+      <PrimaryButton onClick={submit} disabled={submitting} data-testid="family-member-save">
         {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : submitLabel}
       </PrimaryButton>
     </div>
@@ -253,10 +325,22 @@ function ErrorText({ children }: { children: React.ReactNode }) {
   return <p className="mt-1 text-[11px] font-semibold text-brand">{children}</p>;
 }
 
-function Field({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder: string }) {
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
   return (
     <div>
-      <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</label>
+      <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </label>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -267,10 +351,22 @@ function Field({ label, value, onChange, placeholder }: { label: string; value: 
   );
 }
 
-function TextArea({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder: string }) {
+function TextArea({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
   return (
     <div>
-      <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</label>
+      <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </label>
       <textarea
         rows={2}
         value={value}

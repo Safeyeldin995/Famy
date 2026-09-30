@@ -146,6 +146,37 @@ function usesAdminApprovalHarness(state) {
   );
 }
 
+function usesFamilyMembersHarness(state) {
+  return state.scenario === "family-members-populated" || state.scenario === "family-members-empty";
+}
+
+function seedFamilyMembersForScenario(scenario) {
+  if (scenario === "family-members-empty") return [];
+  if (scenario === "family-members-populated") {
+    return [
+      {
+        id: "child-1",
+        customer_id: MOCK_USER_ID,
+        full_name: "Layla",
+        relationship: "daughter",
+        relationship_other: null,
+        date_of_birth: "2024-09-28",
+        gender: null,
+        phone: null,
+        allergies: null,
+        medical_notes: null,
+        access_notes: null,
+        emergency_contact_name: null,
+        emergency_contact_phone: null,
+        is_active: true,
+        created_at: "2026-09-01T00:00:00+00:00",
+        updated_at: "2026-09-01T00:00:00+00:00",
+      },
+    ];
+  }
+  return null;
+}
+
 export function buildAdminProviderDetail(state) {
   const scenario = state.adminApprovalScenario;
   const documents = documentsForApprovalScenario(scenario);
@@ -239,6 +270,9 @@ function createState(repoRoot) {
     servicePatches: [],
     adminCatalogToggleFail: false,
     serviceRequirementQueries: 0,
+    familyMembers: [],
+    familyMemberWrites: [],
+    familyMemberListReads: 0,
   };
 }
 
@@ -268,6 +302,10 @@ function resetCounts(state) {
   state.servicePatches = [];
   state.adminCatalogToggleFail = false;
   state.serviceRequirementQueries = 0;
+  state.familyMemberWrites = [];
+  state.familyMemberListReads = 0;
+  const familySeed = seedFamilyMembersForScenario(state.scenario);
+  state.familyMembers = familySeed ? familySeed.map((row) => ({ ...row })) : [];
 }
 
 export function buildSnapshot(patch = null) {
@@ -1104,6 +1142,51 @@ async function handleSupabase(state, req, res) {
   }
 
   if (p.startsWith("/rest/v1/family_members")) {
+    if (usesFamilyMembersHarness(state)) {
+      if (method === "GET") {
+        state.familyMemberListReads += 1;
+        state.log.push("familyMemberList");
+        let rows = state.familyMembers.filter((row) => row.customer_id === MOCK_USER_ID);
+        if (url.search.includes("is_active=eq.true")) {
+          rows = rows.filter((row) => row.is_active);
+        }
+        sendJson(res, 200, rows);
+        return;
+      }
+      if (method === "POST") {
+        const raw = await readBody(req);
+        let body = {};
+        try {
+          body = JSON.parse(raw.toString("utf8") || "{}");
+        } catch {
+          body = {};
+        }
+        state.familyMemberWrites.push(body);
+        state.log.push("familyMemberInsert");
+        const row = {
+          id: `fm-${state.familyMembers.length + 1}`,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          is_active: true,
+          relationship_other: null,
+          gender: null,
+          phone: null,
+          allergies: null,
+          medical_notes: null,
+          access_notes: null,
+          emergency_contact_name: null,
+          emergency_contact_phone: null,
+          ...body,
+        };
+        state.familyMembers.unshift(row);
+        if (wantsObject(req)) {
+          sendJson(res, 201, row, { "content-type": "application/vnd.pgrst.object+json" });
+        } else {
+          sendJson(res, 201, [row]);
+        }
+        return;
+      }
+    }
     sendJson(res, 200, [
       {
         id: "child-1",
@@ -1208,7 +1291,9 @@ export function issue68MockPlugin(repoRoot) {
               body.scenario === "saved-data-error" ||
               body.scenario === "book-babysitting" ||
               body.scenario === "book-cleaning" ||
-              body.scenario === "admin-services-catalog"
+              body.scenario === "admin-services-catalog" ||
+              body.scenario === "family-members-populated" ||
+              body.scenario === "family-members-empty"
                 ? body.scenario
                 : "default";
             resetCounts(state);
@@ -1267,6 +1352,8 @@ export function issue68MockPlugin(repoRoot) {
               servicePatches: state.servicePatches,
               serviceRequirementQueries: state.serviceRequirementQueries,
               adminCatalogToggleFail: state.adminCatalogToggleFail,
+              familyMemberWrites: state.familyMemberWrites,
+              familyMemberListReads: state.familyMemberListReads,
             });
             return;
           }

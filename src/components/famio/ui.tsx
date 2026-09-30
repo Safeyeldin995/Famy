@@ -39,13 +39,26 @@ export function Avatar({
 }) {
   const q = useAvatarUrl(src);
   if (q.isLoading) return <div className={`animate-pulse bg-surface-2 ${className}`} />;
-  if (!q.data) return <div className={`grid place-items-center bg-surface-2 text-muted-foreground ${className}`}><User className="h-1/2 w-1/2" /></div>;
+  if (!q.data)
+    return (
+      <div className={`grid place-items-center bg-surface-2 text-muted-foreground ${className}`}>
+        <User className="h-1/2 w-1/2" />
+      </div>
+    );
   return <img src={q.data} alt={alt} className={`object-cover ${className}`} />;
 }
 
-export function PhoneFrame({ children, bg = "bg-surface-2" }: { children: ReactNode; bg?: string }) {
+export function PhoneFrame({
+  children,
+  bg = "bg-surface-2",
+}: {
+  children: ReactNode;
+  bg?: string;
+}) {
   return (
-    <div className={`mx-auto flex min-h-dvh w-full min-w-0 max-w-md flex-col overflow-x-hidden ${bg}`}>
+    <div
+      className={`mx-auto flex min-h-dvh w-full min-w-0 max-w-md flex-col overflow-x-hidden ${bg}`}
+    >
       {children}
     </div>
   );
@@ -135,11 +148,11 @@ export function TopBar({
   return (
     <div className={`safe-top sticky top-0 z-30 ${transparent ? "" : "glass-panel"}`}>
       <div className="flex items-center gap-3 px-4 py-3">
-        {back && (
-          <BackButton back={back} />
-        )}
+        {back && <BackButton back={back} />}
         {title && (
-          <h1 className="flex-1 truncate text-xl font-extrabold tracking-tight text-foreground">{title}</h1>
+          <h1 className="flex-1 truncate text-xl font-extrabold tracking-tight text-foreground">
+            {title}
+          </h1>
         )}
         {!title && <div className="flex-1" />}
         {right}
@@ -150,7 +163,8 @@ export function TopBar({
 
 export function BackButton({ back }: { back: { to: string } | (() => void) }) {
   const { t } = useTranslation();
-  const cls = "focus-ring grid h-11 w-11 shrink-0 place-items-center rounded-full border border-border/50 bg-surface text-foreground shadow-xs active:scale-95 transition-transform";
+  const cls =
+    "focus-ring grid h-11 w-11 shrink-0 place-items-center rounded-full border border-border/50 bg-surface text-foreground shadow-xs active:scale-95 transition-transform";
   if (typeof back === "function") {
     return (
       <button onClick={back} className={cls} aria-label={t("common.back")} data-rtl-flip="true">
@@ -167,7 +181,17 @@ export function BackButton({ back }: { back: { to: string } | (() => void) }) {
 
 function ChevronLeft() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <polyline points="15 18 9 12 15 6" />
     </svg>
   );
@@ -181,6 +205,7 @@ export function PrimaryButton({
   variant = "coral",
   className = "",
   "aria-label": ariaLabel,
+  "data-testid": dataTestId,
 }: {
   children: ReactNode;
   onClick?: () => void;
@@ -189,21 +214,23 @@ export function PrimaryButton({
   variant?: "navy" | "coral" | "ghost" | "outline";
   className?: string;
   "aria-label"?: string;
+  "data-testid"?: string;
 }) {
   const styles =
     variant === "navy"
       ? "bg-ink text-ink-foreground shadow-sm hover:shadow-md active:bg-ink/90"
       : variant === "coral"
-      ? "bg-brand text-brand-foreground shadow-[0_10px_26px_-12px_var(--brand)] hover:shadow-[0_14px_32px_-12px_var(--brand)] active:bg-brand/90"
-      : variant === "outline"
-      ? "border-2 border-border/80 bg-surface text-foreground shadow-none hover:bg-surface-2"
-      : "bg-transparent text-foreground hover:bg-surface-2";
+        ? "bg-brand text-brand-foreground shadow-[0_10px_26px_-12px_var(--brand)] hover:shadow-[0_14px_32px_-12px_var(--brand)] active:bg-brand/90"
+        : variant === "outline"
+          ? "border-2 border-border/80 bg-surface text-foreground shadow-none hover:bg-surface-2"
+          : "bg-transparent text-foreground hover:bg-surface-2";
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled}
       aria-label={ariaLabel}
+      data-testid={dataTestId}
       className={`focus-ring tap-scale inline-flex h-14 w-full items-center justify-center gap-2 rounded-full text-[15px] font-extrabold tracking-wide transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 ${styles} ${className}`}
     >
       {children}
@@ -249,7 +276,12 @@ export function Card({
   onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
 }) {
   return (
-    <div className={`rounded-[1.75rem] bg-surface-elevated border border-border/50 shadow-sm ${className}`} onClick={onClick}>{children}</div>
+    <div
+      className={`rounded-[1.75rem] bg-surface-elevated border border-border/50 shadow-sm ${className}`}
+      onClick={onClick}
+    >
+      {children}
+    </div>
   );
 }
 
@@ -292,7 +324,9 @@ export function StatusPill({
     muted: "bg-muted text-muted-foreground",
   } as const;
   return (
-    <span className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1.5 text-[10px] font-black uppercase tracking-widest ${map[tone]}`}>
+    <span
+      className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1.5 text-[10px] font-black uppercase tracking-widest ${map[tone]}`}
+    >
       {children}
     </span>
   );
@@ -311,7 +345,10 @@ export function SegmentedControl<T extends string>({
 }) {
   return (
     <div className={`rounded-full bg-surface-2 p-1.5 ${className}`}>
-      <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+      <div
+        className="grid gap-1.5"
+        style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
+      >
         {options.map((option) => (
           <button
             key={option.value}
@@ -319,7 +356,9 @@ export function SegmentedControl<T extends string>({
             onClick={() => onChange(option.value)}
             aria-pressed={value === option.value}
             className={`focus-ring tap-scale min-h-12 rounded-full px-3 text-[13px] font-black uppercase tracking-wider transition-all sm:text-sm ${
-              value === option.value ? "bg-surface-elevated text-brand shadow-sm" : "text-muted-foreground hover:text-foreground"
+              value === option.value
+                ? "bg-surface-elevated text-brand shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {option.label}
@@ -347,7 +386,9 @@ export function RoleSelectCard({
       onClick={onClick}
       aria-pressed={active}
       className={`focus-ring tap-scale relative flex min-h-[4.5rem] items-center gap-3 rounded-2xl border px-4 py-3.5 text-start transition-all ${
-        active ? "border-brand bg-brand/[0.04] shadow-sm" : "border-border/70 bg-white shadow-xs hover:bg-surface-2"
+        active
+          ? "border-brand bg-brand/[0.04] shadow-sm"
+          : "border-border/70 bg-white shadow-xs hover:bg-surface-2"
       }`}
     >
       {Icon ? (
@@ -359,7 +400,9 @@ export function RoleSelectCard({
           <Icon className="h-5 w-5" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
         </span>
       ) : null}
-      <span className={`min-w-0 flex-1 text-[13px] font-extrabold ${active ? "text-foreground" : "text-foreground/80"}`}>
+      <span
+        className={`min-w-0 flex-1 text-[13px] font-extrabold ${active ? "text-foreground" : "text-foreground/80"}`}
+      >
         {label}
       </span>
       <span
@@ -370,14 +413,24 @@ export function RoleSelectCard({
         }}
       >
         {active ? (
-          <Check className="h-3.5 w-3.5 text-brand-foreground" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
+          <Check
+            className="h-3.5 w-3.5 text-brand-foreground"
+            strokeWidth={ICON_STROKE_BOLD}
+            aria-hidden="true"
+          />
         ) : null}
       </span>
     </button>
   );
 }
 
-export function Badge({ children, tone = "navy" }: { children: ReactNode; tone?: "navy" | "coral" | "mint" | "muted" }) {
+export function Badge({
+  children,
+  tone = "navy",
+}: {
+  children: ReactNode;
+  tone?: "navy" | "coral" | "mint" | "muted";
+}) {
   const map = {
     navy: "bg-navy/10 text-navy",
     coral: "bg-coral/10 text-coral",
@@ -385,7 +438,9 @@ export function Badge({ children, tone = "navy" }: { children: ReactNode; tone?:
     muted: "bg-muted text-muted-foreground",
   } as const;
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${map[tone]}`}>
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${map[tone]}`}
+    >
       {children}
     </span>
   );
@@ -416,7 +471,9 @@ export function TrustChip({
       ? "bg-mint/25 text-foreground"
       : "bg-surface text-foreground border border-border";
   return (
-    <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${cls}`}>
+    <span
+      className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${cls}`}
+    >
       {icon ?? <ShieldCheck className="h-3 w-3 text-success" />}
       {children}
     </span>
@@ -441,7 +498,9 @@ export function EmptyState({
         <Icon className="h-9 w-9" strokeWidth={ICON_STROKE} aria-hidden="true" />
       </div>
       <div className="mt-4 text-lg font-extrabold tracking-tight text-foreground">{title}</div>
-      {body ? <p className="mx-auto mt-1.5 max-w-xs text-sm font-medium text-muted-foreground">{body}</p> : null}
+      {body ? (
+        <p className="mx-auto mt-1.5 max-w-xs text-sm font-medium text-muted-foreground">{body}</p>
+      ) : null}
       {action ? <div className="mt-5 flex justify-center">{action}</div> : null}
     </div>
   );
@@ -462,8 +521,12 @@ export function ErrorState({
       <div className="mx-auto grid h-20 w-20 place-items-center rounded-[1.75rem] bg-brand/10 text-brand">
         <AlertCircle className="h-9 w-9" />
       </div>
-      <div className="mt-5 text-lg font-extrabold tracking-tight">{title ?? t("common.somethingWentWrong")}</div>
-      <p className="mx-auto mt-1 max-w-xs text-xs font-medium text-muted-foreground">{body ?? t("common.tryAgainSoon")}</p>
+      <div className="mt-5 text-lg font-extrabold tracking-tight">
+        {title ?? t("common.somethingWentWrong")}
+      </div>
+      <p className="mx-auto mt-1 max-w-xs text-xs font-medium text-muted-foreground">
+        {body ?? t("common.tryAgainSoon")}
+      </p>
       <div className="mt-5 flex justify-center gap-2">
         {onRetry && (
           <button
@@ -563,14 +626,20 @@ export function ReasonDialog({
           />
         )}
         <div className="mt-4 flex gap-2">
-          <button onClick={onCancel} disabled={pending} className="h-12 flex-1 rounded-full border border-border bg-surface text-sm font-extrabold disabled:opacity-50">
+          <button
+            onClick={onCancel}
+            disabled={pending}
+            className="h-12 flex-1 rounded-full border border-border bg-surface text-sm font-extrabold disabled:opacity-50"
+          >
             {cancelLabel}
           </button>
           <button
             onClick={() => onConfirm(reason.trim())}
             disabled={pending || !canConfirm}
             className={`h-12 flex-1 rounded-full text-sm font-extrabold disabled:opacity-50 ${
-              confirmVariant === "coral" ? "bg-brand text-brand-foreground" : "bg-ink text-ink-foreground"
+              confirmVariant === "coral"
+                ? "bg-brand text-brand-foreground"
+                : "bg-ink text-ink-foreground"
             }`}
           >
             {confirmLabel}
@@ -621,7 +690,8 @@ export function CancelBookingDialog({
   if (!open) return null;
 
   const reasons = (reasonsQ.data ?? []).filter(
-    (r: CancellationReasonRow) => !bookingStatus || r.applicable_statuses.includes(bookingStatus as any),
+    (r: CancellationReasonRow) =>
+      !bookingStatus || r.applicable_statuses.includes(bookingStatus as any),
   );
   const selected = reasons.find((r) => r.id === reasonId);
   const canConfirm = !!selected && (!selected.requires_note || note.trim().length > 0);
@@ -642,9 +712,13 @@ export function CancelBookingDialog({
               onChange={(e) => setReasonId(e.target.value)}
               className="mt-1 h-11 w-full rounded-2xl border border-border bg-surface-2 px-3 text-sm outline-none"
             >
-              <option value="" disabled>{reasonLabel}</option>
+              <option value="" disabled>
+                {reasonLabel}
+              </option>
               {reasons.map((r) => (
-                <option key={r.id} value={r.id}>{isAr ? r.name_ar : r.name_en}</option>
+                <option key={r.id} value={r.id}>
+                  {isAr ? r.name_ar : r.name_en}
+                </option>
               ))}
             </select>
           )}
@@ -661,7 +735,11 @@ export function CancelBookingDialog({
         )}
 
         <div className="mt-4 flex gap-2">
-          <button onClick={onCancel} disabled={pending} className="h-12 flex-1 rounded-full border border-border bg-surface text-sm font-extrabold disabled:opacity-50">
+          <button
+            onClick={onCancel}
+            disabled={pending}
+            className="h-12 flex-1 rounded-full border border-border bg-surface text-sm font-extrabold disabled:opacity-50"
+          >
             {cancelLabel}
           </button>
           <button
@@ -722,7 +800,13 @@ export function CaseDialog({
   cancelLabel: string;
   pending?: boolean;
   onCancel: () => void;
-  onConfirm: (payload: { category?: string; subject?: string; reason: string; description?: string; evidenceFile?: File }) => void;
+  onConfirm: (payload: {
+    category?: string;
+    subject?: string;
+    reason: string;
+    description?: string;
+    evidenceFile?: File;
+  }) => void;
 }) {
   const [category, setCategory] = useState(categoryOptions?.[0]?.value ?? "");
   const [subject, setSubject] = useState("");
@@ -735,13 +819,16 @@ export function CaseDialog({
   const requiresReason = !!reasonLabel;
   const requiresDescription = !!descriptionLabel;
   const canConfirm =
-    (!requiresReason || reason.trim().length > 0)
-    && (!requiresSubject || subject.trim().length > 0)
-    && (!requiresDescription || description.trim().length >= 10);
+    (!requiresReason || reason.trim().length > 0) &&
+    (!requiresSubject || subject.trim().length > 0) &&
+    (!requiresDescription || description.trim().length >= 10);
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-6" onClick={onCancel}>
-      <Card className="max-h-[85vh] w-full max-w-sm overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
+      <Card
+        className="max-h-[85vh] w-full max-w-sm overflow-y-auto p-5"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="text-base font-extrabold">{title}</div>
         {body && <div className="mt-1 text-xs text-muted-foreground">{body}</div>}
 
@@ -754,7 +841,9 @@ export function CaseDialog({
               className="mt-1 h-11 w-full rounded-2xl border border-border bg-surface-2 px-3 text-sm outline-none"
             >
               {categoryOptions.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
               ))}
             </select>
           </label>
@@ -802,7 +891,11 @@ export function CaseDialog({
         )}
 
         <div className="mt-4 flex gap-2">
-          <button onClick={onCancel} disabled={pending} className="h-12 flex-1 rounded-full border border-border bg-surface text-sm font-extrabold disabled:opacity-50">
+          <button
+            onClick={onCancel}
+            disabled={pending}
+            className="h-12 flex-1 rounded-full border border-border bg-surface text-sm font-extrabold disabled:opacity-50"
+          >
             {cancelLabel}
           </button>
           <button
@@ -851,34 +944,50 @@ export function SupportCasesCard({
   if (tickets.length === 0 && !dispute && !noShowReport) return null;
   return (
     <Card className="mt-4 space-y-3 p-4">
-      <div className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">{t("bookingDetail.yourCases")}</div>
+      <div className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
+        {t("bookingDetail.yourCases")}
+      </div>
       {tickets.map((tk) => (
         <div key={tk.id} className="rounded-xl bg-surface-2 p-3 text-xs">
           <div className="flex items-center justify-between gap-2">
             <span className="font-bold">{tk.subject}</span>
-            <Badge tone={caseTone(tk.status)}>{t(`bookingDetail.caseStatus.${tk.status}`, { defaultValue: tk.status })}</Badge>
+            <Badge tone={caseTone(tk.status)}>
+              {t(`bookingDetail.caseStatus.${tk.status}`, { defaultValue: tk.status })}
+            </Badge>
           </div>
-          {tk.resolution_notes && <p className="mt-1 text-muted-foreground">{tk.resolution_notes}</p>}
+          {tk.resolution_notes && (
+            <p className="mt-1 text-muted-foreground">{tk.resolution_notes}</p>
+          )}
         </div>
       ))}
       {dispute && (
         <div className="rounded-xl bg-surface-2 p-3 text-xs">
           <div className="flex items-center justify-between gap-2">
             <span className="font-bold">{t("bookingDetail.disputeCaseTitle")}</span>
-            <Badge tone={caseTone(dispute.status)}>{t(`bookingDetail.caseStatus.${dispute.status}`, { defaultValue: dispute.status })}</Badge>
+            <Badge tone={caseTone(dispute.status)}>
+              {t(`bookingDetail.caseStatus.${dispute.status}`, { defaultValue: dispute.status })}
+            </Badge>
           </div>
           <p className="mt-1 text-muted-foreground">{dispute.reason}</p>
-          {dispute.admin_notes && <p className="mt-1 text-muted-foreground">{dispute.admin_notes}</p>}
+          {dispute.admin_notes && (
+            <p className="mt-1 text-muted-foreground">{dispute.admin_notes}</p>
+          )}
         </div>
       )}
       {noShowReport && (
         <div className="rounded-xl bg-surface-2 p-3 text-xs">
           <div className="flex items-center justify-between gap-2">
             <span className="font-bold">{t("bookingDetail.noShowCaseTitle")}</span>
-            <Badge tone={caseTone(noShowReport.status)}>{t(`bookingDetail.caseStatus.${noShowReport.status}`, { defaultValue: noShowReport.status })}</Badge>
+            <Badge tone={caseTone(noShowReport.status)}>
+              {t(`bookingDetail.caseStatus.${noShowReport.status}`, {
+                defaultValue: noShowReport.status,
+              })}
+            </Badge>
           </div>
           <p className="mt-1 text-muted-foreground">{noShowReport.reason}</p>
-          {noShowReport.admin_notes && <p className="mt-1 text-muted-foreground">{noShowReport.admin_notes}</p>}
+          {noShowReport.admin_notes && (
+            <p className="mt-1 text-muted-foreground">{noShowReport.admin_notes}</p>
+          )}
         </div>
       )}
     </Card>
@@ -911,12 +1020,20 @@ export function BookingTimeline({
                   done ? "bg-brand text-brand-foreground" : "bg-muted text-muted-foreground"
                 } ${active ? "ring-4 ring-brand/20" : ""}`}
               >
-                {done ? <Check className="h-3 w-3" /> : <span className="h-1.5 w-1.5 rounded-full bg-current" />}
+                {done ? (
+                  <Check className="h-3 w-3" />
+                ) : (
+                  <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                )}
               </span>
-              {i < steps.length - 1 && <span className={`mt-1 w-0.5 flex-1 ${done ? "bg-brand" : "bg-border"}`} />}
+              {i < steps.length - 1 && (
+                <span className={`mt-1 w-0.5 flex-1 ${done ? "bg-brand" : "bg-border"}`} />
+              )}
             </div>
             <div className="pb-2 pt-0.5">
-              <div className={`text-sm font-extrabold ${done ? "" : "text-muted-foreground"}`}>{labelFor(step)}</div>
+              <div className={`text-sm font-extrabold ${done ? "" : "text-muted-foreground"}`}>
+                {labelFor(step)}
+              </div>
             </div>
           </li>
         );
@@ -927,7 +1044,10 @@ export function BookingTimeline({
 
 export function ProviderTileSkeleton() {
   return (
-    <div className="w-44 shrink-0 overflow-hidden rounded-3xl bg-surface shadow-soft" aria-hidden="true">
+    <div
+      className="w-44 shrink-0 overflow-hidden rounded-3xl bg-surface shadow-soft"
+      aria-hidden="true"
+    >
       <div className="skeleton h-40 w-full rounded-none" />
       <div className="space-y-2 p-3">
         <div className="skeleton h-3.5 w-3/4" />
