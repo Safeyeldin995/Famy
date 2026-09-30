@@ -142,8 +142,7 @@ function completionForApprovalScenario(scenario) {
 
 function usesAdminApprovalHarness(state) {
   return (
-    typeof state.adminApprovalScenario === "string" &&
-    state.adminApprovalScenario !== "legacy"
+    typeof state.adminApprovalScenario === "string" && state.adminApprovalScenario !== "legacy"
   );
 }
 
@@ -236,6 +235,10 @@ function createState(repoRoot) {
     log: [],
     snapshotPatch: null,
     lastSnapshot: null,
+    adminCatalogServices: null,
+    servicePatches: [],
+    adminCatalogToggleFail: false,
+    serviceRequirementQueries: 0,
   };
 }
 
@@ -261,6 +264,10 @@ function resetCounts(state) {
   state.snapshotPatch = null;
   state.lastSnapshot = null;
   state.providerStarted = state.scenario !== "new-provider";
+  state.adminCatalogServices = null;
+  state.servicePatches = [];
+  state.adminCatalogToggleFail = false;
+  state.serviceRequirementQueries = 0;
 }
 
 export function buildSnapshot(patch = null) {
@@ -395,6 +402,143 @@ function sendNoRowObject(res) {
     },
     { "content-type": "application/vnd.pgrst.object+json; charset=utf-8" },
   );
+}
+
+function buildAdminCatalogCategories() {
+  return [
+    {
+      id: "cat-babysit",
+      slug: "babysitting",
+      name_en: "Babysitting",
+      name_ar: "مجالسة الأطفال",
+      is_active: true,
+      sort_order: 1,
+    },
+    {
+      id: "cat-tutor",
+      slug: "tutoring",
+      name_en: "Tutoring",
+      name_ar: "دروس خصوصية",
+      is_active: true,
+      sort_order: 2,
+    },
+    {
+      id: "cat-clean",
+      slug: "home-cleaning",
+      name_en: "Home Cleaning QA_",
+      name_ar: "تنظيف QA_",
+      is_active: true,
+      sort_order: 3,
+    },
+  ];
+}
+
+function buildAdminCatalogServices() {
+  const categories = buildAdminCatalogCategories();
+  const cat = Object.fromEntries(categories.map((row) => [row.slug, row]));
+  const serviceDefaults = {
+    description_en: null,
+    description_ar: null,
+    base_price: 100,
+    duration_min: 60,
+    pricing_model: "hourly",
+    minimum_price: null,
+    maximum_price: null,
+    maximum_extras_total: null,
+    provider_pricing_allowed: false,
+    created_at: "2026-09-01T00:00:00+00:00",
+    updated_at: "2026-09-01T00:00:00+00:00",
+  };
+  return [
+    {
+      ...serviceDefaults,
+      id: "svc-sit",
+      category_id: cat.babysitting.id,
+      slug: "babysitting",
+      name_en: "Babysitting",
+      name_ar: "مجالسة الأطفال",
+      is_active: true,
+      category: {
+        id: cat.babysitting.id,
+        slug: cat.babysitting.slug,
+        name_en: cat.babysitting.name_en,
+        name_ar: cat.babysitting.name_ar,
+      },
+    },
+    {
+      ...serviceDefaults,
+      id: "svc-tutor",
+      category_id: cat.tutoring.id,
+      slug: "tutoring-hourly",
+      name_en: "Tutoring (inactive)",
+      name_ar: "دروس (غير نشط)",
+      is_active: false,
+      category: {
+        id: cat.tutoring.id,
+        slug: cat.tutoring.slug,
+        name_en: cat.tutoring.name_en,
+        name_ar: cat.tutoring.name_ar,
+      },
+    },
+    {
+      ...serviceDefaults,
+      id: "svc-clean",
+      category_id: cat["home-cleaning"].id,
+      slug: "deep-home-cleaning",
+      name_en: "Deep Home Cleaning",
+      name_ar: "تنظيف عميق",
+      is_active: true,
+      category: {
+        id: cat["home-cleaning"].id,
+        slug: cat["home-cleaning"].slug,
+        name_en: cat["home-cleaning"].name_en,
+        name_ar: cat["home-cleaning"].name_ar,
+      },
+    },
+    {
+      ...serviceDefaults,
+      id: "svc-clean-off",
+      category_id: cat["home-cleaning"].id,
+      slug: "standard-cleaning-inactive",
+      name_en: "Standard Cleaning (inactive)",
+      name_ar: "تنظيف عادي (غير نشط)",
+      is_active: false,
+      category: {
+        id: cat["home-cleaning"].id,
+        slug: cat["home-cleaning"].slug,
+        name_en: cat["home-cleaning"].name_en,
+        name_ar: cat["home-cleaning"].name_ar,
+      },
+    },
+    {
+      ...serviceDefaults,
+      id: "svc-qa",
+      category_id: cat["home-cleaning"].id,
+      slug: "qa-booking-service-1785235277607",
+      name_en: "QA Booking Service",
+      name_ar: "خدمة QA",
+      is_active: true,
+      category: {
+        id: cat["home-cleaning"].id,
+        slug: cat["home-cleaning"].slug,
+        name_en: cat["home-cleaning"].name_en,
+        name_ar: cat["home-cleaning"].name_ar,
+      },
+    },
+  ];
+}
+
+function ensureAdminCatalogServices(state) {
+  if (!state.adminCatalogServices) {
+    state.adminCatalogServices = buildAdminCatalogServices();
+  }
+  return state.adminCatalogServices;
+}
+
+function parsePostgrestEqParam(url, key) {
+  const raw = url.searchParams.get(key);
+  if (!raw?.startsWith("eq.")) return null;
+  return raw.slice(3);
 }
 
 function buildMarketplaceRows() {
@@ -578,16 +722,8 @@ async function handleSupabase(state, req, res) {
     }
     state.adminActions.push(payload);
     state.log.push("adminOnboardingAction");
-    if (
-      payload.p_action === "approve" &&
-      state.adminApproveReject === "incomplete"
-    ) {
-      sendPostgrestError(
-        res,
-        400,
-        "Application is incomplete and cannot be approved.",
-        "23514",
-      );
+    if (payload.p_action === "approve" && state.adminApproveReject === "incomplete") {
+      sendPostgrestError(res, 400, "Application is incomplete and cannot be approved.", "23514");
       return;
     }
     if (payload.p_action === "request_updated_details") {
@@ -676,7 +812,9 @@ async function handleSupabase(state, req, res) {
       else sendJson(res, 200, []);
       return;
     }
-    const row = usesAdminApprovalHarness(state) ? buildAdminProviderDetail(state) : buildProviderRow();
+    const row = usesAdminApprovalHarness(state)
+      ? buildAdminProviderDetail(state)
+      : buildProviderRow();
     if (wantsObject(req))
       sendJson(res, 200, row, { "content-type": "application/vnd.pgrst.object+json" });
     else sendJson(res, 200, [row]);
@@ -691,7 +829,46 @@ async function handleSupabase(state, req, res) {
     return;
   }
 
+  if (p.startsWith("/rest/v1/categories")) {
+    if (state.scenario === "admin-services-catalog") {
+      sendJson(res, 200, buildAdminCatalogCategories());
+      return;
+    }
+  }
+
   if (p.startsWith("/rest/v1/services")) {
+    if (state.scenario === "admin-services-catalog") {
+      const rows = ensureAdminCatalogServices(state);
+      if (method === "PATCH") {
+        const serviceId = parsePostgrestEqParam(url, "id");
+        const raw = await readBody(req);
+        let patch = {};
+        try {
+          patch = JSON.parse(raw.toString("utf8") || "{}");
+        } catch {
+          patch = {};
+        }
+        state.servicePatches.push({ id: serviceId, patch });
+        state.log.push("servicePatch");
+        if (state.adminCatalogToggleFail) {
+          sendPostgrestError(res, 400, "Could not update service active status.", "23514");
+          return;
+        }
+        const row = rows.find((entry) => entry.id === serviceId);
+        if (row && Object.prototype.hasOwnProperty.call(patch, "is_active")) {
+          row.is_active = patch.is_active;
+        }
+        const payload = { is_active: row?.is_active ?? patch.is_active ?? false };
+        if (wantsObject(req)) {
+          sendJson(res, 200, payload, { "content-type": "application/vnd.pgrst.object+json" });
+        } else {
+          sendJson(res, 200, [payload]);
+        }
+        return;
+      }
+      sendJson(res, 200, rows);
+      return;
+    }
     sendJson(res, 200, [
       {
         id: "svc-clean",
@@ -783,6 +960,14 @@ async function handleSupabase(state, req, res) {
   }
 
   if (p.startsWith("/rest/v1/provider_services") || p.startsWith("/rest/v1/zone_providers")) {
+    if (state.scenario === "admin-services-catalog") {
+      if (p.startsWith("/rest/v1/provider_services") && method === "GET") {
+        state.serviceRequirementQueries += 1;
+        state.log.push("providerServicesDetail");
+      }
+      sendJson(res, 200, []);
+      return;
+    }
     if (state.scenario === "book-babysitting" || state.scenario === "book-cleaning") {
       if (p.startsWith("/rest/v1/zone_providers")) {
         sendJson(res, 200, []);
@@ -971,6 +1156,10 @@ async function handleSupabase(state, req, res) {
   }
 
   if (p.startsWith("/rest/v1/service_requirements")) {
+    if (state.scenario === "admin-services-catalog") {
+      state.serviceRequirementQueries += 1;
+      state.log.push("serviceRequirements");
+    }
     sendJson(res, 200, []);
     return;
   }
@@ -1018,11 +1207,13 @@ export function issue68MockPlugin(repoRoot) {
               body.scenario === "new-provider" ||
               body.scenario === "saved-data-error" ||
               body.scenario === "book-babysitting" ||
-              body.scenario === "book-cleaning"
+              body.scenario === "book-cleaning" ||
+              body.scenario === "admin-services-catalog"
                 ? body.scenario
                 : "default";
             resetCounts(state);
             state.bookKind = body.scenario === "book-babysitting" ? "babysitting" : "cleaning";
+            state.adminCatalogToggleFail = body.adminCatalogToggleFail === true;
             state.snapshotDelayMs = Number(body.snapshotDelayMs) || 0;
             state.providerDelayMs = Number(body.providerDelayMs) || 0;
             state.zonesDelayMs = Number(body.zonesDelayMs) || 0;
@@ -1073,6 +1264,9 @@ export function issue68MockPlugin(repoRoot) {
               scenario: state.scenario,
               providerStarted: state.providerStarted,
               lastSnapshot: state.lastSnapshot,
+              servicePatches: state.servicePatches,
+              serviceRequirementQueries: state.serviceRequirementQueries,
+              adminCatalogToggleFail: state.adminCatalogToggleFail,
             });
             return;
           }

@@ -11,6 +11,7 @@ import { OnboardingRoute } from "@/routes/pro.onboarding";
 import { BookContent } from "@/routes/book.$providerId";
 import { RequestUpdatedDetailsAction } from "@/components/admin/RequestUpdatedDetailsAction";
 import { AdminProvider } from "@/routes/admin.provider.$id";
+import { AdminServices } from "@/routes/admin.services";
 import { LanguageProvider } from "@/lib/i18n/LanguageProvider";
 import { useProviders } from "@/lib/db/queries";
 import { Toaster } from "@/components/ui/sonner";
@@ -125,6 +126,18 @@ const adminProviderReviewRoute = createRoute({
   },
 });
 
+const adminServicesCatalogRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin-services-catalog",
+  component: function AdminServicesCatalogHarness() {
+    return (
+      <div data-testid="issue68-admin-services-catalog">
+        <AdminServices />
+      </div>
+    );
+  },
+});
+
 const adminUpdatedDetailsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/admin-updated-details",
@@ -166,6 +179,7 @@ const routeTree = rootRoute.addChildren([
   proRoute,
   proOnboardingRoute,
   adminUpdatedDetailsRoute,
+  adminServicesCatalogRoute,
   adminProviderReviewRoute,
   bookRoute,
 ]);

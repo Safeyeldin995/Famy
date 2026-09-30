@@ -1971,6 +1971,28 @@ const en = {
     services: {
       subtitle:
         "Manage the bookable service catalog. Deactivate instead of deleting where possible.",
+      catalogViews: {
+        subtitle:
+          "Closed beta: manage babysitting and tutoring launch services. Other catalogue rows stay accessible in secondary views.",
+        tablist: "Service catalogue views",
+        launch: "Launch services",
+        outsideLaunch: "Outside launch",
+        testData: "Test data",
+        outsideLaunchNote:
+          "These services are kept for history and future launch. Deactivating one here does not make its category bookable during closed beta.",
+        testDataNote:
+          "QA fixture rows only. They never appear in launch or outside-launch views. Active fixtures can be deactivated here; launch activation stays in Launch services.",
+        outsideLaunchBadge: "Outside closed beta",
+        statusActive: "Active",
+        statusInactive: "Inactive",
+        emptyLaunch: "No babysitting or tutoring services match this filter.",
+        emptyOutsideLaunch: "No out-of-launch services match this filter.",
+        emptyTestData: "No QA fixture services match this filter.",
+        detailsSummary: "Requirements and provider flags",
+        toggleHint: "Changes whether customers can book this launch service.",
+        activateLaunch: "Activate for launch",
+        deactivateLaunch: "Deactivate for launch",
+      },
       newService: "New service",
       categoriesLoading: "Loading categories…",
       newServiceTitle: "New service",
