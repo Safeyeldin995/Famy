@@ -13,6 +13,7 @@ AS $$
   WHERE email = p_auth_email
      OR phone = p_phone
      OR phone = ltrim(p_phone, '+')
+  ORDER BY (email = p_auth_email) DESC
   LIMIT 1;
 $$;
 

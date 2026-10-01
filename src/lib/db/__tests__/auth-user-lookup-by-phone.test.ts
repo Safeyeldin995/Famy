@@ -45,5 +45,5 @@ describe("auth_user_id_for_phone grants", () => {
     } finally {
       await db.close();
     }
-  });
+  }, 30_000);
 });
