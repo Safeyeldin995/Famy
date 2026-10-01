@@ -412,9 +412,11 @@ describe("security write guards (issue #94)", () => {
 
   it("allows provider reply, customer rating/comment, admin suspend/verify, vacation toggle, cash capture, and matching Paymob webhook", async () => {
     db = await readyDb();
+    if (!db) throw new Error("PGlite database was not created");
+    const conn = db;
 
     const reply = await tryAsUser(
-      db,
+      conn,
       IDS.providerUser,
       `UPDATE public.reviews SET provider_reply = 'thank you' WHERE id = $1 RETURNING provider_reply`,
       [REVIEW_ID],
@@ -423,7 +425,7 @@ describe("security write guards (issue #94)", () => {
     expect(reply.rows?.[0]?.provider_reply).toBe("thank you");
 
     const edit = await tryAsUser(
-      db,
+      conn,
       IDS.customer,
       `UPDATE public.reviews SET rating = 4, comment = 'better' WHERE id = $1 RETURNING rating, comment`,
       [REVIEW_ID],
@@ -433,7 +435,7 @@ describe("security write guards (issue #94)", () => {
     expect(edit.rows?.[0]?.comment).toBe("better");
 
     const unsuspend = await tryAsUser(
-      db,
+      conn,
       IDS.adminUser,
       `UPDATE public.profiles SET is_suspended = true WHERE id = $1 RETURNING is_suspended`,
       [IDS.customer],
@@ -441,7 +443,7 @@ describe("security write guards (issue #94)", () => {
     expect(unsuspend.ok, "admin suspend").toBe(true);
 
     const adminUnsuspend = await tryAsUser(
-      db,
+      conn,
       IDS.adminUser,
       `UPDATE public.profiles SET is_suspended = false WHERE id = $1 RETURNING is_suspended`,
       [IDS.customer],
@@ -449,7 +451,7 @@ describe("security write guards (issue #94)", () => {
     expect(adminUnsuspend.ok, "admin unsuspend").toBe(true);
 
     const verify = await tryAsUser(
-      db,
+      conn,
       IDS.adminUser,
       `UPDATE public.providers SET is_verified = true, is_top_pro = true WHERE id = $1 RETURNING is_verified, is_top_pro`,
       [IDS.provider],
@@ -457,27 +459,27 @@ describe("security write guards (issue #94)", () => {
     expect(verify.ok, "admin verify").toBe(true);
 
     const deactivate = await tryAsUser(
-      db,
+      conn,
       IDS.adminUser,
       `UPDATE public.providers SET is_active = false WHERE id = $1 RETURNING is_active`,
       [IDS.provider],
     );
     expect(deactivate.ok, "admin deactivate").toBe(true);
 
-    await db.exec(`UPDATE public.providers SET is_active = true WHERE id = '${IDS.provider}'`);
+    await conn.exec(`UPDATE public.providers SET is_active = true WHERE id = '${IDS.provider}'`);
 
     const vacation = await tryAsUser(
-      db,
+      conn,
       IDS.providerUser,
       `UPDATE public.providers SET vacation_mode = true WHERE id = $1 RETURNING vacation_mode`,
       [IDS.provider],
     );
     expect(vacation.ok, "provider vacation toggle").toBe(true);
 
-    const gucVerify = await asUser(db, IDS.providerUser, async () => {
-      await db.exec("SELECT set_config('app.onboarding_status_transition', '1', true)");
+    const gucVerify = await asUser(conn, IDS.providerUser, async () => {
+      await conn.exec("SELECT set_config('app.onboarding_status_transition', '1', true)");
       return queryRows<{ is_verified: boolean }>(
-        db,
+        conn,
         `UPDATE public.providers SET is_verified = false WHERE id = $1 RETURNING is_verified`,
         [IDS.provider],
       );
@@ -485,7 +487,7 @@ describe("security write guards (issue #94)", () => {
     expect(gucVerify[0]?.is_verified).toBe(false);
 
     const cash = await tryAsUser(
-      db,
+      conn,
       IDS.providerUser,
       `UPDATE public.payments SET status = 'captured' WHERE id = $1 RETURNING status`,
       [CASH_PAYMENT_ID],
@@ -493,14 +495,14 @@ describe("security write guards (issue #94)", () => {
     expect(cash.ok, "cash capture by provider").toBe(true);
 
     const adminInstapay = await tryAsUser(
-      db,
+      conn,
       IDS.adminUser,
       `UPDATE public.payments SET status = 'captured' WHERE id = $1 RETURNING status`,
       [INSTAPAY_PAYMENT_ID],
     );
     expect(adminInstapay.ok, "admin InstaPay capture").toBe(true);
 
-    const webhook = await db.query<{ paymob_apply_transaction_webhook: unknown }>(
+    const webhook = await conn.query<{ paymob_apply_transaction_webhook: unknown }>(
       `SELECT public.paymob_apply_transaction_webhook(
          222::bigint, $1::uuid, true, false, 10000::bigint, '222', '{}'::jsonb, '888'
        ) AS paymob_apply_transaction_webhook`,
@@ -513,7 +515,7 @@ describe("security write guards (issue #94)", () => {
     expect(payload?.ok).toBe(true);
     expect(payload?.status).toBe("captured");
 
-    await db.exec(`
+    await conn.exec(`
       UPDATE public.services
       SET provider_pricing_allowed = true, minimum_price = 50, maximum_price = 150
       WHERE id = '${IDS.cleaningService}';
@@ -522,14 +524,14 @@ describe("security write guards (issue #94)", () => {
       WHERE provider_id = '${IDS.provider}' AND service_id = '${IDS.cleaningService}';
       UPDATE public.providers SET hourly_rate = 100 WHERE id = '${IDS.provider}';
     `);
-    const inRange = await insertBooking(db, {
+    const inRange = await insertBooking(conn, {
       serviceId: IDS.cleaningService,
       familyMemberId: null,
     });
     expect(inRange.ok, "effective hourly_rate within min/max").toBe(true);
 
     const serviceRoleUnsuspend = await tryAsServiceRole(
-      db,
+      conn,
       `UPDATE public.profiles SET is_suspended = true WHERE id = $1 RETURNING is_suspended`,
       [IDS.otherCustomer],
     );
