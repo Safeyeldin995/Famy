@@ -124,9 +124,7 @@ function Bookings() {
               <article
                 key={b.id}
                 className={`overflow-hidden rounded-[1.75rem] border shadow-sm ${
-                  isPast
-                    ? "border-border/40 bg-surface-2"
-                    : "border-border/50 bg-surface-elevated"
+                  isPast ? "border-border/40 bg-surface-2" : "border-border/50 bg-surface-elevated"
                 }`}
               >
                 <Link
@@ -195,7 +193,10 @@ function Bookings() {
                       onClick={() =>
                         nav({
                           to: previewBookPath(b.provider_id),
-                          search: { serviceId: undefined },
+                          search: {
+                            serviceId: b.service_id ?? undefined,
+                            capabilityId: b.teaching_capability_id ?? undefined,
+                          },
                         })
                       }
                     >
