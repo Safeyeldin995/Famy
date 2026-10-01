@@ -4,9 +4,13 @@
  * (anon+authenticated) / settings_admin_write (admin only) already exist
  * and are reused as-is.
  */
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { commissionPercentEqual, parseCommissionPercent } from '@/lib/billing/commissionPercent';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  parseBookingExpirySettings,
+  type BookingExpirySettings,
+} from "@/lib/booking/pending-expiry";
+import { commissionPercentEqual, parseCommissionPercent } from "@/lib/billing/commissionPercent";
 
 export type BillingSettings = {
   vat_percent: number;
@@ -31,12 +35,12 @@ function readCommissionPercent(value: Partial<BillingSettings> | null | undefine
 
 export function useBillingSettings() {
   return useQuery({
-    queryKey: ['settings', 'billing'],
+    queryKey: ["settings", "billing"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('settings')
-        .select('value')
-        .eq('key', 'billing')
+        .from("settings")
+        .select("value")
+        .eq("key", "billing")
         .maybeSingle();
       if (error) throw error;
       const value = data?.value as Partial<BillingSettings> | null;
@@ -55,7 +59,7 @@ export function useUpdateBillingSettings() {
     mutationFn: async (value: BillingSettings) => {
       const parsedCommission = parseCommissionPercent(value.commission_percent);
       if (!parsedCommission.ok) {
-        throw new Error('Commission percent is invalid.');
+        throw new Error("Commission percent is invalid.");
       }
       const payload: BillingSettings = {
         vat_percent: value.vat_percent,
@@ -63,9 +67,9 @@ export function useUpdateBillingSettings() {
         commission_percent: parsedCommission.value,
       };
       const { data, error } = await supabase
-        .from('settings')
-        .upsert({ key: 'billing', value: payload }, { onConflict: 'key' })
-        .select('value')
+        .from("settings")
+        .upsert({ key: "billing", value: payload }, { onConflict: "key" })
+        .select("value")
         .single();
       if (error) throw error;
       const stored = data.value as BillingSettings;
@@ -74,31 +78,33 @@ export function useUpdateBillingSettings() {
         Number(stored.platform_fee) !== payload.platform_fee ||
         !commissionPercentEqual(readCommissionPercent(stored), payload.commission_percent)
       ) {
-        throw new Error('Billing settings did not persist.');
+        throw new Error("Billing settings did not persist.");
       }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'billing'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["settings", "billing"] }),
   });
 }
 
 export function useServiceAreasSettings() {
   return useQuery({
-    queryKey: ['settings', 'service_areas'],
+    queryKey: ["settings", "service_areas"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('settings')
-        .select('value')
-        .eq('key', 'service_areas')
+        .from("settings")
+        .select("value")
+        .eq("key", "service_areas")
         .maybeSingle();
       if (error) throw error;
       const value = data?.value as { areas?: { name: string; enabled: boolean }[] } | null;
       // Fallback matches the two hardcoded constants already duplicated in
       // setup.tsx and pro.onboarding.tsx, so behavior is unchanged until an
       // admin explicitly edits this setting.
-      return value?.areas ?? [
-        { name: 'Sheikh Zayed', enabled: true },
-        { name: '6th of October', enabled: true },
-      ];
+      return (
+        value?.areas ?? [
+          { name: "Sheikh Zayed", enabled: true },
+          { name: "6th of October", enabled: true },
+        ]
+      );
     },
   });
 }
@@ -108,32 +114,33 @@ export function useUpdateServiceAreasSettings() {
   return useMutation({
     mutationFn: async (areas: { name: string; enabled: boolean }[]) => {
       const { data, error } = await supabase
-        .from('settings')
-        .upsert({ key: 'service_areas', value: { areas } }, { onConflict: 'key' })
-        .select('value')
+        .from("settings")
+        .upsert({ key: "service_areas", value: { areas } }, { onConflict: "key" })
+        .select("value")
         .single();
       if (error) throw error;
       const stored = (data.value as { areas?: { name: string; enabled: boolean }[] }).areas ?? [];
-      if (JSON.stringify(stored) !== JSON.stringify(areas)) throw new Error('Service area settings did not persist.');
+      if (JSON.stringify(stored) !== JSON.stringify(areas))
+        throw new Error("Service area settings did not persist.");
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'service_areas'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["settings", "service_areas"] }),
   });
 }
 
-export type PlatformContentKey = 'terms' | 'privacy' | 'about' | 'contact';
+export type PlatformContentKey = "terms" | "privacy" | "about" | "contact";
 
 export function usePlatformContent(key: PlatformContentKey) {
   return useQuery({
-    queryKey: ['settings', 'content', key],
+    queryKey: ["settings", "content", key],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('settings')
-        .select('value')
-        .eq('key', `content_${key}`)
+        .from("settings")
+        .select("value")
+        .eq("key", `content_${key}`)
         .maybeSingle();
       if (error) throw error;
       const value = data?.value as { body_en?: string; body_ar?: string } | null;
-      return { body_en: value?.body_en ?? '', body_ar: value?.body_ar ?? '' };
+      return { body_en: value?.body_en ?? "", body_ar: value?.body_ar ?? "" };
     },
   });
 }
@@ -141,16 +148,62 @@ export function usePlatformContent(key: PlatformContentKey) {
 export function useUpdatePlatformContent() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ key, body_en, body_ar }: { key: PlatformContentKey; body_en: string; body_ar: string }) => {
+    mutationFn: async ({
+      key,
+      body_en,
+      body_ar,
+    }: {
+      key: PlatformContentKey;
+      body_en: string;
+      body_ar: string;
+    }) => {
       const { data, error } = await supabase
-        .from('settings')
-        .upsert({ key: `content_${key}`, value: { body_en, body_ar } }, { onConflict: 'key' })
-        .select('value')
+        .from("settings")
+        .upsert({ key: `content_${key}`, value: { body_en, body_ar } }, { onConflict: "key" })
+        .select("value")
         .single();
       if (error) throw error;
       const stored = data.value as { body_en?: string; body_ar?: string };
-      if (stored.body_en !== body_en || stored.body_ar !== body_ar) throw new Error('Platform content did not persist.');
+      if (stored.body_en !== body_en || stored.body_ar !== body_ar)
+        throw new Error("Platform content did not persist.");
     },
-    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['settings', 'content', vars.key] }),
+    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ["settings", "content", vars.key] }),
+  });
+}
+
+export function useBookingExpirySettings() {
+  return useQuery({
+    queryKey: ["settings", "booking_expiry"],
+    queryFn: async (): Promise<BookingExpirySettings> => {
+      const { data, error } = await supabase
+        .from("settings")
+        .select("value")
+        .eq("key", "booking_expiry")
+        .maybeSingle();
+      if (error) throw error;
+      return parseBookingExpirySettings(data?.value);
+    },
+  });
+}
+
+export function useUpdateBookingExpirySettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (value: BookingExpirySettings) => {
+      const { data, error } = await supabase
+        .from("settings")
+        .upsert({ key: "booking_expiry", value }, { onConflict: "key" })
+        .select("value")
+        .single();
+      if (error) throw error;
+      const stored = parseBookingExpirySettings(data.value);
+      if (
+        stored.pending_ttl_hours !== value.pending_ttl_hours ||
+        stored.min_hours_before_start !== value.min_hours_before_start
+      ) {
+        throw new Error("Booking expiry settings did not persist.");
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["settings", "booking_expiry"] }),
   });
 }

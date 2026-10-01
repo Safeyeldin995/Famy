@@ -5,8 +5,10 @@ import { ProviderShell } from "@/components/famio/ProviderShell";
 import { ProviderPageHero } from "@/components/famio/ProviderPageHero";
 import { SegmentedControl, EmptyState, Avatar, StatusPill } from "@/components/famio/ui";
 import { QueryError } from "@/components/famio/QueryError";
+import { RespondWithinHint } from "@/components/famio/PendingExpiry";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { useMyProvider, useProviderBookings } from "@/lib/db/provider-queries";
+import { useBookingExpirySettings } from "@/lib/db/settings-queries";
 import { formatEGP, BOOKING_ACTIVE_STATUSES } from "@/lib/utils";
 import { Calendar, Clock, Loader2 } from "lucide-react";
 import { proPath } from "@/lib/preview/previewPath";
@@ -29,6 +31,7 @@ function ProBookings() {
   const p = useMyProvider();
   const provider = p.data as any;
   const q = useProviderBookings(provider?.id);
+  const expiryQ = useBookingExpirySettings();
   const [tab, setTab] = useState<Tab>("requests");
 
   const lists = useMemo(() => {
@@ -113,10 +116,19 @@ function ProBookings() {
                       <span>•</span>
                       <span>{start.toLocaleDateString(dateLoc, { weekday: "short", day: "numeric", month: "short" })}</span>
                     </div>
-                    <div className="mt-3 flex items-center gap-3 text-[11px] font-bold text-muted-foreground">
+                    <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] font-bold text-muted-foreground">
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-2 py-1"><Calendar className="h-3 w-3" />{start.toLocaleDateString(dateLoc, { month: "short", day: "numeric" })}</span>
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-2 py-1"><Clock className="h-3 w-3" />{start.toLocaleTimeString(dateLoc, { hour: "numeric", minute: "2-digit" })} · {hours}h</span>
                     </div>
+                    {tab === "requests" ? (
+                      <div className="mt-2">
+                        <RespondWithinHint
+                          createdAt={b.created_at}
+                          startAt={b.start_at}
+                          settings={expiryQ.data}
+                        />
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </Link>

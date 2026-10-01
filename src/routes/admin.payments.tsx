@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useAdminPayments } from "@/lib/db/admin-queries";
 import { getSignedProofUrl } from "@/lib/db/payment-queries";
 import { formatEGP } from "@/lib/utils";
+import { isExpiredCapturedPayment } from "@/lib/booking/pending-expiry";
 import { Search, ExternalLink, Eye } from "lucide-react";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
 import { adminPath } from "@/lib/preview/previewPath";
@@ -150,6 +151,11 @@ export function AdminPayments({ search }: { search: { status?: string; statuses?
                   <td className="px-4 py-3 font-semibold">{formatEGP(Number(p.amount ?? 0))}</td>
                   <td className="px-4 py-3">
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${statusTone(p.status)}`}>{p.status}</span>
+                    {isExpiredCapturedPayment(p) ? (
+                      <span className="ms-2 rounded-full bg-coral/10 px-2 py-0.5 text-[10px] font-bold uppercase text-coral">
+                        {t("admin.payments.expiredCaptured")}
+                      </span>
+                    ) : null}
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">{new Date(p.created_at).toLocaleString()}</td>
                   <td className="px-4 py-3">

@@ -5,6 +5,7 @@ import {
   useBillingSettings, useUpdateBillingSettings,
   useServiceAreasSettings, useUpdateServiceAreasSettings,
   usePlatformContent, useUpdatePlatformContent, type PlatformContentKey,
+  useBookingExpirySettings, useUpdateBookingExpirySettings,
 } from "@/lib/db/settings-queries";
 import { parseCommissionPercent } from "@/lib/billing/commissionPercent";
 import {
@@ -148,6 +149,65 @@ function BillingSection() {
             },
           );
         }}
+      />
+    </SectionCard>
+  );
+}
+
+function BookingExpirySection() {
+  const { t } = useTranslation();
+  const q = useBookingExpirySettings();
+  const update = useUpdateBookingExpirySettings();
+  const [ttl, setTtl] = useState("");
+  const [minBefore, setMinBefore] = useState("");
+  const saved = useSavedFlash(update.isPending, update.isSuccess);
+  const initialized = useState(() => ({ done: false }))[0];
+  useEffect(() => {
+    if (q.data && !initialized.done) {
+      initialized.done = true;
+      setTtl(String(q.data.pending_ttl_hours));
+      setMinBefore(String(q.data.min_hours_before_start));
+    }
+  }, [q.data, initialized]);
+
+  if (q.isLoading) {
+    return (
+      <SectionCard title={t("admin.settings.bookingExpiryTitle")} subtitle={t("admin.settings.bookingExpirySubtitle")}>
+        <div className="h-16 animate-pulse rounded-xl bg-muted" />
+      </SectionCard>
+    );
+  }
+  if (q.isError) {
+    return (
+      <SectionCard title={t("admin.settings.bookingExpiryTitle")} subtitle={t("admin.settings.bookingExpirySubtitle")}>
+        <AdminQueryError compact message={t("admin.settings.bookingExpiryLoadError")} error={q.error} onRetry={() => q.refetch()} />
+      </SectionCard>
+    );
+  }
+
+  return (
+    <SectionCard title={t("admin.settings.bookingExpiryTitle")} subtitle={t("admin.settings.bookingExpirySubtitle")}>
+      <div className="grid grid-cols-2 gap-3">
+        <label className="block">
+          <span className="text-xs font-semibold text-muted-foreground">{t("admin.settings.pendingTtlHours")}</span>
+          <input value={ttl} onChange={(e) => setTtl(e.target.value)} type="number" min={0} step={1}
+            className="mt-1 h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm" />
+        </label>
+        <label className="block">
+          <span className="text-xs font-semibold text-muted-foreground">{t("admin.settings.minHoursBeforeStart")}</span>
+          <input value={minBefore} onChange={(e) => setMinBefore(e.target.value)} type="number" min={0} step={1}
+            className="mt-1 h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm" />
+        </label>
+      </div>
+      <SaveButton
+        pending={update.isPending}
+        saved={saved}
+        onClick={() => update.mutate({
+          pending_ttl_hours: Math.max(0, Number(ttl) || 0),
+          min_hours_before_start: Math.max(0, Number(minBefore) || 0),
+        }, {
+          onError: (e: any) => toast.error(e?.message ?? t("admin.settings.bookingExpirySaveError")),
+        })}
       />
     </SectionCard>
   );
@@ -402,6 +462,7 @@ function AdminSettings() {
         <p className="text-xs text-muted-foreground">{t("admin.settings.subtitle")}</p>
       </div>
       <BillingSection />
+      <BookingExpirySection />
       <CategoriesSection />
       <ServiceAreasSection />
       <ReminderRulesSection />

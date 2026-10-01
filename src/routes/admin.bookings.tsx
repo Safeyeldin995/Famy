@@ -9,6 +9,7 @@ import { CancelBookingDialog } from "@/components/famio/ui";
 import { PaymentBlock } from "@/components/famio/PaymentBlock";
 import { BookingChatPanel } from "@/components/famio/BookingChatPanel";
 import { formatEGP } from "@/lib/utils";
+import { isExpiredCapturedPayment, isProviderNoResponseCancellation } from "@/lib/booking/pending-expiry";
 import { Search } from "lucide-react";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
 import { adminPath } from "@/lib/preview/previewPath";
@@ -194,6 +195,15 @@ export function AdminBookings({ search }: { search: { status?: string } }) {
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${paymentTone(payment?.status)}`}>
                       {payment ? payment.status : t("admin.bookings.noPayment")}
                     </span>
+                    {isProviderNoResponseCancellation(b) && (b.payments ?? []).some((p: any) => isExpiredCapturedPayment(p)) ? (
+                      <span className="rounded-full bg-coral/10 px-2 py-0.5 text-[10px] font-bold uppercase text-coral">
+                        {t("admin.bookings.expiredCaptured")}
+                      </span>
+                    ) : isProviderNoResponseCancellation(b) ? (
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase">
+                        {t("admin.bookings.expiredNoResponse")}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
 
@@ -222,6 +232,9 @@ export function AdminBookings({ search }: { search: { status?: string } }) {
                   </button>
                 </div>
 
+                {b.status === "cancelled" && isProviderNoResponseCancellation(b) && (
+                  <p className="mt-2 text-xs font-semibold text-muted-foreground">{t("bookingDetail.expiredReason")}</p>
+                )}
                 {b.status === "cancelled" && b.cancellation && <AdminCancellationDetails cancellation={b.cancellation} />}
 
                 {isOpen && (
