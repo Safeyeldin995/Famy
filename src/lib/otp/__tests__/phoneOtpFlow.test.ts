@@ -22,6 +22,12 @@ vi.mock("@/lib/otp/OtpService", () => ({
   normalizePhone: (raw: string) => raw,
 }));
 
+const mockLogClientErrorFn = vi.hoisted(() => vi.fn().mockResolvedValue({ ok: true }));
+
+vi.mock("@/lib/error-log.functions", () => ({
+  logClientErrorFn: mockLogClientErrorFn,
+}));
+
 vi.mock("@/lib/otp/firebaseAuth.browser", () => ({
   sendFirebasePhoneOtp: vi.fn(),
   confirmFirebasePhoneOtp: vi.fn(),
@@ -172,5 +178,57 @@ describe("phoneOtpFlow", () => {
     expect(msg).toContain("محاولات");
     expect(msg).toMatch(/٣٠|30/);
     expect(msg).not.toMatch(/\d+s$/);
+  });
+
+  it.each([
+    ["auth/too-many-requests", "en", "Too many attempts from this device"],
+    ["auth/quota-exceeded", "en", "SMS service is busy"],
+    ["auth/invalid-phone-number", "en", "valid phone number"],
+    ["auth/captcha-check-failed", "en", "Could not verify this device"],
+    ["auth/invalid-app-credential", "ar", "تعذر التحقق من الجهاز"],
+    ["auth/missing-app-credential", "ar", "تعذر التحقق من الجهاز"],
+  ] as const)(
+    "maps Firebase send code %s to a specific message (%s)",
+    async (code, lang, expectedFragment) => {
+      await i18n.changeLanguage(lang);
+      const { phoneOtpFlowErrorMessage } = await import("../phoneOtpFlow");
+      const msg = phoneOtpFlowErrorMessage("firebase_send_failed", i18n.t.bind(i18n), undefined, code);
+      expect(msg).toContain(expectedFragment);
+    },
+  );
+
+  it("falls back to firebaseSendFailed for an unknown Firebase auth code", async () => {
+    await i18n.changeLanguage("en");
+    const { phoneOtpFlowErrorMessage } = await import("../phoneOtpFlow");
+    const msg = phoneOtpFlowErrorMessage(
+      "firebase_send_failed",
+      i18n.t.bind(i18n),
+      undefined,
+      "auth/internal-error",
+    );
+    expect(msg).toBe(i18n.t("auth.firebaseSendFailed"));
+  });
+
+  it("logs Firebase auth code on send failure without logging the phone number", async () => {
+    mockFirebaseProvider.isClient = true;
+    mockOtp.beginFirebaseOtp.mockResolvedValue({ ok: true });
+    const phone = "+201012345678";
+    const { sendFirebasePhoneOtp } = await import("@/lib/otp/firebaseAuth.browser");
+    vi.mocked(sendFirebasePhoneOtp).mockRejectedValue(
+      Object.assign(new Error("quota"), { code: "auth/quota-exceeded" }),
+    );
+
+    const { startPhoneOtpFlow } = await import("../phoneOtpFlow");
+    const res = await startPhoneOtpFlow(phone, "signup", "customer");
+    expect(res).toMatchObject({
+      ok: false,
+      error: "firebase_send_failed",
+      firebaseAuthCode: "auth/quota-exceeded",
+    });
+    expect(mockLogClientErrorFn).toHaveBeenCalledTimes(1);
+    const payload = mockLogClientErrorFn.mock.calls[0]?.[0];
+    expect(payload?.data?.message).toBe("Firebase send failed: auth/quota-exceeded");
+    expect(payload?.data?.contextLabel).toBe("firebase_send_failed");
+    expect(JSON.stringify(payload)).not.toContain(phone);
   });
 });

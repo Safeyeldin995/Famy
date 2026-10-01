@@ -159,6 +159,9 @@ const ar: Translation = {
     rateLimited: "محاولات كثيرة. حاول مرة أخرى خلال {{time}}.",
     durationSeconds: "{{formatted}} ث",
     firebaseSendFailed: "تعذر إرسال رسالة التحقق. حاول مرة أخرى لاحقا.",
+    firebaseSendTooManyRequests: "محاولات كتير من الجهاز ده. استنى شوية وجرب تاني.",
+    firebaseSendQuotaExceeded: "خدمة الرسائل مشغولة حاليا. حاول بعد قليل.",
+    firebaseSendDeviceVerifyFailed: "تعذر التحقق من الجهاز. حدث الصفحة وحاول تاني.",
     firebaseStartFailed: "تعذر بدء التحقق من الهاتف. حاول مرة أخرى.",
     firebaseRecaptchaUnavailable: "التحقق من الهاتف غير متاح حاليا. حدث الصفحة وحاول مرة أخرى.",
     firebaseSessionLost:
