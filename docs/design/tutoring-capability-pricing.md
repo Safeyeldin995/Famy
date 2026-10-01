@@ -2,7 +2,7 @@
 
 Issue #92. Draft migration only — do not apply to QA or Production.
 
-Babysitting pricing is unchanged. Commission (#91) is out of scope.
+Babysitting pricing is unchanged. This migration redefines `tg_validate_booking_service` after #95, so it keeps the commission snapshot. For tutoring, the commission base is `session_price` plus provider extras.
 
 ## Rules
 

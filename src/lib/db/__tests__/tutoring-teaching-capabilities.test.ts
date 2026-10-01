@@ -37,6 +37,9 @@ ALTER TABLE public.providers ADD COLUMN IF NOT EXISTS is_verified boolean NOT NU
 ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS idempotency_key uuid;
 ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS request_fingerprint text;
 ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS currency text;
+ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS price_commission_percent numeric(5,2);
+ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS price_commission_amount numeric(10,2);
+ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS price_provider_net numeric(10,2);
 CREATE UNIQUE INDEX IF NOT EXISTS bookings_customer_idempotency_unique
   ON public.bookings (customer_id, idempotency_key)
   WHERE idempotency_key IS NOT NULL;

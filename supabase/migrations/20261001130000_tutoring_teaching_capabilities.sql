@@ -2,7 +2,10 @@
 -- with a fixed duration and a fixed whole-EGP price.
 --
 -- Draft only. Do not apply to QA or Production.
--- Babysitting pricing is unchanged. Commission snapshot (#91) is not copied here.
+-- Babysitting pricing is unchanged.
+-- This file sorts after 20261001121000, so tg_validate_booking_service is the
+-- #95 commission-snapshot body plus the tutoring price branch only.
+-- For tutoring, commission base = session_price + provider extras.
 --
 -- See docs/design/tutoring-capability-pricing.md.
 
@@ -732,7 +735,7 @@ REVOKE ALL ON FUNCTION public.assert_tutoring_capability(uuid, uuid, uuid, text,
   FROM PUBLIC, anon, authenticated;
 
 -- ---------------------------------------------------------------------------
--- 7. tg_validate_booking_service — current main body + tutoring price branch
+-- 7. tg_validate_booking_service — #95 commission body + tutoring price branch
 -- ---------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION public.tg_validate_booking_service()
@@ -760,6 +763,8 @@ DECLARE
   v_expected_total numeric(10,2);
   v_fm RECORD;
   v_rpc_insert boolean := current_setting('app.create_booking_in_progress', true) = 'on';
+  v_commission_percent numeric(5,2);
+  v_commission_base numeric(10,2);
   v_category_slug text;
   v_tut RECORD;
 BEGIN
@@ -875,15 +880,18 @@ BEGIN
     NEW.teaching_level_name_ar := v_tut.level_name_ar;
     NEW.session_duration_min := v_tut.session_duration_min;
   ELSE
+    -- S6 effective-rate check from 20261001110000 / 20261001121000.
+    -- provider_pricing_allowed gates only an explicit price_override;
+    -- min/max apply to COALESCE(price_override, hourly_rate).
     SELECT hourly_rate INTO v_provider_hourly_rate FROM public.providers WHERE id = NEW.provider_id;
     v_rate := COALESCE(v_ps.price_override, v_provider_hourly_rate);
-    IF v_ps.price_override IS NOT NULL THEN
-      IF NOT v_service.provider_pricing_allowed
-         OR (v_service.minimum_price IS NOT NULL AND v_rate < v_service.minimum_price)
-         OR (v_service.maximum_price IS NOT NULL AND v_rate > v_service.maximum_price)
-      THEN
-        RAISE EXCEPTION 'BOOKING_PROVIDER_INELIGIBLE: Provider price no longer meets pricing rules.' USING ERRCODE = '23514';
-      END IF;
+    IF v_ps.price_override IS NOT NULL AND NOT v_service.provider_pricing_allowed THEN
+      RAISE EXCEPTION 'BOOKING_PROVIDER_INELIGIBLE: Provider price no longer meets pricing rules.' USING ERRCODE = '23514';
+    END IF;
+    IF (v_service.minimum_price IS NOT NULL AND v_rate < v_service.minimum_price)
+       OR (v_service.maximum_price IS NOT NULL AND v_rate > v_service.maximum_price)
+    THEN
+      RAISE EXCEPTION 'BOOKING_PROVIDER_INELIGIBLE: Provider price no longer meets pricing rules.' USING ERRCODE = '23514';
     END IF;
 
     IF v_service.pricing_model = 'hourly' THEN
@@ -1012,6 +1020,24 @@ BEGIN
   NEW.price_vat := v_vat;
   NEW.price_extras_total := v_extras_total;
   NEW.price_travel_fee := v_travel_fee;
+
+  -- Famy commission snapshot (Issue #91), preserved from 20261001121000.
+  -- For tutoring, v_expected_subtotal is the capability session_price.
+  -- Commission base = provider service price: subtotal + provider-fulfilled extras.
+  -- Platform fee, VAT and discount are never part of the provider base.
+  -- Travel fee goes to the provider in full and is not commissioned.
+  -- When settings.billing.commission_percent is null, all three snapshot columns stay NULL.
+  v_commission_percent := (v_billing->>'commission_percent')::numeric;
+  IF v_commission_percent IS NULL THEN
+    NEW.price_commission_percent := NULL;
+    NEW.price_commission_amount := NULL;
+    NEW.price_provider_net := NULL;
+  ELSE
+    v_commission_base := v_expected_subtotal + v_extras_total;
+    NEW.price_commission_percent := v_commission_percent;
+    NEW.price_commission_amount := ROUND(v_commission_base * v_commission_percent / 100.0, 2);
+    NEW.price_provider_net := v_commission_base + v_travel_fee - NEW.price_commission_amount;
+  END IF;
 
   BEGIN
     PERFORM public.check_booking_slot(NEW.provider_id, NEW.start_at, NEW.end_at, NULL);
