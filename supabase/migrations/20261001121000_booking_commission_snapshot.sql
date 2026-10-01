@@ -22,6 +22,9 @@ ALTER TABLE public.bookings
 
 -- Clients cannot write snapshot columns. The BEFORE INSERT trigger (table owner)
 -- computes them. Authenticated INSERT listing these columns is rejected.
+-- Column-level REVOKE UPDATE is defense-in-depth only: table-level UPDATE remains
+-- granted, so the real protection against changing these columns after insert is
+-- tg_validate_booking_transition.
 REVOKE INSERT (price_commission_percent, price_commission_amount, price_provider_net)
   ON public.bookings FROM PUBLIC, anon, authenticated;
 REVOKE UPDATE (price_commission_percent, price_commission_amount, price_provider_net)
@@ -474,5 +477,50 @@ BEGIN
 END;
 $$;
 REVOKE EXECUTE ON FUNCTION public.tg_validate_booking_transition() FROM PUBLIC, anon, authenticated;
+
+-- Reject invalid billing.commission_percent at write time so booking-create
+-- never sees a non-numeric or out-of-range value. Null / missing remains "not set".
+CREATE OR REPLACE FUNCTION public.tg_validate_billing_settings()
+RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
+DECLARE
+  v_raw jsonb;
+  v_percent numeric;
+BEGIN
+  IF NEW.key IS DISTINCT FROM 'billing' THEN
+    RETURN NEW;
+  END IF;
+
+  v_raw := NEW.value->'commission_percent';
+  IF v_raw IS NULL OR v_raw = 'null'::jsonb THEN
+    RETURN NEW;
+  END IF;
+
+  IF jsonb_typeof(v_raw) IS DISTINCT FROM 'number' THEN
+    RAISE EXCEPTION 'BILLING_INVALID_COMMISSION: commission_percent must be null or a number from 0 to 50 with at most 2 decimal places.'
+      USING ERRCODE = '23514';
+  END IF;
+
+  BEGIN
+    v_percent := (NEW.value->>'commission_percent')::numeric;
+  EXCEPTION
+    WHEN OTHERS THEN
+      RAISE EXCEPTION 'BILLING_INVALID_COMMISSION: commission_percent must be null or a number from 0 to 50 with at most 2 decimal places.'
+        USING ERRCODE = '23514';
+  END;
+
+  IF v_percent < 0 OR v_percent > 50 OR v_percent <> round(v_percent, 2) THEN
+    RAISE EXCEPTION 'BILLING_INVALID_COMMISSION: commission_percent must be null or a number from 0 to 50 with at most 2 decimal places.'
+      USING ERRCODE = '23514';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.tg_validate_billing_settings() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS trg_validate_billing_settings ON public.settings;
+CREATE TRIGGER trg_validate_billing_settings
+  BEFORE INSERT OR UPDATE ON public.settings
+  FOR EACH ROW EXECUTE FUNCTION public.tg_validate_billing_settings();
 
 NOTIFY pgrst, 'reload schema';

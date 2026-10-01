@@ -13,7 +13,7 @@ import {
   tryAsUser,
 } from "./babysitting-capabilities-harness";
 
-const COMMISSION_MIGRATION = "20261001120000_booking_commission_snapshot.sql";
+const COMMISSION_MIGRATION = "20261001121000_booking_commission_snapshot.sql";
 /** Fixture rate for tests only — not a product default or policy. */
 const FIXTURE_COMMISSION_PERCENT = 12.5;
 const EXTRA_FEE = 50;
@@ -172,6 +172,7 @@ describe("booking commission snapshot", () => {
 
   it("does not backfill, hard-code a rate, or mutate existing rows", () => {
     const sql = readMigration(COMMISSION_MIGRATION);
+    expect(COMMISSION_MIGRATION).toBe("20261001121000_booking_commission_snapshot.sql");
     expect(sql).not.toMatch(/UPDATE\s+public\.bookings/i);
     expect(sql).not.toMatch(/12\.5/);
     expect(sql).toContain("ADD COLUMN IF NOT EXISTS price_commission_percent");
@@ -180,6 +181,7 @@ describe("booking commission snapshot", () => {
     expect(sql).toContain(
       "NEW.price_provider_net := v_commission_base + v_travel_fee - NEW.price_commission_amount",
     );
+    expect(sql).toContain("tg_validate_billing_settings");
   });
 
   it("leaves existing bookings NULL and snapshots new bookings from the admin rate", async () => {
@@ -326,5 +328,51 @@ describe("booking commission snapshot", () => {
     expect(snap.price_commission_percent).toBeNull();
     expect(snap.price_commission_amount).toBeNull();
     expect(snap.price_provider_net).toBeNull();
+  });
+
+  it("rejects invalid billing commission_percent and accepts null or in-range values", async () => {
+    db = await createDisposableDb();
+    await applySupabaseDefaultPrivileges(db);
+    await prepareTransitionTypes(db);
+    await applyCommissionMigration(db);
+
+    await setCommissionPercent(db, null);
+    await setCommissionPercent(db, 0);
+    await setCommissionPercent(db, FIXTURE_COMMISSION_PERCENT);
+    await setCommissionPercent(db, 50);
+
+    async function trySet(json: string): Promise<{ ok: boolean; error?: string }> {
+      try {
+        await db!.exec(`UPDATE public.settings SET value = '${json}'::jsonb WHERE key = 'billing'`);
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, error: error instanceof Error ? error.message : String(error) };
+      }
+    }
+
+    const cases = [
+      '{"platform_fee": 25, "vat_percent": 14, "commission_percent": 50.01}',
+      '{"platform_fee": 25, "vat_percent": 14, "commission_percent": 12.555}',
+      '{"platform_fee": 25, "vat_percent": 14, "commission_percent": 1000}',
+      '{"platform_fee": 25, "vat_percent": 14, "commission_percent": -0.01}',
+      '{"platform_fee": 25, "vat_percent": 14, "commission_percent": "12.5"}',
+      '{"platform_fee": 25, "vat_percent": 14, "commission_percent": true}',
+    ];
+    for (const json of cases) {
+      const result = await trySet(json);
+      expect(result.ok, json).toBe(false);
+      expect(result.error ?? "", json).toMatch(/BILLING_INVALID_COMMISSION|23514/);
+    }
+
+    await db.exec(`
+      INSERT INTO public.settings (key, value)
+      VALUES ('other', '{"commission_percent": 999}'::jsonb)
+      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+    `);
+    const other = await queryRows<{ value: unknown }>(
+      db,
+      `SELECT value FROM public.settings WHERE key = 'other'`,
+    );
+    expect(other[0]?.value).toEqual({ commission_percent: 999 });
   });
 });
