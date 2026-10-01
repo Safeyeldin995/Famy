@@ -557,10 +557,8 @@ BEGIN
       '/pro/onboarding'
     );
   ELSIF p_status = 'rejected' THEN
-    v_body_en := 'Your teaching capability was not approved.'
-      || CASE WHEN p_review_note IS NOT NULL AND btrim(p_review_note) <> '' THEN ' ' || btrim(p_review_note) ELSE '' END;
-    v_body_ar := 'لم تتم الموافقة على قدرتك التعليمية.'
-      || CASE WHEN p_review_note IS NOT NULL AND btrim(p_review_note) <> '' THEN ' ' || btrim(p_review_note) ELSE '' END;
+    v_body_en := 'Your teaching capability was not approved. Contact support for details.';
+    v_body_ar := 'لم تتم الموافقة على قدرتك التعليمية. تواصل مع الدعم لمعرفة التفاصيل.';
     INSERT INTO public.notifications (
       user_id, type, category, title, body, title_en, title_ar, body_en, body_ar, payload, deep_link
     ) VALUES (
@@ -568,7 +566,7 @@ BEGIN
       'Teaching capability rejected', v_body_en,
       'Teaching capability rejected', 'تم رفض القدرة التعليمية',
       v_body_en, v_body_ar,
-      jsonb_build_object('provider_id', v_provider.id, 'capability_id', p_id, 'review_note', NULLIF(btrim(p_review_note), '')),
+      jsonb_build_object('provider_id', v_provider.id, 'capability_id', p_id),
       '/pro/onboarding'
     );
   END IF;

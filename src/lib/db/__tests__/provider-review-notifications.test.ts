@@ -249,6 +249,51 @@ describe("provider review notifications migration", () => {
     );
   });
 
+  it("does not leak admin teaching review_note into provider notifications", async () => {
+    db = await readyDb();
+    const subjectId = await taxonomyId(db, "teaching_subjects", "english");
+    const curriculumId = await taxonomyId(db, "teaching_curricula", "eg_national_ar");
+    const levelId = await taxonomyId(db, "teaching_levels", "g1");
+    let capId: string | undefined;
+    await asUser(db, IDS.providerUser, async () => {
+      const inserted = await queryRows<{ id: string }>(
+        db!,
+        `SELECT public.provider_upsert_teaching_capability($1, $2, $3, $4, 60, 500, NULL) AS id`,
+        [TUTORING_IDS.languageService, subjectId, curriculumId, levelId],
+      );
+      capId = inserted[0]?.id;
+    });
+    expect(capId).toBeTruthy();
+
+    const secretNote = "SECRET_ADMIN_TEACHING_NOTE";
+    await asUser(db, IDS.adminUser, async () => {
+      await queryRows(db!, `SELECT public.admin_review_teaching_capability($1, 'rejected', $2)`, [
+        capId,
+        secretNote,
+      ]);
+    });
+
+    const rows = await queryRows<{
+      type: string;
+      title: string;
+      body: string;
+      body_en: string;
+      body_ar: string;
+      payload: Record<string, unknown>;
+    }>(
+      db,
+      `SELECT type, title, body, body_en, body_ar, payload FROM public.notifications WHERE user_id = $1 AND type = 'teaching_capability_rejected'`,
+      [IDS.providerUser],
+    );
+    expect(rows).toHaveLength(1);
+    const row = rows[0]!;
+    const serialized = JSON.stringify(row);
+    expect(serialized).not.toContain(secretNote);
+    expect(row.body_en).toContain("Contact support for details");
+    expect(row.body_ar).toContain("تواصل مع الدعم");
+    expect(row.payload?.review_note).toBeUndefined();
+  });
+
   it("allows bio edits after approval but still blocks city and years", async () => {
     db = await readyDb();
     await db.exec(`

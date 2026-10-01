@@ -74,6 +74,26 @@ const STEP_META: Record<OnboardingSection, { icon: typeof UserRound; shortKey: s
   review: { icon: CheckCircle2, shortKey: "pro.onboardingWizard.steps.review" },
 };
 
+function removeOnboardingServiceErrorMessage(
+  message: string | undefined,
+  t: (key: string) => string,
+): string {
+  const m = message ?? "";
+  if (m.includes("not editable in the current status")) {
+    return t("pro.onboardingWizard.removeServiceErrors.notEditable");
+  }
+  if (m.includes("Approved services cannot be removed")) {
+    return t("pro.onboardingWizard.removeServiceErrors.approved");
+  }
+  if (m.includes("Services with bookings cannot be removed")) {
+    return t("pro.onboardingWizard.removeServiceErrors.hasBookings");
+  }
+  if (m.includes("Provider service not found") || m.includes("Provider profile not found")) {
+    return t("pro.onboardingWizard.removeServiceErrors.notFound");
+  }
+  return t("pro.onboardingWizard.removeServiceErrors.generic");
+}
+
 const PREVIEW_DEFAULTS = {
   legalName: "Mona Adel",
   dob: "1990-04-18",
@@ -698,7 +718,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                         p_service_id: s.id,
                       });
                       if (error) {
-                        toast.error(error.message);
+                        toast.error(removeOnboardingServiceErrorMessage(error.message, t));
                         return;
                       }
                       await qc.invalidateQueries({ queryKey: ["provider-saved-selections"] });
