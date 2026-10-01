@@ -12,7 +12,7 @@ Babysitting pricing is unchanged. Commission (#91) is out of scope.
 4. **Price.** Whole EGP only, within the service `minimum_price` / `maximum_price` (launch tutoring services: 300–1500). Re-checked on every booking. No bypass.
 5. **Approval.** Provider proposes; admin approves or rejects. Any change to duration, price, subject, curriculum, or level after approval returns the row to `pending`. Nobody approves their own capability.
 6. **Booking snapshot.** Each booking stores capability id, subject/curriculum/level codes and names, duration, and price. These never change after insert.
-7. **Server eligibility.** `create_booking` / `tg_validate_booking_service` reject with `BOOKING_PROVIDER_INELIGIBLE` (23514) unless the capability exists, belongs to the provider, matches the service, is `approved`, matches the requested subject/curriculum/level, the subject is linked to the service, `end_at − start_at = session_duration_min`, duration is still allowed and within the subject cap, and price is within current service min/max. Applies to new bookings, direct URLs, and Book Again.
+7. **Server eligibility.** `create_booking` / `tg_validate_booking_service` reject with `BOOKING_PROVIDER_INELIGIBLE` (23514) unless the capability exists, belongs to the provider, matches the service, is `approved`, matches the requested subject/curriculum/level, the subject is linked to the service, subject/curriculum/level are still active, `end_at − start_at = session_duration_min`, duration is still allowed and within the subject cap, and price is within current service min/max. Applies to new bookings, direct URLs, and Book Again.
 8. **Student.** Tutoring may be for myself or an owned active family member. Curriculum/level come from the request (education-profile prefills are a later issue).
 9. **Taxonomy.** Admin-managed codes with `name_ar` / `name_en`, `is_active`, `sort_order`. Public reads active rows. Launch seed is idempotent `ON CONFLICT (code) DO NOTHING`.
 
@@ -55,11 +55,11 @@ All SECURITY DEFINER with `search_path = public`. No direct writes on capabiliti
 
 | Code | When |
 |---|---|
-| `BOOKING_PROVIDER_INELIGIBLE` (23514) | Tutoring booking fails rule 7 (unapproved, wrong owner, service/subject/duration/price mismatch, suspended, Book Again of a non-approved capability). |
+| `BOOKING_PROVIDER_INELIGIBLE` (23514) | Tutoring booking fails rule 7 (unapproved, wrong owner, service/subject/duration/price mismatch, inactive taxonomy, suspended, Book Again of a non-approved capability). |
 | `TEACHING_UNAUTHORIZED` (42501) | Caller is not the owning provider or not an admin. |
 | `TEACHING_INVALID_DURATION` (23514) | Duration not in the allowed set, or above the subject cap. |
 | `TEACHING_INVALID_PRICE` (23514) | Price not whole EGP or outside service min/max. |
-| `TEACHING_SUBJECT_NOT_LINKED` (23514) | Subject is not linked to the service. |
+| `TEACHING_SUBJECT_NOT_LINKED` (23514) | Subject is not linked to the service, or subject/curriculum/level is inactive. |
 | `TEACHING_SELF_REVIEW` (42501) | Admin owns the provider and attempted to review it. |
 
 Customer-facing reads never return `review_note`, ID documents, or reference phones.

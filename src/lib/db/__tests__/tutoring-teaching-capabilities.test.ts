@@ -397,6 +397,58 @@ describe("tutoring teaching capabilities", () => {
     expect(snap[0]?.teaching_subject_name_en).toBe("Mathematics");
   });
 
+  it("rejects booking and upsert when subject, curriculum, or level is inactive", async () => {
+    db = await readyDb();
+    const capId = await approveCapability(db, { price: 400 });
+    await db.exec(`UPDATE public.teaching_subjects SET is_active = false WHERE code = 'math'`);
+    const bookedInactiveSubject = await createBooking(db, {
+      capabilityId: capId,
+      subject: "math",
+      curriculum: "eg_national_ar",
+      level: "g10",
+    });
+    expect(bookedInactiveSubject.ok).toBe(false);
+    expect(bookedInactiveSubject.error).toMatch(/BOOKING_PROVIDER_INELIGIBLE/);
+
+    await db.exec(`UPDATE public.teaching_subjects SET is_active = true WHERE code = 'math'`);
+    await db.exec(
+      `UPDATE public.teaching_curricula SET is_active = false WHERE code = 'eg_national_ar'`,
+    );
+    const bookedInactiveCurriculum = await createBooking(db, {
+      capabilityId: capId,
+      subject: "math",
+      curriculum: "eg_national_ar",
+      level: "g10",
+    });
+    expect(bookedInactiveCurriculum.ok).toBe(false);
+    expect(bookedInactiveCurriculum.error).toMatch(/BOOKING_PROVIDER_INELIGIBLE/);
+
+    await db.exec(
+      `UPDATE public.teaching_curricula SET is_active = true WHERE code = 'eg_national_ar'`,
+    );
+    await db.exec(`UPDATE public.teaching_levels SET is_active = false WHERE code = 'g10'`);
+    const bookedInactiveLevel = await createBooking(db, {
+      capabilityId: capId,
+      subject: "math",
+      curriculum: "eg_national_ar",
+      level: "g10",
+    });
+    expect(bookedInactiveLevel.ok).toBe(false);
+    expect(bookedInactiveLevel.error).toMatch(/BOOKING_PROVIDER_INELIGIBLE/);
+
+    const subjectId = await taxonomyId(db, "teaching_subjects", "physics");
+    const curriculumId = await taxonomyId(db, "teaching_curricula", "eg_national_ar");
+    const levelId = await taxonomyId(db, "teaching_levels", "g10");
+    const upsert = await tryAsUser(
+      db,
+      IDS.providerUser,
+      `SELECT public.provider_upsert_teaching_capability($1,$2,$3,$4,120,400,NULL)`,
+      [IDS.schoolService, subjectId, curriculumId, levelId],
+    );
+    expect(upsert.ok).toBe(false);
+    expect(upsert.error).toMatch(/TEACHING_SUBJECT_NOT_LINKED/);
+  });
+
   it("rejects a price that falls outside min/max after an admin changes the limits", async () => {
     db = await readyDb();
     const capId = await approveCapability(db, { price: 400 });

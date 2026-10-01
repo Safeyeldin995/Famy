@@ -392,19 +392,32 @@ BEGIN
     RAISE EXCEPTION 'TEACHING_SUBJECT_NOT_LINKED: Service is not a tutoring service.' USING ERRCODE = '23514';
   END IF;
 
-  SELECT * INTO v_subject FROM public.teaching_subjects WHERE id = p_subject_id AND is_active;
+  SELECT * INTO v_subject FROM public.teaching_subjects WHERE id = p_subject_id;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'TEACHING_SUBJECT_NOT_LINKED: Subject was not found.' USING ERRCODE = '23514';
   END IF;
+  IF v_subject.is_active IS NOT TRUE THEN
+    RAISE EXCEPTION 'TEACHING_SUBJECT_NOT_LINKED: Subject is not active.' USING ERRCODE = '23514';
+  END IF;
   IF NOT EXISTS (
-    SELECT 1 FROM public.teaching_curricula WHERE id = p_curriculum_id AND is_active
+    SELECT 1 FROM public.teaching_curricula WHERE id = p_curriculum_id
   ) THEN
     RAISE EXCEPTION 'TEACHING_SUBJECT_NOT_LINKED: Curriculum was not found.' USING ERRCODE = '23514';
   END IF;
   IF NOT EXISTS (
-    SELECT 1 FROM public.teaching_levels WHERE id = p_level_id AND is_active
+    SELECT 1 FROM public.teaching_curricula WHERE id = p_curriculum_id AND is_active
+  ) THEN
+    RAISE EXCEPTION 'TEACHING_SUBJECT_NOT_LINKED: Curriculum is not active.' USING ERRCODE = '23514';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.teaching_levels WHERE id = p_level_id
   ) THEN
     RAISE EXCEPTION 'TEACHING_SUBJECT_NOT_LINKED: Level was not found.' USING ERRCODE = '23514';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.teaching_levels WHERE id = p_level_id AND is_active
+  ) THEN
+    RAISE EXCEPTION 'TEACHING_SUBJECT_NOT_LINKED: Level is not active.' USING ERRCODE = '23514';
   END IF;
   IF NOT EXISTS (
     SELECT 1 FROM public.teaching_subject_services
@@ -640,8 +653,11 @@ BEGIN
     cap.session_duration_min, cap.session_price,
     sub.code AS subject_code, sub.name_en AS subject_name_en, sub.name_ar AS subject_name_ar,
     sub.max_session_duration_min AS subject_max_duration,
+    sub.is_active AS subject_active,
     cur.code AS curriculum_code, cur.name_en AS curriculum_name_en, cur.name_ar AS curriculum_name_ar,
-    lvl.code AS level_code, lvl.name_en AS level_name_en, lvl.name_ar AS level_name_ar
+    cur.is_active AS curriculum_active,
+    lvl.code AS level_code, lvl.name_en AS level_name_en, lvl.name_ar AS level_name_ar,
+    lvl.is_active AS level_active
   INTO v_cap
   FROM public.provider_teaching_capabilities cap
   JOIN public.teaching_subjects sub ON sub.id = cap.subject_id
@@ -651,6 +667,12 @@ BEGIN
 
   IF NOT FOUND THEN
     RAISE EXCEPTION 'BOOKING_PROVIDER_INELIGIBLE: Teaching capability was not found.' USING ERRCODE = '23514';
+  END IF;
+  IF v_cap.subject_active IS NOT TRUE
+     OR v_cap.curriculum_active IS NOT TRUE
+     OR v_cap.level_active IS NOT TRUE
+  THEN
+    RAISE EXCEPTION 'BOOKING_PROVIDER_INELIGIBLE: Subject, curriculum, or level is no longer active.' USING ERRCODE = '23514';
   END IF;
   IF v_cap.provider_id IS DISTINCT FROM p_provider_id THEN
     RAISE EXCEPTION 'BOOKING_PROVIDER_INELIGIBLE: Teaching capability does not belong to this provider.' USING ERRCODE = '23514';
