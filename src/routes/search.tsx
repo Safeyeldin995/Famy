@@ -5,6 +5,11 @@ import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
 import { CustomerFloatingPanel } from "@/components/famio/CustomerFloatingPanel";
 import { ProviderListRow, ProviderRatingMeta } from "@/components/famio/ProviderListRow";
 import { useAddresses, useMarketplaceServices, useProviders } from "@/lib/db/queries";
+import { useApprovedTeachingCapabilitiesForProviders } from "@/lib/db/teaching-queries";
+import {
+  formatTeachingCapabilityLine,
+  isTutoringCategorySlug,
+} from "@/lib/tutoring/teachingCapabilities";
 import { toUIProvider } from "@/lib/db/adapters";
 import { currentLang } from "@/lib/i18n";
 import { useTranslation } from "react-i18next";
@@ -49,6 +54,7 @@ function SearchPage() {
       );
     });
   }, [q, filter, provsQ.data]);
+  const capabilityRows = useApprovedTeachingCapabilitiesForProviders(results.map((p) => p.id));
 
   return (
     <PhoneFrame bg="bg-background">
@@ -155,23 +161,36 @@ function SearchPage() {
               body={t("search2.noResultsBody")}
             />
           ) : (
-            results.map((p) => (
-              <ProviderListRow
-                key={p.id}
-                to="/provider/$id"
-                params={{ id: p.id }}
-                avatar={p.avatar}
-                name={p.name}
-                subtitle={formatEGP(p.hourlyRate, { perHour: true })}
-                meta={<ProviderRatingMeta rating={p.rating} reviews={p.reviews} />}
-                pill={p.rating >= 4.9 ? { label: t("roles.topPro"), tone: "brand" } : undefined}
-                trailing={
-                  <span className="shrink-0 rounded-full bg-brand px-3.5 py-2 text-[11px] font-extrabold text-brand-foreground">
-                    {t("provider.bookNow")}
-                  </span>
-                }
-              />
-            ))
+            results.map((p) => {
+              const cap = (capabilityRows.data ?? []).find((row) => row.providerId === p.id);
+              const subtitle =
+                isTutoringCategorySlug(p.categorySlug) && cap
+                  ? formatTeachingCapabilityLine({
+                      subject: lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn,
+                      curriculum: lang === "ar" ? cap.curriculumNameAr : cap.curriculumNameEn,
+                      level: lang === "ar" ? cap.levelNameAr : cap.levelNameEn,
+                      durationMin: cap.durationMin,
+                      price: cap.price,
+                    })
+                  : formatEGP(p.hourlyRate, { perHour: true });
+              return (
+                <ProviderListRow
+                  key={p.id}
+                  to="/provider/$id"
+                  params={{ id: p.id }}
+                  avatar={p.avatar}
+                  name={p.name}
+                  subtitle={subtitle}
+                  meta={<ProviderRatingMeta rating={p.rating} reviews={p.reviews} />}
+                  pill={p.rating >= 4.9 ? { label: t("roles.topPro"), tone: "brand" } : undefined}
+                  trailing={
+                    <span className="shrink-0 rounded-full bg-brand px-3.5 py-2 text-[11px] font-extrabold text-brand-foreground">
+                      {t("provider.bookNow")}
+                    </span>
+                  }
+                />
+              );
+            })
           )}
         </div>
       </div>

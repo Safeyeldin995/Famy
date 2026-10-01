@@ -52,6 +52,8 @@ import {
   type ChildAgeGroupRow,
 } from "@/lib/provider/ageGroupCapabilities";
 import { useAvatarUrl } from "@/lib/db/queries";
+import { TeachingCapabilitiesEditor } from "@/components/provider/TeachingCapabilitiesEditor";
+import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
 
 const STEPS: OnboardingSection[] = [
   "personal",
@@ -238,6 +240,12 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
     const services = servicesQ.data ?? [];
     return selectedServices.some(
       (id) => services.find((s: any) => s.id === id)?.category?.slug === "babysitting",
+    );
+  }, [selectedServices, servicesQ.data]);
+  const tutoringSelected = useMemo(() => {
+    const services = servicesQ.data ?? [];
+    return selectedServices.some((id) =>
+      isTutoringCategorySlug(services.find((s: any) => s.id === id)?.category?.slug),
     );
   }, [selectedServices, servicesQ.data]);
 
@@ -700,6 +708,27 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
             })}
           </Card>
         )}
+
+        {current === "services" && tutoringSelected && providerId ? (
+          <div className="mt-4">
+            <TeachingCapabilitiesEditor
+              providerId={providerId}
+              services={(servicesQ.data ?? [])
+                .filter(
+                  (s: any) =>
+                    selectedServices.includes(s.id) && isTutoringCategorySlug(s.category?.slug),
+                )
+                .map((s: any) => ({
+                  id: s.id,
+                  name_en: s.name_en,
+                  name_ar: s.name_ar,
+                  allowed_session_durations: s.allowed_session_durations,
+                  minimum_price: s.minimum_price,
+                  maximum_price: s.maximum_price,
+                }))}
+            />
+          </div>
+        ) : null}
 
         {current === "experience" && (
           <Card className="space-y-4 rounded-[1.25rem] p-4">

@@ -25,6 +25,8 @@ import {
 import { FileText, ShieldCheck, LogOut, Globe, Camera, Loader2, Upload, Bell } from "lucide-react";
 import { LanguageToggle, useLang } from "@/components/famio/LanguageToggle";
 import { customerPath, proPath } from "@/lib/preview/previewPath";
+import { TeachingCapabilitiesEditor } from "@/components/provider/TeachingCapabilitiesEditor";
+import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
 
 
 
@@ -372,6 +374,24 @@ function ProProfile() {
           </Card>
           )}
         </div>
+
+        {provider?.id ? (
+          <div>
+            <TeachingCapabilitiesEditor
+              providerId={provider.id}
+              services={(services.data ?? [])
+                .filter((s: any) => isTutoringCategorySlug(s.category?.slug) && myIds.has(s.id))
+                .map((s: any) => ({
+                  id: s.id,
+                  name_en: s.name_en,
+                  name_ar: s.name_ar,
+                  allowed_session_durations: s.allowed_session_durations,
+                  minimum_price: s.minimum_price,
+                  maximum_price: s.maximum_price,
+                }))}
+            />
+          </div>
+        ) : null}
 
         {/* Links */}
         <div>

@@ -58,7 +58,9 @@ export function usePhase1Services() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("services")
-        .select("id, slug, name_en, name_ar, category:categories(slug, name_en, name_ar)")
+        .select(
+          "id, slug, name_en, name_ar, minimum_price, maximum_price, allowed_session_durations, category:categories(slug, name_en, name_ar)",
+        )
         .eq("is_active", true)
         .order("name_en");
       if (error) throw error;

@@ -6,6 +6,7 @@ import { useAdminProvider, useProviderEligibility, useSetProviderVerified, useSe
 import { useAdminOnboardingAction, useAdminOnboardingReview, useReviewProviderDocument } from "@/lib/provider/onboarding-queries";
 import { RequestUpdatedDetailsAction } from "@/components/admin/RequestUpdatedDetailsAction";
 import { ProviderApprovalDecisionSummary } from "@/components/admin/ProviderApprovalDecisionSummary";
+import { TeachingCapabilityReviewQueue } from "@/components/admin/TeachingCapabilityReviewQueue";
 import {
   deriveAdminApprovalDecision,
   formatAdminActionErrorMessage,
@@ -316,6 +317,8 @@ export function AdminProvider({ id }: { id: string }) {
           <EligibilitySection providerId={p.id} />
         </div>
       </details>
+
+      <TeachingCapabilityReviewQueue providerId={p.id} />
 
       <section id="admin-onboarding-details" className="rounded-2xl border border-border/60 bg-surface p-4 shadow-sm">
         <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("admin.provider.onboardingReview")}</h3>
