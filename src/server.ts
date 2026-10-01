@@ -32,6 +32,31 @@ async function logServerError(error: unknown, contextRoute: string, contextLabel
   }
 }
 
+const HTML_SECURITY_HEADERS: Record<string, string> = {
+  "X-Frame-Options": "DENY",
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=(self)",
+};
+
+function applyHtmlSecurityHeaders(response: Response): Response {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("text/html")) return response;
+
+  const headers = new Headers(response.headers);
+  for (const [name, value] of Object.entries(HTML_SECURITY_HEADERS)) {
+    headers.set(name, value);
+  }
+  // TODO: Content-Security-Policy is a follow-up. Firebase reCAPTCHA and Paymob
+  // need careful allow-lists before a full CSP can be added.
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 // h3 swallows in-handler throws into a normal 500 Response with body
 // {"unhandled":true,"message":"HTTPError"} — try/catch alone never fires for those.
 async function normalizeCatastrophicSsrResponse(
@@ -60,18 +85,20 @@ export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       const qaMeta = handleQaMetaRequest(request, process.env);
-      if (qaMeta) return qaMeta;
+      if (qaMeta) return applyHtmlSecurityHeaders(qaMeta);
 
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(request, response);
+      return applyHtmlSecurityHeaders(await normalizeCatastrophicSsrResponse(request, response));
     } catch (error) {
       console.error(error);
       await logServerError(error, new URL(request.url).pathname, "server_fetch_handler");
-      return new Response(renderErrorPage(), {
-        status: 500,
-        headers: { "content-type": "text/html; charset=utf-8" },
-      });
+      return applyHtmlSecurityHeaders(
+        new Response(renderErrorPage(), {
+          status: 500,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+      );
     }
   },
 };

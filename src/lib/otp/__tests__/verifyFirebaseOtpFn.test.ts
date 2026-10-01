@@ -37,10 +37,12 @@ vi.mock("@/lib/otp/firebaseAdmin.server", () => ({
 }));
 
 const listUsers = vi.fn();
+const rpc = vi.fn();
 const createUser = vi.fn();
 const from = vi.fn();
 vi.mock("@/integrations/supabase/client.server", () => ({
   supabaseAdmin: {
+    rpc: (...args: unknown[]) => rpc(...args),
     auth: {
       admin: {
         listUsers: (...args: unknown[]) => listUsers(...args),
@@ -83,6 +85,7 @@ describe("verifyFirebaseOtpFn", () => {
       decoded: { uid: "firebase-user-1" },
     });
     listUsers.mockResolvedValue({ data: { users: [] }, error: null });
+    rpc.mockResolvedValue({ data: null, error: null });
     createUser.mockResolvedValue({
       data: { user: { id: "11111111-1111-1111-1111-111111111111" } },
       error: null,
@@ -165,18 +168,14 @@ describe("verifyFirebaseOtpFn", () => {
     const { verifyFirebaseOtpFn } = await import("@/lib/otp.functions");
     const result = await verifyFirebaseOtpFn({ data: { idToken: "firebase-id-token" } });
     expect(result).toEqual({ ok: false, error: "invalid_code" });
-    expect(verifyFirebasePhoneIdToken).toHaveBeenCalledWith(
-      "firebase-id-token",
-      "+201012345678",
-    );
+    expect(verifyFirebasePhoneIdToken).toHaveBeenCalledWith("firebase-id-token", "+201012345678");
   });
 
   it("finalizes verification and transitions to the set-password cookie", async () => {
     await seedPendingIntent();
     const { verifyFirebaseOtpFn } = await import("@/lib/otp.functions");
-    const { readOtpPendingIntent, readSetPasswordIntent } = await import(
-      "@/lib/auth/authIntent.server"
-    );
+    const { readOtpPendingIntent, readSetPasswordIntent } =
+      await import("@/lib/auth/authIntent.server");
 
     const result = await verifyFirebaseOtpFn({ data: { idToken: "firebase-id-token" } });
 
