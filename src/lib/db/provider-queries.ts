@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth/useAuth';
 import { isQaCatalogService } from '@/lib/catalog/qaCatalog';
+import { aggregateProviderEarnings } from '@/lib/earnings/aggregateProviderEarnings';
 
 // ---------- Identity ----------
 export function useMyRole() {
@@ -225,40 +226,23 @@ export function useProviderUpdateBookingStatus() {
 }
 
 // ---------- Earnings ----------
-// Sums ONLY captured payments (cash or instapay). Pending / pending_review / rejected
-// are not counted as earned revenue. Upcoming pipeline = bookings confirmed/in_progress
-// whose payment is not yet captured.
+// Captured payments only. Pending / pending_review / rejected are not counted.
+// Snapshotted bookings contribute net (price_provider_net). Unsnapshotted
+// bookings contribute booking value (subtotal + extras + travel). Those two
+// sums are never added into one "earned" number.
 export function useProviderEarnings(providerId: string | undefined) {
   return useQuery({
     enabled: !!providerId,
     queryKey: ['provider-earnings', providerId],
     queryFn: async () => {
-      // 1) Fetch this provider's bookings + their payment rows (RLS lets the provider read both).
       const { data: bookings, error } = await supabase
         .from('bookings')
-        .select('id, price_total, start_at, status, payments(status, amount, captured_at)')
+        .select(
+          'id, price_subtotal, price_extras_total, price_travel_fee, price_provider_net, price_commission_percent, price_commission_amount, start_at, status, payments(status, amount, captured_at)',
+        )
         .eq('provider_id', providerId!);
       if (error) throw error;
-      const rows = bookings ?? [];
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-      const startOf7d = now.getTime() - 7 * 24 * 3600e3;
-      let total = 0, mtd = 0, last7 = 0, completedCount = 0, upcoming = 0;
-      for (const b of rows as any[]) {
-        const captured = (b.payments ?? []).find((p: any) => p.status === 'captured');
-        const isUpcoming = ['confirmed', 'in_progress', 'pending'].includes(b.status);
-        if (captured) {
-          const amt = Number(captured.amount ?? b.price_total ?? 0);
-          const t = new Date(captured.captured_at ?? b.start_at).getTime();
-          total += amt;
-          if (b.status === 'completed') completedCount++;
-          if (t >= startOfMonth) mtd += amt;
-          if (t >= startOf7d) last7 += amt;
-        } else if (isUpcoming) {
-          upcoming += Number(b.price_total ?? 0);
-        }
-      }
-      return { total, mtd, last7, completedCount, upcomingPipeline: upcoming };
+      return aggregateProviderEarnings(bookings ?? []);
     },
   });
 }

@@ -773,6 +773,9 @@ export type Database = {
           price_total: number
           price_travel_fee: number
           price_vat: number
+          price_commission_percent: number | null
+          price_commission_amount: number | null
+          price_provider_net: number | null
           promo_code: string | null
           promo_code_id: string | null
           promo_description_ar: string | null
@@ -823,6 +826,9 @@ export type Database = {
           price_total?: number
           price_travel_fee?: number
           price_vat?: number
+          price_commission_percent?: number | null
+          price_commission_amount?: number | null
+          price_provider_net?: number | null
           promo_code?: string | null
           promo_code_id?: string | null
           promo_description_ar?: string | null
@@ -873,6 +879,9 @@ export type Database = {
           price_total?: number
           price_travel_fee?: number
           price_vat?: number
+          price_commission_percent?: number | null
+          price_commission_amount?: number | null
+          price_provider_net?: number | null
           promo_code?: string | null
           promo_code_id?: string | null
           promo_description_ar?: string | null

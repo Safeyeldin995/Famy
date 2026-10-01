@@ -8,6 +8,7 @@ import { EmptyState, Avatar } from "@/components/famio/ui";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { useMyProvider, useProviderBookings, useProviderEarnings, useProUnreadNotificationCount } from "@/lib/db/provider-queries";
 import { formatEGP, BOOKING_ACTIVE_STATUSES } from "@/lib/utils";
+import { earningsHeadlineKind } from "@/lib/earnings/aggregateProviderEarnings";
 import type { ReactNode } from "react";
 import { Bell, ShieldCheck, Star, TrendingUp, Plane, AlertCircle } from "lucide-react";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
@@ -37,6 +38,9 @@ function ProDashboard() {
     .sort((a: any, b: any) => +new Date(a.start_at) - +new Date(b.start_at))
     .slice(0, 3);
 
+  const mtdNet = earningsQ.data?.mtd.net ?? 0;
+  const mtdBookingValue = earningsQ.data?.mtd.bookingValue ?? 0;
+  const mtdKind = earningsHeadlineKind(mtdNet > 0, mtdBookingValue > 0);
   const trust = provider?.trust?.[0]?.score ?? provider?.trust?.score;
   const rating = provider?.ratings?.[0]?.rating_avg ?? provider?.ratings?.rating_avg;
 
@@ -66,9 +70,20 @@ function ProDashboard() {
           >
             <div className="flex items-center gap-1.5 text-[11px] font-bold opacity-90">
               <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" />
-              {t("pro.dashboard.earningsMtd")}
+              {mtdKind === "bookingValue" ? t("pro.dashboard.bookingValueMtd") : t("pro.dashboard.netMtd")}
             </div>
-            <div className="mt-2 text-xl font-black leading-none">{formatEGP(earningsQ.data?.mtd ?? 0)}</div>
+            {mtdKind === "mixed" ? (
+              <>
+                <div className="mt-2 text-xl font-black leading-none">{formatEGP(mtdNet)}</div>
+                <div className="mt-1 text-[10px] font-bold opacity-80">
+                  {t("pro.dashboard.bookingValueMtd")}: {formatEGP(mtdBookingValue)}
+                </div>
+              </>
+            ) : (
+              <div className="mt-2 text-xl font-black leading-none">
+                {formatEGP(mtdKind === "bookingValue" ? mtdBookingValue : mtdNet)}
+              </div>
+            )}
           </Link>
           <div className="rounded-[1rem] border border-border/50 bg-surface-2/80 p-4">
             <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground">
