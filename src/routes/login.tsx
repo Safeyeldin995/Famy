@@ -112,7 +112,7 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
     const send = await startPhoneOtpFlow(e164, "signup", role, { languageCode: i18n.language });
     if (!send.ok) {
       setLoading(false);
-      const m = phoneOtpFlowErrorMessage(send.error, t, send.retryAfter);
+      const m = phoneOtpFlowErrorMessage(send.error, t, send.retryAfter, send.firebaseAuthCode);
       setErrorMsg(m);
       toast.error(m, { duration: 8000 });
       return;

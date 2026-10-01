@@ -5,6 +5,7 @@ import {
   FirebaseRecaptchaContainerError,
 } from "@/lib/otp/firebaseAuth.browser";
 import { formatOtpSecondsDuration } from "@/lib/auth/otpCountdown";
+import { logClientErrorFn } from "@/lib/error-log.functions";
 import type { TFunction } from "i18next";
 
 export type PhoneOtpFlowError =
@@ -28,20 +29,70 @@ type StartPhoneOtpResult =
       flowAbandoned?: boolean;
       /** True only when the server confirmed clearing the pending intent. */
       intentCleared?: boolean;
+      /** Firebase Auth error code when client SMS send failed (e.g. auth/quota-exceeded). */
+      firebaseAuthCode?: string;
     };
 
 type PhoneOtpFlowOptions = {
   languageCode?: string;
 };
 
+export function firebaseSendFailureMessage(t: TFunction, firebaseAuthCode?: string): string {
+  switch (firebaseAuthCode) {
+    case "auth/too-many-requests":
+      return t("auth.firebaseSendTooManyRequests");
+    case "auth/quota-exceeded":
+      return t("auth.firebaseSendQuotaExceeded");
+    case "auth/invalid-phone-number":
+      return t("validation.invalidPhone");
+    case "auth/captcha-check-failed":
+    case "auth/invalid-app-credential":
+    case "auth/missing-app-credential":
+      return t("auth.firebaseSendDeviceVerifyFailed");
+    default:
+      return t("auth.firebaseSendFailed");
+  }
+}
+
+function extractFirebaseAuthErrorCode(error: unknown): string | undefined {
+  if (!error || typeof error !== "object" || !("code" in error)) return undefined;
+  const code = (error as { code?: unknown }).code;
+  return typeof code === "string" && code.startsWith("auth/") ? code : undefined;
+}
+
+function reportFirebaseSendFailure(firebaseAuthCode: string): void {
+  void logClientErrorFn({
+    data: {
+      message: `Firebase send failed: ${firebaseAuthCode}`,
+      contextRoute: typeof window !== "undefined" ? window.location.pathname : undefined,
+      contextLabel: "firebase_send_failed",
+    },
+  }).catch(() => {});
+}
+
+function mapFirebaseSendCatchError(error: unknown): {
+  error: "firebase_recaptcha_unavailable" | "firebase_send_failed";
+  firebaseAuthCode?: string;
+} {
+  if (error instanceof FirebaseRecaptchaContainerError) {
+    return { error: "firebase_recaptcha_unavailable" };
+  }
+  const firebaseAuthCode = extractFirebaseAuthErrorCode(error);
+  if (firebaseAuthCode) {
+    reportFirebaseSendFailure(firebaseAuthCode);
+  }
+  return { error: "firebase_send_failed", firebaseAuthCode };
+}
+
 export function phoneOtpFlowErrorMessage(
   error: PhoneOtpFlowError,
   t: TFunction,
   retryAfter?: number,
+  firebaseAuthCode?: string,
 ): string {
   switch (error) {
     case "firebase_send_failed":
-      return t("auth.firebaseSendFailed");
+      return firebaseSendFailureMessage(t, firebaseAuthCode);
     case "firebase_start_failed":
       return t("auth.firebaseStartFailed");
     case "firebase_recaptcha_unavailable":
@@ -121,10 +172,8 @@ export async function startPhoneOtpFlow(
       return { ok: true };
     } catch (error) {
       await bestEffortAbandonOtpFlow();
-      if (error instanceof FirebaseRecaptchaContainerError) {
-        return { ok: false, error: "firebase_recaptcha_unavailable" };
-      }
-      return { ok: false, error: "firebase_send_failed" };
+      const mapped = mapFirebaseSendCatchError(error);
+      return { ok: false, ...mapped };
     }
   }
 
@@ -174,17 +223,10 @@ export async function resendPhoneOtpFlow(
     return { ok: true, retryAfter: refresh.retryAfter ?? 30 };
   } catch (error) {
     const abandoned = await abandonAfterFailedFirebaseClientSend();
-    if (error instanceof FirebaseRecaptchaContainerError) {
-      return {
-        ok: false,
-        error: "firebase_recaptcha_unavailable",
-        flowAbandoned: abandoned.flowAbandoned,
-        intentCleared: abandoned.intentCleared,
-      };
-    }
+    const mapped = mapFirebaseSendCatchError(error);
     return {
       ok: false,
-      error: "firebase_send_failed",
+      ...mapped,
       flowAbandoned: abandoned.flowAbandoned,
       intentCleared: abandoned.intentCleared,
     };

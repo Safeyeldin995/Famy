@@ -163,6 +163,11 @@ const en = {
     rateLimited: "Too many attempts. Try again in {{time}}.",
     durationSeconds: "{{formatted}} s",
     firebaseSendFailed: "Could not send verification SMS. Try again later.",
+    firebaseSendTooManyRequests:
+      "Too many attempts from this device. Please wait and try again.",
+    firebaseSendQuotaExceeded: "SMS service is busy right now. Please try again shortly.",
+    firebaseSendDeviceVerifyFailed:
+      "Could not verify this device. Refresh the page and try again.",
     firebaseStartFailed: "Could not start phone verification. Try again.",
     firebaseRecaptchaUnavailable:
       "Phone verification is temporarily unavailable. Refresh the page and try again.",
