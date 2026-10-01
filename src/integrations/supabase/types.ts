@@ -1814,6 +1814,7 @@ export type Database = {
           id: string
           metadata: Json
           method: Database["public"]["Enums"]["payment_method"] | null
+          needs_admin_review: boolean
           payment_method_code: string | null
           payment_method_id: string | null
           payment_method_name_ar: string | null
@@ -1839,6 +1840,7 @@ export type Database = {
           id?: string
           metadata?: Json
           method?: Database["public"]["Enums"]["payment_method"] | null
+          needs_admin_review?: boolean
           payment_method_code?: string | null
           payment_method_id?: string | null
           payment_method_name_ar?: string | null
@@ -1864,6 +1866,7 @@ export type Database = {
           id?: string
           metadata?: Json
           method?: Database["public"]["Enums"]["payment_method"] | null
+          needs_admin_review?: boolean
           payment_method_code?: string | null
           payment_method_id?: string | null
           payment_method_name_ar?: string | null
@@ -3800,6 +3803,14 @@ export type Database = {
       polygon_self_intersects: { Args: { p_polygon: Json }; Returns: boolean }
       process_due_campaigns: { Args: never; Returns: number }
       process_due_reminders: { Args: never; Returns: number }
+      expire_pending_bookings: { Args: never; Returns: number }
+      booking_expiry_settings: {
+        Args: never
+        Returns: {
+          min_hours_before_start: number
+          pending_ttl_hours: number
+        }[]
+      }
       provider_finalize_document_upload: {
         Args: {
           p_path: string

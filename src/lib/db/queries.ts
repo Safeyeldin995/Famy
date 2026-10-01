@@ -5,6 +5,7 @@
  * unaware of the backend transport. Replace mock imports with these hooks.
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { creationMinHours, parseBookingExpirySettings } from '@/lib/booking/pending-expiry';
 import { supabase } from '@/integrations/supabase/client';
 import { CUSTOMER_MARKETPLACE_REFETCH_MS, customerMarketplaceRefetchInterval } from '@/lib/db/marketplace-cache';
 import { mapBookingRpcError } from '@/lib/booking/errors';
@@ -452,18 +453,20 @@ export function useAvailableSlots(
       });
       if (!provider) return [];
 
-      const [rulesRes, vacRes, excRes, bookingsRes] = await Promise.all([
+      const [rulesRes, vacRes, excRes, bookingsRes, expiryRes] = await Promise.all([
         supabase.from('availability_rules').select('start_time, end_time').eq('provider_id', providerId!).eq('weekday', weekday),
         supabase.from('provider_vacations').select('start_date, end_date').eq('provider_id', providerId!).lte('start_date', dateStr).gte('end_date', dateStr),
         supabase.from('availability_exceptions').select('start_time, end_time, is_blocked, date, end_date').eq('provider_id', providerId!)
           .lte('date', dateStr),
         supabase.from('bookings').select('start_at, end_at').eq('provider_id', providerId!).in('status', ACTIVE_BOOKING_STATUSES)
           .gte('start_at', dayStart.toISOString()).lte('start_at', dayEnd.toISOString()),
+        supabase.from('settings').select('value').eq('key', 'booking_expiry').maybeSingle(),
       ]);
       if (rulesRes.error) throw rulesRes.error;
       if (vacRes.error) throw vacRes.error;
       if (excRes.error) throw excRes.error;
       if (bookingsRes.error) throw bookingsRes.error;
+      if (expiryRes.error) throw expiryRes.error;
 
       if (provider.vacation_mode) return [];
       // Provider is on vacation this date — no slots at all.
@@ -474,7 +477,10 @@ export function useAvailableSlots(
       if (exceptions.some((e: any) => !e.start_time || !e.end_time)) return [];
 
       const now = new Date();
-      const earliestAllowed = new Date(now.getTime() + provider.min_notice_hours * 3600000);
+      const expiry = parseBookingExpirySettings(expiryRes.data?.value);
+      const earliestAllowed = new Date(
+        now.getTime() + creationMinHours(provider.min_notice_hours, expiry) * 3600000,
+      );
       const latestAllowed = new Date(now.getTime() + provider.max_advance_days * 86400000);
       const bufferMs = provider.buffer_minutes * 60000;
 

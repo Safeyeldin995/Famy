@@ -18,6 +18,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Calendar, Clock, Repeat, Download, ChevronRight } from "lucide-react";
 import { ICON_STROKE } from "@/lib/icons/constants";
+import { isProviderNoResponseCancellation } from "@/lib/booking/pending-expiry";
 
 export const Route = createFileRoute("/bookings")({ component: Bookings });
 
@@ -120,6 +121,7 @@ function Bookings() {
             });
             const shortId = b.id.slice(0, 8).toUpperCase();
             const isPast = tab !== "upcoming";
+            const expired = isProviderNoResponseCancellation(b);
             return (
               <article
                 key={b.id}
@@ -168,6 +170,11 @@ function Bookings() {
                           {timeLabel} · {t("bookings.hoursShort", { hours: formatNumber(hours) })}
                         </span>
                       </div>
+                      {expired ? (
+                        <p className="mt-2 text-[11px] font-semibold text-muted-foreground">
+                          {t("bookings.expiredReason")}
+                        </p>
+                      ) : null}
                     </div>
                     <div className="shrink-0 text-end">
                       <p
@@ -192,15 +199,19 @@ function Bookings() {
                   <div className="flex gap-2 border-t border-border/70 px-4 pb-4 pt-3">
                     <SecondaryButton
                       className="flex-1 !rounded-[1.25rem]"
-                      onClick={() =>
+                      onClick={() => {
+                        if (expired) {
+                          nav({ to: "/home" });
+                          return;
+                        }
                         nav({
                           to: previewBookPath(b.provider_id),
                           search: { serviceId: undefined },
-                        })
-                      }
+                        });
+                      }}
                     >
                       <Repeat className="h-3.5 w-3.5" aria-hidden="true" />
-                      {t("bookings.bookAgain")}
+                      {expired ? t("bookings.bookAnotherProvider") : t("bookings.bookAgain")}
                     </SecondaryButton>
                     <SecondaryButton className="flex-1 !rounded-[1.25rem]">
                       <Download className="h-3.5 w-3.5" aria-hidden="true" />

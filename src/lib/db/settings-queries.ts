@@ -6,6 +6,10 @@
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  parseBookingExpirySettings,
+  type BookingExpirySettings,
+} from '@/lib/booking/pending-expiry';
 
 export type BillingSettings = {
   vat_percent: number;
@@ -129,5 +133,42 @@ export function useUpdatePlatformContent() {
       if (stored.body_en !== body_en || stored.body_ar !== body_ar) throw new Error('Platform content did not persist.');
     },
     onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['settings', 'content', vars.key] }),
+  });
+}
+
+export function useBookingExpirySettings() {
+  return useQuery({
+    queryKey: ['settings', 'booking_expiry'],
+    queryFn: async (): Promise<BookingExpirySettings> => {
+      const { data, error } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'booking_expiry')
+        .maybeSingle();
+      if (error) throw error;
+      return parseBookingExpirySettings(data?.value);
+    },
+  });
+}
+
+export function useUpdateBookingExpirySettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (value: BookingExpirySettings) => {
+      const { data, error } = await supabase
+        .from('settings')
+        .upsert({ key: 'booking_expiry', value }, { onConflict: 'key' })
+        .select('value')
+        .single();
+      if (error) throw error;
+      const stored = parseBookingExpirySettings(data.value);
+      if (
+        stored.pending_ttl_hours !== value.pending_ttl_hours ||
+        stored.min_hours_before_start !== value.min_hours_before_start
+      ) {
+        throw new Error('Booking expiry settings did not persist.');
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'booking_expiry'] }),
   });
 }

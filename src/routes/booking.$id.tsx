@@ -19,6 +19,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { peekPendingPayment } from "@/lib/booking/post-create-payment";
+import { isProviderNoResponseCancellation } from "@/lib/booking/pending-expiry";
 
 
 export const Route = createFileRoute("/booking/$id")({
@@ -177,11 +178,15 @@ function BookingDetail() {
 
   if (view === "closed") {
     const cancellation = cancellationQ.data;
-    const reason = cancellation
+    const expired = isProviderNoResponseCancellation(real);
+    const reason = expired
+      ? t("bookingDetail.expiredReason")
+      : cancellation
       ? (lang === "ar" ? cancellation.reason_name_ar : cancellation.reason_name_en)
       : real.cancellation_reason || real.no_show_reason || real.dispute_reason;
     const title =
-      status === "cancelled" ? t("bookingDetail.closedCancelledTitle")
+      expired ? t("bookingDetail.expiredTitle")
+      : status === "cancelled" ? t("bookingDetail.closedCancelledTitle")
       : status === "no_show" ? t("bookingDetail.closedNoShowTitle")
       : t("bookingDetail.closedDisputedTitle");
     return (
@@ -235,7 +240,11 @@ function BookingDetail() {
           <BookingChatPanel bookingId={real.id} status={status} viewer="customer" />
         </div>
         <div className="safe-bottom px-6 pt-4">
-          <PrimaryButton onClick={() => nav({ to: "/home" })}>{t("bookingDetail.backHome")}</PrimaryButton>
+          {expired ? (
+            <PrimaryButton onClick={() => nav({ to: "/home" })}>{t("bookingDetail.bookAnotherProvider")}</PrimaryButton>
+          ) : (
+            <PrimaryButton onClick={() => nav({ to: "/home" })}>{t("bookingDetail.backHome")}</PrimaryButton>
+          )}
         </div>
 
         <CaseDialog
