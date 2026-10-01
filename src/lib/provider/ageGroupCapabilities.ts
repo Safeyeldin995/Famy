@@ -9,6 +9,18 @@ export const CATALOGUE_AGE_GROUP_CODES = [
 
 export type CatalogueAgeGroupCode = (typeof CATALOGUE_AGE_GROUP_CODES)[number];
 
+export const AGE_GROUP_CHIP_IDS = ["infants", "toddlers", "kids", "teens"] as const;
+
+export type AgeGroupChipId = (typeof AGE_GROUP_CHIP_IDS)[number];
+
+/** UI chips map to one or more catalogue age-group codes saved in the DB. */
+export const AGE_GROUP_CHIP_TO_CODES: Record<AgeGroupChipId, readonly CatalogueAgeGroupCode[]> = {
+  infants: ["newborn", "infant"],
+  toddlers: ["toddler"],
+  kids: ["preschool", "school_age"],
+  teens: ["teenager"],
+};
+
 export type AgeGroupCapabilityForm = {
   code: string;
   years_experience: number | null;
@@ -31,6 +43,67 @@ export type ChildAgeGroupRow = {
   max_months?: number | null;
   sort_order?: number | null;
 };
+
+const CODE_TO_CHIP = new Map<string, AgeGroupChipId>();
+for (const chipId of AGE_GROUP_CHIP_IDS) {
+  for (const code of AGE_GROUP_CHIP_TO_CODES[chipId]) {
+    CODE_TO_CHIP.set(code, chipId);
+  }
+}
+
+export function expandChipsToCatalogueCodes(chipIds: Iterable<string>): CatalogueAgeGroupCode[] {
+  const out: CatalogueAgeGroupCode[] = [];
+  const seen = new Set<string>();
+  for (const chipId of chipIds) {
+    const codes = AGE_GROUP_CHIP_TO_CODES[chipId as AgeGroupChipId];
+    if (!codes) continue;
+    for (const code of codes) {
+      if (seen.has(code)) continue;
+      seen.add(code);
+      out.push(code);
+    }
+  }
+  return out;
+}
+
+export function hydrateChipIdsFromCapabilities(
+  forms: AgeGroupCapabilityForm[],
+): AgeGroupChipId[] {
+  const chips = new Set<AgeGroupChipId>();
+  for (const row of forms) {
+    const chip = CODE_TO_CHIP.get(row.code);
+    if (chip) chips.add(chip);
+  }
+  return AGE_GROUP_CHIP_IDS.filter((id) => chips.has(id));
+}
+
+export function chipHasVerifiedCode(
+  chipId: AgeGroupChipId,
+  forms: AgeGroupCapabilityForm[],
+): boolean {
+  const codes = AGE_GROUP_CHIP_TO_CODES[chipId];
+  return forms.some((row) => codes.includes(row.code as CatalogueAgeGroupCode) && row.verified);
+}
+
+export function chipIsSelected(
+  chipId: AgeGroupChipId,
+  selectedChipIds: string[],
+  forms: AgeGroupCapabilityForm[],
+): boolean {
+  return selectedChipIds.includes(chipId) || chipHasVerifiedCode(chipId, forms);
+}
+
+export function sharedBabysittingExperienceFromForms(
+  forms: AgeGroupCapabilityForm[],
+  chipIds: string[],
+): { years: number | null; note: string } {
+  const codes = new Set<string>(expandChipsToCatalogueCodes(chipIds));
+  const relevant = forms.filter((row) => codes.has(row.code));
+  const years =
+    relevant.find((row) => typeof row.years_experience === "number")?.years_experience ?? null;
+  const note = relevant.find((row) => row.note.trim())?.note ?? "";
+  return { years, note };
+}
 
 export function mapCapabilitiesFromSnapshot(
   rows: AgeGroupCapabilitySnapshot[] | null | undefined,
@@ -70,6 +143,28 @@ export function buildAgeGroupCapabilitiesPayload(
     });
   }
   return payload;
+}
+
+export function buildAgeGroupCapabilitiesPayloadFromChips(
+  selectedChipIds: string[],
+  capabilityForms: AgeGroupCapabilityForm[],
+  yearsExperience: number | null,
+  note: string,
+): { code: string; years_experience: number | null; note: string | null }[] {
+  const selectedCodes = expandChipsToCatalogueCodes(selectedChipIds);
+  const verifiedCodes = capabilityForms.filter((row) => row.verified).map((row) => row.code);
+  const allCodes = [...new Set([...selectedCodes, ...verifiedCodes])];
+  const trimmedNote = note.trim();
+  const formsForPayload = allCodes.map((code) => {
+    const existing = capabilityForms.find((row) => row.code === code);
+    return {
+      code,
+      years_experience: yearsExperience ?? existing?.years_experience ?? null,
+      note: trimmedNote || existing?.note || "",
+      verified: existing?.verified ?? false,
+    };
+  });
+  return buildAgeGroupCapabilitiesPayload(allCodes, formsForPayload);
 }
 
 export function catalogueLabel(group: ChildAgeGroupRow, lang: "en" | "ar"): string {

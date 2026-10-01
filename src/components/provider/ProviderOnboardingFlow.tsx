@@ -24,7 +24,6 @@ import {
   useMySavedSelections,
   useOnboardingSnapshot,
   usePhase1Services,
-  useChildAgeGroups,
   useSaveOnboardingSection,
   useSecureUploadDocument,
   useSubmitOnboarding,
@@ -45,12 +44,15 @@ import {
   savedSelectionLoadState,
 } from "@/lib/provider/onboardingHydration";
 import {
-  CATALOGUE_AGE_GROUP_CODES,
-  buildAgeGroupCapabilitiesPayload,
-  catalogueLabel,
+  AGE_GROUP_CHIP_IDS,
+  buildAgeGroupCapabilitiesPayloadFromChips,
+  chipHasVerifiedCode,
+  chipIsSelected,
+  sharedBabysittingExperienceFromForms,
   type AgeGroupCapabilityForm,
-  type ChildAgeGroupRow,
+  type AgeGroupChipId,
 } from "@/lib/provider/ageGroupCapabilities";
+import { suggestInitialZoneSelection } from "@/lib/provider/onboardingZones";
 import { useAvatarUrl } from "@/lib/db/queries";
 import { TeachingCapabilitiesEditor } from "@/components/provider/TeachingCapabilitiesEditor";
 import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
@@ -106,7 +108,6 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
   const submit = useSubmitOnboarding();
   const uploadDoc = useSecureUploadDocument();
   const servicesQ = usePhase1Services();
-  const catalogueQ = useChildAgeGroups();
   const zonesQ = useActiveZones();
 
   const provider = providerQ.data as any;
@@ -152,6 +153,8 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
   const [langs, setLangs] = useState<string[]>(["arabic"]);
   const [childGroups, setChildGroups] = useState<string[]>([]);
   const [capabilityForms, setCapabilityForms] = useState<AgeGroupCapabilityForm[]>([]);
+  const [babysittingYears, setBabysittingYears] = useState<number | "">("");
+  const [babysittingNote, setBabysittingNote] = useState("");
   const [maxChildren, setMaxChildren] = useState<number | "">(previewMode ? 2 : "");
   const [newborn, setNewborn] = useState(false);
   const [firstAid, setFirstAid] = useState(false);
@@ -194,6 +197,12 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
     setLangs(hydrated.langs);
     setChildGroups(hydrated.childGroups);
     setCapabilityForms(hydrated.capabilityForms);
+    const shared = sharedBabysittingExperienceFromForms(
+      hydrated.capabilityForms,
+      hydrated.childGroups,
+    );
+    setBabysittingYears(shared.years ?? "");
+    setBabysittingNote(shared.note);
     setMaxChildren(hydrated.maxChildren ?? "");
     setNewborn(hydrated.newborn);
     setFirstAid(hydrated.firstAid);
@@ -210,9 +219,20 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
 
   useEffect(() => {
     if (previewMode || zonesHydrated.current || !savedSelectionsQ.isSuccess) return;
-    setSelectedZones(mapSavedZoneIds(savedSelectionsQ.data?.zones));
+    const saved = mapSavedZoneIds(savedSelectionsQ.data?.zones);
+    const zones = zonesQ.data ?? [];
+    setSelectedZones(suggestInitialZoneSelection(zones, area, governorate, saved));
     zonesHydrated.current = true;
-  }, [previewMode, savedSelectionsQ.isSuccess, savedSelectionsQ.data]);
+  }, [previewMode, savedSelectionsQ.isSuccess, savedSelectionsQ.data, zonesQ.data, area, governorate]);
+
+  useEffect(() => {
+    if (previewMode || !zonesHydrated.current || !zonesQ.isSuccess) return;
+    const zones = zonesQ.data ?? [];
+    if (zones.length !== 1) return;
+    const onlyId = zones[0]?.id;
+    if (!onlyId) return;
+    setSelectedZones((current) => (current.length === 1 && current[0] === onlyId ? current : [onlyId]));
+  }, [previewMode, zonesQ.isSuccess, zonesQ.data]);
 
   useEffect(() => {
     if (previewMode || refsHydrated.current || !refsQ.isSuccess) return;
@@ -249,38 +269,14 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
     );
   }, [selectedServices, servicesQ.data]);
 
-  const ageGroupCatalogue: ChildAgeGroupRow[] = useMemo(() => {
-    const rows = (catalogueQ.data ?? []) as ChildAgeGroupRow[];
-    if (rows.length > 0) return rows;
-    return CATALOGUE_AGE_GROUP_CODES.map((code, index) => ({
-      code,
-      sort_order: index + 1,
-    }));
-  }, [catalogueQ.data]);
-
-  const toggleAgeGroup = (code: string, verified: boolean) => {
-    if (verified || !editable) return;
-    setChildGroups((current) => {
-      const next = current.includes(code)
-        ? current.filter((item) => item !== code)
-        : [...current, code];
-      return next;
-    });
-    setCapabilityForms((current) => {
-      if (current.some((row) => row.code === code)) return current;
-      return [...current, { code, years_experience: null, note: "", verified: false }];
-    });
+  const toggleAgeChip = (chipId: AgeGroupChipId) => {
+    if (chipHasVerifiedCode(chipId, capabilityForms) || !editable) return;
+    setChildGroups((current) =>
+      current.includes(chipId) ? current.filter((id) => id !== chipId) : [...current, chipId],
+    );
   };
 
-  const updateCapabilityForm = (code: string, patch: Partial<AgeGroupCapabilityForm>) => {
-    setCapabilityForms((current) => {
-      const existing = current.find((row) => row.code === code);
-      if (existing) {
-        return current.map((row) => (row.code === code ? { ...row, ...patch } : row));
-      }
-      return [...current, { code, years_experience: null, note: "", verified: false, ...patch }];
-    });
-  };
+  const singleActiveZone = (zonesQ.data ?? []).length === 1 ? (zonesQ.data ?? [])[0] : null;
 
   const saveCurrent = async () => {
     setErr("");
@@ -320,15 +316,11 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
           first_aid_training: firstAid,
         };
         if (babysittingSelected) {
-          const selectedCodes = [
-            ...new Set([
-              ...childGroups,
-              ...capabilityForms.filter((row) => row.verified).map((row) => row.code),
-            ]),
-          ];
-          experiencePayload.age_group_capabilities = buildAgeGroupCapabilitiesPayload(
-            selectedCodes,
+          experiencePayload.age_group_capabilities = buildAgeGroupCapabilitiesPayloadFromChips(
+            childGroups,
             capabilityForms,
+            babysittingYears === "" ? null : Number(babysittingYears),
+            babysittingNote,
           );
           experiencePayload.max_children_per_booking =
             maxChildren === "" ? null : Number(maxChildren);
@@ -786,83 +778,59 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                 </Field>
                 <Field label={t("pro.onboardingWizard.childAgeGroups")}>
                   <div className="flex flex-wrap gap-2">
-                    {ageGroupCatalogue.map((group) => {
-                      const form = capabilityForms.find((row) => row.code === group.code);
-                      const verified = Boolean(form?.verified);
-                      const on = childGroups.includes(group.code) || verified;
+                    {AGE_GROUP_CHIP_IDS.map((chipId) => {
+                      const verified = chipHasVerifiedCode(chipId, capabilityForms);
+                      const on = chipIsSelected(chipId, childGroups, capabilityForms);
                       return (
                         <button
-                          key={group.code}
+                          key={chipId}
                           type="button"
                           disabled={!editable || verified}
-                          onClick={() => toggleAgeGroup(group.code, verified)}
+                          onClick={() => toggleAgeChip(chipId)}
                           className={`rounded-full px-3 py-1.5 text-xs font-extrabold ${
                             on
                               ? "bg-brand text-brand-foreground"
                               : "border border-border bg-surface"
                           } ${!editable || verified ? "opacity-80" : ""}`}
                         >
-                          {catalogueLabel(group, lang === "ar" ? "ar" : "en") ||
-                            t(`pro.onboardingWizard.ageGroups.${group.code}`, group.code)}
+                          {t(`pro.onboardingWizard.ageGroupChips.${chipId}`)}
+                          {verified ? (
+                            <span className="ms-1 font-semibold opacity-80">
+                              ({t("pro.onboardingWizard.verifiedClaim")})
+                            </span>
+                          ) : null}
                         </button>
                       );
                     })}
                   </div>
                 </Field>
-                {ageGroupCatalogue
-                  .filter(
-                    (group) =>
-                      childGroups.includes(group.code) ||
-                      capabilityForms.some((row) => row.code === group.code && row.verified),
-                  )
-                  .map((group) => {
-                    const form = capabilityForms.find((row) => row.code === group.code);
-                    const verified = Boolean(form?.verified);
-                    const locked = !editable || verified;
-                    return (
-                      <div
-                        key={`years-${group.code}`}
-                        className="space-y-2 rounded-xl border border-border/40 p-3"
-                      >
-                        <div className="text-xs font-extrabold text-foreground">
-                          {catalogueLabel(group, lang === "ar" ? "ar" : "en") ||
-                            t(`pro.onboardingWizard.ageGroups.${group.code}`, group.code)}
-                          {verified ? (
-                            <span className="ms-2 font-semibold text-muted-foreground">
-                              {t("pro.onboardingWizard.verifiedClaim")}
-                            </span>
-                          ) : null}
-                        </div>
-                        <Field label={t("pro.onboardingWizard.yearsWithGroup")}>
-                          <input
-                            type="number"
-                            min={0}
-                            max={60}
-                            disabled={locked}
-                            value={form?.years_experience ?? ""}
-                            onChange={(e) =>
-                              updateCapabilityForm(group.code, {
-                                years_experience:
-                                  e.target.value === "" ? null : Number(e.target.value),
-                              })
-                            }
-                            className={inputClass}
-                          />
-                        </Field>
-                        <Field label={t("pro.onboardingWizard.groupNote")}>
-                          <textarea
-                            rows={2}
-                            disabled={locked}
-                            value={form?.note ?? ""}
-                            onChange={(e) =>
-                              updateCapabilityForm(group.code, { note: e.target.value })
-                            }
-                            className={`${inputClass} min-h-[3.5rem] py-2`}
-                          />
-                        </Field>
-                      </div>
-                    );
-                  })}
+                {(childGroups.length > 0 ||
+                  AGE_GROUP_CHIP_IDS.some((chipId) => chipHasVerifiedCode(chipId, capabilityForms))) && (
+                  <div className="space-y-2 rounded-xl border border-border/40 p-3">
+                    <Field label={t("pro.onboardingWizard.babysittingYearsExperience")}>
+                      <input
+                        type="number"
+                        min={0}
+                        max={60}
+                        disabled={!editable}
+                        value={babysittingYears}
+                        onChange={(e) =>
+                          setBabysittingYears(e.target.value === "" ? "" : Number(e.target.value))
+                        }
+                        className={inputClass}
+                      />
+                    </Field>
+                    <Field label={t("pro.onboardingWizard.groupNote")}>
+                      <textarea
+                        rows={2}
+                        disabled={!editable}
+                        value={babysittingNote}
+                        onChange={(e) => setBabysittingNote(e.target.value)}
+                        className={`${inputClass} min-h-[3.5rem] py-2`}
+                      />
+                    </Field>
+                  </div>
+                )}
                 <label className="flex items-center gap-2 text-sm font-medium">
                   <input
                     type="checkbox"
@@ -901,26 +869,35 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                 {t("pro.onboardingWizard.savedSelectionsError")}
               </p>
             ) : null}
-            {(zonesQ.data ?? []).map((z: any) => {
-              const on = selectedZones.includes(z.id);
-              return (
-                <button
-                  key={z.id}
-                  type="button"
-                  disabled={coverageLoadState !== "ready"}
-                  onClick={() =>
-                    setSelectedZones((prev) =>
-                      on ? prev.filter((x) => x !== z.id) : [...prev, z.id],
-                    )
-                  }
-                  className={`w-full rounded-2xl border px-3 py-3 text-start text-sm font-bold break-words ${
-                    on ? "border-brand bg-brand/[0.06]" : "border-border/60"
-                  } ${coverageLoadState !== "ready" ? "opacity-70" : ""}`}
-                >
-                  {lang === "ar" ? z.name_ar : z.name_en}
-                </button>
-              );
-            })}
+            {singleActiveZone ? (
+              <div className="rounded-2xl border border-brand/30 bg-brand/[0.06] px-3 py-3 text-sm font-bold break-words">
+                {lang === "ar" ? singleActiveZone.name_ar : singleActiveZone.name_en}
+                <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
+                  {t("pro.onboardingWizard.singleZoneConfirmed")}
+                </p>
+              </div>
+            ) : (
+              (zonesQ.data ?? []).map((z: any) => {
+                const on = selectedZones.includes(z.id);
+                return (
+                  <button
+                    key={z.id}
+                    type="button"
+                    disabled={coverageLoadState !== "ready"}
+                    onClick={() =>
+                      setSelectedZones((prev) =>
+                        on ? prev.filter((x) => x !== z.id) : [...prev, z.id],
+                      )
+                    }
+                    className={`w-full rounded-2xl border px-3 py-3 text-start text-sm font-bold break-words ${
+                      on ? "border-brand bg-brand/[0.06]" : "border-border/60"
+                    } ${coverageLoadState !== "ready" ? "opacity-70" : ""}`}
+                  >
+                    {lang === "ar" ? z.name_ar : z.name_en}
+                  </button>
+                );
+              })
+            )}
           </Card>
         )}
 

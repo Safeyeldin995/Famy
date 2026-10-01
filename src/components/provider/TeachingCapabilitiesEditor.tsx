@@ -17,6 +17,11 @@ import {
   formatTeachingCapabilityLine,
   localizedTaxonomyName,
 } from "@/lib/tutoring/teachingCapabilities";
+import {
+  teachingLevelsForCurriculum,
+  upsertTeachingCapabilitiesForLevels,
+} from "@/lib/tutoring/teachingLevelFilters";
+import { teachingUpsertErrorKey } from "@/lib/tutoring/teachingUpsertErrors";
 import { currentLang } from "@/lib/i18n";
 
 type TutoringService = {
@@ -48,10 +53,11 @@ export function TeachingCapabilitiesEditor({
   const [serviceId, setServiceId] = useState(services[0]?.id ?? "");
   const [subjectId, setSubjectId] = useState("");
   const [curriculumId, setCurriculumId] = useState("");
-  const [levelId, setLevelId] = useState("");
+  const [selectedLevelIds, setSelectedLevelIds] = useState<string[]>([]);
   const [duration, setDuration] = useState(DEFAULT_SESSION_DURATION_MIN);
   const [price, setPrice] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const service = services.find((s) => s.id === serviceId) ?? services[0];
   const linkedSubjectIds = useMemo(
@@ -65,6 +71,15 @@ export function TeachingCapabilitiesEditor({
   );
   const subjects = (subjectsQ.data ?? []).filter((row) => linkedSubjectIds.has(row.id));
   const subject = subjects.find((row) => row.id === subjectId);
+  const curriculum = (curriculaQ.data ?? []).find((row) => row.id === curriculumId);
+  const filteredLevels = useMemo(
+    () => teachingLevelsForCurriculum(curriculum?.code, levelsQ.data ?? []),
+    [curriculum?.code, levelsQ.data],
+  );
+  const allowedLevelIds = useMemo(
+    () => new Set(filteredLevels.map((row) => row.id)),
+    [filteredLevels],
+  );
   const durations = allowedDurationsForSubject(
     subject?.max_session_duration_min ?? 120,
     service?.allowed_session_durations ?? [60, 90, 120, 180],
@@ -80,11 +95,21 @@ export function TeachingCapabilitiesEditor({
     }
   }, [durations, duration]);
 
+  useEffect(() => {
+    setSelectedLevelIds((current) => {
+      const next = current.filter((id) => allowedLevelIds.has(id));
+      if (next.length === current.length && next.every((id, index) => id === current[index])) {
+        return current;
+      }
+      return next;
+    });
+  }, [curriculumId, allowedLevelIds]);
+
   const resetForm = () => {
     setEditingId(null);
     setSubjectId("");
     setCurriculumId("");
-    setLevelId("");
+    setSelectedLevelIds([]);
     setDuration(DEFAULT_SESSION_DURATION_MIN);
     setPrice("");
   };
@@ -94,13 +119,23 @@ export function TeachingCapabilitiesEditor({
     setServiceId(row.service_id);
     setSubjectId(row.subject_id);
     setCurriculumId(row.curriculum_id);
-    setLevelId(row.level_id);
+    setSelectedLevelIds([row.level_id]);
     setDuration(row.session_duration_min as typeof DEFAULT_SESSION_DURATION_MIN);
     setPrice(String(row.session_price));
   };
 
-  const submit = () => {
-    if (!service?.id || !subjectId || !curriculumId || !levelId) {
+  const toggleLevel = (levelId: string) => {
+    if (editingId) {
+      setSelectedLevelIds([levelId]);
+      return;
+    }
+    setSelectedLevelIds((current) =>
+      current.includes(levelId) ? current.filter((id) => id !== levelId) : [...current, levelId],
+    );
+  };
+
+  const submit = async () => {
+    if (!service?.id || !subjectId || !curriculumId || selectedLevelIds.length === 0) {
       toast.error(t("teaching.formIncomplete"));
       return;
     }
@@ -109,25 +144,40 @@ export function TeachingCapabilitiesEditor({
       toast.error(t("teaching.priceInvalid"));
       return;
     }
-    upsert.mutate(
-      {
-        id: editingId,
-        serviceId: service.id,
-        subjectId,
-        curriculumId,
-        levelId,
-        sessionDurationMin: duration,
-        sessionPrice,
-      },
-      {
-        onSuccess: () => {
-          toast.success(t("teaching.savedPending"));
-          resetForm();
+    setSubmitting(true);
+    try {
+      const outcomes = await upsertTeachingCapabilitiesForLevels(
+        selectedLevelIds,
+        {
+          id: editingId,
+          serviceId: service.id,
+          subjectId,
+          curriculumId,
+          sessionDurationMin: duration,
+          sessionPrice,
         },
-        onError: (error: unknown) =>
-          toast.error(error instanceof Error ? error.message : t("common.somethingWentWrong")),
-      },
-    );
+        (input) => upsert.mutateAsync(input),
+      );
+      for (const outcome of outcomes) {
+        const level = filteredLevels.find((row) => row.id === outcome.levelId);
+        const label = level ? localizedTaxonomyName(level, lang) : outcome.levelId;
+        if (outcome.ok) {
+          toast.success(t("teaching.levelSavedPending", { level: label }));
+        } else {
+          toast.error(
+            t("teaching.levelSaveFailed", {
+              level: label,
+              reason: t(teachingUpsertErrorKey(outcome.error)),
+            }),
+          );
+        }
+      }
+      if (outcomes.some((row) => row.ok)) {
+        resetForm();
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (services.length === 0) return null;
@@ -175,22 +225,33 @@ export function TeachingCapabilitiesEditor({
             </option>
           ))}
         </select>
-        {curriculumId &&
-        (curriculaQ.data ?? []).find((row) => row.id === curriculumId)?.code === "british" ? (
+        {curriculum?.code === "british" ? (
           <p className="text-[11px] text-muted-foreground">{t("teaching.britishLevelHint")}</p>
         ) : null}
-        <select
-          value={levelId}
-          onChange={(e) => setLevelId(e.target.value)}
-          className="h-11 rounded-xl border border-border bg-surface px-3 text-sm"
-        >
-          <option value="">{t("teaching.level")}</option>
-          {(levelsQ.data ?? []).map((row) => (
-            <option key={row.id} value={row.id}>
-              {localizedTaxonomyName(row, lang)}
-            </option>
-          ))}
-        </select>
+        {curriculumId ? (
+          <div className="space-y-1">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {t("teaching.level")}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {filteredLevels.map((row) => {
+                const on = selectedLevelIds.includes(row.id);
+                return (
+                  <button
+                    key={row.id}
+                    type="button"
+                    onClick={() => toggleLevel(row.id)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-extrabold ${
+                      on ? "bg-brand text-brand-foreground" : "border border-border"
+                    }`}
+                  >
+                    {localizedTaxonomyName(row, lang)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
         <div className="flex flex-wrap gap-2">
           {durations.map((value) => (
             <button
@@ -224,8 +285,8 @@ export function TeachingCapabilitiesEditor({
         </p>
         <button
           type="button"
-          onClick={submit}
-          disabled={upsert.isPending}
+          onClick={() => void submit()}
+          disabled={submitting || upsert.isPending}
           className="h-11 rounded-xl bg-brand text-sm font-extrabold text-brand-foreground disabled:opacity-50"
         >
           {editingId ? t("teaching.saveChanges") : t("teaching.addCapability")}
