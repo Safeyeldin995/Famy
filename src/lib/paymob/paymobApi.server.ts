@@ -1,7 +1,4 @@
-import {
-  buildPaymobUnifiedCheckoutUrl,
-  type PaymobConfig,
-} from "./paymobConfig.server";
+import { buildPaymobUnifiedCheckoutUrl, type PaymobConfig } from "./paymobConfig.server";
 
 export type PaymobBillingData = {
   first_name: string;
@@ -59,7 +56,7 @@ export class PaymobIntentionRejectedError extends Error {
 export async function createPaymobIntention(
   config: PaymobConfig,
   input: CreatePaymobIntentionInput,
-): Promise<{ checkoutUrl: string; intentionId: string; clientSecret: string }> {
+): Promise<{ checkoutUrl: string; intentionId: string; clientSecret: string; orderId: string }> {
   const body = {
     amount: input.amountCents,
     currency: input.currency,
@@ -85,7 +82,9 @@ export async function createPaymobIntention(
       body: JSON.stringify(body),
     });
   } catch (err) {
-    throw new PaymobIntentionIndeterminateError("Could not reach Paymob to start checkout.", { cause: err });
+    throw new PaymobIntentionIndeterminateError("Could not reach Paymob to start checkout.", {
+      cause: err,
+    });
   }
 
   if (!response.ok) {
@@ -93,7 +92,9 @@ export async function createPaymobIntention(
     try {
       detail = await response.text();
     } catch (err) {
-      throw new PaymobIntentionIndeterminateError("Could not read Paymob's error response.", { cause: err });
+      throw new PaymobIntentionIndeterminateError("Could not read Paymob's error response.", {
+        cause: err,
+      });
     }
     console.error("[paymob.intention] create failed", response.status, detail.slice(0, 500));
     // A 4xx proves Paymob rejected the request before creating anything
@@ -116,15 +117,29 @@ export async function createPaymobIntention(
   try {
     data = (await response.json()) as PaymobIntentionResponse;
   } catch (err) {
-    throw new PaymobIntentionIndeterminateError("Paymob checkout response could not be parsed.", { cause: err });
+    throw new PaymobIntentionIndeterminateError("Paymob checkout response could not be parsed.", {
+      cause: err,
+    });
   }
-  if (!data.client_secret || !data.id) {
+  const orderId = data.intention_order_id ?? (data as { order?: { id?: unknown } }).order?.id;
+  if (
+    !data.client_secret ||
+    !data.id ||
+    orderId === null ||
+    orderId === undefined ||
+    String(orderId) === ""
+  ) {
     throw new PaymobIntentionIndeterminateError("Paymob checkout response was incomplete.");
   }
 
   return {
-    checkoutUrl: buildPaymobUnifiedCheckoutUrl(config.publicKey, data.client_secret, config.baseUrl),
+    checkoutUrl: buildPaymobUnifiedCheckoutUrl(
+      config.publicKey,
+      data.client_secret,
+      config.baseUrl,
+    ),
     intentionId: String(data.id),
     clientSecret: data.client_secret,
+    orderId: String(orderId),
   };
 }

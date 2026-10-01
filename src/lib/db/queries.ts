@@ -650,6 +650,10 @@ export type CreateBookingInput = {
   notes?: string | null;
   promo_code_id?: string | null;
   requirement_selections?: Tables['bookings']['Insert']['requirement_selections'];
+  teaching_capability_id?: string | null;
+  teaching_subject_code?: string | null;
+  teaching_curriculum_code?: string | null;
+  teaching_level_code?: string | null;
 };
 
 export type CreateBookingResult = Tables['bookings']['Row'] & {
@@ -677,6 +681,10 @@ export function useCreateBooking() {
         p_notes: input.notes ?? undefined,
         p_promo_code_id: input.promo_code_id ?? undefined,
         p_requirement_selections: (input.requirement_selections ?? []) as never,
+        p_teaching_capability_id: input.teaching_capability_id ?? undefined,
+        p_teaching_subject_code: input.teaching_subject_code ?? undefined,
+        p_teaching_curriculum_code: input.teaching_curriculum_code ?? undefined,
+        p_teaching_level_code: input.teaching_level_code ?? undefined,
       });
       if (error) {
         throw mapBookingRpcError(error);

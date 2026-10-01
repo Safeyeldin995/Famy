@@ -11,6 +11,11 @@ import {
   useFavoriteIds,
   useToggleFavorite,
 } from "@/lib/db/queries";
+import { useApprovedTeachingCapabilities } from "@/lib/db/teaching-queries";
+import {
+  formatTeachingCapabilityLine,
+  isTutoringCategorySlug,
+} from "@/lib/tutoring/teachingCapabilities";
 import { useProviderAvailability } from "@/lib/db/provider-queries";
 import { toUIProvider } from "@/lib/db/adapters";
 import { useTranslation } from "react-i18next";
@@ -42,6 +47,7 @@ export function ProviderProfileContent({ providerId }: { providerId: string }) {
   const provQ = useProvider(id, addressQ.data?.id);
   const reviewsQ = useProviderReviews(id);
   const availQ = useProviderAvailability(id);
+  const capsQ = useApprovedTeachingCapabilities(id);
   const favIdsQ = useFavoriteIds();
   const toggleFav = useToggleFavorite();
   const { t } = useTranslation();
@@ -85,8 +91,7 @@ export function ProviderProfileContent({ providerId }: { providerId: string }) {
   const reviews = reviewsQ.data ?? [];
   const isFav = (favIdsQ.data ?? []).includes(p.id);
   const categoryLabel =
-    p.services.find((s) => s.status === "approved")?.name ||
-    p.categorySlug.replace(/-/g, " ");
+    p.services.find((s) => s.status === "approved")?.name || p.categorySlug.replace(/-/g, " ");
 
   const onShare = async () => {
     const url = window.location.href;
@@ -220,6 +225,28 @@ export function ProviderProfileContent({ providerId }: { providerId: string }) {
                 </span>
               ))}
             </div>
+          </ProfileCard>
+        ) : null}
+
+        {(capsQ.data ?? []).length > 0 ? (
+          <ProfileCard title={t("teaching.whatITeach")}>
+            <ul className="space-y-2">
+              {(capsQ.data ?? []).map((cap) => (
+                <li key={cap.id} className="text-xs font-bold leading-snug text-foreground">
+                  {formatTeachingCapabilityLine({
+                    subject: lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn,
+                    curriculum: lang === "ar" ? cap.curriculumNameAr : cap.curriculumNameEn,
+                    level: lang === "ar" ? cap.levelNameAr : cap.levelNameEn,
+                    durationMin: cap.durationMin,
+                    price: cap.price,
+                  })}
+                </li>
+              ))}
+            </ul>
+          </ProfileCard>
+        ) : isTutoringCategorySlug(p.categorySlug) ? (
+          <ProfileCard title={t("teaching.whatITeach")}>
+            <p className="text-sm text-muted-foreground">{t("bookFlow.noCapabilities")}</p>
           </ProfileCard>
         ) : null}
 
@@ -368,15 +395,7 @@ function ProfileCard({ title, children }: { title: string; children: React.React
   );
 }
 
-function InfoRow({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
+function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="flex items-start gap-3">
       <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand/8 text-brand">

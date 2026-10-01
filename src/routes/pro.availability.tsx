@@ -34,7 +34,7 @@ function defaultRows(existing: any[]): Row[] {
   });
 }
 
-function AvailabilityPage() {
+export function AvailabilityPage() {
   const { t } = useTranslation();
   const p = useMyProvider();
   const provider = p.data as any;
@@ -168,6 +168,11 @@ function AvailabilityPage() {
           <PrimaryButton onClick={handleSave} disabled={save.isPending || availQ.isError} className="mt-4">
             {save.isPending ? t("pro.common.saving") : t("pro.schedule.saveSchedule")}
           </PrimaryButton>
+          {save.isError && (
+            <div role="alert" className="mt-3 text-center text-xs font-bold text-destructive">
+              {t("pro.schedule.saveError")}
+            </div>
+          )}
           {save.isSuccess && <div className="mt-3 text-center text-xs font-bold text-success">{t("pro.common.saved")}</div>}
         </div>
 

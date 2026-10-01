@@ -61,26 +61,41 @@ import {
   showMyselfOption,
 } from "@/lib/booking/babysittingRecipient";
 import { isClosedBetaCategorySlug } from "@/lib/catalog/closedBetaCategories";
+import { useApprovedTeachingCapabilities } from "@/lib/db/teaching-queries";
+import {
+  formatTeachingCapabilityLine,
+  isTutoringCategorySlug,
+  tutoringSessionQuote,
+} from "@/lib/tutoring/teachingCapabilities";
 
 export const Route = createFileRoute("/book/$providerId")({
   validateSearch: (search: Record<string, unknown>) => ({
     serviceId: typeof search.serviceId === "string" ? search.serviceId : undefined,
+    capabilityId: typeof search.capabilityId === "string" ? search.capabilityId : undefined,
   }),
   component: Book,
 });
 
 function Book() {
   const { providerId } = Route.useParams();
-  const { serviceId: searchServiceId } = Route.useSearch();
-  return <BookContent providerId={providerId} searchServiceId={searchServiceId} />;
+  const { serviceId: searchServiceId, capabilityId: searchCapabilityId } = Route.useSearch();
+  return (
+    <BookContent
+      providerId={providerId}
+      searchServiceId={searchServiceId}
+      searchCapabilityId={searchCapabilityId}
+    />
+  );
 }
 
 export function BookContent({
   providerId,
   searchServiceId,
+  searchCapabilityId,
 }: {
   providerId: string;
   searchServiceId?: string;
+  searchCapabilityId?: string;
 }) {
   const provQ = useProvider(providerId);
   const servicesQ = useProviderServices(providerId);
@@ -107,6 +122,7 @@ export function BookContent({
   const SCHEDULE_STEP = 2;
   const [step, setStep] = useState(0);
   const [serviceId, setServiceId] = useState<string | null>(searchServiceId ?? null);
+  const [capabilityId, setCapabilityId] = useState<string | null>(searchCapabilityId ?? null);
   const [duration, setDuration] = useState("4h");
   const [date, setDate] = useState<Date | null>(null);
   const [time, setTime] = useState<string | null>(null);
@@ -182,16 +198,35 @@ export function BookContent({
     [services, serviceId],
   );
   const isBabysitting = isBabysittingCategorySlug(activeService?.service?.category?.slug);
-  const hours = parseInt(duration);
+  const isTutoring = isTutoringCategorySlug(activeService?.service?.category?.slug);
+  const capabilitiesQ = useApprovedTeachingCapabilities(
+    providerId,
+    activeService?.service?.id ?? serviceId ?? undefined,
+  );
+  const selectedCapability =
+    (capabilitiesQ.data ?? []).find((row) => row.id === capabilityId) ??
+    (capabilitiesQ.data ?? []).find((row) => row.id === searchCapabilityId) ??
+    null;
+  const requestedCapabilityMissing =
+    isTutoring && !!searchCapabilityId && !capabilitiesQ.isLoading && !selectedCapability;
+  const hours = selectedCapability ? selectedCapability.durationMin / 60 : parseInt(duration);
+  const tutoringQuote = selectedCapability
+    ? tutoringSessionQuote(selectedCapability.durationMin, selectedCapability.price)
+    : null;
   // Must run unconditionally on every render (Rules of Hooks) — this was
   // previously declared after the loading/not-found early returns below,
   // so the hook count changed between the first render (still loading,
   // returns early) and the next one, which crashes React with a hooks
   // order mismatch as soon as the provider/services queries resolve.
-  const slotsQ = useAvailableSlots(providerId, date, hours * 60 || 120, {
-    serviceId: activeService?.service?.id ?? serviceId,
-    addressId: slotAddressId,
-  });
+  const slotsQ = useAvailableSlots(
+    providerId,
+    date,
+    selectedCapability?.durationMin || hours * 60 || 120,
+    {
+      serviceId: activeService?.service?.id ?? serviceId,
+      addressId: slotAddressId,
+    },
+  );
   const bookingSettingsQ = useProviderBookingSettings(providerId, {
     serviceId: eligibilityServiceId,
     addressId: slotAddressId,
@@ -320,7 +355,7 @@ export function BookContent({
       : (selectedFamilyMember?.full_name ?? t("bookFlow.dash"));
 
   const ratePerHour = Number(activeService?.price_override ?? p.hourlyRate);
-  const subtotal = ratePerHour * hours;
+  const subtotal = tutoringQuote ? tutoringQuote.subtotal : ratePerHour * hours;
   const fee = billingQ.data?.platform_fee ?? DEFAULT_BILLING_SETTINGS.platform_fee;
   const vat = Math.round(
     subtotal * ((billingQ.data?.vat_percent ?? DEFAULT_BILLING_SETTINGS.vat_percent) / 100),
@@ -356,6 +391,7 @@ export function BookContent({
 
   const canNext = () => {
     if (step === 0) return !!activeService;
+    if (step === 1 && isTutoring) return !!selectedCapability;
     if (step === SCHEDULE_STEP) return !!date && !!time;
     if (step === 3) return !!addressId && !!zoneQ.data;
     if (step === 4)
@@ -473,6 +509,10 @@ export function BookContent({
           requirement_id: r.id,
           chosen_by: requirementChoices[r.id],
         })),
+        teaching_capability_id: selectedCapability?.id ?? null,
+        teaching_subject_code: selectedCapability?.subjectCode ?? null,
+        teaching_curriculum_code: selectedCapability?.curriculumCode ?? null,
+        teaching_level_code: selectedCapability?.levelCode ?? null,
       };
       const fingerprint = bookingSubmissionFingerprint(submissionPayload);
       idempotencyStateRef.current = resolveIdempotencyKey(idempotencyStateRef.current, fingerprint);
@@ -602,7 +642,10 @@ export function BookContent({
                     <Option
                       key={s.service.id}
                       active={active}
-                      onClick={() => setServiceId(s.service.id)}
+                      onClick={() => {
+                        setServiceId(s.service.id);
+                        setCapabilityId(null);
+                      }}
                       label={label}
                     />
                   );
@@ -612,7 +655,49 @@ export function BookContent({
           </Step>
         )}
 
-        {step === 1 && (
+        {step === 1 && isTutoring && (
+          <Step title={t("bookFlow.pickCapability")} sub={t("bookFlow.pickCapabilitySub")}>
+            {requestedCapabilityMissing ? (
+              <p className="mb-3 text-sm font-semibold text-coral">
+                {t("bookFlow.capabilityUnavailable")}
+              </p>
+            ) : null}
+            {(capabilitiesQ.data ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">{t("bookFlow.noCapabilities")}</p>
+            ) : (
+              <div className="space-y-3">
+                {(capabilitiesQ.data ?? []).map((cap) => {
+                  const active = selectedCapability?.id === cap.id;
+                  const label = formatTeachingCapabilityLine({
+                    subject: lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn,
+                    curriculum: lang === "ar" ? cap.curriculumNameAr : cap.curriculumNameEn,
+                    level: lang === "ar" ? cap.levelNameAr : cap.levelNameEn,
+                    durationMin: cap.durationMin,
+                    price: cap.price,
+                  });
+                  return (
+                    <Option
+                      key={cap.id}
+                      active={active}
+                      onClick={() => setCapabilityId(cap.id)}
+                      label={label}
+                    />
+                  );
+                })}
+              </div>
+            )}
+            {selectedCapability ? (
+              <p className="mt-3 text-sm font-extrabold text-brand">
+                {t("bookFlow.sessionLine", {
+                  minutes: formatNumber(selectedCapability.durationMin),
+                })}{" "}
+                · {formatEGP(selectedCapability.price)}
+              </p>
+            ) : null}
+          </Step>
+        )}
+
+        {step === 1 && !isTutoring && (
           <Step title={t("bookFlow.durationTitle")} sub={t("bookFlow.durationSub")}>
             <div className="grid grid-cols-2 gap-3">
               {durations.map((d) => {
@@ -939,7 +1024,12 @@ export function BookContent({
                     {(lang === "ar"
                       ? activeService?.service?.name_ar
                       : activeService?.service?.name_en) || ""}{" "}
-                    · {duration}
+                    ·{" "}
+                    {tutoringQuote
+                      ? t("bookFlow.sessionLine", {
+                          minutes: formatNumber(tutoringQuote.durationMin),
+                        })
+                      : duration}
                   </div>
                 </div>
               </div>
@@ -1011,10 +1101,16 @@ export function BookContent({
               </div>
               <div className="mt-3 border-t border-border pt-3 space-y-1.5 text-sm">
                 <Row
-                  label={t("bookFlow.rateLine", {
-                    rate: formatEGP(ratePerHour),
-                    hours: formatNumber(hours),
-                  })}
+                  label={
+                    tutoringQuote
+                      ? t("bookFlow.sessionLine", {
+                          minutes: formatNumber(tutoringQuote.durationMin),
+                        })
+                      : t("bookFlow.rateLine", {
+                          rate: formatEGP(ratePerHour),
+                          hours: formatNumber(hours),
+                        })
+                  }
                   value={formatEGP(subtotal)}
                   small
                 />
@@ -1110,6 +1206,12 @@ export function BookContent({
               <Check className="h-3 w-3 text-success" aria-hidden="true" />
               {t("bookFlow.encrypted")}
             </div>
+            {tutoringQuote ? (
+              <p className="mt-3 text-center text-sm font-extrabold">
+                {t("bookFlow.sessionLine", { minutes: formatNumber(tutoringQuote.durationMin) })} ·{" "}
+                {formatEGP(tutoringQuote.sessionPrice)}
+              </p>
+            ) : null}
           </Step>
         )}
       </div>

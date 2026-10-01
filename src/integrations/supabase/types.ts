@@ -773,6 +773,9 @@ export type Database = {
           price_total: number
           price_travel_fee: number
           price_vat: number
+          price_commission_percent: number | null
+          price_commission_amount: number | null
+          price_provider_net: number | null
           promo_code: string | null
           promo_code_id: string | null
           promo_description_ar: string | null
@@ -783,10 +786,21 @@ export type Database = {
           request_fingerprint: string | null
           requirement_selections: Json
           service_id: string
+          session_duration_min: number | null
           start_at: string
           status: Database["public"]["Enums"]["booking_status"]
           status_changed_at: string | null
           status_changed_by: string | null
+          teaching_capability_id: string | null
+          teaching_curriculum_code: string | null
+          teaching_curriculum_name_ar: string | null
+          teaching_curriculum_name_en: string | null
+          teaching_level_code: string | null
+          teaching_level_name_ar: string | null
+          teaching_level_name_en: string | null
+          teaching_subject_code: string | null
+          teaching_subject_name_ar: string | null
+          teaching_subject_name_en: string | null
           updated_at: string
         }
         Insert: {
@@ -823,6 +837,9 @@ export type Database = {
           price_total?: number
           price_travel_fee?: number
           price_vat?: number
+          price_commission_percent?: number | null
+          price_commission_amount?: number | null
+          price_provider_net?: number | null
           promo_code?: string | null
           promo_code_id?: string | null
           promo_description_ar?: string | null
@@ -833,10 +850,21 @@ export type Database = {
           request_fingerprint?: string | null
           requirement_selections?: Json
           service_id: string
+          session_duration_min?: number | null
           start_at: string
           status?: Database["public"]["Enums"]["booking_status"]
           status_changed_at?: string | null
           status_changed_by?: string | null
+          teaching_capability_id?: string | null
+          teaching_curriculum_code?: string | null
+          teaching_curriculum_name_ar?: string | null
+          teaching_curriculum_name_en?: string | null
+          teaching_level_code?: string | null
+          teaching_level_name_ar?: string | null
+          teaching_level_name_en?: string | null
+          teaching_subject_code?: string | null
+          teaching_subject_name_ar?: string | null
+          teaching_subject_name_en?: string | null
           updated_at?: string
         }
         Update: {
@@ -873,6 +901,9 @@ export type Database = {
           price_total?: number
           price_travel_fee?: number
           price_vat?: number
+          price_commission_percent?: number | null
+          price_commission_amount?: number | null
+          price_provider_net?: number | null
           promo_code?: string | null
           promo_code_id?: string | null
           promo_description_ar?: string | null
@@ -883,10 +914,21 @@ export type Database = {
           request_fingerprint?: string | null
           requirement_selections?: Json
           service_id?: string
+          session_duration_min?: number | null
           start_at?: string
           status?: Database["public"]["Enums"]["booking_status"]
           status_changed_at?: string | null
           status_changed_by?: string | null
+          teaching_capability_id?: string | null
+          teaching_curriculum_code?: string | null
+          teaching_curriculum_name_ar?: string | null
+          teaching_curriculum_name_en?: string | null
+          teaching_level_code?: string | null
+          teaching_level_name_ar?: string | null
+          teaching_level_name_en?: string | null
+          teaching_subject_code?: string | null
+          teaching_subject_name_ar?: string | null
+          teaching_subject_name_en?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -930,6 +972,13 @@ export type Database = {
             columns: ["service_id"]
             isOneToOne: false
             referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_teaching_capability_id_fkey"
+            columns: ["teaching_capability_id"]
+            isOneToOne: false
+            referencedRelation: "provider_teaching_capabilities"
             referencedColumns: ["id"]
           },
         ]
@@ -2548,6 +2597,96 @@ export type Database = {
           },
         ]
       }
+      provider_teaching_capabilities: {
+        Row: {
+          created_at: string
+          curriculum_id: string
+          id: string
+          level_id: string
+          provider_id: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          service_id: string
+          session_duration_min: number
+          session_price: number
+          status: string
+          subject_id: string
+          submitted_at: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          curriculum_id: string
+          id?: string
+          level_id: string
+          provider_id: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          service_id: string
+          session_duration_min: number
+          session_price: number
+          status?: string
+          subject_id: string
+          submitted_at?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          curriculum_id?: string
+          id?: string
+          level_id?: string
+          provider_id?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          service_id?: string
+          session_duration_min?: number
+          session_price?: number
+          status?: string
+          subject_id?: string
+          submitted_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_teaching_capabilities_curriculum_id_fkey"
+            columns: ["curriculum_id"]
+            isOneToOne: false
+            referencedRelation: "teaching_curricula"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_teaching_capabilities_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "teaching_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_teaching_capabilities_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_teaching_capabilities_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_teaching_capabilities_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "teaching_subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       provider_vacations: {
         Row: {
           created_at: string
@@ -2879,6 +3018,7 @@ export type Database = {
           duration_min: number
           id: string
           is_active: boolean
+          allowed_session_durations: number[] | null
           maximum_extras_total: number | null
           maximum_price: number | null
           minimum_price: number | null
@@ -2899,6 +3039,7 @@ export type Database = {
           duration_min?: number
           id?: string
           is_active?: boolean
+          allowed_session_durations?: number[] | null
           maximum_extras_total?: number | null
           maximum_price?: number | null
           minimum_price?: number | null
@@ -2919,6 +3060,7 @@ export type Database = {
           duration_min?: number
           id?: string
           is_active?: boolean
+          allowed_session_durations?: number[] | null
           maximum_extras_total?: number | null
           maximum_price?: number | null
           minimum_price?: number | null
@@ -3012,6 +3154,138 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      teaching_curricula: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name_ar: string
+          name_en: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name_ar: string
+          name_en: string
+          sort_order: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name_ar?: string
+          name_en?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      teaching_levels: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name_ar: string
+          name_en: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name_ar: string
+          name_en: string
+          sort_order: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name_ar?: string
+          name_en?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      teaching_subject_services: {
+        Row: {
+          service_id: string
+          subject_id: string
+        }
+        Insert: {
+          service_id: string
+          subject_id: string
+        }
+        Update: {
+          service_id?: string
+          subject_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teaching_subject_services_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teaching_subject_services_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "teaching_subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teaching_subjects: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          max_session_duration_min: number
+          name_ar: string
+          name_en: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_session_duration_min?: number
+          name_ar: string
+          name_en: string
+          sort_order: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_session_duration_min?: number
+          name_ar?: string
+          name_en?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       ticket_messages: {
         Row: {
@@ -3465,12 +3739,43 @@ export type Database = {
         Returns: undefined
       }
       admin_retry_notification: { Args: { p_id: string }; Returns: undefined }
+      admin_list_provider_teaching_capabilities: {
+        Args: { p_provider_id: string }
+        Returns: {
+          curriculum_code: string
+          curriculum_id: string
+          curriculum_name_ar: string
+          curriculum_name_en: string
+          id: string
+          level_code: string
+          level_id: string
+          level_name_ar: string
+          level_name_en: string
+          provider_id: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          service_id: string
+          session_duration_min: number
+          session_price: number
+          status: string
+          subject_code: string
+          subject_id: string
+          subject_name_ar: string
+          subject_name_en: string
+          submitted_at: string
+        }[]
+      }
       admin_review_provider_document: {
         Args: {
           p_document_id: string
           p_reason?: string
           p_status: Database["public"]["Enums"]["verification_status"]
         }
+        Returns: undefined
+      }
+      admin_review_teaching_capability: {
+        Args: { p_id: string; p_review_note?: string; p_status: string }
         Returns: undefined
       }
       admin_set_default_payment_method: {
@@ -3536,6 +3841,10 @@ export type Database = {
           p_requirement_selections: Json
           p_service_id: string
           p_start_at: string
+          p_teaching_capability_id?: string
+          p_teaching_curriculum_code?: string
+          p_teaching_level_code?: string
+          p_teaching_subject_code?: string
         }
         Returns: string
       }
@@ -3607,6 +3916,10 @@ export type Database = {
           p_requirement_selections?: Json
           p_service_id: string
           p_start_at: string
+          p_teaching_capability_id?: string
+          p_teaching_curriculum_code?: string
+          p_teaching_level_code?: string
+          p_teaching_subject_code?: string
         }
         Returns: Json
       }
@@ -3867,6 +4180,7 @@ export type Database = {
         }
         Returns: Json
       }
+      provider_remove_teaching_capability: { Args: { p_id: string }; Returns: undefined }
       provider_required_documents_approved: {
         Args: { p_provider_id: string }
         Returns: boolean
@@ -3914,6 +4228,18 @@ export type Database = {
         }
       }
       provider_submit_onboarding: { Args: never; Returns: Json }
+      provider_upsert_teaching_capability: {
+        Args: {
+          p_curriculum_id: string
+          p_id?: string
+          p_level_id: string
+          p_service_id: string
+          p_session_duration_min: number
+          p_session_price: number
+          p_subject_id: string
+        }
+        Returns: string
+      }
       providers_safe_for_owner: {
         Args: { p_provider_id: string }
         Returns: {
@@ -3982,6 +4308,10 @@ export type Database = {
           p_p256dh: string
         }
         Returns: string
+      }
+      replace_provider_availability: {
+        Args: { p_provider_id: string; p_rules: Json }
+        Returns: undefined
       }
       report_no_show: {
         Args: {

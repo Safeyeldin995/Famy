@@ -29,6 +29,7 @@ import {
   useAdminEvidenceSignedUrl,
   type AdminRequirementInput,
 } from "@/lib/db/admin-queries";
+import { TeachingTaxonomyManager } from "@/components/admin/TeachingTaxonomyManager";
 
 export const Route = createFileRoute("/admin/services")({ component: AdminServices });
 
@@ -62,6 +63,7 @@ type ServiceForm = {
   maximum_price: string;
   maximum_extras_total: string;
   provider_pricing_allowed: boolean;
+  allowed_session_durations: string;
 };
 
 const EMPTY_FORM: ServiceForm = {
@@ -78,6 +80,7 @@ const EMPTY_FORM: ServiceForm = {
   maximum_price: "",
   maximum_extras_total: "",
   provider_pricing_allowed: false,
+  allowed_session_durations: "",
 };
 
 function formFromService(s: any): ServiceForm {
@@ -95,6 +98,9 @@ function formFromService(s: any): ServiceForm {
     maximum_price: s.maximum_price != null ? String(s.maximum_price) : "",
     maximum_extras_total: s.maximum_extras_total != null ? String(s.maximum_extras_total) : "",
     provider_pricing_allowed: !!s.provider_pricing_allowed,
+    allowed_session_durations: Array.isArray(s.allowed_session_durations)
+      ? s.allowed_session_durations.join(",")
+      : "",
   };
 }
 
@@ -154,7 +160,16 @@ function toInput(f: ServiceForm): AdminServiceInput {
     maximum_price: f.maximum_price.trim() ? Number(f.maximum_price) : null,
     maximum_extras_total: f.maximum_extras_total.trim() ? Number(f.maximum_extras_total) : null,
     provider_pricing_allowed: f.provider_pricing_allowed,
+    allowed_session_durations: normalizedAllowedDurations(f),
   };
+}
+
+function normalizedAllowedDurations(f: ServiceForm): number[] | null {
+  const values = f.allowed_session_durations
+    .split(",")
+    .map((part) => Number(part.trim()))
+    .filter((value) => value > 0);
+  return values.length ? values : null;
 }
 
 function dbErrorMessage(e: any, t: (key: string) => string): string {
@@ -330,6 +345,17 @@ function ServiceFormFields({
             onChange={(e) => setForm({ ...form, provider_pricing_allowed: e.target.checked })}
           />
           {t("admin.services.allowProviderPricing")}
+        </label>
+        <label className="mt-3 block">
+          <span className="text-xs font-semibold text-muted-foreground">
+            {t("teaching.allowedDurations")}
+          </span>
+          <input
+            value={form.allowed_session_durations}
+            onChange={(e) => setForm({ ...form, allowed_session_durations: e.target.value })}
+            placeholder="60,90,120,180"
+            className="mt-1 h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm"
+          />
         </label>
         <div className="mt-3 grid grid-cols-3 gap-3">
           <label className="block">
@@ -1239,6 +1265,7 @@ export function AdminServices() {
           </ul>
         )}
       </section>
+      <TeachingTaxonomyManager />
     </div>
   );
 }
