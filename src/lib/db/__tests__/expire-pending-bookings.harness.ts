@@ -118,6 +118,10 @@ CREATE TABLE IF NOT EXISTS public.bookings (
   idempotency_key uuid,
   request_fingerprint text,
   currency text NOT NULL DEFAULT 'EGP',
+  teaching_capability_id uuid,
+  teaching_subject_code text,
+  teaching_curriculum_code text,
+  teaching_level_code text,
   cancellation_reason text,
   cancelled_at timestamptz,
   cancelled_by uuid,
@@ -238,16 +242,27 @@ CREATE TABLE IF NOT EXISTS public.messages (
 CREATE OR REPLACE FUNCTION public.is_not_suspended(_user_id uuid)
 RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT true; $$;
 
+DROP FUNCTION IF EXISTS public.booking_request_fingerprint(uuid, uuid, uuid, timestamptz, timestamptz, uuid, text, uuid, jsonb);
+
 CREATE OR REPLACE FUNCTION public.booking_request_fingerprint(
   p_provider_id uuid, p_service_id uuid, p_address_id uuid,
   p_start_at timestamptz, p_end_at timestamptz,
-  p_family_member_id uuid, p_notes text, p_promo_code_id uuid, p_requirement_selections jsonb
+  p_family_member_id uuid, p_notes text, p_promo_code_id uuid, p_requirement_selections jsonb,
+  p_teaching_capability_id uuid DEFAULT NULL,
+  p_teaching_subject_code text DEFAULT NULL,
+  p_teaching_curriculum_code text DEFAULT NULL,
+  p_teaching_level_code text DEFAULT NULL
 ) RETURNS text LANGUAGE sql IMMUTABLE AS $$
-  SELECT md5(concat_ws('|',
+  SELECT concat_ws('|',
     p_provider_id::text, p_service_id::text, p_address_id::text,
     p_start_at::text, p_end_at::text, coalesce(p_family_member_id::text, ''),
-    coalesce(p_notes, ''), coalesce(p_promo_code_id::text, ''), coalesce(p_requirement_selections::text, '[]')
-  ));
+    coalesce(p_notes, ''), coalesce(p_promo_code_id::text, ''),
+    coalesce(p_requirement_selections::text, '[]'),
+    coalesce(p_teaching_capability_id::text, ''),
+    coalesce(p_teaching_subject_code, ''),
+    coalesce(p_teaching_curriculum_code, ''),
+    coalesce(p_teaching_level_code, '')
+  );
 $$;
 
 CREATE OR REPLACE FUNCTION public.marketplace_eligibility_internal(

@@ -371,14 +371,12 @@ BEGIN
     END IF;
 
   ELSIF NEW.status = 'cancelled' THEN
-    -- Expiry already inserts customer + provider notifications.
+    -- Latest body from 20260714233000, plus an expiry skip so we do not
+    -- send a second customer "declined" notification. Expiry already
+    -- inserts customer + provider notifications in expire_pending_bookings().
     IF NEW.cancellation_reason = 'provider_no_response'
        OR current_setting('app.pending_expiry_in_progress', true) = 'on' THEN
-      IF v_conversation_id IS NOT NULL THEN
-        PERFORM set_config('app.system_message_in_progress', 'on', true);
-        INSERT INTO public.messages (conversation_id, body, system_key)
-        VALUES (v_conversation_id, 'Booking request expired.', 'booking_expired');
-      END IF;
+      NULL;
     ELSIF OLD.status = 'pending' AND NEW.cancelled_by IS DISTINCT FROM NEW.customer_id THEN
       INSERT INTO public.notifications (user_id, type, category, title, body, title_en, title_ar, body_en, body_ar, payload, deep_link, booking_id)
       VALUES (
@@ -388,11 +386,6 @@ BEGIN
         'Your booking request was not accepted. Please try another provider or time.', 'لم يتم قبول طلب حجزك. يرجى تجربة مزود خدمة أو موعد آخر.',
         jsonb_build_object('booking_id', NEW.id), v_customer_link, NEW.id
       );
-      IF v_conversation_id IS NOT NULL THEN
-        PERFORM set_config('app.system_message_in_progress', 'on', true);
-        INSERT INTO public.messages (conversation_id, body, system_key)
-        VALUES (v_conversation_id, 'Booking cancelled.', 'booking_cancelled');
-      END IF;
     ELSIF NEW.cancelled_by = NEW.customer_id THEN
       IF v_provider_user IS NOT NULL THEN
         INSERT INTO public.notifications (user_id, type, category, title, body, title_en, title_ar, body_en, body_ar, payload, deep_link, booking_id)
@@ -404,11 +397,6 @@ BEGIN
           jsonb_build_object('booking_id', NEW.id), v_provider_link, NEW.id
         );
       END IF;
-      IF v_conversation_id IS NOT NULL THEN
-        PERFORM set_config('app.system_message_in_progress', 'on', true);
-        INSERT INTO public.messages (conversation_id, body, system_key)
-        VALUES (v_conversation_id, 'Booking cancelled.', 'booking_cancelled');
-      END IF;
     ELSE
       INSERT INTO public.notifications (user_id, type, category, title, body, title_en, title_ar, body_en, body_ar, payload, deep_link, booking_id)
       VALUES (
@@ -418,8 +406,14 @@ BEGIN
         'Your booking was cancelled.', 'تم إلغاء حجزك.',
         jsonb_build_object('booking_id', NEW.id), v_customer_link, NEW.id
       );
-      IF v_conversation_id IS NOT NULL THEN
-        PERFORM set_config('app.system_message_in_progress', 'on', true);
+    END IF;
+    IF v_conversation_id IS NOT NULL THEN
+      PERFORM set_config('app.system_message_in_progress', 'on', true);
+      IF NEW.cancellation_reason = 'provider_no_response'
+         OR current_setting('app.pending_expiry_in_progress', true) = 'on' THEN
+        INSERT INTO public.messages (conversation_id, body, system_key)
+        VALUES (v_conversation_id, 'Booking request expired.', 'booking_expired');
+      ELSE
         INSERT INTO public.messages (conversation_id, body, system_key)
         VALUES (v_conversation_id, 'Booking cancelled.', 'booking_cancelled');
       END IF;
@@ -432,10 +426,14 @@ $$;
 REVOKE EXECUTE ON FUNCTION public.tg_booking_notify() FROM PUBLIC, anon, authenticated;
 
 -- ============================================================
--- 5) create_booking: reject a start_at that is already inside the
--- "min_hours_before_start" window (stricter of that setting and the
--- provider's min_notice_hours). tg_validate_booking_service is untouched.
+-- 5) create_booking: 14-argument body from
+-- 20261001130000_tutoring_teaching_capabilities.sql, plus a
+-- creation-window check after idempotent replay. Do not recreate
+-- the 10-argument overload — PostgREST cannot choose between two.
+-- tg_validate_booking_service is untouched.
 -- ============================================================
+DROP FUNCTION IF EXISTS public.create_booking(uuid, uuid, uuid, timestamptz, timestamptz, uuid, uuid, text, uuid, jsonb);
+
 CREATE OR REPLACE FUNCTION public.create_booking(
   p_provider_id uuid,
   p_service_id uuid,
@@ -446,7 +444,11 @@ CREATE OR REPLACE FUNCTION public.create_booking(
   p_family_member_id uuid DEFAULT NULL,
   p_notes text DEFAULT NULL,
   p_promo_code_id uuid DEFAULT NULL,
-  p_requirement_selections jsonb DEFAULT '[]'::jsonb
+  p_requirement_selections jsonb DEFAULT '[]'::jsonb,
+  p_teaching_capability_id uuid DEFAULT NULL,
+  p_teaching_subject_code text DEFAULT NULL,
+  p_teaching_curriculum_code text DEFAULT NULL,
+  p_teaching_level_code text DEFAULT NULL
 ) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
   v_uid uuid := auth.uid();
@@ -473,7 +475,8 @@ BEGIN
 
   v_fingerprint := public.booking_request_fingerprint(
     p_provider_id, p_service_id, p_address_id, p_start_at, p_end_at,
-    p_family_member_id, p_notes, p_promo_code_id, coalesce(p_requirement_selections, '[]'::jsonb)
+    p_family_member_id, p_notes, p_promo_code_id, coalesce(p_requirement_selections, '[]'::jsonb),
+    p_teaching_capability_id, p_teaching_subject_code, p_teaching_curriculum_code, p_teaching_level_code
   );
 
   PERFORM pg_advisory_xact_lock(hashtextextended(v_uid::text || ':' || p_idempotency_key::text, 0));
@@ -518,13 +521,16 @@ BEGIN
       requirement_selections, promo_code_id,
       price_subtotal, price_discount, price_total,
       price_platform_fee, price_vat, price_extras_total, price_travel_fee,
-      idempotency_key, request_fingerprint, currency
+      idempotency_key, request_fingerprint, currency,
+      teaching_capability_id, teaching_subject_code, teaching_curriculum_code, teaching_level_code
     ) VALUES (
       v_uid, p_provider_id, p_service_id, p_address_id,
       p_start_at, p_end_at, 'pending', NULLIF(btrim(p_notes), ''), p_family_member_id,
       coalesce(p_requirement_selections, '[]'::jsonb), p_promo_code_id,
       0, 0, 0, 0, 0, 0, 0,
-      p_idempotency_key, v_fingerprint, 'EGP'
+      p_idempotency_key, v_fingerprint, 'EGP',
+      p_teaching_capability_id, NULLIF(btrim(p_teaching_subject_code), ''),
+      NULLIF(btrim(p_teaching_curriculum_code), ''), NULLIF(btrim(p_teaching_level_code), '')
     ) RETURNING id INTO v_booking_id;
     v_created := true;
   EXCEPTION
@@ -560,8 +566,8 @@ BEGIN
   );
 END;
 $$;
-REVOKE ALL ON FUNCTION public.create_booking(uuid,uuid,uuid,timestamptz,timestamptz,uuid,uuid,text,uuid,jsonb) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.create_booking(uuid,uuid,uuid,timestamptz,timestamptz,uuid,uuid,text,uuid,jsonb) TO authenticated;
+REVOKE ALL ON FUNCTION public.create_booking(uuid,uuid,uuid,timestamptz,timestamptz,uuid,uuid,text,uuid,jsonb,uuid,text,text,text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.create_booking(uuid,uuid,uuid,timestamptz,timestamptz,uuid,uuid,text,uuid,jsonb,uuid,text,text,text) TO authenticated;
 
 -- ============================================================
 -- 6) Best-effort pg_cron, same pattern as process_due_reminders

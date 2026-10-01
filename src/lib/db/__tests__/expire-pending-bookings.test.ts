@@ -253,6 +253,21 @@ describe("expire pending bookings", () => {
     expect(capturedPay[0]?.metadata.admin_review_reason).toBe("expired_pending_captured");
   });
 
+  it("leaves a single 14-argument create_booking after applying the expiry migration", async () => {
+    db = await createExpiryDb();
+    const overloads = await queryRows<{ pronargs: number }>(
+      db,
+      `
+        SELECT p.pronargs
+        FROM pg_proc p
+        JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public' AND p.proname = 'create_booking'
+        ORDER BY p.pronargs
+      `,
+    );
+    expect(overloads).toEqual([{ pronargs: 14 }]);
+  });
+
   it("denies EXECUTE on expire_pending_bookings to authenticated and anon", async () => {
     db = await createExpiryDb();
     expect(await functionExecuteAllowed(db, "service_role")).toBe(true);
