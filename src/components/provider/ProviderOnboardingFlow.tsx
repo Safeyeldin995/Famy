@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -132,6 +133,8 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
     : combineSavedSelectionLoadState(selectionsLoadState, zonesCatalogLoadState);
   const referencesLoadState = previewMode ? "ready" : savedSelectionLoadState(refsQ);
   const savedServiceIds = mapSavedServiceIds(savedSelectionsQ.data?.services);
+  const savedServices = savedSelectionsQ.data?.services ?? [];
+  const qc = useQueryClient();
   const activeZoneIds = (zonesQ.data ?? []).map((z: { id: string }) => z.id);
   const offeredServiceIds = (servicesQ.data ?? []).map((s: { id: string }) => s.id);
 
@@ -682,17 +685,28 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
             ) : null}
             {(servicesQ.data ?? []).map((s: any) => {
               const on = selectedServices.includes(s.id);
-              const locked = savedServiceIds.includes(s.id);
+              const saved = savedServices.find((row) => row.service_id === s.id);
+              const locked = saved != null && (!editable || saved.status === "approved");
               return (
                 <button
                   key={s.id}
                   type="button"
                   disabled={selectionsLoadState !== "ready" || locked}
-                  onClick={() =>
+                  onClick={async () => {
+                    if (on && saved && editable && saved.status !== "approved") {
+                      const { error } = await supabase.rpc("provider_remove_onboarding_service", {
+                        p_service_id: s.id,
+                      });
+                      if (error) {
+                        toast.error(error.message);
+                        return;
+                      }
+                      await qc.invalidateQueries({ queryKey: ["provider-saved-selections"] });
+                    }
                     setSelectedServices((prev) =>
                       on ? prev.filter((x) => x !== s.id) : [...prev, s.id],
-                    )
-                  }
+                    );
+                  }}
                   className={`w-full rounded-2xl border px-3 py-3 text-start transition-colors ${
                     on ? "border-brand bg-brand/[0.06] shadow-sm" : "border-border/60 bg-surface"
                   } ${selectionsLoadState !== "ready" || locked ? "opacity-70" : ""}`}

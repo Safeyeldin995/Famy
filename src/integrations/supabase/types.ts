@@ -4170,6 +4170,7 @@ export type Database = {
         Returns: Json
       }
       provider_remove_teaching_capability: { Args: { p_id: string }; Returns: undefined }
+      provider_remove_onboarding_service: { Args: { p_service_id: string }; Returns: undefined }
       provider_required_documents_approved: {
         Args: { p_provider_id: string }
         Returns: boolean

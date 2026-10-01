@@ -108,7 +108,10 @@ export function useMySavedSelections(providerId: string | undefined) {
     queryKey: ["provider-saved-selections", providerId],
     queryFn: async () => {
       const [servicesRes, zonesRes] = await Promise.all([
-        supabase.from("provider_services").select("service_id").eq("provider_id", providerId!),
+        supabase
+          .from("provider_services")
+          .select("service_id, status")
+          .eq("provider_id", providerId!),
         supabase.from("zone_providers").select("zone_id").eq("provider_id", providerId!),
       ]);
       if (servicesRes.error) throw servicesRes.error;

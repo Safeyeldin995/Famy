@@ -68,7 +68,7 @@ export type OnboardingFormHydration = {
 
 export type SavedSelectionLoadState = "loading" | "error" | "ready";
 
-export type SavedServiceRow = { service_id?: string | null };
+export type SavedServiceRow = { service_id?: string | null; status?: string | null };
 export type SavedZoneRow = { zone_id?: string | null };
 export type SavedReferenceRow = {
   full_name?: string | null;
