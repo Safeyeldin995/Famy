@@ -473,6 +473,9 @@ export function AdminProvider({ id }: { id: string }) {
                 {rejectingServiceId === ps.id && (
                   <div className="mt-2 space-y-2 rounded-lg border border-coral/30 bg-coral/5 p-2">
                     <p className="text-[11px] font-bold text-coral">{t("admin.providers.rejectReasonLabel")}</p>
+                    <p className="text-[11px] font-medium text-muted-foreground">
+                      {t("admin.provider.rejectServiceReasonShownToProvider")}
+                    </p>
                     <textarea
                       value={serviceRejectReason}
                       onChange={(e) => setServiceRejectReason(e.target.value)}
