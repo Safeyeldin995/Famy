@@ -341,6 +341,33 @@ describe("security write guards (issue #94)", () => {
     expect(attack.error ?? "").toMatch(/BOOKING_PROVIDER_INELIGIBLE/);
   });
 
+  it("S6 keeps hourly_rate bookings when provider_pricing_allowed is false and applies min/max", async () => {
+    db = await readyDb();
+    await db.exec(`
+      UPDATE public.services
+      SET provider_pricing_allowed = false, minimum_price = 50, maximum_price = 150
+      WHERE id = '${IDS.cleaningService}';
+      UPDATE public.provider_services
+      SET price_override = NULL
+      WHERE provider_id = '${IDS.provider}' AND service_id = '${IDS.cleaningService}';
+      UPDATE public.providers SET hourly_rate = 100 WHERE id = '${IDS.provider}';
+    `);
+
+    const inside = await insertBooking(db, {
+      serviceId: IDS.cleaningService,
+      familyMemberId: null,
+    });
+    expect(inside.ok, "S6 hourly_rate inside min/max with pricing disallowed").toBe(true);
+
+    await db.exec(`UPDATE public.providers SET hourly_rate = 999 WHERE id = '${IDS.provider}'`);
+    const outside = await insertBooking(db, {
+      serviceId: IDS.cleaningService,
+      familyMemberId: null,
+    });
+    expect(outside.ok, "S6 hourly_rate outside min/max with pricing disallowed").toBe(false);
+    expect(outside.error ?? "").toMatch(/BOOKING_PROVIDER_INELIGIBLE/);
+  });
+
   it("S7 rejects provider capture of InstaPay and Paymob-without-webhook", async () => {
     db = await readyDb();
     const instapay = await tryAsUser(

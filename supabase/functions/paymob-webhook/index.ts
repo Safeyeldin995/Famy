@@ -212,7 +212,11 @@ Deno.serve(async (req) => {
   });
 
   if (error) {
-    console.error("[paymob-webhook] rpc failed", error.message);
+    if (/order id mismatch/i.test(error.message ?? "")) {
+      console.error("[paymob-webhook] order id mismatch");
+    } else {
+      console.error("[paymob-webhook] rpc failed", error.message);
+    }
     return new Response(JSON.stringify({ error: "processing_failed" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },

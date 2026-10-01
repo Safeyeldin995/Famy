@@ -131,9 +131,9 @@ CREATE TRIGGER trg_guard_provider_onboarding_fields
   FOR EACH ROW EXECUTE FUNCTION public.tg_guard_provider_onboarding_fields();
 
 -- ---------------------------------------------------------------------------
--- S6: apply pricing limits to the effective rate (price_override or hourly_rate).
--- Body is the current 20260912090000 definition with the price_override-only
--- wrapper removed. Error code BOOKING_PROVIDER_INELIGIBLE is unchanged.
+-- S6: apply min/max to the effective rate (price_override or hourly_rate).
+-- provider_pricing_allowed still gates only an explicit price_override.
+-- Error code BOOKING_PROVIDER_INELIGIBLE is unchanged.
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.tg_validate_booking_service()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
@@ -246,8 +246,10 @@ BEGIN
 
   SELECT hourly_rate INTO v_provider_hourly_rate FROM public.providers WHERE id = NEW.provider_id;
   v_rate := COALESCE(v_ps.price_override, v_provider_hourly_rate);
-  IF NOT v_service.provider_pricing_allowed
-     OR (v_service.minimum_price IS NOT NULL AND v_rate < v_service.minimum_price)
+  IF v_ps.price_override IS NOT NULL AND NOT v_service.provider_pricing_allowed THEN
+    RAISE EXCEPTION 'BOOKING_PROVIDER_INELIGIBLE: Provider price no longer meets pricing rules.' USING ERRCODE = '23514';
+  END IF;
+  IF (v_service.minimum_price IS NOT NULL AND v_rate < v_service.minimum_price)
      OR (v_service.maximum_price IS NOT NULL AND v_rate > v_service.maximum_price)
   THEN
     RAISE EXCEPTION 'BOOKING_PROVIDER_INELIGIBLE: Provider price no longer meets pricing rules.' USING ERRCODE = '23514';
@@ -515,19 +517,9 @@ BEGIN
   IF v_stored_order_id IS NULL
      OR v_incoming_order_id IS NULL
      OR v_stored_order_id IS DISTINCT FROM v_incoming_order_id THEN
-    INSERT INTO public.paymob_webhook_events (paymob_transaction_id, payment_id, outcome)
-    VALUES (p_paymob_transaction_id, p_payment_id, 'ignored')
-    ON CONFLICT (paymob_transaction_id) DO NOTHING;
-
-    UPDATE public.payments
-    SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object(
-      'paymob_order_id_mismatch', true,
-      'paymob_order_id_received', to_jsonb(v_incoming_order_id),
-      'paymob_order_id_expected', to_jsonb(v_stored_order_id)
-    )
-    WHERE id = p_payment_id;
-
-    RAISE EXCEPTION 'Paymob order id mismatch for payment %', p_payment_id USING ERRCODE = '42501';
+    -- Do not INSERT an ignored webhook event: that would consume the
+    -- transaction id and block the legitimate matching webhook.
+    RAISE EXCEPTION 'Paymob order id mismatch' USING ERRCODE = '42501';
   END IF;
 
   v_expected_cents := ROUND(v_payment.amount * 100)::bigint;
