@@ -2265,7 +2265,15 @@ const ar: Translation = {
     saveChanges: "حفظ وارسال للمراجعة",
     savedPending: "تم الحفظ. بانتظار موافقة المشرف.",
     levelSavedPending: "تم حفظ {{level}} — بانتظار موافقة الإدارة.",
-    levelSaveFailed: "تعذر حفظ {{level}}: {{error}}",
+    levelSaveFailed: "تعذر حفظ {{level}}: {{reason}}",
+    errors: {
+      generic: "تعذر حفظ قدرة التدريس. حاول مرة أخرى أو تواصل مع الدعم.",
+      unauthorized: "غير مسموح لك بتعديل قدرة التدريس هذه.",
+      invalidDuration: "اختر مدة حصة مسموحة لهذه المادة.",
+      invalidPrice: "أدخل سعرا صحيحا بالجنيه ضمن حدود الخدمة.",
+      subjectNotLinked: "المادة أو المنهج أو الصف غير متاح لهذه الخدمة.",
+      selfReview: "لا يمكنك مراجعة قدرة التدريس الخاصة بك.",
+    },
     status: {
       pending: "قيد المراجعة",
       approved: "معتمد",

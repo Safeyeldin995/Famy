@@ -2292,7 +2292,15 @@ const en = {
     saveChanges: "Save and send for review",
     savedPending: "Saved. Waiting for admin approval.",
     levelSavedPending: "{{level}} saved — waiting for admin approval.",
-    levelSaveFailed: "Could not save {{level}}: {{error}}",
+    levelSaveFailed: "Could not save {{level}}: {{reason}}",
+    errors: {
+      generic: "Could not save this teaching capability. Try again or contact support.",
+      unauthorized: "You are not allowed to change this teaching capability.",
+      invalidDuration: "Choose a session duration allowed for this subject.",
+      invalidPrice: "Enter a whole EGP price within the service limits.",
+      subjectNotLinked: "This subject, curriculum, or level is not available for the selected service.",
+      selfReview: "You cannot review your own teaching capability.",
+    },
     status: {
       pending: "Pending",
       approved: "Approved",

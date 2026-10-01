@@ -21,6 +21,7 @@ import {
   teachingLevelsForCurriculum,
   upsertTeachingCapabilitiesForLevels,
 } from "@/lib/tutoring/teachingLevelFilters";
+import { teachingUpsertErrorKey } from "@/lib/tutoring/teachingUpsertErrors";
 import { currentLang } from "@/lib/i18n";
 
 type TutoringService = {
@@ -71,7 +72,14 @@ export function TeachingCapabilitiesEditor({
   const subjects = (subjectsQ.data ?? []).filter((row) => linkedSubjectIds.has(row.id));
   const subject = subjects.find((row) => row.id === subjectId);
   const curriculum = (curriculaQ.data ?? []).find((row) => row.id === curriculumId);
-  const filteredLevels = teachingLevelsForCurriculum(curriculum?.code, levelsQ.data ?? []);
+  const filteredLevels = useMemo(
+    () => teachingLevelsForCurriculum(curriculum?.code, levelsQ.data ?? []),
+    [curriculum?.code, levelsQ.data],
+  );
+  const allowedLevelIds = useMemo(
+    () => new Set(filteredLevels.map((row) => row.id)),
+    [filteredLevels],
+  );
   const durations = allowedDurationsForSubject(
     subject?.max_session_duration_min ?? 120,
     service?.allowed_session_durations ?? [60, 90, 120, 180],
@@ -88,10 +96,14 @@ export function TeachingCapabilitiesEditor({
   }, [durations, duration]);
 
   useEffect(() => {
-    setSelectedLevelIds((current) =>
-      current.filter((id) => filteredLevels.some((row) => row.id === id)),
-    );
-  }, [curriculumId, filteredLevels]);
+    setSelectedLevelIds((current) => {
+      const next = current.filter((id) => allowedLevelIds.has(id));
+      if (next.length === current.length && next.every((id, index) => id === current[index])) {
+        return current;
+      }
+      return next;
+    });
+  }, [curriculumId, allowedLevelIds]);
 
   const resetForm = () => {
     setEditingId(null);
@@ -152,7 +164,12 @@ export function TeachingCapabilitiesEditor({
         if (outcome.ok) {
           toast.success(t("teaching.levelSavedPending", { level: label }));
         } else {
-          toast.error(t("teaching.levelSaveFailed", { level: label, error: outcome.error }));
+          toast.error(
+            t("teaching.levelSaveFailed", {
+              level: label,
+              reason: t(teachingUpsertErrorKey(outcome.error)),
+            }),
+          );
         }
       }
       if (outcomes.some((row) => row.ok)) {
