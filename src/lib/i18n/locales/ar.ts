@@ -1185,6 +1185,7 @@ const ar: Translation = {
       vacationSub: "أوقف استقبال الطلبات الجديدة مؤقتا",
       weeklyHours: "ساعات الأسبوع",
       saveSchedule: "حفظ الجدول",
+      saveError: "تعذر حفظ ساعاتك الأسبوعية. تم الاحتفاظ بجدولك السابق.",
       vacations: "الإجازات",
       start: "البداية",
       end: "النهاية",

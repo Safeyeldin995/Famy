@@ -1198,6 +1198,7 @@ const en = {
       vacationSub: "Stop receiving new requests temporarily",
       weeklyHours: "Weekly hours",
       saveSchedule: "Save schedule",
+      saveError: "Could not save your weekly hours. Your previous schedule was kept.",
       vacations: "Vacations",
       start: "Start",
       end: "End",

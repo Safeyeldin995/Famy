@@ -274,11 +274,10 @@ export function useReplaceAvailability() {
       providerId: string;
       rules: { weekday: number; start_time: string; end_time: string }[];
     }) => {
-      await supabase.from('availability_rules').delete().eq('provider_id', providerId);
-      if (rules.length === 0) return;
-      const { error } = await supabase
-        .from('availability_rules')
-        .insert(rules.map((r) => ({ ...r, provider_id: providerId, timezone: 'Africa/Cairo' })));
+      const { error } = await supabase.rpc('replace_provider_availability', {
+        p_provider_id: providerId,
+        p_rules: rules,
+      });
       if (error) throw error;
     },
     onSuccess: (_d, vars) =>

@@ -3981,6 +3981,10 @@ export type Database = {
         }
         Returns: string
       }
+      replace_provider_availability: {
+        Args: { p_provider_id: string; p_rules: Json }
+        Returns: undefined
+      }
       report_no_show: {
         Args: {
           p_booking_id: string
