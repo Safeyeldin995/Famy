@@ -339,7 +339,7 @@ export function seedPreviewQueries(qc: import("@tanstack/react-query").QueryClie
   qc.setQueryData(["avatar-url", "https://i.pravatar.cc/240?img=32"], "https://i.pravatar.cc/240?img=32");
   qc.setQueryData(["avatar-url", "https://i.pravatar.cc/240?img=45"], "https://i.pravatar.cc/240?img=45");
   qc.setQueryData(["support-contact"], { phone: "+201000000000", whatsapp: "+201000000000", note: "Preview" });
-  qc.setQueryData(["settings", "billing"], { vat_percent: 14, platform_fee: 25 });
+  qc.setQueryData(["settings", "billing"], { vat_percent: 14, platform_fee: 25, commission_percent: null });
   qc.setQueryData(["settings", "service_areas"], [
     { name: "Maadi", enabled: true },
     { name: "Sheikh Zayed", enabled: true },
@@ -445,6 +445,12 @@ function buildPreviewProviderBookings() {
       end_at: pendingEnd.toISOString(),
       price_total: 540,
       total_price: 540,
+      price_subtotal: 500,
+      price_extras_total: 0,
+      price_travel_fee: 40,
+      price_provider_net: null,
+      price_commission_percent: null,
+      price_commission_amount: null,
     },
     {
       ...base,
@@ -454,6 +460,12 @@ function buildPreviewProviderBookings() {
       end_at: confirmedEnd.toISOString(),
       price_total: 720,
       total_price: 720,
+      price_subtotal: 680,
+      price_extras_total: 0,
+      price_travel_fee: 40,
+      price_provider_net: null,
+      price_commission_percent: null,
+      price_commission_amount: null,
     },
     {
       ...base,
@@ -463,6 +475,12 @@ function buildPreviewProviderBookings() {
       end_at: completedEnd.toISOString(),
       price_total: 540,
       total_price: 540,
+      price_subtotal: 500,
+      price_extras_total: 0,
+      price_travel_fee: 40,
+      price_provider_net: null,
+      price_commission_percent: null,
+      price_commission_amount: null,
     },
   ];
 }
@@ -503,11 +521,15 @@ function seedPreviewProviderQueries(qc: import("@tanstack/react-query").QueryCli
   qc.setQueryData(["my-provider"], myProvider);
   qc.setQueryData(["provider-bookings", PREVIEW_PROVIDER_ID], previewProviderBookings);
   qc.setQueryData(["provider-earnings", PREVIEW_PROVIDER_ID], {
-    total: 12480,
-    mtd: 3240,
-    last7: 1860,
+    captured: { net: 0, bookingValue: 12480 },
+    mtd: { net: 0, bookingValue: 3240 },
+    last7: { net: 0, bookingValue: 1860 },
+    upcoming: { net: 0, bookingValue: 1260 },
     completedCount: 41,
-    upcomingPipeline: 1260,
+    hasSnapshottedCaptured: false,
+    hasUnsnapshottedCaptured: true,
+    hasSnapshottedUpcoming: false,
+    hasUnsnapshottedUpcoming: true,
   });
   qc.setQueryData(["provider-vacations", PREVIEW_PROVIDER_ID], []);
   qc.setQueryData(["provider-exceptions", PREVIEW_PROVIDER_ID], []);

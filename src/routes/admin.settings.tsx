@@ -6,6 +6,7 @@ import {
   useServiceAreasSettings, useUpdateServiceAreasSettings,
   usePlatformContent, useUpdatePlatformContent, type PlatformContentKey,
 } from "@/lib/db/settings-queries";
+import { parseCommissionPercent } from "@/lib/billing/commissionPercent";
 import {
   useAdminCategories, useSetCategoryActive, useUpdateCategoryNames,
   useAdminReminderRules, useCreateReminderRule, useSetReminderRuleActive,
@@ -60,6 +61,7 @@ function BillingSection() {
   const update = useUpdateBillingSettings();
   const [vat, setVat] = useState("");
   const [fee, setFee] = useState("");
+  const [commission, setCommission] = useState("");
   const saved = useSavedFlash(update.isPending, update.isSuccess);
 
   // Initialize from the first successful load only — re-syncing on every
@@ -71,6 +73,7 @@ function BillingSection() {
       initialized.done = true;
       setVat(String(q.data.vat_percent));
       setFee(String(q.data.platform_fee));
+      setCommission(q.data.commission_percent == null ? "" : String(q.data.commission_percent));
     }
   }, [q.data, initialized]);
 
@@ -106,12 +109,45 @@ function BillingSection() {
             className="mt-1 h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm" />
         </label>
       </div>
+      <label className="block">
+        <span className="text-xs font-semibold text-muted-foreground">{t("admin.settings.commissionPercent")}</span>
+        <input
+          value={commission}
+          onChange={(e) => setCommission(e.target.value)}
+          type="number"
+          min={0}
+          max={50}
+          step={0.01}
+          className="mt-1 h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm"
+        />
+        <p className="mt-1 text-[11px] font-medium text-muted-foreground">{t("admin.settings.commissionPercentHint")}</p>
+      </label>
       <SaveButton
         pending={update.isPending}
         saved={saved}
-        onClick={() => update.mutate({ vat_percent: Number(vat) || 0, platform_fee: Number(fee) || 0 }, {
-          onError: (e: any) => toast.error(e?.message ?? t("admin.settings.billingSaveError")),
-        })}
+        onClick={() => {
+          const parsed = parseCommissionPercent(commission);
+          if (!parsed.ok) {
+            const key =
+              parsed.reason === "range"
+                ? "admin.settings.commissionPercentRange"
+                : parsed.reason === "decimals"
+                  ? "admin.settings.commissionPercentDecimals"
+                  : "admin.settings.commissionPercentInvalid";
+            toast.error(t(key));
+            return;
+          }
+          update.mutate(
+            {
+              vat_percent: Number(vat) || 0,
+              platform_fee: Number(fee) || 0,
+              commission_percent: parsed.value,
+            },
+            {
+              onError: (e: any) => toast.error(e?.message ?? t("admin.settings.billingSaveError")),
+            },
+          );
+        }}
       />
     </SectionCard>
   );
