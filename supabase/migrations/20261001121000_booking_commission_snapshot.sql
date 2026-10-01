@@ -30,9 +30,10 @@ REVOKE INSERT (price_commission_percent, price_commission_amount, price_provider
 REVOKE UPDATE (price_commission_percent, price_commission_amount, price_provider_net)
   ON public.bookings FROM PUBLIC, anon, authenticated;
 
--- Pricing path: latest live body is 20260912090000 (20260724010000 plus the
--- babysitting eligibility check). Keep every existing check; add only the
--- commission snapshot after the other price components are written.
+-- Pricing path: latest live body is 20261001110000 (S6 effective-rate check:
+-- provider_pricing_allowed gates only an explicit price_override; min/max apply
+-- to COALESCE(price_override, hourly_rate)). Keep every existing check; add only
+-- the commission snapshot after the other price components are written.
 
 CREATE OR REPLACE FUNCTION public.tg_validate_booking_service()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
@@ -147,13 +148,13 @@ BEGIN
 
   SELECT hourly_rate INTO v_provider_hourly_rate FROM public.providers WHERE id = NEW.provider_id;
   v_rate := COALESCE(v_ps.price_override, v_provider_hourly_rate);
-  IF v_ps.price_override IS NOT NULL THEN
-    IF NOT v_service.provider_pricing_allowed
-       OR (v_service.minimum_price IS NOT NULL AND v_rate < v_service.minimum_price)
-       OR (v_service.maximum_price IS NOT NULL AND v_rate > v_service.maximum_price)
-    THEN
-      RAISE EXCEPTION 'BOOKING_PROVIDER_INELIGIBLE: Provider price no longer meets pricing rules.' USING ERRCODE = '23514';
-    END IF;
+  IF v_ps.price_override IS NOT NULL AND NOT v_service.provider_pricing_allowed THEN
+    RAISE EXCEPTION 'BOOKING_PROVIDER_INELIGIBLE: Provider price no longer meets pricing rules.' USING ERRCODE = '23514';
+  END IF;
+  IF (v_service.minimum_price IS NOT NULL AND v_rate < v_service.minimum_price)
+     OR (v_service.maximum_price IS NOT NULL AND v_rate > v_service.maximum_price)
+  THEN
+    RAISE EXCEPTION 'BOOKING_PROVIDER_INELIGIBLE: Provider price no longer meets pricing rules.' USING ERRCODE = '23514';
   END IF;
 
   IF v_service.pricing_model = 'hourly' THEN
