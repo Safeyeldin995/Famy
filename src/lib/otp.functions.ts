@@ -64,20 +64,24 @@ function requestMeta() {
   return { ipAddress, userAgent };
 }
 
-async function findUserIdByPhone(phone: string): Promise<string | null> {
+type AuthUserLookupRpc = (
+  fn: "auth_user_id_for_phone",
+  args: { p_auth_email: string; p_phone: string },
+) => Promise<{ data: string | null; error: { message: string } | null }>;
+
+/** Server-only phone lookup via SECURITY DEFINER RPC. Not a listUsers scan. */
+export async function findUserIdByPhone(phone: string): Promise<string | null> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const authEmail = authEmailForPhone(phone);
-  const phoneNoPlus = phone.replace(/^\+/, "");
-  for (let page = 1; page <= 5; page++) {
-    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
-    if (error) throw error;
-    const u = data.users.find(
-      (u) => u.email === authEmail || u.phone === phoneNoPlus || u.phone === phone,
-    );
-    if (u) return u.id;
-    if (data.users.length < 200) break;
-  }
-  return null;
+  const { data, error } = await (supabaseAdmin.rpc as unknown as AuthUserLookupRpc)(
+    "auth_user_id_for_phone",
+    {
+      p_auth_email: authEmail,
+      p_phone: phone,
+    },
+  );
+  if (error) throw error;
+  return typeof data === "string" && data.length > 0 ? data : null;
 }
 
 type VerifiedAuthInput = {
