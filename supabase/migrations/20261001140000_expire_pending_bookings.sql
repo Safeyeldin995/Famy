@@ -52,12 +52,18 @@ SET search_path = public
 AS $$
 DECLARE
   v_value jsonb;
+  v_ttl numeric;
+  v_min numeric;
 BEGIN
   SELECT s.value INTO v_value FROM public.settings s WHERE s.key = 'booking_expiry';
-  pending_ttl_hours := COALESCE(NULLIF(v_value->>'pending_ttl_hours', '')::numeric, 12);
-  min_hours_before_start := COALESCE(NULLIF(v_value->>'min_hours_before_start', '')::numeric, 2);
-  IF pending_ttl_hours < 0 THEN pending_ttl_hours := 12; END IF;
-  IF min_hours_before_start < 0 THEN min_hours_before_start := 2; END IF;
+  IF jsonb_typeof(v_value->'pending_ttl_hours') = 'number' THEN
+    v_ttl := (v_value->>'pending_ttl_hours')::numeric;
+  END IF;
+  IF jsonb_typeof(v_value->'min_hours_before_start') = 'number' THEN
+    v_min := (v_value->>'min_hours_before_start')::numeric;
+  END IF;
+  pending_ttl_hours := CASE WHEN v_ttl IS NOT NULL AND v_ttl >= 0 THEN v_ttl ELSE 12 END;
+  min_hours_before_start := CASE WHEN v_min IS NOT NULL AND v_min >= 0 THEN v_min ELSE 2 END;
   RETURN NEXT;
 END;
 $$;
@@ -153,7 +159,7 @@ BEGIN
         'Booking request expired',
         'انتهت صلاحية طلب الحجز',
         'You did not respond in time. The request was cancelled.',
-        'لم ترد في الوقت المحدد. تم الغاء الطلب.',
+        'لم ترد في الوقت المحدد. تم إلغاء الطلب.',
         jsonb_build_object('booking_id', v_row.id, 'reason_code', 'provider_no_response'),
         '/pro/booking/' || v_row.id,
         v_row.id
@@ -465,15 +471,6 @@ BEGIN
     RAISE EXCEPTION 'BOOKING_INVALID_BOOKING_REQUEST: Invalid booking time range.' USING ERRCODE = '23514';
   END IF;
 
-  SELECT s.min_hours_before_start INTO v_min_hours_before_start
-  FROM public.booking_expiry_settings() s;
-  SELECT min_notice_hours INTO v_provider_min_notice
-  FROM public.providers WHERE id = p_provider_id;
-  v_required_hours := GREATEST(COALESCE(v_min_hours_before_start, 2), COALESCE(v_provider_min_notice, 0)::numeric);
-  IF p_start_at < now() + (v_required_hours * interval '1 hour') THEN
-    RAISE EXCEPTION 'BOOKING_INVALID_BOOKING_REQUEST: This start time is too soon for the provider to respond in time.' USING ERRCODE = '23514';
-  END IF;
-
   v_fingerprint := public.booking_request_fingerprint(
     p_provider_id, p_service_id, p_address_id, p_start_at, p_end_at,
     p_family_member_id, p_notes, p_promo_code_id, coalesce(p_requirement_selections, '[]'::jsonb)
@@ -494,6 +491,15 @@ BEGIN
       'created', false,
       'idempotent_replay', true
     );
+  END IF;
+
+  SELECT s.min_hours_before_start INTO v_min_hours_before_start
+  FROM public.booking_expiry_settings() s;
+  SELECT min_notice_hours INTO v_provider_min_notice
+  FROM public.providers WHERE id = p_provider_id;
+  v_required_hours := GREATEST(COALESCE(v_min_hours_before_start, 2), COALESCE(v_provider_min_notice, 0)::numeric);
+  IF p_start_at < now() + (v_required_hours * interval '1 hour') THEN
+    RAISE EXCEPTION 'BOOKING_INVALID_BOOKING_REQUEST: This start time is too soon for the provider to respond in time.' USING ERRCODE = '23514';
   END IF;
 
   IF NOT EXISTS (

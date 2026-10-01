@@ -183,14 +183,22 @@ describe("expire pending bookings", () => {
 
     await db.query(`SELECT public.expire_pending_bookings()`);
 
-    const notes = await queryRows<{ user_id: string; type: string }>(
+    const notes = await queryRows<{ user_id: string; type: string; body_ar: string | null }>(
       db,
-      `SELECT user_id::text AS user_id, type FROM public.notifications WHERE booking_id = $1 ORDER BY user_id`,
+      `SELECT user_id::text AS user_id, type, body_ar FROM public.notifications WHERE booking_id = $1 ORDER BY user_id`,
       [bookingId],
     );
     expect(notes).toEqual([
-      { user_id: IDS.customer, type: "booking_expired" },
-      { user_id: IDS.providerUser, type: "booking_expired" },
+      {
+        user_id: IDS.customer,
+        type: "booking_expired",
+        body_ar: "مقدم الخدمة لم يرد في الوقت المحدد",
+      },
+      {
+        user_id: IDS.providerUser,
+        type: "booking_expired",
+        body_ar: "لم ترد في الوقت المحدد. تم إلغاء الطلب.",
+      },
     ]);
 
     const audit = await queryRows<{ action: string; reason: string | null }>(
@@ -302,5 +310,80 @@ describe("expire pending bookings", () => {
       [IDS.provider, IDS.service, IDS.address],
     );
     expect(created[0]?.create_booking.created).toBe(true);
+  });
+
+  it("replays an existing booking when a retry is now inside the creation window", async () => {
+    db = await createExpiryDb();
+    await db.query(`UPDATE public.providers SET min_notice_hours = 0 WHERE id = $1`, [
+      IDS.provider,
+    ]);
+    await db.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [IDS.customer]);
+    const key = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+    const startAt = hoursFromNowIso(5);
+    const endAt = hoursFromNowIso(7);
+
+    const first = await queryRows<{ create_booking: { booking_id: string; created: boolean } }>(
+      db,
+      `
+        SELECT public.create_booking(
+          $1::uuid, $2::uuid, $3::uuid,
+          $4::timestamptz, $5::timestamptz,
+          $6::uuid, NULL, NULL, NULL, '[]'::jsonb
+        ) AS create_booking
+      `,
+      [IDS.provider, IDS.service, IDS.address, startAt, endAt, key],
+    );
+    expect(first[0]?.create_booking.created).toBe(true);
+
+    await db.query(
+      `UPDATE public.settings SET value = '{"pending_ttl_hours": 12, "min_hours_before_start": 24}'::jsonb WHERE key = 'booking_expiry'`,
+    );
+
+    const retry = await queryRows<{
+      create_booking: { booking_id: string; created: boolean; idempotent_replay: boolean };
+    }>(
+      db,
+      `
+        SELECT public.create_booking(
+          $1::uuid, $2::uuid, $3::uuid,
+          $4::timestamptz, $5::timestamptz,
+          $6::uuid, NULL, NULL, NULL, '[]'::jsonb
+        ) AS create_booking
+      `,
+      [IDS.provider, IDS.service, IDS.address, startAt, endAt, key],
+    );
+    expect(retry[0]?.create_booking.created).toBe(false);
+    expect(retry[0]?.create_booking.idempotent_replay).toBe(true);
+    expect(retry[0]?.create_booking.booking_id).toBe(first[0]?.create_booking.booking_id);
+  });
+
+  it("falls back to 12/2 when booking_expiry values are not JSON numbers", async () => {
+    db = await createExpiryDb();
+    await db.query(
+      `UPDATE public.settings SET value = '{"pending_ttl_hours":"nope","min_hours_before_start":true}'::jsonb WHERE key = 'booking_expiry'`,
+    );
+
+    const settings = await queryRows<{ pending_ttl_hours: number; min_hours_before_start: number }>(
+      db,
+      `SELECT pending_ttl_hours, min_hours_before_start FROM public.booking_expiry_settings()`,
+    );
+    expect(Number(settings[0]?.pending_ttl_hours)).toBe(12);
+    expect(Number(settings[0]?.min_hours_before_start)).toBe(2);
+
+    const bookingId = await insertPendingBooking(db, {
+      createdAt: hoursAgoIso(13),
+      startAt: hoursFromNowIso(48),
+    });
+    const expired = await queryRows<{ expire_pending_bookings: number }>(
+      db,
+      `SELECT public.expire_pending_bookings()`,
+    );
+    expect(expired[0]?.expire_pending_bookings).toBe(1);
+    const rows = await queryRows<{ status: string }>(
+      db,
+      `SELECT status::text AS status FROM public.bookings WHERE id = $1`,
+      [bookingId],
+    );
+    expect(rows[0]?.status).toBe("cancelled");
   });
 });
