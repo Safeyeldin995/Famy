@@ -73,10 +73,13 @@ type AuthUserLookupRpc = (
 export async function findUserIdByPhone(phone: string): Promise<string | null> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const authEmail = authEmailForPhone(phone);
-  const { data, error } = await (supabaseAdmin.rpc as AuthUserLookupRpc)("auth_user_id_for_phone", {
-    p_auth_email: authEmail,
-    p_phone: phone,
-  });
+  const { data, error } = await (supabaseAdmin.rpc as unknown as AuthUserLookupRpc)(
+    "auth_user_id_for_phone",
+    {
+      p_auth_email: authEmail,
+      p_phone: phone,
+    },
+  );
   if (error) throw error;
   return typeof data === "string" && data.length > 0 ? data : null;
 }
