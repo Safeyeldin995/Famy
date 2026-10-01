@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -22,11 +22,27 @@ import {
   useUploadRequirementEvidence,
   useMyMarketplaceEligibility,
 } from "@/lib/db/provider-queries";
-import { FileText, ShieldCheck, LogOut, Globe, Camera, Loader2, Upload, Bell } from "lucide-react";
+import {
+  FileText,
+  ShieldCheck,
+  LogOut,
+  Globe,
+  Camera,
+  Loader2,
+  Upload,
+  Bell,
+  ChevronDown,
+} from "lucide-react";
 import { LanguageToggle, useLang } from "@/components/famio/LanguageToggle";
 import { customerPath, proPath } from "@/lib/preview/previewPath";
 import { TeachingCapabilitiesEditor } from "@/components/provider/TeachingCapabilitiesEditor";
 import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
+import {
+  dedupeEligibilityReasons,
+  mapMarketplaceEligibilityFailureReason,
+  type MappedEligibilityReason,
+} from "@/lib/provider/marketplaceEligibilityReasons";
+import { providerProfileSaveErrorKey } from "@/lib/provider/providerProfileSaveErrors";
 
 
 
@@ -49,12 +65,25 @@ function ProProfile() {
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
   const [priceErrors, setPriceErrors] = useState<Record<string, string>>({});
   const [expandedReqService, setExpandedReqService] = useState<string | null>(null);
+  const [eligibilityExpanded, setEligibilityExpanded] = useState(false);
   const nav = useNavigate();
   const qc = useQueryClient();
 
+  const dedupedReasons = useMemo(
+    () =>
+      dedupeEligibilityReasons(
+        (eligibilityQ.data ?? []) as Array<{
+          service_id: string;
+          failure_reasons?: string[] | null;
+        }>,
+      ),
+    [eligibilityQ.data],
+  );
 
-  const [bioEn, setBioEn] = useState(""); const [bioAr, setBioAr] = useState("");
-  const [years, setYears] = useState<number>(0); const [rate, setRate] = useState<number>(0);
+
+  const [bioEn, setBioEn] = useState("");
+  const [bioAr, setBioAr] = useState("");
+  const [years, setYears] = useState<number>(0);
   const [city, setCity] = useState("");
   const [uploading, setUploading] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -65,8 +94,9 @@ function ProProfile() {
 
   useEffect(() => {
     if (!provider || profileHydrated.current) return;
-    setBioEn(provider.bio_en ?? ""); setBioAr(provider.bio_ar ?? "");
-    setYears(provider.years_experience ?? 0); setRate(Number(provider.hourly_rate ?? 0));
+    setBioEn(provider.bio_en ?? "");
+    setBioAr(provider.bio_ar ?? "");
+    setYears(provider.years_experience ?? 0);
     setCity(provider.city ?? "");
     profileHydrated.current = true;
   }, [provider]);
@@ -117,7 +147,20 @@ function ProProfile() {
 
   if (!provider) return <ProviderShell><div className="p-8 text-center text-sm">{t("pro.common.loading")}</div></ProviderShell>;
 
-  const handleSave = () => update.mutate({ bio_en: bioEn, bio_ar: bioAr, years_experience: years, hourly_rate: rate, city });
+  const identityFieldsLocked = provider.onboarding_status === "APPROVED";
+
+  const handleSave = () =>
+    update.mutate(
+      { bio_en: bioEn, bio_ar: bioAr, years_experience: years, city },
+      {
+        onError: (error: unknown) => {
+          const message = error instanceof Error ? error.message : undefined;
+          toast.error(t(providerProfileSaveErrorKey(message)));
+        },
+      },
+    );
+
+  const eligibilityRows = eligibilityQ.data ?? [];
 
   const myIds = new Set((mine.data ?? []).map((s: any) => s.service_id));
   const myStatus = new Map((mine.data ?? []).map((s: any) => [s.service_id, s.status]));
@@ -148,13 +191,6 @@ function ProProfile() {
       { onError: (e: any) => setPriceErrors((errs) => ({ ...errs, [serviceId]: e?.message ?? t("common.somethingWentWrong") })) },
     );
   };
-  // Already-assigned services that admin has since deactivated: excluded
-  // from `services` (useAllServices only lists active ones, so the
-  // provider can never newly select or reactivate one), but the
-  // provider_services row itself is never deleted — surface it here,
-  // read-only, so the provider can see why it's no longer bookable.
-  const inactiveMine = (mine.data ?? []).filter((s: any) => s.service && s.service.is_active === false);
-
   const logout = async () => {
     await qc.cancelQueries(); qc.clear();
     await supabase.auth.signOut();
@@ -220,22 +256,91 @@ function ProProfile() {
 
         <Card className="p-4">
           <div className="flex items-center justify-between gap-2">
-            <div className="text-sm font-extrabold">{t("admin.provider.marketplaceEligible", "Marketplace eligible")}</div>
-            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${eligibilityQ.data?.some((row) => row.is_eligible) ? "bg-mint/20 text-success" : "bg-coral/10 text-coral"}`}>
-              {eligibilityQ.data?.some((row) => row.is_eligible) ? t("common.yes", "Yes") : t("common.no", "No")}
+            <div className="text-sm font-extrabold">{t("pro.profile.marketplaceEligible")}</div>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${eligibilityRows.some((row) => row.is_eligible) ? "bg-mint/20 text-success" : "bg-coral/10 text-coral"}`}
+            >
+              {eligibilityRows.some((row) => row.is_eligible)
+                ? t("pro.profile.eligibilityYes")
+                : t("pro.profile.eligibilityNo")}
             </span>
           </div>
-          {eligibilityQ.isLoading ? <div className="mt-2 h-10 animate-pulse rounded-xl bg-muted" /> : eligibilityQ.isError ? (
+          {eligibilityQ.isLoading ? (
+            <div className="mt-2 h-10 animate-pulse rounded-xl bg-muted" />
+          ) : eligibilityQ.isError ? (
             <div className="mt-2">
               <QueryError compact onRetry={() => eligibilityQ.refetch()} />
             </div>
           ) : (
             <div className="mt-2 space-y-2">
-              {(eligibilityQ.data ?? []).map((row) => <div key={row.service_id} className="rounded-xl border border-border/60 p-2 text-xs">
-                <div className="break-words font-bold">{lang === "ar" ? row.service_name_ar : row.service_name_en}</div>
-                {row.is_eligible ? <div className="mt-1 text-success">{t("admin.provider.eligibleBody")}</div> : <ul className="mt-1 list-disc break-words ps-4 text-coral">{(row.failure_reasons ?? []).map((reason) => <li key={reason}>{reason}</li>)}</ul>}
-              </div>)}
-              {!eligibilityQ.isLoading && (eligibilityQ.data ?? []).length === 0 && <div className="text-xs text-coral">BLOCKED BY BUSINESS DATA — no Provider service is configured.</div>}
+              {dedupedReasons.length > 0 ? (
+                <ul className="space-y-1.5 text-xs">
+                  {dedupedReasons.map((entry) => (
+                    <li key={entry.mapped.i18nKey}>
+                      <EligibilityReasonItem
+                        mapped={entry.mapped}
+                        t={t}
+                        onServiceFocus={(serviceId) => {
+                          document
+                            .getElementById(`service-${serviceId}`)
+                            ?.scrollIntoView({ behavior: "smooth", block: "center" });
+                        }}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {eligibilityRows.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setEligibilityExpanded((v) => !v)}
+                  className="flex w-full items-center justify-between rounded-xl border border-border/60 px-2 py-2 text-[11px] font-bold text-brand"
+                >
+                  {t("pro.profile.eligibilityByService")}
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform ${eligibilityExpanded ? "rotate-180" : ""}`}
+                  />
+                </button>
+              ) : null}
+              {eligibilityExpanded ? (
+                <div className="space-y-2">
+                  {eligibilityRows.map((row) => (
+                    <div key={row.service_id} className="rounded-xl border border-border/60 p-2 text-xs">
+                      <div className="break-words font-bold">
+                        {lang === "ar" ? row.service_name_ar : row.service_name_en}
+                      </div>
+                      {row.is_eligible ? (
+                        <div className="mt-1 text-success">{t("pro.profile.eligibilityServiceReady")}</div>
+                      ) : (
+                        <ul className="mt-1 space-y-1 text-coral">
+                          {(row.failure_reasons ?? []).map((reason) => {
+                            const mapped = mapMarketplaceEligibilityFailureReason(
+                              reason,
+                              row.service_id,
+                            );
+                            return (
+                              <li key={reason}>
+                                <EligibilityReasonItem
+                                  mapped={mapped}
+                                  t={t}
+                                  onServiceFocus={(serviceId) => {
+                                    document
+                                      .getElementById(`service-${serviceId}`)
+                                      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+                                  }}
+                                />
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              {!eligibilityQ.isLoading && eligibilityRows.length === 0 ? (
+                <div className="text-xs text-coral">{t("pro.profile.eligibilityBlockedByData")}</div>
+              ) : null}
             </div>
           )}
         </Card>
@@ -245,39 +350,80 @@ function ProProfile() {
         <div>
           <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">{t("pro.profile.about")}</h2>
           <Card className="space-y-3 p-4">
-            {lang === "ar" ? (
-              <Field label={t("pro.onboarding.bioAr")}><textarea value={bioAr} onChange={(e) => setBioAr(e.target.value)} rows={3} dir="rtl" className="w-full rounded-xl border border-border bg-surface p-2 text-sm" /></Field>
-            ) : (
-              <Field label={t("pro.onboarding.bioEn")}><textarea value={bioEn} onChange={(e) => setBioEn(e.target.value)} rows={3} className="w-full rounded-xl border border-border bg-surface p-2 text-sm" /></Field>
-            )}
-            <div className="grid grid-cols-2 gap-3">
-              <Field label={t("pro.onboarding.years")}><input type="number" min={0} value={years} onChange={(e) => setYears(Number(e.target.value))} className="h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm" /></Field>
-              <Field label={t("pro.onboarding.rate")}><input type="number" min={0} value={rate} onChange={(e) => setRate(Number(e.target.value))} className="h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm" /></Field>
+            <div className="grid gap-3 md:grid-cols-2">
+              <Field label={t("pro.profile.bioEn")}>
+                <textarea
+                  value={bioEn}
+                  onChange={(e) => setBioEn(e.target.value)}
+                  rows={3}
+                  className="w-full rounded-xl border border-border bg-surface p-2 text-sm"
+                />
+              </Field>
+              <Field label={t("pro.profile.bioAr")}>
+                <textarea
+                  value={bioAr}
+                  onChange={(e) => setBioAr(e.target.value)}
+                  rows={3}
+                  dir="rtl"
+                  className="w-full rounded-xl border border-border bg-surface p-2 text-sm"
+                />
+              </Field>
             </div>
-            <Field label={t("pro.onboarding.city")}>
-              {areasQ.isError ? (
+            <Field label={t("pro.profile.yearsExperience")}>
+              {identityFieldsLocked ? (
+                <div className="rounded-xl border border-border/60 bg-surface-2 px-3 py-2 text-sm font-semibold">
+                  {years}
+                  <p className="mt-1 text-[11px] font-medium text-muted-foreground">
+                    {t("pro.profile.verifiedFieldReviewNote")}
+                  </p>
+                </div>
+              ) : (
+                <input
+                  type="number"
+                  min={0}
+                  value={years}
+                  onChange={(e) => setYears(Number(e.target.value))}
+                  className="h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm"
+                />
+              )}
+            </Field>
+            <Field label={t("pro.profile.cityLabel")}>
+              {identityFieldsLocked ? (
+                <div className="rounded-xl border border-border/60 bg-surface-2 px-3 py-2 text-sm font-semibold">
+                  {city || t("pro.profile.cityUnset")}
+                  <p className="mt-1 text-[11px] font-medium text-muted-foreground">
+                    {t("pro.profile.verifiedFieldReviewNote")}
+                  </p>
+                </div>
+              ) : areasQ.isError ? (
                 <div className="mt-2">
                   <QueryError compact onRetry={() => areasQ.refetch()} />
                 </div>
               ) : (
-              <div className="grid grid-cols-2 gap-2">
-                {cityOptions.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setCity(c)}
-                    className={`h-10 truncate rounded-xl border px-2 text-xs font-semibold transition-all ${
-                      city === c ? "border-brand bg-brand/[0.04] text-brand" : "border-border bg-surface text-muted-foreground"
-                    }`}
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {cityOptions.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setCity(c)}
+                      className={`h-10 truncate rounded-xl border px-2 text-xs font-semibold transition-all ${
+                        city === c
+                          ? "border-brand bg-brand/[0.04] text-brand"
+                          : "border-border bg-surface text-muted-foreground"
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
               )}
             </Field>
-            <PrimaryButton onClick={handleSave} disabled={update.isPending}>{update.isPending ? t("pro.common.saving") : t("pro.common.save")}</PrimaryButton>
-            {update.isSuccess && <div className="text-center text-xs font-semibold text-success">{t("pro.common.saved")}</div>}
+            <PrimaryButton onClick={handleSave} disabled={update.isPending}>
+              {update.isPending ? t("pro.common.saving") : t("pro.profile.saveChanges")}
+            </PrimaryButton>
+            {update.isSuccess && (
+              <div className="text-center text-xs font-semibold text-success">{t("pro.common.saved")}</div>
+            )}
           </Card>
         </div>
 
@@ -295,7 +441,7 @@ function ProProfile() {
               const currentOverride = myPriceOverride.get(s.id);
               const priceError = priceErrors[s.id];
               return (
-                <div key={s.id} className="px-4 py-3">
+                <div key={s.id} id={`service-${s.id}`} className="px-4 py-3">
                   <div className="flex items-center justify-between">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start gap-1.5">
@@ -353,21 +499,6 @@ function ProProfile() {
                     </button>
                   )}
                   {on && expandedReqService === s.id && <RequirementsChecklist providerId={provider.id} serviceId={s.id} />}
-                </div>
-              );
-            })}
-            {inactiveMine.map((s: any) => {
-              const sname = lang === "ar" ? (s.service.name_ar ?? s.service.name_en) : (s.service.name_en ?? s.service.name_ar);
-              const cname = lang === "ar" ? (s.service.category?.name_ar ?? s.service.category?.name_en) : (s.service.category?.name_en ?? s.service.category?.name_ar);
-              return (
-                <div key={s.service_id} className="flex items-center justify-between px-4 py-3 opacity-60">
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold truncate">{sname}</div>
-                    <div className="text-[11px] text-muted-foreground truncate">{cname}</div>
-                  </div>
-                  <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-[10px] font-bold uppercase text-muted-foreground">
-                    {t("pro.profile.serviceUnavailable")}
-                  </span>
                 </div>
               );
             })}
@@ -479,6 +610,41 @@ function RequirementsChecklist({ providerId, serviceId }: { providerId: string; 
       })}
     </ul>
   );
+}
+
+function EligibilityReasonItem({
+  mapped,
+  t,
+  onServiceFocus,
+}: {
+  mapped: MappedEligibilityReason;
+  t: (key: string, options?: Record<string, unknown>) => string;
+  onServiceFocus: (serviceId: string) => void;
+}) {
+  const label = t(mapped.i18nKey);
+  if (mapped.action.kind === "link") {
+    return (
+      <Link
+        to={proPath(mapped.action.path) as any}
+        className="font-semibold text-brand underline-offset-2 hover:underline"
+      >
+        {label}
+      </Link>
+    );
+  }
+  if (mapped.action.kind === "service") {
+    const serviceId = mapped.action.serviceId;
+    return (
+      <button
+        type="button"
+        className="font-semibold text-brand underline-offset-2 hover:underline"
+        onClick={() => onServiceFocus(serviceId)}
+      >
+        {label}
+      </button>
+    );
+  }
+  return <span className="font-semibold">{label}</span>;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

@@ -113,7 +113,7 @@ describe("mapSnapshotToOnboardingFormState", () => {
         { code: "infant", years_experience: 1, note: null, verified_at: null },
       ],
     });
-    expect(state.childGroups).toEqual(["toddler", "infant"]);
+    expect(state.childGroups).toEqual(["infants", "toddlers"]);
     expect(state.maxChildren).toBe(3);
     expect(state.capabilityForms[0]).toMatchObject({
       code: "toddler",

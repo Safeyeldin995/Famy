@@ -1,4 +1,5 @@
 import {
+  hydrateChipIdsFromCapabilities,
   mapCapabilitiesFromSnapshot,
   type AgeGroupCapabilityForm,
 } from "@/lib/provider/ageGroupCapabilities";
@@ -106,7 +107,7 @@ export function mapSnapshotToOnboardingFormState(
     bioAr: snapshotProvider.bio_ar ?? "",
     previousWork: details.previous_work ?? "",
     langs: snapshotProvider.languages ?? ["arabic"],
-    childGroups: capabilityForms.map((row) => row.code),
+    childGroups: hydrateChipIdsFromCapabilities(capabilityForms),
     capabilityForms,
     maxChildren: snapshotProvider.max_children_per_booking ?? null,
     newborn: !!details.newborn_experience,

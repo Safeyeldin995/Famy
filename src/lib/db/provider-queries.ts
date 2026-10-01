@@ -4,6 +4,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth/useAuth';
+import { isClosedBetaCategorySlug } from '@/lib/catalog/closedBetaCategories';
 import { isQaCatalogService } from '@/lib/catalog/qaCatalog';
 import { aggregateProviderEarnings } from '@/lib/earnings/aggregateProviderEarnings';
 
@@ -478,6 +479,14 @@ export function useUploadRequirementEvidence() {
 }
 
 // ---------- Provider services management ----------
+export function filterSelectableProviderServices<
+  T extends { category?: { slug?: string | null } | null },
+>(rows: T[]): T[] {
+  return (rows ?? []).filter(
+    (row) => isClosedBetaCategorySlug(row.category?.slug) && !isQaCatalogService(row),
+  );
+}
+
 export function useAllServices() {
   return useQuery({
     queryKey: ['all-services'],
@@ -488,7 +497,7 @@ export function useAllServices() {
         .eq('is_active', true)
         .order('name_en');
       if (error) throw error;
-      return (data ?? []).filter((row) => !isQaCatalogService(row));
+      return filterSelectableProviderServices(data ?? []);
     },
   });
 }
