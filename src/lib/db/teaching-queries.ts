@@ -69,6 +69,8 @@ export function mapCapabilityOption(row: ProviderTeachingCapabilityRow): Teachin
     id: row.id,
     providerId: row.provider_id,
     serviceId: row.service_id,
+    curriculumId: row.curriculum_id,
+    levelId: row.level_id,
     subjectCode: row.subject?.code ?? "",
     subjectNameEn: row.subject?.name_en ?? "",
     subjectNameAr: row.subject?.name_ar ?? "",

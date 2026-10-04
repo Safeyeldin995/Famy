@@ -7,7 +7,21 @@ import { CustomerFloatingPanel } from "@/components/famio/CustomerFloatingPanel"
 import { QueryError } from "@/components/famio/QueryError";
 import { ProviderListRow, ProviderRatingMeta } from "@/components/famio/ProviderListRow";
 import { useLang } from "@/components/famio/LanguageToggle";
-import { useCategories, useMarketplaceServices, useProviders } from "@/lib/db/queries";
+import { useActiveFamilyMembers, type FamilyMemberRow } from "@/lib/db/family-members-queries";
+import {
+  useCategories,
+  useMarketplaceServices,
+  useMyProfile,
+  useProviders,
+} from "@/lib/db/queries";
+import { useCustomerEducationProfile } from "@/lib/db/student-education-queries";
+import { useApprovedTeachingCapabilitiesForProviders } from "@/lib/db/teaching-queries";
+import { resolveStudentEducationProfile } from "@/lib/tutoring/studentEducationProfile";
+import {
+  providerMatchesStudentEducation,
+  sortProvidersForStudentEducation,
+  tutoringMatchBadgeLabel,
+} from "@/lib/tutoring/tutoringProviderMatch";
 import { toUICategory, toUIProvider } from "@/lib/db/adapters";
 import { formatEGP } from "@/lib/utils";
 import { SlidersHorizontal } from "lucide-react";
@@ -26,7 +40,12 @@ export function CategoryPageContent({ categoryId }: { categoryId: string }) {
     if (!serviceId && servicesQ.data?.[0]?.id) setServiceId(servicesQ.data[0].id);
   }, [serviceId, servicesQ.data]);
   const provsQ = useProviders({ categorySlug: id, serviceId: serviceId || undefined, limit: 50 });
+  const familyMembersQ = useActiveFamilyMembers();
+  const customerEducationQ = useCustomerEducationProfile();
+  const myProfileQ = useMyProfile();
   const [sort, setSort] = useState<"top" | "price" | "experience">("top");
+  const [forWhom, setForWhom] = useState("myself");
+  const isTutoring = id === "tutoring";
 
   const cat = useMemo(() => {
     const row = (catsQ.data ?? []).find((c: { slug: string }) => c.slug === id);
@@ -34,13 +53,58 @@ export function CategoryPageContent({ categoryId }: { categoryId: string }) {
   }, [catsQ.data, id]);
 
   const list = useMemo(() => (provsQ.data ?? []).map(toUIProvider), [provsQ.data]);
-  const sorted = [...list].sort((a, b) =>
-    sort === "price"
-      ? a.hourlyRate - b.hourlyRate
-      : sort === "experience"
-        ? b.yearsExp - a.yearsExp
-        : b.rating - a.rating,
+  const studentEducation = useMemo(
+    () =>
+      resolveStudentEducationProfile({
+        forWhom,
+        customerProfile: customerEducationQ.data,
+        customerFullName: myProfileQ.data?.full_name,
+        familyMembers: (familyMembersQ.data ?? []) as FamilyMemberRow[],
+      }),
+    [forWhom, customerEducationQ.data, myProfileQ.data?.full_name, familyMembersQ.data],
   );
+  const providerIds = useMemo(() => list.map((row) => row.id), [list]);
+  const capsQ = useApprovedTeachingCapabilitiesForProviders(isTutoring ? providerIds : []);
+  const sorted = useMemo(() => {
+    const compare = (a: (typeof list)[number], b: (typeof list)[number]) =>
+      sort === "price"
+        ? a.hourlyRate - b.hourlyRate
+        : sort === "experience"
+          ? b.yearsExp - a.yearsExp
+          : b.rating - a.rating;
+    const partitioned = sortProvidersForStudentEducation(list, capsQ.data ?? [], {
+      serviceId: serviceId || null,
+      curriculumId: studentEducation.educationCurriculumId,
+      levelId: studentEducation.educationLevelId,
+    });
+    if (!studentEducation.educationCurriculumId || !studentEducation.educationLevelId) {
+      return [...list].sort(compare);
+    }
+    const matched: typeof list = [];
+    const rest: typeof list = [];
+    for (const provider of partitioned) {
+      if (
+        providerMatchesStudentEducation(provider.id, capsQ.data ?? [], {
+          serviceId: serviceId || null,
+          curriculumId: studentEducation.educationCurriculumId,
+          levelId: studentEducation.educationLevelId,
+        })
+      ) {
+        matched.push(provider);
+      } else {
+        rest.push(provider);
+      }
+    }
+    return [...matched.sort(compare), ...rest.sort(compare)];
+  }, [
+    list,
+    capsQ.data,
+    serviceId,
+    sort,
+    studentEducation.educationCurriculumId,
+    studentEducation.educationLevelId,
+  ]);
+  const matchBadge = tutoringMatchBadgeLabel(studentEducation.studentFirstName, t);
 
   return (
     <PhoneFrame bg="bg-background">
@@ -101,6 +165,26 @@ export function CategoryPageContent({ categoryId }: { categoryId: string }) {
             </select>
           )}
         </CustomerFloatingPanel>
+
+        {isTutoring ? (
+          <div className="mt-3 space-y-2">
+            <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
+              {t("studentEducation.studentPicker", "Student")}
+            </label>
+            <select
+              value={forWhom}
+              onChange={(e) => setForWhom(e.target.value)}
+              className="focus-ring h-12 w-full rounded-full bg-surface-2 px-4 text-sm font-bold text-foreground"
+            >
+              <option value="myself">{t("bookFlow.forWhomMyself", "Myself")}</option>
+              {(familyMembersQ.data ?? []).map((member: FamilyMemberRow) => (
+                <option key={member.id} value={member.id}>
+                  {member.full_name}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
       </div>
 
       <div className="flex-1 px-5 pb-24 pt-5">
@@ -143,7 +227,18 @@ export function CategoryPageContent({ categoryId }: { categoryId: string }) {
                 name={p.name}
                 subtitle={formatEGP(p.hourlyRate, { perHour: true })}
                 meta={<ProviderRatingMeta rating={p.rating} reviews={p.reviews} />}
-                pill={p.rating >= 4.9 ? { label: t("roles.topPro"), tone: "brand" } : undefined}
+                pill={
+                  matchBadge &&
+                  providerMatchesStudentEducation(p.id, capsQ.data ?? [], {
+                    serviceId: serviceId || null,
+                    curriculumId: studentEducation.educationCurriculumId,
+                    levelId: studentEducation.educationLevelId,
+                  })
+                    ? { label: matchBadge, tone: "brand" }
+                    : p.rating >= 4.9
+                      ? { label: t("roles.topPro"), tone: "brand" }
+                      : undefined
+                }
                 trailing={
                   <span className="shrink-0 rounded-full bg-brand px-3.5 py-2 text-[11px] font-extrabold text-brand-foreground">
                     {t("provider.bookNow")}

@@ -31,6 +31,7 @@ import {
 import { ICON_STROKE, ICON_STROKE_BOLD } from "@/lib/icons/constants";
 import { formatEGP } from "@/lib/utils";
 import { previewPath } from "@/lib/preview/previewPath";
+import { useProviderOnlyCustomerRedirect } from "@/lib/auth/providerOnlyCustomerGuard";
 
 export const Route = createFileRoute("/home")({ component: Home });
 
@@ -42,7 +43,10 @@ function SectionHeader({ overline, title }: { overline: string; title: string })
         <p className="text-overline">{overline}</p>
         <h2 className="text-title mt-1 text-foreground">{title}</h2>
       </div>
-      <Link to={previewPath("/search")} className="focus-ring shrink-0 text-xs font-extrabold text-brand">
+      <Link
+        to={previewPath("/search")}
+        className="focus-ring shrink-0 text-xs font-extrabold text-brand"
+      >
         {t("common.seeAll")}
       </Link>
     </div>
@@ -50,6 +54,7 @@ function SectionHeader({ overline, title }: { overline: string; title: string })
 }
 
 function Home() {
+  const { blocking } = useProviderOnlyCustomerRedirect();
   const profileQ = useMyProfile();
   const addressQ = useDefaultAddress();
   const { t, i18n } = useTranslation();
@@ -87,6 +92,8 @@ function Home() {
     { icon: Sparkles, label: t("home.trust2") },
     { icon: Headphones, label: t("home.trust3") },
   ] as const;
+
+  if (blocking) return null;
 
   return (
     <AppShell bg="bg-background" hideNav={false}>

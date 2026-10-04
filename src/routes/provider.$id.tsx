@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
+import { useProviderOnlyCustomerRedirect } from "@/lib/auth/providerOnlyCustomerGuard";
 import { previewBookPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/provider/$id")({ component: ProviderProfile });
@@ -42,6 +43,7 @@ function heroActionClass() {
 }
 
 export function ProviderProfileContent({ providerId }: { providerId: string }) {
+  const { blocking } = useProviderOnlyCustomerRedirect();
   const id = providerId;
   const addressQ = useDefaultAddress();
   const provQ = useProvider(id, addressQ.data?.id);
@@ -54,6 +56,8 @@ export function ProviderProfileContent({ providerId }: { providerId: string }) {
   const nav = useNavigate();
   const lang = currentLang();
   const locale = lang === "ar" ? "ar-EG" : "en-US";
+
+  if (blocking) return null;
 
   if (provQ.isLoading) {
     return (

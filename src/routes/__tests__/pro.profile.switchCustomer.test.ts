@@ -8,10 +8,9 @@ const profileSource = readFileSync(
   "utf8",
 );
 
-describe("provider profile switch-to-customer row", () => {
-  it("keeps the existing customer-app journey on the More list", () => {
-    expect(profileSource).toContain("Globe");
-    expect(profileSource).toContain('customerPath("/home")');
-    expect(profileSource).toContain('t("pro.profile.switchCustomer")');
+describe("provider profile customer-app switch row", () => {
+  it("does not expose a switch-to-customer link on the More list", () => {
+    expect(profileSource).not.toContain('t("pro.profile.switchCustomer")');
+    expect(profileSource).not.toContain('customerPath("/home")');
   });
 });
