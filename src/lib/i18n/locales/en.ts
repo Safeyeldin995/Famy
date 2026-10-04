@@ -490,8 +490,7 @@ const en = {
     grade: "Grade",
     optionalNone: "Not set",
     saveForNextTime: "Save for next time",
-    saveFailed:
-      "Your booking was created, but we could not save school details for next time.",
+    saveFailed: "Your booking was created, but we could not save school details for next time.",
     studentPicker: "Student",
     matchBadge: "Good fit for {{name}}",
   },
@@ -1483,7 +1482,8 @@ const en = {
       eligibilityReasons: {
         noAvailability: "Add availability hours",
         missingZone: "Choose your service area",
-        zoneUnavailable: "This service isn't available in your area yet. The Famy team is enabling it.",
+        zoneUnavailable:
+          "This service isn't available in your area yet. The Famy team is enabling it.",
         teachingPrice: "Add a subject with a session price and wait for approval",
         invalidPrice: "Set a valid price for this service",
         serviceNotApproved: "This service is waiting for admin approval",
