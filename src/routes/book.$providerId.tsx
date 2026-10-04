@@ -67,6 +67,7 @@ import {
   isTutoringCategorySlug,
   tutoringSessionQuote,
 } from "@/lib/tutoring/teachingCapabilities";
+import { markCustomerPushPromptPending } from "@/lib/push-prompt";
 
 export const Route = createFileRoute("/book/$providerId")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -563,6 +564,7 @@ export function BookContent({
       }
       if (!booking.idempotent_replay) {
         toast.success(t("bookFlow.created", "Booking created"));
+        if (booking.created) markCustomerPushPromptPending();
       }
       if (onlineCheckoutStarted) return;
       nav({

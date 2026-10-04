@@ -38,6 +38,7 @@ const HTML_SECURITY_HEADERS: Record<string, string> = {
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=(self)",
+  "Content-Security-Policy": "frame-ancestors 'none'",
 };
 
 function applyHtmlSecurityHeaders(response: Response): Response {
@@ -48,8 +49,6 @@ function applyHtmlSecurityHeaders(response: Response): Response {
   for (const [name, value] of Object.entries(HTML_SECURITY_HEADERS)) {
     headers.set(name, value);
   }
-  // TODO: Content-Security-Policy is a follow-up. Firebase reCAPTCHA and Paymob
-  // need careful allow-lists before a full CSP can be added.
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,

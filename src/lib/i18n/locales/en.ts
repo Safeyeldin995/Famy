@@ -163,11 +163,9 @@ const en = {
     rateLimited: "Too many attempts. Try again in {{time}}.",
     durationSeconds: "{{formatted}} s",
     firebaseSendFailed: "Could not send verification SMS. Try again later.",
-    firebaseSendTooManyRequests:
-      "Too many attempts from this device. Please wait and try again.",
+    firebaseSendTooManyRequests: "Too many attempts from this device. Please wait and try again.",
     firebaseSendQuotaExceeded: "SMS service is busy right now. Please try again shortly.",
-    firebaseSendDeviceVerifyFailed:
-      "Could not verify this device. Refresh the page and try again.",
+    firebaseSendDeviceVerifyFailed: "Could not verify this device. Refresh the page and try again.",
     firebaseStartFailed: "Could not start phone verification. Try again.",
     firebaseRecaptchaUnavailable:
       "Phone verification is temporarily unavailable. Refresh the page and try again.",
@@ -689,6 +687,13 @@ const en = {
     marketingSub: "Promotions and announcements",
     inAppAlwaysOn:
       "You'll always see booking, chat, reminder, and support updates in your Notification Center — these toggles only control push alerts.",
+  },
+  pushPrompt: {
+    title: "Turn on push notifications?",
+    bodyCustomer: "Get instant alerts when your provider responds or your booking status changes.",
+    bodyProvider: "Get instant alerts for new booking requests and important updates.",
+    enable: "Enable notifications",
+    notNow: "Not now",
   },
   favs: {
     title: "Favorites",
@@ -1447,8 +1452,7 @@ const en = {
       cityUnset: "Not set",
       saveChanges: "Save changes",
       saveFailed: "Could not save your profile.",
-      verifiedIdentityLocked:
-        "Verified profile details cannot be changed without admin review.",
+      verifiedIdentityLocked: "Verified profile details cannot be changed without admin review.",
       verifiedFieldReviewNote:
         "This field was verified during onboarding. Contact Famy if it needs to change.",
       marketplaceEligible: "Marketplace eligible",
@@ -2329,7 +2333,8 @@ const en = {
       unauthorized: "You are not allowed to change this teaching capability.",
       invalidDuration: "Choose a session duration allowed for this subject.",
       invalidPrice: "Enter a whole EGP price within the service limits.",
-      subjectNotLinked: "This subject, curriculum, or level is not available for the selected service.",
+      subjectNotLinked:
+        "This subject, curriculum, or level is not available for the selected service.",
       selfReview: "You cannot review your own teaching capability.",
     },
     status: {

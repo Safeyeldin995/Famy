@@ -6,10 +6,10 @@ app.
 
 ## Production vs QA separation (unchanged from QA_ENVIRONMENT.md)
 
-| Tier | Supabase project | App origin | Env file |
-|---|---|---|---|
-| Production | Production ref (masked `mjhk…nojp` elsewhere in this repo) | `https://famy-chi.vercel.app` (`FAMY_PRODUCTION_APP_ORIGIN`) | `.env` / Vercel Production env |
-| QA / local E2E | Famy QA ref `bfwveoqbyqlhixjvdzha` | Local `:8099` or QA Preview URL | `.env.qa.local` only |
+| Tier           | Supabase project                                           | App origin                                                   | Env file                       |
+| -------------- | ---------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------ |
+| Production     | Production ref (masked `mjhk…nojp` elsewhere in this repo) | `https://famy-chi.vercel.app` (`FAMY_PRODUCTION_APP_ORIGIN`) | `.env` / Vercel Production env |
+| QA / local E2E | Famy QA ref `bfwveoqbyqlhixjvdzha`                         | Local `:8099` or QA Preview URL                              | `.env.qa.local` only           |
 
 Every guardrail in `qa/` and `tools/production-reset/` that checks the
 Production ref checks it against this same value. Never paste the raw ref
@@ -25,53 +25,82 @@ the source of truth.
 
 ### Vercel — client-exposed (`VITE_` prefix, bundled into the browser build)
 
-| Variable | Purpose |
-|---|---|
-| `VITE_SUPABASE_URL` | Production Supabase project URL |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` (alias seen in code: `VITE_SUPABASE_ANON_KEY`) | Supabase publishable/anon key |
-| `VITE_VAPID_PUBLIC_KEY` | Push notification public key; blank keeps push in its documented "not available yet" state |
+| Variable                                                                       | Purpose                                                                                    |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| `VITE_SUPABASE_URL`                                                            | Production Supabase project URL                                                            |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` (alias seen in code: `VITE_SUPABASE_ANON_KEY`) | Supabase publishable/anon key                                                              |
+| `VITE_VAPID_PUBLIC_KEY`                                                        | Push notification public key; blank keeps push in its documented "not available yet" state |
 
 ### Vercel — server-only (no `VITE_` prefix; must never leak to the client bundle)
 
-| Variable | Purpose |
-|---|---|
-| `SUPABASE_URL` | Server-side Supabase URL (server code paths) |
-| `SUPABASE_PUBLISHABLE_KEY` | Server-side publishable key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Full-privilege key — server-only, never in client code, never logged |
-| `AUTH_INTENT_SECRET` | Signs/verifies auth-intent tokens; `requireAuthIntentSecret()` throws if unset — **deploy fails closed, not open, if this is missing**, confirmed by `src/lib/auth/__tests__/authIntent.secret.test.ts` |
-| `META_WHATSAPP_ACCESS_TOKEN` | WhatsApp Business API access token |
-| `META_WHATSAPP_PHONE_NUMBER_ID` | WhatsApp sending number ID |
-| `META_WHATSAPP_TEMPLATE_NAME` / `META_WHATSAPP_TEMPLATE_LANGUAGE` / `META_WHATSAPP_TEMPLATE_BUTTON_TYPE` | OTP template configuration |
-| `FIREBASE_*` (server-side Admin SDK credentials — project ID, client email, private key) | Firebase Phone Auth OTP provider (added after this runbook's first draft); required only when `OTP_PROVIDER=firebase` |
-| `FAMY_PRODUCTION_APP_ORIGIN` | Canonical Production app URL, used by guardrails/tests that must never target Production |
-| `FAMY_ENV` | Tier marker some code paths branch on |
-| `VERCEL_AUTOMATION_BYPASS_SECRET` | Vercel's own automation-bypass mechanism for protected deployments, if in use |
-| `PAYMOB_SECRET_KEY` | Paymob Egypt Intention API secret key (`Authorization: Token …`) — server-only, never client |
-| `PAYMOB_PUBLIC_KEY` | Paymob public key for Unified Checkout redirect URL — server-only (checkout URL is returned to authenticated clients, not embedded in the bundle) |
-| `PAYMOB_HMAC_SECRET` | Paymob Transaction Processed webhook HMAC secret — server-only |
-| `PAYMOB_INTEGRATION_ID` | Paymob card/wallet integration ID passed to Intention API |
-| `PAYMOB_NOTIFICATION_URL` | Optional override for Paymob webhook URL; defaults to `${SUPABASE_URL}/functions/v1/paymob-webhook` |
+| Variable                                                                                                 | Purpose                                                                                                                                                                                                 |
+| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SUPABASE_URL`                                                                                           | Server-side Supabase URL (server code paths)                                                                                                                                                            |
+| `SUPABASE_PUBLISHABLE_KEY`                                                                               | Server-side publishable key                                                                                                                                                                             |
+| `SUPABASE_SERVICE_ROLE_KEY`                                                                              | Full-privilege key — server-only, never in client code, never logged                                                                                                                                    |
+| `AUTH_INTENT_SECRET`                                                                                     | Signs/verifies auth-intent tokens; `requireAuthIntentSecret()` throws if unset — **deploy fails closed, not open, if this is missing**, confirmed by `src/lib/auth/__tests__/authIntent.secret.test.ts` |
+| `META_WHATSAPP_ACCESS_TOKEN`                                                                             | WhatsApp Business API access token                                                                                                                                                                      |
+| `META_WHATSAPP_PHONE_NUMBER_ID`                                                                          | WhatsApp sending number ID                                                                                                                                                                              |
+| `META_WHATSAPP_TEMPLATE_NAME` / `META_WHATSAPP_TEMPLATE_LANGUAGE` / `META_WHATSAPP_TEMPLATE_BUTTON_TYPE` | OTP template configuration                                                                                                                                                                              |
+| `FIREBASE_*` (server-side Admin SDK credentials — project ID, client email, private key)                 | Firebase Phone Auth OTP provider (added after this runbook's first draft); required only when `OTP_PROVIDER=firebase`                                                                                   |
+| `FAMY_PRODUCTION_APP_ORIGIN`                                                                             | Canonical Production app URL, used by guardrails/tests that must never target Production                                                                                                                |
+| `FAMY_ENV`                                                                                               | Tier marker some code paths branch on                                                                                                                                                                   |
+| `VERCEL_AUTOMATION_BYPASS_SECRET`                                                                        | Vercel's own automation-bypass mechanism for protected deployments, if in use                                                                                                                           |
+| `PAYMOB_SECRET_KEY`                                                                                      | Paymob Egypt Intention API secret key (`Authorization: Token …`) — server-only, never client                                                                                                            |
+| `PAYMOB_PUBLIC_KEY`                                                                                      | Paymob public key for Unified Checkout redirect URL — server-only (checkout URL is returned to authenticated clients, not embedded in the bundle)                                                       |
+| `PAYMOB_HMAC_SECRET`                                                                                     | Paymob Transaction Processed webhook HMAC secret — server-only                                                                                                                                          |
+| `PAYMOB_INTEGRATION_ID`                                                                                  | Paymob card/wallet integration ID passed to Intention API                                                                                                                                               |
+| `PAYMOB_NOTIFICATION_URL`                                                                                | Optional override for Paymob webhook URL; defaults to `${SUPABASE_URL}/functions/v1/paymob-webhook`                                                                                                     |
 
 ### Supabase Edge Function secrets (set via Supabase dashboard/CLI, separate from Vercel)
 
 Only `send-push-notifications` and `paymob-webhook` exist today:
 
-| Function | Secrets / notes |
-|---|---|
-| `send-push-notifications` | See table below |
-| `paymob-webhook` | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `PAYMOB_HMAC_SECRET` — `verify_jwt = false`; HMAC on `?hmac=` query param is the only auth gate (see `supabase/functions/paymob-webhook/index.ts`) |
+| Function                  | Secrets / notes                                                                                                                                                                                 |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `send-push-notifications` | See table below                                                                                                                                                                                 |
+| `paymob-webhook`          | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `PAYMOB_HMAC_SECRET` — `verify_jwt = false`; HMAC on `?hmac=` query param is the only auth gate (see `supabase/functions/paymob-webhook/index.ts`) |
 
 `send-push-notifications` secrets:
 
-| Variable | Purpose |
-|---|---|
-| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Function's own Supabase client |
-| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Web push signing |
-| `NOTIFICATION_WORKER_SECRET` | Function checks `x-worker-secret` itself — `verify_jwt = false` is intentional (see `config.toml` comment), so this secret is the *only* thing gating the endpoint. Confirm it's set before this function goes live in Production; an unset value likely fails closed given the codebase's general pattern, but this should be verified directly against `index.ts`, not assumed. |
+| Variable                                                 | Purpose                                                                                                                                                                                                                                                                                                                                                                           |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`              | Function's own Supabase client                                                                                                                                                                                                                                                                                                                                                    |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Web push signing                                                                                                                                                                                                                                                                                                                                                                  |
+| `NOTIFICATION_WORKER_SECRET`                             | Function checks `x-worker-secret` itself — `verify_jwt = false` is intentional (see `config.toml` comment), so this secret is the _only_ thing gating the endpoint. Confirm it's set before this function goes live in Production; an unset value likely fails closed given the codebase's general pattern, but this should be verified directly against `index.ts`, not assumed. |
+
+### Push worker cron + Vault (after migration `20261004110000` is approved)
+
+The pg_cron job `famy-send-push-notifications` POSTs to
+`/functions/v1/send-push-notifications` every minute. It reads **only**
+from Supabase Vault at run time — nothing is hard-coded in the migration.
+
+**Product Owner — Supabase Dashboard steps (Production project):**
+
+1. Open **Project Settings → Vault** (or **Database → Vault**, depending on
+   dashboard layout) and add two secrets:
+   - Name: `notification_worker_secret` — generate a long random string
+     (same value you will use in step 2).
+   - Name: `project_url` — the Production Supabase project URL (the same
+     base URL as `VITE_SUPABASE_URL` / `SUPABASE_URL`, ending with
+     `.supabase.co`, no trailing path).
+2. Open **Edge Functions → send-push-notifications → Secrets** and confirm
+   `NOTIFICATION_WORKER_SECRET` is set to **exactly the same value** as
+   Vault `notification_worker_secret`.
+3. On the same function, confirm VAPID secrets are present:
+   `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT`.
+4. In **Integrations → Cron** (or query `cron.job`), confirm a job named
+   `famy-send-push-notifications` exists with schedule `* * * * *` after
+   the migration is applied.
+5. In Vercel Production, confirm `VITE_VAPID_PUBLIC_KEY` is set so browsers
+   can subscribe (already true per Production evidence; re-check after deploy).
+
+Never paste secret values into chat, commits, or logs. If Vault secrets are
+missing, the cron invoker logs a NOTICE and skips the HTTP call (no error).
 
 ### Open question — who holds the real values
 
-This document lists variable *names* and *purposes*, not values. Safeyeldin
+This document lists variable _names_ and _purposes_, not values. Safeyeldin
 holds (or can retrieve from Vercel/Supabase dashboards) the actual
 Production secrets. **No agent should ever request, paste, or store these
 values in chat, commits, or logs.**
@@ -135,19 +164,19 @@ documentation only: do not repair `supabase_migrations` history, do not
 rename already-applied remote versions, and do not replay the live
 originals.
 
-| Applied on Production (2026-09-28) | Production version | Repository file |
-|---|---|---|
-| `error_logs_monitoring` | `20260928070210` | `supabase/migrations/20260824150000_error_logs_monitoring.sql` |
-| `error_logs_client_privileges_hardening` | `20260928070424` | no historical repo file; same ACLs are reproduced by `20260928120000_monitoring_table_privilege_hardening.sql` |
-| `featured_promo_codes` | `20260928070446` | `supabase/migrations/20260826150000_featured_promo_codes.sql` |
-| `error_log_client_rate_limits_hardened` | `20260928070732` | existing `20260827120000_error_log_client_rate_limits.sql` plus the table `REVOKE`/`GRANT` now in `20260928120000_monitoring_table_privilege_hardening.sql` |
+| Applied on Production (2026-09-28)       | Production version | Repository file                                                                                                                                             |
+| ---------------------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `error_logs_monitoring`                  | `20260928070210`   | `supabase/migrations/20260824150000_error_logs_monitoring.sql`                                                                                              |
+| `error_logs_client_privileges_hardening` | `20260928070424`   | no historical repo file; same ACLs are reproduced by `20260928120000_monitoring_table_privilege_hardening.sql`                                              |
+| `featured_promo_codes`                   | `20260928070446`   | `supabase/migrations/20260826150000_featured_promo_codes.sql`                                                                                               |
+| `error_log_client_rate_limits_hardened`  | `20260928070732`   | existing `20260827120000_error_log_client_rate_limits.sql` plus the table `REVOKE`/`GRANT` now in `20260928120000_monitoring_table_privilege_hardening.sql` |
 
 Live Production table ACLs after that change (RLS and the admin-only
 `error_logs_admin_read` SELECT policy were left in place):
 
 - `error_logs`: `REVOKE ALL PRIVILEGES` from `PUBLIC`, `anon`,
   `authenticated`; `GRANT SELECT` to `authenticated`; `GRANT ALL
-  PRIVILEGES` to `service_role`.
+PRIVILEGES` to `service_role`.
 - `error_log_rate_limits`: `REVOKE ALL PRIVILEGES` from `PUBLIC`,
   `anon`, `authenticated`; `GRANT ALL PRIVILEGES` to `service_role`.
 - Limiter RPC `error_log_client_rate_limit_allow(text, int, int)`:
@@ -210,7 +239,7 @@ Two mechanisms exist in total, in order of preference:
 2. **A hand-written compensating migration** — for cases where a full PITR
    restore is undesirable (e.g. it would also revert unrelated legitimate
    writes that happened after the bad migration), accept that "rollback"
-   means writing and reviewing a *new* forward migration that undoes the
+   means writing and reviewing a _new_ forward migration that undoes the
    damage, not reverting to a prior schema snapshot.
 
 ## Monitoring / alerting minimum
