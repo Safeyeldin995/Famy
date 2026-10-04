@@ -67,32 +67,34 @@ Only `send-push-notifications` and `paymob-webhook` exist today:
 | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`              | Function's own Supabase client                                                                                                                                                                                                                                                                                                                                                    |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Web push signing                                                                                                                                                                                                                                                                                                                                                                  |
-| `NOTIFICATION_WORKER_SECRET`                             | Function checks `x-worker-secret` itself — `verify_jwt = false` is intentional (see `config.toml` comment), so this secret is the _only_ thing gating the endpoint. Confirm it's set before this function goes live in Production; an unset value likely fails closed given the codebase's general pattern, but this should be verified directly against `index.ts`, not assumed. |
+| `NOTIFICATION_WORKER_SECRET` | Optional legacy fallback when Vault lookup is unavailable. Vault `notification_worker_secret` is the single source of truth; the function checks `x-worker-secret` itself (`verify_jwt = false` is intentional). If neither source is configured, it returns 503 `worker_not_configured`. |
 
-### Push worker cron + Vault (after migration `20261004110000` is approved)
+### Push worker cron + Vault (after migrations `20261004110000` and `20261004120000` are approved)
 
 The pg_cron job `famy-send-push-notifications` POSTs to
 `/functions/v1/send-push-notifications` every minute. It reads **only**
 from Supabase Vault at run time — nothing is hard-coded in the migration.
+Vault `notification_worker_secret` is the single source of truth for both cron
+and the worker. The worker reads it through the service-role-only
+`get_notification_worker_secret()` RPC and caches the resolved value for at
+most five minutes. `NOTIFICATION_WORKER_SECRET` is only a legacy fallback
+when Vault returns no non-empty string or its lookup fails; it does not
+override a configured Vault value.
 
 **Product Owner — Supabase Dashboard steps (Production project):**
 
 1. Open **Project Settings → Vault** (or **Database → Vault**, depending on
    dashboard layout) and add two secrets:
-   - Name: `notification_worker_secret` — generate a long random string
-     (same value you will use in step 2).
+   - Name: `notification_worker_secret` — generate a long random string.
    - Name: `project_url` — the Production Supabase project URL (the same
      base URL as `VITE_SUPABASE_URL` / `SUPABASE_URL`, ending with
      `.supabase.co`, no trailing path).
-2. Open **Edge Functions → send-push-notifications → Secrets** and confirm
-   `NOTIFICATION_WORKER_SECRET` is set to **exactly the same value** as
-   Vault `notification_worker_secret`.
-3. On the same function, confirm VAPID secrets are present:
+2. On **Edge Functions → send-push-notifications → Secrets**, confirm VAPID secrets are present:
    `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT`.
-4. In **Integrations → Cron** (or query `cron.job`), confirm a job named
+3. In **Integrations → Cron** (or query `cron.job`), confirm a job named
    `famy-send-push-notifications` exists with schedule `* * * * *` after
    the migration is applied.
-5. In Vercel Production, confirm `VITE_VAPID_PUBLIC_KEY` is set so browsers
+4. In Vercel Production, confirm `VITE_VAPID_PUBLIC_KEY` is set so browsers
    can subscribe (already true per Production evidence; re-check after deploy).
 
 Never paste secret values into chat, commits, or logs. If Vault secrets are

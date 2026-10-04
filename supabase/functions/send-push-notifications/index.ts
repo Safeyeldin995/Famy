@@ -7,8 +7,8 @@
 // itself is one (it ships in the browser bundle), so it could never actually
 // restrict this endpoint to server/cron callers. Authorization is instead
 // enforced entirely inside the function via the constant-time
-// NOTIFICATION_WORKER_SECRET / x-worker-secret check below, which runs
-// before any database work. No user, anon, publishable, or service-role key
+// Vault notification_worker_secret / x-worker-secret check below, which runs
+// before any outbox work. No user, anon, publishable, or service-role key
 // is required (or accepted) from the caller — Cron only ever needs to know
 // the worker secret. It claims due public.notification_outbox rows via the
 // atomic claim_notification_outbox_batch() RPC (row-locked with FOR UPDATE
@@ -19,19 +19,49 @@
 //
 // Requires these secrets to be set on the Supabase project (via Vault /
 // `supabase secrets set`; never committed to the repo):
-//   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, NOTIFICATION_WORKER_SECRET
+//   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT
+// Vault notification_worker_secret is authoritative; NOTIFICATION_WORKER_SECRET
+// is an optional environment fallback if the Vault lookup is unavailable.
 // SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are injected automatically by
 // the Supabase Edge Runtime for every function.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
+import { resolveWorkerSecret } from "./worker-secret.ts";
+
+export { resolveWorkerSecret };
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY");
 const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY");
 const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT");
-const WORKER_SECRET = Deno.env.get("NOTIFICATION_WORKER_SECRET");
+const WORKER_SECRET_CACHE_MS = 5 * 60_000;
+let workerSecretCache: { value: string; expiresAt: number } | undefined;
+
+async function getWorkerSecret(
+  supabase: ReturnType<typeof createClient>,
+): Promise<string | undefined> {
+  const now = Date.now();
+  if (workerSecretCache && now < workerSecretCache.expiresAt)
+    return workerSecretCache.value;
+
+  let vaultValue: unknown;
+  try {
+    const { data, error } = await supabase.rpc("get_notification_worker_secret");
+    if (!error) vaultValue = data;
+  } catch {
+    // Transport failures also use the legacy fallback; never log credential data.
+  }
+  const value = resolveWorkerSecret(
+    vaultValue,
+    Deno.env.get("NOTIFICATION_WORKER_SECRET"),
+  );
+  workerSecretCache = value
+    ? { value, expiresAt: now + WORKER_SECRET_CACHE_MS }
+    : undefined;
+  return value;
+}
 
 const BATCH_SIZE = 50;
 const STALE_PROCESSING_MINUTES = 5;
@@ -61,14 +91,16 @@ Deno.serve(async (req) => {
       headers: { "Content-Type": "application/json", Allow: "POST" },
     });
   }
-  if (!WORKER_SECRET) {
+  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+  const workerSecret = await getWorkerSecret(supabase);
+  if (!workerSecret) {
     return new Response(JSON.stringify({ error: "worker_not_configured" }), {
       status: 503,
       headers: { "Content-Type": "application/json" },
     });
   }
   const presented = req.headers.get("x-worker-secret") || "";
-  if (!timingSafeEqual(presented, WORKER_SECRET)) {
+  if (!timingSafeEqual(presented, workerSecret)) {
     return new Response(JSON.stringify({ error: "unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
@@ -82,8 +114,6 @@ Deno.serve(async (req) => {
     });
   }
   webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
-
-  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
   const { data: due, error: dueErr } = await supabase.rpc("claim_notification_outbox_batch", {
     p_batch_size: BATCH_SIZE,
