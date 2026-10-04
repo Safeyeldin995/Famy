@@ -6,7 +6,7 @@ import {
   queryRows,
   readMigration,
 } from "./monitoring-privilege-harness";
-import { applySchedulerStubs } from "./supabase-scheduler-stubs.harness";
+import { applyCronOnlyStubs, applySchedulerStubs } from "./supabase-scheduler-stubs.harness";
 import {
   createMigrationReplayDb,
   readMigrationFile,
@@ -47,9 +47,32 @@ describe("send-push-notifications cron migration", () => {
     expect(sql).toContain("'notification_worker_secret'");
     expect(sql).toContain("'project_url'");
     expect(sql).toContain("famy_invoke_send_push_notifications");
+    expect(sql).toContain("extname = 'pg_net'");
+    expect(sql).toContain("p.proname = 'http_post'");
     expect(sql).not.toMatch(/x-worker-secret['"],\s*'[A-Za-z0-9+/=]{8,}/);
     expect(sql).not.toMatch(/supabase\.co/i);
     expect(sql).not.toMatch(/mjhk/i);
+  });
+
+  it("does not schedule the cron job when pg_cron is present but pg_net is absent", async () => {
+    db = await createDisposableDb();
+    await applyCronOnlyStubs(db);
+    await applySql(
+      db,
+      `
+        CREATE TABLE IF NOT EXISTS auth.users (
+          id uuid PRIMARY KEY,
+          email text,
+          phone text
+        );
+      `,
+    );
+    await applySql(db, readMigration(SEND_PUSH_CRON_MIGRATION));
+    const jobs = await queryRows<{ jobname: string }>(
+      db,
+      `SELECT jobname::text AS jobname FROM cron.job WHERE jobname = 'famy-send-push-notifications'`,
+    );
+    expect(jobs).toHaveLength(0);
   });
 
   it("registers the pg_cron job when extensions are stubbed", async () => {

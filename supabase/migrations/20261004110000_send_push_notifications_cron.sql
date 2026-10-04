@@ -87,7 +87,14 @@ END $$;
 
 DO $$
 BEGIN
-  IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
+  IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron')
+     AND EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_net')
+     AND EXISTS (
+       SELECT 1
+       FROM pg_proc p
+       JOIN pg_namespace n ON n.oid = p.pronamespace
+       WHERE n.nspname = 'net' AND p.proname = 'http_post'
+     ) THEN
     IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'famy-send-push-notifications') THEN
       PERFORM cron.unschedule('famy-send-push-notifications');
     END IF;
@@ -96,6 +103,8 @@ BEGIN
       '* * * * *',
       'SELECT public.famy_invoke_send_push_notifications();'
     );
+  ELSE
+    RAISE NOTICE 'famy-send-push-notifications not scheduled: pg_cron, pg_net, and net.http_post must all be available; schedule famy_invoke_send_push_notifications() externally.';
   END IF;
 EXCEPTION WHEN OTHERS THEN
   RAISE NOTICE 'pg_cron scheduling skipped (%); schedule famy_invoke_send_push_notifications() externally.', SQLERRM;

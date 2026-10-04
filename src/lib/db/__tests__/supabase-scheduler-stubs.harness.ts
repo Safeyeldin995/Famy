@@ -85,6 +85,36 @@ SELECT 99996, 'btree_gist', 10, (SELECT oid FROM pg_namespace WHERE nspname = 'p
 WHERE NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'btree_gist');
 `;
 
+export const CRON_ONLY_STUBS_SQL = `
+CREATE SCHEMA IF NOT EXISTS cron;
+CREATE TABLE IF NOT EXISTS cron.job (
+  jobid serial PRIMARY KEY,
+  jobname name UNIQUE,
+  schedule text,
+  command text
+);
+CREATE OR REPLACE FUNCTION cron.schedule(job_name name, cron_schedule text, command text)
+RETURNS integer LANGUAGE plpgsql AS $$
+BEGIN
+  INSERT INTO cron.job (jobname, schedule, command) VALUES (job_name, cron_schedule, command)
+  ON CONFLICT (jobname) DO UPDATE SET schedule = EXCLUDED.schedule, command = EXCLUDED.command;
+  RETURN 1;
+END; $$;
+CREATE OR REPLACE FUNCTION cron.unschedule(job_name name)
+RETURNS boolean LANGUAGE plpgsql AS $$
+BEGIN
+  DELETE FROM cron.job WHERE jobname = job_name;
+  RETURN true;
+END; $$;
+INSERT INTO pg_extension (oid, extname, extowner, extnamespace, extrelocatable, extversion)
+SELECT 99998, 'pg_cron', 10, (SELECT oid FROM pg_namespace WHERE nspname = 'pg_catalog'), false, '1.0'
+WHERE NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron');
+`;
+
 export async function applySchedulerStubs(db: PGlite): Promise<void> {
   await db.exec(SCHEDULER_STUBS_SQL);
+}
+
+export async function applyCronOnlyStubs(db: PGlite): Promise<void> {
+  await db.exec(CRON_ONLY_STUBS_SQL);
 }

@@ -27,7 +27,11 @@ export default defineConfig({
         test: {
           name: "db",
           environment: "node",
-          include: ["src/lib/db/__tests__/**/*.test.ts"],
+          environmentMatchGlobs: [["src/**/*.test.tsx", "jsdom"]],
+          include: [
+            "src/lib/db/__tests__/**/*.test.ts",
+            "src/lib/db/__tests__/**/*.test.tsx",
+          ],
           testTimeout: 30_000,
           hookTimeout: 30_000,
         },
