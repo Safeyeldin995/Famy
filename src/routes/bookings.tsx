@@ -19,6 +19,7 @@ import { useTranslation } from "react-i18next";
 import { Calendar, Clock, Repeat, Download, ChevronRight } from "lucide-react";
 import { ICON_STROKE } from "@/lib/icons/constants";
 import { isProviderNoResponseCancellation } from "@/lib/booking/pending-expiry";
+import { useProviderOnlyCustomerRedirect } from "@/lib/auth/providerOnlyCustomerGuard";
 
 export const Route = createFileRoute("/bookings")({ component: Bookings });
 
@@ -54,6 +55,7 @@ function statusPillTone(status: string): "brand" | "ink" | "success" | "warning"
 }
 
 function Bookings() {
+  const { blocking } = useProviderOnlyCustomerRedirect();
   const { t } = useTranslation();
   const nav = useNavigate();
   const [tab, setTab] = useState<Tab>("upcoming");
@@ -67,6 +69,8 @@ function Bookings() {
   }, [q.data, tab]);
 
   const tabLabel = t(`bookings.${tab}`);
+
+  if (blocking) return null;
 
   return (
     <AppShell>

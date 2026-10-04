@@ -26,7 +26,6 @@ import {
   FileText,
   ShieldCheck,
   LogOut,
-  Globe,
   Camera,
   Loader2,
   Upload,
@@ -43,8 +42,6 @@ import {
   type MappedEligibilityReason,
 } from "@/lib/provider/marketplaceEligibilityReasons";
 import { providerProfileSaveErrorKey } from "@/lib/provider/providerProfileSaveErrors";
-
-
 
 export const Route = createFileRoute("/pro/profile")({ component: ProProfile });
 
@@ -80,7 +77,6 @@ function ProProfile() {
     [eligibilityQ.data],
   );
 
-
   const [bioEn, setBioEn] = useState("");
   const [bioAr, setBioAr] = useState("");
   const [years, setYears] = useState<number>(0);
@@ -109,7 +105,9 @@ function ProProfile() {
         if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
         return objectUrl;
       });
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("auth required");
       const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
       const path = `${user.id}/avatar-${Date.now()}.${ext}`;
@@ -131,10 +129,12 @@ function ProProfile() {
     }
   };
 
-
-
   if (p.isLoading) {
-    return <ProviderShell><div className="p-8 text-center text-sm">{t("pro.common.loading")}</div></ProviderShell>;
+    return (
+      <ProviderShell>
+        <div className="p-8 text-center text-sm">{t("pro.common.loading")}</div>
+      </ProviderShell>
+    );
   }
 
   if (p.isError) {
@@ -145,7 +145,12 @@ function ProProfile() {
     );
   }
 
-  if (!provider) return <ProviderShell><div className="p-8 text-center text-sm">{t("pro.common.loading")}</div></ProviderShell>;
+  if (!provider)
+    return (
+      <ProviderShell>
+        <div className="p-8 text-center text-sm">{t("pro.common.loading")}</div>
+      </ProviderShell>
+    );
 
   const identityFieldsLocked = provider.onboarding_status === "APPROVED";
 
@@ -164,7 +169,9 @@ function ProProfile() {
 
   const myIds = new Set((mine.data ?? []).map((s: any) => s.service_id));
   const myStatus = new Map((mine.data ?? []).map((s: any) => [s.service_id, s.status]));
-  const myPriceOverride = new Map((mine.data ?? []).map((s: any) => [s.service_id, s.price_override]));
+  const myPriceOverride = new Map(
+    (mine.data ?? []).map((s: any) => [s.service_id, s.price_override]),
+  );
 
   const submitPrice = (serviceId: string, min: number | null, max: number | null) => {
     const raw = priceDrafts[serviceId];
@@ -173,7 +180,10 @@ function ProProfile() {
     const value = trimmed === "" ? null : Number(trimmed);
     if (value !== null) {
       if (!Number.isFinite(value) || value < 0) {
-        setPriceErrors((e) => ({ ...e, [serviceId]: t("pro.profile.priceInvalid", "Enter a valid price.") }));
+        setPriceErrors((e) => ({
+          ...e,
+          [serviceId]: t("pro.profile.priceInvalid", "Enter a valid price."),
+        }));
         return;
       }
       if (min != null && value < min) {
@@ -188,15 +198,21 @@ function ProProfile() {
     setPriceErrors((e) => ({ ...e, [serviceId]: "" }));
     setPrice.mutate(
       { providerId: provider.id, serviceId, price: value },
-      { onError: (e: any) => setPriceErrors((errs) => ({ ...errs, [serviceId]: e?.message ?? t("common.somethingWentWrong") })) },
+      {
+        onError: (e: any) =>
+          setPriceErrors((errs) => ({
+            ...errs,
+            [serviceId]: e?.message ?? t("common.somethingWentWrong"),
+          })),
+      },
     );
   };
   const logout = async () => {
-    await qc.cancelQueries(); qc.clear();
+    await qc.cancelQueries();
+    qc.clear();
     await supabase.auth.signOut();
     nav({ to: customerPath("/login") as "/login", replace: true });
   };
-
 
   return (
     <ProviderShell>
@@ -224,7 +240,11 @@ function ProProfile() {
               aria-label={t("pro.profile.changePhoto")}
               className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full bg-brand text-white shadow-soft ring-2 ring-white active:scale-95 disabled:opacity-60"
             >
-              {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+              {uploading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Camera className="h-3.5 w-3.5" />
+              )}
             </button>
             <input
               ref={fileRef}
@@ -239,9 +259,17 @@ function ProProfile() {
             />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="break-words text-base font-bold leading-snug">{provider.profile?.full_name || t("pro.profile.famioUser")}</div>
+            <div className="break-words text-base font-bold leading-snug">
+              {provider.profile?.full_name || t("pro.profile.famioUser")}
+            </div>
             <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground">
-              {provider.is_verified ? <><ShieldCheck className="h-3 w-3 text-success" /> {t("pro.profile.verified")}</> : t("pro.profile.verificationPending")}
+              {provider.is_verified ? (
+                <>
+                  <ShieldCheck className="h-3 w-3 text-success" /> {t("pro.profile.verified")}
+                </>
+              ) : (
+                t("pro.profile.verificationPending")
+              )}
             </div>
             <button
               type="button"
@@ -305,12 +333,17 @@ function ProProfile() {
               {eligibilityExpanded ? (
                 <div className="space-y-2">
                   {eligibilityRows.map((row) => (
-                    <div key={row.service_id} className="rounded-xl border border-border/60 p-2 text-xs">
+                    <div
+                      key={row.service_id}
+                      className="rounded-xl border border-border/60 p-2 text-xs"
+                    >
                       <div className="break-words font-bold">
                         {lang === "ar" ? row.service_name_ar : row.service_name_en}
                       </div>
                       {row.is_eligible ? (
-                        <div className="mt-1 text-success">{t("pro.profile.eligibilityServiceReady")}</div>
+                        <div className="mt-1 text-success">
+                          {t("pro.profile.eligibilityServiceReady")}
+                        </div>
                       ) : (
                         <ul className="mt-1 space-y-1 text-coral">
                           {(row.failure_reasons ?? []).map((reason) => {
@@ -339,16 +372,19 @@ function ProProfile() {
                 </div>
               ) : null}
               {!eligibilityQ.isLoading && eligibilityRows.length === 0 ? (
-                <div className="text-xs text-coral">{t("pro.profile.eligibilityBlockedByData")}</div>
+                <div className="text-xs text-coral">
+                  {t("pro.profile.eligibilityBlockedByData")}
+                </div>
               ) : null}
             </div>
           )}
         </Card>
 
-
         {/* About */}
         <div>
-          <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">{t("pro.profile.about")}</h2>
+          <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
+            {t("pro.profile.about")}
+          </h2>
           <Card className="space-y-3 p-4">
             <div className="grid gap-3 md:grid-cols-2">
               <Field label={t("pro.profile.bioEn")}>
@@ -422,87 +458,128 @@ function ProProfile() {
               {update.isPending ? t("pro.common.saving") : t("pro.profile.saveChanges")}
             </PrimaryButton>
             {update.isSuccess && (
-              <div className="text-center text-xs font-semibold text-success">{t("pro.common.saved")}</div>
+              <div className="text-center text-xs font-semibold text-success">
+                {t("pro.common.saved")}
+              </div>
             )}
           </Card>
         </div>
 
         {/* Services */}
         <div>
-          <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">{t("pro.profile.servicesOffer")}</h2>
+          <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
+            {t("pro.profile.servicesOffer")}
+          </h2>
           {services.isError || mine.isError ? (
-            <QueryError compact onRetry={() => { void services.refetch(); void mine.refetch(); }} />
+            <QueryError
+              compact
+              onRetry={() => {
+                void services.refetch();
+                void mine.refetch();
+              }}
+            />
           ) : (
-          <Card className="divide-y divide-border">
-            {(services.data ?? []).map((s: any) => {
-              const on = myIds.has(s.id);
-              const sname = lang === "ar" ? (s.name_ar ?? s.name_en) : (s.name_en ?? s.name_ar);
-              const cname = lang === "ar" ? (s.category?.name_ar ?? s.category?.name_en) : (s.category?.name_en ?? s.category?.name_ar);
-              const currentOverride = myPriceOverride.get(s.id);
-              const priceError = priceErrors[s.id];
-              return (
-                <div key={s.id} id={`service-${s.id}`} className="px-4 py-3">
-                  <div className="flex items-center justify-between">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start gap-1.5">
-                        <div className="break-words text-sm font-semibold leading-snug">{sname}</div>
-                        {on && myStatus.get(s.id) === "pending" && (
-                          <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">{t("pro.profile.servicePending")}</span>
-                        )}
-                        {on && myStatus.get(s.id) === "rejected" && (
-                          <span className="shrink-0 rounded-full bg-coral/15 px-2 py-0.5 text-[10px] font-bold text-coral">{t("pro.profile.serviceRejected")}</span>
+            <Card className="divide-y divide-border">
+              {(services.data ?? []).map((s: any) => {
+                const on = myIds.has(s.id);
+                const sname = lang === "ar" ? (s.name_ar ?? s.name_en) : (s.name_en ?? s.name_ar);
+                const cname =
+                  lang === "ar"
+                    ? (s.category?.name_ar ?? s.category?.name_en)
+                    : (s.category?.name_en ?? s.category?.name_ar);
+                const currentOverride = myPriceOverride.get(s.id);
+                const priceError = priceErrors[s.id];
+                return (
+                  <div key={s.id} id={`service-${s.id}`} className="px-4 py-3">
+                    <div className="flex items-center justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start gap-1.5">
+                          <div className="break-words text-sm font-semibold leading-snug">
+                            {sname}
+                          </div>
+                          {on && myStatus.get(s.id) === "pending" && (
+                            <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                              {t("pro.profile.servicePending")}
+                            </span>
+                          )}
+                          {on && myStatus.get(s.id) === "rejected" && (
+                            <span className="shrink-0 rounded-full bg-coral/15 px-2 py-0.5 text-[10px] font-bold text-coral">
+                              {t("pro.profile.serviceRejected")}
+                            </span>
+                          )}
+                        </div>
+                        <div className="break-words text-[11px] text-muted-foreground">{cname}</div>
+                      </div>
+                      <button
+                        onClick={() =>
+                          toggle.mutate({ providerId: provider.id, serviceId: s.id, on: !on })
+                        }
+                        className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${on ? "bg-brand" : "bg-muted"}`}
+                        aria-pressed={on}
+                      >
+                        <span
+                          className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-soft transition-all ${on ? "left-[22px]" : "left-0.5"}`}
+                        />
+                      </button>
+                    </div>
+
+                    {on && s.provider_pricing_allowed && (
+                      <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2">
+                        <input
+                          type="number"
+                          min={0}
+                          step={1}
+                          placeholder={t("pro.profile.pricePlaceholder", "Your price (EGP/hr)")}
+                          value={
+                            priceDrafts[s.id] ??
+                            (currentOverride != null ? String(currentOverride) : "")
+                          }
+                          onChange={(e) =>
+                            setPriceDrafts((d) => ({ ...d, [s.id]: e.target.value }))
+                          }
+                          className="h-9 w-40 rounded-lg border border-border bg-surface px-2 text-xs"
+                        />
+                        <button
+                          onClick={() =>
+                            submitPrice(s.id, s.minimum_price ?? null, s.maximum_price ?? null)
+                          }
+                          disabled={setPrice.isPending}
+                          className="rounded-lg bg-brand px-3 py-1.5 text-[11px] font-bold text-brand-foreground disabled:opacity-50"
+                        >
+                          {t("common.save")}
+                        </button>
+                        {(s.minimum_price != null || s.maximum_price != null) && (
+                          <span className="text-[10px] text-muted-foreground">
+                            {t("pro.profile.priceRange", {
+                              min: s.minimum_price ?? "—",
+                              max: s.maximum_price ?? "—",
+                            })}
+                          </span>
                         )}
                       </div>
-                      <div className="break-words text-[11px] text-muted-foreground">{cname}</div>
-                    </div>
-                    <button
-                      onClick={() => toggle.mutate({ providerId: provider.id, serviceId: s.id, on: !on })}
-                      className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${on ? "bg-brand" : "bg-muted"}`}
-                      aria-pressed={on}
-                    >
-                      <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-soft transition-all ${on ? "left-[22px]" : "left-0.5"}`} />
-                    </button>
-                  </div>
-
-                  {on && s.provider_pricing_allowed && (
-                    <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2">
-                      <input
-                        type="number"
-                        min={0}
-                        step={1}
-                        placeholder={t("pro.profile.pricePlaceholder", "Your price (EGP/hr)")}
-                        value={priceDrafts[s.id] ?? (currentOverride != null ? String(currentOverride) : "")}
-                        onChange={(e) => setPriceDrafts((d) => ({ ...d, [s.id]: e.target.value }))}
-                        className="h-9 w-40 rounded-lg border border-border bg-surface px-2 text-xs"
-                      />
+                    )}
+                    {priceError && (
+                      <p className="mt-1 text-[11px] font-semibold text-coral">{priceError}</p>
+                    )}
+                    {on && (
                       <button
-                        onClick={() => submitPrice(s.id, s.minimum_price ?? null, s.maximum_price ?? null)}
-                        disabled={setPrice.isPending}
-                        className="rounded-lg bg-brand px-3 py-1.5 text-[11px] font-bold text-brand-foreground disabled:opacity-50"
+                        onClick={() =>
+                          setExpandedReqService(expandedReqService === s.id ? null : s.id)
+                        }
+                        className="mt-2 text-[11px] font-bold text-brand"
                       >
-                        {t("common.save")}
+                        {expandedReqService === s.id
+                          ? t("pro.profile.hideRequirements", "Hide requirements")
+                          : t("pro.profile.showRequirements", "Requirements")}
                       </button>
-                      {(s.minimum_price != null || s.maximum_price != null) && (
-                        <span className="text-[10px] text-muted-foreground">
-                          {t("pro.profile.priceRange", { min: s.minimum_price ?? "—", max: s.maximum_price ?? "—" })}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  {priceError && <p className="mt-1 text-[11px] font-semibold text-coral">{priceError}</p>}
-                  {on && (
-                    <button
-                      onClick={() => setExpandedReqService(expandedReqService === s.id ? null : s.id)}
-                      className="mt-2 text-[11px] font-bold text-brand"
-                    >
-                      {expandedReqService === s.id ? t("pro.profile.hideRequirements", "Hide requirements") : t("pro.profile.showRequirements", "Requirements")}
-                    </button>
-                  )}
-                  {on && expandedReqService === s.id && <RequirementsChecklist providerId={provider.id} serviceId={s.id} />}
-                </div>
-              );
-            })}
-          </Card>
+                    )}
+                    {on && expandedReqService === s.id && (
+                      <RequirementsChecklist providerId={provider.id} serviceId={s.id} />
+                    )}
+                  </div>
+                );
+              })}
+            </Card>
           )}
         </div>
 
@@ -526,22 +603,33 @@ function ProProfile() {
 
         {/* Links */}
         <div>
-          <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">{t("pro.profile.more")}</h2>
+          <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
+            {t("pro.profile.more")}
+          </h2>
           <Card className="divide-y divide-border">
-            <ProRow to={proPath("/pro/documents")} icon={<FileText className="h-5 w-5" />} label={t("pro.profile.documentsRow")} />
-            <ProRow to={proPath("/pro/notification-preferences")} icon={<Bell className="h-5 w-5" />} label={t("notifPrefs.title")} />
-            <ProRow to={customerPath("/home")} icon={<Globe className="h-5 w-5" />} label={t("pro.profile.switchCustomer")} />
+            <ProRow
+              to={proPath("/pro/documents")}
+              icon={<FileText className="h-5 w-5" />}
+              label={t("pro.profile.documentsRow")}
+            />
+            <ProRow
+              to={proPath("/pro/notification-preferences")}
+              icon={<Bell className="h-5 w-5" />}
+              label={t("notifPrefs.title")}
+            />
           </Card>
         </div>
 
-        <button onClick={logout} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-surface py-4 text-sm font-bold text-destructive shadow-soft">
+        <button
+          onClick={logout}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-surface py-4 text-sm font-bold text-destructive shadow-soft"
+        >
           <LogOut className="h-4 w-4" /> {t("pro.profile.signOut")}
         </button>
       </div>
     </ProviderShell>
   );
 }
-
 
 const REQ_STATUS_TONE: Record<string, string> = {
   pending: "bg-amber-100 text-amber-700",
@@ -550,7 +638,13 @@ const REQ_STATUS_TONE: Record<string, string> = {
   waived: "bg-muted text-muted-foreground",
 };
 
-function RequirementsChecklist({ providerId, serviceId }: { providerId: string; serviceId: string }) {
+function RequirementsChecklist({
+  providerId,
+  serviceId,
+}: {
+  providerId: string;
+  serviceId: string;
+}) {
   const { t } = useTranslation();
   const reqQ = useRequirementsForService(serviceId);
   const mineQ = useMyRequirementFulfillments(providerId);
@@ -561,7 +655,12 @@ function RequirementsChecklist({ providerId, serviceId }: { providerId: string; 
   const requirements = reqQ.data ?? [];
   const mineByReq = new Map((mineQ.data ?? []).map((f: any) => [f.requirement_id, f]));
 
-  if (requirements.length === 0) return <p className="mt-2 text-[11px] text-muted-foreground">{t("pro.profile.noRequirements", "No requirements for this service.")}</p>;
+  if (requirements.length === 0)
+    return (
+      <p className="mt-2 text-[11px] text-muted-foreground">
+        {t("pro.profile.noRequirements", "No requirements for this service.")}
+      </p>
+    );
 
   return (
     <ul className="mt-2 space-y-2">
@@ -573,9 +672,15 @@ function RequirementsChecklist({ providerId, serviceId }: { providerId: string; 
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 text-xs">
                 <span className="font-semibold">{r.name_en}</span>
-                {r.required_for_provider_approval && <span className="ms-1 text-[10px] text-coral">*</span>}
+                {r.required_for_provider_approval && (
+                  <span className="ms-1 text-[10px] text-coral">*</span>
+                )}
               </div>
-              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${REQ_STATUS_TONE[status]}`}>{status}</span>
+              <span
+                className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${REQ_STATUS_TONE[status]}`}
+              >
+                {status}
+              </span>
             </div>
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
               <input
@@ -585,20 +690,31 @@ function RequirementsChecklist({ providerId, serviceId }: { providerId: string; 
                 className="h-8 min-w-0 flex-1 rounded-lg border border-border bg-surface px-2 text-[11px]"
               />
               <button
-                onClick={() => declare.mutate({ providerId, requirementId: r.id, notes: notesDraft[r.id] })}
+                onClick={() =>
+                  declare.mutate({ providerId, requirementId: r.id, notes: notesDraft[r.id] })
+                }
                 disabled={declare.isPending}
                 className="rounded-lg bg-brand px-2 py-1.5 text-[11px] font-bold text-brand-foreground disabled:opacity-50"
-              >{t("common.save")}</button>
+              >
+                {t("common.save")}
+              </button>
               {r.evidence_required && (
                 <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-[11px] font-semibold">
-                  <Upload className="h-3 w-3" /> {mine?.evidence_storage_path ? t("pro.profile.reevidence", "Re-upload") : t("pro.profile.uploadEvidence", "Upload evidence")}
+                  <Upload className="h-3 w-3" />{" "}
+                  {mine?.evidence_storage_path
+                    ? t("pro.profile.reevidence", "Re-upload")
+                    : t("pro.profile.uploadEvidence", "Upload evidence")}
                   <input
                     type="file"
                     accept="image/*,application/pdf"
                     className="hidden"
                     onChange={(e) => {
                       const f = e.target.files?.[0];
-                      if (f) upload.mutate({ providerId, requirementId: r.id, file: f }, { onError: (e2: any) => toast.error(e2?.message ?? "Upload failed") });
+                      if (f)
+                        upload.mutate(
+                          { providerId, requirementId: r.id, file: f },
+                          { onError: (e2: any) => toast.error(e2?.message ?? "Upload failed") },
+                        );
                       e.target.value = "";
                     }}
                   />
@@ -648,13 +764,22 @@ function EligibilityReasonItem({
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <label className="block"><div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>{children}</label>;
+  return (
+    <label className="block">
+      <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {label}
+      </div>
+      {children}
+    </label>
+  );
 }
 
 function ProRow({ to, icon, label }: { to: string; icon: React.ReactNode; label: string }) {
   return (
     <Link to={to as any} className="flex items-center gap-3 px-4 py-3.5 active:bg-surface-2">
-      <div className="grid h-10 w-10 place-items-center rounded-xl bg-brand/10 text-brand">{icon}</div>
+      <div className="grid h-10 w-10 place-items-center rounded-xl bg-brand/10 text-brand">
+        {icon}
+      </div>
       <div className="flex-1 text-sm font-bold">{label}</div>
     </Link>
   );
