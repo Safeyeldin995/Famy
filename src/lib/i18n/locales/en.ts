@@ -490,6 +490,8 @@ const en = {
     grade: "Grade",
     optionalNone: "Not set",
     saveForNextTime: "Save for next time",
+    saveFailed:
+      "Your booking was created, but we could not save school details for next time.",
     studentPicker: "Student",
     matchBadge: "Good fit for {{name}}",
   },

@@ -1,7 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
+  persistEducationProfileAfterBooking,
   pickDefaultCapabilityForEducation,
   shouldPersistBookingEducation,
+  shouldPersistEducationAfterBookingSuccess,
 } from "../bookingEducationAutofill";
 import type { TeachingCapabilityOption } from "../teachingCapabilities";
 
@@ -36,6 +38,38 @@ describe("booking education autofill", () => {
     expect(
       pickDefaultCapabilityForEducation(capabilities, "svc-1", "cur-1", "lvl-10")?.id,
     ).toBe("match");
+  });
+
+  it("does not persist when booking did not succeed", () => {
+    expect(
+      shouldPersistEducationAfterBookingSuccess({
+        bookingSucceeded: false,
+        isTutoring: true,
+        saveForNextTime: true,
+        draft: { educationCurriculumId: "cur-1", educationLevelId: "lvl-10" },
+        saved: { educationCurriculumId: null, educationLevelId: null },
+      }),
+    ).toBe(false);
+  });
+
+  it("persists only after booking success when save-for-next-time is checked", () => {
+    expect(
+      shouldPersistEducationAfterBookingSuccess({
+        bookingSucceeded: true,
+        isTutoring: true,
+        saveForNextTime: true,
+        draft: { educationCurriculumId: "cur-1", educationLevelId: "lvl-10" },
+        saved: { educationCurriculumId: null, educationLevelId: null },
+      }),
+    ).toBe(true);
+  });
+
+  it("swallows save failures so the booking outcome is unchanged", async () => {
+    const save = vi.fn().mockRejectedValue(new Error("network"));
+    const result = await persistEducationProfileAfterBooking({ save });
+    expect(save).toHaveBeenCalledOnce();
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toBeInstanceOf(Error);
   });
 
   it("does not persist booking edits unless save-for-next-time is checked", () => {

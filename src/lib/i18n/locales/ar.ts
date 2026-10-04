@@ -487,6 +487,7 @@ const ar: Translation = {
     grade: "الصف",
     optionalNone: "غير محدد",
     saveForNextTime: "احفظ للمرة الجاية",
+    saveFailed: "تم إنشاء الحجز، لكن لم نتمكن من حفظ بيانات المدرسة للمرة الجاية.",
     studentPicker: "الطالب",
     matchBadge: "مناسب لـ {{name}}",
   },

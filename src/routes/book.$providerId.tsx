@@ -80,7 +80,8 @@ import {
 import { resolveStudentEducationProfile } from "@/lib/tutoring/studentEducationProfile";
 import {
   pickDefaultCapabilityForEducation,
-  shouldPersistBookingEducation,
+  persistEducationProfileAfterBooking,
+  shouldPersistEducationAfterBookingSuccess,
 } from "@/lib/tutoring/bookingEducationAutofill";
 
 export const Route = createFileRoute("/book/$providerId")({
@@ -566,27 +567,6 @@ export function BookContent({
         return;
       }
 
-      if (
-        isTutoring &&
-        shouldPersistBookingEducation({
-          saveForNextTime: saveEducationForNextTime,
-          draft: {
-            educationCurriculumId: bookingEducation.educationCurriculumId || null,
-            educationLevelId: bookingEducation.educationLevelId || null,
-          },
-          saved: {
-            educationCurriculumId: studentEducation.educationCurriculumId,
-            educationLevelId: studentEducation.educationLevelId,
-          },
-        })
-      ) {
-        await saveEducation.save({
-          forWhom,
-          education_curriculum_id: bookingEducation.educationCurriculumId || null,
-          education_level_id: bookingEducation.educationLevelId || null,
-        });
-      }
-
       const submissionPayload = {
         provider_id: p.id,
         service_id: activeService.service.id,
@@ -612,6 +592,40 @@ export function BookContent({
         ...submissionPayload,
         idempotency_key: idempotencyStateRef.current.key,
       });
+
+      if (
+        shouldPersistEducationAfterBookingSuccess({
+          bookingSucceeded: true,
+          isTutoring,
+          saveForNextTime: saveEducationForNextTime,
+          draft: {
+            educationCurriculumId: bookingEducation.educationCurriculumId || null,
+            educationLevelId: bookingEducation.educationLevelId || null,
+          },
+          saved: {
+            educationCurriculumId: studentEducation.educationCurriculumId,
+            educationLevelId: studentEducation.educationLevelId,
+          },
+        })
+      ) {
+        const persistResult = await persistEducationProfileAfterBooking({
+          save: () =>
+            saveEducation.save({
+              forWhom,
+              education_curriculum_id: bookingEducation.educationCurriculumId || null,
+              education_level_id: bookingEducation.educationLevelId || null,
+            }),
+        });
+        if (!persistResult.ok) {
+          toast.error(
+            t(
+              "studentEducation.saveFailed",
+              "Your booking was created, but we could not save school details for next time.",
+            ),
+          );
+        }
+      }
+
       const paymentPlan = planPostCreatePayment(booking, selectedMethod);
       let onlineCheckoutStarted = false;
       if (paymentPlan.action === "create_now") {

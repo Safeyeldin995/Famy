@@ -54,6 +54,33 @@ export function shouldPersistBookingEducation(args: {
   );
 }
 
+/** Only after create_booking succeeds (including idempotent replay). */
+export function shouldPersistEducationAfterBookingSuccess(args: {
+  bookingSucceeded: boolean;
+  isTutoring: boolean;
+  saveForNextTime: boolean;
+  draft: BookingEducationDraft;
+  saved: EducationProfileIds;
+}): boolean {
+  if (!args.bookingSucceeded || !args.isTutoring) return false;
+  return shouldPersistBookingEducation({
+    saveForNextTime: args.saveForNextTime,
+    draft: args.draft,
+    saved: args.saved,
+  });
+}
+
+export async function persistEducationProfileAfterBooking(args: {
+  save: () => Promise<unknown>;
+}): Promise<{ ok: true } | { ok: false; error: unknown }> {
+  try {
+    await args.save();
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error };
+  }
+}
+
 export function educationDraftFromCapability(
   capability: TeachingCapabilityOption | null,
 ): BookingEducationDraft {
