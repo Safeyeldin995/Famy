@@ -529,7 +529,6 @@ function ProProfile() {
           <Card className="divide-y divide-border">
             <ProRow to={proPath("/pro/documents")} icon={<FileText className="h-5 w-5" />} label={t("pro.profile.documentsRow")} />
             <ProRow to={proPath("/pro/notification-preferences")} icon={<Bell className="h-5 w-5" />} label={t("notifPrefs.title")} />
-            <ProRow to={customerPath("/home")} icon={<Globe className="h-5 w-5" />} label={t("pro.profile.switchCustomer")} />
           </Card>
         </div>
 
