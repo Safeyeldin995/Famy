@@ -1,19 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import {
-  PhoneFrame,
-  PrimaryButton,
-  Card,
-  Badge,
-  BackButton,
-  Avatar,
-  BookingTimeline,
-  ReasonDialog,
-  CancelBookingDialog,
-  CaseDialog,
-  SupportCasesCard,
-  ErrorState,
-  EmptyState,
-} from "@/components/famio/ui";
+import { PhoneFrame, PrimaryButton, Card, Badge, BackButton, Avatar, BookingTimeline, ReasonDialog, CancelBookingDialog, CaseDialog, SupportCasesCard, ErrorState, EmptyState } from "@/components/famio/ui";
 import { PaymentBlock } from "@/components/famio/PaymentBlock";
 import { RescheduleSection } from "@/components/famio/RescheduleSection";
 import {
@@ -23,39 +9,19 @@ import {
   useBookingReview,
   useSubmitReview,
   useUpdateBookingStatus,
+  useMyPushSubscriptions,
 } from "@/lib/db/queries";
 import { useCancelBooking, useBookingCancellation } from "@/lib/db/cancellation-queries";
 import {
-  useBookingDisputes,
-  useOpenDispute,
-  activeDispute,
-  useBookingNoShowReports,
-  useReportNoShow,
-  activeNoShowReport,
-  useBookingSupportTickets,
-  useCreateSupportTicket,
-  uploadCaseEvidence,
-  type TicketCategory,
+  useBookingDisputes, useOpenDispute, activeDispute,
+  useBookingNoShowReports, useReportNoShow, activeNoShowReport,
+  useBookingSupportTickets, useCreateSupportTicket,
+  uploadCaseEvidence, type TicketCategory,
 } from "@/lib/db/case-queries";
 import { toUIProvider } from "@/lib/db/adapters";
 import { currentLang } from "@/lib/i18n";
 import { formatEGP } from "@/lib/utils";
-import {
-  Check,
-  MapPin,
-  Calendar,
-  Clock,
-  Phone,
-  Download,
-  HelpCircle,
-  AlertTriangle,
-  Star,
-  ShieldCheck,
-  Bell,
-  UserCheck,
-  X,
-  LifeBuoy,
-} from "lucide-react";
+import { Check, MapPin, Calendar, Clock, Phone, Download, HelpCircle, AlertTriangle, Star, ShieldCheck, Bell, UserCheck, X, LifeBuoy } from "lucide-react";
 import { BookingChatPanel } from "@/components/famio/BookingChatPanel";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -64,37 +30,17 @@ import { peekPendingPayment } from "@/lib/booking/post-create-payment";
 import { isProviderNoResponseCancellation } from "@/lib/booking/pending-expiry";
 import { PushEnablePrompt } from "@/components/famio/PushEnablePrompt";
 import { shouldOfferPushPrompt } from "@/lib/push-prompt";
-import { useMyPushSubscriptions } from "@/lib/db/queries";
+
 
 export const Route = createFileRoute("/booking/$id")({
   component: BookingDetail,
 });
 
-const TRACKABLE_STATUSES = [
-  "on_the_way",
-  "arrived",
-  "arrival_confirmed",
-  "in_progress",
-  "completion_requested",
-];
-const DISPUTE_ELIGIBLE_STATUSES = [
-  "on_the_way",
-  "arrived",
-  "arrival_confirmed",
-  "in_progress",
-  "completion_requested",
-];
-const SUPPORT_CATEGORIES: TicketCategory[] = [
-  "payment",
-  "service_quality",
-  "provider_behavior",
-  "booking_issue",
-  "app_issue",
-  "other",
-];
+const TRACKABLE_STATUSES = ["on_the_way", "arrived", "arrival_confirmed", "in_progress", "completion_requested"];
+const DISPUTE_ELIGIBLE_STATUSES = ["on_the_way", "arrived", "arrival_confirmed", "in_progress", "completion_requested"];
+const SUPPORT_CATEGORIES: TicketCategory[] = ["payment", "service_quality", "provider_behavior", "booking_issue", "app_issue", "other"];
 
-type CustomerDialog =
-  "" | "cancel" | "no_show" | "confirmArrival" | "confirmCompletion" | "dispute" | "support";
+type CustomerDialog = "" | "cancel" | "no_show" | "confirmArrival" | "confirmCompletion" | "dispute" | "support";
 
 function BookingDetail() {
   const { id } = Route.useParams();
@@ -218,14 +164,7 @@ function BookingDetail() {
           icon="search"
           title={t("bookingDetail.notFound")}
           body={t("bookingDetail.notFoundBody")}
-          action={
-            <Link
-              to="/home"
-              className="focus-ring tap-scale inline-flex items-center rounded-full bg-brand px-5 py-3 text-sm font-extrabold text-brand-foreground"
-            >
-              {t("bookingDetail.backHome")}
-            </Link>
-          }
+          action={<Link to="/home" className="focus-ring tap-scale inline-flex items-center rounded-full bg-brand px-5 py-3 text-sm font-extrabold text-brand-foreground">{t("bookingDetail.backHome")}</Link>}
         />
       </PhoneFrame>
     );
@@ -243,9 +182,7 @@ function BookingDetail() {
     time: startAt.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" }),
     duration: `${durationH}h`,
     address: real.location
-      ? [real.location.street, real.location.building, real.location.compound, real.location.city]
-          .filter(Boolean)
-          .join(", ")
+      ? [real.location.street, real.location.building, real.location.compound, real.location.city].filter(Boolean).join(", ")
       : t("bookingDetail.addressMissing"),
     total: formatEGP(Number(real.price_total ?? 0)),
   };
@@ -254,13 +191,10 @@ function BookingDetail() {
   // renders — there is no manual/local toggle a customer must press to see
   // an action that needs their response.
   const view: "closed" | "completed" | "tracking" | "upcoming" =
-    status === "completed"
-      ? "completed"
-      : status === "cancelled" || status === "no_show" || status === "disputed"
-        ? "closed"
-        : status && TRACKABLE_STATUSES.includes(status)
-          ? "tracking"
-          : "upcoming";
+    status === "completed" ? "completed"
+    : status === "cancelled" || status === "no_show" || status === "disputed" ? "closed"
+    : status && TRACKABLE_STATUSES.includes(status) ? "tracking"
+    : "upcoming";
 
   if (view === "closed") {
     const cancellation = cancellationQ.data;
@@ -268,32 +202,22 @@ function BookingDetail() {
     const reason = expired
       ? t("bookingDetail.expiredReason")
       : cancellation
-        ? lang === "ar"
-          ? cancellation.reason_name_ar
-          : cancellation.reason_name_en
-        : real.cancellation_reason || real.no_show_reason || real.dispute_reason;
-    const title = expired
-      ? t("bookingDetail.expiredTitle")
-      : status === "cancelled"
-        ? t("bookingDetail.closedCancelledTitle")
-        : status === "no_show"
-          ? t("bookingDetail.closedNoShowTitle")
-          : t("bookingDetail.closedDisputedTitle");
+      ? (lang === "ar" ? cancellation.reason_name_ar : cancellation.reason_name_en)
+      : real.cancellation_reason || real.no_show_reason || real.dispute_reason;
+    const title =
+      expired ? t("bookingDetail.expiredTitle")
+      : status === "cancelled" ? t("bookingDetail.closedCancelledTitle")
+      : status === "no_show" ? t("bookingDetail.closedNoShowTitle")
+      : t("bookingDetail.closedDisputedTitle");
     return (
       <PhoneFrame>
         <div className="safe-top flex-1 px-6 pt-10">
           <div className="text-center">
             <div className="mx-auto grid h-24 w-24 place-items-center rounded-full bg-muted">
-              <div className="grid h-16 w-16 place-items-center rounded-full bg-surface text-muted-foreground">
-                <X className="h-8 w-8" />
-              </div>
+              <div className="grid h-16 w-16 place-items-center rounded-full bg-surface text-muted-foreground"><X className="h-8 w-8" /></div>
             </div>
             <h1 className="mt-5 text-2xl font-extrabold">{title}</h1>
-            {status === "disputed" && (
-              <p className="mt-1 text-sm text-muted-foreground">
-                {t("bookingDetail.closedDisputedBody")}
-              </p>
-            )}
+            {status === "disputed" && <p className="mt-1 text-sm text-muted-foreground">{t("bookingDetail.closedDisputedBody")}</p>}
           </div>
 
           <Card className="mt-8 p-5">
@@ -306,62 +230,40 @@ function BookingDetail() {
             </div>
             <div className="mt-4 space-y-3 text-sm">
               <Line icon={<Calendar className="h-4 w-4" />} label={booking.date} />
-              <Line
-                icon={<Clock className="h-4 w-4" />}
-                label={`${booking.time} · ${booking.duration}`}
-              />
+              <Line icon={<Clock className="h-4 w-4" />} label={`${booking.time} · ${booking.duration}`} />
               <Line icon={<MapPin className="h-4 w-4" />} label={booking.address} />
             </div>
             {reason && (
               <div className="mt-4 rounded-2xl bg-surface-2 p-3">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                  {t("bookingDetail.reasonLabel")}
-                </div>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{t("bookingDetail.reasonLabel")}</div>
                 <p className="mt-1 text-sm">{reason}</p>
-                {cancellation?.note && (
-                  <p className="mt-1 text-sm text-muted-foreground">{cancellation.note}</p>
-                )}
+                {cancellation?.note && <p className="mt-1 text-sm text-muted-foreground">{cancellation.note}</p>}
               </div>
             )}
             {cancellation && (
               <div className="mt-3 space-y-1 text-xs text-muted-foreground">
                 <p>
-                  {t("bookingDetail.cancelledBy")}:{" "}
-                  {t(`bookingDetail.cancelledByRole.${cancellation.cancelled_by_role}`)}
+                  {t("bookingDetail.cancelledBy")}: {t(`bookingDetail.cancelledByRole.${cancellation.cancelled_by_role}`)}
                 </p>
                 <p>
-                  {t("bookingDetail.cancelledAt")}:{" "}
-                  {new Date(cancellation.cancelled_at).toLocaleString(locale)}
+                  {t("bookingDetail.cancelledAt")}: {new Date(cancellation.cancelled_at).toLocaleString(locale)}
                 </p>
               </div>
             )}
           </Card>
 
-          <SupportCasesCard
-            tickets={supportTicketsQ.data ?? []}
-            dispute={dispute}
-            noShowReport={noShowReport}
-            t={t}
-          />
-          <button
-            onClick={() => setDialog("support")}
-            className="mt-2 flex w-full items-center justify-center gap-1.5 py-2 text-xs font-semibold text-muted-foreground"
-          >
-            <LifeBuoy className="h-3.5 w-3.5" aria-hidden="true" />{" "}
-            {t("bookingDetail.openSupportTicket")}
+          <SupportCasesCard tickets={supportTicketsQ.data ?? []} dispute={dispute} noShowReport={noShowReport} t={t} />
+          <button onClick={() => setDialog("support")} className="mt-2 flex w-full items-center justify-center gap-1.5 py-2 text-xs font-semibold text-muted-foreground">
+            <LifeBuoy className="h-3.5 w-3.5" aria-hidden="true" /> {t("bookingDetail.openSupportTicket")}
           </button>
 
           <BookingChatPanel bookingId={real.id} status={status} viewer="customer" />
         </div>
         <div className="safe-bottom px-6 pt-4">
           {expired ? (
-            <PrimaryButton onClick={() => nav({ to: "/home" })}>
-              {t("bookingDetail.bookAnotherProvider")}
-            </PrimaryButton>
+            <PrimaryButton onClick={() => nav({ to: "/home" })}>{t("bookingDetail.bookAnotherProvider")}</PrimaryButton>
           ) : (
-            <PrimaryButton onClick={() => nav({ to: "/home" })}>
-              {t("bookingDetail.backHome")}
-            </PrimaryButton>
+            <PrimaryButton onClick={() => nav({ to: "/home" })}>{t("bookingDetail.backHome")}</PrimaryButton>
           )}
         </div>
 
@@ -370,10 +272,7 @@ function BookingDetail() {
           open={dialog === "support"}
           title={t("bookingDetail.supportDialogTitle")}
           body={t("bookingDetail.supportDialogBody")}
-          categoryOptions={SUPPORT_CATEGORIES.map((c) => ({
-            value: c,
-            label: t(`bookingDetail.supportCategories.${c}`),
-          }))}
+          categoryOptions={SUPPORT_CATEGORIES.map((c) => ({ value: c, label: t(`bookingDetail.supportCategories.${c}`) }))}
           categoryLabel={t("bookingDetail.categoryLabel")}
           subjectLabel={t("bookingDetail.subjectLabel")}
           subjectPlaceholder={t("bookingDetail.subjectPlaceholder")}
@@ -383,9 +282,7 @@ function BookingDetail() {
           cancelLabel={t("bookingDetail.keep")}
           pending={createTicket.isPending}
           onCancel={() => setDialog("")}
-          onConfirm={({ category, subject, description }) =>
-            submitSupport(category as TicketCategory, subject ?? "", description ?? "")
-          }
+          onConfirm={({ category, subject, description }) => submitSupport(category as TicketCategory, subject ?? "", description ?? "")}
         />
       </PhoneFrame>
     );
@@ -398,14 +295,10 @@ function BookingDetail() {
         <div className="safe-top flex-1 px-6 pt-10">
           <div className="text-center">
             <div className="animate-pop mx-auto grid h-24 w-24 place-items-center rounded-full bg-mint/40">
-              <div className="grid h-16 w-16 place-items-center rounded-full bg-success text-white">
-                <Check className="h-8 w-8" />
-              </div>
+              <div className="grid h-16 w-16 place-items-center rounded-full bg-success text-white"><Check className="h-8 w-8" /></div>
             </div>
             <h1 className="mt-5 text-2xl font-extrabold">{t("bookingDetail.completedTitle")}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {t("bookingDetail.howWasIt", { name: provider.name })}
-            </p>
+            <p className="mt-1 text-sm text-muted-foreground">{t("bookingDetail.howWasIt", { name: provider.name })}</p>
           </div>
 
           <Card className="mt-8 p-5">
@@ -418,10 +311,7 @@ function BookingDetail() {
             </div>
             <div className="mt-4 space-y-3 text-sm">
               <Line icon={<Calendar className="h-4 w-4" />} label={booking.date} />
-              <Line
-                icon={<Clock className="h-4 w-4" />}
-                label={`${booking.time} · ${booking.duration}`}
-              />
+              <Line icon={<Clock className="h-4 w-4" />} label={`${booking.time} · ${booking.duration}`} />
               <Line icon={<MapPin className="h-4 w-4" />} label={booking.address} />
             </div>
 
@@ -429,29 +319,20 @@ function BookingDetail() {
               <>
                 <div className="mt-5 flex justify-center gap-2">
                   {[1, 2, 3, 4, 5].map((n) => (
-                    <Star
-                      key={n}
-                      className={`h-9 w-9 ${n <= existingReview.rating ? "fill-warning text-warning" : "text-border"}`}
-                    />
+                    <Star key={n} className={`h-9 w-9 ${n <= existingReview.rating ? "fill-warning text-warning" : "text-border"}`} />
                   ))}
                 </div>
                 {existingReview.comment && (
-                  <p className="mt-4 rounded-2xl bg-surface-2 p-3 text-sm text-muted-foreground">
-                    {existingReview.comment}
-                  </p>
+                  <p className="mt-4 rounded-2xl bg-surface-2 p-3 text-sm text-muted-foreground">{existingReview.comment}</p>
                 )}
-                <div className="mt-3 text-center text-xs font-semibold text-success">
-                  {t("bookingDetail.reviewSubmitted")}
-                </div>
+                <div className="mt-3 text-center text-xs font-semibold text-success">{t("bookingDetail.reviewSubmitted")}</div>
               </>
             ) : (
               <>
                 <div className="mt-5 flex justify-center gap-2">
                   {[1, 2, 3, 4, 5].map((n) => (
                     <button key={n} onClick={() => setRating(n)} aria-label={`${n}`}>
-                      <Star
-                        className={`h-9 w-9 ${n <= rating ? "fill-warning text-warning" : "text-border"}`}
-                      />
+                      <Star className={`h-9 w-9 ${n <= rating ? "fill-warning text-warning" : "text-border"}`} />
                     </button>
                   ))}
                 </div>
@@ -465,55 +346,29 @@ function BookingDetail() {
                 <PrimaryButton
                   className="mt-3 h-12 text-sm"
                   disabled={rating === 0 || submitReview.isPending}
-                  onClick={() =>
-                    submitReview.mutate({
-                      bookingId: real.id,
-                      providerId: provider.id,
-                      rating,
-                      comment,
-                    })
-                  }
+                  onClick={() => submitReview.mutate({ bookingId: real.id, providerId: provider.id, rating, comment })}
                 >
                   {t("bookingDetail.submitReview")}
                 </PrimaryButton>
               </>
             )}
             <button
-              onClick={() =>
-                toggleFav.mutate({
-                  providerId: provider.id,
-                  on: !(favIdsQ.data ?? []).includes(provider.id),
-                })
-              }
+              onClick={() => toggleFav.mutate({ providerId: provider.id, on: !(favIdsQ.data ?? []).includes(provider.id) })}
               className="mt-3 inline-flex items-center gap-2 text-sm font-extrabold text-brand"
             >
-              <Star className="h-4 w-4" />{" "}
-              {(favIdsQ.data ?? []).includes(provider.id)
-                ? t("bookingDetail.savedFavorite")
-                : t("bookingDetail.saveFavorite")}
+              <Star className="h-4 w-4" /> {(favIdsQ.data ?? []).includes(provider.id) ? t("bookingDetail.savedFavorite") : t("bookingDetail.saveFavorite")}
             </button>
           </Card>
 
-          <SupportCasesCard
-            tickets={supportTicketsQ.data ?? []}
-            dispute={dispute}
-            noShowReport={noShowReport}
-            t={t}
-          />
-          <button
-            onClick={() => setDialog("support")}
-            className="mt-2 flex w-full items-center justify-center gap-1.5 py-2 text-xs font-semibold text-muted-foreground"
-          >
-            <LifeBuoy className="h-3.5 w-3.5" aria-hidden="true" />{" "}
-            {t("bookingDetail.openSupportTicket")}
+          <SupportCasesCard tickets={supportTicketsQ.data ?? []} dispute={dispute} noShowReport={noShowReport} t={t} />
+          <button onClick={() => setDialog("support")} className="mt-2 flex w-full items-center justify-center gap-1.5 py-2 text-xs font-semibold text-muted-foreground">
+            <LifeBuoy className="h-3.5 w-3.5" aria-hidden="true" /> {t("bookingDetail.openSupportTicket")}
           </button>
 
           <BookingChatPanel bookingId={real.id} status={status} viewer="customer" />
         </div>
         <div className="safe-bottom space-y-2 px-6 pt-4">
-          <PrimaryButton onClick={() => nav({ to: "/home" })}>
-            {t("bookingDetail.submitBookAgain")}
-          </PrimaryButton>
+          <PrimaryButton onClick={() => nav({ to: "/home" })}>{t("bookingDetail.submitBookAgain")}</PrimaryButton>
         </div>
 
         <CaseDialog
@@ -521,10 +376,7 @@ function BookingDetail() {
           open={dialog === "support"}
           title={t("bookingDetail.supportDialogTitle")}
           body={t("bookingDetail.supportDialogBody")}
-          categoryOptions={SUPPORT_CATEGORIES.map((c) => ({
-            value: c,
-            label: t(`bookingDetail.supportCategories.${c}`),
-          }))}
+          categoryOptions={SUPPORT_CATEGORIES.map((c) => ({ value: c, label: t(`bookingDetail.supportCategories.${c}`) }))}
           categoryLabel={t("bookingDetail.categoryLabel")}
           subjectLabel={t("bookingDetail.subjectLabel")}
           subjectPlaceholder={t("bookingDetail.subjectPlaceholder")}
@@ -534,9 +386,7 @@ function BookingDetail() {
           cancelLabel={t("bookingDetail.keep")}
           pending={createTicket.isPending}
           onCancel={() => setDialog("")}
-          onConfirm={({ category, subject, description }) =>
-            submitSupport(category as TicketCategory, subject ?? "", description ?? "")
-          }
+          onConfirm={({ category, subject, description }) => submitSupport(category as TicketCategory, subject ?? "", description ?? "")}
         />
       </PhoneFrame>
     );
@@ -544,15 +394,11 @@ function BookingDetail() {
 
   if (view === "tracking") {
     const headline =
-      status === "arrived"
-        ? t("bookingDetail.arrivedBody", { name: provider.name })
-        : status === "arrival_confirmed"
-          ? t("bookingDetail.arrivalConfirmedBody", { name: provider.name })
-          : status === "in_progress"
-            ? t("bookingDetail.inProgressBody", { name: provider.name })
-            : status === "completion_requested"
-              ? t("bookingDetail.completionRequestedBody", { name: provider.name })
-              : t("bookingDetail.arrivingBody", { name: provider.name });
+      status === "arrived" ? t("bookingDetail.arrivedBody", { name: provider.name })
+      : status === "arrival_confirmed" ? t("bookingDetail.arrivalConfirmedBody", { name: provider.name })
+      : status === "in_progress" ? t("bookingDetail.inProgressBody", { name: provider.name })
+      : status === "completion_requested" ? t("bookingDetail.completionRequestedBody", { name: provider.name })
+      : t("bookingDetail.arrivingBody", { name: provider.name });
 
     return (
       <PhoneFrame bg="bg-background">
@@ -568,18 +414,13 @@ function BookingDetail() {
           </div>
 
           <span className="mt-6 inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest">
-            <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />{" "}
-            {t(`status.${status}`, { defaultValue: status })}
+            <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" /> {t(`status.${status}`, { defaultValue: status })}
           </span>
           <div className="mt-2 text-[28px] font-black leading-tight tracking-tight">{headline}</div>
           <p className="mt-1 text-sm font-semibold opacity-85">{booking.service}</p>
 
           <div className="mt-6 flex items-center gap-4 rounded-[1.75rem] bg-white/15 p-3.5 backdrop-blur">
-            <Avatar
-              src={provider.avatar}
-              alt={provider.name}
-              className="h-16 w-16 shrink-0 rounded-full ring-2 ring-white/40"
-            />
+            <Avatar src={provider.avatar} alt={provider.name} className="h-16 w-16 shrink-0 rounded-full ring-2 ring-white/40" />
             <div className="min-w-0 flex-1">
               <div className="truncate text-base font-extrabold">{provider.name}</div>
               <div className="mt-0.5 inline-flex items-center gap-1 text-xs font-semibold opacity-85">
@@ -598,10 +439,7 @@ function BookingDetail() {
 
         <div className="flex-1 px-5 pb-8 pt-5">
           <Card className="p-4">
-            <BookingTimeline
-              status={status ?? "on_the_way"}
-              labelFor={(step) => t(`bookingDetail.timeline.${step}`)}
-            />
+            <BookingTimeline status={status ?? "on_the_way"} labelFor={(step) => t(`bookingDetail.timeline.${step}`)} />
           </Card>
 
           <p className="mt-3 rounded-2xl bg-surface-2 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">
@@ -609,29 +447,16 @@ function BookingDetail() {
           </p>
 
           {status === "on_the_way" && !noShowReport && (
-            <button
-              onClick={() => setDialog("no_show")}
-              disabled={reportNoShowMut.isPending}
-              className="mt-4 w-full rounded-full py-3 text-sm font-extrabold text-brand disabled:opacity-50"
-            >
+            <button onClick={() => setDialog("no_show")} disabled={reportNoShowMut.isPending} className="mt-4 w-full rounded-full py-3 text-sm font-extrabold text-brand disabled:opacity-50">
               {t("bookingDetail.reportNoShow")}
             </button>
           )}
 
           {status === "arrived" && (
             <div className="mt-4 space-y-2">
-              <PrimaryButton
-                onClick={() => setDialog("confirmArrival")}
-                disabled={updateStatus.isPending}
-              >
-                {t("bookingDetail.confirmArrival")}
-              </PrimaryButton>
+              <PrimaryButton onClick={() => setDialog("confirmArrival")} disabled={updateStatus.isPending}>{t("bookingDetail.confirmArrival")}</PrimaryButton>
               {!noShowReport && (
-                <button
-                  onClick={() => setDialog("no_show")}
-                  disabled={reportNoShowMut.isPending}
-                  className="w-full py-2 text-xs font-extrabold text-brand disabled:opacity-50"
-                >
+                <button onClick={() => setDialog("no_show")} disabled={reportNoShowMut.isPending} className="w-full py-2 text-xs font-extrabold text-brand disabled:opacity-50">
                   {t("bookingDetail.reportNoShow")}
                 </button>
               )}
@@ -645,38 +470,19 @@ function BookingDetail() {
           )}
 
           {status === "completion_requested" && (
-            <PrimaryButton
-              className="mt-4"
-              onClick={() => setDialog("confirmCompletion")}
-              disabled={updateStatus.isPending}
-            >
-              {t("bookingDetail.confirmCompletion")}
-            </PrimaryButton>
+            <PrimaryButton className="mt-4" onClick={() => setDialog("confirmCompletion")} disabled={updateStatus.isPending}>{t("bookingDetail.confirmCompletion")}</PrimaryButton>
           )}
 
           {DISPUTE_ELIGIBLE_STATUSES.includes(status ?? "") && !dispute && (
-            <button
-              onClick={() => setDialog("dispute")}
-              disabled={openDispute.isPending}
-              className="mt-2 w-full py-2 text-xs font-extrabold text-brand disabled:opacity-50"
-            >
+            <button onClick={() => setDialog("dispute")} disabled={openDispute.isPending} className="mt-2 w-full py-2 text-xs font-extrabold text-brand disabled:opacity-50">
               {t("bookingDetail.disputeCompletion")}
             </button>
           )}
-          <button
-            onClick={() => setDialog("support")}
-            className="mt-1 flex w-full items-center justify-center gap-1.5 py-2 text-xs font-semibold text-muted-foreground"
-          >
-            <LifeBuoy className="h-3.5 w-3.5" aria-hidden="true" />{" "}
-            {t("bookingDetail.openSupportTicket")}
+          <button onClick={() => setDialog("support")} className="mt-1 flex w-full items-center justify-center gap-1.5 py-2 text-xs font-semibold text-muted-foreground">
+            <LifeBuoy className="h-3.5 w-3.5" aria-hidden="true" /> {t("bookingDetail.openSupportTicket")}
           </button>
 
-          <SupportCasesCard
-            tickets={supportTicketsQ.data ?? []}
-            dispute={dispute}
-            noShowReport={noShowReport}
-            t={t}
-          />
+          <SupportCasesCard tickets={supportTicketsQ.data ?? []} dispute={dispute} noShowReport={noShowReport} t={t} />
 
           <BookingChatPanel bookingId={real.id} status={status} viewer="customer" />
         </div>
@@ -737,19 +543,14 @@ function BookingDetail() {
           cancelLabel={t("bookingDetail.keep")}
           pending={openDispute.isPending}
           onCancel={() => setDialog("")}
-          onConfirm={({ reason, description, evidenceFile }) =>
-            submitDispute(reason, description ?? "", evidenceFile)
-          }
+          onConfirm={({ reason, description, evidenceFile }) => submitDispute(reason, description ?? "", evidenceFile)}
         />
         <CaseDialog
           key={`support-${dialog}`}
           open={dialog === "support"}
           title={t("bookingDetail.supportDialogTitle")}
           body={t("bookingDetail.supportDialogBody")}
-          categoryOptions={SUPPORT_CATEGORIES.map((c) => ({
-            value: c,
-            label: t(`bookingDetail.supportCategories.${c}`),
-          }))}
+          categoryOptions={SUPPORT_CATEGORIES.map((c) => ({ value: c, label: t(`bookingDetail.supportCategories.${c}`) }))}
           categoryLabel={t("bookingDetail.categoryLabel")}
           subjectLabel={t("bookingDetail.subjectLabel")}
           subjectPlaceholder={t("bookingDetail.subjectPlaceholder")}
@@ -759,9 +560,7 @@ function BookingDetail() {
           cancelLabel={t("bookingDetail.keep")}
           pending={createTicket.isPending}
           onCancel={() => setDialog("")}
-          onConfirm={({ category, subject, description }) =>
-            submitSupport(category as TicketCategory, subject ?? "", description ?? "")
-          }
+          onConfirm={({ category, subject, description }) => submitSupport(category as TicketCategory, subject ?? "", description ?? "")}
         />
       </PhoneFrame>
     );
@@ -776,24 +575,14 @@ function BookingDetail() {
         <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest">
           {t(`status.${status}`, { defaultValue: status })}
         </span>
-        <h1 className="mt-2 text-[28px] font-black leading-tight tracking-tight">
-          {t("bookingDetail.allSet")}
-        </h1>
-        <p className="mt-1 text-sm font-semibold opacity-85">
-          {t("bookingDetail.confirmedNumber", { id: booking.id })}
-        </p>
+        <h1 className="mt-2 text-[28px] font-black leading-tight tracking-tight">{t("bookingDetail.allSet")}</h1>
+        <p className="mt-1 text-sm font-semibold opacity-85">{t("bookingDetail.confirmedNumber", { id: booking.id })}</p>
 
         <div className="mt-6 flex items-center gap-4 rounded-[1.75rem] bg-white/15 p-3.5 backdrop-blur">
-          <Avatar
-            src={provider.avatar}
-            alt={provider.name}
-            className="h-16 w-16 shrink-0 rounded-full ring-2 ring-white/40"
-          />
+          <Avatar src={provider.avatar} alt={provider.name} className="h-16 w-16 shrink-0 rounded-full ring-2 ring-white/40" />
           <div className="min-w-0 flex-1">
             <div className="truncate text-base font-extrabold">{provider.name}</div>
-            <div className="mt-0.5 truncate text-xs font-semibold opacity-85">
-              {booking.service}
-            </div>
+            <div className="mt-0.5 truncate text-xs font-semibold opacity-85">{booking.service}</div>
           </div>
         </div>
       </div>
@@ -810,10 +599,7 @@ function BookingDetail() {
           </div>
           <div className="mt-4 space-y-3 text-sm">
             <Line icon={<Calendar className="h-4 w-4" />} label={booking.date} />
-            <Line
-              icon={<Clock className="h-4 w-4" />}
-              label={`${booking.time} · ${booking.duration}`}
-            />
+            <Line icon={<Clock className="h-4 w-4" />} label={`${booking.time} · ${booking.duration}`} />
             <Line icon={<MapPin className="h-4 w-4" />} label={booking.address} />
           </div>
         </Card>
@@ -822,32 +608,12 @@ function BookingDetail() {
           <Action
             icon={<Download className="h-4 w-4" />}
             label={t("bookingDetail.receipt")}
-            onClick={() =>
-              downloadReceipt({
-                id: booking.id,
-                provider: provider.name,
-                service: booking.service,
-                date: booking.date,
-                time: booking.time,
-                duration: booking.duration,
-                address: booking.address,
-                total: booking.total,
-              })
-            }
+            onClick={() => downloadReceipt({ id: booking.id, provider: provider.name, service: booking.service, date: booking.date, time: booking.time, duration: booking.duration, address: booking.address, total: booking.total })}
           />
           <Action
             icon={<Calendar className="h-4 w-4" />}
             label={t("bookingDetail.addCalendar")}
-            onClick={() =>
-              downloadIcs({
-                id: booking.id,
-                title: `Famy – ${booking.service}`,
-                description: `Provider: ${provider.name}`,
-                location: booking.address,
-                start: startAt,
-                end: endAt,
-              })
-            }
+            onClick={() => downloadIcs({ id: booking.id, title: `Famy – ${booking.service}`, description: `Provider: ${provider.name}`, location: booking.address, start: startAt, end: endAt })}
           />
           <Action
             icon={<HelpCircle className="h-4 w-4" />}
@@ -879,40 +645,17 @@ function BookingDetail() {
 
         <BookingChatPanel bookingId={real.id} status={status} viewer="customer" />
 
-        <SupportCasesCard
-          tickets={supportTicketsQ.data ?? []}
-          dispute={dispute}
-          noShowReport={noShowReport}
-          t={t}
-        />
-        <button
-          onClick={() => setDialog("support")}
-          className="mt-2 flex w-full items-center justify-center gap-1.5 py-2 text-xs font-semibold text-muted-foreground"
-        >
-          <LifeBuoy className="h-3.5 w-3.5" aria-hidden="true" />{" "}
-          {t("bookingDetail.openSupportTicket")}
+        <SupportCasesCard tickets={supportTicketsQ.data ?? []} dispute={dispute} noShowReport={noShowReport} t={t} />
+        <button onClick={() => setDialog("support")} className="mt-2 flex w-full items-center justify-center gap-1.5 py-2 text-xs font-semibold text-muted-foreground">
+          <LifeBuoy className="h-3.5 w-3.5" aria-hidden="true" /> {t("bookingDetail.openSupportTicket")}
         </button>
 
         <Card className="mt-4 p-5">
-          <div className="mb-3 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
-            {t("bookingDetail.whatsNext")}
-          </div>
+          <div className="mb-3 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">{t("bookingDetail.whatsNext")}</div>
           <ol className="space-y-3">
-            <NextStep
-              icon={<Bell className="h-4 w-4" />}
-              title={t("bookingDetail.nextRemindTitle")}
-              body={t("bookingDetail.nextRemindBody")}
-            />
-            <NextStep
-              icon={<UserCheck className="h-4 w-4" />}
-              title={t("bookingDetail.nextArriveTitle", { name: provider.name.split(" ")[0] })}
-              body={t("bookingDetail.nextArriveBody")}
-            />
-            <NextStep
-              icon={<Check className="h-4 w-4" />}
-              title={t("bookingDetail.nextPayTitle")}
-              body={t("bookingDetail.nextPayBody")}
-            />
+            <NextStep icon={<Bell className="h-4 w-4" />} title={t("bookingDetail.nextRemindTitle")} body={t("bookingDetail.nextRemindBody")} />
+            <NextStep icon={<UserCheck className="h-4 w-4" />} title={t("bookingDetail.nextArriveTitle", { name: provider.name.split(" ")[0] })} body={t("bookingDetail.nextArriveBody")} />
+            <NextStep icon={<Check className="h-4 w-4" />} title={t("bookingDetail.nextPayTitle")} body={t("bookingDetail.nextPayBody")} />
           </ol>
         </Card>
 
@@ -922,35 +665,21 @@ function BookingDetail() {
           </div>
           <div className="min-w-0">
             <div className="text-sm font-extrabold">{t("bookingDetail.guaranteeTitle")}</div>
-            <p className="text-[11px] leading-relaxed text-muted-foreground">
-              {t("bookingDetail.guaranteeBody")}
-            </p>
+            <p className="text-[11px] leading-relaxed text-muted-foreground">{t("bookingDetail.guaranteeBody")}</p>
           </div>
         </div>
       </div>
 
       <div className="safe-bottom space-y-2 px-6 pt-4">
         <div className="rounded-2xl bg-surface-2 py-3 text-center text-sm font-semibold text-muted-foreground">
-          {t(
-            "bookingDetail.waitingForProvider",
-            "Tracking will be available once your provider is on the way.",
-          )}
+          {t("bookingDetail.waitingForProvider", "Tracking will be available once your provider is on the way.")}
         </div>
         {cancellable && (
-          <button
-            onClick={() => setDialog("cancel")}
-            disabled={cancelBooking.isPending}
-            className="w-full py-3 text-center text-sm font-semibold text-destructive disabled:opacity-50"
-          >
+          <button onClick={() => setDialog("cancel")} disabled={cancelBooking.isPending} className="w-full py-3 text-center text-sm font-semibold text-destructive disabled:opacity-50">
             {t("bookingDetail.cancel")}
           </button>
         )}
-        <Link
-          to="/home"
-          className="block py-3 text-center text-sm font-semibold text-muted-foreground"
-        >
-          {t("bookingDetail.backHome")}
-        </Link>
+        <Link to="/home" className="block py-3 text-center text-sm font-semibold text-muted-foreground">{t("bookingDetail.backHome")}</Link>
       </div>
 
       <CancelBookingDialog
@@ -981,10 +710,7 @@ function BookingDetail() {
         open={dialog === "support"}
         title={t("bookingDetail.supportDialogTitle")}
         body={t("bookingDetail.supportDialogBody")}
-        categoryOptions={SUPPORT_CATEGORIES.map((c) => ({
-          value: c,
-          label: t(`bookingDetail.supportCategories.${c}`),
-        }))}
+        categoryOptions={SUPPORT_CATEGORIES.map((c) => ({ value: c, label: t(`bookingDetail.supportCategories.${c}`) }))}
         categoryLabel={t("bookingDetail.categoryLabel")}
         subjectLabel={t("bookingDetail.subjectLabel")}
         subjectPlaceholder={t("bookingDetail.subjectPlaceholder")}
@@ -994,15 +720,9 @@ function BookingDetail() {
         cancelLabel={t("bookingDetail.keep")}
         pending={createTicket.isPending}
         onCancel={() => setDialog("")}
-        onConfirm={({ category, subject, description }) =>
-          submitSupport(category as TicketCategory, subject ?? "", description ?? "")
-        }
+        onConfirm={({ category, subject, description }) => submitSupport(category as TicketCategory, subject ?? "", description ?? "")}
       />
-      <PushEnablePrompt
-        open={pushPromptOpen}
-        audience="customer"
-        onOpenChange={setPushPromptOpen}
-      />
+      <PushEnablePrompt open={pushPromptOpen} audience="customer" onOpenChange={setPushPromptOpen} />
     </PhoneFrame>
   );
 }
@@ -1010,31 +730,16 @@ function BookingDetail() {
 function Line({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand">
-        {icon}
-      </div>
+      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand">{icon}</div>
       <span className="pt-1.5 font-medium">{label}</span>
     </div>
   );
 }
 
-function Action({
-  icon,
-  label,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  onClick?: () => void;
-}) {
+function Action({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick?: () => void }) {
   return (
-    <button
-      onClick={onClick}
-      className="focus-ring rounded-[1.25rem] border border-border/50 bg-surface-elevated p-3 text-center shadow-xs active:scale-95"
-    >
-      <div className="mx-auto grid h-10 w-10 place-items-center rounded-full bg-brand/8 text-brand">
-        {icon}
-      </div>
+    <button onClick={onClick} className="focus-ring rounded-[1.25rem] border border-border/50 bg-surface-elevated p-3 text-center shadow-xs active:scale-95">
+      <div className="mx-auto grid h-10 w-10 place-items-center rounded-full bg-brand/8 text-brand">{icon}</div>
       <div className="mt-1.5 text-[11px] font-extrabold">{label}</div>
     </button>
   );
@@ -1052,16 +757,7 @@ function triggerDownload(filename: string, content: string, mime: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function downloadReceipt(b: {
-  id: string;
-  provider: string;
-  service: string;
-  date: string;
-  time: string;
-  duration: string;
-  address: string;
-  total: string | number;
-}) {
+function downloadReceipt(b: { id: string; provider: string; service: string; date: string; time: string; duration: string; address: string; total: string | number }) {
   const lines = [
     "FAMY — Booking Receipt",
     "========================",
@@ -1079,20 +775,10 @@ function downloadReceipt(b: {
 }
 
 function fmtIcsDate(d: Date) {
-  return d
-    .toISOString()
-    .replace(/[-:]/g, "")
-    .replace(/\.\d{3}/, "");
+  return d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 }
 
-function downloadIcs(b: {
-  id: string;
-  title: string;
-  description: string;
-  location: string;
-  start: Date | null;
-  end: Date | null;
-}) {
+function downloadIcs(b: { id: string; title: string; description: string; location: string; start: Date | null; end: Date | null }) {
   const start = b.start ?? new Date();
   const end = b.end ?? new Date(start.getTime() + 60 * 60 * 1000);
   const ics = [
@@ -1116,9 +802,7 @@ function downloadIcs(b: {
 function NextStep({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
   return (
     <li className="flex items-start gap-3">
-      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand/8 text-brand">
-        {icon}
-      </div>
+      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand/8 text-brand">{icon}</div>
       <div className="min-w-0">
         <div className="text-sm font-bold">{title}</div>
         <div className="text-[11px] text-muted-foreground">{body}</div>
