@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  capabilitiesMatchingEducation,
   persistEducationProfileAfterBooking,
   pickDefaultCapabilityForEducation,
+  resolveAutoFillCapabilityId,
   shouldPersistBookingEducation,
   shouldPersistEducationAfterBookingSuccess,
 } from "../bookingEducationAutofill";
@@ -30,6 +32,54 @@ const cap = (overrides: Partial<TeachingCapabilityOption>): TeachingCapabilityOp
 });
 
 describe("booking education autofill", () => {
+  it("filters partial education by whichever ids are present", () => {
+    const capabilities = [
+      cap({ id: "a", curriculumId: "cur-1", levelId: "lvl-10" }),
+      cap({ id: "b", curriculumId: "cur-2", levelId: "lvl-10" }),
+    ];
+    expect(capabilitiesMatchingEducation(capabilities, "svc-1", "cur-1", null).map((c) => c.id)).toEqual([
+      "a",
+    ]);
+    expect(
+      pickDefaultCapabilityForEducation(capabilities, "svc-1", "cur-1", null),
+    ).toBeNull();
+  });
+
+  it("auto-picks only when both ids match exactly one capability", () => {
+    const capabilities = [
+      cap({ id: "one", curriculumId: "cur-1", levelId: "lvl-10" }),
+      cap({ id: "two", curriculumId: "cur-1", levelId: "lvl-10" }),
+    ];
+    expect(pickDefaultCapabilityForEducation(capabilities, "svc-1", "cur-1", "lvl-10")).toBeNull();
+    expect(
+      pickDefaultCapabilityForEducation([capabilities[0]!], "svc-1", "cur-1", "lvl-10")?.id,
+    ).toBe("one");
+  });
+
+  it("clears stale capability selection when autofill finds no match", () => {
+    expect(
+      resolveAutoFillCapabilityId({
+        match: null,
+        userPickedCapability: false,
+        currentCapabilityId: "old-cap",
+      }),
+    ).toBeNull();
+    expect(
+      resolveAutoFillCapabilityId({
+        match: cap({ id: "new-cap" }),
+        userPickedCapability: false,
+        currentCapabilityId: "old-cap",
+      }),
+    ).toBe("new-cap");
+    expect(
+      resolveAutoFillCapabilityId({
+        match: null,
+        userPickedCapability: true,
+        currentCapabilityId: "old-cap",
+      }),
+    ).toBe("old-cap");
+  });
+
   it("prefers a capability that matches the saved curriculum and level", () => {
     const capabilities = [
       cap({ id: "other", curriculumId: "cur-2", levelId: "lvl-9" }),

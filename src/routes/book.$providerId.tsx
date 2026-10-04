@@ -81,6 +81,7 @@ import { resolveStudentEducationProfile } from "@/lib/tutoring/studentEducationP
 import {
   pickDefaultCapabilityForEducation,
   persistEducationProfileAfterBooking,
+  resolveAutoFillCapabilityId,
   shouldPersistEducationAfterBookingSuccess,
 } from "@/lib/tutoring/bookingEducationAutofill";
 
@@ -308,7 +309,13 @@ export function BookContent({
       bookingEducation.educationCurriculumId || studentEducation.educationCurriculumId,
       bookingEducation.educationLevelId || studentEducation.educationLevelId,
     );
-    if (match) setCapabilityId(match.id);
+    setCapabilityId(
+      resolveAutoFillCapabilityId({
+        match,
+        userPickedCapability: userPickedCapabilityRef.current,
+        currentCapabilityId: capabilityId,
+      }),
+    );
   }, [
     stepKey,
     isTutoring,
@@ -319,6 +326,7 @@ export function BookContent({
     bookingEducation.educationLevelId,
     studentEducation.educationCurriculumId,
     studentEducation.educationLevelId,
+    capabilityId,
   ]);
 
   useEffect(() => {

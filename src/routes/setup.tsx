@@ -28,6 +28,7 @@ import {
   useCustomerEducationProfile,
   useUpsertCustomerEducationProfile,
 } from "@/lib/db/student-education-queries";
+import { canPersistSetupEducationProfile } from "@/lib/tutoring/setupEducationSave";
 import { LocationPicker, isValidLatLng } from "@/components/famio/LocationPicker";
 import { Card } from "@/components/famio/ui";
 import { AlertTriangle, Camera, MapPin, Loader2 } from "lucide-react";
@@ -140,7 +141,12 @@ function Setup() {
     updateAddress.isPending ||
     upsertEducation.isPending;
 
-  if (myProfile.isLoading || existingAddresses.isLoading || areasQ.isLoading) {
+  if (
+    myProfile.isLoading ||
+    existingAddresses.isLoading ||
+    areasQ.isLoading ||
+    educationQ.isLoading
+  ) {
     return (
       <PhoneFrame bg="bg-background">
         <CustomerPageHero title={t("setup.title")} backTo="/profile" />
@@ -169,6 +175,15 @@ function Setup() {
     );
   }
 
+  if (educationQ.isError) {
+    return (
+      <PhoneFrame bg="bg-background">
+        <CustomerPageHero title={t("setup.title")} backTo="/profile" />
+        <QueryError onRetry={() => educationQ.refetch()} />
+      </PhoneFrame>
+    );
+  }
+
   const submit = async () => {
     if (!valid || saving) return;
     if (existingAddresses.isLoading) {
@@ -176,7 +191,9 @@ function Setup() {
     }
     try {
       await updateProfile.mutateAsync({ full_name: form.name.trim() });
-      await upsertEducation.mutateAsync(educationIdsFromValue(education));
+      if (canPersistSetupEducationProfile(educationQ)) {
+        await upsertEducation.mutateAsync(educationIdsFromValue(education));
+      }
 
       if (existingAddressId) {
         await updateAddress.mutateAsync({

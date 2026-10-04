@@ -4,6 +4,7 @@ import { useTeachingCurricula, useTeachingLevels } from "@/lib/db/teaching-queri
 import { teachingLevelsForCurriculum } from "@/lib/tutoring/teachingLevelFilters";
 import { localizedTaxonomyName } from "@/lib/tutoring/teachingCapabilities";
 import { currentLang } from "@/lib/i18n";
+import { shouldClearStaleEducationLevel } from "@/lib/tutoring/educationProfileFieldsLogic";
 
 export type EducationProfileValue = {
   educationCurriculumId: string;
@@ -31,12 +32,21 @@ export function EducationProfileFields({
     [curriculum?.code, levelsQ.data],
   );
 
+  const taxonomyLoaded = curriculaQ.isSuccess && levelsQ.isSuccess;
+
   useEffect(() => {
-    if (!value.educationLevelId) return;
-    if (!filteredLevels.some((row) => row.id === value.educationLevelId)) {
-      onChange({ ...value, educationLevelId: "" });
+    const filteredLevelIds = filteredLevels.map((row) => row.id);
+    if (
+      !shouldClearStaleEducationLevel({
+        educationLevelId: value.educationLevelId,
+        filteredLevelIds,
+        taxonomyLoaded,
+      })
+    ) {
+      return;
     }
-  }, [filteredLevels, onChange, value]);
+    onChange({ ...value, educationLevelId: "" });
+  }, [filteredLevels, onChange, value, taxonomyLoaded]);
 
   return (
     <div className="space-y-4">

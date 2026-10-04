@@ -7,22 +7,13 @@ export function capabilitiesMatchingEducation(
   curriculumId: string | null,
   levelId: string | null,
 ): TeachingCapabilityOption[] {
-  if (!curriculumId || !levelId) return capabilities;
-  return capabilities.filter(
-    (cap) =>
-      (!serviceId || cap.serviceId === serviceId) &&
-      cap.curriculumCode &&
-      cap.levelCode &&
-      matchesTaxonomyIds(cap, curriculumId, levelId),
-  );
-}
-
-function matchesTaxonomyIds(
-  cap: TeachingCapabilityOption,
-  curriculumId: string,
-  levelId: string,
-): boolean {
-  return cap.curriculumId === curriculumId && cap.levelId === levelId;
+  if (!curriculumId && !levelId) return capabilities;
+  return capabilities.filter((cap) => {
+    if (serviceId && cap.serviceId !== serviceId) return false;
+    if (curriculumId && cap.curriculumId !== curriculumId) return false;
+    if (levelId && cap.levelId !== levelId) return false;
+    return true;
+  });
 }
 
 export function pickDefaultCapabilityForEducation(
@@ -31,13 +22,24 @@ export function pickDefaultCapabilityForEducation(
   curriculumId: string | null,
   levelId: string | null,
 ): TeachingCapabilityOption | null {
+  if (!curriculumId || !levelId) return null;
   const matches = capabilitiesMatchingEducation(
     capabilities,
     serviceId,
     curriculumId,
     levelId,
   );
+  if (matches.length !== 1) return null;
   return matches[0] ?? null;
+}
+
+export function resolveAutoFillCapabilityId(args: {
+  match: TeachingCapabilityOption | null;
+  userPickedCapability: boolean;
+  currentCapabilityId: string | null;
+}): string | null {
+  if (args.userPickedCapability) return args.currentCapabilityId;
+  return args.match?.id ?? null;
 }
 
 export type BookingEducationDraft = EducationProfileIds;
