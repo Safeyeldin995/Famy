@@ -15,6 +15,15 @@ vi.mock("react-i18next", () => ({
   initReactI18next: { type: "3rdParty", init: () => {} },
 }));
 
+vi.mock("@/components/famio/EducationProfileFields", () => ({
+  EducationProfileFields: () => null,
+  educationValueFromIds: () => ({ educationCurriculumId: "", educationLevelId: "" }),
+  educationIdsFromValue: () => ({
+    education_curriculum_id: null,
+    education_level_id: null,
+  }),
+}));
+
 vi.mock("@/components/famio/ui", () => ({
   PrimaryButton: ({
     children,

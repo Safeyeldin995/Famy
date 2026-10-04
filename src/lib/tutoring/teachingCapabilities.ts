@@ -75,6 +75,8 @@ export type TeachingCapabilityOption = {
   id: string;
   providerId: string;
   serviceId: string;
+  curriculumId: string;
+  levelId: string;
   subjectCode: string;
   subjectNameEn: string;
   subjectNameAr: string;

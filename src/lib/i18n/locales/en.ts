@@ -484,6 +484,17 @@ const en = {
     title: "Notifications",
     empty: "You're all caught up",
   },
+  studentEducation: {
+    sectionTitle: "School details",
+    curriculum: "Curriculum",
+    grade: "Grade",
+    optionalNone: "Not set",
+    saveForNextTime: "Save for next time",
+    saveFailed:
+      "Your booking was created, but we could not save school details for next time.",
+    studentPicker: "Student",
+    matchBadge: "Good fit for {{name}}",
+  },
   reschedule: {
     title: "Rescheduling",
     requestButton: "Request a different time",

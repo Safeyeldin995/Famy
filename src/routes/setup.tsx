@@ -18,6 +18,17 @@ import {
 import { useServiceAreasSettings } from "@/lib/db/settings-queries";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthGate } from "@/components/famio/AuthGate";
+import {
+  EducationProfileFields,
+  educationIdsFromValue,
+  educationValueFromIds,
+  type EducationProfileValue,
+} from "@/components/famio/EducationProfileFields";
+import {
+  useCustomerEducationProfile,
+  useUpsertCustomerEducationProfile,
+} from "@/lib/db/student-education-queries";
+import { canPersistSetupEducationProfile } from "@/lib/tutoring/setupEducationSave";
 import { LocationPicker, isValidLatLng } from "@/components/famio/LocationPicker";
 import { Card } from "@/components/famio/ui";
 import { AlertTriangle, Camera, MapPin, Loader2 } from "lucide-react";
@@ -48,6 +59,11 @@ function Setup() {
   const areasQ = useServiceAreasSettings();
   const areaOptions = (areasQ.data ?? []).filter((a) => a.enabled).map((a) => a.name);
   const myProfile = useMyProfile();
+  const educationQ = useCustomerEducationProfile();
+  const upsertEducation = useUpsertCustomerEducationProfile();
+  const [education, setEducation] = useState<EducationProfileValue>(
+    educationValueFromIds(null, null),
+  );
   const qc = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -59,6 +75,17 @@ function Setup() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myProfile.data?.full_name]);
+
+  useEffect(() => {
+    if (educationQ.data) {
+      setEducation(
+        educationValueFromIds(
+          educationQ.data.education_curriculum_id,
+          educationQ.data.education_level_id,
+        ),
+      );
+    }
+  }, [educationQ.data]);
 
   useEffect(() => {
     const list = existingAddresses.data;
@@ -108,9 +135,18 @@ function Setup() {
   const update = (k: keyof typeof form, v: string) => setForm({ ...form, [k]: v });
   const valid =
     form.name.trim().length > 1 && form.address.trim().length > 2 && form.area.trim().length > 0;
-  const saving = updateProfile.isPending || createAddress.isPending || updateAddress.isPending;
+  const saving =
+    updateProfile.isPending ||
+    createAddress.isPending ||
+    updateAddress.isPending ||
+    upsertEducation.isPending;
 
-  if (myProfile.isLoading || existingAddresses.isLoading || areasQ.isLoading) {
+  if (
+    myProfile.isLoading ||
+    existingAddresses.isLoading ||
+    areasQ.isLoading ||
+    educationQ.isLoading
+  ) {
     return (
       <PhoneFrame bg="bg-background">
         <CustomerPageHero title={t("setup.title")} backTo="/profile" />
@@ -139,6 +175,15 @@ function Setup() {
     );
   }
 
+  if (educationQ.isError) {
+    return (
+      <PhoneFrame bg="bg-background">
+        <CustomerPageHero title={t("setup.title")} backTo="/profile" />
+        <QueryError onRetry={() => educationQ.refetch()} />
+      </PhoneFrame>
+    );
+  }
+
   const submit = async () => {
     if (!valid || saving) return;
     if (existingAddresses.isLoading) {
@@ -146,6 +191,9 @@ function Setup() {
     }
     try {
       await updateProfile.mutateAsync({ full_name: form.name.trim() });
+      if (canPersistSetupEducationProfile(educationQ)) {
+        await upsertEducation.mutateAsync(educationIdsFromValue(education));
+      }
 
       if (existingAddressId) {
         await updateAddress.mutateAsync({
@@ -232,6 +280,16 @@ function Setup() {
           onChange={(v) => update("name", v)}
           placeholder={t("setup.namePlaceholder")}
         />
+
+        <Card className="space-y-4 p-4">
+          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            {t("studentEducation.sectionTitle", "School details")}{" "}
+            <span className="normal-case text-muted-foreground/70">
+              ({t("familyMembers.optional", "optional")})
+            </span>
+          </p>
+          <EducationProfileFields value={education} onChange={setEducation} />
+        </Card>
 
         <div>
           <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">

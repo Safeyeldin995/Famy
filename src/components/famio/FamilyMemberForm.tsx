@@ -4,6 +4,12 @@ import { Loader2 } from "lucide-react";
 import { PrimaryButton } from "@/components/famio/ui";
 import { normalizePhoneE164 } from "@/lib/otp/normalizePhone";
 import type { FamilyMemberInput, Relationship } from "@/lib/db/family-members-queries";
+import {
+  EducationProfileFields,
+  educationIdsFromValue,
+  educationValueFromIds,
+  type EducationProfileValue,
+} from "@/components/famio/EducationProfileFields";
 
 const RELATIONSHIPS: Relationship[] = [
   "spouse",
@@ -72,6 +78,7 @@ export type FamilyMemberFormValue = {
   accessNotes: string;
   emergencyContactName: string;
   emergencyContactPhone: string;
+  education: EducationProfileValue;
 };
 
 export function emptyFamilyMemberFormValue(): FamilyMemberFormValue {
@@ -87,6 +94,7 @@ export function emptyFamilyMemberFormValue(): FamilyMemberFormValue {
     accessNotes: "",
     emergencyContactName: "",
     emergencyContactPhone: "",
+    education: educationValueFromIds(null, null),
   };
 }
 
@@ -105,6 +113,7 @@ export function familyMemberFormValueToInput(v: FamilyMemberFormValue): FamilyMe
     emergency_contact_phone: v.emergencyContactPhone.trim()
       ? normalizePhoneE164(v.emergencyContactPhone.trim())
       : null,
+    ...educationIdsFromValue(v.education),
   };
 }
 
@@ -121,6 +130,7 @@ export function familyMemberRowToFormValue(row: any): FamilyMemberFormValue {
     accessNotes: row.access_notes ?? "",
     emergencyContactName: row.emergency_contact_name ?? "",
     emergencyContactPhone: row.emergency_contact_phone ?? "",
+    education: educationValueFromIds(row.education_curriculum_id, row.education_level_id),
   };
 }
 
@@ -281,6 +291,19 @@ export function FamilyMemberForm({
         onChange={(v) => set("accessNotes", v)}
         placeholder={t("familyMembers.accessNotesPlaceholder", "e.g. Needs help with stairs")}
       />
+
+      <div className="space-y-3 rounded-2xl bg-surface-2 p-4">
+        <div className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+          {t("studentEducation.sectionTitle", "School details")}{" "}
+          <span className="normal-case text-muted-foreground/70">
+            ({t("familyMembers.optional", "optional")})
+          </span>
+        </div>
+        <EducationProfileFields
+          value={value.education}
+          onChange={(education) => onChange({ ...value, education })}
+        />
+      </div>
 
       <div className="space-y-3 rounded-2xl bg-surface-2 p-4">
         <div className="text-xs font-bold uppercase tracking-wide text-muted-foreground">

@@ -1334,6 +1334,45 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_education_profiles: {
+        Row: {
+          created_at: string
+          customer_id: string
+          education_curriculum_id: string | null
+          education_level_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          education_curriculum_id?: string | null
+          education_level_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          education_curriculum_id?: string | null
+          education_level_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_education_profiles_education_curriculum_id_fkey"
+            columns: ["education_curriculum_id"]
+            isOneToOne: false
+            referencedRelation: "teaching_curricula"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_education_profiles_education_level_id_fkey"
+            columns: ["education_level_id"]
+            isOneToOne: false
+            referencedRelation: "teaching_levels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       family_members: {
         Row: {
           access_notes: string | null
@@ -1341,6 +1380,8 @@ export type Database = {
           created_at: string
           customer_id: string
           date_of_birth: string
+          education_curriculum_id: string | null
+          education_level_id: string | null
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
           full_name: string
@@ -1359,6 +1400,8 @@ export type Database = {
           created_at?: string
           customer_id: string
           date_of_birth: string
+          education_curriculum_id?: string | null
+          education_level_id?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           full_name: string
@@ -1377,6 +1420,8 @@ export type Database = {
           created_at?: string
           customer_id?: string
           date_of_birth?: string
+          education_curriculum_id?: string | null
+          education_level_id?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           full_name?: string
@@ -1389,7 +1434,22 @@ export type Database = {
           relationship_other?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "family_members_education_curriculum_id_fkey"
+            columns: ["education_curriculum_id"]
+            isOneToOne: false
+            referencedRelation: "teaching_curricula"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_members_education_level_id_fkey"
+            columns: ["education_level_id"]
+            isOneToOne: false
+            referencedRelation: "teaching_levels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       favorites: {
         Row: {

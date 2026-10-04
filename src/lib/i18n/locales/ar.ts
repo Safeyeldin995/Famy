@@ -481,6 +481,16 @@ const ar: Translation = {
     title: "الإشعارات",
     empty: "لا توجد إشعارات جديدة",
   },
+  studentEducation: {
+    sectionTitle: "بيانات المدرسة",
+    curriculum: "المنهج",
+    grade: "الصف",
+    optionalNone: "غير محدد",
+    saveForNextTime: "احفظ للمرة الجاية",
+    saveFailed: "تم إنشاء الحجز، لكن لم نتمكن من حفظ بيانات المدرسة للمرة الجاية.",
+    studentPicker: "الطالب",
+    matchBadge: "مناسب لـ {{name}}",
+  },
   reschedule: {
     title: "إعادة الجدولة",
     requestButton: "طلب موعد آخر",
