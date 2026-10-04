@@ -1452,6 +1452,13 @@ const ar: Translation = {
       verifiedFieldReviewNote:
         "تم التحقق من هذا الحقل أثناء التسجيل. تواصل مع فامي إذا احتجت تغييره.",
       marketplaceEligible: "مؤهل للسوق",
+      visibleToCustomers: "تظهر خدماتك للعملاء",
+      notVisibleToCustomers: "خدماتك لا تظهر للعملاء بعد — متبقي {{count}} خطوات",
+      notVisibleToCustomers_one: "خدماتك لا تظهر للعملاء بعد — متبقي خطوة واحدة",
+      notVisibleToCustomers_two: "خدماتك لا تظهر للعملاء بعد — متبقي خطوتان",
+      notVisibleToCustomers_few: "خدماتك لا تظهر للعملاء بعد — متبقي {{count}} خطوات",
+      notVisibleToCustomers_many: "خدماتك لا تظهر للعملاء بعد — متبقي {{count}} خطوة",
+      notVisibleToCustomers_other: "خدماتك لا تظهر للعملاء بعد — متبقي {{count}} خطوة",
       eligibilityYes: "نعم",
       eligibilityNo: "لا",
       eligibilityByService: "التفاصيل حسب الخدمة",
@@ -1459,7 +1466,9 @@ const ar: Translation = {
       eligibilityBlockedByData: "لا يمكن تقييم الأهلية لأنه لا توجد خدمة مزود مفعلة.",
       eligibilityReasons: {
         noAvailability: "أضف ساعات التوفر",
-        missingZone: "أضف منطقة الخدمة في التسجيل",
+        missingZone: "اختر منطقة تقديم الخدمة",
+        zoneUnavailable: "هذه الخدمة غير متاحة في منطقتك حاليا. فريق فامي يعمل على إتاحتها.",
+        teachingPrice: "أضف مادة بسعر للجلسة وانتظر الموافقة",
         invalidPrice: "حدد سعرا صالحا لهذه الخدمة",
         serviceNotApproved: "هذه الخدمة بانتظار موافقة الإدارة",
         notApproved: "حسابك كمزود بانتظار موافقة الإدارة",
@@ -2175,6 +2184,7 @@ const ar: Translation = {
         "لن يتمكن العملاء من تطبيقه على حجوزات جديدة بعد الآن. تحتفظ الحجوزات التي استخدمته بالفعل بسجلها الخاص على أي حال.",
     },
     zones: {
+      noServicesEnabled: "لا توجد خدمات مفعلة في هذه المنطقة",
       subtitle: "إدارة مناطق تغطية الخدمة. يفضل التعطيل بدلا من الحذف عند الإمكان.",
       newZone: "منطقة جديدة",
       newZoneTitle: "منطقة جديدة",

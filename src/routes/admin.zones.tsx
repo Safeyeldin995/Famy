@@ -259,6 +259,19 @@ function CoveragePanel({ zoneId }: { zoneId: string }) {
   );
 }
 
+export function ZoneServicesWarning({ zoneId }: { zoneId: string }) {
+  const { t } = useTranslation();
+  const servicesQ = useAdminServices();
+  const coverageQ = useZoneServiceCoverage(zoneId);
+  if (!servicesQ.isSuccess || !coverageQ.isSuccess) return null;
+  if (servicesQ.data.some((service) => service.is_active && coverageQ.data.has(service.id))) return null;
+  return (
+    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+      {t("admin.zones.noServicesEnabled")}
+    </span>
+  );
+}
+
 function AdminZones() {
   const { t } = useTranslation();
   const q = useAdminZones();
@@ -405,6 +418,7 @@ function AdminZones() {
                         <MapPin className="h-3.5 w-3.5 text-coral" />
                         <p className="text-sm font-semibold">{z.name_en} <span className="text-muted-foreground">/ {z.name_ar}</span></p>
                         {!z.is_active && <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">{t("admin.cancellationReasons.inactive")}</span>}
+                        {z.is_active && <ZoneServicesWarning zoneId={z.id} />}
                       </div>
                       <p className="text-[11px] text-muted-foreground">
                         {z.boundary_type === "polygon"

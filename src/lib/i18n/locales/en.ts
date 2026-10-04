@@ -1467,6 +1467,13 @@ const en = {
       verifiedFieldReviewNote:
         "This field was verified during onboarding. Contact Famy if it needs to change.",
       marketplaceEligible: "Marketplace eligible",
+      visibleToCustomers: "Visible to customers",
+      notVisibleToCustomers: "Not visible to customers yet — {{count}} steps left",
+      notVisibleToCustomers_one: "Not visible to customers yet — {{count}} step left",
+      notVisibleToCustomers_two: "Not visible to customers yet — {{count}} steps left",
+      notVisibleToCustomers_few: "Not visible to customers yet — {{count}} steps left",
+      notVisibleToCustomers_many: "Not visible to customers yet — {{count}} steps left",
+      notVisibleToCustomers_other: "Not visible to customers yet — {{count}} steps left",
       eligibilityYes: "Yes",
       eligibilityNo: "No",
       eligibilityByService: "Details by service",
@@ -1475,7 +1482,9 @@ const en = {
         "Marketplace eligibility is blocked because no provider service is configured.",
       eligibilityReasons: {
         noAvailability: "Add availability hours",
-        missingZone: "Add your service zone in onboarding",
+        missingZone: "Choose your service area",
+        zoneUnavailable: "This service isn't available in your area yet. The Famy team is enabling it.",
+        teachingPrice: "Add a subject with a session price and wait for approval",
         invalidPrice: "Set a valid price for this service",
         serviceNotApproved: "This service is waiting for admin approval",
         notApproved: "Your provider account is waiting for admin approval",
@@ -2197,6 +2206,7 @@ const en = {
         "Customers will no longer be able to apply it to new bookings. Bookings that already used it keep their own record regardless.",
     },
     zones: {
+      noServicesEnabled: "No services enabled in this zone",
       subtitle: "Manage service coverage areas. Deactivate instead of deleting where possible.",
       newZone: "New zone",
       newZoneTitle: "New zone",

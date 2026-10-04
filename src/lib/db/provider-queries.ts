@@ -97,6 +97,18 @@ export function useUpdateProvider() {
   });
 }
 
+export function useMyProviderZones(providerId: string | undefined) {
+  return useQuery({
+    enabled: !!providerId,
+    queryKey: ['provider-zones', providerId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('zone_providers').select('zone_id').eq('provider_id', providerId!);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
 export function useMyMarketplaceEligibility(providerId: string | undefined) {
   return useQuery({
     enabled: !!providerId,

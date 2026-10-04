@@ -141,6 +141,17 @@ describe("full migration replay", () => {
       expect(permissions).toEqual([
         { anon: false, authenticated: false, service_role: true },
       ]);
+      const eligibilitySignatures = await queryRows<{ internal: string; wrapper: string; anon: boolean; authenticated: boolean }>(
+        db,
+        `SELECT
+          pg_get_function_result('public.marketplace_eligibility_internal(uuid,uuid,uuid)'::regprocedure) AS internal,
+          pg_get_function_result('public.provider_marketplace_eligibility(uuid,uuid,uuid)'::regprocedure) AS wrapper,
+          has_function_privilege('anon', 'public.marketplace_eligibility_internal(uuid,uuid,uuid)', 'EXECUTE') AS anon,
+          has_function_privilege('authenticated', 'public.marketplace_eligibility_internal(uuid,uuid,uuid)', 'EXECUTE') AS authenticated`,
+      );
+      expect(eligibilitySignatures[0]?.internal).toBe(eligibilitySignatures[0]?.wrapper);
+      expect(eligibilitySignatures[0]?.anon).toBe(false);
+      expect(eligibilitySignatures[0]?.authenticated).toBe(false);
     } finally {
       await db.close();
     }
