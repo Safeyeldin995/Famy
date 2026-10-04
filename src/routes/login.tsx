@@ -10,7 +10,10 @@ import { useApp } from "@/lib/store";
 import { otpService, normalizePhone, type Role } from "@/lib/otp/OtpService";
 import { normalizeDigitsToWestern } from "@/lib/otp/normalizePhone";
 import { startPhoneOtpFlow, phoneOtpFlowErrorMessage } from "@/lib/otp/phoneOtpFlow";
-import { resolveLandingForCurrentUser, resolvePostPasswordLoginTarget } from "@/lib/auth/landing";
+import {
+  resolvePostPasswordLoginTarget,
+  resolveRoleLandingForCurrentUser,
+} from "@/lib/auth/landing";
 import { previewPath } from "@/lib/preview/previewPath";
 import { ICON_STROKE, ICON_STROKE_BOLD } from "@/lib/icons/constants";
 
@@ -90,8 +93,12 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
       }
       setProfile({ phone: e164 });
       setAuthed(true);
-      const landing = await resolveLandingForCurrentUser();
-      const target = resolvePostPasswordLoginTarget({ loginRole: role, landing });
+      const roleLanding = await resolveRoleLandingForCurrentUser();
+      const target = resolvePostPasswordLoginTarget({
+        loginRole: role,
+        landing: roleLanding?.landing ?? null,
+        hasProviderRole: roleLanding?.hasProviderRole ?? false,
+      });
       if (target === "provider_account_missing") {
         const m = t(
           "auth.noProviderAccount",

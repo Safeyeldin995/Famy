@@ -6,7 +6,7 @@ import { Login } from "@/routes/login";
 
 const mockNav = vi.fn();
 const mockSignIn = vi.fn();
-const mockResolveLanding = vi.fn();
+const mockResolveRoleLanding = vi.fn();
 
 vi.mock("@tanstack/react-router", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@tanstack/react-router")>();
@@ -38,7 +38,7 @@ vi.mock("@/lib/auth/landing", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/auth/landing")>();
   return {
     ...actual,
-    resolveLandingForCurrentUser: (...args: unknown[]) => mockResolveLanding(...args),
+    resolveRoleLandingForCurrentUser: (...args: unknown[]) => mockResolveRoleLanding(...args),
   };
 });
 
@@ -82,9 +82,12 @@ vi.mock("@/components/famio/LanguageToggle", () => ({
   LanguageToggle: () => null,
 }));
 
-async function signInAsCustomer() {
+async function signIn(chooseProviderTab: boolean) {
   const user = userEvent.setup();
   render(<Login previewMode={false} />);
+  if (chooseProviderTab) {
+    await user.click(screen.getByRole("button", { name: /Service Provider/i }));
+  }
   const phoneInputs = screen.getAllByPlaceholderText(i18n.t("auth.phonePlaceholder"));
   await user.type(phoneInputs[0]!, "1012345678");
   await user.type(screen.getAllByPlaceholderText("••••••••")[0]!, "secret123");
@@ -96,25 +99,47 @@ describe("login post-password landing", () => {
     cleanup();
     mockNav.mockClear();
     mockSignIn.mockReset();
-    mockResolveLanding.mockReset();
+    mockResolveRoleLanding.mockReset();
     mockSignIn.mockResolvedValue({ ok: true });
   });
 
   it("lands provider-only users on /pro even when customer tab is selected", async () => {
-    mockResolveLanding.mockResolvedValue("/pro");
-    await signInAsCustomer();
+    mockResolveRoleLanding.mockResolvedValue({
+      landing: "/pro",
+      roles: ["provider"],
+      hasProviderRole: true,
+    });
+    await signIn(false);
     await waitFor(() => expect(mockNav).toHaveBeenCalledWith({ to: "/pro" }));
   });
 
   it("lands customer-only users on /home", async () => {
-    mockResolveLanding.mockResolvedValue("/home");
-    await signInAsCustomer();
+    mockResolveRoleLanding.mockResolvedValue({
+      landing: "/home",
+      roles: ["customer"],
+      hasProviderRole: false,
+    });
+    await signIn(false);
     await waitFor(() => expect(mockNav).toHaveBeenCalledWith({ to: "/home" }));
   });
 
-  it("lands admins on /admin/", async () => {
-    mockResolveLanding.mockResolvedValue("/admin");
-    await signInAsCustomer();
+  it("lands admin+provider users on /admin from the customer tab", async () => {
+    mockResolveRoleLanding.mockResolvedValue({
+      landing: "/admin",
+      roles: ["admin", "provider"],
+      hasProviderRole: true,
+    });
+    await signIn(false);
     await waitFor(() => expect(mockNav).toHaveBeenCalledWith({ to: "/admin" }));
+  });
+
+  it("lands admin+provider users on /pro from the provider tab", async () => {
+    mockResolveRoleLanding.mockResolvedValue({
+      landing: "/admin",
+      roles: ["admin", "provider"],
+      hasProviderRole: true,
+    });
+    await signIn(true);
+    await waitFor(() => expect(mockNav).toHaveBeenCalledWith({ to: "/pro" }));
   });
 });

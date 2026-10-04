@@ -16,14 +16,19 @@ export function isProviderOnlyCustomerPortalBlocked(roles: Role[]): boolean {
  * keep access to both portals; admin routes are unaffected.
  */
 export function useProviderOnlyCustomerRedirect(): { blocking: boolean } {
-  const { loading, roles } = useAuth();
+  const { loading, rolesLoading, rolesError, roles } = useAuth();
   const nav = useNavigate();
   const blocked = isProviderOnlyCustomerPortalBlocked(roles);
+  const waitingForRoles = loading || rolesLoading;
 
   useEffect(() => {
-    if (loading || !blocked) return;
+    if (waitingForRoles || rolesError || !blocked) return;
     void nav({ to: "/pro", replace: true });
-  }, [loading, blocked, nav]);
+  }, [waitingForRoles, rolesError, blocked, nav]);
 
-  return { blocking: loading || blocked };
+  if (rolesError) {
+    return { blocking: false };
+  }
+
+  return { blocking: waitingForRoles || blocked };
 }

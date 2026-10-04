@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   resolveLandingForCurrentUser,
   resolvePostPasswordLoginTarget,
+  resolveRoleLandingForCurrentUser,
   resolveSplashNavigationTarget,
 } from "@/lib/auth/landing";
 
@@ -62,6 +63,21 @@ describe("resolveLandingForCurrentUser", () => {
   });
 });
 
+describe("resolveRoleLandingForCurrentUser", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("exposes provider membership for admin+provider accounts", async () => {
+    mockRoles(["admin", "provider"]);
+    await expect(resolveRoleLandingForCurrentUser()).resolves.toEqual({
+      landing: "/admin",
+      roles: ["admin", "provider"],
+      hasProviderRole: true,
+    });
+  });
+});
+
 describe("resolveSplashNavigationTarget", () => {
   it("keeps onboarding, login, and setup gates ahead of landing", () => {
     expect(
@@ -91,20 +107,61 @@ describe("resolveSplashNavigationTarget", () => {
 });
 
 describe("resolvePostPasswordLoginTarget", () => {
-  it("lands each role on the resolved workspace", () => {
-    expect(resolvePostPasswordLoginTarget({ loginRole: "customer", landing: "/home" })).toBe(
-      "/home",
-    );
-    expect(resolvePostPasswordLoginTarget({ loginRole: "customer", landing: "/pro" })).toBe("/pro");
-    expect(resolvePostPasswordLoginTarget({ loginRole: "customer", landing: "/admin" })).toBe(
-      "/admin",
-    );
-    expect(resolvePostPasswordLoginTarget({ loginRole: "provider", landing: "/pro" })).toBe("/pro");
+  it("lands customer-tab sign-in on the resolved workspace", () => {
+    expect(
+      resolvePostPasswordLoginTarget({
+        loginRole: "customer",
+        landing: "/home",
+        hasProviderRole: false,
+      }),
+    ).toBe("/home");
+    expect(
+      resolvePostPasswordLoginTarget({
+        loginRole: "customer",
+        landing: "/pro",
+        hasProviderRole: true,
+      }),
+    ).toBe("/pro");
+    expect(
+      resolvePostPasswordLoginTarget({
+        loginRole: "customer",
+        landing: "/admin",
+        hasProviderRole: true,
+      }),
+    ).toBe("/admin");
+  });
+
+  it("lands provider-tab sign-in on /pro when the account has a provider role", () => {
+    expect(
+      resolvePostPasswordLoginTarget({
+        loginRole: "provider",
+        landing: "/pro",
+        hasProviderRole: true,
+      }),
+    ).toBe("/pro");
+    expect(
+      resolvePostPasswordLoginTarget({
+        loginRole: "provider",
+        landing: "/admin",
+        hasProviderRole: true,
+      }),
+    ).toBe("/pro");
   });
 
   it("blocks provider-tab sign-in when the account is not a provider", () => {
-    expect(resolvePostPasswordLoginTarget({ loginRole: "provider", landing: "/home" })).toBe(
-      "provider_account_missing",
-    );
+    expect(
+      resolvePostPasswordLoginTarget({
+        loginRole: "provider",
+        landing: "/home",
+        hasProviderRole: false,
+      }),
+    ).toBe("provider_account_missing");
+    expect(
+      resolvePostPasswordLoginTarget({
+        loginRole: "provider",
+        landing: "/admin",
+        hasProviderRole: false,
+      }),
+    ).toBe("provider_account_missing");
   });
 });
