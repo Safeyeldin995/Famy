@@ -39,6 +39,8 @@ function toFamilyMemberRow(input: FamilyMemberInput) {
     access_notes: input.access_notes ?? null,
     emergency_contact_name: input.emergency_contact_name ?? null,
     emergency_contact_phone: input.emergency_contact_phone ?? null,
+    education_curriculum_id: input.education_curriculum_id ?? null,
+    education_level_id: input.education_level_id ?? null,
   };
 }
 

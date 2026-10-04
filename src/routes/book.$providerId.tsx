@@ -11,6 +11,7 @@ import {
   useAvailableSlots,
   useResolveZone,
   useProviderBookingSettings,
+  useMyProfile,
 } from "@/lib/db/queries";
 import { useActiveFamilyMembers } from "@/lib/db/family-members-queries";
 import { validatePromoCode } from "@/lib/db/promo-codes-queries";
@@ -67,6 +68,20 @@ import {
   isTutoringCategorySlug,
   tutoringSessionQuote,
 } from "@/lib/tutoring/teachingCapabilities";
+import {
+  EducationProfileFields,
+  educationValueFromIds,
+  type EducationProfileValue,
+} from "@/components/famio/EducationProfileFields";
+import {
+  useCustomerEducationProfile,
+  useSaveStudentEducationProfile,
+} from "@/lib/db/student-education-queries";
+import { resolveStudentEducationProfile } from "@/lib/tutoring/studentEducationProfile";
+import {
+  pickDefaultCapabilityForEducation,
+  shouldPersistBookingEducation,
+} from "@/lib/tutoring/bookingEducationAutofill";
 
 export const Route = createFileRoute("/book/$providerId")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -108,18 +123,6 @@ export function BookContent({
   const { t } = useTranslation();
   const nav = useNavigate();
 
-  const stepKeys = [
-    "service",
-    "duration",
-    "schedule",
-    "address",
-    "forWhom",
-    "notes",
-    "requirements",
-    "summary",
-    "payment",
-  ] as const;
-  const SCHEDULE_STEP = 2;
   const [step, setStep] = useState(0);
   const [serviceId, setServiceId] = useState<string | null>(searchServiceId ?? null);
   const [capabilityId, setCapabilityId] = useState<string | null>(searchCapabilityId ?? null);
@@ -143,8 +146,16 @@ export function BookContent({
   >({});
   const [timeBand, setTimeBand] = useState<"all" | "morning" | "afternoon" | "evening">("all");
   const [scanningSchedule, setScanningSchedule] = useState(false);
+  const [bookingEducation, setBookingEducation] = useState<EducationProfileValue>(
+    educationValueFromIds(null, null),
+  );
+  const [saveEducationForNextTime, setSaveEducationForNextTime] = useState(false);
   const userPickedDateRef = useRef(false);
+  const userPickedCapabilityRef = useRef(false);
   const idempotencyStateRef = useRef<IdempotencyKeyState | null>(null);
+  const customerEducationQ = useCustomerEducationProfile();
+  const myProfileQ = useMyProfile();
+  const saveEducation = useSaveStudentEducationProfile();
 
   // Only addresses with a pinned location can back a real booking — the
   // server enforces this too (booking_locations snapshot trigger rejects a
@@ -199,6 +210,15 @@ export function BookContent({
   );
   const isBabysitting = isBabysittingCategorySlug(activeService?.service?.category?.slug);
   const isTutoring = isTutoringCategorySlug(activeService?.service?.category?.slug);
+  const stepKeys = useMemo(() => {
+    const tail = ["notes", "requirements", "summary", "payment"] as const;
+    if (isTutoring) {
+      return ["service", "forWhom", "duration", "schedule", "address", ...tail] as const;
+    }
+    return ["service", "duration", "schedule", "address", "forWhom", ...tail] as const;
+  }, [isTutoring]);
+  const stepKey = stepKeys[step] ?? stepKeys[0];
+  const scheduleStep = stepKeys.indexOf("schedule");
   const capabilitiesQ = useApprovedTeachingCapabilities(
     providerId,
     activeService?.service?.id ?? serviceId ?? undefined,
@@ -252,8 +272,56 @@ export function BookContent({
     });
   }, [slotsQ.data, timeBand]);
 
+  const studentEducation = useMemo(
+    () =>
+      resolveStudentEducationProfile({
+        forWhom,
+        customerProfile: customerEducationQ.data,
+        customerFullName: myProfileQ.data?.full_name,
+        familyMembers: familyMembersQ.data ?? [],
+      }),
+    [forWhom, customerEducationQ.data, myProfileQ.data?.full_name, familyMembersQ.data],
+  );
+
   useEffect(() => {
-    if (step !== SCHEDULE_STEP) {
+    if (!isTutoring) return;
+    setBookingEducation(
+      educationValueFromIds(
+        studentEducation.educationCurriculumId,
+        studentEducation.educationLevelId,
+      ),
+    );
+    userPickedCapabilityRef.current = false;
+  }, [
+    isTutoring,
+    forWhom,
+    studentEducation.educationCurriculumId,
+    studentEducation.educationLevelId,
+  ]);
+
+  useEffect(() => {
+    if (stepKey !== "duration" || !isTutoring || userPickedCapabilityRef.current) return;
+    const match = pickDefaultCapabilityForEducation(
+      capabilitiesQ.data ?? [],
+      activeService?.service?.id ?? serviceId,
+      bookingEducation.educationCurriculumId || studentEducation.educationCurriculumId,
+      bookingEducation.educationLevelId || studentEducation.educationLevelId,
+    );
+    if (match) setCapabilityId(match.id);
+  }, [
+    stepKey,
+    isTutoring,
+    capabilitiesQ.data,
+    activeService?.service?.id,
+    serviceId,
+    bookingEducation.educationCurriculumId,
+    bookingEducation.educationLevelId,
+    studentEducation.educationCurriculumId,
+    studentEducation.educationLevelId,
+  ]);
+
+  useEffect(() => {
+    if (step !== scheduleStep) {
       setScanningSchedule(false);
       return;
     }
@@ -293,6 +361,7 @@ export function BookContent({
     setScanningSchedule(false);
   }, [
     step,
+    scheduleStep,
     date,
     slotsQ.isLoading,
     slotsQ.isFetching,
@@ -390,19 +459,20 @@ export function BookContent({
   };
 
   const canNext = () => {
-    if (step === 0) return !!activeService;
-    if (step === 1 && isTutoring) return !!selectedCapability;
-    if (step === SCHEDULE_STEP) return !!date && !!time;
-    if (step === 3) return !!addressId && !!zoneQ.data;
-    if (step === 4)
+    if (stepKey === "service") return !!activeService;
+    if (stepKey === "duration" && isTutoring) return !!selectedCapability;
+    if (stepKey === "schedule") return !!date && !!time;
+    if (stepKey === "address") return !!addressId && !!zoneQ.data;
+    if (stepKey === "forWhom")
       return canContinueForWhom({
         isBabysitting,
         forWhom,
         members: familyMembersQ.data ?? [],
         startAt: selectedSlot?.start ?? null,
       });
-    if (step === 6) return eitherRequirements.every((r: any) => !!requirementChoices[r.id]);
-    if (step === 8) return !!paymentMethodId;
+    if (stepKey === "requirements")
+      return eitherRequirements.every((r: any) => !!requirementChoices[r.id]);
+    if (stepKey === "payment") return !!paymentMethodId;
     return true;
   };
 
@@ -492,8 +562,29 @@ export function BookContent({
         toast.error(t("bookFlow.slotTaken", "That time slot was just taken. Please pick another."));
         setTime(null);
         setSelectedSlot(null);
-        setStep(SCHEDULE_STEP);
+        setStep(scheduleStep);
         return;
+      }
+
+      if (
+        isTutoring &&
+        shouldPersistBookingEducation({
+          saveForNextTime: saveEducationForNextTime,
+          draft: {
+            educationCurriculumId: bookingEducation.educationCurriculumId || null,
+            educationLevelId: bookingEducation.educationLevelId || null,
+          },
+          saved: {
+            educationCurriculumId: studentEducation.educationCurriculumId,
+            educationLevelId: studentEducation.educationLevelId,
+          },
+        })
+      ) {
+        await saveEducation.save({
+          forWhom,
+          education_curriculum_id: bookingEducation.educationCurriculumId || null,
+          education_level_id: bookingEducation.educationLevelId || null,
+        });
       }
 
       const submissionPayload = {
@@ -576,7 +667,7 @@ export function BookContent({
         toast.error(getBookingErrorMessage(e, (key, fallback) => t(key, fallback ?? "")));
         setTime(null);
         setSelectedSlot(null);
-        setStep(SCHEDULE_STEP);
+        setStep(scheduleStep);
         return;
       }
       toast.error(getBookingErrorMessage(e, (key, fallback) => t(key, fallback ?? "")));
@@ -604,7 +695,7 @@ export function BookContent({
     <PhoneFrame bg="bg-background">
       <CustomerPageHero
         title={p.name}
-        subtitle={t(`bookFlow.stepName.${stepKeys[step]}`)}
+        subtitle={t(`bookFlow.stepName.${stepKey}`)}
         onBack={handleBack}
       />
 
@@ -628,7 +719,7 @@ export function BookContent({
       </div>
 
       <div className="flex-1 px-5 pb-40 pt-6">
-        {step === 0 && (
+        {stepKey === "service" && (
           <Step title={t("bookFlow.serviceTitle")} sub={t("bookFlow.serviceSub")}>
             {services.length === 0 ? (
               <p className="text-sm text-muted-foreground">{t("bookFlow.noServices")}</p>
@@ -655,8 +746,33 @@ export function BookContent({
           </Step>
         )}
 
-        {step === 1 && isTutoring && (
+        {stepKey === "duration" && isTutoring && (
           <Step title={t("bookFlow.pickCapability")} sub={t("bookFlow.pickCapabilitySub")}>
+            <div className="mb-4">
+              <EducationProfileFields
+                value={bookingEducation}
+                onChange={(next) => {
+                  userPickedCapabilityRef.current = true;
+                  setBookingEducation(next);
+                  const match = pickDefaultCapabilityForEducation(
+                    capabilitiesQ.data ?? [],
+                    activeService?.service?.id ?? serviceId,
+                    next.educationCurriculumId || null,
+                    next.educationLevelId || null,
+                  );
+                  setCapabilityId(match?.id ?? null);
+                }}
+              />
+            </div>
+            <label className="mb-4 flex items-center gap-2 text-sm font-bold text-foreground">
+              <input
+                type="checkbox"
+                checked={saveEducationForNextTime}
+                onChange={(e) => setSaveEducationForNextTime(e.target.checked)}
+                className="h-4 w-4 rounded border-border"
+              />
+              {t("studentEducation.saveForNextTime", "Save for next time")}
+            </label>
             {requestedCapabilityMissing ? (
               <p className="mb-3 text-sm font-semibold text-coral">
                 {t("bookFlow.capabilityUnavailable")}
@@ -666,24 +782,50 @@ export function BookContent({
               <p className="text-sm text-muted-foreground">{t("bookFlow.noCapabilities")}</p>
             ) : (
               <div className="space-y-3">
-                {(capabilitiesQ.data ?? []).map((cap) => {
-                  const active = selectedCapability?.id === cap.id;
-                  const label = formatTeachingCapabilityLine({
-                    subject: lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn,
-                    curriculum: lang === "ar" ? cap.curriculumNameAr : cap.curriculumNameEn,
-                    level: lang === "ar" ? cap.levelNameAr : cap.levelNameEn,
-                    durationMin: cap.durationMin,
-                    price: cap.price,
-                  });
-                  return (
-                    <Option
-                      key={cap.id}
-                      active={active}
-                      onClick={() => setCapabilityId(cap.id)}
-                      label={label}
-                    />
-                  );
-                })}
+                {(capabilitiesQ.data ?? [])
+                  .filter((cap) => {
+                    if (
+                      !bookingEducation.educationCurriculumId &&
+                      !bookingEducation.educationLevelId
+                    ) {
+                      return true;
+                    }
+                    if (
+                      bookingEducation.educationCurriculumId &&
+                      cap.curriculumId !== bookingEducation.educationCurriculumId
+                    ) {
+                      return false;
+                    }
+                    if (
+                      bookingEducation.educationLevelId &&
+                      cap.levelId !== bookingEducation.educationLevelId
+                    ) {
+                      return false;
+                    }
+                    return true;
+                  })
+                  .map((cap) => {
+                    const active = selectedCapability?.id === cap.id;
+                    const label = formatTeachingCapabilityLine({
+                      subject: lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn,
+                      curriculum: lang === "ar" ? cap.curriculumNameAr : cap.curriculumNameEn,
+                      level: lang === "ar" ? cap.levelNameAr : cap.levelNameEn,
+                      durationMin: cap.durationMin,
+                      price: cap.price,
+                    });
+                    return (
+                      <Option
+                        key={cap.id}
+                        active={active}
+                        onClick={() => {
+                          userPickedCapabilityRef.current = true;
+                          setCapabilityId(cap.id);
+                          setBookingEducation(educationValueFromIds(cap.curriculumId, cap.levelId));
+                        }}
+                        label={label}
+                      />
+                    );
+                  })}
               </div>
             )}
             {selectedCapability ? (
@@ -697,7 +839,7 @@ export function BookContent({
           </Step>
         )}
 
-        {step === 1 && !isTutoring && (
+        {stepKey === "duration" && !isTutoring && (
           <Step title={t("bookFlow.durationTitle")} sub={t("bookFlow.durationSub")}>
             <div className="grid grid-cols-2 gap-3">
               {durations.map((d) => {
@@ -727,7 +869,7 @@ export function BookContent({
           </Step>
         )}
 
-        {step === SCHEDULE_STEP && (
+        {stepKey === "schedule" && (
           <Step title={t("bookFlow.scheduleTitle")} sub={t("bookFlow.scheduleSub")}>
             <BookScheduleStep
               locale={locale}
@@ -756,7 +898,7 @@ export function BookContent({
           </Step>
         )}
 
-        {step === 3 && (
+        {stepKey === "address" && (
           <Step title={t("bookFlow.addressTitle")} sub={t("bookFlow.addressSub")}>
             {addrsQ.isLoading ? (
               <div className="space-y-2">
@@ -855,7 +997,7 @@ export function BookContent({
           </Step>
         )}
 
-        {step === 4 && (
+        {stepKey === "forWhom" && (
           <Step
             title={t(
               isBabysitting ? "bookFlow.forWhomChildTitle" : "bookFlow.forWhomTitle",
@@ -940,7 +1082,7 @@ export function BookContent({
           </Step>
         )}
 
-        {step === 5 && (
+        {stepKey === "notes" && (
           <Step title={t("bookFlow.notesTitle")} sub={t("bookFlow.notesSub")}>
             <textarea
               rows={6}
@@ -952,7 +1094,7 @@ export function BookContent({
           </Step>
         )}
 
-        {step === 6 && (
+        {stepKey === "requirements" && (
           <Step
             title={t("bookFlow.requirementsTitle", "Requirements")}
             sub={t("bookFlow.requirementsSub", "Some items for this service need to be arranged.")}
@@ -1013,7 +1155,7 @@ export function BookContent({
           </Step>
         )}
 
-        {step === 7 && (
+        {stepKey === "summary" && (
           <Step title={t("bookFlow.summaryTitle")}>
             <Card className="p-4">
               <div className="flex items-center gap-3 border-b border-border pb-3">
@@ -1144,7 +1286,7 @@ export function BookContent({
           </Step>
         )}
 
-        {step === 8 && (
+        {stepKey === "payment" && (
           <Step title={t("bookFlow.paymentTitle")} sub={t("bookFlow.paymentSub")}>
             {methodsQ.isLoading ? (
               <div className="space-y-3">
@@ -1230,12 +1372,12 @@ export function BookContent({
         <PrimaryButton onClick={next} disabled={!canNext() || createBooking.isPending}>
           {createBooking.isPending ? (
             <Loader2 className="h-5 w-5 animate-spin" />
-          ) : step === 8 ? (
+          ) : stepKey === "payment" ? (
             <>
               <Lock className="h-4 w-4" aria-hidden="true" />{" "}
               {t("bookFlow.payCta", { price: formatEGP(total) })}
             </>
-          ) : step === 7 ? (
+          ) : stepKey === "summary" ? (
             t("bookFlow.continueToPayment")
           ) : (
             t("bookFlow.continue")
