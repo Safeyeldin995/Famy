@@ -11,7 +11,7 @@
 
 # Famy AI Engineering Contract
 
-This is the shared source of truth for Codex SOL, Cursor Composer 2.5, Claude Sonnet, and any future engineering agent working in this repository.
+This is the shared source of truth for Codex, Claude Sonnet, Cursor Composer 2.5, and any future engineering agent working in this repository.
 
 Agent-specific files may assign a role, but they must not weaken or contradict this contract.
 
@@ -64,15 +64,15 @@ Claude owns:
 - Scope control and execution planning
 - GitHub status, CI, review, and merge-readiness checks
 - Selecting the next technically correct action
-- Directing Cursor's scoped local implementation and QA phase
-- Small scoped implementation when it owns the working tree
+- Directing Codex's scoped local implementation and QA phase
+- Applying migrations and merging only with Safeyeldin's explicit approval
 - Final plain-language recommendation to the Product Owner
 
-Claude must not claim local QA ran when it cannot access the required QA environment, browser, or secrets. Claude must not edit the same branch concurrently with Cursor.
+Claude must not claim local QA ran when it cannot access the required QA environment, browser, or secrets. Claude must not edit the same branch concurrently with the implementer. Claude does not write product code while Codex is the implementer.
 
-### Cursor Composer 2.5 — local implementer
+### Codex — implementer
 
-Cursor owns:
+Codex owns:
 
 - Scoped implementation in the user's local checkout
 - Root-cause debugging from the named route, component, hook, API, or test
@@ -80,11 +80,17 @@ Cursor owns:
 - Windows/Playwright QA runs when the local environment is required
 - Producing concise, reproducible evidence for the PR
 
-Cursor must not broaden scope, run blind retries, merge to main, or start a second task on the same branch.
+Codex must not broaden scope, run blind retries, merge to main, or start a second task on the same branch.
 
-### Codex SOL — independent auditor
+### Cursor Composer 2.5 — backup implementer (only when Safeyeldin assigns it)
 
-Codex owns:
+Cursor follows the same implementer duties and limits as Codex and works only when Safeyeldin assigns it.
+
+### Claude — independent auditor of diffs it did not write
+
+No agent ever audits its own diff. Claude audits Codex's or Cursor's work; Codex audits any diff Claude authored. CodeRabbit is no longer used.
+
+Claude owns:
 
 - One independent read-only audit of the completed current diff
 - Security, correctness, data-integrity, test-quality, and scope checks
@@ -92,8 +98,9 @@ Codex owns:
 - Classifying findings by severity
 - Verifying a correction once when a blocking finding was fixed
 - Issuing the final audit verdict and required next gate
+- Documenting the line-by-line audit on the PR with evidence: checks run, migration replay or hash when applicable, and verdict
 
-Codex must not redesign the feature, reimplement the patch, edit, commit, push, or create repeated audit loops unless Safeyeldin explicitly reassigns Codex as the implementer for a separate phase.
+The independent auditor must not redesign the feature, reimplement the patch, edit, commit, push, or create repeated audit loops unless Safeyeldin explicitly reassigns it as the implementer for a separate phase.
 
 ## Standard workflow
 
@@ -110,7 +117,7 @@ Every task follows this sequence:
 4. Local verification
    - Run the checks required by the change type.
 5. Independent review
-   - Codex or CodeRabbit reviews the complete current diff once.
+   - Claude (or Codex, for a diff Claude authored) reviews the complete current diff once and documents the audit on the PR.
 6. Focused QA
    - Run the smallest test that proves the changed behavior.
 7. Merge decision
@@ -215,7 +222,7 @@ or anything Production-adjacent — however small — still requires
 Safeyeldin's explicit "yes" before merge, regardless of how the change is
 described. When in doubt, treat it as requiring approval.
 
-Cursor never merges to `main` under any circumstance (unchanged from
+No implementer agent ever merges to `main` under any circumstance (unchanged from
 "Agent ownership" above).
 
 Explicit Safeyeldin approval is required for:
