@@ -127,6 +127,20 @@ describe("full migration replay", () => {
         `SELECT jobname::text AS jobname FROM cron.job WHERE jobname = 'famy-send-push-notifications'`,
       );
       expect(jobs).toHaveLength(1);
+      const permissions = await queryRows<{
+        anon: boolean;
+        authenticated: boolean;
+        service_role: boolean;
+      }>(
+        db,
+        `SELECT
+          has_function_privilege('anon', 'public.get_notification_worker_secret()', 'EXECUTE') AS anon,
+          has_function_privilege('authenticated', 'public.get_notification_worker_secret()', 'EXECUTE') AS authenticated,
+          has_function_privilege('service_role', 'public.get_notification_worker_secret()', 'EXECUTE') AS service_role`,
+      );
+      expect(permissions).toEqual([
+        { anon: false, authenticated: false, service_role: true },
+      ]);
     } finally {
       await db.close();
     }
