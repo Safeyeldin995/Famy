@@ -138,10 +138,13 @@ describe("full migration replay", () => {
           has_function_privilege('authenticated', 'public.get_notification_worker_secret()', 'EXECUTE') AS authenticated,
           has_function_privilege('service_role', 'public.get_notification_worker_secret()', 'EXECUTE') AS service_role`,
       );
-      expect(permissions).toEqual([
-        { anon: false, authenticated: false, service_role: true },
-      ]);
-      const eligibilitySignatures = await queryRows<{ internal: string; wrapper: string; anon: boolean; authenticated: boolean }>(
+      expect(permissions).toEqual([{ anon: false, authenticated: false, service_role: true }]);
+      const eligibilitySignatures = await queryRows<{
+        internal: string;
+        wrapper: string;
+        anon: boolean;
+        authenticated: boolean;
+      }>(
         db,
         `SELECT
           pg_get_function_result('public.marketplace_eligibility_internal(uuid,uuid,uuid)'::regprocedure) AS internal,

@@ -1,44 +1,47 @@
 /**
  * Famy Provider Portal data-access hooks.
  */
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/lib/auth/useAuth';
-import { isClosedBetaCategorySlug } from '@/lib/catalog/closedBetaCategories';
-import { isQaCatalogService } from '@/lib/catalog/qaCatalog';
-import { aggregateProviderEarnings } from '@/lib/earnings/aggregateProviderEarnings';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth/useAuth";
+import { isClosedBetaCategorySlug } from "@/lib/catalog/closedBetaCategories";
+import { isQaCatalogService } from "@/lib/catalog/qaCatalog";
+import { aggregateProviderEarnings } from "@/lib/earnings/aggregateProviderEarnings";
 
 // ---------- Identity ----------
 export function useMyRole() {
   return useQuery({
-    queryKey: ['my-role'],
+    queryKey: ["my-role"],
     queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       const user = session?.user;
       if (!user) return null;
-      const { data } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id);
+      const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
       const roles = (data ?? []).map((r) => r.role);
-      if (roles.includes('admin')) return 'admin' as const;
-      if (roles.includes('provider')) return 'provider' as const;
-      return 'customer' as const;
+      if (roles.includes("admin")) return "admin" as const;
+      if (roles.includes("provider")) return "provider" as const;
+      return "customer" as const;
     },
   });
 }
 
 export function useMyProvider() {
   return useQuery({
-    queryKey: ['my-provider'],
+    queryKey: ["my-provider"],
     queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       const user = session?.user;
       if (!user) return null;
       const { data, error } = await supabase
-        .from('providers')
-        .select(`id, profile_id, bio_en, bio_ar, years_experience, hourly_rate, city, country, languages, is_active, is_verified, is_top_pro, vacation_mode, onboarding_status, submitted_at, review_reason_public, review_reason_code, created_at, profile:profiles(*), ratings:ratings_summary(*), trust:trust_scores(*)`)
-        .eq('profile_id', user.id)
+        .from("providers")
+        .select(
+          `id, profile_id, bio_en, bio_ar, years_experience, hourly_rate, city, country, languages, is_active, is_verified, is_top_pro, vacation_mode, onboarding_status, submitted_at, review_reason_public, review_reason_code, created_at, profile:profiles(*), ratings:ratings_summary(*), trust:trust_scores(*)`,
+        )
+        .eq("profile_id", user.id)
         .maybeSingle();
       if (error) throw error;
       return data;
@@ -58,13 +61,15 @@ export function useCreateProvider() {
       city: string;
       languages: string[];
     }) => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       const user = session?.user;
-      if (!user) throw new Error('auth required');
+      if (!user) throw new Error("auth required");
 
-      const { data, error } = await supabase.rpc('create_provider_profile', {
-        p_bio_en: input.bio_en ?? '',
-        p_bio_ar: input.bio_ar ?? '',
+      const { data, error } = await supabase.rpc("create_provider_profile", {
+        p_bio_en: input.bio_en ?? "",
+        p_bio_ar: input.bio_ar ?? "",
         p_years_experience: input.years_experience,
         p_hourly_rate: input.hourly_rate,
         p_city: input.city,
@@ -74,8 +79,8 @@ export function useCreateProvider() {
       return data;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['my-provider'] });
-      qc.invalidateQueries({ queryKey: ['my-role'] });
+      qc.invalidateQueries({ queryKey: ["my-provider"] });
+      qc.invalidateQueries({ queryKey: ["my-role"] });
     },
   });
 }
@@ -84,25 +89,30 @@ export function useUpdateProvider() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (patch: Record<string, any>) => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       const user = session?.user;
-      if (!user) throw new Error('auth required');
+      if (!user) throw new Error("auth required");
       const { error } = await supabase
-        .from('providers')
+        .from("providers")
         .update(patch as any)
-        .eq('profile_id', user.id);
+        .eq("profile_id", user.id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['my-provider'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["my-provider"] }),
   });
 }
 
 export function useMyProviderZones(providerId: string | undefined) {
   return useQuery({
     enabled: !!providerId,
-    queryKey: ['provider-zones', providerId],
+    queryKey: ["provider-zones", providerId],
     queryFn: async () => {
-      const { data, error } = await supabase.from('zone_providers').select('zone_id').eq('provider_id', providerId!);
+      const { data, error } = await supabase
+        .from("zone_providers")
+        .select("zone_id")
+        .eq("provider_id", providerId!);
       if (error) throw error;
       return data ?? [];
     },
@@ -112,9 +122,9 @@ export function useMyProviderZones(providerId: string | undefined) {
 export function useMyMarketplaceEligibility(providerId: string | undefined) {
   return useQuery({
     enabled: !!providerId,
-    queryKey: ['provider-marketplace-eligibility', providerId],
+    queryKey: ["provider-marketplace-eligibility", providerId],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('provider_marketplace_eligibility', {
+      const { data, error } = await supabase.rpc("provider_marketplace_eligibility", {
         p_provider_id: providerId!,
       });
       if (error) throw error;
@@ -127,13 +137,13 @@ export function useMyMarketplaceEligibility(providerId: string | undefined) {
 export function useProNotifications() {
   const { user } = useAuth();
   return useQuery({
-    queryKey: ['pro-notifications', user?.id ?? 'anonymous'],
+    queryKey: ["pro-notifications", user?.id ?? "anonymous"],
     enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .order('created_at', { ascending: false })
+        .from("notifications")
+        .select("*")
+        .order("created_at", { ascending: false })
         .limit(50);
       if (error) throw error;
       return data ?? [];
@@ -144,13 +154,13 @@ export function useProNotifications() {
 export function useProUnreadNotificationCount() {
   const { user } = useAuth();
   return useQuery({
-    queryKey: ['pro-notifications', 'unread-count', user?.id ?? 'anonymous'],
+    queryKey: ["pro-notifications", "unread-count", user?.id ?? "anonymous"],
     enabled: !!user,
     queryFn: async () => {
       const { count, error } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .is('read_at', null);
+        .from("notifications")
+        .select("*", { count: "exact", head: true })
+        .is("read_at", null);
       if (error) throw error;
       return count ?? 0;
     },
@@ -177,15 +187,15 @@ export function useProviderBookings(providerId: string | undefined) {
   // and never refocus/remount it.
   return useQuery({
     enabled: !!providerId,
-    queryKey: ['provider-bookings', providerId],
+    queryKey: ["provider-bookings", providerId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('bookings')
+        .from("bookings")
         .select(
           `*, service:services(*), customer:profiles!bookings_customer_id_fkey(full_name, avatar_url, phone), location:booking_locations(*)`,
         )
-        .eq('provider_id', providerId!)
-        .order('start_at', { ascending: false })
+        .eq("provider_id", providerId!)
+        .order("start_at", { ascending: false })
         .limit(200);
       if (error) throw error;
       return data ?? [];
@@ -196,14 +206,14 @@ export function useProviderBookings(providerId: string | undefined) {
 export function useProviderBooking(id: string | undefined) {
   return useQuery({
     enabled: !!id,
-    queryKey: ['provider-booking', id],
+    queryKey: ["provider-booking", id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('bookings')
+        .from("bookings")
         .select(
           `*, service:services(*), customer:profiles!bookings_customer_id_fkey(full_name, avatar_url, phone), location:booking_locations(*), requirement_choices:booking_requirement_selections(*), family_member:booking_family_member_snapshots(*)`,
         )
-        .eq('id', id!)
+        .eq("id", id!)
         .maybeSingle();
       if (error) throw error;
       return data;
@@ -219,21 +229,29 @@ export function useProviderUpdateBookingStatus() {
       status,
       reason,
       noShowParty,
-    }: { id: string; status: string; reason?: string; noShowParty?: 'customer' | 'provider' }) => {
+    }: {
+      id: string;
+      status: string;
+      reason?: string;
+      noShowParty?: "customer" | "provider";
+    }) => {
       const patch: Record<string, unknown> = { status };
-      if (status === 'cancelled' && reason) patch.cancellation_reason = reason;
-      if (status === 'no_show') {
+      if (status === "cancelled" && reason) patch.cancellation_reason = reason;
+      if (status === "no_show") {
         patch.no_show_party = noShowParty;
         if (reason) patch.no_show_reason = reason;
       }
-      const { error } = await supabase.from('bookings').update(patch as any).eq('id', id);
+      const { error } = await supabase
+        .from("bookings")
+        .update(patch as any)
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ['provider-bookings'] });
-      qc.invalidateQueries({ queryKey: ['provider-booking', vars.id] });
-      qc.invalidateQueries({ queryKey: ['provider-earnings'] });
-      qc.invalidateQueries({ queryKey: ['payment', vars.id] });
+      qc.invalidateQueries({ queryKey: ["provider-bookings"] });
+      qc.invalidateQueries({ queryKey: ["provider-booking", vars.id] });
+      qc.invalidateQueries({ queryKey: ["provider-earnings"] });
+      qc.invalidateQueries({ queryKey: ["payment", vars.id] });
     },
   });
 }
@@ -246,14 +264,14 @@ export function useProviderUpdateBookingStatus() {
 export function useProviderEarnings(providerId: string | undefined) {
   return useQuery({
     enabled: !!providerId,
-    queryKey: ['provider-earnings', providerId],
+    queryKey: ["provider-earnings", providerId],
     queryFn: async () => {
       const { data: bookings, error } = await supabase
-        .from('bookings')
+        .from("bookings")
         .select(
-          'id, price_subtotal, price_extras_total, price_travel_fee, price_provider_net, price_commission_percent, price_commission_amount, start_at, status, payments(status, amount, captured_at)',
+          "id, price_subtotal, price_extras_total, price_travel_fee, price_provider_net, price_commission_percent, price_commission_amount, start_at, status, payments(status, amount, captured_at)",
         )
-        .eq('provider_id', providerId!);
+        .eq("provider_id", providerId!);
       if (error) throw error;
       return aggregateProviderEarnings(bookings ?? []);
     },
@@ -264,13 +282,13 @@ export function useProviderEarnings(providerId: string | undefined) {
 export function useProviderAvailability(providerId: string | undefined) {
   return useQuery({
     enabled: !!providerId,
-    queryKey: ['provider-availability', providerId],
+    queryKey: ["provider-availability", providerId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('availability_rules')
-        .select('*')
-        .eq('provider_id', providerId!)
-        .order('weekday');
+        .from("availability_rules")
+        .select("*")
+        .eq("provider_id", providerId!)
+        .order("weekday");
       if (error) throw error;
       return data ?? [];
     },
@@ -287,14 +305,14 @@ export function useReplaceAvailability() {
       providerId: string;
       rules: { weekday: number; start_time: string; end_time: string }[];
     }) => {
-      const { error } = await supabase.rpc('replace_provider_availability', {
+      const { error } = await supabase.rpc("replace_provider_availability", {
         p_provider_id: providerId,
         p_rules: rules,
       });
       if (error) throw error;
     },
     onSuccess: (_d, vars) =>
-      qc.invalidateQueries({ queryKey: ['provider-availability', vars.providerId] }),
+      qc.invalidateQueries({ queryKey: ["provider-availability", vars.providerId] }),
   });
 }
 
@@ -302,13 +320,13 @@ export function useReplaceAvailability() {
 export function useProviderVacations(providerId: string | undefined) {
   return useQuery({
     enabled: !!providerId,
-    queryKey: ['provider-vacations', providerId],
+    queryKey: ["provider-vacations", providerId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('provider_vacations')
-        .select('*')
-        .eq('provider_id', providerId!)
-        .order('start_date', { ascending: false });
+        .from("provider_vacations")
+        .select("*")
+        .eq("provider_id", providerId!)
+        .order("start_date", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
@@ -318,8 +336,13 @@ export function useProviderVacations(providerId: string | undefined) {
 export function useAddVacation() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { providerId: string; start_date: string; end_date: string; reason?: string }) => {
-      const { error } = await supabase.from('provider_vacations').insert({
+    mutationFn: async (input: {
+      providerId: string;
+      start_date: string;
+      end_date: string;
+      reason?: string;
+    }) => {
+      const { error } = await supabase.from("provider_vacations").insert({
         provider_id: input.providerId,
         start_date: input.start_date,
         end_date: input.end_date,
@@ -328,7 +351,7 @@ export function useAddVacation() {
       if (error) throw error;
     },
     onSuccess: (_d, vars) =>
-      qc.invalidateQueries({ queryKey: ['provider-vacations', vars.providerId] }),
+      qc.invalidateQueries({ queryKey: ["provider-vacations", vars.providerId] }),
   });
 }
 
@@ -336,11 +359,11 @@ export function useDeleteVacation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, providerId: _ }: { id: string; providerId: string }) => {
-      const { error } = await supabase.from('provider_vacations').delete().eq('id', id);
+      const { error } = await supabase.from("provider_vacations").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: (_d, vars) =>
-      qc.invalidateQueries({ queryKey: ['provider-vacations', vars.providerId] }),
+      qc.invalidateQueries({ queryKey: ["provider-vacations", vars.providerId] }),
   });
 }
 
@@ -350,13 +373,13 @@ export function useDeleteVacation() {
 export function useProviderExceptions(providerId: string | undefined) {
   return useQuery({
     enabled: !!providerId,
-    queryKey: ['provider-exceptions', providerId],
+    queryKey: ["provider-exceptions", providerId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('availability_exceptions')
-        .select('*')
-        .eq('provider_id', providerId!)
-        .order('date', { ascending: false });
+        .from("availability_exceptions")
+        .select("*")
+        .eq("provider_id", providerId!)
+        .order("date", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
@@ -367,7 +390,7 @@ export function useAddException() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { providerId: string; date: string; reason?: string }) => {
-      const { error } = await supabase.from('availability_exceptions').insert({
+      const { error } = await supabase.from("availability_exceptions").insert({
         provider_id: input.providerId,
         date: input.date,
         is_blocked: true,
@@ -376,7 +399,7 @@ export function useAddException() {
       if (error) throw error;
     },
     onSuccess: (_d, vars) =>
-      qc.invalidateQueries({ queryKey: ['provider-exceptions', vars.providerId] }),
+      qc.invalidateQueries({ queryKey: ["provider-exceptions", vars.providerId] }),
   });
 }
 
@@ -384,11 +407,11 @@ export function useDeleteException() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, providerId: _ }: { id: string; providerId: string }) => {
-      const { error } = await supabase.from('availability_exceptions').delete().eq('id', id);
+      const { error } = await supabase.from("availability_exceptions").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: (_d, vars) =>
-      qc.invalidateQueries({ queryKey: ['provider-exceptions', vars.providerId] }),
+      qc.invalidateQueries({ queryKey: ["provider-exceptions", vars.providerId] }),
   });
 }
 
@@ -396,13 +419,13 @@ export function useDeleteException() {
 export function useProviderDocuments(providerId: string | undefined) {
   return useQuery({
     enabled: !!providerId,
-    queryKey: ['provider-documents', providerId],
+    queryKey: ["provider-documents", providerId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('provider_documents')
-        .select('*')
-        .eq('provider_id', providerId!)
-        .order('created_at', { ascending: false });
+        .from("provider_documents")
+        .select("*")
+        .eq("provider_id", providerId!)
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
@@ -411,12 +434,14 @@ export function useProviderDocuments(providerId: string | undefined) {
 
 /** @deprecated Use useSecureUploadDocument from onboarding-queries instead. */
 export function useUploadDocument() {
-  throw new Error('Legacy document upload is disabled. Use the onboarding wizard secure upload flow.');
+  throw new Error(
+    "Legacy document upload is disabled. Use the onboarding wizard secure upload flow.",
+  );
 }
 
 export async function getSignedDocumentUrl(path: string) {
   const { data, error } = await supabase.storage
-    .from('provider-documents')
+    .from("provider-documents")
     .createSignedUrl(path, 60 * 10);
   if (error) throw error;
   return data.signedUrl;
@@ -429,14 +454,14 @@ export async function getSignedDocumentUrl(path: string) {
 export function useRequirementsForService(serviceId: string | undefined) {
   return useQuery({
     enabled: !!serviceId,
-    queryKey: ['service-requirements', serviceId],
+    queryKey: ["service-requirements", serviceId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('service_requirements')
-        .select('*')
-        .eq('service_id', serviceId!)
-        .eq('is_active', true)
-        .order('sort_order');
+        .from("service_requirements")
+        .select("*")
+        .eq("service_id", serviceId!)
+        .eq("is_active", true)
+        .order("sort_order");
       if (error) throw error;
       return data ?? [];
     },
@@ -446,12 +471,12 @@ export function useRequirementsForService(serviceId: string | undefined) {
 export function useMyRequirementFulfillments(providerId: string | undefined) {
   return useQuery({
     enabled: !!providerId,
-    queryKey: ['my-requirement-fulfillments', providerId],
+    queryKey: ["my-requirement-fulfillments", providerId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('provider_requirement_fulfillments')
-        .select('*')
-        .eq('provider_id', providerId!);
+        .from("provider_requirement_fulfillments")
+        .select("*")
+        .eq("provider_id", providerId!);
       if (error) throw error;
       return data ?? [];
     },
@@ -461,32 +486,56 @@ export function useMyRequirementFulfillments(providerId: string | undefined) {
 export function useDeclareRequirement() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ providerId, requirementId, notes }: { providerId: string; requirementId: string; notes?: string }) => {
+    mutationFn: async ({
+      providerId,
+      requirementId,
+      notes,
+    }: {
+      providerId: string;
+      requirementId: string;
+      notes?: string;
+    }) => {
       const { error } = await supabase
-        .from('provider_requirement_fulfillments')
-        .upsert({ provider_id: providerId, requirement_id: requirementId, notes: notes ?? null }, { onConflict: 'provider_id,requirement_id' });
+        .from("provider_requirement_fulfillments")
+        .upsert(
+          { provider_id: providerId, requirement_id: requirementId, notes: notes ?? null },
+          { onConflict: "provider_id,requirement_id" },
+        );
       if (error) throw error;
     },
-    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['my-requirement-fulfillments', vars.providerId] }),
+    onSuccess: (_d, vars) =>
+      qc.invalidateQueries({ queryKey: ["my-requirement-fulfillments", vars.providerId] }),
   });
 }
 
 export function useUploadRequirementEvidence() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ providerId, requirementId, file }: { providerId: string; requirementId: string; file: File }) => {
-      const ext = file.name.split('.').pop() ?? 'bin';
+    mutationFn: async ({
+      providerId,
+      requirementId,
+      file,
+    }: {
+      providerId: string;
+      requirementId: string;
+      file: File;
+    }) => {
+      const ext = file.name.split(".").pop() ?? "bin";
       const path = `${providerId}/requirement-${requirementId}-${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage
-        .from('provider-documents')
+        .from("provider-documents")
         .upload(path, file, { contentType: file.type, upsert: false });
       if (upErr) throw upErr;
       const { error } = await supabase
-        .from('provider_requirement_fulfillments')
-        .upsert({ provider_id: providerId, requirement_id: requirementId, evidence_storage_path: path }, { onConflict: 'provider_id,requirement_id' });
+        .from("provider_requirement_fulfillments")
+        .upsert(
+          { provider_id: providerId, requirement_id: requirementId, evidence_storage_path: path },
+          { onConflict: "provider_id,requirement_id" },
+        );
       if (error) throw error;
     },
-    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['my-requirement-fulfillments', vars.providerId] }),
+    onSuccess: (_d, vars) =>
+      qc.invalidateQueries({ queryKey: ["my-requirement-fulfillments", vars.providerId] }),
   });
 }
 
@@ -501,13 +550,13 @@ export function filterSelectableProviderServices<
 
 export function useAllServices() {
   return useQuery({
-    queryKey: ['all-services'],
+    queryKey: ["all-services"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('services')
-        .select('*, category:categories(slug, name_en, name_ar)')
-        .eq('is_active', true)
-        .order('name_en');
+        .from("services")
+        .select("*, category:categories(slug, name_en, name_ar)")
+        .eq("is_active", true)
+        .order("name_en");
       if (error) throw error;
       return filterSelectableProviderServices(data ?? []);
     },
@@ -517,15 +566,17 @@ export function useAllServices() {
 export function useMyProviderServices(providerId: string | undefined) {
   return useQuery({
     enabled: !!providerId,
-    queryKey: ['my-provider-services', providerId],
+    queryKey: ["my-provider-services", providerId],
     queryFn: async () => {
       // Joins the service (not just its id) so the profile screen can still
       // show an already-assigned service that admin later deactivated,
       // labeled unavailable, without dropping the underlying row.
       const { data, error } = await supabase
-        .from('provider_services')
-        .select('service_id, price_override, status, service:services(id, name_en, name_ar, is_active, provider_pricing_allowed, minimum_price, maximum_price, category:categories(name_en, name_ar))')
-        .eq('provider_id', providerId!);
+        .from("provider_services")
+        .select(
+          "service_id, price_override, status, service:services(id, name_en, name_ar, is_active, provider_pricing_allowed, minimum_price, maximum_price, category:categories(name_en, name_ar))",
+        )
+        .eq("provider_id", providerId!);
       if (error) throw error;
       return data ?? [];
     },
@@ -539,23 +590,27 @@ export function useToggleProviderService() {
       providerId,
       serviceId,
       on,
-    }: { providerId: string; serviceId: string; on: boolean }) => {
+    }: {
+      providerId: string;
+      serviceId: string;
+      on: boolean;
+    }) => {
       if (on) {
         const { error } = await supabase
-          .from('provider_services')
+          .from("provider_services")
           .insert({ provider_id: providerId, service_id: serviceId });
-        if (error && (error as any).code !== '23505') throw error;
+        if (error && (error as any).code !== "23505") throw error;
       } else {
         const { error } = await supabase
-          .from('provider_services')
+          .from("provider_services")
           .delete()
-          .eq('provider_id', providerId)
-          .eq('service_id', serviceId);
+          .eq("provider_id", providerId)
+          .eq("service_id", serviceId);
         if (error) throw error;
       }
     },
     onSuccess: (_d, vars) =>
-      qc.invalidateQueries({ queryKey: ['my-provider-services', vars.providerId] }),
+      qc.invalidateQueries({ queryKey: ["my-provider-services", vars.providerId] }),
   });
 }
 
@@ -566,15 +621,23 @@ export function useToggleProviderService() {
 export function useSetProviderPrice() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ providerId, serviceId, price }: { providerId: string; serviceId: string; price: number | null }) => {
+    mutationFn: async ({
+      providerId,
+      serviceId,
+      price,
+    }: {
+      providerId: string;
+      serviceId: string;
+      price: number | null;
+    }) => {
       const { error } = await supabase
-        .from('provider_services')
+        .from("provider_services")
         .update({ price_override: price })
-        .eq('provider_id', providerId)
-        .eq('service_id', serviceId);
+        .eq("provider_id", providerId)
+        .eq("service_id", serviceId);
       if (error) throw error;
     },
     onSuccess: (_d, vars) =>
-      qc.invalidateQueries({ queryKey: ['my-provider-services', vars.providerId] }),
+      qc.invalidateQueries({ queryKey: ["my-provider-services", vars.providerId] }),
   });
 }
