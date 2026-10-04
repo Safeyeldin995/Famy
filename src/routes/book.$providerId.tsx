@@ -16,6 +16,7 @@ import { useActiveFamilyMembers } from "@/lib/db/family-members-queries";
 import { validatePromoCode } from "@/lib/db/promo-codes-queries";
 import { useCreatePayment, mapPaymentInsertError } from "@/lib/db/payment-queries";
 import { redirectToPaymobCheckout } from "@/lib/paymob/paymobRedirect";
+import { useProviderOnlyCustomerRedirect } from "@/lib/auth/providerOnlyCustomerGuard";
 import { useActivePaymentMethods } from "@/lib/db/payment-methods-queries";
 import { useRequirementsForService } from "@/lib/db/provider-queries";
 import { toUIProvider } from "@/lib/db/adapters";
@@ -77,8 +78,10 @@ export const Route = createFileRoute("/book/$providerId")({
 });
 
 function Book() {
+  const { blocking } = useProviderOnlyCustomerRedirect();
   const { providerId } = Route.useParams();
   const { serviceId: searchServiceId, capabilityId: searchCapabilityId } = Route.useSearch();
+  if (blocking) return null;
   return (
     <BookContent
       providerId={providerId}

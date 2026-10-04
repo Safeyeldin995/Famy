@@ -1432,7 +1432,8 @@ const ar: Translation = {
       saveChanges: "حفظ التغييرات",
       saveFailed: "تعذر حفظ ملفك الشخصي.",
       verifiedIdentityLocked: "لا يمكن تغيير بيانات موثقة دون مراجعة من الإدارة.",
-      verifiedFieldReviewNote: "تم التحقق من هذا الحقل أثناء التسجيل. تواصل مع فامي إذا احتجت تغييره.",
+      verifiedFieldReviewNote:
+        "تم التحقق من هذا الحقل أثناء التسجيل. تواصل مع فامي إذا احتجت تغييره.",
       marketplaceEligible: "مؤهل للسوق",
       eligibilityYes: "نعم",
       eligibilityNo: "لا",
@@ -1470,7 +1471,6 @@ const ar: Translation = {
       reevidence: "إعادة الرفع",
       more: "المزيد",
       documentsRow: "المستندات والتوثيق",
-      switchCustomer: "التبديل إلى تطبيق العميل",
       signOut: "تسجيل الخروج",
     },
   },
