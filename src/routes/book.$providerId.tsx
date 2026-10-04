@@ -69,6 +69,7 @@ import {
   isTutoringCategorySlug,
   tutoringSessionQuote,
 } from "@/lib/tutoring/teachingCapabilities";
+import { markCustomerPushPromptPending } from "@/lib/push-prompt";
 import {
   EducationProfileFields,
   educationValueFromIds,
@@ -679,6 +680,7 @@ export function BookContent({
       }
       if (!booking.idempotent_replay) {
         toast.success(t("bookFlow.created", "Booking created"));
+        if (booking.created) markCustomerPushPromptPending();
       }
       if (onlineCheckoutStarted) return;
       nav({

@@ -699,6 +699,13 @@ const en = {
     inAppAlwaysOn:
       "You'll always see booking, chat, reminder, and support updates in your Notification Center — these toggles only control push alerts.",
   },
+  pushPrompt: {
+    title: "Turn on push notifications?",
+    bodyCustomer: "Get instant alerts when your provider responds or your booking status changes.",
+    bodyProvider: "Get instant alerts for new booking requests and important updates.",
+    enable: "Enable notifications",
+    notNow: "Not now",
+  },
   favs: {
     title: "Favorites",
     emptyTitle: "No favorites yet",

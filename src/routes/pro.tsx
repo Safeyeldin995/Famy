@@ -1,8 +1,11 @@
 import { createFileRoute, Outlet, useNavigate, Link, useRouterState } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyProvider, useMyRole } from "@/lib/db/provider-queries";
+import { useMyPushSubscriptions } from "@/lib/db/queries";
+import { PushEnablePrompt } from "@/components/famio/PushEnablePrompt";
+import { shouldOfferPushPrompt } from "@/lib/push-prompt";
 import { PhoneFrame } from "@/components/famio/ui";
 import { QueryError } from "@/components/famio/QueryError";
 import { FamyWordmark } from "@/components/famio/FamyWordmark";
@@ -17,6 +20,8 @@ function ProviderLayout() {
   const role = useMyRole();
   const provider = useMyProvider();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const devicesQ = useMyPushSubscriptions();
+  const [pushPromptOpen, setPushPromptOpen] = useState(false);
 
   const onOnboarding = pathname.startsWith("/pro/onboarding");
   const onboardingStatus = (provider.data as any)?.onboarding_status as string | undefined;
@@ -43,6 +48,24 @@ function ProviderLayout() {
       nav({ to: "/pro/onboarding", replace: true });
     }
   }, [role.isLoading, provider.isLoading, provider.data, onboardingStatus, onOnboarding, nav]);
+
+  useEffect(() => {
+    if (onOnboarding || role.isLoading || provider.isLoading || !provider.data) return;
+    if (onboardingStatus !== "APPROVED") return;
+    if (devicesQ.isLoading) return;
+    const hasDevice = (devicesQ.data ?? []).length > 0;
+    if (shouldOfferPushPrompt("provider", { hasDeviceSubscription: hasDevice })) {
+      setPushPromptOpen(true);
+    }
+  }, [
+    onOnboarding,
+    role.isLoading,
+    provider.isLoading,
+    provider.data,
+    onboardingStatus,
+    devicesQ.isLoading,
+    devicesQ.data,
+  ]);
 
   if (role.isLoading || provider.isLoading) {
     return (
@@ -85,7 +108,10 @@ function ProviderLayout() {
           >
             {t("pro.gateway.become")}
           </Link>
-          <Link to={customerPath("/home") as "/home"} className="text-xs font-semibold text-muted-foreground">
+          <Link
+            to={customerPath("/home") as "/home"}
+            className="text-xs font-semibold text-muted-foreground"
+          >
             {t("pro.gateway.backCustomer")}
           </Link>
         </div>
@@ -93,5 +119,14 @@ function ProviderLayout() {
     );
   }
 
-  return <Outlet />;
+  return (
+    <>
+      <Outlet />
+      <PushEnablePrompt
+        open={pushPromptOpen}
+        audience="provider"
+        onOpenChange={setPushPromptOpen}
+      />
+    </>
+  );
 }

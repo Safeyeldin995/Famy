@@ -2,7 +2,15 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PhoneFrame, PrimaryButton, Card, Badge, BackButton, Avatar, BookingTimeline, ReasonDialog, CancelBookingDialog, CaseDialog, SupportCasesCard, ErrorState, EmptyState } from "@/components/famio/ui";
 import { PaymentBlock } from "@/components/famio/PaymentBlock";
 import { RescheduleSection } from "@/components/famio/RescheduleSection";
-import { useBooking, useFavoriteIds, useToggleFavorite, useBookingReview, useSubmitReview, useUpdateBookingStatus } from "@/lib/db/queries";
+import {
+  useBooking,
+  useFavoriteIds,
+  useToggleFavorite,
+  useBookingReview,
+  useSubmitReview,
+  useUpdateBookingStatus,
+  useMyPushSubscriptions,
+} from "@/lib/db/queries";
 import { useCancelBooking, useBookingCancellation } from "@/lib/db/cancellation-queries";
 import {
   useBookingDisputes, useOpenDispute, activeDispute,
@@ -15,11 +23,13 @@ import { currentLang } from "@/lib/i18n";
 import { formatEGP } from "@/lib/utils";
 import { Check, MapPin, Calendar, Clock, Phone, Download, HelpCircle, AlertTriangle, Star, ShieldCheck, Bell, UserCheck, X, LifeBuoy } from "lucide-react";
 import { BookingChatPanel } from "@/components/famio/BookingChatPanel";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { peekPendingPayment } from "@/lib/booking/post-create-payment";
 import { isProviderNoResponseCancellation } from "@/lib/booking/pending-expiry";
+import { PushEnablePrompt } from "@/components/famio/PushEnablePrompt";
+import { shouldOfferPushPrompt } from "@/lib/push-prompt";
 
 
 export const Route = createFileRoute("/booking/$id")({
@@ -54,6 +64,16 @@ function BookingDetail() {
   const reviewQ = useBookingReview(status === "completed" ? id : undefined);
   const submitReview = useSubmitReview();
   const nav = useNavigate();
+  const devicesQ = useMyPushSubscriptions();
+  const [pushPromptOpen, setPushPromptOpen] = useState(false);
+
+  useEffect(() => {
+    if (devicesQ.isLoading) return;
+    const hasDevice = (devicesQ.data ?? []).length > 0;
+    if (shouldOfferPushPrompt("customer", { hasDeviceSubscription: hasDevice })) {
+      setPushPromptOpen(true);
+    }
+  }, [devicesQ.isLoading, devicesQ.data]);
 
   const disputesQ = useBookingDisputes(id);
   const noShowReportsQ = useBookingNoShowReports(id);
@@ -702,6 +722,7 @@ function BookingDetail() {
         onCancel={() => setDialog("")}
         onConfirm={({ category, subject, description }) => submitSupport(category as TicketCategory, subject ?? "", description ?? "")}
       />
+      <PushEnablePrompt open={pushPromptOpen} audience="customer" onOpenChange={setPushPromptOpen} />
     </PhoneFrame>
   );
 }

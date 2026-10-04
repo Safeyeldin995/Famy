@@ -46,4 +46,38 @@ describe("auth_user_id_for_phone grants", () => {
       await db.close();
     }
   }, 30_000);
+
+  it("prefers the auth-email match over a NULL-email phone-only row", async () => {
+    const db = await createDisposableDb();
+    try {
+      await applySql(
+        db,
+        `
+          CREATE TABLE IF NOT EXISTS auth.users (
+            id uuid PRIMARY KEY,
+            email text,
+            phone text
+          );
+        `,
+      );
+      await applySql(db, readMigration(MIGRATION));
+      await applySql(db, readMigration("20261004110000_send_push_notifications_cron.sql"));
+
+      const emailMatchId = "00000000-0000-0000-0000-0000000000aa";
+      const nullEmailId = "00000000-0000-0000-0000-0000000000bb";
+      await db.query(
+        `INSERT INTO auth.users (id, email, phone) VALUES ($1, NULL, $3), ($2, $4, $3)`,
+        [nullEmailId, emailMatchId, "+201000000001", "user@phone.famy.local"],
+      );
+
+      const rows = await queryRows<{ auth_user_id_for_phone: string }>(
+        db,
+        `SELECT public.auth_user_id_for_phone($1, $2) AS auth_user_id_for_phone`,
+        ["user@phone.famy.local", "+201000000001"],
+      );
+      expect(rows[0]?.auth_user_id_for_phone).toBe(emailMatchId);
+    } finally {
+      await db.close();
+    }
+  });
 });
