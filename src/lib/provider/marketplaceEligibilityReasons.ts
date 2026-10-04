@@ -1,5 +1,5 @@
 export type EligibilityReasonAction =
-  | { kind: "link"; path: string }
+  | { kind: "link"; path: string; hash?: string }
   | { kind: "service"; serviceId: string }
   | { kind: "info" };
 
@@ -20,6 +20,10 @@ const EXACT_REASON_MAP: Record<string, MappedEligibilityReason> = {
   "Provider price is missing or outside Admin limits": {
     i18nKey: "pro.profile.eligibilityReasons.invalidPrice",
     action: { kind: "info" },
+  },
+  "No approved teaching subject with a valid session price": {
+    i18nKey: "pro.profile.eligibilityReasons.teachingPrice",
+    action: { kind: "link", path: "/pro/profile", hash: "teaching-subjects" },
   },
   "Provider-service relationship is not approved": {
     i18nKey: "pro.profile.eligibilityReasons.serviceNotApproved",
@@ -58,7 +62,14 @@ const EXACT_REASON_MAP: Record<string, MappedEligibilityReason> = {
 export function mapMarketplaceEligibilityFailureReason(
   reason: string,
   serviceId?: string,
+  providerZoneCount = 0,
 ): MappedEligibilityReason {
+  if (/zone coverage/i.test(reason) && providerZoneCount > 0) {
+    return {
+      i18nKey: "pro.profile.eligibilityReasons.zoneUnavailable",
+      action: { kind: "info" },
+    };
+  }
   const exact = EXACT_REASON_MAP[reason];
   if (exact) {
     if (exact.i18nKey === "pro.profile.eligibilityReasons.invalidPrice" && serviceId) {
@@ -86,6 +97,7 @@ export function mapMarketplaceEligibilityFailureReason(
 
 export function dedupeEligibilityReasons(
   rows: Array<{ service_id: string; failure_reasons?: string[] | null }>,
+  providerZoneCount = 0,
 ): Array<{ reason: string; serviceIds: string[]; mapped: MappedEligibilityReason }> {
   const byKey = new Map<
     string,
@@ -93,12 +105,16 @@ export function dedupeEligibilityReasons(
   >();
   for (const row of rows) {
     for (const reason of row.failure_reasons ?? []) {
-      const mapped = mapMarketplaceEligibilityFailureReason(reason, row.service_id);
+      const mapped = mapMarketplaceEligibilityFailureReason(
+        reason,
+        row.service_id,
+        providerZoneCount,
+      );
       const key = `${mapped.i18nKey}::${mapped.action.kind}::${
         mapped.action.kind === "link"
-          ? mapped.action.path
+          ? `${mapped.action.path}#${mapped.action.hash ?? ""}`
           : mapped.action.kind === "service"
-            ? mapped.action.serviceId
+            ? "service"
             : "info"
       }`;
       const existing = byKey.get(key);
@@ -118,4 +134,16 @@ export function dedupeEligibilityReasons(
     serviceIds: [...entry.serviceIds],
     mapped: entry.mapped,
   }));
+}
+
+export function marketplaceEligibilityStatus(
+  rows: Array<{ service_id: string; is_eligible: boolean; failure_reasons?: string[] | null }>,
+  providerZoneCount = 0,
+) {
+  const visible = rows.some((row) => row.is_eligible);
+  return {
+    visible,
+    i18nKey: visible ? "pro.profile.visibleToCustomers" : "pro.profile.notVisibleToCustomers",
+    stepsLeft: visible ? 0 : dedupeEligibilityReasons(rows, providerZoneCount).length,
+  };
 }

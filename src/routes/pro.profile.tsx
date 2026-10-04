@@ -21,6 +21,7 @@ import {
   useDeclareRequirement,
   useUploadRequirementEvidence,
   useMyMarketplaceEligibility,
+  useMyProviderZones,
 } from "@/lib/db/provider-queries";
 import {
   FileText,
@@ -39,6 +40,7 @@ import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
 import {
   dedupeEligibilityReasons,
   mapMarketplaceEligibilityFailureReason,
+  marketplaceEligibilityStatus,
   type MappedEligibilityReason,
 } from "@/lib/provider/marketplaceEligibilityReasons";
 import { providerProfileSaveErrorKey } from "@/lib/provider/providerProfileSaveErrors";
@@ -56,6 +58,7 @@ function ProProfile() {
   const p = useMyProvider();
   const provider = p.data as any;
   const eligibilityQ = useMyMarketplaceEligibility(provider?.id);
+  const providerZonesQ = useMyProviderZones(provider?.id);
   const update = useUpdateProvider();
   const services = useAllServices();
   const mine = useMyProviderServices(provider?.id);
@@ -75,8 +78,9 @@ function ProProfile() {
           service_id: string;
           failure_reasons?: string[] | null;
         }>,
+        providerZonesQ.data?.length ?? 0,
       ),
-    [eligibilityQ.data],
+    [eligibilityQ.data, providerZonesQ.data],
   );
 
 
@@ -160,6 +164,7 @@ function ProProfile() {
     );
 
   const eligibilityRows = eligibilityQ.data ?? [];
+  const eligibilityStatus = marketplaceEligibilityStatus(eligibilityRows, providerZonesQ.data?.length ?? 0);
 
   const myIds = new Set((mine.data ?? []).map((s: any) => s.service_id));
   const myStatus = new Map((mine.data ?? []).map((s: any) => [s.service_id, s.status]));
@@ -254,21 +259,19 @@ function ProProfile() {
         </Card>
 
         <Card className="p-4">
-          <div className="flex items-center justify-between gap-2">
+          <div>
             <div className="text-sm font-extrabold">{t("pro.profile.marketplaceEligible")}</div>
-            <span
-              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${eligibilityRows.some((row) => row.is_eligible) ? "bg-mint/20 text-success" : "bg-coral/10 text-coral"}`}
-            >
-              {eligibilityRows.some((row) => row.is_eligible)
-                ? t("pro.profile.eligibilityYes")
-                : t("pro.profile.eligibilityNo")}
-            </span>
+            {eligibilityQ.isSuccess && providerZonesQ.isSuccess && eligibilityRows.length > 0 ? (
+              <p className={`mt-1 text-xs font-bold ${eligibilityStatus.visible ? "text-success" : "text-coral"}`}>
+                {t(eligibilityStatus.i18nKey, { count: eligibilityStatus.stepsLeft })}
+              </p>
+            ) : null}
           </div>
-          {eligibilityQ.isLoading ? (
+          {eligibilityQ.isLoading || providerZonesQ.isLoading ? (
             <div className="mt-2 h-10 animate-pulse rounded-xl bg-muted" />
-          ) : eligibilityQ.isError ? (
+          ) : eligibilityQ.isError || providerZonesQ.isError ? (
             <div className="mt-2">
-              <QueryError compact onRetry={() => eligibilityQ.refetch()} />
+              <QueryError compact onRetry={() => { eligibilityQ.refetch(); providerZonesQ.refetch(); }} />
             </div>
           ) : (
             <div className="mt-2 space-y-2">
@@ -285,6 +288,12 @@ function ProProfile() {
                             ?.scrollIntoView({ behavior: "smooth", block: "center" });
                         }}
                       />
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                        {eligibilityRows
+                          .filter((row) => entry.serviceIds.includes(row.service_id))
+                          .map((row) => lang === "ar" ? row.service_name_ar : row.service_name_en)
+                          .join(lang === "ar" ? "، " : ", ")}
+                      </p>
                     </li>
                   ))}
                 </ul>
@@ -293,6 +302,7 @@ function ProProfile() {
                 <button
                   type="button"
                   onClick={() => setEligibilityExpanded((v) => !v)}
+                  aria-expanded={eligibilityExpanded}
                   className="flex w-full items-center justify-between rounded-xl border border-border/60 px-2 py-2 text-[11px] font-bold text-brand"
                 >
                   {t("pro.profile.eligibilityByService")}
@@ -316,6 +326,7 @@ function ProProfile() {
                             const mapped = mapMarketplaceEligibilityFailureReason(
                               reason,
                               row.service_id,
+                              providerZonesQ.data?.length ?? 0,
                             );
                             return (
                               <li key={reason}>
@@ -506,7 +517,7 @@ function ProProfile() {
         </div>
 
         {provider?.id ? (
-          <div>
+          <div id="teaching-subjects" className="scroll-mt-4">
             <TeachingCapabilitiesEditor
               providerId={provider.id}
               services={(services.data ?? [])
@@ -624,6 +635,7 @@ function EligibilityReasonItem({
     return (
       <Link
         to={proPath(mapped.action.path) as any}
+        hash={mapped.action.hash}
         className="font-semibold text-brand underline-offset-2 hover:underline"
       >
         {label}
