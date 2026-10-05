@@ -1,3 +1,5 @@
+import { useSearch } from "@tanstack/react-router";
+import { onboardingInitialStep } from "@/lib/provider/onboardingSection";
 import {
   ServicePricePicker,
   needsServicePrice,
@@ -171,7 +173,8 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
   const activeZoneIds = (zonesQ.data ?? []).map((z: { id: string }) => z.id);
   const offeredServiceIds = (servicesQ.data ?? []).map((s: { id: string }) => s.id);
 
-  const [step, setStep] = useState(0);
+  const search = useSearch({ strict: false });
+  const [step, setStep] = useState(() => onboardingInitialStep(search.section));
   const [err, setErr] = useState("");
   const [legalName, setLegalName] = useState(previewMode ? PREVIEW_DEFAULTS.legalName : "");
   const [dob, setDob] = useState(previewMode ? PREVIEW_DEFAULTS.dob : "");
