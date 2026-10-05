@@ -35,7 +35,11 @@ type TutoringService = {
   maximum_price?: number | null;
 };
 
-function TaxonomyNotice({ query, count, label }: {
+function TaxonomyNotice({
+  query,
+  count,
+  label,
+}: {
   query: { isLoading?: boolean; isError?: boolean; refetch: () => unknown };
   count: number;
   label: string;
@@ -43,10 +47,23 @@ function TaxonomyNotice({ query, count, label }: {
   const { t } = useTranslation();
   const state = taxonomyState(query, count);
   if (state === "ready") return null;
-  return <div role={state === "error" ? "alert" : "status"} className="text-xs text-muted-foreground">
-    {t(`teaching.taxonomy${state === "error" ? "Error" : state === "loading" ? "Loading" : "Empty"}`, { label })}
-    {state === "error" && <button type="button" className="min-h-11 px-3 font-bold text-brand" onClick={() => void query.refetch()}>{t("common.retry")}</button>}
-  </div>;
+  return (
+    <div role={state === "error" ? "alert" : "status"} className="text-xs text-muted-foreground">
+      {t(
+        `teaching.taxonomy${state === "error" ? "Error" : state === "loading" ? "Loading" : "Empty"}`,
+        { label },
+      )}
+      {state === "error" && (
+        <button
+          type="button"
+          className="min-h-11 px-3 font-bold text-brand"
+          onClick={() => void query.refetch()}
+        >
+          {t("common.retry")}
+        </button>
+      )}
+    </div>
+  );
 }
 
 export function TeachingCapabilitiesEditor({
@@ -208,9 +225,15 @@ export function TeachingCapabilitiesEditor({
     }
   };
 
-  const missingChoice = teachingMissingChoice(subjectId, curriculumId, selectedLevelIds,
-    isPriceInRange(price, service?.minimum_price ?? null, service?.maximum_price ?? null));
-  const taxonomyBusy = [subjectsQ, linksQ, curriculaQ, levelsQ].some(q => q.isLoading || q.isError);
+  const missingChoice = teachingMissingChoice(
+    subjectId,
+    curriculumId,
+    selectedLevelIds,
+    isPriceInRange(price, service?.minimum_price ?? null, service?.maximum_price ?? null),
+  );
+  const taxonomyBusy = [subjectsQ, linksQ, curriculaQ, levelsQ].some(
+    (q) => q.isLoading || q.isError,
+  );
 
   if (services.length === 0) return null;
 
@@ -219,62 +242,80 @@ export function TeachingCapabilitiesEditor({
       <h3 className="text-sm font-extrabold">{t("teaching.whatITeach")}</h3>
       <p className="text-xs text-muted-foreground">{t("teaching.editResetsApproval")}</p>
       <div className="grid gap-2">
-        <label className="grid gap-1 text-xs font-semibold">{t("teaching.service")}
-        <select
-          value={service?.id ?? serviceId}
-          onChange={(e) => {
-            setServiceId(e.target.value);
-            setPrice(null);
-            setSubjectId("");
-          }}
-          className="h-11 rounded-xl border border-border bg-surface px-3 text-sm"
-        >
-          {services.map((s) => (
-            <option key={s.id} value={s.id}>
-              {lang === "ar" ? s.name_ar || s.name_en : s.name_en || s.name_ar}
-            </option>
-          ))}
-        </select>
+        <label className="grid gap-1 text-xs font-semibold">
+          {t("teaching.service")}
+          <select
+            value={service?.id ?? serviceId}
+            onChange={(e) => {
+              setServiceId(e.target.value);
+              setPrice(null);
+              setSubjectId("");
+            }}
+            className="h-11 rounded-xl border border-border bg-surface px-3 text-sm"
+          >
+            {services.map((s) => (
+              <option key={s.id} value={s.id}>
+                {lang === "ar" ? s.name_ar || s.name_en : s.name_en || s.name_ar}
+              </option>
+            ))}
+          </select>
         </label>
-        <TaxonomyNotice query={linksQ} count={(linksQ.data ?? []).filter(link => link.service_id === service?.id).length} label={t("teaching.serviceSubjects")} />
-        <TaxonomyNotice query={subjectsQ} count={linksQ.isLoading || linksQ.isError ? 1 : subjects.length} label={t("teaching.subject")} />
-        <label className="grid gap-1 text-xs font-semibold">{t("teaching.subject")}
-        <select
-          value={subjectId}
-          onChange={(e) => setSubjectId(e.target.value)}
-          className="h-11 rounded-xl border border-border bg-surface px-3 text-sm"
-        >
-          <option value="">{t("teaching.subject")}</option>
-          {subjects.map((row) => (
-            <option key={row.id} value={row.id}>
-              {localizedTaxonomyName(row, lang)}
-            </option>
-          ))}
-        </select>
+        <TaxonomyNotice
+          query={linksQ}
+          count={(linksQ.data ?? []).filter((link) => link.service_id === service?.id).length}
+          label={t("teaching.serviceSubjects")}
+        />
+        <TaxonomyNotice
+          query={subjectsQ}
+          count={linksQ.isLoading || linksQ.isError ? 1 : subjects.length}
+          label={t("teaching.subject")}
+        />
+        <label className="grid gap-1 text-xs font-semibold">
+          {t("teaching.subject")}
+          <select
+            value={subjectId}
+            onChange={(e) => setSubjectId(e.target.value)}
+            className="h-11 rounded-xl border border-border bg-surface px-3 text-sm"
+          >
+            <option value="">{t("teaching.subject")}</option>
+            {subjects.map((row) => (
+              <option key={row.id} value={row.id}>
+                {localizedTaxonomyName(row, lang)}
+              </option>
+            ))}
+          </select>
         </label>
-        <TaxonomyNotice query={curriculaQ} count={curriculaQ.data?.length ?? 0} label={t("teaching.curriculum")} />
-        <label className="grid gap-1 text-xs font-semibold">{t("teaching.curriculum")}
-        <select
-          value={curriculumId}
-          onChange={(e) => setCurriculumId(e.target.value)}
-          className="h-11 rounded-xl border border-border bg-surface px-3 text-sm"
-        >
-          <option value="">{t("teaching.curriculum")}</option>
-          {(curriculaQ.data ?? []).map((row) => (
-            <option key={row.id} value={row.id}>
-              {localizedTaxonomyName(row, lang)}
-            </option>
-          ))}
-        </select>
+        <TaxonomyNotice
+          query={curriculaQ}
+          count={curriculaQ.data?.length ?? 0}
+          label={t("teaching.curriculum")}
+        />
+        <label className="grid gap-1 text-xs font-semibold">
+          {t("teaching.curriculum")}
+          <select
+            value={curriculumId}
+            onChange={(e) => setCurriculumId(e.target.value)}
+            className="h-11 rounded-xl border border-border bg-surface px-3 text-sm"
+          >
+            <option value="">{t("teaching.curriculum")}</option>
+            {(curriculaQ.data ?? []).map((row) => (
+              <option key={row.id} value={row.id}>
+                {localizedTaxonomyName(row, lang)}
+              </option>
+            ))}
+          </select>
         </label>
         {curriculum?.code === "british" ? (
           <p className="text-[11px] text-muted-foreground">{t("teaching.britishLevelHint")}</p>
         ) : null}
         <div className="text-xs font-semibold">{t("teaching.level")}</div>
-        <TaxonomyNotice query={levelsQ} count={curriculumId ? filteredLevels.length : (levelsQ.data?.length ?? 0)} label={t("teaching.level")} />
+        <TaxonomyNotice
+          query={levelsQ}
+          count={curriculumId ? filteredLevels.length : (levelsQ.data?.length ?? 0)}
+          label={t("teaching.level")}
+        />
         {curriculumId ? (
           <div className="space-y-1">
-
             <div className="flex flex-wrap gap-2">
               {filteredLevels.map((row) => {
                 const on = selectedLevelIds.includes(row.id);
@@ -316,15 +357,14 @@ export function TeachingCapabilitiesEditor({
         <button
           type="button"
           onClick={() => void submit()}
-          disabled={
-            submitting ||
-            upsert.isPending || taxonomyBusy || missingChoice !== null
-          }
+          disabled={submitting || upsert.isPending || taxonomyBusy || missingChoice !== null}
           className="h-11 rounded-xl bg-brand text-sm font-extrabold text-brand-foreground disabled:opacity-50"
         >
           {editingId ? t("teaching.saveChanges") : t("teaching.addCapability")}
         </button>
-        {missingChoice && <p className="text-xs text-muted-foreground">{t(`teaching.missing.${missingChoice}`)}</p>}
+        {missingChoice && (
+          <p className="text-xs text-muted-foreground">{t(`teaching.missing.${missingChoice}`)}</p>
+        )}
         {editingId ? (
           <button
             type="button"

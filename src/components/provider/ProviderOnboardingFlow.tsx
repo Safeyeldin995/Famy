@@ -1018,8 +1018,15 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                 {t("pro.onboardingWizard.savedSelectionsError")}
               </p>
             ) : null}
-            <p className="text-sm text-muted-foreground">{t("pro.onboardingWizard.referenceHelper")}</p>
-            {([ref1, ...(showSecondReference(ref2, secondReferenceExpanded, (refsQ.data?.length ?? 0) > 1) ? [ref2] : [])]).map((ref, idx) => (
+            <p className="text-sm text-muted-foreground">
+              {t("pro.onboardingWizard.referenceHelper")}
+            </p>
+            {[
+              ref1,
+              ...(showSecondReference(ref2, secondReferenceExpanded, (refsQ.data?.length ?? 0) > 1)
+                ? [ref2]
+                : []),
+            ].map((ref, idx) => (
               <Card key={idx} className="space-y-3 rounded-[1.25rem] p-4">
                 <div className="flex items-baseline justify-between gap-2">
                   <div className="text-xs font-extrabold uppercase tracking-wider text-brand">
@@ -1031,7 +1038,9 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                     </span>
                   ) : null}
                 </div>
-                <label className="block text-sm font-semibold" htmlFor={`reference-${idx}-refName`}>{t("pro.onboardingWizard.refName")}</label>
+                <label className="block text-sm font-semibold" htmlFor={`reference-${idx}-refName`}>
+                  {t("pro.onboardingWizard.refName")}
+                </label>
                 <input
                   id={`reference-${idx}-refName`}
                   placeholder={t("pro.onboardingWizard.refName")}
@@ -1042,7 +1051,12 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                   className={inputClass}
                   disabled={referencesLoadState !== "ready"}
                 />
-                <label className="block text-sm font-semibold" htmlFor={`reference-${idx}-refRelationship`}>{t("pro.onboardingWizard.refRelationship")}</label>
+                <label
+                  className="block text-sm font-semibold"
+                  htmlFor={`reference-${idx}-refRelationship`}
+                >
+                  {t("pro.onboardingWizard.refRelationship")}
+                </label>
                 <input
                   id={`reference-${idx}-refRelationship`}
                   placeholder={t("pro.onboardingWizard.refRelationship")}
@@ -1053,7 +1067,12 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                   className={inputClass}
                   disabled={referencesLoadState !== "ready"}
                 />
-                <label className="block text-sm font-semibold" htmlFor={`reference-${idx}-refPhone`}>{t("pro.onboardingWizard.refPhone")}</label>
+                <label
+                  className="block text-sm font-semibold"
+                  htmlFor={`reference-${idx}-refPhone`}
+                >
+                  {t("pro.onboardingWizard.refPhone")}
+                </label>
                 <input
                   id={`reference-${idx}-refPhone`}
                   placeholder={t("pro.onboardingWizard.refPhone")}
@@ -1065,7 +1084,12 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                   inputMode="tel"
                   disabled={referencesLoadState !== "ready"}
                 />
-                <label className="block text-sm font-semibold" htmlFor={`reference-${idx}-refNotes`}>{t("pro.onboardingWizard.refNotes")}</label>
+                <label
+                  className="block text-sm font-semibold"
+                  htmlFor={`reference-${idx}-refNotes`}
+                >
+                  {t("pro.onboardingWizard.refNotes")}
+                </label>
                 <textarea
                   id={`reference-${idx}-refNotes`}
                   placeholder={t("pro.onboardingWizard.refNotes")}
@@ -1080,7 +1104,11 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
               </Card>
             ))}
             {!showSecondReference(ref2, secondReferenceExpanded, (refsQ.data?.length ?? 0) > 1) && (
-              <button type="button" className="min-h-11 rounded-xl border border-border px-4 text-sm font-bold" onClick={() => setSecondReferenceExpanded(true)}>
+              <button
+                type="button"
+                className="min-h-11 rounded-xl border border-border px-4 text-sm font-bold"
+                onClick={() => setSecondReferenceExpanded(true)}
+              >
                 {t("pro.onboardingWizard.addReference")}
               </button>
             )}

@@ -12,7 +12,10 @@ import { useOnboardingSnapshot } from "@/lib/provider/onboarding-queries";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 
-export const Route = createFileRoute("/pro/onboarding")({ validateSearch: onboardingSection, component: OnboardingRoute });
+export const Route = createFileRoute("/pro/onboarding")({
+  validateSearch: onboardingSection,
+  component: OnboardingRoute,
+});
 
 export function OnboardingRoute() {
   const { t } = useTranslation();

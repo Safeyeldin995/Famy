@@ -2351,7 +2351,12 @@ const en = {
     taxonomyLoading: "Loading {{label}}…",
     taxonomyError: "Could not load {{label}}. Try again.",
     taxonomyEmpty: "No options available for {{label}} yet.",
-    missing: {"subject": "Choose a subject first", "curriculum": "Choose a curriculum", "level": "Choose at least one level", "price": "Choose a session price from the available options"},
+    missing: {
+      subject: "Choose a subject first",
+      curriculum: "Choose a curriculum",
+      level: "Choose at least one level",
+      price: "Choose a session price from the available options",
+    },
 
     whatITeach: "What I teach",
     editResetsApproval:

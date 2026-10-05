@@ -1,4 +1,9 @@
-export function teachingMissingChoice(subject: string, curriculum: string, levels: readonly string[], priceValid: boolean) {
+export function teachingMissingChoice(
+  subject: string,
+  curriculum: string,
+  levels: readonly string[],
+  priceValid: boolean,
+) {
   if (!subject) return "subject";
   if (!curriculum) return "curriculum";
   if (!levels.length) return "level";

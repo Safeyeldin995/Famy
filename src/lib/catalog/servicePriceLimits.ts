@@ -4,6 +4,9 @@ export function hasMissingServicePriceLimits(service: {
   minimum_price: number | null | undefined;
   maximum_price: number | null | undefined;
 }): boolean {
-  return service.is_active && service.provider_pricing_allowed &&
-    (service.minimum_price == null || service.maximum_price == null);
+  return (
+    service.is_active &&
+    service.provider_pricing_allowed &&
+    (service.minimum_price == null || service.maximum_price == null)
+  );
 }

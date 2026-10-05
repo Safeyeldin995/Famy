@@ -5,7 +5,8 @@ export function buildPriceOptions(min: number | null, max: number | null): numbe
     return [];
   const step = max - min <= 300 ? 25 : max - min <= 1000 ? 50 : 100;
   const options: number[] = [min];
-  for (let price = (Math.floor(min / step) + 1) * step; price < max; price += step) options.push(price);
+  for (let price = (Math.floor(min / step) + 1) * step; price < max; price += step)
+    options.push(price);
   if (max !== min) options.push(max);
   return options;
 }

@@ -23,6 +23,10 @@ export function buildReferencesPayload(
   return { ok: true, references: [ref1, ref2] };
 }
 
-export function showSecondReference(ref: OnboardingReference, expanded: boolean, saved: boolean): boolean {
+export function showSecondReference(
+  ref: OnboardingReference,
+  expanded: boolean,
+  saved: boolean,
+): boolean {
   return expanded || saved || !isReferenceEmpty(ref);
 }
