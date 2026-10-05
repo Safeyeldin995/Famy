@@ -1,3 +1,8 @@
+import {
+  ServicePricePicker,
+  needsServicePrice,
+  hasSelectedServicePrices,
+} from "./ServicePricePicker";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -17,7 +22,11 @@ import { PhoneFrame, Card, PrimaryButton, Badge } from "@/components/famio/ui";
 import { ProviderPageHero } from "@/components/famio/ProviderPageHero";
 import { ProviderFloatingPanel } from "@/components/famio/ProviderFloatingPanel";
 import { useLang } from "@/components/famio/LanguageToggle";
-import { useMyProvider, useProviderDocuments } from "@/lib/db/provider-queries";
+import {
+  useMyProvider,
+  useProviderDocuments,
+  useSetProviderPrice,
+} from "@/lib/db/provider-queries";
 import {
   onboardingEditable,
   useActiveZones,
@@ -125,6 +134,9 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
   const nav = useNavigate();
   const snapshotQ = useOnboardingSnapshot();
   const providerQ = useMyProvider();
+  const setServicePrice = useSetProviderPrice();
+  const [savingPrices, setSavingPrices] = useState(false);
+  const [servicePrices, setServicePrices] = useState<Record<string, number | null>>({});
   const saveSection = useSaveOnboardingSection();
   const submit = useSubmitOnboarding();
   const uploadDoc = useSecureUploadDocument();
@@ -237,6 +249,11 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
   useEffect(() => {
     if (previewMode || servicesHydrated.current || !savedSelectionsQ.isSuccess) return;
     setSelectedServices(mapSavedServiceIds(savedSelectionsQ.data?.services));
+    setServicePrices(
+      Object.fromEntries(
+        (savedSelectionsQ.data?.services ?? []).map((row) => [row.service_id, row.price_override]),
+      ),
+    );
     servicesHydrated.current = true;
   }, [previewMode, savedSelectionsQ.isSuccess, savedSelectionsQ.data]);
 
@@ -246,7 +263,14 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
     const zones = zonesQ.data ?? [];
     setSelectedZones(suggestInitialZoneSelection(zones, area, governorate, saved));
     zonesHydrated.current = true;
-  }, [previewMode, savedSelectionsQ.isSuccess, savedSelectionsQ.data, zonesQ.data, area, governorate]);
+  }, [
+    previewMode,
+    savedSelectionsQ.isSuccess,
+    savedSelectionsQ.data,
+    zonesQ.data,
+    area,
+    governorate,
+  ]);
 
   useEffect(() => {
     if (previewMode || !zonesHydrated.current || !zonesQ.isSuccess) return;
@@ -254,7 +278,9 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
     if (zones.length !== 1) return;
     const onlyId = zones[0]?.id;
     if (!onlyId) return;
-    setSelectedZones((current) => (current.length === 1 && current[0] === onlyId ? current : [onlyId]));
+    setSelectedZones((current) =>
+      current.length === 1 && current[0] === onlyId ? current : [onlyId],
+    );
   }, [previewMode, zonesQ.isSuccess, zonesQ.data]);
 
   useEffect(() => {
@@ -273,6 +299,11 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
 
   const current = STEPS[step];
   const progress = Math.round(((step + 1) / STEPS.length) * 100);
+  const pricesReady = hasSelectedServicePrices(
+    servicesQ.data ?? [],
+    selectedServices,
+    servicePrices,
+  );
   const sectionSaveBlocked =
     !previewMode &&
     ((current === "services" && selectionsLoadState !== "ready") ||
@@ -303,6 +334,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
 
   const saveCurrent = async () => {
     setErr("");
+    if (current === "services" && !pricesReady) return;
     try {
       if (previewMode) {
         if (current === "review") {
@@ -371,6 +403,22 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
           section: "services",
           payload: { service_ids: packed.service_ids },
         });
+        if (!providerId) throw new Error(t("common.somethingWentWrong"));
+        setSavingPrices(true);
+        try {
+          for (const service of servicesQ.data ?? []) {
+            if (selectedServices.includes(service.id) && needsServicePrice(service)) {
+              await setServicePrice.mutateAsync({
+                providerId,
+                serviceId: service.id,
+                price: servicePrices[service.id],
+              });
+            }
+          }
+          await qc.invalidateQueries({ queryKey: ["provider-saved-selections"] });
+        } finally {
+          setSavingPrices(false);
+        }
       } else if (current === "coverage") {
         const packed = buildCoverageSavePayload(coverageLoadState, selectedZones, activeZoneIds);
         if (!packed.ok) {
@@ -432,6 +480,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
       return;
     }
     setErr("");
+    if (current === "services" && !pricesReady) return;
     try {
       const ext = (file.name.split(".").pop() ?? "jpg").toLowerCase();
       if (!["jpg", "jpeg", "png"].includes(ext) || file.size > 10 * 1024 * 1024) {
@@ -700,38 +749,54 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
               const saved = savedServices.find((row) => row.service_id === s.id);
               const locked = saved != null && (!editable || saved.status === "approved");
               return (
-                <button
-                  key={s.id}
-                  type="button"
-                  disabled={selectionsLoadState !== "ready" || locked}
-                  onClick={async () => {
-                    if (on && saved && editable && saved.status !== "approved") {
-                      const { error } = await supabase.rpc("provider_remove_onboarding_service", {
-                        p_service_id: s.id,
-                      });
-                      if (error) {
-                        toast.error(removeOnboardingServiceErrorMessage(error.message, t));
-                        return;
+                <div key={s.id} className="space-y-2">
+                  <button
+                    type="button"
+                    disabled={selectionsLoadState !== "ready" || locked}
+                    onClick={async () => {
+                      if (on && saved && editable && saved.status !== "approved") {
+                        const { error } = await supabase.rpc("provider_remove_onboarding_service", {
+                          p_service_id: s.id,
+                        });
+                        if (error) {
+                          toast.error(removeOnboardingServiceErrorMessage(error.message, t));
+                          return;
+                        }
+                        await qc.invalidateQueries({ queryKey: ["provider-saved-selections"] });
                       }
-                      await qc.invalidateQueries({ queryKey: ["provider-saved-selections"] });
-                    }
-                    setSelectedServices((prev) =>
-                      on ? prev.filter((x) => x !== s.id) : [...prev, s.id],
-                    );
-                  }}
-                  className={`w-full rounded-2xl border px-3 py-3 text-start transition-colors ${
-                    on ? "border-brand bg-brand/[0.06] shadow-sm" : "border-border/60 bg-surface"
-                  } ${selectionsLoadState !== "ready" || locked ? "opacity-70" : ""}`}
-                >
-                  <div className="break-words text-sm font-bold text-foreground">
-                    {lang === "ar" ? s.name_ar : s.name_en}
-                  </div>
-                  <div className="mt-0.5 break-words text-xs font-medium text-muted-foreground">
-                    {lang === "ar" ? s.category?.name_ar : s.category?.name_en}
-                  </div>
-                </button>
+                      setSelectedServices((prev) =>
+                        on ? prev.filter((x) => x !== s.id) : [...prev, s.id],
+                      );
+                    }}
+                    className={`w-full rounded-2xl border px-3 py-3 text-start transition-colors ${
+                      on ? "border-brand bg-brand/[0.06] shadow-sm" : "border-border/60 bg-surface"
+                    } ${selectionsLoadState !== "ready" || locked ? "opacity-70" : ""}`}
+                  >
+                    <div className="break-words text-sm font-bold text-foreground">
+                      {lang === "ar" ? s.name_ar : s.name_en}
+                    </div>
+                    <div className="mt-0.5 break-words text-xs font-medium text-muted-foreground">
+                      {lang === "ar" ? s.category?.name_ar : s.category?.name_en}
+                    </div>
+                  </button>
+                  {on && needsServicePrice(s) && (
+                    <ServicePricePicker
+                      min={s.minimum_price ?? null}
+                      max={s.maximum_price ?? null}
+                      value={servicePrices[s.id] ?? null}
+                      onChange={(price) =>
+                        setServicePrices((prices) => ({ ...prices, [s.id]: price }))
+                      }
+                      unitLabel={t("pricePicker.hourUnit")}
+                      disabled={!editable || savingPrices}
+                    />
+                  )}
+                </div>
               );
             })}
+            {!pricesReady && (
+              <p className="text-xs text-muted-foreground">{t("pricePicker.nextHint")}</p>
+            )}
           </Card>
         )}
 
@@ -839,7 +904,9 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                   </div>
                 </Field>
                 {(childGroups.length > 0 ||
-                  AGE_GROUP_CHIP_IDS.some((chipId) => chipHasVerifiedCode(chipId, capabilityForms))) && (
+                  AGE_GROUP_CHIP_IDS.some((chipId) =>
+                    chipHasVerifiedCode(chipId, capabilityForms),
+                  )) && (
                   <div className="space-y-2 rounded-xl border border-border/40 p-3">
                     <Field label={t("pro.onboardingWizard.babysittingYearsExperience")}>
                       <input
@@ -1062,11 +1129,12 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
             className="flex-[2] !h-12"
             onClick={saveCurrent}
             disabled={
-              !previewMode &&
-              (sectionSaveBlocked ||
-                saveSection.isPending ||
-                submit.isPending ||
-                uploadDoc.isPending)
+              (current === "services" && (!pricesReady || savingPrices)) ||
+              (!previewMode &&
+                (sectionSaveBlocked ||
+                  saveSection.isPending ||
+                  submit.isPending ||
+                  uploadDoc.isPending))
             }
           >
             {current === "review" ? t("pro.onboardingWizard.submit") : t("common.continue")}

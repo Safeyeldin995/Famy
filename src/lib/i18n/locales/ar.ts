@@ -1,6 +1,16 @@
 import type { Translation } from "./en";
 
 const ar: Translation = {
+  pricePicker: {
+    range: "السعر المسموح: {{min}} – {{max}} {{unit}}",
+    choose: "اختار السعر",
+    increase: "زود السعر",
+    decrease: "قلل السعر",
+    sessionUnit: "ج.م / حصة",
+    hourUnit: "ج.م / ساعة",
+    nextHint: "اختار سعر لكل خدمة اخترتها عشان تكمل.",
+    outOfRange: "السعر بتاعك خارج النطاق الجديد، اختار سعر جديد",
+  },
   common: {
     appName: "فامي",
     tagline: "مساعدة موثوقة. عائلات سعيدة.",

@@ -113,11 +113,12 @@ describe("provider profile grouped eligibility card", () => {
         "/pro/profile#teaching-subjects",
       );
       expect(document.getElementById("teaching-subjects")).not.toBeNull();
-      expect(
-        screen.getAllByText(
-          lang === "ar" ? "المواد الدراسية، تعليم اللغات" : "School subjects, Language tutoring",
-        ),
-      ).toHaveLength(2);
+      for (const name of lang === "ar"
+        ? ["المواد الدراسية", "تعليم اللغات"]
+        : ["School subjects", "Language tutoring"]) {
+        expect(screen.getByRole("button", { name })).not.toBeNull();
+        expect(screen.getAllByText(name)).toHaveLength(2);
+      }
       const zoneText = translations.t("pro.profile.eligibilityReasons.zoneUnavailable");
       expect(screen.getAllByText(zoneText)).toHaveLength(1);
       expect(screen.queryByRole("link", { name: zoneText })).toBeNull();
@@ -131,7 +132,9 @@ describe("provider profile grouped eligibility card", () => {
       fireEvent.click(details);
       expect(details.getAttribute("aria-expanded")).toBe("true");
       expect(
-        screen.getByText(lang === "ar" ? "المواد الدراسية" : "School subjects"),
+        screen.getByText(lang === "ar" ? "المواد الدراسية" : "School subjects", {
+          selector: "div.font-bold",
+        }),
       ).not.toBeNull();
     },
   );

@@ -1,3 +1,8 @@
+import {
+  ServicePricePicker,
+  isPriceInRange,
+  isSavedPriceOutOfRange,
+} from "@/components/provider/ServicePricePicker";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -62,9 +67,18 @@ function ProProfile() {
   const mine = useMyProviderServices(provider?.id);
   const toggle = useToggleProviderService();
   const setPrice = useSetProviderPrice();
-  const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
+  const [priceDrafts, setPriceDrafts] = useState<Record<string, number>>({});
   const [priceErrors, setPriceErrors] = useState<Record<string, string>>({});
   const [expandedReqService, setExpandedReqService] = useState<string | null>(null);
+  const [focusedTeachingService, setFocusedTeachingService] = useState<string>();
+  const focusPrice = (serviceId: string) => {
+    const service = (services.data ?? []).find((row: any) => row.id === serviceId);
+    const teaching = isTutoringCategorySlug(service?.category?.slug);
+    if (teaching) setFocusedTeachingService(serviceId);
+    const id = teaching ? "teaching-subjects" : `price-${serviceId}`;
+    window.history.replaceState(null, "", `#${id}`);
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
   const [eligibilityExpanded, setEligibilityExpanded] = useState(false);
   const nav = useNavigate();
   const qc = useQueryClient();
@@ -182,27 +196,8 @@ function ProProfile() {
   );
 
   const submitPrice = (serviceId: string, min: number | null, max: number | null) => {
-    const raw = priceDrafts[serviceId];
-    if (raw === undefined) return;
-    const trimmed = raw.trim();
-    const value = trimmed === "" ? null : Number(trimmed);
-    if (value !== null) {
-      if (!Number.isFinite(value) || value < 0) {
-        setPriceErrors((e) => ({
-          ...e,
-          [serviceId]: t("pro.profile.priceInvalid", "Enter a valid price."),
-        }));
-        return;
-      }
-      if (min != null && value < min) {
-        setPriceErrors((e) => ({ ...e, [serviceId]: t("pro.profile.priceBelowMin", { min }) }));
-        return;
-      }
-      if (max != null && value > max) {
-        setPriceErrors((e) => ({ ...e, [serviceId]: t("pro.profile.priceAboveMax", { max }) }));
-        return;
-      }
-    }
+    const value = priceDrafts[serviceId];
+    if (!isPriceInRange(value, min, max)) return;
     setPriceErrors((e) => ({ ...e, [serviceId]: "" }));
     setPrice.mutate(
       { providerId: provider.id, serviceId, price: value },
@@ -322,18 +317,28 @@ function ProProfile() {
                       <EligibilityReasonItem
                         mapped={entry.mapped}
                         t={t}
-                        onServiceFocus={(serviceId) => {
-                          document
-                            .getElementById(`service-${serviceId}`)
-                            ?.scrollIntoView({ behavior: "smooth", block: "center" });
-                        }}
+                        onServiceFocus={focusPrice}
                       />
-                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      <div className="mt-0.5 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
                         {eligibilityRows
                           .filter((row) => entry.serviceIds.includes(row.service_id))
-                          .map((row) => (lang === "ar" ? row.service_name_ar : row.service_name_en))
-                          .join(lang === "ar" ? "، " : ", ")}
-                      </p>
+                          .map((row) =>
+                            entry.mapped.action.kind === "service" ? (
+                              <button
+                                key={row.service_id}
+                                type="button"
+                                className="text-brand underline"
+                                onClick={() => focusPrice(row.service_id)}
+                              >
+                                {lang === "ar" ? row.service_name_ar : row.service_name_en}
+                              </button>
+                            ) : (
+                              <span key={row.service_id}>
+                                {lang === "ar" ? row.service_name_ar : row.service_name_en}
+                              </span>
+                            ),
+                          )}
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -378,11 +383,7 @@ function ProProfile() {
                                 <EligibilityReasonItem
                                   mapped={mapped}
                                   t={t}
-                                  onServiceFocus={(serviceId) => {
-                                    document
-                                      .getElementById(`service-${serviceId}`)
-                                      ?.scrollIntoView({ behavior: "smooth", block: "center" });
-                                  }}
+                                  onServiceFocus={focusPrice}
                                 />
                               </li>
                             );
@@ -545,41 +546,46 @@ function ProProfile() {
                       </button>
                     </div>
 
-                    {on && s.provider_pricing_allowed && (
-                      <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2">
-                        <input
-                          type="number"
-                          min={0}
-                          step={1}
-                          placeholder={t("pro.profile.pricePlaceholder", "Your price (EGP/hr)")}
-                          value={
-                            priceDrafts[s.id] ??
-                            (currentOverride != null ? String(currentOverride) : "")
-                          }
-                          onChange={(e) =>
-                            setPriceDrafts((d) => ({ ...d, [s.id]: e.target.value }))
-                          }
-                          className="h-9 w-40 rounded-lg border border-border bg-surface px-2 text-xs"
-                        />
-                        <button
-                          onClick={() =>
-                            submitPrice(s.id, s.minimum_price ?? null, s.maximum_price ?? null)
-                          }
-                          disabled={setPrice.isPending}
-                          className="rounded-lg bg-brand px-3 py-1.5 text-[11px] font-bold text-brand-foreground disabled:opacity-50"
-                        >
-                          {t("common.save")}
-                        </button>
-                        {(s.minimum_price != null || s.maximum_price != null) && (
-                          <span className="text-[10px] text-muted-foreground">
-                            {t("pro.profile.priceRange", {
-                              min: s.minimum_price ?? "—",
-                              max: s.maximum_price ?? "—",
-                            })}
-                          </span>
-                        )}
-                      </div>
-                    )}
+                    {on &&
+                      s.provider_pricing_allowed &&
+                      !isTutoringCategorySlug(s.category?.slug) && (
+                        <div id={`price-${s.id}`} className="mt-2 min-w-0 scroll-mt-4 space-y-2">
+                          {isSavedPriceOutOfRange(
+                            currentOverride,
+                            s.minimum_price ?? null,
+                            s.maximum_price ?? null,
+                          ) && (
+                            <p className="rounded-xl bg-amber-100 p-2 text-xs font-semibold text-amber-800">
+                              {t("pricePicker.outOfRange")}
+                            </p>
+                          )}
+                          <ServicePricePicker
+                            min={s.minimum_price ?? null}
+                            max={s.maximum_price ?? null}
+                            value={priceDrafts[s.id] ?? currentOverride ?? null}
+                            onChange={(price) =>
+                              setPriceDrafts((drafts) => ({ ...drafts, [s.id]: price }))
+                            }
+                            unitLabel={t("pricePicker.hourUnit")}
+                          />
+                          <button
+                            onClick={() =>
+                              submitPrice(s.id, s.minimum_price ?? null, s.maximum_price ?? null)
+                            }
+                            disabled={
+                              setPrice.isPending ||
+                              !isPriceInRange(
+                                priceDrafts[s.id],
+                                s.minimum_price ?? null,
+                                s.maximum_price ?? null,
+                              )
+                            }
+                            className="min-h-11 rounded-lg bg-brand px-3 py-2 text-xs font-bold text-brand-foreground disabled:opacity-50"
+                          >
+                            {t("common.save")}
+                          </button>
+                        </div>
+                      )}
                     {priceError && (
                       <p className="mt-1 text-[11px] font-semibold text-coral">{priceError}</p>
                     )}
@@ -608,6 +614,7 @@ function ProProfile() {
         {provider?.id ? (
           <div id="teaching-subjects" className="scroll-mt-4">
             <TeachingCapabilitiesEditor
+              focusedServiceId={focusedTeachingService}
               providerId={provider.id}
               services={(services.data ?? [])
                 .filter((s: any) => isTutoringCategorySlug(s.category?.slug) && myIds.has(s.id))
@@ -765,6 +772,12 @@ function EligibilityReasonItem({
       <Link
         to={proPath(mapped.action.path) as any}
         hash={mapped.action.hash}
+        onClick={() => {
+          if (mapped.action.kind === "link" && mapped.action.hash)
+            document
+              .getElementById(mapped.action.hash)
+              ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }}
         className="font-semibold text-brand underline-offset-2 hover:underline"
       >
         {label}
@@ -773,14 +786,21 @@ function EligibilityReasonItem({
   }
   if (mapped.action.kind === "service") {
     const serviceId = mapped.action.serviceId;
+    const hash =
+      mapped.i18nKey === "pro.profile.eligibilityReasons.teachingPrice"
+        ? "teaching-subjects"
+        : `price-${serviceId}`;
     return (
-      <button
-        type="button"
+      <a
+        href={`${proPath("/pro/profile")}#${hash}`}
         className="font-semibold text-brand underline-offset-2 hover:underline"
-        onClick={() => onServiceFocus(serviceId)}
+        onClick={(event) => {
+          event.preventDefault();
+          onServiceFocus(serviceId);
+        }}
       >
         {label}
-      </button>
+      </a>
     );
   }
   return <span className="font-semibold">{label}</span>;
