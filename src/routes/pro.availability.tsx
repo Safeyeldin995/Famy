@@ -144,22 +144,22 @@ export function AvailabilityPage() {
                 >
                   {t(`pro.schedule.days.${DAY_KEYS[r.weekday]}`)}
                 </button>
-                <div className="flex flex-1 items-center gap-2">
+                <div className="flex min-w-0 flex-1 items-start gap-2">
                   <input
                     type="time"
                     value={r.start_time}
                     disabled={!r.enabled}
                     onChange={(e) => setRows((s) => s.map((x) => x.weekday === r.weekday ? { ...x, start_time: e.target.value } : x))}
-                    className="h-10 flex-1 rounded-xl border border-border/60 bg-surface px-3 text-sm font-semibold text-foreground focus:border-brand focus:outline-none disabled:opacity-40"
+                    className="h-10 min-w-0 w-0 flex-1 rounded-xl border border-border/60 bg-surface px-3 text-sm font-semibold text-foreground focus:border-brand focus:outline-none disabled:opacity-40"
                   />
                   <span className="text-xs font-bold text-muted-foreground">→</span>
-                  <input
-                    type="time"
-                    value={r.end_time}
-                    disabled={!r.enabled}
-                    onChange={(e) => setRows((s) => s.map((x) => x.weekday === r.weekday ? { ...x, end_time: e.target.value } : x))}
-                    className="h-10 flex-1 rounded-xl border border-border/60 bg-surface px-3 text-sm font-semibold text-foreground focus:border-brand focus:outline-none disabled:opacity-40"
-                  />
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <input type="time" value={r.end_time === "24:00" ? "" : r.end_time} disabled={!r.enabled || r.end_time === "24:00"} onChange={(e) => setRows((rows) => rows.map((row) => row.weekday === r.weekday ? { ...row, end_time: e.target.value } : row))} className="h-10 w-full rounded-xl border border-border/60 bg-surface px-2 text-sm font-semibold disabled:opacity-40" />
+                    <label className="flex min-h-11 items-center gap-1 text-xs font-semibold">
+                      <input type="checkbox" checked={r.end_time === "24:00"} disabled={!r.enabled} onChange={(e) => setRows((rows) => rows.map((row) => row.weekday === r.weekday ? { ...row, end_time: e.target.checked ? "24:00" : "17:00" } : row))} />
+                      {t("packages.endOfDay")}
+                    </label>
+                  </div>
                 </div>
               </div>
             ))}

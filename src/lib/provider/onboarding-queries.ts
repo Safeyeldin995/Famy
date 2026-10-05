@@ -59,7 +59,7 @@ export function usePhase1Services() {
       const { data, error } = await supabase
         .from("services")
         .select(
-          "id, slug, name_en, name_ar, provider_pricing_allowed, minimum_price, maximum_price, allowed_session_durations, category:categories(slug, name_en, name_ar)",
+          "id, slug, name_en, name_ar, pricing_model, duration_min, fixed_start_time, provider_pricing_allowed, minimum_price, maximum_price, allowed_session_durations, category:categories(slug, name_en, name_ar)",
         )
         .eq("is_active", true)
         .order("name_en");
