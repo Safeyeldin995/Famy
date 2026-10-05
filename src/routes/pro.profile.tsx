@@ -533,11 +533,7 @@ function ProProfile() {
                           )}
                         </div>
                         <div className="break-words text-[11px] text-muted-foreground">{cname}</div>
-                        {isFixedPackage(s) && (
-                          <p className="mt-1 text-xs text-brand">
-                            {t(packageLabel(s).key, packageLabel(s).values)}
-                          </p>
-                        )}
+                        {isFixedPackage(s) && <p className="mt-1 text-xs text-brand">{t(packageLabel(s).key, packageLabel(s).values)}</p>}
                       </div>
                       <button
                         onClick={() =>

@@ -129,10 +129,8 @@ export function BookScheduleStep({
   }, [maxAdvanceDays, today]);
 
   const selectedDateKey = date ? dateKey(date) : "";
-  const showEmptyDay =
-    !!date && !slotsLoading && !scanning && !availabilityError && !hasSlotsForSelectedDate;
-  const timeDisabled =
-    slotsLoading || scanning || availabilityError || showEmptyDay || filteredSlots.length === 0;
+  const showEmptyDay = !!date && !slotsLoading && !scanning && !availabilityError && !hasSlotsForSelectedDate;
+  const timeDisabled = slotsLoading || scanning || availabilityError || showEmptyDay || filteredSlots.length === 0;
 
   const formatDayLabel = (day: Date) => {
     const isToday = dateKey(day) === dateKey(today);
@@ -144,11 +142,7 @@ export function BookScheduleStep({
     return isToday ? `${base} — ${t("providerProfile.todayLabel")}` : base;
   };
 
-  const dateTone = showEmptyDay
-    ? "danger"
-    : hasSlotsForSelectedDate && time
-      ? "success"
-      : "default";
+  const dateTone = showEmptyDay ? "danger" : hasSlotsForSelectedDate && time ? "success" : "default";
   const timeTone = time ? "success" : showEmptyDay ? "danger" : "default";
 
   return (
@@ -172,50 +166,42 @@ export function BookScheduleStep({
         ))}
       </ScheduleSelect>
 
-      {!fixedTime && (
-        <ScheduleSelect
-          label={t("bookFlow.partOfDay", "Part of day")}
-          value={timeBand}
-          onChange={(value) => onTimeBandChange(value as TimeBand)}
-          disabled={slotsLoading || scanning}
-        >
-          {TIME_BANDS.map((band) => (
-            <option key={band.value} value={band.value}>
-              {t(band.labelKey)}
-            </option>
-          ))}
-        </ScheduleSelect>
-      )}
+      {!fixedTime && <ScheduleSelect
+        label={t("bookFlow.partOfDay", "Part of day")}
+        value={timeBand}
+        onChange={(value) => onTimeBandChange(value as TimeBand)}
+        disabled={slotsLoading || scanning}
+      >
+        {TIME_BANDS.map((band) => (
+          <option key={band.value} value={band.value}>
+            {t(band.labelKey)}
+          </option>
+        ))}
+      </ScheduleSelect>}
 
       <div>
-        {fixedTime ? (
-          <p className="rounded-xl border border-brand/30 bg-brand/5 p-3 text-sm font-bold">
-            {fixedTime}
-          </p>
-        ) : (
-          <ScheduleSelect
-            label={t("bookFlow.timesLabel", "Time")}
-            hint={t("bookFlow.timeSub")}
-            value={time ?? ""}
-            onChange={(value) => {
-              const slot = filteredSlots.find((s) => s.label === value);
-              if (slot) onTimeChange(slot.label, { start: slot.start, end: slot.end });
-            }}
-            disabled={timeDisabled}
-            tone={timeTone}
-          >
-            <option value="" disabled>
-              {slotsLoading || scanning
-                ? t("common.loading")
-                : t("bookFlow.selectTime", "Select a time")}
+        {fixedTime ? <p className="rounded-xl border border-brand/30 bg-brand/5 p-3 text-sm font-bold">{fixedTime}</p> : <ScheduleSelect
+          label={t("bookFlow.timesLabel", "Time")}
+          hint={t("bookFlow.timeSub")}
+          value={time ?? ""}
+          onChange={(value) => {
+            const slot = filteredSlots.find((s) => s.label === value);
+            if (slot) onTimeChange(slot.label, { start: slot.start, end: slot.end });
+          }}
+          disabled={timeDisabled}
+          tone={timeTone}
+        >
+          <option value="" disabled>
+            {slotsLoading || scanning
+              ? t("common.loading")
+              : t("bookFlow.selectTime", "Select a time")}
+          </option>
+          {filteredSlots.map((slot) => (
+            <option key={slot.label} value={slot.label}>
+              {slot.label}
             </option>
-            {filteredSlots.map((slot) => (
-              <option key={slot.label} value={slot.label}>
-                {slot.label}
-              </option>
-            ))}
-          </ScheduleSelect>
-        )}
+          ))}
+        </ScheduleSelect>}
 
         {slotsLoading || scanning ? (
           <div className="mt-3 flex items-center gap-2 rounded-[1.25rem] border border-border/50 bg-surface-2/80 px-4 py-3">

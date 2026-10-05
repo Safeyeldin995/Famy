@@ -115,14 +115,11 @@ function SearchPage() {
             >
               <option value="">{t("search2.allServices")}</option>
               {(servicesQ.data ?? []).map(
-                (service: { id: string; name_en: string; name_ar: string }) => (
+                (service: { id: string; name_en: string; name_ar: string } & PackageService) => (
                   <option key={service.id} value={service.id}>
                     {lang === "ar"
                       ? service.name_ar || service.name_en
-                      : service.name_en || service.name_ar}
-                    {isFixedPackage(service)
-                      ? ` · ${t(packageLabel(service).key, packageLabel(service).values)}`
-                      : ""}
+                      : service.name_en || service.name_ar}{isFixedPackage(service) ? ` · ${t(packageLabel(service).key, packageLabel(service).values)}` : ""}
                   </option>
                 ),
               )}

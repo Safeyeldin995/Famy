@@ -1,9 +1,4 @@
-import {
-  isFixedPackage,
-  serviceQuote,
-  filterFixedStartSlots,
-  packageLabel,
-} from "@/lib/pricing/servicePackages";
+import { isFixedPackage, serviceQuote, filterFixedStartSlots, packageLabel } from "@/lib/pricing/servicePackages";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PhoneFrame, PrimaryButton, Card, EmptyState, Avatar } from "@/components/famio/ui";
@@ -246,16 +241,8 @@ export function BookContent({
   const fixedPackage = !isTutoring && isFixedPackage(activeService?.service);
   const fixedStart = fixedPackage ? activeService?.service?.fixed_start_time : null;
   const needsPackageRate = fixedPackage && activeService?.price_override == null;
-  const packageRateQ = useFixedPackageRate(
-    providerId,
-    needsPackageRate ? activeService?.service?.id : undefined,
-    slotAddressId,
-  );
-  const hours = selectedCapability
-    ? selectedCapability.durationMin / 60
-    : fixedPackage
-      ? Number(activeService?.service?.duration_min) / 60
-      : parseInt(duration);
+  const packageRateQ = useFixedPackageRate(providerId, needsPackageRate ? activeService?.service?.id : undefined, slotAddressId);
+  const hours = selectedCapability ? selectedCapability.durationMin / 60 : fixedPackage ? Number(activeService?.service?.duration_min) / 60 : parseInt(duration);
   const tutoringQuote = selectedCapability
     ? tutoringSessionQuote(selectedCapability.durationMin, selectedCapability.price)
     : null;
@@ -289,10 +276,7 @@ export function BookContent({
     }
   }, [isBabysitting, forWhom]);
 
-  const packageSlots = useMemo(
-    () => filterFixedStartSlots(slotsQ.data ?? [], activeService?.service),
-    [slotsQ.data, activeService?.service],
-  );
+  const packageSlots = useMemo(() => filterFixedStartSlots(slotsQ.data ?? [], activeService?.service), [slotsQ.data, activeService?.service]);
   useEffect(() => {
     if (!fixedStart) return;
     const slot = !slotsQ.isFetching && !slotsQ.isError ? packageSlots[0] : undefined;
@@ -306,13 +290,7 @@ export function BookContent({
     if (timeBand === "all") return slots;
     return slots.filter((slot) => {
       const hour = fixedPackage
-        ? Number(
-            new Intl.DateTimeFormat("en-GB", {
-              timeZone: "Africa/Cairo",
-              hour: "2-digit",
-              hourCycle: "h23",
-            }).format(slot.start),
-          )
+        ? Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", hourCycle: "h23" }).format(slot.start))
         : slot.start.getHours();
       if (timeBand === "morning") return hour < 12;
       if (timeBand === "afternoon") return hour >= 12 && hour < 17;
@@ -425,12 +403,7 @@ export function BookContent({
     bookingSettingsQ.data?.max_advance_days,
   ]);
 
-  if (
-    provQ.isLoading ||
-    servicesQ.isLoading ||
-    bookingSettingsQ.isLoading ||
-    (needsPackageRate && packageRateQ.isLoading)
-  ) {
+  if (provQ.isLoading || servicesQ.isLoading || bookingSettingsQ.isLoading || (needsPackageRate && packageRateQ.isLoading)) {
     return (
       <PhoneFrame>
         <div className="grid flex-1 place-items-center">
@@ -484,18 +457,10 @@ export function BookContent({
       : (selectedFamilyMember?.full_name ?? t("bookFlow.dash"));
 
   if (needsPackageRate && (packageRateQ.isError || packageRateQ.data == null)) {
-    return (
-      <PhoneFrame>
-        <QueryError onRetry={() => packageRateQ.refetch()} />
-      </PhoneFrame>
-    );
+    return <PhoneFrame><QueryError onRetry={() => packageRateQ.refetch()} /></PhoneFrame>;
   }
-  const ratePerHour = Number(
-    activeService?.price_override ?? (needsPackageRate ? packageRateQ.data : p.hourlyRate),
-  );
-  const subtotal = tutoringQuote
-    ? tutoringQuote.subtotal
-    : serviceQuote(activeService?.service, ratePerHour, hours).subtotal;
+  const ratePerHour = Number(activeService?.price_override ?? (needsPackageRate ? packageRateQ.data : p.hourlyRate));
+  const subtotal = tutoringQuote ? tutoringQuote.subtotal : serviceQuote(activeService?.service, ratePerHour, hours).subtotal;
   const fee = billingQ.data?.platform_fee ?? DEFAULT_BILLING_SETTINGS.platform_fee;
   const vat = Math.round(
     subtotal * ((billingQ.data?.vat_percent ?? DEFAULT_BILLING_SETTINGS.vat_percent) / 100),
@@ -824,11 +789,7 @@ export function BookContent({
                         setTime(null);
                         setSelectedSlot(null);
                       }}
-                      label={
-                        isFixedPackage(s.service)
-                          ? `${label} · ${t(packageLabel(s.service).key, packageLabel(s.service).values)}`
-                          : label
-                      }
+                      label={isFixedPackage(s.service) ? `${label} · ${t(packageLabel(s.service).key, packageLabel(s.service).values)}` : label}
                     />
                   );
                 })}
@@ -931,16 +892,8 @@ export function BookContent({
         )}
 
         {stepKey === "duration" && fixedPackage && (
-          <Step
-            title={t("packages.fixedPrice")}
-            sub={t(
-              packageLabel(activeService.service).key,
-              packageLabel(activeService.service).values,
-            )}
-          >
-            <div className="rounded-2xl border border-brand bg-brand/5 p-4 text-xl font-extrabold text-brand">
-              {formatEGP(subtotal)}
-            </div>
+          <Step title={t("packages.fixedPrice")} sub={t(packageLabel(activeService.service).key, packageLabel(activeService.service).values)}>
+            <div className="rounded-2xl border border-brand bg-brand/5 p-4 text-xl font-extrabold text-brand">{formatEGP(subtotal)}</div>
           </Step>
         )}
 
@@ -978,14 +931,7 @@ export function BookContent({
           <Step title={t("bookFlow.scheduleTitle")} sub={t("bookFlow.scheduleSub")}>
             <BookScheduleStep
               locale={locale}
-              fixedTime={
-                fixedStart
-                  ? t(
-                      packageLabel(activeService.service).key,
-                      packageLabel(activeService.service).values,
-                    )
-                  : undefined
-              }
+              fixedTime={fixedStart ? t(packageLabel(activeService.service).key, packageLabel(activeService.service).values) : undefined}
               maxAdvanceDays={bookingSettingsQ.data?.max_advance_days ?? 12}
               date={date}
               time={time}
@@ -1361,12 +1307,10 @@ export function BookContent({
                       ? t("bookFlow.sessionLine", {
                           minutes: formatNumber(tutoringQuote.durationMin),
                         })
-                      : fixedPackage
-                        ? t("packages.fixedPrice")
-                        : t("bookFlow.rateLine", {
-                            rate: formatEGP(ratePerHour),
-                            hours: formatNumber(hours),
-                          })
+                      : fixedPackage ? t("packages.fixedPrice") : t("bookFlow.rateLine", {
+                          rate: formatEGP(ratePerHour),
+                          hours: formatNumber(hours),
+                        })
                   }
                   value={formatEGP(subtotal)}
                   small
