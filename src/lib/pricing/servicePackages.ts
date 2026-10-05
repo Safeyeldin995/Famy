@@ -91,3 +91,9 @@ export function filterFixedStartSlots<T extends { start: Date }>(
     (slot) => formatter.format(slot.start) === time && slot.start.getSeconds() === 0,
   );
 }
+
+/** Align the slot grid to a package's fixed start, rather than to rule.start_time. */
+export function packageRuleStart(ruleStart: string, fixedStart?: string | null): string | null {
+  if (!fixedStart) return ruleStart;
+  return fixedStart.slice(0, 5) >= ruleStart.slice(0, 5) ? fixedStart : null;
+}

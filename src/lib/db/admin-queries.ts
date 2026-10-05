@@ -1,25 +1,27 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { invalidateCustomerMarketplaceQueries } from '@/lib/db/marketplace-cache';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { invalidateCustomerMarketplaceQueries } from "@/lib/db/marketplace-cache";
 
 export type AdminProviderFilter = "pending" | "verified" | "suspended" | "all";
 
 export function useAdminProviders(filter: AdminProviderFilter = "all") {
   return useQuery({
-    queryKey: ['admin', 'providers', filter],
+    queryKey: ["admin", "providers", filter],
     queryFn: async () => {
-      const { data: identityRows, error: identityError } = await supabase.rpc('admin_provider_identity_ids');
+      const { data: identityRows, error: identityError } = await supabase.rpc(
+        "admin_provider_identity_ids",
+      );
       if (identityError) throw identityError;
       const providerIds = (identityRows ?? []).map((row) => row.provider_id);
       if (providerIds.length === 0) return [];
       let q = supabase
-        .from('providers')
-        .select('*, profile:profiles(*), ratings:ratings_summary(*), trust:trust_scores(*)')
-        .in('id', providerIds)
-        .order('created_at', { ascending: false });
-      if (filter === 'pending') q = q.eq('is_verified', false);
-      else if (filter === 'verified') q = q.eq('is_verified', true).eq('is_active', true);
-      else if (filter === 'suspended') q = q.eq('is_active', false).eq('is_verified', true);
+        .from("providers")
+        .select("*, profile:profiles(*), ratings:ratings_summary(*), trust:trust_scores(*)")
+        .in("id", providerIds)
+        .order("created_at", { ascending: false });
+      if (filter === "pending") q = q.eq("is_verified", false);
+      else if (filter === "verified") q = q.eq("is_verified", true).eq("is_active", true);
+      else if (filter === "suspended") q = q.eq("is_active", false).eq("is_verified", true);
       const { data, error } = await q;
       if (error) throw error;
       return data ?? [];
@@ -32,16 +34,16 @@ export function useSetProviderActive() {
   return useMutation({
     mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
       const { data, error } = await supabase
-        .from('providers')
+        .from("providers")
         .update({ is_active: active })
-        .eq('id', id)
-        .select('is_active')
+        .eq("id", id)
+        .select("is_active")
         .single();
       if (error) throw error;
-      if (data.is_active !== active) throw new Error('Provider active status did not persist.');
+      if (data.is_active !== active) throw new Error("Provider active status did not persist.");
     },
     onSuccess: (_data, vars) => {
-      qc.invalidateQueries({ queryKey: ['admin'] });
+      qc.invalidateQueries({ queryKey: ["admin"] });
       invalidateCustomerMarketplaceQueries(qc, vars.id);
     },
   });
@@ -49,18 +51,20 @@ export function useSetProviderActive() {
 
 export function usePendingProviders() {
   return useQuery({
-    queryKey: ['admin', 'pending-providers'],
+    queryKey: ["admin", "pending-providers"],
     queryFn: async () => {
-      const { data: identityRows, error: identityError } = await supabase.rpc('admin_provider_identity_ids');
+      const { data: identityRows, error: identityError } = await supabase.rpc(
+        "admin_provider_identity_ids",
+      );
       if (identityError) throw identityError;
       const providerIds = (identityRows ?? []).map((row) => row.provider_id);
       if (providerIds.length === 0) return [];
       const { data, error } = await supabase
-        .from('providers')
-        .select('*, profile:profiles(*)')
-        .in('id', providerIds)
-        .eq('is_verified', false)
-        .order('created_at', { ascending: false });
+        .from("providers")
+        .select("*, profile:profiles(*)")
+        .in("id", providerIds)
+        .eq("is_verified", false)
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
@@ -69,12 +73,14 @@ export function usePendingProviders() {
 
 export function useAdminProvider(id: string) {
   return useQuery({
-    queryKey: ['admin', 'provider', id],
+    queryKey: ["admin", "provider", id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('providers')
-        .select('*, profile:profiles(*), documents:provider_documents(*), services:provider_services(id, status, rejection_reason, service:services(id, name_en, name_ar, category:categories(name_en, name_ar)))')
-        .eq('id', id)
+        .from("providers")
+        .select(
+          "*, profile:profiles(*), documents:provider_documents(*), services:provider_services(id, status, rejection_reason, service:services(id, name_en, name_ar, category:categories(name_en, name_ar)))",
+        )
+        .eq("id", id)
         .maybeSingle();
       if (error) throw error;
       return data;
@@ -87,9 +93,11 @@ export function useAdminProvider(id: string) {
 // same database eligibility engine used by Customer search/details.
 export function useProviderEligibility(id: string) {
   return useQuery({
-    queryKey: ['admin', 'provider-eligibility', id],
+    queryKey: ["admin", "provider-eligibility", id],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('provider_marketplace_eligibility', { p_provider_id: id });
+      const { data, error } = await supabase.rpc("provider_marketplace_eligibility", {
+        p_provider_id: id,
+      });
       if (error) throw error;
       return data ?? [];
     },
@@ -100,25 +108,33 @@ export function useProviderEligibility(id: string) {
 export function useSetProviderVerified() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, verified, reason }: { id: string; verified: boolean; reason?: string }) => {
-      const { error } = await supabase.rpc('admin_set_provider_verification', {
+    mutationFn: async ({
+      id,
+      verified,
+      reason,
+    }: {
+      id: string;
+      verified: boolean;
+      reason?: string;
+    }) => {
+      const { error } = await supabase.rpc("admin_set_provider_verification", {
         p_provider_id: id,
         p_verified: verified,
         p_reason: reason,
       });
       if (error) throw error;
       const { data: stored, error: readError } = await supabase
-        .from('providers')
-        .select('is_verified,is_active')
-        .eq('id', id)
+        .from("providers")
+        .select("is_verified,is_active")
+        .eq("id", id)
         .single();
       if (readError) throw readError;
       if (stored.is_verified !== verified || stored.is_active !== verified) {
-        throw new Error('Provider verification status did not persist.');
+        throw new Error("Provider verification status did not persist.");
       }
     },
     onSuccess: (_data, vars) => {
-      qc.invalidateQueries({ queryKey: ['admin'] });
+      qc.invalidateQueries({ queryKey: ["admin"] });
       invalidateCustomerMarketplaceQueries(qc, vars.id);
     },
   });
@@ -127,26 +143,34 @@ export function useSetProviderVerified() {
 export function useSetProviderServiceStatus() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ providerServiceId, status, reason }: { providerServiceId: string; status: 'approved' | 'rejected'; reason?: string }) => {
-      const { error } = await supabase.rpc('admin_set_provider_service_status', {
+    mutationFn: async ({
+      providerServiceId,
+      status,
+      reason,
+    }: {
+      providerServiceId: string;
+      status: "approved" | "rejected";
+      reason?: string;
+    }) => {
+      const { error } = await supabase.rpc("admin_set_provider_service_status", {
         p_id: providerServiceId,
         p_status: status,
         p_reason: reason,
       });
       if (error) throw error;
       const { data: stored, error: readError } = await supabase
-        .from('provider_services')
-        .select('status,rejection_reason')
-        .eq('id', providerServiceId)
+        .from("provider_services")
+        .select("status,rejection_reason")
+        .eq("id", providerServiceId)
         .single();
       if (readError) throw readError;
-      if (stored.status !== status) throw new Error('Provider service status did not persist.');
-      if (status === 'rejected' && stored.rejection_reason !== reason?.trim()) {
-        throw new Error('Provider service rejection reason did not persist.');
+      if (stored.status !== status) throw new Error("Provider service status did not persist.");
+      if (status === "rejected" && stored.rejection_reason !== reason?.trim()) {
+        throw new Error("Provider service rejection reason did not persist.");
       }
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin'] });
+      qc.invalidateQueries({ queryKey: ["admin"] });
       invalidateCustomerMarketplaceQueries(qc);
     },
   });
@@ -156,7 +180,7 @@ export function useDocumentSignedUrl() {
   return useMutation({
     mutationFn: async (path: string) => {
       const { data, error } = await supabase.storage
-        .from('provider-documents')
+        .from("provider-documents")
         .createSignedUrl(path, 300);
       if (error) throw error;
       return data.signedUrl;
@@ -166,21 +190,23 @@ export function useDocumentSignedUrl() {
 
 export function useAdminBookings(status?: string) {
   return useQuery({
-    queryKey: ['admin', 'bookings', status ?? 'all'],
+    queryKey: ["admin", "bookings", status ?? "all"],
     queryFn: async () => {
       let q = supabase
-        .from('bookings')
-        .select(`
+        .from("bookings")
+        .select(
+          `
           *,
           customer:profiles!bookings_customer_id_fkey(id, full_name, phone),
           provider:providers(id, profile:profiles(full_name)),
           payments(id, status, method, amount, created_at, needs_admin_review, metadata),
           family_member:booking_family_member_snapshots(*),
           cancellation:booking_cancellations(*)
-        `)
-        .order('created_at', { ascending: false })
+        `,
+        )
+        .order("created_at", { ascending: false })
         .limit(200);
-      if (status) q = q.eq('status', status as any);
+      if (status) q = q.eq("status", status as any);
       const { data, error } = await q;
       if (error) throw error;
       return data ?? [];
@@ -193,31 +219,31 @@ export function useUpdateBookingStatus() {
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const { data: updated, error } = await supabase
-        .from('bookings')
+        .from("bookings")
         .update({ status: status as any })
-        .eq('id', id)
-        .select('id,status')
+        .eq("id", id)
+        .select("id,status")
         .single();
       if (error) throw error;
       if (updated.id !== id || updated.status !== status) {
-        throw new Error('Booking status update did not return the expected row.');
+        throw new Error("Booking status update did not return the expected row.");
       }
       const { data: stored, error: readError } = await supabase
-        .from('bookings')
-        .select('id,status')
-        .eq('id', id)
+        .from("bookings")
+        .select("id,status")
+        .eq("id", id)
         .single();
       if (readError) throw readError;
       if (stored.id !== id || stored.status !== status) {
-        throw new Error('Booking status did not persist.');
+        throw new Error("Booking status did not persist.");
       }
       return stored;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin', 'bookings'] });
-      qc.invalidateQueries({ queryKey: ['admin', 'dashboard-kpis'] });
-      qc.invalidateQueries({ queryKey: ['my-bookings'] });
-      qc.invalidateQueries({ queryKey: ['provider-bookings'] });
+      qc.invalidateQueries({ queryKey: ["admin", "bookings"] });
+      qc.invalidateQueries({ queryKey: ["admin", "dashboard-kpis"] });
+      qc.invalidateQueries({ queryKey: ["my-bookings"] });
+      qc.invalidateQueries({ queryKey: ["provider-bookings"] });
     },
   });
 }
@@ -225,8 +251,13 @@ export function useUpdateBookingStatus() {
 export function useAdminResolveReschedule() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { requestId: string; bookingId: string; action: 'accept' | 'reject'; reason: string }) => {
-      const { error } = await supabase.rpc('admin_resolve_reschedule', {
+    mutationFn: async (input: {
+      requestId: string;
+      bookingId: string;
+      action: "accept" | "reject";
+      reason: string;
+    }) => {
+      const { error } = await supabase.rpc("admin_resolve_reschedule", {
         p_request_id: input.requestId,
         p_action: input.action,
         p_reason: input.reason,
@@ -234,22 +265,19 @@ export function useAdminResolveReschedule() {
       if (error) throw error;
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ['reschedule-requests', vars.bookingId] });
-      qc.invalidateQueries({ queryKey: ['admin', 'bookings'] });
-      qc.invalidateQueries({ queryKey: ['booking', vars.bookingId] });
-      qc.invalidateQueries({ queryKey: ['provider-booking', vars.bookingId] });
+      qc.invalidateQueries({ queryKey: ["reschedule-requests", vars.bookingId] });
+      qc.invalidateQueries({ queryKey: ["admin", "bookings"] });
+      qc.invalidateQueries({ queryKey: ["booking", vars.bookingId] });
+      qc.invalidateQueries({ queryKey: ["provider-booking", vars.bookingId] });
     },
   });
 }
 
 export function useAdminCategories() {
   return useQuery({
-    queryKey: ['admin', 'categories'],
+    queryKey: ["admin", "categories"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('*')
-        .order('sort_order');
+      const { data, error } = await supabase.from("categories").select("*").order("sort_order");
       if (error) throw error;
       return data ?? [];
     },
@@ -260,13 +288,18 @@ export function useSetCategoryActive() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
-      const { data, error } = await supabase.from('categories').update({ is_active: active }).eq('id', id).select('is_active').single();
+      const { data, error } = await supabase
+        .from("categories")
+        .update({ is_active: active })
+        .eq("id", id)
+        .select("is_active")
+        .single();
       if (error) throw error;
-      if (data.is_active !== active) throw new Error('Category active status did not persist.');
+      if (data.is_active !== active) throw new Error("Category active status did not persist.");
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin', 'categories'] });
-      qc.invalidateQueries({ queryKey: ['categories'] });
+      qc.invalidateQueries({ queryKey: ["admin", "categories"] });
+      qc.invalidateQueries({ queryKey: ["categories"] });
     },
   });
 }
@@ -274,14 +307,28 @@ export function useSetCategoryActive() {
 export function useUpdateCategoryNames() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, name_en, name_ar }: { id: string; name_en: string; name_ar: string }) => {
-      const { data, error } = await supabase.from('categories').update({ name_en, name_ar }).eq('id', id).select('name_en,name_ar').single();
+    mutationFn: async ({
+      id,
+      name_en,
+      name_ar,
+    }: {
+      id: string;
+      name_en: string;
+      name_ar: string;
+    }) => {
+      const { data, error } = await supabase
+        .from("categories")
+        .update({ name_en, name_ar })
+        .eq("id", id)
+        .select("name_en,name_ar")
+        .single();
       if (error) throw error;
-      if (data.name_en !== name_en || data.name_ar !== name_ar) throw new Error('Category names did not persist.');
+      if (data.name_en !== name_en || data.name_ar !== name_ar)
+        throw new Error("Category names did not persist.");
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin', 'categories'] });
-      qc.invalidateQueries({ queryKey: ['categories'] });
+      qc.invalidateQueries({ queryKey: ["admin", "categories"] });
+      qc.invalidateQueries({ queryKey: ["categories"] });
     },
   });
 }
@@ -290,7 +337,7 @@ export function useUpdateCategoryNames() {
 // Columns are selected explicitly (never `*`) so `deleted_at` is never
 // fetched into a UI-facing query.
 const SERVICE_COLUMNS =
-  'id, category_id, slug, name_en, name_ar, description_en, description_ar, base_price, duration_min, pricing_model, fixed_start_time, is_active, minimum_price, maximum_price, maximum_extras_total, provider_pricing_allowed, allowed_session_durations, created_at, updated_at, category:categories(id, slug, name_en, name_ar)';
+  "id, category_id, slug, name_en, name_ar, description_en, description_ar, base_price, duration_min, pricing_model, fixed_start_time, is_active, minimum_price, maximum_price, maximum_extras_total, provider_pricing_allowed, allowed_session_durations, created_at, updated_at, category:categories(id, slug, name_en, name_ar)";
 
 export type AdminServiceInput = {
   category_id: string;
@@ -301,7 +348,7 @@ export type AdminServiceInput = {
   description_ar: string | null;
   base_price: number;
   duration_min: number;
-  pricing_model: 'hourly' | 'fixed' | 'per_visit';
+  pricing_model: "hourly" | "fixed" | "per_visit";
   fixed_start_time?: string | null;
   is_active: boolean;
   minimum_price: number | null;
@@ -314,13 +361,13 @@ export type AdminServiceInput = {
 export function useFlaggedProviderServices(serviceId: string | undefined) {
   return useQuery({
     enabled: !!serviceId,
-    queryKey: ['admin', 'flagged-provider-services', serviceId],
+    queryKey: ["admin", "flagged-provider-services", serviceId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('provider_services')
-        .select('id, provider_id, price_override, provider:providers(profile:profiles(full_name))')
-        .eq('service_id', serviceId!)
-        .eq('flagged_for_review', true);
+        .from("provider_services")
+        .select("id, provider_id, price_override, provider:providers(profile:profiles(full_name))")
+        .eq("service_id", serviceId!)
+        .eq("flagged_for_review", true);
       if (error) throw error;
       return data ?? [];
     },
@@ -331,12 +378,17 @@ export function useClearProviderServiceFlag() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id }: { id: string; serviceId: string }) => {
-      const { data, error } = await supabase.from('provider_services').update({ flagged_for_review: false }).eq('id', id).select('flagged_for_review').single();
+      const { data, error } = await supabase
+        .from("provider_services")
+        .update({ flagged_for_review: false })
+        .eq("id", id)
+        .select("flagged_for_review")
+        .single();
       if (error) throw error;
-      if (data.flagged_for_review) throw new Error('Provider service review flag did not clear.');
+      if (data.flagged_for_review) throw new Error("Provider service review flag did not clear.");
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ['admin', 'flagged-provider-services', vars.serviceId] });
+      qc.invalidateQueries({ queryKey: ["admin", "flagged-provider-services", vars.serviceId] });
       invalidateCustomerMarketplaceQueries(qc);
     },
   });
@@ -350,10 +402,11 @@ export type AdminRequirementInput = {
   name_ar: string;
   description_en: string | null;
   description_ar: string | null;
-  requirement_type: 'equipment' | 'supplies' | 'certification' | 'training' | 'experience' | 'other';
+  requirement_type:
+    "equipment" | "supplies" | "certification" | "training" | "experience" | "other";
   required_for_provider_approval: boolean;
   required_during_booking: boolean;
-  fulfillment_mode: 'customer' | 'provider' | 'either';
+  fulfillment_mode: "customer" | "provider" | "either";
   provider_extra_fee: number;
   evidence_required: boolean;
   is_active: boolean;
@@ -362,13 +415,13 @@ export type AdminRequirementInput = {
 export function useAdminRequirements(serviceId: string | undefined) {
   return useQuery({
     enabled: !!serviceId,
-    queryKey: ['admin', 'requirements', serviceId],
+    queryKey: ["admin", "requirements", serviceId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('service_requirements')
-        .select('*')
-        .eq('service_id', serviceId!)
-        .order('sort_order');
+        .from("service_requirements")
+        .select("*")
+        .eq("service_id", serviceId!)
+        .order("sort_order");
       if (error) throw error;
       return data ?? [];
     },
@@ -379,12 +432,16 @@ export function useCreateRequirement() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: AdminRequirementInput & { sort_order?: number }) => {
-      const { data, error } = await supabase.from('service_requirements').insert(input as any).select().single();
+      const { data, error } = await supabase
+        .from("service_requirements")
+        .insert(input as any)
+        .select()
+        .single();
       if (error) throw error;
       return data;
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ['admin', 'requirements', vars.service_id] });
+      qc.invalidateQueries({ queryKey: ["admin", "requirements", vars.service_id] });
       invalidateCustomerMarketplaceQueries(qc);
     },
   });
@@ -393,13 +450,22 @@ export function useCreateRequirement() {
 export function useUpdateRequirement() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, service_id, ...patch }: { id: string; service_id: string } & Partial<AdminRequirementInput>) => {
-      const { data, error } = await supabase.from('service_requirements').update(patch as any).eq('id', id).select().single();
+    mutationFn: async ({
+      id,
+      service_id,
+      ...patch
+    }: { id: string; service_id: string } & Partial<AdminRequirementInput>) => {
+      const { data, error } = await supabase
+        .from("service_requirements")
+        .update(patch as any)
+        .eq("id", id)
+        .select()
+        .single();
       if (error) throw error;
       return data;
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ['admin', 'requirements', vars.service_id] });
+      qc.invalidateQueries({ queryKey: ["admin", "requirements", vars.service_id] });
       invalidateCustomerMarketplaceQueries(qc);
     },
   });
@@ -408,12 +474,16 @@ export function useUpdateRequirement() {
 export function useReorderRequirement() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ service_id, first, second }: {
+    mutationFn: async ({
+      service_id,
+      first,
+      second,
+    }: {
       service_id: string;
       first: { id: string; sort_order: number };
       second: { id: string; sort_order: number };
     }) => {
-      const { data, error } = await supabase.rpc('admin_swap_service_requirement_order', {
+      const { data, error } = await supabase.rpc("admin_swap_service_requirement_order", {
         p_first_id: first.id,
         p_second_id: second.id,
       });
@@ -421,12 +491,16 @@ export function useReorderRequirement() {
       const rows = data ?? [];
       const storedFirst = rows.find((row: any) => row.id === first.id);
       const storedSecond = rows.find((row: any) => row.id === second.id);
-      if (rows.length !== 2 || storedFirst?.sort_order !== first.sort_order || storedSecond?.sort_order !== second.sort_order) {
-        throw new Error('Requirement order swap did not persist atomically.');
+      if (
+        rows.length !== 2 ||
+        storedFirst?.sort_order !== first.sort_order ||
+        storedSecond?.sort_order !== second.sort_order
+      ) {
+        throw new Error("Requirement order swap did not persist atomically.");
       }
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ['admin', 'requirements', vars.service_id] });
+      qc.invalidateQueries({ queryKey: ["admin", "requirements", vars.service_id] });
       invalidateCustomerMarketplaceQueries(qc);
     },
   });
@@ -435,13 +509,13 @@ export function useReorderRequirement() {
 export function useAdminRequirementFulfillments(requirementId: string | undefined) {
   return useQuery({
     enabled: !!requirementId,
-    queryKey: ['admin', 'requirement-fulfillments', requirementId],
+    queryKey: ["admin", "requirement-fulfillments", requirementId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('provider_requirement_fulfillments')
-        .select('*, provider:providers(profile:profiles(full_name))')
-        .eq('requirement_id', requirementId!)
-        .order('created_at', { ascending: false });
+        .from("provider_requirement_fulfillments")
+        .select("*, provider:providers(profile:profiles(full_name))")
+        .eq("requirement_id", requirementId!)
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
@@ -451,17 +525,26 @@ export function useAdminRequirementFulfillments(requirementId: string | undefine
 export function useReviewRequirementFulfillment() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, status, review_notes }: { id: string; requirementId: string; status: 'passed' | 'failed' | 'waived' | 'pending'; review_notes?: string }) => {
+    mutationFn: async ({
+      id,
+      status,
+      review_notes,
+    }: {
+      id: string;
+      requirementId: string;
+      status: "passed" | "failed" | "waived" | "pending";
+      review_notes?: string;
+    }) => {
       const { error } = await supabase
-        .from('provider_requirement_fulfillments')
+        .from("provider_requirement_fulfillments")
         .update({ status, review_notes: review_notes ?? null })
-        .eq('id', id)
-        .select('id')
+        .eq("id", id)
+        .select("id")
         .single();
       if (error) throw error;
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ['admin', 'requirement-fulfillments', vars.requirementId] });
+      qc.invalidateQueries({ queryKey: ["admin", "requirement-fulfillments", vars.requirementId] });
       invalidateCustomerMarketplaceQueries(qc);
     },
   });
@@ -470,7 +553,9 @@ export function useReviewRequirementFulfillment() {
 export function useAdminEvidenceSignedUrl() {
   return useMutation({
     mutationFn: async (path: string) => {
-      const { data, error } = await supabase.storage.from('provider-documents').createSignedUrl(path, 300);
+      const { data, error } = await supabase.storage
+        .from("provider-documents")
+        .createSignedUrl(path, 300);
       if (error) throw error;
       return data.signedUrl;
     },
@@ -479,12 +564,12 @@ export function useAdminEvidenceSignedUrl() {
 
 export function useAdminServices() {
   return useQuery({
-    queryKey: ['admin', 'services'],
+    queryKey: ["admin", "services"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('services')
+        .from("services")
         .select(SERVICE_COLUMNS)
-        .order('name_en');
+        .order("name_en");
       if (error) throw error;
       return data ?? [];
     },
@@ -495,13 +580,17 @@ export function useCreateService() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: AdminServiceInput) => {
-      const { data, error } = await supabase.from('services').insert(input as any).select(SERVICE_COLUMNS).single();
+      const { data, error } = await supabase
+        .from("services")
+        .insert(input as any)
+        .select(SERVICE_COLUMNS)
+        .single();
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin', 'services'] });
-      qc.invalidateQueries({ queryKey: ['all-services'] });
+      qc.invalidateQueries({ queryKey: ["admin", "services"] });
+      qc.invalidateQueries({ queryKey: ["all-services"] });
       invalidateCustomerMarketplaceQueries(qc);
     },
   });
@@ -511,13 +600,18 @@ export function useUpdateService() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...patch }: { id: string } & Partial<AdminServiceInput>) => {
-      const { data, error } = await supabase.from('services').update(patch as any).eq('id', id).select(SERVICE_COLUMNS).single();
+      const { data, error } = await supabase
+        .from("services")
+        .update(patch as any)
+        .eq("id", id)
+        .select(SERVICE_COLUMNS)
+        .single();
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin', 'services'] });
-      qc.invalidateQueries({ queryKey: ['all-services'] });
+      qc.invalidateQueries({ queryKey: ["admin", "services"] });
+      qc.invalidateQueries({ queryKey: ["all-services"] });
       invalidateCustomerMarketplaceQueries(qc);
     },
   });
@@ -527,13 +621,18 @@ export function useSetServiceActive() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
-      const { data, error } = await supabase.from('services').update({ is_active: active }).eq('id', id).select('is_active').single();
+      const { data, error } = await supabase
+        .from("services")
+        .update({ is_active: active })
+        .eq("id", id)
+        .select("is_active")
+        .single();
       if (error) throw error;
-      if (data.is_active !== active) throw new Error('Service active status did not persist.');
+      if (data.is_active !== active) throw new Error("Service active status did not persist.");
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin', 'services'] });
-      qc.invalidateQueries({ queryKey: ['all-services'] });
+      qc.invalidateQueries({ queryKey: ["admin", "services"] });
+      qc.invalidateQueries({ queryKey: ["all-services"] });
       invalidateCustomerMarketplaceQueries(qc);
     },
   });
@@ -541,14 +640,33 @@ export function useSetServiceActive() {
 
 export function useAdminDashboardKpis() {
   return useQuery({
-    queryKey: ['admin', 'dashboard-kpis'],
+    queryKey: ["admin", "dashboard-kpis"],
     queryFn: async () => {
-      const [revenueRes, activeBookingsRes, pendingBookingsRes, activeProvidersRes, activeCustomersRes] = await Promise.all([
-        supabase.from('payments').select('amount').eq('status', 'captured'),
-        supabase.from('bookings').select('id', { count: 'exact', head: true }).in('status', ['confirmed', 'in_progress']),
-        supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('providers').select('id', { count: 'exact', head: true }).eq('is_active', true).eq('is_verified', true),
-        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('is_suspended', false),
+      const [
+        revenueRes,
+        activeBookingsRes,
+        pendingBookingsRes,
+        activeProvidersRes,
+        activeCustomersRes,
+      ] = await Promise.all([
+        supabase.from("payments").select("amount").eq("status", "captured"),
+        supabase
+          .from("bookings")
+          .select("id", { count: "exact", head: true })
+          .in("status", ["confirmed", "in_progress"]),
+        supabase
+          .from("bookings")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "pending"),
+        supabase
+          .from("providers")
+          .select("id", { count: "exact", head: true })
+          .eq("is_active", true)
+          .eq("is_verified", true),
+        supabase
+          .from("profiles")
+          .select("id", { count: "exact", head: true })
+          .eq("is_suspended", false),
       ]);
       if (revenueRes.error) throw revenueRes.error;
       if (activeBookingsRes.error) throw activeBookingsRes.error;
@@ -556,7 +674,10 @@ export function useAdminDashboardKpis() {
       if (activeProvidersRes.error) throw activeProvidersRes.error;
       if (activeCustomersRes.error) throw activeCustomersRes.error;
 
-      const revenue = (revenueRes.data ?? []).reduce((sum, r: any) => sum + Number(r.amount ?? 0), 0);
+      const revenue = (revenueRes.data ?? []).reduce(
+        (sum, r: any) => sum + Number(r.amount ?? 0),
+        0,
+      );
 
       return {
         revenue,
@@ -570,11 +691,12 @@ export function useAdminDashboardKpis() {
 }
 export function useAdminPayments(status?: string | string[]) {
   return useQuery({
-    queryKey: ['admin', 'payments', status ?? 'all'],
+    queryKey: ["admin", "payments", status ?? "all"],
     queryFn: async () => {
       let q = supabase
-        .from('payments')
-        .select(`
+        .from("payments")
+        .select(
+          `
           *,
           booking:bookings(
             id,
@@ -582,13 +704,14 @@ export function useAdminPayments(status?: string | string[]) {
             provider:providers(id, profile:profiles(full_name)),
             customer:profiles!bookings_customer_id_fkey(id, full_name, phone)
           )
-        `)
-        .order('created_at', { ascending: false })
+        `,
+        )
+        .order("created_at", { ascending: false })
         .limit(300);
       if (Array.isArray(status)) {
-        if (status.length > 0) q = q.in('status', status as any);
+        if (status.length > 0) q = q.in("status", status as any);
       } else if (status) {
-        q = q.eq('status', status as any);
+        q = q.eq("status", status as any);
       }
       const { data, error } = await q;
       if (error) throw error;
@@ -601,33 +724,35 @@ export type AdminCustomerFilter = "all" | "active" | "suspended" | "has_bookings
 
 export function useAdminCustomers(filter: AdminCustomerFilter = "all") {
   return useQuery({
-    queryKey: ['admin', 'customers'],
+    queryKey: ["admin", "customers"],
     queryFn: async () => {
-      const { data: identityRows, error: identityError } = await supabase.rpc('admin_customer_identity_ids');
+      const { data: identityRows, error: identityError } = await supabase.rpc(
+        "admin_customer_identity_ids",
+      );
       if (identityError) throw identityError;
       const customerIds = (identityRows ?? []).map((row) => row.user_id);
       if (customerIds.length === 0) return [];
       const { data: profiles, error: pErr } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('id', customerIds)
-        .order('created_at', { ascending: false })
+        .from("profiles")
+        .select("*")
+        .in("id", customerIds)
+        .order("created_at", { ascending: false })
         .limit(300);
       if (pErr) throw pErr;
       const ids = (profiles ?? []).map((p) => p.id);
       if (ids.length === 0) return [];
 
       const { data: bookings, error: bErr } = await supabase
-        .from('bookings')
-        .select('customer_id, status')
-        .in('customer_id', ids);
+        .from("bookings")
+        .select("customer_id, status")
+        .in("customer_id", ids);
       if (bErr) throw bErr;
 
       const { data: payments, error: payErr } = await supabase
-        .from('payments')
-        .select('customer_id, amount, status')
-        .in('customer_id', ids)
-        .eq('status', 'captured');
+        .from("payments")
+        .select("customer_id, amount, status")
+        .in("customer_id", ids)
+        .eq("status", "captured");
       if (payErr) throw payErr;
 
       const bookingsByCustomer = new Map<string, typeof bookings>();
@@ -646,18 +771,20 @@ export function useAdminCustomers(filter: AdminCustomerFilter = "all") {
       const rows = (profiles ?? []).map((p) => {
         const myBookings = bookingsByCustomer.get(p.id) ?? [];
         const totalBookings = myBookings.length;
-        const completedBookings = myBookings.filter((b) => b.status === 'completed').length;
-        const cancelledBookings = myBookings.filter((b) => b.status === 'cancelled' || b.status === 'no_show').length;
+        const completedBookings = myBookings.filter((b) => b.status === "completed").length;
+        const cancelledBookings = myBookings.filter(
+          (b) => b.status === "cancelled" || b.status === "no_show",
+        ).length;
         const totalSpent = spentByCustomer.get(p.id) ?? 0;
         return { ...p, totalBookings, completedBookings, cancelledBookings, totalSpent };
       });
       return rows;
     },
     select: (rows) => {
-      if (filter === 'active') return rows.filter((row) => !row.is_suspended);
-      if (filter === 'suspended') return rows.filter((row) => row.is_suspended);
-      if (filter === 'has_bookings') return rows.filter((row) => row.totalBookings > 0);
-      if (filter === 'no_bookings') return rows.filter((row) => row.totalBookings === 0);
+      if (filter === "active") return rows.filter((row) => !row.is_suspended);
+      if (filter === "suspended") return rows.filter((row) => row.is_suspended);
+      if (filter === "has_bookings") return rows.filter((row) => row.totalBookings > 0);
+      if (filter === "no_bookings") return rows.filter((row) => row.totalBookings === 0);
       return rows;
     },
   });
@@ -665,12 +792,12 @@ export function useAdminCustomers(filter: AdminCustomerFilter = "all") {
 
 export function useAdminIdentityConflicts() {
   return useQuery({
-    queryKey: ['admin', 'identity-conflicts'],
+    queryKey: ["admin", "identity-conflicts"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('admin_identity_conflicts')
-        .select('*')
-        .order('issue_code');
+        .from("admin_identity_conflicts")
+        .select("*")
+        .order("issue_code");
       if (error) throw error;
       return data ?? [];
     },
@@ -679,31 +806,33 @@ export function useAdminIdentityConflicts() {
 
 export function useAdminCustomer(id: string) {
   return useQuery({
-    queryKey: ['admin', 'customer', id],
+    queryKey: ["admin", "customer", id],
     queryFn: async () => {
-      const { data: identityRows, error: identityError } = await supabase.rpc('admin_customer_identity_ids');
+      const { data: identityRows, error: identityError } = await supabase.rpc(
+        "admin_customer_identity_ids",
+      );
       if (identityError) throw identityError;
       if (!(identityRows ?? []).some((row) => row.user_id === id)) {
         return { profile: null, bookings: [], payments: [] };
       }
       const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', id)
+        .from("profiles")
+        .select("*")
+        .eq("id", id)
         .maybeSingle();
       if (error) throw error;
       const { data: bookings, error: bookingsError } = await supabase
-        .from('bookings')
-        .select('id, status, start_at, price_total')
-        .eq('customer_id', id)
-        .order('created_at', { ascending: false })
+        .from("bookings")
+        .select("id, status, start_at, price_total")
+        .eq("customer_id", id)
+        .order("created_at", { ascending: false })
         .limit(50);
       if (bookingsError) throw bookingsError;
       const { data: payments, error: paymentsError } = await supabase
-        .from('payments')
-        .select('id, booking_id, method, amount, status, created_at')
-        .eq('customer_id', id)
-        .order('created_at', { ascending: false })
+        .from("payments")
+        .select("id, booking_id, method, amount, status, created_at")
+        .eq("customer_id", id)
+        .order("created_at", { ascending: false })
         .limit(50);
       if (paymentsError) throw paymentsError;
       return { profile, bookings: bookings ?? [], payments: payments ?? [] };
@@ -717,18 +846,19 @@ export function useSetCustomerSuspended() {
   return useMutation({
     mutationFn: async ({ id, suspended }: { id: string; suspended: boolean }) => {
       const { data, error } = await supabase
-        .from('profiles')
+        .from("profiles")
         .update({ is_suspended: suspended })
-        .eq('id', id)
-        .select('is_suspended')
+        .eq("id", id)
+        .select("is_suspended")
         .single();
       if (error) throw error;
-      if (data.is_suspended !== suspended) throw new Error('Customer suspension status did not persist.');
+      if (data.is_suspended !== suspended)
+        throw new Error("Customer suspension status did not persist.");
     },
     onSuccess: (_data, vars) => {
-      qc.invalidateQueries({ queryKey: ['admin', 'customer', vars.id] });
-      qc.invalidateQueries({ queryKey: ['admin', 'customers'] });
-      qc.invalidateQueries({ queryKey: ['admin', 'dashboard-kpis'] });
+      qc.invalidateQueries({ queryKey: ["admin", "customer", vars.id] });
+      qc.invalidateQueries({ queryKey: ["admin", "customers"] });
+      qc.invalidateQueries({ queryKey: ["admin", "dashboard-kpis"] });
     },
   });
 }
@@ -742,15 +872,27 @@ export type AdminZoneInput = {
   travel_fee: number;
   is_active: boolean;
 } & (
-  | { boundary_type: "polygon"; polygon: ZonePoint[]; center_lat: null; center_lng: null; radius_km: null }
-  | { boundary_type: "circle"; polygon: null; center_lat: number; center_lng: number; radius_km: number }
+  | {
+      boundary_type: "polygon";
+      polygon: ZonePoint[];
+      center_lat: null;
+      center_lng: null;
+      radius_km: null;
+    }
+  | {
+      boundary_type: "circle";
+      polygon: null;
+      center_lat: number;
+      center_lng: number;
+      radius_km: number;
+    }
 );
 
 export function useAdminZones() {
   return useQuery({
-    queryKey: ['admin', 'zones'],
+    queryKey: ["admin", "zones"],
     queryFn: async () => {
-      const { data, error } = await supabase.from('zones').select('*').order('name_en');
+      const { data, error } = await supabase.from("zones").select("*").order("name_en");
       if (error) throw error;
       return data ?? [];
     },
@@ -761,12 +903,16 @@ export function useCreateZone() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: AdminZoneInput) => {
-      const { data, error } = await supabase.from('zones').insert(input as any).select().single();
+      const { data, error } = await supabase
+        .from("zones")
+        .insert(input as any)
+        .select()
+        .single();
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin', 'zones'] });
+      qc.invalidateQueries({ queryKey: ["admin", "zones"] });
       invalidateCustomerMarketplaceQueries(qc);
     },
   });
@@ -776,12 +922,17 @@ export function useUpdateZone() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...patch }: { id: string } & Partial<AdminZoneInput>) => {
-      const { data, error } = await supabase.from('zones').update(patch as any).eq('id', id).select().single();
+      const { data, error } = await supabase
+        .from("zones")
+        .update(patch as any)
+        .eq("id", id)
+        .select()
+        .single();
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin', 'zones'] });
+      qc.invalidateQueries({ queryKey: ["admin", "zones"] });
       invalidateCustomerMarketplaceQueries(qc);
     },
   });
@@ -791,12 +942,17 @@ export function useSetZoneActive() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
-      const { data, error } = await supabase.from('zones').update({ is_active: active }).eq('id', id).select('is_active').single();
+      const { data, error } = await supabase
+        .from("zones")
+        .update({ is_active: active })
+        .eq("id", id)
+        .select("is_active")
+        .single();
       if (error) throw error;
-      if (data.is_active !== active) throw new Error('Zone active status did not persist.');
+      if (data.is_active !== active) throw new Error("Zone active status did not persist.");
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin', 'zones'] });
+      qc.invalidateQueries({ queryKey: ["admin", "zones"] });
       invalidateCustomerMarketplaceQueries(qc);
     },
   });
@@ -804,7 +960,13 @@ export function useSetZoneActive() {
 
 export function useCheckZoneOverlap() {
   return useMutation({
-    mutationFn: async ({ polygon, excludeZoneId }: { polygon: ZonePoint[]; excludeZoneId?: string }) => {
+    mutationFn: async ({
+      polygon,
+      excludeZoneId,
+    }: {
+      polygon: ZonePoint[];
+      excludeZoneId?: string;
+    }) => {
       const { data, error } = await supabase.rpc("check_zone_overlap", {
         p_polygon: polygon as any,
         p_exclude_zone_id: excludeZoneId ?? undefined,
@@ -828,9 +990,12 @@ export function useTestPointInZone() {
 export function useZoneServiceCoverage(zoneId: string | undefined) {
   return useQuery({
     enabled: !!zoneId,
-    queryKey: ['admin', 'zone-services', zoneId],
+    queryKey: ["admin", "zone-services", zoneId],
     queryFn: async () => {
-      const { data, error } = await supabase.from('zone_services').select('service_id').eq('zone_id', zoneId!);
+      const { data, error } = await supabase
+        .from("zone_services")
+        .select("service_id")
+        .eq("zone_id", zoneId!);
       if (error) throw error;
       return new Set((data ?? []).map((r) => r.service_id));
     },
@@ -840,17 +1005,35 @@ export function useZoneServiceCoverage(zoneId: string | undefined) {
 export function useSetZoneService() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ zoneId, serviceId, enabled }: { zoneId: string; serviceId: string; enabled: boolean }) => {
+    mutationFn: async ({
+      zoneId,
+      serviceId,
+      enabled,
+    }: {
+      zoneId: string;
+      serviceId: string;
+      enabled: boolean;
+    }) => {
       if (enabled) {
-        const { error } = await supabase.from('zone_services').insert({ zone_id: zoneId, service_id: serviceId }).select('zone_id').single();
+        const { error } = await supabase
+          .from("zone_services")
+          .insert({ zone_id: zoneId, service_id: serviceId })
+          .select("zone_id")
+          .single();
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('zone_services').delete().eq('zone_id', zoneId).eq('service_id', serviceId).select('zone_id').single();
+        const { error } = await supabase
+          .from("zone_services")
+          .delete()
+          .eq("zone_id", zoneId)
+          .eq("service_id", serviceId)
+          .select("zone_id")
+          .single();
         if (error) throw error;
       }
     },
     onMutate: async (vars) => {
-      const key = ['admin', 'zone-services', vars.zoneId] as const;
+      const key = ["admin", "zone-services", vars.zoneId] as const;
       const previous = qc.getQueryData<Set<string>>(key);
       const next = new Set(previous ?? []);
       if (vars.enabled) next.add(vars.serviceId);
@@ -863,7 +1046,7 @@ export function useSetZoneService() {
       if (context) qc.setQueryData(context.key, context.previous);
     },
     onSettled: (_d, _error, vars) => {
-      qc.invalidateQueries({ queryKey: ['admin', 'zone-services', vars.zoneId] });
+      qc.invalidateQueries({ queryKey: ["admin", "zone-services", vars.zoneId] });
       invalidateCustomerMarketplaceQueries(qc);
     },
   });
@@ -872,9 +1055,12 @@ export function useSetZoneService() {
 export function useZoneProviderCoverage(zoneId: string | undefined) {
   return useQuery({
     enabled: !!zoneId,
-    queryKey: ['admin', 'zone-providers', zoneId],
+    queryKey: ["admin", "zone-providers", zoneId],
     queryFn: async () => {
-      const { data, error } = await supabase.from('zone_providers').select('provider_id').eq('zone_id', zoneId!);
+      const { data, error } = await supabase
+        .from("zone_providers")
+        .select("provider_id")
+        .eq("zone_id", zoneId!);
       if (error) throw error;
       return new Set((data ?? []).map((r) => r.provider_id));
     },
@@ -884,17 +1070,35 @@ export function useZoneProviderCoverage(zoneId: string | undefined) {
 export function useSetZoneProvider() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ zoneId, providerId, enabled }: { zoneId: string; providerId: string; enabled: boolean }) => {
+    mutationFn: async ({
+      zoneId,
+      providerId,
+      enabled,
+    }: {
+      zoneId: string;
+      providerId: string;
+      enabled: boolean;
+    }) => {
       if (enabled) {
-        const { error } = await supabase.from('zone_providers').insert({ zone_id: zoneId, provider_id: providerId }).select('zone_id').single();
+        const { error } = await supabase
+          .from("zone_providers")
+          .insert({ zone_id: zoneId, provider_id: providerId })
+          .select("zone_id")
+          .single();
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('zone_providers').delete().eq('zone_id', zoneId).eq('provider_id', providerId).select('zone_id').single();
+        const { error } = await supabase
+          .from("zone_providers")
+          .delete()
+          .eq("zone_id", zoneId)
+          .eq("provider_id", providerId)
+          .select("zone_id")
+          .single();
         if (error) throw error;
       }
     },
     onMutate: async (vars) => {
-      const key = ['admin', 'zone-providers', vars.zoneId] as const;
+      const key = ["admin", "zone-providers", vars.zoneId] as const;
       const previous = qc.getQueryData<Set<string>>(key);
       const next = new Set(previous ?? []);
       if (vars.enabled) next.add(vars.providerId);
@@ -907,7 +1111,7 @@ export function useSetZoneProvider() {
       if (context) qc.setQueryData(context.key, context.previous);
     },
     onSettled: (_d, _error, vars) => {
-      qc.invalidateQueries({ queryKey: ['admin', 'zone-providers', vars.zoneId] });
+      qc.invalidateQueries({ queryKey: ["admin", "zone-providers", vars.zoneId] });
       invalidateCustomerMarketplaceQueries(qc, vars.providerId);
     },
   });
@@ -918,12 +1122,12 @@ export type CampaignTarget = "customers" | "providers" | "all";
 
 export function useAdminCampaigns() {
   return useQuery({
-    queryKey: ['admin', 'campaigns'],
+    queryKey: ["admin", "campaigns"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('notification_campaigns')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .from("notification_campaigns")
+        .select("*")
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
@@ -933,12 +1137,12 @@ export function useAdminCampaigns() {
 export function useAdminCampaignDeliveryCount(campaignId: string | undefined) {
   return useQuery({
     enabled: !!campaignId,
-    queryKey: ['admin', 'campaign-deliveries', campaignId],
+    queryKey: ["admin", "campaign-deliveries", campaignId],
     queryFn: async () => {
       const { count, error } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .eq('campaign_id', campaignId!);
+        .from("notifications")
+        .select("*", { count: "exact", head: true })
+        .eq("campaign_id", campaignId!);
       if (error) throw error;
       return count ?? 0;
     },
@@ -948,7 +1152,9 @@ export function useAdminCampaignDeliveryCount(campaignId: string | undefined) {
 export function usePreviewCampaignAudience() {
   return useMutation({
     mutationFn: async (target: CampaignTarget) => {
-      const { data, error } = await supabase.rpc('admin_preview_campaign_audience', { p_target: target });
+      const { data, error } = await supabase.rpc("admin_preview_campaign_audience", {
+        p_target: target,
+      });
       if (error) throw error;
       return data as number;
     },
@@ -959,19 +1165,26 @@ export function useCreateCampaign() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: {
-      title_en: string; title_ar: string; body_en: string; body_ar: string;
-      target: CampaignTarget; channel_push: boolean; scheduled_for: string | null;
+      title_en: string;
+      title_ar: string;
+      body_en: string;
+      body_ar: string;
+      target: CampaignTarget;
+      channel_push: boolean;
+      scheduled_for: string | null;
     }) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       const { data, error } = await supabase
-        .from('notification_campaigns')
+        .from("notification_campaigns")
         .insert({ ...input, created_by: user?.id })
         .select()
         .single();
       if (error) throw error;
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'campaigns'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "campaigns"] }),
   });
 }
 
@@ -979,15 +1192,21 @@ export function useActivateCampaign() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (campaignId: string) => {
-      const { error } = await supabase.rpc('admin_activate_campaign', { p_campaign_id: campaignId });
+      const { error } = await supabase.rpc("admin_activate_campaign", {
+        p_campaign_id: campaignId,
+      });
       if (error) throw error;
-      const { data: stored, error: readError } = await supabase.from('notification_campaigns').select('status,scheduled_for').eq('id', campaignId).single();
+      const { data: stored, error: readError } = await supabase
+        .from("notification_campaigns")
+        .select("status,scheduled_for")
+        .eq("id", campaignId)
+        .single();
       if (readError) throw readError;
       const scheduledFor = stored.scheduled_for ? new Date(stored.scheduled_for).getTime() : null;
-      const expectedStatus = scheduledFor && scheduledFor > Date.now() ? 'scheduled' : 'sent';
-      if (stored.status !== expectedStatus) throw new Error('Campaign activation did not persist.');
+      const expectedStatus = scheduledFor && scheduledFor > Date.now() ? "scheduled" : "sent";
+      if (stored.status !== expectedStatus) throw new Error("Campaign activation did not persist.");
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'campaigns'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "campaigns"] }),
   });
 }
 
@@ -995,25 +1214,29 @@ export function useCancelCampaign() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (campaignId: string) => {
-      const { error } = await supabase.rpc('admin_cancel_campaign', { p_campaign_id: campaignId });
+      const { error } = await supabase.rpc("admin_cancel_campaign", { p_campaign_id: campaignId });
       if (error) throw error;
-      const { data: stored, error: readError } = await supabase.from('notification_campaigns').select('status').eq('id', campaignId).single();
+      const { data: stored, error: readError } = await supabase
+        .from("notification_campaigns")
+        .select("status")
+        .eq("id", campaignId)
+        .single();
       if (readError) throw readError;
-      if (stored.status !== 'cancelled') throw new Error('Campaign cancellation did not persist.');
+      if (stored.status !== "cancelled") throw new Error("Campaign cancellation did not persist.");
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'campaigns'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "campaigns"] }),
   });
 }
 
 // ---------- Booking reminder rules ----------
 export function useAdminReminderRules() {
   return useQuery({
-    queryKey: ['admin', 'reminder-rules'],
+    queryKey: ["admin", "reminder-rules"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('booking_reminder_rules')
-        .select('*')
-        .order('lead_minutes', { ascending: true });
+        .from("booking_reminder_rules")
+        .select("*")
+        .order("lead_minutes", { ascending: true });
       if (error) throw error;
       return data ?? [];
     },
@@ -1024,11 +1247,15 @@ export function useCreateReminderRule() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (leadMinutes: number) => {
-      const { data, error } = await supabase.from('booking_reminder_rules').insert({ lead_minutes: leadMinutes }).select().single();
+      const { data, error } = await supabase
+        .from("booking_reminder_rules")
+        .insert({ lead_minutes: leadMinutes })
+        .select()
+        .single();
       if (error) throw error;
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'reminder-rules'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "reminder-rules"] }),
   });
 }
 
@@ -1036,10 +1263,16 @@ export function useSetReminderRuleActive() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
-      const { data, error } = await supabase.from('booking_reminder_rules').update({ is_active: active }).eq('id', id).select('is_active').single();
+      const { data, error } = await supabase
+        .from("booking_reminder_rules")
+        .update({ is_active: active })
+        .eq("id", id)
+        .select("is_active")
+        .single();
       if (error) throw error;
-      if (data.is_active !== active) throw new Error('Reminder rule active status did not persist.');
+      if (data.is_active !== active)
+        throw new Error("Reminder rule active status did not persist.");
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'reminder-rules'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "reminder-rules"] }),
   });
 }

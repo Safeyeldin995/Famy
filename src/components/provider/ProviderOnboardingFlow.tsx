@@ -776,7 +776,11 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                     <div className="break-words text-sm font-bold text-foreground">
                       {lang === "ar" ? s.name_ar : s.name_en}
                     </div>
-                    {isFixedPackage(s) && <p className="mt-1 text-xs text-brand">{t(packageLabel(s).key, packageLabel(s).values)}</p>}
+                    {isFixedPackage(s) && (
+                      <p className="mt-1 text-xs text-brand">
+                        {t(packageLabel(s).key, packageLabel(s).values)}
+                      </p>
+                    )}
                     <div className="mt-0.5 break-words text-xs font-medium text-muted-foreground">
                       {lang === "ar" ? s.category?.name_ar : s.category?.name_en}
                     </div>

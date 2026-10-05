@@ -78,7 +78,8 @@ export function toUIProvider(row: any): UIProvider {
     services: (row.services ?? [])
       .filter((ps: any) => ps.status === "approved" || ps.status === "pending")
       .map((ps: any) => ({
-        name: (lang === "ar" ? ps.service?.name_ar : ps.service?.name_en) || ps.service?.name_en || "",
+        name:
+          (lang === "ar" ? ps.service?.name_ar : ps.service?.name_en) || ps.service?.name_en || "",
         status: ps.status,
       })),
     gallery: galleryFor(row.id),
@@ -113,15 +114,17 @@ export function toUICategory(row: any): UICategory {
     title: (lang === "ar" ? row.name_ar : row.name_en) || row.name_en,
     subtitle: (lang === "ar" ? row.name_ar : row.name_en) || row.name_en,
     description:
-      (lang === "ar" ? row.description_ar : row.description_en) ||
-      row.description_en ||
-      "",
+      (lang === "ar" ? row.description_ar : row.description_en) || row.description_en || "",
     ...visuals,
   };
 }
 
-export function providerPriceLabel(provider: UIProvider, t: (key: string, options?: Record<string, unknown>) => string) {
-  if (!isFixedPackage(provider.servicePricing)) return formatEGP(provider.hourlyRate, { perHour: true });
+export function providerPriceLabel(
+  provider: UIProvider,
+  t: (key: string, options?: Record<string, unknown>) => string,
+) {
+  if (!isFixedPackage(provider.servicePricing))
+    return formatEGP(provider.hourlyRate, { perHour: true });
   const label = packageLabel(provider.servicePricing!);
   return `${formatEGP(provider.hourlyRate)} · ${t(label.key, label.values)}`;
 }

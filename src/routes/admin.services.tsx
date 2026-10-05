@@ -96,7 +96,7 @@ function formFromService(s: any): ServiceForm {
     base_price: String(s.base_price ?? 0),
     duration_min: String(s.duration_min ?? 60),
     pricing_model: (s.pricing_model as PricingModel) ?? "hourly",
-    fixed_start_time: s.fixed_start_time?.slice(0,5) ?? "",
+    fixed_start_time: s.fixed_start_time?.slice(0, 5) ?? "",
     minimum_price: s.minimum_price != null ? String(s.minimum_price) : "",
     maximum_price: s.maximum_price != null ? String(s.maximum_price) : "",
     maximum_extras_total: s.maximum_extras_total != null ? String(s.maximum_extras_total) : "",
@@ -340,11 +340,19 @@ function ServiceFormFields({
           </select>
         </label>
       </div>
-      {form.pricing_model === "fixed" && <label className="block">
-        <span className="text-xs font-semibold text-muted-foreground">{t("packages.fixedStart")}</span>
-        <input type="time" value={form.fixed_start_time} onChange={(e) => setForm({ ...form, fixed_start_time: e.target.value })} className="mt-1 h-11 w-full rounded-lg border border-border bg-surface px-2 text-sm" />
-      </label>}
-
+      {form.pricing_model === "fixed" && (
+        <label className="block">
+          <span className="text-xs font-semibold text-muted-foreground">
+            {t("packages.fixedStart")}
+          </span>
+          <input
+            type="time"
+            value={form.fixed_start_time}
+            onChange={(e) => setForm({ ...form, fixed_start_time: e.target.value })}
+            className="mt-1 h-11 w-full rounded-lg border border-border bg-surface px-2 text-sm"
+          />
+        </label>
+      )}
 
       <div className="rounded-xl border border-border/60 p-3">
         <label className="flex items-center gap-2 text-xs font-semibold">

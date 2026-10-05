@@ -184,9 +184,7 @@ export function ProviderProfileContent({ providerId }: { providerId: string }) {
                   ({formatNumber(p.reviews)} {t("providerProfile.reviewsOnly")})
                 </span>
               </div>
-              <p className="mt-2 text-2xl font-black text-brand">
-                {providerPriceLabel(p, t)}
-              </p>
+              <p className="mt-2 text-2xl font-black text-brand">{providerPriceLabel(p, t)}</p>
             </div>
           </div>
         </CustomerFloatingPanel>
@@ -213,11 +211,25 @@ export function ProviderProfileContent({ providerId }: { providerId: string }) {
 
         {(servicesQ.data ?? []).some((row) => isFixedPackage(row.service)) && (
           <ProfileCard title={t("packages.fixedPrice")}>
-            <div className="space-y-3">{(servicesQ.data ?? []).filter((row) => isFixedPackage(row.service)).map((row) => <div key={row.service.id} className="rounded-xl border border-brand/20 p-3">
-              <p className="text-sm font-bold">{lang === "ar" ? row.service.name_ar : row.service.name_en}</p>
-              <p className="mt-1 text-xs text-brand">{t(packageLabel(row.service).key, packageLabel(row.service).values)}</p>
-              {row.price_override != null && <p className="mt-1 text-sm font-bold">{formatEGP(row.price_override)} · {t("packages.fixedPrice")}</p>}
-            </div>)}</div>
+            <div className="space-y-3">
+              {(servicesQ.data ?? [])
+                .filter((row) => isFixedPackage(row.service))
+                .map((row) => (
+                  <div key={row.service.id} className="rounded-xl border border-brand/20 p-3">
+                    <p className="text-sm font-bold">
+                      {lang === "ar" ? row.service.name_ar : row.service.name_en}
+                    </p>
+                    <p className="mt-1 text-xs text-brand">
+                      {t(packageLabel(row.service).key, packageLabel(row.service).values)}
+                    </p>
+                    {row.price_override != null && (
+                      <p className="mt-1 text-sm font-bold">
+                        {formatEGP(row.price_override)} · {t("packages.fixedPrice")}
+                      </p>
+                    )}
+                  </div>
+                ))}
+            </div>
           </ProfileCard>
         )}
 

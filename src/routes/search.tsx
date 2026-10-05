@@ -119,7 +119,10 @@ function SearchPage() {
                   <option key={service.id} value={service.id}>
                     {lang === "ar"
                       ? service.name_ar || service.name_en
-                      : service.name_en || service.name_ar}{isFixedPackage(service) ? ` · ${t(packageLabel(service).key, packageLabel(service).values)}` : ""}
+                      : service.name_en || service.name_ar}
+                    {isFixedPackage(service)
+                      ? ` · ${t(packageLabel(service).key, packageLabel(service).values)}`
+                      : ""}
                   </option>
                 ),
               )}

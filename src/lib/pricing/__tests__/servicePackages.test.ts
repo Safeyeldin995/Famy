@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   cairoWallTime,
+  packageRuleStart,
   filterFixedStartSlots,
   packageLabel,
   servicePriceUnit,
@@ -51,4 +52,10 @@ describe("fixed package display and quotes", () => {
       filterFixedStartSlots(slots, { pricing_model: "hourly", fixed_start_time: "18:00" }),
     ).toBe(slots);
   });
+});
+
+it("aligns overnight to 18:00 even when availability begins earlier", () => {
+  expect(packageRuleStart("09:00:00", "18:00:00")).toBe("18:00:00");
+  expect(packageRuleStart("19:00:00", "18:00:00")).toBeNull();
+  expect(packageRuleStart("09:00:00")).toBe("09:00:00");
 });
