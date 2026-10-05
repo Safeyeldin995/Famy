@@ -139,9 +139,15 @@ it.each([
   await db.exec(
     `UPDATE public.services SET pricing_model='hourly' WHERE id='${IDS.cleaningService}'`,
   );
-  await expect(book(IDS.cleaningService, start, hours)).rejects.toThrow(
-    /Bookings cannot span past midnight/,
-  );
+  await expect(book(IDS.cleaningService, start, hours)).rejects.toThrow(/BOOKING_SLOT_UNAVAILABLE/);
+  await expect(
+    db.query(
+      `SELECT public.check_booking_slot($1, t, t + make_interval(hours => $3), NULL)
+       FROM (SELECT (((now() AT TIME ZONE 'Africa/Cairo')::date + 2) + $2::time)
+         AT TIME ZONE 'Africa/Cairo' AS t) x`,
+      [IDS.provider, start, hours],
+    ),
+  ).rejects.toThrow(/Bookings cannot span past midnight/);
 });
 it("keeps hourly multiplication and permits arbitrary hourly durations", async () => {
   await db.exec(
