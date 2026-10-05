@@ -1,3 +1,4 @@
+import { isFixedPackage, packageLabel, type PackageService } from "@/lib/pricing/servicePackages";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -22,7 +23,7 @@ import {
   sortProvidersForStudentEducation,
   tutoringMatchBadgeLabel,
 } from "@/lib/tutoring/tutoringProviderMatch";
-import { toUICategory, toUIProvider } from "@/lib/db/adapters";
+import { toUICategory, toUIProvider, providerPriceLabel } from "@/lib/db/adapters";
 import { formatEGP } from "@/lib/utils";
 import { SlidersHorizontal } from "lucide-react";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
@@ -154,11 +155,11 @@ export function CategoryPageContent({ categoryId }: { categoryId: string }) {
               className="focus-ring mt-3 h-12 w-full rounded-full bg-surface-2 px-4 text-sm font-bold text-foreground focus:outline-none"
             >
               {(servicesQ.data ?? []).map(
-                (service: { id: string; name_en: string; name_ar?: string }) => (
+                (service: { id: string; name_en: string; name_ar?: string } & PackageService) => (
                   <option key={service.id} value={service.id}>
                     {lang === "ar"
                       ? service.name_ar || service.name_en
-                      : service.name_en || service.name_ar}
+                      : service.name_en || service.name_ar}{isFixedPackage(service) ? ` · ${t(packageLabel(service).key, packageLabel(service).values)}` : ""}
                   </option>
                 ),
               )}
@@ -225,7 +226,7 @@ export function CategoryPageContent({ categoryId }: { categoryId: string }) {
                 params={{ id: p.id }}
                 avatar={p.avatar}
                 name={p.name}
-                subtitle={formatEGP(p.hourlyRate, { perHour: true })}
+                subtitle={providerPriceLabel(p, t)}
                 meta={<ProviderRatingMeta rating={p.rating} reviews={p.reviews} />}
                 pill={
                   matchBadge &&

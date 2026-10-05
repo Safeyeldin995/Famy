@@ -1,3 +1,4 @@
+import { isFixedPackage, packageLabel, type PackageService } from "@/lib/pricing/servicePackages";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { PhoneFrame, Chip, EmptyState } from "@/components/famio/ui";
@@ -10,7 +11,7 @@ import {
   formatTeachingCapabilityLine,
   isTutoringCategorySlug,
 } from "@/lib/tutoring/teachingCapabilities";
-import { toUIProvider } from "@/lib/db/adapters";
+import { toUIProvider, providerPriceLabel } from "@/lib/db/adapters";
 import { currentLang } from "@/lib/i18n";
 import { useTranslation } from "react-i18next";
 import { Search as SearchIcon, X } from "lucide-react";
@@ -118,7 +119,7 @@ function SearchPage() {
                   <option key={service.id} value={service.id}>
                     {lang === "ar"
                       ? service.name_ar || service.name_en
-                      : service.name_en || service.name_ar}
+                      : service.name_en || service.name_ar}{isFixedPackage(service) ? ` · ${t(packageLabel(service).key, packageLabel(service).values)}` : ""}
                   </option>
                 ),
               )}
@@ -172,7 +173,7 @@ function SearchPage() {
                       durationMin: cap.durationMin,
                       price: cap.price,
                     })
-                  : formatEGP(p.hourlyRate, { perHour: true });
+                  : providerPriceLabel(p, t);
               return (
                 <ProviderListRow
                   key={p.id}

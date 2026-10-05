@@ -928,6 +928,22 @@ export function useSubmitReview() {
 }
 
 // ---------- Provider services (for booking) ----------
+export function useFixedPackageRate(providerId: string, serviceId: string | undefined, addressId?: string | null) {
+  return useQuery({
+    enabled: !!serviceId,
+    queryKey: ['fixed-package-rate', providerId, serviceId, addressId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('search_marketplace_providers', {
+        p_service_id: serviceId!,
+        ...(addressId ? { p_address_id: addressId } : {}),
+      });
+      if (error) throw error;
+      const row = data?.find(row => row.id === providerId);
+      return row ? Number(row.hourly_rate) : null;
+    },
+  });
+}
+
 export function useProviderServices(providerId: string | undefined) {
   return useQuery({
     enabled: !!providerId,

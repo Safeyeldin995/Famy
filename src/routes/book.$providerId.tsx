@@ -7,6 +7,7 @@ import { CustomerFloatingPanel } from "@/components/famio/CustomerFloatingPanel"
 import {
   useProvider,
   useProviderServices,
+  useFixedPackageRate,
   useCreateBooking,
   useAddresses,
   useAvailableSlots,
@@ -238,6 +239,8 @@ export function BookContent({
     isTutoring && !!searchCapabilityId && !capabilitiesQ.isLoading && !selectedCapability;
   const fixedPackage = !isTutoring && isFixedPackage(activeService?.service);
   const fixedStart = fixedPackage ? activeService?.service?.fixed_start_time : null;
+  const needsPackageRate = fixedPackage && activeService?.price_override == null;
+  const packageRateQ = useFixedPackageRate(providerId, needsPackageRate ? activeService?.service?.id : undefined, slotAddressId);
   const hours = selectedCapability ? selectedCapability.durationMin / 60 : fixedPackage ? Number(activeService?.service?.duration_min) / 60 : parseInt(duration);
   const tutoringQuote = selectedCapability
     ? tutoringSessionQuote(selectedCapability.durationMin, selectedCapability.price)
@@ -396,7 +399,7 @@ export function BookContent({
     bookingSettingsQ.data?.max_advance_days,
   ]);
 
-  if (provQ.isLoading || servicesQ.isLoading || bookingSettingsQ.isLoading) {
+  if (provQ.isLoading || servicesQ.isLoading || bookingSettingsQ.isLoading || (needsPackageRate && packageRateQ.isLoading)) {
     return (
       <PhoneFrame>
         <div className="grid flex-1 place-items-center">
@@ -449,7 +452,10 @@ export function BookContent({
       ? t("bookFlow.forWhomMyself", "Myself")
       : (selectedFamilyMember?.full_name ?? t("bookFlow.dash"));
 
-  const ratePerHour = Number(activeService?.price_override ?? p.hourlyRate);
+  if (needsPackageRate && (packageRateQ.isError || packageRateQ.data == null)) {
+    return <PhoneFrame><QueryError onRetry={() => packageRateQ.refetch()} /></PhoneFrame>;
+  }
+  const ratePerHour = Number(activeService?.price_override ?? (needsPackageRate ? packageRateQ.data : p.hourlyRate));
   const subtotal = tutoringQuote ? tutoringQuote.subtotal : serviceQuote(activeService?.service, ratePerHour, hours).subtotal;
   const fee = billingQ.data?.platform_fee ?? DEFAULT_BILLING_SETTINGS.platform_fee;
   const vat = Math.round(
