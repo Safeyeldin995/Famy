@@ -1404,6 +1404,8 @@ const en = {
         school: "School age",
       },
       reference: "Reference {{n}}",
+      addReference: "Add another reference",
+      referenceHelper: "Someone we can ask about your work",
       referenceOptional: "Optional",
       refName: "Full name",
       refRelationship: "Relationship",

@@ -44,7 +44,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { proPath } from "@/lib/preview/previewPath";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
-import { buildReferencesPayload } from "@/lib/provider/onboardingReferences";
+import { buildReferencesPayload, showSecondReference } from "@/lib/provider/onboardingReferences";
 import {
   buildCoverageSavePayload,
   buildServicesSavePayload,
@@ -176,6 +176,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
   const search = useSearch({ strict: false });
   const [step, setStep] = useState(() => onboardingInitialStep(search.section));
   const [err, setErr] = useState("");
+  const [secondReferenceExpanded, setSecondReferenceExpanded] = useState(false);
   const [legalName, setLegalName] = useState(previewMode ? PREVIEW_DEFAULTS.legalName : "");
   const [dob, setDob] = useState(previewMode ? PREVIEW_DEFAULTS.dob : "");
   const [gender, setGender] = useState(previewMode ? PREVIEW_DEFAULTS.gender : "");
@@ -1017,7 +1018,8 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                 {t("pro.onboardingWizard.savedSelectionsError")}
               </p>
             ) : null}
-            {[ref1, ref2].map((ref, idx) => (
+            <p className="text-sm text-muted-foreground">{t("pro.onboardingWizard.referenceHelper")}</p>
+            {([ref1, ...(showSecondReference(ref2, secondReferenceExpanded, (refsQ.data?.length ?? 0) > 1) ? [ref2] : [])]).map((ref, idx) => (
               <Card key={idx} className="space-y-3 rounded-[1.25rem] p-4">
                 <div className="flex items-baseline justify-between gap-2">
                   <div className="text-xs font-extrabold uppercase tracking-wider text-brand">
@@ -1029,7 +1031,9 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                     </span>
                   ) : null}
                 </div>
+                <label className="block text-sm font-semibold" htmlFor={`reference-${idx}-refName`}>{t("pro.onboardingWizard.refName")}</label>
                 <input
+                  id={`reference-${idx}-refName`}
                   placeholder={t("pro.onboardingWizard.refName")}
                   value={ref.full_name}
                   onChange={(e) =>
@@ -1038,7 +1042,9 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                   className={inputClass}
                   disabled={referencesLoadState !== "ready"}
                 />
+                <label className="block text-sm font-semibold" htmlFor={`reference-${idx}-refRelationship`}>{t("pro.onboardingWizard.refRelationship")}</label>
                 <input
+                  id={`reference-${idx}-refRelationship`}
                   placeholder={t("pro.onboardingWizard.refRelationship")}
                   value={ref.relationship}
                   onChange={(e) =>
@@ -1047,7 +1053,9 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                   className={inputClass}
                   disabled={referencesLoadState !== "ready"}
                 />
+                <label className="block text-sm font-semibold" htmlFor={`reference-${idx}-refPhone`}>{t("pro.onboardingWizard.refPhone")}</label>
                 <input
+                  id={`reference-${idx}-refPhone`}
                   placeholder={t("pro.onboardingWizard.refPhone")}
                   value={ref.phone}
                   onChange={(e) =>
@@ -1057,7 +1065,9 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                   inputMode="tel"
                   disabled={referencesLoadState !== "ready"}
                 />
+                <label className="block text-sm font-semibold" htmlFor={`reference-${idx}-refNotes`}>{t("pro.onboardingWizard.refNotes")}</label>
                 <textarea
+                  id={`reference-${idx}-refNotes`}
                   placeholder={t("pro.onboardingWizard.refNotes")}
                   value={ref.notes}
                   onChange={(e) =>
@@ -1069,6 +1079,11 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                 />
               </Card>
             ))}
+            {!showSecondReference(ref2, secondReferenceExpanded, (refsQ.data?.length ?? 0) > 1) && (
+              <button type="button" className="min-h-11 rounded-xl border border-border px-4 text-sm font-bold" onClick={() => setSecondReferenceExpanded(true)}>
+                {t("pro.onboardingWizard.addReference")}
+              </button>
+            )}
           </div>
         )}
 
