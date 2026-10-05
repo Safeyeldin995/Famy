@@ -1,3 +1,4 @@
+import { hasMissingServicePriceLimits } from "@/lib/catalog/servicePriceLimits";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -330,7 +331,7 @@ function ServiceFormFields({
           >
             {PRICING_MODELS.map((m) => (
               <option key={m} value={m}>
-                {m}
+                {t(`admin.services.pricingModels.${m}`)}
               </option>
             ))}
           </select>
@@ -1107,6 +1108,17 @@ export function AdminServices() {
           <ul className="space-y-2">
             {rows.map((s: any) => (
               <li key={s.id} className="rounded-xl border border-border/60 p-3">
+                {hasMissingServicePriceLimits(editingId === s.id ? {
+                  ...s,
+                  provider_pricing_allowed: editForm.provider_pricing_allowed,
+                  minimum_price: editForm.minimum_price.trim() ? Number(editForm.minimum_price) : null,
+                  maximum_price: editForm.maximum_price.trim() ? Number(editForm.maximum_price) : null,
+                } : s) && (
+                  <div className="mb-2 flex flex-wrap items-center gap-2 text-xs font-bold text-amber-800 dark:text-amber-200">
+                    <span className="rounded-full bg-amber-100 px-3 py-1">{t("admin.services.missingPriceLimits")}</span>
+                    {editingId !== s.id && <button type="button" className="min-h-11 px-3 underline" onClick={() => startEdit(s)}>{t("common.edit")}</button>}
+                  </div>
+                )}
                 {editingId === s.id ? (
                   <div className="space-y-3">
                     <ServiceFormFields
@@ -1149,7 +1161,7 @@ export function AdminServices() {
                         </span>
                       </div>
                       <p className="text-[11px] text-muted-foreground break-words">
-                        {localizedCategoryName(s, lang)}
+                        {localizedCategoryName(s, lang)} · {t(`admin.services.pricingModels.${s.pricing_model}`)}
                         {catalogView === "outside_launch" && (
                           <span className="ms-1 font-semibold text-amber-800 dark:text-amber-200">
                             · {t("admin.services.catalogViews.outsideLaunchBadge")}

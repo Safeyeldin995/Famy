@@ -2142,6 +2142,8 @@ const en = {
       selectCategory: "Select a category…",
       basePrice: "Base price (EGP)",
       durationMin: "Duration (min)",
+      missingPriceLimits: "Price limits are missing",
+      pricingModels: { hourly: "Hourly", fixed: "Fixed price", per_visit: "Per visit" },
       pricingModel: "Pricing model",
       allowProviderPricing: "Allow providers to set their own price for this service",
       minimumPrice: "Minimum price (EGP)",

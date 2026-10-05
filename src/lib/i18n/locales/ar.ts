@@ -2120,6 +2120,8 @@ const ar: Translation = {
       selectCategory: "اختر فئة…",
       basePrice: "السعر الأساسي (ج.م)",
       durationMin: "المدة (دقيقة)",
+      missingPriceLimits: "حدود السعر مش محددة",
+      pricingModels: { hourly: "بالساعة", fixed: "سعر ثابت", per_visit: "لكل زيارة" },
       pricingModel: "نموذج التسعير",
       allowProviderPricing: "السماح لمقدمي الخدمة بتحديد سعرهم الخاص لهذه الخدمة",
       minimumPrice: "الحد الأدنى للسعر (ج.م)",
