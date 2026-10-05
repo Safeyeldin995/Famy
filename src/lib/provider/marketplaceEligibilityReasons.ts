@@ -72,7 +72,11 @@ export function mapMarketplaceEligibilityFailureReason(
   }
   const exact = EXACT_REASON_MAP[reason];
   if (exact) {
-    if (exact.i18nKey === "pro.profile.eligibilityReasons.invalidPrice" && serviceId) {
+    if (
+      (exact.i18nKey === "pro.profile.eligibilityReasons.invalidPrice" ||
+        exact.i18nKey === "pro.profile.eligibilityReasons.teachingPrice") &&
+      serviceId
+    ) {
       return { ...exact, action: { kind: "service", serviceId } };
     }
     return exact;

@@ -1,4 +1,14 @@
 const en = {
+  pricePicker: {
+    range: "Allowed price: {{min}} – {{max}} {{unit}}",
+    choose: "Choose a price",
+    increase: "Increase price",
+    decrease: "Decrease price",
+    sessionUnit: "EGP / session",
+    hourUnit: "EGP / hour",
+    nextHint: "Choose a price for each selected service to continue.",
+    outOfRange: "Your price is outside the new range. Choose a new price.",
+  },
   common: {
     appName: "Famy",
     tagline: "Trusted help. Happy families.",

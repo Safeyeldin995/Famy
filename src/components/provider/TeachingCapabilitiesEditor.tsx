@@ -1,3 +1,4 @@
+import { ServicePricePicker, isPriceInRange } from "./ServicePricePicker";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -36,9 +37,11 @@ type TutoringService = {
 export function TeachingCapabilitiesEditor({
   providerId,
   services,
+  focusedServiceId,
 }: {
   providerId: string;
   services: TutoringService[];
+  focusedServiceId?: string;
 }) {
   const { t } = useTranslation();
   const lang = currentLang() === "ar" ? "ar" : "en";
@@ -55,9 +58,17 @@ export function TeachingCapabilitiesEditor({
   const [curriculumId, setCurriculumId] = useState("");
   const [selectedLevelIds, setSelectedLevelIds] = useState<string[]>([]);
   const [duration, setDuration] = useState(DEFAULT_SESSION_DURATION_MIN);
-  const [price, setPrice] = useState("");
+  const [price, setPrice] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (focusedServiceId) {
+      setServiceId(focusedServiceId);
+      setSubjectId("");
+      setPrice(null);
+    }
+  }, [focusedServiceId]);
 
   const service = services.find((s) => s.id === serviceId) ?? services[0];
   const linkedSubjectIds = useMemo(
@@ -111,7 +122,7 @@ export function TeachingCapabilitiesEditor({
     setCurriculumId("");
     setSelectedLevelIds([]);
     setDuration(DEFAULT_SESSION_DURATION_MIN);
-    setPrice("");
+    setPrice(null);
   };
 
   const startEdit = (row: ProviderTeachingCapabilityRow) => {
@@ -121,7 +132,7 @@ export function TeachingCapabilitiesEditor({
     setCurriculumId(row.curriculum_id);
     setSelectedLevelIds([row.level_id]);
     setDuration(row.session_duration_min as typeof DEFAULT_SESSION_DURATION_MIN);
-    setPrice(String(row.session_price));
+    setPrice(row.session_price);
   };
 
   const toggleLevel = (levelId: string) => {
@@ -139,8 +150,10 @@ export function TeachingCapabilitiesEditor({
       toast.error(t("teaching.formIncomplete"));
       return;
     }
-    const sessionPrice = Number(price);
-    if (!Number.isInteger(sessionPrice) || sessionPrice <= 0) {
+    const sessionPrice = price;
+    if (
+      !isPriceInRange(sessionPrice, service.minimum_price ?? null, service.maximum_price ?? null)
+    ) {
       toast.error(t("teaching.priceInvalid"));
       return;
     }
@@ -191,6 +204,7 @@ export function TeachingCapabilitiesEditor({
           value={service?.id ?? serviceId}
           onChange={(e) => {
             setServiceId(e.target.value);
+            setPrice(null);
             setSubjectId("");
           }}
           className="h-11 rounded-xl border border-border bg-surface px-3 text-sm"
@@ -264,29 +278,21 @@ export function TeachingCapabilitiesEditor({
             </button>
           ))}
         </div>
-        <input
-          type="number"
-          min={service?.minimum_price ?? 300}
-          max={service?.maximum_price ?? 1500}
-          step={1}
+        <ServicePricePicker
+          min={service?.minimum_price ?? null}
+          max={service?.maximum_price ?? null}
           value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          placeholder={t("teaching.pricePlaceholder", {
-            min: service?.minimum_price ?? 300,
-            max: service?.maximum_price ?? 1500,
-          })}
-          className="h-11 rounded-xl border border-border bg-surface px-3 text-sm"
+          onChange={setPrice}
+          unitLabel={t("pricePicker.sessionUnit")}
         />
-        <p className="text-[11px] text-muted-foreground">
-          {t("teaching.priceRange", {
-            min: service?.minimum_price ?? 300,
-            max: service?.maximum_price ?? 1500,
-          })}
-        </p>
         <button
           type="button"
           onClick={() => void submit()}
-          disabled={submitting || upsert.isPending}
+          disabled={
+            submitting ||
+            upsert.isPending ||
+            !isPriceInRange(price, service?.minimum_price ?? null, service?.maximum_price ?? null)
+          }
           className="h-11 rounded-xl bg-brand text-sm font-extrabold text-brand-foreground disabled:opacity-50"
         >
           {editingId ? t("teaching.saveChanges") : t("teaching.addCapability")}

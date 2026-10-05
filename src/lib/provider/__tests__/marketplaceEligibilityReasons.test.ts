@@ -48,7 +48,7 @@ describe("marketplaceEligibilityReasons", () => {
     expect(rows[0]?.serviceIds).toEqual(["cleaning", "babysitting"]);
   });
 
-  it("groups tutoring prices and links to the teaching-subjects section", () => {
+  it("groups tutoring prices and targets the affected teaching service", () => {
     const reason = "No approved teaching subject with a valid session price";
     const rows = dedupeEligibilityReasons([
       { service_id: "school", failure_reasons: [reason] },
@@ -59,7 +59,7 @@ describe("marketplaceEligibilityReasons", () => {
     expect(rows[0]?.serviceIds).toEqual(["school", "language", "homework"]);
     expect(rows[0]?.mapped).toEqual({
       i18nKey: "pro.profile.eligibilityReasons.teachingPrice",
-      action: { kind: "link", path: "/pro/profile", hash: "teaching-subjects" },
+      action: { kind: "service", serviceId: "school" },
     });
   });
 

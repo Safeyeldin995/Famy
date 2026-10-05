@@ -59,7 +59,7 @@ export function usePhase1Services() {
       const { data, error } = await supabase
         .from("services")
         .select(
-          "id, slug, name_en, name_ar, minimum_price, maximum_price, allowed_session_durations, category:categories(slug, name_en, name_ar)",
+          "id, slug, name_en, name_ar, provider_pricing_allowed, minimum_price, maximum_price, allowed_session_durations, category:categories(slug, name_en, name_ar)",
         )
         .eq("is_active", true)
         .order("name_en");
@@ -110,7 +110,7 @@ export function useMySavedSelections(providerId: string | undefined) {
       const [servicesRes, zonesRes] = await Promise.all([
         supabase
           .from("provider_services")
-          .select("service_id, status")
+          .select("service_id, status, price_override")
           .eq("provider_id", providerId!),
         supabase.from("zone_providers").select("zone_id").eq("provider_id", providerId!),
       ]);
