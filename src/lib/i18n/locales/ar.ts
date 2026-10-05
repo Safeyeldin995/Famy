@@ -2319,8 +2319,15 @@ const ar: Translation = {
     },
   },
   teaching: {
+    service: "الخدمة",
+    serviceSubjects: "مواد الخدمة",
+    taxonomyLoading: "بنحمل {{label}}...",
+    taxonomyError: "مش قادرين نحمل {{label}}. حاول تاني.",
+    taxonomyEmpty: "مفيش اختيارات متاحة في {{label}} حاليا.",
+    missing: {"subject": "اختار المادة الأول", "curriculum": "اختار المنهج", "level": "اختار صف واحد على الأقل", "price": "اختار سعر الحصة من الاختيارات المتاحة"},
+
     whatITeach: "ما ادرسه",
-    editResetsApproval: "تعديل صف معتمد يعيده للمراجعة. لا يمكن حجزه حتى يوافق المشرف مرة اخرى.",
+    editResetsApproval: "تعديل مادة أو حصة معتمدة بيرجعها للمراجعة. مش هتكون متاحة للحجز لحد ما الإدارة توافق عليها تاني.",
     formIncomplete: "اختر المادة والمنهج وصفا واحدا على الأقل.",
     priceInvalid: "ادخل مبلغا صحيحا بالجنيه.",
     pricePlaceholder: "سعر الحصة ({{min}}–{{max}} جنيه)",

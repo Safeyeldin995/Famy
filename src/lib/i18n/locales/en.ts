@@ -2344,9 +2344,16 @@ const en = {
     },
   },
   teaching: {
+    service: "Service",
+    serviceSubjects: "Subjects for this service",
+    taxonomyLoading: "Loading {{label}}…",
+    taxonomyError: "Could not load {{label}}. Try again.",
+    taxonomyEmpty: "No options available for {{label}} yet.",
+    missing: {"subject": "Choose a subject first", "curriculum": "Choose a curriculum", "level": "Choose at least one level", "price": "Choose a session price from the available options"},
+
     whatITeach: "What I teach",
     editResetsApproval:
-      "Editing an approved row sends it back for review. It cannot be booked until an admin approves it again.",
+      "Editing an approved subject/session sends it back for review. It cannot be booked until an admin approves it again.",
     formIncomplete: "Select a subject, curriculum, and at least one level.",
     priceInvalid: "Enter a whole EGP amount.",
     pricePlaceholder: "Session price ({{min}}–{{max}} EGP)",
