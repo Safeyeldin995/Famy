@@ -24,8 +24,16 @@ describe("price choices", () => {
     expect(new Set(options).size).toBe(options.length);
   });
   it("includes non-round endpoints and a single fixed price", () => {
-    expect(buildPriceOptions(110, 171)).toEqual([110, 135, 160, 171]);
+    expect(buildPriceOptions(110, 171)).toEqual([110, 125, 150, 171]);
     expect(buildPriceOptions(300, 300)).toEqual([300]);
+  });
+  it("rounds interior values while preserving exact endpoints, including narrow ranges", () => {
+    expect(buildPriceOptions(120, 600)).toEqual([
+      120, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600,
+    ]);
+    expect(buildPriceOptions(120, 124)).toEqual([120, 124]);
+    expect(buildPriceOptions(125, 150)).toEqual([125, 150]);
+    expect(buildPriceOptions(125, 125)).toEqual([125]);
   });
   it("uses the stepper for absent limits and rejects reversed limits", () => {
     expect(buildPriceOptions(null, null)).toEqual([]);

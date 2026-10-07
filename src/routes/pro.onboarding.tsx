@@ -1,3 +1,4 @@
+import { onboardingSection } from "@/lib/provider/onboardingSection";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -11,7 +12,10 @@ import { useOnboardingSnapshot } from "@/lib/provider/onboarding-queries";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 
-export const Route = createFileRoute("/pro/onboarding")({ component: OnboardingRoute });
+export const Route = createFileRoute("/pro/onboarding")({
+  validateSearch: onboardingSection,
+  component: OnboardingRoute,
+});
 
 export function OnboardingRoute() {
   const { t } = useTranslation();

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildReferencesPayload,
+  showSecondReference,
   type OnboardingReference,
 } from "@/lib/provider/onboardingReferences";
 
@@ -50,4 +51,13 @@ describe("buildReferencesPayload", () => {
     });
     expect(buildReferencesPayload(one, two)).toEqual({ ok: true, references: [one, two] });
   });
+});
+
+it("collapses only an empty unsaved second reference until expanded", () => {
+  expect(showSecondReference(ref({}), false, false)).toBe(false);
+  expect(showSecondReference(ref({}), true, false)).toBe(true);
+  expect(showSecondReference(ref({}), false, true)).toBe(true);
+  for (const field of ["full_name", "relationship", "phone", "notes"]) {
+    expect(showSecondReference(ref({ [field]: "value" }), false, false)).toBe(true);
+  }
 });
