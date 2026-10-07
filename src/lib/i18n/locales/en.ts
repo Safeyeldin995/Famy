@@ -207,6 +207,10 @@ const en = {
     ruleLenStrong: "At least 8 characters",
   },
   setup: {
+    schoolOptional: "School details — optional",
+    addressExtrasOptional: "Address extras — optional",
+    photoOptional: "Profile photo — optional",
+
     title: "Complete your profile",
     photoHint: "Add a profile photo (optional)",
     uploadFailed: "Could not upload photo.",

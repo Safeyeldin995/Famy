@@ -204,6 +204,10 @@ const ar: Translation = {
     ruleLenStrong: "ثمانية أحرف على الأقل",
   },
   setup: {
+    schoolOptional: "بيانات الدراسة — اختياري",
+    addressExtrasOptional: "تفاصيل إضافية للعنوان — اختياري",
+    photoOptional: "صورة شخصية — اختياري",
+
     title: "أكمل ملفك الشخصي",
     photoHint: "أضف صورة شخصية (اختياري)",
     uploadFailed: "تعذر رفع الصورة.",
