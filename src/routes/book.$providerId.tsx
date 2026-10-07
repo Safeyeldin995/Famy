@@ -495,7 +495,10 @@ export function BookContent({
     return t("bookFlow.durationShort", { hours: formatNumber(hours) });
   };
 
+  const requirementsReady = requirementsQ.isSuccess && eitherRequirements.every((r: any) => !!requirementChoices[r.id]);
+  const requirementsBlock = ["requirements", "summary", "payment"].includes(stepKey) && !requirementsReady;
   const canNext = () => {
+    if (requirementsBlock) return false;
     if (stepKey === "service") return !!activeService;
     if (stepKey === "duration" && isTutoring) return !!selectedCapability;
     if (stepKey === "schedule") return !!date && !!time && (!fixedPackage || !!selectedSlot);
@@ -515,8 +518,8 @@ export function BookContent({
 
   const paymentCopy = paymentPresentation((methodsQ.data ?? []).find(method => method.id === paymentMethodId)?.method_type);
   const noPaymentMethods = methodsQ.isSuccess && methodsQ.data.length === 0;
-  const stepQuery = stepKey === "duration" ? capabilitiesQ : stepKey === "schedule" ? slotsQ : stepKey === "address" ? (!addressId ? addrsQ : zoneQ) : stepKey === "forWhom" ? familyMembersQ : stepKey === "requirements" ? requirementsQ : stepKey === "payment" ? methodsQ : servicesQ;
-  const disabledReason = bookingDisabledReason({ step: stepKey, allowed: canNext(), submitting: createBooking.isPending, loading: stepQuery.isLoading, error: stepQuery.isError, hasDate: !!date, hasSlots: packageSlots.length > 0, hasAddress: !!addressId });
+  const stepQuery = requirementsBlock ? requirementsQ : stepKey === "duration" ? capabilitiesQ : stepKey === "schedule" ? slotsQ : stepKey === "address" ? (!addressId ? addrsQ : zoneQ) : stepKey === "forWhom" ? familyMembersQ : stepKey === "requirements" ? requirementsQ : stepKey === "payment" ? methodsQ : servicesQ;
+  const disabledReason = bookingDisabledReason({ step: requirementsBlock ? "requirements" : stepKey, allowed: canNext(), submitting: createBooking.isPending, loading: stepQuery.isLoading, error: stepQuery.isError, hasDate: !!date, hasSlots: packageSlots.length > 0, hasAddress: !!addressId });
 
   const applyPromo = async () => {
     const code = promoCode.trim();
@@ -1434,7 +1437,8 @@ export function BookContent({
             </span>
           </div>
         )}
-        {disabledReason && <p role="status" className="mb-2 text-center text-xs font-semibold text-muted-foreground">{t(disabledReason)}</p>}
+        {requirementsBlock && stepKey !== "requirements" && <button type="button" className="min-h-11 px-3 font-bold text-brand" onClick={() => setRequestedStep("requirements")}>{t("bookFlow.requirementsTitle")}</button>}
+        {disabledReason && !(stepKey === "payment" && noPaymentMethods) && <p role="status" className="mb-2 text-center text-xs font-semibold text-muted-foreground">{t(disabledReason)}</p>}
         {stepKey === "payment" && paymentMethodId && !methodsQ.isError && <p className="mb-2 text-center text-xs text-muted-foreground">{t(paymentCopy.next)}</p>}
         {stepKey === "payment" && noPaymentMethods ? <Link to={previewPath("/help") as "/help"} className="flex min-h-12 items-center justify-center rounded-full bg-brand px-4 font-bold text-brand-foreground">{t("bookingUx.contactSupport")}</Link> : <PrimaryButton onClick={next} disabled={!canNext() || createBooking.isPending}>
           {createBooking.isPending ? (

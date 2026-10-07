@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { PhoneFrame, Chip, EmptyState } from "@/components/famio/ui";
 import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
 import { CustomerFloatingPanel } from "@/components/famio/CustomerFloatingPanel";
+import { QueryError } from "@/components/famio/QueryError";
 import { ProviderListRow, ProviderRatingMeta } from "@/components/famio/ProviderListRow";
 import { useAddresses, useMarketplaceServices, useProviders } from "@/lib/db/queries";
 import { useApprovedTeachingCapabilitiesForProviders } from "@/lib/db/teaching-queries";
@@ -153,6 +154,8 @@ function SearchPage() {
           </label>
         </div>
 
+        {servicesQ.isError && <QueryError compact onRetry={() => servicesQ.refetch()} />}
+        {addressesQ.isError && <QueryError compact onRetry={() => addressesQ.refetch()} />}
         {!provsQ.isLoading && !provsQ.isError && results.length > 0 ? (
           <p className="mt-6 text-sm font-extrabold tracking-tight text-foreground">
             {t("search2.resultsCount", { count: formatNumber(results.length) })}
