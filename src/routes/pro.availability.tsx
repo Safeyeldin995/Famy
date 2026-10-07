@@ -1,3 +1,4 @@
+import { copyWeeklyHours } from "@/lib/provider/copyWeeklyHours";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -49,6 +50,9 @@ export function AvailabilityPage() {
   const delExc = useDeleteException();
 
   const [rows, setRows] = useState<Row[]>([]);
+  const [copySource, setCopySource] = useState<number | null>(null);
+  const [copyDays, setCopyDays] = useState<number[]>([]);
+  const [copyNotice, setCopyNotice] = useState(false);
   const [newVacStart, setNewVacStart] = useState("");
   const [newVacEnd, setNewVacEnd] = useState("");
   const [newHoliday, setNewHoliday] = useState("");
@@ -115,6 +119,78 @@ export function AvailabilityPage() {
     <ProviderShell>
       <ProviderPageHero title={t("pro.schedule.title")} compact />
       <div className="space-y-5 px-5 pb-28 pt-2">
+
+
+        <div>
+          <h2 className="mb-3 px-1 text-sm font-extrabold tracking-tight text-foreground">{t("pro.schedule.weeklyHours")}</h2>
+          {availQ.isError ? (
+            <QueryError compact onRetry={() => availQ.refetch()} />
+          ) : (
+          <Card className="divide-y divide-border/50 noPad">
+            {rows.map((r) => (
+              <div key={r.weekday} className="flex flex-col items-stretch gap-3 px-4 py-4 sm:flex-row sm:items-start">
+                <button
+                  onClick={() => setRows((s) => s.map((x) => x.weekday === r.weekday ? { ...x, enabled: !x.enabled } : x))}
+                  aria-pressed={r.enabled}
+                  className={`grid min-h-11 min-w-11 shrink-0 self-start px-3 place-items-center rounded-2xl text-[11px] font-black uppercase tracking-wider transition-colors ${r.enabled ? "bg-brand text-brand-foreground" : "bg-surface-2 text-muted-foreground"}`}
+                >
+                  {t(`pro.schedule.days.${DAY_KEYS[r.weekday]}`)}
+                </button>
+                <div className="flex w-full min-w-0 flex-1 items-start gap-2">
+                  <input
+                    type="time"
+                    aria-label={`${t(`pro.schedule.days.${DAY_KEYS[r.weekday]}`)}: ${t("pro.schedule.start")}`}
+                    value={r.start_time}
+                    disabled={!r.enabled}
+                    onChange={(e) => setRows((s) => s.map((x) => x.weekday === r.weekday ? { ...x, start_time: e.target.value } : x))}
+                    className="h-11 min-w-11 w-0 flex-1 rounded-xl border border-border/60 bg-surface px-3 text-sm font-semibold text-foreground focus:border-brand focus:outline-none disabled:opacity-40"
+                  />
+                  <span className="text-xs font-bold text-muted-foreground">→</span>
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <input type="time" aria-label={`${t(`pro.schedule.days.${DAY_KEYS[r.weekday]}`)}: ${t("pro.schedule.end")}`} value={r.end_time === "24:00" ? "" : r.end_time} disabled={!r.enabled || r.end_time === "24:00"} onChange={(e) => setRows((rows) => rows.map((row) => row.weekday === r.weekday ? { ...row, end_time: e.target.value } : row))} className="h-11 min-w-11 w-full rounded-xl border border-border/60 bg-surface px-2 text-sm font-semibold disabled:opacity-40" />
+                    <label className="flex min-h-11 items-center gap-1 text-xs font-semibold">
+                      <input type="checkbox" checked={r.end_time === "24:00"} disabled={!r.enabled} onChange={(e) => setRows((rows) => rows.map((row) => row.weekday === r.weekday ? { ...row, end_time: e.target.checked ? "24:00" : "17:00" } : row))} />
+                      {t("packages.endOfDay")}
+                    </label>
+                  </div>
+                </div>
+                {r.enabled && <div className="min-w-0 sm:max-w-48">
+                  <button type="button" aria-expanded={copySource === r.weekday} className="min-h-11 min-w-11 text-start text-xs font-bold text-brand" onClick={() => { setCopySource(copySource === r.weekday ? null : r.weekday); setCopyDays([]); setCopyNotice(false); }}>
+                    {t("pro.schedule.copyHours")}
+                  </button>
+                  {copySource === r.weekday && <fieldset className="space-y-2">
+                    <legend className="text-xs text-muted-foreground">{t("pro.schedule.copyHint")}</legend>
+                    <div className="flex flex-wrap gap-2">
+                      {rows.filter(day => day.weekday !== r.weekday).map(day => (
+                        <label key={day.weekday} className={`flex min-h-11 min-w-11 items-center gap-2 rounded-xl border border-border px-3 text-xs ${!day.enabled ? "opacity-40" : ""}`}>
+                          <input type="checkbox" disabled={!day.enabled} checked={copyDays.includes(day.weekday)} onChange={(e) => setCopyDays(days => e.target.checked ? [...days, day.weekday] : days.filter(value => value !== day.weekday))} />
+                          {t(`pro.schedule.days.${DAY_KEYS[day.weekday]}`)}
+                        </label>
+                      ))}
+                    </div>
+                    <button type="button" disabled={!copyDays.length} className="min-h-11 min-w-11 rounded-xl border border-brand px-4 text-sm font-bold text-brand disabled:opacity-40" onClick={() => { setRows(rows => copyWeeklyHours(rows, r.weekday, copyDays)); setCopySource(null); setCopyDays([]); setCopyNotice(true); }}>
+                      {t("pro.schedule.applyCopy")}
+                    </button>
+                  </fieldset>}
+                </div>}
+              </div>
+            ))}
+          </Card>
+          )}
+          {copyNotice && <p role="status" className="mt-3 text-xs font-bold text-brand">{t("pro.schedule.copyNeedsSave")}</p>}
+          <PrimaryButton onClick={handleSave} disabled={save.isPending || availQ.isError} className="mt-4">
+            {save.isPending ? t("pro.common.saving") : t("pro.schedule.saveSchedule")}
+          </PrimaryButton>
+          {save.isError && (
+            <div role="alert" className="mt-3 text-center text-xs font-bold text-destructive">
+              {t("pro.schedule.saveError")}
+            </div>
+          )}
+          {save.isSuccess && <div className="mt-3 text-center text-xs font-bold text-success">{t("pro.common.saved")}</div>}
+        </div>
+
+        <details className="space-y-5">
+          <summary className="min-h-11 cursor-pointer py-3 text-sm font-extrabold">{t("pro.schedule.advanced")}</summary>
         <Card className="flex items-center gap-4 p-5">
           <div className="grid h-12 w-12 place-items-center rounded-full bg-brand/10 text-brand"><Plane className="h-6 w-6" strokeWidth={1.5} /></div>
           <div className="flex-1">
@@ -129,55 +205,9 @@ export function AvailabilityPage() {
             <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-sm transition-all ${provider.vacation_mode ? "left-[22px]" : "left-0.5"}`} />
           </button>
         </Card>
-
-        <div>
-          <h2 className="mb-3 px-1 text-sm font-extrabold tracking-tight text-foreground">{t("pro.schedule.weeklyHours")}</h2>
-          {availQ.isError ? (
-            <QueryError compact onRetry={() => availQ.refetch()} />
-          ) : (
-          <Card className="divide-y divide-border/50 noPad">
-            {rows.map((r) => (
-              <div key={r.weekday} className="flex items-center gap-3 px-5 py-4">
-                <button
-                  onClick={() => setRows((s) => s.map((x) => x.weekday === r.weekday ? { ...x, enabled: !x.enabled } : x))}
-                  className={`grid h-10 w-12 place-items-center rounded-2xl text-[11px] font-black uppercase tracking-wider transition-colors ${r.enabled ? "bg-brand text-brand-foreground" : "bg-surface-2 text-muted-foreground"}`}
-                >
-                  {t(`pro.schedule.days.${DAY_KEYS[r.weekday]}`)}
-                </button>
-                <div className="flex min-w-0 flex-1 items-start gap-2">
-                  <input
-                    type="time"
-                    value={r.start_time}
-                    disabled={!r.enabled}
-                    onChange={(e) => setRows((s) => s.map((x) => x.weekday === r.weekday ? { ...x, start_time: e.target.value } : x))}
-                    className="h-10 min-w-0 w-0 flex-1 rounded-xl border border-border/60 bg-surface px-3 text-sm font-semibold text-foreground focus:border-brand focus:outline-none disabled:opacity-40"
-                  />
-                  <span className="text-xs font-bold text-muted-foreground">→</span>
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <input type="time" value={r.end_time === "24:00" ? "" : r.end_time} disabled={!r.enabled || r.end_time === "24:00"} onChange={(e) => setRows((rows) => rows.map((row) => row.weekday === r.weekday ? { ...row, end_time: e.target.value } : row))} className="h-10 w-full rounded-xl border border-border/60 bg-surface px-2 text-sm font-semibold disabled:opacity-40" />
-                    <label className="flex min-h-11 items-center gap-1 text-xs font-semibold">
-                      <input type="checkbox" checked={r.end_time === "24:00"} disabled={!r.enabled} onChange={(e) => setRows((rows) => rows.map((row) => row.weekday === r.weekday ? { ...row, end_time: e.target.checked ? "24:00" : "17:00" } : row))} />
-                      {t("packages.endOfDay")}
-                    </label>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </Card>
-          )}
-          <PrimaryButton onClick={handleSave} disabled={save.isPending || availQ.isError} className="mt-4">
-            {save.isPending ? t("pro.common.saving") : t("pro.schedule.saveSchedule")}
-          </PrimaryButton>
-          {save.isError && (
-            <div role="alert" className="mt-3 text-center text-xs font-bold text-destructive">
-              {t("pro.schedule.saveError")}
-            </div>
-          )}
-          {save.isSuccess && <div className="mt-3 text-center text-xs font-bold text-success">{t("pro.common.saved")}</div>}
-        </div>
-
         <div>
           <h2 className="mb-3 px-1 text-sm font-extrabold tracking-tight text-foreground">{t("pro.schedule.vacations")}</h2>
+          <p className="mb-3 text-xs text-muted-foreground">{t("pro.schedule.vacationsExample")}</p>
           {vacQ.isError ? (
             <QueryError compact onRetry={() => vacQ.refetch()} />
           ) : (
@@ -209,6 +239,7 @@ export function AvailabilityPage() {
 
         <div>
           <h2 className="mb-3 px-1 text-sm font-extrabold tracking-tight text-foreground">{t("pro.schedule.holidays")}</h2>
+          <p className="mb-3 text-xs text-muted-foreground">{t("pro.schedule.holidaysExample")}</p>
           {excQ.isError ? (
             <QueryError compact onRetry={() => excQ.refetch()} />
           ) : (
@@ -248,16 +279,19 @@ export function AvailabilityPage() {
             <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-3 w-full">
               <label className="block">
                 <span className="text-xs font-bold text-muted-foreground">{t("pro.schedule.bufferMinutes")}</span>
+                <span className="mt-1 block text-xs text-muted-foreground">{t("pro.schedule.bufferMinutesExample")}</span>
                 <input type="number" min={0} step={5} value={rules.buffer_minutes} onChange={(e) => setRules({ ...rules, buffer_minutes: e.target.value })}
                   className="mt-1.5 h-11 w-full rounded-xl border border-border/60 bg-surface px-3 text-sm font-semibold text-foreground focus:border-brand focus:outline-none" />
               </label>
               <label className="block">
                 <span className="text-xs font-bold text-muted-foreground">{t("pro.schedule.minNoticeHours")}</span>
+                <span className="mt-1 block text-xs text-muted-foreground">{t("pro.schedule.minNoticeHoursExample")}</span>
                 <input type="number" min={0} step={1} value={rules.min_notice_hours} onChange={(e) => setRules({ ...rules, min_notice_hours: e.target.value })}
                   className="mt-1.5 h-11 w-full rounded-xl border border-border/60 bg-surface px-3 text-sm font-semibold text-foreground focus:border-brand focus:outline-none" />
               </label>
               <label className="block">
                 <span className="text-xs font-bold text-muted-foreground">{t("pro.schedule.maxAdvanceDays")}</span>
+                <span className="mt-1 block text-xs text-muted-foreground">{t("pro.schedule.maxAdvanceDaysExample")}</span>
                 <input type="number" min={1} step={1} value={rules.max_advance_days} onChange={(e) => setRules({ ...rules, max_advance_days: e.target.value })}
                   className="mt-1.5 h-11 w-full rounded-xl border border-border/60 bg-surface px-3 text-sm font-semibold text-foreground focus:border-brand focus:outline-none" />
               </label>
@@ -267,6 +301,7 @@ export function AvailabilityPage() {
             {updateProv.isPending ? t("pro.common.saving") : t("pro.schedule.saveRules")}
           </PrimaryButton>
         </div>
+        </details>
       </div>
     </ProviderShell>
   );

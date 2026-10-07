@@ -1237,6 +1237,17 @@ const en = {
       },
     },
     schedule: {
+      copyHours: "Copy these hours to…",
+      copyHint: "Choose open days to copy to. Closed days stay unchanged.",
+      applyCopy: "Copy hours",
+      copyNeedsSave: "Hours copied to your draft. Press Save schedule to apply them.",
+      advanced: "Advanced settings",
+      vacationsExample: "For example, leave from Sunday to Thursday blocks bookings during those dates.",
+      holidaysExample: "For example, block next Friday if you have other plans.",
+      bufferMinutesExample: "For example, 30 minutes leaves half an hour between bookings.",
+      minNoticeHoursExample: "For example, 12 hours means the earliest booking starts 12 hours from now.",
+      maxAdvanceDaysExample: "For example, 60 days allows bookings only within the next two months.",
+
       title: "Schedule",
       vacationMode: "Vacation mode",
       vacationSub: "Stop receiving new requests temporarily",
