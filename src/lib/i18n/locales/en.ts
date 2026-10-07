@@ -1,5 +1,7 @@
 const en = {
   providerApply: {
+    close: "Close",
+    select: "Choose",
     step: "{{step}} of 3",
     range: "From {{min}} to {{max}}",
     noOptions: "No options found",

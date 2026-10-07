@@ -41,6 +41,7 @@ import { Route as ProNotificationsRouteImport } from './routes/pro.notifications
 import { Route as ProNotificationPreferencesRouteImport } from './routes/pro.notification-preferences'
 import { Route as ProEarningsRouteImport } from './routes/pro.earnings'
 import { Route as ProDocumentsRouteImport } from './routes/pro.documents'
+import { Route as ProApplyRouteImport } from './routes/pro.apply'
 import { Route as ProBookingsRouteImport } from './routes/pro.bookings'
 import { Route as ProAvailabilityRouteImport } from './routes/pro.availability'
 import { Route as PreviewSplashRouteImport } from './routes/preview.splash'
@@ -101,6 +102,7 @@ import { Route as PreviewProNotificationsRouteImport } from './routes/preview.pr
 import { Route as PreviewProNotificationPreferencesRouteImport } from './routes/preview.pro.notification-preferences'
 import { Route as PreviewProEarningsRouteImport } from './routes/preview.pro.earnings'
 import { Route as PreviewProDocumentsRouteImport } from './routes/preview.pro.documents'
+import { Route as PreviewProApplyRouteImport } from './routes/preview.pro.apply'
 import { Route as PreviewProBookingsRouteImport } from './routes/preview.pro.bookings'
 import { Route as PreviewProAvailabilityRouteImport } from './routes/preview.pro.availability'
 import { Route as PreviewChatIdRouteImport } from './routes/preview.chat.$id'
@@ -288,6 +290,11 @@ const ProEarningsRoute = ProEarningsRouteImport.update({
 const ProDocumentsRoute = ProDocumentsRouteImport.update({
   id: '/documents',
   path: '/documents',
+  getParentRoute: () => ProRoute,
+} as any)
+const ProApplyRoute = ProApplyRouteImport.update({
+  id: '/apply',
+  path: '/apply',
   getParentRoute: () => ProRoute,
 } as any)
 const ProBookingsRoute = ProBookingsRouteImport.update({
@@ -593,6 +600,11 @@ const PreviewProDocumentsRoute = PreviewProDocumentsRouteImport.update({
   path: '/documents',
   getParentRoute: () => PreviewProRoute,
 } as any)
+const PreviewProApplyRoute = PreviewProApplyRouteImport.update({
+  id: '/apply',
+  path: '/apply',
+  getParentRoute: () => PreviewProRoute,
+} as any)
 const PreviewProBookingsRoute = PreviewProBookingsRouteImport.update({
   id: '/bookings',
   path: '/bookings',
@@ -802,6 +814,7 @@ export interface FileRoutesByFullPath {
   '/pro/availability': typeof ProAvailabilityRoute
   '/pro/bookings': typeof ProBookingsRoute
   '/pro/documents': typeof ProDocumentsRoute
+  '/pro/apply': typeof ProApplyRoute
   '/pro/earnings': typeof ProEarningsRoute
   '/pro/notification-preferences': typeof ProNotificationPreferencesRoute
   '/pro/notifications': typeof ProNotificationsRoute
@@ -838,6 +851,7 @@ export interface FileRoutesByFullPath {
   '/preview/pro/availability': typeof PreviewProAvailabilityRoute
   '/preview/pro/bookings': typeof PreviewProBookingsRoute
   '/preview/pro/documents': typeof PreviewProDocumentsRoute
+  '/preview/pro/apply': typeof PreviewProApplyRoute
   '/preview/pro/earnings': typeof PreviewProEarningsRoute
   '/preview/pro/notification-preferences': typeof PreviewProNotificationPreferencesRoute
   '/preview/pro/notifications': typeof PreviewProNotificationsRoute
@@ -915,6 +929,7 @@ export interface FileRoutesByTo {
   '/pro/availability': typeof ProAvailabilityRoute
   '/pro/bookings': typeof ProBookingsRoute
   '/pro/documents': typeof ProDocumentsRoute
+  '/pro/apply': typeof ProApplyRoute
   '/pro/earnings': typeof ProEarningsRoute
   '/pro/notification-preferences': typeof ProNotificationPreferencesRoute
   '/pro/notifications': typeof ProNotificationsRoute
@@ -951,6 +966,7 @@ export interface FileRoutesByTo {
   '/preview/pro/availability': typeof PreviewProAvailabilityRoute
   '/preview/pro/bookings': typeof PreviewProBookingsRoute
   '/preview/pro/documents': typeof PreviewProDocumentsRoute
+  '/preview/pro/apply': typeof PreviewProApplyRoute
   '/preview/pro/earnings': typeof PreviewProEarningsRoute
   '/preview/pro/notification-preferences': typeof PreviewProNotificationPreferencesRoute
   '/preview/pro/notifications': typeof PreviewProNotificationsRoute
@@ -1037,6 +1053,7 @@ export interface FileRoutesById {
   '/pro/availability': typeof ProAvailabilityRoute
   '/pro/bookings': typeof ProBookingsRoute
   '/pro/documents': typeof ProDocumentsRoute
+  '/pro/apply': typeof ProApplyRoute
   '/pro/earnings': typeof ProEarningsRoute
   '/pro/notification-preferences': typeof ProNotificationPreferencesRoute
   '/pro/notifications': typeof ProNotificationsRoute
@@ -1073,6 +1090,7 @@ export interface FileRoutesById {
   '/preview/pro/availability': typeof PreviewProAvailabilityRoute
   '/preview/pro/bookings': typeof PreviewProBookingsRoute
   '/preview/pro/documents': typeof PreviewProDocumentsRoute
+  '/preview/pro/apply': typeof PreviewProApplyRoute
   '/preview/pro/earnings': typeof PreviewProEarningsRoute
   '/preview/pro/notification-preferences': typeof PreviewProNotificationPreferencesRoute
   '/preview/pro/notifications': typeof PreviewProNotificationsRoute
@@ -1160,6 +1178,7 @@ export interface FileRouteTypes {
     | '/pro/availability'
     | '/pro/bookings'
     | '/pro/documents'
+    | '/pro/apply'
     | '/pro/earnings'
     | '/pro/notification-preferences'
     | '/pro/notifications'
@@ -1196,6 +1215,7 @@ export interface FileRouteTypes {
     | '/preview/pro/availability'
     | '/preview/pro/bookings'
     | '/preview/pro/documents'
+    | '/preview/pro/apply'
     | '/preview/pro/earnings'
     | '/preview/pro/notification-preferences'
     | '/preview/pro/notifications'
@@ -1273,6 +1293,7 @@ export interface FileRouteTypes {
     | '/pro/availability'
     | '/pro/bookings'
     | '/pro/documents'
+    | '/pro/apply'
     | '/pro/earnings'
     | '/pro/notification-preferences'
     | '/pro/notifications'
@@ -1309,6 +1330,7 @@ export interface FileRouteTypes {
     | '/preview/pro/availability'
     | '/preview/pro/bookings'
     | '/preview/pro/documents'
+    | '/preview/pro/apply'
     | '/preview/pro/earnings'
     | '/preview/pro/notification-preferences'
     | '/preview/pro/notifications'
@@ -1394,6 +1416,7 @@ export interface FileRouteTypes {
     | '/pro/availability'
     | '/pro/bookings'
     | '/pro/documents'
+    | '/pro/apply'
     | '/pro/earnings'
     | '/pro/notification-preferences'
     | '/pro/notifications'
@@ -1430,6 +1453,7 @@ export interface FileRouteTypes {
     | '/preview/pro/availability'
     | '/preview/pro/bookings'
     | '/preview/pro/documents'
+    | '/preview/pro/apply'
     | '/preview/pro/earnings'
     | '/preview/pro/notification-preferences'
     | '/preview/pro/notifications'
@@ -1700,6 +1724,13 @@ declare module '@tanstack/react-router' {
       path: '/documents'
       fullPath: '/pro/documents'
       preLoaderRoute: typeof ProDocumentsRouteImport
+      parentRoute: typeof ProRoute
+    }
+    '/pro/apply': {
+      id: '/pro/apply'
+      path: '/apply'
+      fullPath: '/pro/apply'
+      preLoaderRoute: typeof ProApplyRouteImport
       parentRoute: typeof ProRoute
     }
     '/pro/bookings': {
@@ -2122,6 +2153,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewProDocumentsRouteImport
       parentRoute: typeof PreviewProRoute
     }
+    '/preview/pro/apply': {
+      id: '/preview/pro/apply'
+      path: '/apply'
+      fullPath: '/preview/pro/apply'
+      preLoaderRoute: typeof PreviewProApplyRouteImport
+      parentRoute: typeof PreviewProRoute
+    }
     '/preview/pro/bookings': {
       id: '/preview/pro/bookings'
       path: '/bookings'
@@ -2467,6 +2505,7 @@ interface PreviewProRouteChildren {
   PreviewProAvailabilityRoute: typeof PreviewProAvailabilityRoute
   PreviewProBookingsRoute: typeof PreviewProBookingsRoute
   PreviewProDocumentsRoute: typeof PreviewProDocumentsRoute
+  PreviewProApplyRoute: typeof PreviewProApplyRoute
   PreviewProEarningsRoute: typeof PreviewProEarningsRoute
   PreviewProNotificationPreferencesRoute: typeof PreviewProNotificationPreferencesRoute
   PreviewProNotificationsRoute: typeof PreviewProNotificationsRoute
@@ -2480,6 +2519,7 @@ const PreviewProRouteChildren: PreviewProRouteChildren = {
   PreviewProAvailabilityRoute: PreviewProAvailabilityRoute,
   PreviewProBookingsRoute: PreviewProBookingsRoute,
   PreviewProDocumentsRoute: PreviewProDocumentsRoute,
+  PreviewProApplyRoute: PreviewProApplyRoute,
   PreviewProEarningsRoute: PreviewProEarningsRoute,
   PreviewProNotificationPreferencesRoute:
     PreviewProNotificationPreferencesRoute,
@@ -2557,6 +2597,7 @@ interface ProRouteChildren {
   ProAvailabilityRoute: typeof ProAvailabilityRoute
   ProBookingsRoute: typeof ProBookingsRoute
   ProDocumentsRoute: typeof ProDocumentsRoute
+  ProApplyRoute: typeof ProApplyRoute
   ProEarningsRoute: typeof ProEarningsRoute
   ProNotificationPreferencesRoute: typeof ProNotificationPreferencesRoute
   ProNotificationsRoute: typeof ProNotificationsRoute
@@ -2570,6 +2611,7 @@ const ProRouteChildren: ProRouteChildren = {
   ProAvailabilityRoute: ProAvailabilityRoute,
   ProBookingsRoute: ProBookingsRoute,
   ProDocumentsRoute: ProDocumentsRoute,
+  ProApplyRoute: ProApplyRoute,
   ProEarningsRoute: ProEarningsRoute,
   ProNotificationPreferencesRoute: ProNotificationPreferencesRoute,
   ProNotificationsRoute: ProNotificationsRoute,

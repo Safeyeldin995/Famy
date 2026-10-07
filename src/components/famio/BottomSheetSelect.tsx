@@ -34,7 +34,7 @@ export function BottomSheetSelect({
             <>
               <span className="apply-label">{label}</span>
               <span className="apply-input">
-                {options.find((o) => o.value === value)?.label ?? t("common.select")}
+                {options.find((o) => o.value === value)?.label ?? t("providerApply.select")}
                 <ChevronDown size={18} />
               </span>
             </>
@@ -45,13 +45,13 @@ export function BottomSheetSelect({
         <Drawer.Overlay className="fixed inset-0 z-50 bg-[rgba(15,13,16,.42)]" />
         <Drawer.Content
           className="apply-ui apply-sheet"
-          dir={i18n.dir()}
+          dir={i18n?.dir?.() ?? "rtl"}
           aria-describedby={undefined}
         >
           <div className="apply-grab" />
           <div className="flex items-center justify-between">
             <Drawer.Title className="text-[18px] font-extrabold">{label}</Drawer.Title>
-            <Drawer.Close className="apply-back" aria-label={t("common.close")}>
+            <Drawer.Close className="apply-back" aria-label={t("providerApply.close")}>
               <X size={18} />
             </Drawer.Close>
           </div>

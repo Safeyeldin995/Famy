@@ -2,6 +2,8 @@ import type { Translation } from "./en";
 
 const ar: Translation = {
   providerApply: {
+    close: "اقفل",
+    select: "اختار",
     step: "{{step}} من 3",
     range: "من {{min}} لحد {{max}}",
     noOptions: "مفيش اختيارات",

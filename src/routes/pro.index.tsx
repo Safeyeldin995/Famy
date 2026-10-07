@@ -1,3 +1,5 @@
+import { ProviderApplyChecklist } from "@/components/provider/ProviderApplyChecklist";
+import { isPreviewRoute } from "@/lib/preview/constants";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ProviderShell } from "@/components/famio/ProviderShell";
@@ -46,6 +48,7 @@ function ProDashboard() {
 
   return (
     <ProviderShell>
+      {(isPreviewRoute() || ["SUBMITTED", "UNDER_REVIEW"].includes(provider?.onboarding_status)) && <ProviderApplyChecklist providerId={provider?.id} preview={isPreviewRoute()} />}
       <ProviderPageHero
         title={t("pro.dashboard.title")}
         subtitle={provider?.name}
