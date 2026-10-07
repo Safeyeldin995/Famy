@@ -11,6 +11,7 @@ const ar: Translation = {
     nextHint: "اختار سعر لكل خدمة اخترتها عشان تكمل.",
     outOfRange: "السعر بتاعك خارج النطاق الجديد، اختار سعر جديد",
   },
+  packages: {"fullDay": "يوم كامل · 8 ساعات متواصلة", "overnight": "ليلة · من 6 م لـ 12 بالليل بتوقيت القاهرة", "continuous": "{{hours}} ساعات متواصلة", "timed": "{{hours}} ساعات · {{start}}–{{end}} بتوقيت القاهرة", "fullDayUnit": "ج.م / يوم (8 ساعات)", "overnightUnit": "ج.م / ليلة (6 م – 12 بالليل)", "continuousUnit": "ج.م / باقة ({{hours}} ساعات)", "timedUnit": "ج.م / باقة ({{start}}–{{end}} بتوقيت القاهرة)", "fixedPrice": "سعر ثابت للباقة", "fixedStart": "وقت بداية ثابت (بتوقيت القاهرة، اختياري)", "endOfDay": "نهاية اليوم (24:00)", "hourly": "بالساعة", "fixed": "باقة بسعر ثابت", "per_visit": "لكل زيارة"},
   common: {
     appName: "فامي",
     tagline: "مساعدة موثوقة. عائلات سعيدة.",
@@ -2121,7 +2122,7 @@ const ar: Translation = {
       basePrice: "السعر الأساسي (ج.م)",
       durationMin: "المدة (دقيقة)",
       missingPriceLimits: "حدود السعر مش محددة",
-      pricingModels: { hourly: "بالساعة", fixed: "سعر ثابت", per_visit: "لكل زيارة" },
+      pricingModels: { hourly: "بالساعة", fixed: "باقة بسعر ثابت", per_visit: "لكل زيارة" },
       pricingModel: "نموذج التسعير",
       allowProviderPricing: "السماح لمقدمي الخدمة بتحديد سعرهم الخاص لهذه الخدمة",
       minimumPrice: "الحد الأدنى للسعر (ج.م)",

@@ -60,6 +60,7 @@ type ServiceForm = {
   base_price: string;
   duration_min: string;
   pricing_model: PricingModel;
+  fixed_start_time: string;
   minimum_price: string;
   maximum_price: string;
   maximum_extras_total: string;
@@ -77,6 +78,7 @@ const EMPTY_FORM: ServiceForm = {
   base_price: "0",
   duration_min: "60",
   pricing_model: "hourly",
+  fixed_start_time: "",
   minimum_price: "",
   maximum_price: "",
   maximum_extras_total: "",
@@ -95,6 +97,7 @@ function formFromService(s: any): ServiceForm {
     base_price: String(s.base_price ?? 0),
     duration_min: String(s.duration_min ?? 60),
     pricing_model: (s.pricing_model as PricingModel) ?? "hourly",
+    fixed_start_time: s.fixed_start_time?.slice(0,5) ?? "",
     minimum_price: s.minimum_price != null ? String(s.minimum_price) : "",
     maximum_price: s.maximum_price != null ? String(s.maximum_price) : "",
     maximum_extras_total: s.maximum_extras_total != null ? String(s.maximum_extras_total) : "",
@@ -156,6 +159,7 @@ function toInput(f: ServiceForm): AdminServiceInput {
     base_price: Number(f.base_price),
     duration_min: Number(f.duration_min),
     pricing_model: f.pricing_model,
+    fixed_start_time: f.pricing_model === "fixed" ? f.fixed_start_time || null : null,
     is_active: true,
     minimum_price: f.minimum_price.trim() ? Number(f.minimum_price) : null,
     maximum_price: f.maximum_price.trim() ? Number(f.maximum_price) : null,
@@ -337,6 +341,11 @@ function ServiceFormFields({
           </select>
         </label>
       </div>
+      {form.pricing_model === "fixed" && <label className="block">
+        <span className="text-xs font-semibold text-muted-foreground">{t("packages.fixedStart")}</span>
+        <input type="time" value={form.fixed_start_time} onChange={(e) => setForm({ ...form, fixed_start_time: e.target.value })} className="mt-1 h-11 w-full rounded-lg border border-border bg-surface px-2 text-sm" />
+      </label>}
+
 
       <div className="rounded-xl border border-border/60 p-3">
         <label className="flex items-center gap-2 text-xs font-semibold">

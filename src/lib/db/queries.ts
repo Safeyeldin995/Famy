@@ -1,3 +1,4 @@
+import { cairoWallTime, packageRuleStart } from "@/lib/pricing/servicePackages";
 /**
  * Famy data-access layer.
  *
@@ -264,7 +265,16 @@ export function useCategories() {
 }
 
 // ---------- Providers ----------
-function marketplaceRow(row: any) {
+async function marketplaceRowsWithPackages(rows: any[]) {
+  if (!rows.length) return [];
+  const { data, error } = await supabase.from('services')
+    .select('id, pricing_model, duration_min, fixed_start_time')
+    .in('id', [...new Set(rows.map(row => row.service_id))]);
+  if (error) throw error;
+  return rows.map(row => marketplaceRow(row, data?.find(service => service.id === row.service_id)));
+}
+
+function marketplaceRow(row: any, packageService?: { pricing_model: string; duration_min: number; fixed_start_time: string | null }) {
   return {
     id: row.id,
     bio_en: row.bio_en,
@@ -282,6 +292,7 @@ function marketplaceRow(row: any) {
     services: [{
       status: 'approved',
       service: {
+        ...packageService,
         id: row.service_id,
         slug: row.service_slug,
         name_en: row.service_name_en,
@@ -297,7 +308,7 @@ async function safeProviderDetails(providerId: string) {
     p_provider_id: providerId,
   });
   if (error) throw error;
-  return data?.[0] ? marketplaceRow(data[0]) : null;
+  return data?.[0] ? (await marketplaceRowsWithPackages([data[0]]))[0] : null;
 }
 
 export function useProviders(opts: { categorySlug?: string; serviceId?: string; addressId?: string; limit?: number } = {}) {
@@ -311,7 +322,7 @@ export function useProviders(opts: { categorySlug?: string; serviceId?: string; 
       if (opts.addressId) args.p_address_id = opts.addressId;
       const { data, error } = await supabase.rpc('search_marketplace_providers', args);
       if (error) throw error;
-      return selectMarketplaceProviderRows(data ?? [], opts).map(marketplaceRow);
+      return marketplaceRowsWithPackages(selectMarketplaceProviderRows(data ?? [], opts));
     },
   });
 }
@@ -327,7 +338,7 @@ export function useProvider(id: string | undefined, addressId?: string) {
       if (addressId) args.p_address_id = addressId;
       const { data, error } = await supabase.rpc('marketplace_provider_details', args);
       if (error) throw error;
-      return data?.[0] ? marketplaceRow(data[0]) : null;
+      return data?.[0] ? (await marketplaceRowsWithPackages([data[0]]))[0] : null;
     },
   });
 }
@@ -338,7 +349,7 @@ export function useMarketplaceServices(categorySlug?: string) {
     queryFn: async () => {
       let query = supabase
         .from('services')
-        .select('id,slug,name_en,name_ar,category:categories!inner(slug,name_en,name_ar)')
+        .select('id,slug,name_en,name_ar,pricing_model,duration_min,fixed_start_time,category:categories!inner(slug,name_en,name_ar)')
         .eq('is_active', true)
         .is('deleted_at', null)
         .order('name_en');
@@ -435,17 +446,25 @@ export function useAvailableSlots(
   providerId: string | undefined,
   date: Date | null,
   slotMinutes = 120,
-  opts?: { serviceId?: string | null; addressId?: string | null },
+  opts?: { serviceId?: string | null; addressId?: string | null; cairoTime?: boolean; fixedStartTime?: string | null },
 ) {
   return useQuery({
     enabled: !!providerId && !!date,
-    queryKey: ['available-slots', providerId, date?.toDateString(), slotMinutes, opts?.serviceId ?? null, opts?.addressId ?? null],
+    queryKey: ['available-slots', providerId, date?.toDateString(), slotMinutes, opts?.serviceId ?? null, opts?.addressId ?? null, opts?.cairoTime ?? false, opts?.fixedStartTime ?? null],
     queryFn: async () => {
       const d = date!;
       const weekday = d.getDay();
       const dayStart = new Date(d); dayStart.setHours(0, 0, 0, 0);
       const dayEnd = new Date(d); dayEnd.setHours(23, 59, 59, 999);
-      const dateStr = dayStart.toISOString().slice(0, 10);
+      const dateStr = opts?.cairoTime
+        ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+        : dayStart.toISOString().slice(0, 10);
+      const atTime = (hour: number, minute: number) => {
+        if (opts?.cairoTime) return cairoWallTime(d, `${hour}:${minute}`);
+        const value = new Date(d); value.setHours(hour, minute, 0, 0); return value;
+      };
+      const queryStart = opts?.cairoTime ? atTime(0,0) : dayStart;
+      const queryEnd = opts?.cairoTime ? new Date(+atTime(24,0)-1) : dayEnd;
 
       const provider = await fetchProviderBookingSettings(providerId!, {
         serviceId: opts?.serviceId ?? undefined,
@@ -459,7 +478,7 @@ export function useAvailableSlots(
         supabase.from('availability_exceptions').select('start_time, end_time, is_blocked, date, end_date').eq('provider_id', providerId!)
           .lte('date', dateStr),
         supabase.from('bookings').select('start_at, end_at').eq('provider_id', providerId!).in('status', ACTIVE_BOOKING_STATUSES)
-          .gte('start_at', dayStart.toISOString()).lte('start_at', dayEnd.toISOString()),
+          .gte('start_at', queryStart.toISOString()).lte('start_at', queryEnd.toISOString()),
         supabase.from('settings').select('value').eq('key', 'booking_expiry').maybeSingle(),
       ]);
       if (rulesRes.error) throw rulesRes.error;
@@ -489,10 +508,12 @@ export function useAvailableSlots(
       const slots: { label: string; start: Date; end: Date }[] = [];
 
       for (const rule of rules) {
-        const [sh, sm] = rule.start_time.split(':').map(Number);
+        const alignedStart = packageRuleStart(rule.start_time, opts?.fixedStartTime);
+        if (!alignedStart) continue;
+        const [sh, sm] = alignedStart.split(':').map(Number);
         const [eh, em] = rule.end_time.split(':').map(Number);
-        let cursor = new Date(d); cursor.setHours(sh, sm, 0, 0);
-        const ruleEnd = new Date(d); ruleEnd.setHours(eh, em, 0, 0);
+        let cursor = atTime(sh, sm);
+        const ruleEnd = atTime(eh, em);
 
         while (+cursor + slotMinutes * 60000 <= +ruleEnd) {
           const slotEnd = new Date(+cursor + slotMinutes * 60000);
@@ -505,13 +526,13 @@ export function useAvailableSlots(
             if (!e.start_time || !e.end_time) return true;
             const [xsh, xsm] = e.start_time.split(':').map(Number);
             const [xeh, xem] = e.end_time.split(':').map(Number);
-            const xs = new Date(d); xs.setHours(xsh, xsm, 0, 0);
-            const xe = new Date(d); xe.setHours(xeh, xem, 0, 0);
+            const xs = atTime(xsh, xsm);
+            const xe = atTime(xeh, xem);
             return +cursor < +xe && +slotEnd > +xs;
           });
           if (withinWindow && !overlapsBooking && !overlapsException) {
             slots.push({
-              label: cursor.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+              label: cursor.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', ...(opts?.cairoTime ? { timeZone: 'Africa/Cairo' } : {}) }),
               start: new Date(cursor),
               end: slotEnd,
             });
@@ -909,6 +930,22 @@ export function useSubmitReview() {
 }
 
 // ---------- Provider services (for booking) ----------
+export function useFixedPackageRate(providerId: string, serviceId: string | undefined, addressId?: string | null) {
+  return useQuery({
+    enabled: !!serviceId,
+    queryKey: ['fixed-package-rate', providerId, serviceId, addressId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('search_marketplace_providers', {
+        p_service_id: serviceId!,
+        ...(addressId ? { p_address_id: addressId } : {}),
+      });
+      if (error) throw error;
+      const row = data?.find(row => row.id === providerId);
+      return row ? Number(row.hourly_rate) : null;
+    },
+  });
+}
+
 export function useProviderServices(providerId: string | undefined) {
   return useQuery({
     enabled: !!providerId,
@@ -1090,4 +1127,3 @@ export function useFavoriteIds() {
     },
   });
 }
-

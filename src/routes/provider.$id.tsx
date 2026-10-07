@@ -1,3 +1,4 @@
+import { isFixedPackage, packageLabel } from "@/lib/pricing/servicePackages";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { PhoneFrame, PrimaryButton, EmptyState, Avatar, StatusPill } from "@/components/famio/ui";
 import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
@@ -8,6 +9,7 @@ import {
   useDefaultAddress,
   useProvider,
   useProviderReviews,
+  useProviderServices,
   useFavoriteIds,
   useToggleFavorite,
 } from "@/lib/db/queries";
@@ -17,7 +19,7 @@ import {
   isTutoringCategorySlug,
 } from "@/lib/tutoring/teachingCapabilities";
 import { useProviderAvailability } from "@/lib/db/provider-queries";
-import { toUIProvider } from "@/lib/db/adapters";
+import { toUIProvider, providerPriceLabel } from "@/lib/db/adapters";
 import { useTranslation } from "react-i18next";
 import { currentLang } from "@/lib/i18n";
 import { formatEGP, formatNumber } from "@/lib/utils";
@@ -48,6 +50,7 @@ export function ProviderProfileContent({ providerId }: { providerId: string }) {
   const addressQ = useDefaultAddress();
   const provQ = useProvider(id, addressQ.data?.id);
   const reviewsQ = useProviderReviews(id);
+  const servicesQ = useProviderServices(id);
   const availQ = useProviderAvailability(id);
   const capsQ = useApprovedTeachingCapabilities(id);
   const favIdsQ = useFavoriteIds();
@@ -182,7 +185,7 @@ export function ProviderProfileContent({ providerId }: { providerId: string }) {
                 </span>
               </div>
               <p className="mt-2 text-2xl font-black text-brand">
-                {formatEGP(p.hourlyRate, { perHour: true })}
+                {providerPriceLabel(p, t)}
               </p>
             </div>
           </div>
@@ -207,6 +210,16 @@ export function ProviderProfileContent({ providerId }: { providerId: string }) {
             value={formatNumber(Number(p.rating.toFixed(1)))}
           />
         </div>
+
+        {(servicesQ.data ?? []).some((row) => isFixedPackage(row.service)) && (
+          <ProfileCard title={t("packages.fixedPrice")}>
+            <div className="space-y-3">{(servicesQ.data ?? []).filter((row) => isFixedPackage(row.service)).map((row) => <div key={row.service.id} className="rounded-xl border border-brand/20 p-3">
+              <p className="text-sm font-bold">{lang === "ar" ? row.service.name_ar : row.service.name_en}</p>
+              <p className="mt-1 text-xs text-brand">{t(packageLabel(row.service).key, packageLabel(row.service).values)}</p>
+              {row.price_override != null && <p className="mt-1 text-sm font-bold">{formatEGP(row.price_override)} · {t("packages.fixedPrice")}</p>}
+            </div>)}</div>
+          </ProfileCard>
+        )}
 
         {p.services.length > 0 ? (
           <ProfileCard title={t("providerProfile.servicesOffered")}>
