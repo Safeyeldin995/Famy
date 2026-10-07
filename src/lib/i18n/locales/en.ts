@@ -1,4 +1,5 @@
 const en = {
+  providerSetup: { save: "Save", decrease: "Decrease {{unit}}", increase: "Increase {{unit}}" },
   providerApply: {
     pending: {
       hello: "Hi {{name}}",

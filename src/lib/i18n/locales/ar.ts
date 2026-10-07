@@ -1,6 +1,7 @@
 import type { Translation } from "./en";
 
 const ar: Translation = {
+  providerSetup: { save: "احفظ", decrease: "قلل {{unit}}", increase: "زود {{unit}}" },
   providerApply: {
     pending: {
       hello: "أهلا يا {{name}}",
