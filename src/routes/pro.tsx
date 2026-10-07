@@ -23,7 +23,8 @@ function ProviderLayout() {
   const devicesQ = useMyPushSubscriptions();
   const [pushPromptOpen, setPushPromptOpen] = useState(false);
 
-  const onOnboarding = pathname.startsWith("/pro/onboarding");
+  const onApply = pathname.startsWith("/pro/apply");
+  const onOnboarding = pathname.startsWith("/pro/onboarding") || onApply;
   const onboardingStatus = (provider.data as any)?.onboarding_status as string | undefined;
 
   useEffect(() => {
@@ -43,11 +44,16 @@ function ProviderLayout() {
 
   useEffect(() => {
     if (role.isLoading || provider.isLoading) return;
+    if (role.isError || provider.isError || onApply) return;
+    if ((!provider.data && role.data === "provider") || onboardingStatus === "DRAFT") {
+      nav({ to: "/pro/apply", replace: true });
+      return;
+    }
     if (!provider.data || onOnboarding) return;
-    if (onboardingStatus === "DRAFT" || onboardingStatus === "NEEDS_CHANGES") {
+    if (onboardingStatus === "NEEDS_CHANGES") {
       nav({ to: "/pro/onboarding", replace: true });
     }
-  }, [role.isLoading, provider.isLoading, provider.data, onboardingStatus, onOnboarding, nav]);
+  }, [role.isLoading, provider.isLoading, provider.data, role.data, role.isError, provider.isError, onboardingStatus, onOnboarding, onApply, nav]);
 
   useEffect(() => {
     if (onOnboarding || role.isLoading || provider.isLoading || !provider.data) return;
@@ -103,7 +109,7 @@ function ProviderLayout() {
           <h1 className="text-2xl font-extrabold text-foreground">{t("pro.gateway.title")}</h1>
           <p className="text-sm font-medium text-muted-foreground">{t("pro.gateway.body")}</p>
           <Link
-            to="/pro/onboarding"
+            to="/pro/apply"
             className="focus-ring tap-scale mt-2 inline-flex h-12 w-full max-w-xs items-center justify-center rounded-2xl bg-brand text-sm font-extrabold text-brand-foreground shadow-sm"
           >
             {t("pro.gateway.become")}

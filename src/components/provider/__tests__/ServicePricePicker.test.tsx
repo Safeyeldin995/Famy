@@ -41,26 +41,26 @@ describe("price choices", () => {
     expect(buildPriceOptions(null, 500)).toEqual([]);
     expect(buildPriceOptions(500, 100)).toEqual([]);
   });
-  it("selects chips without free input", () => {
+  it("defaults to the snapped midpoint without free input", () => {
     const onChange = vi.fn();
     const { container } = render(
       <ServicePricePicker min={100} max={150} value={null} onChange={onChange} unitLabel="EGP" />,
     );
     expect(container.querySelector("input")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "125" }));
+    expect(screen.getByRole("button", { name: "pricePicker.choose" }).textContent).toContain("125");
     expect(onChange).toHaveBeenCalledWith(125);
   });
-  it("requires an explicit stepper choice, starting at 50", () => {
+  it("defaults an unbounded new selection to 50", () => {
     const onChange = vi.fn();
     render(
       <ServicePricePicker min={null} max={null} value={null} onChange={onChange} unitLabel="EGP" />,
     );
-    expect(onChange).not.toHaveBeenCalled();
+    expect(onChange).toHaveBeenCalledWith(50);
     expect(
       screen.getByRole("button", { name: "pricePicker.decrease" }).hasAttribute("disabled"),
     ).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "pricePicker.increase" }));
-    expect(onChange).toHaveBeenCalledWith(50);
+    expect(onChange).toHaveBeenLastCalledWith(100);
   });
   it("clamps a one-sided limit", () => {
     const onChange = vi.fn();

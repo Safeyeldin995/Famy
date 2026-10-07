@@ -153,7 +153,8 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
     ? "DRAFT"
     : ((provider?.onboarding_status ?? snapshot?.provider?.onboarding_status) as
         string | undefined);
-  const editable = previewMode || onboardingEditable(status as any);
+  const deferred = status === "SUBMITTED" || status === "UNDER_REVIEW";
+  const editable = previewMode || onboardingEditable(status as any) || deferred;
   const profile = snapshot?.profile ?? provider?.profile ?? {};
   const details = snapshot?.details ?? {};
   const completion = snapshot?.completion ?? {};
@@ -377,6 +378,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
   const singleActiveZone = (zonesQ.data ?? []).length === 1 ? (zonesQ.data ?? [])[0] : null;
 
   const saveCurrent = async () => {
+    if (deferred && !["personal", "experience", "references"].includes(current)) return;
     setAttemptedSections(sections => new Set(sections).add(current));
     setErr("");
     if (current === "services" && !pricesReady) return;
@@ -518,6 +520,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
         return;
       }
       setSubmissionErrors(null);
+      if (deferred) { nav({ to: proPath("/pro") as "/pro" }); return; }
       if (step < STEPS.length - 1) setStep(step + 1);
     } catch (e: any) {
       if (e?.message === "submission_incomplete") {
@@ -588,7 +591,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
     docsQ.refetch();
   };
 
-  if (!previewMode && !editable && status && status !== "DRAFT") {
+  if (!previewMode && (!editable || (deferred && current === "review")) && status && status !== "DRAFT") {
     const submittedRefs = refsQ.data ?? [];
     return (
       <PhoneFrame bg="bg-[#FEFAFC]">
@@ -682,6 +685,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                 <button
                   key={s}
                   type="button"
+                  disabled={deferred && !["personal", "experience", "references", "services"].includes(s)}
                   onClick={() => setStep(idx)}
                   className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-extrabold transition-colors ${
                     active
@@ -733,6 +737,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
               <input
                 id="legalName" aria-describedby="legalName-hint"
                 value={legalName}
+                disabled={deferred}
                 onChange={(e) => setLegalName(e.target.value)}
                 className={inputClass}
               />
@@ -824,7 +829,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
             {(servicesQ.data ?? []).map((s: any) => {
               const on = selectedServices.includes(s.id);
               const saved = savedServices.find((row) => row.service_id === s.id);
-              const locked = saved != null && (!editable || saved.status === "approved");
+              const locked = deferred || (saved != null && (!editable || saved.status === "approved"));
               return (
                 <div key={s.id} className="space-y-2">
                   <button
@@ -866,7 +871,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                         setServicePrices((prices) => ({ ...prices, [s.id]: price }))
                       }
                       unitLabel={t(servicePriceUnit(s).key, servicePriceUnit(s).values)}
-                      disabled={!editable || savingPrices}
+                      disabled={!editable || deferred || savingPrices}
                     />
                   )}
                 </div>
@@ -1273,6 +1278,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
             className="flex-[2] !h-12"
             onClick={saveCurrent}
             disabled={
+              (deferred && !["personal", "experience", "references"].includes(current)) ||
               (current === "services" && (!pricesReady || savingPrices)) ||
               (!previewMode &&
                 (sectionSaveBlocked ||
@@ -1281,7 +1287,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                   uploadDoc.isPending))
             }
           >
-            {current === "review" ? t("pro.onboardingWizard.submit") : t("common.continue")}
+            {deferred ? t("common.save") : current === "review" ? t("pro.onboardingWizard.submit") : t("common.continue")}
           </PrimaryButton>
         </div>
       </div>
