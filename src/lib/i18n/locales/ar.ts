@@ -2,6 +2,31 @@ import type { Translation } from "./en";
 
 const ar: Translation = {
   providerApply: {
+    pending: {
+      hello: "أهلا يا {{name}}",
+      progress: "{{done}} من {{total}} خطوات مكتملة",
+      titles: {
+        none: "خلصت كل خطواتك",
+        one: "فاضلك خطوة واحدة",
+        two: "فاضلك خطوتين",
+        many: "فاضلك {{remaining}} خطوات",
+      },
+      stepsHint: "كل خطوة أقل من دقيقة، وبعد موافقة فريق فامي تظهر للعملاء",
+      reviewingHint: "فريق فامي بيراجع طلبك وهنبلغك أول ما نوافق",
+      start: "ابدأ",
+      minute: "دقيقة",
+      review: "مراجعة فريق فامي",
+      reviewHint: "بنراجع البطاقة",
+      waiting: "جاري",
+      items: {
+        photo: "العملاء بيحبوا يشوفوا مين جاي",
+        about: "سنين خبرتك ونبذة قصيرة",
+        babysitting: "اختار من القايمة",
+        subjects: "المادة والصفوف وسعر الحصة",
+        reference: "اسم ورقم بس",
+        personal: "عشان نكمل بياناتك",
+      },
+    },
     subtitles: {
       hourly: "السعر بالساعة",
       tutoring: "السعر بالحصة",

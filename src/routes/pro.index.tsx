@@ -1,4 +1,4 @@
-import { ProviderApplyChecklist } from "@/components/provider/ProviderApplyChecklist";
+import { ProviderPendingHome } from "@/components/provider/ProviderPendingHome";
 import { isPreviewRoute } from "@/lib/preview/constants";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
@@ -46,6 +46,10 @@ function ProDashboard() {
   const trust = provider?.trust?.[0]?.score ?? provider?.trust?.score;
   const rating = provider?.ratings?.[0]?.rating_avg ?? provider?.ratings?.rating_avg;
 
+  if (!isPreviewRoute() && ["SUBMITTED", "UNDER_REVIEW"].includes(provider?.onboarding_status)) {
+    return <ProviderShell><ProviderPendingHome providerId={provider?.id} /></ProviderShell>;
+  }
+
   return (
     <ProviderShell>
       <ProviderPageHero
@@ -63,7 +67,6 @@ function ProDashboard() {
           </Link>
         }
       />
-      {(isPreviewRoute() || ["SUBMITTED", "UNDER_REVIEW"].includes(provider?.onboarding_status)) && <ProviderApplyChecklist providerId={provider?.id} preview={isPreviewRoute()} />}
 
       <div className="px-5">
         <ProviderFloatingPanel className="grid grid-cols-2 gap-3 !p-3">

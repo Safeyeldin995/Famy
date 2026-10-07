@@ -52,7 +52,7 @@ function PreviewProviderApply() {
         },
       ]}
       onSave={async (step) => {
-        if (step === 3) await navigate({ to: "/preview/pro" });
+        if (step === 3) await navigate({ to: "/preview/pro", search: { pending: 1 } });
       }}
       onCapture={async () => {
         /* Preview only: no files leave the device. */

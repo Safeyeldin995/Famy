@@ -1,5 +1,30 @@
 const en = {
   providerApply: {
+    pending: {
+      hello: "Hi {{name}}",
+      progress: "{{done}} of {{total}} steps complete",
+      titles: {
+        none: "All steps done",
+        one: "1 step left",
+        two: "{{remaining}} steps left",
+        many: "{{remaining}} steps left",
+      },
+      stepsHint: "Each step takes under a minute. You appear to customers after Famy approves you.",
+      reviewingHint: "Famy is reviewing your application. We'll let you know once approved.",
+      start: "Start",
+      minute: "1 minute",
+      review: "Famy team review",
+      reviewHint: "We're reviewing your ID",
+      waiting: "In progress",
+      items: {
+        photo: "Customers like to see who's coming",
+        about: "Your experience and a short bio",
+        babysitting: "Pick from the list",
+        subjects: "Subject, grades and session price",
+        reference: "Just a name and a number",
+        personal: "To complete your details",
+      },
+    },
     subtitles: {
       hourly: "Hourly price",
       tutoring: "Price per session",
