@@ -1,3 +1,4 @@
+import { buildCustomerBookingSteps, resolveCustomerBookingStep, type CustomerBookingStep } from "@/lib/booking/customerSteps";
 import { isFixedPackage, serviceQuote, filterFixedStartSlots, packageLabel } from "@/lib/pricing/servicePackages";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -132,7 +133,7 @@ export function BookContent({
   const { t } = useTranslation();
   const nav = useNavigate();
 
-  const [step, setStep] = useState(0);
+  const [requestedStep, setRequestedStep] = useState<CustomerBookingStep>("service");
   const [serviceId, setServiceId] = useState<string | null>(searchServiceId ?? null);
   const [capabilityId, setCapabilityId] = useState<string | null>(searchCapabilityId ?? null);
   const [duration, setDuration] = useState("4h");
@@ -219,15 +220,6 @@ export function BookContent({
   );
   const isBabysitting = isBabysittingCategorySlug(activeService?.service?.category?.slug);
   const isTutoring = isTutoringCategorySlug(activeService?.service?.category?.slug);
-  const stepKeys = useMemo(() => {
-    const tail = ["notes", "requirements", "summary", "payment"] as const;
-    if (isTutoring) {
-      return ["service", "forWhom", "duration", "schedule", "address", ...tail] as const;
-    }
-    return ["service", "duration", "schedule", "address", "forWhom", ...tail] as const;
-  }, [isTutoring]);
-  const stepKey = stepKeys[step] ?? stepKeys[0];
-  const scheduleStep = stepKeys.indexOf("schedule");
   const capabilitiesQ = useApprovedTeachingCapabilities(
     providerId,
     activeService?.service?.id ?? serviceId ?? undefined,
@@ -267,6 +259,13 @@ export function BookContent({
     addressId: slotAddressId,
   });
   const requirementsQ = useRequirementsForService(activeService?.service?.id);
+  const stepKeys = buildCustomerBookingSteps({ tutoring: isTutoring, fixedPackage,
+    requirementsSuccess: requirementsQ.isSuccess, requirementsCount: requirementsQ.data?.length });
+  const stepKey = resolveCustomerBookingStep(requestedStep, stepKeys);
+  const step = stepKeys.indexOf(stepKey);
+  const scheduleStep = stepKeys.indexOf("schedule");
+  const setStep = (index: number) => setRequestedStep(stepKeys[index] ?? "service");
+
 
   useEffect(() => {
     if (isBabysitting && forWhom === "myself") {
@@ -507,7 +506,7 @@ export function BookContent({
         startAt: selectedSlot?.start ?? null,
       });
     if (stepKey === "requirements")
-      return eitherRequirements.every((r: any) => !!requirementChoices[r.id]);
+      return requirementsQ.isSuccess && eitherRequirements.every((r: any) => !!requirementChoices[r.id]);
     if (stepKey === "payment") return !!paymentMethodId;
     return true;
   };
@@ -769,6 +768,12 @@ export function BookContent({
       </div>
 
       <div className="flex-1 px-5 pb-40 pt-6">
+        {(stepKey === "service" || stepKey === "summary") && fixedPackage && (
+          <Step title={t("packages.fixedPrice")} sub={t(packageLabel(activeService.service).key, packageLabel(activeService.service).values)}>
+            <div className="rounded-2xl border border-brand bg-brand/5 p-4 text-xl font-extrabold text-brand">{formatEGP(subtotal)}</div>
+          </Step>
+        )}
+
         {stepKey === "service" && (
           <Step title={t("bookFlow.serviceTitle")} sub={t("bookFlow.serviceSub")}>
             {services.length === 0 ? (
@@ -888,12 +893,6 @@ export function BookContent({
                 · {formatEGP(selectedCapability.price)}
               </p>
             ) : null}
-          </Step>
-        )}
-
-        {stepKey === "duration" && fixedPackage && (
-          <Step title={t("packages.fixedPrice")} sub={t(packageLabel(activeService.service).key, packageLabel(activeService.service).values)}>
-            <div className="rounded-2xl border border-brand bg-brand/5 p-4 text-xl font-extrabold text-brand">{formatEGP(subtotal)}</div>
           </Step>
         )}
 
@@ -1141,24 +1140,14 @@ export function BookContent({
           </Step>
         )}
 
-        {stepKey === "notes" && (
-          <Step title={t("bookFlow.notesTitle")} sub={t("bookFlow.notesSub")}>
-            <textarea
-              rows={6}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder={t("bookFlow.notesPlaceholder")}
-              className="w-full resize-none rounded-[1.25rem] border border-border bg-surface p-4 text-[15px] outline-none focus:border-brand"
-            />
-          </Step>
-        )}
-
         {stepKey === "requirements" && (
           <Step
             title={t("bookFlow.requirementsTitle", "Requirements")}
             sub={t("bookFlow.requirementsSub", "Some items for this service need to be arranged.")}
           >
-            {bookingRequirements.length === 0 ? (
+            {requirementsQ.isError ? <QueryError onRetry={() => requirementsQ.refetch()} /> : !requirementsQ.isSuccess ? (
+              <p role="status">{t("common.loading")}</p>
+            ) : bookingRequirements.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 {t("bookFlow.noRequirements", "Nothing extra needed for this service.")}
               </p>
@@ -1216,6 +1205,12 @@ export function BookContent({
 
         {stepKey === "summary" && (
           <Step title={t("bookFlow.summaryTitle")}>
+            <details open={notes ? true : undefined} className="mt-4">
+              <summary className="min-h-11 cursor-pointer py-3 text-sm font-bold">{t("bookFlow.notesTitle")}</summary>
+              <label className="block text-xs text-muted-foreground">{t("bookFlow.notesSub")}
+                <textarea rows={4} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t("bookFlow.notesPlaceholder")} className="mt-2 w-full resize-none rounded-[1.25rem] border border-border bg-surface p-4 text-[15px] outline-none focus:border-brand" />
+              </label>
+            </details>
             <Card className="p-4">
               <div className="flex items-center gap-3 border-b border-border pb-3">
                 <Avatar src={p.avatar} className="h-14 w-14 rounded-2xl" />
