@@ -3,6 +3,7 @@ import {
   Baby,
   BookOpen,
   Check,
+  Clock,
   MapPin,
   MessageSquare,
   Phone,
@@ -19,11 +20,14 @@ import {
 import { useMyTeachingCapabilities } from "@/lib/db/teaching-queries";
 import { proPath } from "@/lib/preview/previewPath";
 import { QueryError } from "@/components/famio/QueryError";
+import { useProviderAvailability } from "@/lib/db/provider-queries";
+import { workingHoursState } from "@/lib/provider/setupHelpers";
 import { useAvatarUrl } from "@/lib/db/queries";
 import { pendingHomeModel, type PendingHomeData } from "@/lib/provider/pendingHomeModel";
 import "@/components/famio/providerApply.css";
 
 const icons = {
+  hours: Clock,
   photo: User,
   about: MessageSquare,
   babysitting: Baby,
@@ -36,10 +40,12 @@ export function PendingHomeView({
   data,
   fullName,
   avatarUrl,
+  hoursHint = "providerSetup.hoursHint",
 }: {
   data: PendingHomeData;
   fullName: string;
   avatarUrl?: string;
+  hoursHint?: string;
 }) {
   const { t, i18n } = useTranslation();
   const avatar = useAvatarUrl(avatarUrl);
@@ -99,21 +105,21 @@ export function PendingHomeView({
         </div>
       </div>
       <ul className="apply-list">
-        {model.items.map(({ key, section, done, next }) => {
+        {model.items.map(({ key, done, next }) => {
           const Icon = icons[key];
           return (
             <li key={key}>
               <Link
-                to={proPath("/pro/onboarding") as "/pro/onboarding"}
-                search={{ section }}
+                to={proPath("/pro/setup/$item") as "/pro/setup/$item"}
+                params={{ item: key }}
                 className={`apply-li focus-ring${done ? " apply-done" : next ? " apply-next" : ""}`}
               >
                 <span className="apply-tile">
                   <Icon size={20} aria-hidden="true" />
                 </span>
                 <span className="apply-task-text">
-                  <b>{t(`providerApply.${key}`)}</b>
-                  <small>{t(`providerApply.pending.items.${key}`)}</small>
+                  <b>{t(key === "hours" ? "providerSetup.titles.hours" : `providerApply.${key}`)}</b>
+                  <small>{t(key === "hours" ? hoursHint : `providerApply.pending.items.${key}`)}</small>
                 </span>
                 {done ? (
                   <Check size={18} className="apply-done-check" aria-label={t("common.done")} />
@@ -148,7 +154,8 @@ function LivePendingHome({ providerId }: { providerId: string }) {
   const selections = useMySavedSelections(providerId);
   const services = usePhase1Services();
   const subjects = useMyTeachingCapabilities(providerId);
-  const queries = [snapshot, refs, selections, services, subjects];
+  const availability = useProviderAvailability(providerId);
+  const queries = [snapshot, refs, selections, services, subjects, availability];
   if (queries.some((q) => q.isError))
     return <QueryError onRetry={() => queries.forEach((q) => void q.refetch())} />;
   if (queries.some((q) => !q.isSuccess)) return null;
@@ -166,11 +173,14 @@ function LivePendingHome({ providerId }: { providerId: string }) {
   const selected = services.data!.filter((s) =>
     selections.data!.services.some((row) => row.service_id === s.id),
   );
+  const hours = workingHoursState(availability.data!, selected);
   return (
     <PendingHomeView
+      hoursHint={hours.needsNight ? "providerSetup.nightHint" : hours.isDefault ? "providerSetup.defaultHoursHint" : "providerSetup.hoursHint"}
       fullName={data.profile?.full_name ?? ""}
       avatarUrl={data.profile?.avatar_url}
       data={{
+        hours: hours.done,
         photo: !!data.profile?.avatar_url,
         about: !!(data.provider?.bio_en || data.provider?.bio_ar),
         personal: !!(
@@ -203,7 +213,9 @@ export function ProviderPendingHome({
   return preview ? (
     <PendingHomeView
       fullName="منى عادل"
+      hoursHint="providerSetup.defaultHoursHint"
       data={{
+        hours: true,
         photo: true,
         about: false,
         personal: false,

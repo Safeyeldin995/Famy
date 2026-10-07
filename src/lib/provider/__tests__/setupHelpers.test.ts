@@ -17,9 +17,7 @@ it("merges bio edits without clearing other experience fields", () => {
     },
     details: { previous_work: "Saved work", newborn_experience: true, first_aid_training: true },
     needsBabysitting: true,
-    age_group_capabilities: [
-      { age_group_code: "preschool", years_experience: 2, note: "Saved note" },
-    ],
+    age_group_capabilities: [{ code: "preschool", years_experience: 2, note: "Saved note" }],
   };
   expect(mergeExperiencePayload(snapshot, { bio_ar: "نبذة" })).toEqual({
     years_experience: 4,

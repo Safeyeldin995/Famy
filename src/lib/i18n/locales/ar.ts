@@ -1,7 +1,94 @@
 import type { Translation } from "./en";
 
 const ar: Translation = {
-  providerSetup: { save: "احفظ", decrease: "قلل {{unit}}", increase: "زود {{unit}}" },
+  providerSetup: {
+    "save": "احفظ",
+    "decrease": "قلل {{unit}}",
+    "increase": "زود {{unit}}",
+    "years": "سنين خبرة",
+    "children": "أطفال",
+    "phrases": "جمل جاهزة",
+    "secondReference": "ضيف شخص تاني",
+    "day": "اليوم",
+    "month": "الشهر",
+    "year": "السنة",
+    "saveSubject": "احفظ المادة",
+    "duration": "مدة الحصة",
+    "approvedLocked": "الصفوف المعتمدة بتفضل مختارة بنفس السعر والمدة المعتمدين.",
+    "noTeachingServices": "اختار خدمة تدريس من ملفك الأول.",
+    "hoursHint": "اختار الأيام والمواعيد المناسبة ليك",
+    "defaultHoursHint": "اتملت لوحدها: الأحد للخميس 9 لـ 5",
+    "nightHint": "ضيف مواعيد الليل لو بتشتغل بالليل",
+    "reviewLevels": "مراجعة كل صف لوحده",
+    "titles": {
+      "photo": "صورتك الشخصية",
+      "about": "كلمتين عنك",
+      "babysitting": "أعمار الأطفال",
+      "reference": "شخص نسأله عن شغلك",
+      "personal": "تاريخ الميلاد والعنوان",
+      "hours": "مواعيد شغلك"
+    },
+    "hints": {
+      "photo": "صورة واضحة عشان العملاء يعرفوك",
+      "about": "عرف العملاء بخبرتك",
+      "babysitting": "اختار الأعمار اللي بتتعامل معاها",
+      "subjects": "ضيف المادة مرة واحدة واختار كل الصفوف اللي بتدرسها",
+      "reference": "ضيف شخص يعرف شغلك",
+      "personal": "كمل بياناتك. لازم يكون عمرك 18 سنة على الأقل.",
+      "hours": "اختار أيامك وحدد مواعيد كل يوم"
+    },
+    "missing": {
+      "photo": "ضيف صورتك عشان تكمل",
+      "about": "اكتب نبذة قصيرة واختار سنين خبرتك",
+      "babysitting": "اختار عمر واحد على الأقل وعدد من 1 لـ 6 أطفال",
+      "reference": "كمل الاسم والعلاقة ورقم التليفون لكل شخص",
+      "personal": "اختار تاريخ ميلاد صحيح لسن 18 أو أكتر وكمل العنوان",
+      "hours": "اختار يوم ووقت نهاية بعد البداية"
+    },
+    "relationships": {
+      "former_client": "عميل سابق",
+      "colleague": "زميل شغل",
+      "neighbor": "جار",
+      "friend": "صديق",
+      "relative": "قريب"
+    },
+    "bioPhrases": {
+      "p0": "بحب الأطفال وبتعامل معاهم بصبر",
+      "p1": "عندي خبرة في رعاية الأطفال",
+      "p2": "الالتزام بالمواعيد مهم عندي",
+      "p3": "بساعد في الواجبات والمذاكرة",
+      "p4": "بشرح بطريقة بسيطة وسهلة"
+    },
+    "governorates": {
+      "cairo": "القاهرة",
+      "giza": "الجيزة",
+      "alexandria": "الإسكندرية",
+      "qalyubia": "القليوبية",
+      "sharqia": "الشرقية",
+      "dakahlia": "الدقهلية",
+      "gharbia": "الغربية",
+      "monufia": "المنوفية",
+      "beheira": "البحيرة",
+      "kafrElsheikh": "كفر الشيخ",
+      "damietta": "دمياط",
+      "portSaid": "بورسعيد",
+      "ismailia": "الإسماعيلية",
+      "suez": "السويس",
+      "northSinai": "شمال سيناء",
+      "southSinai": "جنوب سيناء",
+      "fayoum": "الفيوم",
+      "beniSuef": "بني سويف",
+      "minya": "المنيا",
+      "assiut": "أسيوط",
+      "sohag": "سوهاج",
+      "qena": "قنا",
+      "luxor": "الأقصر",
+      "aswan": "أسوان",
+      "redSea": "البحر الأحمر",
+      "newValley": "الوادي الجديد",
+      "matrouh": "مطروح"
+    }
+  },
   providerApply: {
     pending: {
       hello: "أهلا يا {{name}}",

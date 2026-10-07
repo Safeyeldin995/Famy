@@ -1,5 +1,92 @@
 const en = {
-  providerSetup: { save: "Save", decrease: "Decrease {{unit}}", increase: "Increase {{unit}}" },
+  providerSetup: {
+    "save": "Save",
+    "decrease": "Decrease {{unit}}",
+    "increase": "Increase {{unit}}",
+    "years": "years of experience",
+    "children": "children",
+    "phrases": "Ready-made phrases",
+    "secondReference": "Add another person",
+    "day": "Day",
+    "month": "Month",
+    "year": "Year",
+    "saveSubject": "Save subject",
+    "duration": "Session duration",
+    "approvedLocked": "Approved grades stay selected and keep their approved price and duration.",
+    "noTeachingServices": "Choose a tutoring service in your profile first.",
+    "hoursHint": "Choose the days and hours that suit you",
+    "defaultHoursHint": "Filled in for you: Sunday–Thursday, 9–5",
+    "nightHint": "Add evening hours if you work at night",
+    "reviewLevels": "Review individual grades",
+    "titles": {
+      "photo": "Your profile photo",
+      "about": "A little about you",
+      "babysitting": "Children you care for",
+      "reference": "Someone we can ask about your work",
+      "personal": "Birth date and address",
+      "hours": "Your working hours"
+    },
+    "hints": {
+      "photo": "A clear photo helps customers recognize you",
+      "about": "Tell customers about your experience",
+      "babysitting": "Choose the ages you care for",
+      "subjects": "Add a subject once and choose all the grades you teach",
+      "reference": "Add someone who knows your work",
+      "personal": "Complete your details. You must be at least 18.",
+      "hours": "Choose your days, then set the hours for each day"
+    },
+    "missing": {
+      "photo": "Add your photo to continue",
+      "about": "Add a short bio and choose your experience",
+      "babysitting": "Choose at least one age group and 1–6 children",
+      "reference": "Complete the name, relationship and phone for each person",
+      "personal": "Choose a valid adult birthday and complete the address",
+      "hours": "Choose a day and an end time after the start"
+    },
+    "relationships": {
+      "former_client": "Former client",
+      "colleague": "Colleague",
+      "neighbor": "Neighbor",
+      "friend": "Friend",
+      "relative": "Relative"
+    },
+    "bioPhrases": {
+      "p0": "I enjoy caring for children patiently",
+      "p1": "I have experience caring for children",
+      "p2": "Being on time matters to me",
+      "p3": "I help with homework and studying",
+      "p4": "I explain things simply and clearly"
+    },
+    "governorates": {
+      "cairo": "Cairo",
+      "giza": "Giza",
+      "alexandria": "Alexandria",
+      "qalyubia": "Qalyubia",
+      "sharqia": "Sharqia",
+      "dakahlia": "Dakahlia",
+      "gharbia": "Gharbia",
+      "monufia": "Monufia",
+      "beheira": "Beheira",
+      "kafrElsheikh": "Kafr El Sheikh",
+      "damietta": "Damietta",
+      "portSaid": "Port Said",
+      "ismailia": "Ismailia",
+      "suez": "Suez",
+      "northSinai": "North Sinai",
+      "southSinai": "South Sinai",
+      "fayoum": "Fayoum",
+      "beniSuef": "Beni Suef",
+      "minya": "Minya",
+      "assiut": "Assiut",
+      "sohag": "Sohag",
+      "qena": "Qena",
+      "luxor": "Luxor",
+      "aswan": "Aswan",
+      "redSea": "Red Sea",
+      "newValley": "New Valley",
+      "matrouh": "Matrouh"
+    }
+  },
   providerApply: {
     pending: {
       hello: "Hi {{name}}",

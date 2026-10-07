@@ -3837,6 +3837,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_review_teaching_group: {
+        Args: { p_ids: string[]; p_review_note?: string; p_status: string }
+        Returns: undefined
+      }
       admin_review_teaching_capability: {
         Args: { p_id: string; p_review_note?: string; p_status: string }
         Returns: undefined
@@ -4292,6 +4296,17 @@ export type Database = {
         }
       }
       provider_submit_onboarding: { Args: never; Returns: Json }
+      provider_save_teaching_group: {
+        Args: {
+          p_curriculum_id: string
+          p_level_ids: string[]
+          p_service_id: string
+          p_session_duration_min: number
+          p_session_price: number
+          p_subject_id: string
+        }
+        Returns: Json
+      }
       provider_upsert_teaching_capability: {
         Args: {
           p_curriculum_id: string

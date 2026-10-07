@@ -20,7 +20,7 @@ export type SetupSnapshot = {
     full_address?: string;
   };
   age_group_capabilities?: {
-    age_group_code: string;
+    code: string;
     years_experience?: number | null;
     note?: string | null;
     verified_at?: string | null;
@@ -49,7 +49,7 @@ function experienceDefaults(snapshot: SetupSnapshot) {
       ? {
           max_children_per_booking: p?.max_children_per_booking ?? 1,
           age_group_capabilities: (snapshot.age_group_capabilities ?? []).map((row) => ({
-            code: row.age_group_code,
+            code: row.code,
             years_experience: row.years_experience ?? null,
             note: row.note ?? null,
           })),
