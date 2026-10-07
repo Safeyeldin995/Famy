@@ -1,3 +1,4 @@
+import { OptionalSetupSection, setupGroupHasData } from "@/components/famio/OptionalSetupSection";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -237,6 +238,114 @@ function Setup() {
     <PhoneFrame bg="bg-background">
       <CustomerPageHero title={t("setup.title")} backTo="/profile" />
       <div className="flex-1 space-y-5 px-6 pb-32 pt-2">
+        <Field
+          label={t("setup.name")}
+          value={form.name}
+          onChange={(v) => update("name", v)}
+          placeholder={t("setup.namePlaceholder")}
+        />
+
+
+
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            {t("setup.area")}
+          </label>
+          {areasQ.isError ? (
+            <div className="mt-2">
+              <QueryError compact onRetry={() => areasQ.refetch()} />
+            </div>
+          ) : (
+            <div className="mt-2 grid grid-cols-2 gap-3">
+              {areaOptions.map((a) => (
+                <button
+                  key={a}
+                  type="button"
+                  onClick={() => update("area", a)}
+                  className={`focus-ring tap-scale h-14 rounded-[1.25rem] border text-sm font-extrabold transition-all ${
+                    form.area === a
+                      ? "border-brand bg-brand/5 text-brand"
+                      : "border-border bg-surface text-muted-foreground"
+                  }`}
+                >
+                  {a}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            {t("setup.address")}
+          </label>
+          <div className="mt-2 flex items-start gap-3 rounded-2xl border border-border bg-surface px-4 py-3">
+            <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
+            <textarea
+              rows={2}
+              placeholder={t("setup.addressPlaceholder")}
+              value={form.address}
+              onChange={(e) => update("address", e.target.value)}
+              className="min-w-0 flex-1 resize-none bg-transparent text-[15px] font-medium outline-none placeholder:text-muted-foreground/60"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            {t("addresses.location", "Location on map")}
+          </label>
+          <Card className="mt-2 p-3">
+            <LocationPicker value={coords} onChange={(pos) => setCoords(pos)} />
+          </Card>
+          {!isValidLatLng(coords) && (
+            <p className="mt-2 flex items-start gap-1.5 text-[11px] font-semibold text-muted-foreground">
+              <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-brand" />
+              {t(
+                "addresses.noCoordsWarning",
+                "Without a pinned location, this address can't be used to book a service.",
+              )}
+            </p>
+          )}
+        </div>
+
+        <OptionalSetupSection title={t("setup.schoolOptional")} hasData={setupGroupHasData([education.educationCurriculumId, education.educationLevelId])}>
+          <EducationProfileFields value={education} onChange={setEducation} />
+        </OptionalSetupSection>
+        <OptionalSetupSection title={t("setup.addressExtrasOptional")} hasData={setupGroupHasData([form.compound, form.building, form.apartment, form.notes])}>
+        <Field
+          label={t("setup.compound")}
+          value={form.compound}
+          onChange={(v) => update("compound", v)}
+          placeholder={t("setup.compoundPlaceholder")}
+        />
+        <Field
+          label={t("setup.building")}
+          value={form.building}
+          onChange={(v) => update("building", v)}
+          placeholder={t("setup.buildingPlaceholder")}
+        />
+        <Field
+          label={t("setup.apartment")}
+          value={form.apartment}
+          onChange={(v) => update("apartment", v)}
+          placeholder={t("setup.apartmentPlaceholder")}
+        />
+
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            {t("setup.notes")}
+          </label>
+          <textarea
+            rows={2}
+            placeholder={t("setup.notesPlaceholder")}
+            value={form.notes}
+            onChange={(e) => update("notes", e.target.value)}
+            className="mt-2 w-full resize-none rounded-2xl border border-border bg-surface px-4 py-3 text-[15px] outline-none focus:border-brand"
+          />
+        </div>
+        </OptionalSetupSection>
+        <OptionalSetupSection title={t("setup.photoOptional")} hasData={setupGroupHasData([myProfile.data?.avatar_url])}>
         <div className="flex flex-col items-center pb-2">
           <div className="relative">
             {avatarQ.data ? (
@@ -274,116 +383,7 @@ function Setup() {
           <p className="mt-3 text-xs text-muted-foreground">{t("setup.photoHint")}</p>
         </div>
 
-        <Field
-          label={t("setup.name")}
-          value={form.name}
-          onChange={(v) => update("name", v)}
-          placeholder={t("setup.namePlaceholder")}
-        />
-
-        <Card className="space-y-4 p-4">
-          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-            {t("studentEducation.sectionTitle", "School details")}{" "}
-            <span className="normal-case text-muted-foreground/70">
-              ({t("familyMembers.optional", "optional")})
-            </span>
-          </p>
-          <EducationProfileFields value={education} onChange={setEducation} />
-        </Card>
-
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
-            {t("setup.area")}
-          </label>
-          {areasQ.isError ? (
-            <div className="mt-2">
-              <QueryError compact onRetry={() => areasQ.refetch()} />
-            </div>
-          ) : (
-            <div className="mt-2 grid grid-cols-2 gap-3">
-              {areaOptions.map((a) => (
-                <button
-                  key={a}
-                  type="button"
-                  onClick={() => update("area", a)}
-                  className={`focus-ring tap-scale h-14 rounded-[1.25rem] border text-sm font-extrabold transition-all ${
-                    form.area === a
-                      ? "border-brand bg-brand/5 text-brand"
-                      : "border-border bg-surface text-muted-foreground"
-                  }`}
-                >
-                  {a}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <Field
-          label={t("setup.compound")}
-          value={form.compound}
-          onChange={(v) => update("compound", v)}
-          placeholder={t("setup.compoundPlaceholder")}
-        />
-        <Field
-          label={t("setup.building")}
-          value={form.building}
-          onChange={(v) => update("building", v)}
-          placeholder={t("setup.buildingPlaceholder")}
-        />
-        <Field
-          label={t("setup.apartment")}
-          value={form.apartment}
-          onChange={(v) => update("apartment", v)}
-          placeholder={t("setup.apartmentPlaceholder")}
-        />
-
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
-            {t("setup.address")}
-          </label>
-          <div className="mt-2 flex items-start gap-3 rounded-2xl border border-border bg-surface px-4 py-3">
-            <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
-            <textarea
-              rows={2}
-              placeholder={t("setup.addressPlaceholder")}
-              value={form.address}
-              onChange={(e) => update("address", e.target.value)}
-              className="min-w-0 flex-1 resize-none bg-transparent text-[15px] font-medium outline-none placeholder:text-muted-foreground/60"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
-            {t("addresses.location", "Location on map")}
-          </label>
-          <Card className="mt-2 p-3">
-            <LocationPicker value={coords} onChange={(pos) => setCoords(pos)} />
-          </Card>
-          {!isValidLatLng(coords) && (
-            <p className="mt-2 flex items-start gap-1.5 text-[11px] font-semibold text-muted-foreground">
-              <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-brand" />
-              {t(
-                "addresses.noCoordsWarning",
-                "Without a pinned location, this address can't be used to book a service.",
-              )}
-            </p>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
-            {t("setup.notes")}
-          </label>
-          <textarea
-            rows={2}
-            placeholder={t("setup.notesPlaceholder")}
-            value={form.notes}
-            onChange={(e) => update("notes", e.target.value)}
-            className="mt-2 w-full resize-none rounded-2xl border border-border bg-surface px-4 py-3 text-[15px] outline-none focus:border-brand"
-          />
-        </div>
+        </OptionalSetupSection>
       </div>
       <div className="action-bar safe-bottom px-6 pt-4">
         <PrimaryButton onClick={submit} disabled={!valid || saving}>

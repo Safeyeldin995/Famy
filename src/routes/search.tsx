@@ -1,9 +1,11 @@
+import { previewPath } from "@/lib/preview/previewPath";
 import { isFixedPackage, packageLabel, type PackageService } from "@/lib/pricing/servicePackages";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { PhoneFrame, Chip, EmptyState } from "@/components/famio/ui";
 import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
 import { CustomerFloatingPanel } from "@/components/famio/CustomerFloatingPanel";
+import { QueryError } from "@/components/famio/QueryError";
 import { ProviderListRow, ProviderRatingMeta } from "@/components/famio/ProviderListRow";
 import { useAddresses, useMarketplaceServices, useProviders } from "@/lib/db/queries";
 import { useApprovedTeachingCapabilitiesForProviders } from "@/lib/db/teaching-queries";
@@ -18,7 +20,10 @@ import { Search as SearchIcon, X } from "lucide-react";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
 import { formatEGP, formatNumber } from "@/lib/utils";
 
-export const Route = createFileRoute("/search")({ component: SearchPage });
+export function searchServiceFilter(search: Record<string, unknown>): { serviceId?: string } {
+  return typeof search.serviceId === "string" ? { serviceId: search.serviceId } : {};
+}
+export const Route = createFileRoute("/search")({ validateSearch: searchServiceFilter, component: SearchPage });
 
 type Filter = "all" | "babysitting" | "tutoring" | "top";
 
@@ -27,7 +32,8 @@ function SearchPage() {
   const lang = currentLang();
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
-  const [serviceId, setServiceId] = useState("");
+  const search = useSearch({ strict: false });
+  const [serviceId, setServiceId] = useState(search.serviceId ?? "");
   const [addressId, setAddressId] = useState("");
   const servicesQ = useMarketplaceServices();
   const addressesQ = useAddresses();
@@ -57,6 +63,11 @@ function SearchPage() {
   }, [q, filter, provsQ.data]);
   const capabilityRows = useApprovedTeachingCapabilitiesForProviders(results.map((p) => p.id));
 
+  const recoveryActions = <div className="flex flex-wrap justify-center gap-2">
+    <button type="button" className="min-h-11 px-3 font-bold text-brand" onClick={() => { setQ(""); setFilter("all"); setServiceId(""); }}>{t("bookingUx.clearFilters")}</button>
+    <button type="button" className="min-h-11 px-3 font-bold text-brand" onClick={() => document.getElementById("search-address")?.focus()}>{t("bookingUx.changeArea")}</button>
+    <Link to={previewPath("/addresses/new") as "/addresses/new"} className="inline-flex min-h-11 items-center px-3 font-bold text-brand">{t("addresses.addAddress")}</Link>
+  </div>;
   return (
     <PhoneFrame bg="bg-background">
       <CustomerPageHero title={t("search.title")} subtitle={t("home.headline")} backTo="/home" />
@@ -128,6 +139,7 @@ function SearchPage() {
           <label className="block">
             <span className="text-overline">{t("search2.address")}</span>
             <select
+              id="search-address"
               aria-label={t("search2.address")}
               value={selectedAddressId ?? ""}
               onChange={(e) => setAddressId(e.target.value)}
@@ -142,6 +154,8 @@ function SearchPage() {
           </label>
         </div>
 
+        {servicesQ.isError && <QueryError compact onRetry={() => servicesQ.refetch()} />}
+        {addressesQ.isError && <QueryError compact onRetry={() => addressesQ.refetch()} />}
         {!provsQ.isLoading && !provsQ.isError && results.length > 0 ? (
           <p className="mt-6 text-sm font-extrabold tracking-tight text-foreground">
             {t("search2.resultsCount", { count: formatNumber(results.length) })}
@@ -154,12 +168,13 @@ function SearchPage() {
               <div key={i} className="h-24 animate-pulse rounded-[2rem] bg-surface-2" />
             ))
           ) : provsQ.isError ? (
-            <EmptyState icon="alert" title={t("common.errorTitle")} body={t("common.tryAgain")} />
+            <EmptyState icon="alert" title={t("common.errorTitle")} body={t("common.tryAgain")} action={<div><button type="button" className="min-h-11 px-4 font-bold text-brand" onClick={() => void provsQ.refetch()}>{t("common.retry")}</button>{recoveryActions}</div>} />
           ) : results.length === 0 ? (
             <EmptyState
               icon="search"
               title={t("search2.noResults")}
               body={t("search2.noResultsBody")}
+              action={recoveryActions}
             />
           ) : (
             results.map((p) => {

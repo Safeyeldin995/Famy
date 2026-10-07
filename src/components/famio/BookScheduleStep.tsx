@@ -34,6 +34,7 @@ const selectClass =
 
 function ScheduleSelect({
   label,
+  id,
   hint,
   value,
   onChange,
@@ -42,6 +43,7 @@ function ScheduleSelect({
   tone = "default",
 }: {
   label: string;
+  id?: string;
   hint?: string;
   value: string;
   onChange: (value: string) => void;
@@ -68,6 +70,7 @@ function ScheduleSelect({
       </div>
       <div className="relative">
         <select
+          id={id}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
@@ -97,6 +100,7 @@ export function BookScheduleStep({
   hasSlotsForSelectedDate,
   scanning,
   availabilityError,
+  onRetry,
   onDateChange,
   onTimeChange,
   onTimeBandChange,
@@ -112,6 +116,7 @@ export function BookScheduleStep({
   hasSlotsForSelectedDate: boolean;
   scanning: boolean;
   availabilityError?: boolean;
+  onRetry?: () => void;
   onDateChange: (date: Date) => void;
   onTimeChange: (label: string, slot: { start: Date; end: Date }) => void;
   onTimeBandChange: (band: TimeBand) => void;
@@ -148,6 +153,7 @@ export function BookScheduleStep({
   return (
     <div className="space-y-5">
       <ScheduleSelect
+        id="booking-date"
         label={t("bookFlow.datesLabel", "Date")}
         value={selectedDateKey}
         onChange={(value) => {
@@ -218,6 +224,7 @@ export function BookScheduleStep({
               icon="calendar"
               title={t("common.errorTitle", "Something went wrong")}
               body={t("bookFlow.slotsLoadError")}
+              action={<button type="button" className="min-h-11 px-4 font-bold text-brand" onClick={onRetry}>{t("common.retry")}</button>}
             />
           </div>
         ) : showEmptyDay ? (
@@ -226,6 +233,7 @@ export function BookScheduleStep({
               icon="calendar"
               title={t("bookFlow.noSlots")}
               body={t("bookFlow.noSlotsBody")}
+              action={<button type="button" className="min-h-11 px-4 font-bold text-brand" onClick={() => document.getElementById("booking-date")?.focus()}>{t("bookingUx.changeDate")}</button>}
             />
           </div>
         ) : filteredSlots.length === 0 && hasSlotsForSelectedDate ? (

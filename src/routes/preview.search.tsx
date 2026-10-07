@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Route as SearchRoute } from "./search";
+import { Route as SearchRoute, searchServiceFilter } from "./search";
 
 const SearchPage = SearchRoute.options.component!;
 
-export const Route = createFileRoute("/preview/search")({ component: SearchPage });
+export const Route = createFileRoute("/preview/search")({ validateSearch: searchServiceFilter, component: SearchPage });

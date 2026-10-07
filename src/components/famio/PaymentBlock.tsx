@@ -1,3 +1,4 @@
+import { paymentPresentation } from "@/lib/booking/paymentPresentation";
 /**
  * Shared payment status card used on customer + provider + admin booking views.
  * Renders method/status, manual-transfer instructions + proof upload (customer
@@ -270,6 +271,9 @@ export function PaymentBlock({
         <Badge tone={statusTone(p.status)}>{t(`payment.status.${p.status}`, String(p.status).replace("_", " "))}</Badge>
       </div>
 
+      {viewer === "customer" && (isCash || isManualTransfer) && p.status !== "captured" && (
+        <p className="text-xs text-muted-foreground">{t(paymentPresentation(resolvedMethodType).next)}</p>
+      )}
       {/* Customer online checkout (Paymob) */}
       {canPayOnline && (
         <div className="space-y-3 rounded-2xl bg-surface-2 p-3">

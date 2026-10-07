@@ -1,3 +1,6 @@
+import { paymentPresentation } from "@/lib/booking/paymentPresentation";
+import { bookingDisabledReason } from "@/lib/booking/disabledReason";
+import { buildCustomerBookingSteps, resolveCustomerBookingStep, type CustomerBookingStep } from "@/lib/booking/customerSteps";
 import { isFixedPackage, serviceQuote, filterFixedStartSlots, packageLabel } from "@/lib/pricing/servicePackages";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -132,7 +135,7 @@ export function BookContent({
   const { t } = useTranslation();
   const nav = useNavigate();
 
-  const [step, setStep] = useState(0);
+  const [requestedStep, setRequestedStep] = useState<CustomerBookingStep>("service");
   const [serviceId, setServiceId] = useState<string | null>(searchServiceId ?? null);
   const [capabilityId, setCapabilityId] = useState<string | null>(searchCapabilityId ?? null);
   const [duration, setDuration] = useState("4h");
@@ -219,15 +222,6 @@ export function BookContent({
   );
   const isBabysitting = isBabysittingCategorySlug(activeService?.service?.category?.slug);
   const isTutoring = isTutoringCategorySlug(activeService?.service?.category?.slug);
-  const stepKeys = useMemo(() => {
-    const tail = ["notes", "requirements", "summary", "payment"] as const;
-    if (isTutoring) {
-      return ["service", "forWhom", "duration", "schedule", "address", ...tail] as const;
-    }
-    return ["service", "duration", "schedule", "address", "forWhom", ...tail] as const;
-  }, [isTutoring]);
-  const stepKey = stepKeys[step] ?? stepKeys[0];
-  const scheduleStep = stepKeys.indexOf("schedule");
   const capabilitiesQ = useApprovedTeachingCapabilities(
     providerId,
     activeService?.service?.id ?? serviceId ?? undefined,
@@ -267,6 +261,13 @@ export function BookContent({
     addressId: slotAddressId,
   });
   const requirementsQ = useRequirementsForService(activeService?.service?.id);
+  const stepKeys = buildCustomerBookingSteps({ tutoring: isTutoring, fixedPackage,
+    requirementsSuccess: requirementsQ.isSuccess, requirementsCount: requirementsQ.data?.length });
+  const stepKey = resolveCustomerBookingStep(requestedStep, stepKeys);
+  const step = stepKeys.indexOf(stepKey);
+  const scheduleStep = stepKeys.indexOf("schedule");
+  const setStep = (index: number) => setRequestedStep(stepKeys[index] ?? "service");
+
 
   useEffect(() => {
     if (isBabysitting && forWhom === "myself") {
@@ -403,6 +404,10 @@ export function BookContent({
     bookingSettingsQ.data?.max_advance_days,
   ]);
 
+  const otherProviders = <Link to={previewPath("/search") as "/search"} search={{ serviceId: activeService?.service?.id ?? serviceId ?? undefined }} className="inline-flex min-h-11 items-center px-3 text-sm font-bold text-brand underline">{t("bookingUx.otherProviders")}</Link>;
+  if (provQ.isError || servicesQ.isError || bookingSettingsQ.isError) {
+    return <PhoneFrame><QueryError onRetry={() => { void provQ.refetch(); void servicesQ.refetch(); void bookingSettingsQ.refetch(); }} />{otherProviders}</PhoneFrame>;
+  }
   if (provQ.isLoading || servicesQ.isLoading || bookingSettingsQ.isLoading || (needsPackageRate && packageRateQ.isLoading)) {
     return (
       <PhoneFrame>
@@ -420,9 +425,7 @@ export function BookContent({
           title={t("bookFlow.unavailable")}
           body={t("bookFlow.unavailableBody")}
           action={
-            <Link to="/search">
-              <PrimaryButton>{t("bookFlow.backToSearch")}</PrimaryButton>
-            </Link>
+            <div>{otherProviders}<Link to={previewPath("/addresses/new") as "/addresses/new"} className="inline-flex min-h-11 items-center px-3 text-sm font-bold text-brand">{t("addresses.addAddress")}</Link></div>
           }
         />
       </PhoneFrame>
@@ -438,9 +441,7 @@ export function BookContent({
           title={t("bookFlow.unavailable")}
           body={t("bookFlow.unavailableBody")}
           action={
-            <Link to="/search">
-              <PrimaryButton>{t("bookFlow.backToSearch")}</PrimaryButton>
-            </Link>
+            <div>{otherProviders}<Link to={previewPath("/addresses/new") as "/addresses/new"} className="inline-flex min-h-11 items-center px-3 text-sm font-bold text-brand">{t("addresses.addAddress")}</Link></div>
           }
         />
       </PhoneFrame>
@@ -494,7 +495,10 @@ export function BookContent({
     return t("bookFlow.durationShort", { hours: formatNumber(hours) });
   };
 
+  const requirementsReady = requirementsQ.isSuccess && eitherRequirements.every((r: any) => !!requirementChoices[r.id]);
+  const requirementsBlock = ["requirements", "summary", "payment"].includes(stepKey) && !requirementsReady;
   const canNext = () => {
+    if (requirementsBlock) return false;
     if (stepKey === "service") return !!activeService;
     if (stepKey === "duration" && isTutoring) return !!selectedCapability;
     if (stepKey === "schedule") return !!date && !!time && (!fixedPackage || !!selectedSlot);
@@ -507,10 +511,15 @@ export function BookContent({
         startAt: selectedSlot?.start ?? null,
       });
     if (stepKey === "requirements")
-      return eitherRequirements.every((r: any) => !!requirementChoices[r.id]);
+      return requirementsQ.isSuccess && eitherRequirements.every((r: any) => !!requirementChoices[r.id]);
     if (stepKey === "payment") return !!paymentMethodId;
     return true;
   };
+
+  const paymentCopy = paymentPresentation((methodsQ.data ?? []).find(method => method.id === paymentMethodId)?.method_type);
+  const noPaymentMethods = methodsQ.isSuccess && methodsQ.data.length === 0;
+  const stepQuery = requirementsBlock ? requirementsQ : stepKey === "duration" ? capabilitiesQ : stepKey === "schedule" ? slotsQ : stepKey === "address" ? (!addressId ? addrsQ : zoneQ) : stepKey === "forWhom" ? familyMembersQ : stepKey === "requirements" ? requirementsQ : stepKey === "payment" ? methodsQ : servicesQ;
+  const disabledReason = bookingDisabledReason({ step: requirementsBlock ? "requirements" : stepKey, allowed: canNext(), submitting: createBooking.isPending, loading: stepQuery.isLoading, error: stepQuery.isError, hasDate: !!date, hasSlots: packageSlots.length > 0, hasAddress: !!addressId });
 
   const applyPromo = async () => {
     const code = promoCode.trim();
@@ -769,10 +778,16 @@ export function BookContent({
       </div>
 
       <div className="flex-1 px-5 pb-40 pt-6">
+        {(stepKey === "service" || stepKey === "summary") && fixedPackage && (
+          <Step title={t("packages.fixedPrice")} sub={t(packageLabel(activeService.service).key, packageLabel(activeService.service).values)}>
+            <div className="rounded-2xl border border-brand bg-brand/5 p-4 text-xl font-extrabold text-brand">{formatEGP(subtotal)}</div>
+          </Step>
+        )}
+
         {stepKey === "service" && (
           <Step title={t("bookFlow.serviceTitle")} sub={t("bookFlow.serviceSub")}>
             {services.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("bookFlow.noServices")}</p>
+              <div><p className="text-sm text-muted-foreground">{t("bookFlow.noServices")}</p>{otherProviders}</div>
             ) : (
               <div className="space-y-3">
                 {services.map((s: any) => {
@@ -830,8 +845,8 @@ export function BookContent({
                 {t("bookFlow.capabilityUnavailable")}
               </p>
             ) : null}
-            {(capabilitiesQ.data ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("bookFlow.noCapabilities")}</p>
+            {capabilitiesQ.isError ? <QueryError onRetry={() => capabilitiesQ.refetch()} /> : capabilitiesQ.isLoading ? <p role="status">{t("common.loading")}</p> : (capabilitiesQ.data ?? []).length === 0 ? (
+              <div><p className="text-sm text-muted-foreground">{t("bookFlow.noCapabilities")}</p>{otherProviders}</div>
             ) : (
               <div className="space-y-3">
                 {(capabilitiesQ.data ?? [])
@@ -891,12 +906,6 @@ export function BookContent({
           </Step>
         )}
 
-        {stepKey === "duration" && fixedPackage && (
-          <Step title={t("packages.fixedPrice")} sub={t(packageLabel(activeService.service).key, packageLabel(activeService.service).values)}>
-            <div className="rounded-2xl border border-brand bg-brand/5 p-4 text-xl font-extrabold text-brand">{formatEGP(subtotal)}</div>
-          </Step>
-        )}
-
         {stepKey === "duration" && !isTutoring && !fixedPackage && (
           <Step title={t("bookFlow.durationTitle")} sub={t("bookFlow.durationSub")}>
             <div className="grid grid-cols-2 gap-3">
@@ -941,6 +950,7 @@ export function BookContent({
               hasSlotsForSelectedDate={packageSlots.length > 0}
               scanning={scanningSchedule}
               availabilityError={slotsQ.isError}
+              onRetry={() => void slotsQ.refetch()}
               onDateChange={(d) => {
                 userPickedDateRef.current = true;
                 setScanningSchedule(false);
@@ -959,7 +969,8 @@ export function BookContent({
 
         {stepKey === "address" && (
           <Step title={t("bookFlow.addressTitle")} sub={t("bookFlow.addressSub")}>
-            {addrsQ.isLoading ? (
+            <div id="booking-addresses" tabIndex={-1} />
+            {addrsQ.isError ? <QueryError onRetry={() => addrsQ.refetch()} /> : addrsQ.isLoading ? (
               <div className="space-y-2">
                 {Array.from({ length: 2 }).map((_, i) => (
                   <div key={i} className="h-16 animate-pulse rounded-2xl bg-surface-2" />
@@ -1033,7 +1044,7 @@ export function BookContent({
             )}
             {selectedAddress && (
               <div className="mt-3">
-                {zoneQ.isLoading ? (
+                {zoneQ.isError ? <QueryError onRetry={() => zoneQ.refetch()} /> : zoneQ.isLoading ? (
                   <div className="h-10 animate-pulse rounded-xl bg-surface-2" />
                 ) : zoneQ.data ? (
                   <div className="flex items-center gap-2 rounded-full bg-success/10 px-3.5 py-2.5 text-xs font-bold text-foreground">
@@ -1043,12 +1054,14 @@ export function BookContent({
                     })}
                   </div>
                 ) : (
-                  <div className="flex items-start gap-2 rounded-[1.25rem] bg-brand/8 px-3.5 py-2.5 text-xs font-bold text-brand">
+                  <div className="flex flex-wrap items-start gap-2 rounded-[1.25rem] bg-brand/8 px-3.5 py-2.5 text-xs font-bold text-brand">
                     <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                     {t(
                       "bookFlow.zoneNotServed",
                       "This area is not currently served. Please choose another address.",
                     )}
+                    <button type="button" className="min-h-11 underline" onClick={() => { document.getElementById("booking-addresses")?.scrollIntoView({ block: "center" }); document.getElementById("booking-addresses")?.focus(); }}>{t("bookingUx.changeAddress")}</button>
+                    <Link to={previewPath("/addresses/new") as "/addresses/new"} className="inline-flex min-h-11 items-center underline">{t("addresses.addAddress")}</Link>
                   </div>
                 )}
               </div>
@@ -1083,7 +1096,7 @@ export function BookContent({
                   </span>
                 </button>
               ) : null}
-              {familyMembersQ.isLoading ? (
+              {familyMembersQ.isError ? <QueryError onRetry={() => familyMembersQ.refetch()} /> : familyMembersQ.isLoading ? (
                 <div className="h-16 animate-pulse rounded-2xl bg-surface-2" />
               ) : (familyMembersQ.data ?? []).length === 0 ? (
                 <div className="rounded-2xl bg-surface-2 p-4 text-center text-xs text-muted-foreground">
@@ -1141,24 +1154,14 @@ export function BookContent({
           </Step>
         )}
 
-        {stepKey === "notes" && (
-          <Step title={t("bookFlow.notesTitle")} sub={t("bookFlow.notesSub")}>
-            <textarea
-              rows={6}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder={t("bookFlow.notesPlaceholder")}
-              className="w-full resize-none rounded-[1.25rem] border border-border bg-surface p-4 text-[15px] outline-none focus:border-brand"
-            />
-          </Step>
-        )}
-
         {stepKey === "requirements" && (
           <Step
             title={t("bookFlow.requirementsTitle", "Requirements")}
             sub={t("bookFlow.requirementsSub", "Some items for this service need to be arranged.")}
           >
-            {bookingRequirements.length === 0 ? (
+            {requirementsQ.isError ? <QueryError onRetry={() => requirementsQ.refetch()} /> : !requirementsQ.isSuccess ? (
+              <p role="status">{t("common.loading")}</p>
+            ) : bookingRequirements.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 {t("bookFlow.noRequirements", "Nothing extra needed for this service.")}
               </p>
@@ -1216,6 +1219,12 @@ export function BookContent({
 
         {stepKey === "summary" && (
           <Step title={t("bookFlow.summaryTitle")}>
+            <details open={notes ? true : undefined} className="mt-4">
+              <summary className="min-h-11 cursor-pointer py-3 text-sm font-bold">{t("bookFlow.notesTitle")}</summary>
+              <label className="block text-xs text-muted-foreground">{t("bookFlow.notesSub")}
+                <textarea rows={4} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t("bookFlow.notesPlaceholder")} className="mt-2 w-full resize-none rounded-[1.25rem] border border-border bg-surface p-4 text-[15px] outline-none focus:border-brand" />
+              </label>
+            </details>
             <Card className="p-4">
               <div className="flex items-center gap-3 border-b border-border pb-3">
                 <Avatar src={p.avatar} className="h-14 w-14 rounded-2xl" />
@@ -1364,7 +1373,7 @@ export function BookContent({
                 </button>
               </div>
             ) : (methodsQ.data ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("bookFlow.paymentEmpty")}</p>
+              <div><p className="text-sm text-muted-foreground">{t("bookFlow.paymentEmpty")}</p><Link to={previewPath("/help") as "/help"} className="inline-flex min-h-11 items-center px-3 font-bold text-brand">{t("bookingUx.contactSupport")}</Link></div>
             ) : (
               <>
                 <div className="space-y-3">
@@ -1428,20 +1437,22 @@ export function BookContent({
             </span>
           </div>
         )}
-        <PrimaryButton onClick={next} disabled={!canNext() || createBooking.isPending}>
+        {requirementsBlock && stepKey !== "requirements" && <button type="button" className="min-h-11 px-3 font-bold text-brand" onClick={() => setRequestedStep("requirements")}>{t("bookFlow.requirementsTitle")}</button>}
+        {disabledReason && !(stepKey === "payment" && noPaymentMethods) && <p role="status" className="mb-2 text-center text-xs font-semibold text-muted-foreground">{t(disabledReason)}</p>}
+        {stepKey === "payment" && paymentMethodId && !methodsQ.isError && <p className="mb-2 text-center text-xs text-muted-foreground">{t(paymentCopy.next)}</p>}
+        {stepKey === "payment" && noPaymentMethods ? <Link to={previewPath("/help") as "/help"} className="flex min-h-12 items-center justify-center rounded-full bg-brand px-4 font-bold text-brand-foreground">{t("bookingUx.contactSupport")}</Link> : <PrimaryButton onClick={next} disabled={!canNext() || createBooking.isPending}>
           {createBooking.isPending ? (
             <Loader2 className="h-5 w-5 animate-spin" />
           ) : stepKey === "payment" ? (
             <>
-              <Lock className="h-4 w-4" aria-hidden="true" />{" "}
-              {t("bookFlow.payCta", { price: formatEGP(total) })}
+              {t(paymentCopy.cta, { price: formatEGP(total) })}
             </>
           ) : stepKey === "summary" ? (
             t("bookFlow.continueToPayment")
           ) : (
             t("bookFlow.continue")
           )}
-        </PrimaryButton>
+        </PrimaryButton>}
       </div>
     </PhoneFrame>
   );
