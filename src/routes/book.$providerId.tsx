@@ -1,3 +1,4 @@
+import { paymentPresentation } from "@/lib/booking/paymentPresentation";
 import { bookingDisabledReason } from "@/lib/booking/disabledReason";
 import { buildCustomerBookingSteps, resolveCustomerBookingStep, type CustomerBookingStep } from "@/lib/booking/customerSteps";
 import { isFixedPackage, serviceQuote, filterFixedStartSlots, packageLabel } from "@/lib/pricing/servicePackages";
@@ -512,6 +513,8 @@ export function BookContent({
     return true;
   };
 
+  const paymentCopy = paymentPresentation((methodsQ.data ?? []).find(method => method.id === paymentMethodId)?.method_type);
+  const noPaymentMethods = methodsQ.isSuccess && methodsQ.data.length === 0;
   const stepQuery = stepKey === "duration" ? capabilitiesQ : stepKey === "schedule" ? slotsQ : stepKey === "address" ? (!addressId ? addrsQ : zoneQ) : stepKey === "forWhom" ? familyMembersQ : stepKey === "requirements" ? requirementsQ : stepKey === "payment" ? methodsQ : servicesQ;
   const disabledReason = bookingDisabledReason({ step: stepKey, allowed: canNext(), submitting: createBooking.isPending, loading: stepQuery.isLoading, error: stepQuery.isError, hasDate: !!date, hasSlots: packageSlots.length > 0, hasAddress: !!addressId });
 
@@ -1367,7 +1370,7 @@ export function BookContent({
                 </button>
               </div>
             ) : (methodsQ.data ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("bookFlow.paymentEmpty")}</p>
+              <div><p className="text-sm text-muted-foreground">{t("bookFlow.paymentEmpty")}</p><Link to={previewPath("/help") as "/help"} className="inline-flex min-h-11 items-center px-3 font-bold text-brand">{t("bookingUx.contactSupport")}</Link></div>
             ) : (
               <>
                 <div className="space-y-3">
@@ -1432,20 +1435,20 @@ export function BookContent({
           </div>
         )}
         {disabledReason && <p role="status" className="mb-2 text-center text-xs font-semibold text-muted-foreground">{t(disabledReason)}</p>}
-        <PrimaryButton onClick={next} disabled={!canNext() || createBooking.isPending}>
+        {stepKey === "payment" && paymentMethodId && !methodsQ.isError && <p className="mb-2 text-center text-xs text-muted-foreground">{t(paymentCopy.next)}</p>}
+        {stepKey === "payment" && noPaymentMethods ? <Link to={previewPath("/help") as "/help"} className="flex min-h-12 items-center justify-center rounded-full bg-brand px-4 font-bold text-brand-foreground">{t("bookingUx.contactSupport")}</Link> : <PrimaryButton onClick={next} disabled={!canNext() || createBooking.isPending}>
           {createBooking.isPending ? (
             <Loader2 className="h-5 w-5 animate-spin" />
           ) : stepKey === "payment" ? (
             <>
-              <Lock className="h-4 w-4" aria-hidden="true" />{" "}
-              {t("bookFlow.payCta", { price: formatEGP(total) })}
+              {t(paymentCopy.cta, { price: formatEGP(total) })}
             </>
           ) : stepKey === "summary" ? (
             t("bookFlow.continueToPayment")
           ) : (
             t("bookFlow.continue")
           )}
-        </PrimaryButton>
+        </PrimaryButton>}
       </div>
     </PhoneFrame>
   );

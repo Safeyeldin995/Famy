@@ -756,6 +756,12 @@ const en = {
     ],
   },
   bookingUx: {
+    cashCta: "Confirm booking — pay cash on arrival",
+    cashNext: "Pay the provider cash on arrival. No online payment is taken.",
+    transferCta: "Confirm booking and continue to transfer",
+    transferNext: "Famy confirms manually after you upload the receipt.",
+    contactSupport: "Contact support",
+
     saving: "Confirming your booking. Please wait.",
     retryLoad: "Could not load this information. Choose Retry.",
     loading: "Please wait for the information to load.",
