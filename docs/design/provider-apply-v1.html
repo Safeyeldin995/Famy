@@ -1,0 +1,389 @@
+<title>تسجيل مقدم الخدمة الجديد</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&display=swap">
+<style>
+/* Layout: short intro, then real-size phone screens (one column on phones, two or three per row on wide screens). */
+:root {
+  --page: #f2f0f1;
+  --screen: #ffffff;
+  --ink: #17121a;
+  --ink-2: #4d4550;
+  --muted: #8b8290;
+  --line: #ece8ea;
+  --fill: #f6f4f5;
+  --brand: #f10e72;
+  --brand-ink: #c20a5b;
+  --brand-tint: #fff0f6;
+  --ok: #12a06a;
+  --ok-tint: #e8f7f0;
+  --wait: #b46b00;
+  --wait-tint: #fff4e2;
+  --frame: #0f0d10;
+  --scrim: rgba(15, 13, 16, .42);
+  --font: "Almarai", "Segoe UI", Tahoma, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #0f0d10; --screen: #ffffff; --frame: #2a252b; color-scheme: dark;
+    --page-ink: #f3eef1;
+  }
+}
+:root[data-theme="dark"] { --page: #0f0d10; --screen: #ffffff; --frame: #2a252b; color-scheme: dark; --page-ink: #f3eef1; }
+* { box-sizing: border-box; }
+body { background: var(--page); color: var(--page-ink, var(--ink)); font-family: var(--font); font-size: 14px; line-height: 1.6; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 16px; padding-block: 24px 56px; display: grid; gap: 28px; }
+.intro { display: grid; gap: 6px; max-width: 640px; }
+.intro h1 { margin: 0; font-size: 1.25rem; font-weight: 800; }
+.intro p { margin: 0; opacity: .75; }
+.group { display: grid; gap: 14px; }
+.group h2 { margin: 0; font-size: 1rem; font-weight: 800; }
+.row { display: flex; flex-wrap: wrap; gap: 22px; justify-content: center; }
+.item { display: grid; gap: 8px; justify-items: center; width: min(360px, 100%); }
+.cap { font-weight: 700; font-size: 13px; text-align: center; }
+.cap span { display: block; font-weight: 400; opacity: .7; font-size: 12px; }
+
+/* ---------- phone ---------- */
+.phone { width: 100%; background: var(--frame); border-radius: 44px; padding: 9px; box-shadow: 0 18px 40px rgba(0,0,0,.18); }
+.scr { position: relative; background: var(--screen); color: var(--ink); border-radius: 36px; overflow: hidden; height: 720px; display: flex; flex-direction: column; }
+.sb { height: 44px; padding: 14px 26px 0; display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 700; direction: ltr; }
+.sb .ic { display: flex; gap: 5px; align-items: center; }
+.nav { padding: 6px 20px 0; display: grid; gap: 14px; }
+.navrow { display: flex; justify-content: space-between; align-items: center; }
+.iconbtn { width: 40px; height: 40px; border-radius: 50%; background: var(--fill); display: grid; place-items: center; }
+.stepnum { font-size: 12px; color: var(--muted); font-weight: 700; }
+.segs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.segs i { height: 4px; border-radius: 4px; background: var(--line); }
+.segs i.on { background: var(--brand); }
+.content { padding: 22px 20px 16px; display: grid; gap: 18px; align-content: start; flex: 1; overflow: hidden; }
+.h { margin: 0; font-size: 24px; font-weight: 800; line-height: 1.3; letter-spacing: -.01em; }
+.p { margin: -10px 0 0; color: var(--muted); font-size: 14px; }
+.lbl { font-size: 13px; font-weight: 700; color: var(--ink-2); margin-bottom: 8px; display: block; }
+.input { height: 56px; border-radius: 16px; background: var(--fill); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; font-size: 16px; }
+.input.focus { background: var(--screen); box-shadow: inset 0 0 0 2px var(--brand); }
+.input .ph { color: var(--muted); }
+.select .sel-l { display: grid; line-height: 1.3; }
+.select .sel-l small { color: var(--muted); font-size: 11px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { height: 44px; border-radius: 22px; padding: 0 16px; display: inline-flex; align-items: center; gap: 8px; background: var(--fill); font-size: 14px; font-weight: 700; color: var(--ink-2); }
+.chip.on { background: var(--brand-tint); color: var(--brand-ink); box-shadow: inset 0 0 0 1.5px var(--brand); }
+.chip.sm { height: 38px; padding: 0 14px; font-size: 13px; }
+.dotcheck { width: 18px; height: 18px; border-radius: 50%; background: var(--brand); display: grid; place-items: center; }
+.svc { border-radius: 18px; background: var(--screen); box-shadow: inset 0 0 0 1px var(--line); padding: 14px; display: grid; gap: 14px; }
+.svc.on { box-shadow: inset 0 0 0 2px var(--brand); }
+.svcrow { display: flex; align-items: center; gap: 12px; }
+.tile { width: 44px; height: 44px; border-radius: 14px; background: var(--fill); display: grid; place-items: center; flex-shrink: 0; }
+.svc.on .tile { background: var(--brand-tint); }
+.svctxt { flex: 1; min-width: 0; display: grid; line-height: 1.35; }
+.svctxt b { font-size: 15px; }
+.svctxt small { color: var(--muted); font-size: 12px; }
+.cb { width: 24px; height: 24px; border-radius: 8px; box-shadow: inset 0 0 0 2px var(--line); display: grid; place-items: center; flex-shrink: 0; }
+.cb.on { background: var(--brand); box-shadow: none; }
+.stepper { display: flex; align-items: center; justify-content: space-between; background: var(--fill); border-radius: 16px; padding: 8px; }
+.sbtn { width: 44px; height: 44px; border-radius: 50%; background: var(--screen); box-shadow: 0 1px 2px rgba(0,0,0,.08), inset 0 0 0 1px var(--line); display: grid; place-items: center; }
+.sval { text-align: center; line-height: 1.2; }
+.sval b { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.sval span { font-size: 13px; color: var(--ink-2); font-weight: 700; }
+.sval small { display: block; color: var(--muted); font-size: 11px; margin-top: 2px; }
+.idcard { border-radius: 18px; box-shadow: inset 0 0 0 1px var(--line); padding: 14px; display: flex; align-items: center; gap: 14px; }
+.idcard.ok { background: var(--ok-tint); box-shadow: none; }
+.idart { width: 74px; height: 48px; border-radius: 8px; background: var(--fill); position: relative; flex-shrink: 0; }
+.idcard.ok .idart { background: #fff; }
+.idart::before { content: ""; position: absolute; inset-block-start: 10px; inset-inline-start: 8px; width: 18px; height: 22px; border-radius: 4px; background: var(--line); }
+.idart::after { content: ""; position: absolute; inset-block-start: 14px; inset-inline-end: 8px; width: 34px; height: 4px; border-radius: 2px; background: var(--line); box-shadow: 0 8px 0 var(--line), 0 16px 0 var(--line); }
+.idtxt { flex: 1; display: grid; line-height: 1.35; }
+.idtxt b { font-size: 15px; }
+.idtxt small { color: var(--muted); font-size: 12px; }
+.idcard.ok .idtxt small { color: var(--ok); font-weight: 700; }
+.pillbtn { height: 36px; padding: 0 14px; border-radius: 18px; background: var(--ink); color: #fff; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; }
+.note { display: flex; gap: 10px; align-items: flex-start; background: var(--fill); border-radius: 14px; padding: 12px 14px; color: var(--ink-2); font-size: 12.5px; }
+.agree { display: flex; gap: 12px; align-items: center; font-size: 14px; color: var(--ink-2); }
+.bottom { padding: 12px 20px 26px; }
+.cta { height: 56px; border-radius: 18px; background: var(--brand); color: #fff; display: grid; place-items: center; font-size: 16px; font-weight: 800; }
+.home { width: 120px; height: 5px; border-radius: 3px; background: var(--ink); margin: 10px auto 0; opacity: .85; }
+
+/* home checklist */
+.hello { display: flex; align-items: center; justify-content: space-between; }
+.hello b { font-size: 22px; font-weight: 800; }
+.avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--brand-tint); display: grid; place-items: center; color: var(--brand); font-weight: 800; }
+.progcard { border-radius: 22px; background: var(--ink); color: #fff; padding: 18px; display: flex; gap: 16px; align-items: center; }
+.progcard b { font-size: 17px; display: block; }
+.progcard small { opacity: .7; font-size: 12.5px; }
+.list { display: grid; gap: 2px; }
+.li { display: flex; align-items: center; gap: 12px; padding: 12px 4px; border-bottom: 1px solid var(--line); }
+.li:last-child { border-bottom: 0; }
+.li .tile { width: 40px; height: 40px; border-radius: 12px; }
+.li.done .tile { background: var(--ok-tint); }
+.li.next .tile { background: var(--brand-tint); }
+.li .t { flex: 1; display: grid; line-height: 1.3; }
+.li .t b { font-size: 14.5px; }
+.li .t small { font-size: 12px; color: var(--muted); }
+.li.done .t b { color: var(--muted); }
+.tag { font-size: 11.5px; font-weight: 700; border-radius: 999px; padding: 4px 10px; }
+.tag.go { background: var(--brand); color: #fff; }
+.tag.wait { background: var(--wait-tint); color: var(--wait); }
+.tag.time { color: var(--muted); background: var(--fill); }
+
+/* subject */
+.saved { border-radius: 16px; background: var(--fill); padding: 12px 14px; display: flex; gap: 12px; align-items: center; }
+.saved .t { flex: 1; display: grid; line-height: 1.35; }
+.saved .t b { font-size: 14px; }
+.saved .t small { font-size: 12px; color: var(--muted); }
+
+/* sheet */
+.scrim { position: absolute; inset: 0; background: var(--scrim); }
+.sheet { position: absolute; inset-inline: 0; bottom: 0; background: var(--screen); border-radius: 26px 26px 0 0; padding: 10px 20px 28px; display: grid; gap: 12px; }
+.grab { width: 40px; height: 5px; border-radius: 3px; background: var(--line); justify-self: center; }
+.sheethead { display: flex; justify-content: space-between; align-items: center; }
+.sheethead b { font-size: 18px; font-weight: 800; }
+.search { height: 46px; border-radius: 14px; background: var(--fill); display: flex; align-items: center; gap: 8px; padding: 0 14px; color: var(--muted); }
+.opt { display: flex; align-items: center; justify-content: space-between; height: 52px; border-bottom: 1px solid var(--line); font-size: 15px; }
+.opt:last-child { border-bottom: 0; }
+.opt.on { font-weight: 800; }
+.radio { width: 22px; height: 22px; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--line); }
+.radio.on { box-shadow: inset 0 0 0 7px var(--brand); }
+
+/* summary */
+.sum { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.sumc { background: var(--screen); color: var(--ink); border-radius: 18px; padding: 16px; display: grid; gap: 6px; min-width: 0; }
+.sumc b { font-size: 14px; }
+.sumc p { margin: 0; color: var(--ink-2); font-size: 13px; }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M6 12h12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 6v12M6 12h12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-cam" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 10V7.5a4 4 0 018 0V10" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4.5-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-baby" viewBox="0 0 24 24"><circle cx="12" cy="9" r="4.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 20c1.5-3.5 4-5 7-5s5.5 1.5 7 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M5 5.5A2.5 2.5 0 017.5 3H19v15H7.5A2.5 2.5 0 005 20.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M5 20.5A2.5 2.5 0 017.5 18H19v3H7.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4.5 20c1.5-4 4.5-5.5 7.5-5.5s6 1.5 7.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 8v4.5l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M5 5h14v10H10l-4 4v-4H5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><path d="M6.5 4h3l1.5 4-2 1.5a10 10 0 005 5l1.5-2 4 1.5v3a2 2 0 01-2 2A15 15 0 014.5 6a2 2 0 012-2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v5.5c0 4.5-3 8-7 9.5-4-1.5-7-5-7-9.5V6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0113 0c0 5-6.5 11-6.5 11z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="10" r="2.3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  </defs>
+</svg>
+
+<div class="wrap" dir="rtl" lang="ar">
+
+  <header class="intro">
+    <h1>تسجيل مقدم الخدمة الجديد</h1>
+    <p>3 شاشات قبل الإرسال، والباقي خطوات صغيرة بعده. نفس خط التطبيق (المراعي) ولونه.</p>
+  </header>
+
+  <div class="group">
+    <h2>قبل الإرسال: 3 شاشات</h2>
+    <div class="row">
+
+      <!-- Screen 1 -->
+      <div class="item">
+        <div class="phone"><div class="scr">
+          <div class="sb"><span>9:41</span><span class="ic">●●● ▮</span></div>
+          <div class="nav">
+            <div class="navrow"><span></span><span class="stepnum">1 من 3</span></div>
+            <div class="segs"><i class="on"></i><i></i><i></i></div>
+          </div>
+          <div class="content">
+            <h3 class="h">أهلا بيك في فامي</h3>
+            <p class="p">نتعرف عليك في أقل من دقيقة</p>
+            <div>
+              <span class="lbl">اسمك زي البطاقة</span>
+              <div class="input focus"><span>منى عادل</span></div>
+            </div>
+            <div>
+              <span class="lbl">بتشتغل في أنهي مناطق؟</span>
+              <div class="chips">
+                <span class="chip on"><span class="dotcheck"><svg width="11" height="11" style="color:#fff"><use href="#i-check"/></svg></span>الشيخ زايد</span>
+                <span class="chip on"><span class="dotcheck"><svg width="11" height="11" style="color:#fff"><use href="#i-check"/></svg></span>6 أكتوبر</span>
+              </div>
+              <p class="p" style="margin-top:8px;font-size:12.5px">تقدر تختار أكتر من منطقة</p>
+            </div>
+          </div>
+          <div class="bottom"><div class="cta">التالي</div><div class="home"></div></div>
+        </div></div>
+        <div class="cap">اسمك ومناطقك<span>خانة واحدة واختيار بضغطة</span></div>
+      </div>
+
+      <!-- Screen 2 -->
+      <div class="item">
+        <div class="phone"><div class="scr">
+          <div class="sb"><span>9:41</span><span class="ic">●●● ▮</span></div>
+          <div class="nav">
+            <div class="navrow"><span class="iconbtn"><svg width="20" height="20"><use href="#i-back"/></svg></span><span class="stepnum">2 من 3</span></div>
+            <div class="segs"><i class="on"></i><i class="on"></i><i></i></div>
+          </div>
+          <div class="content">
+            <h3 class="h">بتقدم خدمات ايه؟</h3>
+            <p class="p">اختار الخدمات وحدد سعرك</p>
+            <div class="svc on">
+              <div class="svcrow">
+                <span class="tile"><svg width="22" height="22" style="color:var(--brand)"><use href="#i-baby"/></svg></span>
+                <span class="svctxt"><b>جليسة أطفال بالساعة</b><small>السعر بالساعة</small></span>
+                <span class="cb on"><svg width="14" height="14" style="color:#fff"><use href="#i-check"/></svg></span>
+              </div>
+              <div class="stepper">
+                <span class="sbtn"><svg width="18" height="18"><use href="#i-minus"/></svg></span>
+                <span class="sval"><b>250</b> <span>ج.م / ساعة</span><small>من 150 لحد 500</small></span>
+                <span class="sbtn"><svg width="18" height="18"><use href="#i-plus"/></svg></span>
+              </div>
+            </div>
+            <div class="svc">
+              <div class="svcrow">
+                <span class="tile"><svg width="22" height="22" style="color:var(--ink-2)"><use href="#i-sun"/></svg></span>
+                <span class="svctxt"><b>يوم كامل</b><small>8 ساعات · سعر ثابت</small></span>
+                <span class="cb"></span>
+              </div>
+            </div>
+            <div class="svc">
+              <div class="svcrow">
+                <span class="tile"><svg width="22" height="22" style="color:var(--ink-2)"><use href="#i-book"/></svg></span>
+                <span class="svctxt"><b>مساعدة في الواجبات</b><small>السعر بالحصة</small></span>
+                <span class="cb"></span>
+              </div>
+            </div>
+          </div>
+          <div class="bottom"><div class="cta">التالي</div><div class="home"></div></div>
+        </div></div>
+        <div class="cap">خدماتك وسعرك<span>زرار زائد وناقص، والحدود مكتوبة</span></div>
+      </div>
+
+      <!-- Screen 3 -->
+      <div class="item">
+        <div class="phone"><div class="scr">
+          <div class="sb"><span>9:41</span><span class="ic">●●● ▮</span></div>
+          <div class="nav">
+            <div class="navrow"><span class="iconbtn"><svg width="20" height="20"><use href="#i-back"/></svg></span><span class="stepnum">3 من 3</span></div>
+            <div class="segs"><i class="on"></i><i class="on"></i><i class="on"></i></div>
+          </div>
+          <div class="content">
+            <h3 class="h">صور البطاقة</h3>
+            <p class="p">عشان نتأكد إن الحساب ليك انت</p>
+            <div class="idcard ok">
+              <span class="idart"></span>
+              <span class="idtxt"><b>وش البطاقة</b><small>تمام</small></span>
+              <svg width="22" height="22" style="color:var(--ok)"><use href="#i-check"/></svg>
+            </div>
+            <div class="idcard">
+              <span class="idart"></span>
+              <span class="idtxt"><b>ضهر البطاقة</b><small>صورة واضحة من غير لمعة</small></span>
+              <span class="pillbtn"><svg width="15" height="15"><use href="#i-cam"/></svg>صور</span>
+            </div>
+            <div class="note"><svg width="18" height="18" style="flex-shrink:0;color:var(--ink-2)"><use href="#i-lock"/></svg>البطاقة بيشوفها فريق فامي بس، ومحدش من العملاء بيشوفها.</div>
+            <div class="agree"><span class="cb on"><svg width="14" height="14" style="color:#fff"><use href="#i-check"/></svg></span>البيانات صحيحة وموافق على الشروط</div>
+          </div>
+          <div class="bottom"><div class="cta">ابعت طلبي</div><div class="home"></div></div>
+        </div></div>
+        <div class="cap">البطاقة والإرسال<span>الكاميرا بتفتح على طول</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="group">
+    <h2>بعد الإرسال</h2>
+    <div class="row">
+
+      <!-- Home checklist -->
+      <div class="item">
+        <div class="phone"><div class="scr">
+          <div class="sb"><span>9:41</span><span class="ic">●●● ▮</span></div>
+          <div class="content" style="padding-top:14px">
+            <div class="hello"><b>أهلا يا منى</b><span class="avatar">م</span></div>
+            <div class="progcard">
+              <svg width="58" height="58" viewBox="0 0 58 58" aria-hidden="true">
+                <circle cx="29" cy="29" r="24" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="6"/>
+                <circle cx="29" cy="29" r="24" fill="none" stroke="#f10e72" stroke-width="6" stroke-linecap="round" stroke-dasharray="150.8" stroke-dashoffset="64.6" transform="rotate(-90 29 29)"/>
+                <text x="29" y="34" text-anchor="middle" fill="#fff" font-size="14" font-weight="800" font-family="Almarai, sans-serif">3/7</text>
+              </svg>
+              <div><b>فاضلك 4 خطوات</b><small>وتظهر للعملاء. كل خطوة أقل من دقيقة</small></div>
+            </div>
+            <div class="list">
+              <div class="li next"><span class="tile"><svg width="20" height="20" style="color:var(--brand)"><use href="#i-user"/></svg></span><span class="t"><b>صورتك الشخصية</b><small>العملاء بيحبوا يشوفوا مين جاي</small></span><span class="tag go">ابدأ</span></div>
+              <div class="li"><span class="tile"><svg width="20" height="20" style="color:var(--ink-2)"><use href="#i-chat"/></svg></span><span class="t"><b>كلمتين عنك</b><small>جمل جاهزة تختار منها</small></span><span class="tag time">دقيقة</span></div>
+              <div class="li"><span class="tile"><svg width="20" height="20" style="color:var(--ink-2)"><use href="#i-baby"/></svg></span><span class="t"><b>أعمار الأطفال</b><small>اختار من القايمة</small></span><span class="tag time">دقيقة</span></div>
+              <div class="li"><span class="tile"><svg width="20" height="20" style="color:var(--ink-2)"><use href="#i-phone"/></svg></span><span class="t"><b>شخص نسأله عن شغلك</b><small>اسم ورقم بس</small></span><span class="tag time">دقيقة</span></div>
+              <div class="li done"><span class="tile"><svg width="20" height="20" style="color:var(--ok)"><use href="#i-clock"/></svg></span><span class="t"><b>مواعيد شغلك</b><small>اتملت لوحدها: الأحد للخميس 9 لـ 5</small></span><svg width="18" height="18" style="color:var(--ok)"><use href="#i-check"/></svg></div>
+              <div class="li"><span class="tile" style="background:var(--wait-tint)"><svg width="20" height="20" style="color:var(--wait)"><use href="#i-shield"/></svg></span><span class="t"><b>مراجعة فريق فامي</b><small>بنراجع البطاقة</small></span><span class="tag wait">جاري</span></div>
+            </div>
+          </div>
+          <div class="bottom" style="padding-top:0"><div class="home"></div></div>
+        </div></div>
+        <div class="cap">الصفحة الرئيسية<span>دايما عارف الخطوة الجاية</span></div>
+      </div>
+
+      <!-- Subject screen -->
+      <div class="item">
+        <div class="phone"><div class="scr">
+          <div class="sb"><span>9:41</span><span class="ic">●●● ▮</span></div>
+          <div class="nav"><div class="navrow"><span class="iconbtn"><svg width="20" height="20"><use href="#i-back"/></svg></span><span></span></div></div>
+          <div class="content">
+            <h3 class="h">بتدرس ايه؟</h3>
+            <div class="input select"><span class="sel-l"><small>المادة</small>رياضيات</span><svg width="18" height="18" style="color:var(--muted)"><use href="#i-down"/></svg></div>
+            <div class="input select"><span class="sel-l"><small>المنهج</small>المنهج المصري</span><svg width="18" height="18" style="color:var(--muted)"><use href="#i-down"/></svg></div>
+            <div>
+              <span class="lbl">الصفوف</span>
+              <div class="chips">
+                <span class="chip sm on">رابعة</span><span class="chip sm on">خامسة</span><span class="chip sm on">سادسة</span><span class="chip sm">أولى إعدادي</span><span class="chip sm">تانية إعدادي</span>
+              </div>
+            </div>
+            <div class="stepper">
+              <span class="sbtn"><svg width="18" height="18"><use href="#i-minus"/></svg></span>
+              <span class="sval"><b>400</b> <span>ج.م / حصة</span><small>من 300 لحد 1500</small></span>
+              <span class="sbtn"><svg width="18" height="18"><use href="#i-plus"/></svg></span>
+            </div>
+            <div class="saved"><span class="tile" style="background:#fff"><svg width="20" height="20" style="color:var(--ink-2)"><use href="#i-book"/></svg></span><span class="t"><b>إنجليزي · المنهج المصري</b><small>تانية وتالتة إعدادي · 450 ج.م</small></span><span class="tag wait">بنراجع</span></div>
+          </div>
+          <div class="bottom"><div class="cta">احفظ المادة</div><div class="home"></div></div>
+        </div></div>
+        <div class="cap">المادة لكذا صف مرة واحدة<span>بتتبعت وتتراجع كطلب واحد</span></div>
+      </div>
+
+      <!-- Bottom sheet -->
+      <div class="item">
+        <div class="phone"><div class="scr">
+          <div class="sb"><span>9:41</span><span class="ic">●●● ▮</span></div>
+          <div class="nav"><div class="navrow"><span class="iconbtn"><svg width="20" height="20"><use href="#i-back"/></svg></span><span></span></div></div>
+          <div class="content">
+            <h3 class="h">بتدرس ايه؟</h3>
+            <div class="input select"><span class="sel-l"><small>المادة</small><span class="ph">اختار المادة</span></span><svg width="18" height="18" style="color:var(--muted)"><use href="#i-down"/></svg></div>
+          </div>
+          <div class="scrim"></div>
+          <div class="sheet">
+            <div class="grab"></div>
+            <div class="sheethead"><b>اختار المادة</b><span class="iconbtn"><svg width="18" height="18"><use href="#i-close"/></svg></span></div>
+            <div class="search"><svg width="18" height="18"><use href="#i-search"/></svg>دور على مادة</div>
+            <div>
+              <div class="opt on"><span>رياضيات</span><span class="radio on"></span></div>
+              <div class="opt"><span>علوم</span><span class="radio"></span></div>
+              <div class="opt"><span>لغة عربية</span><span class="radio"></span></div>
+              <div class="opt"><span>لغة إنجليزية</span><span class="radio"></span></div>
+              <div class="opt"><span>دراسات اجتماعية</span><span class="radio"></span></div>
+            </div>
+          </div>
+        </div></div>
+        <div class="cap">القوايم بتطلع من تحت<span>زي طلبات وكريم، وفيها بحث</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="group">
+    <h2>اللي هيتغير</h2>
+    <div class="sum">
+      <div class="sumc"><b>قبل الإرسال</b><p>الاسم، المناطق (أكتر من واحدة)، الخدمات بسعر بزرار زائد وناقص، وصورتين للبطاقة.</p></div>
+      <div class="sumc"><b>بعد الإرسال</b><p>الصورة، النبذة بجمل جاهزة، أعمار الأطفال، المواد، ومرجع واحد. المواعيد بتيجي جاهزة.</p></div>
+      <div class="sumc"><b>الأمان زي ما هو</b><p>مقدم الخدمة مش بيظهر للعملاء غير لما يكمل القايمة كلها وانت توافق.</p></div>
+      <div class="sumc"><b>شكل موحد للتطبيق كله</b><p>نفس الخط والمسافات والزراير في كل شاشة، ومن غير تشكيل في أي نص.</p></div>
+    </div>
+  </div>
+
+</div>
