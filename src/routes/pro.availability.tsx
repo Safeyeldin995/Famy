@@ -189,7 +189,7 @@ export function AvailabilityPage() {
           {save.isSuccess && <div className="mt-3 text-center text-xs font-bold text-success">{t("pro.common.saved")}</div>}
         </div>
 
-        <details className="space-y-5">
+        <details open={!!provider.vacation_mode} className="space-y-5">
           <summary className="min-h-11 cursor-pointer py-3 text-sm font-extrabold">{t("pro.schedule.advanced")}</summary>
         <Card className="flex items-center gap-4 p-5">
           <div className="grid h-12 w-12 place-items-center rounded-full bg-brand/10 text-brand"><Plane className="h-6 w-6" strokeWidth={1.5} /></div>
@@ -199,10 +199,11 @@ export function AvailabilityPage() {
           </div>
           <button
             onClick={() => updateProv.mutate({ vacation_mode: !provider.vacation_mode })}
-            className={`relative h-7 w-12 rounded-full transition-colors ${provider.vacation_mode ? "bg-brand" : "bg-muted"}`}
+            aria-label={t("pro.schedule.vacationMode")}
+            className={`relative h-11 w-12 shrink-0 rounded-full transition-colors ${provider.vacation_mode ? "bg-brand" : "bg-muted"}`}
             aria-pressed={provider.vacation_mode}
           >
-            <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-sm transition-all ${provider.vacation_mode ? "left-[22px]" : "left-0.5"}`} />
+            <span className={`absolute top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-white shadow-sm transition-all ${provider.vacation_mode ? "left-[22px]" : "left-0.5"}`} />
           </button>
         </Card>
         <div>

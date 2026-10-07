@@ -18,6 +18,7 @@ const emptyList = vi.hoisted(() => [] as const);
 
 const provider = vi.hoisted(() => ({
   id: "prov-1",
+  vacation_mode: false,
   buffer_minutes: 30,
   min_notice_hours: 4,
   max_advance_days: 60,
@@ -93,7 +94,19 @@ describe("provider weekly availability save error", () => {
     saveState.isPending = false;
     saveState.isSuccess = false;
     saveState.isError = false;
+    provider.vacation_mode = false;
     await i18n.changeLanguage("en");
+  });
+
+  it("exposes active vacation mode with a 44px toggle", () => {
+    provider.vacation_mode = true;
+    const { container } = render(<AvailabilityPage />);
+    expect(container.querySelector("details")?.open).toBe(true);
+    const toggle = screen.getByRole("button", { name: i18n.t("pro.schedule.vacationMode") });
+    expect(toggle.getAttribute("aria-pressed")).toBe("true");
+    expect(toggle.className).toContain("h-11");
+    expect(toggle.className).toContain("w-12");
+    expect(toggle.className).toContain("shrink-0");
   });
 
   it("copies 24:00 only after Apply and saves only after the explicit Save button", () => {

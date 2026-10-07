@@ -178,6 +178,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
   const search = useSearch({ strict: false });
   const [step, setStep] = useState(() => onboardingInitialStep(search.section));
   const [err, setErr] = useState("");
+  const [attemptedSections, setAttemptedSections] = useState<Set<OnboardingSection>>(() => new Set());
   const [submissionErrors, setSubmissionErrors] = useState<Record<string, string> | null>(null);
   const [focusTarget, setFocusTarget] = useState<GuidanceField | null>(null);
   const [announcement, setAnnouncement] = useState("");
@@ -355,6 +356,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
     ? t(`pro.onboardingWizard.errors.${item.error}`, t("pro.onboardingWizard.guidance.checkSection"))
     : t("pro.onboardingWizard.guidance.completeField", { field: t(`pro.onboardingWizard.${item.label}`) });
   const openMissing = (item: MissingItem) => {
+    setAttemptedSections(sections => new Set(sections).add(item.section as OnboardingSection));
     if (item.field.startsWith("reference-1")) setSecondReferenceExpanded(true);
     setStep(STEPS.indexOf(item.section as typeof STEPS[number]));
     setAnnouncement(`${t(`pro.onboardingWizard.steps.${item.section}`)}: ${itemText(item)}`);
@@ -362,7 +364,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
   };
   const fieldHint = (field: GuidanceField) => {
     const item = localMissing.find(item => item.field === field);
-    return item ? <p id={`${field}-hint`} className="mt-1 text-xs font-medium text-coral">{itemText(item)}</p> : null;
+    return item && attemptedSections.has(item.section as OnboardingSection) ? <p id={`${field}-hint`} className="mt-1 text-xs font-medium text-coral">{itemText(item)}</p> : null;
   };
 
   const toggleAgeChip = (chipId: AgeGroupChipId) => {
@@ -375,6 +377,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
   const singleActiveZone = (zonesQ.data ?? []).length === 1 ? (zonesQ.data ?? [])[0] : null;
 
   const saveCurrent = async () => {
+    setAttemptedSections(sections => new Set(sections).add(current));
     setErr("");
     if (current === "services" && !pricesReady) return;
     if (current === "review" && localMissing.length) {
