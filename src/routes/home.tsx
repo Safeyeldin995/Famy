@@ -17,7 +17,7 @@ import {
 } from "@/lib/db/queries";
 import { useFeaturedPromoCodes } from "@/lib/db/promo-codes-queries";
 import { rebookProvidersFromBookings } from "@/lib/home/rebookProviders";
-import { toUICategory, toUIProvider } from "@/lib/db/adapters";
+import { toUICategory, toUIProvider, providerPriceLabel } from "@/lib/db/adapters";
 import {
   ArrowRight,
   Bell,
@@ -249,7 +249,7 @@ function Home() {
                   params={{ id: p.id }}
                   avatar={p.avatar}
                   name={p.name}
-                  subtitle={formatEGP(p.hourlyRate, { perHour: true })}
+                  subtitle={providerPriceLabel(p, t)}
                   meta={<ProviderRatingMeta rating={p.rating} reviews={p.reviews} />}
                   trailing={
                     <span className="shrink-0 rounded-full bg-brand px-3.5 py-2 text-[11px] font-extrabold text-brand-foreground">

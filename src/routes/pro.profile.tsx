@@ -1,3 +1,4 @@
+import { isFixedPackage, packageLabel, servicePriceUnit } from "@/lib/pricing/servicePackages";
 import {
   ServicePricePicker,
   isPriceInRange,
@@ -532,6 +533,7 @@ function ProProfile() {
                           )}
                         </div>
                         <div className="break-words text-[11px] text-muted-foreground">{cname}</div>
+                        {isFixedPackage(s) && <p className="mt-1 text-xs text-brand">{t(packageLabel(s).key, packageLabel(s).values)}</p>}
                       </div>
                       <button
                         onClick={() =>
@@ -566,7 +568,7 @@ function ProProfile() {
                             onChange={(price) =>
                               setPriceDrafts((drafts) => ({ ...drafts, [s.id]: price }))
                             }
-                            unitLabel={t("pricePicker.hourUnit")}
+                            unitLabel={t(servicePriceUnit(s).key, servicePriceUnit(s).values)}
                           />
                           <button
                             onClick={() =>

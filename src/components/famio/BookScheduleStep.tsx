@@ -87,6 +87,7 @@ function ScheduleSelect({
 
 export function BookScheduleStep({
   locale,
+  fixedTime,
   maxAdvanceDays,
   date,
   time,
@@ -101,6 +102,7 @@ export function BookScheduleStep({
   onTimeBandChange,
 }: {
   locale: string;
+  fixedTime?: string;
   maxAdvanceDays: number;
   date: Date | null;
   time: string | null;
@@ -164,7 +166,7 @@ export function BookScheduleStep({
         ))}
       </ScheduleSelect>
 
-      <ScheduleSelect
+      {!fixedTime && <ScheduleSelect
         label={t("bookFlow.partOfDay", "Part of day")}
         value={timeBand}
         onChange={(value) => onTimeBandChange(value as TimeBand)}
@@ -175,10 +177,10 @@ export function BookScheduleStep({
             {t(band.labelKey)}
           </option>
         ))}
-      </ScheduleSelect>
+      </ScheduleSelect>}
 
       <div>
-        <ScheduleSelect
+        {fixedTime ? <p className="rounded-xl border border-brand/30 bg-brand/5 p-3 text-sm font-bold">{fixedTime}</p> : <ScheduleSelect
           label={t("bookFlow.timesLabel", "Time")}
           hint={t("bookFlow.timeSub")}
           value={time ?? ""}
@@ -199,7 +201,7 @@ export function BookScheduleStep({
               {slot.label}
             </option>
           ))}
-        </ScheduleSelect>
+        </ScheduleSelect>}
 
         {slotsLoading || scanning ? (
           <div className="mt-3 flex items-center gap-2 rounded-[1.25rem] border border-border/50 bg-surface-2/80 px-4 py-3">

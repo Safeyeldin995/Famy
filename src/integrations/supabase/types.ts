@@ -3075,6 +3075,7 @@ export type Database = {
           deleted_at: string | null
           description_ar: string | null
           description_en: string | null
+          fixed_start_time: string | null
           duration_min: number
           id: string
           is_active: boolean
@@ -3096,6 +3097,7 @@ export type Database = {
           deleted_at?: string | null
           description_ar?: string | null
           description_en?: string | null
+          fixed_start_time?: string | null
           duration_min?: number
           id?: string
           is_active?: boolean
@@ -3117,6 +3119,7 @@ export type Database = {
           deleted_at?: string | null
           description_ar?: string | null
           description_en?: string | null
+          fixed_start_time?: string | null
           duration_min?: number
           id?: string
           is_active?: boolean

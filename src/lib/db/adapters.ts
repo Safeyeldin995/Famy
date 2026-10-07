@@ -1,3 +1,5 @@
+import { isFixedPackage, packageLabel, type PackageService } from "@/lib/pricing/servicePackages";
+import { formatEGP } from "@/lib/utils";
 /**
  * Map raw Supabase rows into the UI shapes the Famy screens already render.
  * Keeping this in one place lets the rest of the app stay decoupled from the
@@ -17,6 +19,7 @@ export interface UIProvider {
   yearsExp: number;
   jobs: number;
   hourlyRate: number;
+  servicePricing?: PackageService;
   bio: string;
   languages: string[];
   areas: string[];
@@ -65,6 +68,7 @@ export function toUIProvider(row: any): UIProvider {
     yearsExp: row.years_experience ?? 0,
     jobs: Number(ratings?.rating_count ?? 0),
     hourlyRate: Number(row.hourly_rate ?? 0),
+    servicePricing: firstService,
     bio,
     languages: row.languages ?? [],
     areas: [row.city ?? "Cairo"],
@@ -114,4 +118,10 @@ export function toUICategory(row: any): UICategory {
       "",
     ...visuals,
   };
+}
+
+export function providerPriceLabel(provider: UIProvider, t: (key: string, options?: Record<string, unknown>) => string) {
+  if (!isFixedPackage(provider.servicePricing)) return formatEGP(provider.hourlyRate, { perHour: true });
+  const label = packageLabel(provider.servicePricing!);
+  return `${formatEGP(provider.hourlyRate)} · ${t(label.key, label.values)}`;
 }
