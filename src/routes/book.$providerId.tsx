@@ -1,3 +1,4 @@
+import { bookingDisabledReason } from "@/lib/booking/disabledReason";
 import { buildCustomerBookingSteps, resolveCustomerBookingStep, type CustomerBookingStep } from "@/lib/booking/customerSteps";
 import { isFixedPackage, serviceQuote, filterFixedStartSlots, packageLabel } from "@/lib/pricing/servicePackages";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
@@ -402,6 +403,10 @@ export function BookContent({
     bookingSettingsQ.data?.max_advance_days,
   ]);
 
+  const otherProviders = <Link to={previewPath("/search") as "/search"} search={{ serviceId: activeService?.service?.id ?? serviceId ?? undefined }} className="inline-flex min-h-11 items-center px-3 text-sm font-bold text-brand underline">{t("bookingUx.otherProviders")}</Link>;
+  if (provQ.isError || servicesQ.isError || bookingSettingsQ.isError) {
+    return <PhoneFrame><QueryError onRetry={() => { void provQ.refetch(); void servicesQ.refetch(); void bookingSettingsQ.refetch(); }} />{otherProviders}</PhoneFrame>;
+  }
   if (provQ.isLoading || servicesQ.isLoading || bookingSettingsQ.isLoading || (needsPackageRate && packageRateQ.isLoading)) {
     return (
       <PhoneFrame>
@@ -419,9 +424,7 @@ export function BookContent({
           title={t("bookFlow.unavailable")}
           body={t("bookFlow.unavailableBody")}
           action={
-            <Link to="/search">
-              <PrimaryButton>{t("bookFlow.backToSearch")}</PrimaryButton>
-            </Link>
+            <div>{otherProviders}<Link to={previewPath("/addresses/new") as "/addresses/new"} className="inline-flex min-h-11 items-center px-3 text-sm font-bold text-brand">{t("addresses.addAddress")}</Link></div>
           }
         />
       </PhoneFrame>
@@ -437,9 +440,7 @@ export function BookContent({
           title={t("bookFlow.unavailable")}
           body={t("bookFlow.unavailableBody")}
           action={
-            <Link to="/search">
-              <PrimaryButton>{t("bookFlow.backToSearch")}</PrimaryButton>
-            </Link>
+            <div>{otherProviders}<Link to={previewPath("/addresses/new") as "/addresses/new"} className="inline-flex min-h-11 items-center px-3 text-sm font-bold text-brand">{t("addresses.addAddress")}</Link></div>
           }
         />
       </PhoneFrame>
@@ -510,6 +511,9 @@ export function BookContent({
     if (stepKey === "payment") return !!paymentMethodId;
     return true;
   };
+
+  const stepQuery = stepKey === "duration" ? capabilitiesQ : stepKey === "schedule" ? slotsQ : stepKey === "address" ? (!addressId ? addrsQ : zoneQ) : stepKey === "forWhom" ? familyMembersQ : stepKey === "requirements" ? requirementsQ : stepKey === "payment" ? methodsQ : servicesQ;
+  const disabledReason = bookingDisabledReason({ step: stepKey, allowed: canNext(), submitting: createBooking.isPending, loading: stepQuery.isLoading, error: stepQuery.isError, hasDate: !!date, hasSlots: packageSlots.length > 0, hasAddress: !!addressId });
 
   const applyPromo = async () => {
     const code = promoCode.trim();
@@ -777,7 +781,7 @@ export function BookContent({
         {stepKey === "service" && (
           <Step title={t("bookFlow.serviceTitle")} sub={t("bookFlow.serviceSub")}>
             {services.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("bookFlow.noServices")}</p>
+              <div><p className="text-sm text-muted-foreground">{t("bookFlow.noServices")}</p>{otherProviders}</div>
             ) : (
               <div className="space-y-3">
                 {services.map((s: any) => {
@@ -835,8 +839,8 @@ export function BookContent({
                 {t("bookFlow.capabilityUnavailable")}
               </p>
             ) : null}
-            {(capabilitiesQ.data ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("bookFlow.noCapabilities")}</p>
+            {capabilitiesQ.isError ? <QueryError onRetry={() => capabilitiesQ.refetch()} /> : capabilitiesQ.isLoading ? <p role="status">{t("common.loading")}</p> : (capabilitiesQ.data ?? []).length === 0 ? (
+              <div><p className="text-sm text-muted-foreground">{t("bookFlow.noCapabilities")}</p>{otherProviders}</div>
             ) : (
               <div className="space-y-3">
                 {(capabilitiesQ.data ?? [])
@@ -940,6 +944,7 @@ export function BookContent({
               hasSlotsForSelectedDate={packageSlots.length > 0}
               scanning={scanningSchedule}
               availabilityError={slotsQ.isError}
+              onRetry={() => void slotsQ.refetch()}
               onDateChange={(d) => {
                 userPickedDateRef.current = true;
                 setScanningSchedule(false);
@@ -958,7 +963,8 @@ export function BookContent({
 
         {stepKey === "address" && (
           <Step title={t("bookFlow.addressTitle")} sub={t("bookFlow.addressSub")}>
-            {addrsQ.isLoading ? (
+            <div id="booking-addresses" tabIndex={-1} />
+            {addrsQ.isError ? <QueryError onRetry={() => addrsQ.refetch()} /> : addrsQ.isLoading ? (
               <div className="space-y-2">
                 {Array.from({ length: 2 }).map((_, i) => (
                   <div key={i} className="h-16 animate-pulse rounded-2xl bg-surface-2" />
@@ -1032,7 +1038,7 @@ export function BookContent({
             )}
             {selectedAddress && (
               <div className="mt-3">
-                {zoneQ.isLoading ? (
+                {zoneQ.isError ? <QueryError onRetry={() => zoneQ.refetch()} /> : zoneQ.isLoading ? (
                   <div className="h-10 animate-pulse rounded-xl bg-surface-2" />
                 ) : zoneQ.data ? (
                   <div className="flex items-center gap-2 rounded-full bg-success/10 px-3.5 py-2.5 text-xs font-bold text-foreground">
@@ -1042,12 +1048,14 @@ export function BookContent({
                     })}
                   </div>
                 ) : (
-                  <div className="flex items-start gap-2 rounded-[1.25rem] bg-brand/8 px-3.5 py-2.5 text-xs font-bold text-brand">
+                  <div className="flex flex-wrap items-start gap-2 rounded-[1.25rem] bg-brand/8 px-3.5 py-2.5 text-xs font-bold text-brand">
                     <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                     {t(
                       "bookFlow.zoneNotServed",
                       "This area is not currently served. Please choose another address.",
                     )}
+                    <button type="button" className="min-h-11 underline" onClick={() => { document.getElementById("booking-addresses")?.scrollIntoView({ block: "center" }); document.getElementById("booking-addresses")?.focus(); }}>{t("bookingUx.changeAddress")}</button>
+                    <Link to={previewPath("/addresses/new") as "/addresses/new"} className="inline-flex min-h-11 items-center underline">{t("addresses.addAddress")}</Link>
                   </div>
                 )}
               </div>
@@ -1082,7 +1090,7 @@ export function BookContent({
                   </span>
                 </button>
               ) : null}
-              {familyMembersQ.isLoading ? (
+              {familyMembersQ.isError ? <QueryError onRetry={() => familyMembersQ.refetch()} /> : familyMembersQ.isLoading ? (
                 <div className="h-16 animate-pulse rounded-2xl bg-surface-2" />
               ) : (familyMembersQ.data ?? []).length === 0 ? (
                 <div className="rounded-2xl bg-surface-2 p-4 text-center text-xs text-muted-foreground">
@@ -1423,6 +1431,7 @@ export function BookContent({
             </span>
           </div>
         )}
+        {disabledReason && <p role="status" className="mb-2 text-center text-xs font-semibold text-muted-foreground">{t(disabledReason)}</p>}
         <PrimaryButton onClick={next} disabled={!canNext() || createBooking.isPending}>
           {createBooking.isPending ? (
             <Loader2 className="h-5 w-5 animate-spin" />
