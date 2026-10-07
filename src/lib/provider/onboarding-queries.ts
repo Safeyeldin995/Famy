@@ -163,7 +163,7 @@ export function useSubmitOnboarding() {
         already_submitted?: boolean;
       };
       if (!result.ok && !result.already_submitted) {
-        throw new Error("submission_incomplete");
+        throw Object.assign(new Error("submission_incomplete"), { completionErrors: result.errors ?? {} });
       }
       return result;
     },

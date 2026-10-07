@@ -1414,6 +1414,12 @@ const en = {
       refNotes: "Note (optional)",
       ref1Required: "Add at least one complete reference.",
       ref2Incomplete: "Finish reference 2 or leave it empty.",
+      guidance: {
+        bio: "a bio in either language",
+        years: "years of experience with zero or more",
+        completeField: "Complete {{field}}",
+        checkSection: "Review and save this section, then submit again. If the problem continues, contact support.",
+      },
       reviewTitle: "Review your application",
       allComplete: "All mandatory sections look complete.",
       idFront: "National ID (front)",

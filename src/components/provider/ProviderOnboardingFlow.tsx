@@ -1,3 +1,4 @@
+import { localOnboardingMissing, onboardingMissingItems, type GuidanceField, type MissingItem } from "@/lib/provider/onboardingGuidance";
 import { useSearch } from "@tanstack/react-router";
 import { onboardingInitialStep } from "@/lib/provider/onboardingSection";
 import { isFixedPackage, packageLabel, servicePriceUnit } from "@/lib/pricing/servicePackages";
@@ -177,6 +178,19 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
   const search = useSearch({ strict: false });
   const [step, setStep] = useState(() => onboardingInitialStep(search.section));
   const [err, setErr] = useState("");
+  const [submissionErrors, setSubmissionErrors] = useState<Record<string, string> | null>(null);
+  const [focusTarget, setFocusTarget] = useState<GuidanceField | null>(null);
+  const [announcement, setAnnouncement] = useState("");
+  useEffect(() => {
+    if (!focusTarget) return;
+    const frame = requestAnimationFrame(() => {
+      const element = document.getElementById(focusTarget) ?? document.getElementById("onboarding-error");
+      element?.scrollIntoView({ block: "center" });
+      element?.focus({ preventScroll: true });
+      setFocusTarget(null);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [step, focusTarget]);
   const [secondReferenceExpanded, setSecondReferenceExpanded] = useState(false);
   const [legalName, setLegalName] = useState(previewMode ? PREVIEW_DEFAULTS.legalName : "");
   const [dob, setDob] = useState(previewMode ? PREVIEW_DEFAULTS.dob : "");
@@ -328,6 +342,29 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
     );
   }, [selectedServices, servicesQ.data]);
 
+  const hasDocument = (type: string) => !!uploadedDocs[type] || (docsQ.data ?? []).some(doc => doc.type === type);
+  const localMissing = localOnboardingMissing({
+    legalName, dob, governorate, area, address, photo: !!avatarPath || !!profile.avatar_url,
+    services: selectedServices.length > 0, prices: pricesReady, bioEn, bioAr, years: Number(years),
+    babysitting: babysittingSelected, maxChildren, ageGroups: childGroups.length,
+    coverage: selectedZones.length > 0, references: [ref1, ref2],
+    idFront: hasDocument("id_card_front"), idBack: hasDocument("id_card_back"), confirmed,
+  });
+  const missingItems = onboardingMissingItems(localMissing, submissionErrors ?? errors);
+  const itemText = (item: MissingItem) => item.error
+    ? t(`pro.onboardingWizard.errors.${item.error}`, t("pro.onboardingWizard.guidance.checkSection"))
+    : t("pro.onboardingWizard.guidance.completeField", { field: t(`pro.onboardingWizard.${item.label}`) });
+  const openMissing = (item: MissingItem) => {
+    if (item.field.startsWith("reference-1")) setSecondReferenceExpanded(true);
+    setStep(STEPS.indexOf(item.section as typeof STEPS[number]));
+    setAnnouncement(`${t(`pro.onboardingWizard.steps.${item.section}`)}: ${itemText(item)}`);
+    setFocusTarget(item.field);
+  };
+  const fieldHint = (field: GuidanceField) => {
+    const item = localMissing.find(item => item.field === field);
+    return item ? <p id={`${field}-hint`} className="mt-1 text-xs font-medium text-coral">{itemText(item)}</p> : null;
+  };
+
   const toggleAgeChip = (chipId: AgeGroupChipId) => {
     if (chipHasVerifiedCode(chipId, capabilityForms) || !editable) return;
     setChildGroups((current) =>
@@ -340,6 +377,10 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
   const saveCurrent = async () => {
     setErr("");
     if (current === "services" && !pricesReady) return;
+    if (current === "review" && localMissing.length) {
+      openMissing(localMissing[0]);
+      return;
+    }
     try {
       if (previewMode) {
         if (current === "review") {
@@ -427,6 +468,8 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
       } else if (current === "coverage") {
         const packed = buildCoverageSavePayload(coverageLoadState, selectedZones, activeZoneIds);
         if (!packed.ok) {
+          const first = localMissing.find(item => item.field === "coverage");
+          if (packed.error === "zone_required" && first) openMissing(first);
           setErr(
             packed.error === "zone_required"
               ? t("pro.onboardingWizard.errors.zone_required")
@@ -451,6 +494,8 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
         }
         const packed = buildReferencesPayload(ref1, ref2);
         if (!packed.ok) {
+          const first = localMissing.find(item => item.section === "references");
+          if (first) openMissing(first);
           setErr(
             packed.error === "ref1"
               ? t("pro.onboardingWizard.ref1Required")
@@ -469,12 +514,23 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
         nav({ to: proPath("/pro") as "/pro", replace: true });
         return;
       }
+      setSubmissionErrors(null);
       if (step < STEPS.length - 1) setStep(step + 1);
     } catch (e: any) {
       if (e?.message === "submission_incomplete") {
-        setErr(t("pro.onboardingWizard.submitIncomplete"));
+        const returnedErrors = e.completionErrors ?? {};
+        setSubmissionErrors(returnedErrors);
+        const next = onboardingMissingItems(localMissing, returnedErrors);
+        if (next.length) openMissing(next[0]);
+        else {
+          setErr(t("pro.onboardingWizard.guidance.checkSection"));
+          setFocusTarget("review");
+        }
       } else {
         setErr(t("pro.onboardingWizard.saveError"));
+        const first = localMissing.find(item => item.section === current);
+        if (first) openMissing(first);
+        else setFocusTarget("review");
       }
     }
   };
@@ -662,35 +718,41 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                 {t("pro.onboardingWizard.photoHint")}
               </span>
               <input
+                id="photo" aria-describedby="photo-hint"
                 type="file"
                 accept="image/*"
-                className="hidden"
+                className="sr-only"
                 onChange={(e) => e.target.files?.[0] && uploadAvatar(e.target.files[0])}
               />
             </label>
+            {fieldHint("photo")}
             <Field label={t("pro.onboardingWizard.legalName")}>
               <input
+                id="legalName" aria-describedby="legalName-hint"
                 value={legalName}
                 onChange={(e) => setLegalName(e.target.value)}
                 className={inputClass}
               />
+              {fieldHint("legalName")}
             </Field>
-            <Field label={t("pro.onboardingWizard.phone")}>
+            <div id="phone" tabIndex={-1}><Field label={t("pro.onboardingWizard.phone")}>
               <input
                 value={profile.phone ?? "+201098765432"}
                 readOnly
                 disabled
                 className={`${inputClass} opacity-70`}
               />
-            </Field>
+            </Field></div>
             <div className="grid grid-cols-2 gap-3">
               <Field label={t("pro.onboardingWizard.dob")}>
                 <input
                   type="date"
-                  value={dob}
+                  id="dob" aria-describedby="dob-hint"
+                value={dob}
                   onChange={(e) => setDob(e.target.value)}
                   className={inputClass}
                 />
+              {fieldHint("dob")}
               </Field>
               <Field label={t("pro.onboardingWizard.gender")}>
                 <select
@@ -706,31 +768,38 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
             </div>
             <Field label={t("pro.onboardingWizard.governorate")}>
               <input
+                id="governorate" aria-describedby="governorate-hint"
                 value={governorate}
                 onChange={(e) => setGovernorate(e.target.value)}
                 className={inputClass}
               />
+              {fieldHint("governorate")}
             </Field>
             <Field label={t("pro.onboardingWizard.area")}>
               <input
+                id="area" aria-describedby="area-hint"
                 value={area}
                 onChange={(e) => setArea(e.target.value)}
                 className={inputClass}
               />
+              {fieldHint("area")}
             </Field>
             <Field label={t("pro.onboardingWizard.address")}>
               <textarea
+                id="address" aria-describedby="address-hint"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 rows={3}
                 className={`${inputClass} min-h-[5rem] py-3`}
               />
+              {fieldHint("address")}
             </Field>
           </Card>
         )}
 
         {current === "services" && (
           <Card className="space-y-2 rounded-[1.25rem] p-4">
+            <div id="services" tabIndex={-1}>{fieldHint("services")}</div>
             <p className="mb-2 text-xs font-semibold text-muted-foreground">
               {t("pro.onboardingWizard.servicesHint")}
             </p>
@@ -806,6 +875,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
           </Card>
         )}
 
+        {current === "services" && <div id="prices" tabIndex={-1}>{fieldHint("prices")}</div>}
         {current === "services" && tutoringSelected && providerId ? (
           <div className="mt-4">
             <TeachingCapabilitiesEditor
@@ -833,20 +903,24 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
               <input
                 type="number"
                 min={0}
+                id="years" aria-describedby="years-hint"
                 value={years}
                 onChange={(e) => setYears(Number(e.target.value))}
                 className={inputClass}
               />
+              {fieldHint("years")}
             </Field>
             {lang === "ar" ? (
               <Field label={t("pro.onboarding.bioAr")}>
                 <textarea
-                  value={bioAr}
+                  id="bio" aria-describedby="bio-hint"
+                value={bioAr}
                   onChange={(e) => setBioAr(e.target.value)}
                   rows={4}
                   dir="rtl"
                   className={`${inputClass} min-h-[6rem] py-3`}
                 />
+              {fieldHint("bio")}
               </Field>
             ) : (
               <Field label={t("pro.onboarding.bioEn")}>
@@ -873,15 +947,18 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                     type="number"
                     min={1}
                     max={20}
-                    value={maxChildren}
+                    id="maxChildren" aria-describedby="maxChildren-hint"
+                value={maxChildren}
                     disabled={!editable}
                     onChange={(e) =>
                       setMaxChildren(e.target.value === "" ? "" : Number(e.target.value))
                     }
                     className={inputClass}
                   />
+              {fieldHint("maxChildren")}
                 </Field>
                 <Field label={t("pro.onboardingWizard.childAgeGroups")}>
+                  <div id="ageGroups" tabIndex={-1}>{fieldHint("ageGroups")}</div>
                   <div className="flex flex-wrap gap-2">
                     {AGE_GROUP_CHIP_IDS.map((chipId) => {
                       const verified = chipHasVerifiedCode(chipId, capabilityForms);
@@ -963,6 +1040,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
 
         {current === "coverage" && (
           <Card className="space-y-2 rounded-[1.25rem] p-4">
+            <div id="coverage" tabIndex={-1}>{fieldHint("coverage")}</div>
             <p className="mb-2 text-xs font-semibold text-muted-foreground">
               {t("pro.onboardingWizard.coverageHint")}
             </p>
@@ -1044,6 +1122,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                   {t("pro.onboardingWizard.refName")}
                 </label>
                 <input
+                  aria-describedby={`reference-${idx}-refName-hint`}
                   id={`reference-${idx}-refName`}
                   placeholder={t("pro.onboardingWizard.refName")}
                   value={ref.full_name}
@@ -1053,6 +1132,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                   className={inputClass}
                   disabled={referencesLoadState !== "ready"}
                 />
+                {fieldHint(`reference-${idx === 0 ? 0 : 1}-refName`)}
                 <label
                   className="block text-sm font-semibold"
                   htmlFor={`reference-${idx}-refRelationship`}
@@ -1060,6 +1140,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                   {t("pro.onboardingWizard.refRelationship")}
                 </label>
                 <input
+                  aria-describedby={`reference-${idx}-refRelationship-hint`}
                   id={`reference-${idx}-refRelationship`}
                   placeholder={t("pro.onboardingWizard.refRelationship")}
                   value={ref.relationship}
@@ -1069,6 +1150,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                   className={inputClass}
                   disabled={referencesLoadState !== "ready"}
                 />
+                {fieldHint(`reference-${idx === 0 ? 0 : 1}-refRelationship`)}
                 <label
                   className="block text-sm font-semibold"
                   htmlFor={`reference-${idx}-refPhone`}
@@ -1076,6 +1158,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                   {t("pro.onboardingWizard.refPhone")}
                 </label>
                 <input
+                  aria-describedby={`reference-${idx}-refPhone-hint`}
                   id={`reference-${idx}-refPhone`}
                   placeholder={t("pro.onboardingWizard.refPhone")}
                   value={ref.phone}
@@ -1086,6 +1169,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                   inputMode="tel"
                   disabled={referencesLoadState !== "ready"}
                 />
+                {fieldHint(`reference-${idx === 0 ? 0 : 1}-refPhone`)}
                 <label
                   className="block text-sm font-semibold"
                   htmlFor={`reference-${idx}-refNotes`}
@@ -1119,14 +1203,16 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
 
         {current === "review" && (
           <Card className="space-y-4 rounded-[1.25rem] p-4">
-            <div className="text-sm font-extrabold">{t("pro.onboardingWizard.reviewTitle")}</div>
+            <div id="review" tabIndex={-1} className="text-sm font-extrabold">{t("pro.onboardingWizard.reviewTitle")}</div>
             <ul className="space-y-1 text-xs font-medium text-muted-foreground">
-              {Object.entries(errors).map(([k, v]) => (
-                <li key={k} className="text-coral">
-                  {t(`pro.onboardingWizard.errors.${v}`, v)}
+              {missingItems.map(item => (
+                <li key={item.field}>
+                  <button type="button" className="min-h-11 text-start text-coral underline" onClick={() => openMissing(item)}>
+                    {t(`pro.onboardingWizard.steps.${item.section}`)}: {itemText(item)}
+                  </button>
                 </li>
               ))}
-              {Object.keys(errors).length === 0 && (
+              {missingItems.length === 0 && (
                 <li className="flex items-center gap-2 text-success">
                   <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
                   {t("pro.onboardingWizard.allComplete")}
@@ -1135,30 +1221,37 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
             </ul>
             <div className="grid grid-cols-2 gap-3">
               <DocButton
+                id="idFront"
+                hint={fieldHint("idFront")}
                 label={t("pro.onboardingWizard.idFront")}
-                done={uploadedDocs.id_card_front}
+                done={hasDocument("id_card_front")}
                 onUpload={(f) => handleDocUpload("id_card_front", f)}
               />
               <DocButton
+                id="idBack"
+                hint={fieldHint("idBack")}
                 label={t("pro.onboardingWizard.idBack")}
-                done={uploadedDocs.id_card_back}
+                done={hasDocument("id_card_back")}
                 onUpload={(f) => handleDocUpload("id_card_back", f)}
               />
             </div>
             <label className="flex items-start gap-3 rounded-2xl border border-border/60 bg-surface-2/40 p-4 text-sm font-medium">
               <input
                 type="checkbox"
+                id="confirmed" aria-describedby="confirmed-hint"
                 checked={confirmed}
                 onChange={(e) => setConfirmed(e.target.checked)}
                 className="mt-0.5 accent-brand"
               />
               {t("pro.onboardingWizard.accuracyConfirm")}
             </label>
+            {fieldHint("confirmed")}
           </Card>
         )}
 
+        <p role="status" aria-live="assertive" className="sr-only">{announcement}</p>
         {err && (
-          <div className="rounded-2xl bg-coral/10 px-4 py-3 text-xs font-bold text-coral">
+          <div id="onboarding-error" tabIndex={-1} role="alert" className="rounded-2xl bg-coral/10 px-4 py-3 text-xs font-bold text-coral">
             {err}
           </div>
         )}
@@ -1205,12 +1298,16 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function DocButton({
+  id,
+  hint,
   label,
   done,
   onUpload,
 }: {
   label: string;
   done?: boolean;
+  id: string;
+  hint: React.ReactNode;
   onUpload: (f: File) => Promise<unknown>;
 }) {
   return (
@@ -1227,10 +1324,12 @@ function DocButton({
         <Upload className="h-5 w-5" aria-hidden="true" />
       )}
       {label}
+      {hint}
       <input
+        id={id} aria-describedby={`${id}-hint`}
         type="file"
         accept="image/*,application/pdf"
-        className="hidden"
+        className="sr-only"
         onChange={(e) => e.target.files?.[0] && onUpload(e.target.files[0])}
       />
     </label>
