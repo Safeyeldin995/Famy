@@ -1,4 +1,5 @@
 export type PendingHomeData = {
+  hours: boolean;
   photo: boolean;
   about: boolean;
   personal: boolean;
@@ -10,12 +11,13 @@ export type PendingHomeData = {
 };
 
 const tasks = [
-  { key: "photo", section: "personal" },
-  { key: "about", section: "experience" },
-  { key: "babysitting", section: "experience" },
-  { key: "subjects", section: "services" },
-  { key: "reference", section: "references" },
-  { key: "personal", section: "personal" },
+  { key: "photo" },
+  { key: "about" },
+  { key: "babysitting" },
+  { key: "subjects" },
+  { key: "reference" },
+  { key: "personal" },
+  { key: "hours" },
 ] as const;
 
 export function pendingHomeModel(data: PendingHomeData) {

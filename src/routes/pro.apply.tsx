@@ -19,6 +19,8 @@ import {
   useSecureUploadDocument,
 } from "@/lib/provider/onboarding-queries";
 import { needsServicePrice } from "@/lib/provider/priceOptions";
+import { defaultWorkingHours } from "@/lib/provider/setupHelpers";
+import { useReplaceAvailability } from "@/lib/db/provider-queries";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/pro/apply")({ component: ProviderApplyRoute });
@@ -36,6 +38,7 @@ function ProviderApplyRoute() {
   const submit = useSubmitOnboarding();
   const price = useSetProviderPrice();
   const upload = useSecureUploadDocument();
+  const replaceAvailability = useReplaceAvailability();
   const started = useRef(false);
   const start = useMutation({
     mutationFn: async () => {
@@ -121,6 +124,9 @@ function ProviderApplyRoute() {
     } else {
       await save.mutateAsync({ section: "review", payload: { confirmed: draft.agreed } });
       await submit.mutateAsync();
+      const existing = await supabase.from("availability_rules").select("id").eq("provider_id", provider.data!.id).limit(1);
+      if (existing.error) throw existing.error;
+      if (!existing.data.length) await replaceAvailability.mutateAsync({ providerId: provider.data!.id, rules: defaultWorkingHours() });
       await navigate({ to: "/pro", replace: true });
     }
   };

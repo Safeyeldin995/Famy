@@ -11,15 +11,15 @@ vi.mock("react-i18next", () => ({
 vi.mock("@tanstack/react-router", () => ({
   Link: ({
     to,
-    search,
+    params,
     children,
     ...props
   }: {
     to: string;
-    search: { section: string };
+    params: { item: string };
     children: ReactNode;
   }) => (
-    <a href={`${to}?section=${search.section}`} {...props}>
+    <a href={to.replace("$item", params.item)} {...props}>
       {children}
     </a>
   ),
@@ -27,20 +27,21 @@ vi.mock("@tanstack/react-router", () => ({
 vi.mock("@/lib/db/queries", () => ({ useAvatarUrl: () => ({ data: "/signed-avatar-test.png" }) }));
 afterEach(cleanup);
 
-it("renders all six editable preview tasks, progress, next and waiting states", () => {
+it("renders all seven editable preview tasks, progress, next and waiting states", () => {
   render(<ProviderPendingHome preview />);
   expect(screen.getByRole("heading", { name: "أهلا يا منى" })).toBeTruthy();
   expect(screen.getByRole("heading", { name: "فاضلك 4 خطوات" })).toBeTruthy();
-  expect(screen.getByText("3/8")).toBeTruthy();
+  expect(screen.getByText("4/9")).toBeTruthy();
   const links = screen.getAllByRole("link");
-  expect(links).toHaveLength(6);
+  expect(links).toHaveLength(7);
   expect(links.map((link) => link.getAttribute("href"))).toEqual([
-    "/pro/onboarding?section=personal",
-    "/pro/onboarding?section=experience",
-    "/pro/onboarding?section=experience",
-    "/pro/onboarding?section=services",
-    "/pro/onboarding?section=references",
-    "/pro/onboarding?section=personal",
+    "/pro/setup/photo",
+    "/pro/setup/about",
+    "/pro/setup/babysitting",
+    "/pro/setup/subjects",
+    "/pro/setup/reference",
+    "/pro/setup/personal",
+    "/pro/setup/hours",
   ]);
   expect(links[0].classList.contains("apply-done")).toBe(true);
   expect(links[4].classList.contains("apply-done")).toBe(true);
@@ -56,6 +57,7 @@ it("uses the profile first name and signed photo", () => {
       fullName="  Sara Example  "
       avatarUrl="private-avatar-path"
       data={{
+        hours: true,
         photo: true,
         about: true,
         personal: true,
