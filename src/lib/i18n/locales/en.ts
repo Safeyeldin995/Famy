@@ -1,5 +1,14 @@
 const en = {
   providerApply: {
+    subtitles: {
+      hourly: "Hourly price",
+      tutoring: "Price per session",
+      continuous: "{{hours}} continuous hours · fixed price",
+      timed: "{{start}} to {{end}} · fixed price",
+      morning: "{{time}} AM",
+      evening: "{{time}} PM",
+      midnight: "midnight",
+    },
     close: "Close",
     select: "Choose",
     step: "{{step}} of 3",

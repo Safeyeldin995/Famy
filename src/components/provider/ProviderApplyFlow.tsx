@@ -9,7 +9,8 @@ import { ServiceCard } from "@/components/famio/ServiceCard";
 import { PriceStepper, initialStepperPrice } from "@/components/famio/PriceStepper";
 import { IdCaptureCard } from "@/components/famio/IdCaptureCard";
 import { hasSelectedServicePrices, needsServicePrice } from "@/lib/provider/priceOptions";
-import { isFixedPackage, packageLabel, servicePriceUnit } from "@/lib/pricing/servicePackages";
+import { isFixedPackage, servicePriceUnit } from "@/lib/pricing/servicePackages";
+import { applyServiceSubtitle } from "@/lib/provider/applyServiceSubtitle";
 
 export type ApplyService = {
   id: string;
@@ -164,14 +165,13 @@ export function ProviderApplyFlow({
             {services.map((service) => {
               const tutoring = service.category?.slug === "tutoring";
               const fixed = isFixedPackage(service);
-              const label = packageLabel(service);
               const unit = servicePriceUnit(service);
               const unitText = tutoring ? t("pricePicker.sessionUnit") : t(unit.key, unit.values);
               return (
                 <ServiceCard
                   key={service.id}
                   title={ar ? service.name_ar : service.name_en}
-                  subtitle={fixed ? t(label.key, label.values) : unitText}
+                  subtitle={applyServiceSubtitle(service, t)}
                   selected={draft.services.includes(service.id)}
                   disabled={busy || lockedServices.includes(service.id)}
                   onClick={() => toggleService(service)}

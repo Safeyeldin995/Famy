@@ -2,6 +2,15 @@ import type { Translation } from "./en";
 
 const ar: Translation = {
   providerApply: {
+    subtitles: {
+      hourly: "السعر بالساعة",
+      tutoring: "السعر بالحصة",
+      continuous: "{{hours}} ساعات متواصلة · سعر ثابت",
+      timed: "من {{start}} لحد {{end}} · سعر ثابت",
+      morning: "{{time}} ص",
+      evening: "{{time}} م",
+      midnight: "12 بالليل",
+    },
     close: "اقفل",
     select: "اختار",
     step: "{{step}} من 3",

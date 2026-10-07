@@ -48,7 +48,6 @@ function ProDashboard() {
 
   return (
     <ProviderShell>
-      {(isPreviewRoute() || ["SUBMITTED", "UNDER_REVIEW"].includes(provider?.onboarding_status)) && <ProviderApplyChecklist providerId={provider?.id} preview={isPreviewRoute()} />}
       <ProviderPageHero
         title={t("pro.dashboard.title")}
         subtitle={provider?.name}
@@ -64,6 +63,7 @@ function ProDashboard() {
           </Link>
         }
       />
+      {(isPreviewRoute() || ["SUBMITTED", "UNDER_REVIEW"].includes(provider?.onboarding_status)) && <ProviderApplyChecklist providerId={provider?.id} preview={isPreviewRoute()} />}
 
       <div className="px-5">
         <ProviderFloatingPanel className="grid grid-cols-2 gap-3 !p-3">
