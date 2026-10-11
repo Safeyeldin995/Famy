@@ -2671,5 +2671,27 @@ const ar: Translation = {
     deactivate: "ايقاف",
     allowedDurations: "مدد الحصة المسموحة (دقيقة)",
   },
+  proWork: {
+      monthNet: "صافيك الشهر ده",
+      "hello": "أهلا يا {{name}}",
+      "today": "النهارده",
+      "nextJob": "الشغل الجاي",
+      "noJobToday": "مفيش شغل النهارده",
+      "monthValue": "قيمة الحجز الشهر ده",
+      "rating": "تقييمك",
+      "accept": "اقبل",
+      "decline": "اعتذر",
+      "allSteps": "كل المراحل",
+      "nextStep": "بعد كده: {{step}}",
+      "bookingCode": "حجز #{{code}}",
+      "replyHours": "رد خلال {{count}} ساعة",
+      "replyMinutes": "رد خلال {{count}} دقيقة",
+      "replyOverdue": "مهلة الرد انتهت",
+      "thisMonth": "الشهر ده",
+      "last7": "آخر 7 أيام",
+      "expected": "المتوقع",
+      "paymentDetails": "تفاصيل الدفع"
+  },
+
 };
 export default ar;
