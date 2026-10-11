@@ -1,6 +1,17 @@
 import type { Translation } from "./en";
 
 const ar: Translation = {
+  providerChanges: {
+    "title": "فريق فامي محتاج منك تعديل",
+    "reasonFallback": "راجع بياناتك والتعديلات المطلوبة وابعت طلبك تاني.",
+    "basics": "الاسم والمناطق",
+    "services": "الخدمات والأسعار",
+    "identity": "صور البطاقة",
+    "resubmit": "ابعت طلبي تاني",
+    "fixRow": "راجع الجزء ده وكمل البيانات الناقصة",
+    "editRow": "افتح وعدل بياناتك",
+    "previewReason": "صورة ظهر البطاقة مش واضحة. ارفع صورة أوضح وراجع بياناتك."
+},
   providerProfileV3: {
     coverageReview: "فريق فامي هيراجع مناطق خدمتك",
     "visibility": "حالة ظهورك للعملاء",

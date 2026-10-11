@@ -1,6 +1,7 @@
-import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { ProviderOnboardingFlow } from "@/components/provider/ProviderOnboardingFlow";
 
-/** Legacy document upload route — PATCH 5 onboarding wizard owns secure uploads. */
+/** Keep the existing secure document/review flow without redirecting to the legacy URL. */
 export const Route = createFileRoute("/pro/documents")({
-  component: () => <Navigate to="/pro/onboarding" search={{ section: "review" }} replace />,
+  component: () => <ProviderOnboardingFlow initialSection="review" />,
 });

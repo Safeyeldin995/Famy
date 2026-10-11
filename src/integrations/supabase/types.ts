@@ -4228,6 +4228,10 @@ export type Database = {
           zone_covered: boolean
         }[]
       }
+      provider_onboarding_submittable: {
+        Args: { p_provider_id: string }
+        Returns: Json
+      }
       provider_onboarding_completion: {
         Args: { p_provider_id: string }
         Returns: Json

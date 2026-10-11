@@ -1,3 +1,4 @@
+import { providerEntryRedirect } from "@/lib/provider/changesHomeModel";
 import { createFileRoute, Outlet, useNavigate, Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -45,15 +46,9 @@ function ProviderLayout() {
   useEffect(() => {
     if (role.isLoading || provider.isLoading) return;
     if (role.isError || provider.isError || onApply) return;
-    if ((!provider.data && role.data === "provider") || onboardingStatus === "DRAFT") {
-      nav({ to: "/pro/apply", replace: true });
-      return;
-    }
-    if (!provider.data || onOnboarding) return;
-    if (onboardingStatus === "NEEDS_CHANGES") {
-      nav({ to: "/pro/onboarding", replace: true });
-    }
-  }, [role.isLoading, provider.isLoading, provider.data, role.data, role.isError, provider.isError, onboardingStatus, onOnboarding, onApply, nav]);
+    const target = providerEntryRedirect(role.data, !!provider.data, onboardingStatus, pathname);
+    if (target) nav({ to: target, replace: true });
+  }, [role.isLoading, provider.isLoading, provider.data, role.data, role.isError, provider.isError, onboardingStatus, onOnboarding, onApply, pathname, nav]);
 
   useEffect(() => {
     if (onOnboarding || role.isLoading || provider.isLoading || !provider.data) return;

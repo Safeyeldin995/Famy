@@ -1,12 +1,6 @@
-import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { proPath } from "@/lib/preview/previewPath";
+import { createFileRoute } from "@tanstack/react-router";
+import { ProviderOnboardingFlow } from "@/components/provider/ProviderOnboardingFlow";
 
 export const Route = createFileRoute("/preview/pro/documents")({
-  component: () => (
-    <Navigate
-      to={proPath("/pro/onboarding") as "/pro/onboarding"}
-      search={{ section: "review" }}
-      replace
-    />
-  ),
+  component: () => <ProviderOnboardingFlow previewMode initialSection="review" />,
 });

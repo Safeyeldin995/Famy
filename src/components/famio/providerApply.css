@@ -527,3 +527,7 @@
   background: color-mix(in srgb, var(--destructive) 10%, transparent);
   color: var(--destructive);
 }
+
+.apply-changes-home {
+  padding-bottom: calc(160px + env(safe-area-inset-bottom));
+}

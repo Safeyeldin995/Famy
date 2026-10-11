@@ -1,3 +1,4 @@
+import { applyStepSearch } from "@/lib/provider/changesHomeModel";
 import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -23,10 +24,11 @@ import { defaultWorkingHours } from "@/lib/provider/setupHelpers";
 import { useReplaceAvailability } from "@/lib/db/provider-queries";
 import { supabase } from "@/integrations/supabase/client";
 
-export const Route = createFileRoute("/pro/apply")({ component: ProviderApplyRoute });
+export const Route = createFileRoute("/pro/apply")({ validateSearch: applyStepSearch, component: ProviderApplyRoute });
 function ProviderApplyRoute() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { step } = Route.useSearch();
   const qc = useQueryClient();
   const provider = useMyProvider();
   const snapshot = useOnboardingSnapshot();
@@ -136,6 +138,8 @@ function ProviderApplyRoute() {
   };
   return (
     <ProviderApplyFlow
+      key={step ?? 1}
+      initialStep={step}
       initial={initial}
       services={serviceRows}
       zones={zones.data!}

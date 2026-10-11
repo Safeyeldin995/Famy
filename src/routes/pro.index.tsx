@@ -46,8 +46,8 @@ function ProDashboard() {
   const trust = provider?.trust?.[0]?.score ?? provider?.trust?.score;
   const rating = provider?.ratings?.[0]?.rating_avg ?? provider?.ratings?.rating_avg;
 
-  if (!isPreviewRoute() && ["SUBMITTED", "UNDER_REVIEW"].includes(provider?.onboarding_status)) {
-    return <ProviderShell><ProviderPendingHome providerId={provider?.id} /></ProviderShell>;
+  if (!isPreviewRoute() && ["SUBMITTED", "UNDER_REVIEW", "NEEDS_CHANGES"].includes(provider?.onboarding_status)) {
+    return <ProviderShell><ProviderPendingHome providerId={provider?.id} changesRequested={provider?.onboarding_status === "NEEDS_CHANGES"} reviewReason={provider?.review_reason_public} /></ProviderShell>;
   }
 
   return (
@@ -143,7 +143,7 @@ function ProDashboard() {
             body={provider.review_reason_public ?? t("pro.onboardingWizard.changesRequired")}
             action={
               <Link
-                to={proPath("/pro/onboarding") as "/pro/onboarding"}
+                to={proPath("/pro/apply") as "/pro/apply"}
                 className="shrink-0 rounded-full bg-destructive px-3 py-2 text-[11px] font-extrabold text-destructive-foreground"
               >
                 {t("pro.dashboard.manage")}
@@ -161,7 +161,7 @@ function ProDashboard() {
             body={t("pro.dashboard.verifyBody")}
             action={
               <Link
-                to={proPath("/pro/onboarding") as "/pro/onboarding"}
+                to={proPath("/pro/apply") as "/pro/apply"}
                 className="shrink-0 rounded-full bg-warning px-3 py-2 text-[11px] font-extrabold text-warning-foreground"
               >
                 {t("pro.dashboard.upload")}

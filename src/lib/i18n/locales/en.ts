@@ -1,4 +1,15 @@
 const en = {
+  providerChanges: {
+    "title": "The Famy team needs a change",
+    "reasonFallback": "Review your details and requested changes, then send your application again.",
+    "basics": "Name and service areas",
+    "services": "Services and prices",
+    "identity": "ID photos",
+    "resubmit": "Send my application again",
+    "fixRow": "Review this section and complete the missing details",
+    "editRow": "Open and edit your details",
+    "previewReason": "The back of your ID is unclear. Upload a clearer photo and review your details."
+},
   providerProfileV3: {
     coverageReview: "The Famy team will review your service areas",
     "visibility": "Your visibility to customers",

@@ -43,6 +43,7 @@ export function applyStepReady(step: number, draft: ApplyDraft, services: ApplyS
 }
 export function ProviderApplyFlow({
   initial,
+  initialStep = 1,
   zones,
   services,
   lockedServices = [],
@@ -50,6 +51,7 @@ export function ProviderApplyFlow({
   onCapture,
 }: {
   initial: ApplyDraft;
+  initialStep?: 1 | 2 | 3;
   zones: { id: string; name_en: string; name_ar: string }[];
   services: ApplyService[];
   lockedServices?: string[];
@@ -58,7 +60,7 @@ export function ProviderApplyFlow({
 }) {
   const { t, i18n } = useTranslation();
   const [draft, setDraft] = useState(initial);
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState<number>(initialStep);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const ar = i18n.language.startsWith("ar");
