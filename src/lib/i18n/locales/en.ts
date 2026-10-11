@@ -1,4 +1,34 @@
 const en = {
+  customerBooking: {
+    "duration": "{{hours}} hours",
+    "rateLine": "{{rate}} × {{hours}} hours",
+    "address": "Address",
+    "addAddress": "+ New address",
+    "addMember": "+ Add a family member",
+    "notes": "Notes for {{name}} (optional)",
+    "recipient": "Who",
+    "chooseRecipient": "Choose who will be with {{name}}",
+    "tutoringPrice": "Price depends on the subject",
+    "tutoringFrom": "From EGP {{price}} / session",
+
+    "hoursRange": "From {{min}} to {{max}}",
+    "step": "{{step}} of {{total}}",
+    "titles": {
+        "service": "What would you like from {{name}}?",
+        "when": "When?",
+        "whereWho": "Where and who?",
+        "review": "Review and confirm"
+    },
+    "jobs": "{{count}} bookings",
+    "hours": "hours",
+    "who": "Who will be with {{name}}?",
+    "schoolDetails": "School details",
+    "sessionDuration": "Session duration",
+    "promo": "Have a promo code?",
+    "next": "Next · {{total}}",
+    "confirm": "Confirm booking · {{total}}",
+    "whenSummary": "{{date}} · {{start}} to {{end}}"
+},
   providerChanges: {
     "title": "The Famy team needs a change",
     "reasonFallback": "Review your details and requested changes, then send your application again.",
