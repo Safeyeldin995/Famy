@@ -1,4 +1,5 @@
 const en = {
+  providerProfilePolish: { requirements: "Requirements" },
   providerNotificationPolish: {
     "on": "On",
     "off": "Off",

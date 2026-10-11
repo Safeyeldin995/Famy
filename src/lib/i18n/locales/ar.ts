@@ -1,6 +1,7 @@
 import type { Translation } from "./en";
 
 const ar: Translation = {
+  providerProfilePolish: { requirements: "المتطلبات" },
   providerNotificationPolish: {
     "on": "شغال",
     "off": "مقفول",
