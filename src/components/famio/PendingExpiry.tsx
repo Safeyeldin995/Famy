@@ -23,7 +23,7 @@ export function RespondWithinHint({
 }) {
   const { t } = useTranslation();
   return (
-    <p className="text-[11px] font-bold text-warning" data-testid="respond-within">
+    <p className="text-pro-12 font-bold text-warning" data-testid="respond-within">
       {respondWithinLabel(createdAt, startAt, t, settings)}
     </p>
   );

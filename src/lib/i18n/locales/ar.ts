@@ -408,7 +408,7 @@ const ar: Translation = {
     sendFailed: "تعذر إرسال الرمز. حاول مرة أخرى لاحقا.",
     deliveryUnavailable: "خدمة إرسال الرمز غير متاحة مؤقتا. انتظر قليلا ثم حاول مرة أخرى.",
     rateLimited: "محاولات كثيرة. حاول مرة أخرى خلال {{time}}.",
-    durationSeconds: "{{formatted}} ث",
+    durationSeconds: "{{formatted}} ثانية",
     firebaseSendFailed: "تعذر إرسال رسالة التحقق. حاول مرة أخرى لاحقا.",
     firebaseSendTooManyRequests: "محاولات كتير من الجهاز ده. استنى شوية وجرب تاني.",
     firebaseSendQuotaExceeded: "خدمة الرسائل مشغولة حاليا. حاول بعد قليل.",

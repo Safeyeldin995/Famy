@@ -1,3 +1,4 @@
+import { formatDateTime } from "@/lib/format";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -113,11 +114,11 @@ export function RescheduleSection({
   };
 
   const locale = "en-US";
-  const fmt = (iso: string) => new Date(iso).toLocaleString(locale, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  const fmt = (iso: string) => formatDateTime(new Date(iso), locale);
 
   return (
     <Card className="mt-4 p-5">
-      <div className="mb-3 flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
+      <div className="mb-3 flex items-center gap-2 text-pro-12 font-extrabold uppercase tracking-wider text-muted-foreground">
         <CalendarClock className="h-3.5 w-3.5" /> {t("reschedule.title", "Rescheduling")}
       </div>
 
@@ -191,10 +192,10 @@ export function RescheduleSection({
 
       {rows.length > 0 && (
         <details className="mt-3">
-          <summary className="cursor-pointer text-[11px] font-bold text-muted-foreground">{t("reschedule.history", "History")}</summary>
+          <summary className="cursor-pointer text-pro-12 font-bold text-muted-foreground">{t("reschedule.history", "History")}</summary>
           <ul className="mt-2 space-y-1.5">
             {rows.map((r: any) => (
-              <li key={r.id} className="text-[11px] text-muted-foreground">
+              <li key={r.id} className="text-pro-12 text-muted-foreground">
                 {(r.requested_by === customerId ? t("reschedule.byCustomer", "Customer") : t("reschedule.byProvider", "Provider"))}
                 {" → "}{fmt(r.proposed_start_at)} · {String(t(`reschedule.status.${r.status}`, { defaultValue: r.status }))}
               </li>

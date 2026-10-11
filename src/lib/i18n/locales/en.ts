@@ -412,7 +412,7 @@ const en = {
     deliveryUnavailable:
       "Verification delivery is temporarily unavailable. Wait a moment and try again.",
     rateLimited: "Too many attempts. Try again in {{time}}.",
-    durationSeconds: "{{formatted}} s",
+    durationSeconds: "{{formatted}} seconds",
     firebaseSendFailed: "Could not send verification SMS. Try again later.",
     firebaseSendTooManyRequests: "Too many attempts from this device. Please wait and try again.",
     firebaseSendQuotaExceeded: "SMS service is busy right now. Please try again shortly.",

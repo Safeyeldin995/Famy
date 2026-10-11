@@ -191,7 +191,7 @@ export function FamilyMemberForm({
               key={r}
               type="button"
               onClick={() => set("relationship", r)}
-              className={`rounded-2xl border py-3 text-[11px] font-bold transition-all ${
+              className={`rounded-2xl border py-3 text-pro-12 font-bold transition-all ${
                 value.relationship === r
                   ? "border-brand bg-brand/5 text-brand"
                   : "border-border bg-surface text-muted-foreground"
@@ -248,7 +248,7 @@ export function FamilyMemberForm({
               key={g}
               type="button"
               onClick={() => set("gender", value.gender === g ? "" : g)}
-              className={`rounded-2xl border py-3 text-[11px] font-bold transition-all ${
+              className={`rounded-2xl border py-3 text-pro-12 font-bold transition-all ${
                 value.gender === g
                   ? "border-brand bg-brand/5 text-brand"
                   : "border-border bg-surface text-muted-foreground"
@@ -345,7 +345,7 @@ export function FamilyMemberForm({
 }
 
 function ErrorText({ children }: { children: React.ReactNode }) {
-  return <p className="mt-1 text-[11px] font-semibold text-brand">{children}</p>;
+  return <p className="mt-1 text-pro-12 font-semibold text-brand">{children}</p>;
 }
 
 function Field({

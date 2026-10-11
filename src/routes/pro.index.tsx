@@ -1,12 +1,14 @@
+import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
+import { formatDate } from "@/lib/format";
 import { ProviderPendingHome } from "@/components/provider/ProviderPendingHome";
 import { isPreviewRoute } from "@/lib/preview/constants";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ProviderShell } from "@/components/famio/ProviderShell";
-import { ProviderPageHero } from "@/components/famio/ProviderPageHero";
+import { PageHeader } from "@/components/famio/PageHeader";
 import { ProviderFloatingPanel } from "@/components/famio/ProviderFloatingPanel";
 import { ProviderSectionHeader } from "@/components/famio/ProviderSectionHeader";
-import { EmptyState, Avatar } from "@/components/famio/ui";
+import { EmptyState } from "@/components/famio/ui";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { useMyProvider, useProviderBookings, useProviderEarnings, useProUnreadNotificationCount } from "@/lib/db/provider-queries";
 import { formatEGP, BOOKING_ACTIVE_STATUSES } from "@/lib/utils";
@@ -52,13 +54,14 @@ function ProDashboard() {
 
   return (
     <ProviderShell>
-      <ProviderPageHero
+      <PageHeader
         title={t("pro.dashboard.title")}
         subtitle={provider?.name}
         right={
           <Link
             to={proPath("/pro/notifications") as "/pro/notifications"}
-            className="focus-ring relative grid h-10 w-10 place-items-center rounded-xl border border-white/25 bg-white/15 text-white backdrop-blur-sm"
+            aria-label={t("notifs.title")}
+            className="focus-ring relative grid h-11 w-11 place-items-center rounded-xl border border-border bg-surface-2 text-brand"
           >
             <Bell className="h-5 w-5" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
             {unread > 0 ? (
@@ -69,19 +72,19 @@ function ProDashboard() {
       />
 
       <div className="px-5">
-        <ProviderFloatingPanel className="grid grid-cols-2 gap-3 !p-3">
+        <ProviderFloatingPanel className="!mt-0 grid grid-cols-2 gap-3 !p-3">
           <Link
             to={proPath("/pro/earnings") as "/pro/earnings"}
             className="focus-ring tap-scale rounded-[1rem] bg-brand p-4 text-brand-foreground"
           >
-            <div className="flex items-center gap-1.5 text-[11px] font-bold opacity-90">
+            <div className="flex items-center gap-1.5 text-pro-12 font-bold opacity-90">
               <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" />
               {mtdKind === "bookingValue" ? t("pro.dashboard.bookingValueMtd") : t("pro.dashboard.netMtd")}
             </div>
             {mtdKind === "mixed" ? (
               <>
                 <div className="mt-2 text-xl font-black leading-none">{formatEGP(mtdNet)}</div>
-                <div className="mt-1 text-[10px] font-bold opacity-80">
+                <div className="mt-1 text-pro-12 font-bold opacity-80">
                   {t("pro.dashboard.bookingValueMtd")}: {formatEGP(mtdBookingValue)}
                 </div>
               </>
@@ -92,14 +95,14 @@ function ProDashboard() {
             )}
           </Link>
           <div className="rounded-[1rem] border border-border/50 bg-surface-2/80 p-4">
-            <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground">
+            <div className="flex items-center gap-1.5 text-pro-12 font-bold text-muted-foreground">
               <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
               {t("pro.dashboard.trustScore")}
             </div>
             <div className="mt-2 text-xl font-black leading-none text-foreground">
               {trust ? Math.round(trust) : "—"}
             </div>
-            <div className="mt-1 flex items-center gap-1 text-[10px] font-bold text-muted-foreground">
+            <div className="mt-1 flex items-center gap-1 text-pro-12 font-bold text-muted-foreground">
               <Star className="h-3 w-3 fill-warning text-warning" aria-hidden="true" />
               {rating ? Number(rating).toFixed(2) : "—"}
             </div>
@@ -116,7 +119,7 @@ function ProDashboard() {
             action={
               <Link
                 to={proPath("/pro/availability") as "/pro/availability"}
-                className="shrink-0 rounded-full bg-brand px-3 py-2 text-[11px] font-extrabold text-brand-foreground"
+                className="shrink-0 rounded-full bg-brand px-3 py-2 text-pro-12 font-extrabold text-brand-foreground"
               >
                 {t("pro.dashboard.manage")}
               </Link>
@@ -144,7 +147,7 @@ function ProDashboard() {
             action={
               <Link
                 to={proPath("/pro/apply") as "/pro/apply"}
-                className="shrink-0 rounded-full bg-destructive px-3 py-2 text-[11px] font-extrabold text-destructive-foreground"
+                className="shrink-0 rounded-full bg-destructive px-3 py-2 text-pro-12 font-extrabold text-destructive-foreground"
               >
                 {t("pro.dashboard.manage")}
               </Link>
@@ -162,7 +165,7 @@ function ProDashboard() {
             action={
               <Link
                 to={proPath("/pro/apply") as "/pro/apply"}
-                className="shrink-0 rounded-full bg-warning px-3 py-2 text-[11px] font-extrabold text-warning-foreground"
+                className="shrink-0 rounded-full bg-warning px-3 py-2 text-pro-12 font-extrabold text-warning-foreground"
               >
                 {t("pro.dashboard.upload")}
               </Link>
@@ -297,7 +300,7 @@ function BookingRow({
       className="focus-ring tap-scale block rounded-[1.25rem] border border-border/50 bg-surface p-4 shadow-xs"
     >
       <div className="flex items-center gap-3">
-        <Avatar src={b.customer?.avatar_url} alt={name} className="h-12 w-12 shrink-0 rounded-xl" />
+        <ProfileAvatar src={b.customer?.avatar_url} name={name} className="h-12 w-12 shrink-0 rounded-xl" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <p className="truncate text-sm font-extrabold text-foreground">{name}</p>
@@ -305,10 +308,10 @@ function BookingRow({
           </div>
           <p className="mt-0.5 truncate text-xs font-medium text-muted-foreground">
             {serviceName} ·{" "}
-            {start.toLocaleDateString(dateLoc, { weekday: "short", day: "numeric", month: "short" })}
+            {formatDate(start, { weekday: "short", day: "numeric", month: "short" }, dateLoc)}
           </p>
           {cta ? (
-            <span className="mt-2 inline-flex rounded-full bg-brand/10 px-2.5 py-1 text-[10px] font-extrabold text-brand">
+            <span className="mt-2 inline-flex rounded-full bg-brand/10 px-2.5 py-1 text-pro-12 font-extrabold text-brand">
               {cta}
             </span>
           ) : null}

@@ -96,16 +96,16 @@ describe("OtpScreen countdown copy", () => {
     await i18n.changeLanguage("ar");
     render(<OtpScreen otpContext={baseContext} previewMode />);
     expect(screen.getByText(/إعادة الإرسال خلال/i)).toBeTruthy();
-    expect(screen.getByText(/٢٥ ث/)).toBeTruthy();
+    expect(screen.getByText(/25 ثانية/)).toBeTruthy();
     expect(screen.queryByText(/25s/)).toBeNull();
   });
 
   it("updates timer copy after language switch while countdown is active", async () => {
     await i18n.changeLanguage("en");
     render(<OtpScreen otpContext={baseContext} previewMode />);
-    expect(screen.getByText(/25 s/)).toBeTruthy();
+    expect(screen.getByText(/25 seconds/)).toBeTruthy();
     await i18n.changeLanguage("ar");
-    expect(screen.getByText(/٢٥ ث/)).toBeTruthy();
+    expect(screen.getByText(/25 ثانية/)).toBeTruthy();
   });
 
   it("shows resend action when cooldown reaches zero", async () => {

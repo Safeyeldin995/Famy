@@ -265,7 +265,7 @@ export function PaymentBlock({
           </div>
           <div>
             <div className="text-sm font-extrabold">{lang === "ar" ? nameAr : nameEn}</div>
-            <div className="text-[11px] text-muted-foreground">{formatEGP(Number(p.amount ?? 0))}</div>
+            <div className="text-pro-12 text-muted-foreground">{formatEGP(Number(p.amount ?? 0))}</div>
           </div>
         </div>
         <Badge tone={statusTone(p.status)}>{t(`payment.status.${p.status}`, String(p.status).replace("_", " "))}</Badge>
@@ -277,7 +277,7 @@ export function PaymentBlock({
       {/* Customer online checkout (Paymob) */}
       {canPayOnline && (
         <div className="space-y-3 rounded-2xl bg-surface-2 p-3">
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-pro-12 text-muted-foreground">
             {paymobReturn && p.status === "pending"
               ? t("payment.paymobConfirming")
               : t("payment.paymobInstructions")}
@@ -299,7 +299,7 @@ export function PaymentBlock({
       {/* Customer manual-transfer instructions + upload */}
       {viewer === "customer" && isManualTransfer && p.status === "pending_review" && !p.proof_path && (
         <div className="space-y-3 rounded-2xl bg-surface-2 p-3">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          <div className="text-pro-12 font-bold uppercase tracking-wider text-muted-foreground">
             {t("payment.transferTo")}
           </div>
           {receiverHandle ? (
@@ -316,11 +316,11 @@ export function PaymentBlock({
                 <Copy className="h-4 w-4 text-muted-foreground" />
               </button>
               {(receiverNote || instructions) && (
-                <p className="text-[11px] text-muted-foreground">{receiverNote || instructions}</p>
+                <p className="text-pro-12 text-muted-foreground">{receiverNote || instructions}</p>
               )}
             </>
           ) : (
-            <p className="text-[11px] text-muted-foreground">{t("payment.handleNotConfigured")}</p>
+            <p className="text-pro-12 text-muted-foreground">{t("payment.handleNotConfigured")}</p>
           )}
           <label className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-brand/30 bg-brand/5 text-sm font-extrabold text-brand active:scale-[0.98]">
             <Upload className="h-4 w-4" /> {upload.isPending ? t("payment.uploading") : t("payment.uploadReceipt")}
@@ -347,10 +347,10 @@ export function PaymentBlock({
         <div className="rounded-2xl bg-brand/8 p-3">
           <div className="text-xs font-extrabold text-brand">{t("payment.rejectedTitle")}</div>
           {p.rejection_reason && (
-            <p className="mt-1 text-[11px] text-muted-foreground">{p.rejection_reason}</p>
+            <p className="mt-1 text-pro-12 text-muted-foreground">{p.rejection_reason}</p>
           )}
           {viewer === "customer" && isManualTransfer && (
-            <p className="mt-1 text-[11px] text-muted-foreground">
+            <p className="mt-1 text-pro-12 text-muted-foreground">
               {t("payment.rejectedRetry")}
             </p>
           )}

@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/format";
 import { useMemo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronDown, Loader2 } from "lucide-react";
@@ -65,7 +66,7 @@ function ScheduleSelect({
           {label}
         </span>
         {hint ? (
-          <span className="text-[11px] font-semibold text-muted-foreground">{hint}</span>
+          <span className="text-pro-12 font-semibold text-muted-foreground">{hint}</span>
         ) : null}
       </div>
       <div className="relative">
@@ -139,11 +140,11 @@ export function BookScheduleStep({
 
   const formatDayLabel = (day: Date) => {
     const isToday = dateKey(day) === dateKey(today);
-    const base = day.toLocaleDateString(locale, {
+    const base = formatDate(day, {
       weekday: "short",
       month: "short",
       day: "numeric",
-    });
+    }, locale);
     return isToday ? `${base} — ${t("providerProfile.todayLabel")}` : base;
   };
 
