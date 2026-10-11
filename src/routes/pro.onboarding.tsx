@@ -1,16 +1,12 @@
 import { onboardingSection } from "@/lib/provider/onboardingSection";
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { legacyOnboardingRedirect } from "@/lib/provider/legacyOnboardingRedirect";
+import { createFileRoute, Navigate, useSearch } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { PhoneFrame } from "@/components/famio/ui";
-import { ProviderPageHero } from "@/components/famio/ProviderPageHero";
+import { ProviderShell } from "@/components/famio/ProviderShell";
+import { PageHeader } from "@/components/famio/PageHeader";
 import { QueryError } from "@/components/famio/QueryError";
-import { ProviderOnboardingFlow } from "@/components/provider/ProviderOnboardingFlow";
-import { isPreviewRoute } from "@/lib/preview/constants";
 import { useMyProvider } from "@/lib/db/provider-queries";
-import { useOnboardingSnapshot } from "@/lib/provider/onboarding-queries";
-import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { proPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/pro/onboarding")({
   validateSearch: onboardingSection,
@@ -19,43 +15,14 @@ export const Route = createFileRoute("/pro/onboarding")({
 
 export function OnboardingRoute() {
   const { t } = useTranslation();
-  const providerQ = useMyProvider();
-  const snapshotQ = useOnboardingSnapshot();
-
-  useEffect(() => {
-    if (isPreviewRoute()) return;
-    (async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session?.user) return;
-      if (!providerQ.data && !providerQ.isLoading) {
-        await supabase.rpc("provider_start_onboarding");
-        await providerQ.refetch();
-        await snapshotQ.refetch();
-      }
-    })();
-  }, [providerQ.data, providerQ.isLoading, providerQ.refetch, snapshotQ.refetch]);
-
-  if (providerQ.isLoading) {
-    return (
-      <PhoneFrame bg="bg-[#FEFAFC]">
-        <ProviderPageHero title={t("pro.onboardingWizard.title")} backTo="/pro" compact />
-        <div className="grid min-h-[50vh] place-items-center">
-          <Loader2 className="h-8 w-8 animate-spin text-brand" aria-hidden="true" />
-        </div>
-      </PhoneFrame>
-    );
-  }
-
-  if (providerQ.isError) {
-    return (
-      <PhoneFrame bg="bg-[#FEFAFC]">
-        <ProviderPageHero title={t("pro.onboardingWizard.title")} backTo="/pro" compact />
-        <QueryError onRetry={() => providerQ.refetch()} />
-      </PhoneFrame>
-    );
-  }
-
-  return <ProviderOnboardingFlow />;
+  const provider = useMyProvider();
+  const search = useSearch({ strict: false });
+  if (provider.isLoading || provider.isError) return <ProviderShell hideNav>
+    <PageHeader title={t("providerDocuments.title")} backTo="/pro" />
+    {provider.isError ? <QueryError onRetry={() => { void provider.refetch(); }} /> : <p role="status" className="p-5">{t("common.loading")}</p>}
+  </ProviderShell>;
+  const target = legacyOnboardingRedirect(provider.data?.onboarding_status, onboardingSection(search).section);
+  if (target.to === "/pro/apply") return <Navigate to={proPath(target.to) as "/pro/apply"} search={{ step: target.step }} replace />;
+  if (target.to === "/pro/setup/$item") return <Navigate to={proPath(target.to) as "/pro/setup/$item"} params={{ item: target.item }} replace />;
+  return <Navigate to={proPath(target.to) as typeof target.to} replace />;
 }
