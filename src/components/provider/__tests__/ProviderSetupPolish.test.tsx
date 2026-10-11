@@ -3,9 +3,23 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { GroupedTeachingSetup } from "../GroupedTeachingSetup";
 import { ProviderSetupForm } from "../ProviderSetupForm";
 import type { ProviderTeachingCapabilityRow } from "@/lib/db/teaching-queries";
-vi.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: (key: string) => key, i18n: { language: "en", dir: () => "ltr" } }),
-}));
+const language = vi.hoisted(() => ({ current: "en" }));
+vi.mock("react-i18next", async () => {
+  const { default: ar } = await import("@/lib/i18n/locales/ar");
+  const { default: en } = await import("@/lib/i18n/locales/en");
+  return {
+    useTranslation: () => ({
+      t: (key: string, options?: { lng?: string }) => {
+        if (!key.startsWith("providerSetup.relationships.")) return key;
+        const labels = (options?.lng ?? language.current) === "ar" ? ar : en;
+        return labels.providerSetup.relationships[
+          key.split(".")[2] as keyof typeof labels.providerSetup.relationships
+        ];
+      },
+      i18n: { language: language.current, dir: () => (language.current === "ar" ? "rtl" : "ltr") },
+    }),
+  };
+});
 vi.mock("@/components/famio/BottomSheetSelect", () => ({
   BottomSheetSelect: ({
     label,
@@ -36,7 +50,10 @@ vi.mock("@/components/famio/PriceStepper", () => ({
     <input aria-label="price" value={value ?? ""} disabled={disabled} readOnly />
   ),
 }));
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  language.current = "en";
+});
 const taxonomy = {
   code: "synthetic",
   name_en: "Synthetic",
@@ -169,4 +186,69 @@ it("keeps different saved hours in per-day mode", () => {
   expect(
     screen.getAllByLabelText("pro.schedule.start").map((node) => (node as HTMLSelectElement).value),
   ).toEqual(["09:00", "18:00"]);
+});
+
+it.each(["ar", "en"])("saves the Arabic relationship label in the %s interface", async (lang) => {
+  language.current = lang;
+  const onSave = vi.fn().mockResolvedValue(undefined);
+  render(
+    <ProviderSetupForm
+      item="reference"
+      snapshot={{}}
+      references={[
+        {
+          full_name: "Synthetic reference",
+          phone: "synthetic-contact",
+          relationship: "",
+          notes: "",
+        },
+      ]}
+      onSave={onSave}
+      onBack={() => {}}
+    />,
+  );
+  const option = screen.getByRole("option", {
+    name: lang === "ar" ? "عميل سابق" : "Former client",
+  }) as HTMLOptionElement;
+  expect(option.value).toBe("عميل سابق");
+  fireEvent.change(screen.getByLabelText("pro.onboardingWizard.refRelationship"), {
+    target: { value: option.value },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "providerSetup.save" }));
+  await waitFor(() =>
+    expect(onSave).toHaveBeenCalledWith({
+      references: [{ index: 0, value: { relationship: "عميل سابق" } }],
+    }),
+  );
+});
+it("keeps a legacy free-text relationship selectable and unchanged", async () => {
+  const onSave = vi.fn().mockResolvedValue(undefined);
+  render(
+    <ProviderSetupForm
+      item="reference"
+      snapshot={{}}
+      references={[
+        {
+          full_name: "Synthetic reference",
+          phone: "synthetic-contact",
+          relationship: "زميل من شغل قديم",
+          notes: "",
+        },
+      ]}
+      onSave={onSave}
+      onBack={() => {}}
+    />,
+  );
+  expect(
+    (screen.getByLabelText("pro.onboardingWizard.refRelationship") as HTMLSelectElement).value,
+  ).toBe("زميل من شغل قديم");
+  fireEvent.change(screen.getByLabelText("pro.onboardingWizard.refName"), {
+    target: { value: "Updated synthetic reference" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "providerSetup.save" }));
+  await waitFor(() =>
+    expect(onSave).toHaveBeenCalledWith({
+      references: [{ index: 0, value: { full_name: "Updated synthetic reference" } }],
+    }),
+  );
 });

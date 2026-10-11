@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Camera } from "lucide-react";
+import { Camera, Check } from "lucide-react";
 import { SetupScreen } from "@/components/famio/SetupScreen";
 import { NumberStepper } from "@/components/famio/NumberStepper";
 import { CheckChip } from "@/components/famio/CheckChip";
@@ -208,6 +208,12 @@ export function ProviderSetupForm({
     month: numbers(1, 12),
     year: numbers(new Date().getFullYear() - 100, 83).reverse(),
   };
+  const relationshipOptions = ["former_client", "colleague", "neighbor", "friend", "relative"].map(
+    (key) => ({
+      value: t(`providerSetup.relationships.${key}`, { lng: "ar" }),
+      label: t(`providerSetup.relationships.${key}`),
+    }),
+  );
   const governorateOptions = governorates.map((key) => ({
     value: t(`providerSetup.governorates.${key}`, { lng: "ar" }),
     label: t(`providerSetup.governorates.${key}`),
@@ -349,20 +355,12 @@ export function ProviderSetupForm({
                   label={t("pro.onboardingWizard.refRelationship")}
                   value={row.relationship}
                   options={[
-                    ...new Set(
-                      [
-                        row.relationship,
-                        "former_client",
-                        "colleague",
-                        "neighbor",
-                        "friend",
-                        "relative",
-                      ].filter(Boolean),
-                    ),
-                  ].map((value) => ({
-                    value,
-                    label: t(`providerSetup.relationships.${value}`, { defaultValue: value }),
-                  }))}
+                    ...relationshipOptions,
+                    ...(row.relationship &&
+                    !relationshipOptions.some((option) => option.value === row.relationship)
+                      ? [{ value: row.relationship, label: row.relationship }]
+                      : []),
+                  ]}
                   onChange={(value) => changeRef(index, "relationship", value)}
                 />
                 <TextField
@@ -417,8 +415,9 @@ export function ProviderSetupForm({
         )}
         {item === "hours" && (
           <>
-            <label className="flex min-h-11 items-center gap-3 text-sm font-bold">
+            <label className="apply-agree">
               <input
+                className="sr-only peer"
                 type="checkbox"
                 checked={sameHours}
                 onChange={(event) => {
@@ -433,6 +432,12 @@ export function ProviderSetupForm({
                     );
                 }}
               />
+              <span
+                aria-hidden="true"
+                className={`apply-checkbox peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-brand ${sameHours ? "on" : ""}`}
+              >
+                {sameHours && <Check size={14} />}
+              </span>
               {t("providerSetup.sameHours")}
             </label>
             <div className="flex flex-wrap gap-2">
