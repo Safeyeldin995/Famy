@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/format";
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ProviderShell } from "@/components/famio/ProviderShell";
@@ -259,7 +260,7 @@ function EarningsPage() {
                           {b.customer?.full_name || t("pro.common.customer")}
                         </div>
                         <div className="mt-0.5 text-xs font-bold text-muted-foreground">
-                          {sname} · {new Date(b.start_at).toLocaleDateString(dateLoc)}
+                          {sname} · {formatDate(new Date(b.start_at), undefined, dateLoc)}
                         </div>
                       </div>
                       <div className="text-end">

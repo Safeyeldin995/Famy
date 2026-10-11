@@ -1,3 +1,4 @@
+import { formatNotificationDate } from "@/lib/format";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ProviderShell } from "@/components/famio/ProviderShell";
@@ -71,7 +72,7 @@ function NotificationsPage() {
                           {!n.read_at && <span className="h-2 w-2 rounded-full bg-coral" />}
                         </div>
                         <div className="mt-0.5 text-xs text-muted-foreground">{body}</div>
-                        <div className="mt-1 text-[10px] text-muted-foreground">{new Date(n.created_at).toLocaleString()}</div>
+                        <div className="mt-1 text-[10px] text-muted-foreground">{formatNotificationDate(new Date(n.created_at))}</div>
                       </div>
                     </div>
                   </button>

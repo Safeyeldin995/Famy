@@ -1,3 +1,4 @@
+import { formatTime } from "@/lib/format";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Send, ShieldCheck, Lock, AlertTriangle } from "lucide-react";
@@ -18,7 +19,7 @@ import {
 type Viewer = "customer" | "provider" | "admin";
 
 function timeOf(iso: string) {
-  return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  return formatTime(new Date(iso), undefined);
 }
 
 function actorLabel(t: ReturnType<typeof useTranslation>["t"], viewer: Viewer, role: BookingMessage["sender_role"]) {

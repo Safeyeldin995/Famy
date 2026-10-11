@@ -1,3 +1,4 @@
+import { formatTime, formatDate } from "@/lib/format";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Clock } from "lucide-react";
@@ -34,8 +35,8 @@ function parseTime(value: string) {
 
 function formatTimeRange(start: string, end: string, locale: string) {
   const opts: Intl.DateTimeFormatOptions = { hour: "numeric", minute: "2-digit" };
-  const from = parseTime(start).toLocaleTimeString(locale, opts);
-  const to = parseTime(end).toLocaleTimeString(locale, opts);
+  const from = formatTime(parseTime(start), locale);
+  const to = formatTime(parseTime(end), locale);
   return `${from} – ${to}`;
 }
 
@@ -135,7 +136,7 @@ export function ProviderWeekAvailability({
           const open = rulesByWeekday.has(day.weekday);
           const selected = selectedDateKey === dateKey(day.date);
           const isToday = isSameCalendarDay(day.date, today);
-          const dayLabel = day.date.toLocaleDateString(locale, { weekday: "short" });
+          const dayLabel = formatDate(day.date, { weekday: "short" }, locale);
 
           return (
             <button
@@ -169,7 +170,7 @@ export function ProviderWeekAvailability({
                 {dayLabel}
               </span>
               <span className="mt-1 text-lg font-black leading-none">
-                {day.date.toLocaleDateString(locale, { day: "numeric" })}
+                {formatDate(day.date, { day: "numeric" }, locale)}
               </span>
             </button>
           );
@@ -195,11 +196,11 @@ export function ProviderWeekAvailability({
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-extrabold text-foreground">
-              {selectedDay.date.toLocaleDateString(locale, {
+              {formatDate(selectedDay.date, {
                 weekday: "long",
                 month: "short",
                 day: "numeric",
-              })}
+              }, locale)}
             </p>
             {selectedOpen ? (
               <div className="mt-1 space-y-1">
@@ -244,7 +245,7 @@ export function ProviderWeekAvailability({
               }`}
             >
               <span className="text-sm font-extrabold text-foreground">
-                {day.date.toLocaleDateString(locale, { weekday: "short", day: "numeric" })}
+                {formatDate(day.date, { weekday: "short", day: "numeric" }, locale)}
                 {isToday ? (
                   <span
                     className={`ms-2 text-[10px] font-bold uppercase ${

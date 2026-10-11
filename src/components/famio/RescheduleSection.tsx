@@ -1,3 +1,4 @@
+import { formatDateTime } from "@/lib/format";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -113,7 +114,7 @@ export function RescheduleSection({
   };
 
   const locale = "en-US";
-  const fmt = (iso: string) => new Date(iso).toLocaleString(locale, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  const fmt = (iso: string) => formatDateTime(new Date(iso), locale);
 
   return (
     <Card className="mt-4 p-5">

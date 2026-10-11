@@ -1,3 +1,4 @@
+import { formatDateTime, formatDate, formatTime, formatDuration } from "@/lib/format";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -154,7 +155,7 @@ export function ProBookingDetail({ id }: { id: string }) {
                 </p>
                 {cancellationQ.data.note && <p className="text-xs text-muted-foreground">{cancellationQ.data.note}</p>}
                 <p className="text-[11px] text-muted-foreground">
-                  {t("pro.booking.cancelledBy")}: {t(`pro.booking.cancelledByRole.${cancellationQ.data.cancelled_by_role}`)} · {new Date(cancellationQ.data.cancelled_at).toLocaleString(dateLoc)}
+                  {t("pro.booking.cancelledBy")}: {t(`pro.booking.cancelledByRole.${cancellationQ.data.cancelled_by_role}`)} · {formatDateTime(new Date(cancellationQ.data.cancelled_at), dateLoc)}
                 </p>
               </>
             ) : (
@@ -167,8 +168,8 @@ export function ProBookingDetail({ id }: { id: string }) {
 
         <Card className="space-y-3 p-4">
           <Row icon={<UserIcon className="h-4 w-4" />} label={t("pro.booking.service")} value={serviceName ?? "—"} />
-          <Row icon={<Calendar className="h-4 w-4" />} label={t("pro.booking.date")} value={start.toLocaleDateString(dateLoc, { weekday: "long", month: "short", day: "numeric", year: "numeric" })} />
-          <Row icon={<Clock className="h-4 w-4" />} label={t("pro.booking.time")} value={`${start.toLocaleTimeString(dateLoc, { hour: "numeric", minute: "2-digit" })} · ${hours}h`} />
+          <Row icon={<Calendar className="h-4 w-4" />} label={t("pro.booking.date")} value={formatDate(start, { weekday: "long", month: "short", day: "numeric", year: "numeric" }, dateLoc)} />
+          <Row icon={<Clock className="h-4 w-4" />} label={t("pro.booking.time")} value={`${formatTime(start, dateLoc)} · ${formatDuration(hours, lang)}`} />
           <Row icon={<MapPin className="h-4 w-4" />} label={t("pro.booking.address")} value={addrLine} />
           {b.customer?.phone && <Row icon={<Phone className="h-4 w-4" />} label={t("pro.booking.phone")} value={<a href={`tel:${b.customer.phone}`} className="font-bold text-brand" dir="ltr">{b.customer.phone}</a>} />}
         </Card>
