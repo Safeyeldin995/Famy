@@ -13,6 +13,15 @@ const ar: Translation = {
     "previewReason": "صورة ظهر البطاقة مش واضحة. ارفع صورة أوضح وراجع بياناتك."
 },
   providerProfileV3: {
+    "visibleServices": "ظاهر في: {{services}}",
+    "blockedServices": "لسه مش ظاهر في: {{services}}",
+    "hoursMidnight": "12 بالليل",
+    "hoursAm": "{{time}} ص",
+    "hoursPm": "{{time}} م",
+    "hoursDays": "من {{from}} لحد {{to}}",
+    "hoursTimes": "{{from}} لـ {{to}}",
+    "days": {"d0": "الأحد", "d1": "الاثنين", "d2": "الثلاثاء", "d3": "الأربعاء", "d4": "الخميس", "d5": "الجمعة", "d6": "السبت"},
+
     coverageReview: "فريق فامي هيراجع مناطق خدمتك",
     "visibility": "حالة ظهورك للعملاء",
     "visible": "ظاهر للعملاء",

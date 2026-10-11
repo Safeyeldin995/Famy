@@ -120,3 +120,13 @@ it("excludes service and subject reviews from the provider action count", () => 
   expect(marketplaceEligibilityStatus(rows, 1, new Set(["tutor"])).stepsLeft).toBe(1);
   expect(mapMarketplaceEligibilityFailureReason(rows[0].failure_reasons[0], "tutor", 1, true)).toEqual({owner:"famy", i18nKey:"providerProfileV3.subjectPending", action:{kind:"info"}});
 });
+
+it.each(["Complete babysitting requirements in profile", "Declare the service requirement", "Mandatory Provider requirements are incomplete"])("makes %s a provider action for the affected service", (reason) => {
+  expect(mapMarketplaceEligibilityFailureReason(reason,"babysitting")).toEqual({owner:"provider", i18nKey:"pro.profile.eligibilityReasons.requirementsIncomplete", action:{kind:"requirements",serviceId:"babysitting"}});
+});
+it("deduplicates requirement actions while retaining every affected service", () => {
+  const rows = dedupeEligibilityReasons(["first","second"].map(service_id=>({service_id,failure_reasons:["Complete service requirements"]})));
+  expect(rows).toHaveLength(1);
+  expect(rows[0].serviceIds).toEqual(["first","second"]);
+  expect(rows[0].mapped.owner).toBe("provider");
+});

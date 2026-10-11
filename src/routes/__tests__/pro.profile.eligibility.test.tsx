@@ -9,6 +9,7 @@ const state = vi.hoisted(() => ({
   lang: "en",
   zones: [{ zone_id: "zone" }],
   zonesError: false,
+  services: [] as { id: string; name_en: string; name_ar: string; provider_pricing_allowed: boolean }[],
   rows: [
     {
       service_id: "school",
@@ -65,6 +66,7 @@ vi.mock("@/lib/preview/previewPath", () => ({
   proPath: (path: string) => path,
   customerPath: (path: string) => path,
 }));
+vi.mock("@/lib/db/queries", () => ({ useAvatarUrl: () => ({ data: null }) }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 vi.mock("@/lib/db/settings-queries", () => ({ useServiceAreasSettings: () => ({ data: [] }) }));
 vi.mock("@/lib/db/provider-queries", () => ({
@@ -77,10 +79,14 @@ vi.mock("@/lib/db/provider-queries", () => ({
   }),
   useProviderAvailability: () => ({ data: [] }),
   useUpdateProvider: () => ({ mutate: vi.fn() }),
-  useAllServices: () => ({ data: [] }),
-  useMyProviderServices: () => ({ data: [] }),
+  useAllServices: () => ({ data: state.services }),
+  useMyProviderServices: () => ({ data: state.services.map((service) => ({ service_id: service.id, status: "approved" })) }),
   useToggleProviderService: () => ({ mutate: vi.fn() }),
   useSetProviderPrice: () => ({ mutate: vi.fn() }),
+  useRequirementsForService: () => ({ data: [{ id: "req", name_en: "Synthetic requirement" }] }),
+  useMyRequirementFulfillments: () => ({ data: [] }),
+  useDeclareRequirement: () => ({ mutate: vi.fn() }),
+  useUploadRequirementEvidence: () => ({ mutate: vi.fn() }),
 }));
 
 import { Route } from "../pro.profile";
@@ -90,7 +96,11 @@ beforeEach(async () => {
   state.lang = "en";
   state.zones = [{ zone_id: "zone" }];
   state.zonesError = false;
-  for (const row of state.rows) row.is_eligible = false;
+  state.services = [];
+  for (const row of state.rows) {
+    row.is_eligible = false;
+    row.failure_reasons = ["No approved teaching subject with a valid session price", "Active Provider and Service zone coverage is missing"];
+  }
   await translations.init({
     lng: "en",
     resources: { en: { translation: en }, ar: { translation: ar } },
@@ -158,4 +168,29 @@ describe("provider profile grouped eligibility card", () => {
     const status = screen.getByText("Visible to customers");
     expect(status.className).toContain("text-success");
   });
+});
+
+it.each(["en", "ar"])("keeps provider requirement actions visible alongside mixed service visibility in %s", async (lang) => {
+  state.lang = lang;
+  await translations.changeLanguage(lang);
+  state.rows[0].is_eligible = true;
+  state.rows[0].failure_reasons = [];
+  state.rows[1].failure_reasons = ["Complete babysitting requirements in profile"];
+  state.services = [{ id:"language",name_en:"Language tutoring",name_ar:"تعليم اللغات",provider_pricing_allowed:false }];
+  render(<Profile />);
+  expect(screen.getByText(translations.t("providerProfileV3.visible"))).toBeTruthy();
+  expect(screen.getByText(translations.t("providerProfileV3.visibleServices", {services:lang === "ar" ? "المواد الدراسية" : "School subjects"}))).toBeTruthy();
+  expect(screen.getByText(translations.t("providerProfileV3.blockedServices", {services:lang === "ar" ? "تعليم اللغات" : "Language tutoring"}))).toBeTruthy();
+  expect(screen.getByRole("heading", {name:translations.t("providerProfileV3.providerTasks")})).toBeTruthy();
+  expect(screen.queryByRole("heading", {name:translations.t("providerProfileV3.famyTasks")})).toBeNull();
+  const action = screen.getByRole("link", {name:translations.t("pro.profile.eligibilityReasons.requirementsIncomplete")});
+  expect(action.getAttribute("href")).toBe("/pro/profile#requirements-language");
+  const row = document.getElementById("service-language");
+  if (!row) throw new Error("Expected service row");
+  const scroll = vi.fn();
+  row.scrollIntoView = scroll;
+  fireEvent.click(action);
+  expect(scroll).toHaveBeenCalled();
+  expect(document.getElementById("requirements-language")).not.toBeNull();
+  expect(screen.getByText("Synthetic requirement")).toBeTruthy();
 });

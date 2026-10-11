@@ -690,6 +690,7 @@ function seedPreviewProviderQueries(qc: import("@tanstack/react-query").QueryCli
   qc.setQueryData(
     ["my-provider-services", PREVIEW_PROVIDER_ID],
     [
+      { service_id: "svc-kids", price_override: null, status: "approved", service: { id: "svc-kids", name_en: "Babysitting", name_ar: "جليسة أطفال", is_active: true } },
       {
         service_id: "svc-clean",
         price_override: null,
@@ -710,6 +711,7 @@ function seedPreviewProviderQueries(qc: import("@tanstack/react-query").QueryCli
   );
   qc.setQueryData(["my-requirement-fulfillments", PREVIEW_PROVIDER_ID], []);
   qc.setQueryData(["service-requirements", "svc-clean"], []);
+  qc.setQueryData(["service-requirements", "svc-kids"], [{ id: "preview-babysitting-requirement", name_en: "Babysitting experience", name_ar: "خبرة رعاية الأطفال", required_for_provider_approval: true, evidence_required: false }]);
   qc.setQueryData(
     ["all-services"],
     [

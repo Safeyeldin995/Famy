@@ -531,3 +531,32 @@
 .apply-changes-home {
   padding-bottom: calc(160px + env(safe-area-inset-bottom));
 }
+
+/* The changes-home CTA flows after the list, outside the tab bar's fixed area. */
+.apply-changes-home .apply-bottom {
+  position: static;
+  width: 100%;
+  padding: 12px 0 0;
+}
+.apply-header.apply-profile-title,
+.apply-list.apply-profile-header {
+  display: flex;
+  align-items: center;
+}
+.apply-profile-title {
+  justify-content: space-between;
+}
+.apply-profile-avatar {
+  width: 64px;
+  height: 64px;
+}
+.apply-profile-name {
+  font-size: 18px;
+  font-weight: 800;
+}
+.apply-profile-verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}

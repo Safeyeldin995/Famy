@@ -1,6 +1,7 @@
 export type EligibilityReasonAction =
   | { kind: "link"; path: string; hash?: string }
   | { kind: "service"; serviceId: string }
+  | { kind: "requirements"; serviceId: string }
   | { kind: "info" };
 
 export type MappedEligibilityReason = {
@@ -78,6 +79,13 @@ export function mapMarketplaceEligibilityFailureReason(
   providerZoneCount = 0,
   teachingPending = false,
 ): MappedEligibilityReason {
+  if (/requirement/i.test(reason) && /complete|declare/i.test(reason)) {
+    return {
+      owner: "provider",
+      i18nKey: "pro.profile.eligibilityReasons.requirementsIncomplete",
+      action: serviceId ? { kind: "requirements", serviceId } : { kind: "link", path: "/pro/profile", hash: "requirements" },
+    };
+  }
   if (reason === "No approved teaching subject with a valid session price" && teachingPending) {
     return { owner: "famy", i18nKey: "providerProfileV3.subjectPending", action: { kind: "info" } };
   }
@@ -140,7 +148,7 @@ export function dedupeEligibilityReasons(
           ? `${mapped.action.path}#${mapped.action.hash ?? ""}`
           : mapped.action.kind === "service"
             ? "service"
-            : "info"
+            : mapped.action.kind === "requirements" ? "requirements" : "info"
       }`;
       const existing = byKey.get(key);
       if (existing) {

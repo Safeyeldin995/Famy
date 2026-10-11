@@ -11,6 +11,15 @@ const en = {
     "previewReason": "The back of your ID is unclear. Upload a clearer photo and review your details."
 },
   providerProfileV3: {
+    "visibleServices": "Visible in: {{services}}",
+    "blockedServices": "Not visible yet in: {{services}}",
+    "hoursMidnight": "12 midnight",
+    "hoursAm": "{{time}} AM",
+    "hoursPm": "{{time}} PM",
+    "hoursDays": "{{from}} to {{to}}",
+    "hoursTimes": "{{from}} to {{to}}",
+    "days": {"d0": "Sunday", "d1": "Monday", "d2": "Tuesday", "d3": "Wednesday", "d4": "Thursday", "d5": "Friday", "d6": "Saturday"},
+
     coverageReview: "The Famy team will review your service areas",
     "visibility": "Your visibility to customers",
     "visible": "Visible to customers",

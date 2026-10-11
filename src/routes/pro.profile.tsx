@@ -1,3 +1,5 @@
+import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
+import { workingHoursSummary } from "@/lib/provider/workingHoursSummary";
 import { isFixedPackage, packageLabel, servicePriceUnit } from "@/lib/pricing/servicePackages";
 import {
   ServicePricePicker,
@@ -16,7 +18,7 @@ import { TeachingGroupsSummary } from "@/components/provider/TeachingGroupsSumma
 import { useMyTeachingCapabilities } from "@/lib/db/teaching-queries";
 import { profileBioPayload } from "@/lib/provider/providerProfileModel";
 import "@/components/famio/providerApply.css";
-import { Card, PrimaryButton, Avatar } from "@/components/famio/ui";
+import { Card, PrimaryButton } from "@/components/famio/ui";
 import { QueryError } from "@/components/famio/QueryError";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -82,6 +84,11 @@ function ProProfile() {
   const [priceDrafts, setPriceDrafts] = useState<Record<string, number>>({});
   const [priceErrors, setPriceErrors] = useState<Record<string, string>>({});
   const [expandedReqService, setExpandedReqService] = useState<string | null>(null);
+  const focusRequirements = (serviceId: string) => {
+    setExpandedReqService(serviceId);
+    window.history.replaceState(null, "", `#requirements-${serviceId}`);
+    document.getElementById(`service-${serviceId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
   const focusPrice = (serviceId: string) => {
     const id = `price-${serviceId}`;
     window.history.replaceState(null, "", `#${id}`);
@@ -231,19 +238,11 @@ function ProProfile() {
   return (
     <ProviderShell>
       <main className="apply-ui apply-screen !pb-28" dir={lang === "ar" ? "rtl" : "ltr"}>
-        <header className="apply-header flex items-center justify-between"><h1 className="apply-title">{t("pro.profile.title")}</h1><LanguageToggle /></header>
+        <header className="apply-header apply-profile-title"><h1 className="apply-title">{t("pro.profile.title")}</h1><LanguageToggle /></header>
         <div className="apply-content">
-        <Card className="apply-list flex items-center gap-4 p-4">
+        <Card className="apply-list apply-profile-header gap-4 p-4">
           <div className="relative h-16 w-16 shrink-0">
-            {photoPreview ? (
-              <img src={photoPreview} alt="" className="h-16 w-16 rounded-2xl object-cover" />
-            ) : (
-              <Avatar
-                src={provider?.profile?.avatar_url}
-                alt=""
-                className="h-16 w-16 rounded-2xl"
-              />
-            )}
+            <ProfileAvatar src={provider?.profile?.avatar_url} preview={photoPreview} name={provider.profile?.full_name || t("pro.profile.famioUser")} />
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
@@ -270,10 +269,10 @@ function ProProfile() {
             />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="break-words text-base font-bold leading-snug">
+            <div className="apply-profile-name break-words leading-snug">
               {provider.profile?.full_name || t("pro.profile.famioUser")}
             </div>
-            <div className={`apply-tag mt-2 ${provider.is_verified ? "apply-success" : "apply-wait"}`}>
+            <div className={`apply-tag apply-profile-verified mt-2 ${provider.is_verified ? "apply-success" : "apply-wait"}`}>
               {provider.is_verified ? (
                 <>
                   <ShieldCheck className="h-3 w-3 text-success" /> {t("pro.profile.verified")}
@@ -286,7 +285,7 @@ function ProProfile() {
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
-              className="mt-1 text-[11px] font-bold text-brand disabled:opacity-60"
+              className="mt-1 block text-[11px] font-bold text-brand disabled:opacity-60"
             >
               {uploading ? t("pro.profile.uploading") : t("pro.profile.changePhoto")}
             </button>
@@ -305,6 +304,12 @@ function ProProfile() {
               </p>
             ) : null}
           </div>
+          {eligibilityQ.isSuccess && providerZonesQ.isSuccess && eligibilityRows.some((row) => !row.is_eligible) && (
+            <div className="mt-2 space-y-1 text-xs">
+              {eligibilityRows.some((row) => row.is_eligible) && <p>{t("providerProfileV3.visibleServices", { services: eligibilityRows.filter((row) => row.is_eligible).map((row) => lang === "ar" ? row.service_name_ar : row.service_name_en).join("، ") })}</p>}
+              <p>{t("providerProfileV3.blockedServices", { services: eligibilityRows.filter((row) => !row.is_eligible).map((row) => lang === "ar" ? row.service_name_ar : row.service_name_en).join("، ") })}</p>
+            </div>
+          )}
           {eligibilityQ.isLoading || providerZonesQ.isLoading ? (
             <div className="mt-2 h-10 animate-pulse rounded-xl bg-muted" />
           ) : eligibilityQ.isError || providerZonesQ.isError ? (
@@ -326,8 +331,8 @@ function ProProfile() {
                   <h3 className="apply-label px-4 pt-4">{t(`providerProfileV3.${owner}Tasks`)}</h3>
                   {owner === "famy" && <p className="px-4 text-sm text-muted-foreground">{t("providerProfileV3.reviewHint")}</p>}
                   <ul>{entries.map((entry) => <li key={entry.mapped.i18nKey} className="apply-li flex-col !items-start gap-1">
-                    <EligibilityReasonItem mapped={entry.mapped} t={t} onServiceFocus={focusPrice} />
-                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">{eligibilityRows.filter((row) => entry.serviceIds.includes(row.service_id)).map((row) => entry.mapped.action.kind === "service" ? <button key={row.service_id} type="button" className="min-h-11 text-brand underline" onClick={() => focusPrice(row.service_id)}>{lang === "ar" ? row.service_name_ar : row.service_name_en}</button> : <span key={row.service_id}>{lang === "ar" ? row.service_name_ar : row.service_name_en}</span>)}</div>
+                    <EligibilityReasonItem mapped={entry.mapped} t={t} onServiceFocus={focusPrice} onRequirementsFocus={focusRequirements} />
+                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">{eligibilityRows.filter((row) => entry.serviceIds.includes(row.service_id)).map((row) => (entry.mapped.action.kind === "service" || entry.mapped.action.kind === "requirements") ? <button key={row.service_id} type="button" className="min-h-11 text-brand underline" onClick={() => entry.mapped.action.kind === "requirements" ? focusRequirements(row.service_id) : focusPrice(row.service_id)}>{lang === "ar" ? row.service_name_ar : row.service_name_en}</button> : <span key={row.service_id}>{lang === "ar" ? row.service_name_ar : row.service_name_en}</span>)}</div>
                   </li>)}</ul>
                 </section>;
               })}
@@ -372,7 +377,7 @@ function ProProfile() {
                                 <EligibilityReasonItem
                                   mapped={mapped}
                                   t={t}
-                                  onServiceFocus={focusPrice}
+                                  onServiceFocus={focusPrice} onRequirementsFocus={focusRequirements}
                                 />
                               </li>
                             );
@@ -504,7 +509,7 @@ function ProProfile() {
                       </button>
                     )}
                     {on && expandedReqService === s.id && (
-                      <RequirementsChecklist providerId={provider.id} serviceId={s.id} />
+                      <div id={`requirements-${s.id}`}><RequirementsChecklist providerId={provider.id} serviceId={s.id} /></div>
                     )}
                       </div>
                     </ServiceCard>
@@ -518,7 +523,7 @@ function ProProfile() {
         {teachingQ.isError ? <QueryError compact onRetry={() => teachingQ.refetch()} /> : <TeachingGroupsSummary rows={teachingQ.data ?? []} />}
         <section className="apply-list">
           <ProRow to={proPath("/pro/setup/hours")} icon={<Clock size={20} />} label={t("providerProfileV3.hours")} />
-          {hoursQ.isError ? <QueryError compact onRetry={() => hoursQ.refetch()} /> : <div className="px-4 pb-4 text-sm text-muted-foreground">{(hoursQ.data ?? []).length ? (hoursQ.data ?? []).map((row) => <p key={row.id}>{t(`pro.schedule.days.${["sun", "mon", "tue", "wed", "thu", "fri", "sat"][row.weekday]}`)} · <bdi>{row.start_time.slice(0, 5)} – {row.end_time.slice(0, 5)}</bdi></p>) : t("providerProfileV3.noHours")}</div>}
+          {hoursQ.isError ? <QueryError compact onRetry={() => hoursQ.refetch()} /> : <div className="px-4 pb-4 text-sm text-muted-foreground">{(hoursQ.data ?? []).length ? workingHoursSummary(hoursQ.data ?? [], t).map((line) => <p key={line}>{line}</p>) : t("providerProfileV3.noHours")}</div>}
         </section>
 
         {/* Links */}
@@ -653,10 +658,12 @@ function EligibilityReasonItem({
   mapped,
   t,
   onServiceFocus,
+  onRequirementsFocus,
 }: {
   mapped: MappedEligibilityReason;
   t: (key: string, options?: Record<string, unknown>) => string;
   onServiceFocus: (serviceId: string) => void;
+  onRequirementsFocus: (serviceId: string) => void;
 }) {
   const label = t(mapped.i18nKey);
   if (mapped.action.kind === "link") {
@@ -675,6 +682,10 @@ function EligibilityReasonItem({
         {label}
       </Link>
     );
+  }
+  if (mapped.action.kind === "requirements") {
+    const serviceId = mapped.action.serviceId;
+    return <a href={`${proPath("/pro/profile")}#requirements-${serviceId}`} className="font-semibold text-brand underline-offset-2 hover:underline" onClick={(event) => { event.preventDefault(); onRequirementsFocus(serviceId); }}>{label}</a>;
   }
   if (mapped.action.kind === "service") {
     const serviceId = mapped.action.serviceId;
