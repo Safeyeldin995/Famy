@@ -1,3 +1,4 @@
+import { formatNumber, formatEGP } from "@/lib/format";
 import type { ReactNode, AnchorHTMLAttributes } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -221,15 +222,18 @@ async function selectTime() {
   await waitFor(() => expect(title("when")).toBeTruthy());
   const buttons = document.querySelectorAll<HTMLButtonElement>(".booking-time");
   fireEvent.click(buttons[0]);
+  const label = document.querySelector(".booking-when")?.textContent;
   fireEvent.click(next());
+  return label;
 }
 async function toReview(serviceId = "booking-hourly") {
   render(<BookContent providerId="p1" searchServiceId={serviceId} />);
   fireEvent.click(next());
-  await selectTime();
+  const timeLabel = await selectTime();
   fireEvent.click(screen.getByRole("button", { name: "Child fixture" }));
   fireEvent.click(next());
   expect(title("review")).toBeTruthy();
+  return timeLabel;
 }
 beforeEach(async () => {
   state.lang = "en";
@@ -251,6 +255,31 @@ afterEach(cleanup);
 
 describe("four-screen booking journey", () => {
   it.each(["en", "ar"])(
+    "uses the same time range and full duration copy on review in %s",
+    async (lang) => {
+      state.lang = lang;
+      await i18n.changeLanguage(lang);
+      const timeLabel = await toReview();
+      expect(timeLabel).toBeTruthy();
+      expect(screen.getByText(timeLabel!)).toBeTruthy();
+      expect(
+        screen.getByText(
+          i18n.t("customerBooking.rateLine", { rate: formatEGP(250), hours: formatNumber(4) }),
+        ),
+      ).toBeTruthy();
+      const serviceRow = screen
+        .getByRole("button", {
+          name: `${i18n.t("common.edit")} ${i18n.t("bookFlow.stepName.service")}`,
+        })
+        .closest(".booking-review-row");
+      expect(serviceRow?.textContent).toContain(
+        i18n.t("customerBooking.duration", { hours: formatNumber(4) }),
+      );
+      expect(screen.getByText(i18n.t("customerBooking.recipient"))).toBeTruthy();
+    },
+  );
+
+  it.each(["en", "ar"])(
     "keeps review edits and added-details cancellation in the same draft in %s",
     async (lang) => {
       state.lang = lang;
@@ -262,9 +291,11 @@ describe("four-screen booking journey", () => {
         }),
       );
       expect(title("whereWho")).toBeTruthy();
-      const notes = screen.getByRole("textbox", { name: i18n.t("bookFlow.notesTitle") });
+      const notes = screen.getByRole("textbox", {
+        name: i18n.t("customerBooking.notes", { name: "Provider" }),
+      });
       fireEvent.change(notes, { target: { value: "Keep draft" } });
-      fireEvent.click(screen.getByRole("button", { name: i18n.t("familyMembers.addMember") }));
+      fireEvent.click(screen.getByRole("button", { name: i18n.t("customerBooking.addMember") }));
       fireEvent.click(screen.getByRole("button", { name: "Close add details" }));
       expect((notes as HTMLTextAreaElement).value).toBe("Keep draft");
       fireEvent.click(next());
@@ -325,6 +356,9 @@ describe("four-screen booking journey", () => {
   });
   it("renders tutoring recipient, grouped subject and approved duration choices on screen one", async () => {
     render(<BookContent providerId="p1" searchServiceId="booking-tutoring" />);
+    expect(
+      screen.getByText(i18n.t("customerBooking.tutoringFrom", { price: formatNumber(450) })),
+    ).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Child fixture" }));
     // Two approved durations require a subject-group choice; the existing autofill
     // intentionally does not select an ambiguous capability automatically.

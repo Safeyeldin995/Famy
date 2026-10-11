@@ -1,3 +1,4 @@
+import { bookingWhenValues } from "@/lib/booking/bookingLabels";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 import { applyServiceSubtitle } from "@/lib/provider/applyServiceSubtitle";
 import { buildBookingRequest, buildBookingQuote } from "@/lib/booking/bookingRequest";
@@ -717,8 +718,8 @@ export function BookContent({
   const serviceName = (lang === "ar" ? activeService?.service?.name_ar : activeService?.service?.name_en) ?? "";
   const durationText = tutoringQuote ? t("bookFlow.sessionLine", { minutes: formatNumber(tutoringQuote.durationMin) })
     : fixedPackage ? t(packageLabel(activeService.service).key, packageLabel(activeService.service).values)
-    : t("bookFlow.durationShort", { hours: formatNumber(hours) });
-  const whenText = [date?.toLocaleDateString(locale, { weekday: "short", month: "short", day: "numeric" }), time].filter(Boolean).join(" · ");
+    : t("customerBooking.duration", { hours: formatNumber(hours) });
+  const whenText = date && selectedSlot ? t("customerBooking.whenSummary", bookingWhenValues(date, selectedSlot, locale, fixedPackage)) : t("bookFlow.dash");
 
   const handleBack = () => {
     if (step === 0) nav({ to: previewPath("/provider/$id") as "/provider/$id", params: { id: p.id } });
@@ -734,7 +735,7 @@ export function BookContent({
           {member.full_name}{!selectable.ok && <span className="text-xs">{t("bookFlow.forWhomAgeOutOfRange")}</span>}
         </CheckChip>;
       })}
-      <button type="button" className="apply-chip" onClick={() => setDetailsSheet("member")}><Plus size={16} />{t("familyMembers.addMember")}</button>
+      <button type="button" className="apply-chip" onClick={() => setDetailsSheet("member")}>{t("customerBooking.addMember")}</button>
     </div>
     {!familyMembersQ.isLoading && (familyMembersQ.data ?? []).length === 0 && <p className="text-xs text-muted-foreground">{t(isBabysitting ? "bookFlow.forWhomNeedChild" : "bookFlow.noFamilyMembers")}</p>}
   </Step>;
@@ -756,7 +757,9 @@ export function BookContent({
               const fixed = isFixedPackage(s.service);
               const teaching = isTutoringCategorySlug(s.service.category?.slug);
               const label = (lang === "ar" ? s.service.name_ar : s.service.name_en) || s.service.name_en;
-              const subtitle = fixed ? applyServiceSubtitle(s.service, t) : teaching ? t("pricePicker.sessionUnit") : `${formatNumber(Number(s.price_override ?? p.hourlyRate))} ${t("pricePicker.hourUnit")}`;
+              const approvedPrices = (capabilitiesQ.data ?? []).filter(cap => cap.serviceId === s.service.id && cap.status === "approved").map(cap => cap.price);
+              const teachingSubtitle = approvedPrices.length ? t("customerBooking.tutoringFrom", { price: formatNumber(Math.min(...approvedPrices)) }) : t("customerBooking.tutoringPrice");
+              const subtitle = fixed ? applyServiceSubtitle(s.service, t) : teaching ? teachingSubtitle : `${formatNumber(Number(s.price_override ?? p.hourlyRate))} ${t("pricePicker.hourUnit")}`;
               return <ServiceCard key={s.service.id} selected={active} title={label} subtitle={subtitle} trailing={fixed && s.price_override != null ? <b className="booking-package-price">{formatEGP(Number(s.price_override))}</b> : undefined} icon={fixed ? (s.service.fixed_start_time ? <Clock size={22} /> : <Sun size={22} />) : teaching ? <BookOpen size={22} /> : <UserRound size={22} />}
                 onClick={() => { setServiceId(s.service.id); setCapabilityId(null); clearSlot(); }}>
                 {!teaching && !fixed && <NumberStepper value={parseInt(duration)} min={2} max={8} step={2} unitLabel={t("customerBooking.hours")} hint={t("customerBooking.hoursRange", { min: 2, max: 8 })} onChange={(hours) => { setDuration(`${hours}h`); clearSlot(); }} />}
@@ -797,7 +800,7 @@ export function BookContent({
             {!slotsQ.isLoading && packageSlots.length === 0 && otherProviders}
           </>}
         {stepKey === "whereWho" && (
-          <Step title={t("bookFlow.addressTitle")} sub={t("bookFlow.addressSub")}>
+          <Step title={t("customerBooking.address")} sub={t("bookFlow.addressSub")}>
             <div id="booking-addresses" tabIndex={-1} />
             {addrsQ.isError ? <QueryError onRetry={() => addrsQ.refetch()} /> : addrsQ.isLoading ? (
               <div className="space-y-2">
@@ -821,7 +824,7 @@ export function BookContent({
                   <button type="button" onClick={() => setDetailsSheet("address")}
                     className="focus-ring tap-scale inline-flex items-center gap-1.5 rounded-full bg-brand px-5 py-3 text-sm font-extrabold text-brand-foreground"
                   >
-                    <Plus className="h-4 w-4" /> {t("addresses.addAddress", "Add address")}
+                    {t("customerBooking.addAddress")}
                   </button>
                 }
               />
@@ -867,7 +870,7 @@ export function BookContent({
                 <button type="button" onClick={() => setDetailsSheet("address")}
                   className="focus-ring flex w-full items-center gap-2 rounded-[1.25rem] border border-dashed border-brand/40 p-3.5 text-sm font-extrabold text-brand"
                 >
-                  <Plus className="h-4 w-4" /> {t("addresses.addAddress", "Add address")}
+                  {t("customerBooking.addAddress")}
                 </button>
               </div>
             )}
@@ -890,7 +893,7 @@ export function BookContent({
                       "This area is not currently served. Please choose another address.",
                     )}
                     <button type="button" className="min-h-11 underline" onClick={() => { document.getElementById("booking-addresses")?.scrollIntoView({ block: "center" }); document.getElementById("booking-addresses")?.focus(); }}>{t("bookingUx.changeAddress")}</button>
-                    <button type="button" onClick={() => setDetailsSheet("address")} className="inline-flex min-h-11 items-center underline">{t("addresses.addAddress")}</button>
+                    <button type="button" onClick={() => setDetailsSheet("address")} className="inline-flex min-h-11 items-center underline">{t("customerBooking.addAddress")}</button>
                   </div>
                 )}
               </div>
@@ -963,17 +966,17 @@ export function BookContent({
         )}
 
 
-          {stepKey === "whereWho" && <label><span className="apply-label">{t("bookFlow.notesTitle")}</span><textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t("bookFlow.notesPlaceholder")} className="booking-notes" /></label>}
+          {stepKey === "whereWho" && <label><span className="apply-label">{t("customerBooking.notes", { name: firstName })}</span><textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t("bookFlow.notesPlaceholder")} className="booking-notes" /></label>}
           {stepKey === "review" && <>
             <div>
               <ReviewRow label={t("bookFlow.stepName.service")} value={`${serviceName} · ${durationText}`} onEdit={() => editScreen("service")} />
               <ReviewRow label={t("bookFlow.rowDate")} value={whenText} onEdit={() => editScreen("when")} />
               <ReviewRow label={t("bookFlow.rowAddress")} value={address} onEdit={() => editScreen("whereWho")} />
-              <ReviewRow label={t("bookFlow.rowForWhom")} value={forWhomLabel} onEdit={() => editScreen(isTutoring ? "service" : "whereWho")} />
+              <ReviewRow label={t("customerBooking.recipient")} value={forWhomLabel} onEdit={() => editScreen(isTutoring ? "service" : "whereWho")} />
               {notes && <ReviewRow label={t("bookFlow.rowNotes")} value={notes} onEdit={() => editScreen("whereWho")} />}
             </div>
             <div className="booking-bill">
-              <Row label={tutoringQuote ? t("bookFlow.sessionLine", { minutes: formatNumber(tutoringQuote.durationMin) }) : fixedPackage ? t("packages.fixedPrice") : t("bookFlow.rateLine", { rate: formatEGP(ratePerHour), hours: formatNumber(hours) })} value={formatEGP(subtotal)} />
+              <Row label={tutoringQuote ? t("bookFlow.sessionLine", { minutes: formatNumber(tutoringQuote.durationMin) }) : fixedPackage ? t("packages.fixedPrice") : t("customerBooking.rateLine", { rate: formatEGP(ratePerHour), hours: formatNumber(hours) })} value={formatEGP(subtotal)} />
               <Row label={t("bookFlow.serviceFee")} value={formatEGP(fee)} />
               <Row label={t("bookFlow.vat")} value={formatEGP(vat)} />
               {extrasTotal > 0 && <Row label={t("bookFlow.extrasTotal")} value={formatEGP(extrasTotal)} />}
@@ -1110,7 +1113,7 @@ export function BookContent({
         {missingStep && bookingScreenForStep(missingStep, isTutoring) !== stepKey && <button type="button" className="booking-add px-5" onClick={() => editScreen(bookingScreenForStep(missingStep, isTutoring))}>{t(`bookFlow.stepName.${missingStep}`)}</button>}
         {stepKey === "review" && paymentMethodId && !methodsQ.isError && <p className="px-5 text-xs text-muted-foreground">{t(paymentCopy.next)}</p>}
         <StickyCta onClick={stepKey === "review" && noPaymentMethods ? () => { void nav({ to: previewPath("/help") as "/help" }); } : next}
-          disabled={!(stepKey === "review" && noPaymentMethods) && (!canNext() || createBooking.isPending)} hint={disabledReason ? t(disabledReason) : undefined}>
+          disabled={!(stepKey === "review" && noPaymentMethods) && (!canNext() || createBooking.isPending)} hint={disabledReason ? (disabledReason === "bookingUx.chooseRecipient" ? t("customerBooking.chooseRecipient", { name: firstName }) : t(disabledReason)) : undefined}>
           {createBooking.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : stepKey === "review" && noPaymentMethods ? t("bookingUx.contactSupport") : t(stepKey === "review" ? "customerBooking.confirm" : "customerBooking.next", { total: formatEGP(total) })}
         </StickyCta>
         {detailsSheet && <BookingDetailsSheet kind={detailsSheet} firstAddress={(addrsQ.data?.length ?? 0) === 0} onClose={() => { setDetailsSheet(null); void addrsQ.refetch(); void familyMembersQ.refetch(); }} />}

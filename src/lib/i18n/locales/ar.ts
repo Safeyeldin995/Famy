@@ -2,6 +2,17 @@ import type { Translation } from "./en";
 
 const ar: Translation = {
   customerBooking: {
+    "duration": "{{hours}} ساعات",
+    "rateLine": "{{rate}} × {{hours}} ساعات",
+    "address": "العنوان",
+    "addAddress": "+ عنوان جديد",
+    "addMember": "+ ضيف فرد من العيلة",
+    "notes": "ملاحظات لـ {{name}} (اختياري)",
+    "recipient": "مين",
+    "chooseRecipient": "اختار مين هيكون مع {{name}}",
+    "tutoringPrice": "السعر حسب المادة",
+    "tutoringFrom": "من {{price}} ج.م / حصة",
+
     "hoursRange": "من {{min}} لحد {{max}}",
     "step": "{{step}} من {{total}}",
     "titles": {

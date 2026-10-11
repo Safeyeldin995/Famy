@@ -1,5 +1,16 @@
 const en = {
   customerBooking: {
+    "duration": "{{hours}} hours",
+    "rateLine": "{{rate}} × {{hours}} hours",
+    "address": "Address",
+    "addAddress": "+ New address",
+    "addMember": "+ Add a family member",
+    "notes": "Notes for {{name}} (optional)",
+    "recipient": "Who",
+    "chooseRecipient": "Choose who will be with {{name}}",
+    "tutoringPrice": "Price depends on the subject",
+    "tutoringFrom": "From EGP {{price}} / session",
+
     "hoursRange": "From {{min}} to {{max}}",
     "step": "{{step}} of {{total}}",
     "titles": {

@@ -1,3 +1,4 @@
+import { bookingTimeLabel, bookingWhenValues } from "@/lib/booking/bookingLabels";
 import { useMemo } from "react";
 import { Clock } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -81,12 +82,6 @@ export function BookingWhen(props: Props) {
     [],
   );
   const selected = props.slots.find((slot) => slot.label === props.time);
-  const formatTime = (time: Date) =>
-    time.toLocaleTimeString(props.locale, {
-      hour: "numeric",
-      minute: "2-digit",
-      ...(props.cairoTime ? { timeZone: "Africa/Cairo" } : {}),
-    });
   return (
     <div className="booking-section">
       <span className="apply-label">
@@ -136,7 +131,7 @@ export function BookingWhen(props: Props) {
                 if (available) props.onTimeChange(available);
               }}
             >
-              {formatTime(slot.start)}
+              {bookingTimeLabel(slot.start, props.locale, props.cairoTime)}
             </button>
           ))}
         </div>
@@ -145,15 +140,15 @@ export function BookingWhen(props: Props) {
         <div className="booking-when">
           <Clock size={18} aria-hidden="true" />
           <span>
-            {t("customerBooking.whenSummary", {
-              date: props.date?.toLocaleDateString(props.locale, {
-                weekday: "long",
-                month: "long",
-                day: "numeric",
-              }),
-              start: formatTime(selected.start),
-              end: formatTime(selected.end),
-            })}
+            {t(
+              "customerBooking.whenSummary",
+              bookingWhenValues(
+                props.date ?? selected.start,
+                selected,
+                props.locale,
+                props.cairoTime,
+              ),
+            )}
           </span>
         </div>
       )}
