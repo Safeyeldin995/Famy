@@ -18,9 +18,9 @@ it("opens every checklist section directly", () => {
   }
 });
 
-it("opens every pending-home task in its existing editable section", () => {
-  const model = pendingHomeModel({ photo: true, about: false, personal: false, reference: true, babysitting: false, needsBabysitting: true, subjects: false, needsSubjects: true });
-  expect(model.items.map(({ key, section }) => [key, onboardingInitialStep(onboardingSection({ section }).section)])).toEqual([
-    ["photo", 0], ["about", 2], ["babysitting", 2], ["subjects", 1], ["reference", 4], ["personal", 0],
+it("keeps all pending-home tasks available for dedicated setup screens", () => {
+  const model = pendingHomeModel({ hours: true, photo: true, about: false, personal: false, reference: true, babysitting: false, needsBabysitting: true, subjects: false, needsSubjects: true });
+  expect(model.items.map(({ key }) => `/pro/setup/${key}`)).toEqual([
+    "/pro/setup/photo", "/pro/setup/about", "/pro/setup/babysitting", "/pro/setup/subjects", "/pro/setup/reference", "/pro/setup/personal", "/pro/setup/hours",
   ]);
 });

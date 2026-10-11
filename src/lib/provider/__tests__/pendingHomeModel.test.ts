@@ -3,6 +3,7 @@ import i18n from "@/lib/i18n";
 import { pendingHomeModel, type PendingHomeData } from "../pendingHomeModel";
 
 const data: PendingHomeData = {
+  hours: true,
   photo: true,
   about: false,
   personal: false,
@@ -22,6 +23,7 @@ describe("pending home model", () => {
       "subjects",
       "reference",
       "personal",
+      "hours",
     ]);
     for (const needsBabysitting of [false, true]) {
       for (const needsSubjects of [false, true]) {
@@ -31,8 +33,9 @@ describe("pending home model", () => {
         expect(model.items.filter((item) => item.done).map((item) => item.key)).toEqual([
           "photo",
           "reference",
+          "hours",
         ]);
-        expect(model.total).toBe(6 + Number(needsBabysitting) + Number(needsSubjects));
+        expect(model.total).toBe(7 + Number(needsBabysitting) + Number(needsSubjects));
       }
     }
   });
@@ -52,10 +55,10 @@ describe("pending home model", () => {
 
   it("counts the submitted application as done and Famy review as pending", () => {
     const model = pendingHomeModel(data);
-    expect(model.done).toBe(3);
-    expect(model.total).toBe(8);
+    expect(model.done).toBe(4);
+    expect(model.total).toBe(9);
     expect(model.remaining).toBe(4);
-    expect(model.strokeDashoffset).toBeCloseTo(150.8 * (1 - 3 / 8));
+    expect(model.strokeDashoffset).toBeCloseTo(150.8 * (1 - 4 / 9));
   });
 
   it.each([
@@ -82,8 +85,8 @@ describe("pending home model", () => {
     );
     if (remaining === 0) {
       expect(model.items.some((item) => item.next)).toBe(false);
-      expect(model.done).toBe(5);
-      expect(model.total).toBe(6);
+      expect(model.done).toBe(6);
+      expect(model.total).toBe(7);
       expect(model.strokeDashoffset).toBeGreaterThan(0);
     }
   });

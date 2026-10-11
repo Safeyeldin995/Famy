@@ -10,11 +10,11 @@ describe("preview route tree", () => {
     .sort();
 
   it("keeps every preview.* route file nested under /preview parent gate", () => {
-    expect(previewFiles).toHaveLength(58);
+    expect(previewFiles).toHaveLength(59);
 
     const tree = readFileSync(treePath, "utf8");
     const previewImports = tree.match(/from '\.\/routes\/preview[^']*'/g) ?? [];
-    expect(previewImports).toHaveLength(58);
+    expect(previewImports).toHaveLength(59);
 
     const childFiles = previewFiles.filter((name) => name !== "preview.tsx");
     for (const file of childFiles) {
