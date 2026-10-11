@@ -1,4 +1,4 @@
-import { ChevronRight } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import "./providerApply.css";
 export function StepHeader({ step, onBack }: { step: number; onBack?: () => void }) {
@@ -13,7 +13,7 @@ export function StepHeader({ step, onBack }: { step: number; onBack?: () => void
             className="apply-back"
             aria-label={t("common.back")}
           >
-            <ChevronRight size={20} />
+            <ChevronLeft size={20} />
           </button>
         ) : (
           <span />

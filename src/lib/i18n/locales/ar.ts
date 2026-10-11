@@ -2,6 +2,15 @@ import type { Translation } from "./en";
 
 const ar: Translation = {
   providerSetup: {
+    "subjectsTitle": "بتدرس ايه؟",
+    "chooseSubjectFirst": "اختار المادة والمنهج الأول عشان تظهر الصفوف",
+    "approvedPriceLocked": "السعر والمدة ثابتين للصفوف اللي اتوافق عليها",
+    "maxChildren": "أقصى عدد أطفال في الحجز",
+    "ages": "الأعمار",
+    "sameHours": "نفس المواعيد كل الأيام",
+    "approveAll": "وافق على الكل",
+    "rejectAll": "ارفض الكل",
+    "status": {"approved": "اتوافق عليها", "pending": "بنراجع", "rejected": "مرفوضة", "suspended": "موقوفة"},
     "save": "احفظ",
     "decrease": "قلل {{unit}}",
     "increase": "زود {{unit}}",

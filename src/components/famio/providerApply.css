@@ -42,12 +42,6 @@
   display: grid;
   place-items: center;
 }
-.apply-back svg {
-  transform: rotate(180deg);
-}
-[dir="rtl"] .apply-back svg {
-  transform: none;
-}
 .apply-step {
   font-size: 12px;
   font-weight: 700;
@@ -520,4 +514,16 @@
 .apply-tag.apply-time {
   color: var(--muted-foreground);
   background: var(--surface-2);
+}
+
+.apply-setup-screen {
+  padding-bottom: calc(160px + env(safe-area-inset-bottom));
+}
+.apply-tag.apply-success {
+  background: var(--apply-success-tint);
+  color: var(--success);
+}
+.apply-tag.apply-danger {
+  background: color-mix(in srgb, var(--destructive) 10%, transparent);
+  color: var(--destructive);
 }

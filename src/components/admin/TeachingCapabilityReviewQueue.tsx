@@ -57,7 +57,7 @@ export function TeachingCapabilityReviewQueue({ providerId }: { providerId: stri
                       onError: () => toast.error(t("common.somethingWentWrong")),
                     })}
                     className="h-11 rounded-lg border border-border px-3 text-[11px] font-bold"
-                  >{t(`teaching.status.${status}`)}</button>
+                  >{t(status === "approved" ? "providerSetup.approveAll" : "providerSetup.rejectAll")}</button>
                 ))}
               </div>
               <details className="mt-3">

@@ -55,6 +55,7 @@ export function GroupedTeachingSetup({
   const [selected, setSelected] = useState<string[]>([]);
   const [duration, setDuration] = useState(60);
   const [price, setPrice] = useState<number | null>(null);
+  const [editingGroupKey, setEditingGroupKey] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const service = services.find((row) => row.id === serviceId);
@@ -72,7 +73,18 @@ export function GroupedTeachingSetup({
     subject?.max_session_duration_min ?? 120,
     service?.allowed_session_durations ?? [60, 90, 120, 180],
   );
-  const effectiveDuration = durations.find((value) => value === duration) ?? durations[0];
+  const editingGroup = groupTeachingRows(rows).find((group) => group.key === editingGroupKey);
+  const lockedValues = editingGroup?.rows.some((row) => row.status === "approved")
+    ? editingGroup.first
+    : undefined;
+  const effectiveDuration =
+    lockedValues?.session_duration_min ??
+    durations.find((value) => value === duration) ??
+    durations[0];
+  const effectivePrice = lockedValues?.session_price ?? price;
+  const shownDurations = lockedValues
+    ? [...new Set([...durations, lockedValues.session_duration_min])]
+    : durations;
   const filteredLevels = teachingLevelsForCurriculum(curriculum?.code, levels);
   const availableSubjects = subjects.filter((row) =>
     links.some((link) => link.subject_id === row.id && link.service_id === serviceId),
@@ -81,10 +93,10 @@ export function GroupedTeachingSetup({
     subjectId,
     curriculumId,
     chosen,
-    isPriceInRange(price, service?.minimum_price ?? null, service?.maximum_price ?? null),
+    isPriceInRange(effectivePrice, service?.minimum_price ?? null, service?.maximum_price ?? null),
   );
   const save = async () => {
-    if (!service || missing || !effectiveDuration || price == null) return;
+    if (!service || missing || !effectiveDuration || effectivePrice == null) return;
     setBusy(true);
     setError("");
     try {
@@ -94,7 +106,7 @@ export function GroupedTeachingSetup({
         curriculumId,
         levelIds: chosen,
         sessionDurationMin: effectiveDuration,
-        sessionPrice: price,
+        sessionPrice: effectivePrice,
       });
     } catch {
       setError(t("providerApply.saveError"));
@@ -103,13 +115,14 @@ export function GroupedTeachingSetup({
     }
   };
   const reset = () => {
+    setEditingGroupKey(null);
     setSelected([]);
     setPrice(null);
     setError("");
   };
   return (
     <SetupScreen
-      title={t("teaching.whatITeach")}
+      title={t("providerSetup.subjectsTitle")}
       hint={t("providerSetup.hints.subjects")}
       saveLabel={t("providerSetup.saveSubject")}
       onBack={onBack}
@@ -152,9 +165,13 @@ export function GroupedTeachingSetup({
             reset();
           }}
         />
-        <p className="apply-label">{t("teaching.level")}</p>
+        {subjectId && curriculumId ? (
+          <p className="apply-label">{t("teaching.level")}</p>
+        ) : (
+          <p className="text-sm text-muted-foreground">{t("providerSetup.chooseSubjectFirst")}</p>
+        )}
         <div className="flex flex-wrap gap-2">
-          {(curriculumId ? filteredLevels : []).map((row) => (
+          {(subjectId && curriculumId ? filteredLevels : []).map((row) => (
             <CheckChip
               key={row.id}
               selected={chosen.includes(row.id)}
@@ -172,25 +189,33 @@ export function GroupedTeachingSetup({
         {!!diff.lockedApproved.length && (
           <p className="text-xs text-muted-foreground">{t("providerSetup.approvedLocked")}</p>
         )}
-        {durations.length === 1 ? (
-          <p className="text-sm">
-            {durations[0]} {t("common.min")}
-          </p>
-        ) : (
-          <BottomSheetSelect
-            label={t("providerSetup.duration")}
-            value={String(effectiveDuration ?? "")}
-            options={durations.map((value) => ({
-              value: String(value),
-              label: `${value} ${t("common.min")}`,
-            }))}
-            onChange={(value) => setDuration(Number(value))}
-          />
+        <p className="apply-label">{t("providerSetup.duration")}</p>
+        <div className="flex flex-wrap gap-2">
+          {shownDurations.length === 1 ? (
+            <span className="apply-chip on">
+              {shownDurations[0]} {t("common.min")}
+            </span>
+          ) : (
+            shownDurations.map((value) => (
+              <CheckChip
+                key={value}
+                selected={value === effectiveDuration}
+                disabled={!!lockedValues}
+                onClick={() => setDuration(value)}
+              >
+                {value} {t("common.min")}
+              </CheckChip>
+            ))
+          )}
+        </div>
+        {lockedValues && (
+          <p className="text-xs text-muted-foreground">{t("providerSetup.approvedPriceLocked")}</p>
         )}
         <PriceStepper
           min={service?.minimum_price ?? null}
           max={service?.maximum_price ?? null}
-          value={price}
+          value={effectivePrice}
+          disabled={!!lockedValues}
           onChange={setPrice}
           unitLabel={t("pricePicker.sessionUnit")}
         />
@@ -207,8 +232,11 @@ export function GroupedTeachingSetup({
               </p>
               <div className="flex flex-wrap gap-2">
                 {[...new Set(group.rows.map((row) => row.status))].map((status) => (
-                  <span key={status} className="apply-tag apply-time">
-                    {t(`teaching.status.${status}`)}
+                  <span
+                    key={status}
+                    className={`apply-tag ${status === "approved" ? "apply-success" : status === "pending" ? "apply-wait" : "apply-danger"}`}
+                  >
+                    {t(`providerSetup.status.${status}`)}
                   </span>
                 ))}
               </div>
@@ -217,6 +245,7 @@ export function GroupedTeachingSetup({
                   type="button"
                   className="min-h-11 font-bold text-brand"
                   onClick={() => {
+                    setEditingGroupKey(group.key);
                     setServiceId(group.first.service_id);
                     setSubjectId(group.first.subject_id);
                     setCurriculumId(group.first.curriculum_id);

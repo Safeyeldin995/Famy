@@ -13,6 +13,8 @@ import {
 } from "@/lib/provider/onboardingReferences";
 import {
   setupDateOfBirth,
+  hasSharedWorkingHours,
+  setSharedWorkingHours,
   type SetupSnapshot,
   type WorkingRule,
 } from "@/lib/provider/setupHelpers";
@@ -138,6 +140,7 @@ export function ProviderSetupForm({
       end_time: row.end_time.slice(0, 5),
     })),
   );
+  const [sameHours, setSameHours] = useState(() => hasSharedWorkingHours(rules));
   const dob = setupDateOfBirth(birth.year, birth.month, birth.day);
   const valid =
     item === "photo"
@@ -299,6 +302,7 @@ export function ProviderSetupForm({
         )}
         {item === "babysitting" && (
           <>
+            <p className="apply-label">{t("providerSetup.maxChildren")}</p>
             <NumberStepper
               value={maxChildren}
               min={1}
@@ -306,6 +310,7 @@ export function ProviderSetupForm({
               unitLabel={t("providerSetup.children")}
               onChange={setMaxChildren}
             />
+            <p className="apply-label">{t("providerSetup.ages")}</p>
             <div className="flex flex-wrap gap-2">
               {ageGroups.map((row) => {
                 const locked = snapshot.age_group_capabilities?.some(
@@ -412,6 +417,24 @@ export function ProviderSetupForm({
         )}
         {item === "hours" && (
           <>
+            <label className="flex min-h-11 items-center gap-3 text-sm font-bold">
+              <input
+                type="checkbox"
+                checked={sameHours}
+                onChange={(event) => {
+                  setSameHours(event.target.checked);
+                  if (event.target.checked)
+                    setHours((rows) =>
+                      setSharedWorkingHours(
+                        rows,
+                        rows[0]?.start_time ?? "09:00",
+                        rows[0]?.end_time ?? "17:00",
+                      ),
+                    );
+                }}
+              />
+              {t("providerSetup.sameHours")}
+            </label>
             <div className="flex flex-wrap gap-2">
               {[6, 0, 1, 2, 3, 4, 5].map((weekday) => (
                 <CheckChip
@@ -421,7 +444,14 @@ export function ProviderSetupForm({
                     setHours((rows) =>
                       rows.some((r) => r.weekday === weekday)
                         ? rows.filter((r) => r.weekday !== weekday)
-                        : [...rows, { weekday, start_time: "09:00", end_time: "17:00" }],
+                        : [
+                            ...rows,
+                            {
+                              weekday,
+                              start_time: sameHours ? (rows[0]?.start_time ?? "09:00") : "09:00",
+                              end_time: sameHours ? (rows[0]?.end_time ?? "17:00") : "17:00",
+                            },
+                          ],
                     )
                   }
                 >
@@ -429,9 +459,11 @@ export function ProviderSetupForm({
                 </CheckChip>
               ))}
             </div>
-            {hours.map((row, index) => (
+            {(sameHours ? hours.slice(0, 1) : hours).map((row, index) => (
               <div key={`${row.weekday}-${index}`} className="grid gap-2">
-                <p className="apply-label">{t(`pro.schedule.days.${dayKeys[row.weekday]}`)}</p>
+                {!sameHours && (
+                  <p className="apply-label">{t(`pro.schedule.days.${dayKeys[row.weekday]}`)}</p>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   {(["start_time", "end_time"] as const).map((key) => {
                     const values = [
@@ -454,7 +486,9 @@ export function ProviderSetupForm({
                         }))}
                         onChange={(value) =>
                           setHours((rows) =>
-                            rows.map((r, i) => (i === index ? { ...r, [key]: value } : r)),
+                            rows.map((r, i) =>
+                              sameHours || i === index ? { ...r, [key]: value } : r,
+                            ),
                           )
                         }
                       />

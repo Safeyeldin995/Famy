@@ -1,6 +1,8 @@
 import { expect, it } from "vitest";
 import {
   defaultWorkingHours,
+  hasSharedWorkingHours,
+  setSharedWorkingHours,
   mergeExperiencePayload,
   mergeReferencesPayload,
   setupDateOfBirth,
@@ -70,4 +72,38 @@ it("accepts real adult birthdays only", () => {
   expect(setupDateOfBirth("2008", "10", "8", today)).toBe("2008-10-08");
   expect(setupDateOfBirth("2008", "10", "9", today)).toBeNull();
   expect(setupDateOfBirth("2000", "2", "30", today)).toBeNull();
+});
+
+it("omits an unsaved babysitting maximum when saving only the bio", () => {
+  const snapshot = { provider: { max_children_per_booking: null }, needsBabysitting: true };
+  const payload = mergeExperiencePayload(snapshot, { bio_ar: "نبذة جديدة" });
+  expect(payload.bio_ar).toBe("نبذة جديدة");
+  expect(payload).not.toHaveProperty("max_children_per_booking");
+  expect(mergeExperiencePayload(snapshot, { max_children_per_booking: 2 })).toHaveProperty(
+    "max_children_per_booking",
+    2,
+  );
+});
+it("defaults shared hours on only for equal single intervals on enabled days", () => {
+  const rules = [
+    { weekday: 0, start_time: "18:00", end_time: "24:00" },
+    { weekday: 3, start_time: "18:00:00", end_time: "24:00:00" },
+  ];
+  expect(hasSharedWorkingHours(rules)).toBe(true);
+  expect(hasSharedWorkingHours([])).toBe(false);
+  expect(
+    hasSharedWorkingHours([...rules, { weekday: 4, start_time: "09:00", end_time: "17:00" }]),
+  ).toBe(false);
+  expect(hasSharedWorkingHours([...rules, rules[0]])).toBe(false);
+});
+it("copies shared hours only to selected days and preserves midnight", () => {
+  const rules = [
+    { weekday: 0, start_time: "09:00", end_time: "17:00" },
+    { weekday: 3, start_time: "10:00", end_time: "16:00" },
+  ];
+  expect(setSharedWorkingHours(rules, "18:00", "24:00")).toEqual([
+    { weekday: 0, start_time: "18:00", end_time: "24:00" },
+    { weekday: 3, start_time: "18:00", end_time: "24:00" },
+  ]);
+  expect(rules[0].start_time).toBe("09:00");
 });

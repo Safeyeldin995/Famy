@@ -47,7 +47,9 @@ function experienceDefaults(snapshot: SetupSnapshot) {
     first_aid_training: d?.first_aid_training ?? false,
     ...(snapshot.needsBabysitting
       ? {
-          max_children_per_booking: p?.max_children_per_booking ?? 1,
+          ...(p?.max_children_per_booking != null
+            ? { max_children_per_booking: p.max_children_per_booking }
+            : {}),
           age_group_capabilities: (snapshot.age_group_capabilities ?? []).map((row) => ({
             code: row.code,
             years_experience: row.years_experience ?? null,
@@ -108,4 +110,27 @@ export function setupDateOfBirth(year: string, month: string, day: string, today
     return null;
   const cutoff = new Date(Date.UTC(today.getFullYear() - 18, today.getMonth(), today.getDate()));
   return date <= cutoff ? `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}` : null;
+}
+
+export function hasSharedWorkingHours(rules: WorkingRule[]) {
+  return (
+    rules.length > 0 &&
+    new Set(rules.map((row) => row.weekday)).size === rules.length &&
+    rules.every(
+      (row) =>
+        row.start_time.slice(0, 5) === rules[0].start_time.slice(0, 5) &&
+        row.end_time.slice(0, 5) === rules[0].end_time.slice(0, 5),
+    )
+  );
+}
+export function setSharedWorkingHours(
+  rules: WorkingRule[],
+  start_time: string,
+  end_time: string,
+): WorkingRule[] {
+  return [...new Set(rules.map((row) => row.weekday))].map((weekday) => ({
+    weekday,
+    start_time,
+    end_time,
+  }));
 }

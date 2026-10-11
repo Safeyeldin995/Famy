@@ -40,14 +40,14 @@ it("reviews only the ids in the selected group, with one shared note", () => {
   fireEvent.change(screen.getAllByLabelText("teaching.adminNote")[0], {
     target: { value: "Synthetic review note" },
   });
-  fireEvent.click(screen.getAllByRole("button", { name: "teaching.status.approved" })[0]);
+  fireEvent.click(screen.getAllByRole("button", { name: "providerSetup.approveAll" })[0]);
   expect(mocks.group).toHaveBeenCalledWith(
     { ids: ["first", "second"], status: "approved", note: "Synthetic review note" },
     expect.any(Object),
   );
   const secondGroup = screen.getAllByText("providerSetup.reviewLevels")[1].closest("li")!;
   fireEvent.click(
-    within(secondGroup).getAllByRole("button", { name: "teaching.status.rejected" })[0],
+    within(secondGroup).getAllByRole("button", { name: "providerSetup.rejectAll" })[0],
   );
   expect(mocks.group).toHaveBeenLastCalledWith(
     { ids: ["third"], status: "rejected", note: undefined },

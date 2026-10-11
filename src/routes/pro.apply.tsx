@@ -124,9 +124,13 @@ function ProviderApplyRoute() {
     } else {
       await save.mutateAsync({ section: "review", payload: { confirmed: draft.agreed } });
       await submit.mutateAsync();
-      const existing = await supabase.from("availability_rules").select("id").eq("provider_id", provider.data!.id).limit(1);
-      if (existing.error) throw existing.error;
-      if (!existing.data.length) await replaceAvailability.mutateAsync({ providerId: provider.data!.id, rules: defaultWorkingHours() });
+      try {
+        const existing = await supabase.from("availability_rules").select("id").eq("provider_id", provider.data!.id).limit(1);
+        if (existing.error) throw existing.error;
+        if (!existing.data.length) await replaceAvailability.mutateAsync({ providerId: provider.data!.id, rules: defaultWorkingHours() });
+      } catch {
+        // Submission succeeded. The pending-home hours task remains available for setup.
+      }
       await navigate({ to: "/pro", replace: true });
     }
   };

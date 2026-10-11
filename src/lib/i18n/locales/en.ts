@@ -1,5 +1,14 @@
 const en = {
   providerSetup: {
+    "subjectsTitle": "What do you teach?",
+    "chooseSubjectFirst": "Choose a subject and curriculum first to see the grades",
+    "approvedPriceLocked": "Price and duration are fixed for approved grades",
+    "maxChildren": "Maximum children per booking",
+    "ages": "Ages",
+    "sameHours": "Same hours every day",
+    "approveAll": "Approve all",
+    "rejectAll": "Reject all",
+    "status": {"approved": "Approved", "pending": "In review", "rejected": "Rejected", "suspended": "Suspended"},
     "save": "Save",
     "decrease": "Decrease {{unit}}",
     "increase": "Increase {{unit}}",

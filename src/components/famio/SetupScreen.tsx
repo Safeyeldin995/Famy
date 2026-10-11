@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { StickyCta } from "./StickyCta";
 import "./providerApply.css";
@@ -28,10 +28,10 @@ export function SetupScreen({
 }) {
   const { t, i18n } = useTranslation();
   return (
-    <main className="apply-ui apply-screen" dir={i18n.dir()}>
+    <main className="apply-ui apply-screen apply-setup-screen" dir={i18n.dir()}>
       <header className="apply-header">
         <button type="button" className="apply-back" onClick={onBack} aria-label={t("common.back")}>
-          <ArrowRight size={20} />
+          <ArrowLeft size={20} />
         </button>
       </header>
       <div className="apply-content">
