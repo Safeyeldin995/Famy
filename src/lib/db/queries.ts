@@ -446,11 +446,11 @@ export function useAvailableSlots(
   providerId: string | undefined,
   date: Date | null,
   slotMinutes = 120,
-  opts?: { serviceId?: string | null; addressId?: string | null; cairoTime?: boolean; fixedStartTime?: string | null },
+  opts?: { serviceId?: string | null; addressId?: string | null; cairoTime?: boolean; fixedStartTime?: string | null; includeUnavailable?: boolean },
 ) {
   return useQuery({
     enabled: !!providerId && !!date,
-    queryKey: ['available-slots', providerId, date?.toDateString(), slotMinutes, opts?.serviceId ?? null, opts?.addressId ?? null, opts?.cairoTime ?? false, opts?.fixedStartTime ?? null],
+    queryKey: ['available-slots', providerId, date?.toDateString(), slotMinutes, opts?.serviceId ?? null, opts?.addressId ?? null, opts?.cairoTime ?? false, opts?.fixedStartTime ?? null, ...(opts?.includeUnavailable ? ['include-unavailable'] : [])],
     queryFn: async () => {
       const d = date!;
       const weekday = d.getDay();
@@ -505,7 +505,7 @@ export function useAvailableSlots(
 
       const rules = rulesRes.data ?? [];
       const booked = bookingsRes.data ?? [];
-      const slots: { label: string; start: Date; end: Date }[] = [];
+      const slots: { label: string; start: Date; end: Date; available?: boolean }[] = [];
 
       for (const rule of rules) {
         const alignedStart = packageRuleStart(rule.start_time, opts?.fixedStartTime);
@@ -530,11 +530,14 @@ export function useAvailableSlots(
             const xe = atTime(xeh, xem);
             return +cursor < +xe && +slotEnd > +xs;
           });
-          if (withinWindow && !overlapsBooking && !overlapsException) {
+          const available = withinWindow && !overlapsBooking && !overlapsException;
+          // Opt-in presentation only: the normal booking query still returns available slots only.
+          if (available || opts?.includeUnavailable) {
             slots.push({
               label: cursor.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', ...(opts?.cairoTime ? { timeZone: 'Africa/Cairo' } : {}) }),
               start: new Date(cursor),
               end: slotEnd,
+              ...(opts?.includeUnavailable ? { available } : {}),
             });
           }
           cursor = new Date(+cursor + slotMinutes * 60000);

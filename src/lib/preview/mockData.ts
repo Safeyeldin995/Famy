@@ -1,3 +1,4 @@
+import { seedCustomerBookingPreview } from "./customerBookingPreview";
 import { PREVIEW_NOW_ISO, PREVIEW_PROVIDER_ID, PREVIEW_USER_ID } from "@/lib/preview/constants";
 import {
   addressesQueryKey,
@@ -514,6 +515,7 @@ export function seedPreviewQueries(qc: import("@tanstack/react-query").QueryClie
       },
     ],
   );
+  seedCustomerBookingPreview(qc, p1);
 }
 
 const previewCustomer = {

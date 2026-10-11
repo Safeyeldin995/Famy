@@ -9,6 +9,7 @@ export function ServiceCard({
   children,
   onClick,
   disabled,
+  trailing,
 }: {
   selected: boolean;
   title: string;
@@ -17,6 +18,7 @@ export function ServiceCard({
   children?: ReactNode;
   onClick: () => void;
   disabled?: boolean;
+  trailing?: ReactNode;
 }) {
   return (
     <div className={`apply-service ${selected ? "on" : ""}`}>
@@ -32,9 +34,9 @@ export function ServiceCard({
           <b>{title}</b>
           <small>{subtitle}</small>
         </span>
-        <span className={`apply-checkbox ${selected ? "on" : ""}`}>
+        {trailing ?? <span className={`apply-checkbox ${selected ? "on" : ""}`}>
           {selected && <Check size={14} />}
-        </span>
+        </span>}
       </button>
       {selected && children}
     </div>
