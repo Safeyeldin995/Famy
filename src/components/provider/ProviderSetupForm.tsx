@@ -1,6 +1,7 @@
+import { WeeklyHoursEditor } from "./WeeklyHoursEditor";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Camera, Check } from "lucide-react";
+import { Camera } from "lucide-react";
 import { SetupScreen } from "@/components/famio/SetupScreen";
 import { NumberStepper } from "@/components/famio/NumberStepper";
 import { CheckChip } from "@/components/famio/CheckChip";
@@ -14,7 +15,6 @@ import {
 import {
   setupDateOfBirth,
   hasSharedWorkingHours,
-  setSharedWorkingHours,
   type SetupSnapshot,
   type WorkingRule,
 } from "@/lib/provider/setupHelpers";
@@ -52,7 +52,6 @@ const emptyReference: OnboardingReference = {
   phone: "",
   notes: "",
 };
-const dayKeys = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 const governorates = [
   "cairo",
   "giza",
@@ -413,97 +412,7 @@ export function ProviderSetupForm({
             />
           </>
         )}
-        {item === "hours" && (
-          <>
-            <label className="apply-agree">
-              <input
-                className="sr-only peer"
-                type="checkbox"
-                checked={sameHours}
-                onChange={(event) => {
-                  setSameHours(event.target.checked);
-                  if (event.target.checked)
-                    setHours((rows) =>
-                      setSharedWorkingHours(
-                        rows,
-                        rows[0]?.start_time ?? "09:00",
-                        rows[0]?.end_time ?? "17:00",
-                      ),
-                    );
-                }}
-              />
-              <span
-                aria-hidden="true"
-                className={`apply-checkbox peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-brand ${sameHours ? "on" : ""}`}
-              >
-                {sameHours && <Check size={14} />}
-              </span>
-              {t("providerSetup.sameHours")}
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {[6, 0, 1, 2, 3, 4, 5].map((weekday) => (
-                <CheckChip
-                  key={weekday}
-                  selected={hours.some((r) => r.weekday === weekday)}
-                  onClick={() =>
-                    setHours((rows) =>
-                      rows.some((r) => r.weekday === weekday)
-                        ? rows.filter((r) => r.weekday !== weekday)
-                        : [
-                            ...rows,
-                            {
-                              weekday,
-                              start_time: sameHours ? (rows[0]?.start_time ?? "09:00") : "09:00",
-                              end_time: sameHours ? (rows[0]?.end_time ?? "17:00") : "17:00",
-                            },
-                          ],
-                    )
-                  }
-                >
-                  {t(`pro.schedule.days.${dayKeys[weekday]}`)}
-                </CheckChip>
-              ))}
-            </div>
-            {(sameHours ? hours.slice(0, 1) : hours).map((row, index) => (
-              <div key={`${row.weekday}-${index}`} className="grid gap-2">
-                {!sameHours && (
-                  <p className="apply-label">{t(`pro.schedule.days.${dayKeys[row.weekday]}`)}</p>
-                )}
-                <div className="grid grid-cols-2 gap-3">
-                  {(["start_time", "end_time"] as const).map((key) => {
-                    const values = [
-                      ...new Set([
-                        ...Array.from(
-                          { length: key === "end_time" ? 25 : 24 },
-                          (_, h) => `${String(h).padStart(2, "0")}:00`,
-                        ),
-                        row[key],
-                      ]),
-                    ].sort();
-                    return (
-                      <BottomSheetSelect
-                        key={key}
-                        label={t(key === "start_time" ? "pro.schedule.start" : "pro.schedule.end")}
-                        value={row[key]}
-                        options={values.map((value) => ({
-                          value,
-                          label: value === "24:00" ? t("packages.endOfDay") : value,
-                        }))}
-                        onChange={(value) =>
-                          setHours((rows) =>
-                            rows.map((r, i) =>
-                              sameHours || i === index ? { ...r, [key]: value } : r,
-                            ),
-                          )
-                        }
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </>
-        )}
+        {item === "hours" && <WeeklyHoursEditor value={hours} onChange={setHours} sameHours={sameHours} onSameHoursChange={setSameHours} />}
       </fieldset>
     </SetupScreen>
   );

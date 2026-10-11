@@ -24,11 +24,8 @@ const provider = vi.hoisted(() => ({
   max_advance_days: 60,
 }));
 
-vi.mock("lucide-react", () => ({
-  Plane: () => null,
-  Trash2: () => null,
-  Plus: () => null,
-  Timer: () => null,
+vi.mock("@/components/famio/BottomSheetSelect", () => ({
+  BottomSheetSelect: ({ label, value, options, onChange }: { label: string; value: string; options: { value: string; label: string }[]; onChange: (value: string) => void }) => <label>{label}<select value={value} onChange={event => onChange(event.target.value)}>{options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>,
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -101,31 +98,24 @@ describe("provider weekly availability save error", () => {
   it("exposes active vacation mode with a 44px toggle", () => {
     provider.vacation_mode = true;
     const { container } = render(<AvailabilityPage />);
-    expect(container.querySelector("details")?.open).toBe(true);
+    expect(container.querySelector("details")?.open).toBe(false);
     const toggle = screen.getByRole("button", { name: i18n.t("pro.schedule.vacationMode") });
     expect(toggle.getAttribute("aria-pressed")).toBe("true");
-    expect(toggle.className).toContain("h-11");
-    expect(toggle.className).toContain("w-12");
-    expect(toggle.className).toContain("shrink-0");
+    expect(toggle.className).toContain("min-h-11");
   });
 
-  it("copies 24:00 only after Apply and saves only after the explicit Save button", () => {
+  it("shares 24:00 with enabled days only and saves only after explicit Save", () => {
     const { container } = render(<AvailabilityPage />);
     const dayName = (day: string) => i18n.t(`pro.schedule.days.${day}`);
-    const monday = screen.getByRole("button", { name: dayName("mon") });
-    expect(monday.className).toContain("min-h-11");
-    expect(monday.className).toContain("min-w-11");
-    expect(monday.className).toContain("shrink-0");
     expect(container.querySelector("details")?.open).toBe(false);
+    expect((screen.getByRole("checkbox", { name: i18n.t("providerSetup.sameHours") }) as HTMLInputElement).checked).toBe(true);
+    fireEvent.change(screen.getByLabelText(i18n.t("pro.schedule.start")), { target: { value: "18:00" } });
+    fireEvent.change(screen.getByLabelText(i18n.t("pro.schedule.end")), { target: { value: "24:00" } });
     fireEvent.click(screen.getByRole("button", { name: dayName("tue") }));
-    fireEvent.change(screen.getByLabelText(`${dayName("mon")}: ${i18n.t("pro.schedule.start")}`), { target: { value: "18:00" } });
-    fireEvent.click(screen.getAllByRole("checkbox", { name: i18n.t("packages.endOfDay") })[1]);
-    fireEvent.click(screen.getAllByRole("button", { name: i18n.t("pro.schedule.copyHours") })[0]);
-    expect((screen.getByRole("checkbox", { name: dayName("wed") }) as HTMLInputElement).disabled).toBe(true);
-    fireEvent.click(screen.getByRole("checkbox", { name: dayName("tue") }));
-    fireEvent.click(screen.getByRole("button", { name: i18n.t("pro.schedule.applyCopy") }));
     expect(saveState.mutate).not.toHaveBeenCalled();
-    expect((screen.getAllByRole("checkbox", { name: i18n.t("packages.endOfDay") })[2] as HTMLInputElement).checked).toBe(true);
+    expect(screen.getByRole("button", { name: dayName("wed") }).getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(screen.getByRole("checkbox", { name: i18n.t("providerSetup.sameHours") }));
+    expect(screen.getAllByLabelText(i18n.t("pro.schedule.end")).map(node => (node as HTMLSelectElement).value)).toEqual(["24:00", "24:00"]);
     fireEvent.click(screen.getByRole("button", { name: i18n.t("pro.schedule.saveSchedule") }));
     expect(saveState.mutate).toHaveBeenCalledWith({ providerId: "prov-1", rules: [
       { weekday: 1, start_time: "18:00", end_time: "24:00" },
@@ -136,7 +126,7 @@ describe("provider weekly availability save error", () => {
   it("shows the translated error, not Saved, and keeps unsaved form values", async () => {
     const { rerender } = render(<AvailabilityPage />);
 
-    const mondayStart = screen.getAllByDisplayValue("09:00")[1];
+    const mondayStart = screen.getByLabelText(i18n.t("pro.schedule.start"));
     fireEvent.change(mondayStart, { target: { value: "10:00" } });
     expect((screen.getAllByDisplayValue("10:00")[0] as HTMLInputElement).value).toBe("10:00");
 

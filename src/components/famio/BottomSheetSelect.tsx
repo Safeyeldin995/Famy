@@ -11,6 +11,7 @@ export function BottomSheetSelect({
   onChange,
   trigger,
   disabled,
+  nested = false,
 }: {
   label: string;
   value: string;
@@ -18,11 +19,13 @@ export function BottomSheetSelect({
   onChange: (value: string) => void;
   trigger?: ReactNode;
   disabled?: boolean;
+  nested?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const { t, i18n } = useTranslation();
+  const Root = nested ? Drawer.NestedRoot : Drawer.Root;
   return (
-    <Drawer.Root open={open} onOpenChange={setOpen}>
+    <Root open={open} onOpenChange={setOpen}>
       <Drawer.Trigger asChild>
         <button
           type="button"
@@ -84,6 +87,6 @@ export function BottomSheetSelect({
           </Command>
         </Drawer.Content>
       </Drawer.Portal>
-    </Drawer.Root>
+    </Root>
   );
 }
