@@ -38,7 +38,7 @@ function actorLabel(t: ReturnType<typeof useTranslation>["t"], viewer: Viewer, r
  * action the server would reject; the server (trg_messages_validate) is
  * still the actual authority.
  */
-export function BookingChatPanel({ bookingId, status, viewer }: { bookingId: string; status: string | undefined; viewer: Viewer }) {
+export function BookingChatPanel({ bookingId, status, viewer, compactUnavailable = false }: { bookingId: string; status: string | undefined; viewer: Viewer; compactUnavailable?: boolean }) {
   const { t } = useTranslation();
   const convQ = useConversationByBooking(bookingId);
   const conversationId = convQ.data ?? undefined;
@@ -81,6 +81,7 @@ export function BookingChatPanel({ bookingId, status, viewer }: { bookingId: str
 
   if (phase === "unavailable") {
     if (viewer === "admin") return null;
+    if (compactUnavailable) return <p className="text-pro-12 text-muted-foreground">{t("bookingChat.unavailableTitle", "Chat becomes available after confirmation")}</p>;
     return (
       <Card className="mt-4 p-5 text-center">
         <Lock className="mx-auto h-5 w-5 text-muted-foreground" />

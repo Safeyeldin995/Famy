@@ -51,6 +51,7 @@ export function PaymentBlock({
   pendingPaymentSelection,
   paymobReturn,
   autoStartPaymobCheckout,
+  embedded = false,
 }: {
   bookingId: string;
   viewer: ViewerRole;
@@ -64,7 +65,10 @@ export function PaymentBlock({
   paymobReturn?: boolean;
   /** After deferred payment recovery for online, jump straight to Paymob checkout. */
   autoStartPaymobCheckout?: boolean;
+  /** Embed the unchanged payment actions in a parent booking-total card. */
+  embedded?: boolean;
 }) {
+  const Container = embedded ? "div" : Card;
   const q = useBookingPayment(bookingId);
   const createPayment = useCreatePayment();
   const activeMethodsQ = useActivePaymentMethods();
@@ -150,19 +154,19 @@ export function PaymentBlock({
   }, [paymobReturn, viewer, isOnline, bookingId]);
 
   if (q.isLoading || (canRecoverDeferredPayment && !q.data)) {
-    return <Card className="h-24 animate-pulse p-4"><span /></Card>;
+    return <Container className="h-24 animate-pulse p-4"><span /></Container>;
   }
   const p = payment;
   if (!p) {
     return (
-      <Card className="p-4">
+      <Container className={embedded ? "" : "p-4"}>
         <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("payment.title")}</div>
         <div className="mt-1 text-sm text-muted-foreground">
           {pendingPaymentSelection
             ? t("bookFlow.paymentDeferred", "Your booking was created. Payment details will load on the booking page.")
             : t("payment.noneRecorded")}
         </div>
-      </Card>
+      </Container>
     );
   }
 
@@ -257,7 +261,7 @@ export function PaymentBlock({
   };
 
   return (
-    <Card className="space-y-3 p-4">
+    <Container className={embedded ? "space-y-2" : "space-y-3 p-4"}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="grid h-9 w-9 place-items-center rounded-full bg-brand/8 text-brand">
@@ -265,7 +269,7 @@ export function PaymentBlock({
           </div>
           <div>
             <div className="text-sm font-extrabold">{lang === "ar" ? nameAr : nameEn}</div>
-            <div className="text-pro-12 text-muted-foreground">{formatEGP(Number(p.amount ?? 0))}</div>
+            {!embedded && <div className="text-pro-12 text-muted-foreground">{formatEGP(Number(p.amount ?? 0))}</div>}
           </div>
         </div>
         <Badge tone={statusTone(p.status)}>{t(`payment.status.${p.status}`, String(p.status).replace("_", " "))}</Badge>
@@ -420,6 +424,6 @@ export function PaymentBlock({
           </div>
         </div>
       )}
-    </Card>
+    </Container>
   );
 }
