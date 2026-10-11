@@ -51,13 +51,15 @@ export function Avatar({
 export function PhoneFrame({
   children,
   bg = "bg-surface-2",
+  className = "",
 }: {
   children: ReactNode;
   bg?: string;
+  className?: string;
 }) {
   return (
     <div
-      className={`mx-auto flex min-h-dvh w-full min-w-0 max-w-md flex-col overflow-x-hidden ${bg}`}
+      className={`mx-auto flex min-h-dvh w-full min-w-0 max-w-md flex-col overflow-x-hidden ${bg} ${className}`}
     >
       {children}
     </div>
@@ -117,7 +119,7 @@ export function BottomNav() {
                       <Icon className="h-5 w-5" strokeWidth={active ? 2.5 : 1.75} />
                     </span>
                     <span
-                      className={`text-[10px] font-extrabold tracking-wide ${
+                      className={`text-pro-12 font-extrabold tracking-wide ${
                         active ? "text-brand" : "text-muted-foreground"
                       }`}
                     >
@@ -325,7 +327,7 @@ export function StatusPill({
   } as const;
   return (
     <span
-      className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1.5 text-[10px] font-black uppercase tracking-widest ${map[tone]}`}
+      className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1.5 text-pro-12 font-black uppercase tracking-widest ${map[tone]}`}
     >
       {children}
     </span>
@@ -439,7 +441,7 @@ export function Badge({
   } as const;
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${map[tone]}`}
+      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-pro-12 font-semibold ${map[tone]}`}
     >
       {children}
     </span>
@@ -472,7 +474,7 @@ export function TrustChip({
       : "bg-surface text-foreground border border-border";
   return (
     <span
-      className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${cls}`}
+      className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-pro-12 font-semibold ${cls}`}
     >
       {icon ?? <ShieldCheck className="h-3 w-3 text-success" />}
       {children}
@@ -944,7 +946,7 @@ export function SupportCasesCard({
   if (tickets.length === 0 && !dispute && !noShowReport) return null;
   return (
     <Card className="mt-4 space-y-3 p-4">
-      <div className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
+      <div className="text-pro-12 font-extrabold uppercase tracking-wider text-muted-foreground">
         {t("bookingDetail.yourCases")}
       </div>
       {tickets.map((tk) => (

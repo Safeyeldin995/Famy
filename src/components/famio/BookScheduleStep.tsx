@@ -66,7 +66,7 @@ function ScheduleSelect({
           {label}
         </span>
         {hint ? (
-          <span className="text-[11px] font-semibold text-muted-foreground">{hint}</span>
+          <span className="text-pro-12 font-semibold text-muted-foreground">{hint}</span>
         ) : null}
       </div>
       <div className="relative">

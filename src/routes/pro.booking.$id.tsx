@@ -154,7 +154,7 @@ export function ProBookingDetail({ id }: { id: string }) {
                   {lang === "ar" ? cancellationQ.data.reason_name_ar : cancellationQ.data.reason_name_en}
                 </p>
                 {cancellationQ.data.note && <p className="text-xs text-muted-foreground">{cancellationQ.data.note}</p>}
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-pro-12 text-muted-foreground">
                   {t("pro.booking.cancelledBy")}: {t(`pro.booking.cancelledByRole.${cancellationQ.data.cancelled_by_role}`)} · {formatDateTime(new Date(cancellationQ.data.cancelled_at), dateLoc)}
                 </p>
               </>
@@ -409,7 +409,7 @@ function Row({ icon, label, value }: { icon: React.ReactNode; label: string; val
     <div className="flex items-start gap-3">
       <div className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand">{icon}</div>
       <div className="min-w-0 flex-1">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
+        <div className="text-pro-12 font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
         <div className="text-sm font-semibold">{value}</div>
       </div>
     </div>

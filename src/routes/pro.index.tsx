@@ -75,14 +75,14 @@ function ProDashboard() {
             to={proPath("/pro/earnings") as "/pro/earnings"}
             className="focus-ring tap-scale rounded-[1rem] bg-brand p-4 text-brand-foreground"
           >
-            <div className="flex items-center gap-1.5 text-[11px] font-bold opacity-90">
+            <div className="flex items-center gap-1.5 text-pro-12 font-bold opacity-90">
               <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" />
               {mtdKind === "bookingValue" ? t("pro.dashboard.bookingValueMtd") : t("pro.dashboard.netMtd")}
             </div>
             {mtdKind === "mixed" ? (
               <>
                 <div className="mt-2 text-xl font-black leading-none">{formatEGP(mtdNet)}</div>
-                <div className="mt-1 text-[10px] font-bold opacity-80">
+                <div className="mt-1 text-pro-12 font-bold opacity-80">
                   {t("pro.dashboard.bookingValueMtd")}: {formatEGP(mtdBookingValue)}
                 </div>
               </>
@@ -93,14 +93,14 @@ function ProDashboard() {
             )}
           </Link>
           <div className="rounded-[1rem] border border-border/50 bg-surface-2/80 p-4">
-            <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground">
+            <div className="flex items-center gap-1.5 text-pro-12 font-bold text-muted-foreground">
               <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
               {t("pro.dashboard.trustScore")}
             </div>
             <div className="mt-2 text-xl font-black leading-none text-foreground">
               {trust ? Math.round(trust) : "—"}
             </div>
-            <div className="mt-1 flex items-center gap-1 text-[10px] font-bold text-muted-foreground">
+            <div className="mt-1 flex items-center gap-1 text-pro-12 font-bold text-muted-foreground">
               <Star className="h-3 w-3 fill-warning text-warning" aria-hidden="true" />
               {rating ? Number(rating).toFixed(2) : "—"}
             </div>
@@ -117,7 +117,7 @@ function ProDashboard() {
             action={
               <Link
                 to={proPath("/pro/availability") as "/pro/availability"}
-                className="shrink-0 rounded-full bg-brand px-3 py-2 text-[11px] font-extrabold text-brand-foreground"
+                className="shrink-0 rounded-full bg-brand px-3 py-2 text-pro-12 font-extrabold text-brand-foreground"
               >
                 {t("pro.dashboard.manage")}
               </Link>
@@ -145,7 +145,7 @@ function ProDashboard() {
             action={
               <Link
                 to={proPath("/pro/apply") as "/pro/apply"}
-                className="shrink-0 rounded-full bg-destructive px-3 py-2 text-[11px] font-extrabold text-destructive-foreground"
+                className="shrink-0 rounded-full bg-destructive px-3 py-2 text-pro-12 font-extrabold text-destructive-foreground"
               >
                 {t("pro.dashboard.manage")}
               </Link>
@@ -163,7 +163,7 @@ function ProDashboard() {
             action={
               <Link
                 to={proPath("/pro/apply") as "/pro/apply"}
-                className="shrink-0 rounded-full bg-warning px-3 py-2 text-[11px] font-extrabold text-warning-foreground"
+                className="shrink-0 rounded-full bg-warning px-3 py-2 text-pro-12 font-extrabold text-warning-foreground"
               >
                 {t("pro.dashboard.upload")}
               </Link>
@@ -309,7 +309,7 @@ function BookingRow({
             {formatDate(start, { weekday: "short", day: "numeric", month: "short" }, dateLoc)}
           </p>
           {cta ? (
-            <span className="mt-2 inline-flex rounded-full bg-brand/10 px-2.5 py-1 text-[10px] font-extrabold text-brand">
+            <span className="mt-2 inline-flex rounded-full bg-brand/10 px-2.5 py-1 text-pro-12 font-extrabold text-brand">
               {cta}
             </span>
           ) : null}

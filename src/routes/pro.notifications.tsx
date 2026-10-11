@@ -43,7 +43,7 @@ function NotificationsPage() {
             <button
               onClick={() => markAll.mutate()}
               disabled={markAll.isPending}
-              className="rounded-full bg-white/15 px-3 py-1.5 text-[11px] font-extrabold text-white disabled:opacity-50"
+              className="rounded-full bg-white/15 px-3 py-1.5 text-pro-12 font-extrabold text-white disabled:opacity-50"
             >
               {t("notifs.markAllRead")}
             </button>
@@ -72,7 +72,7 @@ function NotificationsPage() {
                           {!n.read_at && <span className="h-2 w-2 rounded-full bg-coral" />}
                         </div>
                         <div className="mt-0.5 text-xs text-muted-foreground">{body}</div>
-                        <div className="mt-1 text-[10px] text-muted-foreground">{formatNotificationDate(new Date(n.created_at))}</div>
+                        <div className="mt-1 text-pro-12 text-muted-foreground">{formatNotificationDate(new Date(n.created_at))}</div>
                       </div>
                     </div>
                   </button>

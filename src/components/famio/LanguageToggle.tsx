@@ -46,7 +46,7 @@ export function LanguageToggle({ variant = "pill" }: { variant?: "pill" | "inlin
       className="focus-ring grid h-11 w-11 place-items-center rounded-2xl bg-surface text-ink shadow-soft active:scale-95 transition-transform"
       title={switchLabel}
     >
-      <span className="text-[11px] font-extrabold leading-none">{lang === "ar" ? t("common.langShortEn") : t("common.langShortAr")}</span>
+      <span className="text-pro-12 font-extrabold leading-none">{lang === "ar" ? t("common.langShortEn") : t("common.langShortAr")}</span>
     </button>
   );
 }

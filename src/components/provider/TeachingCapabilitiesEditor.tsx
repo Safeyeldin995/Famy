@@ -306,7 +306,7 @@ export function TeachingCapabilitiesEditor({
           </select>
         </label>
         {curriculum?.code === "british" ? (
-          <p className="text-[11px] text-muted-foreground">{t("teaching.britishLevelHint")}</p>
+          <p className="text-pro-12 text-muted-foreground">{t("teaching.britishLevelHint")}</p>
         ) : null}
         <div className="text-xs font-semibold">{t("teaching.level")}</div>
         <TaxonomyNotice
@@ -388,7 +388,7 @@ export function TeachingCapabilitiesEditor({
             <li key={row.id} className="rounded-2xl border border-border/60 p-3">
               <div className="flex items-start justify-between gap-2">
                 <p className="text-xs font-bold leading-snug">{line}</p>
-                <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-extrabold uppercase">
+                <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-pro-12 font-extrabold uppercase">
                   {t(`teaching.status.${row.status}`)}
                 </span>
               </div>
@@ -396,7 +396,7 @@ export function TeachingCapabilitiesEditor({
                 <button
                   type="button"
                   onClick={() => startEdit(row)}
-                  className="text-[11px] font-bold text-brand"
+                  className="text-pro-12 font-bold text-brand"
                 >
                   {t("common.edit")}
                 </button>
@@ -410,7 +410,7 @@ export function TeachingCapabilitiesEditor({
                         ),
                     })
                   }
-                  className="text-[11px] font-bold text-coral"
+                  className="text-pro-12 font-bold text-coral"
                 >
                   {t("common.delete")}
                 </button>

@@ -285,7 +285,7 @@ function ProProfile() {
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
-              className="mt-1 block text-[11px] font-bold text-brand disabled:opacity-60"
+              className="mt-1 block text-pro-12 font-bold text-brand disabled:opacity-60"
             >
               {uploading ? t("pro.profile.uploading") : t("pro.profile.changePhoto")}
             </button>
@@ -349,7 +349,7 @@ function ProProfile() {
                   type="button"
                   onClick={() => setEligibilityExpanded((v) => !v)}
                   aria-expanded={eligibilityExpanded}
-                  className="flex w-full items-center justify-between rounded-xl border border-border/60 px-2 py-2 text-[11px] font-bold text-brand"
+                  className="flex w-full items-center justify-between rounded-xl border border-border/60 px-2 py-2 text-pro-12 font-bold text-brand"
                 >
                   {t("pro.profile.eligibilityByService")}
                   <ChevronDown
@@ -407,7 +407,7 @@ function ProProfile() {
 
         {/* About */}
         <div>
-          <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
+          <h2 className="mb-2 px-1 text-pro-12 font-extrabold uppercase tracking-wider text-muted-foreground">
             {t("pro.profile.about")}
           </h2>
           <Card className="apply-list space-y-3 p-4">
@@ -434,7 +434,7 @@ function ProProfile() {
 
         {/* Services */}
         <div>
-          <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
+          <h2 className="mb-2 px-1 text-pro-12 font-extrabold uppercase tracking-wider text-muted-foreground">
             {t("providerProfileV3.services")}
           </h2>
           {services.isError || mine.isError ? (
@@ -502,14 +502,14 @@ function ProProfile() {
                         </div>
                       )}
                     {priceError && (
-                      <p className="mt-1 text-[11px] font-semibold text-coral">{priceError}</p>
+                      <p className="mt-1 text-pro-12 font-semibold text-coral">{priceError}</p>
                     )}
                     {on && (
                       <button
                         onClick={() =>
                           setExpandedReqService(expandedReqService === s.id ? null : s.id)
                         }
-                        className="mt-2 text-[11px] font-bold text-brand"
+                        className="mt-2 text-pro-12 font-bold text-brand"
                       >
                         {expandedReqService === s.id
                           ? t("pro.profile.hideRequirements", "Hide requirements")
@@ -536,7 +536,7 @@ function ProProfile() {
 
         {/* Links */}
         <div>
-          <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
+          <h2 className="mb-2 px-1 text-pro-12 font-extrabold uppercase tracking-wider text-muted-foreground">
             {t("pro.profile.more")}
           </h2>
           <Card className="apply-list">
@@ -591,7 +591,7 @@ function RequirementsChecklist({
 
   if (requirements.length === 0)
     return (
-      <p className="mt-2 text-[11px] text-muted-foreground">
+      <p className="mt-2 text-pro-12 text-muted-foreground">
         {t("pro.profile.noRequirements", "No requirements for this service.")}
       </p>
     );
@@ -607,11 +607,11 @@ function RequirementsChecklist({
               <div className="min-w-0 text-xs">
                 <span className="font-semibold">{r.name_en}</span>
                 {r.required_for_provider_approval && (
-                  <span className="ms-1 text-[10px] text-coral">*</span>
+                  <span className="ms-1 text-pro-12 text-coral">*</span>
                 )}
               </div>
               <span
-                className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${REQ_STATUS_TONE[status]}`}
+                className={`shrink-0 rounded-full px-2 py-0.5 text-pro-12 font-bold uppercase ${REQ_STATUS_TONE[status]}`}
               >
                 {status}
               </span>
@@ -621,19 +621,19 @@ function RequirementsChecklist({
                 value={notesDraft[r.id] ?? mine?.notes ?? ""}
                 onChange={(e) => setNotesDraft((d) => ({ ...d, [r.id]: e.target.value }))}
                 placeholder={t("pro.profile.reqNotesPlaceholder", "Notes (optional)")}
-                className="h-8 min-w-0 flex-1 rounded-lg border border-border bg-surface px-2 text-[11px]"
+                className="h-8 min-w-0 flex-1 rounded-lg border border-border bg-surface px-2 text-pro-12"
               />
               <button
                 onClick={() =>
                   declare.mutate({ providerId, requirementId: r.id, notes: notesDraft[r.id] })
                 }
                 disabled={declare.isPending}
-                className="rounded-lg bg-brand px-2 py-1.5 text-[11px] font-bold text-brand-foreground disabled:opacity-50"
+                className="rounded-lg bg-brand px-2 py-1.5 text-pro-12 font-bold text-brand-foreground disabled:opacity-50"
               >
                 {t("common.save")}
               </button>
               {r.evidence_required && (
-                <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-[11px] font-semibold">
+                <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-pro-12 font-semibold">
                   <Upload className="h-3 w-3" />{" "}
                   {mine?.evidence_storage_path
                     ? t("pro.profile.reevidence", "Re-upload")
@@ -732,7 +732,7 @@ function EligibilityReasonItem({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <div className="mb-1 text-pro-12 font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </div>
       {children}

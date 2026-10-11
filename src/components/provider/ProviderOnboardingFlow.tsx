@@ -594,7 +594,7 @@ export function ProviderOnboardingFlow({ previewMode = false, initialSection }: 
   if (!previewMode && (!editable || (deferred && current === "review")) && status && status !== "DRAFT") {
     const submittedRefs = refsQ.data ?? [];
     return (
-      <PhoneFrame bg="bg-[#FEFAFC]">
+      <PhoneFrame className="pro-surface" bg="bg-[#FEFAFC]">
         <ProviderPageHero title={t("pro.onboardingWizard.title")} backTo="/pro" compact />
         <div className="space-y-4 px-5 pb-10" dir={lang === "ar" ? "rtl" : "ltr"}>
           <ProviderFloatingPanel>
@@ -651,7 +651,7 @@ export function ProviderOnboardingFlow({ previewMode = false, initialSection }: 
     "h-12 w-full rounded-2xl border border-border/60 bg-surface px-4 text-sm font-medium text-foreground placeholder:text-muted-foreground/70";
 
   return (
-    <PhoneFrame bg="bg-[#FEFAFC]">
+    <PhoneFrame className="pro-surface" bg="bg-[#FEFAFC]">
       <ProviderPageHero
         title={t("pro.onboardingWizard.title")}
         subtitle={t(`pro.onboardingWizard.steps.${current}`)}
@@ -661,7 +661,7 @@ export function ProviderOnboardingFlow({ previewMode = false, initialSection }: 
 
       <div className="px-5" dir={lang === "ar" ? "rtl" : "ltr"}>
         <ProviderFloatingPanel className="!p-3">
-          <div className="mb-2 flex items-center justify-between text-[11px] font-bold text-muted-foreground">
+          <div className="mb-2 flex items-center justify-between text-pro-12 font-bold text-muted-foreground">
             <span>
               {t("pro.onboardingWizard.progress", "Step {{current}} of {{total}}", {
                 current: step + 1,
@@ -687,7 +687,7 @@ export function ProviderOnboardingFlow({ previewMode = false, initialSection }: 
                   type="button"
                   disabled={deferred && !["personal", "experience", "references", "services"].includes(s)}
                   onClick={() => setStep(idx)}
-                  className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-extrabold transition-colors ${
+                  className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-pro-12 font-extrabold transition-colors ${
                     active
                       ? "bg-brand text-brand-foreground"
                       : done
@@ -721,7 +721,7 @@ export function ProviderOnboardingFlow({ previewMode = false, initialSection }: 
               <span className="text-sm font-bold text-brand">
                 {t("pro.onboardingWizard.uploadPhoto")}
               </span>
-              <span className="text-[11px] font-medium text-muted-foreground">
+              <span className="text-pro-12 font-medium text-muted-foreground">
                 {t("pro.onboardingWizard.photoHint")}
               </span>
               <input
@@ -1065,7 +1065,7 @@ export function ProviderOnboardingFlow({ previewMode = false, initialSection }: 
             {singleActiveZone ? (
               <div className="rounded-2xl border border-brand/30 bg-brand/[0.06] px-3 py-3 text-sm font-bold break-words">
                 {lang === "ar" ? singleActiveZone.name_ar : singleActiveZone.name_en}
-                <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
+                <p className="mt-1 text-pro-12 font-semibold text-muted-foreground">
                   {t("pro.onboardingWizard.singleZoneConfirmed")}
                 </p>
               </div>
@@ -1121,7 +1121,7 @@ export function ProviderOnboardingFlow({ previewMode = false, initialSection }: 
                     {t("pro.onboardingWizard.reference", { n: idx + 1 })}
                   </div>
                   {idx === 1 ? (
-                    <span className="text-[11px] font-semibold text-muted-foreground">
+                    <span className="text-pro-12 font-semibold text-muted-foreground">
                       {t("pro.onboardingWizard.referenceOptional")}
                     </span>
                   ) : null}
@@ -1298,7 +1298,7 @@ export function ProviderOnboardingFlow({ previewMode = false, initialSection }: 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <div className="mb-1.5 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
+      <div className="mb-1.5 text-pro-12 font-extrabold uppercase tracking-wider text-muted-foreground">
         {label}
       </div>
       {children}

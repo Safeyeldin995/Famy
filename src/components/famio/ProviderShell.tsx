@@ -9,7 +9,7 @@ import { normalizeProPathname, proPath } from "@/lib/preview/previewPath";
 export function ProviderShell({ children, hideNav = false }: { children: ReactNode; hideNav?: boolean }) {
   return (
     <PhoneFrame bg="bg-[#FEFAFC]">
-      <main className={`min-w-0 flex-1 overflow-x-hidden ${hideNav ? "" : "pb-[5.5rem]"}`}>{children}</main>
+      <main className={`pro-surface min-w-0 flex-1 overflow-x-hidden ${hideNav ? "" : "pb-[5.5rem]"}`}>{children}</main>
       {!hideNav && <ProviderBottomNav />}
     </PhoneFrame>
   );
@@ -29,7 +29,7 @@ export function ProviderBottomNav() {
   const navPath = normalizeProPathname(pathname);
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40" aria-label={t("pro.nav.navAria")}>
+    <nav className="pro-surface fixed inset-x-0 bottom-0 z-40" aria-label={t("pro.nav.navAria")}>
       <div className="mx-auto max-w-md">
         <div className="safe-bottom border-t border-border/50 bg-surface/95 backdrop-blur-md">
           <ul className="grid grid-cols-5">
@@ -50,7 +50,7 @@ export function ProviderBottomNav() {
                       aria-hidden="true"
                     />
                     <span
-                      className={`max-w-full truncate text-[10px] font-bold ${active ? "text-brand" : "text-muted-foreground"}`}
+                      className={`max-w-full truncate text-pro-12 font-bold ${active ? "text-brand" : "text-muted-foreground"}`}
                     >
                       {t(tab.labelKey)}
                     </span>

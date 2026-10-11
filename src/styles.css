@@ -5,6 +5,17 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --text-pro-12: 12px;
+  --text-pro-13: 13px;
+  --text-pro-14: 14px;
+  --text-pro-16: 16px;
+  --text-pro-18: 18px;
+  --text-pro-22: 22px;
+  --text-pro-24: 24px;
+  --text-pro-32: 32px;
+  --font-weight-pro-regular: 400;
+  --font-weight-pro-bold: 700;
+  --font-weight-pro-heavy: 800;
   --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
   --font-arabic: "Almarai", ui-sans-serif, system-ui, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
@@ -55,6 +66,21 @@
   --shadow-card: 0 10px 32px -12px oklch(0.1 0.05 272 / 0.22);
   --shadow-float: 0 18px 44px -16px oklch(0.1 0.06 272 / 0.28);
   --shadow-inset: inset 0 1px 0 oklch(1 0 0 / 0.65);
+}
+
+/* Pro controls retain their visual content size inside a 44px hit area. */
+.pro-surface :is(button, a, select, input:not([type="hidden"])) {
+  min-height: 44px;
+}
+.pro-surface a:not([class*="flex"]):not([class*="grid"]):not([class*="block"]) {
+  display: inline-flex;
+  align-items: center;
+}
+.pro-surface label:has(input[type="checkbox"], input[type="radio"]) {
+  min-height: 44px;
+}
+.pro-surface .text-overline {
+  font-size: var(--text-pro-12);
 }
 
 :root {

@@ -166,7 +166,7 @@ export function ProviderWeekAvailability({
                   {t("providerProfile.todayLabel")}
                 </span>
               ) : null}
-              <span className="mt-1 text-[10px] font-extrabold uppercase leading-none">
+              <span className="mt-1 text-pro-12 font-extrabold uppercase leading-none">
                 {dayLabel}
               </span>
               <span className="mt-1 text-lg font-black leading-none">
@@ -215,7 +215,7 @@ export function ProviderWeekAvailability({
                 {t("providerProfile.closedDay")}
               </p>
             )}
-            <p className="mt-2 text-[11px] font-semibold leading-relaxed text-muted-foreground">
+            <p className="mt-2 text-pro-12 font-semibold leading-relaxed text-muted-foreground">
               {t("providerProfile.availabilityHint")}
             </p>
           </div>
@@ -248,7 +248,7 @@ export function ProviderWeekAvailability({
                 {formatDate(day.date, { weekday: "short", day: "numeric" }, locale)}
                 {isToday ? (
                   <span
-                    className={`ms-2 text-[10px] font-bold uppercase ${
+                    className={`ms-2 text-pro-12 font-bold uppercase ${
                       open ? "text-success" : "text-destructive"
                     }`}
                   >
