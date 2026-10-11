@@ -1,9 +1,10 @@
+import { notificationRowNavigation } from "@/lib/provider/workScreenPresentation";
 import { formatNotificationDate } from "@/lib/format";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ProviderShell } from "@/components/famio/ProviderShell";
 import { PageHeader } from "@/components/famio/PageHeader";
-import { Card, EmptyState } from "@/components/famio/ui";
+import { EmptyState } from "@/components/famio/ui";
 import { useMarkNotificationRead, useMarkAllNotificationsRead } from "@/lib/db/queries";
 import { useProNotifications } from "@/lib/db/provider-queries";
 import { useLang } from "@/components/famio/LanguageToggle";
@@ -28,8 +29,9 @@ function NotificationsPage() {
   const hasUnread = items.some((n: any) => !n.read_at);
 
   const openNotification = (n: any) => {
-    if (!n.read_at) mark.mutate(n.id);
-    if (n.deep_link) nav({ to: proPath(n.deep_link) as any });
+    const action = notificationRowNavigation(n, proPath);
+    if (action.markReadId) mark.mutate(action.markReadId);
+    if (action.to) nav({ to: action.to as any });
   };
 
   return (
@@ -42,7 +44,7 @@ function NotificationsPage() {
             <button
               onClick={() => markAll.mutate()}
               disabled={markAll.isPending}
-              className="rounded-full bg-brand/10 px-3 py-1.5 text-pro-12 font-extrabold text-brand disabled:opacity-50"
+              className="min-h-11 px-2 py-2 text-pro-12 font-extrabold text-brand disabled:opacity-50"
             >
               {t("notifs.markAllRead")}
             </button>
@@ -57,12 +59,11 @@ function NotificationsPage() {
         ) : items.length === 0 ? (
           <EmptyState icon="bell" title={t("notifs.empty")} body={t("notifs.emptyBody")} />
         ) : (
-          <div className="space-y-2">
+          <div className="divide-y divide-border/50 rounded-2xl bg-surface">
             {items.map((n: any) => {
               const { title, body } = notifText(n, lang);
               return (
-                <Card key={n.id} className={`rounded-[1.25rem] p-4 ${n.read_at ? "opacity-70" : ""}`}>
-                  <button onClick={() => openNotification(n)} className="block w-full text-left">
+                <button key={n.id} onClick={() => openNotification(n)} className={`focus-ring block min-h-11 w-full p-4 text-start ${n.read_at ? "opacity-70" : ""}`}>
                     <div className="flex items-start gap-3">
                       <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand"><Bell className="h-5 w-5" /></div>
                       <div className="min-w-0 flex-1">
@@ -70,12 +71,11 @@ function NotificationsPage() {
                           <div className="truncate text-sm font-bold">{title}</div>
                           {!n.read_at && <span className="h-2 w-2 rounded-full bg-coral" />}
                         </div>
-                        <div className="mt-0.5 text-xs text-muted-foreground">{body}</div>
+                        <div className="mt-1 line-clamp-2 text-pro-13 text-muted-foreground">{body}</div>
                         <div className="mt-1 text-pro-12 text-muted-foreground">{formatNotificationDate(new Date(n.created_at))}</div>
                       </div>
                     </div>
-                  </button>
-                </Card>
+                </button>
               );
             })}
           </div>
