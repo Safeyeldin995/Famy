@@ -1,3 +1,5 @@
+import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
+import { applyServiceSubtitle } from "@/lib/provider/applyServiceSubtitle";
 import { buildBookingRequest, buildBookingQuote } from "@/lib/booking/bookingRequest";
 import { paymentPresentation } from "@/lib/booking/paymentPresentation";
 import { bookingDisabledReason } from "@/lib/booking/disabledReason";
@@ -167,7 +169,6 @@ export function BookContent({
   const [editingReview, setEditingReview] = useState(false);
   const [detailsSheet, setDetailsSheet] = useState<"address" | "member" | null>(null);
   const [inlineError, setInlineError] = useState<{ screen: BookingScreen; message: string } | null>(null);
-  const [avatarFailed, setAvatarFailed] = useState(false);
   const [scanningSchedule, setScanningSchedule] = useState(false);
   const [bookingEducation, setBookingEducation] = useState<EducationProfileValue>(
     educationValueFromIds(null, null),
@@ -747,7 +748,7 @@ export function BookContent({
           {inlineError?.screen === stepKey && <p role="alert" className="booking-error">{inlineError.message}</p>}
           {stepKey === "service" && <>
             <div className="booking-provider">
-              <span className="booking-provider-avatar">{p.avatar && !avatarFailed ? <img src={p.avatar} alt={p.name} onError={() => setAvatarFailed(true)} /> : p.name[0]}</span>
+              <ProfileAvatar src={p.avatar} name={p.name} />
               <span className="booking-provider-text"><b>{p.name}</b><small><Star size={13} className="inline text-warning" /> {formatNumber(p.rating)} · {t("customerBooking.jobs", { count: p.jobs })} · {p.areas.join(" · ")}</small></span>
             </div>
             {services.length === 0 ? <div><p>{t("bookFlow.noServices")}</p>{otherProviders}</div> : services.map((s: any) => {
@@ -755,11 +756,11 @@ export function BookContent({
               const fixed = isFixedPackage(s.service);
               const teaching = isTutoringCategorySlug(s.service.category?.slug);
               const label = (lang === "ar" ? s.service.name_ar : s.service.name_en) || s.service.name_en;
-              const subtitle = fixed ? t(packageLabel(s.service).key, packageLabel(s.service).values) : teaching ? t("pricePicker.sessionUnit") : `${formatEGP(Number(s.price_override ?? p.hourlyRate))} ${t("pricePicker.hourUnit")}`;
-              return <ServiceCard key={s.service.id} selected={active} title={label} subtitle={subtitle} icon={fixed ? (s.service.fixed_start_time ? <Clock size={22} /> : <Sun size={22} />) : teaching ? <BookOpen size={22} /> : <UserRound size={22} />}
+              const subtitle = fixed ? applyServiceSubtitle(s.service, t) : teaching ? t("pricePicker.sessionUnit") : `${formatNumber(Number(s.price_override ?? p.hourlyRate))} ${t("pricePicker.hourUnit")}`;
+              return <ServiceCard key={s.service.id} selected={active} title={label} subtitle={subtitle} trailing={fixed && s.price_override != null ? <b className="booking-package-price">{formatEGP(Number(s.price_override))}</b> : undefined} icon={fixed ? (s.service.fixed_start_time ? <Clock size={22} /> : <Sun size={22} />) : teaching ? <BookOpen size={22} /> : <UserRound size={22} />}
                 onClick={() => { setServiceId(s.service.id); setCapabilityId(null); clearSlot(); }}>
-                {!teaching && !fixed && <NumberStepper value={parseInt(duration)} min={2} max={8} step={2} unitLabel={t("customerBooking.hours")} onChange={(hours) => { setDuration(`${hours}h`); clearSlot(); }} />}
-                {fixed && <b className="text-sm">{formatEGP(active ? subtotal : Number(s.price_override ?? p.hourlyRate))} · {t("packages.fixedPrice")}</b>}
+                {!teaching && !fixed && <NumberStepper value={parseInt(duration)} min={2} max={8} step={2} unitLabel={t("customerBooking.hours")} hint={t("customerBooking.hoursRange", { min: 2, max: 8 })} onChange={(hours) => { setDuration(`${hours}h`); clearSlot(); }} />}
+                {fixed && s.price_override == null && <b className="text-sm">{formatEGP(active ? subtotal : Number(s.price_override ?? p.hourlyRate))} · {t("packages.fixedPrice")}</b>}
               </ServiceCard>;
             })}
             {isTutoring && <>
@@ -781,7 +782,7 @@ export function BookContent({
                   const active = group === selectedGroup;
                   const chosen = active ? selectedCapability ?? cap : cap;
                   const title = [lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn, lang === "ar" ? cap.curriculumNameAr : cap.curriculumNameEn, lang === "ar" ? cap.levelNameAr : cap.levelNameEn].join(" · ");
-                  return <ServiceCard key={group.key} selected={active} title={title} subtitle={`${formatEGP(chosen.price)} ${t("pricePicker.sessionUnit")}`} icon={<BookOpen size={22} />}
+                  return <ServiceCard key={group.key} selected={active} title={title} subtitle={`${formatNumber(chosen.price)} ${t("pricePicker.sessionUnit")}`} icon={<BookOpen size={22} />}
                     onClick={() => { userPickedCapabilityRef.current = true; setCapabilityId(cap.id); setBookingEducation(educationValueFromIds(cap.curriculumId, cap.levelId)); clearSlot(); }} />;
                 })}
                 {selectedGroup && <div><span className="apply-label">{t("customerBooking.sessionDuration")}</span><div className="apply-chips">{selectedGroup.capabilities.map(cap => <CheckChip key={cap.id} selected={cap.id === selectedCapability?.id} onClick={() => { userPickedCapabilityRef.current = true; setCapabilityId(cap.id); clearSlot(); }}>{t("bookFlow.sessionLine", { minutes: formatNumber(cap.durationMin) })}</CheckChip>)}</div></div>}

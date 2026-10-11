@@ -2,6 +2,7 @@ import type { Translation } from "./en";
 
 const ar: Translation = {
   customerBooking: {
+    "hoursRange": "من {{min}} لحد {{max}}",
     "step": "{{step}} من {{total}}",
     "titles": {
         "service": "عايز ايه من {{name}}؟",

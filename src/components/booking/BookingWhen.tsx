@@ -59,6 +59,17 @@ function DatePill({ day, index, ...props }: Props & { day: Date; index: number }
 
 export function BookingWhen(props: Props) {
   const { t } = useTranslation();
+  const candidates = useAvailableSlots(props.providerId, props.date, props.durationMinutes, {
+    serviceId: props.serviceId,
+    addressId: props.addressId,
+    cairoTime: props.cairoTime,
+    fixedStartTime: props.service.fixed_start_time,
+    includeUnavailable: true,
+  });
+  const displaySlots = candidates.isSuccess
+    ? filterFixedStartSlots(candidates.data ?? [], props.service)
+    : props.slots;
+
   const days = useMemo(
     () =>
       Array.from({ length: 14 }, (_, index) => {
@@ -107,15 +118,23 @@ export function BookingWhen(props: Props) {
             {t("bookingUx.changeDate")}
           </button>
         </div>
-      ) : (
+      ) : null}
+      {!props.loading && !props.error && displaySlots.length > 0 && (
         <div className="booking-times">
-          {props.slots.map((slot) => (
+          {displaySlots.map((slot) => (
             <button
               type="button"
               key={slot.start.toISOString()}
+              disabled={
+                ("available" in slot && slot.available === false) ||
+                !props.slots.some((available) => +available.start === +slot.start)
+              }
               aria-pressed={props.time === slot.label}
               className={`booking-time ${props.time === slot.label ? "on" : ""}`}
-              onClick={() => props.onTimeChange(slot)}
+              onClick={() => {
+                const available = props.slots.find((item) => +item.start === +slot.start);
+                if (available) props.onTimeChange(available);
+              }}
             >
               {formatTime(slot.start)}
             </button>

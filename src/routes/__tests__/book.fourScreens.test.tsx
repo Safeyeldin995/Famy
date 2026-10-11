@@ -102,6 +102,7 @@ vi.mock("@/lib/db/queries", () => ({
       hourly_rate: 250,
       ratings: { rating_avg: 4.9, rating_count: 38 },
     }),
+  useAvatarUrl: () => query(null),
   useProviderServices: () => query(services),
   useFixedPackageRate: () => query(null),
   useAddresses: () =>
@@ -124,13 +125,13 @@ vi.mock("@/lib/db/queries", () => ({
     _providerId: string,
     day: Date | null,
     minutes: number,
-    opts: { cairoTime: boolean; fixedStartTime: string | null },
+    opts: { cairoTime: boolean; fixedStartTime: string | null; includeUnavailable?: boolean },
   ) => {
     const date = day ?? new Date();
     const start = opts.cairoTime
       ? cairoWallTime(date, opts.fixedStartTime ?? "09:00")
       : new Date(date.getFullYear(), date.getMonth(), date.getDate(), 9);
-    const key = `${start.toISOString()}:${minutes}`;
+    const key = `${start.toISOString()}:${minutes}:${!!opts.includeUnavailable}`;
     if (!slotCache.has(key))
       slotCache.set(key, [
         {
@@ -139,6 +140,15 @@ vi.mock("@/lib/db/queries", () => ({
           end: new Date(+start + minutes * 60000),
         },
       ]);
+    if (opts.includeUnavailable && slotCache.get(key)?.length === 1) {
+      slotCache
+        .get(key)
+        ?.push({
+          label: "Unavailable",
+          start: new Date(+start + 3600000),
+          end: new Date(+start + (minutes + 60) * 60000),
+        });
+    }
     return query(slotCache.get(key));
   },
   useCreateBooking: () => ({ mutateAsync: state.create, isPending: false }),
@@ -343,6 +353,18 @@ describe("four-screen booking journey", () => {
       teaching_level_code: "grade-1",
       family_member_id: "child-fixture",
     });
+  });
+  it("disables unavailable time candidates and keeps them out of selection", async () => {
+    render(<BookContent providerId="p1" />);
+    fireEvent.click(next());
+    await waitFor(() => expect(title("when")).toBeTruthy());
+    const blocked = document.querySelector<HTMLButtonElement>(".booking-time:disabled");
+    expect(blocked).not.toBeNull();
+    if (!blocked) throw new Error("Expected unavailable chip");
+    fireEvent.click(blocked);
+    expect((next() as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".booking-time:not(:disabled)")!);
+    expect((next() as HTMLButtonElement).disabled).toBe(false);
   });
   it("shows slot-taken errors inline on When and keeps the other choices", async () => {
     await toReview();

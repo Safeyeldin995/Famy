@@ -152,6 +152,36 @@ export function seedCustomerBookingPreview(qc: QueryClient, provider: Record<str
             ],
             slots,
           );
+          const blockedStart = fixed
+            ? cairoWallTime(day, "12:00")
+            : new Date(day.getFullYear(), day.getMonth(), day.getDate(), 12);
+          const blocked = {
+            label: blockedStart.toLocaleTimeString([], {
+              hour: "numeric",
+              minute: "2-digit",
+              ...(fixed ? { timeZone: "Africa/Cairo" } : {}),
+            }),
+            start: blockedStart,
+            end: new Date(+blockedStart + minutes * 60000),
+            available: false,
+          };
+          qc.setQueryData(
+            [
+              "available-slots",
+              "p1",
+              day.toDateString(),
+              minutes,
+              service.id,
+              addressId,
+              fixed,
+              service.fixed_start_time,
+              "include-unavailable",
+            ],
+            [
+              ...slots.map((slot) => ({ ...slot, available: true })),
+              ...(service.fixed_start_time || index === 3 ? [] : [blocked]),
+            ].sort((a, b) => +a.start - +b.start),
+          );
         }
       }
     }

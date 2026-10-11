@@ -18,23 +18,15 @@
   border-radius: 18px;
   background: var(--surface-2);
 }
-.booking-provider-avatar {
+.booking-provider .apply-profile-avatar {
   width: 48px;
   height: 48px;
-  border-radius: 50%;
-  background: var(--apply-brand-tint);
-  color: var(--brand);
-  display: grid;
-  place-items: center;
   font-size: 18px;
-  font-weight: 800;
-  flex-shrink: 0;
-  overflow: hidden;
 }
-.booking-provider-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.booking-package-price {
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
 }
 .booking-provider-text {
   flex: 1;

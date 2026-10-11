@@ -1,5 +1,6 @@
 const en = {
   customerBooking: {
+    "hoursRange": "From {{min}} to {{max}}",
     "step": "{{step}} of {{total}}",
     "titles": {
         "service": "What would you like from {{name}}?",
