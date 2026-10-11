@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Smartphone, Trash2 } from "lucide-react";
+import { QueryError } from "@/components/famio/QueryError";
 import { Card } from "@/components/famio/ui";
 import {
   useNotificationPreferences,
@@ -17,6 +18,7 @@ import { getPushAvailability, subscribeToPush, unsubscribeFromPush, type PushAva
 type ToggleKey = Extract<keyof NotificationPreferences, `${string}_push`>;
 
 function Toggle({ on, onClick, disabled, label }: { on: boolean; onClick: () => void; disabled?: boolean; label: string }) {
+  const { t } = useTranslation();
   return (
     <button
       type="button"
@@ -24,8 +26,9 @@ function Toggle({ on, onClick, disabled, label }: { on: boolean; onClick: () => 
       disabled={disabled}
       aria-pressed={on}
       aria-label={label}
-      className="relative flex h-11 w-12 shrink-0 items-center disabled:opacity-50"
+      className="relative flex min-h-11 shrink-0 items-center gap-2 disabled:opacity-50"
     >
+      <span className={`text-pro-12 font-bold ${on ? "text-brand" : "text-muted-foreground"}`}>{t(on ? "providerNotificationPolish.on" : "providerNotificationPolish.off")}</span>
       <span className={`relative h-7 w-12 rounded-full transition-colors ${on ? "bg-brand" : "bg-muted"}`}>
         <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-soft transition-all ${on ? "start-[22px]" : "start-0.5"}`} />
       </span>
@@ -105,7 +108,7 @@ export function NotificationPreferencesPanel() {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="mb-2 px-1 text-pro-12 font-extrabold uppercase tracking-wider text-muted-foreground">{t("notifPrefs.pushSection")}</h2>
+        <h2 className="mb-2 px-1 text-pro-13 font-bold text-muted-foreground">{t("notifPrefs.pushSection")}</h2>
         <Card className="p-4">
           {availability === "unconfigured" || availability === "unsupported" ? (
             <p className="text-xs text-muted-foreground">
@@ -119,18 +122,18 @@ export function NotificationPreferencesPanel() {
               <button
                 onClick={handleDisablePush}
                 disabled={enabling}
-                className="shrink-0 rounded-lg border border-brand px-3 py-1.5 text-xs font-bold text-brand disabled:opacity-50"
+                className="min-h-11 shrink-0 rounded-lg border border-brand px-3 py-1.5 text-xs font-bold text-brand disabled:opacity-50"
               >
                 {t("notifPrefs.disable")}
               </button>
             </div>
           ) : (
             <div className="flex items-center justify-between gap-3">
-              <p className="text-xs text-muted-foreground">{t("notifPrefs.pushOffDescription")}</p>
+              <p className="text-xs text-muted-foreground">{t("providerNotificationPolish.enable")}</p>
               <button
                 onClick={handleEnablePush}
                 disabled={enabling}
-                className="shrink-0 rounded-lg bg-brand px-3.5 py-1.5 text-xs font-extrabold text-brand-foreground disabled:opacity-50"
+                className="min-h-11 shrink-0 rounded-lg bg-brand px-3.5 py-1.5 text-xs font-extrabold text-brand-foreground disabled:opacity-50"
               >
                 {enabling ? t("notifPrefs.enabling") : t("notifPrefs.enable")}
               </button>
@@ -141,7 +144,7 @@ export function NotificationPreferencesPanel() {
 
       {(devicesQ.data ?? []).length > 0 && (
         <div>
-          <h2 className="mb-2 px-1 text-pro-12 font-extrabold uppercase tracking-wider text-muted-foreground">{t("notifPrefs.devices")}</h2>
+          <h2 className="mb-2 px-1 text-pro-13 font-bold text-muted-foreground">{t("notifPrefs.devices")}</h2>
           <Card className="divide-y divide-border">
             {devicesQ.data!.map((d: any) => (
               <div key={d.id} className="flex items-center justify-between gap-3 px-4 py-3">
@@ -153,7 +156,7 @@ export function NotificationPreferencesPanel() {
                   onClick={() => revokeById.mutate(d.id, { onError: (e: any) => toast.error(e?.message ?? t("notifPrefs.saveFailed")) })}
                   disabled={revokeById.isPending}
                   aria-label={t("notifPrefs.removeDevice")}
-                  className="shrink-0 text-muted-foreground disabled:opacity-50"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center text-muted-foreground disabled:opacity-50"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -164,19 +167,21 @@ export function NotificationPreferencesPanel() {
       )}
 
       <div>
-        <h2 className="mb-2 px-1 text-pro-12 font-extrabold uppercase tracking-wider text-muted-foreground">{t("notifPrefs.categories")}</h2>
+        <h2 className="mb-2 px-1 text-pro-13 font-bold text-muted-foreground">{t("notifPrefs.categories")}</h2>
         {prefsQ.isLoading ? (
           <div className="h-32 animate-pulse rounded-3xl bg-surface-2" />
+        ) : prefsQ.isError ? (
+          <QueryError compact onRetry={() => { void prefsQ.refetch(); }} />
         ) : (
           <Card className="divide-y divide-border">
             {categories.map((c) => (
               <Row key={c.key} label={c.label} sub={c.sub}>
-                <Toggle label={c.label} on={!!prefs?.[c.key]} onClick={() => toggle(c.key)} disabled={updatePrefs.isPending} />
+                <Toggle label={c.label} on={!!prefs?.[c.key]} onClick={() => toggle(c.key)} disabled={updatePrefs.isPending || !prefs} />
               </Row>
             ))}
           </Card>
         )}
-        <p className="mt-2 px-1 text-pro-12 text-muted-foreground">{t("notifPrefs.inAppAlwaysOn")}</p>
+        <p className="mt-2 px-1 text-pro-12 text-muted-foreground">{t("providerNotificationPolish.footer")}</p>
       </div>
     </div>
   );

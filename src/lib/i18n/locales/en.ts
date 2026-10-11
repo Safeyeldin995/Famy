@@ -1,4 +1,10 @@
 const en = {
+  providerNotificationPolish: {
+    "on": "On",
+    "off": "Off",
+    "enable": "Turn on notifications on your phone",
+    "footer": "In-app notifications stay available."
+},
   providerDocuments: {
     "title": "Documents and verification",
     "readOnly": "Your documents are with Famy. Uploads are available only when your application is editable.",

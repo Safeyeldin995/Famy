@@ -1,6 +1,12 @@
 import type { Translation } from "./en";
 
 const ar: Translation = {
+  providerNotificationPolish: {
+    "on": "شغال",
+    "off": "مقفول",
+    "enable": "فعل الإشعارات على موبايلك",
+    "footer": "إشعاراتك جوه التطبيق هتفضل موجودة."
+},
   providerDocuments: {
     "title": "المستندات والتوثيق",
     "readOnly": "مستنداتك مع فريق فامي. تقدر ترفع نسخة جديدة لما طلبك يكون متاح للتعديل.",
