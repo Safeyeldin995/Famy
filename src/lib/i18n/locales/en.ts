@@ -1,4 +1,40 @@
 const en = {
+  providerChanges: {
+    "title": "The Famy team needs a change",
+    "reasonFallback": "Review your details and requested changes, then send your application again.",
+    "basics": "Name and service areas",
+    "services": "Services and prices",
+    "identity": "ID photos",
+    "resubmit": "Send my application again",
+    "fixRow": "Review this section and complete the missing details",
+    "editRow": "Open and edit your details",
+    "previewReason": "The back of your ID is unclear. Upload a clearer photo and review your details."
+},
+  providerProfileV3: {
+    "visibleServices": "Visible in: {{services}}",
+    "blockedServices": "Not visible yet in: {{services}}",
+    "hoursMidnight": "12 midnight",
+    "hoursAm": "{{time}} AM",
+    "hoursPm": "{{time}} PM",
+    "hoursDays": "{{from}} to {{to}}",
+    "hoursTimes": "{{from}} to {{to}}",
+    "days": {"d0": "Sunday", "d1": "Monday", "d2": "Tuesday", "d3": "Wednesday", "d4": "Thursday", "d5": "Friday", "d6": "Saturday"},
+
+    coverageReview: "The Famy team will review your service areas",
+    "visibility": "Your visibility to customers",
+    "visible": "Visible to customers",
+    "hidden": "Not visible yet",
+    "steps": "{{count}} steps you can take",
+    "providerTasks": "Things you can do now",
+    "famyTasks": "Waiting for the Famy team",
+    "reviewHint": "We are reviewing your details. We will let you know when the review is complete.",
+    "subjects": "Subjects you teach",
+    "addSubject": "Add a subject",
+    "services": "Your services and prices",
+    "hours": "Your working hours",
+    "noHours": "Choose your working hours",
+    "subjectPending": "Your teaching subject is being reviewed"
+},
   providerSetup: {
     "subjectsTitle": "What do you teach?",
     "chooseSubjectFirst": "Choose a subject and curriculum first to see the grades",
@@ -774,6 +810,7 @@ const en = {
     unnamed: "Provider",
   },
   providerProfile: {
+    coverageReview: "The Famy team will review your service areas",
     trust: "Trust {{score}}",
     perHr: "/hr",
     jobs: "Jobs",

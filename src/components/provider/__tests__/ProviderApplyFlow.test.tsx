@@ -69,3 +69,15 @@ it("preserves name and selections across Back and failed saves", async () => {
     "Updated draft",
   );
 });
+
+it("opens the requested application step with saved data and preserves earlier choices", async () => {
+  const save = vi.fn().mockResolvedValue(undefined);
+  render(<ProviderApplyFlow initial={draft} initialStep={3} zones={[{id:"z",name_en:"Zone",name_ar:"منطقة"}]} services={services} onSave={save} onCapture={vi.fn()} />);
+  expect(screen.getByRole("heading", {name:"providerApply.identity"})).toBeTruthy();
+  expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(true);
+  fireEvent.click(screen.getByRole("button", {name:"common.back"}));
+  expect(screen.getByRole("heading", {name:"providerApply.services"})).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", {name:"common.back"}));
+  expect((screen.getByLabelText("providerApply.name") as HTMLInputElement).value).toBe(draft.name);
+  expect(save).not.toHaveBeenCalled();
+});

@@ -1,6 +1,42 @@
 import type { Translation } from "./en";
 
 const ar: Translation = {
+  providerChanges: {
+    "title": "فريق فامي محتاج منك تعديل",
+    "reasonFallback": "راجع بياناتك والتعديلات المطلوبة وابعت طلبك تاني.",
+    "basics": "الاسم والمناطق",
+    "services": "الخدمات والأسعار",
+    "identity": "صور البطاقة",
+    "resubmit": "ابعت طلبي تاني",
+    "fixRow": "راجع الجزء ده وكمل البيانات الناقصة",
+    "editRow": "افتح وعدل بياناتك",
+    "previewReason": "صورة ظهر البطاقة مش واضحة. ارفع صورة أوضح وراجع بياناتك."
+},
+  providerProfileV3: {
+    "visibleServices": "ظاهر في: {{services}}",
+    "blockedServices": "لسه مش ظاهر في: {{services}}",
+    "hoursMidnight": "12 بالليل",
+    "hoursAm": "{{time}} ص",
+    "hoursPm": "{{time}} م",
+    "hoursDays": "من {{from}} لحد {{to}}",
+    "hoursTimes": "{{from}} لـ {{to}}",
+    "days": {"d0": "الأحد", "d1": "الاثنين", "d2": "الثلاثاء", "d3": "الأربعاء", "d4": "الخميس", "d5": "الجمعة", "d6": "السبت"},
+
+    coverageReview: "فريق فامي هيراجع مناطق خدمتك",
+    "visibility": "حالة ظهورك للعملاء",
+    "visible": "ظاهر للعملاء",
+    "hidden": "مش ظاهر لسه",
+    "steps": "قدامك {{count}} خطوات",
+    "providerTasks": "حاجات تقدر تعملها دلوقتي",
+    "famyTasks": "مستنيين فريق فامي",
+    "reviewHint": "بنراجع بياناتك وهنبلغك أول ما المراجعة تخلص.",
+    "subjects": "المواد اللي بتدرسها",
+    "addSubject": "ضيف مادة",
+    "services": "خدماتك وأسعارك",
+    "hours": "مواعيد شغلك",
+    "noHours": "اختار مواعيد شغلك",
+    "subjectPending": "بنراجع المادة اللي ضفتها"
+},
   providerSetup: {
     "subjectsTitle": "بتدرس ايه؟",
     "chooseSubjectFirst": "اختار المادة والمنهج الأول عشان تظهر الصفوف",
@@ -770,6 +806,7 @@ const ar: Translation = {
     unnamed: "مقدم خدمة",
   },
   providerProfile: {
+    coverageReview: "فريق فامي هيراجع مناطق خدمتك",
     trust: "ثقة {{score}}",
     perHr: "/س",
     jobs: "مهام",

@@ -8,8 +8,9 @@ import {
 describe("marketplaceEligibilityReasons", () => {
   it("maps known RPC strings to i18n keys and actions", () => {
     expect(mapMarketplaceEligibilityFailureReason("Provider has no valid availability")).toEqual({
+      owner: "provider",
       i18nKey: "pro.profile.eligibilityReasons.noAvailability",
-      action: { kind: "link", path: "/pro/availability" },
+      action: { kind: "link", path: "/pro/setup/hours" },
     });
     expect(
       mapMarketplaceEligibilityFailureReason(
@@ -17,6 +18,7 @@ describe("marketplaceEligibilityReasons", () => {
         "svc-1",
       ),
     ).toEqual({
+      owner: "provider",
       i18nKey: "pro.profile.eligibilityReasons.invalidPrice",
       action: { kind: "service", serviceId: "svc-1" },
     });
@@ -58,18 +60,21 @@ describe("marketplaceEligibilityReasons", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]?.serviceIds).toEqual(["school", "language", "homework"]);
     expect(rows[0]?.mapped).toEqual({
+      owner: "provider",
       i18nKey: "pro.profile.eligibilityReasons.teachingPrice",
-      action: { kind: "service", serviceId: "school" },
+      action: { kind: "link", path: "/pro/setup/subjects" },
     });
   });
 
-  it("sends providers with no coverage rows to onboarding, and otherwise shows info without a link", () => {
+  it("keeps coverage enablement with Famy without linking back to the old wizard", () => {
     const reason = "Active Provider and Service zone coverage is missing";
     expect(mapMarketplaceEligibilityFailureReason(reason, "school", 0)).toEqual({
-      i18nKey: "pro.profile.eligibilityReasons.missingZone",
-      action: { kind: "link", path: "/pro/onboarding" },
+      owner: "famy",
+      i18nKey: "providerProfileV3.coverageReview",
+      action: { kind: "info" },
     });
     expect(mapMarketplaceEligibilityFailureReason(reason, "school", 2)).toEqual({
+      owner: "famy",
       i18nKey: "pro.profile.eligibilityReasons.zoneUnavailable",
       action: { kind: "info" },
     });
@@ -87,7 +92,7 @@ describe("marketplaceEligibilityReasons", () => {
     expect(marketplaceEligibilityStatus(rows, 2)).toEqual({
       visible: false,
       i18nKey: "pro.profile.notVisibleToCustomers",
-      stepsLeft: 2,
+      stepsLeft: 1,
     });
     expect(
       marketplaceEligibilityStatus(
@@ -100,4 +105,28 @@ describe("marketplaceEligibilityReasons", () => {
       stepsLeft: 0,
     });
   });
+});
+
+it("classifies every known reason and fallback with an owner and a provider action", () => {
+  const reasons = ["Provider has no valid availability", "Active Provider and Service zone coverage is missing", "Provider price is missing or outside Admin limits", "No approved teaching subject with a valid session price", "Provider-service relationship is not approved", "Provider is not verified or onboarding is not approved", "Provider account is inactive, not approved, deleted, or in vacation mode", "Provider is not verified", "Mandatory Provider requirements are incomplete", "Required evidence is missing or not approved", "Service is inactive or hidden from Customers", "Babysitting maximum children or age-group capabilities are not declared", "Unknown reason", "Unknown price reason"];
+  for (const reason of reasons) {
+    const mapped = mapMarketplaceEligibilityFailureReason(reason, "service");
+    expect(["provider", "famy"]).toContain(mapped.owner);
+    if (mapped.owner === "provider") expect(mapped.action.kind).not.toBe("info");
+  }
+});
+it("excludes service and subject reviews from the provider action count", () => {
+  const rows = [{service_id:"tutor", is_eligible:false, failure_reasons:["No approved teaching subject with a valid session price", "Provider-service relationship is not approved", "Provider has no valid availability"]}];
+  expect(marketplaceEligibilityStatus(rows, 1, new Set(["tutor"])).stepsLeft).toBe(1);
+  expect(mapMarketplaceEligibilityFailureReason(rows[0].failure_reasons[0], "tutor", 1, true)).toEqual({owner:"famy", i18nKey:"providerProfileV3.subjectPending", action:{kind:"info"}});
+});
+
+it.each(["Complete babysitting requirements in profile", "Declare the service requirement", "Mandatory Provider requirements are incomplete"])("makes %s a provider action for the affected service", (reason) => {
+  expect(mapMarketplaceEligibilityFailureReason(reason,"babysitting")).toEqual({owner:"provider", i18nKey:"pro.profile.eligibilityReasons.requirementsIncomplete", action:{kind:"requirements",serviceId:"babysitting"}});
+});
+it("deduplicates requirement actions while retaining every affected service", () => {
+  const rows = dedupeEligibilityReasons(["first","second"].map(service_id=>({service_id,failure_reasons:["Complete service requirements"]})));
+  expect(rows).toHaveLength(1);
+  expect(rows[0].serviceIds).toEqual(["first","second"]);
+  expect(rows[0].mapped.owner).toBe("provider");
 });

@@ -1,3 +1,7 @@
+import { useState } from "react";
+import { StickyCta } from "@/components/famio/StickyCta";
+import { useProviderSubmittable } from "@/lib/provider/useProviderSubmittable";
+import { changesHomeModel, submissionErrors, type SubmitCompletion } from "@/lib/provider/changesHomeModel";
 import { Link } from "@tanstack/react-router";
 import {
   Baby,
@@ -9,6 +13,8 @@ import {
   Phone,
   ShieldCheck,
   User,
+  BriefcaseBusiness,
+  IdCard,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
@@ -16,6 +22,7 @@ import {
   useMyReferences,
   useMySavedSelections,
   usePhase1Services,
+  useSubmitOnboarding,
 } from "@/lib/provider/onboarding-queries";
 import { useMyTeachingCapabilities } from "@/lib/db/teaching-queries";
 import { proPath } from "@/lib/preview/previewPath";
@@ -27,6 +34,9 @@ import { pendingHomeModel, type PendingHomeData } from "@/lib/provider/pendingHo
 import "@/components/famio/providerApply.css";
 
 const icons = {
+  basics: MapPin,
+  services: BriefcaseBusiness,
+  identity: IdCard,
   hours: Clock,
   photo: User,
   about: MessageSquare,
@@ -41,25 +51,43 @@ export function PendingHomeView({
   fullName,
   avatarUrl,
   hoursHint = "providerSetup.hoursHint",
+  changes,
 }: {
   data: PendingHomeData;
   fullName: string;
   avatarUrl?: string;
   hoursHint?: string;
+  changes?: { reason?: string | null; completion?: SubmitCompletion; onSubmit: () => Promise<void> };
 }) {
   const { t, i18n } = useTranslation();
   const avatar = useAvatarUrl(avatarUrl);
   const firstName = fullName.trim().split(/\s+/)[0];
   const model = pendingHomeModel(data);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const changesModel = changesHomeModel(data, changes?.completion, errors);
+  const resubmit = async () => {
+    if (!changes || !changesModel.canSubmit || busy) return;
+    setBusy(true);
+    setFailed(false);
+    setErrors({});
+    try { await changes.onSubmit(); }
+    catch (error) { setFailed(true); setErrors(submissionErrors(error)); }
+    finally { setBusy(false); }
+  };
   return (
-    <section className="apply-ui apply-content apply-pending-home" dir={i18n.dir()}>
+    <section className={`apply-ui apply-content apply-pending-home ${changes ? "apply-changes-home" : ""}`} dir={i18n.dir()}>
       <div className="apply-hello">
         <h1>{t("providerApply.pending.hello", { name: firstName })}</h1>
         <span className="apply-avatar">
           {avatar.data ? <img src={avatar.data} alt={fullName} /> : firstName[0]}
         </span>
       </div>
-      <div className="apply-progcard">
+      {changes ? <div className="apply-note !block" style={{ background: "var(--apply-wait-tint)", color: "var(--apply-wait)" }} role="status">
+        <h2 className="text-base font-bold">{t("providerChanges.title")}</h2>
+        <p className="mt-2 whitespace-pre-wrap break-words">{changes.reason || t("providerChanges.reasonFallback")}</p>
+      </div> : <div className="apply-progcard">
         <svg
           width="58"
           height="58"
@@ -103,8 +131,18 @@ export function PendingHomeView({
           <h2>{t(model.titleKey, { remaining: model.remaining })}</h2>
           <p>{t(model.subtitleKey)}</p>
         </div>
-      </div>
+      </div>}
       <ul className="apply-list">
+        {changes && changesModel.applicationItems.map(({ key, step, done, highlighted }) => {
+          const Icon = icons[key];
+          return <li key={key}>
+            <Link to={proPath("/pro/apply") as "/pro/apply"} search={{ step }} className={`apply-li focus-ring ${highlighted ? "border-s-4 border-destructive" : done ? "apply-done" : ""}`}>
+              <span className="apply-tile"><Icon size={20} aria-hidden="true" /></span>
+              <span className="apply-task-text"><b>{t(`providerChanges.${key}`)}</b><small>{highlighted ? t("providerChanges.fixRow") : t("providerChanges.editRow")}</small></span>
+              {done && !highlighted ? <Check size={18} className="apply-done-check" aria-label={t("common.done")} /> : <span className="apply-tag apply-go">{t("common.edit")}</span>}
+            </Link>
+          </li>;
+        })}
         {model.items.map(({ key, done, next }) => {
           const Icon = icons[key];
           return (
@@ -112,7 +150,7 @@ export function PendingHomeView({
               <Link
                 to={proPath("/pro/setup/$item") as "/pro/setup/$item"}
                 params={{ item: key }}
-                className={`apply-li focus-ring${done ? " apply-done" : next ? " apply-next" : ""}`}
+                className={`apply-li focus-ring${done ? " apply-done" : next ? " apply-next" : ""}${changes && changesModel.setupItems.find((item) => item.key === key)?.highlighted ? " border-s-4 border-destructive" : ""}`}
               >
                 <span className="apply-tile">
                   <Icon size={20} aria-hidden="true" />
@@ -132,7 +170,7 @@ export function PendingHomeView({
             </li>
           );
         })}
-        <li>
+        {!changes && <li>
           <div className="apply-li apply-waiting">
             <span className="apply-tile">
               <ShieldCheck size={20} aria-hidden="true" />
@@ -143,19 +181,25 @@ export function PendingHomeView({
             </span>
             <span className="apply-tag apply-wait">{t("providerApply.pending.waiting")}</span>
           </div>
-        </li>
+        </li>}
       </ul>
+      {changes && <>
+        {failed && <p role="alert" className="text-sm text-destructive">{t("providerApply.saveError")} {t(changesModel.hintKey)}</p>}
+        <StickyCta disabled={!changesModel.canSubmit || busy} onClick={() => void resubmit()} hint={!changesModel.canSubmit || failed ? t(changesModel.hintKey) : undefined}>{t(busy ? "providerApply.saving" : "providerChanges.resubmit")}</StickyCta>
+      </>}
     </section>
   );
 }
-function LivePendingHome({ providerId }: { providerId: string }) {
+function LivePendingHome({ providerId, changesRequested, reviewReason }: { providerId: string; changesRequested: boolean; reviewReason?: string | null }) {
+  const completion = useProviderSubmittable(providerId, changesRequested);
+  const submit = useSubmitOnboarding();
   const snapshot = useOnboardingSnapshot();
   const refs = useMyReferences(providerId);
   const selections = useMySavedSelections(providerId);
   const services = usePhase1Services();
   const subjects = useMyTeachingCapabilities(providerId);
   const availability = useProviderAvailability(providerId);
-  const queries = [snapshot, refs, selections, services, subjects, availability];
+  const queries = [snapshot, refs, selections, services, subjects, availability, ...(changesRequested ? [completion] : [])];
   if (queries.some((q) => q.isError))
     return <QueryError onRetry={() => queries.forEach((q) => void q.refetch())} />;
   if (queries.some((q) => !q.isSuccess)) return null;
@@ -176,6 +220,7 @@ function LivePendingHome({ providerId }: { providerId: string }) {
   const hours = workingHoursState(availability.data!, selected);
   return (
     <PendingHomeView
+      changes={changesRequested ? { reason: reviewReason, completion: completion.data, onSubmit: async () => { await submit.mutateAsync(); } } : undefined}
       hoursHint={hours.needsNight ? "providerSetup.nightHint" : hours.isDefault ? "providerSetup.defaultHoursHint" : "providerSetup.hoursHint"}
       fullName={data.profile?.full_name ?? ""}
       avatarUrl={data.profile?.avatar_url}
@@ -206,12 +251,19 @@ function LivePendingHome({ providerId }: { providerId: string }) {
 export function ProviderPendingHome({
   providerId,
   preview = false,
+  changesRequested = false,
+  reviewReason,
 }: {
   providerId?: string;
   preview?: boolean;
+  changesRequested?: boolean;
+  reviewReason?: string | null;
 }) {
+  const { t } = useTranslation();
+  const [previewSubmitted, setPreviewSubmitted] = useState(false);
   return preview ? (
     <PendingHomeView
+      changes={changesRequested && !previewSubmitted ? { reason: t("providerChanges.previewReason"), completion: { ok: true, complete: true, errors: {} }, onSubmit: async () => { setPreviewSubmitted(true); } } : undefined}
       fullName="منى عادل"
       hoursHint="providerSetup.defaultHoursHint"
       data={{
@@ -227,6 +279,6 @@ export function ProviderPendingHome({
       }}
     />
   ) : providerId ? (
-    <LivePendingHome providerId={providerId} />
+    <LivePendingHome providerId={providerId} changesRequested={changesRequested} reviewReason={reviewReason} />
   ) : null;
 }

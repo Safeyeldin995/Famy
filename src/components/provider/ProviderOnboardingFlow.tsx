@@ -132,7 +132,7 @@ const PREVIEW_DEFAULTS = {
   ref2: { full_name: "Layla Hassan", relationship: "neighbor", phone: "+201022233344", notes: "" },
 };
 
-export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: boolean }) {
+export function ProviderOnboardingFlow({ previewMode = false, initialSection }: { previewMode?: boolean; initialSection?: OnboardingSection }) {
   const { t } = useTranslation();
   const lang = useLang();
   const nav = useNavigate();
@@ -177,7 +177,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
   const offeredServiceIds = (servicesQ.data ?? []).map((s: { id: string }) => s.id);
 
   const search = useSearch({ strict: false });
-  const [step, setStep] = useState(() => onboardingInitialStep(search.section));
+  const [step, setStep] = useState(() => onboardingInitialStep(initialSection ?? search.section));
   const [err, setErr] = useState("");
   const [attemptedSections, setAttemptedSections] = useState<Set<OnboardingSection>>(() => new Set());
   const [submissionErrors, setSubmissionErrors] = useState<Record<string, string> | null>(null);

@@ -1,10 +1,14 @@
+import { applyStepSearch } from "@/lib/provider/changesHomeModel";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ProviderApplyFlow } from "@/components/provider/ProviderApplyFlow";
-export const Route = createFileRoute("/preview/pro/apply")({ component: PreviewProviderApply });
+export const Route = createFileRoute("/preview/pro/apply")({ validateSearch: applyStepSearch, component: PreviewProviderApply });
 function PreviewProviderApply() {
   const navigate = useNavigate();
+  const { step } = Route.useSearch();
   return (
     <ProviderApplyFlow
+      key={step ?? 1}
+      initialStep={step}
       initial={{
         name: "منى عادل",
         zones: ["zayed", "october"],

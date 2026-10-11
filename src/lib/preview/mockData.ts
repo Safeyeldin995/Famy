@@ -636,6 +636,12 @@ function seedPreviewProviderQueries(qc: import("@tanstack/react-query").QueryCli
 
   qc.setQueryData(["my-role"], "provider");
   qc.setQueryData(["my-provider"], myProvider);
+  qc.setQueryData(["provider-availability", PREVIEW_PROVIDER_ID], [0, 1, 2, 3, 4].map((weekday) => ({ id: `preview-hours-${weekday}`, provider_id: PREVIEW_PROVIDER_ID, weekday, start_time: "09:00", end_time: "17:00" })));
+  qc.setQueryData(["provider-zones", PREVIEW_PROVIDER_ID], [{ zone_id: "preview-zone" }]);
+  qc.setQueryData(["my-teaching-capabilities", PREVIEW_PROVIDER_ID], [
+    { id: "preview-grade-1", provider_id: PREVIEW_PROVIDER_ID, service_id: "preview-tutoring", subject_id: "math", curriculum_id: "egypt", level_id: "grade-1", session_duration_min: 60, session_price: 200, status: "approved", submitted_at: previewIso(-DAY_MS), subject: { name_ar: "رياضيات", name_en: "Math" }, curriculum: { name_ar: "مصري", name_en: "Egyptian" }, level: { name_ar: "الصف الأول", name_en: "Grade 1" } },
+    { id: "preview-grade-2", provider_id: PREVIEW_PROVIDER_ID, service_id: "preview-tutoring", subject_id: "math", curriculum_id: "egypt", level_id: "grade-2", session_duration_min: 60, session_price: 200, status: "pending", submitted_at: previewIso(-DAY_MS), subject: { name_ar: "رياضيات", name_en: "Math" }, curriculum: { name_ar: "مصري", name_en: "Egyptian" }, level: { name_ar: "الصف الثاني", name_en: "Grade 2" } },
+  ]);
   qc.setQueryData(["provider-bookings", PREVIEW_PROVIDER_ID], previewProviderBookings);
   qc.setQueryData(["provider-earnings", PREVIEW_PROVIDER_ID], {
     captured: { net: 0, bookingValue: 12480 },
@@ -684,6 +690,7 @@ function seedPreviewProviderQueries(qc: import("@tanstack/react-query").QueryCli
   qc.setQueryData(
     ["my-provider-services", PREVIEW_PROVIDER_ID],
     [
+      { service_id: "svc-kids", price_override: null, status: "approved", service: { id: "svc-kids", name_en: "Babysitting", name_ar: "جليسة أطفال", is_active: true } },
       {
         service_id: "svc-clean",
         price_override: null,
@@ -704,6 +711,7 @@ function seedPreviewProviderQueries(qc: import("@tanstack/react-query").QueryCli
   );
   qc.setQueryData(["my-requirement-fulfillments", PREVIEW_PROVIDER_ID], []);
   qc.setQueryData(["service-requirements", "svc-clean"], []);
+  qc.setQueryData(["service-requirements", "svc-kids"], [{ id: "preview-babysitting-requirement", name_en: "Babysitting experience", name_ar: "خبرة رعاية الأطفال", required_for_provider_approval: true, evidence_required: false }]);
   qc.setQueryData(
     ["all-services"],
     [
