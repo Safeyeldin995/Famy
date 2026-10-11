@@ -1,6 +1,24 @@
 import type { Translation } from "./en";
 
 const ar: Translation = {
+  customerBooking: {
+    "step": "{{step}} من {{total}}",
+    "titles": {
+        "service": "عايز ايه من {{name}}؟",
+        "when": "امتى؟",
+        "whereWho": "فين ولمين؟",
+        "review": "راجع وأكد"
+    },
+    "jobs": "{{count}} حجز",
+    "hours": "ساعات",
+    "who": "مين هيكون مع {{name}}؟",
+    "schoolDetails": "بيانات الدراسة",
+    "sessionDuration": "مدة الحصة",
+    "promo": "عندك كود خصم؟",
+    "next": "التالي · {{total}}",
+    "confirm": "أكد الحجز · {{total}}",
+    "whenSummary": "{{date}} · من {{start}} لحد {{end}}"
+},
   providerChanges: {
     "title": "فريق فامي محتاج منك تعديل",
     "reasonFallback": "راجع بياناتك والتعديلات المطلوبة وابعت طلبك تاني.",

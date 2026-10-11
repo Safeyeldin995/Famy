@@ -1,4 +1,22 @@
 const en = {
+  customerBooking: {
+    "step": "{{step}} of {{total}}",
+    "titles": {
+        "service": "What would you like from {{name}}?",
+        "when": "When?",
+        "whereWho": "Where and who?",
+        "review": "Review and confirm"
+    },
+    "jobs": "{{count}} bookings",
+    "hours": "hours",
+    "who": "Who will be with {{name}}?",
+    "schoolDetails": "School details",
+    "sessionDuration": "Session duration",
+    "promo": "Have a promo code?",
+    "next": "Next · {{total}}",
+    "confirm": "Confirm booking · {{total}}",
+    "whenSummary": "{{date}} · {{start}} to {{end}}"
+},
   providerChanges: {
     "title": "The Famy team needs a change",
     "reasonFallback": "Review your details and requested changes, then send your application again.",

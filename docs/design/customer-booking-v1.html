@@ -1,0 +1,332 @@
+<title>حجز العميل الجديد</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&display=swap">
+<style>
+/* Layout: short intro, then real-size phone screens (one column on phones, two or three per row on wide screens). */
+:root {
+  --page: #f2f0f1;
+  --screen: #ffffff;
+  --ink: #17121a;
+  --ink-2: #4d4550;
+  --muted: #8b8290;
+  --line: #ece8ea;
+  --fill: #f6f4f5;
+  --brand: #f10e72;
+  --brand-ink: #c20a5b;
+  --brand-tint: #fff0f6;
+  --ok: #12a06a;
+  --ok-tint: #e8f7f0;
+  --wait: #b46b00;
+  --wait-tint: #fff4e2;
+  --frame: #0f0d10;
+  --scrim: rgba(15, 13, 16, .42);
+  --font: "Almarai", "Segoe UI", Tahoma, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #0f0d10; --screen: #ffffff; --frame: #2a252b; color-scheme: dark;
+    --page-ink: #f3eef1;
+  }
+}
+:root[data-theme="dark"] { --page: #0f0d10; --screen: #ffffff; --frame: #2a252b; color-scheme: dark; --page-ink: #f3eef1; }
+* { box-sizing: border-box; }
+body { background: var(--page); color: var(--page-ink, var(--ink)); font-family: var(--font); font-size: 14px; line-height: 1.6; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 16px; padding-block: 24px 56px; display: grid; gap: 28px; }
+.intro { display: grid; gap: 6px; max-width: 640px; }
+.intro h1 { margin: 0; font-size: 1.25rem; font-weight: 800; }
+.intro p { margin: 0; opacity: .75; }
+.group { display: grid; gap: 14px; }
+.group h2 { margin: 0; font-size: 1rem; font-weight: 800; }
+.row { display: flex; flex-wrap: wrap; gap: 22px; justify-content: center; }
+.item { display: grid; gap: 8px; justify-items: center; width: min(360px, 100%); }
+.cap { font-weight: 700; font-size: 13px; text-align: center; }
+.cap span { display: block; font-weight: 400; opacity: .7; font-size: 12px; }
+
+/* ---------- phone ---------- */
+.phone { width: 100%; background: var(--frame); border-radius: 44px; padding: 9px; box-shadow: 0 18px 40px rgba(0,0,0,.18); }
+.scr { position: relative; background: var(--screen); color: var(--ink); border-radius: 36px; overflow: hidden; height: 720px; display: flex; flex-direction: column; }
+.sb { height: 44px; padding: 14px 26px 0; display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 700; direction: ltr; }
+.sb .ic { display: flex; gap: 5px; align-items: center; }
+.nav { padding: 6px 20px 0; display: grid; gap: 14px; }
+.navrow { display: flex; justify-content: space-between; align-items: center; }
+.iconbtn { width: 40px; height: 40px; border-radius: 50%; background: var(--fill); display: grid; place-items: center; }
+.stepnum { font-size: 12px; color: var(--muted); font-weight: 700; }
+.segs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.segs i { height: 4px; border-radius: 4px; background: var(--line); }
+.segs i.on { background: var(--brand); }
+.content { padding: 22px 20px 16px; display: grid; gap: 18px; align-content: start; flex: 1; overflow: hidden; }
+.h { margin: 0; font-size: 24px; font-weight: 800; line-height: 1.3; letter-spacing: -.01em; }
+.p { margin: -10px 0 0; color: var(--muted); font-size: 14px; }
+.lbl { font-size: 13px; font-weight: 700; color: var(--ink-2); margin-bottom: 8px; display: block; }
+.input { height: 56px; border-radius: 16px; background: var(--fill); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; font-size: 16px; }
+.input.focus { background: var(--screen); box-shadow: inset 0 0 0 2px var(--brand); }
+.input .ph { color: var(--muted); }
+.select .sel-l { display: grid; line-height: 1.3; }
+.select .sel-l small { color: var(--muted); font-size: 11px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { height: 44px; border-radius: 22px; padding: 0 16px; display: inline-flex; align-items: center; gap: 8px; background: var(--fill); font-size: 14px; font-weight: 700; color: var(--ink-2); }
+.chip.on { background: var(--brand-tint); color: var(--brand-ink); box-shadow: inset 0 0 0 1.5px var(--brand); }
+.chip.sm { height: 38px; padding: 0 14px; font-size: 13px; }
+.dotcheck { width: 18px; height: 18px; border-radius: 50%; background: var(--brand); display: grid; place-items: center; }
+.svc { border-radius: 18px; background: var(--screen); box-shadow: inset 0 0 0 1px var(--line); padding: 14px; display: grid; gap: 14px; }
+.svc.on { box-shadow: inset 0 0 0 2px var(--brand); }
+.svcrow { display: flex; align-items: center; gap: 12px; }
+.tile { width: 44px; height: 44px; border-radius: 14px; background: var(--fill); display: grid; place-items: center; flex-shrink: 0; }
+.svc.on .tile { background: var(--brand-tint); }
+.svctxt { flex: 1; min-width: 0; display: grid; line-height: 1.35; }
+.svctxt b { font-size: 15px; }
+.svctxt small { color: var(--muted); font-size: 12px; }
+.cb { width: 24px; height: 24px; border-radius: 8px; box-shadow: inset 0 0 0 2px var(--line); display: grid; place-items: center; flex-shrink: 0; }
+.cb.on { background: var(--brand); box-shadow: none; }
+.stepper { display: flex; align-items: center; justify-content: space-between; background: var(--fill); border-radius: 16px; padding: 8px; }
+.sbtn { width: 44px; height: 44px; border-radius: 50%; background: var(--screen); box-shadow: 0 1px 2px rgba(0,0,0,.08), inset 0 0 0 1px var(--line); display: grid; place-items: center; }
+.sval { text-align: center; line-height: 1.2; }
+.sval b { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.sval span { font-size: 13px; color: var(--ink-2); font-weight: 700; }
+.sval small { display: block; color: var(--muted); font-size: 11px; margin-top: 2px; }
+.idcard { border-radius: 18px; box-shadow: inset 0 0 0 1px var(--line); padding: 14px; display: flex; align-items: center; gap: 14px; }
+.idcard.ok { background: var(--ok-tint); box-shadow: none; }
+.idart { width: 74px; height: 48px; border-radius: 8px; background: var(--fill); position: relative; flex-shrink: 0; }
+.idcard.ok .idart { background: #fff; }
+.idart::before { content: ""; position: absolute; inset-block-start: 10px; inset-inline-start: 8px; width: 18px; height: 22px; border-radius: 4px; background: var(--line); }
+.idart::after { content: ""; position: absolute; inset-block-start: 14px; inset-inline-end: 8px; width: 34px; height: 4px; border-radius: 2px; background: var(--line); box-shadow: 0 8px 0 var(--line), 0 16px 0 var(--line); }
+.idtxt { flex: 1; display: grid; line-height: 1.35; }
+.idtxt b { font-size: 15px; }
+.idtxt small { color: var(--muted); font-size: 12px; }
+.idcard.ok .idtxt small { color: var(--ok); font-weight: 700; }
+.pillbtn { height: 36px; padding: 0 14px; border-radius: 18px; background: var(--ink); color: #fff; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; }
+.note { display: flex; gap: 10px; align-items: flex-start; background: var(--fill); border-radius: 14px; padding: 12px 14px; color: var(--ink-2); font-size: 12.5px; }
+.agree { display: flex; gap: 12px; align-items: center; font-size: 14px; color: var(--ink-2); }
+.bottom { padding: 12px 20px 26px; }
+.cta { height: 56px; border-radius: 18px; background: var(--brand); color: #fff; display: grid; place-items: center; font-size: 16px; font-weight: 800; }
+.home { width: 120px; height: 5px; border-radius: 3px; background: var(--ink); margin: 10px auto 0; opacity: .85; }
+
+/* home checklist */
+.hello { display: flex; align-items: center; justify-content: space-between; }
+.hello b { font-size: 22px; font-weight: 800; }
+.avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--brand-tint); display: grid; place-items: center; color: var(--brand); font-weight: 800; }
+.progcard { border-radius: 22px; background: var(--ink); color: #fff; padding: 18px; display: flex; gap: 16px; align-items: center; }
+.progcard b { font-size: 17px; display: block; }
+.progcard small { opacity: .7; font-size: 12.5px; }
+.list { display: grid; gap: 2px; }
+.li { display: flex; align-items: center; gap: 12px; padding: 12px 4px; border-bottom: 1px solid var(--line); }
+.li:last-child { border-bottom: 0; }
+.li .tile { width: 40px; height: 40px; border-radius: 12px; }
+.li.done .tile { background: var(--ok-tint); }
+.li.next .tile { background: var(--brand-tint); }
+.li .t { flex: 1; display: grid; line-height: 1.3; }
+.li .t b { font-size: 14.5px; }
+.li .t small { font-size: 12px; color: var(--muted); }
+.li.done .t b { color: var(--muted); }
+.tag { font-size: 11.5px; font-weight: 700; border-radius: 999px; padding: 4px 10px; }
+.tag.go { background: var(--brand); color: #fff; }
+.tag.wait { background: var(--wait-tint); color: var(--wait); }
+.tag.time { color: var(--muted); background: var(--fill); }
+
+/* subject */
+.saved { border-radius: 16px; background: var(--fill); padding: 12px 14px; display: flex; gap: 12px; align-items: center; }
+.saved .t { flex: 1; display: grid; line-height: 1.35; }
+.saved .t b { font-size: 14px; }
+.saved .t small { font-size: 12px; color: var(--muted); }
+
+/* sheet */
+.scrim { position: absolute; inset: 0; background: var(--scrim); }
+.sheet { position: absolute; inset-inline: 0; bottom: 0; background: var(--screen); border-radius: 26px 26px 0 0; padding: 10px 20px 28px; display: grid; gap: 12px; }
+.grab { width: 40px; height: 5px; border-radius: 3px; background: var(--line); justify-self: center; }
+.sheethead { display: flex; justify-content: space-between; align-items: center; }
+.sheethead b { font-size: 18px; font-weight: 800; }
+.search { height: 46px; border-radius: 14px; background: var(--fill); display: flex; align-items: center; gap: 8px; padding: 0 14px; color: var(--muted); }
+.opt { display: flex; align-items: center; justify-content: space-between; height: 52px; border-bottom: 1px solid var(--line); font-size: 15px; }
+.opt:last-child { border-bottom: 0; }
+.opt.on { font-weight: 800; }
+.radio { width: 22px; height: 22px; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--line); }
+.radio.on { box-shadow: inset 0 0 0 7px var(--brand); }
+
+/* summary */
+.sum { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.sumc { background: var(--screen); color: var(--ink); border-radius: 18px; padding: 16px; display: grid; gap: 6px; min-width: 0; }
+.sumc b { font-size: 14px; }
+.sumc p { margin: 0; color: var(--ink-2); font-size: 13px; }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M6 12h12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 6v12M6 12h12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-cam" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 10V7.5a4 4 0 018 0V10" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4.5-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-baby" viewBox="0 0 24 24"><circle cx="12" cy="9" r="4.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 20c1.5-3.5 4-5 7-5s5.5 1.5 7 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M5 5.5A2.5 2.5 0 017.5 3H19v15H7.5A2.5 2.5 0 005 20.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M5 20.5A2.5 2.5 0 017.5 18H19v3H7.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4.5 20c1.5-4 4.5-5.5 7.5-5.5s6 1.5 7.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 8v4.5l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M5 5h14v10H10l-4 4v-4H5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><path d="M6.5 4h3l1.5 4-2 1.5a10 10 0 005 5l1.5-2 4 1.5v3a2 2 0 01-2 2A15 15 0 014.5 6a2 2 0 012-2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v5.5c0 4.5-3 8-7 9.5-4-1.5-7-5-7-9.5V6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0113 0c0 5-6.5 11-6.5 11z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="10" r="2.3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  </defs>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z" fill="currentColor"/></symbol>
+    <symbol id="i-cash" viewBox="0 0 24 24"><rect x="3" y="6.5" width="18" height="11" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-card" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-6.5 8 6.5v8.5H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+  </defs>
+</svg>
+<style>
+.pro { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 18px; background: var(--fill); }
+.pro .av { width: 48px; height: 48px; border-radius: 50%; background: var(--brand-tint); color: var(--brand); display: grid; place-items: center; font-weight: 800; font-size: 18px; flex-shrink: 0; }
+.pro .t { flex: 1; display: grid; line-height: 1.35; }
+.pro .t b { font-size: 15px; }
+.pro .t small { color: var(--muted); font-size: 12px; display: inline-flex; gap: 4px; align-items: center; }
+.price { font-size: 13px; font-weight: 800; color: var(--ink); white-space: nowrap; }
+.dates { display: flex; gap: 8px; overflow: hidden; }
+.date { width: 58px; height: 72px; border-radius: 16px; background: var(--fill); display: grid; place-items: center; align-content: center; gap: 2px; flex-shrink: 0; }
+.date small { font-size: 12px; color: var(--muted); font-weight: 700; }
+.date b { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.date.on { background: var(--brand); color: #fff; }
+.date.on small { color: rgba(255,255,255,.85); }
+.date.off { opacity: .4; }
+.times { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.time { height: 44px; border-radius: 14px; background: var(--fill); display: grid; place-items: center; font-size: 14px; font-weight: 700; color: var(--ink-2); }
+.time.on { background: var(--brand-tint); color: var(--brand-ink); box-shadow: inset 0 0 0 1.5px var(--brand); }
+.time.off { color: var(--line); text-decoration: line-through; }
+.when { display: flex; gap: 10px; align-items: center; background: var(--brand-tint); color: var(--brand-ink); border-radius: 14px; padding: 12px 14px; font-weight: 700; font-size: 13.5px; }
+.opt2 { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; box-shadow: inset 0 0 0 1px var(--line); }
+.opt2.on { box-shadow: inset 0 0 0 2px var(--brand); }
+.opt2 .t { flex: 1; display: grid; line-height: 1.35; min-width: 0; }
+.opt2 .t b { font-size: 14.5px; }
+.opt2 .t small { color: var(--muted); font-size: 12px; }
+.add { color: var(--brand); font-weight: 800; font-size: 14px; }
+.ta { min-height: 64px; border-radius: 16px; background: var(--fill); padding: 12px 16px; color: var(--muted); font-size: 14px; }
+.rev { display: grid; }
+.rv { display: flex; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.rv:last-child { border-bottom: 0; }
+.rv .t { flex: 1; display: grid; line-height: 1.35; min-width: 0; }
+.rv .t small { color: var(--muted); font-size: 12px; }
+.rv .t b { font-size: 14px; }
+.edit { color: var(--brand); font-size: 13px; font-weight: 700; }
+.bill { border-radius: 16px; background: var(--fill); padding: 12px 14px; display: grid; gap: 6px; font-size: 13.5px; }
+.bill div { display: flex; justify-content: space-between; color: var(--ink-2); }
+.bill .tot { color: var(--ink); font-weight: 800; font-size: 16px; padding-top: 6px; border-top: 1px solid var(--line); }
+.ctax { display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
+</style>
+
+<div class="wrap" dir="rtl" lang="ar">
+  <header class="intro">
+    <h1>حجز العميل الجديد</h1>
+    <p>4 شاشات بدل 8. كل شاشة سؤال واحد، والسعر ظاهر طول الوقت. نفس خط التطبيق ولونه ونفس أجزاء شاشات مقدم الخدمة.</p>
+  </header>
+  <div class="group"><div class="row">
+
+  <!-- 1 -->
+  <div class="item">
+    <div class="phone"><div class="scr">
+      <div class="sb"><span>9:41</span><span class="ic">●●● ▮</span></div>
+      <div class="nav"><div class="navrow"><span class="iconbtn"><svg width="20" height="20"><use href="#i-back"/></svg></span><span class="stepnum">1 من 4</span></div>
+        <div class="segs" style="grid-template-columns:repeat(4,1fr)"><i class="on"></i><i></i><i></i><i></i></div></div>
+      <div class="content">
+        <h2 class="h">عايز ايه من منى؟</h2>
+        <div class="pro"><span class="av">م</span><span class="t"><b>منى عادل</b><small><svg width="13" height="13" style="color:#f5a623"><use href="#i-star"/></svg>4.9 · 38 حجز · الشيخ زايد</small></span></div>
+        <div class="svc on">
+          <div class="svcrow"><span class="tile"><svg width="22" height="22" style="color:var(--brand)"><use href="#i-baby"/></svg></span><span class="svctxt"><b>جليسة أطفال بالساعة</b><small>250 ج.م / ساعة</small></span><span class="cb on"><svg width="14" height="14" style="color:#fff"><use href="#i-check"/></svg></span></div>
+          <div class="stepper"><span class="sbtn"><svg width="18" height="18"><use href="#i-minus"/></svg></span><span class="sval"><b>4</b> <span>ساعات</span><small>من 2 لحد 10</small></span><span class="sbtn"><svg width="18" height="18"><use href="#i-plus"/></svg></span></div>
+        </div>
+        <div class="svc"><div class="svcrow"><span class="tile"><svg width="22" height="22"><use href="#i-sun"/></svg></span><span class="svctxt"><b>يوم كامل</b><small>8 ساعات متواصلة · سعر ثابت</small></span><span class="price">1400 ج.م</span></div></div>
+        <div class="svc"><div class="svcrow"><span class="tile"><svg width="22" height="22"><use href="#i-clock"/></svg></span><span class="svctxt"><b>بالليل</b><small>من 6 م لحد 12 بالليل · سعر ثابت</small></span><span class="price">900 ج.م</span></div></div>
+      </div>
+      <div class="bottom"><div class="cta">التالي · 1000 ج.م</div><div class="home"></div></div>
+    </div></div>
+    <div class="cap">الخدمة والمدة<span>زرار زائد وناقص، والسعر بيتحسب قدامك</span></div>
+  </div>
+
+  <!-- 2 -->
+  <div class="item">
+    <div class="phone"><div class="scr">
+      <div class="sb"><span>9:41</span><span class="ic">●●● ▮</span></div>
+      <div class="nav"><div class="navrow"><span class="iconbtn"><svg width="20" height="20"><use href="#i-back"/></svg></span><span class="stepnum">2 من 4</span></div>
+        <div class="segs" style="grid-template-columns:repeat(4,1fr)"><i class="on"></i><i class="on"></i><i></i><i></i></div></div>
+      <div class="content">
+        <h2 class="h">امتى؟</h2>
+        <span class="lbl" style="margin:0">أكتوبر</span>
+        <div class="dates">
+          <span class="date"><small>سبت</small><b>11</b></span>
+          <span class="date on"><small>أحد</small><b>12</b></span>
+          <span class="date"><small>اثنين</small><b>13</b></span>
+          <span class="date off"><small>ثلاثاء</small><b>14</b></span>
+          <span class="date"><small>أربعاء</small><b>15</b></span>
+        </div>
+        <span class="lbl" style="margin:0">المواعيد المتاحة</span>
+        <div class="times">
+          <span class="time">9 ص</span><span class="time on">10 ص</span><span class="time">11 ص</span>
+          <span class="time off">12 م</span><span class="time">1 م</span><span class="time">2 م</span>
+        </div>
+        <div class="when"><svg width="18" height="18"><use href="#i-clock"/></svg>الأحد 12 أكتوبر · من 10 ص لحد 2 م</div>
+      </div>
+      <div class="bottom"><div class="cta">التالي · 1000 ج.م</div><div class="home"></div></div>
+    </div></div>
+    <div class="cap">اليوم والساعة<span>الأيام اللي مش متاحة باهتة، والمواعيد المحجوزة متشطبة</span></div>
+  </div>
+
+  <!-- 3 -->
+  <div class="item">
+    <div class="phone"><div class="scr">
+      <div class="sb"><span>9:41</span><span class="ic">●●● ▮</span></div>
+      <div class="nav"><div class="navrow"><span class="iconbtn"><svg width="20" height="20"><use href="#i-back"/></svg></span><span class="stepnum">3 من 4</span></div>
+        <div class="segs" style="grid-template-columns:repeat(4,1fr)"><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div></div>
+      <div class="content">
+        <h2 class="h">فين ولمين؟</h2>
+        <div style="display:grid;gap:8px">
+          <span class="lbl" style="margin:0">العنوان</span>
+          <div class="opt2 on"><span class="tile" style="width:40px;height:40px;border-radius:12px;background:var(--brand-tint)"><svg width="20" height="20" style="color:var(--brand)"><use href="#i-home"/></svg></span><span class="t"><b>البيت</b><small>الشيخ زايد · الحي 16 · عمارة 4</small></span><span class="radio on"></span></div>
+          <span class="add">+ عنوان جديد</span>
+        </div>
+        <div>
+          <span class="lbl">مين هيكون مع منى؟</span>
+          <div class="chips">
+            <span class="chip on"><span class="dotcheck"><svg width="11" height="11" style="color:#fff"><use href="#i-check"/></svg></span>يوسف · 4 سنين</span>
+            <span class="chip">ليلى · 7 سنين</span>
+            <span class="chip">+ ضيف طفل</span>
+          </div>
+        </div>
+        <div><span class="lbl">ملاحظات لمنى (اختياري)</span><div class="ta">مثلا: يوسف عنده حساسية من الفول السوداني</div></div>
+      </div>
+      <div class="bottom"><div class="cta">التالي · 1000 ج.م</div><div class="home"></div></div>
+    </div></div>
+    <div class="cap">العنوان والأطفال<span>العنوان المحفوظ متختار لوحده، والأطفال بضغطة</span></div>
+  </div>
+
+  <!-- 4 -->
+  <div class="item">
+    <div class="phone"><div class="scr">
+      <div class="sb"><span>9:41</span><span class="ic">●●● ▮</span></div>
+      <div class="nav"><div class="navrow"><span class="iconbtn"><svg width="20" height="20"><use href="#i-back"/></svg></span><span class="stepnum">4 من 4</span></div>
+        <div class="segs" style="grid-template-columns:repeat(4,1fr)"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div></div>
+      <div class="content" style="gap:14px">
+        <h2 class="h">راجع وأكد</h2>
+        <div class="rev">
+          <div class="rv"><span class="t"><small>الخدمة</small><b>جليسة أطفال · 4 ساعات</b></span><span class="edit">تعديل</span></div>
+          <div class="rv"><span class="t"><small>الميعاد</small><b>الأحد 12 أكتوبر · 10 ص لـ 2 م</b></span><span class="edit">تعديل</span></div>
+          <div class="rv"><span class="t"><small>العنوان ومين</small><b>البيت · يوسف</b></span><span class="edit">تعديل</span></div>
+        </div>
+        <div class="bill">
+          <div><span>4 ساعات × 250 ج.م</span><span>1000 ج.م</span></div>
+          <div class="tot"><span>الإجمالي</span><span>1000 ج.م</span></div>
+        </div>
+        <div style="display:grid;gap:8px">
+          <span class="lbl" style="margin:0">هتدفع إزاي؟</span>
+          <div class="opt2 on"><svg width="22" height="22"><use href="#i-cash"/></svg><span class="t"><b>كاش</b><small>تدفع لمنى بعد الخدمة</small></span><span class="radio on"></span></div>
+          <div class="opt2"><svg width="22" height="22"><use href="#i-card"/></svg><span class="t"><b>كارت</b><small>دفع آمن أونلاين</small></span><span class="radio"></span></div>
+        </div>
+      </div>
+      <div class="bottom"><div class="cta">أكد الحجز · 1000 ج.م</div><div class="home"></div></div>
+    </div></div>
+    <div class="cap">المراجعة والدفع<span>كل حاجة في صفحة واحدة، وتقدر تعدل أي جزء</span></div>
+  </div>
+
+  </div></div>
+</div>

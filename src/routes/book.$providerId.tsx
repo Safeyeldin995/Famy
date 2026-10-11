@@ -1,14 +1,21 @@
 import { buildBookingRequest, buildBookingQuote } from "@/lib/booking/bookingRequest";
 import { paymentPresentation } from "@/lib/booking/paymentPresentation";
 import { bookingDisabledReason } from "@/lib/booking/disabledReason";
-import { buildCustomerBookingSteps, resolveCustomerBookingStep, type CustomerBookingStep } from "@/lib/booking/customerSteps";
+import { BOOKING_SCREENS, bookingScreenMissingStep, bookingScreenForStep, nextBookingScreen, groupBookingSubjects, type BookingScreen } from "@/lib/booking/bookingScreens";
+import { StepHeader } from "@/components/famio/StepHeader";
+import { StickyCta } from "@/components/famio/StickyCta";
+import { ServiceCard } from "@/components/famio/ServiceCard";
+import { NumberStepper } from "@/components/famio/NumberStepper";
+import { CheckChip } from "@/components/famio/CheckChip";
+import { TextField } from "@/components/famio/TextField";
+import { BookingWhen } from "@/components/booking/BookingWhen";
+import { BookingDetailsSheet } from "@/components/booking/BookingDetailsSheet";
+import "@/components/booking/customerBooking.css";
 import { isFixedPackage, filterFixedStartSlots, packageLabel } from "@/lib/pricing/servicePackages";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { PhoneFrame, PrimaryButton, Card, EmptyState, Avatar } from "@/components/famio/ui";
+import { PhoneFrame, Card, EmptyState } from "@/components/famio/ui";
 import { QueryError } from "@/components/famio/QueryError";
-import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
-import { CustomerFloatingPanel } from "@/components/famio/CustomerFloatingPanel";
 import {
   useProvider,
   useProviderServices,
@@ -41,7 +48,11 @@ import {
   Copy,
   Wallet,
   X,
-  Lock,
+  Clock,
+  BookOpen,
+  Sun,
+  UserRound,
+  Star,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { formatEGP, formatNumber } from "@/lib/format";
@@ -59,7 +70,6 @@ import {
   type IdempotencyKeyState,
 } from "@/lib/booking/idempotency";
 import { planPostCreatePayment, stashPendingPayment } from "@/lib/booking/post-create-payment";
-import { BookScheduleStep } from "@/components/famio/BookScheduleStep";
 import { previewPath } from "@/lib/preview/previewPath";
 import {
   canContinueForWhom,
@@ -71,7 +81,6 @@ import {
 import { isClosedBetaCategorySlug } from "@/lib/catalog/closedBetaCategories";
 import { useApprovedTeachingCapabilities } from "@/lib/db/teaching-queries";
 import {
-  formatTeachingCapabilityLine,
   isTutoringCategorySlug,
 } from "@/lib/tutoring/teachingCapabilities";
 import { markCustomerPushPromptPending } from "@/lib/push-prompt";
@@ -134,7 +143,7 @@ export function BookContent({
   const { t } = useTranslation();
   const nav = useNavigate();
 
-  const [requestedStep, setRequestedStep] = useState<CustomerBookingStep>("service");
+  const [requestedStep, setRequestedStep] = useState<BookingScreen>("service");
   const [serviceId, setServiceId] = useState<string | null>(searchServiceId ?? null);
   const [capabilityId, setCapabilityId] = useState<string | null>(searchCapabilityId ?? null);
   const [duration, setDuration] = useState("4h");
@@ -155,7 +164,10 @@ export function BookContent({
   const [requirementChoices, setRequirementChoices] = useState<
     Record<string, "customer" | "provider">
   >({});
-  const [timeBand, setTimeBand] = useState<"all" | "morning" | "afternoon" | "evening">("all");
+  const [editingReview, setEditingReview] = useState(false);
+  const [detailsSheet, setDetailsSheet] = useState<"address" | "member" | null>(null);
+  const [inlineError, setInlineError] = useState<{ screen: BookingScreen; message: string } | null>(null);
+  const [avatarFailed, setAvatarFailed] = useState(false);
   const [scanningSchedule, setScanningSchedule] = useState(false);
   const [bookingEducation, setBookingEducation] = useState<EducationProfileValue>(
     educationValueFromIds(null, null),
@@ -257,11 +269,10 @@ export function BookContent({
     addressId: slotAddressId,
   });
   const requirementsQ = useRequirementsForService(activeService?.service?.id);
-  const stepKeys = buildCustomerBookingSteps({ tutoring: isTutoring, fixedPackage,
-    requirementsSuccess: requirementsQ.isSuccess, requirementsCount: requirementsQ.data?.length });
-  const stepKey = resolveCustomerBookingStep(requestedStep, stepKeys);
+  const stepKeys = BOOKING_SCREENS;
+  const stepKey = requestedStep;
   const step = stepKeys.indexOf(stepKey);
-  const scheduleStep = stepKeys.indexOf("schedule");
+  const scheduleStep = stepKeys.indexOf("when");
   const setStep = (index: number) => setRequestedStep(stepKeys[index] ?? "service");
 
 
@@ -280,20 +291,6 @@ export function BookContent({
     setTime(slot?.label ?? null);
     setSelectedSlot(slot ? { start: slot.start, end: slot.end } : null);
   }, [fixedStart, packageSlots, slotsQ.isFetching, slotsQ.isError]);
-
-  const filteredSlots = useMemo(() => {
-    const slots = packageSlots;
-    if (fixedStart) return slots;
-    if (timeBand === "all") return slots;
-    return slots.filter((slot) => {
-      const hour = fixedPackage
-        ? Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", hourCycle: "h23" }).format(slot.start))
-        : slot.start.getHours();
-      if (timeBand === "morning") return hour < 12;
-      if (timeBand === "afternoon") return hour >= 12 && hour < 17;
-      return hour >= 17;
-    });
-  }, [packageSlots, timeBand, fixedStart, fixedPackage]);
 
   const studentEducation = useMemo(
     () =>
@@ -323,7 +320,7 @@ export function BookContent({
   ]);
 
   useEffect(() => {
-    if (stepKey !== "duration" || !isTutoring || userPickedCapabilityRef.current) return;
+    if (stepKey !== "service" || !isTutoring || userPickedCapabilityRef.current) return;
     const match = pickDefaultCapabilityForEducation(
       capabilitiesQ.data ?? [],
       activeService?.service?.id ?? serviceId,
@@ -375,7 +372,7 @@ export function BookContent({
       return;
     }
 
-    const maxDays = bookingSettingsQ.data?.max_advance_days ?? 12;
+    const maxDays = Math.min(14, bookingSettingsQ.data?.max_advance_days ?? 12);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const dayIndex = Math.round((date.getTime() - today.getTime()) / 86400000);
@@ -480,37 +477,29 @@ export function BookContent({
     promoDiscount,
   });
 
-  const durations = ["2h", "4h", "6h", "8h"] as const;
-  const durationLabel = (value: string) => {
-    const hours = parseInt(value, 10);
-    return t("bookFlow.durationShort", { hours: formatNumber(hours) });
-  };
-
   const requirementsReady = requirementsQ.isSuccess && eitherRequirements.every((r: any) => !!requirementChoices[r.id]);
-  const requirementsBlock = ["requirements", "summary", "payment"].includes(stepKey) && !requirementsReady;
-  const canNext = () => {
-    if (requirementsBlock) return false;
-    if (stepKey === "service") return !!activeService;
-    if (stepKey === "duration" && isTutoring) return !!selectedCapability;
-    if (stepKey === "schedule") return !!date && !!time && (!fixedPackage || !!selectedSlot);
-    if (stepKey === "address") return !!addressId && !!zoneQ.data;
-    if (stepKey === "forWhom")
-      return canContinueForWhom({
-        isBabysitting,
-        forWhom,
-        members: familyMembersQ.data ?? [],
-        startAt: selectedSlot?.start ?? null,
-      });
-    if (stepKey === "requirements")
-      return requirementsQ.isSuccess && eitherRequirements.every((r: any) => !!requirementChoices[r.id]);
-    if (stepKey === "payment") return !!paymentMethodId;
-    return true;
-  };
-
+  const missingStep = bookingScreenMissingStep(stepKey, {
+    service: !!activeService,
+    tutoring: isTutoring,
+    capability: !!selectedCapability,
+    slot: !!date && !!time && (!fixedPackage || !!selectedSlot),
+    address: !!addressId && !!zoneQ.data,
+    recipient: canContinueForWhom({ isBabysitting, forWhom, members: familyMembersQ.data ?? [], startAt: selectedSlot?.start ?? null }),
+    requirements: requirementsReady,
+    payment: !!paymentMethodId,
+  });
+  const canNext = () => missingStep === null;
   const paymentCopy = paymentPresentation((methodsQ.data ?? []).find(method => method.id === paymentMethodId)?.method_type);
   const noPaymentMethods = methodsQ.isSuccess && methodsQ.data.length === 0;
-  const stepQuery = requirementsBlock ? requirementsQ : stepKey === "duration" ? capabilitiesQ : stepKey === "schedule" ? slotsQ : stepKey === "address" ? (!addressId ? addrsQ : zoneQ) : stepKey === "forWhom" ? familyMembersQ : stepKey === "requirements" ? requirementsQ : stepKey === "payment" ? methodsQ : servicesQ;
-  const disabledReason = bookingDisabledReason({ step: requirementsBlock ? "requirements" : stepKey, allowed: canNext(), submitting: createBooking.isPending, loading: stepQuery.isLoading, error: stepQuery.isError, hasDate: !!date, hasSlots: packageSlots.length > 0, hasAddress: !!addressId });
+  const stepQuery = missingStep === "requirements" ? requirementsQ : missingStep === "duration" ? capabilitiesQ : missingStep === "schedule" ? slotsQ : missingStep === "address" ? (!addressId ? addrsQ : zoneQ) : missingStep === "forWhom" ? familyMembersQ : missingStep === "payment" ? methodsQ : servicesQ;
+  const disabledReason = bookingDisabledReason({ step: missingStep ?? "summary", allowed: canNext(), submitting: createBooking.isPending, loading: stepQuery.isLoading, error: stepQuery.isError, hasDate: !!date, hasSlots: packageSlots.length > 0, hasAddress: !!addressId });
+  const clearSlot = () => { setTime(null); setSelectedSlot(null); setInlineError(null); };
+  const editScreen = (screen: BookingScreen) => { setEditingReview(true); setRequestedStep(screen); };
+  const visibleCapabilities = (capabilitiesQ.data ?? []).filter((cap) =>
+    (!bookingEducation.educationCurriculumId || cap.curriculumId === bookingEducation.educationCurriculumId) &&
+    (!bookingEducation.educationLevelId || cap.levelId === bookingEducation.educationLevelId));
+  const subjectGroups = groupBookingSubjects(visibleCapabilities);
+  const selectedGroup = subjectGroups.find(group => group.capabilities.some(cap => cap.id === selectedCapability?.id));
 
   const applyPromo = async () => {
     const code = promoCode.trim();
@@ -538,6 +527,7 @@ export function BookContent({
   };
 
   const submit = async () => {
+    setInlineError(null);
     if (!activeService?.service?.id) {
       toast.error(t("bookFlow.missingService", "Please select a service."));
       return;
@@ -596,8 +586,10 @@ export function BookContent({
       if (clashErr) throw clashErr;
       if (clashes && clashes.length > 0) {
         toast.error(t("bookFlow.slotTaken", "That time slot was just taken. Please pick another."));
+        setInlineError({ screen: "when", message: t("bookFlow.slotTaken") });
         setTime(null);
         setSelectedSlot(null);
+        setEditingReview(false);
         setStep(scheduleStep);
         return;
       }
@@ -672,7 +664,7 @@ export function BookContent({
             }
           }
         } catch (pe: unknown) {
-          console.error("payment row insert failed", pe);
+          setInlineError({ screen: "review", message: mapPaymentInsertError(pe) || t("bookFlow.paymentFailed") });
           toast.error(
             mapPaymentInsertError(pe) ||
               t("bookFlow.paymentFailed", "Could not record payment method"),
@@ -702,10 +694,12 @@ export function BookContent({
       });
     } catch (e: any) {
       const code = e instanceof BookingError ? e.code : null;
+      setInlineError({ screen: isSlotStaleBookingError(code) ? "when" : "review", message: getBookingErrorMessage(e, (key, fallback) => t(key, fallback ?? "")) });
       if (isSlotStaleBookingError(code)) {
         toast.error(getBookingErrorMessage(e, (key, fallback) => t(key, fallback ?? "")));
         setTime(null);
         setSelectedSlot(null);
+        setEditingReview(false);
         setStep(scheduleStep);
         return;
       }
@@ -714,240 +708,94 @@ export function BookContent({
   };
 
   const next = () => {
-    if (step < stepKeys.length - 1) setStep(step + 1);
-    else submit();
+    if (stepKey === "review") void submit();
+    else { setRequestedStep(nextBookingScreen(stepKey, editingReview)); setEditingReview(false); }
   };
-
   const locale = lang === "ar" ? "ar-EG" : "en-US";
-  const addressChipLabel = selectedAddress
-    ? [selectedAddress.area, selectedAddress.street ?? selectedAddress.line1]
-        .filter(Boolean)
-        .join(" · ")
-    : null;
+  const firstName = p.name.split(" ")[0];
+  const serviceName = (lang === "ar" ? activeService?.service?.name_ar : activeService?.service?.name_en) ?? "";
+  const durationText = tutoringQuote ? t("bookFlow.sessionLine", { minutes: formatNumber(tutoringQuote.durationMin) })
+    : fixedPackage ? t(packageLabel(activeService.service).key, packageLabel(activeService.service).values)
+    : t("bookFlow.durationShort", { hours: formatNumber(hours) });
+  const whenText = [date?.toLocaleDateString(locale, { weekday: "short", month: "short", day: "numeric" }), time].filter(Boolean).join(" · ");
 
   const handleBack = () => {
-    if (step === 0) nav({ to: "/provider/$id", params: { id: p.id } });
+    if (step === 0) nav({ to: previewPath("/provider/$id") as "/provider/$id", params: { id: p.id } });
     else setStep(step - 1);
   };
 
+  const recipientFields = <Step title={t(isTutoring ? "bookFlow.forWhomTitle" : "customerBooking.who", { name: firstName })}>
+    <div className="apply-chips">
+      {showMyselfOption(isBabysitting) && <CheckChip selected={forWhom === "myself"} onClick={() => setForWhom("myself")}>{t("bookFlow.forWhomMyself")}</CheckChip>}
+      {familyMembersQ.isError ? <QueryError onRetry={() => familyMembersQ.refetch()} /> : familyMembersQ.isLoading ? <p role="status">{t("common.loading")}</p> : (familyMembersQ.data ?? []).map((member) => {
+        const selectable = isBabysitting ? familyMemberSelectableForBabysitting(member, selectedSlot?.start ?? null) : { ok: true };
+        return <CheckChip key={member.id} selected={forWhom === member.id} disabled={!selectable.ok} onClick={() => setForWhom(member.id)}>
+          {member.full_name}{!selectable.ok && <span className="text-xs">{t("bookFlow.forWhomAgeOutOfRange")}</span>}
+        </CheckChip>;
+      })}
+      <button type="button" className="apply-chip" onClick={() => setDetailsSheet("member")}><Plus size={16} />{t("familyMembers.addMember")}</button>
+    </div>
+    {!familyMembersQ.isLoading && (familyMembersQ.data ?? []).length === 0 && <p className="text-xs text-muted-foreground">{t(isBabysitting ? "bookFlow.forWhomNeedChild" : "bookFlow.noFamilyMembers")}</p>}
+  </Step>;
+
   return (
     <PhoneFrame bg="bg-background">
-      <CustomerPageHero
-        title={p.name}
-        subtitle={t(`bookFlow.stepName.${stepKey}`)}
-        onBack={handleBack}
-      />
-
-      <div className="px-5">
-        {addressChipLabel ? (
-          <CustomerFloatingPanel className="!py-3">
-            <div className="inline-flex max-w-full items-center gap-1.5 text-xs font-extrabold text-foreground">
-              <MapPin className="h-3.5 w-3.5 shrink-0 text-brand" aria-hidden="true" />
-              <span className="truncate">{addressChipLabel}</span>
+      <main className="apply-ui apply-screen booking-screen" dir={lang === "ar" ? "rtl" : "ltr"}>
+        <StepHeader step={step + 1} total={4} onBack={handleBack} />
+        <div className="apply-content">
+          <h1 className="apply-title">{t(`customerBooking.titles.${stepKey}`, { name: firstName })}</h1>
+          {inlineError?.screen === stepKey && <p role="alert" className="booking-error">{inlineError.message}</p>}
+          {stepKey === "service" && <>
+            <div className="booking-provider">
+              <span className="booking-provider-avatar">{p.avatar && !avatarFailed ? <img src={p.avatar} alt={p.name} onError={() => setAvatarFailed(true)} /> : p.name[0]}</span>
+              <span className="booking-provider-text"><b>{p.name}</b><small><Star size={13} className="inline text-warning" /> {formatNumber(p.rating)} · {t("customerBooking.jobs", { count: p.jobs })} · {p.areas.join(" · ")}</small></span>
             </div>
-          </CustomerFloatingPanel>
-        ) : null}
-        <div
-          className={`${addressChipLabel ? "mt-4" : "-mt-8"} h-2 overflow-hidden rounded-full bg-surface-2`}
-        >
-          <div
-            className="h-full rounded-full bg-brand transition-all duration-500 ease-out"
-            style={{ width: `${((step + 1) / stepKeys.length) * 100}%` }}
-          />
-        </div>
-      </div>
-
-      <div className="flex-1 px-5 pb-40 pt-6">
-        {(stepKey === "service" || stepKey === "summary") && fixedPackage && (
-          <Step title={t("packages.fixedPrice")} sub={t(packageLabel(activeService.service).key, packageLabel(activeService.service).values)}>
-            <div className="rounded-2xl border border-brand bg-brand/5 p-4 text-xl font-extrabold text-brand">{formatEGP(subtotal)}</div>
-          </Step>
-        )}
-
-        {stepKey === "service" && (
-          <Step title={t("bookFlow.serviceTitle")} sub={t("bookFlow.serviceSub")}>
-            {services.length === 0 ? (
-              <div><p className="text-sm text-muted-foreground">{t("bookFlow.noServices")}</p>{otherProviders}</div>
-            ) : (
-              <div className="space-y-3">
-                {services.map((s: any) => {
-                  const label =
-                    (lang === "ar" ? s.service?.name_ar : s.service?.name_en) || s.service?.name_en;
-                  const active = (serviceId ?? services[0].service?.id) === s.service?.id;
-                  return (
-                    <Option
-                      key={s.service.id}
-                      active={active}
-                      onClick={() => {
-                        setServiceId(s.service.id);
-                        setCapabilityId(null);
-                        setTime(null);
-                        setSelectedSlot(null);
-                      }}
-                      label={isFixedPackage(s.service) ? `${label} · ${t(packageLabel(s.service).key, packageLabel(s.service).values)}` : label}
-                    />
-                  );
+            {services.length === 0 ? <div><p>{t("bookFlow.noServices")}</p>{otherProviders}</div> : services.map((s: any) => {
+              const active = activeService?.service?.id === s.service.id;
+              const fixed = isFixedPackage(s.service);
+              const teaching = isTutoringCategorySlug(s.service.category?.slug);
+              const label = (lang === "ar" ? s.service.name_ar : s.service.name_en) || s.service.name_en;
+              const subtitle = fixed ? t(packageLabel(s.service).key, packageLabel(s.service).values) : teaching ? t("pricePicker.sessionUnit") : `${formatEGP(Number(s.price_override ?? p.hourlyRate))} ${t("pricePicker.hourUnit")}`;
+              return <ServiceCard key={s.service.id} selected={active} title={label} subtitle={subtitle} icon={fixed ? (s.service.fixed_start_time ? <Clock size={22} /> : <Sun size={22} />) : teaching ? <BookOpen size={22} /> : <UserRound size={22} />}
+                onClick={() => { setServiceId(s.service.id); setCapabilityId(null); clearSlot(); }}>
+                {!teaching && !fixed && <NumberStepper value={parseInt(duration)} min={2} max={8} step={2} unitLabel={t("customerBooking.hours")} onChange={(hours) => { setDuration(`${hours}h`); clearSlot(); }} />}
+                {fixed && <b className="text-sm">{formatEGP(active ? subtotal : Number(s.price_override ?? p.hourlyRate))} · {t("packages.fixedPrice")}</b>}
+              </ServiceCard>;
+            })}
+            {isTutoring && <>
+              {recipientFields}
+              <Step title={t("bookFlow.pickCapability")}>
+                <details className="booking-section" open={!bookingEducation.educationCurriculumId || !bookingEducation.educationLevelId ? true : undefined}>
+                  <summary className="booking-add">{t("customerBooking.schoolDetails")}</summary>
+                  <EducationProfileFields value={bookingEducation} onChange={(next) => {
+                    userPickedCapabilityRef.current = true;
+                    setBookingEducation(next);
+                    const match = pickDefaultCapabilityForEducation(capabilitiesQ.data ?? [], activeService?.service?.id ?? serviceId, next.educationCurriculumId || null, next.educationLevelId || null);
+                    setCapabilityId(match?.id ?? null); clearSlot();
+                  }} />
+                  <label className="apply-agree"><input type="checkbox" checked={saveEducationForNextTime} onChange={(event) => setSaveEducationForNextTime(event.target.checked)} className="sr-only" /><span className={`apply-checkbox ${saveEducationForNextTime ? "on" : ""}`}>{saveEducationForNextTime && <Check size={14} />}</span>{t("studentEducation.saveForNextTime")}</label>
+                </details>
+                {requestedCapabilityMissing && <p className="booking-error">{t("bookFlow.capabilityUnavailable")}</p>}
+                {capabilitiesQ.isError ? <QueryError onRetry={() => capabilitiesQ.refetch()} /> : capabilitiesQ.isLoading ? <p role="status">{t("common.loading")}</p> : subjectGroups.length === 0 ? <div><p>{t("bookFlow.noCapabilities")}</p>{otherProviders}</div> : subjectGroups.map(group => {
+                  const cap = group.capabilities[0];
+                  const active = group === selectedGroup;
+                  const chosen = active ? selectedCapability ?? cap : cap;
+                  const title = [lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn, lang === "ar" ? cap.curriculumNameAr : cap.curriculumNameEn, lang === "ar" ? cap.levelNameAr : cap.levelNameEn].join(" · ");
+                  return <ServiceCard key={group.key} selected={active} title={title} subtitle={`${formatEGP(chosen.price)} ${t("pricePicker.sessionUnit")}`} icon={<BookOpen size={22} />}
+                    onClick={() => { userPickedCapabilityRef.current = true; setCapabilityId(cap.id); setBookingEducation(educationValueFromIds(cap.curriculumId, cap.levelId)); clearSlot(); }} />;
                 })}
-              </div>
-            )}
-          </Step>
-        )}
-
-        {stepKey === "duration" && isTutoring && (
-          <Step title={t("bookFlow.pickCapability")} sub={t("bookFlow.pickCapabilitySub")}>
-            <div className="mb-4">
-              <EducationProfileFields
-                value={bookingEducation}
-                onChange={(next) => {
-                  userPickedCapabilityRef.current = true;
-                  setBookingEducation(next);
-                  const match = pickDefaultCapabilityForEducation(
-                    capabilitiesQ.data ?? [],
-                    activeService?.service?.id ?? serviceId,
-                    next.educationCurriculumId || null,
-                    next.educationLevelId || null,
-                  );
-                  setCapabilityId(match?.id ?? null);
-                }}
-              />
-            </div>
-            <label className="mb-4 flex items-center gap-2 text-sm font-bold text-foreground">
-              <input
-                type="checkbox"
-                checked={saveEducationForNextTime}
-                onChange={(e) => setSaveEducationForNextTime(e.target.checked)}
-                className="h-4 w-4 rounded border-border"
-              />
-              {t("studentEducation.saveForNextTime", "Save for next time")}
-            </label>
-            {requestedCapabilityMissing ? (
-              <p className="mb-3 text-sm font-semibold text-coral">
-                {t("bookFlow.capabilityUnavailable")}
-              </p>
-            ) : null}
-            {capabilitiesQ.isError ? <QueryError onRetry={() => capabilitiesQ.refetch()} /> : capabilitiesQ.isLoading ? <p role="status">{t("common.loading")}</p> : (capabilitiesQ.data ?? []).length === 0 ? (
-              <div><p className="text-sm text-muted-foreground">{t("bookFlow.noCapabilities")}</p>{otherProviders}</div>
-            ) : (
-              <div className="space-y-3">
-                {(capabilitiesQ.data ?? [])
-                  .filter((cap) => {
-                    if (
-                      !bookingEducation.educationCurriculumId &&
-                      !bookingEducation.educationLevelId
-                    ) {
-                      return true;
-                    }
-                    if (
-                      bookingEducation.educationCurriculumId &&
-                      cap.curriculumId !== bookingEducation.educationCurriculumId
-                    ) {
-                      return false;
-                    }
-                    if (
-                      bookingEducation.educationLevelId &&
-                      cap.levelId !== bookingEducation.educationLevelId
-                    ) {
-                      return false;
-                    }
-                    return true;
-                  })
-                  .map((cap) => {
-                    const active = selectedCapability?.id === cap.id;
-                    const label = formatTeachingCapabilityLine({
-                      subject: lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn,
-                      curriculum: lang === "ar" ? cap.curriculumNameAr : cap.curriculumNameEn,
-                      level: lang === "ar" ? cap.levelNameAr : cap.levelNameEn,
-                      durationMin: cap.durationMin,
-                      price: cap.price,
-                    });
-                    return (
-                      <Option
-                        key={cap.id}
-                        active={active}
-                        onClick={() => {
-                          userPickedCapabilityRef.current = true;
-                          setCapabilityId(cap.id);
-                          setBookingEducation(educationValueFromIds(cap.curriculumId, cap.levelId));
-                        }}
-                        label={label}
-                      />
-                    );
-                  })}
-              </div>
-            )}
-            {selectedCapability ? (
-              <p className="mt-3 text-sm font-extrabold text-brand">
-                {t("bookFlow.sessionLine", {
-                  minutes: formatNumber(selectedCapability.durationMin),
-                })}{" "}
-                · {formatEGP(selectedCapability.price)}
-              </p>
-            ) : null}
-          </Step>
-        )}
-
-        {stepKey === "duration" && !isTutoring && !fixedPackage && (
-          <Step title={t("bookFlow.durationTitle")} sub={t("bookFlow.durationSub")}>
-            <div className="grid grid-cols-2 gap-3">
-              {durations.map((d) => {
-                const active = duration === d;
-                return (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => setDuration(d)}
-                    aria-pressed={active}
-                    className={`focus-ring tap-scale flex min-h-[5.5rem] flex-col items-start justify-center gap-1 rounded-[1.5rem] border px-4 py-4 text-start transition-all ${
-                      active
-                        ? "border-brand bg-brand text-brand-foreground shadow-[0_12px_28px_-14px_var(--brand)]"
-                        : "border-border/60 bg-surface-elevated text-foreground shadow-xs"
-                    }`}
-                  >
-                    <span className="text-lg font-black tracking-tight">{durationLabel(d)}</span>
-                    <span
-                      className={`text-sm font-extrabold ${active ? "text-brand-foreground/90" : "text-brand"}`}
-                    >
-                      {formatEGP(ratePerHour * parseInt(d))}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </Step>
-        )}
-
-        {stepKey === "schedule" && (
-          <Step title={t("bookFlow.scheduleTitle")} sub={t("bookFlow.scheduleSub")}>
-            <BookScheduleStep
-              locale={locale}
-              fixedTime={fixedStart ? t(packageLabel(activeService.service).key, packageLabel(activeService.service).values) : undefined}
-              maxAdvanceDays={bookingSettingsQ.data?.max_advance_days ?? 12}
-              date={date}
-              time={time}
-              timeBand={timeBand}
-              slotsLoading={slotsQ.isLoading || slotsQ.isFetching}
-              filteredSlots={filteredSlots}
-              hasSlotsForSelectedDate={packageSlots.length > 0}
-              scanning={scanningSchedule}
-              availabilityError={slotsQ.isError}
-              onRetry={() => void slotsQ.refetch()}
-              onDateChange={(d) => {
-                userPickedDateRef.current = true;
-                setScanningSchedule(false);
-                setDate(d);
-                setTime(null);
-                setSelectedSlot(null);
-              }}
-              onTimeChange={(label, slot) => {
-                setTime(label);
-                setSelectedSlot(slot);
-              }}
-              onTimeBandChange={setTimeBand}
-            />
-          </Step>
-        )}
-
-        {stepKey === "address" && (
+                {selectedGroup && <div><span className="apply-label">{t("customerBooking.sessionDuration")}</span><div className="apply-chips">{selectedGroup.capabilities.map(cap => <CheckChip key={cap.id} selected={cap.id === selectedCapability?.id} onClick={() => { userPickedCapabilityRef.current = true; setCapabilityId(cap.id); clearSlot(); }}>{t("bookFlow.sessionLine", { minutes: formatNumber(cap.durationMin) })}</CheckChip>)}</div></div>}
+              </Step>
+            </>}
+          </>}
+          {stepKey === "when" && <>
+            <BookingWhen providerId={providerId} serviceId={activeService?.service?.id ?? serviceId ?? ""} addressId={slotAddressId} service={activeService?.service ?? {}} durationMinutes={selectedCapability?.durationMin || hours * 60 || 120} maxAdvanceDays={bookingSettingsQ.data?.max_advance_days ?? 12} cairoTime={fixedPackage} locale={locale}
+              date={date} time={time} slots={packageSlots} loading={slotsQ.isLoading || slotsQ.isFetching || scanningSchedule} error={slotsQ.isError} onRetry={() => void slotsQ.refetch()}
+              onDateChange={(day) => { userPickedDateRef.current = true; setScanningSchedule(false); setDate(day); clearSlot(); }}
+              onTimeChange={(slot) => { setTime(slot.label); setSelectedSlot({ start: slot.start, end: slot.end }); setInlineError(null); }} />
+            {!slotsQ.isLoading && packageSlots.length === 0 && otherProviders}
+          </>}
+        {stepKey === "whereWho" && (
           <Step title={t("bookFlow.addressTitle")} sub={t("bookFlow.addressSub")}>
             <div id="booking-addresses" tabIndex={-1} />
             {addrsQ.isError ? <QueryError onRetry={() => addrsQ.refetch()} /> : addrsQ.isLoading ? (
@@ -969,12 +817,11 @@ export function BookContent({
                     : t("bookFlow.noAddressesYet", "You haven't saved an address yet.")
                 }
                 action={
-                  <Link
-                    to={previewPath("/addresses/new") as "/addresses/new"}
+                  <button type="button" onClick={() => setDetailsSheet("address")}
                     className="focus-ring tap-scale inline-flex items-center gap-1.5 rounded-full bg-brand px-5 py-3 text-sm font-extrabold text-brand-foreground"
                   >
                     <Plus className="h-4 w-4" /> {t("addresses.addAddress", "Add address")}
-                  </Link>
+                  </button>
                 }
               />
             ) : (
@@ -1002,24 +849,25 @@ export function BookContent({
                         setAddressId(a.id);
                         setAddress(lineParts.join(", "));
                       }}
-                      className={`focus-ring tap-scale flex w-full items-center gap-3 rounded-[1.25rem] border p-3.5 text-start transition-all ${addressId === a.id ? "border-brand bg-brand/5" : "border-border/60 bg-surface-elevated"}`}
+                      aria-pressed={addressId === a.id}
+                      className={`booking-option ${addressId === a.id ? "on" : ""}`}
                     >
-                      <Icon className="h-4 w-4 shrink-0 text-brand" />
-                      <div className="min-w-0 flex-1">
+                      <span className="apply-tile"><Icon size={20} /></span>
+                      <div className="booking-option-text">
                         <div className="text-sm font-bold">{title}</div>
-                        <div className="truncate text-xs text-muted-foreground">
+                        <div className="text-xs text-muted-foreground">
                           {lineParts.join(", ")}
                         </div>
                       </div>
+                      <span className={`booking-radio ${addressId === a.id ? "on" : ""}`} aria-hidden="true" />
                     </button>
                   );
                 })}
-                <Link
-                  to={previewPath("/addresses/new") as "/addresses/new"}
+                <button type="button" onClick={() => setDetailsSheet("address")}
                   className="focus-ring flex w-full items-center gap-2 rounded-[1.25rem] border border-dashed border-brand/40 p-3.5 text-sm font-extrabold text-brand"
                 >
                   <Plus className="h-4 w-4" /> {t("addresses.addAddress", "Add address")}
-                </Link>
+                </button>
               </div>
             )}
             {selectedAddress && (
@@ -1041,7 +889,7 @@ export function BookContent({
                       "This area is not currently served. Please choose another address.",
                     )}
                     <button type="button" className="min-h-11 underline" onClick={() => { document.getElementById("booking-addresses")?.scrollIntoView({ block: "center" }); document.getElementById("booking-addresses")?.focus(); }}>{t("bookingUx.changeAddress")}</button>
-                    <Link to={previewPath("/addresses/new") as "/addresses/new"} className="inline-flex min-h-11 items-center underline">{t("addresses.addAddress")}</Link>
+                    <button type="button" onClick={() => setDetailsSheet("address")} className="inline-flex min-h-11 items-center underline">{t("addresses.addAddress")}</button>
                   </div>
                 )}
               </div>
@@ -1049,92 +897,8 @@ export function BookContent({
           </Step>
         )}
 
-        {stepKey === "forWhom" && (
-          <Step
-            title={t(
-              isBabysitting ? "bookFlow.forWhomChildTitle" : "bookFlow.forWhomTitle",
-              isBabysitting ? "Which child is this for?" : "Who is this for?",
-            )}
-            sub={t(
-              isBabysitting ? "bookFlow.forWhomChildSub" : "bookFlow.forWhomSub",
-              isBabysitting
-                ? "Babysitting bookings are for one saved child."
-                : "Choose yourself or a saved family member.",
-            )}
-          >
-            <div className="space-y-2">
-              {showMyselfOption(isBabysitting) ? (
-                <button
-                  onClick={() => setForWhom("myself")}
-                  className={`focus-ring tap-scale flex w-full items-center justify-between rounded-[1.25rem] border p-4 text-start transition-all ${forWhom === "myself" ? "border-brand bg-brand/5" : "border-border/60 bg-surface-elevated"}`}
-                >
-                  <span className="font-bold">{t("bookFlow.forWhomMyself", "Myself")}</span>
-                  <span
-                    className={`grid h-6 w-6 place-items-center rounded-full border-2 ${forWhom === "myself" ? "border-brand bg-brand text-brand-foreground" : "border-border"}`}
-                  >
-                    {forWhom === "myself" && <Check className="h-3.5 w-3.5" />}
-                  </span>
-                </button>
-              ) : null}
-              {familyMembersQ.isError ? <QueryError onRetry={() => familyMembersQ.refetch()} /> : familyMembersQ.isLoading ? (
-                <div className="h-16 animate-pulse rounded-2xl bg-surface-2" />
-              ) : (familyMembersQ.data ?? []).length === 0 ? (
-                <div className="rounded-2xl bg-surface-2 p-4 text-center text-xs text-muted-foreground">
-                  {t(
-                    isBabysitting ? "bookFlow.forWhomNeedChild" : "bookFlow.noFamilyMembers",
-                    isBabysitting
-                      ? "Add a child family member to book babysitting."
-                      : "You haven't added any family members yet.",
-                  )}
-                </div>
-              ) : (
-                (familyMembersQ.data ?? []).map((m: any) => {
-                  const relationshipLabel =
-                    m.relationship === "other"
-                      ? m.relationship_other || t("familyMembers.relationships.other")
-                      : t(`familyMembers.relationships.${m.relationship}`);
-                  const selectable = isBabysitting
-                    ? familyMemberSelectableForBabysitting(m, selectedSlot?.start ?? null)
-                    : { ok: true };
-                  const active = forWhom === m.id;
-                  return (
-                    <button
-                      key={m.id}
-                      disabled={!selectable.ok}
-                      onClick={() => selectable.ok && setForWhom(m.id)}
-                      className={`focus-ring tap-scale flex w-full items-center justify-between rounded-[1.25rem] border p-4 text-start transition-all ${active ? "border-brand bg-brand/5" : "border-border/60 bg-surface-elevated"} ${!selectable.ok ? "opacity-50" : ""}`}
-                    >
-                      <span>
-                        <span className="block font-bold">{m.full_name}</span>
-                        <span
-                          className={`block text-xs ${active ? "text-white/70" : "text-muted-foreground"}`}
-                        >
-                          {relationshipLabel}
-                          {!selectable.ok
-                            ? ` — ${t("bookFlow.forWhomAgeOutOfRange", "This child is outside the supported 0–215 month range for the selected time.")}`
-                            : ""}
-                        </span>
-                      </span>
-                      <span
-                        className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border-2 ${active ? "border-brand bg-brand text-brand-foreground" : "border-border"}`}
-                      >
-                        {active && <Check className="h-3.5 w-3.5" />}
-                      </span>
-                    </button>
-                  );
-                })
-              )}
-              <Link
-                to="/family-members/new"
-                className="focus-ring flex w-full items-center gap-2 rounded-[1.25rem] border border-dashed border-brand/40 p-3.5 text-sm font-extrabold text-brand"
-              >
-                <Plus className="h-4 w-4" /> {t("familyMembers.addMember", "Add family member")}
-              </Link>
-            </div>
-          </Step>
-        )}
-
-        {stepKey === "requirements" && (
+          {stepKey === "whereWho" && !isTutoring && recipientFields}
+        {stepKey === "whereWho" && (!requirementsQ.isSuccess || bookingRequirements.length > 0) && (
           <Step
             title={t("bookFlow.requirementsTitle", "Requirements")}
             sub={t("bookFlow.requirementsSub", "Some items for this service need to be arranged.")}
@@ -1174,7 +938,7 @@ export function BookContent({
                           onClick={() =>
                             setRequirementChoices((c) => ({ ...c, [r.id]: "customer" }))
                           }
-                          className={`rounded-xl border p-2.5 text-xs font-bold ${choice === "customer" ? "border-brand bg-brand/5 text-brand" : "border-border text-muted-foreground"}`}
+                          aria-pressed={choice === "customer"} className={`apply-chip ${choice === "customer" ? "on" : ""}`}
                         >
                           {t("bookFlow.reqIWillProvide", "I will provide it")}
                         </button>
@@ -1182,7 +946,7 @@ export function BookContent({
                           onClick={() =>
                             setRequirementChoices((c) => ({ ...c, [r.id]: "provider" }))
                           }
-                          className={`rounded-xl border p-2.5 text-xs font-bold ${choice === "provider" ? "border-brand bg-brand/5 text-brand" : "border-border text-muted-foreground"}`}
+                          aria-pressed={choice === "provider"} className={`apply-chip ${choice === "provider" ? "on" : ""}`}
                         >
                           {t("bookFlow.reqProviderWillProvide", "Provider provides — {{fee}}", {
                             fee: formatEGP(Number(r.provider_extra_fee)),
@@ -1197,51 +961,31 @@ export function BookContent({
           </Step>
         )}
 
-        {stepKey === "summary" && (
-          <Step title={t("bookFlow.summaryTitle")}>
-            <details open={notes ? true : undefined} className="mt-4">
-              <summary className="min-h-11 cursor-pointer py-3 text-sm font-bold">{t("bookFlow.notesTitle")}</summary>
-              <label className="block text-xs text-muted-foreground">{t("bookFlow.notesSub")}
-                <textarea rows={4} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t("bookFlow.notesPlaceholder")} className="mt-2 w-full resize-none rounded-[1.25rem] border border-border bg-surface p-4 text-[15px] outline-none focus:border-brand" />
-              </label>
-            </details>
-            <Card className="p-4">
-              <div className="flex items-center gap-3 border-b border-border pb-3">
-                <Avatar src={p.avatar} className="h-14 w-14 rounded-2xl" />
-                <div className="min-w-0">
-                  <div className="font-bold">{p.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {(lang === "ar"
-                      ? activeService?.service?.name_ar
-                      : activeService?.service?.name_en) || ""}{" "}
-                    ·{" "}
-                    {tutoringQuote
-                      ? t("bookFlow.sessionLine", {
-                          minutes: formatNumber(tutoringQuote.durationMin),
-                        })
-                      : duration}
-                  </div>
-                </div>
-              </div>
-              <Row label={t("bookFlow.rowForWhom", "For")} value={forWhomLabel} />
-              <Row
-                label={t("bookFlow.rowDate")}
-                value={
-                  date
-                    ? date.toLocaleDateString(locale, {
-                        weekday: "short",
-                        month: "short",
-                        day: "numeric",
-                      })
-                    : t("bookFlow.dash")
-                }
-              />
-              <Row label={t("bookFlow.rowTime")} value={time || t("bookFlow.dash")} />
-              <Row label={t("bookFlow.rowAddress")} value={address || t("bookFlow.dash")} />
-              {notes && <Row label={t("bookFlow.rowNotes")} value={notes} />}
+
+          {stepKey === "whereWho" && <label><span className="apply-label">{t("bookFlow.notesTitle")}</span><textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t("bookFlow.notesPlaceholder")} className="booking-notes" /></label>}
+          {stepKey === "review" && <>
+            <div>
+              <ReviewRow label={t("bookFlow.stepName.service")} value={`${serviceName} · ${durationText}`} onEdit={() => editScreen("service")} />
+              <ReviewRow label={t("bookFlow.rowDate")} value={whenText} onEdit={() => editScreen("when")} />
+              <ReviewRow label={t("bookFlow.rowAddress")} value={address} onEdit={() => editScreen("whereWho")} />
+              <ReviewRow label={t("bookFlow.rowForWhom")} value={forWhomLabel} onEdit={() => editScreen(isTutoring ? "service" : "whereWho")} />
+              {notes && <ReviewRow label={t("bookFlow.rowNotes")} value={notes} onEdit={() => editScreen("whereWho")} />}
+            </div>
+            <div className="booking-bill">
+              <Row label={tutoringQuote ? t("bookFlow.sessionLine", { minutes: formatNumber(tutoringQuote.durationMin) }) : fixedPackage ? t("packages.fixedPrice") : t("bookFlow.rateLine", { rate: formatEGP(ratePerHour), hours: formatNumber(hours) })} value={formatEGP(subtotal)} />
+              <Row label={t("bookFlow.serviceFee")} value={formatEGP(fee)} />
+              <Row label={t("bookFlow.vat")} value={formatEGP(vat)} />
+              {extrasTotal > 0 && <Row label={t("bookFlow.extrasTotal")} value={formatEGP(extrasTotal)} />}
+              {travelFee > 0 && <Row label={t("bookFlow.travelFee")} value={formatEGP(travelFee)} />}
+              {promoDiscount > 0 && <Row label={t("bookFlow.promoDiscount")} value={`-${formatEGP(promoDiscount)}`} />}
+              <div className="booking-total"><span>{t("bookFlow.total")}</span><span>{formatEGP(total)}</span></div>
+            </div>
+            {billingQ.isError && <QueryError onRetry={() => billingQ.refetch()} />}
+            <details><summary className="booking-add">{t("customerBooking.promo")}</summary>
               <div className="mt-3 border-t border-border pt-3">
                 <div className="flex items-center gap-2">
-                  <input
+                  <TextField
+                    label={t("bookFlow.promoPlaceholder")}
                     value={promoCode}
                     onChange={(e) => {
                       setPromoCode(e.target.value);
@@ -1289,52 +1033,9 @@ export function BookContent({
                   </div>
                 )}
               </div>
-              <div className="mt-3 border-t border-border pt-3 space-y-1.5 text-sm">
-                <Row
-                  label={
-                    tutoringQuote
-                      ? t("bookFlow.sessionLine", {
-                          minutes: formatNumber(tutoringQuote.durationMin),
-                        })
-                      : fixedPackage ? t("packages.fixedPrice") : t("bookFlow.rateLine", {
-                          rate: formatEGP(ratePerHour),
-                          hours: formatNumber(hours),
-                        })
-                  }
-                  value={formatEGP(subtotal)}
-                  small
-                />
-                <Row label={t("bookFlow.serviceFee")} value={formatEGP(fee)} small />
-                <Row label={t("bookFlow.vat")} value={formatEGP(vat)} small />
-                {extrasTotal > 0 && (
-                  <Row label={t("bookFlow.extrasTotal")} value={formatEGP(extrasTotal)} small />
-                )}
-                {travelFee > 0 && (
-                  <Row label={t("bookFlow.travelFee")} value={formatEGP(travelFee)} small />
-                )}
-                {promoDiscount > 0 && (
-                  <Row
-                    label={t("bookFlow.promoDiscount")}
-                    value={`-${formatEGP(promoDiscount)}`}
-                    small
-                  />
-                )}
-                <div className="mt-2 flex items-center justify-between border-t border-border pt-2">
-                  <span className="text-sm font-bold">{t("bookFlow.total")}</span>
-                  <span className="text-xl font-black tracking-tight text-brand">
-                    {formatEGP(total)}
-                  </span>
-                </div>
-                <div className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
-                  <Check className="h-3 w-3 text-success" aria-hidden="true" />
-                  {t("bookFlow.freeCancel")}
-                </div>
-              </div>
-            </Card>
-          </Step>
-        )}
-
-        {stepKey === "payment" && (
+            </details>
+          </>}
+        {stepKey === "review" && (
           <Step title={t("bookFlow.paymentTitle")} sub={t("bookFlow.paymentSub")}>
             {methodsQ.isLoading ? (
               <div className="space-y-3">
@@ -1404,36 +1105,15 @@ export function BookContent({
             ) : null}
           </Step>
         )}
-      </div>
-
-      <div className="action-bar safe-bottom px-5 pt-3">
-        {step >= 1 && (
-          <div className="mb-3 flex items-baseline justify-between">
-            <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">
-              {t("bookFlow.total")}
-            </span>
-            <span className="text-2xl font-black tracking-tight text-foreground">
-              {formatEGP(total)}
-            </span>
-          </div>
-        )}
-        {requirementsBlock && stepKey !== "requirements" && <button type="button" className="min-h-11 px-3 font-bold text-brand" onClick={() => setRequestedStep("requirements")}>{t("bookFlow.requirementsTitle")}</button>}
-        {disabledReason && !(stepKey === "payment" && noPaymentMethods) && <p role="status" className="mb-2 text-center text-xs font-semibold text-muted-foreground">{t(disabledReason)}</p>}
-        {stepKey === "payment" && paymentMethodId && !methodsQ.isError && <p className="mb-2 text-center text-xs text-muted-foreground">{t(paymentCopy.next)}</p>}
-        {stepKey === "payment" && noPaymentMethods ? <Link to={previewPath("/help") as "/help"} className="flex min-h-12 items-center justify-center rounded-full bg-brand px-4 font-bold text-brand-foreground">{t("bookingUx.contactSupport")}</Link> : <PrimaryButton onClick={next} disabled={!canNext() || createBooking.isPending}>
-          {createBooking.isPending ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
-          ) : stepKey === "payment" ? (
-            <>
-              {t(paymentCopy.cta, { price: formatEGP(total) })}
-            </>
-          ) : stepKey === "summary" ? (
-            t("bookFlow.continueToPayment")
-          ) : (
-            t("bookFlow.continue")
-          )}
-        </PrimaryButton>}
-      </div>
+        </div>
+        {missingStep && bookingScreenForStep(missingStep, isTutoring) !== stepKey && <button type="button" className="booking-add px-5" onClick={() => editScreen(bookingScreenForStep(missingStep, isTutoring))}>{t(`bookFlow.stepName.${missingStep}`)}</button>}
+        {stepKey === "review" && paymentMethodId && !methodsQ.isError && <p className="px-5 text-xs text-muted-foreground">{t(paymentCopy.next)}</p>}
+        <StickyCta onClick={stepKey === "review" && noPaymentMethods ? () => { void nav({ to: previewPath("/help") as "/help" }); } : next}
+          disabled={!(stepKey === "review" && noPaymentMethods) && (!canNext() || createBooking.isPending)} hint={disabledReason ? t(disabledReason) : undefined}>
+          {createBooking.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : stepKey === "review" && noPaymentMethods ? t("bookingUx.contactSupport") : t(stepKey === "review" ? "customerBooking.confirm" : "customerBooking.next", { total: formatEGP(total) })}
+        </StickyCta>
+        {detailsSheet && <BookingDetailsSheet kind={detailsSheet} firstAddress={(addrsQ.data?.length ?? 0) === 0} onClose={() => { setDetailsSheet(null); void addrsQ.refetch(); void familyMembersQ.refetch(); }} />}
+      </main>
     </PhoneFrame>
   );
 }
@@ -1488,85 +1168,21 @@ function PaymentMethodInstructions({
   );
 }
 
-function Step({
-  title,
-  sub,
-  children,
-}: {
-  title: string;
-  sub?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="animate-rise">
-      <h2 className="text-2xl font-extrabold tracking-tight text-foreground">{title}</h2>
-      {sub ? <p className="mt-1.5 text-body font-medium text-muted-foreground">{sub}</p> : null}
-      <div className="mt-5 rounded-[1.75rem] border border-border/50 bg-surface-elevated p-4 shadow-sm">
-        {children}
-      </div>
-    </div>
-  );
+function Step({ title, children }: { title: string; sub?: string; children: React.ReactNode }) {
+  return <section className="booking-section"><h2 className="apply-label">{title}</h2>{children}</section>;
 }
 
-function Option({
-  active,
-  onClick,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`focus-ring tap-scale flex w-full min-h-[3.75rem] items-center justify-between rounded-[1.25rem] border px-4 text-start transition-all ${
-        active ? "border-brand bg-brand/5" : "border-border/60 bg-surface-elevated"
-      }`}
-    >
-      <span className="font-bold text-foreground">{label}</span>
-      <span
-        className={`grid h-6 w-6 place-items-center rounded-full border-2 ${active ? "border-brand bg-brand text-brand-foreground" : "border-border"}`}
-      >
-        {active ? <Check className="h-3.5 w-3.5" /> : null}
-      </span>
-    </button>
-  );
+function ReviewRow({ label, value, onEdit }: { label: string; value: string; onEdit: () => void }) {
+  const { t } = useTranslation();
+  return <div className="booking-review-row"><span className="booking-review-text"><small>{label}</small><b>{value}</b></span><button type="button" className="booking-edit" onClick={onEdit} aria-label={`${t("common.edit")} ${label}`}>{t("common.edit")}</button></div>;
 }
 
-function PayOption({ icon, label, sub, active, onClick }: any) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`focus-ring tap-scale flex w-full items-center gap-3 rounded-[1.25rem] border p-4 text-start transition-all ${
-        active ? "border-brand bg-brand/5" : "border-border/60 bg-surface-elevated shadow-xs"
-      }`}
-    >
-      <div className="grid h-11 w-11 place-items-center rounded-2xl bg-brand/8 text-brand">
-        {icon}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="text-sm font-bold text-foreground">{label}</div>
-        <div className="text-xs text-muted-foreground">{sub}</div>
-      </div>
-      <span
-        className={`grid h-6 w-6 place-items-center rounded-full border-2 ${active ? "border-brand bg-brand text-brand-foreground" : "border-border"}`}
-      >
-        {active ? <Check className="h-3.5 w-3.5" /> : null}
-      </span>
-    </button>
-  );
+function PayOption({ icon, label, sub, active, onClick }: { icon: React.ReactNode; label: string; sub?: string; active: boolean; onClick: () => void }) {
+  return <button type="button" onClick={onClick} aria-pressed={active} className={`booking-option ${active ? "on" : ""}`}>
+    <span className="apply-tile">{icon}</span><span className="booking-option-text"><b>{label}</b><small>{sub}</small></span><span className={`booking-radio ${active ? "on" : ""}`} aria-hidden="true" />
+  </button>;
 }
 
-function Row({ label, value, small }: { label: string; value: string; small?: boolean }) {
-  return (
-    <div
-      className={`mt-2 flex items-start justify-between gap-3 ${small ? "text-xs text-muted-foreground" : "text-sm"}`}
-    >
-      <span>{label}</span>
-      <span className={small ? "" : "font-semibold text-end"}>{value}</span>
-    </div>
-  );
+function Row({ label, value }: { label: string; value: string }) {
+  return <div><span>{label}</span><span>{value}</span></div>;
 }

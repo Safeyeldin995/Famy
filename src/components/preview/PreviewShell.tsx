@@ -23,7 +23,7 @@ export function PreviewShell({ children }: { children: ReactNode }) {
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
   const isAdminPreview = isPreviewAdminRoute(pathname);
-  const applyPreview = pathname === "/preview/pro/apply" || pathname.startsWith("/preview/pro/setup/");
+  const applyPreview = pathname === "/preview/pro/apply" || pathname.startsWith("/preview/pro/setup/") || pathname.startsWith("/preview/book/");
   const showBanner = !fullBleed && !isAdminPreview && !applyPreview;
   const showFloatingHub = !isHubIndex(pathname) && !isAdminPreview && !applyPreview;
 
