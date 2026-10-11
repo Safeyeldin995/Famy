@@ -141,13 +141,11 @@ vi.mock("@/lib/db/queries", () => ({
         },
       ]);
     if (opts.includeUnavailable && slotCache.get(key)?.length === 1) {
-      slotCache
-        .get(key)
-        ?.push({
-          label: "Unavailable",
-          start: new Date(+start + 3600000),
-          end: new Date(+start + (minutes + 60) * 60000),
-        });
+      slotCache.get(key)?.push({
+        label: "Unavailable",
+        start: new Date(+start + 3600000),
+        end: new Date(+start + (minutes + 60) * 60000),
+      });
     }
     return query(slotCache.get(key));
   },
