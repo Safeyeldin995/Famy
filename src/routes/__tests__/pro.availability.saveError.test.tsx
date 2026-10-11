@@ -14,7 +14,8 @@ const availabilityData = vi.hoisted(() => [
   { weekday: 1, start_time: "09:00:00", end_time: "17:00:00" },
 ]);
 
-const emptyList = vi.hoisted(() => [] as const);
+const vacationData = vi.hoisted(() => [{ id: "vacation", start_date: "2026-11-01", end_date: "2026-11-03", reason: "Vacation note" }]);
+const holidayData = vi.hoisted(() => [{ id: "holiday", date: "2026-11-10", reason: "Day-off note" }]);
 
 const provider = vi.hoisted(() => ({
   id: "prov-1",
@@ -74,10 +75,10 @@ vi.mock("@/lib/db/provider-queries", () => ({
   }),
   useReplaceAvailability: () => saveState,
   useUpdateProvider: () => ({ mutate: vi.fn(), isPending: false }),
-  useProviderVacations: () => ({ data: emptyList, isError: false, refetch: vi.fn() }),
+  useProviderVacations: () => ({ data: vacationData, isError: false, refetch: vi.fn() }),
   useAddVacation: () => ({ mutate: vi.fn(), isPending: false }),
   useDeleteVacation: () => ({ mutate: vi.fn() }),
-  useProviderExceptions: () => ({ data: emptyList, isError: false, refetch: vi.fn() }),
+  useProviderExceptions: () => ({ data: holidayData, isError: false, refetch: vi.fn() }),
   useAddException: () => ({ mutate: vi.fn(), isPending: false }),
   useDeleteException: () => ({ mutate: vi.fn() }),
 }));
@@ -92,6 +93,7 @@ describe("provider weekly availability save error", () => {
     saveState.isSuccess = false;
     saveState.isError = false;
     provider.vacation_mode = false;
+    availabilityData.splice(0, availabilityData.length, { weekday: 1, start_time: "09:00:00", end_time: "17:00:00" });
     await i18n.changeLanguage("en");
   });
 
@@ -123,12 +125,40 @@ describe("provider weekly availability save error", () => {
     ] });
   });
 
+  it("starts shared mode from loaded rules and edits sorted rows by weekday", () => {
+    availabilityData.splice(0, availabilityData.length,
+      { weekday: 1, start_time: "09:17:00", end_time: "17:00:00" },
+      { weekday: 6, start_time: "18:00:00", end_time: "24:00:00" },
+    );
+    render(<AvailabilityPage />);
+    expect((screen.getByRole("checkbox", { name: i18n.t("providerSetup.sameHours") }) as HTMLInputElement).checked).toBe(false);
+    const starts = screen.getAllByLabelText(i18n.t("pro.schedule.start")) as HTMLSelectElement[];
+    expect(starts.map(node => node.value)).toEqual(["18:00", "09:17"]);
+    expect(starts[0].options).toHaveLength(48);
+    expect(starts[1].options).toHaveLength(49);
+    fireEvent.change(starts[0], { target: { value: "18:30" } });
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("pro.schedule.saveSchedule") }));
+    expect(saveState.mutate).toHaveBeenCalledWith({ providerId: "prov-1", rules: [
+      { weekday: 1, start_time: "09:17", end_time: "17:00" },
+      { weekday: 6, start_time: "18:30", end_time: "24:00" },
+    ] });
+  });
+
+  it("renders Arabic calendar dates and keeps reason text on a muted second line", async () => {
+    await i18n.changeLanguage("ar");
+    render(<AvailabilityPage />);
+    expect(screen.getByText("1 نوفمبر لحد 3 نوفمبر")).toBeTruthy();
+    expect(screen.getByText("الثلاثاء 10 نوفمبر")).toBeTruthy();
+    expect(screen.getByText("Vacation note").className).toContain("text-muted-foreground");
+    expect(screen.getByText("Day-off note").className).toContain("text-muted-foreground");
+  });
+
   it("shows the translated error, not Saved, and keeps unsaved form values", async () => {
     const { rerender } = render(<AvailabilityPage />);
 
     const mondayStart = screen.getByLabelText(i18n.t("pro.schedule.start"));
     fireEvent.change(mondayStart, { target: { value: "10:00" } });
-    expect((screen.getAllByDisplayValue("10:00")[0] as HTMLInputElement).value).toBe("10:00");
+    expect((screen.getByLabelText(i18n.t("pro.schedule.start")) as HTMLSelectElement).value).toBe("10:00");
 
     fireEvent.click(screen.getByRole("button", { name: "Save schedule" }));
     expect(saveState.mutate).toHaveBeenCalledWith({
@@ -144,7 +174,7 @@ describe("provider weekly availability save error", () => {
       "Could not save your weekly hours. Your previous schedule was kept.",
     );
     expect(screen.queryByText("Saved")).toBeNull();
-    expect((screen.getAllByDisplayValue("10:00")[0] as HTMLInputElement).value).toBe("10:00");
+    expect((screen.getByLabelText(i18n.t("pro.schedule.start")) as HTMLSelectElement).value).toBe("10:00");
 
     await i18n.changeLanguage("ar");
     rerender(<AvailabilityPage />);
@@ -153,6 +183,6 @@ describe("provider weekly availability save error", () => {
     );
     expect(screen.queryByText("تم الحفظ")).toBeNull();
     expect(screen.queryByText("Saved")).toBeNull();
-    expect((screen.getAllByDisplayValue("10:00")[0] as HTMLInputElement).value).toBe("10:00");
+    expect((screen.getByLabelText(i18n.t("pro.schedule.start")) as HTMLSelectElement).value).toBe("10:00");
   });
 });

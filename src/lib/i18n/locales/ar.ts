@@ -835,7 +835,7 @@ const ar: Translation = {
     notFound: "المحترف غير موجود",
     unnamed: "مقدم خدمة",
   },
-  scheduleUi: {"hours": "مواعيد شغلك", "midnight": "12 بالليل", "vacation": "إجازة", "vacations": "إجازات بتواريخ", "holidays": "أيام مش هتشتغل فيها", "add": "+ ضيف", "reason": "السبب (اختياري)", "on": "شغالة", "off": "مقفولة", "minutes": "دقيقة", "hoursUnit": "ساعة", "days": "يوم"},
+  scheduleUi: {"dateRange": "{{start}} لحد {{end}}", "hours": "مواعيد شغلك", "midnight": "12 بالليل", "vacation": "إجازة", "vacations": "إجازات بتواريخ", "holidays": "أيام مش هتشتغل فيها", "add": "+ ضيف", "reason": "السبب (اختياري)", "on": "شغالة", "off": "مقفولة", "minutes": "دقيقة", "hoursUnit": "ساعة", "days": "يوم"},
   providerProfile: {
     coverageReview: "فريق فامي هيراجع مناطق خدمتك",
     trust: "ثقة {{score}}",

@@ -1,24 +1,27 @@
+import { scheduleTimeChoices, timeChoiceLabel } from "@/lib/provider/scheduleDate";
 import { Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { BottomSheetSelect } from "@/components/famio/BottomSheetSelect";
 import { CheckChip } from "@/components/famio/CheckChip";
 import { setSharedWorkingHours, type WorkingRule } from "@/lib/provider/setupHelpers";
 
+const chipOrder = [6, 0, 1, 2, 3, 4, 5];
 const dayKeys = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 export function WeeklyHoursEditor({
   value,
   onChange,
   sameHours,
   onSameHoursChange,
-  minuteChoices = false,
 }: {
   value: WorkingRule[];
   onChange: (value: WorkingRule[]) => void;
   sameHours: boolean;
   onSameHoursChange: (value: boolean) => void;
-  minuteChoices?: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const sortedRows = [...value].sort(
+    (a, b) => chipOrder.indexOf(a.weekday) - chipOrder.indexOf(b.weekday),
+  );
   return (
     <div className="space-y-4">
       <label className="apply-agree min-h-11">
@@ -47,7 +50,7 @@ export function WeeklyHoursEditor({
         {t("providerSetup.sameHours")}
       </label>
       <div className="flex flex-wrap gap-2">
-        {[6, 0, 1, 2, 3, 4, 5].map((weekday) => (
+        {chipOrder.map((weekday) => (
           <CheckChip
             key={weekday}
             selected={value.some((row) => row.weekday === weekday)}
@@ -70,24 +73,14 @@ export function WeeklyHoursEditor({
           </CheckChip>
         ))}
       </div>
-      {(sameHours ? value.slice(0, 1) : value).map((row, index) => (
+      {(sameHours ? sortedRows.slice(0, 1) : sortedRows).map((row, index) => (
         <div key={`${row.weekday}-${index}`} className="space-y-2">
           {!sameHours && (
             <p className="apply-label">{t(`pro.schedule.days.${dayKeys[row.weekday]}`)}</p>
           )}
           <div className="grid grid-cols-2 gap-3">
             {(["start_time", "end_time"] as const).map((key) => {
-              const increment = minuteChoices ? 1 : 60;
-              const values = [
-                ...new Set([
-                  ...Array.from(
-                    { length: 1440 / increment + (key === "end_time" ? 1 : 0) },
-                    (_, i) =>
-                      `${String(Math.floor((i * increment) / 60)).padStart(2, "0")}:${String((i * increment) % 60).padStart(2, "0")}`,
-                  ),
-                  row[key],
-                ]),
-              ].sort();
+              const values = scheduleTimeChoices(row[key], key === "end_time");
               return (
                 <BottomSheetSelect
                   key={key}
@@ -95,12 +88,12 @@ export function WeeklyHoursEditor({
                   value={row[key]}
                   options={values.map((time) => ({
                     value: time,
-                    label: time === "24:00" ? t("scheduleUi.midnight") : time,
+                    label: timeChoiceLabel(time, i18n.language),
                   }))}
                   onChange={(time) =>
                     onChange(
-                      value.map((item, i) =>
-                        sameHours || i === index ? { ...item, [key]: time } : item,
+                      value.map((item) =>
+                        sameHours || item.weekday === row.weekday ? { ...item, [key]: time } : item,
                       ),
                     )
                   }

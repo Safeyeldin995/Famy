@@ -1,3 +1,4 @@
+import { scheduleDateLabel } from "@/lib/provider/scheduleDate";
 import { WeeklyHoursEditor } from "@/components/provider/WeeklyHoursEditor";
 import { ScheduleDateSheet } from "@/components/provider/ScheduleDateSheet";
 import { NumberStepper } from "@/components/famio/NumberStepper";
@@ -26,7 +27,7 @@ import { Trash2 } from "lucide-react";
 export const Route = createFileRoute("/pro/availability")({ component: AvailabilityPage });
 
 export function AvailabilityPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const p = useMyProvider();
   const provider = p.data as any;
   const availQ = useProviderAvailability(provider?.id);
@@ -40,7 +41,7 @@ export function AvailabilityPage() {
   const delExc = useDeleteException();
 
   const [rows, setRows] = useState<WorkingRule[]>([]);
-  const [sameHours, setSameHours] = useState(false);
+  const [sameHours, setSameHours] = useState(() => hasSharedWorkingHours(availQ.data ?? []));
   const [dateSheet, setDateSheet] = useState<"vacation" | "holiday" | null>(null);
   const [rules, setRules] = useState({ buffer_minutes: "30", min_notice_hours: "4", max_advance_days: "60" });
 
@@ -49,7 +50,7 @@ export function AvailabilityPage() {
       // Preserve the existing one-row-per-day editor contract.
       const loaded = Array.from({ length: 7 }, (_, weekday) => availQ.data.find(row => row.weekday === weekday)).filter(row => row != null).map(row => ({ weekday: row.weekday, start_time: row.start_time.slice(0, 5), end_time: row.end_time.slice(0, 5) }));
       setRows(loaded);
-      setSameHours(hasSharedWorkingHours(loaded));
+      setSameHours(hasSharedWorkingHours(availQ.data));
     }
   }, [availQ.data]);
 
@@ -99,7 +100,7 @@ export function AvailabilityPage() {
       <div className="apply-ui space-y-5 px-5 pb-28 pt-2">
         <section>
           <h2 className="apply-label">{t("scheduleUi.hours")}</h2>
-          {availQ.isError ? <QueryError compact onRetry={() => availQ.refetch()} /> : <Card className="p-4"><fieldset disabled={availQ.isLoading || save.isPending}><WeeklyHoursEditor value={rows} onChange={setRows} sameHours={sameHours} onSameHoursChange={setSameHours} minuteChoices /></fieldset></Card>}
+          {availQ.isError ? <QueryError compact onRetry={() => availQ.refetch()} /> : <Card className="p-4"><fieldset disabled={availQ.isLoading || save.isPending}><WeeklyHoursEditor value={rows} onChange={setRows} sameHours={sameHours} onSameHoursChange={setSameHours} /></fieldset></Card>}
           <PrimaryButton onClick={handleSave} disabled={save.isPending || availQ.isError || availQ.isLoading} className="mt-4">{t(save.isPending ? "pro.common.saving" : "pro.schedule.saveSchedule")}</PrimaryButton>
           {save.isError && <p role="alert" className="mt-2 text-sm text-destructive">{t("pro.schedule.saveError")}</p>}
           {save.isSuccess && !save.isError && <p className="mt-2 text-sm text-success">{t("pro.common.saved")}</p>}
@@ -114,7 +115,7 @@ export function AvailabilityPage() {
           <div className="flex min-h-11 items-center justify-between gap-3"><h2 className="font-extrabold">{t(kind === "vacation" ? "scheduleUi.vacations" : "scheduleUi.holidays")}</h2><button type="button" className="min-h-11 px-3 font-bold text-brand" onClick={() => setDateSheet(kind)}>{t("scheduleUi.add")}</button></div>
           {(kind === "vacation" ? vacQ : excQ).isError ? <QueryError compact onRetry={() => (kind === "vacation" ? vacQ : excQ).refetch()} /> : <Card className="divide-y divide-border/50 px-4">
             {(kind === "vacation" ? vacQ.data ?? [] : excQ.data ?? []).map(item => <div key={item.id} className="flex min-h-16 items-center justify-between gap-3 py-2">
-              <div className="min-w-0 text-sm font-bold"><p>{"start_date" in item ? `${item.start_date} → ${item.end_date}` : item.date}</p>{item.reason && <p className="text-xs font-normal text-muted-foreground">{item.reason}</p>}</div>
+              <div className="min-w-0 text-sm font-bold"><p>{"start_date" in item ? t("scheduleUi.dateRange", { start: scheduleDateLabel(item.start_date, i18n.language), end: scheduleDateLabel(item.end_date, i18n.language) }) : scheduleDateLabel(item.date, i18n.language, true)}</p>{item.reason && <p className="text-xs font-normal text-muted-foreground">{item.reason}</p>}</div>
               <button type="button" aria-label={t("common.delete")} className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted-foreground hover:text-destructive" onClick={() => (kind === "vacation" ? delVac : delExc).mutate({ id: item.id, providerId: provider.id })}><Trash2 size={18} /></button>
             </div>)}
           </Card>}

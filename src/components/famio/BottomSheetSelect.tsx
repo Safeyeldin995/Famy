@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Drawer } from "vaul";
 import { Command } from "cmdk";
 import { ChevronDown, X } from "lucide-react";
@@ -21,6 +21,7 @@ export function BottomSheetSelect({
   disabled?: boolean;
   nested?: boolean;
 }) {
+  const selectedItem = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const { t, i18n } = useTranslation();
   const Root = nested ? Drawer.NestedRoot : Drawer.Root;
@@ -50,6 +51,9 @@ export function BottomSheetSelect({
           className="apply-ui apply-sheet"
           dir={i18n?.dir?.() ?? "rtl"}
           aria-describedby={undefined}
+          onOpenAutoFocus={() => {
+            requestAnimationFrame(() => selectedItem.current?.scrollIntoView({ block: "center" }));
+          }}
         >
           <div className="apply-grab" />
           <div className="flex items-center justify-between">
@@ -58,7 +62,7 @@ export function BottomSheetSelect({
               <X size={18} />
             </Drawer.Close>
           </div>
-          <Command>
+          <Command defaultValue={options.find((option) => option.value === value)?.label}>
             <Command.Input
               aria-label={t("common.search")}
               placeholder={t("common.search")}
@@ -69,6 +73,7 @@ export function BottomSheetSelect({
               {options.map((option) => (
                 <Command.Item
                   key={option.value}
+                  ref={value === option.value ? selectedItem : undefined}
                   value={option.label}
                   className={`apply-option ${value === option.value ? "font-extrabold" : ""}`}
                   onSelect={() => {

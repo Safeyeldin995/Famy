@@ -839,7 +839,7 @@ const en = {
     notFound: "Professional not found",
     unnamed: "Provider",
   },
-  scheduleUi: {"hours": "Your working hours", "midnight": "12 midnight", "vacation": "Vacation", "vacations": "Vacation dates", "holidays": "Days off", "add": "+ Add", "reason": "Reason (optional)", "on": "On", "off": "Off", "minutes": "minutes", "hoursUnit": "hours", "days": "days"},
+  scheduleUi: {"dateRange": "{{start}} to {{end}}", "hours": "Your working hours", "midnight": "12 midnight", "vacation": "Vacation", "vacations": "Vacation dates", "holidays": "Days off", "add": "+ Add", "reason": "Reason (optional)", "on": "On", "off": "Off", "minutes": "minutes", "hoursUnit": "hours", "days": "days"},
   providerProfile: {
     coverageReview: "The Famy team will review your service areas",
     trust: "Trust {{score}}",
