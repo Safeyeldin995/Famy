@@ -1,7 +1,8 @@
+import { buildBookingRequest, buildBookingQuote } from "@/lib/booking/bookingRequest";
 import { paymentPresentation } from "@/lib/booking/paymentPresentation";
 import { bookingDisabledReason } from "@/lib/booking/disabledReason";
 import { buildCustomerBookingSteps, resolveCustomerBookingStep, type CustomerBookingStep } from "@/lib/booking/customerSteps";
-import { isFixedPackage, serviceQuote, filterFixedStartSlots, packageLabel } from "@/lib/pricing/servicePackages";
+import { isFixedPackage, filterFixedStartSlots, packageLabel } from "@/lib/pricing/servicePackages";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PhoneFrame, PrimaryButton, Card, EmptyState, Avatar } from "@/components/famio/ui";
@@ -61,7 +62,6 @@ import { planPostCreatePayment, stashPendingPayment } from "@/lib/booking/post-c
 import { BookScheduleStep } from "@/components/famio/BookScheduleStep";
 import { previewPath } from "@/lib/preview/previewPath";
 import {
-  bookingFamilyMemberId,
   canContinueForWhom,
   defaultForWhom,
   familyMemberSelectableForBabysitting,
@@ -73,7 +73,6 @@ import { useApprovedTeachingCapabilities } from "@/lib/db/teaching-queries";
 import {
   formatTeachingCapabilityLine,
   isTutoringCategorySlug,
-  tutoringSessionQuote,
 } from "@/lib/tutoring/teachingCapabilities";
 import { markCustomerPushPromptPending } from "@/lib/push-prompt";
 import {
@@ -237,9 +236,6 @@ export function BookContent({
   const needsPackageRate = fixedPackage && activeService?.price_override == null;
   const packageRateQ = useFixedPackageRate(providerId, needsPackageRate ? activeService?.service?.id : undefined, slotAddressId);
   const hours = selectedCapability ? selectedCapability.durationMin / 60 : fixedPackage ? Number(activeService?.service?.duration_min) / 60 : parseInt(duration);
-  const tutoringQuote = selectedCapability
-    ? tutoringSessionQuote(selectedCapability.durationMin, selectedCapability.price)
-    : null;
   // Must run unconditionally on every render (Rules of Hooks) — this was
   // previously declared after the loading/not-found early returns below,
   // so the hook count changed between the first render (still loading,
@@ -461,12 +457,6 @@ export function BookContent({
     return <PhoneFrame><QueryError onRetry={() => packageRateQ.refetch()} /></PhoneFrame>;
   }
   const ratePerHour = Number(activeService?.price_override ?? (needsPackageRate ? packageRateQ.data : p.hourlyRate));
-  const subtotal = tutoringQuote ? tutoringQuote.subtotal : serviceQuote(activeService?.service, ratePerHour, hours).subtotal;
-  const fee = billingQ.data?.platform_fee ?? DEFAULT_BILLING_SETTINGS.platform_fee;
-  const vat = Math.round(
-    subtotal * ((billingQ.data?.vat_percent ?? DEFAULT_BILLING_SETTINGS.vat_percent) / 100),
-  );
-
   // Requirements that must be resolved before this booking can be created.
   // The server re-derives/validates all of this itself (tg_validate_booking_service)
   // — this is purely so the customer sees the right total and can't submit
@@ -477,17 +467,18 @@ export function BookContent({
   const eitherRequirements = bookingRequirements.filter(
     (r: any) => r.fulfillment_mode === "either",
   );
-  const extrasTotal = bookingRequirements.reduce((sum: number, r: any) => {
-    if (r.fulfillment_mode === "provider") return sum + Number(r.provider_extra_fee);
-    if (r.fulfillment_mode === "either" && requirementChoices[r.id] === "provider")
-      return sum + Number(r.provider_extra_fee);
-    return sum;
-  }, 0);
-  // Zone travel fee — resolved the same way the server independently
-  // re-resolves and charges it at booking-creation time (tg_validate_booking_service);
-  // this is only the matching client-side estimate so the submitted total lines up.
-  const travelFee = Number(zoneQ.data?.travel_fee ?? 0);
-  const total = Math.max(0, subtotal + fee + vat + extrasTotal + travelFee - promoDiscount);
+  const { tutoringQuote, subtotal, fee, vat, extrasTotal, travelFee, total } = buildBookingQuote({
+    service: activeService?.service,
+    rate: ratePerHour,
+    hours,
+    capability: selectedCapability,
+    fee: billingQ.data?.platform_fee ?? DEFAULT_BILLING_SETTINGS.platform_fee,
+    vatPercent: billingQ.data?.vat_percent ?? DEFAULT_BILLING_SETTINGS.vat_percent,
+    requirements: bookingRequirements,
+    requirementChoices,
+    travelFee: Number(zoneQ.data?.travel_fee ?? 0),
+    promoDiscount,
+  });
 
   const durations = ["2h", "4h", "6h", "8h"] as const;
   const durationLabel = (value: string) => {
@@ -611,24 +602,13 @@ export function BookContent({
         return;
       }
 
-      const submissionPayload = {
-        provider_id: p.id,
-        service_id: activeService.service.id,
-        address_id: addressId!,
-        family_member_id: bookingFamilyMemberId(forWhom),
-        start_at: start.toISOString(),
-        end_at: end.toISOString(),
-        promo_code_id: promoStatus === "applied" ? appliedPromoId : null,
-        notes: notes || null,
-        requirement_selections: eitherRequirements.map((r: any) => ({
-          requirement_id: r.id,
-          chosen_by: requirementChoices[r.id],
-        })),
-        teaching_capability_id: selectedCapability?.id ?? null,
-        teaching_subject_code: selectedCapability?.subjectCode ?? null,
-        teaching_curriculum_code: selectedCapability?.curriculumCode ?? null,
-        teaching_level_code: selectedCapability?.levelCode ?? null,
-      };
+      const submissionPayload = buildBookingRequest({
+        providerId: p.id,
+        serviceId: activeService.service.id,
+        addressId: addressId!,
+        forWhom, start, end, promoStatus, appliedPromoId, notes,
+        eitherRequirements, requirementChoices, selectedCapability,
+      });
       const fingerprint = bookingSubmissionFingerprint(submissionPayload);
       idempotencyStateRef.current = resolveIdempotencyKey(idempotencyStateRef.current, fingerprint);
 
