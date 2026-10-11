@@ -1,6 +1,7 @@
+import { isPreviewRoute, PREVIEW_NOW_ISO } from "@/lib/preview/constants";
 import { notificationRowNavigation } from "@/lib/provider/workScreenPresentation";
 import { formatNotificationDate } from "@/lib/format";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ProviderShell } from "@/components/famio/ProviderShell";
 import { PageHeader } from "@/components/famio/PageHeader";
@@ -22,6 +23,7 @@ function NotificationsPage() {
   const { t } = useTranslation();
   const lang = useLang();
   const nav = useNavigate();
+  const preview = useRouterState({ select: (state) => isPreviewRoute(state.location.pathname) });
   const q = useProNotifications();
   const mark = useMarkNotificationRead();
   const markAll = useMarkAllNotificationsRead();
@@ -72,7 +74,7 @@ function NotificationsPage() {
                           {!n.read_at && <span className="h-2 w-2 rounded-full bg-coral" />}
                         </div>
                         <div className="mt-1 line-clamp-2 text-pro-13 text-muted-foreground">{body}</div>
-                        <div className="mt-1 text-pro-12 text-muted-foreground">{formatNotificationDate(new Date(n.created_at))}</div>
+                        <div className="mt-1 text-pro-12 text-muted-foreground">{formatNotificationDate(new Date(n.created_at), preview ? new Date(PREVIEW_NOW_ISO) : new Date(), lang)}</div>
                       </div>
                     </div>
                 </button>

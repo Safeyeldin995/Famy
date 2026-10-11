@@ -379,7 +379,7 @@ export function PaymentBlock({
                 <Check className="h-4 w-4" /> {t("payment.markReceived")}
               </button>
             ) : (
-              <div className="flex h-11 flex-1 items-center justify-center rounded-2xl bg-surface-2 px-3 text-center text-xs font-semibold text-muted-foreground">
+              <div className={embedded ? "text-pro-12 text-muted-foreground" : "flex h-11 flex-1 items-center justify-center rounded-2xl bg-surface-2 px-3 text-center text-xs font-semibold text-muted-foreground"}>
                 {t("payment.waitingForCompletion")}
               </div>
             )}

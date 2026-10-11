@@ -227,6 +227,7 @@ export function ProBookingDetail({ id }: { id: string }) {
         )}
 
         <RescheduleSection
+          compact
           bookingId={b.id}
           viewer="provider"
           customerId={b.customer_id}
@@ -255,7 +256,7 @@ export function ProBookingDetail({ id }: { id: string }) {
 
       <BookingActionDock>
           {b.status === "pending" && (
-            <div className="grid grid-cols-2 gap-2 [&_.apply-bottom]:static [&_.apply-bottom]:m-0 [&_.apply-bottom]:w-full [&_.apply-bottom]:p-0">
+            <div className="grid grid-cols-2 gap-2 [&_.apply-bottom]:!static [&_.apply-bottom]:!m-0 [&_.apply-bottom]:!w-full [&_.apply-bottom]:!p-0">
               <button onClick={() => setDialog("decline")} disabled={mut.isPending || cancelBooking.isPending} className="focus-ring h-14 flex-1 rounded-2xl border border-coral bg-surface text-sm font-bold text-coral active:scale-[0.98] disabled:opacity-50">{t("pro.booking.decline")}</button>
               <StickyCta onClick={() => run("confirmed")} disabled={mut.isPending}>{t("pro.booking.accept")}</StickyCta>
             </div>
@@ -397,7 +398,7 @@ function ProBookingDetailRoute() {
 }
 
 function Row({ icon, label, value, href }: { icon: React.ReactNode; label: string; value: React.ReactNode; href?: string }) {
-  const content = <><span className="shrink-0 text-brand">{icon}</span><span className="shrink-0 text-pro-12 text-muted-foreground">{label}</span><span className="min-w-0 flex-1 whitespace-pre-wrap text-end text-pro-13 font-bold">{value}</span></>;
+  const content = <><span className="shrink-0 text-brand">{icon}</span><span className="shrink-0 text-pro-12 text-muted-foreground">{label}</span><span className="min-w-0 flex-1 whitespace-pre-wrap text-end text-pro-13 font-bold">{href ? <bdi dir="ltr">{value}</bdi> : value}</span></>;
   const className = "flex min-h-11 items-center gap-2 py-2";
   return href ? <a href={href} className={className + " focus-ring text-brand"}>{content}</a> : <div className={className}>{content}</div>;
 }

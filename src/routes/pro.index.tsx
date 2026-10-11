@@ -77,7 +77,7 @@ function ProDashboard() {
       <div className="space-y-3 px-5">
         <p className="text-pro-14 text-muted-foreground"><b className="text-foreground">{t("proWork.today")}</b> · {upcoming[0] ? <Link className="font-bold text-brand" to={proPath("/pro/booking/$id") as "/pro/booking/$id"} params={{ id: upcoming[0].id }}>{t("proWork.nextJob")}: {formatDate(new Date(upcoming[0].start_at), { day: "numeric", month: "short" }, lang)} · {formatTime(new Date(upcoming[0].start_at), lang)}</Link> : t("proWork.noJobToday")}</p>
         <div className="grid grid-cols-2 gap-3">
-          <Link to={proPath("/pro/earnings") as "/pro/earnings"} className="focus-ring min-w-0 rounded-2xl bg-brand p-3 text-brand-foreground">
+          <Link to={proPath("/pro/earnings") as "/pro/earnings"} className="focus-ring block min-w-0 rounded-2xl bg-brand p-3 text-brand-foreground">
             <div className="whitespace-nowrap text-pro-12 font-bold">{mtdKind === "bookingValue" ? t("proWork.monthValue") : t("proWork.monthNet")}</div>
             <div className="mt-2"><WorkMoney amount={mtdKind === "bookingValue" ? mtdBookingValue : mtdNet} /></div>
             {mtdKind === "mixed" && <p className="mt-1 text-pro-12">{t("proWork.monthValue")}<span className="block whitespace-nowrap">{formatEGP(mtdBookingValue)}</span></p>}
