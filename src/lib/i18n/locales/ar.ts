@@ -1,6 +1,24 @@
 import type { Translation } from "./en";
 
 const ar: Translation = {
+  providerDocuments: {
+    "title": "المستندات والتوثيق",
+    "readOnly": "مستنداتك مع فريق فامي. تقدر ترفع نسخة جديدة لما طلبك يكون متاح للتعديل.",
+    "replace": "ارفع تاني",
+    "upload": "ارفع مستند",
+    "missing": "لسه مرفوعش",
+    "other": "مستندات تانية",
+    "id_card_front": "وش البطاقة",
+    "id_card_back": "ضهر البطاقة",
+    "profile_photo": "الصورة الشخصية",
+    "certificate": "شهادة",
+    "otherDocument": "مستند تاني",
+    "approved": "اتوافق عليها",
+    "pending": "بنراجع",
+    "rejected": "مرفوضة",
+    "expired": "انتهت صلاحيتها",
+    "renewal_required": "محتاجة تحديث"
+},
   customerBooking: {
     "duration": "{{hours}} ساعات",
     "rateLine": "{{rate}} × {{hours}} ساعات",

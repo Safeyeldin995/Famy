@@ -6,11 +6,19 @@ export function IdCaptureCard({
   captured,
   onCapture,
   disabled,
+  allowReplace = false,
+  readOnly = false,
+  actionLabel,
+  accept = "image/*",
 }: {
   title: string;
   captured: boolean;
   onCapture: (file: File) => void;
   disabled?: boolean;
+  allowReplace?: boolean;
+  readOnly?: boolean;
+  actionLabel?: string;
+  accept?: string;
 }) {
   const { t } = useTranslation();
   return (
@@ -20,19 +28,19 @@ export function IdCaptureCard({
         <b>{title}</b>
         <small>{t(captured ? "providerApply.captured" : "providerApply.photoHint")}</small>
       </span>
-      {captured ? (
+      {captured && !allowReplace ? (
         <Check size={22} className="text-success" />
-      ) : (
+      ) : readOnly ? null : (
         <label className="apply-capture">
           <span>
             <Camera size={15} />
-            {t("providerApply.capture")}
+            {actionLabel ?? t("providerApply.capture")}
           </span>
           <input
             className="sr-only"
             aria-label={title}
             type="file"
-            accept="image/*"
+            accept={accept}
             capture="environment"
             disabled={disabled}
             onChange={(e) => {
