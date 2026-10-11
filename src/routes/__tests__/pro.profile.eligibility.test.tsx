@@ -34,7 +34,7 @@ const state = vi.hoisted(() => ({
 }));
 const translations = createInstance();
 vi.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: translations.t.bind(translations) }),
+  useTranslation: () => ({ t: translations.t.bind(translations), i18n: translations }),
 }));
 vi.mock("@tanstack/react-router", () => ({
   createFileRoute: () => (options: unknown) => ({ options }),
@@ -60,9 +60,7 @@ vi.mock("@/components/famio/ui", () => ({
   Avatar: () => null,
 }));
 vi.mock("@/components/famio/QueryError", () => ({ QueryError: () => <div>Query error</div> }));
-vi.mock("@/components/provider/TeachingCapabilitiesEditor", () => ({
-  TeachingCapabilitiesEditor: () => <h2>Teaching subjects</h2>,
-}));
+vi.mock("@/lib/db/teaching-queries", () => ({ useMyTeachingCapabilities: () => ({ data: [] }) }));
 vi.mock("@/lib/preview/previewPath", () => ({
   proPath: (path: string) => path,
   customerPath: (path: string) => path,
@@ -77,6 +75,7 @@ vi.mock("@/lib/db/provider-queries", () => ({
     isSuccess: !state.zonesError,
     isError: state.zonesError,
   }),
+  useProviderAvailability: () => ({ data: [] }),
   useUpdateProvider: () => ({ mutate: vi.fn() }),
   useAllServices: () => ({ data: [] }),
   useMyProviderServices: () => ({ data: [] }),
@@ -110,20 +109,20 @@ describe("provider profile grouped eligibility card", () => {
       const priceText = translations.t("pro.profile.eligibilityReasons.teachingPrice");
       expect(screen.getAllByText(priceText)).toHaveLength(1);
       expect(screen.getByRole("link", { name: priceText }).getAttribute("href")).toBe(
-        "/pro/profile#teaching-subjects",
+        "/pro/setup/subjects",
       );
       expect(document.getElementById("teaching-subjects")).not.toBeNull();
       for (const name of lang === "ar"
         ? ["المواد الدراسية", "تعليم اللغات"]
         : ["School subjects", "Language tutoring"]) {
-        expect(screen.getByRole("button", { name })).not.toBeNull();
+        expect(screen.queryByRole("button", { name })).toBeNull();
         expect(screen.getAllByText(name)).toHaveLength(2);
       }
       const zoneText = translations.t("pro.profile.eligibilityReasons.zoneUnavailable");
       expect(screen.getAllByText(zoneText)).toHaveLength(1);
       expect(screen.queryByRole("link", { name: zoneText })).toBeNull();
       expect(
-        screen.getByText(translations.t("pro.profile.notVisibleToCustomers", { count: 2 })),
+        screen.getByText(translations.t("providerProfileV3.hidden")),
       ).not.toBeNull();
       const details = screen.getByRole("button", {
         name: translations.t("pro.profile.eligibilityByService"),
@@ -139,12 +138,11 @@ describe("provider profile grouped eligibility card", () => {
     },
   );
 
-  it("links to onboarding only when zone_providers is empty", () => {
+  it("shows coverage review as a Famy item without linking to the old wizard", () => {
     state.zones = [];
     render(<Profile />);
-    expect(
-      screen.getByRole("link", { name: "Choose your service area" }).getAttribute("href"),
-    ).toBe("/pro/onboarding");
+    expect(screen.getByText("The Famy team will review your service areas")).not.toBeNull();
+    expect(document.querySelector('a[href="/pro/onboarding"]')).toBeNull();
   });
 
   it("does not offer an onboarding fix when coverage cannot be loaded", () => {

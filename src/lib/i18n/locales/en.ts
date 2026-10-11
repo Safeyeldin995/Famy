@@ -1,4 +1,20 @@
 const en = {
+  providerProfileV3: {
+    coverageReview: "The Famy team will review your service areas",
+    "visibility": "Your visibility to customers",
+    "visible": "Visible to customers",
+    "hidden": "Not visible yet",
+    "steps": "{{count}} steps you can take",
+    "providerTasks": "Things you can do now",
+    "famyTasks": "Waiting for the Famy team",
+    "reviewHint": "We are reviewing your details. We will let you know when the review is complete.",
+    "subjects": "Subjects you teach",
+    "addSubject": "Add a subject",
+    "services": "Your services and prices",
+    "hours": "Your working hours",
+    "noHours": "Choose your working hours",
+    "subjectPending": "Your teaching subject is being reviewed"
+},
   providerSetup: {
     "subjectsTitle": "What do you teach?",
     "chooseSubjectFirst": "Choose a subject and curriculum first to see the grades",
@@ -774,6 +790,7 @@ const en = {
     unnamed: "Provider",
   },
   providerProfile: {
+    coverageReview: "The Famy team will review your service areas",
     trust: "Trust {{score}}",
     perHr: "/hr",
     jobs: "Jobs",

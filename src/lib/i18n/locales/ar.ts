@@ -1,6 +1,22 @@
 import type { Translation } from "./en";
 
 const ar: Translation = {
+  providerProfileV3: {
+    coverageReview: "فريق فامي هيراجع مناطق خدمتك",
+    "visibility": "حالة ظهورك للعملاء",
+    "visible": "ظاهر للعملاء",
+    "hidden": "مش ظاهر لسه",
+    "steps": "قدامك {{count}} خطوات",
+    "providerTasks": "حاجات تقدر تعملها دلوقتي",
+    "famyTasks": "مستنيين فريق فامي",
+    "reviewHint": "بنراجع بياناتك وهنبلغك أول ما المراجعة تخلص.",
+    "subjects": "المواد اللي بتدرسها",
+    "addSubject": "ضيف مادة",
+    "services": "خدماتك وأسعارك",
+    "hours": "مواعيد شغلك",
+    "noHours": "اختار مواعيد شغلك",
+    "subjectPending": "بنراجع المادة اللي ضفتها"
+},
   providerSetup: {
     "subjectsTitle": "بتدرس ايه؟",
     "chooseSubjectFirst": "اختار المادة والمنهج الأول عشان تظهر الصفوف",
@@ -770,6 +786,7 @@ const ar: Translation = {
     unnamed: "مقدم خدمة",
   },
   providerProfile: {
+    coverageReview: "فريق فامي هيراجع مناطق خدمتك",
     trust: "ثقة {{score}}",
     perHr: "/س",
     jobs: "مهام",
