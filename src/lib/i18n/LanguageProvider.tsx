@@ -6,7 +6,7 @@ import { readLanguageCookie } from "./languageCookie";
 export function LanguageProvider({ children, initialLanguage = "en" }: { children: ReactNode; initialLanguage?: Lang }) {
   const [instance] = useState(() => {
     if (typeof window === "undefined") {
-      return i18n.cloneInstance({ lng: initialLanguage, initImmediate: false });
+      return i18n.cloneInstance({ lng: initialLanguage, initAsync: false });
     }
     // Bundled resources initialize synchronously before the first client render.
     i18n.changeLanguage(initialLanguage);
