@@ -560,3 +560,40 @@
   gap: 4px;
   font-size: 12px;
 }
+
+.apply-list.apply-profile-header {
+  gap: 14px;
+}
+.apply-profile-avatar-wrap {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+}
+.apply-profile-camera {
+  position: absolute;
+  bottom: 0;
+  inset-inline-start: 0;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--brand);
+  color: #fff;
+}
+.apply-profile-info {
+  flex: 1;
+  min-width: 0;
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+.apply-profile-action {
+  text-align: start;
+  color: var(--foreground);
+  text-decoration: none;
+}
+.apply-profile-action .apply-task-text b {
+  font-weight: 700;
+}

@@ -240,15 +240,15 @@ function ProProfile() {
       <main className="apply-ui apply-screen !pb-28" dir={lang === "ar" ? "rtl" : "ltr"}>
         <header className="apply-header apply-profile-title"><h1 className="apply-title">{t("pro.profile.title")}</h1><LanguageToggle /></header>
         <div className="apply-content">
-        <Card className="apply-list apply-profile-header gap-4 p-4">
-          <div className="relative h-16 w-16 shrink-0">
+        <Card className="apply-list apply-profile-header p-4">
+          <div className="apply-profile-avatar-wrap">
             <ProfileAvatar src={provider?.profile?.avatar_url} preview={photoPreview} name={provider.profile?.full_name || t("pro.profile.famioUser")} />
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
               aria-label={t("pro.profile.changePhoto")}
-              className="absolute -bottom-2 -end-2 grid h-11 w-11 place-items-center rounded-full bg-brand text-white ring-2 ring-white disabled:opacity-60"
+              className="apply-profile-camera disabled:opacity-60"
             >
               {uploading ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -268,7 +268,7 @@ function ProProfile() {
               }}
             />
           </div>
-          <div className="min-w-0 flex-1">
+          <div className="apply-profile-info">
             <div className="apply-profile-name break-words leading-snug">
               {provider.profile?.full_name || t("pro.profile.famioUser")}
             </div>
@@ -330,10 +330,18 @@ function ProProfile() {
                 return <section key={owner} className="apply-list">
                   <h3 className="apply-label px-4 pt-4">{t(`providerProfileV3.${owner}Tasks`)}</h3>
                   {owner === "famy" && <p className="px-4 text-sm text-muted-foreground">{t("providerProfileV3.reviewHint")}</p>}
-                  <ul>{entries.map((entry) => <li key={entry.mapped.i18nKey} className="apply-li flex-col !items-start gap-1">
-                    <EligibilityReasonItem mapped={entry.mapped} t={t} onServiceFocus={focusPrice} onRequirementsFocus={focusRequirements} />
-                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">{eligibilityRows.filter((row) => entry.serviceIds.includes(row.service_id)).map((row) => (entry.mapped.action.kind === "service" || entry.mapped.action.kind === "requirements") ? <button key={row.service_id} type="button" className="min-h-11 text-brand underline" onClick={() => entry.mapped.action.kind === "requirements" ? focusRequirements(row.service_id) : focusPrice(row.service_id)}>{lang === "ar" ? row.service_name_ar : row.service_name_en}</button> : <span key={row.service_id}>{lang === "ar" ? row.service_name_ar : row.service_name_en}</span>)}</div>
-                  </li>)}</ul>
+                  <ul>{entries.map((entry) => {
+                    const services = eligibilityRows.filter((row) => entry.serviceIds.includes(row.service_id));
+                    const action = entry.mapped.action;
+                    // Service-specific actions each retain their own full-row target.
+                    const targets = action.kind === "service" || action.kind === "requirements"
+                      ? services.map((row) => ({ mapped: { ...entry.mapped, action: { ...action, serviceId: row.service_id } }, services: [row] }))
+                      : [{ mapped: entry.mapped, services }];
+                    return <li key={entry.mapped.i18nKey}>{targets.map((target) => (
+                      <EligibilityReasonItem key={target.services[0]?.service_id ?? entry.mapped.i18nKey} mapped={target.mapped} t={t} onServiceFocus={focusPrice} onRequirementsFocus={focusRequirements}
+                        serviceNames={target.services.map((row) => lang === "ar" ? row.service_name_ar : row.service_name_en)} />
+                    ))}</li>;
+                  })}</ul>
                 </section>;
               })}
               {eligibilityRows.length > 0 ? (
@@ -659,13 +667,25 @@ function EligibilityReasonItem({
   t,
   onServiceFocus,
   onRequirementsFocus,
+  serviceNames,
 }: {
   mapped: MappedEligibilityReason;
   t: (key: string, options?: Record<string, unknown>) => string;
   onServiceFocus: (serviceId: string) => void;
   onRequirementsFocus: (serviceId: string) => void;
+  serviceNames?: string[];
 }) {
-  const label = t(mapped.i18nKey);
+  const row = serviceNames !== undefined;
+  const waiting = mapped.owner === "famy";
+  const className = row
+    ? `apply-li apply-profile-action ${waiting ? "apply-waiting" : "apply-next focus-ring"}`
+    : "font-semibold text-brand underline-offset-2 hover:underline";
+  const label = row ? <>
+    <span className="apply-tile" aria-hidden="true">{waiting ? <Clock size={18} /> : <FileText size={18} />}</span>
+    <span className="apply-task-text"><b>{t(mapped.i18nKey)}</b><small>{serviceNames.map((name, index) => <span key={name}>{index > 0 && " · "}<span>{name}</span></span>)}</small></span>
+    <span className={`apply-tag ${waiting ? "apply-wait" : "apply-go"}`}>{t(`providerApply.pending.${waiting ? "waiting" : "start"}`)}</span>
+  </> : t(mapped.i18nKey);
+  if (row && waiting) return <div className={className}>{label}</div>;
   if (mapped.action.kind === "link") {
     return (
       <Link
@@ -677,7 +697,7 @@ function EligibilityReasonItem({
               .getElementById(mapped.action.hash)
               ?.scrollIntoView({ behavior: "smooth", block: "start" });
         }}
-        className="font-semibold text-brand underline-offset-2 hover:underline"
+        className={className}
       >
         {label}
       </Link>
@@ -685,7 +705,7 @@ function EligibilityReasonItem({
   }
   if (mapped.action.kind === "requirements") {
     const serviceId = mapped.action.serviceId;
-    return <a href={`${proPath("/pro/profile")}#requirements-${serviceId}`} className="font-semibold text-brand underline-offset-2 hover:underline" onClick={(event) => { event.preventDefault(); onRequirementsFocus(serviceId); }}>{label}</a>;
+    return <a href={`${proPath("/pro/profile")}#requirements-${serviceId}`} className={className} onClick={(event) => { event.preventDefault(); onRequirementsFocus(serviceId); }}>{label}</a>;
   }
   if (mapped.action.kind === "service") {
     const serviceId = mapped.action.serviceId;
@@ -696,7 +716,7 @@ function EligibilityReasonItem({
     return (
       <a
         href={`${proPath("/pro/profile")}#${hash}`}
-        className="font-semibold text-brand underline-offset-2 hover:underline"
+        className={className}
         onClick={(event) => {
           event.preventDefault();
           onServiceFocus(serviceId);
@@ -706,7 +726,7 @@ function EligibilityReasonItem({
       </a>
     );
   }
-  return <span className="font-semibold">{label}</span>;
+  return <span className={row ? className : "font-semibold"}>{label}</span>;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

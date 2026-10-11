@@ -118,7 +118,7 @@ describe("provider profile grouped eligibility card", () => {
       render(<Profile />);
       const priceText = translations.t("pro.profile.eligibilityReasons.teachingPrice");
       expect(screen.getAllByText(priceText)).toHaveLength(1);
-      expect(screen.getByRole("link", { name: priceText }).getAttribute("href")).toBe(
+      expect(screen.getByRole("link", { name: new RegExp(priceText) }).getAttribute("href")).toBe(
         "/pro/setup/subjects",
       );
       expect(document.getElementById("teaching-subjects")).not.toBeNull();
@@ -130,7 +130,10 @@ describe("provider profile grouped eligibility card", () => {
       }
       const zoneText = translations.t("pro.profile.eligibilityReasons.zoneUnavailable");
       expect(screen.getAllByText(zoneText)).toHaveLength(1);
-      expect(screen.queryByRole("link", { name: zoneText })).toBeNull();
+      expect(screen.queryByRole("link", { name: new RegExp(zoneText) })).toBeNull();
+      const waitingRow = screen.getByText(zoneText).closest(".apply-li");
+      expect(waitingRow?.textContent).toContain(translations.t("providerApply.pending.waiting"));
+      expect(waitingRow?.querySelector("a, button")).toBeNull();
       expect(
         screen.getByText(translations.t("providerProfileV3.hidden")),
       ).not.toBeNull();
@@ -183,7 +186,7 @@ it.each(["en", "ar"])("keeps provider requirement actions visible alongside mixe
   expect(screen.getByText(translations.t("providerProfileV3.blockedServices", {services:lang === "ar" ? "تعليم اللغات" : "Language tutoring"}))).toBeTruthy();
   expect(screen.getByRole("heading", {name:translations.t("providerProfileV3.providerTasks")})).toBeTruthy();
   expect(screen.queryByRole("heading", {name:translations.t("providerProfileV3.famyTasks")})).toBeNull();
-  const action = screen.getByRole("link", {name:translations.t("pro.profile.eligibilityReasons.requirementsIncomplete")});
+  const action = screen.getByRole("link", {name:new RegExp(translations.t("pro.profile.eligibilityReasons.requirementsIncomplete"))});
   expect(action.getAttribute("href")).toBe("/pro/profile#requirements-language");
   const row = document.getElementById("service-language");
   if (!row) throw new Error("Expected service row");
@@ -193,4 +196,21 @@ it.each(["en", "ar"])("keeps provider requirement actions visible alongside mixe
   expect(scroll).toHaveBeenCalled();
   expect(document.getElementById("requirements-language")).not.toBeNull();
   expect(screen.getByText("Synthetic requirement")).toBeTruthy();
+});
+
+it("keeps every service-specific requirement action reachable from its whole row", () => {
+  for (const row of state.rows) row.failure_reasons = ["Complete service requirements"];
+  state.services = state.rows.map((row) => ({ id: row.service_id, name_en: row.service_name_en, name_ar: row.service_name_ar, provider_pricing_allowed: false }));
+  render(<Profile />);
+  for (const service of state.services) {
+    const action = screen.getByRole("link", { name: new RegExp(`${service.name_en}.*${translations.t("providerApply.pending.start")}`) });
+    expect(action.getAttribute("href")).toBe(`/pro/profile#requirements-${service.id}`);
+    const row = document.getElementById(`service-${service.id}`);
+    if (!row) throw new Error("Expected service row");
+    const scroll = vi.fn();
+    row.scrollIntoView = scroll;
+    fireEvent.click(action);
+    expect(scroll).toHaveBeenCalledOnce();
+    expect(document.getElementById(`requirements-${service.id}`)).not.toBeNull();
+  }
 });
