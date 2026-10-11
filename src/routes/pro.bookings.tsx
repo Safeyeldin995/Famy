@@ -1,10 +1,11 @@
+import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 import { formatDate, formatTime, formatDuration } from "@/lib/format";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ProviderShell } from "@/components/famio/ProviderShell";
-import { ProviderPageHero } from "@/components/famio/ProviderPageHero";
-import { SegmentedControl, EmptyState, Avatar, StatusPill } from "@/components/famio/ui";
+import { PageHeader } from "@/components/famio/PageHeader";
+import { SegmentedControl, EmptyState, StatusPill } from "@/components/famio/ui";
 import { QueryError } from "@/components/famio/QueryError";
 import { RespondWithinHint } from "@/components/famio/PendingExpiry";
 import { useLang } from "@/components/famio/LanguageToggle";
@@ -73,7 +74,7 @@ function ProBookings() {
 
   return (
     <ProviderShell>
-      <ProviderPageHero title={t("pro.bookings.title")} compact />
+      <PageHeader title={t("pro.bookings.title")} />
       <div className="px-5 pb-4 pt-2">
         <SegmentedControl
           value={tab}
@@ -103,7 +104,7 @@ function ProBookings() {
             return (
               <Link key={b.id} to={proPath("/pro/booking/$id") as "/pro/booking/$id"} params={{ id: b.id }} className="focus-ring tap-scale block rounded-[1.25rem] border border-border/50 bg-surface p-4 shadow-xs">
                 <div className="flex items-center gap-4">
-                  <Avatar src={b.customer?.avatar_url} alt={name} className="h-14 w-14 shrink-0 shadow-sm" />
+                  <ProfileAvatar src={b.customer?.avatar_url} name={name} className="h-14 w-14 shrink-0 shadow-sm" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 truncate">

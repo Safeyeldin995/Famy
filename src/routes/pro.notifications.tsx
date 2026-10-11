@@ -2,7 +2,7 @@ import { formatNotificationDate } from "@/lib/format";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ProviderShell } from "@/components/famio/ProviderShell";
-import { ProviderPageHero } from "@/components/famio/ProviderPageHero";
+import { PageHeader } from "@/components/famio/PageHeader";
 import { Card, EmptyState } from "@/components/famio/ui";
 import { useMarkNotificationRead, useMarkAllNotificationsRead } from "@/lib/db/queries";
 import { useProNotifications } from "@/lib/db/provider-queries";
@@ -34,16 +34,15 @@ function NotificationsPage() {
 
   return (
     <ProviderShell hideNav>
-      <ProviderPageHero
+      <PageHeader
         title={t("notifs.title")}
         backTo="/pro"
-        compact
         right={
           hasUnread ? (
             <button
               onClick={() => markAll.mutate()}
               disabled={markAll.isPending}
-              className="rounded-full bg-white/15 px-3 py-1.5 text-pro-12 font-extrabold text-white disabled:opacity-50"
+              className="rounded-full bg-brand/10 px-3 py-1.5 text-pro-12 font-extrabold text-brand disabled:opacity-50"
             >
               {t("notifs.markAllRead")}
             </button>

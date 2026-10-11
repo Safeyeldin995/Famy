@@ -1,3 +1,4 @@
+import { ProfileAvatar } from "./ProfileAvatar";
 import { localOnboardingMissing, onboardingMissingItems, type GuidanceField, type MissingItem } from "@/lib/provider/onboardingGuidance";
 import { useSearch } from "@tanstack/react-router";
 import { onboardingInitialStep } from "@/lib/provider/onboardingSection";
@@ -23,7 +24,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { PhoneFrame, Card, PrimaryButton, Badge } from "@/components/famio/ui";
-import { ProviderPageHero } from "@/components/famio/ProviderPageHero";
+import { PageHeader } from "@/components/famio/PageHeader";
 import { ProviderFloatingPanel } from "@/components/famio/ProviderFloatingPanel";
 import { useLang } from "@/components/famio/LanguageToggle";
 import {
@@ -595,9 +596,9 @@ export function ProviderOnboardingFlow({ previewMode = false, initialSection }: 
     const submittedRefs = refsQ.data ?? [];
     return (
       <PhoneFrame className="pro-surface" bg="bg-[#FEFAFC]">
-        <ProviderPageHero title={t("pro.onboardingWizard.title")} backTo="/pro" compact />
+        <PageHeader title={t("pro.onboardingWizard.title")} backTo="/pro" />
         <div className="space-y-4 px-5 pb-10" dir={lang === "ar" ? "rtl" : "ltr"}>
-          <ProviderFloatingPanel>
+          <ProviderFloatingPanel className="!mt-0">
             <Badge tone="muted">{t(`pro.onboardingWizard.status.${status}`, status)}</Badge>
             <p className="mt-3 text-sm font-medium text-muted-foreground">
               {status === "NEEDS_CHANGES"
@@ -652,15 +653,14 @@ export function ProviderOnboardingFlow({ previewMode = false, initialSection }: 
 
   return (
     <PhoneFrame className="pro-surface" bg="bg-[#FEFAFC]">
-      <ProviderPageHero
+      <PageHeader
         title={t("pro.onboardingWizard.title")}
         subtitle={t(`pro.onboardingWizard.steps.${current}`)}
         backTo="/pro"
-        compact
       />
 
       <div className="px-5" dir={lang === "ar" ? "rtl" : "ltr"}>
-        <ProviderFloatingPanel className="!p-3">
+        <ProviderFloatingPanel className="!mt-0 !p-3">
           <div className="mb-2 flex items-center justify-between text-pro-12 font-bold text-muted-foreground">
             <span>
               {t("pro.onboardingWizard.progress", "Step {{current}} of {{total}}", {
@@ -713,7 +713,7 @@ export function ProviderOnboardingFlow({ previewMode = false, initialSection }: 
             <label className="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border border-dashed border-brand/30 bg-brand/[0.04] px-4 py-5">
               <div className="grid h-20 w-20 place-items-center overflow-hidden rounded-2xl bg-brand/10 text-brand">
                 {shownPhoto ? (
-                  <img src={shownPhoto} alt="" className="h-20 w-20 object-cover" />
+                  <ProfileAvatar preview={shownPhoto} name={legalName} className="h-20 w-20 rounded-full" />
                 ) : (
                   <Camera className="h-6 w-6" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
                 )}

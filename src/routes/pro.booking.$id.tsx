@@ -1,9 +1,10 @@
+import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 import { formatDateTime, formatDate, formatTime, formatDuration } from "@/lib/format";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { ProviderShell } from "@/components/famio/ProviderShell";
-import { ProviderPageHero } from "@/components/famio/ProviderPageHero";
+import { PageHeader } from "@/components/famio/PageHeader";
 import { Card, Badge, PrimaryButton, ErrorState, BookingTimeline, CancelBookingDialog, CaseDialog, SupportCasesCard } from "@/components/famio/ui";
 import { PaymentBlock } from "@/components/famio/PaymentBlock";
 import { RescheduleSection } from "@/components/famio/RescheduleSection";
@@ -84,7 +85,7 @@ export function ProBookingDetail({ id }: { id: string }) {
   if (q.isLoading) {
     return (
       <ProviderShell hideNav>
-        <ProviderPageHero title={t("pro.booking.title")} backTo="/pro/bookings" compact />
+        <PageHeader title={t("pro.booking.title")} backTo="/pro/bookings" />
         <div className="mx-5 h-64 animate-pulse rounded-[1.25rem] bg-surface-2" />
       </ProviderShell>
     );
@@ -92,7 +93,7 @@ export function ProBookingDetail({ id }: { id: string }) {
   if (q.isError || !q.data) {
     return (
       <ProviderShell hideNav>
-        <ProviderPageHero title={t("pro.booking.title")} backTo="/pro/bookings" compact />
+        <PageHeader title={t("pro.booking.title")} backTo="/pro/bookings" />
         <ErrorState title={t("pro.booking.notFound")} />
       </ProviderShell>
     );
@@ -125,11 +126,11 @@ export function ProBookingDetail({ id }: { id: string }) {
 
   return (
     <ProviderShell hideNav>
-      <ProviderPageHero title={t("pro.booking.title")} backTo="/pro/bookings" compact />
+      <PageHeader title={t("pro.booking.title")} backTo="/pro/bookings" />
       <div className="space-y-4 px-5 pb-32 pt-2">
         <Card className="rounded-[1.25rem] p-4">
           <div className="flex items-start gap-3">
-            <img src={b.customer?.avatar_url || `https://i.pravatar.cc/200?u=${b.customer_id}`} alt={name} className="h-16 w-16 rounded-2xl object-cover" />
+            <ProfileAvatar src={b.customer?.avatar_url} name={name} className="h-16 w-16 rounded-2xl object-cover" />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2"><div className="truncate text-base font-extrabold">{name}</div><Badge tone={bookingStatusTone(b.status)}>{String(t(`pro.statuses.${b.status}`, { defaultValue: b.status }))}</Badge></div>
               <div className="mt-1 text-xs text-muted-foreground">{t("pro.booking.bookingNumber", { id: b.id.slice(0, 8).toUpperCase() })}</div>

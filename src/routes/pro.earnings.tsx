@@ -1,8 +1,9 @@
+import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 import { formatDate } from "@/lib/format";
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ProviderShell } from "@/components/famio/ProviderShell";
-import { ProviderPageHero } from "@/components/famio/ProviderPageHero";
+import { PageHeader } from "@/components/famio/PageHeader";
 import { Card } from "@/components/famio/ui";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { useMyProvider, useProviderBookings, useProviderEarnings } from "@/lib/db/provider-queries";
@@ -111,7 +112,7 @@ function EarningsPage() {
 
   return (
     <ProviderShell>
-      <ProviderPageHero title={t("pro.earnings.title")} compact />
+      <PageHeader title={t("pro.earnings.title")} />
 
       <div className="space-y-5 px-5 pb-28 pt-2">
         {capturedKind === "mixed" ? (
@@ -255,7 +256,8 @@ function EarningsPage() {
                 return (
                   <div key={b.id} className="px-5 py-4">
                     <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
+                      <ProfileAvatar src={b.customer?.avatar_url} name={b.customer?.full_name || t("pro.common.customer")} className="h-11 w-11 rounded-xl" />
+                      <div className="min-w-0 flex-1">
                         <div className="truncate text-base font-extrabold text-foreground">
                           {b.customer?.full_name || t("pro.common.customer")}
                         </div>

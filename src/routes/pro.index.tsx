@@ -1,13 +1,14 @@
+import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 import { formatDate } from "@/lib/format";
 import { ProviderPendingHome } from "@/components/provider/ProviderPendingHome";
 import { isPreviewRoute } from "@/lib/preview/constants";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ProviderShell } from "@/components/famio/ProviderShell";
-import { ProviderPageHero } from "@/components/famio/ProviderPageHero";
+import { PageHeader } from "@/components/famio/PageHeader";
 import { ProviderFloatingPanel } from "@/components/famio/ProviderFloatingPanel";
 import { ProviderSectionHeader } from "@/components/famio/ProviderSectionHeader";
-import { EmptyState, Avatar } from "@/components/famio/ui";
+import { EmptyState } from "@/components/famio/ui";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { useMyProvider, useProviderBookings, useProviderEarnings, useProUnreadNotificationCount } from "@/lib/db/provider-queries";
 import { formatEGP, BOOKING_ACTIVE_STATUSES } from "@/lib/utils";
@@ -53,13 +54,14 @@ function ProDashboard() {
 
   return (
     <ProviderShell>
-      <ProviderPageHero
+      <PageHeader
         title={t("pro.dashboard.title")}
         subtitle={provider?.name}
         right={
           <Link
             to={proPath("/pro/notifications") as "/pro/notifications"}
-            className="focus-ring relative grid h-10 w-10 place-items-center rounded-xl border border-white/25 bg-white/15 text-white backdrop-blur-sm"
+            aria-label={t("notifs.title")}
+            className="focus-ring relative grid h-11 w-11 place-items-center rounded-xl border border-border bg-surface-2 text-brand"
           >
             <Bell className="h-5 w-5" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
             {unread > 0 ? (
@@ -70,7 +72,7 @@ function ProDashboard() {
       />
 
       <div className="px-5">
-        <ProviderFloatingPanel className="grid grid-cols-2 gap-3 !p-3">
+        <ProviderFloatingPanel className="!mt-0 grid grid-cols-2 gap-3 !p-3">
           <Link
             to={proPath("/pro/earnings") as "/pro/earnings"}
             className="focus-ring tap-scale rounded-[1rem] bg-brand p-4 text-brand-foreground"
@@ -298,7 +300,7 @@ function BookingRow({
       className="focus-ring tap-scale block rounded-[1.25rem] border border-border/50 bg-surface p-4 shadow-xs"
     >
       <div className="flex items-center gap-3">
-        <Avatar src={b.customer?.avatar_url} alt={name} className="h-12 w-12 shrink-0 rounded-xl" />
+        <ProfileAvatar src={b.customer?.avatar_url} name={name} className="h-12 w-12 shrink-0 rounded-xl" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <p className="truncate text-sm font-extrabold text-foreground">{name}</p>
