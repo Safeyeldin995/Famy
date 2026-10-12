@@ -1527,6 +1527,12 @@ const ar: Translation = {
       },
     },
     schedule: {
+      vacationStart: "من يوم",
+      vacationEnd: "لحد يوم",
+      startPast: "اختار النهارده أو يوم بعده لبداية الإجازة",
+      endBeforeStart: "نهاية الإجازة مينفعش تكون قبل بدايتها",
+      invalidDate: "اختار تاريخ صحيح",
+
       copyHours: "انسخ المواعيد دي لأيام تانية",
       copyHint: "اختار الأيام المفتوحة اللي هتنسخ لها. الأيام المقفولة مش هتتغير.",
       applyCopy: "انسخ المواعيد",

@@ -70,9 +70,11 @@ it("uses the profile first name and signed photo", () => {
     />,
   );
   expect(screen.getByRole("heading", { name: "أهلا يا Sara" })).toBeTruthy();
-  expect(screen.getByRole("img", { name: "Sara Example" }).getAttribute("src")).toBe(
+  expect(screen.getByAltText("").getAttribute("src")).toBe(
     "/signed-avatar-test.png",
   );
+  expect(screen.getByAltText("").getAttribute("aria-hidden")).toBe("true");
+  expect(screen.queryByRole("img", { name: "Sara Example" })).toBeNull();
   expect(screen.queryByText("ابدأ")).toBeNull();
   expect(screen.getByText("فريق فامي بيراجع طلبك وهنبلغك أول ما نوافق")).toBeTruthy();
 });
