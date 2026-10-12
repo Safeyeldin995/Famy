@@ -9,12 +9,15 @@ import {
 
 describe("short booking codes", () => {
   it("keeps a stable six-character suffix without the preview prefix", () => {
-    expect(shortBookingCode("12345678-abcd-4000-8000-000000a1b2c3")).toBe("A1B2C3");
     expect(shortBookingCode("booking-pro-pending-1")).toBe("NDING1");
     expect(shortBookingCode("booking-pro-pending-2")).not.toBe(
       shortBookingCode("booking-pro-pending-1"),
     );
     expect(shortBookingCode("booking-pro-pending-1")).not.toContain("BOOKING");
+  });
+  it("uses the first six hex characters of a UUID in uppercase", () => {
+    expect(shortBookingCode("a1b2c3d4-abcd-4000-8000-000000123456")).toBe("A1B2C3");
+    expect(shortBookingCode("12345678-abcd-4000-8000-000000a1b2c3")).toBe("123456");
   });
 });
 

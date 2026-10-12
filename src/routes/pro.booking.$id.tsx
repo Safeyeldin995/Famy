@@ -136,7 +136,7 @@ export function ProBookingDetail({ id }: { id: string }) {
             <ProfileAvatar src={b.customer?.avatar_url} name={name} className="h-11 w-11 rounded-full" />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2"><div className="truncate text-base font-extrabold">{name}</div></div>
-              <div className="mt-1 text-xs text-muted-foreground">{t("proWork.bookingCode", { code: shortBookingCode(b.id) })}</div>
+              <div className="mt-1 text-xs text-muted-foreground">{t("proWork.bookingLabel")} <bdi dir="ltr">#{shortBookingCode(b.id)}</bdi></div>
             </div>
           </div>
         </Card>

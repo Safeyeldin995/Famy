@@ -7,6 +7,26 @@ afterEach(() => {
   cleanup();
   state.url = null;
 });
+it.each(["h-11 w-11 rounded-full", "h-12 w-12 shrink-0 rounded-xl"])(
+  "keeps the initial visible until loading succeeds and restores it onError (%s)",
+  (className) => {
+    state.url = "/customer.png";
+    const { rerender } = render(<ProfileAvatar name="Mona" src="stored-path" className={className} />);
+    const image = screen.getByRole("img", { name: "Mona" });
+    expect(screen.getByText("M")).toBeTruthy();
+    expect((image as HTMLImageElement).style.opacity).toBe("0");
+    fireEvent.load(image);
+    expect((image as HTMLImageElement).style.opacity).toBe("1");
+    fireEvent.error(image);
+    expect(screen.getByRole("img", { name: "Mona" }).textContent).toBe("M");
+    expect(document.querySelector("img")).toBeNull();
+    state.url = "/replacement.png";
+    rerender(<ProfileAvatar name="Mona" src="replacement" className={className} />);
+    expect((screen.getByRole("img", { name: "Mona" }) as HTMLImageElement).style.opacity).toBe("0");
+    fireEvent.error(screen.getByRole("img", { name: "Mona" }));
+    expect(screen.getByRole("img", { name: "Mona" }).textContent).toBe("M");
+  },
+);
 it("shows a first-letter fallback for a missing or failed avatar", () => {
   const { rerender } = render(<ProfileAvatar name="منى" />);
   expect(screen.getByRole("img", { name: "منى" }).textContent).toBe("م");

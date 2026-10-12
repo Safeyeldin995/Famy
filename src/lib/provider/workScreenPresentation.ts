@@ -9,6 +9,9 @@ import { formatNumber } from "@/lib/format";
 /** Display only: the full id is still used for every route and mutation. */
 export function shortBookingCode(id: string): string {
   const clean = id.replace(/[^a-z0-9]/gi, "");
+  if (/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(id)) {
+    return clean.slice(0, 6).toUpperCase();
+  }
   return clean.slice(-6).toUpperCase();
 }
 

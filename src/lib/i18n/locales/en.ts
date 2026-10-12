@@ -2711,6 +2711,7 @@ const en = {
       "allSteps": "All stages",
       "nextStep": "Next: {{step}}",
       "bookingCode": "Booking #{{code}}",
+      "bookingLabel": "Booking",
       "replyHours": "Reply within {{count}} hours",
       "replyMinutes": "Reply within {{count}} minutes",
       "replyOverdue": "Response overdue",

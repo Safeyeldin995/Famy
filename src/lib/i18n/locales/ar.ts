@@ -2685,6 +2685,7 @@ const ar: Translation = {
       "allSteps": "كل المراحل",
       "nextStep": "بعد كده: {{step}}",
       "bookingCode": "حجز #{{code}}",
+      "bookingLabel": "حجز",
       "replyHours": "رد خلال {{count}} ساعة",
       "replyMinutes": "رد خلال {{count}} دقيقة",
       "replyOverdue": "مهلة الرد انتهت",
