@@ -1,4 +1,9 @@
 const en = {
+  providerPushUnavailable: {
+    title: "Phone notifications are not available yet",
+    body: "You will receive all updates in the app on the notifications page.",
+    open: "Open notifications",
+  },
   providerProfilePolish: { requirements: "Requirements" },
   providerNotificationPolish: {
     "on": "On",

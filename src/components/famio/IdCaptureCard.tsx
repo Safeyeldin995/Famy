@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Camera, Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import "./providerApply.css";
@@ -10,6 +11,7 @@ export function IdCaptureCard({
   readOnly = false,
   actionLabel,
   accept = "image/*",
+  status,
 }: {
   title: string;
   captured: boolean;
@@ -19,6 +21,7 @@ export function IdCaptureCard({
   readOnly?: boolean;
   actionLabel?: string;
   accept?: string;
+  status?: ReactNode;
 }) {
   const { t } = useTranslation();
   return (
@@ -26,10 +29,10 @@ export function IdCaptureCard({
       <span className="apply-id-art" aria-hidden="true" />
       <span className="apply-id-text">
         <b>{title}</b>
-        <small>{t(captured ? "providerApply.captured" : "providerApply.photoHint")}</small>
+        {status ?? <small>{t(captured ? "providerApply.captured" : "providerApply.photoHint")}</small>}
       </span>
       {captured && !allowReplace ? (
-        <Check size={22} className="text-success" />
+        status ? null : <Check size={22} className="text-success" />
       ) : readOnly ? null : (
         <label className="apply-capture">
           <span>

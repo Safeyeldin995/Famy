@@ -1,6 +1,11 @@
 import type { Translation } from "./en";
 
 const ar: Translation = {
+  providerPushUnavailable: {
+    title: "الإشعارات على الموبايل مش متاحة لسه",
+    body: "هتوصلك كل التحديثات جوه التطبيق في صفحة الإشعارات",
+    open: "افتح الإشعارات",
+  },
   providerProfilePolish: { requirements: "المتطلبات" },
   providerNotificationPolish: {
     "on": "شغال",

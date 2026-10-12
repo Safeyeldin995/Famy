@@ -50,18 +50,17 @@ export function ProviderDocumentsView({
     t(
       `providerDocuments.${["id_card_front", "id_card_back", "profile_photo", "certificate"].includes(type) ? type : "otherDocument"}`,
     );
-  const statusLine = (doc?: PublicDocument) => (
-    <div className="mt-2 px-4 pb-3">
-      <span
-        className={`apply-tag ${doc?.status === "approved" ? "apply-success" : doc?.status === "pending" ? "apply-wait" : doc ? "apply-danger" : ""}`}
-      >
-        {t(`providerDocuments.${doc?.status ?? "missing"}`)}
-      </span>
-      {doc?.status === "rejected" && doc.rejected_reason && (
-        <p className="mt-2 break-words text-pro-13 text-destructive">{doc.rejected_reason}</p>
-      )}
-    </div>
+  const statusTag = (doc?: PublicDocument) => (
+    <span
+      className={`apply-tag ${doc?.status === "approved" ? "apply-success" : doc?.status === "pending" ? "apply-wait" : doc ? "apply-danger" : ""}`}
+    >
+      {t(`providerDocuments.${doc?.status ?? "missing"}`)}
+    </span>
   );
+  const rejectedReason = (doc?: PublicDocument) =>
+    doc?.status === "rejected" && doc.rejected_reason ? (
+      <p className="px-4 pb-3 break-words text-pro-13 text-destructive">{doc.rejected_reason}</p>
+    ) : null;
   const otherDocs = documents.filter(
     (doc) => doc.type !== "id_card_front" && doc.type !== "id_card_back",
   );
@@ -90,6 +89,7 @@ export function ProviderDocumentsView({
                   <IdCaptureCard
                     title={label(type)}
                     captured={!!doc}
+                    status={statusTag(doc)}
                     disabled={!allowed || busy}
                     readOnly={!allowed}
                     allowReplace={!!doc && allowed}
@@ -99,7 +99,7 @@ export function ProviderDocumentsView({
                       if (allowed) onUpload(type, file);
                     }}
                   />
-                  {statusLine(doc)}
+                  {rejectedReason(doc)}
                 </section>
               );
             })}
@@ -107,9 +107,14 @@ export function ProviderDocumentsView({
             <div className="apply-list">
               {otherDocs.map((doc) => (
                 <section key={doc.id}>
-                  <div className="apply-li">
-                    <FileText size={20} aria-hidden="true" />
-                    <span className="flex-1 text-sm font-bold">{label(doc.type)}</span>
+                  <div className="apply-li flex-wrap">
+                    <span className="apply-tile">
+                      <FileText size={20} aria-hidden="true" />
+                    </span>
+                    <span className="apply-task-text">
+                      <b>{label(doc.type)}</b>
+                    </span>
+                    {statusTag(doc)}
                     {canUploadDocument(status, doc.type) && (
                       <Upload
                         label={t("providerDocuments.replace")}
@@ -120,7 +125,7 @@ export function ProviderDocumentsView({
                       />
                     )}
                   </div>
-                  {statusLine(doc)}
+                  {rejectedReason(doc)}
                 </section>
               ))}
               {(["certificate", "other"] as const)
@@ -129,9 +134,14 @@ export function ProviderDocumentsView({
                     !otherDocs.some((doc) => doc.type === type) && canUploadDocument(status, type),
                 )
                 .map((type) => (
-                  <div className="apply-li" key={type}>
-                    <FileText size={20} />
-                    <span className="flex-1 text-sm">{label(type)}</span>
+                  <div className="apply-li flex-wrap" key={type}>
+                    <span className="apply-tile">
+                      <FileText size={20} aria-hidden="true" />
+                    </span>
+                    <span className="apply-task-text">
+                      <b>{label(type)}</b>
+                    </span>
+                    {statusTag()}
                     <Upload
                       label={t("providerDocuments.upload")}
                       disabled={busy}

@@ -12,7 +12,7 @@ function ProNotificationPreferencesRoute() {
     <ProviderShell hideNav>
       <PageHeader title={t("notifPrefs.title")} backTo="/pro/profile" />
       <div className="px-5 pb-10 pt-2">
-        <NotificationPreferencesPanel />
+        <NotificationPreferencesPanel providerMode />
       </div>
     </ProviderShell>
   );

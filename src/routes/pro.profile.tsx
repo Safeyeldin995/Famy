@@ -250,13 +250,15 @@ function ProProfile() {
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
               aria-label={t("pro.profile.changePhoto")}
-              className="apply-profile-camera disabled:opacity-60"
+              className="absolute bottom-0 start-0 grid h-11 w-11 place-items-center disabled:opacity-60"
             >
+              <span className="apply-profile-camera pointer-events-none" aria-hidden="true">
               {uploading ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
                 <Camera className="h-3.5 w-3.5" />
               )}
+              </span>
             </button>
             <input
               ref={fileRef}

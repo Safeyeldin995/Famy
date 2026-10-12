@@ -41,12 +41,14 @@ export function scheduleTimeChoices(current: string, end: boolean) {
 
 /** Format date-only data in UTC so the displayed calendar day never shifts. */
 export function scheduleDateLabel(value: string, language: string, weekday = false) {
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
   const parts = new Intl.DateTimeFormat(language.startsWith("ar") ? "ar-EG-u-nu-latn" : "en-EG", {
     timeZone: "UTC",
     day: "numeric",
     month: "long",
     ...(weekday ? { weekday: "long" as const } : {}),
-  }).formatToParts(new Date(`${value}T00:00:00Z`));
+  }).formatToParts(date);
   const part = (type: Intl.DateTimeFormatPartTypes) =>
     parts.find((item) => item.type === type)?.value;
   return [weekday ? part("weekday") : undefined, part("day"), part("month")]

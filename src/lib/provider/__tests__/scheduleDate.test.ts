@@ -37,3 +37,14 @@ it("formats vacations and holidays with Latin digits and local calendar names", 
   expect(scheduleDateLabel("2026-11-01", "en")).toBe("1 November");
   expect(scheduleDateLabel("2026-11-10", "en", true)).toBe("Tuesday 10 November");
 });
+
+// Run this file with TZ=UTC and TZ=Africa/Cairo: date-only labels must not
+// depend on the SSR/browser timezone, including the Cairo DST boundary.
+it("keeps month boundaries and Cairo DST dates on their stored calendar day", () => {
+  expect(scheduleDateLabel("2026-04-24", "ar", true)).toBe("الجمعة 24 أبريل");
+  expect(scheduleDateLabel("2026-04-24", "en", true)).toBe("Friday 24 April");
+  expect(scheduleDateLabel("2026-10-30", "ar", true)).toBe("الجمعة 30 أكتوبر");
+  expect(scheduleDateLabel("2026-10-30", "en", true)).toBe("Friday 30 October");
+  expect(scheduleDateLabel("2028-02-29", "ar")).toBe("29 فبراير");
+  expect(scheduleDateLabel("2028-03-01", "en")).toBe("1 March");
+});

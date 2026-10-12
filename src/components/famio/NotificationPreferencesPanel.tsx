@@ -1,3 +1,5 @@
+import { Link } from "@tanstack/react-router";
+import { proPath } from "@/lib/preview/previewPath";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -48,7 +50,7 @@ function Row({ label, sub, children }: { label: string; sub?: string; children: 
   );
 }
 
-export function NotificationPreferencesPanel() {
+export function NotificationPreferencesPanel({ providerMode = false }: { providerMode?: boolean }) {
   const { t } = useTranslation();
   const prefsQ = useNotificationPreferences();
   const updatePrefs = useUpdateNotificationPreferences();
@@ -104,6 +106,16 @@ export function NotificationPreferencesPanel() {
     { key: "support_push", label: t("notifPrefs.support"), sub: t("notifPrefs.supportSub") },
     { key: "campaign_push", label: t("notifPrefs.marketing"), sub: t("notifPrefs.marketingSub") },
   ];
+
+  if (providerMode && (availability === "unconfigured" || availability === "unsupported" || availability === "denied")) {
+    return <Card className="space-y-3 p-4">
+      <h2 className="text-sm font-bold">{t("providerPushUnavailable.title")}</h2>
+      <p className="text-pro-13 text-muted-foreground">{t("providerPushUnavailable.body")}</p>
+      <Link to={proPath("/pro/notifications") as "/pro/notifications"} className="inline-flex min-h-11 items-center rounded-xl px-3 text-pro-13 font-bold text-brand">
+        {t("providerPushUnavailable.open")}
+      </Link>
+    </Card>;
+  }
 
   return (
     <div className="space-y-5">

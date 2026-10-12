@@ -57,3 +57,34 @@ it("passes a replacement file and its type to the secure upload handler", () => 
   });
   expect(upload).toHaveBeenCalledWith("id_card_front", file);
 });
+
+it("places each ID status inside its card and the public reason directly below", () => {
+  render(
+    <ProviderDocumentsView
+      status="APPROVED"
+      documents={[
+        document,
+        { id: "back", type: "id_card_back", status: "pending", rejected_reason: null },
+      ]}
+      onUpload={vi.fn()}
+    />,
+  );
+  const front = screen.getByText("providerDocuments.id_card_front").closest(".apply-id");
+  const back = screen.getByText("providerDocuments.id_card_back").closest(".apply-id");
+  expect(front?.contains(screen.getByText("providerDocuments.rejected"))).toBe(true);
+  expect(back?.contains(screen.getByText("providerDocuments.pending"))).toBe(true);
+  expect(front?.nextElementSibling).toBe(screen.getByText("Public reason"));
+  expect(screen.queryByText("providerApply.captured")).toBeNull();
+});
+it("keeps other document tiles, labels and status tags in the same row", () => {
+  render(
+    <ProviderDocumentsView
+      status="APPROVED"
+      documents={[{ ...document, type: "certificate", status: "approved", rejected_reason: null }]}
+      onUpload={vi.fn()}
+    />,
+  );
+  const row = screen.getByText("providerDocuments.certificate").closest(".apply-li");
+  expect(row?.querySelector(".apply-tile")).toBeTruthy();
+  expect(row?.contains(screen.getByText("providerDocuments.approved"))).toBe(true);
+});
