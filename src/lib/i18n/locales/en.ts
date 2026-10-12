@@ -1540,6 +1540,12 @@ const en = {
       },
     },
     schedule: {
+      vacationStart: "From",
+      vacationEnd: "Until",
+      startPast: "Choose today or a future start date",
+      endBeforeStart: "The end date cannot be before the start date",
+      invalidDate: "Choose a valid date",
+
       copyHours: "Copy these hours to…",
       copyHint: "Choose open days to copy to. Closed days stay unchanged.",
       applyCopy: "Copy hours",

@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { BottomSheetSelect } from "@/components/famio/BottomSheetSelect";
 import { TextField } from "@/components/famio/TextField";
-import { scheduleDate } from "@/lib/provider/scheduleDate";
+import { scheduleDate, scheduleYears, scheduleToday, scheduleMonthDays, updateScheduleDate, validateScheduleRange } from "@/lib/provider/scheduleDate";
 
 export function ScheduleDateSheet({
   range,
@@ -20,18 +20,22 @@ export function ScheduleDateSheet({
   onSave: (start: string, end: string, reason: string) => void;
 }) {
   const { t, i18n } = useTranslation();
-  const [start, setStart] = useState({ year: "", month: "", day: "" });
-  const [end, setEnd] = useState({ year: "", month: "", day: "" });
+  const [start, setStart] = useState(() => scheduleToday(new Date()));
+  const [selectedEnd, setEnd] = useState<typeof start | null>(null);
+  const end = selectedEnd ?? start;
+  const [submitted, setSubmitted] = useState(false);
   const [reason, setReason] = useState("");
   const startDate = scheduleDate(start);
   const endDate = range ? scheduleDate(end) : startDate;
   const numbers = (first: number, length: number) =>
     Array.from({ length }, (_, i) => ({ value: String(first + i), label: String(first + i) }));
   const options = {
-    day: numbers(1, 31),
     month: numbers(1, 12),
-    year: numbers(new Date().getFullYear() - 100, 201),
+    year: scheduleYears(new Date()).map((year) => ({ value: String(year), label: String(year) })),
   };
+  const validation = validateScheduleRange(startDate, endDate, new Date());
+  const validationMessage = validation === "startPast" ? t("pro.schedule.startPast")
+    : validation === "endBeforeStart" ? t("pro.schedule.endBeforeStart") : t("pro.schedule.invalidDate");
   return (
     <Drawer.Root
       open
@@ -79,13 +83,11 @@ export function ScheduleDateSheet({
                     key={key}
                     label={t(`providerSetup.${key}`)}
                     value={(side === "start" ? start : end)[key]}
-                    options={options[key]}
-                    onChange={(value) =>
-                      (side === "start" ? setStart : setEnd)((current) => ({
-                        ...current,
-                        [key]: value,
-                      }))
-                    }
+                    options={key === "day" ? numbers(1, scheduleMonthDays((side === "start" ? start : end).year, (side === "start" ? start : end).month)) : options[key]}
+                    onChange={(value) => {
+                      if (side === "start") setStart(updateScheduleDate(start, key, value));
+                      else setEnd(updateScheduleDate(end, key, value));
+                    }}
                   />
                 ))}
               </div>
@@ -97,6 +99,7 @@ export function ScheduleDateSheet({
             onChange={(event) => setReason(event.target.value)}
             disabled={busy}
           />
+          {submitted && validation && <p role="alert" className="text-sm text-destructive">{validationMessage}</p>}
           {error && (
             <p role="alert" className="text-sm text-destructive">
               {t("providerApply.saveError")}
@@ -107,7 +110,8 @@ export function ScheduleDateSheet({
             className="apply-cta w-full"
             disabled={busy || !startDate || !endDate}
             onClick={() => {
-              if (startDate && endDate) onSave(startDate, endDate, reason);
+              setSubmitted(true);
+              if (!validateScheduleRange(startDate, endDate, new Date()) && startDate && endDate) onSave(startDate, endDate, reason);
             }}
           >
             {t(busy ? "pro.common.saving" : "pro.schedule.add")}

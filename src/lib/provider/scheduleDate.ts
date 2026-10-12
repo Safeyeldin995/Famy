@@ -55,3 +55,29 @@ export function scheduleDateLabel(value: string, language: string, weekday = fal
     .filter(Boolean)
     .join(" ");
 }
+
+
+export function scheduleYears(today: Date): number[] {
+  return [today.getFullYear(), today.getFullYear() + 1];
+}
+
+export function scheduleToday(today: Date) {
+  return { year: String(today.getFullYear()), month: String(today.getMonth() + 1), day: String(today.getDate()) };
+}
+
+export function scheduleMonthDays(year: string, month: string): number {
+  return new Date(Date.UTC(Number(year), Number(month), 0)).getUTCDate();
+}
+
+export function updateScheduleDate(parts: { year: string; month: string; day: string }, key: "year" | "month" | "day", value: string) {
+  const next = { ...parts, [key]: value };
+  next.day = String(Math.min(Number(next.day), scheduleMonthDays(next.year, next.month)));
+  return next;
+}
+
+export function validateScheduleRange(start: string | null, end: string | null, today: Date): "invalidDate" | "startPast" | "endBeforeStart" | null {
+  if (!start || !end) return "invalidDate";
+  if (start < scheduleDate(scheduleToday(today))!) return "startPast";
+  if (end < start) return "endBeforeStart";
+  return null;
+}
