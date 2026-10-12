@@ -1,3 +1,4 @@
+import { ProfileAvatar } from "./ProfileAvatar";
 import { localOnboardingMissing, onboardingMissingItems, type GuidanceField, type MissingItem } from "@/lib/provider/onboardingGuidance";
 import { useSearch } from "@tanstack/react-router";
 import { onboardingInitialStep } from "@/lib/provider/onboardingSection";
@@ -23,7 +24,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { PhoneFrame, Card, PrimaryButton, Badge } from "@/components/famio/ui";
-import { ProviderPageHero } from "@/components/famio/ProviderPageHero";
+import { PageHeader } from "@/components/famio/PageHeader";
 import { ProviderFloatingPanel } from "@/components/famio/ProviderFloatingPanel";
 import { useLang } from "@/components/famio/LanguageToggle";
 import {
@@ -594,10 +595,10 @@ export function ProviderOnboardingFlow({ previewMode = false, initialSection }: 
   if (!previewMode && (!editable || (deferred && current === "review")) && status && status !== "DRAFT") {
     const submittedRefs = refsQ.data ?? [];
     return (
-      <PhoneFrame bg="bg-[#FEFAFC]">
-        <ProviderPageHero title={t("pro.onboardingWizard.title")} backTo="/pro" compact />
+      <PhoneFrame className="pro-surface" bg="bg-[#FEFAFC]">
+        <PageHeader title={t("pro.onboardingWizard.title")} backTo="/pro" />
         <div className="space-y-4 px-5 pb-10" dir={lang === "ar" ? "rtl" : "ltr"}>
-          <ProviderFloatingPanel>
+          <ProviderFloatingPanel className="!mt-0">
             <Badge tone="muted">{t(`pro.onboardingWizard.status.${status}`, status)}</Badge>
             <p className="mt-3 text-sm font-medium text-muted-foreground">
               {status === "NEEDS_CHANGES"
@@ -651,17 +652,16 @@ export function ProviderOnboardingFlow({ previewMode = false, initialSection }: 
     "h-12 w-full rounded-2xl border border-border/60 bg-surface px-4 text-sm font-medium text-foreground placeholder:text-muted-foreground/70";
 
   return (
-    <PhoneFrame bg="bg-[#FEFAFC]">
-      <ProviderPageHero
+    <PhoneFrame className="pro-surface" bg="bg-[#FEFAFC]">
+      <PageHeader
         title={t("pro.onboardingWizard.title")}
         subtitle={t(`pro.onboardingWizard.steps.${current}`)}
         backTo="/pro"
-        compact
       />
 
       <div className="px-5" dir={lang === "ar" ? "rtl" : "ltr"}>
-        <ProviderFloatingPanel className="!p-3">
-          <div className="mb-2 flex items-center justify-between text-[11px] font-bold text-muted-foreground">
+        <ProviderFloatingPanel className="!mt-0 !p-3">
+          <div className="mb-2 flex items-center justify-between text-pro-12 font-bold text-muted-foreground">
             <span>
               {t("pro.onboardingWizard.progress", "Step {{current}} of {{total}}", {
                 current: step + 1,
@@ -687,7 +687,7 @@ export function ProviderOnboardingFlow({ previewMode = false, initialSection }: 
                   type="button"
                   disabled={deferred && !["personal", "experience", "references", "services"].includes(s)}
                   onClick={() => setStep(idx)}
-                  className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-extrabold transition-colors ${
+                  className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-pro-12 font-extrabold transition-colors ${
                     active
                       ? "bg-brand text-brand-foreground"
                       : done
@@ -713,7 +713,7 @@ export function ProviderOnboardingFlow({ previewMode = false, initialSection }: 
             <label className="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border border-dashed border-brand/30 bg-brand/[0.04] px-4 py-5">
               <div className="grid h-20 w-20 place-items-center overflow-hidden rounded-2xl bg-brand/10 text-brand">
                 {shownPhoto ? (
-                  <img src={shownPhoto} alt="" className="h-20 w-20 object-cover" />
+                  <ProfileAvatar preview={shownPhoto} name={legalName} className="h-20 w-20 rounded-full" />
                 ) : (
                   <Camera className="h-6 w-6" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
                 )}
@@ -721,7 +721,7 @@ export function ProviderOnboardingFlow({ previewMode = false, initialSection }: 
               <span className="text-sm font-bold text-brand">
                 {t("pro.onboardingWizard.uploadPhoto")}
               </span>
-              <span className="text-[11px] font-medium text-muted-foreground">
+              <span className="text-pro-12 font-medium text-muted-foreground">
                 {t("pro.onboardingWizard.photoHint")}
               </span>
               <input
@@ -1065,7 +1065,7 @@ export function ProviderOnboardingFlow({ previewMode = false, initialSection }: 
             {singleActiveZone ? (
               <div className="rounded-2xl border border-brand/30 bg-brand/[0.06] px-3 py-3 text-sm font-bold break-words">
                 {lang === "ar" ? singleActiveZone.name_ar : singleActiveZone.name_en}
-                <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
+                <p className="mt-1 text-pro-12 font-semibold text-muted-foreground">
                   {t("pro.onboardingWizard.singleZoneConfirmed")}
                 </p>
               </div>
@@ -1121,7 +1121,7 @@ export function ProviderOnboardingFlow({ previewMode = false, initialSection }: 
                     {t("pro.onboardingWizard.reference", { n: idx + 1 })}
                   </div>
                   {idx === 1 ? (
-                    <span className="text-[11px] font-semibold text-muted-foreground">
+                    <span className="text-pro-12 font-semibold text-muted-foreground">
                       {t("pro.onboardingWizard.referenceOptional")}
                     </span>
                   ) : null}
@@ -1298,7 +1298,7 @@ export function ProviderOnboardingFlow({ previewMode = false, initialSection }: 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <div className="mb-1.5 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
+      <div className="mb-1.5 text-pro-12 font-extrabold uppercase tracking-wider text-muted-foreground">
         {label}
       </div>
       {children}

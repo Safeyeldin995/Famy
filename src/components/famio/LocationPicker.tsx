@@ -161,7 +161,7 @@ export function LocationPicker({
             <div className="text-xs font-bold">
               {t("addresses.permissionDeniedTitle", "Location access denied")}
             </div>
-            <p className="mt-0.5 text-[11px] leading-relaxed text-coral/90">
+            <p className="mt-0.5 text-pro-12 leading-relaxed text-coral/90">
               {t(
                 "addresses.permissionDeniedBody",
                 "Enable location access in your browser settings, or set the pin manually on the map above.",
@@ -171,9 +171,9 @@ export function LocationPicker({
         </div>
       )}
       {geoError && !permissionDenied && (
-        <p className="mt-2 text-[11px] font-semibold text-coral">{geoError}</p>
+        <p className="mt-2 text-pro-12 font-semibold text-coral">{geoError}</p>
       )}
-      <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+      <p className="mt-2 flex items-center gap-1.5 text-pro-12 text-muted-foreground">
         <MapPin className="h-3 w-3 shrink-0" />
         {t("addresses.mapHint", "Tap or drag the pin to fine-tune your exact location.")}
       </p>
@@ -202,7 +202,7 @@ function MapUnavailable({ onRetry }: { onRetry: () => void }) {
         <span className="text-xs font-bold">
           {t("addresses.mapUnavailable", "Map unavailable right now")}
         </span>
-        <span className="text-[11px] text-muted-foreground">
+        <span className="text-pro-12 text-muted-foreground">
           {t(
             "addresses.mapUnavailableBody",
             "Your location is still saved. You can retry loading the map.",

@@ -102,10 +102,10 @@ export function ZonePolygonEditor({
           </button>
         </div>
       </div>
-      <p className="mt-2 text-[11px] text-muted-foreground">
+      <p className="mt-2 text-pro-12 text-muted-foreground">
         {t("admin.zones.polygonHint", "Tap the map to add boundary points, drag a point to adjust it, or use the buttons to undo/clear.")}
       </p>
-      <p className="mt-1 text-[11px] font-semibold text-muted-foreground" dir="ltr">
+      <p className="mt-1 text-pro-12 font-semibold text-muted-foreground" dir="ltr">
         {t("admin.zones.pointCount", "{{count}} points", { count: polygon.length })}
       </p>
     </div>

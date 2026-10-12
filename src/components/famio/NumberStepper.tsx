@@ -21,6 +21,7 @@ export function NumberStepper({
   unitLabel,
   onChange,
   disabled,
+  hint,
 }: {
   value: number;
   min: number;
@@ -29,6 +30,7 @@ export function NumberStepper({
   unitLabel: string;
   onChange: (value: number) => void;
   disabled?: boolean;
+  hint?: string;
 }) {
   const { t } = useTranslation();
   return (
@@ -44,6 +46,7 @@ export function NumberStepper({
       </button>
       <span className="apply-value">
         <b>{value}</b> <span>{unitLabel}</span>
+        {hint && <small>{hint}</small>}
       </span>
       <button
         type="button"

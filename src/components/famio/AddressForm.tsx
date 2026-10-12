@@ -94,7 +94,7 @@ export function AddressForm({
               key={key}
               type="button"
               onClick={() => set("label", key)}
-              className={`flex flex-col items-center gap-1.5 rounded-[1.25rem] border py-3 text-[11px] font-bold transition-all ${
+              className={`flex flex-col items-center gap-1.5 rounded-[1.25rem] border py-3 text-pro-12 font-bold transition-all ${
                 value.label === key ? "border-brand bg-brand/5 text-brand" : "border-border/80 bg-surface text-muted-foreground"
               }`}
             >
@@ -112,7 +112,7 @@ export function AddressForm({
           />
         )}
         {touched && value.label === "other" && value.customLabel.trim().length === 0 && (
-          <p className="mt-1 text-[11px] font-semibold text-brand">{t("validation.required")}</p>
+          <p className="mt-1 text-pro-12 font-semibold text-brand">{t("validation.required")}</p>
         )}
       </div>
 
@@ -132,11 +132,11 @@ export function AddressForm({
             </button>
           ))}
         </div>
-        {touched && !value.area && <p className="mt-1 text-[11px] font-semibold text-brand">{t("validation.required")}</p>}
+        {touched && !value.area && <p className="mt-1 text-pro-12 font-semibold text-brand">{t("validation.required")}</p>}
       </div>
 
       <Field label={t("setup.address")} value={value.street} onChange={(v) => set("street", v)} placeholder={t("setup.addressPlaceholder")} />
-      {touched && value.street.trim().length < 2 && <p className="-mt-3 text-[11px] font-semibold text-brand">{t("validation.required")}</p>}
+      {touched && value.street.trim().length < 2 && <p className="-mt-3 text-pro-12 font-semibold text-brand">{t("validation.required")}</p>}
 
       <div className="grid grid-cols-2 gap-3">
         <Field label={t("setup.compound")} value={value.compound} onChange={(v) => set("compound", v)} placeholder={t("setup.compoundPlaceholder")} />
@@ -168,7 +168,7 @@ export function AddressForm({
           />
         </Card>
         {!isValidLatLng({ lat: value.lat ?? NaN, lng: value.lng ?? NaN }) && (
-          <p className="mt-2 flex items-start gap-1.5 text-[11px] font-semibold text-muted-foreground">
+          <p className="mt-2 flex items-start gap-1.5 text-pro-12 font-semibold text-muted-foreground">
             <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-brand" />
             {t("addresses.noCoordsWarning", "Without a pinned location, this address can't be used to book a service.")}
           </p>

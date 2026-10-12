@@ -1,7 +1,7 @@
 import { ChevronLeft } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import "./providerApply.css";
-export function StepHeader({ step, onBack }: { step: number; onBack?: () => void }) {
+export function StepHeader({ step, onBack, total = 3 }: { step: number; onBack?: () => void; total?: number }) {
   const { t } = useTranslation();
   return (
     <header className="apply-header">
@@ -18,10 +18,10 @@ export function StepHeader({ step, onBack }: { step: number; onBack?: () => void
         ) : (
           <span />
         )}
-        <span className="apply-step">{t("providerApply.step", { step })}</span>
+        <span className="apply-step">{total === 3 ? t("providerApply.step", { step }) : t("customerBooking.step", { step, total })}</span>
       </div>
-      <div className="apply-segments" aria-hidden="true">
-        {[1, 2, 3].map((n) => (
+      <div className="apply-segments" style={{ gridTemplateColumns: `repeat(${total}, 1fr)` }} aria-hidden="true">
+        {Array.from({ length: total }, (_, index) => index + 1).map((n) => (
           <span key={n} className={n <= step ? "on" : ""} />
         ))}
       </div>

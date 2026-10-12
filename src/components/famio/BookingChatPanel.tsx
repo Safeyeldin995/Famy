@@ -1,3 +1,4 @@
+import { formatTime } from "@/lib/format";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Send, ShieldCheck, Lock, AlertTriangle } from "lucide-react";
@@ -18,7 +19,7 @@ import {
 type Viewer = "customer" | "provider" | "admin";
 
 function timeOf(iso: string) {
-  return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  return formatTime(new Date(iso), undefined);
 }
 
 function actorLabel(t: ReturnType<typeof useTranslation>["t"], viewer: Viewer, role: BookingMessage["sender_role"]) {
@@ -37,7 +38,7 @@ function actorLabel(t: ReturnType<typeof useTranslation>["t"], viewer: Viewer, r
  * action the server would reject; the server (trg_messages_validate) is
  * still the actual authority.
  */
-export function BookingChatPanel({ bookingId, status, viewer }: { bookingId: string; status: string | undefined; viewer: Viewer }) {
+export function BookingChatPanel({ bookingId, status, viewer, compactUnavailable = false }: { bookingId: string; status: string | undefined; viewer: Viewer; compactUnavailable?: boolean }) {
   const { t } = useTranslation();
   const convQ = useConversationByBooking(bookingId);
   const conversationId = convQ.data ?? undefined;
@@ -80,6 +81,7 @@ export function BookingChatPanel({ bookingId, status, viewer }: { bookingId: str
 
   if (phase === "unavailable") {
     if (viewer === "admin") return null;
+    if (compactUnavailable) return <p className="text-pro-12 text-muted-foreground">{t("bookingChat.unavailableTitle", "Chat becomes available after confirmation")}</p>;
     return (
       <Card className="mt-4 p-5 text-center">
         <Lock className="mx-auto h-5 w-5 text-muted-foreground" />
@@ -137,7 +139,7 @@ export function BookingChatPanel({ bookingId, status, viewer }: { bookingId: str
             if (m.message_type === "system") {
               return (
                 <div key={m.id} className="flex justify-center py-1">
-                  <span className="rounded-full bg-surface-2 px-3 py-1 text-[11px] font-medium text-muted-foreground">
+                  <span className="rounded-full bg-surface-2 px-3 py-1 text-pro-12 font-medium text-muted-foreground">
                     {t(`bookingChat.system.${m.system_key}`, m.body)}
                   </span>
                 </div>
@@ -146,12 +148,12 @@ export function BookingChatPanel({ bookingId, status, viewer }: { bookingId: str
             const mine = m.sender_id === meId;
             return (
               <div key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
-                <span className="mb-0.5 px-1 text-[10px] font-semibold text-muted-foreground">{actorLabel(t, viewer, m.sender_role)}</span>
+                <span className="mb-0.5 px-1 text-pro-12 font-semibold text-muted-foreground">{actorLabel(t, viewer, m.sender_role)}</span>
                 <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-snug ${
                   mine ? "bg-brand text-brand-foreground rounded-br-md" : "bg-surface-2 text-foreground rounded-bl-md"
                 }`}>
                   <div className="whitespace-pre-wrap break-words">{m.body}</div>
-                  <div className={`mt-1 text-[10px] ${mine ? "text-white/70" : "text-muted-foreground"}`}>{timeOf(m.created_at)}</div>
+                  <div className={`mt-1 text-pro-12 ${mine ? "text-white/70" : "text-muted-foreground"}`}>{timeOf(m.created_at)}</div>
                 </div>
               </div>
             );
@@ -160,13 +162,13 @@ export function BookingChatPanel({ bookingId, status, viewer }: { bookingId: str
       </div>
 
       {phase === "readonly" && (
-        <div className="border-t border-border/60 px-4 py-3 text-center text-[11px] font-semibold text-muted-foreground">
+        <div className="border-t border-border/60 px-4 py-3 text-center text-pro-12 font-semibold text-muted-foreground">
           {t("bookingChat.closedBody", "This conversation is closed. You can still read the full history above.")}
         </div>
       )}
 
       {phase === "disputed" && !canSend && (
-        <div className="flex items-start gap-2 border-t border-amber-500/30 bg-amber-50 px-4 py-3 text-[11px] font-medium text-amber-900">
+        <div className="flex items-start gap-2 border-t border-amber-500/30 bg-amber-50 px-4 py-3 text-pro-12 font-medium text-amber-900">
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <span>{t("bookingChat.disputedBody", "This booking is under review. Famy support can see your history and will follow up here.")}</span>
         </div>
@@ -174,7 +176,7 @@ export function BookingChatPanel({ bookingId, status, viewer }: { bookingId: str
 
       {canSend && (
         <div className="border-t border-border/60 p-3">
-          {warning && <div className="mb-2 rounded-xl bg-amber-50 px-3 py-2 text-[11px] font-medium text-amber-900">{warning}</div>}
+          {warning && <div className="mb-2 rounded-xl bg-amber-50 px-3 py-2 text-pro-12 font-medium text-amber-900">{warning}</div>}
           <div className="flex items-end gap-2">
             <input
               value={text}

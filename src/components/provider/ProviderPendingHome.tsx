@@ -29,7 +29,7 @@ import { proPath } from "@/lib/preview/previewPath";
 import { QueryError } from "@/components/famio/QueryError";
 import { useProviderAvailability } from "@/lib/db/provider-queries";
 import { workingHoursState } from "@/lib/provider/setupHelpers";
-import { useAvatarUrl } from "@/lib/db/queries";
+import { ProfileAvatar } from "./ProfileAvatar";
 import { pendingHomeModel, type PendingHomeData } from "@/lib/provider/pendingHomeModel";
 import "@/components/famio/providerApply.css";
 
@@ -60,7 +60,6 @@ export function PendingHomeView({
   changes?: { reason?: string | null; completion?: SubmitCompletion; onSubmit: () => Promise<void> };
 }) {
   const { t, i18n } = useTranslation();
-  const avatar = useAvatarUrl(avatarUrl);
   const firstName = fullName.trim().split(/\s+/)[0];
   const model = pendingHomeModel(data);
   const [busy, setBusy] = useState(false);
@@ -80,9 +79,7 @@ export function PendingHomeView({
     <section className={`apply-ui apply-content apply-pending-home ${changes ? "apply-changes-home" : ""}`} dir={i18n.dir()}>
       <div className="apply-hello">
         <h1>{t("providerApply.pending.hello", { name: firstName })}</h1>
-        <span className="apply-avatar">
-          {avatar.data ? <img src={avatar.data} alt={fullName} /> : firstName[0]}
-        </span>
+        <ProfileAvatar src={avatarUrl} name={fullName} className="h-11 w-11 rounded-full" />
       </div>
       {changes ? <div className="apply-note !block" style={{ background: "var(--apply-wait-tint)", color: "var(--apply-wait)" }} role="status">
         <h2 className="text-base font-bold">{t("providerChanges.title")}</h2>

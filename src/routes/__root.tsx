@@ -14,6 +14,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { LanguageProvider } from "../lib/i18n/LanguageProvider";
+import { getInitialLanguage } from "../lib/i18n/language.functions";
 import { supabase } from "../integrations/supabase/client";
 import { ClientErrorMonitoringBridge } from "../components/ClientErrorMonitoringBridge";
 
@@ -63,6 +64,7 @@ function ErrorComponent({ error, reset }: { error: unknown; reset: () => void })
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  loader: async () => ({ language: await getInitialLanguage() }),
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -96,20 +98,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
-  // Inline pre-hydration script: apply persisted language to <html lang/dir>
-  // before React renders so refresh/login never shows a brief reset to English.
-  const langBootstrap = `(function(){try{var l=localStorage.getItem('famio.lang')==='ar'?'ar':'en';document.documentElement.lang=l;document.documentElement.dir=l==='ar'?'rtl':'ltr';document.documentElement.setAttribute('data-lang',l);}catch(e){}})();`;
+  const language = Route.useLoaderData()?.language ?? "en";
   return (
-    <html lang="en" suppressHydrationWarning>
+    <LanguageProvider initialLanguage={language}>
+    <html lang={language} dir={language === "ar" ? "rtl" : "ltr"} data-lang={language}>
       <head>
         <HeadContent />
-        <script dangerouslySetInnerHTML={{ __html: langBootstrap }} />
       </head>
       <body>
         {children}
         <Scripts />
       </body>
     </html>
+    </LanguageProvider>
   );
 }
 
@@ -117,14 +118,12 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
-      <LanguageProvider>
         <AuthCacheBridge />
         <PushNavigationBridge />
         <ClientErrorMonitoringBridge />
         <Outlet />
         <div id="firebase-recaptcha" className="hidden" aria-hidden="true" />
         <Toaster />
-      </LanguageProvider>
     </QueryClientProvider>
   );
 }

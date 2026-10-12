@@ -1,3 +1,4 @@
+import { seedCustomerBookingPreview } from "./customerBookingPreview";
 import { PREVIEW_NOW_ISO, PREVIEW_PROVIDER_ID, PREVIEW_USER_ID } from "@/lib/preview/constants";
 import {
   addressesQueryKey,
@@ -514,6 +515,7 @@ export function seedPreviewQueries(qc: import("@tanstack/react-query").QueryClie
       },
     ],
   );
+  seedCustomerBookingPreview(qc, p1);
 }
 
 const previewCustomer = {
@@ -654,8 +656,8 @@ function seedPreviewProviderQueries(qc: import("@tanstack/react-query").QueryCli
     hasSnapshottedUpcoming: false,
     hasUnsnapshottedUpcoming: true,
   });
-  qc.setQueryData(["provider-vacations", PREVIEW_PROVIDER_ID], []);
-  qc.setQueryData(["provider-exceptions", PREVIEW_PROVIDER_ID], []);
+  qc.setQueryData(["provider-vacations", PREVIEW_PROVIDER_ID], [{ id: "preview-vacation", provider_id: PREVIEW_PROVIDER_ID, start_date: "2026-11-01", end_date: "2026-11-03", reason: "" }]);
+  qc.setQueryData(["provider-exceptions", PREVIEW_PROVIDER_ID], [{ id: "preview-day-off", provider_id: PREVIEW_PROVIDER_ID, date: "2026-11-10", is_blocked: true, reason: "" }]);
   qc.setQueryData(
     ["provider-documents", PREVIEW_PROVIDER_ID],
     [

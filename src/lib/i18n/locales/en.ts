@@ -1,4 +1,64 @@
 const en = {
+  providerPushUnavailable: {
+    title: "Phone notifications are not available yet",
+    body: "You will receive all updates in the app on the notifications page.",
+    open: "Open notifications",
+  },
+  providerProfilePolish: { requirements: "Requirements" },
+  providerNotificationPolish: {
+    "on": "On",
+    "off": "Off",
+    "enable": "Turn on notifications on your phone",
+    "footer": "In-app notifications stay available."
+},
+  providerDocuments: {
+    "title": "Documents and verification",
+    "readOnly": "Your documents are with Famy. Uploads are available only when your application is editable.",
+    "replace": "Upload again",
+    "upload": "Upload document",
+    "missing": "Not uploaded yet",
+    "other": "Other documents",
+    "id_card_front": "ID front",
+    "id_card_back": "ID back",
+    "profile_photo": "Profile photo",
+    "certificate": "Certificate",
+    "otherDocument": "Other document",
+    "approved": "Approved",
+    "pending": "Under review",
+    "rejected": "Rejected",
+    "expired": "Expired",
+    "renewal_required": "Update needed"
+},
+  customerBooking: {
+    "duration": "{{hours}} hours",
+    "rateLine": "{{rate}} × {{hours}} hours",
+    "address": "Address",
+    "addAddress": "+ New address",
+    "addMember": "+ Add a family member",
+    "notes": "Notes for {{name}} (optional)",
+    "recipient": "Who",
+    "chooseRecipient": "Choose who will be with {{name}}",
+    "tutoringPrice": "Price depends on the subject",
+    "tutoringFrom": "From EGP {{price}} / session",
+
+    "hoursRange": "From {{min}} to {{max}}",
+    "step": "{{step}} of {{total}}",
+    "titles": {
+        "service": "What would you like from {{name}}?",
+        "when": "When?",
+        "whereWho": "Where and who?",
+        "review": "Review and confirm"
+    },
+    "jobs": "{{count}} bookings",
+    "hours": "hours",
+    "who": "Who will be with {{name}}?",
+    "schoolDetails": "School details",
+    "sessionDuration": "Session duration",
+    "promo": "Have a promo code?",
+    "next": "Next · {{total}}",
+    "confirm": "Confirm booking · {{total}}",
+    "whenSummary": "{{date}} · {{start}} to {{end}}"
+},
   providerChanges: {
     "title": "The Famy team needs a change",
     "reasonFallback": "Review your details and requested changes, then send your application again.",
@@ -382,7 +442,7 @@ const en = {
     deliveryUnavailable:
       "Verification delivery is temporarily unavailable. Wait a moment and try again.",
     rateLimited: "Too many attempts. Try again in {{time}}.",
-    durationSeconds: "{{formatted}} s",
+    durationSeconds: "{{formatted}} seconds",
     firebaseSendFailed: "Could not send verification SMS. Try again later.",
     firebaseSendTooManyRequests: "Too many attempts from this device. Please wait and try again.",
     firebaseSendQuotaExceeded: "SMS service is busy right now. Please try again shortly.",
@@ -809,6 +869,7 @@ const en = {
     notFound: "Professional not found",
     unnamed: "Provider",
   },
+  scheduleUi: {"dateRange": "{{start}} to {{end}}", "hours": "Your working hours", "midnight": "12 midnight", "vacation": "Vacation", "vacations": "Vacation dates", "holidays": "Days off", "add": "+ Add", "reason": "Reason (optional)", "on": "On", "off": "Off", "minutes": "minutes", "hoursUnit": "hours", "days": "days"},
   providerProfile: {
     coverageReview: "The Famy team will review your service areas",
     trust: "Trust {{score}}",
@@ -1479,6 +1540,12 @@ const en = {
       },
     },
     schedule: {
+      vacationStart: "From",
+      vacationEnd: "Until",
+      startPast: "Choose today or a future start date",
+      endBeforeStart: "The end date cannot be before the start date",
+      invalidDate: "Choose a valid date",
+
       copyHours: "Copy these hours to…",
       copyHint: "Choose open days to copy to. Closed days stay unchanged.",
       applyCopy: "Copy hours",
@@ -2667,6 +2734,29 @@ const en = {
     deactivate: "Deactivate",
     allowedDurations: "Allowed session lengths (minutes)",
   },
+  proWork: {
+      monthNet: "Net this month",
+      "hello": "Hi, {{name}}",
+      "today": "Today",
+      "nextJob": "Next job",
+      "noJobToday": "No jobs today",
+      "monthValue": "Bookings this month",
+      "rating": "Your rating",
+      "accept": "Accept",
+      "decline": "Decline",
+      "allSteps": "All stages",
+      "nextStep": "Next: {{step}}",
+      "bookingCode": "Booking #{{code}}",
+      "bookingLabel": "Booking",
+      "replyHours": "Reply within {{count}} hours",
+      "replyMinutes": "Reply within {{count}} minutes",
+      "replyOverdue": "Response overdue",
+      "thisMonth": "This month",
+      "last7": "Last 7 days",
+      "expected": "Expected",
+      "paymentDetails": "Payment details"
+  },
+
 };
 export default en;
 export type Translation = typeof en;

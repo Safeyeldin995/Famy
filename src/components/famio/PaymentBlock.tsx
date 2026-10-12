@@ -51,6 +51,7 @@ export function PaymentBlock({
   pendingPaymentSelection,
   paymobReturn,
   autoStartPaymobCheckout,
+  embedded = false,
 }: {
   bookingId: string;
   viewer: ViewerRole;
@@ -64,7 +65,10 @@ export function PaymentBlock({
   paymobReturn?: boolean;
   /** After deferred payment recovery for online, jump straight to Paymob checkout. */
   autoStartPaymobCheckout?: boolean;
+  /** Embed the unchanged payment actions in a parent booking-total card. */
+  embedded?: boolean;
 }) {
+  const Container = embedded ? "div" : Card;
   const q = useBookingPayment(bookingId);
   const createPayment = useCreatePayment();
   const activeMethodsQ = useActivePaymentMethods();
@@ -150,19 +154,19 @@ export function PaymentBlock({
   }, [paymobReturn, viewer, isOnline, bookingId]);
 
   if (q.isLoading || (canRecoverDeferredPayment && !q.data)) {
-    return <Card className="h-24 animate-pulse p-4"><span /></Card>;
+    return <Container className="h-24 animate-pulse p-4"><span /></Container>;
   }
   const p = payment;
   if (!p) {
     return (
-      <Card className="p-4">
+      <Container className={embedded ? "" : "p-4"}>
         <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("payment.title")}</div>
         <div className="mt-1 text-sm text-muted-foreground">
           {pendingPaymentSelection
             ? t("bookFlow.paymentDeferred", "Your booking was created. Payment details will load on the booking page.")
             : t("payment.noneRecorded")}
         </div>
-      </Card>
+      </Container>
     );
   }
 
@@ -257,7 +261,7 @@ export function PaymentBlock({
   };
 
   return (
-    <Card className="space-y-3 p-4">
+    <Container className={embedded ? "space-y-2" : "space-y-3 p-4"}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="grid h-9 w-9 place-items-center rounded-full bg-brand/8 text-brand">
@@ -265,7 +269,7 @@ export function PaymentBlock({
           </div>
           <div>
             <div className="text-sm font-extrabold">{lang === "ar" ? nameAr : nameEn}</div>
-            <div className="text-[11px] text-muted-foreground">{formatEGP(Number(p.amount ?? 0))}</div>
+            {!embedded && <div className="text-pro-12 text-muted-foreground">{formatEGP(Number(p.amount ?? 0))}</div>}
           </div>
         </div>
         <Badge tone={statusTone(p.status)}>{t(`payment.status.${p.status}`, String(p.status).replace("_", " "))}</Badge>
@@ -277,7 +281,7 @@ export function PaymentBlock({
       {/* Customer online checkout (Paymob) */}
       {canPayOnline && (
         <div className="space-y-3 rounded-2xl bg-surface-2 p-3">
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-pro-12 text-muted-foreground">
             {paymobReturn && p.status === "pending"
               ? t("payment.paymobConfirming")
               : t("payment.paymobInstructions")}
@@ -299,7 +303,7 @@ export function PaymentBlock({
       {/* Customer manual-transfer instructions + upload */}
       {viewer === "customer" && isManualTransfer && p.status === "pending_review" && !p.proof_path && (
         <div className="space-y-3 rounded-2xl bg-surface-2 p-3">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          <div className="text-pro-12 font-bold uppercase tracking-wider text-muted-foreground">
             {t("payment.transferTo")}
           </div>
           {receiverHandle ? (
@@ -316,11 +320,11 @@ export function PaymentBlock({
                 <Copy className="h-4 w-4 text-muted-foreground" />
               </button>
               {(receiverNote || instructions) && (
-                <p className="text-[11px] text-muted-foreground">{receiverNote || instructions}</p>
+                <p className="text-pro-12 text-muted-foreground">{receiverNote || instructions}</p>
               )}
             </>
           ) : (
-            <p className="text-[11px] text-muted-foreground">{t("payment.handleNotConfigured")}</p>
+            <p className="text-pro-12 text-muted-foreground">{t("payment.handleNotConfigured")}</p>
           )}
           <label className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-brand/30 bg-brand/5 text-sm font-extrabold text-brand active:scale-[0.98]">
             <Upload className="h-4 w-4" /> {upload.isPending ? t("payment.uploading") : t("payment.uploadReceipt")}
@@ -347,10 +351,10 @@ export function PaymentBlock({
         <div className="rounded-2xl bg-brand/8 p-3">
           <div className="text-xs font-extrabold text-brand">{t("payment.rejectedTitle")}</div>
           {p.rejection_reason && (
-            <p className="mt-1 text-[11px] text-muted-foreground">{p.rejection_reason}</p>
+            <p className="mt-1 text-pro-12 text-muted-foreground">{p.rejection_reason}</p>
           )}
           {viewer === "customer" && isManualTransfer && (
-            <p className="mt-1 text-[11px] text-muted-foreground">
+            <p className="mt-1 text-pro-12 text-muted-foreground">
               {t("payment.rejectedRetry")}
             </p>
           )}
@@ -375,7 +379,7 @@ export function PaymentBlock({
                 <Check className="h-4 w-4" /> {t("payment.markReceived")}
               </button>
             ) : (
-              <div className="flex h-11 flex-1 items-center justify-center rounded-2xl bg-surface-2 px-3 text-center text-xs font-semibold text-muted-foreground">
+              <div className={embedded ? "text-pro-12 text-muted-foreground" : "flex h-11 flex-1 items-center justify-center rounded-2xl bg-surface-2 px-3 text-center text-xs font-semibold text-muted-foreground"}>
                 {t("payment.waitingForCompletion")}
               </div>
             )}
@@ -420,6 +424,6 @@ export function PaymentBlock({
           </div>
         </div>
       )}
-    </Card>
+    </Container>
   );
 }

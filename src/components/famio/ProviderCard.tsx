@@ -23,7 +23,7 @@ export function ProviderCard({ p }: { p: Provider }) {
       className="focus-ring relative block rounded-[1.75rem] border border-border/50 bg-surface-elevated p-4 shadow-sm active:scale-[0.99] transition-transform"
     >
       {isTopPro && (
-        <span className="absolute -top-2 start-4 inline-flex items-center gap-1 rounded-full bg-brand px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wide text-brand-foreground shadow-[0_8px_18px_-10px_var(--brand)]">
+        <span className="absolute -top-2 start-4 inline-flex items-center gap-1 rounded-full bg-brand px-2.5 py-0.5 text-pro-12 font-black uppercase tracking-wide text-brand-foreground shadow-[0_8px_18px_-10px_var(--brand)]">
           <Award className="h-3 w-3" /> {t("roles.topPro")}
         </span>
       )}
@@ -41,7 +41,7 @@ export function ProviderCard({ p }: { p: Provider }) {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h3 className="truncate text-[15px] font-extrabold text-foreground">{p.name}</h3>
-            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wide ${
+            <span className={`shrink-0 rounded-full px-2 py-0.5 text-pro-12 font-black uppercase tracking-wide ${
               p.role === "Angel" ? "bg-brand/12 text-brand" : "bg-surface-2 text-muted-foreground"
             }`}>{t(roleKey)}</span>
           </div>
@@ -53,7 +53,7 @@ export function ProviderCard({ p }: { p: Provider }) {
               <Star className="h-3.5 w-3.5 fill-warning text-warning" aria-hidden="true" /> {formatNumber(p.rating)}
               <span className="text-muted-foreground font-normal">({formatNumber(p.reviews)})</span>
             </span>
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground">
+            <span className="inline-flex items-center gap-1 text-pro-12 font-semibold text-muted-foreground">
               <Clock className="h-3 w-3" aria-hidden="true" /> {t("common.replyTime")}
             </span>
           </div>
@@ -61,7 +61,7 @@ export function ProviderCard({ p }: { p: Provider }) {
             {p.badges.slice(0, 2).map((b) => (
               <span
                 key={b}
-                className="inline-flex items-center gap-1 rounded-full bg-mint/25 px-2 py-0.5 text-[10px] font-semibold text-foreground"
+                className="inline-flex items-center gap-1 rounded-full bg-mint/25 px-2 py-0.5 text-pro-12 font-semibold text-foreground"
               >
                 <ShieldCheck className="h-2.5 w-2.5 text-success" aria-hidden="true" /> {t(`badges.${badgeKey(b)}`, b)}
               </span>
@@ -70,7 +70,7 @@ export function ProviderCard({ p }: { p: Provider }) {
         </div>
         <div className="text-end">
           <div className="text-base font-extrabold text-brand">{formatEGP(p.hourlyRate)}</div>
-          <div className="text-[11px] font-bold text-muted-foreground">{t("common.perHour")}</div>
+          <div className="text-pro-12 font-bold text-muted-foreground">{t("common.perHour")}</div>
         </div>
       </div>
     </Link>
@@ -99,16 +99,16 @@ export function ProviderTile({ p }: { p: Provider }) {
           className="h-full w-full"
         />
         {isTopPro && (
-          <span className="absolute start-2 top-2 inline-flex items-center gap-1 rounded-full bg-brand px-2 py-0.5 text-[10px] font-black text-brand-foreground backdrop-blur">
+          <span className="absolute start-2 top-2 inline-flex items-center gap-1 rounded-full bg-brand px-2 py-0.5 text-pro-12 font-black text-brand-foreground backdrop-blur">
             <Award className="h-2.5 w-2.5" /> {t("roles.topPro")}
           </span>
         )}
         <div className="absolute inset-x-2 bottom-2 flex items-center justify-between">
-          <span className="rounded-full bg-black/55 px-2 py-1 text-[10px] font-bold text-white backdrop-blur inline-flex items-center gap-1">
+          <span className="rounded-full bg-black/55 px-2 py-1 text-pro-12 font-bold text-white backdrop-blur inline-flex items-center gap-1">
             <Star className="h-3 w-3 fill-warning text-warning" strokeWidth={2} aria-hidden="true" />
             {formatNumber(p.rating)}
           </span>
-          <span className={`rounded-full px-2 py-1 text-[10px] font-black backdrop-blur ${
+          <span className={`rounded-full px-2 py-1 text-pro-12 font-black backdrop-blur ${
             p.role === "Angel" ? "bg-brand/90 text-brand-foreground" : "bg-surface/90 text-foreground"
           }`}>{t(roleKey)}</span>
         </div>
@@ -118,7 +118,7 @@ export function ProviderTile({ p }: { p: Provider }) {
           <span className="truncate text-sm font-bold">{p.name}</span>
           <ShieldCheck className="h-3 w-3 shrink-0 text-success" aria-label={t("common.verified")} />
         </div>
-        <div className="mt-0.5 text-[11px] text-muted-foreground">{formatEGP(p.hourlyRate, { perHour: true })} · {formatNumber(p.yearsExp)} {t("common.yrs")}</div>
+        <div className="mt-0.5 text-pro-12 text-muted-foreground">{formatEGP(p.hourlyRate, { perHour: true })} · {formatNumber(p.yearsExp)} {t("common.yrs")}</div>
       </div>
     </Link>
   );

@@ -1,6 +1,66 @@
 import type { Translation } from "./en";
 
 const ar: Translation = {
+  providerPushUnavailable: {
+    title: "الإشعارات على الموبايل مش متاحة لسه",
+    body: "هتوصلك كل التحديثات جوه التطبيق في صفحة الإشعارات",
+    open: "افتح الإشعارات",
+  },
+  providerProfilePolish: { requirements: "المتطلبات" },
+  providerNotificationPolish: {
+    "on": "شغال",
+    "off": "مقفول",
+    "enable": "فعل الإشعارات على موبايلك",
+    "footer": "إشعاراتك جوه التطبيق هتفضل موجودة."
+},
+  providerDocuments: {
+    "title": "المستندات والتوثيق",
+    "readOnly": "مستنداتك مع فريق فامي. تقدر ترفع نسخة جديدة لما طلبك يكون متاح للتعديل.",
+    "replace": "ارفع تاني",
+    "upload": "ارفع مستند",
+    "missing": "لسه مرفوعش",
+    "other": "مستندات تانية",
+    "id_card_front": "وش البطاقة",
+    "id_card_back": "ضهر البطاقة",
+    "profile_photo": "الصورة الشخصية",
+    "certificate": "شهادة",
+    "otherDocument": "مستند تاني",
+    "approved": "اتوافق عليها",
+    "pending": "بنراجع",
+    "rejected": "مرفوضة",
+    "expired": "انتهت صلاحيتها",
+    "renewal_required": "محتاجة تحديث"
+},
+  customerBooking: {
+    "duration": "{{hours}} ساعات",
+    "rateLine": "{{rate}} × {{hours}} ساعات",
+    "address": "العنوان",
+    "addAddress": "+ عنوان جديد",
+    "addMember": "+ ضيف فرد من العيلة",
+    "notes": "ملاحظات لـ {{name}} (اختياري)",
+    "recipient": "مين",
+    "chooseRecipient": "اختار مين هيكون مع {{name}}",
+    "tutoringPrice": "السعر حسب المادة",
+    "tutoringFrom": "من {{price}} ج.م / حصة",
+
+    "hoursRange": "من {{min}} لحد {{max}}",
+    "step": "{{step}} من {{total}}",
+    "titles": {
+        "service": "عايز ايه من {{name}}؟",
+        "when": "امتى؟",
+        "whereWho": "فين ولمين؟",
+        "review": "راجع وأكد"
+    },
+    "jobs": "{{count}} حجز",
+    "hours": "ساعات",
+    "who": "مين هيكون مع {{name}}؟",
+    "schoolDetails": "بيانات الدراسة",
+    "sessionDuration": "مدة الحصة",
+    "promo": "عندك كود خصم؟",
+    "next": "التالي · {{total}}",
+    "confirm": "أكد الحجز · {{total}}",
+    "whenSummary": "{{date}} · من {{start}} لحد {{end}}"
+},
   providerChanges: {
     "title": "فريق فامي محتاج منك تعديل",
     "reasonFallback": "راجع بياناتك والتعديلات المطلوبة وابعت طلبك تاني.",
@@ -378,7 +438,7 @@ const ar: Translation = {
     sendFailed: "تعذر إرسال الرمز. حاول مرة أخرى لاحقا.",
     deliveryUnavailable: "خدمة إرسال الرمز غير متاحة مؤقتا. انتظر قليلا ثم حاول مرة أخرى.",
     rateLimited: "محاولات كثيرة. حاول مرة أخرى خلال {{time}}.",
-    durationSeconds: "{{formatted}} ث",
+    durationSeconds: "{{formatted}} ثانية",
     firebaseSendFailed: "تعذر إرسال رسالة التحقق. حاول مرة أخرى لاحقا.",
     firebaseSendTooManyRequests: "محاولات كتير من الجهاز ده. استنى شوية وجرب تاني.",
     firebaseSendQuotaExceeded: "خدمة الرسائل مشغولة حاليا. حاول بعد قليل.",
@@ -805,6 +865,7 @@ const ar: Translation = {
     notFound: "المحترف غير موجود",
     unnamed: "مقدم خدمة",
   },
+  scheduleUi: {"dateRange": "{{start}} لحد {{end}}", "hours": "مواعيد شغلك", "midnight": "12 بالليل", "vacation": "إجازة", "vacations": "إجازات بتواريخ", "holidays": "أيام مش هتشتغل فيها", "add": "+ ضيف", "reason": "السبب (اختياري)", "on": "شغالة", "off": "مقفولة", "minutes": "دقيقة", "hoursUnit": "ساعة", "days": "يوم"},
   providerProfile: {
     coverageReview: "فريق فامي هيراجع مناطق خدمتك",
     trust: "ثقة {{score}}",
@@ -1466,6 +1527,12 @@ const ar: Translation = {
       },
     },
     schedule: {
+      vacationStart: "من يوم",
+      vacationEnd: "لحد يوم",
+      startPast: "اختار النهارده أو يوم بعده لبداية الإجازة",
+      endBeforeStart: "نهاية الإجازة مينفعش تكون قبل بدايتها",
+      invalidDate: "اختار تاريخ صحيح",
+
       copyHours: "انسخ المواعيد دي لأيام تانية",
       copyHint: "اختار الأيام المفتوحة اللي هتنسخ لها. الأيام المقفولة مش هتتغير.",
       applyCopy: "انسخ المواعيد",
@@ -2641,5 +2708,28 @@ const ar: Translation = {
     deactivate: "ايقاف",
     allowedDurations: "مدد الحصة المسموحة (دقيقة)",
   },
+  proWork: {
+      monthNet: "صافيك الشهر ده",
+      "hello": "أهلا يا {{name}}",
+      "today": "النهارده",
+      "nextJob": "الشغل الجاي",
+      "noJobToday": "مفيش شغل النهارده",
+      "monthValue": "قيمة الحجز الشهر ده",
+      "rating": "تقييمك",
+      "accept": "اقبل",
+      "decline": "اعتذر",
+      "allSteps": "كل المراحل",
+      "nextStep": "بعد كده: {{step}}",
+      "bookingCode": "حجز #{{code}}",
+      "bookingLabel": "حجز",
+      "replyHours": "رد خلال {{count}} ساعة",
+      "replyMinutes": "رد خلال {{count}} دقيقة",
+      "replyOverdue": "مهلة الرد انتهت",
+      "thisMonth": "الشهر ده",
+      "last7": "آخر 7 أيام",
+      "expected": "المتوقع",
+      "paymentDetails": "تفاصيل الدفع"
+  },
+
 };
 export default ar;
