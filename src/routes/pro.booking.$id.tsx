@@ -2,6 +2,7 @@ import { BookingActionDock } from "@/components/provider/BookingActionDock";
 import { BookingStatusCard } from "@/components/provider/BookingStatusCard";
 import { StickyCta } from "@/components/famio/StickyCta";
 import { shortBookingCode } from "@/lib/provider/workScreenPresentation";
+import { useBookingParty } from "@/lib/db/booking-parties";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 import { formatDateTime, formatDate, formatTime, formatDuration } from "@/lib/format";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -40,6 +41,7 @@ export function ProBookingDetail({ id }: { id: string }) {
   const dateLoc = lang === "ar" ? "ar-EG" : "en-US";
   const nav = useNavigate();
   const q = useProviderBooking(id);
+  const { party } = useBookingParty(id);
   const mut = useProviderUpdateBookingStatus();
   const cancelBooking = useCancelBooking();
   const cancellationQ = useBookingCancellation(q.data?.status === "cancelled" ? id : undefined);
@@ -107,9 +109,25 @@ export function ProBookingDetail({ id }: { id: string }) {
   const start = new Date(b.start_at);
   const end = new Date(b.end_at);
   const hours = Math.max(1, Math.round((+end - +start) / 36e5));
-  const name = b.customer?.full_name || t("pro.common.customer");
+  const name = party?.other_name || b.customer?.full_name || t("pro.common.customer");
+  const avatar = party?.other_avatar_url ?? b.customer?.avatar_url;
+  const phone = party?.other_phone ?? b.customer?.phone ?? null;
   const addr = b.location;
-  const addrLine = addr ? [addr.street, addr.building, addr.compound, addr.city].filter(Boolean).join(", ") : t("pro.booking.addressMissing");
+  const zoneName = (lang === "ar" ? party?.zone_name_ar : party?.zone_name_en) || party?.area;
+  // The exact address is only shared once the provider accepts; a request
+  // shows the area so the provider can decide.
+  const addrLine = addr
+    ? [addr.street, addr.building, addr.floor && t("pro.booking.floor", { floor: addr.floor }), addr.apartment && t("pro.booking.apartment", { apartment: addr.apartment }), addr.compound, addr.area, addr.city].filter(Boolean).join("، ")
+    : zoneName
+      ? t("pro.booking.areaOnly", { area: zoneName })
+      : t("pro.booking.addressMissing");
+  const teaching = b.teaching_subject_code
+    ? [
+        lang === "ar" ? b.teaching_subject_name_ar : b.teaching_subject_name_en,
+        lang === "ar" ? b.teaching_curriculum_name_ar : b.teaching_curriculum_name_en,
+        lang === "ar" ? b.teaching_level_name_ar : b.teaching_level_name_en,
+      ].filter(Boolean).join(" · ")
+    : null;
   const serviceName = lang === "ar" ? (b.service?.name_ar ?? b.service?.name_en) : (b.service?.name_en ?? b.service?.name_ar);
   const terminal = ["completed", "cancelled", "no_show", "disputed"].includes(b.status);
 
@@ -133,7 +151,7 @@ export function ProBookingDetail({ id }: { id: string }) {
       <div className="space-y-3 px-5 pb-3 pt-2">
         <Card className="rounded-[1.25rem] p-4">
           <div className="flex items-start gap-3">
-            <ProfileAvatar src={b.customer?.avatar_url} name={name} className="h-11 w-11 rounded-full" />
+            <ProfileAvatar src={avatar} name={name} className="h-11 w-11 rounded-full" />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2"><div className="truncate text-base font-extrabold">{name}</div></div>
               <div className="mt-1 text-xs text-muted-foreground">{t("proWork.bookingLabel")} <bdi dir="ltr">#{shortBookingCode(b.id)}</bdi></div>
@@ -170,8 +188,20 @@ export function ProBookingDetail({ id }: { id: string }) {
           <Row icon={<UserIcon className="h-4 w-4" />} label={t("pro.booking.service")} value={serviceName ?? "—"} />
           <Row icon={<Calendar className="h-4 w-4" />} label={t("pro.booking.date")} value={formatDate(start, { weekday: "long", month: "short", day: "numeric", year: "numeric" }, dateLoc)} />
           <Row icon={<Clock className="h-4 w-4" />} label={t("pro.booking.time")} value={`${formatTime(start, dateLoc)} · ${formatDuration(hours, lang)}`} />
+          {teaching && <Row icon={<UserIcon className="h-4 w-4" />} label={t("pro.booking.subject")} value={teaching} />}
+          {!b.family_member && party?.child_first_name && (
+            <Row
+              icon={<UserIcon className="h-4 w-4" />}
+              label={t("pro.booking.forWhom", "Service is for")}
+              value={party.child_age_years != null ? t("pro.booking.childWithAge", { name: party.child_first_name, count: party.child_age_years }) : party.child_first_name}
+            />
+          )}
           <Row icon={<MapPin className="h-4 w-4" />} label={t("pro.booking.address")} value={addrLine} />
-          {b.customer?.phone && <Row icon={<Phone className="h-4 w-4" />} label={t("pro.booking.phone")} value={b.customer.phone} href={`tel:${b.customer.phone}`} />}
+          {addr?.landmark && <Row icon={<MapPin className="h-4 w-4" />} label={t("pro.booking.landmark")} value={addr.landmark} />}
+          {addr?.lat != null && addr?.lng != null && (
+            <Row icon={<MapPin className="h-4 w-4" />} label={t("pro.booking.map")} value={t("pro.booking.openMap")} href={`https://www.google.com/maps/search/?api=1&query=${addr.lat},${addr.lng}`} />
+          )}
+          {phone && <Row icon={<Phone className="h-4 w-4" />} label={t("pro.booking.phone")} value={phone} href={`tel:${phone}`} />}
           {b.notes && <Row icon={<UserIcon className="h-4 w-4" />} label={t("pro.booking.customerNotes")} value={b.notes} />}
         </Card>
 

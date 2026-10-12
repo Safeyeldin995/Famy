@@ -3,6 +3,7 @@ import { PhoneFrame } from "@/components/famio/ui";
 import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
 import { QueryError } from "@/components/famio/QueryError";
 import { useEffect, useRef, useState } from "react";
+import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 import { useTranslation } from "react-i18next";
 import { Send, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -82,20 +83,20 @@ export function ChatContent({ conversationId }: { conversationId: string }) {
   }
 
   const handleSend = () => {
-    const t = text.trim();
-    if (!t) return;
-    if (containsContactInfo(t)) {
-      setWarning(CONTACT_BLOCKED_MESSAGE);
+    const body = text.trim();
+    if (!body) return;
+    if (containsContactInfo(body)) {
+      setWarning(t("bookingChat.contactBlocked", CONTACT_BLOCKED_MESSAGE));
       return;
     }
-    send.mutate(t, {
+    send.mutate(body, {
       onSuccess: () => {
         setText("");
         setWarning(null);
       },
       onError: (e: any) => {
-        if (e?.message === "contact_masked") setWarning(CONTACT_BLOCKED_MESSAGE);
-        else setWarning(e?.message || sendFailedMsg);
+        if (e?.message === "contact_masked") setWarning(t("bookingChat.contactBlocked", CONTACT_BLOCKED_MESSAGE));
+        else setWarning(sendFailedMsg);
       },
     });
   };
@@ -107,23 +108,17 @@ export function ChatContent({ conversationId }: { conversationId: string }) {
         subtitle={t("messages.chatNotice")}
         backTo={previewPath("/messages")}
         right={
-          otherAvatar ? (
-            <img
-              src={otherAvatar}
-              alt=""
-              className="h-11 w-11 rounded-full border-2 border-white/30 object-cover"
-            />
-          ) : (
-            <div className="grid h-11 w-11 place-items-center rounded-full border border-white/25 bg-white/15 text-sm font-black text-white">
-              {otherName.slice(0, 1).toUpperCase()}
-            </div>
-          )
+          <ProfileAvatar
+            src={otherAvatar}
+            name={otherName}
+            className="h-11 w-11 rounded-full border-2 border-white/30 text-sm"
+          />
         }
       />
 
       <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto bg-surface-2 px-3 py-4">
         <div className="my-3 flex justify-center">
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-mint/30 px-3 py-1.5 text-[11px] font-medium text-foreground">
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-mint/30 px-3 py-1.5 text-xs font-medium text-foreground">
             <ShieldCheck className="h-3 w-3 text-success" />
             {t("messages.stayInApp")}
           </div>
@@ -135,12 +130,8 @@ export function ChatContent({ conversationId }: { conversationId: string }) {
               key={m.id}
               className={`flex items-end gap-2 ${mine ? "justify-end" : "justify-start"}`}
             >
-              {!mine && otherAvatar && (
-                <img
-                  src={otherAvatar}
-                  alt=""
-                  className="h-7 w-7 shrink-0 rounded-full object-cover"
-                />
+              {!mine && (
+                <ProfileAvatar src={otherAvatar} name={otherName} className="h-7 w-7 rounded-full text-xs" />
               )}
               <div
                 className={`max-w-[78%] rounded-[1.25rem] px-4 py-2.5 text-sm leading-snug ${
@@ -151,7 +142,7 @@ export function ChatContent({ conversationId }: { conversationId: string }) {
               >
                 <div className="whitespace-pre-wrap break-words">{m.body}</div>
                 <div
-                  className={`mt-1 text-[10px] ${mine ? "text-white/70" : "text-muted-foreground"}`}
+                  className={`mt-1 text-xs ${mine ? "text-white/70" : "text-muted-foreground"}`}
                 >
                   {nowStr(m.created_at)}
                 </div>
@@ -162,7 +153,7 @@ export function ChatContent({ conversationId }: { conversationId: string }) {
       </div>
 
       {warning && (
-        <div className="border-t border-amber-500/30 bg-amber-50 px-4 py-2 text-[11px] font-medium text-amber-900">
+        <div className="border-t border-amber-500/30 bg-amber-50 px-4 py-2 text-xs font-medium text-amber-900">
           {warning}
         </div>
       )}

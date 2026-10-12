@@ -9,218 +9,133 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SetupRouteImport } from './routes/setup'
-import { Route as SearchRouteImport } from './routes/search'
-import { Route as PromoCodesRouteImport } from './routes/promo-codes'
-import { Route as ProfileRouteImport } from './routes/profile'
-import { Route as ProRouteImport } from './routes/pro'
-import { Route as PreviewRouteImport } from './routes/preview'
-import { Route as OtpRouteImport } from './routes/otp'
-import { Route as OnboardingRouteImport } from './routes/onboarding'
-import { Route as NotificationsRouteImport } from './routes/notifications'
-import { Route as NotificationPreferencesRouteImport } from './routes/notification-preferences'
-import { Route as MessagesRouteImport } from './routes/messages'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as HomeRouteImport } from './routes/home'
-import { Route as HelpRouteImport } from './routes/help'
-import { Route as FavoritesRouteImport } from './routes/favorites'
-import { Route as FamilyMembersRouteImport } from './routes/family-members'
-import { Route as BookingsRouteImport } from './routes/bookings'
-import { Route as AdminRouteImport } from './routes/admin'
-import { Route as AddressesRouteImport } from './routes/addresses'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ProIndexRouteImport } from './routes/pro.index'
-import { Route as PreviewIndexRouteImport } from './routes/preview.index'
-import { Route as MessagesIndexRouteImport } from './routes/messages.index'
-import { Route as AdminIndexRouteImport } from './routes/admin.index'
-import { Route as AddressesIndexRouteImport } from './routes/addresses.index'
-import { Route as ProviderIdRouteImport } from './routes/provider.$id'
-import { Route as ProProfileRouteImport } from './routes/pro.profile'
-import { Route as ProSetupItemRouteImport } from './routes/pro.setup.$item'
-import { Route as ProOnboardingRouteImport } from './routes/pro.onboarding'
-import { Route as ProNotificationsRouteImport } from './routes/pro.notifications'
-import { Route as ProNotificationPreferencesRouteImport } from './routes/pro.notification-preferences'
-import { Route as ProEarningsRouteImport } from './routes/pro.earnings'
-import { Route as ProDocumentsRouteImport } from './routes/pro.documents'
-import { Route as ProApplyRouteImport } from './routes/pro.apply'
-import { Route as ProBookingsRouteImport } from './routes/pro.bookings'
-import { Route as ProAvailabilityRouteImport } from './routes/pro.availability'
-import { Route as PreviewSplashRouteImport } from './routes/preview.splash'
-import { Route as PreviewSetupRouteImport } from './routes/preview.setup'
-import { Route as PreviewSearchRouteImport } from './routes/preview.search'
-import { Route as PreviewPromoCodesRouteImport } from './routes/preview.promo-codes'
-import { Route as PreviewProfileRouteImport } from './routes/preview.profile'
-import { Route as PreviewProRouteImport } from './routes/preview.pro'
-import { Route as PreviewOtpRouteImport } from './routes/preview.otp'
-import { Route as PreviewOnboardingRouteImport } from './routes/preview.onboarding'
-import { Route as PreviewNotificationsRouteImport } from './routes/preview.notifications'
-import { Route as PreviewNotificationPreferencesRouteImport } from './routes/preview.notification-preferences'
-import { Route as PreviewMessagesRouteImport } from './routes/preview.messages'
-import { Route as PreviewLoginRouteImport } from './routes/preview.login'
-import { Route as PreviewHomeRouteImport } from './routes/preview.home'
-import { Route as PreviewHelpRouteImport } from './routes/preview.help'
-import { Route as PreviewForgotRouteImport } from './routes/preview.forgot'
-import { Route as PreviewFavoritesRouteImport } from './routes/preview.favorites'
-import { Route as PreviewFamilyMembersRouteImport } from './routes/preview.family-members'
-import { Route as PreviewBookingsRouteImport } from './routes/preview.bookings'
-import { Route as PreviewAdminRouteImport } from './routes/preview.admin'
-import { Route as PreviewAddressesRouteImport } from './routes/preview.addresses'
-import { Route as MessagesIdRouteImport } from './routes/messages.$id'
-import { Route as FamilyMembersNewRouteImport } from './routes/family-members.new'
-import { Route as FamilyMembersIdRouteImport } from './routes/family-members.$id'
-import { Route as ContentKeyRouteImport } from './routes/content.$key'
-import { Route as CategoryIdRouteImport } from './routes/category.$id'
-import { Route as BookingIdRouteImport } from './routes/booking.$id'
-import { Route as BookProviderIdRouteImport } from './routes/book.$providerId'
-import { Route as AuthSetPasswordRouteImport } from './routes/auth.set-password'
-import { Route as AuthForgotRouteImport } from './routes/auth.forgot'
-import { Route as AdminZonesRouteImport } from './routes/admin.zones'
-import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
-import { Route as AdminServicesRouteImport } from './routes/admin.services'
-import { Route as AdminProvidersRouteImport } from './routes/admin.providers'
-import { Route as AdminPromoCodesRouteImport } from './routes/admin.promo-codes'
-import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
-import { Route as AdminPaymentMethodsRouteImport } from './routes/admin.payment-methods'
-import { Route as AdminOperationsRouteImport } from './routes/admin.operations'
-import { Route as AdminMonitoringRouteImport } from './routes/admin.monitoring'
-import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
-import { Route as AdminCasesRouteImport } from './routes/admin.cases'
-import { Route as AdminCancellationReasonsRouteImport } from './routes/admin.cancellation-reasons'
-import { Route as AdminCampaignsRouteImport } from './routes/admin.campaigns'
-import { Route as AdminBookingsRouteImport } from './routes/admin.bookings'
-import { Route as AdminAuditLogRouteImport } from './routes/admin.audit-log'
-import { Route as AddressesNewRouteImport } from './routes/addresses.new'
-import { Route as AddressesIdRouteImport } from './routes/addresses.$id'
+import { Route as AddressesRouteImport } from './routes/addresses'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as BookingsRouteImport } from './routes/bookings'
+import { Route as FamilyMembersRouteImport } from './routes/family-members'
+import { Route as FavoritesRouteImport } from './routes/favorites'
+import { Route as HelpRouteImport } from './routes/help'
+import { Route as HomeRouteImport } from './routes/home'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as MessagesRouteImport } from './routes/messages'
+import { Route as NotificationPreferencesRouteImport } from './routes/notification-preferences'
+import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as OtpRouteImport } from './routes/otp'
+import { Route as PreviewRouteImport } from './routes/preview'
+import { Route as ProRouteImport } from './routes/pro'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as PromoCodesRouteImport } from './routes/promo-codes'
+import { Route as SearchRouteImport } from './routes/search'
+import { Route as SetupRouteImport } from './routes/setup'
 import { Route as _qaMonitoringErrorRouteImport } from './routes/__qa.monitoring-error'
-import { Route as PreviewProIndexRouteImport } from './routes/preview.pro.index'
-import { Route as PreviewAdminIndexRouteImport } from './routes/preview.admin.index'
-import { Route as PreviewAddressesIndexRouteImport } from './routes/preview.addresses.index'
-import { Route as ProBookingIdRouteImport } from './routes/pro.booking.$id'
-import { Route as PreviewProviderIdRouteImport } from './routes/preview.provider.$id'
-import { Route as PreviewProProfileRouteImport } from './routes/preview.pro.profile'
-import { Route as PreviewProSetupItemRouteImport } from './routes/preview.pro.setup.$item'
-import { Route as PreviewProOnboardingRouteImport } from './routes/preview.pro.onboarding'
-import { Route as PreviewProNotificationsRouteImport } from './routes/preview.pro.notifications'
-import { Route as PreviewProNotificationPreferencesRouteImport } from './routes/preview.pro.notification-preferences'
-import { Route as PreviewProEarningsRouteImport } from './routes/preview.pro.earnings'
-import { Route as PreviewProDocumentsRouteImport } from './routes/preview.pro.documents'
-import { Route as PreviewProApplyRouteImport } from './routes/preview.pro.apply'
-import { Route as PreviewProBookingsRouteImport } from './routes/preview.pro.bookings'
-import { Route as PreviewProAvailabilityRouteImport } from './routes/preview.pro.availability'
-import { Route as PreviewChatIdRouteImport } from './routes/preview.chat.$id'
-import { Route as PreviewCategoryIdRouteImport } from './routes/preview.category.$id'
-import { Route as PreviewBookProviderIdRouteImport } from './routes/preview.book.$providerId'
-import { Route as PreviewAdminZonesRouteImport } from './routes/preview.admin.zones'
-import { Route as PreviewAdminSettingsRouteImport } from './routes/preview.admin.settings'
-import { Route as PreviewAdminServicesRouteImport } from './routes/preview.admin.services'
-import { Route as PreviewAdminProvidersRouteImport } from './routes/preview.admin.providers'
-import { Route as PreviewAdminPromoCodesRouteImport } from './routes/preview.admin.promo-codes'
-import { Route as PreviewAdminPaymentsRouteImport } from './routes/preview.admin.payments'
-import { Route as PreviewAdminPaymentMethodsRouteImport } from './routes/preview.admin.payment-methods'
-import { Route as PreviewAdminOperationsRouteImport } from './routes/preview.admin.operations'
-import { Route as PreviewAdminMonitoringRouteImport } from './routes/preview.admin.monitoring'
-import { Route as PreviewAdminCustomersRouteImport } from './routes/preview.admin.customers'
-import { Route as PreviewAdminCasesRouteImport } from './routes/preview.admin.cases'
-import { Route as PreviewAdminCancellationReasonsRouteImport } from './routes/preview.admin.cancellation-reasons'
-import { Route as PreviewAdminCampaignsRouteImport } from './routes/preview.admin.campaigns'
-import { Route as PreviewAdminBookingsRouteImport } from './routes/preview.admin.bookings'
-import { Route as PreviewAdminAuditLogRouteImport } from './routes/preview.admin.audit-log'
-import { Route as PreviewAddressesNewRouteImport } from './routes/preview.addresses.new'
-import { Route as PreviewAddressesIdRouteImport } from './routes/preview.addresses.$id'
-import { Route as AdminProviderIdRouteImport } from './routes/admin.provider.$id'
+import { Route as AddressesIndexRouteImport } from './routes/addresses.index'
+import { Route as AddressesIdRouteImport } from './routes/addresses.$id'
+import { Route as AddressesNewRouteImport } from './routes/addresses.new'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminAuditLogRouteImport } from './routes/admin.audit-log'
+import { Route as AdminBookingsRouteImport } from './routes/admin.bookings'
+import { Route as AdminCampaignsRouteImport } from './routes/admin.campaigns'
+import { Route as AdminCancellationReasonsRouteImport } from './routes/admin.cancellation-reasons'
+import { Route as AdminCasesRouteImport } from './routes/admin.cases'
+import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
+import { Route as AdminMonitoringRouteImport } from './routes/admin.monitoring'
+import { Route as AdminOperationsRouteImport } from './routes/admin.operations'
+import { Route as AdminPaymentMethodsRouteImport } from './routes/admin.payment-methods'
+import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
+import { Route as AdminPromoCodesRouteImport } from './routes/admin.promo-codes'
+import { Route as AdminProvidersRouteImport } from './routes/admin.providers'
+import { Route as AdminServicesRouteImport } from './routes/admin.services'
+import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
+import { Route as AdminZonesRouteImport } from './routes/admin.zones'
+import { Route as AuthForgotRouteImport } from './routes/auth.forgot'
+import { Route as AuthSetPasswordRouteImport } from './routes/auth.set-password'
+import { Route as BookProviderIdRouteImport } from './routes/book.$providerId'
+import { Route as BookingIdRouteImport } from './routes/booking.$id'
+import { Route as CategoryIdRouteImport } from './routes/category.$id'
+import { Route as ContentKeyRouteImport } from './routes/content.$key'
+import { Route as FamilyMembersIdRouteImport } from './routes/family-members.$id'
+import { Route as FamilyMembersNewRouteImport } from './routes/family-members.new'
+import { Route as MessagesIndexRouteImport } from './routes/messages.index'
+import { Route as MessagesIdRouteImport } from './routes/messages.$id'
+import { Route as PreviewIndexRouteImport } from './routes/preview.index'
+import { Route as PreviewAddressesRouteImport } from './routes/preview.addresses'
+import { Route as PreviewAdminRouteImport } from './routes/preview.admin'
+import { Route as PreviewBookingsRouteImport } from './routes/preview.bookings'
+import { Route as PreviewFamilyMembersRouteImport } from './routes/preview.family-members'
+import { Route as PreviewFavoritesRouteImport } from './routes/preview.favorites'
+import { Route as PreviewForgotRouteImport } from './routes/preview.forgot'
+import { Route as PreviewHelpRouteImport } from './routes/preview.help'
+import { Route as PreviewHomeRouteImport } from './routes/preview.home'
+import { Route as PreviewLoginRouteImport } from './routes/preview.login'
+import { Route as PreviewMessagesRouteImport } from './routes/preview.messages'
+import { Route as PreviewNotificationPreferencesRouteImport } from './routes/preview.notification-preferences'
+import { Route as PreviewNotificationsRouteImport } from './routes/preview.notifications'
+import { Route as PreviewOnboardingRouteImport } from './routes/preview.onboarding'
+import { Route as PreviewOtpRouteImport } from './routes/preview.otp'
+import { Route as PreviewProRouteImport } from './routes/preview.pro'
+import { Route as PreviewProfileRouteImport } from './routes/preview.profile'
+import { Route as PreviewPromoCodesRouteImport } from './routes/preview.promo-codes'
+import { Route as PreviewSearchRouteImport } from './routes/preview.search'
+import { Route as PreviewSetupRouteImport } from './routes/preview.setup'
+import { Route as PreviewSplashRouteImport } from './routes/preview.splash'
+import { Route as ProIndexRouteImport } from './routes/pro.index'
+import { Route as ProApplyRouteImport } from './routes/pro.apply'
+import { Route as ProAvailabilityRouteImport } from './routes/pro.availability'
+import { Route as ProBookingsRouteImport } from './routes/pro.bookings'
+import { Route as ProDocumentsRouteImport } from './routes/pro.documents'
+import { Route as ProEarningsRouteImport } from './routes/pro.earnings'
+import { Route as ProNotificationPreferencesRouteImport } from './routes/pro.notification-preferences'
+import { Route as ProNotificationsRouteImport } from './routes/pro.notifications'
+import { Route as ProOnboardingRouteImport } from './routes/pro.onboarding'
+import { Route as ProProfileRouteImport } from './routes/pro.profile'
+import { Route as ProviderIdRouteImport } from './routes/provider.$id'
 import { Route as AdminCustomerIdRouteImport } from './routes/admin.customer.$id'
-import { Route as PreviewProBookingIdRouteImport } from './routes/preview.pro.booking.$id'
-import { Route as PreviewAdminProviderIdRouteImport } from './routes/preview.admin.provider.$id'
+import { Route as AdminProviderIdRouteImport } from './routes/admin.provider.$id'
+import { Route as PreviewAddressesIndexRouteImport } from './routes/preview.addresses.index'
+import { Route as PreviewAddressesIdRouteImport } from './routes/preview.addresses.$id'
+import { Route as PreviewAddressesNewRouteImport } from './routes/preview.addresses.new'
+import { Route as PreviewAdminIndexRouteImport } from './routes/preview.admin.index'
+import { Route as PreviewAdminAuditLogRouteImport } from './routes/preview.admin.audit-log'
+import { Route as PreviewAdminBookingsRouteImport } from './routes/preview.admin.bookings'
+import { Route as PreviewAdminCampaignsRouteImport } from './routes/preview.admin.campaigns'
+import { Route as PreviewAdminCancellationReasonsRouteImport } from './routes/preview.admin.cancellation-reasons'
+import { Route as PreviewAdminCasesRouteImport } from './routes/preview.admin.cases'
+import { Route as PreviewAdminCustomersRouteImport } from './routes/preview.admin.customers'
+import { Route as PreviewAdminMonitoringRouteImport } from './routes/preview.admin.monitoring'
+import { Route as PreviewAdminOperationsRouteImport } from './routes/preview.admin.operations'
+import { Route as PreviewAdminPaymentMethodsRouteImport } from './routes/preview.admin.payment-methods'
+import { Route as PreviewAdminPaymentsRouteImport } from './routes/preview.admin.payments'
+import { Route as PreviewAdminPromoCodesRouteImport } from './routes/preview.admin.promo-codes'
+import { Route as PreviewAdminProvidersRouteImport } from './routes/preview.admin.providers'
+import { Route as PreviewAdminServicesRouteImport } from './routes/preview.admin.services'
+import { Route as PreviewAdminSettingsRouteImport } from './routes/preview.admin.settings'
+import { Route as PreviewAdminZonesRouteImport } from './routes/preview.admin.zones'
+import { Route as PreviewBookProviderIdRouteImport } from './routes/preview.book.$providerId'
+import { Route as PreviewCategoryIdRouteImport } from './routes/preview.category.$id'
+import { Route as PreviewChatIdRouteImport } from './routes/preview.chat.$id'
+import { Route as PreviewProIndexRouteImport } from './routes/preview.pro.index'
+import { Route as PreviewProApplyRouteImport } from './routes/preview.pro.apply'
+import { Route as PreviewProAvailabilityRouteImport } from './routes/preview.pro.availability'
+import { Route as PreviewProBookingsRouteImport } from './routes/preview.pro.bookings'
+import { Route as PreviewProDocumentsRouteImport } from './routes/preview.pro.documents'
+import { Route as PreviewProEarningsRouteImport } from './routes/preview.pro.earnings'
+import { Route as PreviewProNotificationPreferencesRouteImport } from './routes/preview.pro.notification-preferences'
+import { Route as PreviewProNotificationsRouteImport } from './routes/preview.pro.notifications'
+import { Route as PreviewProOnboardingRouteImport } from './routes/preview.pro.onboarding'
+import { Route as PreviewProProfileRouteImport } from './routes/preview.pro.profile'
+import { Route as PreviewProviderIdRouteImport } from './routes/preview.provider.$id'
+import { Route as ProBookingIdRouteImport } from './routes/pro.booking.$id'
+import { Route as ProSetupItemRouteImport } from './routes/pro.setup.$item'
 import { Route as PreviewAdminCustomerIdRouteImport } from './routes/preview.admin.customer.$id'
+import { Route as PreviewAdminProviderIdRouteImport } from './routes/preview.admin.provider.$id'
+import { Route as PreviewProBookingIdRouteImport } from './routes/preview.pro.booking.$id'
+import { Route as PreviewProSetupItemRouteImport } from './routes/preview.pro.setup.$item'
 
-const SetupRoute = SetupRouteImport.update({
-  id: '/setup',
-  path: '/setup',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SearchRoute = SearchRouteImport.update({
-  id: '/search',
-  path: '/search',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PromoCodesRoute = PromoCodesRouteImport.update({
-  id: '/promo-codes',
-  path: '/promo-codes',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfileRoute = ProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProRoute = ProRouteImport.update({
-  id: '/pro',
-  path: '/pro',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PreviewRoute = PreviewRouteImport.update({
-  id: '/preview',
-  path: '/preview',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OtpRoute = OtpRouteImport.update({
-  id: '/otp',
-  path: '/otp',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OnboardingRoute = OnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NotificationsRoute = NotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NotificationPreferencesRoute = NotificationPreferencesRouteImport.update({
-  id: '/notification-preferences',
-  path: '/notification-preferences',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MessagesRoute = MessagesRouteImport.update({
-  id: '/messages',
-  path: '/messages',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HomeRoute = HomeRouteImport.update({
-  id: '/home',
-  path: '/home',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HelpRoute = HelpRouteImport.update({
-  id: '/help',
-  path: '/help',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FavoritesRoute = FavoritesRouteImport.update({
-  id: '/favorites',
-  path: '/favorites',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FamilyMembersRoute = FamilyMembersRouteImport.update({
-  id: '/family-members',
-  path: '/family-members',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BookingsRoute = BookingsRouteImport.update({
-  id: '/bookings',
-  path: '/bookings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AddressesRoute = AddressesRouteImport.update({
@@ -228,286 +143,134 @@ const AddressesRoute = AddressesRouteImport.update({
   path: '/addresses',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProIndexRoute = ProIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ProRoute,
+const BookingsRoute = BookingsRouteImport.update({
+  id: '/bookings',
+  path: '/bookings',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const PreviewIndexRoute = PreviewIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => PreviewRoute,
+const FamilyMembersRoute = FamilyMembersRouteImport.update({
+  id: '/family-members',
+  path: '/family-members',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const MessagesIndexRoute = MessagesIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => MessagesRoute,
+const FavoritesRoute = FavoritesRouteImport.update({
+  id: '/favorites',
+  path: '/favorites',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AdminIndexRoute = AdminIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AdminRoute,
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HomeRoute = HomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MessagesRoute = MessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationPreferencesRoute = NotificationPreferencesRouteImport.update({
+  id: '/notification-preferences',
+  path: '/notification-preferences',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OtpRoute = OtpRouteImport.update({
+  id: '/otp',
+  path: '/otp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PreviewRoute = PreviewRouteImport.update({
+  id: '/preview',
+  path: '/preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProRoute = ProRouteImport.update({
+  id: '/pro',
+  path: '/pro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PromoCodesRoute = PromoCodesRouteImport.update({
+  id: '/promo-codes',
+  path: '/promo-codes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SetupRoute = SetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const _qaMonitoringErrorRoute = _qaMonitoringErrorRouteImport.update({
+  id: '/__qa/monitoring-error',
+  path: '/monitoring-error',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AddressesIndexRoute = AddressesIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AddressesRoute,
 } as any)
-const ProviderIdRoute = ProviderIdRouteImport.update({
-  id: '/provider/$id',
-  path: '/provider/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProProfileRoute = ProProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => ProRoute,
-} as any)
-const ProOnboardingRoute = ProOnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
-  getParentRoute: () => ProRoute,
-} as any)
-const ProNotificationsRoute = ProNotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => ProRoute,
-} as any)
-const ProNotificationPreferencesRoute =
-  ProNotificationPreferencesRouteImport.update({
-    id: '/notification-preferences',
-    path: '/notification-preferences',
-    getParentRoute: () => ProRoute,
-  } as any)
-const ProEarningsRoute = ProEarningsRouteImport.update({
-  id: '/earnings',
-  path: '/earnings',
-  getParentRoute: () => ProRoute,
-} as any)
-const ProDocumentsRoute = ProDocumentsRouteImport.update({
-  id: '/documents',
-  path: '/documents',
-  getParentRoute: () => ProRoute,
-} as any)
-const ProApplyRoute = ProApplyRouteImport.update({
-  id: '/apply',
-  path: '/apply',
-  getParentRoute: () => ProRoute,
-} as any)
-const ProBookingsRoute = ProBookingsRouteImport.update({
-  id: '/bookings',
-  path: '/bookings',
-  getParentRoute: () => ProRoute,
-} as any)
-const ProAvailabilityRoute = ProAvailabilityRouteImport.update({
-  id: '/availability',
-  path: '/availability',
-  getParentRoute: () => ProRoute,
-} as any)
-const PreviewSplashRoute = PreviewSplashRouteImport.update({
-  id: '/splash',
-  path: '/splash',
-  getParentRoute: () => PreviewRoute,
-} as any)
-const PreviewSetupRoute = PreviewSetupRouteImport.update({
-  id: '/setup',
-  path: '/setup',
-  getParentRoute: () => PreviewRoute,
-} as any)
-const PreviewSearchRoute = PreviewSearchRouteImport.update({
-  id: '/search',
-  path: '/search',
-  getParentRoute: () => PreviewRoute,
-} as any)
-const PreviewPromoCodesRoute = PreviewPromoCodesRouteImport.update({
-  id: '/promo-codes',
-  path: '/promo-codes',
-  getParentRoute: () => PreviewRoute,
-} as any)
-const PreviewProfileRoute = PreviewProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => PreviewRoute,
-} as any)
-const PreviewProRoute = PreviewProRouteImport.update({
-  id: '/pro',
-  path: '/pro',
-  getParentRoute: () => PreviewRoute,
-} as any)
-const PreviewOtpRoute = PreviewOtpRouteImport.update({
-  id: '/otp',
-  path: '/otp',
-  getParentRoute: () => PreviewRoute,
-} as any)
-const PreviewOnboardingRoute = PreviewOnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
-  getParentRoute: () => PreviewRoute,
-} as any)
-const PreviewNotificationsRoute = PreviewNotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => PreviewRoute,
-} as any)
-const PreviewNotificationPreferencesRoute =
-  PreviewNotificationPreferencesRouteImport.update({
-    id: '/notification-preferences',
-    path: '/notification-preferences',
-    getParentRoute: () => PreviewRoute,
-  } as any)
-const PreviewMessagesRoute = PreviewMessagesRouteImport.update({
-  id: '/messages',
-  path: '/messages',
-  getParentRoute: () => PreviewRoute,
-} as any)
-const PreviewLoginRoute = PreviewLoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => PreviewRoute,
-} as any)
-const PreviewHomeRoute = PreviewHomeRouteImport.update({
-  id: '/home',
-  path: '/home',
-  getParentRoute: () => PreviewRoute,
-} as any)
-const PreviewHelpRoute = PreviewHelpRouteImport.update({
-  id: '/help',
-  path: '/help',
-  getParentRoute: () => PreviewRoute,
-} as any)
-const PreviewForgotRoute = PreviewForgotRouteImport.update({
-  id: '/forgot',
-  path: '/forgot',
-  getParentRoute: () => PreviewRoute,
-} as any)
-const PreviewFavoritesRoute = PreviewFavoritesRouteImport.update({
-  id: '/favorites',
-  path: '/favorites',
-  getParentRoute: () => PreviewRoute,
-} as any)
-const PreviewFamilyMembersRoute = PreviewFamilyMembersRouteImport.update({
-  id: '/family-members',
-  path: '/family-members',
-  getParentRoute: () => PreviewRoute,
-} as any)
-const PreviewBookingsRoute = PreviewBookingsRouteImport.update({
-  id: '/bookings',
-  path: '/bookings',
-  getParentRoute: () => PreviewRoute,
-} as any)
-const PreviewAdminRoute = PreviewAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => PreviewRoute,
-} as any)
-const PreviewAddressesRoute = PreviewAddressesRouteImport.update({
-  id: '/addresses',
-  path: '/addresses',
-  getParentRoute: () => PreviewRoute,
-} as any)
-const MessagesIdRoute = MessagesIdRouteImport.update({
+const AddressesIdRoute = AddressesIdRouteImport.update({
   id: '/$id',
   path: '/$id',
-  getParentRoute: () => MessagesRoute,
+  getParentRoute: () => AddressesRoute,
 } as any)
-const FamilyMembersNewRoute = FamilyMembersNewRouteImport.update({
+const AddressesNewRoute = AddressesNewRouteImport.update({
   id: '/new',
   path: '/new',
-  getParentRoute: () => FamilyMembersRoute,
+  getParentRoute: () => AddressesRoute,
 } as any)
-const FamilyMembersIdRoute = FamilyMembersIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => FamilyMembersRoute,
-} as any)
-const ContentKeyRoute = ContentKeyRouteImport.update({
-  id: '/content/$key',
-  path: '/content/$key',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CategoryIdRoute = CategoryIdRouteImport.update({
-  id: '/category/$id',
-  path: '/category/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BookingIdRoute = BookingIdRouteImport.update({
-  id: '/booking/$id',
-  path: '/booking/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BookProviderIdRoute = BookProviderIdRouteImport.update({
-  id: '/book/$providerId',
-  path: '/book/$providerId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthSetPasswordRoute = AuthSetPasswordRouteImport.update({
-  id: '/auth/set-password',
-  path: '/auth/set-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthForgotRoute = AuthForgotRouteImport.update({
-  id: '/auth/forgot',
-  path: '/auth/forgot',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminZonesRoute = AdminZonesRouteImport.update({
-  id: '/zones',
-  path: '/zones',
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminSettingsRoute = AdminSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
+const AdminAuditLogRoute = AdminAuditLogRouteImport.update({
+  id: '/audit-log',
+  path: '/audit-log',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminServicesRoute = AdminServicesRouteImport.update({
-  id: '/services',
-  path: '/services',
+const AdminBookingsRoute = AdminBookingsRouteImport.update({
+  id: '/bookings',
+  path: '/bookings',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminProvidersRoute = AdminProvidersRouteImport.update({
-  id: '/providers',
-  path: '/providers',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminPromoCodesRoute = AdminPromoCodesRouteImport.update({
-  id: '/promo-codes',
-  path: '/promo-codes',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminPaymentsRoute = AdminPaymentsRouteImport.update({
-  id: '/payments',
-  path: '/payments',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminPaymentMethodsRoute = AdminPaymentMethodsRouteImport.update({
-  id: '/payment-methods',
-  path: '/payment-methods',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminOperationsRoute = AdminOperationsRouteImport.update({
-  id: '/operations',
-  path: '/operations',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminMonitoringRoute = AdminMonitoringRouteImport.update({
-  id: '/monitoring',
-  path: '/monitoring',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminCustomersRoute = AdminCustomersRouteImport.update({
-  id: '/customers',
-  path: '/customers',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminCasesRoute = AdminCasesRouteImport.update({
-  id: '/cases',
-  path: '/cases',
+const AdminCampaignsRoute = AdminCampaignsRouteImport.update({
+  id: '/campaigns',
+  path: '/campaigns',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminCancellationReasonsRoute =
@@ -516,176 +279,316 @@ const AdminCancellationReasonsRoute =
     path: '/cancellation-reasons',
     getParentRoute: () => AdminRoute,
   } as any)
-const AdminCampaignsRoute = AdminCampaignsRouteImport.update({
-  id: '/campaigns',
-  path: '/campaigns',
+const AdminCasesRoute = AdminCasesRouteImport.update({
+  id: '/cases',
+  path: '/cases',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminBookingsRoute = AdminBookingsRouteImport.update({
-  id: '/bookings',
-  path: '/bookings',
+const AdminCustomersRoute = AdminCustomersRouteImport.update({
+  id: '/customers',
+  path: '/customers',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminAuditLogRoute = AdminAuditLogRouteImport.update({
-  id: '/audit-log',
-  path: '/audit-log',
+const AdminMonitoringRoute = AdminMonitoringRouteImport.update({
+  id: '/monitoring',
+  path: '/monitoring',
   getParentRoute: () => AdminRoute,
 } as any)
-const AddressesNewRoute = AddressesNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => AddressesRoute,
+const AdminOperationsRoute = AdminOperationsRouteImport.update({
+  id: '/operations',
+  path: '/operations',
+  getParentRoute: () => AdminRoute,
 } as any)
-const AddressesIdRoute = AddressesIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AddressesRoute,
+const AdminPaymentMethodsRoute = AdminPaymentMethodsRouteImport.update({
+  id: '/payment-methods',
+  path: '/payment-methods',
+  getParentRoute: () => AdminRoute,
 } as any)
-const _qaMonitoringErrorRoute = _qaMonitoringErrorRouteImport.update({
-  id: '/__qa/monitoring-error',
-  path: '/monitoring-error',
+const AdminPaymentsRoute = AdminPaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPromoCodesRoute = AdminPromoCodesRouteImport.update({
+  id: '/promo-codes',
+  path: '/promo-codes',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminProvidersRoute = AdminProvidersRouteImport.update({
+  id: '/providers',
+  path: '/providers',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminServicesRoute = AdminServicesRouteImport.update({
+  id: '/services',
+  path: '/services',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminZonesRoute = AdminZonesRouteImport.update({
+  id: '/zones',
+  path: '/zones',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AuthForgotRoute = AuthForgotRouteImport.update({
+  id: '/auth/forgot',
+  path: '/auth/forgot',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PreviewProIndexRoute = PreviewProIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => PreviewProRoute,
+const AuthSetPasswordRoute = AuthSetPasswordRouteImport.update({
+  id: '/auth/set-password',
+  path: '/auth/set-password',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const PreviewAdminIndexRoute = PreviewAdminIndexRouteImport.update({
+const BookProviderIdRoute = BookProviderIdRouteImport.update({
+  id: '/book/$providerId',
+  path: '/book/$providerId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BookingIdRoute = BookingIdRouteImport.update({
+  id: '/booking/$id',
+  path: '/booking/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CategoryIdRoute = CategoryIdRouteImport.update({
+  id: '/category/$id',
+  path: '/category/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContentKeyRoute = ContentKeyRouteImport.update({
+  id: '/content/$key',
+  path: '/content/$key',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FamilyMembersIdRoute = FamilyMembersIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => FamilyMembersRoute,
+} as any)
+const FamilyMembersNewRoute = FamilyMembersNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => FamilyMembersRoute,
+} as any)
+const MessagesIndexRoute = MessagesIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => PreviewAdminRoute,
+  getParentRoute: () => MessagesRoute,
+} as any)
+const MessagesIdRoute = MessagesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => MessagesRoute,
+} as any)
+const PreviewIndexRoute = PreviewIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewAddressesRoute = PreviewAddressesRouteImport.update({
+  id: '/addresses',
+  path: '/addresses',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewAdminRoute = PreviewAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewBookingsRoute = PreviewBookingsRouteImport.update({
+  id: '/bookings',
+  path: '/bookings',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewFamilyMembersRoute = PreviewFamilyMembersRouteImport.update({
+  id: '/family-members',
+  path: '/family-members',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewFavoritesRoute = PreviewFavoritesRouteImport.update({
+  id: '/favorites',
+  path: '/favorites',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewForgotRoute = PreviewForgotRouteImport.update({
+  id: '/forgot',
+  path: '/forgot',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewHelpRoute = PreviewHelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewHomeRoute = PreviewHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewLoginRoute = PreviewLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewMessagesRoute = PreviewMessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewNotificationPreferencesRoute =
+  PreviewNotificationPreferencesRouteImport.update({
+    id: '/notification-preferences',
+    path: '/notification-preferences',
+    getParentRoute: () => PreviewRoute,
+  } as any)
+const PreviewNotificationsRoute = PreviewNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewOnboardingRoute = PreviewOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewOtpRoute = PreviewOtpRouteImport.update({
+  id: '/otp',
+  path: '/otp',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewProRoute = PreviewProRouteImport.update({
+  id: '/pro',
+  path: '/pro',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewProfileRoute = PreviewProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewPromoCodesRoute = PreviewPromoCodesRouteImport.update({
+  id: '/promo-codes',
+  path: '/promo-codes',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewSearchRoute = PreviewSearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewSetupRoute = PreviewSetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewSplashRoute = PreviewSplashRouteImport.update({
+  id: '/splash',
+  path: '/splash',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const ProIndexRoute = ProIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ProRoute,
+} as any)
+const ProApplyRoute = ProApplyRouteImport.update({
+  id: '/apply',
+  path: '/apply',
+  getParentRoute: () => ProRoute,
+} as any)
+const ProAvailabilityRoute = ProAvailabilityRouteImport.update({
+  id: '/availability',
+  path: '/availability',
+  getParentRoute: () => ProRoute,
+} as any)
+const ProBookingsRoute = ProBookingsRouteImport.update({
+  id: '/bookings',
+  path: '/bookings',
+  getParentRoute: () => ProRoute,
+} as any)
+const ProDocumentsRoute = ProDocumentsRouteImport.update({
+  id: '/documents',
+  path: '/documents',
+  getParentRoute: () => ProRoute,
+} as any)
+const ProEarningsRoute = ProEarningsRouteImport.update({
+  id: '/earnings',
+  path: '/earnings',
+  getParentRoute: () => ProRoute,
+} as any)
+const ProNotificationPreferencesRoute =
+  ProNotificationPreferencesRouteImport.update({
+    id: '/notification-preferences',
+    path: '/notification-preferences',
+    getParentRoute: () => ProRoute,
+  } as any)
+const ProNotificationsRoute = ProNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => ProRoute,
+} as any)
+const ProOnboardingRoute = ProOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => ProRoute,
+} as any)
+const ProProfileRoute = ProProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => ProRoute,
+} as any)
+const ProviderIdRoute = ProviderIdRouteImport.update({
+  id: '/provider/$id',
+  path: '/provider/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminCustomerIdRoute = AdminCustomerIdRouteImport.update({
+  id: '/customer/$id',
+  path: '/customer/$id',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminProviderIdRoute = AdminProviderIdRouteImport.update({
+  id: '/provider/$id',
+  path: '/provider/$id',
+  getParentRoute: () => AdminRoute,
 } as any)
 const PreviewAddressesIndexRoute = PreviewAddressesIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => PreviewAddressesRoute,
 } as any)
-const ProBookingIdRoute = ProBookingIdRouteImport.update({
-  id: '/booking/$id',
-  path: '/booking/$id',
-  getParentRoute: () => ProRoute,
+const PreviewAddressesIdRoute = PreviewAddressesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => PreviewAddressesRoute,
 } as any)
-const PreviewProviderIdRoute = PreviewProviderIdRouteImport.update({
-  id: '/provider/$id',
-  path: '/provider/$id',
-  getParentRoute: () => PreviewRoute,
+const PreviewAddressesNewRoute = PreviewAddressesNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => PreviewAddressesRoute,
 } as any)
-const PreviewProProfileRoute = PreviewProProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => PreviewProRoute,
+const PreviewAdminIndexRoute = PreviewAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PreviewAdminRoute,
 } as any)
-const PreviewProOnboardingRoute = PreviewProOnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
-  getParentRoute: () => PreviewProRoute,
+const PreviewAdminAuditLogRoute = PreviewAdminAuditLogRouteImport.update({
+  id: '/audit-log',
+  path: '/audit-log',
+  getParentRoute: () => PreviewAdminRoute,
 } as any)
-const PreviewProNotificationsRoute = PreviewProNotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => PreviewProRoute,
-} as any)
-const PreviewProNotificationPreferencesRoute =
-  PreviewProNotificationPreferencesRouteImport.update({
-    id: '/notification-preferences',
-    path: '/notification-preferences',
-    getParentRoute: () => PreviewProRoute,
-  } as any)
-const PreviewProEarningsRoute = PreviewProEarningsRouteImport.update({
-  id: '/earnings',
-  path: '/earnings',
-  getParentRoute: () => PreviewProRoute,
-} as any)
-const PreviewProDocumentsRoute = PreviewProDocumentsRouteImport.update({
-  id: '/documents',
-  path: '/documents',
-  getParentRoute: () => PreviewProRoute,
-} as any)
-const PreviewProApplyRoute = PreviewProApplyRouteImport.update({
-  id: '/apply',
-  path: '/apply',
-  getParentRoute: () => PreviewProRoute,
-} as any)
-const PreviewProBookingsRoute = PreviewProBookingsRouteImport.update({
+const PreviewAdminBookingsRoute = PreviewAdminBookingsRouteImport.update({
   id: '/bookings',
   path: '/bookings',
-  getParentRoute: () => PreviewProRoute,
-} as any)
-const PreviewProAvailabilityRoute = PreviewProAvailabilityRouteImport.update({
-  id: '/availability',
-  path: '/availability',
-  getParentRoute: () => PreviewProRoute,
-} as any)
-const PreviewChatIdRoute = PreviewChatIdRouteImport.update({
-  id: '/chat/$id',
-  path: '/chat/$id',
-  getParentRoute: () => PreviewRoute,
-} as any)
-const PreviewCategoryIdRoute = PreviewCategoryIdRouteImport.update({
-  id: '/category/$id',
-  path: '/category/$id',
-  getParentRoute: () => PreviewRoute,
-} as any)
-const PreviewBookProviderIdRoute = PreviewBookProviderIdRouteImport.update({
-  id: '/book/$providerId',
-  path: '/book/$providerId',
-  getParentRoute: () => PreviewRoute,
-} as any)
-const PreviewAdminZonesRoute = PreviewAdminZonesRouteImport.update({
-  id: '/zones',
-  path: '/zones',
   getParentRoute: () => PreviewAdminRoute,
 } as any)
-const PreviewAdminSettingsRoute = PreviewAdminSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => PreviewAdminRoute,
-} as any)
-const PreviewAdminServicesRoute = PreviewAdminServicesRouteImport.update({
-  id: '/services',
-  path: '/services',
-  getParentRoute: () => PreviewAdminRoute,
-} as any)
-const PreviewAdminProvidersRoute = PreviewAdminProvidersRouteImport.update({
-  id: '/providers',
-  path: '/providers',
-  getParentRoute: () => PreviewAdminRoute,
-} as any)
-const PreviewAdminPromoCodesRoute = PreviewAdminPromoCodesRouteImport.update({
-  id: '/promo-codes',
-  path: '/promo-codes',
-  getParentRoute: () => PreviewAdminRoute,
-} as any)
-const PreviewAdminPaymentsRoute = PreviewAdminPaymentsRouteImport.update({
-  id: '/payments',
-  path: '/payments',
-  getParentRoute: () => PreviewAdminRoute,
-} as any)
-const PreviewAdminPaymentMethodsRoute =
-  PreviewAdminPaymentMethodsRouteImport.update({
-    id: '/payment-methods',
-    path: '/payment-methods',
-    getParentRoute: () => PreviewAdminRoute,
-  } as any)
-const PreviewAdminOperationsRoute = PreviewAdminOperationsRouteImport.update({
-  id: '/operations',
-  path: '/operations',
-  getParentRoute: () => PreviewAdminRoute,
-} as any)
-const PreviewAdminMonitoringRoute = PreviewAdminMonitoringRouteImport.update({
-  id: '/monitoring',
-  path: '/monitoring',
-  getParentRoute: () => PreviewAdminRoute,
-} as any)
-const PreviewAdminCustomersRoute = PreviewAdminCustomersRouteImport.update({
-  id: '/customers',
-  path: '/customers',
-  getParentRoute: () => PreviewAdminRoute,
-} as any)
-const PreviewAdminCasesRoute = PreviewAdminCasesRouteImport.update({
-  id: '/cases',
-  path: '/cases',
+const PreviewAdminCampaignsRoute = PreviewAdminCampaignsRouteImport.update({
+  id: '/campaigns',
+  path: '/campaigns',
   getParentRoute: () => PreviewAdminRoute,
 } as any)
 const PreviewAdminCancellationReasonsRoute =
@@ -694,63 +597,158 @@ const PreviewAdminCancellationReasonsRoute =
     path: '/cancellation-reasons',
     getParentRoute: () => PreviewAdminRoute,
   } as any)
-const PreviewAdminCampaignsRoute = PreviewAdminCampaignsRouteImport.update({
-  id: '/campaigns',
-  path: '/campaigns',
+const PreviewAdminCasesRoute = PreviewAdminCasesRouteImport.update({
+  id: '/cases',
+  path: '/cases',
   getParentRoute: () => PreviewAdminRoute,
 } as any)
-const PreviewAdminBookingsRoute = PreviewAdminBookingsRouteImport.update({
-  id: '/bookings',
-  path: '/bookings',
+const PreviewAdminCustomersRoute = PreviewAdminCustomersRouteImport.update({
+  id: '/customers',
+  path: '/customers',
   getParentRoute: () => PreviewAdminRoute,
 } as any)
-const PreviewAdminAuditLogRoute = PreviewAdminAuditLogRouteImport.update({
-  id: '/audit-log',
-  path: '/audit-log',
+const PreviewAdminMonitoringRoute = PreviewAdminMonitoringRouteImport.update({
+  id: '/monitoring',
+  path: '/monitoring',
   getParentRoute: () => PreviewAdminRoute,
 } as any)
-const PreviewAddressesNewRoute = PreviewAddressesNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => PreviewAddressesRoute,
+const PreviewAdminOperationsRoute = PreviewAdminOperationsRouteImport.update({
+  id: '/operations',
+  path: '/operations',
+  getParentRoute: () => PreviewAdminRoute,
 } as any)
-const PreviewAddressesIdRoute = PreviewAddressesIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => PreviewAddressesRoute,
+const PreviewAdminPaymentMethodsRoute =
+  PreviewAdminPaymentMethodsRouteImport.update({
+    id: '/payment-methods',
+    path: '/payment-methods',
+    getParentRoute: () => PreviewAdminRoute,
+  } as any)
+const PreviewAdminPaymentsRoute = PreviewAdminPaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
+  getParentRoute: () => PreviewAdminRoute,
 } as any)
-const AdminProviderIdRoute = AdminProviderIdRouteImport.update({
-  id: '/provider/$id',
-  path: '/provider/$id',
-  getParentRoute: () => AdminRoute,
+const PreviewAdminPromoCodesRoute = PreviewAdminPromoCodesRouteImport.update({
+  id: '/promo-codes',
+  path: '/promo-codes',
+  getParentRoute: () => PreviewAdminRoute,
 } as any)
-const AdminCustomerIdRoute = AdminCustomerIdRouteImport.update({
-  id: '/customer/$id',
-  path: '/customer/$id',
-  getParentRoute: () => AdminRoute,
+const PreviewAdminProvidersRoute = PreviewAdminProvidersRouteImport.update({
+  id: '/providers',
+  path: '/providers',
+  getParentRoute: () => PreviewAdminRoute,
 } as any)
-const PreviewProBookingIdRoute = PreviewProBookingIdRouteImport.update({
-  id: '/booking/$id',
-  path: '/booking/$id',
+const PreviewAdminServicesRoute = PreviewAdminServicesRouteImport.update({
+  id: '/services',
+  path: '/services',
+  getParentRoute: () => PreviewAdminRoute,
+} as any)
+const PreviewAdminSettingsRoute = PreviewAdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => PreviewAdminRoute,
+} as any)
+const PreviewAdminZonesRoute = PreviewAdminZonesRouteImport.update({
+  id: '/zones',
+  path: '/zones',
+  getParentRoute: () => PreviewAdminRoute,
+} as any)
+const PreviewBookProviderIdRoute = PreviewBookProviderIdRouteImport.update({
+  id: '/book/$providerId',
+  path: '/book/$providerId',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewCategoryIdRoute = PreviewCategoryIdRouteImport.update({
+  id: '/category/$id',
+  path: '/category/$id',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewChatIdRoute = PreviewChatIdRouteImport.update({
+  id: '/chat/$id',
+  path: '/chat/$id',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewProIndexRoute = PreviewProIndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => PreviewProRoute,
 } as any)
-const PreviewAdminProviderIdRoute = PreviewAdminProviderIdRouteImport.update({
+const PreviewProApplyRoute = PreviewProApplyRouteImport.update({
+  id: '/apply',
+  path: '/apply',
+  getParentRoute: () => PreviewProRoute,
+} as any)
+const PreviewProAvailabilityRoute = PreviewProAvailabilityRouteImport.update({
+  id: '/availability',
+  path: '/availability',
+  getParentRoute: () => PreviewProRoute,
+} as any)
+const PreviewProBookingsRoute = PreviewProBookingsRouteImport.update({
+  id: '/bookings',
+  path: '/bookings',
+  getParentRoute: () => PreviewProRoute,
+} as any)
+const PreviewProDocumentsRoute = PreviewProDocumentsRouteImport.update({
+  id: '/documents',
+  path: '/documents',
+  getParentRoute: () => PreviewProRoute,
+} as any)
+const PreviewProEarningsRoute = PreviewProEarningsRouteImport.update({
+  id: '/earnings',
+  path: '/earnings',
+  getParentRoute: () => PreviewProRoute,
+} as any)
+const PreviewProNotificationPreferencesRoute =
+  PreviewProNotificationPreferencesRouteImport.update({
+    id: '/notification-preferences',
+    path: '/notification-preferences',
+    getParentRoute: () => PreviewProRoute,
+  } as any)
+const PreviewProNotificationsRoute = PreviewProNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => PreviewProRoute,
+} as any)
+const PreviewProOnboardingRoute = PreviewProOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => PreviewProRoute,
+} as any)
+const PreviewProProfileRoute = PreviewProProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => PreviewProRoute,
+} as any)
+const PreviewProviderIdRoute = PreviewProviderIdRouteImport.update({
   id: '/provider/$id',
   path: '/provider/$id',
-  getParentRoute: () => PreviewAdminRoute,
+  getParentRoute: () => PreviewRoute,
+} as any)
+const ProBookingIdRoute = ProBookingIdRouteImport.update({
+  id: '/booking/$id',
+  path: '/booking/$id',
+  getParentRoute: () => ProRoute,
+} as any)
+const ProSetupItemRoute = ProSetupItemRouteImport.update({
+  id: '/setup/$item',
+  path: '/setup/$item',
+  getParentRoute: () => ProRoute,
 } as any)
 const PreviewAdminCustomerIdRoute = PreviewAdminCustomerIdRouteImport.update({
   id: '/customer/$id',
   path: '/customer/$id',
   getParentRoute: () => PreviewAdminRoute,
 } as any)
-
-const ProSetupItemRoute = ProSetupItemRouteImport.update({
-  id: '/setup/$item',
-  path: '/setup/$item',
-  getParentRoute: () => ProRoute,
+const PreviewAdminProviderIdRoute = PreviewAdminProviderIdRouteImport.update({
+  id: '/provider/$id',
+  path: '/provider/$id',
+  getParentRoute: () => PreviewAdminRoute,
 } as any)
-
+const PreviewProBookingIdRoute = PreviewProBookingIdRouteImport.update({
+  id: '/booking/$id',
+  path: '/booking/$id',
+  getParentRoute: () => PreviewProRoute,
+} as any)
 const PreviewProSetupItemRoute = PreviewProSetupItemRouteImport.update({
   id: '/setup/$item',
   path: '/setup/$item',
@@ -825,16 +823,15 @@ export interface FileRoutesByFullPath {
   '/preview/search': typeof PreviewSearchRoute
   '/preview/setup': typeof PreviewSetupRoute
   '/preview/splash': typeof PreviewSplashRoute
+  '/pro/apply': typeof ProApplyRoute
   '/pro/availability': typeof ProAvailabilityRoute
   '/pro/bookings': typeof ProBookingsRoute
   '/pro/documents': typeof ProDocumentsRoute
-  '/pro/apply': typeof ProApplyRoute
   '/pro/earnings': typeof ProEarningsRoute
   '/pro/notification-preferences': typeof ProNotificationPreferencesRoute
   '/pro/notifications': typeof ProNotificationsRoute
   '/pro/onboarding': typeof ProOnboardingRoute
   '/pro/profile': typeof ProProfileRoute
-  '/pro/setup/$item': typeof ProSetupItemRoute
   '/provider/$id': typeof ProviderIdRoute
   '/addresses/': typeof AddressesIndexRoute
   '/admin/': typeof AdminIndexRoute
@@ -863,24 +860,25 @@ export interface FileRoutesByFullPath {
   '/preview/book/$providerId': typeof PreviewBookProviderIdRoute
   '/preview/category/$id': typeof PreviewCategoryIdRoute
   '/preview/chat/$id': typeof PreviewChatIdRoute
+  '/preview/pro/apply': typeof PreviewProApplyRoute
   '/preview/pro/availability': typeof PreviewProAvailabilityRoute
   '/preview/pro/bookings': typeof PreviewProBookingsRoute
   '/preview/pro/documents': typeof PreviewProDocumentsRoute
-  '/preview/pro/apply': typeof PreviewProApplyRoute
   '/preview/pro/earnings': typeof PreviewProEarningsRoute
   '/preview/pro/notification-preferences': typeof PreviewProNotificationPreferencesRoute
   '/preview/pro/notifications': typeof PreviewProNotificationsRoute
   '/preview/pro/onboarding': typeof PreviewProOnboardingRoute
   '/preview/pro/profile': typeof PreviewProProfileRoute
-  '/preview/pro/setup/$item': typeof PreviewProSetupItemRoute
   '/preview/provider/$id': typeof PreviewProviderIdRoute
   '/pro/booking/$id': typeof ProBookingIdRoute
+  '/pro/setup/$item': typeof ProSetupItemRoute
   '/preview/addresses/': typeof PreviewAddressesIndexRoute
   '/preview/admin/': typeof PreviewAdminIndexRoute
   '/preview/pro/': typeof PreviewProIndexRoute
   '/preview/admin/customer/$id': typeof PreviewAdminCustomerIdRoute
   '/preview/admin/provider/$id': typeof PreviewAdminProviderIdRoute
   '/preview/pro/booking/$id': typeof PreviewProBookingIdRoute
+  '/preview/pro/setup/$item': typeof PreviewProSetupItemRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -942,16 +940,15 @@ export interface FileRoutesByTo {
   '/preview/search': typeof PreviewSearchRoute
   '/preview/setup': typeof PreviewSetupRoute
   '/preview/splash': typeof PreviewSplashRoute
+  '/pro/apply': typeof ProApplyRoute
   '/pro/availability': typeof ProAvailabilityRoute
   '/pro/bookings': typeof ProBookingsRoute
   '/pro/documents': typeof ProDocumentsRoute
-  '/pro/apply': typeof ProApplyRoute
   '/pro/earnings': typeof ProEarningsRoute
   '/pro/notification-preferences': typeof ProNotificationPreferencesRoute
   '/pro/notifications': typeof ProNotificationsRoute
   '/pro/onboarding': typeof ProOnboardingRoute
   '/pro/profile': typeof ProProfileRoute
-  '/pro/setup/$item': typeof ProSetupItemRoute
   '/provider/$id': typeof ProviderIdRoute
   '/addresses': typeof AddressesIndexRoute
   '/admin': typeof AdminIndexRoute
@@ -980,24 +977,25 @@ export interface FileRoutesByTo {
   '/preview/book/$providerId': typeof PreviewBookProviderIdRoute
   '/preview/category/$id': typeof PreviewCategoryIdRoute
   '/preview/chat/$id': typeof PreviewChatIdRoute
+  '/preview/pro/apply': typeof PreviewProApplyRoute
   '/preview/pro/availability': typeof PreviewProAvailabilityRoute
   '/preview/pro/bookings': typeof PreviewProBookingsRoute
   '/preview/pro/documents': typeof PreviewProDocumentsRoute
-  '/preview/pro/apply': typeof PreviewProApplyRoute
   '/preview/pro/earnings': typeof PreviewProEarningsRoute
   '/preview/pro/notification-preferences': typeof PreviewProNotificationPreferencesRoute
   '/preview/pro/notifications': typeof PreviewProNotificationsRoute
   '/preview/pro/onboarding': typeof PreviewProOnboardingRoute
   '/preview/pro/profile': typeof PreviewProProfileRoute
-  '/preview/pro/setup/$item': typeof PreviewProSetupItemRoute
   '/preview/provider/$id': typeof PreviewProviderIdRoute
   '/pro/booking/$id': typeof ProBookingIdRoute
+  '/pro/setup/$item': typeof ProSetupItemRoute
   '/preview/addresses': typeof PreviewAddressesIndexRoute
   '/preview/admin': typeof PreviewAdminIndexRoute
   '/preview/pro': typeof PreviewProIndexRoute
   '/preview/admin/customer/$id': typeof PreviewAdminCustomerIdRoute
   '/preview/admin/provider/$id': typeof PreviewAdminProviderIdRoute
   '/preview/pro/booking/$id': typeof PreviewProBookingIdRoute
+  '/preview/pro/setup/$item': typeof PreviewProSetupItemRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -1068,16 +1066,15 @@ export interface FileRoutesById {
   '/preview/search': typeof PreviewSearchRoute
   '/preview/setup': typeof PreviewSetupRoute
   '/preview/splash': typeof PreviewSplashRoute
+  '/pro/apply': typeof ProApplyRoute
   '/pro/availability': typeof ProAvailabilityRoute
   '/pro/bookings': typeof ProBookingsRoute
   '/pro/documents': typeof ProDocumentsRoute
-  '/pro/apply': typeof ProApplyRoute
   '/pro/earnings': typeof ProEarningsRoute
   '/pro/notification-preferences': typeof ProNotificationPreferencesRoute
   '/pro/notifications': typeof ProNotificationsRoute
   '/pro/onboarding': typeof ProOnboardingRoute
   '/pro/profile': typeof ProProfileRoute
-  '/pro/setup/$item': typeof ProSetupItemRoute
   '/provider/$id': typeof ProviderIdRoute
   '/addresses/': typeof AddressesIndexRoute
   '/admin/': typeof AdminIndexRoute
@@ -1106,24 +1103,25 @@ export interface FileRoutesById {
   '/preview/book/$providerId': typeof PreviewBookProviderIdRoute
   '/preview/category/$id': typeof PreviewCategoryIdRoute
   '/preview/chat/$id': typeof PreviewChatIdRoute
+  '/preview/pro/apply': typeof PreviewProApplyRoute
   '/preview/pro/availability': typeof PreviewProAvailabilityRoute
   '/preview/pro/bookings': typeof PreviewProBookingsRoute
   '/preview/pro/documents': typeof PreviewProDocumentsRoute
-  '/preview/pro/apply': typeof PreviewProApplyRoute
   '/preview/pro/earnings': typeof PreviewProEarningsRoute
   '/preview/pro/notification-preferences': typeof PreviewProNotificationPreferencesRoute
   '/preview/pro/notifications': typeof PreviewProNotificationsRoute
   '/preview/pro/onboarding': typeof PreviewProOnboardingRoute
   '/preview/pro/profile': typeof PreviewProProfileRoute
-  '/preview/pro/setup/$item': typeof PreviewProSetupItemRoute
   '/preview/provider/$id': typeof PreviewProviderIdRoute
   '/pro/booking/$id': typeof ProBookingIdRoute
+  '/pro/setup/$item': typeof ProSetupItemRoute
   '/preview/addresses/': typeof PreviewAddressesIndexRoute
   '/preview/admin/': typeof PreviewAdminIndexRoute
   '/preview/pro/': typeof PreviewProIndexRoute
   '/preview/admin/customer/$id': typeof PreviewAdminCustomerIdRoute
   '/preview/admin/provider/$id': typeof PreviewAdminProviderIdRoute
   '/preview/pro/booking/$id': typeof PreviewProBookingIdRoute
+  '/preview/pro/setup/$item': typeof PreviewProSetupItemRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1195,16 +1193,15 @@ export interface FileRouteTypes {
     | '/preview/search'
     | '/preview/setup'
     | '/preview/splash'
+    | '/pro/apply'
     | '/pro/availability'
     | '/pro/bookings'
     | '/pro/documents'
-    | '/pro/apply'
     | '/pro/earnings'
     | '/pro/notification-preferences'
     | '/pro/notifications'
     | '/pro/onboarding'
     | '/pro/profile'
-    | '/pro/setup/$item'
     | '/provider/$id'
     | '/addresses/'
     | '/admin/'
@@ -1233,24 +1230,25 @@ export interface FileRouteTypes {
     | '/preview/book/$providerId'
     | '/preview/category/$id'
     | '/preview/chat/$id'
+    | '/preview/pro/apply'
     | '/preview/pro/availability'
     | '/preview/pro/bookings'
     | '/preview/pro/documents'
-    | '/preview/pro/apply'
     | '/preview/pro/earnings'
     | '/preview/pro/notification-preferences'
     | '/preview/pro/notifications'
     | '/preview/pro/onboarding'
     | '/preview/pro/profile'
-    | '/preview/pro/setup/$item'
     | '/preview/provider/$id'
     | '/pro/booking/$id'
+    | '/pro/setup/$item'
     | '/preview/addresses/'
     | '/preview/admin/'
     | '/preview/pro/'
     | '/preview/admin/customer/$id'
     | '/preview/admin/provider/$id'
     | '/preview/pro/booking/$id'
+    | '/preview/pro/setup/$item'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1312,16 +1310,15 @@ export interface FileRouteTypes {
     | '/preview/search'
     | '/preview/setup'
     | '/preview/splash'
+    | '/pro/apply'
     | '/pro/availability'
     | '/pro/bookings'
     | '/pro/documents'
-    | '/pro/apply'
     | '/pro/earnings'
     | '/pro/notification-preferences'
     | '/pro/notifications'
     | '/pro/onboarding'
     | '/pro/profile'
-    | '/pro/setup/$item'
     | '/provider/$id'
     | '/addresses'
     | '/admin'
@@ -1350,24 +1347,25 @@ export interface FileRouteTypes {
     | '/preview/book/$providerId'
     | '/preview/category/$id'
     | '/preview/chat/$id'
+    | '/preview/pro/apply'
     | '/preview/pro/availability'
     | '/preview/pro/bookings'
     | '/preview/pro/documents'
-    | '/preview/pro/apply'
     | '/preview/pro/earnings'
     | '/preview/pro/notification-preferences'
     | '/preview/pro/notifications'
     | '/preview/pro/onboarding'
     | '/preview/pro/profile'
-    | '/preview/pro/setup/$item'
     | '/preview/provider/$id'
     | '/pro/booking/$id'
+    | '/pro/setup/$item'
     | '/preview/addresses'
     | '/preview/admin'
     | '/preview/pro'
     | '/preview/admin/customer/$id'
     | '/preview/admin/provider/$id'
     | '/preview/pro/booking/$id'
+    | '/preview/pro/setup/$item'
   id:
     | '__root__'
     | '/'
@@ -1437,16 +1435,15 @@ export interface FileRouteTypes {
     | '/preview/search'
     | '/preview/setup'
     | '/preview/splash'
+    | '/pro/apply'
     | '/pro/availability'
     | '/pro/bookings'
     | '/pro/documents'
-    | '/pro/apply'
     | '/pro/earnings'
     | '/pro/notification-preferences'
     | '/pro/notifications'
     | '/pro/onboarding'
     | '/pro/profile'
-    | '/pro/setup/$item'
     | '/provider/$id'
     | '/addresses/'
     | '/admin/'
@@ -1475,24 +1472,25 @@ export interface FileRouteTypes {
     | '/preview/book/$providerId'
     | '/preview/category/$id'
     | '/preview/chat/$id'
+    | '/preview/pro/apply'
     | '/preview/pro/availability'
     | '/preview/pro/bookings'
     | '/preview/pro/documents'
-    | '/preview/pro/apply'
     | '/preview/pro/earnings'
     | '/preview/pro/notification-preferences'
     | '/preview/pro/notifications'
     | '/preview/pro/onboarding'
     | '/preview/pro/profile'
-    | '/preview/pro/setup/$item'
     | '/preview/provider/$id'
     | '/pro/booking/$id'
+    | '/pro/setup/$item'
     | '/preview/addresses/'
     | '/preview/admin/'
     | '/preview/pro/'
     | '/preview/admin/customer/$id'
     | '/preview/admin/provider/$id'
     | '/preview/pro/booking/$id'
+    | '/preview/pro/setup/$item'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1528,130 +1526,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/setup': {
-      id: '/setup'
-      path: '/setup'
-      fullPath: '/setup'
-      preLoaderRoute: typeof SetupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/search': {
-      id: '/search'
-      path: '/search'
-      fullPath: '/search'
-      preLoaderRoute: typeof SearchRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/promo-codes': {
-      id: '/promo-codes'
-      path: '/promo-codes'
-      fullPath: '/promo-codes'
-      preLoaderRoute: typeof PromoCodesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pro': {
-      id: '/pro'
-      path: '/pro'
-      fullPath: '/pro'
-      preLoaderRoute: typeof ProRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/preview': {
-      id: '/preview'
-      path: '/preview'
-      fullPath: '/preview'
-      preLoaderRoute: typeof PreviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/otp': {
-      id: '/otp'
-      path: '/otp'
-      fullPath: '/otp'
-      preLoaderRoute: typeof OtpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/onboarding': {
-      id: '/onboarding'
-      path: '/onboarding'
-      fullPath: '/onboarding'
-      preLoaderRoute: typeof OnboardingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/notifications': {
-      id: '/notifications'
-      path: '/notifications'
-      fullPath: '/notifications'
-      preLoaderRoute: typeof NotificationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/notification-preferences': {
-      id: '/notification-preferences'
-      path: '/notification-preferences'
-      fullPath: '/notification-preferences'
-      preLoaderRoute: typeof NotificationPreferencesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/messages': {
-      id: '/messages'
-      path: '/messages'
-      fullPath: '/messages'
-      preLoaderRoute: typeof MessagesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/home': {
-      id: '/home'
-      path: '/home'
-      fullPath: '/home'
-      preLoaderRoute: typeof HomeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/help': {
-      id: '/help'
-      path: '/help'
-      fullPath: '/help'
-      preLoaderRoute: typeof HelpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/favorites': {
-      id: '/favorites'
-      path: '/favorites'
-      fullPath: '/favorites'
-      preLoaderRoute: typeof FavoritesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/family-members': {
-      id: '/family-members'
-      path: '/family-members'
-      fullPath: '/family-members'
-      preLoaderRoute: typeof FamilyMembersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/bookings': {
-      id: '/bookings'
-      path: '/bookings'
-      fullPath: '/bookings'
-      preLoaderRoute: typeof BookingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/addresses': {
@@ -1661,438 +1540,144 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AddressesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/pro/': {
-      id: '/pro/'
-      path: '/'
-      fullPath: '/pro/'
-      preLoaderRoute: typeof ProIndexRouteImport
-      parentRoute: typeof ProRoute
+    '/bookings': {
+      id: '/bookings'
+      path: '/bookings'
+      fullPath: '/bookings'
+      preLoaderRoute: typeof BookingsRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/preview/': {
-      id: '/preview/'
-      path: '/'
-      fullPath: '/preview/'
-      preLoaderRoute: typeof PreviewIndexRouteImport
-      parentRoute: typeof PreviewRoute
+    '/family-members': {
+      id: '/family-members'
+      path: '/family-members'
+      fullPath: '/family-members'
+      preLoaderRoute: typeof FamilyMembersRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/messages/': {
-      id: '/messages/'
-      path: '/'
-      fullPath: '/messages/'
-      preLoaderRoute: typeof MessagesIndexRouteImport
-      parentRoute: typeof MessagesRoute
+    '/favorites': {
+      id: '/favorites'
+      path: '/favorites'
+      fullPath: '/favorites'
+      preLoaderRoute: typeof FavoritesRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/admin/': {
-      id: '/admin/'
-      path: '/'
-      fullPath: '/admin/'
-      preLoaderRoute: typeof AdminIndexRouteImport
-      parentRoute: typeof AdminRoute
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/home': {
+      id: '/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof HomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/messages': {
+      id: '/messages'
+      path: '/messages'
+      fullPath: '/messages'
+      preLoaderRoute: typeof MessagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notification-preferences': {
+      id: '/notification-preferences'
+      path: '/notification-preferences'
+      fullPath: '/notification-preferences'
+      preLoaderRoute: typeof NotificationPreferencesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/otp': {
+      id: '/otp'
+      path: '/otp'
+      fullPath: '/otp'
+      preLoaderRoute: typeof OtpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/preview': {
+      id: '/preview'
+      path: '/preview'
+      fullPath: '/preview'
+      preLoaderRoute: typeof PreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pro': {
+      id: '/pro'
+      path: '/pro'
+      fullPath: '/pro'
+      preLoaderRoute: typeof ProRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/promo-codes': {
+      id: '/promo-codes'
+      path: '/promo-codes'
+      fullPath: '/promo-codes'
+      preLoaderRoute: typeof PromoCodesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/setup': {
+      id: '/setup'
+      path: '/setup'
+      fullPath: '/setup'
+      preLoaderRoute: typeof SetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/__qa/monitoring-error': {
+      id: '/__qa/monitoring-error'
+      path: '/monitoring-error'
+      fullPath: '/monitoring-error'
+      preLoaderRoute: typeof _qaMonitoringErrorRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/addresses/': {
       id: '/addresses/'
       path: '/'
       fullPath: '/addresses/'
       preLoaderRoute: typeof AddressesIndexRouteImport
-      parentRoute: typeof AddressesRoute
-    }
-    '/provider/$id': {
-      id: '/provider/$id'
-      path: '/provider/$id'
-      fullPath: '/provider/$id'
-      preLoaderRoute: typeof ProviderIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pro/setup/$item': {
-      id: '/pro/setup/$item'
-      path: '/setup/$item'
-      fullPath: '/pro/setup/$item'
-      preLoaderRoute: typeof ProSetupItemRouteImport
-      parentRoute: typeof ProRoute
-    }
-    '/pro/profile': {
-      id: '/pro/profile'
-      path: '/profile'
-      fullPath: '/pro/profile'
-      preLoaderRoute: typeof ProProfileRouteImport
-      parentRoute: typeof ProRoute
-    }
-    '/pro/onboarding': {
-      id: '/pro/onboarding'
-      path: '/onboarding'
-      fullPath: '/pro/onboarding'
-      preLoaderRoute: typeof ProOnboardingRouteImport
-      parentRoute: typeof ProRoute
-    }
-    '/pro/notifications': {
-      id: '/pro/notifications'
-      path: '/notifications'
-      fullPath: '/pro/notifications'
-      preLoaderRoute: typeof ProNotificationsRouteImport
-      parentRoute: typeof ProRoute
-    }
-    '/pro/notification-preferences': {
-      id: '/pro/notification-preferences'
-      path: '/notification-preferences'
-      fullPath: '/pro/notification-preferences'
-      preLoaderRoute: typeof ProNotificationPreferencesRouteImport
-      parentRoute: typeof ProRoute
-    }
-    '/pro/earnings': {
-      id: '/pro/earnings'
-      path: '/earnings'
-      fullPath: '/pro/earnings'
-      preLoaderRoute: typeof ProEarningsRouteImport
-      parentRoute: typeof ProRoute
-    }
-    '/pro/documents': {
-      id: '/pro/documents'
-      path: '/documents'
-      fullPath: '/pro/documents'
-      preLoaderRoute: typeof ProDocumentsRouteImport
-      parentRoute: typeof ProRoute
-    }
-    '/pro/apply': {
-      id: '/pro/apply'
-      path: '/apply'
-      fullPath: '/pro/apply'
-      preLoaderRoute: typeof ProApplyRouteImport
-      parentRoute: typeof ProRoute
-    }
-    '/pro/bookings': {
-      id: '/pro/bookings'
-      path: '/bookings'
-      fullPath: '/pro/bookings'
-      preLoaderRoute: typeof ProBookingsRouteImport
-      parentRoute: typeof ProRoute
-    }
-    '/pro/availability': {
-      id: '/pro/availability'
-      path: '/availability'
-      fullPath: '/pro/availability'
-      preLoaderRoute: typeof ProAvailabilityRouteImport
-      parentRoute: typeof ProRoute
-    }
-    '/preview/splash': {
-      id: '/preview/splash'
-      path: '/splash'
-      fullPath: '/preview/splash'
-      preLoaderRoute: typeof PreviewSplashRouteImport
-      parentRoute: typeof PreviewRoute
-    }
-    '/preview/setup': {
-      id: '/preview/setup'
-      path: '/setup'
-      fullPath: '/preview/setup'
-      preLoaderRoute: typeof PreviewSetupRouteImport
-      parentRoute: typeof PreviewRoute
-    }
-    '/preview/search': {
-      id: '/preview/search'
-      path: '/search'
-      fullPath: '/preview/search'
-      preLoaderRoute: typeof PreviewSearchRouteImport
-      parentRoute: typeof PreviewRoute
-    }
-    '/preview/promo-codes': {
-      id: '/preview/promo-codes'
-      path: '/promo-codes'
-      fullPath: '/preview/promo-codes'
-      preLoaderRoute: typeof PreviewPromoCodesRouteImport
-      parentRoute: typeof PreviewRoute
-    }
-    '/preview/profile': {
-      id: '/preview/profile'
-      path: '/profile'
-      fullPath: '/preview/profile'
-      preLoaderRoute: typeof PreviewProfileRouteImport
-      parentRoute: typeof PreviewRoute
-    }
-    '/preview/pro': {
-      id: '/preview/pro'
-      path: '/pro'
-      fullPath: '/preview/pro'
-      preLoaderRoute: typeof PreviewProRouteImport
-      parentRoute: typeof PreviewRoute
-    }
-    '/preview/otp': {
-      id: '/preview/otp'
-      path: '/otp'
-      fullPath: '/preview/otp'
-      preLoaderRoute: typeof PreviewOtpRouteImport
-      parentRoute: typeof PreviewRoute
-    }
-    '/preview/onboarding': {
-      id: '/preview/onboarding'
-      path: '/onboarding'
-      fullPath: '/preview/onboarding'
-      preLoaderRoute: typeof PreviewOnboardingRouteImport
-      parentRoute: typeof PreviewRoute
-    }
-    '/preview/notifications': {
-      id: '/preview/notifications'
-      path: '/notifications'
-      fullPath: '/preview/notifications'
-      preLoaderRoute: typeof PreviewNotificationsRouteImport
-      parentRoute: typeof PreviewRoute
-    }
-    '/preview/notification-preferences': {
-      id: '/preview/notification-preferences'
-      path: '/notification-preferences'
-      fullPath: '/preview/notification-preferences'
-      preLoaderRoute: typeof PreviewNotificationPreferencesRouteImport
-      parentRoute: typeof PreviewRoute
-    }
-    '/preview/messages': {
-      id: '/preview/messages'
-      path: '/messages'
-      fullPath: '/preview/messages'
-      preLoaderRoute: typeof PreviewMessagesRouteImport
-      parentRoute: typeof PreviewRoute
-    }
-    '/preview/login': {
-      id: '/preview/login'
-      path: '/login'
-      fullPath: '/preview/login'
-      preLoaderRoute: typeof PreviewLoginRouteImport
-      parentRoute: typeof PreviewRoute
-    }
-    '/preview/home': {
-      id: '/preview/home'
-      path: '/home'
-      fullPath: '/preview/home'
-      preLoaderRoute: typeof PreviewHomeRouteImport
-      parentRoute: typeof PreviewRoute
-    }
-    '/preview/help': {
-      id: '/preview/help'
-      path: '/help'
-      fullPath: '/preview/help'
-      preLoaderRoute: typeof PreviewHelpRouteImport
-      parentRoute: typeof PreviewRoute
-    }
-    '/preview/forgot': {
-      id: '/preview/forgot'
-      path: '/forgot'
-      fullPath: '/preview/forgot'
-      preLoaderRoute: typeof PreviewForgotRouteImport
-      parentRoute: typeof PreviewRoute
-    }
-    '/preview/favorites': {
-      id: '/preview/favorites'
-      path: '/favorites'
-      fullPath: '/preview/favorites'
-      preLoaderRoute: typeof PreviewFavoritesRouteImport
-      parentRoute: typeof PreviewRoute
-    }
-    '/preview/family-members': {
-      id: '/preview/family-members'
-      path: '/family-members'
-      fullPath: '/preview/family-members'
-      preLoaderRoute: typeof PreviewFamilyMembersRouteImport
-      parentRoute: typeof PreviewRoute
-    }
-    '/preview/bookings': {
-      id: '/preview/bookings'
-      path: '/bookings'
-      fullPath: '/preview/bookings'
-      preLoaderRoute: typeof PreviewBookingsRouteImport
-      parentRoute: typeof PreviewRoute
-    }
-    '/preview/admin': {
-      id: '/preview/admin'
-      path: '/admin'
-      fullPath: '/preview/admin'
-      preLoaderRoute: typeof PreviewAdminRouteImport
-      parentRoute: typeof PreviewRoute
-    }
-    '/preview/addresses': {
-      id: '/preview/addresses'
-      path: '/addresses'
-      fullPath: '/preview/addresses'
-      preLoaderRoute: typeof PreviewAddressesRouteImport
-      parentRoute: typeof PreviewRoute
-    }
-    '/messages/$id': {
-      id: '/messages/$id'
-      path: '/$id'
-      fullPath: '/messages/$id'
-      preLoaderRoute: typeof MessagesIdRouteImport
-      parentRoute: typeof MessagesRoute
-    }
-    '/family-members/new': {
-      id: '/family-members/new'
-      path: '/new'
-      fullPath: '/family-members/new'
-      preLoaderRoute: typeof FamilyMembersNewRouteImport
-      parentRoute: typeof FamilyMembersRoute
-    }
-    '/family-members/$id': {
-      id: '/family-members/$id'
-      path: '/$id'
-      fullPath: '/family-members/$id'
-      preLoaderRoute: typeof FamilyMembersIdRouteImport
-      parentRoute: typeof FamilyMembersRoute
-    }
-    '/content/$key': {
-      id: '/content/$key'
-      path: '/content/$key'
-      fullPath: '/content/$key'
-      preLoaderRoute: typeof ContentKeyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/category/$id': {
-      id: '/category/$id'
-      path: '/category/$id'
-      fullPath: '/category/$id'
-      preLoaderRoute: typeof CategoryIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/booking/$id': {
-      id: '/booking/$id'
-      path: '/booking/$id'
-      fullPath: '/booking/$id'
-      preLoaderRoute: typeof BookingIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/book/$providerId': {
-      id: '/book/$providerId'
-      path: '/book/$providerId'
-      fullPath: '/book/$providerId'
-      preLoaderRoute: typeof BookProviderIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/set-password': {
-      id: '/auth/set-password'
-      path: '/auth/set-password'
-      fullPath: '/auth/set-password'
-      preLoaderRoute: typeof AuthSetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/forgot': {
-      id: '/auth/forgot'
-      path: '/auth/forgot'
-      fullPath: '/auth/forgot'
-      preLoaderRoute: typeof AuthForgotRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/zones': {
-      id: '/admin/zones'
-      path: '/zones'
-      fullPath: '/admin/zones'
-      preLoaderRoute: typeof AdminZonesRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/settings': {
-      id: '/admin/settings'
-      path: '/settings'
-      fullPath: '/admin/settings'
-      preLoaderRoute: typeof AdminSettingsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/services': {
-      id: '/admin/services'
-      path: '/services'
-      fullPath: '/admin/services'
-      preLoaderRoute: typeof AdminServicesRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/providers': {
-      id: '/admin/providers'
-      path: '/providers'
-      fullPath: '/admin/providers'
-      preLoaderRoute: typeof AdminProvidersRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/promo-codes': {
-      id: '/admin/promo-codes'
-      path: '/promo-codes'
-      fullPath: '/admin/promo-codes'
-      preLoaderRoute: typeof AdminPromoCodesRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/payments': {
-      id: '/admin/payments'
-      path: '/payments'
-      fullPath: '/admin/payments'
-      preLoaderRoute: typeof AdminPaymentsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/payment-methods': {
-      id: '/admin/payment-methods'
-      path: '/payment-methods'
-      fullPath: '/admin/payment-methods'
-      preLoaderRoute: typeof AdminPaymentMethodsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/operations': {
-      id: '/admin/operations'
-      path: '/operations'
-      fullPath: '/admin/operations'
-      preLoaderRoute: typeof AdminOperationsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/monitoring': {
-      id: '/admin/monitoring'
-      path: '/monitoring'
-      fullPath: '/admin/monitoring'
-      preLoaderRoute: typeof AdminMonitoringRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/customers': {
-      id: '/admin/customers'
-      path: '/customers'
-      fullPath: '/admin/customers'
-      preLoaderRoute: typeof AdminCustomersRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/cases': {
-      id: '/admin/cases'
-      path: '/cases'
-      fullPath: '/admin/cases'
-      preLoaderRoute: typeof AdminCasesRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/cancellation-reasons': {
-      id: '/admin/cancellation-reasons'
-      path: '/cancellation-reasons'
-      fullPath: '/admin/cancellation-reasons'
-      preLoaderRoute: typeof AdminCancellationReasonsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/campaigns': {
-      id: '/admin/campaigns'
-      path: '/campaigns'
-      fullPath: '/admin/campaigns'
-      preLoaderRoute: typeof AdminCampaignsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/bookings': {
-      id: '/admin/bookings'
-      path: '/bookings'
-      fullPath: '/admin/bookings'
-      preLoaderRoute: typeof AdminBookingsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/audit-log': {
-      id: '/admin/audit-log'
-      path: '/audit-log'
-      fullPath: '/admin/audit-log'
-      preLoaderRoute: typeof AdminAuditLogRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/addresses/new': {
-      id: '/addresses/new'
-      path: '/new'
-      fullPath: '/addresses/new'
-      preLoaderRoute: typeof AddressesNewRouteImport
       parentRoute: typeof AddressesRoute
     }
     '/addresses/$id': {
@@ -2102,249 +1687,438 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AddressesIdRouteImport
       parentRoute: typeof AddressesRoute
     }
-    '/__qa/monitoring-error': {
-      id: '/__qa/monitoring-error'
-      path: '/monitoring-error'
-      fullPath: '/monitoring-error'
-      preLoaderRoute: typeof _qaMonitoringErrorRouteImport
+    '/addresses/new': {
+      id: '/addresses/new'
+      path: '/new'
+      fullPath: '/addresses/new'
+      preLoaderRoute: typeof AddressesNewRouteImport
+      parentRoute: typeof AddressesRoute
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/audit-log': {
+      id: '/admin/audit-log'
+      path: '/audit-log'
+      fullPath: '/admin/audit-log'
+      preLoaderRoute: typeof AdminAuditLogRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/bookings': {
+      id: '/admin/bookings'
+      path: '/bookings'
+      fullPath: '/admin/bookings'
+      preLoaderRoute: typeof AdminBookingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/campaigns': {
+      id: '/admin/campaigns'
+      path: '/campaigns'
+      fullPath: '/admin/campaigns'
+      preLoaderRoute: typeof AdminCampaignsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/cancellation-reasons': {
+      id: '/admin/cancellation-reasons'
+      path: '/cancellation-reasons'
+      fullPath: '/admin/cancellation-reasons'
+      preLoaderRoute: typeof AdminCancellationReasonsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/cases': {
+      id: '/admin/cases'
+      path: '/cases'
+      fullPath: '/admin/cases'
+      preLoaderRoute: typeof AdminCasesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/customers': {
+      id: '/admin/customers'
+      path: '/customers'
+      fullPath: '/admin/customers'
+      preLoaderRoute: typeof AdminCustomersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/monitoring': {
+      id: '/admin/monitoring'
+      path: '/monitoring'
+      fullPath: '/admin/monitoring'
+      preLoaderRoute: typeof AdminMonitoringRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/operations': {
+      id: '/admin/operations'
+      path: '/operations'
+      fullPath: '/admin/operations'
+      preLoaderRoute: typeof AdminOperationsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/payment-methods': {
+      id: '/admin/payment-methods'
+      path: '/payment-methods'
+      fullPath: '/admin/payment-methods'
+      preLoaderRoute: typeof AdminPaymentMethodsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/payments': {
+      id: '/admin/payments'
+      path: '/payments'
+      fullPath: '/admin/payments'
+      preLoaderRoute: typeof AdminPaymentsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/promo-codes': {
+      id: '/admin/promo-codes'
+      path: '/promo-codes'
+      fullPath: '/admin/promo-codes'
+      preLoaderRoute: typeof AdminPromoCodesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/providers': {
+      id: '/admin/providers'
+      path: '/providers'
+      fullPath: '/admin/providers'
+      preLoaderRoute: typeof AdminProvidersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/services': {
+      id: '/admin/services'
+      path: '/services'
+      fullPath: '/admin/services'
+      preLoaderRoute: typeof AdminServicesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/zones': {
+      id: '/admin/zones'
+      path: '/zones'
+      fullPath: '/admin/zones'
+      preLoaderRoute: typeof AdminZonesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/auth/forgot': {
+      id: '/auth/forgot'
+      path: '/auth/forgot'
+      fullPath: '/auth/forgot'
+      preLoaderRoute: typeof AuthForgotRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/preview/pro/': {
-      id: '/preview/pro/'
-      path: '/'
-      fullPath: '/preview/pro/'
-      preLoaderRoute: typeof PreviewProIndexRouteImport
-      parentRoute: typeof PreviewProRoute
+    '/auth/set-password': {
+      id: '/auth/set-password'
+      path: '/auth/set-password'
+      fullPath: '/auth/set-password'
+      preLoaderRoute: typeof AuthSetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/preview/admin/': {
-      id: '/preview/admin/'
+    '/book/$providerId': {
+      id: '/book/$providerId'
+      path: '/book/$providerId'
+      fullPath: '/book/$providerId'
+      preLoaderRoute: typeof BookProviderIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/booking/$id': {
+      id: '/booking/$id'
+      path: '/booking/$id'
+      fullPath: '/booking/$id'
+      preLoaderRoute: typeof BookingIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/category/$id': {
+      id: '/category/$id'
+      path: '/category/$id'
+      fullPath: '/category/$id'
+      preLoaderRoute: typeof CategoryIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/content/$key': {
+      id: '/content/$key'
+      path: '/content/$key'
+      fullPath: '/content/$key'
+      preLoaderRoute: typeof ContentKeyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/family-members/$id': {
+      id: '/family-members/$id'
+      path: '/$id'
+      fullPath: '/family-members/$id'
+      preLoaderRoute: typeof FamilyMembersIdRouteImport
+      parentRoute: typeof FamilyMembersRoute
+    }
+    '/family-members/new': {
+      id: '/family-members/new'
+      path: '/new'
+      fullPath: '/family-members/new'
+      preLoaderRoute: typeof FamilyMembersNewRouteImport
+      parentRoute: typeof FamilyMembersRoute
+    }
+    '/messages/': {
+      id: '/messages/'
       path: '/'
-      fullPath: '/preview/admin/'
-      preLoaderRoute: typeof PreviewAdminIndexRouteImport
-      parentRoute: typeof PreviewAdminRoute
+      fullPath: '/messages/'
+      preLoaderRoute: typeof MessagesIndexRouteImport
+      parentRoute: typeof MessagesRoute
+    }
+    '/messages/$id': {
+      id: '/messages/$id'
+      path: '/$id'
+      fullPath: '/messages/$id'
+      preLoaderRoute: typeof MessagesIdRouteImport
+      parentRoute: typeof MessagesRoute
+    }
+    '/preview/': {
+      id: '/preview/'
+      path: '/'
+      fullPath: '/preview/'
+      preLoaderRoute: typeof PreviewIndexRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/addresses': {
+      id: '/preview/addresses'
+      path: '/addresses'
+      fullPath: '/preview/addresses'
+      preLoaderRoute: typeof PreviewAddressesRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/admin': {
+      id: '/preview/admin'
+      path: '/admin'
+      fullPath: '/preview/admin'
+      preLoaderRoute: typeof PreviewAdminRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/bookings': {
+      id: '/preview/bookings'
+      path: '/bookings'
+      fullPath: '/preview/bookings'
+      preLoaderRoute: typeof PreviewBookingsRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/family-members': {
+      id: '/preview/family-members'
+      path: '/family-members'
+      fullPath: '/preview/family-members'
+      preLoaderRoute: typeof PreviewFamilyMembersRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/favorites': {
+      id: '/preview/favorites'
+      path: '/favorites'
+      fullPath: '/preview/favorites'
+      preLoaderRoute: typeof PreviewFavoritesRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/forgot': {
+      id: '/preview/forgot'
+      path: '/forgot'
+      fullPath: '/preview/forgot'
+      preLoaderRoute: typeof PreviewForgotRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/help': {
+      id: '/preview/help'
+      path: '/help'
+      fullPath: '/preview/help'
+      preLoaderRoute: typeof PreviewHelpRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/home': {
+      id: '/preview/home'
+      path: '/home'
+      fullPath: '/preview/home'
+      preLoaderRoute: typeof PreviewHomeRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/login': {
+      id: '/preview/login'
+      path: '/login'
+      fullPath: '/preview/login'
+      preLoaderRoute: typeof PreviewLoginRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/messages': {
+      id: '/preview/messages'
+      path: '/messages'
+      fullPath: '/preview/messages'
+      preLoaderRoute: typeof PreviewMessagesRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/notification-preferences': {
+      id: '/preview/notification-preferences'
+      path: '/notification-preferences'
+      fullPath: '/preview/notification-preferences'
+      preLoaderRoute: typeof PreviewNotificationPreferencesRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/notifications': {
+      id: '/preview/notifications'
+      path: '/notifications'
+      fullPath: '/preview/notifications'
+      preLoaderRoute: typeof PreviewNotificationsRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/onboarding': {
+      id: '/preview/onboarding'
+      path: '/onboarding'
+      fullPath: '/preview/onboarding'
+      preLoaderRoute: typeof PreviewOnboardingRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/otp': {
+      id: '/preview/otp'
+      path: '/otp'
+      fullPath: '/preview/otp'
+      preLoaderRoute: typeof PreviewOtpRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/pro': {
+      id: '/preview/pro'
+      path: '/pro'
+      fullPath: '/preview/pro'
+      preLoaderRoute: typeof PreviewProRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/profile': {
+      id: '/preview/profile'
+      path: '/profile'
+      fullPath: '/preview/profile'
+      preLoaderRoute: typeof PreviewProfileRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/promo-codes': {
+      id: '/preview/promo-codes'
+      path: '/promo-codes'
+      fullPath: '/preview/promo-codes'
+      preLoaderRoute: typeof PreviewPromoCodesRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/search': {
+      id: '/preview/search'
+      path: '/search'
+      fullPath: '/preview/search'
+      preLoaderRoute: typeof PreviewSearchRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/setup': {
+      id: '/preview/setup'
+      path: '/setup'
+      fullPath: '/preview/setup'
+      preLoaderRoute: typeof PreviewSetupRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/splash': {
+      id: '/preview/splash'
+      path: '/splash'
+      fullPath: '/preview/splash'
+      preLoaderRoute: typeof PreviewSplashRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/pro/': {
+      id: '/pro/'
+      path: '/'
+      fullPath: '/pro/'
+      preLoaderRoute: typeof ProIndexRouteImport
+      parentRoute: typeof ProRoute
+    }
+    '/pro/apply': {
+      id: '/pro/apply'
+      path: '/apply'
+      fullPath: '/pro/apply'
+      preLoaderRoute: typeof ProApplyRouteImport
+      parentRoute: typeof ProRoute
+    }
+    '/pro/availability': {
+      id: '/pro/availability'
+      path: '/availability'
+      fullPath: '/pro/availability'
+      preLoaderRoute: typeof ProAvailabilityRouteImport
+      parentRoute: typeof ProRoute
+    }
+    '/pro/bookings': {
+      id: '/pro/bookings'
+      path: '/bookings'
+      fullPath: '/pro/bookings'
+      preLoaderRoute: typeof ProBookingsRouteImport
+      parentRoute: typeof ProRoute
+    }
+    '/pro/documents': {
+      id: '/pro/documents'
+      path: '/documents'
+      fullPath: '/pro/documents'
+      preLoaderRoute: typeof ProDocumentsRouteImport
+      parentRoute: typeof ProRoute
+    }
+    '/pro/earnings': {
+      id: '/pro/earnings'
+      path: '/earnings'
+      fullPath: '/pro/earnings'
+      preLoaderRoute: typeof ProEarningsRouteImport
+      parentRoute: typeof ProRoute
+    }
+    '/pro/notification-preferences': {
+      id: '/pro/notification-preferences'
+      path: '/notification-preferences'
+      fullPath: '/pro/notification-preferences'
+      preLoaderRoute: typeof ProNotificationPreferencesRouteImport
+      parentRoute: typeof ProRoute
+    }
+    '/pro/notifications': {
+      id: '/pro/notifications'
+      path: '/notifications'
+      fullPath: '/pro/notifications'
+      preLoaderRoute: typeof ProNotificationsRouteImport
+      parentRoute: typeof ProRoute
+    }
+    '/pro/onboarding': {
+      id: '/pro/onboarding'
+      path: '/onboarding'
+      fullPath: '/pro/onboarding'
+      preLoaderRoute: typeof ProOnboardingRouteImport
+      parentRoute: typeof ProRoute
+    }
+    '/pro/profile': {
+      id: '/pro/profile'
+      path: '/profile'
+      fullPath: '/pro/profile'
+      preLoaderRoute: typeof ProProfileRouteImport
+      parentRoute: typeof ProRoute
+    }
+    '/provider/$id': {
+      id: '/provider/$id'
+      path: '/provider/$id'
+      fullPath: '/provider/$id'
+      preLoaderRoute: typeof ProviderIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/customer/$id': {
+      id: '/admin/customer/$id'
+      path: '/customer/$id'
+      fullPath: '/admin/customer/$id'
+      preLoaderRoute: typeof AdminCustomerIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/provider/$id': {
+      id: '/admin/provider/$id'
+      path: '/provider/$id'
+      fullPath: '/admin/provider/$id'
+      preLoaderRoute: typeof AdminProviderIdRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/preview/addresses/': {
       id: '/preview/addresses/'
       path: '/'
       fullPath: '/preview/addresses/'
       preLoaderRoute: typeof PreviewAddressesIndexRouteImport
-      parentRoute: typeof PreviewAddressesRoute
-    }
-    '/pro/booking/$id': {
-      id: '/pro/booking/$id'
-      path: '/booking/$id'
-      fullPath: '/pro/booking/$id'
-      preLoaderRoute: typeof ProBookingIdRouteImport
-      parentRoute: typeof ProRoute
-    }
-    '/preview/provider/$id': {
-      id: '/preview/provider/$id'
-      path: '/provider/$id'
-      fullPath: '/preview/provider/$id'
-      preLoaderRoute: typeof PreviewProviderIdRouteImport
-      parentRoute: typeof PreviewRoute
-    }
-    '/preview/pro/setup/$item': {
-      id: '/preview/pro/setup/$item'
-      path: '/setup/$item'
-      fullPath: '/preview/pro/setup/$item'
-      preLoaderRoute: typeof PreviewProSetupItemRouteImport
-      parentRoute: typeof PreviewProRoute
-    }
-    '/preview/pro/profile': {
-      id: '/preview/pro/profile'
-      path: '/profile'
-      fullPath: '/preview/pro/profile'
-      preLoaderRoute: typeof PreviewProProfileRouteImport
-      parentRoute: typeof PreviewProRoute
-    }
-    '/preview/pro/onboarding': {
-      id: '/preview/pro/onboarding'
-      path: '/onboarding'
-      fullPath: '/preview/pro/onboarding'
-      preLoaderRoute: typeof PreviewProOnboardingRouteImport
-      parentRoute: typeof PreviewProRoute
-    }
-    '/preview/pro/notifications': {
-      id: '/preview/pro/notifications'
-      path: '/notifications'
-      fullPath: '/preview/pro/notifications'
-      preLoaderRoute: typeof PreviewProNotificationsRouteImport
-      parentRoute: typeof PreviewProRoute
-    }
-    '/preview/pro/notification-preferences': {
-      id: '/preview/pro/notification-preferences'
-      path: '/notification-preferences'
-      fullPath: '/preview/pro/notification-preferences'
-      preLoaderRoute: typeof PreviewProNotificationPreferencesRouteImport
-      parentRoute: typeof PreviewProRoute
-    }
-    '/preview/pro/earnings': {
-      id: '/preview/pro/earnings'
-      path: '/earnings'
-      fullPath: '/preview/pro/earnings'
-      preLoaderRoute: typeof PreviewProEarningsRouteImport
-      parentRoute: typeof PreviewProRoute
-    }
-    '/preview/pro/documents': {
-      id: '/preview/pro/documents'
-      path: '/documents'
-      fullPath: '/preview/pro/documents'
-      preLoaderRoute: typeof PreviewProDocumentsRouteImport
-      parentRoute: typeof PreviewProRoute
-    }
-    '/preview/pro/apply': {
-      id: '/preview/pro/apply'
-      path: '/apply'
-      fullPath: '/preview/pro/apply'
-      preLoaderRoute: typeof PreviewProApplyRouteImport
-      parentRoute: typeof PreviewProRoute
-    }
-    '/preview/pro/bookings': {
-      id: '/preview/pro/bookings'
-      path: '/bookings'
-      fullPath: '/preview/pro/bookings'
-      preLoaderRoute: typeof PreviewProBookingsRouteImport
-      parentRoute: typeof PreviewProRoute
-    }
-    '/preview/pro/availability': {
-      id: '/preview/pro/availability'
-      path: '/availability'
-      fullPath: '/preview/pro/availability'
-      preLoaderRoute: typeof PreviewProAvailabilityRouteImport
-      parentRoute: typeof PreviewProRoute
-    }
-    '/preview/chat/$id': {
-      id: '/preview/chat/$id'
-      path: '/chat/$id'
-      fullPath: '/preview/chat/$id'
-      preLoaderRoute: typeof PreviewChatIdRouteImport
-      parentRoute: typeof PreviewRoute
-    }
-    '/preview/category/$id': {
-      id: '/preview/category/$id'
-      path: '/category/$id'
-      fullPath: '/preview/category/$id'
-      preLoaderRoute: typeof PreviewCategoryIdRouteImport
-      parentRoute: typeof PreviewRoute
-    }
-    '/preview/book/$providerId': {
-      id: '/preview/book/$providerId'
-      path: '/book/$providerId'
-      fullPath: '/preview/book/$providerId'
-      preLoaderRoute: typeof PreviewBookProviderIdRouteImport
-      parentRoute: typeof PreviewRoute
-    }
-    '/preview/admin/zones': {
-      id: '/preview/admin/zones'
-      path: '/zones'
-      fullPath: '/preview/admin/zones'
-      preLoaderRoute: typeof PreviewAdminZonesRouteImport
-      parentRoute: typeof PreviewAdminRoute
-    }
-    '/preview/admin/settings': {
-      id: '/preview/admin/settings'
-      path: '/settings'
-      fullPath: '/preview/admin/settings'
-      preLoaderRoute: typeof PreviewAdminSettingsRouteImport
-      parentRoute: typeof PreviewAdminRoute
-    }
-    '/preview/admin/services': {
-      id: '/preview/admin/services'
-      path: '/services'
-      fullPath: '/preview/admin/services'
-      preLoaderRoute: typeof PreviewAdminServicesRouteImport
-      parentRoute: typeof PreviewAdminRoute
-    }
-    '/preview/admin/providers': {
-      id: '/preview/admin/providers'
-      path: '/providers'
-      fullPath: '/preview/admin/providers'
-      preLoaderRoute: typeof PreviewAdminProvidersRouteImport
-      parentRoute: typeof PreviewAdminRoute
-    }
-    '/preview/admin/promo-codes': {
-      id: '/preview/admin/promo-codes'
-      path: '/promo-codes'
-      fullPath: '/preview/admin/promo-codes'
-      preLoaderRoute: typeof PreviewAdminPromoCodesRouteImport
-      parentRoute: typeof PreviewAdminRoute
-    }
-    '/preview/admin/payments': {
-      id: '/preview/admin/payments'
-      path: '/payments'
-      fullPath: '/preview/admin/payments'
-      preLoaderRoute: typeof PreviewAdminPaymentsRouteImport
-      parentRoute: typeof PreviewAdminRoute
-    }
-    '/preview/admin/payment-methods': {
-      id: '/preview/admin/payment-methods'
-      path: '/payment-methods'
-      fullPath: '/preview/admin/payment-methods'
-      preLoaderRoute: typeof PreviewAdminPaymentMethodsRouteImport
-      parentRoute: typeof PreviewAdminRoute
-    }
-    '/preview/admin/operations': {
-      id: '/preview/admin/operations'
-      path: '/operations'
-      fullPath: '/preview/admin/operations'
-      preLoaderRoute: typeof PreviewAdminOperationsRouteImport
-      parentRoute: typeof PreviewAdminRoute
-    }
-    '/preview/admin/monitoring': {
-      id: '/preview/admin/monitoring'
-      path: '/monitoring'
-      fullPath: '/preview/admin/monitoring'
-      preLoaderRoute: typeof PreviewAdminMonitoringRouteImport
-      parentRoute: typeof PreviewAdminRoute
-    }
-    '/preview/admin/customers': {
-      id: '/preview/admin/customers'
-      path: '/customers'
-      fullPath: '/preview/admin/customers'
-      preLoaderRoute: typeof PreviewAdminCustomersRouteImport
-      parentRoute: typeof PreviewAdminRoute
-    }
-    '/preview/admin/cases': {
-      id: '/preview/admin/cases'
-      path: '/cases'
-      fullPath: '/preview/admin/cases'
-      preLoaderRoute: typeof PreviewAdminCasesRouteImport
-      parentRoute: typeof PreviewAdminRoute
-    }
-    '/preview/admin/cancellation-reasons': {
-      id: '/preview/admin/cancellation-reasons'
-      path: '/cancellation-reasons'
-      fullPath: '/preview/admin/cancellation-reasons'
-      preLoaderRoute: typeof PreviewAdminCancellationReasonsRouteImport
-      parentRoute: typeof PreviewAdminRoute
-    }
-    '/preview/admin/campaigns': {
-      id: '/preview/admin/campaigns'
-      path: '/campaigns'
-      fullPath: '/preview/admin/campaigns'
-      preLoaderRoute: typeof PreviewAdminCampaignsRouteImport
-      parentRoute: typeof PreviewAdminRoute
-    }
-    '/preview/admin/bookings': {
-      id: '/preview/admin/bookings'
-      path: '/bookings'
-      fullPath: '/preview/admin/bookings'
-      preLoaderRoute: typeof PreviewAdminBookingsRouteImport
-      parentRoute: typeof PreviewAdminRoute
-    }
-    '/preview/admin/audit-log': {
-      id: '/preview/admin/audit-log'
-      path: '/audit-log'
-      fullPath: '/preview/admin/audit-log'
-      preLoaderRoute: typeof PreviewAdminAuditLogRouteImport
-      parentRoute: typeof PreviewAdminRoute
-    }
-    '/preview/addresses/new': {
-      id: '/preview/addresses/new'
-      path: '/new'
-      fullPath: '/preview/addresses/new'
-      preLoaderRoute: typeof PreviewAddressesNewRouteImport
       parentRoute: typeof PreviewAddressesRoute
     }
     '/preview/addresses/$id': {
@@ -2354,26 +2128,243 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewAddressesIdRouteImport
       parentRoute: typeof PreviewAddressesRoute
     }
-    '/admin/provider/$id': {
-      id: '/admin/provider/$id'
-      path: '/provider/$id'
-      fullPath: '/admin/provider/$id'
-      preLoaderRoute: typeof AdminProviderIdRouteImport
-      parentRoute: typeof AdminRoute
+    '/preview/addresses/new': {
+      id: '/preview/addresses/new'
+      path: '/new'
+      fullPath: '/preview/addresses/new'
+      preLoaderRoute: typeof PreviewAddressesNewRouteImport
+      parentRoute: typeof PreviewAddressesRoute
     }
-    '/admin/customer/$id': {
-      id: '/admin/customer/$id'
-      path: '/customer/$id'
-      fullPath: '/admin/customer/$id'
-      preLoaderRoute: typeof AdminCustomerIdRouteImport
-      parentRoute: typeof AdminRoute
+    '/preview/admin/': {
+      id: '/preview/admin/'
+      path: '/'
+      fullPath: '/preview/admin/'
+      preLoaderRoute: typeof PreviewAdminIndexRouteImport
+      parentRoute: typeof PreviewAdminRoute
     }
-    '/preview/pro/booking/$id': {
-      id: '/preview/pro/booking/$id'
-      path: '/booking/$id'
-      fullPath: '/preview/pro/booking/$id'
-      preLoaderRoute: typeof PreviewProBookingIdRouteImport
+    '/preview/admin/audit-log': {
+      id: '/preview/admin/audit-log'
+      path: '/audit-log'
+      fullPath: '/preview/admin/audit-log'
+      preLoaderRoute: typeof PreviewAdminAuditLogRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/admin/bookings': {
+      id: '/preview/admin/bookings'
+      path: '/bookings'
+      fullPath: '/preview/admin/bookings'
+      preLoaderRoute: typeof PreviewAdminBookingsRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/admin/campaigns': {
+      id: '/preview/admin/campaigns'
+      path: '/campaigns'
+      fullPath: '/preview/admin/campaigns'
+      preLoaderRoute: typeof PreviewAdminCampaignsRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/admin/cancellation-reasons': {
+      id: '/preview/admin/cancellation-reasons'
+      path: '/cancellation-reasons'
+      fullPath: '/preview/admin/cancellation-reasons'
+      preLoaderRoute: typeof PreviewAdminCancellationReasonsRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/admin/cases': {
+      id: '/preview/admin/cases'
+      path: '/cases'
+      fullPath: '/preview/admin/cases'
+      preLoaderRoute: typeof PreviewAdminCasesRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/admin/customers': {
+      id: '/preview/admin/customers'
+      path: '/customers'
+      fullPath: '/preview/admin/customers'
+      preLoaderRoute: typeof PreviewAdminCustomersRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/admin/monitoring': {
+      id: '/preview/admin/monitoring'
+      path: '/monitoring'
+      fullPath: '/preview/admin/monitoring'
+      preLoaderRoute: typeof PreviewAdminMonitoringRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/admin/operations': {
+      id: '/preview/admin/operations'
+      path: '/operations'
+      fullPath: '/preview/admin/operations'
+      preLoaderRoute: typeof PreviewAdminOperationsRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/admin/payment-methods': {
+      id: '/preview/admin/payment-methods'
+      path: '/payment-methods'
+      fullPath: '/preview/admin/payment-methods'
+      preLoaderRoute: typeof PreviewAdminPaymentMethodsRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/admin/payments': {
+      id: '/preview/admin/payments'
+      path: '/payments'
+      fullPath: '/preview/admin/payments'
+      preLoaderRoute: typeof PreviewAdminPaymentsRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/admin/promo-codes': {
+      id: '/preview/admin/promo-codes'
+      path: '/promo-codes'
+      fullPath: '/preview/admin/promo-codes'
+      preLoaderRoute: typeof PreviewAdminPromoCodesRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/admin/providers': {
+      id: '/preview/admin/providers'
+      path: '/providers'
+      fullPath: '/preview/admin/providers'
+      preLoaderRoute: typeof PreviewAdminProvidersRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/admin/services': {
+      id: '/preview/admin/services'
+      path: '/services'
+      fullPath: '/preview/admin/services'
+      preLoaderRoute: typeof PreviewAdminServicesRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/admin/settings': {
+      id: '/preview/admin/settings'
+      path: '/settings'
+      fullPath: '/preview/admin/settings'
+      preLoaderRoute: typeof PreviewAdminSettingsRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/admin/zones': {
+      id: '/preview/admin/zones'
+      path: '/zones'
+      fullPath: '/preview/admin/zones'
+      preLoaderRoute: typeof PreviewAdminZonesRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/book/$providerId': {
+      id: '/preview/book/$providerId'
+      path: '/book/$providerId'
+      fullPath: '/preview/book/$providerId'
+      preLoaderRoute: typeof PreviewBookProviderIdRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/category/$id': {
+      id: '/preview/category/$id'
+      path: '/category/$id'
+      fullPath: '/preview/category/$id'
+      preLoaderRoute: typeof PreviewCategoryIdRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/chat/$id': {
+      id: '/preview/chat/$id'
+      path: '/chat/$id'
+      fullPath: '/preview/chat/$id'
+      preLoaderRoute: typeof PreviewChatIdRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/pro/': {
+      id: '/preview/pro/'
+      path: '/'
+      fullPath: '/preview/pro/'
+      preLoaderRoute: typeof PreviewProIndexRouteImport
       parentRoute: typeof PreviewProRoute
+    }
+    '/preview/pro/apply': {
+      id: '/preview/pro/apply'
+      path: '/apply'
+      fullPath: '/preview/pro/apply'
+      preLoaderRoute: typeof PreviewProApplyRouteImport
+      parentRoute: typeof PreviewProRoute
+    }
+    '/preview/pro/availability': {
+      id: '/preview/pro/availability'
+      path: '/availability'
+      fullPath: '/preview/pro/availability'
+      preLoaderRoute: typeof PreviewProAvailabilityRouteImport
+      parentRoute: typeof PreviewProRoute
+    }
+    '/preview/pro/bookings': {
+      id: '/preview/pro/bookings'
+      path: '/bookings'
+      fullPath: '/preview/pro/bookings'
+      preLoaderRoute: typeof PreviewProBookingsRouteImport
+      parentRoute: typeof PreviewProRoute
+    }
+    '/preview/pro/documents': {
+      id: '/preview/pro/documents'
+      path: '/documents'
+      fullPath: '/preview/pro/documents'
+      preLoaderRoute: typeof PreviewProDocumentsRouteImport
+      parentRoute: typeof PreviewProRoute
+    }
+    '/preview/pro/earnings': {
+      id: '/preview/pro/earnings'
+      path: '/earnings'
+      fullPath: '/preview/pro/earnings'
+      preLoaderRoute: typeof PreviewProEarningsRouteImport
+      parentRoute: typeof PreviewProRoute
+    }
+    '/preview/pro/notification-preferences': {
+      id: '/preview/pro/notification-preferences'
+      path: '/notification-preferences'
+      fullPath: '/preview/pro/notification-preferences'
+      preLoaderRoute: typeof PreviewProNotificationPreferencesRouteImport
+      parentRoute: typeof PreviewProRoute
+    }
+    '/preview/pro/notifications': {
+      id: '/preview/pro/notifications'
+      path: '/notifications'
+      fullPath: '/preview/pro/notifications'
+      preLoaderRoute: typeof PreviewProNotificationsRouteImport
+      parentRoute: typeof PreviewProRoute
+    }
+    '/preview/pro/onboarding': {
+      id: '/preview/pro/onboarding'
+      path: '/onboarding'
+      fullPath: '/preview/pro/onboarding'
+      preLoaderRoute: typeof PreviewProOnboardingRouteImport
+      parentRoute: typeof PreviewProRoute
+    }
+    '/preview/pro/profile': {
+      id: '/preview/pro/profile'
+      path: '/profile'
+      fullPath: '/preview/pro/profile'
+      preLoaderRoute: typeof PreviewProProfileRouteImport
+      parentRoute: typeof PreviewProRoute
+    }
+    '/preview/provider/$id': {
+      id: '/preview/provider/$id'
+      path: '/provider/$id'
+      fullPath: '/preview/provider/$id'
+      preLoaderRoute: typeof PreviewProviderIdRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/pro/booking/$id': {
+      id: '/pro/booking/$id'
+      path: '/booking/$id'
+      fullPath: '/pro/booking/$id'
+      preLoaderRoute: typeof ProBookingIdRouteImport
+      parentRoute: typeof ProRoute
+    }
+    '/pro/setup/$item': {
+      id: '/pro/setup/$item'
+      path: '/setup/$item'
+      fullPath: '/pro/setup/$item'
+      preLoaderRoute: typeof ProSetupItemRouteImport
+      parentRoute: typeof ProRoute
+    }
+    '/preview/admin/customer/$id': {
+      id: '/preview/admin/customer/$id'
+      path: '/customer/$id'
+      fullPath: '/preview/admin/customer/$id'
+      preLoaderRoute: typeof PreviewAdminCustomerIdRouteImport
+      parentRoute: typeof PreviewAdminRoute
     }
     '/preview/admin/provider/$id': {
       id: '/preview/admin/provider/$id'
@@ -2382,12 +2373,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewAdminProviderIdRouteImport
       parentRoute: typeof PreviewAdminRoute
     }
-    '/preview/admin/customer/$id': {
-      id: '/preview/admin/customer/$id'
-      path: '/customer/$id'
-      fullPath: '/preview/admin/customer/$id'
-      preLoaderRoute: typeof PreviewAdminCustomerIdRouteImport
-      parentRoute: typeof PreviewAdminRoute
+    '/preview/pro/booking/$id': {
+      id: '/preview/pro/booking/$id'
+      path: '/booking/$id'
+      fullPath: '/preview/pro/booking/$id'
+      preLoaderRoute: typeof PreviewProBookingIdRouteImport
+      parentRoute: typeof PreviewProRoute
+    }
+    '/preview/pro/setup/$item': {
+      id: '/preview/pro/setup/$item'
+      path: '/setup/$item'
+      fullPath: '/preview/pro/setup/$item'
+      preLoaderRoute: typeof PreviewProSetupItemRouteImport
+      parentRoute: typeof PreviewProRoute
     }
   }
 }
@@ -2542,34 +2540,34 @@ const PreviewAdminRouteWithChildren = PreviewAdminRoute._addFileChildren(
 )
 
 interface PreviewProRouteChildren {
+  PreviewProApplyRoute: typeof PreviewProApplyRoute
   PreviewProAvailabilityRoute: typeof PreviewProAvailabilityRoute
   PreviewProBookingsRoute: typeof PreviewProBookingsRoute
   PreviewProDocumentsRoute: typeof PreviewProDocumentsRoute
-  PreviewProApplyRoute: typeof PreviewProApplyRoute
   PreviewProEarningsRoute: typeof PreviewProEarningsRoute
   PreviewProNotificationPreferencesRoute: typeof PreviewProNotificationPreferencesRoute
   PreviewProNotificationsRoute: typeof PreviewProNotificationsRoute
   PreviewProOnboardingRoute: typeof PreviewProOnboardingRoute
   PreviewProProfileRoute: typeof PreviewProProfileRoute
-  PreviewProSetupItemRoute: typeof PreviewProSetupItemRoute
   PreviewProIndexRoute: typeof PreviewProIndexRoute
   PreviewProBookingIdRoute: typeof PreviewProBookingIdRoute
+  PreviewProSetupItemRoute: typeof PreviewProSetupItemRoute
 }
 
 const PreviewProRouteChildren: PreviewProRouteChildren = {
+  PreviewProApplyRoute: PreviewProApplyRoute,
   PreviewProAvailabilityRoute: PreviewProAvailabilityRoute,
   PreviewProBookingsRoute: PreviewProBookingsRoute,
   PreviewProDocumentsRoute: PreviewProDocumentsRoute,
-  PreviewProApplyRoute: PreviewProApplyRoute,
   PreviewProEarningsRoute: PreviewProEarningsRoute,
   PreviewProNotificationPreferencesRoute:
     PreviewProNotificationPreferencesRoute,
   PreviewProNotificationsRoute: PreviewProNotificationsRoute,
   PreviewProOnboardingRoute: PreviewProOnboardingRoute,
   PreviewProProfileRoute: PreviewProProfileRoute,
-  PreviewProSetupItemRoute: PreviewProSetupItemRoute,
   PreviewProIndexRoute: PreviewProIndexRoute,
   PreviewProBookingIdRoute: PreviewProBookingIdRoute,
+  PreviewProSetupItemRoute: PreviewProSetupItemRoute,
 }
 
 const PreviewProRouteWithChildren = PreviewProRoute._addFileChildren(
@@ -2636,33 +2634,33 @@ const PreviewRouteWithChildren =
   PreviewRoute._addFileChildren(PreviewRouteChildren)
 
 interface ProRouteChildren {
+  ProApplyRoute: typeof ProApplyRoute
   ProAvailabilityRoute: typeof ProAvailabilityRoute
   ProBookingsRoute: typeof ProBookingsRoute
   ProDocumentsRoute: typeof ProDocumentsRoute
-  ProApplyRoute: typeof ProApplyRoute
   ProEarningsRoute: typeof ProEarningsRoute
   ProNotificationPreferencesRoute: typeof ProNotificationPreferencesRoute
   ProNotificationsRoute: typeof ProNotificationsRoute
   ProOnboardingRoute: typeof ProOnboardingRoute
   ProProfileRoute: typeof ProProfileRoute
-  ProSetupItemRoute: typeof ProSetupItemRoute
   ProIndexRoute: typeof ProIndexRoute
   ProBookingIdRoute: typeof ProBookingIdRoute
+  ProSetupItemRoute: typeof ProSetupItemRoute
 }
 
 const ProRouteChildren: ProRouteChildren = {
+  ProApplyRoute: ProApplyRoute,
   ProAvailabilityRoute: ProAvailabilityRoute,
   ProBookingsRoute: ProBookingsRoute,
   ProDocumentsRoute: ProDocumentsRoute,
-  ProApplyRoute: ProApplyRoute,
   ProEarningsRoute: ProEarningsRoute,
   ProNotificationPreferencesRoute: ProNotificationPreferencesRoute,
   ProNotificationsRoute: ProNotificationsRoute,
   ProOnboardingRoute: ProOnboardingRoute,
   ProProfileRoute: ProProfileRoute,
-  ProSetupItemRoute: ProSetupItemRoute,
   ProIndexRoute: ProIndexRoute,
   ProBookingIdRoute: ProBookingIdRoute,
+  ProSetupItemRoute: ProSetupItemRoute,
 }
 
 const ProRouteWithChildren = ProRoute._addFileChildren(ProRouteChildren)

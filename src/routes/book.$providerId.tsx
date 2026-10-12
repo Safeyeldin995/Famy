@@ -22,6 +22,7 @@ import { QueryError } from "@/components/famio/QueryError";
 import {
   useProvider,
   useProviderServices,
+  useBookableServiceIds,
   useFixedPackageRate,
   useCreateBooking,
   useAddresses,
@@ -189,12 +190,18 @@ export function BookContent({
   const defaultBookableAddressId =
     bookableAddresses.find((a: any) => a.is_default)?.id ?? bookableAddresses[0]?.id;
   const slotAddressId = addressId ?? defaultBookableAddressId ?? null;
+  // Only services the provider can actually be booked for (same eligibility
+  // the booking trigger enforces), so the customer never picks a service that
+  // fails later with PROVIDER_INELIGIBLE (e.g. subjects still under review).
+  const bookableQ = useBookableServiceIds(providerId, slotAddressId ?? undefined);
   const services = useMemo(
     () =>
-      (servicesQ.data ?? []).filter((row: { service?: { category?: { slug?: string } } }) =>
-        isClosedBetaCategorySlug(row.service?.category?.slug),
+      (servicesQ.data ?? []).filter(
+        (row: { service?: { id?: string; category?: { slug?: string } } }) =>
+          isClosedBetaCategorySlug(row.service?.category?.slug) &&
+          (!bookableQ.data || bookableQ.data.has(row.service?.id ?? "")),
       ),
-    [servicesQ.data],
+    [servicesQ.data, bookableQ.data],
   );
   const eligibilityServiceId = serviceId ?? services[0]?.service?.id ?? null;
   const selectedAddress = bookableAddresses.find((a: any) => a.id === addressId) ?? null;

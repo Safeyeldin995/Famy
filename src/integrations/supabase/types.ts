@@ -4103,6 +4103,29 @@ export type Database = {
           zone_covered: boolean
         }[]
       }
+      booking_party_profiles: {
+        Args: { p_booking_ids: string[] }
+        Returns: {
+          area: string | null
+          booking_id: string
+          child_age_years: number | null
+          child_first_name: string | null
+          other_avatar_url: string | null
+          other_name: string | null
+          other_phone: string | null
+          other_user_id: string
+          viewer_role: string
+          zone_name_ar: string | null
+          zone_name_en: string | null
+        }[]
+      }
+      marketplace_provider_bookable_services: {
+        Args: { p_address_id?: string; p_provider_id: string }
+        Returns: {
+          effective_price: number | null
+          service_id: string
+        }[]
+      }
       marketplace_provider_booking_settings: {
         Args: {
           p_address_id?: string

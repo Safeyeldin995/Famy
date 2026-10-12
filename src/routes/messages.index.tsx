@@ -3,6 +3,7 @@ import { AppShell, EmptyState } from "@/components/famio/ui";
 import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
 import { useTranslation } from "react-i18next";
 import { useConversations } from "@/lib/db/messaging";
+import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 
 export const Route = createFileRoute("/messages/")({ component: Messages });
 
@@ -51,24 +52,15 @@ function Messages() {
                   params={{ id: c.id }}
                   className="focus-ring tap-scale flex items-center gap-3.5 rounded-[1.75rem] border border-border/50 bg-surface-elevated p-3.5 shadow-sm"
                 >
-                  <div className="relative shrink-0">
-                    {c.other_avatar ? (
-                      <img
-                        src={c.other_avatar}
-                        alt=""
-                        className="h-14 w-14 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="grid h-14 w-14 place-items-center rounded-full bg-brand/10 text-lg font-black text-brand">
-                        {c.other_name.slice(0, 1).toUpperCase()}
-                      </div>
-                    )}
-                    <span className="absolute -bottom-0.5 -end-0.5 h-3.5 w-3.5 rounded-full border-2 border-surface bg-success" />
-                  </div>
+                  <ProfileAvatar
+                    src={c.other_avatar}
+                    name={c.other_name || t("profile.famioUser")}
+                    className="h-14 w-14 rounded-full text-lg"
+                  />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-3">
                       <span className="truncate text-[15px] font-extrabold text-foreground">
-                        {c.other_name}
+                        {c.other_name || t("profile.famioUser")}
                       </span>
                       <span className="shrink-0 text-[11px] font-bold text-muted-foreground">
                         {formatTime(c.last_time)}

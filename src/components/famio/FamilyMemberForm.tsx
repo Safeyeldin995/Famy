@@ -21,7 +21,7 @@ const RELATIONSHIPS: Relationship[] = [
   "grandparent",
   "other",
 ];
-const GENDERS = ["male", "female", "other"] as const;
+const GENDERS = ["male", "female"] as const;
 const PHONE_RE = /^\+\d{8,15}$/;
 
 export function isValidOptionalPhone(raw: string): boolean {
@@ -191,7 +191,8 @@ export function FamilyMemberForm({
               key={r}
               type="button"
               onClick={() => set("relationship", r)}
-              className={`rounded-2xl border py-3 text-pro-12 font-bold transition-all ${
+              aria-pressed={value.relationship === r}
+              className={`min-h-11 rounded-2xl border py-3 text-pro-12 font-bold transition-all ${
                 value.relationship === r
                   ? "border-brand bg-brand/5 text-brand"
                   : "border-border bg-surface text-muted-foreground"
@@ -242,13 +243,14 @@ export function FamilyMemberForm({
             ({t("familyMembers.optional", "optional")})
           </span>
         </label>
-        <div className="mt-2 grid grid-cols-3 gap-2">
+        <div className="mt-2 grid grid-cols-2 gap-2">
           {GENDERS.map((g) => (
             <button
               key={g}
               type="button"
               onClick={() => set("gender", value.gender === g ? "" : g)}
-              className={`rounded-2xl border py-3 text-pro-12 font-bold transition-all ${
+              aria-pressed={value.gender === g}
+              className={`min-h-11 rounded-2xl border py-3 text-pro-14 font-bold transition-all ${
                 value.gender === g
                   ? "border-brand bg-brand/5 text-brand"
                   : "border-border bg-surface text-muted-foreground"

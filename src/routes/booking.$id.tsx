@@ -23,6 +23,7 @@ import { currentLang } from "@/lib/i18n";
 import { formatEGP } from "@/lib/utils";
 import { Check, MapPin, Calendar, Clock, Phone, Download, HelpCircle, AlertTriangle, Star, ShieldCheck, Bell, UserCheck, X, LifeBuoy } from "lucide-react";
 import { BookingChatPanel } from "@/components/famio/BookingChatPanel";
+import { useBookingParty } from "@/lib/db/booking-parties";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -78,6 +79,7 @@ function BookingDetail() {
   const disputesQ = useBookingDisputes(id);
   const noShowReportsQ = useBookingNoShowReports(id);
   const supportTicketsQ = useBookingSupportTickets(id);
+  const { party } = useBookingParty(id);
   const dispute = activeDispute(disputesQ.data);
   const noShowReport = activeNoShowReport(noShowReportsQ.data);
   const openDispute = useOpenDispute();
@@ -406,6 +408,8 @@ function BookingDetail() {
           <div className="flex items-center justify-between">
             <BackButton back={() => nav({ to: "/bookings" })} />
             <button
+              type="button"
+              onClick={() => setDialog("support")}
               aria-label={t("bookingDetail.emergency")}
               className="focus-ring grid h-11 w-11 place-items-center rounded-full bg-white/20 text-current backdrop-blur active:scale-95 transition-transform"
             >
@@ -428,12 +432,15 @@ function BookingDetail() {
                 {provider.rating} · {provider.role}
               </div>
             </div>
-            <button
-              aria-label={`${t("providerProfile.call")} ${provider.name}`}
-              className="focus-ring grid h-12 w-12 shrink-0 place-items-center rounded-full bg-surface text-brand shadow-card active:scale-95 transition-transform"
-            >
-              <Phone className="h-4 w-4" aria-hidden="true" />
-            </button>
+            {party?.other_phone ? (
+              <a
+                href={`tel:${party.other_phone}`}
+                aria-label={`${t("providerProfile.call")} ${provider.name}`}
+                className="focus-ring grid h-12 w-12 shrink-0 place-items-center rounded-full bg-surface text-brand shadow-card active:scale-95 transition-transform"
+              >
+                <Phone className="h-4 w-4" aria-hidden="true" />
+              </a>
+            ) : null}
           </div>
         </div>
 
