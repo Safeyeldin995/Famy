@@ -1,12 +1,13 @@
+import { BookingRequestActions } from "@/components/provider/BookingRequestActions";
+import { WorkMoney } from "@/components/provider/WorkMoney";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatTime } from "@/lib/format";
 import { ProviderPendingHome } from "@/components/provider/ProviderPendingHome";
-import { isPreviewRoute } from "@/lib/preview/constants";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { isPreviewRoute, PREVIEW_NOW_ISO } from "@/lib/preview/constants";
+import { createFileRoute, Link, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ProviderShell } from "@/components/famio/ProviderShell";
 import { PageHeader } from "@/components/famio/PageHeader";
-import { ProviderFloatingPanel } from "@/components/famio/ProviderFloatingPanel";
 import { ProviderSectionHeader } from "@/components/famio/ProviderSectionHeader";
 import { EmptyState } from "@/components/famio/ui";
 import { useLang } from "@/components/famio/LanguageToggle";
@@ -14,7 +15,7 @@ import { useMyProvider, useProviderBookings, useProviderEarnings, useProUnreadNo
 import { formatEGP, BOOKING_ACTIVE_STATUSES } from "@/lib/utils";
 import { earningsHeadlineKind } from "@/lib/earnings/aggregateProviderEarnings";
 import type { ReactNode } from "react";
-import { Bell, ShieldCheck, Star, TrendingUp, Plane, AlertCircle } from "lucide-react";
+import { Bell, Star, Plane, AlertCircle } from "lucide-react";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
 import { proPath } from "@/lib/preview/previewPath";
 
@@ -33,7 +34,8 @@ function ProDashboard() {
 
   const all = bookingsQ.data ?? [];
   const pending = all.filter((b: any) => b.status === "pending");
-  const today = new Date();
+  const preview = useRouterState({ select: (state) => isPreviewRoute(state.location.pathname) });
+  const today = preview ? new Date(PREVIEW_NOW_ISO) : new Date();
   const upcoming = all
     .filter(
       (b: any) =>
@@ -45,7 +47,6 @@ function ProDashboard() {
   const mtdNet = earningsQ.data?.mtd.net ?? 0;
   const mtdBookingValue = earningsQ.data?.mtd.bookingValue ?? 0;
   const mtdKind = earningsHeadlineKind(mtdNet > 0, mtdBookingValue > 0);
-  const trust = provider?.trust?.[0]?.score ?? provider?.trust?.score;
   const rating = provider?.ratings?.[0]?.rating_avg ?? provider?.ratings?.rating_avg;
 
   if (!isPreviewRoute() && ["SUBMITTED", "UNDER_REVIEW", "NEEDS_CHANGES"].includes(provider?.onboarding_status)) {
@@ -55,9 +56,10 @@ function ProDashboard() {
   return (
     <ProviderShell>
       <PageHeader
-        title={t("pro.dashboard.title")}
-        subtitle={provider?.name}
+        title={t("proWork.hello", { name: (provider?.profile?.full_name || provider?.name || t("pro.common.customer")).trim().split(/\s+/)[0] })}
         right={
+          <div className="flex items-center gap-2">
+          <ProfileAvatar src={provider?.profile?.avatar_url} name={provider?.profile?.full_name || provider?.name || ""} className="h-11 w-11 rounded-full" />
           <Link
             to={proPath("/pro/notifications") as "/pro/notifications"}
             aria-label={t("notifs.title")}
@@ -68,46 +70,23 @@ function ProDashboard() {
               <span className="absolute end-2 top-2 h-2 w-2 rounded-full bg-white ring-2 ring-brand" />
             ) : null}
           </Link>
+          </div>
         }
       />
 
-      <div className="px-5">
-        <ProviderFloatingPanel className="!mt-0 grid grid-cols-2 gap-3 !p-3">
-          <Link
-            to={proPath("/pro/earnings") as "/pro/earnings"}
-            className="focus-ring tap-scale rounded-[1rem] bg-brand p-4 text-brand-foreground"
-          >
-            <div className="flex items-center gap-1.5 text-pro-12 font-bold opacity-90">
-              <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" />
-              {mtdKind === "bookingValue" ? t("pro.dashboard.bookingValueMtd") : t("pro.dashboard.netMtd")}
-            </div>
-            {mtdKind === "mixed" ? (
-              <>
-                <div className="mt-2 text-xl font-black leading-none">{formatEGP(mtdNet)}</div>
-                <div className="mt-1 text-pro-12 font-bold opacity-80">
-                  {t("pro.dashboard.bookingValueMtd")}: {formatEGP(mtdBookingValue)}
-                </div>
-              </>
-            ) : (
-              <div className="mt-2 text-xl font-black leading-none">
-                {formatEGP(mtdKind === "bookingValue" ? mtdBookingValue : mtdNet)}
-              </div>
-            )}
+      <div className="space-y-3 px-5">
+        <p className="text-pro-14 text-muted-foreground"><b className="text-foreground">{t("proWork.today")}</b> · {upcoming[0] ? <Link className="font-bold text-brand" to={proPath("/pro/booking/$id") as "/pro/booking/$id"} params={{ id: upcoming[0].id }}>{t("proWork.nextJob")}: {formatDate(new Date(upcoming[0].start_at), { day: "numeric", month: "short" }, lang)} · {formatTime(new Date(upcoming[0].start_at), lang)}</Link> : t("proWork.noJobToday")}</p>
+        <div className="grid grid-cols-2 gap-3">
+          <Link to={proPath("/pro/earnings") as "/pro/earnings"} className="focus-ring block min-w-0 rounded-2xl bg-brand p-3 text-brand-foreground">
+            <div className="whitespace-nowrap text-pro-12 font-bold">{mtdKind === "bookingValue" ? t("proWork.monthValue") : t("proWork.monthNet")}</div>
+            <div className="mt-2"><WorkMoney amount={mtdKind === "bookingValue" ? mtdBookingValue : mtdNet} /></div>
+            {mtdKind === "mixed" && <p className="mt-1 text-pro-12">{t("proWork.monthValue")}<span className="block whitespace-nowrap">{formatEGP(mtdBookingValue)}</span></p>}
           </Link>
-          <div className="rounded-[1rem] border border-border/50 bg-surface-2/80 p-4">
-            <div className="flex items-center gap-1.5 text-pro-12 font-bold text-muted-foreground">
-              <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
-              {t("pro.dashboard.trustScore")}
-            </div>
-            <div className="mt-2 text-xl font-black leading-none text-foreground">
-              {trust ? Math.round(trust) : "—"}
-            </div>
-            <div className="mt-1 flex items-center gap-1 text-pro-12 font-bold text-muted-foreground">
-              <Star className="h-3 w-3 fill-warning text-warning" aria-hidden="true" />
-              {rating ? Number(rating).toFixed(2) : "—"}
-            </div>
+          <div className="min-w-0 rounded-2xl border border-border/50 bg-surface p-3">
+            <div className="whitespace-nowrap text-pro-12 font-bold text-muted-foreground">{t("proWork.rating")}</div>
+            <div className="mt-2 flex items-center gap-1 text-pro-22 font-extrabold"><Star className="h-4 w-4 fill-warning text-warning" aria-hidden="true" />{rating ? Number(rating).toFixed(2) : "—"}</div>
           </div>
-        </ProviderFloatingPanel>
+        </div>
       </div>
 
       <div className="mt-5 space-y-5 px-5 pb-28">
@@ -205,7 +184,7 @@ function ProDashboard() {
                 <BookingRow
                   key={b.id}
                   b={b}
-                  cta={t("pro.dashboard.review")}
+                  request
                   lang={lang}
                   dateLoc={dateLoc}
                   t={t}
@@ -275,13 +254,13 @@ function AlertBanner({
 
 function BookingRow({
   b,
-  cta,
+  request,
   lang,
   dateLoc,
   t,
 }: {
   b: any;
-  cta?: string;
+  request?: boolean;
   lang: "ar" | "en";
   dateLoc: string;
   t: any;
@@ -294,29 +273,27 @@ function BookingRow({
       : (b.service?.name_en ?? b.service?.name_ar);
 
   return (
+    <article className="overflow-hidden rounded-2xl border border-border/50 bg-surface">
     <Link
       to={proPath("/pro/booking/$id") as "/pro/booking/$id"}
       params={{ id: b.id }}
-      className="focus-ring tap-scale block rounded-[1.25rem] border border-border/50 bg-surface p-4 shadow-xs"
+      className="focus-ring tap-scale block p-3"
     >
       <div className="flex items-center gap-3">
         <ProfileAvatar src={b.customer?.avatar_url} name={name} className="h-12 w-12 shrink-0 rounded-xl" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <p className="truncate text-sm font-extrabold text-foreground">{name}</p>
-            <p className="text-sm font-black text-brand">{formatEGP(b.total_price)}</p>
+            <p className="shrink-0 whitespace-nowrap text-sm font-black text-brand">{formatEGP(Number(b.price_total ?? 0))}</p>
           </div>
           <p className="mt-0.5 truncate text-xs font-medium text-muted-foreground">
             {serviceName} ·{" "}
             {formatDate(start, { weekday: "short", day: "numeric", month: "short" }, dateLoc)}
           </p>
-          {cta ? (
-            <span className="mt-2 inline-flex rounded-full bg-brand/10 px-2.5 py-1 text-pro-12 font-extrabold text-brand">
-              {cta}
-            </span>
-          ) : null}
         </div>
       </div>
     </Link>
+    {request && <BookingRequestActions id={b.id} />}
+    </article>
   );
 }

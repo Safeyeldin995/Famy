@@ -7,12 +7,12 @@ import { ProviderShell } from "@/components/famio/ProviderShell";
 import { PageHeader } from "@/components/famio/PageHeader";
 import { SegmentedControl, EmptyState, StatusPill } from "@/components/famio/ui";
 import { QueryError } from "@/components/famio/QueryError";
-import { RespondWithinHint } from "@/components/famio/PendingExpiry";
+import { BookingCountdown } from "@/components/provider/BookingCountdown";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { useMyProvider, useProviderBookings } from "@/lib/db/provider-queries";
 import { useBookingExpirySettings } from "@/lib/db/settings-queries";
 import { formatEGP, BOOKING_ACTIVE_STATUSES } from "@/lib/utils";
-import { Calendar, Clock, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { proPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/pro/bookings")({ component: ProBookings });
@@ -103,35 +103,15 @@ function ProBookings() {
             const serviceName = lang === "ar" ? (b.service?.name_ar ?? b.service?.name_en) : (b.service?.name_en ?? b.service?.name_ar);
             return (
               <Link key={b.id} to={proPath("/pro/booking/$id") as "/pro/booking/$id"} params={{ id: b.id }} className="focus-ring tap-scale block rounded-[1.25rem] border border-border/50 bg-surface p-4 shadow-xs">
-                <div className="flex items-center gap-4">
-                  <ProfileAvatar src={b.customer?.avatar_url} name={name} className="h-14 w-14 shrink-0 shadow-sm" />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 truncate">
-                        <div className="truncate text-base font-extrabold text-foreground">{name}</div>
-                        <StatusPill tone={statusTone(b.status)}>{String(t(`pro.statuses.${b.status}`, { defaultValue: b.status }))}</StatusPill>
-                      </div>
-                      <div className="text-base font-black text-brand">{formatEGP(Number(b.price_total ?? 0))}</div>
-                    </div>
-                    <div className="mt-1 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                      <span className="truncate">{serviceName}</span>
-                      <span>•</span>
-                      <span>{formatDate(start, { weekday: "short", day: "numeric", month: "short" }, dateLoc)}</span>
-                    </div>
-                    <div className="mt-3 flex flex-wrap items-center gap-3 text-pro-12 font-bold text-muted-foreground">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-2 py-1"><Calendar className="h-3 w-3" />{formatDate(start, { month: "short", day: "numeric" }, dateLoc)}</span>
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-2 py-1"><Clock className="h-3 w-3" />{formatTime(start, dateLoc)} · {formatDuration(hours, lang)}</span>
-                    </div>
-                    {tab === "requests" ? (
-                      <div className="mt-2">
-                        <RespondWithinHint
-                          createdAt={b.created_at}
-                          startAt={b.start_at}
-                          settings={expiryQ.data}
-                        />
-                      </div>
-                    ) : null}
-                  </div>
+                <div className="flex items-center gap-3">
+                  <ProfileAvatar src={b.customer?.avatar_url} name={name} className="h-11 w-11 rounded-full" />
+                  <div className="min-w-0 flex-1 truncate text-pro-16 font-extrabold">{name}</div>
+                  <div className="shrink-0 whitespace-nowrap text-pro-16 font-extrabold text-brand">{formatEGP(Number(b.price_total ?? 0))}</div>
+                </div>
+                <p className="mt-2 text-pro-13 leading-relaxed text-muted-foreground">{serviceName} · {formatDate(start, { weekday: "short", day: "numeric", month: "short" }, dateLoc)} · {formatTime(start, dateLoc)} · {formatDuration(hours, lang)}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <StatusPill tone={statusTone(b.status)}>{String(t(`pro.statuses.${b.status}`, { defaultValue: b.status }))}</StatusPill>
+                  {tab === "requests" && <BookingCountdown createdAt={b.created_at} startAt={b.start_at} settings={expiryQ.data} />}
                 </div>
               </Link>
             );

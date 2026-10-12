@@ -19,6 +19,7 @@ export function RescheduleSection({
   status,
   currentStart,
   currentEnd,
+  compact = false,
 }: {
   bookingId: string;
   viewer: "customer" | "provider";
@@ -26,6 +27,7 @@ export function RescheduleSection({
   status: string;
   currentStart: string;
   currentEnd: string;
+  compact?: boolean;
 }) {
   const { t } = useTranslation();
   const reqQ = useRescheduleRequests(bookingId);
@@ -54,6 +56,9 @@ export function RescheduleSection({
   const isMine = open ? !awaitingMe : false;
 
   if (!reschedulable && rows.length === 0) return null;
+  if (compact && viewer === "provider" && !open && rows.length === 0) {
+    return <p className="text-pro-12 text-muted-foreground">{t("reschedule.title", "Rescheduling")}: {t("reschedule.noneOpen", "No open reschedule request.")}</p>;
+  }
 
   const submitRequest = () => {
     const start = new Date(proposedStart);

@@ -2698,6 +2698,29 @@ const en = {
     deactivate: "Deactivate",
     allowedDurations: "Allowed session lengths (minutes)",
   },
+  proWork: {
+      monthNet: "Net this month",
+      "hello": "Hi, {{name}}",
+      "today": "Today",
+      "nextJob": "Next job",
+      "noJobToday": "No jobs today",
+      "monthValue": "Bookings this month",
+      "rating": "Your rating",
+      "accept": "Accept",
+      "decline": "Decline",
+      "allSteps": "All stages",
+      "nextStep": "Next: {{step}}",
+      "bookingCode": "Booking #{{code}}",
+      "bookingLabel": "Booking",
+      "replyHours": "Reply within {{count}} hours",
+      "replyMinutes": "Reply within {{count}} minutes",
+      "replyOverdue": "Response overdue",
+      "thisMonth": "This month",
+      "last7": "Last 7 days",
+      "expected": "Expected",
+      "paymentDetails": "Payment details"
+  },
+
 };
 export default en;
 export type Translation = typeof en;

@@ -1,3 +1,7 @@
+import { BookingActionDock } from "@/components/provider/BookingActionDock";
+import { BookingStatusCard } from "@/components/provider/BookingStatusCard";
+import { StickyCta } from "@/components/famio/StickyCta";
+import { shortBookingCode } from "@/lib/provider/workScreenPresentation";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 import { formatDateTime, formatDate, formatTime, formatDuration } from "@/lib/format";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -5,7 +9,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { ProviderShell } from "@/components/famio/ProviderShell";
 import { PageHeader } from "@/components/famio/PageHeader";
-import { Card, Badge, PrimaryButton, ErrorState, BookingTimeline, CancelBookingDialog, CaseDialog, SupportCasesCard } from "@/components/famio/ui";
+import { Card, PrimaryButton, ErrorState, CancelBookingDialog, CaseDialog, SupportCasesCard } from "@/components/famio/ui";
 import { PaymentBlock } from "@/components/famio/PaymentBlock";
 import { RescheduleSection } from "@/components/famio/RescheduleSection";
 import { BookingChatPanel } from "@/components/famio/BookingChatPanel";
@@ -18,7 +22,7 @@ import {
   useBookingSupportTickets, useCreateSupportTicket,
   uploadCaseEvidence, type TicketCategory,
 } from "@/lib/db/case-queries";
-import { bookingStatusTone, formatEGP, BOOKING_TIMELINE_STEPS } from "@/lib/utils";
+import { formatEGP } from "@/lib/utils";
 import { Calendar, Clock, MapPin, Phone, User as UserIcon, HeartPulse, AlertTriangle, LifeBuoy } from "lucide-react";
 import { useState } from "react";
 import { proPath } from "@/lib/preview/previewPath";
@@ -84,7 +88,7 @@ export function ProBookingDetail({ id }: { id: string }) {
 
   if (q.isLoading) {
     return (
-      <ProviderShell hideNav>
+      <ProviderShell>
         <PageHeader title={t("pro.booking.title")} backTo="/pro/bookings" />
         <div className="mx-5 h-64 animate-pulse rounded-[1.25rem] bg-surface-2" />
       </ProviderShell>
@@ -92,7 +96,7 @@ export function ProBookingDetail({ id }: { id: string }) {
   }
   if (q.isError || !q.data) {
     return (
-      <ProviderShell hideNav>
+      <ProviderShell>
         <PageHeader title={t("pro.booking.title")} backTo="/pro/bookings" />
         <ErrorState title={t("pro.booking.notFound")} />
       </ProviderShell>
@@ -107,7 +111,6 @@ export function ProBookingDetail({ id }: { id: string }) {
   const addr = b.location;
   const addrLine = addr ? [addr.street, addr.building, addr.compound, addr.city].filter(Boolean).join(", ") : t("pro.booking.addressMissing");
   const serviceName = lang === "ar" ? (b.service?.name_ar ?? b.service?.name_en) : (b.service?.name_en ?? b.service?.name_ar);
-  const onTimeline = (BOOKING_TIMELINE_STEPS as readonly string[]).includes(b.status);
   const terminal = ["completed", "cancelled", "no_show", "disputed"].includes(b.status);
 
   const run = (
@@ -125,24 +128,20 @@ export function ProBookingDetail({ id }: { id: string }) {
   };
 
   return (
-    <ProviderShell hideNav>
+    <ProviderShell>
       <PageHeader title={t("pro.booking.title")} backTo="/pro/bookings" />
-      <div className="space-y-4 px-5 pb-32 pt-2">
+      <div className="space-y-3 px-5 pb-3 pt-2">
         <Card className="rounded-[1.25rem] p-4">
           <div className="flex items-start gap-3">
-            <ProfileAvatar src={b.customer?.avatar_url} name={name} className="h-16 w-16 rounded-2xl object-cover" />
+            <ProfileAvatar src={b.customer?.avatar_url} name={name} className="h-11 w-11 rounded-full" />
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2"><div className="truncate text-base font-extrabold">{name}</div><Badge tone={bookingStatusTone(b.status)}>{String(t(`pro.statuses.${b.status}`, { defaultValue: b.status }))}</Badge></div>
-              <div className="mt-1 text-xs text-muted-foreground">{t("pro.booking.bookingNumber", { id: b.id.slice(0, 8).toUpperCase() })}</div>
+              <div className="flex items-center gap-2"><div className="truncate text-base font-extrabold">{name}</div></div>
+              <div className="mt-1 text-xs text-muted-foreground">{t("proWork.bookingLabel")} <bdi dir="ltr">#{shortBookingCode(b.id)}</bdi></div>
             </div>
           </div>
         </Card>
 
-        {onTimeline && (
-          <Card className="p-4">
-            <BookingTimeline status={b.status} labelFor={(step) => t(`pro.booking.timeline.${step}`)} />
-          </Card>
-        )}
+        <BookingStatusCard status={b.status} />
 
         {terminal && b.status !== "completed" && (
           <Card className="space-y-1 p-4">
@@ -167,12 +166,13 @@ export function ProBookingDetail({ id }: { id: string }) {
           </Card>
         )}
 
-        <Card className="space-y-3 p-4">
+        <Card className="divide-y divide-border/40 px-4 py-1">
           <Row icon={<UserIcon className="h-4 w-4" />} label={t("pro.booking.service")} value={serviceName ?? "—"} />
           <Row icon={<Calendar className="h-4 w-4" />} label={t("pro.booking.date")} value={formatDate(start, { weekday: "long", month: "short", day: "numeric", year: "numeric" }, dateLoc)} />
           <Row icon={<Clock className="h-4 w-4" />} label={t("pro.booking.time")} value={`${formatTime(start, dateLoc)} · ${formatDuration(hours, lang)}`} />
           <Row icon={<MapPin className="h-4 w-4" />} label={t("pro.booking.address")} value={addrLine} />
-          {b.customer?.phone && <Row icon={<Phone className="h-4 w-4" />} label={t("pro.booking.phone")} value={<a href={`tel:${b.customer.phone}`} className="font-bold text-brand" dir="ltr">{b.customer.phone}</a>} />}
+          {b.customer?.phone && <Row icon={<Phone className="h-4 w-4" />} label={t("pro.booking.phone")} value={b.customer.phone} href={`tel:${b.customer.phone}`} />}
+          {b.notes && <Row icon={<UserIcon className="h-4 w-4" />} label={t("pro.booking.customerNotes")} value={b.notes} />}
         </Card>
 
         {b.family_member && (
@@ -212,13 +212,6 @@ export function ProBookingDetail({ id }: { id: string }) {
           </Card>
         )}
 
-        {b.notes && (
-          <Card className="p-4">
-            <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("pro.booking.customerNotes")}</div>
-            <div className="mt-1 text-sm whitespace-pre-wrap">{b.notes}</div>
-          </Card>
-        )}
-
         {Array.isArray(b.requirement_choices) && b.requirement_choices.length > 0 && (
           <Card className="space-y-1.5 p-4">
             <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("pro.booking.requirements", "Requirements")}</div>
@@ -234,6 +227,7 @@ export function ProBookingDetail({ id }: { id: string }) {
         )}
 
         <RescheduleSection
+          compact
           bookingId={b.id}
           viewer="provider"
           customerId={b.customer_id}
@@ -242,16 +236,16 @@ export function ProBookingDetail({ id }: { id: string }) {
           currentEnd={b.end_at}
         />
 
-        <Card className="space-y-2 p-4">
-          <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("pro.booking.payment")}</div>
-          <div className="flex items-center justify-between"><span className="text-sm">{t("pro.booking.subtotal")}</span><span>{formatEGP(Number(b.price_subtotal ?? 0))}</span></div>
-          {Number(b.price_discount ?? 0) > 0 && <div className="flex items-center justify-between text-coral"><span className="text-sm">{t("pro.booking.discount")}</span><span>−{formatEGP(Number(b.price_discount))}</span></div>}
-          <div className="flex items-center justify-between border-t border-border pt-2"><span className="text-sm font-bold">{t("pro.booking.total")}</span><span className="text-base font-extrabold text-brand">{formatEGP(Number(b.price_total ?? 0))}</span></div>
+        <Card className="space-y-3 p-4">
+          <div className="flex items-center justify-between gap-2"><span className="text-pro-14 font-bold">{t("pro.booking.total")}</span><span className="whitespace-nowrap text-pro-22 font-extrabold text-brand">{formatEGP(Number(b.price_total ?? 0))}</span></div>
+          <PaymentBlock bookingId={b.id} viewer="provider" bookingStatus={b.status} embedded />
+          <details><summary className="flex min-h-11 cursor-pointer items-center text-pro-12 font-bold text-muted-foreground">{t("proWork.paymentDetails")}</summary>
+            <div className="flex justify-between text-pro-13"><span>{t("pro.booking.subtotal")}</span><span>{formatEGP(Number(b.price_subtotal ?? 0))}</span></div>
+            {Number(b.price_discount ?? 0) > 0 && <div className="flex justify-between text-pro-13 text-coral"><span>{t("pro.booking.discount")}</span><span>−{formatEGP(Number(b.price_discount))}</span></div>}
+          </details>
         </Card>
 
-        <PaymentBlock bookingId={b.id} viewer="provider" bookingStatus={b.status} />
-
-        <BookingChatPanel bookingId={b.id} status={b.status} viewer="provider" />
+        <BookingChatPanel bookingId={b.id} status={b.status} viewer="provider" compactUnavailable />
 
         <SupportCasesCard tickets={supportTicketsQ.data ?? []} dispute={dispute} noShowReport={noShowReport} t={t} />
         <button onClick={() => setDialog("support")} className="mt-2 flex w-full items-center justify-center gap-1.5 py-2 text-xs font-semibold text-muted-foreground">
@@ -260,12 +254,11 @@ export function ProBookingDetail({ id }: { id: string }) {
 
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-surface-2 via-surface-2/90 to-transparent pt-6 safe-bottom">
-        <div className="mx-auto max-w-md px-5 pb-3">
+      <BookingActionDock>
           {b.status === "pending" && (
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 gap-2 [&_.apply-bottom]:!static [&_.apply-bottom]:!m-0 [&_.apply-bottom]:!w-full [&_.apply-bottom]:!p-0">
               <button onClick={() => setDialog("decline")} disabled={mut.isPending || cancelBooking.isPending} className="focus-ring h-14 flex-1 rounded-2xl border border-coral bg-surface text-sm font-bold text-coral active:scale-[0.98] disabled:opacity-50">{t("pro.booking.decline")}</button>
-              <button onClick={() => run("confirmed")} disabled={mut.isPending} className="focus-ring h-14 flex-1 rounded-2xl bg-brand text-sm font-bold text-brand-foreground shadow-card active:scale-[0.98] disabled:opacity-50">{t("pro.booking.accept")}</button>
+              <StickyCta onClick={() => run("confirmed")} disabled={mut.isPending}>{t("pro.booking.accept")}</StickyCta>
             </div>
           )}
 
@@ -321,8 +314,7 @@ export function ProBookingDetail({ id }: { id: string }) {
           {terminal && (
             <button onClick={() => nav({ to: proPath("/pro/bookings") as "/pro/bookings" })} className="focus-ring h-14 w-full rounded-2xl border border-border bg-surface text-sm font-bold">{t("pro.booking.backToJobs")}</button>
           )}
-        </div>
-      </div>
+      </BookingActionDock>
 
       <CancelBookingDialog
         open={dialog === "decline" || dialog === "cancel"}
@@ -405,14 +397,8 @@ function ProBookingDetailRoute() {
   return <ProBookingDetail id={id} />;
 }
 
-function Row({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {
-  return (
-    <div className="flex items-start gap-3">
-      <div className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand">{icon}</div>
-      <div className="min-w-0 flex-1">
-        <div className="text-pro-12 font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
-        <div className="text-sm font-semibold">{value}</div>
-      </div>
-    </div>
-  );
+function Row({ icon, label, value, href }: { icon: React.ReactNode; label: string; value: React.ReactNode; href?: string }) {
+  const content = <><span className="shrink-0 text-brand">{icon}</span><span className="shrink-0 text-pro-12 text-muted-foreground">{label}</span><span className="min-w-0 flex-1 whitespace-pre-wrap text-end text-pro-13 font-bold">{href ? <bdi dir="ltr">{value}</bdi> : value}</span></>;
+  const className = "flex min-h-11 items-center gap-2 py-2";
+  return href ? <a href={href} className={className + " focus-ring text-brand"}>{content}</a> : <div className={className}>{content}</div>;
 }
