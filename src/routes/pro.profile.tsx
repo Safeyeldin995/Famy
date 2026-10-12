@@ -1,3 +1,5 @@
+import { AutoGrowingBio } from "@/components/provider/AutoGrowingBio";
+import { profilePriceDirty } from "@/lib/provider/profilePriceDirty";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 import { workingHoursSummary } from "@/lib/provider/workingHoursSummary";
 import { isFixedPackage, packageLabel, servicePriceUnit } from "@/lib/pricing/servicePackages";
@@ -248,13 +250,15 @@ function ProProfile() {
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
               aria-label={t("pro.profile.changePhoto")}
-              className="apply-profile-camera disabled:opacity-60"
+              className="absolute bottom-0 start-0 grid h-11 w-11 place-items-center disabled:opacity-60"
             >
+              <span className="apply-profile-camera pointer-events-none" aria-hidden="true">
               {uploading ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
                 <Camera className="h-3.5 w-3.5" />
               )}
+              </span>
             </button>
             <input
               ref={fileRef}
@@ -407,13 +411,13 @@ function ProProfile() {
 
         {/* About */}
         <div>
-          <h2 className="mb-2 px-1 text-pro-12 font-extrabold uppercase tracking-wider text-muted-foreground">
+          <h2 className="mb-2 px-1 text-pro-13 font-bold text-muted-foreground">
             {t("pro.profile.about")}
           </h2>
           <Card className="apply-list space-y-3 p-4">
             <label>
               <span className="apply-label">{t("providerApply.about")}</span>
-              <textarea className="apply-input !h-28 py-3" value={lang === "ar" ? bioAr : bioEn} onChange={(event) => (lang === "ar" ? setBioAr : setBioEn)(event.target.value)} />
+              <AutoGrowingBio value={lang === "ar" ? bioAr : bioEn} onChange={lang === "ar" ? setBioAr : setBioEn} />
             </label>
             <p className="apply-label">{t("providerSetup.phrases")}</p>
             <div className="flex flex-wrap gap-2">{[0, 1, 2, 3, 4].map((index) => <CheckChip key={index} selected={false} onClick={() => (lang === "ar" ? setBioAr : setBioEn)((value) => [value.trim(), t(`providerSetup.bioPhrases.p${index}`)].filter(Boolean).join(" "))}>{t(`providerSetup.bioPhrases.p${index}`)}</CheckChip>)}</div>
@@ -434,7 +438,7 @@ function ProProfile() {
 
         {/* Services */}
         <div>
-          <h2 className="mb-2 px-1 text-pro-12 font-extrabold uppercase tracking-wider text-muted-foreground">
+          <h2 className="mb-2 px-1 text-pro-13 font-bold text-muted-foreground">
             {t("providerProfileV3.services")}
           </h2>
           {services.isError || mine.isError ? (
@@ -483,7 +487,7 @@ function ProProfile() {
                             }
                             unitLabel={t(servicePriceUnit(s).key, servicePriceUnit(s).values)}
                           />
-                          <button
+                          {profilePriceDirty(priceDrafts[s.id], currentOverride) && <button
                             onClick={() =>
                               submitPrice(s.id, s.minimum_price ?? null, s.maximum_price ?? null)
                             }
@@ -498,7 +502,7 @@ function ProProfile() {
                             className="min-h-11 rounded-lg bg-brand px-3 py-2 text-xs font-bold text-brand-foreground disabled:opacity-50"
                           >
                             {t("common.save")}
-                          </button>
+                          </button>}
                         </div>
                       )}
                     {priceError && (
@@ -509,11 +513,12 @@ function ProProfile() {
                         onClick={() =>
                           setExpandedReqService(expandedReqService === s.id ? null : s.id)
                         }
-                        className="mt-2 text-pro-12 font-bold text-brand"
+                        aria-expanded={expandedReqService === s.id}
+                        aria-controls={`requirements-${s.id}`}
+                        className="mt-2 flex min-h-11 w-full items-center justify-between gap-3 border-t border-border py-3 text-start text-pro-13 font-bold text-brand"
                       >
-                        {expandedReqService === s.id
-                          ? t("pro.profile.hideRequirements", "Hide requirements")
-                          : t("pro.profile.showRequirements", "Requirements")}
+                        {t("providerProfilePolish.requirements")}
+                        <ChevronDown size={18} aria-hidden="true" className={expandedReqService === s.id ? "rotate-180" : ""} />
                       </button>
                     )}
                     {on && expandedReqService === s.id && (
@@ -536,7 +541,7 @@ function ProProfile() {
 
         {/* Links */}
         <div>
-          <h2 className="mb-2 px-1 text-pro-12 font-extrabold uppercase tracking-wider text-muted-foreground">
+          <h2 className="mb-2 px-1 text-pro-13 font-bold text-muted-foreground">
             {t("pro.profile.more")}
           </h2>
           <Card className="apply-list">
@@ -621,19 +626,19 @@ function RequirementsChecklist({
                 value={notesDraft[r.id] ?? mine?.notes ?? ""}
                 onChange={(e) => setNotesDraft((d) => ({ ...d, [r.id]: e.target.value }))}
                 placeholder={t("pro.profile.reqNotesPlaceholder", "Notes (optional)")}
-                className="h-8 min-w-0 flex-1 rounded-lg border border-border bg-surface px-2 text-pro-12"
+                className="min-h-11 min-w-0 flex-1 rounded-lg border border-border bg-surface px-2 text-pro-12"
               />
               <button
                 onClick={() =>
                   declare.mutate({ providerId, requirementId: r.id, notes: notesDraft[r.id] })
                 }
                 disabled={declare.isPending}
-                className="rounded-lg bg-brand px-2 py-1.5 text-pro-12 font-bold text-brand-foreground disabled:opacity-50"
+                className="min-h-11 rounded-lg bg-brand px-2 py-1.5 text-pro-12 font-bold text-brand-foreground disabled:opacity-50"
               >
                 {t("common.save")}
               </button>
               {r.evidence_required && (
-                <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-pro-12 font-semibold">
+                <label className="inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-pro-12 font-semibold">
                   <Upload className="h-3 w-3" />{" "}
                   {mine?.evidence_storage_path
                     ? t("pro.profile.reevidence", "Re-upload")
@@ -732,7 +737,7 @@ function EligibilityReasonItem({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <div className="mb-1 text-pro-12 font-semibold uppercase tracking-wider text-muted-foreground">
+      <div className="mb-1 text-pro-13 font-bold text-muted-foreground">
         {label}
       </div>
       {children}

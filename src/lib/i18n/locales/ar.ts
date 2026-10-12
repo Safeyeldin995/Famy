@@ -1,6 +1,36 @@
 import type { Translation } from "./en";
 
 const ar: Translation = {
+  providerPushUnavailable: {
+    title: "الإشعارات على الموبايل مش متاحة لسه",
+    body: "هتوصلك كل التحديثات جوه التطبيق في صفحة الإشعارات",
+    open: "افتح الإشعارات",
+  },
+  providerProfilePolish: { requirements: "المتطلبات" },
+  providerNotificationPolish: {
+    "on": "شغال",
+    "off": "مقفول",
+    "enable": "فعل الإشعارات على موبايلك",
+    "footer": "إشعاراتك جوه التطبيق هتفضل موجودة."
+},
+  providerDocuments: {
+    "title": "المستندات والتوثيق",
+    "readOnly": "مستنداتك مع فريق فامي. تقدر ترفع نسخة جديدة لما طلبك يكون متاح للتعديل.",
+    "replace": "ارفع تاني",
+    "upload": "ارفع مستند",
+    "missing": "لسه مرفوعش",
+    "other": "مستندات تانية",
+    "id_card_front": "وش البطاقة",
+    "id_card_back": "ضهر البطاقة",
+    "profile_photo": "الصورة الشخصية",
+    "certificate": "شهادة",
+    "otherDocument": "مستند تاني",
+    "approved": "اتوافق عليها",
+    "pending": "بنراجع",
+    "rejected": "مرفوضة",
+    "expired": "انتهت صلاحيتها",
+    "renewal_required": "محتاجة تحديث"
+},
   customerBooking: {
     "duration": "{{hours}} ساعات",
     "rateLine": "{{rate}} × {{hours}} ساعات",

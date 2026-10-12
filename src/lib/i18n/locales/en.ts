@@ -1,4 +1,34 @@
 const en = {
+  providerPushUnavailable: {
+    title: "Phone notifications are not available yet",
+    body: "You will receive all updates in the app on the notifications page.",
+    open: "Open notifications",
+  },
+  providerProfilePolish: { requirements: "Requirements" },
+  providerNotificationPolish: {
+    "on": "On",
+    "off": "Off",
+    "enable": "Turn on notifications on your phone",
+    "footer": "In-app notifications stay available."
+},
+  providerDocuments: {
+    "title": "Documents and verification",
+    "readOnly": "Your documents are with Famy. Uploads are available only when your application is editable.",
+    "replace": "Upload again",
+    "upload": "Upload document",
+    "missing": "Not uploaded yet",
+    "other": "Other documents",
+    "id_card_front": "ID front",
+    "id_card_back": "ID back",
+    "profile_photo": "Profile photo",
+    "certificate": "Certificate",
+    "otherDocument": "Other document",
+    "approved": "Approved",
+    "pending": "Under review",
+    "rejected": "Rejected",
+    "expired": "Expired",
+    "renewal_required": "Update needed"
+},
   customerBooking: {
     "duration": "{{hours}} hours",
     "rateLine": "{{rate}} × {{hours}} hours",

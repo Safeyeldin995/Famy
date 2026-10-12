@@ -7,7 +7,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ProviderShell } from "@/components/famio/ProviderShell";
-import { ProviderPageHero } from "@/components/famio/ProviderPageHero";
+import { PageHeader } from "@/components/famio/PageHeader";
 import { Card, PrimaryButton } from "@/components/famio/ui";
 import { QueryError } from "@/components/famio/QueryError";
 import {
@@ -96,7 +96,7 @@ export function AvailabilityPage() {
 
   return (
     <ProviderShell>
-      <ProviderPageHero title={t("pro.schedule.title")} compact />
+      <PageHeader title={t("pro.schedule.title")} />
       <div className="apply-ui space-y-5 px-5 pb-28 pt-2">
         <section>
           <h2 className="apply-label">{t("scheduleUi.hours")}</h2>

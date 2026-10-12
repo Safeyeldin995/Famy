@@ -1,12 +1,8 @@
 import { onboardingSection } from "@/lib/provider/onboardingSection";
 import { createFileRoute } from "@tanstack/react-router";
-import { ProviderOnboardingFlow } from "@/components/provider/ProviderOnboardingFlow";
+import { OnboardingRoute } from "./pro.onboarding";
 
 export const Route = createFileRoute("/preview/pro/onboarding")({
   validateSearch: onboardingSection,
-  component: PreviewProOnboarding,
+  component: OnboardingRoute,
 });
-
-function PreviewProOnboarding() {
-  return <ProviderOnboardingFlow previewMode />;
-}
