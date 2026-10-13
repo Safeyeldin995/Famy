@@ -35,7 +35,7 @@
   line-height: 1.35;
 }
 .booking-provider-text b {
-  font-size: 15px;
+  font-size: 16px;
 }
 .booking-provider-text small {
   color: var(--muted-foreground);
@@ -65,7 +65,7 @@
   font-weight: 700;
 }
 .booking-date b {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
@@ -112,7 +112,7 @@
   border-radius: 14px;
   padding: 12px 14px;
   font-weight: 700;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 .booking-option {
   display: flex;
@@ -135,7 +135,7 @@
   min-width: 0;
 }
 .booking-option-text b {
-  font-size: 14.5px;
+  font-size: 14px;
 }
 .booking-option-text small {
   color: var(--muted-foreground);
@@ -206,7 +206,7 @@
   padding: 12px 14px;
   display: grid;
   gap: 6px;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 .booking-bill > div {
   display: flex;

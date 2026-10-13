@@ -1,3 +1,4 @@
+import { CustomerPreview } from "./-customerPreview";
 import { createFileRoute } from "@tanstack/react-router";
 import { EditAddress } from "./addresses.$id";
 
@@ -7,5 +8,9 @@ export const Route = createFileRoute("/preview/addresses/$id")({
 
 function PreviewEditAddress() {
   const { id } = Route.useParams();
-  return <EditAddress id={id} />;
+  return (
+    <CustomerPreview>
+      <EditAddress id={id} />
+    </CustomerPreview>
+  );
 }

@@ -1,6 +1,27 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Route as FamilyRoute } from "./family-members";
+import { FamilyMembers } from "./family-members";
+import { NewFamilyMember } from "./family-members.new";
+import { EditFamilyMemberContent } from "./family-members.$id";
+import { CustomerPreview } from "./-customerPreview";
 
-const FamilyMembers = FamilyRoute.options.component!;
+export const Route = createFileRoute("/preview/family-members")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    memberId: typeof search.memberId === "string" ? search.memberId : undefined,
+  }),
+  component: PreviewFamilyMembers,
+});
 
-export const Route = createFileRoute("/preview/family-members")({ component: FamilyMembers });
+function PreviewFamilyMembers() {
+  const { memberId } = Route.useSearch();
+  return (
+    <CustomerPreview>
+      {memberId === "new" ? (
+        <NewFamilyMember />
+      ) : memberId ? (
+        <EditFamilyMemberContent key={memberId} id={memberId} />
+      ) : (
+        <FamilyMembers />
+      )}
+    </CustomerPreview>
+  );
+}

@@ -104,7 +104,7 @@ export function BookingWhen(props: Props) {
         <QueryError onRetry={props.onRetry} />
       ) : props.slots.length === 0 ? (
         <div className="apply-note">
-          <p>{t("bookFlow.noSlots")}</p>
+          <p>{t("customerRound2.noSlots")}</p>
           <button
             type="button"
             className="booking-add"

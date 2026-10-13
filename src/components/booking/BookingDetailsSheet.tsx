@@ -99,6 +99,7 @@ export function BookingDetailsSheet({
               />
             ) : (
               <FamilyMemberForm
+                nestedDatePicker
                 value={member}
                 onChange={setMember}
                 onSubmit={save}

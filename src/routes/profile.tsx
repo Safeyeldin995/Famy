@@ -1,9 +1,9 @@
+import { customerAreaLabel } from "@/components/famio/customerAreaLabel";
 import { CustomerProfilePhoto } from "@/components/famio/CustomerProfilePhoto";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { AppShell, SecondaryButton } from "@/components/famio/ui";
-import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
-import { CustomerFloatingPanel } from "@/components/famio/CustomerFloatingPanel";
+import { CustomerPageHeader } from "@/components/famio/CustomerPageHeader";
 import { LanguageToggle } from "@/components/famio/LanguageToggle";
 import { useApp } from "@/lib/store";
 import { useMyProfile, useDefaultAddress } from "@/lib/db/queries";
@@ -25,7 +25,6 @@ import {
   ChevronRight,
   Heart,
   Tag,
-  Pencil,
 } from "lucide-react";
 import { ICON_STROKE } from "@/lib/icons/constants";
 
@@ -58,23 +57,26 @@ function Profile() {
 
   return (
     <AppShell>
-      <CustomerPageHero
+      <CustomerPageHeader
         title={t("profile.title")}
         subtitle={t("profile.subtitle")}
-        right={<LanguageToggle variant="hero" />}
+        right={<LanguageToggle variant="pill" />}
       />
       <div className="px-5">
-        <CustomerFloatingPanel>
+        <div className="mt-4 rounded-2xl border border-border/60 bg-white p-4">
           <div className="flex items-center gap-5">
             <CustomerProfilePhoto
               src={profileQ.data?.avatar_url}
               name={profileQ.data?.full_name || t("profile.famioUser")}
             />
             <div className="min-w-0 flex-1">
-              <div className="truncate text-lg font-extrabold text-foreground">
+              <div className="truncate text-pro-18 font-extrabold text-foreground">
                 {profileQ.data?.full_name || t("profile.famioUser")}
               </div>
-              <div className="mt-0.5 truncate text-sm font-bold text-muted-foreground" dir="ltr">
+              <div
+                className="mt-0.5 truncate text-pro-14 font-bold text-muted-foreground"
+                dir="ltr"
+              >
                 {profileQ.data?.phone || "—"}
               </div>
               <Link
@@ -85,10 +87,10 @@ function Profile() {
               </Link>
             </div>
           </div>
-        </CustomerFloatingPanel>
+        </div>
       </div>
 
-      <div className="px-5 pb-6 pt-2">
+      <div className="px-5 pb-6 pt-4">
         <Section title={t("profile.myFamio")}>
           <Row
             to={previewPath("/favorites")}
@@ -105,7 +107,11 @@ function Profile() {
             to={previewPath("/addresses")}
             icon={<MapPin className="h-5 w-5" />}
             label={t("profile.addresses")}
-            sub={addressQ.data?.area || t("profile.addAddress")}
+            sub={
+              addressQ.data?.area
+                ? customerAreaLabel(addressQ.data.area, t)
+                : t("profile.addAddress")
+            }
           />
           <Row
             icon={<CreditCard className="h-5 w-5" />}
@@ -141,7 +147,7 @@ function Profile() {
                 <Globe className="h-5 w-5" aria-hidden="true" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="truncate text-base font-extrabold text-foreground">
+                <div className="truncate text-pro-16 font-extrabold text-foreground">
                   {t("profile.language")}
                 </div>
                 <div className="mt-0.5 truncate text-pro-12 font-bold text-muted-foreground">
@@ -183,13 +189,12 @@ function Profile() {
             <LogOut className="h-4 w-4" aria-hidden="true" />
             {t("profile.logout")}
           </SecondaryButton>
-          <button type="button" className="w-full py-3 text-xs font-semibold text-muted-foreground">
-            {t("profile.deleteAccount")}
-          </button>
-        </div>
-
-        <div className="pb-2 pt-6 text-center text-pro-12 text-muted-foreground">
-          {t("profile.version")}
+          <Link
+            to={previewPath("/help")}
+            className="focus-ring flex min-h-11 w-full items-center justify-center py-3 text-pro-12 font-semibold text-muted-foreground"
+          >
+            {t("customerRound2.deleteHelp")}
+          </Link>
         </div>
       </div>
     </AppShell>
@@ -199,7 +204,7 @@ function Profile() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mt-8">
-      <h2 className="mb-3 px-1 text-xs font-black uppercase tracking-widest text-muted-foreground">
+      <h2 className="mb-3 px-1 text-pro-12 font-black uppercase tracking-widest text-muted-foreground">
         {title}
       </h2>
       <div className="overflow-hidden rounded-[1.75rem] border border-border/50 bg-surface-elevated shadow-sm divide-y divide-border/50">
@@ -226,12 +231,17 @@ function Row({
         {icon}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="truncate text-base font-extrabold text-foreground">{label}</div>
+        <div className="truncate text-pro-16 font-extrabold text-foreground">{label}</div>
         {sub ? (
           <div className="mt-0.5 truncate text-pro-12 font-bold text-muted-foreground">{sub}</div>
         ) : null}
       </div>
-      <ChevronRight className="h-5 w-5 text-muted-foreground rtl-flip" strokeWidth={ICON_STROKE} />
+      {to && (
+        <ChevronRight
+          className="h-5 w-5 text-muted-foreground rtl-flip"
+          strokeWidth={ICON_STROKE}
+        />
+      )}
     </div>
   );
   if (to)
@@ -240,9 +250,5 @@ function Row({
         {inner}
       </Link>
     );
-  return (
-    <button type="button" className="w-full text-start">
-      {inner}
-    </button>
-  );
+  return <div className="w-full text-start">{inner}</div>;
 }

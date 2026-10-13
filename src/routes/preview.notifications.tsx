@@ -1,6 +1,13 @@
+import { CustomerPreview } from "./-customerPreview";
 import { createFileRoute } from "@tanstack/react-router";
 import { Route as NotificationsRoute } from "./notifications";
 
 const Notifications = NotificationsRoute.options.component!;
 
-export const Route = createFileRoute("/preview/notifications")({ component: Notifications });
+export const Route = createFileRoute("/preview/notifications")({
+  component: () => (
+    <CustomerPreview>
+      <Notifications />
+    </CustomerPreview>
+  ),
+});
