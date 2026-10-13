@@ -2780,5 +2780,6 @@ const ar: Translation = {
       "paymentDetails": "تفاصيل الدفع"
   },
 
+  providerClarity: {"selectAll": "اختار الكل", "missingSubjects": "ناقصك تضيف مادة لـ: {{services}}", "addSubject": "ناقص: ضيف مادة", "removeSubject": "شيل المادة دي", "rejectedReason": "المادة دي ماتقبلتش. كلم الدعم عشان تعرف السبب"},
 };
 export default ar;

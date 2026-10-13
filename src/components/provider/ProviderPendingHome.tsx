@@ -1,3 +1,4 @@
+import { missingTeachingServices } from "@/lib/provider/teachingSetupStatus";
 import { useState } from "react";
 import { StickyCta } from "@/components/famio/StickyCta";
 import { useProviderSubmittable } from "@/lib/provider/useProviderSubmittable";
@@ -154,7 +155,7 @@ export function PendingHomeView({
                 </span>
                 <span className="apply-task-text">
                   <b>{t(key === "hours" ? "providerSetup.titles.hours" : `providerApply.${key}`)}</b>
-                  <small>{t(key === "hours" ? hoursHint : `providerApply.pending.items.${key}`)}</small>
+                  <small>{key === "subjects" && data.missingSubjects?.length ? t("providerClarity.missingSubjects", { services: data.missingSubjects.map(service => i18n.language.startsWith("ar") ? service.name_ar : service.name_en).join(i18n.language.startsWith("ar") ? "، " : ", ") }) : t(key === "hours" ? hoursHint : `providerApply.pending.items.${key}`)}</small>
                 </span>
                 {done ? (
                   <Check size={18} className="apply-done-check" aria-label={t("common.done")} />
@@ -235,6 +236,7 @@ function LivePendingHome({ providerId, changesRequested, reviewReason }: { provi
         needsBabysitting: selected.some((s) => s.category?.slug === "babysitting"),
         babysitting:
           !!data.provider?.max_children_per_booking && !!data.age_group_capabilities?.length,
+        missingSubjects: missingTeachingServices(selected.filter(s => s.category?.slug === "tutoring"), subjects.data!),
         needsSubjects: selected.some((s) => s.category?.slug === "tutoring"),
         subjects: selected
           .filter((s) => s.category?.slug === "tutoring")

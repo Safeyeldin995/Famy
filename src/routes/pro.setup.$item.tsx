@@ -1,3 +1,4 @@
+import { useTeachingReviewMessages, teachingReviewMessages } from "@/lib/provider/teachingReviewMessages";
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
@@ -159,6 +160,8 @@ function LiveSubjects({
   onBack: () => void;
 }) {
   const { t } = useTranslation();
+  const reviews = useTeachingReviewMessages(providerId);
+  const { i18n } = useTranslation();
   const rows = useMyTeachingCapabilities(providerId);
   const subjects = useTeachingSubjects();
   const curricula = useTeachingCurricula();
@@ -166,7 +169,7 @@ function LiveSubjects({
   const links = useTeachingSubjectServices();
   const save = useSaveTeachingGroup();
   const remove = useRemoveTeachingCapability();
-  const queries = [rows, subjects, curricula, levels, links];
+  const queries = [rows, subjects, curricula, levels, links, reviews];
   if (queries.some((q) => q.isError))
     return <QueryError onRetry={() => queries.forEach((q) => void q.refetch())} />;
   if (queries.some((q) => !q.isSuccess))
@@ -183,6 +186,7 @@ function LiveSubjects({
       levels={levels.data!}
       links={links.data!}
       rows={rows.data!}
+      rejectionMessages={teachingReviewMessages(reviews.data ?? [], i18n.language.startsWith("ar"))}
       onBack={onBack}
       onSave={async (input) => {
         await save.mutateAsync(input);

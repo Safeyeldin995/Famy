@@ -2807,6 +2807,7 @@ const en = {
       "paymentDetails": "Payment details"
   },
 
+  providerClarity: {"selectAll": "Select all", "missingSubjects": "Add a subject for: {{services}}", "addSubject": "Missing: add a subject", "removeSubject": "Remove this subject", "rejectedReason": "This subject was not approved. Contact support for the reason"},
 };
 export default en;
 export type Translation = typeof en;
