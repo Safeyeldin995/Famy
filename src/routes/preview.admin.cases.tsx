@@ -2,7 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AdminCases } from "./admin.cases";
 
 export const Route = createFileRoute("/preview/admin/cases")({
-  validateSearch: (search: Record<string, unknown>): { tab?: string; status?: string } => ({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { tab?: string; status?: string; booking?: string } => ({
+    ...(typeof search.booking === "string" ? { booking: search.booking } : {}),
     ...(typeof search.tab === "string" ? { tab: search.tab } : {}),
     ...(typeof search.status === "string" ? { status: search.status } : {}),
   }),
