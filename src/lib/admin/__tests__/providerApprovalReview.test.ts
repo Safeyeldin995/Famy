@@ -121,7 +121,7 @@ describe("deriveAdminApprovalDecision", () => {
     expect(error.canApprove).toBe(false);
   });
 
-  it("shows start review only for submitted applications", () => {
+  it("shows start review and the guarded approve action for submitted applications", () => {
     const submitted = deriveAdminApprovalDecision({
       onboardingStatus: "SUBMITTED",
       completion: { ok: true, complete: false, errors: { personal: "phone_required" } },
@@ -130,7 +130,8 @@ describe("deriveAdminApprovalDecision", () => {
       isError: false,
     });
     expect(submitted.canStartReview).toBe(true);
-    expect(submitted.showApproveAction).toBe(false);
+    expect(submitted.showApproveAction).toBe(true);
+    expect(submitted.canApprove).toBe(false);
   });
 });
 

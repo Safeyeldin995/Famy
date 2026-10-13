@@ -14,6 +14,28 @@ function renderSummary(decision: ReturnType<typeof deriveAdminApprovalDecision>)
 }
 
 describe("ProviderApprovalDecisionSummary (mocked markup)", () => {
+  it("keeps the compact checklist specific about pending documents", async () => {
+    await i18n.changeLanguage("ar");
+    const decision = deriveAdminApprovalDecision({
+      onboardingStatus: "SUBMITTED",
+      completion: { complete: true },
+      reviewDocuments: [
+        { type: "id_card_front", status: "pending" },
+        { type: "id_card_back", status: "pending" },
+      ],
+      isLoading: false,
+      isError: false,
+    });
+    const html = renderToStaticMarkup(
+      <I18nextProvider i18n={i18n}>
+        <ProviderApprovalDecisionSummary decision={decision} compact />
+      </I18nextProvider>,
+    );
+    expect(html).toContain("ناقص: 2 مستند لسه مستني المراجعة");
+    expect(html).toContain("#admin-provider-documents");
+    expect(decision.canApprove).toBe(false);
+  });
+
   it("renders English ready state and applicable approve action context", async () => {
     await i18n.changeLanguage("en");
     const decision = deriveAdminApprovalDecision({

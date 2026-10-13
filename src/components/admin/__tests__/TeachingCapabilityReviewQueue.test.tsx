@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { TeachingCapabilityReviewQueue } from "../TeachingCapabilityReviewQueue";
-const mocks = vi.hoisted(() => ({ group: vi.fn(), single: vi.fn() }));
+
+const mocks = vi.hoisted(() => ({ group: vi.fn() }));
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 vi.mock("@/lib/i18n", () => ({ currentLang: () => "en" }));
 vi.mock("@/lib/db/teaching-group-queries", () => ({
@@ -23,49 +24,61 @@ vi.mock("@/lib/db/teaching-queries", () => {
   return {
     useAdminTeachingCapabilities: () => ({
       isLoading: false,
+      isError: false,
       data: [
-        { ...row, id: "first", level_id: "g4", level_name_en: "Grade 4" },
-        { ...row, id: "second", level_id: "g5", level_name_en: "Grade 5" },
-        { ...row, id: "third", level_id: "g6", level_name_en: "Grade 6", session_price: 400 },
+        { ...row, id: "first", level_id: "g4", level_code: "grade-4", level_name_en: "Grade 4" },
+        { ...row, id: "second", level_id: "g5", level_code: "grade-5", level_name_en: "Grade 5" },
+        {
+          ...row,
+          id: "third",
+          level_id: "g6",
+          level_code: "grade-6",
+          level_name_en: "Grade 6",
+          session_price: 400,
+        },
       ],
     }),
-    useAdminReviewTeachingCapability: () => ({ mutate: mocks.single, isPending: false }),
   };
 });
+
 afterEach(cleanup);
 beforeEach(() => vi.clearAllMocks());
-it("reviews only the ids in the selected group, with one shared note", () => {
+
+it("reviews one subject group at a time, not one row per grade", () => {
   render(<TeachingCapabilityReviewQueue providerId="provider" />);
-  expect(screen.getAllByText("providerSetup.reviewLevels")).toHaveLength(2);
-  fireEvent.change(screen.getAllByLabelText("teaching.adminNote")[0], {
-    target: { value: "Synthetic review note" },
-  });
-  fireEvent.click(screen.getAllByRole("button", { name: "providerSetup.approveAll" })[0]);
+  expect(screen.getAllByRole("button", { name: "adminReview.approve" })).toHaveLength(2);
+  expect(screen.queryByRole("button", { name: "teaching.status.suspended" })).toBeNull();
+
+  expect(screen.queryByRole("textbox")).toBeNull();
+  fireEvent.click(screen.getAllByRole("button", { name: "adminReview.approve" })[0]);
   expect(mocks.group).toHaveBeenCalledWith(
-    { ids: ["first", "second"], status: "approved", note: "Synthetic review note" },
+    { ids: ["first", "second"], status: "approved", note: undefined },
     expect.any(Object),
   );
-  const secondGroup = screen.getAllByText("providerSetup.reviewLevels")[1].closest("li")!;
-  fireEvent.click(
-    within(secondGroup).getAllByRole("button", { name: "providerSetup.rejectAll" })[0],
-  );
-  expect(mocks.group).toHaveBeenLastCalledWith(
-    { ids: ["third"], status: "rejected", note: undefined },
-    expect.any(Object),
-  );
-  expect(mocks.single).not.toHaveBeenCalled();
 });
-it("keeps per-level review inside a closed expandable section", () => {
+
+it("requires a reason to reject exactly the selected group", () => {
   render(<TeachingCapabilityReviewQueue providerId="provider" />);
-  const summary = screen.getAllByText("providerSetup.reviewLevels")[0];
-  const details = summary.closest("details")!;
-  expect(details.open).toBe(false);
-  fireEvent.click(summary);
-  expect(details.open).toBe(true);
-  fireEvent.click(within(details).getAllByRole("button", { name: "teaching.status.suspended" })[0]);
-  expect(mocks.single).toHaveBeenCalledWith(
-    { id: "first", status: "suspended", note: undefined },
+  const reject = screen.getAllByRole("button", { name: "adminReview.reject" })[1];
+  fireEvent.click(reject);
+  expect(mocks.group).not.toHaveBeenCalled();
+  const confirm = screen.getByRole("button", { name: "common.confirm" });
+  expect((confirm as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.getAllByRole("textbox")).toHaveLength(1);
+  fireEvent.change(screen.getByLabelText("adminReview.reason"), {
+    target: { value: "Missing evidence" },
+  });
+  fireEvent.click(confirm);
+  expect(mocks.group).toHaveBeenCalledWith(
+    { ids: ["third"], status: "rejected", note: "Missing evidence" },
     expect.any(Object),
   );
+});
+
+it("cancels group rejection without a write and hides the reason", () => {
+  render(<TeachingCapabilityReviewQueue providerId="provider" />);
+  fireEvent.click(screen.getAllByRole("button", { name: "adminReview.reject" })[0]);
+  fireEvent.click(screen.getByRole("button", { name: "common.cancel" }));
+  expect(screen.queryByRole("textbox")).toBeNull();
   expect(mocks.group).not.toHaveBeenCalled();
 });

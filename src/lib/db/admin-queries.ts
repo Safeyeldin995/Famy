@@ -1,23 +1,80 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { invalidateCustomerMarketplaceQueries } from '@/lib/db/marketplace-cache';
+import { normalizeAdminWorkQueueCounts } from '@/lib/db/admin-work-queue';
+import type { AdminWorkQueueKey } from '@/lib/db/admin-work-queue';
 
 export type AdminProviderFilter = "pending" | "verified" | "suspended" | "all";
 
-export function useAdminProviders(filter: AdminProviderFilter = "all") {
+export function useAdminWorkQueueCounts() {
   return useQuery({
-    queryKey: ['admin', 'providers', filter],
+    queryKey: ["admin", "work-queue"],
+    queryFn: async () => {
+      // New migration RPC; the generated Database types are updated after deployment.
+      const { data, error } = await (supabase.rpc as any)("admin_work_queue_counts");
+      if (error) throw error;
+      return normalizeAdminWorkQueueCounts(data);
+    },
+    refetchInterval: 60_000,
+  });
+}
+
+export function useApproveProviderApplicationAll() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (providerId: string) => {
+      const { data, error } = await (supabase.rpc as any)(
+        "admin_approve_provider_application_all",
+        { p_provider_id: providerId },
+      );
+      if (error) throw error;
+      return data as { approved_services: number; approved_teaching_groups: number };
+    },
+    onSuccess: (_data, providerId) => {
+      void qc.invalidateQueries({ queryKey: ["admin"] });
+      void qc.invalidateQueries({ queryKey: ["admin-teaching-capabilities", providerId] });
+      invalidateCustomerMarketplaceQueries(qc, providerId);
+    },
+  });
+}
+
+export function useAdminBabysittingAgeGroups(providerId: string) {
+  return useQuery({
+    queryKey: ["admin", "babysitting-ages", providerId],
+    enabled: !!providerId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("provider_age_group_capabilities")
+        .select("age_group_code, years_experience, verified_by")
+        .eq("provider_id", providerId);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useAdminProviders(filter: AdminProviderFilter = "all", queue?: AdminWorkQueueKey) {
+  return useQuery({
+    queryKey: ['admin', 'providers', filter, queue ?? 'none'],
     queryFn: async () => {
       const { data: identityRows, error: identityError } = await supabase.rpc('admin_provider_identity_ids');
       if (identityError) throw identityError;
-      const providerIds = (identityRows ?? []).map((row) => row.provider_id);
+      let providerIds = (identityRows ?? []).map((row) => row.provider_id);
+      if (queue) {
+        const { data: queueRows, error: queueError } = await (supabase.rpc as any)(
+          'admin_work_queue_provider_ids', { p_queue: queue },
+        );
+        if (queueError) throw queueError;
+        const inQueue = new Set((queueRows ?? []).map((row: { provider_id: string }) => row.provider_id));
+        providerIds = providerIds.filter((id) => inQueue.has(id));
+      }
       if (providerIds.length === 0) return [];
       let q = supabase
         .from('providers')
         .select('*, profile:profiles(*), ratings:ratings_summary(*), trust:trust_scores(*)')
         .in('id', providerIds)
         .order('created_at', { ascending: false });
-      if (filter === 'pending') q = q.eq('is_verified', false);
+      if (filter === 'pending') q = q.eq('is_verified', false).in('onboarding_status', ['SUBMITTED', 'UNDER_REVIEW', 'NEEDS_CHANGES']);
       else if (filter === 'verified') q = q.eq('is_verified', true).eq('is_active', true);
       else if (filter === 'suspended') q = q.eq('is_active', false).eq('is_verified', true);
       const { data, error } = await q;
@@ -73,7 +130,7 @@ export function useAdminProvider(id: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('providers')
-        .select('*, profile:profiles(*), documents:provider_documents(*), services:provider_services(id, status, rejection_reason, service:services(id, name_en, name_ar, category:categories(name_en, name_ar)))')
+        .select('*, profile:profiles(*), documents:provider_documents(*), services:provider_services(id, status, price_override, rejection_reason, service:services(id, name_en, name_ar, base_price, pricing_model, category:categories(name_en, name_ar)))')
         .eq('id', id)
         .maybeSingle();
       if (error) throw error;
@@ -164,7 +221,7 @@ export function useDocumentSignedUrl() {
   });
 }
 
-export function useAdminBookings(status?: string) {
+export function useAdminBookings(status?: string | string[]) {
   return useQuery({
     queryKey: ['admin', 'bookings', status ?? 'all'],
     queryFn: async () => {
@@ -180,7 +237,8 @@ export function useAdminBookings(status?: string) {
         `)
         .order('created_at', { ascending: false })
         .limit(200);
-      if (status) q = q.eq('status', status as any);
+      if (Array.isArray(status)) q = q.in('status', status as any);
+      else if (status) q = q.eq('status', status as any);
       const { data, error } = await q;
       if (error) throw error;
       return data ?? [];
