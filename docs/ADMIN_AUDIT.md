@@ -27,6 +27,15 @@ Severity: **HIGH** blocks a frequent decision or risks an incorrect action; **ME
 
 The `/admin` layout (`admin.tsx`) supplies the shell/navigation for all screens. At 390px the navigation is horizontally scrollable without document overflow, but many destinations are hidden off-screen and status counts are absent. The preview uses synthetic records and does not prove live permissions, data completeness, or mutation behavior.
 
+## Patch 1 after screenshots
+
+The seeded Arabic preview now renders the work queue and a submitted application with two services, two pending teaching groups, babysitting ages, weekly hours, and a zone. These are synthetic UI captures, not authenticated database evidence.
+
+| Screen               | 390×844                                             | 1280×800                                              |
+| -------------------- | --------------------------------------------------- | ----------------------------------------------------- |
+| Work queue           | [Mobile](admin-audit/after-work-queue-390.png)      | [Desktop](admin-audit/after-work-queue-1280.png)      |
+| Full provider review | [Mobile](admin-audit/after-provider-review-390.png) | [Desktop](admin-audit/after-provider-review-1280.png) |
+
 ## Prioritized delivery plan
 
 1. **Patch 1 — work queue + one-page provider review (this PR).** Make Home a direct-link queue; put the provider decision in one ordered screen; review teaching as groups; add a transaction-scoped admin-only approve-all wrapper that calls existing checks and rejects self-approval. Keep private documents/references within admin only. Verify exact counts, rollback and mobile sizing locally. The migration is created here but **not applied**.

@@ -2791,7 +2791,7 @@ const ar: Translation = {
     pending_teaching_groups: "مجموعات مواد مستنية الموافقة",
     pending_documents: "مستندات مستنية المراجعة",
     open_cases: "شكاوى ودعم مفتوح",
-    bookings_needing_action: "حجوزات محتاجة قرار",
+    bookings_needing_action: "حجوزات فيها مشكلة",
     payments_pending_review: "مدفوعات مستنية المراجعة",
   },
   adminReview: {
@@ -2850,6 +2850,16 @@ const ar: Translation = {
       admin_normal_role_count: "حساب الأدمن لازم يكون له دور عادي واحد بس.",
       unknown: "بيانات الحساب محتاجة مراجعة قبل اتخاذ قرار.",
     },
+    locationNames: {
+      cairo: "القاهرة",
+      giza: "الجيزة",
+      sheikh_zayed: "الشيخ زايد",
+      alexandria: "الإسكندرية",
+      maadi: "المعادي",
+      new_cairo: "القاهرة الجديدة",
+      sixth_of_october: "السادس من أكتوبر",
+    },
+    reasonRequired: "اكتب سبب الفترة المحظورة.",
   },
 };
 export default ar;

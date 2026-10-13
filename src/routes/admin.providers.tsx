@@ -7,7 +7,9 @@ import {
 } from "@/lib/db/admin-queries";
 import { Search, ChevronRight, ShieldCheck } from "lucide-react";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
+import { adminLocationLabel } from "@/components/admin/adminLocationLabel";
 import { adminPath } from "@/lib/preview/previewPath";
+import { currentLang } from "@/lib/i18n";
 import { isProviderWorkQueueKey } from "@/lib/db/admin-work-queue";
 
 export const Route = createFileRoute("/admin/providers")({ component: ProviderManagement });
@@ -114,7 +116,7 @@ function ProviderManagement() {
                 <div className="flex items-start justify-between gap-3">
                   <Link to={adminPath("/admin/provider/$id") as "/admin/provider/$id"} params={{ id: p.id }} className="focus-ring min-w-0 flex-1">
                     <p className="truncate text-sm font-bold">{p.profile?.full_name || t("admin.providers.unnamed")}</p>
-                    <p className="truncate text-xs text-muted-foreground">{p.city} · {t("admin.providers.hourlyRate", { rate: p.hourly_rate })} · {t("admin.providers.yearsExp", { years: p.years_experience })}</p>
+                    <p className="truncate text-xs text-muted-foreground">{adminLocationLabel(p.city, currentLang(), t)} · {t("admin.providers.hourlyRate", { rate: p.hourly_rate })} · {t("admin.providers.yearsExp", { years: p.years_experience })}</p>
                     <p dir="ltr" className="mt-1 text-[11px] text-muted-foreground">{p.profile?.phone}</p>
                     <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] font-semibold">
                       <span className="text-brand">{t("admin.providers.trust", { score: Math.round(Number(p.trust?.score ?? 0)) })}</span>

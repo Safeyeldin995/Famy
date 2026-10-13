@@ -251,7 +251,8 @@ export function deriveAdminApprovalDecision(input: {
 
   const inReviewFlow = status === "SUBMITTED" || status === "UNDER_REVIEW";
   const canStartReview = status === "SUBMITTED";
-  const showApproveAction = status === "UNDER_REVIEW";
+  // The existing server action accepts both SUBMITTED and UNDER_REVIEW.
+  const showApproveAction = inReviewFlow;
   const canApprove = showApproveAction && completionComplete && documentsReady;
   const canRequestChanges = status === "UNDER_REVIEW";
   const canRejectApplication = inReviewFlow;

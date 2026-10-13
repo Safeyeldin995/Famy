@@ -25,12 +25,12 @@ export const WORK_QUEUE_ITEMS: ReadonlyArray<{
   {
     key: "bookings_needing_action",
     route: "/admin/bookings",
-    search: { status: "completion_requested" },
+    search: { statuses: "disputed,no_show" },
   },
   {
     key: "payments_pending_review",
     route: "/admin/payments",
-    search: { statuses: "pending_review,failed" },
+    search: { status: "pending_review" },
   },
 ];
 

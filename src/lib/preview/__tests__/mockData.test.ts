@@ -4,6 +4,25 @@ import { PREVIEW_NOW_ISO, PREVIEW_PROVIDER_ID, PREVIEW_USER_ID } from "@/lib/pre
 import { previewBookings, seedPreviewAdminQueries } from "@/lib/preview/mockData";
 
 describe("preview mock data", () => {
+  it("seeds the admin work queue and full submitted provider review", () => {
+    const qc = new QueryClient();
+    seedPreviewAdminQueries(qc);
+    const counts = qc.getQueryData<Record<string, number>>(["admin", "work-queue"]);
+    expect(counts).toMatchObject({ new_applications: 1, pending_services: 2, pending_teaching_groups: 2 });
+    const provider = qc.getQueryData<{ onboarding_status: string; services: unknown[] }>([
+      "admin", "provider", "p-pending",
+    ]);
+    expect(provider?.onboarding_status).toBe("SUBMITTED");
+    expect(provider?.services).toHaveLength(2);
+    const teaching = qc.getQueryData<Array<{ subject_id: string }>>([
+      "admin-teaching-capabilities", "p-pending",
+    ]);
+    expect(new Set(teaching?.map((row) => row.subject_id)).size).toBe(2);
+    expect(qc.getQueryData(["admin", "babysitting-ages", "p-pending"])).toHaveLength(2);
+    expect(qc.getQueryData(["provider-availability", "p-pending"])).toHaveLength(2);
+    expect(qc.getQueryData(["provider-vacations", "p-pending"])).toEqual([]);
+  });
+
   it("seeds admin eligibility with the checklist fields the provider page maps", () => {
     const qc = new QueryClient();
     seedPreviewAdminQueries(qc);

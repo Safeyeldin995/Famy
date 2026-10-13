@@ -221,7 +221,7 @@ export function useDocumentSignedUrl() {
   });
 }
 
-export function useAdminBookings(status?: string) {
+export function useAdminBookings(status?: string | string[]) {
   return useQuery({
     queryKey: ['admin', 'bookings', status ?? 'all'],
     queryFn: async () => {
@@ -237,7 +237,8 @@ export function useAdminBookings(status?: string) {
         `)
         .order('created_at', { ascending: false })
         .limit(200);
-      if (status) q = q.eq('status', status as any);
+      if (Array.isArray(status)) q = q.in('status', status as any);
+      else if (status) q = q.eq('status', status as any);
       const { data, error } = await q;
       if (error) throw error;
       return data ?? [];

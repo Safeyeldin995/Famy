@@ -48,10 +48,10 @@ BEGIN
     + (SELECT count(*) FROM public.support_tickets s WHERE s.status IN ('open', 'pending'))
   UNION ALL
   SELECT 'bookings_needing_action'::text, count(*) FROM public.bookings b
-    WHERE b.status = 'completion_requested'
+    WHERE b.status IN ('disputed', 'no_show')
   UNION ALL
   SELECT 'payments_pending_review'::text, count(*) FROM public.payments pay
-    WHERE pay.status IN ('pending_review', 'failed');
+    WHERE pay.status = 'pending_review';
 END;
 $$;
 

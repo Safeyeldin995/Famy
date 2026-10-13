@@ -2818,7 +2818,7 @@ const en = {
     pending_teaching_groups: "Pending teaching groups",
     pending_documents: "Pending documents",
     open_cases: "Open disputes and support cases",
-    bookings_needing_action: "Bookings needing action",
+    bookings_needing_action: "Bookings with a problem",
     payments_pending_review: "Payments pending review",
   },
   adminReview: {
@@ -2877,6 +2877,16 @@ const en = {
       admin_normal_role_count: "An admin account must have exactly one standard role.",
       unknown: "Review this account's identity data before taking action.",
     },
+    locationNames: {
+      cairo: "Cairo",
+      giza: "Giza",
+      sheikh_zayed: "Sheikh Zayed",
+      alexandria: "Alexandria",
+      maadi: "Maadi",
+      new_cairo: "New Cairo",
+      sixth_of_october: "6th of October",
+    },
+    reasonRequired: "Enter a reason for the blocked period.",
   },
 };
 export default en;

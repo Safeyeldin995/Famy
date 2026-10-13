@@ -16,6 +16,8 @@ import { useAdminOnboardingAction, useAdminOnboardingReview, useReviewProviderDo
 import { useAddVacation, useDeleteVacation, useProviderAvailability, useProviderVacations } from "@/lib/db/provider-queries";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
 import { AdminReviewSection } from "@/components/admin/AdminReviewSection";
+import { adminLocationLabel } from "@/components/admin/adminLocationLabel";
+import { ScheduleDateSheet } from "@/components/provider/ScheduleDateSheet";
 import { ProviderApprovalDecisionSummary } from "@/components/admin/ProviderApprovalDecisionSummary";
 import { TeachingCapabilityReviewQueue } from "@/components/admin/TeachingCapabilityReviewQueue";
 import { RequestUpdatedDetailsAction } from "@/components/admin/RequestUpdatedDetailsAction";
@@ -179,10 +181,15 @@ function HoursAndZones({ providerId, zones }: { providerId: string; zones: Revie
   const vacations = useProviderVacations(providerId);
   const addVacation = useAddVacation();
   const deleteVacation = useDeleteVacation();
-  const [start, setStart] = useState("");
-  const [end, setEnd] = useState("");
-  const [reason, setReason] = useState("");
+  const [showDateSheet, setShowDateSheet] = useState(false);
   const lang = currentLang() === "ar" ? "ar" : "en";
+  const displayDate = (value: string) => {
+    const date = new Date(`${value}T12:00:00`);
+    return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat(
+      lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB",
+      { day: "numeric", month: "long", year: "numeric" },
+    ).format(date);
+  };
   return (
     <div className="space-y-3">
       <div>
@@ -206,29 +213,26 @@ function HoursAndZones({ providerId, zones }: { providerId: string; zones: Revie
         {vacations.isError && <AdminQueryError compact message={t("admin.providers.loadError")} error={vacations.error} onRetry={() => vacations.refetch()} />}
         <ul className="mt-1 space-y-1">{(vacations.data ?? []).map((row: any) => (
           <li key={row.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border p-2 text-sm">
-            <span dir="ltr">{row.start_date} – {row.end_date} · {row.reason}</span>
+            <span>{displayDate(row.start_date)} – {displayDate(row.end_date)} · {row.reason}</span>
             <button type="button" disabled={deleteVacation.isPending} onClick={() => deleteVacation.mutate({ id: row.id, providerId })}
               aria-label={t("common.delete")} className="focus-ring grid min-h-11 min-w-11 place-items-center rounded-xl border border-border">
               <Trash2 className="h-4 w-4" />
             </button>
           </li>
         ))}</ul>
-        <div className="mt-2 grid gap-2 sm:grid-cols-2">
-          <input type="date" aria-label={t("admin.provider.blockStart")} value={start} onChange={(event) => setStart(event.target.value)}
-            className="min-h-11 min-w-0 rounded-xl border border-border bg-surface px-3 text-sm" />
-          <input type="date" aria-label={t("admin.provider.blockEnd")} value={end} onChange={(event) => setEnd(event.target.value)}
-            className="min-h-11 min-w-0 rounded-xl border border-border bg-surface px-3 text-sm" />
-        </div>
-        <input aria-label={t("adminReview.reason")} value={reason} onChange={(event) => setReason(event.target.value)}
-          placeholder={t("adminReview.reason")} className="mt-2 min-h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm" />
-        <button type="button" disabled={!start || !end || !reason.trim() || addVacation.isPending}
-          onClick={() => addVacation.mutate({ providerId, start_date: start, end_date: end, reason: reason.trim() }, {
-            onSuccess: () => { setStart(""); setEnd(""); setReason(""); },
-            onError: () => toast.error(t("common.somethingWentWrong")),
-          })}
+        <button type="button" disabled={addVacation.isPending} onClick={() => { addVacation.reset(); setShowDateSheet(true); }}
           className="focus-ring mt-2 min-h-11 rounded-xl bg-coral px-4 text-sm font-bold text-coral-foreground disabled:opacity-50">
           {t("admin.provider.blockPeriod")}
         </button>
+        {showDateSheet && <ScheduleDateSheet range busy={addVacation.isPending} error={addVacation.isError}
+          onClose={() => { setShowDateSheet(false); addVacation.reset(); }}
+          onSave={(start, end, reason) => {
+            if (!reason.trim()) { toast.error(t("adminReview.reasonRequired")); return; }
+            addVacation.mutate({ providerId, start_date: start, end_date: end, reason: reason.trim() }, {
+              onSuccess: () => setShowDateSheet(false),
+              onError: () => toast.error(t("common.somethingWentWrong")),
+            });
+          }} />}
       </div>
     </div>
   );
@@ -319,12 +323,12 @@ export function AdminProvider({ id }: { id: string }) {
         <span id="admin-onboarding-details" className="block scroll-mt-20" />
         <dl className="grid gap-3 sm:grid-cols-2">
           {[
-            [t("admin.provider.city"), p.city],
+            [t("admin.provider.city"), adminLocationLabel(p.city, currentLang(), t, payload.zones)],
             [t("admin.provider.rate"), t("adminReview.price", { amount: latin(p.hourly_rate) })],
             [t("admin.provider.experience"), t("adminReview.ageYears", { count: latin(p.years_experience) })],
             [t("adminReview.birthDate"), details?.date_of_birth],
-            [t("adminReview.governorate"), details?.governorate],
-            [t("adminReview.area"), details?.area],
+            [t("adminReview.governorate"), adminLocationLabel(details?.governorate, currentLang(), t, payload.zones)],
+            [t("adminReview.area"), adminLocationLabel(details?.area, currentLang(), t, payload.zones)],
             [t("adminReview.address"), details?.full_address],
             [t("adminReview.previousWork"), details?.previous_work],
           ].map(([label, value]) => (
