@@ -29,8 +29,7 @@ export function ProviderListRow({
   trailing?: ReactNode;
   className?: string;
 }) {
-  const resolvedTo =
-    isPreviewRoute() && to === "/provider/$id" ? "/preview/provider/$id" : to;
+  const resolvedTo = isPreviewRoute() && to === "/provider/$id" ? "/preview/provider/$id" : to;
 
   return (
     <Link
@@ -60,7 +59,8 @@ export function ProviderListRow({
 
 export function ProviderRatingMeta({ rating, reviews }: { rating: number; reviews?: number }) {
   const { t } = useTranslation();
-  if (reviews === 0 || (reviews == null && rating <= 0)) return <span>{t("providerPage.newOnFamy")}</span>;
+  if (reviews === 0 || (reviews == null && rating <= 0))
+    return <span>{t("providerPage.newOnFamy")}</span>;
   return (
     <>
       <Star

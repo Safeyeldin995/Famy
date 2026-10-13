@@ -4,4 +4,10 @@ import { CustomerPreview } from "./-customerPreview";
 
 const Home = HomeRoute.options.component!;
 
-export const Route = createFileRoute("/preview/home")({ component: () => <CustomerPreview><Home /></CustomerPreview> });
+export const Route = createFileRoute("/preview/home")({
+  component: () => (
+    <CustomerPreview>
+      <Home />
+    </CustomerPreview>
+  ),
+});

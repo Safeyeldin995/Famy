@@ -8,5 +8,9 @@ export const Route = createFileRoute("/preview/chat/$id")({
 
 function PreviewChatPage() {
   const { id } = Route.useParams();
-  return <CustomerPreview><ChatContent conversationId={id} /></CustomerPreview>;
+  return (
+    <CustomerPreview>
+      <ChatContent conversationId={id} />
+    </CustomerPreview>
+  );
 }

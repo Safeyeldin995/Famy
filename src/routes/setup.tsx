@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { PhoneFrame, PrimaryButton } from "@/components/famio/ui";
-import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
+import { CustomerPageHeader } from "@/components/famio/CustomerPageHeader";
+import { customerAreaLabel } from "@/components/famio/customerAreaLabel";
 import { QueryError } from "@/components/famio/QueryError";
 import { useApp } from "@/lib/store";
 import {
@@ -53,11 +54,10 @@ function Setup() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myProfile.data?.full_name]);
 
-
   useEffect(() => {
     const list = existingAddresses.data;
     if (!list || list.length === 0) return;
-    const def = list.find((a: any) => a.is_default) ?? list[0];
+    const def = list.find((a) => a.is_default) ?? list[0];
     setExistingAddressId(def.id);
     setForm((f) => ({
       ...f,
@@ -76,20 +76,16 @@ function Setup() {
 
   const update = (k: keyof typeof form, v: string) => setForm({ ...form, [k]: v });
   const valid =
-    form.name.trim().length > 1 && form.address.trim().length > 2 && form.area.trim().length > 0 && isValidLatLng(coords);
-  const saving =
-    updateProfile.isPending ||
-    createAddress.isPending ||
-    updateAddress.isPending;
+    form.name.trim().length > 1 &&
+    form.address.trim().length > 2 &&
+    form.area.trim().length > 0 &&
+    isValidLatLng(coords);
+  const saving = updateProfile.isPending || createAddress.isPending || updateAddress.isPending;
 
-  if (
-    myProfile.isLoading ||
-    existingAddresses.isLoading ||
-    areasQ.isLoading
-  ) {
+  if (myProfile.isLoading || existingAddresses.isLoading || areasQ.isLoading) {
     return (
       <PhoneFrame bg="bg-background">
-        <CustomerPageHero title={t("setup.title")} backTo="/profile" />
+        <CustomerPageHeader title={t("setup.title")} backTo="/profile" />
         <div className="grid flex-1 place-items-center">
           <Loader2 className="h-6 w-6 animate-spin text-brand" />
         </div>
@@ -100,7 +96,7 @@ function Setup() {
   if (myProfile.isError) {
     return (
       <PhoneFrame bg="bg-background">
-        <CustomerPageHero title={t("setup.title")} backTo="/profile" />
+        <CustomerPageHeader title={t("setup.title")} backTo="/profile" />
         <QueryError onRetry={() => myProfile.refetch()} />
       </PhoneFrame>
     );
@@ -109,7 +105,7 @@ function Setup() {
   if (existingAddresses.isError) {
     return (
       <PhoneFrame bg="bg-background">
-        <CustomerPageHero title={t("setup.title")} backTo="/profile" />
+        <CustomerPageHeader title={t("setup.title")} backTo="/profile" />
         <QueryError onRetry={() => existingAddresses.refetch()} />
       </PhoneFrame>
     );
@@ -158,14 +154,14 @@ function Setup() {
 
       setProfile(form);
       nav({ to: "/home" });
-    } catch (e: any) {
+    } catch {
       toast.error(t("setup.saveFailed"));
     }
   };
 
   return (
     <PhoneFrame bg="bg-background">
-      <CustomerPageHero title={t("setup.title")} backTo="/profile" />
+      <CustomerPageHeader title={t("setup.title")} backTo="/profile" />
       <div className="flex-1 space-y-5 px-6 pb-32 pt-2">
         <Field
           label={t("setup.name")}
@@ -173,8 +169,6 @@ function Setup() {
           onChange={(v) => update("name", v)}
           placeholder={t("setup.namePlaceholder")}
         />
-
-
 
         <div>
           <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
@@ -197,7 +191,7 @@ function Setup() {
                       : "border-border bg-surface text-muted-foreground"
                   }`}
                 >
-                  {a}
+                  {customerAreaLabel(a, t)}
                 </button>
               ))}
             </div>
@@ -238,9 +232,24 @@ function Setup() {
           )}
         </div>
 
-        <Field label={t("setup.building")} value={form.building} onChange={(v) => update("building", v)} placeholder={t("setup.buildingPlaceholder")} />
-        <Field label={t("addresses.floor")} value={form.floor} onChange={(v) => update("floor", v)} placeholder={t("addresses.floorPlaceholder")} />
-        <Field label={t("setup.apartment")} value={form.apartment} onChange={(v) => update("apartment", v)} placeholder={t("setup.apartmentPlaceholder")} />
+        <Field
+          label={t("setup.building")}
+          value={form.building}
+          onChange={(v) => update("building", v)}
+          placeholder={t("setup.buildingPlaceholder")}
+        />
+        <Field
+          label={t("addresses.floor")}
+          value={form.floor}
+          onChange={(v) => update("floor", v)}
+          placeholder={t("addresses.floorPlaceholder")}
+        />
+        <Field
+          label={t("setup.apartment")}
+          value={form.apartment}
+          onChange={(v) => update("apartment", v)}
+          placeholder={t("setup.apartmentPlaceholder")}
+        />
       </div>
       <div className="action-bar safe-bottom px-6 pt-4">
         <PrimaryButton onClick={submit} disabled={!valid || saving}>

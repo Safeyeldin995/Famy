@@ -4,4 +4,11 @@ import { CustomerPreview } from "./-customerPreview";
 
 const SearchPage = SearchRoute.options.component!;
 
-export const Route = createFileRoute("/preview/search")({ validateSearch: searchServiceFilter, component: () => <CustomerPreview><SearchPage /></CustomerPreview> });
+export const Route = createFileRoute("/preview/search")({
+  validateSearch: searchServiceFilter,
+  component: () => (
+    <CustomerPreview>
+      <SearchPage />
+    </CustomerPreview>
+  ),
+});

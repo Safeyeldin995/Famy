@@ -22,8 +22,8 @@ export function HomeRebookRow({
   return (
     <section className="mt-8 px-5">
       <div className="mb-4">
-        <p className="text-overline">{t("home.recentSubtitle")}</p>
-        <h2 className="text-title mt-1 text-foreground">{t("home.recent")}</h2>
+        <p className="text-pro-12 font-bold text-muted-foreground">{t("home.recentSubtitle")}</p>
+        <h2 className="mt-1 text-pro-18 font-bold text-foreground">{t("home.recent")}</h2>
       </div>
 
       {loading ? (
@@ -44,7 +44,7 @@ export function HomeRebookRow({
               avatar={provider.avatar}
               name={provider.name}
               subtitle={formatEGP(provider.hourlyRate, { perHour: true })}
-              meta={<ProviderRatingMeta rating={provider.rating} />}
+              meta={<ProviderRatingMeta rating={provider.rating} reviews={provider.reviews} />}
               pill={{ label: t("bookings.bookAgain"), tone: "ink" }}
             />
           ))}

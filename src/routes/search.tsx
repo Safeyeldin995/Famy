@@ -24,7 +24,10 @@ import { formatNumber } from "@/lib/format";
 export function searchServiceFilter(search: Record<string, unknown>): { serviceId?: string } {
   return typeof search.serviceId === "string" ? { serviceId: search.serviceId } : {};
 }
-export const Route = createFileRoute("/search")({ validateSearch: searchServiceFilter, component: SearchPage });
+export const Route = createFileRoute("/search")({
+  validateSearch: searchServiceFilter,
+  component: SearchPage,
+});
 
 type Filter = "all" | "babysitting" | "tutoring" | "top";
 
@@ -40,8 +43,18 @@ function SearchPage() {
   const addressesQ = useAddresses();
   const selectedAddressId =
     addressId || (addressesQ.data ?? []).find((a) => a.is_default)?.id || addressesQ.data?.[0]?.id;
-  const babysittersQ = useProviders({ categorySlug: "babysitting", serviceId: serviceId || undefined, addressId: selectedAddressId, limit: 60 });
-  const teachersQ = useProviders({ categorySlug: "tutoring", serviceId: serviceId || undefined, addressId: selectedAddressId, limit: 60 });
+  const babysittersQ = useProviders({
+    categorySlug: "babysitting",
+    serviceId: serviceId || undefined,
+    addressId: selectedAddressId,
+    limit: 60,
+  });
+  const teachersQ = useProviders({
+    categorySlug: "tutoring",
+    serviceId: serviceId || undefined,
+    addressId: selectedAddressId,
+    limit: 60,
+  });
   const provsQ = {
     isLoading: babysittersQ.isLoading || teachersQ.isLoading,
     isError: babysittersQ.isError || teachersQ.isError,
@@ -50,9 +63,11 @@ function SearchPage() {
 
   const results = useMemo(() => {
     const term = q.trim().toLowerCase();
-    const list = customerProviders(filter === "tutoring"
-      ? [...(teachersQ.data ?? []), ...(babysittersQ.data ?? [])]
-      : [...(babysittersQ.data ?? []), ...(teachersQ.data ?? [])]);
+    const list = customerProviders(
+      filter === "tutoring"
+        ? [...(teachersQ.data ?? []), ...(babysittersQ.data ?? [])]
+        : [...(babysittersQ.data ?? []), ...(teachersQ.data ?? [])],
+    );
     return list.filter((p) => {
       if (filter === "babysitting" && !p.categorySlugs.includes("babysitting")) return false;
       if (filter === "tutoring" && !p.categorySlugs.includes("tutoring")) return false;
@@ -67,11 +82,34 @@ function SearchPage() {
   }, [q, filter, babysittersQ.data, teachersQ.data]);
   const capabilityRows = useApprovedTeachingCapabilitiesForProviders(results.map((p) => p.id));
 
-  const recoveryActions = <div className="flex flex-wrap justify-center gap-2">
-    <button type="button" className="min-h-11 px-3 font-bold text-brand" onClick={() => { setQ(""); setFilter("all"); setServiceId(""); }}>{t("bookingUx.clearFilters")}</button>
-    <button type="button" className="min-h-11 px-3 font-bold text-brand" onClick={() => document.getElementById("search-address")?.focus()}>{t("bookingUx.changeArea")}</button>
-    <Link to={previewPath("/addresses/new") as "/addresses/new"} className="inline-flex min-h-11 items-center px-3 font-bold text-brand">{t("addresses.addAddress")}</Link>
-  </div>;
+  const recoveryActions = (
+    <div className="flex flex-wrap justify-center gap-2">
+      <button
+        type="button"
+        className="min-h-11 px-3 font-bold text-brand"
+        onClick={() => {
+          setQ("");
+          setFilter("all");
+          setServiceId("");
+        }}
+      >
+        {t("bookingUx.clearFilters")}
+      </button>
+      <button
+        type="button"
+        className="min-h-11 px-3 font-bold text-brand"
+        onClick={() => document.getElementById("search-address")?.focus()}
+      >
+        {t("bookingUx.changeArea")}
+      </button>
+      <Link
+        to={previewPath("/addresses/new") as "/addresses/new"}
+        className="inline-flex min-h-11 items-center px-3 font-bold text-brand"
+      >
+        {t("addresses.addAddress")}
+      </Link>
+    </div>
+  );
   return (
     <PhoneFrame bg="bg-background">
       <CustomerPageHero title={t("search.title")} subtitle={t("home.headline")} backTo="/home" />
@@ -133,7 +171,10 @@ function SearchPage() {
                   <option key={service.id} value={service.id}>
                     {lang === "ar"
                       ? service.name_ar || service.name_en
-                      : service.name_en || service.name_ar}{isFixedPackage(service) ? ` · ${t(packageLabel(service).key, packageLabel(service).values)}` : ""}
+                      : service.name_en || service.name_ar}
+                    {isFixedPackage(service)
+                      ? ` · ${t(packageLabel(service).key, packageLabel(service).values)}`
+                      : ""}
                   </option>
                 ),
               )}
@@ -166,12 +207,42 @@ function SearchPage() {
         ) : null}
 
         <div className="mt-4 space-y-2.5">
-          {!addressesQ.isLoading && !selectedAddressId ? <EmptyState icon="search" title={t("customerHome.chooseArea")} body={t("customerHome.addressHint")} action={<Link to={previewPath("/addresses/new")} className="focus-ring inline-flex min-h-11 items-center text-pro-14 font-bold text-brand">{t("addresses.addAddress")}</Link>} /> : provsQ.isLoading ? (
+          {!addressesQ.isLoading && !selectedAddressId ? (
+            <EmptyState
+              icon="search"
+              title={t("customerHome.chooseArea")}
+              body={t("customerHome.addressHint")}
+              action={
+                <Link
+                  to={previewPath("/addresses/new")}
+                  className="focus-ring inline-flex min-h-11 items-center text-pro-14 font-bold text-brand"
+                >
+                  {t("addresses.addAddress")}
+                </Link>
+              }
+            />
+          ) : provsQ.isLoading ? (
             Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="h-24 animate-pulse rounded-[2rem] bg-surface-2" />
             ))
           ) : provsQ.isError ? (
-            <EmptyState icon="alert" title={t("common.errorTitle")} body={t("common.tryAgain")} action={<div><button type="button" className="min-h-11 px-4 font-bold text-brand" onClick={() => void provsQ.refetch()}>{t("common.retry")}</button>{recoveryActions}</div>} />
+            <EmptyState
+              icon="alert"
+              title={t("common.errorTitle")}
+              body={t("common.tryAgain")}
+              action={
+                <div>
+                  <button
+                    type="button"
+                    className="min-h-11 px-4 font-bold text-brand"
+                    onClick={() => void provsQ.refetch()}
+                  >
+                    {t("common.retry")}
+                  </button>
+                  {recoveryActions}
+                </div>
+              }
+            />
           ) : results.length === 0 ? (
             <EmptyState
               icon="search"
@@ -192,9 +263,7 @@ function SearchPage() {
                       price: cap.price,
                     })
                   : providerPriceLabel(p, t);
-              return (
-                <ProviderCard key={p.id} p={p} subtitle={subtitle} />
-              );
+              return <ProviderCard key={p.id} p={p} subtitle={subtitle} />;
             })
           )}
         </div>

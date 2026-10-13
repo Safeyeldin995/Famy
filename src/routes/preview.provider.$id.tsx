@@ -8,5 +8,9 @@ export const Route = createFileRoute("/preview/provider/$id")({
 
 function PreviewProviderPage() {
   const { id } = Route.useParams();
-  return <CustomerPreview><ProviderProfileContent providerId={id} /></CustomerPreview>;
+  return (
+    <CustomerPreview>
+      <ProviderProfileContent providerId={id} />
+    </CustomerPreview>
+  );
 }

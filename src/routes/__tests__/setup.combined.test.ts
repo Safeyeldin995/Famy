@@ -48,7 +48,7 @@ describe("combined /setup after AuthGate + coordinate merge", () => {
 
   it("requires a map pin and keeps the no-coordinates guidance", () => {
     const validMatch = setupSource.match(
-      /const valid =\s*form\.name\.trim\(\)\.length > 1 && form\.address\.trim\(\)\.length > 2 && form\.area\.trim\(\)\.length > 0 && isValidLatLng\(coords\);/,
+      /const valid =\s*form\.name\.trim\(\)\.length > 1 &&\s*form\.address\.trim\(\)\.length > 2 &&\s*form\.area\.trim\(\)\.length > 0 &&\s*isValidLatLng\(coords\);/,
     );
     expect(validMatch?.[0]).toBeTruthy();
     expect(validMatch?.[0]).toContain("isValidLatLng(coords)");

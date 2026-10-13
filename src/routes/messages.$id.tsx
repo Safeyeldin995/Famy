@@ -44,7 +44,10 @@ export function ChatContent({ conversationId }: { conversationId: string }) {
       setMeId(PREVIEW_USER_ID);
       return;
     }
-    supabase.auth.getUser().then(({ data }) => setMeId(data.user?.id ?? null)).catch(() => setMeId(null));
+    supabase.auth
+      .getUser()
+      .then(({ data }) => setMeId(data.user?.id ?? null))
+      .catch(() => setMeId(null));
   }, []);
 
   useEffect(() => {
@@ -82,7 +85,17 @@ export function ChatContent({ conversationId }: { conversationId: string }) {
     );
   }
 
-  if (!conv.data) return <PhoneFrame bg="bg-white"><CustomerPageHero title={t("messages.title")} backTo="/messages" /><EmptyState icon="message" title={t("customerChat.unavailable")} body={t("bookingChat.unavailableBody")} /></PhoneFrame>;
+  if (!conv.data)
+    return (
+      <PhoneFrame bg="bg-white">
+        <CustomerPageHero title={t("messages.title")} backTo="/messages" />
+        <EmptyState
+          icon="message"
+          title={t("customerChat.unavailable")}
+          body={t("bookingChat.unavailableBody")}
+        />
+      </PhoneFrame>
+    );
 
   const handleSend = () => {
     const body = text.trim();
@@ -97,7 +110,8 @@ export function ChatContent({ conversationId }: { conversationId: string }) {
         setWarning(null);
       },
       onError: (e: any) => {
-        if (e?.message === "contact_masked") setWarning(t("bookingChat.contactBlocked", CONTACT_BLOCKED_MESSAGE));
+        if (e?.message === "contact_masked")
+          setWarning(t("bookingChat.contactBlocked", CONTACT_BLOCKED_MESSAGE));
         else setWarning(sendFailedMsg);
       },
     });
@@ -133,7 +147,11 @@ export function ChatContent({ conversationId }: { conversationId: string }) {
               className={`flex items-end gap-2 ${mine ? "justify-end" : "justify-start"}`}
             >
               {!mine && (
-                <ProfileAvatar src={otherAvatar} name={otherName} className="h-7 w-7 rounded-full text-pro-12" />
+                <ProfileAvatar
+                  src={otherAvatar}
+                  name={otherName}
+                  className="h-7 w-7 rounded-full text-pro-12"
+                />
               )}
               <div
                 className={`max-w-[78%] rounded-[1.25rem] px-4 py-2.5 text-pro-14 leading-snug ${
@@ -142,7 +160,9 @@ export function ChatContent({ conversationId }: { conversationId: string }) {
                     : "bg-surface text-foreground border border-border/50 shadow-xs rounded-es-md"
                 }`}
               >
-                <div className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{m.body}</div>
+                <div className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                  {m.body}
+                </div>
                 <div
                   className={`mt-1 text-pro-12 ${mine ? "text-white/70" : "text-muted-foreground"}`}
                 >

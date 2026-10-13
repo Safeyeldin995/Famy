@@ -56,7 +56,6 @@ function Profile() {
     nav({ to: "/", replace: true });
   };
 
-
   return (
     <AppShell>
       <CustomerPageHero
@@ -67,7 +66,10 @@ function Profile() {
       <div className="px-5">
         <CustomerFloatingPanel>
           <div className="flex items-center gap-5">
-            <CustomerProfilePhoto src={profileQ.data?.avatar_url} name={profileQ.data?.full_name || t("profile.famioUser")} />
+            <CustomerProfilePhoto
+              src={profileQ.data?.avatar_url}
+              name={profileQ.data?.full_name || t("profile.famioUser")}
+            />
             <div className="min-w-0 flex-1">
               <div className="truncate text-lg font-extrabold text-foreground">
                 {profileQ.data?.full_name || t("profile.famioUser")}
@@ -75,7 +77,12 @@ function Profile() {
               <div className="mt-0.5 truncate text-sm font-bold text-muted-foreground" dir="ltr">
                 {profileQ.data?.phone || "—"}
               </div>
-              <Link to={previewPath("/setup")} className="focus-ring inline-flex min-h-11 items-center text-pro-13 font-bold text-brand">{t("customerHome.profileEdit")}</Link>
+              <Link
+                to={previewPath("/setup")}
+                className="focus-ring inline-flex min-h-11 items-center text-pro-13 font-bold text-brand"
+              >
+                {t("customerHome.profileEdit")}
+              </Link>
             </div>
           </div>
         </CustomerFloatingPanel>
@@ -169,7 +176,10 @@ function Profile() {
         </Section>
 
         <div className="mt-6 space-y-2">
-          <SecondaryButton className="w-full !h-12 !rounded-full !text-destructive" onClick={handleLogout}>
+          <SecondaryButton
+            className="w-full !h-12 !rounded-full !text-destructive"
+            onClick={handleLogout}
+          >
             <LogOut className="h-4 w-4" aria-hidden="true" />
             {t("profile.logout")}
           </SecondaryButton>

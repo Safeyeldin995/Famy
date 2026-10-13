@@ -5,4 +5,10 @@ import { CustomerPreview } from "./-customerPreview";
 
 const Messages = MessagesRoute.options.component!;
 
-export const Route = createFileRoute("/preview/messages")({ component: () => <CustomerPreview><Messages /></CustomerPreview> });
+export const Route = createFileRoute("/preview/messages")({
+  component: () => (
+    <CustomerPreview>
+      <Messages />
+    </CustomerPreview>
+  ),
+});

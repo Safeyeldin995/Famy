@@ -234,7 +234,12 @@ export function ProviderProfileContent({ providerId }: { providerId: string }) {
           />
           <h1 className="mt-3 text-pro-22 font-extrabold leading-snug text-foreground">{name}</h1>
           {services.length > 0 ? (
-            <p className="mt-1 text-pro-14 text-muted-foreground">{customerRoleLabel(services.map((row) => row.service.category?.slug ?? ""), t) || categories.join(" · ")}</p>
+            <p className="mt-1 text-pro-14 text-muted-foreground">
+              {customerRoleLabel(
+                services.map((row) => row.service.category?.slug ?? ""),
+                t,
+              ) || categories.join(" · ")}
+            </p>
           ) : null}
           <div className="mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-pro-13 font-semibold">
             {p.reviews > 0 ? (

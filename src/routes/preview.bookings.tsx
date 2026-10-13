@@ -14,5 +14,9 @@ export const Route = createFileRoute("/preview/bookings")({
 
 function PreviewBookings() {
   const { bookingId } = Route.useSearch();
-  return <CustomerPreview>{bookingId ? <BookingDetailContent bookingId={bookingId} /> : <Bookings />}</CustomerPreview>;
+  return (
+    <CustomerPreview>
+      {bookingId ? <BookingDetailContent bookingId={bookingId} /> : <Bookings />}
+    </CustomerPreview>
+  );
 }
