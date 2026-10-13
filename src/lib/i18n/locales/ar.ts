@@ -2844,6 +2844,12 @@ const ar: Translation = {
     clearQueue: "اعرض كل مقدمي الخدمة",
     nationalId: "بطاقة الرقم القومي",
     sectionGlobalEffect: "القرار ده هيغير حالة الطلب كله، مش القسم ده بس.",
+    identityConflictTypes: {
+      dual_normal_roles: "الحساب مسجل كعميل ومقدم خدمة في نفس الوقت.",
+      provider_row_missing_role: "بيانات مقدم الخدمة موجودة، لكن صلاحية مقدم الخدمة ناقصة.",
+      admin_normal_role_count: "حساب الأدمن لازم يكون له دور عادي واحد بس.",
+      unknown: "بيانات الحساب محتاجة مراجعة قبل اتخاذ قرار.",
+    },
   },
 };
 export default ar;

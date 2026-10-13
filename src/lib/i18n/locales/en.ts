@@ -2871,6 +2871,12 @@ const en = {
     clearQueue: "Show all providers",
     nationalId: "National ID",
     sectionGlobalEffect: "This decision changes the whole application, not just this section.",
+    identityConflictTypes: {
+      dual_normal_roles: "This account has both customer and provider roles.",
+      provider_row_missing_role: "A provider profile exists, but its provider role is missing.",
+      admin_normal_role_count: "An admin account must have exactly one standard role.",
+      unknown: "Review this account's identity data before taking action.",
+    },
   },
 };
 export default en;

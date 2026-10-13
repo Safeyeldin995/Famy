@@ -86,7 +86,10 @@ function ProviderManagement() {
             {conflictsQ.data!.map((conflict: any) => (
               <li key={`${conflict.user_id}-${conflict.issue_code}`} className="rounded-xl bg-surface p-3 text-xs">
                 <div className="font-bold">{conflict.full_name || conflict.user_id}</div>
-                <div className="font-semibold text-coral">{conflict.details}</div>
+                <div className="font-semibold text-coral">{String(t(
+                  `adminReview.identityConflictTypes.${conflict.issue_code}`,
+                  t("adminReview.identityConflictTypes.unknown"),
+                ))}</div>
                 {conflict.provider_id && <Link to={adminPath("/admin/provider/$id") as "/admin/provider/$id"} params={{ id: conflict.provider_id }} className="focus-ring mt-1 inline-flex min-h-11 items-center font-bold text-brand underline">{t("adminReview.reviewApplication")}</Link>}
               </li>
             ))}
