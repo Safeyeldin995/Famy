@@ -1,5 +1,7 @@
 # Provider round 2 preview evidence
 
+These screenshots record the original PR head `116082a`, before review corrections to actions, validation and earnings copy.
+
 Captured locally on 2026-10-13 with Chromium, Arabic, Africa/Cairo, viewport 390 x 844. Full-page screenshots retain fixed navigation and action docks at the viewport position. All data is synthetic; preview mode was enabled only in the local server process. No production writes or migrations were performed.
 
 The three application screens each measure 390 x 844. Long service lists can scroll within the screen while the action remains visible. The application walkthrough completed all three steps and found exactly one `طلبك كامل ✓` message. The request countdown rendered `رد خلال 12 ساعة`. The future confirmed booking's next-step button remained disabled. All captured screens were RTL, had no horizontal overflow, and displayed no raw `no_conversation` text.
@@ -30,4 +32,4 @@ One existing preview-only hydration attribute warning remains in the shared `Not
 - [Completed booking](completed.png)
 - [Paid and awaiting-payment totals](earnings.png)
 - [Arabic notifications grouped by day](notifications.png)
-- [Push unavailable: existing in-app notification card](push-fallback.png)
+- [Push unavailable: existing card, unchanged](push-fallback.png)

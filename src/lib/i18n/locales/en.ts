@@ -2986,6 +2986,8 @@ const en = {
     reasonRequired: "Enter a reason for the blocked period.",
   },
   proRound2: {
+    upcomingWork: "Upcoming work",
+    upcomingWorkCaption: "Accepted bookings or requests awaiting your reply that are not finished yet",
     decline: "Decline",
     paid: "Paid",
     awaitingPayment: "Awaiting payment",

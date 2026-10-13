@@ -1,3 +1,4 @@
+import { notificationDayKey } from "./notificationDay";
 export const PROVIDER_JOURNEY_STEPS = [
   "accepted",
   "onTheWay",
@@ -26,7 +27,7 @@ export function groupProviderNotifications<T extends { created_at: string }>(ite
   const groups = new Map<string, { date: Date; items: T[] }>();
   for (const item of [...items].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at))) {
     const date = new Date(item.created_at);
-    const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+    const key = notificationDayKey(date);
     const group = groups.get(key) ?? { date, items: [] };
     group.items.push(item);
     groups.set(key, group);

@@ -2948,6 +2948,8 @@ const ar: Translation = {
     reasonRequired: "اكتب سبب الفترة المحظورة.",
   },
   proRound2: {
+    upcomingWork: "شغل جاي",
+    upcomingWorkCaption: "حجوزات اتقبلت أو مستنية ردك ولسه ماخلصتش",
     decline: "ارفض",
     paid: "اتدفع",
     awaitingPayment: "مستني الدفع",

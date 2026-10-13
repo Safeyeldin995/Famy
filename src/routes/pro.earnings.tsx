@@ -66,10 +66,6 @@ function EarningsPage() {
     e.data?.hasSnapshottedCaptured ?? false,
     e.data?.hasUnsnapshottedCaptured ?? false,
   );
-  const upcomingKind = earningsHeadlineKind(
-    e.data?.hasSnapshottedUpcoming ?? false,
-    e.data?.hasUnsnapshottedUpcoming ?? false,
-  );
 
   const heroAmount =
     capturedKind === "bookingValue"
@@ -126,18 +122,14 @@ function EarningsPage() {
           </Card>
         </div>
         <Card className="p-3">
-          <h2 className="text-pro-13 font-bold">{t("proRound2.awaitingPayment")}</h2>
+          <h2 className="text-pro-13 font-bold">{t("proRound2.upcomingWork")}</h2>
           <SplitAmounts
             bucket={e.data?.upcoming}
             hasNet={e.data?.hasSnapshottedUpcoming ?? false}
             hasBookingValue={e.data?.hasUnsnapshottedUpcoming ?? false}
           />
           <p className="mt-1 text-pro-12 text-muted-foreground">
-            {upcomingKind === "bookingValue"
-              ? t("pro.earnings.upcomingPipelineSubBookingValue")
-              : upcomingKind === "net"
-                ? t("pro.earnings.upcomingPipelineSubNet")
-                : t("pro.earnings.upcomingPipelineSub")}
+            {t("proRound2.upcomingWorkCaption")}
           </p>
         </Card>
         {hasUnrecordedCommission && (

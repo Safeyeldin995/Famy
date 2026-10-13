@@ -1,16 +1,23 @@
+import type { useMyProvider, useProviderBookings } from "@/lib/db/provider-queries";
 import type { QueryClient } from "@tanstack/react-query";
 import { PREVIEW_NOW_ISO, PREVIEW_PROVIDER_ID, PREVIEW_USER_ID } from "@/lib/preview/constants";
 
 /** Pro-only, synthetic fixtures. Never imported by production routes. */
 export function seedProviderJourney(qc: QueryClient) {
-  const provider = qc.getQueryData<any>(["my-provider"]);
+  const provider = qc.getQueryData<NonNullable<ReturnType<typeof useMyProvider>["data"]>>([
+    "my-provider",
+  ]);
   if (provider)
     qc.setQueryData(["my-provider"], {
       ...provider,
       name: "منى عادل",
       profile: { ...provider.profile, full_name: "منى عادل", avatar_url: null },
     });
-  const rows = qc.getQueryData<any[]>(["provider-bookings", PREVIEW_PROVIDER_ID]) ?? [];
+  const rows =
+    qc.getQueryData<NonNullable<ReturnType<typeof useProviderBookings>["data"]>>([
+      "provider-bookings",
+      PREVIEW_PROVIDER_ID,
+    ]) ?? [];
   const enriched = rows.map((row) => ({
     ...row,
     created_at: new Date(+new Date(PREVIEW_NOW_ISO) - 30 * 60_000).toISOString(),

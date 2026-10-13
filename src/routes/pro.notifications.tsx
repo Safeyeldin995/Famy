@@ -1,8 +1,9 @@
+import { formatNotificationDay } from "@/lib/provider/notificationDay";
 import { groupProviderNotifications } from "@/lib/provider/journeyPresentation";
 import { notificationText } from "@/lib/provider/notificationText";
 import { isPreviewRoute, PREVIEW_NOW_ISO } from "@/lib/preview/constants";
 import { notificationRowNavigation } from "@/lib/provider/workScreenPresentation";
-import { formatNotificationDate, formatTime } from "@/lib/format";
+import { formatTime } from "@/lib/format";
 import { createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ProviderShell } from "@/components/famio/ProviderShell";
@@ -66,13 +67,12 @@ function NotificationsPage() {
             {groupProviderNotifications(items).map((group) => (
               <section key={group.key}>
                 <h2 className="mb-2 text-pro-14 font-extrabold">
-                  {
-                    formatNotificationDate(
-                      group.date,
-                      preview ? new Date(PREVIEW_NOW_ISO) : new Date(),
-                      lang,
-                    ).split(" · ")[0]
-                  }
+                  {formatNotificationDay(
+                    group.date,
+                    preview ? new Date(PREVIEW_NOW_ISO) : new Date(),
+                    lang,
+                    t,
+                  )}
                 </h2>
                 <div className="divide-y divide-border/50 rounded-2xl bg-surface">
                   {group.items.map((n: any) => {

@@ -62,18 +62,24 @@ export function ProviderApplyFlow({
   const { t, i18n } = useTranslation();
   const [draft, setDraft] = useState(initial);
   const [step, setStep] = useState<number>(initialStep);
+  const [attempted, setAttempted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [captureError, setCaptureError] = useState<string | null>(null);
   const ar = i18n.language.startsWith("ar");
   const ready = applyStepReady(step, draft, services);
   const advance = async () => {
-    if (!ready || busy) return;
+    if (busy) return;
+    setAttempted(true);
+    if (!ready) return;
     setBusy(true);
     setError("");
     try {
       await onSave(step, draft);
-      if (step < 3) setStep(step + 1);
+      if (step < 3) {
+        setAttempted(false);
+        setStep(step + 1);
+      }
     } catch {
       setError(t("providerApply.saveError"));
     } finally {
@@ -85,6 +91,7 @@ export function ProviderApplyFlow({
     setCaptureError(null);
     try {
       await onCapture(type, file);
+      setError("");
       setDraft((d) => ({ ...d, [type === "id_card_front" ? "front" : "back"]: true }));
     } catch {
       setCaptureError(type);
@@ -113,6 +120,7 @@ export function ProviderApplyFlow({
           step > 1 && !busy
             ? () => {
                 setError("");
+                setAttempted(false);
                 setStep(step - 1);
               }
             : undefined
@@ -131,14 +139,14 @@ export function ProviderApplyFlow({
           <>
             <TextField
               autoComplete="name"
-              aria-invalid={!draft.name.trim()}
-              aria-describedby={!draft.name.trim() ? "apply-name-error" : undefined}
+              aria-invalid={attempted && !draft.name.trim() ? true : undefined}
+              aria-describedby={attempted && !draft.name.trim() ? "apply-name-error" : undefined}
               label={t("providerApply.name")}
               value={draft.name}
               disabled={busy}
               onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
             />
-            {!draft.name.trim() && (
+            {attempted && !draft.name.trim() && (
               <p id="apply-name-error" className="text-pro-12 text-coral">
                 {t("proRound2.nameRequired")}
               </p>
@@ -164,7 +172,7 @@ export function ProviderApplyFlow({
                   </CheckChip>
                 ))}
               </div>
-              {draft.zones.length === 0 && (
+              {attempted && draft.zones.length === 0 && (
                 <p className="text-pro-12 text-coral">{t("proRound2.zonesRequired")}</p>
               )}
               <p className="mt-2 text-pro-12 text-muted-foreground">
@@ -175,7 +183,9 @@ export function ProviderApplyFlow({
         )}
         {step === 2 && (
           <>
-            {!ready && <p className="text-pro-12 text-coral">{t("proRound2.servicesRequired")}</p>}
+            {attempted && !ready && (
+              <p className="text-pro-12 text-coral">{t("proRound2.servicesRequired")}</p>
+            )}
             {services.length === 0 && <p>{t("providerApply.noServices")}</p>}
             {services.map((service) => {
               const tutoring = service.category?.slug === "tutoring";
@@ -229,7 +239,7 @@ export function ProviderApplyFlow({
               disabled={busy}
               onCapture={(file) => void capture("id_card_front", file)}
             />
-            {(captureError === "id_card_front" || !draft.front) && (
+            {(captureError === "id_card_front" || (attempted && !draft.front)) && (
               <p
                 role={captureError === "id_card_front" ? "alert" : undefined}
                 className="text-pro-12 text-coral"
@@ -247,7 +257,7 @@ export function ProviderApplyFlow({
               disabled={busy}
               onCapture={(file) => void capture("id_card_back", file)}
             />
-            {(captureError === "id_card_back" || !draft.back) && (
+            {(captureError === "id_card_back" || (attempted && !draft.back)) && (
               <p
                 role={captureError === "id_card_back" ? "alert" : undefined}
                 className="text-pro-12 text-coral"
@@ -276,7 +286,7 @@ export function ProviderApplyFlow({
               </span>
               {t("providerApply.agreement")}
             </label>
-            {!draft.agreed && (
+            {attempted && !draft.agreed && (
               <p className="text-pro-12 text-coral">{t("proRound2.agreementRequired")}</p>
             )}
           </>
@@ -288,10 +298,10 @@ export function ProviderApplyFlow({
         )}
       </div>
       <StickyCta
-        disabled={!ready || busy}
+        disabled={busy}
         onClick={() => void advance()}
         hint={
-          !ready
+          attempted && !ready
             ? t(
                 `providerApply.${step === 1 ? "missingBasics" : step === 2 ? "missingServices" : "missingIdentity"}`,
               )
