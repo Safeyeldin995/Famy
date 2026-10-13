@@ -1,12 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Bell, MapPin, Search } from "lucide-react";
 import { AppShell } from "@/components/famio/ui";
 import { QueryError } from "@/components/famio/QueryError";
-import { ProviderListRow, ProviderRatingMeta } from "@/components/famio/ProviderListRow";
-import { HomeCategoryGrid } from "@/components/home/HomeCategoryGrid";
+import { ProviderCard } from "@/components/famio/ProviderCard";
+import { latinCustomerText } from "@/components/famio/customerProviders";
+import { customerProviders } from "@/components/famio/customerProviders";
 import { HomePromos } from "@/components/home/HomePromoStrip";
 import { HomeRebookRow } from "@/components/home/HomeRebookRow";
+import { useFeaturedPromoCodes } from "@/lib/db/promo-codes-queries";
+import { rebookProvidersFromBookings } from "@/lib/home/rebookProviders";
 import {
   useCategories,
   useProviders,
@@ -15,253 +18,168 @@ import {
   useDefaultAddress,
   useMyBookings,
 } from "@/lib/db/queries";
-import { useFeaturedPromoCodes } from "@/lib/db/promo-codes-queries";
-import { rebookProvidersFromBookings } from "@/lib/home/rebookProviders";
-import { toUICategory, toUIProvider, providerPriceLabel } from "@/lib/db/adapters";
-import {
-  ArrowRight,
-  Bell,
-  ChevronDown,
-  Headphones,
-  MapPin,
-  Search,
-  ShieldCheck,
-  Sparkles,
-} from "lucide-react";
-import { ICON_STROKE, ICON_STROKE_BOLD } from "@/lib/icons/constants";
-import { formatEGP } from "@/lib/utils";
+import { providerPriceLabel } from "@/lib/db/adapters";
 import { previewPath } from "@/lib/preview/previewPath";
+import { isPreviewRoute } from "@/lib/preview/constants";
 import { useProviderOnlyCustomerRedirect } from "@/lib/auth/providerOnlyCustomerGuard";
 
 export const Route = createFileRoute("/home")({ component: Home });
 
-function SectionHeader({ overline, title }: { overline: string; title: string }) {
-  const { t } = useTranslation();
-  return (
-    <div className="mb-4 flex items-end justify-between gap-3 px-5">
-      <div className="min-w-0">
-        <p className="text-overline">{overline}</p>
-        <h2 className="text-title mt-1 text-foreground">{title}</h2>
-      </div>
-      <Link
-        to={previewPath("/search")}
-        className="focus-ring shrink-0 text-xs font-extrabold text-brand"
-      >
-        {t("common.seeAll")}
-      </Link>
-    </div>
-  );
-}
-
 function Home() {
   const { blocking } = useProviderOnlyCustomerRedirect();
-  const profileQ = useMyProfile();
-  const addressQ = useDefaultAddress();
   const { t, i18n } = useTranslation();
-
-  const [greeting, setGreeting] = useState(t("greetings.hello"));
-  useEffect(() => {
-    const h = new Date().getHours();
-    setGreeting(
-      h < 12 ? t("greetings.morning") : h < 18 ? t("greetings.afternoon") : t("greetings.evening"),
-    );
-  }, [t, i18n.language]);
-  const first = profileQ.data?.full_name?.split(" ")[0] || t("greetings.there");
-
-  const catsQ = useCategories();
-  const provsQ = useProviders({ limit: 20 });
-  const unreadQ = useUnreadNotificationCount();
-  const bookingsQ = useMyBookings();
-  const featuredPromosQ = useFeaturedPromoCodes();
-
-  const cats = useMemo(() => (catsQ.data ?? []).map(toUICategory), [catsQ.data, i18n.language]);
-  const providers = useMemo(
-    () => (provsQ.data ?? []).map(toUIProvider),
-    [provsQ.data, i18n.language],
-  );
-
-  const featured = providers.filter((p) => p.featured).slice(0, 4);
-  const rebookProviders = useMemo(
-    () => rebookProvidersFromBookings(bookingsQ.data ?? []),
-    [bookingsQ.data, i18n.language],
-  );
-  const unread = (unreadQ.data ?? 0) > 0;
-
-  const trust = [
-    { icon: ShieldCheck, label: t("home.trust1") },
-    { icon: Sparkles, label: t("home.trust2") },
-    { icon: Headphones, label: t("home.trust3") },
-  ] as const;
-
+  const profile = useMyProfile();
+  const address = useDefaultAddress();
+  const categories = useCategories();
+  const unread = useUnreadNotificationCount();
+  const bookings = useMyBookings();
+  const promos = useFeaturedPromoCodes();
   if (blocking) return null;
-
   return (
-    <AppShell bg="bg-background" hideNav={false}>
-      <header className="brand-hero safe-top relative overflow-hidden rounded-b-[2.5rem] px-5 pb-16 pt-3">
-        <span
-          className="pointer-events-none absolute -end-16 -top-20 h-56 w-56 rounded-full bg-white/15 blur-2xl"
-          aria-hidden="true"
-        />
-        <span
-          className="pointer-events-none absolute -start-14 bottom-0 h-40 w-40 rounded-full bg-white/10 blur-2xl"
-          aria-hidden="true"
-        />
-
-        <div className="relative z-10 flex items-center justify-between gap-3">
+    <AppShell bg="bg-white">
+      <header className="safe-top px-5 py-4">
+        <div className="flex items-center justify-between gap-3">
           <Link
             to={previewPath("/addresses")}
-            className="focus-ring tap-scale inline-flex min-w-0 items-center gap-1.5 rounded-full border border-white/25 bg-white/15 px-3.5 py-2 text-xs font-extrabold text-white backdrop-blur-sm"
+            className="focus-ring flex min-h-11 min-w-0 items-center gap-2 text-pro-14 font-bold"
           >
-            <MapPin
-              className="h-3.5 w-3.5 shrink-0"
-              strokeWidth={ICON_STROKE_BOLD}
-              aria-hidden="true"
-            />
-            <span className="max-w-[11rem] truncate">
-              {addressQ.isError
-                ? t("common.location")
-                : addressQ.data?.area || t("common.location")}
-            </span>
-            <ChevronDown
-              className="h-3.5 w-3.5 shrink-0 opacity-80"
-              strokeWidth={ICON_STROKE_BOLD}
-              aria-hidden="true"
-            />
+            <MapPin className="h-5 w-5 shrink-0" />
+            <span className="truncate">{address.data?.area || t("customerHome.chooseArea")}</span>
           </Link>
           <Link
             to={previewPath("/notifications")}
             aria-label={t("common.notifications")}
-            className="focus-ring tap-scale relative grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/25 bg-white/15 text-white backdrop-blur-sm"
+            className="focus-ring relative grid h-11 w-11 shrink-0 place-items-center rounded-full border border-border/60"
           >
-            <Bell className="h-5 w-5" strokeWidth={ICON_STROKE} aria-hidden="true" />
-            {!unreadQ.isError && unread && (
-              <span className="absolute end-2.5 top-2.5 h-2 w-2 rounded-full bg-white ring-2 ring-brand" />
+            <Bell className="h-5 w-5" />
+            {(unread.data ?? 0) > 0 && (
+              <span className="absolute end-2 top-2 h-2 w-2 rounded-full bg-brand" />
             )}
           </Link>
         </div>
-
-        <div className="relative z-10 mt-7">
-          <p className="text-sm font-bold text-white/75">
-            {t("greetings.withName", { greeting, name: first })}
-          </p>
-          <h1 className="mt-2 text-[1.75rem] font-extrabold leading-[1.15] tracking-tight text-white">
-            {t("home.headline")}
-          </h1>
-        </div>
-      </header>
-
-      <div className="px-5">
+        <p className="mt-4 text-pro-14 text-muted-foreground">
+          {t("greetings.withName", {
+            greeting: t("greetings.hello"),
+            name: profile.data?.full_name?.split(" ")[0] || t("greetings.there"),
+          })}
+        </p>
+        <h1 className="mt-1 text-pro-24 font-extrabold">{t("home.headline")}</h1>
         <Link
           to={previewPath("/search")}
-          className="focus-ring tap-scale relative z-10 -mt-10 flex items-center gap-3 rounded-[1.5rem] border border-border/40 bg-surface p-3 shadow-float"
+          className="focus-ring mt-4 flex min-h-12 items-center gap-3 rounded-2xl border border-border/60 px-4 py-3 text-pro-14 text-muted-foreground"
         >
-          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[1.125rem] bg-brand text-brand-foreground">
-            <Search className="h-5 w-5" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-[0.95rem] font-extrabold text-foreground">
-              {t("home.searchHint")}
-            </span>
-            <span className="mt-0.5 block truncate text-[11px] font-semibold text-muted-foreground">
-              {t("home.exploreServices")}
-            </span>
-          </span>
-          <ArrowRight
-            className="me-2 h-4 w-4 shrink-0 rtl-flip text-muted-foreground"
-            strokeWidth={ICON_STROKE_BOLD}
-            aria-hidden="true"
-          />
+          <Search className="h-5 w-5 shrink-0" />
+          {t("home.searchHint")}
         </Link>
-
-        <div className="mt-4 flex items-center justify-between gap-2">
-          {trust.map(({ icon: Icon, label }) => (
-            <span
-              key={label}
-              className="inline-flex min-w-0 items-center gap-1.5 text-[11px] font-bold text-muted-foreground"
+      </header>
+      <div className="space-y-6 px-5 pb-6">
+        <section>
+          <h2 className="mb-3 text-pro-18 font-bold">{t("home.chooseService")}</h2>
+          {categories.isError ? (
+            <QueryError compact onRetry={() => categories.refetch()} />
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {(categories.data ?? [])
+                .filter((c) => ["babysitting", "tutoring"].includes(c.slug))
+                .map((c) => (
+                  <Link
+                    key={c.id}
+                    to={isPreviewRoute() ? "/preview/category/$id" : "/category/$id"}
+                    params={{ id: c.slug }}
+                    className="focus-ring flex min-h-16 items-center rounded-2xl border border-border/60 p-4 text-pro-14 font-bold"
+                  >
+                    {i18n.language.startsWith("ar") ? c.name_ar : c.name_en}
+                  </Link>
+                ))}
+            </div>
+          )}
+        </section>
+        {address.isLoading ? (
+          <div className="h-24 animate-pulse rounded-2xl bg-surface-2" />
+        ) : address.isError ? (
+          <QueryError onRetry={() => address.refetch()} />
+        ) : !address.data ? (
+          <section className="rounded-2xl border border-border/60 p-4">
+            <h2 className="text-pro-16 font-bold">{t("customerHome.chooseArea")}</h2>
+            <p className="mt-2 text-pro-14 text-muted-foreground">
+              {t("customerHome.addressHint")}
+            </p>
+            <Link
+              to={previewPath("/addresses/new")}
+              className="focus-ring mt-3 inline-flex min-h-11 items-center text-pro-14 font-bold text-brand"
             >
-              <Icon
-                className="h-3.5 w-3.5 shrink-0 text-brand"
-                strokeWidth={ICON_STROKE_BOLD}
-                aria-hidden="true"
-              />
-              <span className="truncate">{label}</span>
-            </span>
-          ))}
-        </div>
-
-        {profileQ.isError && (
-          <div className="mt-4">
-            <QueryError compact onRetry={() => profileQ.refetch()} />
-          </div>
-        )}
-        {addressQ.isError && (
-          <div className="mt-4">
-            <QueryError compact onRetry={() => addressQ.refetch()} />
-          </div>
-        )}
-        {unreadQ.isError && (
-          <div className="mt-4">
-            <QueryError compact onRetry={() => unreadQ.refetch()} />
-          </div>
+              {t("addresses.addAddress")}
+            </Link>
+          </section>
+        ) : (
+          <NearbyProviders addressId={address.data.id} />
         )}
       </div>
-
-      <div className="mt-8">
-        <SectionHeader overline={t("home.servicesSubtitle")} title={t("home.chooseService")} />
-        <HomeCategoryGrid
-          categories={cats}
-          loading={catsQ.isLoading}
-          error={catsQ.isError}
-          onRetry={() => catsQ.refetch()}
+      <div className="pb-8">
+        {promos.isError ? (
+          <QueryError compact onRetry={() => promos.refetch()} />
+        ) : (
+          <HomePromos
+            offers={(promos.data ?? []).map((offer) => ({
+              ...offer,
+              description_ar: latinCustomerText(offer.description_ar),
+              description_en: latinCustomerText(offer.description_en),
+            }))}
+          />
+        )}
+        <HomeRebookRow
+          providers={rebookProvidersFromBookings(bookings.data ?? [])}
+          loading={bookings.isLoading}
+          error={bookings.isError}
+          onRetry={() => bookings.refetch()}
         />
       </div>
-
-      {featuredPromosQ.isLoading ? null : featuredPromosQ.isError ? (
-        <div className="mt-8 px-5">
-          <QueryError compact onRetry={() => featuredPromosQ.refetch()} />
-        </div>
-      ) : (
-        <HomePromos offers={featuredPromosQ.data ?? []} />
-      )}
-
-      <HomeRebookRow
-        providers={rebookProviders}
-        loading={bookingsQ.isLoading}
-        error={bookingsQ.isError}
-        onRetry={() => bookingsQ.refetch()}
-      />
-
-      {provsQ.isLoading || provsQ.isError || featured.length > 0 ? (
-        <section className="mt-9 pb-6">
-          <SectionHeader overline={t("home.featuredSubtitle")} title={t("home.featured")} />
-          <div className="space-y-2.5 px-5">
-            {provsQ.isLoading ? (
-              Array.from({ length: 3 }).map((_, index) => (
-                <div key={index} className="h-24 animate-pulse rounded-[2rem] bg-surface-2" />
-              ))
-            ) : provsQ.isError ? (
-              <QueryError compact onRetry={() => provsQ.refetch()} />
-            ) : (
-              featured.map((p) => (
-                <ProviderListRow
-                  key={p.id}
-                  to="/provider/$id"
-                  params={{ id: p.id }}
-                  avatar={p.avatar}
-                  name={p.name}
-                  subtitle={providerPriceLabel(p, t)}
-                  meta={<ProviderRatingMeta rating={p.rating} reviews={p.reviews} />}
-                  trailing={
-                    <span className="shrink-0 rounded-full bg-brand px-3.5 py-2 text-[11px] font-extrabold text-brand-foreground">
-                      {t("provider.bookNow")}
-                    </span>
-                  }
-                />
-              ))
-            )}
-          </div>
-        </section>
-      ) : null}
     </AppShell>
+  );
+}
+
+function NearbyProviders({ addressId }: { addressId: string }) {
+  const { t } = useTranslation();
+  const babysitters = useProviders({ addressId, categorySlug: "babysitting", limit: 20 });
+  const teachers = useProviders({ addressId, categorySlug: "tutoring", limit: 20 });
+  const providers = customerProviders([...(babysitters.data ?? []), ...(teachers.data ?? [])]);
+  return (
+    <section>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h2 className="text-pro-18 font-bold">{t("customerHome.nearby")}</h2>
+        <Link
+          to={previewPath("/search")}
+          className="focus-ring inline-flex min-h-11 items-center text-pro-13 font-bold text-brand"
+        >
+          {t("common.seeAll")}
+        </Link>
+      </div>
+      <div className="space-y-3">
+        {babysitters.isLoading || teachers.isLoading ? (
+          <div className="h-28 animate-pulse rounded-2xl bg-surface-2" />
+        ) : babysitters.isError || teachers.isError ? (
+          <QueryError
+            onRetry={() => {
+              void babysitters.refetch();
+              void teachers.refetch();
+            }}
+          />
+        ) : providers.length ? (
+          providers.map((p) => (
+            <ProviderCard key={p.id} p={p} subtitle={providerPriceLabel(p, t)} />
+          ))
+        ) : (
+          <div className="rounded-2xl border border-border/60 p-4">
+            <p className="text-pro-14">{t("customerHome.empty")}</p>
+            <Link
+              to={previewPath("/addresses")}
+              className="focus-ring mt-2 inline-flex min-h-11 items-center text-pro-14 font-bold text-brand"
+            >
+              {t("bookingUx.changeArea")}
+            </Link>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }

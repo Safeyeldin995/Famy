@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { CustomerPreview } from "./-customerPreview";
 import { ProviderProfileContent } from "./provider.$id";
 
 export const Route = createFileRoute("/preview/provider/$id")({
@@ -7,5 +8,9 @@ export const Route = createFileRoute("/preview/provider/$id")({
 
 function PreviewProviderPage() {
   const { id } = Route.useParams();
-  return <ProviderProfileContent providerId={id} />;
+  return (
+    <CustomerPreview>
+      <ProviderProfileContent providerId={id} />
+    </CustomerPreview>
+  );
 }
