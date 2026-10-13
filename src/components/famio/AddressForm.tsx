@@ -74,6 +74,7 @@ export function AddressForm({
   const valid =
     value.street.trim().length > 1 &&
     value.area.trim().length > 0 &&
+    isValidLatLng({ lat: value.lat ?? NaN, lng: value.lng ?? NaN }) &&
     (value.label !== "other" || value.customLabel.trim().length > 0);
 
   const submit = () => {
@@ -146,6 +147,8 @@ export function AddressForm({
         <Field label={t("addresses.floor", "Floor")} value={value.floor} onChange={(v) => set("floor", v)} placeholder={t("addresses.floorPlaceholder", "e.g. 3rd")} />
         <Field label={t("setup.apartment")} value={value.apartment} onChange={(v) => set("apartment", v)} placeholder={t("setup.apartmentPlaceholder")} />
       </div>
+      <details className="rounded-2xl border border-border/60 p-4">
+        <summary className="focus-ring flex min-h-11 cursor-pointer items-center text-pro-14 font-bold">{t("customerSetup.arrivalDetails")}</summary>
       <Field label={t("addresses.landmark", "Nearby landmark")} value={value.landmark} onChange={(v) => set("landmark", v)} placeholder={t("addresses.landmarkPlaceholder", "Optional")} />
 
       <div>
@@ -155,10 +158,11 @@ export function AddressForm({
           placeholder={t("setup.notesPlaceholder")}
           value={value.accessNotes}
           onChange={(e) => set("accessNotes", e.target.value)}
-          className="mt-2 w-full resize-none rounded-2xl border border-border/80 bg-surface px-4 py-3 text-[15px] outline-none focus:border-brand"
+          className="mt-2 w-full resize-none rounded-2xl border border-border/80 bg-surface px-4 py-3 text-pro-14 outline-none focus:border-brand"
         />
       </div>
 
+      </details>
       <div>
         <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">{t("addresses.location", "Location on map")}</label>
         <Card className="mt-2 p-3">
@@ -245,7 +249,7 @@ function Field({ label, value, onChange, placeholder }: { label: string; value: 
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="mt-2 h-14 w-full rounded-2xl border border-border/80 bg-surface px-4 text-[15px] font-medium outline-none focus:border-brand"
+        className="mt-2 h-14 w-full rounded-2xl border border-border/80 bg-surface px-4 text-pro-14 font-medium outline-none focus:border-brand"
       />
     </div>
   );

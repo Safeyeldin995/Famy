@@ -1,10 +1,8 @@
-import { OptionalSetupSection, setupGroupHasData } from "@/components/famio/OptionalSetupSection";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
-import { PhoneFrame, PrimaryButton, Avatar } from "@/components/famio/ui";
+import { PhoneFrame, PrimaryButton } from "@/components/famio/ui";
 import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
 import { QueryError } from "@/components/famio/QueryError";
 import { useApp } from "@/lib/store";
@@ -14,25 +12,12 @@ import {
   useUpdateAddress,
   useAddresses,
   useMyProfile,
-  useAvatarUrl,
 } from "@/lib/db/queries";
 import { useServiceAreasSettings } from "@/lib/db/settings-queries";
-import { supabase } from "@/integrations/supabase/client";
 import { AuthGate } from "@/components/famio/AuthGate";
-import {
-  EducationProfileFields,
-  educationIdsFromValue,
-  educationValueFromIds,
-  type EducationProfileValue,
-} from "@/components/famio/EducationProfileFields";
-import {
-  useCustomerEducationProfile,
-  useUpsertCustomerEducationProfile,
-} from "@/lib/db/student-education-queries";
-import { canPersistSetupEducationProfile } from "@/lib/tutoring/setupEducationSave";
 import { LocationPicker, isValidLatLng } from "@/components/famio/LocationPicker";
 import { Card } from "@/components/famio/ui";
-import { AlertTriangle, Camera, MapPin, Loader2 } from "lucide-react";
+import { AlertTriangle, MapPin, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/setup")({ component: SetupRoute });
 
@@ -50,7 +35,7 @@ function Setup() {
   const { profile, setProfile } = useApp();
   const nav = useNavigate();
   const { t } = useTranslation();
-  const [form, setForm] = useState({ ...profile, area: "" });
+  const [form, setForm] = useState({ ...profile, area: "", floor: "" });
   const [existingAddressId, setExistingAddressId] = useState<string | null>(null);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const updateProfile = useUpdateProfile();
@@ -60,15 +45,6 @@ function Setup() {
   const areasQ = useServiceAreasSettings();
   const areaOptions = (areasQ.data ?? []).filter((a) => a.enabled).map((a) => a.name);
   const myProfile = useMyProfile();
-  const educationQ = useCustomerEducationProfile();
-  const upsertEducation = useUpsertCustomerEducationProfile();
-  const [education, setEducation] = useState<EducationProfileValue>(
-    educationValueFromIds(null, null),
-  );
-  const qc = useQueryClient();
-  const [uploading, setUploading] = useState(false);
-  const fileRef = useRef<HTMLInputElement | null>(null);
-  const avatarQ = useAvatarUrl(myProfile.data?.avatar_url as string | undefined);
 
   useEffect(() => {
     if (myProfile.data?.full_name) {
@@ -77,16 +53,6 @@ function Setup() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myProfile.data?.full_name]);
 
-  useEffect(() => {
-    if (educationQ.data) {
-      setEducation(
-        educationValueFromIds(
-          educationQ.data.education_curriculum_id,
-          educationQ.data.education_level_id,
-        ),
-      );
-    }
-  }, [educationQ.data]);
 
   useEffect(() => {
     const list = existingAddresses.data;
@@ -99,6 +65,7 @@ function Setup() {
       address: def.street ?? def.line1 ?? "",
       compound: def.compound ?? "",
       building: def.building ?? "",
+      floor: def.floor ?? "",
       apartment: def.apartment ?? "",
       notes: def.access_notes ?? "",
     }));
@@ -107,46 +74,18 @@ function Setup() {
     }
   }, [existingAddresses.data]);
 
-  const onPickAvatar = async (file: File) => {
-    try {
-      setUploading(true);
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) throw new Error("auth required");
-      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-      const path = `${user.id}/avatar-${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from("avatars")
-        .upload(path, file, { contentType: file.type, upsert: true });
-      if (upErr) throw upErr;
-      const { error: dbErr } = await supabase
-        .from("profiles")
-        .update({ avatar_url: path })
-        .eq("id", user.id);
-      if (dbErr) throw dbErr;
-      await qc.invalidateQueries({ queryKey: ["my-profile"] });
-    } catch (e: any) {
-      toast.error(e?.message ?? t("setup.uploadFailed", "Could not upload photo."));
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const update = (k: keyof typeof form, v: string) => setForm({ ...form, [k]: v });
   const valid =
-    form.name.trim().length > 1 && form.address.trim().length > 2 && form.area.trim().length > 0;
+    form.name.trim().length > 1 && form.address.trim().length > 2 && form.area.trim().length > 0 && isValidLatLng(coords);
   const saving =
     updateProfile.isPending ||
     createAddress.isPending ||
-    updateAddress.isPending ||
-    upsertEducation.isPending;
+    updateAddress.isPending;
 
   if (
     myProfile.isLoading ||
     existingAddresses.isLoading ||
-    areasQ.isLoading ||
-    educationQ.isLoading
+    areasQ.isLoading
   ) {
     return (
       <PhoneFrame bg="bg-background">
@@ -176,15 +115,6 @@ function Setup() {
     );
   }
 
-  if (educationQ.isError) {
-    return (
-      <PhoneFrame bg="bg-background">
-        <CustomerPageHero title={t("setup.title")} backTo="/profile" />
-        <QueryError onRetry={() => educationQ.refetch()} />
-      </PhoneFrame>
-    );
-  }
-
   const submit = async () => {
     if (!valid || saving) return;
     if (existingAddresses.isLoading) {
@@ -192,9 +122,6 @@ function Setup() {
     }
     try {
       await updateProfile.mutateAsync({ full_name: form.name.trim() });
-      if (canPersistSetupEducationProfile(educationQ)) {
-        await upsertEducation.mutateAsync(educationIdsFromValue(education));
-      }
 
       if (existingAddressId) {
         await updateAddress.mutateAsync({
@@ -203,6 +130,7 @@ function Setup() {
           street: form.address.trim(),
           compound: form.compound || undefined,
           building: form.building || undefined,
+          floor: form.floor || undefined,
           apartment: form.apartment || undefined,
           access_notes: form.notes || undefined,
           area: form.area,
@@ -217,6 +145,7 @@ function Setup() {
           street: form.address.trim(),
           compound: form.compound || undefined,
           building: form.building || undefined,
+          floor: form.floor || undefined,
           apartment: form.apartment || undefined,
           access_notes: form.notes || undefined,
           area: form.area,
@@ -230,7 +159,7 @@ function Setup() {
       setProfile(form);
       nav({ to: "/home" });
     } catch (e: any) {
-      toast.error(e?.message ?? t("setup.saveFailed", "Could not save your profile."));
+      toast.error(t("setup.saveFailed"));
     }
   };
 
@@ -286,7 +215,7 @@ function Setup() {
               placeholder={t("setup.addressPlaceholder")}
               value={form.address}
               onChange={(e) => update("address", e.target.value)}
-              className="min-w-0 flex-1 resize-none bg-transparent text-[15px] font-medium outline-none placeholder:text-muted-foreground/60"
+              className="min-w-0 flex-1 resize-none bg-transparent text-pro-14 font-medium outline-none placeholder:text-muted-foreground/60"
             />
           </div>
         </div>
@@ -299,7 +228,7 @@ function Setup() {
             <LocationPicker value={coords} onChange={(pos) => setCoords(pos)} />
           </Card>
           {!isValidLatLng(coords) && (
-            <p className="mt-2 flex items-start gap-1.5 text-[11px] font-semibold text-muted-foreground">
+            <p className="mt-2 flex items-start gap-1.5 text-pro-12 font-semibold text-muted-foreground">
               <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-brand" />
               {t(
                 "addresses.noCoordsWarning",
@@ -309,81 +238,9 @@ function Setup() {
           )}
         </div>
 
-        <OptionalSetupSection title={t("setup.schoolOptional")} hasData={setupGroupHasData([education.educationCurriculumId, education.educationLevelId])}>
-          <EducationProfileFields value={education} onChange={setEducation} />
-        </OptionalSetupSection>
-        <OptionalSetupSection title={t("setup.addressExtrasOptional")} hasData={setupGroupHasData([form.compound, form.building, form.apartment, form.notes])}>
-        <Field
-          label={t("setup.compound")}
-          value={form.compound}
-          onChange={(v) => update("compound", v)}
-          placeholder={t("setup.compoundPlaceholder")}
-        />
-        <Field
-          label={t("setup.building")}
-          value={form.building}
-          onChange={(v) => update("building", v)}
-          placeholder={t("setup.buildingPlaceholder")}
-        />
-        <Field
-          label={t("setup.apartment")}
-          value={form.apartment}
-          onChange={(v) => update("apartment", v)}
-          placeholder={t("setup.apartmentPlaceholder")}
-        />
-
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
-            {t("setup.notes")}
-          </label>
-          <textarea
-            rows={2}
-            placeholder={t("setup.notesPlaceholder")}
-            value={form.notes}
-            onChange={(e) => update("notes", e.target.value)}
-            className="mt-2 w-full resize-none rounded-2xl border border-border bg-surface px-4 py-3 text-[15px] outline-none focus:border-brand"
-          />
-        </div>
-        </OptionalSetupSection>
-        <OptionalSetupSection title={t("setup.photoOptional")} hasData={setupGroupHasData([myProfile.data?.avatar_url])}>
-        <div className="flex flex-col items-center pb-2">
-          <div className="relative">
-            {avatarQ.data ? (
-              <Avatar src={avatarQ.data} className="h-24 w-24 rounded-full" />
-            ) : (
-              <div className="grid h-24 w-24 place-items-center rounded-full bg-brand/8 text-3xl font-black text-brand">
-                {form.name ? form.name.charAt(0).toUpperCase() : "F"}
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              disabled={uploading}
-              className="absolute -bottom-1 -right-1 grid h-9 w-9 place-items-center rounded-full bg-brand text-brand-foreground shadow-card disabled:opacity-60"
-              aria-label={t("setup.photoHint")}
-            >
-              {uploading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Camera className="h-4 w-4" />
-              )}
-            </button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) onPickAvatar(f);
-                e.target.value = "";
-              }}
-            />
-          </div>
-          <p className="mt-3 text-xs text-muted-foreground">{t("setup.photoHint")}</p>
-        </div>
-
-        </OptionalSetupSection>
+        <Field label={t("setup.building")} value={form.building} onChange={(v) => update("building", v)} placeholder={t("setup.buildingPlaceholder")} />
+        <Field label={t("addresses.floor")} value={form.floor} onChange={(v) => update("floor", v)} placeholder={t("addresses.floorPlaceholder")} />
+        <Field label={t("setup.apartment")} value={form.apartment} onChange={(v) => update("apartment", v)} placeholder={t("setup.apartmentPlaceholder")} />
       </div>
       <div className="action-bar safe-bottom px-6 pt-4">
         <PrimaryButton onClick={submit} disabled={!valid || saving}>
@@ -414,7 +271,7 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="mt-2 h-14 w-full rounded-[1.25rem] border border-border bg-surface px-4 text-[15px] font-semibold outline-none focus:border-brand"
+        className="mt-2 h-14 w-full rounded-[1.25rem] border border-border bg-surface px-4 text-pro-14 font-semibold outline-none focus:border-brand"
       />
     </div>
   );

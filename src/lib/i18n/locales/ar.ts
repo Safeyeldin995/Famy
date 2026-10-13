@@ -2,11 +2,13 @@ import type { Translation } from "./en";
 
 const ar: Translation = {
   customerHome: {
+    profileEdit: "عدل الاسم والعنوان",
     chooseArea: "اختار منطقتك",
     addressHint: "ضيف عنوانك عشان تشوف جليسات الأطفال والمدرسين المتاحين في منطقتك.",
     nearby: "متاحين في منطقتك",
     empty: "مفيش مقدمي خدمة متاحين للعنوان ده حاليا. جرب عنوان تاني محفوظ.",
   },
+  customerSetup: { arrivalDetails: "تفاصيل تساعد مقدم الخدمة يوصل" },
   providerPushUnavailable: {
     title: "الإشعارات على الموبايل مش متاحة لسه",
     body: "هتوصلك كل التحديثات جوه التطبيق في صفحة الإشعارات",

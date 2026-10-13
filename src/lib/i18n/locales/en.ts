@@ -1,10 +1,12 @@
 const en = {
   customerHome: {
+    profileEdit: "Edit name and address",
     chooseArea: "Choose your area",
     addressHint: "Add your address to see babysitters and teachers who serve your area.",
     nearby: "Available near you",
     empty: "No providers are available for this address yet. Try another saved address.",
   },
+  customerSetup: { arrivalDetails: "Details to help your provider find you" },
   providerPushUnavailable: {
     title: "Phone notifications are not available yet",
     body: "You will receive all updates in the app on the notifications page.",
