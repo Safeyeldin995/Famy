@@ -1,3 +1,8 @@
+import {
+  ConfirmCatalogButton,
+  catalogScreen,
+  catalogName,
+} from "@/components/admin/CatalogControls";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -135,7 +140,7 @@ function dbErrorMessage(e: any, t: (key: string) => string): string {
 }
 
 function OverlapWarning({ polygon, excludeZoneId }: { polygon: LatLng[]; excludeZoneId?: string }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const check = useCheckZoneOverlap();
   useEffect(() => {
     if (polygon.length < 3) return;
@@ -153,7 +158,7 @@ function OverlapWarning({ polygon, excludeZoneId }: { polygon: LatLng[]; exclude
 }
 
 function AddressTestTool({ zone }: { zone: any }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [point, setPoint] = useState<LatLng | null>(null);
   const test = useTestPointInZone();
 
@@ -169,7 +174,7 @@ function AddressTestTool({ zone }: { zone: any }) {
       <h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
         {t("admin.zones.testAddress")}
       </h3>
-      <p className="mt-1 text-[11px] text-muted-foreground">{t("admin.zones.testAddressHint")}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{t("admin.zones.testAddressHint")}</p>
       <div className="mt-2">
         <LocationPicker value={point} onChange={run} />
       </div>
@@ -195,10 +200,10 @@ function ZoneFormFields({
   otherZones: OtherZone[];
   excludeZoneId?: string;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <label className="block">
           <span className="text-xs font-semibold text-muted-foreground">
             {t("admin.cancellationReasons.nameEn")}
@@ -210,7 +215,7 @@ function ZoneFormFields({
             className="mt-1 h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm"
           />
           {errors.name_en && (
-            <p className="mt-1 text-[11px] font-semibold text-coral">{errors.name_en}</p>
+            <p className="mt-1 text-xs font-semibold text-coral">{errors.name_en}</p>
           )}
         </label>
         <label className="block">
@@ -224,7 +229,7 @@ function ZoneFormFields({
             className="mt-1 h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm"
           />
           {errors.name_ar && (
-            <p className="mt-1 text-[11px] font-semibold text-coral">{errors.name_ar}</p>
+            <p className="mt-1 text-xs font-semibold text-coral">{errors.name_ar}</p>
           )}
         </label>
       </div>
@@ -260,7 +265,7 @@ function ZoneFormFields({
           className="mt-1 h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm"
         />
         {errors.travel_fee && (
-          <p className="mt-1 text-[11px] font-semibold text-coral">{errors.travel_fee}</p>
+          <p className="mt-1 text-xs font-semibold text-coral">{errors.travel_fee}</p>
         )}
       </label>
 
@@ -272,7 +277,7 @@ function ZoneFormFields({
             otherZones={otherZones}
           />
           {errors.polygon && (
-            <p className="mt-1 text-[11px] font-semibold text-coral">{errors.polygon}</p>
+            <p className="mt-1 text-xs font-semibold text-coral">{errors.polygon}</p>
           )}
           <OverlapWarning polygon={form.polygon} excludeZoneId={excludeZoneId} />
         </div>
@@ -291,7 +296,7 @@ function ZoneFormFields({
               className="mt-1 h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm"
             />
             {errors.radius_km && (
-              <p className="mt-1 text-[11px] font-semibold text-coral">{errors.radius_km}</p>
+              <p className="mt-1 text-xs font-semibold text-coral">{errors.radius_km}</p>
             )}
           </label>
           <div>
@@ -309,7 +314,7 @@ function ZoneFormFields({
               />
             </div>
             {errors.center && (
-              <p className="mt-1 text-[11px] font-semibold text-coral">{errors.center}</p>
+              <p className="mt-1 text-xs font-semibold text-coral">{errors.center}</p>
             )}
           </div>
         </>
@@ -319,7 +324,7 @@ function ZoneFormFields({
 }
 
 function CoveragePanel({ zoneId }: { zoneId: string }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const servicesQ = useAdminServices();
   const providersQ = useAdminProviders("verified");
   const zoneServicesQ = useZoneServiceCoverage(zoneId);
@@ -327,11 +332,26 @@ function CoveragePanel({ zoneId }: { zoneId: string }) {
   const setService = useSetZoneService();
   const setProvider = useSetZoneProvider();
 
+  const [providerSearch, setProviderSearch] = useState("");
   const enabledServices = zoneServicesQ.data ?? new Set<string>();
   const coveredProviders = zoneProvidersQ.data ?? new Set<string>();
 
+  if ([servicesQ, providersQ, zoneServicesQ, zoneProvidersQ].some((q) => q.isError))
+    return (
+      <AdminQueryError
+        message={t("admin.zones.loadError")}
+        onRetry={() => {
+          void servicesQ.refetch();
+          void providersQ.refetch();
+          void zoneServicesQ.refetch();
+          void zoneProvidersQ.refetch();
+        }}
+      />
+    );
+  if ([servicesQ, providersQ, zoneServicesQ, zoneProvidersQ].some((q) => q.isLoading))
+    return <p>{t("common.loading")}</p>;
   return (
-    <div className="mt-4 grid grid-cols-2 gap-4 border-t border-border pt-4">
+    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-border pt-4">
       <div>
         <h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
           {t("admin.zones.servicesInZone")}
@@ -339,7 +359,7 @@ function CoveragePanel({ zoneId }: { zoneId: string }) {
         <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto">
           {(servicesQ.data ?? []).map((s: any) => (
             <li key={s.id}>
-              <label className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs hover:bg-surface-2">
+              <label className="flex min-h-11 items-center gap-2 rounded-lg px-2 py-1.5 text-xs hover:bg-surface-2">
                 <input
                   type="checkbox"
                   checked={enabledServices.has(s.id)}
@@ -351,7 +371,7 @@ function CoveragePanel({ zoneId }: { zoneId: string }) {
                     )
                   }
                 />
-                {s.name_en}
+                {catalogName(s, i18n.language)}
               </label>
             </li>
           ))}
@@ -359,27 +379,43 @@ function CoveragePanel({ zoneId }: { zoneId: string }) {
       </div>
       <div>
         <h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-          {t("admin.zones.providersInZone")}
+          {t("adminCatalog.linkProvider")}
         </h3>
+        <input
+          aria-label={t("adminCatalog.providerSearch")}
+          placeholder={t("adminCatalog.providerSearch")}
+          value={providerSearch}
+          onChange={(e) => setProviderSearch(e.target.value)}
+          className="mt-2 min-h-11 w-full rounded-xl border px-3"
+        />
         <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto">
-          {(providersQ.data ?? []).map((p: any) => (
-            <li key={p.id}>
-              <label className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs hover:bg-surface-2">
-                <input
-                  type="checkbox"
-                  checked={coveredProviders.has(p.id)}
-                  disabled={setProvider.isPending}
-                  onChange={(e) =>
-                    setProvider.mutate(
-                      { zoneId, providerId: p.id, enabled: e.target.checked },
-                      { onError: (e2: any) => toast.error(dbErrorMessage(e2, t)) },
-                    )
-                  }
-                />
-                {p.profile?.full_name || p.id.slice(0, 8)}
-              </label>
-            </li>
-          ))}
+          {(providersQ.data ?? [])
+            .filter(
+              (p: any) =>
+                coveredProviders.has(p.id) ||
+                (providerSearch.trim() &&
+                  (p.profile?.full_name ?? "")
+                    .toLocaleLowerCase()
+                    .includes(providerSearch.trim().toLocaleLowerCase())),
+            )
+            .map((p: any) => (
+              <li key={p.id}>
+                <label className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs hover:bg-surface-2">
+                  <input
+                    type="checkbox"
+                    checked={coveredProviders.has(p.id)}
+                    disabled={setProvider.isPending}
+                    onChange={(e) =>
+                      setProvider.mutate(
+                        { zoneId, providerId: p.id, enabled: e.target.checked },
+                        { onError: (e2: any) => toast.error(dbErrorMessage(e2, t)) },
+                      )
+                    }
+                  />
+                  {p.profile?.full_name || t("adminCatalog.unnamedProvider")}
+                </label>
+              </li>
+            ))}
         </ul>
       </div>
     </div>
@@ -387,21 +423,40 @@ function CoveragePanel({ zoneId }: { zoneId: string }) {
 }
 
 export function ZoneServicesWarning({ zoneId }: { zoneId: string }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const servicesQ = useAdminServices();
   const coverageQ = useZoneServiceCoverage(zoneId);
   if (!servicesQ.isSuccess || !coverageQ.isSuccess) return null;
   if (servicesQ.data.some((service) => service.is_active && coverageQ.data.has(service.id)))
     return null;
   return (
-    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">
       {t("admin.zones.noServicesEnabled")}
     </span>
   );
 }
 
+function ZoneCoverageSummary({ zoneId }: { zoneId: string }) {
+  const { t, i18n } = useTranslation();
+  const providers = useZoneProviderCoverage(zoneId);
+  const services = useZoneServiceCoverage(zoneId);
+  const catalog = useAdminServices();
+  if ([providers, services, catalog].some((q) => q.isError))
+    return <p>{t("adminCatalog.coverageError")}</p>;
+  if ([providers, services, catalog].some((q) => q.isLoading)) return <p>{t("common.loading")}</p>;
+  const names = (catalog.data ?? [])
+    .filter((s: any) => services.data?.has(s.id))
+    .map((s: any) => catalogName(s, i18n.language));
+  return (
+    <p className="mt-2 text-xs text-muted-foreground">
+      {t("adminCatalog.providerCount", { total: providers.data?.size ?? 0 })} ·{" "}
+      {names.join("، ") || t("adminCatalog.noCoverage")}
+    </p>
+  );
+}
+
 function AdminZones() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const q = useAdminZones();
   const create = useCreateZone();
   const update = useUpdateZone();
@@ -484,7 +539,7 @@ function AdminZones() {
   };
 
   return (
-    <div className="px-5 py-5 space-y-4">
+    <div className={catalogScreen}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
@@ -499,16 +554,6 @@ function AdminZones() {
           <Plus className="h-3.5 w-3.5" /> {t("admin.zones.newZone")}
         </button>
       </div>
-
-      {!creating && !editingId && allOtherZones.length > 0 && (
-        <section className="rounded-2xl border border-border/60 bg-surface p-5 shadow-sm">
-          <h2 className="text-sm font-extrabold">{t("admin.zones.overviewTitle")}</h2>
-          <p className="text-xs text-muted-foreground">{t("admin.zones.overviewHint")}</p>
-          <div className="mt-3">
-            <ZonePolygonEditor polygon={[]} onChange={() => {}} otherZones={allOtherZones} />
-          </div>
-        </section>
-      )}
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex h-10 min-w-[220px] flex-1 items-center gap-2 rounded-xl border border-border bg-surface px-3">
@@ -619,17 +664,23 @@ function AdminZones() {
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <MapPin className="h-3.5 w-3.5 text-coral" />
-                        <p className="text-sm font-semibold">
-                          {z.name_en} <span className="text-muted-foreground">/ {z.name_ar}</span>
-                        </p>
+                        <p className="text-sm font-semibold">{catalogName(z, i18n.language)}</p>
                         {!z.is_active && (
-                          <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">
+                          <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-bold uppercase text-muted-foreground">
                             {t("admin.cancellationReasons.inactive")}
                           </span>
                         )}
-                        {z.is_active && <ZoneServicesWarning zoneId={z.id} />}
+                        {z.is_active && (
+                          <>
+                            <span className="text-xs text-success">
+                              {t("admin.customers.filterActive")}
+                            </span>
+                            <ZoneServicesWarning zoneId={z.id} />
+                          </>
+                        )}
                       </div>
-                      <p className="text-[11px] text-muted-foreground">
+                      <ZoneCoverageSummary zoneId={z.id} />
+                      <p className="text-xs text-muted-foreground">
                         {z.boundary_type === "polygon"
                           ? t("admin.zones.polygonMode")
                           : t("admin.zones.radiusAndFee", {
@@ -638,7 +689,7 @@ function AdminZones() {
                             })}
                       </p>
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <button
                         onClick={() => setCoverageZoneId(coverageZoneId === z.id ? null : z.id)}
                         className="focus-ring rounded-lg border border-border px-3 py-1.5 text-xs font-semibold"
@@ -653,9 +704,10 @@ function AdminZones() {
                       >
                         {t("common.edit")}
                       </button>
-                      <button
+                      <ConfirmCatalogButton
+                        description={t("adminCatalog.zoneImpact")}
                         disabled={setActive.isPending}
-                        onClick={() =>
+                        onConfirm={() =>
                           setActive.mutate(
                             { id: z.id, active: !z.is_active },
                             { onError: (e: any) => toast.error(dbErrorMessage(e, t)) },
@@ -666,7 +718,7 @@ function AdminZones() {
                         {z.is_active
                           ? t("admin.cancellationReasons.deactivate")
                           : t("admin.cancellationReasons.activate")}
-                      </button>
+                      </ConfirmCatalogButton>
                     </div>
                   </div>
                 )}
@@ -681,6 +733,15 @@ function AdminZones() {
           </ul>
         )}
       </section>
+      {!creating && !editingId && allOtherZones.length > 0 && (
+        <section className="rounded-2xl border border-border/60 bg-surface p-5 shadow-sm">
+          <h2 className="text-sm font-extrabold">{t("admin.zones.overviewTitle")}</h2>
+          <p className="text-xs text-muted-foreground">{t("admin.zones.overviewHint")}</p>
+          <div className="mt-3">
+            <ZonePolygonEditor polygon={[]} onChange={() => {}} otherZones={allOtherZones} />
+          </div>
+        </section>
+      )}
     </div>
   );
 }
