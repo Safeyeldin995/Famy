@@ -35,10 +35,6 @@ function avatarFor(profile: any, _providerId: string): string {
   return profile?.avatar_url ?? "";
 }
 
-function galleryFor(seed: string, n = 4): string[] {
-  return Array.from({ length: n }, (_, i) => `https://picsum.photos/seed/${seed}${i}/600/400`);
-}
-
 /** Map a Supabase provider row (with joined profile/ratings/trust/services) to UIProvider. */
 export function toUIProvider(row: any): UIProvider {
   const lang = currentLang();
@@ -50,11 +46,11 @@ export function toUIProvider(row: any): UIProvider {
   const isKids = categorySlug === "babysitting";
   const bio = (lang === "ar" ? row.bio_ar : row.bio_en) || row.bio_en || "";
 
+  // Only facts the platform has actually verified. Never add marketing badges
+  // (background check, first aid, ...) without a real verified record.
   const badges: string[] = [];
   if (row.is_verified) badges.push("ID Verified");
-  if (row.is_verified) badges.push("Background Check");
   if (row.is_top_pro) badges.push("Famy Certified");
-  if (isKids) badges.push("First Aid");
 
   return {
     id: row.id,
@@ -81,7 +77,8 @@ export function toUIProvider(row: any): UIProvider {
         name: (lang === "ar" ? ps.service?.name_ar : ps.service?.name_en) || ps.service?.name_en || "",
         status: ps.status,
       })),
-    gallery: galleryFor(row.id),
+    // Providers cannot upload work photos yet; never show stock images.
+    gallery: [],
     featured: !!row.is_top_pro,
   };
 }

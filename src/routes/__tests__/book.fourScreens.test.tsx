@@ -105,6 +105,7 @@ vi.mock("@/lib/db/queries", () => ({
     }),
   useAvatarUrl: () => query(null),
   useProviderServices: () => query(services),
+  useBookableServiceIds: () => query(null),
   useFixedPackageRate: () => query(null),
   useAddresses: () =>
     query([

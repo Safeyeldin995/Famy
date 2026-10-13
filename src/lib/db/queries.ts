@@ -8,6 +8,7 @@ import { cairoWallTime, packageRuleStart } from "@/lib/pricing/servicePackages";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { creationMinHours, parseBookingExpirySettings } from '@/lib/booking/pending-expiry';
 import { supabase } from '@/integrations/supabase/client';
+import { isPreviewRoute } from '@/lib/preview/constants';
 import { CUSTOMER_MARKETPLACE_REFETCH_MS, customerMarketplaceRefetchInterval } from '@/lib/db/marketplace-cache';
 import { mapBookingRpcError } from '@/lib/booking/errors';
 import { completeCreateBookingResult, createBookingFetcher } from '@/lib/booking/create-booking-result';
@@ -339,6 +340,27 @@ export function useProvider(id: string | undefined, addressId?: string) {
       const { data, error } = await supabase.rpc('marketplace_provider_details', args);
       if (error) throw error;
       return data?.[0] ? (await marketplaceRowsWithPackages([data[0]]))[0] : null;
+    },
+  });
+}
+
+/**
+ * Services this provider can actually be booked for right now (the same
+ * eligibility the booking trigger enforces). `null` means "unknown" (still
+ * loading, preview, or failed) so callers fall back to the approved list.
+ */
+export function useBookableServiceIds(providerId: string | undefined, addressId?: string) {
+  return useQuery({
+    enabled: !!providerId && !isPreviewRoute(),
+    // Signed-out visitors and providers get a permission error; don't retry it.
+    retry: false,
+    queryKey: ['bookable-services', providerId, addressId ?? null],
+    queryFn: async () => {
+      const args: { p_provider_id: string; p_address_id?: string } = { p_provider_id: providerId! };
+      if (addressId) args.p_address_id = addressId;
+      const { data, error } = await supabase.rpc('marketplace_provider_bookable_services', args);
+      if (error) throw error;
+      return new Map((data ?? []).map((row) => [row.service_id, row.effective_price as number | null]));
     },
   });
 }

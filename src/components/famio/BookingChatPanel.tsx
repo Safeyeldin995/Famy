@@ -40,7 +40,7 @@ function actorLabel(t: ReturnType<typeof useTranslation>["t"], viewer: Viewer, r
  */
 export function BookingChatPanel({ bookingId, status, viewer, compactUnavailable = false }: { bookingId: string; status: string | undefined; viewer: Viewer; compactUnavailable?: boolean }) {
   const { t } = useTranslation();
-  const convQ = useConversationByBooking(bookingId);
+  const convQ = useConversationByBooking(bookingId, status);
   const conversationId = convQ.data ?? undefined;
   const msgsQ = useMessages(conversationId);
   const send = useSendMessage(conversationId);
@@ -98,14 +98,19 @@ export function BookingChatPanel({ bookingId, status, viewer, compactUnavailable
       return;
     }
     if (containsContactInfo(trimmed)) {
-      setWarning(CONTACT_BLOCKED_MESSAGE);
+      setWarning(t("bookingChat.contactBlocked", CONTACT_BLOCKED_MESSAGE));
+      return;
+    }
+    if (!conversationId) {
+      void convQ.refetch();
+      setWarning(t("bookingChat.sendFailed", "Couldn't send. Please try again."));
       return;
     }
     send.mutate(trimmed, {
       onSuccess: () => { setText(""); setWarning(null); },
       onError: (e: any) => {
-        if (e?.message === "contact_masked") setWarning(CONTACT_BLOCKED_MESSAGE);
-        else setWarning(e?.message || t("bookingChat.sendFailed", "Couldn't send. Please try again."));
+        if (e?.message === "contact_masked") setWarning(t("bookingChat.contactBlocked", CONTACT_BLOCKED_MESSAGE));
+        else setWarning(t("bookingChat.sendFailed", "Couldn't send. Please try again."));
       },
     });
   };

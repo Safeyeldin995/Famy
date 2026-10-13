@@ -3,6 +3,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchBookingParties } from "@/lib/db/booking-parties";
 import { useAuth } from "@/lib/auth/useAuth";
 import { isClosedBetaCategorySlug } from "@/lib/catalog/closedBetaCategories";
 import { isQaCatalogService } from "@/lib/catalog/qaCatalog";
@@ -198,7 +199,7 @@ export function useProviderBookings(providerId: string | undefined) {
         .order("start_at", { ascending: false })
         .limit(200);
       if (error) throw error;
-      return data ?? [];
+      return withCustomerParties(data ?? []);
     },
   });
 }
@@ -216,8 +217,35 @@ export function useProviderBooking(id: string | undefined) {
         .eq("id", id!)
         .maybeSingle();
       if (error) throw error;
-      return data;
+      return data ? (await withCustomerParties([data]))[0] : data;
     },
+  });
+}
+
+/**
+ * `profiles` is self-only under RLS, so the `customer` join above comes back
+ * null for providers. Fill the customer's name/avatar (and the phone only
+ * while the booking is active) from the party-checked booking_party_profiles.
+ */
+async function withCustomerParties<T extends { id: string; customer?: unknown }>(rows: T[]): Promise<T[]> {
+  if (rows.length === 0) return rows;
+  // Names are cosmetic: if the lookup fails, keep the bookings list working.
+  const parties = await fetchBookingParties(rows.map((row) => row.id)).catch(
+    () => new Map<string, never>(),
+  );
+  return rows.map((row) => {
+    const party = parties.get(row.id);
+    if (!party) return row;
+    const current = (row.customer ?? {}) as { full_name?: string | null; avatar_url?: string | null; phone?: string | null };
+    return {
+      ...row,
+      customer: {
+        ...current,
+        full_name: party.other_name ?? current.full_name ?? null,
+        avatar_url: party.other_avatar_url ?? current.avatar_url ?? null,
+        phone: party.other_phone ?? null,
+      },
+    };
   });
 }
 
