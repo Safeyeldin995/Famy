@@ -1,36 +1,39 @@
 import { useTranslation } from "react-i18next";
-import { BookingTimeline, StatusPill } from "@/components/famio/ui";
-import { bookingStatusStep } from "@/lib/provider/workScreenPresentation";
+import { Check } from "lucide-react";
+import { StatusPill } from "@/components/famio/ui";
+import { providerTimelineIndex, PROVIDER_JOURNEY_STEPS } from "@/lib/provider/journeyPresentation";
 
 export function BookingStatusCard({ status }: { status: string }) {
   const { t } = useTranslation();
-  const step = bookingStatusStep(status);
-  const pill = (
-    <StatusPill
-      tone={status === "completed" ? "success" : status === "pending" ? "warning" : "brand"}
-    >
-      {t(`pro.statuses.${status}`, { defaultValue: status })}
-    </StatusPill>
-  );
+  const index = providerTimelineIndex(status);
   return (
-    <section className="rounded-2xl border border-border/50 bg-surface px-4 py-2">
-      {step.index >= 0 && (
-        <details>
-          <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-2 text-pro-12 font-bold text-brand">
-            {pill}
-            <span>{t("proWork.allSteps")}</span>
-          </summary>
-          <BookingTimeline
-            status={status}
-            labelFor={(value) => t(`pro.booking.timeline.${value}`)}
-          />
-        </details>
-      )}
-      {step.index < 0 && pill}
-      {step.next && (
-        <p className="text-pro-13 text-muted-foreground">
-          {t("proWork.nextStep", { step: t(`pro.booking.timeline.${step.next}`) })}
-        </p>
+    <section className="rounded-2xl border border-border/50 bg-surface p-4">
+      <StatusPill
+        tone={status === "completed" ? "success" : status === "pending" ? "warning" : "brand"}
+      >
+        {t(`pro.statuses.${status}`, { defaultValue: status })}
+      </StatusPill>
+      {!["cancelled", "no_show", "disputed"].includes(status) && (
+        <ol
+          aria-label={t("proWork.allSteps")}
+          className="mt-3 space-y-2 border-s-2 border-border ps-3"
+        >
+          {PROVIDER_JOURNEY_STEPS.map((key, i) => (
+            <li
+              key={key}
+              aria-current={i === index ? "step" : undefined}
+              className={`flex items-center gap-2 text-pro-13 ${i <= index ? "font-bold text-brand" : "text-muted-foreground"}`}
+            >
+              <span
+                className={`grid h-5 w-5 place-items-center rounded-full ${i <= index ? "bg-brand text-white" : "bg-surface-2"}`}
+                aria-hidden="true"
+              >
+                {i <= index ? <Check size={12} /> : i + 1}
+              </span>
+              {t(`proRound2.${key}`)}
+            </li>
+          ))}
+        </ol>
       )}
     </section>
   );

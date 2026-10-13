@@ -1,9 +1,15 @@
+import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { applyStepSearch } from "@/lib/provider/changesHomeModel";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ProviderApplyFlow } from "@/components/provider/ProviderApplyFlow";
-export const Route = createFileRoute("/preview/pro/apply")({ validateSearch: applyStepSearch, component: PreviewProviderApply });
+export const Route = createFileRoute("/preview/pro/apply")({
+  validateSearch: applyStepSearch,
+  component: PreviewProviderApply,
+});
 function PreviewProviderApply() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { step } = Route.useSearch();
   return (
     <ProviderApplyFlow
@@ -56,7 +62,13 @@ function PreviewProviderApply() {
         },
       ]}
       onSave={async (step) => {
-        if (step === 3) await navigate({ to: "/preview/pro", search: { pending: 1 } });
+        if (step === 3) {
+          toast.success(t("providerComplete.title"), {
+            description: t("providerComplete.message"),
+            duration: 10000,
+          });
+          await navigate({ to: "/preview/pro", search: { pending: 1 } });
+        }
       }}
       onCapture={async () => {
         /* Preview only: no files leave the device. */

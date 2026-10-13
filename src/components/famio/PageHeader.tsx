@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { proPath } from "@/lib/preview/previewPath";
+import { useProPath } from "@/lib/provider/useProPath";
 
 export function PageHeader({
   title,
@@ -17,6 +17,7 @@ export function PageHeader({
   onBack?: () => void;
   right?: ReactNode;
 }) {
+  const proPath = useProPath();
   const { t } = useTranslation();
   const backClass =
     "focus-ring grid h-11 w-11 shrink-0 place-items-center rounded-xl text-foreground";

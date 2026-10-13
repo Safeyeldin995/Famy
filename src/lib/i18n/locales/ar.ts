@@ -2955,6 +2955,27 @@ const ar: Translation = {
     },
     reasonRequired: "اكتب سبب الفترة المحظورة.",
   },
+  proRound2: {
+    upcomingWork: "شغل جاي",
+    upcomingWorkCaption: "حجوزات اتقبلت أو مستنية ردك ولسه ماخلصتش",
+    decline: "ارفض",
+    paid: "اتدفع",
+    awaitingPayment: "مستني الدفع",
+    nameRequired: "اكتب اسمك زي البطاقة.",
+    zonesRequired: "اختار منطقة واحدة على الأقل.",
+    servicesRequired: "اختار خدمة واحدة على الأقل وحدد سعرها.",
+    frontRequired: "صور وش البطاقة عشان نراجع بياناتك.",
+    backRequired: "صور ضهر البطاقة كمان.",
+    agreementRequired: "وافق على الشروط عشان تبعت الطلب.",
+    uploadError: "الصورة ما اترفعتش. جرب تاني.",
+    accepted: "اتقبل",
+    onTheWay: "في الطريق",
+    arrived: "وصلت",
+    started: "بدأت",
+    completed: "خلصت",
+    today: "النهارده",
+    yesterday: "امبارح",
+  },
 };
 Object.assign(ar, {
   adminOps: {

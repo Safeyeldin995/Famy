@@ -1,0 +1,27 @@
+.provider-journey-apply {
+  height: 100dvh;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
+}
+.provider-journey-apply .apply-header {
+  flex-shrink: 0;
+}
+.provider-journey-apply .apply-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  gap: 12px;
+  padding-top: 18px;
+}
+.provider-journey-apply .apply-bottom {
+  position: static;
+  flex-shrink: 0;
+  margin: 0;
+  width: 100%;
+}
+.provider-journey-apply .apply-back {
+  min-height: 44px;
+  min-width: 44px;
+}

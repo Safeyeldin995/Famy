@@ -227,7 +227,9 @@ export function useProviderBooking(id: string | undefined) {
  * null for providers. Fill the customer's name/avatar (and the phone only
  * while the booking is active) from the party-checked booking_party_profiles.
  */
-async function withCustomerParties<T extends { id: string; customer?: unknown }>(rows: T[]): Promise<T[]> {
+async function withCustomerParties<T extends { id: string; customer?: unknown }>(
+  rows: T[],
+): Promise<T[]> {
   if (rows.length === 0) return rows;
   // Names are cosmetic: if the lookup fails, keep the bookings list working.
   const parties = await fetchBookingParties(rows.map((row) => row.id)).catch(
@@ -236,9 +238,14 @@ async function withCustomerParties<T extends { id: string; customer?: unknown }>
   return rows.map((row) => {
     const party = parties.get(row.id);
     if (!party) return row;
-    const current = (row.customer ?? {}) as { full_name?: string | null; avatar_url?: string | null; phone?: string | null };
+    const current = (row.customer ?? {}) as {
+      full_name?: string | null;
+      avatar_url?: string | null;
+      phone?: string | null;
+    };
     return {
       ...row,
+      party,
       customer: {
         ...current,
         full_name: party.other_name ?? current.full_name ?? null,
