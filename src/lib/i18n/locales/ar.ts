@@ -9,6 +9,7 @@ const ar: Translation = {
     empty: "مفيش مقدمي خدمة متاحين للعنوان ده حاليا. جرب عنوان تاني محفوظ.",
   },
   customerSetup: { arrivalDetails: "تفاصيل تساعد مقدم الخدمة يوصل" },
+  customerChat: { unavailable: "المحادثة دي مش متاحة لسه" },
   customerDetail: {
     title: "تفاصيل الحجز",
     code: "حجز #{{id}}",

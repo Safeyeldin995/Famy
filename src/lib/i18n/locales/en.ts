@@ -7,6 +7,7 @@ const en = {
     empty: "No providers are available for this address yet. Try another saved address.",
   },
   customerSetup: { arrivalDetails: "Details to help your provider find you" },
+  customerChat: { unavailable: "This conversation is not available yet" },
   customerDetail: {
     title: "Booking details",
     code: "Booking #{{id}}",
