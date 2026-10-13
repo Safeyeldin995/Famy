@@ -233,6 +233,7 @@ export function useAdminBookings(status?: string | string[]) {
           provider:providers(id, profile:profiles(full_name)),
           payments(id, status, method, amount, created_at, needs_admin_review, metadata),
           family_member:booking_family_member_snapshots(*),
+          service:services(name_ar, name_en),
           cancellation:booking_cancellations(*)
         `)
         .order('created_at', { ascending: false })
