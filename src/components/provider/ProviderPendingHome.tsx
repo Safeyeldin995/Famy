@@ -89,6 +89,9 @@ export function PendingHomeView({
       {changes ? <div className="apply-note !block" style={{ background: "var(--apply-wait-tint)", color: "var(--apply-wait)" }} role="status">
         <h2 className="text-base font-bold">{t("providerChanges.title")}</h2>
         <p className="mt-2 whitespace-pre-wrap break-words">{changes.reason || t("providerChanges.reasonFallback")}</p>
+      </div> : model.remaining === 0 ? <div className="apply-note !block border border-success/30 bg-success/10 text-success" role="status">
+        <h2 className="text-lg font-bold">{t("providerComplete.title")}</h2>
+        <p className="mt-2">{t("providerComplete.message")}</p>
       </div> : <div className="apply-progcard">
         <svg
           width="58"
@@ -179,7 +182,7 @@ export function PendingHomeView({
             </span>
             <span className="apply-task-text">
               <b>{t("providerApply.pending.review")}</b>
-              <small>{t("providerApply.pending.reviewHint")}</small>
+              <small>{t("providerComplete.message")}</small>
             </span>
             <span className="apply-tag apply-wait">{t("providerApply.pending.waiting")}</span>
           </div>

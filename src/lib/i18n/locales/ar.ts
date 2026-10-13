@@ -2782,5 +2782,6 @@ const ar: Translation = {
 
   providerClarity: {"selectAll": "اختار الكل", "missingSubjects": "ناقصك تضيف مادة لـ: {{services}}", "addSubject": "ناقص: ضيف مادة", "removeSubject": "شيل المادة دي", "rejectedReason": "المادة دي ماتقبلتش. كلم الدعم عشان تعرف السبب"},
   providerHoursFix: {"nightConflict": "اخترت خدمة جليسة ليلية من 6 م لحد 12 بالليل، بس مواعيدك بتخلص بدري", "packageConflict": "اخترت باقة من {{start}} لحد {{end}}، بس مواعيدك مش مغطية المدة دي", "addNight": "ضيف مواعيد الليل", "removeNight": "شيل خدمة الليل", "addPackage": "ضيف مواعيد الباقة", "editServices": "عدل الخدمات", "chooseDays": "اختار أيام الشغل الأول"},
+  providerComplete: { title: "طلبك كامل ✓", message: "فريق فامي هيراجع طلبك وهيرد عليك خلال 24 ساعة. هيوصلك إشعار أول ما نخلص" },
 };
 export default ar;

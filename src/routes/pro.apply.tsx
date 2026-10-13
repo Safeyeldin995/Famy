@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { applyStepSearch } from "@/lib/provider/changesHomeModel";
 import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
@@ -125,7 +126,10 @@ function ProviderApplyRoute() {
       await qc.invalidateQueries({ queryKey: ["provider-saved-selections"] });
     } else {
       await save.mutateAsync({ section: "review", payload: { confirmed: draft.agreed } });
-      await submit.mutateAsync();
+      const result = await submit.mutateAsync();
+      if (!result.already_submitted && !provider.data!.submitted_at) {
+        toast.success(t("providerComplete.title"), { description: t("providerComplete.message"), duration: 10000 });
+      }
       try {
         const existing = await supabase.from("availability_rules").select("id").eq("provider_id", provider.data!.id).limit(1);
         if (existing.error) throw existing.error;

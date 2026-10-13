@@ -76,5 +76,7 @@ it("uses the profile first name and signed photo", () => {
   expect(screen.getByAltText("").getAttribute("aria-hidden")).toBe("true");
   expect(screen.queryByRole("img", { name: "Sara Example" })).toBeNull();
   expect(screen.queryByText("ابدأ")).toBeNull();
-  expect(screen.getByText("فريق فامي بيراجع طلبك وهنبلغك أول ما نوافق")).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "طلبك كامل ✓" })).toBeTruthy();
+  expect(screen.queryByRole("img", { name: /7/ })).toBeNull();
+  expect(screen.getAllByText("فريق فامي هيراجع طلبك وهيرد عليك خلال 24 ساعة. هيوصلك إشعار أول ما نخلص")).toHaveLength(2);
 });
