@@ -9,12 +9,10 @@ const saved = {
   languages: ["ar"],
 };
 const api = () => ({
-  snapshot: vi
-    .fn()
-    .mockResolvedValue({
-      provider: { ...saved, languages: ["ar", "en"] },
-      details: { previous_work: "Existing work" },
-    }),
+  snapshot: vi.fn().mockResolvedValue({
+    provider: { ...saved, languages: ["ar", "en"] },
+    details: { previous_work: "Existing work" },
+  }),
   section: vi.fn().mockResolvedValue(undefined),
   update: vi.fn().mockResolvedValue(undefined),
 });
