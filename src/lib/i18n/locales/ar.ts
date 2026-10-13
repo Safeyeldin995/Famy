@@ -9,6 +9,14 @@ const ar: Translation = {
     empty: "مفيش مقدمي خدمة متاحين للعنوان ده حاليا. جرب عنوان تاني محفوظ.",
   },
   customerSetup: { arrivalDetails: "تفاصيل تساعد مقدم الخدمة يوصل" },
+  customerDetail: {
+    title: "تفاصيل الحجز",
+    code: "حجز #{{id}}",
+    pending: "مستنيين مقدم الخدمة يقبل الحجز",
+    summary: "تفاصيل الزيارة",
+    total: "الإجمالي",
+    unknownStatus: "حالة الحجز",
+  },
   providerPushUnavailable: {
     title: "الإشعارات على الموبايل مش متاحة لسه",
     body: "هتوصلك كل التحديثات جوه التطبيق في صفحة الإشعارات",
