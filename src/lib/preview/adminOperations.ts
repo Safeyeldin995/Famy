@@ -101,7 +101,7 @@ export function seedAdminOperations(qc: QueryClient) {
       method: "instapay",
       payment_method_type: "manual_transfer",
       amount: 400,
-      created_at: at(-1),
+      created_at: at(0),
       proof_path: "preview/transfer-proof.png",
       previewProofUrl:
         "data:image/svg+xml," +

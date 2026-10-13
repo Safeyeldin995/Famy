@@ -2026,6 +2026,14 @@ const en = {
   },
   admin: {
     layout: {
+      group: {
+        overview: "Overview",
+        operations: "Operations",
+        people: "People",
+        transactions: "Bookings and money",
+        catalog: "Services and zones",
+        system: "System",
+      },
       badge: "Admin",
       signOut: "Sign out",
       adminOnlyTitle: "Admin only",

@@ -2002,6 +2002,14 @@ const ar: Translation = {
   },
   admin: {
     layout: {
+      group: {
+        overview: "نظرة عامة",
+        operations: "التشغيل",
+        people: "الناس",
+        transactions: "الحجوزات والفلوس",
+        catalog: "الخدمات والمناطق",
+        system: "النظام",
+      },
       badge: "الإدارة",
       signOut: "تسجيل الخروج",
       adminOnlyTitle: "للمشرفين فقط",
