@@ -1,3 +1,5 @@
+import { BottomSheetMultiSelect } from "./BottomSheetMultiSelect";
+import { missingTeachingServices, gradeSummary, teachingDuration } from "@/lib/provider/teachingSetupStatus";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SetupScreen } from "@/components/famio/SetupScreen";
@@ -32,6 +34,7 @@ export function GroupedTeachingSetup({
   levels,
   links,
   rows,
+  rejectionMessages = {},
   onSave,
   onRemove,
   onBack,
@@ -42,6 +45,7 @@ export function GroupedTeachingSetup({
   levels: TeachingLevelRow[];
   links: TeachingSubjectServiceRow[];
   rows: ProviderTeachingCapabilityRow[];
+  rejectionMessages?: Record<string, string>;
   onSave: (input: SaveTeachingGroup) => Promise<void>;
   onRemove: (ids: string[]) => Promise<void>;
   onBack: () => void;
@@ -133,19 +137,13 @@ export function GroupedTeachingSetup({
       error={error}
     >
       <fieldset className="contents" disabled={busy}>
-        {services.length > 1 && (
-          <BottomSheetSelect
-            label={t("teaching.service")}
-            value={serviceId}
-            options={services.map((row) => ({ value: row.id, label: name(row) }))}
-            onChange={(value) => {
-              setServiceId(value);
-              setSubjectId("");
-              setCurriculumId("");
-              reset();
-            }}
-          />
-        )}
+        {!!missingTeachingServices(services, rows).length && <p role="status" className="text-sm text-amber-800">{t("providerClarity.missingSubjects", { services: missingTeachingServices(services, rows).map(name).join(ar ? "، " : ", ") })}</p>}
+        <div className="apply-list">{services.map(row => {
+          const missing = missingTeachingServices([row], rows).length > 0;
+          return <button key={row.id} type="button" className="apply-li min-h-11 w-full text-start" aria-pressed={serviceId === row.id} onClick={() => { setServiceId(row.id); setSubjectId(""); setCurriculumId(""); reset(); }}>
+            <b className="flex-1">{name(row)}</b><span className={`apply-tag ${missing ? "apply-wait" : "apply-success"}`}>{missing ? t("providerClarity.addSubject") : "✓"}</span>
+          </button>;
+        })}</div>
         {!services.length && <p role="status">{t("providerSetup.noTeachingServices")}</p>}
         <BottomSheetSelect
           label={t("teaching.subject")}
@@ -165,27 +163,10 @@ export function GroupedTeachingSetup({
             reset();
           }}
         />
-        {subjectId && curriculumId ? (
-          <p className="apply-label">{t("teaching.level")}</p>
-        ) : (
-          <p className="text-sm text-muted-foreground">{t("providerSetup.chooseSubjectFirst")}</p>
-        )}
-        <div className="flex flex-wrap gap-2">
-          {(subjectId && curriculumId ? filteredLevels : []).map((row) => (
-            <CheckChip
-              key={row.id}
-              selected={chosen.includes(row.id)}
-              disabled={diff.lockedApproved.some((r) => r.level_id === row.id)}
-              onClick={() =>
-                setSelected((ids) =>
-                  ids.includes(row.id) ? ids.filter((id) => id !== row.id) : [...ids, row.id],
-                )
-              }
-            >
-              {name(row)}
-            </CheckChip>
-          ))}
-        </div>
+        {subjectId && curriculumId ? <BottomSheetMultiSelect label={t("teaching.level")} value={chosen}
+          summary={gradeSummary(levels.filter(row => chosen.includes(row.id)), ar)}
+          options={filteredLevels.map(row => ({ value: row.id, label: name(row), locked: diff.lockedApproved.some(saved => saved.level_id === row.id) }))}
+          onChange={setSelected} /> : <p className="text-sm text-muted-foreground">{t("providerSetup.chooseSubjectFirst")}</p>}
         {!!diff.lockedApproved.length && (
           <p className="text-xs text-muted-foreground">{t("providerSetup.approvedLocked")}</p>
         )}
@@ -193,7 +174,7 @@ export function GroupedTeachingSetup({
         <div className="flex flex-wrap gap-2">
           {shownDurations.length === 1 ? (
             <span className="apply-chip on">
-              {shownDurations[0]} {t("common.min")}
+              {teachingDuration(shownDurations[0], ar)}
             </span>
           ) : (
             shownDurations.map((value) => (
@@ -203,7 +184,7 @@ export function GroupedTeachingSetup({
                 disabled={!!lockedValues}
                 onClick={() => setDuration(value)}
               >
-                {value} {t("common.min")}
+                {teachingDuration(value, ar)}
               </CheckChip>
             ))
           )}
@@ -240,6 +221,7 @@ export function GroupedTeachingSetup({
                   </span>
                 ))}
               </div>
+              {[...new Set(group.rows.filter(row => row.status === "rejected").map(row => rejectionMessages[row.id] || t("providerClarity.rejectedReason")))].map(reason => <p key={reason} className="text-sm text-destructive">{reason}</p>)}
               <div className="flex gap-4">
                 <button
                   type="button"
@@ -274,7 +256,7 @@ export function GroupedTeachingSetup({
                       }
                     }}
                   >
-                    {t("common.delete")}
+                    {t("providerClarity.removeSubject")}
                   </button>
                 )}
               </div>

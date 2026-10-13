@@ -46,6 +46,8 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 vi.mock("@tanstack/react-query", () => ({
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
+  useMutation: () => ({ mutate: vi.fn(), isPending: false, isSuccess: false }),
+  useQuery: () => ({ data: state.zones.map(({ zone_id }) => ({ zone_id, zone: { name_en: "Synthetic work zone", name_ar: "منطقة شغل تجريبية" } })), isPending: false, isError: false }),
 }));
 vi.mock("@/components/famio/ProviderShell", () => ({
   ProviderShell: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -213,4 +215,19 @@ it("keeps every service-specific requirement action reachable from its whole row
     expect(scroll).toHaveBeenCalledOnce();
     expect(document.getElementById(`requirements-${service.id}`)).not.toBeNull();
   }
+});
+
+it.each(["en", "ar"])("distinguishes living city from work zones in %s", async (lang) => {
+  state.lang = lang;
+  await translations.changeLanguage(lang);
+  render(<Profile />);
+  expect(screen.getByText(translations.t("providerLocations.livesIn"))).toBeTruthy();
+  expect(screen.getByText(translations.t("providerLocations.worksIn"))).toBeTruthy();
+  expect(screen.getByText(lang === "ar" ? "منطقة شغل تجريبية" : "Synthetic work zone")).toBeTruthy();
+});
+it("offers support to edit missing zones while the approved application is locked", () => {
+  state.zones = [];
+  render(<Profile />);
+  expect(screen.getByText("No work areas yet")).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Contact support to change areas" }).getAttribute("href")).toBe("/pro/support");
 });

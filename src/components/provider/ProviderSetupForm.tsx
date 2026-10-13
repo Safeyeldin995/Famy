@@ -1,3 +1,8 @@
+import { Link } from "@tanstack/react-router";
+import { proPath } from "@/lib/preview/previewPath";
+import { packageEndTime, type PackageService } from "@/lib/pricing/servicePackages";
+import { timeChoiceLabel } from "@/lib/provider/scheduleDate";
+import { workingHoursState, addPackageWorkingHours } from "@/lib/provider/setupHelpers";
 import { WeeklyHoursEditor } from "./WeeklyHoursEditor";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -45,6 +50,8 @@ export type SetupEdits = {
   references?: { index: number; value: Partial<OnboardingReference> }[];
   personal?: { date_of_birth: string; governorate: string; area: string; full_address: string };
   rules?: WorkingRule[];
+  services?: PackageService[];
+  applicationEditable?: boolean;
 };
 const emptyReference: OnboardingReference = {
   full_name: "",
@@ -86,6 +93,8 @@ export function ProviderSetupForm({
   snapshot,
   references = [],
   rules = [],
+  services = [],
+  applicationEditable = true,
   ageGroups = [],
   avatarUrl,
   onSave,
@@ -95,6 +104,8 @@ export function ProviderSetupForm({
   snapshot: SetupSnapshot;
   references?: OnboardingReference[];
   rules?: WorkingRule[];
+  services?: PackageService[];
+  applicationEditable?: boolean;
   ageGroups?: { code: string; name_ar: string; name_en: string }[];
   avatarUrl?: string | null;
   onSave: (edits: SetupEdits) => Promise<void>;
@@ -412,6 +423,12 @@ export function ProviderSetupForm({
             />
           </>
         )}
+        {item === "hours" && workingHoursState(hours, services).missingPackages.map((service, index) => <div key={index} className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-900" role="status">
+          <p>{service.fixed_start_time?.slice(0, 5) === "18:00" && service.duration_min === 360 ? t("providerHoursFix.nightConflict") : t("providerHoursFix.packageConflict", { start: timeChoiceLabel(service.fixed_start_time!, i18n.language), end: timeChoiceLabel(packageEndTime(service), i18n.language) })}</p>
+          <div className="mt-2 flex flex-wrap gap-3"><button type="button" className="min-h-11 font-bold" disabled={!hours.length || packageEndTime(service) > "24:00"} onClick={() => { setHours(addPackageWorkingHours(hours, service)); setSameHours(false); }}>{t(service.fixed_start_time?.slice(0, 5) === "18:00" ? "providerHoursFix.addNight" : "providerHoursFix.addPackage")}</button>
+          <Link to={proPath(applicationEditable ? "/pro/apply" : "/pro/profile") as "/pro/apply"} search={applicationEditable ? { step: 2 } : undefined} hash={applicationEditable ? undefined : "requirements"} className="inline-flex min-h-11 items-center underline">{t(service.fixed_start_time?.slice(0, 5) === "18:00" ? "providerHoursFix.removeNight" : "providerHoursFix.editServices")}</Link></div>
+          {!hours.length && <p>{t("providerHoursFix.chooseDays")}</p>}
+        </div>)}
         {item === "hours" && <WeeklyHoursEditor value={hours} onChange={setHours} sameHours={sameHours} onSameHoursChange={setSameHours} />}
       </fieldset>
     </SetupScreen>

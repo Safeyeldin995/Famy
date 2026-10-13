@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { GroupedTeachingSetup } from "../GroupedTeachingSetup";
 import { ProviderSetupForm } from "../ProviderSetupForm";
 import type { ProviderTeachingCapabilityRow } from "@/lib/db/teaching-queries";
+Object.defineProperty(window, "matchMedia", { writable: true, value: vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })) });
 const language = vi.hoisted(() => ({ current: "en" }));
 vi.mock("react-i18next", async () => {
   const { default: ar } = await import("@/lib/i18n/locales/ar");
@@ -105,13 +106,13 @@ it("shows a grade prerequisite hint and a non-interactive single duration", () =
   );
   expect(screen.getByText("providerSetup.chooseSubjectFirst")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Grade" })).toBeNull();
-  expect(screen.getByText("60 common.min").tagName).toBe("SPAN");
+  expect(screen.getByText("One hour").tagName).toBe("SPAN");
   fireEvent.change(screen.getByLabelText("teaching.subject"), { target: { value: "subject" } });
   fireEvent.change(screen.getByLabelText("teaching.curriculum"), {
     target: { value: "curriculum" },
   });
   expect(screen.queryByText("providerSetup.chooseSubjectFirst")).toBeNull();
-  expect(screen.getByRole("button", { name: "Grade" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "teaching.level" })).toBeTruthy();
 });
 it("locks approved group price and duration while adding a grade", async () => {
   const onSave = vi.fn().mockResolvedValue(undefined);
@@ -121,15 +122,17 @@ it("locks approved group price and duration while adding a grade", async () => {
   expect((screen.getByLabelText("price") as HTMLInputElement).value).toBe("300");
   for (const duration of [60, 90])
     expect(
-      (screen.getByRole("button", { name: `${duration} common.min` }) as HTMLButtonElement)
+      (screen.getByRole("button", { name: duration === 60 ? "One hour" : "One and a half hours" }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
-  expect(screen.getByRole("button", { name: "90 common.min" }).getAttribute("aria-pressed")).toBe(
+  expect(screen.getByRole("button", { name: "One and a half hours" }).getAttribute("aria-pressed")).toBe(
     "true",
   );
   expect(screen.getByText("providerSetup.approvedPriceLocked")).toBeTruthy();
   expect(screen.getByText("providerSetup.status.approved").className).toContain("apply-success");
-  fireEvent.click(screen.getByRole("button", { name: "Other grade" }));
+  fireEvent.click(screen.getByRole("button", { name: "teaching.level" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Other grade" }));
+  fireEvent.click(screen.getByRole("button", { name: "common.done" }));
   fireEvent.click(screen.getByRole("button", { name: "providerSetup.saveSubject" }));
   await waitFor(() =>
     expect(onSave).toHaveBeenCalledWith(

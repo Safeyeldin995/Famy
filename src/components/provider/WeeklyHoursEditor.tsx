@@ -93,7 +93,7 @@ export function WeeklyHoursEditor({
                   onChange={(time) =>
                     onChange(
                       value.map((item) =>
-                        sameHours || item.weekday === row.weekday ? { ...item, [key]: time } : item,
+                        sameHours || item === row ? { ...item, [key]: time } : item,
                       ),
                     )
                   }

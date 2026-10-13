@@ -8,6 +8,7 @@ export type PendingHomeData = {
   needsBabysitting: boolean;
   subjects: boolean;
   needsSubjects: boolean;
+  missingSubjects?: { name_ar: string; name_en: string }[];
 };
 
 const tasks = [

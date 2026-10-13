@@ -1,3 +1,6 @@
+import { timeChoiceLabel } from "@/lib/provider/scheduleDate";
+import { packageEndTime } from "@/lib/pricing/servicePackages";
+import { missingTeachingServices } from "@/lib/provider/teachingSetupStatus";
 import { useState } from "react";
 import { StickyCta } from "@/components/famio/StickyCta";
 import { useProviderSubmittable } from "@/lib/provider/useProviderSubmittable";
@@ -50,6 +53,7 @@ export function PendingHomeView({
   data,
   fullName,
   avatarUrl,
+  hoursWarning,
   hoursHint = "providerSetup.hoursHint",
   changes,
 }: {
@@ -57,6 +61,7 @@ export function PendingHomeView({
   fullName: string;
   avatarUrl?: string;
   hoursHint?: string;
+  hoursWarning?: string;
   changes?: { reason?: string | null; completion?: SubmitCompletion; onSubmit: () => Promise<void> };
 }) {
   const { t, i18n } = useTranslation();
@@ -84,6 +89,9 @@ export function PendingHomeView({
       {changes ? <div className="apply-note !block" style={{ background: "var(--apply-wait-tint)", color: "var(--apply-wait)" }} role="status">
         <h2 className="text-base font-bold">{t("providerChanges.title")}</h2>
         <p className="mt-2 whitespace-pre-wrap break-words">{changes.reason || t("providerChanges.reasonFallback")}</p>
+      </div> : model.remaining === 0 ? <div className="apply-note !block border border-success/30 bg-success/10 text-success" role="status">
+        <h2 className="text-lg font-bold">{t("providerComplete.title")}</h2>
+        <p className="mt-2">{t("providerComplete.message")}</p>
       </div> : <div className="apply-progcard">
         <svg
           width="58"
@@ -154,7 +162,7 @@ export function PendingHomeView({
                 </span>
                 <span className="apply-task-text">
                   <b>{t(key === "hours" ? "providerSetup.titles.hours" : `providerApply.${key}`)}</b>
-                  <small>{t(key === "hours" ? hoursHint : `providerApply.pending.items.${key}`)}</small>
+                  <small>{key === "hours" && hoursWarning ? hoursWarning : key === "subjects" && data.missingSubjects?.length ? t("providerClarity.missingSubjects", { services: data.missingSubjects.map(service => i18n.language.startsWith("ar") ? service.name_ar : service.name_en).join(i18n.language.startsWith("ar") ? "، " : ", ") }) : t(key === "hours" ? hoursHint : `providerApply.pending.items.${key}`)}</small>
                 </span>
                 {done ? (
                   <Check size={18} className="apply-done-check" aria-label={t("common.done")} />
@@ -174,7 +182,7 @@ export function PendingHomeView({
             </span>
             <span className="apply-task-text">
               <b>{t("providerApply.pending.review")}</b>
-              <small>{t("providerApply.pending.reviewHint")}</small>
+              <small>{t("providerComplete.message")}</small>
             </span>
             <span className="apply-tag apply-wait">{t("providerApply.pending.waiting")}</span>
           </div>
@@ -188,6 +196,7 @@ export function PendingHomeView({
   );
 }
 function LivePendingHome({ providerId, changesRequested, reviewReason }: { providerId: string; changesRequested: boolean; reviewReason?: string | null }) {
+  const { t, i18n } = useTranslation();
   const completion = useProviderSubmittable(providerId, changesRequested);
   const submit = useSubmitOnboarding();
   const snapshot = useOnboardingSnapshot();
@@ -218,6 +227,7 @@ function LivePendingHome({ providerId, changesRequested, reviewReason }: { provi
   return (
     <PendingHomeView
       changes={changesRequested ? { reason: reviewReason, completion: completion.data, onSubmit: async () => { await submit.mutateAsync(); } } : undefined}
+      hoursWarning={hours.missingPackages.map(service => service.fixed_start_time?.slice(0, 5) === "18:00" && service.duration_min === 360 ? t("providerHoursFix.nightConflict") : t("providerHoursFix.packageConflict", { start: timeChoiceLabel(service.fixed_start_time!, i18n.language), end: timeChoiceLabel(packageEndTime(service), i18n.language) })).join(" · ")}
       hoursHint={hours.needsNight ? "providerSetup.nightHint" : hours.isDefault ? "providerSetup.defaultHoursHint" : "providerSetup.hoursHint"}
       fullName={data.profile?.full_name ?? ""}
       avatarUrl={data.profile?.avatar_url}
@@ -235,6 +245,7 @@ function LivePendingHome({ providerId, changesRequested, reviewReason }: { provi
         needsBabysitting: selected.some((s) => s.category?.slug === "babysitting"),
         babysitting:
           !!data.provider?.max_children_per_booking && !!data.age_group_capabilities?.length,
+        missingSubjects: missingTeachingServices(selected.filter(s => s.category?.slug === "tutoring"), subjects.data!),
         needsSubjects: selected.some((s) => s.category?.slug === "tutoring"),
         subjects: selected
           .filter((s) => s.category?.slug === "tutoring")

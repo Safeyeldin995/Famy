@@ -1,3 +1,4 @@
+import { ProfileWorkZones } from "@/components/provider/ProfileWorkZones";
 import { AutoGrowingBio } from "@/components/provider/AutoGrowingBio";
 import { profilePriceDirty } from "@/lib/provider/profilePriceDirty";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
@@ -12,13 +13,13 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ProviderShell } from "@/components/famio/ProviderShell";
 import { CheckChip } from "@/components/famio/CheckChip";
 import { ServiceCard } from "@/components/famio/ServiceCard";
 import { TeachingGroupsSummary } from "@/components/provider/TeachingGroupsSummary";
 import { useMyTeachingCapabilities } from "@/lib/db/teaching-queries";
-import { profileBioPayload } from "@/lib/provider/providerProfileModel";
+import { saveProfileChanges, type ProfileFields } from "@/lib/provider/saveProfileChanges";
 import "@/components/famio/providerApply.css";
 import { Card, PrimaryButton } from "@/components/famio/ui";
 import { QueryError } from "@/components/famio/QueryError";
@@ -26,7 +27,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 import {
   useMyProvider,
-  useUpdateProvider,
   useAllServices,
   useMyProviderServices,
   useToggleProviderService,
@@ -78,7 +78,6 @@ function ProProfile() {
   const hoursQ = useProviderAvailability(provider?.id);
   const eligibilityQ = useMyMarketplaceEligibility(provider?.id);
   const providerZonesQ = useMyProviderZones(provider?.id);
-  const update = useUpdateProvider();
   const services = useAllServices();
   const mine = useMyProviderServices(provider?.id);
   const toggle = useToggleProviderService();
@@ -99,6 +98,27 @@ function ProProfile() {
   const [eligibilityExpanded, setEligibilityExpanded] = useState(false);
   const nav = useNavigate();
   const qc = useQueryClient();
+  const update = useMutation({
+    mutationFn: (edits: ProfileFields) => saveProfileChanges(provider, edits, {
+      snapshot: async () => {
+        const { data, error } = await supabase.rpc("provider_onboarding_snapshot");
+        if (error) throw error;
+        return data as { provider?: ProfileFields; details?: { previous_work?: string | null } };
+      },
+      section: async (section, payload) => {
+        const { error } = await supabase.rpc("provider_save_onboarding_section", { p_section: section, p_payload: payload as any });
+        if (error) throw error;
+      },
+      update: async (patch) => {
+        const { error } = await supabase.from("providers").update(patch).eq("id", provider.id);
+        if (error) throw error;
+      },
+    }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["my-provider"] });
+      await qc.invalidateQueries({ queryKey: ["provider-onboarding-snapshot"] });
+    },
+  });
 
   const pendingTeachingServices = useMemo(() => new Set((teachingQ.data ?? []).filter((row) => {
     const service = services.data?.find((s) => s.id === row.service_id);
@@ -193,10 +213,10 @@ function ProProfile() {
 
   const handleSave = () =>
     update.mutate(
-      { ...profileBioPayload(lang, lang === "ar" ? bioAr : bioEn, provider), years_experience: years, city },
+      { [lang === "ar" ? "bio_ar" : "bio_en"]: lang === "ar" ? bioAr : bioEn },
       {
         onError: (error: unknown) => {
-          const message = error instanceof Error ? error.message : undefined;
+          const message = error && typeof error === "object" && "message" in error ? String(error.message) : undefined;
           toast.error(t(providerProfileSaveErrorKey(message)));
         },
       },
@@ -423,7 +443,8 @@ function ProProfile() {
             <div className="flex flex-wrap gap-2">{[0, 1, 2, 3, 4].map((index) => <CheckChip key={index} selected={false} onClick={() => (lang === "ar" ? setBioAr : setBioEn)((value) => [value.trim(), t(`providerSetup.bioPhrases.p${index}`)].filter(Boolean).join(" "))}>{t(`providerSetup.bioPhrases.p${index}`)}</CheckChip>)}</div>
             <dl className="apply-list">
               <div className="apply-li"><dt className="flex-1">{t("pro.profile.yearsExperience")}</dt><dd>{years}</dd><LockKeyhole size={16} aria-hidden="true" /></div>
-              <div className="apply-li"><dt className="flex-1">{t("pro.profile.cityLabel")}</dt><dd>{city || t("pro.profile.cityUnset")}</dd><LockKeyhole size={16} aria-hidden="true" /></div>
+              <div className="apply-li"><dt className="flex-1 font-bold">{t("providerLocations.livesIn")}</dt><dd>{city || t("pro.profile.cityUnset")}</dd><LockKeyhole size={16} aria-hidden="true" /></div>
+              <ProfileWorkZones providerId={provider.id} applicationEditable={["DRAFT", "NEEDS_CHANGES"].includes(provider.onboarding_status)} />
             </dl>
             <PrimaryButton className="apply-cta" onClick={handleSave} disabled={update.isPending}>
               {update.isPending ? t("pro.common.saving") : t("pro.profile.saveChanges")}

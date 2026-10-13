@@ -1,3 +1,4 @@
+import { notificationText } from "@/lib/provider/notificationText";
 import { isPreviewRoute, PREVIEW_NOW_ISO } from "@/lib/preview/constants";
 import { notificationRowNavigation } from "@/lib/provider/workScreenPresentation";
 import { formatNotificationDate } from "@/lib/format";
@@ -14,10 +15,6 @@ import { proPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/pro/notifications")({ component: NotificationsPage });
 
-function notifText(n: any, lang: string) {
-  if (lang === "ar") return { title: n.title_ar || n.title_en || n.title, body: n.body_ar || n.body_en || n.body };
-  return { title: n.title_en || n.title, body: n.body_en || n.body };
-}
 
 function NotificationsPage() {
   const { t } = useTranslation();
@@ -63,7 +60,7 @@ function NotificationsPage() {
         ) : (
           <div className="divide-y divide-border/50 rounded-2xl bg-surface">
             {items.map((n: any) => {
-              const { title, body } = notifText(n, lang);
+              const { title, body } = notificationText(n, lang);
               return (
                 <button key={n.id} onClick={() => openNotification(n)} className={`focus-ring block min-h-11 w-full p-4 text-start ${n.read_at ? "opacity-70" : ""}`}>
                     <div className="flex items-start gap-3">
