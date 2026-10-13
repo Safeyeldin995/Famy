@@ -2808,6 +2808,7 @@ const en = {
   },
 
   providerClarity: {"selectAll": "Select all", "missingSubjects": "Add a subject for: {{services}}", "addSubject": "Missing: add a subject", "removeSubject": "Remove this subject", "rejectedReason": "This subject was not approved. Contact support for the reason"},
+  providerHoursFix: {"nightConflict": "You selected overnight babysitting from 6 PM to midnight, but your working hours end earlier", "packageConflict": "You selected a package from {{start}} to {{end}}, but your hours do not cover it", "addNight": "Add overnight hours", "removeNight": "Remove overnight service", "addPackage": "Add package hours", "editServices": "Edit services", "chooseDays": "Choose your working days first"},
 };
 export default en;
 export type Translation = typeof en;

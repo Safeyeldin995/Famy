@@ -53,6 +53,7 @@ it("uses Sunday=0 through Saturday=6, matching PostgreSQL DOW and pro.availabili
   expect(workingHoursState(defaultWorkingHours(), [])).toEqual({
     done: true,
     needsNight: false,
+    missingPackages: [],
     isDefault: true,
   });
   const night = [{ pricing_model: "fixed", fixed_start_time: "18:00:00", duration_min: 360 }];
@@ -106,4 +107,22 @@ it("copies shared hours only to selected days and preserves midnight", () => {
     { weekday: 3, start_time: "18:00", end_time: "24:00" },
   ]);
   expect(rules[0].start_time).toBe("09:00");
+});
+
+import { addPackageWorkingHours } from "../setupHelpers";
+it("adds night coverage to every working day without changing daytime intervals", () => {
+  const service = { pricing_model: "fixed", fixed_start_time: "18:00", duration_min: 360 };
+  const rules = defaultWorkingHours();
+  expect(workingHoursState(rules, [service]).needsNight).toBe(true);
+  const updated = addPackageWorkingHours(rules, service);
+  expect(updated).toHaveLength(rules.length * 2);
+  for (const row of rules) expect(updated).toContainEqual(row);
+  expect(workingHoursState(updated, [service]).done).toBe(true);
+  expect(addPackageWorkingHours(updated, service)).toEqual(updated);
+});
+it("detects a fixed-start full-day gap and merges only overlapping intervals", () => {
+  const service = { pricing_model: "fixed", fixed_start_time: "08:00", duration_min: 480 };
+  const rules = [{ weekday: 1, start_time: "09:00", end_time: "17:00" }];
+  expect(workingHoursState(rules, [service]).missingPackages).toEqual([service]);
+  expect(addPackageWorkingHours(rules, service)).toEqual([{ weekday: 1, start_time: "08:00", end_time: "17:00" }]);
 });

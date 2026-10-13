@@ -143,6 +143,7 @@ function ProviderSetupRoute() {
       snapshot={{ ...(snapshot.data as SetupSnapshot), needsBabysitting }}
       references={normalizedRefs(refs.data!)}
       rules={availability.data!}
+      services={selectedServices}
       ageGroups={ages.data!}
       avatarUrl={avatar.data}
       onSave={persist}

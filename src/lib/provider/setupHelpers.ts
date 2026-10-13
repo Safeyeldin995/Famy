@@ -78,14 +78,9 @@ export function defaultWorkingHours(): WorkingRule[] {
 }
 export function workingHoursState(rules: WorkingRule[], services: PackageService[]) {
   const fixed = services.filter((s) => isFixedPackage(s) && s.fixed_start_time);
-  const needsNight = fixed.some(
-    (s) =>
-      !rules.some(
-        (r) =>
-          r.start_time.slice(0, 5) <= s.fixed_start_time!.slice(0, 5) &&
-          r.end_time.slice(0, 5) >= packageEndTime(s),
-      ),
-  );
+  const missingPackages = fixed.filter(s => !rules.some(r =>
+    r.start_time.slice(0, 5) <= s.fixed_start_time!.slice(0, 5) && r.end_time.slice(0, 5) >= packageEndTime(s)));
+  const needsNight = missingPackages.some(s => s.fixed_start_time!.slice(0, 5) === "18:00");
   const defaults = defaultWorkingHours();
   const isDefault =
     rules.length === defaults.length &&
@@ -97,7 +92,7 @@ export function workingHoursState(rules: WorkingRule[], services: PackageService
           r.end_time.slice(0, 5) === d.end_time,
       ),
     );
-  return { done: rules.length > 0 && !needsNight, needsNight, isDefault };
+  return { done: rules.length > 0 && !missingPackages.length, needsNight, missingPackages, isDefault };
 }
 export function setupDateOfBirth(year: string, month: string, day: string, today = new Date()) {
   if (!year || !month || !day) return null;
@@ -133,4 +128,23 @@ export function setSharedWorkingHours(
     start_time,
     end_time,
   }));
+}
+
+/** Merge overlaps only; preserve the gap between daytime work and an evening package. */
+export function addPackageWorkingHours(rules: WorkingRule[], service: PackageService): WorkingRule[] {
+  if (!service.fixed_start_time) return rules;
+  const start_time = service.fixed_start_time.slice(0, 5), end_time = packageEndTime(service);
+  if (end_time > "24:00") return rules;
+  return [...new Set(rules.map(row => row.weekday))].flatMap(weekday => {
+    const intervals = [...rules.filter(row => row.weekday === weekday), { weekday, start_time, end_time }]
+      .map(row => ({ ...row, start_time: row.start_time.slice(0, 5), end_time: row.end_time.slice(0, 5) }))
+      .sort((a, b) => a.start_time.localeCompare(b.start_time));
+    const merged: WorkingRule[] = [];
+    for (const row of intervals) {
+      const previous = merged[merged.length - 1];
+      if (previous && row.start_time <= previous.end_time) previous.end_time = previous.end_time > row.end_time ? previous.end_time : row.end_time;
+      else merged.push({ ...row });
+    }
+    return merged;
+  });
 }
