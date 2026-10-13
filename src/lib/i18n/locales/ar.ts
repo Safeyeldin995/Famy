@@ -2783,5 +2783,6 @@ const ar: Translation = {
   providerClarity: {"selectAll": "اختار الكل", "missingSubjects": "ناقصك تضيف مادة لـ: {{services}}", "addSubject": "ناقص: ضيف مادة", "removeSubject": "شيل المادة دي", "rejectedReason": "المادة دي ماتقبلتش. كلم الدعم عشان تعرف السبب"},
   providerHoursFix: {"nightConflict": "اخترت خدمة جليسة ليلية من 6 م لحد 12 بالليل، بس مواعيدك بتخلص بدري", "packageConflict": "اخترت باقة من {{start}} لحد {{end}}، بس مواعيدك مش مغطية المدة دي", "addNight": "ضيف مواعيد الليل", "removeNight": "شيل خدمة الليل", "addPackage": "ضيف مواعيد الباقة", "editServices": "عدل الخدمات", "chooseDays": "اختار أيام الشغل الأول"},
   providerComplete: { title: "طلبك كامل ✓", message: "فريق فامي هيراجع طلبك وهيرد عليك خلال 24 ساعة. هيوصلك إشعار أول ما نخلص" },
+  providerProfileFix: {"reviewLocked": "طلبك قيد المراجعة ومش ممكن نغير البيانات دي دلوقتي. حدث الصفحة وجرب تاني.", "signIn": "سجل دخولك تاني عشان تحفظ التعديلات.", "notFound": "مش لاقيين ملف مقدم الخدمة. حدث الصفحة أو كلم الدعم.", "invalidYears": "سنين الخبرة لازم تكون رقم صحيح من 0 لحد 60.", "invalidChildren": "عدد الأطفال لازم يكون رقم صحيح من 1 لحد 20."},
 };
 export default ar;
