@@ -85,10 +85,10 @@ export function ProviderApprovalDecisionSummary({
 
           {blockers.length > 0 && decision.phase === "review" && (
             <div className="space-y-2">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
                 {t("admin.provider.approvalReview.blockersTitle")}
               </p>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {t("admin.provider.approvalReview.blockersNote")}
               </p>
               <ul className="space-y-2">
@@ -118,7 +118,7 @@ export function ProviderApprovalDecisionSummary({
                   return (
                     <li key={blocker.id} className="text-xs font-semibold">
                       {blocker.href ? (
-                        <a href={blocker.href} className="text-brand underline underline-offset-2">
+                        <a href={blocker.href} className="focus-ring inline-flex min-h-11 items-center text-brand underline underline-offset-2">
                           {label}
                         </a>
                       ) : (

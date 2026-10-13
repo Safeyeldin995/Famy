@@ -18,18 +18,15 @@ const POSTGREST_INCOMPLETE_APPROVE_ERROR = {
 };
 
 describe("admin provider approval page (mocked)", () => {
-  it("routes onboarding action errors through formatAdminActionErrorMessage", () => {
-    expect(source).toContain("formatAdminActionErrorMessage(t, e)");
-    expect(source).not.toContain("adminActionErrorMessage");
-    expect(source).toMatch(
-      /action: "approve"[\s\S]*?onError: \(e\) => toast\.error\(formatAdminActionErrorMessage\(t, e\)\)/,
-    );
+  it("uses the atomic approve-all RPC path instead of approving onboarding alone", () => {
+    expect(source).toContain("useApproveProviderApplicationAll");
+    expect(source).toContain("approveAll.mutate(id");
+    expect(source).not.toMatch(/action: "approve"/);
   });
 
-  it("routes document review errors through the same toast formatter", () => {
-    expect(source).toMatch(
-      /reviewDocument\.mutate\([\s\S]*?onError: \(e\) =>\s*toast\.error\(formatAdminActionErrorMessage\(t, e\)\)/,
-    );
+  it("keeps document review errors on the translated toast formatter", () => {
+    expect(source).toContain("formatAdminActionErrorMessage(t, error)");
+    expect(source).toContain("documentId: document.id");
   });
 
   it("produces translated toast text from PostgREST approve rejection (UI error path)", async () => {

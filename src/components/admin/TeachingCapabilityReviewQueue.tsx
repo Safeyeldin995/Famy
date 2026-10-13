@@ -1,132 +1,80 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import {
-  useAdminReviewTeachingCapability,
-  useAdminTeachingCapabilities,
-} from "@/lib/db/teaching-queries";
-import { formatTeachingCapabilityLine } from "@/lib/tutoring/teachingCapabilities";
+import { useAdminTeachingCapabilities } from "@/lib/db/teaching-queries";
 import { useAdminReviewTeachingGroup } from "@/lib/db/teaching-group-queries";
 import { groupTeachingRows } from "@/lib/tutoring/teachingGroups";
 import { currentLang } from "@/lib/i18n";
+import { AdminQueryError } from "@/components/admin/AdminQueryError";
 
 export function TeachingCapabilityReviewQueue({ providerId }: { providerId: string }) {
   const { t } = useTranslation();
   const lang = currentLang() === "ar" ? "ar" : "en";
   const list = useAdminTeachingCapabilities(providerId);
-  const review = useAdminReviewTeachingCapability();
-  const reviewGroup = useAdminReviewTeachingGroup();
+  const review = useAdminReviewTeachingGroup();
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const groups = groupTeachingRows(list.data ?? []);
 
   if (list.isLoading) return <div className="h-16 animate-pulse rounded-xl bg-muted" />;
-  const rows = list.data ?? [];
+  if (list.isError) return <AdminQueryError compact message={t("admin.providers.loadError")} error={list.error} onRetry={() => list.refetch()} />;
+  if (groups.length === 0) return <p className="text-sm text-muted-foreground">{t("adminReview.noTeachingGroups")}</p>;
 
   return (
-    <section className="rounded-2xl border border-border/60 bg-surface p-4 shadow-sm">
-      <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-        {t("teaching.adminQueueTitle")}
-      </h3>
-      {rows.length === 0 ? (
-        <p className="mt-2 text-xs text-muted-foreground">{t("teaching.adminQueueEmpty")}</p>
-      ) : (
-        <ul className="mt-3 space-y-3">
-          {groupTeachingRows(rows).map((group) => (
-            <li key={group.key} className="rounded-xl border border-border/60 p-3">
-              <p className="text-xs font-bold">{formatTeachingCapabilityLine({
-                subject: lang === "ar" ? group.first.subject_name_ar : group.first.subject_name_en,
-                curriculum: lang === "ar" ? group.first.curriculum_name_ar : group.first.curriculum_name_en,
-                level: group.rows.map(row => lang === "ar" ? row.level_name_ar : row.level_name_en).join(" · "),
-                durationMin: group.first.session_duration_min,
-                price: group.first.session_price,
-              })}</p>
-              <div className="mt-1 flex gap-2 text-[10px] font-extrabold uppercase">
-                {[...new Set(group.rows.map(row => row.status))].map(status => <span key={status}>{t(`teaching.status.${status}`)}</span>)}
-              </div>
-              <textarea
-                aria-label={t("teaching.adminNote")}
-                value={notes[group.key] ?? ""}
-                onChange={e => setNotes(current => ({ ...current, [group.key]: e.target.value }))}
-                placeholder={t("teaching.adminNotePlaceholder")}
-                className="mt-2 h-16 w-full rounded-xl border border-border bg-surface px-3 py-2 text-xs"
-              />
-              <div className="mt-2 flex gap-2">
-                {(["approved", "rejected"] as const).map(status => (
-                  <button key={status} type="button" disabled={reviewGroup.isPending || review.isPending}
-                    onClick={() => reviewGroup.mutate({ ids: group.rows.map(row => row.id), status, note: notes[group.key] }, {
-                      onSuccess: () => toast.success(t("teaching.reviewSaved")),
-                      onError: () => toast.error(t("common.somethingWentWrong")),
-                    })}
-                    className="h-11 rounded-lg border border-border px-3 text-[11px] font-bold"
-                  >{t(status === "approved" ? "providerSetup.approveAll" : "providerSetup.rejectAll")}</button>
-                ))}
-              </div>
-              <details className="mt-3">
-                <summary className="cursor-pointer text-xs font-bold">{t("providerSetup.reviewLevels")}</summary>
-                <ul className="mt-2 space-y-2">
-          {group.rows.map((row) => {
-            const line = formatTeachingCapabilityLine({
-              subject: lang === "ar" ? row.subject_name_ar : row.subject_name_en,
-              curriculum: lang === "ar" ? row.curriculum_name_ar : row.curriculum_name_en,
-              level: lang === "ar" ? row.level_name_ar : row.level_name_en,
-              durationMin: row.session_duration_min,
-              price: row.session_price,
-            });
-            return (
-              <li key={row.id} className="rounded-xl border border-border/60 p-3">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-xs font-bold">{line}</p>
-                  <span className="text-[10px] font-extrabold uppercase">
-                    {t(`teaching.status.${row.status}`)}
-                  </span>
-                </div>
-                {row.review_note ? (
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    {t("teaching.adminNote")}: {row.review_note}
-                  </p>
-                ) : null}
-                <textarea
-                  value={notes[row.id] ?? ""}
-                  onChange={(e) =>
-                    setNotes((current) => ({ ...current, [row.id]: e.target.value }))
-                  }
-                  placeholder={t("teaching.adminNotePlaceholder")}
-                  className="mt-2 h-16 w-full rounded-xl border border-border bg-surface px-3 py-2 text-xs"
-                />
+    <ul className="space-y-3">
+      {groups.map((group) => {
+        const pending = group.rows.filter((row) => row.status === "pending");
+        const orderedLevels = [...group.rows].sort((a, b) =>
+          (a.level_code ?? "").localeCompare(b.level_code ?? "", "en", { numeric: true }),
+        );
+        const levelNames = orderedLevels.map((row) => lang === "ar" ? row.level_name_ar : row.level_name_en);
+        const gradeNumbers = orderedLevels.map((row) => Number(/^grade-(\d+)$/.exec(row.level_code ?? "")?.[1]));
+        const consecutive = gradeNumbers.every((grade, index) =>
+          Number.isInteger(grade) && (index === 0 || grade === gradeNumbers[index - 1] + 1),
+        );
+        const levels = levelNames.length > 2 && consecutive
+          ? t("adminReview.levelRange", { first: levelNames[0], last: levelNames[levelNames.length - 1] })
+          : levelNames.join(lang === "ar" ? "، " : ", ");
+        const subject = lang === "ar" ? group.first.subject_name_ar : group.first.subject_name_en;
+        const curriculum = lang === "ar" ? group.first.curriculum_name_ar : group.first.curriculum_name_en;
+        const price = Number(group.first.session_price).toLocaleString("en-US");
+        const note = notes[group.key] ?? "";
+
+        const decide = (status: "approved" | "rejected") => {
+          review.mutate({ ids: pending.map((row) => row.id), status, note: note.trim() || undefined }, {
+            onSuccess: () => { setNotes((current) => ({ ...current, [group.key]: "" })); toast.success(t("teaching.reviewSaved")); },
+            onError: () => toast.error(t("common.somethingWentWrong")),
+          });
+        };
+
+        return (
+          <li key={group.key} className="rounded-xl border border-border p-3">
+            <p className="text-sm font-bold">{subject} · {curriculum} · {levels} · {t("adminReview.sessionPrice", { amount: price })}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t("adminReview.groupStatus", { status: pending.length > 0 ? t("teaching.status.pending") : t(`teaching.status.${group.first.status}`) })}
+            </p>
+            {pending.length > 0 && (
+              <>
+                <label className="mt-3 block text-sm font-semibold" htmlFor={`group-note-${group.key}`}>
+                  {t("adminReview.reason")}
+                </label>
+                <textarea id={`group-note-${group.key}`} value={note}
+                  onChange={(event) => setNotes((current) => ({ ...current, [group.key]: event.target.value }))}
+                  rows={2} className="mt-1 w-full rounded-xl border border-border bg-surface p-3 text-sm" />
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {(["approved", "rejected", "suspended"] as const).map((status) => (
-                    <button
-                      key={status}
-                      type="button"
-                      disabled={review.isPending || reviewGroup.isPending}
-                      onClick={() =>
-                        review.mutate(
-                          { id: row.id, status, note: notes[row.id] },
-                          {
-                            onSuccess: () => toast.success(t("teaching.reviewSaved")),
-                            onError: (error: unknown) =>
-                              toast.error(
-                                error instanceof Error
-                                  ? error.message
-                                  : t("common.somethingWentWrong"),
-                              ),
-                          },
-                        )
-                      }
-                      className="h-9 rounded-lg border border-border px-3 text-[11px] font-bold"
-                    >
-                      {t(`teaching.status.${status}`)}
-                    </button>
-                  ))}
+                  <button type="button" disabled={review.isPending} onClick={() => decide("approved")}
+                    className="focus-ring min-h-11 rounded-xl bg-brand px-4 text-sm font-bold text-brand-foreground disabled:opacity-50">
+                    {t("adminReview.approve")}
+                  </button>
+                  <button type="button" disabled={review.isPending || !note.trim()} onClick={() => decide("rejected")}
+                    className="focus-ring min-h-11 rounded-xl border border-coral px-4 text-sm font-bold text-coral disabled:opacity-50">
+                    {t("adminReview.reject")}
+                  </button>
                 </div>
-              </li>
-            );
-          })}
-                </ul>
-              </details>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
+              </>
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
