@@ -1,125 +1,66 @@
 import { Link } from "@tanstack/react-router";
-import { Star, ShieldCheck, Clock, Award } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import type { Provider } from "@/lib/mock/data";
-import { formatEGP, formatNumber } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
-import { Avatar } from "@/components/famio/ui";
+import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
+import { ProviderRatingMeta } from "./ProviderListRow";
+import { isPreviewRoute } from "@/lib/preview/constants";
+import { formatEGP } from "@/lib/format";
+import { customerRoleLabel } from "./customerProviders";
 
-export function ProviderCard({ p }: { p: Provider }) {
+export function ProviderCard({
+  p,
+  subtitle,
+  categoryLabel,
+}: {
+  p: Provider & { categorySlugs?: string[] };
+  subtitle?: string;
+  categoryLabel?: string;
+}) {
   const { t } = useTranslation();
-  const roleKey = p.role === "Angel" ? "roles.angel" : "roles.professional";
-  const isKidsLike = p.category === "babysitting" || p.category === "kids";
-  const subtitleKey = isKidsLike ? "categories.kidsSubtitle" : "categories.homeSubtitle";
-  const isTopPro = p.rating >= 4.9;
   return (
     <Link
-      to="/provider/$id"
+      to={isPreviewRoute() ? "/preview/provider/$id" : "/provider/$id"}
       params={{ id: p.id }}
-      aria-label={t("providerCard.ariaLabelDetailed", {
-        name: p.name,
-        rating: formatNumber(p.rating),
-        price: formatEGP(p.hourlyRate, { perHour: true }),
-      })}
-      className="focus-ring relative block rounded-[1.75rem] border border-border/50 bg-surface-elevated p-4 shadow-sm active:scale-[0.99] transition-transform"
+      className="focus-ring block min-h-11 rounded-2xl border border-border/60 bg-white p-4"
     >
-      {isTopPro && (
-        <span className="absolute -top-2 start-4 inline-flex items-center gap-1 rounded-full bg-brand px-2.5 py-0.5 text-pro-12 font-black uppercase tracking-wide text-brand-foreground shadow-[0_8px_18px_-10px_var(--brand)]">
-          <Award className="h-3 w-3" /> {t("roles.topPro")}
-        </span>
-      )}
-      <div className="flex items-center gap-3">
-        <div className="relative shrink-0">
-          <Avatar
-            src={p.avatar}
-            alt={p.name}
-            className="h-16 w-16 rounded-full"
-          />
-          <span className="absolute -bottom-1 -end-1 grid h-5 w-5 place-items-center rounded-full bg-success text-white ring-2 ring-surface" title={t("common.verified")}>
-            <ShieldCheck className="h-3 w-3" />
-          </span>
-        </div>
+      <div className="flex items-start gap-3">
+        <ProfileAvatar
+          src={p.avatar}
+          name={p.name}
+          className="h-14 w-14 rounded-full text-pro-18"
+        />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="truncate text-[15px] font-extrabold text-foreground">{p.name}</h3>
-            <span className={`shrink-0 rounded-full px-2 py-0.5 text-pro-12 font-black uppercase tracking-wide ${
-              p.role === "Angel" ? "bg-brand/12 text-brand" : "bg-surface-2 text-muted-foreground"
-            }`}>{t(roleKey)}</span>
+            <h3 className="break-words text-pro-16 font-bold">
+              {p.name || t("provider2.unnamed")}
+            </h3>
+            {p.badges.includes("ID Verified") && (
+              <ShieldCheck
+                className="h-4 w-4 shrink-0 text-success"
+                aria-label={t("common.verified")}
+              />
+            )}
           </div>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">
-            {t(subtitleKey)} · {formatNumber(p.yearsExp)} {t("common.yrs")}
+          <p className="mt-1 text-pro-13 text-muted-foreground">
+            {categoryLabel || customerRoleLabel(p.categorySlugs ?? [p.category], t)}
           </p>
-          <div className="mt-1.5 flex items-center gap-3">
-            <span className="inline-flex items-center gap-1 text-xs font-semibold text-foreground">
-              <Star className="h-3.5 w-3.5 fill-warning text-warning" aria-hidden="true" /> {formatNumber(p.rating)}
-              <span className="text-muted-foreground font-normal">({formatNumber(p.reviews)})</span>
-            </span>
-            <span className="inline-flex items-center gap-1 text-pro-12 font-semibold text-muted-foreground">
-              <Clock className="h-3 w-3" aria-hidden="true" /> {t("common.replyTime")}
-            </span>
+          <div className="mt-2 flex flex-wrap items-center gap-1 text-pro-12 text-muted-foreground">
+            <ProviderRatingMeta rating={p.rating} reviews={p.reviews} />
           </div>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {p.badges.slice(0, 2).map((b) => (
-              <span
-                key={b}
-                className="inline-flex items-center gap-1 rounded-full bg-mint/25 px-2 py-0.5 text-pro-12 font-semibold text-foreground"
-              >
-                <ShieldCheck className="h-2.5 w-2.5 text-success" aria-hidden="true" /> {t(`badges.${badgeKey(b)}`, b)}
-              </span>
-            ))}
-          </div>
-        </div>
-        <div className="text-end">
-          <div className="text-base font-extrabold text-brand">{formatEGP(p.hourlyRate)}</div>
-          <div className="text-pro-12 font-bold text-muted-foreground">{t("common.perHour")}</div>
+          <p className="mt-2 text-pro-14 font-bold">
+            {subtitle || formatEGP(p.hourlyRate, { perHour: true })}
+          </p>
         </div>
       </div>
     </Link>
   );
 }
 
-function badgeKey(b: string) {
-  return b.toLowerCase().replace(/[^a-z0-9]+/g, "_");
-}
-
 export function ProviderTile({ p }: { p: Provider }) {
-  const { t } = useTranslation();
-  const isTopPro = p.rating >= 4.9;
-  const roleKey = p.role === "Angel" ? "roles.angel" : "roles.professional";
   return (
-    <Link
-      to="/provider/$id"
-      params={{ id: p.id }}
-      aria-label={t("providerCard.ariaLabel", { name: p.name, rating: formatNumber(p.rating) })}
-      className="focus-ring block w-[11.5rem] shrink-0 overflow-hidden rounded-[1.75rem] border border-border/50 bg-surface-elevated shadow-sm active:scale-[0.98] transition-transform"
-    >
-      <div className="relative h-40 w-full overflow-hidden">
-        <Avatar
-          src={p.avatar}
-          alt={p.name}
-          className="h-full w-full"
-        />
-        {isTopPro && (
-          <span className="absolute start-2 top-2 inline-flex items-center gap-1 rounded-full bg-brand px-2 py-0.5 text-pro-12 font-black text-brand-foreground backdrop-blur">
-            <Award className="h-2.5 w-2.5" /> {t("roles.topPro")}
-          </span>
-        )}
-        <div className="absolute inset-x-2 bottom-2 flex items-center justify-between">
-          <span className="rounded-full bg-black/55 px-2 py-1 text-pro-12 font-bold text-white backdrop-blur inline-flex items-center gap-1">
-            <Star className="h-3 w-3 fill-warning text-warning" strokeWidth={2} aria-hidden="true" />
-            {formatNumber(p.rating)}
-          </span>
-          <span className={`rounded-full px-2 py-1 text-pro-12 font-black backdrop-blur ${
-            p.role === "Angel" ? "bg-brand/90 text-brand-foreground" : "bg-surface/90 text-foreground"
-          }`}>{t(roleKey)}</span>
-        </div>
-      </div>
-      <div className="p-3">
-        <div className="flex items-center gap-1">
-          <span className="truncate text-sm font-bold">{p.name}</span>
-          <ShieldCheck className="h-3 w-3 shrink-0 text-success" aria-label={t("common.verified")} />
-        </div>
-        <div className="mt-0.5 text-pro-12 text-muted-foreground">{formatEGP(p.hourlyRate, { perHour: true })} · {formatNumber(p.yearsExp)} {t("common.yrs")}</div>
-      </div>
-    </Link>
+    <div className="w-64 shrink-0">
+      <ProviderCard p={p} />
+    </div>
   );
 }

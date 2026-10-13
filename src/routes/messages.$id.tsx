@@ -1,6 +1,7 @@
+import { formatTime } from "@/lib/format";
 import { createFileRoute } from "@tanstack/react-router";
-import { PhoneFrame } from "@/components/famio/ui";
-import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
+import { PhoneFrame, EmptyState } from "@/components/famio/ui";
+import { CustomerPageHeader as CustomerPageHero } from "@/components/famio/CustomerPageHeader";
 import { QueryError } from "@/components/famio/QueryError";
 import { useEffect, useRef, useState } from "react";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
@@ -15,12 +16,11 @@ import {
   containsContactInfo,
 } from "@/lib/db/messaging";
 import { isPreviewRoute, PREVIEW_USER_ID } from "@/lib/preview/constants";
-import { previewPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/messages/$id")({ component: Chat });
 
 function nowStr(iso: string) {
-  return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  return formatTime(new Date(iso));
 }
 
 function Chat() {
@@ -44,7 +44,10 @@ export function ChatContent({ conversationId }: { conversationId: string }) {
       setMeId(PREVIEW_USER_ID);
       return;
     }
-    supabase.auth.getUser().then(({ data }) => setMeId(data.user?.id ?? null));
+    supabase.auth
+      .getUser()
+      .then(({ data }) => setMeId(data.user?.id ?? null))
+      .catch(() => setMeId(null));
   }, []);
 
   useEffect(() => {
@@ -59,7 +62,7 @@ export function ChatContent({ conversationId }: { conversationId: string }) {
   if (conv.isLoading || msgs.isLoading) {
     return (
       <PhoneFrame bg="bg-surface-2">
-        <div className="grid flex-1 place-items-center px-6 text-sm text-muted-foreground">
+        <div className="grid flex-1 place-items-center px-6 text-pro-14 text-muted-foreground">
           {t("common.loading", "Loading…")}
         </div>
       </PhoneFrame>
@@ -82,9 +85,21 @@ export function ChatContent({ conversationId }: { conversationId: string }) {
     );
   }
 
+  if (!conv.data)
+    return (
+      <PhoneFrame bg="bg-white">
+        <CustomerPageHero title={t("messages.title")} backTo="/messages" />
+        <EmptyState
+          icon="message"
+          title={t("customerChat.unavailable")}
+          body={t("bookingChat.unavailableBody")}
+        />
+      </PhoneFrame>
+    );
+
   const handleSend = () => {
     const body = text.trim();
-    if (!body) return;
+    if (!body || send.isPending) return;
     if (containsContactInfo(body)) {
       setWarning(t("bookingChat.contactBlocked", CONTACT_BLOCKED_MESSAGE));
       return;
@@ -95,7 +110,8 @@ export function ChatContent({ conversationId }: { conversationId: string }) {
         setWarning(null);
       },
       onError: (e: any) => {
-        if (e?.message === "contact_masked") setWarning(t("bookingChat.contactBlocked", CONTACT_BLOCKED_MESSAGE));
+        if (e?.message === "contact_masked")
+          setWarning(t("bookingChat.contactBlocked", CONTACT_BLOCKED_MESSAGE));
         else setWarning(sendFailedMsg);
       },
     });
@@ -106,19 +122,19 @@ export function ChatContent({ conversationId }: { conversationId: string }) {
       <CustomerPageHero
         title={otherName}
         subtitle={t("messages.chatNotice")}
-        backTo={previewPath("/messages")}
+        backTo="/messages"
         right={
           <ProfileAvatar
             src={otherAvatar}
             name={otherName}
-            className="h-11 w-11 rounded-full border-2 border-white/30 text-sm"
+            className="h-11 w-11 rounded-full border-2 border-white/30 text-pro-14"
           />
         }
       />
 
       <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto bg-surface-2 px-3 py-4">
         <div className="my-3 flex justify-center">
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-mint/30 px-3 py-1.5 text-xs font-medium text-foreground">
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-mint/30 px-3 py-1.5 text-pro-12 font-medium text-foreground">
             <ShieldCheck className="h-3 w-3 text-success" />
             {t("messages.stayInApp")}
           </div>
@@ -131,18 +147,24 @@ export function ChatContent({ conversationId }: { conversationId: string }) {
               className={`flex items-end gap-2 ${mine ? "justify-end" : "justify-start"}`}
             >
               {!mine && (
-                <ProfileAvatar src={otherAvatar} name={otherName} className="h-7 w-7 rounded-full text-xs" />
+                <ProfileAvatar
+                  src={otherAvatar}
+                  name={otherName}
+                  className="h-7 w-7 rounded-full text-pro-12"
+                />
               )}
               <div
-                className={`max-w-[78%] rounded-[1.25rem] px-4 py-2.5 text-sm leading-snug ${
+                className={`max-w-[78%] rounded-[1.25rem] px-4 py-2.5 text-pro-14 leading-snug ${
                   mine
-                    ? "bg-brand text-brand-foreground rounded-br-md"
-                    : "bg-surface text-foreground border border-border/50 shadow-xs rounded-bl-md"
+                    ? "bg-brand text-brand-foreground rounded-ee-md"
+                    : "bg-surface text-foreground border border-border/50 shadow-xs rounded-es-md"
                 }`}
               >
-                <div className="whitespace-pre-wrap break-words">{m.body}</div>
+                <div className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                  {m.body}
+                </div>
                 <div
-                  className={`mt-1 text-xs ${mine ? "text-white/70" : "text-muted-foreground"}`}
+                  className={`mt-1 text-pro-12 ${mine ? "text-white/70" : "text-muted-foreground"}`}
                 >
                   {nowStr(m.created_at)}
                 </div>
@@ -153,7 +175,7 @@ export function ChatContent({ conversationId }: { conversationId: string }) {
       </div>
 
       {warning && (
-        <div className="border-t border-amber-500/30 bg-amber-50 px-4 py-2 text-xs font-medium text-amber-900">
+        <div className="border-t border-amber-500/30 bg-amber-50 px-4 py-2 text-pro-12 font-medium text-amber-900">
           {warning}
         </div>
       )}
@@ -170,7 +192,7 @@ export function ChatContent({ conversationId }: { conversationId: string }) {
               }}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
               placeholder={t("messages.placeholder")}
-              className="h-12 min-w-0 flex-1 bg-transparent text-sm font-medium outline-none placeholder:text-muted-foreground"
+              className="h-12 min-w-0 flex-1 bg-transparent text-pro-14 font-medium outline-none placeholder:text-muted-foreground"
             />
           </div>
           <button
