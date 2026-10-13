@@ -6,8 +6,10 @@ import {
 } from "@/lib/admin/providerApprovalReview";
 export function ProviderApprovalDecisionSummary({
   decision,
+  compact = false,
 }: {
   decision: AdminApprovalDecision;
+  compact?: boolean;
 }) {
   const { t } = useTranslation();
   const status = decision.onboardingStatus;
@@ -62,7 +64,7 @@ export function ProviderApprovalDecisionSummary({
     <section
       id="admin-approval-decision"
       aria-live="polite"
-      className={`rounded-2xl border p-4 shadow-sm ${toneClass}`}
+      className={`rounded-2xl border ${compact ? "p-3" : "p-4 shadow-sm"} ${toneClass}`}
     >
       <div className="flex items-start gap-3">
         <Icon
@@ -71,13 +73,21 @@ export function ProviderApprovalDecisionSummary({
         />
         <div className="min-w-0 flex-1 space-y-2">
           <div>
-            <h3 className="text-sm font-extrabold">{summaryTitle}</h3>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {t("admin.provider.approvalReview.currentStatus", { status: statusLabel })}
-            </p>
+            <h3 className="text-sm font-extrabold">
+              {compact && decision.documentCounts.pending > 0
+                ? t("adminReview.pendingDocumentsSummary", {
+                    count: decision.documentCounts.pending,
+                  })
+                : summaryTitle}
+            </h3>
+            {!compact && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t("admin.provider.approvalReview.currentStatus", { status: statusLabel })}
+              </p>
+            )}
           </div>
 
-          {decision.summaryKind === "ready" && decision.phase === "review" && (
+          {!compact && decision.summaryKind === "ready" && decision.phase === "review" && (
             <p className="text-xs font-semibold text-success">
               {t("admin.provider.approvalReview.readyBody")}
             </p>
@@ -85,12 +95,16 @@ export function ProviderApprovalDecisionSummary({
 
           {blockers.length > 0 && decision.phase === "review" && (
             <div className="space-y-2">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                {t("admin.provider.approvalReview.blockersTitle")}
-              </p>
-              <p className="text-[11px] text-muted-foreground">
-                {t("admin.provider.approvalReview.blockersNote")}
-              </p>
+              {!compact && (
+                <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                  {t("admin.provider.approvalReview.blockersTitle")}
+                </p>
+              )}
+              {!compact && (
+                <p className="text-xs text-muted-foreground">
+                  {t("admin.provider.approvalReview.blockersNote")}
+                </p>
+              )}
               <ul className="space-y-2">
                 {blockers.map((blocker) => {
                   const sectionLabel = t(
@@ -118,7 +132,10 @@ export function ProviderApprovalDecisionSummary({
                   return (
                     <li key={blocker.id} className="text-xs font-semibold">
                       {blocker.href ? (
-                        <a href={blocker.href} className="text-brand underline underline-offset-2">
+                        <a
+                          href={blocker.href}
+                          className="focus-ring inline-flex min-h-11 items-center text-brand underline underline-offset-2"
+                        >
                           {label}
                         </a>
                       ) : (
@@ -131,13 +148,13 @@ export function ProviderApprovalDecisionSummary({
             </div>
           )}
 
-          {decision.approveDisabledReasonKey && (
+          {!compact && decision.approveDisabledReasonKey && (
             <p className="text-xs font-semibold text-amber-800 dark:text-amber-200">
               {t(decision.approveDisabledReasonKey)}
             </p>
           )}
 
-          {decision.documentCounts.pending > 0 && decision.phase === "review" && (
+          {!compact && decision.documentCounts.pending > 0 && decision.phase === "review" && (
             <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <FileWarning className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               {t("admin.provider.approvalReview.documentsPendingCount", {

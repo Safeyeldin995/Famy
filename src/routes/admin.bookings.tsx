@@ -77,8 +77,9 @@ function AdminRescheduleHistory({ bookingId, customerId }: { bookingId: string; 
 
 export const Route = createFileRoute("/admin/bookings")({
   component: AdminBookingsRoute,
-  validateSearch: (search: Record<string, unknown>): { status?: string } => ({
+  validateSearch: (search: Record<string, unknown>): { status?: string; statuses?: string } => ({
     ...(typeof search.status === "string" ? { status: search.status } : {}),
+    ...(search.statuses === "disputed,no_show" ? { statuses: search.statuses } : {}),
   }),
 });
 
@@ -108,13 +109,13 @@ function paymentTone(status: string | undefined) {
   return "bg-amber-100 text-amber-700";
 }
 
-export function AdminBookings({ search }: { search: { status?: string } }) {
+export function AdminBookings({ search }: { search: { status?: string; statuses?: string } }) {
   const { t } = useTranslation();
-  const [status, setStatus] = useState<string>(search.status ?? "");
+  const [status, setStatus] = useState<string>(search.statuses ? "problems" : search.status ?? "");
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [cancelId, setCancelId] = useState<string | null>(null);
-  const q = useAdminBookings(status || undefined);
+  const q = useAdminBookings(status === "problems" ? ["disputed", "no_show"] : status || undefined);
   const update = useUpdateBookingStatus();
   const cancelBooking = useCancelBooking();
   const cancelTarget = (q.data ?? []).find((b: any) => b.id === cancelId) as any;
@@ -155,6 +156,7 @@ export function AdminBookings({ search }: { search: { status?: string } }) {
           className="focus-ring h-10 rounded-xl border border-border bg-surface px-3 text-sm"
         >
           <option value="">{t("admin.bookings.allStatuses")}</option>
+          <option value="problems">{t("adminWorkQueue.bookings_needing_action")}</option>
           {STATUS_FILTERS.map((s) => <option key={s.key} value={s.key}>{t(s.labelKey)}</option>)}
         </select>
       </div>

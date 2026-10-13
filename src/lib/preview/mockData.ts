@@ -900,6 +900,9 @@ function buildAdminPreviewProviders() {
     city: "Giza",
     hourly_rate: 150,
     years_experience: 3,
+    onboarding_status: "SUBMITTED",
+    submitted_at: previewIso(-DAY_MS),
+    max_children_per_booking: 2,
     is_verified: false,
     is_active: false,
     created_at: previewIso(-DAY_MS * 3),
@@ -1056,6 +1059,16 @@ export function seedPreviewAdminQueries(qc: import("@tanstack/react-query").Quer
     activeCustomers: 156,
   });
   qc.setQueryData(["admin", "bookings-count"], 47);
+  qc.setQueryData(["admin", "work-queue"], {
+    new_applications: 1,
+    resubmitted_applications: 0,
+    pending_services: 2,
+    pending_teaching_groups: 2,
+    pending_documents: 0,
+    open_cases: 1,
+    bookings_needing_action: 0,
+    payments_pending_review: 0,
+  });
   qc.setQueryData(["admin", "pending-providers"], [providers[1]]);
   for (const filter of ["pending", "verified", "suspended", "all"] as const) {
     let rows = providers;
@@ -1063,6 +1076,13 @@ export function seedPreviewAdminQueries(qc: import("@tanstack/react-query").Quer
     else if (filter === "verified") rows = providers.filter((p) => p.is_verified && p.is_active);
     else if (filter === "suspended") rows = providers.filter((p) => p.is_verified && !p.is_active);
     qc.setQueryData(["admin", "providers", filter], rows);
+    qc.setQueryData(["admin", "providers", filter, "none"], rows);
+  }
+  for (const queue of ["new_applications", "pending_services", "pending_teaching_groups"] as const) {
+    qc.setQueryData(["admin", "providers", "all", queue], [providers[1]]);
+  }
+  for (const queue of ["resubmitted_applications", "pending_documents"] as const) {
+    qc.setQueryData(["admin", "providers", "all", queue], []);
   }
   qc.setQueryData(["admin", "provider", PREVIEW_PROVIDER_ID], {
     ...providers[0],
@@ -1083,9 +1103,54 @@ export function seedPreviewAdminQueries(qc: import("@tanstack/react-query").Quer
   });
   qc.setQueryData(["admin", "provider", PREVIEW_ADMIN_PROVIDER_PENDING], {
     ...providers[1],
-    documents: [{ id: "doc-2", document_type: "national_id", status: "pending" }],
-    services: [],
+    documents: [
+      { id: "doc-front-preview", type: "id_card_front", status: "approved" },
+      { id: "doc-back-preview", type: "id_card_back", status: "approved" },
+    ],
+    services: [
+      { id: "ps-babysitting-preview", status: "pending", price_override: 150,
+        service: { id: "svc-babysitting-preview", name_en: "Hourly babysitting", name_ar: "جليسة أطفال بالساعة",
+          base_price: 150, pricing_model: "hourly", category: { name_en: "Babysitting", name_ar: "جليسة أطفال" } } },
+      { id: "ps-tutoring-preview", status: "pending", price_override: 400,
+        service: { id: "svc-tutoring-preview", name_en: "School tutoring", name_ar: "دروس للمواد الدراسية",
+          base_price: 400, pricing_model: "hourly", category: { name_en: "Tutoring", name_ar: "دروس خصوصية" } } },
+    ],
   });
+  qc.setQueryData(["admin", "provider-eligibility", PREVIEW_ADMIN_PROVIDER_PENDING], []);
+  qc.setQueryData(["admin", "section-reviews", PREVIEW_ADMIN_PROVIDER_PENDING], []);
+  qc.setQueryData(["admin", "babysitting-ages", PREVIEW_ADMIN_PROVIDER_PENDING], [
+    { age_group_code: "toddler", years_experience: 3, verified_by: null },
+    { age_group_code: "preschool", years_experience: 2, verified_by: null },
+  ]);
+  qc.setQueryData(["provider-availability", PREVIEW_ADMIN_PROVIDER_PENDING], [
+    { id: "hours-mon-preview", weekday: 1, start_time: "09:00:00", end_time: "17:00:00" },
+    { id: "hours-wed-preview", weekday: 3, start_time: "09:00:00", end_time: "17:00:00" },
+  ]);
+  qc.setQueryData(["provider-vacations", PREVIEW_ADMIN_PROVIDER_PENDING], []);
+  const teachingPreviewBase = {
+    provider_id: PREVIEW_ADMIN_PROVIDER_PENDING,
+    service_id: "svc-tutoring-preview",
+    curriculum_id: "curriculum-eg-preview",
+    curriculum_code: "egyptian",
+    curriculum_name_en: "Egyptian curriculum",
+    curriculum_name_ar: "المنهج المصري",
+    session_duration_min: 60,
+    status: "pending",
+    submitted_at: previewIso(-DAY_MS),
+    reviewed_by: null,
+    reviewed_at: null,
+    review_note: null,
+  };
+  qc.setQueryData(["admin-teaching-capabilities", PREVIEW_ADMIN_PROVIDER_PENDING], [
+    ...[1, 2, 3].map((grade) => ({ ...teachingPreviewBase, id: `math-grade-${grade}-preview`,
+      subject_id: "subject-math-preview", subject_code: "mathematics", subject_name_en: "Mathematics", subject_name_ar: "رياضيات",
+      level_id: `grade-${grade}-preview`, level_code: `grade-${grade}`, level_name_en: `Grade ${grade}`,
+      level_name_ar: `الصف ${["الأول", "الثاني", "الثالث"][grade - 1]}`, session_price: 400 })),
+    ...[4, 5, 6].map((grade) => ({ ...teachingPreviewBase, id: `arabic-grade-${grade}-preview`,
+      subject_id: "subject-arabic-preview", subject_code: "arabic", subject_name_en: "Arabic", subject_name_ar: "اللغة العربية",
+      level_id: `grade-${grade}-preview`, level_code: `grade-${grade}`, level_name_en: `Grade ${grade}`,
+      level_name_ar: `الصف ${["الرابع", "الخامس", "السادس"][grade - 4]}`, session_price: 350 })),
+  ]);
   qc.setQueryData(
     ["admin", "provider-eligibility", PREVIEW_PROVIDER_ID],
     [
@@ -1117,6 +1182,16 @@ export function seedPreviewAdminQueries(qc: import("@tanstack/react-query").Quer
   qc.setQueryData(["admin", "provider-onboarding-review", PREVIEW_ADMIN_PROVIDER_PENDING], {
     status: "SUBMITTED",
     submitted_at: previewIso(-DAY_MS),
+    completion: { ok: true, complete: true, errors: {} },
+    documents: [
+      { id: "doc-front-preview", type: "id_card_front", status: "approved" },
+      { id: "doc-back-preview", type: "id_card_back", status: "approved" },
+    ],
+    details: { date_of_birth: "1994-04-17", governorate: "Giza", area: "Sheikh Zayed",
+      full_address: "عنوان تجريبي", previous_work: "خبرة ثلاث سنين في رعاية الأطفال والدروس" },
+    references: [{ id: "reference-preview", full_name: "مرجع تجريبي", relationship: "مشرفة", phone: "+201000000000" }],
+    zones: [{ id: "zone-zayed-preview", name_en: "Sheikh Zayed", name_ar: "الشيخ زايد" }],
+    events: [{ action: "submit", new_status: "SUBMITTED" }],
   });
   qc.setQueryData(["admin", "identity-conflicts"], []);
   qc.setQueryData(["admin", "customers"], customers);

@@ -66,6 +66,23 @@ export function onboardingCompletionErrorKey(errorCode: string): string {
 
 const ADMIN_ACTION_ERROR_RULES: Array<{ pattern: RegExp; key: string }> = [
   {
+    pattern: /cannot (?:approve|review) (?:their|your) own|TEACHING_SELF_REVIEW/i,
+    key: "adminReview.errors.selfApproval",
+  },
+  {
+    pattern: /Pending teaching group has no reviewable provider service/i,
+    key: "adminReview.errors.teachingService",
+  },
+  { pattern: /^Provider not found/i, key: "adminReview.errors.providerMissing" },
+  { pattern: /TEACHING_UNAUTHORIZED/i, key: "adminReview.errors.teachingChanged" },
+  {
+    pattern: /Provider service (?:not found|status did not persist)/i,
+    key: "adminReview.errors.serviceChanged",
+  },
+  { pattern: /TEACHING_INVALID_PRICE/i, key: "teaching.errors.invalidPrice" },
+  { pattern: /TEACHING_INVALID_DURATION/i, key: "teaching.errors.invalidDuration" },
+  { pattern: /TEACHING_SUBJECT_NOT_LINKED/i, key: "teaching.errors.subjectNotLinked" },
+  {
     pattern: /Application is incomplete and cannot be approved/i,
     key: "admin.provider.approvalReview.serverErrors.incomplete",
   },
@@ -179,9 +196,10 @@ function completionBlockersFromPayload(
   }));
 }
 
-export function documentBlockersFromReview(
-  documents: ReviewDocumentRow[] | null | undefined,
-): { blockers: AdminApprovalBlocker[]; counts: AdminApprovalDecision["documentCounts"] } {
+export function documentBlockersFromReview(documents: ReviewDocumentRow[] | null | undefined): {
+  blockers: AdminApprovalBlocker[];
+  counts: AdminApprovalDecision["documentCounts"];
+} {
   const rows = documents ?? [];
   const blockers: AdminApprovalBlocker[] = [];
   let pending = 0;
@@ -251,7 +269,8 @@ export function deriveAdminApprovalDecision(input: {
 
   const inReviewFlow = status === "SUBMITTED" || status === "UNDER_REVIEW";
   const canStartReview = status === "SUBMITTED";
-  const showApproveAction = status === "UNDER_REVIEW";
+  // The existing server action accepts both SUBMITTED and UNDER_REVIEW.
+  const showApproveAction = inReviewFlow;
   const canApprove = showApproveAction && completionComplete && documentsReady;
   const canRequestChanges = status === "UNDER_REVIEW";
   const canRejectApplication = inReviewFlow;

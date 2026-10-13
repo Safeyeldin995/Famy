@@ -18,17 +18,31 @@ const POSTGREST_INCOMPLETE_APPROVE_ERROR = {
 };
 
 describe("admin provider approval page (mocked)", () => {
-  it("routes onboarding action errors through formatAdminActionErrorMessage", () => {
-    expect(source).toContain("formatAdminActionErrorMessage(t, e)");
-    expect(source).not.toContain("adminActionErrorMessage");
-    expect(source).toMatch(
-      /action: "approve"[\s\S]*?onError: \(e\) => toast\.error\(formatAdminActionErrorMessage\(t, e\)\)/,
-    );
+  it("uses the atomic approve-all RPC path instead of approving onboarding alone", () => {
+    expect(source).toContain("useApproveProviderApplicationAll");
+    expect(source).toContain("approveAll.mutate(id");
+    expect(source).not.toMatch(/action: "approve"/);
   });
 
-  it("routes document review errors through the same toast formatter", () => {
-    expect(source).toMatch(
-      /reviewDocument\.mutate\([\s\S]*?onError: \(e\) =>\s*toast\.error\(formatAdminActionErrorMessage\(t, e\)\)/,
+  it("keeps document review errors on the translated toast formatter", () => {
+    expect(source).toContain("formatAdminActionErrorMessage(t, error)");
+    expect(source).toContain("documentId: document.id");
+  });
+
+  it("translates approval wrapper reasons rather than losing the server cause", () => {
+    const t = i18n.getFixedT("ar");
+    expect(
+      formatAdminActionErrorMessage(t, {
+        message: "Administrators cannot approve their own provider application.",
+      }),
+    ).toContain("أدمن تاني");
+    expect(
+      formatAdminActionErrorMessage(t, {
+        message: "Pending teaching group has no reviewable provider service.",
+      }),
+    ).toContain("راجع الخدمات الأول");
+    expect(formatAdminActionErrorMessage(t, POSTGREST_INCOMPLETE_APPROVE_ERROR)).not.toContain(
+      "Application",
     );
   });
 
