@@ -1,10 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { Star } from "lucide-react";
-import { Avatar } from "@/components/famio/ui";
+import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
+import { useTranslation } from "react-i18next";
 import { StatusPill } from "@/components/famio/ui";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
-import { formatNumber } from "@/lib/utils";
+import { formatNumber } from "@/lib/format";
 import { isPreviewRoute } from "@/lib/preview/constants";
 
 export function ProviderListRow({
@@ -37,7 +38,7 @@ export function ProviderListRow({
       params={params as any}
       className={`focus-ring tap-scale flex items-center gap-4 rounded-[2rem] border border-border/50 bg-surface-elevated p-4 shadow-sm transition-shadow hover:shadow-md hover:border-brand/30 ${className}`}
     >
-      <Avatar src={avatar} alt={name} className="h-16 w-16 shrink-0 rounded-[1.25rem] shadow-sm" />
+      <ProfileAvatar src={avatar} name={name} className="h-14 w-14 rounded-full text-pro-18" />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <p className="truncate text-base font-extrabold text-foreground">{name}</p>
@@ -58,6 +59,8 @@ export function ProviderListRow({
 }
 
 export function ProviderRatingMeta({ rating, reviews }: { rating: number; reviews?: number }) {
+  const { t } = useTranslation();
+  if (!reviews) return <span>{t("providerPage.newOnFamy")}</span>;
   return (
     <>
       <Star
