@@ -1,4 +1,13 @@
-import { Component, Suspense, lazy, useCallback, useRef, useState, type ReactNode } from "react";
+import {
+  Component,
+  Suspense,
+  lazy,
+  useEffect,
+  useCallback,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { LocateFixed, MapPin, MapPinOff, Crosshair, Loader2, RefreshCw } from "lucide-react";
 import type { LatLng } from "./LocationPickerMap";
@@ -46,6 +55,9 @@ export function LocationPicker({
   const [locating, setLocating] = useState(false);
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
+  // Leaflet touches `window` on import, so the map only renders after mount (never during SSR).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const [tileFailing, setTileFailing] = useState(false);
   const [mapKey, setMapKey] = useState(0);
   const [recenterSignal, setRecenterSignal] = useState(0);
@@ -109,14 +121,18 @@ export function LocationPicker({
         {!tileFailing ? (
           <MapErrorBoundary resetKey={mapKey} fallback={<MapUnavailable onRetry={retryMap} />}>
             <Suspense fallback={<MapLoading />}>
-              <LazyMap
-                key={mapKey}
-                value={center}
-                onChange={onChange}
-                onTileError={handleTileError}
-                onTileOk={handleTileOk}
-                recenterSignal={recenterSignal}
-              />
+              {mounted ? (
+                <LazyMap
+                  key={mapKey}
+                  value={center}
+                  onChange={onChange}
+                  onTileError={handleTileError}
+                  onTileOk={handleTileOk}
+                  recenterSignal={recenterSignal}
+                />
+              ) : (
+                <MapLoading />
+              )}
             </Suspense>
           </MapErrorBoundary>
         ) : (
