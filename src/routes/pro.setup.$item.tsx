@@ -144,6 +144,7 @@ function ProviderSetupRoute() {
       references={normalizedRefs(refs.data!)}
       rules={availability.data!}
       services={selectedServices}
+      applicationEditable={["DRAFT", "NEEDS_CHANGES"].includes(provider.data.onboarding_status)}
       ageGroups={ages.data!}
       avatarUrl={avatar.data}
       onSave={persist}
