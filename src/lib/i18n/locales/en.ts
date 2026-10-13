@@ -1493,7 +1493,8 @@ const en = {
     },
     booking: {
       tooEarly: "It's too early for this step. Wait until closer to the booking time.",
-      opensAt: "This button opens {{time}}",
+      opensAt: "This button opens {{date}} at {{time}}",
+      opensAtToday: "This button opens today at {{time}}",
       floor: "Floor {{floor}}",
       apartment: "Apt {{apartment}}",
       areaOnly: "{{area}} · exact address shows after you accept",

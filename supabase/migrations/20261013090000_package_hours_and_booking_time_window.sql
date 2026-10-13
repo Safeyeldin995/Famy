@@ -174,7 +174,11 @@ DECLARE
   v_uid uuid := auth.uid();
   v_opens_at timestamptz;
 BEGIN
-  IF v_uid IS NULL OR NEW.status IS NOT DISTINCT FROM OLD.status OR public.has_role(v_uid, 'admin') THEN
+  -- Only the booking's own provider is time-limited; everyone else is left
+  -- to the transition guard (admins and server paths are never limited).
+  IF v_uid IS NULL OR NEW.status IS NOT DISTINCT FROM OLD.status
+     OR NOT EXISTS (SELECT 1 FROM public.providers p WHERE p.id = OLD.provider_id AND p.profile_id = v_uid)
+     OR public.has_role(v_uid, 'admin') THEN
     RETURN NEW;
   END IF;
 

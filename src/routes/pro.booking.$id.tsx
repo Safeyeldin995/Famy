@@ -26,7 +26,7 @@ import {
 } from "@/lib/db/case-queries";
 import { formatEGP } from "@/lib/utils";
 import { Calendar, Clock, MapPin, Phone, User as UserIcon, HeartPulse, AlertTriangle, LifeBuoy } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { proPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/pro/booking/$id")({ component: ProBookingDetailRoute });
@@ -43,6 +43,12 @@ export function ProBookingDetail({ id }: { id: string }) {
   const nav = useNavigate();
   const q = useProviderBooking(id);
   const { party } = useBookingParty(id);
+  // Re-render on a clock so a time-locked step unlocks by itself.
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNowMs(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
   const mut = useProviderUpdateBookingStatus();
   const cancelBooking = useCancelBooking();
   const cancellationQ = useBookingCancellation(q.data?.status === "cancelled" ? id : undefined);
@@ -132,10 +138,15 @@ export function ProBookingDetail({ id }: { id: string }) {
   const serviceName = lang === "ar" ? (b.service?.name_ar ?? b.service?.name_en) : (b.service?.name_en ?? b.service?.name_ar);
   const terminal = ["completed", "cancelled", "no_show", "disputed"].includes(b.status);
   const stepOpensAt = providerStepOpensAt(b.status, b.start_at);
-  const tooEarly = isProviderStepTooEarly(b.status, b.start_at);
+  const tooEarly = isProviderStepTooEarly(b.status, b.start_at, new Date(nowMs));
   const opensHint = tooEarly && stepOpensAt ? (
     <p className="rounded-2xl bg-surface-2 px-4 py-3 text-center text-pro-13 font-semibold text-muted-foreground">
-      {t("pro.booking.opensAt", { time: formatDateTime(stepOpensAt, dateLoc) })}
+      {new Date(nowMs).toDateString() === stepOpensAt.toDateString()
+        ? t("pro.booking.opensAtToday", { time: formatTime(stepOpensAt, dateLoc) })
+        : t("pro.booking.opensAt", {
+            date: formatDate(stepOpensAt, { weekday: "long", day: "numeric", month: "long" }, dateLoc),
+            time: formatTime(stepOpensAt, dateLoc),
+          })}
     </p>
   ) : null;
 
