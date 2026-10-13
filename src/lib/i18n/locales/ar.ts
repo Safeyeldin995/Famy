@@ -1498,6 +1498,9 @@ const ar: Translation = {
       respondOverdue: "انتهت مهلة الرد",
     },
     booking: {
+      tooEarly: "لسه بدري على الخطوة دي. استنى لحد قرب معاد الحجز.",
+      opensAt: "الزرار ده هيفتح {{date}} الساعة {{time}}",
+      opensAtToday: "الزرار ده هيفتح النهارده الساعة {{time}}",
       floor: "دور {{floor}}",
       apartment: "شقة {{apartment}}",
       areaOnly: "{{area}} · العنوان بالظبط هيظهر لما تقبل الطلب",
