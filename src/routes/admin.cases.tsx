@@ -3,20 +3,36 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import {
-  useAdminSupportTickets, useAdminUpdateSupportTicket,
+  useAdminSupportTickets,
+  useAdminUpdateSupportTicket,
   useAdminAssignSupportTicketToMe,
-  useAdminDisputes, useAdminResolveDispute,
-  useAdminNoShowReports, useAdminResolveNoShow,
+  useAdminDisputes,
+  useAdminResolveDispute,
+  useAdminNoShowReports,
+  useAdminResolveNoShow,
   getSignedEvidenceUrl,
   type TicketStatus,
 } from "@/lib/db/case-queries";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
 import { adminPath } from "@/lib/preview/previewPath";
+import { isPreviewAdminRoute, PREVIEW_NOW_ISO } from "@/lib/preview/constants";
 import { Search, Paperclip } from "lucide-react";
+import {
+  adminControl,
+  adminScreen,
+  bookingCode,
+  caseAge,
+  mergeCases,
+  operationDate,
+} from "@/components/admin/operations";
+import { AdminBookingReadContext } from "@/components/admin/AdminBookingReadContext";
 
 export const Route = createFileRoute("/admin/cases")({
   component: AdminCasesRoute,
-  validateSearch: (search: Record<string, unknown>): { tab?: string; status?: string } => ({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { tab?: string; status?: string; booking?: string } => ({
+    ...(typeof search.booking === "string" ? { booking: search.booking } : {}),
     ...(typeof search.tab === "string" ? { tab: search.tab } : {}),
     ...(typeof search.status === "string" ? { status: search.status } : {}),
   }),
@@ -36,27 +52,42 @@ function statusTone(status: string) {
 async function openEvidence(path: string, t: (key: string) => string) {
   try {
     const url = await getSignedEvidenceUrl(path);
-    window.open(url, "_blank");
+    window.open(url, "_blank", "noopener,noreferrer");
   } catch (e: any) {
-    toast.error(e?.message ?? t("admin.cases.evidenceError"));
+    toast.error(t("adminOps.actionError"));
   }
 }
 
 function BookingContext({ row }: { row: any }) {
+  const { t } = useTranslation();
   const booking = row.booking;
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-      <span dir="ltr" className="font-mono">{row.booking_id}</span>
-      {booking?.status && <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase">{booking.status}</span>}
+      <bdi dir="ltr" className="font-mono">
+        {bookingCode(row.booking_id)}
+      </bdi>
+      {booking?.status && (
+        <span className="rounded-full bg-muted px-2 py-1 text-xs font-bold">
+          {t(`adminOps.status.${booking.status}`, { defaultValue: t("adminOps.unknown") })}
+        </span>
+      )}
       {booking?.customer?.full_name && booking?.customer_id && (
-        <Link to={adminPath("/admin/customer/$id") as "/admin/customer/$id"} params={{ id: booking.customer_id }} className="text-brand hover:underline">
+        <Link
+          to={adminPath("/admin/customer/$id") as "/admin/customer/$id"}
+          params={{ id: booking.customer_id }}
+          className="text-brand hover:underline"
+        >
           {booking.customer.full_name}
         </Link>
       )}
       {booking?.provider?.profile?.full_name && booking?.provider?.id && (
         <>
           {" → "}
-          <Link to={adminPath("/admin/provider/$id") as "/admin/provider/$id"} params={{ id: booking.provider.id }} className="text-brand hover:underline">
+          <Link
+            to={adminPath("/admin/provider/$id") as "/admin/provider/$id"}
+            params={{ id: booking.provider.id }}
+            className="text-brand hover:underline"
+          >
             {booking.provider.profile.full_name}
           </Link>
         </>
@@ -71,7 +102,11 @@ function EvidenceLinks({ paths }: { paths: string[] | undefined }) {
   return (
     <div className="flex flex-wrap gap-2">
       {paths.map((p, i) => (
-        <button key={p} onClick={() => openEvidence(p, t)} className="focus-ring flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[11px] font-semibold text-brand">
+        <button
+          key={p}
+          onClick={() => openEvidence(p, t)}
+          className="focus-ring flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs font-semibold text-brand"
+        >
           <Paperclip className="h-3 w-3" /> {t("admin.cases.evidence", { n: i + 1 })}
         </button>
       ))}
@@ -90,28 +125,55 @@ function SupportTicketDetail({ row }: { row: any }) {
   return (
     <div className="mt-3 space-y-3 border-t border-border pt-3 text-xs">
       <BookingContext row={row} />
-      <p><span className="text-muted-foreground">{t("admin.cases.category")}:</span> {row.category}</p>
-      <p><span className="text-muted-foreground">{t("admin.cases.openedBy")}:</span> {row.opened_by_role}</p>
+      <p>
+        <span className="text-muted-foreground">{t("admin.cases.category")}:</span>{" "}
+        {t(`adminOps.categories.${row.category}`, { defaultValue: t("adminOps.unknown") })}
+      </p>
+      <p>
+        <span className="text-muted-foreground">{t("admin.cases.openedBy")}:</span>{" "}
+        {t(`adminOps.roles.${row.opened_by_role}`, { defaultValue: t("adminOps.unknown") })}
+      </p>
       <p className="whitespace-pre-wrap">{row.description}</p>
       <button
         disabled={assign.isPending || !!row.assigned_admin_id}
-        onClick={() => assign.mutate(row.id, {
-          onSuccess: () => toast.success(t("admin.cases.assigned")),
-          onError: (e: any) => toast.error(e?.message ?? t("admin.cases.assignmentError")),
-        })}
+        onClick={() =>
+          assign.mutate(row.id, {
+            onSuccess: () => toast.success(t("admin.cases.assigned")),
+            onError: (e: any) => toast.error(t("adminOps.actionError")),
+          })
+        }
         className="focus-ring rounded-lg border border-border px-3 py-1.5 text-xs font-bold disabled:opacity-50"
       >
-        {row.assigned_admin_id ? t("admin.cases.assigned") : assign.isPending ? t("admin.cases.assigning") : t("admin.cases.assignToMe")}
+        {row.assigned_admin_id
+          ? t("admin.cases.assigned")
+          : assign.isPending
+            ? t("admin.cases.assigning")
+            : t("admin.cases.assignToMe")}
       </button>
 
       <div className="space-y-2 rounded-xl border border-border/60 bg-surface-2 p-3">
-        <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">{t("admin.cases.resolutionAudited")}</p>
-        <select value={status} onChange={(e) => setStatus(e.target.value as TicketStatus)} className="focus-ring h-9 w-full rounded-lg border border-border bg-surface px-2 text-xs">
-          {SUPPORT_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+        <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+          {t("admin.cases.resolutionAudited")}
+        </p>
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value as TicketStatus)}
+          className="focus-ring h-9 w-full rounded-lg border border-border bg-surface px-2 text-xs"
+        >
+          {SUPPORT_STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {t(`adminOps.status.${s}`)}
+            </option>
+          ))}
         </select>
-        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder={t("admin.cases.resolutionNotesPlaceholder")}
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={2}
+          placeholder={t("admin.cases.resolutionNotesPlaceholder")}
           aria-label={t("admin.cases.resolutionNotesPlaceholder")}
-          className="w-full resize-none rounded-lg border border-border bg-surface p-2 text-xs" />
+          className="w-full resize-none rounded-lg border border-border bg-surface p-2 text-xs"
+        />
         <button
           disabled={update.isPending || (resolutionRequiresNotes && !notes.trim())}
           onClick={() =>
@@ -119,7 +181,7 @@ function SupportTicketDetail({ row }: { row: any }) {
               { id: row.id, status, resolution_notes: notes.trim() || undefined },
               {
                 onSuccess: () => toast.success(t("admin.cases.ticketUpdated")),
-                onError: (e: any) => toast.error(e?.message ?? t("admin.cases.ticketUpdateError")),
+                onError: (e: any) => toast.error(t("adminOps.actionError")),
               },
             )
           }
@@ -142,20 +204,41 @@ function DisputeDetail({ row }: { row: any }) {
   return (
     <div className="mt-3 space-y-3 border-t border-border pt-3 text-xs">
       <BookingContext row={row} />
-      <p><span className="text-muted-foreground">{t("admin.cases.openedBy")}:</span> {row.opened_by_role} · {t("admin.cases.previousStatus")}: {row.previous_status}</p>
-      <p><span className="text-muted-foreground">{t("admin.bookings.reason")}:</span> {row.reason}</p>
+      <p>
+        <span className="text-muted-foreground">{t("admin.cases.openedBy")}:</span>{" "}
+        {t(`adminOps.roles.${row.opened_by_role}`, { defaultValue: t("adminOps.unknown") })} ·{" "}
+        {t("admin.cases.previousStatus")}:{" "}
+        {t(`adminOps.status.${row.previous_status}`, { defaultValue: t("adminOps.unknown") })}
+      </p>
+      <p>
+        <span className="text-muted-foreground">{t("admin.bookings.reason")}:</span> {row.reason}
+      </p>
       <p className="whitespace-pre-wrap">{row.description}</p>
       <EvidenceLinks paths={row.evidence_paths} />
 
       {closed ? (
-        row.admin_notes && <p className="rounded-xl bg-surface-2 p-3"><span className="text-muted-foreground">{t("admin.cases.adminNotes")}:</span> {row.admin_notes}</p>
+        row.admin_notes && (
+          <p className="rounded-xl bg-surface-2 p-3">
+            <span className="text-muted-foreground">{t("admin.cases.adminNotes")}:</span>{" "}
+            {row.admin_notes}
+          </p>
+        )
       ) : (
         <div className="space-y-2 rounded-xl border border-coral/30 bg-coral/5 p-3">
-          <p className="text-[11px] font-bold text-coral">{t("admin.cases.resolutionNotesRequired")}</p>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder={t("admin.cases.adminNotes")}
+          <p className="text-xs font-bold text-coral">{t("admin.cases.resolutionNotesRequired")}</p>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={2}
+            placeholder={t("admin.cases.adminNotes")}
             aria-label={t("admin.cases.adminNotes")}
-            className="w-full resize-none rounded-lg border border-border bg-surface p-2 text-xs" />
-          <select value={bookingOutcome} onChange={(e) => setBookingOutcome(e.target.value as any)} className="focus-ring h-9 w-full rounded-lg border border-border bg-surface px-2 text-xs">
+            className="w-full resize-none rounded-lg border border-border bg-surface p-2 text-xs"
+          />
+          <select
+            value={bookingOutcome}
+            onChange={(e) => setBookingOutcome(e.target.value as any)}
+            className="focus-ring h-9 w-full rounded-lg border border-border bg-surface px-2 text-xs"
+          >
             <option value="">{t("admin.cases.dontChangeStatus")}</option>
             <option value="completed">{t("admin.cases.markCompleted")}</option>
             <option value="cancelled">{t("admin.cases.markCancelled")}</option>
@@ -163,28 +246,59 @@ function DisputeDetail({ row }: { row: any }) {
           <div className="flex flex-wrap gap-2">
             <button
               disabled={resolve.isPending}
-              onClick={() => resolve.mutate({ disputeId: row.id, status: "info_requested", adminNotes: notes || undefined }, {
-                onSuccess: () => toast.success(t("admin.cases.infoRequested")),
-                onError: (e: any) => toast.error(e?.message ?? t("admin.cases.disputeUpdateError")),
-              })}
+              onClick={() =>
+                resolve.mutate(
+                  { disputeId: row.id, status: "info_requested", adminNotes: notes || undefined },
+                  {
+                    onSuccess: () => toast.success(t("admin.cases.infoRequested")),
+                    onError: (e: any) => toast.error(t("adminOps.actionError")),
+                  },
+                )
+              }
               className="focus-ring rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-muted-foreground disabled:opacity-50"
-            >{t("admin.cases.requestInfo")}</button>
+            >
+              {t("admin.cases.requestInfo")}
+            </button>
             <button
               disabled={!notes.trim() || resolve.isPending}
-              onClick={() => resolve.mutate({ disputeId: row.id, status: "resolved", adminNotes: notes, bookingStatus: bookingOutcome || undefined }, {
-                onSuccess: () => toast.success(t("admin.cases.disputeResolved")),
-                onError: (e: any) => toast.error(e?.message ?? t("admin.cases.disputeResolveError")),
-              })}
+              onClick={() =>
+                resolve.mutate(
+                  {
+                    disputeId: row.id,
+                    status: "resolved",
+                    adminNotes: notes,
+                    bookingStatus: bookingOutcome || undefined,
+                  },
+                  {
+                    onSuccess: () => toast.success(t("admin.cases.disputeResolved")),
+                    onError: (e: any) => toast.error(t("adminOps.actionError")),
+                  },
+                )
+              }
               className="focus-ring rounded-lg bg-brand px-3 py-1.5 text-xs font-bold text-brand-foreground disabled:opacity-50"
-            >{t("admin.cases.resolve")}</button>
+            >
+              {t("admin.cases.resolve")}
+            </button>
             <button
               disabled={!notes.trim() || resolve.isPending}
-              onClick={() => resolve.mutate({ disputeId: row.id, status: "rejected", adminNotes: notes, bookingStatus: bookingOutcome || undefined }, {
-                onSuccess: () => toast.success(t("admin.cases.disputeRejected")),
-                onError: (e: any) => toast.error(e?.message ?? t("admin.cases.disputeRejectError")),
-              })}
+              onClick={() =>
+                resolve.mutate(
+                  {
+                    disputeId: row.id,
+                    status: "rejected",
+                    adminNotes: notes,
+                    bookingStatus: bookingOutcome || undefined,
+                  },
+                  {
+                    onSuccess: () => toast.success(t("admin.cases.disputeRejected")),
+                    onError: (e: any) => toast.error(t("adminOps.actionError")),
+                  },
+                )
+              }
               className="focus-ring rounded-lg border border-coral px-3 py-1.5 text-xs font-bold text-coral disabled:opacity-50"
-            >{t("admin.providers.reject")}</button>
+            >
+              {t("admin.providers.reject")}
+            </button>
           </div>
         </div>
       )}
@@ -202,19 +316,40 @@ function NoShowDetail({ row }: { row: any }) {
   return (
     <div className="mt-3 space-y-3 border-t border-border pt-3 text-xs">
       <BookingContext row={row} />
-      <p><span className="text-muted-foreground">{t("admin.cases.reportedBy")}:</span> {row.reporter_role} · <span className="text-muted-foreground">{t("admin.cases.reportedParty")}:</span> {row.reported_party} · {t("admin.cases.previousStatus")}: {row.previous_status}</p>
+      <p>
+        <span className="text-muted-foreground">{t("admin.cases.reportedBy")}:</span>{" "}
+        {t(`adminOps.roles.${row.reporter_role}`, { defaultValue: t("adminOps.unknown") })} ·{" "}
+        <span className="text-muted-foreground">{t("admin.cases.reportedParty")}:</span>{" "}
+        {t(`adminOps.roles.${row.reported_party}`, { defaultValue: t("adminOps.unknown") })} ·{" "}
+        {t("admin.cases.previousStatus")}:{" "}
+        {t(`adminOps.status.${row.previous_status}`, { defaultValue: t("adminOps.unknown") })}
+      </p>
       <p className="whitespace-pre-wrap">{row.reason}</p>
       <EvidenceLinks paths={row.evidence_paths} />
 
       {closed ? (
-        row.admin_notes && <p className="rounded-xl bg-surface-2 p-3"><span className="text-muted-foreground">{t("admin.cases.adminNotes")}:</span> {row.admin_notes}</p>
+        row.admin_notes && (
+          <p className="rounded-xl bg-surface-2 p-3">
+            <span className="text-muted-foreground">{t("admin.cases.adminNotes")}:</span>{" "}
+            {row.admin_notes}
+          </p>
+        )
       ) : (
         <div className="space-y-2 rounded-xl border border-coral/30 bg-coral/5 p-3">
-          <p className="text-[11px] font-bold text-coral">{t("admin.cases.resolutionNotesRequired")}</p>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder={t("admin.cases.adminNotes")}
+          <p className="text-xs font-bold text-coral">{t("admin.cases.resolutionNotesRequired")}</p>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={2}
+            placeholder={t("admin.cases.adminNotes")}
             aria-label={t("admin.cases.adminNotes")}
-            className="w-full resize-none rounded-lg border border-border bg-surface p-2 text-xs" />
-          <select value={bookingOutcome} onChange={(e) => setBookingOutcome(e.target.value as any)} className="focus-ring h-9 w-full rounded-lg border border-border bg-surface px-2 text-xs">
+            className="w-full resize-none rounded-lg border border-border bg-surface p-2 text-xs"
+          />
+          <select
+            value={bookingOutcome}
+            onChange={(e) => setBookingOutcome(e.target.value as any)}
+            className="focus-ring h-9 w-full rounded-lg border border-border bg-surface px-2 text-xs"
+          >
             <option value="">{t("admin.cases.dontChangeStatus")}</option>
             <option value="completed">{t("admin.cases.markCompleted")}</option>
             <option value="cancelled">{t("admin.cases.markCancelled")}</option>
@@ -222,28 +357,59 @@ function NoShowDetail({ row }: { row: any }) {
           <div className="flex flex-wrap gap-2">
             <button
               disabled={resolve.isPending}
-              onClick={() => resolve.mutate({ reportId: row.id, status: "info_requested", adminNotes: notes || undefined }, {
-                onSuccess: () => toast.success(t("admin.cases.infoRequested")),
-                onError: (e: any) => toast.error(e?.message ?? t("admin.cases.reportUpdateError")),
-              })}
+              onClick={() =>
+                resolve.mutate(
+                  { reportId: row.id, status: "info_requested", adminNotes: notes || undefined },
+                  {
+                    onSuccess: () => toast.success(t("admin.cases.infoRequested")),
+                    onError: (e: any) => toast.error(t("adminOps.actionError")),
+                  },
+                )
+              }
               className="focus-ring rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-muted-foreground disabled:opacity-50"
-            >{t("admin.cases.requestInfo")}</button>
+            >
+              {t("admin.cases.requestInfo")}
+            </button>
             <button
               disabled={!notes.trim() || resolve.isPending}
-              onClick={() => resolve.mutate({ reportId: row.id, status: "resolved", adminNotes: notes, bookingStatus: bookingOutcome || undefined }, {
-                onSuccess: () => toast.success(t("admin.cases.reportResolved")),
-                onError: (e: any) => toast.error(e?.message ?? t("admin.cases.reportResolveError")),
-              })}
+              onClick={() =>
+                resolve.mutate(
+                  {
+                    reportId: row.id,
+                    status: "resolved",
+                    adminNotes: notes,
+                    bookingStatus: bookingOutcome || undefined,
+                  },
+                  {
+                    onSuccess: () => toast.success(t("admin.cases.reportResolved")),
+                    onError: (e: any) => toast.error(t("adminOps.actionError")),
+                  },
+                )
+              }
               className="focus-ring rounded-lg bg-brand px-3 py-1.5 text-xs font-bold text-brand-foreground disabled:opacity-50"
-            >{t("admin.cases.resolve")}</button>
+            >
+              {t("admin.cases.resolve")}
+            </button>
             <button
               disabled={!notes.trim() || resolve.isPending}
-              onClick={() => resolve.mutate({ reportId: row.id, status: "rejected", adminNotes: notes, bookingStatus: bookingOutcome || undefined }, {
-                onSuccess: () => toast.success(t("admin.cases.reportRejected")),
-                onError: (e: any) => toast.error(e?.message ?? t("admin.cases.reportRejectError")),
-              })}
+              onClick={() =>
+                resolve.mutate(
+                  {
+                    reportId: row.id,
+                    status: "rejected",
+                    adminNotes: notes,
+                    bookingStatus: bookingOutcome || undefined,
+                  },
+                  {
+                    onSuccess: () => toast.success(t("admin.cases.reportRejected")),
+                    onError: (e: any) => toast.error(t("adminOps.actionError")),
+                  },
+                )
+              }
               className="focus-ring rounded-lg border border-coral px-3 py-1.5 text-xs font-bold text-coral disabled:opacity-50"
-            >{t("admin.providers.reject")}</button>
+            >
+              {t("admin.providers.reject")}
+            </button>
           </div>
         </div>
       )}
@@ -251,82 +417,141 @@ function NoShowDetail({ row }: { row: any }) {
   );
 }
 
-function CaseRow({ tab, row, isOpen, onToggle }: { tab: Tab; row: any; isOpen: boolean; onToggle: () => void }) {
-  const { t } = useTranslation();
-  const title = tab === "support" ? row.subject : tab === "disputes" ? t("admin.cases.disputeTitle") : t("admin.cases.noShowTitle");
+function CaseRow({
+  tab,
+  row,
+  isOpen,
+  onToggle,
+}: {
+  tab: Tab;
+  row: any;
+  isOpen: boolean;
+  onToggle: () => void;
+}) {
+  const { t, i18n } = useTranslation();
+  const title =
+    tab === "support"
+      ? row.subject
+      : tab === "disputes"
+        ? t("admin.cases.disputeTitle")
+        : t("admin.cases.noShowTitle");
   return (
     <li className="px-5 py-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-bold">{title}</p>
-          <p className="text-[11px] text-muted-foreground">{new Date(row.created_at).toLocaleString()}</p>
-          <p dir="ltr" className="font-mono text-[10px] text-muted-foreground">{row.id}</p>
+          <p
+            className="text-xs text-muted-foreground"
+            title={operationDate(row.created_at, i18n.language)}
+          >
+            {caseAge(
+              row.created_at,
+              i18n.language,
+              isPreviewAdminRoute() ? Date.parse(PREVIEW_NOW_ISO) : Date.now(),
+            )}
+          </p>
+          <BookingContext row={row} />
+          <p className="mt-2 break-words text-sm">{row.reason || row.description}</p>
         </div>
-        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${statusTone(row.status)}`}>{String(row.status).replace("_", " ")}</span>
+        <span className={`rounded-full px-2 py-1 text-xs font-bold ${statusTone(row.status)}`}>
+          {t(`adminOps.status.${row.status}`, { defaultValue: t("adminOps.unknown") })}
+        </span>
       </div>
-      <button onClick={onToggle} className="focus-ring mt-2 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground">
+      <button
+        onClick={onToggle}
+        className="focus-ring mt-2 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground"
+      >
         {isOpen ? t("admin.cases.hideDetails") : t("admin.cases.viewDetails")}
       </button>
       {isOpen && (
-        tab === "support" ? <SupportTicketDetail row={row} />
-        : tab === "disputes" ? <DisputeDetail row={row} />
-        : <NoShowDetail row={row} />
+        <div className="mt-4 space-y-3">
+          {row.booking_id && (
+            <AdminBookingReadContext bookingId={row.booking_id} status={row.booking?.status} />
+          )}
+          {tab === "support" ? (
+            <SupportTicketDetail row={row} />
+          ) : tab === "disputes" ? (
+            <DisputeDetail row={row} />
+          ) : (
+            <NoShowDetail row={row} />
+          )}
+        </div>
       )}
     </li>
   );
 }
 
-export function AdminCases({ search }: { search: { tab?: string; status?: string } }) {
+export function AdminCases({
+  search,
+}: {
+  search: { tab?: string; status?: string; booking?: string };
+}) {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<Tab>((search.tab as Tab) ?? "support");
+  const [tab, setTab] = useState<Tab | "all">((search.tab as Tab) ?? "all");
   const [status, setStatus] = useState(search.status ?? "");
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(search.booking ?? "");
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const ticketsQ = useAdminSupportTickets(status ? { status: status as TicketStatus } : undefined);
-  const disputesQ = useAdminDisputes(status ? { status: status as any } : undefined);
-  const noShowQ = useAdminNoShowReports(status ? { status: status as any } : undefined);
+  const ticketsQ = useAdminSupportTickets();
+  const disputesQ = useAdminDisputes();
+  const noShowQ = useAdminNoShowReports();
 
-  const rows = (tab === "support" ? ticketsQ.data : tab === "disputes" ? disputesQ.data : noShowQ.data) ?? [];
-  const isLoading = tab === "support" ? ticketsQ.isLoading : tab === "disputes" ? disputesQ.isLoading : noShowQ.isLoading;
-  const isError = tab === "support" ? ticketsQ.isError : tab === "disputes" ? disputesQ.isError : noShowQ.isError;
-  const activeError = tab === "support" ? ticketsQ.error : tab === "disputes" ? disputesQ.error : noShowQ.error;
+  const rows = mergeCases(ticketsQ.data ?? [], disputesQ.data ?? [], noShowQ.data ?? []).filter(
+    (item) => (tab === "all" || item.kind === tab) && (!status || item.row.status === status),
+  );
+  const isLoading = ticketsQ.isLoading || disputesQ.isLoading || noShowQ.isLoading;
+  const isError = ticketsQ.isError || disputesQ.isError || noShowQ.isError;
+  const activeError =
+    tab === "support" ? ticketsQ.error : tab === "disputes" ? disputesQ.error : noShowQ.error;
   const retryActive = () => {
-    if (tab === "support") void ticketsQ.refetch();
-    else if (tab === "disputes") void disputesQ.refetch();
-    else void noShowQ.refetch();
+    void ticketsQ.refetch();
+    void disputesQ.refetch();
+    void noShowQ.refetch();
   };
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
     if (!needle) return rows;
-    return (rows as any[]).filter((r) => {
+    return rows.filter(({ row: r }) => {
       const id = String(r.id ?? "").toLowerCase();
       const bookingId = String(r.booking_id ?? "").toLowerCase();
       const customerName = String(r.booking?.customer?.full_name ?? "").toLowerCase();
       const providerName = String(r.booking?.provider?.profile?.full_name ?? "").toLowerCase();
-      return id.includes(needle) || bookingId.includes(needle) || customerName.includes(needle) || providerName.includes(needle);
+      return (
+        id.includes(needle) ||
+        bookingId.includes(needle) ||
+        bookingCode(r.booking_id).toLowerCase().includes(needle) ||
+        customerName.includes(needle) ||
+        providerName.includes(needle)
+      );
     });
   }, [rows, query]);
 
-  const statusOptions = tab === "support" ? SUPPORT_STATUSES : CASE_STATUSES;
+  const statusOptions = [...new Set([...SUPPORT_STATUSES, ...CASE_STATUSES])];
 
   return (
-    <div className="px-5 py-5 space-y-4">
+    <div className={adminScreen}>
       <div>
-        <h1 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">{t("admin.cases.title")}</h1>
+        <h1 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+          {t("admin.cases.title")}
+        </h1>
         <p className="text-xs text-muted-foreground">{t("admin.cases.subtitle")}</p>
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {([
+        {[
+          { key: "all" as const, labelKey: "adminOps.all" },
           { key: "support" as Tab, labelKey: "admin.cases.tabSupport" },
           { key: "disputes" as Tab, labelKey: "admin.cases.tabDisputes" },
           { key: "no_shows" as Tab, labelKey: "admin.cases.tabNoShows" },
-        ]).map((tOpt) => (
+        ].map((tOpt) => (
           <button
             key={tOpt.key}
-            onClick={() => { setTab(tOpt.key); setStatus(""); setExpanded(null); }}
+            onClick={() => {
+              setTab(tOpt.key);
+              setStatus("");
+              setExpanded(null);
+            }}
             className={`focus-ring rounded-full px-3 py-1.5 text-xs font-bold ${tab === tOpt.key ? "bg-brand text-brand-foreground" : "bg-muted text-muted-foreground"}`}
           >
             {t(tOpt.labelKey)}
@@ -340,28 +565,51 @@ export function AdminCases({ search }: { search: { tab?: string; status?: string
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={t("admin.cases.searchPlaceholder")}
+            placeholder={t("adminOps.search")}
+            aria-label={t("adminOps.search")}
             className="w-full bg-transparent text-sm outline-none"
           />
         </div>
-        <select value={status} onChange={(e) => setStatus(e.target.value)} className="focus-ring h-10 rounded-xl border border-border bg-surface px-3 text-sm">
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+          className="focus-ring h-10 rounded-xl border border-border bg-surface px-3 text-sm"
+        >
           <option value="">{t("admin.bookings.allStatuses")}</option>
-          {statusOptions.map((s) => <option key={s} value={s}>{s.replace("_", " ")}</option>)}
+          {statusOptions.map((s) => (
+            <option key={s} value={s}>
+              {t(`adminOps.status.${s}`)}
+            </option>
+          ))}
         </select>
       </div>
 
       {isLoading ? (
         <div className="space-y-2">
-          {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-20 animate-pulse rounded-2xl bg-muted" />)}
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-20 animate-pulse rounded-2xl bg-muted" />
+          ))}
         </div>
       ) : isError ? (
-        <AdminQueryError message={t("admin.cases.loadError")} error={activeError} onRetry={retryActive} />
+        <AdminQueryError
+          message={t("admin.cases.loadError")}
+          error={activeError}
+          onRetry={retryActive}
+        />
       ) : filtered.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t("admin.cases.noResults")}</p>
       ) : (
         <ul className="divide-y divide-border/60 rounded-2xl border border-border/60 bg-surface shadow-sm">
-          {filtered.map((row: any) => (
-            <CaseRow key={row.id} tab={tab} row={row} isOpen={expanded === row.id} onToggle={() => setExpanded(expanded === row.id ? null : row.id)} />
+          {filtered.map(({ row, kind }) => (
+            <CaseRow
+              key={`${kind}:${row.id}`}
+              tab={kind as Tab}
+              row={row}
+              isOpen={expanded === `${kind}:${row.id}`}
+              onToggle={() =>
+                setExpanded(expanded === `${kind}:${row.id}` ? null : `${kind}:${row.id}`)
+              }
+            />
           ))}
         </ul>
       )}
