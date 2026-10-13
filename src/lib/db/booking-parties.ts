@@ -13,28 +13,39 @@ export type BookingParty = {
   area: string | null;
   zone_name_en: string | null;
   zone_name_ar: string | null;
-  child_first_name: string | null;
-  child_age_years: number | null;
+  member_first_name: string | null;
+  member_age_years: number | null;
 };
+
+const RPC_BATCH = 200;
 
 /**
  * The other party of each booking (name, avatar, and the phone only while the
  * booking is active). `profiles` is self-only under RLS, so a plain join
- * returns null; this reads through `booking_party_profiles`, which checks
- * that the caller is a party to every booking.
+ * returns null; `booking_party_profiles` checks that the caller is a party to
+ * every booking. Ids are sent in batches the RPC accepts.
  */
+export async function fetchBookingParties(
+  bookingIds: string[],
+): Promise<Map<string, BookingParty>> {
+  const ids = [...new Set(bookingIds.filter(Boolean))];
+  const parties = new Map<string, BookingParty>();
+  for (let i = 0; i < ids.length; i += RPC_BATCH) {
+    const { data, error } = await supabase.rpc("booking_party_profiles", {
+      p_booking_ids: ids.slice(i, i + RPC_BATCH),
+    });
+    if (error) throw error;
+    for (const row of data ?? []) parties.set(row.booking_id, row as BookingParty);
+  }
+  return parties;
+}
+
 export function useBookingParties(bookingIds: (string | null | undefined)[]) {
   const ids = [...new Set(bookingIds.filter((id): id is string => !!id))].sort();
   return useQuery({
     enabled: ids.length > 0 && !isPreviewRoute(),
     queryKey: ["booking-parties", ids],
-    queryFn: async (): Promise<Map<string, BookingParty>> => {
-      const { data, error } = await supabase.rpc("booking_party_profiles", {
-        p_booking_ids: ids,
-      });
-      if (error) throw error;
-      return new Map((data ?? []).map((row) => [row.booking_id, row as BookingParty]));
-    },
+    queryFn: () => fetchBookingParties(ids),
   });
 }
 

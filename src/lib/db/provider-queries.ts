@@ -3,6 +3,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchBookingParties } from "@/lib/db/booking-parties";
 import { useAuth } from "@/lib/auth/useAuth";
 import { isClosedBetaCategorySlug } from "@/lib/catalog/closedBetaCategories";
 import { isQaCatalogService } from "@/lib/catalog/qaCatalog";
@@ -228,11 +229,10 @@ export function useProviderBooking(id: string | undefined) {
  */
 async function withCustomerParties<T extends { id: string; customer?: unknown }>(rows: T[]): Promise<T[]> {
   if (rows.length === 0) return rows;
-  const { data, error } = await supabase.rpc("booking_party_profiles", {
-    p_booking_ids: rows.map((row) => row.id),
-  });
-  if (error) throw error;
-  const parties = new Map((data ?? []).map((party) => [party.booking_id, party]));
+  // Names are cosmetic: if the lookup fails, keep the bookings list working.
+  const parties = await fetchBookingParties(rows.map((row) => row.id)).catch(
+    () => new Map<string, never>(),
+  );
   return rows.map((row) => {
     const party = parties.get(row.id);
     if (!party) return row;

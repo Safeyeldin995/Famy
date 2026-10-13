@@ -352,6 +352,8 @@ export function useProvider(id: string | undefined, addressId?: string) {
 export function useBookableServiceIds(providerId: string | undefined, addressId?: string) {
   return useQuery({
     enabled: !!providerId && !isPreviewRoute(),
+    // Signed-out visitors and providers get a permission error; don't retry it.
+    retry: false,
     queryKey: ['bookable-services', providerId, addressId ?? null],
     queryFn: async () => {
       const args: { p_provider_id: string; p_address_id?: string } = { p_provider_id: providerId! };

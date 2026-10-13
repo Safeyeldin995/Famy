@@ -203,7 +203,10 @@ export function BookContent({
       ),
     [servicesQ.data, bookableQ.data],
   );
-  const eligibilityServiceId = serviceId ?? services[0]?.service?.id ?? null;
+  const eligibilityServiceId =
+    (serviceId && services.some((row: any) => row.service?.id === serviceId) ? serviceId : null) ??
+    services[0]?.service?.id ??
+    null;
   const selectedAddress = bookableAddresses.find((a: any) => a.id === addressId) ?? null;
   // UX-only preview of the resolved service zone — the booking-creation DB
   // trigger re-resolves this itself and is the sole authoritative guard

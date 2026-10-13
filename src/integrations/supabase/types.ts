@@ -4108,8 +4108,8 @@ export type Database = {
         Returns: {
           area: string | null
           booking_id: string
-          child_age_years: number | null
-          child_first_name: string | null
+          member_age_years: number | null
+          member_first_name: string | null
           other_avatar_url: string | null
           other_name: string | null
           other_phone: string | null

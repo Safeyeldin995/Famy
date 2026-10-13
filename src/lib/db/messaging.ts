@@ -4,6 +4,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchBookingParties, type BookingParty } from '@/lib/db/booking-parties';
 
 export const CONTACT_BLOCKED_MESSAGE =
   "For your safety and to keep Famy's protections active on this booking, please keep communication inside the Famy app.";
@@ -43,12 +44,11 @@ export function useConversations() {
       if (!convs?.length) return [];
 
       // The other party's name/avatar. `profiles` is self-only under RLS, so
-      // this reads through booking_party_profiles (party-checked server-side).
-      const { data: parties, error: partiesError } = await supabase.rpc('booking_party_profiles', {
-        p_booking_ids: [...new Set(convs.map((c) => c.booking_id))],
-      });
-      if (partiesError) throw partiesError;
-      const pMap = new Map((parties ?? []).map((p) => [p.booking_id, p]));
+      // this reads through booking_party_profiles. A failed lookup only loses
+      // names; the inbox itself still loads.
+      const pMap = await fetchBookingParties(convs.map((c) => c.booking_id)).catch(
+        () => new Map<string, BookingParty>(),
+      );
 
       const ids = convs.map((c) => c.id);
       const { data: lastMsgs } = await supabase
@@ -107,11 +107,7 @@ export function useConversation(id: string | undefined) {
         .maybeSingle();
       if (error) throw error;
       if (!data) return null;
-      const { data: parties, error: partyError } = await supabase.rpc('booking_party_profiles', {
-        p_booking_ids: [data.booking_id],
-      });
-      if (partyError) throw partyError;
-      const party = parties?.[0];
+      const party = (await fetchBookingParties([data.booking_id]).catch(() => new Map<string, BookingParty>())).get(data.booking_id);
       const other = party
         ? { id: party.other_user_id, full_name: party.other_name, avatar_url: party.other_avatar_url }
         : null;

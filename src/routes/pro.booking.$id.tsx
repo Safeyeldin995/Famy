@@ -189,11 +189,11 @@ export function ProBookingDetail({ id }: { id: string }) {
           <Row icon={<Calendar className="h-4 w-4" />} label={t("pro.booking.date")} value={formatDate(start, { weekday: "long", month: "short", day: "numeric", year: "numeric" }, dateLoc)} />
           <Row icon={<Clock className="h-4 w-4" />} label={t("pro.booking.time")} value={`${formatTime(start, dateLoc)} · ${formatDuration(hours, lang)}`} />
           {teaching && <Row icon={<UserIcon className="h-4 w-4" />} label={t("pro.booking.subject")} value={teaching} />}
-          {!b.family_member && party?.child_first_name && (
+          {!b.family_member && party?.member_first_name && (
             <Row
               icon={<UserIcon className="h-4 w-4" />}
               label={t("pro.booking.forWhom", "Service is for")}
-              value={party.child_age_years != null ? t("pro.booking.childWithAge", { name: party.child_first_name, count: party.child_age_years }) : party.child_first_name}
+              value={party.member_age_years != null ? t("pro.booking.childWithAge", { name: party.member_first_name, count: party.member_age_years }) : party.member_first_name}
             />
           )}
           <Row icon={<MapPin className="h-4 w-4" />} label={t("pro.booking.address")} value={addrLine} />

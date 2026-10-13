@@ -7,9 +7,10 @@
 --    counterpart's name and avatar for bookings the caller is a party to.
 --    The phone number is returned only while the booking is active
 --    (confirmed .. completion_requested), the same window in which the
---    provider can already read the booking address. A pending request also
---    exposes the coarse area and the child's age so the provider can decide,
---    never the exact address.
+--    provider can already read the booking address. While a request is
+--    pending or active the provider also gets the service zone and the
+--    family member's first name and age so they can decide; never the exact
+--    address, and nothing of this once the booking has ended.
 --
 -- 2. marketplace_provider_bookable_services(p_provider_id, p_address_id)
 --    The customer provider page listed every approved provider_services row,
@@ -29,8 +30,8 @@ RETURNS TABLE (
   area text,
   zone_name_en text,
   zone_name_ar text,
-  child_first_name text,
-  child_age_years integer
+  member_first_name text,
+  member_age_years integer
 )
 LANGUAGE plpgsql
 STABLE
@@ -63,7 +64,9 @@ BEGIN
         WHEN b.customer_id = v_uid THEN 'customer'
         WHEN pv.profile_id = v_uid THEN 'provider'
         ELSE 'admin'
-      END AS role
+      END AS role,
+      b.status IN ('confirmed', 'on_the_way', 'arrived', 'arrival_confirmed', 'in_progress', 'completion_requested') AS is_active,
+      b.status IN ('pending', 'confirmed', 'on_the_way', 'arrived', 'arrival_confirmed', 'in_progress', 'completion_requested') AS is_open
     FROM public.bookings b
     JOIN public.providers pv ON pv.id = b.provider_id
     WHERE b.id = ANY (p_booking_ids)
@@ -76,19 +79,16 @@ BEGIN
     other.id,
     NULLIF(btrim(other.full_name), ''),
     other.avatar_url,
-    CASE
-      WHEN s.status IN ('confirmed', 'on_the_way', 'arrived', 'arrival_confirmed', 'in_progress', 'completion_requested')
-        OR s.role = 'admin'
-      THEN other.phone
-      ELSE NULL
+    CASE WHEN s.is_active OR s.role = 'admin' THEN other.phone END,
+    CASE WHEN s.is_active OR s.role = 'admin' OR s.role = 'customer'
+      THEN COALESCE(NULLIF(btrim(bl.area), ''), NULLIF(btrim(bl.city), ''))
     END,
-    COALESCE(NULLIF(btrim(bl.area), ''), NULLIF(btrim(bl.city), '')),
-    bl.zone_name_en,
-    bl.zone_name_ar,
-    CASE WHEN s.role IN ('provider', 'admin')
+    CASE WHEN s.is_open OR s.role IN ('admin', 'customer') THEN bl.zone_name_en END,
+    CASE WHEN s.is_open OR s.role IN ('admin', 'customer') THEN bl.zone_name_ar END,
+    CASE WHEN (s.role = 'provider' AND s.is_open) OR s.role = 'admin'
       THEN NULLIF(split_part(btrim(fm.full_name), ' ', 1), '')
     END,
-    CASE WHEN s.role IN ('provider', 'admin') AND fm.date_of_birth IS NOT NULL
+    CASE WHEN ((s.role = 'provider' AND s.is_open) OR s.role = 'admin') AND fm.date_of_birth IS NOT NULL
       THEN date_part('year', age(current_date, fm.date_of_birth))::integer
     END
   FROM scoped s
