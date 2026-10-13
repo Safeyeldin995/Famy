@@ -1,6 +1,8 @@
 import { useState, type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { CustomerBirthDateField } from "../CustomerBirthDateField";
+import { customerDayKey, customerYesterdayKey } from "../customerDates";
 import userEvent from "@testing-library/user-event";
 import {
   FamilyMemberForm,
@@ -22,6 +24,29 @@ vi.mock("@/components/famio/EducationProfileFields", () => ({
     education_curriculum_id: null,
     education_level_id: null,
   }),
+}));
+
+vi.mock("@/components/famio/BottomSheetSelect", () => ({
+  BottomSheetSelect: ({
+    label,
+    value,
+    options,
+    onChange,
+  }: {
+    label: string;
+    value: string;
+    options: { value: string; label: string }[];
+    onChange: (value: string) => void;
+  }) => (
+    <select aria-label={label} value={value} onChange={(event) => onChange(event.target.value)}>
+      <option value="" />
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  ),
 }));
 
 vi.mock("@/components/famio/ui", () => ({
@@ -60,9 +85,77 @@ function FormHarness({ onSubmit }: { onSubmit: () => void }) {
 }
 
 describe("FamilyMemberForm", () => {
-  afterEach(() => cleanup());
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+  });
 
   const today = "2026-09-30";
+
+  it("uses Cairo today in both the picker and form validation on a UTC phone", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2025-12-31T22:30:00Z"));
+    expect(customerDayKey()).toBe("2026-01-01");
+    expect(customerYesterdayKey()).toBe("2025-12-31");
+    const onSubmit = vi.fn();
+    render(
+      <FamilyMemberForm
+        value={{
+          ...emptyFamilyMemberFormValue(),
+          fullName: "Test",
+          relationship: "son",
+          dateOfBirth: "2026-01-01",
+        }}
+        onChange={() => {}}
+        onSubmit={onSubmit}
+        submitting={false}
+        submitLabel="Save"
+      />,
+    );
+    expect((screen.getByRole("combobox", { name: "Year" }) as HTMLSelectElement).value).toBe(
+      "2026",
+    );
+    expect(
+      (screen.getByRole("combobox", { name: "Day" }) as HTMLSelectElement).options.length,
+    ).toBe(2);
+    fireEvent.click(screen.getByTestId("family-member-save"));
+    expect(onSubmit).toHaveBeenCalledOnce();
+    for (const dateOfBirth of ["2026-01-02", "2020--", "2020-02-", "2025-02-29"]) {
+      expect(
+        validateFamilyMemberFormValue(
+          {
+            ...emptyFamilyMemberFormValue(),
+            dateOfBirth,
+          },
+          customerDayKey(),
+        ).dobValid,
+      ).toBe(false);
+    }
+  });
+
+  it("clears a partial or complete birthday when the parent resets it", () => {
+    function BirthdayHarness() {
+      const [value, setValue] = useState("");
+      return (
+        <>
+          <CustomerBirthDateField value={value} onChange={setValue} />
+          <button onClick={() => setValue("")}>Reset</button>
+        </>
+      );
+    }
+    render(<BirthdayHarness />);
+    const year = screen.getByRole("combobox", { name: "Year" });
+    const month = screen.getByRole("combobox", { name: "Month" });
+    const day = screen.getByRole("combobox", { name: "Day" });
+    fireEvent.change(year, { target: { value: "2020" } });
+    fireEvent.click(screen.getByRole("button", { name: "Reset" }));
+    expect((year as HTMLSelectElement).value).toBe("");
+    fireEvent.change(year, { target: { value: "2020" } });
+    fireEvent.change(month, { target: { value: "04" } });
+    fireEvent.change(day, { target: { value: "01" } });
+    fireEvent.click(screen.getByRole("button", { name: "Reset" }));
+    for (const select of [year, month, day]) expect((select as HTMLSelectElement).value).toBe("");
+  });
 
   it("blocks submit and shows required messaging for an empty form", async () => {
     const user = userEvent.setup();
@@ -80,8 +173,13 @@ describe("FamilyMemberForm", () => {
 
     await user.type(screen.getByPlaceholderText("e.g. Layla Ahmed"), "Layla Ahmed");
     await user.click(screen.getByRole("button", { name: "familyMembers.relationships.daughter" }));
-    const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
-    await user.type(dateInput, "2020-04-01");
+    expect(document.querySelector('input[type="date"]')).toBeNull();
+    await user.selectOptions(screen.getByRole("combobox", { name: "Year" }), "2020");
+    await user.selectOptions(screen.getByRole("combobox", { name: "Month" }), "04");
+    await user.selectOptions(screen.getByRole("combobox", { name: "Day" }), "01");
+    expect(screen.getByRole("button", { name: "familyMembers.genders.male" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "familyMembers.genders.female" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "familyMembers.genders.other" })).toBeNull();
     await user.type(
       screen.getAllByPlaceholderText("01xxxxxxxxx")[0],
       toArabicIndic("0101221000633"),

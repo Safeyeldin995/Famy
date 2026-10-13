@@ -1,9 +1,10 @@
+import { previewPath } from "@/lib/preview/previewPath";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { PhoneFrame } from "@/components/famio/ui";
-import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
+import { CustomerPageHeader } from "@/components/famio/CustomerPageHeader";
 import {
   FamilyMemberForm,
   emptyFamilyMemberFormValue,
@@ -22,7 +23,7 @@ export function NewFamilyMember() {
     try {
       await createMember.mutateAsync(familyMemberFormValueToInput(value));
       toast.success(t("familyMembers.saved", "Family member saved"));
-      nav({ to: "/family-members" });
+      nav({ to: previewPath("/family-members") });
     } catch (e: unknown) {
       toast.error(t(familyMemberErrorMessageKey(e)));
     }
@@ -30,11 +31,11 @@ export function NewFamilyMember() {
 
   return (
     <PhoneFrame bg="bg-background">
-      <CustomerPageHero
+      <CustomerPageHeader
         title={t("familyMembers.addMember", "Add family member")}
         backTo="/family-members"
       />
-      <div className="flex-1 px-6 pb-10 pt-2">
+      <div className="flex-1 px-6 pb-10 pt-4">
         <FamilyMemberForm
           value={value}
           onChange={setValue}

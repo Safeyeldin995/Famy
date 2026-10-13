@@ -1,3 +1,4 @@
+import { CustomerPreview } from "./-customerPreview";
 import { createFileRoute } from "@tanstack/react-router";
 import { BookContent } from "./book.$providerId";
 
@@ -13,10 +14,12 @@ function PreviewBook() {
   const { providerId } = Route.useParams();
   const { serviceId, capabilityId } = Route.useSearch();
   return (
-    <BookContent
-      providerId={providerId}
-      searchServiceId={serviceId}
-      searchCapabilityId={capabilityId}
-    />
+    <CustomerPreview>
+      <BookContent
+        providerId={providerId}
+        searchServiceId={serviceId}
+        searchCapabilityId={capabilityId}
+      />
+    </CustomerPreview>
   );
 }
