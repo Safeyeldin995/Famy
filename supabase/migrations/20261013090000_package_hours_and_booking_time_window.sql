@@ -199,7 +199,6 @@ $$;
 
 REVOKE EXECUTE ON FUNCTION public.tg_booking_time_window_guard() FROM PUBLIC, anon, authenticated;
 
-DROP TRIGGER IF EXISTS trg_booking_time_window_guard ON public.bookings;
-CREATE TRIGGER trg_booking_time_window_guard
+CREATE OR REPLACE TRIGGER trg_booking_time_window_guard
   BEFORE UPDATE OF status ON public.bookings
   FOR EACH ROW EXECUTE FUNCTION public.tg_booking_time_window_guard();
