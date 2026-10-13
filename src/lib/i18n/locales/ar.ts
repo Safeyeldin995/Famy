@@ -3102,4 +3102,93 @@ Object.assign(ar, {
     },
   },
 });
+Object.assign(ar, {
+  adminCatalog: {
+    sections: "أقسام الكتالوج",
+    tabs: {
+      services: "الخدمات",
+      taxonomy: "المواد والمناهج",
+      requirements: "المتطلبات",
+    },
+    confirmTitle: "راجع التغيير قبل الحفظ",
+    serviceChange:
+      "السعر والمدة الجديدة هتطبق على الحجوزات الجديدة. الحجوزات الحالية مش هتتغير.",
+    hideService:
+      "الخدمة دي هتختفي من عند العملاء، والحجوزات الحالية مش هتتأثر.",
+    serviceExample:
+      "مثال: جليسة ليلية، 360 دقيقة، تبدأ الساعة 18:00. حدود السعر بالجنيه للعرض الحالي.",
+    requirementsHint: "اختار الخدمة عشان تراجع متطلباتها.",
+    priceRange: "السعر: من {{min}} لـ {{max}} ج.م",
+    duration: "المدة: {{count}} دقيقة",
+    packageHours: "من {{start}} لحد {{end}}",
+    billingEditable: "الضريبة ورسوم المنصة بتتطبق على الحجوزات الجديدة بس. نسبة العمولة مش بتتغير من هنا.",
+    billingConfirm: "القيم الجديدة هتتطبق على الحجوزات الجديدة بس. الحجوزات القديمة مش هتتغير.",
+    billingReadonly:
+      "عرض القيم المالية الحالية فقط. مفيش تعديل للأسعار أو العمولة من الشاشة دي.",
+    ownerDecision: "التغيير ده محتاج قرار من صاحب الشركة",
+    settingsImpact: "الإعداد الجديد هيطبق بعد الحفظ. راجع القيمة قبل التأكيد.",
+    zoneImpact:
+      "تغيير حالة المنطقة بيأثر على ظهور الخدمات المغطاة فيها للحجوزات الجديدة.",
+    linkProvider: "اربط مقدم خدمة بمنطقة",
+    providerSearch: "دور باسم مقدم الخدمة",
+    unnamedProvider: "مقدم خدمة",
+    providerCount: "{{total}} مقدم خدمة",
+    noCoverage: "لسه مفيش خدمات مرتبطة",
+    coverageError: "مش قادرين نحمل بيانات التغطية",
+    discountPercent: "خصم {{value}}%",
+    discountFixed: "خصم {{value}} ج.م",
+    usage: "اتستخدم {{used}} من {{total}}",
+    ends: "آخر يوم: {{date}}",
+    noExpiry: "من غير تاريخ انتهاء",
+    unlimited: "غير محدود",
+    promoAudience: "مين يقدر يستخدمه؟ والوصف",
+    promoValue: "قيمة الخصم",
+    promoLimits: "المدة وحدود الاستخدام (اختياري)",
+    customerPreview: "العميل هيشوف التعليمات كده",
+    noInstructions: "اكتب تعليمات واضحة للعميل في الخانة اللي فوق",
+    unknown: "غير محدد",
+    systemError: "مشكلة تقنية محتاجة مراجعة",
+    states: {
+      failed: "العملية ماكملتش",
+      rejected: "مرفوض",
+      dead: "تعذر توصيل الرسالة",
+      pending: "مستني إعادة المحاولة",
+    },
+    auditActions: {
+      INSERT: "أضاف",
+      UPDATE: "عدل",
+      DELETE: "حذف",
+      other: "سجل تغيير في",
+    },
+    entities: {
+      services: "خدمة",
+      providers: "بيانات مقدم خدمة",
+      bookings: "حجز",
+      payments: "عملية دفع",
+      zones: "منطقة",
+      promo_codes: "كود خصم",
+      payment_methods: "طريقة دفع",
+      cancellation_reasons: "سبب إلغاء",
+      settings: "إعدادات المنصة",
+      other: "سجل بالمنصة",
+    },
+  },
+});
+Object.assign((ar as any).adminCatalog, {
+  requirements: {
+    equipment: "معدات",
+    supplies: "مستلزمات",
+    certification: "شهادة",
+    training: "تدريب",
+    experience: "خبرة",
+    other: "غير كده",
+    customer: "العميل",
+    provider: "مقدم الخدمة",
+    either: "أي طرف",
+    passed: "مقبول",
+    failed: "مرفوض",
+    waived: "معفى",
+    pending: "مستني مراجعة",
+  },
+});
 export default ar;
