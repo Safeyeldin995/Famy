@@ -4,8 +4,16 @@ import { applyServiceSubtitle } from "@/lib/provider/applyServiceSubtitle";
 import { buildBookingRequest, buildBookingQuote } from "@/lib/booking/bookingRequest";
 import { paymentPresentation } from "@/lib/booking/paymentPresentation";
 import { bookingDisabledReason } from "@/lib/booking/disabledReason";
-import { BOOKING_SCREENS, bookingScreenMissingStep, bookingScreenForStep, nextBookingScreen, groupBookingSubjects, type BookingScreen } from "@/lib/booking/bookingScreens";
-import { StepHeader } from "@/components/famio/StepHeader";
+import {
+  BOOKING_SCREENS,
+  bookingScreenMissingStep,
+  bookingScreenForStep,
+  nextBookingScreen,
+  groupBookingSubjects,
+  type BookingScreen,
+} from "@/lib/booking/bookingScreens";
+import { CustomerPageHeader } from "@/components/famio/CustomerPageHeader";
+import { customerAreaLabel } from "@/components/famio/customerAreaLabel";
 import { StickyCta } from "@/components/famio/StickyCta";
 import { ServiceCard } from "@/components/famio/ServiceCard";
 import { NumberStepper } from "@/components/famio/NumberStepper";
@@ -59,7 +67,7 @@ import {
   Star,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { formatEGP, formatNumber } from "@/lib/format";
+import { formatEGP, formatNumber, formatLocale } from "@/lib/format";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useBillingSettings, DEFAULT_BILLING_SETTINGS } from "@/lib/db/settings-queries";
@@ -84,9 +92,7 @@ import {
 } from "@/lib/booking/babysittingRecipient";
 import { isClosedBetaCategorySlug } from "@/lib/catalog/closedBetaCategories";
 import { useApprovedTeachingCapabilities } from "@/lib/db/teaching-queries";
-import {
-  isTutoringCategorySlug,
-} from "@/lib/tutoring/teachingCapabilities";
+import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
 import { markCustomerPushPromptPending } from "@/lib/push-prompt";
 import {
   EducationProfileFields,
@@ -170,7 +176,9 @@ export function BookContent({
   >({});
   const [editingReview, setEditingReview] = useState(false);
   const [detailsSheet, setDetailsSheet] = useState<"address" | "member" | null>(null);
-  const [inlineError, setInlineError] = useState<{ screen: BookingScreen; message: string } | null>(null);
+  const [inlineError, setInlineError] = useState<{ screen: BookingScreen; message: string } | null>(
+    null,
+  );
   const [scanningSchedule, setScanningSchedule] = useState(false);
   const [bookingEducation, setBookingEducation] = useState<EducationProfileValue>(
     educationValueFromIds(null, null),
@@ -221,7 +229,14 @@ export function BookContent({
       const def = bookableAddresses.find((a: any) => a.is_default) ?? bookableAddresses[0];
       setAddressId(def.id);
       setAddress(
-        [def.street ?? def.line1, def.building, def.compound, def.area].filter(Boolean).join(", "),
+        [
+          def.street ?? def.line1,
+          def.building,
+          def.compound,
+          def.area ? customerAreaLabel(def.area, t) : "",
+        ]
+          .filter(Boolean)
+          .join(", "),
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -258,8 +273,16 @@ export function BookContent({
   const fixedPackage = !isTutoring && isFixedPackage(activeService?.service);
   const fixedStart = fixedPackage ? activeService?.service?.fixed_start_time : null;
   const needsPackageRate = fixedPackage && activeService?.price_override == null;
-  const packageRateQ = useFixedPackageRate(providerId, needsPackageRate ? activeService?.service?.id : undefined, slotAddressId);
-  const hours = selectedCapability ? selectedCapability.durationMin / 60 : fixedPackage ? Number(activeService?.service?.duration_min) / 60 : parseInt(duration);
+  const packageRateQ = useFixedPackageRate(
+    providerId,
+    needsPackageRate ? activeService?.service?.id : undefined,
+    slotAddressId,
+  );
+  const hours = selectedCapability
+    ? selectedCapability.durationMin / 60
+    : fixedPackage
+      ? Number(activeService?.service?.duration_min) / 60
+      : parseInt(duration);
   // Must run unconditionally on every render (Rules of Hooks) — this was
   // previously declared after the loading/not-found early returns below,
   // so the hook count changed between the first render (still loading,
@@ -287,7 +310,6 @@ export function BookContent({
   const scheduleStep = stepKeys.indexOf("when");
   const setStep = (index: number) => setRequestedStep(stepKeys[index] ?? "service");
 
-
   useEffect(() => {
     if (isBabysitting && forWhom === "myself") {
       setForWhom(defaultForWhom(true));
@@ -296,7 +318,10 @@ export function BookContent({
     }
   }, [isBabysitting, forWhom]);
 
-  const packageSlots = useMemo(() => filterFixedStartSlots(slotsQ.data ?? [], activeService?.service), [slotsQ.data, activeService?.service]);
+  const packageSlots = useMemo(
+    () => filterFixedStartSlots(slotsQ.data ?? [], activeService?.service),
+    [slotsQ.data, activeService?.service],
+  );
   useEffect(() => {
     if (!fixedStart) return;
     const slot = !slotsQ.isFetching && !slotsQ.isError ? packageSlots[0] : undefined;
@@ -409,11 +434,35 @@ export function BookContent({
     bookingSettingsQ.data?.max_advance_days,
   ]);
 
-  const otherProviders = <Link to={previewPath("/search") as "/search"} search={{ serviceId: activeService?.service?.id ?? serviceId ?? undefined }} className="inline-flex min-h-11 items-center px-3 text-sm font-bold text-brand underline">{t("bookingUx.otherProviders")}</Link>;
+  const otherProviders = (
+    <Link
+      to={previewPath("/search") as "/search"}
+      search={{ serviceId: activeService?.service?.id ?? serviceId ?? undefined }}
+      className="inline-flex min-h-11 items-center px-3 text-pro-14 font-bold text-brand underline"
+    >
+      {t("bookingUx.otherProviders")}
+    </Link>
+  );
   if (provQ.isError || servicesQ.isError || bookingSettingsQ.isError) {
-    return <PhoneFrame><QueryError onRetry={() => { void provQ.refetch(); void servicesQ.refetch(); void bookingSettingsQ.refetch(); }} />{otherProviders}</PhoneFrame>;
+    return (
+      <PhoneFrame>
+        <QueryError
+          onRetry={() => {
+            void provQ.refetch();
+            void servicesQ.refetch();
+            void bookingSettingsQ.refetch();
+          }}
+        />
+        {otherProviders}
+      </PhoneFrame>
+    );
   }
-  if (provQ.isLoading || servicesQ.isLoading || bookingSettingsQ.isLoading || (needsPackageRate && packageRateQ.isLoading)) {
+  if (
+    provQ.isLoading ||
+    servicesQ.isLoading ||
+    bookingSettingsQ.isLoading ||
+    (needsPackageRate && packageRateQ.isLoading)
+  ) {
     return (
       <PhoneFrame>
         <div className="grid flex-1 place-items-center">
@@ -430,7 +479,15 @@ export function BookContent({
           title={t("bookFlow.unavailable")}
           body={t("bookFlow.unavailableBody")}
           action={
-            <div>{otherProviders}<Link to={previewPath("/addresses/new") as "/addresses/new"} className="inline-flex min-h-11 items-center px-3 text-sm font-bold text-brand">{t("addresses.addAddress")}</Link></div>
+            <div>
+              {otherProviders}
+              <Link
+                to={previewPath("/addresses/new") as "/addresses/new"}
+                className="inline-flex min-h-11 items-center px-3 text-pro-14 font-bold text-brand"
+              >
+                {t("addresses.addAddress")}
+              </Link>
+            </div>
           }
         />
       </PhoneFrame>
@@ -446,7 +503,15 @@ export function BookContent({
           title={t("bookFlow.unavailable")}
           body={t("bookFlow.unavailableBody")}
           action={
-            <div>{otherProviders}<Link to={previewPath("/addresses/new") as "/addresses/new"} className="inline-flex min-h-11 items-center px-3 text-sm font-bold text-brand">{t("addresses.addAddress")}</Link></div>
+            <div>
+              {otherProviders}
+              <Link
+                to={previewPath("/addresses/new") as "/addresses/new"}
+                className="inline-flex min-h-11 items-center px-3 text-pro-14 font-bold text-brand"
+              >
+                {t("addresses.addAddress")}
+              </Link>
+            </div>
           }
         />
       </PhoneFrame>
@@ -463,9 +528,15 @@ export function BookContent({
       : (selectedFamilyMember?.full_name ?? t("bookFlow.dash"));
 
   if (needsPackageRate && (packageRateQ.isError || packageRateQ.data == null)) {
-    return <PhoneFrame><QueryError onRetry={() => packageRateQ.refetch()} /></PhoneFrame>;
+    return (
+      <PhoneFrame>
+        <QueryError onRetry={() => packageRateQ.refetch()} />
+      </PhoneFrame>
+    );
   }
-  const ratePerHour = Number(activeService?.price_override ?? (needsPackageRate ? packageRateQ.data : p.hourlyRate));
+  const ratePerHour = Number(
+    activeService?.price_override ?? (needsPackageRate ? packageRateQ.data : p.hourlyRate),
+  );
   // Requirements that must be resolved before this booking can be created.
   // The server re-derives/validates all of this itself (tg_validate_booking_service)
   // — this is purely so the customer sees the right total and can't submit
@@ -489,29 +560,73 @@ export function BookContent({
     promoDiscount,
   });
 
-  const requirementsReady = requirementsQ.isSuccess && eitherRequirements.every((r: any) => !!requirementChoices[r.id]);
+  const requirementsReady =
+    requirementsQ.isSuccess && eitherRequirements.every((r: any) => !!requirementChoices[r.id]);
   const missingStep = bookingScreenMissingStep(stepKey, {
     service: !!activeService,
     tutoring: isTutoring,
     capability: !!selectedCapability,
     slot: !!date && !!time && (!fixedPackage || !!selectedSlot),
     address: !!addressId && !!zoneQ.data,
-    recipient: canContinueForWhom({ isBabysitting, forWhom, members: familyMembersQ.data ?? [], startAt: selectedSlot?.start ?? null }),
+    recipient: canContinueForWhom({
+      isBabysitting,
+      forWhom,
+      members: familyMembersQ.data ?? [],
+      startAt: selectedSlot?.start ?? null,
+    }),
     requirements: requirementsReady,
     payment: !!paymentMethodId,
   });
   const canNext = () => missingStep === null;
-  const paymentCopy = paymentPresentation((methodsQ.data ?? []).find(method => method.id === paymentMethodId)?.method_type);
+  const paymentCopy = paymentPresentation(
+    (methodsQ.data ?? []).find((method) => method.id === paymentMethodId)?.method_type,
+  );
   const noPaymentMethods = methodsQ.isSuccess && methodsQ.data.length === 0;
-  const stepQuery = missingStep === "requirements" ? requirementsQ : missingStep === "duration" ? capabilitiesQ : missingStep === "schedule" ? slotsQ : missingStep === "address" ? (!addressId ? addrsQ : zoneQ) : missingStep === "forWhom" ? familyMembersQ : missingStep === "payment" ? methodsQ : servicesQ;
-  const disabledReason = bookingDisabledReason({ step: missingStep ?? "summary", allowed: canNext(), submitting: createBooking.isPending, loading: stepQuery.isLoading, error: stepQuery.isError, hasDate: !!date, hasSlots: packageSlots.length > 0, hasAddress: !!addressId });
-  const clearSlot = () => { setTime(null); setSelectedSlot(null); setInlineError(null); };
-  const editScreen = (screen: BookingScreen) => { setEditingReview(true); setRequestedStep(screen); };
-  const visibleCapabilities = (capabilitiesQ.data ?? []).filter((cap) =>
-    (!bookingEducation.educationCurriculumId || cap.curriculumId === bookingEducation.educationCurriculumId) &&
-    (!bookingEducation.educationLevelId || cap.levelId === bookingEducation.educationLevelId));
+  const stepQuery =
+    missingStep === "requirements"
+      ? requirementsQ
+      : missingStep === "duration"
+        ? capabilitiesQ
+        : missingStep === "schedule"
+          ? slotsQ
+          : missingStep === "address"
+            ? !addressId
+              ? addrsQ
+              : zoneQ
+            : missingStep === "forWhom"
+              ? familyMembersQ
+              : missingStep === "payment"
+                ? methodsQ
+                : servicesQ;
+  const disabledReason = bookingDisabledReason({
+    step: missingStep ?? "summary",
+    allowed: canNext(),
+    submitting: createBooking.isPending,
+    loading: stepQuery.isLoading,
+    error: stepQuery.isError,
+    hasDate: !!date,
+    hasSlots: packageSlots.length > 0,
+    hasAddress: !!addressId,
+  });
+  const clearSlot = () => {
+    setTime(null);
+    setSelectedSlot(null);
+    setInlineError(null);
+  };
+  const editScreen = (screen: BookingScreen) => {
+    setEditingReview(true);
+    setRequestedStep(screen);
+  };
+  const visibleCapabilities = (capabilitiesQ.data ?? []).filter(
+    (cap) =>
+      (!bookingEducation.educationCurriculumId ||
+        cap.curriculumId === bookingEducation.educationCurriculumId) &&
+      (!bookingEducation.educationLevelId || cap.levelId === bookingEducation.educationLevelId),
+  );
   const subjectGroups = groupBookingSubjects(visibleCapabilities);
-  const selectedGroup = subjectGroups.find(group => group.capabilities.some(cap => cap.id === selectedCapability?.id));
+  const selectedGroup = subjectGroups.find((group) =>
+    group.capabilities.some((cap) => cap.id === selectedCapability?.id),
+  );
 
   const applyPromo = async () => {
     const code = promoCode.trim();
@@ -610,8 +725,15 @@ export function BookContent({
         providerId: p.id,
         serviceId: activeService.service.id,
         addressId: addressId!,
-        forWhom, start, end, promoStatus, appliedPromoId, notes,
-        eitherRequirements, requirementChoices, selectedCapability,
+        forWhom,
+        start,
+        end,
+        promoStatus,
+        appliedPromoId,
+        notes,
+        eitherRequirements,
+        requirementChoices,
+        selectedCapability,
       });
       const fingerprint = bookingSubmissionFingerprint(submissionPayload);
       idempotencyStateRef.current = resolveIdempotencyKey(idempotencyStateRef.current, fingerprint);
@@ -676,7 +798,10 @@ export function BookContent({
             }
           }
         } catch (pe: unknown) {
-          setInlineError({ screen: "review", message: mapPaymentInsertError(pe) || t("bookFlow.paymentFailed") });
+          setInlineError({
+            screen: "review",
+            message: mapPaymentInsertError(pe) || t("bookFlow.paymentFailed"),
+          });
           toast.error(
             mapPaymentInsertError(pe) ||
               t("bookFlow.paymentFailed", "Could not record payment method"),
@@ -706,7 +831,10 @@ export function BookContent({
       });
     } catch (e: any) {
       const code = e instanceof BookingError ? e.code : null;
-      setInlineError({ screen: isSlotStaleBookingError(code) ? "when" : "review", message: getBookingErrorMessage(e, (key, fallback) => t(key, fallback ?? "")) });
+      setInlineError({
+        screen: isSlotStaleBookingError(code) ? "when" : "review",
+        message: getBookingErrorMessage(e, (key, fallback) => t(key, fallback ?? "")),
+      });
       if (isSlotStaleBookingError(code)) {
         toast.error(getBookingErrorMessage(e, (key, fallback) => t(key, fallback ?? "")));
         setTime(null);
@@ -721,412 +849,809 @@ export function BookContent({
 
   const next = () => {
     if (stepKey === "review") void submit();
-    else { setRequestedStep(nextBookingScreen(stepKey, editingReview)); setEditingReview(false); }
+    else {
+      setRequestedStep(nextBookingScreen(stepKey, editingReview));
+      setEditingReview(false);
+    }
   };
-  const locale = lang === "ar" ? "ar-EG" : "en-US";
+  const locale = formatLocale(lang);
   const firstName = p.name.split(" ")[0];
-  const serviceName = (lang === "ar" ? activeService?.service?.name_ar : activeService?.service?.name_en) ?? "";
-  const durationText = tutoringQuote ? t("bookFlow.sessionLine", { minutes: formatNumber(tutoringQuote.durationMin) })
-    : fixedPackage ? t(packageLabel(activeService.service).key, packageLabel(activeService.service).values)
-    : t("customerBooking.duration", { hours: formatNumber(hours) });
-  const whenText = date && selectedSlot ? t("customerBooking.whenSummary", bookingWhenValues(date, selectedSlot, locale, fixedPackage)) : t("bookFlow.dash");
+  const serviceName =
+    (lang === "ar" ? activeService?.service?.name_ar : activeService?.service?.name_en) ?? "";
+  const durationText = tutoringQuote
+    ? t("bookFlow.sessionLine", { minutes: formatNumber(tutoringQuote.durationMin) })
+    : fixedPackage
+      ? t(packageLabel(activeService.service).key, packageLabel(activeService.service).values)
+      : t("customerBooking.duration", { hours: formatNumber(hours) });
+  const whenText =
+    date && selectedSlot
+      ? t(
+          "customerBooking.whenSummary",
+          bookingWhenValues(date, selectedSlot, locale, fixedPackage),
+        )
+      : t("bookFlow.dash");
 
   const handleBack = () => {
-    if (step === 0) nav({ to: previewPath("/provider/$id") as "/provider/$id", params: { id: p.id } });
+    if (step === 0)
+      nav({ to: previewPath("/provider/$id") as "/provider/$id", params: { id: p.id } });
     else setStep(step - 1);
   };
 
-  const recipientFields = <Step title={t(isTutoring ? "bookFlow.forWhomTitle" : "customerBooking.who", { name: firstName })}>
-    <div className="apply-chips">
-      {showMyselfOption(isBabysitting) && <CheckChip selected={forWhom === "myself"} onClick={() => setForWhom("myself")}>{t("bookFlow.forWhomMyself")}</CheckChip>}
-      {familyMembersQ.isError ? <QueryError onRetry={() => familyMembersQ.refetch()} /> : familyMembersQ.isLoading ? <p role="status">{t("common.loading")}</p> : (familyMembersQ.data ?? []).map((member) => {
-        const selectable = isBabysitting ? familyMemberSelectableForBabysitting(member, selectedSlot?.start ?? null) : { ok: true };
-        return <CheckChip key={member.id} selected={forWhom === member.id} disabled={!selectable.ok} onClick={() => setForWhom(member.id)}>
-          {member.full_name}{!selectable.ok && <span className="text-xs">{t("bookFlow.forWhomAgeOutOfRange")}</span>}
-        </CheckChip>;
-      })}
-      <button type="button" className="apply-chip" onClick={() => setDetailsSheet("member")}>{t("customerBooking.addMember")}</button>
-    </div>
-    {!familyMembersQ.isLoading && (familyMembersQ.data ?? []).length === 0 && <p className="text-xs text-muted-foreground">{t(isBabysitting ? "bookFlow.forWhomNeedChild" : "bookFlow.noFamilyMembers")}</p>}
-  </Step>;
+  const recipientFields = (
+    <Step
+      title={t(isTutoring ? "bookFlow.forWhomTitle" : "customerBooking.who", { name: firstName })}
+    >
+      <div className="apply-chips">
+        {showMyselfOption(isBabysitting) && (
+          <CheckChip selected={forWhom === "myself"} onClick={() => setForWhom("myself")}>
+            {t("bookFlow.forWhomMyself")}
+          </CheckChip>
+        )}
+        {familyMembersQ.isError ? (
+          <QueryError onRetry={() => familyMembersQ.refetch()} />
+        ) : familyMembersQ.isLoading ? (
+          <p role="status">{t("common.loading")}</p>
+        ) : (
+          (familyMembersQ.data ?? []).map((member) => {
+            const selectable = isBabysitting
+              ? familyMemberSelectableForBabysitting(member, selectedSlot?.start ?? null)
+              : { ok: true };
+            return (
+              <CheckChip
+                key={member.id}
+                selected={forWhom === member.id}
+                disabled={!selectable.ok}
+                onClick={() => setForWhom(member.id)}
+              >
+                {member.full_name}
+                {!selectable.ok && (
+                  <span className="text-pro-12">{t("bookFlow.forWhomAgeOutOfRange")}</span>
+                )}
+              </CheckChip>
+            );
+          })
+        )}
+        <button type="button" className="apply-chip" onClick={() => setDetailsSheet("member")}>
+          {t("customerBooking.addMember")}
+        </button>
+      </div>
+      {!familyMembersQ.isLoading && (familyMembersQ.data ?? []).length === 0 && (
+        <p className="text-pro-12 text-muted-foreground">
+          {t(isBabysitting ? "customerRound2.forWhomNeedChild" : "customerRound2.noFamilyMembers")}
+        </p>
+      )}
+    </Step>
+  );
 
   return (
     <PhoneFrame bg="bg-background">
       <main className="apply-ui apply-screen booking-screen" dir={lang === "ar" ? "rtl" : "ltr"}>
-        <StepHeader step={step + 1} total={4} onBack={handleBack} />
+        <CustomerPageHeader
+          title={t(`customerBooking.titles.${stepKey}`, { name: firstName })}
+          subtitle={t("customerRound2.step", {
+            step: formatNumber(step + 1),
+            total: formatNumber(4),
+          })}
+          onBack={handleBack}
+        />
         <div className="apply-content">
-          <h1 className="apply-title">{t(`customerBooking.titles.${stepKey}`, { name: firstName })}</h1>
-          {inlineError?.screen === stepKey && <p role="alert" className="booking-error">{inlineError.message}</p>}
-          {stepKey === "service" && <>
-            <div className="booking-provider">
-              <ProfileAvatar src={p.avatar} name={p.name} />
-              <span className="booking-provider-text"><b>{p.name}</b><small><Star size={13} className="inline text-warning" /> {formatNumber(p.rating)} · {t("customerBooking.jobs", { count: p.jobs })} · {p.areas.join(" · ")}</small></span>
-            </div>
-            {services.length === 0 ? <div><p>{t("bookFlow.noServices")}</p>{otherProviders}</div> : services.map((s: any) => {
-              const active = activeService?.service?.id === s.service.id;
-              const fixed = isFixedPackage(s.service);
-              const teaching = isTutoringCategorySlug(s.service.category?.slug);
-              const label = (lang === "ar" ? s.service.name_ar : s.service.name_en) || s.service.name_en;
-              const approvedPrices = (capabilitiesQ.data ?? []).filter(cap => cap.serviceId === s.service.id && cap.status === "approved").map(cap => cap.price);
-              const teachingSubtitle = approvedPrices.length ? t("customerBooking.tutoringFrom", { price: formatNumber(Math.min(...approvedPrices)) }) : t("customerBooking.tutoringPrice");
-              const subtitle = fixed ? applyServiceSubtitle(s.service, t) : teaching ? teachingSubtitle : `${formatNumber(Number(s.price_override ?? p.hourlyRate))} ${t("pricePicker.hourUnit")}`;
-              return <ServiceCard key={s.service.id} selected={active} title={label} subtitle={subtitle} trailing={fixed && s.price_override != null ? <b className="booking-package-price">{formatEGP(Number(s.price_override))}</b> : undefined} icon={fixed ? (s.service.fixed_start_time ? <Clock size={22} /> : <Sun size={22} />) : teaching ? <BookOpen size={22} /> : <UserRound size={22} />}
-                onClick={() => { setServiceId(s.service.id); setCapabilityId(null); clearSlot(); }}>
-                {!teaching && !fixed && <NumberStepper value={parseInt(duration)} min={2} max={8} step={2} unitLabel={t("customerBooking.hours")} hint={t("customerBooking.hoursRange", { min: 2, max: 8 })} onChange={(hours) => { setDuration(`${hours}h`); clearSlot(); }} />}
-                {fixed && s.price_override == null && <b className="text-sm">{formatEGP(active ? subtotal : Number(s.price_override ?? p.hourlyRate))} · {t("packages.fixedPrice")}</b>}
-              </ServiceCard>;
-            })}
-            {isTutoring && <>
-              {recipientFields}
-              <Step title={t("bookFlow.pickCapability")}>
-                <details className="booking-section" open={!bookingEducation.educationCurriculumId || !bookingEducation.educationLevelId ? true : undefined}>
-                  <summary className="booking-add">{t("customerBooking.schoolDetails")}</summary>
-                  <EducationProfileFields value={bookingEducation} onChange={(next) => {
-                    userPickedCapabilityRef.current = true;
-                    setBookingEducation(next);
-                    const match = pickDefaultCapabilityForEducation(capabilitiesQ.data ?? [], activeService?.service?.id ?? serviceId, next.educationCurriculumId || null, next.educationLevelId || null);
-                    setCapabilityId(match?.id ?? null); clearSlot();
-                  }} />
-                  <label className="apply-agree"><input type="checkbox" checked={saveEducationForNextTime} onChange={(event) => setSaveEducationForNextTime(event.target.checked)} className="sr-only" /><span className={`apply-checkbox ${saveEducationForNextTime ? "on" : ""}`}>{saveEducationForNextTime && <Check size={14} />}</span>{t("studentEducation.saveForNextTime")}</label>
-                </details>
-                {requestedCapabilityMissing && <p className="booking-error">{t("bookFlow.capabilityUnavailable")}</p>}
-                {capabilitiesQ.isError ? <QueryError onRetry={() => capabilitiesQ.refetch()} /> : capabilitiesQ.isLoading ? <p role="status">{t("common.loading")}</p> : subjectGroups.length === 0 ? <div><p>{t("bookFlow.noCapabilities")}</p>{otherProviders}</div> : subjectGroups.map(group => {
-                  const cap = group.capabilities[0];
-                  const active = group === selectedGroup;
-                  const chosen = active ? selectedCapability ?? cap : cap;
-                  const title = [lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn, lang === "ar" ? cap.curriculumNameAr : cap.curriculumNameEn, lang === "ar" ? cap.levelNameAr : cap.levelNameEn].join(" · ");
-                  return <ServiceCard key={group.key} selected={active} title={title} subtitle={`${formatNumber(chosen.price)} ${t("pricePicker.sessionUnit")}`} icon={<BookOpen size={22} />}
-                    onClick={() => { userPickedCapabilityRef.current = true; setCapabilityId(cap.id); setBookingEducation(educationValueFromIds(cap.curriculumId, cap.levelId)); clearSlot(); }} />;
-                })}
-                {selectedGroup && <div><span className="apply-label">{t("customerBooking.sessionDuration")}</span><div className="apply-chips">{selectedGroup.capabilities.map(cap => <CheckChip key={cap.id} selected={cap.id === selectedCapability?.id} onClick={() => { userPickedCapabilityRef.current = true; setCapabilityId(cap.id); clearSlot(); }}>{t("bookFlow.sessionLine", { minutes: formatNumber(cap.durationMin) })}</CheckChip>)}</div></div>}
-              </Step>
-            </>}
-          </>}
-          {stepKey === "when" && <>
-            <BookingWhen providerId={providerId} serviceId={activeService?.service?.id ?? serviceId ?? ""} addressId={slotAddressId} service={activeService?.service ?? {}} durationMinutes={selectedCapability?.durationMin || hours * 60 || 120} maxAdvanceDays={bookingSettingsQ.data?.max_advance_days ?? 12} cairoTime={fixedPackage} locale={locale}
-              date={date} time={time} slots={packageSlots} loading={slotsQ.isLoading || slotsQ.isFetching || scanningSchedule} error={slotsQ.isError} onRetry={() => void slotsQ.refetch()}
-              onDateChange={(day) => { userPickedDateRef.current = true; setScanningSchedule(false); setDate(day); clearSlot(); }}
-              onTimeChange={(slot) => { setTime(slot.label); setSelectedSlot({ start: slot.start, end: slot.end }); setInlineError(null); }} />
-            {!slotsQ.isLoading && packageSlots.length === 0 && otherProviders}
-          </>}
-        {stepKey === "whereWho" && (
-          <Step title={t("customerBooking.address")} sub={t("bookFlow.addressSub")}>
-            <div id="booking-addresses" tabIndex={-1} />
-            {addrsQ.isError ? <QueryError onRetry={() => addrsQ.refetch()} /> : addrsQ.isLoading ? (
-              <div className="space-y-2">
-                {Array.from({ length: 2 }).map((_, i) => (
-                  <div key={i} className="h-16 animate-pulse rounded-2xl bg-surface-2" />
-                ))}
+          {inlineError?.screen === stepKey && (
+            <p role="alert" className="booking-error">
+              {inlineError.message}
+            </p>
+          )}
+          {stepKey === "service" && (
+            <>
+              <div className="booking-provider">
+                <ProfileAvatar src={p.avatar} name={p.name} />
+                <span className="booking-provider-text">
+                  <b>{p.name}</b>
+                  <small>
+                    <Star size={13} className="inline text-warning" /> {formatNumber(p.rating)} ·{" "}
+                    {t("customerBooking.jobs", { count: p.jobs, countLabel: formatNumber(p.jobs) })}{" "}
+                    · {p.areas.map((area) => customerAreaLabel(area, t)).join(" · ")}
+                  </small>
+                </span>
               </div>
-            ) : bookableAddresses.length === 0 ? (
-              <EmptyState
-                icon="map-pin"
-                title={t("bookFlow.noBookableAddress", "Add an address to continue")}
-                body={
-                  (addrsQ.data?.length ?? 0) > 0
-                    ? t(
-                        "bookFlow.addressesNeedLocation",
-                        "Your saved addresses are missing a pinned location. Add one to book.",
-                      )
-                    : t("bookFlow.noAddressesYet", "You haven't saved an address yet.")
-                }
-                action={
-                  <button type="button" onClick={() => setDetailsSheet("address")}
-                    className="focus-ring tap-scale inline-flex items-center gap-1.5 rounded-full bg-brand px-5 py-3 text-sm font-extrabold text-brand-foreground"
+              {services.length === 0 ? (
+                <div>
+                  <p>{t("bookFlow.noServices")}</p>
+                  {otherProviders}
+                </div>
+              ) : (
+                services.map((s: any) => {
+                  const active = activeService?.service?.id === s.service.id;
+                  const fixed = isFixedPackage(s.service);
+                  const teaching = isTutoringCategorySlug(s.service.category?.slug);
+                  const label =
+                    (lang === "ar" ? s.service.name_ar : s.service.name_en) || s.service.name_en;
+                  const approvedPrices = (capabilitiesQ.data ?? [])
+                    .filter((cap) => cap.serviceId === s.service.id && cap.status === "approved")
+                    .map((cap) => cap.price);
+                  const teachingSubtitle = approvedPrices.length
+                    ? t("customerBooking.tutoringFrom", {
+                        price: formatNumber(Math.min(...approvedPrices)),
+                      })
+                    : t("customerBooking.tutoringPrice");
+                  const subtitle = fixed
+                    ? applyServiceSubtitle(s.service, t)
+                    : teaching
+                      ? teachingSubtitle
+                      : `${formatNumber(Number(s.price_override ?? p.hourlyRate))} ${t("pricePicker.hourUnit")}`;
+                  return (
+                    <ServiceCard
+                      key={s.service.id}
+                      selected={active}
+                      title={label}
+                      subtitle={subtitle}
+                      trailing={
+                        fixed && s.price_override != null ? (
+                          <b className="booking-package-price">
+                            {formatEGP(Number(s.price_override))}
+                          </b>
+                        ) : undefined
+                      }
+                      icon={
+                        fixed ? (
+                          s.service.fixed_start_time ? (
+                            <Clock size={22} />
+                          ) : (
+                            <Sun size={22} />
+                          )
+                        ) : teaching ? (
+                          <BookOpen size={22} />
+                        ) : (
+                          <UserRound size={22} />
+                        )
+                      }
+                      onClick={() => {
+                        setServiceId(s.service.id);
+                        setCapabilityId(null);
+                        clearSlot();
+                      }}
+                    >
+                      {!teaching && !fixed && (
+                        <NumberStepper
+                          value={parseInt(duration)}
+                          min={2}
+                          max={8}
+                          step={2}
+                          unitLabel={t("customerBooking.hours")}
+                          hint={t("customerBooking.hoursRange", { min: 2, max: 8 })}
+                          onChange={(hours) => {
+                            setDuration(`${hours}h`);
+                            clearSlot();
+                          }}
+                        />
+                      )}
+                      {fixed && s.price_override == null && (
+                        <b className="text-pro-14">
+                          {formatEGP(active ? subtotal : Number(s.price_override ?? p.hourlyRate))}{" "}
+                          · {t("packages.fixedPrice")}
+                        </b>
+                      )}
+                    </ServiceCard>
+                  );
+                })
+              )}
+              {isTutoring && (
+                <>
+                  {recipientFields}
+                  <Step title={t("bookFlow.pickCapability")}>
+                    <details
+                      className="booking-section"
+                      open={
+                        !bookingEducation.educationCurriculumId ||
+                        !bookingEducation.educationLevelId
+                          ? true
+                          : undefined
+                      }
+                    >
+                      <summary className="booking-add">
+                        {t("customerBooking.schoolDetails")}
+                      </summary>
+                      <EducationProfileFields
+                        value={bookingEducation}
+                        onChange={(next) => {
+                          userPickedCapabilityRef.current = true;
+                          setBookingEducation(next);
+                          const match = pickDefaultCapabilityForEducation(
+                            capabilitiesQ.data ?? [],
+                            activeService?.service?.id ?? serviceId,
+                            next.educationCurriculumId || null,
+                            next.educationLevelId || null,
+                          );
+                          setCapabilityId(match?.id ?? null);
+                          clearSlot();
+                        }}
+                      />
+                      <label className="apply-agree">
+                        <input
+                          type="checkbox"
+                          checked={saveEducationForNextTime}
+                          onChange={(event) => setSaveEducationForNextTime(event.target.checked)}
+                          className="sr-only"
+                        />
+                        <span className={`apply-checkbox ${saveEducationForNextTime ? "on" : ""}`}>
+                          {saveEducationForNextTime && <Check size={14} />}
+                        </span>
+                        {t("studentEducation.saveForNextTime")}
+                      </label>
+                    </details>
+                    {requestedCapabilityMissing && (
+                      <p className="booking-error">{t("bookFlow.capabilityUnavailable")}</p>
+                    )}
+                    {capabilitiesQ.isError ? (
+                      <QueryError onRetry={() => capabilitiesQ.refetch()} />
+                    ) : capabilitiesQ.isLoading ? (
+                      <p role="status">{t("common.loading")}</p>
+                    ) : subjectGroups.length === 0 ? (
+                      <div>
+                        <p>{t("customerRound2.noCapabilities")}</p>
+                        {otherProviders}
+                      </div>
+                    ) : (
+                      subjectGroups.map((group) => {
+                        const cap = group.capabilities[0];
+                        const active = group === selectedGroup;
+                        const chosen = active ? (selectedCapability ?? cap) : cap;
+                        const title = [
+                          lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn,
+                          lang === "ar" ? cap.curriculumNameAr : cap.curriculumNameEn,
+                          lang === "ar" ? cap.levelNameAr : cap.levelNameEn,
+                        ].join(" · ");
+                        return (
+                          <ServiceCard
+                            key={group.key}
+                            selected={active}
+                            title={title}
+                            subtitle={`${formatNumber(chosen.price)} ${t("pricePicker.sessionUnit")}`}
+                            icon={<BookOpen size={22} />}
+                            onClick={() => {
+                              userPickedCapabilityRef.current = true;
+                              setCapabilityId(cap.id);
+                              setBookingEducation(
+                                educationValueFromIds(cap.curriculumId, cap.levelId),
+                              );
+                              clearSlot();
+                            }}
+                          />
+                        );
+                      })
+                    )}
+                    {selectedGroup && (
+                      <div>
+                        <span className="apply-label">{t("customerBooking.sessionDuration")}</span>
+                        <div className="apply-chips">
+                          {selectedGroup.capabilities.map((cap) => (
+                            <CheckChip
+                              key={cap.id}
+                              selected={cap.id === selectedCapability?.id}
+                              onClick={() => {
+                                userPickedCapabilityRef.current = true;
+                                setCapabilityId(cap.id);
+                                clearSlot();
+                              }}
+                            >
+                              {t("bookFlow.sessionLine", {
+                                minutes: formatNumber(cap.durationMin),
+                              })}
+                            </CheckChip>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </Step>
+                </>
+              )}
+            </>
+          )}
+          {stepKey === "when" && (
+            <>
+              <BookingWhen
+                providerId={providerId}
+                serviceId={activeService?.service?.id ?? serviceId ?? ""}
+                addressId={slotAddressId}
+                service={activeService?.service ?? {}}
+                durationMinutes={selectedCapability?.durationMin || hours * 60 || 120}
+                maxAdvanceDays={bookingSettingsQ.data?.max_advance_days ?? 12}
+                cairoTime={fixedPackage}
+                locale={locale}
+                date={date}
+                time={time}
+                slots={packageSlots}
+                loading={slotsQ.isLoading || slotsQ.isFetching || scanningSchedule}
+                error={slotsQ.isError}
+                onRetry={() => void slotsQ.refetch()}
+                onDateChange={(day) => {
+                  userPickedDateRef.current = true;
+                  setScanningSchedule(false);
+                  setDate(day);
+                  clearSlot();
+                }}
+                onTimeChange={(slot) => {
+                  setTime(slot.label);
+                  setSelectedSlot({ start: slot.start, end: slot.end });
+                  setInlineError(null);
+                }}
+              />
+              {!slotsQ.isLoading && packageSlots.length === 0 && otherProviders}
+            </>
+          )}
+          {stepKey === "whereWho" && (
+            <Step title={t("customerBooking.address")} sub={t("customerRound2.addressSub")}>
+              <div id="booking-addresses" tabIndex={-1} />
+              {addrsQ.isError ? (
+                <QueryError onRetry={() => addrsQ.refetch()} />
+              ) : addrsQ.isLoading ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 2 }).map((_, i) => (
+                    <div key={i} className="h-16 animate-pulse rounded-2xl bg-surface-2" />
+                  ))}
+                </div>
+              ) : bookableAddresses.length === 0 ? (
+                <EmptyState
+                  icon="map-pin"
+                  title={t("customerRound2.noBookableAddress", "Add an address to continue")}
+                  body={
+                    (addrsQ.data?.length ?? 0) > 0
+                      ? t(
+                          "customerRound2.addressesNeedLocation",
+                          "Your saved addresses are missing a pinned location. Add one to book.",
+                        )
+                      : t("customerRound2.noAddressesYet", "You haven't saved an address yet.")
+                  }
+                  action={
+                    <button
+                      type="button"
+                      onClick={() => setDetailsSheet("address")}
+                      className="focus-ring tap-scale inline-flex items-center gap-1.5 rounded-full bg-brand px-5 py-3 text-pro-14 font-extrabold text-brand-foreground"
+                    >
+                      {t("customerBooking.addAddress")}
+                    </button>
+                  }
+                />
+              ) : (
+                <div className="space-y-2">
+                  {bookableAddresses.map((a: any) => {
+                    const Icon =
+                      a.label === "home"
+                        ? Home
+                        : a.label === "work"
+                          ? Briefcase
+                          : a.label === "family"
+                            ? Users
+                            : MapPin;
+                    const title =
+                      a.label === "other"
+                        ? a.custom_label || t("addresses.label.other")
+                        : t(`addresses.label.${a.label}`);
+                    const lineParts = [
+                      a.street ?? a.line1,
+                      a.building,
+                      a.compound,
+                      a.area ? customerAreaLabel(a.area, t) : "",
+                    ].filter(Boolean);
+                    return (
+                      <button
+                        key={a.id}
+                        onClick={() => {
+                          setAddressId(a.id);
+                          setAddress(lineParts.join(", "));
+                        }}
+                        aria-pressed={addressId === a.id}
+                        className={`booking-option ${addressId === a.id ? "on" : ""}`}
+                      >
+                        <span className="apply-tile">
+                          <Icon size={20} />
+                        </span>
+                        <div className="booking-option-text">
+                          <div className="text-pro-14 font-bold">{title}</div>
+                          <div className="text-pro-12 text-muted-foreground">
+                            {lineParts.join(", ")}
+                          </div>
+                        </div>
+                        <span
+                          className={`booking-radio ${addressId === a.id ? "on" : ""}`}
+                          aria-hidden="true"
+                        />
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => setDetailsSheet("address")}
+                    className="focus-ring flex w-full items-center gap-2 rounded-[1.25rem] border border-dashed border-brand/40 p-3.5 text-pro-14 font-extrabold text-brand"
                   >
                     {t("customerBooking.addAddress")}
                   </button>
-                }
-              />
-            ) : (
-              <div className="space-y-2">
-                {bookableAddresses.map((a: any) => {
-                  const Icon =
-                    a.label === "home"
-                      ? Home
-                      : a.label === "work"
-                        ? Briefcase
-                        : a.label === "family"
-                          ? Users
-                          : MapPin;
-                  const title =
-                    a.label === "other"
-                      ? a.custom_label || t("addresses.label.other")
-                      : t(`addresses.label.${a.label}`);
-                  const lineParts = [a.street ?? a.line1, a.building, a.compound, a.area].filter(
-                    Boolean,
-                  );
-                  return (
-                    <button
-                      key={a.id}
-                      onClick={() => {
-                        setAddressId(a.id);
-                        setAddress(lineParts.join(", "));
-                      }}
-                      aria-pressed={addressId === a.id}
-                      className={`booking-option ${addressId === a.id ? "on" : ""}`}
-                    >
-                      <span className="apply-tile"><Icon size={20} /></span>
-                      <div className="booking-option-text">
-                        <div className="text-sm font-bold">{title}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {lineParts.join(", ")}
-                        </div>
-                      </div>
-                      <span className={`booking-radio ${addressId === a.id ? "on" : ""}`} aria-hidden="true" />
-                    </button>
-                  );
-                })}
-                <button type="button" onClick={() => setDetailsSheet("address")}
-                  className="focus-ring flex w-full items-center gap-2 rounded-[1.25rem] border border-dashed border-brand/40 p-3.5 text-sm font-extrabold text-brand"
-                >
-                  {t("customerBooking.addAddress")}
-                </button>
-              </div>
-            )}
-            {selectedAddress && (
-              <div className="mt-3">
-                {zoneQ.isError ? <QueryError onRetry={() => zoneQ.refetch()} /> : zoneQ.isLoading ? (
-                  <div className="h-10 animate-pulse rounded-xl bg-surface-2" />
-                ) : zoneQ.data ? (
-                  <div className="flex items-center gap-2 rounded-full bg-success/10 px-3.5 py-2.5 text-xs font-bold text-foreground">
-                    <MapPin className="h-3.5 w-3.5 text-success" />
-                    {t("bookFlow.zoneServed", "Serves {{zone}}", {
-                      zone: lang === "ar" ? zoneQ.data.name_ar : zoneQ.data.name_en,
-                    })}
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap items-start gap-2 rounded-[1.25rem] bg-brand/8 px-3.5 py-2.5 text-xs font-bold text-brand">
-                    <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                    {t(
-                      "bookFlow.zoneNotServed",
-                      "This area is not currently served. Please choose another address.",
-                    )}
-                    <button type="button" className="min-h-11 underline" onClick={() => { document.getElementById("booking-addresses")?.scrollIntoView({ block: "center" }); document.getElementById("booking-addresses")?.focus(); }}>{t("bookingUx.changeAddress")}</button>
-                    <button type="button" onClick={() => setDetailsSheet("address")} className="inline-flex min-h-11 items-center underline">{t("customerBooking.addAddress")}</button>
-                  </div>
-                )}
-              </div>
-            )}
-          </Step>
-        )}
-
-          {stepKey === "whereWho" && !isTutoring && recipientFields}
-        {stepKey === "whereWho" && (!requirementsQ.isSuccess || bookingRequirements.length > 0) && (
-          <Step
-            title={t("bookFlow.requirementsTitle", "Requirements")}
-            sub={t("bookFlow.requirementsSub", "Some items for this service need to be arranged.")}
-          >
-            {requirementsQ.isError ? <QueryError onRetry={() => requirementsQ.refetch()} /> : !requirementsQ.isSuccess ? (
-              <p role="status">{t("common.loading")}</p>
-            ) : bookingRequirements.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                {t("bookFlow.noRequirements", "Nothing extra needed for this service.")}
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {bookingRequirements.map((r: any) => {
-                  const name = lang === "ar" ? r.name_ar : r.name_en;
-                  if (r.fulfillment_mode !== "either") {
-                    return (
-                      <Card key={r.id} className="p-3 text-sm">
-                        <div className="font-bold">{name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {r.fulfillment_mode === "provider"
-                            ? t(
-                                "bookFlow.reqProviderProvides",
-                                "Provided by your professional — {{fee}}",
-                                { fee: formatEGP(Number(r.provider_extra_fee)) },
-                              )
-                            : t("bookFlow.reqYouProvide", "You provide this")}
-                        </div>
-                      </Card>
-                    );
-                  }
-                  const choice = requirementChoices[r.id];
-                  return (
-                    <Card key={r.id} className="p-3">
-                      <div className="text-sm font-bold">{name}</div>
-                      <div className="mt-2 grid grid-cols-2 gap-2">
-                        <button
-                          onClick={() =>
-                            setRequirementChoices((c) => ({ ...c, [r.id]: "customer" }))
-                          }
-                          aria-pressed={choice === "customer"} className={`apply-chip ${choice === "customer" ? "on" : ""}`}
-                        >
-                          {t("bookFlow.reqIWillProvide", "I will provide it")}
-                        </button>
-                        <button
-                          onClick={() =>
-                            setRequirementChoices((c) => ({ ...c, [r.id]: "provider" }))
-                          }
-                          aria-pressed={choice === "provider"} className={`apply-chip ${choice === "provider" ? "on" : ""}`}
-                        >
-                          {t("bookFlow.reqProviderWillProvide", "Provider provides — {{fee}}", {
-                            fee: formatEGP(Number(r.provider_extra_fee)),
-                          })}
-                        </button>
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </Step>
-        )}
-
-
-          {stepKey === "whereWho" && <label><span className="apply-label">{t("customerBooking.notes", { name: firstName })}</span><textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t("bookFlow.notesPlaceholder")} className="booking-notes" /></label>}
-          {stepKey === "review" && <>
-            <div>
-              <ReviewRow label={t("bookFlow.stepName.service")} value={`${serviceName} · ${durationText}`} onEdit={() => editScreen("service")} />
-              <ReviewRow label={t("bookFlow.rowDate")} value={whenText} onEdit={() => editScreen("when")} />
-              <ReviewRow label={t("bookFlow.rowAddress")} value={address} onEdit={() => editScreen("whereWho")} />
-              <ReviewRow label={t("customerBooking.recipient")} value={forWhomLabel} onEdit={() => editScreen(isTutoring ? "service" : "whereWho")} />
-              {notes && <ReviewRow label={t("bookFlow.rowNotes")} value={notes} onEdit={() => editScreen("whereWho")} />}
-            </div>
-            <div className="booking-bill">
-              <Row label={tutoringQuote ? t("bookFlow.sessionLine", { minutes: formatNumber(tutoringQuote.durationMin) }) : fixedPackage ? t("packages.fixedPrice") : t("customerBooking.rateLine", { rate: formatEGP(ratePerHour), hours: formatNumber(hours) })} value={formatEGP(subtotal)} />
-              <Row label={t("bookFlow.serviceFee")} value={formatEGP(fee)} />
-              <Row label={t("bookFlow.vat")} value={formatEGP(vat)} />
-              {extrasTotal > 0 && <Row label={t("bookFlow.extrasTotal")} value={formatEGP(extrasTotal)} />}
-              {travelFee > 0 && <Row label={t("bookFlow.travelFee")} value={formatEGP(travelFee)} />}
-              {promoDiscount > 0 && <Row label={t("bookFlow.promoDiscount")} value={`-${formatEGP(promoDiscount)}`} />}
-              <div className="booking-total"><span>{t("bookFlow.total")}</span><span>{formatEGP(total)}</span></div>
-            </div>
-            {billingQ.isError && <QueryError onRetry={() => billingQ.refetch()} />}
-            <details><summary className="booking-add">{t("customerBooking.promo")}</summary>
-              <div className="mt-3 border-t border-border pt-3">
-                <div className="flex items-center gap-2">
-                  <TextField
-                    label={t("bookFlow.promoPlaceholder")}
-                    value={promoCode}
-                    onChange={(e) => {
-                      setPromoCode(e.target.value);
-                      if (promoStatus !== "idle") {
-                        setPromoStatus("idle");
-                        setPromoDiscount(0);
-                        setAppliedPromoId(null);
-                      }
-                    }}
-                    placeholder={t("bookFlow.promoPlaceholder")}
-                    disabled={promoStatus === "applied"}
-                    className="h-12 min-w-0 flex-1 rounded-full bg-surface-2 px-4 text-sm font-bold outline-none focus:ring-1 focus:ring-brand disabled:opacity-60"
-                  />
-                  {promoStatus === "applied" ? (
-                    <button
-                      onClick={() => {
-                        setPromoCode("");
-                        setPromoStatus("idle");
-                        setPromoDiscount(0);
-                        setAppliedPromoId(null);
-                      }}
-                      aria-label={t("bookFlow.promoRemove")}
-                      className="h-12 shrink-0 rounded-full border border-border px-4 text-sm font-bold text-muted-foreground"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
+                </div>
+              )}
+              {selectedAddress && (
+                <div className="mt-3">
+                  {zoneQ.isError ? (
+                    <QueryError onRetry={() => zoneQ.refetch()} />
+                  ) : zoneQ.isLoading ? (
+                    <div className="h-10 animate-pulse rounded-xl bg-surface-2" />
+                  ) : zoneQ.data ? (
+                    <div className="flex items-center gap-2 rounded-full bg-success/10 px-3.5 py-2.5 text-pro-12 font-bold text-foreground">
+                      <MapPin className="h-3.5 w-3.5 text-success" />
+                      {t("bookFlow.zoneServed", "Serves {{zone}}", {
+                        zone: lang === "ar" ? zoneQ.data.name_ar : zoneQ.data.name_en,
+                      })}
+                    </div>
                   ) : (
-                    <button
-                      onClick={applyPromo}
-                      disabled={!promoCode.trim() || promoStatus === "checking"}
-                      className="h-12 shrink-0 rounded-full bg-brand px-5 text-sm font-extrabold text-brand-foreground disabled:opacity-50"
-                    >
-                      {promoStatus === "checking" ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        t("bookFlow.promoApply")
+                    <div className="flex flex-wrap items-start gap-2 rounded-[1.25rem] bg-brand/8 px-3.5 py-2.5 text-pro-12 font-bold text-brand">
+                      <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      {t(
+                        "customerRound2.zoneNotServed",
+                        "This area is not currently served. Please choose another address.",
                       )}
-                    </button>
+                      <button
+                        type="button"
+                        className="min-h-11 underline"
+                        onClick={() => {
+                          document
+                            .getElementById("booking-addresses")
+                            ?.scrollIntoView({ block: "center" });
+                          document.getElementById("booking-addresses")?.focus();
+                        }}
+                      >
+                        {t("bookingUx.changeAddress")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDetailsSheet("address")}
+                        className="inline-flex min-h-11 items-center underline"
+                      >
+                        {t("customerBooking.addAddress")}
+                      </button>
+                    </div>
                   )}
                 </div>
-                {promoStatus === "applied" && (
-                  <div className="mt-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-success">
-                    <Check className="h-3 w-3" aria-hidden="true" />
-                    {t("bookFlow.promoAppliedNote", { amount: formatEGP(promoDiscount) })}
+              )}
+            </Step>
+          )}
+
+          {stepKey === "whereWho" && !isTutoring && recipientFields}
+          {stepKey === "whereWho" &&
+            (!requirementsQ.isSuccess || bookingRequirements.length > 0) && (
+              <Step
+                title={t("bookFlow.requirementsTitle", "Requirements")}
+                sub={t(
+                  "customerRound2.requirementsSub",
+                  "Some items for this service need to be arranged.",
+                )}
+              >
+                {requirementsQ.isError ? (
+                  <QueryError onRetry={() => requirementsQ.refetch()} />
+                ) : !requirementsQ.isSuccess ? (
+                  <p role="status">{t("common.loading")}</p>
+                ) : bookingRequirements.length === 0 ? (
+                  <p className="text-pro-14 text-muted-foreground">
+                    {t("bookFlow.noRequirements", "Nothing extra needed for this service.")}
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {bookingRequirements.map((r: any) => {
+                      const name = lang === "ar" ? r.name_ar : r.name_en;
+                      if (r.fulfillment_mode !== "either") {
+                        return (
+                          <Card key={r.id} className="p-3 text-pro-14">
+                            <div className="font-bold">{name}</div>
+                            <div className="text-pro-12 text-muted-foreground">
+                              {r.fulfillment_mode === "provider"
+                                ? t(
+                                    "bookFlow.reqProviderProvides",
+                                    "Provided by your professional — {{fee}}",
+                                    { fee: formatEGP(Number(r.provider_extra_fee)) },
+                                  )
+                                : t("bookFlow.reqYouProvide", "You provide this")}
+                            </div>
+                          </Card>
+                        );
+                      }
+                      const choice = requirementChoices[r.id];
+                      return (
+                        <Card key={r.id} className="p-3">
+                          <div className="text-pro-14 font-bold">{name}</div>
+                          <div className="mt-2 grid grid-cols-2 gap-2">
+                            <button
+                              onClick={() =>
+                                setRequirementChoices((c) => ({ ...c, [r.id]: "customer" }))
+                              }
+                              aria-pressed={choice === "customer"}
+                              className={`apply-chip ${choice === "customer" ? "on" : ""}`}
+                            >
+                              {t("bookFlow.reqIWillProvide", "I will provide it")}
+                            </button>
+                            <button
+                              onClick={() =>
+                                setRequirementChoices((c) => ({ ...c, [r.id]: "provider" }))
+                              }
+                              aria-pressed={choice === "provider"}
+                              className={`apply-chip ${choice === "provider" ? "on" : ""}`}
+                            >
+                              {t("bookFlow.reqProviderWillProvide", "Provider provides — {{fee}}", {
+                                fee: formatEGP(Number(r.provider_extra_fee)),
+                              })}
+                            </button>
+                          </div>
+                        </Card>
+                      );
+                    })}
                   </div>
                 )}
-              </div>
-            </details>
-          </>}
-        {stepKey === "review" && (
-          <Step title={t("bookFlow.paymentTitle")} sub={t("bookFlow.paymentSub")}>
-            {methodsQ.isLoading ? (
-              <div className="space-y-3">
-                {Array.from({ length: 2 }).map((_, i) => (
-                  <div key={i} className="h-[72px] animate-pulse rounded-2xl bg-surface-2" />
-                ))}
-              </div>
-            ) : methodsQ.isError ? (
-              <div className="rounded-[1.25rem] bg-brand/8 p-4 text-center">
-                <p className="text-sm font-bold text-brand">{t("bookFlow.paymentLoadError")}</p>
-                <button
-                  onClick={() => methodsQ.refetch()}
-                  className="mt-2 text-xs font-extrabold text-brand underline"
-                >
-                  {t("common.retry")}
-                </button>
-              </div>
-            ) : (methodsQ.data ?? []).length === 0 ? (
-              <div><p className="text-sm text-muted-foreground">{t("bookFlow.paymentEmpty")}</p><Link to={previewPath("/help") as "/help"} className="inline-flex min-h-11 items-center px-3 font-bold text-brand">{t("bookingUx.contactSupport")}</Link></div>
-            ) : (
-              <>
-                <div className="space-y-3">
-                  {methodsQ.data!.map((m) => {
-                    const label = lang === "ar" ? m.name_ar : m.name_en;
-                    const sub =
-                      (lang === "ar" ? m.instructions_ar : m.instructions_en) ?? undefined;
-                    const icon =
-                      m.method_type === "cash" ? (
-                        <Banknote className="h-5 w-5" />
-                      ) : m.code === "instapay" ? (
-                        <img
-                          src="/instapay.svg"
-                          alt={label}
-                          className="h-full w-full rounded-xl object-cover"
-                        />
-                      ) : (
-                        <Wallet className="h-5 w-5" />
-                      );
-                    return (
-                      <PayOption
-                        key={m.id}
-                        icon={icon}
-                        label={label}
-                        sub={sub}
-                        active={paymentMethodId === m.id}
-                        onClick={() => setPaymentMethodId(m.id)}
-                      />
-                    );
-                  })}
-                </div>
-                <PaymentMethodInstructions
-                  method={methodsQ.data!.find((m) => m.id === paymentMethodId) ?? null}
-                  lang={lang}
-                  t={t}
-                />
-              </>
+              </Step>
             )}
-            <div className="mt-4 flex items-center justify-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
-              <Check className="h-3 w-3 text-success" aria-hidden="true" />
-              {t("bookFlow.encrypted")}
-            </div>
-            {tutoringQuote ? (
-              <p className="mt-3 text-center text-sm font-extrabold">
-                {t("bookFlow.sessionLine", { minutes: formatNumber(tutoringQuote.durationMin) })} ·{" "}
-                {formatEGP(tutoringQuote.sessionPrice)}
-              </p>
-            ) : null}
-          </Step>
-        )}
+
+          {stepKey === "whereWho" && (
+            <label>
+              <span className="apply-label">{t("customerBooking.notes", { name: firstName })}</span>
+              <textarea
+                rows={2}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder={t("customerRound2.notesPlaceholder")}
+                className="booking-notes"
+              />
+            </label>
+          )}
+          {stepKey === "review" && (
+            <>
+              <div>
+                <ReviewRow
+                  label={t("bookFlow.stepName.service")}
+                  value={`${serviceName} · ${durationText}`}
+                  onEdit={() => editScreen("service")}
+                />
+                <ReviewRow
+                  label={t("bookFlow.rowDate")}
+                  value={whenText}
+                  onEdit={() => editScreen("when")}
+                />
+                <ReviewRow
+                  label={t("bookFlow.rowAddress")}
+                  value={address}
+                  onEdit={() => editScreen("whereWho")}
+                />
+                <ReviewRow
+                  label={t("customerBooking.recipient")}
+                  value={forWhomLabel}
+                  onEdit={() => editScreen(isTutoring ? "service" : "whereWho")}
+                />
+                {notes && (
+                  <ReviewRow
+                    label={t("bookFlow.rowNotes")}
+                    value={notes}
+                    onEdit={() => editScreen("whereWho")}
+                  />
+                )}
+              </div>
+              <div className="booking-bill">
+                <Row
+                  label={
+                    tutoringQuote
+                      ? t("bookFlow.sessionLine", {
+                          minutes: formatNumber(tutoringQuote.durationMin),
+                        })
+                      : fixedPackage
+                        ? t("packages.fixedPrice")
+                        : t("customerBooking.rateLine", {
+                            rate: formatEGP(ratePerHour),
+                            hours: formatNumber(hours),
+                          })
+                  }
+                  value={formatEGP(subtotal)}
+                />
+                <Row label={t("bookFlow.serviceFee")} value={formatEGP(fee)} />
+                <Row label={t("customerRound2.vat")} value={formatEGP(vat)} />
+                {extrasTotal > 0 && (
+                  <Row label={t("bookFlow.extrasTotal")} value={formatEGP(extrasTotal)} />
+                )}
+                {travelFee > 0 && (
+                  <Row label={t("bookFlow.travelFee")} value={formatEGP(travelFee)} />
+                )}
+                {promoDiscount > 0 && (
+                  <Row label={t("bookFlow.promoDiscount")} value={`-${formatEGP(promoDiscount)}`} />
+                )}
+                <div className="booking-total">
+                  <span>{t("bookFlow.total")}</span>
+                  <span>{formatEGP(total)}</span>
+                </div>
+              </div>
+              {billingQ.isError && <QueryError onRetry={() => billingQ.refetch()} />}
+              <details>
+                <summary className="booking-add">{t("customerBooking.promo")}</summary>
+                <div className="mt-3 border-t border-border pt-3">
+                  <div className="flex items-center gap-2">
+                    <TextField
+                      label={t("bookFlow.promoPlaceholder")}
+                      value={promoCode}
+                      onChange={(e) => {
+                        setPromoCode(e.target.value);
+                        if (promoStatus !== "idle") {
+                          setPromoStatus("idle");
+                          setPromoDiscount(0);
+                          setAppliedPromoId(null);
+                        }
+                      }}
+                      placeholder={t("bookFlow.promoPlaceholder")}
+                      disabled={promoStatus === "applied"}
+                      className="h-12 min-w-0 flex-1 rounded-full bg-surface-2 px-4 text-pro-14 font-bold outline-none focus:ring-1 focus:ring-brand disabled:opacity-60"
+                    />
+                    {promoStatus === "applied" ? (
+                      <button
+                        onClick={() => {
+                          setPromoCode("");
+                          setPromoStatus("idle");
+                          setPromoDiscount(0);
+                          setAppliedPromoId(null);
+                        }}
+                        aria-label={t("bookFlow.promoRemove")}
+                        className="h-12 shrink-0 rounded-full border border-border px-4 text-pro-14 font-bold text-muted-foreground"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={applyPromo}
+                        disabled={!promoCode.trim() || promoStatus === "checking"}
+                        className="h-12 shrink-0 rounded-full bg-brand px-5 text-pro-14 font-extrabold text-brand-foreground disabled:opacity-50"
+                      >
+                        {promoStatus === "checking" ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          t("bookFlow.promoApply")
+                        )}
+                      </button>
+                    )}
+                  </div>
+                  {promoStatus === "applied" && (
+                    <div className="mt-1.5 flex items-center gap-1.5 text-pro-12 font-semibold text-success">
+                      <Check className="h-3 w-3" aria-hidden="true" />
+                      {t("bookFlow.promoAppliedNote", { amount: formatEGP(promoDiscount) })}
+                    </div>
+                  )}
+                </div>
+              </details>
+            </>
+          )}
+          {stepKey === "review" && (
+            <Step title={t("bookFlow.paymentTitle")} sub={t("customerRound2.paymentSub")}>
+              {methodsQ.isLoading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 2 }).map((_, i) => (
+                    <div key={i} className="h-[72px] animate-pulse rounded-2xl bg-surface-2" />
+                  ))}
+                </div>
+              ) : methodsQ.isError ? (
+                <div className="rounded-[1.25rem] bg-brand/8 p-4 text-center">
+                  <p className="text-pro-14 font-bold text-brand">
+                    {t("customerRound2.paymentLoadError")}
+                  </p>
+                  <button
+                    onClick={() => methodsQ.refetch()}
+                    className="mt-2 text-pro-12 font-extrabold text-brand underline"
+                  >
+                    {t("common.retry")}
+                  </button>
+                </div>
+              ) : (methodsQ.data ?? []).length === 0 ? (
+                <div>
+                  <p className="text-pro-14 text-muted-foreground">
+                    {t("customerRound2.paymentEmpty")}
+                  </p>
+                  <Link
+                    to={previewPath("/help") as "/help"}
+                    className="inline-flex min-h-11 items-center px-3 font-bold text-brand"
+                  >
+                    {t("bookingUx.contactSupport")}
+                  </Link>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-3">
+                    {methodsQ.data!.map((m) => {
+                      const label = lang === "ar" ? m.name_ar : m.name_en;
+                      const sub =
+                        (lang === "ar" ? m.instructions_ar : m.instructions_en) ?? undefined;
+                      const icon =
+                        m.method_type === "cash" ? (
+                          <Banknote className="h-5 w-5" />
+                        ) : m.code === "instapay" ? (
+                          <img
+                            src="/instapay.svg"
+                            alt={label}
+                            className="h-full w-full rounded-xl object-cover"
+                          />
+                        ) : (
+                          <Wallet className="h-5 w-5" />
+                        );
+                      return (
+                        <PayOption
+                          key={m.id}
+                          icon={icon}
+                          label={label}
+                          sub={sub}
+                          active={paymentMethodId === m.id}
+                          onClick={() => setPaymentMethodId(m.id)}
+                        />
+                      );
+                    })}
+                  </div>
+                  <PaymentMethodInstructions
+                    method={methodsQ.data!.find((m) => m.id === paymentMethodId) ?? null}
+                    lang={lang}
+                    t={t}
+                  />
+                </>
+              )}
+              <div className="mt-4 flex items-center justify-center gap-1.5 text-pro-12 font-semibold text-muted-foreground">
+                <Check className="h-3 w-3 text-success" aria-hidden="true" />
+                {t("customerRound2.encrypted")}
+              </div>
+              {tutoringQuote ? (
+                <p className="mt-3 text-center text-pro-14 font-extrabold">
+                  {t("bookFlow.sessionLine", { minutes: formatNumber(tutoringQuote.durationMin) })}{" "}
+                  · {formatEGP(tutoringQuote.sessionPrice)}
+                </p>
+              ) : null}
+            </Step>
+          )}
         </div>
-        {missingStep && bookingScreenForStep(missingStep, isTutoring) !== stepKey && <button type="button" className="booking-add px-5" onClick={() => editScreen(bookingScreenForStep(missingStep, isTutoring))}>{t(`bookFlow.stepName.${missingStep}`)}</button>}
-        {stepKey === "review" && paymentMethodId && !methodsQ.isError && <p className="px-5 text-xs text-muted-foreground">{t(paymentCopy.next)}</p>}
-        <StickyCta onClick={stepKey === "review" && noPaymentMethods ? () => { void nav({ to: previewPath("/help") as "/help" }); } : next}
-          disabled={!(stepKey === "review" && noPaymentMethods) && (!canNext() || createBooking.isPending)} hint={disabledReason ? (disabledReason === "bookingUx.chooseRecipient" ? t("customerBooking.chooseRecipient", { name: firstName }) : t(disabledReason)) : undefined}>
-          {createBooking.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : stepKey === "review" && noPaymentMethods ? t("bookingUx.contactSupport") : t(stepKey === "review" ? "customerBooking.confirm" : "customerBooking.next", { total: formatEGP(total) })}
+        {missingStep && bookingScreenForStep(missingStep, isTutoring) !== stepKey && (
+          <button
+            type="button"
+            className="booking-add px-5"
+            onClick={() => editScreen(bookingScreenForStep(missingStep, isTutoring))}
+          >
+            {t(`bookFlow.stepName.${missingStep}`)}
+          </button>
+        )}
+        {stepKey === "review" && paymentMethodId && !methodsQ.isError && (
+          <p className="px-5 text-pro-12 text-muted-foreground">{t(paymentCopy.next)}</p>
+        )}
+        <StickyCta
+          onClick={
+            stepKey === "review" && noPaymentMethods
+              ? () => {
+                  void nav({ to: previewPath("/help") as "/help" });
+                }
+              : next
+          }
+          disabled={
+            !(stepKey === "review" && noPaymentMethods) && (!canNext() || createBooking.isPending)
+          }
+          hint={
+            disabledReason
+              ? disabledReason === "bookingUx.chooseRecipient"
+                ? t("customerBooking.chooseRecipient", { name: firstName })
+                : t(disabledReason)
+              : undefined
+          }
+        >
+          {createBooking.isPending ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : stepKey === "review" && noPaymentMethods ? (
+            t("bookingUx.contactSupport")
+          ) : (
+            t(stepKey === "review" ? "customerBooking.confirm" : "customerBooking.next", {
+              total: formatEGP(total),
+            })
+          )}
         </StickyCta>
-        {detailsSheet && <BookingDetailsSheet kind={detailsSheet} firstAddress={(addrsQ.data?.length ?? 0) === 0} onClose={() => { setDetailsSheet(null); void addrsQ.refetch(); void familyMembersQ.refetch(); }} />}
+        {detailsSheet && (
+          <BookingDetailsSheet
+            kind={detailsSheet}
+            firstAddress={(addrsQ.data?.length ?? 0) === 0}
+            onClose={() => {
+              setDetailsSheet(null);
+              void addrsQ.refetch();
+              void familyMembersQ.refetch();
+            }}
+          />
+        )}
       </main>
     </PhoneFrame>
   );
@@ -1159,7 +1684,7 @@ function PaymentMethodInstructions({
 
   return (
     <div className="mt-3 space-y-2 rounded-2xl bg-surface-2 p-3">
-      <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+      <div className="text-pro-12 font-bold uppercase tracking-wider text-muted-foreground">
         {t("payment.transferTo")}
       </div>
       <button
@@ -1168,35 +1693,84 @@ function PaymentMethodInstructions({
         aria-label={t("payment.copyHandle")}
       >
         <div className="min-w-0">
-          <div className="text-xs text-muted-foreground">
+          <div className="text-pro-12 text-muted-foreground">
             {lang === "ar" ? method.name_ar : method.name_en}
           </div>
-          <div className="truncate text-sm font-extrabold text-brand" dir="ltr">
+          <div className="truncate text-pro-14 font-extrabold text-brand" dir="ltr">
             {handle}
           </div>
         </div>
         <Copy className="h-4 w-4 text-muted-foreground" />
       </button>
-      {note && <p className="text-[11px] text-muted-foreground">{note}</p>}
+      {note && <p className="text-pro-12 text-muted-foreground">{note}</p>}
     </div>
   );
 }
 
 function Step({ title, children }: { title: string; sub?: string; children: React.ReactNode }) {
-  return <section className="booking-section"><h2 className="apply-label">{title}</h2>{children}</section>;
+  return (
+    <section className="booking-section">
+      <h2 className="apply-label">{title}</h2>
+      {children}
+    </section>
+  );
 }
 
 function ReviewRow({ label, value, onEdit }: { label: string; value: string; onEdit: () => void }) {
   const { t } = useTranslation();
-  return <div className="booking-review-row"><span className="booking-review-text"><small>{label}</small><b>{value}</b></span><button type="button" className="booking-edit" onClick={onEdit} aria-label={`${t("common.edit")} ${label}`}>{t("common.edit")}</button></div>;
+  return (
+    <div className="booking-review-row">
+      <span className="booking-review-text">
+        <small>{label}</small>
+        <b>{value}</b>
+      </span>
+      <button
+        type="button"
+        className="booking-edit"
+        onClick={onEdit}
+        aria-label={`${t("common.edit")} ${label}`}
+      >
+        {t("common.edit")}
+      </button>
+    </div>
+  );
 }
 
-function PayOption({ icon, label, sub, active, onClick }: { icon: React.ReactNode; label: string; sub?: string; active: boolean; onClick: () => void }) {
-  return <button type="button" onClick={onClick} aria-pressed={active} className={`booking-option ${active ? "on" : ""}`}>
-    <span className="apply-tile">{icon}</span><span className="booking-option-text"><b>{label}</b><small>{sub}</small></span><span className={`booking-radio ${active ? "on" : ""}`} aria-hidden="true" />
-  </button>;
+function PayOption({
+  icon,
+  label,
+  sub,
+  active,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  sub?: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`booking-option ${active ? "on" : ""}`}
+    >
+      <span className="apply-tile">{icon}</span>
+      <span className="booking-option-text">
+        <b>{label}</b>
+        <small>{sub}</small>
+      </span>
+      <span className={`booking-radio ${active ? "on" : ""}`} aria-hidden="true" />
+    </button>
+  );
 }
 
 function Row({ label, value }: { label: string; value: string }) {
-  return <div><span>{label}</span><span>{value}</span></div>;
+  return (
+    <div>
+      <span>{label}</span>
+      <span>{value}</span>
+    </div>
+  );
 }

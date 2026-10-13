@@ -1,3 +1,4 @@
+import { CustomerBirthDateField } from "./CustomerBirthDateField";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Loader2 } from "lucide-react";
@@ -140,12 +141,14 @@ export function FamilyMemberForm({
   onSubmit,
   submitting,
   submitLabel,
+  nestedDatePicker = false,
 }: {
   value: FamilyMemberFormValue;
   onChange: (v: FamilyMemberFormValue) => void;
   onSubmit: () => void;
   submitting: boolean;
   submitLabel: string;
+  nestedDatePicker?: boolean;
 }) {
   const { t } = useTranslation();
   const [touched, setTouched] = useState(false);
@@ -182,7 +185,7 @@ export function FamilyMemberForm({
       )}
 
       <div>
-        <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
+        <label className="block text-pro-12 font-bold uppercase tracking-wide text-muted-foreground">
           {t("familyMembers.relationship", "Relationship")}
         </label>
         <div className="mt-2 grid grid-cols-4 gap-2">
@@ -209,7 +212,7 @@ export function FamilyMemberForm({
               value={value.relationshipOther}
               onChange={(e) => set("relationshipOther", e.target.value)}
               placeholder={t("familyMembers.relationshipOtherPlaceholder", "e.g. Cousin")}
-              className="mt-2 h-12 w-full rounded-2xl border border-border bg-surface px-4 text-sm font-medium outline-none focus:border-brand"
+              className="mt-2 h-12 w-full rounded-2xl border border-border bg-surface px-4 text-pro-14 font-medium outline-none focus:border-brand"
             />
             {touched && !relationshipOtherValid && (
               <ErrorText>{t("validation.required")}</ErrorText>
@@ -219,15 +222,10 @@ export function FamilyMemberForm({
       </div>
 
       <div>
-        <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
-          {t("familyMembers.dateOfBirth", "Date of birth")}
-        </label>
-        <input
-          type="date"
+        <CustomerBirthDateField
+          nested={nestedDatePicker}
           value={value.dateOfBirth}
-          max={today}
-          onChange={(e) => set("dateOfBirth", e.target.value)}
-          className="mt-2 h-14 w-full rounded-2xl border border-border bg-surface px-4 text-[15px] font-medium outline-none focus:border-brand"
+          onChange={(v) => set("dateOfBirth", v)}
         />
         {touched && !dobValid && (
           <ErrorText>
@@ -237,7 +235,7 @@ export function FamilyMemberForm({
       </div>
 
       <div>
-        <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
+        <label className="block text-pro-12 font-bold uppercase tracking-wide text-muted-foreground">
           {t("familyMembers.gender", "Gender")}{" "}
           <span className="normal-case text-muted-foreground/70">
             ({t("familyMembers.optional", "optional")})
@@ -295,7 +293,7 @@ export function FamilyMemberForm({
       />
 
       <div className="space-y-3 rounded-2xl bg-surface-2 p-4">
-        <div className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+        <div className="text-pro-12 font-bold uppercase tracking-wide text-muted-foreground">
           {t("studentEducation.sectionTitle", "School details")}{" "}
           <span className="normal-case text-muted-foreground/70">
             ({t("familyMembers.optional", "optional")})
@@ -308,7 +306,7 @@ export function FamilyMemberForm({
       </div>
 
       <div className="space-y-3 rounded-2xl bg-surface-2 p-4">
-        <div className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+        <div className="text-pro-12 font-bold uppercase tracking-wide text-muted-foreground">
           {t("familyMembers.emergencyContact", "Emergency contact")}{" "}
           <span className="normal-case text-muted-foreground/70">
             ({t("familyMembers.optional", "optional")})
@@ -363,14 +361,14 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
+      <label className="block text-pro-12 font-bold uppercase tracking-wide text-muted-foreground">
         {label}
       </label>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="mt-2 h-14 w-full rounded-2xl border border-border bg-surface px-4 text-[15px] font-medium outline-none focus:border-brand"
+        className="mt-2 h-14 w-full rounded-2xl border border-border bg-surface px-4 text-pro-16 font-medium outline-none focus:border-brand"
       />
     </div>
   );
@@ -389,7 +387,7 @@ function TextArea({
 }) {
   return (
     <div>
-      <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
+      <label className="block text-pro-12 font-bold uppercase tracking-wide text-muted-foreground">
         {label}
       </label>
       <textarea
@@ -397,7 +395,7 @@ function TextArea({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="mt-2 w-full resize-none rounded-2xl border border-border bg-surface px-4 py-3 text-[15px] outline-none focus:border-brand"
+        className="mt-2 w-full resize-none rounded-2xl border border-border bg-surface px-4 py-3 text-pro-16 outline-none focus:border-brand"
       />
     </div>
   );

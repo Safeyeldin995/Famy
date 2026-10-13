@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { PhoneFrame } from "@/components/famio/ui";
-import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
+import { CustomerPageHeader } from "@/components/famio/CustomerPageHeader";
 import { QueryError } from "@/components/famio/QueryError";
 import {
   AddressForm,
@@ -31,19 +31,19 @@ function NewAddress() {
       });
       toast.success(t("addresses.saved", "Address saved"));
       nav({ to: previewPath("/addresses") as "/addresses" });
-    } catch (e: any) {
-      toast.error(e?.message ?? t("setup.saveFailed", "Could not save your profile."));
+    } catch {
+      toast.error(t("setup.saveFailed"));
     }
   };
 
   return (
     <PhoneFrame bg="bg-background">
-      <CustomerPageHero
+      <CustomerPageHeader
         title={t("addresses.addAddress", "Add address")}
         subtitle={t("addresses.subtitle")}
         backTo="/addresses"
       />
-      <div className="flex-1 px-5 pb-10 pt-2">
+      <div className="flex-1 px-5 pb-10 pt-4">
         {addressesQ.isError ? (
           <QueryError onRetry={() => addressesQ.refetch()} />
         ) : (

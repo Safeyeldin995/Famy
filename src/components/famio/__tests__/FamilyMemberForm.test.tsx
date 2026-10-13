@@ -24,6 +24,29 @@ vi.mock("@/components/famio/EducationProfileFields", () => ({
   }),
 }));
 
+vi.mock("@/components/famio/BottomSheetSelect", () => ({
+  BottomSheetSelect: ({
+    label,
+    value,
+    options,
+    onChange,
+  }: {
+    label: string;
+    value: string;
+    options: { value: string; label: string }[];
+    onChange: (value: string) => void;
+  }) => (
+    <select aria-label={label} value={value} onChange={(event) => onChange(event.target.value)}>
+      <option value="" />
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  ),
+}));
+
 vi.mock("@/components/famio/ui", () => ({
   PrimaryButton: ({
     children,
@@ -80,8 +103,13 @@ describe("FamilyMemberForm", () => {
 
     await user.type(screen.getByPlaceholderText("e.g. Layla Ahmed"), "Layla Ahmed");
     await user.click(screen.getByRole("button", { name: "familyMembers.relationships.daughter" }));
-    const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
-    await user.type(dateInput, "2020-04-01");
+    expect(document.querySelector('input[type="date"]')).toBeNull();
+    await user.selectOptions(screen.getByRole("combobox", { name: "Year" }), "2020");
+    await user.selectOptions(screen.getByRole("combobox", { name: "Month" }), "04");
+    await user.selectOptions(screen.getByRole("combobox", { name: "Day" }), "01");
+    expect(screen.getByRole("button", { name: "familyMembers.genders.male" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "familyMembers.genders.female" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "familyMembers.genders.other" })).toBeNull();
     await user.type(
       screen.getAllByPlaceholderText("01xxxxxxxxx")[0],
       toArabicIndic("0101221000633"),

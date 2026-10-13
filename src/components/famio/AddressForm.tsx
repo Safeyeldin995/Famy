@@ -1,3 +1,5 @@
+import "./customerForms.css";
+import { customerAreaLabel } from "./customerAreaLabel";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Home, Briefcase, Users, MapPin, Star, AlertTriangle, Loader2 } from "lucide-react";
@@ -87,7 +89,7 @@ export function AddressForm({
   return (
     <div className="space-y-5">
       <div>
-        <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
+        <label className="block text-pro-12 font-bold uppercase tracking-wide text-muted-foreground">
           {t("addresses.labelField", "Label")}
         </label>
         <div className="mt-2 grid grid-cols-4 gap-2">
@@ -112,7 +114,7 @@ export function AddressForm({
             value={value.customLabel}
             onChange={(e) => set("customLabel", e.target.value)}
             placeholder={t("addresses.customLabelPlaceholder", "e.g. Grandma's house")}
-            className="mt-2 h-12 w-full rounded-2xl border border-border/80 bg-surface px-4 text-sm font-medium outline-none focus:border-brand"
+            className="mt-2 h-12 w-full rounded-2xl border border-border/80 bg-surface px-4 text-pro-14 font-medium outline-none focus:border-brand"
           />
         )}
         {touched && value.label === "other" && value.customLabel.trim().length === 0 && (
@@ -121,7 +123,7 @@ export function AddressForm({
       </div>
 
       <div>
-        <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
+        <label className="block text-pro-12 font-bold uppercase tracking-wide text-muted-foreground">
           {t("setup.area")}
         </label>
         <div className="mt-2 grid grid-cols-2 gap-3">
@@ -130,13 +132,13 @@ export function AddressForm({
               key={a}
               type="button"
               onClick={() => set("area", a)}
-              className={`h-14 rounded-2xl border text-sm font-semibold transition-all ${
+              className={`h-14 rounded-2xl border text-pro-14 font-semibold transition-all ${
                 value.area === a
                   ? "border-brand bg-brand/5 text-brand"
                   : "border-border/80 bg-surface text-muted-foreground"
               }`}
             >
-              {a}
+              {customerAreaLabel(a, t)}
             </button>
           ))}
         </div>
@@ -195,7 +197,7 @@ export function AddressForm({
         />
 
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
+          <label className="block text-pro-12 font-bold uppercase tracking-wide text-muted-foreground">
             {t("setup.notes")}
           </label>
           <textarea
@@ -208,11 +210,12 @@ export function AddressForm({
         </div>
       </details>
       <div>
-        <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
+        <label className="block text-pro-12 font-bold uppercase tracking-wide text-muted-foreground">
           {t("addresses.location", "Location on map")}
         </label>
         <Card className="mt-2 p-3">
           <LocationPicker
+            className="customer-location-picker"
             value={
               isValidLatLng({ lat: value.lat ?? NaN, lng: value.lng ?? NaN })
                 ? { lat: value.lat!, lng: value.lng! }
@@ -238,7 +241,7 @@ export function AddressForm({
           onClick={() => set("isDefault", !value.isDefault)}
           className="flex w-full items-center justify-between rounded-2xl bg-surface px-4 py-3.5 shadow-soft"
         >
-          <span className="flex items-center gap-2 text-sm font-bold">
+          <span className="flex items-center gap-2 text-pro-14 font-bold">
             <Star
               className={`h-4 w-4 ${value.isDefault ? "fill-brand text-brand" : "text-muted-foreground"}`}
             />
@@ -309,7 +312,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
+      <label className="block text-pro-12 font-bold uppercase tracking-wide text-muted-foreground">
         {label}
       </label>
       <input
