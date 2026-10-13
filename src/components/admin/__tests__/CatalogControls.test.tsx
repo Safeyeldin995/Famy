@@ -54,10 +54,13 @@ describe("admin catalog safety", () => {
     expect(catalogTime("00:00", "ar")).toMatch(/12.*ص/);
     expect(catalogDate("2027-01-01T12:00:00Z", "ar")).not.toMatch(/[٠-٩]/);
   });
-  it("has no commission write path in settings", () => {
+  it("can never change the commission from settings", () => {
     const code = readFileSync("src/routes/admin.settings.tsx", "utf8");
-    expect(code).not.toContain("useUpdateBillingSettings");
-    expect(code).not.toContain("commission_percent:");
+    // VAT and the platform fee are editable; the commission is only ever
+    // passed through exactly as stored, and there is no commission input.
+    const writes = code.match(/commission_percent:[^\n]*/g) ?? [];
+    expect(writes).toEqual(["commission_percent: q.data?.commission_percent ?? null,"]);
+    expect(code).not.toMatch(/billing-commission|setCommission/);
     expect(code).toContain('t("adminCatalog.ownerDecision")');
   });
   it("keeps service update behind validation and a separate confirmation", () => {
