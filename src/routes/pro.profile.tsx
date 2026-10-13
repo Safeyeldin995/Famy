@@ -1,3 +1,4 @@
+import { ProfileWorkZones } from "@/components/provider/ProfileWorkZones";
 import { AutoGrowingBio } from "@/components/provider/AutoGrowingBio";
 import { profilePriceDirty } from "@/lib/provider/profilePriceDirty";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
@@ -442,7 +443,8 @@ function ProProfile() {
             <div className="flex flex-wrap gap-2">{[0, 1, 2, 3, 4].map((index) => <CheckChip key={index} selected={false} onClick={() => (lang === "ar" ? setBioAr : setBioEn)((value) => [value.trim(), t(`providerSetup.bioPhrases.p${index}`)].filter(Boolean).join(" "))}>{t(`providerSetup.bioPhrases.p${index}`)}</CheckChip>)}</div>
             <dl className="apply-list">
               <div className="apply-li"><dt className="flex-1">{t("pro.profile.yearsExperience")}</dt><dd>{years}</dd><LockKeyhole size={16} aria-hidden="true" /></div>
-              <div className="apply-li"><dt className="flex-1">{t("pro.profile.cityLabel")}</dt><dd>{city || t("pro.profile.cityUnset")}</dd><LockKeyhole size={16} aria-hidden="true" /></div>
+              <div className="apply-li"><dt className="flex-1 font-bold">{t("providerLocations.livesIn")}</dt><dd>{city || t("pro.profile.cityUnset")}</dd><LockKeyhole size={16} aria-hidden="true" /></div>
+              <ProfileWorkZones providerId={provider.id} applicationEditable={["DRAFT", "NEEDS_CHANGES"].includes(provider.onboarding_status)} />
             </dl>
             <PrimaryButton className="apply-cta" onClick={handleSave} disabled={update.isPending}>
               {update.isPending ? t("pro.common.saving") : t("pro.profile.saveChanges")}

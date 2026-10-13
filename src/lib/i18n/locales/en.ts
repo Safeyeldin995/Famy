@@ -2811,6 +2811,7 @@ const en = {
   providerHoursFix: {"nightConflict": "You selected overnight babysitting from 6 PM to midnight, but your working hours end earlier", "packageConflict": "You selected a package from {{start}} to {{end}}, but your hours do not cover it", "addNight": "Add overnight hours", "removeNight": "Remove overnight service", "addPackage": "Add package hours", "editServices": "Edit services", "chooseDays": "Choose your working days first"},
   providerComplete: { title: "Your application is complete ✓", message: "The Famy team will review your application and respond within 24 hours. We will notify you as soon as we finish." },
   providerProfileFix: {"reviewLocked": "Your application is under review and these details cannot be changed now. Refresh the page and try again.", "signIn": "Sign in again to save your changes.", "notFound": "Your provider profile was not found. Refresh the page or contact support.", "invalidYears": "Years of experience must be a whole number from 0 to 60.", "invalidChildren": "The number of children must be a whole number from 1 to 20."},
+  providerLocations: {"livesIn": "Lives in", "worksIn": "Works in", "noZones": "No work areas yet", "requestEdit": "Contact support to change areas"},
 };
 export default en;
 export type Translation = typeof en;
