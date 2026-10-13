@@ -3161,6 +3161,8 @@ Object.assign(en, {
     priceRange: "Price: {{min}}–{{max}} EGP",
     duration: "Duration: {{count}} minutes",
     packageHours: "From {{start}} to {{end}}",
+    billingEditable: "VAT and the platform fee apply to new bookings only. The commission is not changed here.",
+    billingConfirm: "The new values apply to new bookings only. Existing bookings are not changed.",
     billingReadonly:
       "Current financial values, read-only. Pricing and commission cannot be changed here.",
     ownerDecision: "This change requires the business owner's decision",

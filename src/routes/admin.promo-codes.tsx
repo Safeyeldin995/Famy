@@ -539,6 +539,7 @@ function AdminPromoCodes() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<PromoForm>(EMPTY_FORM);
   const [editErrors, setEditErrors] = useState<Record<string, string>>({});
+  const [editScopeTouched, setEditScopeTouched] = useState(false);
   const [editScope, setEditScope] = useState<{ categoryIds: string[]; serviceIds: string[] }>({
     categoryIds: [],
     serviceIds: [],
@@ -600,6 +601,7 @@ function AdminPromoCodes() {
     setEditErrors({});
     setEditForm(formFromRow(p));
     setEditScope({ categoryIds: [], serviceIds: [] });
+    setEditScopeTouched(false);
     setEditingId(p.id);
   };
 
@@ -611,11 +613,16 @@ function AdminPromoCodes() {
       { id: p.id, ...toInput(editForm, p.is_active) },
       {
         onSuccess: () => {
-          setScope.mutate({
-            promoCodeId: p.id,
-            categoryIds: editScope.categoryIds,
-            serviceIds: editScope.serviceIds,
-          });
+          // Only rewrite the audience when the admin changed it. The edit
+          // state starts empty, so sending it untouched would wipe the
+          // promo's existing category/service links.
+          if (editScopeTouched) {
+            setScope.mutate({
+              promoCodeId: p.id,
+              categoryIds: editScope.categoryIds,
+              serviceIds: editScope.serviceIds,
+            });
+          }
           setEditingId(null);
           toast.success(t("admin.promoCodes.updated"));
         },
@@ -781,7 +788,10 @@ function AdminPromoCodes() {
                               }
                             : editScope
                         }
-                        setScope={setEditScope}
+                        setScope={(next) => {
+                          setEditScopeTouched(true);
+                          setEditScope(next);
+                        }}
                         lockCode
                       />
                       <div className="flex gap-2">

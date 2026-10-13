@@ -392,11 +392,13 @@ function CoveragePanel({ zoneId }: { zoneId: string }) {
           {(providersQ.data ?? [])
             .filter(
               (p: any) =>
+                // Empty search lists everyone (so a provider without a name
+                // can still be linked); typing narrows by name.
                 coveredProviders.has(p.id) ||
-                (providerSearch.trim() &&
-                  (p.profile?.full_name ?? "")
-                    .toLocaleLowerCase()
-                    .includes(providerSearch.trim().toLocaleLowerCase())),
+                !providerSearch.trim() ||
+                (p.profile?.full_name ?? "")
+                  .toLocaleLowerCase()
+                  .includes(providerSearch.trim().toLocaleLowerCase()),
             )
             .map((p: any) => (
               <li key={p.id}>
