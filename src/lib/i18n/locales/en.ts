@@ -3142,5 +3142,93 @@ Object.assign(en, {
     },
   },
 });
+Object.assign(en, {
+  adminCatalog: {
+    sections: "Catalog sections",
+    tabs: {
+      services: "Services",
+      taxonomy: "Subjects and curricula",
+      requirements: "Requirements",
+    },
+    confirmTitle: "Review before saving",
+    serviceChange:
+      "New prices and durations apply to new bookings. Existing bookings keep their terms.",
+    hideService:
+      "Customers will no longer see this service. Existing bookings are unchanged.",
+    serviceExample:
+      "Example: overnight babysitting, 360 minutes, starts at 18:00. Price limits are in EGP.",
+    requirementsHint: "Choose a service to review its requirements.",
+    priceRange: "Price: {{min}}–{{max}} EGP",
+    duration: "Duration: {{count}} minutes",
+    packageHours: "From {{start}} to {{end}}",
+    billingReadonly:
+      "Current financial values, read-only. Pricing and commission cannot be changed here.",
+    ownerDecision: "This change requires the business owner's decision",
+    settingsImpact:
+      "This setting takes effect after saving. Check the value before confirming.",
+    zoneImpact:
+      "Changing this zone's status affects covered services for new bookings.",
+    linkProvider: "Link a provider to a zone",
+    providerSearch: "Search provider name",
+    unnamedProvider: "Provider",
+    providerCount: "{{total}} providers",
+    noCoverage: "No services linked yet",
+    coverageError: "Could not load coverage",
+    discountPercent: "{{value}}% off",
+    discountFixed: "{{value}} EGP off",
+    usage: "Used {{used}} of {{total}}",
+    ends: "Ends: {{date}}",
+    noExpiry: "No expiry",
+    unlimited: "Unlimited",
+    promoAudience: "Audience and description",
+    promoValue: "Discount value",
+    promoLimits: "Dates and usage limits (optional)",
+    customerPreview: "Customer instructions preview",
+    noInstructions: "Write customer instructions above",
+    unknown: "Unspecified",
+    systemError: "Technical issue to review",
+    states: {
+      failed: "Failed",
+      rejected: "Rejected",
+      dead: "Delivery failed",
+      pending: "Awaiting retry",
+    },
+    auditActions: {
+      INSERT: "added",
+      UPDATE: "updated",
+      DELETE: "deleted",
+      other: "recorded a change to",
+    },
+    entities: {
+      services: "a service",
+      providers: "a provider",
+      bookings: "a booking",
+      payments: "a payment",
+      zones: "a zone",
+      promo_codes: "a promo code",
+      payment_methods: "a payment method",
+      cancellation_reasons: "a cancellation reason",
+      settings: "platform settings",
+      other: "a platform record",
+    },
+  },
+});
+Object.assign((en as any).adminCatalog, {
+  requirements: {
+    equipment: "Equipment",
+    supplies: "Supplies",
+    certification: "Certification",
+    training: "Training",
+    experience: "Experience",
+    other: "Other",
+    customer: "Customer",
+    provider: "Provider",
+    either: "Either",
+    passed: "Approved",
+    failed: "Rejected",
+    waived: "Waived",
+    pending: "Awaiting review",
+  },
+});
 export default en;
 export type Translation = typeof en;

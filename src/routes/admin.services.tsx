@@ -1,3 +1,10 @@
+import {
+  CatalogSheet,
+  CatalogConfirm,
+  catalogScreen,
+  catalogTime,
+  packageEnd,
+} from "@/components/admin/CatalogControls";
 import { hasMissingServicePriceLimits } from "@/lib/catalog/servicePriceLimits";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
@@ -97,7 +104,7 @@ function formFromService(s: any): ServiceForm {
     base_price: String(s.base_price ?? 0),
     duration_min: String(s.duration_min ?? 60),
     pricing_model: (s.pricing_model as PricingModel) ?? "hourly",
-    fixed_start_time: s.fixed_start_time?.slice(0,5) ?? "",
+    fixed_start_time: s.fixed_start_time?.slice(0, 5) ?? "",
     minimum_price: s.minimum_price != null ? String(s.minimum_price) : "",
     maximum_price: s.maximum_price != null ? String(s.maximum_price) : "",
     maximum_extras_total: s.maximum_extras_total != null ? String(s.maximum_extras_total) : "",
@@ -193,10 +200,10 @@ function ServiceFormFields({
   errors: Record<string, string>;
   categories: any[];
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <label className="block">
           <span className="text-xs font-semibold text-muted-foreground">
             {t("admin.cancellationReasons.nameEn")}
@@ -208,7 +215,7 @@ function ServiceFormFields({
             className="mt-1 h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm"
           />
           {errors.name_en && (
-            <p className="mt-1 text-[11px] font-semibold text-coral">{errors.name_en}</p>
+            <p className="mt-1 text-xs font-semibold text-coral">{errors.name_en}</p>
           )}
         </label>
         <label className="block">
@@ -222,12 +229,12 @@ function ServiceFormFields({
             className="mt-1 h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm"
           />
           {errors.name_ar && (
-            <p className="mt-1 text-[11px] font-semibold text-coral">{errors.name_ar}</p>
+            <p className="mt-1 text-xs font-semibold text-coral">{errors.name_ar}</p>
           )}
         </label>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <label className="block">
           <span className="text-xs font-semibold text-muted-foreground">
             {t("admin.services.slug")}
@@ -238,9 +245,7 @@ function ServiceFormFields({
             dir="ltr"
             className="mt-1 h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm font-mono"
           />
-          {errors.slug && (
-            <p className="mt-1 text-[11px] font-semibold text-coral">{errors.slug}</p>
-          )}
+          {errors.slug && <p className="mt-1 text-xs font-semibold text-coral">{errors.slug}</p>}
         </label>
         <label className="block">
           <span className="text-xs font-semibold text-muted-foreground">
@@ -254,17 +259,17 @@ function ServiceFormFields({
             <option value="">{t("admin.services.selectCategory")}</option>
             {categories.map((c: any) => (
               <option key={c.id} value={c.id}>
-                {c.name_en}
+                {i18n.language.startsWith("ar") ? c.name_ar : c.name_en}
               </option>
             ))}
           </select>
           {errors.category_id && (
-            <p className="mt-1 text-[11px] font-semibold text-coral">{errors.category_id}</p>
+            <p className="mt-1 text-xs font-semibold text-coral">{errors.category_id}</p>
           )}
         </label>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <label className="block">
           <span className="text-xs font-semibold text-muted-foreground">
             {t("admin.cancellationReasons.descEn")}
@@ -291,7 +296,7 @@ function ServiceFormFields({
         </label>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <label className="block">
           <span className="text-xs font-semibold text-muted-foreground">
             {t("admin.services.basePrice")}
@@ -305,7 +310,7 @@ function ServiceFormFields({
             className="mt-1 h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm"
           />
           {errors.base_price && (
-            <p className="mt-1 text-[11px] font-semibold text-coral">{errors.base_price}</p>
+            <p className="mt-1 text-xs font-semibold text-coral">{errors.base_price}</p>
           )}
         </label>
         <label className="block">
@@ -321,7 +326,7 @@ function ServiceFormFields({
             className="mt-1 h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm"
           />
           {errors.duration_min && (
-            <p className="mt-1 text-[11px] font-semibold text-coral">{errors.duration_min}</p>
+            <p className="mt-1 text-xs font-semibold text-coral">{errors.duration_min}</p>
           )}
         </label>
         <label className="block">
@@ -341,11 +346,19 @@ function ServiceFormFields({
           </select>
         </label>
       </div>
-      {form.pricing_model === "fixed" && <label className="block">
-        <span className="text-xs font-semibold text-muted-foreground">{t("packages.fixedStart")}</span>
-        <input type="time" value={form.fixed_start_time} onChange={(e) => setForm({ ...form, fixed_start_time: e.target.value })} className="mt-1 h-11 w-full rounded-lg border border-border bg-surface px-2 text-sm" />
-      </label>}
-
+      {form.pricing_model === "fixed" && (
+        <label className="block">
+          <span className="text-xs font-semibold text-muted-foreground">
+            {t("packages.fixedStart")}
+          </span>
+          <input
+            type="time"
+            value={form.fixed_start_time}
+            onChange={(e) => setForm({ ...form, fixed_start_time: e.target.value })}
+            className="mt-1 h-11 w-full rounded-lg border border-border bg-surface px-2 text-sm"
+          />
+        </label>
+      )}
 
       <div className="rounded-xl border border-border/60 p-3">
         <label className="flex items-center gap-2 text-xs font-semibold">
@@ -367,7 +380,7 @@ function ServiceFormFields({
             className="mt-1 h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm"
           />
         </label>
-        <div className="mt-3 grid grid-cols-3 gap-3">
+        <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
           <label className="block">
             <span className="text-xs font-semibold text-muted-foreground">
               {t("admin.services.minimumPrice")}
@@ -381,7 +394,7 @@ function ServiceFormFields({
               className="mt-1 h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm"
             />
             {errors.minimum_price && (
-              <p className="mt-1 text-[11px] font-semibold text-coral">{errors.minimum_price}</p>
+              <p className="mt-1 text-xs font-semibold text-coral">{errors.minimum_price}</p>
             )}
           </label>
           <label className="block">
@@ -397,7 +410,7 @@ function ServiceFormFields({
               className="mt-1 h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm"
             />
             {errors.maximum_price && (
-              <p className="mt-1 text-[11px] font-semibold text-coral">{errors.maximum_price}</p>
+              <p className="mt-1 text-xs font-semibold text-coral">{errors.maximum_price}</p>
             )}
           </label>
           <label className="block">
@@ -413,9 +426,7 @@ function ServiceFormFields({
               className="mt-1 h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm"
             />
             {errors.maximum_extras_total && (
-              <p className="mt-1 text-[11px] font-semibold text-coral">
-                {errors.maximum_extras_total}
-              </p>
+              <p className="mt-1 text-xs font-semibold text-coral">{errors.maximum_extras_total}</p>
             )}
           </label>
         </div>
@@ -425,14 +436,14 @@ function ServiceFormFields({
 }
 
 function FlaggedProviders({ serviceId }: { serviceId: string }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const flaggedQ = useFlaggedProviderServices(serviceId);
   const clearFlag = useClearProviderServiceFlag();
   const rows = flaggedQ.data ?? [];
   if (rows.length === 0) return null;
   return (
     <div className="mt-2 rounded-xl border border-amber-300 bg-amber-50 p-3">
-      <p className="text-[11px] font-bold text-amber-800">
+      <p className="text-xs font-bold text-amber-800">
         {t("admin.services.flaggedProvidersTitle")}
       </p>
       <ul className="mt-1.5 space-y-1">
@@ -443,7 +454,7 @@ function FlaggedProviders({ serviceId }: { serviceId: string }) {
             </span>
             <button
               onClick={() => clearFlag.mutate({ id: r.id, serviceId })}
-              className="focus-ring text-[11px] font-bold text-brand"
+              className="focus-ring text-xs font-bold text-brand"
             >
               {t("admin.services.clear")}
             </button>
@@ -524,7 +535,7 @@ const FULFILLMENT_STATUS_TONE: Record<string, string> = {
 };
 
 function FulfillmentsReview({ requirementId }: { requirementId: string }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const q = useAdminRequirementFulfillments(requirementId);
   const review = useReviewRequirementFulfillment();
   const signUrl = useAdminEvidenceSignedUrl();
@@ -532,7 +543,7 @@ function FulfillmentsReview({ requirementId }: { requirementId: string }) {
 
   if (rows.length === 0)
     return (
-      <p className="mt-2 text-[11px] text-muted-foreground">{t("admin.services.noDeclarations")}</p>
+      <p className="mt-2 text-xs text-muted-foreground">{t("admin.services.noDeclarations")}</p>
     );
 
   return (
@@ -547,11 +558,13 @@ function FulfillmentsReview({ requirementId }: { requirementId: string }) {
               {r.provider?.profile?.full_name ?? r.provider_id.slice(0, 8)}
             </span>
             <span
-              className={`ms-2 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${FULFILLMENT_STATUS_TONE[r.status]}`}
+              className={`ms-2 rounded-full px-2 py-0.5 text-xs font-bold uppercase ${FULFILLMENT_STATUS_TONE[r.status]}`}
             >
-              {r.status}
+              {t(`adminCatalog.requirements.${r.status}`, {
+                defaultValue: t("adminCatalog.unknown"),
+              })}
             </span>
-            {r.notes && <p className="text-[11px] text-muted-foreground">{r.notes}</p>}
+            {r.notes && <p className="text-xs text-muted-foreground">{r.notes}</p>}
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
             {r.evidence_storage_path && (
@@ -563,7 +576,7 @@ function FulfillmentsReview({ requirementId }: { requirementId: string }) {
                     "noopener",
                   )
                 }
-                className="focus-ring rounded-lg border border-border px-2 py-1 text-[11px] font-semibold"
+                className="focus-ring rounded-lg border border-border px-2 py-1 text-xs font-semibold"
               >
                 {t("admin.services.evidence")}
               </button>
@@ -573,9 +586,9 @@ function FulfillmentsReview({ requirementId }: { requirementId: string }) {
                 key={s}
                 disabled={review.isPending || r.status === s}
                 onClick={() => review.mutate({ id: r.id, requirementId, status: s })}
-                className={`focus-ring rounded-lg px-2 py-1 text-[11px] font-bold disabled:opacity-50 ${r.status === s ? "bg-brand text-brand-foreground" : "border border-border"}`}
+                className={`focus-ring rounded-lg px-2 py-1 text-xs font-bold disabled:opacity-50 ${r.status === s ? "bg-brand text-brand-foreground" : "border border-border"}`}
               >
-                {s}
+                {t(`adminCatalog.requirements.${s}`)}
               </button>
             ))}
           </div>
@@ -592,10 +605,10 @@ function RequirementFormFields({
   form: RequirementForm;
   setForm: (f: RequirementForm) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   return (
     <div className="space-y-2">
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         <input
           dir="ltr"
           value={form.code}
@@ -618,7 +631,7 @@ function RequirementFormFields({
           className="h-9 rounded-lg border border-border bg-surface px-2 text-xs"
         />
       </div>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         <select
           value={form.requirement_type}
           onChange={(e) => setForm({ ...form, requirement_type: e.target.value as any })}
@@ -626,7 +639,7 @@ function RequirementFormFields({
         >
           {REQUIREMENT_TYPES.map((rt) => (
             <option key={rt} value={rt}>
-              {rt}
+              {t(`adminCatalog.requirements.${rt}`)}
             </option>
           ))}
         </select>
@@ -637,7 +650,7 @@ function RequirementFormFields({
         >
           {FULFILLMENT_MODES.map((m) => (
             <option key={m} value={m}>
-              {m}
+              {t(`adminCatalog.requirements.${m}`)}
             </option>
           ))}
         </select>
@@ -651,7 +664,7 @@ function RequirementFormFields({
           className="h-9 rounded-lg border border-border bg-surface px-2 text-xs"
         />
       </div>
-      <div className="flex flex-wrap gap-3 text-[11px] font-semibold">
+      <div className="flex flex-wrap gap-3 text-xs font-semibold">
         <label className="flex items-center gap-1.5">
           <input
             type="checkbox"
@@ -682,7 +695,7 @@ function RequirementFormFields({
 }
 
 function RequirementsPanel({ serviceId }: { serviceId: string }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const q = useAdminRequirements(serviceId);
   const create = useCreateRequirement();
   const update = useUpdateRequirement();
@@ -712,7 +725,7 @@ function RequirementsPanel({ serviceId }: { serviceId: string }) {
   return (
     <div className="mt-3 border-t border-border pt-3">
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+        <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
           {t("admin.services.requirements")}
         </p>
         <button
@@ -720,7 +733,7 @@ function RequirementsPanel({ serviceId }: { serviceId: string }) {
             setCreating((v) => !v);
             setEditingId(null);
           }}
-          className="focus-ring text-[11px] font-bold text-brand"
+          className="focus-ring text-xs font-bold text-brand"
         >
           {creating ? t("common.cancel") : t("admin.services.addRequirement")}
         </button>
@@ -754,9 +767,7 @@ function RequirementsPanel({ serviceId }: { serviceId: string }) {
       )}
 
       {rows.length === 0 && !creating && (
-        <p className="mt-1 text-[11px] text-muted-foreground">
-          {t("admin.services.noRequirements")}
-        </p>
+        <p className="mt-1 text-xs text-muted-foreground">{t("admin.services.noRequirements")}</p>
       )}
 
       <ul className="mt-2 space-y-1.5">
@@ -802,12 +813,14 @@ function RequirementsPanel({ serviceId }: { serviceId: string }) {
                   <span className="font-semibold">{r.name_en}</span>
                   <span className="text-muted-foreground"> / {r.name_ar}</span>
                   {!r.is_active && (
-                    <span className="ms-2 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">
+                    <span className="ms-2 rounded-full bg-muted px-2 py-0.5 text-xs font-bold uppercase text-muted-foreground">
                       {t("admin.cancellationReasons.inactive")}
                     </span>
                   )}
-                  <p className="text-[10px] text-muted-foreground">
-                    {r.requirement_type} · {r.fulfillment_mode} · {r.provider_extra_fee} EGP
+                  <p className="text-xs text-muted-foreground">
+                    {t(`adminCatalog.requirements.${r.requirement_type}`)} ·{" "}
+                    {t(`adminCatalog.requirements.${r.fulfillment_mode}`)} · {r.provider_extra_fee}{" "}
+                    {t("common.egp")}
                     {r.required_for_provider_approval
                       ? ` · ${t("admin.services.mandatoryForApproval")}`
                       : ""}
@@ -819,7 +832,7 @@ function RequirementsPanel({ serviceId }: { serviceId: string }) {
                     onClick={() => move(i, -1)}
                     disabled={i === 0 || reorder.isPending}
                     aria-label={t("admin.cancellationReasons.moveUp")}
-                    className="focus-ring rounded-lg border border-border px-2 py-1 text-[11px] disabled:opacity-30"
+                    className="focus-ring rounded-lg border border-border px-2 py-1 text-xs disabled:opacity-30"
                   >
                     ↑
                   </button>
@@ -827,7 +840,7 @@ function RequirementsPanel({ serviceId }: { serviceId: string }) {
                     onClick={() => move(i, 1)}
                     disabled={i === rows.length - 1 || reorder.isPending}
                     aria-label={t("admin.cancellationReasons.moveDown")}
-                    className="focus-ring rounded-lg border border-border px-2 py-1 text-[11px] disabled:opacity-30"
+                    className="focus-ring rounded-lg border border-border px-2 py-1 text-xs disabled:opacity-30"
                   >
                     ↓
                   </button>
@@ -835,7 +848,7 @@ function RequirementsPanel({ serviceId }: { serviceId: string }) {
                     onClick={() => {
                       setReviewingId(reviewingId === r.id ? null : r.id);
                     }}
-                    className="focus-ring rounded-lg border border-border px-2 py-1 text-[11px] font-semibold"
+                    className="focus-ring rounded-lg border border-border px-2 py-1 text-xs font-semibold"
                   >
                     {t("admin.operations.review")}
                   </button>
@@ -845,7 +858,7 @@ function RequirementsPanel({ serviceId }: { serviceId: string }) {
                       setEditForm(requirementFormFromRow(r));
                       setCreating(false);
                     }}
-                    className="focus-ring rounded-lg border border-border px-2 py-1 text-[11px] font-semibold"
+                    className="focus-ring rounded-lg border border-border px-2 py-1 text-xs font-semibold"
                   >
                     {t("common.edit")}
                   </button>
@@ -854,7 +867,7 @@ function RequirementsPanel({ serviceId }: { serviceId: string }) {
                     onClick={() =>
                       update.mutate({ id: r.id, service_id: serviceId, is_active: !r.is_active })
                     }
-                    className={`focus-ring rounded-lg px-2 py-1 text-[11px] font-bold disabled:opacity-50 ${r.is_active ? "border border-coral text-coral" : "bg-brand text-brand-foreground"}`}
+                    className={`focus-ring rounded-lg px-2 py-1 text-xs font-bold disabled:opacity-50 ${r.is_active ? "border border-coral text-coral" : "bg-brand text-brand-foreground"}`}
                   >
                     {r.is_active
                       ? t("admin.cancellationReasons.deactivate")
@@ -882,7 +895,7 @@ function ServiceExpandableDetails({ serviceId, open }: { serviceId: string; open
 }
 
 export function AdminServices() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const lang = currentLang();
   const q = useAdminServices();
   const catsQ = useAdminCategories();
@@ -890,6 +903,8 @@ export function AdminServices() {
   const update = useUpdateService();
   const setActive = useSetServiceActive();
 
+  const [tab, setTab] = useState<"services" | "taxonomy" | "requirements">("services");
+  const [pendingEdit, setPendingEdit] = useState<any>(null);
   const [catalogView, setCatalogView] = useState<AdminServiceCatalogView>("launch");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
@@ -965,20 +980,22 @@ export function AdminServices() {
     const errors = validate(editForm, existingSlugs, s.slug, t);
     setEditErrors(errors);
     if (Object.keys(errors).length > 0) return;
-    update.mutate(
-      { id: s.id, ...toInput(editForm), is_active: s.is_active },
-      {
-        onSuccess: () => {
-          setEditingId(null);
-          toast.success(t("admin.services.updated"));
-        },
-        onError: (e: any) => toast.error(dbErrorMessage(e, t)),
+    setPendingEdit({ id: s.id, ...toInput(editForm), is_active: s.is_active });
+  };
+  const confirmEdit = () => {
+    if (!pendingEdit) return;
+    update.mutate(pendingEdit, {
+      onSuccess: () => {
+        setEditingId(null);
+        setPendingEdit(null);
+        toast.success(t("admin.services.updated"));
       },
-    );
+      onError: (e: any) => toast.error(dbErrorMessage(e, t)),
+    });
   };
 
   return (
-    <div className="px-5 py-5 space-y-4">
+    <div className={catalogScreen}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
@@ -989,7 +1006,10 @@ export function AdminServices() {
           </p>
         </div>
         <button
-          onClick={startCreate}
+          onClick={() => {
+            setTab("services");
+            startCreate();
+          }}
           disabled={categories.length === 0}
           title={categories.length === 0 ? t("admin.services.categoriesLoading") : undefined}
           className="focus-ring inline-flex items-center gap-1.5 rounded-xl bg-brand px-3 py-2 text-xs font-bold text-brand-foreground disabled:opacity-50"
@@ -998,263 +1018,302 @@ export function AdminServices() {
         </button>
       </div>
 
-      <div
-        className="flex flex-wrap gap-2"
-        role="tablist"
-        aria-label={t("admin.services.catalogViews.tablist")}
-      >
-        {(
-          [
-            { key: "launch" as const, labelKey: "admin.services.catalogViews.launch" },
-            {
-              key: "outside_launch" as const,
-              labelKey: "admin.services.catalogViews.outsideLaunch",
-            },
-            { key: "test_data" as const, labelKey: "admin.services.catalogViews.testData" },
-          ] as const
-        ).map((tab) => (
+      <nav className="flex flex-wrap gap-2" aria-label={t("adminCatalog.sections")}>
+        {(["services", "taxonomy", "requirements"] as const).map((key) => (
           <button
-            key={tab.key}
-            type="button"
-            role="tab"
-            aria-selected={catalogView === tab.key}
-            onClick={() => setCatalogView(tab.key)}
-            className={`focus-ring min-h-11 rounded-xl px-3 py-2 text-xs font-bold ${
-              catalogView === tab.key
-                ? "bg-brand text-brand-foreground"
-                : "border border-border bg-surface text-muted-foreground"
-            }`}
+            key={key}
+            aria-pressed={tab === key}
+            onClick={() => {
+              setTab(key);
+              setCreating(false);
+              setEditingId(null);
+              setConfirmDeactivateId(null);
+            }}
+            className={`min-h-11 rounded-xl px-4 font-bold ${tab === key ? "bg-brand text-brand-foreground" : "border border-border"}`}
           >
-            {t(tab.labelKey)}
+            {t(`adminCatalog.tabs.${key}`)}
           </button>
         ))}
-      </div>
-      {catalogView === "outside_launch" && (
-        <p className="text-xs text-muted-foreground">
-          {t("admin.services.catalogViews.outsideLaunchNote")}
-        </p>
-      )}
-      {catalogView === "test_data" && (
-        <p className="text-xs text-muted-foreground">
-          {t("admin.services.catalogViews.testDataNote")}
-        </p>
-      )}
-
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex h-10 min-w-[220px] flex-1 items-center gap-2 rounded-xl border border-border bg-surface px-3">
-          <Search className="h-4 w-4 text-muted-foreground" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t("admin.services.searchPlaceholder")}
-            className="w-full min-w-0 bg-transparent text-sm outline-none"
-          />
-        </div>
-        <div className="flex gap-1 rounded-xl border border-border bg-surface p-1">
-          {[
-            { key: "all" as const, labelKey: "admin.providers.filterAll" },
-            { key: "active" as const, labelKey: "admin.customers.filterActive" },
-            { key: "inactive" as const, labelKey: "admin.cancellationReasons.inactive" },
-          ].map((f) => (
-            <button
-              key={f.key}
-              onClick={() => setStatusFilter(f.key)}
-              className={`focus-ring rounded-lg px-3 py-1.5 text-xs font-bold ${statusFilter === f.key ? "bg-brand text-brand-foreground" : "text-muted-foreground"}`}
-            >
-              {t(f.labelKey)}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {creating && (
-        <section className="rounded-2xl border border-border/60 bg-surface p-5 shadow-sm">
-          <h2 className="text-sm font-extrabold">{t("admin.services.newServiceTitle")}</h2>
-          <div className="mt-4">
-            <ServiceFormFields
-              form={createForm}
-              setForm={setCreateForm}
-              errors={createErrors}
-              categories={categories}
-            />
-          </div>
-          <div className="mt-4 flex gap-2">
-            <button
-              onClick={submitCreate}
-              disabled={create.isPending}
-              className="focus-ring rounded-lg bg-brand px-4 py-2 text-xs font-bold text-brand-foreground disabled:opacity-50"
-            >
-              {create.isPending
-                ? t("admin.cancellationReasons.creating")
-                : t("admin.services.createService")}
-            </button>
-            <button
-              onClick={() => setCreating(false)}
-              className="focus-ring rounded-lg border border-border px-4 py-2 text-xs font-bold"
-            >
-              {t("common.cancel")}
-            </button>
-          </div>
-        </section>
-      )}
-
-      <section className="rounded-2xl border border-border/60 bg-surface p-5 shadow-sm">
-        {q.isLoading ? (
-          <div className="space-y-2">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-16 animate-pulse rounded-xl bg-muted" />
+      </nav>
+      {tab === "services" && (
+        <>
+          <div
+            className="flex flex-wrap gap-2"
+            role="tablist"
+            aria-label={t("admin.services.catalogViews.tablist")}
+          >
+            {(
+              [
+                { key: "launch" as const, labelKey: "admin.services.catalogViews.launch" },
+                {
+                  key: "outside_launch" as const,
+                  labelKey: "admin.services.catalogViews.outsideLaunch",
+                },
+                { key: "test_data" as const, labelKey: "admin.services.catalogViews.testData" },
+              ] as const
+            ).map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                role="tab"
+                aria-selected={catalogView === tab.key}
+                onClick={() => setCatalogView(tab.key)}
+                className={`focus-ring min-h-11 rounded-xl px-3 py-2 text-xs font-bold ${
+                  catalogView === tab.key
+                    ? "bg-brand text-brand-foreground"
+                    : "border border-border bg-surface text-muted-foreground"
+                }`}
+              >
+                {t(tab.labelKey)}
+              </button>
             ))}
           </div>
-        ) : q.isError ? (
-          <AdminQueryError
-            message={t("admin.services.loadError")}
-            error={q.error}
-            onRetry={() => q.refetch()}
-          />
-        ) : rows.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t(emptyKey)}</p>
-        ) : (
-          <ul className="space-y-2">
-            {rows.map((s: any) => (
-              <li key={s.id} className="rounded-xl border border-border/60 p-3">
-                {hasMissingServicePriceLimits(
-                  editingId === s.id
-                    ? {
-                        ...s,
-                        provider_pricing_allowed: editForm.provider_pricing_allowed,
-                        minimum_price: editForm.minimum_price.trim()
-                          ? Number(editForm.minimum_price)
-                          : null,
-                        maximum_price: editForm.maximum_price.trim()
-                          ? Number(editForm.maximum_price)
-                          : null,
-                      }
-                    : s,
-                ) && (
-                  <div className="mb-2 flex flex-wrap items-center gap-2 text-xs font-bold text-amber-800 dark:text-amber-200">
-                    <span className="rounded-full bg-amber-100 px-3 py-1">
-                      {t("admin.services.missingPriceLimits")}
-                    </span>
-                    {editingId !== s.id && (
-                      <button
-                        type="button"
-                        className="min-h-11 px-3 underline"
-                        onClick={() => startEdit(s)}
-                      >
-                        {t("common.edit")}
-                      </button>
-                    )}
-                  </div>
-                )}
-                {editingId === s.id ? (
-                  <div className="space-y-3">
-                    <ServiceFormFields
-                      form={editForm}
-                      setForm={setEditForm}
-                      errors={editErrors}
-                      categories={categories}
-                    />
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => submitEdit(s)}
-                        disabled={update.isPending}
-                        className="focus-ring min-h-11 rounded-lg bg-brand px-3 py-1.5 text-xs font-bold text-brand-foreground disabled:opacity-50"
-                      >
-                        {update.isPending
-                          ? t("admin.cancellationReasons.saving")
-                          : t("common.save")}
-                      </button>
-                      <button
-                        onClick={() => setEditingId(null)}
-                        className="focus-ring min-h-11 rounded-lg border border-border px-3 py-1.5 text-xs font-bold"
-                      >
-                        {t("common.cancel")}
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <p className="text-sm font-semibold break-words">
-                          {localizedServiceName(s, lang)}
-                        </p>
-                        <span
-                          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${s.is_active ? "bg-mint/20 text-success" : "bg-muted text-muted-foreground"}`}
-                        >
-                          {s.is_active
-                            ? t("admin.services.catalogViews.statusActive")
-                            : t("admin.services.catalogViews.statusInactive")}
+          {catalogView === "outside_launch" && (
+            <p className="text-xs text-muted-foreground">
+              {t("admin.services.catalogViews.outsideLaunchNote")}
+            </p>
+          )}
+          {catalogView === "test_data" && (
+            <p className="text-xs text-muted-foreground">
+              {t("admin.services.catalogViews.testDataNote")}
+            </p>
+          )}
+
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex h-10 min-w-[220px] flex-1 items-center gap-2 rounded-xl border border-border bg-surface px-3">
+              <Search className="h-4 w-4 text-muted-foreground" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t("admin.services.searchPlaceholder")}
+                className="w-full min-w-0 bg-transparent text-sm outline-none"
+              />
+            </div>
+            <div className="flex gap-1 rounded-xl border border-border bg-surface p-1">
+              {[
+                { key: "all" as const, labelKey: "admin.providers.filterAll" },
+                { key: "active" as const, labelKey: "admin.customers.filterActive" },
+                { key: "inactive" as const, labelKey: "admin.cancellationReasons.inactive" },
+              ].map((f) => (
+                <button
+                  key={f.key}
+                  onClick={() => setStatusFilter(f.key)}
+                  className={`focus-ring rounded-lg px-3 py-1.5 text-xs font-bold ${statusFilter === f.key ? "bg-brand text-brand-foreground" : "text-muted-foreground"}`}
+                >
+                  {t(f.labelKey)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {creating && (
+            <CatalogSheet
+              title={t("admin.services.newServiceTitle")}
+              description={t("adminCatalog.serviceExample")}
+              busy={create.isPending}
+              onClose={() => setCreating(false)}
+            >
+              <h2 className="text-sm font-extrabold">{t("admin.services.newServiceTitle")}</h2>
+              <div className="mt-4">
+                <ServiceFormFields
+                  form={createForm}
+                  setForm={setCreateForm}
+                  errors={createErrors}
+                  categories={categories}
+                />
+              </div>
+              <div className="mt-4 flex gap-2">
+                <button
+                  onClick={submitCreate}
+                  disabled={create.isPending}
+                  className="focus-ring rounded-lg bg-brand px-4 py-2 text-xs font-bold text-brand-foreground disabled:opacity-50"
+                >
+                  {create.isPending
+                    ? t("admin.cancellationReasons.creating")
+                    : t("admin.services.createService")}
+                </button>
+                <button
+                  onClick={() => setCreating(false)}
+                  className="focus-ring rounded-lg border border-border px-4 py-2 text-xs font-bold"
+                >
+                  {t("common.cancel")}
+                </button>
+              </div>
+            </CatalogSheet>
+          )}
+
+          <section className="rounded-2xl border border-border/60 bg-surface p-5 shadow-sm">
+            {q.isLoading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="h-16 animate-pulse rounded-xl bg-muted" />
+                ))}
+              </div>
+            ) : q.isError ? (
+              <AdminQueryError
+                message={t("admin.services.loadError")}
+                error={q.error}
+                onRetry={() => q.refetch()}
+              />
+            ) : rows.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{t(emptyKey)}</p>
+            ) : (
+              <ul className="space-y-2">
+                {rows.map((s: any) => (
+                  <li key={s.id} className="rounded-xl border border-border/60 p-3">
+                    {hasMissingServicePriceLimits(
+                      editingId === s.id
+                        ? {
+                            ...s,
+                            provider_pricing_allowed: editForm.provider_pricing_allowed,
+                            minimum_price: editForm.minimum_price.trim()
+                              ? Number(editForm.minimum_price)
+                              : null,
+                            maximum_price: editForm.maximum_price.trim()
+                              ? Number(editForm.maximum_price)
+                              : null,
+                          }
+                        : s,
+                    ) && (
+                      <div className="mb-2 flex flex-wrap items-center gap-2 text-xs font-bold text-amber-800 dark:text-amber-200">
+                        <span className="rounded-full bg-amber-100 px-3 py-1">
+                          {t("admin.services.missingPriceLimits")}
                         </span>
-                      </div>
-                      <p className="text-[11px] text-muted-foreground break-words">
-                        {localizedCategoryName(s, lang)} ·{" "}
-                        {t(`admin.services.pricingModels.${s.pricing_model}`)}
-                        {catalogView === "outside_launch" && (
-                          <span className="ms-1 font-semibold text-amber-800 dark:text-amber-200">
-                            · {t("admin.services.catalogViews.outsideLaunchBadge")}
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 flex-wrap items-center gap-2">
-                      <button
-                        onClick={() => startEdit(s)}
-                        className="focus-ring min-h-11 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold"
-                      >
-                        {t("common.edit")}
-                      </button>
-                      {catalogView === "launch" && (
-                        <button
-                          disabled={setActive.isPending}
-                          aria-pressed={s.is_active}
-                          title={t("admin.services.catalogViews.toggleHint")}
-                          onClick={() => {
-                            if (s.is_active) setConfirmDeactivateId(s.id);
-                            else
-                              setActive.mutate(
-                                { id: s.id, active: true },
-                                { onError: (e: any) => toast.error(dbErrorMessage(e, t)) },
-                              );
-                          }}
-                          className={`focus-ring min-h-11 rounded-lg px-3 py-1.5 text-xs font-bold disabled:opacity-50 ${s.is_active ? "border border-coral text-coral" : "bg-brand text-brand-foreground"}`}
-                        >
-                          {setActive.isPending
-                            ? t("admin.cancellationReasons.saving")
-                            : s.is_active
-                              ? t("admin.services.catalogViews.deactivateLaunch")
-                              : t("admin.services.catalogViews.activateLaunch")}
-                        </button>
-                      )}
-                      {(catalogView === "outside_launch" || catalogView === "test_data") &&
-                        s.is_active && (
+                        {editingId !== s.id && (
                           <button
-                            disabled={setActive.isPending}
-                            onClick={() => setConfirmDeactivateId(s.id)}
-                            className="focus-ring min-h-11 rounded-lg border border-coral px-3 py-1.5 text-xs font-bold text-coral disabled:opacity-50"
+                            type="button"
+                            className="min-h-11 px-3 underline"
+                            onClick={() => startEdit(s)}
                           >
-                            {setActive.isPending
-                              ? t("admin.cancellationReasons.saving")
-                              : t("admin.cancellationReasons.deactivate")}
+                            {t("common.edit")}
                           </button>
                         )}
-                    </div>
-                  </div>
-                )}
-                {confirmDeactivateId === s.id && (
-                  <div className="mt-3 rounded-xl border border-coral/40 bg-coral/5 p-3">
-                    <p className="text-xs font-bold text-coral">
-                      {t("admin.services.deactivateConfirmTitle", {
-                        name: localizedServiceName(s, lang),
-                      })}
-                    </p>
-                    <p className="mt-1 text-[11px] text-muted-foreground">
-                      {t("admin.services.deactivateConfirmBody")}
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <button
-                        disabled={setActive.isPending}
-                        onClick={() =>
+                      </div>
+                    )}
+                    {editingId === s.id && !pendingEdit ? (
+                      <CatalogSheet
+                        title={localizedServiceName(s, lang)}
+                        description={t("adminCatalog.serviceExample")}
+                        busy={update.isPending}
+                        onClose={() => setEditingId(null)}
+                      >
+                        <ServiceFormFields
+                          form={editForm}
+                          setForm={setEditForm}
+                          errors={editErrors}
+                          categories={categories}
+                        />
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => submitEdit(s)}
+                            disabled={update.isPending}
+                            className="focus-ring min-h-11 rounded-lg bg-brand px-3 py-1.5 text-xs font-bold text-brand-foreground disabled:opacity-50"
+                          >
+                            {update.isPending
+                              ? t("admin.cancellationReasons.saving")
+                              : t("common.save")}
+                          </button>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className="focus-ring min-h-11 rounded-lg border border-border px-3 py-1.5 text-xs font-bold"
+                          >
+                            {t("common.cancel")}
+                          </button>
+                        </div>
+                      </CatalogSheet>
+                    ) : (
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <p className="text-sm font-semibold break-words">
+                              {localizedServiceName(s, lang)}
+                            </p>
+                            <span
+                              className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold uppercase ${s.is_active ? "bg-mint/20 text-success" : "bg-muted text-muted-foreground"}`}
+                            >
+                              {s.is_active
+                                ? t("admin.services.catalogViews.statusActive")
+                                : t("admin.services.catalogViews.statusInactive")}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground break-words">
+                            {t("adminCatalog.priceRange", {
+                              min: s.minimum_price ?? s.base_price ?? "—",
+                              max: s.maximum_price ?? s.base_price ?? "—",
+                            })}
+                            <br />
+                            {s.fixed_start_time
+                              ? t("adminCatalog.packageHours", {
+                                  start: catalogTime(s.fixed_start_time, lang),
+                                  end: catalogTime(
+                                    packageEnd(s.fixed_start_time, s.duration_min),
+                                    lang,
+                                  ),
+                                })
+                              : t("adminCatalog.duration", { count: s.duration_min })}
+                            <br />
+                            {localizedCategoryName(s, lang)} ·{" "}
+                            {t(`admin.services.pricingModels.${s.pricing_model}`)}
+                            {catalogView === "outside_launch" && (
+                              <span className="ms-1 font-semibold text-amber-800 dark:text-amber-200">
+                                · {t("admin.services.catalogViews.outsideLaunchBadge")}
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 flex-wrap items-center gap-2">
+                          <button
+                            onClick={() => startEdit(s)}
+                            className="focus-ring min-h-11 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold"
+                          >
+                            {t("common.edit")}
+                          </button>
+                          {catalogView === "launch" && (
+                            <button
+                              disabled={setActive.isPending}
+                              aria-pressed={s.is_active}
+                              title={t("admin.services.catalogViews.toggleHint")}
+                              onClick={() => {
+                                if (s.is_active) setConfirmDeactivateId(s.id);
+                                else
+                                  setActive.mutate(
+                                    { id: s.id, active: true },
+                                    { onError: (e: any) => toast.error(dbErrorMessage(e, t)) },
+                                  );
+                              }}
+                              className={`focus-ring min-h-11 rounded-lg px-3 py-1.5 text-xs font-bold disabled:opacity-50 ${s.is_active ? "border border-coral text-coral" : "bg-brand text-brand-foreground"}`}
+                            >
+                              {setActive.isPending
+                                ? t("admin.cancellationReasons.saving")
+                                : s.is_active
+                                  ? t("admin.services.catalogViews.deactivateLaunch")
+                                  : t("admin.services.catalogViews.activateLaunch")}
+                            </button>
+                          )}
+                          {(catalogView === "outside_launch" || catalogView === "test_data") &&
+                            s.is_active && (
+                              <button
+                                disabled={setActive.isPending}
+                                onClick={() => setConfirmDeactivateId(s.id)}
+                                className="focus-ring min-h-11 rounded-lg border border-coral px-3 py-1.5 text-xs font-bold text-coral disabled:opacity-50"
+                              >
+                                {setActive.isPending
+                                  ? t("admin.cancellationReasons.saving")
+                                  : t("admin.cancellationReasons.deactivate")}
+                              </button>
+                            )}
+                        </div>
+                      </div>
+                    )}
+                    {confirmDeactivateId === s.id && (
+                      <CatalogConfirm
+                        title={t("admin.services.deactivateConfirmTitle", {
+                          name: localizedServiceName(s, lang),
+                        })}
+                        description={t("adminCatalog.hideService")}
+                        busy={setActive.isPending}
+                        onClose={() => setConfirmDeactivateId(null)}
+                        onConfirm={() =>
                           setActive.mutate(
                             { id: s.id, active: false },
                             {
@@ -1263,49 +1322,74 @@ export function AdminServices() {
                             },
                           )
                         }
-                        className="focus-ring min-h-11 rounded-lg bg-coral px-3 py-1.5 text-xs font-bold text-coral-foreground disabled:opacity-50"
+                      />
+                    )}
+                    <details
+                      className="mt-2"
+                      open={!!expandedDetails[s.id]}
+                      onToggle={(e) => {
+                        e.preventDefault();
+                        const nextOpen = (e.currentTarget as HTMLDetailsElement).open;
+                        setExpandedDetails((prev) => ({ ...prev, [s.id]: nextOpen }));
+                      }}
+                    >
+                      <summary
+                        className="cursor-pointer text-xs font-bold text-muted-foreground"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setExpandedDetails((prev) => ({ ...prev, [s.id]: !prev[s.id] }));
+                        }}
                       >
-                        {setActive.isPending
-                          ? t("admin.services.deactivating")
-                          : catalogView === "launch"
-                            ? t("admin.services.catalogViews.deactivateLaunch")
-                            : t("admin.cancellationReasons.deactivate")}
-                      </button>
-                      <button
-                        onClick={() => setConfirmDeactivateId(null)}
-                        className="focus-ring min-h-11 rounded-lg border border-border px-3 py-1.5 text-xs font-bold"
-                      >
-                        {t("common.cancel")}
-                      </button>
-                    </div>
-                  </div>
-                )}
-                <details
-                  className="mt-2"
-                  open={!!expandedDetails[s.id]}
-                  onToggle={(e) => {
-                    e.preventDefault();
-                    const nextOpen = (e.currentTarget as HTMLDetailsElement).open;
-                    setExpandedDetails((prev) => ({ ...prev, [s.id]: nextOpen }));
-                  }}
-                >
-                  <summary
-                    className="cursor-pointer text-[11px] font-bold text-muted-foreground"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setExpandedDetails((prev) => ({ ...prev, [s.id]: !prev[s.id] }));
-                    }}
-                  >
-                    {t("admin.services.catalogViews.detailsSummary")}
-                  </summary>
-                  <ServiceExpandableDetails serviceId={s.id} open={!!expandedDetails[s.id]} />
-                </details>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-      <TeachingTaxonomyManager />
+                        {t("admin.services.catalogViews.detailsSummary")}
+                      </summary>
+                      <ServiceExpandableDetails serviceId={s.id} open={!!expandedDetails[s.id]} />
+                    </details>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </>
+      )}
+      {tab === "taxonomy" && <TeachingTaxonomyManager />}
+      {tab === "requirements" && (
+        <section className="space-y-3">
+          <p>{t("adminCatalog.requirementsHint")}</p>
+          {q.isError ? (
+            <AdminQueryError
+              message={t("admin.services.loadError")}
+              error={q.error}
+              onRetry={() => q.refetch()}
+            />
+          ) : q.isLoading ? (
+            <p>{t("common.loading")}</p>
+          ) : (
+            filterServicesForCatalogView(services, "launch").map((s: any) => (
+              <details
+                key={s.id}
+                className="rounded-2xl border bg-surface p-4"
+                onToggle={(e) =>
+                  setExpandedDetails((prev) => ({ ...prev, [s.id]: e.currentTarget.open }))
+                }
+              >
+                <summary className="cursor-pointer font-bold">
+                  {localizedServiceName(s, lang)}
+                </summary>
+                {expandedDetails[s.id] && <RequirementsPanel serviceId={s.id} />}
+              </details>
+            ))
+          )}
+        </section>
+      )}
+      {pendingEdit && (
+        <CatalogConfirm
+          title={t("adminCatalog.confirmTitle")}
+          description={t("adminCatalog.serviceChange")}
+          busy={update.isPending}
+          onConfirm={confirmEdit}
+          onClose={() => setPendingEdit(null)}
+        />
+      )}
     </div>
   );
 }

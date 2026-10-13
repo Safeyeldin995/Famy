@@ -9,7 +9,8 @@ const state = vi.hoisted(() => ({
   coverage: new Set<string>(),
   ready: true,
 }));
-vi.mock("react-i18next", () => ({
+vi.mock("react-i18next", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("react-i18next")>()),
   useTranslation: () => ({ t: () => "No services enabled in this zone" }),
 }));
 vi.mock("@/lib/db/admin-queries", () => ({
