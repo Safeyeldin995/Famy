@@ -9,7 +9,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { Bell, Sparkles } from "lucide-react";
-import { formatTime } from "@/lib/format";
+import { formatCustomerNotificationTime } from "@/components/famio/customerNotifications";
 import { QueryError } from "@/components/famio/QueryError";
 import {
   notificationText,
@@ -111,7 +111,7 @@ function Notifications() {
                             </div>
                             {body && <p className="text-pro-14 text-muted-foreground">{body}</p>}
                             <div className="mt-1 text-pro-12 text-muted-foreground">
-                              {formatTime(new Date(n.created_at), lang)}
+                              {formatCustomerNotificationTime(new Date(n.created_at), lang)}
                             </div>
                           </div>
                         </button>

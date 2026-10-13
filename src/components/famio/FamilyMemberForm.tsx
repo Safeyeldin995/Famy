@@ -1,3 +1,4 @@
+import { customerDayKey, isCompleteBirthDate } from "./customerDates";
 import { CustomerBirthDateField } from "./CustomerBirthDateField";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -42,7 +43,7 @@ export function validateFamilyMemberFormValue(
   emergencyPhoneValid: boolean;
   emergencyValid: boolean;
 } {
-  const dobValid = !!value.dateOfBirth && value.dateOfBirth <= today;
+  const dobValid = isCompleteBirthDate(value.dateOfBirth) && value.dateOfBirth <= today;
   const relationshipOtherValid =
     value.relationship !== "other" || value.relationshipOther.trim().length > 0;
   const emergencyValid =
@@ -152,7 +153,7 @@ export function FamilyMemberForm({
 }) {
   const { t } = useTranslation();
   const [touched, setTouched] = useState(false);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = customerDayKey();
 
   const set = <K extends keyof FamilyMemberFormValue>(k: K, v: FamilyMemberFormValue[K]) =>
     onChange({ ...value, [k]: v });

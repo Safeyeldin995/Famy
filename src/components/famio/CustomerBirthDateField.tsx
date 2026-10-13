@@ -1,5 +1,5 @@
 import "./customerForms.css";
-import { useState } from "react";
+import { customerDayKey } from "./customerDates";
 import { useTranslation } from "react-i18next";
 import { BottomSheetSelect } from "./BottomSheetSelect";
 import { formatDate, formatNumber } from "@/lib/format";
@@ -18,34 +18,29 @@ export function CustomerBirthDateField({
   nested?: boolean;
 }) {
   const { t } = useTranslation();
-  const [parts, setParts] = useState(() => value.split("-"));
-  const [year = "", month = "", day = ""] = value ? value.split("-") : parts;
-  const now = new Date();
-  const todayYear = now.getFullYear();
+  const [year = "", month = "", day = ""] = value.split("-");
+  const [todayYear, todayMonth, todayDay] = customerDayKey().split("-").map(Number);
   const select = (index: number, next: string) => {
     const nextParts = [year, month, day];
     nextParts[index] = next;
-    if (nextParts[0] === String(todayYear) && Number(nextParts[1]) > now.getMonth() + 1)
-      nextParts[1] = "";
+    if (nextParts[0] === String(todayYear) && Number(nextParts[1]) > todayMonth) nextParts[1] = "";
     const maxDay = Math.min(
       birthDateDays(nextParts[0], nextParts[1]),
-      nextParts[0] === String(todayYear) && Number(nextParts[1]) === now.getMonth() + 1
-        ? now.getDate()
-        : 31,
+      nextParts[0] === String(todayYear) && Number(nextParts[1]) === todayMonth ? todayDay : 31,
     );
     if (Number(nextParts[2]) > maxDay) nextParts[2] = "";
-    setParts(nextParts);
-    onChange(nextParts.every(Boolean) ? nextParts.join("-") : "");
+    // Keep partial selections controlled too, so a parent reset clears every part.
+    onChange(nextParts.join("-"));
   };
   const options = (count: number) =>
     Array.from({ length: count }, (_, index) => ({
       value: String(index + 1).padStart(2, "0"),
       label: formatNumber(index + 1),
     }));
-  const months = year === String(todayYear) ? now.getMonth() + 1 : 12;
+  const months = year === String(todayYear) ? todayMonth : 12;
   const days = Math.min(
     birthDateDays(year, month),
-    year === String(todayYear) && Number(month) === now.getMonth() + 1 ? now.getDate() : 31,
+    year === String(todayYear) && Number(month) === todayMonth ? todayDay : 31,
   );
   return (
     <fieldset className="apply-ui customer-birth-date">

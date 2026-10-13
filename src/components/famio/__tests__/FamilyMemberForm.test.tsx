@@ -1,6 +1,8 @@
 import { useState, type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { CustomerBirthDateField } from "../CustomerBirthDateField";
+import { customerDayKey, customerYesterdayKey } from "../customerDates";
 import userEvent from "@testing-library/user-event";
 import {
   FamilyMemberForm,
@@ -83,9 +85,77 @@ function FormHarness({ onSubmit }: { onSubmit: () => void }) {
 }
 
 describe("FamilyMemberForm", () => {
-  afterEach(() => cleanup());
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+  });
 
   const today = "2026-09-30";
+
+  it("uses Cairo today in both the picker and form validation on a UTC phone", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2025-12-31T22:30:00Z"));
+    expect(customerDayKey()).toBe("2026-01-01");
+    expect(customerYesterdayKey()).toBe("2025-12-31");
+    const onSubmit = vi.fn();
+    render(
+      <FamilyMemberForm
+        value={{
+          ...emptyFamilyMemberFormValue(),
+          fullName: "Test",
+          relationship: "son",
+          dateOfBirth: "2026-01-01",
+        }}
+        onChange={() => {}}
+        onSubmit={onSubmit}
+        submitting={false}
+        submitLabel="Save"
+      />,
+    );
+    expect((screen.getByRole("combobox", { name: "Year" }) as HTMLSelectElement).value).toBe(
+      "2026",
+    );
+    expect(
+      (screen.getByRole("combobox", { name: "Day" }) as HTMLSelectElement).options.length,
+    ).toBe(2);
+    fireEvent.click(screen.getByTestId("family-member-save"));
+    expect(onSubmit).toHaveBeenCalledOnce();
+    for (const dateOfBirth of ["2026-01-02", "2020--", "2020-02-", "2025-02-29"]) {
+      expect(
+        validateFamilyMemberFormValue(
+          {
+            ...emptyFamilyMemberFormValue(),
+            dateOfBirth,
+          },
+          customerDayKey(),
+        ).dobValid,
+      ).toBe(false);
+    }
+  });
+
+  it("clears a partial or complete birthday when the parent resets it", () => {
+    function BirthdayHarness() {
+      const [value, setValue] = useState("");
+      return (
+        <>
+          <CustomerBirthDateField value={value} onChange={setValue} />
+          <button onClick={() => setValue("")}>Reset</button>
+        </>
+      );
+    }
+    render(<BirthdayHarness />);
+    const year = screen.getByRole("combobox", { name: "Year" });
+    const month = screen.getByRole("combobox", { name: "Month" });
+    const day = screen.getByRole("combobox", { name: "Day" });
+    fireEvent.change(year, { target: { value: "2020" } });
+    fireEvent.click(screen.getByRole("button", { name: "Reset" }));
+    expect((year as HTMLSelectElement).value).toBe("");
+    fireEvent.change(year, { target: { value: "2020" } });
+    fireEvent.change(month, { target: { value: "04" } });
+    fireEvent.change(day, { target: { value: "01" } });
+    fireEvent.click(screen.getByRole("button", { name: "Reset" }));
+    for (const select of [year, month, day]) expect((select as HTMLSelectElement).value).toBe("");
+  });
 
   it("blocks submit and shows required messaging for an empty form", async () => {
     const user = userEvent.setup();

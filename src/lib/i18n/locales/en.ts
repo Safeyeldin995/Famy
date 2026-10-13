@@ -3019,6 +3019,8 @@ const en = {
     year: "Year",
     month: "Month",
     day: "Day",
+    notificationToday: "Today",
+    notificationYesterday: "Yesterday",
     notificationsEmpty: "You're all caught up",
     notificationsEmptyBody: "Booking updates will appear here.",
     browse: "Browse services",
