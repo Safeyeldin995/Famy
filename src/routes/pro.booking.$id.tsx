@@ -3,6 +3,7 @@ import { BookingStatusCard } from "@/components/provider/BookingStatusCard";
 import { StickyCta } from "@/components/famio/StickyCta";
 import { shortBookingCode } from "@/lib/provider/workScreenPresentation";
 import { useBookingParty } from "@/lib/db/booking-parties";
+import { isBookingTooEarlyError, isProviderStepTooEarly, providerStepOpensAt } from "@/lib/booking/timeWindow";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 import { formatDateTime, formatDate, formatTime, formatDuration } from "@/lib/format";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -130,6 +131,13 @@ export function ProBookingDetail({ id }: { id: string }) {
     : null;
   const serviceName = lang === "ar" ? (b.service?.name_ar ?? b.service?.name_en) : (b.service?.name_en ?? b.service?.name_ar);
   const terminal = ["completed", "cancelled", "no_show", "disputed"].includes(b.status);
+  const stepOpensAt = providerStepOpensAt(b.status, b.start_at);
+  const tooEarly = isProviderStepTooEarly(b.status, b.start_at);
+  const opensHint = tooEarly && stepOpensAt ? (
+    <p className="rounded-2xl bg-surface-2 px-4 py-3 text-center text-pro-13 font-semibold text-muted-foreground">
+      {t("pro.booking.opensAt", { time: formatDateTime(stepOpensAt, dateLoc) })}
+    </p>
+  ) : null;
 
   const run = (
     status: string,
@@ -140,7 +148,12 @@ export function ProBookingDetail({ id }: { id: string }) {
       { id, status, ...extra },
       {
         onSuccess,
-        onError: (e: any) => toast.error(e?.message ?? t("common.somethingWentWrong")),
+        onError: (e: any) =>
+          toast.error(
+            isBookingTooEarlyError(e)
+              ? t("pro.booking.tooEarly")
+              : (e?.message ?? t("common.somethingWentWrong")),
+          ),
       },
     );
   };
@@ -294,7 +307,8 @@ export function ProBookingDetail({ id }: { id: string }) {
 
           {b.status === "confirmed" && (
             <div className="space-y-2">
-              <PrimaryButton onClick={() => run("on_the_way")} disabled={mut.isPending}>{t("pro.booking.onTheWay")}</PrimaryButton>
+              {opensHint}
+              <PrimaryButton onClick={() => run("on_the_way")} disabled={mut.isPending || tooEarly}>{t("pro.booking.onTheWay")}</PrimaryButton>
               <button onClick={() => setDialog("cancel")} disabled={mut.isPending || cancelBooking.isPending} className="w-full py-2 text-xs font-semibold text-muted-foreground disabled:opacity-50">{t("pro.booking.cancelJob")}</button>
             </div>
           )}
@@ -324,11 +338,17 @@ export function ProBookingDetail({ id }: { id: string }) {
           )}
 
           {b.status === "arrival_confirmed" && (
-            <PrimaryButton onClick={() => run("in_progress")} disabled={mut.isPending}>{t("pro.booking.startService")}</PrimaryButton>
+            <div className="space-y-2">
+              {opensHint}
+              <PrimaryButton onClick={() => run("in_progress")} disabled={mut.isPending || tooEarly}>{t("pro.booking.startService")}</PrimaryButton>
+            </div>
           )}
 
           {b.status === "in_progress" && (
-            <PrimaryButton onClick={() => run("completion_requested")} disabled={mut.isPending} variant="coral">{t("pro.booking.requestCompletion")}</PrimaryButton>
+            <div className="space-y-2">
+              {opensHint}
+              <PrimaryButton onClick={() => run("completion_requested")} disabled={mut.isPending || tooEarly} variant="coral">{t("pro.booking.requestCompletion")}</PrimaryButton>
+            </div>
           )}
 
           {DISPUTE_ELIGIBLE_STATUSES.includes(b.status) && !dispute && (
@@ -363,7 +383,12 @@ export function ProBookingDetail({ id }: { id: string }) {
             { bookingId: b.id, reasonId, note },
             {
               onSuccess: () => setDialog(""),
-              onError: (e: any) => toast.error(e?.message ?? t("common.somethingWentWrong")),
+              onError: (e: any) =>
+          toast.error(
+            isBookingTooEarlyError(e)
+              ? t("pro.booking.tooEarly")
+              : (e?.message ?? t("common.somethingWentWrong")),
+          ),
             },
           )
         }
