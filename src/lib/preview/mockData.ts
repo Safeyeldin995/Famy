@@ -1454,4 +1454,6 @@ export function seedPreviewAdminQueries(qc: import("@tanstack/react-query").Quer
     ],
     total: 1,
   });
+  seedAdminOperations(qc);
 }
+import { seedAdminOperations } from "./adminOperations";
