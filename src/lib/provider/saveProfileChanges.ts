@@ -1,9 +1,9 @@
 export type ProfileFields = {
   bio_ar?: string | null;
   bio_en?: string | null;
-  years_experience?: number | null;
+  years_experience?: number;
   city?: string | null;
-  languages?: string[] | null;
+  languages?: string[];
 };
 type SavedProfile = ProfileFields & { onboarding_status: string };
 type ProfileSaveApi = {
