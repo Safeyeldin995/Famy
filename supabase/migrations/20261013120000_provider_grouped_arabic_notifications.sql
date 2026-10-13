@@ -99,14 +99,34 @@ BEGIN
   );
 
   IF p_action = 'approve' THEN
+    -- One item per teaching group, not per grade. Prefer subjects before generic service names.
+    WITH approved_items AS (
+      SELECT DISTINCT 0 AS kind,
+        cap.service_id::text || ':' || cap.subject_id::text || ':' || cap.curriculum_id::text AS item_key,
+        COALESCE(NULLIF(btrim(sub.name_ar), ''), 'مادة') || ' (' ||
+          COALESCE(NULLIF(btrim(cur.name_ar), ''), 'منهج') || ')' AS label_ar,
+        sub.name_en || ' (' || cur.name_en || ')' AS label_en
+      FROM public.provider_teaching_capabilities cap
+      JOIN public.teaching_subjects sub ON sub.id = cap.subject_id
+      JOIN public.teaching_curricula cur ON cur.id = cap.curriculum_id
+      WHERE cap.provider_id = p_provider_id AND cap.status = 'approved'
+      UNION ALL
+      SELECT 1, s.id::text, COALESCE(NULLIF(btrim(s.name_ar), ''), 'خدمة'), s.name_en
+      FROM public.provider_services ps JOIN public.services s ON s.id = ps.service_id
+      WHERE ps.provider_id = p_provider_id AND ps.status = 'approved'
+    ), ranked_items AS (
+      SELECT *, row_number() OVER (ORDER BY kind, label_ar, item_key) AS position
+      FROM approved_items
+    )
     SELECT
       'Your application is approved! Customers can now find you.' ||
-        COALESCE(' Approved services: ' || string_agg(s.name_en, ', ' ORDER BY s.name_en), ''),
+        COALESCE(' Approved: ' || string_agg(label_en, ', ' ORDER BY position) FILTER (WHERE position <= 5), '') ||
+        CASE WHEN count(*) > 5 THEN ', and more' ELSE '' END,
       'اتوافق على طلبك! بقيت ظاهر للعملاء' ||
-        COALESCE('. الخدمات اللي اتوافق عليها: ' || string_agg(COALESCE(NULLIF(btrim(s.name_ar), ''), 'خدمة'), '، ' ORDER BY s.name_ar), '')
+        COALESCE('. اتوافق على: ' || string_agg(label_ar, '، ' ORDER BY position) FILTER (WHERE position <= 5), '') ||
+        CASE WHEN count(*) > 5 THEN '، وغيرهم' ELSE '' END
     INTO v_body_en, v_body_ar
-    FROM public.provider_services ps JOIN public.services s ON s.id = ps.service_id
-    WHERE ps.provider_id = p_provider_id AND ps.status = 'approved';
+    FROM ranked_items;
     INSERT INTO public.notifications (
       user_id, type, category, title, body, title_en, title_ar, body_en, body_ar, payload, deep_link
     ) VALUES (
@@ -166,6 +186,7 @@ DECLARE
   v_service_name text;
   v_service_name_ar text;
   v_old_status text;
+  v_old_reason text;
   v_body_en text;
   v_body_ar text;
 BEGIN
@@ -179,7 +200,7 @@ BEGIN
     RAISE EXCEPTION 'A reason is required to reject a provider service request.' USING ERRCODE = '23514';
   END IF;
 
-  SELECT status INTO v_old_status FROM public.provider_services WHERE id = p_id FOR UPDATE;
+  SELECT status, rejection_reason INTO v_old_status, v_old_reason FROM public.provider_services WHERE id = p_id FOR UPDATE;
 
   PERFORM set_config('app.audit_reason', COALESCE(btrim(p_reason), ''), true);
 
@@ -206,7 +227,8 @@ BEGIN
   SELECT name_en, name_ar INTO v_service_name, v_service_name_ar FROM public.services WHERE id = v_ps.service_id;
 
   -- No duplicate on retries. During application review the final notice summarizes approvals.
-  IF v_old_status IS NOT DISTINCT FROM p_status THEN RETURN; END IF;
+  IF v_old_status IS NOT DISTINCT FROM p_status
+     AND (p_status <> 'rejected' OR v_old_reason IS NOT DISTINCT FROM v_ps.rejection_reason) THEN RETURN; END IF;
   IF p_status = 'approved' AND v_provider.onboarding_status IN ('SUBMITTED', 'UNDER_REVIEW') THEN RETURN; END IF;
 
   IF p_status = 'approved' THEN
@@ -405,6 +427,7 @@ CREATE OR REPLACE FUNCTION public.provider_save_teaching_group(
 DECLARE
   v_uid uuid := auth.uid();
   v_provider_id uuid;
+  v_onboarding_status public.provider_onboarding_status;
   v_level_id uuid;
   v_id uuid;
   v_ids uuid[] := ARRAY[]::uuid[];
@@ -413,7 +436,7 @@ BEGIN
   IF v_uid IS NULL OR public.has_role(v_uid, 'provider') IS NOT TRUE THEN
     RAISE EXCEPTION 'TEACHING_UNAUTHORIZED: Provider role required.' USING ERRCODE = '42501';
   END IF;
-  SELECT id INTO v_provider_id FROM public.providers WHERE profile_id = v_uid FOR UPDATE;
+  SELECT id, onboarding_status INTO v_provider_id, v_onboarding_status FROM public.providers WHERE profile_id = v_uid FOR UPDATE;
   IF v_provider_id IS NULL THEN
     RAISE EXCEPTION 'TEACHING_UNAUTHORIZED: Provider profile required.' USING ERRCODE = '42501';
   END IF;
@@ -456,8 +479,14 @@ BEGIN
   WHERE provider_id = v_provider_id AND service_id = p_service_id
     AND subject_id = p_subject_id AND curriculum_id = p_curriculum_id
     AND NOT (level_id = ANY(p_level_ids)) AND status <> 'approved';
-  -- Emit only once for the group, never from the grade loop or unchanged retries.
-  IF v_changed THEN
+  -- The provider row lock serializes group saves, including this unread-notice check.
+  -- Applications receive the final decision notice; only approved providers need this update.
+  IF v_changed AND v_onboarding_status = 'APPROVED' AND NOT EXISTS (
+    SELECT 1 FROM public.notifications n
+    WHERE n.user_id = v_uid AND n.type = 'teaching_capability_pending' AND n.read_at IS NULL
+      AND n.payload @> jsonb_build_object('provider_id', v_provider_id, 'service_id', p_service_id,
+        'subject_id', p_subject_id, 'curriculum_id', p_curriculum_id)
+  ) THEN
     INSERT INTO public.notifications (
       user_id, type, category, title, body, title_en, title_ar, body_en, body_ar, payload, deep_link
     ) VALUES (
