@@ -16,18 +16,18 @@ export function BookingRequestActions({ id }: { id: string }) {
     <>
       <div className="grid grid-cols-2 gap-2 border-t border-border/50 p-3">
         <button
-          className="focus-ring min-h-11 rounded-xl bg-brand text-pro-14 font-bold text-brand-foreground disabled:opacity-50"
+          className="focus-ring min-h-11 rounded-xl border border-brand bg-brand/5 text-pro-14 font-bold text-brand disabled:opacity-50"
           disabled={update.isPending}
           onClick={() => update.mutate({ id, status: "confirmed" }, { onError })}
         >
           {t("proWork.accept")}
         </button>
         <button
-          className="focus-ring min-h-11 rounded-xl border border-border text-pro-14 font-bold text-brand disabled:opacity-50"
+          className="focus-ring min-h-11 rounded-xl border border-brand bg-brand/5 text-pro-14 font-bold text-brand disabled:opacity-50"
           disabled={update.isPending || cancel.isPending}
           onClick={() => setDeclining(true)}
         >
-          {t("proWork.decline")}
+          {t("proRound2.decline")}
         </button>
       </div>
       <CancelBookingDialog

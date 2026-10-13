@@ -72,12 +72,61 @@ it("preserves name and selections across Back and failed saves", async () => {
 
 it("opens the requested application step with saved data and preserves earlier choices", async () => {
   const save = vi.fn().mockResolvedValue(undefined);
-  render(<ProviderApplyFlow initial={draft} initialStep={3} zones={[{id:"z",name_en:"Zone",name_ar:"منطقة"}]} services={services} onSave={save} onCapture={vi.fn()} />);
-  expect(screen.getByRole("heading", {name:"providerApply.identity"})).toBeTruthy();
+  render(
+    <ProviderApplyFlow
+      initial={draft}
+      initialStep={3}
+      zones={[{ id: "z", name_en: "Zone", name_ar: "منطقة" }]}
+      services={services}
+      onSave={save}
+      onCapture={vi.fn()}
+    />,
+  );
+  expect(screen.getByRole("heading", { name: "providerApply.identity" })).toBeTruthy();
   expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(true);
-  fireEvent.click(screen.getByRole("button", {name:"common.back"}));
-  expect(screen.getByRole("heading", {name:"providerApply.services"})).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", {name:"common.back"}));
+  fireEvent.click(screen.getByRole("button", { name: "common.back" }));
+  expect(screen.getByRole("heading", { name: "providerApply.services" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "common.back" }));
   expect((screen.getByLabelText("providerApply.name") as HTMLInputElement).value).toBe(draft.name);
   expect(save).not.toHaveBeenCalled();
+});
+
+it("explains missing fields beside their controls and keeps submission disabled", () => {
+  render(
+    <ProviderApplyFlow
+      initial={{ ...draft, name: "", zones: [] }}
+      zones={[]}
+      services={services}
+      onSave={vi.fn()}
+      onCapture={vi.fn()}
+    />,
+  );
+  expect(screen.getByLabelText("providerApply.name").getAttribute("aria-describedby")).toBe(
+    "apply-name-error",
+  );
+  expect(screen.getByText("proRound2.nameRequired")).toBeTruthy();
+  expect(screen.getByText("proRound2.zonesRequired")).toBeTruthy();
+  expect(
+    (screen.getByRole("button", { name: "providerApply.next" }) as HTMLButtonElement).disabled,
+  ).toBe(true);
+});
+it("keeps a failed ID upload beside the relevant card and never marks it captured", async () => {
+  const capture = vi.fn().mockRejectedValue(new Error("synthetic upload failure"));
+  render(
+    <ProviderApplyFlow
+      initial={{ ...draft, back: false }}
+      initialStep={3}
+      zones={[]}
+      services={services}
+      onSave={vi.fn()}
+      onCapture={capture}
+    />,
+  );
+  fireEvent.change(screen.getByLabelText("providerApply.back"), {
+    target: { files: [new File(["test"], "id.png", { type: "image/png" })] },
+  });
+  expect((await screen.findByRole("alert")).textContent).toBe("proRound2.uploadError");
+  expect(
+    (screen.getByRole("button", { name: "providerApply.submit" }) as HTMLButtonElement).disabled,
+  ).toBe(true);
 });

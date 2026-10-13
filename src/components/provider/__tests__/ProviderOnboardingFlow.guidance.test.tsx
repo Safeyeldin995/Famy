@@ -10,6 +10,11 @@ const mocks = vi.hoisted(() => ({
   snapshot: { exists: false },
 }));
 vi.mock("@tanstack/react-router", () => ({
+  useRouterState: ({
+    select,
+  }: {
+    select: (state: { location: { pathname: string } }) => unknown;
+  }) => select({ location: { pathname: "/pro" } }),
   Link: ({ to, children }: { to: string; children: ReactNode }) => <a href={to}>{children}</a>,
   useSearch: () => mocks.search,
   useNavigate: () => vi.fn(),

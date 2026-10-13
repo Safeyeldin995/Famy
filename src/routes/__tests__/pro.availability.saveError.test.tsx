@@ -14,8 +14,12 @@ const availabilityData = vi.hoisted(() => [
   { weekday: 1, start_time: "09:00:00", end_time: "17:00:00" },
 ]);
 
-const vacationData = vi.hoisted(() => [{ id: "vacation", start_date: "2026-11-01", end_date: "2026-11-03", reason: "Vacation note" }]);
-const holidayData = vi.hoisted(() => [{ id: "holiday", date: "2026-11-10", reason: "Day-off note" }]);
+const vacationData = vi.hoisted(() => [
+  { id: "vacation", start_date: "2026-11-01", end_date: "2026-11-03", reason: "Vacation note" },
+]);
+const holidayData = vi.hoisted(() => [
+  { id: "holiday", date: "2026-11-10", reason: "Day-off note" },
+]);
 
 const provider = vi.hoisted(() => ({
   id: "prov-1",
@@ -26,10 +30,36 @@ const provider = vi.hoisted(() => ({
 }));
 
 vi.mock("@/components/famio/BottomSheetSelect", () => ({
-  BottomSheetSelect: ({ label, value, options, onChange }: { label: string; value: string; options: { value: string; label: string }[]; onChange: (value: string) => void }) => <label>{label}<select value={value} onChange={event => onChange(event.target.value)}>{options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>,
+  BottomSheetSelect: ({
+    label,
+    value,
+    options,
+    onChange,
+  }: {
+    label: string;
+    value: string;
+    options: { value: string; label: string }[];
+    onChange: (value: string) => void;
+  }) => (
+    <label>
+      {label}
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  ),
 }));
 
 vi.mock("@tanstack/react-router", () => ({
+  useRouterState: ({
+    select,
+  }: {
+    select: (state: { location: { pathname: string } }) => unknown;
+  }) => select({ location: { pathname: "/pro" } }),
   createFileRoute: () => (opts: { component: unknown }) => opts,
 }));
 
@@ -93,7 +123,11 @@ describe("provider weekly availability save error", () => {
     saveState.isSuccess = false;
     saveState.isError = false;
     provider.vacation_mode = false;
-    availabilityData.splice(0, availabilityData.length, { weekday: 1, start_time: "09:00:00", end_time: "17:00:00" });
+    availabilityData.splice(0, availabilityData.length, {
+      weekday: 1,
+      start_time: "09:00:00",
+      end_time: "17:00:00",
+    });
     await i18n.changeLanguage("en");
   });
 
@@ -110,38 +144,68 @@ describe("provider weekly availability save error", () => {
     const { container } = render(<AvailabilityPage />);
     const dayName = (day: string) => i18n.t(`pro.schedule.days.${day}`);
     expect(container.querySelector("details")?.open).toBe(false);
-    expect((screen.getByRole("checkbox", { name: i18n.t("providerSetup.sameHours") }) as HTMLInputElement).checked).toBe(true);
-    fireEvent.change(screen.getByLabelText(i18n.t("pro.schedule.start")), { target: { value: "18:00" } });
-    fireEvent.change(screen.getByLabelText(i18n.t("pro.schedule.end")), { target: { value: "24:00" } });
+    expect(
+      (
+        screen.getByRole("checkbox", {
+          name: i18n.t("providerSetup.sameHours"),
+        }) as HTMLInputElement
+      ).checked,
+    ).toBe(true);
+    fireEvent.change(screen.getByLabelText(i18n.t("pro.schedule.start")), {
+      target: { value: "18:00" },
+    });
+    fireEvent.change(screen.getByLabelText(i18n.t("pro.schedule.end")), {
+      target: { value: "24:00" },
+    });
     fireEvent.click(screen.getByRole("button", { name: dayName("tue") }));
     expect(saveState.mutate).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: dayName("wed") }).getAttribute("aria-pressed")).toBe("false");
+    expect(screen.getByRole("button", { name: dayName("wed") }).getAttribute("aria-pressed")).toBe(
+      "false",
+    );
     fireEvent.click(screen.getByRole("checkbox", { name: i18n.t("providerSetup.sameHours") }));
-    expect(screen.getAllByLabelText(i18n.t("pro.schedule.end")).map(node => (node as HTMLSelectElement).value)).toEqual(["24:00", "24:00"]);
+    expect(
+      screen
+        .getAllByLabelText(i18n.t("pro.schedule.end"))
+        .map((node) => (node as HTMLSelectElement).value),
+    ).toEqual(["24:00", "24:00"]);
     fireEvent.click(screen.getByRole("button", { name: i18n.t("pro.schedule.saveSchedule") }));
-    expect(saveState.mutate).toHaveBeenCalledWith({ providerId: "prov-1", rules: [
-      { weekday: 1, start_time: "18:00", end_time: "24:00" },
-      { weekday: 2, start_time: "18:00", end_time: "24:00" },
-    ] });
+    expect(saveState.mutate).toHaveBeenCalledWith({
+      providerId: "prov-1",
+      rules: [
+        { weekday: 1, start_time: "18:00", end_time: "24:00" },
+        { weekday: 2, start_time: "18:00", end_time: "24:00" },
+      ],
+    });
   });
 
   it("starts shared mode from loaded rules and edits sorted rows by weekday", () => {
-    availabilityData.splice(0, availabilityData.length,
+    availabilityData.splice(
+      0,
+      availabilityData.length,
       { weekday: 1, start_time: "09:17:00", end_time: "17:00:00" },
       { weekday: 6, start_time: "18:00:00", end_time: "24:00:00" },
     );
     render(<AvailabilityPage />);
-    expect((screen.getByRole("checkbox", { name: i18n.t("providerSetup.sameHours") }) as HTMLInputElement).checked).toBe(false);
+    expect(
+      (
+        screen.getByRole("checkbox", {
+          name: i18n.t("providerSetup.sameHours"),
+        }) as HTMLInputElement
+      ).checked,
+    ).toBe(false);
     const starts = screen.getAllByLabelText(i18n.t("pro.schedule.start")) as HTMLSelectElement[];
-    expect(starts.map(node => node.value)).toEqual(["18:00", "09:17"]);
+    expect(starts.map((node) => node.value)).toEqual(["18:00", "09:17"]);
     expect(starts[0].options).toHaveLength(48);
     expect(starts[1].options).toHaveLength(49);
     fireEvent.change(starts[0], { target: { value: "18:30" } });
     fireEvent.click(screen.getByRole("button", { name: i18n.t("pro.schedule.saveSchedule") }));
-    expect(saveState.mutate).toHaveBeenCalledWith({ providerId: "prov-1", rules: [
-      { weekday: 1, start_time: "09:17", end_time: "17:00" },
-      { weekday: 6, start_time: "18:30", end_time: "24:00" },
-    ] });
+    expect(saveState.mutate).toHaveBeenCalledWith({
+      providerId: "prov-1",
+      rules: [
+        { weekday: 1, start_time: "09:17", end_time: "17:00" },
+        { weekday: 6, start_time: "18:30", end_time: "24:00" },
+      ],
+    });
   });
 
   it("renders Arabic calendar dates and keeps reason text on a muted second line", async () => {
@@ -158,7 +222,9 @@ describe("provider weekly availability save error", () => {
 
     const mondayStart = screen.getByLabelText(i18n.t("pro.schedule.start"));
     fireEvent.change(mondayStart, { target: { value: "10:00" } });
-    expect((screen.getByLabelText(i18n.t("pro.schedule.start")) as HTMLSelectElement).value).toBe("10:00");
+    expect((screen.getByLabelText(i18n.t("pro.schedule.start")) as HTMLSelectElement).value).toBe(
+      "10:00",
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Save schedule" }));
     expect(saveState.mutate).toHaveBeenCalledWith({
@@ -174,7 +240,9 @@ describe("provider weekly availability save error", () => {
       "Could not save your weekly hours. Your previous schedule was kept.",
     );
     expect(screen.queryByText("Saved")).toBeNull();
-    expect((screen.getByLabelText(i18n.t("pro.schedule.start")) as HTMLSelectElement).value).toBe("10:00");
+    expect((screen.getByLabelText(i18n.t("pro.schedule.start")) as HTMLSelectElement).value).toBe(
+      "10:00",
+    );
 
     await i18n.changeLanguage("ar");
     rerender(<AvailabilityPage />);
@@ -183,6 +251,8 @@ describe("provider weekly availability save error", () => {
     );
     expect(screen.queryByText("تم الحفظ")).toBeNull();
     expect(screen.queryByText("Saved")).toBeNull();
-    expect((screen.getByLabelText(i18n.t("pro.schedule.start")) as HTMLSelectElement).value).toBe("10:00");
+    expect((screen.getByLabelText(i18n.t("pro.schedule.start")) as HTMLSelectElement).value).toBe(
+      "10:00",
+    );
   });
 });

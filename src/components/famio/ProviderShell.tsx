@@ -4,12 +4,22 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { PhoneFrame } from "@/components/famio/ui";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
-import { normalizeProPathname, proPath } from "@/lib/preview/previewPath";
+import { normalizeProPathname } from "@/lib/preview/previewPath";
 
-export function ProviderShell({ children, hideNav = false }: { children: ReactNode; hideNav?: boolean }) {
+export function ProviderShell({
+  children,
+  hideNav = false,
+}: {
+  children: ReactNode;
+  hideNav?: boolean;
+}) {
   return (
     <PhoneFrame bg="bg-[#FEFAFC]">
-      <main className={`pro-surface min-w-0 flex-1 overflow-x-hidden ${hideNav ? "" : "pb-[5.5rem]"}`}>{children}</main>
+      <main
+        className={`pro-surface min-w-0 flex-1 overflow-x-hidden ${hideNav ? "" : "pb-[5.5rem]"}`}
+      >
+        {children}
+      </main>
       {!hideNav && <ProviderBottomNav />}
     </PhoneFrame>
   );
@@ -35,12 +45,16 @@ export function ProviderBottomNav() {
           <ul className="grid grid-cols-5">
             {tabs.map((tab) => {
               const active =
-                tab.to === "/pro" ? navPath === "/pro" || navPath === "/pro/" : navPath.startsWith(tab.to);
+                tab.to === "/pro"
+                  ? navPath === "/pro" || navPath === "/pro/"
+                  : navPath.startsWith(tab.to);
               const Icon = tab.icon;
               return (
                 <li key={tab.to}>
                   <Link
-                    to={proPath(tab.to) as "/pro"}
+                    to={
+                      (pathname.startsWith("/preview/pro") ? `/preview${tab.to}` : tab.to) as "/pro"
+                    }
                     aria-current={active ? "page" : undefined}
                     className="focus-ring flex min-h-12 flex-col items-center justify-center gap-0.5 px-1 py-2"
                   >

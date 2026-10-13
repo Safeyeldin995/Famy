@@ -7,5 +7,5 @@ export const Route = createFileRoute("/preview/pro/booking/$id")({
 
 function PreviewProBooking() {
   const { id } = Route.useParams();
-  return <ProBookingDetail id={id} />;
+  return <ProBookingDetail id={id} preview />;
 }

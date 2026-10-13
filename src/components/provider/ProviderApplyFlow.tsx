@@ -1,3 +1,4 @@
+import "./providerJourney.css";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Baby, BookOpen, Check, LockKeyhole, Sun } from "lucide-react";
@@ -63,6 +64,7 @@ export function ProviderApplyFlow({
   const [step, setStep] = useState<number>(initialStep);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [captureError, setCaptureError] = useState<string | null>(null);
   const ar = i18n.language.startsWith("ar");
   const ready = applyStepReady(step, draft, services);
   const advance = async () => {
@@ -80,12 +82,12 @@ export function ProviderApplyFlow({
   };
   const capture = async (type: "id_card_front" | "id_card_back", file: File) => {
     setBusy(true);
-    setError("");
+    setCaptureError(null);
     try {
       await onCapture(type, file);
       setDraft((d) => ({ ...d, [type === "id_card_front" ? "front" : "back"]: true }));
     } catch {
-      setError(t("providerApply.saveError"));
+      setCaptureError(type);
     } finally {
       setBusy(false);
     }
@@ -104,7 +106,7 @@ export function ProviderApplyFlow({
       },
     }));
   return (
-    <main className="apply-ui apply-screen" dir={ar ? "rtl" : "ltr"}>
+    <main className="apply-ui apply-screen provider-journey-apply" dir={ar ? "rtl" : "ltr"}>
       <StepHeader
         step={step}
         onBack={
@@ -129,11 +131,18 @@ export function ProviderApplyFlow({
           <>
             <TextField
               autoComplete="name"
+              aria-invalid={!draft.name.trim()}
+              aria-describedby={!draft.name.trim() ? "apply-name-error" : undefined}
               label={t("providerApply.name")}
               value={draft.name}
               disabled={busy}
               onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
             />
+            {!draft.name.trim() && (
+              <p id="apply-name-error" className="text-pro-12 text-coral">
+                {t("proRound2.nameRequired")}
+              </p>
+            )}
             <div>
               <span className="apply-label">{t("providerApply.zones")}</span>
               <div className="apply-chips">
@@ -155,7 +164,10 @@ export function ProviderApplyFlow({
                   </CheckChip>
                 ))}
               </div>
-              <p className="mt-2 text-[12.5px] text-muted-foreground">
+              {draft.zones.length === 0 && (
+                <p className="text-pro-12 text-coral">{t("proRound2.zonesRequired")}</p>
+              )}
+              <p className="mt-2 text-pro-12 text-muted-foreground">
                 {t("providerApply.zonesHint")}
               </p>
             </div>
@@ -163,6 +175,7 @@ export function ProviderApplyFlow({
         )}
         {step === 2 && (
           <>
+            {!ready && <p className="text-pro-12 text-coral">{t("proRound2.servicesRequired")}</p>}
             {services.length === 0 && <p>{t("providerApply.noServices")}</p>}
             {services.map((service) => {
               const tutoring = service.category?.slug === "tutoring";
@@ -216,12 +229,36 @@ export function ProviderApplyFlow({
               disabled={busy}
               onCapture={(file) => void capture("id_card_front", file)}
             />
+            {(captureError === "id_card_front" || !draft.front) && (
+              <p
+                role={captureError === "id_card_front" ? "alert" : undefined}
+                className="text-pro-12 text-coral"
+              >
+                {t(
+                  captureError === "id_card_front"
+                    ? "proRound2.uploadError"
+                    : "proRound2.frontRequired",
+                )}
+              </p>
+            )}
             <IdCaptureCard
               title={t("providerApply.back")}
               captured={draft.back}
               disabled={busy}
               onCapture={(file) => void capture("id_card_back", file)}
             />
+            {(captureError === "id_card_back" || !draft.back) && (
+              <p
+                role={captureError === "id_card_back" ? "alert" : undefined}
+                className="text-pro-12 text-coral"
+              >
+                {t(
+                  captureError === "id_card_back"
+                    ? "proRound2.uploadError"
+                    : "proRound2.backRequired",
+                )}
+              </p>
+            )}
             <p className="apply-note">
               <LockKeyhole size={18} className="shrink-0" />
               {t("providerApply.privacy")}
@@ -239,6 +276,9 @@ export function ProviderApplyFlow({
               </span>
               {t("providerApply.agreement")}
             </label>
+            {!draft.agreed && (
+              <p className="text-pro-12 text-coral">{t("proRound2.agreementRequired")}</p>
+            )}
           </>
         )}
         {error && (

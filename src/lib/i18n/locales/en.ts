@@ -2985,6 +2985,25 @@ const en = {
     },
     reasonRequired: "Enter a reason for the blocked period.",
   },
+  proRound2: {
+    decline: "Decline",
+    paid: "Paid",
+    awaitingPayment: "Awaiting payment",
+    nameRequired: "Enter your name as it appears on your ID.",
+    zonesRequired: "Choose at least one area.",
+    servicesRequired: "Choose at least one service and set its price.",
+    frontRequired: "Add a photo of the front of your ID.",
+    backRequired: "Add the back of your ID too.",
+    agreementRequired: "Agree to the terms to submit your application.",
+    uploadError: "The photo could not be uploaded. Please try again.",
+    accepted: "Accepted",
+    onTheWay: "On the way",
+    arrived: "Arrived",
+    started: "Started",
+    completed: "Finished",
+    today: "Today",
+    yesterday: "Yesterday",
+  },
 };
 export default en;
 export type Translation = typeof en;

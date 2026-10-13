@@ -1,7 +1,8 @@
+import { groupProviderNotifications } from "@/lib/provider/journeyPresentation";
 import { notificationText } from "@/lib/provider/notificationText";
 import { isPreviewRoute, PREVIEW_NOW_ISO } from "@/lib/preview/constants";
 import { notificationRowNavigation } from "@/lib/provider/workScreenPresentation";
-import { formatNotificationDate } from "@/lib/format";
+import { formatNotificationDate, formatTime } from "@/lib/format";
 import { createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ProviderShell } from "@/components/famio/ProviderShell";
@@ -14,7 +15,6 @@ import { Bell } from "lucide-react";
 import { proPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/pro/notifications")({ component: NotificationsPage });
-
 
 function NotificationsPage() {
   const { t } = useTranslation();
@@ -54,29 +54,58 @@ function NotificationsPage() {
         {q.isLoading ? (
           <div className="h-20 animate-pulse rounded-3xl bg-surface" />
         ) : q.isError ? (
-          <EmptyState icon="alert" title={t("common.errorTitle", "Something went wrong")} body={t("common.tryAgain", "Please try again.")} />
+          <EmptyState
+            icon="alert"
+            title={t("common.errorTitle", "Something went wrong")}
+            body={t("common.tryAgain", "Please try again.")}
+          />
         ) : items.length === 0 ? (
           <EmptyState icon="bell" title={t("notifs.empty")} body={t("notifs.emptyBody")} />
         ) : (
-          <div className="divide-y divide-border/50 rounded-2xl bg-surface">
-            {items.map((n: any) => {
-              const { title, body } = notificationText(n, lang);
-              return (
-                <button key={n.id} onClick={() => openNotification(n)} className={`focus-ring block min-h-11 w-full p-4 text-start ${n.read_at ? "opacity-70" : ""}`}>
-                    <div className="flex items-start gap-3">
-                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand"><Bell className="h-5 w-5" /></div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <div className="truncate text-sm font-bold">{title}</div>
-                          {!n.read_at && <span className="h-2 w-2 rounded-full bg-coral" />}
+          <div className="space-y-5">
+            {groupProviderNotifications(items).map((group) => (
+              <section key={group.key}>
+                <h2 className="mb-2 text-pro-14 font-extrabold">
+                  {
+                    formatNotificationDate(
+                      group.date,
+                      preview ? new Date(PREVIEW_NOW_ISO) : new Date(),
+                      lang,
+                    ).split(" · ")[0]
+                  }
+                </h2>
+                <div className="divide-y divide-border/50 rounded-2xl bg-surface">
+                  {group.items.map((n: any) => {
+                    const { title, body } = notificationText(n, lang);
+                    return (
+                      <button
+                        key={n.id}
+                        onClick={() => openNotification(n)}
+                        className={`focus-ring block min-h-11 w-full p-4 text-start ${n.read_at ? "opacity-70" : ""}`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand">
+                            <Bell className="h-5 w-5" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <div className="truncate text-sm font-bold">{title}</div>
+                              {!n.read_at && <span className="h-2 w-2 rounded-full bg-coral" />}
+                            </div>
+                            <div className="mt-1 line-clamp-2 text-pro-13 text-muted-foreground">
+                              {body}
+                            </div>
+                            <div className="mt-1 text-pro-12 text-muted-foreground">
+                              {formatTime(new Date(n.created_at), lang)}
+                            </div>
+                          </div>
                         </div>
-                        <div className="mt-1 line-clamp-2 text-pro-13 text-muted-foreground">{body}</div>
-                        <div className="mt-1 text-pro-12 text-muted-foreground">{formatNotificationDate(new Date(n.created_at), preview ? new Date(PREVIEW_NOW_ISO) : new Date(), lang)}</div>
-                      </div>
-                    </div>
-                </button>
-              );
-            })}
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
           </div>
         )}
       </div>
