@@ -1,9 +1,18 @@
-import { Component, Suspense, lazy, useEffect, useCallback, useState, type ReactNode } from "react";
+import {
+  Component,
+  Suspense,
+  lazy,
+  useCallback,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { Undo2, Trash2, Maximize2, MapPinOff, Loader2, RefreshCw } from "lucide-react";
 import type { LatLng, OtherZone } from "./ZonePolygonMap";
 
 const LazyMap = lazy(() => import("./ZonePolygonMap"));
+const subscribeNoop = () => () => {};
 
 export type { LatLng, OtherZone };
 
@@ -45,8 +54,11 @@ export function ZonePolygonEditor({
 }) {
   const { t } = useTranslation();
   // Leaflet touches `window` on import, so the map only renders after mount (never during SSR).
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useSyncExternalStore(
+    subscribeNoop,
+    () => true,
+    () => false,
+  );
   const [tileFailing, setTileFailing] = useState(false);
   const [mapKey, setMapKey] = useState(0);
   const [fitSignal, setFitSignal] = useState(0);

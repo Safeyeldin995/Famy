@@ -2,10 +2,10 @@ import {
   Component,
   Suspense,
   lazy,
-  useEffect,
   useCallback,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import { useTranslation } from "react-i18next";
@@ -14,6 +14,7 @@ import type { LatLng } from "./LocationPickerMap";
 import { isValidLatLng } from "@/lib/geo/latLng";
 
 const LazyMap = lazy(() => import("./LocationPickerMap"));
+const subscribeNoop = () => () => {};
 
 const GIZA_FALLBACK: LatLng = { lat: 29.9765, lng: 30.9317 }; // Sheikh Zayed / 6th of October area
 
@@ -56,8 +57,11 @@ export function LocationPicker({
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
   // Leaflet touches `window` on import, so the map only renders after mount (never during SSR).
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useSyncExternalStore(
+    subscribeNoop,
+    () => true,
+    () => false,
+  );
   const [tileFailing, setTileFailing] = useState(false);
   const [mapKey, setMapKey] = useState(0);
   const [recenterSignal, setRecenterSignal] = useState(0);
