@@ -39,7 +39,7 @@ export function useAdminReviewSection() {
     mutationFn: async (input: {
       providerId: string;
       section: AdminReviewSection;
-      decision: AdminSectionReviewRow["decision"];
+      decision: AdminSectionReviewRow["decision"] | "clear";
       reason?: string;
     }) => {
       const { error } = await (supabase.rpc as any)("admin_review_provider_section", {

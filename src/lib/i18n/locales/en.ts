@@ -2825,8 +2825,24 @@ const en = {
     payments_pending_review: "Payments pending review",
   },
   adminReview: {
+    checkedChip: "Checked ✓",
+    rejectApplication: "Reject application",
+    rejectApplicationConfirm:
+      "The whole application will be rejected. Give the provider a clear reason.",
+    pendingDocumentsSummary: "Missing: {{count}} document(s) awaiting review",
+    errors: {
+      selfApproval: "Another administrator must review and approve your own application.",
+      teachingService:
+        "A teaching group has no service ready for review. Check the services first.",
+      providerMissing: "The provider application was not found. Refresh the applications list.",
+      teachingChanged:
+        "The teaching group changed or is unavailable for review. Refresh and check it again.",
+      serviceChanged:
+        "The service changed or its approval was not saved. Refresh and review the service again.",
+    },
     approveAll: "Approve the whole application",
-    approveAllConfirm: "Approve this application, its pending services and teaching groups together?",
+    approveAllConfirm:
+      "Approve this application, its pending services and teaching groups together?",
     approveAllSuccess: "Application, services and teaching groups approved together.",
     approveAllError: "Could not approve everything. Nothing was partially approved.",
     approveAllUnavailable: "This action becomes available after the reviewed migration is applied.",

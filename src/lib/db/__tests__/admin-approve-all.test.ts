@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 
 const OWNER = "22222222-2222-4222-8222-222222222222";
+const ADMIN = "11111111-1111-4111-8111-111111111111";
 const PROVIDER = "33333333-3333-4333-8333-333333333333";
 const migrationPath = fileURLToPath(
   new URL(
@@ -140,6 +141,34 @@ describe("admin work queue and all-in-one approval migration", () => {
         )
       ).rows.map((row) => row.status),
     ).toEqual(["pending", "pending"]);
+  });
+
+  it("clears only the chosen private check without changing application status", async () => {
+    db = await readyDatabase();
+    await db.query(
+      "SELECT public.admin_review_provider_section($1, 'references', 'approved', NULL)",
+      [PROVIDER],
+    );
+    await db.query(
+      "SELECT public.admin_review_provider_section($1, 'personal_details', 'approved', NULL)",
+      [PROVIDER],
+    );
+    await db.query("SELECT set_config('request.jwt.claim.sub', $1, false)", [OWNER]);
+    await expect(
+      db.query("SELECT public.admin_review_provider_section($1, 'references', 'clear', NULL)", [
+        PROVIDER,
+      ]),
+    ).rejects.toThrow(/cannot review their own/);
+    await db.query("SELECT set_config('request.jwt.claim.sub', $1, false)", [ADMIN]);
+    await db.query("SELECT public.admin_review_provider_section($1, 'references', 'clear', NULL)", [
+      PROVIDER,
+    ]);
+    expect(
+      (await db.query("SELECT section FROM public.provider_admin_section_reviews")).rows,
+    ).toEqual([{ section: "personal_details" }]);
+    expect((await db.query("SELECT onboarding_status FROM public.providers")).rows[0]).toEqual({
+      onboarding_status: "SUBMITTED",
+    });
   });
 
   it("requires a reason and blocks self-review for section decisions", async () => {

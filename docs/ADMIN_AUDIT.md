@@ -36,6 +36,15 @@ The seeded Arabic preview now renders the work queue and a submitted application
 | Work queue           | [Mobile](admin-audit/after-work-queue-390.png)      | [Desktop](admin-audit/after-work-queue-1280.png)      |
 | Full provider review | [Mobile](admin-audit/after-provider-review-390.png) | [Desktop](admin-audit/after-provider-review-1280.png) |
 
+## Review-page refinement
+
+The Arabic review page at 390×844 is now **3292px high**, down from the previous 4628px capture (1336px / 28.9% shorter). Each section has one compact checked chip and request-changes action; the page has no reason textareas until a rejection is selected. The global rejection opens a reason sheet, and the approval checklist stays above the primary action.
+
+- [Full review page, 390px](admin-audit/calm-provider-review-390.png)
+- [Application rejection sheet, 390px](admin-audit/calm-provider-reject-sheet-390.png)
+
+Local Edge preview checks confirmed no horizontal document overflow, Arabic age labels and working hours, exactly one reason field for the selected teaching group, and disabled confirmation until a reason is entered. These checks used synthetic preview data and made no database writes. The private checked-chip toggle uses the existing guarded section-review RPC; clearing a check does not change application status.
+
 ## Prioritized delivery plan
 
 1. **Patch 1 — work queue + one-page provider review (this PR).** Make Home a direct-link queue; put the provider decision in one ordered screen; review teaching as groups; add a transaction-scoped admin-only approve-all wrapper that calls existing checks and rejects self-approval. Keep private documents/references within admin only. Verify exact counts, rollback and mobile sizing locally. The migration is created here but **not applied**.

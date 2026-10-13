@@ -29,6 +29,23 @@ describe("admin provider approval page (mocked)", () => {
     expect(source).toContain("documentId: document.id");
   });
 
+  it("translates approval wrapper reasons rather than losing the server cause", () => {
+    const t = i18n.getFixedT("ar");
+    expect(
+      formatAdminActionErrorMessage(t, {
+        message: "Administrators cannot approve their own provider application.",
+      }),
+    ).toContain("أدمن تاني");
+    expect(
+      formatAdminActionErrorMessage(t, {
+        message: "Pending teaching group has no reviewable provider service.",
+      }),
+    ).toContain("راجع الخدمات الأول");
+    expect(formatAdminActionErrorMessage(t, POSTGREST_INCOMPLETE_APPROVE_ERROR)).not.toContain(
+      "Application",
+    );
+  });
+
   it("produces translated toast text from PostgREST approve rejection (UI error path)", async () => {
     await i18n.changeLanguage("en");
     const toastMessage = formatAdminActionErrorMessage(

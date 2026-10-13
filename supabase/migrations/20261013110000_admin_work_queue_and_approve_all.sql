@@ -219,10 +219,10 @@ BEGIN
   IF p_section IS NULL OR p_section NOT IN (
     'identity_documents', 'personal_details', 'references', 'services_prices',
     'babysitting_ages', 'teaching_groups', 'hours_zones'
-  ) OR p_decision IS NULL OR p_decision NOT IN ('approved', 'request_changes', 'rejected') THEN
+  ) OR p_decision IS NULL OR p_decision NOT IN ('approved', 'request_changes', 'rejected', 'clear') THEN
     RAISE EXCEPTION 'Invalid section review.' USING ERRCODE = '23514';
   END IF;
-  IF p_decision <> 'approved' AND NULLIF(btrim(p_reason), '') IS NULL THEN
+  IF p_decision NOT IN ('approved', 'clear') AND NULLIF(btrim(p_reason), '') IS NULL THEN
     RAISE EXCEPTION 'A reason is required.' USING ERRCODE = '23514';
   END IF;
   SELECT p.profile_id, p.onboarding_status::text INTO v_profile_id, v_status
@@ -233,6 +233,12 @@ BEGIN
   END IF;
   IF v_status NOT IN ('SUBMITTED', 'UNDER_REVIEW') THEN
     RAISE EXCEPTION 'Only submitted or in-review applications can be reviewed.' USING ERRCODE = '23514';
+  END IF;
+
+  IF p_decision = 'clear' THEN
+    DELETE FROM public.provider_admin_section_reviews
+      WHERE provider_id = p_provider_id AND section = p_section AND decision = 'approved';
+    RETURN;
   END IF;
 
   IF p_decision = 'request_changes' THEN

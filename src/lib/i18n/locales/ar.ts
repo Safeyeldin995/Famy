@@ -2798,6 +2798,18 @@ const ar: Translation = {
     payments_pending_review: "مدفوعات مستنية المراجعة",
   },
   adminReview: {
+    checkedChip: "تمام ✓",
+    rejectApplication: "ارفض الطلب",
+    rejectApplicationConfirm: "الطلب كله هيترفض. اكتب سبب واضح لمقدم الخدمة.",
+    pendingDocumentsSummary: "ناقص: {{count}} مستند لسه مستني المراجعة",
+    errors: {
+      selfApproval: "مينفعش توافق على طلبك أو تراجعه بنفسك. محتاج أدمن تاني.",
+      teachingService: "في مجموعة تدريس خدمتها مش جاهزة للمراجعة. راجع الخدمات الأول.",
+      providerMissing: "طلب مقدم الخدمة مش موجود. ارجع لقائمة الطلبات وحدثها.",
+      teachingChanged:
+        "بيانات مجموعة التدريس اتغيرت أو مش متاحة للمراجعة. حدث الصفحة وراجعها تاني.",
+      serviceChanged: "الخدمة اتغيرت أو موافقتها متحفظتش. حدث الصفحة وراجع الخدمة تاني.",
+    },
     approveAll: "وافق على الطلب كله",
     approveAllConfirm: "توافق على الطلب والخدمات ومجموعات المواد المعلقة كلها مع بعض؟",
     approveAllSuccess: "تمت الموافقة على الطلب والخدمات ومجموعات المواد مع بعض.",
