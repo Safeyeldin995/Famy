@@ -546,6 +546,8 @@ const en = {
     tutorDescription: "Verified tutors for homework support, school subjects, and languages.",
   },
   roles: {
+    babysitter: "Babysitter",
+    teacher: "Private tutor",
     professional: "Professional",
     angel: "Angel",
     topPro: "Top Pro",

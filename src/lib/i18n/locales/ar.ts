@@ -543,6 +543,8 @@ const ar: Translation = {
     tutorDescription: "مدرسون موثوقون للواجبات والمواد الدراسية واللغات.",
   },
   roles: {
+    babysitter: "جليسة أطفال",
+    teacher: "مدرس خصوصي",
     professional: "محترفة",
     angel: "إينجل",
     topPro: "الأفضل",

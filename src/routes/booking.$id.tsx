@@ -19,6 +19,7 @@ import {
   uploadCaseEvidence, type TicketCategory,
 } from "@/lib/db/case-queries";
 import { toUIProvider } from "@/lib/db/adapters";
+import { customerRoleLabel } from "@/components/famio/customerProviders";
 import { currentLang } from "@/lib/i18n";
 import { formatEGP } from "@/lib/utils";
 import { Check, MapPin, Calendar, Clock, Phone, Download, HelpCircle, AlertTriangle, Star, ShieldCheck, Bell, UserCheck, X, LifeBuoy } from "lucide-react";
@@ -429,7 +430,7 @@ function BookingDetail() {
               <div className="truncate text-base font-extrabold">{provider.name}</div>
               <div className="mt-0.5 inline-flex items-center gap-1 text-xs font-semibold opacity-85">
                 <Star className="h-3 w-3 fill-current" strokeWidth={2} aria-hidden="true" />
-                {provider.rating} · {provider.role}
+                {customerRoleLabel((real.provider?.services ?? []).map((row: any) => row.service?.category?.slug ?? ""), t)}
               </div>
             </div>
             {party?.other_phone ? (
@@ -602,7 +603,7 @@ function BookingDetail() {
               <div className="text-base font-extrabold">{provider.name}</div>
               <div className="text-xs text-muted-foreground">{booking.service}</div>
             </div>
-            <Badge tone="coral">{provider.role}</Badge>
+            <Badge tone="coral">{customerRoleLabel((real.provider?.services ?? []).map((row: any) => row.service?.category?.slug ?? ""), t)}</Badge>
           </div>
           <div className="mt-4 space-y-3 text-sm">
             <Line icon={<Calendar className="h-4 w-4" />} label={booking.date} />

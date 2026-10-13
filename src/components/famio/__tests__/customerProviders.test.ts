@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/i18n", () => ({ currentLang: () => "en" }));
-import { customerProviders } from "../customerProviders";
+import { customerProviders, customerRoleLabel } from "../customerProviders";
 
 const row = (id: string, category: string, verified = false) => ({
   id, profile: { full_name: id }, is_top_pro: false, is_verified: verified,
@@ -9,6 +9,12 @@ const row = (id: string, category: string, verified = false) => ({
 });
 
 describe("customer discovery", () => {
+  it("uses one role dictionary and stable labels for both categories", () => {
+    const t = (key: string) => ({ "roles.babysitter": "جليسة أطفال", "roles.teacher": "مدرس خصوصي" })[key] ?? key;
+    expect(customerRoleLabel(["tutoring", "babysitting", "tutoring"], t)).toBe("جليسة أطفال · مدرس خصوصي");
+    expect(customerRoleLabel(["tutoring"], t)).toBe("مدرس خصوصي");
+    expect(customerRoleLabel([], t)).toBe("");
+  });
   it("keeps eligible providers without top-pro flags or ratings", () => {
     const result = customerProviders([row("sitter", "babysitting"), row("teacher", "tutoring")]);
     expect(result.map((p) => p.id)).toEqual(["sitter", "teacher"]);

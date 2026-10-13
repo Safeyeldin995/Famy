@@ -6,9 +6,10 @@ import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 import { ProviderRatingMeta } from "./ProviderListRow";
 import { previewPath } from "@/lib/preview/previewPath";
 import { formatEGP } from "@/lib/format";
+import { customerRoleLabel } from "./customerProviders";
 
 export function ProviderCard({ p, subtitle, categoryLabel }: {
-  p: Provider; subtitle?: string; categoryLabel?: string;
+  p: Provider & { categorySlugs?: string[] }; subtitle?: string; categoryLabel?: string;
 }) {
   const { t } = useTranslation();
   return <Link to={previewPath("/provider/$id") as "/provider/$id"} params={{ id: p.id }} className="focus-ring block min-h-11 rounded-2xl border border-border/60 bg-white p-4">
@@ -19,7 +20,7 @@ export function ProviderCard({ p, subtitle, categoryLabel }: {
           <h3 className="break-words text-pro-16 font-bold">{p.name || t("provider2.unnamed")}</h3>
           {p.badges.includes("ID Verified") && <ShieldCheck className="h-4 w-4 shrink-0 text-success" aria-label={t("common.verified")} />}
         </div>
-        <p className="mt-1 text-pro-13 text-muted-foreground">{categoryLabel || t(p.category === "tutoring" ? "categories.tutorTitle" : "categories.kidsTitle")}</p>
+        <p className="mt-1 text-pro-13 text-muted-foreground">{categoryLabel || customerRoleLabel(p.categorySlugs ?? [p.category], t)}</p>
         <div className="mt-2 flex flex-wrap items-center gap-1 text-pro-12 text-muted-foreground"><ProviderRatingMeta rating={p.rating} reviews={p.reviews} /></div>
         <p className="mt-2 text-pro-14 font-bold">{subtitle || formatEGP(p.hourlyRate, { perHour: true })}</p>
       </div>
