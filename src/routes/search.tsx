@@ -50,7 +50,9 @@ function SearchPage() {
 
   const results = useMemo(() => {
     const term = q.trim().toLowerCase();
-    const list = customerProviders([...(babysittersQ.data ?? []), ...(teachersQ.data ?? [])]);
+    const list = customerProviders(filter === "tutoring"
+      ? [...(teachersQ.data ?? []), ...(babysittersQ.data ?? [])]
+      : [...(babysittersQ.data ?? []), ...(teachersQ.data ?? [])]);
     return list.filter((p) => {
       if (filter === "babysitting" && !p.categorySlugs.includes("babysitting")) return false;
       if (filter === "tutoring" && !p.categorySlugs.includes("tutoring")) return false;
@@ -83,8 +85,8 @@ function SearchPage() {
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder={t("search2.placeholder")}
-              className="min-w-0 flex-1 bg-transparent text-pro-14 font-bold outline-none placeholder:font-semibold placeholder:text-muted-foreground"
+              placeholder={t("customerSearch.placeholder")}
+              className="min-h-11 min-w-0 flex-1 bg-transparent text-pro-14 font-bold outline-none placeholder:font-semibold placeholder:text-muted-foreground"
             />
             {q ? (
               <button
@@ -159,7 +161,7 @@ function SearchPage() {
         {addressesQ.isError && <QueryError compact onRetry={() => addressesQ.refetch()} />}
         {!provsQ.isLoading && !provsQ.isError && results.length > 0 ? (
           <p className="mt-6 text-pro-14 font-extrabold tracking-tight text-foreground">
-            {t("search2.resultsCount", { count: formatNumber(results.length) })}
+            {t("customerSearch.results", { value: formatNumber(results.length) })}
           </p>
         ) : null}
 

@@ -4,7 +4,6 @@ import type { Provider } from "@/lib/mock/data";
 import { useTranslation } from "react-i18next";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 import { ProviderRatingMeta } from "./ProviderListRow";
-import { previewPath } from "@/lib/preview/previewPath";
 import { isPreviewRoute } from "@/lib/preview/constants";
 import { formatEGP } from "@/lib/format";
 import { customerRoleLabel } from "./customerProviders";

@@ -233,7 +233,7 @@ export function ProviderProfileContent({ providerId }: { providerId: string }) {
             className="h-24 w-24 rounded-full text-3xl ring-4 ring-brand/10"
           />
           <h1 className="mt-3 text-pro-22 font-extrabold leading-snug text-foreground">{name}</h1>
-          {categories.length > 0 ? (
+          {services.length > 0 ? (
             <p className="mt-1 text-pro-14 text-muted-foreground">{customerRoleLabel(services.map((row) => row.service.category?.slug ?? ""), t) || categories.join(" · ")}</p>
           ) : null}
           <div className="mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-pro-13 font-semibold">

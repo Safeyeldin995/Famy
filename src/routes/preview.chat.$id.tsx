@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ChatContent } from "./messages.$id";
+import { CustomerPreview } from "./-customerPreview";
 
 export const Route = createFileRoute("/preview/chat/$id")({
   component: PreviewChatPage,
@@ -7,5 +8,5 @@ export const Route = createFileRoute("/preview/chat/$id")({
 
 function PreviewChatPage() {
   const { id } = Route.useParams();
-  return <ChatContent conversationId={id} />;
+  return <CustomerPreview><ChatContent conversationId={id} /></CustomerPreview>;
 }

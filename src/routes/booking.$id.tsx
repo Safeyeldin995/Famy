@@ -2,7 +2,7 @@ import { CustomerPageHeader } from "@/components/famio/CustomerPageHeader";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 import { previewPath } from "@/lib/preview/previewPath";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { PhoneFrame, PrimaryButton, Card, Badge, BackButton, BookingTimeline, ReasonDialog, CancelBookingDialog, CaseDialog, SupportCasesCard, ErrorState, EmptyState } from "@/components/famio/ui";
+import { PhoneFrame, PrimaryButton, Card, BookingTimeline, ReasonDialog, CancelBookingDialog, CaseDialog, SupportCasesCard, ErrorState, EmptyState } from "@/components/famio/ui";
 import { PaymentBlock } from "@/components/famio/PaymentBlock";
 import { RescheduleSection } from "@/components/famio/RescheduleSection";
 import {
@@ -22,10 +22,9 @@ import {
   uploadCaseEvidence, type TicketCategory,
 } from "@/lib/db/case-queries";
 import { toUIProvider } from "@/lib/db/adapters";
-import { customerRoleLabel } from "@/components/famio/customerProviders";
 import { currentLang } from "@/lib/i18n";
 import { formatEGP, formatDate, formatTime, formatDuration, formatLocale } from "@/lib/format";
-import { Check, MapPin, Calendar, Clock, Phone, Download, HelpCircle, AlertTriangle, Star, ShieldCheck, Bell, UserCheck, X, LifeBuoy } from "lucide-react";
+import { Check, MapPin, Calendar, Clock, Phone, Download, HelpCircle, AlertTriangle, Star, ShieldCheck, Bell, UserCheck, LifeBuoy } from "lucide-react";
 import { BookingChatPanel } from "@/components/famio/BookingChatPanel";
 import { useBookingParty } from "@/lib/db/booking-parties";
 import { useEffect, useState } from "react";
@@ -568,14 +567,14 @@ export function BookingDetailContent({ bookingId: id, paymobReturn = false, paym
           />
         </div>
 
-        <RescheduleSection
+        <div className="[&_button]:min-h-11 [&_input]:min-h-11 [&_summary]:min-h-11"><RescheduleSection
           bookingId={real.id}
           viewer="customer"
           customerId={real.customer_id}
           status={status!}
           currentStart={real.start_at}
           currentEnd={real.end_at}
-        />
+        /></div>
 
         <div id="booking-chat"><BookingChatPanel bookingId={real.id} status={status} viewer="customer" /></div>
 

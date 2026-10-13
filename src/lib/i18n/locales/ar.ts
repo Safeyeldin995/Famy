@@ -10,6 +10,7 @@ const ar: Translation = {
   },
   customerSetup: { arrivalDetails: "تفاصيل تساعد مقدم الخدمة يوصل" },
   customerChat: { unavailable: "المحادثة دي مش متاحة لسه" },
+  customerSearch: { placeholder: "ابحث عن جليسة أطفال أو مدرس خصوصي", results: "النتائج: {{value}}" },
   customerDetail: {
     title: "تفاصيل الحجز",
     code: "حجز #{{id}}",

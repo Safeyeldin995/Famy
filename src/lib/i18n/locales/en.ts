@@ -8,6 +8,7 @@ const en = {
   },
   customerSetup: { arrivalDetails: "Details to help your provider find you" },
   customerChat: { unavailable: "This conversation is not available yet" },
+  customerSearch: { placeholder: "Search for a babysitter or private tutor", results: "Results: {{value}}" },
   customerDetail: {
     title: "Booking details",
     code: "Booking #{{id}}",

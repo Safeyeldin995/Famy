@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Route as BookingsRoute } from "./bookings";
 import { BookingDetailContent } from "./booking.$id";
+import { CustomerPreview } from "./-customerPreview";
 
 const Bookings = BookingsRoute.options.component!;
 
@@ -13,5 +14,5 @@ export const Route = createFileRoute("/preview/bookings")({
 
 function PreviewBookings() {
   const { bookingId } = Route.useSearch();
-  return bookingId ? <BookingDetailContent bookingId={bookingId} /> : <Bookings />;
+  return <CustomerPreview>{bookingId ? <BookingDetailContent bookingId={bookingId} /> : <Bookings />}</CustomerPreview>;
 }

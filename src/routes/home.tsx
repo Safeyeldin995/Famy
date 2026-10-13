@@ -4,6 +4,7 @@ import { Bell, MapPin, Search } from "lucide-react";
 import { AppShell } from "@/components/famio/ui";
 import { QueryError } from "@/components/famio/QueryError";
 import { ProviderCard } from "@/components/famio/ProviderCard";
+import { latinCustomerText } from "@/components/famio/customerProviders";
 import { customerProviders } from "@/components/famio/customerProviders";
 import { HomePromos } from "@/components/home/HomePromoStrip";
 import { HomeRebookRow } from "@/components/home/HomeRebookRow";
@@ -46,8 +47,10 @@ function Home() {
         <h2 className="text-pro-16 font-bold">{t("customerHome.chooseArea")}</h2><p className="mt-2 text-pro-14 text-muted-foreground">{t("customerHome.addressHint")}</p><Link to={previewPath("/addresses/new")} className="focus-ring mt-3 inline-flex min-h-11 items-center text-pro-14 font-bold text-brand">{t("addresses.addAddress")}</Link>
       </section> : <NearbyProviders addressId={address.data.id} />}
     </div>
-    {promos.isError ? <QueryError compact onRetry={() => promos.refetch()} /> : <HomePromos offers={promos.data ?? []} />}
+    <div className="[&_span]:text-pro-12 [&_button]:text-pro-12 [&_button]:min-h-11 [&_.text-overline]:text-pro-12">
+    {promos.isError ? <QueryError compact onRetry={() => promos.refetch()} /> : <HomePromos offers={(promos.data ?? []).map((offer) => ({ ...offer, description_ar: latinCustomerText(offer.description_ar), description_en: latinCustomerText(offer.description_en) }))} />}
     <HomeRebookRow providers={rebookProvidersFromBookings(bookings.data ?? [])} loading={bookings.isLoading} error={bookings.isError} onRetry={() => bookings.refetch()} />
+    </div>
   </AppShell>;
 }
 

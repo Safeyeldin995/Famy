@@ -16,7 +16,6 @@ import {
   containsContactInfo,
 } from "@/lib/db/messaging";
 import { isPreviewRoute, PREVIEW_USER_ID } from "@/lib/preview/constants";
-import { previewPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/messages/$id")({ component: Chat });
 
@@ -109,7 +108,7 @@ export function ChatContent({ conversationId }: { conversationId: string }) {
       <CustomerPageHero
         title={otherName}
         subtitle={t("messages.chatNotice")}
-        backTo={previewPath("/messages")}
+        backTo="/messages"
         right={
           <ProfileAvatar
             src={otherAvatar}
