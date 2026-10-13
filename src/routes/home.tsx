@@ -12,6 +12,7 @@ import { rebookProvidersFromBookings } from "@/lib/home/rebookProviders";
 import { useCategories, useProviders, useUnreadNotificationCount, useMyProfile, useDefaultAddress, useMyBookings } from "@/lib/db/queries";
 import { providerPriceLabel } from "@/lib/db/adapters";
 import { previewPath } from "@/lib/preview/previewPath";
+import { isPreviewRoute } from "@/lib/preview/constants";
 import { useProviderOnlyCustomerRedirect } from "@/lib/auth/providerOnlyCustomerGuard";
 
 export const Route = createFileRoute("/home")({ component: Home });
@@ -39,7 +40,7 @@ function Home() {
     <div className="space-y-6 px-5 pb-6">
       <section>
         <h2 className="mb-3 text-pro-18 font-bold">{t("home.chooseService")}</h2>
-        {categories.isError ? <QueryError compact onRetry={() => categories.refetch()} /> : <div className="grid grid-cols-2 gap-3">{(categories.data ?? []).filter((c) => ["babysitting", "tutoring"].includes(c.slug)).map((c) => <Link key={c.id} to={previewPath("/category/$id") as "/category/$id"} params={{ id: c.slug }} className="focus-ring flex min-h-16 items-center rounded-2xl border border-border/60 p-4 text-pro-14 font-bold">{i18n.language.startsWith("ar") ? c.name_ar : c.name_en}</Link>)}</div>}
+        {categories.isError ? <QueryError compact onRetry={() => categories.refetch()} /> : <div className="grid grid-cols-2 gap-3">{(categories.data ?? []).filter((c) => ["babysitting", "tutoring"].includes(c.slug)).map((c) => <Link key={c.id} to={isPreviewRoute() ? "/preview/category/$id" : "/category/$id"} params={{ id: c.slug }} className="focus-ring flex min-h-16 items-center rounded-2xl border border-border/60 p-4 text-pro-14 font-bold">{i18n.language.startsWith("ar") ? c.name_ar : c.name_en}</Link>)}</div>}
       </section>
       {address.isLoading ? <div className="h-24 animate-pulse rounded-2xl bg-surface-2" /> : address.isError ? <QueryError onRetry={() => address.refetch()} /> : !address.data ? <section className="rounded-2xl border border-border/60 p-4">
         <h2 className="text-pro-16 font-bold">{t("customerHome.chooseArea")}</h2><p className="mt-2 text-pro-14 text-muted-foreground">{t("customerHome.addressHint")}</p><Link to={previewPath("/addresses/new")} className="focus-ring mt-3 inline-flex min-h-11 items-center text-pro-14 font-bold text-brand">{t("addresses.addAddress")}</Link>

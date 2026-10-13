@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 import { ProviderRatingMeta } from "./ProviderListRow";
 import { previewPath } from "@/lib/preview/previewPath";
+import { isPreviewRoute } from "@/lib/preview/constants";
 import { formatEGP } from "@/lib/format";
 import { customerRoleLabel } from "./customerProviders";
 
@@ -12,7 +13,7 @@ export function ProviderCard({ p, subtitle, categoryLabel }: {
   p: Provider & { categorySlugs?: string[] }; subtitle?: string; categoryLabel?: string;
 }) {
   const { t } = useTranslation();
-  return <Link to={previewPath("/provider/$id") as "/provider/$id"} params={{ id: p.id }} className="focus-ring block min-h-11 rounded-2xl border border-border/60 bg-white p-4">
+  return <Link to={isPreviewRoute() ? "/preview/provider/$id" : "/provider/$id"} params={{ id: p.id }} className="focus-ring block min-h-11 rounded-2xl border border-border/60 bg-white p-4">
     <div className="flex items-start gap-3">
       <ProfileAvatar src={p.avatar} name={p.name} className="h-14 w-14 rounded-full text-pro-18" />
       <div className="min-w-0 flex-1">

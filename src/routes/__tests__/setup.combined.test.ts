@@ -46,14 +46,24 @@ describe("combined /setup after AuthGate + coordinate merge", () => {
     expect(createBlock).toContain("lng: coords?.lng ?? null");
   });
 
-  it("keeps the pin optional and shows the existing no-coordinates warning", () => {
+  it("requires a map pin and keeps the no-coordinates guidance", () => {
     const validMatch = setupSource.match(
-      /const valid =\s*form\.name\.trim\(\)\.length > 1 && form\.address\.trim\(\)\.length > 2 && form\.area\.trim\(\)\.length > 0;/,
+      /const valid =\s*form\.name\.trim\(\)\.length > 1 && form\.address\.trim\(\)\.length > 2 && form\.area\.trim\(\)\.length > 0 && isValidLatLng\(coords\);/,
     );
     expect(validMatch?.[0]).toBeTruthy();
-    expect(validMatch?.[0]).not.toContain("coords");
+    expect(validMatch?.[0]).toContain("isValidLatLng(coords)");
     expect(setupSource).toContain("!isValidLatLng(coords)");
     expect(setupSource).toContain("addresses.noCoordsWarning");
+  });
+
+  it("defers education and photo editing without removing core address fields", () => {
+    expect(setupSource).not.toContain("OptionalSetupSection");
+    expect(setupSource).not.toContain("EducationProfileFields");
+    expect(setupSource).not.toContain("upsertEducation");
+    expect(setupSource).not.toContain("onPickAvatar");
+    for (const field of ["form.building", "form.floor", "form.apartment"]) {
+      expect(setupSource).toContain(field);
+    }
   });
 
   it("does not redirect during SSR and only requests geolocation from the locate button", () => {

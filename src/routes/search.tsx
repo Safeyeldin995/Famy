@@ -3,22 +3,23 @@ import { isFixedPackage, packageLabel, type PackageService } from "@/lib/pricing
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { PhoneFrame, Chip, EmptyState } from "@/components/famio/ui";
-import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
-import { CustomerFloatingPanel } from "@/components/famio/CustomerFloatingPanel";
+import { CustomerPageHeader as CustomerPageHero } from "@/components/famio/CustomerPageHeader";
+import { ProviderCard } from "@/components/famio/ProviderCard";
+import { customerProviders } from "@/components/famio/customerProviders";
 import { QueryError } from "@/components/famio/QueryError";
-import { ProviderListRow, ProviderRatingMeta } from "@/components/famio/ProviderListRow";
+
 import { useAddresses, useMarketplaceServices, useProviders } from "@/lib/db/queries";
 import { useApprovedTeachingCapabilitiesForProviders } from "@/lib/db/teaching-queries";
 import {
   formatTeachingCapabilityLine,
   isTutoringCategorySlug,
 } from "@/lib/tutoring/teachingCapabilities";
-import { toUIProvider, providerPriceLabel } from "@/lib/db/adapters";
+import { providerPriceLabel } from "@/lib/db/adapters";
 import { currentLang } from "@/lib/i18n";
 import { useTranslation } from "react-i18next";
 import { Search as SearchIcon, X } from "lucide-react";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
-import { formatEGP, formatNumber } from "@/lib/utils";
+import { formatNumber } from "@/lib/format";
 
 export function searchServiceFilter(search: Record<string, unknown>): { serviceId?: string } {
   return typeof search.serviceId === "string" ? { serviceId: search.serviceId } : {};
@@ -39,19 +40,20 @@ function SearchPage() {
   const addressesQ = useAddresses();
   const selectedAddressId =
     addressId || (addressesQ.data ?? []).find((a) => a.is_default)?.id || addressesQ.data?.[0]?.id;
-  const provsQ = useProviders({
-    categorySlug: filter === "babysitting" || filter === "tutoring" ? filter : undefined,
-    serviceId: serviceId || undefined,
-    addressId: selectedAddressId,
-    limit: 60,
-  });
+  const babysittersQ = useProviders({ categorySlug: "babysitting", serviceId: serviceId || undefined, addressId: selectedAddressId, limit: 60 });
+  const teachersQ = useProviders({ categorySlug: "tutoring", serviceId: serviceId || undefined, addressId: selectedAddressId, limit: 60 });
+  const provsQ = {
+    isLoading: babysittersQ.isLoading || teachersQ.isLoading,
+    isError: babysittersQ.isError || teachersQ.isError,
+    refetch: () => Promise.all([babysittersQ.refetch(), teachersQ.refetch()]),
+  };
 
   const results = useMemo(() => {
     const term = q.trim().toLowerCase();
-    const list = (provsQ.data ?? []).map(toUIProvider);
+    const list = customerProviders([...(babysittersQ.data ?? []), ...(teachersQ.data ?? [])]);
     return list.filter((p) => {
-      if (filter === "babysitting" && p.categorySlug !== "babysitting") return false;
-      if (filter === "tutoring" && p.categorySlug !== "tutoring") return false;
+      if (filter === "babysitting" && !p.categorySlugs.includes("babysitting")) return false;
+      if (filter === "tutoring" && !p.categorySlugs.includes("tutoring")) return false;
       if (filter === "top" && p.rating < 4.85) return false;
       if (!term) return true;
       return (
@@ -60,7 +62,7 @@ function SearchPage() {
         p.areas.some((a) => a.toLowerCase().includes(term))
       );
     });
-  }, [q, filter, provsQ.data]);
+  }, [q, filter, babysittersQ.data, teachersQ.data]);
   const capabilityRows = useApprovedTeachingCapabilitiesForProviders(results.map((p) => p.id));
 
   const recoveryActions = <div className="flex flex-wrap justify-center gap-2">
@@ -73,30 +75,29 @@ function SearchPage() {
       <CustomerPageHero title={t("search.title")} subtitle={t("home.headline")} backTo="/home" />
 
       <div className="px-5">
-        <CustomerFloatingPanel className="focus-within:border-brand !p-3">
+        <div className="mt-4 rounded-2xl border border-border/60 p-3 focus-within:border-brand">
           <div className="flex items-center gap-3">
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[1.125rem] bg-brand text-brand-foreground">
               <SearchIcon className="h-5 w-5" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
             </span>
             <input
-              autoFocus
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder={t("search2.placeholder")}
-              className="min-w-0 flex-1 bg-transparent text-[0.95rem] font-bold outline-none placeholder:font-semibold placeholder:text-muted-foreground"
+              className="min-w-0 flex-1 bg-transparent text-pro-14 font-bold outline-none placeholder:font-semibold placeholder:text-muted-foreground"
             />
             {q ? (
               <button
                 type="button"
                 onClick={() => setQ("")}
                 aria-label={t("common.cancel")}
-                className="focus-ring tap-scale grid h-9 w-9 shrink-0 place-items-center rounded-full bg-surface-2 text-muted-foreground hover:bg-muted"
+                className="focus-ring tap-scale grid h-11 w-11 shrink-0 place-items-center rounded-full bg-surface-2 text-muted-foreground hover:bg-muted"
               >
                 <X className="h-4 w-4" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
               </button>
             ) : null}
           </div>
-        </CustomerFloatingPanel>
+        </div>
       </div>
 
       <div className="px-5 pb-10 pt-5">
@@ -115,14 +116,14 @@ function SearchPage() {
           </Chip>
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-3 rounded-[1.75rem] border border-border/50 bg-surface-elevated p-4 shadow-sm">
+        <div className="mt-5 grid grid-cols-2 gap-3 rounded-2xl border border-border/50 bg-white p-4 shadow-sm">
           <label className="block">
-            <span className="text-overline">{t("search2.service")}</span>
+            <span className="text-pro-12 font-bold">{t("search2.service")}</span>
             <select
               aria-label={t("search2.service")}
               value={serviceId}
               onChange={(e) => setServiceId(e.target.value)}
-              className="focus-ring mt-1.5 h-12 w-full rounded-full bg-surface-2 px-4 text-sm font-bold text-foreground focus:outline-none"
+              className="focus-ring mt-1.5 h-12 w-full rounded-full bg-surface-2 px-4 text-pro-14 font-bold text-foreground focus:outline-none"
             >
               <option value="">{t("search2.allServices")}</option>
               {(servicesQ.data ?? []).map(
@@ -137,13 +138,13 @@ function SearchPage() {
             </select>
           </label>
           <label className="block">
-            <span className="text-overline">{t("search2.address")}</span>
+            <span className="text-pro-12 font-bold">{t("search2.address")}</span>
             <select
               id="search-address"
               aria-label={t("search2.address")}
               value={selectedAddressId ?? ""}
               onChange={(e) => setAddressId(e.target.value)}
-              className="focus-ring mt-1.5 h-12 w-full rounded-full bg-surface-2 px-4 text-sm font-bold text-foreground focus:outline-none"
+              className="focus-ring mt-1.5 h-12 w-full rounded-full bg-surface-2 px-4 text-pro-14 font-bold text-foreground focus:outline-none"
             >
               {(addressesQ.data ?? []).map((address) => (
                 <option key={address.id} value={address.id}>
@@ -157,13 +158,13 @@ function SearchPage() {
         {servicesQ.isError && <QueryError compact onRetry={() => servicesQ.refetch()} />}
         {addressesQ.isError && <QueryError compact onRetry={() => addressesQ.refetch()} />}
         {!provsQ.isLoading && !provsQ.isError && results.length > 0 ? (
-          <p className="mt-6 text-sm font-extrabold tracking-tight text-foreground">
+          <p className="mt-6 text-pro-14 font-extrabold tracking-tight text-foreground">
             {t("search2.resultsCount", { count: formatNumber(results.length) })}
           </p>
         ) : null}
 
         <div className="mt-4 space-y-2.5">
-          {provsQ.isLoading ? (
+          {!addressesQ.isLoading && !selectedAddressId ? <EmptyState icon="search" title={t("customerHome.chooseArea")} body={t("customerHome.addressHint")} action={<Link to={previewPath("/addresses/new")} className="focus-ring inline-flex min-h-11 items-center text-pro-14 font-bold text-brand">{t("addresses.addAddress")}</Link>} /> : provsQ.isLoading ? (
             Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="h-24 animate-pulse rounded-[2rem] bg-surface-2" />
             ))
@@ -180,7 +181,7 @@ function SearchPage() {
             results.map((p) => {
               const cap = (capabilityRows.data ?? []).find((row) => row.providerId === p.id);
               const subtitle =
-                isTutoringCategorySlug(p.categorySlug) && cap
+                p.categorySlugs.includes("tutoring") && filter === "tutoring" && cap
                   ? formatTeachingCapabilityLine({
                       subject: lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn,
                       curriculum: lang === "ar" ? cap.curriculumNameAr : cap.curriculumNameEn,
@@ -190,21 +191,7 @@ function SearchPage() {
                     })
                   : providerPriceLabel(p, t);
               return (
-                <ProviderListRow
-                  key={p.id}
-                  to="/provider/$id"
-                  params={{ id: p.id }}
-                  avatar={p.avatar}
-                  name={p.name}
-                  subtitle={subtitle}
-                  meta={<ProviderRatingMeta rating={p.rating} reviews={p.reviews} />}
-                  pill={p.rating >= 4.9 ? { label: t("roles.topPro"), tone: "brand" } : undefined}
-                  trailing={
-                    <span className="shrink-0 rounded-full bg-brand px-3.5 py-2 text-[11px] font-extrabold text-brand-foreground">
-                      {t("provider.bookNow")}
-                    </span>
-                  }
-                />
+                <ProviderCard key={p.id} p={p} subtitle={subtitle} />
               );
             })
           )}

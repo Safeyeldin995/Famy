@@ -36,19 +36,19 @@ export function ProviderListRow({
     <Link
       to={resolvedTo as any}
       params={params as any}
-      className={`focus-ring tap-scale flex items-center gap-4 rounded-[2rem] border border-border/50 bg-surface-elevated p-4 shadow-sm transition-shadow hover:shadow-md hover:border-brand/30 ${className}`}
+      className={`focus-ring tap-scale flex items-center gap-4 rounded-2xl border border-border/50 bg-white p-4 shadow-sm transition-shadow hover:shadow-md hover:border-brand/30 ${className}`}
     >
       <ProfileAvatar src={avatar} name={name} className="h-14 w-14 rounded-full text-pro-18" />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <p className="truncate text-base font-extrabold text-foreground">{name}</p>
+          <p className="truncate text-pro-16 font-extrabold text-foreground">{name}</p>
           {pill ? <StatusPill tone={pill.tone ?? "brand"}>{pill.label}</StatusPill> : null}
         </div>
         {subtitle ? (
-          <p className="mt-0.5 truncate text-xs font-bold text-brand">{subtitle}</p>
+          <p className="mt-0.5 truncate text-pro-13 font-bold text-brand">{subtitle}</p>
         ) : null}
         {meta ? (
-          <div className="mt-1.5 flex items-center gap-1 text-xs font-bold text-muted-foreground">
+          <div className="mt-1.5 flex items-center gap-1 text-pro-13 font-bold text-muted-foreground">
             {meta}
           </div>
         ) : null}
