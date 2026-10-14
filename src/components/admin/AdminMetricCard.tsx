@@ -1,6 +1,5 @@
+import { AdminLink as Link } from "@/components/admin/AdminNavigation";
 import type { LucideIcon } from "lucide-react";
-import { Link } from "@tanstack/react-router";
-import { adminPath } from "@/lib/preview/previewPath";
 import type { AdminTone } from "./statusTones";
 import { adminToneClass } from "./statusTones";
 
@@ -25,7 +24,9 @@ export function AdminMetricCard({
         <span className={`grid h-8 w-8 place-items-center rounded-lg ${adminToneClass(tone)}`}>
           <Icon className="h-4 w-4" aria-hidden="true" />
         </span>
-        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</span>
+        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          {label}
+        </span>
       </div>
       <p className="mt-3 text-2xl font-extrabold tabular-nums text-foreground">{value}</p>
       {hint ? <p className="mt-1 text-xs font-medium text-muted-foreground">{hint}</p> : null}
@@ -37,7 +38,7 @@ export function AdminMetricCard({
 
   if (to) {
     return (
-      <Link to={adminPath(to) as "/admin"} className={`focus-ring ${className}`}>
+      <Link to={to as "/admin"} className={`focus-ring ${className}`}>
         {inner}
       </Link>
     );

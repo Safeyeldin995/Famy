@@ -1,7 +1,6 @@
-import { Link } from "@tanstack/react-router";
+import { AdminLink as Link } from "@/components/admin/AdminNavigation";
 import { useTranslation } from "react-i18next";
 import type { AdminWorkQueueKey } from "@/lib/db/admin-work-queue";
-import { adminPath } from "@/lib/preview/previewPath";
 
 export const WORK_QUEUE_ITEMS: ReadonlyArray<{
   key: AdminWorkQueueKey;
@@ -49,7 +48,7 @@ export function AdminWorkQueue({ counts }: { counts: Record<AdminWorkQueueKey, n
         {WORK_QUEUE_ITEMS.map((item) => (
           <Link
             key={item.key}
-            to={adminPath(item.route) as any}
+            to={item.route as any}
             search={item.search as any}
             className="focus-ring flex min-h-16 items-center justify-between gap-3 rounded-2xl border border-border bg-surface px-4 py-3 shadow-sm hover:border-brand"
           >

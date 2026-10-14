@@ -1,6 +1,8 @@
+import { adminErrorSummary } from "@/components/admin/adminPresentation";
+import { AdminRelativeTime } from "@/components/admin/AdminRelativeTime";
+import { AdminLink as Link } from "@/components/admin/AdminNavigation";
 import { catalogScreen } from "@/components/admin/CatalogControls";
-import { caseAge } from "@/components/admin/operations";
-import { createFileRoute, Link, type LinkProps } from "@tanstack/react-router";
+import { createFileRoute, type LinkProps } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { AlertTriangle } from "lucide-react";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
@@ -11,7 +13,6 @@ import {
   useAdminRecentFailedPayments,
   type FailedNotificationRow,
 } from "@/lib/db/admin-monitoring-queries";
-import { adminPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/admin/monitoring")({ component: AdminMonitoring });
 
@@ -44,7 +45,7 @@ function SummaryCard({
 
   return (
     <Link
-      to={typeof to === "string" ? (adminPath(to) as typeof to) : to}
+      to={typeof to === "string" ? (to as typeof to) : to}
       search={search}
       className="focus-ring rounded-2xl border border-border/60 bg-surface p-4 shadow-sm transition hover:border-brand/40"
     >
@@ -150,14 +151,14 @@ function AdminMonitoring() {
             title={t("admin.monitoring.failedPayments")}
             description={t("admin.monitoring.failedPaymentsBody")}
             count={summary?.failed_payments ?? 0}
-            to={adminPath("/admin/payments") as "/admin/payments"}
+            to={"/admin/payments" as "/admin/payments"}
             search={{ statuses: "failed,rejected" }}
           />
           <SummaryCard
             title={t("admin.monitoring.failedNotifications")}
             description={t("admin.monitoring.failedNotificationsBody")}
             count={summary?.failed_notifications ?? 0}
-            to={adminPath("/admin/operations") as "/admin/operations"}
+            to={"/admin/operations" as "/admin/operations"}
           />
         </div>
       )}
@@ -180,9 +181,10 @@ function AdminMonitoring() {
                     {t("adminCatalog.systemError")}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {caseAge(row.created_at, i18n.language)}
+                    <AdminRelativeTime value={row.created_at} />
                   </span>
                 </div>
+                <p className="mt-2">{adminErrorSummary(row.message_safe, i18n.language)}</p>
                 <details className="mt-2">
                   <summary className="cursor-pointer font-semibold">
                     {t("admin.auditLog.details")}
@@ -229,11 +231,11 @@ function AdminMonitoring() {
                     </p>
                   </details>
                   <p className="text-xs text-muted-foreground">
-                    {caseAge(row.created_at, i18n.language)}
+                    <AdminRelativeTime value={row.created_at} />
                   </p>
                 </div>
                 <Link
-                  to={adminPath("/admin/payments") as "/admin/payments"}
+                  to={"/admin/payments" as "/admin/payments"}
                   search={{ status: row.status }}
                   className="focus-ring shrink-0 rounded-lg border border-border px-2 py-1 font-semibold text-brand"
                 >
@@ -269,15 +271,18 @@ function AdminMonitoring() {
                   {t("admin.operations.attempts", { count: row.attempts })}
                 </span>
                 {row.last_error_safe && (
-                  <details>
-                    <summary>{t("admin.auditLog.details")}</summary>
-                    <p className="mt-0.5 break-words text-xs text-muted-foreground" dir="ltr">
-                      {row.last_error_safe}
-                    </p>
-                  </details>
+                  <>
+                    <p className="mt-2">{adminErrorSummary(row.last_error_safe, i18n.language)}</p>
+                    <details>
+                      <summary>{t("admin.auditLog.details")}</summary>
+                      <p className="mt-0.5 break-words text-xs text-muted-foreground" dir="ltr">
+                        {row.last_error_safe}
+                      </p>
+                    </details>
+                  </>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  {caseAge(row.created_at, i18n.language)}
+                  <AdminRelativeTime value={row.created_at} />
                 </p>
               </li>
             ))}

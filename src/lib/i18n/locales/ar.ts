@@ -3191,4 +3191,11 @@ Object.assign((ar as any).adminCatalog, {
     pending: "مستني مراجعة",
   },
 });
+Object.assign(ar, {
+  adminFinal: {
+    allScreens: "كل الشاشات",
+    nothingPending: "مفيش حاجة مستنية",
+    emptyNow: "مفيش حاجة دلوقتي",
+  },
+});
 export default ar;

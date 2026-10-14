@@ -3232,5 +3232,12 @@ Object.assign((en as any).adminCatalog, {
     pending: "Awaiting review",
   },
 });
+Object.assign(en, {
+  adminFinal: {
+    allScreens: "All screens",
+    nothingPending: "Nothing pending",
+    emptyNow: "Nothing here right now",
+  },
+});
 export default en;
 export type Translation = typeof en;

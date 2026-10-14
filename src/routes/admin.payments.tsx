@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { AdminLink as Link } from "@/components/admin/AdminNavigation";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -16,7 +17,6 @@ import {
   operationDate,
   paymentStatuses,
 } from "@/components/admin/operations";
-import { adminPath } from "@/lib/preview/previewPath";
 import { isPreviewAdminRoute } from "@/lib/preview/constants";
 
 export const Route = createFileRoute("/admin/payments")({
@@ -97,7 +97,7 @@ function PaymentCard({ payment: p }: { payment: any }) {
       </p>
       <Link
         className={`${adminControl} inline-flex items-center gap-2`}
-        to={adminPath("/admin/bookings") as "/admin/bookings"}
+        to="/admin/bookings"
         search={{ booking: p.booking_id }}
       >
         {t("adminOps.booking")} <bdi dir="ltr">{bookingCode(p.booking_id)}</bdi>

@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { AdminLink as Link } from "@/components/admin/AdminNavigation";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
@@ -22,7 +23,6 @@ import {
 } from "@/lib/booking/pending-expiry";
 import { Search } from "lucide-react";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
-import { adminPath } from "@/lib/preview/previewPath";
 
 function AdminCancellationDetails({ cancellation }: { cancellation: any }) {
   const { t, i18n } = useTranslation();
@@ -262,7 +262,7 @@ export function AdminBookings({
                   <div className="min-w-0">
                     <p className="truncate text-sm font-bold">
                       <Link
-                        to={adminPath("/admin/customer/$id") as "/admin/customer/$id"}
+                        to={"/admin/customer/$id" as "/admin/customer/$id"}
                         params={{ id: b.customer_id }}
                         className="text-brand hover:underline"
                       >
@@ -270,7 +270,7 @@ export function AdminBookings({
                       </Link>
                       {" → "}
                       <Link
-                        to={adminPath("/admin/provider/$id") as "/admin/provider/$id"}
+                        to={"/admin/provider/$id" as "/admin/provider/$id"}
                         params={{ id: b.provider?.id }}
                         className="text-brand hover:underline"
                       >
@@ -318,7 +318,7 @@ export function AdminBookings({
                   {(b.status === "disputed" || b.status === "no_show") && (
                     <Link
                       className={adminControl}
-                      to={adminPath("/admin/cases") as "/admin/cases"}
+                      to={"/admin/cases" as "/admin/cases"}
                       search={{
                         tab: b.status === "disputed" ? "disputes" : "no_shows",
                         booking: b.id,
