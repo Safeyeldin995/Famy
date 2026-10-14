@@ -584,7 +584,9 @@ function AdminPaymentMethods() {
                               dir="ltr"
                               className="rounded-full bg-muted px-2 py-0.5 text-xs font-bold uppercase text-muted-foreground"
                             >
-                              {m.code}
+                              {m.code === "cash"
+                                ? t("adminOps.methods.cash")
+                                : catalogName(m, i18n.language)}
                             </span>
                             {m.is_default && (
                               <span className="inline-flex items-center gap-0.5 rounded-full bg-mint/30 px-2 py-0.5 text-xs font-bold uppercase text-success">

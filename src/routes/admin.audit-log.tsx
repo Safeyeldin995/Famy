@@ -1,6 +1,10 @@
+import { adminActor } from "@/components/admin/adminPresentation";
+import { AdminPicker } from "@/components/admin/AdminPicker";
+import { AdminRelativeTime } from "@/components/admin/AdminRelativeTime";
+import { AdminLink as Link } from "@/components/admin/AdminNavigation";
 import { catalogScreen } from "@/components/admin/CatalogControls";
-import { caseAge, operationDate } from "@/components/admin/operations";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { operationDate } from "@/components/admin/operations";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -10,7 +14,6 @@ import {
   type AuditLogRow,
 } from "@/lib/db/admin-audit-queries";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
-import { adminPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/admin/audit-log")({ component: AdminAuditLog });
 
@@ -135,7 +138,7 @@ function AuditRow({
   return (
     <li className="p-4">
       <p className="text-sm font-semibold">
-        {row.actor_name ?? t("admin.auditLog.system")} ·{" "}
+        {adminActor(row.actor_name, i18n.language)} ·{" "}
         {t(`adminCatalog.auditActions.${row.action}`, {
           defaultValue: t("adminCatalog.auditActions.other"),
         })}{" "}
@@ -147,7 +150,7 @@ function AuditRow({
         className="mt-1 text-xs text-muted-foreground"
         title={operationDate(row.created_at, i18n.language)}
       >
-        {caseAge(row.created_at, i18n.language)}
+        <AdminRelativeTime value={row.created_at} />
       </p>
       <button
         onClick={onToggle}
@@ -165,7 +168,7 @@ function AuditRow({
           {row.reason && <p>{row.reason}</p>}
           {row.booking && (
             <Link
-              to={adminPath("/admin/bookings") as "/admin/bookings"}
+              to={"/admin/bookings" as "/admin/bookings"}
               search={{ status: row.booking.status }}
               className="inline-flex min-h-11 items-center text-brand"
             >
@@ -207,7 +210,7 @@ function AdminAuditLog() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
-        <select
+        <AdminPicker
           value={filters.action ?? ""}
           onChange={(e) => setFilter({ action: e.target.value || undefined })}
           className="focus-ring h-10 rounded-xl border border-border bg-surface px-3 text-sm"
@@ -220,8 +223,8 @@ function AdminAuditLog() {
               })}
             </option>
           ))}
-        </select>
-        <select
+        </AdminPicker>
+        <AdminPicker
           value={filters.entity ?? ""}
           onChange={(e) => setFilter({ entity: e.target.value || undefined })}
           className="focus-ring h-10 rounded-xl border border-border bg-surface px-3 text-sm"
@@ -232,7 +235,7 @@ function AdminAuditLog() {
               {t(`adminCatalog.entities.${en}`, { defaultValue: t("adminCatalog.entities.other") })}
             </option>
           ))}
-        </select>
+        </AdminPicker>
         <div className="flex h-10 items-center gap-1.5 rounded-xl border border-border bg-surface px-2">
           <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           <input

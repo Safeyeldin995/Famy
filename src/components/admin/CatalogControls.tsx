@@ -9,6 +9,7 @@ import {
   DrawerFooter,
 } from "@/components/ui/drawer";
 import { adminControl } from "./operations";
+import { adminDate } from "./adminPresentation";
 
 export const catalogScreen =
   "space-y-4 px-4 py-5 text-sm [overflow-wrap:anywhere] [&_button]:min-h-11 [&_button]:min-w-11 [&_input:not([type=checkbox])]:min-h-11 [&_select]:min-h-11 [&_summary]:min-h-11 [&_summary]:content-center [&_label]:min-w-0";
@@ -127,13 +128,7 @@ export function catalogName(
   );
 }
 export function catalogDate(value: string | null | undefined, language: string) {
-  return value && Number.isFinite(Date.parse(value))
-    ? new Intl.DateTimeFormat(language.startsWith("ar") ? "ar-EG-u-nu-latn" : "en-GB", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      }).format(new Date(value))
-    : "—";
+  return adminDate(value, language, false);
 }
 export function catalogTime(value: string, language: string) {
   const [h, m] = value.split(":").map(Number);

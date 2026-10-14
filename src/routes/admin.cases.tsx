@@ -1,4 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { AdminPicker } from "@/components/admin/AdminPicker";
+import { AdminRelativeTime } from "@/components/admin/AdminRelativeTime";
+import { AdminLink as Link } from "@/components/admin/AdminNavigation";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
@@ -14,14 +17,11 @@ import {
   type TicketStatus,
 } from "@/lib/db/case-queries";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
-import { adminPath } from "@/lib/preview/previewPath";
-import { isPreviewAdminRoute, PREVIEW_NOW_ISO } from "@/lib/preview/constants";
 import { Search, Paperclip } from "lucide-react";
 import {
   adminControl,
   adminScreen,
   bookingCode,
-  caseAge,
   mergeCases,
   operationDate,
 } from "@/components/admin/operations";
@@ -73,7 +73,7 @@ function BookingContext({ row }: { row: any }) {
       )}
       {booking?.customer?.full_name && booking?.customer_id && (
         <Link
-          to={adminPath("/admin/customer/$id") as "/admin/customer/$id"}
+          to={"/admin/customer/$id" as "/admin/customer/$id"}
           params={{ id: booking.customer_id }}
           className="text-brand hover:underline"
         >
@@ -84,7 +84,7 @@ function BookingContext({ row }: { row: any }) {
         <>
           {" → "}
           <Link
-            to={adminPath("/admin/provider/$id") as "/admin/provider/$id"}
+            to={"/admin/provider/$id" as "/admin/provider/$id"}
             params={{ id: booking.provider.id }}
             className="text-brand hover:underline"
           >
@@ -155,7 +155,7 @@ function SupportTicketDetail({ row }: { row: any }) {
         <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
           {t("admin.cases.resolutionAudited")}
         </p>
-        <select
+        <AdminPicker
           value={status}
           onChange={(e) => setStatus(e.target.value as TicketStatus)}
           className="focus-ring h-9 w-full rounded-lg border border-border bg-surface px-2 text-xs"
@@ -165,7 +165,7 @@ function SupportTicketDetail({ row }: { row: any }) {
               {t(`adminOps.status.${s}`)}
             </option>
           ))}
-        </select>
+        </AdminPicker>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
@@ -234,7 +234,7 @@ function DisputeDetail({ row }: { row: any }) {
             aria-label={t("admin.cases.adminNotes")}
             className="w-full resize-none rounded-lg border border-border bg-surface p-2 text-xs"
           />
-          <select
+          <AdminPicker
             value={bookingOutcome}
             onChange={(e) => setBookingOutcome(e.target.value as any)}
             className="focus-ring h-9 w-full rounded-lg border border-border bg-surface px-2 text-xs"
@@ -242,7 +242,7 @@ function DisputeDetail({ row }: { row: any }) {
             <option value="">{t("admin.cases.dontChangeStatus")}</option>
             <option value="completed">{t("admin.cases.markCompleted")}</option>
             <option value="cancelled">{t("admin.cases.markCancelled")}</option>
-          </select>
+          </AdminPicker>
           <div className="flex flex-wrap gap-2">
             <button
               disabled={resolve.isPending}
@@ -345,7 +345,7 @@ function NoShowDetail({ row }: { row: any }) {
             aria-label={t("admin.cases.adminNotes")}
             className="w-full resize-none rounded-lg border border-border bg-surface p-2 text-xs"
           />
-          <select
+          <AdminPicker
             value={bookingOutcome}
             onChange={(e) => setBookingOutcome(e.target.value as any)}
             className="focus-ring h-9 w-full rounded-lg border border-border bg-surface px-2 text-xs"
@@ -353,7 +353,7 @@ function NoShowDetail({ row }: { row: any }) {
             <option value="">{t("admin.cases.dontChangeStatus")}</option>
             <option value="completed">{t("admin.cases.markCompleted")}</option>
             <option value="cancelled">{t("admin.cases.markCancelled")}</option>
-          </select>
+          </AdminPicker>
           <div className="flex flex-wrap gap-2">
             <button
               disabled={resolve.isPending}
@@ -444,11 +444,7 @@ function CaseRow({
             className="text-xs text-muted-foreground"
             title={operationDate(row.created_at, i18n.language)}
           >
-            {caseAge(
-              row.created_at,
-              i18n.language,
-              isPreviewAdminRoute() ? Date.parse(PREVIEW_NOW_ISO) : Date.now(),
-            )}
+            <AdminRelativeTime value={row.created_at} />
           </p>
           <BookingContext row={row} />
           <p className="mt-2 break-words text-sm">{row.reason || row.description}</p>
@@ -570,7 +566,7 @@ export function AdminCases({
             className="w-full bg-transparent text-sm outline-none"
           />
         </div>
-        <select
+        <AdminPicker
           value={status}
           onChange={(e) => setStatus(e.target.value)}
           className="focus-ring h-10 rounded-xl border border-border bg-surface px-3 text-sm"
@@ -581,7 +577,7 @@ export function AdminCases({
               {t(`adminOps.status.${s}`)}
             </option>
           ))}
-        </select>
+        </AdminPicker>
       </div>
 
       {isLoading ? (
