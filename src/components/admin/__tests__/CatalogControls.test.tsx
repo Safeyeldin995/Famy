@@ -55,7 +55,7 @@ describe("admin catalog safety", () => {
     expect(catalogDate("2027-01-01T12:00:00Z", "ar")).not.toMatch(/[٠-٩]/);
   });
   it("can never change the commission from settings", () => {
-    const code = readFileSync("src/routes/admin.settings.tsx", "utf8");
+    const code = readFileSync("src/routes/admin.settings.tsx", "utf8").replace(/\r\n/g, "\n");
     // VAT and the platform fee are editable; the commission is only ever
     // passed through exactly as stored, and there is no commission input.
     const writes = code.match(/commission_percent:[^\n]*/g) ?? [];
@@ -64,7 +64,7 @@ describe("admin catalog safety", () => {
     expect(code).toContain('t("adminCatalog.ownerDecision")');
   });
   it("keeps service update behind validation and a separate confirmation", () => {
-    const code = readFileSync("src/routes/admin.services.tsx", "utf8");
+    const code = readFileSync("src/routes/admin.services.tsx", "utf8").replace(/\r\n/g, "\n");
     const prepare = code.slice(
       code.indexOf("const submitEdit ="),
       code.indexOf("const confirmEdit ="),

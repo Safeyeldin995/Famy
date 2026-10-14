@@ -47,11 +47,18 @@ const labels: Record<string, [string, string]> = {
   request_changes: ["طلب تعديل", "Requested changes"],
   needs_changes: ["محتاج تعديل", "Needs changes"],
   request_updated_details: ["طلب تحديث البيانات", "Requested updated details"],
+  suspend: ["أوقف الحساب", "Suspended account"],
+  unsuspend: ["رجع الحساب", "Reactivated account"],
+  suspended: ["موقوف", "Suspended"],
+  online: ["دفع أونلاين", "Online payment"],
+  instapay: ["إنستاباي", "InstaPay"],
+  wallet: ["محفظة", "Wallet"],
 };
 export function adminLabel(value: string | null | undefined, language = "ar") {
   return (
     labels[String(value ?? "").toLowerCase()]?.[language.startsWith("ar") ? 0 : 1] ??
-    (language.startsWith("ar") ? "غير معروف" : "Unknown")
+    // Unmapped codes stay visible so an admin can still tell them apart.
+    (value ? String(value).replace(/_/g, " ") : "—")
   );
 }
 export function adminActor(value: string | null | undefined, language = "ar") {

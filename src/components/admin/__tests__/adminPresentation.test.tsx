@@ -41,7 +41,9 @@ describe("admin presentation", () => {
     expect(adminLabel("cash")).toBe("كاش");
     expect(adminLabel("submit")).toBe("قدم الطلب");
     expect(adminLabel("tutoring")).toBe("دروس خصوصية");
-    expect(adminLabel("unrecognized_internal_code")).toBe("غير معروف");
+    expect(adminLabel("unrecognized_internal_code")).toBe("unrecognized internal code");
+    expect(adminLabel("suspend")).toBe("أوقف الحساب");
+    expect(adminLabel(null)).toBe("—");
     expect(adminActor("Admin User")).toBe("الإدارة");
     expect(adminActor("Admin")).toBe("الإدارة");
     expect(adminActor("منى")).toBe("منى");
