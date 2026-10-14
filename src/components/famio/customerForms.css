@@ -17,3 +17,18 @@ body:has(.customer-birth-date) .apply-sheet .apply-back {
   width: 44px;
   height: 44px;
 }
+.customer-filter-picker .apply-input {
+  min-height: 48px;
+  height: auto;
+  padding: 12px;
+  gap: 8px;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.customer-filter-picker .apply-input svg {
+  flex-shrink: 0;
+}
+body:has(.customer-filter-picker) .apply-sheet .apply-back {
+  min-width: 44px;
+  min-height: 44px;
+}

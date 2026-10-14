@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft } from "lucide-react";
 import type { ReactNode } from "react";
-import { previewPath } from "@/lib/preview/previewPath";
+import { useCustomerPreviewPath } from "@/components/famio/useCustomerPreviewPath";
 
 export function CustomerPageHeader({
   title,
@@ -18,6 +18,7 @@ export function CustomerPageHeader({
   right?: ReactNode;
 }) {
   const { t } = useTranslation();
+  const previewPath = useCustomerPreviewPath();
   return (
     <header className="safe-top border-b border-border/60 bg-white px-5 py-4">
       <div className="flex items-center gap-3">

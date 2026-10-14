@@ -15,7 +15,7 @@ export function AdminStatusBadge({
   const resolved = tone ?? (status ? statusToTone(status) : "neutral");
   return (
     <span
-      className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${adminToneClass(resolved)} ${className}`}
+      className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold uppercase tracking-wide ${adminToneClass(resolved)} ${className}`}
     >
       {children}
     </span>

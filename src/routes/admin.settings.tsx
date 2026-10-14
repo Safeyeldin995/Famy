@@ -1,3 +1,4 @@
+import { adminLabel } from "@/components/admin/adminPresentation";
 import {
   ConfirmCatalogButton,
   catalogScreen,
@@ -27,7 +28,7 @@ import {
   useSetReminderRuleActive,
 } from "@/lib/db/admin-queries";
 import { toast } from "sonner";
-import { Save, Check } from "lucide-react";
+import { Save, Check, ChevronDown } from "lucide-react";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
 
 export const Route = createFileRoute("/admin/settings")({ component: AdminSettings });
@@ -42,9 +43,19 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <details className="rounded-2xl border border-border/60 bg-surface p-5 shadow-sm">
-      <summary className="cursor-pointer text-sm font-extrabold">{title}</summary>
-      {subtitle && <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>}
+    <details className="group/settings rounded-2xl border border-border/60 bg-surface p-5 shadow-sm">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
+        <span>
+          <span className="block text-sm font-extrabold">{title}</span>
+          {subtitle && (
+            <span className="mt-1 block text-xs font-normal text-muted-foreground">{subtitle}</span>
+          )}
+        </span>
+        <ChevronDown
+          aria-hidden
+          className="h-5 w-5 shrink-0 transition-transform group-open/settings:rotate-180"
+        />
+      </summary>
       <div className="mt-4 space-y-3">{children}</div>
     </details>
   );
@@ -353,8 +364,8 @@ function CategoriesSection() {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold">{catalogName(c, i18n.language)}</p>
-                    <p dir="ltr" className="text-start text-xs text-muted-foreground">
-                      {c.slug}
+                    <p className="text-start text-xs text-muted-foreground">
+                      {adminLabel(c.slug, i18n.language)}
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">

@@ -1,4 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { adminLabel } from "@/components/admin/adminPresentation";
+import { AdminLink as Link } from "@/components/admin/AdminNavigation";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -37,7 +39,6 @@ import {
   formatAdminActionErrorMessage,
   type OnboardingCompletionPayload,
 } from "@/lib/admin/providerApprovalReview";
-import { adminPath } from "@/lib/preview/previewPath";
 import { currentLang } from "@/lib/i18n";
 
 export const Route = createFileRoute("/admin/provider/$id")({ component: AdminProviderRoute });
@@ -464,7 +465,7 @@ function EligibilityDetails({ providerId }: { providerId: string }) {
 }
 
 export function AdminProvider({ id }: { id: string }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const provider = useAdminProvider(id);
   const onboarding = useAdminOnboardingReview(id);
   const action = useAdminOnboardingAction();
@@ -528,7 +529,7 @@ export function AdminProvider({ id }: { id: string }) {
   return (
     <main className="mx-auto max-w-4xl space-y-4 px-4 py-5 sm:px-6">
       <Link
-        to={adminPath("/admin/providers") as "/admin/providers"}
+        to={"/admin/providers" as "/admin/providers"}
         className="focus-ring inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-bold"
       >
         <ChevronLeft className="h-4 w-4" />
@@ -736,7 +737,8 @@ export function AdminProvider({ id }: { id: string }) {
           <ul className="mt-2 space-y-1 text-xs">
             {payload.events.slice(0, 12).map((event, index) => (
               <li key={index}>
-                {event.action} · {event.new_status}
+                {adminLabel(event.action, i18n.language)} ·{" "}
+                {adminLabel(event.new_status, i18n.language)}
               </li>
             ))}
           </ul>

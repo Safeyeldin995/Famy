@@ -4,7 +4,7 @@ import type { Provider } from "@/lib/mock/data";
 import { useTranslation } from "react-i18next";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 import { ProviderRatingMeta } from "./ProviderListRow";
-import { isPreviewRoute } from "@/lib/preview/constants";
+import { useCustomerPreviewMode } from "./useCustomerPreviewPath";
 import { formatEGP } from "@/lib/format";
 import { customerRoleLabel } from "./customerProviders";
 
@@ -17,10 +17,11 @@ export function ProviderCard({
   subtitle?: string;
   categoryLabel?: string;
 }) {
+  const preview = useCustomerPreviewMode();
   const { t } = useTranslation();
   return (
     <Link
-      to={isPreviewRoute() ? "/preview/provider/$id" : "/provider/$id"}
+      to={preview ? "/preview/provider/$id" : "/provider/$id"}
       params={{ id: p.id }}
       className="focus-ring block min-h-11 rounded-2xl border border-border/60 bg-white p-4"
     >

@@ -1,4 +1,5 @@
-import { previewPath } from "@/lib/preview/previewPath";
+import { CustomerFilterPicker } from "@/components/famio/CustomerFilterPicker";
+import { useCustomerPreviewPath } from "@/components/famio/useCustomerPreviewPath";
 import { isFixedPackage, packageLabel, type PackageService } from "@/lib/pricing/servicePackages";
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
@@ -33,6 +34,7 @@ type Filter = "all" | "babysitting" | "tutoring" | "top";
 
 function SearchPage() {
   const { t } = useTranslation();
+  const previewPath = useCustomerPreviewPath();
   const lang = currentLang();
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -98,7 +100,7 @@ function SearchPage() {
       <button
         type="button"
         className="min-h-11 px-3 font-bold text-brand"
-        onClick={() => document.getElementById("search-address")?.focus()}
+        onClick={() => document.querySelector<HTMLButtonElement>("#search-address button")?.focus()}
       >
         {t("bookingUx.changeArea")}
       </button>
@@ -157,45 +159,36 @@ function SearchPage() {
         </div>
 
         <div className="mt-5 grid grid-cols-2 gap-3 rounded-2xl border border-border/50 bg-white p-4 shadow-sm">
-          <label className="block">
-            <span className="text-pro-12 font-bold">{t("search2.service")}</span>
-            <select
-              aria-label={t("search2.service")}
-              value={serviceId}
-              onChange={(e) => setServiceId(e.target.value)}
-              className="focus-ring mt-1.5 h-12 w-full rounded-full bg-surface-2 px-4 text-pro-14 font-bold text-foreground focus:outline-none"
-            >
-              <option value="">{t("search2.allServices")}</option>
-              {(servicesQ.data ?? []).map(
-                (service: { id: string; name_en: string; name_ar: string } & PackageService) => (
-                  <option key={service.id} value={service.id}>
-                    {lang === "ar"
+          <CustomerFilterPicker
+            label={t("search2.service")}
+            value={serviceId}
+            onChange={setServiceId}
+            options={[
+              { value: "", label: t("search2.allServices") },
+              ...(servicesQ.data ?? []).map(
+                (service: { id: string; name_en: string; name_ar: string } & PackageService) => ({
+                  value: service.id,
+                  label:
+                    (lang === "ar"
                       ? service.name_ar || service.name_en
-                      : service.name_en || service.name_ar}
-                    {isFixedPackage(service)
+                      : service.name_en || service.name_ar) +
+                    (isFixedPackage(service)
                       ? ` · ${t(packageLabel(service).key, packageLabel(service).values)}`
-                      : ""}
-                  </option>
-                ),
-              )}
-            </select>
-          </label>
-          <label className="block">
-            <span className="text-pro-12 font-bold">{t("search2.address")}</span>
-            <select
-              id="search-address"
-              aria-label={t("search2.address")}
-              value={selectedAddressId ?? ""}
-              onChange={(e) => setAddressId(e.target.value)}
-              className="focus-ring mt-1.5 h-12 w-full rounded-full bg-surface-2 px-4 text-pro-14 font-bold text-foreground focus:outline-none"
-            >
-              {(addressesQ.data ?? []).map((address) => (
-                <option key={address.id} value={address.id}>
-                  {address.area || address.city}
-                </option>
-              ))}
-            </select>
-          </label>
+                      : ""),
+                }),
+              ),
+            ]}
+          />
+          <CustomerFilterPicker
+            id="search-address"
+            label={t("search2.address")}
+            value={selectedAddressId ?? ""}
+            onChange={setAddressId}
+            options={(addressesQ.data ?? []).map((address) => ({
+              value: address.id,
+              label: address.area || address.city,
+            }))}
+          />
         </div>
 
         {servicesQ.isError && <QueryError compact onRetry={() => servicesQ.refetch()} />}
