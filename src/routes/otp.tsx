@@ -235,7 +235,7 @@ export function OtpScreen({
                 type="button"
                 onClick={resend}
                 disabled={resending || loading}
-                className="font-black text-brand disabled:opacity-50"
+                className="min-h-11 px-3 py-3 font-black text-brand disabled:opacity-50"
               >
                 {resending ? t("common.sending", "Sending...") : t("auth.resend")}
               </button>
@@ -246,7 +246,7 @@ export function OtpScreen({
             <button
               type="button"
               onClick={changePhone}
-              className="text-sm font-bold text-muted-foreground"
+              className="min-h-11 px-3 py-3 text-sm font-bold text-muted-foreground"
             >
               {t("auth.changePhone", "Change phone number")}
             </button>

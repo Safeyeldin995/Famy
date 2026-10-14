@@ -14,7 +14,7 @@ import {
   resolvePostPasswordLoginTarget,
   resolveRoleLandingForCurrentUser,
 } from "@/lib/auth/landing";
-import { previewPath } from "@/lib/preview/previewPath";
+import { useCustomerPreviewPath } from "@/components/famio/useCustomerPreviewPath";
 import { ICON_STROKE, ICON_STROKE_BOLD } from "@/lib/icons/constants";
 
 export const Route = createFileRoute("/login")({ component: Login });
@@ -45,7 +45,7 @@ function AuthModeTabs({
             type="button"
             onClick={() => onChange(tab.value)}
             aria-pressed={active}
-            className={`focus-ring -mb-px pb-3 text-[15px] font-extrabold transition-colors ${
+            className={`focus-ring min-h-11 -mb-px pb-3 text-[15px] font-extrabold transition-colors ${
               active
                 ? "border-b-[3px] border-brand text-brand"
                 : "border-b-[3px] border-transparent text-muted-foreground"
@@ -70,6 +70,7 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
   const nav = useNavigate();
   const { setProfile, setAuthed } = useApp();
   const { t, i18n } = useTranslation();
+  const previewPath = useCustomerPreviewPath();
 
   const phoneValid = normalizeDigitsToWestern(phone).replace(/\D/g, "").length >= 9;
   const screenTitle = mode === "signin" ? t("auth.signIn") : t("auth.signUp");
@@ -173,7 +174,7 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
             />
           </div>
           {mode === "signup" && role === "provider" ? (
-            <p className="mt-3 text-[11px] font-semibold leading-relaxed text-muted-foreground">
+            <p className="mt-3 text-pro-12 font-semibold leading-relaxed text-muted-foreground">
               {t("auth.providerNote")}
             </p>
           ) : null}
@@ -187,7 +188,7 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
               <div className="mt-2 flex h-14 items-center gap-2 rounded-2xl border border-border/80 bg-white px-3 focus-within:border-brand focus-within:ring-1 focus-within:ring-brand">
                 <button
                   type="button"
-                  className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-surface-2 px-2 py-1.5 text-[11px] font-extrabold text-foreground"
+                  className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-lg bg-surface-2 px-2 py-1.5 text-pro-12 font-extrabold text-foreground"
                   aria-label={t("auth.phoneNumber")}
                 >
                   <span aria-hidden="true">🇪🇬</span>
@@ -208,7 +209,7 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
                   placeholder={t("auth.phonePlaceholder")}
                   value={phone}
                   onChange={(e) => setPhone(e.target.value.replace(/[^\d ]/g, ""))}
-                  className="min-w-0 flex-1 bg-transparent text-[15px] font-semibold outline-none placeholder:text-muted-foreground/50"
+                  className="min-h-11 min-w-0 flex-1 bg-transparent text-[15px] font-semibold outline-none placeholder:text-muted-foreground/50"
                 />
               </div>
             </div>
@@ -223,13 +224,13 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="min-w-0 flex-1 bg-transparent text-[15px] font-semibold tracking-widest outline-none placeholder:text-muted-foreground/50"
+                    className="min-h-11 min-w-0 flex-1 bg-transparent text-[15px] font-semibold tracking-widest outline-none placeholder:text-muted-foreground/50"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPw((v) => !v)}
                     aria-label={showPw ? t("auth.hidePassword") : t("auth.showPassword")}
-                    className="focus-ring tap-scale grid h-10 w-10 shrink-0 place-items-center rounded-xl text-muted-foreground"
+                    className="focus-ring tap-scale grid h-11 w-11 shrink-0 place-items-center rounded-xl text-muted-foreground"
                   >
                     {showPw ? (
                       <EyeOff className="h-5 w-5" strokeWidth={ICON_STROKE} />
@@ -241,7 +242,7 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
                 <div className="mt-3 flex justify-end">
                   <Link
                     to={previewPath("/auth/forgot")}
-                    className="text-[13px] font-extrabold text-brand"
+                    className="inline-flex min-h-11 items-center py-3 text-[13px] font-extrabold text-brand"
                   >
                     {t("auth.forgot")}
                   </Link>
@@ -258,7 +259,7 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
             <Link
               to="/content/$key"
               params={{ key: "terms" }}
-              className="font-extrabold text-brand"
+              className="inline-flex min-h-11 items-center py-3 font-extrabold text-brand"
             >
               {t("auth.termsLink")}
             </Link>{" "}
@@ -266,7 +267,7 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
             <Link
               to="/content/$key"
               params={{ key: "privacy" }}
-              className="font-extrabold text-brand"
+              className="inline-flex min-h-11 items-center py-3 font-extrabold text-brand"
             >
               {t("auth.privacyLink")}
             </Link>
@@ -297,7 +298,7 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
               <button
                 type="button"
                 onClick={() => setMode("signup")}
-                className="font-extrabold text-brand"
+                className="inline-flex min-h-11 items-center py-3 font-extrabold text-brand"
               >
                 {t("auth.createAccountLink")}
               </button>
@@ -308,7 +309,7 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
               <button
                 type="button"
                 onClick={() => setMode("signin")}
-                className="font-extrabold text-brand"
+                className="inline-flex min-h-11 items-center py-3 font-extrabold text-brand"
               >
                 {t("auth.signInLink")}
               </button>

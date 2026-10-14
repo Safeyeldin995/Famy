@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronLeft } from "lucide-react";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
-import { previewPath } from "@/lib/preview/previewPath";
+import { useCustomerPreviewPath } from "@/components/famio/useCustomerPreviewPath";
 
 export function CustomerPageHero({
   title,
@@ -21,6 +21,7 @@ export function CustomerPageHero({
   children?: ReactNode;
 }) {
   const { t } = useTranslation();
+  const previewPath = useCustomerPreviewPath();
   const backClass =
     "focus-ring tap-scale grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/25 bg-white/15 text-white backdrop-blur-sm";
 
