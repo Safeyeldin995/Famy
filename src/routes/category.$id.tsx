@@ -1,3 +1,4 @@
+import { CustomerFilterPicker } from "@/components/famio/CustomerFilterPicker";
 import { isFixedPackage, packageLabel, type PackageService } from "@/lib/pricing/servicePackages";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
@@ -6,7 +7,7 @@ import { PhoneFrame, Chip, EmptyState } from "@/components/famio/ui";
 import { CustomerPageHeader } from "@/components/famio/CustomerPageHeader";
 import { QueryError } from "@/components/famio/QueryError";
 import { ProviderCard } from "@/components/famio/ProviderCard";
-import { previewPath } from "@/lib/preview/previewPath";
+import { useCustomerPreviewPath } from "@/components/famio/useCustomerPreviewPath";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { useActiveFamilyMembers, type FamilyMemberRow } from "@/lib/db/family-members-queries";
 import {
@@ -33,6 +34,7 @@ export const Route = createFileRoute("/category/$id")({ component: CategoryPage 
 export function CategoryPageContent({ categoryId }: { categoryId: string }) {
   const id = categoryId;
   const { t } = useTranslation();
+  const previewPath = useCustomerPreviewPath();
   const lang = useLang();
   const catsQ = useCategories();
   const servicesQ = useMarketplaceServices(id);
@@ -143,45 +145,40 @@ export function CategoryPageContent({ categoryId }: { categoryId: string }) {
               <QueryError compact onRetry={() => servicesQ.refetch()} />
             </div>
           ) : (
-            <select
-              aria-label={t("search2.service")}
+            <CustomerFilterPicker
+              label={t("search2.service")}
               value={serviceId}
-              onChange={(e) => setServiceId(e.target.value)}
-              className="focus-ring mt-3 h-12 w-full rounded-full bg-surface-2 px-4 text-pro-14 font-bold text-foreground focus:outline-none"
-            >
-              {(servicesQ.data ?? []).map(
-                (service: { id: string; name_en: string; name_ar?: string } & PackageService) => (
-                  <option key={service.id} value={service.id}>
-                    {lang === "ar"
+              onChange={setServiceId}
+              options={(servicesQ.data ?? []).map(
+                (service: { id: string; name_en: string; name_ar?: string } & PackageService) => ({
+                  value: service.id,
+                  label:
+                    (lang === "ar"
                       ? service.name_ar || service.name_en
-                      : service.name_en || service.name_ar}
-                    {isFixedPackage(service)
+                      : service.name_en || service.name_ar || "") +
+                    (isFixedPackage(service)
                       ? ` · ${t(packageLabel(service).key, packageLabel(service).values)}`
-                      : ""}
-                  </option>
-                ),
+                      : ""),
+                }),
               )}
-            </select>
+            />
           )}
         </div>
 
         {isTutoring ? (
           <div className="mt-3 space-y-2">
-            <label className="block text-pro-12 font-bold uppercase tracking-wide text-muted-foreground">
-              {t("studentEducation.studentPicker", "Student")}
-            </label>
-            <select
+            <CustomerFilterPicker
+              label={t("studentEducation.studentPicker", "Student")}
               value={forWhom}
-              onChange={(e) => setForWhom(e.target.value)}
-              className="focus-ring h-12 w-full rounded-full bg-surface-2 px-4 text-pro-14 font-bold text-foreground"
-            >
-              <option value="myself">{t("bookFlow.forWhomMyself", "Myself")}</option>
-              {(familyMembersQ.data ?? []).map((member: FamilyMemberRow) => (
-                <option key={member.id} value={member.id}>
-                  {member.full_name}
-                </option>
-              ))}
-            </select>
+              onChange={setForWhom}
+              options={[
+                { value: "myself", label: t("bookFlow.forWhomMyself", "Myself") },
+                ...(familyMembersQ.data ?? []).map((member: FamilyMemberRow) => ({
+                  value: member.id,
+                  label: member.full_name,
+                })),
+              ]}
+            />
           </div>
         ) : null}
       </div>

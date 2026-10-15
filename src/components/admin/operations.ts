@@ -1,4 +1,5 @@
-import { formatDateTime, formatLocale } from "@/lib/format";
+import { formatLocale } from "@/lib/format";
+import { adminDate } from "./adminPresentation";
 
 export const bookingStatuses = [
   "pending",
@@ -42,9 +43,7 @@ export function canReviewTransfer(p: {
   );
 }
 export function operationDate(value: string | null | undefined, language: string) {
-  return value && Number.isFinite(Date.parse(value))
-    ? formatDateTime(new Date(value), language)
-    : "—";
+  return adminDate(value, language);
 }
 export function caseAge(value: string, language: string, now = Date.now()) {
   const elapsed = Math.max(0, (now - Date.parse(value)) / 60000);

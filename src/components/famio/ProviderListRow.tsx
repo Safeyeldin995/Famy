@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { StatusPill } from "@/components/famio/ui";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
 import { formatNumber } from "@/lib/format";
-import { isPreviewRoute } from "@/lib/preview/constants";
+import { useCustomerPreviewMode } from "./useCustomerPreviewPath";
 
 export function ProviderListRow({
   to,
@@ -29,7 +29,8 @@ export function ProviderListRow({
   trailing?: ReactNode;
   className?: string;
 }) {
-  const resolvedTo = isPreviewRoute() && to === "/provider/$id" ? "/preview/provider/$id" : to;
+  const preview = useCustomerPreviewMode();
+  const resolvedTo = preview && to === "/provider/$id" ? "/preview/provider/$id" : to;
 
   return (
     <Link

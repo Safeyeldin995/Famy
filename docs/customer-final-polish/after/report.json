@@ -1,0 +1,192 @@
+[
+  {
+    "route": "login",
+    "lang": "ar",
+    "overflow": false,
+    "smallText": [],
+    "smallTargets": [],
+    "arabicDigits": [],
+    "nativeSelects": 0,
+    "errors": [],
+    "warnings": [
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/family-members.tsx\" will not be code-split and will increase your bundle size:\n- FamilyMembers\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/login.tsx\" will not be code-split and will increase your bundle size:\n- Login\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/admin.services.tsx\" will not be code-split and will increase your bundle size:\n- AdminServices\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/auth.forgot.tsx\" will not be code-split and will increase your bundle size:\n- Forgot\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/family-members.new.tsx\" will not be code-split and will increase your bundle size:\n- NewFamilyMember\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/pro.availability.tsx\" will not be code-split and will increase your bundle size:\n- AvailabilityPage\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/pro.onboarding.tsx\" will not be code-split and will increase your bundle size:\n- OnboardingRoute\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file."
+    ]
+  },
+  {
+    "route": "otp",
+    "lang": "ar",
+    "overflow": false,
+    "smallText": [],
+    "smallTargets": [],
+    "arabicDigits": [],
+    "nativeSelects": 0,
+    "errors": [],
+    "warnings": [
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/family-members.tsx\" will not be code-split and will increase your bundle size:\n- FamilyMembers\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/login.tsx\" will not be code-split and will increase your bundle size:\n- Login\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/admin.services.tsx\" will not be code-split and will increase your bundle size:\n- AdminServices\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/auth.forgot.tsx\" will not be code-split and will increase your bundle size:\n- Forgot\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/family-members.new.tsx\" will not be code-split and will increase your bundle size:\n- NewFamilyMember\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/pro.availability.tsx\" will not be code-split and will increase your bundle size:\n- AvailabilityPage\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/pro.onboarding.tsx\" will not be code-split and will increase your bundle size:\n- OnboardingRoute\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file."
+    ]
+  },
+  {
+    "route": "forgot",
+    "lang": "ar",
+    "overflow": false,
+    "smallText": [],
+    "smallTargets": [],
+    "arabicDigits": [],
+    "nativeSelects": 0,
+    "errors": [],
+    "warnings": [
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/family-members.tsx\" will not be code-split and will increase your bundle size:\n- FamilyMembers\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/login.tsx\" will not be code-split and will increase your bundle size:\n- Login\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/admin.services.tsx\" will not be code-split and will increase your bundle size:\n- AdminServices\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/auth.forgot.tsx\" will not be code-split and will increase your bundle size:\n- Forgot\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/family-members.new.tsx\" will not be code-split and will increase your bundle size:\n- NewFamilyMember\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/pro.availability.tsx\" will not be code-split and will increase your bundle size:\n- AvailabilityPage\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/pro.onboarding.tsx\" will not be code-split and will increase your bundle size:\n- OnboardingRoute\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file."
+    ]
+  },
+  {
+    "route": "favorites",
+    "lang": "ar",
+    "overflow": false,
+    "smallText": [],
+    "smallTargets": [],
+    "arabicDigits": [],
+    "nativeSelects": 0,
+    "errors": [],
+    "warnings": [
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/family-members.tsx\" will not be code-split and will increase your bundle size:\n- FamilyMembers\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/login.tsx\" will not be code-split and will increase your bundle size:\n- Login\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/admin.services.tsx\" will not be code-split and will increase your bundle size:\n- AdminServices\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/auth.forgot.tsx\" will not be code-split and will increase your bundle size:\n- Forgot\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/family-members.new.tsx\" will not be code-split and will increase your bundle size:\n- NewFamilyMember\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/pro.availability.tsx\" will not be code-split and will increase your bundle size:\n- AvailabilityPage\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/pro.onboarding.tsx\" will not be code-split and will increase your bundle size:\n- OnboardingRoute\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file."
+    ]
+  },
+  {
+    "route": "promo-codes",
+    "lang": "ar",
+    "overflow": false,
+    "smallText": [],
+    "smallTargets": [],
+    "arabicDigits": [],
+    "nativeSelects": 0,
+    "errors": [],
+    "warnings": [
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/family-members.tsx\" will not be code-split and will increase your bundle size:\n- FamilyMembers\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/login.tsx\" will not be code-split and will increase your bundle size:\n- Login\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/admin.services.tsx\" will not be code-split and will increase your bundle size:\n- AdminServices\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/auth.forgot.tsx\" will not be code-split and will increase your bundle size:\n- Forgot\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/family-members.new.tsx\" will not be code-split and will increase your bundle size:\n- NewFamilyMember\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/pro.availability.tsx\" will not be code-split and will increase your bundle size:\n- AvailabilityPage\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/pro.onboarding.tsx\" will not be code-split and will increase your bundle size:\n- OnboardingRoute\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file."
+    ]
+  },
+  {
+    "route": "help",
+    "lang": "ar",
+    "overflow": false,
+    "smallText": [],
+    "smallTargets": [],
+    "arabicDigits": [],
+    "nativeSelects": 0,
+    "errors": [],
+    "warnings": [
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/family-members.tsx\" will not be code-split and will increase your bundle size:\n- FamilyMembers\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/login.tsx\" will not be code-split and will increase your bundle size:\n- Login\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/admin.services.tsx\" will not be code-split and will increase your bundle size:\n- AdminServices\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/auth.forgot.tsx\" will not be code-split and will increase your bundle size:\n- Forgot\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/family-members.new.tsx\" will not be code-split and will increase your bundle size:\n- NewFamilyMember\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/pro.availability.tsx\" will not be code-split and will increase your bundle size:\n- AvailabilityPage\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/pro.onboarding.tsx\" will not be code-split and will increase your bundle size:\n- OnboardingRoute\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file."
+    ]
+  },
+  {
+    "route": "onboarding",
+    "lang": "ar",
+    "overflow": false,
+    "smallText": [],
+    "smallTargets": [],
+    "arabicDigits": [],
+    "nativeSelects": 0,
+    "errors": [],
+    "warnings": [
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/family-members.tsx\" will not be code-split and will increase your bundle size:\n- FamilyMembers\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/login.tsx\" will not be code-split and will increase your bundle size:\n- Login\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/admin.services.tsx\" will not be code-split and will increase your bundle size:\n- AdminServices\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/auth.forgot.tsx\" will not be code-split and will increase your bundle size:\n- Forgot\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/family-members.new.tsx\" will not be code-split and will increase your bundle size:\n- NewFamilyMember\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/pro.availability.tsx\" will not be code-split and will increase your bundle size:\n- AvailabilityPage\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/pro.onboarding.tsx\" will not be code-split and will increase your bundle size:\n- OnboardingRoute\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file."
+    ]
+  },
+  {
+    "route": "search",
+    "lang": "ar",
+    "overflow": false,
+    "smallText": [],
+    "smallTargets": [],
+    "arabicDigits": [],
+    "nativeSelects": 0,
+    "errors": [],
+    "warnings": [
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/family-members.tsx\" will not be code-split and will increase your bundle size:\n- FamilyMembers\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/login.tsx\" will not be code-split and will increase your bundle size:\n- Login\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/admin.services.tsx\" will not be code-split and will increase your bundle size:\n- AdminServices\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/auth.forgot.tsx\" will not be code-split and will increase your bundle size:\n- Forgot\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/family-members.new.tsx\" will not be code-split and will increase your bundle size:\n- NewFamilyMember\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/pro.availability.tsx\" will not be code-split and will increase your bundle size:\n- AvailabilityPage\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/pro.onboarding.tsx\" will not be code-split and will increase your bundle size:\n- OnboardingRoute\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file."
+    ]
+  },
+  {
+    "route": "category/babysitting",
+    "lang": "ar",
+    "overflow": false,
+    "smallText": [],
+    "smallTargets": [],
+    "arabicDigits": [],
+    "nativeSelects": 0,
+    "errors": [],
+    "warnings": [
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/family-members.tsx\" will not be code-split and will increase your bundle size:\n- FamilyMembers\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/login.tsx\" will not be code-split and will increase your bundle size:\n- Login\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/admin.services.tsx\" will not be code-split and will increase your bundle size:\n- AdminServices\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/auth.forgot.tsx\" will not be code-split and will increase your bundle size:\n- Forgot\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/family-members.new.tsx\" will not be code-split and will increase your bundle size:\n- NewFamilyMember\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/pro.availability.tsx\" will not be code-split and will increase your bundle size:\n- AvailabilityPage\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/pro.onboarding.tsx\" will not be code-split and will increase your bundle size:\n- OnboardingRoute\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file."
+    ]
+  },
+  {
+    "route": "category/tutoring",
+    "lang": "ar",
+    "overflow": false,
+    "smallText": [],
+    "smallTargets": [],
+    "arabicDigits": [],
+    "nativeSelects": 0,
+    "errors": [],
+    "warnings": [
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/family-members.tsx\" will not be code-split and will increase your bundle size:\n- FamilyMembers\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/login.tsx\" will not be code-split and will increase your bundle size:\n- Login\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/admin.services.tsx\" will not be code-split and will increase your bundle size:\n- AdminServices\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/auth.forgot.tsx\" will not be code-split and will increase your bundle size:\n- Forgot\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/family-members.new.tsx\" will not be code-split and will increase your bundle size:\n- NewFamilyMember\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/pro.availability.tsx\" will not be code-split and will increase your bundle size:\n- AvailabilityPage\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file.",
+      "[tanstack-router] These exports from \"C:/Users/Safey El-din/Desktop/Famy/Famy/.codex-worktrees/customer-final-polish/src/routes/pro.onboarding.tsx\" will not be code-split and will increase your bundle size:\n- OnboardingRoute\nFor the best optimization, these items should either have their export statements removed, or be imported from another location that is not a route file."
+    ]
+  }
+]

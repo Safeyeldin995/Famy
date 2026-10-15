@@ -57,7 +57,7 @@ function Favorites() {
               subtitle={formatEGP(p.hourlyRate, { perHour: true })}
               meta={<ProviderRatingMeta rating={p.rating} reviews={p.reviews} />}
               trailing={
-                <span className="shrink-0 rounded-full bg-brand px-3.5 py-2 text-[11px] font-extrabold text-brand-foreground">
+                <span className="shrink-0 rounded-full bg-brand px-3.5 py-2 text-pro-12 font-extrabold text-brand-foreground">
                   {t("provider.bookNow")}
                 </span>
               }

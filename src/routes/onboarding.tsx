@@ -1,3 +1,4 @@
+import { formatNumber } from "@/lib/format";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -17,10 +18,6 @@ const SLIDES = [
   { image: slide2Img, titleKey: "onboarding.slide2Title", bodyKey: "onboarding.slide2Body" },
   { image: slide3Img, titleKey: "onboarding.slide3Title", bodyKey: "onboarding.slide3Body" },
 ] as const;
-
-function formatPageNumber(value: number, lang: string) {
-  return lang === "ar" ? value.toLocaleString("ar-EG") : String(value);
-}
 
 function Onboarding() {
   const [i, setI] = useState(0);
@@ -44,7 +41,7 @@ function Onboarding() {
           <button
             type="button"
             onClick={finish}
-            className="focus-ring justify-self-start text-sm font-extrabold text-brand"
+            className="focus-ring min-h-11 min-w-11 px-2 py-3 justify-self-start text-sm font-extrabold text-brand"
           >
             {t("onboarding.skip")}
           </button>
@@ -85,8 +82,8 @@ function Onboarding() {
           </div>
           <p className="mb-4 text-center text-xs font-semibold text-muted-foreground">
             {t("onboarding.pageOf", {
-              current: formatPageNumber(i + 1, lang),
-              total: formatPageNumber(SLIDES.length, lang),
+              current: formatNumber(i + 1, lang),
+              total: formatNumber(SLIDES.length, lang),
             })}
           </p>
           <PrimaryButton onClick={() => (last ? finish() : setI(i + 1))} className="h-14 w-full">

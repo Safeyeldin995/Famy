@@ -58,7 +58,7 @@ export function Forgot({ previewMode = false }: { previewMode?: boolean } = {}) 
         </label>
         <div className="mt-2 flex h-14 items-center gap-3 rounded-2xl bg-surface-2 px-4 focus-within:border-brand focus-within:ring-1 focus-within:ring-brand">
           <span
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-background text-[10px] font-black text-foreground shadow-xs border border-border/50"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-background text-pro-12 font-black text-foreground shadow-xs border border-border/50"
             aria-hidden="true"
           >
             EG
@@ -74,7 +74,7 @@ export function Forgot({ previewMode = false }: { previewMode?: boolean } = {}) 
             placeholder={t("auth.phonePlaceholder")}
             value={phone}
             onChange={(e) => setPhone(e.target.value.replace(/[^\d ]/g, ""))}
-            className="min-w-0 flex-1 bg-transparent text-[15px] font-black outline-none placeholder:text-muted-foreground/60"
+            className="min-h-11 min-w-0 flex-1 bg-transparent text-[15px] font-black outline-none placeholder:text-muted-foreground/60"
           />
         </div>
       </div>
