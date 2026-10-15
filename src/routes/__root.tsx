@@ -16,6 +16,8 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { LanguageProvider } from "../lib/i18n/LanguageProvider";
 import { getInitialLanguage } from "../lib/i18n/language.functions";
 import { supabase } from "../integrations/supabase/client";
+import i18n from "../lib/i18n";
+import { startProfileLocaleSync } from "../lib/i18n/syncProfileLocale";
 import { ClientErrorMonitoringBridge } from "../components/ClientErrorMonitoringBridge";
 
 import { useTranslation } from "react-i18next";
@@ -120,6 +122,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
         <AuthCacheBridge />
         <PushNavigationBridge />
+        <ProfileLocaleBridge />
         <ClientErrorMonitoringBridge />
         <Outlet />
         <div id="firebase-recaptcha" className="hidden" aria-hidden="true" />
@@ -152,6 +155,12 @@ function AuthCacheBridge() {
     });
     return () => sub.subscription.unsubscribe();
   }, [qc]);
+  return null;
+}
+
+/** Keeps profiles.locale in step with the app language so push notifications match it. */
+function ProfileLocaleBridge() {
+  useEffect(() => startProfileLocaleSync(supabase, i18n), []);
   return null;
 }
 
