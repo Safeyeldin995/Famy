@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { QueryError } from "@/components/famio/QueryError";
-import { proPath } from "@/lib/preview/previewPath";
+import { useProPath } from "@/lib/provider/useProPath";
 
 export function ProfileWorkZones({
   providerId,
@@ -13,6 +13,7 @@ export function ProfileWorkZones({
   applicationEditable: boolean;
 }) {
   const { t, i18n } = useTranslation();
+  const proPath = useProPath();
   const query = useQuery({
     queryKey: ["provider-work-zone-names", providerId],
     queryFn: async () => {

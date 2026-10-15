@@ -41,7 +41,11 @@ function SplitAmounts({
       )}
       {(kind === "bookingValue" || kind === "mixed") && (
         <div>
-          <div className="text-pro-12 text-muted-foreground">{t("pro.earnings.bookingValue")}</div>
+          {kind === "mixed" && (
+            <div className="text-pro-12 text-muted-foreground">
+              {t("proFinalPolish.beforeCommission")}
+            </div>
+          )}
           <WorkMoney amount={bookingValue} />
         </div>
       )}
@@ -81,19 +85,20 @@ function EarningsPage() {
     <ProviderShell>
       <PageHeader title={t("pro.earnings.title")} />
       <div className="space-y-3 px-5 pb-6 pt-2">
+        {hasUnrecordedCommission && (
+          <p className="text-pro-12 text-muted-foreground">{t("pro.earnings.bookingValue")}</p>
+        )}
         <section className="rounded-2xl bg-brand p-5 text-brand-foreground">
           <h2 className="mb-2 text-pro-18 font-extrabold">{t("proRound2.paid")}</h2>
-          <p className="text-pro-14 font-bold">
-            {capturedKind === "bookingValue"
-              ? t("pro.earnings.bookingValue")
-              : t("pro.earnings.yourNet")}
-          </p>
+          {capturedKind !== "bookingValue" && (
+            <p className="text-pro-14 font-bold">{t("pro.earnings.yourNet")}</p>
+          )}
           <p className="mt-2 whitespace-nowrap text-pro-32 font-extrabold">
             {formatEGP(heroAmount)}
           </p>
           {capturedKind === "mixed" && (
             <p className="mt-2 text-pro-13">
-              {t("pro.earnings.bookingValue")}:{" "}
+              {t("proFinalPolish.beforeCommission")}:{" "}
               <span className="whitespace-nowrap font-bold">
                 {formatEGP(e.data?.captured.bookingValue ?? 0)}
               </span>
@@ -134,7 +139,7 @@ function EarningsPage() {
         </Card>
         {hasUnrecordedCommission && (
           <p className="text-pro-12 text-muted-foreground">
-            {t("pro.earnings.commissionUnrecorded")}
+            {t("proFinalPolish.summaryCommission")}
           </p>
         )}
         <section>
@@ -170,14 +175,21 @@ function EarningsPage() {
                           dateLoc,
                         )}
                       </p>
+                      {!snapshotted && (
+                        <p className="mt-1 text-pro-12 text-muted-foreground">
+                          {t("pro.earnings.commissionUnrecorded")}
+                        </p>
+                      )}
                     </div>
                     <div className="shrink-0 text-end">
                       <p className="whitespace-nowrap text-pro-14 font-extrabold">
                         {formatEGP(snapshotted ? Number(b.price_provider_net) : bookingValue)}
                       </p>
-                      <p className="text-pro-12 text-muted-foreground">
-                        {snapshotted ? t("pro.earnings.yourNet") : t("pro.earnings.bookingValue")}
-                      </p>
+                      {snapshotted && (
+                        <p className="text-pro-12 text-muted-foreground">
+                          {t("pro.earnings.yourNet")}
+                        </p>
+                      )}
                     </div>
                   </div>
                 );

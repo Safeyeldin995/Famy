@@ -81,6 +81,7 @@ const capabilities = [
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: i18n.t.bind(i18n), i18n }) }));
 vi.mock("@/lib/i18n", () => ({ currentLang: () => "en" }));
 vi.mock("@tanstack/react-router", () => ({
+  useRouterState: () => false,
   createFileRoute: () => (options: unknown) => ({ options }),
   useNavigate: () => vi.fn(),
   Link: ({

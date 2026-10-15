@@ -9,6 +9,7 @@ vi.mock("react-i18next", () => ({
   initReactI18next: { type: "3rdParty", init: () => {} },
 }));
 vi.mock("@tanstack/react-router", () => ({
+  useRouterState: () => false,
   Link: ({
     to,
     params,
@@ -70,13 +71,13 @@ it("uses the profile first name and signed photo", () => {
     />,
   );
   expect(screen.getByRole("heading", { name: "أهلا يا Sara" })).toBeTruthy();
-  expect(screen.getByAltText("").getAttribute("src")).toBe(
-    "/signed-avatar-test.png",
-  );
+  expect(screen.getByAltText("").getAttribute("src")).toBe("/signed-avatar-test.png");
   expect(screen.getByAltText("").getAttribute("aria-hidden")).toBe("true");
   expect(screen.queryByRole("img", { name: "Sara Example" })).toBeNull();
   expect(screen.queryByText("ابدأ")).toBeNull();
   expect(screen.getByRole("heading", { name: "طلبك كامل ✓" })).toBeTruthy();
   expect(screen.queryByRole("img", { name: /7/ })).toBeNull();
-  expect(screen.getAllByText("فريق فامي هيراجع طلبك وهيرد عليك خلال 24 ساعة. هيوصلك إشعار أول ما نخلص")).toHaveLength(2);
+  expect(
+    screen.getAllByText("فريق فامي هيراجع طلبك وهيرد عليك خلال 24 ساعة. هيوصلك إشعار أول ما نخلص"),
+  ).toHaveLength(2);
 });

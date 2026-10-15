@@ -25,7 +25,7 @@ import {
   SupportCasesCard,
 } from "@/components/famio/ui";
 import { PaymentBlock } from "@/components/famio/PaymentBlock";
-import { RescheduleSection } from "@/components/famio/RescheduleSection";
+import { ProviderRescheduleSection } from "@/components/provider/ProviderRescheduleSection";
 import { BookingChatPanel } from "@/components/famio/BookingChatPanel";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { useProviderBooking, useProviderUpdateBookingStatus } from "@/lib/db/provider-queries";
@@ -441,10 +441,8 @@ export function ProBookingDetail({ id, preview = false }: { id: string; preview?
           </Card>
         )}
 
-        <RescheduleSection
-          compact
+        <ProviderRescheduleSection
           bookingId={b.id}
-          viewer="provider"
           customerId={b.customer_id}
           status={b.status}
           currentStart={b.start_at}

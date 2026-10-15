@@ -3199,3 +3199,10 @@ Object.assign(ar, {
   },
 });
 export default ar;
+
+Object.assign(ar, {
+  proFinalPolish: {
+    summaryCommission: "المبالغ دي قيمة الحجوزات قبل عمولة فامي",
+    beforeCommission: "قبل العمولة",
+  },
+});

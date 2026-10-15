@@ -8,6 +8,7 @@ vi.mock("react-i18next", () => ({
   initReactI18next: { type: "3rdParty", init: () => {} },
 }));
 vi.mock("@tanstack/react-router", () => ({
+  useRouterState: () => false,
   Link: ({
     to,
     params,

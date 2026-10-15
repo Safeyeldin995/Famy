@@ -28,7 +28,7 @@ import {
   useSubmitOnboarding,
 } from "@/lib/provider/onboarding-queries";
 import { useMyTeachingCapabilities } from "@/lib/db/teaching-queries";
-import { proPath } from "@/lib/preview/previewPath";
+import { useProPath } from "@/lib/provider/useProPath";
 import { QueryError } from "@/components/famio/QueryError";
 import { useProviderAvailability } from "@/lib/db/provider-queries";
 import { workingHoursState } from "@/lib/provider/setupHelpers";
@@ -65,6 +65,7 @@ export function PendingHomeView({
   changes?: { reason?: string | null; completion?: SubmitCompletion; onSubmit: () => Promise<void> };
 }) {
   const { t, i18n } = useTranslation();
+  const proPath = useProPath();
   const firstName = fullName.trim().split(/\s+/)[0];
   const model = pendingHomeModel(data);
   const [busy, setBusy] = useState(false);
@@ -197,6 +198,7 @@ export function PendingHomeView({
 }
 function LivePendingHome({ providerId, changesRequested, reviewReason }: { providerId: string; changesRequested: boolean; reviewReason?: string | null }) {
   const { t, i18n } = useTranslation();
+  const proPath = useProPath();
   const completion = useProviderSubmittable(providerId, changesRequested);
   const submit = useSubmitOnboarding();
   const snapshot = useOnboardingSnapshot();

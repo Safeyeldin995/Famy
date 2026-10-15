@@ -1,9 +1,14 @@
-import { useRouterState } from "@tanstack/react-router";
-/** Router state is available on the server too; window-only routing causes hydration drift. */
+import { useSyncExternalStore } from "react";
+
+const subscribeNoop = () => () => {};
+
+/** Keep the SSR and first client href equal, then enable local preview navigation. */
 export function useProPath() {
-  const preview = useRouterState({
-    select: (state) => state.location.pathname.startsWith("/preview/pro"),
-  });
+  const preview = useSyncExternalStore(
+    subscribeNoop,
+    () => window.location.pathname.startsWith("/preview/pro"),
+    () => false,
+  );
   return (path: string) =>
     preview && (path === "/pro" || path.startsWith("/pro/")) ? `/preview${path}` : path;
 }
