@@ -1,11 +1,12 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "@tanstack/react-router";
-import { proPath } from "@/lib/preview/previewPath";
+import { useProPath } from "@/lib/provider/useProPath";
 import { groupTeachingRows } from "@/lib/tutoring/teachingGroups";
 import type { ProviderTeachingCapabilityRow } from "@/lib/db/teaching-queries";
 
 export function TeachingGroupsSummary({ rows }: { rows: ProviderTeachingCapabilityRow[] }) {
   const { t, i18n } = useTranslation();
+  const proPath = useProPath();
   const ar = i18n.language.startsWith("ar");
   const name = (row?: { name_ar: string; name_en: string } | null) =>
     row ? (ar ? row.name_ar : row.name_en) : "";

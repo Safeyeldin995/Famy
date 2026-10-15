@@ -1,29 +1,39 @@
-# Provider final polish — incomplete verification
+# Provider final polish — Arabic browser evidence
 
-Branch: `codex/pro-final-polish`, based on `1fb91bf31ed5723d0705f13a52ce9a00d43223d2`.
-Screenshots are of the local uncommitted patch, captured 2026-10-14 using synthetic preview data, Arabic cookie, Africa/Cairo time, Chromium at 390 × 844. Preview was enabled only in the local server process.
+Local Chromium, 390 × 844, Arabic language cookie and Africa/Cairo timezone. Synthetic preview data only; preview routes enabled only in the local server process.
 
-| Screen | Before | After |
-| --- | --- | --- |
-| Pending application | before/pending.png | after/pending.png |
-| Changes requested | before/changes.png | after/changes.png |
-| Profile | before/profile.png | after/profile.png |
-| Notification preferences | before/preferences.png | after/preferences.png |
-| Pending booking detail | before/booking.png | after/booking.png |
-| Earnings | before/earnings.png | after/earnings.png |
+Baseline screenshots were captured on 2026-10-14 from main `1fb91bf`. Final screenshots were refreshed on 2026-10-15 after merging main `829a647` and fixing provider preview hydration.
 
-`after/booking-payment-support.png` shows expanded payment details and the support button after scrolling. Payment bottom: 514px; support bottom: 617px; dock top: 698px; dock bottom and nav top: 779px. Both items are fully visible above the dock.
+| Screen                   | Before                           | After                          |
+| ------------------------ | -------------------------------- | ------------------------------ |
+| Pending application      | [Before](before/pending.png)     | [After](after/pending.png)     |
+| Changes requested        | [Before](before/changes.png)     | [After](after/changes.png)     |
+| Profile                  | [Before](before/profile.png)     | [After](after/profile.png)     |
+| Notification preferences | [Before](before/preferences.png) | [After](after/preferences.png) |
+| Pending booking detail   | [Before](before/booking.png)     | [After](after/booking.png)     |
+| Earnings                 | [Before](before/earnings.png)    | [After](after/earnings.png)    |
 
-Baseline hydration warnings: pending, changes, profile, preferences. Final browser check exits 1: profile still has a mismatched href in TeachingGroupsSummary (server /pro/setup/subjects, browser /preview/pro/setup/subjects). Other five screens have zero console/page errors. Full details are in browser-results.json. No errors were filtered.
+[Expanded payment details and support](after/booking-payment-support.png): payment bottom 514px; support bottom 617px; action dock top 698px; dock bottom and navigation top 779px. Both content items are fully visible above the dock.
 
-Verification:
-- npm ci: exit 0.
-- npx tsc --noEmit: exit 0.
-- Focused provider regression suite: 28 tests passed, exit 0.
-- Corrected UTF-8 earnings/profile tests: 14 passed, exit 0.
-- npx vitest run --maxWorkers=2: exit 1; 230 files passed, 1 failed, 7 skipped; 1,413 tests passed, 1 failed, 75 skipped. Untouched admin CatalogControls test at line 62 fails because its source-text regex captures a Windows carriage return.
-- npm run build: not run after failed gate.
-- node qa/check-ar-tashkeel.mjs: not run after failed gate.
-- git diff --check: exit 0.
+## Results
 
-Stopped under AGENTS.md anti-loop policy. Changes are uncommitted and unpushed; no PR opened. Required follow-up: authorize one focused provider link fix and coordinate the unrelated Windows-sensitive admin assertion with its owner before final gates.
+Browser check: exit 0. All six screens have zero hydration warnings, console errors or page errors. No errors were filtered. The profile displays the existing Arabic label for Cairo. Earnings has exactly one page caption and one summary commission note; booking-specific wording stays on unsnapshotted rows. No empty reschedule block appears.
+
+`browser-results.json` records baseline warnings and final clean results. `capture.cjs` reproduces the final check from the repository root while the local preview server runs on port 5187:
+
+```sh
+node src/components/provider/__screenshots__/final-polish/capture.cjs
+```
+
+Screenshots use `caret: "initial"` so Playwright does not inject input styles during hydration.
+
+## Final local gates
+
+- `npx tsc --noEmit`: exit 0.
+- `npx vitest run --maxWorkers=2`: exit 0; 235 files passed, 7 skipped; 1,435 tests passed, 75 skipped. No worker timeout.
+- `npm run build`: exit 0.
+- `node qa/check-ar-tashkeel.mjs`: exit 0; 695 source files, no diacritics.
+- `git diff --check`: exit 0.
+- `node --check src/components/provider/__screenshots__/final-polish/capture.cjs`: exit 0.
+
+The earlier Windows-sensitive admin assertion is resolved by merging main's PR #171; no admin source or test was edited in this patch.
