@@ -153,6 +153,9 @@ export function FamilyMemberForm({
 }) {
   const { t } = useTranslation();
   const [touched, setTouched] = useState(false);
+  // Health notes about a child are sensitive data under Egypt's PDPL (Law 151/2020):
+  // saving them needs the guardian's explicit consent each time they are submitted.
+  const [healthConsent, setHealthConsent] = useState(false);
   const today = customerDayKey();
 
   const set = <K extends keyof FamilyMemberFormValue>(k: K, v: FamilyMemberFormValue[K]) =>
@@ -167,9 +170,12 @@ export function FamilyMemberForm({
     relationshipOtherValid,
   } = useMemo(() => validateFamilyMemberFormValue(value, today), [value, today]);
 
+  const hasHealthNotes = hasFamilyMemberHealthNotes(value);
+  const consentMissing = hasHealthNotes && !healthConsent;
+
   const submit = () => {
     setTouched(true);
-    if (!valid || submitting) return;
+    if (!valid || consentMissing || submitting) return;
     onSubmit();
   };
 
@@ -286,6 +292,25 @@ export function FamilyMemberForm({
           "Anything the provider should know",
         )}
       />
+      {hasHealthNotes && (
+        <div>
+          <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-2xl border border-border bg-surface p-4">
+            <input
+              type="checkbox"
+              checked={healthConsent}
+              onChange={(e) => setHealthConsent(e.target.checked)}
+              className="mt-0.5 h-5 w-5 shrink-0 accent-brand"
+              data-testid="family-member-health-consent"
+            />
+            <span className="text-pro-13 font-medium leading-relaxed text-foreground">
+              {t("familyMembers.healthConsent")}
+            </span>
+          </label>
+          {touched && consentMissing && (
+            <ErrorText>{t("familyMembers.healthConsentRequired")}</ErrorText>
+          )}
+        </div>
+      )}
       <TextArea
         label={`${t("familyMembers.accessNotes", "Access notes")} (${t("familyMembers.optional", "optional")})`}
         value={value.accessNotes}
@@ -343,6 +368,12 @@ export function FamilyMemberForm({
       </PrimaryButton>
     </div>
   );
+}
+
+export function hasFamilyMemberHealthNotes(
+  v: Pick<FamilyMemberFormValue, "allergies" | "medicalNotes">,
+) {
+  return v.allergies.trim().length > 0 || v.medicalNotes.trim().length > 0;
 }
 
 function ErrorText({ children }: { children: React.ReactNode }) {
