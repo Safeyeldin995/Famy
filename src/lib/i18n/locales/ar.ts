@@ -3192,3 +3192,10 @@ Object.assign((ar as any).adminCatalog, {
   },
 });
 export default ar;
+
+Object.assign(ar, {
+  proFinalPolish: {
+    summaryCommission: "المبالغ دي قيمة الحجوزات قبل عمولة فامي",
+    beforeCommission: "قبل العمولة",
+  },
+});

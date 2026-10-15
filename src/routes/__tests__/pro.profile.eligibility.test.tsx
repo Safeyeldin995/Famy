@@ -38,6 +38,7 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: translations.t.bind(translations), i18n: translations }),
 }));
 vi.mock("@tanstack/react-router", () => ({
+  useRouterState: () => false,
   createFileRoute: () => (options: unknown) => ({ options }),
   useNavigate: () => vi.fn(),
   Link: ({ to, hash, children }: { to: string; hash?: string; children: ReactNode }) => (
@@ -72,7 +73,7 @@ vi.mock("@/lib/db/queries", () => ({ useAvatarUrl: () => ({ data: null }) }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 vi.mock("@/lib/db/settings-queries", () => ({ useServiceAreasSettings: () => ({ data: [] }) }));
 vi.mock("@/lib/db/provider-queries", () => ({
-  useMyProvider: () => ({ data: { id: "provider", onboarding_status: "APPROVED", profile: {} } }),
+  useMyProvider: () => ({ data: { id: "provider", onboarding_status: "APPROVED", city: "Cairo", profile: {} } }),
   useMyMarketplaceEligibility: () => ({ data: state.rows, isSuccess: true }),
   useMyProviderZones: () => ({
     data: state.zones,
@@ -222,6 +223,7 @@ it.each(["en", "ar"])("distinguishes living city from work zones in %s", async (
   await translations.changeLanguage(lang);
   render(<Profile />);
   expect(screen.getByText(translations.t("providerLocations.livesIn"))).toBeTruthy();
+  expect(screen.getByText(lang === "ar" ? "القاهرة" : "Cairo")).toBeTruthy();
   expect(screen.getByText(translations.t("providerLocations.worksIn"))).toBeTruthy();
   expect(screen.getByText(lang === "ar" ? "منطقة شغل تجريبية" : "Synthetic work zone")).toBeTruthy();
 });

@@ -3234,3 +3234,10 @@ Object.assign((en as any).adminCatalog, {
 });
 export default en;
 export type Translation = typeof en;
+
+Object.assign(en, {
+  proFinalPolish: {
+    summaryCommission: "These amounts are booking values before Famy commission.",
+    beforeCommission: "Before commission",
+  },
+});

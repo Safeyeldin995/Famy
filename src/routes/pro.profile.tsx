@@ -53,7 +53,8 @@ import {
   BriefcaseBusiness,
 } from "lucide-react";
 import { LanguageToggle, useLang } from "@/components/famio/LanguageToggle";
-import { customerPath, proPath } from "@/lib/preview/previewPath";
+import { customerPath } from "@/lib/preview/previewPath";
+import { useProPath } from "@/lib/provider/useProPath";
 
 import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
 import {
@@ -70,6 +71,7 @@ export const Route = createFileRoute("/pro/profile")({ component: ProProfile });
 // source (also used by setup.tsx and pro.onboarding.tsx).
 
 function ProProfile() {
+  const proPath = useProPath();
   const { t } = useTranslation();
   const lang = useLang();
   const p = useMyProvider();
@@ -443,7 +445,7 @@ function ProProfile() {
             <div className="flex flex-wrap gap-2">{[0, 1, 2, 3, 4].map((index) => <CheckChip key={index} selected={false} onClick={() => (lang === "ar" ? setBioAr : setBioEn)((value) => [value.trim(), t(`providerSetup.bioPhrases.p${index}`)].filter(Boolean).join(" "))}>{t(`providerSetup.bioPhrases.p${index}`)}</CheckChip>)}</div>
             <dl className="apply-list">
               <div className="apply-li"><dt className="flex-1">{t("pro.profile.yearsExperience")}</dt><dd>{years}</dd><LockKeyhole size={16} aria-hidden="true" /></div>
-              <div className="apply-li"><dt className="flex-1 font-bold">{t("providerLocations.livesIn")}</dt><dd>{city || t("pro.profile.cityUnset")}</dd><LockKeyhole size={16} aria-hidden="true" /></div>
+              <div className="apply-li"><dt className="flex-1 font-bold">{t("providerLocations.livesIn")}</dt><dd>{city ? t(`providerSetup.governorates.${city.trim().toLowerCase().replace(/\s+/g, "_")}`, { defaultValue: city }) : t("pro.profile.cityUnset")}</dd><LockKeyhole size={16} aria-hidden="true" /></div>
               <ProfileWorkZones providerId={provider.id} applicationEditable={["DRAFT", "NEEDS_CHANGES"].includes(provider.onboarding_status)} />
             </dl>
             <PrimaryButton className="apply-cta" onClick={handleSave} disabled={update.isPending}>
@@ -701,6 +703,7 @@ function EligibilityReasonItem({
   onRequirementsFocus: (serviceId: string) => void;
   serviceNames?: string[];
 }) {
+  const proPath = useProPath();
   const row = serviceNames !== undefined;
   const waiting = mapped.owner === "famy";
   const className = row

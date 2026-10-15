@@ -19,7 +19,7 @@ export function BookingActionDock({ children }: { children: ReactNode }) {
   }, []);
   return (
     <>
-      <div aria-hidden="true" style={{ height: size.actions }} />
+      <div aria-hidden="true" style={{ height: size.actions + size.nav }} />
       <div
         ref={ref}
         data-testid="booking-action-dock"
