@@ -45,6 +45,12 @@ function logoWidthPx() {
   return Math.min(window.innerWidth * LOGO_WIDTH_RATIO, LOGO_MAX_WIDTH_PX);
 }
 
+// The server cannot know the screen width. The first client render must match the
+// server HTML (React keeps the server's attributes on a hydration mismatch, which
+// left "Fam" at the server size while "y" was placed with the phone's scale), so the
+// real width is applied in a layout effect before the first paint.
+const useIsomorphicLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
+
 function assembledSplashState() {
   return {
     ...famySplashState(999),
@@ -67,7 +73,7 @@ export function FamySplashScreen({
 }) {
   const [assets, setAssets] = useState<SplashAssets | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
-  const [logoWidth, setLogoWidth] = useState(logoWidthPx);
+  const [logoWidth, setLogoWidth] = useState(LOGO_MAX_WIDTH_PX);
   const rafRef = useRef<number | null>(null);
   const startRef = useRef<number | null>(null);
   const completedRef = useRef(false);
@@ -93,8 +99,9 @@ export function FamySplashScreen({
     onCompleteRef.current();
   }, []);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const onResize = () => setLogoWidth(logoWidthPx());
+    onResize();
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
