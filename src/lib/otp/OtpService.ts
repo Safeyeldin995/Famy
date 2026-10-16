@@ -43,6 +43,28 @@ export type CompletePasswordSetupResult =
       passwordUpdated?: boolean;
     };
 
+/** Rejects if `promise` has not settled within `ms`. */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("timeout")), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
+// Once the server has saved the password, a stuck client auth step must never
+// leave the screen on "Saving..." — fall back to "sign in with your new password".
+const POST_SAVE_STEP_TIMEOUT_MS = 15000;
+const PASSWORD_SAVE_TIMEOUT_MS = 45000;
+
 function logClientPasswordSetupSession(
   stage: string,
   details: Record<string, string | boolean | null | undefined>,
@@ -152,7 +174,10 @@ export const otpService = {
         userId: beforeSession.session?.user?.id ?? null,
       });
 
-      const res = (await completePasswordSetupFn({ data: { password } })) as {
+      const res = (await withTimeout(
+        completePasswordSetupFn({ data: { password } }),
+        PASSWORD_SAVE_TIMEOUT_MS,
+      )) as {
         ok: boolean;
         error?: string;
         message?: string;
@@ -166,7 +191,7 @@ export const otpService = {
 
       if (!res.ok) {
         if (res.error === "restart_required") {
-          await supabase.auth.signOut();
+          await withTimeout(supabase.auth.signOut(), POST_SAVE_STEP_TIMEOUT_MS).catch(() => {});
           return {
             ok: false,
             error: "restart_required",
@@ -177,7 +202,7 @@ export const otpService = {
           };
         }
         if (res.error === "sign_in_required" && res.passwordUpdated) {
-          await supabase.auth.signOut();
+          await withTimeout(supabase.auth.signOut(), POST_SAVE_STEP_TIMEOUT_MS).catch(() => {});
           return {
             ok: false,
             error: "sign_in_required",
@@ -194,11 +219,24 @@ export const otpService = {
         };
       }
 
-      await supabase.auth.signOut();
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: res.authEmail!,
-        password,
-      });
+      const savedButSignInRequired = {
+        ok: false as const,
+        error: "sign_in_required" as const,
+        message: "Password saved. Please sign in with your new password.",
+        passwordUpdated: true as const,
+      };
+
+      let signInError: { code?: string } | null = null;
+      try {
+        await withTimeout(supabase.auth.signOut(), POST_SAVE_STEP_TIMEOUT_MS);
+        ({ error: signInError } = await withTimeout(
+          supabase.auth.signInWithPassword({ email: res.authEmail!, password }),
+          POST_SAVE_STEP_TIMEOUT_MS,
+        ));
+      } catch {
+        logClientPasswordSetupSession("client-signin-timeout", {});
+        return savedButSignInRequired;
+      }
 
       if (signInError) {
         logClientPasswordSetupSession("client-signin-failed", {
@@ -212,10 +250,16 @@ export const otpService = {
         };
       }
 
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+      let user: { id: string } | null = null;
+      let userError: { code?: string } | null = null;
+      try {
+        ({
+          data: { user },
+          error: userError,
+        } = await withTimeout(supabase.auth.getUser(), POST_SAVE_STEP_TIMEOUT_MS));
+      } catch {
+        return savedButSignInRequired;
+      }
       logClientPasswordSetupSession("client-after-complete", {
         hasSession: !!user,
         userId: user?.id ?? null,
@@ -224,7 +268,7 @@ export const otpService = {
       });
 
       if (userError || !user || user.id !== res.userId) {
-        await supabase.auth.signOut();
+        await withTimeout(supabase.auth.signOut(), POST_SAVE_STEP_TIMEOUT_MS).catch(() => {});
         return {
           ok: false,
           error: "sign_in_required",

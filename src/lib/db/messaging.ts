@@ -28,6 +28,8 @@ export type ConversationListItem = {
   other_avatar: string | null;
   last_message: string | null;
   last_time: string | null;
+  /** Set for system messages; render via bookingChat.system.<key> so it follows the app language. */
+  last_system_key?: string | null;
 };
 
 export function useConversations() {
@@ -39,6 +41,9 @@ export function useConversations() {
       const { data: convs, error } = await supabase
         .from('conversations')
         .select('id, booking_id, customer_id, provider_user_id, updated_at')
+        // Admins can read every conversation under RLS; the inbox must only
+        // list chats this user is a party to.
+        .or(`customer_id.eq.${user.id},provider_user_id.eq.${user.id}`)
         .order('updated_at', { ascending: false });
       if (error) throw error;
       if (!convs?.length) return [];
@@ -53,12 +58,14 @@ export function useConversations() {
       const ids = convs.map((c) => c.id);
       const { data: lastMsgs } = await supabase
         .from('messages')
-        .select('conversation_id, body, created_at')
+        .select('conversation_id, body, system_key, created_at')
         .in('conversation_id', ids)
         .order('created_at', { ascending: false });
-      const lastMap = new Map<string, { body: string; created_at: string }>();
+      const lastMap = new Map<string, { body: string; system_key: string | null; created_at: string }>();
       for (const m of lastMsgs ?? []) {
-        if (!lastMap.has(m.conversation_id)) lastMap.set(m.conversation_id, { body: m.body, created_at: m.created_at });
+        if (!lastMap.has(m.conversation_id)) {
+          lastMap.set(m.conversation_id, { body: m.body, system_key: m.system_key, created_at: m.created_at });
+        }
       }
 
       return convs.map((c) => {
@@ -69,6 +76,7 @@ export function useConversations() {
           other_name: party?.other_name || '',
           other_avatar: party?.other_avatar_url ?? null,
           last_message: last?.body ?? null,
+          last_system_key: last?.system_key ?? null,
           last_time: last?.created_at ?? null,
         };
       });

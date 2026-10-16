@@ -480,6 +480,7 @@ const en = {
     setPasswordFailed: "Could not set password.",
     passwordSet: "Password saved.",
     passwordSavedSignIn: "Password saved. Please sign in with your new password.",
+    couldNotSetPassword: "Could not set the password. Please try again.",
     passwordRestartRequired:
       "We could not finish setting your password. Please verify your phone again.",
     ruleLen: "At least 8 characters",

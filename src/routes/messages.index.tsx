@@ -69,7 +69,9 @@ function Messages() {
                       </span>
                     </div>
                     <div className="mt-0.5 truncate text-pro-14 font-medium text-muted-foreground">
-                      {c.last_message ?? t("messages.sayHello")}
+                      {c.last_system_key
+                        ? t(`bookingChat.system.${c.last_system_key}`, c.last_message ?? "")
+                        : (c.last_message ?? t("messages.sayHello"))}
                     </div>
                   </div>
                 </Link>
