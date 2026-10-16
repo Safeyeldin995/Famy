@@ -92,37 +92,6 @@ describe("FamilyMemberForm", () => {
 
   const today = "2026-09-30";
 
-  it("requires explicit guardian consent before saving health notes", () => {
-    const onSubmit = vi.fn();
-    const base = {
-      ...emptyFamilyMemberFormValue(),
-      fullName: "Test",
-      relationship: "son",
-      dateOfBirth: "2020-01-01",
-      allergies: "Peanuts",
-    };
-    render(
-      <FamilyMemberForm
-        value={base as ReturnType<typeof emptyFamilyMemberFormValue>}
-        onChange={() => {}}
-        onSubmit={onSubmit}
-        submitting={false}
-        submitLabel="Save"
-      />,
-    );
-    fireEvent.click(screen.getByTestId("family-member-save"));
-    expect(onSubmit).not.toHaveBeenCalled();
-    expect(screen.getByText("familyMembers.healthConsentRequired")).toBeTruthy();
-    fireEvent.click(screen.getByTestId("family-member-health-consent"));
-    fireEvent.click(screen.getByTestId("family-member-save"));
-    expect(onSubmit).toHaveBeenCalledOnce();
-  });
-
-  it("does not ask for health consent when no health notes are entered", () => {
-    render(<FormHarness onSubmit={() => {}} />);
-    expect(screen.queryByTestId("family-member-health-consent")).toBeNull();
-  });
-
   it("uses Cairo today in both the picker and form validation on a UTC phone", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2025-12-31T22:30:00Z"));

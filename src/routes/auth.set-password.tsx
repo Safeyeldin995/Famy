@@ -89,12 +89,13 @@ function SetPassword() {
       if (res.error === "sign_in_required" && res.passwordUpdated) {
         clearPasswordFields(setPw, setConfirmPw, setShow, setShowConfirm);
         setErr(null);
-        toast.success(msg);
+        toast.success(t("auth.passwordSavedSignIn", msg));
         nav({ to: "/login", replace: true });
         return;
       }
-      setErr(msg);
-      toast.error(msg);
+      const shown = t("auth.couldNotSetPassword", msg);
+      setErr(shown);
+      toast.error(shown);
       if (res.error === "authorization_missing") {
         clearPasswordFields(setPw, setConfirmPw, setShow, setShowConfirm);
         nav({ to: "/login", replace: true });
@@ -102,10 +103,21 @@ function SetPassword() {
       return;
     }
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: userError,
+    } = await Promise.race([
+      supabase.auth.getUser(),
+      new Promise<{ data: { user: null }; error: Error }>((resolve) =>
+        setTimeout(() => resolve({ data: { user: null }, error: new Error("timeout") }), 15000),
+      ),
+    ]);
     if (userError || !user) {
       submitLock.current = false;
-      const msg = t("auth.passwordSavedSignIn", "Password saved. Please sign in with your new password.");
+      const msg = t(
+        "auth.passwordSavedSignIn",
+        "Password saved. Please sign in with your new password.",
+      );
       clearPasswordFields(setPw, setConfirmPw, setShow, setShowConfirm);
       setErr(null);
       toast.success(msg);
@@ -120,20 +132,31 @@ function SetPassword() {
       return;
     }
 
-    const { data: prof } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+    const prof = await Promise.race([
+      supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .maybeSingle()
+        .then(({ data }) => data),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000)),
+    ]).catch(() => null);
     nav({ to: prof?.full_name ? "/home" : "/setup", replace: true });
   };
 
   const Rule = ({ ok, label }: { ok: boolean; label: string }) => (
-    <div className={`flex items-center gap-2 text-xs ${ok ? "text-emerald-600" : "text-muted-foreground"}`}>
+    <div
+      className={`flex items-center gap-2 text-xs ${ok ? "text-emerald-600" : "text-muted-foreground"}`}
+    >
       <Check className={`h-3.5 w-3.5 ${ok ? "opacity-100" : "opacity-40"}`} />
       {label}
     </div>
   );
 
-  const title = setPasswordContext.purpose === "reset"
-    ? t("auth.resetPasswordTitle", "Set a new password")
-    : t("auth.setPasswordTitle", "Set a password");
+  const title =
+    setPasswordContext.purpose === "reset"
+      ? t("auth.resetPasswordTitle", "Set a new password")
+      : t("auth.setPasswordTitle", "Set a password");
 
   return (
     <PhoneFrame bg="bg-surface">
@@ -142,7 +165,9 @@ function SetPassword() {
         <h1 className="text-3xl font-extrabold tracking-tight">{title}</h1>
         <p className="mt-2 text-[15px] text-muted-foreground">
           {t("auth.setPasswordBody", "You'll use this to sign in next time.")}{" "}
-          <span className="font-semibold text-foreground" dir="ltr">{setPasswordContext.maskedPhone}</span>
+          <span className="font-semibold text-foreground" dir="ltr">
+            {setPasswordContext.maskedPhone}
+          </span>
         </p>
 
         <label className="mt-8 block text-xs font-bold uppercase tracking-wide text-muted-foreground">
@@ -157,7 +182,12 @@ function SetPassword() {
             onChange={(e) => setPw(e.target.value)}
             className="min-w-0 flex-1 bg-transparent text-base font-semibold outline-none placeholder:text-muted-foreground/60"
           />
-          <button type="button" onClick={() => setShow((v) => !v)} aria-label={t("auth.togglePassword", "Toggle password visibility")} className="text-muted-foreground">
+          <button
+            type="button"
+            onClick={() => setShow((v) => !v)}
+            aria-label={t("auth.togglePassword", "Toggle password visibility")}
+            className="text-muted-foreground"
+          >
             {show ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
           </button>
         </div>
@@ -174,7 +204,12 @@ function SetPassword() {
             onChange={(e) => setConfirmPw(e.target.value)}
             className="min-w-0 flex-1 bg-transparent text-base font-semibold outline-none placeholder:text-muted-foreground/60"
           />
-          <button type="button" onClick={() => setShowConfirm((v) => !v)} aria-label={t("auth.toggleConfirmPassword", "Toggle confirm password visibility")} className="text-muted-foreground">
+          <button
+            type="button"
+            onClick={() => setShowConfirm((v) => !v)}
+            aria-label={t("auth.toggleConfirmPassword", "Toggle confirm password visibility")}
+            className="text-muted-foreground"
+          >
             {showConfirm ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
           </button>
         </div>
