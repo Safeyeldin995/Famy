@@ -3217,6 +3217,22 @@ Object.assign(ar, {
     retry: "جرب تاني",
   },
 });
+Object.assign(ar, {
+  oauth: {
+    or: "أو",
+    continueWithGoogle: "كمل بحساب جوجل",
+    redirecting: "بنوديك على جوجل…",
+    signingIn: "بنسجل دخولك…",
+    failedTitle: "معرفناش نسجل دخولك",
+    failedBody: "حصلت مشكلة في الدخول بجوجل. جرب تاني أو ادخل برقم موبايلك.",
+    backToLogin: "ارجع لتسجيل الدخول",
+    phoneLabel: "رقم موبايلك",
+    phoneHint: "مقدم الخدمة هيكلمك على الرقم ده بعد تأكيد الحجز.",
+    phoneInvalid: "اكتب رقم موبايل مصري صحيح، زي 01012345678.",
+    phoneTaken: "الرقم ده مسجل بحساب تاني. ادخل بيه برقم الموبايل والباسورد.",
+    phoneSaveFailed: "معرفناش نحفظ الرقم. جرب تاني.",
+  },
+});
 export default ar;
 
 Object.assign(ar, {

@@ -49,6 +49,7 @@ import { Route as AdminProvidersRouteImport } from './routes/admin.providers'
 import { Route as AdminServicesRouteImport } from './routes/admin.services'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminZonesRouteImport } from './routes/admin.zones'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthForgotRouteImport } from './routes/auth.forgot'
 import { Route as AuthSetPasswordRouteImport } from './routes/auth.set-password'
 import { Route as BookProviderIdRouteImport } from './routes/book.$providerId'
@@ -333,6 +334,11 @@ const AdminZonesRoute = AdminZonesRouteImport.update({
   id: '/zones',
   path: '/zones',
   getParentRoute: () => AdminRoute,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthForgotRoute = AuthForgotRouteImport.update({
   id: '/auth/forgot',
@@ -794,6 +800,7 @@ export interface FileRoutesByFullPath {
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/zones': typeof AdminZonesRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/set-password': typeof AuthSetPasswordRoute
   '/book/$providerId': typeof BookProviderIdRoute
@@ -914,6 +921,7 @@ export interface FileRoutesByTo {
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/zones': typeof AdminZonesRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/set-password': typeof AuthSetPasswordRoute
   '/book/$providerId': typeof BookProviderIdRoute
@@ -1037,6 +1045,7 @@ export interface FileRoutesById {
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/zones': typeof AdminZonesRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/set-password': typeof AuthSetPasswordRoute
   '/book/$providerId': typeof BookProviderIdRoute
@@ -1164,6 +1173,7 @@ export interface FileRouteTypes {
     | '/admin/services'
     | '/admin/settings'
     | '/admin/zones'
+    | '/auth/callback'
     | '/auth/forgot'
     | '/auth/set-password'
     | '/book/$providerId'
@@ -1284,6 +1294,7 @@ export interface FileRouteTypes {
     | '/admin/services'
     | '/admin/settings'
     | '/admin/zones'
+    | '/auth/callback'
     | '/auth/forgot'
     | '/auth/set-password'
     | '/book/$providerId'
@@ -1406,6 +1417,7 @@ export interface FileRouteTypes {
     | '/admin/services'
     | '/admin/settings'
     | '/admin/zones'
+    | '/auth/callback'
     | '/auth/forgot'
     | '/auth/set-password'
     | '/book/$providerId'
@@ -1515,6 +1527,7 @@ export interface RootRouteChildren {
   SearchRoute: typeof SearchRoute
   SetupRoute: typeof SetupRoute
   _qaMonitoringErrorRoute: typeof _qaMonitoringErrorRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
   AuthForgotRoute: typeof AuthForgotRoute
   AuthSetPasswordRoute: typeof AuthSetPasswordRoute
   BookProviderIdRoute: typeof BookProviderIdRoute
@@ -1805,6 +1818,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/zones'
       preLoaderRoute: typeof AdminZonesRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/auth/forgot': {
       id: '/auth/forgot'
@@ -2687,6 +2707,7 @@ const rootRouteChildren: RootRouteChildren = {
   SearchRoute: SearchRoute,
   SetupRoute: SetupRoute,
   _qaMonitoringErrorRoute: _qaMonitoringErrorRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
   AuthForgotRoute: AuthForgotRoute,
   AuthSetPasswordRoute: AuthSetPasswordRoute,
   BookProviderIdRoute: BookProviderIdRoute,

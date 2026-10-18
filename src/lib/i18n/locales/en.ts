@@ -3258,6 +3258,22 @@ Object.assign(en, {
     retry: "Try again",
   },
 });
+Object.assign(en, {
+  oauth: {
+    or: "or",
+    continueWithGoogle: "Continue with Google",
+    redirecting: "Taking you to Google…",
+    signingIn: "Signing you in…",
+    failedTitle: "We couldn't sign you in",
+    failedBody: "Google sign-in didn't work. Try again or sign in with your phone number.",
+    backToLogin: "Back to sign in",
+    phoneLabel: "Your mobile number",
+    phoneHint: "Your provider will call you on this number once the booking is confirmed.",
+    phoneInvalid: "Enter a valid Egyptian mobile number, e.g. 01012345678.",
+    phoneTaken: "This number belongs to another account. Sign in with that number and password.",
+    phoneSaveFailed: "We couldn't save the number. Please try again.",
+  },
+});
 export default en;
 export type Translation = typeof en;
 
