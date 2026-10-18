@@ -10,8 +10,10 @@
 -- - Checks about *another* user (_user_id <> auth.uid()) keep their old meaning.
 -- - Service-role / server contexts (auth.uid() is null) are not affected.
 --
--- Apply only after the admin has enrolled a TOTP factor from /admin, otherwise
--- the admin cannot reach the panel until they enrol.
+-- Enrolment itself runs through Supabase Auth at aal1 (it does not use
+-- has_role), so admins enrol from the /admin screen after this is applied.
+-- Recovery if an admin loses their authenticator: delete their row from
+-- auth.mfa_factors (Supabase dashboard > Authentication > Users > the user).
 
 CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role app_role)
  RETURNS boolean

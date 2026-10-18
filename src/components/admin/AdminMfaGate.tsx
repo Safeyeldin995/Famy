@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ShieldCheck, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,40 +21,64 @@ export function AdminMfaGate({ children }: { children: ReactNode }) {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // One resolve at a time: a second run would unenroll the factor whose QR the
+  // first run is showing (remount, Retry while loading).
+  const inFlight = useRef<Promise<void> | null>(null);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
-  const resolve = useCallback(async () => {
-    try {
-      const { data: aal, error: aalError } =
-        await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-      if (aalError) throw aalError;
-      if (aal.currentLevel === "aal2") {
-        setState({ step: "ok" });
-        return;
-      }
-      const { data: factors, error: listError } = await supabase.auth.mfa.listFactors();
-      if (listError) throw listError;
-      const verified = factors.totp.find((f) => f.status === "verified");
-      if (verified) {
-        setState({ step: "challenge", factorId: verified.id });
-        return;
-      }
-      // Drop half-finished enrolments so a fresh QR code can be issued.
-      for (const f of factors.all.filter((f) => f.status === "unverified")) {
-        await supabase.auth.mfa.unenroll({ factorId: f.id });
-      }
-      const { data: enrolled, error: enrollError } = await supabase.auth.mfa.enroll({
-        factorType: "totp",
-        friendlyName: `Famy admin ${new Date().toISOString().slice(0, 10)}`,
+  const resolve = useCallback(() => {
+    if (!inFlight.current) {
+      inFlight.current = runResolve().finally(() => {
+        inFlight.current = null;
       });
-      if (enrollError) throw enrollError;
-      setState({
-        step: "enroll",
-        factorId: enrolled.id,
-        qr: enrolled.totp.qr_code,
-        secret: enrolled.totp.secret,
-      });
-    } catch {
-      setState({ step: "error" });
+    }
+    return inFlight.current;
+
+    async function runResolve() {
+      const show = (next: GateState) => {
+        if (mounted.current) setState(next);
+      };
+      try {
+        const { data: aal, error: aalError } =
+          await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (aalError) throw aalError;
+        if (aal.currentLevel === "aal2") {
+          show({ step: "ok" });
+          return;
+        }
+        const { data: factors, error: listError } = await supabase.auth.mfa.listFactors();
+        if (listError) throw listError;
+        const verified = factors.totp.find((f) => f.status === "verified");
+        if (verified) {
+          show({ step: "challenge", factorId: verified.id });
+          return;
+        }
+        // Drop half-finished enrolments so a fresh QR code can be issued.
+        for (const f of factors.all.filter((f) => f.status === "unverified")) {
+          // A failed cleanup only leaves a stale unverified factor; the unique
+          // friendly name below keeps the new enrolment from colliding with it.
+          await supabase.auth.mfa.unenroll({ factorId: f.id }).catch(() => undefined);
+        }
+        const { data: enrolled, error: enrollError } = await supabase.auth.mfa.enroll({
+          factorType: "totp",
+          friendlyName: `Famy admin ${new Date().toISOString()}`,
+        });
+        if (enrollError) throw enrollError;
+        show({
+          step: "enroll",
+          factorId: enrolled.id,
+          qr: enrolled.totp.qr_code,
+          secret: enrolled.totp.secret,
+        });
+      } catch {
+        show({ step: "error" });
+      }
     }
   }, []);
 
@@ -74,7 +98,10 @@ export function AdminMfaGate({ children }: { children: ReactNode }) {
     });
     setBusy(false);
     if (verifyError) {
-      setError(t("adminMfa.wrongCode"));
+      const codeError =
+        (verifyError as { code?: string }).code === "mfa_verification_failed" ||
+        /invalid|code/i.test(verifyError.message ?? "");
+      setError(t(codeError ? "adminMfa.wrongCode" : "adminMfa.loadError"));
       setCode("");
       return;
     }
@@ -121,6 +148,8 @@ export function AdminMfaGate({ children }: { children: ReactNode }) {
             <img
               src={state.qr}
               alt={t("adminMfa.qrAlt")}
+              width={192}
+              height={192}
               className="mx-auto h-48 w-48 rounded-xl border border-border bg-white p-2"
             />
             <p className="text-xs text-muted-foreground">{t("adminMfa.manualKey")}</p>
@@ -150,6 +179,7 @@ export function AdminMfaGate({ children }: { children: ReactNode }) {
               autoComplete="one-time-code"
               dir="ltr"
               maxLength={6}
+              aria-describedby={error ? "admin-mfa-error" : undefined}
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
               onKeyDown={(e) => {
@@ -157,14 +187,29 @@ export function AdminMfaGate({ children }: { children: ReactNode }) {
               }}
               className="mt-2 h-14 w-full rounded-2xl border border-border bg-surface px-4 text-center text-2xl font-extrabold tracking-[0.4em] outline-none focus:border-brand"
             />
-            {error && <p className="mt-2 text-sm font-semibold text-coral">{error}</p>}
+            {error && (
+              <p
+                id="admin-mfa-error"
+                role="alert"
+                className="mt-2 text-sm font-semibold text-coral"
+              >
+                {error}
+              </p>
+            )}
             <button
               type="button"
               onClick={() => void verify()}
               disabled={code.length !== 6 || busy}
               className="focus-ring mt-4 flex min-h-12 w-full items-center justify-center rounded-2xl bg-brand text-base font-extrabold text-brand-foreground disabled:opacity-50"
             >
-              {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : t("adminMfa.confirm")}
+              {busy ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+                  <span className="sr-only">{t("common.loading")}</span>
+                </>
+              ) : (
+                t("adminMfa.confirm")
+              )}
             </button>
           </div>
         )}
