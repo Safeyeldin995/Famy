@@ -2019,6 +2019,7 @@ export type Database = {
           is_suspended: boolean
           locale: string
           phone: string | null
+          phone_verified: boolean
           updated_at: string
         }
         Insert: {
@@ -2031,6 +2032,7 @@ export type Database = {
           is_suspended?: boolean
           locale?: string
           phone?: string | null
+          phone_verified?: boolean
           updated_at?: string
         }
         Update: {
@@ -2043,6 +2045,7 @@ export type Database = {
           is_suspended?: boolean
           locale?: string
           phone?: string | null
+          phone_verified?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -4118,6 +4121,10 @@ export type Database = {
           zone_name_ar: string | null
           zone_name_en: string | null
         }[]
+      }
+      set_my_contact_phone: {
+        Args: { p_phone: string }
+        Returns: string
       }
       marketplace_provider_bookable_services: {
         Args: { p_address_id?: string; p_provider_id: string }

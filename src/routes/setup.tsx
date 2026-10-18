@@ -19,6 +19,9 @@ import { AuthGate } from "@/components/famio/AuthGate";
 import { LocationPicker, isValidLatLng } from "@/components/famio/LocationPicker";
 import { Card } from "@/components/famio/ui";
 import { AlertTriangle, MapPin, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { contactPhoneErrorKey } from "@/lib/auth/oauth";
+import { normalizeDigitsToWestern } from "@/lib/otp/normalizePhone";
 
 export const Route = createFileRoute("/setup")({ component: SetupRoute });
 
@@ -46,6 +49,12 @@ function Setup() {
   const areasQ = useServiceAreasSettings();
   const areaOptions = (areasQ.data ?? []).filter((a) => a.enabled).map((a) => a.name);
   const myProfile = useMyProfile();
+  // Google sign-ins arrive without a phone; providers need one to reach the customer.
+  const needsPhone = !!myProfile.data && !myProfile.data.phone;
+  const [contactPhone, setContactPhone] = useState("");
+  const [savingPhone, setSavingPhone] = useState(false);
+  const contactPhoneDigits = normalizeDigitsToWestern(contactPhone).replace(/\D/g, "");
+  const contactPhoneValid = /^(0|20)?1[0125]\d{8}$/.test(contactPhoneDigits);
 
   useEffect(() => {
     if (myProfile.data?.full_name) {
@@ -79,8 +88,10 @@ function Setup() {
     form.name.trim().length > 1 &&
     form.address.trim().length > 2 &&
     form.area.trim().length > 0 &&
-    isValidLatLng(coords);
-  const saving = updateProfile.isPending || createAddress.isPending || updateAddress.isPending;
+    isValidLatLng(coords) &&
+    (!needsPhone || contactPhoneValid);
+  const saving =
+    savingPhone || updateProfile.isPending || createAddress.isPending || updateAddress.isPending;
 
   if (myProfile.isLoading || existingAddresses.isLoading || areasQ.isLoading) {
     return (
@@ -115,6 +126,16 @@ function Setup() {
     if (!valid || saving) return;
     if (existingAddresses.isLoading) {
       await existingAddresses.refetch();
+    }
+    if (needsPhone) {
+      setSavingPhone(true);
+      const { error } = await supabase.rpc("set_my_contact_phone", { p_phone: contactPhoneDigits });
+      setSavingPhone(false);
+      if (error) {
+        toast.error(t(contactPhoneErrorKey(error.message)));
+        return;
+      }
+      await myProfile.refetch();
     }
     try {
       await updateProfile.mutateAsync({ full_name: form.name.trim() });
@@ -169,6 +190,18 @@ function Setup() {
           onChange={(v) => update("name", v)}
           placeholder={t("setup.namePlaceholder")}
         />
+
+        {needsPhone ? (
+          <div>
+            <Field
+              label={t("oauth.phoneLabel")}
+              value={contactPhone}
+              onChange={(v) => setContactPhone(v.replace(/[^\d٠-٩ +]/g, ""))}
+              placeholder="01xxxxxxxxx"
+            />
+            <p className="mt-1.5 text-pro-12 text-muted-foreground">{t("oauth.phoneHint")}</p>
+          </div>
+        ) : null}
 
         <div>
           <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
