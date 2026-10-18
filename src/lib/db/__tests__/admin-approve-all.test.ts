@@ -15,6 +15,8 @@ const migrationPath = fileURLToPath(
 
 async function readyDatabase() {
   const db = new PGlite();
+  // Test sessions act as a fully verified (aal2) login; admin MFA is covered by admin-requires-mfa.test.ts.
+  await db.query("SELECT set_config('request.jwt.claim.aal', 'aal2', false)");
   await db.exec(
     [
       "CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role; CREATE SCHEMA auth;",
