@@ -2,7 +2,8 @@ import { PGlite } from "@electric-sql/pglite";
 import { readMigration } from "./monitoring-privilege-harness";
 
 export const CLOSED_BETA_MIGRATION = "20260929095936_closed_beta_babysitting_tutoring.sql";
-export const DUAL_SERVICE_DISCOVERY_MIGRATION = "20260929113552_dual_service_marketplace_discovery.sql";
+export const DUAL_SERVICE_DISCOVERY_MIGRATION =
+  "20260929113552_dual_service_marketplace_discovery.sql";
 
 const BOOTSTRAP_SQL = `
 CREATE SCHEMA IF NOT EXISTS auth;
@@ -151,6 +152,8 @@ $$;
 
 export async function createClosedBetaGatesDb(): Promise<PGlite> {
   const db = await PGlite.create();
+  // Test sessions act as a fully verified (aal2) login; admin MFA is covered by admin-requires-mfa.test.ts.
+  await db.query("SELECT set_config('request.jwt.claim.aal', 'aal2', false)");
   await db.exec(BOOTSTRAP_SQL);
   await db.exec(readMigration(CLOSED_BETA_MIGRATION));
   return db;

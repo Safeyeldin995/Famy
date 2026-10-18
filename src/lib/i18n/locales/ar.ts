@@ -3202,6 +3202,21 @@ Object.assign(ar, {
     emptyNow: "مفيش حاجة دلوقتي",
   },
 });
+Object.assign(ar, {
+  adminMfa: {
+    title: "تأكيد هوية الأدمن",
+    enrollBody:
+      "لحماية لوحة الإدارة، فعل خطوة تأكيد تانية. افتح تطبيق Google Authenticator أو Microsoft Authenticator، واعمل مسح للكود ده، وبعدين اكتب الأرقام الستة اللي هتظهرلك.",
+    manualKey: "أو اكتب المفتاح ده في التطبيق يدويا:",
+    qrAlt: "كود QR لتطبيق التأكيد",
+    challengeBody: "افتح تطبيق التأكيد على موبايلك واكتب الأرقام الستة اللي ظاهرة لفامي.",
+    codeLabel: "كود التأكيد",
+    confirm: "تأكيد",
+    wrongCode: "الكود غلط أو انتهى. جرب الكود اللي ظاهر دلوقتي.",
+    loadError: "معرفناش نجهز خطوة التأكيد. جرب تاني.",
+    retry: "جرب تاني",
+  },
+});
 export default ar;
 
 Object.assign(ar, {

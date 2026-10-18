@@ -3243,6 +3243,21 @@ Object.assign(en, {
     emptyNow: "Nothing here right now",
   },
 });
+Object.assign(en, {
+  adminMfa: {
+    title: "Confirm admin identity",
+    enrollBody:
+      "To protect the admin panel, turn on a second sign-in step. Open Google Authenticator or Microsoft Authenticator, scan this code, then enter the 6 digits it shows.",
+    manualKey: "Or enter this key in the app manually:",
+    qrAlt: "QR code for the authenticator app",
+    challengeBody: "Open the authenticator app on your phone and enter the 6 digits shown for Famy.",
+    codeLabel: "Verification code",
+    confirm: "Confirm",
+    wrongCode: "The code is wrong or expired. Try the code shown now.",
+    loadError: "We couldn't prepare the verification step. Please try again.",
+    retry: "Try again",
+  },
+});
 export default en;
 export type Translation = typeof en;
 

@@ -110,6 +110,8 @@ export async function queryRows<T extends Record<string, unknown>>(
 
 export async function createDisposableDb(): Promise<PGlite> {
   const db = await PGlite.create();
+  // Test sessions act as a fully verified (aal2) login; admin MFA is covered by admin-requires-mfa.test.ts.
+  await db.query("SELECT set_config('request.jwt.claim.aal', 'aal2', false)");
   await db.exec(BOOTSTRAP_SQL);
   return db;
 }

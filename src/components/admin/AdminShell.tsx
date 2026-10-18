@@ -1,4 +1,5 @@
 import { AdminPreviewContext, AdminLink as Link } from "@/components/admin/AdminNavigation";
+import { AdminMfaGate } from "@/components/admin/AdminMfaGate";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -167,7 +168,7 @@ export function AdminShell({
     tab.exact ? pathname === tab.to : pathname.startsWith(tab.to);
   const currentTab = flatTabs.find((tab) => isActive(tab));
 
-  return (
+  const shell = (
     <AdminPreviewContext.Provider value={previewMode}>
       <div className="min-h-dvh bg-[#FEFAFC] text-foreground">
         <header className="sticky top-0 z-30 border-b border-border/50 bg-surface/95 backdrop-blur-sm">
@@ -313,4 +314,5 @@ export function AdminShell({
       </div>
     </AdminPreviewContext.Provider>
   );
+  return previewMode ? shell : <AdminMfaGate>{shell}</AdminMfaGate>;
 }
