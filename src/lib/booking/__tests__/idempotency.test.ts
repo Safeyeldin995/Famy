@@ -58,6 +58,18 @@ describe("booking idempotency fingerprint", () => {
     expect(changedRequirement).not.toBe(original);
   });
 
+  it("changes fingerprint when the teaching capability changes", () => {
+    const original = bookingSubmissionFingerprint(basePayload);
+    const changedCapability = bookingSubmissionFingerprint({
+      ...basePayload,
+      teaching_capability_id: "44444444-4444-4444-4444-444444444444",
+      teaching_subject_code: "math",
+      teaching_curriculum_code: "eg_national_ar",
+      teaching_level_code: "g10",
+    });
+    expect(changedCapability).not.toBe(original);
+  });
+
   it("reuses the idempotency key while fingerprint is unchanged", () => {
     const fingerprint = bookingSubmissionFingerprint(basePayload);
     const state: IdempotencyKeyState = { key: "key-a", fingerprint };

@@ -1,32 +1,44 @@
 import { describe, expect, it } from "vitest";
-import { isQaCatalogSlug, isQaFixtureName } from "@/lib/catalog/qaCatalog";
+import { selectMarketplaceProviderRows } from "@/lib/db/marketplaceProviderRows";
 
-function isVisibleMarketplaceProviderRow(row: {
-  category_slug?: string;
-  service_slug?: string;
-  full_name?: string;
-}) {
-  return !isQaCatalogSlug(row.category_slug, row.service_slug) && !isQaFixtureName(row.full_name);
+function row(id: string, category_slug: string, service_slug: string) {
+  return { id, category_slug, service_slug, full_name: "Real Provider" };
 }
 
-describe("marketplace provider QA filter", () => {
-  it("hides fixture services even when the category slug is clean", () => {
+describe("marketplace provider listing", () => {
+  it("hides QA services and out-of-scope categories", () => {
     expect(
-      isVisibleMarketplaceProviderRow({
-        category_slug: "home-cleaning",
-        service_slug: "qa-booking-service-1785235277607",
-        full_name: "Real Provider",
-      }),
-    ).toBe(false);
+      selectMarketplaceProviderRows([
+        row("qa", "tutoring", "qa-booking-service-1785235277607"),
+        { ...row("qa-name", "tutoring", "math-help"), full_name: "QA_Fixture Provider" },
+        row("cleaning", "home-cleaning", "deep-home-cleaning"),
+        row("tutor", "tutoring", "homework-support"),
+      ]).map((provider) => provider.id),
+    ).toEqual(["tutor"]);
   });
 
-  it("keeps real providers on clean service slugs", () => {
-    expect(
-      isVisibleMarketplaceProviderRow({
-        category_slug: "home-cleaning",
-        service_slug: "deep-home-cleaning",
-        full_name: "Mona Adel",
-      }),
-    ).toBe(true);
+  it("shows a dual-service provider once on unfiltered lists and in each category", () => {
+    const rows = [row("dual", "babysitting", "child-care"), row("dual", "tutoring", "math-help")];
+
+    expect(selectMarketplaceProviderRows(rows).map((provider) => provider.id)).toEqual(["dual"]);
+    expect(selectMarketplaceProviderRows(rows, { categorySlug: "babysitting" })).toEqual([rows[0]]);
+    expect(selectMarketplaceProviderRows(rows, { categorySlug: "tutoring" })).toEqual([rows[1]]);
+  });
+
+  it("filters category before deduplication and limiting", () => {
+    const rows = [
+      row("dual", "babysitting", "child-care"),
+      row("dual", "tutoring", "math-help"),
+      row("dual", "tutoring", "science-help"),
+      row("other", "tutoring", "science-help"),
+    ];
+
+    expect(selectMarketplaceProviderRows(rows, { categorySlug: "tutoring", limit: 2 })).toEqual([
+      rows[1],
+      rows[3],
+    ]);
+    expect(selectMarketplaceProviderRows(rows, { categorySlug: "tutoring", limit: 1 })).toEqual([
+      rows[1],
+    ]);
   });
 });

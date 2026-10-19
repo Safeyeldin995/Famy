@@ -1,0 +1,34 @@
+/* Customer-only sizing: provider map controls and sheets keep their own styles. */
+.customer-location-picker button {
+  min-height: 44px;
+  min-width: 44px;
+}
+.customer-location-picker .leaflet-container .leaflet-control-zoom a {
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
+}
+.customer-location-picker .leaflet-control-attribution a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+body:has(.customer-birth-date) .apply-sheet .apply-back {
+  width: 44px;
+  height: 44px;
+}
+.customer-filter-picker .apply-input {
+  min-height: 48px;
+  height: auto;
+  padding: 12px;
+  gap: 8px;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.customer-filter-picker .apply-input svg {
+  flex-shrink: 0;
+}
+body:has(.customer-filter-picker) .apply-sheet .apply-back {
+  min-width: 44px;
+  min-height: 44px;
+}

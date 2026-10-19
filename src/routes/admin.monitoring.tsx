@@ -1,4 +1,8 @@
-import { createFileRoute, Link, type LinkProps } from "@tanstack/react-router";
+import { adminErrorSummary } from "@/components/admin/adminPresentation";
+import { AdminRelativeTime } from "@/components/admin/AdminRelativeTime";
+import { AdminLink as Link } from "@/components/admin/AdminNavigation";
+import { catalogScreen } from "@/components/admin/CatalogControls";
+import { createFileRoute, type LinkProps } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { AlertTriangle } from "lucide-react";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
@@ -9,7 +13,6 @@ import {
   useAdminRecentFailedPayments,
   type FailedNotificationRow,
 } from "@/lib/db/admin-monitoring-queries";
-import { adminPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/admin/monitoring")({ component: AdminMonitoring });
 
@@ -30,7 +33,7 @@ function SummaryCard({
     <>
       <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{title}</p>
       <p className="mt-1 text-2xl font-extrabold">{count}</p>
-      <p className="mt-1 text-[11px] text-muted-foreground">{description}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{description}</p>
     </>
   );
 
@@ -42,7 +45,7 @@ function SummaryCard({
 
   return (
     <Link
-      to={typeof to === "string" ? (adminPath(to) as typeof to) : to}
+      to={typeof to === "string" ? (to as typeof to) : to}
       search={search}
       className="focus-ring rounded-2xl border border-border/60 bg-surface p-4 shadow-sm transition hover:border-brand/40"
     >
@@ -70,14 +73,14 @@ function SectionShell({
   isEmpty: boolean;
   children: React.ReactNode;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   return (
     <section className="rounded-2xl border border-border/60 bg-surface p-4 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
           {title}
         </h3>
-        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold">{count}</span>
+        <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-bold">{count}</span>
       </div>
       <div className="mt-3">
         {isLoading ? (
@@ -104,7 +107,7 @@ function SectionShell({
 }
 
 function AdminMonitoring() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const summaryQ = useAdminMonitoringSummary();
   const errorLogsQ = useAdminRecentErrorLogs();
   const failedPaymentsQ = useAdminRecentFailedPayments();
@@ -112,7 +115,7 @@ function AdminMonitoring() {
   const summary = summaryQ.data;
 
   return (
-    <div className="space-y-5 px-5 py-5">
+    <div className={catalogScreen}>
       <div>
         <h1 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
           {t("admin.layout.nav.monitoring")}
@@ -148,14 +151,14 @@ function AdminMonitoring() {
             title={t("admin.monitoring.failedPayments")}
             description={t("admin.monitoring.failedPaymentsBody")}
             count={summary?.failed_payments ?? 0}
-            to={adminPath("/admin/payments") as "/admin/payments"}
+            to={"/admin/payments" as "/admin/payments"}
             search={{ statuses: "failed,rejected" }}
           />
           <SummaryCard
             title={t("admin.monitoring.failedNotifications")}
             description={t("admin.monitoring.failedNotificationsBody")}
             count={summary?.failed_notifications ?? 0}
-            to={adminPath("/admin/operations") as "/admin/operations"}
+            to={"/admin/operations" as "/admin/operations"}
           />
         </div>
       )}
@@ -174,21 +177,27 @@ function AdminMonitoring() {
             {(errorLogsQ.data ?? []).map((row) => (
               <li key={row.id} className="rounded-xl border border-border/60 p-2 text-xs">
                 <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-coral/10 px-2 py-0.5 text-[10px] font-bold uppercase text-coral">
-                    {row.source}
+                  <span className="rounded-full bg-coral/10 px-2 py-0.5 text-xs font-bold uppercase text-coral">
+                    {t("adminCatalog.systemError")}
                   </span>
-                  <span className="text-[10px] text-muted-foreground">
-                    {new Date(row.created_at).toLocaleString()}
+                  <span className="text-xs text-muted-foreground">
+                    <AdminRelativeTime value={row.created_at} />
                   </span>
                 </div>
-                <p className="mt-1 font-semibold" dir="ltr">
-                  {row.message_safe}
-                </p>
-                {(row.context_route || row.context_label) && (
-                  <p className="mt-0.5 truncate text-[10px] text-muted-foreground" dir="ltr">
-                    {[row.context_label, row.context_route].filter(Boolean).join(" · ")}
+                <p className="mt-2">{adminErrorSummary(row.message_safe, i18n.language)}</p>
+                <details className="mt-2">
+                  <summary className="cursor-pointer font-semibold">
+                    {t("admin.auditLog.details")}
+                  </summary>
+                  <p className="mt-1 break-words font-semibold" dir="ltr">
+                    {row.message_safe}
                   </p>
-                )}
+                  {(row.context_route || row.context_label) && (
+                    <p className="mt-0.5 break-words text-xs text-muted-foreground" dir="ltr">
+                      {[row.context_label, row.context_route].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
+                </details>
               </li>
             ))}
           </ul>
@@ -210,18 +219,23 @@ function AdminMonitoring() {
                 className="flex items-center justify-between gap-2 rounded-xl border border-border/60 p-2 text-xs"
               >
                 <div>
-                  <span className="rounded-full bg-coral/10 px-2 py-0.5 text-[10px] font-bold uppercase text-coral">
-                    {row.status}
+                  <span className="rounded-full bg-coral/10 px-2 py-0.5 text-xs font-bold uppercase text-coral">
+                    {t(`adminCatalog.states.${row.status}`, {
+                      defaultValue: t("adminCatalog.unknown"),
+                    })}
                   </span>
-                  <p className="mt-1 text-[10px] text-muted-foreground" dir="ltr">
-                    {row.id.slice(0, 8)}… · booking {row.booking_id.slice(0, 8)}…
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {new Date(row.created_at).toLocaleString()}
+                  <details>
+                    <summary>{t("admin.auditLog.details")}</summary>
+                    <p dir="ltr" className="break-all text-xs">
+                      {row.id} · {row.booking_id}
+                    </p>
+                  </details>
+                  <p className="text-xs text-muted-foreground">
+                    <AdminRelativeTime value={row.created_at} />
                   </p>
                 </div>
                 <Link
-                  to={adminPath("/admin/payments") as "/admin/payments"}
+                  to={"/admin/payments" as "/admin/payments"}
                   search={{ status: row.status }}
                   className="focus-ring shrink-0 rounded-lg border border-border px-2 py-1 font-semibold text-brand"
                 >
@@ -245,22 +259,30 @@ function AdminMonitoring() {
             {(failedNotificationsQ.data ?? []).map((row: FailedNotificationRow) => (
               <li key={row.id} className="rounded-xl border border-border/60 p-2 text-xs">
                 <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                  className={`rounded-full px-2 py-0.5 text-xs font-bold uppercase ${
                     row.status === "dead" ? "bg-coral/10 text-coral" : "bg-amber-100 text-amber-700"
                   }`}
                 >
-                  {row.status}
+                  {t(`adminCatalog.states.${row.status}`, {
+                    defaultValue: t("adminCatalog.unknown"),
+                  })}
                 </span>
                 <span className="ms-2 text-muted-foreground">
                   {t("admin.operations.attempts", { count: row.attempts })}
                 </span>
                 {row.last_error_safe && (
-                  <p className="mt-0.5 truncate text-[10px] text-muted-foreground" dir="ltr">
-                    {row.last_error_safe}
-                  </p>
+                  <>
+                    <p className="mt-2">{adminErrorSummary(row.last_error_safe, i18n.language)}</p>
+                    <details>
+                      <summary>{t("admin.auditLog.details")}</summary>
+                      <p className="mt-0.5 break-words text-xs text-muted-foreground" dir="ltr">
+                        {row.last_error_safe}
+                      </p>
+                    </details>
+                  </>
                 )}
-                <p className="text-[10px] text-muted-foreground">
-                  {new Date(row.created_at).toLocaleString()}
+                <p className="text-xs text-muted-foreground">
+                  <AdminRelativeTime value={row.created_at} />
                 </p>
               </li>
             ))}

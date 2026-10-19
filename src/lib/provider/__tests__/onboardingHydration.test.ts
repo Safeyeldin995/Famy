@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { mapSnapshotToOnboardingFormState } from "@/lib/provider/onboardingHydration";
+import {
+  buildCoverageSavePayload,
+  combineSavedSelectionLoadState,
+  mapSavedReferences,
+  mapSavedServiceIds,
+  mapSavedZoneIds,
+  mapSnapshotToOnboardingFormState,
+} from "@/lib/provider/onboardingHydration";
 
 const SNAPSHOT_WITH_PROVIDER = {
   exists: true,
@@ -87,5 +94,180 @@ describe("mapSnapshotToOnboardingFormState", () => {
     });
 
     expect(state.area).toBe("Giza");
+  });
+
+  it("does not map services, zones, or references from the snapshot", () => {
+    const state = mapSnapshotToOnboardingFormState(SNAPSHOT_WITH_PROVIDER);
+    expect(state).not.toHaveProperty("selectedServices");
+    expect(state).not.toHaveProperty("selectedZones");
+    expect(state).not.toHaveProperty("ref1");
+    expect(state).not.toHaveProperty("ref2");
+  });
+
+  it("hydrates capabilities and max children from snapshot, not legacy child_age_groups", () => {
+    const state = mapSnapshotToOnboardingFormState({
+      ...SNAPSHOT_WITH_PROVIDER,
+      provider: { ...SNAPSHOT_WITH_PROVIDER.provider, max_children_per_booking: 3 },
+      age_group_capabilities: [
+        { code: "toddler", years_experience: 4, note: "naps", verified_at: "2026-09-01T00:00:00Z" },
+        { code: "infant", years_experience: 1, note: null, verified_at: null },
+      ],
+    });
+    expect(state.childGroups).toEqual(["infants", "toddlers"]);
+    expect(state.maxChildren).toBe(3);
+    expect(state.capabilityForms[0]).toMatchObject({
+      code: "toddler",
+      verified: true,
+      note: "naps",
+    });
+    expect(state.capabilityForms[1]?.verified).toBe(false);
+  });
+
+  it("does not invent catalogue claims from a legacy child_age_groups array", () => {
+    const state = mapSnapshotToOnboardingFormState(SNAPSHOT_WITH_PROVIDER);
+    expect(SNAPSHOT_WITH_PROVIDER.details.child_age_groups).toEqual(["school"]);
+    expect(state.childGroups).toEqual([]);
+    expect(state.capabilityForms).toEqual([]);
+    expect(state.maxChildren).toBeNull();
+  });
+});
+
+describe("mapSavedServiceIds", () => {
+  it("returns unique service ids and ignores blanks", () => {
+    expect(
+      mapSavedServiceIds([
+        { service_id: "svc-clean" },
+        { service_id: "svc-clean" },
+        { service_id: null },
+        { service_id: "" },
+      ]),
+    ).toEqual(["svc-clean"]);
+  });
+
+  it("returns an empty list for null or missing rows", () => {
+    expect(mapSavedServiceIds(null)).toEqual([]);
+    expect(mapSavedServiceIds(undefined)).toEqual([]);
+    expect(mapSavedServiceIds([])).toEqual([]);
+  });
+});
+
+describe("mapSavedZoneIds", () => {
+  it("returns unique zone ids and ignores blanks", () => {
+    expect(
+      mapSavedZoneIds([{ zone_id: "zone-maadi" }, { zone_id: "zone-zayed" }, { zone_id: null }]),
+    ).toEqual(["zone-maadi", "zone-zayed"]);
+  });
+});
+
+describe("mapSavedReferences", () => {
+  it("sorts by sort_order into the two reference slots", () => {
+    const mapped = mapSavedReferences([
+      {
+        full_name: "Second",
+        relationship: "neighbor",
+        phone: "+201022233344",
+        notes: "",
+        sort_order: 2,
+      },
+      {
+        full_name: "First",
+        relationship: "former_client",
+        phone: "+201011122233",
+        notes: "weekly",
+        sort_order: 1,
+      },
+    ]);
+
+    expect(mapped.ref1.full_name).toBe("First");
+    expect(mapped.ref1.notes).toBe("weekly");
+    expect(mapped.ref2.full_name).toBe("Second");
+  });
+
+  it("keeps the second slot empty when only one reference is saved", () => {
+    const mapped = mapSavedReferences([
+      {
+        full_name: "Only",
+        relationship: "client",
+        phone: "+201011122233",
+        notes: null,
+        sort_order: 1,
+      },
+    ]);
+
+    expect(mapped.ref1.full_name).toBe("Only");
+    expect(mapped.ref2).toEqual({ full_name: "", relationship: "", phone: "", notes: "" });
+  });
+});
+
+describe("buildCoverageSavePayload", () => {
+  it("blocks save when saved zones have not loaded", () => {
+    expect(buildCoverageSavePayload("loading", ["zone-maadi"], ["zone-maadi"])).toEqual({
+      ok: false,
+      error: "not_loaded",
+    });
+  });
+
+  it("blocks save when the saved-zone query failed", () => {
+    expect(buildCoverageSavePayload("error", ["zone-maadi"], ["zone-maadi"])).toEqual({
+      ok: false,
+      error: "load_failed",
+    });
+  });
+
+  it("rejects an empty or fully inactive selection", () => {
+    expect(buildCoverageSavePayload("ready", [], ["zone-maadi"])).toEqual({
+      ok: false,
+      error: "zone_required",
+    });
+    expect(buildCoverageSavePayload("ready", ["zone-old"], ["zone-maadi"])).toEqual({
+      ok: false,
+      error: "zone_required",
+    });
+  });
+
+  it("sends only currently active zone ids", () => {
+    expect(
+      buildCoverageSavePayload(
+        "ready",
+        ["zone-maadi", "zone-old", "zone-zayed"],
+        ["zone-maadi", "zone-zayed"],
+      ),
+    ).toEqual({
+      ok: true,
+      zone_ids: ["zone-maadi", "zone-zayed"],
+    });
+  });
+
+  it("does not report zone_required while the active-zone catalog is still loading", () => {
+    const catalogStillLoading = combineSavedSelectionLoadState("ready", "loading");
+    expect(catalogStillLoading).toBe("loading");
+    expect(buildCoverageSavePayload(catalogStillLoading, ["zone-maadi", "zone-zayed"], [])).toEqual(
+      {
+        ok: false,
+        error: "not_loaded",
+      },
+    );
+  });
+
+  it("permits a valid saved selection after the catalog is ready", () => {
+    const bothReady = combineSavedSelectionLoadState("ready", "ready");
+    expect(
+      buildCoverageSavePayload(
+        bothReady,
+        ["zone-maadi", "zone-zayed"],
+        ["zone-maadi", "zone-zayed"],
+      ),
+    ).toEqual({
+      ok: true,
+      zone_ids: ["zone-maadi", "zone-zayed"],
+    });
+  });
+});
+
+describe("combineSavedSelectionLoadState", () => {
+  it("prefers error, then loading, then ready", () => {
+    expect(combineSavedSelectionLoadState("ready", "error")).toBe("error");
+    expect(combineSavedSelectionLoadState("ready", "loading")).toBe("loading");
+    expect(combineSavedSelectionLoadState("ready", "ready")).toBe("ready");
   });
 });

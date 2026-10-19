@@ -7,10 +7,20 @@ import {
   createRouter,
 } from "@tanstack/react-router";
 import { ProviderOnboardingFlow } from "@/components/provider/ProviderOnboardingFlow";
+import { OnboardingRoute } from "@/routes/pro.onboarding";
+import { BookContent } from "@/routes/book.$providerId";
+import { RequestUpdatedDetailsAction } from "@/components/admin/RequestUpdatedDetailsAction";
+import { AdminProvider } from "@/routes/admin.provider.$id";
+import { AdminServices } from "@/routes/admin.services";
 import { LanguageProvider } from "@/lib/i18n/LanguageProvider";
 import { useProviders } from "@/lib/db/queries";
 import { Toaster } from "@/components/ui/sonner";
 import { ProviderOnboardingFlowPre68 } from "../tests/issue68/fixtures/ProviderOnboardingFlow.pre68";
+import { MOCK_PROVIDER_ID } from "./constants.mjs";
+import { useAdminOnboardingReview, type OnboardingStatus } from "@/lib/provider/onboarding-queries";
+import { FamilyMembers } from "@/routes/family-members";
+import { NewFamilyMember } from "@/routes/family-members.new";
+import { OtpCountdownProbe } from "./OtpCountdownProbe";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -95,7 +105,122 @@ const proRoute = createRoute({
   },
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, onboardingRoute, marketplaceRoute, proRoute]);
+const proOnboardingRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/pro/onboarding",
+  component: function ProOnboardingHarness() {
+    return (
+      <div data-testid="issue68-pro-onboarding">
+        <OnboardingRoute />
+      </div>
+    );
+  },
+});
+
+const adminProviderReviewRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin-provider-review",
+  component: function AdminProviderReviewHarness() {
+    return (
+      <div data-testid="issue68-admin-provider-review">
+        <AdminProvider id={MOCK_PROVIDER_ID} />
+      </div>
+    );
+  },
+});
+
+const adminServicesCatalogRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin-services-catalog",
+  component: function AdminServicesCatalogHarness() {
+    return (
+      <div data-testid="issue68-admin-services-catalog">
+        <AdminServices />
+      </div>
+    );
+  },
+});
+
+const adminUpdatedDetailsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin-updated-details",
+  component: function AdminUpdatedDetailsHarness() {
+    const review = useAdminOnboardingReview(MOCK_PROVIDER_ID);
+    const status = (
+      review.data as { provider?: { onboarding_status?: OnboardingStatus } } | undefined
+    )?.provider?.onboarding_status;
+    return (
+      <div data-testid="issue68-admin-updated-details">
+        <div data-testid="onboarding-status">{status ?? "loading"}</div>
+        <RequestUpdatedDetailsAction providerId={MOCK_PROVIDER_ID} onboardingStatus={status} />
+      </div>
+    );
+  },
+});
+
+const otpUiProbeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/otp-ui-probe",
+  component: function OtpUiProbeHarness() {
+    return <OtpCountdownProbe />;
+  },
+});
+
+const familyMembersNewRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/family-members/new",
+  component: function FamilyMembersNewHarness() {
+    return (
+      <div data-testid="issue68-family-members-new">
+        <NewFamilyMember />
+      </div>
+    );
+  },
+});
+
+const familyMembersRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/family-members",
+  component: function FamilyMembersHarness() {
+    return (
+      <div data-testid="issue68-family-members">
+        <FamilyMembers />
+      </div>
+    );
+  },
+});
+
+const bookRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/book/$providerId",
+  validateSearch: (search: Record<string, unknown>) => ({
+    serviceId: typeof search.serviceId === "string" ? search.serviceId : undefined,
+  }),
+  component: function BookHarness() {
+    const { providerId } = bookRoute.useParams();
+    const { serviceId } = bookRoute.useSearch();
+    return (
+      <div data-testid="issue68-book">
+        <BookContent providerId={providerId} searchServiceId={serviceId} />
+      </div>
+    );
+  },
+});
+
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  onboardingRoute,
+  marketplaceRoute,
+  proRoute,
+  proOnboardingRoute,
+  adminUpdatedDetailsRoute,
+  adminServicesCatalogRoute,
+  adminProviderReviewRoute,
+  familyMembersNewRoute,
+  familyMembersRoute,
+  otpUiProbeRoute,
+  bookRoute,
+]);
 const router = createRouter({ routeTree });
 
 export function App() {

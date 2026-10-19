@@ -1,19 +1,19 @@
+import { previewPath } from "@/lib/preview/previewPath";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { PhoneFrame } from "@/components/famio/ui";
-import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
+import { CustomerPageHeader } from "@/components/famio/CustomerPageHeader";
 import {
   FamilyMemberForm,
   emptyFamilyMemberFormValue,
   familyMemberFormValueToInput,
 } from "@/components/famio/FamilyMemberForm";
 import { useCreateFamilyMember } from "@/lib/db/family-members-queries";
+import { familyMemberErrorMessageKey } from "@/lib/db/familyMemberErrors";
 
-export const Route = createFileRoute("/family-members/new")({ component: NewFamilyMember });
-
-function NewFamilyMember() {
+export function NewFamilyMember() {
   const { t } = useTranslation();
   const nav = useNavigate();
   const createMember = useCreateFamilyMember();
@@ -23,19 +23,19 @@ function NewFamilyMember() {
     try {
       await createMember.mutateAsync(familyMemberFormValueToInput(value));
       toast.success(t("familyMembers.saved", "Family member saved"));
-      nav({ to: "/family-members" });
-    } catch (e: any) {
-      toast.error(e?.message ?? t("common.somethingWentWrong"));
+      nav({ to: previewPath("/family-members") });
+    } catch (e: unknown) {
+      toast.error(t(familyMemberErrorMessageKey(e)));
     }
   };
 
   return (
     <PhoneFrame bg="bg-background">
-      <CustomerPageHero
+      <CustomerPageHeader
         title={t("familyMembers.addMember", "Add family member")}
         backTo="/family-members"
       />
-      <div className="flex-1 px-6 pb-10 pt-2">
+      <div className="flex-1 px-6 pb-10 pt-4">
         <FamilyMemberForm
           value={value}
           onChange={setValue}
@@ -47,3 +47,5 @@ function NewFamilyMember() {
     </PhoneFrame>
   );
 }
+
+export const Route = createFileRoute("/family-members/new")({ component: NewFamilyMember });

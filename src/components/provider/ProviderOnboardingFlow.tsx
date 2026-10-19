@@ -1,4 +1,15 @@
+import { ProfileAvatar } from "./ProfileAvatar";
+import { localOnboardingMissing, onboardingMissingItems, type GuidanceField, type MissingItem } from "@/lib/provider/onboardingGuidance";
+import { useSearch } from "@tanstack/react-router";
+import { onboardingInitialStep } from "@/lib/provider/onboardingSection";
+import { isFixedPackage, packageLabel, servicePriceUnit } from "@/lib/pricing/servicePackages";
+import {
+  ServicePricePicker,
+  needsServicePrice,
+  hasSelectedServicePrices,
+} from "./ServicePricePicker";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -13,14 +24,19 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { PhoneFrame, Card, PrimaryButton, Badge } from "@/components/famio/ui";
-import { ProviderPageHero } from "@/components/famio/ProviderPageHero";
+import { PageHeader } from "@/components/famio/PageHeader";
 import { ProviderFloatingPanel } from "@/components/famio/ProviderFloatingPanel";
 import { useLang } from "@/components/famio/LanguageToggle";
-import { useMyProvider, useProviderDocuments } from "@/lib/db/provider-queries";
+import {
+  useMyProvider,
+  useProviderDocuments,
+  useSetProviderPrice,
+} from "@/lib/db/provider-queries";
 import {
   onboardingEditable,
   useActiveZones,
   useMyReferences,
+  useMySavedSelections,
   useOnboardingSnapshot,
   usePhase1Services,
   useSaveOnboardingSection,
@@ -31,11 +47,39 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { proPath } from "@/lib/preview/previewPath";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
-import { buildReferencesPayload } from "@/lib/provider/onboardingReferences";
-import { mapSnapshotToOnboardingFormState } from "@/lib/provider/onboardingHydration";
+import { buildReferencesPayload, showSecondReference } from "@/lib/provider/onboardingReferences";
+import {
+  buildCoverageSavePayload,
+  buildServicesSavePayload,
+  mapSavedReferences,
+  mapSavedServiceIds,
+  mapSavedZoneIds,
+  mapSnapshotToOnboardingFormState,
+  combineSavedSelectionLoadState,
+  savedSelectionLoadState,
+} from "@/lib/provider/onboardingHydration";
+import {
+  AGE_GROUP_CHIP_IDS,
+  buildAgeGroupCapabilitiesPayloadFromChips,
+  chipHasVerifiedCode,
+  chipIsSelected,
+  sharedBabysittingExperienceFromForms,
+  type AgeGroupCapabilityForm,
+  type AgeGroupChipId,
+} from "@/lib/provider/ageGroupCapabilities";
+import { suggestInitialZoneSelection } from "@/lib/provider/onboardingZones";
 import { useAvatarUrl } from "@/lib/db/queries";
+import { TeachingCapabilitiesEditor } from "@/components/provider/TeachingCapabilitiesEditor";
+import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
 
-const STEPS: OnboardingSection[] = ["personal", "services", "experience", "coverage", "references", "review"];
+const STEPS: OnboardingSection[] = [
+  "personal",
+  "services",
+  "experience",
+  "coverage",
+  "references",
+  "review",
+];
 
 const STEP_META: Record<OnboardingSection, { icon: typeof UserRound; shortKey: string }> = {
   personal: { icon: UserRound, shortKey: "pro.onboardingWizard.steps.personal" },
@@ -46,6 +90,26 @@ const STEP_META: Record<OnboardingSection, { icon: typeof UserRound; shortKey: s
   review: { icon: CheckCircle2, shortKey: "pro.onboardingWizard.steps.review" },
 };
 
+function removeOnboardingServiceErrorMessage(
+  message: string | undefined,
+  t: (key: string) => string,
+): string {
+  const m = message ?? "";
+  if (m.includes("not editable in the current status")) {
+    return t("pro.onboardingWizard.removeServiceErrors.notEditable");
+  }
+  if (m.includes("Approved services cannot be removed")) {
+    return t("pro.onboardingWizard.removeServiceErrors.approved");
+  }
+  if (m.includes("Services with bookings cannot be removed")) {
+    return t("pro.onboardingWizard.removeServiceErrors.hasBookings");
+  }
+  if (m.includes("Provider service not found") || m.includes("Provider profile not found")) {
+    return t("pro.onboardingWizard.removeServiceErrors.notFound");
+  }
+  return t("pro.onboardingWizard.removeServiceErrors.generic");
+}
+
 const PREVIEW_DEFAULTS = {
   legalName: "Mona Adel",
   dob: "1990-04-18",
@@ -54,21 +118,30 @@ const PREVIEW_DEFAULTS = {
   area: "Maadi",
   address: "Road 9, Degla, Giza",
   years: 5,
-  bioEn: "Experienced home cleaning professional serving Cairo families with care and attention to detail.",
+  bioEn:
+    "Experienced home cleaning professional serving Cairo families with care and attention to detail.",
   bioAr: "محترفة تنظيف منازل بخبرة تخدم العائلات في القاهرة بعناية واهتمام بالتفاصيل.",
   previousWork: "Private homes in Maadi and Zamalek for 4 years.",
   selectedServices: ["svc-clean"],
   selectedZones: ["zone-maadi", "zone-zayed"],
-  ref1: { full_name: "Nadia Kamal", relationship: "former_client", phone: "+201011122233", notes: "Weekly clean for 6 months" },
+  ref1: {
+    full_name: "Nadia Kamal",
+    relationship: "former_client",
+    phone: "+201011122233",
+    notes: "Weekly clean for 6 months",
+  },
   ref2: { full_name: "Layla Hassan", relationship: "neighbor", phone: "+201022233344", notes: "" },
 };
 
-export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: boolean }) {
+export function ProviderOnboardingFlow({ previewMode = false, initialSection }: { previewMode?: boolean; initialSection?: OnboardingSection }) {
   const { t } = useTranslation();
   const lang = useLang();
   const nav = useNavigate();
   const snapshotQ = useOnboardingSnapshot();
   const providerQ = useMyProvider();
+  const setServicePrice = useSetProviderPrice();
+  const [savingPrices, setSavingPrices] = useState(false);
+  const [servicePrices, setServicePrices] = useState<Record<string, number | null>>({});
   const saveSection = useSaveOnboardingSection();
   const submit = useSubmitOnboarding();
   const uploadDoc = useSecureUploadDocument();
@@ -79,18 +152,49 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
   const snapshot = snapshotQ.data as any;
   const status = previewMode
     ? "DRAFT"
-    : ((provider?.onboarding_status ?? snapshot?.provider?.onboarding_status) as string | undefined);
-  const editable = previewMode || onboardingEditable(status as any);
+    : ((provider?.onboarding_status ?? snapshot?.provider?.onboarding_status) as
+        string | undefined);
+  const deferred = status === "SUBMITTED" || status === "UNDER_REVIEW";
+  const editable = previewMode || onboardingEditable(status as any) || deferred;
   const profile = snapshot?.profile ?? provider?.profile ?? {};
   const details = snapshot?.details ?? {};
   const completion = snapshot?.completion ?? {};
   const errors = (completion?.errors ?? {}) as Record<string, string>;
 
-  const refsQ = useMyReferences(provider?.id);
-  const docsQ = useProviderDocuments(provider?.id);
+  const providerId = (provider?.id ?? snapshot?.provider?.id) as string | undefined;
+  const refsQ = useMyReferences(providerId);
+  const savedSelectionsQ = useMySavedSelections(providerId);
+  const docsQ = useProviderDocuments(providerId);
+  const selectionsLoadState = previewMode ? "ready" : savedSelectionLoadState(savedSelectionsQ);
+  const zonesCatalogLoadState = previewMode ? "ready" : savedSelectionLoadState(zonesQ);
+  const coverageLoadState = previewMode
+    ? "ready"
+    : combineSavedSelectionLoadState(selectionsLoadState, zonesCatalogLoadState);
+  const referencesLoadState = previewMode ? "ready" : savedSelectionLoadState(refsQ);
+  const savedServiceIds = mapSavedServiceIds(savedSelectionsQ.data?.services);
+  const savedServices = savedSelectionsQ.data?.services ?? [];
+  const qc = useQueryClient();
+  const activeZoneIds = (zonesQ.data ?? []).map((z: { id: string }) => z.id);
+  const offeredServiceIds = (servicesQ.data ?? []).map((s: { id: string }) => s.id);
 
-  const [step, setStep] = useState(0);
+  const search = useSearch({ strict: false });
+  const [step, setStep] = useState(() => onboardingInitialStep(initialSection ?? search.section));
   const [err, setErr] = useState("");
+  const [attemptedSections, setAttemptedSections] = useState<Set<OnboardingSection>>(() => new Set());
+  const [submissionErrors, setSubmissionErrors] = useState<Record<string, string> | null>(null);
+  const [focusTarget, setFocusTarget] = useState<GuidanceField | null>(null);
+  const [announcement, setAnnouncement] = useState("");
+  useEffect(() => {
+    if (!focusTarget) return;
+    const frame = requestAnimationFrame(() => {
+      const element = document.getElementById(focusTarget) ?? document.getElementById("onboarding-error");
+      element?.scrollIntoView({ block: "center" });
+      element?.focus({ preventScroll: true });
+      setFocusTarget(null);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [step, focusTarget]);
+  const [secondReferenceExpanded, setSecondReferenceExpanded] = useState(false);
   const [legalName, setLegalName] = useState(previewMode ? PREVIEW_DEFAULTS.legalName : "");
   const [dob, setDob] = useState(previewMode ? PREVIEW_DEFAULTS.dob : "");
   const [gender, setGender] = useState(previewMode ? PREVIEW_DEFAULTS.gender : "");
@@ -100,22 +204,37 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
   const [years, setYears] = useState(previewMode ? PREVIEW_DEFAULTS.years : 1);
   const [bioEn, setBioEn] = useState(previewMode ? PREVIEW_DEFAULTS.bioEn : "");
   const [bioAr, setBioAr] = useState(previewMode ? PREVIEW_DEFAULTS.bioAr : "");
-  const [previousWork, setPreviousWork] = useState(previewMode ? PREVIEW_DEFAULTS.previousWork : "");
+  const [previousWork, setPreviousWork] = useState(
+    previewMode ? PREVIEW_DEFAULTS.previousWork : "",
+  );
   const [langs, setLangs] = useState<string[]>(["arabic"]);
   const [childGroups, setChildGroups] = useState<string[]>([]);
+  const [capabilityForms, setCapabilityForms] = useState<AgeGroupCapabilityForm[]>([]);
+  const [babysittingYears, setBabysittingYears] = useState<number | "">("");
+  const [babysittingNote, setBabysittingNote] = useState("");
+  const [maxChildren, setMaxChildren] = useState<number | "">(previewMode ? 2 : "");
   const [newborn, setNewborn] = useState(false);
   const [firstAid, setFirstAid] = useState(false);
   const [selectedServices, setSelectedServices] = useState<string[]>(
     previewMode ? PREVIEW_DEFAULTS.selectedServices : [],
   );
-  const [selectedZones, setSelectedZones] = useState<string[]>(previewMode ? PREVIEW_DEFAULTS.selectedZones : []);
-  const [ref1, setRef1] = useState(previewMode ? PREVIEW_DEFAULTS.ref1 : { full_name: "", relationship: "", phone: "", notes: "" });
-  const [ref2, setRef2] = useState(previewMode ? PREVIEW_DEFAULTS.ref2 : { full_name: "", relationship: "", phone: "", notes: "" });
+  const [selectedZones, setSelectedZones] = useState<string[]>(
+    previewMode ? PREVIEW_DEFAULTS.selectedZones : [],
+  );
+  const [ref1, setRef1] = useState(
+    previewMode ? PREVIEW_DEFAULTS.ref1 : { full_name: "", relationship: "", phone: "", notes: "" },
+  );
+  const [ref2, setRef2] = useState(
+    previewMode ? PREVIEW_DEFAULTS.ref2 : { full_name: "", relationship: "", phone: "", notes: "" },
+  );
   const [confirmed, setConfirmed] = useState(false);
   const [uploadedDocs, setUploadedDocs] = useState<Record<string, boolean>>({});
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [avatarPath, setAvatarPath] = useState<string | null>(null);
   const formHydrated = useRef(previewMode);
+  const servicesHydrated = useRef(previewMode);
+  const zonesHydrated = useRef(previewMode);
+  const refsHydrated = useRef(previewMode);
   const signedAvatar = useAvatarUrl(avatarPath ?? (profile.avatar_url as string | undefined));
   const shownPhoto = photoPreview || signedAvatar.data;
 
@@ -134,16 +253,65 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
     setPreviousWork(hydrated.previousWork);
     setLangs(hydrated.langs);
     setChildGroups(hydrated.childGroups);
+    setCapabilityForms(hydrated.capabilityForms);
+    const shared = sharedBabysittingExperienceFromForms(
+      hydrated.capabilityForms,
+      hydrated.childGroups,
+    );
+    setBabysittingYears(shared.years ?? "");
+    setBabysittingNote(shared.note);
+    setMaxChildren(hydrated.maxChildren ?? "");
     setNewborn(hydrated.newborn);
     setFirstAid(hydrated.firstAid);
     setConfirmed(hydrated.confirmed);
     setAvatarPath(hydrated.avatarPath);
-    if (hydrated.selectedServices.length) setSelectedServices(hydrated.selectedServices);
-    if (hydrated.selectedZones.length) setSelectedZones(hydrated.selectedZones);
-    if (hydrated.ref1.full_name || hydrated.ref1.phone) setRef1(hydrated.ref1);
-    if (hydrated.ref2.full_name || hydrated.ref2.phone) setRef2(hydrated.ref2);
     formHydrated.current = true;
   }, [previewMode, snapshot]);
+
+  useEffect(() => {
+    if (previewMode || servicesHydrated.current || !savedSelectionsQ.isSuccess) return;
+    setSelectedServices(mapSavedServiceIds(savedSelectionsQ.data?.services));
+    setServicePrices(
+      Object.fromEntries(
+        (savedSelectionsQ.data?.services ?? []).map((row) => [row.service_id, row.price_override]),
+      ),
+    );
+    servicesHydrated.current = true;
+  }, [previewMode, savedSelectionsQ.isSuccess, savedSelectionsQ.data]);
+
+  useEffect(() => {
+    if (previewMode || zonesHydrated.current || !savedSelectionsQ.isSuccess) return;
+    const saved = mapSavedZoneIds(savedSelectionsQ.data?.zones);
+    const zones = zonesQ.data ?? [];
+    setSelectedZones(suggestInitialZoneSelection(zones, area, governorate, saved));
+    zonesHydrated.current = true;
+  }, [
+    previewMode,
+    savedSelectionsQ.isSuccess,
+    savedSelectionsQ.data,
+    zonesQ.data,
+    area,
+    governorate,
+  ]);
+
+  useEffect(() => {
+    if (previewMode || !zonesHydrated.current || !zonesQ.isSuccess) return;
+    const zones = zonesQ.data ?? [];
+    if (zones.length !== 1) return;
+    const onlyId = zones[0]?.id;
+    if (!onlyId) return;
+    setSelectedZones((current) =>
+      current.length === 1 && current[0] === onlyId ? current : [onlyId],
+    );
+  }, [previewMode, zonesQ.isSuccess, zonesQ.data]);
+
+  useEffect(() => {
+    if (previewMode || refsHydrated.current || !refsQ.isSuccess) return;
+    const hydratedRefs = mapSavedReferences(refsQ.data);
+    setRef1(hydratedRefs.ref1);
+    setRef2(hydratedRefs.ref2);
+    refsHydrated.current = true;
+  }, [previewMode, refsQ.isSuccess, refsQ.data]);
 
   useEffect(() => {
     return () => {
@@ -153,18 +321,78 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
 
   const current = STEPS[step];
   const progress = Math.round(((step + 1) / STEPS.length) * 100);
+  const pricesReady = hasSelectedServicePrices(
+    servicesQ.data ?? [],
+    selectedServices,
+    servicePrices,
+  );
+  const sectionSaveBlocked =
+    !previewMode &&
+    ((current === "services" && selectionsLoadState !== "ready") ||
+      (current === "coverage" && coverageLoadState !== "ready") ||
+      (current === "references" && referencesLoadState !== "ready"));
 
   const babysittingSelected = useMemo(() => {
     const services = servicesQ.data ?? [];
-    return selectedServices.some((id) => services.find((s: any) => s.id === id)?.category?.slug === "babysitting");
+    return selectedServices.some(
+      (id) => services.find((s: any) => s.id === id)?.category?.slug === "babysitting",
+    );
+  }, [selectedServices, servicesQ.data]);
+  const tutoringSelected = useMemo(() => {
+    const services = servicesQ.data ?? [];
+    return selectedServices.some((id) =>
+      isTutoringCategorySlug(services.find((s: any) => s.id === id)?.category?.slug),
+    );
   }, [selectedServices, servicesQ.data]);
 
+  const hasDocument = (type: string) => !!uploadedDocs[type] || (docsQ.data ?? []).some(doc => doc.type === type);
+  const localMissing = localOnboardingMissing({
+    legalName, dob, governorate, area, address, photo: !!avatarPath || !!profile.avatar_url,
+    services: selectedServices.length > 0, prices: pricesReady, bioEn, bioAr, years: Number(years),
+    babysitting: babysittingSelected, maxChildren, ageGroups: childGroups.length,
+    coverage: selectedZones.length > 0, references: [ref1, ref2],
+    idFront: hasDocument("id_card_front"), idBack: hasDocument("id_card_back"), confirmed,
+  });
+  const missingItems = onboardingMissingItems(localMissing, submissionErrors ?? errors);
+  const itemText = (item: MissingItem) => item.error
+    ? t(`pro.onboardingWizard.errors.${item.error}`, t("pro.onboardingWizard.guidance.checkSection"))
+    : t("pro.onboardingWizard.guidance.completeField", { field: t(`pro.onboardingWizard.${item.label}`) });
+  const openMissing = (item: MissingItem) => {
+    setAttemptedSections(sections => new Set(sections).add(item.section as OnboardingSection));
+    if (item.field.startsWith("reference-1")) setSecondReferenceExpanded(true);
+    setStep(STEPS.indexOf(item.section as typeof STEPS[number]));
+    setAnnouncement(`${t(`pro.onboardingWizard.steps.${item.section}`)}: ${itemText(item)}`);
+    setFocusTarget(item.field);
+  };
+  const fieldHint = (field: GuidanceField) => {
+    const item = localMissing.find(item => item.field === field);
+    return item && attemptedSections.has(item.section as OnboardingSection) ? <p id={`${field}-hint`} className="mt-1 text-xs font-medium text-coral">{itemText(item)}</p> : null;
+  };
+
+  const toggleAgeChip = (chipId: AgeGroupChipId) => {
+    if (chipHasVerifiedCode(chipId, capabilityForms) || !editable) return;
+    setChildGroups((current) =>
+      current.includes(chipId) ? current.filter((id) => id !== chipId) : [...current, chipId],
+    );
+  };
+
+  const singleActiveZone = (zonesQ.data ?? []).length === 1 ? (zonesQ.data ?? [])[0] : null;
+
   const saveCurrent = async () => {
+    if (deferred && !["personal", "experience", "references"].includes(current)) return;
+    setAttemptedSections(sections => new Set(sections).add(current));
     setErr("");
+    if (current === "services" && !pricesReady) return;
+    if (current === "review" && localMissing.length) {
+      openMissing(localMissing[0]);
+      return;
+    }
     try {
       if (previewMode) {
         if (current === "review") {
-          toast.success(t("pro.onboardingWizard.submitSuccess", "Application submitted for review"));
+          toast.success(
+            t("pro.onboardingWizard.submitSuccess", "Application submitted for review"),
+          );
           nav({ to: proPath("/pro") as "/pro", replace: true });
           return;
         }
@@ -175,29 +403,105 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
       if (current === "personal") {
         await saveSection.mutateAsync({
           section: "personal",
-          payload: { legal_name: legalName, date_of_birth: dob, gender, governorate, area, full_address: address },
-        });
-      } else if (current === "experience") {
-        await saveSection.mutateAsync({
-          section: "experience",
           payload: {
-            years_experience: years,
-            bio_en: bioEn,
-            bio_ar: bioAr,
-            previous_work: previousWork,
-            languages: langs,
-            child_age_groups: childGroups,
-            newborn_experience: newborn,
-            first_aid_training: firstAid,
+            legal_name: legalName,
+            date_of_birth: dob,
+            gender,
+            governorate,
+            area,
+            full_address: address,
           },
         });
+      } else if (current === "experience") {
+        const experiencePayload: Record<string, unknown> = {
+          years_experience: years,
+          bio_en: bioEn,
+          bio_ar: bioAr,
+          previous_work: previousWork,
+          languages: langs,
+          newborn_experience: newborn,
+          first_aid_training: firstAid,
+        };
+        if (babysittingSelected) {
+          experiencePayload.age_group_capabilities = buildAgeGroupCapabilitiesPayloadFromChips(
+            childGroups,
+            capabilityForms,
+            babysittingYears === "" ? null : Number(babysittingYears),
+            babysittingNote,
+          );
+          experiencePayload.max_children_per_booking =
+            maxChildren === "" ? null : Number(maxChildren);
+        }
+        await saveSection.mutateAsync({
+          section: "experience",
+          payload: experiencePayload,
+        });
       } else if (current === "services") {
-        await saveSection.mutateAsync({ section: "services", payload: { service_ids: selectedServices } });
+        const packed = buildServicesSavePayload(
+          selectionsLoadState,
+          selectedServices,
+          savedServiceIds,
+          offeredServiceIds,
+        );
+        if (!packed.ok) {
+          setErr(
+            packed.error === "load_failed"
+              ? t("pro.onboardingWizard.savedSelectionsError")
+              : t("pro.onboardingWizard.savedSelectionsLoading"),
+          );
+          return;
+        }
+        await saveSection.mutateAsync({
+          section: "services",
+          payload: { service_ids: packed.service_ids },
+        });
+        if (!providerId) throw new Error(t("common.somethingWentWrong"));
+        setSavingPrices(true);
+        try {
+          for (const service of servicesQ.data ?? []) {
+            if (selectedServices.includes(service.id) && needsServicePrice(service)) {
+              await setServicePrice.mutateAsync({
+                providerId,
+                serviceId: service.id,
+                price: servicePrices[service.id],
+              });
+            }
+          }
+          await qc.invalidateQueries({ queryKey: ["provider-saved-selections"] });
+        } finally {
+          setSavingPrices(false);
+        }
       } else if (current === "coverage") {
-        await saveSection.mutateAsync({ section: "coverage", payload: { zone_ids: selectedZones } });
+        const packed = buildCoverageSavePayload(coverageLoadState, selectedZones, activeZoneIds);
+        if (!packed.ok) {
+          const first = localMissing.find(item => item.field === "coverage");
+          if (packed.error === "zone_required" && first) openMissing(first);
+          setErr(
+            packed.error === "zone_required"
+              ? t("pro.onboardingWizard.errors.zone_required")
+              : packed.error === "load_failed"
+                ? t("pro.onboardingWizard.savedSelectionsError")
+                : t("pro.onboardingWizard.savedSelectionsLoading"),
+          );
+          return;
+        }
+        await saveSection.mutateAsync({
+          section: "coverage",
+          payload: { zone_ids: packed.zone_ids },
+        });
       } else if (current === "references") {
+        if (referencesLoadState !== "ready") {
+          setErr(
+            referencesLoadState === "error"
+              ? t("pro.onboardingWizard.savedSelectionsError")
+              : t("pro.onboardingWizard.savedSelectionsLoading"),
+          );
+          return;
+        }
         const packed = buildReferencesPayload(ref1, ref2);
         if (!packed.ok) {
+          const first = localMissing.find(item => item.section === "references");
+          if (first) openMissing(first);
           setErr(
             packed.error === "ref1"
               ? t("pro.onboardingWizard.ref1Required")
@@ -205,7 +509,10 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
           );
           return;
         }
-        await saveSection.mutateAsync({ section: "references", payload: { references: packed.references } });
+        await saveSection.mutateAsync({
+          section: "references",
+          payload: { references: packed.references },
+        });
       } else if (current === "review") {
         await saveSection.mutateAsync({ section: "review", payload: { confirmed } });
         const res = await submit.mutateAsync();
@@ -213,12 +520,24 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
         nav({ to: proPath("/pro") as "/pro", replace: true });
         return;
       }
+      setSubmissionErrors(null);
+      if (deferred) { nav({ to: proPath("/pro") as "/pro" }); return; }
       if (step < STEPS.length - 1) setStep(step + 1);
     } catch (e: any) {
       if (e?.message === "submission_incomplete") {
-        setErr(t("pro.onboardingWizard.submitIncomplete"));
+        const returnedErrors = e.completionErrors ?? {};
+        setSubmissionErrors(returnedErrors);
+        const next = onboardingMissingItems(localMissing, returnedErrors);
+        if (next.length) openMissing(next[0]);
+        else {
+          setErr(t("pro.onboardingWizard.guidance.checkSection"));
+          setFocusTarget("review");
+        }
       } else {
         setErr(t("pro.onboardingWizard.saveError"));
+        const first = localMissing.find(item => item.section === current);
+        if (first) openMissing(first);
+        else setFocusTarget("review");
       }
     }
   };
@@ -229,6 +548,7 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
       return;
     }
     setErr("");
+    if (current === "services" && !pricesReady) return;
     try {
       const ext = (file.name.split(".").pop() ?? "jpg").toLowerCase();
       if (!["jpg", "jpeg", "png"].includes(ext) || file.size > 10 * 1024 * 1024) {
@@ -272,24 +592,31 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
     docsQ.refetch();
   };
 
-  if (!previewMode && !editable && status && status !== "DRAFT") {
+  if (!previewMode && (!editable || (deferred && current === "review")) && status && status !== "DRAFT") {
     const submittedRefs = refsQ.data ?? [];
     return (
-      <PhoneFrame bg="bg-[#FEFAFC]">
-        <ProviderPageHero title={t("pro.onboardingWizard.title")} backTo="/pro" compact />
+      <PhoneFrame className="pro-surface" bg="bg-[#FEFAFC]">
+        <PageHeader title={t("pro.onboardingWizard.title")} backTo="/pro" />
         <div className="space-y-4 px-5 pb-10" dir={lang === "ar" ? "rtl" : "ltr"}>
-          <ProviderFloatingPanel>
+          <ProviderFloatingPanel className="!mt-0">
             <Badge tone="muted">{t(`pro.onboardingWizard.status.${status}`, status)}</Badge>
             <p className="mt-3 text-sm font-medium text-muted-foreground">
               {status === "NEEDS_CHANGES"
                 ? (provider?.review_reason_public ?? t("pro.onboardingWizard.changesRequired"))
-                : t(`pro.onboardingWizard.statusBody.${status}`, t("pro.onboardingWizard.readOnly"))}
+                : t(
+                    `pro.onboardingWizard.statusBody.${status}`,
+                    t("pro.onboardingWizard.readOnly"),
+                  )}
             </p>
           </ProviderFloatingPanel>
           {(details.full_address || details.governorate || details.area) && (
             <Card className="space-y-2 rounded-[1.25rem] p-4">
-              <div className="text-sm font-extrabold">{t("pro.onboardingWizard.steps.personal")}</div>
-              {details.full_address && <p className="text-sm text-foreground">{details.full_address}</p>}
+              <div className="text-sm font-extrabold">
+                {t("pro.onboardingWizard.steps.personal")}
+              </div>
+              {details.full_address && (
+                <p className="text-sm text-foreground">{details.full_address}</p>
+              )}
               {(details.governorate || details.area) && (
                 <p className="text-sm text-muted-foreground">
                   {[details.governorate, details.area].filter(Boolean).join(", ")}
@@ -299,14 +626,21 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
           )}
           {submittedRefs.length > 0 && (
             <Card className="space-y-2 rounded-[1.25rem] p-4">
-              <div className="text-sm font-extrabold">{t("pro.onboardingWizard.steps.references")}</div>
-              {submittedRefs.map((ref: { id?: string; full_name: string; relationship: string; phone: string }) => (
-                <div key={ref.id ?? ref.full_name} className="rounded-xl border border-border/60 p-3 text-sm">
-                  <div className="font-semibold">{ref.full_name}</div>
-                  <div className="text-muted-foreground">{ref.relationship}</div>
-                  <div className="text-muted-foreground">{ref.phone}</div>
-                </div>
-              ))}
+              <div className="text-sm font-extrabold">
+                {t("pro.onboardingWizard.steps.references")}
+              </div>
+              {submittedRefs.map(
+                (ref: { id?: string; full_name: string; relationship: string; phone: string }) => (
+                  <div
+                    key={ref.id ?? ref.full_name}
+                    className="rounded-xl border border-border/60 p-3 text-sm"
+                  >
+                    <div className="font-semibold">{ref.full_name}</div>
+                    <div className="text-muted-foreground">{ref.relationship}</div>
+                    <div className="text-muted-foreground">{ref.phone}</div>
+                  </div>
+                ),
+              )}
             </Card>
           )}
         </div>
@@ -318,22 +652,29 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
     "h-12 w-full rounded-2xl border border-border/60 bg-surface px-4 text-sm font-medium text-foreground placeholder:text-muted-foreground/70";
 
   return (
-    <PhoneFrame bg="bg-[#FEFAFC]">
-      <ProviderPageHero
+    <PhoneFrame className="pro-surface" bg="bg-[#FEFAFC]">
+      <PageHeader
         title={t("pro.onboardingWizard.title")}
         subtitle={t(`pro.onboardingWizard.steps.${current}`)}
         backTo="/pro"
-        compact
       />
 
       <div className="px-5" dir={lang === "ar" ? "rtl" : "ltr"}>
-        <ProviderFloatingPanel className="!p-3">
-          <div className="mb-2 flex items-center justify-between text-[11px] font-bold text-muted-foreground">
-            <span>{t("pro.onboardingWizard.progress", "Step {{current}} of {{total}}", { current: step + 1, total: STEPS.length })}</span>
+        <ProviderFloatingPanel className="!mt-0 !p-3">
+          <div className="mb-2 flex items-center justify-between text-pro-12 font-bold text-muted-foreground">
+            <span>
+              {t("pro.onboardingWizard.progress", "Step {{current}} of {{total}}", {
+                current: step + 1,
+                total: STEPS.length,
+              })}
+            </span>
             <span>{progress}%</span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-surface-2">
-            <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${progress}%` }} />
+            <div
+              className="h-full rounded-full bg-brand transition-all"
+              style={{ width: `${progress}%` }}
+            />
           </div>
           <div className="mt-3 flex flex-wrap gap-1.5">
             {STEPS.map((s, idx) => {
@@ -344,8 +685,9 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
                 <button
                   key={s}
                   type="button"
+                  disabled={deferred && !["personal", "experience", "references", "services"].includes(s)}
                   onClick={() => setStep(idx)}
-                  className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-extrabold transition-colors ${
+                  className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-pro-12 font-extrabold transition-colors ${
                     active
                       ? "bg-brand text-brand-foreground"
                       : done
@@ -362,33 +704,70 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
         </ProviderFloatingPanel>
       </div>
 
-      <div className="min-w-0 space-y-4 overflow-x-hidden px-5 pb-10 pt-4" dir={lang === "ar" ? "rtl" : "ltr"}>
+      <div
+        className="min-w-0 space-y-4 overflow-x-hidden px-5 pb-10 pt-4"
+        dir={lang === "ar" ? "rtl" : "ltr"}
+      >
         {current === "personal" && (
           <Card className="space-y-4 rounded-[1.25rem] p-4">
             <label className="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border border-dashed border-brand/30 bg-brand/[0.04] px-4 py-5">
               <div className="grid h-20 w-20 place-items-center overflow-hidden rounded-2xl bg-brand/10 text-brand">
                 {shownPhoto ? (
-                  <img src={shownPhoto} alt="" className="h-20 w-20 object-cover" />
+                  <ProfileAvatar preview={shownPhoto} name={legalName} className="h-20 w-20 rounded-full" />
                 ) : (
                   <Camera className="h-6 w-6" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
                 )}
               </div>
-              <span className="text-sm font-bold text-brand">{t("pro.onboardingWizard.uploadPhoto")}</span>
-              <span className="text-[11px] font-medium text-muted-foreground">{t("pro.onboardingWizard.photoHint")}</span>
-              <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadAvatar(e.target.files[0])} />
+              <span className="text-sm font-bold text-brand">
+                {t("pro.onboardingWizard.uploadPhoto")}
+              </span>
+              <span className="text-pro-12 font-medium text-muted-foreground">
+                {t("pro.onboardingWizard.photoHint")}
+              </span>
+              <input
+                id="photo" aria-describedby="photo-hint"
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={(e) => e.target.files?.[0] && uploadAvatar(e.target.files[0])}
+              />
             </label>
+            {fieldHint("photo")}
             <Field label={t("pro.onboardingWizard.legalName")}>
-              <input value={legalName} onChange={(e) => setLegalName(e.target.value)} className={inputClass} />
+              <input
+                id="legalName" aria-describedby="legalName-hint"
+                value={legalName}
+                disabled={deferred}
+                onChange={(e) => setLegalName(e.target.value)}
+                className={inputClass}
+              />
+              {fieldHint("legalName")}
             </Field>
-            <Field label={t("pro.onboardingWizard.phone")}>
-              <input value={profile.phone ?? "+201098765432"} readOnly disabled className={`${inputClass} opacity-70`} />
-            </Field>
+            <div id="phone" tabIndex={-1}><Field label={t("pro.onboardingWizard.phone")}>
+              <input
+                value={profile.phone ?? "+201098765432"}
+                readOnly
+                disabled
+                className={`${inputClass} opacity-70`}
+              />
+            </Field></div>
             <div className="grid grid-cols-2 gap-3">
               <Field label={t("pro.onboardingWizard.dob")}>
-                <input type="date" value={dob} onChange={(e) => setDob(e.target.value)} className={inputClass} />
+                <input
+                  type="date"
+                  id="dob" aria-describedby="dob-hint"
+                value={dob}
+                  onChange={(e) => setDob(e.target.value)}
+                  className={inputClass}
+                />
+              {fieldHint("dob")}
               </Field>
               <Field label={t("pro.onboardingWizard.gender")}>
-                <select value={gender} onChange={(e) => setGender(e.target.value)} className={inputClass}>
+                <select
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  className={inputClass}
+                >
                   <option value="">{t("pro.onboardingWizard.select")}</option>
                   <option value="female">{t("pro.onboardingWizard.female")}</option>
                   <option value="male">{t("pro.onboardingWizard.male")}</option>
@@ -396,85 +775,270 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
               </Field>
             </div>
             <Field label={t("pro.onboardingWizard.governorate")}>
-              <input value={governorate} onChange={(e) => setGovernorate(e.target.value)} className={inputClass} />
+              <input
+                id="governorate" aria-describedby="governorate-hint"
+                value={governorate}
+                onChange={(e) => setGovernorate(e.target.value)}
+                className={inputClass}
+              />
+              {fieldHint("governorate")}
             </Field>
             <Field label={t("pro.onboardingWizard.area")}>
-              <input value={area} onChange={(e) => setArea(e.target.value)} className={inputClass} />
+              <input
+                id="area" aria-describedby="area-hint"
+                value={area}
+                onChange={(e) => setArea(e.target.value)}
+                className={inputClass}
+              />
+              {fieldHint("area")}
             </Field>
             <Field label={t("pro.onboardingWizard.address")}>
-              <textarea value={address} onChange={(e) => setAddress(e.target.value)} rows={3} className={`${inputClass} min-h-[5rem] py-3`} />
+              <textarea
+                id="address" aria-describedby="address-hint"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                rows={3}
+                className={`${inputClass} min-h-[5rem] py-3`}
+              />
+              {fieldHint("address")}
             </Field>
           </Card>
         )}
 
         {current === "services" && (
           <Card className="space-y-2 rounded-[1.25rem] p-4">
-            <p className="mb-2 text-xs font-semibold text-muted-foreground">{t("pro.onboardingWizard.servicesHint")}</p>
+            <div id="services" tabIndex={-1}>{fieldHint("services")}</div>
+            <p className="mb-2 text-xs font-semibold text-muted-foreground">
+              {t("pro.onboardingWizard.servicesHint")}
+            </p>
+            {selectionsLoadState === "loading" ? (
+              <p className="text-sm font-medium text-muted-foreground">
+                {t("pro.onboardingWizard.savedSelectionsLoading")}
+              </p>
+            ) : null}
+            {selectionsLoadState === "error" ? (
+              <p className="text-sm font-bold text-coral">
+                {t("pro.onboardingWizard.savedSelectionsError")}
+              </p>
+            ) : null}
             {(servicesQ.data ?? []).length === 0 ? (
-              <p className="text-sm font-medium text-muted-foreground">{t("pro.onboardingWizard.servicesEmpty")}</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                {t("pro.onboardingWizard.servicesEmpty")}
+              </p>
             ) : null}
             {(servicesQ.data ?? []).map((s: any) => {
               const on = selectedServices.includes(s.id);
+              const saved = savedServices.find((row) => row.service_id === s.id);
+              const locked = deferred || (saved != null && (!editable || saved.status === "approved"));
               return (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => setSelectedServices((prev) => (on ? prev.filter((x) => x !== s.id) : [...prev, s.id]))}
-                  className={`w-full rounded-2xl border px-3 py-3 text-start transition-colors ${
-                    on ? "border-brand bg-brand/[0.06] shadow-sm" : "border-border/60 bg-surface"
-                  }`}
-                >
-                  <div className="break-words text-sm font-bold text-foreground">{lang === "ar" ? s.name_ar : s.name_en}</div>
-                  <div className="mt-0.5 break-words text-xs font-medium text-muted-foreground">
-                    {lang === "ar" ? s.category?.name_ar : s.category?.name_en}
-                  </div>
-                </button>
+                <div key={s.id} className="space-y-2">
+                  <button
+                    type="button"
+                    disabled={selectionsLoadState !== "ready" || locked}
+                    onClick={async () => {
+                      if (on && saved && editable && saved.status !== "approved") {
+                        const { error } = await supabase.rpc("provider_remove_onboarding_service", {
+                          p_service_id: s.id,
+                        });
+                        if (error) {
+                          toast.error(removeOnboardingServiceErrorMessage(error.message, t));
+                          return;
+                        }
+                        await qc.invalidateQueries({ queryKey: ["provider-saved-selections"] });
+                      }
+                      setSelectedServices((prev) =>
+                        on ? prev.filter((x) => x !== s.id) : [...prev, s.id],
+                      );
+                    }}
+                    className={`w-full rounded-2xl border px-3 py-3 text-start transition-colors ${
+                      on ? "border-brand bg-brand/[0.06] shadow-sm" : "border-border/60 bg-surface"
+                    } ${selectionsLoadState !== "ready" || locked ? "opacity-70" : ""}`}
+                  >
+                    <div className="break-words text-sm font-bold text-foreground">
+                      {lang === "ar" ? s.name_ar : s.name_en}
+                    </div>
+                    {isFixedPackage(s) && <p className="mt-1 text-xs text-brand">{t(packageLabel(s).key, packageLabel(s).values)}</p>}
+                    <div className="mt-0.5 break-words text-xs font-medium text-muted-foreground">
+                      {lang === "ar" ? s.category?.name_ar : s.category?.name_en}
+                    </div>
+                  </button>
+                  {on && needsServicePrice(s) && (
+                    <ServicePricePicker
+                      min={s.minimum_price ?? null}
+                      max={s.maximum_price ?? null}
+                      value={servicePrices[s.id] ?? null}
+                      onChange={(price) =>
+                        setServicePrices((prices) => ({ ...prices, [s.id]: price }))
+                      }
+                      unitLabel={t(servicePriceUnit(s).key, servicePriceUnit(s).values)}
+                      disabled={!editable || deferred || savingPrices}
+                    />
+                  )}
+                </div>
               );
             })}
+            {!pricesReady && (
+              <p className="text-xs text-muted-foreground">{t("pricePicker.nextHint")}</p>
+            )}
           </Card>
         )}
+
+        {current === "services" && <div id="prices" tabIndex={-1}>{fieldHint("prices")}</div>}
+        {current === "services" && tutoringSelected && providerId ? (
+          <div className="mt-4">
+            <TeachingCapabilitiesEditor
+              providerId={providerId}
+              services={(servicesQ.data ?? [])
+                .filter(
+                  (s: any) =>
+                    selectedServices.includes(s.id) && isTutoringCategorySlug(s.category?.slug),
+                )
+                .map((s: any) => ({
+                  id: s.id,
+                  name_en: s.name_en,
+                  name_ar: s.name_ar,
+                  allowed_session_durations: s.allowed_session_durations,
+                  minimum_price: s.minimum_price,
+                  maximum_price: s.maximum_price,
+                }))}
+            />
+          </div>
+        ) : null}
 
         {current === "experience" && (
           <Card className="space-y-4 rounded-[1.25rem] p-4">
             <Field label={t("pro.onboarding.years")}>
-              <input type="number" min={0} value={years} onChange={(e) => setYears(Number(e.target.value))} className={inputClass} />
+              <input
+                type="number"
+                min={0}
+                id="years" aria-describedby="years-hint"
+                value={years}
+                onChange={(e) => setYears(Number(e.target.value))}
+                className={inputClass}
+              />
+              {fieldHint("years")}
             </Field>
             {lang === "ar" ? (
               <Field label={t("pro.onboarding.bioAr")}>
-                <textarea value={bioAr} onChange={(e) => setBioAr(e.target.value)} rows={4} dir="rtl" className={`${inputClass} min-h-[6rem] py-3`} />
+                <textarea
+                  id="bio" aria-describedby="bio-hint"
+                value={bioAr}
+                  onChange={(e) => setBioAr(e.target.value)}
+                  rows={4}
+                  dir="rtl"
+                  className={`${inputClass} min-h-[6rem] py-3`}
+                />
+              {fieldHint("bio")}
               </Field>
             ) : (
               <Field label={t("pro.onboarding.bioEn")}>
-                <textarea value={bioEn} onChange={(e) => setBioEn(e.target.value)} rows={4} className={`${inputClass} min-h-[6rem] py-3`} />
+                <textarea
+                  value={bioEn}
+                  onChange={(e) => setBioEn(e.target.value)}
+                  rows={4}
+                  className={`${inputClass} min-h-[6rem] py-3`}
+                />
               </Field>
             )}
             <Field label={t("pro.onboardingWizard.previousWork")}>
-              <textarea value={previousWork} onChange={(e) => setPreviousWork(e.target.value)} rows={3} className={`${inputClass} min-h-[5rem] py-3`} />
+              <textarea
+                value={previousWork}
+                onChange={(e) => setPreviousWork(e.target.value)}
+                rows={3}
+                className={`${inputClass} min-h-[5rem] py-3`}
+              />
             </Field>
             {babysittingSelected && (
               <div className="space-y-3 rounded-2xl border border-border/50 bg-surface-2/50 p-4">
+                <Field label={t("pro.onboardingWizard.maxChildren")}>
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    id="maxChildren" aria-describedby="maxChildren-hint"
+                value={maxChildren}
+                    disabled={!editable}
+                    onChange={(e) =>
+                      setMaxChildren(e.target.value === "" ? "" : Number(e.target.value))
+                    }
+                    className={inputClass}
+                  />
+              {fieldHint("maxChildren")}
+                </Field>
                 <Field label={t("pro.onboardingWizard.childAgeGroups")}>
+                  <div id="ageGroups" tabIndex={-1}>{fieldHint("ageGroups")}</div>
                   <div className="flex flex-wrap gap-2">
-                    {["newborn", "toddler", "school"].map((g) => (
-                      <button
-                        key={g}
-                        type="button"
-                        onClick={() => setChildGroups((s) => (s.includes(g) ? s.filter((x) => x !== g) : [...s, g]))}
-                        className={`rounded-full px-3 py-1.5 text-xs font-extrabold ${
-                          childGroups.includes(g) ? "bg-brand text-brand-foreground" : "border border-border bg-surface"
-                        }`}
-                      >
-                        {t(`pro.onboardingWizard.ageGroups.${g}`)}
-                      </button>
-                    ))}
+                    {AGE_GROUP_CHIP_IDS.map((chipId) => {
+                      const verified = chipHasVerifiedCode(chipId, capabilityForms);
+                      const on = chipIsSelected(chipId, childGroups, capabilityForms);
+                      return (
+                        <button
+                          key={chipId}
+                          type="button"
+                          disabled={!editable || verified}
+                          onClick={() => toggleAgeChip(chipId)}
+                          className={`rounded-full px-3 py-1.5 text-xs font-extrabold ${
+                            on
+                              ? "bg-brand text-brand-foreground"
+                              : "border border-border bg-surface"
+                          } ${!editable || verified ? "opacity-80" : ""}`}
+                        >
+                          {t(`pro.onboardingWizard.ageGroupChips.${chipId}`)}
+                          {verified ? (
+                            <span className="ms-1 font-semibold opacity-80">
+                              ({t("pro.onboardingWizard.verifiedClaim")})
+                            </span>
+                          ) : null}
+                        </button>
+                      );
+                    })}
                   </div>
                 </Field>
+                {(childGroups.length > 0 ||
+                  AGE_GROUP_CHIP_IDS.some((chipId) =>
+                    chipHasVerifiedCode(chipId, capabilityForms),
+                  )) && (
+                  <div className="space-y-2 rounded-xl border border-border/40 p-3">
+                    <Field label={t("pro.onboardingWizard.babysittingYearsExperience")}>
+                      <input
+                        type="number"
+                        min={0}
+                        max={60}
+                        disabled={!editable}
+                        value={babysittingYears}
+                        onChange={(e) =>
+                          setBabysittingYears(e.target.value === "" ? "" : Number(e.target.value))
+                        }
+                        className={inputClass}
+                      />
+                    </Field>
+                    <Field label={t("pro.onboardingWizard.groupNote")}>
+                      <textarea
+                        rows={2}
+                        disabled={!editable}
+                        value={babysittingNote}
+                        onChange={(e) => setBabysittingNote(e.target.value)}
+                        className={`${inputClass} min-h-[3.5rem] py-2`}
+                      />
+                    </Field>
+                  </div>
+                )}
                 <label className="flex items-center gap-2 text-sm font-medium">
-                  <input type="checkbox" checked={newborn} onChange={(e) => setNewborn(e.target.checked)} className="accent-brand" />
+                  <input
+                    type="checkbox"
+                    checked={newborn}
+                    onChange={(e) => setNewborn(e.target.checked)}
+                    className="accent-brand"
+                  />
                   {t("pro.onboardingWizard.newbornExperience")}
                 </label>
                 <label className="flex items-center gap-2 text-sm font-medium">
-                  <input type="checkbox" checked={firstAid} onChange={(e) => setFirstAid(e.target.checked)} className="accent-brand" />
+                  <input
+                    type="checkbox"
+                    checked={firstAid}
+                    onChange={(e) => setFirstAid(e.target.checked)}
+                    className="accent-brand"
+                  />
                   {t("pro.onboardingWizard.firstAid")}
                 </label>
               </div>
@@ -484,78 +1048,179 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
 
         {current === "coverage" && (
           <Card className="space-y-2 rounded-[1.25rem] p-4">
-            <p className="mb-2 text-xs font-semibold text-muted-foreground">{t("pro.onboardingWizard.coverageHint")}</p>
-            {(zonesQ.data ?? []).map((z: any) => {
-              const on = selectedZones.includes(z.id);
-              return (
-                <button
-                  key={z.id}
-                  type="button"
-                  onClick={() => setSelectedZones((prev) => (on ? prev.filter((x) => x !== z.id) : [...prev, z.id]))}
-                  className={`w-full rounded-2xl border px-3 py-3 text-start text-sm font-bold break-words ${
-                    on ? "border-brand bg-brand/[0.06]" : "border-border/60"
-                  }`}
-                >
-                  {lang === "ar" ? z.name_ar : z.name_en}
-                </button>
-              );
-            })}
+            <div id="coverage" tabIndex={-1}>{fieldHint("coverage")}</div>
+            <p className="mb-2 text-xs font-semibold text-muted-foreground">
+              {t("pro.onboardingWizard.coverageHint")}
+            </p>
+            {coverageLoadState === "loading" ? (
+              <p className="text-sm font-medium text-muted-foreground">
+                {t("pro.onboardingWizard.savedSelectionsLoading")}
+              </p>
+            ) : null}
+            {coverageLoadState === "error" ? (
+              <p className="text-sm font-bold text-coral">
+                {t("pro.onboardingWizard.savedSelectionsError")}
+              </p>
+            ) : null}
+            {singleActiveZone ? (
+              <div className="rounded-2xl border border-brand/30 bg-brand/[0.06] px-3 py-3 text-sm font-bold break-words">
+                {lang === "ar" ? singleActiveZone.name_ar : singleActiveZone.name_en}
+                <p className="mt-1 text-pro-12 font-semibold text-muted-foreground">
+                  {t("pro.onboardingWizard.singleZoneConfirmed")}
+                </p>
+              </div>
+            ) : (
+              (zonesQ.data ?? []).map((z: any) => {
+                const on = selectedZones.includes(z.id);
+                return (
+                  <button
+                    key={z.id}
+                    type="button"
+                    disabled={coverageLoadState !== "ready"}
+                    onClick={() =>
+                      setSelectedZones((prev) =>
+                        on ? prev.filter((x) => x !== z.id) : [...prev, z.id],
+                      )
+                    }
+                    className={`w-full rounded-2xl border px-3 py-3 text-start text-sm font-bold break-words ${
+                      on ? "border-brand bg-brand/[0.06]" : "border-border/60"
+                    } ${coverageLoadState !== "ready" ? "opacity-70" : ""}`}
+                  >
+                    {lang === "ar" ? z.name_ar : z.name_en}
+                  </button>
+                );
+              })
+            )}
           </Card>
         )}
 
         {current === "references" && (
           <div className="space-y-3">
-            {[ref1, ref2].map((ref, idx) => (
+            {referencesLoadState === "loading" ? (
+              <p className="text-sm font-medium text-muted-foreground">
+                {t("pro.onboardingWizard.savedSelectionsLoading")}
+              </p>
+            ) : null}
+            {referencesLoadState === "error" ? (
+              <p className="text-sm font-bold text-coral">
+                {t("pro.onboardingWizard.savedSelectionsError")}
+              </p>
+            ) : null}
+            <p className="text-sm text-muted-foreground">
+              {t("pro.onboardingWizard.referenceHelper")}
+            </p>
+            {[
+              ref1,
+              ...(showSecondReference(ref2, secondReferenceExpanded, (refsQ.data?.length ?? 0) > 1)
+                ? [ref2]
+                : []),
+            ].map((ref, idx) => (
               <Card key={idx} className="space-y-3 rounded-[1.25rem] p-4">
                 <div className="flex items-baseline justify-between gap-2">
                   <div className="text-xs font-extrabold uppercase tracking-wider text-brand">
                     {t("pro.onboardingWizard.reference", { n: idx + 1 })}
                   </div>
                   {idx === 1 ? (
-                    <span className="text-[11px] font-semibold text-muted-foreground">
+                    <span className="text-pro-12 font-semibold text-muted-foreground">
                       {t("pro.onboardingWizard.referenceOptional")}
                     </span>
                   ) : null}
                 </div>
+                <label className="block text-sm font-semibold" htmlFor={`reference-${idx}-refName`}>
+                  {t("pro.onboardingWizard.refName")}
+                </label>
                 <input
+                  aria-describedby={`reference-${idx}-refName-hint`}
+                  id={`reference-${idx}-refName`}
                   placeholder={t("pro.onboardingWizard.refName")}
                   value={ref.full_name}
-                  onChange={(e) => (idx === 0 ? setRef1 : setRef2)({ ...ref, full_name: e.target.value })}
+                  onChange={(e) =>
+                    (idx === 0 ? setRef1 : setRef2)({ ...ref, full_name: e.target.value })
+                  }
                   className={inputClass}
+                  disabled={referencesLoadState !== "ready"}
                 />
+                {fieldHint(`reference-${idx === 0 ? 0 : 1}-refName`)}
+                <label
+                  className="block text-sm font-semibold"
+                  htmlFor={`reference-${idx}-refRelationship`}
+                >
+                  {t("pro.onboardingWizard.refRelationship")}
+                </label>
                 <input
+                  aria-describedby={`reference-${idx}-refRelationship-hint`}
+                  id={`reference-${idx}-refRelationship`}
                   placeholder={t("pro.onboardingWizard.refRelationship")}
                   value={ref.relationship}
-                  onChange={(e) => (idx === 0 ? setRef1 : setRef2)({ ...ref, relationship: e.target.value })}
+                  onChange={(e) =>
+                    (idx === 0 ? setRef1 : setRef2)({ ...ref, relationship: e.target.value })
+                  }
                   className={inputClass}
+                  disabled={referencesLoadState !== "ready"}
                 />
+                {fieldHint(`reference-${idx === 0 ? 0 : 1}-refRelationship`)}
+                <label
+                  className="block text-sm font-semibold"
+                  htmlFor={`reference-${idx}-refPhone`}
+                >
+                  {t("pro.onboardingWizard.refPhone")}
+                </label>
                 <input
+                  aria-describedby={`reference-${idx}-refPhone-hint`}
+                  id={`reference-${idx}-refPhone`}
                   placeholder={t("pro.onboardingWizard.refPhone")}
                   value={ref.phone}
-                  onChange={(e) => (idx === 0 ? setRef1 : setRef2)({ ...ref, phone: e.target.value })}
+                  onChange={(e) =>
+                    (idx === 0 ? setRef1 : setRef2)({ ...ref, phone: e.target.value })
+                  }
                   className={inputClass}
                   inputMode="tel"
+                  disabled={referencesLoadState !== "ready"}
                 />
+                {fieldHint(`reference-${idx === 0 ? 0 : 1}-refPhone`)}
+                <label
+                  className="block text-sm font-semibold"
+                  htmlFor={`reference-${idx}-refNotes`}
+                >
+                  {t("pro.onboardingWizard.refNotes")}
+                </label>
                 <textarea
+                  id={`reference-${idx}-refNotes`}
                   placeholder={t("pro.onboardingWizard.refNotes")}
                   value={ref.notes}
-                  onChange={(e) => (idx === 0 ? setRef1 : setRef2)({ ...ref, notes: e.target.value })}
+                  onChange={(e) =>
+                    (idx === 0 ? setRef1 : setRef2)({ ...ref, notes: e.target.value })
+                  }
                   rows={2}
                   className={`${inputClass} min-h-[4.5rem] py-3`}
+                  disabled={referencesLoadState !== "ready"}
                 />
               </Card>
             ))}
+            {!showSecondReference(ref2, secondReferenceExpanded, (refsQ.data?.length ?? 0) > 1) && (
+              <button
+                type="button"
+                className="min-h-11 rounded-xl border border-border px-4 text-sm font-bold"
+                onClick={() => setSecondReferenceExpanded(true)}
+              >
+                {t("pro.onboardingWizard.addReference")}
+              </button>
+            )}
           </div>
         )}
 
         {current === "review" && (
           <Card className="space-y-4 rounded-[1.25rem] p-4">
-            <div className="text-sm font-extrabold">{t("pro.onboardingWizard.reviewTitle")}</div>
+            <div id="review" tabIndex={-1} className="text-sm font-extrabold">{t("pro.onboardingWizard.reviewTitle")}</div>
             <ul className="space-y-1 text-xs font-medium text-muted-foreground">
-              {Object.entries(errors).map(([k, v]) => (
-                <li key={k} className="text-coral">{t(`pro.onboardingWizard.errors.${v}`, v)}</li>
+              {missingItems.map(item => (
+                <li key={item.field}>
+                  <button type="button" className="min-h-11 text-start text-coral underline" onClick={() => openMissing(item)}>
+                    {t(`pro.onboardingWizard.steps.${item.section}`)}: {itemText(item)}
+                  </button>
+                </li>
               ))}
-              {Object.keys(errors).length === 0 && (
+              {missingItems.length === 0 && (
                 <li className="flex items-center gap-2 text-success">
                   <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
                   {t("pro.onboardingWizard.allComplete")}
@@ -564,24 +1229,40 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
             </ul>
             <div className="grid grid-cols-2 gap-3">
               <DocButton
+                id="idFront"
+                hint={fieldHint("idFront")}
                 label={t("pro.onboardingWizard.idFront")}
-                done={uploadedDocs.id_card_front}
+                done={hasDocument("id_card_front")}
                 onUpload={(f) => handleDocUpload("id_card_front", f)}
               />
               <DocButton
+                id="idBack"
+                hint={fieldHint("idBack")}
                 label={t("pro.onboardingWizard.idBack")}
-                done={uploadedDocs.id_card_back}
+                done={hasDocument("id_card_back")}
                 onUpload={(f) => handleDocUpload("id_card_back", f)}
               />
             </div>
             <label className="flex items-start gap-3 rounded-2xl border border-border/60 bg-surface-2/40 p-4 text-sm font-medium">
-              <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} className="mt-0.5 accent-brand" />
+              <input
+                type="checkbox"
+                id="confirmed" aria-describedby="confirmed-hint"
+                checked={confirmed}
+                onChange={(e) => setConfirmed(e.target.checked)}
+                className="mt-0.5 accent-brand"
+              />
               {t("pro.onboardingWizard.accuracyConfirm")}
             </label>
+            {fieldHint("confirmed")}
           </Card>
         )}
 
-        {err && <div className="rounded-2xl bg-coral/10 px-4 py-3 text-xs font-bold text-coral">{err}</div>}
+        <p role="status" aria-live="assertive" className="sr-only">{announcement}</p>
+        {err && (
+          <div id="onboarding-error" tabIndex={-1} role="alert" className="rounded-2xl bg-coral/10 px-4 py-3 text-xs font-bold text-coral">
+            {err}
+          </div>
+        )}
 
         <div className="flex gap-2 pt-2">
           {step > 0 && (
@@ -596,9 +1277,17 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
           <PrimaryButton
             className="flex-[2] !h-12"
             onClick={saveCurrent}
-            disabled={!previewMode && (saveSection.isPending || submit.isPending || uploadDoc.isPending)}
+            disabled={
+              (deferred && !["personal", "experience", "references"].includes(current)) ||
+              (current === "services" && (!pricesReady || savingPrices)) ||
+              (!previewMode &&
+                (sectionSaveBlocked ||
+                  saveSection.isPending ||
+                  submit.isPending ||
+                  uploadDoc.isPending))
+            }
           >
-            {current === "review" ? t("pro.onboardingWizard.submit") : t("common.continue")}
+            {deferred ? t("common.save") : current === "review" ? t("pro.onboardingWizard.submit") : t("common.continue")}
           </PrimaryButton>
         </div>
       </div>
@@ -609,30 +1298,49 @@ export function ProviderOnboardingFlow({ previewMode = false }: { previewMode?: 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <div className="mb-1.5 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="mb-1.5 text-pro-12 font-extrabold uppercase tracking-wider text-muted-foreground">
+        {label}
+      </div>
       {children}
     </label>
   );
 }
 
 function DocButton({
+  id,
+  hint,
   label,
   done,
   onUpload,
 }: {
   label: string;
   done?: boolean;
+  id: string;
+  hint: React.ReactNode;
   onUpload: (f: File) => Promise<unknown>;
 }) {
   return (
     <label
       className={`flex h-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border border-dashed px-2 text-center text-xs font-extrabold ${
-        done ? "border-success/40 bg-success/5 text-success" : "border-border/60 text-muted-foreground"
+        done
+          ? "border-success/40 bg-success/5 text-success"
+          : "border-border/60 text-muted-foreground"
       }`}
     >
-      {done ? <CheckCircle2 className="h-5 w-5" aria-hidden="true" /> : <Upload className="h-5 w-5" aria-hidden="true" />}
+      {done ? (
+        <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
+      ) : (
+        <Upload className="h-5 w-5" aria-hidden="true" />
+      )}
       {label}
-      <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => e.target.files?.[0] && onUpload(e.target.files[0])} />
+      {hint}
+      <input
+        id={id} aria-describedby={`${id}-hint`}
+        type="file"
+        accept="image/*,application/pdf"
+        className="sr-only"
+        onChange={(e) => e.target.files?.[0] && onUpload(e.target.files[0])}
+      />
     </label>
   );
 }

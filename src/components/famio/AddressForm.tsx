@@ -1,3 +1,5 @@
+import "./customerForms.css";
+import { customerAreaLabel } from "./customerAreaLabel";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Home, Briefcase, Users, MapPin, Star, AlertTriangle, Loader2 } from "lucide-react";
@@ -69,11 +71,13 @@ export function AddressForm({
   const areaOptions = (areasQ.data ?? []).filter((a) => a.enabled).map((a) => a.name);
   const [touched, setTouched] = useState(false);
 
-  const set = <K extends keyof AddressFormValue>(k: K, v: AddressFormValue[K]) => onChange({ ...value, [k]: v });
+  const set = <K extends keyof AddressFormValue>(k: K, v: AddressFormValue[K]) =>
+    onChange({ ...value, [k]: v });
 
   const valid =
     value.street.trim().length > 1 &&
     value.area.trim().length > 0 &&
+    isValidLatLng({ lat: value.lat ?? NaN, lng: value.lng ?? NaN }) &&
     (value.label !== "other" || value.customLabel.trim().length > 0);
 
   const submit = () => {
@@ -85,7 +89,7 @@ export function AddressForm({
   return (
     <div className="space-y-5">
       <div>
-        <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">
+        <label className="block text-pro-12 font-bold uppercase tracking-wide text-muted-foreground">
           {t("addresses.labelField", "Label")}
         </label>
         <div className="mt-2 grid grid-cols-4 gap-2">
@@ -94,8 +98,10 @@ export function AddressForm({
               key={key}
               type="button"
               onClick={() => set("label", key)}
-              className={`flex flex-col items-center gap-1.5 rounded-[1.25rem] border py-3 text-[11px] font-bold transition-all ${
-                value.label === key ? "border-brand bg-brand/5 text-brand" : "border-border/80 bg-surface text-muted-foreground"
+              className={`flex flex-col items-center gap-1.5 rounded-[1.25rem] border py-3 text-pro-12 font-bold transition-all ${
+                value.label === key
+                  ? "border-brand bg-brand/5 text-brand"
+                  : "border-border/80 bg-surface text-muted-foreground"
               }`}
             >
               <Icon className="h-4 w-4" />
@@ -108,69 +114,123 @@ export function AddressForm({
             value={value.customLabel}
             onChange={(e) => set("customLabel", e.target.value)}
             placeholder={t("addresses.customLabelPlaceholder", "e.g. Grandma's house")}
-            className="mt-2 h-12 w-full rounded-2xl border border-border/80 bg-surface px-4 text-sm font-medium outline-none focus:border-brand"
+            className="mt-2 h-12 w-full rounded-2xl border border-border/80 bg-surface px-4 text-pro-14 font-medium outline-none focus:border-brand"
           />
         )}
         {touched && value.label === "other" && value.customLabel.trim().length === 0 && (
-          <p className="mt-1 text-[11px] font-semibold text-brand">{t("validation.required")}</p>
+          <p className="mt-1 text-pro-12 font-semibold text-brand">{t("validation.required")}</p>
         )}
       </div>
 
       <div>
-        <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">{t("setup.area")}</label>
+        <label className="block text-pro-12 font-bold uppercase tracking-wide text-muted-foreground">
+          {t("setup.area")}
+        </label>
         <div className="mt-2 grid grid-cols-2 gap-3">
           {areaOptions.map((a) => (
             <button
               key={a}
               type="button"
               onClick={() => set("area", a)}
-              className={`h-14 rounded-2xl border text-sm font-semibold transition-all ${
-                value.area === a ? "border-brand bg-brand/5 text-brand" : "border-border/80 bg-surface text-muted-foreground"
+              className={`h-14 rounded-2xl border text-pro-14 font-semibold transition-all ${
+                value.area === a
+                  ? "border-brand bg-brand/5 text-brand"
+                  : "border-border/80 bg-surface text-muted-foreground"
               }`}
             >
-              {a}
+              {customerAreaLabel(a, t)}
             </button>
           ))}
         </div>
-        {touched && !value.area && <p className="mt-1 text-[11px] font-semibold text-brand">{t("validation.required")}</p>}
+        {touched && !value.area && (
+          <p className="mt-1 text-pro-12 font-semibold text-brand">{t("validation.required")}</p>
+        )}
       </div>
 
-      <Field label={t("setup.address")} value={value.street} onChange={(v) => set("street", v)} placeholder={t("setup.addressPlaceholder")} />
-      {touched && value.street.trim().length < 2 && <p className="-mt-3 text-[11px] font-semibold text-brand">{t("validation.required")}</p>}
+      <Field
+        label={t("setup.address")}
+        value={value.street}
+        onChange={(v) => set("street", v)}
+        placeholder={t("setup.addressPlaceholder")}
+      />
+      {touched && value.street.trim().length < 2 && (
+        <p className="-mt-3 text-pro-12 font-semibold text-brand">{t("validation.required")}</p>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
-        <Field label={t("setup.compound")} value={value.compound} onChange={(v) => set("compound", v)} placeholder={t("setup.compoundPlaceholder")} />
-        <Field label={t("setup.building")} value={value.building} onChange={(v) => set("building", v)} placeholder={t("setup.buildingPlaceholder")} />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label={t("addresses.floor", "Floor")} value={value.floor} onChange={(v) => set("floor", v)} placeholder={t("addresses.floorPlaceholder", "e.g. 3rd")} />
-        <Field label={t("setup.apartment")} value={value.apartment} onChange={(v) => set("apartment", v)} placeholder={t("setup.apartmentPlaceholder")} />
-      </div>
-      <Field label={t("addresses.landmark", "Nearby landmark")} value={value.landmark} onChange={(v) => set("landmark", v)} placeholder={t("addresses.landmarkPlaceholder", "Optional")} />
-
-      <div>
-        <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">{t("setup.notes")}</label>
-        <textarea
-          rows={2}
-          placeholder={t("setup.notesPlaceholder")}
-          value={value.accessNotes}
-          onChange={(e) => set("accessNotes", e.target.value)}
-          className="mt-2 w-full resize-none rounded-2xl border border-border/80 bg-surface px-4 py-3 text-[15px] outline-none focus:border-brand"
+        <Field
+          label={t("setup.compound")}
+          value={value.compound}
+          onChange={(v) => set("compound", v)}
+          placeholder={t("setup.compoundPlaceholder")}
+        />
+        <Field
+          label={t("setup.building")}
+          value={value.building}
+          onChange={(v) => set("building", v)}
+          placeholder={t("setup.buildingPlaceholder")}
         />
       </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Field
+          label={t("addresses.floor", "Floor")}
+          value={value.floor}
+          onChange={(v) => set("floor", v)}
+          placeholder={t("addresses.floorPlaceholder", "e.g. 3rd")}
+        />
+        <Field
+          label={t("setup.apartment")}
+          value={value.apartment}
+          onChange={(v) => set("apartment", v)}
+          placeholder={t("setup.apartmentPlaceholder")}
+        />
+      </div>
+      <details className="rounded-2xl border border-border/60 p-4">
+        <summary className="focus-ring flex min-h-11 cursor-pointer items-center text-pro-14 font-bold">
+          {t("customerSetup.arrivalDetails")}
+        </summary>
+        <Field
+          label={t("addresses.landmark", "Nearby landmark")}
+          value={value.landmark}
+          onChange={(v) => set("landmark", v)}
+          placeholder={t("addresses.landmarkPlaceholder", "Optional")}
+        />
 
+        <div>
+          <label className="block text-pro-12 font-bold uppercase tracking-wide text-muted-foreground">
+            {t("setup.notes")}
+          </label>
+          <textarea
+            rows={2}
+            placeholder={t("setup.notesPlaceholder")}
+            value={value.accessNotes}
+            onChange={(e) => set("accessNotes", e.target.value)}
+            className="mt-2 w-full resize-none rounded-2xl border border-border/80 bg-surface px-4 py-3 text-pro-14 outline-none focus:border-brand"
+          />
+        </div>
+      </details>
       <div>
-        <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">{t("addresses.location", "Location on map")}</label>
+        <label className="block text-pro-12 font-bold uppercase tracking-wide text-muted-foreground">
+          {t("addresses.location", "Location on map")}
+        </label>
         <Card className="mt-2 p-3">
           <LocationPicker
-            value={isValidLatLng({ lat: value.lat ?? NaN, lng: value.lng ?? NaN }) ? { lat: value.lat!, lng: value.lng! } : null}
+            className="customer-location-picker"
+            value={
+              isValidLatLng({ lat: value.lat ?? NaN, lng: value.lng ?? NaN })
+                ? { lat: value.lat!, lng: value.lng! }
+                : null
+            }
             onChange={(pos) => onChange({ ...value, lat: pos.lat, lng: pos.lng })}
           />
         </Card>
         {!isValidLatLng({ lat: value.lat ?? NaN, lng: value.lng ?? NaN }) && (
-          <p className="mt-2 flex items-start gap-1.5 text-[11px] font-semibold text-muted-foreground">
+          <p className="mt-2 flex items-start gap-1.5 text-pro-12 font-semibold text-muted-foreground">
             <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-brand" />
-            {t("addresses.noCoordsWarning", "Without a pinned location, this address can't be used to book a service.")}
+            {t(
+              "addresses.noCoordsWarning",
+              "Without a pinned location, this address can't be used to book a service.",
+            )}
           </p>
         )}
       </div>
@@ -181,8 +241,10 @@ export function AddressForm({
           onClick={() => set("isDefault", !value.isDefault)}
           className="flex w-full items-center justify-between rounded-2xl bg-surface px-4 py-3.5 shadow-soft"
         >
-          <span className="flex items-center gap-2 text-sm font-bold">
-            <Star className={`h-4 w-4 ${value.isDefault ? "fill-brand text-brand" : "text-muted-foreground"}`} />
+          <span className="flex items-center gap-2 text-pro-14 font-bold">
+            <Star
+              className={`h-4 w-4 ${value.isDefault ? "fill-brand text-brand" : "text-muted-foreground"}`}
+            />
             {t("addresses.setAsDefault", "Set as default address")}
           </span>
           <span
@@ -237,15 +299,27 @@ export function addressRowToFormValue(row: any): AddressFormValue {
   };
 }
 
-function Field({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder: string }) {
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
   return (
     <div>
-      <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</label>
+      <label className="block text-pro-12 font-bold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </label>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="mt-2 h-14 w-full rounded-2xl border border-border/80 bg-surface px-4 text-[15px] font-medium outline-none focus:border-brand"
+        className="mt-2 h-14 w-full rounded-2xl border border-border/80 bg-surface px-4 text-pro-14 font-medium outline-none focus:border-brand"
       />
     </div>
   );

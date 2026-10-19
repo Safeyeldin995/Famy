@@ -58,7 +58,7 @@ function Help() {
           </div>
         </CustomerFloatingPanel>
 
-        <h3 className="mt-6 mb-2 px-1 text-overline">{t("helpC.faqsTitle")}</h3>
+        <h3 className="mt-6 mb-2 px-1 text-pro-12 font-bold">{t("helpC.faqsTitle")}</h3>
         <div className="divide-y divide-border/60 overflow-hidden rounded-[1.75rem] border border-border/50 bg-surface-elevated shadow-sm">
           {faqs.map((f, i) => (
             <button
@@ -107,7 +107,7 @@ function Contact({
       <div className="mx-auto grid h-11 w-11 place-items-center rounded-full bg-brand text-brand-foreground">
         {icon}
       </div>
-      <div className="mt-2 text-[11px] font-extrabold">{label}</div>
+      <div className="mt-2 text-pro-12 font-extrabold">{label}</div>
     </button>
   );
 }

@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { isPreviewRoute } from "@/lib/preview/constants";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -10,14 +11,14 @@ import {
   ReasonDialog,
   PrimaryButton,
 } from "@/components/famio/ui";
-import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
+import { CustomerPageHeader } from "@/components/famio/CustomerPageHeader";
 import { useFamilyMembers, useDeactivateFamilyMember } from "@/lib/db/family-members-queries";
-import { Pencil, Trash2, Plus, Users } from "lucide-react";
+import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
+import { Pencil, Trash2, Plus } from "lucide-react";
 
-export const Route = createFileRoute("/family-members")({ component: FamilyMembers });
-
-function FamilyMembers() {
+export function FamilyMembers() {
   const { t } = useTranslation();
+  const nav = useNavigate();
   const membersQ = useFamilyMembers();
   const deactivate = useDeactivateFamilyMember();
   const [deactivateId, setDeactivateId] = useState<string | null>(null);
@@ -26,12 +27,12 @@ function FamilyMembers() {
 
   return (
     <PhoneFrame bg="bg-background">
-      <CustomerPageHero
+      <CustomerPageHeader
         title={t("familyMembers.title", "Family Members")}
         subtitle={t("familyMembers.privacyNotice")}
         backTo="/profile"
       />
-      <div className="flex-1 space-y-3 px-5 pb-28 pt-2">
+      <div className="flex-1 space-y-3 px-5 pb-28 pt-4">
         {membersQ.isLoading ? (
           Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="h-24 animate-pulse rounded-3xl bg-surface-2" />
@@ -41,12 +42,13 @@ function FamilyMembers() {
         ) : members.length === 0 ? (
           <EmptyState
             icon="users"
-            title={t("familyMembers.empty", "No family members yet")}
-            body={t("familyMembers.emptyBody", "Add a family member to book services for them.")}
+            title={t("customerRound2.emptyFamily")}
+            body={t("customerRound2.emptyFamilyBody")}
             action={
               <Link
-                to="/family-members/new"
-                className="focus-ring inline-flex items-center gap-1.5 rounded-2xl bg-brand px-5 py-3 text-sm font-extrabold text-brand-foreground"
+                to={isPreviewRoute() ? "/preview/family-members" : "/family-members/new"}
+                search={isPreviewRoute() ? { memberId: "new" } : {}}
+                className="focus-ring inline-flex items-center gap-1.5 rounded-2xl bg-brand px-5 py-3 text-pro-14 font-extrabold text-brand-foreground"
               >
                 <Plus className="h-4 w-4" /> {t("familyMembers.addMember", "Add family member")}
               </Link>
@@ -61,19 +63,20 @@ function FamilyMembers() {
             return (
               <Card key={m.id} className={`p-4 ${!m.is_active ? "opacity-60" : ""}`}>
                 <div className="flex items-start gap-3">
-                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand/8 text-brand">
-                    <Users className="h-5 w-5" />
-                  </div>
+                  <ProfileAvatar
+                    name={m.full_name}
+                    className="h-12 w-12 rounded-full text-pro-18"
+                  />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="truncate text-[15px] font-extrabold">{m.full_name}</span>
+                      <span className="truncate text-pro-16 font-extrabold">{m.full_name}</span>
                       {!m.is_active && (
-                        <span className="inline-flex shrink-0 items-center rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+                        <span className="inline-flex shrink-0 items-center rounded-full bg-muted px-2 py-0.5 text-pro-12 font-bold text-muted-foreground">
                           {t("familyMembers.inactive", "Inactive")}
                         </span>
                       )}
                     </div>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    <p className="mt-0.5 truncate text-pro-12 text-muted-foreground">
                       {relationshipLabel}
                     </p>
                   </div>
@@ -81,15 +84,16 @@ function FamilyMembers() {
                 {m.is_active && (
                   <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
                     <Link
-                      to="/family-members/$id"
+                      to={isPreviewRoute() ? "/preview/family-members" : "/family-members/$id"}
+                      search={isPreviewRoute() ? { memberId: m.id } : {}}
                       params={{ id: m.id }}
-                      className="focus-ring flex flex-1 items-center justify-center gap-1 rounded-full bg-surface-2 py-2.5 text-[11px] font-extrabold"
+                      className="focus-ring flex flex-1 items-center justify-center gap-1 rounded-full bg-surface-2 min-h-11 py-2.5 text-pro-12 font-extrabold"
                     >
                       <Pencil className="h-3 w-3" /> {t("common.edit")}
                     </Link>
                     <button
                       onClick={() => setDeactivateId(m.id)}
-                      className="focus-ring flex flex-1 items-center justify-center gap-1 rounded-full bg-brand/8 py-2.5 text-[11px] font-extrabold text-brand"
+                      className="focus-ring flex flex-1 items-center justify-center gap-1 rounded-full bg-brand/8 min-h-11 py-2.5 text-pro-12 font-extrabold text-brand"
                     >
                       <Trash2 className="h-3 w-3" /> {t("common.delete")}
                     </button>
@@ -103,11 +107,16 @@ function FamilyMembers() {
 
       {members.length > 0 && (
         <div className="action-bar safe-bottom px-5 pt-3">
-          <Link to="/family-members/new">
-            <PrimaryButton>
-              <Plus className="h-4 w-4" /> {t("familyMembers.addMember", "Add family member")}
-            </PrimaryButton>
-          </Link>
+          <PrimaryButton
+            onClick={() =>
+              nav({
+                to: isPreviewRoute() ? "/preview/family-members" : "/family-members/new",
+                search: isPreviewRoute() ? { memberId: "new" } : {},
+              })
+            }
+          >
+            <Plus className="h-4 w-4" /> {t("familyMembers.addMember", "Add family member")}
+          </PrimaryButton>
         </div>
       )}
 
@@ -128,10 +137,12 @@ function FamilyMembers() {
           if (!deactivateId) return;
           deactivate.mutate(deactivateId, {
             onSuccess: () => setDeactivateId(null),
-            onError: (e: any) => toast.error(e?.message ?? t("common.somethingWentWrong")),
+            onError: () => toast.error(t("common.somethingWentWrong")),
           });
         }}
       />
     </PhoneFrame>
   );
 }
+
+export const Route = createFileRoute("/family-members")({ component: FamilyMembers });

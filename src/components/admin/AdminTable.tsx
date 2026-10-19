@@ -1,6 +1,12 @@
 import type { ReactNode } from "react";
 
-export function AdminTable({ children, className = "" }: { children: ReactNode; className?: string }) {
+export function AdminTable({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
   return (
     <div className={`overflow-x-auto rounded-xl border border-border/50 ${className}`}>
       <table className="w-full min-w-[640px] border-collapse text-sm">{children}</table>
@@ -11,14 +17,20 @@ export function AdminTable({ children, className = "" }: { children: ReactNode; 
 export function AdminTableHead({ children }: { children: ReactNode }) {
   return (
     <thead className="sticky top-0 z-10 bg-surface-2/95 backdrop-blur-sm">
-      <tr className="border-b border-border/60 text-start text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+      <tr className="border-b border-border/60 text-start text-xs font-bold uppercase tracking-wide text-muted-foreground">
         {children}
       </tr>
     </thead>
   );
 }
 
-export function AdminTableTh({ children, className = "" }: { children?: ReactNode; className?: string }) {
+export function AdminTableTh({
+  children,
+  className = "",
+}: {
+  children?: ReactNode;
+  className?: string;
+}) {
   return <th className={`px-3 py-2.5 font-bold ${className}`}>{children}</th>;
 }
 
@@ -47,6 +59,12 @@ export function AdminTableRow({
   );
 }
 
-export function AdminTableTd({ children, className = "" }: { children: ReactNode; className?: string }) {
+export function AdminTableTd({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
   return <td className={`px-3 py-3 align-middle text-sm ${className}`}>{children}</td>;
 }

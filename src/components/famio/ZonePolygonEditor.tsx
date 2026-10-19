@@ -1,13 +1,25 @@
-import { Component, Suspense, lazy, useCallback, useState, type ReactNode } from "react";
+import {
+  Component,
+  Suspense,
+  lazy,
+  useCallback,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { Undo2, Trash2, Maximize2, MapPinOff, Loader2, RefreshCw } from "lucide-react";
 import type { LatLng, OtherZone } from "./ZonePolygonMap";
 
 const LazyMap = lazy(() => import("./ZonePolygonMap"));
+const subscribeNoop = () => () => {};
 
 export type { LatLng, OtherZone };
 
-class MapErrorBoundary extends Component<{ children: ReactNode; fallback: ReactNode; resetKey: number }, { hasError: boolean }> {
+class MapErrorBoundary extends Component<
+  { children: ReactNode; fallback: ReactNode; resetKey: number },
+  { hasError: boolean }
+> {
   constructor(props: { children: ReactNode; fallback: ReactNode; resetKey: number }) {
     super(props);
     this.state = { hasError: false };
@@ -41,6 +53,12 @@ export function ZonePolygonEditor({
   className?: string;
 }) {
   const { t } = useTranslation();
+  // Leaflet touches `window` on import, so the map only renders after mount (never during SSR).
+  const mounted = useSyncExternalStore(
+    subscribeNoop,
+    () => true,
+    () => false,
+  );
   const [tileFailing, setTileFailing] = useState(false);
   const [mapKey, setMapKey] = useState(0);
   const [fitSignal, setFitSignal] = useState(0);
@@ -68,17 +86,21 @@ export function ZonePolygonEditor({
         {!tileFailing ? (
           <MapErrorBoundary resetKey={mapKey} fallback={<MapUnavailable onRetry={retryMap} />}>
             <Suspense fallback={<MapLoading />}>
-              <LazyMap
-                key={mapKey}
-                polygon={polygon}
-                onPolygonChange={onChange}
-                otherZones={otherZones}
-                testPoint={testPoint}
-                testPointInside={testPointInside}
-                fitSignal={fitSignal}
-                onTileError={handleTileError}
-                onTileOk={handleTileOk}
-              />
+              {mounted ? (
+                <LazyMap
+                  key={mapKey}
+                  polygon={polygon}
+                  onPolygonChange={onChange}
+                  otherZones={otherZones}
+                  testPoint={testPoint}
+                  testPointInside={testPointInside}
+                  fitSignal={fitSignal}
+                  onTileError={handleTileError}
+                  onTileOk={handleTileOk}
+                />
+              ) : (
+                <MapLoading />
+              )}
             </Suspense>
           </MapErrorBoundary>
         ) : (
@@ -86,26 +108,41 @@ export function ZonePolygonEditor({
         )}
 
         <div className="absolute bottom-3 end-3 z-[500] flex flex-col gap-2">
-          <button type="button" onClick={() => setFitSignal((s) => s + 1)} aria-label={t("admin.zones.fitToZone", "Fit to zone")}
-            className="focus-ring grid h-10 w-10 place-items-center rounded-full bg-surface text-navy shadow-card active:scale-95">
+          <button
+            type="button"
+            onClick={() => setFitSignal((s) => s + 1)}
+            aria-label={t("admin.zones.fitToZone", "Fit to zone")}
+            className="focus-ring grid h-10 w-10 place-items-center rounded-full bg-surface text-navy shadow-card active:scale-95"
+          >
             <Maximize2 className="h-4 w-4" />
           </button>
-          <button type="button" onClick={() => onChange(polygon.slice(0, -1))} disabled={polygon.length === 0}
+          <button
+            type="button"
+            onClick={() => onChange(polygon.slice(0, -1))}
+            disabled={polygon.length === 0}
             aria-label={t("admin.zones.undoPoint", "Undo last point")}
-            className="focus-ring grid h-10 w-10 place-items-center rounded-full bg-surface text-navy shadow-card active:scale-95 disabled:opacity-40">
+            className="focus-ring grid h-10 w-10 place-items-center rounded-full bg-surface text-navy shadow-card active:scale-95 disabled:opacity-40"
+          >
             <Undo2 className="h-4 w-4" />
           </button>
-          <button type="button" onClick={() => onChange([])} disabled={polygon.length === 0}
+          <button
+            type="button"
+            onClick={() => onChange([])}
+            disabled={polygon.length === 0}
             aria-label={t("admin.zones.clearPolygon", "Clear polygon")}
-            className="focus-ring grid h-10 w-10 place-items-center rounded-full bg-surface text-coral shadow-card active:scale-95 disabled:opacity-40">
+            className="focus-ring grid h-10 w-10 place-items-center rounded-full bg-surface text-coral shadow-card active:scale-95 disabled:opacity-40"
+          >
             <Trash2 className="h-4 w-4" />
           </button>
         </div>
       </div>
-      <p className="mt-2 text-[11px] text-muted-foreground">
-        {t("admin.zones.polygonHint", "Tap the map to add boundary points, drag a point to adjust it, or use the buttons to undo/clear.")}
+      <p className="mt-2 text-pro-12 text-muted-foreground">
+        {t(
+          "admin.zones.polygonHint",
+          "Tap the map to add boundary points, drag a point to adjust it, or use the buttons to undo/clear.",
+        )}
       </p>
-      <p className="mt-1 text-[11px] font-semibold text-muted-foreground" dir="ltr">
+      <p className="mt-1 text-pro-12 font-semibold text-muted-foreground" dir="ltr">
         {t("admin.zones.pointCount", "{{count}} points", { count: polygon.length })}
       </p>
     </div>
@@ -130,9 +167,14 @@ function MapUnavailable({ onRetry }: { onRetry: () => void }) {
     <div className="grid h-full w-full place-items-center px-6 text-center">
       <div className="flex flex-col items-center gap-2">
         <MapPinOff className="h-6 w-6 text-muted-foreground" />
-        <span className="text-xs font-bold">{t("addresses.mapUnavailable", "Map unavailable right now")}</span>
-        <button type="button" onClick={onRetry}
-          className="focus-ring mt-1 inline-flex items-center gap-1.5 rounded-xl bg-navy px-3 py-2 text-xs font-bold text-navy-foreground">
+        <span className="text-xs font-bold">
+          {t("addresses.mapUnavailable", "Map unavailable right now")}
+        </span>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="focus-ring mt-1 inline-flex items-center gap-1.5 rounded-xl bg-navy px-3 py-2 text-xs font-bold text-navy-foreground"
+        >
           <RefreshCw className="h-3.5 w-3.5" /> {t("common.retry")}
         </button>
       </div>

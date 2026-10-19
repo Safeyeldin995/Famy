@@ -1,486 +1,882 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
-import { toast } from "sonner";
+import { adminLabel } from "@/components/admin/adminPresentation";
+import { AdminLink as Link } from "@/components/admin/AdminNavigation";
+import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useAdminProvider, useProviderEligibility, useSetProviderVerified, useSetProviderActive, useSetProviderServiceStatus, useDocumentSignedUrl } from "@/lib/db/admin-queries";
-import { useAdminOnboardingAction, useAdminOnboardingReview, useReviewProviderDocument } from "@/lib/provider/onboarding-queries";
-import { useProviderAvailability, useProviderVacations, useAddVacation, useDeleteVacation } from "@/lib/db/provider-queries";
-import { ChevronLeft, FileText, ShieldCheck, Trash2, Check, X } from "lucide-react";
+import { toast } from "sonner";
+import { ChevronLeft, FileText, ShieldCheck, Trash2 } from "lucide-react";
+import {
+  useAdminBabysittingAgeGroups,
+  useAdminProvider,
+  useApproveProviderApplicationAll,
+  useDocumentSignedUrl,
+  useProviderEligibility,
+  useSetProviderActive,
+  useSetProviderServiceStatus,
+} from "@/lib/db/admin-queries";
+import {
+  useAdminOnboardingAction,
+  useAdminOnboardingReview,
+  useReviewProviderDocument,
+} from "@/lib/provider/onboarding-queries";
+import {
+  useAddVacation,
+  useDeleteVacation,
+  useProviderAvailability,
+  useProviderVacations,
+} from "@/lib/db/provider-queries";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
-import { adminPath } from "@/lib/preview/previewPath";
-
-function EligibilitySection({ providerId }: { providerId: string }) {
-  const { t } = useTranslation();
-  const q = useProviderEligibility(providerId);
-  if (q.isLoading) return <div className="h-24 animate-pulse rounded-2xl bg-muted" />;
-  if (q.isError) return <AdminQueryError compact message={t("admin.providers.loadError")} error={q.error} onRetry={() => q.refetch()} />;
-  const services = q.data ?? [];
-  const eligible = services.some((service) => service.is_eligible);
-  return (
-    <section id="marketplace-eligibility" className="rounded-2xl border border-border/60 bg-surface p-4 shadow-sm">
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("admin.provider.eligibilityTitle")}</h3>
-        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${eligible ? "bg-mint/20 text-success" : "bg-coral/10 text-coral"}`}>
-          {t("admin.provider.marketplaceEligible", "Marketplace eligible")}: {eligible ? t("common.yes", "Yes") : t("common.no", "No")}
-        </span>
-      </div>
-      <p className="mt-1 text-xs text-muted-foreground">{eligible ? t("admin.provider.eligibleBody") : t("admin.provider.notEligibleBody")}</p>
-      {services.length === 0 ? (
-        <p className="mt-3 rounded-xl bg-coral/5 p-3 text-xs font-semibold text-coral">BLOCKED BY BUSINESS DATA — no Provider service is configured.</p>
-      ) : services.map((e) => {
-        const rows: Array<{ ok: boolean; label: string; to?: string }> = [
-          { ok: e.identity_valid, label: t("admin.provider.eligIdentity", "Provider identity is valid") },
-          { ok: e.account_active, label: t("admin.provider.eligActive"), to: "/admin/providers" },
-          { ok: e.verified, label: t("admin.provider.eligVerified"), to: "/admin/providers" },
-          { ok: e.service_approved, label: t("admin.provider.eligApprovedService"), to: "/admin/services" },
-          { ok: e.service_active, label: t("admin.provider.eligServiceActive", "Service is active and Customer-visible"), to: "/admin/services" },
-          { ok: e.price_valid, label: `${t("admin.provider.eligPriceValid")} (${e.effective_price}; ${e.minimum_price ?? "—"}–${e.maximum_price ?? "—"})`, to: "/admin/services" },
-          { ok: e.requirements_complete, label: t("admin.provider.eligRequirementsMet"), to: "/admin/services" },
-          { ok: e.evidence_approved, label: t("admin.provider.eligEvidence", "Required evidence is approved"), to: "/admin/services" },
-          { ok: e.zone_covered, label: t("admin.provider.eligZoneCovered"), to: "/admin/zones" },
-          { ok: e.availability_valid, label: t("admin.provider.eligAvailability"), to: "#provider-availability" },
-          { ok: e.operational_clear, label: t("admin.provider.eligOperational", "No blocking operational state"), to: "/admin/operations" },
-        ];
-        return <div key={e.service_id} className="mt-3 rounded-xl border border-border/60 p-3">
-          <div className="flex items-center justify-between gap-2 text-xs font-bold">
-            <span>{e.service_name_en}</span>
-            <span className={e.is_eligible ? "text-success" : "text-coral"}>{e.is_eligible ? "ELIGIBLE" : "BLOCKED BY BUSINESS DATA"}</span>
-          </div>
-          <ul className="mt-2 space-y-1.5">
-            {rows.map((r) => <li key={r.label} className="flex items-center gap-2 text-xs">
-              {r.ok ? <Check className="h-3.5 w-3.5 shrink-0 text-success" /> : <X className="h-3.5 w-3.5 shrink-0 text-coral" />}
-              {r.to ? <Link to={adminPath(r.to) as any} className={r.ok ? "text-foreground" : "font-semibold text-coral underline"}>{r.label}</Link> : <span>{r.label}</span>}
-            </li>)}
-          </ul>
-          {!e.is_eligible && <ul className="mt-2 list-disc ps-5 text-[11px] font-semibold text-coral">{(e.failure_reasons ?? []).map((reason) => <li key={reason}>{reason}</li>)}</ul>}
-        </div>;
-      })}
-    </section>
-  );
-}
-
-const DAY_LABEL_KEYS = [
-  "admin.provider.daySun", "admin.provider.dayMon", "admin.provider.dayTue", "admin.provider.dayWed",
-  "admin.provider.dayThu", "admin.provider.dayFri", "admin.provider.daySat",
-];
-
-function AvailabilitySection({ providerId }: { providerId: string }) {
-  const { t } = useTranslation();
-  const rulesQ = useProviderAvailability(providerId);
-  const vacQ = useProviderVacations(providerId);
-  const addVac = useAddVacation();
-  const delVac = useDeleteVacation();
-  const [start, setStart] = useState("");
-  const [end, setEnd] = useState("");
-  const [reason, setReason] = useState("");
-
-  const canBlock = !!start && !!end && reason.trim().length > 0;
-
-  return (
-    <section id="provider-availability">
-      <h3 className="mb-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("admin.provider.availability")}</h3>
-      <div className="rounded-xl border border-border/60 bg-surface p-3">
-        <p className="text-[11px] font-bold text-muted-foreground">{t("admin.provider.weeklyHours")}</p>
-        {(rulesQ.data ?? []).length === 0 ? (
-          <p className="mt-1 text-xs text-muted-foreground">{t("admin.provider.noWeeklyHours")}</p>
-        ) : (
-          <ul className="mt-1 space-y-0.5 text-xs">
-            {rulesQ.data!.map((r: any) => (
-              <li key={r.id} dir="ltr" className="text-start">{t(DAY_LABEL_KEYS[r.weekday])}: {r.start_time?.slice(0, 5)} – {r.end_time?.slice(0, 5)}</li>
-            ))}
-          </ul>
-        )}
-
-        <p className="mt-3 text-[11px] font-bold text-muted-foreground">{t("admin.provider.blockedPeriods")}</p>
-        {(vacQ.data ?? []).length === 0 ? (
-          <p className="mt-1 text-xs text-muted-foreground">{t("admin.provider.none")}</p>
-        ) : (
-          <ul className="mt-1 space-y-1">
-            {vacQ.data!.map((v: any) => (
-              <li key={v.id} className="flex items-center justify-between text-xs">
-                <span dir="ltr" className="text-start">{v.start_date} → {v.end_date}{v.reason ? ` — ${v.reason}` : ""}</span>
-                <button onClick={() => delVac.mutate({ id: v.id, providerId })} aria-label={t("common.delete")} className="focus-ring text-muted-foreground hover:text-coral"><Trash2 className="h-3.5 w-3.5" /></button>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <div className="mt-3 space-y-2 border-t border-border pt-3">
-          <p className="text-[11px] font-bold text-muted-foreground">{t("admin.provider.blockPeriodLabel")}</p>
-          <div className="flex flex-wrap gap-2">
-            <input type="date" value={start} onChange={(e) => setStart(e.target.value)} aria-label={t("admin.provider.blockStart")} className="focus-ring h-9 rounded-lg border border-border bg-surface px-2 text-xs" />
-            <input type="date" value={end} onChange={(e) => setEnd(e.target.value)} aria-label={t("admin.provider.blockEnd")} className="focus-ring h-9 rounded-lg border border-border bg-surface px-2 text-xs" />
-          </div>
-          <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t("admin.provider.reasonRequired")} aria-label={t("admin.provider.reasonRequired")} className="focus-ring h-9 w-full rounded-lg border border-border bg-surface px-2 text-xs" />
-          <button
-            disabled={!canBlock || addVac.isPending}
-            onClick={() => { addVac.mutate({ providerId, start_date: start, end_date: end, reason }); setStart(""); setEnd(""); setReason(""); }}
-            className="focus-ring rounded-lg bg-coral px-3 py-1.5 text-xs font-bold text-coral-foreground disabled:opacity-50"
-          >
-            {addVac.isPending ? t("admin.provider.blocking") : t("admin.provider.blockPeriod")}
-          </button>
-        </div>
-      </div>
-    </section>
-  );
-}
+import { AdminReviewSection } from "@/components/admin/AdminReviewSection";
+import { AdminReasonSheet } from "@/components/admin/AdminReasonSheet";
+import { workingHoursSummary } from "@/lib/provider/workingHoursSummary";
+import { adminLocationLabel } from "@/components/admin/adminLocationLabel";
+import { ScheduleDateSheet } from "@/components/provider/ScheduleDateSheet";
+import { ProviderApprovalDecisionSummary } from "@/components/admin/ProviderApprovalDecisionSummary";
+import { TeachingCapabilityReviewQueue } from "@/components/admin/TeachingCapabilityReviewQueue";
+import { RequestUpdatedDetailsAction } from "@/components/admin/RequestUpdatedDetailsAction";
+import {
+  deriveAdminApprovalDecision,
+  formatAdminActionErrorMessage,
+  type OnboardingCompletionPayload,
+} from "@/lib/admin/providerApprovalReview";
+import { currentLang } from "@/lib/i18n";
 
 export const Route = createFileRoute("/admin/provider/$id")({ component: AdminProviderRoute });
 
-export function AdminProvider({ id }: { id: string }) {
+type ReviewPayload = {
+  completion?: OnboardingCompletionPayload;
+  details?: {
+    date_of_birth?: string | null;
+    governorate?: string | null;
+    area?: string | null;
+    full_address?: string | null;
+    previous_work?: string | null;
+  } | null;
+  documents?: Array<{ id?: string; type?: string; status?: string }>;
+  references?: Array<{ id: string; full_name?: string; relationship?: string; phone?: string }>;
+  zones?: Array<{ id: string; name_en?: string; name_ar?: string }>;
+  events?: Array<{ action?: string; new_status?: string }>;
+};
+
+function latin(value: unknown) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number.toLocaleString("en-US") : "—";
+}
+
+function IdentityDocuments({
+  provider,
+  openDocument,
+}: {
+  provider: any;
+  openDocument: (path: string) => void;
+}) {
   const { t } = useTranslation();
-  const q = useAdminProvider(id);
-  const setVerified = useSetProviderVerified();
-  const setActive = useSetProviderActive();
-  const setServiceStatus = useSetProviderServiceStatus();
-  const sign = useDocumentSignedUrl();
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [showRejectApplication, setShowRejectApplication] = useState(false);
-  const [applicationRejectReason, setApplicationRejectReason] = useState("");
-  const [rejectingServiceId, setRejectingServiceId] = useState<string | null>(null);
-  const onboardingAction = useAdminOnboardingAction();
-  const onboardingReview = useAdminOnboardingReview(id);
-  const reviewDocument = useReviewProviderDocument();
-  const [showRequestChanges, setShowRequestChanges] = useState(false);
-  const [changeReasonCode, setChangeReasonCode] = useState("missing_info");
-  const [changeReasonPublic, setChangeReasonPublic] = useState("");
-  const [changeNotesInternal, setChangeNotesInternal] = useState("");
-  const [serviceRejectReason, setServiceRejectReason] = useState("");
-  const [rejectingDocId, setRejectingDocId] = useState<string | null>(null);
-  const [docRejectReason, setDocRejectReason] = useState("");
+  const review = useReviewProviderDocument();
+  const [rejecting, setRejecting] = useState<string | null>(null);
+  const [reason, setReason] = useState("");
+  const documents = provider.documents ?? [];
+  return (
+    <div className="space-y-3">
+      <p className="break-words font-semibold">
+        {provider.profile?.full_name || t("admin.provider.unnamed")}
+      </p>
+      <p dir="ltr" className="break-all text-start text-xs text-muted-foreground">
+        {provider.profile?.phone} · {provider.profile?.email}
+      </p>
+      {documents.length === 0 && (
+        <p className="text-sm text-muted-foreground">{t("admin.provider.noDocuments")}</p>
+      )}
+      <ul className="space-y-2">
+        {documents.map((document: any) => (
+          <li key={document.id} className="rounded-xl border border-border p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">
+                  {(document.type ?? document.document_type) === "national_id"
+                    ? t("adminReview.nationalId")
+                    : String(
+                        t(
+                          "admin.provider.approvalReview.documentTypes." +
+                            (document.type ?? document.document_type),
+                          document.type ?? document.document_type ?? t("adminReview.unavailable"),
+                        ),
+                      )}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {String(t("admin.provider.documentStatus." + document.status, document.status))}
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={!document.storage_path}
+                onClick={() => openDocument(document.storage_path)}
+                className="focus-ring inline-flex min-h-11 items-center gap-2 rounded-xl border border-border px-3 text-sm font-bold disabled:opacity-50"
+              >
+                <FileText className="h-4 w-4" />
+                {t("adminReview.openDocument")}
+              </button>
+            </div>
+            {document.status === "pending" && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={review.isPending}
+                  onClick={() =>
+                    review.mutate(
+                      { documentId: document.id, status: "approved" },
+                      { onError: (error) => toast.error(formatAdminActionErrorMessage(t, error)) },
+                    )
+                  }
+                  className="focus-ring min-h-11 rounded-xl bg-brand px-4 text-sm font-bold text-brand-foreground disabled:opacity-50"
+                >
+                  {t("adminReview.approve")}
+                </button>
+                <button
+                  type="button"
+                  disabled={review.isPending}
+                  onClick={() => {
+                    setRejecting(document.id);
+                    setReason("");
+                  }}
+                  className="focus-ring min-h-11 rounded-xl border border-coral px-4 text-sm font-bold text-coral"
+                >
+                  {t("adminReview.reject")}
+                </button>
+              </div>
+            )}
+            {rejecting === document.id && (
+              <div className="mt-3 space-y-2">
+                <label
+                  className="block text-sm font-semibold"
+                  htmlFor={"document-reason-" + document.id}
+                >
+                  {t("adminReview.reason")}
+                </label>
+                <textarea
+                  id={"document-reason-" + document.id}
+                  rows={2}
+                  value={reason}
+                  onChange={(event) => setReason(event.target.value)}
+                  className="w-full rounded-xl border border-border bg-surface p-3 text-sm"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={!reason.trim() || review.isPending}
+                    onClick={() =>
+                      review.mutate(
+                        { documentId: document.id, status: "rejected", reason: reason.trim() },
+                        {
+                          onSuccess: () => setRejecting(null),
+                          onError: (error) => toast.error(formatAdminActionErrorMessage(t, error)),
+                        },
+                      )
+                    }
+                    className="focus-ring min-h-11 flex-1 rounded-xl bg-coral px-3 text-sm font-bold text-coral-foreground disabled:opacity-50"
+                  >
+                    {t("common.confirm")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRejecting(null)}
+                    className="focus-ring min-h-11 flex-1 rounded-xl border border-border px-3 text-sm font-bold"
+                  >
+                    {t("common.cancel")}
+                  </button>
+                </div>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
-  if (q.isLoading) return <div className="p-6 text-sm text-muted-foreground">{t("common.loading")}</div>;
-  if (q.isError) return <div className="p-6"><AdminQueryError message={t("admin.providers.loadError")} error={q.error} onRetry={() => q.refetch()} /></div>;
-  const p: any = q.data;
-  if (!p) return <div className="p-6 text-sm text-muted-foreground">{t("admin.provider.notFound")}</div>;
+function ProviderServices({ provider }: { provider: any }) {
+  const { t } = useTranslation();
+  const lang = currentLang() === "ar" ? "ar" : "en";
+  const review = useSetProviderServiceStatus();
+  const [rejecting, setRejecting] = useState<string | null>(null);
+  const [reason, setReason] = useState("");
+  const services = provider.services ?? [];
+  if (services.length === 0)
+    return <p className="text-sm text-muted-foreground">{t("adminReview.noServices")}</p>;
+  return (
+    <ul className="space-y-2">
+      {services.map((row: any) => {
+        const service = row.service;
+        const name =
+          lang === "ar"
+            ? service?.name_ar || service?.name_en
+            : service?.name_en || service?.name_ar;
+        const amount = row.price_override ?? service?.base_price ?? provider.hourly_rate;
+        return (
+          <li key={row.id} className="rounded-xl border border-border p-3">
+            <div className="flex flex-wrap justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-sm font-bold">{name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t(
+                    service?.pricing_model === "hourly"
+                      ? "adminReview.price"
+                      : "adminReview.sessionPrice",
+                    { amount: latin(amount) },
+                  )}{" "}
+                  · {String(t("admin.provider.serviceStatus." + row.status, row.status))}
+                </p>
+              </div>
+              {row.status === "pending" && (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={review.isPending}
+                    onClick={() =>
+                      review.mutate(
+                        { providerServiceId: row.id, status: "approved" },
+                        { onError: () => toast.error(t("admin.provider.approveServiceError")) },
+                      )
+                    }
+                    className="focus-ring min-h-11 rounded-xl bg-brand px-3 text-sm font-bold text-brand-foreground disabled:opacity-50"
+                  >
+                    {t("adminReview.approve")}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={review.isPending}
+                    onClick={() => {
+                      setRejecting(row.id);
+                      setReason("");
+                    }}
+                    className="focus-ring min-h-11 rounded-xl border border-coral px-3 text-sm font-bold text-coral"
+                  >
+                    {t("adminReview.reject")}
+                  </button>
+                </div>
+              )}
+            </div>
+            {rejecting === row.id && (
+              <div className="mt-3 space-y-2">
+                <label className="block text-sm font-semibold" htmlFor={"service-reason-" + row.id}>
+                  {t("adminReview.reason")}
+                </label>
+                <textarea
+                  id={"service-reason-" + row.id}
+                  rows={2}
+                  value={reason}
+                  onChange={(event) => setReason(event.target.value)}
+                  className="w-full rounded-xl border border-border bg-surface p-3 text-sm"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={!reason.trim() || review.isPending}
+                    onClick={() =>
+                      review.mutate(
+                        { providerServiceId: row.id, status: "rejected", reason: reason.trim() },
+                        {
+                          onSuccess: () => setRejecting(null),
+                          onError: () => toast.error(t("admin.provider.rejectServiceError")),
+                        },
+                      )
+                    }
+                    className="focus-ring min-h-11 flex-1 rounded-xl bg-coral px-3 text-sm font-bold text-coral-foreground disabled:opacity-50"
+                  >
+                    {t("common.confirm")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRejecting(null)}
+                    className="focus-ring min-h-11 flex-1 rounded-xl border border-border px-3 text-sm font-bold"
+                  >
+                    {t("common.cancel")}
+                  </button>
+                </div>
+              </div>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
 
-  const suspended = p.is_verified && !p.is_active;
-
-  const openDoc = async (path: string) => {
-    const url = await sign.mutateAsync(path);
-    window.open(url, "_blank", "noopener");
+function HoursAndZones({
+  providerId,
+  zones,
+}: {
+  providerId: string;
+  zones: ReviewPayload["zones"];
+}) {
+  const { t } = useTranslation();
+  const hours = useProviderAvailability(providerId);
+  const vacations = useProviderVacations(providerId);
+  const addVacation = useAddVacation();
+  const deleteVacation = useDeleteVacation();
+  const [showDateSheet, setShowDateSheet] = useState(false);
+  const lang = currentLang() === "ar" ? "ar" : "en";
+  const displayDate = (value: string) => {
+    const date = new Date(`${value}T12:00:00`);
+    return Number.isNaN(date.getTime())
+      ? value
+      : new Intl.DateTimeFormat(lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        }).format(date);
   };
+  return (
+    <div className="space-y-3">
+      <div>
+        <h3 className="text-sm font-bold">{t("admin.provider.weeklyHours")}</h3>
+        {hours.isError && (
+          <AdminQueryError
+            compact
+            message={t("admin.providers.loadError")}
+            error={hours.error}
+            onRetry={() => hours.refetch()}
+          />
+        )}
+        <ul className="mt-1 space-y-1">
+          {workingHoursSummary(hours.data ?? [], t).map((summary) => (
+            <li key={summary} className="text-sm">
+              {summary}
+            </li>
+          ))}
+        </ul>
+        {!hours.isLoading && !hours.isError && !hours.data?.length && (
+          <p className="text-sm text-muted-foreground">{t("admin.provider.noWeeklyHours")}</p>
+        )}
+      </div>
+      <div>
+        <h3 className="text-sm font-bold">{t("adminReview.workZones")}</h3>
+        {zones?.length ? (
+          <ul className="mt-1 space-y-1">
+            {zones.map((zone) => (
+              <li key={zone.id} className="text-sm">
+                {lang === "ar" ? zone.name_ar || zone.name_en : zone.name_en || zone.name_ar}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted-foreground">{t("adminReview.noZones")}</p>
+        )}
+      </div>
+      <div className="border-t border-border pt-3">
+        <h3 className="text-sm font-bold">{t("admin.provider.blockedPeriods")}</h3>
+        {vacations.isError && (
+          <AdminQueryError
+            compact
+            message={t("admin.providers.loadError")}
+            error={vacations.error}
+            onRetry={() => vacations.refetch()}
+          />
+        )}
+        <ul className="mt-1 space-y-1">
+          {(vacations.data ?? []).map((row: any) => (
+            <li
+              key={row.id}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border p-2 text-sm"
+            >
+              <span>
+                {displayDate(row.start_date)} – {displayDate(row.end_date)} · {row.reason}
+              </span>
+              <button
+                type="button"
+                disabled={deleteVacation.isPending}
+                onClick={() => deleteVacation.mutate({ id: row.id, providerId })}
+                aria-label={t("common.delete")}
+                className="focus-ring grid min-h-11 min-w-11 place-items-center rounded-xl border border-border"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </li>
+          ))}
+        </ul>
+        <button
+          type="button"
+          disabled={addVacation.isPending}
+          onClick={() => {
+            addVacation.reset();
+            setShowDateSheet(true);
+          }}
+          className="focus-ring mt-2 min-h-11 rounded-xl bg-coral px-4 text-sm font-bold text-coral-foreground disabled:opacity-50"
+        >
+          {t("admin.provider.blockPeriod")}
+        </button>
+        {showDateSheet && (
+          <ScheduleDateSheet
+            range
+            busy={addVacation.isPending}
+            error={addVacation.isError}
+            onClose={() => {
+              setShowDateSheet(false);
+              addVacation.reset();
+            }}
+            onSave={(start, end, reason) => {
+              if (!reason.trim()) {
+                toast.error(t("adminReview.reasonRequired"));
+                return;
+              }
+              addVacation.mutate(
+                { providerId, start_date: start, end_date: end, reason: reason.trim() },
+                {
+                  onSuccess: () => setShowDateSheet(false),
+                  onError: () => toast.error(t("common.somethingWentWrong")),
+                },
+              );
+            }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
 
-  const toggleSuspend = () => {
-    setActive.mutate(
-      { id: p.id, active: !p.is_active },
-      {
-        onSuccess: () => setShowConfirm(false),
-        onError: (e: any) => toast.error(e?.message ?? t("admin.providers.approveError")),
-      },
+function EligibilityDetails({ providerId }: { providerId: string }) {
+  const { t } = useTranslation();
+  const q = useProviderEligibility(providerId);
+  const lang = currentLang() === "ar" ? "ar" : "en";
+  if (q.isError)
+    return (
+      <AdminQueryError
+        compact
+        message={t("admin.providers.loadError")}
+        error={q.error}
+        onRetry={() => q.refetch()}
+      />
     );
+  return (
+    <ul className="space-y-2">
+      {(q.data ?? []).map((service: any) => (
+        <li key={service.service_id} className="rounded-xl border border-border p-3 text-sm">
+          <span className="font-semibold">
+            {lang === "ar"
+              ? service.service_name_ar || service.service_name_en
+              : service.service_name_en}
+          </span>
+          <span className="ms-2 text-xs">
+            {service.is_eligible ? t("adminReview.approved") : t("adminReview.blocked")}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function AdminProvider({ id }: { id: string }) {
+  const { t, i18n } = useTranslation();
+  const provider = useAdminProvider(id);
+  const onboarding = useAdminOnboardingReview(id);
+  const action = useAdminOnboardingAction();
+  const approveAll = useApproveProviderApplicationAll();
+  const ages = useAdminBabysittingAgeGroups(id);
+  const signing = useDocumentSignedUrl();
+  const setActive = useSetProviderActive();
+  const [confirmAll, setConfirmAll] = useState(false);
+  const [confirmReject, setConfirmReject] = useState(false);
+  const [confirmSuspend, setConfirmSuspend] = useState(false);
+  const p: any = provider.data;
+  const payload = onboarding.data as ReviewPayload | undefined;
+  const decision = useMemo(
+    () =>
+      deriveAdminApprovalDecision({
+        onboardingStatus: p?.onboarding_status,
+        completion: payload?.completion,
+        reviewDocuments: payload?.documents ?? p?.documents,
+        isLoading: onboarding.isLoading,
+        isError: onboarding.isError,
+      }),
+    [p?.onboarding_status, p?.documents, payload, onboarding.isLoading, onboarding.isError],
+  );
+
+  if (provider.isLoading) return <div className="p-5 text-sm">{t("common.loading")}</div>;
+  if (provider.isError)
+    return (
+      <div className="p-5">
+        <AdminQueryError
+          message={t("admin.providers.loadError")}
+          error={provider.error}
+          onRetry={() => provider.refetch()}
+        />
+      </div>
+    );
+  if (!p) return <div className="p-5 text-sm">{t("admin.provider.notFound")}</div>;
+  if (onboarding.isLoading) return <div className="p-5 text-sm">{t("common.loading")}</div>;
+  if (onboarding.isError || !payload)
+    return (
+      <div className="p-5">
+        <AdminQueryError
+          message={t("admin.provider.approvalReview.loadError")}
+          error={onboarding.error}
+          onRetry={() => onboarding.refetch()}
+        />
+      </div>
+    );
+
+  const canReview = ["SUBMITTED", "UNDER_REVIEW"].includes(p.onboarding_status);
+  const submittedAt = p.resubmitted_at ?? p.submitted_at;
+  const details = payload?.details;
+  const openDocument = async (path: string) => {
+    try {
+      const url = await signing.mutateAsync(path);
+      window.open(url, "_blank", "noopener");
+    } catch {
+      toast.error(t("common.somethingWentWrong"));
+    }
   };
 
   return (
-    <div className="px-5 py-4 space-y-4">
-      <Link to={adminPath("/admin/providers") as "/admin/providers"} className="focus-ring inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground" aria-label={t("common.back")}>
-        <ChevronLeft className="h-4 w-4" /> {t("common.back")}
+    <main className="mx-auto max-w-4xl space-y-4 px-4 py-5 sm:px-6">
+      <Link
+        to={"/admin/providers" as "/admin/providers"}
+        className="focus-ring inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-bold"
+      >
+        <ChevronLeft className="h-4 w-4" />
+        {t("common.back")}
       </Link>
-
-      <section className="rounded-2xl border border-border/60 bg-surface p-4 shadow-sm">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-base font-extrabold">{p.profile?.full_name || t("admin.provider.unnamed")}</h2>
-            <p dir="ltr" className="text-xs text-muted-foreground">{p.profile?.phone} · {p.profile?.email}</p>
-          </div>
-          <div className="flex shrink-0 flex-col items-end gap-1">
-            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${p.is_verified ? "bg-mint/20 text-success" : "bg-amber-100 text-amber-700"}`}>
-              {p.onboarding_status ?? (p.is_verified ? t("admin.providers.verified") : t("admin.providers.pending"))}
-            </span>
-            {suspended && (
-              <span className="rounded-full bg-coral/10 px-2 py-0.5 text-[10px] font-bold uppercase text-coral">{t("admin.providers.suspended")}</span>
-            )}
-          </div>
-        </div>
-        <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
-          <div><dt className="text-muted-foreground">{t("admin.provider.city")}</dt><dd className="font-semibold">{p.city}</dd></div>
-          <div><dt className="text-muted-foreground">{t("admin.provider.rate")}</dt><dd className="font-semibold">{t("admin.providers.hourlyRate", { rate: p.hourly_rate })}</dd></div>
-          <div><dt className="text-muted-foreground">{t("admin.provider.experience")}</dt><dd className="font-semibold">{t("admin.provider.yearsValue", { years: p.years_experience })}</dd></div>
-          <div><dt className="text-muted-foreground">{t("admin.provider.trustScore")}</dt><dd className="font-semibold">{Math.round(Number(p.trust?.score ?? 0))}</dd></div>
-          <div><dt className="text-muted-foreground">{t("admin.provider.rating")}</dt><dd className="font-semibold">★ {Number(p.ratings?.rating_avg ?? 0).toFixed(1)}</dd></div>
-          <div><dt className="text-muted-foreground">{t("admin.provider.completedJobs")}</dt><dd className="font-semibold">{Number(p.ratings?.rating_count ?? 0)}</dd></div>
-        </dl>
-        {p.bio_en && <p className="mt-3 text-xs text-muted-foreground">{p.bio_en}</p>}
-      </section>
-
-      <EligibilitySection providerId={p.id} />
-
-      <section className="rounded-2xl border border-border/60 bg-surface p-4 shadow-sm">
-        <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("admin.provider.onboardingReview")}</h3>
-        {onboardingReview.isLoading ? (
-          <div className="mt-2 h-16 animate-pulse rounded-xl bg-muted" />
-        ) : (
-          <>
-            {p.submitted_at && <p className="mt-2 text-xs text-muted-foreground">{t("admin.provider.submittedAt", { date: new Date(p.submitted_at).toLocaleString() })}</p>}
-            {Array.isArray((onboardingReview.data as any)?.references) && (onboardingReview.data as any).references.length > 0 && (
-              <ul className="mt-3 space-y-1 text-xs">
-                {(onboardingReview.data as any).references.map((r: any) => (
-                  <li key={r.id}>{r.full_name} · {r.relationship} · {r.phone}</li>
-                ))}
-              </ul>
-            )}
-            {Array.isArray((onboardingReview.data as any)?.events) && (
-              <ul className="mt-3 max-h-32 space-y-1 overflow-y-auto text-[11px] text-muted-foreground">
-                {(onboardingReview.data as any).events.slice(0, 8).map((e: any, i: number) => (
-                  <li key={i}>{e.action} · {e.previous_status} → {e.new_status}</li>
-                ))}
-              </ul>
-            )}
-          </>
-        )}
-      </section>
-
-      <AvailabilitySection providerId={p.id} />
-
-      <section>
-        <h3 className="mb-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("admin.provider.documents")}</h3>
-        {(p.documents ?? []).length === 0 ? (
-          <p className="px-1 text-xs text-muted-foreground">{t("admin.provider.noDocuments")}</p>
-        ) : (
-          <ul className="space-y-2">
-            {p.documents.map((d: any) => (
-              <li key={d.id}>
-                <div className="flex w-full items-center gap-3 rounded-xl border border-border/60 bg-surface p-3">
-                  <button type="button" onClick={() => openDoc(d.storage_path)} className="focus-ring flex min-w-0 flex-1 items-center gap-3 text-start">
-                    <FileText className="h-4 w-4 shrink-0 text-brand" />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold">{d.type}</p>
-                      <p className="truncate text-[11px] text-muted-foreground">{d.status} · {new Date(d.created_at).toLocaleDateString()}</p>
-                    </div>
-                  </button>
-                  {d.status === "pending" && (
-                    <div className="flex shrink-0 gap-1">
-                      <button
-                        disabled={reviewDocument.isPending}
-                        onClick={() => reviewDocument.mutate({ documentId: d.id, status: "approved" }, { onError: (e: any) => toast.error(e?.message ?? t("admin.provider.approveServiceError")) })}
-                        className="focus-ring rounded-lg bg-brand px-2 py-1 text-[10px] font-bold text-brand-foreground"
-                      >{t("admin.providers.approve")}</button>
-                      <button
-                        onClick={() => { setRejectingDocId(d.id); setDocRejectReason(""); }}
-                        className="focus-ring rounded-lg border border-border px-2 py-1 text-[10px] font-bold"
-                      >{t("admin.providers.reject")}</button>
-                    </div>
-                  )}
-                </div>
-                {rejectingDocId === d.id && (
-                  <div className="mt-2 space-y-2 rounded-lg border border-coral/30 bg-coral/5 p-2">
-                    <textarea value={docRejectReason} onChange={(e) => setDocRejectReason(e.target.value)} rows={2} placeholder={t("admin.provider.reasonRequired")} className="w-full resize-none rounded-lg border border-border bg-surface p-2 text-xs" />
-                    <div className="flex gap-2">
-                      <button
-                        disabled={!docRejectReason.trim() || reviewDocument.isPending}
-                        onClick={() => reviewDocument.mutate(
-                          { documentId: d.id, status: "rejected", reason: docRejectReason.trim() },
-                          { onSuccess: () => setRejectingDocId(null), onError: (e: any) => toast.error(e?.message ?? t("admin.provider.rejectServiceError")) },
-                        )}
-                        className="focus-ring rounded-lg bg-coral px-3 py-1.5 text-[11px] font-bold text-coral-foreground disabled:opacity-50"
-                      >{t("admin.providers.confirmReject")}</button>
-                      <button onClick={() => setRejectingDocId(null)} className="focus-ring rounded-lg border border-border px-3 py-1.5 text-[11px] font-bold">{t("common.cancel")}</button>
-                    </div>
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section>
-        <h3 className="mb-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("admin.provider.requestedServices")}</h3>
-        {(p.services ?? []).length === 0 ? (
-          <p className="px-1 text-xs text-muted-foreground">{t("admin.provider.noServicesRequested")}</p>
-        ) : (
-          <ul className="space-y-2">
-            {p.services.map((ps: any) => (
-              <li key={ps.id} className="rounded-xl border border-border/60 bg-surface p-3">
-                <div className="flex items-center justify-between">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold">{ps.service?.name_en}</p>
-                    <p className="truncate text-[11px] text-muted-foreground">{ps.service?.category?.name_en} · {ps.status}</p>
-                    {ps.status === "rejected" && ps.rejection_reason && (
-                      <p className="mt-0.5 text-[11px] text-coral">{t("admin.provider.reasonPrefix", { reason: ps.rejection_reason })}</p>
-                    )}
-                  </div>
-                  {ps.status === "pending" && (
-                    <div className="flex shrink-0 gap-1.5">
-                      <button
-                        disabled={setServiceStatus.isPending}
-                        onClick={() => setServiceStatus.mutate(
-                          { providerServiceId: ps.id, status: "approved" },
-                          { onError: (e: any) => toast.error(e?.message ?? t("admin.provider.approveServiceError")) },
-                        )}
-                        className="focus-ring rounded-lg bg-brand px-3 py-1.5 text-[11px] font-bold text-brand-foreground disabled:opacity-50"
-                      >{t("admin.providers.approve")}</button>
-                      <button
-                        disabled={setServiceStatus.isPending}
-                        onClick={() => { setRejectingServiceId(ps.id); setServiceRejectReason(""); }}
-                        className="focus-ring rounded-lg border border-border px-3 py-1.5 text-[11px] font-bold disabled:opacity-50"
-                      >{t("admin.providers.reject")}</button>
-                    </div>
-                  )}
-                </div>
-                {rejectingServiceId === ps.id && (
-                  <div className="mt-2 space-y-2 rounded-lg border border-coral/30 bg-coral/5 p-2">
-                    <p className="text-[11px] font-bold text-coral">{t("admin.providers.rejectReasonLabel")}</p>
-                    <textarea
-                      value={serviceRejectReason}
-                      onChange={(e) => setServiceRejectReason(e.target.value)}
-                      rows={2}
-                      placeholder={t("admin.provider.rejectServicePlaceholder")}
-                      aria-label={t("admin.providers.rejectReasonLabel")}
-                      className="w-full resize-none rounded-lg border border-border bg-surface p-2 text-xs"
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        disabled={!serviceRejectReason.trim() || setServiceStatus.isPending}
-                        onClick={() => setServiceStatus.mutate(
-                          { providerServiceId: ps.id, status: "rejected", reason: serviceRejectReason.trim() },
-                          {
-                            onSuccess: () => setRejectingServiceId(null),
-                            onError: (e: any) => toast.error(e?.message ?? t("admin.provider.rejectServiceError")),
-                          },
-                        )}
-                        className="focus-ring rounded-lg bg-coral px-3 py-1.5 text-[11px] font-bold text-coral-foreground disabled:opacity-50"
-                      >{t("admin.providers.confirmReject")}</button>
-                      <button onClick={() => setRejectingServiceId(null)} className="focus-ring rounded-lg border border-border px-3 py-1.5 text-[11px] font-bold">{t("common.cancel")}</button>
-                    </div>
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <div className="flex flex-wrap gap-2 pt-2">
-        {["SUBMITTED", "UNDER_REVIEW"].includes(p.onboarding_status) && (
-          <>
-            <button
-              disabled={onboardingAction.isPending}
-              onClick={() => onboardingAction.mutate(
-                { providerId: p.id, action: p.onboarding_status === "SUBMITTED" ? "start_review" : "approve" },
-                { onError: (e: any) => toast.error(e?.message ?? t("admin.providers.approveError")) },
-              )}
-              className="focus-ring flex-1 rounded-xl bg-brand py-3 text-sm font-bold text-brand-foreground disabled:opacity-50"
-            >
-              {p.onboarding_status === "SUBMITTED" ? t("admin.provider.startReview") : t("admin.providers.approve")}
-            </button>
-            {p.onboarding_status === "UNDER_REVIEW" && (
-              <button
-                disabled={onboardingAction.isPending}
-                onClick={() => { setChangeReasonPublic(""); setShowRequestChanges(true); }}
-                className="focus-ring flex-1 rounded-xl border border-border py-3 text-sm font-bold disabled:opacity-50"
-              >{t("admin.provider.requestChanges")}</button>
-            )}
-            <button
-              disabled={setVerified.isPending || onboardingAction.isPending}
-              onClick={() => { setApplicationRejectReason(""); setShowRejectApplication(true); }}
-              className="focus-ring flex-1 rounded-xl border border-border py-3 text-sm font-bold disabled:opacity-50"
-            >{t("admin.providers.reject")}</button>
-          </>
-        )}
-        {p.is_verified && (
+      <header className="rounded-2xl border border-border bg-surface p-4">
+        <h1 className="text-xl font-extrabold">
+          {p.profile?.full_name || t("admin.provider.unnamed")}
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {p.onboarding_status
+            ? String(t("pro.onboardingWizard.status." + p.onboarding_status, p.onboarding_status))
+            : t("admin.provider.approvalReview.statusUnknown")}
+        </p>
+        <p className="mt-2 text-xs text-muted-foreground">{t("adminReview.sectionApproveHint")}</p>
+      </header>
+      <ProviderApprovalDecisionSummary decision={decision} compact />
+      {decision.canStartReview && (
+        <button
+          type="button"
+          disabled={action.isPending}
+          onClick={() =>
+            action.mutate(
+              { providerId: id, action: "start_review" },
+              { onError: (error) => toast.error(formatAdminActionErrorMessage(t, error)) },
+            )
+          }
+          className="focus-ring min-h-11 rounded-xl px-2 text-sm font-bold text-muted-foreground disabled:opacity-50"
+        >
+          {t("admin.provider.startReview")}
+        </button>
+      )}
+      {decision.showApproveAction && (
+        <div className="flex items-center gap-2">
           <button
-            disabled={setActive.isPending}
-            onClick={() => setShowConfirm(true)}
-            className={`focus-ring flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold disabled:opacity-50 ${
-              p.is_active ? "border border-coral text-coral" : "bg-brand text-brand-foreground"
-            }`}
+            type="button"
+            disabled={!decision.canApprove || approveAll.isPending || onboarding.isLoading}
+            onClick={() => setConfirmAll(true)}
+            className="focus-ring min-h-12 flex-1 rounded-xl bg-brand px-3 py-3 text-sm font-extrabold text-brand-foreground disabled:opacity-50"
           >
-            <ShieldCheck className="h-4 w-4" />
-            {p.is_active ? t("admin.provider.suspendProvider") : t("admin.provider.unsuspendProvider")}
+            {t("adminReview.approveAll")}
           </button>
-        )}
-      </div>
+          <button
+            type="button"
+            disabled={action.isPending || approveAll.isPending}
+            onClick={() => setConfirmReject(true)}
+            className="focus-ring min-h-11 rounded-xl px-3 text-sm font-bold text-coral disabled:opacity-50"
+          >
+            {t("adminReview.rejectApplication")}
+          </button>
+        </div>
+      )}
 
-      {showConfirm && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-6" onClick={() => setShowConfirm(false)}>
-          <div role="dialog" aria-modal="true" aria-labelledby="suspend-provider-title" className="w-full max-w-sm rounded-3xl bg-surface p-5" onClick={(e) => e.stopPropagation()}>
-            <div id="suspend-provider-title" className="text-base font-extrabold">
-              {p.is_active ? t("admin.provider.suspendConfirmTitle") : t("admin.provider.unsuspendConfirmTitle")}
+      <AdminReviewSection
+        providerId={id}
+        section="identity_documents"
+        title={t("adminReview.identityDocuments")}
+        canReview={canReview}
+        submittedAt={submittedAt}
+      >
+        <span id="admin-provider-documents" className="block scroll-mt-20" />
+        <IdentityDocuments provider={p} openDocument={openDocument} />
+      </AdminReviewSection>
+      <AdminReviewSection
+        providerId={id}
+        section="personal_details"
+        title={t("adminReview.personalDetails")}
+        canReview={canReview}
+        submittedAt={submittedAt}
+      >
+        <span id="admin-onboarding-details" className="block scroll-mt-20" />
+        <dl className="grid gap-3 sm:grid-cols-2">
+          {[
+            [t("admin.provider.city"), adminLocationLabel(p.city, currentLang(), t, payload.zones)],
+            [t("admin.provider.rate"), t("adminReview.price", { amount: latin(p.hourly_rate) })],
+            [
+              t("admin.provider.experience"),
+              t("adminReview.ageYears", { count: latin(p.years_experience) }),
+            ],
+            [t("adminReview.birthDate"), details?.date_of_birth],
+            [
+              t("adminReview.governorate"),
+              adminLocationLabel(details?.governorate, currentLang(), t, payload.zones),
+            ],
+            [
+              t("adminReview.area"),
+              adminLocationLabel(details?.area, currentLang(), t, payload.zones),
+            ],
+            [t("adminReview.address"), details?.full_address],
+            [t("adminReview.previousWork"), details?.previous_work],
+          ].map(([label, value]) => (
+            <div key={String(label)} className="min-w-0">
+              <dt className="text-xs text-muted-foreground">{label}</dt>
+              <dd className="break-words text-sm font-semibold">
+                {value || t("adminReview.unavailable")}
+              </dd>
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {p.is_active ? t("admin.provider.suspendConfirmBody") : t("admin.provider.unsuspendConfirmBody")}
-            </p>
+          ))}
+        </dl>
+      </AdminReviewSection>
+      <AdminReviewSection
+        providerId={id}
+        section="references"
+        title={t("adminReview.references")}
+        canReview={canReview}
+        submittedAt={submittedAt}
+      >
+        {payload?.references?.length ? (
+          <ul className="space-y-2">
+            {payload.references.map((reference) => (
+              <li key={reference.id} className="rounded-xl border border-border p-3 text-sm">
+                <p className="font-semibold">
+                  {reference.full_name} · {reference.relationship}
+                </p>
+                <p dir="ltr" className="text-start text-xs">
+                  {reference.phone}
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted-foreground">{t("adminReview.noReferences")}</p>
+        )}
+      </AdminReviewSection>
+      <AdminReviewSection
+        providerId={id}
+        section="services_prices"
+        title={t("adminReview.servicesPrices")}
+        canReview={canReview}
+        submittedAt={submittedAt}
+      >
+        <span id="admin-provider-services" className="block scroll-mt-20" />
+        <ProviderServices provider={p} />
+      </AdminReviewSection>
+      <AdminReviewSection
+        providerId={id}
+        section="babysitting_ages"
+        title={t("adminReview.babysittingAges")}
+        canReview={canReview}
+        submittedAt={submittedAt}
+      >
+        {p.max_children_per_booking != null && (
+          <p className="text-sm font-semibold">
+            {t("adminReview.maxChildren", { count: latin(p.max_children_per_booking) })}
+          </p>
+        )}
+        {ages.isError && (
+          <AdminQueryError
+            compact
+            message={t("admin.providers.loadError")}
+            error={ages.error}
+            onRetry={() => ages.refetch()}
+          />
+        )}
+        {ages.data?.length ? (
+          <ul className="space-y-2">
+            {ages.data.map((age: any) => (
+              <li key={age.age_group_code} className="rounded-xl border border-border p-3 text-sm">
+                {String(
+                  t("pro.onboardingWizard.ageGroups." + age.age_group_code, age.age_group_code),
+                )}{" "}
+                · {t("adminReview.ageYears", { count: latin(age.years_experience) })}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          !ages.isLoading && (
+            <p className="text-sm text-muted-foreground">{t("adminReview.noAgeGroups")}</p>
+          )
+        )}
+      </AdminReviewSection>
+      <AdminReviewSection
+        providerId={id}
+        section="teaching_groups"
+        title={t("adminReview.teachingGroups")}
+        canReview={canReview}
+        submittedAt={submittedAt}
+      >
+        <TeachingCapabilityReviewQueue providerId={id} />
+      </AdminReviewSection>
+      <AdminReviewSection
+        providerId={id}
+        section="hours_zones"
+        title={t("adminReview.hoursZones")}
+        canReview={canReview}
+        submittedAt={submittedAt}
+      >
+        <HoursAndZones providerId={id} zones={payload?.zones} />
+      </AdminReviewSection>
+
+      <details
+        id="marketplace-eligibility"
+        className="rounded-2xl border border-border bg-surface p-4"
+      >
+        <summary className="min-h-11 cursor-pointer text-sm font-bold">
+          {t("admin.provider.approvalReview.technicalEligibility")}
+        </summary>
+        <EligibilityDetails providerId={id} />
+      </details>
+      {payload?.events?.length ? (
+        <details className="rounded-2xl border border-border bg-surface p-4">
+          <summary className="min-h-11 cursor-pointer text-sm font-bold">
+            {t("admin.provider.approvalReview.auditHistory")}
+          </summary>
+          <ul className="mt-2 space-y-1 text-xs">
+            {payload.events.slice(0, 12).map((event, index) => (
+              <li key={index}>
+                {adminLabel(event.action, i18n.language)} ·{" "}
+                {adminLabel(event.new_status, i18n.language)}
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+      {p.onboarding_status === "APPROVED" && (
+        <RequestUpdatedDetailsAction providerId={id} onboardingStatus={p.onboarding_status} />
+      )}
+      {p.is_verified && (
+        <button
+          type="button"
+          onClick={() => setConfirmSuspend(true)}
+          className="focus-ring inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-coral px-4 text-sm font-bold text-coral"
+        >
+          <ShieldCheck className="h-4 w-4" />
+          {p.is_active
+            ? t("admin.provider.suspendProvider")
+            : t("admin.provider.unsuspendProvider")}
+        </button>
+      )}
+      {confirmAll && (
+        <div
+          role="presentation"
+          className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4"
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="approve-all-title"
+            className="w-full max-w-sm rounded-2xl bg-surface p-5"
+          >
+            <h2 id="approve-all-title" className="text-lg font-bold">
+              {t("adminReview.approveAll")}
+            </h2>
+            <p className="mt-2 text-sm">{t("adminReview.approveAllConfirm")}</p>
             <div className="mt-4 flex gap-2">
-              <button onClick={() => setShowConfirm(false)} className="focus-ring h-11 flex-1 rounded-2xl border border-border bg-surface text-sm font-bold">{t("common.cancel")}</button>
-              <button onClick={toggleSuspend} disabled={setActive.isPending} className="focus-ring h-11 flex-1 rounded-2xl bg-coral text-sm font-bold text-coral-foreground disabled:opacity-50">
-                {p.is_active ? t("admin.provider.confirmSuspend") : t("admin.provider.unsuspendProvider")}
+              <button
+                type="button"
+                onClick={() => setConfirmAll(false)}
+                className="focus-ring min-h-11 flex-1 rounded-xl border border-border px-3 text-sm font-bold"
+              >
+                {t("common.cancel")}
+              </button>
+              <button
+                type="button"
+                disabled={approveAll.isPending}
+                onClick={() =>
+                  approveAll.mutate(id, {
+                    onSuccess: () => {
+                      setConfirmAll(false);
+                      toast.success(t("adminReview.approveAllSuccess"));
+                    },
+                    onError: (error) =>
+                      toast.error(
+                        formatAdminActionErrorMessage(t, error, "adminReview.approveAllError"),
+                      ),
+                  })
+                }
+                className="focus-ring min-h-11 flex-1 rounded-xl bg-brand px-3 text-sm font-bold text-brand-foreground disabled:opacity-50"
+              >
+                {t("adminReview.approveAll")}
               </button>
             </div>
           </div>
         </div>
       )}
-
-      {showRequestChanges && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-6" onClick={() => setShowRequestChanges(false)}>
-          <div role="dialog" aria-modal="true" className="w-full max-w-sm rounded-3xl bg-surface p-5" onClick={(e) => e.stopPropagation()}>
-            <div className="text-base font-extrabold">{t("admin.provider.requestChanges")}</div>
-            <textarea
-              value={changeReasonPublic}
-              onChange={(e) => setChangeReasonPublic(e.target.value)}
-              rows={3}
-              placeholder={t("admin.provider.reasonRequired")}
-              className="mt-3 w-full resize-none rounded-xl border border-border bg-surface p-2 text-sm"
-            />
-            <textarea
-              value={changeNotesInternal}
-              onChange={(e) => setChangeNotesInternal(e.target.value)}
-              rows={2}
-              placeholder={t("admin.provider.internalNotes")}
-              className="mt-2 w-full resize-none rounded-xl border border-border bg-surface p-2 text-xs"
-            />
+      {confirmReject && (
+        <AdminReasonSheet
+          title={t("adminReview.rejectApplication")}
+          description={t("adminReview.rejectApplicationConfirm")}
+          busy={action.isPending}
+          onClose={() => setConfirmReject(false)}
+          onConfirm={(reason) =>
+            action.mutate(
+              {
+                providerId: id,
+                action: "reject",
+                reasonCode: "application_review",
+                reasonPublic: reason,
+              },
+              {
+                onSuccess: () => setConfirmReject(false),
+                onError: (error) => toast.error(formatAdminActionErrorMessage(t, error)),
+              },
+            )
+          }
+        />
+      )}
+      {confirmSuspend && (
+        <div
+          role="presentation"
+          className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4"
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="suspend-title"
+            className="w-full max-w-sm rounded-2xl bg-surface p-5"
+          >
+            <h2 id="suspend-title" className="text-lg font-bold">
+              {p.is_active
+                ? t("admin.provider.suspendConfirmTitle")
+                : t("admin.provider.unsuspendConfirmTitle")}
+            </h2>
+            <p className="mt-2 text-sm">
+              {p.is_active
+                ? t("admin.provider.suspendConfirmBody")
+                : t("admin.provider.unsuspendConfirmBody")}
+            </p>
             <div className="mt-4 flex gap-2">
-              <button onClick={() => setShowRequestChanges(false)} className="focus-ring h-11 flex-1 rounded-2xl border border-border text-sm font-bold">{t("common.cancel")}</button>
               <button
-                disabled={!changeReasonPublic.trim() || onboardingAction.isPending}
-                onClick={() => onboardingAction.mutate(
-                  {
-                    providerId: p.id,
-                    action: "request_changes",
-                    reasonCode: changeReasonCode,
-                    reasonPublic: changeReasonPublic.trim(),
-                    notesInternal: changeNotesInternal.trim() || undefined,
-                  },
-                  { onSuccess: () => setShowRequestChanges(false), onError: (e: any) => toast.error(e?.message ?? t("admin.providers.rejectError")) },
-                )}
-                className="focus-ring h-11 flex-1 rounded-2xl bg-coral text-sm font-bold text-coral-foreground disabled:opacity-50"
-              >{t("common.confirm")}</button>
+                type="button"
+                onClick={() => setConfirmSuspend(false)}
+                className="focus-ring min-h-11 flex-1 rounded-xl border border-border px-3 text-sm font-bold"
+              >
+                {t("common.cancel")}
+              </button>
+              <button
+                type="button"
+                disabled={setActive.isPending}
+                onClick={() =>
+                  setActive.mutate(
+                    { id, active: !p.is_active },
+                    {
+                      onSuccess: () => setConfirmSuspend(false),
+                      onError: () => toast.error(t("common.somethingWentWrong")),
+                    },
+                  )
+                }
+                className="focus-ring min-h-11 flex-1 rounded-xl bg-coral px-3 text-sm font-bold text-coral-foreground disabled:opacity-50"
+              >
+                {t("common.confirm")}
+              </button>
             </div>
           </div>
         </div>
       )}
-
-      {showRejectApplication && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-6" onClick={() => setShowRejectApplication(false)}>
-          <div role="dialog" aria-modal="true" aria-labelledby="reject-application-title" className="w-full max-w-sm rounded-3xl bg-surface p-5" onClick={(e) => e.stopPropagation()}>
-            <div id="reject-application-title" className="text-base font-extrabold">{t("admin.provider.rejectApplicationTitle")}</div>
-            <p className="mt-1 text-xs text-muted-foreground">{t("admin.provider.rejectApplicationBody")}</p>
-            <textarea
-              value={applicationRejectReason}
-              onChange={(e) => setApplicationRejectReason(e.target.value)}
-              rows={3}
-              placeholder={t("admin.provider.reasonRequired")}
-              aria-label={t("admin.provider.reasonRequired")}
-              className="mt-3 w-full resize-none rounded-xl border border-border bg-surface p-2 text-sm"
-            />
-            <div className="mt-4 flex gap-2">
-              <button onClick={() => setShowRejectApplication(false)} className="focus-ring h-11 flex-1 rounded-2xl border border-border bg-surface text-sm font-bold">{t("common.cancel")}</button>
-              <button
-                disabled={!applicationRejectReason.trim() || setVerified.isPending}
-                onClick={() => setVerified.mutate(
-                  { id: p.id, verified: false, reason: applicationRejectReason.trim() },
-                  {
-                    onSuccess: () => setShowRejectApplication(false),
-                    onError: (e: any) => toast.error(e?.message ?? t("admin.providers.rejectError")),
-                  },
-                )}
-                className="focus-ring h-11 flex-1 rounded-2xl bg-coral text-sm font-bold text-coral-foreground disabled:opacity-50"
-              >{t("admin.providers.confirmReject")}</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+    </main>
   );
 }
 

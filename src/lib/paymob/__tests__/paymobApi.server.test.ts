@@ -141,13 +141,33 @@ describe("createPaymobIntention failure classification", () => {
       vi.fn(async () => ({
         ok: true,
         status: 200,
-        json: async () => ({ id: "intent-1", client_secret: "secret-1" }),
+        json: async () => ({
+          id: "intent-1",
+          client_secret: "secret-1",
+          intention_order_id: 987654,
+        }),
       })),
     );
 
     const result = await createPaymobIntention(config, input);
     expect(result.intentionId).toBe("intent-1");
     expect(result.clientSecret).toBe("secret-1");
+    expect(result.orderId).toBe("987654");
     expect(result.checkoutUrl).toContain("secret-1");
+  });
+
+  it("throws PaymobIntentionIndeterminateError when a 2xx response is missing the Paymob order id", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({ id: "intent-1", client_secret: "secret-1" }),
+      })),
+    );
+
+    await expect(createPaymobIntention(config, input)).rejects.toBeInstanceOf(
+      PaymobIntentionIndeterminateError,
+    );
   });
 });

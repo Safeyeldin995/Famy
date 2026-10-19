@@ -1,17 +1,32 @@
+import { ProfileWorkZones } from "@/components/provider/ProfileWorkZones";
+import { AutoGrowingBio } from "@/components/provider/AutoGrowingBio";
+import { profilePriceDirty } from "@/lib/provider/profilePriceDirty";
+import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
+import { workingHoursSummary } from "@/lib/provider/workingHoursSummary";
+import { isFixedPackage, packageLabel, servicePriceUnit } from "@/lib/pricing/servicePackages";
+import {
+  ServicePricePicker,
+  isPriceInRange,
+  isSavedPriceOutOfRange,
+} from "@/components/provider/ServicePricePicker";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ProviderShell } from "@/components/famio/ProviderShell";
-import { ProviderPageHero } from "@/components/famio/ProviderPageHero";
-import { Card, PrimaryButton, Avatar } from "@/components/famio/ui";
+import { CheckChip } from "@/components/famio/CheckChip";
+import { ServiceCard } from "@/components/famio/ServiceCard";
+import { TeachingGroupsSummary } from "@/components/provider/TeachingGroupsSummary";
+import { useMyTeachingCapabilities } from "@/lib/db/teaching-queries";
+import { saveProfileChanges, type ProfileFields } from "@/lib/provider/saveProfileChanges";
+import "@/components/famio/providerApply.css";
+import { Card, PrimaryButton } from "@/components/famio/ui";
 import { QueryError } from "@/components/famio/QueryError";
 import { supabase } from "@/integrations/supabase/client";
-import { useServiceAreasSettings } from "@/lib/db/settings-queries";
+
 import {
   useMyProvider,
-  useUpdateProvider,
   useAllServices,
   useMyProviderServices,
   useToggleProviderService,
@@ -21,12 +36,34 @@ import {
   useDeclareRequirement,
   useUploadRequirementEvidence,
   useMyMarketplaceEligibility,
+  useMyProviderZones,
+  useProviderAvailability,
 } from "@/lib/db/provider-queries";
-import { FileText, ShieldCheck, LogOut, Camera, Loader2, Upload, Bell } from "lucide-react";
+import {
+  FileText,
+  ShieldCheck,
+  LogOut,
+  Camera,
+  Loader2,
+  Upload,
+  Bell,
+  ChevronDown,
+  LockKeyhole,
+  Clock,
+  BriefcaseBusiness,
+} from "lucide-react";
 import { LanguageToggle, useLang } from "@/components/famio/LanguageToggle";
-import { customerPath, proPath } from "@/lib/preview/previewPath";
+import { customerPath } from "@/lib/preview/previewPath";
+import { useProPath } from "@/lib/provider/useProPath";
 
-
+import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
+import {
+  dedupeEligibilityReasons,
+  mapMarketplaceEligibilityFailureReason,
+  marketplaceEligibilityStatus,
+  type MappedEligibilityReason,
+} from "@/lib/provider/marketplaceEligibilityReasons";
+import { providerProfileSaveErrorKey } from "@/lib/provider/providerProfileSaveErrors";
 
 export const Route = createFileRoute("/pro/profile")({ component: ProProfile });
 
@@ -34,37 +71,89 @@ export const Route = createFileRoute("/pro/profile")({ component: ProProfile });
 // source (also used by setup.tsx and pro.onboarding.tsx).
 
 function ProProfile() {
+  const proPath = useProPath();
   const { t } = useTranslation();
   const lang = useLang();
   const p = useMyProvider();
   const provider = p.data as any;
+  const teachingQ = useMyTeachingCapabilities(provider?.id);
+  const hoursQ = useProviderAvailability(provider?.id);
   const eligibilityQ = useMyMarketplaceEligibility(provider?.id);
-  const update = useUpdateProvider();
+  const providerZonesQ = useMyProviderZones(provider?.id);
   const services = useAllServices();
   const mine = useMyProviderServices(provider?.id);
   const toggle = useToggleProviderService();
   const setPrice = useSetProviderPrice();
-  const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
+  const [priceDrafts, setPriceDrafts] = useState<Record<string, number>>({});
   const [priceErrors, setPriceErrors] = useState<Record<string, string>>({});
   const [expandedReqService, setExpandedReqService] = useState<string | null>(null);
+  const focusRequirements = (serviceId: string) => {
+    setExpandedReqService(serviceId);
+    window.history.replaceState(null, "", `#requirements-${serviceId}`);
+    document.getElementById(`service-${serviceId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  const focusPrice = (serviceId: string) => {
+    const id = `price-${serviceId}`;
+    window.history.replaceState(null, "", `#${id}`);
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  const [eligibilityExpanded, setEligibilityExpanded] = useState(false);
   const nav = useNavigate();
   const qc = useQueryClient();
+  const update = useMutation({
+    mutationFn: (edits: ProfileFields) => saveProfileChanges(provider, edits, {
+      snapshot: async () => {
+        const { data, error } = await supabase.rpc("provider_onboarding_snapshot");
+        if (error) throw error;
+        return data as { provider?: ProfileFields; details?: { previous_work?: string | null } };
+      },
+      section: async (section, payload) => {
+        const { error } = await supabase.rpc("provider_save_onboarding_section", { p_section: section, p_payload: payload as any });
+        if (error) throw error;
+      },
+      update: async (patch) => {
+        const { error } = await supabase.from("providers").update(patch).eq("id", provider.id);
+        if (error) throw error;
+      },
+    }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["my-provider"] });
+      await qc.invalidateQueries({ queryKey: ["provider-onboarding-snapshot"] });
+    },
+  });
 
+  const pendingTeachingServices = useMemo(() => new Set((teachingQ.data ?? []).filter((row) => {
+    const service = services.data?.find((s) => s.id === row.service_id);
+    return row.status === "pending" && service && isPriceInRange(row.session_price, service.minimum_price, service.maximum_price);
+  }).map((row) => row.service_id)), [teachingQ.data, services.data]);
 
-  const [bioEn, setBioEn] = useState(""); const [bioAr, setBioAr] = useState("");
-  const [years, setYears] = useState<number>(0); const [rate, setRate] = useState<number>(0);
+  const dedupedReasons = useMemo(
+    () =>
+      dedupeEligibilityReasons(
+        (eligibilityQ.data ?? []) as Array<{
+          service_id: string;
+          failure_reasons?: string[] | null;
+        }>,
+        providerZonesQ.data?.length ?? 0,
+        pendingTeachingServices,
+      ),
+    [eligibilityQ.data, providerZonesQ.data, pendingTeachingServices],
+  );
+
+  const [bioEn, setBioEn] = useState("");
+  const [bioAr, setBioAr] = useState("");
+  const [years, setYears] = useState<number>(0);
   const [city, setCity] = useState("");
   const [uploading, setUploading] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const profileHydrated = useRef(false);
-  const areasQ = useServiceAreasSettings();
-  const cityOptions = (areasQ.data ?? []).filter((a) => a.enabled).map((a) => a.name);
 
   useEffect(() => {
     if (!provider || profileHydrated.current) return;
-    setBioEn(provider.bio_en ?? ""); setBioAr(provider.bio_ar ?? "");
-    setYears(provider.years_experience ?? 0); setRate(Number(provider.hourly_rate ?? 0));
+    setBioEn(provider.bio_en ?? "");
+    setBioAr(provider.bio_ar ?? "");
+    setYears(provider.years_experience ?? 0);
     setCity(provider.city ?? "");
     profileHydrated.current = true;
   }, [provider]);
@@ -77,7 +166,9 @@ function ProProfile() {
         if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
         return objectUrl;
       });
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("auth required");
       const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
       const path = `${user.id}/avatar-${Date.now()}.${ext}`;
@@ -99,10 +190,12 @@ function ProProfile() {
     }
   };
 
-
-
   if (p.isLoading) {
-    return <ProviderShell><div className="p-8 text-center text-sm">{t("pro.common.loading")}</div></ProviderShell>;
+    return (
+      <ProviderShell>
+        <div className="p-8 text-center text-sm">{t("pro.common.loading")}</div>
+      </ProviderShell>
+    );
   }
 
   if (p.isError) {
@@ -113,80 +206,81 @@ function ProProfile() {
     );
   }
 
-  if (!provider) return <ProviderShell><div className="p-8 text-center text-sm">{t("pro.common.loading")}</div></ProviderShell>;
+  if (!provider)
+    return (
+      <ProviderShell>
+        <div className="p-8 text-center text-sm">{t("pro.common.loading")}</div>
+      </ProviderShell>
+    );
 
-  const handleSave = () => update.mutate({ bio_en: bioEn, bio_ar: bioAr, years_experience: years, hourly_rate: rate, city });
+  const handleSave = () =>
+    update.mutate(
+      { [lang === "ar" ? "bio_ar" : "bio_en"]: lang === "ar" ? bioAr : bioEn },
+      {
+        onError: (error: unknown) => {
+          const message = error && typeof error === "object" && "message" in error ? String(error.message) : undefined;
+          toast.error(t(providerProfileSaveErrorKey(message)));
+        },
+      },
+    );
+
+  const eligibilityRows = eligibilityQ.data ?? [];
+  const eligibilityStatus = marketplaceEligibilityStatus(
+    eligibilityRows,
+    providerZonesQ.data?.length ?? 0,
+    pendingTeachingServices,
+  );
 
   const myIds = new Set((mine.data ?? []).map((s: any) => s.service_id));
   const myStatus = new Map((mine.data ?? []).map((s: any) => [s.service_id, s.status]));
-  const myPriceOverride = new Map((mine.data ?? []).map((s: any) => [s.service_id, s.price_override]));
+  const myPriceOverride = new Map(
+    (mine.data ?? []).map((s: any) => [s.service_id, s.price_override]),
+  );
 
   const submitPrice = (serviceId: string, min: number | null, max: number | null) => {
-    const raw = priceDrafts[serviceId];
-    if (raw === undefined) return;
-    const trimmed = raw.trim();
-    const value = trimmed === "" ? null : Number(trimmed);
-    if (value !== null) {
-      if (!Number.isFinite(value) || value < 0) {
-        setPriceErrors((e) => ({ ...e, [serviceId]: t("pro.profile.priceInvalid", "Enter a valid price.") }));
-        return;
-      }
-      if (min != null && value < min) {
-        setPriceErrors((e) => ({ ...e, [serviceId]: t("pro.profile.priceBelowMin", { min }) }));
-        return;
-      }
-      if (max != null && value > max) {
-        setPriceErrors((e) => ({ ...e, [serviceId]: t("pro.profile.priceAboveMax", { max }) }));
-        return;
-      }
-    }
+    const value = priceDrafts[serviceId];
+    if (!isPriceInRange(value, min, max)) return;
     setPriceErrors((e) => ({ ...e, [serviceId]: "" }));
     setPrice.mutate(
       { providerId: provider.id, serviceId, price: value },
-      { onError: (e: any) => setPriceErrors((errs) => ({ ...errs, [serviceId]: e?.message ?? t("common.somethingWentWrong") })) },
+      {
+        onError: (e: any) =>
+          setPriceErrors((errs) => ({
+            ...errs,
+            [serviceId]: e?.message ?? t("common.somethingWentWrong"),
+          })),
+      },
     );
   };
-  // Already-assigned services that admin has since deactivated: excluded
-  // from `services` (useAllServices only lists active ones, so the
-  // provider can never newly select or reactivate one), but the
-  // provider_services row itself is never deleted — surface it here,
-  // read-only, so the provider can see why it's no longer bookable.
-  const inactiveMine = (mine.data ?? []).filter((s: any) => s.service && s.service.is_active === false);
-
   const logout = async () => {
-    await qc.cancelQueries(); qc.clear();
+    await qc.cancelQueries();
+    qc.clear();
     await supabase.auth.signOut();
     nav({ to: customerPath("/login") as "/login", replace: true });
   };
 
-
   return (
     <ProviderShell>
-      <ProviderPageHero
-        title={t("pro.profile.title")}
-        compact
-        right={<LanguageToggle variant="hero" />}
-      />
-      <div className="min-w-0 space-y-5 overflow-x-hidden px-5 pb-28 pt-2">
-        <Card className="flex items-center gap-3 rounded-[1.25rem] p-4">
-          <div className="relative h-16 w-16 shrink-0">
-            {photoPreview ? (
-              <img src={photoPreview} alt="" className="h-16 w-16 rounded-2xl object-cover" />
-            ) : (
-              <Avatar
-                src={provider?.profile?.avatar_url}
-                alt=""
-                className="h-16 w-16 rounded-2xl"
-              />
-            )}
+      <main className="apply-ui apply-screen !pb-28" dir={lang === "ar" ? "rtl" : "ltr"}>
+        <header className="apply-header apply-profile-title"><h1 className="apply-title">{t("pro.profile.title")}</h1><LanguageToggle /></header>
+        <div className="apply-content">
+        <Card className="apply-list apply-profile-header p-4">
+          <div className="apply-profile-avatar-wrap">
+            <ProfileAvatar src={provider?.profile?.avatar_url} preview={photoPreview} name={provider.profile?.full_name || t("pro.profile.famioUser")} />
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
               aria-label={t("pro.profile.changePhoto")}
-              className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full bg-brand text-white shadow-soft ring-2 ring-white active:scale-95 disabled:opacity-60"
+              className="absolute bottom-0 start-0 grid h-11 w-11 place-items-center disabled:opacity-60"
             >
-              {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+              <span className="apply-profile-camera pointer-events-none" aria-hidden="true">
+              {uploading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Camera className="h-3.5 w-3.5" />
+              )}
+              </span>
             </button>
             <input
               ref={fileRef}
@@ -200,196 +294,304 @@ function ProProfile() {
               }}
             />
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="break-words text-base font-bold leading-snug">{provider.profile?.full_name || t("pro.profile.famioUser")}</div>
-            <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground">
-              {provider.is_verified ? <><ShieldCheck className="h-3 w-3 text-success" /> {t("pro.profile.verified")}</> : t("pro.profile.verificationPending")}
+          <div className="apply-profile-info">
+            <div className="apply-profile-name break-words leading-snug">
+              {provider.profile?.full_name || t("pro.profile.famioUser")}
+            </div>
+            <div className={`apply-tag apply-profile-verified mt-2 ${provider.is_verified ? "apply-success" : "apply-wait"}`}>
+              {provider.is_verified ? (
+                <>
+                  <ShieldCheck className="h-3 w-3 text-success" /> {t("pro.profile.verified")}
+                </>
+              ) : (
+                t("pro.profile.verificationPending")
+              )}
             </div>
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
-              className="mt-1 text-[11px] font-bold text-brand disabled:opacity-60"
+              className="mt-1 block text-pro-12 font-bold text-brand disabled:opacity-60"
             >
               {uploading ? t("pro.profile.uploading") : t("pro.profile.changePhoto")}
             </button>
           </div>
         </Card>
 
-        <Card className="p-4">
-          <div className="flex items-center justify-between gap-2">
-            <div className="text-sm font-extrabold">{t("admin.provider.marketplaceEligible", "Marketplace eligible")}</div>
-            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${eligibilityQ.data?.some((row) => row.is_eligible) ? "bg-mint/20 text-success" : "bg-coral/10 text-coral"}`}>
-              {eligibilityQ.data?.some((row) => row.is_eligible) ? t("common.yes", "Yes") : t("common.no", "No")}
-            </span>
+        <Card className="apply-list p-4">
+          <div>
+            <div className="text-sm font-extrabold">{t("providerProfileV3.visibility")}</div>
+            {eligibilityQ.isSuccess && providerZonesQ.isSuccess && eligibilityRows.length > 0 ? (
+              <p
+                className={`mt-1 text-xs font-bold ${eligibilityStatus.visible ? "text-success" : "text-amber-700"}`}
+              >
+                {t(eligibilityStatus.visible ? "providerProfileV3.visible" : "providerProfileV3.hidden")}
+                {!eligibilityStatus.visible && eligibilityStatus.stepsLeft > 0 && <span> · {t("providerProfileV3.steps", { count: eligibilityStatus.stepsLeft })}</span>}
+              </p>
+            ) : null}
           </div>
-          {eligibilityQ.isLoading ? <div className="mt-2 h-10 animate-pulse rounded-xl bg-muted" /> : eligibilityQ.isError ? (
+          {eligibilityQ.isSuccess && providerZonesQ.isSuccess && eligibilityRows.some((row) => !row.is_eligible) && (
+            <div className="mt-2 space-y-1 text-xs">
+              {eligibilityRows.some((row) => row.is_eligible) && <p>{t("providerProfileV3.visibleServices", { services: eligibilityRows.filter((row) => row.is_eligible).map((row) => lang === "ar" ? row.service_name_ar : row.service_name_en).join("، ") })}</p>}
+              <p>{t("providerProfileV3.blockedServices", { services: eligibilityRows.filter((row) => !row.is_eligible).map((row) => lang === "ar" ? row.service_name_ar : row.service_name_en).join("، ") })}</p>
+            </div>
+          )}
+          {eligibilityQ.isLoading || providerZonesQ.isLoading ? (
+            <div className="mt-2 h-10 animate-pulse rounded-xl bg-muted" />
+          ) : eligibilityQ.isError || providerZonesQ.isError ? (
             <div className="mt-2">
-              <QueryError compact onRetry={() => eligibilityQ.refetch()} />
+              <QueryError
+                compact
+                onRetry={() => {
+                  eligibilityQ.refetch();
+                  providerZonesQ.refetch();
+                }}
+              />
             </div>
           ) : (
             <div className="mt-2 space-y-2">
-              {(eligibilityQ.data ?? []).map((row) => <div key={row.service_id} className="rounded-xl border border-border/60 p-2 text-xs">
-                <div className="break-words font-bold">{lang === "ar" ? row.service_name_ar : row.service_name_en}</div>
-                {row.is_eligible ? <div className="mt-1 text-success">{t("admin.provider.eligibleBody")}</div> : <ul className="mt-1 list-disc break-words ps-4 text-coral">{(row.failure_reasons ?? []).map((reason) => <li key={reason}>{reason}</li>)}</ul>}
-              </div>)}
-              {!eligibilityQ.isLoading && (eligibilityQ.data ?? []).length === 0 && <div className="text-xs text-coral">BLOCKED BY BUSINESS DATA — no Provider service is configured.</div>}
+              {(["provider", "famy"] as const).map((owner) => {
+                const entries = dedupedReasons.filter((entry) => entry.mapped.owner === owner);
+                if (!entries.length) return null;
+                return <section key={owner} className="apply-list">
+                  <h3 className="apply-label px-4 pt-4">{t(`providerProfileV3.${owner}Tasks`)}</h3>
+                  {owner === "famy" && <p className="px-4 text-sm text-muted-foreground">{t("providerProfileV3.reviewHint")}</p>}
+                  <ul>{entries.map((entry) => {
+                    const services = eligibilityRows.filter((row) => entry.serviceIds.includes(row.service_id));
+                    const action = entry.mapped.action;
+                    // Service-specific actions each retain their own full-row target.
+                    const targets = action.kind === "service" || action.kind === "requirements"
+                      ? services.map((row) => ({ mapped: { ...entry.mapped, action: { ...action, serviceId: row.service_id } }, services: [row] }))
+                      : [{ mapped: entry.mapped, services }];
+                    return <li key={entry.mapped.i18nKey}>{targets.map((target) => (
+                      <EligibilityReasonItem key={target.services[0]?.service_id ?? entry.mapped.i18nKey} mapped={target.mapped} t={t} onServiceFocus={focusPrice} onRequirementsFocus={focusRequirements}
+                        serviceNames={target.services.map((row) => lang === "ar" ? row.service_name_ar : row.service_name_en)} />
+                    ))}</li>;
+                  })}</ul>
+                </section>;
+              })}
+              {eligibilityRows.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setEligibilityExpanded((v) => !v)}
+                  aria-expanded={eligibilityExpanded}
+                  className="flex w-full items-center justify-between rounded-xl border border-border/60 px-2 py-2 text-pro-12 font-bold text-brand"
+                >
+                  {t("pro.profile.eligibilityByService")}
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform ${eligibilityExpanded ? "rotate-180" : ""}`}
+                  />
+                </button>
+              ) : null}
+              {eligibilityExpanded ? (
+                <div className="space-y-2">
+                  {eligibilityRows.map((row) => (
+                    <div
+                      key={row.service_id}
+                      className="rounded-xl border border-border/60 p-2 text-xs"
+                    >
+                      <div className="break-words font-bold">
+                        {lang === "ar" ? row.service_name_ar : row.service_name_en}
+                      </div>
+                      {row.is_eligible ? (
+                        <div className="mt-1 text-success">
+                          {t("pro.profile.eligibilityServiceReady")}
+                        </div>
+                      ) : (
+                        <ul className="mt-1 space-y-1 text-coral">
+                          {(row.failure_reasons ?? []).map((reason) => {
+                            const mapped = mapMarketplaceEligibilityFailureReason(
+                              reason,
+                              row.service_id,
+                              providerZonesQ.data?.length ?? 0,
+                              pendingTeachingServices.has(row.service_id),
+                            );
+                            return (
+                              <li key={reason}>
+                                <EligibilityReasonItem
+                                  mapped={mapped}
+                                  t={t}
+                                  onServiceFocus={focusPrice} onRequirementsFocus={focusRequirements}
+                                />
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              {!eligibilityQ.isLoading && eligibilityRows.length === 0 ? (
+                <div className="text-xs text-coral">
+                  {t("pro.profile.eligibilityBlockedByData")}
+                </div>
+              ) : null}
             </div>
           )}
         </Card>
 
-
         {/* About */}
         <div>
-          <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">{t("pro.profile.about")}</h2>
-          <Card className="space-y-3 p-4">
-            {lang === "ar" ? (
-              <Field label={t("pro.onboarding.bioAr")}><textarea value={bioAr} onChange={(e) => setBioAr(e.target.value)} rows={3} dir="rtl" className="w-full rounded-xl border border-border bg-surface p-2 text-sm" /></Field>
-            ) : (
-              <Field label={t("pro.onboarding.bioEn")}><textarea value={bioEn} onChange={(e) => setBioEn(e.target.value)} rows={3} className="w-full rounded-xl border border-border bg-surface p-2 text-sm" /></Field>
-            )}
-            <div className="grid grid-cols-2 gap-3">
-              <Field label={t("pro.onboarding.years")}><input type="number" min={0} value={years} onChange={(e) => setYears(Number(e.target.value))} className="h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm" /></Field>
-              <Field label={t("pro.onboarding.rate")}><input type="number" min={0} value={rate} onChange={(e) => setRate(Number(e.target.value))} className="h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm" /></Field>
-            </div>
-            <Field label={t("pro.onboarding.city")}>
-              {areasQ.isError ? (
-                <div className="mt-2">
-                  <QueryError compact onRetry={() => areasQ.refetch()} />
-                </div>
-              ) : (
-              <div className="grid grid-cols-2 gap-2">
-                {cityOptions.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setCity(c)}
-                    className={`h-10 truncate rounded-xl border px-2 text-xs font-semibold transition-all ${
-                      city === c ? "border-brand bg-brand/[0.04] text-brand" : "border-border bg-surface text-muted-foreground"
-                    }`}
-                  >
-                    {c}
-                  </button>
-                ))}
+          <h2 className="mb-2 px-1 text-pro-13 font-bold text-muted-foreground">
+            {t("pro.profile.about")}
+          </h2>
+          <Card className="apply-list space-y-3 p-4">
+            <label>
+              <span className="apply-label">{t("providerApply.about")}</span>
+              <AutoGrowingBio value={lang === "ar" ? bioAr : bioEn} onChange={lang === "ar" ? setBioAr : setBioEn} />
+            </label>
+            <p className="apply-label">{t("providerSetup.phrases")}</p>
+            <div className="flex flex-wrap gap-2">{[0, 1, 2, 3, 4].map((index) => <CheckChip key={index} selected={false} onClick={() => (lang === "ar" ? setBioAr : setBioEn)((value) => [value.trim(), t(`providerSetup.bioPhrases.p${index}`)].filter(Boolean).join(" "))}>{t(`providerSetup.bioPhrases.p${index}`)}</CheckChip>)}</div>
+            <dl className="apply-list">
+              <div className="apply-li"><dt className="flex-1">{t("pro.profile.yearsExperience")}</dt><dd>{years}</dd><LockKeyhole size={16} aria-hidden="true" /></div>
+              <div className="apply-li"><dt className="flex-1 font-bold">{t("providerLocations.livesIn")}</dt><dd>{city ? t(`providerSetup.governorates.${city.trim().toLowerCase().replace(/\s+/g, "_")}`, { defaultValue: city }) : t("pro.profile.cityUnset")}</dd><LockKeyhole size={16} aria-hidden="true" /></div>
+              <ProfileWorkZones providerId={provider.id} applicationEditable={["DRAFT", "NEEDS_CHANGES"].includes(provider.onboarding_status)} />
+            </dl>
+            <PrimaryButton className="apply-cta" onClick={handleSave} disabled={update.isPending}>
+              {update.isPending ? t("pro.common.saving") : t("pro.profile.saveChanges")}
+            </PrimaryButton>
+            {update.isSuccess && (
+              <div className="text-center text-xs font-semibold text-success">
+                {t("pro.common.saved")}
               </div>
-              )}
-            </Field>
-            <PrimaryButton onClick={handleSave} disabled={update.isPending}>{update.isPending ? t("pro.common.saving") : t("pro.common.save")}</PrimaryButton>
-            {update.isSuccess && <div className="text-center text-xs font-semibold text-success">{t("pro.common.saved")}</div>}
+            )}
           </Card>
         </div>
 
         {/* Services */}
         <div>
-          <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">{t("pro.profile.servicesOffer")}</h2>
+          <h2 className="mb-2 px-1 text-pro-13 font-bold text-muted-foreground">
+            {t("providerProfileV3.services")}
+          </h2>
           {services.isError || mine.isError ? (
-            <QueryError compact onRetry={() => { void services.refetch(); void mine.refetch(); }} />
+            <QueryError
+              compact
+              onRetry={() => {
+                void services.refetch();
+                void mine.refetch();
+              }}
+            />
           ) : (
-          <Card className="divide-y divide-border">
-            {(services.data ?? []).map((s: any) => {
-              const on = myIds.has(s.id);
-              const sname = lang === "ar" ? (s.name_ar ?? s.name_en) : (s.name_en ?? s.name_ar);
-              const cname = lang === "ar" ? (s.category?.name_ar ?? s.category?.name_en) : (s.category?.name_en ?? s.category?.name_ar);
-              const currentOverride = myPriceOverride.get(s.id);
-              const priceError = priceErrors[s.id];
-              return (
-                <div key={s.id} className="px-4 py-3">
-                  <div className="flex items-center justify-between">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start gap-1.5">
-                        <div className="break-words text-sm font-semibold leading-snug">{sname}</div>
-                        {on && myStatus.get(s.id) === "pending" && (
-                          <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">{t("pro.profile.servicePending")}</span>
-                        )}
-                        {on && myStatus.get(s.id) === "rejected" && (
-                          <span className="shrink-0 rounded-full bg-coral/15 px-2 py-0.5 text-[10px] font-bold text-coral">{t("pro.profile.serviceRejected")}</span>
-                        )}
-                      </div>
-                      <div className="break-words text-[11px] text-muted-foreground">{cname}</div>
-                    </div>
-                    <button
-                      onClick={() => toggle.mutate({ providerId: provider.id, serviceId: s.id, on: !on })}
-                      className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${on ? "bg-brand" : "bg-muted"}`}
-                      aria-pressed={on}
-                    >
-                      <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-soft transition-all ${on ? "left-[22px]" : "left-0.5"}`} />
-                    </button>
-                  </div>
-
-                  {on && s.provider_pricing_allowed && (
-                    <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2">
-                      <input
-                        type="number"
-                        min={0}
-                        step={1}
-                        placeholder={t("pro.profile.pricePlaceholder", "Your price (EGP/hr)")}
-                        value={priceDrafts[s.id] ?? (currentOverride != null ? String(currentOverride) : "")}
-                        onChange={(e) => setPriceDrafts((d) => ({ ...d, [s.id]: e.target.value }))}
-                        className="h-9 w-40 rounded-lg border border-border bg-surface px-2 text-xs"
-                      />
-                      <button
-                        onClick={() => submitPrice(s.id, s.minimum_price ?? null, s.maximum_price ?? null)}
-                        disabled={setPrice.isPending}
-                        className="rounded-lg bg-brand px-3 py-1.5 text-[11px] font-bold text-brand-foreground disabled:opacity-50"
-                      >
-                        {t("common.save")}
-                      </button>
-                      {(s.minimum_price != null || s.maximum_price != null) && (
-                        <span className="text-[10px] text-muted-foreground">
-                          {t("pro.profile.priceRange", { min: s.minimum_price ?? "—", max: s.maximum_price ?? "—" })}
-                        </span>
+            <div id="requirements" className="grid gap-3 scroll-mt-4">
+              {(services.data ?? []).map((s: any) => {
+                const on = myIds.has(s.id);
+                const sname = lang === "ar" ? (s.name_ar ?? s.name_en) : (s.name_en ?? s.name_ar);
+                const cname =
+                  lang === "ar"
+                    ? (s.category?.name_ar ?? s.category?.name_en)
+                    : (s.category?.name_en ?? s.category?.name_ar);
+                const currentOverride = myPriceOverride.get(s.id);
+                const priceError = priceErrors[s.id];
+                return (
+                  <div key={s.id} id={`service-${s.id}`}>
+                    <ServiceCard selected={on} title={sname} subtitle={isFixedPackage(s) ? t(packageLabel(s).key, packageLabel(s).values) : cname ?? ""} icon={<BriefcaseBusiness size={20} />} onClick={() => toggle.mutate({ providerId: provider.id, serviceId: s.id, on: !on })}>
+                      <div className="px-4 pb-4">
+                      {on && <span className={`apply-tag ${myStatus.get(s.id) === "approved" ? "apply-success" : myStatus.get(s.id) === "pending" ? "apply-wait" : "apply-danger"}`}>{t(`providerSetup.status.${myStatus.get(s.id) ?? "pending"}`)}</span>}
+                    {on &&
+                      s.provider_pricing_allowed &&
+                      !isTutoringCategorySlug(s.category?.slug) && (
+                        <div id={`price-${s.id}`} className="mt-2 min-w-0 scroll-mt-4 space-y-2">
+                          {isSavedPriceOutOfRange(
+                            currentOverride,
+                            s.minimum_price ?? null,
+                            s.maximum_price ?? null,
+                          ) && (
+                            <p className="rounded-xl bg-amber-100 p-2 text-xs font-semibold text-amber-800">
+                              {t("pricePicker.outOfRange")}
+                            </p>
+                          )}
+                          <ServicePricePicker
+                            min={s.minimum_price ?? null}
+                            max={s.maximum_price ?? null}
+                            value={priceDrafts[s.id] ?? currentOverride ?? null}
+                            onChange={(price) =>
+                              setPriceDrafts((drafts) => ({ ...drafts, [s.id]: price }))
+                            }
+                            unitLabel={t(servicePriceUnit(s).key, servicePriceUnit(s).values)}
+                          />
+                          {profilePriceDirty(priceDrafts[s.id], currentOverride) && <button
+                            onClick={() =>
+                              submitPrice(s.id, s.minimum_price ?? null, s.maximum_price ?? null)
+                            }
+                            disabled={
+                              setPrice.isPending ||
+                              !isPriceInRange(
+                                priceDrafts[s.id],
+                                s.minimum_price ?? null,
+                                s.maximum_price ?? null,
+                              )
+                            }
+                            className="min-h-11 rounded-lg bg-brand px-3 py-2 text-xs font-bold text-brand-foreground disabled:opacity-50"
+                          >
+                            {t("common.save")}
+                          </button>}
+                        </div>
                       )}
-                    </div>
-                  )}
-                  {priceError && <p className="mt-1 text-[11px] font-semibold text-coral">{priceError}</p>}
-                  {on && (
-                    <button
-                      onClick={() => setExpandedReqService(expandedReqService === s.id ? null : s.id)}
-                      className="mt-2 text-[11px] font-bold text-brand"
-                    >
-                      {expandedReqService === s.id ? t("pro.profile.hideRequirements", "Hide requirements") : t("pro.profile.showRequirements", "Requirements")}
-                    </button>
-                  )}
-                  {on && expandedReqService === s.id && <RequirementsChecklist providerId={provider.id} serviceId={s.id} />}
-                </div>
-              );
-            })}
-            {inactiveMine.map((s: any) => {
-              const sname = lang === "ar" ? (s.service.name_ar ?? s.service.name_en) : (s.service.name_en ?? s.service.name_ar);
-              const cname = lang === "ar" ? (s.service.category?.name_ar ?? s.service.category?.name_en) : (s.service.category?.name_en ?? s.service.category?.name_ar);
-              return (
-                <div key={s.service_id} className="flex items-center justify-between px-4 py-3 opacity-60">
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold truncate">{sname}</div>
-                    <div className="text-[11px] text-muted-foreground truncate">{cname}</div>
+                    {priceError && (
+                      <p className="mt-1 text-pro-12 font-semibold text-coral">{priceError}</p>
+                    )}
+                    {on && (
+                      <button
+                        onClick={() =>
+                          setExpandedReqService(expandedReqService === s.id ? null : s.id)
+                        }
+                        aria-expanded={expandedReqService === s.id}
+                        aria-controls={`requirements-${s.id}`}
+                        className="mt-2 flex min-h-11 w-full items-center justify-between gap-3 border-t border-border py-3 text-start text-pro-13 font-bold text-brand"
+                      >
+                        {t("providerProfilePolish.requirements")}
+                        <ChevronDown size={18} aria-hidden="true" className={expandedReqService === s.id ? "rotate-180" : ""} />
+                      </button>
+                    )}
+                    {on && expandedReqService === s.id && (
+                      <div id={`requirements-${s.id}`}><RequirementsChecklist providerId={provider.id} serviceId={s.id} /></div>
+                    )}
+                      </div>
+                    </ServiceCard>
                   </div>
-                  <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-[10px] font-bold uppercase text-muted-foreground">
-                    {t("pro.profile.serviceUnavailable")}
-                  </span>
-                </div>
-              );
-            })}
-          </Card>
+                );
+              })}
+            </div>
           )}
         </div>
 
+        {teachingQ.isError ? <QueryError compact onRetry={() => teachingQ.refetch()} /> : <TeachingGroupsSummary rows={teachingQ.data ?? []} />}
+        <section className="apply-list">
+          <ProRow to={proPath("/pro/setup/hours")} icon={<Clock size={20} />} label={t("providerProfileV3.hours")} />
+          {hoursQ.isError ? <QueryError compact onRetry={() => hoursQ.refetch()} /> : <div className="px-4 pb-4 text-sm text-muted-foreground">{(hoursQ.data ?? []).length ? workingHoursSummary(hoursQ.data ?? [], t).map((line) => <p key={line}>{line}</p>) : t("providerProfileV3.noHours")}</div>}
+        </section>
+
         {/* Links */}
         <div>
-          <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">{t("pro.profile.more")}</h2>
-          <Card className="divide-y divide-border">
-            <ProRow to={proPath("/pro/documents")} icon={<FileText className="h-5 w-5" />} label={t("pro.profile.documentsRow")} />
-            <ProRow to={proPath("/pro/notification-preferences")} icon={<Bell className="h-5 w-5" />} label={t("notifPrefs.title")} />
+          <h2 className="mb-2 px-1 text-pro-13 font-bold text-muted-foreground">
+            {t("pro.profile.more")}
+          </h2>
+          <Card className="apply-list">
+            <ProRow
+              to={proPath("/pro/documents")}
+              icon={<FileText className="h-5 w-5" />}
+              label={t("pro.profile.documentsRow")}
+            />
+            <ProRow
+              to={proPath("/pro/notification-preferences")}
+              icon={<Bell className="h-5 w-5" />}
+              label={t("notifPrefs.title")}
+            />
           </Card>
         </div>
 
-        <button onClick={logout} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-surface py-4 text-sm font-bold text-destructive shadow-soft">
+        <button
+          onClick={logout}
+          className="apply-li w-full text-destructive"
+        >
           <LogOut className="h-4 w-4" /> {t("pro.profile.signOut")}
         </button>
-      </div>
+        </div>
+      </main>
     </ProviderShell>
   );
 }
-
 
 const REQ_STATUS_TONE: Record<string, string> = {
   pending: "bg-amber-100 text-amber-700",
@@ -398,7 +600,13 @@ const REQ_STATUS_TONE: Record<string, string> = {
   waived: "bg-muted text-muted-foreground",
 };
 
-function RequirementsChecklist({ providerId, serviceId }: { providerId: string; serviceId: string }) {
+function RequirementsChecklist({
+  providerId,
+  serviceId,
+}: {
+  providerId: string;
+  serviceId: string;
+}) {
   const { t } = useTranslation();
   const reqQ = useRequirementsForService(serviceId);
   const mineQ = useMyRequirementFulfillments(providerId);
@@ -409,7 +617,12 @@ function RequirementsChecklist({ providerId, serviceId }: { providerId: string; 
   const requirements = reqQ.data ?? [];
   const mineByReq = new Map((mineQ.data ?? []).map((f: any) => [f.requirement_id, f]));
 
-  if (requirements.length === 0) return <p className="mt-2 text-[11px] text-muted-foreground">{t("pro.profile.noRequirements", "No requirements for this service.")}</p>;
+  if (requirements.length === 0)
+    return (
+      <p className="mt-2 text-pro-12 text-muted-foreground">
+        {t("pro.profile.noRequirements", "No requirements for this service.")}
+      </p>
+    );
 
   return (
     <ul className="mt-2 space-y-2">
@@ -421,32 +634,49 @@ function RequirementsChecklist({ providerId, serviceId }: { providerId: string; 
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 text-xs">
                 <span className="font-semibold">{r.name_en}</span>
-                {r.required_for_provider_approval && <span className="ms-1 text-[10px] text-coral">*</span>}
+                {r.required_for_provider_approval && (
+                  <span className="ms-1 text-pro-12 text-coral">*</span>
+                )}
               </div>
-              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${REQ_STATUS_TONE[status]}`}>{status}</span>
+              <span
+                className={`shrink-0 rounded-full px-2 py-0.5 text-pro-12 font-bold uppercase ${REQ_STATUS_TONE[status]}`}
+              >
+                {status}
+              </span>
             </div>
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
               <input
                 value={notesDraft[r.id] ?? mine?.notes ?? ""}
                 onChange={(e) => setNotesDraft((d) => ({ ...d, [r.id]: e.target.value }))}
                 placeholder={t("pro.profile.reqNotesPlaceholder", "Notes (optional)")}
-                className="h-8 min-w-0 flex-1 rounded-lg border border-border bg-surface px-2 text-[11px]"
+                className="min-h-11 min-w-0 flex-1 rounded-lg border border-border bg-surface px-2 text-pro-12"
               />
               <button
-                onClick={() => declare.mutate({ providerId, requirementId: r.id, notes: notesDraft[r.id] })}
+                onClick={() =>
+                  declare.mutate({ providerId, requirementId: r.id, notes: notesDraft[r.id] })
+                }
                 disabled={declare.isPending}
-                className="rounded-lg bg-brand px-2 py-1.5 text-[11px] font-bold text-brand-foreground disabled:opacity-50"
-              >{t("common.save")}</button>
+                className="min-h-11 rounded-lg bg-brand px-2 py-1.5 text-pro-12 font-bold text-brand-foreground disabled:opacity-50"
+              >
+                {t("common.save")}
+              </button>
               {r.evidence_required && (
-                <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-[11px] font-semibold">
-                  <Upload className="h-3 w-3" /> {mine?.evidence_storage_path ? t("pro.profile.reevidence", "Re-upload") : t("pro.profile.uploadEvidence", "Upload evidence")}
+                <label className="inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-pro-12 font-semibold">
+                  <Upload className="h-3 w-3" />{" "}
+                  {mine?.evidence_storage_path
+                    ? t("pro.profile.reevidence", "Re-upload")
+                    : t("pro.profile.uploadEvidence", "Upload evidence")}
                   <input
                     type="file"
                     accept="image/*,application/pdf"
                     className="hidden"
                     onChange={(e) => {
                       const f = e.target.files?.[0];
-                      if (f) upload.mutate({ providerId, requirementId: r.id, file: f }, { onError: (e2: any) => toast.error(e2?.message ?? "Upload failed") });
+                      if (f)
+                        upload.mutate(
+                          { providerId, requirementId: r.id, file: f },
+                          { onError: (e2: any) => toast.error(e2?.message ?? "Upload failed") },
+                        );
                       e.target.value = "";
                     }}
                   />
@@ -460,15 +690,92 @@ function RequirementsChecklist({ providerId, serviceId }: { providerId: string; 
   );
 }
 
+function EligibilityReasonItem({
+  mapped,
+  t,
+  onServiceFocus,
+  onRequirementsFocus,
+  serviceNames,
+}: {
+  mapped: MappedEligibilityReason;
+  t: (key: string, options?: Record<string, unknown>) => string;
+  onServiceFocus: (serviceId: string) => void;
+  onRequirementsFocus: (serviceId: string) => void;
+  serviceNames?: string[];
+}) {
+  const proPath = useProPath();
+  const row = serviceNames !== undefined;
+  const waiting = mapped.owner === "famy";
+  const className = row
+    ? `apply-li apply-profile-action ${waiting ? "apply-waiting" : "apply-next focus-ring"}`
+    : "font-semibold text-brand underline-offset-2 hover:underline";
+  const label = row ? <>
+    <span className="apply-tile" aria-hidden="true">{waiting ? <Clock size={18} /> : <FileText size={18} />}</span>
+    <span className="apply-task-text"><b>{t(mapped.i18nKey)}</b><small>{serviceNames.map((name, index) => <span key={name}>{index > 0 && " · "}<span>{name}</span></span>)}</small></span>
+    <span className={`apply-tag ${waiting ? "apply-wait" : "apply-go"}`}>{t(`providerApply.pending.${waiting ? "waiting" : "start"}`)}</span>
+  </> : t(mapped.i18nKey);
+  if (row && waiting) return <div className={className}>{label}</div>;
+  if (mapped.action.kind === "link") {
+    return (
+      <Link
+        to={proPath(mapped.action.path) as any}
+        hash={mapped.action.hash}
+        onClick={() => {
+          if (mapped.action.kind === "link" && mapped.action.hash)
+            document
+              .getElementById(mapped.action.hash)
+              ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }}
+        className={className}
+      >
+        {label}
+      </Link>
+    );
+  }
+  if (mapped.action.kind === "requirements") {
+    const serviceId = mapped.action.serviceId;
+    return <a href={`${proPath("/pro/profile")}#requirements-${serviceId}`} className={className} onClick={(event) => { event.preventDefault(); onRequirementsFocus(serviceId); }}>{label}</a>;
+  }
+  if (mapped.action.kind === "service") {
+    const serviceId = mapped.action.serviceId;
+    const hash =
+      mapped.i18nKey === "pro.profile.eligibilityReasons.teachingPrice"
+        ? "teaching-subjects"
+        : `price-${serviceId}`;
+    return (
+      <a
+        href={`${proPath("/pro/profile")}#${hash}`}
+        className={className}
+        onClick={(event) => {
+          event.preventDefault();
+          onServiceFocus(serviceId);
+        }}
+      >
+        {label}
+      </a>
+    );
+  }
+  return <span className={row ? className : "font-semibold"}>{label}</span>;
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <label className="block"><div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>{children}</label>;
+  return (
+    <label className="block">
+      <div className="mb-1 text-pro-13 font-bold text-muted-foreground">
+        {label}
+      </div>
+      {children}
+    </label>
+  );
 }
 
 function ProRow({ to, icon, label }: { to: string; icon: React.ReactNode; label: string }) {
   return (
-    <Link to={to as any} className="flex items-center gap-3 px-4 py-3.5 active:bg-surface-2">
-      <div className="grid h-10 w-10 place-items-center rounded-xl bg-brand/10 text-brand">{icon}</div>
-      <div className="flex-1 text-sm font-bold">{label}</div>
+    <Link to={to as any} className="apply-li focus-ring">
+      <div className="apply-tile">
+        {icon}
+      </div>
+      <div className="apply-task-text"><b>{label}</b></div>
     </Link>
   );
 }

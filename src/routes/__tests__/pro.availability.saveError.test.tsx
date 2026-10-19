@@ -1,0 +1,258 @@
+import type { ReactNode } from "react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import i18n from "@/lib/i18n";
+
+const saveState = vi.hoisted(() => ({
+  mutate: vi.fn(),
+  isPending: false,
+  isSuccess: false,
+  isError: false,
+}));
+
+const availabilityData = vi.hoisted(() => [
+  { weekday: 1, start_time: "09:00:00", end_time: "17:00:00" },
+]);
+
+const vacationData = vi.hoisted(() => [
+  { id: "vacation", start_date: "2026-11-01", end_date: "2026-11-03", reason: "Vacation note" },
+]);
+const holidayData = vi.hoisted(() => [
+  { id: "holiday", date: "2026-11-10", reason: "Day-off note" },
+]);
+
+const provider = vi.hoisted(() => ({
+  id: "prov-1",
+  vacation_mode: false,
+  buffer_minutes: 30,
+  min_notice_hours: 4,
+  max_advance_days: 60,
+}));
+
+vi.mock("@/components/famio/BottomSheetSelect", () => ({
+  BottomSheetSelect: ({
+    label,
+    value,
+    options,
+    onChange,
+  }: {
+    label: string;
+    value: string;
+    options: { value: string; label: string }[];
+    onChange: (value: string) => void;
+  }) => (
+    <label>
+      {label}
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  ),
+}));
+
+vi.mock("@tanstack/react-router", () => ({
+  useRouterState: ({
+    select,
+  }: {
+    select: (state: { location: { pathname: string } }) => unknown;
+  }) => select({ location: { pathname: "/pro" } }),
+  createFileRoute: () => (opts: { component: unknown }) => opts,
+}));
+
+vi.mock("@/components/famio/ProviderShell", () => ({
+  ProviderShell: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+}));
+
+vi.mock("@/components/famio/ProviderPageHero", () => ({
+  ProviderPageHero: ({ title }: { title: string }) => <h1>{title}</h1>,
+}));
+
+vi.mock("@/components/famio/ui", () => ({
+  Card: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  PrimaryButton: ({
+    children,
+    onClick,
+    disabled,
+  }: {
+    children: ReactNode;
+    onClick?: () => void;
+    disabled?: boolean;
+  }) => (
+    <button type="button" onClick={onClick} disabled={disabled}>
+      {children}
+    </button>
+  ),
+}));
+
+vi.mock("@/components/famio/QueryError", () => ({
+  QueryError: () => null,
+}));
+
+vi.mock("@/lib/db/provider-queries", () => ({
+  useMyProvider: () => ({
+    data: provider,
+    isLoading: false,
+    isError: false,
+  }),
+  useProviderAvailability: () => ({
+    data: availabilityData,
+    isError: false,
+    refetch: vi.fn(),
+  }),
+  useReplaceAvailability: () => saveState,
+  useUpdateProvider: () => ({ mutate: vi.fn(), isPending: false }),
+  useProviderVacations: () => ({ data: vacationData, isError: false, refetch: vi.fn() }),
+  useAddVacation: () => ({ mutate: vi.fn(), isPending: false }),
+  useDeleteVacation: () => ({ mutate: vi.fn() }),
+  useProviderExceptions: () => ({ data: holidayData, isError: false, refetch: vi.fn() }),
+  useAddException: () => ({ mutate: vi.fn(), isPending: false }),
+  useDeleteException: () => ({ mutate: vi.fn() }),
+}));
+
+import { AvailabilityPage } from "@/routes/pro.availability";
+
+describe("provider weekly availability save error", () => {
+  afterEach(async () => {
+    cleanup();
+    saveState.mutate.mockReset();
+    saveState.isPending = false;
+    saveState.isSuccess = false;
+    saveState.isError = false;
+    provider.vacation_mode = false;
+    availabilityData.splice(0, availabilityData.length, {
+      weekday: 1,
+      start_time: "09:00:00",
+      end_time: "17:00:00",
+    });
+    await i18n.changeLanguage("en");
+  });
+
+  it("exposes active vacation mode with a 44px toggle", () => {
+    provider.vacation_mode = true;
+    const { container } = render(<AvailabilityPage />);
+    expect(container.querySelector("details")?.open).toBe(false);
+    const toggle = screen.getByRole("button", { name: i18n.t("pro.schedule.vacationMode") });
+    expect(toggle.getAttribute("aria-pressed")).toBe("true");
+    expect(toggle.className).toContain("min-h-11");
+  });
+
+  it("shares 24:00 with enabled days only and saves only after explicit Save", () => {
+    const { container } = render(<AvailabilityPage />);
+    const dayName = (day: string) => i18n.t(`pro.schedule.days.${day}`);
+    expect(container.querySelector("details")?.open).toBe(false);
+    expect(
+      (
+        screen.getByRole("checkbox", {
+          name: i18n.t("providerSetup.sameHours"),
+        }) as HTMLInputElement
+      ).checked,
+    ).toBe(true);
+    fireEvent.change(screen.getByLabelText(i18n.t("pro.schedule.start")), {
+      target: { value: "18:00" },
+    });
+    fireEvent.change(screen.getByLabelText(i18n.t("pro.schedule.end")), {
+      target: { value: "24:00" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: dayName("tue") }));
+    expect(saveState.mutate).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: dayName("wed") }).getAttribute("aria-pressed")).toBe(
+      "false",
+    );
+    fireEvent.click(screen.getByRole("checkbox", { name: i18n.t("providerSetup.sameHours") }));
+    expect(
+      screen
+        .getAllByLabelText(i18n.t("pro.schedule.end"))
+        .map((node) => (node as HTMLSelectElement).value),
+    ).toEqual(["24:00", "24:00"]);
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("pro.schedule.saveSchedule") }));
+    expect(saveState.mutate).toHaveBeenCalledWith({
+      providerId: "prov-1",
+      rules: [
+        { weekday: 1, start_time: "18:00", end_time: "24:00" },
+        { weekday: 2, start_time: "18:00", end_time: "24:00" },
+      ],
+    });
+  });
+
+  it("starts shared mode from loaded rules and edits sorted rows by weekday", () => {
+    availabilityData.splice(
+      0,
+      availabilityData.length,
+      { weekday: 1, start_time: "09:17:00", end_time: "17:00:00" },
+      { weekday: 6, start_time: "18:00:00", end_time: "24:00:00" },
+    );
+    render(<AvailabilityPage />);
+    expect(
+      (
+        screen.getByRole("checkbox", {
+          name: i18n.t("providerSetup.sameHours"),
+        }) as HTMLInputElement
+      ).checked,
+    ).toBe(false);
+    const starts = screen.getAllByLabelText(i18n.t("pro.schedule.start")) as HTMLSelectElement[];
+    expect(starts.map((node) => node.value)).toEqual(["18:00", "09:17"]);
+    expect(starts[0].options).toHaveLength(48);
+    expect(starts[1].options).toHaveLength(49);
+    fireEvent.change(starts[0], { target: { value: "18:30" } });
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("pro.schedule.saveSchedule") }));
+    expect(saveState.mutate).toHaveBeenCalledWith({
+      providerId: "prov-1",
+      rules: [
+        { weekday: 1, start_time: "09:17", end_time: "17:00" },
+        { weekday: 6, start_time: "18:30", end_time: "24:00" },
+      ],
+    });
+  });
+
+  it("renders Arabic calendar dates and keeps reason text on a muted second line", async () => {
+    await i18n.changeLanguage("ar");
+    render(<AvailabilityPage />);
+    expect(screen.getByText("1 نوفمبر لحد 3 نوفمبر")).toBeTruthy();
+    expect(screen.getByText("الثلاثاء 10 نوفمبر")).toBeTruthy();
+    expect(screen.getByText("Vacation note").className).toContain("text-muted-foreground");
+    expect(screen.getByText("Day-off note").className).toContain("text-muted-foreground");
+  });
+
+  it("shows the translated error, not Saved, and keeps unsaved form values", async () => {
+    const { rerender } = render(<AvailabilityPage />);
+
+    const mondayStart = screen.getByLabelText(i18n.t("pro.schedule.start"));
+    fireEvent.change(mondayStart, { target: { value: "10:00" } });
+    expect((screen.getByLabelText(i18n.t("pro.schedule.start")) as HTMLSelectElement).value).toBe(
+      "10:00",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Save schedule" }));
+    expect(saveState.mutate).toHaveBeenCalledWith({
+      providerId: "prov-1",
+      rules: [{ weekday: 1, start_time: "10:00", end_time: "17:00" }],
+    });
+
+    saveState.isError = true;
+    saveState.isSuccess = false;
+    rerender(<AvailabilityPage />);
+
+    expect(screen.getByRole("alert").textContent).toBe(
+      "Could not save your weekly hours. Your previous schedule was kept.",
+    );
+    expect(screen.queryByText("Saved")).toBeNull();
+    expect((screen.getByLabelText(i18n.t("pro.schedule.start")) as HTMLSelectElement).value).toBe(
+      "10:00",
+    );
+
+    await i18n.changeLanguage("ar");
+    rerender(<AvailabilityPage />);
+    expect(screen.getByRole("alert").textContent).toBe(
+      "تعذر حفظ ساعاتك الأسبوعية. تم الاحتفاظ بجدولك السابق.",
+    );
+    expect(screen.queryByText("تم الحفظ")).toBeNull();
+    expect(screen.queryByText("Saved")).toBeNull();
+    expect((screen.getByLabelText(i18n.t("pro.schedule.start")) as HTMLSelectElement).value).toBe(
+      "10:00",
+    );
+  });
+});

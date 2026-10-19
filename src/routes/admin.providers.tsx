@@ -1,15 +1,18 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { AdminLink as Link } from "@/components/admin/AdminNavigation";
+import { createFileRoute, useRouterState } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import {
-  useAdminProviders, useSetProviderVerified, useSetProviderActive,
-  useAdminIdentityConflicts, type AdminProviderFilter,
+  useAdminProviders,
+  useSetProviderActive,
+  useAdminIdentityConflicts,
+  type AdminProviderFilter,
 } from "@/lib/db/admin-queries";
-import { useAdminOnboardingAction } from "@/lib/provider/onboarding-queries";
 import { Search, ChevronRight, ShieldCheck } from "lucide-react";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
-import { adminPath } from "@/lib/preview/previewPath";
+import { adminLocationLabel } from "@/components/admin/adminLocationLabel";
+import { currentLang } from "@/lib/i18n";
+import { isProviderWorkQueueKey } from "@/lib/db/admin-work-queue";
 
 export const Route = createFileRoute("/admin/providers")({ component: ProviderManagement });
 
@@ -22,15 +25,15 @@ const FILTER_KEYS: { key: AdminProviderFilter; labelKey: string }[] = [
 
 function ProviderManagement() {
   const { t } = useTranslation();
+  const queueParam = useRouterState({
+    select: (state) => (state.location.search as Record<string, unknown>).queue,
+  });
+  const queue = isProviderWorkQueueKey(queueParam) ? queueParam : undefined;
   const [filter, setFilter] = useState<AdminProviderFilter>("pending");
   const [query, setQuery] = useState("");
-  const [rejectingId, setRejectingId] = useState<string | null>(null);
-  const [rejectReason, setRejectReason] = useState("");
-  const q = useAdminProviders(filter);
+  const q = useAdminProviders(queue ? "all" : filter, queue);
   const conflictsQ = useAdminIdentityConflicts();
-  const setVerified = useSetProviderVerified();
   const setActive = useSetProviderActive();
-  const onboardingAction = useAdminOnboardingAction();
 
   const rows = useMemo(() => {
     const all = q.data ?? [];
@@ -47,12 +50,26 @@ function ProviderManagement() {
   return (
     <div className="px-5 py-5 space-y-4">
       <div>
-        <h1 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">{t("admin.providers.title")}</h1>
+        <h1 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+          {t("admin.providers.title")}
+        </h1>
         <p className="text-xs text-muted-foreground">{t("admin.providers.subtitle")}</p>
+        {queue && (
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+            <span className="font-bold">{t("adminWorkQueue." + queue)}</span>
+            <Link
+              to={"/admin/providers" as "/admin/providers"}
+              search={{} as any}
+              className="focus-ring inline-flex min-h-11 items-center rounded-xl border border-border px-3 text-sm font-bold"
+            >
+              {t("adminReview.clearQueue")}
+            </Link>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex h-10 min-w-[240px] flex-1 items-center gap-2 rounded-xl border border-border bg-surface px-3">
+        <div className="flex min-h-11 min-w-[240px] flex-1 items-center gap-2 rounded-xl border border-border bg-surface px-3">
           <Search className="h-4 w-4 text-muted-foreground" />
           <input
             value={query}
@@ -61,29 +78,56 @@ function ProviderManagement() {
             className="w-full bg-transparent text-sm outline-none"
           />
         </div>
-        <div className="flex gap-1 rounded-xl border border-border bg-surface p-1">
-          {FILTER_KEYS.map((f) => (
-            <button
-              key={f.key}
-              onClick={() => setFilter(f.key)}
-              className={`focus-ring rounded-lg px-3 py-1.5 text-xs font-bold ${filter === f.key ? "bg-brand text-brand-foreground" : "text-muted-foreground"}`}
-            >
-              {t(f.labelKey)}
-            </button>
-          ))}
-        </div>
+        {!queue && (
+          <div className="flex gap-1 rounded-xl border border-border bg-surface p-1">
+            {FILTER_KEYS.map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setFilter(f.key)}
+                className={`focus-ring min-h-11 rounded-lg px-3 py-2 text-xs font-bold ${filter === f.key ? "bg-brand text-brand-foreground" : "text-muted-foreground"}`}
+              >
+                {t(f.labelKey)}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {(conflictsQ.data ?? []).length > 0 && (
-        <section className="rounded-2xl border border-coral/30 bg-coral/5 p-4" aria-label="Identity conflicts">
-          <h2 className="text-xs font-extrabold uppercase tracking-wider text-coral">Identity conflicts</h2>
-          <p className="mt-1 text-xs text-muted-foreground">These records are excluded from normal Customer and Provider lists. Linked history is preserved.</p>
+        <section
+          className="rounded-2xl border border-coral/30 bg-coral/5 p-4"
+          aria-label={t("adminReview.identityConflicts")}
+        >
+          <h2 className="text-sm font-extrabold text-coral">
+            {t("adminReview.identityConflicts")}
+          </h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t("adminReview.identityConflictsHint")}
+          </p>
           <ul className="mt-2 space-y-2">
             {conflictsQ.data!.map((conflict: any) => (
-              <li key={`${conflict.user_id}-${conflict.issue_code}`} className="rounded-xl bg-surface p-3 text-xs">
+              <li
+                key={`${conflict.user_id}-${conflict.issue_code}`}
+                className="rounded-xl bg-surface p-3 text-xs"
+              >
                 <div className="font-bold">{conflict.full_name || conflict.user_id}</div>
-                <div className="font-semibold text-coral">{conflict.details}</div>
-                {conflict.provider_id && <Link to={adminPath("/admin/provider/$id") as "/admin/provider/$id"} params={{ id: conflict.provider_id }} className="mt-1 inline-block font-bold text-brand underline">Open preserved Provider record</Link>}
+                <div className="font-semibold text-coral">
+                  {String(
+                    t(
+                      `adminReview.identityConflictTypes.${conflict.issue_code}`,
+                      t("adminReview.identityConflictTypes.unknown"),
+                    ),
+                  )}
+                </div>
+                {conflict.provider_id && (
+                  <Link
+                    to={"/admin/provider/$id" as "/admin/provider/$id"}
+                    params={{ id: conflict.provider_id }}
+                    className="focus-ring mt-1 inline-flex min-h-11 items-center font-bold text-brand underline"
+                  >
+                    {t("adminReview.reviewApplication")}
+                  </Link>
+                )}
               </li>
             ))}
           </ul>
@@ -92,10 +136,16 @@ function ProviderManagement() {
 
       {q.isLoading ? (
         <div className="space-y-2">
-          {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-24 animate-pulse rounded-2xl bg-muted" />)}
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-24 animate-pulse rounded-2xl bg-muted" />
+          ))}
         </div>
       ) : q.isError ? (
-        <AdminQueryError message={t("admin.providers.loadError")} error={q.error} onRetry={() => q.refetch()} />
+        <AdminQueryError
+          message={t("admin.providers.loadError")}
+          error={q.error}
+          onRetry={() => q.refetch()}
+        />
       ) : rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t("admin.providers.noResults")}</p>
       ) : (
@@ -105,58 +155,74 @@ function ProviderManagement() {
             return (
               <li key={p.id} className="px-5 py-4">
                 <div className="flex items-start justify-between gap-3">
-                  <Link to={adminPath("/admin/provider/$id") as "/admin/provider/$id"} params={{ id: p.id }} className="focus-ring min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold">{p.profile?.full_name || t("admin.providers.unnamed")}</p>
-                    <p className="truncate text-xs text-muted-foreground">{p.city} · {t("admin.providers.hourlyRate", { rate: p.hourly_rate })} · {t("admin.providers.yearsExp", { years: p.years_experience })}</p>
-                    <p dir="ltr" className="mt-1 text-[11px] text-muted-foreground">{p.profile?.phone}</p>
-                    <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] font-semibold">
-                      <span className="text-brand">{t("admin.providers.trust", { score: Math.round(Number(p.trust?.score ?? 0)) })}</span>
-                      <span className="text-amber-600">★ {Number(p.ratings?.rating_avg ?? 0).toFixed(1)}</span>
-                      <span className="text-muted-foreground">{t("admin.providers.jobs", { count: Number(p.ratings?.rating_count ?? 0) })}</span>
+                  <Link
+                    to={"/admin/provider/$id" as "/admin/provider/$id"}
+                    params={{ id: p.id }}
+                    className="focus-ring min-w-0 flex-1"
+                  >
+                    <p className="truncate text-sm font-bold">
+                      {p.profile?.full_name || t("admin.providers.unnamed")}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {adminLocationLabel(p.city, currentLang(), t)} ·{" "}
+                      {t("admin.providers.hourlyRate", { rate: p.hourly_rate })} ·{" "}
+                      {t("admin.providers.yearsExp", { years: p.years_experience })}
+                    </p>
+                    <p dir="ltr" className="mt-1 text-xs text-muted-foreground">
+                      {p.profile?.phone}
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-3 text-xs font-semibold">
+                      <span className="text-brand">
+                        {t("admin.providers.trust", {
+                          score: Math.round(Number(p.trust?.score ?? 0)),
+                        })}
+                      </span>
+                      <span className="text-amber-600">
+                        ★ {Number(p.ratings?.rating_avg ?? 0).toFixed(1)}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {t("admin.providers.jobs", { count: Number(p.ratings?.rating_count ?? 0) })}
+                      </span>
                     </div>
                   </Link>
                   <div className="flex shrink-0 flex-col items-end gap-1">
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${p.is_verified ? "bg-mint/20 text-success" : "bg-amber-100 text-amber-700"}`}>
-                      {p.is_verified ? t("admin.providers.verified") : t("admin.providers.pending")}
+                    <span
+                      className={`rounded-full px-2 py-1 text-xs font-bold ${p.is_verified ? "bg-mint/20 text-success" : "bg-amber-100 text-amber-700"}`}
+                    >
+                      {p.is_verified
+                        ? t("admin.providers.verified")
+                        : String(
+                            t(
+                              "pro.onboardingWizard.status." + p.onboarding_status,
+                              p.onboarding_status || t("admin.providers.pending"),
+                            ),
+                          )}
                     </span>
                     {suspended && (
-                      <span className="rounded-full bg-coral/10 px-2 py-0.5 text-[10px] font-bold uppercase text-coral">{t("admin.providers.suspended")}</span>
+                      <span className="rounded-full bg-coral/10 px-2 py-0.5 text-xs font-bold uppercase text-coral">
+                        {t("admin.providers.suspended")}
+                      </span>
                     )}
                     <ChevronRight className="rtl-flip mt-1 h-4 w-4 text-muted-foreground" />
                   </div>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {!p.is_verified ? (
-                    <>
-                      {["SUBMITTED", "UNDER_REVIEW"].includes(p.onboarding_status) && (
-                        <button
-                          disabled={onboardingAction.isPending}
-                          onClick={() => onboardingAction.mutate(
-                            {
-                              providerId: p.id,
-                              action: p.onboarding_status === "SUBMITTED" ? "start_review" : "approve",
-                            },
-                            { onError: (e: any) => toast.error(e?.message ?? t("admin.providers.approveError")) },
-                          )}
-                          className="focus-ring rounded-xl bg-brand px-4 py-2 text-xs font-bold text-brand-foreground disabled:opacity-50"
-                        >
-                          {p.onboarding_status === "SUBMITTED" ? t("admin.provider.startReview") : t("admin.providers.approve")}
-                        </button>
-                      )}
-                      {["SUBMITTED", "UNDER_REVIEW", "NEEDS_CHANGES"].includes(p.onboarding_status) && (
-                        <button
-                          disabled={setVerified.isPending}
-                          onClick={() => { setRejectingId(p.id); setRejectReason(""); }}
-                          className="focus-ring rounded-xl border border-border px-4 py-2 text-xs font-bold disabled:opacity-50"
-                        >{t("admin.providers.reject")}</button>
-                      )}
-                    </>
+                    <Link
+                      to={"/admin/provider/$id" as "/admin/provider/$id"}
+                      params={{ id: p.id }}
+                      className="focus-ring inline-flex min-h-11 items-center rounded-xl bg-brand px-4 text-sm font-bold text-brand-foreground"
+                    >
+                      {t("adminReview.reviewApplication")}
+                    </Link>
                   ) : (
                     <button
                       disabled={setActive.isPending}
                       onClick={() => setActive.mutate({ id: p.id, active: !p.is_active })}
-                      className={`focus-ring inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold disabled:opacity-50 ${
-                        p.is_active ? "border border-coral text-coral" : "bg-brand text-brand-foreground"
+                      className={`focus-ring inline-flex min-h-11 items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold disabled:opacity-50 ${
+                        p.is_active
+                          ? "border border-coral text-coral"
+                          : "bg-brand text-brand-foreground"
                       }`}
                     >
                       <ShieldCheck className="h-3.5 w-3.5" />
@@ -164,33 +230,6 @@ function ProviderManagement() {
                     </button>
                   )}
                 </div>
-                {rejectingId === p.id && (
-                  <div className="mt-3 space-y-2 rounded-xl border border-coral/30 bg-coral/5 p-3">
-                    <p className="text-[11px] font-bold text-coral">{t("admin.providers.rejectReasonLabel")}</p>
-                    <textarea
-                      value={rejectReason}
-                      onChange={(e) => setRejectReason(e.target.value)}
-                      rows={2}
-                      placeholder={t("admin.providers.rejectReasonPlaceholder")}
-                      aria-label={t("admin.providers.rejectReasonLabel")}
-                      className="w-full resize-none rounded-lg border border-border bg-surface p-2 text-xs"
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        disabled={!rejectReason.trim() || setVerified.isPending}
-                        onClick={() => setVerified.mutate(
-                          { id: p.id, verified: false, reason: rejectReason.trim() },
-                          {
-                            onSuccess: () => setRejectingId(null),
-                            onError: (e: any) => toast.error(e?.message ?? t("admin.providers.rejectError")),
-                          },
-                        )}
-                        className="focus-ring rounded-lg bg-coral px-3 py-1.5 text-xs font-bold text-coral-foreground disabled:opacity-50"
-                      >{t("admin.providers.confirmReject")}</button>
-                      <button onClick={() => setRejectingId(null)} className="focus-ring rounded-lg border border-border px-3 py-1.5 text-xs font-bold">{t("common.cancel")}</button>
-                    </div>
-                  </div>
-                )}
               </li>
             );
           })}

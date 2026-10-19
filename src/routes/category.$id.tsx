@@ -1,15 +1,31 @@
+import { CustomerFilterPicker } from "@/components/famio/CustomerFilterPicker";
+import { isFixedPackage, packageLabel, type PackageService } from "@/lib/pricing/servicePackages";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PhoneFrame, Chip, EmptyState } from "@/components/famio/ui";
-import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
-import { CustomerFloatingPanel } from "@/components/famio/CustomerFloatingPanel";
+import { CustomerPageHeader } from "@/components/famio/CustomerPageHeader";
 import { QueryError } from "@/components/famio/QueryError";
-import { ProviderListRow, ProviderRatingMeta } from "@/components/famio/ProviderListRow";
+import { ProviderCard } from "@/components/famio/ProviderCard";
+import { useCustomerPreviewPath } from "@/components/famio/useCustomerPreviewPath";
 import { useLang } from "@/components/famio/LanguageToggle";
-import { useCategories, useMarketplaceServices, useProviders } from "@/lib/db/queries";
-import { toUICategory, toUIProvider } from "@/lib/db/adapters";
-import { formatEGP } from "@/lib/utils";
+import { useActiveFamilyMembers, type FamilyMemberRow } from "@/lib/db/family-members-queries";
+import {
+  useCategories,
+  useMarketplaceServices,
+  useMyProfile,
+  useProviders,
+} from "@/lib/db/queries";
+import { useCustomerEducationProfile } from "@/lib/db/student-education-queries";
+import { useApprovedTeachingCapabilitiesForProviders } from "@/lib/db/teaching-queries";
+import { resolveStudentEducationProfile } from "@/lib/tutoring/studentEducationProfile";
+import {
+  providerMatchesStudentEducation,
+  sortProvidersForStudentEducation,
+  tutoringMatchBadgeLabel,
+} from "@/lib/tutoring/tutoringProviderMatch";
+import { toUICategory, toUIProvider, providerPriceLabel } from "@/lib/db/adapters";
+import { formatNumber } from "@/lib/format";
 import { SlidersHorizontal } from "lucide-react";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
 
@@ -18,6 +34,7 @@ export const Route = createFileRoute("/category/$id")({ component: CategoryPage 
 export function CategoryPageContent({ categoryId }: { categoryId: string }) {
   const id = categoryId;
   const { t } = useTranslation();
+  const previewPath = useCustomerPreviewPath();
   const lang = useLang();
   const catsQ = useCategories();
   const servicesQ = useMarketplaceServices(id);
@@ -26,7 +43,12 @@ export function CategoryPageContent({ categoryId }: { categoryId: string }) {
     if (!serviceId && servicesQ.data?.[0]?.id) setServiceId(servicesQ.data[0].id);
   }, [serviceId, servicesQ.data]);
   const provsQ = useProviders({ categorySlug: id, serviceId: serviceId || undefined, limit: 50 });
+  const familyMembersQ = useActiveFamilyMembers();
+  const customerEducationQ = useCustomerEducationProfile();
+  const myProfileQ = useMyProfile();
   const [sort, setSort] = useState<"top" | "price" | "experience">("top");
+  const [forWhom, setForWhom] = useState("myself");
+  const isTutoring = id === "tutoring";
 
   const cat = useMemo(() => {
     const row = (catsQ.data ?? []).find((c: { slug: string }) => c.slug === id);
@@ -34,24 +56,69 @@ export function CategoryPageContent({ categoryId }: { categoryId: string }) {
   }, [catsQ.data, id]);
 
   const list = useMemo(() => (provsQ.data ?? []).map(toUIProvider), [provsQ.data]);
-  const sorted = [...list].sort((a, b) =>
-    sort === "price"
-      ? a.hourlyRate - b.hourlyRate
-      : sort === "experience"
-        ? b.yearsExp - a.yearsExp
-        : b.rating - a.rating,
+  const studentEducation = useMemo(
+    () =>
+      resolveStudentEducationProfile({
+        forWhom,
+        customerProfile: customerEducationQ.data,
+        customerFullName: myProfileQ.data?.full_name,
+        familyMembers: (familyMembersQ.data ?? []) as FamilyMemberRow[],
+      }),
+    [forWhom, customerEducationQ.data, myProfileQ.data?.full_name, familyMembersQ.data],
   );
+  const providerIds = useMemo(() => list.map((row) => row.id), [list]);
+  const capsQ = useApprovedTeachingCapabilitiesForProviders(isTutoring ? providerIds : []);
+  const sorted = useMemo(() => {
+    const compare = (a: (typeof list)[number], b: (typeof list)[number]) =>
+      sort === "price"
+        ? a.hourlyRate - b.hourlyRate
+        : sort === "experience"
+          ? b.yearsExp - a.yearsExp
+          : b.rating - a.rating;
+    const partitioned = sortProvidersForStudentEducation(list, capsQ.data ?? [], {
+      serviceId: serviceId || null,
+      curriculumId: studentEducation.educationCurriculumId,
+      levelId: studentEducation.educationLevelId,
+    });
+    if (!studentEducation.educationCurriculumId || !studentEducation.educationLevelId) {
+      return [...list].sort(compare);
+    }
+    const matched: typeof list = [];
+    const rest: typeof list = [];
+    for (const provider of partitioned) {
+      if (
+        providerMatchesStudentEducation(provider.id, capsQ.data ?? [], {
+          serviceId: serviceId || null,
+          curriculumId: studentEducation.educationCurriculumId,
+          levelId: studentEducation.educationLevelId,
+        })
+      ) {
+        matched.push(provider);
+      } else {
+        rest.push(provider);
+      }
+    }
+    return [...matched.sort(compare), ...rest.sort(compare)];
+  }, [
+    list,
+    capsQ.data,
+    serviceId,
+    sort,
+    studentEducation.educationCurriculumId,
+    studentEducation.educationLevelId,
+  ]);
+  const matchBadge = tutoringMatchBadgeLabel(studentEducation.studentFirstName, t);
 
   return (
     <PhoneFrame bg="bg-background">
-      <CustomerPageHero
+      <CustomerPageHeader
         title={cat?.title ?? "—"}
         subtitle={cat?.description ?? cat?.subtitle ?? ""}
         backTo="/home"
         right={
           <Link
-            to="/search"
-            className="focus-ring tap-scale inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/15 px-3.5 py-2 text-xs font-extrabold text-white backdrop-blur-sm"
+            to={previewPath("/search")}
+            className="focus-ring tap-scale inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-white px-3.5 min-h-11 text-pro-12 font-bold text-brand"
           >
             <SlidersHorizontal
               className="h-3.5 w-3.5"
@@ -64,16 +131,11 @@ export function CategoryPageContent({ categoryId }: { categoryId: string }) {
       />
 
       <div className="px-5">
-        <CustomerFloatingPanel>
+        <div className="mt-4 rounded-2xl border border-border/60 bg-white p-4">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-extrabold tracking-tight text-foreground">
-              {t("category.available", { count: sorted.length })}
+            <p className="text-pro-14 font-extrabold tracking-tight text-foreground">
+              {t("customerRound2.results", { countLabel: formatNumber(sorted.length) })}
             </p>
-            {cat ? (
-              <p className="shrink-0 text-sm font-extrabold text-brand">
-                {t("category.fromPriceHr", { price: formatEGP(cat.fromPrice) })}
-              </p>
-            ) : null}
           </div>
 
           {servicesQ.isLoading ? (
@@ -83,24 +145,42 @@ export function CategoryPageContent({ categoryId }: { categoryId: string }) {
               <QueryError compact onRetry={() => servicesQ.refetch()} />
             </div>
           ) : (
-            <select
-              aria-label={t("search2.service")}
+            <CustomerFilterPicker
+              label={t("search2.service")}
               value={serviceId}
-              onChange={(e) => setServiceId(e.target.value)}
-              className="focus-ring mt-3 h-12 w-full rounded-full bg-surface-2 px-4 text-sm font-bold text-foreground focus:outline-none"
-            >
-              {(servicesQ.data ?? []).map(
-                (service: { id: string; name_en: string; name_ar?: string }) => (
-                  <option key={service.id} value={service.id}>
-                    {lang === "ar"
+              onChange={setServiceId}
+              options={(servicesQ.data ?? []).map(
+                (service: { id: string; name_en: string; name_ar?: string } & PackageService) => ({
+                  value: service.id,
+                  label:
+                    (lang === "ar"
                       ? service.name_ar || service.name_en
-                      : service.name_en || service.name_ar}
-                  </option>
-                ),
+                      : service.name_en || service.name_ar || "") +
+                    (isFixedPackage(service)
+                      ? ` · ${t(packageLabel(service).key, packageLabel(service).values)}`
+                      : ""),
+                }),
               )}
-            </select>
+            />
           )}
-        </CustomerFloatingPanel>
+        </div>
+
+        {isTutoring ? (
+          <div className="mt-3 space-y-2">
+            <CustomerFilterPicker
+              label={t("studentEducation.studentPicker", "Student")}
+              value={forWhom}
+              onChange={setForWhom}
+              options={[
+                { value: "myself", label: t("bookFlow.forWhomMyself", "Myself") },
+                ...(familyMembersQ.data ?? []).map((member: FamilyMemberRow) => ({
+                  value: member.id,
+                  label: member.full_name,
+                })),
+              ]}
+            />
+          </div>
+        ) : null}
       </div>
 
       <div className="flex-1 px-5 pb-24 pt-5">
@@ -131,25 +211,31 @@ export function CategoryPageContent({ categoryId }: { categoryId: string }) {
         ) : provsQ.isError ? (
           <QueryError onRetry={() => provsQ.refetch()} />
         ) : sorted.length === 0 ? (
-          <EmptyState icon="search" title={t("category.empty")} body={t("category.emptyBody")} />
+          <EmptyState
+            icon="search"
+            title={t("customerRound2.noProviders")}
+            body={t("customerRound2.noProvidersBody")}
+            action={
+              <Link
+                to={previewPath("/search")}
+                className="focus-ring inline-flex min-h-11 items-center rounded-full bg-brand px-5 text-pro-14 font-bold text-white"
+              >
+                {t("category.filters")}
+              </Link>
+            }
+          />
         ) : (
           <div className="space-y-2.5">
             {sorted.map((p) => (
-              <ProviderListRow
-                key={p.id}
-                to="/provider/$id"
-                params={{ id: p.id }}
-                avatar={p.avatar}
-                name={p.name}
-                subtitle={formatEGP(p.hourlyRate, { perHour: true })}
-                meta={<ProviderRatingMeta rating={p.rating} reviews={p.reviews} />}
-                pill={p.rating >= 4.9 ? { label: t("roles.topPro"), tone: "brand" } : undefined}
-                trailing={
-                  <span className="shrink-0 rounded-full bg-brand px-3.5 py-2 text-[11px] font-extrabold text-brand-foreground">
-                    {t("provider.bookNow")}
-                  </span>
-                }
-              />
+              <div key={p.id}>
+                <ProviderCard p={p} subtitle={providerPriceLabel(p, t)} />
+                {matchBadge &&
+                  providerMatchesStudentEducation(p.id, capsQ.data ?? [], {
+                    serviceId: serviceId || null,
+                    curriculumId: studentEducation.educationCurriculumId,
+                    levelId: studentEducation.educationLevelId,
+                  }) && <p className="mt-1 px-4 text-pro-12 font-bold text-brand">{matchBadge}</p>}
+              </div>
             ))}
           </div>
         )}

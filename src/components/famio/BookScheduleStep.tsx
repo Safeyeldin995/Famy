@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/format";
 import { useMemo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronDown, Loader2 } from "lucide-react";
@@ -34,6 +35,7 @@ const selectClass =
 
 function ScheduleSelect({
   label,
+  id,
   hint,
   value,
   onChange,
@@ -42,6 +44,7 @@ function ScheduleSelect({
   tone = "default",
 }: {
   label: string;
+  id?: string;
   hint?: string;
   value: string;
   onChange: (value: string) => void;
@@ -63,11 +66,12 @@ function ScheduleSelect({
           {label}
         </span>
         {hint ? (
-          <span className="text-[11px] font-semibold text-muted-foreground">{hint}</span>
+          <span className="text-pro-12 font-semibold text-muted-foreground">{hint}</span>
         ) : null}
       </div>
       <div className="relative">
         <select
+          id={id}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
@@ -87,6 +91,7 @@ function ScheduleSelect({
 
 export function BookScheduleStep({
   locale,
+  fixedTime,
   maxAdvanceDays,
   date,
   time,
@@ -96,11 +101,13 @@ export function BookScheduleStep({
   hasSlotsForSelectedDate,
   scanning,
   availabilityError,
+  onRetry,
   onDateChange,
   onTimeChange,
   onTimeBandChange,
 }: {
   locale: string;
+  fixedTime?: string;
   maxAdvanceDays: number;
   date: Date | null;
   time: string | null;
@@ -110,6 +117,7 @@ export function BookScheduleStep({
   hasSlotsForSelectedDate: boolean;
   scanning: boolean;
   availabilityError?: boolean;
+  onRetry?: () => void;
   onDateChange: (date: Date) => void;
   onTimeChange: (label: string, slot: { start: Date; end: Date }) => void;
   onTimeBandChange: (band: TimeBand) => void;
@@ -132,11 +140,11 @@ export function BookScheduleStep({
 
   const formatDayLabel = (day: Date) => {
     const isToday = dateKey(day) === dateKey(today);
-    const base = day.toLocaleDateString(locale, {
+    const base = formatDate(day, {
       weekday: "short",
       month: "short",
       day: "numeric",
-    });
+    }, locale);
     return isToday ? `${base} — ${t("providerProfile.todayLabel")}` : base;
   };
 
@@ -146,6 +154,7 @@ export function BookScheduleStep({
   return (
     <div className="space-y-5">
       <ScheduleSelect
+        id="booking-date"
         label={t("bookFlow.datesLabel", "Date")}
         value={selectedDateKey}
         onChange={(value) => {
@@ -164,7 +173,7 @@ export function BookScheduleStep({
         ))}
       </ScheduleSelect>
 
-      <ScheduleSelect
+      {!fixedTime && <ScheduleSelect
         label={t("bookFlow.partOfDay", "Part of day")}
         value={timeBand}
         onChange={(value) => onTimeBandChange(value as TimeBand)}
@@ -175,10 +184,10 @@ export function BookScheduleStep({
             {t(band.labelKey)}
           </option>
         ))}
-      </ScheduleSelect>
+      </ScheduleSelect>}
 
       <div>
-        <ScheduleSelect
+        {fixedTime ? <p className="rounded-xl border border-brand/30 bg-brand/5 p-3 text-sm font-bold">{fixedTime}</p> : <ScheduleSelect
           label={t("bookFlow.timesLabel", "Time")}
           hint={t("bookFlow.timeSub")}
           value={time ?? ""}
@@ -199,7 +208,7 @@ export function BookScheduleStep({
               {slot.label}
             </option>
           ))}
-        </ScheduleSelect>
+        </ScheduleSelect>}
 
         {slotsLoading || scanning ? (
           <div className="mt-3 flex items-center gap-2 rounded-[1.25rem] border border-border/50 bg-surface-2/80 px-4 py-3">
@@ -216,6 +225,7 @@ export function BookScheduleStep({
               icon="calendar"
               title={t("common.errorTitle", "Something went wrong")}
               body={t("bookFlow.slotsLoadError")}
+              action={<button type="button" className="min-h-11 px-4 font-bold text-brand" onClick={onRetry}>{t("common.retry")}</button>}
             />
           </div>
         ) : showEmptyDay ? (
@@ -224,6 +234,7 @@ export function BookScheduleStep({
               icon="calendar"
               title={t("bookFlow.noSlots")}
               body={t("bookFlow.noSlotsBody")}
+              action={<button type="button" className="min-h-11 px-4 font-bold text-brand" onClick={() => document.getElementById("booking-date")?.focus()}>{t("bookingUx.changeDate")}</button>}
             />
           </div>
         ) : filteredSlots.length === 0 && hasSlotsForSelectedDate ? (

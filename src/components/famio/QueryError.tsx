@@ -21,7 +21,7 @@ export function QueryError({ title, body, error, onRetry, compact = false }: Que
         <p className="text-sm font-extrabold text-brand">{heading}</p>
         <p className="mx-auto mt-1 max-w-xs text-xs text-muted-foreground">{body ?? t("common.tryAgain")}</p>
         {detail && detail !== heading && (
-          <p className="mx-auto mt-1 max-w-xs break-words text-[11px] text-muted-foreground" dir="ltr">
+          <p className="mx-auto mt-1 max-w-xs break-words text-pro-12 text-muted-foreground" dir="ltr">
             {detail}
           </p>
         )}
@@ -45,7 +45,7 @@ export function QueryError({ title, body, error, onRetry, compact = false }: Que
       <div className="mt-4 text-lg font-extrabold tracking-tight text-foreground">{heading}</div>
       <p className="mx-auto mt-1.5 max-w-xs text-sm font-medium text-muted-foreground">{body ?? t("common.tryAgain")}</p>
       {detail && detail !== heading && (
-        <p className="mx-auto mt-1 max-w-xs break-words text-[11px] text-muted-foreground" dir="ltr">
+        <p className="mx-auto mt-1 max-w-xs break-words text-pro-12 text-muted-foreground" dir="ltr">
           {detail}
         </p>
       )}

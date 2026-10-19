@@ -1,39 +1,95 @@
+import { PREVIEW_NOW_ISO } from "@/lib/preview/constants";
+import { BookingActionDock } from "@/components/provider/BookingActionDock";
+import { BookingStatusCard } from "@/components/provider/BookingStatusCard";
+import { StickyCta } from "@/components/famio/StickyCta";
+import { shortBookingCode } from "@/lib/provider/workScreenPresentation";
+import { useBookingParty } from "@/lib/db/booking-parties";
+import {
+  isBookingTooEarlyError,
+  isProviderStepTooEarly,
+  providerStepOpensAt,
+} from "@/lib/booking/timeWindow";
+import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
+import { formatDateTime, formatDate, formatTime, formatDuration } from "@/lib/format";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { ProviderShell } from "@/components/famio/ProviderShell";
-import { ProviderPageHero } from "@/components/famio/ProviderPageHero";
-import { Card, Badge, PrimaryButton, ErrorState, BookingTimeline, CancelBookingDialog, CaseDialog, SupportCasesCard } from "@/components/famio/ui";
+import { PageHeader } from "@/components/famio/PageHeader";
+import {
+  Card,
+  PrimaryButton,
+  ErrorState,
+  CancelBookingDialog,
+  CaseDialog,
+  SupportCasesCard,
+} from "@/components/famio/ui";
 import { PaymentBlock } from "@/components/famio/PaymentBlock";
-import { RescheduleSection } from "@/components/famio/RescheduleSection";
+import { ProviderRescheduleSection } from "@/components/provider/ProviderRescheduleSection";
 import { BookingChatPanel } from "@/components/famio/BookingChatPanel";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { useProviderBooking, useProviderUpdateBookingStatus } from "@/lib/db/provider-queries";
 import { useCancelBooking, useBookingCancellation } from "@/lib/db/cancellation-queries";
 import {
-  useBookingDisputes, useOpenDispute, activeDispute,
-  useBookingNoShowReports, useReportNoShow, activeNoShowReport,
-  useBookingSupportTickets, useCreateSupportTicket,
-  uploadCaseEvidence, type TicketCategory,
+  useBookingDisputes,
+  useOpenDispute,
+  activeDispute,
+  useBookingNoShowReports,
+  useReportNoShow,
+  activeNoShowReport,
+  useBookingSupportTickets,
+  useCreateSupportTicket,
+  uploadCaseEvidence,
+  type TicketCategory,
 } from "@/lib/db/case-queries";
-import { bookingStatusTone, formatEGP, BOOKING_TIMELINE_STEPS } from "@/lib/utils";
-import { Calendar, Clock, MapPin, Phone, User as UserIcon, HeartPulse, AlertTriangle, LifeBuoy } from "lucide-react";
-import { useState } from "react";
+import { formatEGP } from "@/lib/utils";
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  Phone,
+  User as UserIcon,
+  HeartPulse,
+  AlertTriangle,
+  LifeBuoy,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 import { proPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/pro/booking/$id")({ component: ProBookingDetailRoute });
 
-const DISPUTE_ELIGIBLE_STATUSES = ["on_the_way", "arrived", "arrival_confirmed", "in_progress", "completion_requested"];
-const SUPPORT_CATEGORIES: TicketCategory[] = ["payment", "service_quality", "provider_behavior", "booking_issue", "app_issue", "other"];
+const DISPUTE_ELIGIBLE_STATUSES = [
+  "on_the_way",
+  "arrived",
+  "arrival_confirmed",
+  "in_progress",
+  "completion_requested",
+];
+const SUPPORT_CATEGORIES: TicketCategory[] = [
+  "payment",
+  "service_quality",
+  "provider_behavior",
+  "booking_issue",
+  "app_issue",
+  "other",
+];
 
 type DialogKind = "" | "decline" | "cancel" | "no_show" | "dispute" | "support";
 
-export function ProBookingDetail({ id }: { id: string }) {
+export function ProBookingDetail({ id, preview = false }: { id: string; preview?: boolean }) {
   const { t } = useTranslation();
   const lang = useLang();
   const dateLoc = lang === "ar" ? "ar-EG" : "en-US";
   const nav = useNavigate();
   const q = useProviderBooking(id);
+  const { party } = useBookingParty(id);
+  // Re-render on a clock so a time-locked step unlocks by itself.
+  const [nowMs, setNowMs] = useState(() => (preview ? +new Date(PREVIEW_NOW_ISO) : Date.now()));
+  useEffect(() => {
+    if (preview) return;
+    const timer = window.setInterval(() => setNowMs(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, [preview]);
   const mut = useProviderUpdateBookingStatus();
   const cancelBooking = useCancelBooking();
   const cancellationQ = useBookingCancellation(q.data?.status === "cancelled" ? id : undefined);
@@ -82,16 +138,16 @@ export function ProBookingDetail({ id }: { id: string }) {
 
   if (q.isLoading) {
     return (
-      <ProviderShell hideNav>
-        <ProviderPageHero title={t("pro.booking.title")} backTo="/pro/bookings" compact />
+      <ProviderShell>
+        <PageHeader title={t("pro.booking.title")} backTo="/pro/bookings" />
         <div className="mx-5 h-64 animate-pulse rounded-[1.25rem] bg-surface-2" />
       </ProviderShell>
     );
   }
   if (q.isError || !q.data) {
     return (
-      <ProviderShell hideNav>
-        <ProviderPageHero title={t("pro.booking.title")} backTo="/pro/bookings" compact />
+      <ProviderShell>
+        <PageHeader title={t("pro.booking.title")} backTo="/pro/bookings" />
         <ErrorState title={t("pro.booking.notFound")} />
       </ProviderShell>
     );
@@ -101,12 +157,59 @@ export function ProBookingDetail({ id }: { id: string }) {
   const start = new Date(b.start_at);
   const end = new Date(b.end_at);
   const hours = Math.max(1, Math.round((+end - +start) / 36e5));
-  const name = b.customer?.full_name || t("pro.common.customer");
+  const name = party?.other_name || b.customer?.full_name || t("pro.common.customer");
+  const avatar = party?.other_avatar_url ?? b.customer?.avatar_url;
+  const phone = party?.other_phone ?? b.customer?.phone ?? null;
   const addr = b.location;
-  const addrLine = addr ? [addr.street, addr.building, addr.compound, addr.city].filter(Boolean).join(", ") : t("pro.booking.addressMissing");
-  const serviceName = lang === "ar" ? (b.service?.name_ar ?? b.service?.name_en) : (b.service?.name_en ?? b.service?.name_ar);
-  const onTimeline = (BOOKING_TIMELINE_STEPS as readonly string[]).includes(b.status);
+  const zoneName = (lang === "ar" ? party?.zone_name_ar : party?.zone_name_en) || party?.area;
+  // The exact address is only shared once the provider accepts; a request
+  // shows the area so the provider can decide.
+  const addrLine = addr
+    ? [
+        addr.street,
+        addr.building,
+        addr.floor && t("pro.booking.floor", { floor: addr.floor }),
+        addr.apartment && t("pro.booking.apartment", { apartment: addr.apartment }),
+        addr.compound,
+        addr.area,
+        addr.city,
+      ]
+        .filter(Boolean)
+        .join("، ")
+    : zoneName
+      ? t("pro.booking.areaOnly", { area: zoneName })
+      : t("pro.booking.addressMissing");
+  const teaching = b.teaching_subject_code
+    ? [
+        lang === "ar" ? b.teaching_subject_name_ar : b.teaching_subject_name_en,
+        lang === "ar" ? b.teaching_curriculum_name_ar : b.teaching_curriculum_name_en,
+        lang === "ar" ? b.teaching_level_name_ar : b.teaching_level_name_en,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : null;
+  const serviceName =
+    lang === "ar"
+      ? (b.service?.name_ar ?? b.service?.name_en)
+      : (b.service?.name_en ?? b.service?.name_ar);
   const terminal = ["completed", "cancelled", "no_show", "disputed"].includes(b.status);
+  const stepOpensAt = providerStepOpensAt(b.status, b.start_at);
+  const tooEarly = isProviderStepTooEarly(b.status, b.start_at, new Date(nowMs));
+  const opensHint =
+    tooEarly && stepOpensAt ? (
+      <p className="rounded-2xl bg-surface-2 px-4 py-3 text-center text-pro-13 font-semibold text-muted-foreground">
+        {new Date(nowMs).toDateString() === stepOpensAt.toDateString()
+          ? t("pro.booking.opensAtToday", { time: formatTime(stepOpensAt, dateLoc) })
+          : t("pro.booking.opensAt", {
+              date: formatDate(
+                stepOpensAt,
+                { weekday: "long", day: "numeric", month: "long" },
+                dateLoc,
+              ),
+              time: formatTime(stepOpensAt, dateLoc),
+            })}
+      </p>
+    ) : null;
 
   const run = (
     status: string,
@@ -117,65 +220,152 @@ export function ProBookingDetail({ id }: { id: string }) {
       { id, status, ...extra },
       {
         onSuccess,
-        onError: (e: any) => toast.error(e?.message ?? t("common.somethingWentWrong")),
+        onError: (e: any) =>
+          toast.error(
+            isBookingTooEarlyError(e)
+              ? t("pro.booking.tooEarly")
+              : (e?.message ?? t("common.somethingWentWrong")),
+          ),
       },
     );
   };
 
   return (
-    <ProviderShell hideNav>
-      <ProviderPageHero title={t("pro.booking.title")} backTo="/pro/bookings" compact />
-      <div className="space-y-4 px-5 pb-32 pt-2">
+    <ProviderShell>
+      <PageHeader title={t("pro.booking.title")} backTo="/pro/bookings" />
+      <div className="space-y-3 px-5 pb-3 pt-2">
         <Card className="rounded-[1.25rem] p-4">
           <div className="flex items-start gap-3">
-            <img src={b.customer?.avatar_url || `https://i.pravatar.cc/200?u=${b.customer_id}`} alt={name} className="h-16 w-16 rounded-2xl object-cover" />
+            <ProfileAvatar src={avatar} name={name} className="h-11 w-11 rounded-full" />
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2"><div className="truncate text-base font-extrabold">{name}</div><Badge tone={bookingStatusTone(b.status)}>{String(t(`pro.statuses.${b.status}`, { defaultValue: b.status }))}</Badge></div>
-              <div className="mt-1 text-xs text-muted-foreground">{t("pro.booking.bookingNumber", { id: b.id.slice(0, 8).toUpperCase() })}</div>
+              <div className="flex items-center gap-2">
+                <div className="truncate text-base font-extrabold">{name}</div>
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                {t("proWork.bookingLabel")} <bdi dir="ltr">#{shortBookingCode(b.id)}</bdi>
+              </div>
             </div>
           </div>
         </Card>
 
-        {onTimeline && (
-          <Card className="p-4">
-            <BookingTimeline status={b.status} labelFor={(step) => t(`pro.booking.timeline.${step}`)} />
-          </Card>
-        )}
+        <BookingStatusCard status={b.status} />
 
         {terminal && b.status !== "completed" && (
           <Card className="space-y-1 p-4">
             <div className="text-sm font-bold">
-              {b.status === "disputed" ? t("pro.booking.disputedNotice") : String(t(`pro.statuses.${b.status}`, { defaultValue: b.status }))}
+              {b.status === "disputed"
+                ? t("pro.booking.disputedNotice")
+                : String(t(`pro.statuses.${b.status}`, { defaultValue: b.status }))}
             </div>
             {b.status === "cancelled" && cancellationQ.data ? (
               <>
                 <p className="text-xs text-muted-foreground">
-                  {lang === "ar" ? cancellationQ.data.reason_name_ar : cancellationQ.data.reason_name_en}
+                  {lang === "ar"
+                    ? cancellationQ.data.reason_name_ar
+                    : cancellationQ.data.reason_name_en}
                 </p>
-                {cancellationQ.data.note && <p className="text-xs text-muted-foreground">{cancellationQ.data.note}</p>}
-                <p className="text-[11px] text-muted-foreground">
-                  {t("pro.booking.cancelledBy")}: {t(`pro.booking.cancelledByRole.${cancellationQ.data.cancelled_by_role}`)} · {new Date(cancellationQ.data.cancelled_at).toLocaleString(dateLoc)}
+                {cancellationQ.data.note && (
+                  <p className="text-xs text-muted-foreground">{cancellationQ.data.note}</p>
+                )}
+                <p className="text-pro-12 text-muted-foreground">
+                  {t("pro.booking.cancelledBy")}:{" "}
+                  {t(`pro.booking.cancelledByRole.${cancellationQ.data.cancelled_by_role}`)} ·{" "}
+                  {formatDateTime(new Date(cancellationQ.data.cancelled_at), dateLoc)}
                 </p>
               </>
             ) : (
               (b.cancellation_reason || b.no_show_reason || b.dispute_reason) && (
-                <p className="text-xs text-muted-foreground">{b.cancellation_reason || b.no_show_reason || b.dispute_reason}</p>
+                <p className="text-xs text-muted-foreground">
+                  {b.cancellation_reason || b.no_show_reason || b.dispute_reason}
+                </p>
               )
             )}
           </Card>
         )}
 
-        <Card className="space-y-3 p-4">
-          <Row icon={<UserIcon className="h-4 w-4" />} label={t("pro.booking.service")} value={serviceName ?? "—"} />
-          <Row icon={<Calendar className="h-4 w-4" />} label={t("pro.booking.date")} value={start.toLocaleDateString(dateLoc, { weekday: "long", month: "short", day: "numeric", year: "numeric" })} />
-          <Row icon={<Clock className="h-4 w-4" />} label={t("pro.booking.time")} value={`${start.toLocaleTimeString(dateLoc, { hour: "numeric", minute: "2-digit" })} · ${hours}h`} />
-          <Row icon={<MapPin className="h-4 w-4" />} label={t("pro.booking.address")} value={addrLine} />
-          {b.customer?.phone && <Row icon={<Phone className="h-4 w-4" />} label={t("pro.booking.phone")} value={<a href={`tel:${b.customer.phone}`} className="font-bold text-brand" dir="ltr">{b.customer.phone}</a>} />}
+        <Card className="divide-y divide-border/40 px-4 py-1">
+          <Row
+            icon={<UserIcon className="h-4 w-4" />}
+            label={t("pro.booking.service")}
+            value={serviceName ?? "—"}
+          />
+          <Row
+            icon={<Calendar className="h-4 w-4" />}
+            label={t("pro.booking.date")}
+            value={formatDate(
+              start,
+              { weekday: "long", month: "short", day: "numeric", year: "numeric" },
+              dateLoc,
+            )}
+          />
+          <Row
+            icon={<Clock className="h-4 w-4" />}
+            label={t("pro.booking.time")}
+            value={`${formatTime(start, dateLoc)} · ${formatDuration(hours, lang)}`}
+          />
+          {teaching && (
+            <Row
+              icon={<UserIcon className="h-4 w-4" />}
+              label={t("pro.booking.subject")}
+              value={teaching}
+            />
+          )}
+          {!b.family_member && party?.member_first_name && (
+            <Row
+              icon={<UserIcon className="h-4 w-4" />}
+              label={t("pro.booking.forWhom", "Service is for")}
+              value={
+                party.member_age_years != null
+                  ? t("pro.booking.childWithAge", {
+                      name: party.member_first_name,
+                      count: party.member_age_years,
+                    })
+                  : party.member_first_name
+              }
+            />
+          )}
+          <Row
+            icon={<MapPin className="h-4 w-4" />}
+            label={t("pro.booking.address")}
+            value={addrLine}
+          />
+          {addr?.landmark && (
+            <Row
+              icon={<MapPin className="h-4 w-4" />}
+              label={t("pro.booking.landmark")}
+              value={addr.landmark}
+            />
+          )}
+          {addr?.lat != null && addr?.lng != null && (
+            <Row
+              icon={<MapPin className="h-4 w-4" />}
+              label={t("pro.booking.map")}
+              value={t("pro.booking.openMap")}
+              href={`https://www.google.com/maps/search/?api=1&query=${addr.lat},${addr.lng}`}
+            />
+          )}
+          {phone && (
+            <Row
+              icon={<Phone className="h-4 w-4" />}
+              label={t("pro.booking.phone")}
+              value={phone}
+              href={`tel:${phone}`}
+            />
+          )}
+          {b.notes && (
+            <Row
+              icon={<UserIcon className="h-4 w-4" />}
+              label={t("pro.booking.customerNotes")}
+              value={b.notes}
+            />
+          )}
         </Card>
 
         {b.family_member && (
           <Card className="space-y-3 p-4">
-            <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("pro.booking.forWhom", "Service is for")}</div>
+            <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              {t("pro.booking.forWhom", "Service is for")}
+            </div>
             <Row
               icon={<UserIcon className="h-4 w-4" />}
               label={b.family_member.full_name}
@@ -183,150 +373,257 @@ export function ProBookingDetail({ id }: { id: string }) {
                 b.family_member.relationship === "self"
                   ? t("pro.booking.forWhomMyself", "The customer")
                   : b.family_member.relationship === "other"
-                    ? (b.family_member.relationship_other || t("familyMembers.relationships.other"))
+                    ? b.family_member.relationship_other || t("familyMembers.relationships.other")
                     : t(`familyMembers.relationships.${b.family_member.relationship}`)
               }
             />
             {b.family_member.allergies && (
-              <Row icon={<HeartPulse className="h-4 w-4" />} label={t("pro.booking.allergies", "Allergies")} value={b.family_member.allergies} />
+              <Row
+                icon={<HeartPulse className="h-4 w-4" />}
+                label={t("pro.booking.allergies", "Allergies")}
+                value={b.family_member.allergies}
+              />
             )}
             {b.family_member.medical_notes && (
-              <Row icon={<HeartPulse className="h-4 w-4" />} label={t("pro.booking.medicalNotes", "Medical notes")} value={b.family_member.medical_notes} />
+              <Row
+                icon={<HeartPulse className="h-4 w-4" />}
+                label={t("pro.booking.medicalNotes", "Medical notes")}
+                value={b.family_member.medical_notes}
+              />
             )}
             {b.family_member.access_notes && (
-              <Row icon={<AlertTriangle className="h-4 w-4" />} label={t("pro.booking.accessNotes", "Access notes")} value={b.family_member.access_notes} />
+              <Row
+                icon={<AlertTriangle className="h-4 w-4" />}
+                label={t("pro.booking.accessNotes", "Access notes")}
+                value={b.family_member.access_notes}
+              />
             )}
             {b.family_member.emergency_contact_name && (
               <Row
                 icon={<Phone className="h-4 w-4" />}
                 label={t("pro.booking.emergencyContact", "Emergency contact")}
                 value={
-                  b.family_member.emergency_contact_phone
-                    ? <a href={`tel:${b.family_member.emergency_contact_phone}`} className="font-bold text-brand" dir="ltr">{b.family_member.emergency_contact_name} · {b.family_member.emergency_contact_phone}</a>
-                    : b.family_member.emergency_contact_name
+                  b.family_member.emergency_contact_phone ? (
+                    <a
+                      href={`tel:${b.family_member.emergency_contact_phone}`}
+                      className="font-bold text-brand"
+                      dir="ltr"
+                    >
+                      {b.family_member.emergency_contact_name} ·{" "}
+                      {b.family_member.emergency_contact_phone}
+                    </a>
+                  ) : (
+                    b.family_member.emergency_contact_name
+                  )
                 }
               />
             )}
           </Card>
         )}
 
-        {b.notes && (
-          <Card className="p-4">
-            <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("pro.booking.customerNotes")}</div>
-            <div className="mt-1 text-sm whitespace-pre-wrap">{b.notes}</div>
-          </Card>
-        )}
-
         {Array.isArray(b.requirement_choices) && b.requirement_choices.length > 0 && (
           <Card className="space-y-1.5 p-4">
-            <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("pro.booking.requirements", "Requirements")}</div>
+            <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              {t("pro.booking.requirements", "Requirements")}
+            </div>
             {b.requirement_choices.map((r: any) => (
               <div key={r.id} className="flex items-center justify-between text-sm">
                 <span>{lang === "ar" ? r.name_ar : r.name_en}</span>
                 <span className="text-xs font-semibold text-muted-foreground">
-                  {r.chosen_by === "provider" ? t("pro.booking.reqYouProvide", "You provide — {{fee}}", { fee: formatEGP(Number(r.extra_fee)) }) : t("pro.booking.reqCustomerProvides", "Customer provides")}
+                  {r.chosen_by === "provider"
+                    ? t("pro.booking.reqYouProvide", "You provide — {{fee}}", {
+                        fee: formatEGP(Number(r.extra_fee)),
+                      })
+                    : t("pro.booking.reqCustomerProvides", "Customer provides")}
                 </span>
               </div>
             ))}
           </Card>
         )}
 
-        <RescheduleSection
+        <ProviderRescheduleSection
           bookingId={b.id}
-          viewer="provider"
           customerId={b.customer_id}
           status={b.status}
           currentStart={b.start_at}
           currentEnd={b.end_at}
         />
 
-        <Card className="space-y-2 p-4">
-          <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("pro.booking.payment")}</div>
-          <div className="flex items-center justify-between"><span className="text-sm">{t("pro.booking.subtotal")}</span><span>{formatEGP(Number(b.price_subtotal ?? 0))}</span></div>
-          {Number(b.price_discount ?? 0) > 0 && <div className="flex items-center justify-between text-coral"><span className="text-sm">{t("pro.booking.discount")}</span><span>−{formatEGP(Number(b.price_discount))}</span></div>}
-          <div className="flex items-center justify-between border-t border-border pt-2"><span className="text-sm font-bold">{t("pro.booking.total")}</span><span className="text-base font-extrabold text-brand">{formatEGP(Number(b.price_total ?? 0))}</span></div>
+        <Card className="space-y-3 p-4">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-pro-14 font-bold">{t("pro.booking.total")}</span>
+            <span className="whitespace-nowrap text-pro-22 font-extrabold text-brand">
+              {formatEGP(Number(b.price_total ?? 0))}
+            </span>
+          </div>
+          <PaymentBlock bookingId={b.id} viewer="provider" bookingStatus={b.status} embedded />
+          <details>
+            <summary className="flex min-h-11 cursor-pointer items-center text-pro-12 font-bold text-muted-foreground">
+              {t("proWork.paymentDetails")}
+            </summary>
+            <div className="flex justify-between text-pro-13">
+              <span>{t("pro.booking.subtotal")}</span>
+              <span>{formatEGP(Number(b.price_subtotal ?? 0))}</span>
+            </div>
+            {Number(b.price_discount ?? 0) > 0 && (
+              <div className="flex justify-between text-pro-13 text-coral">
+                <span>{t("pro.booking.discount")}</span>
+                <span>−{formatEGP(Number(b.price_discount))}</span>
+              </div>
+            )}
+          </details>
         </Card>
 
-        <PaymentBlock bookingId={b.id} viewer="provider" bookingStatus={b.status} />
+        <BookingChatPanel bookingId={b.id} status={b.status} viewer="provider" compactUnavailable />
 
-        <BookingChatPanel bookingId={b.id} status={b.status} viewer="provider" />
-
-        <SupportCasesCard tickets={supportTicketsQ.data ?? []} dispute={dispute} noShowReport={noShowReport} t={t} />
-        <button onClick={() => setDialog("support")} className="mt-2 flex w-full items-center justify-center gap-1.5 py-2 text-xs font-semibold text-muted-foreground">
-          <LifeBuoy className="h-3.5 w-3.5" aria-hidden="true" /> {t("pro.booking.openSupportTicket")}
+        <SupportCasesCard
+          tickets={supportTicketsQ.data ?? []}
+          dispute={dispute}
+          noShowReport={noShowReport}
+          t={t}
+        />
+        <button
+          onClick={() => setDialog("support")}
+          className="mt-2 flex w-full items-center justify-center gap-1.5 py-2 text-xs font-semibold text-muted-foreground"
+        >
+          <LifeBuoy className="h-3.5 w-3.5" aria-hidden="true" />{" "}
+          {t("pro.booking.openSupportTicket")}
         </button>
-
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-surface-2 via-surface-2/90 to-transparent pt-6 safe-bottom">
-        <div className="mx-auto max-w-md px-5 pb-3">
-          {b.status === "pending" && (
-            <div className="flex gap-2">
-              <button onClick={() => setDialog("decline")} disabled={mut.isPending || cancelBooking.isPending} className="focus-ring h-14 flex-1 rounded-2xl border border-coral bg-surface text-sm font-bold text-coral active:scale-[0.98] disabled:opacity-50">{t("pro.booking.decline")}</button>
-              <button onClick={() => run("confirmed")} disabled={mut.isPending} className="focus-ring h-14 flex-1 rounded-2xl bg-brand text-sm font-bold text-brand-foreground shadow-card active:scale-[0.98] disabled:opacity-50">{t("pro.booking.accept")}</button>
-            </div>
-          )}
-
-          {b.status === "confirmed" && (
-            <div className="space-y-2">
-              <PrimaryButton onClick={() => run("on_the_way")} disabled={mut.isPending}>{t("pro.booking.onTheWay")}</PrimaryButton>
-              <button onClick={() => setDialog("cancel")} disabled={mut.isPending || cancelBooking.isPending} className="w-full py-2 text-xs font-semibold text-muted-foreground disabled:opacity-50">{t("pro.booking.cancelJob")}</button>
-            </div>
-          )}
-
-          {["on_the_way", "arrived", "arrival_confirmed", "in_progress", "completion_requested"].includes(b.status) && (
-            <p className="mb-2 rounded-2xl bg-surface-2 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">
-              {t("pro.booking.cancelNoLongerAvailable")}
-            </p>
-          )}
-
-          {b.status === "on_the_way" && (
-            <div className="space-y-2">
-              <PrimaryButton onClick={() => run("arrived")} disabled={mut.isPending}>{t("pro.booking.iHaveArrived")}</PrimaryButton>
-              {!noShowReport && (
-                <button onClick={() => setDialog("no_show")} disabled={reportNoShowMut.isPending} className="w-full py-2 text-xs font-semibold text-coral disabled:opacity-50">{t("pro.booking.reportNoShow")}</button>
-              )}
-            </div>
-          )}
-
-          {b.status === "arrived" && (
-            <div className="space-y-2">
-              <div className="rounded-2xl bg-surface-2 py-3 text-center text-sm font-semibold text-muted-foreground">{t("pro.booking.waitingArrivalConfirm")}</div>
-              {!noShowReport && (
-                <button onClick={() => setDialog("no_show")} disabled={reportNoShowMut.isPending} className="w-full py-2 text-xs font-semibold text-coral disabled:opacity-50">{t("pro.booking.reportNoShow")}</button>
-              )}
-            </div>
-          )}
-
-          {b.status === "arrival_confirmed" && (
-            <PrimaryButton onClick={() => run("in_progress")} disabled={mut.isPending}>{t("pro.booking.startService")}</PrimaryButton>
-          )}
-
-          {b.status === "in_progress" && (
-            <PrimaryButton onClick={() => run("completion_requested")} disabled={mut.isPending} variant="coral">{t("pro.booking.requestCompletion")}</PrimaryButton>
-          )}
-
-          {DISPUTE_ELIGIBLE_STATUSES.includes(b.status) && !dispute && (
-            <button onClick={() => setDialog("dispute")} disabled={openDispute.isPending} className="mt-2 w-full py-2 text-xs font-semibold text-coral disabled:opacity-50">
-              {t("pro.booking.disputeAction")}
+      <BookingActionDock>
+        {b.status === "pending" && (
+          <div className="grid grid-cols-2 gap-2 [&_.apply-bottom]:!static [&_.apply-bottom]:!m-0 [&_.apply-bottom]:!w-full [&_.apply-bottom]:!p-0">
+            <button
+              onClick={() => setDialog("decline")}
+              disabled={mut.isPending || cancelBooking.isPending}
+              className="focus-ring h-14 flex-1 rounded-2xl border border-coral bg-surface text-sm font-bold text-coral active:scale-[0.98] disabled:opacity-50"
+            >
+              {t("pro.booking.decline")}
             </button>
-          )}
+            <StickyCta onClick={() => run("confirmed")} disabled={mut.isPending}>
+              {t("pro.booking.accept")}
+            </StickyCta>
+          </div>
+        )}
 
-          {b.status === "completion_requested" && (
-            <div className="rounded-2xl bg-surface-2 py-3 text-center text-sm font-semibold text-muted-foreground">{t("pro.booking.waitingCompletionConfirm")}</div>
-          )}
+        {b.status === "confirmed" && (
+          <div className="space-y-2">
+            {opensHint}
+            <PrimaryButton onClick={() => run("on_the_way")} disabled={mut.isPending || tooEarly}>
+              {t("pro.booking.onTheWay")}
+            </PrimaryButton>
+            <button
+              onClick={() => setDialog("cancel")}
+              disabled={mut.isPending || cancelBooking.isPending}
+              className="w-full py-2 text-xs font-semibold text-muted-foreground disabled:opacity-50"
+            >
+              {t("pro.booking.cancelJob")}
+            </button>
+          </div>
+        )}
 
-          {terminal && (
-            <button onClick={() => nav({ to: proPath("/pro/bookings") as "/pro/bookings" })} className="focus-ring h-14 w-full rounded-2xl border border-border bg-surface text-sm font-bold">{t("pro.booking.backToJobs")}</button>
-          )}
-        </div>
-      </div>
+        {[
+          "on_the_way",
+          "arrived",
+          "arrival_confirmed",
+          "in_progress",
+          "completion_requested",
+        ].includes(b.status) && (
+          <p className="mb-2 rounded-2xl bg-surface-2 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">
+            {t("pro.booking.cancelNoLongerAvailable")}
+          </p>
+        )}
+
+        {b.status === "on_the_way" && (
+          <div className="space-y-2">
+            <PrimaryButton onClick={() => run("arrived")} disabled={mut.isPending}>
+              {t("pro.booking.iHaveArrived")}
+            </PrimaryButton>
+            {!noShowReport && (
+              <button
+                onClick={() => setDialog("no_show")}
+                disabled={reportNoShowMut.isPending}
+                className="w-full py-2 text-xs font-semibold text-coral disabled:opacity-50"
+              >
+                {t("pro.booking.reportNoShow")}
+              </button>
+            )}
+          </div>
+        )}
+
+        {b.status === "arrived" && (
+          <div className="space-y-2">
+            <div className="rounded-2xl bg-surface-2 py-3 text-center text-sm font-semibold text-muted-foreground">
+              {t("pro.booking.waitingArrivalConfirm")}
+            </div>
+            {!noShowReport && (
+              <button
+                onClick={() => setDialog("no_show")}
+                disabled={reportNoShowMut.isPending}
+                className="w-full py-2 text-xs font-semibold text-coral disabled:opacity-50"
+              >
+                {t("pro.booking.reportNoShow")}
+              </button>
+            )}
+          </div>
+        )}
+
+        {b.status === "arrival_confirmed" && (
+          <div className="space-y-2">
+            {opensHint}
+            <PrimaryButton onClick={() => run("in_progress")} disabled={mut.isPending || tooEarly}>
+              {t("pro.booking.startService")}
+            </PrimaryButton>
+          </div>
+        )}
+
+        {b.status === "in_progress" && (
+          <div className="space-y-2">
+            {opensHint}
+            <PrimaryButton
+              onClick={() => run("completion_requested")}
+              disabled={mut.isPending || tooEarly}
+              variant="coral"
+            >
+              {t("pro.booking.requestCompletion")}
+            </PrimaryButton>
+          </div>
+        )}
+
+        {DISPUTE_ELIGIBLE_STATUSES.includes(b.status) && !dispute && (
+          <button
+            onClick={() => setDialog("dispute")}
+            disabled={openDispute.isPending}
+            className="mt-2 w-full py-2 text-xs font-semibold text-coral disabled:opacity-50"
+          >
+            {t("pro.booking.disputeAction")}
+          </button>
+        )}
+
+        {b.status === "completion_requested" && (
+          <div className="rounded-2xl bg-surface-2 py-3 text-center text-sm font-semibold text-muted-foreground">
+            {t("pro.booking.waitingCompletionConfirm")}
+          </div>
+        )}
+
+        {terminal && (
+          <button
+            onClick={() => nav({ to: proPath("/pro/bookings") as "/pro/bookings" })}
+            className="focus-ring h-14 w-full rounded-2xl border border-border bg-surface text-sm font-bold"
+          >
+            {t("pro.booking.backToJobs")}
+          </button>
+        )}
+      </BookingActionDock>
 
       <CancelBookingDialog
         open={dialog === "decline" || dialog === "cancel"}
         actorType="provider"
         bookingStatus={b.status}
-        title={dialog === "decline" ? t("pro.booking.declineConfirm") : t("pro.booking.cancelConfirm")}
+        title={
+          dialog === "decline" ? t("pro.booking.declineConfirm") : t("pro.booking.cancelConfirm")
+        }
         body={t("pro.booking.irreversible")}
         reasonLabel={t("pro.booking.reasonLabel")}
         notePlaceholder={t("pro.booking.reasonPlaceholder")}
@@ -339,7 +636,12 @@ export function ProBookingDetail({ id }: { id: string }) {
             { bookingId: b.id, reasonId, note },
             {
               onSuccess: () => setDialog(""),
-              onError: (e: any) => toast.error(e?.message ?? t("common.somethingWentWrong")),
+              onError: (e: any) =>
+                toast.error(
+                  isBookingTooEarlyError(e)
+                    ? t("pro.booking.tooEarly")
+                    : (e?.message ?? t("common.somethingWentWrong")),
+                ),
             },
           )
         }
@@ -375,14 +677,19 @@ export function ProBookingDetail({ id }: { id: string }) {
         cancelLabel={t("pro.booking.keep")}
         pending={openDispute.isPending}
         onCancel={() => setDialog("")}
-        onConfirm={({ reason, description, evidenceFile }) => submitDispute(reason, description ?? "", evidenceFile)}
+        onConfirm={({ reason, description, evidenceFile }) =>
+          submitDispute(reason, description ?? "", evidenceFile)
+        }
       />
       <CaseDialog
         key={`support-${dialog}`}
         open={dialog === "support"}
         title={t("pro.booking.supportDialogTitle")}
         body={t("pro.booking.supportDialogBody")}
-        categoryOptions={SUPPORT_CATEGORIES.map((c) => ({ value: c, label: t(`pro.booking.supportCategories.${c}`) }))}
+        categoryOptions={SUPPORT_CATEGORIES.map((c) => ({
+          value: c,
+          label: t(`pro.booking.supportCategories.${c}`),
+        }))}
         categoryLabel={t("pro.booking.categoryLabel")}
         subjectLabel={t("pro.booking.subjectLabel")}
         subjectPlaceholder={t("pro.booking.subjectPlaceholder")}
@@ -392,7 +699,9 @@ export function ProBookingDetail({ id }: { id: string }) {
         cancelLabel={t("pro.booking.keep")}
         pending={createTicket.isPending}
         onCancel={() => setDialog("")}
-        onConfirm={({ category, subject, description }) => submitSupport(category as TicketCategory, subject ?? "", description ?? "")}
+        onConfirm={({ category, subject, description }) =>
+          submitSupport(category as TicketCategory, subject ?? "", description ?? "")
+        }
       />
     </ProviderShell>
   );
@@ -403,14 +712,32 @@ function ProBookingDetailRoute() {
   return <ProBookingDetail id={id} />;
 }
 
-function Row({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {
-  return (
-    <div className="flex items-start gap-3">
-      <div className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand">{icon}</div>
-      <div className="min-w-0 flex-1">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
-        <div className="text-sm font-semibold">{value}</div>
-      </div>
-    </div>
+function Row({
+  icon,
+  label,
+  value,
+  href,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+  href?: string;
+}) {
+  const content = (
+    <>
+      <span className="shrink-0 text-brand">{icon}</span>
+      <span className="shrink-0 text-pro-12 text-muted-foreground">{label}</span>
+      <span className="min-w-0 flex-1 whitespace-pre-wrap text-end text-pro-13 font-bold">
+        {href ? <bdi dir="ltr">{value}</bdi> : value}
+      </span>
+    </>
+  );
+  const className = "flex min-h-11 items-center gap-2 py-2";
+  return href ? (
+    <a href={href} className={className + " focus-ring text-brand"}>
+      {content}
+    </a>
+  ) : (
+    <div className={className}>{content}</div>
   );
 }

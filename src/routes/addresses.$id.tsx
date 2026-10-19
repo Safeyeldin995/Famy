@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { PhoneFrame, ErrorState } from "@/components/famio/ui";
-import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
+import { CustomerPageHeader } from "@/components/famio/CustomerPageHeader";
 import { QueryError } from "@/components/famio/QueryError";
 import {
   AddressForm,
@@ -38,15 +38,15 @@ export function EditAddress({ id }: { id: string }) {
       await updateAddress.mutateAsync({ id, ...addressFormValueToInput(value) });
       toast.success(t("addresses.saved", "Address saved"));
       nav({ to: previewPath("/addresses") as "/addresses" });
-    } catch (e: any) {
-      toast.error(e?.message ?? t("setup.saveFailed", "Could not save your profile."));
+    } catch {
+      toast.error(t("setup.saveFailed"));
     }
   };
 
   if (addressQ.isLoading) {
     return (
       <PhoneFrame bg="bg-background">
-        <CustomerPageHero
+        <CustomerPageHeader
           title={t("common.edit")}
           subtitle={t("addresses.subtitle")}
           backTo="/addresses"
@@ -60,7 +60,7 @@ export function EditAddress({ id }: { id: string }) {
   if (addressQ.isError) {
     return (
       <PhoneFrame bg="bg-background">
-        <CustomerPageHero
+        <CustomerPageHeader
           title={t("common.edit")}
           subtitle={t("addresses.subtitle")}
           backTo="/addresses"
@@ -72,7 +72,7 @@ export function EditAddress({ id }: { id: string }) {
   if (!addressQ.data) {
     return (
       <PhoneFrame bg="bg-background">
-        <CustomerPageHero
+        <CustomerPageHeader
           title={t("common.edit")}
           subtitle={t("addresses.subtitle")}
           backTo="/addresses"
@@ -84,12 +84,12 @@ export function EditAddress({ id }: { id: string }) {
 
   return (
     <PhoneFrame bg="bg-background">
-      <CustomerPageHero
+      <CustomerPageHeader
         title={t("common.edit")}
         subtitle={t("addresses.subtitle")}
         backTo="/addresses"
       />
-      <div className="flex-1 px-5 pb-10 pt-2">
+      <div className="flex-1 px-5 pb-10 pt-4">
         <AddressForm
           value={value}
           onChange={setValue}

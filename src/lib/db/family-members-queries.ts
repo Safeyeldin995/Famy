@@ -24,6 +24,8 @@ export type FamilyMemberInput = {
   access_notes?: string | null;
   emergency_contact_name?: string | null;
   emergency_contact_phone?: string | null;
+  education_curriculum_id?: string | null;
+  education_level_id?: string | null;
 };
 
 function toFamilyMemberRow(input: FamilyMemberInput) {
@@ -39,6 +41,8 @@ function toFamilyMemberRow(input: FamilyMemberInput) {
     access_notes: input.access_notes ?? null,
     emergency_contact_name: input.emergency_contact_name ?? null,
     emergency_contact_phone: input.emergency_contact_phone ?? null,
+    education_curriculum_id: input.education_curriculum_id ?? null,
+    education_level_id: input.education_level_id ?? null,
   };
 }
 

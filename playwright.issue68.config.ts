@@ -2,6 +2,8 @@ import { defineConfig, devices } from "@playwright/test";
 
 const PORT = 8100;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
+const useChromium = process.env.ISSUE68_BROWSER === "chromium";
+const useWebKit = process.env.ISSUE68_WEBKIT === "1";
 
 export default defineConfig({
   testDir: "./qa/tests/issue68",
@@ -17,12 +19,24 @@ export default defineConfig({
   },
   projects: [
     {
-      name: "msedge",
-      use: {
-        ...devices["Desktop Edge"],
-        channel: "msedge",
-      },
+      name: useChromium ? "chromium" : "msedge",
+      testIgnore: useWebKit ? /family-members-mobile\.spec\.ts/ : undefined,
+      use: useChromium
+        ? { ...devices["Desktop Chrome"], channel: "chrome" }
+        : {
+            ...devices["Desktop Edge"],
+            channel: "msedge",
+          },
     },
+    ...(useWebKit
+      ? [
+          {
+            name: "webkit-mobile",
+            testMatch: /family-members-mobile\.spec\.ts/,
+            use: { ...devices["iPhone 12"] },
+          },
+        ]
+      : []),
   ],
   webServer: {
     command: `node qa/issue68-dev-server.mjs --port ${PORT} --strictPort`,

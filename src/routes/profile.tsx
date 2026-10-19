@@ -1,14 +1,16 @@
+import { customerAreaLabel } from "@/components/famio/customerAreaLabel";
+import { CustomerProfilePhoto } from "@/components/famio/CustomerProfilePhoto";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { AppShell, Avatar, SecondaryButton } from "@/components/famio/ui";
-import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
-import { CustomerFloatingPanel } from "@/components/famio/CustomerFloatingPanel";
+import { AppShell, SecondaryButton } from "@/components/famio/ui";
+import { CustomerPageHeader } from "@/components/famio/CustomerPageHeader";
 import { LanguageToggle } from "@/components/famio/LanguageToggle";
 import { useApp } from "@/lib/store";
-import { useMyProfile, useDefaultAddress, useAvatarUrl } from "@/lib/db/queries";
+import { useMyProfile, useDefaultAddress } from "@/lib/db/queries";
 import { setLanguage, currentLang } from "@/lib/i18n";
 import { previewPath } from "@/lib/preview/previewPath";
 import { supabase } from "@/integrations/supabase/client";
+import { AuthGate } from "@/components/famio/AuthGate";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   MapPin,
@@ -23,16 +25,22 @@ import {
   ChevronRight,
   Heart,
   Tag,
-  Pencil,
 } from "lucide-react";
 import { ICON_STROKE } from "@/lib/icons/constants";
 
-export const Route = createFileRoute("/profile")({ component: Profile });
+export const Route = createFileRoute("/profile")({ component: ProfileRoute });
+
+function ProfileRoute() {
+  return (
+    <AuthGate>
+      <Profile />
+    </AuthGate>
+  );
+}
 
 function Profile() {
   const { reset } = useApp();
   const profileQ = useMyProfile();
-  const avatarQ = useAvatarUrl(profileQ.data?.avatar_url as string | undefined);
   const addressQ = useDefaultAddress();
   const nav = useNavigate();
   const qc = useQueryClient();
@@ -47,52 +55,42 @@ function Profile() {
     nav({ to: "/", replace: true });
   };
 
-  const initial = profileQ.data?.full_name?.charAt(0).toUpperCase() || t("common.appInitial");
-
   return (
     <AppShell>
-      <CustomerPageHero
+      <CustomerPageHeader
         title={t("profile.title")}
         subtitle={t("profile.subtitle")}
-        right={<LanguageToggle variant="hero" />}
+        right={<LanguageToggle variant="pill" />}
       />
       <div className="px-5">
-        <CustomerFloatingPanel>
+        <div className="mt-4 rounded-2xl border border-border/60 bg-white p-4">
           <div className="flex items-center gap-5">
-            <div className="relative grid h-20 w-20 place-items-center">
-              {avatarQ.data ? (
-                <Avatar
-                  src={avatarQ.data}
-                  className="h-20 w-20 rounded-full object-cover ring-2 ring-brand/15"
-                />
-              ) : (
-                <div className="grid h-20 w-20 place-items-center rounded-full bg-surface-2 text-2xl font-extrabold text-muted-foreground ring-2 ring-border/50">
-                  {initial}
-                </div>
-              )}
-              <div className="absolute -bottom-1 -end-1">
-                <Link
-                  to={previewPath("/setup")}
-                  className="focus-ring tap-scale grid h-9 w-9 place-items-center rounded-full border-2 border-surface bg-brand text-brand-foreground shadow-md"
-                  aria-label={t("profile.editProfile")}
-                >
-                  <Pencil className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden="true" />
-                </Link>
-              </div>
-            </div>
+            <CustomerProfilePhoto
+              src={profileQ.data?.avatar_url}
+              name={profileQ.data?.full_name || t("profile.famioUser")}
+            />
             <div className="min-w-0 flex-1">
-              <div className="truncate text-lg font-extrabold text-foreground">
+              <div className="truncate text-pro-18 font-extrabold text-foreground">
                 {profileQ.data?.full_name || t("profile.famioUser")}
               </div>
-              <div className="mt-0.5 truncate text-sm font-bold text-muted-foreground" dir="ltr">
+              <div
+                className="mt-0.5 truncate text-pro-14 font-bold text-muted-foreground"
+                dir="ltr"
+              >
                 {profileQ.data?.phone || "—"}
               </div>
+              <Link
+                to={previewPath("/setup")}
+                className="focus-ring inline-flex min-h-11 items-center text-pro-13 font-bold text-brand"
+              >
+                {t("customerHome.profileEdit")}
+              </Link>
             </div>
           </div>
-        </CustomerFloatingPanel>
+        </div>
       </div>
 
-      <div className="px-5 pb-6 pt-2">
+      <div className="px-5 pb-6 pt-4">
         <Section title={t("profile.myFamio")}>
           <Row
             to={previewPath("/favorites")}
@@ -109,7 +107,11 @@ function Profile() {
             to={previewPath("/addresses")}
             icon={<MapPin className="h-5 w-5" />}
             label={t("profile.addresses")}
-            sub={addressQ.data?.area || t("profile.addAddress")}
+            sub={
+              addressQ.data?.area
+                ? customerAreaLabel(addressQ.data.area, t)
+                : t("profile.addAddress")
+            }
           />
           <Row
             icon={<CreditCard className="h-5 w-5" />}
@@ -145,10 +147,10 @@ function Profile() {
                 <Globe className="h-5 w-5" aria-hidden="true" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="truncate text-base font-extrabold text-foreground">
+                <div className="truncate text-pro-16 font-extrabold text-foreground">
                   {t("profile.language")}
                 </div>
-                <div className="mt-0.5 truncate text-[11px] font-bold text-muted-foreground">
+                <div className="mt-0.5 truncate text-pro-12 font-bold text-muted-foreground">
                   {lang === "ar" ? t("common.arabic") : t("common.english")}
                 </div>
               </div>
@@ -180,17 +182,19 @@ function Profile() {
         </Section>
 
         <div className="mt-6 space-y-2">
-          <SecondaryButton className="w-full !h-12 !rounded-full !text-destructive" onClick={handleLogout}>
+          <SecondaryButton
+            className="w-full !h-12 !rounded-full !text-destructive"
+            onClick={handleLogout}
+          >
             <LogOut className="h-4 w-4" aria-hidden="true" />
             {t("profile.logout")}
           </SecondaryButton>
-          <button type="button" className="w-full py-3 text-xs font-semibold text-muted-foreground">
-            {t("profile.deleteAccount")}
-          </button>
-        </div>
-
-        <div className="pb-2 pt-6 text-center text-[11px] text-muted-foreground">
-          {t("profile.version")}
+          <Link
+            to={previewPath("/help")}
+            className="focus-ring flex min-h-11 w-full items-center justify-center py-3 text-pro-12 font-semibold text-muted-foreground"
+          >
+            {t("customerRound2.deleteHelp")}
+          </Link>
         </div>
       </div>
     </AppShell>
@@ -200,7 +204,7 @@ function Profile() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mt-8">
-      <h2 className="mb-3 px-1 text-xs font-black uppercase tracking-widest text-muted-foreground">
+      <h2 className="mb-3 px-1 text-pro-12 font-black uppercase tracking-widest text-muted-foreground">
         {title}
       </h2>
       <div className="overflow-hidden rounded-[1.75rem] border border-border/50 bg-surface-elevated shadow-sm divide-y divide-border/50">
@@ -227,12 +231,17 @@ function Row({
         {icon}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="truncate text-base font-extrabold text-foreground">{label}</div>
+        <div className="truncate text-pro-16 font-extrabold text-foreground">{label}</div>
         {sub ? (
-          <div className="mt-0.5 truncate text-[11px] font-bold text-muted-foreground">{sub}</div>
+          <div className="mt-0.5 truncate text-pro-12 font-bold text-muted-foreground">{sub}</div>
         ) : null}
       </div>
-      <ChevronRight className="h-5 w-5 text-muted-foreground rtl-flip" strokeWidth={ICON_STROKE} />
+      {to && (
+        <ChevronRight
+          className="h-5 w-5 text-muted-foreground rtl-flip"
+          strokeWidth={ICON_STROKE}
+        />
+      )}
     </div>
   );
   if (to)
@@ -241,9 +250,5 @@ function Row({
         {inner}
       </Link>
     );
-  return (
-    <button type="button" className="w-full text-start">
-      {inner}
-    </button>
-  );
+  return <div className="w-full text-start">{inner}</div>;
 }

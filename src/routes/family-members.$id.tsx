@@ -1,10 +1,12 @@
+import { previewPath } from "@/lib/preview/previewPath";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { PhoneFrame, ErrorState } from "@/components/famio/ui";
-import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
+import { QueryError } from "@/components/famio/QueryError";
+import { CustomerPageHeader } from "@/components/famio/CustomerPageHeader";
 import {
   FamilyMemberForm,
   emptyFamilyMemberFormValue,
@@ -18,6 +20,10 @@ export const Route = createFileRoute("/family-members/$id")({ component: EditFam
 
 function EditFamilyMember() {
   const { id } = Route.useParams();
+  return <EditFamilyMemberContent id={id} />;
+}
+
+export function EditFamilyMemberContent({ id }: { id: string }) {
   const { t } = useTranslation();
   const nav = useNavigate();
   const memberQ = useFamilyMember(id);
@@ -36,26 +42,33 @@ function EditFamilyMember() {
     try {
       await updateMember.mutateAsync({ id, ...familyMemberFormValueToInput(value) });
       toast.success(t("familyMembers.saved", "Family member saved"));
-      nav({ to: "/family-members" });
-    } catch (e: any) {
-      toast.error(e?.message ?? t("common.somethingWentWrong"));
+      nav({ to: previewPath("/family-members") });
+    } catch {
+      toast.error(t("common.somethingWentWrong"));
     }
   };
 
   if (memberQ.isLoading) {
     return (
       <PhoneFrame bg="bg-background">
-        <CustomerPageHero title={t("common.edit")} backTo="/family-members" />
+        <CustomerPageHeader title={t("common.edit")} backTo="/family-members" />
         <div className="grid flex-1 place-items-center">
           <Loader2 className="h-6 w-6 animate-spin text-brand" />
         </div>
       </PhoneFrame>
     );
   }
+  if (memberQ.isError)
+    return (
+      <PhoneFrame>
+        <CustomerPageHeader title={t("common.edit")} backTo="/family-members" />
+        <QueryError onRetry={() => memberQ.refetch()} />
+      </PhoneFrame>
+    );
   if (!memberQ.data) {
     return (
       <PhoneFrame bg="bg-background">
-        <CustomerPageHero title={t("common.edit")} backTo="/family-members" />
+        <CustomerPageHeader title={t("common.edit")} backTo="/family-members" />
         <ErrorState title={t("familyMembers.notFound", "Family member not found")} />
       </PhoneFrame>
     );
@@ -63,8 +76,8 @@ function EditFamilyMember() {
 
   return (
     <PhoneFrame bg="bg-background">
-      <CustomerPageHero title={t("common.edit")} backTo="/family-members" />
-      <div className="flex-1 px-6 pb-10 pt-2">
+      <CustomerPageHeader title={t("common.edit")} backTo="/family-members" />
+      <div className="flex-1 px-6 pb-10 pt-4">
         <FamilyMemberForm
           value={value}
           onChange={setValue}

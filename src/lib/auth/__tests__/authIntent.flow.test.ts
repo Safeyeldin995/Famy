@@ -23,11 +23,8 @@ describe("auth intent cookies", () => {
   });
 
   it("stores and reads a pending OTP intent with masked-safe fields only", async () => {
-    const {
-      setOtpPendingIntent,
-      readOtpPendingIntent,
-      maskPhoneE164,
-    } = await import("../authIntent.server");
+    const { setOtpPendingIntent, readOtpPendingIntent, maskPhoneE164 } =
+      await import("../authIntent.server");
 
     setOtpPendingIntent({
       phone: "+201221000633",
@@ -70,11 +67,8 @@ describe("auth intent cookies", () => {
   });
 
   it("clears set-password cookie on consume", async () => {
-    const {
-      setSetPasswordIntent,
-      readSetPasswordIntent,
-      consumeSetPasswordIntent,
-    } = await import("../authIntent.server");
+    const { setSetPasswordIntent, readSetPasswordIntent, consumeSetPasswordIntent } =
+      await import("../authIntent.server");
 
     setSetPasswordIntent({ authId: "11111111-1111-1111-1111-111111111111" });
     expect(readSetPasswordIntent()?.authId).toBe("11111111-1111-1111-1111-111111111111");
@@ -82,6 +76,36 @@ describe("auth intent cookies", () => {
     expect(first?.authId).toBe("11111111-1111-1111-1111-111111111111");
     expect(readSetPasswordIntent()).toBeNull();
     expect(consumeSetPasswordIntent()).toBeNull();
+  });
+
+  it("confirms client OTP delivery on pending intent", async () => {
+    const { setOtpPendingIntent, readOtpPendingIntent, confirmOtpPendingDelivery } =
+      await import("../authIntent.server");
+
+    setOtpPendingIntent({
+      phone: "+201221000633",
+      purpose: "signup",
+      retryAfterSeconds: 30,
+      deliveryConfirmed: false,
+    });
+    expect(readOtpPendingIntent()?.deliveryConfirmed).toBe(false);
+    expect(confirmOtpPendingDelivery()).toBe(true);
+    expect(readOtpPendingIntent()?.deliveryConfirmed).toBe(true);
+  });
+
+  it("clearOtpPendingIntent drops unconfirmed pending login after failed Firebase resend abandon", async () => {
+    const { setOtpPendingIntent, readOtpPendingIntent, clearOtpPendingIntent } =
+      await import("../authIntent.server");
+
+    setOtpPendingIntent({
+      phone: "+201221000633",
+      purpose: "signup",
+      retryAfterSeconds: 30,
+      deliveryConfirmed: false,
+    });
+    expect(readOtpPendingIntent()?.deliveryConfirmed).toBe(false);
+    clearOtpPendingIntent();
+    expect(readOtpPendingIntent()).toBeNull();
   });
 
   it("expires OTP pending intent after ttl", async () => {
@@ -113,7 +137,10 @@ function resolveOtpScreenContext(
 ) {
   if (!pending) return { ok: false as const, redirect: "/login" as const };
   if (pending.otpExp <= now) {
-    return { ok: false as const, redirect: pending.purpose === "reset" ? "/auth/forgot" as const : "/login" as const };
+    return {
+      ok: false as const,
+      redirect: pending.purpose === "reset" ? ("/auth/forgot" as const) : ("/login" as const),
+    };
   }
   return {
     ok: true as const,

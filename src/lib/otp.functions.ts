@@ -7,6 +7,7 @@ import { z } from "zod";
 import {
   clearOtpPendingIntent,
   clearSetPasswordIntent,
+  confirmOtpPendingDelivery,
   maskPhoneE164,
   readOtpPendingIntent,
   readSetPasswordIntent,
@@ -63,20 +64,24 @@ function requestMeta() {
   return { ipAddress, userAgent };
 }
 
-async function findUserIdByPhone(phone: string): Promise<string | null> {
+type AuthUserLookupRpc = (
+  fn: "auth_user_id_for_phone",
+  args: { p_auth_email: string; p_phone: string },
+) => Promise<{ data: string | null; error: { message: string } | null }>;
+
+/** Server-only phone lookup via SECURITY DEFINER RPC. Not a listUsers scan. */
+export async function findUserIdByPhone(phone: string): Promise<string | null> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const authEmail = authEmailForPhone(phone);
-  const phoneNoPlus = phone.replace(/^\+/, "");
-  for (let page = 1; page <= 5; page++) {
-    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
-    if (error) throw error;
-    const u = data.users.find(
-      (u) => u.email === authEmail || u.phone === phoneNoPlus || u.phone === phone,
-    );
-    if (u) return u.id;
-    if (data.users.length < 200) break;
-  }
-  return null;
+  const { data, error } = await (supabaseAdmin.rpc as unknown as AuthUserLookupRpc)(
+    "auth_user_id_for_phone",
+    {
+      p_auth_email: authEmail,
+      p_phone: phone,
+    },
+  );
+  if (error) throw error;
+  return typeof data === "string" && data.length > 0 ? data : null;
 }
 
 type VerifiedAuthInput = {
@@ -249,6 +254,11 @@ export const getOtpScreenContextFn = createServerFn({ method: "GET" }).handler(
       return { ok: false, redirect: "/login" };
     }
 
+    if (pending.deliveryConfirmed === false) {
+      clearOtpPendingIntent();
+      return { ok: false, redirect: intentRedirectForPurpose(pending.purpose) };
+    }
+
     const now = Math.floor(Date.now() / 1000);
     if (pending.otpExp <= now) {
       clearOtpPendingIntent();
@@ -287,6 +297,7 @@ async function prepareFirebaseOtpIntent(params: {
     purpose: params.purpose,
     role: params.purpose === "signup" ? params.role : undefined,
     retryAfterSeconds: 30,
+    deliveryConfirmed: false,
   });
   clearSetPasswordIntent();
   return {
@@ -333,6 +344,7 @@ async function issueOtpSend(params: {
     purpose: params.purpose,
     role: params.purpose === "signup" ? params.role : undefined,
     retryAfterSeconds: generated.retryAfter ?? 30,
+    deliveryConfirmed: true,
   });
   clearSetPasswordIntent();
 
@@ -356,6 +368,13 @@ export const sendOtpFn = createServerFn({ method: "POST" })
     }
     return issueOtpSend(data);
   });
+
+export const confirmFirebaseOtpSentFn = createServerFn({ method: "POST" }).handler(async () => {
+  if (!confirmOtpPendingDelivery()) {
+    return { ok: false as const, error: "intent_missing" as const };
+  }
+  return { ok: true as const };
+});
 
 export const beginFirebaseOtpFn = createServerFn({ method: "POST" })
   .inputValidator((d) => SendSchema.parse(d))
@@ -411,7 +430,7 @@ export const verifyOtpFn = createServerFn({ method: "POST" })
   .inputValidator((d) => VerifySchema.parse(d))
   .handler(async ({ data }) => {
     const pending = readOtpPendingIntent();
-    if (!pending) {
+    if (!pending || pending.deliveryConfirmed === false) {
       return { ok: false as const, error: "invalid_code" as const };
     }
 
@@ -442,7 +461,7 @@ export const verifyFirebaseOtpFn = createServerFn({ method: "POST" })
     }
 
     const pending = readOtpPendingIntent();
-    if (!pending) {
+    if (!pending || pending.deliveryConfirmed === false) {
       return { ok: false as const, error: "invalid_code" as const };
     }
 

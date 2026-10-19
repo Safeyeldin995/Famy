@@ -1,11 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { Star } from "lucide-react";
-import { Avatar } from "@/components/famio/ui";
+import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
+import { useTranslation } from "react-i18next";
 import { StatusPill } from "@/components/famio/ui";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
-import { formatNumber } from "@/lib/utils";
-import { isPreviewRoute } from "@/lib/preview/constants";
+import { formatNumber } from "@/lib/format";
+import { useCustomerPreviewMode } from "./useCustomerPreviewPath";
 
 export function ProviderListRow({
   to,
@@ -28,26 +29,26 @@ export function ProviderListRow({
   trailing?: ReactNode;
   className?: string;
 }) {
-  const resolvedTo =
-    isPreviewRoute() && to === "/provider/$id" ? "/preview/provider/$id" : to;
+  const preview = useCustomerPreviewMode();
+  const resolvedTo = preview && to === "/provider/$id" ? "/preview/provider/$id" : to;
 
   return (
     <Link
       to={resolvedTo as any}
       params={params as any}
-      className={`focus-ring tap-scale flex items-center gap-4 rounded-[2rem] border border-border/50 bg-surface-elevated p-4 shadow-sm transition-shadow hover:shadow-md hover:border-brand/30 ${className}`}
+      className={`focus-ring tap-scale flex items-center gap-4 rounded-2xl border border-border/50 bg-white p-4 shadow-sm transition-shadow hover:shadow-md hover:border-brand/30 ${className}`}
     >
-      <Avatar src={avatar} alt={name} className="h-16 w-16 shrink-0 rounded-[1.25rem] shadow-sm" />
+      <ProfileAvatar src={avatar} name={name} className="h-14 w-14 rounded-full text-pro-18" />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <p className="truncate text-base font-extrabold text-foreground">{name}</p>
+          <p className="truncate text-pro-16 font-extrabold text-foreground">{name}</p>
           {pill ? <StatusPill tone={pill.tone ?? "brand"}>{pill.label}</StatusPill> : null}
         </div>
         {subtitle ? (
-          <p className="mt-0.5 truncate text-xs font-bold text-brand">{subtitle}</p>
+          <p className="mt-0.5 truncate text-pro-13 font-bold text-brand">{subtitle}</p>
         ) : null}
         {meta ? (
-          <div className="mt-1.5 flex items-center gap-1 text-xs font-bold text-muted-foreground">
+          <div className="mt-1.5 flex items-center gap-1 text-pro-13 font-bold text-muted-foreground">
             {meta}
           </div>
         ) : null}
@@ -58,6 +59,9 @@ export function ProviderListRow({
 }
 
 export function ProviderRatingMeta({ rating, reviews }: { rating: number; reviews?: number }) {
+  const { t } = useTranslation();
+  if (reviews === 0 || (reviews == null && rating <= 0))
+    return <span>{t("providerPage.newOnFamy")}</span>;
   return (
     <>
       <Star

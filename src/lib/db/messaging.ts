@@ -4,6 +4,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchBookingParties, type BookingParty } from '@/lib/db/booking-parties';
 
 export const CONTACT_BLOCKED_MESSAGE =
   "For your safety and to keep Famy's protections active on this booking, please keep communication inside the Famy app.";
@@ -27,6 +28,8 @@ export type ConversationListItem = {
   other_avatar: string | null;
   last_message: string | null;
   last_time: string | null;
+  /** Set for system messages; render via bookingChat.system.<key> so it follows the app language. */
+  last_system_key?: string | null;
 };
 
 export function useConversations() {
@@ -38,38 +41,42 @@ export function useConversations() {
       const { data: convs, error } = await supabase
         .from('conversations')
         .select('id, booking_id, customer_id, provider_user_id, updated_at')
+        // Admins can read every conversation under RLS; the inbox must only
+        // list chats this user is a party to.
+        .or(`customer_id.eq.${user.id},provider_user_id.eq.${user.id}`)
         .order('updated_at', { ascending: false });
       if (error) throw error;
       if (!convs?.length) return [];
 
-      // Fetch the "other party" profile + last message for each conv.
-      const otherIds = convs.map((c) => (c.customer_id === user.id ? c.provider_user_id : c.customer_id));
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, full_name, avatar_url')
-        .in('id', otherIds);
-      const pMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+      // The other party's name/avatar. `profiles` is self-only under RLS, so
+      // this reads through booking_party_profiles. A failed lookup only loses
+      // names; the inbox itself still loads.
+      const pMap = await fetchBookingParties(convs.map((c) => c.booking_id)).catch(
+        () => new Map<string, BookingParty>(),
+      );
 
       const ids = convs.map((c) => c.id);
       const { data: lastMsgs } = await supabase
         .from('messages')
-        .select('conversation_id, body, created_at')
+        .select('conversation_id, body, system_key, created_at')
         .in('conversation_id', ids)
         .order('created_at', { ascending: false });
-      const lastMap = new Map<string, { body: string; created_at: string }>();
+      const lastMap = new Map<string, { body: string; system_key: string | null; created_at: string }>();
       for (const m of lastMsgs ?? []) {
-        if (!lastMap.has(m.conversation_id)) lastMap.set(m.conversation_id, { body: m.body, created_at: m.created_at });
+        if (!lastMap.has(m.conversation_id)) {
+          lastMap.set(m.conversation_id, { body: m.body, system_key: m.system_key, created_at: m.created_at });
+        }
       }
 
       return convs.map((c) => {
-        const otherId = c.customer_id === user.id ? c.provider_user_id : c.customer_id;
-        const prof: any = pMap.get(otherId);
+        const party = pMap.get(c.booking_id);
         const last = lastMap.get(c.id);
         return {
           ...c,
-          other_name: prof?.full_name || 'Famy user',
-          other_avatar: prof?.avatar_url ?? null,
+          other_name: party?.other_name || '',
+          other_avatar: party?.other_avatar_url ?? null,
           last_message: last?.body ?? null,
+          last_system_key: last?.system_key ?? null,
           last_time: last?.created_at ?? null,
         };
       });
@@ -77,10 +84,13 @@ export function useConversations() {
   });
 }
 
-export function useConversationByBooking(bookingId: string | undefined) {
+export function useConversationByBooking(bookingId: string | undefined, status?: string) {
+  // The conversation is only readable once the booking leaves `pending`, so
+  // the status is part of the key: accepting a request re-fetches it instead
+  // of reusing the cached "no conversation yet" result.
   return useQuery({
     enabled: !!bookingId,
-    queryKey: ['conversation-by-booking', bookingId],
+    queryKey: ['conversation-by-booking', bookingId, status === 'pending' ? 'pending' : 'open'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('conversations')
@@ -98,7 +108,6 @@ export function useConversation(id: string | undefined) {
     enabled: !!id,
     queryKey: ['conversation', id],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
       const { data, error } = await supabase
         .from('conversations')
         .select('id, booking_id, customer_id, provider_user_id')
@@ -106,13 +115,11 @@ export function useConversation(id: string | undefined) {
         .maybeSingle();
       if (error) throw error;
       if (!data) return null;
-      const otherId = data.customer_id === user?.id ? data.provider_user_id : data.customer_id;
-      const { data: prof } = await supabase
-        .from('profiles')
-        .select('id, full_name, avatar_url')
-        .eq('id', otherId)
-        .maybeSingle();
-      return { ...data, other: prof };
+      const party = (await fetchBookingParties([data.booking_id]).catch(() => new Map<string, BookingParty>())).get(data.booking_id);
+      const other = party
+        ? { id: party.other_user_id, full_name: party.other_name, avatar_url: party.other_avatar_url }
+        : null;
+      return { ...data, other };
     },
   });
 }

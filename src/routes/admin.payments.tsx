@@ -1,12 +1,23 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { AdminLink as Link } from "@/components/admin/AdminNavigation";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { useAdminPayments } from "@/lib/db/admin-queries";
-import { getSignedProofUrl } from "@/lib/db/payment-queries";
-import { formatEGP } from "@/lib/utils";
-import { Search, ExternalLink, Eye } from "lucide-react";
+import { getSignedProofUrl, useCapturePayment, useRejectPayment } from "@/lib/db/payment-queries";
+import { formatEGP } from "@/lib/format";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
-import { adminPath } from "@/lib/preview/previewPath";
+import { AdminReasonSheet } from "@/components/admin/AdminReasonSheet";
+import {
+  adminControl,
+  adminScreen,
+  bookingCode,
+  canReviewTransfer,
+  matchesBooking,
+  operationDate,
+  paymentStatuses,
+} from "@/components/admin/operations";
+import { isPreviewAdminRoute } from "@/lib/preview/constants";
 
 export const Route = createFileRoute("/admin/payments")({
   component: AdminPaymentsRoute,
@@ -15,171 +26,222 @@ export const Route = createFileRoute("/admin/payments")({
     ...(typeof search.statuses === "string" ? { statuses: search.statuses } : {}),
   }),
 });
-
-const STATUS_OPTIONS = [
-  "pending", "pending_review", "authorized", "captured", "rejected", "failed", "refunded", "partially_refunded",
-] as const;
-
-function statusTone(status: string) {
-  if (status === "captured") return "bg-mint/20 text-success";
-  if (status === "rejected" || status === "failed") return "bg-coral/10 text-coral";
-  if (status === "pending" || status === "pending_review" || status === "authorized") return "bg-amber-100 text-amber-700";
-  return "bg-muted text-muted-foreground";
-}
-
-function resolvePaymentStatusFilter(search: { status?: string; statuses?: string }): string | string[] | undefined {
-  if (search.statuses) {
-    const statuses = search.statuses
-      .split(",")
-      .map((value) => value.trim())
-      .filter(Boolean);
-    if (statuses.length > 1) return statuses;
-    if (statuses.length === 1) return statuses[0];
-  }
-  return search.status || undefined;
-}
-
-export function AdminPayments({ search }: { search: { status?: string; statuses?: string } }) {
-  const { t } = useTranslation();
-  const urlStatusFilter = resolvePaymentStatusFilter(search);
-  const [status, setStatus] = useState<string>(
-    typeof urlStatusFilter === "string" ? urlStatusFilter : "",
-  );
-  const [urlFilterOverridden, setUrlFilterOverridden] = useState(false);
-  const [query, setQuery] = useState("");
-  const activeStatusFilter =
-    Array.isArray(urlStatusFilter) && !urlFilterOverridden
-      ? urlStatusFilter
-      : status || undefined;
-  const q = useAdminPayments(activeStatusFilter);
-
-  const rows = useMemo(() => {
-    const all = q.data ?? [];
-    const needle = query.trim().toLowerCase();
-    if (!needle) return all;
-    return all.filter((p: any) => {
-      const bookingId = String(p.booking_id ?? "").toLowerCase();
-      const paymentId = String(p.id ?? "").toLowerCase();
-      const customerName = String(p.booking?.customer?.full_name ?? "").toLowerCase();
-      const customerPhone = String(p.booking?.customer?.phone ?? "").toLowerCase();
-      const providerName = String(p.booking?.provider?.profile?.full_name ?? "").toLowerCase();
-      return (
-        bookingId.includes(needle) ||
-        paymentId.includes(needle) ||
-        customerName.includes(needle) ||
-        customerPhone.includes(needle) ||
-        providerName.includes(needle)
-      );
-    });
-  }, [q.data, query]);
-
-  const openProof = async (path: string | null) => {
-    if (!path) return;
+function PaymentCard({ payment: p }: { payment: any }) {
+  const { t, i18n } = useTranslation();
+  const capture = useCapturePayment();
+  const reject = useRejectPayment();
+  const [proof, setProof] = useState<string | null>(null);
+  const [proofBusy, setProofBusy] = useState(false);
+  const [action, setAction] = useState<"confirm" | "reject" | null>(null);
+  const reviewable = canReviewTransfer(p);
+  const busy = capture.isPending || reject.isPending;
+  useEffect(() => {
+    if (!p.proof_path || !reviewable) return;
+    let active = true;
+    setProofBusy(true);
+    const request =
+      isPreviewAdminRoute() && p.previewProofUrl
+        ? Promise.resolve(p.previewProofUrl as string)
+        : getSignedProofUrl(p.proof_path);
+    request
+      .then((url) => {
+        if (active) setProof(url);
+      })
+      .catch(() => {
+        if (active) toast.error(t("adminOps.proofError"));
+      })
+      .finally(() => {
+        if (active) setProofBusy(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [p.proof_path, p.previewProofUrl, reviewable, t]);
+  const openProof = async () => {
+    setProofBusy(true);
     try {
-      const url = await getSignedProofUrl(path);
-      window.open(url, "_blank", "noopener");
+      setProof(
+        isPreviewAdminRoute() && p.previewProofUrl
+          ? p.previewProofUrl
+          : await getSignedProofUrl(p.proof_path),
+      );
     } catch {
-      // signed URL failures are surfaced by the browser failing to open a blank tab; no separate toast infra exists on this admin screen.
+      toast.error(t("adminOps.proofError"));
+    } finally {
+      setProofBusy(false);
     }
   };
-
+  const success = () => {
+    setAction(null);
+    toast.success(t("adminOps.saved"));
+  };
+  const failure = () => toast.error(t("adminOps.actionError"));
   return (
-    <div className="px-5 py-5 space-y-4">
-      <div>
-        <h1 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">{t("admin.layout.nav.payments")}</h1>
-        <p className="text-xs text-muted-foreground">{t("admin.payments.subtitle")}</p>
+    <li className="min-w-0 space-y-3 rounded-2xl border border-border bg-surface p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <strong className="text-lg">{formatEGP(Number(p.amount ?? 0))}</strong>
+        <span className="rounded-full bg-muted px-3 py-1 text-xs font-bold">
+          {t(`adminOps.status.${p.status}`, { defaultValue: t("adminOps.unknown") })}
+        </span>
       </div>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex h-10 min-w-[260px] flex-1 items-center gap-2 rounded-xl border border-border bg-surface px-3">
-          <Search className="h-4 w-4 text-muted-foreground" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t("admin.payments.searchPlaceholder")}
-            className="w-full bg-transparent text-sm outline-none"
-          />
+      <p className="font-semibold">
+        {p.booking?.customer?.full_name || "—"} → {p.booking?.provider?.profile?.full_name || "—"}
+      </p>
+      <p className="text-xs text-muted-foreground">
+        {t(`adminOps.methods.${p.method}`, {
+          defaultValue: i18n.language.startsWith("ar")
+            ? p.payment_method_name_ar || t("adminOps.unknown")
+            : p.payment_method_name_en || t("adminOps.unknown"),
+        })}{" "}
+        · {operationDate(p.created_at, i18n.language)}
+      </p>
+      <Link
+        className={`${adminControl} inline-flex items-center gap-2`}
+        to="/admin/bookings"
+        search={{ booking: p.booking_id }}
+      >
+        {t("adminOps.booking")} <bdi dir="ltr">{bookingCode(p.booking_id)}</bdi>
+      </Link>
+      {p.proof_path ? (
+        <div>
+          <button className={adminControl} disabled={proofBusy} onClick={openProof}>
+            {t("adminOps.proof")}
+          </button>
+          {proof && (
+            <a href={proof} target="_blank" rel="noopener noreferrer" className="mt-3 block">
+              <img
+                src={proof}
+                alt={t("adminOps.proof")}
+                referrerPolicy="no-referrer"
+                className="max-h-80 w-full rounded-xl object-contain"
+                onError={() => {
+                  setProof(null);
+                  toast.error(t("adminOps.proofError"));
+                }}
+              />
+            </a>
+          )}
         </div>
-        <select
-          value={status}
-          onChange={(e) => {
-            setUrlFilterOverridden(true);
-            setStatus(e.target.value);
-          }}
-          className="focus-ring h-10 rounded-xl border border-border bg-surface px-3 text-sm"
-        >
-          <option value="">{t("admin.bookings.allStatuses")}</option>
-          {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-        </select>
-      </div>
-
-      {q.isLoading ? (
-        <div className="space-y-2">
-          {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-16 animate-pulse rounded-2xl bg-muted" />)}
-        </div>
-      ) : q.isError ? (
-        <AdminQueryError message={t("admin.payments.loadError")} error={q.error} onRetry={() => q.refetch()} />
-      ) : rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("admin.payments.noResults")}</p>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-border/60 bg-surface shadow-sm">
-          <table className="w-full text-start text-sm">
-            <thead className="border-b border-border/60 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-              <tr>
-                <th className="px-4 py-3 text-start">{t("admin.payments.booking")}</th>
-                <th className="px-4 py-3 text-start">{t("admin.customers.customer")}</th>
-                <th className="px-4 py-3 text-start">{t("admin.bookings.provider")}</th>
-                <th className="px-4 py-3 text-start">{t("admin.payments.method")}</th>
-                <th className="px-4 py-3 text-start">{t("admin.payments.amount")}</th>
-                <th className="px-4 py-3 text-start">{t("admin.customers.status")}</th>
-                <th className="px-4 py-3 text-start">{t("admin.payments.created")}</th>
-                <th className="px-4 py-3 text-start">{t("admin.payments.proof")}</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/60">
-              {rows.map((p: any) => (
-                <tr key={p.id}>
-                  <td dir="ltr" className="px-4 py-3 text-start font-mono text-xs text-muted-foreground">{p.booking_id?.slice(0, 8)}</td>
-                  <td className="px-4 py-3">
-                    <div className="font-semibold">{p.booking?.customer?.full_name || "—"}</div>
-                    <div dir="ltr" className="text-xs text-muted-foreground">{p.booking?.customer?.phone}</div>
-                  </td>
-                  <td className="px-4 py-3">{p.booking?.provider?.profile?.full_name || "—"}</td>
-                  <td className="px-4 py-3 capitalize">{p.payment_method_name_en || p.method || "—"}</td>
-                  <td className="px-4 py-3 font-semibold">{formatEGP(Number(p.amount ?? 0))}</td>
-                  <td className="px-4 py-3">
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${statusTone(p.status)}`}>{p.status}</span>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{new Date(p.created_at).toLocaleString()}</td>
-                  <td className="px-4 py-3">
-                    {p.proof_path ? (
-                      <button onClick={() => openProof(p.proof_path)} className="focus-ring inline-flex items-center gap-1 text-xs font-semibold text-brand">
-                        <Eye className="h-3.5 w-3.5" /> {t("admin.payments.view")}
-                      </button>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Link
-                      to={adminPath("/admin/bookings") as "/admin/bookings"}
-                      className="focus-ring inline-flex items-center gap-1 text-xs font-semibold text-brand"
-                    >
-                      {t("admin.payments.openBookings")} <ExternalLink className="h-3.5 w-3.5" />
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <p className="text-xs text-muted-foreground">{t("adminOps.noProof")}</p>
+      )}
+      {reviewable ? (
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <button
+              className={`${adminControl} bg-brand text-brand-foreground`}
+              disabled={busy || p.booking?.status !== "completed" || !p.proof_path}
+              onClick={() => setAction("confirm")}
+            >
+              {t("adminOps.confirmTransfer")}
+            </button>
+            <button className={adminControl} disabled={busy} onClick={() => setAction("reject")}>
+              {t("adminOps.rejectReason")}
+            </button>
+          </div>
+          {p.booking?.status !== "completed" && (
+            <p className="text-xs text-muted-foreground">{t("adminOps.completedOnly")}</p>
+          )}
         </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">{t("adminOps.readOnlyPayment")}</p>
+      )}
+      {action === "confirm" && reviewable && (
+        <div
+          role="group"
+          aria-label={t("adminOps.confirmQuestion")}
+          className="space-y-2 rounded-xl bg-muted p-3"
+        >
+          <p className="font-bold">{t("adminOps.confirmQuestion")}</p>
+          <p className="text-xs">{t("adminOps.confirmHint")}</p>
+          <div className="flex gap-2">
+            <button
+              className={adminControl}
+              disabled={busy || p.booking?.status !== "completed" || !p.proof_path}
+              onClick={() =>
+                capture.mutate(
+                  { paymentId: p.id, bookingId: p.booking_id },
+                  { onSuccess: success, onError: failure },
+                )
+              }
+            >
+              {t("common.confirm")}
+            </button>
+            <button className={adminControl} disabled={busy} onClick={() => setAction(null)}>
+              {t("common.cancel")}
+            </button>
+          </div>
+        </div>
+      )}
+      {action === "reject" && reviewable && (
+        <AdminReasonSheet
+          title={t("adminOps.rejectReason")}
+          description={t("adminOps.confirmHint")}
+          busy={busy}
+          onClose={() => setAction(null)}
+          onConfirm={(reason) =>
+            reject.mutate(
+              { paymentId: p.id, bookingId: p.booking_id, reason },
+              { onSuccess: success, onError: failure },
+            )
+          }
+        />
+      )}
+    </li>
+  );
+}
+export function AdminPayments({ search }: { search: { status?: string; statuses?: string } }) {
+  const { t } = useTranslation();
+  const [status, setStatus] = useState(search.statuses || search.status || "pending_review");
+  const [query, setQuery] = useState("");
+  const q = useAdminPayments(status.includes(",") ? status.split(",") : status || undefined);
+  const rows = [...(q.data ?? [])]
+    .filter((p: any) => matchesBooking({ ...p.booking, id: p.booking_id }, query))
+    .sort(
+      (a: any, b: any) =>
+        Number(canReviewTransfer(b)) - Number(canReviewTransfer(a)) ||
+        Date.parse(a.created_at) - Date.parse(b.created_at),
+    );
+  return (
+    <div className={adminScreen}>
+      <h1 className="text-xl font-bold">{t("admin.layout.nav.payments")}</h1>
+      <h2 className="font-bold">{t("adminOps.pendingTransfers")}</h2>
+      <p className="text-sm text-muted-foreground">{t("adminOps.transferHint")}</p>
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder={t("adminOps.search")}
+        aria-label={t("adminOps.search")}
+        className="min-h-11 w-full rounded-xl border bg-surface px-3 text-sm"
+      />
+      <div className="flex flex-wrap gap-2">
+        {["", ...paymentStatuses].map((s) => (
+          <button
+            key={s}
+            className={`${adminControl} ${status === s ? "bg-brand text-brand-foreground" : ""}`}
+            aria-pressed={status === s}
+            onClick={() => setStatus(s)}
+          >
+            {t(s ? `adminOps.status.${s}` : "adminOps.allPayments")}
+          </button>
+        ))}
+      </div>
+      {q.isLoading ? (
+        <p>{t("adminOps.loading")}</p>
+      ) : q.isError ? (
+        <AdminQueryError message={t("adminOps.loadError")} onRetry={() => q.refetch()} />
+      ) : !rows.length ? (
+        <p>{t("admin.payments.noResults")}</p>
+      ) : (
+        <ul className="grid gap-4 lg:grid-cols-2">
+          {rows.map((p: any) => (
+            <PaymentCard key={p.id} payment={p} />
+          ))}
+        </ul>
       )}
     </div>
   );
 }
-
 function AdminPaymentsRoute() {
-  const search = Route.useSearch();
-  return <AdminPayments search={search} />;
+  return <AdminPayments search={Route.useSearch()} />;
 }

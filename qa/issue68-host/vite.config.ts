@@ -16,6 +16,9 @@ export default defineConfig({
   plugins: [react(), tailwindcss(), issue68MockPlugin(repoRoot)],
   resolve: {
     alias: {
+      "@/lib/paymob.functions": path.join(hostDir, "paymob.functions.stub.ts"),
+      "@tanstack/react-start/server": path.join(hostDir, "tanstack-start-server.stub.ts"),
+      "@tanstack/react-start": path.join(hostDir, "tanstack-start.stub.ts"),
       "@": path.join(repoRoot, "src"),
     },
   },

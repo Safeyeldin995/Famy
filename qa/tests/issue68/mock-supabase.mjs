@@ -47,9 +47,25 @@ function isLocalUrl(url) {
  * @param {{
  *   providerDelayMs?: number;
  *   snapshotDelayMs?: number;
+ *   zonesDelayMs?: number;
  *   lang?: "en" | "ar";
+ *   scenario?:
+ *     | "default"
+ *     | "returning"
+ *     | "new-provider"
+ *     | "saved-data-error"
+ *     | "admin-services-catalog"
+ *     | "family-members-populated"
+ *     | "family-members-empty";
+ *   adminCatalogToggleFail?: boolean;
  * }} [options]
  */
+function isImageCdn(url) {
+  return (
+    url.includes("picsum.photos") || url.includes("pravatar.cc") || url.includes("i.pravatar.cc")
+  );
+}
+
 export async function installIssue68Mocks(page, options = {}) {
   const blockedExternal = [];
   const lang = options.lang === "ar" ? "ar" : "en";
@@ -58,6 +74,13 @@ export async function installIssue68Mocks(page, options = {}) {
     data: {
       snapshotDelayMs: options.snapshotDelayMs ?? 0,
       providerDelayMs: options.providerDelayMs ?? 0,
+      zonesDelayMs: options.zonesDelayMs ?? 0,
+      scenario: options.scenario ?? "default",
+      adminApprovalScenario: options.adminApprovalScenario ?? "legacy",
+      adminReviewDelayMs: options.adminReviewDelayMs ?? 0,
+      adminApproveReject: options.adminApproveReject ?? null,
+      adminDocumentReviewFail: options.adminDocumentReviewFail ?? null,
+      adminCatalogToggleFail: options.adminCatalogToggleFail === true,
     },
   });
 
@@ -75,6 +98,17 @@ export async function installIssue68Mocks(page, options = {}) {
       await route.continue();
       return;
     }
+    if (isImageCdn(url)) {
+      await route.fulfill({
+        status: 200,
+        contentType: "image/jpeg",
+        body: Buffer.from(
+          "/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxAQEBUQEBAVFRUVFRUVFRUVFRUVFRUWFxUVFRUYHSggGBolGxUVITEhJSkrLi4uFx8zODMtNygtLisBCgoKDg0OGxAQGy0lHyUtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAAEAAQMBIgACEQEDEQH/xAAXAAEBAQEAAAAAAAAAAAAAAAAAAQID/8QAFhEBAQEAAAAAAAAAAAAAAAAAAAER/9oADAMBAAIQAxAAAAG6P//Z",
+          "base64",
+        ),
+      });
+      return;
+    }
     blockedExternal.push(url);
     await route.abort("blockedbyclient");
   });
@@ -83,6 +117,12 @@ export async function installIssue68Mocks(page, options = {}) {
     getBlockedExternal: () => [...blockedExternal],
     async getCalls() {
       return page.request.get("/__issue68/calls").then((res) => res.json());
+    },
+    async setSnapshot(patch) {
+      const res = await page.request.post("/__issue68/snapshot", { data: patch });
+      if (!res.ok()) {
+        throw new Error(`issue68 snapshot override failed: ${res.status()}`);
+      }
     },
     async getNetwork() {
       return page.request.get("/__issue68/network").then((res) => res.json());
@@ -127,6 +167,14 @@ export async function openExperienceStep(page, impl = "current", lang = "en") {
   const experienceName = lang === "ar" ? "الخبرة" : "Experience";
   await page.getByRole("button", { name: experienceName, exact: true }).click();
   await page.locator('input[type="number"]').first().waitFor({ state: "visible", timeout: 15_000 });
+}
+
+export async function gotoProOnboardingRoute(page) {
+  await page.goto("/pro/onboarding");
+}
+
+export async function openOnboardingStep(page, name) {
+  await page.getByRole("button", { name, exact: true }).click();
 }
 
 export const QA_AVATAR_JPEG = Buffer.from(

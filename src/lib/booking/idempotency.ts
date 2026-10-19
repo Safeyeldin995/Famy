@@ -13,6 +13,10 @@ export type BookingSubmissionPayload = {
   promo_code_id?: string | null;
   notes?: string | null;
   requirement_selections?: BookingRequirementSelection[] | null;
+  teaching_capability_id?: string | null;
+  teaching_subject_code?: string | null;
+  teaching_curriculum_code?: string | null;
+  teaching_level_code?: string | null;
 };
 
 export type IdempotencyKeyState = {
@@ -48,6 +52,10 @@ export function bookingSubmissionFingerprint(payload: BookingSubmissionPayload):
     promo_code_id: payload.promo_code_id ?? null,
     notes: normalizeOptionalText(payload.notes),
     requirement_selections: normalizeRequirementSelections(payload.requirement_selections),
+    teaching_capability_id: payload.teaching_capability_id ?? null,
+    teaching_subject_code: normalizeOptionalText(payload.teaching_subject_code),
+    teaching_curriculum_code: normalizeOptionalText(payload.teaching_curriculum_code),
+    teaching_level_code: normalizeOptionalText(payload.teaching_level_code),
   };
   return JSON.stringify(normalized);
 }

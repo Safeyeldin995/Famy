@@ -169,11 +169,7 @@ function clearRecaptchaVerifier(): void {
 }
 
 function isRecaptchaVerifierBoundToContainer(container: HTMLElement): boolean {
-  return (
-    !!recaptchaVerifier &&
-    recaptchaContainer === container &&
-    document.contains(container)
-  );
+  return !!recaptchaVerifier && recaptchaContainer === container && document.contains(container);
 }
 
 export async function ensureInvisibleRecaptcha(containerId = "firebase-recaptcha"): Promise<void> {
@@ -200,12 +196,54 @@ export async function sendFirebasePhoneOtp(
   const containerId = options.containerId ?? "firebase-recaptcha";
   const auth = getFirebaseAuthApp();
   auth.languageCode = resolveFirebaseAuthLanguage(options.languageCode);
-  await ensureInvisibleRecaptcha(containerId);
-  if (!recaptchaVerifier) {
-    throw new Error("Firebase reCAPTCHA is not ready");
+  try {
+    await withSendTimeout(
+      (async () => {
+        await ensureInvisibleRecaptcha(containerId);
+        if (!recaptchaVerifier) {
+          throw new Error("Firebase reCAPTCHA is not ready");
+        }
+        confirmationResult = await signInWithPhoneNumber(auth, phoneE164, recaptchaVerifier);
+        persistVerificationId(confirmationResult.verificationId);
+      })(),
+    );
+  } catch (error) {
+    // A stuck or dismissed reCAPTCHA must not block the next attempt.
+    clearRecaptchaVerifier();
+    throw error;
   }
-  confirmationResult = await signInWithPhoneNumber(auth, phoneE164, recaptchaVerifier);
-  persistVerificationId(confirmationResult.verificationId);
+}
+
+/** Thrown when reCAPTCHA or the SMS request never settles. */
+export class FirebaseSendTimeoutError extends Error {
+  readonly code = "auth/famy-send-timeout";
+  constructor() {
+    super("Firebase phone OTP send timed out");
+    this.name = "FirebaseSendTimeoutError";
+  }
+}
+
+const FIREBASE_SEND_TIMEOUT_MS = 45000;
+
+// An invisible reCAPTCHA challenge that is closed or never loads leaves
+// signInWithPhoneNumber pending forever; the screen must not stay on "Sending".
+function withSendTimeout<T>(promise: Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new FirebaseSendTimeoutError()),
+      FIREBASE_SEND_TIMEOUT_MS,
+    );
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
 }
 
 async function completeFirebasePhoneVerification(code: string): Promise<string> {

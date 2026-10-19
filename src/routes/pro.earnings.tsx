@@ -1,14 +1,57 @@
+import { WorkMoney } from "@/components/provider/WorkMoney";
+import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
+import { formatDate } from "@/lib/format";
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ProviderShell } from "@/components/famio/ProviderShell";
-import { ProviderPageHero } from "@/components/famio/ProviderPageHero";
+import { PageHeader } from "@/components/famio/PageHeader";
 import { Card } from "@/components/famio/ui";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { useMyProvider, useProviderBookings, useProviderEarnings } from "@/lib/db/provider-queries";
+import {
+  earningsHeadlineKind,
+  isCommissionSnapshotted,
+  providerBookingValue,
+  type EarningsBucket,
+} from "@/lib/earnings/aggregateProviderEarnings";
 import { formatEGP } from "@/lib/utils";
-import { TrendingUp, CheckCircle2, Clock4 } from "lucide-react";
 
 export const Route = createFileRoute("/pro/earnings")({ component: EarningsPage });
+
+function SplitAmounts({
+  bucket,
+  hasNet,
+  hasBookingValue,
+}: {
+  bucket: EarningsBucket | undefined;
+  hasNet: boolean;
+  hasBookingValue: boolean;
+}) {
+  const { t } = useTranslation();
+  const kind = earningsHeadlineKind(hasNet, hasBookingValue);
+  const net = bucket?.net ?? 0;
+  const bookingValue = bucket?.bookingValue ?? 0;
+  return (
+    <div className="mt-2 space-y-2">
+      {kind !== "bookingValue" && (
+        <div>
+          <div className="text-pro-12 text-muted-foreground">{t("pro.earnings.yourNet")}</div>
+          <WorkMoney amount={net} />
+        </div>
+      )}
+      {(kind === "bookingValue" || kind === "mixed") && (
+        <div>
+          {kind === "mixed" && (
+            <div className="text-pro-12 text-muted-foreground">
+              {t("proFinalPolish.beforeCommission")}
+            </div>
+          )}
+          <WorkMoney amount={bookingValue} />
+        </div>
+      )}
+    </div>
+  );
+}
 
 function EarningsPage() {
   const { t } = useTranslation();
@@ -18,65 +61,142 @@ function EarningsPage() {
   const provider = p.data as any;
   const e = useProviderEarnings(provider?.id);
   const bookingsQ = useProviderBookings(provider?.id);
-  const completed = (bookingsQ.data ?? []).filter((b: any) => b.status === "completed")
-    .sort((a: any, b: any) => +new Date(b.start_at) - +new Date(a.start_at)).slice(0, 20);
+  const completed = (bookingsQ.data ?? [])
+    .filter((b: any) => b.status === "completed")
+    .sort((a: any, b: any) => +new Date(b.start_at) - +new Date(a.start_at))
+    .slice(0, 20);
+
+  const capturedKind = earningsHeadlineKind(
+    e.data?.hasSnapshottedCaptured ?? false,
+    e.data?.hasUnsnapshottedCaptured ?? false,
+  );
+
+  const heroAmount =
+    capturedKind === "bookingValue"
+      ? (e.data?.captured.bookingValue ?? 0)
+      : (e.data?.captured.net ?? 0);
+
+  const hasUnrecordedCommission =
+    e.data?.hasUnsnapshottedCaptured ||
+    e.data?.hasUnsnapshottedUpcoming ||
+    completed.some((b: any) => !isCommissionSnapshotted(b));
 
   return (
     <ProviderShell>
-      <ProviderPageHero title={t("pro.earnings.title")} compact />
-
-      <div className="space-y-5 px-5 pb-28 pt-2">
-        <div className="flex flex-col justify-between rounded-[1.25rem] bg-brand p-5 text-brand-foreground shadow-sm">
-          <div>
-            <div className="text-sm font-bold opacity-80 uppercase tracking-widest">{t("pro.earnings.totalEarned")}</div>
-            <div className="mt-2 text-[2.5rem] font-black leading-none">{formatEGP(e.data?.total ?? 0)}</div>
-          </div>
-          <div className="mt-6 flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-white/40" />
-            <div className="text-xs font-bold opacity-90">{t("pro.earnings.fromCompleted", { count: e.data?.completedCount ?? 0 })}</div>
-          </div>
-        </div>
-
+      <PageHeader title={t("pro.earnings.title")} />
+      <div className="space-y-3 px-5 pb-6 pt-2">
+        {hasUnrecordedCommission && (
+          <p className="text-pro-12 text-muted-foreground">{t("pro.earnings.bookingValue")}</p>
+        )}
+        <section className="rounded-2xl bg-brand p-5 text-brand-foreground">
+          <h2 className="mb-2 text-pro-18 font-extrabold">{t("proRound2.paid")}</h2>
+          {capturedKind !== "bookingValue" && (
+            <p className="text-pro-14 font-bold">{t("pro.earnings.yourNet")}</p>
+          )}
+          <p className="mt-2 whitespace-nowrap text-pro-32 font-extrabold">
+            {formatEGP(heroAmount)}
+          </p>
+          {capturedKind === "mixed" && (
+            <p className="mt-2 text-pro-13">
+              {t("proFinalPolish.beforeCommission")}:{" "}
+              <span className="whitespace-nowrap font-bold">
+                {formatEGP(e.data?.captured.bookingValue ?? 0)}
+              </span>
+            </p>
+          )}
+          <p className="mt-2 text-pro-12">
+            {t("pro.earnings.fromCompleted", { count: e.data?.completedCount ?? 0 })}
+          </p>
+        </section>
         <div className="grid grid-cols-2 gap-3">
-          <Card className="p-5">
-            <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground"><TrendingUp className="h-4 w-4" /> {t("pro.earnings.thisMonth")}</div>
-            <div className="mt-3 text-2xl font-black text-foreground">{formatEGP(e.data?.mtd ?? 0)}</div>
+          <Card className="min-w-0 p-3">
+            <h2 className="text-pro-13 font-bold">{t("proWork.thisMonth")}</h2>
+            <SplitAmounts
+              bucket={e.data?.mtd}
+              hasNet={(e.data?.mtd.net ?? 0) > 0}
+              hasBookingValue={(e.data?.mtd.bookingValue ?? 0) > 0}
+            />
           </Card>
-          <Card className="p-5">
-            <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground"><Clock4 className="h-4 w-4" /> {t("pro.earnings.last7")}</div>
-            <div className="mt-3 text-2xl font-black text-foreground">{formatEGP(e.data?.last7 ?? 0)}</div>
+          <Card className="min-w-0 p-3">
+            <h2 className="text-pro-13 font-bold">{t("proWork.last7")}</h2>
+            <SplitAmounts
+              bucket={e.data?.last7}
+              hasNet={(e.data?.last7.net ?? 0) > 0}
+              hasBookingValue={(e.data?.last7.bookingValue ?? 0) > 0}
+            />
           </Card>
         </div>
-
-        <Card className="p-5">
-          <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground"><CheckCircle2 className="h-4 w-4" /> {t("pro.earnings.upcomingPipeline")}</div>
-          <div className="mt-3 text-2xl font-black text-foreground">{formatEGP(e.data?.upcomingPipeline ?? 0)}</div>
-          <div className="mt-1 text-[11px] font-medium text-muted-foreground">{t("pro.earnings.upcomingPipelineSub")}</div>
+        <Card className="p-3">
+          <h2 className="text-pro-13 font-bold">{t("proRound2.upcomingWork")}</h2>
+          <SplitAmounts
+            bucket={e.data?.upcoming}
+            hasNet={e.data?.hasSnapshottedUpcoming ?? false}
+            hasBookingValue={e.data?.hasUnsnapshottedUpcoming ?? false}
+          />
+          <p className="mt-1 text-pro-12 text-muted-foreground">
+            {t("proRound2.upcomingWorkCaption")}
+          </p>
         </Card>
-
-        <div>
-          <h2 className="mb-3 px-1 text-sm font-extrabold tracking-tight text-foreground">{t("pro.earnings.recentPayouts")}</h2>
+        {hasUnrecordedCommission && (
+          <p className="text-pro-12 text-muted-foreground">
+            {t("proFinalPolish.summaryCommission")}
+          </p>
+        )}
+        <section>
+          <h2 className="mb-2 text-pro-14 font-extrabold">{t("pro.earnings.recentPayouts")}</h2>
           {completed.length === 0 ? (
-            <div className="rounded-[2rem] border border-dashed border-border/60 p-8 text-center">
-              <p className="text-sm font-bold text-muted-foreground">{t("pro.earnings.noPayoutsBody")}</p>
-            </div>
+            <p className="py-6 text-center text-pro-14 text-muted-foreground">
+              {t("pro.earnings.noPayoutsBody")}
+            </p>
           ) : (
-            <Card className="divide-y divide-border/50 noPad">
+            <div className="divide-y divide-border/50 rounded-2xl bg-surface px-3">
               {completed.map((b: any) => {
-                const sname = lang === "ar" ? (b.service?.name_ar ?? b.service?.name_en) : (b.service?.name_en ?? b.service?.name_ar);
+                const name = b.customer?.full_name || t("pro.common.customer");
+                const sname =
+                  lang === "ar"
+                    ? (b.service?.name_ar ?? b.service?.name_en)
+                    : (b.service?.name_en ?? b.service?.name_ar);
+                const snapshotted = isCommissionSnapshotted(b);
+                const bookingValue = providerBookingValue(b);
                 return (
-                  <div key={b.id} className="flex items-center justify-between px-5 py-4">
-                    <div className="min-w-0">
-                      <div className="truncate text-base font-extrabold text-foreground">{b.customer?.full_name || t("pro.common.customer")}</div>
-                      <div className="mt-0.5 text-xs font-bold text-muted-foreground">{sname} · {new Date(b.start_at).toLocaleDateString(dateLoc)}</div>
+                  <div key={b.id} className="flex items-center gap-3 py-3">
+                    <ProfileAvatar
+                      src={b.customer?.avatar_url}
+                      name={name}
+                      className="h-11 w-11 rounded-full"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-pro-14 font-bold">{name}</p>
+                      <p className="mt-1 text-pro-12 text-muted-foreground">
+                        {sname} ·{" "}
+                        {formatDate(
+                          new Date(b.start_at),
+                          { day: "numeric", month: "short" },
+                          dateLoc,
+                        )}
+                      </p>
+                      {!snapshotted && (
+                        <p className="mt-1 text-pro-12 text-muted-foreground">
+                          {t("pro.earnings.commissionUnrecorded")}
+                        </p>
+                      )}
                     </div>
-                    <div className="text-base font-black text-foreground">{formatEGP(Number(b.price_total ?? 0))}</div>
+                    <div className="shrink-0 text-end">
+                      <p className="whitespace-nowrap text-pro-14 font-extrabold">
+                        {formatEGP(snapshotted ? Number(b.price_provider_net) : bookingValue)}
+                      </p>
+                      {snapshotted && (
+                        <p className="text-pro-12 text-muted-foreground">
+                          {t("pro.earnings.yourNet")}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 );
               })}
-            </Card>
+            </div>
           )}
-        </div>
+        </section>
       </div>
     </ProviderShell>
   );

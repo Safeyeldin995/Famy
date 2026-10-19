@@ -71,6 +71,7 @@ function createMockSupabase(initialPayment: PaymentRecord) {
             paymob_intention_id: args.p_intention_id,
             paymob_checkout_url: args.p_checkout_url,
             paymob_checkout_started_at: new Date().toISOString(),
+            ...((args.p_extra_metadata as Record<string, unknown> | undefined) ?? {}),
           };
           delete payment.metadata.paymob_checkout_reservation;
           return { data: null, error: null };
@@ -153,6 +154,7 @@ vi.mock("../paymobApi.server", async (importOriginal) => {
         checkoutUrl: `https://accept.paymob.com/unifiedcheckout/?publicKey=test&clientSecret=${intentionId}`,
         intentionId,
         clientSecret: intentionId,
+        orderId: `order-${input.specialReference}`,
       };
     }),
   };
@@ -206,6 +208,7 @@ describe("createPaymobCheckoutForPayment concurrency", () => {
 
     expect(reused.checkoutUrl).toBe(first.checkoutUrl);
     expect(mock.payment.metadata.paymob_intention_id).toBe("intent-pay-1");
+    expect(mock.payment.metadata.paymob_order_id).toBe("order-pay-1");
   });
 
   it("releases the reservation when Paymob explicitly rejects the intention request, allowing an immediate retry", async () => {

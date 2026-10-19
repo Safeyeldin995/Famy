@@ -1,21 +1,33 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { ProviderRequestCard } from "@/components/provider/ProviderRequestCard";
+import { WorkMoney } from "@/components/provider/WorkMoney";
+import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
+import { formatDate, formatTime } from "@/lib/format";
+import { ProviderPendingHome } from "@/components/provider/ProviderPendingHome";
+import { isPreviewRoute, PREVIEW_NOW_ISO } from "@/lib/preview/constants";
+import { createFileRoute, Link, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ProviderShell } from "@/components/famio/ProviderShell";
-import { ProviderPageHero } from "@/components/famio/ProviderPageHero";
-import { ProviderFloatingPanel } from "@/components/famio/ProviderFloatingPanel";
+import { PageHeader } from "@/components/famio/PageHeader";
 import { ProviderSectionHeader } from "@/components/famio/ProviderSectionHeader";
-import { EmptyState, Avatar } from "@/components/famio/ui";
+import { EmptyState } from "@/components/famio/ui";
 import { useLang } from "@/components/famio/LanguageToggle";
-import { useMyProvider, useProviderBookings, useProviderEarnings, useProUnreadNotificationCount } from "@/lib/db/provider-queries";
+import {
+  useMyProvider,
+  useProviderBookings,
+  useProviderEarnings,
+  useProUnreadNotificationCount,
+} from "@/lib/db/provider-queries";
 import { formatEGP, BOOKING_ACTIVE_STATUSES } from "@/lib/utils";
+import { earningsHeadlineKind } from "@/lib/earnings/aggregateProviderEarnings";
 import type { ReactNode } from "react";
-import { Bell, ShieldCheck, Star, TrendingUp, Plane, AlertCircle } from "lucide-react";
+import { Bell, Star, Plane, AlertCircle } from "lucide-react";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
-import { proPath } from "@/lib/preview/previewPath";
+import { useProPath } from "@/lib/provider/useProPath";
 
 export const Route = createFileRoute("/pro/")({ component: ProDashboard });
 
 function ProDashboard() {
+  const proPath = useProPath();
   const { t } = useTranslation();
   const lang = useLang();
   const dateLoc = lang === "ar" ? "ar-EG" : "en-US";
@@ -28,62 +40,111 @@ function ProDashboard() {
 
   const all = bookingsQ.data ?? [];
   const pending = all.filter((b: any) => b.status === "pending");
-  const today = new Date();
+  const preview = useRouterState({ select: (state) => isPreviewRoute(state.location.pathname) });
+  const today = preview ? new Date(PREVIEW_NOW_ISO) : new Date();
   const upcoming = all
     .filter(
       (b: any) =>
-        BOOKING_ACTIVE_STATUSES.includes(b.status) && new Date(b.start_at) >= new Date(today.toDateString()),
+        BOOKING_ACTIVE_STATUSES.includes(b.status) &&
+        new Date(b.start_at) >= new Date(today.toDateString()),
     )
     .sort((a: any, b: any) => +new Date(a.start_at) - +new Date(b.start_at))
     .slice(0, 3);
 
-  const trust = provider?.trust?.[0]?.score ?? provider?.trust?.score;
+  const mtdNet = earningsQ.data?.mtd.net ?? 0;
+  const mtdBookingValue = earningsQ.data?.mtd.bookingValue ?? 0;
+  const mtdKind = earningsHeadlineKind(mtdNet > 0, mtdBookingValue > 0);
   const rating = provider?.ratings?.[0]?.rating_avg ?? provider?.ratings?.rating_avg;
+
+  if (
+    !isPreviewRoute() &&
+    ["SUBMITTED", "UNDER_REVIEW", "NEEDS_CHANGES"].includes(provider?.onboarding_status)
+  ) {
+    return (
+      <ProviderShell>
+        <ProviderPendingHome
+          providerId={provider?.id}
+          changesRequested={provider?.onboarding_status === "NEEDS_CHANGES"}
+          reviewReason={provider?.review_reason_public}
+        />
+      </ProviderShell>
+    );
+  }
 
   return (
     <ProviderShell>
-      <ProviderPageHero
-        title={t("pro.dashboard.title")}
-        subtitle={provider?.name}
+      <PageHeader
+        title={t("proWork.hello", {
+          name: (provider?.profile?.full_name || provider?.name || t("pro.common.customer"))
+            .trim()
+            .split(/\s+/)[0],
+        })}
         right={
-          <Link
-            to={proPath("/pro/notifications") as "/pro/notifications"}
-            className="focus-ring relative grid h-10 w-10 place-items-center rounded-xl border border-white/25 bg-white/15 text-white backdrop-blur-sm"
-          >
-            <Bell className="h-5 w-5" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
-            {unread > 0 ? (
-              <span className="absolute end-2 top-2 h-2 w-2 rounded-full bg-white ring-2 ring-brand" />
-            ) : null}
-          </Link>
+          <div className="flex items-center gap-2">
+            <ProfileAvatar
+              src={provider?.profile?.avatar_url}
+              name={provider?.profile?.full_name || provider?.name || ""}
+              className="h-11 w-11 rounded-full"
+            />
+            <Link
+              to={proPath("/pro/notifications") as "/pro/notifications"}
+              aria-label={t("notifs.title")}
+              className="focus-ring relative grid h-11 w-11 place-items-center rounded-xl border border-border bg-surface-2 text-brand"
+            >
+              <Bell className="h-5 w-5" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
+              {unread > 0 ? (
+                <span className="absolute end-2 top-2 h-2 w-2 rounded-full bg-white ring-2 ring-brand" />
+              ) : null}
+            </Link>
+          </div>
         }
       />
 
-      <div className="px-5">
-        <ProviderFloatingPanel className="grid grid-cols-2 gap-3 !p-3">
+      <div className="space-y-3 px-5">
+        <p className="text-pro-14 text-muted-foreground">
+          <b className="text-foreground">{t("proWork.today")}</b> ·{" "}
+          {upcoming[0] ? (
+            <Link
+              className="font-bold text-brand"
+              to={proPath("/pro/booking/$id") as "/pro/booking/$id"}
+              params={{ id: upcoming[0].id }}
+            >
+              {t("proWork.nextJob")}:{" "}
+              {formatDate(new Date(upcoming[0].start_at), { day: "numeric", month: "short" }, lang)}{" "}
+              · {formatTime(new Date(upcoming[0].start_at), lang)}
+            </Link>
+          ) : (
+            t("proWork.noJobToday")
+          )}
+        </p>
+        <div className="grid grid-cols-2 gap-3">
           <Link
             to={proPath("/pro/earnings") as "/pro/earnings"}
-            className="focus-ring tap-scale rounded-[1rem] bg-brand p-4 text-brand-foreground"
+            className="focus-ring block min-w-0 rounded-2xl bg-brand p-3 text-brand-foreground"
           >
-            <div className="flex items-center gap-1.5 text-[11px] font-bold opacity-90">
-              <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" />
-              {t("pro.dashboard.earningsMtd")}
+            <div className="whitespace-nowrap text-pro-12 font-bold">
+              {mtdKind === "bookingValue" ? t("proWork.monthValue") : t("proWork.monthNet")}
             </div>
-            <div className="mt-2 text-xl font-black leading-none">{formatEGP(earningsQ.data?.mtd ?? 0)}</div>
+            <div className="mt-2">
+              <WorkMoney amount={mtdKind === "bookingValue" ? mtdBookingValue : mtdNet} />
+            </div>
+            {mtdKind === "mixed" && (
+              <p className="mt-1 text-pro-12">
+                {t("proWork.monthValue")}
+                <span className="block whitespace-nowrap">{formatEGP(mtdBookingValue)}</span>
+              </p>
+            )}
           </Link>
-          <div className="rounded-[1rem] border border-border/50 bg-surface-2/80 p-4">
-            <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground">
-              <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
-              {t("pro.dashboard.trustScore")}
+          <div className="min-w-0 rounded-2xl border border-border/50 bg-surface p-3">
+            <div className="whitespace-nowrap text-pro-12 font-bold text-muted-foreground">
+              {t("proWork.rating")}
             </div>
-            <div className="mt-2 text-xl font-black leading-none text-foreground">
-              {trust ? Math.round(trust) : "—"}
-            </div>
-            <div className="mt-1 flex items-center gap-1 text-[10px] font-bold text-muted-foreground">
-              <Star className="h-3 w-3 fill-warning text-warning" aria-hidden="true" />
+            <div className="mt-2 flex items-center gap-1 text-pro-22 font-extrabold">
+              <Star className="h-4 w-4 fill-warning text-warning" aria-hidden="true" />
               {rating ? Number(rating).toFixed(2) : "—"}
             </div>
           </div>
-        </ProviderFloatingPanel>
+        </div>
       </div>
 
       <div className="mt-5 space-y-5 px-5 pb-28">
@@ -95,7 +156,7 @@ function ProDashboard() {
             action={
               <Link
                 to={proPath("/pro/availability") as "/pro/availability"}
-                className="shrink-0 rounded-full bg-brand px-3 py-2 text-[11px] font-extrabold text-brand-foreground"
+                className="shrink-0 rounded-full bg-brand px-3 py-2 text-pro-12 font-extrabold text-brand-foreground"
               >
                 {t("pro.dashboard.manage")}
               </Link>
@@ -104,8 +165,8 @@ function ProDashboard() {
         ) : null}
 
         {!provider?.is_verified &&
-          provider?.onboarding_status &&
-          ["SUBMITTED", "UNDER_REVIEW"].includes(provider.onboarding_status) ? (
+        provider?.onboarding_status &&
+        ["SUBMITTED", "UNDER_REVIEW"].includes(provider.onboarding_status) ? (
           <AlertBanner
             icon={AlertCircle}
             tone="warning"
@@ -122,8 +183,8 @@ function ProDashboard() {
             body={provider.review_reason_public ?? t("pro.onboardingWizard.changesRequired")}
             action={
               <Link
-                to={proPath("/pro/onboarding") as "/pro/onboarding"}
-                className="shrink-0 rounded-full bg-destructive px-3 py-2 text-[11px] font-extrabold text-destructive-foreground"
+                to={proPath("/pro/apply") as "/pro/apply"}
+                className="shrink-0 rounded-full bg-destructive px-3 py-2 text-pro-12 font-extrabold text-destructive-foreground"
               >
                 {t("pro.dashboard.manage")}
               </Link>
@@ -132,7 +193,7 @@ function ProDashboard() {
         ) : null}
 
         {!provider?.is_verified &&
-          (!provider?.onboarding_status || provider?.onboarding_status === "DRAFT") ? (
+        (!provider?.onboarding_status || provider?.onboarding_status === "DRAFT") ? (
           <AlertBanner
             icon={AlertCircle}
             tone="warning"
@@ -140,8 +201,8 @@ function ProDashboard() {
             body={t("pro.dashboard.verifyBody")}
             action={
               <Link
-                to={proPath("/pro/onboarding") as "/pro/onboarding"}
-                className="shrink-0 rounded-full bg-warning px-3 py-2 text-[11px] font-extrabold text-warning-foreground"
+                to={proPath("/pro/apply") as "/pro/apply"}
+                className="shrink-0 rounded-full bg-warning px-3 py-2 text-pro-12 font-extrabold text-warning-foreground"
               >
                 {t("pro.dashboard.upload")}
               </Link>
@@ -178,14 +239,7 @@ function ProDashboard() {
           ) : (
             <div className="space-y-2.5">
               {pending.slice(0, 3).map((b: any) => (
-                <BookingRow
-                  key={b.id}
-                  b={b}
-                  cta={t("pro.dashboard.review")}
-                  lang={lang}
-                  dateLoc={dateLoc}
-                  t={t}
-                />
+                <BookingRow key={b.id} b={b} request lang={lang} dateLoc={dateLoc} t={t} />
               ))}
             </div>
           )}
@@ -195,7 +249,10 @@ function ProDashboard() {
           <ProviderSectionHeader
             title={t("pro.dashboard.upcoming")}
             action={
-              <Link to={proPath("/pro/bookings") as "/pro/bookings"} className="text-xs font-extrabold text-brand">
+              <Link
+                to={proPath("/pro/bookings") as "/pro/bookings"}
+                className="text-xs font-extrabold text-brand"
+              >
                 {t("pro.common.seeAll")}
               </Link>
             }
@@ -239,7 +296,11 @@ function AlertBanner({
 
   return (
     <div className={`flex items-start gap-3 rounded-[1.25rem] border p-4 ${toneClass}`}>
-      <Icon className="mt-0.5 h-5 w-5 shrink-0 text-brand" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
+      <Icon
+        className="mt-0.5 h-5 w-5 shrink-0 text-brand"
+        strokeWidth={ICON_STROKE_BOLD}
+        aria-hidden="true"
+      />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-extrabold text-foreground">{title}</p>
         <p className="mt-0.5 text-xs font-medium text-muted-foreground">{body}</p>
@@ -251,17 +312,19 @@ function AlertBanner({
 
 function BookingRow({
   b,
-  cta,
+  request,
   lang,
   dateLoc,
   t,
 }: {
   b: any;
-  cta?: string;
+  request?: boolean;
   lang: "ar" | "en";
   dateLoc: string;
   t: any;
 }) {
+  const proPath = useProPath();
+  if (request) return <ProviderRequestCard booking={b} />;
   const start = new Date(b.start_at);
   const name = b.customer?.full_name || t("pro.common.customer");
   const serviceName =
@@ -270,29 +333,32 @@ function BookingRow({
       : (b.service?.name_en ?? b.service?.name_ar);
 
   return (
-    <Link
-      to={proPath("/pro/booking/$id") as "/pro/booking/$id"}
-      params={{ id: b.id }}
-      className="focus-ring tap-scale block rounded-[1.25rem] border border-border/50 bg-surface p-4 shadow-xs"
-    >
-      <div className="flex items-center gap-3">
-        <Avatar src={b.customer?.avatar_url} alt={name} className="h-12 w-12 shrink-0 rounded-xl" />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2">
-            <p className="truncate text-sm font-extrabold text-foreground">{name}</p>
-            <p className="text-sm font-black text-brand">{formatEGP(b.total_price)}</p>
+    <article className="overflow-hidden rounded-2xl border border-border/50 bg-surface">
+      <Link
+        to={proPath("/pro/booking/$id") as "/pro/booking/$id"}
+        params={{ id: b.id }}
+        className="focus-ring tap-scale block p-3"
+      >
+        <div className="flex items-center gap-3">
+          <ProfileAvatar
+            src={b.customer?.avatar_url}
+            name={name}
+            className="h-12 w-12 shrink-0 rounded-xl"
+          />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-2">
+              <p className="truncate text-sm font-extrabold text-foreground">{name}</p>
+              <p className="shrink-0 whitespace-nowrap text-sm font-black text-brand">
+                {formatEGP(Number(b.price_total ?? 0))}
+              </p>
+            </div>
+            <p className="mt-0.5 truncate text-xs font-medium text-muted-foreground">
+              {serviceName} ·{" "}
+              {formatDate(start, { weekday: "short", day: "numeric", month: "short" }, dateLoc)}
+            </p>
           </div>
-          <p className="mt-0.5 truncate text-xs font-medium text-muted-foreground">
-            {serviceName} ·{" "}
-            {start.toLocaleDateString(dateLoc, { weekday: "short", day: "numeric", month: "short" })}
-          </p>
-          {cta ? (
-            <span className="mt-2 inline-flex rounded-full bg-brand/10 px-2.5 py-1 text-[10px] font-extrabold text-brand">
-              {cta}
-            </span>
-          ) : null}
         </div>
-      </div>
-    </Link>
+      </Link>
+    </article>
   );
 }

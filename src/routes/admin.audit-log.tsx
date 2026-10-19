@@ -1,9 +1,19 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { adminActor } from "@/components/admin/adminPresentation";
+import { AdminPicker } from "@/components/admin/AdminPicker";
+import { AdminRelativeTime } from "@/components/admin/AdminRelativeTime";
+import { AdminLink as Link } from "@/components/admin/AdminNavigation";
+import { catalogScreen } from "@/components/admin/CatalogControls";
+import { operationDate } from "@/components/admin/operations";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useAdminAuditLogs, useAdminAuditLogEntities, type AuditLogFilters, type AuditLogRow } from "@/lib/db/admin-audit-queries";
+import {
+  useAdminAuditLogs,
+  useAdminAuditLogEntities,
+  type AuditLogFilters,
+  type AuditLogRow,
+} from "@/lib/db/admin-audit-queries";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
-import { adminPath } from "@/lib/preview/previewPath";
 
 export const Route = createFileRoute("/admin/audit-log")({ component: AdminAuditLog });
 
@@ -48,7 +58,7 @@ function actionTone(action: string) {
 }
 
 function AuditDetail({ row }: { row: AuditLogRow }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const hasOld = row.old_values && Object.keys(row.old_values).length > 0;
   const hasNew = row.new_values && Object.keys(row.new_values).length > 0;
 
@@ -63,15 +73,21 @@ function AuditDetail({ row }: { row: AuditLogRow }) {
     }
     return (
       <div dir="ltr" className="mt-3 overflow-x-auto rounded-xl border border-border/60">
-        <table className="w-full text-left text-xs">
-          <thead className="bg-surface-2 text-[10px] font-bold uppercase text-muted-foreground">
-            <tr><th className="px-3 py-2">{t("admin.auditLog.field")}</th><th className="px-3 py-2">{t("admin.auditLog.before")}</th><th className="px-3 py-2">{t("admin.auditLog.after")}</th></tr>
+        <table className="w-full text-left text-xs [&_thead]:hidden sm:[&_thead]:table-header-group [&_tbody]:block sm:[&_tbody]:table-row-group [&_tr]:block sm:[&_tr]:table-row [&_td]:block sm:[&_td]:table-cell [&_td]:break-all">
+          <thead className="bg-surface-2 text-xs font-bold uppercase text-muted-foreground">
+            <tr>
+              <th className="px-3 py-2">{t("admin.auditLog.field")}</th>
+              <th className="px-3 py-2">{t("admin.auditLog.before")}</th>
+              <th className="px-3 py-2">{t("admin.auditLog.after")}</th>
+            </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
             {changedKeys.map((k) => (
               <tr key={k}>
                 <td className="px-3 py-2 font-mono">{k}</td>
-                <td className="px-3 py-2 text-muted-foreground">{formatValue(row.old_values?.[k])}</td>
+                <td className="px-3 py-2 text-muted-foreground">
+                  {formatValue(row.old_values?.[k])}
+                </td>
                 <td className="px-3 py-2 font-semibold">{formatValue(row.new_values?.[k])}</td>
               </tr>
             ))}
@@ -81,16 +97,27 @@ function AuditDetail({ row }: { row: AuditLogRow }) {
     );
   }
 
-  const entries = row.action === "DELETE" ? sanitizedEntries(row.old_values) : sanitizedEntries(row.new_values);
+  const entries =
+    row.action === "DELETE" ? sanitizedEntries(row.old_values) : sanitizedEntries(row.new_values);
   return (
     <div dir="ltr" className="mt-3 overflow-x-auto rounded-xl border border-border/60">
-      <table className="w-full text-left text-xs">
-        <thead className="bg-surface-2 text-[10px] font-bold uppercase text-muted-foreground">
-          <tr><th className="px-3 py-2">{t("admin.auditLog.field")}</th><th className="px-3 py-2">{row.action === "DELETE" ? t("admin.auditLog.removedValue") : t("admin.auditLog.value")}</th></tr>
+      <table className="w-full text-left text-xs [&_thead]:hidden sm:[&_thead]:table-header-group [&_tbody]:block sm:[&_tbody]:table-row-group [&_tr]:block sm:[&_tr]:table-row [&_td]:block sm:[&_td]:table-cell [&_td]:break-all">
+        <thead className="bg-surface-2 text-xs font-bold uppercase text-muted-foreground">
+          <tr>
+            <th className="px-3 py-2">{t("admin.auditLog.field")}</th>
+            <th className="px-3 py-2">
+              {row.action === "DELETE"
+                ? t("admin.auditLog.removedValue")
+                : t("admin.auditLog.value")}
+            </th>
+          </tr>
         </thead>
         <tbody className="divide-y divide-border/60">
           {entries.map(([k, v]) => (
-            <tr key={k}><td className="px-3 py-2 font-mono">{k}</td><td className="px-3 py-2">{formatValue(v)}</td></tr>
+            <tr key={k}>
+              <td className="px-3 py-2 font-mono">{k}</td>
+              <td className="px-3 py-2">{formatValue(v)}</td>
+            </tr>
           ))}
         </tbody>
       </table>
@@ -98,38 +125,65 @@ function AuditDetail({ row }: { row: AuditLogRow }) {
   );
 }
 
-function AuditRow({ row, isOpen, onToggle }: { row: AuditLogRow; isOpen: boolean; onToggle: () => void }) {
-  const { t } = useTranslation();
+function AuditRow({
+  row,
+  isOpen,
+  onToggle,
+}: {
+  row: AuditLogRow;
+  isOpen: boolean;
+  onToggle: () => void;
+}) {
+  const { t, i18n } = useTranslation();
   return (
-    <li className="px-5 py-4">
-      <button onClick={onToggle} className="focus-ring flex w-full flex-wrap items-start justify-between gap-3 text-start">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <span dir="ltr" className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${actionTone(row.action)}`}>{row.action}</span>
-            <span className="text-sm font-bold">{row.entity}</span>
-            <span dir="ltr" className="font-mono text-[11px] text-muted-foreground">{row.entity_id?.slice(0, 8)}</span>
-          </div>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            {new Date(row.created_at).toLocaleString()} · {row.actor_name ?? t("admin.auditLog.system")} {row.actor_role ? `(${row.actor_role})` : ""}
+    <li className="p-4">
+      <p className="text-sm font-semibold">
+        {adminActor(row.actor_name, i18n.language)} ·{" "}
+        {t(`adminCatalog.auditActions.${row.action}`, {
+          defaultValue: t("adminCatalog.auditActions.other"),
+        })}{" "}
+        {t(`adminCatalog.entities.${row.entity}`, {
+          defaultValue: t("adminCatalog.entities.other"),
+        })}
+      </p>
+      <p
+        className="mt-1 text-xs text-muted-foreground"
+        title={operationDate(row.created_at, i18n.language)}
+      >
+        <AdminRelativeTime value={row.created_at} />
+      </p>
+      <button
+        onClick={onToggle}
+        aria-expanded={isOpen}
+        className="mt-2 min-h-11 rounded-xl border px-3 font-semibold"
+      >
+        {t("admin.auditLog.details")}
+      </button>
+      {isOpen && (
+        <div className="break-words">
+          <p className="text-xs">{operationDate(row.created_at, i18n.language)}</p>
+          <p dir="ltr" className="break-all text-xs">
+            {row.entity} · {row.entity_id}
           </p>
-          {row.reason && <p className="mt-1 text-xs italic text-muted-foreground">"{row.reason}"</p>}
-        </div>
-        <div className="flex shrink-0 flex-col items-end gap-1 text-[11px]">
+          {row.reason && <p>{row.reason}</p>}
           {row.booking && (
-            <Link to={adminPath("/admin/bookings") as "/admin/bookings"} search={{ status: row.booking.status }} onClick={(e) => e.stopPropagation()} className="font-semibold text-brand hover:underline">
-              {t("admin.auditLog.booking")} <span dir="ltr">{row.booking_id?.slice(0, 8)}</span>
+            <Link
+              to={"/admin/bookings" as "/admin/bookings"}
+              search={{ status: row.booking.status }}
+              className="inline-flex min-h-11 items-center text-brand"
+            >
+              {t("admin.auditLog.booking")}
             </Link>
           )}
-          <span className="text-muted-foreground">{isOpen ? t("admin.auditLog.hide") : t("admin.auditLog.details")}</span>
+          <AuditDetail row={row} />
         </div>
-      </button>
-      {isOpen && <AuditDetail row={row} />}
+      )}
     </li>
   );
 }
 
 function AdminAuditLog() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [filters, setFilters] = useState<AuditLogFilters>({});
   const [page, setPage] = useState(0);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -147,29 +201,41 @@ function AdminAuditLog() {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
-    <div className="px-5 py-5 space-y-4">
+    <div className={catalogScreen}>
       <div>
-        <h1 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">{t("admin.layout.nav.auditLog")}</h1>
+        <h1 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+          {t("admin.layout.nav.auditLog")}
+        </h1>
         <p className="text-xs text-muted-foreground">{t("admin.auditLog.subtitle")}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
-        <select
+        <AdminPicker
           value={filters.action ?? ""}
           onChange={(e) => setFilter({ action: e.target.value || undefined })}
           className="focus-ring h-10 rounded-xl border border-border bg-surface px-3 text-sm"
         >
           <option value="">{t("admin.auditLog.allActions")}</option>
-          {(metaQ.data?.actions ?? []).map((a) => <option key={a} value={a}>{a}</option>)}
-        </select>
-        <select
+          {(metaQ.data?.actions ?? []).map((a) => (
+            <option key={a} value={a}>
+              {t(`adminCatalog.auditActions.${a}`, {
+                defaultValue: t("adminCatalog.auditActions.other"),
+              })}
+            </option>
+          ))}
+        </AdminPicker>
+        <AdminPicker
           value={filters.entity ?? ""}
           onChange={(e) => setFilter({ entity: e.target.value || undefined })}
           className="focus-ring h-10 rounded-xl border border-border bg-surface px-3 text-sm"
         >
           <option value="">{t("admin.auditLog.allEntities")}</option>
-          {(metaQ.data?.entities ?? []).map((en) => <option key={en} value={en}>{en}</option>)}
-        </select>
+          {(metaQ.data?.entities ?? []).map((en) => (
+            <option key={en} value={en}>
+              {t(`adminCatalog.entities.${en}`, { defaultValue: t("adminCatalog.entities.other") })}
+            </option>
+          ))}
+        </AdminPicker>
         <div className="flex h-10 items-center gap-1.5 rounded-xl border border-border bg-surface px-2">
           <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           <input
@@ -206,19 +272,30 @@ function AdminAuditLog() {
         <input
           type="date"
           aria-label={t("admin.auditLog.dateFrom")}
-          onChange={(e) => setFilter({ dateFrom: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
+          onChange={(e) =>
+            setFilter({
+              dateFrom: e.target.value ? new Date(e.target.value).toISOString() : undefined,
+            })
+          }
           className="focus-ring h-10 rounded-xl border border-border bg-surface px-3 text-sm"
         />
       </div>
 
       {q.isLoading ? (
         <div className="space-y-2">
-          {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-16 animate-pulse rounded-2xl bg-muted" />)}
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-16 animate-pulse rounded-2xl bg-muted" />
+          ))}
         </div>
       ) : q.isError ? (
         <div className="flex items-center gap-3 rounded-2xl border border-coral/30 bg-coral/5 p-4 text-sm text-coral">
           {t("admin.auditLog.loadError")}
-          <button onClick={() => q.refetch()} className="focus-ring ms-auto rounded-lg border border-coral px-3 py-1 text-xs font-bold">{t("admin.operations.retry")}</button>
+          <button
+            onClick={() => q.refetch()}
+            className="focus-ring ms-auto rounded-lg border border-coral px-3 py-1 text-xs font-bold"
+          >
+            {t("admin.operations.retry")}
+          </button>
         </div>
       ) : (q.data?.rows.length ?? 0) === 0 ? (
         <p className="text-sm text-muted-foreground">{t("admin.auditLog.noResults")}</p>
@@ -226,7 +303,12 @@ function AdminAuditLog() {
         <>
           <ul className="divide-y divide-border/60 rounded-2xl border border-border/60 bg-surface shadow-sm">
             {q.data!.rows.map((row) => (
-              <AuditRow key={row.id} row={row} isOpen={expanded === row.id} onToggle={() => setExpanded(expanded === row.id ? null : row.id)} />
+              <AuditRow
+                key={row.id}
+                row={row}
+                isOpen={expanded === row.id}
+                onToggle={() => setExpanded(expanded === row.id ? null : row.id)}
+              />
             ))}
           </ul>
           <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -234,14 +316,24 @@ function AdminAuditLog() {
             <div className="flex gap-2">
               <button
                 disabled={page === 0}
-                onClick={() => { setPage((p) => Math.max(0, p - 1)); setExpanded(null); }}
+                onClick={() => {
+                  setPage((p) => Math.max(0, p - 1));
+                  setExpanded(null);
+                }}
                 className="focus-ring inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 font-semibold disabled:opacity-40"
-              ><ChevronLeft className="rtl-flip h-3.5 w-3.5" /> {t("admin.auditLog.prev")}</button>
+              >
+                <ChevronLeft className="rtl-flip h-3.5 w-3.5" /> {t("admin.auditLog.prev")}
+              </button>
               <button
                 disabled={page + 1 >= totalPages}
-                onClick={() => { setPage((p) => p + 1); setExpanded(null); }}
+                onClick={() => {
+                  setPage((p) => p + 1);
+                  setExpanded(null);
+                }}
                 className="focus-ring inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 font-semibold disabled:opacity-40"
-              >{t("admin.auditLog.next")} <ChevronRight className="rtl-flip h-3.5 w-3.5" /></button>
+              >
+                {t("admin.auditLog.next")} <ChevronRight className="rtl-flip h-3.5 w-3.5" />
+              </button>
             </div>
           </div>
         </>

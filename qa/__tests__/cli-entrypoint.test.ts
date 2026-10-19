@@ -81,6 +81,7 @@ describe("cli entrypoint guards", () => {
       "baseline-repair.mjs",
       "cleanup.mjs",
       "containment.mjs",
+      "pr67-babysitting-teardown-resume.mjs",
       "preflight.mjs",
       "verify-residue.mjs",
       "run-with-qa-env.mjs",
@@ -208,12 +209,15 @@ describe("registry write isolation under tests", () => {
   useIsolatedRegistry();
 
   it("allows writes when an isolated registry root is configured", () => {
-    expect(() => registerUserEntry({ userId: "isolated-user", email: "qa@famio.local" })).not.toThrow();
+    expect(() =>
+      registerUserEntry({ userId: "isolated-user", email: "qa@famio.local" }),
+    ).not.toThrow();
   });
 
   it("throws when tests write without an isolated registry root", () => {
     resetRegistryRootForTests();
-    expect(() => registerUserEntry({ userId: "blocked-user", email: "qa@famio.local" }))
-      .toThrow(/configureRegistryRootForTests|enableGuardedIntegrationRegistryMode/);
+    expect(() => registerUserEntry({ userId: "blocked-user", email: "qa@famio.local" })).toThrow(
+      /configureRegistryRootForTests|enableGuardedIntegrationRegistryMode/,
+    );
   });
 });

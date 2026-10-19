@@ -1,3 +1,4 @@
+import { cairoWallTime, packageRuleStart } from "@/lib/pricing/servicePackages";
 /**
  * Famy data-access layer.
  *
@@ -5,7 +6,9 @@
  * unaware of the backend transport. Replace mock imports with these hooks.
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { creationMinHours, parseBookingExpirySettings } from '@/lib/booking/pending-expiry';
 import { supabase } from '@/integrations/supabase/client';
+import { isPreviewRoute } from '@/lib/preview/constants';
 import { CUSTOMER_MARKETPLACE_REFETCH_MS, customerMarketplaceRefetchInterval } from '@/lib/db/marketplace-cache';
 import { mapBookingRpcError } from '@/lib/booking/errors';
 import { completeCreateBookingResult, createBookingFetcher } from '@/lib/booking/create-booking-result';
@@ -19,7 +22,9 @@ import {
   addressesQueryKey,
   defaultAddressQueryKey,
 } from '@/lib/db/address-query-keys';
-import { isQaCatalogService, isQaCatalogSlug, isQaFixtureName } from '@/lib/catalog/qaCatalog';
+import { isClosedBetaCategorySlug } from '@/lib/catalog/closedBetaCategories';
+import { isQaCatalogService, isQaCatalogSlug } from '@/lib/catalog/qaCatalog';
+import { selectMarketplaceProviderRows } from '@/lib/db/marketplaceProviderRows';
 
 type Tables = Database['public']['Tables'];
 
@@ -253,13 +258,24 @@ export function useCategories() {
         .eq('is_active', true)
         .order('sort_order');
       if (error) throw error;
-      return (data ?? []).filter((row) => !isQaCatalogSlug(row.slug));
+      return (data ?? [])
+        .filter((row) => !isQaCatalogSlug(row.slug))
+        .filter((row) => isClosedBetaCategorySlug(row.slug));
     },
   });
 }
 
 // ---------- Providers ----------
-function marketplaceRow(row: any) {
+async function marketplaceRowsWithPackages(rows: any[]) {
+  if (!rows.length) return [];
+  const { data, error } = await supabase.from('services')
+    .select('id, pricing_model, duration_min, fixed_start_time')
+    .in('id', [...new Set(rows.map(row => row.service_id))]);
+  if (error) throw error;
+  return rows.map(row => marketplaceRow(row, data?.find(service => service.id === row.service_id)));
+}
+
+function marketplaceRow(row: any, packageService?: { pricing_model: string; duration_min: number; fixed_start_time: string | null }) {
   return {
     id: row.id,
     bio_en: row.bio_en,
@@ -277,6 +293,7 @@ function marketplaceRow(row: any) {
     services: [{
       status: 'approved',
       service: {
+        ...packageService,
         id: row.service_id,
         slug: row.service_slug,
         name_en: row.service_name_en,
@@ -292,7 +309,7 @@ async function safeProviderDetails(providerId: string) {
     p_provider_id: providerId,
   });
   if (error) throw error;
-  return data?.[0] ? marketplaceRow(data[0]) : null;
+  return data?.[0] ? (await marketplaceRowsWithPackages([data[0]]))[0] : null;
 }
 
 export function useProviders(opts: { categorySlug?: string; serviceId?: string; addressId?: string; limit?: number } = {}) {
@@ -306,17 +323,7 @@ export function useProviders(opts: { categorySlug?: string; serviceId?: string; 
       if (opts.addressId) args.p_address_id = opts.addressId;
       const { data, error } = await supabase.rpc('search_marketplace_providers', args);
       if (error) throw error;
-      const rows = (data ?? [])
-        .filter(
-          (row) =>
-            !isQaCatalogSlug(row.category_slug, row.service_slug) &&
-            !isQaFixtureName(row.full_name),
-        )
-        .slice(0, opts.limit ?? 50);
-      if (opts.categorySlug && !opts.serviceId) {
-        return rows.filter((row) => row.category_slug === opts.categorySlug).map(marketplaceRow);
-      }
-      return rows.map(marketplaceRow);
+      return marketplaceRowsWithPackages(selectMarketplaceProviderRows(data ?? [], opts));
     },
   });
 }
@@ -332,7 +339,28 @@ export function useProvider(id: string | undefined, addressId?: string) {
       if (addressId) args.p_address_id = addressId;
       const { data, error } = await supabase.rpc('marketplace_provider_details', args);
       if (error) throw error;
-      return data?.[0] ? marketplaceRow(data[0]) : null;
+      return data?.[0] ? (await marketplaceRowsWithPackages([data[0]]))[0] : null;
+    },
+  });
+}
+
+/**
+ * Services this provider can actually be booked for right now (the same
+ * eligibility the booking trigger enforces). `null` means "unknown" (still
+ * loading, preview, or failed) so callers fall back to the approved list.
+ */
+export function useBookableServiceIds(providerId: string | undefined, addressId?: string) {
+  return useQuery({
+    enabled: !!providerId && !isPreviewRoute(),
+    // Signed-out visitors and providers get a permission error; don't retry it.
+    retry: false,
+    queryKey: ['bookable-services', providerId, addressId ?? null],
+    queryFn: async () => {
+      const args: { p_provider_id: string; p_address_id?: string } = { p_provider_id: providerId! };
+      if (addressId) args.p_address_id = addressId;
+      const { data, error } = await supabase.rpc('marketplace_provider_bookable_services', args);
+      if (error) throw error;
+      return new Map((data ?? []).map((row) => [row.service_id, row.effective_price as number | null]));
     },
   });
 }
@@ -343,14 +371,16 @@ export function useMarketplaceServices(categorySlug?: string) {
     queryFn: async () => {
       let query = supabase
         .from('services')
-        .select('id,slug,name_en,name_ar,category:categories!inner(slug,name_en,name_ar)')
+        .select('id,slug,name_en,name_ar,pricing_model,duration_min,fixed_start_time,category:categories!inner(slug,name_en,name_ar)')
         .eq('is_active', true)
         .is('deleted_at', null)
         .order('name_en');
       if (categorySlug) query = query.eq('category.slug', categorySlug);
       const { data, error } = await query;
       if (error) throw error;
-      return (data ?? []).filter((row) => !isQaCatalogService(row));
+      return (data ?? [])
+        .filter((row) => !isQaCatalogService(row))
+        .filter((row) => isClosedBetaCategorySlug(row.category?.slug));
     },
   });
 }
@@ -438,17 +468,25 @@ export function useAvailableSlots(
   providerId: string | undefined,
   date: Date | null,
   slotMinutes = 120,
-  opts?: { serviceId?: string | null; addressId?: string | null },
+  opts?: { serviceId?: string | null; addressId?: string | null; cairoTime?: boolean; fixedStartTime?: string | null; includeUnavailable?: boolean },
 ) {
   return useQuery({
     enabled: !!providerId && !!date,
-    queryKey: ['available-slots', providerId, date?.toDateString(), slotMinutes, opts?.serviceId ?? null, opts?.addressId ?? null],
+    queryKey: ['available-slots', providerId, date?.toDateString(), slotMinutes, opts?.serviceId ?? null, opts?.addressId ?? null, opts?.cairoTime ?? false, opts?.fixedStartTime ?? null, ...(opts?.includeUnavailable ? ['include-unavailable'] : [])],
     queryFn: async () => {
       const d = date!;
       const weekday = d.getDay();
       const dayStart = new Date(d); dayStart.setHours(0, 0, 0, 0);
       const dayEnd = new Date(d); dayEnd.setHours(23, 59, 59, 999);
-      const dateStr = dayStart.toISOString().slice(0, 10);
+      const dateStr = opts?.cairoTime
+        ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+        : dayStart.toISOString().slice(0, 10);
+      const atTime = (hour: number, minute: number) => {
+        if (opts?.cairoTime) return cairoWallTime(d, `${hour}:${minute}`);
+        const value = new Date(d); value.setHours(hour, minute, 0, 0); return value;
+      };
+      const queryStart = opts?.cairoTime ? atTime(0,0) : dayStart;
+      const queryEnd = opts?.cairoTime ? new Date(+atTime(24,0)-1) : dayEnd;
 
       const provider = await fetchProviderBookingSettings(providerId!, {
         serviceId: opts?.serviceId ?? undefined,
@@ -456,18 +494,20 @@ export function useAvailableSlots(
       });
       if (!provider) return [];
 
-      const [rulesRes, vacRes, excRes, bookingsRes] = await Promise.all([
+      const [rulesRes, vacRes, excRes, bookingsRes, expiryRes] = await Promise.all([
         supabase.from('availability_rules').select('start_time, end_time').eq('provider_id', providerId!).eq('weekday', weekday),
         supabase.from('provider_vacations').select('start_date, end_date').eq('provider_id', providerId!).lte('start_date', dateStr).gte('end_date', dateStr),
         supabase.from('availability_exceptions').select('start_time, end_time, is_blocked, date, end_date').eq('provider_id', providerId!)
           .lte('date', dateStr),
         supabase.from('bookings').select('start_at, end_at').eq('provider_id', providerId!).in('status', ACTIVE_BOOKING_STATUSES)
-          .gte('start_at', dayStart.toISOString()).lte('start_at', dayEnd.toISOString()),
+          .gte('start_at', queryStart.toISOString()).lte('start_at', queryEnd.toISOString()),
+        supabase.from('settings').select('value').eq('key', 'booking_expiry').maybeSingle(),
       ]);
       if (rulesRes.error) throw rulesRes.error;
       if (vacRes.error) throw vacRes.error;
       if (excRes.error) throw excRes.error;
       if (bookingsRes.error) throw bookingsRes.error;
+      if (expiryRes.error) throw expiryRes.error;
 
       if (provider.vacation_mode) return [];
       // Provider is on vacation this date — no slots at all.
@@ -478,19 +518,24 @@ export function useAvailableSlots(
       if (exceptions.some((e: any) => !e.start_time || !e.end_time)) return [];
 
       const now = new Date();
-      const earliestAllowed = new Date(now.getTime() + provider.min_notice_hours * 3600000);
+      const expiry = parseBookingExpirySettings(expiryRes.data?.value);
+      const earliestAllowed = new Date(
+        now.getTime() + creationMinHours(provider.min_notice_hours, expiry) * 3600000,
+      );
       const latestAllowed = new Date(now.getTime() + provider.max_advance_days * 86400000);
       const bufferMs = provider.buffer_minutes * 60000;
 
       const rules = rulesRes.data ?? [];
       const booked = bookingsRes.data ?? [];
-      const slots: { label: string; start: Date; end: Date }[] = [];
+      const slots: { label: string; start: Date; end: Date; available?: boolean }[] = [];
 
       for (const rule of rules) {
-        const [sh, sm] = rule.start_time.split(':').map(Number);
+        const alignedStart = packageRuleStart(rule.start_time, opts?.fixedStartTime);
+        if (!alignedStart) continue;
+        const [sh, sm] = alignedStart.split(':').map(Number);
         const [eh, em] = rule.end_time.split(':').map(Number);
-        let cursor = new Date(d); cursor.setHours(sh, sm, 0, 0);
-        const ruleEnd = new Date(d); ruleEnd.setHours(eh, em, 0, 0);
+        let cursor = atTime(sh, sm);
+        const ruleEnd = atTime(eh, em);
 
         while (+cursor + slotMinutes * 60000 <= +ruleEnd) {
           const slotEnd = new Date(+cursor + slotMinutes * 60000);
@@ -503,15 +548,18 @@ export function useAvailableSlots(
             if (!e.start_time || !e.end_time) return true;
             const [xsh, xsm] = e.start_time.split(':').map(Number);
             const [xeh, xem] = e.end_time.split(':').map(Number);
-            const xs = new Date(d); xs.setHours(xsh, xsm, 0, 0);
-            const xe = new Date(d); xe.setHours(xeh, xem, 0, 0);
+            const xs = atTime(xsh, xsm);
+            const xe = atTime(xeh, xem);
             return +cursor < +xe && +slotEnd > +xs;
           });
-          if (withinWindow && !overlapsBooking && !overlapsException) {
+          const available = withinWindow && !overlapsBooking && !overlapsException;
+          // Opt-in presentation only: the normal booking query still returns available slots only.
+          if (available || opts?.includeUnavailable) {
             slots.push({
-              label: cursor.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+              label: cursor.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', ...(opts?.cairoTime ? { timeZone: 'Africa/Cairo' } : {}) }),
               start: new Date(cursor),
               end: slotEnd,
+              ...(opts?.includeUnavailable ? { available } : {}),
             });
           }
           cursor = new Date(+cursor + slotMinutes * 60000);
@@ -648,6 +696,10 @@ export type CreateBookingInput = {
   notes?: string | null;
   promo_code_id?: string | null;
   requirement_selections?: Tables['bookings']['Insert']['requirement_selections'];
+  teaching_capability_id?: string | null;
+  teaching_subject_code?: string | null;
+  teaching_curriculum_code?: string | null;
+  teaching_level_code?: string | null;
 };
 
 export type CreateBookingResult = Tables['bookings']['Row'] & {
@@ -675,6 +727,10 @@ export function useCreateBooking() {
         p_notes: input.notes ?? undefined,
         p_promo_code_id: input.promo_code_id ?? undefined,
         p_requirement_selections: (input.requirement_selections ?? []) as never,
+        p_teaching_capability_id: input.teaching_capability_id ?? undefined,
+        p_teaching_subject_code: input.teaching_subject_code ?? undefined,
+        p_teaching_curriculum_code: input.teaching_curriculum_code ?? undefined,
+        p_teaching_level_code: input.teaching_level_code ?? undefined,
       });
       if (error) {
         throw mapBookingRpcError(error);
@@ -899,6 +955,22 @@ export function useSubmitReview() {
 }
 
 // ---------- Provider services (for booking) ----------
+export function useFixedPackageRate(providerId: string, serviceId: string | undefined, addressId?: string | null) {
+  return useQuery({
+    enabled: !!serviceId,
+    queryKey: ['fixed-package-rate', providerId, serviceId, addressId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('search_marketplace_providers', {
+        p_service_id: serviceId!,
+        ...(addressId ? { p_address_id: addressId } : {}),
+      });
+      if (error) throw error;
+      const row = data?.find(row => row.id === providerId);
+      return row ? Number(row.hourly_rate) : null;
+    },
+  });
+}
+
 export function useProviderServices(providerId: string | undefined) {
   return useQuery({
     enabled: !!providerId,
@@ -1080,4 +1152,3 @@ export function useFavoriteIds() {
     },
   });
 }
-

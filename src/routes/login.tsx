@@ -8,12 +8,40 @@ import { PhoneFrame, PrimaryButton, RoleSelectCard } from "@/components/famio/ui
 import { LanguageToggle } from "@/components/famio/LanguageToggle";
 import { useApp } from "@/lib/store";
 import { otpService, normalizePhone, type Role } from "@/lib/otp/OtpService";
+import { normalizeDigitsToWestern } from "@/lib/otp/normalizePhone";
 import { startPhoneOtpFlow, phoneOtpFlowErrorMessage } from "@/lib/otp/phoneOtpFlow";
-import { resolveLandingForCurrentUser } from "@/lib/auth/landing";
-import { previewPath } from "@/lib/preview/previewPath";
+import {
+  resolvePostPasswordLoginTarget,
+  resolveRoleLandingForCurrentUser,
+} from "@/lib/auth/landing";
+import { useCustomerPreviewPath } from "@/components/famio/useCustomerPreviewPath";
 import { ICON_STROKE, ICON_STROKE_BOLD } from "@/lib/icons/constants";
+import { signInWithOAuthProvider } from "@/lib/auth/oauth";
 
 export const Route = createFileRoute("/login")({ component: Login });
+
+function GoogleMark() {
+  return (
+    <svg viewBox="0 0 48 48" className="h-5 w-5" aria-hidden="true">
+      <path
+        fill="#FFC107"
+        d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"
+      />
+      <path
+        fill="#FF3D00"
+        d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"
+      />
+      <path
+        fill="#4CAF50"
+        d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"
+      />
+      <path
+        fill="#1976D2"
+        d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"
+      />
+    </svg>
+  );
+}
 
 function AuthModeTabs({
   mode,
@@ -41,7 +69,7 @@ function AuthModeTabs({
             type="button"
             onClick={() => onChange(tab.value)}
             aria-pressed={active}
-            className={`focus-ring -mb-px pb-3 text-[15px] font-extrabold transition-colors ${
+            className={`focus-ring min-h-11 -mb-px pb-3 text-[15px] font-extrabold transition-colors ${
               active
                 ? "border-b-[3px] border-brand text-brand"
                 : "border-b-[3px] border-transparent text-muted-foreground"
@@ -63,11 +91,13 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
   const [role, setRole] = useState<Role>("customer");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const nav = useNavigate();
   const { setProfile, setAuthed } = useApp();
   const { t, i18n } = useTranslation();
+  const previewPath = useCustomerPreviewPath();
 
-  const phoneValid = phone.replace(/\D/g, "").length >= 9;
+  const phoneValid = normalizeDigitsToWestern(phone).replace(/\D/g, "").length >= 9;
   const screenTitle = mode === "signin" ? t("auth.signIn") : t("auth.signUp");
 
   const submit = async () => {
@@ -89,20 +119,23 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
       }
       setProfile({ phone: e164 });
       setAuthed(true);
-      const landing = await resolveLandingForCurrentUser();
-      if (role === "provider") {
-        if (landing === "/pro") {
-          nav({ to: "/pro" });
-        } else {
-          const m = t(
-            "auth.noProviderAccount",
-            "This number has no provider account. Sign up as a provider first.",
-          );
-          setErrorMsg(m);
-          toast.error(m);
-        }
-      } else {
-        nav({ to: "/home" });
+      const roleLanding = await resolveRoleLandingForCurrentUser();
+      const target = resolvePostPasswordLoginTarget({
+        loginRole: role,
+        landing: roleLanding?.landing ?? null,
+        hasProviderRole: roleLanding?.hasProviderRole ?? false,
+      });
+      if (target === "provider_account_missing") {
+        const m = t(
+          "auth.noProviderAccount",
+          "This number has no provider account. Sign up as a provider first.",
+        );
+        setErrorMsg(m);
+        toast.error(m);
+        return;
+      }
+      if (target) {
+        nav({ to: target });
       }
       return;
     }
@@ -111,7 +144,7 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
     const send = await startPhoneOtpFlow(e164, "signup", role, { languageCode: i18n.language });
     if (!send.ok) {
       setLoading(false);
-      const m = phoneOtpFlowErrorMessage(send.error, t);
+      const m = phoneOtpFlowErrorMessage(send.error, t, send.retryAfter, send.firebaseAuthCode);
       setErrorMsg(m);
       toast.error(m, { duration: 8000 });
       return;
@@ -123,11 +156,13 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
 
   return (
     <PhoneFrame bg="bg-white">
-
-
       <header className="brand-hero safe-top relative overflow-hidden rounded-b-[2.5rem] px-5 pb-8 pt-4">
         <div className="relative z-10 flex items-start justify-between gap-3">
-          <FamyWordmark size="compact" variant="white" className="!h-11 max-w-[9.5rem] object-contain object-left" />
+          <FamyWordmark
+            size="compact"
+            variant="white"
+            className="!h-11 max-w-[9.5rem] object-contain object-left"
+          />
           <LanguageToggle variant="hero" />
         </div>
         <h1 className="relative z-10 mt-8 text-[1.75rem] font-extrabold leading-tight text-white">
@@ -164,7 +199,7 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
             />
           </div>
           {mode === "signup" && role === "provider" ? (
-            <p className="mt-3 text-[11px] font-semibold leading-relaxed text-muted-foreground">
+            <p className="mt-3 text-pro-12 font-semibold leading-relaxed text-muted-foreground">
               {t("auth.providerNote")}
             </p>
           ) : null}
@@ -175,17 +210,22 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
           <div className="mt-3 space-y-5">
             <div>
               <label className="text-sm font-bold text-foreground">{t("auth.phoneNumber")}</label>
-              <div className="mt-2 flex h-14 items-center gap-2 rounded-2xl border border-border/80 bg-white px-3 focus-within:border-brand focus-within:ring-1 focus-within:ring-brand">
+              <div dir="ltr" className="mt-2 flex h-14 items-center gap-2 rounded-2xl border border-border/80 bg-white px-3 focus-within:border-brand focus-within:ring-1 focus-within:ring-brand">
                 <button
                   type="button"
-                  className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-surface-2 px-2 py-1.5 text-[11px] font-extrabold text-foreground"
+                  className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-lg bg-surface-2 px-2 py-1.5 text-pro-12 font-extrabold text-foreground"
                   aria-label={t("auth.phoneNumber")}
                 >
                   <span aria-hidden="true">🇪🇬</span>
                   <span>EG</span>
-                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={ICON_STROKE_BOLD} />
+                  <ChevronDown
+                    className="h-3.5 w-3.5 text-muted-foreground"
+                    strokeWidth={ICON_STROKE_BOLD}
+                  />
                 </button>
-                <span className="text-[15px] font-extrabold text-foreground" dir="ltr">+20</span>
+                <span className="text-[15px] font-extrabold text-foreground" dir="ltr">
+                  +20
+                </span>
                 <div className="h-6 w-px bg-border/80" />
                 <input
                   inputMode="tel"
@@ -194,7 +234,7 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
                   placeholder={t("auth.phonePlaceholder")}
                   value={phone}
                   onChange={(e) => setPhone(e.target.value.replace(/[^\d ]/g, ""))}
-                  className="min-w-0 flex-1 bg-transparent text-[15px] font-semibold outline-none placeholder:text-muted-foreground/50"
+                  className="min-h-11 min-w-0 flex-1 bg-transparent text-[15px] font-semibold outline-none placeholder:text-muted-foreground/50"
                 />
               </div>
             </div>
@@ -209,13 +249,13 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="min-w-0 flex-1 bg-transparent text-[15px] font-semibold tracking-widest outline-none placeholder:text-muted-foreground/50"
+                    className="min-h-11 min-w-0 flex-1 bg-transparent text-[15px] font-semibold tracking-widest outline-none placeholder:text-muted-foreground/50"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPw((v) => !v)}
                     aria-label={showPw ? t("auth.hidePassword") : t("auth.showPassword")}
-                    className="focus-ring tap-scale grid h-10 w-10 shrink-0 place-items-center rounded-xl text-muted-foreground"
+                    className="focus-ring tap-scale grid h-11 w-11 shrink-0 place-items-center rounded-xl text-muted-foreground"
                   >
                     {showPw ? (
                       <EyeOff className="h-5 w-5" strokeWidth={ICON_STROKE} />
@@ -225,7 +265,10 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
                   </button>
                 </div>
                 <div className="mt-3 flex justify-end">
-                  <Link to={previewPath("/auth/forgot")} className="text-[13px] font-extrabold text-brand">
+                  <Link
+                    to={previewPath("/auth/forgot")}
+                    className="inline-flex min-h-11 items-center py-3 text-[13px] font-extrabold text-brand"
+                  >
                     {t("auth.forgot")}
                   </Link>
                 </div>
@@ -238,11 +281,19 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
         {mode === "signup" ? (
           <p className="mt-6 text-xs font-semibold leading-relaxed text-muted-foreground">
             {t("auth.terms")}{" "}
-            <Link to="/content/$key" params={{ key: "terms" }} className="font-extrabold text-brand">
+            <Link
+              to="/content/$key"
+              params={{ key: "terms" }}
+              className="inline-flex min-h-11 items-center py-3 font-extrabold text-brand"
+            >
               {t("auth.termsLink")}
             </Link>{" "}
             {t("auth.and")}{" "}
-            <Link to="/content/$key" params={{ key: "privacy" }} className="font-extrabold text-brand">
+            <Link
+              to="/content/$key"
+              params={{ key: "privacy" }}
+              className="inline-flex min-h-11 items-center py-3 font-extrabold text-brand"
+            >
               {t("auth.privacyLink")}
             </Link>
             .
@@ -265,6 +316,32 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
           </PrimaryButton>
         </div>
 
+        {role === "customer" ? (
+          <div className="mt-5">
+            <div className="flex items-center gap-3 text-pro-12 font-semibold text-muted-foreground">
+              <span className="h-px flex-1 bg-border" />
+              {t("oauth.or")}
+              <span className="h-px flex-1 bg-border" />
+            </div>
+            <button
+              type="button"
+              disabled={previewMode || googleLoading}
+              onClick={async () => {
+                setGoogleLoading(true);
+                const { error } = await signInWithOAuthProvider("google");
+                if (error) {
+                  setGoogleLoading(false);
+                  toast.error(t("oauth.failedBody"));
+                }
+              }}
+              className="focus-ring tap-scale mt-4 flex h-14 w-full items-center justify-center gap-3 rounded-2xl border border-border bg-white text-[15px] font-extrabold text-foreground disabled:opacity-60"
+            >
+              <GoogleMark />
+              {googleLoading ? t("oauth.redirecting") : t("oauth.continueWithGoogle")}
+            </button>
+          </div>
+        ) : null}
+
         <p className="mt-6 text-center text-[13px] font-semibold text-muted-foreground">
           {mode === "signin" ? (
             <>
@@ -272,7 +349,7 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
               <button
                 type="button"
                 onClick={() => setMode("signup")}
-                className="font-extrabold text-brand"
+                className="inline-flex min-h-11 items-center py-3 font-extrabold text-brand"
               >
                 {t("auth.createAccountLink")}
               </button>
@@ -283,7 +360,7 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
               <button
                 type="button"
                 onClick={() => setMode("signin")}
-                className="font-extrabold text-brand"
+                className="inline-flex min-h-11 items-center py-3 font-extrabold text-brand"
               >
                 {t("auth.signInLink")}
               </button>

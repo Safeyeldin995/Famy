@@ -1,0 +1,96 @@
+import type { TeachingCapabilityOption } from "@/lib/tutoring/teachingCapabilities";
+import type { EducationProfileIds } from "@/lib/tutoring/studentEducationProfile";
+
+export function capabilitiesMatchingEducation(
+  capabilities: TeachingCapabilityOption[],
+  serviceId: string | null | undefined,
+  curriculumId: string | null,
+  levelId: string | null,
+): TeachingCapabilityOption[] {
+  if (!curriculumId && !levelId) return capabilities;
+  return capabilities.filter((cap) => {
+    if (serviceId && cap.serviceId !== serviceId) return false;
+    if (curriculumId && cap.curriculumId !== curriculumId) return false;
+    if (levelId && cap.levelId !== levelId) return false;
+    return true;
+  });
+}
+
+export function pickDefaultCapabilityForEducation(
+  capabilities: TeachingCapabilityOption[],
+  serviceId: string | null | undefined,
+  curriculumId: string | null,
+  levelId: string | null,
+): TeachingCapabilityOption | null {
+  if (!curriculumId || !levelId) return null;
+  const matches = capabilitiesMatchingEducation(
+    capabilities,
+    serviceId,
+    curriculumId,
+    levelId,
+  );
+  if (matches.length !== 1) return null;
+  return matches[0] ?? null;
+}
+
+export function resolveAutoFillCapabilityId(args: {
+  match: TeachingCapabilityOption | null;
+  userPickedCapability: boolean;
+  currentCapabilityId: string | null;
+}): string | null {
+  if (args.userPickedCapability) return args.currentCapabilityId;
+  return args.match?.id ?? null;
+}
+
+export type BookingEducationDraft = EducationProfileIds;
+
+export function shouldPersistBookingEducation(args: {
+  saveForNextTime: boolean;
+  draft: BookingEducationDraft;
+  saved: EducationProfileIds;
+}): boolean {
+  if (!args.saveForNextTime) return false;
+  return (
+    args.draft.educationCurriculumId !== args.saved.educationCurriculumId ||
+    args.draft.educationLevelId !== args.saved.educationLevelId
+  );
+}
+
+/** Only after create_booking succeeds (including idempotent replay). */
+export function shouldPersistEducationAfterBookingSuccess(args: {
+  bookingSucceeded: boolean;
+  isTutoring: boolean;
+  saveForNextTime: boolean;
+  draft: BookingEducationDraft;
+  saved: EducationProfileIds;
+}): boolean {
+  if (!args.bookingSucceeded || !args.isTutoring) return false;
+  return shouldPersistBookingEducation({
+    saveForNextTime: args.saveForNextTime,
+    draft: args.draft,
+    saved: args.saved,
+  });
+}
+
+export async function persistEducationProfileAfterBooking(args: {
+  save: () => Promise<unknown>;
+}): Promise<{ ok: true } | { ok: false; error: unknown }> {
+  try {
+    await args.save();
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error };
+  }
+}
+
+export function educationDraftFromCapability(
+  capability: TeachingCapabilityOption | null,
+): BookingEducationDraft {
+  if (!capability) {
+    return { educationCurriculumId: null, educationLevelId: null };
+  }
+  return {
+    educationCurriculumId: capability.curriculumId ?? null,
+    educationLevelId: capability.levelId ?? null,
+  };
+}

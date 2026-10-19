@@ -3,24 +3,14 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { isClosedBetaCategorySlug } from "@/lib/catalog/closedBetaCategories";
 import { isQaCatalogService, isQaFixtureName } from "@/lib/catalog/qaCatalog";
 
 export type OnboardingStatus =
-  | "DRAFT"
-  | "SUBMITTED"
-  | "UNDER_REVIEW"
-  | "NEEDS_CHANGES"
-  | "APPROVED"
-  | "REJECTED"
-  | "SUSPENDED";
+  "DRAFT" | "SUBMITTED" | "UNDER_REVIEW" | "NEEDS_CHANGES" | "APPROVED" | "REJECTED" | "SUSPENDED";
 
 export type OnboardingSection =
-  | "personal"
-  | "experience"
-  | "services"
-  | "coverage"
-  | "references"
-  | "review";
+  "personal" | "experience" | "services" | "coverage" | "references" | "review";
 
 export function useOnboardingSnapshot() {
   return useQuery({
@@ -47,20 +37,35 @@ export function useOnboardingCompletion(providerId: string | undefined) {
   });
 }
 
+export function useChildAgeGroups() {
+  return useQuery({
+    queryKey: ["child-age-groups"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("child_age_groups")
+        .select("code, name_en, name_ar, min_months, max_months, sort_order")
+        .eq("is_active", true)
+        .order("sort_order");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
 export function usePhase1Services() {
   return useQuery({
     queryKey: ["phase1-services"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("services")
-        .select("id, slug, name_en, name_ar, category:categories(slug, name_en, name_ar)")
+        .select(
+          "id, slug, name_en, name_ar, pricing_model, duration_min, fixed_start_time, provider_pricing_allowed, minimum_price, maximum_price, allowed_session_durations, category:categories(slug, name_en, name_ar)",
+        )
         .eq("is_active", true)
         .order("name_en");
       if (error) throw error;
       return (data ?? []).filter(
-        (s: any) =>
-          (s.category?.slug === "home-cleaning" || s.category?.slug === "babysitting") &&
-          !isQaCatalogService(s),
+        (s: any) => isClosedBetaCategorySlug(s.category?.slug) && !isQaCatalogService(s),
       );
     },
   });
@@ -97,10 +102,38 @@ export function useMyReferences(providerId: string | undefined) {
   });
 }
 
+export function useMySavedSelections(providerId: string | undefined) {
+  return useQuery({
+    enabled: !!providerId,
+    queryKey: ["provider-saved-selections", providerId],
+    queryFn: async () => {
+      const [servicesRes, zonesRes] = await Promise.all([
+        supabase
+          .from("provider_services")
+          .select("service_id, status, price_override")
+          .eq("provider_id", providerId!),
+        supabase.from("zone_providers").select("zone_id").eq("provider_id", providerId!),
+      ]);
+      if (servicesRes.error) throw servicesRes.error;
+      if (zonesRes.error) throw zonesRes.error;
+      return {
+        services: servicesRes.data ?? [],
+        zones: zonesRes.data ?? [],
+      };
+    },
+  });
+}
+
 export function useSaveOnboardingSection() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ section, payload }: { section: OnboardingSection; payload: Record<string, unknown> }) => {
+    mutationFn: async ({
+      section,
+      payload,
+    }: {
+      section: OnboardingSection;
+      payload: Record<string, unknown>;
+    }) => {
       const { data, error } = await supabase.rpc("provider_save_onboarding_section", {
         p_section: section,
         p_payload: payload as import("@/integrations/supabase/types").Json,
@@ -112,6 +145,7 @@ export function useSaveOnboardingSection() {
       qc.invalidateQueries({ queryKey: ["provider-onboarding-snapshot"] });
       qc.invalidateQueries({ queryKey: ["my-provider"] });
       qc.invalidateQueries({ queryKey: ["provider-references"] });
+      qc.invalidateQueries({ queryKey: ["provider-saved-selections"] });
       qc.invalidateQueries({ queryKey: ["provider-onboarding-completion"] });
     },
   });
@@ -123,9 +157,13 @@ export function useSubmitOnboarding() {
     mutationFn: async () => {
       const { data, error } = await supabase.rpc("provider_submit_onboarding");
       if (error) throw error;
-      const result = data as { ok: boolean; errors?: Record<string, string>; already_submitted?: boolean };
+      const result = data as {
+        ok: boolean;
+        errors?: Record<string, string>;
+        already_submitted?: boolean;
+      };
       if (!result.ok && !result.already_submitted) {
-        throw new Error("submission_incomplete");
+        throw Object.assign(new Error("submission_incomplete"), { completionErrors: result.errors ?? {} });
       }
       return result;
     },
@@ -150,11 +188,14 @@ export function useSecureUploadDocument() {
       const allowed = ["image/jpeg", "image/png", "image/jpg", "application/pdf"];
       if (!allowed.includes(file.type)) throw new Error("invalid_file_type");
 
-      const { data: prep, error: prepErr } = await supabase.rpc("provider_prepare_document_upload", {
-        p_type: type,
-        p_content_type: file.type,
-        p_size_bytes: file.size,
-      });
+      const { data: prep, error: prepErr } = await supabase.rpc(
+        "provider_prepare_document_upload",
+        {
+          p_type: type,
+          p_content_type: file.type,
+          p_size_bytes: file.size,
+        },
+      );
       if (prepErr) throw prepErr;
       const path = (prep as { path: string }).path;
 
@@ -163,10 +204,13 @@ export function useSecureUploadDocument() {
         .upload(path, file, { contentType: file.type, upsert: false });
       if (upErr) throw upErr;
 
-      const { data: docId, error: finErr } = await supabase.rpc("provider_finalize_document_upload", {
-        p_path: path,
-        p_type: type,
-      });
+      const { data: docId, error: finErr } = await supabase.rpc(
+        "provider_finalize_document_upload",
+        {
+          p_path: path,
+          p_type: type,
+        },
+      );
       if (finErr) throw finErr;
       return { docId, path };
     },
@@ -215,7 +259,14 @@ export function useAdminOnboardingAction() {
   return useMutation({
     mutationFn: async (input: {
       providerId: string;
-      action: "start_review" | "approve" | "request_changes" | "reject" | "suspend" | "unsuspend";
+      action:
+        | "start_review"
+        | "approve"
+        | "request_changes"
+        | "request_updated_details"
+        | "reject"
+        | "suspend"
+        | "unsuspend";
       reasonCode?: string;
       reasonPublic?: string;
       notesInternal?: string;
@@ -238,4 +289,8 @@ export function useAdminOnboardingAction() {
 
 export function onboardingEditable(status: OnboardingStatus | undefined) {
   return status === "DRAFT" || status === "NEEDS_CHANGES";
+}
+
+export function canRequestUpdatedDetails(status: OnboardingStatus | undefined) {
+  return status === "APPROVED";
 }

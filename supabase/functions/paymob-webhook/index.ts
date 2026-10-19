@@ -191,6 +191,9 @@ Deno.serve(async (req) => {
   const pending = asBoolean(obj.pending);
   const providerRef = String(obj.id);
 
+  const paymobOrderId =
+    obj.order?.id === null || obj.order?.id === undefined ? null : String(obj.order.id);
+
   const { data, error } = await supabase.rpc("paymob_apply_transaction_webhook", {
     p_paymob_transaction_id: paymobTransactionId,
     p_payment_id: paymentId,
@@ -198,6 +201,7 @@ Deno.serve(async (req) => {
     p_pending: pending,
     p_amount_cents: Math.trunc(amountCents),
     p_provider_ref: providerRef,
+    p_paymob_order_id: paymobOrderId,
     p_metadata: {
       paymob_transaction_id: paymobTransactionId,
       paymob_order_id: obj.order?.id ?? null,
@@ -208,7 +212,11 @@ Deno.serve(async (req) => {
   });
 
   if (error) {
-    console.error("[paymob-webhook] rpc failed", error.message);
+    if (/order id mismatch/i.test(error.message ?? "")) {
+      console.error("[paymob-webhook] order id mismatch");
+    } else {
+      console.error("[paymob-webhook] rpc failed", error.message);
+    }
     return new Response(JSON.stringify({ error: "processing_failed" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },

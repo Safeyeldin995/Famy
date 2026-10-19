@@ -3,6 +3,8 @@ description: Famy primary local implementation and QA execution rules
 alwaysApply: true
 ---
 
+Cursor is now a backup implementer per `AGENTS.md`, only when Safeyeldin assigns it.
+
 # Cursor Composer 2.5 role
 
 Read and follow the repository-root `AGENTS.md` before doing any work. It is the shared contract and overrides this adapter if anything differs.

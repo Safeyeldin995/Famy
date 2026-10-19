@@ -213,7 +213,7 @@ export async function createPaymobCheckoutForPayment(input: {
     p_payment_id: payment.id,
     p_intention_id: intention.intentionId,
     p_checkout_url: intention.checkoutUrl,
-    p_extra_metadata: {},
+    p_extra_metadata: { paymob_order_id: intention.orderId },
   });
   if (storeErr) {
     console.error("[paymob.checkout] failed to persist intention metadata", storeErr.message);
