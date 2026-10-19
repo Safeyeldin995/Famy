@@ -141,18 +141,14 @@ describe("createPaymobIntention failure classification", () => {
       vi.fn(async () => ({
         ok: true,
         status: 200,
-        json: async () => ({
-          id: "intent-1",
-          client_secret: "secret-1",
-          intention_order_id: 987654,
-        }),
+        json: async () => ({ id: "intent-1", client_secret: "secret-1", intention_order_id: 123 }),
       })),
     );
 
     const result = await createPaymobIntention(config, input);
     expect(result.intentionId).toBe("intent-1");
+    expect(result.orderId).toBe(123);
     expect(result.clientSecret).toBe("secret-1");
-    expect(result.orderId).toBe("987654");
     expect(result.checkoutUrl).toContain("secret-1");
   });
 
@@ -171,3 +167,23 @@ describe("createPaymobIntention failure classification", () => {
     );
   });
 });
+
+it.each([undefined, 0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1])(
+  "keeps the reservation when the trusted order id is invalid: %s",
+  async (orderId) => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({
+          id: "intent-1",
+          client_secret: "secret-1",
+          intention_order_id: orderId,
+        }),
+      })),
+    );
+    await expect(createPaymobIntention(config, input)).rejects.toBeInstanceOf(
+      PaymobIntentionIndeterminateError,
+    );
+  },
+);
