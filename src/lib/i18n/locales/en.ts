@@ -508,10 +508,10 @@ const en = {
     sessionExpired: "Your verification session expired. Start again.",
     verifyUseSignin: "This number already has an account. Sign in or reset your password.",
     verifyUseSignup: "This number is not registered yet. Create an account to continue.",
-    signupVerifyTitle: "Verify your signup",
-    signupVerifyBody: "Enter the code we sent to finish creating your account.",
+    signupVerifyTitle: "Enter your code",
+    signupVerifyBody: "We sent a 6-digit code by SMS to",
     resetVerifyTitle: "Verify password reset",
-    resetVerifyBody: "Enter the code we sent to reset your password.",
+    resetVerifyBody: "We sent a 6-digit code by SMS to",
     codeExpiresIn: "Code expires in",
     changePhone: "Change phone number",
     confirmPassword: "Confirm password",
@@ -3272,6 +3272,22 @@ Object.assign(en, {
     phoneInvalid: "Enter a valid Egyptian mobile number, e.g. 01012345678.",
     phoneTaken: "This number belongs to another account. Sign in with that number and password.",
     phoneSaveFailed: "We couldn't save the number. Please try again.",
+  },
+});
+Object.assign(en, {
+  locationPicker: {
+    emptyTitle: "Set your location on the map",
+    emptyBody: "So your provider finds you without getting lost.",
+    useMyLocation: "My current location",
+    pickOnMap: "On the map",
+    myLocationShort: "My location",
+    saved: "Location set",
+    change: "Change location",
+    sheetTitle: "Set your location",
+    sheetHintTitle: "Move the map until the pin is on your place",
+    sheetHintBody: "Pinch to zoom in on your exact building.",
+    confirm: "Confirm location",
+    permissionDenied: "We can't reach your location. Allow location in your browser settings, or move the map yourself.",
   },
 });
 export default en;

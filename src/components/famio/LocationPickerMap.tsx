@@ -1,100 +1,90 @@
 /**
  * Heavy leaflet/react-leaflet chunk — only imported lazily by LocationPicker,
  * never from the initial bundle.
+ *
+ * The pin is drawn by LocationPicker as a fixed overlay at the map centre; the
+ * map itself moves underneath it, which is easier on a phone than dragging a
+ * small marker.
  */
-import { useEffect, useRef } from "react";
-import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet";
-import L from "leaflet";
+import { useEffect } from "react";
+import { MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-
-// Fixes the well-known bundler issue where Leaflet's default marker icon
-// resolves relative to document location instead of the bundled asset URL.
-// Bundled locally via Vite's asset pipeline — no CDN reference.
-import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
-
-const defaultIcon = L.icon({
-  iconUrl: markerIcon,
-  iconRetinaUrl: markerIcon2x,
-  shadowUrl: markerShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-L.Marker.prototype.options.icon = defaultIcon;
 
 export type LatLng = { lat: number; lng: number };
 
-function ClickHandler({ onPick }: { onPick: (pos: LatLng) => void }) {
-  useMapEvents({
-    click(e) {
-      onPick({ lat: e.latlng.lat, lng: e.latlng.lng });
+function CenterReporter({ onCenterChange }: { onCenterChange: (pos: LatLng) => void }) {
+  const map = useMapEvents({
+    moveend() {
+      const c = map.getCenter();
+      onCenterChange({ lat: c.lat, lng: c.lng });
     },
   });
   return null;
 }
 
+function FlyTo({ target, signal }: { target: LatLng; signal: number }) {
+  const map = useMap();
+  useEffect(() => {
+    if (signal === 0) return;
+    map.flyTo([target.lat, target.lng], Math.max(map.getZoom(), 17), { duration: 0.6 });
+    // Only an explicit request (signal bump) moves the map.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signal]);
+  return null;
+}
+
+/** Keeps a non-interactive preview centred on the saved location. */
+function FollowCenter({ center }: { center: LatLng }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView([center.lat, center.lng], map.getZoom(), { animate: false });
+  }, [center.lat, center.lng, map]);
+  return null;
+}
+
 export default function LocationPickerMap({
-  value,
-  onChange,
+  center,
+  mode,
+  onCenterChange,
   onTileError,
   onTileOk,
-  recenterSignal,
+  flyTarget,
+  flySignal = 0,
 }: {
-  value: LatLng;
-  onChange: (pos: LatLng) => void;
+  center: LatLng;
+  mode: "preview" | "pick";
+  onCenterChange?: (pos: LatLng) => void;
   onTileError: () => void;
   onTileOk: () => void;
-  recenterSignal: number;
+  flyTarget?: LatLng;
+  flySignal?: number;
 }) {
-  const markerRef = useRef<L.Marker | null>(null);
-
+  const interactive = mode === "pick";
   return (
     <MapContainer
-      center={[value.lat, value.lng]}
-      zoom={15}
-      scrollWheelZoom={false}
-      className="h-full w-full"
-      attributionControl={true}
+      center={[center.lat, center.lng]}
+      zoom={interactive ? 16 : 15}
+      zoomControl={false}
+      scrollWheelZoom={interactive}
+      dragging={interactive}
+      touchZoom={interactive}
+      doubleClickZoom={interactive}
+      boxZoom={false}
+      keyboard={interactive}
+      attributionControl
+      className="famy-map h-full w-full"
     >
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution="&copy; OpenStreetMap contributors"
+        attribution="&copy; OpenStreetMap"
         eventHandlers={{
           tileerror: () => onTileError(),
           tileload: () => onTileOk(),
         }}
       />
-      <Marker
-        position={[value.lat, value.lng]}
-        draggable
-        ref={markerRef}
-        eventHandlers={{
-          dragend: () => {
-            const m = markerRef.current;
-            if (!m) return;
-            const pos = m.getLatLng();
-            onChange({ lat: pos.lat, lng: pos.lng });
-          },
-        }}
-      />
-      <ClickHandler onPick={onChange} />
-      <RecenterRef signal={recenterSignal} center={value} />
+      {interactive && onCenterChange ? <CenterReporter onCenterChange={onCenterChange} /> : null}
+      {interactive && flyTarget ? <FlyTo target={flyTarget} signal={flySignal} /> : null}
+      {!interactive ? <FollowCenter center={center} /> : null}
     </MapContainer>
   );
-}
-
-// Recenter-on-demand (the explicit "recenter" button) is a distinct signal
-// from RecenterOnChange (which follows every coordinate change) so both can
-// coexist without fighting over the map's view.
-function RecenterRef({ signal, center }: { signal: number; center: LatLng }) {
-  const map = useMap();
-  useEffect(() => {
-    if (signal === 0) return;
-    map.setView([center.lat, center.lng], map.getZoom(), { animate: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signal]);
-  return null;
 }
