@@ -210,7 +210,7 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
           <div className="mt-3 space-y-5">
             <div>
               <label className="text-sm font-bold text-foreground">{t("auth.phoneNumber")}</label>
-              <div className="mt-2 flex h-14 items-center gap-2 rounded-2xl border border-border/80 bg-white px-3 focus-within:border-brand focus-within:ring-1 focus-within:ring-brand">
+              <div dir="ltr" className="mt-2 flex h-14 items-center gap-2 rounded-2xl border border-border/80 bg-white px-3 focus-within:border-brand focus-within:ring-1 focus-within:ring-brand">
                 <button
                   type="button"
                   className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-lg bg-surface-2 px-2 py-1.5 text-pro-12 font-extrabold text-foreground"

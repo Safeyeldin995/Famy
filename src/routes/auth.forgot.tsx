@@ -56,7 +56,7 @@ export function Forgot({ previewMode = false }: { previewMode?: boolean } = {}) 
         <label className="block text-xs font-black uppercase tracking-widest text-muted-foreground">
           {t("auth.phoneNumber")}
         </label>
-        <div className="mt-2 flex h-14 items-center gap-3 rounded-2xl bg-surface-2 px-4 focus-within:border-brand focus-within:ring-1 focus-within:ring-brand">
+        <div dir="ltr" className="mt-2 flex h-14 items-center gap-3 rounded-2xl bg-surface-2 px-4 focus-within:border-brand focus-within:ring-1 focus-within:ring-brand">
           <span
             className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-background text-pro-12 font-black text-foreground shadow-xs border border-border/50"
             aria-hidden="true"
