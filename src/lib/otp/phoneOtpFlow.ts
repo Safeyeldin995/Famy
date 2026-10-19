@@ -45,6 +45,8 @@ export function firebaseSendFailureMessage(t: TFunction, firebaseAuthCode?: stri
       return t("auth.firebaseSendQuotaExceeded");
     case "auth/invalid-phone-number":
       return t("validation.invalidPhone");
+    case "auth/famy-send-timeout":
+      return t("auth.firebaseSendTimeout");
     case "auth/captcha-check-failed":
     case "auth/invalid-app-credential":
     case "auth/missing-app-credential":
@@ -154,6 +156,7 @@ export async function startPhoneOtpFlow(
   if (isClientFirebaseOtpProvider()) {
     const begin = await otpService.beginFirebaseOtp(phoneE164, purpose, role);
     if (!begin.ok) {
+      reportFirebaseSendFailure(`begin:${begin.error ?? "unknown"}`);
       return {
         ok: false,
         error: "firebase_start_failed",
@@ -166,6 +169,7 @@ export async function startPhoneOtpFlow(
       await sendFirebasePhoneOtp(phoneE164, { languageCode: options.languageCode });
       const confirmed = await confirmClientOtpDelivery();
       if (!confirmed) {
+        reportFirebaseSendFailure("confirm_delivery_rejected");
         await bestEffortAbandonOtpFlow();
         return { ok: false, error: "firebase_send_failed" };
       }

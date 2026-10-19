@@ -168,7 +168,8 @@ describe("firebaseAuth.browser sessionStorage fail-soft", () => {
     const storage = createThrowingSessionStorage();
     vi.stubGlobal("sessionStorage", storage);
 
-    const { sendFirebasePhoneOtp, confirmFirebasePhoneOtp } = await import("../firebaseAuth.browser");
+    const { sendFirebasePhoneOtp, confirmFirebasePhoneOtp } =
+      await import("../firebaseAuth.browser");
     await sendFirebasePhoneOtp("+201012345678");
 
     await expect(confirmFirebasePhoneOtp("123456")).resolves.toBe("firebase-id-token");
@@ -179,9 +180,8 @@ describe("firebaseAuth.browser sessionStorage fail-soft", () => {
   it("does not throw from hasFirebasePhoneVerificationSession when storage reads fail", async () => {
     vi.stubGlobal("sessionStorage", createThrowingSessionStorage());
 
-    const { hasFirebasePhoneVerificationSession, sendFirebasePhoneOtp } = await import(
-      "../firebaseAuth.browser"
-    );
+    const { hasFirebasePhoneVerificationSession, sendFirebasePhoneOtp } =
+      await import("../firebaseAuth.browser");
 
     expect(hasFirebasePhoneVerificationSession()).toBe(false);
     await sendFirebasePhoneOtp("+201012345678");
@@ -249,10 +249,26 @@ describe("firebaseAuth.browser reCAPTCHA lifecycle", () => {
     expect(lastRecaptchaContainer).toBe(containerB);
   });
 
+  it("times out a send that never settles and clears reCAPTCHA for the next try", async () => {
+    mountRecaptchaContainer();
+    mockSignInWithPhoneNumber.mockReturnValue(new Promise(() => {}));
+    vi.useFakeTimers();
+    try {
+      const { sendFirebasePhoneOtp, FirebaseSendTimeoutError } =
+        await import("../firebaseAuth.browser");
+      const pending = sendFirebasePhoneOtp("+201012345678");
+      const assertion = expect(pending).rejects.toBeInstanceOf(FirebaseSendTimeoutError);
+      await vi.advanceTimersByTimeAsync(46000);
+      await assertion;
+      expect(mockClear).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("throws a typed error when the reCAPTCHA container is missing", async () => {
-    const { ensureInvisibleRecaptcha, FirebaseRecaptchaContainerError } = await import(
-      "../firebaseAuth.browser"
-    );
+    const { ensureInvisibleRecaptcha, FirebaseRecaptchaContainerError } =
+      await import("../firebaseAuth.browser");
 
     await expect(ensureInvisibleRecaptcha("firebase-recaptcha")).rejects.toBeInstanceOf(
       FirebaseRecaptchaContainerError,

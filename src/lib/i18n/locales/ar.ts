@@ -493,6 +493,7 @@ const ar: Translation = {
     firebaseSendTooManyRequests: "محاولات كتير من الجهاز ده. استنى شوية وجرب تاني.",
     firebaseSendQuotaExceeded: "خدمة الرسائل مشغولة حاليا. حاول بعد قليل.",
     firebaseSendDeviceVerifyFailed: "تعذر التحقق من الجهاز. حدث الصفحة وحاول تاني.",
+    firebaseSendTimeout: "التحقق اتأخر ومعرفناش نبعت الكود. حدث الصفحة وجرب تاني.",
     firebaseStartFailed: "تعذر بدء التحقق من الهاتف. حاول مرة أخرى.",
     firebaseRecaptchaUnavailable: "التحقق من الهاتف غير متاح حاليا. حدث الصفحة وحاول مرة أخرى.",
     firebaseSessionLost:
