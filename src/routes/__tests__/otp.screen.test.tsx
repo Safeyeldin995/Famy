@@ -95,7 +95,7 @@ describe("OtpScreen countdown copy", () => {
   it("shows Arabic resend timer without English unit suffix", async () => {
     await i18n.changeLanguage("ar");
     render(<OtpScreen otpContext={baseContext} previewMode />);
-    expect(screen.getByText(/إعادة الإرسال خلال/i)).toBeTruthy();
+    expect(screen.getByText(/تقدر تبعت كود تاني بعد/i)).toBeTruthy();
     expect(screen.getByText(/25 ثانية/)).toBeTruthy();
     expect(screen.queryByText(/25s/)).toBeNull();
   });

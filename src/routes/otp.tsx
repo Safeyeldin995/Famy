@@ -3,8 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
-import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
-import { CustomerFloatingPanel } from "@/components/famio/CustomerFloatingPanel";
+import { ArrowRight, Clock, MessageSquareText } from "lucide-react";
 import { PhoneFrame, PrimaryButton } from "@/components/famio/ui";
 import type { AuthFlowPurpose, OtpScreenContext } from "@/lib/auth/authIntent.types";
 import {
@@ -201,72 +200,94 @@ export function OtpScreen({
   };
 
   return (
-    <PhoneFrame bg="bg-[#F10E72]">
-      <CustomerPageHero
-        title={copy.title}
-        subtitle={`${copy.body} ${otpContext.maskedPhone}`}
-        backTo={otpContext.purpose === "reset" ? "/auth/forgot" : "/login"}
-      />
+    <PhoneFrame bg="bg-white">
+      <div className="safe-top px-5 pt-4">
+        <button
+          type="button"
+          onClick={changePhone}
+          aria-label={t("common.back", "Back")}
+          className="focus-ring tap-scale grid h-11 w-11 place-items-center rounded-full border border-border/70 bg-white text-foreground"
+        >
+          <ArrowRight className="h-5 w-5 ltr:rotate-180" aria-hidden="true" />
+        </button>
+      </div>
 
-      <CustomerFloatingPanel className="mx-5 -mt-8 flex-1">
-        <div dir={i18n.dir()}>
-          <OtpCodeInput
-            value={code}
-            onChange={setCode}
-            onComplete={verify}
-            disabled={loading || otpExpiresIn === 0}
-          />
+      <div className="flex flex-1 flex-col px-6 pb-8 pt-6" dir={i18n.dir()}>
+        <div className="grid h-16 w-16 place-items-center rounded-3xl bg-brand/10 text-brand">
+          <MessageSquareText className="h-8 w-8" strokeWidth={2} aria-hidden="true" />
+        </div>
+        <h1 className="mt-6 text-[1.75rem] font-extrabold leading-tight text-foreground">
+          {copy.title}
+        </h1>
+        <p className="mt-2 text-pro-14 font-medium leading-relaxed text-muted-foreground">
+          {copy.body}{" "}
+          <span dir="ltr" className="inline-block font-extrabold tracking-wide text-foreground">
+            {otpContext.maskedPhone}
+          </span>
+        </p>
 
-          <div className="mt-6 text-center text-sm font-semibold text-muted-foreground">
-            {t("auth.codeExpiresIn", "Code expires in")}{" "}
-            <span className="font-black text-foreground">{formatOtpExpiryClock(otpExpiresIn)}</span>
-          </div>
+        <OtpCodeInput
+          value={code}
+          onChange={setCode}
+          onComplete={verify}
+          disabled={loading || otpExpiresIn === 0}
+          invalid={!!errorMsg}
+        />
 
-          <div className="mt-4 text-center text-sm font-semibold text-muted-foreground">
-            {resendAvailableIn > 0 ? (
-              <>
-                {t("auth.resendIn")}{" "}
-                <span className="font-black text-foreground">
-                  {formatOtpSecondsDuration(resendAvailableIn, t)}
-                </span>
-              </>
-            ) : (
-              <button
-                type="button"
-                onClick={resend}
-                disabled={resending || loading}
-                className="min-h-11 px-3 py-3 font-black text-brand disabled:opacity-50"
-              >
-                {resending ? t("common.sending", "Sending...") : t("auth.resend")}
-              </button>
-            )}
-          </div>
+        {errorMsg && (
+          <p className="mt-4 rounded-2xl bg-destructive/10 px-4 py-3 text-center text-pro-13 font-bold text-destructive">
+            {errorMsg}
+          </p>
+        )}
 
-          <div className="mt-6 text-center">
+        <div className="mt-6 flex items-center justify-center gap-1.5 text-pro-13 font-semibold text-muted-foreground">
+          <Clock className="h-4 w-4" aria-hidden="true" />
+          {t("auth.codeExpiresIn", "Code expires in")}{" "}
+          <span dir="ltr" className="font-extrabold text-foreground">
+            {formatOtpExpiryClock(otpExpiresIn)}
+          </span>
+        </div>
+
+        <div className="mt-2 text-center text-pro-13 font-semibold text-muted-foreground">
+          {resendAvailableIn > 0 ? (
+            <p className="py-3">
+              {t("auth.resendIn")}{" "}
+              <span className="font-extrabold text-foreground">
+                {formatOtpSecondsDuration(resendAvailableIn, t)}
+              </span>
+            </p>
+          ) : (
             <button
               type="button"
-              onClick={changePhone}
-              className="min-h-11 px-3 py-3 text-sm font-bold text-muted-foreground"
+              onClick={resend}
+              disabled={resending || loading}
+              className="min-h-11 px-3 py-3 font-extrabold text-brand disabled:opacity-50"
             >
-              {t("auth.changePhone", "Change phone number")}
+              {resending ? t("common.sending", "Sending...") : t("auth.resend")}
             </button>
-          </div>
-
-          {errorMsg && (
-            <p className="mt-6 text-center text-sm font-bold text-destructive px-1">{errorMsg}</p>
           )}
         </div>
 
-        <div className="mt-6">
+        <div className="text-center">
+          <button
+            type="button"
+            onClick={changePhone}
+            className="min-h-11 px-3 py-3 text-sm font-bold text-muted-foreground underline-offset-4 hover:underline"
+          >
+            {t("auth.changePhone", "Change phone number")}
+          </button>
+        </div>
+
+        <div className="mt-auto pt-6">
           <PrimaryButton
             onClick={() => verify(code.join(""))}
             disabled={loading || code.some((digit) => !digit) || otpExpiresIn === 0}
-            className="h-14 w-full shadow-float"
+            className="h-14 w-full rounded-2xl shadow-none"
           >
             {loading ? t("common.verifying") : t("common.verify")}
           </PrimaryButton>
         </div>
-      </CustomerFloatingPanel>
+      </div>
     </PhoneFrame>
   );
 }
