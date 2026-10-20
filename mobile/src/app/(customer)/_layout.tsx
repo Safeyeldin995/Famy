@@ -1,42 +1,29 @@
-import { Redirect } from "expo-router";
-import { Tabs } from "expo-router/tabs";
+import { Stack, Redirect } from "expo-router";
+import { ActivityIndicator, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import { Calendar, Home, MessageCircle, User } from "lucide-react-native";
 import { useSession } from "@/lib/session";
 import { colors, fonts } from "@/ui/theme";
-
-export default function CustomerTabs() {
+export default function CustomerStack() {
   const { session, ready } = useSession();
   const { t, i18n } = useTranslation();
-  if (ready && !session) return <Redirect href="/login" />;
-  const labelFont = (i18n.language === "en" ? fonts.en : fonts.ar).bold;
-
+  if (!ready)
+    return (
+      <View style={{ flex: 1, justifyContent: "center" }}>
+        <ActivityIndicator color={colors.brand} />
+      </View>
+    );
+  if (!session) return <Redirect href="/login" />;
   return (
-    <Tabs
+    <Stack
       screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.brand,
-        tabBarInactiveTintColor: colors.muted,
-        tabBarLabelStyle: { fontFamily: labelFont, fontSize: 12 },
-        tabBarStyle: { borderTopColor: colors.border, backgroundColor: colors.surface },
+        headerTintColor: colors.brand,
+        headerStyle: { backgroundColor: colors.background },
+        headerTitleStyle: { fontFamily: (i18n.language === "ar" ? fonts.ar : fonts.en).bold },
+        headerBackTitle: t("common.back"),
+        contentStyle: { backgroundColor: colors.background },
       }}
     >
-      <Tabs.Screen
-        name="home"
-        options={{ title: t("nav.home"), tabBarIcon: ({ color }) => <Home size={22} color={color} /> }}
-      />
-      <Tabs.Screen
-        name="bookings"
-        options={{ title: t("nav.bookings"), tabBarIcon: ({ color }) => <Calendar size={22} color={color} /> }}
-      />
-      <Tabs.Screen
-        name="messages"
-        options={{ title: t("nav.messages"), tabBarIcon: ({ color }) => <MessageCircle size={22} color={color} /> }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{ title: t("nav.profile"), tabBarIcon: ({ color }) => <User size={22} color={color} /> }}
-      />
-    </Tabs>
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+    </Stack>
   );
 }

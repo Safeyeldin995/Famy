@@ -5,8 +5,16 @@ import { StatusBar } from "expo-status-bar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
-import { Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold } from "@expo-google-fonts/almarai";
-import { Manrope_400Regular, Manrope_700Bold, Manrope_800ExtraBold } from "@expo-google-fonts/manrope";
+import {
+  Almarai_400Regular,
+  Almarai_700Bold,
+  Almarai_800ExtraBold,
+} from "@expo-google-fonts/almarai";
+import {
+  Manrope_400Regular,
+  Manrope_700Bold,
+  Manrope_800ExtraBold,
+} from "@expo-google-fonts/manrope";
 import { initI18n } from "@/lib/i18n";
 import { SessionProvider } from "@/lib/session";
 import { colors } from "@/ui/theme";
