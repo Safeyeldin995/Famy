@@ -445,6 +445,10 @@ const ar: Translation = {
     groupAccount: "الحساب والإعدادات",
   },
   auth: {
+    welcomeBack: "أهلا بيك تاني",
+    signInSubtitle: "سجل دخولك برقم موبايلك وكلمة المرور.",
+    signUpTitle: "اعمل حسابك على فامي",
+    signUpSubtitle: "اكتب رقم موبايلك وهنبعتلك كود تأكيد في رسالة.",
     welcomeTitle: "أهلا بك في فامي",
     welcomeBody: "أدخل رقم هاتفك للمتابعة. سنرسل لك رمز التحقق.",
     phoneNumber: "رقم الهاتف",
@@ -549,6 +553,8 @@ const ar: Translation = {
     saveFailed: "لم نتمكن من حفظ ملفك الشخصي.",
   },
   home: {
+    babysittingTag: "جليسة موثوقة لأطفالك في البيت",
+    tutoringTag: "مدرس خصوصي لكل مادة",
     searchHint: "ابحث عن مساعدة…",
     headline: "بماذا تحتاج المساعدة اليوم؟",
     greetingLine: "{{timeGreeting}} {{firstName}}",
@@ -556,7 +562,7 @@ const ar: Translation = {
     featuredSubtitle: "الأعلى تقييما",
     recentSubtitle: "سجلك",
     trust1: "محترفون موثوقون",
-    trust2: "هوية متراجعة",
+    trust2: "هوية متحقق منها",
     trust3: "دعم حقيقي",
     chooseService: "اختر خدمتك",
     exploreServices: "استكشف الخدمات",

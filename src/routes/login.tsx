@@ -2,9 +2,9 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Briefcase, ChevronDown, Eye, EyeOff, User } from "lucide-react";
+import { Briefcase, Eye, EyeOff, User } from "lucide-react";
 import { FamyWordmark } from "@/components/famio/FamyWordmark";
-import { PhoneFrame, PrimaryButton, RoleSelectCard } from "@/components/famio/ui";
+import { PhoneFrame, PrimaryButton } from "@/components/famio/ui";
 import { LanguageToggle } from "@/components/famio/LanguageToggle";
 import { useApp } from "@/lib/store";
 import { otpService, normalizePhone, type Role } from "@/lib/otp/OtpService";
@@ -43,39 +43,47 @@ function GoogleMark() {
   );
 }
 
-function AuthModeTabs({
-  mode,
+function Segmented<T extends string>({
+  value,
   onChange,
-  signInLabel,
-  signUpLabel,
+  options,
+  label,
 }: {
-  mode: "signin" | "signup";
-  onChange: (mode: "signin" | "signup") => void;
-  signInLabel: string;
-  signUpLabel: string;
+  value: T;
+  onChange: (value: T) => void;
+  options: {
+    value: T;
+    label: string;
+    icon?: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  }[];
+  label: string;
 }) {
-  const tabs = [
-    { value: "signin" as const, label: signInLabel },
-    { value: "signup" as const, label: signUpLabel },
-  ];
-
   return (
-    <div className="flex gap-8 border-b border-border/60">
-      {tabs.map((tab) => {
-        const active = mode === tab.value;
+    <div
+      role="group"
+      aria-label={label}
+      className="grid grid-cols-2 gap-1 rounded-2xl bg-surface-2 p-1"
+    >
+      {options.map((option) => {
+        const active = value === option.value;
+        const Icon = option.icon;
         return (
           <button
-            key={tab.value}
+            key={option.value}
             type="button"
-            onClick={() => onChange(tab.value)}
+            onClick={() => onChange(option.value)}
             aria-pressed={active}
-            className={`focus-ring min-h-11 -mb-px pb-3 text-[15px] font-extrabold transition-colors ${
-              active
-                ? "border-b-[3px] border-brand text-brand"
-                : "border-b-[3px] border-transparent text-muted-foreground"
+            className={`focus-ring flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 text-pro-14 font-extrabold transition-all ${
+              active ? "bg-white text-foreground shadow-sm" : "text-muted-foreground"
             }`}
           >
-            {tab.label}
+            {Icon ? (
+              <Icon
+                className={`h-4 w-4 ${active ? "text-brand" : ""}`}
+                strokeWidth={ICON_STROKE_BOLD}
+              />
+            ) : null}
+            {option.label}
           </button>
         );
       })}
@@ -154,102 +162,118 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
     nav({ to: "/otp" });
   };
 
+  const fieldClass =
+    "flex h-14 items-center rounded-2xl border border-border/80 bg-white transition-colors focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/15";
+
   return (
     <PhoneFrame bg="bg-white">
-      <header className="brand-hero safe-top relative overflow-hidden rounded-b-[2.5rem] px-5 pb-8 pt-4">
-        <div className="relative z-10 flex items-start justify-between gap-3">
-          <FamyWordmark
-            size="compact"
-            variant="white"
-            className="!h-11 max-w-[9.5rem] object-contain object-left"
-          />
-          <LanguageToggle variant="hero" />
-        </div>
-        <h1 className="relative z-10 mt-8 text-[1.75rem] font-extrabold leading-tight text-white">
-          {screenTitle}
-        </h1>
-      </header>
+      <div className="relative flex flex-1 flex-col overflow-y-auto">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-brand/10 via-brand/[0.04] to-transparent"
+        />
+        <header className="safe-top relative flex items-center justify-between gap-3 px-6 pt-4">
+          <FamyWordmark size="compact" className="!h-9 max-w-[7.5rem]" />
+          <LanguageToggle />
+        </header>
 
-      <div className="flex flex-1 flex-col overflow-y-auto px-5 pb-8">
-        <div className="pt-5">
-          <AuthModeTabs
-            mode={mode}
-            onChange={setMode}
-            signInLabel={t("auth.signIn")}
-            signUpLabel={t("auth.signUp")}
-          />
-        </div>
+        <div className="relative flex flex-1 flex-col px-6 pb-8">
+          <div className="pt-10">
+            <h1 className="text-[1.875rem] font-extrabold leading-tight text-foreground text-balance">
+              {mode === "signin" ? t("auth.welcomeBack") : t("auth.signUpTitle")}
+            </h1>
+            <p className="mt-2 text-pro-14 font-medium leading-relaxed text-muted-foreground">
+              {mode === "signin" ? t("auth.signInSubtitle") : t("auth.signUpSubtitle")}
+            </p>
+          </div>
 
-        <section className="mt-8">
-          <h2 className="text-sm font-bold text-muted-foreground">
-            {mode === "signin" ? t("auth.signInAs") : t("auth.iAmA")}
-          </h2>
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            <RoleSelectCard
-              icon={User}
-              label={t("auth.roleCustomer")}
-              active={role === "customer"}
-              onClick={() => setRole("customer")}
-            />
-            <RoleSelectCard
-              icon={Briefcase}
-              label={t("auth.roleProvider")}
-              active={role === "provider"}
-              onClick={() => setRole("provider")}
+          <div className="mt-7">
+            <Segmented
+              value={mode}
+              onChange={(next) => {
+                setMode(next);
+                setErrorMsg(null);
+              }}
+              label={screenTitle}
+              options={[
+                { value: "signin", label: t("auth.signIn") },
+                { value: "signup", label: t("auth.signUp") },
+              ]}
             />
           </div>
-          {mode === "signup" && role === "provider" ? (
-            <p className="mt-3 text-pro-12 font-semibold leading-relaxed text-muted-foreground">
-              {t("auth.providerNote")}
-            </p>
-          ) : null}
-        </section>
 
-        <section className="mt-8">
-          <h2 className="text-sm font-bold text-muted-foreground">{t("auth.contactDetails")}</h2>
-          <div className="mt-3 space-y-5">
+          <section className="mt-6 space-y-5">
             <div>
-              <label className="text-sm font-bold text-foreground">{t("auth.phoneNumber")}</label>
-              <div dir="ltr" className="mt-2 flex h-14 items-center gap-2 rounded-2xl border border-border/80 bg-white px-3 focus-within:border-brand focus-within:ring-1 focus-within:ring-brand">
-                <button
-                  type="button"
-                  className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-lg bg-surface-2 px-2 py-1.5 text-pro-12 font-extrabold text-foreground"
-                  aria-label={t("auth.phoneNumber")}
-                >
+              <p className="mb-2 text-pro-13 font-bold text-muted-foreground">{t("auth.iAmA")}</p>
+              <Segmented
+                value={role}
+                onChange={setRole}
+                label={t("auth.iAmA")}
+                options={[
+                  { value: "customer", label: t("auth.roleCustomer"), icon: User },
+                  { value: "provider", label: t("auth.roleProvider"), icon: Briefcase },
+                ]}
+              />
+              {mode === "signup" && role === "provider" ? (
+                <p className="mt-3 rounded-2xl bg-brand/[0.06] px-4 py-3 text-pro-12 font-semibold leading-relaxed text-foreground/80">
+                  {t("auth.providerNote")}
+                </p>
+              ) : null}
+            </div>
+
+            <div>
+              <label
+                htmlFor="login-phone"
+                className="mb-2 block text-pro-13 font-bold text-muted-foreground"
+              >
+                {t("auth.phoneNumber")}
+              </label>
+              <div dir="ltr" className={`${fieldClass} gap-2 px-3`}>
+                <span className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl bg-surface-2 px-2.5 text-pro-14 font-extrabold text-foreground">
                   <span aria-hidden="true">🇪🇬</span>
-                  <span>EG</span>
-                  <ChevronDown
-                    className="h-3.5 w-3.5 text-muted-foreground"
-                    strokeWidth={ICON_STROKE_BOLD}
-                  />
-                </button>
-                <span className="text-[15px] font-extrabold text-foreground" dir="ltr">
-                  +20
+                  <span>+20</span>
                 </span>
-                <div className="h-6 w-px bg-border/80" />
                 <input
+                  id="login-phone"
                   inputMode="tel"
                   dir="ltr"
                   autoComplete="tel"
                   placeholder={t("auth.phonePlaceholder")}
                   value={phone}
                   onChange={(e) => setPhone(e.target.value.replace(/[^\d ]/g, ""))}
-                  className="min-h-11 min-w-0 flex-1 bg-transparent text-[15px] font-semibold outline-none placeholder:text-muted-foreground/50"
+                  className="min-h-11 min-w-0 flex-1 bg-transparent px-1 text-[16px] font-bold tracking-wide outline-none placeholder:font-semibold placeholder:text-muted-foreground/50"
                 />
               </div>
             </div>
 
             {mode === "signin" ? (
               <div>
-                <label className="text-sm font-bold text-foreground">{t("auth.password")}</label>
-                <div className="mt-2 flex h-14 items-center gap-3 rounded-2xl border border-border/80 bg-white px-4 focus-within:border-brand focus-within:ring-1 focus-within:ring-brand">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <label
+                    htmlFor="login-password"
+                    className="text-pro-13 font-bold text-muted-foreground"
+                  >
+                    {t("auth.password")}
+                  </label>
+                  <Link
+                    to={previewPath("/auth/forgot")}
+                    className="inline-flex min-h-11 items-center text-pro-13 font-extrabold text-brand"
+                  >
+                    {t("auth.forgot")}
+                  </Link>
+                </div>
+                <div className={`${fieldClass} gap-2 ps-4 pe-1.5`}>
                   <input
+                    id="login-password"
                     type={showPw ? "text" : "password"}
                     autoComplete="current-password"
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="min-h-11 min-w-0 flex-1 bg-transparent text-[15px] font-semibold tracking-widest outline-none placeholder:text-muted-foreground/50"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void submit();
+                    }}
+                    className="min-h-11 min-w-0 flex-1 bg-transparent text-[16px] font-bold outline-none placeholder:text-muted-foreground/50"
                   />
                   <button
                     type="button"
@@ -264,109 +288,95 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
                     )}
                   </button>
                 </div>
-                <div className="mt-3 flex justify-end">
-                  <Link
-                    to={previewPath("/auth/forgot")}
-                    className="inline-flex min-h-11 items-center py-3 text-[13px] font-extrabold text-brand"
-                  >
-                    {t("auth.forgot")}
-                  </Link>
-                </div>
               </div>
             ) : null}
+
+            {errorMsg ? (
+              <p className="rounded-2xl bg-destructive/10 px-4 py-3 text-pro-13 font-bold text-destructive">
+                {errorMsg}
+              </p>
+            ) : null}
+          </section>
+
+          <div className="mt-7">
+            <PrimaryButton
+              onClick={submit}
+              disabled={!phoneValid || (mode === "signin" && password.length < 1) || loading}
+              className="h-14 w-full rounded-2xl text-pro-16 shadow-none"
+            >
+              {loading
+                ? mode === "signin"
+                  ? t("common.signingIn", "Signing in…")
+                  : t("common.sending", "Sending…")
+                : mode === "signin"
+                  ? t("auth.signIn", "Sign in")
+                  : t("common.sendCode")}
+            </PrimaryButton>
           </div>
-          {errorMsg ? <p className="mt-3 text-sm font-bold text-destructive">{errorMsg}</p> : null}
-        </section>
 
-        {mode === "signup" ? (
-          <p className="mt-6 text-xs font-semibold leading-relaxed text-muted-foreground">
-            {t("auth.terms")}{" "}
-            <Link
-              to="/content/$key"
-              params={{ key: "terms" }}
-              className="inline-flex min-h-11 items-center py-3 font-extrabold text-brand"
-            >
-              {t("auth.termsLink")}
-            </Link>{" "}
-            {t("auth.and")}{" "}
-            <Link
-              to="/content/$key"
-              params={{ key: "privacy" }}
-              className="inline-flex min-h-11 items-center py-3 font-extrabold text-brand"
-            >
-              {t("auth.privacyLink")}
-            </Link>
-            .
-          </p>
-        ) : null}
-
-        <div className="mt-8">
-          <PrimaryButton
-            onClick={submit}
-            disabled={!phoneValid || (mode === "signin" && password.length < 1) || loading}
-            className="h-14 w-full rounded-2xl shadow-none"
-          >
-            {loading
-              ? mode === "signin"
-                ? t("common.signingIn", "Signing in…")
-                : t("common.sending", "Sending…")
-              : mode === "signin"
-                ? t("auth.signIn", "Sign in")
-                : t("common.sendCode")}
-          </PrimaryButton>
-        </div>
-
-        {role === "customer" ? (
-          <div className="mt-5">
-            <div className="flex items-center gap-3 text-pro-12 font-semibold text-muted-foreground">
-              <span className="h-px flex-1 bg-border" />
-              {t("oauth.or")}
-              <span className="h-px flex-1 bg-border" />
+          {role === "customer" ? (
+            <div className="mt-6">
+              <div className="flex items-center gap-3 text-pro-12 font-semibold text-muted-foreground">
+                <span className="h-px flex-1 bg-border" />
+                {t("oauth.or")}
+                <span className="h-px flex-1 bg-border" />
+              </div>
+              <button
+                type="button"
+                disabled={previewMode || googleLoading}
+                onClick={async () => {
+                  setGoogleLoading(true);
+                  const { error } = await signInWithOAuthProvider("google");
+                  if (error) {
+                    setGoogleLoading(false);
+                    toast.error(t("oauth.failedBody"));
+                  }
+                }}
+                className="focus-ring tap-scale mt-5 flex h-14 w-full items-center justify-center gap-3 rounded-2xl border border-border bg-white text-pro-14 font-extrabold text-foreground disabled:opacity-60"
+              >
+                <GoogleMark />
+                {googleLoading ? t("oauth.redirecting") : t("oauth.continueWithGoogle")}
+              </button>
             </div>
-            <button
-              type="button"
-              disabled={previewMode || googleLoading}
-              onClick={async () => {
-                setGoogleLoading(true);
-                const { error } = await signInWithOAuthProvider("google");
-                if (error) {
-                  setGoogleLoading(false);
-                  toast.error(t("oauth.failedBody"));
-                }
-              }}
-              className="focus-ring tap-scale mt-4 flex h-14 w-full items-center justify-center gap-3 rounded-2xl border border-border bg-white text-[15px] font-extrabold text-foreground disabled:opacity-60"
-            >
-              <GoogleMark />
-              {googleLoading ? t("oauth.redirecting") : t("oauth.continueWithGoogle")}
-            </button>
-          </div>
-        ) : null}
+          ) : null}
 
-        <p className="mt-6 text-center text-[13px] font-semibold text-muted-foreground">
-          {mode === "signin" ? (
-            <>
-              {t("auth.newHere")}{" "}
-              <button
-                type="button"
-                onClick={() => setMode("signup")}
-                className="inline-flex min-h-11 items-center py-3 font-extrabold text-brand"
-              >
-                {t("auth.createAccountLink")}
-              </button>
-            </>
-          ) : (
-            <>
-              {t("auth.alreadyHave")}{" "}
-              <button
-                type="button"
-                onClick={() => setMode("signin")}
-                className="inline-flex min-h-11 items-center py-3 font-extrabold text-brand"
-              >
-                {t("auth.signInLink")}
-              </button>
-            </>
-          )}
-        </p>
+          <div className="mt-auto pt-8">
+            {mode === "signup" ? (
+              <p className="text-center text-pro-12 font-semibold leading-7 text-muted-foreground">
+                {t("auth.terms")}{" "}
+                <Link
+                  to="/content/$key"
+                  params={{ key: "terms" }}
+                  className="py-2 font-extrabold text-foreground underline decoration-border underline-offset-4"
+                >
+                  {t("auth.termsLink")}
+                </Link>{" "}
+                {t("auth.and")}{" "}
+                <Link
+                  to="/content/$key"
+                  params={{ key: "privacy" }}
+                  className="py-2 font-extrabold text-foreground underline decoration-border underline-offset-4"
+                >
+                  {t("auth.privacyLink")}
+                </Link>
+              </p>
+            ) : (
+              <p className="text-center text-pro-13 font-semibold text-muted-foreground">
+                {t("auth.newHere")}{" "}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("signup");
+                    setErrorMsg(null);
+                  }}
+                  className="inline-flex min-h-11 items-center font-extrabold text-brand"
+                >
+                  {t("auth.createAccountLink")}
+                </button>
+              </p>
+            )}
+          </div>
+        </div>
       </div>
     </PhoneFrame>
   );

@@ -110,7 +110,7 @@ describe("customer final polish", () => {
 
   it("protects the audited touch targets and typography", () => {
     const login = source("routes/login.tsx");
-    expect(login).toContain("focus-ring min-h-11 -mb-px");
+    expect(login).toContain("focus-ring flex min-h-11 items-center justify-center");
     expect(login).toContain("inline-flex min-h-11 shrink-0");
     expect(login).toContain("h-11 w-11 shrink-0");
     expect(source("routes/otp.tsx")).toContain("min-h-11 px-3 py-3 text-sm");
