@@ -1,5 +1,11 @@
 const en = {
   customerAreas: { sheikhZayed: "Sheikh Zayed", october: "6th of October", maadi: "Maadi" },
+  mobile: {
+    comingSoon: "This screen is being built for the app and arrives in the next update.",
+    workspaceOnWebTitle: "These screens are still on the web",
+    workspaceOnWebBody: "Provider and admin screens are coming to the app. Until then, continue on the website with the same account.",
+    openOnWeb: "Open the website",
+  },
   customerHome: {
     profileEdit: "Edit name and address",
     chooseArea: "Choose your area",

@@ -2,6 +2,12 @@ import type { Translation } from "./en";
 
 const ar: Translation = {
   customerAreas: { sheikhZayed: "الشيخ زايد", october: "6 أكتوبر", maadi: "المعادي" },
+  mobile: {
+    comingSoon: "الشاشة دي بتتجهز في التطبيق وهتوصلك في التحديث الجاي.",
+    workspaceOnWebTitle: "الشاشات دي لسه على الويب",
+    workspaceOnWebBody: "شاشات مقدم الخدمة ولوحة الإدارة بتتجهز للتطبيق. لحد ما تخلص، كمل من الموقع بنفس الحساب.",
+    openOnWeb: "افتح الموقع",
+  },
   customerHome: {
     profileEdit: "عدل الاسم والعنوان",
     chooseArea: "اختار منطقتك",
