@@ -9,7 +9,8 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, useCallback, Fragment, type ReactNode } from "react";
+import { createSessionQueryIsolation } from "@/lib/auth/sessionQueryIsolation";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -118,43 +119,35 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const [identityEpoch, setIdentityEpoch] = useState(0);
+  const remountForIdentity = useCallback(() => setIdentityEpoch((epoch) => epoch + 1), []);
   return (
     <QueryClientProvider client={queryClient}>
-        <AuthCacheBridge />
+      <AuthCacheBridge onIdentityChange={remountForIdentity} />
+      <Fragment key={identityEpoch}>
         <PushNavigationBridge />
         <ProfileLocaleBridge />
         <ClientErrorMonitoringBridge />
         <Outlet />
         <div id="firebase-recaptcha" className="hidden" aria-hidden="true" />
         <Toaster />
+      </Fragment>
     </QueryClientProvider>
   );
 }
 
 /**
- * Single global auth listener. Drops role/identity caches whenever the
- * authenticated user changes, so a customer signing in after a provider
- * (or vice-versa) never inherits the previous user's role/provider data
- * and gets routed to the wrong portal.
+ * Single global auth listener. Clears cached data and remounts query consumers
+ * whenever identity changes, including external sign-out and account switches.
  */
-function AuthCacheBridge() {
+function AuthCacheBridge({ onIdentityChange }: { onIdentityChange: () => void }) {
   const qc = useQueryClient();
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_OUT") {
-        qc.removeQueries({ queryKey: ["my-role"] });
-        qc.removeQueries({ queryKey: ["my-provider"] });
-        qc.removeQueries({ queryKey: ["pro-notifications"] });
-        return;
-      }
-      if (event === "SIGNED_IN" || event === "USER_UPDATED") {
-        qc.invalidateQueries({ queryKey: ["my-role"] });
-        qc.invalidateQueries({ queryKey: ["my-provider"] });
-        qc.removeQueries({ queryKey: ["pro-notifications"] });
-      }
-    });
+    const { data: sub } = supabase.auth.onAuthStateChange(
+      createSessionQueryIsolation(qc, onIdentityChange),
+    );
     return () => sub.subscription.unsubscribe();
-  }, [qc]);
+  }, [qc, onIdentityChange]);
   return null;
 }
 

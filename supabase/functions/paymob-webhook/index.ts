@@ -94,19 +94,6 @@ function asBoolean(value: unknown): boolean {
   return Boolean(value);
 }
 
-function parsePaymentId(obj: PaymobTransaction): string | null {
-  const candidates = [
-    obj.merchant_order_id,
-    (obj.order as { merchant_order_id?: unknown } | undefined)?.merchant_order_id,
-    (obj.payment_key_claims as { extra?: { payment_id?: unknown } } | undefined)?.extra?.payment_id,
-    (obj as { special_reference?: unknown }).special_reference,
-  ];
-  for (const candidate of candidates) {
-    if (typeof candidate === "string" && candidate.length > 0) return candidate;
-  }
-  return null;
-}
-
 Deno.serve(async (req) => {
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "method_not_allowed" }), {
@@ -159,10 +146,17 @@ Deno.serve(async (req) => {
     });
   }
 
-  const paymentId = parsePaymentId(obj);
-  if (!paymentId) {
-    console.error("[paymob-webhook] missing payment correlation id");
-    return new Response(JSON.stringify({ error: "missing_payment_reference" }), {
+  // Only signed fields may identify the payment. Merchant references/extras
+  // are not covered by Paymob's HMAC and must never select a payment row.
+  const orderId = Number(obj.order?.id);
+  const integrationId = Number(obj.integration_id);
+  if (
+    !Number.isSafeInteger(orderId) ||
+    orderId <= 0 ||
+    !Number.isSafeInteger(integrationId) ||
+    integrationId <= 0
+  ) {
+    return new Response(JSON.stringify({ error: "invalid_order_reference" }), {
       status: 422,
       headers: { "Content-Type": "application/json" },
     });
@@ -170,15 +164,24 @@ Deno.serve(async (req) => {
 
   const paymobTransactionId = Number(obj.id);
   const amountCents = Number(obj.amount_cents);
-  if (!Number.isFinite(paymobTransactionId) || paymobTransactionId <= 0) {
+  if (!Number.isSafeInteger(paymobTransactionId) || paymobTransactionId <= 0) {
     return new Response(JSON.stringify({ error: "invalid_transaction_id" }), {
       status: 422,
       headers: { "Content-Type": "application/json" },
     });
   }
-  if (!Number.isFinite(amountCents)) {
+  if (!Number.isSafeInteger(amountCents) || amountCents <= 0 || typeof obj.currency !== "string") {
     return new Response(JSON.stringify({ error: "invalid_amount" }), {
       status: 422,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Authorization-only, refunded, and voided transactions do not
+  // prove receipt of funds. Do not consume their transaction IDs as captures.
+  if ([obj.is_auth, obj.is_refunded, obj.is_voided].some(asBoolean)) {
+    return new Response(JSON.stringify({ ok: true, ignored: true }), {
+      status: 200,
       headers: { "Content-Type": "application/json" },
     });
   }
@@ -187,21 +190,19 @@ Deno.serve(async (req) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  const success = asBoolean(obj.success);
+  const success = asBoolean(obj.success) && !asBoolean(obj.error_occured);
   const pending = asBoolean(obj.pending);
   const providerRef = String(obj.id);
 
-  const paymobOrderId =
-    obj.order?.id === null || obj.order?.id === undefined ? null : String(obj.order.id);
-
   const { data, error } = await supabase.rpc("paymob_apply_transaction_webhook", {
     p_paymob_transaction_id: paymobTransactionId,
-    p_payment_id: paymentId,
+    p_order_id: orderId,
+    p_integration_id: integrationId,
+    p_currency: obj.currency,
     p_success: success,
     p_pending: pending,
     p_amount_cents: Math.trunc(amountCents),
     p_provider_ref: providerRef,
-    p_paymob_order_id: paymobOrderId,
     p_metadata: {
       paymob_transaction_id: paymobTransactionId,
       paymob_order_id: obj.order?.id ?? null,

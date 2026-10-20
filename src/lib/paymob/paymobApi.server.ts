@@ -27,7 +27,8 @@ export type CreatePaymobIntentionInput = {
 export type PaymobIntentionResponse = {
   id: string;
   client_secret: string;
-  intention_order_id?: number;
+  intention_order_id?: number | string;
+  order?: { id?: number | string };
   status?: string;
 };
 
@@ -56,7 +57,7 @@ export class PaymobIntentionRejectedError extends Error {
 export async function createPaymobIntention(
   config: PaymobConfig,
   input: CreatePaymobIntentionInput,
-): Promise<{ checkoutUrl: string; intentionId: string; clientSecret: string; orderId: string }> {
+): Promise<{ checkoutUrl: string; intentionId: string; clientSecret: string; orderId: number }> {
   const body = {
     amount: input.amountCents,
     currency: input.currency,
@@ -121,14 +122,8 @@ export async function createPaymobIntention(
       cause: err,
     });
   }
-  const orderId = data.intention_order_id ?? (data as { order?: { id?: unknown } }).order?.id;
-  if (
-    !data.client_secret ||
-    !data.id ||
-    orderId === null ||
-    orderId === undefined ||
-    String(orderId) === ""
-  ) {
+  const orderId = Number(data.intention_order_id ?? data.order?.id);
+  if (!data.client_secret || !data.id || !Number.isSafeInteger(orderId) || orderId <= 0) {
     throw new PaymobIntentionIndeterminateError("Paymob checkout response was incomplete.");
   }
 
@@ -140,6 +135,6 @@ export async function createPaymobIntention(
     ),
     intentionId: String(data.id),
     clientSecret: data.client_secret,
-    orderId: String(orderId),
+    orderId,
   };
 }
