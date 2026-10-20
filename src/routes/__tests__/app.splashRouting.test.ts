@@ -4,16 +4,16 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { resolveSplashNavigationTarget } from "@/lib/auth/landing";
 
-const indexSource = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), "../index.tsx"),
+const appSource = readFileSync(
+  join(dirname(fileURLToPath(import.meta.url)), "../app.tsx"),
   "utf8",
 );
 
 describe("splash routing", () => {
   it("uses the shared landing helper after onboarding/login/setup gates", () => {
-    expect(indexSource).toContain("resolveLandingForCurrentUser");
-    expect(indexSource).toContain("resolveSplashNavigationTarget");
-    expect(indexSource).not.toMatch(/navigate\(\{ to: "\/home", replace: true \}\)/);
+    expect(appSource).toContain("resolveLandingForCurrentUser");
+    expect(appSource).toContain("resolveSplashNavigationTarget");
+    expect(appSource).not.toMatch(/navigate\(\{ to: "\/home", replace: true \}\)/);
   });
 
   it.each([
