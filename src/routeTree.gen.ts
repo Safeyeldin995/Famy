@@ -10,13 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as AddressesRouteImport } from './routes/addresses'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AppRouteImport } from './routes/app'
 import { Route as BookingsRouteImport } from './routes/bookings'
+import { Route as ContactRouteImport } from './routes/contact'
 import { Route as FamilyMembersRouteImport } from './routes/family-members'
 import { Route as FavoritesRouteImport } from './routes/favorites'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as HomeRouteImport } from './routes/home'
+import { Route as JoinRouteImport } from './routes/join'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as NotificationPreferencesRouteImport } from './routes/notification-preferences'
@@ -139,6 +143,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AddressesRoute = AddressesRouteImport.update({
   id: '/addresses',
   path: '/addresses',
@@ -149,9 +158,19 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BookingsRoute = BookingsRouteImport.update({
   id: '/bookings',
   path: '/bookings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FamilyMembersRoute = FamilyMembersRouteImport.update({
@@ -172,6 +191,11 @@ const HelpRoute = HelpRouteImport.update({
 const HomeRoute = HomeRouteImport.update({
   id: '/home',
   path: '/home',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JoinRoute = JoinRouteImport.update({
+  id: '/join',
+  path: '/join',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -763,13 +787,17 @@ const PreviewProSetupItemRoute = PreviewProSetupItemRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/addresses': typeof AddressesRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
+  '/app': typeof AppRoute
   '/bookings': typeof BookingsRoute
+  '/contact': typeof ContactRoute
   '/family-members': typeof FamilyMembersRouteWithChildren
   '/favorites': typeof FavoritesRoute
   '/help': typeof HelpRoute
   '/home': typeof HomeRoute
+  '/join': typeof JoinRoute
   '/login': typeof LoginRoute
   '/messages': typeof MessagesRouteWithChildren
   '/notification-preferences': typeof NotificationPreferencesRoute
@@ -889,11 +917,15 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/app': typeof AppRoute
   '/bookings': typeof BookingsRoute
+  '/contact': typeof ContactRoute
   '/family-members': typeof FamilyMembersRouteWithChildren
   '/favorites': typeof FavoritesRoute
   '/help': typeof HelpRoute
   '/home': typeof HomeRoute
+  '/join': typeof JoinRoute
   '/login': typeof LoginRoute
   '/notification-preferences': typeof NotificationPreferencesRoute
   '/notifications': typeof NotificationsRoute
@@ -1008,13 +1040,17 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/addresses': typeof AddressesRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
+  '/app': typeof AppRoute
   '/bookings': typeof BookingsRoute
+  '/contact': typeof ContactRoute
   '/family-members': typeof FamilyMembersRouteWithChildren
   '/favorites': typeof FavoritesRoute
   '/help': typeof HelpRoute
   '/home': typeof HomeRoute
+  '/join': typeof JoinRoute
   '/login': typeof LoginRoute
   '/messages': typeof MessagesRouteWithChildren
   '/notification-preferences': typeof NotificationPreferencesRoute
@@ -1136,13 +1172,17 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
     | '/addresses'
     | '/admin'
+    | '/app'
     | '/bookings'
+    | '/contact'
     | '/family-members'
     | '/favorites'
     | '/help'
     | '/home'
+    | '/join'
     | '/login'
     | '/messages'
     | '/notification-preferences'
@@ -1262,11 +1302,15 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
+    | '/app'
     | '/bookings'
+    | '/contact'
     | '/family-members'
     | '/favorites'
     | '/help'
     | '/home'
+    | '/join'
     | '/login'
     | '/notification-preferences'
     | '/notifications'
@@ -1380,13 +1424,17 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/about'
     | '/addresses'
     | '/admin'
+    | '/app'
     | '/bookings'
+    | '/contact'
     | '/family-members'
     | '/favorites'
     | '/help'
     | '/home'
+    | '/join'
     | '/login'
     | '/messages'
     | '/notification-preferences'
@@ -1507,13 +1555,17 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
   AddressesRoute: typeof AddressesRouteWithChildren
   AdminRoute: typeof AdminRouteWithChildren
+  AppRoute: typeof AppRoute
   BookingsRoute: typeof BookingsRoute
+  ContactRoute: typeof ContactRoute
   FamilyMembersRoute: typeof FamilyMembersRouteWithChildren
   FavoritesRoute: typeof FavoritesRoute
   HelpRoute: typeof HelpRoute
   HomeRoute: typeof HomeRoute
+  JoinRoute: typeof JoinRoute
   LoginRoute: typeof LoginRoute
   MessagesRoute: typeof MessagesRouteWithChildren
   NotificationPreferencesRoute: typeof NotificationPreferencesRoute
@@ -1546,6 +1598,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/addresses': {
       id: '/addresses'
       path: '/addresses'
@@ -1560,11 +1619,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/bookings': {
       id: '/bookings'
       path: '/bookings'
       fullPath: '/bookings'
       preLoaderRoute: typeof BookingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/family-members': {
@@ -1593,6 +1666,13 @@ declare module '@tanstack/react-router' {
       path: '/home'
       fullPath: '/home'
       preLoaderRoute: typeof HomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/join': {
+      id: '/join'
+      path: '/join'
+      fullPath: '/join'
+      preLoaderRoute: typeof JoinRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -2687,13 +2767,17 @@ const ProRouteWithChildren = ProRoute._addFileChildren(ProRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
   AddressesRoute: AddressesRouteWithChildren,
   AdminRoute: AdminRouteWithChildren,
+  AppRoute: AppRoute,
   BookingsRoute: BookingsRoute,
+  ContactRoute: ContactRoute,
   FamilyMembersRoute: FamilyMembersRouteWithChildren,
   FavoritesRoute: FavoritesRoute,
   HelpRoute: HelpRoute,
   HomeRoute: HomeRoute,
+  JoinRoute: JoinRoute,
   LoginRoute: LoginRoute,
   MessagesRoute: MessagesRouteWithChildren,
   NotificationPreferencesRoute: NotificationPreferencesRoute,
