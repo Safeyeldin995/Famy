@@ -14,7 +14,6 @@ import { AuthGate } from "@/components/famio/AuthGate";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   MapPin,
-  CreditCard,
   Users,
   Bell,
   Globe,
@@ -114,11 +113,6 @@ function Profile() {
             }
           />
           <Row
-            icon={<CreditCard className="h-5 w-5" />}
-            label={t("profile.payment")}
-            sub={t("profile.paymentSub")}
-          />
-          <Row
             to={previewPath("/family-members")}
             icon={<Users className="h-5 w-5" />}
             label={t("profile.family")}
@@ -128,14 +122,10 @@ function Profile() {
 
         <Section title={t("profile.preferences")}>
           <Row
-            to={previewPath("/notifications")}
-            icon={<Bell className="h-5 w-5" />}
-            label={t("common.notifications")}
-          />
-          <Row
             to={previewPath("/notification-preferences")}
             icon={<Bell className="h-5 w-5" />}
-            label={t("notifPrefs.title")}
+            label={t("common.notifications")}
+            sub={t("notifPrefs.title")}
           />
           <button
             type="button"

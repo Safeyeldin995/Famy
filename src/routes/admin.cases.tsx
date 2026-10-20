@@ -73,9 +73,9 @@ function BookingContext({ row }: { row: any }) {
       )}
       {booking?.customer?.full_name && booking?.customer_id && (
         <Link
-          to={"/admin/customer/$id" as "/admin/customer/$id"}
+          to={"/admin/customer/$id" as const}
           params={{ id: booking.customer_id }}
-          className="text-brand hover:underline"
+          className="inline-flex min-h-11 items-center text-brand hover:underline"
         >
           {booking.customer.full_name}
         </Link>
@@ -84,9 +84,9 @@ function BookingContext({ row }: { row: any }) {
         <>
           {" → "}
           <Link
-            to={"/admin/provider/$id" as "/admin/provider/$id"}
+            to={"/admin/provider/$id" as const}
             params={{ id: booking.provider.id }}
-            className="text-brand hover:underline"
+            className="inline-flex min-h-11 items-center text-brand hover:underline"
           >
             {booking.provider.profile.full_name}
           </Link>

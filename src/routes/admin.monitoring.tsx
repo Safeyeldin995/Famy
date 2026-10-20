@@ -151,14 +151,14 @@ function AdminMonitoring() {
             title={t("admin.monitoring.failedPayments")}
             description={t("admin.monitoring.failedPaymentsBody")}
             count={summary?.failed_payments ?? 0}
-            to={"/admin/payments" as "/admin/payments"}
+            to={"/admin/payments" as const}
             search={{ statuses: "failed,rejected" }}
           />
           <SummaryCard
             title={t("admin.monitoring.failedNotifications")}
             description={t("admin.monitoring.failedNotificationsBody")}
             count={summary?.failed_notifications ?? 0}
-            to={"/admin/operations" as "/admin/operations"}
+            to={"/admin/operations" as const}
           />
         </div>
       )}
@@ -235,9 +235,9 @@ function AdminMonitoring() {
                   </p>
                 </div>
                 <Link
-                  to={"/admin/payments" as "/admin/payments"}
+                  to={"/admin/payments" as const}
                   search={{ status: row.status }}
-                  className="focus-ring shrink-0 rounded-lg border border-border px-2 py-1 font-semibold text-brand"
+                  className="focus-ring inline-flex min-h-11 shrink-0 items-center rounded-lg border border-border px-3 font-semibold text-brand"
                 >
                   {t("admin.monitoring.review")}
                 </Link>
