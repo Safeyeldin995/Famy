@@ -21,7 +21,18 @@ describe("session query isolation", () => {
     }
     listener("SIGNED_IN", session("B"));
     expect(qc.getQueryCache().getAll()).toHaveLength(0);
-    expect(remount).toHaveBeenCalledTimes(2);
+    expect(remount).toHaveBeenCalledTimes(1);
+    qc.clear();
+  });
+
+  it("records the initial session without clearing or remounting", () => {
+    const qc = new QueryClient();
+    const remount = vi.fn();
+    const listener = createSessionQueryIsolation(qc, remount);
+    qc.setQueryData(["my-profile"], { owner: "A" });
+    listener("INITIAL_SESSION", session("A"));
+    expect(qc.getQueryData(["my-profile"])).toEqual({ owner: "A" });
+    expect(remount).not.toHaveBeenCalled();
     qc.clear();
   });
 

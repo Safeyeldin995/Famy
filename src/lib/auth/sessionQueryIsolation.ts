@@ -6,6 +6,13 @@ export function createSessionQueryIsolation(client: QueryClient, remount: () => 
   let previousUserId: string | null | undefined;
   return (event: AuthChangeEvent, session: Session | null) => {
     const userId = session?.user.id ?? null;
+    // The first event (INITIAL_SESSION on load) only records who is signed in:
+    // the cache was built for that same session, so wiping and remounting the
+    // whole tree on every page load would just flicker and refetch.
+    if (previousUserId === undefined) {
+      previousUserId = userId;
+      return;
+    }
     if (userId !== previousUserId || event === "SIGNED_OUT") {
       previousUserId = userId;
       // Cancellation is initiated synchronously. Clear immediately, so no old
