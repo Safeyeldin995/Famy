@@ -48,7 +48,7 @@ export function HomePromoStrip({ offer }: { offer: FeaturedPromoCode }) {
 export function HomePromos({ offers }: { offers: FeaturedPromoCode[] }) {
   if (offers.length === 0) return null;
   return (
-    <section className="mt-8 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-1 no-scrollbar">
+    <section className="-mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-1 no-scrollbar">
       {offers.map((offer) => (
         <HomePromoStrip key={offer.id} offer={offer} />
       ))}

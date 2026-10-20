@@ -39,7 +39,7 @@ describe("customer review fixes", () => {
   it("sets promo/history sizes at the source rather than overriding all spans", () => {
     const home = source("../../../routes/home.tsx");
     expect(home).not.toContain("[&_span]");
-    expect(home).toContain('className="pb-8"');
+    expect(home).toContain("<HomeTrustLine />");
     for (const path of ["../../home/HomePromoStrip.tsx", "../../home/HomeRebookRow.tsx"]) {
       const component = source(path);
       expect(component).not.toMatch(/text-\[(10|11)px\]|text-overline/);

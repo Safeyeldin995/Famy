@@ -45,12 +45,12 @@ import { useCreatePayment, mapPaymentInsertError } from "@/lib/db/payment-querie
 import { redirectToPaymobCheckout } from "@/lib/paymob/paymobRedirect";
 import { useProviderOnlyCustomerRedirect } from "@/lib/auth/providerOnlyCustomerGuard";
 import { useActivePaymentMethods } from "@/lib/db/payment-methods-queries";
+import { CardBrands, PaymentMethodIcon } from "@/components/famio/PaymentLogos";
 import { useRequirementsForService } from "@/lib/db/provider-queries";
 import { toUIProvider } from "@/lib/db/adapters";
 import { currentLang } from "@/lib/i18n";
 import {
   MapPin,
-  Banknote,
   Check,
   Loader2,
   Home,
@@ -58,7 +58,6 @@ import {
   Users,
   Plus,
   Copy,
-  Wallet,
   X,
   Clock,
   BookOpen,
@@ -1556,22 +1555,11 @@ export function BookContent({
                       const label = lang === "ar" ? m.name_ar : m.name_en;
                       const sub =
                         (lang === "ar" ? m.instructions_ar : m.instructions_en) ?? undefined;
-                      const icon =
-                        m.method_type === "cash" ? (
-                          <Banknote className="h-5 w-5" />
-                        ) : m.code === "instapay" ? (
-                          <img
-                            src="/instapay.svg"
-                            alt={label}
-                            className="h-full w-full rounded-xl object-cover"
-                          />
-                        ) : (
-                          <Wallet className="h-5 w-5" />
-                        );
                       return (
                         <PayOption
                           key={m.id}
-                          icon={icon}
+                          icon={<PaymentMethodIcon methodType={m.method_type} code={m.code} />}
+                          brands={m.method_type === "online" ? <CardBrands className="mt-2 justify-self-start" /> : null}
                           label={label}
                           sub={sub}
                           active={paymentMethodId === m.id}
@@ -1740,12 +1728,14 @@ function PayOption({
   icon,
   label,
   sub,
+  brands,
   active,
   onClick,
 }: {
   icon: React.ReactNode;
   label: string;
   sub?: string;
+  brands?: React.ReactNode;
   active: boolean;
   onClick: () => void;
 }) {
@@ -1760,6 +1750,7 @@ function PayOption({
       <span className="booking-option-text">
         <b>{label}</b>
         <small>{sub}</small>
+        {brands}
       </span>
       <span className={`booking-radio ${active ? "on" : ""}`} aria-hidden="true" />
     </button>

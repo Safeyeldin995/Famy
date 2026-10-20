@@ -445,6 +445,10 @@ const en = {
     groupAccount: "Account & settings",
   },
   auth: {
+    welcomeBack: "Welcome back",
+    signInSubtitle: "Sign in with your mobile number and password.",
+    signUpTitle: "Create your Famy account",
+    signUpSubtitle: "Enter your mobile number and we'll text you a verification code.",
     welcomeTitle: "Welcome to Famy",
     welcomeBody: "Enter your phone number to continue. We'll send you a verification code.",
     phoneNumber: "Phone number",
@@ -554,6 +558,8 @@ const en = {
     saveFailed: "Could not save your profile.",
   },
   home: {
+    babysittingTag: "Trusted sitters for your kids at home",
+    tutoringTag: "Private tutors for every subject",
     searchHint: "Search for help…",
     headline: "What do you need help with?",
     greetingLine: "{{timeGreeting}}, {{firstName}}",
