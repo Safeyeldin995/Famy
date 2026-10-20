@@ -260,19 +260,19 @@ export function AdminBookings({
               <li key={b.id} className="px-5 py-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-bold">
+                    <p className="flex flex-wrap items-center gap-x-1 text-sm font-bold">
                       <Link
-                        to={"/admin/customer/$id" as "/admin/customer/$id"}
+                        to={"/admin/customer/$id" as const}
                         params={{ id: b.customer_id }}
-                        className="text-brand hover:underline"
+                        className="inline-flex min-h-11 items-center text-brand hover:underline"
                       >
                         {b.customer?.full_name || t("admin.bookings.customer")}
                       </Link>
                       {" → "}
                       <Link
-                        to={"/admin/provider/$id" as "/admin/provider/$id"}
+                        to={"/admin/provider/$id" as const}
                         params={{ id: b.provider?.id }}
-                        className="text-brand hover:underline"
+                        className="inline-flex min-h-11 items-center text-brand hover:underline"
                       >
                         {b.provider?.profile?.full_name || t("admin.bookings.provider")}
                       </Link>
@@ -318,7 +318,7 @@ export function AdminBookings({
                   {(b.status === "disputed" || b.status === "no_show") && (
                     <Link
                       className={adminControl}
-                      to={"/admin/cases" as "/admin/cases"}
+                      to={"/admin/cases" as const}
                       search={{
                         tab: b.status === "disputed" ? "disputes" : "no_shows",
                         booking: b.id,

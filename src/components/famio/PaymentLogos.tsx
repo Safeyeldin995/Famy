@@ -1,4 +1,5 @@
 import { Banknote, CreditCard, Smartphone, Wallet } from "lucide-react";
+import paymobLogo from "@/assets/payment/paymob.png";
 
 /**
  * Official card-network marks shown on online (Paymob) payment options.
@@ -35,10 +36,18 @@ function BrandChip({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Row of accepted card networks, for the online payment option. */
+/** Paymob wordmark (official artwork supplied by the product owner). */
+export function PaymobLogo({ className = "h-3.5" }: { className?: string }) {
+  return <img src={paymobLogo} alt="Paymob" className={`w-auto ${className}`} />;
+}
+
+/** Gateway and accepted card networks, for the online payment option. */
 export function CardBrands({ className = "" }: { className?: string }) {
   return (
     <span className={`inline-flex items-center gap-1.5 ${className}`} dir="ltr">
+      <span className="inline-flex h-7 items-center rounded-md border border-border/70 bg-white px-2">
+        <PaymobLogo className="h-3" />
+      </span>
       <BrandChip>
         <VisaLogo className="h-2.5" />
       </BrandChip>

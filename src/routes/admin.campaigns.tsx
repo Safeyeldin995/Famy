@@ -132,17 +132,19 @@ function CampaignForm({ onCreated }: { onCreated: () => void }) {
           <option value="customers">{t("admin.customers.title")}</option>
           <option value="providers">{t("admin.layout.nav.providers")}</option>
         </AdminPicker>
-        <label className="flex items-center gap-1.5 text-xs font-semibold">
+        <label className="flex min-h-11 items-center gap-2 text-xs font-semibold">
           <input
             type="checkbox"
+            className="h-5 w-5 accent-brand"
             checked={channelPush}
             onChange={(e) => setChannelPush(e.target.checked)}
           />
           {t("admin.campaigns.alsoSendPush")}
         </label>
-        <label className="flex items-center gap-1.5 text-xs font-semibold">
+        <label className="flex min-h-11 items-center gap-2 text-xs font-semibold">
           <input
             type="checkbox"
+            className="h-5 w-5 accent-brand"
             checked={scheduled}
             onChange={(e) => setScheduled(e.target.checked)}
           />

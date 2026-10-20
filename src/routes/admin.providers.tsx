@@ -58,7 +58,7 @@ function ProviderManagement() {
           <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
             <span className="font-bold">{t("adminWorkQueue." + queue)}</span>
             <Link
-              to={"/admin/providers" as "/admin/providers"}
+              to={"/admin/providers" as const}
               search={{} as any}
               className="focus-ring inline-flex min-h-11 items-center rounded-xl border border-border px-3 text-sm font-bold"
             >
@@ -75,7 +75,7 @@ function ProviderManagement() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t("admin.providers.searchPlaceholder")}
-            className="w-full bg-transparent text-sm outline-none"
+            className="min-h-11 w-full bg-transparent text-sm outline-none"
           />
         </div>
         {!queue && (
@@ -121,7 +121,7 @@ function ProviderManagement() {
                 </div>
                 {conflict.provider_id && (
                   <Link
-                    to={"/admin/provider/$id" as "/admin/provider/$id"}
+                    to={"/admin/provider/$id" as const}
                     params={{ id: conflict.provider_id }}
                     className="focus-ring mt-1 inline-flex min-h-11 items-center font-bold text-brand underline"
                   >
@@ -156,7 +156,7 @@ function ProviderManagement() {
               <li key={p.id} className="px-5 py-4">
                 <div className="flex items-start justify-between gap-3">
                   <Link
-                    to={"/admin/provider/$id" as "/admin/provider/$id"}
+                    to={"/admin/provider/$id" as const}
                     params={{ id: p.id }}
                     className="focus-ring min-w-0 flex-1"
                   >
@@ -209,7 +209,7 @@ function ProviderManagement() {
                 <div className="mt-3 flex flex-wrap gap-2">
                   {!p.is_verified ? (
                     <Link
-                      to={"/admin/provider/$id" as "/admin/provider/$id"}
+                      to={"/admin/provider/$id" as const}
                       params={{ id: p.id }}
                       className="focus-ring inline-flex min-h-11 items-center rounded-xl bg-brand px-4 text-sm font-bold text-brand-foreground"
                     >
