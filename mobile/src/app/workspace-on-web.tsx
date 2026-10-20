@@ -47,7 +47,13 @@ export default function WorkspaceOnWeb() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  body: { flex: 1, padding: space.xxl, gap: space.lg, alignItems: "center", justifyContent: "center" },
+  body: {
+    flex: 1,
+    padding: space.xxl,
+    gap: space.lg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   icon: {
     width: 64,
     height: 64,

@@ -1,3 +1,4 @@
+import wordmark from "@/assets/images/famy-wordmark.png";
 import { useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -74,7 +75,7 @@ export default function Login() {
       >
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <Image
-            source={require("@/assets/images/famy-wordmark.png")}
+            source={wordmark}
             style={styles.wordmark}
             contentFit="contain"
             accessibilityLabel={t("common.appName")}
@@ -165,7 +166,11 @@ export default function Login() {
                   accessibilityLabel={showPw ? t("auth.hidePassword") : t("auth.showPassword")}
                   style={styles.eye}
                 >
-                  {showPw ? <EyeOff size={20} color={colors.muted} /> : <Eye size={20} color={colors.muted} />}
+                  {showPw ? (
+                    <EyeOff size={20} color={colors.muted} />
+                  ) : (
+                    <Eye size={20} color={colors.muted} />
+                  )}
                 </Pressable>
               </View>
             </View>

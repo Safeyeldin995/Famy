@@ -1,7 +1,6 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { I18nManager } from "react-native";
-import { getLocales } from "expo-localization";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 // Same strings as the web app, so copy stays identical across platforms.
 import en from "@shared/i18n/locales/en";
@@ -11,7 +10,7 @@ export type AppLanguage = "ar" | "en";
 
 const STORAGE_KEY = "famy.lang";
 
-/** Arabic is the default for Egypt; English only when chosen or the device is English. */
+/** Arabic is the default; English is used only when explicitly chosen. */
 async function detectLanguage(): Promise<AppLanguage> {
   try {
     const saved = await AsyncStorage.getItem(STORAGE_KEY);
@@ -19,7 +18,7 @@ async function detectLanguage(): Promise<AppLanguage> {
   } catch {
     // storage unavailable: fall through to the device language
   }
-  return getLocales()[0]?.languageCode === "en" ? "en" : "ar";
+  return "ar";
 }
 
 export async function initI18n(): Promise<AppLanguage> {
