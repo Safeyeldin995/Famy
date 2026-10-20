@@ -98,6 +98,7 @@ import { Route as ProProfileRouteImport } from './routes/pro.profile'
 import { Route as ProviderIdRouteImport } from './routes/provider.$id'
 import { Route as AdminCustomerIdRouteImport } from './routes/admin.customer.$id'
 import { Route as AdminProviderIdRouteImport } from './routes/admin.provider.$id'
+import { Route as ApiMobilePaymobCheckoutRouteImport } from './routes/api.mobile.paymob-checkout'
 import { Route as PreviewAddressesIndexRouteImport } from './routes/preview.addresses.index'
 import { Route as PreviewAddressesIdRouteImport } from './routes/preview.addresses.$id'
 import { Route as PreviewAddressesNewRouteImport } from './routes/preview.addresses.new'
@@ -586,6 +587,11 @@ const AdminProviderIdRoute = AdminProviderIdRouteImport.update({
   path: '/provider/$id',
   getParentRoute: () => AdminRoute,
 } as any)
+const ApiMobilePaymobCheckoutRoute = ApiMobilePaymobCheckoutRouteImport.update({
+  id: '/api/mobile/paymob-checkout',
+  path: '/api/mobile/paymob-checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PreviewAddressesIndexRoute = PreviewAddressesIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -875,6 +881,7 @@ export interface FileRoutesByFullPath {
   '/pro/': typeof ProIndexRoute
   '/admin/customer/$id': typeof AdminCustomerIdRoute
   '/admin/provider/$id': typeof AdminProviderIdRoute
+  '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
   '/preview/addresses/new': typeof PreviewAddressesNewRoute
   '/preview/admin/audit-log': typeof PreviewAdminAuditLogRoute
@@ -997,6 +1004,7 @@ export interface FileRoutesByTo {
   '/pro': typeof ProIndexRoute
   '/admin/customer/$id': typeof AdminCustomerIdRoute
   '/admin/provider/$id': typeof AdminProviderIdRoute
+  '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
   '/preview/addresses/new': typeof PreviewAddressesNewRoute
   '/preview/admin/audit-log': typeof PreviewAdminAuditLogRoute
@@ -1128,6 +1136,7 @@ export interface FileRoutesById {
   '/pro/': typeof ProIndexRoute
   '/admin/customer/$id': typeof AdminCustomerIdRoute
   '/admin/provider/$id': typeof AdminProviderIdRoute
+  '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
   '/preview/addresses/new': typeof PreviewAddressesNewRoute
   '/preview/admin/audit-log': typeof PreviewAdminAuditLogRoute
@@ -1260,6 +1269,7 @@ export interface FileRouteTypes {
     | '/pro/'
     | '/admin/customer/$id'
     | '/admin/provider/$id'
+    | '/api/mobile/paymob-checkout'
     | '/preview/addresses/$id'
     | '/preview/addresses/new'
     | '/preview/admin/audit-log'
@@ -1382,6 +1392,7 @@ export interface FileRouteTypes {
     | '/pro'
     | '/admin/customer/$id'
     | '/admin/provider/$id'
+    | '/api/mobile/paymob-checkout'
     | '/preview/addresses/$id'
     | '/preview/addresses/new'
     | '/preview/admin/audit-log'
@@ -1512,6 +1523,7 @@ export interface FileRouteTypes {
     | '/pro/'
     | '/admin/customer/$id'
     | '/admin/provider/$id'
+    | '/api/mobile/paymob-checkout'
     | '/preview/addresses/$id'
     | '/preview/addresses/new'
     | '/preview/admin/audit-log'
@@ -1587,6 +1599,7 @@ export interface RootRouteChildren {
   CategoryIdRoute: typeof CategoryIdRoute
   ContentKeyRoute: typeof ContentKeyRoute
   ProviderIdRoute: typeof ProviderIdRoute
+  ApiMobilePaymobCheckoutRoute: typeof ApiMobilePaymobCheckoutRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -2214,6 +2227,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProviderIdRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/api/mobile/paymob-checkout': {
+      id: '/api/mobile/paymob-checkout'
+      path: '/api/mobile/paymob-checkout'
+      fullPath: '/api/mobile/paymob-checkout'
+      preLoaderRoute: typeof ApiMobilePaymobCheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/preview/addresses/': {
       id: '/preview/addresses/'
       path: '/'
@@ -2799,6 +2819,7 @@ const rootRouteChildren: RootRouteChildren = {
   CategoryIdRoute: CategoryIdRoute,
   ContentKeyRoute: ContentKeyRoute,
   ProviderIdRoute: ProviderIdRoute,
+  ApiMobilePaymobCheckoutRoute: ApiMobilePaymobCheckoutRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
