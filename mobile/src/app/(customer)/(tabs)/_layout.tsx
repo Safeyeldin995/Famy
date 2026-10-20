@@ -23,7 +23,7 @@ export default function CustomerTabs() {
         tabBarStyle: {
           borderTopColor: colors.border,
           backgroundColor: colors.surface,
-          height: 64 + insets.bottom,
+          height: 80 + insets.bottom,
           paddingTop: 6,
           paddingBottom: Math.max(insets.bottom, 8),
         },
