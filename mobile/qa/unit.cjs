@@ -185,3 +185,33 @@ assert.equal(
 console.log(
   "PASS: 21 Phase 2A pricing, payload, gate, idempotency, package, recovery, chat and locale assertions.",
 );
+
+const { mapNotificationDeepLink } = load(path.join(root, "mobile/src/lib/deepLinks.ts"));
+assert.deepEqual(mapNotificationDeepLink("/booking/abc", "customer"), {
+  pathname: "/booking/[id]",
+  params: { id: "abc" },
+});
+assert.deepEqual(mapNotificationDeepLink("/pro/booking/xyz", "provider"), {
+  pathname: "/pro-booking/[id]",
+  params: { id: "xyz" },
+});
+assert.deepEqual(mapNotificationDeepLink("/messages/c1", "customer"), {
+  pathname: "/chat/[id]",
+  params: { id: "c1" },
+});
+assert.deepEqual(mapNotificationDeepLink("/messages/c1", "provider"), {
+  pathname: "/pro-chat/[id]",
+  params: { id: "c1" },
+});
+assert.deepEqual(mapNotificationDeepLink("/notifications", "customer"), {
+  pathname: "/notifications",
+});
+assert.deepEqual(mapNotificationDeepLink("/messages", "provider"), {
+  pathname: "/pro-messages",
+});
+assert.deepEqual(mapNotificationDeepLink("/unknown/path", "provider"), {
+  pathname: "/pro-notifications",
+});
+assert.deepEqual(Object.keys(en.mobilePush).sort(), Object.keys(ar.mobilePush).sort());
+assert(!/[\u064b-\u065f\u0670]/.test(JSON.stringify(ar.mobilePush)));
+console.log("PASS: 8 deep-link mapper and mobilePush locale checks.");

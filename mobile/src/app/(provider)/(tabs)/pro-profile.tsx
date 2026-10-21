@@ -6,7 +6,7 @@ import { Globe, LogOut } from "lucide-react-native";
 import { reloadAppAsync } from "expo";
 import { applyDirection, saveLanguage } from "@/lib/i18n";
 import { useMyProvider, useMyProviderServices } from "@/lib/provider/queries";
-import { supabase } from "@/lib/supabase";
+import { signOutWithPushRevoke } from "@/lib/push";
 import { localized } from "@/lib/presentation";
 import { proCard } from "@/ui/provider/cards";
 import { Page, QueryState, Row, ActionError } from "@/ui/Page";
@@ -77,7 +77,7 @@ export default function ProviderProfile() {
           label={t("pro.profile.signOut")}
           icon={<LogOut size={18} color={colors.destructive} />}
           onPress={async () => {
-            const { error } = await supabase.auth.signOut();
+            const { error } = await signOutWithPushRevoke();
             if (error) {
               setActionError(true);
               return;

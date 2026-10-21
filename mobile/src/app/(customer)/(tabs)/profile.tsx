@@ -7,7 +7,7 @@ import { Globe, LogOut } from "lucide-react-native";
 import { reloadAppAsync } from "expo";
 import { applyDirection, saveLanguage } from "@/lib/i18n";
 import { useMyProfile } from "@/lib/queries";
-import { supabase } from "@/lib/supabase";
+import { signOutWithPushRevoke } from "@/lib/push";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { colors, radius, space } from "@/ui/theme";
@@ -67,7 +67,7 @@ export default function Profile() {
           label={t("profile.logout")}
           icon={<LogOut size={18} color={colors.destructive} />}
           onPress={async () => {
-            const { error } = await supabase.auth.signOut();
+            const { error } = await signOutWithPushRevoke();
             if (error) {
               setActionError(true);
               return;

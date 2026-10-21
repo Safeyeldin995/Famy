@@ -27,6 +27,13 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
+import {
+  buildExpoPushMessages,
+  chunkExpoMessages,
+  EXPO_PUSH_URL,
+  expoTicketsNeedingExpiry,
+  type ExpoPushResponse,
+} from "./expo-push.ts";
 import { resolveWorkerSecret } from "./worker-secret.ts";
 
 export { resolveWorkerSecret };
@@ -36,6 +43,7 @@ const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY");
 const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY");
 const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT");
+const EXPO_ACCESS_TOKEN = Deno.env.get("EXPO_ACCESS_TOKEN");
 const WORKER_SECRET_CACHE_MS = 5 * 60_000;
 let workerSecretCache: { value: string; expiresAt: number } | undefined;
 
@@ -67,6 +75,11 @@ const BATCH_SIZE = 50;
 const STALE_PROCESSING_MINUTES = 5;
 const MAX_ATTEMPTS = 5;
 
+const vapidReady = !!(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY && VAPID_SUBJECT);
+if (vapidReady) {
+  webpush.setVapidDetails(VAPID_SUBJECT!, VAPID_PUBLIC_KEY!, VAPID_PRIVATE_KEY!);
+}
+
 // Constant-time compare so a mistimed response can't leak the secret byte-by-byte.
 function timingSafeEqual(a: string, b: string): boolean {
   const enc = new TextEncoder();
@@ -83,6 +96,83 @@ function backoffMinutes(attempts: number): number {
 }
 
 type OutboxRow = { id: string; notification_id: string; recipient_user_id: string; attempts: number };
+
+type WebSub = { endpoint: string; p256dh: string; auth_key: string };
+
+async function sendWebPushBatch(
+  subs: WebSub[],
+  payload: string,
+  supabase: ReturnType<typeof createClient>,
+): Promise<{ anySuccess: boolean; lastSafeError: string }> {
+  let anySuccess = false;
+  let lastSafeError = "";
+  for (const sub of subs) {
+    try {
+      await webpush.sendNotification(
+        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth_key } },
+        payload,
+      );
+      anySuccess = true;
+    } catch (err: unknown) {
+      const statusCode = (err as { statusCode?: number })?.statusCode;
+      if (statusCode === 404 || statusCode === 410) {
+        await supabase.rpc("mark_push_subscription_expired", { p_endpoint: sub.endpoint });
+      } else {
+        lastSafeError = "delivery_error";
+      }
+    }
+  }
+  return { anySuccess, lastSafeError };
+}
+
+async function sendExpoPushBatch(
+  tokens: string[],
+  title: string,
+  body: string,
+  deepLink: string,
+  tag: string,
+  supabase: ReturnType<typeof createClient>,
+): Promise<{ anySuccess: boolean; lastSafeError: string }> {
+  if (!tokens.length) return { anySuccess: false, lastSafeError: "" };
+
+  let anySuccess = false;
+  let lastSafeError = "";
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+  };
+  if (EXPO_ACCESS_TOKEN) headers.Authorization = `Bearer ${EXPO_ACCESS_TOKEN}`;
+
+  for (const batch of chunkExpoMessages(buildExpoPushMessages(tokens, title, body, deepLink, tag))) {
+    try {
+      const res = await fetch(EXPO_PUSH_URL, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(batch),
+      });
+      if (!res.ok) {
+        lastSafeError = "delivery_error";
+        continue;
+      }
+      const json = (await res.json()) as ExpoPushResponse;
+      const tickets = json.data ?? [];
+      let batchSuccess = false;
+      for (const ticket of tickets) {
+        if (ticket.status === "ok") batchSuccess = true;
+      }
+      if (batchSuccess) anySuccess = true;
+      else lastSafeError = "delivery_error";
+
+      const batchTokens = batch.map((m) => m.to);
+      for (const token of expoTicketsNeedingExpiry(tickets, batchTokens)) {
+        await supabase.rpc("mark_device_push_token_expired", { p_token: token });
+      }
+    } catch {
+      lastSafeError = "delivery_error";
+    }
+  }
+  return { anySuccess, lastSafeError };
+}
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") {
@@ -106,14 +196,6 @@ Deno.serve(async (req) => {
       headers: { "Content-Type": "application/json" },
     });
   }
-
-  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY || !VAPID_SUBJECT) {
-    return new Response(JSON.stringify({ error: "vapid_not_configured" }), {
-      status: 503,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 
   const { data: due, error: dueErr } = await supabase.rpc("claim_notification_outbox_batch", {
     p_batch_size: BATCH_SIZE,
@@ -148,6 +230,7 @@ Deno.serve(async (req) => {
       const locale = profile?.locale === "ar" ? "ar" : "en";
       const title = (locale === "ar" ? notif?.title_ar : notif?.title_en) || notif?.title_en || "Famy";
       const body = (locale === "ar" ? notif?.body_ar : notif?.body_en) || notif?.body_en || "";
+      const deepLink = notif?.deep_link || "/";
 
       const { data: subs } = await supabase
         .from("push_subscriptions")
@@ -155,10 +238,20 @@ Deno.serve(async (req) => {
         .eq("user_id", row.recipient_user_id)
         .is("revoked_at", null);
 
+      const { data: deviceRows } = await supabase
+        .from("device_push_tokens")
+        .select("token")
+        .eq("user_id", row.recipient_user_id)
+        .is("revoked_at", null)
+        .is("expired_at", null);
+
+      const webSubs = (subs ?? []) as WebSub[];
+      const deviceTokens = (deviceRows ?? []).map((r) => r.token as string).filter(Boolean);
+
       // No active device to push to isn't a delivery failure — the in-app
       // notification (already persisted before this row was ever enqueued)
       // is still the source of truth for the notification center.
-      if (!subs || subs.length === 0) {
+      if (webSubs.length === 0 && deviceTokens.length === 0) {
         await supabase.from("notification_outbox").update({
           status: "sent", processed_at: new Date().toISOString(), attempts: row.attempts + 1,
         }).eq("id", row.id);
@@ -166,25 +259,27 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const payload = JSON.stringify({ title, body, deepLink: notif?.deep_link || "/", tag: row.notification_id });
+      const payload = JSON.stringify({ title, body, deepLink, tag: row.notification_id });
       let anySuccess = false;
       let lastSafeError = "";
 
-      for (const sub of subs) {
-        try {
-          await webpush.sendNotification(
-            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth_key } },
-            payload,
-          );
-          anySuccess = true;
-        } catch (err: any) {
-          const statusCode = err?.statusCode;
-          if (statusCode === 404 || statusCode === 410) {
-            await supabase.rpc("mark_push_subscription_expired", { p_endpoint: sub.endpoint });
-          } else {
-            lastSafeError = "delivery_error";
-          }
-        }
+      if (vapidReady && webSubs.length > 0) {
+        const web = await sendWebPushBatch(webSubs, payload, supabase);
+        anySuccess = web.anySuccess;
+        lastSafeError = web.lastSafeError;
+      }
+
+      if (deviceTokens.length > 0) {
+        const native = await sendExpoPushBatch(
+          deviceTokens,
+          title,
+          body,
+          deepLink,
+          row.notification_id,
+          supabase,
+        );
+        anySuccess = anySuccess || native.anySuccess;
+        if (!anySuccess && native.lastSafeError) lastSafeError = native.lastSafeError;
       }
 
       if (anySuccess) {

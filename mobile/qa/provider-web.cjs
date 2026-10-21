@@ -16,6 +16,7 @@ const pid = id(2);
 const bidPending = id(3);
 const bidActive = id(4);
 const sid = id(5);
+const cid = id(40);
 const now = new Date().toISOString();
 const service = {
   id: sid,
@@ -243,6 +244,29 @@ async function run() {
             display_order: 1,
           },
         ],
+        conversations: [
+          {
+            id: cid,
+            booking_id: bidActive,
+            customer_id: id(6),
+            provider_user_id: uid,
+            updated_at: now,
+          },
+        ],
+        messages: [
+          {
+            id: id(41),
+            conversation_id: cid,
+            sender_id: id(6),
+            sender_role: "customer",
+            message_type: "text",
+            system_key: null,
+            body: "رسالة عميل اختبار",
+            created_at: now,
+          },
+        ],
+        booking_message_reads: [],
+        provider_documents: [],
       };
       if (!(table in tables)) errors.push(`Unhandled table: ${table}`);
       data = tables[table] || [];
@@ -301,6 +325,14 @@ async function run() {
   await visit("/jobs");
   await expect(page.getByText(ar.pro.bookings.title).first()).toBeVisible();
   await shot("pro-jobs");
+
+  await visit("/pro-messages");
+  await expect(page.getByTestId("pro-conversation-list")).toBeVisible({ timeout: 20000 });
+  await shot("pro-messages");
+
+  await visit(`/pro-chat/${cid}`);
+  await expect(page.getByTestId("pro-chat-thread")).toBeVisible({ timeout: 20000 });
+  await shot("pro-chat-thread");
 
   await visit("/schedule");
   await expect(page.getByText(ar.pro.schedule.title).first()).toBeVisible();

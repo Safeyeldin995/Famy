@@ -105,7 +105,6 @@ describe("push worker authorization and cache", () => {
     expect(response.status).toBe(503);
     expect(await response.json()).toEqual({ error: "worker_not_configured" });
     expect(rpc).toHaveBeenCalledTimes(1);
-    expect(setVapidDetails).not.toHaveBeenCalled();
     vaultValue = "synthetic-vault";
     expect((await handler(request("synthetic-vault"))).status).toBe(200);
   });
@@ -117,7 +116,6 @@ describe("push worker authorization and cache", () => {
       expect(response.status).toBe(401);
       expect(await response.json()).toEqual({ error: "unauthorized" });
       expect(rpc).toHaveBeenCalledTimes(1);
-      expect(setVapidDetails).not.toHaveBeenCalled();
     },
   );
 
@@ -151,13 +149,16 @@ describe("push worker authorization and cache", () => {
     expect(rpc).not.toHaveBeenCalled();
   });
 
-  it("keeps the VAPID configuration check after authorization", async () => {
+  it("still processes the outbox when VAPID is missing (native push may still deliver)", async () => {
     delete env.VAPID_PRIVATE_KEY;
     vi.resetModules();
     await loadWorker();
     const response = await handler(request("synthetic-vault"));
-    expect(response.status).toBe(503);
-    expect(await response.json()).toEqual({ error: "vapid_not_configured" });
-    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ processed: 0 });
+    expect(rpc.mock.calls.map(([name]) => name)).toEqual([
+      "get_notification_worker_secret",
+      "claim_notification_outbox_batch",
+    ]);
   });
 });
