@@ -36,5 +36,6 @@ export default function Index() {
   }
   if (!session) return <Redirect href="/login" />;
   if (workspace === "customer") return <Redirect href="/home" />;
+  if (workspace === "provider") return <Redirect href="/dashboard" />;
   return <Redirect href="/workspace-on-web" />;
 }
