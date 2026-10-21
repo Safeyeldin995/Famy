@@ -34,6 +34,11 @@ import {
   expoTicketsNeedingExpiry,
   type ExpoPushResponse,
 } from "./expo-push.ts";
+import {
+  DEVICE_PUSH_TOKEN_CHANNEL,
+  deviceTokensFromRows,
+  PUSH_SUBSCRIPTION_CHANNEL,
+} from "./recipient-channels.ts";
 import { resolveWorkerSecret } from "./worker-secret.ts";
 
 export { resolveWorkerSecret };
@@ -93,6 +98,28 @@ function timingSafeEqual(a: string, b: string): boolean {
 
 function backoffMinutes(attempts: number): number {
   return Math.min(60, 2 ** attempts);
+}
+
+async function markOutboxQueryError(
+  supabase: ReturnType<typeof createClient>,
+  row: OutboxRow,
+): Promise<"failed" | "dead"> {
+  const nextAttempts = row.attempts + 1;
+  const isDead = nextAttempts >= MAX_ATTEMPTS;
+  await supabase
+    .from("notification_outbox")
+    .update({
+      status: isDead ? "dead" : "failed",
+      attempts: nextAttempts,
+      last_error_safe: "query_error",
+      ...(isDead
+        ? { processed_at: new Date().toISOString() }
+        : {
+            next_attempt_at: new Date(Date.now() + backoffMinutes(nextAttempts) * 60_000).toISOString(),
+          }),
+    })
+    .eq("id", row.id);
+  return isDead ? "dead" : "failed";
 }
 
 type OutboxRow = { id: string; notification_id: string; recipient_user_id: string; attempts: number };
@@ -232,21 +259,27 @@ Deno.serve(async (req) => {
       const body = (locale === "ar" ? notif?.body_ar : notif?.body_en) || notif?.body_en || "";
       const deepLink = notif?.deep_link || "/";
 
-      const { data: subs } = await supabase
-        .from("push_subscriptions")
-        .select("endpoint, p256dh, auth_key")
+      const { data: subs, error: subsErr } = await supabase
+        .from(PUSH_SUBSCRIPTION_CHANNEL.table)
+        .select(PUSH_SUBSCRIPTION_CHANNEL.select)
         .eq("user_id", row.recipient_user_id)
         .is("revoked_at", null);
 
-      const { data: deviceRows } = await supabase
-        .from("device_push_tokens")
-        .select("token")
+      const { data: deviceRows, error: deviceErr } = await supabase
+        .from(DEVICE_PUSH_TOKEN_CHANNEL.table)
+        .select(DEVICE_PUSH_TOKEN_CHANNEL.select)
         .eq("user_id", row.recipient_user_id)
-        .is("revoked_at", null)
-        .is("expired_at", null);
+        .is("revoked_at", null);
+
+      if (subsErr || deviceErr) {
+        const outcome = await markOutboxQueryError(supabase, row);
+        if (outcome === "dead") dead++;
+        else failed++;
+        continue;
+      }
 
       const webSubs = (subs ?? []) as WebSub[];
-      const deviceTokens = (deviceRows ?? []).map((r) => r.token as string).filter(Boolean);
+      const deviceTokens = deviceTokensFromRows(deviceRows as { token: string | null }[] | null);
 
       // No active device to push to isn't a delivery failure — the in-app
       // notification (already persisted before this row was ever enqueued)
