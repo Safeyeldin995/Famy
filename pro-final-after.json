@@ -1,0 +1,35 @@
+[
+  {
+    "name": "pending",
+    "errors": []
+  },
+  {
+    "name": "changes",
+    "errors": []
+  },
+  {
+    "name": "profile",
+    "errors": []
+  },
+  {
+    "name": "preferences",
+    "errors": []
+  },
+  {
+    "name": "booking",
+    "errors": [],
+    "geometry": {
+      "dockTop": 698,
+      "dockBottom": 779,
+      "navTop": 779,
+      "supportTop": 573,
+      "supportBottom": 617,
+      "paymentTop": 450.5,
+      "paymentBottom": 514
+    }
+  },
+  {
+    "name": "earnings",
+    "errors": []
+  }
+]
