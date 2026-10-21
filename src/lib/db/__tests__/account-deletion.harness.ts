@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 export const ACCOUNT_DELETION_MIGRATION = "20261021140000_account_deletion.sql";
+export const ACCOUNT_DELETION_SNAPSHOTS_MIGRATION =
+  "20261021160000_account_deletion_snapshots.sql";
 
 export const IDS = {
   customer: "00000000-0000-0000-0000-000000000001",
@@ -12,6 +14,8 @@ export const IDS = {
   service: "00000000-0000-0000-0000-000000000311",
   address: "00000000-0000-0000-0000-000000000511",
   familyMember: "00000000-0000-0000-0000-000000000611",
+  pastBooking: "00000000-0000-0000-0000-000000000901",
+  pastPayment: "00000000-0000-0000-0000-000000000902",
 };
 
 const MIGRATIONS_DIR = path.resolve(process.cwd(), "supabase/migrations");
@@ -105,16 +109,6 @@ CREATE TABLE IF NOT EXISTS public.services (
   name_en text NOT NULL DEFAULT 'service'
 );
 
-CREATE TABLE IF NOT EXISTS public.bookings (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  customer_id uuid NOT NULL,
-  provider_id uuid NOT NULL REFERENCES public.providers(id),
-  service_id uuid NOT NULL REFERENCES public.services(id),
-  status public.booking_status NOT NULL DEFAULT 'pending',
-  deleted_at timestamptz,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
 CREATE TABLE IF NOT EXISTS public.addresses (
   id uuid PRIMARY KEY,
   user_id uuid NOT NULL REFERENCES public.profiles(id)
@@ -124,6 +118,98 @@ CREATE TABLE IF NOT EXISTS public.family_members (
   id uuid PRIMARY KEY,
   customer_id uuid NOT NULL REFERENCES public.profiles(id),
   full_name text NOT NULL DEFAULT 'child'
+);
+
+CREATE TABLE IF NOT EXISTS public.bookings (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id uuid NOT NULL,
+  provider_id uuid NOT NULL REFERENCES public.providers(id),
+  service_id uuid NOT NULL REFERENCES public.services(id),
+  status public.booking_status NOT NULL DEFAULT 'pending',
+  address_id uuid REFERENCES public.addresses(id) ON DELETE SET NULL,
+  family_member_id uuid REFERENCES public.family_members(id) ON DELETE SET NULL,
+  deleted_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.booking_locations (
+  booking_id uuid PRIMARY KEY REFERENCES public.bookings(id) ON DELETE CASCADE,
+  address_id uuid REFERENCES public.addresses(id) ON DELETE SET NULL,
+  label text NOT NULL DEFAULT 'home',
+  custom_label text,
+  city text NOT NULL DEFAULT 'Cairo',
+  area text,
+  street text,
+  building text,
+  floor text,
+  apartment text,
+  compound text,
+  landmark text,
+  access_notes text,
+  lat double precision,
+  lng double precision,
+  zone_id uuid,
+  zone_name_en text,
+  zone_name_ar text,
+  travel_fee numeric(10,2),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE OR REPLACE FUNCTION public.tg_block_booking_location_mutation()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  RAISE EXCEPTION 'booking_locations rows are immutable' USING ERRCODE = '42501';
+END; $$;
+DROP TRIGGER IF EXISTS trg_booking_locations_immutable ON public.booking_locations;
+CREATE TRIGGER trg_booking_locations_immutable
+  BEFORE UPDATE ON public.booking_locations
+  FOR EACH ROW EXECUTE FUNCTION public.tg_block_booking_location_mutation();
+
+CREATE TABLE IF NOT EXISTS public.booking_family_member_snapshots (
+  booking_id uuid PRIMARY KEY REFERENCES public.bookings(id) ON DELETE CASCADE,
+  family_member_id uuid REFERENCES public.family_members(id) ON DELETE SET NULL,
+  full_name text NOT NULL,
+  relationship text NOT NULL DEFAULT 'child',
+  relationship_other text,
+  date_of_birth date,
+  gender text,
+  phone text,
+  allergies text,
+  medical_notes text,
+  access_notes text,
+  emergency_contact_name text,
+  emergency_contact_phone text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE OR REPLACE FUNCTION public.tg_block_booking_family_member_mutation()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  RAISE EXCEPTION 'booking_family_member_snapshots rows are immutable' USING ERRCODE = '42501';
+END; $$;
+DROP TRIGGER IF EXISTS trg_booking_family_member_snapshots_immutable ON public.booking_family_member_snapshots;
+CREATE TRIGGER trg_booking_family_member_snapshots_immutable
+  BEFORE UPDATE ON public.booking_family_member_snapshots
+  FOR EACH ROW EXECUTE FUNCTION public.tg_block_booking_family_member_mutation();
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_status') THEN
+    CREATE TYPE public.payment_status AS ENUM (
+      'pending', 'pending_review', 'authorized', 'captured', 'rejected', 'failed', 'refunded', 'partially_refunded'
+    );
+  END IF;
+END
+$$;
+
+CREATE TABLE IF NOT EXISTS public.payments (
+  id uuid PRIMARY KEY,
+  booking_id uuid NOT NULL REFERENCES public.bookings(id) ON DELETE CASCADE,
+  customer_id uuid NOT NULL,
+  amount numeric(10,2) NOT NULL,
+  currency text NOT NULL DEFAULT 'EGP',
+  status public.payment_status NOT NULL DEFAULT 'captured',
+  created_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS public.device_push_tokens (
@@ -197,6 +283,7 @@ export async function createAccountDeletionDb() {
   const db = new PGlite();
   await db.exec(BOOTSTRAP_SQL);
   await db.exec(readMigration(ACCOUNT_DELETION_MIGRATION));
+  await db.exec(readMigration(ACCOUNT_DELETION_SNAPSHOTS_MIGRATION));
 
   await db.exec(`
     INSERT INTO public.profiles (id, full_name, phone, email, avatar_url, locale) VALUES
