@@ -15,14 +15,19 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
   };
 }
 
-/** Resolve the authenticated Supabase user id from the incoming request bearer token. */
-export async function getRequestBearerUserId(): Promise<string | null> {
+export function getRequestBearerToken(): string | null {
   const request = getRequest();
   const authHeader = request?.headers?.get("authorization");
   if (!authHeader?.startsWith("Bearer ")) return null;
-
   const token = authHeader.slice("Bearer ".length).trim();
   if (!token || token.split(".").length !== 3) return null;
+  return token;
+}
+
+/** Resolve the authenticated Supabase user id from the incoming request bearer token. */
+export async function getRequestBearerUserId(): Promise<string | null> {
+  const token = getRequestBearerToken();
+  if (!token) return null;
 
   const supabaseUrl = process.env.SUPABASE_URL;
   const publishableKey = process.env.SUPABASE_PUBLISHABLE_KEY;

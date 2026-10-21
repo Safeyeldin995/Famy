@@ -74,6 +74,11 @@ export default function ProviderProfile() {
         />
         <Button
           variant="secondary"
+          label={t("accountDeletion.menuLabel")}
+          onPress={() => router.push("/pro-delete-account")}
+        />
+        <Button
+          variant="secondary"
           label={t("pro.profile.signOut")}
           icon={<LogOut size={18} color={colors.destructive} />}
           onPress={async () => {

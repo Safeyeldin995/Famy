@@ -1307,6 +1307,36 @@ const en = {
   mobileChat: {
     message: "Message",
   },
+  accountDeletion: {
+    menuLabel: "Delete my account",
+    title: "Delete account",
+    intro:
+      "This permanently removes your personal details from Famy. You will not be able to sign in again with this account.",
+    deletedTitle: "What we delete",
+    deletedItems: [
+      "Your name, phone number, and profile photo",
+      "Saved addresses and family members",
+      "Provider documents and photos",
+      "Push notification tokens and preferences",
+    ],
+    keptTitle: "What we keep (anonymized)",
+    keptBody:
+      "Bookings, payments, reviews, and messages stay for accounting, tax, and the other party's history. You will appear as \"Deleted user\".",
+    blockedActiveBookings: "Finish or cancel your upcoming bookings first.",
+    blockedAdmin: "Admin accounts cannot be deleted from the app. Contact engineering support.",
+    confirmWord: "DELETE",
+    typeConfirm: "Type {{word}} to confirm",
+    confirmHint: "This action cannot be undone.",
+    deleteButton: "Delete my account permanently",
+    deleting: "Deleting…",
+    checking: "Checking whether deletion is allowed…",
+    errors: {
+      unauthorized: "Sign in again to delete your account.",
+      active_bookings: "Finish or cancel your upcoming bookings first.",
+      admin_not_allowed: "Admin accounts cannot be deleted from the app.",
+      deletion_failed: "Could not delete your account. Try again later.",
+    },
+  },
   helpC: {
     title: "Help center",
     heroTitle: "How can we help?",
