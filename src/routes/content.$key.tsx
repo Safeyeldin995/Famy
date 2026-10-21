@@ -5,8 +5,47 @@ import { QueryError } from "@/components/famio/QueryError";
 import { usePlatformContent, type PlatformContentKey } from "@/lib/db/settings-queries";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { useTranslation } from "react-i18next";
+import { siteHead, siteLanguage } from "@/lib/site/seo";
 
-export const Route = createFileRoute("/content/$key")({ component: ContentPage });
+export const Route = createFileRoute("/content/$key")({
+  head: ({ matches, params }) => {
+    const language = siteLanguage(matches);
+    if (params.key === "terms") {
+      return siteHead(
+        "/content/terms",
+        {
+          ar: {
+            title: "شروط استخدام فامي | Famy",
+            description: "اقرأ شروط استخدام منصة فامي لخدمات رعاية الأطفال والتدريس.",
+          },
+          en: {
+            title: "Famy Terms of Use",
+            description: "Read the terms for using Famy's babysitting and tutoring platform.",
+          },
+        },
+        language,
+      );
+    }
+    if (params.key === "privacy") {
+      return siteHead(
+        "/content/privacy",
+        {
+          ar: {
+            title: "سياسة خصوصية فامي | Famy",
+            description: "اقرأ سياسة خصوصية فامي وكيفية التعامل مع بيانات المستخدمين.",
+          },
+          en: {
+            title: "Famy Privacy Policy",
+            description: "Read Famy's privacy policy and how user data is handled.",
+          },
+        },
+        language,
+      );
+    }
+    return { meta: [{ name: "robots", content: "noindex, nofollow" }] };
+  },
+  component: ContentPage,
+});
 
 const TITLE_KEYS: Record<PlatformContentKey, string> = {
   terms: "profile.terms",

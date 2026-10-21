@@ -2,10 +2,27 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { MessageCircle, Phone } from "lucide-react";
 import { SiteLayout, SiteSection } from "@/components/site/SiteLayout";
+import { siteHead, siteLanguage } from "@/lib/site/seo";
 import { useSupportContact } from "@/lib/db/queries";
 
 export const Route = createFileRoute("/contact")({
-  head: () => ({ meta: [{ title: "Contact Famy | تواصل مع فامي" }] }),
+  head: ({ matches }) =>
+    siteHead(
+      "/contact",
+      {
+        ar: {
+          title: "تواصل مع فامي | المساعدة والدعم",
+          description:
+            "محتاج مساعدة في فامي؟ تواصل مع فريق الدعم من خلال وسائل الاتصال المتاحة على الموقع.",
+        },
+        en: {
+          title: "Contact Famy | Help and support",
+          description:
+            "Need help with Famy? Find the support contact options currently available on the site.",
+        },
+      },
+      siteLanguage(matches),
+    ),
   component: Contact,
 });
 

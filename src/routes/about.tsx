@@ -2,10 +2,27 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Check, MapPin } from "lucide-react";
 import { SiteLayout, SiteSection } from "@/components/site/SiteLayout";
+import { siteHead, siteLanguage } from "@/lib/site/seo";
 import { useServiceAreas } from "@/components/site/useServiceAreas";
 
 export const Route = createFileRoute("/about")({
-  head: () => ({ meta: [{ title: "About Famy | عن فامي" }] }),
+  head: ({ matches }) =>
+    siteHead(
+      "/about",
+      {
+        ar: {
+          title: "فامي | عن فامي",
+          description:
+            "اتعرف على فامي وطريقة حجز جليسات الأطفال والمدرسين الخصوصيين في مناطق الخدمة المتاحة.",
+        },
+        en: {
+          title: "About Famy | Babysitting and tutoring",
+          description:
+            "Learn how Famy helps families book babysitters and tutors in available service areas.",
+        },
+      },
+      siteLanguage(matches),
+    ),
   component: About,
 });
 

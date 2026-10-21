@@ -20,18 +20,34 @@ import { useServiceAreas } from "@/components/site/useServiceAreas";
 import { supabase } from "@/integrations/supabase/client";
 import heroImage from "@/assets/onboarding/slide-3-peace.png";
 import appImage from "@/assets/onboarding/slide-2-booking.png";
+import heroWebp from "@/assets/onboarding/slide-3-peace.webp";
+import appWebp from "@/assets/onboarding/slide-2-booking.webp";
+import { siteHead, siteLanguage, siteStructuredData } from "@/lib/site/seo";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Famy فامي — Trusted babysitters and tutors in Egypt" },
+  head: ({ matches }) => {
+    const seo = siteHead(
+      "/",
       {
-        name: "description",
-        content:
-          "Book a babysitter or private tutor reviewed by the Famy team, at home and at a time that suits you.",
+        ar: {
+          title: "فامي | جليسات أطفال ومدرسين خصوصيين في مصر",
+          description:
+            "احجز جليسة أطفال أو مدرس خصوصي في مناطق الخدمة المتاحة، وتابع الحجز والدفع والمحادثة من فامي.",
+        },
+        en: {
+          title: "Famy | Babysitters and tutors in Egypt",
+          description:
+            "Find babysitters and tutors in available service areas. Book, pay and chat through Famy.",
+        },
       },
-    ],
-  }),
+      siteLanguage(matches),
+    );
+    return {
+      ...seo,
+      links: [...seo.links, { rel: "preload", as: "image", href: heroWebp, type: "image/webp" }],
+      scripts: [{ type: "application/ld+json", children: JSON.stringify(siteStructuredData) }],
+    };
+  },
   component: Landing,
 });
 
@@ -103,13 +119,19 @@ function Landing() {
               className="absolute inset-6 -z-0 rounded-[3rem] bg-brand/10 blur-3xl"
               aria-hidden="true"
             />
-            <img
-              src={heroImage}
-              alt=""
-              className="relative mx-auto w-full max-w-md rounded-[2.5rem] shadow-float"
-              width={771}
-              height={720}
-            />
+            <picture>
+              <source srcSet={heroWebp} type="image/webp" />
+              <img
+                src={heroImage}
+                alt=""
+                className="relative mx-auto w-full max-w-md rounded-[2.5rem] shadow-float"
+                width={771}
+                height={720}
+                loading="eager"
+                fetchPriority="high"
+                decoding="async"
+              />
+            </picture>
           </div>
         </SiteSection>
       </div>
@@ -212,14 +234,18 @@ function Landing() {
       {/* Download */}
       <div className="bg-surface-2/60">
         <SiteSection className="grid items-center gap-10 py-16 md:grid-cols-2 md:py-20">
-          <img
-            src={appImage}
-            alt=""
-            className="mx-auto w-full max-w-sm rounded-[2.5rem] shadow-card md:order-2"
-            width={771}
-            height={720}
-            loading="lazy"
-          />
+          <picture className="md:order-2">
+            <source srcSet={appWebp} type="image/webp" />
+            <img
+              src={appImage}
+              alt=""
+              className="mx-auto w-full max-w-sm rounded-[2.5rem] shadow-card"
+              width={771}
+              height={720}
+              loading="lazy"
+              decoding="async"
+            />
+          </picture>
           <div className="space-y-5">
             <h2 className="text-pro-32 font-extrabold text-balance">{t("site.download.title")}</h2>
             <p className="max-w-lg text-pro-16 leading-relaxed text-muted-foreground">
