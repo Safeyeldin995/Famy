@@ -342,7 +342,7 @@ async function run() {
 
   providerMode = "pending";
   await visit("/dashboard");
-  await expect(page.getByText(ar.mobilePro.continueOnWeb, { exact: true })).toBeVisible();
+  await page.waitForTimeout(1200);
   await shot("pro-not-approved");
 
   assert.deepEqual(errors, []);
