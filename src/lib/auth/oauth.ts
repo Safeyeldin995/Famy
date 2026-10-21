@@ -1,11 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import {
-  contactPhoneErrorKey,
-  oauthRedirectUrl,
-  parseOAuthProviders,
-  resolvePostOAuthNavigationTarget,
-  type OAuthProvider,
-} from "@/lib/auth/oauthShared";
+import { oauthRedirectUrl, parseOAuthProviders, type OAuthProvider } from "@/lib/auth/oauthShared";
 
 export type { OAuthProvider } from "@/lib/auth/oauthShared";
 export {
