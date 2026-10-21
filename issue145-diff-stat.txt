@@ -1,0 +1,18 @@
+ src/components/famio/BookingChatPanel.tsx          |   3 +-
+ src/components/famio/PaymentBlock.tsx              |  18 +-
+ src/components/famio/RescheduleSection.tsx         |   5 +
+ src/components/provider/BookingActionDock.tsx      |  33 +++
+ src/components/provider/BookingCountdown.tsx       |  37 +++
+ src/components/provider/BookingRequestActions.tsx  |  54 ++++
+ src/components/provider/BookingStatusCard.tsx      |  37 +++
+ src/components/provider/WorkMoney.tsx              |  10 +
+ src/lib/i18n/locales/ar.ts                         |  22 ++
+ src/lib/i18n/locales/en.ts                         |  22 ++
+ .../__tests__/workScreenPresentation.test.ts       |  94 +++++++
+ src/lib/provider/workScreenPresentation.ts         |  49 ++++
+ src/routes/pro.booking.$id.tsx                     |  82 +++---
+ src/routes/pro.bookings.tsx                        |  42 +--
+ src/routes/pro.earnings.tsx                        | 286 +++------------------
+ src/routes/pro.index.tsx                           |  85 +++---
+ src/routes/pro.notifications.tsx                   |  26 +-
+ 17 files changed, 503 insertions(+), 402 deletions(-)
