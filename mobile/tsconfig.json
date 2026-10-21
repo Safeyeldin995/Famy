@@ -23,6 +23,9 @@
       ],
       "@/lib/booking/childAgeMonths": [
         "../src/lib/booking/childAgeMonths"
+      ],
+      "@supabase/supabase-js": [
+        "./node_modules/@supabase/supabase-js"
       ]
     }
   },
