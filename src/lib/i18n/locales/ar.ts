@@ -1290,6 +1290,9 @@ const ar: Translation = {
     emptyBody: "اضغط على القلب عند أي محترف لحفظه هنا.",
     browse: "تصفح",
   },
+  mobileChat: {
+    message: "رسالة",
+  },
   helpC: {
     title: "مركز المساعدة",
     heroTitle: "كيف يمكننا مساعدتك؟",

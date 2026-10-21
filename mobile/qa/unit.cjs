@@ -171,6 +171,17 @@ assert.equal(
 assert.equal(isPaymentEligibleBookingStatus("cancelled"), false);
 assert.deepEqual(Object.keys(en.mobileBooking).sort(), Object.keys(ar.mobileBooking).sort());
 assert(!/[\u064b-\u065f\u0670]/.test(JSON.stringify(ar.mobileBooking)));
+assert.deepEqual(Object.keys(en.mobileChat).sort(), Object.keys(ar.mobileChat).sort());
+assert(!/[\u064b-\u065f\u0670]/.test(JSON.stringify(ar.mobileChat)));
+const { conversationUnread } = load(path.join(root, "mobile/src/lib/chatPure.ts"));
+assert.equal(
+  conversationUnread({ created_at: "2026-01-02T10:00:00Z", sender_id: "other" }, "me", null),
+  true,
+);
+assert.equal(
+  conversationUnread({ created_at: "2026-01-02T10:00:00Z", sender_id: "me" }, "me", null),
+  false,
+);
 console.log(
-  "PASS: 18 Phase 2A pricing, payload, gate, idempotency, package, recovery and locale assertions.",
+  "PASS: 21 Phase 2A pricing, payload, gate, idempotency, package, recovery, chat and locale assertions.",
 );

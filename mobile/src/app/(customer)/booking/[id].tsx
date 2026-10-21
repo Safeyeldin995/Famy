@@ -1,13 +1,15 @@
 import { PaymentBlock } from "@/ui/PaymentBlock";
 import { BookingActions } from "@/ui/BookingActions";
 import { View } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useBooking, useBookingPayment, useBookingParty } from "@/lib/queries";
+import { chatPhaseForStatus, useConversationByBooking } from "@/lib/chatQueries";
 import { dateTime, localized, money } from "@/lib/presentation";
 import { Page, QueryState, ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Avatar } from "@/ui/ProviderCard";
+import { Button } from "@/ui/Button";
 
 export default function BookingDetail() {
   const { id, created, educationWarning } = useLocalSearchParams<{
@@ -20,6 +22,8 @@ export default function BookingDetail() {
   const payment = useBookingPayment(id);
   const party = useBookingParty(id);
   const b = q.data;
+  const conversation = useConversationByBooking(id, b?.status);
+  const chatOpen = b ? chatPhaseForStatus(b.status) !== "unavailable" : false;
   const fields = [
     "subtotal",
     "extras_total",
@@ -66,6 +70,15 @@ export default function BookingDetail() {
                   ),
               )}
             </View>
+            {chatOpen && conversation.data ? (
+              <Button
+                label={t("mobileChat.message")}
+                variant="secondary"
+                onPress={() =>
+                  router.push({ pathname: "/chat/[id]", params: { id: conversation.data! } })
+                }
+              />
+            ) : null}
             <PaymentBlock
               bookingId={id}
               status={b.status}
