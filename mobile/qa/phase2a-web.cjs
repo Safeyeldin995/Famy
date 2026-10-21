@@ -431,6 +431,7 @@ async function run() {
       }
     } else {
       const tables = {
+        conversations: [], // No conversation in these customer fixtures; chat has its own harness.
         payment_methods: methodRows,
         availability_rules: [{ start_time: "08:00:00", end_time: "22:00:00" }],
         provider_vacations: [],

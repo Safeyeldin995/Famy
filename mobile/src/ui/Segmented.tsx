@@ -26,7 +26,11 @@ export function Segmented<T extends string>({
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
             onPress={() => onChange(option.value)}
-            style={[styles.item, active && styles.active]}
+            style={({ pressed }) => [
+              styles.item,
+              active && styles.active,
+              pressed && { opacity: 0.75 },
+            ]}
           >
             {Icon ? (
               <Icon size={16} strokeWidth={2.4} color={active ? colors.brand : colors.muted} />
@@ -51,7 +55,7 @@ const styles = StyleSheet.create({
   },
   item: {
     flex: 1,
-    minHeight: 44,
+    minHeight: 48,
     borderRadius: radius.md,
     flexDirection: "row",
     alignItems: "center",

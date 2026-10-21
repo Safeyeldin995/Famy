@@ -13,7 +13,7 @@ import {
   useApprovedTeachingCapabilitiesForProviders,
 } from "@/lib/queries";
 import { localized, uniqueProviders, sortProvidersForStudentEducation } from "@/lib/presentation";
-import { Page, QueryState, Choices, Field, Row } from "./Page";
+import { Page, QueryState, Choices, Field, Row, ui } from "./Page";
 import { ProviderCard } from "./ProviderCard";
 import { Text } from "./Text";
 import { space } from "./theme";
@@ -104,87 +104,91 @@ export function Discovery({ category }: { category?: string }) {
     : t("search.title");
   return (
     <Page title={title} queries={[addresses, categories, services, a, b, members, education, caps]}>
-      {!category && (
-        <Field
-          label={t("search.title")}
-          placeholder={t("customerSearch.placeholder")}
-          value={term}
-          onChangeText={setTerm}
-        />
-      )}
-      {!category && (
-        <Choices
-          label={t("home.chooseService")}
-          value={filter}
-          onChange={setFilter}
-          options={[
-            { value: "all", label: t("common.seeAll") },
-            { value: "babysitting", label: t("categories.kidsTitle") },
-            { value: "tutoring", label: t("categories.tutorTitle") },
-          ]}
-        />
-      )}
-      <QueryState
-        query={addresses}
-        empty={!addresses.data?.length}
-        emptyKey="customerHome.addressHint"
-      >
-        <Choices
-          label={t("customerHome.chooseArea")}
-          value={selectedAddress ?? ""}
-          onChange={setAddressId}
-          options={(addresses.data ?? []).map((a) => ({
-            value: a.id,
-            label: a.area || a.label || t("profile.addresses"),
-          }))}
-        />
-      </QueryState>
-      {category === "tutoring" && (
-        <QueryState
-          query={{
-            isLoading: members.isLoading || education.isLoading,
-            isError: members.isError || education.isError,
-            refetch: () => Promise.all([members.refetch(), education.refetch()]),
-          }}
-        >
+      <View style={ui.card}>
+        {!category && (
+          <Field
+            label={t("search.title")}
+            placeholder={t("customerSearch.placeholder")}
+            value={term}
+            onChangeText={setTerm}
+          />
+        )}
+        {!category && (
           <Choices
-            label={t("studentEducation.studentPicker")}
-            value={student}
-            onChange={setStudent}
+            label={t("home.chooseService")}
+            value={filter}
+            onChange={setFilter}
             options={[
-              { value: "myself", label: t("mobile.myself") },
-              ...(members.data ?? []).map((m) => ({ value: m.id, label: m.full_name })),
+              { value: "all", label: t("common.seeAll") },
+              { value: "babysitting", label: t("categories.kidsTitle") },
+              { value: "tutoring", label: t("categories.tutorTitle") },
             ]}
           />
-          <QueryState query={caps} />
+        )}
+        <QueryState
+          query={addresses}
+          empty={!addresses.data?.length}
+          emptyKey="customerHome.addressHint"
+        >
+          <Choices
+            label={t("customerHome.chooseArea")}
+            value={selectedAddress ?? ""}
+            onChange={setAddressId}
+            options={(addresses.data ?? []).map((a) => ({
+              value: a.id,
+              label: a.area || a.label || t("profile.addresses"),
+            }))}
+          />
         </QueryState>
-      )}
-      <Row label={t("profile.addresses")} href="/addresses" />
-      <QueryState query={services} empty={!services.data?.length}>
+        {category === "tutoring" && (
+          <QueryState
+            query={{
+              isLoading: members.isLoading || education.isLoading,
+              isError: members.isError || education.isError,
+              refetch: () => Promise.all([members.refetch(), education.refetch()]),
+            }}
+          >
+            <Choices
+              label={t("studentEducation.studentPicker")}
+              value={student}
+              onChange={setStudent}
+              options={[
+                { value: "myself", label: t("mobile.myself") },
+                ...(members.data ?? []).map((m) => ({ value: m.id, label: m.full_name })),
+              ]}
+            />
+            <QueryState query={caps} />
+          </QueryState>
+        )}
+        <Row label={t("profile.addresses")} href="/addresses" />
+        <QueryState query={services} empty={!services.data?.length}>
+          <Choices
+            label={t("search2.service")}
+            value={serviceId}
+            onChange={setServiceId}
+            options={[
+              ...(!category ? [{ value: "", label: t("search2.allServices") }] : []),
+              ...(services.data ?? []).map((s) => ({
+                value: s.id,
+                label: localized(s, i18n.language),
+              })),
+            ]}
+          />
+        </QueryState>
         <Choices
-          label={t("search2.service")}
-          value={serviceId}
-          onChange={setServiceId}
+          label={t("mobile.sort")}
+          value={sort}
+          onChange={setSort}
           options={[
-            ...(!category ? [{ value: "", label: t("search2.allServices") }] : []),
-            ...(services.data ?? []).map((s) => ({
-              value: s.id,
-              label: localized(s, i18n.language),
-            })),
+            { value: "top", label: t("category.sortTop") },
+            { value: "price", label: t("mobile.lowestPrice") },
+            { value: "experience", label: t("mobile.experience") },
           ]}
         />
-      </QueryState>
-      <Choices
-        label={t("mobile.sort")}
-        value={sort}
-        onChange={setSort}
-        options={[
-          { value: "top", label: t("category.sortTop") },
-          { value: "price", label: t("mobile.lowestPrice") },
-          { value: "experience", label: t("mobile.experience") },
-        ]}
-      />
-      <Text weight="bold">{t("customerSearch.results", { value: items.length })}</Text>
+      </View>
+      <Text size="lg" weight="heavy">
+        {t("customerSearch.results", { value: items.length })}
+      </Text>
       {selectedAddress ? (
         <QueryState
           query={{

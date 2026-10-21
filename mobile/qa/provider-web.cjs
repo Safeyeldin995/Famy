@@ -194,6 +194,7 @@ async function run() {
       const providers =
         providerMode === "approved" ? [providerRow] : providerMode === "pending" ? [providerPending] : [];
       const tables = {
+        provider_documents: [], // Empty application documents; document flows are covered by provider2.
         profiles: [{ id: uid, full_name: "مقدمة خدمة - اختبار" }],
         user_roles: [{ role: "provider" }],
         providers,

@@ -44,10 +44,14 @@ export function ProviderCard({ provider: p }: { provider: Provider }) {
     <Pressable
       accessibilityRole="button"
       onPress={() => router.push({ pathname: "/provider/[id]", params: { id: p.id } })}
-      style={[ui.card, { flexDirection: "row", gap: space.md }]}
+      style={({ pressed }) => [
+        ui.card,
+        { flexDirection: "row", gap: space.lg },
+        pressed && ui.pressed,
+      ]}
     >
-      <Avatar raw={p.profile.avatar_url} />
-      <View style={{ flex: 1, gap: space.xs }}>
+      <Avatar raw={p.profile.avatar_url} size={72} />
+      <View style={{ flex: 1, minWidth: 0, gap: space.sm }}>
         <Text size="lg" weight="heavy">
           {p.profile.full_name || t("provider2.unnamed")}
         </Text>

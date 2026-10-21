@@ -283,6 +283,7 @@ async function run() {
       }
     } else {
       const tables = {
+        conversations: [], // No conversation in these customer fixtures; chat has its own harness.
         payment_methods: [],
         cancellation_reasons: [],
         profiles: [{ id: uid, full_name: "حساب اختبار محلي" }],

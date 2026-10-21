@@ -138,6 +138,12 @@ const en = {
     "photosPermission": "Allow Famy to select a payment receipt from your photos."
 },
   mobile: {
+    polish: {
+      service: "Service",
+      time: "Time",
+      details: "Details",
+      review: "Review",
+    },
     myself: "Myself",
     empty: "Nothing here yet.",
     verified: "Verified identity",
