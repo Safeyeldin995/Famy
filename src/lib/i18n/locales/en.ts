@@ -1298,6 +1298,9 @@ const en = {
     emptyBody: "Tap the heart on a professional to save them here.",
     browse: "Browse",
   },
+  mobileChat: {
+    message: "Message",
+  },
   helpC: {
     title: "Help center",
     heroTitle: "How can we help?",
