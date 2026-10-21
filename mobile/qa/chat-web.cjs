@@ -184,7 +184,10 @@ async function run() {
   const page = await context.newPage();
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (msg) => {
-    if (msg.type() === "error" && mode !== "error") errors.push(msg.text());
+    // Realtime WebSockets can't be intercepted by page.route; a failed socket
+    // to the (blocked) live host is expected in sandboxed runs and not a UI error.
+    if (msg.type() === "error" && mode !== "error" && !/WebSocket connection/.test(msg.text()))
+      errors.push(msg.text());
   });
   const ts = require("../../node_modules/typescript");
   const mod = { exports: {} };
