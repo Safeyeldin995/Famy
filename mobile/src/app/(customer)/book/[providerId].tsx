@@ -1,3 +1,4 @@
+import { BookingProgress } from "@/ui/BookingProgress";
 import { BookingEducation } from "@/ui/BookingEducation";
 import { planPostCreatePayment } from "@/lib/bookingPure";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -417,6 +418,7 @@ export default function Book() {
   const recipientUI = (
     <View style={ui.card}>
       <Choices
+        layout="cards"
         label={t("bookFlow.forWhomTitle")}
         value={recipient}
         onChange={setRecipient}
@@ -444,6 +446,40 @@ export default function Book() {
       title={t(`customerBooking.titles.${BOOKING_SCREENS[step]}`, {
         name: provider.data?.profile.full_name?.split(" ")[0] || "",
       })}
+      footer={
+        <>
+          <View style={ui.priceRow}>
+            <Text tone="muted" weight="bold">
+              {t("mobile.price.total")}
+            </Text>
+            <Text size="xxl" weight="heavy" tone="brand" style={ui.ltr}>
+              {loading ? t("common.loading") : money(quote.total, lang)}
+            </Text>
+          </View>
+          <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
+            {step > 0 && (
+              <Button
+                variant="ghost"
+                label={t("common.back")}
+                disabled={busy}
+                onPress={() => setStep(step - 1)}
+              />
+            )}
+            <View style={{ flex: 1 }}>
+              <Button
+                label={t(step === 3 ? "mobileBooking.confirmBooking" : "common.continue")}
+                loading={busy}
+                disabled={!!missing || !!blocked || loading || checking}
+                onPress={() => {
+                  setError("");
+                  if (step === 3) void submit();
+                  else setStep(step + 1);
+                }}
+              />
+            </View>
+          </View>
+        </>
+      }
       queries={[
         provider,
         servicesQ,
@@ -456,7 +492,7 @@ export default function Book() {
         billing,
       ]}
     >
-      <Text>{t("customerRound2.step", { step: String(step + 1), total: "4" })}</Text>
+      <BookingProgress step={step} />
       <QueryState query={provider} />
       <QueryState query={servicesQ} />
       <QueryState query={bookable} />
@@ -472,6 +508,7 @@ export default function Book() {
       {step === 0 && (
         <>
           <Choices
+            layout="cards"
             label={t("search2.service")}
             value={service?.service.id || ""}
             onChange={(v) => {
@@ -501,6 +538,7 @@ export default function Book() {
                 }}
               />
               <Choices
+                layout="cards"
                 label={t("bookingUx.chooseSession")}
                 value={capId}
                 onChange={(v) => {
@@ -519,6 +557,7 @@ export default function Book() {
                   }))}
               />
               <Choices
+                layout="cards"
                 label={t("mobileBooking.saveSchool")}
                 value={saveSchool ? "yes" : "no"}
                 onChange={(v) => setSaveSchool(v === "yes")}
@@ -534,14 +573,20 @@ export default function Book() {
             </Text>
           ) : (
             <View style={ui.card}>
-              <Text>{t("customerBooking.duration", { hours: String(hours) })}</Text>
+              <Text size="xl" weight="heavy">
+                {t("customerBooking.duration", { hours: String(hours) })}
+              </Text>
               <View style={ui.wrap}>
                 <Button
+                  variant="secondary"
+                  style={{ flex: 1 }}
                   label={t("mobileBooking.less")}
                   disabled={hours <= 2}
                   onPress={() => setHours(hours - 1)}
                 />
                 <Button
+                  variant="secondary"
+                  style={{ flex: 1 }}
                   label={t("mobileBooking.more")}
                   disabled={hours >= 8}
                   onPress={() => setHours(hours + 1)}
@@ -554,6 +599,7 @@ export default function Book() {
       {step === 1 && (
         <>
           <Choices
+            layout="grid"
             label={t("bookingUx.chooseDate")}
             value={date.toDateString()}
             onChange={(v) => {
@@ -580,6 +626,7 @@ export default function Book() {
           />
           <QueryState query={slots} empty={!available.length} emptyKey="bookingUx.noSlots">
             <Choices
+              layout="grid"
               label={t("bookingUx.chooseTime")}
               value={currentSlot?.start.toISOString() || ""}
               onChange={(v) => setSlot(available.find((s) => s.start.toISOString() === v) ?? null)}
@@ -599,6 +646,7 @@ export default function Book() {
         <>
           <QueryState query={addresses} empty={!pinned.length} />
           <Choices
+            layout="cards"
             label={t("bookingUx.chooseAddress")}
             value={addressId}
             onChange={(v) => {
@@ -623,6 +671,7 @@ export default function Book() {
               <Text>{lang === "ar" ? r.name_ar : r.name_en}</Text>
               {r.fulfillment_mode === "either" ? (
                 <Choices
+                  layout="cards"
                   label={t("bookingUx.chooseRequirements")}
                   value={choices[r.id] || ""}
                   onChange={(v) =>
@@ -680,6 +729,9 @@ export default function Book() {
             <Text>{t("bookFlow.promoApplied", { amount: money(applied.discount, lang) })}</Text>
           )}
           <View style={ui.card}>
+            <Text size="xl" weight="heavy">
+              {t("mobile.priceBreakdown")}
+            </Text>
             {Object.entries({
               subtotal: quote.subtotal,
               extras_total: quote.extrasTotal,
@@ -689,14 +741,28 @@ export default function Book() {
               discount: applied?.discount ?? 0,
               total: quote.total,
             }).map(([key, v]) => (
-              <View key={key} style={ui.wrap}>
-                <Text>{t(`mobile.price.${key}`)}</Text>
-                <Text style={ui.ltr}>{money(v, lang)}</Text>
+              <View key={key} style={[ui.priceRow, key === "total" && ui.priceTotal]}>
+                <Text
+                  style={{ flex: 1 }}
+                  weight={key === "total" ? "heavy" : "regular"}
+                  tone={key === "total" ? "default" : "muted"}
+                >
+                  {t(`mobile.price.${key}`)}
+                </Text>
+                <Text
+                  size={key === "total" ? "xl" : "md"}
+                  weight="bold"
+                  tone={key === "total" ? "brand" : "default"}
+                  style={ui.ltr}
+                >
+                  {money(v, lang)}
+                </Text>
               </View>
             ))}
           </View>
           <QueryState query={methods} empty={!methods.data?.length} />
           <Choices
+            layout="cards"
             label={t("payment.title")}
             value={methodId}
             onChange={setMethodId}
@@ -710,29 +776,12 @@ export default function Book() {
       {error && <Text tone="danger">{error}</Text>}
       {reason && <Text>{t(reason)}</Text>}
       {blocked && !loading && <Text>{t("bookFlow.unavailableBody")}</Text>}
-      <Button
-        label={t(step === 3 ? "mobileBooking.confirmBooking" : "common.continue")}
-        loading={busy}
-        disabled={!!missing || !!blocked || loading || checking}
-        onPress={() => {
-          setError("");
-          if (step === 3) void submit();
-          else setStep(step + 1);
-        }}
-      />
+
       {missing && step > 0 && (
         <Button
           variant="secondary"
           label={t("mobileBooking.editChoices")}
           onPress={() => setStep(BOOKING_SCREENS.indexOf(bookingScreenForStep(missing, tutoring)))}
-        />
-      )}
-      {step > 0 && (
-        <Button
-          variant="secondary"
-          label={t("common.back")}
-          disabled={busy}
-          onPress={() => setStep(step - 1)}
         />
       )}
     </Page>

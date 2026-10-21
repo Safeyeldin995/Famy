@@ -40,16 +40,18 @@ export default function BookingDetail() {
       <QueryState query={q} empty={!b}>
         {b && (
           <>
-            <View style={ui.card}>
+            <View style={[ui.card, ui.heroCard]}>
               <QueryState query={party} />
               <Avatar raw={party.party?.other_avatar_url || b.provider?.profile.avatar_url} />
               <Text size="xl" weight="heavy">
                 {party.party?.other_name || b.provider?.profile.full_name || t("provider2.unnamed")}
               </Text>
               <Text>{localized(b.service, i18n.language)}</Text>
-              <Text tone="brand" weight="bold">
-                {t(`status.${b.status}`)}
-              </Text>
+              <View style={ui.badge}>
+                <Text tone="brand" weight="bold">
+                  {t(`status.${b.status}`)}
+                </Text>
+              </View>
               <Text style={ui.ltr}>{t("customerDetail.code", { id: b.id.slice(0, 8) })}</Text>
               <Text>{t("mobile.starts", { date: dateTime(b.start_at, i18n.language) })}</Text>
               <Text>{t("mobile.ends", { date: dateTime(b.end_at, i18n.language) })}</Text>
@@ -61,9 +63,16 @@ export default function BookingDetail() {
               {fields.map(
                 (field) =>
                   b[`price_${field}`] != null && (
-                    <View key={field} style={[ui.wrap, { justifyContent: "space-between" }]}>
-                      <Text>{t(`mobile.price.${field}`)}</Text>
-                      <Text weight={field === "total" ? "heavy" : "regular"} style={ui.ltr}>
+                    <View key={field} style={[ui.priceRow, field === "total" && ui.priceTotal]}>
+                      <Text style={{ flex: 1 }} tone={field === "total" ? "default" : "muted"}>
+                        {t(`mobile.price.${field}`)}
+                      </Text>
+                      <Text
+                        size={field === "total" ? "xl" : "md"}
+                        tone={field === "total" ? "brand" : "default"}
+                        weight={field === "total" ? "heavy" : "regular"}
+                        style={ui.ltr}
+                      >
                         {money(b[`price_${field}`], i18n.language)}
                       </Text>
                     </View>

@@ -1,0 +1,22 @@
+{
+  "phase1": {
+    "exitCode": 0,
+    "screenshots": 22
+  },
+  "phase2a": {
+    "exitCode": 0,
+    "screenshots": 23
+  },
+  "provider": {
+    "exitCode": 0,
+    "screenshots": 11
+  },
+  "provider2": {
+    "exitCode": 0,
+    "screenshots": 6
+  },
+  "chat": {
+    "exitCode": 0,
+    "screenshots": 6
+  }
+}

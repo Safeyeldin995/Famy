@@ -140,6 +140,12 @@ const ar: Translation = {
     "photosPermission": "اسمح لفامي باختيار صورة إيصال الدفع من صورك."
 },
   mobile: {
+    polish: {
+      service: "الخدمة",
+      time: "المعاد",
+      details: "التفاصيل",
+      review: "المراجعة",
+    },
     myself: "نفسي",
     empty: "مفيش بيانات هنا لسه.",
     verified: "الهوية متأكدة",

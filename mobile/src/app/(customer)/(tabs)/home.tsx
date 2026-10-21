@@ -18,6 +18,7 @@ import {
   GraduationCap,
   MapPin,
   Search,
+  ShieldCheck,
 } from "lucide-react-native";
 import {
   useCategories,
@@ -79,7 +80,7 @@ export default function Home() {
           }}
         />
       }
-      style={styles.page}
+      style={[styles.page, { direction: isAr ? "rtl" : "ltr" }]}
       contentContainerStyle={{ paddingBottom: space.xxxl }}
     >
       <LinearGradient
@@ -90,7 +91,7 @@ export default function Home() {
           <View style={styles.topRow}>
             <Pressable
               onPress={() => router.push("/addresses")}
-              style={[styles.chip, shadow.card]}
+              style={({ pressed }) => [styles.chip, shadow.card, pressed && { opacity: 0.8 }]}
               accessibilityRole="button"
             >
               <MapPin size={16} color={colors.brand} strokeWidth={2.4} />
@@ -101,7 +102,7 @@ export default function Home() {
             </Pressable>
             <Pressable
               onPress={() => router.push("/notifications")}
-              style={[styles.bell, shadow.card]}
+              style={({ pressed }) => [styles.bell, shadow.card, pressed && { opacity: 0.8 }]}
               accessibilityLabel={t("common.notifications")}
             >
               <Bell size={20} color={colors.foreground} />
@@ -118,7 +119,7 @@ export default function Home() {
 
           <Pressable
             onPress={() => router.push("/search")}
-            style={[styles.search, shadow.card]}
+            style={({ pressed }) => [styles.search, shadow.card, pressed && { opacity: 0.8 }]}
             accessibilityRole="search"
           >
             <Search size={20} color={colors.brand} strokeWidth={2.4} />
@@ -149,7 +150,7 @@ export default function Home() {
                   style={({ pressed }) => [
                     styles.tile,
                     { backgroundColor: tile.surface },
-                    pressed && { opacity: 0.9 },
+                    pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
                   ]}
                 >
                   <View style={styles.tileTop}>
@@ -201,9 +202,20 @@ export default function Home() {
           ))}
         </QueryState>
         {["home.trust1", "home.trust2", "home.trust3"].map((k) => (
-          <Text key={k} tone="muted" size="sm">
-            {t(k)}
-          </Text>
+          <View
+            key={k}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: space.md,
+              paddingVertical: space.sm,
+            }}
+          >
+            <ShieldCheck size={20} color={colors.brand} accessible={false} />
+            <Text tone="muted" size="sm" style={{ flex: 1 }}>
+              {t(k)}
+            </Text>
+          </View>
         ))}
       </View>
     </ScrollView>
@@ -268,7 +280,8 @@ const styles = StyleSheet.create({
   tiles: { flexDirection: "row", gap: space.md },
   tile: {
     flex: 1,
-    minHeight: 160,
+    minHeight: 176,
+    ...shadow.card,
     borderRadius: radius.xl,
     padding: space.lg,
     justifyContent: "space-between",

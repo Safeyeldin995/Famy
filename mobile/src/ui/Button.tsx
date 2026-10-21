@@ -1,7 +1,7 @@
 import { ActivityIndicator, Pressable, StyleSheet, View, type ViewStyle } from "react-native";
 import type { ReactNode } from "react";
 import { Text } from "./Text";
-import { colors, radius } from "./theme";
+import { colors, radius, shadow } from "./theme";
 
 type Variant = "primary" | "secondary" | "ghost";
 
@@ -60,14 +60,25 @@ export function Button({
 const styles = StyleSheet.create({
   base: {
     minHeight: 56,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 20,
   },
-  primary: { backgroundColor: colors.brand },
+  primary: {
+    backgroundColor: colors.brand,
+    ...shadow.card,
+    shadowColor: colors.brand,
+    shadowOpacity: 0.16,
+  },
   secondary: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
   disabled: { opacity: 0.5 },
   pressed: { transform: [{ scale: 0.98 }], opacity: 0.92 },
-  row: { flexDirection: "row", alignItems: "center", gap: 10 },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    flexShrink: 1,
+  },
 });

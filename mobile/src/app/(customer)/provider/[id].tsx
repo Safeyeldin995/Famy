@@ -47,8 +47,8 @@ export default function ProviderProfile() {
       <QueryState query={provider} empty={!p} emptyKey="provider2.notFound">
         {p && (
           <>
-            <View style={ui.card}>
-              <Avatar raw={p.profile.avatar_url} size={100} />
+            <View style={[ui.card, ui.heroCard]}>
+              <Avatar raw={p.profile.avatar_url} size={88} />
               <Text size="title" weight="heavy">
                 {p.profile.full_name || t("provider2.unnamed")}
               </Text>
@@ -113,7 +113,7 @@ export default function ProviderProfile() {
                                 i18n.language === "ar" ? c.levelNameAr : c.levelNameEn,
                               ].join(" · ")}
                             </Text>
-                            <Text style={ui.ltr}>
+                            <Text weight="bold" tone="brand" style={ui.ltr}>
                               {t("mobile.sessionPrice", {
                                 price: money(c.price, i18n.language),
                                 minutes: c.durationMin,
@@ -123,7 +123,7 @@ export default function ProviderProfile() {
                         ))
                     ) : (
                       <>
-                        <Text style={ui.ltr}>
+                        <Text size="xl" weight="heavy" tone="brand" style={ui.ltr}>
                           {rate == null
                             ? t("mobile.priceUnavailable")
                             : fixed

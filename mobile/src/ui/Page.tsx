@@ -12,10 +12,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, router, type Href } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { ChevronLeft, ChevronRight } from "lucide-react-native";
+import { ChevronLeft, ChevronRight, Check, Inbox, CircleAlert } from "lucide-react-native";
 import { Text } from "./Text";
 import { Button } from "./Button";
-import { colors, fonts, radius, space } from "./theme";
+import { colors, fonts, radius, space, shadow } from "./theme";
 
 type Refreshable = { refetch: () => Promise<unknown> };
 export function Page({
@@ -23,17 +23,24 @@ export function Page({
   children,
   queries = [],
   tab = false,
+  footer,
 }: {
   title: string;
   children: ReactNode;
   queries?: Refreshable[];
   tab?: boolean;
+  footer?: ReactNode;
 }) {
   const [refreshing, setRefreshing] = useState(false);
+  const { i18n } = useTranslation();
   return (
-    <SafeAreaView style={ui.page} edges={tab ? ["top"] : ["bottom"]}>
+    <SafeAreaView
+      style={[ui.page, { direction: i18n.language === "ar" ? "rtl" : "ltr" }]}
+      edges={tab ? ["top"] : ["bottom"]}
+    >
       {!tab && <Stack.Screen options={{ title }} />}
       <ScrollView
+        style={{ flex: 1 }}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={ui.content}
         refreshControl={
@@ -61,6 +68,7 @@ export function Page({
         )}
         {children}
       </ScrollView>
+      {footer && <View style={ui.footer}>{footer}</View>}
     </SafeAreaView>
   );
 }
@@ -78,7 +86,8 @@ export function QueryState({
   const { t } = useTranslation();
   if (query.isError)
     return (
-      <View style={ui.card} accessibilityLiveRegion="polite">
+      <View style={[ui.card, ui.state]} accessibilityLiveRegion="polite">
+        <CircleAlert size={28} color={colors.destructive} accessible={false} />
         <Text tone="danger">{t("common.somethingWentWrong")}</Text>
         <Button
           label={t("common.retry")}
@@ -91,15 +100,20 @@ export function QueryState({
     );
   if (query.isLoading ?? query.isPending)
     return (
-      <View style={ui.card}>
+      <View style={[ui.card, ui.state]}>
         <ActivityIndicator color={colors.brand} />
         <Text tone="muted">{t("common.loading")}</Text>
       </View>
     );
   if (empty)
     return (
-      <View style={ui.card}>
-        <Text tone="muted">{t(emptyKey)}</Text>
+      <View style={[ui.card, ui.state]}>
+        <View style={ui.stateIcon}>
+          <Inbox size={28} color={colors.brand} accessible={false} />
+        </View>
+        <Text tone="muted" style={{ textAlign: "center" }}>
+          {t(emptyKey)}
+        </Text>
       </View>
     );
   return <>{children}</>;
@@ -129,7 +143,7 @@ export function Row({
     <Pressable
       accessibilityRole="button"
       onPress={onPress ?? (() => href && router.push(href))}
-      style={ui.row}
+      style={({ pressed }) => [ui.row, pressed && ui.pressed]}
     >
       <View style={{ flex: 1, gap: space.xs }}>
         <Text weight="bold">{label}</Text>
@@ -172,28 +186,48 @@ export function Choices({
   value,
   onChange,
   options,
+  layout = "chips",
 }: {
   label: string;
   value: string;
   onChange: (s: string) => void;
   options: { value: string; label: string }[];
+  layout?: "chips" | "cards" | "grid";
 }) {
   return (
     <View style={{ gap: space.sm }}>
       <Text weight="bold">{label}</Text>
-      <View style={ui.wrap}>
+      <View style={layout === "cards" ? { gap: space.sm } : ui.wrap}>
         {options.map((o) => (
           <Pressable
             key={o.value}
             accessibilityRole="radio"
             accessibilityState={{ checked: value === o.value }}
             onPress={() => onChange(o.value)}
-            style={[
+            style={({ pressed }) => [
               ui.choice,
+              layout !== "chips" && ui.optionCard,
+              layout === "grid" && { flexBasis: "47%", flexGrow: 1 },
               value === o.value && { backgroundColor: colors.brandTint, borderColor: colors.brand },
+              pressed && ui.pressed,
             ]}
           >
-            <Text tone={value === o.value ? "brand" : "default"} weight="bold">
+            {layout === "cards" && (
+              <View
+                accessible={false}
+                style={[
+                  ui.radio,
+                  value === o.value && { backgroundColor: colors.brand, borderColor: colors.brand },
+                ]}
+              >
+                {value === o.value && <Check size={14} color={colors.surface} />}
+              </View>
+            )}
+            <Text
+              style={{ flexShrink: 1 }}
+              tone={value === o.value ? "brand" : "default"}
+              weight="bold"
+            >
               {o.label}
             </Text>
           </Pressable>
@@ -227,10 +261,70 @@ export function Confirm({
 }
 export const ui = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
-  content: { padding: space.xl, paddingBottom: space.xxxl, gap: space.lg, flexGrow: 1 },
+  content: { padding: space.xl, paddingBottom: space.xxxl, gap: space.xl, flexGrow: 1 },
+  footer: {
+    paddingHorizontal: space.xl,
+    paddingVertical: space.md,
+    gap: space.sm,
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderColor: colors.border,
+    ...shadow.card,
+  },
+  state: { alignItems: "center", justifyContent: "center", minHeight: 160, padding: space.xxl },
+  stateIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: colors.brandTint,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pressed: { opacity: 0.8, transform: [{ scale: 0.985 }] },
+  optionCard: {
+    minHeight: 64,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    gap: space.md,
+    padding: space.lg,
+  },
+  radio: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: space.lg,
+    paddingVertical: space.xs,
+  },
+  priceTotal: {
+    borderTopWidth: 1,
+    borderColor: colors.border,
+    paddingTop: space.lg,
+    marginTop: space.xs,
+  },
+  badge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+    borderRadius: radius.pill,
+    backgroundColor: colors.brandTint,
+  },
+  heroCard: { backgroundColor: colors.brandTint, borderColor: colors.brandTintStrong },
   card: {
     padding: space.lg,
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
+    ...shadow.card,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
@@ -239,7 +333,8 @@ export const ui = StyleSheet.create({
   row: {
     minHeight: 64,
     padding: space.lg,
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
+    ...shadow.card,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
@@ -248,7 +343,7 @@ export const ui = StyleSheet.create({
     gap: space.md,
   },
   input: {
-    minHeight: 48,
+    minHeight: 56,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.md,

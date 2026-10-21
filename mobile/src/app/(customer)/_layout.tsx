@@ -17,8 +17,13 @@ export default function CustomerStack() {
     <Stack
       screenOptions={{
         headerTintColor: colors.brand,
-        headerStyle: { backgroundColor: colors.background },
-        headerTitleStyle: { fontFamily: (i18n.language === "ar" ? fonts.ar : fonts.en).bold },
+        headerStyle: { backgroundColor: colors.surface },
+        headerShadowVisible: false,
+        headerTitleAlign: "center",
+        headerTitleStyle: {
+          fontFamily: (i18n.language === "ar" ? fonts.ar : fonts.en).heavy,
+          fontSize: 20,
+        },
         headerBackTitle: t("common.back"),
         contentStyle: { backgroundColor: colors.background },
       }}
