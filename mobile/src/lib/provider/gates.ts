@@ -1,5 +1,5 @@
-/** When the native app should send providers to the web instead of tabs. */
-export type ProviderWebPath = "/pro/onboarding" | "/pro/apply" | "/pro/documents";
+/** Native routes for providers who cannot use the main tabs yet. */
+export type ProviderNativePath = "/pro-apply" | "/pro-documents" | "/pro-setup-home";
 
 export function providerCanUseNativeApp(
   hasProviderRow: boolean,
@@ -8,15 +8,15 @@ export function providerCanUseNativeApp(
   return hasProviderRow && onboardingStatus === "APPROVED";
 }
 
-export function providerStatusWebPath(
+export function providerStatusNativePath(
   hasProviderRow: boolean,
   onboardingStatus: string | null | undefined,
-): ProviderWebPath {
-  if (!hasProviderRow || onboardingStatus === "DRAFT" || !onboardingStatus) return "/pro/apply";
-  if (onboardingStatus === "NEEDS_CHANGES") return "/pro/apply";
+): ProviderNativePath {
+  if (!hasProviderRow || onboardingStatus === "DRAFT" || !onboardingStatus) return "/pro-apply";
+  if (onboardingStatus === "NEEDS_CHANGES") return "/pro-apply";
   if (onboardingStatus === "SUBMITTED" || onboardingStatus === "UNDER_REVIEW")
-    return "/pro/documents";
-  return "/pro/onboarding";
+    return "/pro-documents";
+  return "/pro-setup-home";
 }
 
 export function providerStatusTitleKey(

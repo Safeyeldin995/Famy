@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { View } from "react-native";
-import * as WebBrowser from "expo-web-browser";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Globe, LogOut } from "lucide-react-native";
 import { reloadAppAsync } from "expo";
 import { applyDirection, saveLanguage } from "@/lib/i18n";
 import { useMyProvider, useMyProviderServices } from "@/lib/provider/queries";
-import { appConfig, supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { localized } from "@/lib/presentation";
 import { proCard } from "@/ui/provider/cards";
 import { Page, QueryState, Row, ActionError } from "@/ui/Page";
@@ -22,8 +21,6 @@ export default function ProviderProfile() {
   const servicesQ = useMyProviderServices(provider?.id as string | undefined);
   const profile = provider?.profile as { full_name?: string; phone?: string } | undefined;
   const [actionError, setActionError] = useState(false);
-
-  const openWeb = (path: string) => WebBrowser.openBrowserAsync(`${appConfig.webOrigin}${path}`);
 
   const switchLanguage = async () => {
     const next = i18n.language === "en" ? "ar" : "en";
@@ -60,15 +57,12 @@ export default function ProviderProfile() {
           );
         })}
       </QueryState>
-      <Button
-        variant="secondary"
-        label={t("mobilePro.editOnWeb")}
-        onPress={() => openWeb("/pro/profile")}
-      />
+      <Row label={t("pro.profile.title")} onPress={() => router.push("/pro-profile-edit")} />
+      <Row label={t("providerDocuments.title")} onPress={() => router.push("/pro-documents")} />
       <Row label={t("common.notifications")} onPress={() => router.push("/pro-notifications")} />
       <Row
         label={t("mobilePro.notificationPrefs")}
-        onPress={() => openWeb("/pro/notification-preferences")}
+        onPress={() => router.push("/pro-notification-preferences")}
       />
       <ActionError error={actionError} />
       <View style={{ gap: space.md, marginTop: space.lg }}>
