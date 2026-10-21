@@ -37,7 +37,22 @@
         }
       ],
       "expo-secure-store",
-      "expo-localization"
+      "expo-localization",
+      "@react-native-community/datetimepicker",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Famy to use your location to set your service address."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Famy to choose a payment receipt from your photos.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
@@ -48,6 +63,10 @@
       "supabaseUrl": "https://mjhkaiabfnzewprcnojp.supabase.co",
       "supabasePublishableKey": "sb_publishable_D64qG4N5jldifQODMKizXQ_F5_095-H",
       "webOrigin": "https://famy-chi.vercel.app"
+    },
+    "locales": {
+      "ar": "./locales/ar.json",
+      "en": "./locales/en.json"
     }
   }
 }

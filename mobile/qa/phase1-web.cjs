@@ -283,6 +283,8 @@ async function run() {
       }
     } else {
       const tables = {
+        payment_methods: [],
+        cancellation_reasons: [],
         profiles: [{ id: uid, full_name: "حساب اختبار محلي" }],
         user_roles: [{ role: "customer" }],
         categories,
@@ -390,7 +392,7 @@ async function run() {
     ["category-babysitting", "/category/babysitting", ""],
     ["category-tutoring", "/category/tutoring", ""],
     ["provider", `/provider/${pid}`, provider.full_name],
-    ["booking-coming-soon", "/booking-coming-soon", "المرحلة التانية"],
+    ["legacy-booking-redirect", "/booking-coming-soon", ""],
     ["bookings", "/bookings", ""],
     ["booking-detail", `/booking/${bid}`, provider.full_name],
     ["notifications", "/notifications", notifications[0].title_ar],
@@ -419,6 +421,7 @@ async function run() {
   const ar = localeModule.exports.default;
   const titles = {
     home: ar.home.headline,
+    "legacy-booking-redirect": ar.search.title,
     search: ar.search.title,
     "category-babysitting": service.name_ar,
     "category-tutoring": ar.studentEducation.studentPicker,
@@ -453,7 +456,11 @@ async function run() {
   assert(writes.some((w) => w.table === "addresses" && w.body?.is_default === true));
   await visit("/family-members/new", ar.familyMembers.fullName);
   await page.getByLabel(ar.familyMembers.fullName, { exact: true }).fill("عضو اختبار");
-  await page.getByLabel(ar.familyMembers.dateOfBirth, { exact: true }).fill("2019-02-31");
+  await expect(page.getByLabel(ar.familyMembers.dateOfBirth, { exact: true })).toHaveAttribute(
+    "type",
+    "date",
+  );
+  await page.getByLabel(ar.familyMembers.dateOfBirth, { exact: true }).fill("2099-02-01");
   await page.getByRole("button", { name: ar.common.save, exact: true }).click();
   await expect(page.getByText(ar.mobile.memberInvalid, { exact: true })).toBeVisible();
   assert(!writes.some((w) => w.table === "family_members"));
