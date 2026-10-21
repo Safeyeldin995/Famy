@@ -1331,6 +1331,13 @@ const en = {
       },
     ],
   },
+  mobilePro: {
+    continueOnWeb: "Continue on the web",
+    finishOnWeb: "Finish setup on the web",
+    finishOnWebBody: "Your provider account is not ready for the app yet. Continue on the Famy website to complete the remaining steps.",
+    editOnWeb: "Edit profile and services on the web",
+    notificationPrefs: "Notification preferences",
+  },
   bookingUx: {
     cashCta: "Confirm booking — pay cash on arrival",
     cashNext: "Pay the provider cash on arrival. No online payment is taken.",

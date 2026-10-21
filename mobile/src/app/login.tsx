@@ -60,7 +60,15 @@ export default function Login() {
       setError(t("auth.noProviderAccount"));
       return;
     }
-    router.replace(workspace === "customer" && role === "customer" ? "/home" : "/workspace-on-web");
+    if (workspace === "admin") {
+      router.replace("/workspace-on-web");
+      return;
+    }
+    if (workspace === "provider") {
+      router.replace("/dashboard");
+      return;
+    }
+    router.replace("/home");
   };
 
   // Sign-up and password reset need the phone-code flow, which moves to the
