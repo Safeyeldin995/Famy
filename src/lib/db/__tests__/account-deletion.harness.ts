@@ -240,6 +240,23 @@ export async function asUser<T>(db: PGlite, userId: string, fn: () => Promise<T>
   }
 }
 
+export async function runSqlExpectError(
+  db: PGlite,
+  sql: string,
+  pattern: RegExp,
+): Promise<void> {
+  try {
+    await db.query(sql);
+    throw new Error(`expected SQL error matching ${pattern}, but statement succeeded`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes("expected SQL error matching")) throw error;
+    if (!pattern.test(message)) {
+      throw new Error(`expected error matching ${pattern}, got: ${message}`);
+    }
+  }
+}
+
 export async function asServiceRole<T>(db: PGlite, fn: () => Promise<T>): Promise<T> {
   await db.exec(`SET ROLE service_role`);
   try {

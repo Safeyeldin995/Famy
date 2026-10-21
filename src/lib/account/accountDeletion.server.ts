@@ -56,6 +56,20 @@ export async function removeAnonymizedStorageObjects(
   }
 }
 
+export async function userHasAdminRole(
+  supabaseAdmin: SupabaseClient<Database>,
+  userId: string,
+): Promise<boolean> {
+  const { data, error } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .limit(1);
+  if (error) throw error;
+  return (data?.length ?? 0) > 0;
+}
+
 export async function finalizeDeletedAuthUser(
   supabaseAdmin: AdminAuthClient,
   userId: string,
@@ -76,6 +90,10 @@ export async function runAccountDeletion(params: {
   supabaseAdmin: ServiceSupabase & AdminAuthClient;
   userId: string;
 }): Promise<{ ok: true } | { ok: false; error: string; status: number }> {
+  if (await userHasAdminRole(params.supabaseAdmin, params.userId)) {
+    return { ok: false, error: "admin_not_allowed", status: 403 };
+  }
+
   const { data: checkRaw, error: checkError } = await params.supabaseUser.rpc(
     "account_deletion_check",
   );

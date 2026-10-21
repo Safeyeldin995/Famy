@@ -23,7 +23,39 @@ describe("parseAnonymizeStoragePaths", () => {
   });
 });
 
+function adminRoleClient(isAdmin: boolean) {
+  const chain = {
+    eq: vi.fn(() => chain),
+    limit: vi.fn(async () => ({ data: isAdmin ? [{ role: "admin" }] : [], error: null })),
+  };
+  return {
+    from: vi.fn(() => ({
+      select: vi.fn(() => chain),
+    })),
+  };
+}
+
 describe("runAccountDeletion", () => {
+  it("blocks admin users via user_roles before RPC", async () => {
+    const supabaseUser = { rpc: vi.fn() };
+    const supabaseAdmin = {
+      ...adminRoleClient(true),
+      rpc: vi.fn(),
+      storage: { from: vi.fn() },
+      auth: { admin: { updateUserById: vi.fn() } },
+    };
+
+    const result = await runAccountDeletion({
+      supabaseUser: supabaseUser as never,
+      supabaseAdmin: supabaseAdmin as never,
+      userId: "admin-user",
+    });
+
+    expect(result).toEqual({ ok: false, error: "admin_not_allowed", status: 403 });
+    expect(supabaseUser.rpc).not.toHaveBeenCalled();
+    expect(supabaseAdmin.rpc).not.toHaveBeenCalled();
+  });
+
   it("returns active_bookings when the eligibility RPC blocks", async () => {
     const supabaseUser = {
       rpc: vi.fn(async (name: string) => {
@@ -31,7 +63,12 @@ describe("runAccountDeletion", () => {
         return { data: { ok: false, reason: "active_bookings" }, error: null };
       }),
     };
-    const supabaseAdmin = { rpc: vi.fn(), storage: { from: vi.fn() }, auth: { admin: { updateUserById: vi.fn() } } };
+    const supabaseAdmin = {
+      ...adminRoleClient(false),
+      rpc: vi.fn(),
+      storage: { from: vi.fn() },
+      auth: { admin: { updateUserById: vi.fn() } },
+    };
 
     const result = await runAccountDeletion({
       supabaseUser: supabaseUser as never,
@@ -43,6 +80,31 @@ describe("runAccountDeletion", () => {
     expect(supabaseAdmin.rpc).not.toHaveBeenCalled();
   });
 
+  it("allows a plain customer when check passes", async () => {
+    const remove = vi.fn(async () => ({ error: null }));
+    const updateUserById = vi.fn(async () => ({ error: null }));
+    const supabaseUser = {
+      rpc: vi.fn(async (name: string) => {
+        expect(name).toBe("account_deletion_check");
+        return { data: { ok: true }, error: null };
+      }),
+    };
+    const supabaseAdmin = {
+      ...adminRoleClient(false),
+      rpc: vi.fn(async () => ({ data: { storage_paths: [] }, error: null })),
+      storage: { from: vi.fn(() => ({ remove })) },
+      auth: { admin: { updateUserById } },
+    };
+
+    const result = await runAccountDeletion({
+      supabaseUser: supabaseUser as never,
+      supabaseAdmin: supabaseAdmin as never,
+      userId: "00000000-0000-0000-0000-000000000001",
+    });
+
+    expect(result).toEqual({ ok: true });
+  });
+
   it("anonymizes, removes storage, and bans auth on success", async () => {
     const remove = vi.fn(async () => ({ error: null }));
     const updateUserById = vi.fn(async () => ({ error: null }));
@@ -50,6 +112,7 @@ describe("runAccountDeletion", () => {
       rpc: vi.fn(async () => ({ data: { ok: true }, error: null })),
     };
     const supabaseAdmin = {
+      ...adminRoleClient(false),
       rpc: vi.fn(async () => ({
         data: { storage_paths: [{ bucket: "avatars", path: "x.jpg" }] },
         error: null,

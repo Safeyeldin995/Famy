@@ -1,8 +1,9 @@
-import { Link } from "@tanstack/react-router";
-import { useState, type ReactNode } from "react";
+import { Link, useRouter } from "@tanstack/react-router";
+import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Menu, X } from "lucide-react";
-import { FamyWordmark } from "@/components/famio/FamyWordmark";
+import wordmark from "@/assets/famy-wordmark.png";
+import i18n from "@/lib/i18n";
 import { LanguageToggle } from "@/components/famio/LanguageToggle";
 import { StoreBadges } from "./StoreBadges";
 
@@ -16,14 +17,27 @@ const NAV = [
 /** Public website shell (header, footer). The app itself lives under /app. */
 export function SiteLayout({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const refreshHead = () => void router.invalidate();
+    i18n.on("languageChanged", refreshHead);
+    return () => i18n.off("languageChanged", refreshHead);
+  }, [router]);
 
   return (
     <div className="min-h-dvh bg-white text-foreground">
       <header className="sticky top-0 z-40 border-b border-border/60 bg-white/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5">
           <Link to="/" className="focus-ring shrink-0" aria-label={t("common.appName")}>
-            <FamyWordmark size="compact" className="!h-8 max-w-[6.5rem]" />
+            <img
+              src={wordmark}
+              alt={t("common.appName")}
+              width={1092}
+              height={344}
+              className="h-8 w-auto max-w-[6.5rem] object-contain"
+            />
           </Link>
 
           <nav className="hidden items-center gap-1 md:flex" aria-label={t("site.nav.label")}>
@@ -94,7 +108,15 @@ export function SiteLayout({ children }: { children: ReactNode }) {
       <footer className="border-t border-border/60 bg-surface-2/60">
         <div className="mx-auto grid max-w-6xl gap-10 px-5 py-12 md:grid-cols-[1.4fr_1fr_1fr]">
           <div className="space-y-4">
-            <FamyWordmark size="compact" className="!h-9 max-w-[7rem]" />
+            <img
+              src={wordmark}
+              alt={t("common.appName")}
+              width={1092}
+              height={344}
+              loading="lazy"
+              decoding="async"
+              className="h-9 w-auto max-w-[7rem] object-contain"
+            />
             <p className="max-w-sm text-pro-14 leading-relaxed text-muted-foreground">
               {t("site.footer.tagline")}
             </p>

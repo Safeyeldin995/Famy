@@ -1,0 +1,28 @@
+{
+  "build": {
+    "development": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {}
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "track": "internal",
+        "serviceAccountKeyPath": "./credentials/REPLACE_WITH_GOOGLE_SERVICE_ACCOUNT.json"
+      },
+      "ios": {
+        "ascAppId": "REPLACE_WITH_APP_STORE_CONNECT_APP_ID"
+      }
+    }
+  }
+}

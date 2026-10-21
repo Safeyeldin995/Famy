@@ -2,9 +2,26 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { CalendarClock, MapPin, Smartphone } from "lucide-react";
 import { SiteLayout, SiteSection } from "@/components/site/SiteLayout";
+import { siteHead, siteLanguage } from "@/lib/site/seo";
 
 export const Route = createFileRoute("/join")({
-  head: () => ({ meta: [{ title: "Join Famy as a provider | انضم لفامي" }] }),
+  head: ({ matches }) =>
+    siteHead(
+      "/join",
+      {
+        ar: {
+          title: "انضم لفامي | قدم خدمات رعاية الأطفال أو التدريس",
+          description:
+            "قدم للانضمام لفامي كمقدم خدمة رعاية أطفال أو تدريس، وحدد خدماتك ومناطق عملك.",
+        },
+        en: {
+          title: "Join Famy | Apply as a babysitter or tutor",
+          description:
+            "Apply to offer babysitting or tutoring through Famy and choose your services and coverage areas.",
+        },
+      },
+      siteLanguage(matches),
+    ),
   component: Join,
 });
 

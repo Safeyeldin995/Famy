@@ -38,7 +38,9 @@ BEGIN
     RETURN jsonb_build_object('ok', false, 'reason', 'not_authenticated');
   END IF;
 
-  IF public.has_role(v_uid, 'admin') THEN
+  IF EXISTS (
+    SELECT 1 FROM public.user_roles WHERE user_id = v_uid AND role = 'admin'::public.app_role
+  ) THEN
     RETURN jsonb_build_object('ok', false, 'reason', 'admin');
   END IF;
 
@@ -71,7 +73,9 @@ BEGIN
     RAISE EXCEPTION 'invalid_user' USING ERRCODE = '22023';
   END IF;
 
-  IF public.has_role(p_user_id, 'admin') THEN
+  IF EXISTS (
+    SELECT 1 FROM public.user_roles WHERE user_id = p_user_id AND role = 'admin'::public.app_role
+  ) THEN
     RAISE EXCEPTION 'account_deletion_blocked' USING ERRCODE = '42501';
   END IF;
 
@@ -146,7 +150,9 @@ BEGIN
   ) VALUES (
     p_user_id,
     CASE
-      WHEN public.has_role(p_user_id, 'provider') THEN 'provider'
+      WHEN EXISTS (
+        SELECT 1 FROM public.user_roles WHERE user_id = p_user_id AND role = 'provider'::public.app_role
+      ) THEN 'provider'
       ELSE 'customer'
     END,
     'account_anonymized',

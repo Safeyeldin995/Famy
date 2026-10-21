@@ -55,7 +55,7 @@ const en = {
     providersBand: {
       title: "Experienced in childcare or teaching?",
       body: "Join Famy and get bookings from families in your area, at the times you choose.",
-      cta: "Learn more",
+      cta: "Learn about joining Famy",
     },
     download: {
       title: "Famy is coming to your phone",
@@ -1336,6 +1336,13 @@ const en = {
       admin_not_allowed: "Admin accounts cannot be deleted from the app.",
       deletion_failed: "Could not delete your account. Try again later.",
     },
+  },
+  mobilePush: {
+    title: "Turn on push notifications?",
+    bodyCustomer: "Get instant alerts when your provider responds or your booking status changes.",
+    bodyProvider: "Get instant alerts for new booking requests and important updates.",
+    enable: "Enable notifications",
+    notNow: "Not now",
   },
   helpC: {
     title: "Help center",

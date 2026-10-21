@@ -7,7 +7,13 @@ import { Text } from "@/ui/Text";
 import { colors, radius, shadow, space } from "@/ui/theme";
 import { formatChatListTime } from "./formatChatTime";
 
-export function ConversationRow({ item }: { item: ConversationListItem }) {
+export function ConversationRow({
+  item,
+  chatPath = "/chat/[id]",
+}: {
+  item: ConversationListItem;
+  chatPath?: "/chat/[id]" | "/pro-chat/[id]";
+}) {
   const { t, i18n } = useTranslation();
   const name = item.other_name || t("profile.famioUser");
   const preview = item.last_system_key
@@ -18,7 +24,7 @@ export function ConversationRow({ item }: { item: ConversationListItem }) {
       testID={`conversation-${item.id}`}
       accessibilityRole="button"
       accessibilityLabel={`${name}. ${preview}`}
-      onPress={() => router.push({ pathname: "/chat/[id]", params: { id: item.id } })}
+      onPress={() => router.push({ pathname: chatPath, params: { id: item.id } })}
       style={({ pressed }) => [styles.row, pressed && styles.pressed]}
     >
       <Avatar raw={item.other_avatar} size={56} />
