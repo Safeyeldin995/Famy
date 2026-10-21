@@ -16,6 +16,7 @@ import {
   Manrope_800ExtraBold,
 } from "@expo-google-fonts/manrope";
 import { initI18n } from "@/lib/i18n";
+import { PushBridge } from "@/lib/push";
 import { SessionProvider } from "@/lib/session";
 import { colors } from "@/ui/theme";
 
@@ -51,6 +52,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <SessionProvider>
+          <PushBridge />
           <StatusBar style="dark" />
           <Stack
             screenOptions={{

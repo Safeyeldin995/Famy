@@ -1307,6 +1307,13 @@ const en = {
   mobileChat: {
     message: "Message",
   },
+  mobilePush: {
+    title: "Turn on push notifications?",
+    bodyCustomer: "Get instant alerts when your provider responds or your booking status changes.",
+    bodyProvider: "Get instant alerts for new booking requests and important updates.",
+    enable: "Enable notifications",
+    notNow: "Not now",
+  },
   helpC: {
     title: "Help center",
     heroTitle: "How can we help?",

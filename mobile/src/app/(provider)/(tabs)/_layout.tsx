@@ -1,7 +1,14 @@
 import { Redirect } from "expo-router";
 import { Tabs } from "expo-router/tabs";
 import { useTranslation } from "react-i18next";
-import { CalendarRange, ClipboardList, LayoutDashboard, User, Wallet } from "lucide-react-native";
+import {
+  CalendarRange,
+  ClipboardList,
+  LayoutDashboard,
+  MessageCircle,
+  User,
+  Wallet,
+} from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSession } from "@/lib/session";
 import { ProviderGate } from "@/ui/provider/ProviderGate";
@@ -43,6 +50,13 @@ export default function ProviderTabs() {
           options={{
             title: t("pro.nav.jobs"),
             tabBarIcon: ({ color }) => <ClipboardList size={22} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="pro-messages"
+          options={{
+            title: t("nav.messages"),
+            tabBarIcon: ({ color }) => <MessageCircle size={22} color={color} />,
           }}
         />
         <Tabs.Screen
