@@ -11,6 +11,18 @@
       ],
       "@shared/*": [
         "../src/lib/*"
+      ],
+      "@/lib/pricing/servicePackages": [
+        "../src/lib/pricing/servicePackages"
+      ],
+      "@/lib/tutoring/teachingCapabilities": [
+        "../src/lib/tutoring/teachingCapabilities"
+      ],
+      "@/lib/tutoring/studentEducationProfile": [
+        "../src/lib/tutoring/studentEducationProfile"
+      ],
+      "@/lib/booking/childAgeMonths": [
+        "../src/lib/booking/childAgeMonths"
       ]
     }
   },

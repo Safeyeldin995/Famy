@@ -140,7 +140,9 @@ export default function ProviderProfile() {
             <Button
               label={t("mobile.book")}
               disabled={!available.length}
-              onPress={() => router.push("/booking-coming-soon")}
+              onPress={() =>
+                router.push({ pathname: "/book/[providerId]", params: { providerId: id } })
+              }
             />
             <Text size="xl" weight="heavy">
               {t("mobile.reviews")}

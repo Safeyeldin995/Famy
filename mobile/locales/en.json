@@ -1,0 +1,6 @@
+{
+  "ios": {
+    "NSLocationWhenInUseUsageDescription": "Allow Famy to use your location to set your service address.",
+    "NSPhotoLibraryUsageDescription": "Allow Famy to choose a payment receipt from your photos."
+  }
+}

@@ -25,6 +25,8 @@ export function Button({
   const inactive = disabled || loading;
   return (
     <Pressable
+      disabled={!!inactive}
+      aria-disabled={!!inactive}
       accessibilityRole="button"
       accessibilityState={{ disabled: !!inactive, busy: !!loading }}
       onPress={inactive ? undefined : onPress}
