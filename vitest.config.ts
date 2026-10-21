@@ -5,16 +5,15 @@ export default defineConfig({
   plugins: [tsconfigPaths()],
   test: {
     setupFiles: ["./qa/vitest-unit-qa-env-guard.mjs"],
+    clearMocks: false,
     projects: [
       {
         extends: true,
         test: {
           name: "unit",
           environment: "node",
-          environmentMatchGlobs: [["src/**/*.test.tsx", "jsdom"]],
           include: [
             "src/**/*.test.ts",
-            "src/**/*.test.tsx",
             "src/**/*.integration.test.ts",
             "qa/__tests__/**/*.test.ts",
             "tools/production-reset/__tests__/**/*.test.ts",
@@ -25,13 +24,28 @@ export default defineConfig({
       {
         extends: true,
         test: {
+          name: "unit-jsdom",
+          environment: "jsdom",
+          include: ["src/**/*.test.tsx"],
+          exclude: ["src/lib/db/__tests__/**"],
+        },
+      },
+      {
+        extends: true,
+        test: {
           name: "db",
           environment: "node",
-          environmentMatchGlobs: [["src/**/*.test.tsx", "jsdom"]],
-          include: [
-            "src/lib/db/__tests__/**/*.test.ts",
-            "src/lib/db/__tests__/**/*.test.tsx",
-          ],
+          include: ["src/lib/db/__tests__/**/*.test.ts"],
+          testTimeout: 30_000,
+          hookTimeout: 30_000,
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "db-jsdom",
+          environment: "jsdom",
+          include: ["src/lib/db/__tests__/**/*.test.tsx"],
           testTimeout: 30_000,
           hookTimeout: 30_000,
         },
