@@ -1,3 +1,5 @@
+import { PaymentBlock } from "@/ui/PaymentBlock";
+import { BookingActions } from "@/ui/BookingActions";
 import { View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -8,7 +10,11 @@ import { Text } from "@/ui/Text";
 import { Avatar } from "@/ui/ProviderCard";
 
 export default function BookingDetail() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, created, educationWarning } = useLocalSearchParams<{
+    id: string;
+    created?: string;
+    educationWarning?: string;
+  }>();
   const { t, i18n } = useTranslation();
   const q = useBooking(id);
   const payment = useBookingPayment(id);
@@ -25,6 +31,8 @@ export default function BookingDetail() {
   ] as const;
   return (
     <Page title={t("customerDetail.title")} queries={[q, payment, party]}>
+      {created === "1" && <Text>{t("bookFlow.created")}</Text>}
+      {educationWarning === "1" && <Text tone="danger">{t("studentEducation.saveFailed")}</Text>}
       <QueryState query={q} empty={!b}>
         {b && (
           <>
@@ -58,26 +66,13 @@ export default function BookingDetail() {
                   ),
               )}
             </View>
-            <Text size="xl" weight="heavy">
-              {t("payment.title")}
-            </Text>
-            <QueryState query={payment} empty={!payment.data} emptyKey="payment.noneRecorded">
-              {payment.data && (
-                <View style={ui.card}>
-                  <Text>
-                    {t(`payment.status.${payment.data.status}`, {
-                      defaultValue: t("mobile.paymentUnknown"),
-                    })}
-                  </Text>
-                  <Text style={ui.ltr}>{money(payment.data.amount, i18n.language)}</Text>
-                  <Text>
-                    {(i18n.language === "ar"
-                      ? payment.data.payment_method_name_ar
-                      : payment.data.payment_method_name_en) || t("payment.title")}
-                  </Text>
-                </View>
-              )}
-            </QueryState>
+            <PaymentBlock
+              bookingId={id}
+              status={b.status}
+              total={b.price_total}
+              refetchBooking={q.refetch}
+            />
+            <BookingActions booking={b} />
           </>
         )}
       </QueryState>

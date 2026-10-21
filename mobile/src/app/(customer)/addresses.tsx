@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -14,7 +15,7 @@ export default function Addresses() {
   const [selected, setSelected] = useState<string | null>(null);
   return (
     <Page title={t("profile.addresses")} queries={[q]}>
-      <Text tone="muted">{t("mobile.addressPhase2")}</Text>
+      <Button label={t("addresses.addAddress")} onPress={() => router.push("/addresses/new")} />
       <ActionError error={setDefault.error || remove.error} />
       {selected && (
         <Confirm

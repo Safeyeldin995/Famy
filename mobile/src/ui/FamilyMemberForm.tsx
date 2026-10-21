@@ -1,3 +1,4 @@
+import { DateField } from "./DateField";
 import { useState } from "react";
 import { Pressable } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -71,13 +72,11 @@ export function FamilyMemberForm({
           onChangeText={(v) => set("relationship_other", v)}
         />
       )}
-      <Field
-        ltr
+      <DateField
         label={t("familyMembers.dateOfBirth")}
-        placeholder={t("mobile.dateFormat")}
         value={value.date_of_birth}
-        onChangeText={(v) => set("date_of_birth", v)}
-        maxLength={10}
+        maximumDate={new Date()}
+        onChange={(v) => set("date_of_birth", v)}
       />
       <Choices
         label={t("familyMembers.gender")}

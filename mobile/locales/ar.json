@@ -1,0 +1,6 @@
+{
+  "ios": {
+    "NSLocationWhenInUseUsageDescription": "اسمح لفامي باستخدام موقعك علشان تحدد عنوان الخدمة.",
+    "NSPhotoLibraryUsageDescription": "اسمح لفامي باختيار إيصال الدفع من صورك."
+  }
+}
