@@ -16,9 +16,24 @@ import {
 } from "@/lib/auth/landing";
 import { useCustomerPreviewPath } from "@/components/famio/useCustomerPreviewPath";
 import { ICON_STROKE, ICON_STROKE_BOLD } from "@/lib/icons/constants";
-import { signInWithOAuthProvider } from "@/lib/auth/oauth";
+import {
+  enabledWebOAuthProviders,
+  signInWithOAuthProvider,
+  type OAuthProvider,
+} from "@/lib/auth/oauth";
 
 export const Route = createFileRoute("/login")({ component: Login });
+
+function AppleMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className ?? "h-5 w-5"} aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M17.05 20.28c-.98.95-2.05 1.88-3.08 1.88-1.02 0-1.31-.63-2.42-.63-1.11 0-1.45.64-2.43.66-1 .02-1.76-.93-2.74-1.88C4.25 17.2 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.03-.02 2 .69 2.65.69.63 0 1.81-.85 3.06-.73.52.02 1.98.21 2.92 1.58-.08.05-1.74 1.02-1.72 2.98.03 2.36 2.06 3.15 2.09 3.17-.02.06-.32 1.11-1.05 2.18zM12.03 7.25c.57-.69 1.03-1.65.92-2.61-.89.04-1.96.59-2.6 1.33-.53.61-1 1.58-.88 2.51.93.07 1.88-.47 2.56-1.23z"
+      />
+    </svg>
+  );
+}
 
 function GoogleMark() {
   return (
@@ -99,7 +114,8 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
   const [role, setRole] = useState<Role>("customer");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [googleLoading, setGoogleLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState<OAuthProvider | null>(null);
+  const oauthProviders = enabledWebOAuthProviders();
   const nav = useNavigate();
   const { setProfile, setAuthed } = useApp();
   const { t, i18n } = useTranslation();
@@ -314,29 +330,55 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
             </PrimaryButton>
           </div>
 
-          {role === "customer" ? (
+          {role === "customer" && oauthProviders.length > 0 ? (
             <div className="mt-6">
               <div className="flex items-center gap-3 text-pro-12 font-semibold text-muted-foreground">
                 <span className="h-px flex-1 bg-border" />
                 {t("oauth.or")}
                 <span className="h-px flex-1 bg-border" />
               </div>
-              <button
-                type="button"
-                disabled={previewMode || googleLoading}
-                onClick={async () => {
-                  setGoogleLoading(true);
-                  const { error } = await signInWithOAuthProvider("google");
-                  if (error) {
-                    setGoogleLoading(false);
-                    toast.error(t("oauth.failedBody"));
-                  }
-                }}
-                className="focus-ring tap-scale mt-5 flex h-14 w-full items-center justify-center gap-3 rounded-2xl border border-border bg-white text-pro-14 font-extrabold text-foreground disabled:opacity-60"
-              >
-                <GoogleMark />
-                {googleLoading ? t("oauth.redirecting") : t("oauth.continueWithGoogle")}
-              </button>
+              <div className="mt-5 flex flex-col gap-3">
+                {oauthProviders.includes("google") ? (
+                  <button
+                    type="button"
+                    disabled={previewMode || oauthLoading !== null}
+                    onClick={async () => {
+                      setOauthLoading("google");
+                      const { error } = await signInWithOAuthProvider("google");
+                      if (error) {
+                        setOauthLoading(null);
+                        toast.error(t("oauth.failedBody"));
+                      }
+                    }}
+                    className="focus-ring tap-scale flex h-14 w-full items-center justify-center gap-3 rounded-2xl border border-border bg-white text-pro-14 font-extrabold text-foreground disabled:opacity-60"
+                  >
+                    <GoogleMark />
+                    {oauthLoading === "google"
+                      ? t("oauth.redirectingGoogle")
+                      : t("oauth.continueWithGoogle")}
+                  </button>
+                ) : null}
+                {oauthProviders.includes("apple") ? (
+                  <button
+                    type="button"
+                    disabled={previewMode || oauthLoading !== null}
+                    onClick={async () => {
+                      setOauthLoading("apple");
+                      const { error } = await signInWithOAuthProvider("apple");
+                      if (error) {
+                        setOauthLoading(null);
+                        toast.error(t("oauth.failedBody"));
+                      }
+                    }}
+                    className="focus-ring tap-scale flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-black text-pro-14 font-extrabold text-white disabled:opacity-60"
+                  >
+                    <AppleMark />
+                    {oauthLoading === "apple"
+                      ? t("oauth.redirectingApple")
+                      : t("oauth.continueWithApple")}
+                  </button>
+                ) : null}
+              </div>
             </div>
           ) : null}
 

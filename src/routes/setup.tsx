@@ -49,7 +49,7 @@ function Setup() {
   const areasQ = useServiceAreasSettings();
   const areaOptions = (areasQ.data ?? []).filter((a) => a.enabled).map((a) => a.name);
   const myProfile = useMyProfile();
-  // Google sign-ins arrive without a phone; providers need one to reach the customer.
+  // OAuth sign-ins arrive without a phone; providers need one to reach the customer.
   const needsPhone = !!myProfile.data && !myProfile.data.phone;
   const [contactPhone, setContactPhone] = useState("");
   const [savingPhone, setSavingPhone] = useState(false);

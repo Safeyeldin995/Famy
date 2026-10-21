@@ -214,4 +214,17 @@ assert.deepEqual(mapNotificationDeepLink("/unknown/path", "provider"), {
 });
 assert.deepEqual(Object.keys(en.mobilePush).sort(), Object.keys(ar.mobilePush).sort());
 assert(!/[\u064b-\u065f\u0670]/.test(JSON.stringify(ar.mobilePush)));
-console.log("PASS: 8 deep-link mapper and mobilePush locale checks.");
+const { mobileOAuthRedirectUrl, parseOAuthProviders, resolvePostOAuthNavigationTarget } = load(
+  path.join(root, "src/lib/auth/oauthShared.ts"),
+);
+assert.deepEqual(parseOAuthProviders("google, apple"), ["google", "apple"]);
+assert.equal(mobileOAuthRedirectUrl("famy"), "famy://auth/callback");
+assert.equal(
+  resolvePostOAuthNavigationTarget({
+    profilePhone: null,
+    profileFullName: "Sam",
+    landingPath: "/home",
+  }),
+  "/setup",
+);
+console.log("PASS: 8 deep-link mapper, mobilePush locale, and OAuth helper checks.");

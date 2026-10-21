@@ -10,7 +10,8 @@
     "ios": {
       "icon": "./assets/images/icon.png",
       "bundleIdentifier": "com.famy.app",
-      "supportsTablet": false
+      "supportsTablet": false,
+      "usesAppleSignIn": true
     },
     "android": {
       "adaptiveIcon": {
@@ -59,7 +60,8 @@
           "icon": "./assets/images/icon.png",
           "color": "#F10E72"
         }
-      ]
+      ],
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -67,6 +69,8 @@
     },
     "extra": {
       "supportsRTL": true,
+      "scheme": "famy",
+      "oauthProviders": "",
       "supabaseUrl": "https://mjhkaiabfnzewprcnojp.supabase.co",
       "supabasePublishableKey": "sb_publishable_D64qG4N5jldifQODMKizXQ_F5_095-H",
       "webOrigin": "https://famy-chi.vercel.app"
