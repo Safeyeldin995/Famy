@@ -55,7 +55,7 @@ const en = {
     providersBand: {
       title: "Experienced in childcare or teaching?",
       body: "Join Famy and get bookings from families in your area, at the times you choose.",
-      cta: "Learn more",
+      cta: "Learn about joining Famy",
     },
     download: {
       title: "Famy is coming to your phone",
