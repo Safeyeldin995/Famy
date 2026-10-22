@@ -239,6 +239,32 @@ function ProProfile() {
   const myPriceOverride = new Map(
     (mine.data ?? []).map((s: any) => [s.service_id, s.price_override]),
   );
+  const isApprovedProvider = provider.onboarding_status === "APPROVED";
+  const allCatalogServices = services.data ?? [];
+  const profileServices = isApprovedProvider
+    ? allCatalogServices.filter((s: { id: string }) => myIds.has(s.id))
+    : allCatalogServices;
+  const addableServices = isApprovedProvider
+    ? allCatalogServices.filter((s: { id: string }) => !myIds.has(s.id))
+    : [];
+
+  const handleServiceToggle = (serviceId: string, currentlyOn: boolean) => {
+    if (currentlyOn && isApprovedProvider) {
+      const status = myStatus.get(serviceId);
+      if (status === "approved" || status === "pending") return;
+    }
+    toggle.mutate(
+      { providerId: provider.id, serviceId, on: !currentlyOn },
+      {
+        onSuccess: () => {
+          if (!currentlyOn && isApprovedProvider) {
+            toast.success(t("pro.profile.newServicePending"));
+          }
+        },
+        onError: () => toast.error(t("common.somethingWentWrong")),
+      },
+    );
+  };
   const resubmitService = useMutation({
     mutationFn: async (serviceId: string) => {
       const { error } = await supabase.rpc("provider_resubmit_rejected_service", {
@@ -501,7 +527,7 @@ function ProProfile() {
             />
           ) : (
             <div id="requirements" className="grid gap-3 scroll-mt-4">
-              {(services.data ?? []).map((s: any) => {
+              {profileServices.map((s: any) => {
                 const on = myIds.has(s.id);
                 const sname = lang === "ar" ? (s.name_ar ?? s.name_en) : (s.name_en ?? s.name_ar);
                 const cname =
@@ -512,7 +538,7 @@ function ProProfile() {
                 const priceError = priceErrors[s.id];
                 return (
                   <div key={s.id} id={`service-${s.id}`}>
-                    <ServiceCard selected={on} title={sname} subtitle={isFixedPackage(s) ? t(packageLabel(s).key, packageLabel(s).values) : cname ?? ""} icon={<BriefcaseBusiness size={20} />} onClick={() => toggle.mutate({ providerId: provider.id, serviceId: s.id, on: !on })}>
+                    <ServiceCard selected={on} title={sname} subtitle={isFixedPackage(s) ? t(packageLabel(s).key, packageLabel(s).values) : cname ?? ""} icon={<BriefcaseBusiness size={20} />} onClick={() => handleServiceToggle(s.id, on)}>
                       <div className="px-4 pb-4">
                       {on && (
                         <span
@@ -615,6 +641,16 @@ function ProProfile() {
                     {on && expandedReqService === s.id && (
                       <div id={`requirements-${s.id}`}><RequirementsChecklist providerId={provider.id} serviceId={s.id} /></div>
                     )}
+                    {on &&
+                      isTutoringCategorySlug(s.category?.slug) &&
+                      (myStatus.get(s.id) === "pending" || myStatus.get(s.id) === "approved") && (
+                        <Link
+                          to={proPath("/pro/setup/subjects")}
+                          className="mt-2 inline-block text-xs font-bold text-brand underline-offset-2 hover:underline"
+                        >
+                          {t("pro.profile.addSubjectsForService")}
+                        </Link>
+                      )}
                       </div>
                     </ServiceCard>
                   </div>
@@ -622,6 +658,47 @@ function ProProfile() {
               })}
             </div>
           )}
+          {isApprovedProvider && !services.isError && !mine.isError ? (
+            <div className="mt-4">
+              <h3 className="px-1 text-pro-13 font-bold text-foreground">
+                {t("pro.profile.addNewService")}
+              </h3>
+              <p className="mt-1 px-1 text-xs text-muted-foreground">
+                {t("pro.profile.addNewServiceHint")}
+              </p>
+              {addableServices.length === 0 ? (
+                <p className="mt-2 px-1 text-xs text-muted-foreground">
+                  {t("pro.profile.allServicesOnProfile")}
+                </p>
+              ) : (
+                <div className="mt-3 grid gap-3">
+                  {addableServices.map((s: any) => {
+                    const sname =
+                      lang === "ar" ? (s.name_ar ?? s.name_en) : (s.name_en ?? s.name_ar);
+                    const cname =
+                      lang === "ar"
+                        ? (s.category?.name_ar ?? s.category?.name_en)
+                        : (s.category?.name_en ?? s.category?.name_ar);
+                    return (
+                      <ServiceCard
+                        key={s.id}
+                        selected={false}
+                        title={sname}
+                        subtitle={
+                          isFixedPackage(s)
+                            ? t(packageLabel(s).key, packageLabel(s).values)
+                            : cname ?? ""
+                        }
+                        icon={<BriefcaseBusiness size={20} />}
+                        disabled={toggle.isPending}
+                        onClick={() => handleServiceToggle(s.id, false)}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : null}
         </div>
 
         {teachingQ.isError ? (

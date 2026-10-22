@@ -2196,6 +2196,11 @@ const en = {
       removeService: "Remove from profile",
       serviceResubmitted: "Service sent back for review",
       serviceRemoved: "Service removed from your profile",
+      addNewService: "Add a new service",
+      addNewServiceHint: "Pick a service to send to admin review. Your approved services keep working.",
+      newServicePending: "Service added and sent for admin review",
+      addSubjectsForService: "Add subjects for this service",
+      allServicesOnProfile: "You already offer every available service.",
       verifiedIdentityLocked: "Verified profile details cannot be changed without admin review.",
       verifiedFieldReviewNote:
         "This field was verified during onboarding. Contact Famy if it needs to change.",

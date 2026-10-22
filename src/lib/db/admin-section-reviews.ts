@@ -14,7 +14,7 @@ export const ADMIN_REVIEW_SECTIONS = [
 export type AdminReviewSection = (typeof ADMIN_REVIEW_SECTIONS)[number];
 export type AdminSectionReviewRow = {
   section: AdminReviewSection;
-  decision: "approved" | "request_changes" | "rejected";
+  decision: "approved" | "request_changes" | "rejected" | "rejected_optional";
   reason: string | null;
   reviewed_at: string;
 };
