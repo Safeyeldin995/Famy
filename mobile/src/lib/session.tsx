@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
+import { clearMobileAuthCookies } from "@/lib/auth/mobileAuthCookies";
 import { supabase } from "./supabase";
 
 type SessionState = { session: Session | null; ready: boolean };
@@ -23,6 +24,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       const userId = session?.user.id ?? null;
+      if (event === "SIGNED_OUT") {
+        void clearMobileAuthCookies();
+      }
       if (previousUserId !== undefined && (userId !== previousUserId || event === "SIGNED_OUT")) {
         qc.clear();
       }
