@@ -5,6 +5,8 @@ import path from "node:path";
 export const ACCOUNT_DELETION_MIGRATION = "20261021140000_account_deletion.sql";
 export const ACCOUNT_DELETION_SNAPSHOTS_MIGRATION =
   "20261021160000_account_deletion_snapshots.sql";
+export const ACCOUNT_DELETION_PROVIDER_GUARD_MIGRATION =
+  "20261022090000_account_deletion_provider_guard.sql";
 
 export const IDS = {
   customer: "00000000-0000-0000-0000-000000000001",
@@ -64,6 +66,11 @@ BEGIN
       'in_progress', 'completion_requested', 'completed', 'cancelled', 'no_show', 'disputed'
     );
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'provider_onboarding_status') THEN
+    CREATE TYPE public.provider_onboarding_status AS ENUM (
+      'DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'NEEDS_CHANGES', 'APPROVED', 'SUSPENDED', 'REJECTED'
+    );
+  END IF;
 END
 $$;
 
@@ -96,13 +103,57 @@ CREATE TABLE IF NOT EXISTS public.providers (
   id uuid PRIMARY KEY,
   profile_id uuid NOT NULL REFERENCES public.profiles(id),
   is_active boolean NOT NULL DEFAULT true,
+  is_verified boolean NOT NULL DEFAULT false,
+  is_top_pro boolean NOT NULL DEFAULT false,
   deleted_at timestamptz,
+  onboarding_status public.provider_onboarding_status NOT NULL DEFAULT 'DRAFT',
+  city text,
+  years_experience integer,
+  languages text[] NOT NULL DEFAULT '{}',
+  max_children_per_booking integer,
   bio_en text NOT NULL DEFAULT '',
   bio_ar text NOT NULL DEFAULT '',
   vacation_mode boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+CREATE OR REPLACE FUNCTION public.tg_guard_provider_onboarding_fields()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF current_setting('app.onboarding_status_transition', true) = '1' THEN
+    RETURN NEW;
+  END IF;
+
+  IF NEW.onboarding_status IS DISTINCT FROM OLD.onboarding_status THEN
+    RAISE EXCEPTION 'Onboarding status changes must use authorized server functions.' USING ERRCODE = '42501';
+  END IF;
+
+  IF OLD.onboarding_status IN ('SUBMITTED', 'UNDER_REVIEW') AND NOT public.has_role(auth.uid(), 'admin')
+     AND (current_setting('app.provider_deferred_save', true) IS DISTINCT FROM '1'
+       OR (to_jsonb(NEW) - ARRAY['city','years_experience','bio_en','bio_ar','languages','max_children_per_booking','updated_at'])
+          IS DISTINCT FROM
+          (to_jsonb(OLD) - ARRAY['city','years_experience','bio_en','bio_ar','languages','max_children_per_booking','updated_at'])) THEN
+    RAISE EXCEPTION 'Provider application is read-only while under review.' USING ERRCODE = '42501';
+  END IF;
+
+  IF (NEW.is_verified IS DISTINCT FROM OLD.is_verified
+      OR NEW.is_top_pro IS DISTINCT FROM OLD.is_top_pro
+      OR NEW.is_active IS DISTINCT FROM OLD.is_active)
+     AND auth.uid() IS NOT NULL
+     AND NOT public.has_role(auth.uid(), 'admin') THEN
+    RAISE EXCEPTION 'Provider verification and activation can only be changed by an admin or authorized server function.'
+      USING ERRCODE = '42501';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_guard_provider_onboarding_fields ON public.providers;
+CREATE TRIGGER trg_guard_provider_onboarding_fields
+  BEFORE UPDATE ON public.providers
+  FOR EACH ROW EXECUTE FUNCTION public.tg_guard_provider_onboarding_fields();
 
 CREATE TABLE IF NOT EXISTS public.services (
   id uuid PRIMARY KEY,
@@ -284,6 +335,7 @@ export async function createAccountDeletionDb() {
   await db.exec(BOOTSTRAP_SQL);
   await db.exec(readMigration(ACCOUNT_DELETION_MIGRATION));
   await db.exec(readMigration(ACCOUNT_DELETION_SNAPSHOTS_MIGRATION));
+  await db.exec(readMigration(ACCOUNT_DELETION_PROVIDER_GUARD_MIGRATION));
 
   await db.exec(`
     INSERT INTO public.profiles (id, full_name, phone, email, avatar_url, locale) VALUES
