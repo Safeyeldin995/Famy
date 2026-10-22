@@ -1,11 +1,7 @@
-import { useRef } from "react";
+import { useRef, type ComponentRef } from "react";
 import { StyleSheet, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import {
-  OTP_LENGTH,
-  applyOtpBackspace,
-  applyOtpDigitInput,
-} from "@/lib/auth/otpCodeInputLogic";
+import { OTP_LENGTH, applyOtpBackspace, applyOtpDigitInput } from "@/lib/auth/otpCodeInputLogic";
 import { colors, fonts, radius, space } from "./theme";
 
 type Props = {
@@ -17,15 +13,8 @@ type Props = {
   inputFont: string;
 };
 
-export function OtpCodeInput({
-  value,
-  onChange,
-  onComplete,
-  disabled,
-  invalid,
-  inputFont,
-}: Props) {
-  const refs = useRef<Array<TextInput | null>>([]);
+export function OtpCodeInput({ value, onChange, onComplete, disabled, invalid, inputFont }: Props) {
+  const refs = useRef<(ComponentRef<typeof TextInput> | null)[]>([]);
   const { t } = useTranslation();
 
   const focusAt = (index: number) => {

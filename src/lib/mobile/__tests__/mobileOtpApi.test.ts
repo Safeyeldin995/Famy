@@ -28,7 +28,7 @@ describe("mobile OTP API handlers", () => {
   });
 
   it("rejects verify without a pending intent", async () => {
-    const { verifyOtpHandler } = await import("@/lib/otp.functions");
+    const { verifyOtpHandler } = await import("@/lib/otp/otpHandlers.server");
     const { withMobileAuthCookies } = await import("@/lib/auth/authIntent.server");
     const { result } = await withMobileAuthCookies(undefined, () =>
       verifyOtpHandler({ code: "123456" }),

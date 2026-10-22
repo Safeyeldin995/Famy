@@ -49,7 +49,12 @@ export default function SetPasswordScreen() {
       }
       const res = await fetchMobileSetPasswordContext();
       if (cancelled) return;
-      if (!res.ok || !res.data || typeof res.data !== "object" || !(res.data as { ok?: boolean }).ok) {
+      if (
+        !res.ok ||
+        !res.data ||
+        typeof res.data !== "object" ||
+        !(res.data as { ok?: boolean }).ok
+      ) {
         router.replace("/login");
         return;
       }
@@ -127,7 +132,10 @@ export default function SetPasswordScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <Text size="hero" weight="heavy">
             {title}
@@ -167,12 +175,7 @@ export default function SetPasswordScreen() {
             </View>
           ) : null}
 
-          <Button
-            label={t("common.save")}
-            onPress={submit}
-            loading={loading}
-            disabled={!valid}
-          />
+          <Button label={t("common.save")} onPress={submit} loading={loading} disabled={!valid} />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -211,7 +214,11 @@ function PasswordField({
           style={[styles.input, { fontFamily: inputFont }]}
         />
         <Pressable onPress={onToggle} style={styles.eye} hitSlop={12}>
-          {show ? <EyeOff size={20} color={colors.muted} /> : <Eye size={20} color={colors.muted} />}
+          {show ? (
+            <EyeOff size={20} color={colors.muted} />
+          ) : (
+            <Eye size={20} color={colors.muted} />
+          )}
         </Pressable>
       </View>
     </View>

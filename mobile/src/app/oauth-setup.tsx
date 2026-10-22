@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -96,7 +103,10 @@ export default function OAuthSetupScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <Text size="hero" weight="heavy">
             {t("setup.title")}
@@ -147,7 +157,12 @@ export default function OAuthSetupScreen() {
             </View>
           ) : null}
 
-          <Button label={t("common.continue")} onPress={submit} loading={loading} disabled={!valid} />
+          <Button
+            label={t("common.continue")}
+            onPress={submit}
+            loading={loading}
+            disabled={!valid}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

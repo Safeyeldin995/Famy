@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { mobileJson, runWithMobileAuthCookies } from "@/lib/mobile/mobileJson.server";
-import { confirmFirebaseOtpSentHandler } from "@/lib/otp.functions";
+import { confirmFirebaseOtpSentHandler } from "@/lib/otp/otpHandlers.server";
 
 export const Route = createFileRoute("/api/mobile/otp/confirm-firebase")({
   server: {

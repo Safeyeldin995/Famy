@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { mobileJson, runWithMobileAuthCookies } from "@/lib/mobile/mobileJson.server";
-import { completePasswordSetupHandler } from "@/lib/otp.functions";
+import { completePasswordSetupHandler } from "@/lib/otp/otpHandlers.server";
 
 const BodySchema = z.object({
   password: z.string().min(8),

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { mobileJson, runWithMobileAuthCookies } from "@/lib/mobile/mobileJson.server";
-import { verifyFirebaseOtpHandler, verifyOtpHandler } from "@/lib/otp.functions";
+import { verifyFirebaseOtpHandler, verifyOtpHandler } from "@/lib/otp/otpHandlers.server";
 
 const BodySchema = z.union([
   z.object({ code: z.string().regex(/^\d{6}$/) }),

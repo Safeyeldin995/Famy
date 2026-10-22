@@ -1,14 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { mobileJson, runWithMobileAuthCookies } from "@/lib/mobile/mobileJson.server";
-import { getOtpScreenContextHandler } from "@/lib/otp.functions";
+import { getOtpScreenContextHandler } from "@/lib/otp/otpHandlers.server";
 
 export const Route = createFileRoute("/api/mobile/otp/context")({
   server: {
     handlers: {
       GET: async () => {
         try {
-          const { result, setCookieHeaders } =
-            await runWithMobileAuthCookies(getOtpScreenContextHandler);
+          const { result, setCookieHeaders } = await runWithMobileAuthCookies(
+            getOtpScreenContextHandler,
+          );
           if (!result.ok) {
             return mobileJson(result, 404, setCookieHeaders);
           }

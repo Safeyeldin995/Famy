@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { mobileJson, runWithMobileAuthCookies } from "@/lib/mobile/mobileJson.server";
-import { getSetPasswordContextHandler } from "@/lib/otp.functions";
+import { getSetPasswordContextHandler } from "@/lib/otp/otpHandlers.server";
 
 export const Route = createFileRoute("/api/mobile/auth/set-password-context")({
   server: {

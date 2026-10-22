@@ -1,5 +1,4 @@
-import type { TFunction } from "i18next";
-import { formatOtpSecondsDuration } from "@shared/auth/otpCountdown";
+import { formatOtpSecondsDuration } from "@/lib/auth/otpCountdown";
 import {
   abandonMobileOtpFlow,
   applyMobileVerifySession,
@@ -52,7 +51,7 @@ function mapSendError(body: unknown): PhoneOtpFlowError {
 
 export function phoneOtpFlowErrorMessage(
   error: PhoneOtpFlowError,
-  t: TFunction,
+  t: (key: string, options?: Record<string, unknown>) => string,
   retryAfter?: number,
   firebaseAuthCode?: string,
 ): string {
@@ -131,10 +130,7 @@ export async function startPhoneOtpFlow(
     }
     const confirmed = await afterFirebaseNativeSend();
     if (!confirmed.ok) {
-      return {
-        ...confirmed,
-        firebaseAuthCode: confirmed.error === "firebase_send_failed" ? undefined : native.code,
-      };
+      return confirmed;
     }
     return { ok: true, retryAfter: data.retryAfter, delivery: "firebase" };
   }

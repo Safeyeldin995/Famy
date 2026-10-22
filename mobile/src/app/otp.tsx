@@ -11,11 +11,8 @@ import { router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { Clock } from "lucide-react-native";
-import { formatOtpExpiryClock, formatOtpSecondsDuration } from "@shared/auth/otpCountdown";
-import {
-  abandonMobileOtpFlow,
-  fetchMobileOtpContext,
-} from "@/lib/auth/mobileOtpApi";
+import { formatOtpExpiryClock, formatOtpSecondsDuration } from "@/lib/auth/otpCountdown";
+import { abandonMobileOtpFlow, fetchMobileOtpContext } from "@/lib/auth/mobileOtpApi";
 import {
   phoneOtpFlowErrorMessage,
   resendPhoneOtpFlow,
@@ -58,7 +55,12 @@ export default function OtpScreen() {
       const res = await fetchMobileOtpContext();
       if (cancelled) return;
       setLoadingContext(false);
-      if (!res.ok || !res.data || typeof res.data !== "object" || !(res.data as { ok?: boolean }).ok) {
+      if (
+        !res.ok ||
+        !res.data ||
+        typeof res.data !== "object" ||
+        !(res.data as { ok?: boolean }).ok
+      ) {
         router.replace(params.purpose === "reset" ? "/forgot-password" : "/login");
         return;
       }
@@ -108,9 +110,7 @@ export default function OtpScreen() {
     if (!res.ok) {
       verifyLock.current = false;
       if (res.error === "flow_mismatch") {
-        setError(
-          res.nextStep === "signup" ? t("auth.verifyUseSignup") : t("auth.verifyUseSignin"),
-        );
+        setError(res.nextStep === "signup" ? t("auth.verifyUseSignup") : t("auth.verifyUseSignin"));
         router.replace("/login");
         return;
       }
@@ -162,12 +162,14 @@ export default function OtpScreen() {
 
   const title =
     context.purpose === "reset" ? t("auth.resetVerifyTitle") : t("auth.signupVerifyTitle");
-  const body =
-    context.purpose === "reset" ? t("auth.resetVerifyBody") : t("auth.signupVerifyBody");
+  const body = context.purpose === "reset" ? t("auth.resetVerifyBody") : t("auth.signupVerifyBody");
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <Text size="hero" weight="heavy">
             {title}
@@ -190,7 +192,7 @@ export default function OtpScreen() {
             <Clock size={16} color={colors.muted} />
             <Text size="sm" tone="muted">
               {otpExpiresIn > 0
-                ? t("auth.codeExpiresIn", { time: formatOtpExpiryClock(otpExpiresIn, t) })
+                ? t("auth.codeExpiresIn", { time: formatOtpExpiryClock(otpExpiresIn) })
                 : t("auth.sessionExpired")}
             </Text>
           </View>

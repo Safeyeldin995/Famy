@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { mobileJson, runWithMobileAuthCookies } from "@/lib/mobile/mobileJson.server";
-import { mobileOtpSendHandler } from "@/lib/otp.functions";
+import { mobileOtpSendHandler } from "@/lib/otp/otpHandlers.server";
 
 const BodySchema = z.object({
   phone: z.string().min(1),
