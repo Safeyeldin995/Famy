@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { PGlite } from "@electric-sql/pglite";
 import {
   ACCOUNT_DELETION_MIGRATION,
+  ACCOUNT_DELETION_PROVIDER_GUARD_MIGRATION,
   ACCOUNT_DELETION_SNAPSHOTS_MIGRATION,
   IDS,
   asServiceRole,
@@ -144,6 +145,59 @@ describe("account deletion migration", () => {
     expect(sql).toContain("tg_block_booking_family_member_mutation");
     expect(sql).not.toMatch(/^\s*DROP\s/m);
   });
+
+  it("documents provider guard bypass in anonymize_account migration", () => {
+    const sql = readMigration(ACCOUNT_DELETION_PROVIDER_GUARD_MIGRATION);
+    expect(sql).toContain("app.onboarding_status_transition");
+    expect(sql).toMatch(
+      /PERFORM set_config\('app\.onboarding_status_transition', '1', true\);\s*\n\s*UPDATE public\.providers/s,
+    );
+    expect(sql).not.toMatch(/^\s*DROP\s/m);
+  });
+
+  it.each(["SUBMITTED", "UNDER_REVIEW"] as const)(
+    "anonymizes provider under %s onboarding while blocking ordinary updates",
+    async (onboardingStatus) => {
+      db = await createAccountDeletionDb();
+      await db.exec(`
+        SELECT set_config('app.onboarding_status_transition', '1', true);
+        UPDATE public.providers
+        SET onboarding_status = '${onboardingStatus}'::public.provider_onboarding_status
+        WHERE id = '${IDS.provider}';
+      `);
+
+      await runSqlExpectError(
+        db,
+        `UPDATE public.providers SET is_active = false WHERE id = '${IDS.provider}'`,
+        /Provider application is read-only while under review/,
+      );
+
+      await asServiceRole(db, async () =>
+        queryRows(db!, `SELECT public.anonymize_account('${IDS.providerUser}'::uuid)`),
+      );
+
+      const provider = await queryRows<{
+        is_active: boolean;
+        deleted_at: string | null;
+        onboarding_status: string;
+      }>(
+        db,
+        `SELECT is_active, deleted_at::text, onboarding_status::text
+         FROM public.providers WHERE id = $1`,
+        [IDS.provider],
+      );
+      expect(provider[0]?.is_active).toBe(false);
+      expect(provider[0]?.deleted_at).not.toBeNull();
+      expect(provider[0]?.onboarding_status).toBe(onboardingStatus);
+
+      const profile = await queryRows<{ deleted_at: string | null }>(
+        db,
+        `SELECT deleted_at::text FROM public.profiles WHERE id = $1`,
+        [IDS.providerUser],
+      );
+      expect(profile[0]?.deleted_at).not.toBeNull();
+    },
+  );
 
   it("scrubs booking snapshots and keeps finance rows on anonymize", async () => {
     db = await createAccountDeletionDb();
