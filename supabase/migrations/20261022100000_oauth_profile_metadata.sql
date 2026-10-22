@@ -34,15 +34,8 @@ BEGIN
        AND id <> NEW.id;
   END IF;
 
-  INSERT INTO public.profiles (id, phone, email, full_name, avatar_url, phone_verified)
-  VALUES (
-    NEW.id,
-    NEW.phone,
-    NEW.email,
-    v_full_name,
-    v_avatar_url,
-    CASE WHEN NULLIF(NEW.phone, '') IS NOT NULL THEN true ELSE false END
-  );
+  INSERT INTO public.profiles (id, phone, email, full_name, avatar_url)
+  VALUES (NEW.id, NEW.phone, NEW.email, v_full_name, v_avatar_url);
   INSERT INTO public.user_roles (user_id, role) VALUES (NEW.id, v_role);
   RETURN NEW;
 END;
