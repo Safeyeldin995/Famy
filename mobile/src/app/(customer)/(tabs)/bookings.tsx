@@ -36,6 +36,7 @@ export default function Bookings() {
           <Pressable
             key={b.id}
             accessibilityRole="button"
+            accessibilityLabel={`${parties.data?.get(b.id)?.other_name || b.provider?.profile.full_name || t("provider2.unnamed")}, ${t(`status.${b.status}`)}`}
             onPress={() => router.push({ pathname: "/booking/[id]", params: { id: b.id } })}
             style={({ pressed }) => [ui.card, pressed && ui.pressed]}
           >

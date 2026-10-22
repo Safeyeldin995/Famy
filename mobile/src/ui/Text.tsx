@@ -31,5 +31,5 @@ export function Text({
     color: toneColor[tone],
     textAlign: "auto",
   };
-  return <RNText {...rest} style={[base, style]} />;
+  return <RNText {...rest} allowFontScaling style={[base, style]} />;
 }

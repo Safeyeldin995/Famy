@@ -129,6 +129,7 @@ export function ProviderApplyFlow({
                 <Pressable
                   key={z.id}
                   accessibilityRole="checkbox"
+                  accessibilityLabel={localized(z, i18n.language)}
                   accessibilityState={{ checked: selected }}
                   onPress={() => toggleZone(z.id)}
                   style={[
@@ -163,9 +164,10 @@ export function ProviderApplyFlow({
               <View key={service.id} style={proCard.card}>
                 <Pressable
                   accessibilityRole="checkbox"
+                  accessibilityLabel={localized(service, i18n.language)}
                   accessibilityState={{ checked: selected, disabled: locked }}
                   onPress={() => toggleService(service)}
-                  style={{ gap: space.sm }}
+                  style={{ gap: space.sm, minHeight: 44, justifyContent: "center" }}
                 >
                   <Text weight="heavy">
                     {localized(service, i18n.language)}
@@ -221,6 +223,7 @@ export function ProviderApplyFlow({
           />
           <Pressable
             accessibilityRole="checkbox"
+            accessibilityLabel={t("providerApply.agreement")}
             accessibilityState={{ checked: draft.agreed }}
             onPress={() => setDraft((d) => ({ ...d, agreed: !d.agreed }))}
             style={[proCard.card, { flexDirection: "row", gap: space.md, alignItems: "center" }]}

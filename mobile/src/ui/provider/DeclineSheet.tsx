@@ -37,7 +37,12 @@ export function DeclineSheet({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t("pro.booking.keep")}
+        style={styles.backdrop}
+        onPress={onClose}
+      />
       <View style={styles.sheet}>
         <Text size="lg" weight="heavy">
           {title}
@@ -50,6 +55,7 @@ export function DeclineSheet({
             <Pressable
               key={r.id}
               accessibilityRole="radio"
+              accessibilityLabel={ar ? r.name_ar : r.name_en}
               accessibilityState={{ checked: reasonId === r.id }}
               onPress={() => setReasonId(r.id)}
               style={[styles.reason, reasonId === r.id && styles.reasonOn]}
@@ -92,8 +98,8 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)" },
   sheet: {
     backgroundColor: colors.surface,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
+    borderTopStartRadius: radius.xl,
+    borderTopEndRadius: radius.xl,
     padding: space.lg,
     gap: space.md,
   },

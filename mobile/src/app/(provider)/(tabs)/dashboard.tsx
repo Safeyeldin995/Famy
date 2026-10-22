@@ -67,7 +67,7 @@ export default function ProviderDashboard() {
               style={{
                 position: "absolute",
                 top: 8,
-                right: 8,
+                end: 8,
                 width: 8,
                 height: 8,
                 borderRadius: 4,
@@ -85,6 +85,9 @@ export default function ProviderDashboard() {
       <View style={{ flexDirection: "row", gap: space.sm }}>
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel={
+            mtdKind === "bookingValue" ? t("proWork.monthValue") : t("proWork.monthNet")
+          }
           onPress={() => router.push("/earnings")}
           style={[proCard.card, { flex: 1, backgroundColor: colors.brand }]}
         >
@@ -101,7 +104,7 @@ export default function ProviderDashboard() {
           </Text>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
             <Star size={16} color={colors.warning} fill={colors.warning} />
-            <Text weight="heavy" size="lg">
+            <Text weight="heavy" size="lg" style={{ writingDirection: "ltr" }}>
               {rating ? Number(rating).toFixed(2) : "—"}
             </Text>
           </View>
@@ -118,6 +121,7 @@ export default function ProviderDashboard() {
             <Pressable
               key={String(b.id)}
               accessibilityRole="button"
+              accessibilityLabel={`${customer?.full_name || t("pro.common.customer")}, ${localized(service, i18n.language)}`}
               onPress={() =>
                 router.push({ pathname: "/pro-booking/[id]", params: { id: String(b.id) } })
               }

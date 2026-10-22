@@ -61,6 +61,7 @@ export default function ProviderJobs() {
             <Pressable
               key={String(b.id)}
               accessibilityRole="button"
+              accessibilityLabel={`${customer?.full_name || t("pro.common.customer")}, ${localized(service, i18n.language)}`}
               onPress={() =>
                 router.push({ pathname: "/pro-booking/[id]", params: { id: String(b.id) } })
               }

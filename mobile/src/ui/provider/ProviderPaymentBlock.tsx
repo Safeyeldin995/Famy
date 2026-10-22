@@ -67,8 +67,9 @@ export function ProviderPaymentBlock({
       {p.proof_path && p.status === "pending_review" ? (
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel={t("payment.viewReceipt")}
           onPress={() => void openProof()}
-          style={[proCard.row, { justifyContent: "center" }]}
+          style={[proCard.row, { justifyContent: "center", minHeight: 44 }]}
         >
           <Eye size={18} color={colors.brand} />
           <Text weight="bold" tone="brand">

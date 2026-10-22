@@ -142,6 +142,7 @@ export function Row({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={label}
       onPress={onPress ?? (() => href && router.push(href))}
       style={({ pressed }) => [ui.row, pressed && ui.pressed]}
     >
@@ -202,6 +203,7 @@ export function Choices({
           <Pressable
             key={o.value}
             accessibilityRole="radio"
+            accessibilityLabel={o.label}
             accessibilityState={{ checked: value === o.value }}
             onPress={() => onChange(o.value)}
             style={({ pressed }) => [

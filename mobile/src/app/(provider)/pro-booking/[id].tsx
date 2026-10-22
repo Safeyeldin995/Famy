@@ -95,11 +95,12 @@ export default function ProBookingDetail() {
               {phone ? (
                 <Pressable
                   accessibilityRole="link"
+                  accessibilityLabel={`${t("helpC.call")} ${phone}`}
                   onPress={() => Linking.openURL(`tel:${phone}`)}
                   style={[proCard.row, { justifyContent: "flex-start" }]}
                 >
                   <Phone size={18} color={colors.brand} />
-                  <Text weight="bold" tone="brand">
+                  <Text weight="bold" tone="brand" style={{ writingDirection: "ltr" }}>
                     {phone}
                   </Text>
                 </Pressable>

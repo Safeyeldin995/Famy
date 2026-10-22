@@ -26,7 +26,7 @@ export function BookingProgress({ step }: { step: number }) {
                 backgroundColor: index <= step ? colors.brand : colors.border,
               }}
             />
-            <View style={{ height: 24, justifyContent: "center" }}>
+            <View style={{ minHeight: 24, justifyContent: "center" }}>
               {index < step ? (
                 <Check size={18} color={colors.brand} accessible={false} />
               ) : (

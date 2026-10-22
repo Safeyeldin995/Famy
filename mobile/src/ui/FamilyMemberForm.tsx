@@ -105,6 +105,7 @@ export function FamilyMemberForm({
       {(value.allergies?.trim() || value.medical_notes?.trim()) && (
         <Pressable
           accessibilityRole="checkbox"
+          accessibilityLabel={t("familyMembers.healthConsent")}
           accessibilityState={{ checked: consent }}
           onPress={() => setConsent((v) => !v)}
           style={[ui.card, { minHeight: 44, borderColor: consent ? colors.brand : colors.border }]}

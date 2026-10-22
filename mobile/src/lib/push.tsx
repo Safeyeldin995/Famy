@@ -183,8 +183,7 @@ export function PushBridge() {
 
   if (!promptOpen) return null;
 
-  const bodyKey =
-    workspace === "provider" ? "mobilePush.bodyProvider" : "mobilePush.bodyCustomer";
+  const bodyKey = workspace === "provider" ? "mobilePush.bodyProvider" : "mobilePush.bodyCustomer";
 
   return (
     <Modal transparent animationType="fade" visible={promptOpen} onRequestClose={onDismiss}>
@@ -198,6 +197,7 @@ export function PushBridge() {
             <Button label={t("mobilePush.enable")} onPress={() => void onEnable()} />
             <Pressable
               accessibilityRole="button"
+              accessibilityLabel={t("mobilePush.notNow")}
               onPress={() => void onDismiss()}
               style={styles.notNow}
             >

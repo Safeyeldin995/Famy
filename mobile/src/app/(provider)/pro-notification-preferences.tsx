@@ -29,6 +29,7 @@ function ToggleRow({
   return (
     <Pressable
       accessibilityRole="switch"
+      accessibilityLabel={label}
       accessibilityState={{ checked: on, disabled }}
       disabled={disabled}
       onPress={onToggle}

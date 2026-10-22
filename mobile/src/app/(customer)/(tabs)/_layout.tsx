@@ -4,12 +4,15 @@ import { useTranslation } from "react-i18next";
 import { Calendar, Home, MessageCircle, User } from "lucide-react-native";
 import { useSession } from "@/lib/session";
 import { colors, fonts } from "@/ui/theme";
+import { scaledTabBarHeight } from "@/ui/a11y";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useWindowDimensions } from "react-native";
 
 export default function CustomerTabs() {
   const { session, ready } = useSession();
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
+  const { fontScale } = useWindowDimensions();
   if (ready && !session) return <Redirect href="/login" />;
   const labelFont = (i18n.language === "en" ? fonts.en : fonts.ar).bold;
 
@@ -23,7 +26,7 @@ export default function CustomerTabs() {
         tabBarStyle: {
           borderTopColor: colors.border,
           backgroundColor: colors.surface,
-          height: 80 + insets.bottom,
+          height: scaledTabBarHeight(fontScale, 22, insets.bottom),
           paddingTop: 6,
           paddingBottom: Math.max(insets.bottom, 8),
         },

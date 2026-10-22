@@ -77,6 +77,7 @@ export function WeeklyHoursEditor({
     <View style={{ gap: space.md }}>
       <Pressable
         accessibilityRole="checkbox"
+        accessibilityLabel={t("providerSetup.sameHours")}
         accessibilityState={{ checked: sameHours }}
         onPress={() => {
           const next = !sameHours;
@@ -102,6 +103,8 @@ export function WeeklyHoursEditor({
             <Pressable
               key={weekday}
               accessibilityRole="button"
+              accessibilityLabel={t(`pro.schedule.days.${dayKeys[weekday]}`)}
+              accessibilityState={{ selected: on }}
               onPress={() => toggleDay(weekday)}
               style={{
                 minHeight: 44,
@@ -139,6 +142,7 @@ export function WeeklyHoursEditor({
               </Text>
               <Pressable
                 accessibilityRole="button"
+                accessibilityLabel={`${t("providerSetup.decrease", { unit: t(key === "start_time" ? "pro.schedule.start" : "pro.schedule.end") })}, ${t(`pro.schedule.days.${dayKeys[row.weekday]}`)}`}
                 onPress={() => shiftTime(row, key, -1)}
                 style={{
                   minWidth: 44,
@@ -149,9 +153,12 @@ export function WeeklyHoursEditor({
               >
                 <Text weight="heavy">−</Text>
               </Pressable>
-              <Text weight="heavy">{row[key]}</Text>
+              <Text weight="heavy" style={{ writingDirection: "ltr" }}>
+                {row[key]}
+              </Text>
               <Pressable
                 accessibilityRole="button"
+                accessibilityLabel={`${t("providerSetup.increase", { unit: t(key === "start_time" ? "pro.schedule.start" : "pro.schedule.end") })}, ${t(`pro.schedule.days.${dayKeys[row.weekday]}`)}`}
                 onPress={() => shiftTime(row, key, 1)}
                 style={{
                   minWidth: 44,

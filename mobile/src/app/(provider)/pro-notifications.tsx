@@ -34,6 +34,7 @@ export default function ProNotifications() {
             <Pressable
               key={n.id}
               accessibilityRole="button"
+              accessibilityLabel={`${text.title}. ${t(n.read_at ? "mobile.read" : "mobile.unread")}`}
               disabled={mark.isPending}
               style={[proCard.card, !n.read_at && { borderColor: colors.brand }]}
               onPress={async () => {

@@ -193,7 +193,11 @@ async function run() {
       }
     } else {
       const providers =
-        providerMode === "approved" ? [providerRow] : providerMode === "pending" ? [providerPending] : [];
+        providerMode === "approved"
+          ? [providerRow]
+          : providerMode === "pending"
+            ? [providerPending]
+            : [];
       const tables = {
         provider_documents: [], // Empty application documents; document flows are covered by provider2.
         profiles: [{ id: uid, full_name: "مقدمة خدمة - اختبار" }],
@@ -279,10 +283,12 @@ async function run() {
       if (table === "bookings" && url.searchParams.get("provider_id")?.startsWith("eq.")) {
         data = [bookingPending, bookingConfirmed];
       }
-      if (url.searchParams.get("limit")) data = data.slice(0, Number(url.searchParams.get("limit")));
+      if (url.searchParams.get("limit"))
+        data = data.slice(0, Number(url.searchParams.get("limit")));
     }
     const count = Array.isArray(data) ? data.length : data ? 1 : 0;
-    if (req.headers().accept?.includes("vnd.pgrst.object")) data = Array.isArray(data) ? data[0] || null : data;
+    if (req.headers().accept?.includes("vnd.pgrst.object"))
+      data = Array.isArray(data) ? data[0] || null : data;
     return route.fulfill({
       status: 200,
       headers: {
@@ -298,9 +304,12 @@ async function run() {
   new Function(
     "exports",
     "module",
-    ts.transpile(fs.readFileSync(path.resolve(__dirname, "../../src/lib/i18n/locales/ar.ts"), "utf8"), {
-      module: ts.ModuleKind.CommonJS,
-    }),
+    ts.transpile(
+      fs.readFileSync(path.resolve(__dirname, "../../src/lib/i18n/locales/ar.ts"), "utf8"),
+      {
+        module: ts.ModuleKind.CommonJS,
+      },
+    ),
   )(localeModule.exports, localeModule);
   const ar = localeModule.exports.default;
 
@@ -354,13 +363,15 @@ async function run() {
   await page.getByRole("button", { name: ar.pro.booking.decline, exact: true }).click();
   await page.getByText("سبب اختبار", { exact: true }).click();
   await page.getByRole("button", { name: ar.pro.booking.confirm, exact: true }).click();
-  assert(writes.some((w) => w.table === "cancel_booking"));
+  await expect.poll(() => writes.some((w) => w.table === "cancel_booking")).toBe(true);
   await shot("pro-booking-decline");
 
   bookingPending.status = "pending";
   await visit(`/pro-booking/${bidPending}`);
   await page.getByRole("button", { name: ar.pro.booking.accept, exact: true }).click();
-  assert(writes.some((w) => w.table === "bookings" && w.body?.status === "confirmed"));
+  await expect
+    .poll(() => writes.some((w) => w.table === "bookings" && w.body?.status === "confirmed"))
+    .toBe(true);
   await shot("pro-booking-accept");
 
   await visit(`/pro-booking/${bidActive}`);
