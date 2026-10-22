@@ -61,7 +61,17 @@
           "color": "#F10E72"
         }
       ],
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
@@ -73,11 +83,15 @@
       "oauthProviders": "",
       "supabaseUrl": "https://mjhkaiabfnzewprcnojp.supabase.co",
       "supabasePublishableKey": "sb_publishable_D64qG4N5jldifQODMKizXQ_F5_095-H",
-      "webOrigin": "https://famy-chi.vercel.app"
+      "webOrigin": "https://famy-chi.vercel.app",
+      "eas": {
+        "projectId": "bda0cf9d-2193-4fbf-aacf-9907d69a667d"
+      }
     },
     "locales": {
       "ar": "./locales/ar.json",
       "en": "./locales/en.json"
-    }
+    },
+    "owner": "safeyeldin"
   }
 }
