@@ -2,6 +2,7 @@ import { useRef, type ComponentRef } from "react";
 import { StyleSheet, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { OTP_LENGTH, applyOtpBackspace, applyOtpDigitInput } from "@/lib/auth/otpCodeInputLogic";
+import { compactTextInputProps } from "./a11y";
 import { colors, fonts, radius, space } from "./theme";
 
 type Props = {
@@ -36,6 +37,7 @@ export function OtpCodeInput({ value, onChange, onComplete, disabled, invalid, i
           ref={(el) => {
             refs.current[index] = el;
           }}
+          {...compactTextInputProps()}
           value={digit}
           editable={!disabled}
           keyboardType="number-pad"
@@ -81,7 +83,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     backgroundColor: colors.surface2,
     textAlign: "center",
-    fontSize: 22,
+    fontSize: 20,
     color: colors.foreground,
   },
   cellInvalid: { borderColor: colors.destructive },

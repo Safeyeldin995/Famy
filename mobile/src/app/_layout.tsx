@@ -1,3 +1,4 @@
+import "react-native-reanimated";
 import { useEffect, useState } from "react";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -18,6 +19,7 @@ import {
 import { initI18n } from "@/lib/i18n";
 import { PushBridge } from "@/lib/push";
 import { SessionProvider } from "@/lib/session";
+import { LaunchGate } from "@/ui/LaunchGate";
 import { colors } from "@/ui/theme";
 
 SplashScreen.preventAutoHideAsync();
@@ -41,25 +43,23 @@ export default function RootLayout() {
     initI18n().finally(() => setI18nReady(true));
   }, []);
 
-  const ready = fontsLoaded && i18nReady;
-  useEffect(() => {
-    if (ready) void SplashScreen.hideAsync();
-  }, [ready]);
-
-  if (!ready) return null;
+  const bootstrapReady = fontsLoaded && i18nReady;
+  if (!bootstrapReady) return null;
 
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <SessionProvider>
-          <PushBridge />
-          <StatusBar style="dark" />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: colors.background },
-            }}
-          />
+          <LaunchGate bootstrapReady={bootstrapReady}>
+            <PushBridge />
+            <StatusBar style="dark" />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: colors.background },
+              }}
+            />
+          </LaunchGate>
         </SessionProvider>
       </QueryClientProvider>
     </SafeAreaProvider>

@@ -98,8 +98,21 @@ const compiled = ts.transpileModule(helper, {
 }).outputText;
 const moduleForTest = { exports: {} };
 vm.runInNewContext(compiled, { module: moduleForTest, exports: moduleForTest.exports });
-const { scaledTabBarHeight } = moduleForTest.exports;
-for (const scale of [1, 2, 3]) {
+const textSource = fs.readFileSync(path.join(root, "ui/Text.tsx"), "utf8");
+assert(
+  /maxFontSizeMultiplier/.test(textSource),
+  "Text.tsx must cap accessibility font scaling",
+);
+const {
+  scaledTabBarHeight,
+  maxFontSizeMultiplierForText,
+  BODY_FONT_SCALE_CAP,
+  COMPACT_FONT_SCALE_CAP,
+} = moduleForTest.exports;
+assert.equal(maxFontSizeMultiplierForText({ size: "md" }), BODY_FONT_SCALE_CAP);
+assert.equal(maxFontSizeMultiplierForText({ size: "hero" }), COMPACT_FONT_SCALE_CAP);
+assert.equal(maxFontSizeMultiplierForText({ size: "md", weight: "heavy" }), COMPACT_FONT_SCALE_CAP);
+for (const scale of [1, 1.3, 2, 3]) {
   for (const lineHeight of [18, 22]) {
     const height = scaledTabBarHeight(scale, lineHeight, 12);
     const lines = scale > 1.3 ? 2 : 1;
@@ -107,5 +120,5 @@ for (const scale of [1, 2, 3]) {
   }
 }
 console.log(
-  `PASS: ${controls} touchables have roles and labels; RTL, AA, and 1–3x font-scale checks passed.`,
+  `PASS: ${controls} touchables have roles and labels; RTL, AA, font-scale caps, and 1–3x tab-height checks passed.`,
 );

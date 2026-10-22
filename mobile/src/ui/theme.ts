@@ -35,7 +35,9 @@ export const fontSize = {
   lg: 16,
   xl: 18,
   xxl: 22,
-  title: 26,
+  /** Primary buttons (web PrimaryButton ≈ 15px). */
+  button: 15,
+  title: 24,
   hero: 30,
 } as const;
 

@@ -15,6 +15,7 @@ import { useTranslation } from "react-i18next";
 import { ChevronLeft, ChevronRight, Check, Inbox, CircleAlert } from "lucide-react-native";
 import { Text } from "./Text";
 import { Button } from "./Button";
+import { bodyTextInputProps } from "./a11y";
 import { colors, fonts, radius, space, shadow } from "./theme";
 
 type Refreshable = { refetch: () => Promise<unknown> };
@@ -170,6 +171,7 @@ export function Field({
       <Text weight="bold">{label}</Text>
       <TextInput
         {...props}
+        {...bodyTextInputProps()}
         accessibilityLabel={label}
         placeholderTextColor={colors.muted}
         style={[
