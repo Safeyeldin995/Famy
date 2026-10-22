@@ -130,7 +130,7 @@ export function useAdminProvider(id: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('providers')
-        .select('*, profile:profiles(*), documents:provider_documents(*), services:provider_services(id, status, price_override, rejection_reason, service:services(id, name_en, name_ar, base_price, pricing_model, category:categories(name_en, name_ar)))')
+        .select('*, profile:profiles(*), documents:provider_documents(*), services:provider_services(id, status, price_override, rejection_reason, service:services(id, name_en, name_ar, base_price, pricing_model, category:categories(slug, name_en, name_ar)))')
         .eq('id', id)
         .maybeSingle();
       if (error) throw error;

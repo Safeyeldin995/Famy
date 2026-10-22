@@ -40,6 +40,7 @@ import {
   type OnboardingCompletionPayload,
 } from "@/lib/admin/providerApprovalReview";
 import { currentLang } from "@/lib/i18n";
+import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
 
 export const Route = createFileRoute("/admin/provider/$id")({ component: AdminProviderRoute });
 
@@ -210,19 +211,23 @@ function ProviderServices({ provider }: { provider: any }) {
           lang === "ar"
             ? service?.name_ar || service?.name_en
             : service?.name_en || service?.name_ar;
+        const tutoring = isTutoringCategorySlug(service?.category?.slug);
         const amount = row.price_override ?? service?.base_price ?? provider.hourly_rate;
+        const priceLabel = tutoring
+          ? t("adminReview.tutoringPriceBySubject")
+          : t(
+              service?.pricing_model === "hourly"
+                ? "adminReview.price"
+                : "adminReview.sessionPrice",
+              { amount: latin(amount) },
+            );
         return (
           <li key={row.id} className="rounded-xl border border-border p-3">
             <div className="flex flex-wrap justify-between gap-2">
               <div className="min-w-0">
                 <p className="text-sm font-bold">{name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {t(
-                    service?.pricing_model === "hourly"
-                      ? "adminReview.price"
-                      : "adminReview.sessionPrice",
-                    { amount: latin(amount) },
-                  )}{" "}
+                  {priceLabel}{" "}
                   · {String(t("admin.provider.serviceStatus." + row.status, row.status))}
                 </p>
               </div>

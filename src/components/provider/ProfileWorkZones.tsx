@@ -48,13 +48,23 @@ export function ProfileWorkZones({
                 ? names.join(i18n.language.startsWith("ar") ? "، " : ", ")
                 : t("providerLocations.noZones")}
             </span>
-            <Link
-              to={proPath(applicationEditable ? "/pro/apply" : "/pro/support") as "/pro/apply"}
-              search={applicationEditable ? { step: 1 } : undefined}
-              className="ms-2 inline-flex min-h-11 items-center font-semibold text-brand underline"
-            >
-              {t(applicationEditable ? "common.edit" : "providerLocations.requestEdit")}
-            </Link>
+            {applicationEditable ? (
+              <Link
+                to={proPath("/pro/apply") as "/pro/apply"}
+                search={{ step: 1 }}
+                className="ms-2 inline-flex min-h-11 items-center font-semibold text-brand underline"
+              >
+                {t("common.edit")}
+              </Link>
+            ) : (
+              <Link
+                to={proPath("/pro/support") as "/pro/support"}
+                search={{ subject: t("pro.support.zoneChangeSubject") }}
+                className="ms-2 inline-flex min-h-11 items-center font-semibold text-brand underline"
+              >
+                {t("providerLocations.requestEdit")}
+              </Link>
+            )}
           </>
         )}
       </dd>

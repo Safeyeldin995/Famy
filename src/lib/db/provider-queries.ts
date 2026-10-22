@@ -609,7 +609,7 @@ export function useMyProviderServices(providerId: string | undefined) {
       const { data, error } = await supabase
         .from("provider_services")
         .select(
-          "service_id, price_override, status, service:services(id, name_en, name_ar, is_active, provider_pricing_allowed, minimum_price, maximum_price, category:categories(name_en, name_ar))",
+          "service_id, price_override, status, rejection_reason, service:services(id, name_en, name_ar, is_active, provider_pricing_allowed, minimum_price, maximum_price, category:categories(slug, name_en, name_ar))",
         )
         .eq("provider_id", providerId!);
       if (error) throw error;
@@ -634,7 +634,14 @@ export function useToggleProviderService() {
         const { error } = await supabase
           .from("provider_services")
           .insert({ provider_id: providerId, service_id: serviceId });
-        if (error && (error as any).code !== "23505") throw error;
+        if (error?.code === "23505") {
+          const { error: resubmitError } = await supabase.rpc("provider_resubmit_rejected_service", {
+            p_service_id: serviceId,
+          });
+          if (resubmitError) throw resubmitError;
+        } else if (error) {
+          throw error;
+        }
       } else {
         const { error } = await supabase
           .from("provider_services")

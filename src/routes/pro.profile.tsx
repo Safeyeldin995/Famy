@@ -233,9 +233,36 @@ function ProProfile() {
 
   const myIds = new Set((mine.data ?? []).map((s: any) => s.service_id));
   const myStatus = new Map((mine.data ?? []).map((s: any) => [s.service_id, s.status]));
+  const myRejectionReason = new Map(
+    (mine.data ?? []).map((s: any) => [s.service_id, s.rejection_reason as string | null]),
+  );
   const myPriceOverride = new Map(
     (mine.data ?? []).map((s: any) => [s.service_id, s.price_override]),
   );
+  const resubmitService = useMutation({
+    mutationFn: async (serviceId: string) => {
+      const { error } = await supabase.rpc("provider_resubmit_rejected_service", {
+        p_service_id: serviceId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["my-provider-services", provider.id] });
+      void qc.invalidateQueries({ queryKey: ["provider-marketplace-eligibility", provider.id] });
+    },
+  });
+  const removeRejectedService = useMutation({
+    mutationFn: async (serviceId: string) => {
+      const { error } = await supabase.rpc("provider_remove_onboarding_service", {
+        p_service_id: serviceId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["my-provider-services", provider.id] });
+      void qc.invalidateQueries({ queryKey: ["provider-marketplace-eligibility", provider.id] });
+    },
+  });
 
   const submitPrice = (serviceId: string, min: number | null, max: number | null) => {
     const value = priceDrafts[serviceId];
@@ -487,7 +514,48 @@ function ProProfile() {
                   <div key={s.id} id={`service-${s.id}`}>
                     <ServiceCard selected={on} title={sname} subtitle={isFixedPackage(s) ? t(packageLabel(s).key, packageLabel(s).values) : cname ?? ""} icon={<BriefcaseBusiness size={20} />} onClick={() => toggle.mutate({ providerId: provider.id, serviceId: s.id, on: !on })}>
                       <div className="px-4 pb-4">
-                      {on && <span className={`apply-tag ${myStatus.get(s.id) === "approved" ? "apply-success" : myStatus.get(s.id) === "pending" ? "apply-wait" : "apply-danger"}`}>{t(`providerSetup.status.${myStatus.get(s.id) ?? "pending"}`)}</span>}
+                      {on && (
+                        <span
+                          className={`apply-tag ${myStatus.get(s.id) === "approved" ? "apply-success" : myStatus.get(s.id) === "pending" ? "apply-wait" : "apply-danger"}`}
+                        >
+                          {t(`providerSetup.status.${myStatus.get(s.id) ?? "pending"}`)}
+                        </span>
+                      )}
+                    {on && myStatus.get(s.id) === "rejected" && myRejectionReason.get(s.id) && (
+                      <p className="mt-2 text-xs font-semibold text-destructive">
+                        {myRejectionReason.get(s.id)}
+                      </p>
+                    )}
+                    {on && myStatus.get(s.id) === "rejected" && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          className="min-h-11 rounded-lg border border-brand px-3 text-xs font-bold text-brand disabled:opacity-50"
+                          disabled={resubmitService.isPending}
+                          onClick={() =>
+                            resubmitService.mutate(s.id, {
+                              onSuccess: () => toast.success(t("pro.profile.serviceResubmitted")),
+                              onError: () => toast.error(t("common.somethingWentWrong")),
+                            })
+                          }
+                        >
+                          {t("pro.profile.resubmitService")}
+                        </button>
+                        <button
+                          type="button"
+                          className="min-h-11 rounded-lg border border-coral px-3 text-xs font-bold text-coral disabled:opacity-50"
+                          disabled={removeRejectedService.isPending}
+                          onClick={() =>
+                            removeRejectedService.mutate(s.id, {
+                              onSuccess: () => toast.success(t("pro.profile.serviceRemoved")),
+                              onError: () => toast.error(t("common.somethingWentWrong")),
+                            })
+                          }
+                        >
+                          {t("pro.profile.removeService")}
+                        </button>
+                      </div>
+                    )}
                     {on &&
                       s.provider_pricing_allowed &&
                       !isTutoringCategorySlug(s.category?.slug) && (
@@ -556,7 +624,19 @@ function ProProfile() {
           )}
         </div>
 
-        {teachingQ.isError ? <QueryError compact onRetry={() => teachingQ.refetch()} /> : <TeachingGroupsSummary rows={teachingQ.data ?? []} />}
+        {teachingQ.isError ? (
+          <QueryError compact onRetry={() => teachingQ.refetch()} />
+        ) : (
+          <TeachingGroupsSummary
+            rows={teachingQ.data ?? []}
+            serviceStatuses={Object.fromEntries(
+              (mine.data ?? []).map((row: { service_id: string; status: string }) => [
+                row.service_id,
+                row.status,
+              ]),
+            )}
+          />
+        )}
         <section className="apply-list">
           <ProRow to={proPath("/pro/setup/hours")} icon={<Clock size={20} />} label={t("providerProfileV3.hours")} />
           {hoursQ.isError ? <QueryError compact onRetry={() => hoursQ.refetch()} /> : <div className="px-4 pb-4 text-sm text-muted-foreground">{(hoursQ.data ?? []).length ? workingHoursSummary(hoursQ.data ?? [], t).map((line) => <p key={line}>{line}</p>) : t("providerProfileV3.noHours")}</div>}
