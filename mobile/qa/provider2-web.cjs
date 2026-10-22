@@ -107,7 +107,10 @@ async function run() {
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const base = `http://127.0.0.1:${server.address().port}`;
   const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: "ar-EG" });
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    locale: "ar-EG",
+  });
   await context.addInitScript(
     ({ key, session }) => {
       localStorage.setItem("famy.lang", "ar");
@@ -175,9 +178,7 @@ async function run() {
         providers: [providerRow],
         services: [service],
         zones,
-        zone_providers: providerServices.length
-          ? [{ zone_id: zoneId, provider_id: pid }]
-          : [],
+        zone_providers: providerServices.length ? [{ zone_id: zoneId, provider_id: pid }] : [],
         provider_services: providerServices,
         provider_documents: documents,
         provider_references: [],
@@ -214,9 +215,12 @@ async function run() {
   new Function(
     "exports",
     "module",
-    ts.transpile(fs.readFileSync(path.resolve(__dirname, "../../src/lib/i18n/locales/ar.ts"), "utf8"), {
-      module: ts.ModuleKind.CommonJS,
-    }),
+    ts.transpile(
+      fs.readFileSync(path.resolve(__dirname, "../../src/lib/i18n/locales/ar.ts"), "utf8"),
+      {
+        module: ts.ModuleKind.CommonJS,
+      },
+    ),
   )(localeModule.exports, localeModule);
   const ar = localeModule.exports.default;
 
@@ -256,8 +260,8 @@ async function run() {
 
   await visit("/pro-notification-preferences");
   await expect(page.getByText(ar.mobilePro.notificationPrefs).first()).toBeVisible();
-  await page.getByText(ar.notifPrefs.bookingUpdates).click();
-  assert(writes.some((w) => w.table === "notification_preferences"));
+  await page.getByRole("switch", { name: ar.notifPrefs.bookingUpdates }).click();
+  await expect.poll(() => writes.some((w) => w.table === "notification_preferences")).toBe(true);
   await shot("notification-prefs");
 
   await visit("/pro-documents");

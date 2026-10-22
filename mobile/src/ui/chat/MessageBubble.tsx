@@ -54,16 +54,16 @@ const styles = StyleSheet.create({
   },
   mine: {
     backgroundColor: colors.brand,
-    borderBottomRightRadius: radius.sm,
+    borderBottomEndRadius: radius.sm,
   },
   theirs: {
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderBottomLeftRadius: radius.sm,
+    borderBottomStartRadius: radius.sm,
   },
   body: { writingDirection: "auto" },
-  time: { marginTop: space.xs, opacity: 0.85 },
+  time: { marginTop: space.xs, writingDirection: "ltr" },
   systemWrap: { alignItems: "center", paddingVertical: space.sm },
   system: {
     backgroundColor: colors.surface2,

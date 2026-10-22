@@ -10,14 +10,17 @@ import {
   Wallet,
 } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useWindowDimensions } from "react-native";
 import { useSession } from "@/lib/session";
 import { ProviderGate } from "@/ui/provider/ProviderGate";
 import { colors, fonts } from "@/ui/theme";
+import { scaledTabBarHeight } from "@/ui/a11y";
 
 export default function ProviderTabs() {
   const { session, ready } = useSession();
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
+  const { fontScale } = useWindowDimensions();
   if (ready && !session) return <Redirect href="/login" />;
   const labelFont = (i18n.language === "en" ? fonts.en : fonts.ar).bold;
 
@@ -26,13 +29,13 @@ export default function ProviderTabs() {
       <Tabs
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: colors.brand,
+          tabBarActiveTintColor: colors.brandText,
           tabBarInactiveTintColor: colors.muted,
           tabBarLabelStyle: { fontFamily: labelFont, fontSize: 11, lineHeight: 18 },
           tabBarStyle: {
             borderTopColor: colors.border,
             backgroundColor: colors.surface,
-            height: 80 + insets.bottom,
+            height: scaledTabBarHeight(fontScale, 18, insets.bottom),
             paddingTop: 6,
             paddingBottom: Math.max(insets.bottom, 8),
           },
@@ -42,42 +45,54 @@ export default function ProviderTabs() {
           name="dashboard"
           options={{
             title: t("pro.nav.dashboard"),
-            tabBarIcon: ({ color }) => <LayoutDashboard size={22} color={color} />,
+            tabBarIcon: ({ color, focused }) => (
+              <LayoutDashboard size={22} color={focused ? colors.brand : color} />
+            ),
           }}
         />
         <Tabs.Screen
           name="jobs"
           options={{
             title: t("pro.nav.jobs"),
-            tabBarIcon: ({ color }) => <ClipboardList size={22} color={color} />,
+            tabBarIcon: ({ color, focused }) => (
+              <ClipboardList size={22} color={focused ? colors.brand : color} />
+            ),
           }}
         />
         <Tabs.Screen
           name="pro-messages"
           options={{
             title: t("nav.messages"),
-            tabBarIcon: ({ color }) => <MessageCircle size={22} color={color} />,
+            tabBarIcon: ({ color, focused }) => (
+              <MessageCircle size={22} color={focused ? colors.brand : color} />
+            ),
           }}
         />
         <Tabs.Screen
           name="schedule"
           options={{
             title: t("pro.nav.schedule"),
-            tabBarIcon: ({ color }) => <CalendarRange size={22} color={color} />,
+            tabBarIcon: ({ color, focused }) => (
+              <CalendarRange size={22} color={focused ? colors.brand : color} />
+            ),
           }}
         />
         <Tabs.Screen
           name="earnings"
           options={{
             title: t("pro.nav.earnings"),
-            tabBarIcon: ({ color }) => <Wallet size={22} color={color} />,
+            tabBarIcon: ({ color, focused }) => (
+              <Wallet size={22} color={focused ? colors.brand : color} />
+            ),
           }}
         />
         <Tabs.Screen
           name="pro-profile"
           options={{
             title: t("pro.nav.profile"),
-            tabBarIcon: ({ color }) => <User size={22} color={color} />,
+            tabBarIcon: ({ color, focused }) => (
+              <User size={22} color={focused ? colors.brand : color} />
+            ),
           }}
         />
       </Tabs>

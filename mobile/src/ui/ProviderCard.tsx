@@ -43,6 +43,7 @@ export function ProviderCard({ provider: p }: { provider: Provider }) {
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={p.profile.full_name || t("provider2.unnamed")}
       onPress={() => router.push({ pathname: "/provider/[id]", params: { id: p.id } })}
       style={({ pressed }) => [
         ui.card,

@@ -93,6 +93,7 @@ export default function Home() {
               onPress={() => router.push("/addresses")}
               style={({ pressed }) => [styles.chip, shadow.card, pressed && { opacity: 0.8 }]}
               accessibilityRole="button"
+              accessibilityLabel={address.data?.area || t("customerHome.chooseArea")}
             >
               <MapPin size={16} color={colors.brand} strokeWidth={2.4} />
               <Text size="sm" weight="bold" numberOfLines={1} style={{ flexShrink: 1 }}>
@@ -103,6 +104,7 @@ export default function Home() {
             <Pressable
               onPress={() => router.push("/notifications")}
               style={({ pressed }) => [styles.bell, shadow.card, pressed && { opacity: 0.8 }]}
+              accessibilityRole="button"
               accessibilityLabel={t("common.notifications")}
             >
               <Bell size={20} color={colors.foreground} />
@@ -120,7 +122,8 @@ export default function Home() {
           <Pressable
             onPress={() => router.push("/search")}
             style={({ pressed }) => [styles.search, shadow.card, pressed && { opacity: 0.8 }]}
-            accessibilityRole="search"
+            accessibilityRole="button"
+            accessibilityLabel={t("customerSearch.placeholder")}
           >
             <Search size={20} color={colors.brand} strokeWidth={2.4} />
             <Text tone="muted" numberOfLines={1} style={{ flex: 1 }}>
@@ -147,6 +150,7 @@ export default function Home() {
                     router.push({ pathname: "/category/[id]", params: { id: c.slug } })
                   }
                   accessibilityRole="button"
+                  accessibilityLabel={isAr ? c.name_ar : c.name_en}
                   style={({ pressed }) => [
                     styles.tile,
                     { backgroundColor: tile.surface },

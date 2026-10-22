@@ -23,6 +23,7 @@ export default function CustomerStack() {
         headerTitleStyle: {
           fontFamily: (i18n.language === "ar" ? fonts.ar : fonts.en).heavy,
           fontSize: 20,
+          color: colors.brandText,
         },
         headerBackTitle: t("common.back"),
         contentStyle: { backgroundColor: colors.background },

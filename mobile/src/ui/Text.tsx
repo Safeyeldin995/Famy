@@ -8,7 +8,7 @@ type Tone = "default" | "muted" | "brand" | "inverse" | "danger" | "success";
 const toneColor: Record<Tone, string> = {
   default: colors.foreground,
   muted: colors.muted,
-  brand: colors.brand,
+  brand: colors.brandText,
   inverse: colors.brandForeground,
   danger: colors.destructive,
   success: colors.success,
@@ -31,5 +31,5 @@ export function Text({
     color: toneColor[tone],
     textAlign: "auto",
   };
-  return <RNText {...rest} style={[base, style]} />;
+  return <RNText {...rest} allowFontScaling style={[base, style]} />;
 }

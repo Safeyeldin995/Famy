@@ -28,6 +28,7 @@ export function Button({
       disabled={!!inactive}
       aria-disabled={!!inactive}
       accessibilityRole="button"
+      accessibilityLabel={label}
       accessibilityState={{ disabled: !!inactive, busy: !!loading }}
       onPress={inactive ? undefined : onPress}
       style={({ pressed }) => [
@@ -45,7 +46,7 @@ export function Button({
         <View style={styles.row}>
           {icon}
           <Text
-            size="lg"
+            size={variant === "primary" ? "xxl" : "lg"}
             weight="heavy"
             tone={variant === "primary" ? "inverse" : variant === "ghost" ? "brand" : "default"}
           >
