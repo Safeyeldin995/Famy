@@ -3,8 +3,9 @@
  * like one product. Keep names aligned with the web Tailwind tokens.
  */
 export const colors = {
+  brand: "#F10E72",
   // 4.53:1 against brandTint and 5.22:1 against white for normal-size text.
-  brand: "#D40C60",
+  brandText: "#D40C60",
   brandForeground: "#FFFFFF",
   brandTint: "#FDEAF2",
   brandTintStrong: "#FBD3E5",

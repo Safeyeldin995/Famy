@@ -8,7 +8,7 @@ type Tone = "default" | "muted" | "brand" | "inverse" | "danger" | "success";
 const toneColor: Record<Tone, string> = {
   default: colors.foreground,
   muted: colors.muted,
-  brand: colors.brand,
+  brand: colors.brandText,
   inverse: colors.brandForeground,
   danger: colors.destructive,
   success: colors.success,

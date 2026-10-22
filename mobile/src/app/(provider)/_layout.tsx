@@ -19,7 +19,10 @@ export default function ProviderStack() {
       screenOptions={{
         headerTintColor: colors.brand,
         headerStyle: { backgroundColor: colors.background },
-        headerTitleStyle: { fontFamily: (i18n.language === "ar" ? fonts.ar : fonts.en).bold },
+        headerTitleStyle: {
+          fontFamily: (i18n.language === "ar" ? fonts.ar : fonts.en).bold,
+          color: colors.brandText,
+        },
         headerBackTitle: t("common.back"),
         contentStyle: { backgroundColor: colors.background },
       }}

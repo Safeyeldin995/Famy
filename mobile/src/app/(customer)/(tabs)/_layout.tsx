@@ -20,7 +20,7 @@ export default function CustomerTabs() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.brand,
+        tabBarActiveTintColor: colors.brandText,
         tabBarInactiveTintColor: colors.muted,
         tabBarLabelStyle: { fontFamily: labelFont, fontSize: 12, lineHeight: 22 },
         tabBarStyle: {
@@ -36,28 +36,36 @@ export default function CustomerTabs() {
         name="home"
         options={{
           title: t("nav.home"),
-          tabBarIcon: ({ color }) => <Home size={22} color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <Home size={22} color={focused ? colors.brand : color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="bookings"
         options={{
           title: t("nav.bookings"),
-          tabBarIcon: ({ color }) => <Calendar size={22} color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <Calendar size={22} color={focused ? colors.brand : color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="messages"
         options={{
           title: t("nav.messages"),
-          tabBarIcon: ({ color }) => <MessageCircle size={22} color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <MessageCircle size={22} color={focused ? colors.brand : color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: t("nav.profile"),
-          tabBarIcon: ({ color }) => <User size={22} color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <User size={22} color={focused ? colors.brand : color} />
+          ),
         }}
       />
     </Tabs>

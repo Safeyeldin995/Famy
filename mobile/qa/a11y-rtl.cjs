@@ -82,14 +82,16 @@ const contrast = (foreground, background) => {
   const values = [luminance(color(foreground)), luminance(color(background))].sort((a, b) => b - a);
   return (values[0] + 0.05) / (values[1] + 0.05);
 };
+assert.equal(color("brand"), "#F10E72", "approved brand color must remain unchanged");
 for (const [foreground, background] of [
-  ["brandForeground", "brand"],
-  ["brand", "brandTint"],
+  ["brandText", "surface"],
+  ["brandText", "brandTint"],
   ["muted", "surface"],
   ["muted", "background"],
 ]) {
   assert(contrast(foreground, background) >= 4.5, `${foreground} on ${background} fails AA`);
 }
+assert(contrast("brandForeground", "brand") >= 3, "large white text on brand fails AA");
 const helper = fs.readFileSync(path.join(root, "ui/a11y.ts"), "utf8");
 const compiled = ts.transpileModule(helper, {
   compilerOptions: { module: ts.ModuleKind.CommonJS },
