@@ -228,3 +228,9 @@ assert.equal(
   "/setup",
 );
 console.log("PASS: 8 deep-link mapper, mobilePush locale, and OAuth helper checks.");
+const { OTP_LENGTH, applyOtpDigitInput } = load(
+  path.join(root, "mobile/src/lib/auth/otpCodeInputLogic.ts"),
+);
+assert.equal(OTP_LENGTH, 6);
+assert.equal(applyOtpDigitInput(["", "", "", "", "", ""], 0, "123456").complete, true);
+console.log("PASS: mobile OTP input state machine checks.");

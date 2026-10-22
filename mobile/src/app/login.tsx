@@ -12,15 +12,15 @@ import {
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
-import * as WebBrowser from "expo-web-browser";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useTranslation } from "react-i18next";
 import { Briefcase, Eye, EyeOff, User } from "lucide-react-native";
 import Svg, { Path } from "react-native-svg";
 import { normalizeDigitsToWestern, normalizePhoneE164 } from "@shared/otp/normalizePhone";
+import { phoneOtpFlowErrorMessage, startPhoneOtpFlow } from "@/lib/auth/phoneOtpFlow";
 import { authEmailForPhone } from "@shared/auth/authEmail";
 import type { OAuthProvider } from "@shared/auth/oauthShared";
-import { appConfig, supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import {
   enabledMobileOAuthProviders,
   resolvePostMobileOAuthRoute,
@@ -84,14 +84,10 @@ export default function Login() {
     router.replace("/home");
   };
 
-  // Sign-up and password reset need the phone-code flow, which moves to the
-  // app in the next phase. Until then they open the same pages on the web.
-  const openWeb = (path: string) => WebBrowser.openBrowserAsync(`${appConfig.webOrigin}${path}`);
-
   const finishOAuth = async () => {
     const route = await resolvePostMobileOAuthRoute();
     if (route.kind === "setup") {
-      await openWeb("/setup");
+      router.replace("/oauth-setup");
       return;
     }
     if (route.kind === "web_admin") {
@@ -192,7 +188,7 @@ export default function Login() {
                 <Text size="sm" weight="bold" tone="muted">
                   {t("auth.password")}
                 </Text>
-                <Pressable onPress={() => openWeb("/auth/forgot")} hitSlop={12}>
+                <Pressable onPress={() => router.push("/forgot-password")} hitSlop={12}>
                   <Text size="sm" weight="heavy" tone="brand">
                     {t("auth.forgot")}
                   </Text>
@@ -241,7 +237,26 @@ export default function Login() {
               disabled={!phoneValid || !password || oauthLoading !== null}
             />
           ) : (
-            <Button label={t("common.sendCode")} onPress={() => openWeb("/login")} />
+            <Button
+              label={t("common.sendCode")}
+              loading={loading}
+              disabled={!phoneValid || oauthLoading !== null}
+              onPress={async () => {
+                if (!phoneValid || loading) return;
+                setError(null);
+                setLoading(true);
+                const e164 = normalizePhoneE164(phone);
+                const send = await startPhoneOtpFlow(e164, "signup", role);
+                setLoading(false);
+                if (!send.ok) {
+                  setError(
+                    phoneOtpFlowErrorMessage(send.error, t, send.retryAfter, send.firebaseAuthCode),
+                  );
+                  return;
+                }
+                router.push({ pathname: "/otp", params: { purpose: "signup", phone: e164, role } });
+              }}
+            />
           )}
 
           {showOAuth ? (

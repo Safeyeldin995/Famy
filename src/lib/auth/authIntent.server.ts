@@ -1,9 +1,112 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { createHmac, timingSafeEqual } from "crypto";
 import { deleteCookie, getCookie, setCookie } from "@tanstack/react-start/server";
 import type { AuthFlowPurpose, AuthFlowRole } from "./authIntent.types";
+import {
+  MOBILE_AUTH_COOKIE_NAMES,
+  OTP_PENDING_COOKIE,
+  SET_PASSWORD_COOKIE,
+} from "./authIntent.constants";
 
-const OTP_PENDING_COOKIE = "famy_otp_pending";
-const SET_PASSWORD_COOKIE = "famy_set_password_auth";
+export { MOBILE_AUTH_COOKIE_NAMES, OTP_PENDING_COOKIE, SET_PASSWORD_COOKIE };
+
+type MobileCookieEntry = { value: string; maxAge: number };
+
+type MobileAuthCookieStore = {
+  entries: Map<string, MobileCookieEntry>;
+  cleared: Set<string>;
+};
+
+const mobileAuthCookieStore = new AsyncLocalStorage<MobileAuthCookieStore>();
+
+function activeMobileAuthCookies(): MobileAuthCookieStore | undefined {
+  return mobileAuthCookieStore.getStore();
+}
+
+function readCookie(name: string): string | undefined {
+  const mobile = activeMobileAuthCookies();
+  if (mobile) {
+    return mobile.entries.get(name)?.value;
+  }
+  return getCookie(name);
+}
+
+function writeCookie(name: string, value: string, maxAge: number): void {
+  const mobile = activeMobileAuthCookies();
+  if (mobile) {
+    mobile.cleared.delete(name);
+    mobile.entries.set(name, { value, maxAge });
+    return;
+  }
+  setCookie(name, value, cookieOptions(maxAge));
+}
+
+function removeCookie(name: string): void {
+  const mobile = activeMobileAuthCookies();
+  if (mobile) {
+    mobile.entries.delete(name);
+    mobile.cleared.add(name);
+    return;
+  }
+  deleteCookie(name, { path: "/" });
+}
+
+export function parseRequestCookieValue(
+  cookieHeader: string | undefined,
+  name: string,
+): string | undefined {
+  if (!cookieHeader) return undefined;
+  for (const part of cookieHeader.split(";")) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+    const eq = trimmed.indexOf("=");
+    if (eq <= 0) continue;
+    const key = trimmed.slice(0, eq);
+    if (key !== name) continue;
+    return trimmed.slice(eq + 1);
+  }
+  return undefined;
+}
+
+function buildSetCookieHeader(name: string, value: string, maxAge: number): string {
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  if (maxAge <= 0) {
+    return `${name}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`;
+  }
+  return `${name}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secure}`;
+}
+
+export function formatMobileAuthSetCookieHeaders(store: MobileAuthCookieStore): string[] {
+  const headers: string[] = [];
+  for (const name of store.cleared) {
+    headers.push(buildSetCookieHeader(name, "", 0));
+  }
+  for (const [name, entry] of store.entries) {
+    headers.push(buildSetCookieHeader(name, entry.value, entry.maxAge));
+  }
+  return headers;
+}
+
+function createMobileAuthCookieStore(cookieHeader: string | undefined): MobileAuthCookieStore {
+  const store: MobileAuthCookieStore = { entries: new Map(), cleared: new Set() };
+  for (const name of MOBILE_AUTH_COOKIE_NAMES) {
+    const value = parseRequestCookieValue(cookieHeader, name);
+    if (value) {
+      store.entries.set(name, { value, maxAge: OTP_TTL_SECONDS });
+    }
+  }
+  return store;
+}
+
+/** Run OTP/password-intent handlers with cookies from the native app Cookie header. */
+export async function withMobileAuthCookies<T>(
+  cookieHeader: string | undefined,
+  fn: () => Promise<T>,
+): Promise<{ result: T; setCookieHeaders: string[] }> {
+  const store = createMobileAuthCookieStore(cookieHeader);
+  const result = await mobileAuthCookieStore.run(store, fn);
+  return { result, setCookieHeaders: formatMobileAuthSetCookieHeaders(store) };
+}
 const OTP_TTL_SECONDS = 5 * 60;
 const SET_PASSWORD_TTL_SECONDS = 10 * 60;
 const TOKEN_VERSION = 1 as const;
@@ -117,7 +220,7 @@ export function setOtpPendingIntent(params: {
     exp: now + OTP_TTL_SECONDS,
     deliveryConfirmed: params.deliveryConfirmed ?? true,
   };
-  setCookie(OTP_PENDING_COOKIE, signPayload(payload), cookieOptions(OTP_TTL_SECONDS));
+  writeCookie(OTP_PENDING_COOKIE, signPayload(payload), OTP_TTL_SECONDS);
 }
 
 /** Marks Firebase (or other client-delivered) OTP as successfully sent without resetting TTL. */
@@ -127,16 +230,16 @@ export function confirmOtpPendingDelivery(): boolean {
   const now = Math.floor(Date.now() / 1000);
   const maxAge = Math.max(1, pending.exp - now);
   const updated: OtpPendingIntent = { ...pending, deliveryConfirmed: true };
-  setCookie(OTP_PENDING_COOKIE, signPayload(updated), cookieOptions(maxAge));
+  writeCookie(OTP_PENDING_COOKIE, signPayload(updated), maxAge);
   return true;
 }
 
 export function readOtpPendingIntent(): OtpPendingIntent | null {
-  return readSignedPayload<OtpPendingIntent>(getCookie(OTP_PENDING_COOKIE));
+  return readSignedPayload<OtpPendingIntent>(readCookie(OTP_PENDING_COOKIE));
 }
 
 export function clearOtpPendingIntent(): void {
-  deleteCookie(OTP_PENDING_COOKIE, { path: "/" });
+  removeCookie(OTP_PENDING_COOKIE);
 }
 
 export function setSetPasswordIntent(params: { authId: string }): void {
@@ -146,20 +249,20 @@ export function setSetPasswordIntent(params: { authId: string }): void {
     authId: params.authId,
     exp: now + SET_PASSWORD_TTL_SECONDS,
   };
-  setCookie(SET_PASSWORD_COOKIE, signPayload(payload), cookieOptions(SET_PASSWORD_TTL_SECONDS));
+  writeCookie(SET_PASSWORD_COOKIE, signPayload(payload), SET_PASSWORD_TTL_SECONDS);
 }
 
 export function readSetPasswordIntent(): SetPasswordIntent | null {
-  return readSignedPayload<SetPasswordIntent>(getCookie(SET_PASSWORD_COOKIE));
+  return readSignedPayload<SetPasswordIntent>(readCookie(SET_PASSWORD_COOKIE));
 }
 
 export function consumeSetPasswordIntent(): SetPasswordIntent | null {
   const intent = readSetPasswordIntent();
   if (!intent) return null;
-  deleteCookie(SET_PASSWORD_COOKIE, { path: "/" });
+  removeCookie(SET_PASSWORD_COOKIE);
   return intent;
 }
 
 export function clearSetPasswordIntent(): void {
-  deleteCookie(SET_PASSWORD_COOKIE, { path: "/" });
+  removeCookie(SET_PASSWORD_COOKIE);
 }
