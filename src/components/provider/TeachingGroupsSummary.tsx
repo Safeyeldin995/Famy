@@ -3,8 +3,15 @@ import { Link } from "@tanstack/react-router";
 import { useProPath } from "@/lib/provider/useProPath";
 import { groupTeachingRows } from "@/lib/tutoring/teachingGroups";
 import type { ProviderTeachingCapabilityRow } from "@/lib/db/teaching-queries";
+import { effectiveTeachingGroupStatuses } from "@/lib/provider/providerServiceReview";
 
-export function TeachingGroupsSummary({ rows }: { rows: ProviderTeachingCapabilityRow[] }) {
+export function TeachingGroupsSummary({
+  rows,
+  serviceStatuses = {},
+}: {
+  rows: ProviderTeachingCapabilityRow[];
+  serviceStatuses?: Record<string, string>;
+}) {
   const { t, i18n } = useTranslation();
   const proPath = useProPath();
   const ar = i18n.language.startsWith("ar");
@@ -26,7 +33,10 @@ export function TeachingGroupsSummary({ rows }: { rows: ProviderTeachingCapabili
             </small>
           </div>
           <div className="flex flex-wrap gap-2">
-            {[...new Set(group.rows.map((row) => row.status))].map((status) => (
+            {effectiveTeachingGroupStatuses(
+              group.rows.map((row) => row.status),
+              serviceStatuses[group.first.service_id],
+            ).map((status) => (
               <span
                 key={status}
                 className={`apply-tag ${status === "approved" ? "apply-success" : status === "pending" ? "apply-wait" : "apply-danger"}`}

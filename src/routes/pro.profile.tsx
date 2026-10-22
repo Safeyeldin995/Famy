@@ -233,9 +233,62 @@ function ProProfile() {
 
   const myIds = new Set((mine.data ?? []).map((s: any) => s.service_id));
   const myStatus = new Map((mine.data ?? []).map((s: any) => [s.service_id, s.status]));
+  const myRejectionReason = new Map(
+    (mine.data ?? []).map((s: any) => [s.service_id, s.rejection_reason as string | null]),
+  );
   const myPriceOverride = new Map(
     (mine.data ?? []).map((s: any) => [s.service_id, s.price_override]),
   );
+  const isApprovedProvider = provider.onboarding_status === "APPROVED";
+  const allCatalogServices = services.data ?? [];
+  const profileServices = isApprovedProvider
+    ? allCatalogServices.filter((s: { id: string }) => myIds.has(s.id))
+    : allCatalogServices;
+  const addableServices = isApprovedProvider
+    ? allCatalogServices.filter((s: { id: string }) => !myIds.has(s.id))
+    : [];
+
+  const handleServiceToggle = (serviceId: string, currentlyOn: boolean) => {
+    if (currentlyOn && isApprovedProvider) {
+      const status = myStatus.get(serviceId);
+      if (status === "approved" || status === "pending") return;
+    }
+    toggle.mutate(
+      { providerId: provider.id, serviceId, on: !currentlyOn },
+      {
+        onSuccess: () => {
+          if (!currentlyOn && isApprovedProvider) {
+            toast.success(t("pro.profile.newServicePending"));
+          }
+        },
+        onError: () => toast.error(t("common.somethingWentWrong")),
+      },
+    );
+  };
+  const resubmitService = useMutation({
+    mutationFn: async (serviceId: string) => {
+      const { error } = await supabase.rpc("provider_resubmit_rejected_service", {
+        p_service_id: serviceId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["my-provider-services", provider.id] });
+      void qc.invalidateQueries({ queryKey: ["provider-marketplace-eligibility", provider.id] });
+    },
+  });
+  const removeRejectedService = useMutation({
+    mutationFn: async (serviceId: string) => {
+      const { error } = await supabase.rpc("provider_remove_onboarding_service", {
+        p_service_id: serviceId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["my-provider-services", provider.id] });
+      void qc.invalidateQueries({ queryKey: ["provider-marketplace-eligibility", provider.id] });
+    },
+  });
 
   const submitPrice = (serviceId: string, min: number | null, max: number | null) => {
     const value = priceDrafts[serviceId];
@@ -474,7 +527,7 @@ function ProProfile() {
             />
           ) : (
             <div id="requirements" className="grid gap-3 scroll-mt-4">
-              {(services.data ?? []).map((s: any) => {
+              {profileServices.map((s: any) => {
                 const on = myIds.has(s.id);
                 const sname = lang === "ar" ? (s.name_ar ?? s.name_en) : (s.name_en ?? s.name_ar);
                 const cname =
@@ -485,9 +538,50 @@ function ProProfile() {
                 const priceError = priceErrors[s.id];
                 return (
                   <div key={s.id} id={`service-${s.id}`}>
-                    <ServiceCard selected={on} title={sname} subtitle={isFixedPackage(s) ? t(packageLabel(s).key, packageLabel(s).values) : cname ?? ""} icon={<BriefcaseBusiness size={20} />} onClick={() => toggle.mutate({ providerId: provider.id, serviceId: s.id, on: !on })}>
+                    <ServiceCard selected={on} title={sname} subtitle={isFixedPackage(s) ? t(packageLabel(s).key, packageLabel(s).values) : cname ?? ""} icon={<BriefcaseBusiness size={20} />} onClick={() => handleServiceToggle(s.id, on)}>
                       <div className="px-4 pb-4">
-                      {on && <span className={`apply-tag ${myStatus.get(s.id) === "approved" ? "apply-success" : myStatus.get(s.id) === "pending" ? "apply-wait" : "apply-danger"}`}>{t(`providerSetup.status.${myStatus.get(s.id) ?? "pending"}`)}</span>}
+                      {on && (
+                        <span
+                          className={`apply-tag ${myStatus.get(s.id) === "approved" ? "apply-success" : myStatus.get(s.id) === "pending" ? "apply-wait" : "apply-danger"}`}
+                        >
+                          {t(`providerSetup.status.${myStatus.get(s.id) ?? "pending"}`)}
+                        </span>
+                      )}
+                    {on && myStatus.get(s.id) === "rejected" && myRejectionReason.get(s.id) && (
+                      <p className="mt-2 text-xs font-semibold text-destructive">
+                        {myRejectionReason.get(s.id)}
+                      </p>
+                    )}
+                    {on && myStatus.get(s.id) === "rejected" && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          className="min-h-11 rounded-lg border border-brand px-3 text-xs font-bold text-brand disabled:opacity-50"
+                          disabled={resubmitService.isPending}
+                          onClick={() =>
+                            resubmitService.mutate(s.id, {
+                              onSuccess: () => toast.success(t("pro.profile.serviceResubmitted")),
+                              onError: () => toast.error(t("common.somethingWentWrong")),
+                            })
+                          }
+                        >
+                          {t("pro.profile.resubmitService")}
+                        </button>
+                        <button
+                          type="button"
+                          className="min-h-11 rounded-lg border border-coral px-3 text-xs font-bold text-coral disabled:opacity-50"
+                          disabled={removeRejectedService.isPending}
+                          onClick={() =>
+                            removeRejectedService.mutate(s.id, {
+                              onSuccess: () => toast.success(t("pro.profile.serviceRemoved")),
+                              onError: () => toast.error(t("common.somethingWentWrong")),
+                            })
+                          }
+                        >
+                          {t("pro.profile.removeService")}
+                        </button>
+                      </div>
+                    )}
                     {on &&
                       s.provider_pricing_allowed &&
                       !isTutoringCategorySlug(s.category?.slug) && (
@@ -547,6 +641,16 @@ function ProProfile() {
                     {on && expandedReqService === s.id && (
                       <div id={`requirements-${s.id}`}><RequirementsChecklist providerId={provider.id} serviceId={s.id} /></div>
                     )}
+                    {on &&
+                      isTutoringCategorySlug(s.category?.slug) &&
+                      (myStatus.get(s.id) === "pending" || myStatus.get(s.id) === "approved") && (
+                        <Link
+                          to={proPath("/pro/setup/subjects")}
+                          className="mt-2 inline-block text-xs font-bold text-brand underline-offset-2 hover:underline"
+                        >
+                          {t("pro.profile.addSubjectsForService")}
+                        </Link>
+                      )}
                       </div>
                     </ServiceCard>
                   </div>
@@ -554,9 +658,62 @@ function ProProfile() {
               })}
             </div>
           )}
+          {isApprovedProvider && !services.isError && !mine.isError ? (
+            <div className="mt-4">
+              <h3 className="px-1 text-pro-13 font-bold text-foreground">
+                {t("pro.profile.addNewService")}
+              </h3>
+              <p className="mt-1 px-1 text-xs text-muted-foreground">
+                {t("pro.profile.addNewServiceHint")}
+              </p>
+              {addableServices.length === 0 ? (
+                <p className="mt-2 px-1 text-xs text-muted-foreground">
+                  {t("pro.profile.allServicesOnProfile")}
+                </p>
+              ) : (
+                <div className="mt-3 grid gap-3">
+                  {addableServices.map((s: any) => {
+                    const sname =
+                      lang === "ar" ? (s.name_ar ?? s.name_en) : (s.name_en ?? s.name_ar);
+                    const cname =
+                      lang === "ar"
+                        ? (s.category?.name_ar ?? s.category?.name_en)
+                        : (s.category?.name_en ?? s.category?.name_ar);
+                    return (
+                      <ServiceCard
+                        key={s.id}
+                        selected={false}
+                        title={sname}
+                        subtitle={
+                          isFixedPackage(s)
+                            ? t(packageLabel(s).key, packageLabel(s).values)
+                            : cname ?? ""
+                        }
+                        icon={<BriefcaseBusiness size={20} />}
+                        disabled={toggle.isPending}
+                        onClick={() => handleServiceToggle(s.id, false)}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : null}
         </div>
 
-        {teachingQ.isError ? <QueryError compact onRetry={() => teachingQ.refetch()} /> : <TeachingGroupsSummary rows={teachingQ.data ?? []} />}
+        {teachingQ.isError ? (
+          <QueryError compact onRetry={() => teachingQ.refetch()} />
+        ) : (
+          <TeachingGroupsSummary
+            rows={teachingQ.data ?? []}
+            serviceStatuses={Object.fromEntries(
+              (mine.data ?? []).map((row: { service_id: string; status: string }) => [
+                row.service_id,
+                row.status,
+              ]),
+            )}
+          />
+        )}
         <section className="apply-list">
           <ProRow to={proPath("/pro/setup/hours")} icon={<Clock size={20} />} label={t("providerProfileV3.hours")} />
           {hoursQ.isError ? <QueryError compact onRetry={() => hoursQ.refetch()} /> : <div className="px-4 pb-4 text-sm text-muted-foreground">{(hoursQ.data ?? []).length ? workingHoursSummary(hoursQ.data ?? [], t).map((line) => <p key={line}>{line}</p>) : t("providerProfileV3.noHours")}</div>}

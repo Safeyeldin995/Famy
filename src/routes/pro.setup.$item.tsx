@@ -77,11 +77,15 @@ function ProviderSetupRoute() {
   const selectedServices = services.data!.filter((s) =>
     selections.data!.services.some((row) => row.service_id === s.id),
   );
+  const serviceStatusById = Object.fromEntries(
+    selections.data!.services.map((row) => [row.service_id, row.status]),
+  );
   if (item === "subjects")
     return (
       <LiveSubjects
         providerId={provider.data.id}
         services={selectedServices.filter((s) => s.category?.slug === "tutoring")}
+        serviceStatuses={serviceStatusById}
         onBack={back}
       />
     );
@@ -155,10 +159,12 @@ function ProviderSetupRoute() {
 function LiveSubjects({
   providerId,
   services,
+  serviceStatuses,
   onBack,
 }: {
   providerId: string;
   services: import("@/components/provider/GroupedTeachingSetup").SetupTeachingService[];
+  serviceStatuses: Record<string, string>;
   onBack: () => void;
 }) {
   const { t } = useTranslation();
@@ -188,11 +194,12 @@ function LiveSubjects({
       levels={levels.data!}
       links={links.data!}
       rows={rows.data!}
+      serviceStatuses={serviceStatuses}
       rejectionMessages={teachingReviewMessages(reviews.data ?? [], i18n.language.startsWith("ar"))}
       onBack={onBack}
       onSave={async (input) => {
         await save.mutateAsync(input);
-        onBack();
+        await rows.refetch();
       }}
       onRemove={async (ids) => {
         const current = await rows.refetch();

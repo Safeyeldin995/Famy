@@ -36,6 +36,16 @@ const EXACT_REASON_MAP: Record<string, MappedEligibilityReason> = {
     i18nKey: "pro.profile.eligibilityReasons.serviceNotApproved",
     action: { kind: "info" },
   },
+  "Provider-service relationship is pending admin approval": {
+    owner: "famy",
+    i18nKey: "pro.profile.eligibilityReasons.servicePending",
+    action: { kind: "info" },
+  },
+  "Provider-service relationship was rejected by admin": {
+    owner: "provider",
+    i18nKey: "pro.profile.eligibilityReasons.serviceRejected",
+    action: { kind: "service", serviceId: "" },
+  },
   "Provider is not verified or onboarding is not approved": {
     owner: "famy",
     i18nKey: "pro.profile.eligibilityReasons.notApproved",
@@ -102,6 +112,9 @@ export function mapMarketplaceEligibilityFailureReason(
       exact.i18nKey === "pro.profile.eligibilityReasons.invalidPrice" &&
       serviceId
     ) {
+      return { ...exact, action: { kind: "service", serviceId } };
+    }
+    if (exact.i18nKey === "pro.profile.eligibilityReasons.serviceRejected" && serviceId) {
       return { ...exact, action: { kind: "service", serviceId } };
     }
     return exact;

@@ -174,7 +174,13 @@ export function useSaveOnboardingSection() {
         p_payload: payload,
       });
       if (error) throw error;
-      return data as { ok: boolean; complete?: boolean; errors?: Record<string, string> };
+      const result = data as { ok: boolean; complete?: boolean; errors?: Record<string, string> };
+      if (result?.ok === false) {
+        throw Object.assign(new Error("section_save_incomplete"), {
+          sectionErrors: result.errors ?? {},
+        });
+      }
+      return result;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["provider-onboarding-snapshot"] });

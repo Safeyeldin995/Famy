@@ -73,7 +73,14 @@ export function useToggleProviderService() {
         const { error } = await supabase
           .from("provider_services")
           .insert({ provider_id: providerId, service_id: serviceId });
-        if (error && (error as { code?: string }).code !== "23505") throw error;
+        if ((error as { code?: string } | null)?.code === "23505") {
+          const { error: resubmitError } = await supabase.rpc("provider_resubmit_rejected_service", {
+            p_service_id: serviceId,
+          });
+          if (resubmitError) throw resubmitError;
+        } else if (error) {
+          throw error;
+        }
       } else {
         const { error } = await supabase
           .from("provider_services")

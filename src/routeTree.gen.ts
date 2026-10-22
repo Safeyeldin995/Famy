@@ -96,6 +96,7 @@ import { Route as ProNotificationPreferencesRouteImport } from './routes/pro.not
 import { Route as ProNotificationsRouteImport } from './routes/pro.notifications'
 import { Route as ProOnboardingRouteImport } from './routes/pro.onboarding'
 import { Route as ProProfileRouteImport } from './routes/pro.profile'
+import { Route as ProSupportRouteImport } from './routes/pro.support'
 import { Route as ProviderIdRouteImport } from './routes/provider.$id'
 import { Route as AdminCustomerIdRouteImport } from './routes/admin.customer.$id'
 import { Route as AdminProviderIdRouteImport } from './routes/admin.provider.$id'
@@ -582,6 +583,11 @@ const ProProfileRoute = ProProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => ProRoute,
 } as any)
+const ProSupportRoute = ProSupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => ProRoute,
+} as any)
 const ProviderIdRoute = ProviderIdRouteImport.update({
   id: '/provider/$id',
   path: '/provider/$id',
@@ -904,6 +910,7 @@ export interface FileRoutesByFullPath {
   '/pro/notifications': typeof ProNotificationsRoute
   '/pro/onboarding': typeof ProOnboardingRoute
   '/pro/profile': typeof ProProfileRoute
+  '/pro/support': typeof ProSupportRoute
   '/provider/$id': typeof ProviderIdRoute
   '/addresses/': typeof AddressesIndexRoute
   '/admin/': typeof AdminIndexRoute
@@ -1032,6 +1039,7 @@ export interface FileRoutesByTo {
   '/pro/notifications': typeof ProNotificationsRoute
   '/pro/onboarding': typeof ProOnboardingRoute
   '/pro/profile': typeof ProProfileRoute
+  '/pro/support': typeof ProSupportRoute
   '/provider/$id': typeof ProviderIdRoute
   '/addresses': typeof AddressesIndexRoute
   '/admin': typeof AdminIndexRoute
@@ -1169,6 +1177,7 @@ export interface FileRoutesById {
   '/pro/notifications': typeof ProNotificationsRoute
   '/pro/onboarding': typeof ProOnboardingRoute
   '/pro/profile': typeof ProProfileRoute
+  '/pro/support': typeof ProSupportRoute
   '/provider/$id': typeof ProviderIdRoute
   '/addresses/': typeof AddressesIndexRoute
   '/admin/': typeof AdminIndexRoute
@@ -1307,6 +1316,7 @@ export interface FileRouteTypes {
     | '/pro/notifications'
     | '/pro/onboarding'
     | '/pro/profile'
+    | '/pro/support'
     | '/provider/$id'
     | '/addresses/'
     | '/admin/'
@@ -1435,6 +1445,7 @@ export interface FileRouteTypes {
     | '/pro/notifications'
     | '/pro/onboarding'
     | '/pro/profile'
+    | '/pro/support'
     | '/provider/$id'
     | '/addresses'
     | '/admin'
@@ -1571,6 +1582,7 @@ export interface FileRouteTypes {
     | '/pro/notifications'
     | '/pro/onboarding'
     | '/pro/profile'
+    | '/pro/support'
     | '/provider/$id'
     | '/addresses/'
     | '/admin/'
@@ -2275,6 +2287,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProProfileRouteImport
       parentRoute: typeof ProRoute
     }
+    '/pro/support': {
+      id: '/pro/support'
+      path: '/support'
+      fullPath: '/pro/support'
+      preLoaderRoute: typeof ProSupportRouteImport
+      parentRoute: typeof ProRoute
+    }
     '/provider/$id': {
       id: '/provider/$id'
       path: '/provider/$id'
@@ -2864,6 +2883,7 @@ interface ProRouteChildren {
   ProNotificationsRoute: typeof ProNotificationsRoute
   ProOnboardingRoute: typeof ProOnboardingRoute
   ProProfileRoute: typeof ProProfileRoute
+  ProSupportRoute: typeof ProSupportRoute
   ProIndexRoute: typeof ProIndexRoute
   ProAccountDeleteRoute: typeof ProAccountDeleteRoute
   ProBookingIdRoute: typeof ProBookingIdRoute
@@ -2880,6 +2900,7 @@ const ProRouteChildren: ProRouteChildren = {
   ProNotificationsRoute: ProNotificationsRoute,
   ProOnboardingRoute: ProOnboardingRoute,
   ProProfileRoute: ProProfileRoute,
+  ProSupportRoute: ProSupportRoute,
   ProIndexRoute: ProIndexRoute,
   ProAccountDeleteRoute: ProAccountDeleteRoute,
   ProBookingIdRoute: ProBookingIdRoute,
