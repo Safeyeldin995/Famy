@@ -34,6 +34,7 @@ import { Route as PromoCodesRouteImport } from './routes/promo-codes'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SetupRouteImport } from './routes/setup'
 import { Route as _qaMonitoringErrorRouteImport } from './routes/__qa.monitoring-error'
+import { Route as AccountDeleteRouteImport } from './routes/account.delete'
 import { Route as AddressesIndexRouteImport } from './routes/addresses.index'
 import { Route as AddressesIdRouteImport } from './routes/addresses.$id'
 import { Route as AddressesNewRouteImport } from './routes/addresses.new'
@@ -98,7 +99,9 @@ import { Route as ProProfileRouteImport } from './routes/pro.profile'
 import { Route as ProviderIdRouteImport } from './routes/provider.$id'
 import { Route as AdminCustomerIdRouteImport } from './routes/admin.customer.$id'
 import { Route as AdminProviderIdRouteImport } from './routes/admin.provider.$id'
+import { Route as ApiAccountDeleteRouteImport } from './routes/api.account.delete'
 import { Route as ApiMobilePaymobCheckoutRouteImport } from './routes/api.mobile.paymob-checkout'
+import { Route as PreviewAccountDeleteRouteImport } from './routes/preview.account.delete'
 import { Route as PreviewAddressesIndexRouteImport } from './routes/preview.addresses.index'
 import { Route as PreviewAddressesIdRouteImport } from './routes/preview.addresses.$id'
 import { Route as PreviewAddressesNewRouteImport } from './routes/preview.addresses.new'
@@ -132,10 +135,12 @@ import { Route as PreviewProNotificationsRouteImport } from './routes/preview.pr
 import { Route as PreviewProOnboardingRouteImport } from './routes/preview.pro.onboarding'
 import { Route as PreviewProProfileRouteImport } from './routes/preview.pro.profile'
 import { Route as PreviewProviderIdRouteImport } from './routes/preview.provider.$id'
+import { Route as ProAccountDeleteRouteImport } from './routes/pro.account.delete'
 import { Route as ProBookingIdRouteImport } from './routes/pro.booking.$id'
 import { Route as ProSetupItemRouteImport } from './routes/pro.setup.$item'
 import { Route as PreviewAdminCustomerIdRouteImport } from './routes/preview.admin.customer.$id'
 import { Route as PreviewAdminProviderIdRouteImport } from './routes/preview.admin.provider.$id'
+import { Route as PreviewProAccountDeleteRouteImport } from './routes/preview.pro.account.delete'
 import { Route as PreviewProBookingIdRouteImport } from './routes/preview.pro.booking.$id'
 import { Route as PreviewProSetupItemRouteImport } from './routes/preview.pro.setup.$item'
 
@@ -262,6 +267,11 @@ const SetupRoute = SetupRouteImport.update({
 const _qaMonitoringErrorRoute = _qaMonitoringErrorRouteImport.update({
   id: '/__qa/monitoring-error',
   path: '/monitoring-error',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountDeleteRoute = AccountDeleteRouteImport.update({
+  id: '/account/delete',
+  path: '/account/delete',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AddressesIndexRoute = AddressesIndexRouteImport.update({
@@ -587,10 +597,20 @@ const AdminProviderIdRoute = AdminProviderIdRouteImport.update({
   path: '/provider/$id',
   getParentRoute: () => AdminRoute,
 } as any)
+const ApiAccountDeleteRoute = ApiAccountDeleteRouteImport.update({
+  id: '/api/account/delete',
+  path: '/api/account/delete',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMobilePaymobCheckoutRoute = ApiMobilePaymobCheckoutRouteImport.update({
   id: '/api/mobile/paymob-checkout',
   path: '/api/mobile/paymob-checkout',
   getParentRoute: () => rootRouteImport,
+} as any)
+const PreviewAccountDeleteRoute = PreviewAccountDeleteRouteImport.update({
+  id: '/account/delete',
+  path: '/account/delete',
+  getParentRoute: () => PreviewRoute,
 } as any)
 const PreviewAddressesIndexRoute = PreviewAddressesIndexRouteImport.update({
   id: '/',
@@ -760,6 +780,11 @@ const PreviewProviderIdRoute = PreviewProviderIdRouteImport.update({
   path: '/provider/$id',
   getParentRoute: () => PreviewRoute,
 } as any)
+const ProAccountDeleteRoute = ProAccountDeleteRouteImport.update({
+  id: '/account/delete',
+  path: '/account/delete',
+  getParentRoute: () => ProRoute,
+} as any)
 const ProBookingIdRoute = ProBookingIdRouteImport.update({
   id: '/booking/$id',
   path: '/booking/$id',
@@ -779,6 +804,11 @@ const PreviewAdminProviderIdRoute = PreviewAdminProviderIdRouteImport.update({
   id: '/provider/$id',
   path: '/provider/$id',
   getParentRoute: () => PreviewAdminRoute,
+} as any)
+const PreviewProAccountDeleteRoute = PreviewProAccountDeleteRouteImport.update({
+  id: '/account/delete',
+  path: '/account/delete',
+  getParentRoute: () => PreviewProRoute,
 } as any)
 const PreviewProBookingIdRoute = PreviewProBookingIdRouteImport.update({
   id: '/booking/$id',
@@ -817,6 +847,7 @@ export interface FileRoutesByFullPath {
   '/search': typeof SearchRoute
   '/setup': typeof SetupRoute
   '/monitoring-error': typeof _qaMonitoringErrorRoute
+  '/account/delete': typeof AccountDeleteRoute
   '/addresses/$id': typeof AddressesIdRoute
   '/addresses/new': typeof AddressesNewRoute
   '/admin/audit-log': typeof AdminAuditLogRoute
@@ -881,7 +912,9 @@ export interface FileRoutesByFullPath {
   '/pro/': typeof ProIndexRoute
   '/admin/customer/$id': typeof AdminCustomerIdRoute
   '/admin/provider/$id': typeof AdminProviderIdRoute
+  '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
+  '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
   '/preview/addresses/new': typeof PreviewAddressesNewRoute
   '/preview/admin/audit-log': typeof PreviewAdminAuditLogRoute
@@ -912,6 +945,7 @@ export interface FileRoutesByFullPath {
   '/preview/pro/onboarding': typeof PreviewProOnboardingRoute
   '/preview/pro/profile': typeof PreviewProProfileRoute
   '/preview/provider/$id': typeof PreviewProviderIdRoute
+  '/pro/account/delete': typeof ProAccountDeleteRoute
   '/pro/booking/$id': typeof ProBookingIdRoute
   '/pro/setup/$item': typeof ProSetupItemRoute
   '/preview/addresses/': typeof PreviewAddressesIndexRoute
@@ -919,6 +953,7 @@ export interface FileRoutesByFullPath {
   '/preview/pro/': typeof PreviewProIndexRoute
   '/preview/admin/customer/$id': typeof PreviewAdminCustomerIdRoute
   '/preview/admin/provider/$id': typeof PreviewAdminProviderIdRoute
+  '/preview/pro/account/delete': typeof PreviewProAccountDeleteRoute
   '/preview/pro/booking/$id': typeof PreviewProBookingIdRoute
   '/preview/pro/setup/$item': typeof PreviewProSetupItemRoute
 }
@@ -943,6 +978,7 @@ export interface FileRoutesByTo {
   '/search': typeof SearchRoute
   '/setup': typeof SetupRoute
   '/monitoring-error': typeof _qaMonitoringErrorRoute
+  '/account/delete': typeof AccountDeleteRoute
   '/addresses/$id': typeof AddressesIdRoute
   '/addresses/new': typeof AddressesNewRoute
   '/admin/audit-log': typeof AdminAuditLogRoute
@@ -1004,7 +1040,9 @@ export interface FileRoutesByTo {
   '/pro': typeof ProIndexRoute
   '/admin/customer/$id': typeof AdminCustomerIdRoute
   '/admin/provider/$id': typeof AdminProviderIdRoute
+  '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
+  '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
   '/preview/addresses/new': typeof PreviewAddressesNewRoute
   '/preview/admin/audit-log': typeof PreviewAdminAuditLogRoute
@@ -1035,6 +1073,7 @@ export interface FileRoutesByTo {
   '/preview/pro/onboarding': typeof PreviewProOnboardingRoute
   '/preview/pro/profile': typeof PreviewProProfileRoute
   '/preview/provider/$id': typeof PreviewProviderIdRoute
+  '/pro/account/delete': typeof ProAccountDeleteRoute
   '/pro/booking/$id': typeof ProBookingIdRoute
   '/pro/setup/$item': typeof ProSetupItemRoute
   '/preview/addresses': typeof PreviewAddressesIndexRoute
@@ -1042,6 +1081,7 @@ export interface FileRoutesByTo {
   '/preview/pro': typeof PreviewProIndexRoute
   '/preview/admin/customer/$id': typeof PreviewAdminCustomerIdRoute
   '/preview/admin/provider/$id': typeof PreviewAdminProviderIdRoute
+  '/preview/pro/account/delete': typeof PreviewProAccountDeleteRoute
   '/preview/pro/booking/$id': typeof PreviewProBookingIdRoute
   '/preview/pro/setup/$item': typeof PreviewProSetupItemRoute
 }
@@ -1072,6 +1112,7 @@ export interface FileRoutesById {
   '/search': typeof SearchRoute
   '/setup': typeof SetupRoute
   '/__qa/monitoring-error': typeof _qaMonitoringErrorRoute
+  '/account/delete': typeof AccountDeleteRoute
   '/addresses/$id': typeof AddressesIdRoute
   '/addresses/new': typeof AddressesNewRoute
   '/admin/audit-log': typeof AdminAuditLogRoute
@@ -1136,7 +1177,9 @@ export interface FileRoutesById {
   '/pro/': typeof ProIndexRoute
   '/admin/customer/$id': typeof AdminCustomerIdRoute
   '/admin/provider/$id': typeof AdminProviderIdRoute
+  '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
+  '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
   '/preview/addresses/new': typeof PreviewAddressesNewRoute
   '/preview/admin/audit-log': typeof PreviewAdminAuditLogRoute
@@ -1167,6 +1210,7 @@ export interface FileRoutesById {
   '/preview/pro/onboarding': typeof PreviewProOnboardingRoute
   '/preview/pro/profile': typeof PreviewProProfileRoute
   '/preview/provider/$id': typeof PreviewProviderIdRoute
+  '/pro/account/delete': typeof ProAccountDeleteRoute
   '/pro/booking/$id': typeof ProBookingIdRoute
   '/pro/setup/$item': typeof ProSetupItemRoute
   '/preview/addresses/': typeof PreviewAddressesIndexRoute
@@ -1174,6 +1218,7 @@ export interface FileRoutesById {
   '/preview/pro/': typeof PreviewProIndexRoute
   '/preview/admin/customer/$id': typeof PreviewAdminCustomerIdRoute
   '/preview/admin/provider/$id': typeof PreviewAdminProviderIdRoute
+  '/preview/pro/account/delete': typeof PreviewProAccountDeleteRoute
   '/preview/pro/booking/$id': typeof PreviewProBookingIdRoute
   '/preview/pro/setup/$item': typeof PreviewProSetupItemRoute
 }
@@ -1205,6 +1250,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/setup'
     | '/monitoring-error'
+    | '/account/delete'
     | '/addresses/$id'
     | '/addresses/new'
     | '/admin/audit-log'
@@ -1269,7 +1315,9 @@ export interface FileRouteTypes {
     | '/pro/'
     | '/admin/customer/$id'
     | '/admin/provider/$id'
+    | '/api/account/delete'
     | '/api/mobile/paymob-checkout'
+    | '/preview/account/delete'
     | '/preview/addresses/$id'
     | '/preview/addresses/new'
     | '/preview/admin/audit-log'
@@ -1300,6 +1348,7 @@ export interface FileRouteTypes {
     | '/preview/pro/onboarding'
     | '/preview/pro/profile'
     | '/preview/provider/$id'
+    | '/pro/account/delete'
     | '/pro/booking/$id'
     | '/pro/setup/$item'
     | '/preview/addresses/'
@@ -1307,6 +1356,7 @@ export interface FileRouteTypes {
     | '/preview/pro/'
     | '/preview/admin/customer/$id'
     | '/preview/admin/provider/$id'
+    | '/preview/pro/account/delete'
     | '/preview/pro/booking/$id'
     | '/preview/pro/setup/$item'
   fileRoutesByTo: FileRoutesByTo
@@ -1331,6 +1381,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/setup'
     | '/monitoring-error'
+    | '/account/delete'
     | '/addresses/$id'
     | '/addresses/new'
     | '/admin/audit-log'
@@ -1392,7 +1443,9 @@ export interface FileRouteTypes {
     | '/pro'
     | '/admin/customer/$id'
     | '/admin/provider/$id'
+    | '/api/account/delete'
     | '/api/mobile/paymob-checkout'
+    | '/preview/account/delete'
     | '/preview/addresses/$id'
     | '/preview/addresses/new'
     | '/preview/admin/audit-log'
@@ -1423,6 +1476,7 @@ export interface FileRouteTypes {
     | '/preview/pro/onboarding'
     | '/preview/pro/profile'
     | '/preview/provider/$id'
+    | '/pro/account/delete'
     | '/pro/booking/$id'
     | '/pro/setup/$item'
     | '/preview/addresses'
@@ -1430,6 +1484,7 @@ export interface FileRouteTypes {
     | '/preview/pro'
     | '/preview/admin/customer/$id'
     | '/preview/admin/provider/$id'
+    | '/preview/pro/account/delete'
     | '/preview/pro/booking/$id'
     | '/preview/pro/setup/$item'
   id:
@@ -1459,6 +1514,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/setup'
     | '/__qa/monitoring-error'
+    | '/account/delete'
     | '/addresses/$id'
     | '/addresses/new'
     | '/admin/audit-log'
@@ -1523,7 +1579,9 @@ export interface FileRouteTypes {
     | '/pro/'
     | '/admin/customer/$id'
     | '/admin/provider/$id'
+    | '/api/account/delete'
     | '/api/mobile/paymob-checkout'
+    | '/preview/account/delete'
     | '/preview/addresses/$id'
     | '/preview/addresses/new'
     | '/preview/admin/audit-log'
@@ -1554,6 +1612,7 @@ export interface FileRouteTypes {
     | '/preview/pro/onboarding'
     | '/preview/pro/profile'
     | '/preview/provider/$id'
+    | '/pro/account/delete'
     | '/pro/booking/$id'
     | '/pro/setup/$item'
     | '/preview/addresses/'
@@ -1561,6 +1620,7 @@ export interface FileRouteTypes {
     | '/preview/pro/'
     | '/preview/admin/customer/$id'
     | '/preview/admin/provider/$id'
+    | '/preview/pro/account/delete'
     | '/preview/pro/booking/$id'
     | '/preview/pro/setup/$item'
   fileRoutesById: FileRoutesById
@@ -1591,6 +1651,7 @@ export interface RootRouteChildren {
   SearchRoute: typeof SearchRoute
   SetupRoute: typeof SetupRoute
   _qaMonitoringErrorRoute: typeof _qaMonitoringErrorRoute
+  AccountDeleteRoute: typeof AccountDeleteRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   AuthForgotRoute: typeof AuthForgotRoute
   AuthSetPasswordRoute: typeof AuthSetPasswordRoute
@@ -1599,6 +1660,7 @@ export interface RootRouteChildren {
   CategoryIdRoute: typeof CategoryIdRoute
   ContentKeyRoute: typeof ContentKeyRoute
   ProviderIdRoute: typeof ProviderIdRoute
+  ApiAccountDeleteRoute: typeof ApiAccountDeleteRoute
   ApiMobilePaymobCheckoutRoute: typeof ApiMobilePaymobCheckoutRoute
 }
 
@@ -1777,6 +1839,13 @@ declare module '@tanstack/react-router' {
       path: '/monitoring-error'
       fullPath: '/monitoring-error'
       preLoaderRoute: typeof _qaMonitoringErrorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account/delete': {
+      id: '/account/delete'
+      path: '/account/delete'
+      fullPath: '/account/delete'
+      preLoaderRoute: typeof AccountDeleteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/addresses/': {
@@ -2227,12 +2296,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProviderIdRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/api/account/delete': {
+      id: '/api/account/delete'
+      path: '/api/account/delete'
+      fullPath: '/api/account/delete'
+      preLoaderRoute: typeof ApiAccountDeleteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/mobile/paymob-checkout': {
       id: '/api/mobile/paymob-checkout'
       path: '/api/mobile/paymob-checkout'
       fullPath: '/api/mobile/paymob-checkout'
       preLoaderRoute: typeof ApiMobilePaymobCheckoutRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/preview/account/delete': {
+      id: '/preview/account/delete'
+      path: '/account/delete'
+      fullPath: '/preview/account/delete'
+      preLoaderRoute: typeof PreviewAccountDeleteRouteImport
+      parentRoute: typeof PreviewRoute
     }
     '/preview/addresses/': {
       id: '/preview/addresses/'
@@ -2465,6 +2548,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewProviderIdRouteImport
       parentRoute: typeof PreviewRoute
     }
+    '/pro/account/delete': {
+      id: '/pro/account/delete'
+      path: '/account/delete'
+      fullPath: '/pro/account/delete'
+      preLoaderRoute: typeof ProAccountDeleteRouteImport
+      parentRoute: typeof ProRoute
+    }
     '/pro/booking/$id': {
       id: '/pro/booking/$id'
       path: '/booking/$id'
@@ -2492,6 +2582,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/preview/admin/provider/$id'
       preLoaderRoute: typeof PreviewAdminProviderIdRouteImport
       parentRoute: typeof PreviewAdminRoute
+    }
+    '/preview/pro/account/delete': {
+      id: '/preview/pro/account/delete'
+      path: '/account/delete'
+      fullPath: '/preview/pro/account/delete'
+      preLoaderRoute: typeof PreviewProAccountDeleteRouteImport
+      parentRoute: typeof PreviewProRoute
     }
     '/preview/pro/booking/$id': {
       id: '/preview/pro/booking/$id'
@@ -2670,6 +2767,7 @@ interface PreviewProRouteChildren {
   PreviewProOnboardingRoute: typeof PreviewProOnboardingRoute
   PreviewProProfileRoute: typeof PreviewProProfileRoute
   PreviewProIndexRoute: typeof PreviewProIndexRoute
+  PreviewProAccountDeleteRoute: typeof PreviewProAccountDeleteRoute
   PreviewProBookingIdRoute: typeof PreviewProBookingIdRoute
   PreviewProSetupItemRoute: typeof PreviewProSetupItemRoute
 }
@@ -2686,6 +2784,7 @@ const PreviewProRouteChildren: PreviewProRouteChildren = {
   PreviewProOnboardingRoute: PreviewProOnboardingRoute,
   PreviewProProfileRoute: PreviewProProfileRoute,
   PreviewProIndexRoute: PreviewProIndexRoute,
+  PreviewProAccountDeleteRoute: PreviewProAccountDeleteRoute,
   PreviewProBookingIdRoute: PreviewProBookingIdRoute,
   PreviewProSetupItemRoute: PreviewProSetupItemRoute,
 }
@@ -2716,6 +2815,7 @@ interface PreviewRouteChildren {
   PreviewSetupRoute: typeof PreviewSetupRoute
   PreviewSplashRoute: typeof PreviewSplashRoute
   PreviewIndexRoute: typeof PreviewIndexRoute
+  PreviewAccountDeleteRoute: typeof PreviewAccountDeleteRoute
   PreviewBookProviderIdRoute: typeof PreviewBookProviderIdRoute
   PreviewCategoryIdRoute: typeof PreviewCategoryIdRoute
   PreviewChatIdRoute: typeof PreviewChatIdRoute
@@ -2744,6 +2844,7 @@ const PreviewRouteChildren: PreviewRouteChildren = {
   PreviewSetupRoute: PreviewSetupRoute,
   PreviewSplashRoute: PreviewSplashRoute,
   PreviewIndexRoute: PreviewIndexRoute,
+  PreviewAccountDeleteRoute: PreviewAccountDeleteRoute,
   PreviewBookProviderIdRoute: PreviewBookProviderIdRoute,
   PreviewCategoryIdRoute: PreviewCategoryIdRoute,
   PreviewChatIdRoute: PreviewChatIdRoute,
@@ -2764,6 +2865,7 @@ interface ProRouteChildren {
   ProOnboardingRoute: typeof ProOnboardingRoute
   ProProfileRoute: typeof ProProfileRoute
   ProIndexRoute: typeof ProIndexRoute
+  ProAccountDeleteRoute: typeof ProAccountDeleteRoute
   ProBookingIdRoute: typeof ProBookingIdRoute
   ProSetupItemRoute: typeof ProSetupItemRoute
 }
@@ -2779,6 +2881,7 @@ const ProRouteChildren: ProRouteChildren = {
   ProOnboardingRoute: ProOnboardingRoute,
   ProProfileRoute: ProProfileRoute,
   ProIndexRoute: ProIndexRoute,
+  ProAccountDeleteRoute: ProAccountDeleteRoute,
   ProBookingIdRoute: ProBookingIdRoute,
   ProSetupItemRoute: ProSetupItemRoute,
 }
@@ -2811,6 +2914,7 @@ const rootRouteChildren: RootRouteChildren = {
   SearchRoute: SearchRoute,
   SetupRoute: SetupRoute,
   _qaMonitoringErrorRoute: _qaMonitoringErrorRoute,
+  AccountDeleteRoute: AccountDeleteRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   AuthForgotRoute: AuthForgotRoute,
   AuthSetPasswordRoute: AuthSetPasswordRoute,
@@ -2819,6 +2923,7 @@ const rootRouteChildren: RootRouteChildren = {
   CategoryIdRoute: CategoryIdRoute,
   ContentKeyRoute: ContentKeyRoute,
   ProviderIdRoute: ProviderIdRoute,
+  ApiAccountDeleteRoute: ApiAccountDeleteRoute,
   ApiMobilePaymobCheckoutRoute: ApiMobilePaymobCheckoutRoute,
 }
 export const routeTree = rootRouteImport

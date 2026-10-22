@@ -4508,6 +4508,14 @@ export type Database = {
           expires_at: string | null
         }[]
       }
+      account_deletion_check: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      anonymize_account: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       validate_promo_code: {
         Args: { p_code: string; p_service_id: string; p_subtotal: number }
         Returns: Json
