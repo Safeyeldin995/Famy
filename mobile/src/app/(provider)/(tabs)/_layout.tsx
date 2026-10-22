@@ -10,11 +10,11 @@ import {
   Wallet,
 } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useWindowDimensions } from "react-native";
+import { useWindowDimensions, type TextStyle } from "react-native";
 import { useSession } from "@/lib/session";
 import { ProviderGate } from "@/ui/provider/ProviderGate";
 import { colors, fonts } from "@/ui/theme";
-import { scaledTabBarHeight } from "@/ui/a11y";
+import { COMPACT_FONT_SCALE_CAP, scaledTabBarHeight } from "@/ui/a11y";
 
 export default function ProviderTabs() {
   const { session, ready } = useSession();
@@ -31,7 +31,12 @@ export default function ProviderTabs() {
           headerShown: false,
           tabBarActiveTintColor: colors.brandText,
           tabBarInactiveTintColor: colors.muted,
-          tabBarLabelStyle: { fontFamily: labelFont, fontSize: 11, lineHeight: 18 },
+          tabBarLabelStyle: {
+            fontFamily: labelFont,
+            fontSize: 11,
+            lineHeight: 18,
+            maxFontSizeMultiplier: COMPACT_FONT_SCALE_CAP,
+          } as TextStyle,
           tabBarStyle: {
             borderTopColor: colors.border,
             backgroundColor: colors.surface,

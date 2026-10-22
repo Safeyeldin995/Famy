@@ -213,7 +213,13 @@ function PasswordField({
           placeholderTextColor={colors.muted}
           style={[styles.input, { fontFamily: inputFont }]}
         />
-        <Pressable onPress={onToggle} style={styles.eye} hitSlop={12}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={show ? t("auth.hidePassword") : t("auth.showPassword")}
+          onPress={onToggle}
+          style={styles.eye}
+          hitSlop={12}
+        >
           {show ? (
             <EyeOff size={20} color={colors.muted} />
           ) : (

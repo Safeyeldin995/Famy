@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import { Clock } from "lucide-react-native";
 import { formatOtpExpiryClock, formatOtpSecondsDuration } from "@/lib/auth/otpCountdown";
 import { abandonMobileOtpFlow, fetchMobileOtpContext } from "@/lib/auth/mobileOtpApi";
+import { logAuthFailure } from "@/lib/auth/authDiagnostics";
 import {
   phoneOtpFlowErrorMessage,
   resendPhoneOtpFlow,
@@ -109,6 +110,7 @@ export default function OtpScreen() {
     setLoading(false);
     if (!res.ok) {
       verifyLock.current = false;
+      logAuthFailure("otp_verify", res.error);
       if (res.error === "flow_mismatch") {
         setError(res.nextStep === "signup" ? t("auth.verifyUseSignup") : t("auth.verifyUseSignin"));
         router.replace("/login");
@@ -138,6 +140,7 @@ export default function OtpScreen() {
     const res = await resendPhoneOtpFlow(phoneE164);
     setResending(false);
     if (!res.ok) {
+      logAuthFailure("otp_resend", res.error);
       const msg = phoneOtpFlowErrorMessage(res.error, t, res.retryAfter, res.firebaseAuthCode);
       setError(msg);
       if (res.flowAbandoned) {
@@ -212,7 +215,17 @@ export default function OtpScreen() {
             disabled={code.join("").length !== 6}
           />
 
-          <Pressable onPress={resend} disabled={resendAvailableIn > 0 || resending} hitSlop={12}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              resendAvailableIn > 0
+                ? t("auth.resendIn", { time: formatOtpSecondsDuration(resendAvailableIn, t) })
+                : t("auth.resend")
+            }
+            onPress={resend}
+            disabled={resendAvailableIn > 0 || resending}
+            hitSlop={12}
+          >
             <Text size="sm" weight="heavy" tone={resendAvailableIn > 0 ? "muted" : "brand"}>
               {resendAvailableIn > 0
                 ? t("auth.resendIn", { time: formatOtpSecondsDuration(resendAvailableIn, t) })

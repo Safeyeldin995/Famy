@@ -1,8 +1,9 @@
 import { Stack, Redirect } from "expo-router";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, View, type TextStyle } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useSession } from "@/lib/session";
-import { colors, fonts } from "@/ui/theme";
+import { COMPACT_FONT_SCALE_CAP } from "@/ui/a11y";
+import { colors, fontSize, fonts } from "@/ui/theme";
 
 export default function ProviderStack() {
   const { session, ready } = useSession();
@@ -21,8 +22,10 @@ export default function ProviderStack() {
         headerStyle: { backgroundColor: colors.background },
         headerTitleStyle: {
           fontFamily: (i18n.language === "ar" ? fonts.ar : fonts.en).bold,
+          fontSize: fontSize.xl,
+          maxFontSizeMultiplier: COMPACT_FONT_SCALE_CAP,
           color: colors.brandText,
-        },
+        } as TextStyle,
         headerBackTitle: t("common.back"),
         contentStyle: { backgroundColor: colors.background },
       }}

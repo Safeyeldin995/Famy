@@ -1,5 +1,6 @@
 import { Text as RNText, type TextProps, type TextStyle } from "react-native";
 import { useTranslation } from "react-i18next";
+import { maxFontSizeMultiplierForText } from "./a11y";
 import { colors, fonts, fontSize } from "./theme";
 
 type Weight = "regular" | "bold" | "heavy";
@@ -31,5 +32,12 @@ export function Text({
     color: toneColor[tone],
     textAlign: "auto",
   };
-  return <RNText {...rest} allowFontScaling style={[base, style]} />;
+  return (
+    <RNText
+      {...rest}
+      allowFontScaling
+      maxFontSizeMultiplier={maxFontSizeMultiplierForText({ size, weight })}
+      style={[base, style]}
+    />
+  );
 }

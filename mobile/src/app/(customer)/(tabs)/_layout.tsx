@@ -4,9 +4,9 @@ import { useTranslation } from "react-i18next";
 import { Calendar, Home, MessageCircle, User } from "lucide-react-native";
 import { useSession } from "@/lib/session";
 import { colors, fonts } from "@/ui/theme";
-import { scaledTabBarHeight } from "@/ui/a11y";
+import { COMPACT_FONT_SCALE_CAP, scaledTabBarHeight } from "@/ui/a11y";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useWindowDimensions } from "react-native";
+import { useWindowDimensions, type TextStyle } from "react-native";
 
 export default function CustomerTabs() {
   const { session, ready } = useSession();
@@ -22,7 +22,12 @@ export default function CustomerTabs() {
         headerShown: false,
         tabBarActiveTintColor: colors.brandText,
         tabBarInactiveTintColor: colors.muted,
-        tabBarLabelStyle: { fontFamily: labelFont, fontSize: 12, lineHeight: 22 },
+        tabBarLabelStyle: {
+          fontFamily: labelFont,
+          fontSize: 12,
+          lineHeight: 22,
+          maxFontSizeMultiplier: COMPACT_FONT_SCALE_CAP,
+        } as TextStyle,
         tabBarStyle: {
           borderTopColor: colors.border,
           backgroundColor: colors.surface,

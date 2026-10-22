@@ -28,7 +28,9 @@ import {
   signInWithAppleNative,
   signInWithMobileOAuthBrowser,
 } from "@/lib/auth/oauth";
+import { logAuthFailure } from "@/lib/auth/authDiagnostics";
 import { resolveWorkspace } from "@/lib/session";
+import { bodyTextInputProps } from "@/ui/a11y";
 import { Button } from "@/ui/Button";
 import { Segmented } from "@/ui/Segmented";
 import { Text } from "@/ui/Text";
@@ -64,12 +66,14 @@ export default function Login() {
     });
     if (authError || !data.user) {
       setLoading(false);
+      logAuthFailure("sign_in", authError?.code ?? (authError ? "sign_in_failed" : "no_user"));
       setError(t("auth.invalidCredentials"));
       return;
     }
     const { workspace, roles } = await resolveWorkspace(data.user.id);
     setLoading(false);
     if (role === "provider" && !roles.includes("provider")) {
+      logAuthFailure("sign_in", "no_provider_role");
       setError(t("auth.noProviderAccount"));
       return;
     }
@@ -106,7 +110,10 @@ export default function Login() {
       await finishOAuth();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "";
-      if (msg !== "OAUTH_CANCELLED") setError(t("oauth.failedBody"));
+      if (msg !== "OAUTH_CANCELLED") {
+        logAuthFailure("oauth", msg || "oauth_failed");
+        setError(t("oauth.failedBody"));
+      }
     } finally {
       setOauthLoading(null);
     }
@@ -170,6 +177,7 @@ export default function Login() {
                 <Text weight="heavy">🇪🇬 +20</Text>
               </View>
               <TextInput
+                {...bodyTextInputProps()}
                 value={phone}
                 onChangeText={(v) => setPhone(v.replace(/[^\d٠-٩ ]/g, ""))}
                 placeholder={t("auth.phonePlaceholder")}
@@ -196,6 +204,7 @@ export default function Login() {
               </View>
               <View style={styles.field}>
                 <TextInput
+                  {...bodyTextInputProps()}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPw}
@@ -249,6 +258,7 @@ export default function Login() {
                 const send = await startPhoneOtpFlow(e164, "signup", role);
                 setLoading(false);
                 if (!send.ok) {
+                  logAuthFailure("signup_send", send.error);
                   setError(
                     phoneOtpFlowErrorMessage(send.error, t, send.retryAfter, send.firebaseAuthCode),
                   );

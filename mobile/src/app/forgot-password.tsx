@@ -11,7 +11,9 @@ import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { normalizeDigitsToWestern, normalizePhoneE164 } from "@shared/otp/normalizePhone";
+import { logAuthFailure } from "@/lib/auth/authDiagnostics";
 import { phoneOtpFlowErrorMessage, startPhoneOtpFlow } from "@/lib/auth/phoneOtpFlow";
+import { bodyTextInputProps } from "@/ui/a11y";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { colors, fonts, radius, space } from "@/ui/theme";
@@ -32,6 +34,7 @@ export default function ForgotPassword() {
     const send = await startPhoneOtpFlow(e164, "reset");
     setLoading(false);
     if (!send.ok) {
+      logAuthFailure("reset_send", send.error);
       setError(phoneOtpFlowErrorMessage(send.error, t, send.retryAfter, send.firebaseAuthCode));
       return;
     }
@@ -59,6 +62,7 @@ export default function ForgotPassword() {
                 <Text weight="heavy">🇪🇬 +20</Text>
               </View>
               <TextInput
+                {...bodyTextInputProps()}
                 value={phone}
                 onChangeText={(v) => setPhone(v.replace(/[^\d٠-٩ ]/g, ""))}
                 placeholder={t("auth.phonePlaceholder")}

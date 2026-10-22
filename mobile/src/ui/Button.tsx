@@ -46,7 +46,7 @@ export function Button({
         <View style={styles.row}>
           {icon}
           <Text
-            size={variant === "primary" ? "xxl" : "lg"}
+            size={variant === "primary" ? "button" : "md"}
             weight="heavy"
             tone={variant === "primary" ? "inverse" : variant === "ghost" ? "brand" : "default"}
           >
