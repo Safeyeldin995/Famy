@@ -46,7 +46,7 @@ describe("findUserIdByPhone", () => {
 
   it("returns the user id from the auth_user_id_for_phone RPC", async () => {
     rpc.mockResolvedValue({ data: "11111111-1111-1111-1111-111111111111", error: null });
-    const { findUserIdByPhone } = await import("@/lib/otp.functions");
+    const { findUserIdByPhone } = await import("@/lib/otp/otpHandlers.server");
 
     await expect(findUserIdByPhone("+201012345678")).resolves.toBe(
       "11111111-1111-1111-1111-111111111111",
@@ -61,7 +61,7 @@ describe("findUserIdByPhone", () => {
 
   it("returns null when the RPC finds no user", async () => {
     rpc.mockResolvedValue({ data: null, error: null });
-    const { findUserIdByPhone } = await import("@/lib/otp.functions");
+    const { findUserIdByPhone } = await import("@/lib/otp/otpHandlers.server");
 
     await expect(findUserIdByPhone("+201099988877")).resolves.toBeNull();
     expect(rpc).toHaveBeenCalledWith("auth_user_id_for_phone", {
@@ -74,7 +74,7 @@ describe("findUserIdByPhone", () => {
   it("finds a user via RPC even when they would sit past the old 1,000-user listUsers window", async () => {
     listUsers.mockResolvedValue({ data: { users: [] }, error: null });
     rpc.mockResolvedValue({ data: "user-beyond-1000", error: null });
-    const { findUserIdByPhone } = await import("@/lib/otp.functions");
+    const { findUserIdByPhone } = await import("@/lib/otp/otpHandlers.server");
 
     await expect(findUserIdByPhone("+201055500001")).resolves.toBe("user-beyond-1000");
     expect(rpc).toHaveBeenCalledWith("auth_user_id_for_phone", {

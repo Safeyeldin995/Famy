@@ -139,6 +139,14 @@ import { Route as PreviewProviderIdRouteImport } from './routes/preview.provider
 import { Route as ProAccountDeleteRouteImport } from './routes/pro.account.delete'
 import { Route as ProBookingIdRouteImport } from './routes/pro.booking.$id'
 import { Route as ProSetupItemRouteImport } from './routes/pro.setup.$item'
+import { Route as ApiMobileAuthCompletePasswordRouteImport } from './routes/api.mobile.auth.complete-password'
+import { Route as ApiMobileAuthSetPasswordContextRouteImport } from './routes/api.mobile.auth.set-password-context'
+import { Route as ApiMobileOtpAbandonRouteImport } from './routes/api.mobile.otp.abandon'
+import { Route as ApiMobileOtpConfirmFirebaseRouteImport } from './routes/api.mobile.otp.confirm-firebase'
+import { Route as ApiMobileOtpContextRouteImport } from './routes/api.mobile.otp.context'
+import { Route as ApiMobileOtpResendRouteImport } from './routes/api.mobile.otp.resend'
+import { Route as ApiMobileOtpSendRouteImport } from './routes/api.mobile.otp.send'
+import { Route as ApiMobileOtpVerifyRouteImport } from './routes/api.mobile.otp.verify'
 import { Route as PreviewAdminCustomerIdRouteImport } from './routes/preview.admin.customer.$id'
 import { Route as PreviewAdminProviderIdRouteImport } from './routes/preview.admin.provider.$id'
 import { Route as PreviewProAccountDeleteRouteImport } from './routes/preview.pro.account.delete'
@@ -801,6 +809,49 @@ const ProSetupItemRoute = ProSetupItemRouteImport.update({
   path: '/setup/$item',
   getParentRoute: () => ProRoute,
 } as any)
+const ApiMobileAuthCompletePasswordRoute =
+  ApiMobileAuthCompletePasswordRouteImport.update({
+    id: '/api/mobile/auth/complete-password',
+    path: '/api/mobile/auth/complete-password',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiMobileAuthSetPasswordContextRoute =
+  ApiMobileAuthSetPasswordContextRouteImport.update({
+    id: '/api/mobile/auth/set-password-context',
+    path: '/api/mobile/auth/set-password-context',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiMobileOtpAbandonRoute = ApiMobileOtpAbandonRouteImport.update({
+  id: '/api/mobile/otp/abandon',
+  path: '/api/mobile/otp/abandon',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMobileOtpConfirmFirebaseRoute =
+  ApiMobileOtpConfirmFirebaseRouteImport.update({
+    id: '/api/mobile/otp/confirm-firebase',
+    path: '/api/mobile/otp/confirm-firebase',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiMobileOtpContextRoute = ApiMobileOtpContextRouteImport.update({
+  id: '/api/mobile/otp/context',
+  path: '/api/mobile/otp/context',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMobileOtpResendRoute = ApiMobileOtpResendRouteImport.update({
+  id: '/api/mobile/otp/resend',
+  path: '/api/mobile/otp/resend',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMobileOtpSendRoute = ApiMobileOtpSendRouteImport.update({
+  id: '/api/mobile/otp/send',
+  path: '/api/mobile/otp/send',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMobileOtpVerifyRoute = ApiMobileOtpVerifyRouteImport.update({
+  id: '/api/mobile/otp/verify',
+  path: '/api/mobile/otp/verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PreviewAdminCustomerIdRoute = PreviewAdminCustomerIdRouteImport.update({
   id: '/customer/$id',
   path: '/customer/$id',
@@ -958,6 +1009,14 @@ export interface FileRoutesByFullPath {
   '/preview/addresses/': typeof PreviewAddressesIndexRoute
   '/preview/admin/': typeof PreviewAdminIndexRoute
   '/preview/pro/': typeof PreviewProIndexRoute
+  '/api/mobile/auth/complete-password': typeof ApiMobileAuthCompletePasswordRoute
+  '/api/mobile/auth/set-password-context': typeof ApiMobileAuthSetPasswordContextRoute
+  '/api/mobile/otp/abandon': typeof ApiMobileOtpAbandonRoute
+  '/api/mobile/otp/confirm-firebase': typeof ApiMobileOtpConfirmFirebaseRoute
+  '/api/mobile/otp/context': typeof ApiMobileOtpContextRoute
+  '/api/mobile/otp/resend': typeof ApiMobileOtpResendRoute
+  '/api/mobile/otp/send': typeof ApiMobileOtpSendRoute
+  '/api/mobile/otp/verify': typeof ApiMobileOtpVerifyRoute
   '/preview/admin/customer/$id': typeof PreviewAdminCustomerIdRoute
   '/preview/admin/provider/$id': typeof PreviewAdminProviderIdRoute
   '/preview/pro/account/delete': typeof PreviewProAccountDeleteRoute
@@ -1087,6 +1146,14 @@ export interface FileRoutesByTo {
   '/preview/addresses': typeof PreviewAddressesIndexRoute
   '/preview/admin': typeof PreviewAdminIndexRoute
   '/preview/pro': typeof PreviewProIndexRoute
+  '/api/mobile/auth/complete-password': typeof ApiMobileAuthCompletePasswordRoute
+  '/api/mobile/auth/set-password-context': typeof ApiMobileAuthSetPasswordContextRoute
+  '/api/mobile/otp/abandon': typeof ApiMobileOtpAbandonRoute
+  '/api/mobile/otp/confirm-firebase': typeof ApiMobileOtpConfirmFirebaseRoute
+  '/api/mobile/otp/context': typeof ApiMobileOtpContextRoute
+  '/api/mobile/otp/resend': typeof ApiMobileOtpResendRoute
+  '/api/mobile/otp/send': typeof ApiMobileOtpSendRoute
+  '/api/mobile/otp/verify': typeof ApiMobileOtpVerifyRoute
   '/preview/admin/customer/$id': typeof PreviewAdminCustomerIdRoute
   '/preview/admin/provider/$id': typeof PreviewAdminProviderIdRoute
   '/preview/pro/account/delete': typeof PreviewProAccountDeleteRoute
@@ -1225,6 +1292,14 @@ export interface FileRoutesById {
   '/preview/addresses/': typeof PreviewAddressesIndexRoute
   '/preview/admin/': typeof PreviewAdminIndexRoute
   '/preview/pro/': typeof PreviewProIndexRoute
+  '/api/mobile/auth/complete-password': typeof ApiMobileAuthCompletePasswordRoute
+  '/api/mobile/auth/set-password-context': typeof ApiMobileAuthSetPasswordContextRoute
+  '/api/mobile/otp/abandon': typeof ApiMobileOtpAbandonRoute
+  '/api/mobile/otp/confirm-firebase': typeof ApiMobileOtpConfirmFirebaseRoute
+  '/api/mobile/otp/context': typeof ApiMobileOtpContextRoute
+  '/api/mobile/otp/resend': typeof ApiMobileOtpResendRoute
+  '/api/mobile/otp/send': typeof ApiMobileOtpSendRoute
+  '/api/mobile/otp/verify': typeof ApiMobileOtpVerifyRoute
   '/preview/admin/customer/$id': typeof PreviewAdminCustomerIdRoute
   '/preview/admin/provider/$id': typeof PreviewAdminProviderIdRoute
   '/preview/pro/account/delete': typeof PreviewProAccountDeleteRoute
@@ -1364,6 +1439,14 @@ export interface FileRouteTypes {
     | '/preview/addresses/'
     | '/preview/admin/'
     | '/preview/pro/'
+    | '/api/mobile/auth/complete-password'
+    | '/api/mobile/auth/set-password-context'
+    | '/api/mobile/otp/abandon'
+    | '/api/mobile/otp/confirm-firebase'
+    | '/api/mobile/otp/context'
+    | '/api/mobile/otp/resend'
+    | '/api/mobile/otp/send'
+    | '/api/mobile/otp/verify'
     | '/preview/admin/customer/$id'
     | '/preview/admin/provider/$id'
     | '/preview/pro/account/delete'
@@ -1493,6 +1576,14 @@ export interface FileRouteTypes {
     | '/preview/addresses'
     | '/preview/admin'
     | '/preview/pro'
+    | '/api/mobile/auth/complete-password'
+    | '/api/mobile/auth/set-password-context'
+    | '/api/mobile/otp/abandon'
+    | '/api/mobile/otp/confirm-firebase'
+    | '/api/mobile/otp/context'
+    | '/api/mobile/otp/resend'
+    | '/api/mobile/otp/send'
+    | '/api/mobile/otp/verify'
     | '/preview/admin/customer/$id'
     | '/preview/admin/provider/$id'
     | '/preview/pro/account/delete'
@@ -1630,6 +1721,14 @@ export interface FileRouteTypes {
     | '/preview/addresses/'
     | '/preview/admin/'
     | '/preview/pro/'
+    | '/api/mobile/auth/complete-password'
+    | '/api/mobile/auth/set-password-context'
+    | '/api/mobile/otp/abandon'
+    | '/api/mobile/otp/confirm-firebase'
+    | '/api/mobile/otp/context'
+    | '/api/mobile/otp/resend'
+    | '/api/mobile/otp/send'
+    | '/api/mobile/otp/verify'
     | '/preview/admin/customer/$id'
     | '/preview/admin/provider/$id'
     | '/preview/pro/account/delete'
@@ -1674,6 +1773,14 @@ export interface RootRouteChildren {
   ProviderIdRoute: typeof ProviderIdRoute
   ApiAccountDeleteRoute: typeof ApiAccountDeleteRoute
   ApiMobilePaymobCheckoutRoute: typeof ApiMobilePaymobCheckoutRoute
+  ApiMobileAuthCompletePasswordRoute: typeof ApiMobileAuthCompletePasswordRoute
+  ApiMobileAuthSetPasswordContextRoute: typeof ApiMobileAuthSetPasswordContextRoute
+  ApiMobileOtpAbandonRoute: typeof ApiMobileOtpAbandonRoute
+  ApiMobileOtpConfirmFirebaseRoute: typeof ApiMobileOtpConfirmFirebaseRoute
+  ApiMobileOtpContextRoute: typeof ApiMobileOtpContextRoute
+  ApiMobileOtpResendRoute: typeof ApiMobileOtpResendRoute
+  ApiMobileOtpSendRoute: typeof ApiMobileOtpSendRoute
+  ApiMobileOtpVerifyRoute: typeof ApiMobileOtpVerifyRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -2588,6 +2695,62 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProSetupItemRouteImport
       parentRoute: typeof ProRoute
     }
+    '/api/mobile/auth/complete-password': {
+      id: '/api/mobile/auth/complete-password'
+      path: '/api/mobile/auth/complete-password'
+      fullPath: '/api/mobile/auth/complete-password'
+      preLoaderRoute: typeof ApiMobileAuthCompletePasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/auth/set-password-context': {
+      id: '/api/mobile/auth/set-password-context'
+      path: '/api/mobile/auth/set-password-context'
+      fullPath: '/api/mobile/auth/set-password-context'
+      preLoaderRoute: typeof ApiMobileAuthSetPasswordContextRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/otp/abandon': {
+      id: '/api/mobile/otp/abandon'
+      path: '/api/mobile/otp/abandon'
+      fullPath: '/api/mobile/otp/abandon'
+      preLoaderRoute: typeof ApiMobileOtpAbandonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/otp/confirm-firebase': {
+      id: '/api/mobile/otp/confirm-firebase'
+      path: '/api/mobile/otp/confirm-firebase'
+      fullPath: '/api/mobile/otp/confirm-firebase'
+      preLoaderRoute: typeof ApiMobileOtpConfirmFirebaseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/otp/context': {
+      id: '/api/mobile/otp/context'
+      path: '/api/mobile/otp/context'
+      fullPath: '/api/mobile/otp/context'
+      preLoaderRoute: typeof ApiMobileOtpContextRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/otp/resend': {
+      id: '/api/mobile/otp/resend'
+      path: '/api/mobile/otp/resend'
+      fullPath: '/api/mobile/otp/resend'
+      preLoaderRoute: typeof ApiMobileOtpResendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/otp/send': {
+      id: '/api/mobile/otp/send'
+      path: '/api/mobile/otp/send'
+      fullPath: '/api/mobile/otp/send'
+      preLoaderRoute: typeof ApiMobileOtpSendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/otp/verify': {
+      id: '/api/mobile/otp/verify'
+      path: '/api/mobile/otp/verify'
+      fullPath: '/api/mobile/otp/verify'
+      preLoaderRoute: typeof ApiMobileOtpVerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/preview/admin/customer/$id': {
       id: '/preview/admin/customer/$id'
       path: '/customer/$id'
@@ -2946,6 +3109,14 @@ const rootRouteChildren: RootRouteChildren = {
   ProviderIdRoute: ProviderIdRoute,
   ApiAccountDeleteRoute: ApiAccountDeleteRoute,
   ApiMobilePaymobCheckoutRoute: ApiMobilePaymobCheckoutRoute,
+  ApiMobileAuthCompletePasswordRoute: ApiMobileAuthCompletePasswordRoute,
+  ApiMobileAuthSetPasswordContextRoute: ApiMobileAuthSetPasswordContextRoute,
+  ApiMobileOtpAbandonRoute: ApiMobileOtpAbandonRoute,
+  ApiMobileOtpConfirmFirebaseRoute: ApiMobileOtpConfirmFirebaseRoute,
+  ApiMobileOtpContextRoute: ApiMobileOtpContextRoute,
+  ApiMobileOtpResendRoute: ApiMobileOtpResendRoute,
+  ApiMobileOtpSendRoute: ApiMobileOtpSendRoute,
+  ApiMobileOtpVerifyRoute: ApiMobileOtpVerifyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
