@@ -41,14 +41,40 @@ function SetPassword() {
   const submitLock = useRef(false);
   const nav = useNavigate();
   const { t } = useTranslation();
+  const [sessionReady, setSessionReady] = useState<boolean | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) {
-        nav({ to: "/login", replace: true });
-      }
+    let cancelled = false;
+    let resolved = false;
+    const finish = (hasSession: boolean) => {
+      if (cancelled || resolved) return;
+      resolved = true;
+      if (hasSession) setSessionReady(true);
+      else nav({ to: "/login", replace: true });
+    };
+    void supabase.auth.getSession().then(({ data }) => {
+      if (data.session) finish(true);
     });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) finish(true);
+    });
+    const timer = window.setTimeout(() => finish(false), 4000);
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+      window.clearTimeout(timer);
+    };
   }, [nav]);
+
+  if (sessionReady === null) {
+    return (
+      <PhoneFrame bg="bg-background">
+        <p role="status" className="p-8 text-center text-sm font-semibold text-muted-foreground">
+          {t("common.loading")}
+        </p>
+      </PhoneFrame>
+    );
+  }
 
   const longEnough = pw.length >= 8;
   const matches = pw.length > 0 && pw === confirmPw;

@@ -1287,7 +1287,13 @@ export function ProviderOnboardingFlow({ previewMode = false, initialSection }: 
                   uploadDoc.isPending))
             }
           >
-            {deferred ? t("common.save") : current === "review" ? t("pro.onboardingWizard.submit") : t("common.continue")}
+            {saveSection.isPending || savingPrices
+              ? t("pro.common.saving")
+              : deferred
+                ? t("common.save")
+                : current === "review"
+                  ? t("pro.onboardingWizard.submit")
+                  : t("common.continue")}
           </PrimaryButton>
         </div>
       </div>
