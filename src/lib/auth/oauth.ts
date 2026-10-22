@@ -1,10 +1,19 @@
 import { supabase } from "@/integrations/supabase/client";
+import { oauthRedirectUrl, parseOAuthProviders, type OAuthProvider } from "@/lib/auth/oauthShared";
 
-export type OAuthProvider = "google";
+export type { OAuthProvider } from "@/lib/auth/oauthShared";
+export {
+  contactPhoneErrorKey,
+  mobileOAuthRedirectUrl,
+  oauthRedirectUrl,
+  parseOAuthProviders,
+  resolvePostOAuthNavigationTarget,
+  isOAuthProvider,
+} from "@/lib/auth/oauthShared";
 
-/** Where the provider sends the user back after consent. */
-export function oauthRedirectUrl(origin: string) {
-  return `${origin}/auth/callback`;
+/** Web: which OAuth buttons to show (default none until configured in the dashboard). */
+export function enabledWebOAuthProviders(): OAuthProvider[] {
+  return parseOAuthProviders(import.meta.env.VITE_OAUTH_PROVIDERS);
 }
 
 /**
@@ -16,12 +25,4 @@ export async function signInWithOAuthProvider(provider: OAuthProvider) {
     provider,
     options: { redirectTo: oauthRedirectUrl(window.location.origin) },
   });
-}
-
-/** Maps set_my_contact_phone errors to i18n keys. */
-export function contactPhoneErrorKey(message: string | undefined) {
-  if (!message) return "oauth.phoneSaveFailed";
-  if (message.includes("PHONE_TAKEN")) return "oauth.phoneTaken";
-  if (message.includes("INVALID_PHONE")) return "oauth.phoneInvalid";
-  return "oauth.phoneSaveFailed";
 }

@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { PhoneFrame, PrimaryButton } from "@/components/famio/ui";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveRoleLandingForCurrentUser } from "@/lib/auth/landing";
+import { resolvePostOAuthNavigationTarget } from "@/lib/auth/oauth";
 
 export const Route = createFileRoute("/auth/callback")({ component: OAuthCallback });
 
@@ -40,13 +41,13 @@ function OAuthCallback() {
         .eq("id", data.session.user.id)
         .maybeSingle();
       if (cancelled) return;
-      // A Google account has no phone yet; providers need one to reach the customer.
-      if (!profile?.phone || !profile.full_name) {
-        nav({ to: "/setup", replace: true });
-        return;
-      }
       const landing = await resolveRoleLandingForCurrentUser();
-      if (!cancelled) nav({ to: landing?.landing ?? "/home", replace: true });
+      const target = resolvePostOAuthNavigationTarget({
+        profilePhone: profile?.phone,
+        profileFullName: profile?.full_name,
+        landingPath: landing?.landing ?? "/home",
+      });
+      if (!cancelled) nav({ to: target, replace: true });
     })().catch(() => {
       if (!cancelled) setFailed(true);
     });

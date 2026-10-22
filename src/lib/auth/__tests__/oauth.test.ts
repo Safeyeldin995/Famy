@@ -6,19 +6,60 @@ vi.mock("@/integrations/supabase/client", () => ({
   supabase: { auth: { signInWithOAuth } },
 }));
 
-import { contactPhoneErrorKey, oauthRedirectUrl, signInWithOAuthProvider } from "../oauth";
+import {
+  contactPhoneErrorKey,
+  enabledWebOAuthProviders,
+  mobileOAuthRedirectUrl,
+  oauthRedirectUrl,
+  parseOAuthProviders,
+  resolvePostOAuthNavigationTarget,
+  signInWithOAuthProvider,
+} from "../oauth";
 import { oauthErrorInUrl } from "@/routes/auth.callback";
 
-describe("Google sign-in", () => {
+describe("OAuth providers", () => {
+  it("parses a comma-separated provider list", () => {
+    expect(parseOAuthProviders("")).toEqual([]);
+    expect(parseOAuthProviders("google, apple")).toEqual(["google", "apple"]);
+    expect(parseOAuthProviders("google,unknown,apple,google")).toEqual(["google", "apple"]);
+  });
+
   it("returns users to the app's own callback route", async () => {
     expect(oauthRedirectUrl("https://famy-chi.vercel.app")).toBe(
       "https://famy-chi.vercel.app/auth/callback",
     );
+    expect(mobileOAuthRedirectUrl("famy")).toBe("famy://auth/callback");
     await signInWithOAuthProvider("google");
     expect(signInWithOAuth).toHaveBeenCalledWith({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
+    await signInWithOAuthProvider("apple");
+    expect(signInWithOAuth).toHaveBeenCalledWith({
+      provider: "apple",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+  });
+
+  it("routes incomplete OAuth profiles to setup", () => {
+    expect(
+      resolvePostOAuthNavigationTarget({
+        profilePhone: null,
+        profileFullName: "Sam",
+        landingPath: "/home",
+      }),
+    ).toBe("/setup");
+    expect(
+      resolvePostOAuthNavigationTarget({
+        profilePhone: "+201012345678",
+        profileFullName: "Sam",
+        landingPath: "/home",
+      }),
+    ).toBe("/home");
+  });
+
+  it("defaults web providers to none when unset", () => {
+    expect(enabledWebOAuthProviders()).toEqual([]);
   });
 
   it("detects a provider error in the query or the hash", () => {
