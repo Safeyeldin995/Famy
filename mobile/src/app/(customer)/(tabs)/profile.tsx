@@ -76,7 +76,7 @@ export default function Profile() {
           }}
         />
       </View>
-      <Row label={t("customerRound2.deleteHelp")} href="/help" />
+      <Row label={t("accountDeletion.menuLabel")} href="/delete-account" />
     </Page>
   );
 }

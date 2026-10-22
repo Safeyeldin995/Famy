@@ -587,6 +587,12 @@ function ProProfile() {
         >
           <LogOut className="h-4 w-4" /> {t("pro.profile.signOut")}
         </button>
+        <Link
+          to={proPath("/pro/account/delete")}
+          className="apply-li w-full text-destructive"
+        >
+          {t("accountDeletion.menuLabel")}
+        </Link>
         </div>
       </main>
     </ProviderShell>

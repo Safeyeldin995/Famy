@@ -180,10 +180,10 @@ function Profile() {
             {t("profile.logout")}
           </SecondaryButton>
           <Link
-            to={previewPath("/help")}
-            className="focus-ring flex min-h-11 w-full items-center justify-center py-3 text-pro-12 font-semibold text-muted-foreground"
+            to={previewPath("/account/delete")}
+            className="focus-ring flex min-h-11 w-full items-center justify-center py-3 text-pro-12 font-semibold text-destructive"
           >
-            {t("customerRound2.deleteHelp")}
+            {t("accountDeletion.menuLabel")}
           </Link>
         </div>
       </div>
