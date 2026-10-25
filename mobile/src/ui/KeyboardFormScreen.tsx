@@ -1,12 +1,12 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import { SafeAreaView, useSafeAreaInsets, type Edge } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView, KeyboardStickyView } from "react-native-keyboard-controller";
 import {
-  KEYBOARD_FOCUS_GAP,
-  KEYBOARD_PRIMARY_INLINE_OFFSET,
-  KEYBOARD_PRIMARY_STICKY_RESERVE,
-} from "./keyboardFormConstants";
+  keyboardInlineBottomOffset,
+  keyboardStickyBottomOffset,
+  keyboardStickyScrollPaddingBottom,
+} from "./keyboardFormLayout";
 import { colors, space } from "./theme";
 
 type Props = {
@@ -27,24 +27,37 @@ export function KeyboardFormScreen({
 }: Props) {
   const insets = useSafeAreaInsets();
   const safeBottom = Math.max(insets.bottom, space.md);
+  const [footerHeight, setFooterHeight] = useState(0);
+
+  const stickyScrollPadding = footer ? keyboardStickyScrollPaddingBottom(footerHeight) : 0;
 
   return (
     <SafeAreaView style={[styles.safe, style]} edges={footer ? ["top"] : edges}>
       <KeyboardAwareScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.content, contentContainerStyle]}
+        contentContainerStyle={[
+          styles.content,
+          contentContainerStyle,
+          footer ? { paddingBottom: stickyScrollPadding } : null,
+        ]}
         keyboardShouldPersistTaps="handled"
         bottomOffset={
-          footer
-            ? KEYBOARD_FOCUS_GAP + KEYBOARD_PRIMARY_STICKY_RESERVE
-            : KEYBOARD_PRIMARY_INLINE_OFFSET
+          footer ? keyboardStickyBottomOffset(footerHeight) : keyboardInlineBottomOffset()
         }
       >
         {children}
       </KeyboardAwareScrollView>
       {footer ? (
         <KeyboardStickyView offset={{ closed: 0, opened: 0 }}>
-          <View style={[styles.footer, { paddingBottom: safeBottom }]}>{footer}</View>
+          <View
+            style={[styles.footer, { paddingBottom: safeBottom }]}
+            onLayout={(e) => {
+              const next = Math.ceil(e.nativeEvent.layout.height);
+              setFooterHeight((prev) => (prev === next ? prev : next));
+            }}
+          >
+            {footer}
+          </View>
         </KeyboardStickyView>
       ) : null}
     </SafeAreaView>
