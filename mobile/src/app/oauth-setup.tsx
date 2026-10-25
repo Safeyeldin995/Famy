@@ -1,18 +1,12 @@
 import { useEffect, useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from "react-native";
+import { StyleSheet, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { contactPhoneErrorKey } from "@shared/auth/oauthShared";
 import { normalizeDigitsToWestern } from "@shared/otp/normalizePhone";
 import { supabase } from "@/lib/supabase";
+import { KeyboardFormScreen } from "@/ui/KeyboardFormScreen";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { colors, fonts, radius, space } from "@/ui/theme";
@@ -102,12 +96,7 @@ export default function OAuthSetupScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <KeyboardFormScreen contentContainerStyle={styles.content}>
           <Text size="hero" weight="heavy">
             {t("setup.title")}
           </Text>
@@ -163,9 +152,7 @@ export default function OAuthSetupScreen() {
             loading={loading}
             disabled={!valid}
           />
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    </KeyboardFormScreen>
   );
 }
 

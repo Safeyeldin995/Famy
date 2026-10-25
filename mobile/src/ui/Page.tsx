@@ -3,13 +3,13 @@ import {
   ActivityIndicator,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   TextInput,
   View,
   type TextInputProps,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { Stack, router, type Href } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ChevronLeft, ChevronRight, Check, Inbox, CircleAlert } from "lucide-react-native";
@@ -40,10 +40,11 @@ export function Page({
       edges={tab ? ["top"] : ["bottom"]}
     >
       {!tab && <Stack.Screen options={{ title }} />}
-      <ScrollView
+      <KeyboardAwareScrollView
         style={{ flex: 1 }}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={ui.content}
+        bottomOffset={24}
         refreshControl={
           queries.length ? (
             <RefreshControl
@@ -68,7 +69,7 @@ export function Page({
           </Text>
         )}
         {children}
-      </ScrollView>
+      </KeyboardAwareScrollView>
       {footer && <View style={ui.footer}>{footer}</View>}
     </SafeAreaView>
   );

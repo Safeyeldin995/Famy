@@ -12,9 +12,16 @@ import {
 } from "./mobileOtpApi";
 import {
   confirmNativeFirebasePhoneOtp,
+  getNativeFirebasePhoneVerificationIdToken,
+  hasNativeFirebasePhoneSession,
+  mapNativeFirebaseConfirmError,
   resetNativeFirebasePhoneSession,
   sendNativeFirebasePhoneOtp,
+  type FirebasePhoneErrorCode,
 } from "./firebasePhone";
+import { forgetOtpFlowPhone, rememberOtpFlowPhone } from "./mobileOtpFlowPhone";
+import { logAuthFailure } from "@/lib/auth/authDiagnostics";
+import { firebaseSendFailureMessage } from "@shared/auth/firebaseSendFailureMessage";
 
 export type PhoneOtpFlowError =
   | "send_failed"
@@ -57,11 +64,7 @@ export function phoneOtpFlowErrorMessage(
 ): string {
   switch (error) {
     case "firebase_send_failed":
-      if (firebaseAuthCode === "auth/too-many-requests") return t("auth.firebaseSendTooManyRequests");
-      if (firebaseAuthCode === "auth/quota-exceeded") return t("auth.firebaseSendQuotaExceeded");
-      if (firebaseAuthCode === "auth/invalid-phone-number") return t("validation.invalidPhone");
-      if (firebaseAuthCode === "unavailable") return t("auth.firebaseStartFailed");
-      return t("auth.firebaseSendFailed");
+      return firebaseSendFailureMessage(t, firebaseAuthCode);
     case "firebase_start_failed":
       return t("auth.firebaseStartFailed");
     case "firebase_session_lost":
@@ -83,11 +86,20 @@ export function phoneOtpFlowErrorMessage(
 async function afterFirebaseNativeSend(): Promise<StartPhoneOtpResult> {
   const confirm = await confirmMobileFirebaseOtpSent();
   if (confirm.ok && confirm.data && typeof confirm.data === "object" && (confirm.data as { ok?: boolean }).ok) {
-    return { ok: true };
+    return { ok: true, delivery: "firebase" };
   }
   await abandonMobileOtpFlow();
   resetNativeFirebasePhoneSession();
+  await forgetOtpFlowPhone();
   return { ok: false, error: "firebase_send_failed", flowAbandoned: true, intentCleared: true };
+}
+
+async function finalizeFirebaseNativeSend(
+  data: { retryAfter?: number },
+): Promise<StartPhoneOtpResult> {
+  const confirmed = await afterFirebaseNativeSend();
+  if (!confirmed.ok) return confirmed;
+  return { ok: true, retryAfter: data.retryAfter, delivery: "firebase" };
 }
 
 export async function startPhoneOtpFlow(
@@ -120,6 +132,7 @@ export async function startPhoneOtpFlow(
     const native = await sendNativeFirebasePhoneOtp(phoneE164);
     if (!native.ok) {
       await abandonMobileOtpFlow();
+      await forgetOtpFlowPhone();
       return {
         ok: false,
         error: native.code === "unavailable" ? "firebase_start_failed" : "firebase_send_failed",
@@ -128,13 +141,13 @@ export async function startPhoneOtpFlow(
         intentCleared: true,
       };
     }
-    const confirmed = await afterFirebaseNativeSend();
-    if (!confirmed.ok) {
-      return confirmed;
-    }
-    return { ok: true, retryAfter: data.retryAfter, delivery: "firebase" };
+    const confirmed = await finalizeFirebaseNativeSend(data);
+    if (!confirmed.ok) return confirmed;
+    await rememberOtpFlowPhone(phoneE164);
+    return confirmed;
   }
 
+  await rememberOtpFlowPhone(phoneE164);
   return { ok: true, retryAfter: data.retryAfter, delivery: "server" };
 }
 
@@ -165,6 +178,7 @@ export async function resendPhoneOtpFlow(phoneE164: string): Promise<StartPhoneO
     const native = await sendNativeFirebasePhoneOtp(phoneE164);
     if (!native.ok) {
       await abandonMobileOtpFlow();
+      await forgetOtpFlowPhone();
       return {
         ok: false,
         error: "firebase_send_failed",
@@ -173,11 +187,49 @@ export async function resendPhoneOtpFlow(phoneE164: string): Promise<StartPhoneO
         intentCleared: true,
       };
     }
-    const confirmed = await afterFirebaseNativeSend();
+    const confirmed = await finalizeFirebaseNativeSend(data);
     if (!confirmed.ok) return confirmed;
+    await rememberOtpFlowPhone(phoneE164);
+    return { ok: true, retryAfter: data.retryAfter ?? 30, delivery: "firebase" };
   }
 
+  await rememberOtpFlowPhone(phoneE164);
   return { ok: true, retryAfter: data.retryAfter ?? 30, delivery: data.delivery };
+}
+
+/** Re-establish native Firebase SMS session when the in-memory confirmation was lost. */
+export async function recoverNativeFirebaseOtpSession(
+  phoneE164: string,
+): Promise<StartPhoneOtpResult> {
+  if (hasNativeFirebasePhoneSession()) {
+    return { ok: true, delivery: "firebase" };
+  }
+  const auto = await getNativeFirebasePhoneVerificationIdToken();
+  if (auto.ok) {
+    return { ok: true, delivery: "firebase" };
+  }
+  return resendPhoneOtpFlow(phoneE164);
+}
+
+async function verifyWithFirebaseIdToken(idToken: string) {
+  const res = await verifyMobileFirebaseOtp(idToken);
+  if (!res.ok) {
+    return { ok: false as const, error: "invalid_code" as const };
+  }
+  const applied = await applyMobileVerifySession(res.data);
+  if (!applied) return { ok: false as const, error: "invalid_code" as const };
+  const data = res.data as { userId?: string; isNewUser?: boolean };
+  await forgetOtpFlowPhone();
+  resetNativeFirebasePhoneSession();
+  return { ok: true as const, userId: data.userId ?? "", isNewUser: !!data.isNewUser };
+}
+
+export async function completeNativeFirebaseAutoVerification() {
+  const auto = await getNativeFirebasePhoneVerificationIdToken();
+  if (!auto.ok) {
+    return { ok: false as const, error: "firebase_session_lost" as const };
+  }
+  return verifyWithFirebaseIdToken(auto.idToken);
 }
 
 export async function verifyPhoneOtpCode(code: string) {
@@ -196,23 +248,26 @@ export async function verifyPhoneOtpCode(code: string) {
   const applied = await applyMobileVerifySession(res.data);
   if (!applied) return { ok: false as const, error: "invalid_code" as const };
   const data = res.data as { userId?: string; isNewUser?: boolean };
+  await forgetOtpFlowPhone();
   return { ok: true as const, userId: data.userId ?? "", isNewUser: !!data.isNewUser };
 }
 
 export async function verifyPhoneOtpWithFirebase(code: string) {
   const native = await confirmNativeFirebasePhoneOtp(code);
   if (!native.ok) {
-    if (native.code === "session_lost") {
+    const mapped = mapNativeFirebaseConfirmError(native.code as FirebasePhoneErrorCode);
+    if (mapped === "session_lost") {
       return { ok: false as const, error: "firebase_session_lost" as const };
     }
+    logAuthFailure("firebase_confirm", native.code);
     return { ok: false as const, error: "invalid_code" as const };
   }
-  const res = await verifyMobileFirebaseOtp(native.idToken);
-  if (!res.ok) {
-    return { ok: false as const, error: "invalid_code" as const };
-  }
-  const applied = await applyMobileVerifySession(res.data);
-  if (!applied) return { ok: false as const, error: "invalid_code" as const };
-  const data = res.data as { userId?: string; isNewUser?: boolean };
-  return { ok: true as const, userId: data.userId ?? "", isNewUser: !!data.isNewUser };
+  return verifyWithFirebaseIdToken(native.idToken);
+}
+
+export async function abandonPhoneOtpFlow() {
+  const res = await abandonMobileOtpFlow();
+  resetNativeFirebasePhoneSession();
+  await forgetOtpFlowPhone();
+  return res;
 }

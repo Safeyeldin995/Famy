@@ -1,16 +1,7 @@
 import wordmark from "@/assets/images/famy-wordmark.png";
 import { useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from "react-native";
+import { Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { router } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useTranslation } from "react-i18next";
@@ -34,6 +25,7 @@ import { bodyTextInputProps } from "@/ui/a11y";
 import { Button } from "@/ui/Button";
 import { Segmented } from "@/ui/Segmented";
 import { Text } from "@/ui/Text";
+import { KeyboardFormScreen } from "@/ui/KeyboardFormScreen";
 import { colors, fonts, radius, space } from "@/ui/theme";
 
 type Mode = "signin" | "signup";
@@ -120,12 +112,7 @@ export default function Login() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <KeyboardFormScreen contentContainerStyle={styles.content}>
           <Image
             source={wordmark}
             style={styles.wordmark}
@@ -328,9 +315,7 @@ export default function Login() {
               ) : null}
             </View>
           ) : null}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    </KeyboardFormScreen>
   );
 }
 
