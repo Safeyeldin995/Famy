@@ -61,7 +61,18 @@ export default function AddAddress() {
     }
   }
   return (
-    <Page title={t("addresses.addAddress")} queries={[areas]}>
+    <Page
+      title={t("addresses.addAddress")}
+      queries={[areas]}
+      footer={
+        <Button
+          label={t("common.save")}
+          loading={save.isPending}
+          disabled={areas.isLoading || areas.isError}
+          onPress={() => void submit()}
+        />
+      }
+    >
       <QueryState query={areas} />
       <Choices
         label={t("addresses.labelField")}
@@ -155,12 +166,6 @@ export default function AddAddress() {
         ]}
       />
       {error && <Text tone="danger">{error}</Text>}
-      <Button
-        label={t("common.save")}
-        loading={save.isPending}
-        disabled={areas.isLoading || areas.isError}
-        onPress={() => void submit()}
-      />
     </Page>
   );
 }

@@ -124,46 +124,49 @@ export default function SetPasswordScreen() {
     context.purpose === "reset" ? t("auth.resetPasswordTitle") : t("auth.setPasswordTitle");
 
   return (
-    <KeyboardFormScreen contentContainerStyle={styles.content}>
-          <Text size="hero" weight="heavy">
-            {title}
+    <KeyboardFormScreen
+      contentContainerStyle={styles.content}
+      footer={
+        <Button label={t("common.save")} onPress={submit} loading={loading} disabled={!valid} />
+      }
+    >
+      <Text size="hero" weight="heavy">
+        {title}
+      </Text>
+      <Text tone="muted">
+        {t("auth.setPasswordBody")}{" "}
+        <Text weight="heavy" style={styles.ltr}>
+          {context.maskedPhone}
+        </Text>
+      </Text>
+
+      <PasswordField
+        label={t("auth.password")}
+        value={pw}
+        onChangeText={setPw}
+        show={show}
+        onToggle={() => setShow((v) => !v)}
+        inputFont={inputFont}
+      />
+      <PasswordField
+        label={t("auth.confirmPassword")}
+        value={confirmPw}
+        onChangeText={setConfirmPw}
+        show={showConfirm}
+        onToggle={() => setShowConfirm((v) => !v)}
+        inputFont={inputFont}
+      />
+
+      <Rule ok={longEnough} label={t("auth.ruleLenStrong")} />
+      <Rule ok={matches} label={t("auth.passwordsMatch")} />
+
+      {error ? (
+        <View style={styles.error}>
+          <Text size="sm" weight="bold" tone="danger">
+            {error}
           </Text>
-          <Text tone="muted">
-            {t("auth.setPasswordBody")}{" "}
-            <Text weight="heavy" style={styles.ltr}>
-              {context.maskedPhone}
-            </Text>
-          </Text>
-
-          <PasswordField
-            label={t("auth.password")}
-            value={pw}
-            onChangeText={setPw}
-            show={show}
-            onToggle={() => setShow((v) => !v)}
-            inputFont={inputFont}
-          />
-          <PasswordField
-            label={t("auth.confirmPassword")}
-            value={confirmPw}
-            onChangeText={setConfirmPw}
-            show={showConfirm}
-            onToggle={() => setShowConfirm((v) => !v)}
-            inputFont={inputFont}
-          />
-
-          <Rule ok={longEnough} label={t("auth.ruleLenStrong")} />
-          <Rule ok={matches} label={t("auth.passwordsMatch")} />
-
-          {error ? (
-            <View style={styles.error}>
-              <Text size="sm" weight="bold" tone="danger">
-                {error}
-              </Text>
-            </View>
-          ) : null}
-
-          <Button label={t("common.save")} onPress={submit} loading={loading} disabled={!valid} />
+        </View>
+      ) : null}
     </KeyboardFormScreen>
   );
 }

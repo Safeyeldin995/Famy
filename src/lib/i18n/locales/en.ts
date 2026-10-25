@@ -683,6 +683,7 @@ const en = {
     ruleLetter: "Contains a letter",
     ruleNumber: "Contains a number",
     invalidCredentials: "Wrong phone or password.",
+    accountDeleted: "This account was deleted. You can create a new account with the same phone number.",
     alreadyRegistered: "This number is already registered. Please sign in.",
     noAccount: "No account for this number.",
     invalidCode: "Invalid code. Try again.",

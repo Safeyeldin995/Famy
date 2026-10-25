@@ -35,48 +35,47 @@ export default function ForgotPassword() {
   };
 
   return (
-    <KeyboardFormScreen contentContainerStyle={styles.content}>
-          <Text size="hero" weight="heavy">
-            {t("auth.forgotTitle")}
-          </Text>
-          <Text tone="muted">{t("auth.forgotBody")}</Text>
+    <KeyboardFormScreen
+      contentContainerStyle={styles.content}
+      footer={
+        <Button label={t("common.sendCode")} onPress={submit} loading={loading} disabled={!valid} />
+      }
+    >
+      <Text size="hero" weight="heavy">
+        {t("auth.forgotTitle")}
+      </Text>
+      <Text tone="muted">{t("auth.forgotBody")}</Text>
 
-          <View style={{ gap: space.sm }}>
-            <Text size="sm" weight="bold" tone="muted">
-              {t("auth.phoneNumber")}
-            </Text>
-            <View style={[styles.field, styles.ltr]}>
-              <View style={styles.prefix}>
-                <Text weight="heavy">🇪🇬 +20</Text>
-              </View>
-              <TextInput
-                {...bodyTextInputProps()}
-                value={phone}
-                onChangeText={(v) => setPhone(v.replace(/[^\d٠-٩ ]/g, ""))}
-                placeholder={t("auth.phonePlaceholder")}
-                placeholderTextColor={colors.muted}
-                keyboardType="phone-pad"
-                autoComplete="tel"
-                style={[styles.input, { fontFamily: inputFont, textAlign: "left" }]}
-              />
-            </View>
+      <View style={{ gap: space.sm }}>
+        <Text size="sm" weight="bold" tone="muted">
+          {t("auth.phoneNumber")}
+        </Text>
+        <View style={[styles.field, styles.ltr]}>
+          <View style={styles.prefix}>
+            <Text weight="heavy">🇪🇬 +20</Text>
           </View>
-
-          {error ? (
-            <View style={styles.error}>
-              <Text size="sm" weight="bold" tone="danger">
-                {error}
-              </Text>
-            </View>
-          ) : null}
-
-          <Button
-            label={t("common.sendCode")}
-            onPress={submit}
-            loading={loading}
-            disabled={!valid}
+          <TextInput
+            {...bodyTextInputProps()}
+            value={phone}
+            onChangeText={(v) => setPhone(v.replace(/[^\d٠-٩ ]/g, ""))}
+            placeholder={t("auth.phonePlaceholder")}
+            placeholderTextColor={colors.muted}
+            keyboardType="phone-pad"
+            autoComplete="tel"
+            style={[styles.input, { fontFamily: inputFont, textAlign: "left" }]}
           />
-          <Button label={t("common.back")} variant="ghost" onPress={() => router.back()} />
+        </View>
+      </View>
+
+      {error ? (
+        <View style={styles.error}>
+          <Text size="sm" weight="bold" tone="danger">
+            {error}
+          </Text>
+        </View>
+      ) : null}
+
+      <Button label={t("common.back")} variant="ghost" onPress={() => router.back()} />
     </KeyboardFormScreen>
   );
 }

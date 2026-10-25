@@ -677,6 +677,7 @@ const ar: Translation = {
     ruleLetter: "تحتوي على حرف",
     ruleNumber: "تحتوي على رقم",
     invalidCredentials: "رقم الهاتف أو كلمة المرور غير صحيحة.",
+    accountDeleted: "الحساب ده اتمسح. تقدر تعمل حساب جديد بنفس الرقم.",
     alreadyRegistered: "هذا الرقم مسجل بالفعل. الرجاء تسجيل الدخول.",
     noAccount: "لا يوجد حساب لهذا الرقم.",
     invalidCode: "الكود مش صحيح. اتأكد منه وجرب تاني.",
