@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DecodedIdToken } from "firebase-admin/auth";
+import { OTP_PENDING_TTL_SECONDS } from "@/lib/auth/authIntent.constants";
 import {
   FirebaseAdminConfigurationError,
   readFirebaseAdminConfig,
@@ -29,9 +30,11 @@ describe("verifyFirebasePhoneIdToken", () => {
     vi.restoreAllMocks();
   });
 
+  const nowSec = 1_700_000_000;
+
   const decodedBase: DecodedIdToken = {
     aud: "famy-fa9ad",
-    auth_time: 1,
+    auth_time: nowSec,
     exp: 9999999999,
     firebase: { identities: {}, sign_in_provider: "phone" },
     iat: 1,
@@ -43,30 +46,66 @@ describe("verifyFirebasePhoneIdToken", () => {
 
   it("accepts a valid token when phone numbers match in E.164", async () => {
     const verifyToken = vi.fn().mockResolvedValue(decodedBase);
-    const result = await verifyFirebasePhoneIdToken("valid-token", "+201012345678", verifyToken);
+    const result = await verifyFirebasePhoneIdToken("valid-token", "+201012345678", {
+      verifyToken,
+      minAuthTimeSec: nowSec - 10,
+      nowSec,
+    });
     expect(result).toEqual({ ok: true, phoneE164: "+201012345678", decoded: decodedBase });
     expect(verifyToken).toHaveBeenCalledWith("valid-token");
   });
 
+  it("rejects tokens whose auth_time predates the OTP intent window", async () => {
+    const verifyToken = vi.fn().mockResolvedValue({
+      ...decodedBase,
+      auth_time: nowSec - OTP_PENDING_TTL_SECONDS - 120,
+    });
+    const result = await verifyFirebasePhoneIdToken("stale-token", "+201012345678", {
+      verifyToken,
+      minAuthTimeSec: nowSec - 30,
+      nowSec,
+    });
+    expect(result).toEqual({ ok: false, error: "expired_token" });
+  });
+
+  it("rejects tokens whose auth_time is before the pending intent started", async () => {
+    const intentStartedAt = nowSec - 60;
+    const verifyToken = vi.fn().mockResolvedValue({
+      ...decodedBase,
+      auth_time: intentStartedAt - 120,
+    });
+    const result = await verifyFirebasePhoneIdToken("before-intent-token", "+201012345678", {
+      verifyToken,
+      minAuthTimeSec: intentStartedAt,
+      nowSec,
+    });
+    expect(result).toEqual({ ok: false, error: "expired_token" });
+  });
+
   it("rejects expired or invalid tokens", async () => {
     const verifyToken = vi.fn().mockRejectedValue({ code: "auth/id-token-expired" });
-    const result = await verifyFirebasePhoneIdToken("expired-token", "+201012345678", verifyToken);
+    const result = await verifyFirebasePhoneIdToken("expired-token", "+201012345678", {
+      verifyToken,
+      nowSec,
+    });
     expect(result).toEqual({ ok: false, error: "expired_token" });
   });
 
   it("rejects tokens without a phone number claim", async () => {
     const verifyToken = vi.fn().mockResolvedValue({ ...decodedBase, phone_number: undefined });
-    const result = await verifyFirebasePhoneIdToken(
-      "missing-phone-token",
-      "+201012345678",
+    const result = await verifyFirebasePhoneIdToken("missing-phone-token", "+201012345678", {
       verifyToken,
-    );
+      nowSec,
+    });
     expect(result).toEqual({ ok: false, error: "missing_phone" });
   });
 
   it("rejects when token phone does not match the pending intent phone", async () => {
     const verifyToken = vi.fn().mockResolvedValue(decodedBase);
-    const result = await verifyFirebasePhoneIdToken("valid-token", "+201099999999", verifyToken);
+    const result = await verifyFirebasePhoneIdToken("valid-token", "+201099999999", {
+      verifyToken,
+      nowSec,
+    });
     expect(result).toEqual({ ok: false, error: "phone_mismatch" });
   });
 });

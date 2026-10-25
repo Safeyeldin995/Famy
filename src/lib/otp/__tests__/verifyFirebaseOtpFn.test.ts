@@ -168,7 +168,11 @@ describe("verifyFirebaseOtpFn", () => {
     const { verifyFirebaseOtpFn } = await import("@/lib/otp.functions");
     const result = await verifyFirebaseOtpFn({ data: { idToken: "firebase-id-token" } });
     expect(result).toEqual({ ok: false, error: "invalid_code" });
-    expect(verifyFirebasePhoneIdToken).toHaveBeenCalledWith("firebase-id-token", "+201012345678");
+    expect(verifyFirebasePhoneIdToken).toHaveBeenCalledWith(
+      "firebase-id-token",
+      "+201012345678",
+      expect.objectContaining({ minAuthTimeSec: expect.any(Number), nowSec: expect.any(Number) }),
+    );
   });
 
   it("finalizes verification and transitions to the set-password cookie", async () => {

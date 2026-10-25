@@ -37,24 +37,9 @@ type PhoneOtpFlowOptions = {
   languageCode?: string;
 };
 
-export function firebaseSendFailureMessage(t: TFunction, firebaseAuthCode?: string): string {
-  switch (firebaseAuthCode) {
-    case "auth/too-many-requests":
-      return t("auth.firebaseSendTooManyRequests");
-    case "auth/quota-exceeded":
-      return t("auth.firebaseSendQuotaExceeded");
-    case "auth/invalid-phone-number":
-      return t("validation.invalidPhone");
-    case "auth/famy-send-timeout":
-      return t("auth.firebaseSendTimeout");
-    case "auth/captcha-check-failed":
-    case "auth/invalid-app-credential":
-    case "auth/missing-app-credential":
-      return t("auth.firebaseSendDeviceVerifyFailed");
-    default:
-      return t("auth.firebaseSendFailed");
-  }
-}
+import { firebaseSendFailureMessage } from "@/lib/auth/firebaseSendFailureMessage";
+
+export { firebaseSendFailureMessage };
 
 function extractFirebaseAuthErrorCode(error: unknown): string | undefined {
   if (!error || typeof error !== "object" || !("code" in error)) return undefined;

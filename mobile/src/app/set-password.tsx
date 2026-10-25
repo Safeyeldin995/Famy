@@ -1,13 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from "react-native";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -15,6 +7,7 @@ import { Eye, EyeOff } from "lucide-react-native";
 import { fetchMobileSetPasswordContext } from "@/lib/auth/mobileOtpApi";
 import { completePasswordSetup } from "@/lib/auth/passwordSetup";
 import { supabase } from "@/lib/supabase";
+import { KeyboardFormScreen } from "@/ui/KeyboardFormScreen";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { colors, fonts, radius, space } from "@/ui/theme";
@@ -131,12 +124,7 @@ export default function SetPasswordScreen() {
     context.purpose === "reset" ? t("auth.resetPasswordTitle") : t("auth.setPasswordTitle");
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <KeyboardFormScreen contentContainerStyle={styles.content}>
           <Text size="hero" weight="heavy">
             {title}
           </Text>
@@ -176,9 +164,7 @@ export default function SetPasswordScreen() {
           ) : null}
 
           <Button label={t("common.save")} onPress={submit} loading={loading} disabled={!valid} />
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    </KeyboardFormScreen>
   );
 }
 

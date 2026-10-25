@@ -21,6 +21,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data }) => {
       previousUserId = data.session?.user.id ?? null;
       setState({ session: data.session, ready: true });
+      if (!data.session) {
+        void import("@/lib/auth/mobileOtpApi").then(({ fetchMobileOtpContext }) =>
+          fetchMobileOtpContext().then((ctx) => {
+            if (!ctx.ok) return clearMobileAuthCookies();
+          }),
+        );
+      }
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       const userId = session?.user.id ?? null;

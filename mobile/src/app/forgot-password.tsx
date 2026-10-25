@@ -1,14 +1,6 @@
 import { useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from "react-native";
+import { StyleSheet, TextInput, View } from "react-native";
 import { router } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { normalizeDigitsToWestern, normalizePhoneE164 } from "@shared/otp/normalizePhone";
 import { logAuthFailure } from "@/lib/auth/authDiagnostics";
@@ -16,6 +8,7 @@ import { phoneOtpFlowErrorMessage, startPhoneOtpFlow } from "@/lib/auth/phoneOtp
 import { bodyTextInputProps } from "@/ui/a11y";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
+import { KeyboardFormScreen } from "@/ui/KeyboardFormScreen";
 import { colors, fonts, radius, space } from "@/ui/theme";
 
 export default function ForgotPassword() {
@@ -42,12 +35,7 @@ export default function ForgotPassword() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <KeyboardFormScreen contentContainerStyle={styles.content}>
           <Text size="hero" weight="heavy">
             {t("auth.forgotTitle")}
           </Text>
@@ -89,9 +77,7 @@ export default function ForgotPassword() {
             disabled={!valid}
           />
           <Button label={t("common.back")} variant="ghost" onPress={() => router.back()} />
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    </KeyboardFormScreen>
   );
 }
 

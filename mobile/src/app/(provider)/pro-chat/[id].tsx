@@ -1,12 +1,6 @@
 import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  View,
-} from "react-native";
+import { ActivityIndicator, FlatList, Platform, StyleSheet, View } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ShieldCheck } from "lucide-react-native";

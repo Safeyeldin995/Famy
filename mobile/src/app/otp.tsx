@@ -1,27 +1,29 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { Clock } from "lucide-react-native";
 import { formatOtpExpiryClock, formatOtpSecondsDuration } from "@/lib/auth/otpCountdown";
-import { abandonMobileOtpFlow, fetchMobileOtpContext } from "@/lib/auth/mobileOtpApi";
+import { fetchMobileOtpContext } from "@/lib/auth/mobileOtpApi";
+import { readOtpFlowPhone } from "@/lib/auth/mobileOtpFlowPhone";
 import { logAuthFailure } from "@/lib/auth/authDiagnostics";
 import {
+  abandonPhoneOtpFlow,
+  completeNativeFirebaseAutoVerification,
   phoneOtpFlowErrorMessage,
+  recoverNativeFirebaseOtpSession,
   resendPhoneOtpFlow,
+  shouldAutoResendFirebaseOtpOnMount,
   verifyPhoneOtpCode,
   verifyPhoneOtpWithFirebase,
 } from "@/lib/auth/phoneOtpFlow";
-import { hasNativeFirebasePhoneSession } from "@/lib/auth/firebasePhone";
+import {
+  hasNativeFirebasePhoneSession,
+  subscribeNativeFirebasePhoneAutoVerify,
+} from "@/lib/auth/firebasePhone";
 import { Button } from "@/ui/Button";
+import { KeyboardFormScreen } from "@/ui/KeyboardFormScreen";
 import { OtpCodeInput } from "@/ui/OtpCodeInput";
 import { Text } from "@/ui/Text";
 import { colors, fonts, radius, space } from "@/ui/theme";
@@ -40,15 +42,18 @@ export default function OtpScreen() {
   const { t, i18n } = useTranslation();
   const inputFont = (i18n.language === "en" ? fonts.en : fonts.ar).bold;
   const [context, setContext] = useState<OtpContext | null>(null);
+  const [phoneE164, setPhoneE164] = useState("");
   const [loadingContext, setLoadingContext] = useState(true);
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [otpExpiresIn, setOtpExpiresIn] = useState(0);
   const [resendAvailableIn, setResendAvailableIn] = useState(0);
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
+  const [recoveringSession, setRecoveringSession] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const verifyLock = useRef(false);
-  const phoneE164 = typeof params.phone === "string" ? params.phone : "";
+  const recoveryAttempted = useRef(false);
+  const paramPhone = typeof params.phone === "string" ? params.phone : "";
 
   useEffect(() => {
     let cancelled = false;
@@ -69,11 +74,13 @@ export default function OtpScreen() {
       setContext(ctx);
       setOtpExpiresIn(ctx.otpExpiresIn);
       setResendAvailableIn(ctx.resendAvailableIn);
+      const stored = paramPhone || (await readOtpFlowPhone()) || "";
+      setPhoneE164(stored);
     })();
     return () => {
       cancelled = true;
     };
-  }, [params.purpose]);
+  }, [paramPhone, params.purpose]);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -85,18 +92,16 @@ export default function OtpScreen() {
 
   useEffect(() => {
     if (otpExpiresIn !== 0 || loadingContext) return;
-    void abandonMobileOtpFlow().then(() => {
+    void abandonPhoneOtpFlow().then(() => {
       setError(t("auth.sessionExpired"));
       router.replace(context?.purpose === "reset" ? "/forgot-password" : "/login");
     });
   }, [context?.purpose, loadingContext, otpExpiresIn, t]);
 
-  useEffect(() => {
-    if (!context || context.delivery !== "firebase") return;
-    if (!hasNativeFirebasePhoneSession()) {
-      setError(t("auth.firebaseSessionLost"));
-    }
-  }, [context, t]);
+  const finishVerified = () => {
+    verifyLock.current = false;
+    router.replace("/set-password");
+  };
 
   const verify = async (value: string) => {
     if (value.length !== 6 || loading || verifyLock.current || !context) return;
@@ -105,7 +110,7 @@ export default function OtpScreen() {
     setError(null);
     const res =
       context.delivery === "firebase"
-        ? await verifyPhoneOtpWithFirebase(value)
+        ? await verifyPhoneOtpWithFirebase(value, phoneE164)
         : await verifyPhoneOtpCode(value);
     setLoading(false);
     if (!res.ok) {
@@ -119,14 +124,80 @@ export default function OtpScreen() {
       if (res.error === "firebase_session_lost") {
         setError(phoneOtpFlowErrorMessage("firebase_session_lost", t));
         setCode(["", "", "", "", "", ""]);
+        recoveryAttempted.current = false;
         return;
       }
       setError(t("auth.invalidCode"));
       setCode(["", "", "", "", "", ""]);
       return;
     }
-    router.replace("/set-password");
+    finishVerified();
   };
+
+  useEffect(() => {
+    if (!context || context.delivery !== "firebase" || loadingContext || !phoneE164) return;
+    return subscribeNativeFirebasePhoneAutoVerify(async () => {
+      if (verifyLock.current || loading) return;
+      verifyLock.current = true;
+      setLoading(true);
+      setError(null);
+      const res = await completeNativeFirebaseAutoVerification(phoneE164);
+      setLoading(false);
+      if (!res.ok) {
+        verifyLock.current = false;
+        logAuthFailure("otp_auto_verify", res.error);
+        return;
+      }
+      finishVerified();
+    });
+  }, [context, loading, loadingContext, phoneE164]);
+
+  useEffect(() => {
+    if (!context || context.delivery !== "firebase" || loadingContext || recoveryAttempted.current) {
+      return;
+    }
+    if (!phoneE164) {
+      setError(t("auth.sessionExpired"));
+      return;
+    }
+    if (
+      !shouldAutoResendFirebaseOtpOnMount(
+        hasNativeFirebasePhoneSession(),
+        resendAvailableIn,
+      )
+    ) {
+      return;
+    }
+    recoveryAttempted.current = true;
+    let cancelled = false;
+    void (async () => {
+      setRecoveringSession(true);
+      setError(null);
+      const recovered = await recoverNativeFirebaseOtpSession(phoneE164);
+      if (cancelled) return;
+      setRecoveringSession(false);
+      if (!recovered.ok) {
+        logAuthFailure("otp_recover", recovered.error);
+        setError(
+          phoneOtpFlowErrorMessage(
+            recovered.error,
+            t,
+            recovered.retryAfter,
+            recovered.firebaseAuthCode,
+          ),
+        );
+        if (recovered.flowAbandoned) {
+          router.replace(context.purpose === "reset" ? "/forgot-password" : "/login");
+        }
+        if (recovered.retryAfter) setResendAvailableIn(recovered.retryAfter);
+        return;
+      }
+      setResendAvailableIn((prev) => (prev > 0 ? prev : 0));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [context, loadingContext, phoneE164, resendAvailableIn, t]);
 
   const resend = async () => {
     if (!context || resendAvailableIn > 0 || resending || loading) return;
@@ -137,6 +208,7 @@ export default function OtpScreen() {
     }
     setResending(true);
     setError(null);
+    recoveryAttempted.current = true;
     const res = await resendPhoneOtpFlow(phoneE164);
     setResending(false);
     if (!res.ok) {
@@ -168,82 +240,81 @@ export default function OtpScreen() {
   const body = context.purpose === "reset" ? t("auth.resetVerifyBody") : t("auth.signupVerifyBody");
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+    <KeyboardFormScreen contentContainerStyle={styles.content}>
+      <Text size="hero" weight="heavy">
+        {title}
+      </Text>
+      <Text tone="muted">{body}</Text>
+      <Text weight="heavy" style={styles.ltr}>
+        {context.maskedPhone}
+      </Text>
+
+      {recoveringSession ? (
+        <Text size="sm" tone="muted">
+          {t("common.sending")}
+        </Text>
+      ) : null}
+
+      <OtpCodeInput
+        value={code}
+        onChange={setCode}
+        onComplete={verify}
+        disabled={loading || recoveringSession}
+        invalid={!!error}
+        inputFont={inputFont}
+      />
+
+      <View style={styles.timerRow}>
+        <Clock size={16} color={colors.muted} />
+        <Text size="sm" tone="muted">
+          {otpExpiresIn > 0
+            ? t("auth.codeExpiresIn", { time: formatOtpExpiryClock(otpExpiresIn) })
+            : t("auth.sessionExpired")}
+        </Text>
+      </View>
+
+      {error ? (
+        <View style={styles.error}>
+          <Text size="sm" weight="bold" tone="danger">
+            {error}
+          </Text>
+        </View>
+      ) : null}
+
+      <Button
+        label={loading ? t("common.verifying") : t("common.verify")}
+        onPress={() => verify(code.join(""))}
+        loading={loading}
+        disabled={code.join("").length !== 6 || recoveringSession}
+      />
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={
+          resendAvailableIn > 0
+            ? t("auth.resendIn", { time: formatOtpSecondsDuration(resendAvailableIn, t) })
+            : t("auth.resend")
+        }
+        onPress={resend}
+        disabled={resendAvailableIn > 0 || resending || recoveringSession}
+        hitSlop={12}
       >
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <Text size="hero" weight="heavy">
-            {title}
-          </Text>
-          <Text tone="muted">{body}</Text>
-          <Text weight="heavy" style={styles.ltr}>
-            {context.maskedPhone}
-          </Text>
+        <Text size="sm" weight="heavy" tone={resendAvailableIn > 0 ? "muted" : "brand"}>
+          {resendAvailableIn > 0
+            ? t("auth.resendIn", { time: formatOtpSecondsDuration(resendAvailableIn, t) })
+            : t("auth.resend")}
+        </Text>
+      </Pressable>
 
-          <OtpCodeInput
-            value={code}
-            onChange={setCode}
-            onComplete={verify}
-            disabled={loading}
-            invalid={!!error}
-            inputFont={inputFont}
-          />
-
-          <View style={styles.timerRow}>
-            <Clock size={16} color={colors.muted} />
-            <Text size="sm" tone="muted">
-              {otpExpiresIn > 0
-                ? t("auth.codeExpiresIn", { time: formatOtpExpiryClock(otpExpiresIn) })
-                : t("auth.sessionExpired")}
-            </Text>
-          </View>
-
-          {error ? (
-            <View style={styles.error}>
-              <Text size="sm" weight="bold" tone="danger">
-                {error}
-              </Text>
-            </View>
-          ) : null}
-
-          <Button
-            label={loading ? t("common.verifying") : t("common.verify")}
-            onPress={() => verify(code.join(""))}
-            loading={loading}
-            disabled={code.join("").length !== 6}
-          />
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={
-              resendAvailableIn > 0
-                ? t("auth.resendIn", { time: formatOtpSecondsDuration(resendAvailableIn, t) })
-                : t("auth.resend")
-            }
-            onPress={resend}
-            disabled={resendAvailableIn > 0 || resending}
-            hitSlop={12}
-          >
-            <Text size="sm" weight="heavy" tone={resendAvailableIn > 0 ? "muted" : "brand"}>
-              {resendAvailableIn > 0
-                ? t("auth.resendIn", { time: formatOtpSecondsDuration(resendAvailableIn, t) })
-                : t("auth.resend")}
-            </Text>
-          </Pressable>
-
-          <Button
-            label={t("auth.changePhone")}
-            variant="ghost"
-            onPress={async () => {
-              await abandonMobileOtpFlow();
-              router.replace(context.purpose === "reset" ? "/forgot-password" : "/login");
-            }}
-          />
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      <Button
+        label={t("auth.changePhone")}
+        variant="ghost"
+        onPress={async () => {
+          await abandonPhoneOtpFlow();
+          router.replace(context.purpose === "reset" ? "/forgot-password" : "/login");
+        }}
+      />
+    </KeyboardFormScreen>
   );
 }
 

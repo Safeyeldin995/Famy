@@ -5,6 +5,7 @@ import type { AuthFlowPurpose, AuthFlowRole } from "./authIntent.types";
 import {
   MOBILE_AUTH_COOKIE_NAMES,
   OTP_PENDING_COOKIE,
+  OTP_PENDING_TTL_SECONDS,
   SET_PASSWORD_COOKIE,
 } from "./authIntent.constants";
 
@@ -107,7 +108,7 @@ export async function withMobileAuthCookies<T>(
   const result = await mobileAuthCookieStore.run(store, fn);
   return { result, setCookieHeaders: formatMobileAuthSetCookieHeaders(store) };
 }
-const OTP_TTL_SECONDS = 5 * 60;
+const OTP_TTL_SECONDS = OTP_PENDING_TTL_SECONDS;
 const SET_PASSWORD_TTL_SECONDS = 10 * 60;
 const TOKEN_VERSION = 1 as const;
 
