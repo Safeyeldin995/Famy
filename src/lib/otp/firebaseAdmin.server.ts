@@ -1,5 +1,6 @@
 import { initializeApp, getApps, cert, type App } from "firebase-admin/app";
 import { getAuth, type Auth, type DecodedIdToken } from "firebase-admin/auth";
+import { OTP_PENDING_TTL_SECONDS } from "@/lib/auth/authIntent.constants";
 import { isValidE164Phone, normalizePhoneE164 } from "./normalizePhone";
 
 export type FirebaseAdminConfig = {
@@ -64,13 +65,26 @@ export function resetFirebaseAdminAuthForTests(): void {
 }
 
 export type FirebasePhoneTokenVerifyError =
-  "invalid_token" | "expired_token" | "missing_phone" | "phone_mismatch";
+  | "invalid_token"
+  | "expired_token"
+  | "missing_phone"
+  | "phone_mismatch";
 
 export type FirebasePhoneTokenVerifyResult =
   | { ok: true; phoneE164: string; decoded: DecodedIdToken }
   | { ok: false; error: FirebasePhoneTokenVerifyError };
 
 export type FirebaseIdTokenVerifier = (idToken: string) => Promise<DecodedIdToken>;
+
+export type VerifyFirebasePhoneIdTokenOptions = {
+  verifyToken?: FirebaseIdTokenVerifier;
+  /** Earliest allowed Firebase `auth_time` (unix seconds), e.g. OTP intent start. */
+  minAuthTimeSec?: number;
+  nowSec?: number;
+  clockSkewSec?: number;
+};
+
+const DEFAULT_CLOCK_SKEW_SEC = 60;
 
 function mapVerifyTokenError(error: unknown): FirebasePhoneTokenVerifyError {
   const code =
@@ -81,17 +95,45 @@ function mapVerifyTokenError(error: unknown): FirebasePhoneTokenVerifyError {
   return "invalid_token";
 }
 
+function isAuthTimeFreshForOtpIntent(
+  decoded: DecodedIdToken,
+  options: VerifyFirebasePhoneIdTokenOptions,
+): boolean {
+  const authTime = decoded.auth_time;
+  if (typeof authTime !== "number" || !Number.isFinite(authTime)) {
+    return false;
+  }
+  const now = options.nowSec ?? Math.floor(Date.now() / 1000);
+  const skew = options.clockSkewSec ?? DEFAULT_CLOCK_SKEW_SEC;
+  const minAuth = options.minAuthTimeSec;
+  if (minAuth !== undefined && authTime < minAuth - skew) {
+    return false;
+  }
+  return authTime >= now - OTP_PENDING_TTL_SECONDS - skew;
+}
+
 export async function verifyFirebasePhoneIdToken(
   idToken: string,
   expectedPhoneE164: string,
-  verifyToken: FirebaseIdTokenVerifier = (token) =>
-    getFirebaseAdminAuth().verifyIdToken(token, true),
+  verifyTokenOrOptions?: FirebaseIdTokenVerifier | VerifyFirebasePhoneIdTokenOptions,
 ): Promise<FirebasePhoneTokenVerifyResult> {
+  const options: VerifyFirebasePhoneIdTokenOptions =
+    typeof verifyTokenOrOptions === "function"
+      ? { verifyToken: verifyTokenOrOptions }
+      : (verifyTokenOrOptions ?? {});
+
+  const verifyToken =
+    options.verifyToken ?? ((token) => getFirebaseAdminAuth().verifyIdToken(token, true));
+
   let decoded: DecodedIdToken;
   try {
     decoded = await verifyToken(idToken);
   } catch (error) {
     return { ok: false, error: mapVerifyTokenError(error) };
+  }
+
+  if (!isAuthTimeFreshForOtpIntent(decoded, options)) {
+    return { ok: false, error: "expired_token" };
   }
 
   if (!decoded.phone_number) {

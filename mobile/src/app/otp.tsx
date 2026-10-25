@@ -14,10 +14,14 @@ import {
   phoneOtpFlowErrorMessage,
   recoverNativeFirebaseOtpSession,
   resendPhoneOtpFlow,
+  shouldAutoResendFirebaseOtpOnMount,
   verifyPhoneOtpCode,
   verifyPhoneOtpWithFirebase,
 } from "@/lib/auth/phoneOtpFlow";
-import { subscribeNativeFirebasePhoneAutoVerify } from "@/lib/auth/firebasePhone";
+import {
+  hasNativeFirebasePhoneSession,
+  subscribeNativeFirebasePhoneAutoVerify,
+} from "@/lib/auth/firebasePhone";
 import { Button } from "@/ui/Button";
 import { KeyboardFormScreen } from "@/ui/KeyboardFormScreen";
 import { OtpCodeInput } from "@/ui/OtpCodeInput";
@@ -106,7 +110,7 @@ export default function OtpScreen() {
     setError(null);
     const res =
       context.delivery === "firebase"
-        ? await verifyPhoneOtpWithFirebase(value)
+        ? await verifyPhoneOtpWithFirebase(value, phoneE164)
         : await verifyPhoneOtpCode(value);
     setLoading(false);
     if (!res.ok) {
@@ -131,13 +135,13 @@ export default function OtpScreen() {
   };
 
   useEffect(() => {
-    if (!context || context.delivery !== "firebase" || loadingContext) return;
+    if (!context || context.delivery !== "firebase" || loadingContext || !phoneE164) return;
     return subscribeNativeFirebasePhoneAutoVerify(async () => {
       if (verifyLock.current || loading) return;
       verifyLock.current = true;
       setLoading(true);
       setError(null);
-      const res = await completeNativeFirebaseAutoVerification();
+      const res = await completeNativeFirebaseAutoVerification(phoneE164);
       setLoading(false);
       if (!res.ok) {
         verifyLock.current = false;
@@ -146,7 +150,7 @@ export default function OtpScreen() {
       }
       finishVerified();
     });
-  }, [context, loading, loadingContext]);
+  }, [context, loading, loadingContext, phoneE164]);
 
   useEffect(() => {
     if (!context || context.delivery !== "firebase" || loadingContext || recoveryAttempted.current) {
@@ -156,18 +160,19 @@ export default function OtpScreen() {
       setError(t("auth.sessionExpired"));
       return;
     }
+    if (
+      !shouldAutoResendFirebaseOtpOnMount(
+        hasNativeFirebasePhoneSession(),
+        resendAvailableIn,
+      )
+    ) {
+      return;
+    }
     recoveryAttempted.current = true;
     let cancelled = false;
     void (async () => {
       setRecoveringSession(true);
       setError(null);
-      const auto = await completeNativeFirebaseAutoVerification();
-      if (cancelled) return;
-      if (auto.ok) {
-        setRecoveringSession(false);
-        finishVerified();
-        return;
-      }
       const recovered = await recoverNativeFirebaseOtpSession(phoneE164);
       if (cancelled) return;
       setRecoveringSession(false);
@@ -192,7 +197,7 @@ export default function OtpScreen() {
     return () => {
       cancelled = true;
     };
-  }, [context, loadingContext, phoneE164, t]);
+  }, [context, loadingContext, phoneE164, resendAvailableIn, t]);
 
   const resend = async () => {
     if (!context || resendAvailableIn > 0 || resending || loading) return;

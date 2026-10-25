@@ -468,7 +468,12 @@ export async function verifyFirebaseOtpHandler(data: z.infer<typeof VerifyFireba
   }
 
   const { verifyFirebasePhoneIdToken } = await import("@/lib/otp/firebaseAdmin.server");
-  const verified = await verifyFirebasePhoneIdToken(data.idToken, pending.phone);
+  const { OTP_PENDING_TTL_SECONDS } = await import("@/lib/auth/authIntent.constants");
+  const intentStartedAt = pending.otpExp - OTP_PENDING_TTL_SECONDS;
+  const verified = await verifyFirebasePhoneIdToken(data.idToken, pending.phone, {
+    minAuthTimeSec: intentStartedAt,
+    nowSec: now,
+  });
   if (!verified.ok) {
     return { ok: false as const, error: "invalid_code" as const };
   }

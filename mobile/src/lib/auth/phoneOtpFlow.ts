@@ -17,11 +17,13 @@ import {
   mapNativeFirebaseConfirmError,
   resetNativeFirebasePhoneSession,
   sendNativeFirebasePhoneOtp,
+  signOutNativeFirebaseAuth,
   type FirebasePhoneErrorCode,
 } from "./firebasePhone";
 import { forgetOtpFlowPhone, rememberOtpFlowPhone } from "./mobileOtpFlowPhone";
 import { logAuthFailure } from "@/lib/auth/authDiagnostics";
 import { firebaseSendFailureMessage } from "@shared/auth/firebaseSendFailureMessage";
+export { shouldAutoResendFirebaseOtpOnMount } from "@shared/auth/otpFirebaseRecoveryPolicy";
 
 export type PhoneOtpFlowError =
   | "send_failed"
@@ -89,7 +91,7 @@ async function afterFirebaseNativeSend(): Promise<StartPhoneOtpResult> {
     return { ok: true, delivery: "firebase" };
   }
   await abandonMobileOtpFlow();
-  resetNativeFirebasePhoneSession();
+  await signOutNativeFirebaseAuth();
   await forgetOtpFlowPhone();
   return { ok: false, error: "firebase_send_failed", flowAbandoned: true, intentCleared: true };
 }
@@ -204,10 +206,6 @@ export async function recoverNativeFirebaseOtpSession(
   if (hasNativeFirebasePhoneSession()) {
     return { ok: true, delivery: "firebase" };
   }
-  const auto = await getNativeFirebasePhoneVerificationIdToken();
-  if (auto.ok) {
-    return { ok: true, delivery: "firebase" };
-  }
   return resendPhoneOtpFlow(phoneE164);
 }
 
@@ -220,12 +218,12 @@ async function verifyWithFirebaseIdToken(idToken: string) {
   if (!applied) return { ok: false as const, error: "invalid_code" as const };
   const data = res.data as { userId?: string; isNewUser?: boolean };
   await forgetOtpFlowPhone();
-  resetNativeFirebasePhoneSession();
+  await signOutNativeFirebaseAuth();
   return { ok: true as const, userId: data.userId ?? "", isNewUser: !!data.isNewUser };
 }
 
-export async function completeNativeFirebaseAutoVerification() {
-  const auto = await getNativeFirebasePhoneVerificationIdToken();
+export async function completeNativeFirebaseAutoVerification(phoneE164: string) {
+  const auto = await getNativeFirebasePhoneVerificationIdToken(phoneE164);
   if (!auto.ok) {
     return { ok: false as const, error: "firebase_session_lost" as const };
   }
@@ -252,8 +250,8 @@ export async function verifyPhoneOtpCode(code: string) {
   return { ok: true as const, userId: data.userId ?? "", isNewUser: !!data.isNewUser };
 }
 
-export async function verifyPhoneOtpWithFirebase(code: string) {
-  const native = await confirmNativeFirebasePhoneOtp(code);
+export async function verifyPhoneOtpWithFirebase(code: string, phoneE164: string) {
+  const native = await confirmNativeFirebasePhoneOtp(code, phoneE164);
   if (!native.ok) {
     const mapped = mapNativeFirebaseConfirmError(native.code as FirebasePhoneErrorCode);
     if (mapped === "session_lost") {
@@ -267,7 +265,7 @@ export async function verifyPhoneOtpWithFirebase(code: string) {
 
 export async function abandonPhoneOtpFlow() {
   const res = await abandonMobileOtpFlow();
-  resetNativeFirebasePhoneSession();
+  await signOutNativeFirebaseAuth();
   await forgetOtpFlowPhone();
   return res;
 }
