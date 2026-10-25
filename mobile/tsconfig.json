@@ -38,6 +38,8 @@
   "exclude": [
     "**/__tests__/**",
     "**/*.test.ts",
-    "**/*.test.tsx"
+    "**/*.test.tsx",
+    "vitest.config.ts",
+    "tsconfig.vitest.json"
   ]
 }
