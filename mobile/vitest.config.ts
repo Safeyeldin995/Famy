@@ -19,7 +19,10 @@ export default defineConfig({
   test: {
     name: "mobile-unit",
     environment: "node",
-    include: ["src/lib/auth/__tests__/firebasePhone.test.ts"],
+    include: [
+      "src/lib/auth/__tests__/firebasePhone.test.ts",
+      "src/lib/auth/__tests__/firebasePhoneTestMode.test.ts",
+    ],
     setupFiles: [path.join(repoRoot, "qa/vitest-unit-qa-env-guard.mjs")],
   },
 });

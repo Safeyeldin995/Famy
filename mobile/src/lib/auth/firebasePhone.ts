@@ -10,6 +10,10 @@ import {
   signOut,
 } from "@react-native-firebase/auth";
 import { logAuthFailure } from "@/lib/auth/authDiagnostics";
+import {
+  applyFirebasePhoneTestModeBeforeSend,
+  resetFirebasePhoneTestModeAfterSend,
+} from "@/lib/auth/firebasePhoneTestMode";
 import { mapFirebasePhoneConfirmError } from "@shared/auth/firebasePhoneConfirmErrors";
 import { normalizePhoneE164 } from "@shared/otp/normalizePhone";
 
@@ -156,8 +160,13 @@ export async function sendNativeFirebasePhoneOtp(
   flowStartedAtMs = Date.now();
 
   try {
-    confirmation = await signInWithPhoneNumber(auth, flowPhoneE164);
-    return { ok: true };
+    applyFirebasePhoneTestModeBeforeSend(auth, flowPhoneE164);
+    try {
+      confirmation = await signInWithPhoneNumber(auth, flowPhoneE164);
+      return { ok: true };
+    } finally {
+      resetFirebasePhoneTestModeAfterSend(auth);
+    }
   } catch (error) {
     await signOutNativeFirebaseAuth();
     const code = extractErrorCode(error);

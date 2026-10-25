@@ -39,7 +39,7 @@ describe("native Firebase phone auth (v27 modular exports)", () => {
 
   it("send → confirm returns idToken when getAuth and signInWithPhoneNumber succeed", async () => {
     const phone = "+201012345678";
-    const auth = { currentUser: null };
+    const auth = { currentUser: null, settings: { appVerificationDisabledForTesting: false } };
     mockGetAuth.mockReturnValue(auth);
     mockSignInWithPhoneNumber.mockResolvedValue({ confirm: mockConfirm });
     mockConfirm.mockResolvedValue({
@@ -56,6 +56,26 @@ describe("native Firebase phone auth (v27 modular exports)", () => {
 
     const confirm = await mod.confirmNativeFirebasePhoneOtp("123456", phone);
     expect(confirm).toEqual({ ok: true, idToken: "firebase-id-token" });
+  });
+
+  it("toggles appVerificationDisabledForTesting around signInWithPhoneNumber for test numbers", async () => {
+    const phone = "+201012345678";
+    const auth = { currentUser: null, settings: { appVerificationDisabledForTesting: false } };
+    mockGetAuth.mockReturnValue(auth);
+    mockSignInWithPhoneNumber.mockImplementation(async () => {
+      expect(auth.settings.appVerificationDisabledForTesting).toBe(true);
+      return { confirm: mockConfirm };
+    });
+
+    vi.stubEnv("EXPO_PUBLIC_FIREBASE_TEST_MODE", "1");
+    vi.stubEnv("EXPO_PUBLIC_FIREBASE_TEST_NUMBERS", phone);
+
+    const mod = await loadFirebasePhone();
+    const send = await mod.sendNativeFirebasePhoneOtp(phone);
+    expect(send).toEqual({ ok: true });
+    expect(auth.settings.appVerificationDisabledForTesting).toBe(false);
+
+    vi.unstubAllEnvs();
   });
 
   it("returns unavailable only when getAuth throws", async () => {
