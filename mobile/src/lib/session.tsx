@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
+import { handleUserBannedSession, isUserBannedAuthError } from "@/lib/auth/bannedAccountSession";
 import { clearMobileAuthCookies } from "@/lib/auth/mobileAuthCookies";
 import { supabase } from "./supabase";
 
@@ -18,7 +19,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let previousUserId: string | null | undefined;
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (error && isUserBannedAuthError(error)) {
+        void handleUserBannedSession();
+        previousUserId = null;
+        setState({ session: null, ready: true });
+        return;
+      }
       previousUserId = data.session?.user.id ?? null;
       setState({ session: data.session, ready: true });
       if (!data.session) {

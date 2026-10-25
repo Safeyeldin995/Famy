@@ -96,62 +96,60 @@ export default function OAuthSetupScreen() {
   }
 
   return (
-    <KeyboardFormScreen contentContainerStyle={styles.content}>
-          <Text size="hero" weight="heavy">
-            {t("setup.title")}
-          </Text>
-          <Text tone="muted">{t("auth.signUpSubtitle")}</Text>
+    <KeyboardFormScreen
+      contentContainerStyle={styles.content}
+      footer={
+        <Button label={t("common.continue")} onPress={submit} loading={loading} disabled={!valid} />
+      }
+    >
+      <Text size="hero" weight="heavy">
+        {t("setup.title")}
+      </Text>
+      <Text tone="muted">{t("auth.signUpSubtitle")}</Text>
 
-          <View style={{ gap: space.sm }}>
-            <Text size="sm" weight="bold" tone="muted">
-              {t("setup.name")}
-            </Text>
+      <View style={{ gap: space.sm }}>
+        <Text size="sm" weight="bold" tone="muted">
+          {t("setup.name")}
+        </Text>
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          autoComplete="name"
+          placeholder={t("setup.namePlaceholder")}
+          placeholderTextColor={colors.muted}
+          style={[styles.input, { fontFamily: inputFont }]}
+        />
+      </View>
+
+      {needsPhone ? (
+        <View style={{ gap: space.sm }}>
+          <Text size="sm" weight="bold" tone="muted">
+            {t("auth.phoneNumber")}
+          </Text>
+          <View style={[styles.field, styles.ltr]}>
+            <View style={styles.prefix}>
+              <Text weight="heavy">🇪🇬 +20</Text>
+            </View>
             <TextInput
-              value={name}
-              onChangeText={setName}
-              autoComplete="name"
-              placeholder={t("setup.namePlaceholder")}
+              value={contactPhone}
+              onChangeText={(v) => setContactPhone(v.replace(/[^\d٠-٩ ]/g, ""))}
+              placeholder={t("auth.phonePlaceholder")}
               placeholderTextColor={colors.muted}
-              style={[styles.input, { fontFamily: inputFont }]}
+              keyboardType="phone-pad"
+              autoComplete="tel"
+              style={[styles.input, { fontFamily: inputFont, textAlign: "left", flex: 1 }]}
             />
           </View>
+        </View>
+      ) : null}
 
-          {needsPhone ? (
-            <View style={{ gap: space.sm }}>
-              <Text size="sm" weight="bold" tone="muted">
-                {t("auth.phoneNumber")}
-              </Text>
-              <View style={[styles.field, styles.ltr]}>
-                <View style={styles.prefix}>
-                  <Text weight="heavy">🇪🇬 +20</Text>
-                </View>
-                <TextInput
-                  value={contactPhone}
-                  onChangeText={(v) => setContactPhone(v.replace(/[^\d٠-٩ ]/g, ""))}
-                  placeholder={t("auth.phonePlaceholder")}
-                  placeholderTextColor={colors.muted}
-                  keyboardType="phone-pad"
-                  autoComplete="tel"
-                  style={[styles.input, { fontFamily: inputFont, textAlign: "left", flex: 1 }]}
-                />
-              </View>
-            </View>
-          ) : null}
-
-          {error ? (
-            <View style={styles.error}>
-              <Text size="sm" weight="bold" tone="danger">
-                {error}
-              </Text>
-            </View>
-          ) : null}
-
-          <Button
-            label={t("common.continue")}
-            onPress={submit}
-            loading={loading}
-            disabled={!valid}
-          />
+      {error ? (
+        <View style={styles.error}>
+          <Text size="sm" weight="bold" tone="danger">
+            {error}
+          </Text>
+        </View>
+      ) : null}
     </KeyboardFormScreen>
   );
 }

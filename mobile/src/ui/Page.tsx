@@ -8,8 +8,13 @@ import {
   View,
   type TextInputProps,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { KeyboardAwareScrollView, KeyboardStickyView } from "react-native-keyboard-controller";
+import {
+  KEYBOARD_FOCUS_GAP,
+  KEYBOARD_PRIMARY_INLINE_OFFSET,
+  KEYBOARD_PRIMARY_STICKY_RESERVE,
+} from "./keyboardFormConstants";
 import { Stack, router, type Href } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ChevronLeft, ChevronRight, Check, Inbox, CircleAlert } from "lucide-react-native";
@@ -34,17 +39,23 @@ export function Page({
 }) {
   const [refreshing, setRefreshing] = useState(false);
   const { i18n } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const safeBottom = Math.max(insets.bottom, space.md);
   return (
     <SafeAreaView
       style={[ui.page, { direction: i18n.language === "ar" ? "rtl" : "ltr" }]}
-      edges={tab ? ["top"] : ["bottom"]}
+      edges={tab ? ["top"] : footer ? ["top"] : ["bottom"]}
     >
       {!tab && <Stack.Screen options={{ title }} />}
       <KeyboardAwareScrollView
         style={{ flex: 1 }}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={ui.content}
-        bottomOffset={24}
+        bottomOffset={
+          footer
+            ? KEYBOARD_FOCUS_GAP + KEYBOARD_PRIMARY_STICKY_RESERVE
+            : KEYBOARD_PRIMARY_INLINE_OFFSET
+        }
         refreshControl={
           queries.length ? (
             <RefreshControl
@@ -70,7 +81,11 @@ export function Page({
         )}
         {children}
       </KeyboardAwareScrollView>
-      {footer && <View style={ui.footer}>{footer}</View>}
+      {footer ? (
+        <KeyboardStickyView offset={{ closed: 0, opened: 0 }}>
+          <View style={[ui.footer, { paddingBottom: safeBottom }]}>{footer}</View>
+        </KeyboardStickyView>
+      ) : null}
     </SafeAreaView>
   );
 }

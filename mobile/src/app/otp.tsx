@@ -153,19 +153,19 @@ export default function OtpScreen() {
   }, [context, loading, loadingContext, phoneE164]);
 
   useEffect(() => {
-    if (!context || context.delivery !== "firebase" || loadingContext || recoveryAttempted.current) {
+    if (
+      !context ||
+      context.delivery !== "firebase" ||
+      loadingContext ||
+      recoveryAttempted.current
+    ) {
       return;
     }
     if (!phoneE164) {
       setError(t("auth.sessionExpired"));
       return;
     }
-    if (
-      !shouldAutoResendFirebaseOtpOnMount(
-        hasNativeFirebasePhoneSession(),
-        resendAvailableIn,
-      )
-    ) {
+    if (!shouldAutoResendFirebaseOtpOnMount(hasNativeFirebasePhoneSession(), resendAvailableIn)) {
       return;
     }
     recoveryAttempted.current = true;
@@ -240,7 +240,17 @@ export default function OtpScreen() {
   const body = context.purpose === "reset" ? t("auth.resetVerifyBody") : t("auth.signupVerifyBody");
 
   return (
-    <KeyboardFormScreen contentContainerStyle={styles.content}>
+    <KeyboardFormScreen
+      contentContainerStyle={styles.content}
+      footer={
+        <Button
+          label={loading ? t("common.verifying") : t("common.verify")}
+          onPress={() => verify(code.join(""))}
+          loading={loading}
+          disabled={code.join("").length !== 6 || recoveringSession}
+        />
+      }
+    >
       <Text size="hero" weight="heavy">
         {title}
       </Text>
@@ -280,13 +290,6 @@ export default function OtpScreen() {
           </Text>
         </View>
       ) : null}
-
-      <Button
-        label={loading ? t("common.verifying") : t("common.verify")}
-        onPress={() => verify(code.join(""))}
-        loading={loading}
-        disabled={code.join("").length !== 6 || recoveringSession}
-      />
 
       <Pressable
         accessibilityRole="button"

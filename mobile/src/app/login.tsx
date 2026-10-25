@@ -1,5 +1,5 @@
 import wordmark from "@/assets/images/famy-wordmark.png";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import { Image } from "expo-image";
@@ -20,6 +20,11 @@ import {
   signInWithMobileOAuthBrowser,
 } from "@/lib/auth/oauth";
 import { logAuthFailure } from "@/lib/auth/authDiagnostics";
+import {
+  consumePendingLoginNoticeKey,
+  handleUserBannedSession,
+  isUserBannedAuthError,
+} from "@/lib/auth/bannedAccountSession";
 import { resolveWorkspace } from "@/lib/session";
 import { bodyTextInputProps } from "@/ui/a11y";
 import { Button } from "@/ui/Button";
@@ -44,6 +49,11 @@ export default function Login() {
   const oauthProviders = enabledMobileOAuthProviders();
   const showOAuth = mode === "signin" && role === "customer" && oauthProviders.length > 0;
 
+  useEffect(() => {
+    const noticeKey = consumePendingLoginNoticeKey();
+    if (noticeKey) setError(t(noticeKey));
+  }, [t]);
+
   const phoneValid = normalizeDigitsToWestern(phone).replace(/\D/g, "").length >= 9;
   const inputFont = (i18n.language === "en" ? fonts.en : fonts.ar).bold;
 
@@ -59,6 +69,10 @@ export default function Login() {
     if (authError || !data.user) {
       setLoading(false);
       logAuthFailure("sign_in", authError?.code ?? (authError ? "sign_in_failed" : "no_user"));
+      if (authError && isUserBannedAuthError(authError)) {
+        await handleUserBannedSession();
+        return;
+      }
       setError(t("auth.invalidCredentials"));
       return;
     }
@@ -111,210 +125,211 @@ export default function Login() {
     }
   };
 
+  const primaryFooter =
+    mode === "signin" ? (
+      <Button
+        label={t("auth.signIn")}
+        onPress={signIn}
+        loading={loading}
+        disabled={!phoneValid || !password || oauthLoading !== null}
+      />
+    ) : (
+      <Button
+        label={t("common.sendCode")}
+        loading={loading}
+        disabled={!phoneValid || oauthLoading !== null}
+        onPress={async () => {
+          if (!phoneValid || loading) return;
+          setError(null);
+          setLoading(true);
+          const e164 = normalizePhoneE164(phone);
+          const send = await startPhoneOtpFlow(e164, "signup", role);
+          setLoading(false);
+          if (!send.ok) {
+            logAuthFailure("signup_send", send.error);
+            setError(
+              phoneOtpFlowErrorMessage(send.error, t, send.retryAfter, send.firebaseAuthCode),
+            );
+            return;
+          }
+          router.push({ pathname: "/otp", params: { purpose: "signup", phone: e164, role } });
+        }}
+      />
+    );
+
   return (
-    <KeyboardFormScreen contentContainerStyle={styles.content}>
-          <Image
-            source={wordmark}
-            style={styles.wordmark}
-            contentFit="contain"
-            accessibilityLabel={t("common.appName")}
+    <KeyboardFormScreen contentContainerStyle={styles.content} footer={primaryFooter}>
+      <Image
+        source={wordmark}
+        style={styles.wordmark}
+        contentFit="contain"
+        accessibilityLabel={t("common.appName")}
+      />
+
+      <View style={{ gap: space.sm }}>
+        <Text size="hero" weight="heavy">
+          {mode === "signin" ? t("auth.welcomeBack") : t("auth.signUpTitle")}
+        </Text>
+        <Text tone="muted">
+          {mode === "signin" ? t("auth.signInSubtitle") : t("auth.signUpSubtitle")}
+        </Text>
+      </View>
+
+      <Segmented
+        value={mode}
+        onChange={(next) => {
+          setMode(next);
+          setError(null);
+        }}
+        options={[
+          { value: "signin", label: t("auth.signIn") },
+          { value: "signup", label: t("auth.signUp") },
+        ]}
+      />
+
+      <View style={{ gap: space.sm }}>
+        <Text size="sm" weight="bold" tone="muted">
+          {t("auth.iAmA")}
+        </Text>
+        <Segmented
+          value={role}
+          onChange={setRole}
+          options={[
+            { value: "customer", label: t("auth.roleCustomer"), icon: User },
+            { value: "provider", label: t("auth.roleProvider"), icon: Briefcase },
+          ]}
+        />
+      </View>
+
+      <View style={{ gap: space.sm }}>
+        <Text size="sm" weight="bold" tone="muted">
+          {t("auth.phoneNumber")}
+        </Text>
+        <View style={[styles.field, styles.ltr]}>
+          <View style={styles.prefix}>
+            <Text weight="heavy">🇪🇬 +20</Text>
+          </View>
+          <TextInput
+            {...bodyTextInputProps()}
+            value={phone}
+            onChangeText={(v) => setPhone(v.replace(/[^\d٠-٩ ]/g, ""))}
+            placeholder={t("auth.phonePlaceholder")}
+            placeholderTextColor={colors.muted}
+            keyboardType="phone-pad"
+            autoComplete="tel"
+            textContentType="telephoneNumber"
+            style={[styles.input, { fontFamily: inputFont, textAlign: "left" }]}
           />
+        </View>
+      </View>
 
-          <View style={{ gap: space.sm }}>
-            <Text size="hero" weight="heavy">
-              {mode === "signin" ? t("auth.welcomeBack") : t("auth.signUpTitle")}
-            </Text>
-            <Text tone="muted">
-              {mode === "signin" ? t("auth.signInSubtitle") : t("auth.signUpSubtitle")}
-            </Text>
-          </View>
-
-          <Segmented
-            value={mode}
-            onChange={(next) => {
-              setMode(next);
-              setError(null);
-            }}
-            options={[
-              { value: "signin", label: t("auth.signIn") },
-              { value: "signup", label: t("auth.signUp") },
-            ]}
-          />
-
-          <View style={{ gap: space.sm }}>
+      {mode === "signin" ? (
+        <View style={{ gap: space.sm }}>
+          <View style={styles.labelRow}>
             <Text size="sm" weight="bold" tone="muted">
-              {t("auth.iAmA")}
+              {t("auth.password")}
             </Text>
-            <Segmented
-              value={role}
-              onChange={setRole}
-              options={[
-                { value: "customer", label: t("auth.roleCustomer"), icon: User },
-                { value: "provider", label: t("auth.roleProvider"), icon: Briefcase },
-              ]}
-            />
-          </View>
-
-          <View style={{ gap: space.sm }}>
-            <Text size="sm" weight="bold" tone="muted">
-              {t("auth.phoneNumber")}
-            </Text>
-            <View style={[styles.field, styles.ltr]}>
-              <View style={styles.prefix}>
-                <Text weight="heavy">🇪🇬 +20</Text>
-              </View>
-              <TextInput
-                {...bodyTextInputProps()}
-                value={phone}
-                onChangeText={(v) => setPhone(v.replace(/[^\d٠-٩ ]/g, ""))}
-                placeholder={t("auth.phonePlaceholder")}
-                placeholderTextColor={colors.muted}
-                keyboardType="phone-pad"
-                autoComplete="tel"
-                textContentType="telephoneNumber"
-                style={[styles.input, { fontFamily: inputFont, textAlign: "left" }]}
-              />
-            </View>
-          </View>
-
-          {mode === "signin" ? (
-            <View style={{ gap: space.sm }}>
-              <View style={styles.labelRow}>
-                <Text size="sm" weight="bold" tone="muted">
-                  {t("auth.password")}
-                </Text>
-                <Pressable onPress={() => router.push("/forgot-password")} hitSlop={12}>
-                  <Text size="sm" weight="heavy" tone="brand">
-                    {t("auth.forgot")}
-                  </Text>
-                </Pressable>
-              </View>
-              <View style={styles.field}>
-                <TextInput
-                  {...bodyTextInputProps()}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPw}
-                  autoComplete="current-password"
-                  textContentType="password"
-                  placeholder="••••••••"
-                  placeholderTextColor={colors.muted}
-                  onSubmitEditing={signIn}
-                  style={[styles.input, { fontFamily: inputFont }]}
-                />
-                <Pressable
-                  onPress={() => setShowPw((v) => !v)}
-                  accessibilityLabel={showPw ? t("auth.hidePassword") : t("auth.showPassword")}
-                  style={styles.eye}
-                >
-                  {showPw ? (
-                    <EyeOff size={20} color={colors.muted} />
-                  ) : (
-                    <Eye size={20} color={colors.muted} />
-                  )}
-                </Pressable>
-              </View>
-            </View>
-          ) : null}
-
-          {error ? (
-            <View style={styles.error}>
-              <Text size="sm" weight="bold" tone="danger">
-                {error}
+            <Pressable onPress={() => router.push("/forgot-password")} hitSlop={12}>
+              <Text size="sm" weight="heavy" tone="brand">
+                {t("auth.forgot")}
               </Text>
-            </View>
-          ) : null}
-
-          {mode === "signin" ? (
-            <Button
-              label={t("auth.signIn")}
-              onPress={signIn}
-              loading={loading}
-              disabled={!phoneValid || !password || oauthLoading !== null}
+            </Pressable>
+          </View>
+          <View style={styles.field}>
+            <TextInput
+              {...bodyTextInputProps()}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPw}
+              autoComplete="current-password"
+              textContentType="password"
+              placeholder="••••••••"
+              placeholderTextColor={colors.muted}
+              onSubmitEditing={signIn}
+              style={[styles.input, { fontFamily: inputFont }]}
             />
-          ) : (
-            <Button
-              label={t("common.sendCode")}
-              loading={loading}
-              disabled={!phoneValid || oauthLoading !== null}
-              onPress={async () => {
-                if (!phoneValid || loading) return;
-                setError(null);
-                setLoading(true);
-                const e164 = normalizePhoneE164(phone);
-                const send = await startPhoneOtpFlow(e164, "signup", role);
-                setLoading(false);
-                if (!send.ok) {
-                  logAuthFailure("signup_send", send.error);
-                  setError(
-                    phoneOtpFlowErrorMessage(send.error, t, send.retryAfter, send.firebaseAuthCode),
-                  );
-                  return;
-                }
-                router.push({ pathname: "/otp", params: { purpose: "signup", phone: e164, role } });
-              }}
-            />
-          )}
+            <Pressable
+              onPress={() => setShowPw((v) => !v)}
+              accessibilityLabel={showPw ? t("auth.hidePassword") : t("auth.showPassword")}
+              style={styles.eye}
+            >
+              {showPw ? (
+                <EyeOff size={20} color={colors.muted} />
+              ) : (
+                <Eye size={20} color={colors.muted} />
+              )}
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
 
-          {showOAuth ? (
-            <View style={{ gap: space.md }}>
-              <View style={styles.dividerRow}>
-                <View style={styles.dividerLine} />
-                <Text size="sm" weight="bold" tone="muted">
-                  {t("oauth.or")}
-                </Text>
-                <View style={styles.dividerLine} />
-              </View>
-              {oauthProviders.includes("google") ? (
-                <Pressable
-                  accessibilityRole="button"
-                  disabled={loading || oauthLoading !== null}
-                  onPress={() => runOAuth("google", () => signInWithMobileOAuthBrowser("google"))}
-                  style={({ pressed }) => [
-                    styles.oauthBtn,
-                    styles.oauthGoogle,
-                    pressed && styles.oauthPressed,
-                    (loading || oauthLoading !== null) && styles.oauthDisabled,
-                  ]}
-                >
-                  <GoogleMark />
-                  <Text weight="heavy">
-                    {oauthLoading === "google"
-                      ? t("oauth.redirectingGoogle")
-                      : t("oauth.continueWithGoogle")}
-                  </Text>
-                </Pressable>
-              ) : null}
-              {oauthProviders.includes("apple") && showAppleSignInOnMobile() ? (
-                <AppleAuthentication.AppleAuthenticationButton
-                  buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-                  buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-                  cornerRadius={radius.lg}
-                  style={styles.appleBtn}
-                  onPress={() => runOAuth("apple", signInWithAppleNative)}
-                />
-              ) : oauthProviders.includes("apple") && Platform.OS === "android" ? (
-                <Pressable
-                  accessibilityRole="button"
-                  disabled={loading || oauthLoading !== null}
-                  onPress={() => runOAuth("apple", () => signInWithMobileOAuthBrowser("apple"))}
-                  style={({ pressed }) => [
-                    styles.oauthBtn,
-                    styles.oauthApple,
-                    pressed && styles.oauthPressed,
-                    (loading || oauthLoading !== null) && styles.oauthDisabled,
-                  ]}
-                >
-                  <AppleMark color="#fff" />
-                  <Text weight="heavy" style={{ color: "#fff" }}>
-                    {oauthLoading === "apple"
-                      ? t("oauth.redirectingApple")
-                      : t("oauth.continueWithApple")}
-                  </Text>
-                </Pressable>
-              ) : null}
-            </View>
+      {error ? (
+        <View style={styles.error}>
+          <Text size="sm" weight="bold" tone="danger">
+            {error}
+          </Text>
+        </View>
+      ) : null}
+
+      {showOAuth ? (
+        <View style={{ gap: space.md }}>
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text size="sm" weight="bold" tone="muted">
+              {t("oauth.or")}
+            </Text>
+            <View style={styles.dividerLine} />
+          </View>
+          {oauthProviders.includes("google") ? (
+            <Pressable
+              accessibilityRole="button"
+              disabled={loading || oauthLoading !== null}
+              onPress={() => runOAuth("google", () => signInWithMobileOAuthBrowser("google"))}
+              style={({ pressed }) => [
+                styles.oauthBtn,
+                styles.oauthGoogle,
+                pressed && styles.oauthPressed,
+                (loading || oauthLoading !== null) && styles.oauthDisabled,
+              ]}
+            >
+              <GoogleMark />
+              <Text weight="heavy">
+                {oauthLoading === "google"
+                  ? t("oauth.redirectingGoogle")
+                  : t("oauth.continueWithGoogle")}
+              </Text>
+            </Pressable>
           ) : null}
+          {oauthProviders.includes("apple") && showAppleSignInOnMobile() ? (
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+              cornerRadius={radius.lg}
+              style={styles.appleBtn}
+              onPress={() => runOAuth("apple", signInWithAppleNative)}
+            />
+          ) : oauthProviders.includes("apple") && Platform.OS === "android" ? (
+            <Pressable
+              accessibilityRole="button"
+              disabled={loading || oauthLoading !== null}
+              onPress={() => runOAuth("apple", () => signInWithMobileOAuthBrowser("apple"))}
+              style={({ pressed }) => [
+                styles.oauthBtn,
+                styles.oauthApple,
+                pressed && styles.oauthPressed,
+                (loading || oauthLoading !== null) && styles.oauthDisabled,
+              ]}
+            >
+              <AppleMark color="#fff" />
+              <Text weight="heavy" style={{ color: "#fff" }}>
+                {oauthLoading === "apple"
+                  ? t("oauth.redirectingApple")
+                  : t("oauth.continueWithApple")}
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
     </KeyboardFormScreen>
   );
 }

@@ -42,40 +42,38 @@ export default function AuthNameScreen() {
   };
 
   return (
-    <KeyboardFormScreen contentContainerStyle={styles.content}>
-          <Text size="hero" weight="heavy">
-            {t("setup.title")}
+    <KeyboardFormScreen
+      contentContainerStyle={styles.content}
+      footer={
+        <Button label={t("common.continue")} onPress={submit} loading={loading} disabled={!valid} />
+      }
+    >
+      <Text size="hero" weight="heavy">
+        {t("setup.title")}
+      </Text>
+      <Text tone="muted">{t("auth.signUpSubtitle")}</Text>
+
+      <View style={{ gap: space.sm }}>
+        <Text size="sm" weight="bold" tone="muted">
+          {t("setup.name")}
+        </Text>
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          autoComplete="name"
+          placeholder={t("setup.namePlaceholder")}
+          placeholderTextColor={colors.muted}
+          style={[styles.input, { fontFamily: inputFont }]}
+        />
+      </View>
+
+      {error ? (
+        <View style={styles.error}>
+          <Text size="sm" weight="bold" tone="danger">
+            {error}
           </Text>
-          <Text tone="muted">{t("auth.signUpSubtitle")}</Text>
-
-          <View style={{ gap: space.sm }}>
-            <Text size="sm" weight="bold" tone="muted">
-              {t("setup.name")}
-            </Text>
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              autoComplete="name"
-              placeholder={t("setup.namePlaceholder")}
-              placeholderTextColor={colors.muted}
-              style={[styles.input, { fontFamily: inputFont }]}
-            />
-          </View>
-
-          {error ? (
-            <View style={styles.error}>
-              <Text size="sm" weight="bold" tone="danger">
-                {error}
-              </Text>
-            </View>
-          ) : null}
-
-          <Button
-            label={t("common.continue")}
-            onPress={submit}
-            loading={loading}
-            disabled={!valid}
-          />
+        </View>
+      ) : null}
     </KeyboardFormScreen>
   );
 }
