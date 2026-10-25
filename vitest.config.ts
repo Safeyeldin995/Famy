@@ -1,10 +1,14 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 import tsconfigPaths from "vite-tsconfig-paths";
+
+const repoRoot = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [tsconfigPaths()],
   test: {
-    setupFiles: ["./qa/vitest-unit-qa-env-guard.mjs"],
+    setupFiles: [path.join(repoRoot, "qa/vitest-unit-qa-env-guard.mjs")],
     clearMocks: false,
     projects: [
       {
@@ -50,6 +54,7 @@ export default defineConfig({
           hookTimeout: 30_000,
         },
       },
+      path.join(repoRoot, "mobile/vitest.config.ts"),
     ],
   },
 });

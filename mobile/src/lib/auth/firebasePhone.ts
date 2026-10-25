@@ -3,6 +3,12 @@
  * @react-native-firebase/app + auth and google-services.json / GoogleService-Info.plist.
  */
 
+import {
+  getAuth,
+  onAuthStateChanged,
+  signInWithPhoneNumber,
+  signOut,
+} from "@react-native-firebase/auth";
 import { logAuthFailure } from "@/lib/auth/authDiagnostics";
 import { mapFirebasePhoneConfirmError } from "@shared/auth/firebasePhoneConfirmErrors";
 import { normalizePhoneE164 } from "@shared/otp/normalizePhone";
@@ -23,40 +29,24 @@ type FirebaseUser = {
   getIdToken: (forceRefresh?: boolean) => Promise<string>;
 };
 
-type FirebaseAuthInstance = {
-  currentUser: FirebaseUser | null;
-  onAuthStateChanged: (listener: (user: FirebaseUser | null) => void) => () => void;
-  signInWithPhoneNumber: (phone: string) => Promise<{
-    confirm: (code: string) => Promise<{ user: FirebaseUser }>;
-  }>;
-  signOut: () => Promise<void>;
-};
+type FirebaseAuthInstance = ReturnType<typeof getAuth>;
 
-type FirebaseAuthFactory = (() => FirebaseAuthInstance) & {
-  signInWithPhoneNumber?: FirebaseAuthInstance["signInWithPhoneNumber"];
-};
+type PhoneConfirmation = Awaited<ReturnType<typeof signInWithPhoneNumber>>;
 
-let confirmation: Awaited<ReturnType<FirebaseAuthInstance["signInWithPhoneNumber"]>> | null =
-  null;
+let confirmation: PhoneConfirmation | null = null;
 let phoneVerificationActive = false;
 let flowPhoneE164: string | null = null;
 let flowStartedAtMs = 0;
 let authStateUnsubscribe: (() => void) | null = null;
 const autoVerifyListeners = new Set<(idToken: string) => void>();
 
-function loadAuthFactory(): FirebaseAuthFactory | null {
+function authInstance(): FirebaseAuthInstance | null {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    return require("@react-native-firebase/auth").default as FirebaseAuthFactory;
-  } catch {
+    return getAuth();
+  } catch (error) {
+    logAuthFailure("firebase_init", extractErrorCode(error));
     return null;
   }
-}
-
-function authInstance(): FirebaseAuthInstance | null {
-  const factory = loadAuthFactory();
-  if (!factory) return null;
-  return typeof factory === "function" ? factory() : null;
 }
 
 function extractErrorCode(error: unknown): FirebasePhoneErrorCode {
@@ -90,7 +80,7 @@ function ensureAuthStateListener() {
   if (authStateUnsubscribe) return;
   const auth = authInstance();
   if (!auth) return;
-  authStateUnsubscribe = auth.onAuthStateChanged(async (user) => {
+  authStateUnsubscribe = onAuthStateChanged(auth, async (user) => {
     if (!isCurrentFlowPhoneUser(user)) return;
     try {
       const idToken = await user.getIdToken();
@@ -147,7 +137,7 @@ export async function signOutNativeFirebaseAuth(): Promise<void> {
   const auth = authInstance();
   if (!auth) return;
   try {
-    await auth.signOut();
+    await signOut(auth);
   } catch (error) {
     logAuthFailure("firebase_sign_out", extractErrorCode(error));
   }
@@ -156,9 +146,8 @@ export async function signOutNativeFirebaseAuth(): Promise<void> {
 export async function sendNativeFirebasePhoneOtp(
   phoneE164: string,
 ): Promise<{ ok: true } | { ok: false; code: FirebasePhoneErrorCode }> {
-  const factory = loadAuthFactory();
   const auth = authInstance();
-  if (!factory || !auth) return { ok: false, code: "unavailable" };
+  if (!auth) return { ok: false, code: "unavailable" };
 
   await signOutNativeFirebaseAuth();
   ensureAuthStateListener();
@@ -167,11 +156,7 @@ export async function sendNativeFirebasePhoneOtp(
   flowStartedAtMs = Date.now();
 
   try {
-    const signIn =
-      typeof factory.signInWithPhoneNumber === "function"
-        ? factory.signInWithPhoneNumber.bind(factory)
-        : auth.signInWithPhoneNumber.bind(auth);
-    confirmation = await signIn(flowPhoneE164);
+    confirmation = await signInWithPhoneNumber(auth, flowPhoneE164);
     return { ok: true };
   } catch (error) {
     await signOutNativeFirebaseAuth();
