@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AccessibilityInfo, StyleSheet, View } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
 import { Image } from "expo-image";
@@ -17,9 +17,18 @@ import wordmark from "@/assets/images/famy-wordmark.png";
 import { useSession } from "@/lib/session";
 import { Text } from "@/ui/Text";
 import { colors, space } from "./theme";
+import {
+  LAUNCH_GATE_INTRO_MS as INTRO_MS,
+  LAUNCH_GATE_REDUCE_MOTION_MS as REDUCE_MOTION_MS,
+  scheduleLaunchGateIntroFailSafe,
+} from "./launchGateTiming";
 
-const INTRO_MS = 1400;
-const REDUCE_MOTION_MS = 700;
+export {
+  LAUNCH_GATE_FAIL_SAFE_BUFFER_MS,
+  LAUNCH_GATE_INTRO_MS,
+  LAUNCH_GATE_REDUCE_MOTION_MS,
+  launchGateFailSafeDelayMs,
+} from "./launchGateTiming";
 
 type Phase = "branded" | "intro" | "done";
 
@@ -33,6 +42,8 @@ export function LaunchGate({
   const { t } = useTranslation();
   const { ready: sessionReady } = useSession();
   const [phase, setPhase] = useState<Phase>("branded");
+  const introStartedRef = useRef(false);
+  const reduceMotionRef = useRef(false);
   const overlayOpacity = useSharedValue(1);
   const overlayTranslateY = useSharedValue(0);
   const logoScale = useSharedValue(0.72);
@@ -40,19 +51,15 @@ export function LaunchGate({
   const brandTranslateY = useSharedValue(14);
 
   useEffect(() => {
-    if (!bootstrapReady || !sessionReady || phase !== "branded") return;
+    if (!bootstrapReady || !sessionReady || introStartedRef.current) return;
+    introStartedRef.current = true;
     let cancelled = false;
-    let failSafe: ReturnType<typeof setTimeout> | undefined;
     void (async () => {
       await SplashScreen.hideAsync();
       if (cancelled) return;
-      const reduceMotion = await AccessibilityInfo.isReduceMotionEnabled();
+      reduceMotionRef.current = await AccessibilityInfo.isReduceMotionEnabled();
       setPhase("intro");
-      const failSafeMs = (reduceMotion ? REDUCE_MOTION_MS : INTRO_MS) + 500;
-      failSafe = setTimeout(() => {
-        if (!cancelled) setPhase("done");
-      }, failSafeMs);
-      if (reduceMotion) {
+      if (reduceMotionRef.current) {
         overlayTranslateY.value = 0;
         logoScale.value = 1;
         brandOpacity.value = 1;
@@ -96,18 +103,21 @@ export function LaunchGate({
     })();
     return () => {
       cancelled = true;
-      clearTimeout(failSafe);
     };
   }, [
     bootstrapReady,
     sessionReady,
-    phase,
     logoScale,
     brandOpacity,
     brandTranslateY,
     overlayOpacity,
     overlayTranslateY,
   ]);
+
+  useEffect(() => {
+    if (phase !== "intro") return;
+    return scheduleLaunchGateIntroFailSafe(reduceMotionRef.current, () => setPhase("done"));
+  }, [phase]);
 
   const overlayStyle = useAnimatedStyle(() => ({
     opacity: overlayOpacity.value,
@@ -127,33 +137,35 @@ export function LaunchGate({
     <View style={styles.root}>
       {children}
       {showBrandedLayer ? (
-        <Animated.View
+        <View
           testID="launch-overlay"
           pointerEvents={phase === "branded" ? "auto" : "none"}
-          style={[styles.overlay, overlayStyle]}
+          style={StyleSheet.absoluteFill}
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
         >
-          <Animated.View style={logoStyle}>
-            <Image
-              source={splashIcon}
-              style={styles.logo}
-              contentFit="contain"
-              accessible={false}
-            />
+          <Animated.View style={[styles.overlay, overlayStyle]} pointerEvents="none">
+            <Animated.View style={logoStyle}>
+              <Image
+                source={splashIcon}
+                style={styles.logo}
+                contentFit="contain"
+                accessible={false}
+              />
+            </Animated.View>
+            <Animated.View style={[styles.brandBlock, brandStyle]}>
+              <Image
+                source={wordmark}
+                style={styles.wordmark}
+                contentFit="contain"
+                accessible={false}
+              />
+              <Text size="sm" tone="inverse" style={styles.tagline}>
+                {t("common.tagline")}
+              </Text>
+            </Animated.View>
           </Animated.View>
-          <Animated.View style={[styles.brandBlock, brandStyle]}>
-            <Image
-              source={wordmark}
-              style={styles.wordmark}
-              contentFit="contain"
-              accessible={false}
-            />
-            <Text size="sm" tone="inverse" style={styles.tagline}>
-              {t("common.tagline")}
-            </Text>
-          </Animated.View>
-        </Animated.View>
+        </View>
       ) : null}
     </View>
   );
@@ -162,7 +174,7 @@ export function LaunchGate({
 const styles = StyleSheet.create({
   root: { flex: 1 },
   overlay: {
-    ...StyleSheet.absoluteFill,
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.brand,

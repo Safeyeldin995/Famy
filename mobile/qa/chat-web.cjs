@@ -6,7 +6,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const http = require("node:http");
 const assert = require("node:assert/strict");
-const { waitForLaunchGateGone } = require("./waitLaunchGate.cjs");
+const { waitForLaunchGateGone, screenshotWithoutLaunchOverlay } = require("./waitLaunchGate.cjs");
 
 const exportDir = path.resolve(process.argv[2]);
 const artifacts = path.resolve(process.argv[3]);
@@ -208,7 +208,7 @@ async function run() {
   }
   async function shot(name) {
     const file = path.join(artifacts, `${name}.png`);
-    await page.screenshot({ path: file, fullPage: false });
+    await screenshotWithoutLaunchOverlay(page, file, name);
     screenshots.push({ screen: name, path: file, viewport: "390x844", language: "ar" });
   }
 
@@ -251,11 +251,12 @@ async function run() {
   const errorPage = await context.newPage();
   errorPage.on("pageerror", (e) => errors.push(e.message));
   await errorPage.goto(base + "/messages");
+  await waitForLaunchGateGone(errorPage);
   await expect(errorPage.getByText(ar.common.somethingWentWrong, { exact: false })).toBeVisible({
     timeout: 20000,
   });
   const errorFile = path.join(artifacts, "messages-error.png");
-  await errorPage.screenshot({ path: errorFile, fullPage: false });
+  await screenshotWithoutLaunchOverlay(errorPage, errorFile, "messages-error");
   screenshots.push({ screen: "messages-error", path: errorFile, viewport: "390x844", language: "ar" });
 
   assert.equal(errors.length, 0, errors.join("\n"));
