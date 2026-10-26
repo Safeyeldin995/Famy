@@ -4,12 +4,18 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_FIREBASE_TEST_MODE": "1"
       }
     },
     "preview": {
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_FIREBASE_TEST_MODE": "1"
       }
     },
     "production": {}
