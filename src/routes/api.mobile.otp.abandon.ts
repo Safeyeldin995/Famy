@@ -7,9 +7,9 @@ export const Route = createFileRoute("/api/mobile/otp/abandon")({
     handlers: {
       POST: async () => {
         try {
-          const { result, setCookieHeaders } =
+          const { result, intents } =
             await runWithMobileAuthCookies(abandonOtpFlowHandler);
-          return mobileJson(result, 200, setCookieHeaders);
+          return mobileJson(result, 200, intents);
         } catch {
           console.error("[mobile.otp.abandon] failed");
           return mobileJson({ ok: false, error: "abandon_failed" }, 500);

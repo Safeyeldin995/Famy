@@ -7,14 +7,14 @@ export const Route = createFileRoute("/api/mobile/otp/resend")({
     handlers: {
       POST: async () => {
         try {
-          const { result, setCookieHeaders } = await runWithMobileAuthCookies(resendOtpHandler);
+          const { result, intents } = await runWithMobileAuthCookies(resendOtpHandler);
           if (!result.ok) {
             const status = result.error === "rate_limited" ? 429 : 400;
-            return mobileJson(result, status, setCookieHeaders);
+            return mobileJson(result, status, intents);
           }
           const { resolveOtpProviderKind } = await import("@/lib/otp/otpProviderKind.server");
           const delivery = resolveOtpProviderKind() === "firebase" ? "firebase" : "server";
-          return mobileJson({ ...result, delivery }, 200, setCookieHeaders);
+          return mobileJson({ ...result, delivery }, 200, intents);
         } catch {
           console.error("[mobile.otp.resend] failed");
           return mobileJson({ ok: false, error: "resend_failed" }, 500);

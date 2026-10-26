@@ -2,8 +2,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
 import {
   MOBILE_AUTH_COOKIE_NAMES,
+  MOBILE_AUTH_INTENTS_HEADER,
   OTP_PENDING_COOKIE,
   SET_PASSWORD_COOKIE,
+  type MobileAuthIntentsPayload,
 } from "@shared/auth/authIntent.constants";
 
 const STORAGE_KEY = "famy.mobile.auth.cookies";
@@ -60,40 +62,33 @@ async function writeJar(jar: CookieJar) {
   await writeSecureItem(STORAGE_KEY, JSON.stringify(jar));
 }
 
+export async function mobileAuthIntentHeader(): Promise<string | undefined> {
+  const jar = await readJar();
+  const payload: MobileAuthIntentsPayload = {
+    otpPending: jar[OTP_PENDING_COOKIE] ?? null,
+    setPassword: jar[SET_PASSWORD_COOKIE] ?? null,
+  };
+  if (!payload.otpPending && !payload.setPassword) return undefined;
+  return JSON.stringify(payload);
+}
+
+/** @deprecated Use mobileAuthIntentHeader — kept for call-site clarity during migration. */
 export async function mobileAuthCookieHeader(): Promise<string | undefined> {
-  const jar = await readJar();
-  const parts = MOBILE_AUTH_COOKIE_NAMES.flatMap((name) => {
-    const value = jar[name];
-    return value ? [`${name}=${value}`] : [];
-  });
-  return parts.length > 0 ? parts.join("; ") : undefined;
+  return mobileAuthIntentHeader();
 }
 
-function parseSetCookiePair(raw: string): { name: string; value: string; cleared: boolean } | null {
-  const segment = raw.split(";")[0]?.trim();
-  if (!segment) return null;
-  const eq = segment.indexOf("=");
-  if (eq <= 0) return null;
-  const name = segment.slice(0, eq);
-  const value = segment.slice(eq + 1);
-  const cleared = raw.includes("Max-Age=0") || value === "";
-  return { name, value, cleared };
-}
-
-export async function mergeMobileAuthSetCookies(setCookies: string[]) {
-  if (setCookies.length === 0) return;
+export async function mergeMobileAuthIntents(intents: MobileAuthIntentsPayload | undefined) {
+  if (!intents) return;
   const jar = await readJar();
-  for (const raw of setCookies) {
-    const parsed = parseSetCookiePair(raw);
-    if (!parsed) continue;
-    if (parsed.name !== OTP_PENDING_COOKIE && parsed.name !== SET_PASSWORD_COOKIE) {
-      continue;
-    }
-    if (parsed.cleared) {
-      delete jar[parsed.name];
-    } else {
-      jar[parsed.name] = parsed.value;
-    }
+  if (intents.otpPending === null) {
+    delete jar[OTP_PENDING_COOKIE];
+  } else if (typeof intents.otpPending === "string" && intents.otpPending.length > 0) {
+    jar[OTP_PENDING_COOKIE] = intents.otpPending;
+  }
+  if (intents.setPassword === null) {
+    delete jar[SET_PASSWORD_COOKIE];
+  } else if (typeof intents.setPassword === "string" && intents.setPassword.length > 0) {
+    jar[SET_PASSWORD_COOKIE] = intents.setPassword;
   }
   await writeJar(jar);
 }
@@ -106,3 +101,5 @@ export async function clearMobileAuthCookies() {
     // ignore
   }
 }
+
+export { MOBILE_AUTH_INTENTS_HEADER };

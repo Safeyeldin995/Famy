@@ -56,12 +56,18 @@ describe("auth_user_id_for_phone grants", () => {
           CREATE TABLE IF NOT EXISTS auth.users (
             id uuid PRIMARY KEY,
             email text,
-            phone text
+            phone text,
+            banned_until timestamptz,
+            updated_at timestamptz
+          );
+          CREATE TABLE IF NOT EXISTS public.profiles (
+            id uuid PRIMARY KEY,
+            deleted_at timestamptz
           );
         `,
       );
       await applySql(db, readMigration(MIGRATION));
-      await applySql(db, readMigration("20261004110000_send_push_notifications_cron.sql"));
+      await applySql(db, readMigration("20261026110000_deleted_account_phone_release.sql"));
 
       const emailMatchId = "00000000-0000-0000-0000-0000000000aa";
       const nullEmailId = "00000000-0000-0000-0000-0000000000bb";
@@ -69,6 +75,10 @@ describe("auth_user_id_for_phone grants", () => {
         `INSERT INTO auth.users (id, email, phone) VALUES ($1, NULL, $3), ($2, $4, $3)`,
         [nullEmailId, emailMatchId, "+201000000001", "user@phone.famy.local"],
       );
+      await db.query(`INSERT INTO public.profiles (id, deleted_at) VALUES ($1, NULL), ($2, NULL)`, [
+        nullEmailId,
+        emailMatchId,
+      ]);
 
       const rows = await queryRows<{ auth_user_id_for_phone: string }>(
         db,
@@ -80,4 +90,54 @@ describe("auth_user_id_for_phone grants", () => {
       await db.close();
     }
   });
+
+  it("ignores banned users and deleted profiles", async () => {
+    const db = await createDisposableDb();
+    try {
+      await applySql(
+        db,
+        `
+          CREATE TABLE IF NOT EXISTS auth.users (
+            id uuid PRIMARY KEY,
+            email text,
+            phone text,
+            banned_until timestamptz,
+            updated_at timestamptz
+          );
+          CREATE TABLE IF NOT EXISTS public.profiles (
+            id uuid PRIMARY KEY,
+            deleted_at timestamptz
+          );
+        `,
+      );
+      await applySql(db, readMigration("20261026110000_deleted_account_phone_release.sql"));
+
+      const activeId = "00000000-0000-0000-0000-0000000000cc";
+      const bannedId = "00000000-0000-0000-0000-0000000000dd";
+      const deletedId = "00000000-0000-0000-0000-0000000000ee";
+      const phone = "+201000000099";
+      const authEmail = "phone-201000000099@famio.local";
+
+      await db.query(
+        `INSERT INTO auth.users (id, email, phone, banned_until) VALUES
+            ($1, $4, $5, NULL),
+            ($2, NULL, $5, now() + interval '1 day'),
+            ($3, NULL, $5, NULL)`,
+        [activeId, bannedId, deletedId, authEmail, phone],
+      );
+      await db.query(
+        `INSERT INTO public.profiles (id, deleted_at) VALUES ($1, NULL), ($2, NULL), ($3, now())`,
+        [activeId, bannedId, deletedId],
+      );
+
+      const active = await queryRows<{ auth_user_id_for_phone: string }>(
+        db,
+        `SELECT public.auth_user_id_for_phone($1, $2) AS auth_user_id_for_phone`,
+        [authEmail, phone],
+      );
+      expect(active[0]?.auth_user_id_for_phone).toBe(activeId);
+    } finally {
+      await db.close();
+    }
+  }, 30_000);
 });

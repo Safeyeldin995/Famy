@@ -11,27 +11,27 @@ vi.mock("@tanstack/react-start/server", () => ({
     cookieStore.delete(name);
   },
   getRequestHeader: (name: string) => {
-    if (name.toLowerCase() !== "cookie") return undefined;
-    return [...cookieStore.entries()].map(([k, v]) => `${k}=${v}`).join("; ");
+    if (name.toLowerCase() !== "x-famy-auth-intents") return undefined;
+    return globalThis.__mobileTestIntentsHeader;
   },
   getRequest: () => ({ headers: new Headers() }),
 }));
 
-function cookieHeaderFromSetCookies(setCookies: string[]): string {
-  return setCookies
-    .map((raw) => raw.split(";")[0]?.trim())
-    .filter((pair) => pair && !pair.endsWith("="))
-    .join("; ");
+declare global {
+  // eslint-disable-next-line no-var
+  var __mobileTestIntentsHeader: string | undefined;
 }
 
 describe("mobile OTP reset purpose", () => {
   beforeEach(() => {
     cookieStore.clear();
+    globalThis.__mobileTestIntentsHeader = undefined;
     process.env.AUTH_INTENT_SECRET = "test-auth-intent-secret";
   });
 
   afterEach(() => {
     delete process.env.AUTH_INTENT_SECRET;
+    globalThis.__mobileTestIntentsHeader = undefined;
   });
 
   it("prepares firebase reset intent and confirms delivery", async () => {
@@ -45,16 +45,15 @@ describe("mobile OTP reset purpose", () => {
       mobileOtpSendHandler({ phone: "+201012345678", purpose: "reset" }),
     );
     expect(send.result).toMatchObject({ ok: true, requiresVerification: true });
-    const cookieAfterSend = cookieHeaderFromSetCookies(send.setCookieHeaders);
+    globalThis.__mobileTestIntentsHeader = JSON.stringify(send.intents);
 
-    const confirm = await withMobileAuthCookies(cookieAfterSend, () =>
+    const confirm = await withMobileAuthCookies(JSON.stringify(send.intents), () =>
       confirmFirebaseOtpSentHandler(),
     );
     expect(confirm.result).toEqual({ ok: true });
-    const cookieAfterConfirm =
-      cookieHeaderFromSetCookies(confirm.setCookieHeaders) || cookieAfterSend;
+    globalThis.__mobileTestIntentsHeader = JSON.stringify(confirm.intents);
 
-    const context = await withMobileAuthCookies(cookieAfterConfirm, () =>
+    const context = await withMobileAuthCookies(JSON.stringify(confirm.intents), () =>
       getOtpScreenContextHandler(),
     );
     expect(context.result.ok).toBe(true);

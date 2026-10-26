@@ -22,6 +22,7 @@ vi.mock("@tanstack/react-start", () => ({
 
 const rpc = vi.fn();
 const listUsers = vi.fn();
+const profileLookup = vi.fn();
 vi.mock("@/integrations/supabase/client.server", () => ({
   supabaseAdmin: {
     rpc: (...args: unknown[]) => rpc(...args),
@@ -29,6 +30,20 @@ vi.mock("@/integrations/supabase/client.server", () => ({
       admin: {
         listUsers: (...args: unknown[]) => listUsers(...args),
       },
+    },
+    from: (table: string) => {
+      if (table !== "profiles") throw new Error(`unexpected table ${table}`);
+      return {
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              is: () => ({
+                maybeSingle: () => profileLookup(),
+              }),
+            }),
+          }),
+        }),
+      };
     },
   },
 }));
@@ -38,6 +53,8 @@ describe("findUserIdByPhone", () => {
     vi.resetModules();
     rpc.mockReset();
     listUsers.mockReset();
+    profileLookup.mockReset();
+    profileLookup.mockResolvedValue({ data: null, error: null });
   });
 
   afterEach(() => {

@@ -4,12 +4,20 @@ import { deleteCookie, getCookie, setCookie } from "@tanstack/react-start/server
 import type { AuthFlowPurpose, AuthFlowRole } from "./authIntent.types";
 import {
   MOBILE_AUTH_COOKIE_NAMES,
+  MOBILE_AUTH_INTENTS_HEADER,
   OTP_PENDING_COOKIE,
   OTP_PENDING_TTL_SECONDS,
   SET_PASSWORD_COOKIE,
+  type MobileAuthIntentsPayload,
 } from "./authIntent.constants";
 
-export { MOBILE_AUTH_COOKIE_NAMES, OTP_PENDING_COOKIE, SET_PASSWORD_COOKIE };
+export {
+  MOBILE_AUTH_COOKIE_NAMES,
+  MOBILE_AUTH_INTENTS_HEADER,
+  OTP_PENDING_COOKIE,
+  SET_PASSWORD_COOKIE,
+};
+export type { MobileAuthIntentsPayload };
 
 type MobileCookieEntry = { value: string; maxAge: number };
 
@@ -88,25 +96,62 @@ export function formatMobileAuthSetCookieHeaders(store: MobileAuthCookieStore): 
   return headers;
 }
 
-function createMobileAuthCookieStore(cookieHeader: string | undefined): MobileAuthCookieStore {
+export function parseMobileAuthIntentsHeader(
+  header: string | undefined,
+): Partial<Record<(typeof MOBILE_AUTH_COOKIE_NAMES)[number], string>> {
+  if (!header?.trim()) return {};
+  try {
+    const parsed = JSON.parse(header) as {
+      otpPending?: string | null;
+      setPassword?: string | null;
+    };
+    const out: Partial<Record<(typeof MOBILE_AUTH_COOKIE_NAMES)[number], string>> = {};
+    if (typeof parsed.otpPending === "string" && parsed.otpPending.length > 0) {
+      out[OTP_PENDING_COOKIE] = parsed.otpPending;
+    }
+    if (typeof parsed.setPassword === "string" && parsed.setPassword.length > 0) {
+      out[SET_PASSWORD_COOKIE] = parsed.setPassword;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function createMobileAuthCookieStore(intentsHeader: string | undefined): MobileAuthCookieStore {
   const store: MobileAuthCookieStore = { entries: new Map(), cleared: new Set() };
+  const tokens = parseMobileAuthIntentsHeader(intentsHeader);
   for (const name of MOBILE_AUTH_COOKIE_NAMES) {
-    const value = parseRequestCookieValue(cookieHeader, name);
+    const value = tokens[name];
     if (value) {
-      store.entries.set(name, { value, maxAge: OTP_TTL_SECONDS });
+      store.entries.set(name, {
+        value,
+        maxAge: name === SET_PASSWORD_COOKIE ? SET_PASSWORD_TTL_SECONDS : OTP_TTL_SECONDS,
+      });
     }
   }
   return store;
 }
 
-/** Run OTP/password-intent handlers with cookies from the native app Cookie header. */
+export function formatMobileAuthIntentsPayload(store: MobileAuthCookieStore): MobileAuthIntentsPayload {
+  const read = (name: string): string | null => {
+    if (store.cleared.has(name)) return null;
+    return store.entries.get(name)?.value ?? null;
+  };
+  return {
+    otpPending: read(OTP_PENDING_COOKIE),
+    setPassword: read(SET_PASSWORD_COOKIE),
+  };
+}
+
+/** Run OTP/password-intent handlers with signed intents from the native app header. */
 export async function withMobileAuthCookies<T>(
-  cookieHeader: string | undefined,
+  intentsHeader: string | undefined,
   fn: () => Promise<T>,
-): Promise<{ result: T; setCookieHeaders: string[] }> {
-  const store = createMobileAuthCookieStore(cookieHeader);
+): Promise<{ result: T; intents: MobileAuthIntentsPayload }> {
+  const store = createMobileAuthCookieStore(intentsHeader);
   const result = await mobileAuthCookieStore.run(store, fn);
-  return { result, setCookieHeaders: formatMobileAuthSetCookieHeaders(store) };
+  return { result, intents: formatMobileAuthIntentsPayload(store) };
 }
 const OTP_TTL_SECONDS = OTP_PENDING_TTL_SECONDS;
 const SET_PASSWORD_TTL_SECONDS = 10 * 60;

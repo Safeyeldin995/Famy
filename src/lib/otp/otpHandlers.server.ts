@@ -80,7 +80,38 @@ export async function findUserIdByPhone(phone: string): Promise<string | null> {
     },
   );
   if (error) throw error;
-  return typeof data === "string" && data.length > 0 ? data : null;
+  if (typeof data === "string" && data.length > 0) return data;
+
+  const { data: profileRow, error: profileError } = await supabaseAdmin
+    .from("profiles")
+    .select("id")
+    .eq("phone", phone)
+    .eq("phone_verified", true)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (profileError) throw profileError;
+  return profileRow?.id ?? null;
+}
+
+async function assertAuthUserEligibleForOtp(userId: string): Promise<void> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin.auth.admin.getUserById(userId);
+  if (error || !data.user) {
+    throw new Error("account_deleted");
+  }
+  const bannedUntil = data.user.banned_until;
+  if (bannedUntil && new Date(bannedUntil) > new Date()) {
+    throw new Error("account_deleted");
+  }
+  const { data: profile, error: profileError } = await supabaseAdmin
+    .from("profiles")
+    .select("deleted_at")
+    .eq("id", userId)
+    .maybeSingle();
+  if (profileError) throw profileError;
+  if (profile?.deleted_at) {
+    throw new Error("account_deleted");
+  }
 }
 
 type VerifiedAuthInput = {
@@ -112,12 +143,24 @@ async function completeVerifiedAuth(data: VerifiedAuthInput) {
     isNewUser = true;
   } else {
     if (!userId) throw new Error("verified_reset_missing_user");
-    const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+    await assertAuthUserEligibleForOtp(userId);
+    const { data: authUserData, error: readError } =
+      await supabaseAdmin.auth.admin.getUserById(userId);
+    if (readError || !authUserData.user) throw new Error("account_deleted");
+    const updatePayload: {
+      email: string;
+      email_confirm: boolean;
+      phone: string;
+      password: string;
+      phone_confirm: boolean;
+    } = {
       email: authEmail,
       email_confirm: true,
+      phone: data.phone,
       password: interimPassword,
       phone_confirm: true,
-    });
+    };
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, updatePayload);
     if (error) throw error;
   }
 
