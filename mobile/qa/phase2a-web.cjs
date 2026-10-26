@@ -6,6 +6,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const http = require("node:http");
 const assert = require("node:assert/strict");
+const { waitForLaunchGateGone, screenshotWithoutLaunchOverlay } = require("./waitLaunchGate.cjs");
 
 const exportDir = path.resolve(process.argv[2]);
 const artifacts = path.resolve(process.argv[3]);
@@ -536,12 +537,13 @@ async function run() {
   });
   async function visit(route, text) {
     await page.goto(base + route);
+    await waitForLaunchGateGone(page);
     await expect(page.getByText(text, { exact: false }).first()).toBeVisible({ timeout: 20000 });
     await page.evaluate(() => document.fonts.ready);
   }
   async function shot(name) {
     const file = path.join(artifacts, `${name}.png`);
-    await page.screenshot({ path: file, fullPage: false });
+    await screenshotWithoutLaunchOverlay(page, file, name);
     screenshots.push({
       screen: name,
       path: file,

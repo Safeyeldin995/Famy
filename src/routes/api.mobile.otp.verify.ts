@@ -20,7 +20,7 @@ export const Route = createFileRoute("/api/mobile/otp/verify")({
         }
 
         try {
-          const { result, setCookieHeaders } = await runWithMobileAuthCookies(async () => {
+          const { result, intents } = await runWithMobileAuthCookies(async () => {
             if ("idToken" in parsed) {
               return verifyFirebaseOtpHandler({ idToken: parsed.idToken });
             }
@@ -29,7 +29,7 @@ export const Route = createFileRoute("/api/mobile/otp/verify")({
 
           if (!result.ok) {
             const status = result.error === "flow_mismatch" ? 409 : 400;
-            return mobileJson(result, status, setCookieHeaders);
+            return mobileJson(result, status, intents);
           }
 
           const { access_token, refresh_token, userId, isNewUser, ...rest } = result as {
@@ -43,9 +43,12 @@ export const Route = createFileRoute("/api/mobile/otp/verify")({
           return mobileJson(
             { ok: true, access_token, refresh_token, userId, isNewUser },
             200,
-            setCookieHeaders,
+            intents,
           );
-        } catch {
+        } catch (error) {
+          if (error instanceof Error && error.message === "account_deleted") {
+            return mobileJson({ ok: false, error: "account_deleted" }, 403);
+          }
           console.error("[mobile.otp.verify] failed");
           return mobileJson({ ok: false, error: "verify_failed" }, 500);
         }

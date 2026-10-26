@@ -54,6 +54,9 @@ CREATE TABLE IF NOT EXISTS auth.users (
   id uuid PRIMARY KEY,
   email text,
   phone text,
+  phone_confirmed_at timestamptz,
+  banned_until timestamptz,
+  updated_at timestamptz NOT NULL DEFAULT now(),
   created_at timestamptz NOT NULL DEFAULT now()
 );
 

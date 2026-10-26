@@ -1,6 +1,6 @@
 # Native sign-up, OTP, and password flows
 
-The app calls Famy web API routes under `/api/mobile/otp/*` and `/api/mobile/auth/*` using the `webOrigin` value from `app.json` `extra`. Auth intent cookies returned as `Set-Cookie` are stored on-device and replayed on the next request.
+The app calls Famy web API routes under `/api/mobile/otp/*` and `/api/mobile/auth/*` using the `webOrigin` value from `app.json` `extra`. Signed auth intents are returned in each JSON body as `intents` and replayed on the next request via the `X-Famy-Auth-Intents` header (stored in SecureStore on device). Requests use `credentials: "omit"` — not browser cookies.
 
 ## OTP provider (server)
 
