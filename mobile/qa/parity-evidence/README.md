@@ -2,7 +2,7 @@
 
 **This branch does not complete screen-by-screen parity. Do not merge it as a completed parity release.**
 
-Base: `6c2fbfa`. Screens are captured at 390 × 844 in Arabic. Each comparison has web on the left and the actual Expo React Native Web export on the right. These are not recreated HTML mockups of native screens.
+Latest integrated main: `3b36aeb`, merged normally as `f34f9b4` (no conflicts). Original evidence base: `6c2fbfa`; the schedule native panel is refreshed after the merge. Screens are captured at 390 × 844 in Arabic. Each comparison has web on the left and the actual Expo React Native Web export on the right. These are not recreated HTML mockups of native screens.
 
 ## Implemented
 
@@ -10,7 +10,8 @@ Base: `6c2fbfa`. Screens are captured at 390 × 844 in Arabic. Each comparison h
 - First signed-out entry reads AsyncStorage `onboarded`; Skip/Start persists completion and opens login. Signed-in workspace routing is preserved. Storage failure does not trap the user.
 - Home: web-style horizontal promo strip with copy feedback; 160px service tiles; customer floating RTL navigation bar and selected-icon pill.
 - Addresses, family, notifications: ported web page headers. Favorites, help, promos: ported web hero headers. Favorites has the web empty-state text/icon/browse action.
-- All protected files listed in the task are unchanged, including `mobile/qa/*.cjs`. The nested capture runner reads those existing fixtures without modifying them.
+- Main's protected auth/LaunchGate/session/app.json and QA cjs changes were preserved exactly. There are no branch-specific edits to those files relative to the integrated main. The nested capture runner now uses main's LaunchGate-aware fixtures unchanged, without fixed screenshot delays.
+- Schedule weekly hours now use the web's shared time choices and Arabic labels in searchable bottom-sheet selectors, a visible same-hours checkbox and selected-day checks. Shared/individual editing retains the existing atomic availability RPC. Loading/error states cannot save an empty draft; an empty successful response clears stale rows.
 
 ## Evidence limits
 
@@ -55,7 +56,7 @@ Base: `6c2fbfa`. Screens are captured at 390 × 844 in Arabic. Each comparison h
 | Delete account | Web preview captured; native destructive flow not exercised by existing fixture suite | No | No valid pair |
 | Provider dashboard | Header, metrics label, booking cards, upcoming row and navigation differ | No | [Pair](comparisons/dashboard.png) |
 | Provider jobs | Header, filters, request cards and navigation differ | No | [Pair](comparisons/jobs.png) |
-| Provider schedule | Native uses increment controls; web uses time selectors; vacation list/card layout differs | No | [Pair](comparisons/schedule.png) |
+| Provider schedule | Time selectors and same-hours/day controls ported; page header, vacation lists, blocked dates, advanced rules and navigation still differ | No | [Pair](comparisons/schedule.png) |
 | Provider earnings | Metrics/labels/sections/date presentation differ | No | [Pair](comparisons/earnings.png) |
 | Provider messages/chat | Native fixtures captured; matching provider web preview route not available in the registry used here | No | No valid pair |
 | Provider profile | Status/menu/service readiness layout differs | No | [Pair](comparisons/pro-profile.png) |
@@ -67,6 +68,16 @@ Base: `6c2fbfa`. Screens are captured at 390 × 844 in Arabic. Each comparison h
 | Provider notifications | Grouped web list vs native cards/date labels | No | [Pair](comparisons/pro-notifications.png) |
 
 ## Checks
+
+Latest merge/schedule continuation (earlier broad-suite results below are not claimed as rerun):
+
+- Mobile TypeScript and both Android/web exports: exit 0.
+- `schedule-test.mjs`: passed the unchanged provider fixture's assertions and 13 captures, plus searchable Arabic time selection, shared/individual editing, unchanged `HH:MM` RPC payloads, midnight, dismiss and 390px width checks. It uses five fixture working days; an initial assertion incorrectly expected two and was corrected to the fixture length.
+- Changed TS/TSX ESLint: exit 0, one existing non-component-export warning in `WeeklyHoursEditor`.
+- Arabic guard: exit 0, 757 source files.
+- Initial Chromium/Hermes launches were sandbox-denied (`EPERM`); approved local process launches passed. No remote backend traffic or real device verification.
+
+Earlier implementation checks:
 
 - `cd mobile && npx tsc --noEmit`: exit 0.
 - `cd mobile && npx expo export --platform android --output-dir dist-parity-android`: exit 0.
@@ -89,6 +100,7 @@ node qa/parity-evidence/onboarding-test.mjs
 node qa/parity-evidence/capture-native.mjs phase1-web
 node qa/parity-evidence/capture-native.mjs phase2a-web
 node qa/parity-evidence/capture-native.mjs provider-web
+node qa/parity-evidence/schedule-test.mjs
 node qa/parity-evidence/capture-native.mjs provider2-web
 node qa/parity-evidence/capture-native.mjs chat-web
 ```

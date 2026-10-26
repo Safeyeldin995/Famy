@@ -33,7 +33,7 @@ const pairs = {
   chat: ["chat", "chat-web/chat-open"],
   dashboard: ["dashboard", "provider-web/pro-dashboard"],
   jobs: ["jobs", "provider-web/pro-jobs"],
-  schedule: ["schedule", "provider-web/pro-schedule"],
+  schedule: ["schedule", "schedule-test/pro-schedule"],
   earnings: ["earnings", "provider-web/pro-earnings"],
   "pro-profile": ["pro-profile", "provider-web/pro-profile"],
   "pro-documents": ["pro-documents", "provider2-web/documents"],
@@ -45,6 +45,7 @@ const page = await browser.newPage({ viewport: { width: 780, height: 872 }, devi
 const report = [];
 try {
   for (const [screen, [web, native]] of Object.entries(pairs)) {
+    if (process.argv[2] && process.argv[2] !== screen) continue;
     try {
       const left = await fs.readFile(path.join(root, `web/${web}.png`));
       const right = await fs.readFile(path.join(root, `native/${native}.png`));

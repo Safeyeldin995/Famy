@@ -27,7 +27,7 @@ export default function ProviderSchedule() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    if (!availQ.data?.length) return;
+    if (!availQ.data) return;
     const loaded = Array.from({ length: 7 }, (_, weekday) =>
       availQ.data.find((row) => row.weekday === weekday),
     )
@@ -42,7 +42,7 @@ export default function ProviderSchedule() {
   }, [availQ.data]);
 
   const handleSave = () => {
-    if (!provider?.id) return;
+    if (!provider?.id || availQ.isPending || availQ.isError || save.isPending) return;
     setSaved(false);
     save.mutate(
       {
@@ -69,12 +69,14 @@ export default function ProviderSchedule() {
             onChange={setRows}
             sameHours={sameHours}
             onSameHoursChange={setSameHours}
+            disabled={availQ.isPending || availQ.isError || save.isPending}
           />
         </View>
       </QueryState>
       <Button
         label={t(save.isPending ? "pro.common.saving" : "pro.schedule.saveSchedule")}
         loading={save.isPending}
+        disabled={!provider?.id || availQ.isPending || availQ.isError}
         onPress={handleSave}
       />
       {save.isError ? <ActionError error={save.error} /> : null}
