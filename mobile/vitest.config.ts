@@ -11,18 +11,10 @@ export default defineConfig({
     tsconfig: path.join(mobileRoot, "tsconfig.vitest.json"),
   },
   resolve: {
-    alias: [
-      {
-        find: "@/assets/images/splash-icon.png",
-        replacement: path.join(mobileRoot, "src/ui/__tests__/assetStub.js"),
-      },
-      {
-        find: "@/assets/images/famy-wordmark.png",
-        replacement: path.join(mobileRoot, "src/ui/__tests__/assetStub.js"),
-      },
-      { find: "@", replacement: path.join(mobileRoot, "src") },
-      { find: "@shared", replacement: path.join(repoRoot, "src/lib") },
-    ],
+    alias: {
+      "@": path.join(mobileRoot, "src"),
+      "@shared": path.join(repoRoot, "src/lib"),
+    },
   },
   test: {
     name: "mobile-unit",
