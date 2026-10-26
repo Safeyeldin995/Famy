@@ -1,18 +1,27 @@
 import { getRequestHeader } from "@tanstack/react-start/server";
-import { withMobileAuthCookies } from "@/lib/auth/authIntent.server";
+import {
+  MOBILE_AUTH_INTENTS_HEADER,
+  withMobileAuthCookies,
+  type MobileAuthIntentsPayload,
+} from "@/lib/auth/authIntent.server";
 
-export function mobileJson(body: unknown, status = 200, setCookieHeaders: string[] = []) {
+function attachIntents(body: unknown, intents?: MobileAuthIntentsPayload) {
+  if (!intents) return body;
+  if (body && typeof body === "object" && !Array.isArray(body)) {
+    return { ...body, intents };
+  }
+  return { value: body, intents };
+}
+
+export function mobileJson(body: unknown, status = 200, intents?: MobileAuthIntentsPayload) {
   const headers = new Headers({
     "Content-Type": "application/json",
     "Cache-Control": "no-store",
   });
-  for (const cookie of setCookieHeaders) {
-    headers.append("Set-Cookie", cookie);
-  }
-  return new Response(JSON.stringify(body), { status, headers });
+  return new Response(JSON.stringify(attachIntents(body, intents)), { status, headers });
 }
 
 export async function runWithMobileAuthCookies<T>(fn: () => Promise<T>) {
-  const cookieHeader = getRequestHeader("cookie") ?? undefined;
-  return withMobileAuthCookies(cookieHeader, fn);
+  const intentsHeader = getRequestHeader(MOBILE_AUTH_INTENTS_HEADER) ?? undefined;
+  return withMobileAuthCookies(intentsHeader, fn);
 }

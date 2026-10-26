@@ -1,9 +1,11 @@
 import { appConfig, supabase } from "@/lib/supabase";
 import {
   clearMobileAuthCookies,
-  mergeMobileAuthSetCookies,
-  mobileAuthCookieHeader,
+  mergeMobileAuthIntents,
+  mobileAuthIntentHeader,
+  MOBILE_AUTH_INTENTS_HEADER,
 } from "./mobileAuthCookies";
+import type { MobileAuthIntentsPayload } from "@shared/auth/authIntent.constants";
 
 export type OtpPurpose = "signup" | "reset";
 export type OtpRole = "customer" | "provider";
@@ -14,20 +16,18 @@ function apiOrigin() {
   return appConfig.webOrigin.replace(/\/$/, "");
 }
 
-function collectSetCookies(response: Response): string[] {
-  const headers = response.headers as Headers & { getSetCookie?: () => string[] };
-  if (typeof headers.getSetCookie === "function") {
-    return headers.getSetCookie();
-  }
-  const single = response.headers.get("set-cookie");
-  return single ? [single] : [];
+function readResponseIntents(body: unknown): MobileAuthIntentsPayload | undefined {
+  if (!body || typeof body !== "object" || !("intents" in body)) return undefined;
+  const intents = (body as { intents?: MobileAuthIntentsPayload }).intents;
+  if (!intents || typeof intents !== "object") return undefined;
+  return intents;
 }
 
 async function mobileAuthFetch(path: string, init: RequestInit = {}): Promise<ApiResult<unknown>> {
-  const cookie = await mobileAuthCookieHeader();
+  const intentHeader = await mobileAuthIntentHeader();
   const headers = new Headers(init.headers);
   headers.set("Content-Type", "application/json");
-  if (cookie) headers.set("Cookie", cookie);
+  if (intentHeader) headers.set(MOBILE_AUTH_INTENTS_HEADER, intentHeader);
 
   const {
     data: { session },
@@ -36,8 +36,11 @@ async function mobileAuthFetch(path: string, init: RequestInit = {}): Promise<Ap
     headers.set("Authorization", `Bearer ${session.access_token}`);
   }
 
-  const response = await fetch(`${apiOrigin()}${path}`, { ...init, headers });
-  await mergeMobileAuthSetCookies(collectSetCookies(response));
+  const response = await fetch(`${apiOrigin()}${path}`, {
+    ...init,
+    headers,
+    credentials: "omit",
+  });
 
   let body: unknown = null;
   try {
@@ -45,6 +48,8 @@ async function mobileAuthFetch(path: string, init: RequestInit = {}): Promise<Ap
   } catch {
     body = null;
   }
+
+  await mergeMobileAuthIntents(readResponseIntents(body));
 
   if (!response.ok) {
     return { ok: false, status: response.status, body };

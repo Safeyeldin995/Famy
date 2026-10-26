@@ -7,13 +7,13 @@ export const Route = createFileRoute("/api/mobile/otp/context")({
     handlers: {
       GET: async () => {
         try {
-          const { result, setCookieHeaders } = await runWithMobileAuthCookies(
+          const { result, intents } = await runWithMobileAuthCookies(
             getOtpScreenContextHandler,
           );
           if (!result.ok) {
-            return mobileJson(result, 404, setCookieHeaders);
+            return mobileJson(result, 404, intents);
           }
-          return mobileJson(result, 200, setCookieHeaders);
+          return mobileJson(result, 200, intents);
         } catch {
           console.error("[mobile.otp.context] failed");
           return mobileJson({ ok: false, error: "context_failed" }, 500);

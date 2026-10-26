@@ -19,7 +19,7 @@ export const Route = createFileRoute("/api/mobile/auth/complete-password")({
         }
 
         try {
-          const { result, setCookieHeaders } = await runWithMobileAuthCookies(() =>
+          const { result, intents } = await runWithMobileAuthCookies(() =>
             completePasswordSetupHandler(parsed),
           );
           if (!result.ok) {
@@ -29,9 +29,9 @@ export const Route = createFileRoute("/api/mobile/auth/complete-password")({
                 : result.error === "restart_required"
                   ? 409
                   : 400;
-            return mobileJson(result, status, setCookieHeaders);
+            return mobileJson(result, status, intents);
           }
-          return mobileJson(result, 200, setCookieHeaders);
+          return mobileJson(result, 200, intents);
         } catch {
           console.error("[mobile.auth.complete-password] failed");
           return mobileJson({ ok: false, error: "password_failed" }, 500);

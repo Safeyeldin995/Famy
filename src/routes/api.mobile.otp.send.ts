@@ -21,15 +21,15 @@ export const Route = createFileRoute("/api/mobile/otp/send")({
         }
 
         try {
-          const { result, setCookieHeaders } = await runWithMobileAuthCookies(() =>
+          const { result, intents } = await runWithMobileAuthCookies(() =>
             mobileOtpSendHandler(parsed),
           );
           if (!result.ok) {
-            return mobileJson(result, 429, setCookieHeaders);
+            return mobileJson(result, 429, intents);
           }
           const { resolveOtpProviderKind } = await import("@/lib/otp/otpProviderKind.server");
           const delivery = resolveOtpProviderKind() === "firebase" ? "firebase" : "server";
-          return mobileJson({ ...result, delivery }, 200, setCookieHeaders);
+          return mobileJson({ ...result, delivery }, 200, intents);
         } catch (error) {
           if (error instanceof Error && error.message.includes("Invalid E.164")) {
             return mobileJson({ ok: false, error: "invalid_phone" }, 400);
