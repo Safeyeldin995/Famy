@@ -40,6 +40,7 @@ for (const [family, directory, weights] of [
   }
 }
 const screens = {
+  splash: "splash",
   onboarding: "onboarding",
   home: "home",
   search: "search",
@@ -94,11 +95,25 @@ const page = await context.newPage();
 const results = [];
 try {
   for (const [screen, route] of Object.entries(screens)) {
+    if (process.argv[2] && screen !== process.argv[2]) continue;
     const errors = [];
     const listener = (error) => errors.push(error.message);
     page.on("pageerror", listener);
     try {
       await page.goto(`${base}/preview/${route}`, { waitUntil: "networkidle", timeout: 60000 });
+      // Hide only the preview hub chrome, including on the splash route.
+      await page.addStyleTag({
+        content:
+          'a[href="/preview"] { visibility:hidden !important; } div.brand-hero.shrink-0.px-4.py-2 {display:none!important}',
+      });
+      if (screen === "splash") {
+        await page.getByRole("img", { name: "Famy", exact: true }).waitFor();
+        await page.waitForTimeout(2200);
+        await page.screenshot({ path: path.join(out, "web", "splash.png") });
+        results.push({ screen, route, errors, captured: true });
+        page.off("pageerror", listener);
+        continue;
+      }
       await page.waitForFunction(() => (document.body.innerText || "").trim().length > 30, {
         timeout: 15000,
       });

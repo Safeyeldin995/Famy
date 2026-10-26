@@ -10,14 +10,22 @@ import { Text } from "./Text";
 import { colors, radius, space } from "./theme";
 import { ui } from "./Page";
 
-export function Avatar({ raw, size = 64 }: { raw?: string | null; size?: number }) {
+export function Avatar({
+  raw,
+  size = 64,
+  round = false,
+}: {
+  raw?: string | null;
+  size?: number;
+  round?: boolean;
+}) {
   const image = useAvatarUrl(raw);
   return (
     <View
       style={{
         width: size,
         height: size,
-        borderRadius: radius.lg,
+        borderRadius: round ? size / 2 : radius.lg,
         backgroundColor: colors.brandTint,
         alignItems: "center",
         justifyContent: "center",
@@ -47,27 +55,39 @@ export function ProviderCard({ provider: p }: { provider: Provider }) {
       onPress={() => router.push({ pathname: "/provider/[id]", params: { id: p.id } })}
       style={({ pressed }) => [
         ui.card,
-        { flexDirection: "row", gap: space.lg },
+        { flexDirection: "row", gap: 12, padding: 16, borderRadius: 16, backgroundColor: "white" },
         pressed && ui.pressed,
       ]}
     >
-      <Avatar raw={p.profile.avatar_url} size={72} />
-      <View style={{ flex: 1, minWidth: 0, gap: space.sm }}>
-        <Text size="lg" weight="heavy">
-          {p.profile.full_name || t("provider2.unnamed")}
+      <Avatar raw={p.profile.avatar_url} size={56} round />
+      <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Text size="md" weight="bold" style={{ flexShrink: 1 }}>
+            {p.profile.full_name || t("provider2.unnamed")}
+          </Text>
+          {p.is_verified && (
+            <BadgeCheck
+              size={16}
+              color={colors.success}
+              accessibilityLabel={t("common.verified")}
+            />
+          )}
+        </View>
+        <Text size="sm" tone="muted">
+          {[...new Set(p.services.map((item) => item.service?.category?.slug))]
+            .map((slug) =>
+              slug === "babysitting"
+                ? t("roles.babysitter")
+                : slug === "tutoring"
+                  ? t("roles.teacher")
+                  : "",
+            )
+            .filter(Boolean)
+            .join(" · ") || localized(service, i18n.language)}
         </Text>
-        {p.is_verified && (
-          <View style={ui.wrap}>
-            <BadgeCheck size={16} color={colors.success} />
-            <Text size="sm" tone="success">
-              {t("mobile.verified")}
-            </Text>
-          </View>
-        )}
-        <Text tone="muted">{localized(service, i18n.language)}</Text>
         <View style={ui.wrap}>
           <Star size={16} color={colors.warning} />
-          <Text style={ui.ltr}>
+          <Text size="xs" tone="muted" style={ui.ltr}>
             {Number(p.ratings.rating_count) > 0
               ? t("mobile.rating", {
                   rating: Number(p.ratings.rating_avg).toFixed(1),
@@ -77,7 +97,7 @@ export function ProviderCard({ provider: p }: { provider: Provider }) {
           </Text>
         </View>
         {p.hourly_rate != null && (
-          <Text weight="bold" tone="brand" style={ui.ltr}>
+          <Text weight="bold" style={[ui.ltr, { marginTop: 4 }]}>
             {packageInfo
               ? `${money(p.hourly_rate, i18n.language)} · ${t(packageInfo.key, packageInfo.values)}`
               : t("providerPage.perHour", { price: money(p.hourly_rate, i18n.language) })}

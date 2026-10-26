@@ -7,6 +7,7 @@ import { colors, fonts } from "@/ui/theme";
 import { COMPACT_FONT_SCALE_CAP, scaledTabBarHeight } from "@/ui/a11y";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { View, useWindowDimensions, type TextStyle } from "react-native";
+import { CustomerBottomNav } from "@/ui/CustomerBottomNav";
 
 export default function CustomerTabs() {
   const { session, ready } = useSession();
@@ -18,6 +19,7 @@ export default function CustomerTabs() {
 
   return (
     <Tabs
+      tabBar={(props) => <CustomerBottomNav {...props} />}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.brandText,

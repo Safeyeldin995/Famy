@@ -6,6 +6,7 @@ const require = createRequire(import.meta.url);
 const { chromium } = require("../../../node_modules/@playwright/test");
 const root = path.dirname(fileURLToPath(import.meta.url));
 const pairs = {
+  splash: ["splash", "onboarding/splash-assembled"],
   onboarding: ["onboarding", "onboarding/slide-1"],
   "onboarding-2": ["onboarding-2", "onboarding/slide-2"],
   "onboarding-3": ["onboarding-3", "onboarding/slide-3"],
@@ -26,7 +27,7 @@ const pairs = {
       "favorites",
       "promo-codes",
       "help",
-    ].map((name) => [name, [name, `phase1-web/${name}`]]),
+    ].map((name) => [name, [name, `customer-v2/${name}`]]),
   ),
   "booking-step-1": ["booking-step-1", "phase2a-web/hourly-1-service"],
   messages: ["messages", "chat-web/messages-list"],
