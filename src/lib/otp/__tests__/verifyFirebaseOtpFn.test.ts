@@ -98,6 +98,19 @@ describe("verifyFirebaseOtpFn", () => {
           }),
         };
       }
+      if (table === "profiles") {
+        return {
+          select: () => ({
+            eq: () => ({
+              eq: () => ({
+                is: () => ({
+                  maybeSingle: () => Promise.resolve({ data: null, error: null }),
+                }),
+              }),
+            }),
+          }),
+        };
+      }
       return {
         insert: () => Promise.resolve({ error: null }),
       };

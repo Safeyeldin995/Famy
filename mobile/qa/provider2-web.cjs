@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const http = require("node:http");
 const assert = require("node:assert/strict");
+const { waitForLaunchGateGone } = require("./waitLaunchGate.cjs");
 
 const exportDir = path.resolve(process.argv[2]);
 const artifacts = path.resolve(process.argv[3]);
@@ -229,6 +230,7 @@ async function run() {
 
   async function visit(route) {
     await page.goto(base + route);
+    await waitForLaunchGateGone(page);
     await page.waitForTimeout(900);
     await page.evaluate(() => document.fonts.ready);
   }
