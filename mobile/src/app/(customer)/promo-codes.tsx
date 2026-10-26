@@ -5,12 +5,17 @@ import { dateTime, money } from "@/lib/presentation";
 import { Page, QueryState, ui } from "@/ui/Page";
 import { PromoCard } from "@/ui/PromoCard";
 import { Text } from "@/ui/Text";
+import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 export default function Promos() {
   const { t, i18n } = useTranslation();
   const q = useFeaturedPromoCodes();
   const used = useMyPromoRedemptions();
   return (
-    <Page title={t("profile.promoCodes")} queries={[q, used]}>
+    <Page
+      title={t("profile.promoCodes")}
+      queries={[q, used]}
+      header={<CustomerPageHeader hero title={t("promoCodes.title")} backTo="/profile" />}
+    >
       <QueryState query={q} empty={!q.data?.length}>
         {q.data?.map((p) => (
           <PromoCard key={p.id} offer={p} />

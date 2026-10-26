@@ -3,11 +3,23 @@ import { ActivityIndicator, View } from "react-native";
 import { Redirect } from "expo-router";
 import { resolveWorkspace, useSession, type Workspace } from "@/lib/session";
 import { colors } from "@/ui/theme";
+import { isOnboarded } from "@/lib/onboarding";
 
 /** Entry: send signed-out users to login and signed-in users to their workspace. */
 export default function Index() {
   const { session, ready } = useSession();
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const [onboarded, setOnboarded] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    isOnboarded().then((value) => {
+      if (!cancelled) setOnboarded(value);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!session) return;
@@ -20,7 +32,7 @@ export default function Index() {
     };
   }, [session]);
 
-  if (!ready || (session && !workspace)) {
+  if (!ready || onboarded === null || (session && !workspace)) {
     return (
       <View
         style={{
@@ -34,7 +46,7 @@ export default function Index() {
       </View>
     );
   }
-  if (!session) return <Redirect href="/login" />;
+  if (!session) return <Redirect href={onboarded ? "/login" : "/onboarding"} />;
   if (workspace === "customer") return <Redirect href="/home" />;
   if (workspace === "provider") return <Redirect href="/dashboard" />;
   return <Redirect href="/workspace-on-web" />;

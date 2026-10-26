@@ -6,6 +6,7 @@ import { useAddresses, useSetDefaultAddress, useDeleteAddress } from "@/lib/quer
 import { Page, QueryState, Confirm, ActionError, ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
+import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 
 export default function Addresses() {
   const { t } = useTranslation();
@@ -14,7 +15,11 @@ export default function Addresses() {
   const remove = useDeleteAddress();
   const [selected, setSelected] = useState<string | null>(null);
   return (
-    <Page title={t("profile.addresses")} queries={[q]}>
+    <Page
+      title={t("profile.addresses")}
+      queries={[q]}
+      header={<CustomerPageHeader title={t("addresses.title")} backTo="/profile" />}
+    >
       <Button label={t("addresses.addAddress")} onPress={() => router.push("/addresses/new")} />
       <ActionError error={setDefault.error || remove.error} />
       {selected && (

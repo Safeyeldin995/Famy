@@ -1,0 +1,5 @@
+# Raw/intermediate captures are regenerated locally; commit only reviewed comparisons.
+/native/
+/web/
+/web-capture.json
+/comparisons.json

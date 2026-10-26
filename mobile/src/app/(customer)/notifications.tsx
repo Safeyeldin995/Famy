@@ -11,6 +11,7 @@ import { Page, QueryState, ActionError, ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
 import { colors } from "@/ui/theme";
+import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 
 export default function Notifications() {
   const { t, i18n } = useTranslation();
@@ -18,15 +19,27 @@ export default function Notifications() {
   const mark = useMarkNotificationRead();
   const all = useMarkAllNotificationsRead();
   return (
-    <Page title={t("notifs.title")} queries={[q]}>
-      {q.data?.some((n) => !n.read_at) && (
-        <Button
-          variant="secondary"
-          label={t("notifs.markAllRead")}
-          loading={all.isPending}
-          onPress={() => all.mutate()}
+    <Page
+      title={t("notifs.title")}
+      queries={[q]}
+      header={
+        <CustomerPageHeader
+          title={t("notifs.title")}
+          backTo="/home"
+          right={
+            q.data?.some((n) => !n.read_at) ? (
+              <Button
+                variant="secondary"
+                label={t("notifs.markAllRead")}
+                loading={all.isPending}
+                onPress={() => all.mutate()}
+                style={{ minHeight: 44, borderRadius: 999, paddingHorizontal: 14 }}
+              />
+            ) : null
+          }
         />
-      )}
+      }
+    >
       <ActionError error={mark.error || all.error} />
       <QueryState query={q} empty={!q.data?.length} emptyKey="customerRound2.notificationsEmpty">
         {q.data?.map((n) => {

@@ -6,7 +6,7 @@ import { useSession } from "@/lib/session";
 import { colors, fonts } from "@/ui/theme";
 import { COMPACT_FONT_SCALE_CAP, scaledTabBarHeight } from "@/ui/a11y";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useWindowDimensions, type TextStyle } from "react-native";
+import { View, useWindowDimensions, type TextStyle } from "react-native";
 
 export default function CustomerTabs() {
   const { session, ready } = useSession();
@@ -24,12 +24,17 @@ export default function CustomerTabs() {
         tabBarInactiveTintColor: colors.muted,
         tabBarLabelStyle: {
           fontFamily: labelFont,
-          fontSize: 12,
+          fontSize: 11,
           lineHeight: 22,
           maxFontSizeMultiplier: COMPACT_FONT_SCALE_CAP,
         } as TextStyle,
         tabBarStyle: {
-          borderTopColor: colors.border,
+          direction: i18n.language === "ar" ? "rtl" : "ltr",
+          marginHorizontal: 12,
+          marginBottom: 12,
+          borderRadius: 28,
+          borderWidth: 1,
+          borderColor: colors.border,
           backgroundColor: colors.surface,
           height: scaledTabBarHeight(fontScale, 22, insets.bottom),
           paddingTop: 6,
@@ -42,7 +47,18 @@ export default function CustomerTabs() {
         options={{
           title: t("nav.home"),
           tabBarIcon: ({ color, focused }) => (
-            <Home size={22} color={focused ? colors.brand : color} />
+            <View
+              style={{
+                width: 56,
+                height: 36,
+                borderRadius: 999,
+                backgroundColor: focused ? colors.brandTint : "transparent",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Home size={22} color={focused ? colors.brand : color} />
+            </View>
           ),
         }}
       />
@@ -51,7 +67,18 @@ export default function CustomerTabs() {
         options={{
           title: t("nav.bookings"),
           tabBarIcon: ({ color, focused }) => (
-            <Calendar size={22} color={focused ? colors.brand : color} />
+            <View
+              style={{
+                width: 56,
+                height: 36,
+                borderRadius: 999,
+                backgroundColor: focused ? colors.brandTint : "transparent",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Calendar size={22} color={focused ? colors.brand : color} />
+            </View>
           ),
         }}
       />
@@ -60,7 +87,18 @@ export default function CustomerTabs() {
         options={{
           title: t("nav.messages"),
           tabBarIcon: ({ color, focused }) => (
-            <MessageCircle size={22} color={focused ? colors.brand : color} />
+            <View
+              style={{
+                width: 56,
+                height: 36,
+                borderRadius: 999,
+                backgroundColor: focused ? colors.brandTint : "transparent",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <MessageCircle size={22} color={focused ? colors.brand : color} />
+            </View>
           ),
         }}
       />
@@ -69,7 +107,18 @@ export default function CustomerTabs() {
         options={{
           title: t("nav.profile"),
           tabBarIcon: ({ color, focused }) => (
-            <User size={22} color={focused ? colors.brand : color} />
+            <View
+              style={{
+                width: 56,
+                height: 36,
+                borderRadius: 999,
+                backgroundColor: focused ? colors.brandTint : "transparent",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <User size={22} color={focused ? colors.brand : color} />
+            </View>
           ),
         }}
       />
