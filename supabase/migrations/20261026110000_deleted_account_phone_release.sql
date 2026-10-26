@@ -1,7 +1,5 @@
 -- Release phone/email on deleted accounts and ignore banned/deleted users in phone lookup.
 
-ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS banned_until timestamptz;
-
 CREATE OR REPLACE FUNCTION public.auth_user_id_for_phone(p_auth_email text, p_phone text)
 RETURNS uuid
 LANGUAGE sql
