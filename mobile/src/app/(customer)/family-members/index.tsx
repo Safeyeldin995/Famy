@@ -6,6 +6,7 @@ import { useFamilyMembers, useDeactivateFamilyMember } from "@/lib/queries";
 import { Page, QueryState, Confirm, ActionError, ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
+import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 
 export default function FamilyMembers() {
   const { t } = useTranslation();
@@ -13,7 +14,17 @@ export default function FamilyMembers() {
   const remove = useDeactivateFamilyMember();
   const [selected, setSelected] = useState<string | null>(null);
   return (
-    <Page title={t("familyMembers.title")} queries={[q]}>
+    <Page
+      title={t("familyMembers.title")}
+      queries={[q]}
+      header={
+        <CustomerPageHeader
+          title={t("familyMembers.title")}
+          subtitle={t("familyMembers.privacyNotice")}
+          backTo="/profile"
+        />
+      }
+    >
       <Button
         label={t("familyMembers.addMember")}
         onPress={() => router.push("/family-members/new")}

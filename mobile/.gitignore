@@ -46,3 +46,7 @@ example
 
 # Local, network-isolated browser QA evidence
 /qa/artifacts/
+
+# Local parity exports (not app source or screenshot evidence)
+/dist-parity/
+/dist-parity-android/

@@ -30,12 +30,14 @@ export function Page({
   queries = [],
   tab = false,
   footer,
+  header,
 }: {
   title: string;
   children: ReactNode;
   queries?: Refreshable[];
   tab?: boolean;
   footer?: ReactNode;
+  header?: ReactNode;
 }) {
   const [refreshing, setRefreshing] = useState(false);
   const { i18n } = useTranslation();
@@ -44,9 +46,10 @@ export function Page({
   return (
     <SafeAreaView
       style={[ui.page, { direction: i18n.language === "ar" ? "rtl" : "ltr" }]}
-      edges={tab ? ["top"] : footer ? ["top"] : ["bottom"]}
+      edges={header ? ["top", "bottom"] : tab ? ["top"] : footer ? ["top"] : ["bottom"]}
     >
-      {!tab && <Stack.Screen options={{ title }} />}
+      {!tab && <Stack.Screen options={{ title, ...(header ? { headerShown: false } : {}) }} />}
+      {header}
       <KeyboardAwareScrollView
         style={{ flex: 1 }}
         keyboardShouldPersistTaps="handled"

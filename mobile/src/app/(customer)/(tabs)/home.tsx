@@ -3,7 +3,7 @@ import { useState } from "react";
 import { router } from "expo-router";
 import { QueryState, Row } from "@/ui/Page";
 import { ProviderCard } from "@/ui/ProviderCard";
-import { PromoCard } from "@/ui/PromoCard";
+import { HomePromoStrip } from "@/ui/HomePromoStrip";
 import { recentProviders, uniqueProviders } from "@/lib/presentation";
 import { Pressable, ScrollView, RefreshControl, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -177,15 +177,21 @@ export default function Home() {
           </View>
         </QueryState>
       </View>
-      <View style={styles.section}>
-        <Text size="xl" weight="heavy">
-          {t("profile.promoCodes")}
-        </Text>
-        <QueryState query={promos} empty={!promos.data?.length}>
-          {promos.data?.map((p) => (
-            <PromoCard key={p.id} offer={p} />
+      {promos.isError ? (
+        <QueryState query={promos} />
+      ) : promos.data?.length ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+          style={{ marginTop: 32 }}
+        >
+          {promos.data.map((p) => (
+            <HomePromoStrip key={p.id} offer={p} />
           ))}
-        </QueryState>
+        </ScrollView>
+      ) : null}
+      <View style={styles.section}>
         <QueryState query={address}>
           {address.data ? (
             <NearbyProviders addressId={address.data.id} />
@@ -284,8 +290,7 @@ const styles = StyleSheet.create({
   tiles: { flexDirection: "row", gap: space.md },
   tile: {
     flex: 1,
-    minHeight: 176,
-    ...shadow.card,
+    minHeight: 160,
     borderRadius: radius.xl,
     padding: space.lg,
     justifyContent: "space-between",

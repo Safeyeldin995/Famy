@@ -1,29 +1,14 @@
 import { Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
+import { Check } from "lucide-react-native";
+import { scheduleTimeChoices, timeChoiceLabel } from "@shared/provider/scheduleDate";
+import { BottomSheetSelect } from "./BottomSheetSelect";
 import {
   hasSharedWorkingHours,
   setSharedWorkingHours,
   type WorkingRule,
 } from "@/lib/provider/availabilityHelpers";
 
-const TIME_CHOICES = (() => {
-  const values: string[] = [];
-  for (let h = 0; h < 24; h++) {
-    for (const m of [0, 30]) {
-      values.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
-    }
-  }
-  values.push("24:00");
-  return values;
-})();
-
-function scheduleTimeChoices(current: string, isEnd: boolean) {
-  const list = [...TIME_CHOICES];
-  if (current && !list.includes(current)) list.push(current);
-  list.sort();
-  if (isEnd) return list.filter((t) => t !== "00:00");
-  return list.filter((t) => t !== "24:00");
-}
 import { Text } from "@/ui/Text";
 import { colors, radius, space } from "@/ui/theme";
 
@@ -35,13 +20,19 @@ export function WeeklyHoursEditor({
   onChange,
   sameHours,
   onSameHoursChange,
+  disabled = false,
 }: {
   value: WorkingRule[];
   onChange: (value: WorkingRule[]) => void;
   sameHours: boolean;
   onSameHoursChange: (value: boolean) => void;
+  disabled?: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const direction = {
+    direction: "ltr" as const,
+    flexDirection: i18n.language.startsWith("ar") ? ("row-reverse" as const) : ("row" as const),
+  };
   const sortedRows = [...value].sort(
     (a, b) => chipOrder.indexOf(a.weekday) - chipOrder.indexOf(b.weekday),
   );
@@ -62,10 +53,7 @@ export function WeeklyHoursEditor({
     ]);
   };
 
-  const shiftTime = (row: WorkingRule, key: "start_time" | "end_time", delta: number) => {
-    const choices = scheduleTimeChoices(row[key], key === "end_time");
-    const idx = choices.indexOf(row[key]);
-    const next = choices[Math.min(choices.length - 1, Math.max(0, idx + delta))];
+  const selectTime = (row: WorkingRule, key: "start_time" | "end_time", next: string) => {
     onChange(
       value.map((item) =>
         sameHours || item.weekday === row.weekday ? { ...item, [key]: next } : item,
@@ -78,7 +66,8 @@ export function WeeklyHoursEditor({
       <Pressable
         accessibilityRole="checkbox"
         accessibilityLabel={t("providerSetup.sameHours")}
-        accessibilityState={{ checked: sameHours }}
+        accessibilityState={{ checked: sameHours, disabled }}
+        disabled={disabled}
         onPress={() => {
           const next = !sameHours;
           onSameHoursChange(next);
@@ -92,11 +81,28 @@ export function WeeklyHoursEditor({
             );
           }
         }}
-        style={{ minHeight: 44, justifyContent: "center" }}
+        style={[
+          direction,
+          { minHeight: 44, alignItems: "center", gap: 10, opacity: disabled ? 0.5 : 1 },
+        ]}
       >
+        <View
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: 6,
+            borderWidth: 1,
+            borderColor: sameHours ? colors.brand : colors.border,
+            backgroundColor: sameHours ? colors.brand : colors.surface,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {sameHours && <Check size={14} color="white" />}
+        </View>
         <Text weight="bold">{t("providerSetup.sameHours")}</Text>
       </Pressable>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.xs }}>
+      <View style={[direction, { flexWrap: "wrap", gap: 8 }]}>
         {chipOrder.map((weekday) => {
           const on = value.some((row) => row.weekday === weekday);
           return (
@@ -104,9 +110,13 @@ export function WeeklyHoursEditor({
               key={weekday}
               accessibilityRole="button"
               accessibilityLabel={t(`pro.schedule.days.${dayKeys[weekday]}`)}
-              accessibilityState={{ selected: on }}
+              accessibilityState={{ selected: on, disabled }}
+              disabled={disabled}
               onPress={() => toggleDay(weekday)}
               style={{
+                ...direction,
+                gap: 6,
+                opacity: disabled ? 0.5 : 1,
                 minHeight: 44,
                 minWidth: 44,
                 paddingHorizontal: space.sm,
@@ -118,6 +128,7 @@ export function WeeklyHoursEditor({
                 justifyContent: "center",
               }}
             >
+              {on && <Check size={14} color={colors.brand} />}
               <Text weight="bold" tone={on ? "brand" : "muted"} size="sm">
                 {t(`pro.schedule.days.${dayKeys[weekday]}`)}
               </Text>
@@ -132,45 +143,21 @@ export function WeeklyHoursEditor({
               {t(`pro.schedule.days.${dayKeys[row.weekday]}`)}
             </Text>
           )}
-          {(["start_time", "end_time"] as const).map((key) => (
-            <View
-              key={key}
-              style={{ flexDirection: "row", alignItems: "center", gap: space.sm, minHeight: 44 }}
-            >
-              <Text style={{ flex: 1 }} weight="bold">
-                {t(key === "start_time" ? "pro.schedule.start" : "pro.schedule.end")}
-              </Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`${t("providerSetup.decrease", { unit: t(key === "start_time" ? "pro.schedule.start" : "pro.schedule.end") })}, ${t(`pro.schedule.days.${dayKeys[row.weekday]}`)}`}
-                onPress={() => shiftTime(row, key, -1)}
-                style={{
-                  minWidth: 44,
-                  minHeight: 44,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Text weight="heavy">−</Text>
-              </Pressable>
-              <Text weight="heavy" style={{ writingDirection: "ltr" }}>
-                {row[key]}
-              </Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`${t("providerSetup.increase", { unit: t(key === "start_time" ? "pro.schedule.start" : "pro.schedule.end") })}, ${t(`pro.schedule.days.${dayKeys[row.weekday]}`)}`}
-                onPress={() => shiftTime(row, key, 1)}
-                style={{
-                  minWidth: 44,
-                  minHeight: 44,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Text weight="heavy">+</Text>
-              </Pressable>
-            </View>
-          ))}
+          <View style={[direction, { gap: 12 }]}>
+            {(["start_time", "end_time"] as const).map((key) => (
+              <BottomSheetSelect
+                key={key}
+                disabled={disabled}
+                label={t(key === "start_time" ? "pro.schedule.start" : "pro.schedule.end")}
+                value={row[key]}
+                options={scheduleTimeChoices(row[key], key === "end_time").map((time) => ({
+                  value: time,
+                  label: timeChoiceLabel(time, i18n.language),
+                }))}
+                onChange={(time) => selectTime(row, key, time)}
+              />
+            ))}
+          </View>
         </View>
       ))}
     </View>

@@ -5,6 +5,7 @@ import { useSupportContact } from "@/lib/queries";
 import { Page, QueryState, ActionError, ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
+import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 export default function Help() {
   const { t } = useTranslation();
   const q = useSupportContact();
@@ -21,7 +22,18 @@ export default function Help() {
   const whatsapp = q.data?.whatsapp?.replace(/\D/g, "");
   const faqs = t("helpC.faqs", { returnObjects: true }) as { q: string; a: string }[];
   return (
-    <Page title={t("helpC.title")} queries={[q]}>
+    <Page
+      title={t("helpC.title")}
+      queries={[q]}
+      header={
+        <CustomerPageHeader
+          hero
+          title={t("helpC.title")}
+          subtitle={t("helpC.heroBody")}
+          backTo="/profile"
+        />
+      }
+    >
       <QueryState query={q} empty={!phone && !whatsapp} emptyKey="mobile.supportUnavailable">
         {whatsapp && (
           <Button label={t("helpC.whatsapp")} onPress={() => open(`https://wa.me/${whatsapp}`)} />
