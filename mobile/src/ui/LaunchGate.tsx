@@ -42,11 +42,16 @@ export function LaunchGate({
   useEffect(() => {
     if (!bootstrapReady || !sessionReady || phase !== "branded") return;
     let cancelled = false;
+    let failSafe: ReturnType<typeof setTimeout> | undefined;
     void (async () => {
       await SplashScreen.hideAsync();
       if (cancelled) return;
       const reduceMotion = await AccessibilityInfo.isReduceMotionEnabled();
       setPhase("intro");
+      const failSafeMs = (reduceMotion ? REDUCE_MOTION_MS : INTRO_MS) + 500;
+      failSafe = setTimeout(() => {
+        if (!cancelled) setPhase("done");
+      }, failSafeMs);
       if (reduceMotion) {
         overlayTranslateY.value = 0;
         logoScale.value = 1;
@@ -91,6 +96,7 @@ export function LaunchGate({
     })();
     return () => {
       cancelled = true;
+      clearTimeout(failSafe);
     };
   }, [
     bootstrapReady,
@@ -122,7 +128,8 @@ export function LaunchGate({
       {children}
       {showBrandedLayer ? (
         <Animated.View
-          pointerEvents="auto"
+          testID="launch-overlay"
+          pointerEvents={phase === "branded" ? "auto" : "none"}
           style={[styles.overlay, overlayStyle]}
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
