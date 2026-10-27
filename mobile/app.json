@@ -78,7 +78,8 @@
         "expo-build-properties",
         {
           "android": {
-            "kotlinVersion": "2.4.0"
+            "kotlinVersion": "2.4.0",
+            "extraProguardRules": "# Room reflectively constructs WorkManager's generated database at app startup.\n-keep class androidx.work.impl.WorkDatabase_Impl {\n    public <init>();\n}"
           },
           "ios": {
             "useFrameworks": "static"

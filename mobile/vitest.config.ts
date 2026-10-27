@@ -27,6 +27,7 @@ export default defineConfig({
       "src/ui/__tests__/parityFoundation.test.ts",
       "src/ui/__tests__/customerParity.test.ts",
       "src/ui/__tests__/customerPushDevices.test.ts",
+      "src/ui/__tests__/workManagerRelease.test.ts",
     ],
     setupFiles: [path.join(repoRoot, "qa/vitest-unit-qa-env-guard.mjs")],
   },
