@@ -7,6 +7,7 @@ const path = require("node:path");
 const http = require("node:http");
 const assert = require("node:assert/strict");
 const { waitForLaunchGateGone, screenshotWithoutLaunchOverlay } = require("./waitLaunchGate.cjs");
+const { captureMatchingWeb } = require("./parity-evidence/matching-web.cjs");
 
 const exportDir = path.resolve(process.argv[2]);
 const artifacts = path.resolve(process.argv[3]);
@@ -198,6 +199,7 @@ async function run() {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
     locale: "ar-EG",
+    timezoneId: "Africa/Cairo",
     permissions: ["clipboard-read", "clipboard-write"],
   });
   await context.addInitScript(
@@ -318,6 +320,10 @@ async function run() {
         provider_services: [{ price_override: null, status: "approved", service }],
         reviews: [{ id: id(14), rating: 5, comment: "تقييم اختبار محلي.", created_at: now }],
         provider_teaching_capabilities: [],
+        booking_reschedule_requests: [],
+        availability_rules: [
+          { id: id(82), provider_id: pid, weekday: 1, start_time: "09:00", end_time: "17:00" },
+        ],
         teaching_curricula: [],
         teaching_levels: [],
         customer_education_profiles: [],
@@ -367,6 +373,7 @@ async function run() {
       body: method === "HEAD" ? "" : JSON.stringify(data),
     });
   });
+  await require("./parity-evidence/local-map.cjs").installLocalMap(context);
   const page = await context.newPage();
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (msg) => {
@@ -381,6 +388,44 @@ async function run() {
   async function shot(name) {
     const file = path.join(artifacts, `${name}.png`);
     await screenshotWithoutLaunchOverlay(page, file, name);
+    await captureMatchingWeb({
+      browser,
+      name,
+      nativePath: file,
+      origin: process.env.PARITY_WEB_ORIGIN,
+      fixture: {
+        provider,
+        service,
+        categories,
+        addresses,
+        member,
+        members,
+        favorites,
+        notifications,
+        bookings: [
+          booking,
+          {
+            ...booking,
+            id: id(12),
+            status: "completed",
+            start_at: "2026-01-01T10:00:00Z",
+            end_at: "2026-01-01T11:00:00Z",
+          },
+        ],
+        promos: [
+          {
+            id: id(11),
+            code: "LOCALTEST",
+            description_ar: "كود اختبار محلي فقط",
+            description_en: "Local test only",
+            discount_type: "percentage",
+            discount_value: 10,
+            minimum_booking_amount: 100,
+            expires_at: null,
+          },
+        ],
+      },
+    });
     screenshots.push({
       screen: name,
       path: file,
@@ -439,6 +484,16 @@ async function run() {
   for (const [name, route, text] of screens) {
     await visit(route, titles[name] || text);
     if (name === "home") await expect(page.getByTestId("home-unread")).toBeVisible();
+    if (name === "profile") {
+      const photo = await page.getByTestId("customer-profile-photo").boundingBox();
+      const camera = await page
+        .getByRole("button", { name: ar.setup.photoHint, exact: true })
+        .boundingBox();
+      assert(
+        photo && camera && camera.x + camera.width / 2 < photo.x + photo.width / 2,
+        "Arabic camera action stays on the left of the avatar, matching web",
+      );
+    }
     await shot(name);
   }
   await visit(`/provider/${pid}`, provider.full_name);
@@ -455,19 +510,21 @@ async function run() {
   assert(writes.some((w) => w.table === "notifications" && w.method === "PATCH"));
   await visit("/addresses", addresses[0].area);
   await page.getByRole("button", { name: ar.mobile.setDefault, exact: true }).click();
-  await expect(page.getByText(ar.mobile.defaultAddress, { exact: true })).toHaveCount(1);
+  await expect(page.getByText(ar.addresses.default, { exact: true })).toHaveCount(1);
   assert(writes.some((w) => w.table === "addresses" && w.body?.is_default === true));
   await visit("/family-members/new", ar.familyMembers.fullName);
   await page.getByLabel(ar.familyMembers.fullName, { exact: true }).fill("عضو اختبار");
-  await expect(page.getByLabel(ar.familyMembers.dateOfBirth, { exact: true })).toHaveAttribute(
-    "type",
-    "date",
-  );
-  await page.getByLabel(ar.familyMembers.dateOfBirth, { exact: true }).fill("2099-02-01");
+  // Web parity uses day/month/year sheets, not a native date input.
+  await page.getByRole("button", { name: ar.customerRound2.year, exact: true }).click();
+  await expect(page.getByRole("radio", { name: "2099", exact: true })).toHaveCount(0);
+  await page.getByRole("radio", { name: "2019", exact: true }).click();
   await page.getByRole("button", { name: ar.common.save, exact: true }).click();
   await expect(page.getByText(ar.mobile.memberInvalid, { exact: true })).toBeVisible();
   assert(!writes.some((w) => w.table === "family_members"));
-  await page.getByLabel(ar.familyMembers.dateOfBirth, { exact: true }).fill("2019-02-03");
+  await page.getByRole("button", { name: ar.customerRound2.month, exact: true }).click();
+  await page.getByRole("radio", { name: "فبراير", exact: true }).click();
+  await page.getByRole("button", { name: ar.customerRound2.day, exact: true }).click();
+  await page.getByRole("radio", { name: "3", exact: true }).click();
   await page.getByLabel(ar.familyMembers.allergies, { exact: true }).fill("اختبار");
   await page.getByRole("button", { name: ar.common.save, exact: true }).click();
   assert(!writes.some((w) => w.table === "family_members"));
@@ -486,7 +543,7 @@ async function run() {
   );
   assert(!writes.some((w) => w.table === "family_members" && w.method === "DELETE"));
   await visit("/promo-codes", "LOCALTEST");
-  await page.getByRole("button", { name: ar.mobile.copyCode, exact: true }).click();
+  await page.getByRole("button", { name: ar.promoCodes.copyCode, exact: true }).click();
   await expect(page.getByRole("button", { name: ar.mobile.copied, exact: true })).toBeVisible();
   mode = "empty";
   await visit("/addresses", ar.customerHome.addressHint);
@@ -497,7 +554,14 @@ async function run() {
   assert(failures > 0);
   mode = "populated";
   await page.getByRole("button", { name: ar.common.retry, exact: true }).click();
-  await expect(page.getByText(addresses[0].area, { exact: true })).toBeVisible();
+  await expect(
+    page.getByText(
+      [addresses[0].street, addresses[0].building, addresses[0].compound, addresses[0].area]
+        .filter(Boolean)
+        .join(", "),
+      { exact: true },
+    ),
+  ).toBeVisible();
   assert.deepEqual(errors, []);
   fs.writeFileSync(path.join(artifacts, "screenshots.json"), JSON.stringify(screenshots, null, 2));
   fs.writeFileSync(

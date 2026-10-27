@@ -5,7 +5,11 @@ import { cairoWallTime, packageRuleStart } from "@shared/pricing/servicePackages
 import { creationMinHours, parseBookingExpirySettings } from "@shared/booking/pending-expiry";
 import { mapBookingRpcError } from "@shared/booking/errors";
 import { completeCreateBookingResult } from "./bookingPure";
-import { ADDRESSES_QUERY_ROOT, DEFAULT_ADDRESS_QUERY_ROOT } from "@shared/db/address-query-keys";
+import {
+  ADDRESSES_QUERY_ROOT,
+  ADDRESS_QUERY_ROOT,
+  DEFAULT_ADDRESS_QUERY_ROOT,
+} from "@shared/db/address-query-keys";
 import type { Database } from "../../../src/integrations/supabase/types";
 type Tables = Database["public"]["Tables"];
 export type AddressLabel = "home" | "work" | "family" | "other";
@@ -83,6 +87,34 @@ export function useResolveZone(lat: number | null | undefined, lng: number | nul
       const { data, error } = await supabase.rpc("resolve_zone", { p_lat: lat!, p_lng: lng! });
       if (error) throw error;
       return data?.[0] ?? null;
+    },
+  });
+}
+
+export function useUpdateAddress() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: AddressInput & { id: string }) => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error("auth required");
+      const { data, error } = await supabase
+        .from("addresses")
+        .update({
+          ...toAddressRow(input),
+          ...(input.is_default === undefined ? {} : { is_default: input.is_default }),
+        })
+        .eq("id", input.id)
+        .eq("user_id", session.user.id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      for (const key of [ADDRESSES_QUERY_ROOT, ADDRESS_QUERY_ROOT, DEFAULT_ADDRESS_QUERY_ROOT])
+        void qc.invalidateQueries({ queryKey: [key] });
     },
   });
 }

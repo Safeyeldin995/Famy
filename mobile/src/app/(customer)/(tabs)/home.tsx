@@ -331,6 +331,7 @@ function NearbyProviders({ addressId }: { addressId: string }) {
         </Text>
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel={t("common.seeAll")}
           onPress={() => router.push("/search")}
           style={{ minHeight: 44, justifyContent: "center" }}
         >

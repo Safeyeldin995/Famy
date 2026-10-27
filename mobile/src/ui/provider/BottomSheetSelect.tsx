@@ -151,8 +151,8 @@ const styles = StyleSheet.create({
   sheet: {
     maxHeight: "80%",
     backgroundColor: "white",
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopStartRadius: 28,
+    borderTopEndRadius: 28,
     padding: 20,
     gap: 12,
   },

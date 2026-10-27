@@ -6,9 +6,11 @@ import { colors, space } from "@/ui/theme";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMyBookings, useBookingParties } from "@/lib/queries";
-import { activeStatuses, localized, money } from "@/lib/presentation";
+import { activeStatuses, localized } from "@/lib/presentation";
+import { customerMoney } from "@/lib/customerFormat";
 import { Page, QueryState, ui } from "@/ui/Page";
 import { Segmented } from "@/ui/Segmented";
+import { bookingStatusStyle } from "@/ui/customer/bookingStatusStyle";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 import { CustomerEmpty, customerStyle } from "@/ui/customer/Primitives";
 import { Avatar } from "@/ui/ProviderCard";
@@ -34,6 +36,7 @@ export default function Bookings() {
       tab
       title={t("bookings.title")}
       queries={[q, parties]}
+      contentStyle={{ paddingTop: 16, gap: 10 }}
       header={
         <CustomerPageHeader
           title={t("bookings.title")}
@@ -47,8 +50,13 @@ export default function Bookings() {
         />
       }
     >
-      <View style={customerStyle.card}>
-        <View style={ui.priceRow}>
+      <View
+        style={[
+          customerStyle.card,
+          { borderRadius: 28, marginBottom: 10, boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" },
+        ]}
+      >
+        <View style={[ui.priceRow, { paddingVertical: 0 }]}>
           <Text weight="heavy">{t(`bookings.${tab}`)}</Text>
           {!q.isLoading && !q.isError ? (
             <View style={[ui.badge, { backgroundColor: colors.surface2 }]}>
@@ -59,6 +67,7 @@ export default function Bookings() {
           ) : null}
         </View>
         <Segmented
+          brandSelection
           value={tab}
           onChange={setTab}
           options={[
@@ -84,6 +93,7 @@ export default function Bookings() {
           const start = new Date(b.start_at);
           const expired = isProviderNoResponseCancellation(b);
           const past = tab !== "upcoming";
+          const statusStyle = bookingStatusStyle(b.status);
           const hours = Math.max(1, Math.round((+new Date(b.end_at) - +start) / 36e5));
           return (
             <View
@@ -95,6 +105,7 @@ export default function Bookings() {
                   padding: 0,
                   overflow: "hidden",
                   backgroundColor: past ? colors.surface2 : colors.surface,
+                  boxShadow: "0px 1px 2px rgba(0,0,0,0.05)",
                 },
               ]}
             >
@@ -106,6 +117,9 @@ export default function Bookings() {
               >
                 <View style={[customerStyle.row, { alignItems: "flex-start" }]}>
                   <Avatar
+                    name={
+                      party?.other_name || b.provider?.profile.full_name || t("provider2.unnamed")
+                    }
                     raw={party?.other_avatar_url || b.provider?.profile.avatar_url}
                     size={56}
                     round
@@ -122,8 +136,15 @@ export default function Bookings() {
                           {localized(b.service, i18n.language)}
                         </Text>
                       </View>
-                      <View style={ui.badge}>
-                        <Text size="xs" tone="brand" weight="bold">
+                      <View
+                        style={{
+                          borderRadius: 999,
+                          paddingHorizontal: 10,
+                          paddingVertical: 6,
+                          backgroundColor: statusStyle.backgroundColor,
+                        }}
+                      >
+                        <Text size="xs" weight="heavy" style={{ color: statusStyle.color }}>
                           {t(`status.${b.status}`)}
                         </Text>
                       </View>
@@ -161,7 +182,7 @@ export default function Bookings() {
                   ]}
                 >
                   <Text weight="heavy" tone={past ? "default" : "brand"}>
-                    {money(b.price_total, i18n.language)}
+                    {customerMoney(b.price_total, i18n.language)}
                   </Text>
                   <Text size="xs" tone="muted" style={ui.ltr}>
                     #{b.id.slice(0, 8).toUpperCase()}

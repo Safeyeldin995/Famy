@@ -1,4 +1,8 @@
-export type OtpProviderKind = "mock" | "meta" | "firebase";
+export type OtpProviderKind = "mock" | "meta" | "firebase" | "http_sms";
+
+const PRODUCTION_OTP_PROVIDERS: OtpProviderKind[] = ["meta", "firebase", "http_sms"];
+const PRODUCTION_OTP_PROVIDERS_MESSAGE =
+  "Production requires OTP_PROVIDER=meta, OTP_PROVIDER=http_sms, or OTP_PROVIDER=firebase.";
 
 function isProductionRuntime(): boolean {
   return process.env.NODE_ENV === "production";
@@ -9,19 +13,24 @@ export function resolveOtpProviderKind(): OtpProviderKind {
 
   if (isProductionRuntime()) {
     if (configured === "mock") {
-      throw new Error("Production requires OTP_PROVIDER=meta or OTP_PROVIDER=firebase.");
+      throw new Error(PRODUCTION_OTP_PROVIDERS_MESSAGE);
     }
-    if (configured === "meta" || configured === "firebase") {
-      return configured;
+    if (configured && PRODUCTION_OTP_PROVIDERS.includes(configured as OtpProviderKind)) {
+      return configured as OtpProviderKind;
     }
-    throw new Error("Production requires OTP_PROVIDER=meta or OTP_PROVIDER=firebase.");
+    throw new Error(PRODUCTION_OTP_PROVIDERS_MESSAGE);
   }
 
-  if (configured === "mock" || configured === "meta" || configured === "firebase") {
+  if (
+    configured === "mock" ||
+    configured === "meta" ||
+    configured === "firebase" ||
+    configured === "http_sms"
+  ) {
     return configured;
   }
 
-  throw new Error("OTP_PROVIDER must be set explicitly: use mock, meta, or firebase.");
+  throw new Error("OTP_PROVIDER must be set explicitly: use mock, meta, http_sms, or firebase.");
 }
 
 export function isFirebaseOtpProvider(): boolean {

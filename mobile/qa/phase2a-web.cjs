@@ -470,6 +470,7 @@ async function run() {
             ? []
             : [booking],
         payments: paymentRows,
+        booking_reschedule_requests: [],
         provider_services: [{ price_override: null, status: "approved", service }],
         reviews: reviewRows,
         provider_teaching_capabilities: scenario === "tutoring" ? [capability] : [],
@@ -530,7 +531,14 @@ async function run() {
       body: method === "HEAD" ? "" : JSON.stringify(data),
     });
   });
+  await require("./parity-evidence/local-map.cjs").installLocalMap(context);
   const page = await context.newPage();
+  page.on("crash", () =>
+    fs.writeFileSync(
+      path.join(artifacts, "browser-crash.json"),
+      JSON.stringify({ event: "page.crash", step: "booking flow", appErrors: errors }, null, 2),
+    ),
+  );
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (msg) => {
     if (msg.type() === "error" && mode !== "error") errors.push(msg.text());
@@ -597,13 +605,13 @@ async function run() {
     await button(ar.common.continue);
     const tomorrow = new Date(Date.now() + 86400000);
     const day = tomorrow.toLocaleDateString("ar-EG-u-nu-latn", {
-      weekday: "short",
+      weekday: "long",
       day: "numeric",
-      month: "short",
+      month: "long",
     });
-    await radio(day);
+    await button(day);
     await page
-      .getByRole("radio", { name: /^[0-9]+:[0-9]+/ })
+      .getByRole("button", { name: /^[0-9]+:[0-9]+/ })
       .first()
       .click();
     await expect(page.getByRole("button", { name: ar.common.continue, exact: true })).toBeEnabled();
@@ -614,6 +622,7 @@ async function run() {
     await expect(page.getByRole("button", { name: ar.common.continue, exact: true })).toBeEnabled();
     await shot(`${kind}-3-address-recipient`);
     await button(ar.common.continue);
+    await button(ar.customerBooking.promo);
     await page.getByLabel(ar.mobileBooking.promo, { exact: true }).fill("LOCALTEST");
     await button(ar.mobileBooking.applyPromo);
     await expect(
@@ -697,7 +706,8 @@ async function run() {
         .fill("Local note");
       await shot("cancel-reason");
       await button(ar.bookingDetail.confirmAction);
-      await expect(page.getByText(ar.status.cancelled, { exact: true })).toBeVisible();
+      assert.equal(booking.status, "cancelled");
+      await expect(page.getByTestId("booking-status")).toHaveText(ar.status.cancelled);
       await shot("cancelled");
     }
   }
@@ -711,16 +721,34 @@ async function run() {
   await button(ar.bookingDetail.submitReview);
   await expect(page.getByText("Local review", { exact: true })).toBeVisible();
   await shot("review-saved");
-  await visit("/addresses/new", ar.mobileBooking.useLocation);
+  await visit("/addresses/new", ar.locationPicker.useMyLocation);
   await radio(ar.customerAreas.sheikhZayed);
   await page.getByLabel(ar.setup.address, { exact: true }).fill("Local street");
-  await button(ar.mobileBooking.useLocation);
-  await expect(page.getByText("30.03000, 31.00000", { exact: true })).toBeVisible();
+  const addressWritesBeforePick = writes.filter(
+    (w) => w.table === "addresses" && w.method === "POST",
+  ).length;
+  await button(ar.locationPicker.useMyLocation);
+  await expect(page.getByText(ar.locationPicker.sheetTitle, { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: ar.locationPicker.confirm, exact: true }),
+  ).toBeEnabled();
+  // A GPS result is a draft until the customer explicitly confirms the pin.
+  assert.equal(
+    writes.filter((w) => w.table === "addresses" && w.method === "POST").length,
+    addressWritesBeforePick,
+  );
+  await button(ar.locationPicker.confirm);
+  await expect(page.getByText(ar.locationPicker.saved, { exact: true })).toBeVisible();
   await shot("add-address");
   await button(ar.common.save);
   await expect
     .poll(() => writes.some((w) => w.table === "addresses" && w.method === "POST"))
     .toBeTruthy();
+  const savedAddress = writes
+    .filter((w) => w.table === "addresses" && w.method === "POST")
+    .at(-1).body;
+  assert.equal(savedAddress.lat, 30.03);
+  assert.equal(savedAddress.lng, 31);
   assert.equal(errors.length, 0, errors.join("\n"));
   fs.writeFileSync(path.join(artifacts, "screenshots.json"), JSON.stringify(screenshots, null, 2));
   fs.writeFileSync(

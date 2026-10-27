@@ -50,13 +50,23 @@ for (const file of files) {
     ts.forEachChild(node, visit);
   }
   visit(ast);
+  // The brand artwork is an explicitly LTR coordinate canvas, not directional UI.
+  // Keep checking all other styles in LaunchGate (rather than exempting the file).
+  let directionalSource = source;
+  if (relative === "ui/LaunchGate.tsx") {
+    assert.match(source, /direction: "ltr",\s*width: FAMY_SPLASH_ASSEMBLED.width \* scale/);
+    for (const coordinate of ["left: position.x * scale,", "left: fam.x * scale,"]) {
+      assert.equal(source.split(coordinate).length, 2, "expected one fixed artwork coordinate");
+      directionalSource = directionalSource.replace(coordinate, "");
+    }
+  }
   assert(
     !/allowFontScaling\s*=\s*\{false\}/.test(source),
     `${path.relative(root, file)} disables font scaling`,
   );
   assert(
     !/\b(?:marginLeft|marginRight|paddingLeft|paddingRight|borderBottomLeftRadius|borderBottomRightRadius|borderTopLeftRadius|borderTopRightRadius|left|right)\s*:/.test(
-      source,
+      directionalSource,
     ),
     `${path.relative(root, file)} has a physical left/right style`,
   );
@@ -99,10 +109,7 @@ const compiled = ts.transpileModule(helper, {
 const moduleForTest = { exports: {} };
 vm.runInNewContext(compiled, { module: moduleForTest, exports: moduleForTest.exports });
 const textSource = fs.readFileSync(path.join(root, "ui/Text.tsx"), "utf8");
-assert(
-  /maxFontSizeMultiplier/.test(textSource),
-  "Text.tsx must cap accessibility font scaling",
-);
+assert(/maxFontSizeMultiplier/.test(textSource), "Text.tsx must cap accessibility font scaling");
 const {
   scaledTabBarHeight,
   maxFontSizeMultiplierForText,

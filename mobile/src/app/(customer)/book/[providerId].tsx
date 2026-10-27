@@ -1,8 +1,13 @@
-import { BookingProgress } from "@/ui/BookingProgress";
+import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
+import { CustomerBookingWhen } from "@/ui/customer/BookingWhen";
+import { BookingServiceCard } from "@/ui/customer/BookingServiceCard";
+import { BookOpen, Clock, UserRound } from "lucide-react-native";
+import { Avatar } from "@/ui/ProviderCard";
+import { colors } from "@/ui/theme";
 import { BookingEducation } from "@/ui/BookingEducation";
 import { planPostCreatePayment } from "@/lib/bookingPure";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { randomUUID } from "expo-crypto";
 import { useTranslation } from "react-i18next";
@@ -36,6 +41,7 @@ import {
   BOOKING_SCREENS,
   bookingScreenMissingStep,
   bookingScreenForStep,
+  groupBookingSubjects,
 } from "@shared/booking/bookingScreens";
 import { bookingDisabledReason } from "@shared/booking/disabledReason";
 import {
@@ -63,11 +69,13 @@ import {
   pickDefaultCapabilityForEducation,
   shouldPersistEducationAfterBookingSuccess,
 } from "@shared/tutoring/bookingEducationAutofill";
-import { localized, money, dateTime } from "@/lib/presentation";
+import { localized, dateTime } from "@/lib/presentation";
 import { Page, QueryState, Field, Choices, ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
 import { PaymentLogos } from "@/ui/PaymentLogos";
+import { BookingInlineForm } from "@/ui/customer/BookingInlineForm";
+import { customerMoney as money } from "@/lib/customerFormat";
 
 type Slot = { start: Date; end: Date; label: string };
 export default function Book() {
@@ -79,6 +87,9 @@ export default function Book() {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const locale = lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB";
+  const [promoOpen, setPromoOpen] = useState(false);
+  const [inlineForm, setInlineForm] = useState<"member" | "address" | null>(null);
+  const [editing, setEditing] = useState(false);
   const provider = useProvider(providerId);
   const servicesQ = useProviderServices(providerId);
   const addresses = useAddresses();
@@ -131,6 +142,12 @@ export default function Book() {
   const fixed = !tutoring && isFixedPackage(service?.service);
   const caps = useApprovedTeachingCapabilities(providerId, service?.service.id);
   const capability = (caps.data ?? []).find((c) => c.id === capId) ?? null;
+  const subjectGroups = groupBookingSubjects(
+    (caps.data ?? []).filter(
+      (c) => (!curriculum || c.curriculumId === curriculum) && (!level || c.levelId === level),
+    ),
+  );
+  const selectedGroup = subjectGroups.find((g) => g.capabilities.some((c) => c.id === capId));
   const needsRate = fixed && service?.price_override == null;
   const packageRate = useFixedPackageRate(
     providerId,
@@ -416,9 +433,8 @@ export default function Book() {
     }
   }
   const recipientUI = (
-    <View style={ui.card}>
+    <View style={{ gap: 12 }}>
       <Choices
-        layout="cards"
         label={t("bookFlow.forWhomTitle")}
         value={recipient}
         onChange={setRecipient}
@@ -437,12 +453,25 @@ export default function Book() {
       <Button
         variant="secondary"
         label={t("customerBooking.addMember")}
-        onPress={() => router.push("/family-members/new")}
+        onPress={() => setInlineForm("member")}
       />
     </View>
   );
   return (
     <Page
+      header={
+        <CustomerPageHeader
+          title={t(`customerBooking.titles.${BOOKING_SCREENS[step]}`, {
+            name: provider.data?.profile.full_name?.split(" ")[0] || "",
+          })}
+          subtitle={t("customerRound2.step", { step: String(step + 1), total: "4" })}
+          onBack={() => {
+            if (busy) return;
+            if (step > 0) setStep(step - 1);
+            else router.back();
+          }}
+        />
+      }
       title={t(`customerBooking.titles.${BOOKING_SCREENS[step]}`, {
         name: provider.data?.profile.full_name?.split(" ")[0] || "",
       })}
@@ -457,14 +486,6 @@ export default function Book() {
             </Text>
           </View>
           <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
-            {step > 0 && (
-              <Button
-                variant="ghost"
-                label={t("common.back")}
-                disabled={busy}
-                onPress={() => setStep(step - 1)}
-              />
-            )}
             <View style={{ flex: 1 }}>
               <Button
                 label={t(step === 3 ? "mobileBooking.confirmBooking" : "common.continue")}
@@ -473,7 +494,10 @@ export default function Book() {
                 onPress={() => {
                   setError("");
                   if (step === 3) void submit();
-                  else setStep(step + 1);
+                  else {
+                    setStep(editing ? 3 : step + 1);
+                    setEditing(false);
+                  }
                 }}
               />
             </View>
@@ -492,7 +516,6 @@ export default function Book() {
         billing,
       ]}
     >
-      <BookingProgress step={step} />
       <QueryState query={provider} />
       <QueryState query={servicesQ} />
       <QueryState query={bookable} />
@@ -502,26 +525,85 @@ export default function Book() {
       {!pinned.length && !addresses.isLoading && (
         <>
           <Text>{t("customerHome.addressHint")}</Text>
-          <Button label={t("addresses.addAddress")} onPress={() => router.push("/addresses/new")} />
+          <Button label={t("addresses.addAddress")} onPress={() => setInlineForm("address")} />
         </>
       )}
       {step === 0 && (
         <>
-          <Choices
-            layout="cards"
-            label={t("search2.service")}
-            value={service?.service.id || ""}
-            onChange={(v) => {
-              setServiceId(v);
-              setCapId("");
-              userCap.current = false;
-              setChoices({});
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 12,
+              padding: 12,
+              borderRadius: 20,
+              backgroundColor: colors.surface,
+              borderWidth: 1,
+              borderColor: colors.border,
             }}
-            options={services.map((s) => ({
-              value: s.service.id,
-              label: localized(s.service, lang),
-            }))}
-          />
+          >
+            <Avatar raw={provider.data?.profile.avatar_url} size={48} round />
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text weight="heavy">{provider.data?.profile.full_name}</Text>
+              <Text size="xs" tone="muted">
+                {String(provider.data?.ratings?.rating_avg ?? 0)} ·{" "}
+                {t("customerBooking.jobs", {
+                  count: provider.data?.ratings?.rating_count ?? 0,
+                  countLabel: String(provider.data?.ratings?.rating_count ?? 0),
+                })}
+              </Text>
+            </View>
+          </View>
+          <Text weight="bold">{t("search2.service")}</Text>
+          {services.map((s) => (
+            <BookingServiceCard
+              key={s.service.id}
+              selected={s.service.id === service?.service.id}
+              title={localized(s.service, lang)}
+              subtitle={
+                isFixedPackage(s.service)
+                  ? t(packageLabel(s.service).key, packageLabel(s.service).values)
+                  : s.service.category?.slug === "tutoring"
+                    ? t("customerBooking.tutoringPrice")
+                    : `${money(s.price_override ?? provider.data?.hourly_rate ?? 0, lang)} ${t("customerBooking.hours")}`
+              }
+              icon={
+                s.service.category?.slug === "tutoring" ? (
+                  <BookOpen size={22} color={colors.brand} />
+                ) : isFixedPackage(s.service) ? (
+                  <Clock size={22} color={colors.brand} />
+                ) : (
+                  <UserRound size={22} color={colors.brand} />
+                )
+              }
+              onPress={() => {
+                setServiceId(s.service.id);
+                setCapId("");
+                userCap.current = false;
+                setChoices({});
+              }}
+            >
+              {!isFixedPackage(s.service) && s.service.category?.slug !== "tutoring" ? (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                  <Button
+                    variant="secondary"
+                    label={t("mobileBooking.less")}
+                    disabled={hours <= 2}
+                    onPress={() => setHours(Math.max(2, hours - 2))}
+                  />
+                  <Text weight="heavy" style={{ flex: 1, textAlign: "center" }}>
+                    {t("customerBooking.duration", { hours: String(hours) })}
+                  </Text>
+                  <Button
+                    variant="secondary"
+                    label={t("mobileBooking.more")}
+                    disabled={hours >= 8}
+                    onPress={() => setHours(Math.min(8, hours + 2))}
+                  />
+                </View>
+              ) : null}
+            </BookingServiceCard>
+          ))}
           {!services.length && !loading && <Text>{t("bookFlow.unavailableBody")}</Text>}
           {tutoring ? (
             <>
@@ -537,25 +619,44 @@ export default function Book() {
                   userCap.current = false;
                 }}
               />
-              <Choices
-                layout="cards"
-                label={t("bookingUx.chooseSession")}
-                value={capId}
-                onChange={(v) => {
-                  setCapId(v);
-                  userCap.current = true;
-                }}
-                options={(caps.data ?? [])
-                  .filter(
-                    (c) =>
-                      (!curriculum || c.curriculumId === curriculum) &&
-                      (!level || c.levelId === level),
-                  )
-                  .map((c) => ({
-                    value: c.id,
-                    label: `${lang === "ar" ? c.subjectNameAr : c.subjectNameEn} · ${t("bookFlow.sessionLine", { minutes: String(c.durationMin) })} · ${money(c.price, lang)}`,
+              {subjectGroups.map((group) => {
+                const cap = group.capabilities[0];
+                const active = group === selectedGroup;
+                const chosen = active ? (capability ?? cap) : cap;
+                return (
+                  <BookingServiceCard
+                    key={group.key}
+                    selected={active}
+                    title={[
+                      lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn,
+                      lang === "ar" ? cap.curriculumNameAr : cap.curriculumNameEn,
+                      lang === "ar" ? cap.levelNameAr : cap.levelNameEn,
+                    ].join(" · ")}
+                    subtitle={`${chosen.price} ${t("pricePicker.sessionUnit")}`}
+                    icon={<BookOpen size={22} color={colors.brand} />}
+                    onPress={() => {
+                      userCap.current = true;
+                      setCapId(cap.id);
+                      setCurriculum(cap.curriculumId);
+                      setLevel(cap.levelId);
+                    }}
+                  />
+                );
+              })}
+              {selectedGroup ? (
+                <Choices
+                  label={t("customerBooking.sessionDuration")}
+                  value={capId}
+                  onChange={(v) => {
+                    userCap.current = true;
+                    setCapId(v);
+                  }}
+                  options={selectedGroup.capabilities.map((cap) => ({
+                    value: cap.id,
+                    label: t("bookFlow.sessionLine", { minutes: String(cap.durationMin) }),
                   }))}
-              />
+                />
+              ) : null}
               <Choices
                 layout="cards"
                 label={t("mobileBooking.saveSchool")}
@@ -571,76 +672,32 @@ export default function Book() {
             <Text>
               {t(packageLabel(service!.service).key, packageLabel(service!.service).values)}
             </Text>
-          ) : (
-            <View style={ui.card}>
-              <Text size="xl" weight="heavy">
-                {t("customerBooking.duration", { hours: String(hours) })}
-              </Text>
-              <View style={ui.wrap}>
-                <Button
-                  variant="secondary"
-                  style={{ flex: 1 }}
-                  label={t("mobileBooking.less")}
-                  disabled={hours <= 2}
-                  onPress={() => setHours(hours - 1)}
-                />
-                <Button
-                  variant="secondary"
-                  style={{ flex: 1 }}
-                  label={t("mobileBooking.more")}
-                  disabled={hours >= 8}
-                  onPress={() => setHours(hours + 1)}
-                />
-              </View>
-            </View>
-          )}
+          ) : null}
         </>
       )}
       {step === 1 && (
-        <>
-          <Choices
-            layout="grid"
-            label={t("bookingUx.chooseDate")}
-            value={date.toDateString()}
-            onChange={(v) => {
-              userDate.current = true;
-              setDate(new Date(v));
-              setSlot(null);
-            }}
-            options={Array.from(
-              { length: Math.max(0, Math.min(14, settings.data?.max_advance_days ?? 12)) },
-              (_, n) => {
-                const d = new Date();
-                d.setHours(0, 0, 0, 0);
-                d.setDate(d.getDate() + n);
-                return {
-                  value: d.toDateString(),
-                  label: d.toLocaleDateString(locale, {
-                    weekday: "short",
-                    day: "numeric",
-                    month: "short",
-                  }),
-                };
-              },
-            )}
-          />
-          <QueryState query={slots} empty={!available.length} emptyKey="bookingUx.noSlots">
-            <Choices
-              layout="grid"
-              label={t("bookingUx.chooseTime")}
-              value={currentSlot?.start.toISOString() || ""}
-              onChange={(v) => setSlot(available.find((s) => s.start.toISOString() === v) ?? null)}
-              options={available.map((s) => ({
-                value: s.start.toISOString(),
-                label: s.start.toLocaleTimeString(locale, {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  ...(fixed ? { timeZone: "Africa/Cairo" } : {}),
-                }),
-              }))}
-            />
-          </QueryState>
-        </>
+        <CustomerBookingWhen
+          providerId={providerId}
+          serviceId={service?.service.id ?? ""}
+          addressId={addressId}
+          service={service?.service ?? {}}
+          durationMinutes={duration || 120}
+          maxAdvanceDays={settings.data?.max_advance_days ?? 12}
+          cairoTime={fixed}
+          locale={locale}
+          date={date}
+          selected={currentSlot}
+          slots={available}
+          loading={slots.isLoading || slots.isFetching}
+          error={slots.isError}
+          onRetry={() => slots.refetch()}
+          onDateChange={(day) => {
+            userDate.current = true;
+            setDate(day);
+            setSlot(null);
+          }}
+          onTimeChange={setSlot}
+        />
       )}
       {step === 2 && (
         <>
@@ -661,10 +718,10 @@ export default function Book() {
           <Button
             variant="secondary"
             label={t("addresses.addAddress")}
-            onPress={() => router.push("/addresses/new")}
+            onPress={() => setInlineForm("address")}
           />
           <QueryState query={zone} empty={!zone.data} emptyKey="bookingUx.outsideArea" />
-          {recipientUI}
+          {!tutoring && recipientUI}
           <QueryState query={requirements} />
           {required.map((r) => (
             <View key={r.id} style={ui.card}>
@@ -701,65 +758,172 @@ export default function Book() {
       )}
       {step === 3 && (
         <>
-          <Text weight="heavy">{localized(service?.service, lang)}</Text>
-          {currentSlot && <Text>{dateTime(currentSlot.start.toISOString(), lang)}</Text>}
-          <Text>
-            {[selectedAddress?.area, selectedAddress?.street].filter(Boolean).join(" · ")}
-          </Text>
-          <Text>
-            {recipient === "myself"
-              ? t("bookFlow.forWhomMyself")
-              : members.data?.find((m) => m.id === recipient)?.full_name}
-          </Text>
-          <Field
-            label={t("mobileBooking.promo")}
-            value={promo}
-            onChangeText={(v) => {
-              setPromo(v);
-              setApplied(null);
-            }}
-          />
-          <Button
-            variant="secondary"
-            label={t("mobileBooking.applyPromo")}
-            loading={checking}
-            onPress={() => void applyPromo()}
-          />
-          {applied && (
-            <Text>{t("bookFlow.promoApplied", { amount: money(applied.discount, lang) })}</Text>
-          )}
-          <View style={ui.card}>
-            <Text size="xl" weight="heavy">
-              {t("mobile.priceBreakdown")}
-            </Text>
-            {Object.entries({
-              subtotal: quote.subtotal,
-              extras_total: quote.extrasTotal,
-              travel_fee: quote.travelFee,
-              platform_fee: quote.fee,
-              vat: quote.vat,
-              discount: applied?.discount ?? 0,
-              total: quote.total,
-            }).map(([key, v]) => (
-              <View key={key} style={[ui.priceRow, key === "total" && ui.priceTotal]}>
-                <Text
-                  style={{ flex: 1 }}
-                  weight={key === "total" ? "heavy" : "regular"}
-                  tone={key === "total" ? "default" : "muted"}
+          <View>
+            {[
+              {
+                label: t("bookFlow.stepName.service"),
+                value: `${localized(service?.service, lang)} · ${capability ? t("bookFlow.sessionLine", { minutes: String(capability.durationMin) }) : fixed ? t(packageLabel(service!.service).key, packageLabel(service!.service).values) : t("customerBooking.duration", { hours: String(hours) })}`,
+                step: 0,
+              },
+              {
+                label: t("bookFlow.rowDate"),
+                value: currentSlot
+                  ? dateTime(currentSlot.start.toISOString(), lang)
+                  : t("bookFlow.dash"),
+                step: 1,
+              },
+              {
+                label: t("bookFlow.rowAddress"),
+                value: [selectedAddress?.area, selectedAddress?.street].filter(Boolean).join(" · "),
+                step: 2,
+              },
+              {
+                label: t("customerBooking.recipient"),
+                value:
+                  recipient === "myself"
+                    ? t("bookFlow.forWhomMyself")
+                    : members.data?.find((m) => m.id === recipient)?.full_name,
+                step: tutoring ? 0 : 2,
+              },
+              ...(notes ? [{ label: t("bookFlow.rowNotes"), value: notes, step: 2 }] : []),
+            ].map((row, index, rows) => (
+              <View
+                key={row.label}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 12,
+                  paddingVertical: 10,
+                  borderBottomWidth: index === rows.length - 1 ? 0 : 1,
+                  borderBottomColor: colors.border,
+                }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text size="xs" tone="muted">
+                    {row.label}
+                  </Text>
+                  <Text weight="bold">{row.value}</Text>
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${t("common.edit")} ${row.label}`}
+                  onPress={() => {
+                    setEditing(true);
+                    setStep(row.step);
+                  }}
+                  style={{ minWidth: 44, minHeight: 44, justifyContent: "center" }}
                 >
-                  {t(`mobile.price.${key}`)}
-                </Text>
-                <Text
-                  size={key === "total" ? "xl" : "md"}
-                  weight="bold"
-                  tone={key === "total" ? "brand" : "default"}
-                  style={ui.ltr}
-                >
-                  {money(v, lang)}
-                </Text>
+                  <Text size="sm" tone="brand" weight="bold">
+                    {t("common.edit")}
+                  </Text>
+                </Pressable>
               </View>
             ))}
           </View>
+          <View
+            style={{
+              borderRadius: 16,
+              backgroundColor: colors.surface2,
+              paddingHorizontal: 14,
+              paddingVertical: 12,
+              gap: 6,
+            }}
+          >
+            {Object.entries({
+              subtotal: quote.subtotal,
+              platform_fee: quote.fee,
+              vat: quote.vat,
+              extras_total: quote.extrasTotal,
+              travel_fee: quote.travelFee,
+              discount: applied?.discount ?? 0,
+              total: quote.total,
+            })
+              .filter(
+                ([key, v]) =>
+                  !["extras_total", "travel_fee", "discount"].includes(key) || Number(v) > 0,
+              )
+              .map(([key, v]) => (
+                <View
+                  key={key}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    ...(key === "total"
+                      ? { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 6 }
+                      : {}),
+                  }}
+                >
+                  <Text
+                    style={{ flex: 1 }}
+                    weight={key === "total" ? "heavy" : "regular"}
+                    tone={key === "total" ? "default" : "muted"}
+                  >
+                    {key === "subtotal"
+                      ? capability
+                        ? t("bookFlow.sessionLine", { minutes: String(capability.durationMin) })
+                        : fixed
+                          ? t("packages.fixedPrice")
+                          : t("customerBooking.rateLine", {
+                              rate: money(quote.subtotal / (duration / 60), lang),
+                              hours: String(hours),
+                            })
+                      : t(
+                          {
+                            platform_fee: "bookFlow.serviceFee",
+                            vat: "customerRound2.vat",
+                            extras_total: "bookFlow.extrasTotal",
+                            travel_fee: "bookFlow.travelFee",
+                            discount: "bookFlow.promoDiscount",
+                            total: "bookFlow.total",
+                          }[key] ?? `mobile.price.${key}`,
+                        )}
+                  </Text>
+                  <Text
+                    size={key === "total" ? "lg" : "md"}
+                    weight={key === "total" ? "heavy" : "regular"}
+                    tone="default"
+                    style={ui.ltr}
+                  >
+                    {key === "discount" ? "-" : ""}
+                    {money(v, lang)}
+                  </Text>
+                </View>
+              ))}
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t("customerBooking.promo")}
+            accessibilityState={{ expanded: promoOpen }}
+            onPress={() => setPromoOpen(!promoOpen)}
+            style={{ minHeight: 44, justifyContent: "center" }}
+          >
+            <Text weight="heavy" tone="brand">
+              {t("customerBooking.promo")}
+            </Text>
+          </Pressable>
+          {promoOpen && (
+            <>
+              <Field
+                label={t("mobileBooking.promo")}
+                value={promo}
+                onChangeText={(v) => {
+                  setPromo(v);
+                  setApplied(null);
+                }}
+              />
+              <Button
+                variant="secondary"
+                label={t("mobileBooking.applyPromo")}
+                loading={checking}
+                onPress={() => void applyPromo()}
+              />
+              {applied && (
+                <Text>{t("bookFlow.promoApplied", { amount: money(applied.discount, lang) })}</Text>
+              )}
+            </>
+          )}
           <QueryState query={methods} empty={!methods.data?.length} />
           <Choices
             layout="cards"
@@ -784,6 +948,18 @@ export default function Book() {
           onPress={() => setStep(BOOKING_SCREENS.indexOf(bookingScreenForStep(missing, tutoring)))}
         />
       )}
+      <BookingInlineForm
+        kind={inlineForm}
+        onClose={() => setInlineForm(null)}
+        onSaved={(id) => {
+          if (inlineForm === "member") setRecipient(id);
+          else {
+            setAddressId(id);
+            setSlot(null);
+          }
+          setInlineForm(null);
+        }}
+      />
     </Page>
   );
 }
