@@ -239,6 +239,8 @@ async function run() {
   });
   await context.addInitScript(
     ({ key, session }) => {
+      // Init scripts also run in the map's sandboxed iframe, where storage throws.
+      if (window !== window.top) return;
       localStorage.setItem("famy.lang", "ar");
       localStorage.setItem(key, JSON.stringify(session));
     },
@@ -541,7 +543,9 @@ async function run() {
   );
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (msg) => {
-    if (msg.type() === "error" && mode !== "error") errors.push(msg.text());
+    // The map iframe loads Leaflet and OSM tiles; remote traffic is blocked here.
+    const mapAsset = /unpkg\.com|tile\.openstreetmap\.org/.test(msg.location()?.url ?? "");
+    if (msg.type() === "error" && mode !== "error" && !mapAsset) errors.push(msg.text());
   });
   async function visit(route, text) {
     await page.goto(base + route);
