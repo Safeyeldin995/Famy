@@ -1,17 +1,12 @@
-// Extend the existing local fixture in memory for the schedule tables introduced by parity.
-// No live backend is contacted and the protected qa/provider-web.cjs is not edited.
+// Extend the local provider fixture in memory with extra booking-state captures.
+// No live backend is contacted.
 import { createRequire, Module } from "node:module";
 import fs from "node:fs";
 import path from "node:path";
 const require = createRequire(import.meta.url);
 const sourcePath = path.resolve("qa/provider-web.cjs");
 const source = fs.readFileSync(sourcePath, "utf8");
-const marker = "        availability_rules: availability,";
-if (source.split(marker).length !== 2) throw new Error("Provider fixture shape changed");
-let extended = source.replace(
-  marker,
-  `${marker}\n        provider_vacations: [{ id: id(77), provider_id: pid, start_date: "2026-11-01", end_date: "2026-11-03", reason: null }],\n        availability_exceptions: [{ id: id(78), provider_id: pid, date: "2026-11-05", is_blocked: true, reason: null }],`,
-);
+let extended = source;
 const endMarker = '  providerMode = "pending";';
 if (extended.split(endMarker).length !== 2) throw new Error("Booking fixture shape changed");
 extended = extended.replace(
