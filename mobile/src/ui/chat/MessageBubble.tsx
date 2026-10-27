@@ -11,11 +11,13 @@ export function MessageBubble({
   mine,
   otherAvatar,
   otherName,
+  customer = false,
 }: {
   message: BookingMessage;
   mine: boolean;
   otherAvatar: string | null;
   otherName: string;
+  customer?: boolean;
 }) {
   const { t, i18n } = useTranslation();
   if (message.message_type === "system") {
@@ -29,12 +31,26 @@ export function MessageBubble({
   }
   return (
     <View style={[styles.row, mine ? styles.rowEnd : styles.rowStart]}>
-      {!mine ? <Avatar raw={otherAvatar} size={28} /> : null}
-      <View style={[styles.bubble, mine ? styles.mine : styles.theirs]}>
+      {!mine ? <Avatar raw={otherAvatar} size={28} round={customer} /> : null}
+      <View
+        style={[
+          styles.bubble,
+          mine ? styles.mine : styles.theirs,
+          customer && {
+            borderRadius: 20,
+            paddingVertical: 10,
+            ...(mine ? { borderBottomEndRadius: 6 } : { borderBottomStartRadius: 6 }),
+          },
+        ]}
+      >
         <Text tone={mine ? "inverse" : "default"} style={styles.body}>
           {message.body}
         </Text>
-        <Text tone={mine ? "inverse" : "muted"} size="sm" style={styles.time}>
+        <Text
+          tone={mine ? "inverse" : "muted"}
+          size={customer ? "xs" : "sm"}
+          style={[styles.time, customer && mine && { opacity: 0.7 }]}
+        >
           {formatChatMessageTime(message.created_at, i18n.language)}
         </Text>
       </View>

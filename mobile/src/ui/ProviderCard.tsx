@@ -14,10 +14,12 @@ export function Avatar({
   raw,
   size = 64,
   round = false,
+  name,
 }: {
   raw?: string | null;
   size?: number;
   round?: boolean;
+  name?: string;
 }) {
   const image = useAvatarUrl(raw);
   return (
@@ -38,6 +40,10 @@ export function Avatar({
           style={{ width: size, height: size }}
           contentFit="cover"
         />
+      ) : name ? (
+        <Text weight="bold" style={{ fontSize: Math.min(24, size / 2), color: colors.brand }}>
+          {name.trim().slice(0, 1)}
+        </Text>
       ) : (
         <UserRound size={size / 2} color={colors.brand} />
       )}

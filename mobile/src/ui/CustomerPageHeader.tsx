@@ -12,12 +12,14 @@ export function CustomerPageHeader({
   title,
   subtitle,
   backTo,
+  onBack,
   right,
   hero = false,
 }: {
   title: string;
   subtitle?: string;
   backTo?: Href;
+  onBack?: () => void;
   right?: ReactNode;
   hero?: boolean;
 }) {
@@ -28,7 +30,7 @@ export function CustomerPageHeader({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={t("common.back")}
-      onPress={() => backTo && router.navigate(backTo)}
+      onPress={() => (onBack ? onBack() : backTo && router.navigate(backTo))}
       style={[styles.back, hero && styles.heroBack]}
     >
       <Icon size={20} color={hero ? "white" : colors.foreground} />
@@ -54,7 +56,7 @@ export function CustomerPageHeader({
   return (
     <View style={styles.header}>
       <View style={styles.row}>
-        {backTo ? back : null}
+        {backTo || onBack ? back : null}
         <View style={{ flex: 1 }}>
           <Text size="xxl" weight="bold">
             {title}

@@ -2,7 +2,40 @@
 
 **This branch does not complete screen-by-screen parity. Do not merge it as a completed parity release.**
 
-Current continuation base: `66ba63d` (merged PR #238), branch `codex/mobile-web-parity-3`. Customer PR A is in progress; provider PR B has not started. Screens are captured at 390 × 844 in Arabic. Each comparison has web on the left and the actual Expo React Native Web export on the right. These are not recreated HTML mockups of native screens.
+Current continuation base: `ee2b120` (merged PR #241), branch `codex/mobile-web-parity-4`. Customer PR A2 is a partial draft; provider PR B has not started. Screens are captured at 390 × 844 in Arabic. Each comparison has web on the left and the actual Expo React Native Web export on the right. These are not recreated HTML mockups of native screens.
+
+## Customer PR A2 — 2026-10-27 (current evidence)
+
+The owner authorized one focused harness correction and one sequential rerun, then instructed us to stop and push a draft if it failed. The stale exact-area locator was corrected to assert the complete address text. The customer suite passed; the booking suite crashed on reload. **No further browser rerun was attempted. This is not a completed parity release.** Older sections below describe historical runs, not this head.
+
+### Changes and remaining acceptance gaps
+
+| Screen                   | Implemented / differences still open                                                                                                                                                                                    | Fixed (yes/no) | Current web / app comparison                                          |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- | --------------------------------------------------------------------- |
+| Profile                  | Camera action using existing owner avatar upload; name/address edit link and route; notification preferences link. Exact spacing, shadows and language button still differ.                                             | No             | [Profile](comparisons/profile.png)                                    |
+| Bookings                 | Brand-pink selected pill; confirmed grey status pill; round initial avatar. Exact card spacing, price typography and all segment states remain.                                                                         | No             | [Bookings](comparisons/bookings.png)                                  |
+| Booking steps            | Service cards, 14-day strip/time slots, recipient chips, editable summary and promo disclosure. Inline address/member sheets, duration placement, teaching selection, review ordering and complete state parity remain. | No             | [Step 1](comparisons/booking-step-1.png)                              |
+| Chat thread              | Customer header, avatar, mint notice, chronological messages, composer; blocked draft retained. Populated conversation, media and device behavior remain unverified.                                                    | No             | [Chat](comparisons/chat.png)                                          |
+| Addresses list/new/edit  | Compact cards, edit route, reuse create form, owner-scoped update. Web map picker and exact sheet/field layout remain. New/edit save is not exercised by the browser suite.                                             | No             | [List](comparisons/addresses.png), [New](comparisons/address-new.png) |
+| Name/address setup       | Name hydration and existing default address, owner-scoped name/address save. Web map/contact-phone flow and exact layout remain. Two saves are sequential, not atomic.                                                  | No             | [Setup](comparisons/setup.png)                                        |
+| Notification preferences | Existing account preference hooks and category toggles; device settings action. Web device registration/revocation list is not ported.                                                                                  | No             | [Preferences](comparisons/notification-preferences.png)               |
+| Delete account           | Header, guard messaging, confirmation/cancel layout. No deletion executed; all guard/error states are not compared.                                                                                                     | No             | [Delete account](comparisons/delete-account.png)                      |
+| Other customer screens   | Inherit PR #241 improvements; outstanding differences in its table below remain. No blanket parity claim.                                                                                                               | No             | Earlier comparison links below                                        |
+| Provider screens         | Deferred until A2 is merged, per owner instruction.                                                                                                                                                                     | No             | No new provider evidence                                              |
+
+### Exact check results
+
+- Root `npm run test:unit -- --maxWorkers=2`: **exit 0; 261 files passed / 4 skipped; 1,540 tests passed / 64 skipped**.
+- Mobile `npx tsc --noEmit`: **exit 0**.
+- Mobile `npx expo export --platform android`: **exit 0**. Not an APK/device test.
+- Mobile web export: **exit 0**.
+- Changed TS/TSX ESLint and Prettier: **exit 0**.
+- `node qa/check-ar-tashkeel.mjs`: **exit 0; 758 source files**. `git diff --check`: **exit 0**.
+- Final sequential browser command: **exit 1**. `customer-v2-test.mjs` completed successfully with **30 Arabic captures**, existing guarded mock interactions, profile edit navigation/hydration, address screens, notification preferences, delete guard, chat contact-blocked draft retention, and reschedule actions. All remote requests intercepted; no live data.
+- `booking-v4-test.mjs`: **failed**, `page.reload: Page crashed` in the package transfer-receipt scenario after uploading/viewing the mocked receipt and clearing its mocked `proof_path`, before PDF upload checks. Stack identifies protected fixture line 663 after adapter expansion (original reload around line 660). Hourly steps and package steps reached screenshots, but the suite as a whole did not pass; later PDF/tutoring assertions were not reached.
+- A failure screenshot could not be taken because Chromium had crashed. [Last successful frame immediately before reload](failures/a2-before-reload-crash.png) is preserved; **it is not a screenshot of the crash**. [Failure record](failures/a2-booking-reload.md).
+
+Nine comparisons above were assembled from actual captured images, not an application rerun. Web preview and native fixtures differ in names, prices, dates and counts: these are visual evidence, not pixel-equality assertions. Web profile/bookings/addresses/chat/setup/address-new/preferences/delete/step-1 captures were refreshed in this continuation; other comparisons are inherited. Native new/edit account saves, camera upload, native device behavior and full loading/error permutations remain unverified. Protected auth/session/LaunchGate/app.json and `mobile/qa/*.cjs` are unchanged. No remote database or production mutation occurred.
 
 ## Customer PR A continuation — 2026-10-27
 

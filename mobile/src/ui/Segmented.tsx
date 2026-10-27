@@ -10,13 +10,18 @@ export function Segmented<T extends string>({
   value,
   onChange,
   options,
+  brandSelection = false,
 }: {
   value: T;
   onChange: (value: T) => void;
   options: { value: T; label: string; icon?: IconType }[];
+  brandSelection?: boolean;
 }) {
   return (
-    <View style={styles.track} accessibilityRole="tablist">
+    <View
+      style={[styles.track, brandSelection && { borderRadius: 999, padding: 6, gap: 6 }]}
+      accessibilityRole="tablist"
+    >
       {options.map((option) => {
         const active = option.value === value;
         const Icon = option.icon;
@@ -29,6 +34,7 @@ export function Segmented<T extends string>({
             onPress={() => onChange(option.value)}
             style={({ pressed }) => [
               styles.item,
+              brandSelection && { borderRadius: 999 },
               active && styles.active,
               pressed && { opacity: 0.75 },
             ]}
@@ -36,7 +42,12 @@ export function Segmented<T extends string>({
             {Icon ? (
               <Icon size={16} strokeWidth={2.4} color={active ? colors.brand : colors.muted} />
             ) : null}
-            <Text weight="heavy" tone={active ? "default" : "muted"}>
+            <Text
+              size={brandSelection ? "sm" : "md"}
+              weight="heavy"
+              tone={active ? "default" : "muted"}
+              style={active && brandSelection ? { color: colors.brand } : undefined}
+            >
               {option.label}
             </Text>
           </Pressable>

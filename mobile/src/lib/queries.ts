@@ -85,6 +85,29 @@ export function useDefaultAddress() {
   });
 }
 
+export function useUpdateCustomerName() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (fullName: string) => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.user || fullName.trim().length < 2) throw new Error("invalid profile");
+      const { data, error } = await supabase
+        .from("profiles")
+        .update({ full_name: fullName.trim() })
+        .eq("id", session.user.id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["my-profile"] });
+    },
+  });
+}
+
 export function useAddresses() {
   const { user } = useAuth();
   return useQuery({

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Page, QueryState, ActionError } from "@/ui/Page";
-import { StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -22,7 +22,7 @@ import { signOutWithPushRevoke } from "@/lib/push";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { colors, radius, space } from "@/ui/theme";
-import { Avatar } from "@/ui/ProviderCard";
+import { CustomerProfilePhoto } from "@/ui/customer/CustomerProfilePhoto";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 import { CustomerMenuSection, CustomerMenuRow } from "@/ui/customer/Primitives";
 
@@ -62,7 +62,10 @@ export default function Profile() {
     >
       <QueryState query={profile}>
         <View style={[styles.card, { flexDirection: "row", alignItems: "center", gap: 20 }]}>
-          <Avatar raw={profile.data?.avatar_url} size={80} round />
+          <CustomerProfilePhoto
+            src={profile.data?.avatar_url}
+            name={profile.data?.full_name || t("profile.famioUser")}
+          />
           <View style={{ flex: 1, gap: 4 }}>
             <Text size="xl" weight="heavy">
               {profile.data?.full_name || t("profile.famioUser")}
@@ -70,6 +73,15 @@ export default function Profile() {
             <Text tone="muted" weight="bold" style={{ direction: "ltr" }}>
               {profile.data?.phone || "—"}
             </Text>
+            <Pressable
+              accessibilityRole="link"
+              onPress={() => router.push("/setup")}
+              style={{ minHeight: 44, justifyContent: "center" }}
+            >
+              <Text size="xs" weight="bold" style={{ color: colors.brand }}>
+                {t("customerHome.profileEdit")}
+              </Text>
+            </Pressable>
           </View>
         </View>
       </QueryState>
@@ -103,7 +115,8 @@ export default function Profile() {
         <CustomerMenuRow
           Icon={Bell}
           label={t("common.notifications")}
-          onPress={() => router.push("/notifications")}
+          detail={t("notifPrefs.title")}
+          onPress={() => router.push("/notification-preferences")}
         />
         <CustomerMenuRow
           Icon={Globe}

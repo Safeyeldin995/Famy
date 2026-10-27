@@ -8,6 +8,7 @@ import { Text } from "@/ui/Text";
 import { colors, radius, space } from "@/ui/theme";
 import { supabase } from "@/lib/supabase";
 import { requestMobileAccountDeletion } from "@/lib/accountDeletion";
+import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 
 type DeletionCheck = { ok: boolean; reason?: string };
 
@@ -55,20 +56,34 @@ export default function DeleteAccountScreen() {
   };
 
   return (
-    <Page title={t("accountDeletion.title")}>
+    <Page
+      title={t("accountDeletion.title")}
+      header={<CustomerPageHeader title={t("accountDeletion.title")} backTo="/profile" />}
+      contentStyle={{ gap: 24 }}
+    >
       <Text tone="muted">{t("accountDeletion.intro")}</Text>
       <View style={styles.card}>
         <Text weight="bold">{t("accountDeletion.deletedTitle")}</Text>
         {(t("accountDeletion.deletedItems", { returnObjects: true }) as string[]).map((item) => (
-          <Text key={item} tone="muted">
+          <Text key={item} tone="muted" size="sm">
             • {item}
           </Text>
         ))}
       </View>
       <View style={styles.card}>
         <Text weight="bold">{t("accountDeletion.keptTitle")}</Text>
-        <Text tone="muted">{t("accountDeletion.keptBody")}</Text>
+        <Text tone="muted" size="sm">
+          {t("accountDeletion.keptBody")}
+        </Text>
       </View>
+      {!check && (
+        <Text size="sm" tone="muted">
+          {t("accountDeletion.checking")}
+        </Text>
+      )}
+      {blockedReason === "not_authenticated" && (
+        <Text tone="danger">{t("accountDeletion.errors.unauthorized")}</Text>
+      )}
       {blockedReason === "active_bookings" ? (
         <Text tone="danger">{t("accountDeletion.blockedActiveBookings")}</Text>
       ) : null}
@@ -79,21 +94,31 @@ export default function DeleteAccountScreen() {
         <>
           <Text>{t("accountDeletion.typeConfirm", { word: confirmWord })}</Text>
           <TextInput
+            accessibilityLabel={t("accountDeletion.typeConfirm", { word: confirmWord })}
             style={styles.input}
             value={confirmText}
             onChangeText={setConfirmText}
             autoCapitalize="none"
             autoCorrect={false}
           />
+          <Text size="xs" tone="muted">
+            {t("accountDeletion.confirmHint")}
+          </Text>
         </>
       ) : null}
       {errorKey ? <Text tone="danger">{t(errorKey)}</Text> : null}
       <ActionError error={actionError} />
       <Button
-        variant="secondary"
+        style={{ backgroundColor: colors.destructive }}
         label={busy ? t("accountDeletion.deleting") : t("accountDeletion.deleteButton")}
         disabled={!check?.ok || !confirmMatches || busy}
         onPress={() => void onDelete()}
+      />
+      <Button
+        variant="secondary"
+        label={t("common.cancel")}
+        disabled={busy}
+        onPress={() => router.navigate("/profile")}
       />
     </Page>
   );
@@ -103,7 +128,7 @@ const styles = StyleSheet.create({
   card: {
     gap: space.sm,
     padding: space.lg,
-    borderRadius: radius.lg,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
