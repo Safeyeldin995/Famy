@@ -117,7 +117,7 @@ export function LocationPicker({
                 }}
               />
             )}
-            <Pin />
+            {!previewFailed ? <Pin /> : null}
           </View>
           <View
             style={{
@@ -208,7 +208,7 @@ export function LocationPicker({
                 }}
               />
             )}
-            <Pin />
+            {!failed ? <Pin /> : null}
           </View>
           <View style={{ flexDirection: "row", gap: 12, padding: 16, alignItems: "center" }}>
             <Pressable

@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 import Constants from "expo-constants";
 import MapView, { PROVIDER_GOOGLE, type Region } from "react-native-maps";
 
 import type { MapPosition } from "./mapMessages";
 
 function hasNativeGoogleMapsKey(): boolean {
-  const expo = Constants.expoConfig;
-  const androidKey = expo?.android?.config?.googleMaps?.apiKey;
-  const iosKey = expo?.ios?.config?.googleMapsApiKey;
-  return Boolean(String(androidKey ?? "").trim() || String(iosKey ?? "").trim());
+  const configured = Constants.expoConfig?.extra?.googleMapsConfigured as
+    | { android?: boolean; ios?: boolean }
+    | undefined;
+  return Platform.OS === "ios" ? !!configured?.ios : !!configured?.android;
 }
 
 function regionForCenter(center: MapPosition, interactive: boolean): Region {

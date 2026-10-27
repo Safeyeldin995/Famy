@@ -189,7 +189,7 @@ export function LocationPicker({
             ) : (
               <MapLoading />
             )}
-            <CenterPin />
+            {!preview.failing ? <CenterPin /> : null}
             {!preview.failing ? (
               <button
                 type="button"
@@ -357,7 +357,7 @@ function LocationPickerSheet({
               </Suspense>
             </MapErrorBoundary>
           )}
-          <CenterPin />
+          {!tiles.failing ? <CenterPin /> : null}
         </div>
 
         <div className="safe-top relative z-[600] flex items-center gap-3 px-4 pt-4">
