@@ -136,7 +136,7 @@ export function LocationPicker({
   const [locatedStart, setLocatedStart] = useState<LatLng | null>(null);
   const [locating, setLocating] = useState(false);
   const [cardNotice, setCardNotice] = useState<string | null>(null);
-  // Leaflet touches `window` on import, so maps only render after mount (never during SSR).
+  // Maps JS touches `window` on import, so maps only render after mount (never during SSR).
   const mounted = useSyncExternalStore(
     subscribeNoop,
     () => true,
@@ -189,7 +189,7 @@ export function LocationPicker({
             ) : (
               <MapLoading />
             )}
-            <CenterPin />
+            {!preview.failing ? <CenterPin /> : null}
             {!preview.failing ? (
               <button
                 type="button"
@@ -357,7 +357,7 @@ function LocationPickerSheet({
               </Suspense>
             </MapErrorBoundary>
           )}
-          <CenterPin />
+          {!tiles.failing ? <CenterPin /> : null}
         </div>
 
         <div className="safe-top relative z-[600] flex items-center gap-3 px-4 pt-4">

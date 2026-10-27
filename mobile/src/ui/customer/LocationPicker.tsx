@@ -9,7 +9,7 @@ import { Text } from "../Text";
 import { Button } from "../Button";
 import { colors } from "../theme";
 import MapSurface from "./MapSurface";
-import { parseMapMessage, type MapPosition } from "./mapDocument";
+import { parseMapMessage, type MapPosition } from "./mapMessages";
 
 const fallback = { lat: 29.9765, lng: 30.9317 };
 function Pin() {
@@ -117,7 +117,7 @@ export function LocationPicker({
                 }}
               />
             )}
-            <Pin />
+            {!previewFailed ? <Pin /> : null}
           </View>
           <View
             style={{
@@ -208,7 +208,7 @@ export function LocationPicker({
                 }}
               />
             )}
-            <Pin />
+            {!failed ? <Pin /> : null}
           </View>
           <View style={{ flexDirection: "row", gap: 12, padding: 16, alignItems: "center" }}>
             <Pressable

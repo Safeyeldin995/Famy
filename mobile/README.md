@@ -2,6 +2,25 @@
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
+## Google Maps keys
+
+Maps use Google Maps Platform (not OpenStreetMap). Configure three separate keys; never commit them.
+
+| Variable | Where to set |
+| --- | --- |
+| `VITE_GOOGLE_MAPS_BROWSER_KEY` | Vercel (web app) and local root `.env` |
+| `EXPO_PUBLIC_GOOGLE_MAPS_BROWSER_KEY` | EAS secrets / local `mobile/.env` for **web export** and Expo web dev |
+| `GOOGLE_MAPS_ANDROID_API_KEY` | EAS build env → `mobile/app.config.js` → Android Maps SDK |
+| `GOOGLE_MAPS_IOS_API_KEY` | EAS build env → `mobile/app.config.js` → iOS Maps SDK |
+
+Restrict keys in Google Cloud Console:
+
+- **Android**: package `com.famy.app` plus your release/debug signing certificate SHA-1.
+- **iOS**: bundle id `com.famy.app`.
+- **Browser**: HTTP referrer restrictions for your Vercel domains and local dev origins.
+
+Without keys, the app shows the existing “map unavailable” fallback; address entry still works manually.
+
 ## Get started
 
 1. Install dependencies

@@ -53,7 +53,7 @@ export function ZonePolygonEditor({
   className?: string;
 }) {
   const { t } = useTranslation();
-  // Leaflet touches `window` on import, so the map only renders after mount (never during SSR).
+  // Maps JS touches `window` on import, so the map only renders after mount (never during SSR).
   const mounted = useSyncExternalStore(
     subscribeNoop,
     () => true,

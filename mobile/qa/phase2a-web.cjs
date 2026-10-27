@@ -543,9 +543,11 @@ async function run() {
   );
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (msg) => {
-    // The map iframe loads Leaflet and OSM tiles; remote traffic is blocked here.
-    const mapAsset = /unpkg\.com|tile\.openstreetmap\.org/.test(msg.location()?.url ?? "");
-    if (msg.type() === "error" && mode !== "error" && !mapAsset) errors.push(msg.text());
+    if (msg.type() !== "error" || mode === "error") return;
+    // The map iframe loads Google Maps; remote map traffic is not part of this check.
+    const mapHost = /maps\.googleapis\.com|maps\.google\.com|maps\.gstatic\.com/;
+    if (mapHost.test(msg.location()?.url ?? "") || /google\.maps|maps\.googleapis/i.test(msg.text())) return;
+    errors.push(msg.text());
   });
   async function visit(route, text) {
     await page.goto(base + route);
