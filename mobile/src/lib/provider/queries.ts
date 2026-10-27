@@ -193,6 +193,101 @@ export function useReplaceAvailability() {
   });
 }
 
+export function useProviderVacations(providerId: string | undefined) {
+  return useQuery({
+    enabled: !!providerId,
+    queryKey: ["provider-vacations", providerId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("provider_vacations")
+        .select("id, start_date, end_date, reason")
+        .eq("provider_id", providerId!)
+        .order("start_date", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useAddVacation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      providerId: string;
+      start_date: string;
+      end_date: string;
+      reason?: string;
+    }) => {
+      const { error } = await supabase.from("provider_vacations").insert({
+        provider_id: input.providerId,
+        start_date: input.start_date,
+        end_date: input.end_date,
+        reason: input.reason || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_data, input) =>
+      qc.invalidateQueries({ queryKey: ["provider-vacations", input.providerId] }),
+  });
+}
+
+export function useDeleteVacation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { id: string; providerId: string }) => {
+      const { error } = await supabase.from("provider_vacations").delete().eq("id", input.id);
+      if (error) throw error;
+    },
+    onSuccess: (_data, input) =>
+      qc.invalidateQueries({ queryKey: ["provider-vacations", input.providerId] }),
+  });
+}
+
+export function useProviderExceptions(providerId: string | undefined) {
+  return useQuery({
+    enabled: !!providerId,
+    queryKey: ["provider-exceptions", providerId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("availability_exceptions")
+        .select("id, date, reason, is_blocked")
+        .eq("provider_id", providerId!)
+        .order("date", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useAddException() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { providerId: string; date: string; reason?: string }) => {
+      const { error } = await supabase.from("availability_exceptions").insert({
+        provider_id: input.providerId,
+        date: input.date,
+        is_blocked: true,
+        reason: input.reason || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_data, input) =>
+      qc.invalidateQueries({ queryKey: ["provider-exceptions", input.providerId] }),
+  });
+}
+
+export function useDeleteException() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { id: string; providerId: string }) => {
+      const { error } = await supabase.from("availability_exceptions").delete().eq("id", input.id);
+      if (error) throw error;
+    },
+    onSuccess: (_data, input) =>
+      qc.invalidateQueries({ queryKey: ["provider-exceptions", input.providerId] }),
+  });
+}
+
 export function useMyProviderServices(providerId: string | undefined) {
   return useQuery({
     enabled: !!providerId,

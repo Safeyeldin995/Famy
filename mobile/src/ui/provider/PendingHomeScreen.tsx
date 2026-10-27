@@ -1,6 +1,17 @@
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
+import {
+  Baby,
+  BookOpen,
+  Check,
+  Clock,
+  MapPin,
+  MessageSquare,
+  Phone,
+  ShieldCheck,
+  User,
+} from "lucide-react-native";
 import { missingTeachingServices } from "@/lib/provider/teachingSetup";
 import { workingHoursState } from "@shared/provider/setupHelpers";
 import { pendingHomeModel } from "@shared/provider/pendingHomeModel";
@@ -13,11 +24,21 @@ import {
 } from "@/lib/provider/onboardingQueries";
 import { useMyTeachingCapabilities } from "@/lib/provider/teachingQueries";
 import { useMyProvider, useProviderAvailability } from "@/lib/provider/queries";
-import { Page, QueryState, Row } from "@/ui/Page";
+import { Page, QueryState } from "@/ui/Page";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { proCard } from "./cards";
-import { space } from "@/ui/theme";
+import { colors, radius, space } from "@/ui/theme";
+
+const icons = {
+  photo: User,
+  about: MessageSquare,
+  babysitting: Baby,
+  subjects: BookOpen,
+  reference: Phone,
+  personal: MapPin,
+  hours: Clock,
+};
 
 export function PendingHomeScreen({ changesRequested }: { changesRequested?: boolean }) {
   const { t, i18n } = useTranslation();
@@ -91,32 +112,172 @@ export function PendingHomeScreen({ changesRequested }: { changesRequested?: boo
     const firstName = (data.profile?.full_name || t("pro.common.customer")).trim().split(/\s+/)[0];
     body = (
       <View style={{ gap: space.lg }}>
-        <Text size="title" weight="heavy">
-          {t("providerApply.pending.hello", { name: firstName })}
-        </Text>
+        <View
+          style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}
+        >
+          <Text size="title" weight="heavy">
+            {t("providerApply.pending.hello", { name: firstName })}
+          </Text>
+          <View
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: colors.brandTint,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text weight="heavy" tone="brand">
+              {firstName.slice(0, 1)}
+            </Text>
+          </View>
+        </View>
         {provider?.review_reason_public ? (
           <View style={proCard.card}>
             <Text weight="bold">{t("providerChanges.title")}</Text>
             <Text>{String(provider.review_reason_public)}</Text>
           </View>
         ) : null}
-        <Text tone="muted">
-          {t(model.remaining ? model.subtitleKey : "providerApply.pending.reviewingHint")}
-        </Text>
-        {model.items.map(({ key }) => (
-          <Row
-            key={key}
-            label={t(key === "hours" ? "providerSetup.titles.hours" : `providerApply.${key}`)}
-            detail={t(`providerApply.pending.items.${key}`)}
-            onPress={() =>
-              router.push({
-                pathname: "/pro-setup/[item]",
-                params: { item: key },
-              })
-            }
-          />
-        ))}
-        <Row label={t("providerDocuments.title")} onPress={() => router.push("/pro-documents")} />
+        {model.remaining ? (
+          <View
+            style={{
+              minHeight: 100,
+              borderRadius: radius.xl,
+              backgroundColor: colors.foreground,
+              flexDirection: "row",
+              alignItems: "center",
+              padding: 20,
+              gap: 16,
+            }}
+          >
+            <View
+              style={{
+                width: 58,
+                height: 58,
+                borderRadius: 29,
+                borderWidth: 6,
+                borderColor: colors.brand,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Text
+                weight="heavy"
+                style={{ color: colors.brandForeground, writingDirection: "ltr" }}
+              >
+                {model.done}/{model.total}
+              </Text>
+            </View>
+            <View style={{ flex: 1, gap: 6 }}>
+              <Text weight="heavy" style={{ color: colors.brandForeground }}>
+                {t(model.titleKey, { remaining: model.remaining })}
+              </Text>
+              <Text size="xs" style={{ color: colors.brandForeground }}>
+                {t(model.subtitleKey)}
+              </Text>
+            </View>
+          </View>
+        ) : (
+          <View style={[proCard.card, { backgroundColor: "#E7F7EF" }]}>
+            <Text weight="heavy" tone="success">
+              {t("providerComplete.title")}
+            </Text>
+            <Text tone="success">{t("providerComplete.message")}</Text>
+          </View>
+        )}
+        <View style={{ gap: 0 }}>
+          {model.items.map(({ key, done, next }) => {
+            const Icon = icons[key];
+            return (
+              <Pressable
+                key={key}
+                accessibilityRole="button"
+                accessibilityLabel={t(
+                  key === "hours" ? "providerSetup.titles.hours" : `providerApply.${key}`,
+                )}
+                onPress={() =>
+                  router.push({ pathname: "/pro-setup/[item]", params: { item: key } })
+                }
+                style={{
+                  minHeight: 68,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 12,
+                  borderBottomWidth: 1,
+                  borderBottomColor: colors.border,
+                }}
+              >
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 12,
+                    backgroundColor: done ? "#E7F7EF" : colors.surface2,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Icon size={20} color={done ? colors.success : colors.muted} />
+                </View>
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text weight="bold" size="sm">
+                    {t(key === "hours" ? "providerSetup.titles.hours" : `providerApply.${key}`)}
+                  </Text>
+                  <Text tone="muted" size="xs">
+                    {t(
+                      key === "hours"
+                        ? "providerSetup.hoursHint"
+                        : `providerApply.pending.items.${key}`,
+                    )}
+                  </Text>
+                </View>
+                {done ? (
+                  <Check size={18} color={colors.success} />
+                ) : (
+                  <Text weight="bold" size="xs" tone={next ? "brand" : "muted"}>
+                    {t(`providerApply.pending.${next ? "start" : "minute"}`)}
+                  </Text>
+                )}
+              </Pressable>
+            );
+          })}
+          <View style={{ minHeight: 68, flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                backgroundColor: "#FFF5DF",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <ShieldCheck size={20} color={colors.warning} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text weight="bold" size="sm">
+                {t("providerApply.pending.review")}
+              </Text>
+              <Text tone="muted" size="xs">
+                {t("providerComplete.message")}
+              </Text>
+            </View>
+            <Text size="xs" tone="muted">
+              {t("providerApply.pending.waiting")}
+            </Text>
+          </View>
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("providerDocuments.title")}
+          onPress={() => router.push("/pro-documents")}
+          style={{ minHeight: 44, justifyContent: "center" }}
+        >
+          <Text weight="bold" tone="brand">
+            {t("providerDocuments.title")}
+          </Text>
+        </Pressable>
         {changesRequested ? (
           <Button
             label={t("providerChanges.resubmit")}
@@ -129,7 +290,12 @@ export function PendingHomeScreen({ changesRequested }: { changesRequested?: boo
   }
 
   return (
-    <Page title={t("providerApply.checklist")} queries={queries}>
+    <Page
+      title={t("providerApply.checklist")}
+      header={<View />}
+      queries={queries}
+      contentStyle={{ paddingTop: 8 }}
+    >
       <QueryState query={p}>{ready ? body : null}</QueryState>
     </Page>
   );

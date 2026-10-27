@@ -9,6 +9,7 @@ import { Page, QueryState } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { colors, space } from "@/ui/theme";
 import { proCard } from "@/ui/provider/cards";
+import { ProviderHeader } from "@/ui/provider/ProviderHeader";
 
 type ToggleKey = Extract<keyof NotificationPreferences, `${string}_push` | "campaign_in_app">;
 
@@ -101,7 +102,12 @@ export default function ProNotificationPreferencesScreen() {
   ];
 
   return (
-    <Page title={t("mobilePro.notificationPrefs")} queries={[prefsQ]}>
+    <Page
+      title={t("notifPrefs.title")}
+      header={<ProviderHeader title={t("notifPrefs.title")} />}
+      queries={[prefsQ]}
+      contentStyle={{ paddingTop: 8 }}
+    >
       <QueryState query={prefsQ}>
         <View style={proCard.card}>
           {categories.map((row) => (

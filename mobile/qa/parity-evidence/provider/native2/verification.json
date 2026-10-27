@@ -1,0 +1,129 @@
+{
+  "passed": true,
+  "screenshots": 14,
+  "writes": [
+    {
+      "table": "provider_onboarding_snapshot",
+      "method": "POST",
+      "body": {}
+    },
+    {
+      "table": "provider_save_onboarding_section",
+      "method": "POST",
+      "body": {
+        "p_section": "personal",
+        "p_payload": {
+          "legal_name": "مقدمة اختبار"
+        }
+      }
+    },
+    {
+      "table": "provider_onboarding_snapshot",
+      "method": "POST",
+      "body": {}
+    },
+    {
+      "table": "provider_save_onboarding_section",
+      "method": "POST",
+      "body": {
+        "p_section": "coverage",
+        "p_payload": {
+          "zone_ids": [
+            "00000000-0000-4000-8000-000000000007"
+          ]
+        }
+      }
+    },
+    {
+      "table": "provider_onboarding_snapshot",
+      "method": "POST",
+      "body": {}
+    },
+    {
+      "table": "provider_save_onboarding_section",
+      "method": "POST",
+      "body": {
+        "p_section": "services",
+        "p_payload": {
+          "service_ids": [
+            "00000000-0000-4000-8000-000000000005"
+          ]
+        }
+      }
+    },
+    {
+      "table": "provider_onboarding_snapshot",
+      "method": "POST",
+      "body": {}
+    },
+    {
+      "table": "provider_services",
+      "method": "PATCH",
+      "body": {
+        "price_override": 200
+      }
+    },
+    {
+      "table": "notification_preferences",
+      "method": "POST",
+      "body": {
+        "user_id": "00000000-0000-4000-8000-000000000001",
+        "booking_push": false
+      }
+    },
+    {
+      "table": "provider_onboarding_snapshot",
+      "method": "POST",
+      "body": {}
+    },
+    {
+      "table": "provider_onboarding_snapshot",
+      "method": "POST",
+      "body": {}
+    },
+    {
+      "table": "provider_onboarding_snapshot",
+      "method": "POST",
+      "body": {}
+    },
+    {
+      "table": "provider_onboarding_snapshot",
+      "method": "POST",
+      "body": {}
+    },
+    {
+      "table": "provider_onboarding_snapshot",
+      "method": "POST",
+      "body": {}
+    },
+    {
+      "table": "provider_onboarding_snapshot",
+      "method": "POST",
+      "body": {}
+    },
+    {
+      "table": "provider_onboarding_snapshot",
+      "method": "POST",
+      "body": {}
+    },
+    {
+      "table": "provider_onboarding_snapshot",
+      "method": "POST",
+      "body": {}
+    },
+    {
+      "table": "provider_save_teaching_group",
+      "method": "POST",
+      "body": {
+        "p_service_id": "00000000-0000-4000-8000-000000000030",
+        "p_subject_id": "00000000-0000-4000-8000-000000000031",
+        "p_curriculum_id": "00000000-0000-4000-8000-000000000032",
+        "p_level_ids": [
+          "00000000-0000-4000-8000-000000000033"
+        ],
+        "p_session_duration_min": 60,
+        "p_session_price": 125
+      }
+    }
+  ]
+}

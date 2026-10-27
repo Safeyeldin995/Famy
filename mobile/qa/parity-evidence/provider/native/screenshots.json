@@ -1,0 +1,98 @@
+[
+  {
+    "screen": "pro-dashboard",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native\\pro-dashboard.png",
+    "viewport": "390x844",
+    "language": "ar"
+  },
+  {
+    "screen": "pro-jobs",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native\\pro-jobs.png",
+    "viewport": "390x844",
+    "language": "ar"
+  },
+  {
+    "screen": "pro-messages",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native\\pro-messages.png",
+    "viewport": "390x844",
+    "language": "ar"
+  },
+  {
+    "screen": "pro-chat-thread",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native\\pro-chat-thread.png",
+    "viewport": "390x844",
+    "language": "ar"
+  },
+  {
+    "screen": "pro-schedule",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native\\pro-schedule.png",
+    "viewport": "390x844",
+    "language": "ar"
+  },
+  {
+    "screen": "pro-earnings",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native\\pro-earnings.png",
+    "viewport": "390x844",
+    "language": "ar"
+  },
+  {
+    "screen": "pro-profile",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native\\pro-profile.png",
+    "viewport": "390x844",
+    "language": "ar"
+  },
+  {
+    "screen": "pro-notifications",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native\\pro-notifications.png",
+    "viewport": "390x844",
+    "language": "ar"
+  },
+  {
+    "screen": "pro-booking-decline",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native\\pro-booking-decline.png",
+    "viewport": "390x844",
+    "language": "ar"
+  },
+  {
+    "screen": "pro-booking-accept",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native\\pro-booking-accept.png",
+    "viewport": "390x844",
+    "language": "ar"
+  },
+  {
+    "screen": "pro-booking-start",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native\\pro-booking-start.png",
+    "viewport": "390x844",
+    "language": "ar"
+  },
+  {
+    "screen": "pro-schedule-save",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native\\pro-schedule-save.png",
+    "viewport": "390x844",
+    "language": "ar"
+  },
+  {
+    "screen": "pro-booking-ready-to-start",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native\\pro-booking-ready-to-start.png",
+    "viewport": "390x844",
+    "language": "ar"
+  },
+  {
+    "screen": "pro-booking-in-progress",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native\\pro-booking-in-progress.png",
+    "viewport": "390x844",
+    "language": "ar"
+  },
+  {
+    "screen": "pro-booking-completed",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native\\pro-booking-completed.png",
+    "viewport": "390x844",
+    "language": "ar"
+  },
+  {
+    "screen": "pro-not-approved",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native\\pro-not-approved.png",
+    "viewport": "390x844",
+    "language": "ar"
+  }
+]

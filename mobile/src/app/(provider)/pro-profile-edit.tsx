@@ -17,6 +17,7 @@ import { useMyProvider, useUpdateProvider } from "@/lib/provider/queries";
 import { localized, money } from "@/lib/presentation";
 import { supabase } from "@/lib/supabase";
 import { ProviderPriceStepper } from "@/ui/provider/ProviderPriceStepper";
+import { ProviderHeader } from "@/ui/provider/ProviderHeader";
 import { proCard } from "@/ui/provider/cards";
 import { Page, QueryState, Field, ActionError } from "@/ui/Page";
 import { Button } from "@/ui/Button";
@@ -120,7 +121,12 @@ export default function ProProfileEditScreen() {
   const selectedIds = new Set(mine.map((row: { service_id: string }) => row.service_id));
 
   return (
-    <Page title={t("pro.profile.title")} queries={[p, servicesQ, mineQ]}>
+    <Page
+      title={t("pro.profile.title")}
+      header={<ProviderHeader title={t("pro.profile.title")} />}
+      queries={[p, servicesQ, mineQ]}
+      contentStyle={{ paddingTop: 8 }}
+    >
       <QueryState query={p}>
         <Button
           variant="secondary"

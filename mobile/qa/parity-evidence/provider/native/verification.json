@@ -1,0 +1,85 @@
+{
+  "passed": true,
+  "screenshots": 16,
+  "writes": [
+    {
+      "table": "booking_message_reads",
+      "method": "POST",
+      "body": {
+        "booking_id": "00000000-0000-4000-8000-000000000004",
+        "user_id": "00000000-0000-4000-8000-000000000001",
+        "last_read_at": "2026-10-27T09:13:47.547Z"
+      }
+    },
+    {
+      "table": "cancel_booking",
+      "method": "POST",
+      "body": {
+        "p_booking_id": "00000000-0000-4000-8000-000000000003",
+        "p_reason_id": "00000000-0000-4000-8000-000000000032"
+      }
+    },
+    {
+      "table": "bookings",
+      "method": "PATCH",
+      "body": {
+        "status": "confirmed"
+      }
+    },
+    {
+      "table": "bookings",
+      "method": "PATCH",
+      "body": {
+        "status": "on_the_way"
+      }
+    },
+    {
+      "table": "replace_provider_availability",
+      "method": "POST",
+      "body": {
+        "p_provider_id": "00000000-0000-4000-8000-000000000002",
+        "p_rules": [
+          {
+            "weekday": 0,
+            "start_time": "09:00",
+            "end_time": "17:00"
+          },
+          {
+            "weekday": 1,
+            "start_time": "09:00",
+            "end_time": "17:00"
+          },
+          {
+            "weekday": 2,
+            "start_time": "09:00",
+            "end_time": "17:00"
+          },
+          {
+            "weekday": 3,
+            "start_time": "09:00",
+            "end_time": "17:00"
+          },
+          {
+            "weekday": 4,
+            "start_time": "09:00",
+            "end_time": "17:00"
+          }
+        ]
+      }
+    },
+    {
+      "table": "bookings",
+      "method": "PATCH",
+      "body": {
+        "status": "in_progress"
+      }
+    },
+    {
+      "table": "bookings",
+      "method": "PATCH",
+      "body": {
+        "status": "completion_requested"
+      }
+    }
+  ]
+}

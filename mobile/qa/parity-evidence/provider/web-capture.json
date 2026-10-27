@@ -1,0 +1,156 @@
+[
+  {
+    "screen": "dashboard",
+    "route": "pro",
+    "captured": true,
+    "errors": [],
+    "text": "أهلا يا منى\nم\n\nالنهارده · الشغل الجاي: 4 سبتمبر · 1 م\n\nقيمة الحجز الشهر ده\n3,240 ج.م\nتقييمك\n4.90\nطلبات جديدة\nعرض الكل\nس\n"
+  },
+  {
+    "screen": "jobs",
+    "route": "pro/bookings",
+    "captured": true,
+    "errors": [],
+    "text": "المهام\nالطلبات (1)\nالقادمة\nالسجل\nس\nسارة حسن\n540 ج.م\n\nجليسة أطفال بالساعة\n\nالشيخ زايد · آدم · 5 سنين\n\nالأربعاء 2 سبتمبر ·"
+  },
+  {
+    "screen": "booking",
+    "route": "pro/booking/booking-pro-pending-1",
+    "captured": true,
+    "errors": [],
+    "text": "تفاصيل المهمة\nس\nسارة حسن\nحجز #NDING1\nقيد الانتظار\n1\nاتقبل\n2\nفي الطريق\n3\nوصلت\n4\nبدأت\n5\nخلصت\nالخدمة\nجليسة أطفال بالساعة\nال"
+  },
+  {
+    "screen": "booking-confirmed",
+    "route": "pro/booking/booking-pro-confirmed-1",
+    "captured": true,
+    "errors": [],
+    "text": "تفاصيل المهمة\nس\nسارة حسن\nحجز #IRMED1\nمؤكد\nاتقبل\n2\nفي الطريق\n3\nوصلت\n4\nبدأت\n5\nخلصت\nالخدمة\nجليسة أطفال بالساعة\nالتاريخ\nالجم"
+  },
+  {
+    "screen": "booking-completed",
+    "route": "pro/booking/booking-pro-completed-1",
+    "captured": true,
+    "errors": [],
+    "text": "تفاصيل المهمة\nس\nسارة حسن\nحجز #LETED1\nمكتمل\nاتقبل\nفي الطريق\nوصلت\nبدأت\nخلصت\nالخدمة\nجليسة أطفال بالساعة\nالتاريخ\nالجمعة 28 أ"
+  },
+  {
+    "screen": "schedule",
+    "route": "pro/availability",
+    "captured": true,
+    "errors": [],
+    "text": "الجدول\nمواعيد شغلك\nنفس المواعيد كل الأيام\nسبت\nأحد\nاثنين\nثلاثاء\nأربعاء\nخميس\nجمعة\nالبداية\n9 ص\nالنهاية\n5 م\nحفظ الجدول\nإجازة"
+  },
+  {
+    "screen": "earnings",
+    "route": "pro/earnings",
+    "captured": true,
+    "errors": [],
+    "text": "الأرباح\n\nقيمة الحجز\n\nاتدفع\n\n12,480 ج.م\n\nمن 41 مهمة مكتملة\n\nالشهر ده\n3,240 ج.م\nآخر 7 أيام\n1,860 ج.م\nشغل جاي\n1,260 ج.م\n\nحج"
+  },
+  {
+    "screen": "messages",
+    "route": "messages",
+    "captured": true,
+    "errors": [],
+    "text": "الرسائل\n\nمحادثة فامي · يفضل البقاء داخل التطبيق\n\nM\nMona Adel\nالثلاثاء 1 سبتمبر\nI'll arrive 10 minutes early to set up.\nا"
+  },
+  {
+    "screen": "chat",
+    "route": "chat/conv-1",
+    "captured": true,
+    "errors": [],
+    "text": "Mona Adel\n\nمحادثة فامي · يفضل البقاء داخل التطبيق\n\nM\nيرجى إبقاء كل التواصل داخل فامي.\nM\nHi Sara! Looking forward to your"
+  },
+  {
+    "screen": "profile",
+    "route": "pro/profile",
+    "captured": true,
+    "errors": [],
+    "text": "حسابي\nEN\nم\nمنى عادل\nموثق\nتغيير الصورة\nحالة ظهورك للعملاء\n\nظاهر للعملاء\n\nظاهر في: تنظيف منزل عميق\n\nلسه مش ظاهر في: جليسة "
+  },
+  {
+    "screen": "profile-edit",
+    "route": "pro/profile",
+    "captured": true,
+    "errors": [],
+    "text": "حسابي\nEN\nم\nمنى عادل\nموثق\nتغيير الصورة\nحالة ظهورك للعملاء\n\nظاهر للعملاء\n\nظاهر في: تنظيف منزل عميق\n\nلسه مش ظاهر في: جليسة "
+  },
+  {
+    "screen": "documents",
+    "route": "pro/documents",
+    "captured": true,
+    "errors": [],
+    "text": "المستندات والتوثيق\n\nمستنداتك مع فريق فامي. تقدر ترفع نسخة جديدة لما طلبك يكون متاح للتعديل.\n\nوش البطاقة\nاتوافق عليها\nضهر"
+  },
+  {
+    "screen": "setup-home",
+    "route": "pro?pending=1",
+    "captured": true,
+    "errors": [],
+    "text": "أهلا يا منى\nم\n4/9\nفاضلك 4 خطوات\n\nكل خطوة أقل من دقيقة، وبعد موافقة فريق فامي تظهر للعملاء\n\nصورتك الشخصية\nالعملاء بيحبوا "
+  },
+  {
+    "screen": "setup-personal",
+    "route": "pro/setup/personal",
+    "captured": true,
+    "errors": [],
+    "text": "تاريخ الميلاد والعنوان\n\nكمل بياناتك. لازم يكون عمرك 18 سنة على الأقل.\n\nاليوم\n15\nالشهر\n6\nالسنة\n1995\nالمحافظة\nالجيزة\nالمدي"
+  },
+  {
+    "screen": "setup-about",
+    "route": "pro/setup/about",
+    "captured": true,
+    "errors": [],
+    "text": "كلمتين عنك\n\nعرف العملاء بخبرتك\n\n3 سنين خبرة\nكلمتين عنك\n\nجمل جاهزة\n\nبحب الأطفال وبتعامل معاهم بصبر\nعندي خبرة في رعاية الأ"
+  },
+  {
+    "screen": "setup-hours",
+    "route": "pro/setup/hours",
+    "captured": true,
+    "errors": [],
+    "text": "مواعيد شغلك\n\nاختار أيامك وحدد مواعيد كل يوم\n\nنفس المواعيد كل الأيام\nسبت\nأحد\nاثنين\nثلاثاء\nأربعاء\nخميس\nجمعة\nالبداية\n9 ص\nال"
+  },
+  {
+    "screen": "setup-photo",
+    "route": "pro/setup/photo",
+    "captured": true,
+    "errors": [],
+    "text": "صورتك الشخصية\n\nصورة واضحة عشان العملاء يعرفوك\n\nصور\n\nضيف صورتك عشان تكمل\n\nاحفظ"
+  },
+  {
+    "screen": "setup-babysitting",
+    "route": "pro/setup/babysitting",
+    "captured": true,
+    "errors": [],
+    "text": "أعمار الأطفال\n\nاختار الأعمار اللي بتتعامل معاها\n\nأقصى عدد أطفال في الحجز\n\n2 أطفال\n\nالأعمار\n\nقبل المدرسة\nسن المدرسة\nاحفظ"
+  },
+  {
+    "screen": "setup-reference",
+    "route": "pro/setup/reference",
+    "captured": true,
+    "errors": [],
+    "text": "شخص نسأله عن شغلك\n\nضيف شخص يعرف شغلك\n\nالاسم الكامل\nعلاقتك بالشخص ده\nاختار\nرقم الهاتف\nضيف شخص تاني (اختياري)\n\nكمل الاسم و"
+  },
+  {
+    "screen": "setup-subjects",
+    "route": "pro/setup/subjects",
+    "captured": true,
+    "errors": [],
+    "text": "بتدرس ايه؟\n\nضيف المادة مرة واحدة واختار كل الصفوف اللي بتدرسها\n\nرياضيات · المنهج المصري\n\nالصف 4 · 450 ج.م / حصة\n\nاتوافق "
+  },
+  {
+    "screen": "notifications",
+    "route": "pro/notifications",
+    "captured": true,
+    "errors": [],
+    "text": "الإشعارات\nتعليم الكل كمقروء\nالنهارده\nطلب حجز جديد\nسارة حسن طلبت جليسة أطفال بكرة الساعة 2 م.\n1 م\nطلبك اتوافق عليه\nتقدري "
+  },
+  {
+    "screen": "notification-preferences",
+    "route": "pro/notification-preferences",
+    "captured": true,
+    "errors": [],
+    "text": "تفضيلات الإشعارات\nالإشعارات على الموبايل مش متاحة لسه\n\nهتوصلك كل التحديثات جوه التطبيق في صفحة الإشعارات\n\nافتح الإشعارات"
+  }
+]

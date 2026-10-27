@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Platform, StyleSheet, View } from "react-native";
+import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, View } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { ShieldCheck } from "lucide-react-native";
+import { ArrowLeft, ArrowRight, ShieldCheck } from "lucide-react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
   CONTACT_BLOCKED_MESSAGE,
   containsContactInfo,
@@ -23,7 +24,7 @@ import { colors, space } from "@/ui/theme";
 
 export default function ProviderChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { session } = useSession();
   const meId = session?.user.id ?? null;
   const conv = useConversation(id);
@@ -58,80 +59,94 @@ export default function ProviderChatScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}
-    >
-      <Stack.Screen options={{ title: otherName }} />
-      {conv.isLoading || msgs.isLoading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={colors.brand} />
-          <Text tone="muted">{t("common.loading")}</Text>
-        </View>
-      ) : conv.isError || msgs.isError ? (
-        <View style={ui.card}>
-          <Text tone="danger">{t("common.somethingWentWrong")}</Text>
-          <Button
-            label={t("common.retry")}
-            variant="secondary"
-            onPress={() => {
-              if (conv.isError) void conv.refetch();
-              if (msgs.isError) void msgs.refetch();
-            }}
-          />
-        </View>
-      ) : !conv.data ? (
-        <View style={ui.card}>
-          <Text weight="heavy">{t("customerChat.unavailable")}</Text>
-          <Text tone="muted">{t("bookingChat.unavailableBody")}</Text>
-        </View>
-      ) : (
-        <>
-          <View style={styles.header}>
-            <Avatar raw={otherAvatar} size={44} />
-            <View style={styles.headerText}>
-              <Text weight="heavy" size="lg">
-                {otherName}
-              </Text>
-              <Text tone="muted" size="sm">
-                {t("messages.chatNotice")}
-              </Text>
-            </View>
+    <SafeAreaView style={styles.flex} edges={["top", "bottom"]}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}
+      >
+        <Stack.Screen options={{ headerShown: false }} />
+        {conv.isLoading || msgs.isLoading ? (
+          <View style={styles.center}>
+            <ActivityIndicator color={colors.brand} />
+            <Text tone="muted">{t("common.loading")}</Text>
           </View>
-          <View style={styles.notice}>
-            <ShieldCheck size={14} color={colors.success} />
-            <Text size="sm">{t("messages.stayInApp")}</Text>
+        ) : conv.isError || msgs.isError ? (
+          <View style={ui.card}>
+            <Text tone="danger">{t("common.somethingWentWrong")}</Text>
+            <Button
+              label={t("common.retry")}
+              variant="secondary"
+              onPress={() => {
+                if (conv.isError) void conv.refetch();
+                if (msgs.isError) void msgs.refetch();
+              }}
+            />
           </View>
-          <FlatList
-            testID="pro-chat-thread"
-            inverted
-            data={msgs.data ?? []}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.thread}
-            renderItem={({ item }) => (
-              <MessageBubble
-                message={item}
-                mine={!!meId && item.sender_id === meId}
-                otherAvatar={otherAvatar}
-                otherName={otherName}
-              />
-            )}
-            ListEmptyComponent={
-              <View style={styles.emptyThread}>
-                <Text tone="muted">{t("bookingChat.emptyTitle")}</Text>
+        ) : !conv.data ? (
+          <View style={ui.card}>
+            <Text weight="heavy">{t("customerChat.unavailable")}</Text>
+            <Text tone="muted">{t("bookingChat.unavailableBody")}</Text>
+          </View>
+        ) : (
+          <>
+            <View style={styles.header}>
+              <Avatar raw={otherAvatar} size={44} />
+              <View style={styles.headerText}>
+                <Text weight="heavy" size="lg">
+                  {otherName}
+                </Text>
+                <Text tone="muted" size="sm">
+                  {t("messages.chatNotice")}
+                </Text>
               </View>
-            }
-          />
-          <ChatComposer
-            onSend={handleSend}
-            pending={send.isPending}
-            warning={warning}
-            onClearWarning={() => setWarning(null)}
-          />
-        </>
-      )}
-    </KeyboardAvoidingView>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t("common.back")}
+                onPress={() => router.back()}
+                style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}
+              >
+                {i18n.language.startsWith("ar") ? (
+                  <ArrowRight size={22} color={colors.foreground} />
+                ) : (
+                  <ArrowLeft size={22} color={colors.foreground} />
+                )}
+              </Pressable>
+            </View>
+            <View style={styles.notice}>
+              <ShieldCheck size={14} color={colors.success} />
+              <Text size="sm">{t("messages.stayInApp")}</Text>
+            </View>
+            <FlatList
+              testID="pro-chat-thread"
+              inverted
+              data={msgs.data ?? []}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.thread}
+              renderItem={({ item }) => (
+                <MessageBubble
+                  message={item}
+                  mine={!!meId && item.sender_id === meId}
+                  otherAvatar={otherAvatar}
+                  otherName={otherName}
+                />
+              )}
+              ListEmptyComponent={
+                <View style={styles.emptyThread}>
+                  <Text tone="muted">{t("bookingChat.emptyTitle")}</Text>
+                </View>
+              }
+            />
+            <ChatComposer
+              onSend={handleSend}
+              pending={send.isPending}
+              warning={warning}
+              onClearWarning={() => setWarning(null)}
+            />
+          </>
+        )}
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -155,7 +170,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: space.xs,
     paddingVertical: space.sm,
-    backgroundColor: colors.surface2,
+    paddingHorizontal: space.md,
+    marginTop: space.lg,
+    alignSelf: "center",
+    borderRadius: 999,
+    backgroundColor: "#C6F0E3",
   },
   thread: { paddingHorizontal: space.md, paddingVertical: space.lg, gap: space.xs },
   emptyThread: { alignItems: "center", paddingVertical: space.xxl },

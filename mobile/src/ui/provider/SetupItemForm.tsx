@@ -17,11 +17,12 @@ import {
 import type { PickedFile } from "@/lib/provider/documentUpload";
 import { WeeklyHoursEditor } from "@/ui/provider/WeeklyHoursEditor";
 import { hasSharedWorkingHours, type WorkingRule } from "@/lib/provider/availabilityHelpers";
-import { Field, Choices, ui } from "@/ui/Page";
+import { Field, ui } from "@/ui/Page";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { proCard } from "./cards";
 import { space } from "@/ui/theme";
+import { BottomSheetSelect } from "./BottomSheetSelect";
 
 const GOVERNORATE_KEYS = [
   "cairo",
@@ -115,6 +116,18 @@ export function SetupItemForm({
     value: t(`providerSetup.governorates.${key}`, { lng: "ar" }),
     label: t(`providerSetup.governorates.${key}`),
   }));
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: 83 }, (_, index) =>
+    String(currentYear - 18 - index),
+  ).map((value) => ({ value, label: value }));
+  const monthOptions = Array.from({ length: 12 }, (_, index) => String(index + 1)).map((value) => ({
+    value,
+    label: value,
+  }));
+  const dayOptions = Array.from({ length: 31 }, (_, index) => String(index + 1)).map((value) => ({
+    value,
+    label: value,
+  }));
 
   const pickPhoto = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -207,20 +220,6 @@ export function SetupItemForm({
     }
   };
 
-  if (item === "subjects") {
-    return (
-      <View style={proCard.card}>
-        <Text>{t("providerApply.subjects")}</Text>
-        <Text tone="muted">{t("mobilePro.subjectsOnWebHint")}</Text>
-        <Button
-          variant="secondary"
-          label={t("mobilePro.editOnWeb")}
-          onPress={() => router.push("/pro-setup-home")}
-        />
-      </View>
-    );
-  }
-
   return (
     <View style={{ gap: space.lg }}>
       <Text tone="muted">{t(`providerSetup.hints.${item}`)}</Text>
@@ -311,25 +310,27 @@ export function SetupItemForm({
       )}
       {item === "personal" && (
         <>
-          <Field
-            label={t("providerSetup.year")}
-            value={birth.year}
-            keyboardType="number-pad"
-            onChangeText={(year) => setBirth((b) => ({ ...b, year }))}
-          />
-          <Field
-            label={t("providerSetup.month")}
-            value={birth.month}
-            keyboardType="number-pad"
-            onChangeText={(month) => setBirth((b) => ({ ...b, month }))}
-          />
-          <Field
-            label={t("providerSetup.day")}
-            value={birth.day}
-            keyboardType="number-pad"
-            onChangeText={(day) => setBirth((b) => ({ ...b, day }))}
-          />
-          <Choices
+          <View style={{ flexDirection: "row", gap: space.sm }}>
+            <BottomSheetSelect
+              label={t("providerSetup.year")}
+              value={birth.year}
+              options={yearOptions}
+              onChange={(year) => setBirth((b) => ({ ...b, year }))}
+            />
+            <BottomSheetSelect
+              label={t("providerSetup.month")}
+              value={String(Number(birth.month) || "")}
+              options={monthOptions}
+              onChange={(month) => setBirth((b) => ({ ...b, month }))}
+            />
+            <BottomSheetSelect
+              label={t("providerSetup.day")}
+              value={String(Number(birth.day) || "")}
+              options={dayOptions}
+              onChange={(day) => setBirth((b) => ({ ...b, day }))}
+            />
+          </View>
+          <BottomSheetSelect
             label={t("pro.onboardingWizard.governorate")}
             value={governorate}
             onChange={setGovernorate}

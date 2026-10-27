@@ -9,6 +9,7 @@ import {
 import { useProviderDocuments } from "@/lib/provider/profileQueries";
 import { useMyProvider } from "@/lib/provider/queries";
 import { DocumentUploadCard } from "@/ui/provider/DocumentUploadCard";
+import { ProviderHeader } from "@/ui/provider/ProviderHeader";
 import { Page, QueryState } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { proCard } from "@/ui/provider/cards";
@@ -25,7 +26,12 @@ export default function ProDocumentsScreen() {
   const upload = useSecureUploadDocument();
 
   return (
-    <Page title={t("providerDocuments.title")} queries={[p, docsQ]}>
+    <Page
+      title={t("providerDocuments.title")}
+      header={<ProviderHeader title={t("providerDocuments.title")} />}
+      queries={[p, docsQ]}
+      contentStyle={{ gap: 16, paddingTop: 4 }}
+    >
       <QueryState query={p}>
         <QueryState query={docsQ}>
           {!onboardingEditable(status) ? (
@@ -45,9 +51,13 @@ export default function ProDocumentsScreen() {
                 onPick={async (file) => {
                   await upload.mutateAsync({ type, file });
                 }}
+                compact
               />
             );
           })}
+          <Text weight="bold" size="sm">
+            {t("providerDocuments.other")}
+          </Text>
           {OPTIONAL.map((type) => {
             const doc = docsQ.data?.find((d: { type: string }) => d.type === type);
             const allowed = canUploadDocument(status, type);
@@ -63,6 +73,7 @@ export default function ProDocumentsScreen() {
                 onPick={async (file) => {
                   await upload.mutateAsync({ type, file });
                 }}
+                compact
               />
             );
           })}

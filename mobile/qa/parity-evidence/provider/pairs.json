@@ -1,0 +1,90 @@
+[
+  {
+    "screen": "dashboard",
+    "composed": true
+  },
+  {
+    "screen": "jobs",
+    "composed": true
+  },
+  {
+    "screen": "booking",
+    "composed": true
+  },
+  {
+    "screen": "booking-confirmed",
+    "composed": true
+  },
+  {
+    "screen": "booking-completed",
+    "composed": true
+  },
+  {
+    "screen": "schedule",
+    "composed": true
+  },
+  {
+    "screen": "earnings",
+    "composed": true
+  },
+  {
+    "screen": "messages",
+    "composed": true
+  },
+  {
+    "screen": "chat",
+    "composed": true
+  },
+  {
+    "screen": "profile",
+    "composed": true
+  },
+  {
+    "screen": "profile-edit",
+    "composed": true
+  },
+  {
+    "screen": "documents",
+    "composed": true
+  },
+  {
+    "screen": "setup-home",
+    "composed": true
+  },
+  {
+    "screen": "setup-personal",
+    "composed": true
+  },
+  {
+    "screen": "setup-about",
+    "composed": true
+  },
+  {
+    "screen": "setup-hours",
+    "composed": true
+  },
+  {
+    "screen": "setup-photo",
+    "composed": true
+  },
+  {
+    "screen": "setup-babysitting",
+    "composed": true
+  },
+  {
+    "screen": "setup-reference",
+    "composed": true
+  },
+  {
+    "screen": "setup-subjects",
+    "composed": true
+  },
+  {
+    "screen": "notifications",
+    "composed": true
+  },
+  {
+    "screen": "notification-preferences",
+    "composed": true
+  }
+]
