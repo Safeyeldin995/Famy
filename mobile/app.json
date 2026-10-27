@@ -11,7 +11,12 @@
       "icon": "./assets/images/icon.png",
       "bundleIdentifier": "com.famy.app",
       "supportsTablet": false,
-      "usesAppleSignIn": true
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "Allow Famy to use your location to set your service address.",
+        "NSPhotoLibraryUsageDescription": "Allow Famy to access your photos for profile pictures, provider documents, and payment receipts."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +26,12 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.famy.app"
+      "package": "com.famy.app",
+      "blockedPermissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ]
     },
     "web": {
       "output": "single",
@@ -49,7 +59,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Famy to choose a payment receipt from your photos.",
+          "photosPermission": "Allow Famy to access your photos for profile pictures, provider documents, and payment receipts.",
           "cameraPermission": false,
           "microphonePermission": false
         }
