@@ -8,13 +8,17 @@ import {
   seedIdentities,
 } from "./babysitting-capabilities-harness";
 import { createMigrationReplayDb, replayAllMigrations } from "./migration-replay.harness";
+import { stableCairoBookingBaseDate } from "./cairo-stable-booking-date";
 
 const MIGRATION = "20261005100000_fixed_price_babysitting_packages.sql";
 const NIGHT = "00000000-0000-0000-0000-000000000999";
 const LATEST_PRICING = "20261001130000_tutoring_teaching_capabilities.sql";
 let db: PGlite;
+/** Cairo calendar date for slot tests; stable across DST (≥ today+2). */
+let bookingBaseDate: string;
 
 beforeEach(async () => {
+  bookingBaseDate = stableCairoBookingBaseDate(new Date());
   db = await createDisposableDb();
   await seedIdentities(db);
   await applyBabysittingMigration(db);
@@ -62,9 +66,9 @@ async function book(serviceId: string, start: string, hours: number) {
       `
       INSERT INTO public.bookings (customer_id,provider_id,service_id,address_id,start_at,end_at)
       SELECT $1,$2,$3,$4, t, t + make_interval(hours => $6)
-      FROM (SELECT (((now() AT TIME ZONE 'Africa/Cairo')::date + 2) + $5::time) AT TIME ZONE 'Africa/Cairo' AS t) x
+      FROM (SELECT (($7::date + $5::time) AT TIME ZONE 'Africa/Cairo') AS t) x
       RETURNING id,price_subtotal`,
-      [IDS.customer, IDS.provider, serviceId, IDS.address, start, hours],
+      [IDS.customer, IDS.provider, serviceId, IDS.address, start, hours, bookingBaseDate],
     );
     await db.exec("COMMIT");
     return result.rows[0]!;
@@ -143,9 +147,8 @@ it.each([
   await expect(
     db.query(
       `SELECT public.check_booking_slot($1, t, t + make_interval(hours => $3), NULL)
-       FROM (SELECT (((now() AT TIME ZONE 'Africa/Cairo')::date + 2) + $2::time)
-         AT TIME ZONE 'Africa/Cairo' AS t) x`,
-      [IDS.provider, start, hours],
+       FROM (SELECT (($4::date + $2::time) AT TIME ZONE 'Africa/Cairo') AS t) x`,
+      [IDS.provider, start, hours, bookingBaseDate],
     ),
   ).rejects.toThrow(/Bookings cannot span past midnight/);
 });
