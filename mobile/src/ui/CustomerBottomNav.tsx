@@ -65,8 +65,8 @@ const styles = StyleSheet.create({
   bar: {
     position: "absolute",
     direction: "ltr",
-    left: 12,
-    right: 12,
+    start: 12,
+    end: 12,
     bottom: 12,
     borderRadius: 28,
     borderWidth: 1,

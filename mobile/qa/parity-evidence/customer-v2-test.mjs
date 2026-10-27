@@ -1,4 +1,4 @@
-// Extend existing protected fixtures with real mocks for the newly ported RPCs.
+// Extend the canonical CJS fixtures with additional customer account/RPC scenarios.
 // Keep all original assertions; never allowlist errors or contact a remote backend.
 import { createRequire, Module } from "node:module";
 import fs from "node:fs";
@@ -12,31 +12,25 @@ function insert(anchor, replacement) {
   source = source.replace(anchor, () => replacement);
 }
 insert("const booking = {", "let reschedules = [];\nlet chatFixture = false;\nconst booking = {");
-// The parity card now uses the web's accessible copy label, not the legacy mobile label.
-insert("name: ar.mobile.copyCode, exact: true", "name: ar.promoCodes.copyCode, exact: true");
-// The actual web-style DOB selectors replace the old browser-native date input.
-// Keep the negative no-write assertion: an incomplete date cannot be submitted.
+insert("let browser;", "let browser;\nlet failurePage;");
 insert(
-  `  await expect(page.getByLabel(ar.familyMembers.dateOfBirth, { exact: true })).toHaveAttribute(
-    "type",
-    "date",
-  );
-  await page.getByLabel(ar.familyMembers.dateOfBirth, { exact: true }).fill("2099-02-01");`,
-  `  await page.getByRole('button', { name: ar.customerRound2.year, exact: true }).click();
-  await expect(page.getByRole('radio', { name: '2099', exact: true })).toHaveCount(0);
-  await page.getByRole('radio', { name: '2019', exact: true }).click();`,
+  "const page = await context.newPage();",
+  "const page = await context.newPage();\n  failurePage = page;",
 );
 insert(
-  `  await page.getByLabel(ar.familyMembers.dateOfBirth, { exact: true }).fill("2019-02-03");`,
-  `  await page.getByRole('button', { name: ar.customerRound2.month, exact: true }).click();
-  await page.getByRole('radio', { name: 'فبراير', exact: true }).click();
-  await page.getByRole('button', { name: ar.customerRound2.day, exact: true }).click();
-  await page.getByRole('radio', { name: '3', exact: true }).click();`,
+  ".catch((error) => {",
+  `.catch(async (error) => {
+    fs.writeFileSync(path.join(artifacts, 'failure.txt'), String(error.stack || error));
+    try { await failurePage?.screenshot({ path: path.join(artifacts, 'failure.png'), fullPage: true }); }
+    catch { console.error('Failure screenshot unavailable: browser page closed or crashed. Last successful screenshots retained.'); }`,
 );
 insert(
   "    let data;",
   `
     if (table === "booking_reschedule_requests") return route.fulfill({ json: reschedules });
+    if (table === "notification_preferences") return route.fulfill({ json: { user_id: uid, booking_push: true, chat_push: true, reminder_push: true, support_push: true, campaign_push: false, campaign_in_app: true } });
+    if (table === "account_deletion_check") return route.fulfill({ json: { ok: false, reason: "active_bookings" } });
+    if (table === "settings" && url.searchParams.get("key") === "eq.service_areas") return route.fulfill({ json: { value: { areas: [{ name: 'Sheikh Zayed', enabled: true }, { name: '6th of October', enabled: true }] } } });
     if (table === "availability_rules") return route.fulfill({ json: [{ id: id(82), provider_id: pid, weekday: 1, start_time: "09:00", end_time: "17:00" }] });
     if (chatFixture && table === "conversations") {
       const conversation = { id: id(80), booking_id: bid, customer_id: uid, provider_user_id: pid };
@@ -69,6 +63,26 @@ insert(
   await messageAction.click();
   await expect(page).toHaveURL(new RegExp('/chat/' + id(80) + '$'));
   await expect(page.getByTestId('chat-input')).toBeVisible();
+  await shot('chat');
+  await page.getByTestId('chat-input').fill('someone@example.com');
+  await page.getByTestId('chat-send').click();
+  await expect(page.getByTestId('chat-input')).toHaveValue('someone@example.com');
+  await expect(page.getByText(ar.bookingChat.contactBlocked, { exact: true })).toBeVisible();
+  await visit('/profile', ar.customerHome.profileEdit);
+  await expect(page.getByRole('button', { name: ar.setup.photoHint, exact: true })).toBeVisible();
+  await page.getByRole('link', { name: ar.customerHome.profileEdit, exact: true }).click();
+  await expect(page).toHaveURL(/\\/setup$/);
+  await expect(page.getByLabel(ar.setup.name, { exact: true })).toHaveValue('حساب اختبار محلي');
+  await shot('setup');
+  await visit('/addresses/' + aid, ar.setup.address);
+  await expect(page.getByLabel(ar.setup.address, { exact: true })).not.toHaveValue('');
+  await shot('address-edit');
+  await visit('/addresses/new', ar.addresses.addAddress);
+  await shot('address-new');
+  await visit('/notification-preferences', ar.notifPrefs.categories);
+  await shot('notification-preferences');
+  await visit('/delete-account', ar.accountDeletion.intro);
+  await shot('delete-account');
   await visit('/booking/' + bid, provider.full_name);
   await shot('booking-detail');
   await page.getByRole('button', { name: ar.reschedule.requestButton, exact: true }).click();

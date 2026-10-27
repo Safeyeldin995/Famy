@@ -49,9 +49,9 @@ const { recentProviders, sortProvidersForStudentEducation } = load(
 );
 assert.deepEqual(
   recentProviders([
-    { status: "confirmed", provider: { id: "a" } },
-    { status: "completed", provider: { id: "b" } },
-    { status: "completed", provider: { id: "b" } },
+    { status: "confirmed", provider: { id: "a", services: [] } },
+    { status: "completed", provider: { id: "b", services: [] } },
+    { status: "completed", provider: { id: "b", services: [] } },
     { status: "completed", provider: null },
   ]).map((p) => p.id),
   ["b"],

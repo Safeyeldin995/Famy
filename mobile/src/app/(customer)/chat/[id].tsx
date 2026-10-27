@@ -1,9 +1,17 @@
-import { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Platform, StyleSheet, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Platform,
+  Pressable,
+  StyleSheet,
+  TextInput,
+  View,
+} from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { ShieldCheck } from "lucide-react-native";
+import { Send, ShieldCheck } from "lucide-react-native";
 import {
   CONTACT_BLOCKED_MESSAGE,
   containsContactInfo,
@@ -14,16 +22,20 @@ import {
 } from "@/lib/chatQueries";
 import { useSession } from "@/lib/session";
 import { Avatar } from "@/ui/ProviderCard";
-import { ChatComposer } from "@/ui/chat/ChatComposer";
+import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 import { MessageBubble } from "@/ui/chat/MessageBubble";
 import { Button } from "@/ui/Button";
 import { ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
-import { colors, space } from "@/ui/theme";
+import { colors, fonts, space } from "@/ui/theme";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const list = useRef<FlatList>(null);
+  const [draft, setDraft] = useState("");
   const { session } = useSession();
   const meId = session?.user.id ?? null;
   const conv = useConversation(id);
@@ -42,12 +54,16 @@ export default function ChatScreen() {
   const otherAvatar = conv.data?.other?.avatar_url ?? null;
 
   const handleSend = (body: string) => {
+    if (!body.trim() || send.isPending) return;
     if (containsContactInfo(body)) {
       setWarning(t("bookingChat.contactBlocked", CONTACT_BLOCKED_MESSAGE));
       return;
     }
     send.mutate(body, {
-      onSuccess: () => setWarning(null),
+      onSuccess: () => {
+        setWarning(null);
+        setDraft("");
+      },
       onError: (e: unknown) => {
         const msg = e instanceof Error ? e.message : "";
         if (msg === "contact_masked")
@@ -59,11 +75,17 @@ export default function ChatScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.flex}
+      style={[styles.flex, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}
     >
-      <Stack.Screen options={{ title: otherName }} />
+      <Stack.Screen options={{ headerShown: false }} />
+      <CustomerPageHeader
+        title={otherName}
+        subtitle={t("messages.chatNotice")}
+        backTo="/messages"
+        right={<Avatar raw={otherAvatar} size={44} round />}
+      />
       {conv.isLoading || msgs.isLoading ? (
         <View style={styles.center}>
           <ActivityIndicator color={colors.brand} />
@@ -88,24 +110,17 @@ export default function ChatScreen() {
         </View>
       ) : (
         <>
-          <View style={styles.header}>
-            <Avatar raw={otherAvatar} size={44} />
-            <View style={styles.headerText}>
-              <Text weight="heavy" size="lg">
-                {otherName}
-              </Text>
-              <Text tone="muted" size="sm">
-                {t("messages.chatNotice")}
-              </Text>
-            </View>
-          </View>
-          <View style={styles.notice}>
-            <ShieldCheck size={14} color={colors.success} />
-            <Text size="sm">{t("messages.stayInApp")}</Text>
-          </View>
           <FlatList
+            ref={list}
             testID="chat-thread"
-            inverted
+            style={{ backgroundColor: colors.surface2 }}
+            onContentSizeChange={() => list.current?.scrollToEnd({ animated: true })}
+            ListHeaderComponent={
+              <View style={styles.notice}>
+                <ShieldCheck size={12} color={colors.success} />
+                <Text size="xs">{t("messages.stayInApp")}</Text>
+              </View>
+            }
             data={msgs.data ?? []}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.thread}
@@ -115,6 +130,7 @@ export default function ChatScreen() {
                 mine={!!meId && item.sender_id === meId}
                 otherAvatar={otherAvatar}
                 otherName={otherName}
+                customer
               />
             )}
             ListEmptyComponent={
@@ -123,12 +139,69 @@ export default function ChatScreen() {
               </View>
             }
           />
-          <ChatComposer
-            onSend={handleSend}
-            pending={send.isPending}
-            warning={warning}
-            onClearWarning={() => setWarning(null)}
-          />
+          {warning ? (
+            <View style={{ paddingHorizontal: 16, paddingVertical: 8, backgroundColor: "#FFFBEB" }}>
+              <Text size="xs" accessibilityRole="alert">
+                {warning}
+              </Text>
+            </View>
+          ) : null}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "flex-end",
+              gap: 8,
+              paddingHorizontal: 12,
+              paddingTop: 10,
+              paddingBottom: 12,
+              backgroundColor: colors.surface,
+              borderTopWidth: 1,
+              borderTopColor: colors.border,
+            }}
+          >
+            <TextInput
+              testID="chat-input"
+              accessibilityLabel={t("messages.placeholder")}
+              value={draft}
+              onChangeText={(text) => {
+                setDraft(text);
+                setWarning(null);
+              }}
+              placeholder={t("messages.placeholder")}
+              placeholderTextColor={colors.muted}
+              maxLength={2000}
+              onSubmitEditing={() => handleSend(draft.trim())}
+              style={{
+                flex: 1,
+                height: 48,
+                borderRadius: 24,
+                backgroundColor: colors.surface2,
+                paddingHorizontal: 16,
+                fontSize: 14,
+                color: colors.foreground,
+                fontFamily: (i18n.language === "ar" ? fonts.ar : fonts.en).regular,
+                textAlign: "auto",
+              }}
+            />
+            <Pressable
+              testID="chat-send"
+              accessibilityRole="button"
+              accessibilityLabel={t("messages.send")}
+              disabled={!draft.trim() || send.isPending}
+              onPress={() => handleSend(draft.trim())}
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                backgroundColor: colors.brand,
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: !draft.trim() || send.isPending ? 0.4 : 1,
+              }}
+            >
+              <Send size={16} color={colors.surface} />
+            </Pressable>
+          </View>
         </>
       )}
     </KeyboardAvoidingView>
@@ -154,8 +227,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: space.xs,
-    paddingVertical: space.sm,
-    backgroundColor: colors.surface2,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginVertical: 12,
+    alignSelf: "center",
+    borderRadius: 999,
+    backgroundColor: "#D9F5E780",
   },
   thread: { paddingHorizontal: space.md, paddingVertical: space.lg, gap: space.xs },
   emptyThread: { alignItems: "center", paddingVertical: space.xxl },

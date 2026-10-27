@@ -61,6 +61,7 @@ export default function Help() {
               <Pressable
                 key={key}
                 accessibilityRole="button"
+                accessibilityLabel={t(`helpC.${key}`)}
                 disabled={!url}
                 onPress={() => url && void open(url)}
                 style={{
@@ -110,6 +111,7 @@ export default function Help() {
           <Pressable
             key={i}
             accessibilityRole="button"
+            accessibilityLabel={f.q}
             accessibilityState={{ expanded: expanded === i }}
             onPress={() => setExpanded(expanded === i ? null : i)}
             style={{

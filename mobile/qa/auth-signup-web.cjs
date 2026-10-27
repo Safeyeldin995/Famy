@@ -92,8 +92,28 @@ const server = http.createServer((req, res) => {
       intents: storedIntents,
     });
   }
-  res.writeHead(404);
-  res.end();
+  if (url.pathname.startsWith("/api/")) {
+    res.writeHead(404);
+    return res.end();
+  }
+  // Expo exports use origin-relative bundle URLs; file:// cannot load the app.
+  let file = path.resolve(exportDir, `.${decodeURIComponent(url.pathname)}`);
+  if (file !== exportDir && !file.startsWith(exportDir + path.sep)) {
+    res.writeHead(403);
+    return res.end();
+  }
+  if (!fs.existsSync(file) || fs.statSync(file).isDirectory())
+    file = path.join(exportDir, "index.html");
+  const mime = {
+    ".html": "text/html",
+    ".js": "application/javascript",
+    ".json": "application/json",
+    ".ttf": "font/ttf",
+    ".png": "image/png",
+    ".ico": "image/x-icon",
+  };
+  res.setHeader("Content-Type", mime[path.extname(file)] || "application/octet-stream");
+  fs.createReadStream(file).pipe(res);
 });
 
 (async () => {
@@ -103,11 +123,42 @@ const server = http.createServer((req, res) => {
 
   const browser = await chromium.launch();
   const page = await browser.newPage();
-  await page.goto(`file://${path.join(exportDir, "index.html")}`);
-  await waitForLaunchGateGone(page);
+  page.setDefaultTimeout(20000);
+  const errors = [];
+  let startupContextReads = 0;
+  const configuredWebOrigin = new URL(require("../app.json").expo.extra.webOrigin).origin;
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.route("**/*", (route) => {
+    const url = new URL(route.request().url());
+    if (url.origin === mockOrigin) return route.continue();
+    // SessionProvider probes pending OTP on signed-out startup. Fulfil that
+    // exact contract locally; __MOCK_WEB_ORIGIN__ is not an application override.
+    if (
+      url.origin === configuredWebOrigin &&
+      url.pathname === "/api/mobile/otp/context" &&
+      route.request().method() === "GET"
+    ) {
+      startupContextReads++;
+      return route.fulfill({
+        status: 404,
+        json: {
+          ok: false,
+          error: "intent_missing",
+          intents: { otpPending: null, setPassword: null },
+        },
+      });
+    }
+    errors.push("Unexpected external request");
+    return route.abort();
+  });
   await page.addInitScript((origin) => {
+    localStorage.setItem("onboarded", "true");
+    localStorage.setItem("famy.lang", "ar");
     window.__MOCK_WEB_ORIGIN__ = origin;
   }, mockOrigin);
+  await page.goto(`${mockOrigin}/login`);
+  await waitForLaunchGateGone(page);
+  await expect(page.locator('input[autocomplete="tel"]')).toBeVisible();
 
   const send = await page.evaluate(
     async ({ origin, headerName }) => {
@@ -142,7 +193,22 @@ const server = http.createServer((req, res) => {
   );
   expect(ctx).toBe(true);
 
-  fs.writeFileSync(path.join(artifacts, "auth-signup-checks.json"), JSON.stringify({ send, ctx }, null, 2));
+  expect(errors).toEqual([]);
+  expect(startupContextReads).toBeGreaterThan(0);
+  // Do not write intent tokens into QA reports, even synthetic ones.
+  fs.writeFileSync(
+    path.join(artifacts, "auth-signup-checks.json"),
+    JSON.stringify(
+      {
+        sendStatus: send.status,
+        pendingIntentPresent: !!send.intents?.otpPending,
+        contextOk: ctx,
+        appRendered: true,
+      },
+      null,
+      2,
+    ),
+  );
   await browser.close();
   server.close();
   console.log("PASS: auth-signup-web mock OTP API smoke.");

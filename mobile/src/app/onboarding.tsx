@@ -46,7 +46,12 @@ export default function Onboarding() {
       <View style={[styles.content, { paddingTop: Math.max(insets.top, 8) }]}>
         <View style={styles.header}>
           <View style={styles.side}>
-            <Pressable accessibilityRole="button" onPress={finish} style={styles.skip}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("onboarding.skip")}
+              onPress={finish}
+              style={styles.skip}
+            >
               <Text weight="heavy" tone="brand">
                 {t("onboarding.skip")}
               </Text>

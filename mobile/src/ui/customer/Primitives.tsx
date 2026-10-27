@@ -73,6 +73,7 @@ export function CustomerChips({
         <Pressable
           key={option.value}
           accessibilityRole="button"
+          accessibilityLabel={option.label}
           accessibilityState={{ selected: value === option.value }}
           onPress={() => onChange(option.value)}
           style={{
@@ -111,6 +112,7 @@ export function CustomerMenuRow({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={label}
       onPress={onPress}
       style={[
         customerStyle.row,

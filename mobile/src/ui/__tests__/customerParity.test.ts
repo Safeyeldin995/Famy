@@ -1,12 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { uniqueProviders } from "@/lib/presentation";
 import type { Provider } from "@/lib/queries";
+import { bookingStatusStyle } from "@/ui/customer/bookingStatusStyle";
 import {
   customerNotificationDate,
   customerNotificationGroups,
 } from "@/lib/customerNotificationGroups";
 
 describe("customer list parity", () => {
+  it("uses grey confirmed pills and web lifecycle tones", () => {
+    for (const status of ["confirmed", "on_the_way", "arrived", "arrival_confirmed", "in_progress"])
+      expect(bookingStatusStyle(status)).toEqual({
+        backgroundColor: "#2A1E251A",
+        color: "#2A1E25",
+      });
+    expect(bookingStatusStyle("pending").color).toBe("#F10E72");
+    expect(bookingStatusStyle("completed").color).toBe("#1F9D63");
+    expect(bookingStatusStyle("cancelled").color).toBe("#6F6168");
+  });
   it("keeps both services on a dual-service provider without mutating query rows", () => {
     const row = (id: string, service: string) =>
       ({ id, services: [{ service: { id: service } }] }) as Provider;

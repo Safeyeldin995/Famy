@@ -318,6 +318,10 @@ async function run() {
         provider_services: [{ price_override: null, status: "approved", service }],
         reviews: [{ id: id(14), rating: 5, comment: "تقييم اختبار محلي.", created_at: now }],
         provider_teaching_capabilities: [],
+        booking_reschedule_requests: [],
+        availability_rules: [
+          { id: id(82), provider_id: pid, weekday: 1, start_time: "09:00", end_time: "17:00" },
+        ],
         teaching_curricula: [],
         teaching_levels: [],
         customer_education_profiles: [],
@@ -439,6 +443,16 @@ async function run() {
   for (const [name, route, text] of screens) {
     await visit(route, titles[name] || text);
     if (name === "home") await expect(page.getByTestId("home-unread")).toBeVisible();
+    if (name === "profile") {
+      const photo = await page.getByTestId("customer-profile-photo").boundingBox();
+      const camera = await page
+        .getByRole("button", { name: ar.setup.photoHint, exact: true })
+        .boundingBox();
+      assert(
+        photo && camera && camera.x + camera.width / 2 < photo.x + photo.width / 2,
+        "Arabic camera action stays on the left of the avatar, matching web",
+      );
+    }
     await shot(name);
   }
   await visit(`/provider/${pid}`, provider.full_name);
@@ -455,19 +469,21 @@ async function run() {
   assert(writes.some((w) => w.table === "notifications" && w.method === "PATCH"));
   await visit("/addresses", addresses[0].area);
   await page.getByRole("button", { name: ar.mobile.setDefault, exact: true }).click();
-  await expect(page.getByText(ar.mobile.defaultAddress, { exact: true })).toHaveCount(1);
+  await expect(page.getByText(ar.addresses.default, { exact: true })).toHaveCount(1);
   assert(writes.some((w) => w.table === "addresses" && w.body?.is_default === true));
   await visit("/family-members/new", ar.familyMembers.fullName);
   await page.getByLabel(ar.familyMembers.fullName, { exact: true }).fill("عضو اختبار");
-  await expect(page.getByLabel(ar.familyMembers.dateOfBirth, { exact: true })).toHaveAttribute(
-    "type",
-    "date",
-  );
-  await page.getByLabel(ar.familyMembers.dateOfBirth, { exact: true }).fill("2099-02-01");
+  // Web parity uses day/month/year sheets, not a native date input.
+  await page.getByRole("button", { name: ar.customerRound2.year, exact: true }).click();
+  await expect(page.getByRole("radio", { name: "2099", exact: true })).toHaveCount(0);
+  await page.getByRole("radio", { name: "2019", exact: true }).click();
   await page.getByRole("button", { name: ar.common.save, exact: true }).click();
   await expect(page.getByText(ar.mobile.memberInvalid, { exact: true })).toBeVisible();
   assert(!writes.some((w) => w.table === "family_members"));
-  await page.getByLabel(ar.familyMembers.dateOfBirth, { exact: true }).fill("2019-02-03");
+  await page.getByRole("button", { name: ar.customerRound2.month, exact: true }).click();
+  await page.getByRole("radio", { name: "فبراير", exact: true }).click();
+  await page.getByRole("button", { name: ar.customerRound2.day, exact: true }).click();
+  await page.getByRole("radio", { name: "3", exact: true }).click();
   await page.getByLabel(ar.familyMembers.allergies, { exact: true }).fill("اختبار");
   await page.getByRole("button", { name: ar.common.save, exact: true }).click();
   assert(!writes.some((w) => w.table === "family_members"));
@@ -486,7 +502,7 @@ async function run() {
   );
   assert(!writes.some((w) => w.table === "family_members" && w.method === "DELETE"));
   await visit("/promo-codes", "LOCALTEST");
-  await page.getByRole("button", { name: ar.mobile.copyCode, exact: true }).click();
+  await page.getByRole("button", { name: ar.promoCodes.copyCode, exact: true }).click();
   await expect(page.getByRole("button", { name: ar.mobile.copied, exact: true })).toBeVisible();
   mode = "empty";
   await visit("/addresses", ar.customerHome.addressHint);
@@ -497,7 +513,14 @@ async function run() {
   assert(failures > 0);
   mode = "populated";
   await page.getByRole("button", { name: ar.common.retry, exact: true }).click();
-  await expect(page.getByText(addresses[0].area, { exact: true })).toBeVisible();
+  await expect(
+    page.getByText(
+      [addresses[0].street, addresses[0].building, addresses[0].compound, addresses[0].area]
+        .filter(Boolean)
+        .join(", "),
+      { exact: true },
+    ),
+  ).toBeVisible();
   assert.deepEqual(errors, []);
   fs.writeFileSync(path.join(artifacts, "screenshots.json"), JSON.stringify(screenshots, null, 2));
   fs.writeFileSync(
