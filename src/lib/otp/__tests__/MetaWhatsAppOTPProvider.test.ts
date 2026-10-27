@@ -189,7 +189,7 @@ describe("resolveOtpProvider", () => {
     vi.stubEnv("OTP_PROVIDER", "mock");
     const { resolveOtpProvider } = await import("../otpProvider.server");
     await expect(resolveOtpProvider()).rejects.toThrow(
-      /Production requires OTP_PROVIDER=meta or OTP_PROVIDER=firebase/,
+      /Production requires OTP_PROVIDER=meta, OTP_PROVIDER=http_sms, or OTP_PROVIDER=firebase/,
     );
   });
 

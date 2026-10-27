@@ -9,6 +9,9 @@ describe("resolveClientOtpProviderKind", () => {
     expect(resolveClientOtpProviderKind({ configured: "firebase", isProduction: false })).toBe(
       "firebase",
     );
+    expect(resolveClientOtpProviderKind({ configured: "http_sms", isProduction: false })).toBe(
+      "http_sms",
+    );
   });
 
   it("defaults to mock in development when unset", () => {
