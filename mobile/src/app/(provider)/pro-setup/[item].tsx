@@ -19,6 +19,8 @@ import {
   useReplaceAvailability,
 } from "@/lib/provider/queries";
 import { SetupItemForm } from "@/ui/provider/SetupItemForm";
+import { ProviderHeader } from "@/ui/provider/ProviderHeader";
+import { TeachingGroupsSetup } from "@/ui/provider/TeachingGroupsSetup";
 import { Page, QueryState } from "@/ui/Page";
 
 const SETUP_ITEMS = [
@@ -122,32 +124,60 @@ export default function ProSetupItemScreen() {
       phone: row.phone,
       notes: row.notes ?? "",
     }));
-    body = (
-      <SetupItemForm
-        item={item}
-        snapshot={{
-          ...(snapshot.data as SetupSnapshot),
-          needsBabysitting,
-        }}
-        references={normalizedRefs}
-        rules={
-          (availability.data ?? []) as {
-            weekday: number;
-            start_time: string;
-            end_time: string;
-          }[]
-        }
-        needsBabysitting={needsBabysitting}
-        ageGroups={(ages.data ?? []) as { code: string; name_ar: string; name_en: string }[]}
-        providerId={providerId!}
-        profileId={profileId!}
-        onSave={persist}
-      />
-    );
+    body =
+      item === "subjects" ? (
+        <TeachingGroupsSetup
+          providerId={providerId!}
+          services={
+            selected.filter((s) => s.category?.slug === "tutoring") as {
+              id: string;
+              name_ar: string;
+              name_en: string;
+              minimum_price?: number | null;
+              maximum_price?: number | null;
+              allowed_session_durations?: number[] | null;
+            }[]
+          }
+        />
+      ) : (
+        <SetupItemForm
+          item={item}
+          snapshot={{
+            ...(snapshot.data as SetupSnapshot),
+            needsBabysitting,
+          }}
+          references={normalizedRefs}
+          rules={
+            (availability.data ?? []) as {
+              weekday: number;
+              start_time: string;
+              end_time: string;
+            }[]
+          }
+          needsBabysitting={needsBabysitting}
+          ageGroups={(ages.data ?? []) as { code: string; name_ar: string; name_en: string }[]}
+          providerId={providerId!}
+          profileId={profileId!}
+          onSave={persist}
+        />
+      );
   }
 
   return (
-    <Page title={t(`providerSetup.titles.${item}`)} queries={queries}>
+    <Page
+      title={t(
+        item === "subjects" ? "providerSetup.subjectsTitle" : `providerSetup.titles.${item}`,
+      )}
+      header={
+        <ProviderHeader
+          title={t(
+            item === "subjects" ? "providerSetup.subjectsTitle" : `providerSetup.titles.${item}`,
+          )}
+        />
+      }
+      queries={queries}
+      contentStyle={{ paddingTop: 8 }}
+    >
       <QueryState query={providerQ}>{body}</QueryState>
     </Page>
   );

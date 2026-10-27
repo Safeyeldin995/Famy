@@ -33,6 +33,7 @@ export default function ProviderStack() {
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="pro-booking/[id]" options={{ title: t("pro.booking.title") }} />
       <Stack.Screen name="pro-chat/[id]" options={{ title: t("nav.messages") }} />
+      <Stack.Screen name="pro-messages" options={{ headerShown: false }} />
       <Stack.Screen name="pro-notifications" options={{ title: t("notifs.title") }} />
       <Stack.Screen name="pro-apply" options={{ title: t("providerApply.checklist") }} />
       <Stack.Screen name="pro-documents" options={{ title: t("providerDocuments.title") }} />

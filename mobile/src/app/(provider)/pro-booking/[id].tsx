@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Linking, Pressable, ScrollView, View } from "react-native";
+import { Linking, Pressable, View } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Phone } from "lucide-react-native";
+import { Calendar, Clock, MapPin, Phone, User } from "lucide-react-native";
 import { shortBookingCode } from "@/lib/provider/constants";
 import {
   isBookingTooEarlyError,
@@ -14,8 +14,10 @@ import { useProviderBooking, useProviderUpdateBookingStatus } from "@/lib/provid
 import { localized, money, dateTime } from "@/lib/presentation";
 import { DeclineSheet } from "@/ui/provider/DeclineSheet";
 import { ProviderPaymentBlock } from "@/ui/provider/ProviderPaymentBlock";
+import { ProviderHeader } from "@/ui/provider/ProviderHeader";
+import { BookingStatusCard } from "@/ui/provider/BookingStatusCard";
 import { proCard } from "@/ui/provider/cards";
-import { QueryState, ActionError, ui } from "@/ui/Page";
+import { Page, QueryState, ActionError } from "@/ui/Page";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { colors, space } from "@/ui/theme";
@@ -67,31 +69,98 @@ export default function ProBookingDetail() {
   };
 
   return (
-    <ScrollView contentContainerStyle={[ui.content, { paddingBottom: 120 }]}>
+    <Page
+      title={t("pro.booking.title")}
+      header={<ProviderHeader title={t("pro.booking.title")} />}
+      queries={[q]}
+      contentStyle={{ paddingBottom: 120 }}
+    >
       <QueryState query={q}>
         {b ? (
           <>
-            <View style={proCard.card}>
-              <Text weight="heavy" size="lg">
-                {name}
-              </Text>
-              <Text tone="muted" size="sm">
-                {t("proWork.bookingLabel")} #{shortBookingCode(String(b.id))}
-              </Text>
-              <Text tone="brand" weight="bold">
-                {t(`pro.statuses.${status}`, status)}
-              </Text>
+            <View style={[proCard.card, { flexDirection: "row", alignItems: "center", gap: 12 }]}>
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: colors.brandTint,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text weight="heavy" tone="brand">
+                  {name.slice(0, 1)}
+                </Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text weight="heavy" size="lg">
+                  {name}
+                </Text>
+                <Text tone="muted" size="xs" style={{ writingDirection: "ltr" }}>
+                  {t("proWork.bookingLabel")} #{shortBookingCode(String(b.id))}
+                </Text>
+              </View>
             </View>
+            <BookingStatusCard status={status} />
             <View style={proCard.card}>
-              <Text weight="bold">{localized(service, i18n.language)}</Text>
-              <Text tone="muted">{dateTime(String(b.start_at), i18n.language)}</Text>
-              <Text>
-                {status !== "pending" && addr
-                  ? [addr.street, addr.building, addr.area, addr.city].filter(Boolean).join("، ")
-                  : zoneName
-                    ? t("pro.booking.areaOnly", { area: zoneName })
-                    : t("pro.booking.addressMissing")}
-              </Text>
+              <View style={proCard.row}>
+                <User size={16} color={colors.brand} />
+                <Text tone="muted" size="sm" style={{ flex: 1 }}>
+                  {t("pro.booking.service")}
+                </Text>
+                <Text weight="bold" size="sm" style={{ flex: 1 }}>
+                  {localized(service, i18n.language)}
+                </Text>
+              </View>
+              <View style={proCard.row}>
+                <Calendar size={16} color={colors.brand} />
+                <Text tone="muted" size="sm" style={{ flex: 1 }}>
+                  {t("pro.booking.date")}
+                </Text>
+                <Text weight="bold" size="sm" style={{ flex: 1 }}>
+                  {dateTime(String(b.start_at), i18n.language)}
+                </Text>
+              </View>
+              <View style={proCard.row}>
+                <Clock size={16} color={colors.brand} />
+                <Text tone="muted" size="sm" style={{ flex: 1 }}>
+                  {t("pro.booking.time")}
+                </Text>
+                <Text weight="bold" size="sm" style={{ flex: 1 }}>
+                  {Math.max(
+                    1,
+                    Math.round(
+                      (+new Date(String(b.end_at)) - +new Date(String(b.start_at))) / 36e5,
+                    ),
+                  )}{" "}
+                  {t("scheduleUi.hoursUnit")}
+                </Text>
+              </View>
+              {party?.member_first_name ? (
+                <View style={proCard.row}>
+                  <User size={16} color={colors.brand} />
+                  <Text tone="muted" size="sm" style={{ flex: 1 }}>
+                    {t("pro.booking.forWhom")}
+                  </Text>
+                  <Text weight="bold" size="sm" style={{ flex: 1 }}>
+                    {party.member_first_name}
+                  </Text>
+                </View>
+              ) : null}
+              <View style={proCard.row}>
+                <MapPin size={16} color={colors.brand} />
+                <Text tone="muted" size="sm" style={{ flex: 1 }}>
+                  {t("pro.booking.address")}
+                </Text>
+                <Text weight="bold" size="sm" style={{ flex: 1 }}>
+                  {status !== "pending" && addr
+                    ? [addr.street, addr.building, addr.area, addr.city].filter(Boolean).join("، ")
+                    : zoneName
+                      ? t("pro.booking.areaOnly", { area: zoneName })
+                      : t("pro.booking.addressMissing")}
+                </Text>
+              </View>
               {phone ? (
                 <Pressable
                   accessibilityRole="link"
@@ -105,7 +174,10 @@ export default function ProBookingDetail() {
                   </Text>
                 </Pressable>
               ) : null}
-              <Text weight="heavy" tone="brand" size="lg">
+            </View>
+            <View style={[proCard.card, { flexDirection: "row", justifyContent: "space-between" }]}>
+              <Text weight="bold">{t("pro.booking.total")}</Text>
+              <Text weight="heavy" tone="brand" size="lg" style={{ writingDirection: "ltr" }}>
                 {money(Number(b.price_total ?? 0), i18n.language)}
               </Text>
             </View>
@@ -195,6 +267,6 @@ export default function ProBookingDetail() {
           dialog === "decline" ? t("pro.booking.declineConfirm") : t("pro.booking.cancelConfirm")
         }
       />
-    </ScrollView>
+    </Page>
   );
 }

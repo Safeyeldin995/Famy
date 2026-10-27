@@ -1,0 +1,86 @@
+[
+  {
+    "screen": "apply-step-1",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native2\\apply-step-1.png",
+    "viewport": "390x844",
+    "language": "ar"
+  },
+  {
+    "screen": "apply-step-2",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native2\\apply-step-2.png",
+    "viewport": "390x844",
+    "language": "ar"
+  },
+  {
+    "screen": "apply-step-3",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native2\\apply-step-3.png",
+    "viewport": "390x844",
+    "language": "ar"
+  },
+  {
+    "screen": "profile-edit",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native2\\profile-edit.png",
+    "viewport": "390x844",
+    "language": "ar"
+  },
+  {
+    "screen": "notification-prefs",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native2\\notification-prefs.png",
+    "viewport": "390x844",
+    "language": "ar"
+  },
+  {
+    "screen": "documents",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native2\\documents.png",
+    "viewport": "390x844",
+    "language": "ar"
+  },
+  {
+    "screen": "setup-home",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native2\\setup-home.png",
+    "viewport": "390x844",
+    "language": "ar"
+  },
+  {
+    "screen": "setup-personal",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native2\\setup-personal.png",
+    "viewport": "390x844",
+    "language": "ar"
+  },
+  {
+    "screen": "setup-about",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native2\\setup-about.png",
+    "viewport": "390x844",
+    "language": "ar"
+  },
+  {
+    "screen": "setup-hours",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native2\\setup-hours.png",
+    "viewport": "390x844",
+    "language": "ar"
+  },
+  {
+    "screen": "setup-photo",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native2\\setup-photo.png",
+    "viewport": "390x844",
+    "language": "ar"
+  },
+  {
+    "screen": "setup-babysitting",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native2\\setup-babysitting.png",
+    "viewport": "390x844",
+    "language": "ar"
+  },
+  {
+    "screen": "setup-reference",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native2\\setup-reference.png",
+    "viewport": "390x844",
+    "language": "ar"
+  },
+  {
+    "screen": "setup-subjects",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native2\\setup-subjects.png",
+    "viewport": "390x844",
+    "language": "ar"
+  }
+]
