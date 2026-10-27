@@ -105,6 +105,17 @@ async function syncPushRegistration(): Promise<void> {
   await registerTokenWithBackend(token);
 }
 
+/** Explicit customer settings action; never report success without backend registration. */
+export async function enableCustomerPushNotifications(): Promise<void> {
+  if (!Device.isDevice || Platform.OS === "web") throw new Error("unsupported");
+  await ensureAndroidChannel();
+  const permission = await Notifications.requestPermissionsAsync();
+  if (permission.status !== "granted") throw new Error("denied");
+  const token = await fetchExpoPushToken();
+  if (!token) throw new Error("unconfigured");
+  await registerTokenWithBackend(token);
+}
+
 export function PushBridge() {
   const { session, ready } = useSession();
   const { t } = useTranslation();

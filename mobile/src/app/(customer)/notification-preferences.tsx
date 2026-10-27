@@ -12,12 +12,18 @@ import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
 import { colors } from "@/ui/theme";
 import { useState } from "react";
+import { Smartphone, Trash2 } from "lucide-react-native";
+import { useCustomerPushDevices, useRevokeCustomerPushDevice } from "@/lib/customerPushDevices";
+import { enableCustomerPushNotifications } from "@/lib/push";
 
 export default function CustomerNotificationPreferences() {
   const { t } = useTranslation();
   const prefs = useNotificationPreferences();
   const update = useUpdateNotificationPreferences();
+  const devices = useCustomerPushDevices();
+  const revoke = useRevokeCustomerPushDevice();
   const [failed, setFailed] = useState(false);
+  const [enabling, setEnabling] = useState(false);
   const categories: [keyof NotificationPreferences, string][] = [
     ["booking_push", "bookingUpdates"],
     ["chat_push", "chatMessages"],
@@ -29,7 +35,7 @@ export default function CustomerNotificationPreferences() {
     <Page
       title={t("notifPrefs.title")}
       header={<CustomerPageHeader title={t("notifPrefs.title")} backTo="/profile" />}
-      queries={[prefs]}
+      queries={[prefs, devices]}
     >
       <Text size="sm" weight="bold" tone="muted">
         {t("notifPrefs.pushSection")}
@@ -40,13 +46,77 @@ export default function CustomerNotificationPreferences() {
             {t("notifPrefs.pushUnsupported")}
           </Text>
         ) : (
-          <Button
-            variant="secondary"
-            label={t("notifPrefs.title")}
-            onPress={() => void Linking.openSettings().catch(() => setFailed(true))}
-          />
+          <View style={{ gap: 8 }}>
+            <Button
+              variant="secondary"
+              label={t(enabling ? "notifPrefs.enabling" : "notifPrefs.enable")}
+              loading={enabling}
+              onPress={async () => {
+                setEnabling(true);
+                setFailed(false);
+                try {
+                  await enableCustomerPushNotifications();
+                  await devices.refetch();
+                } catch {
+                  setFailed(true);
+                } finally {
+                  setEnabling(false);
+                }
+              }}
+            />
+            <Button
+              variant="ghost"
+              label={t("notifPrefs.title")}
+              onPress={() => void Linking.openSettings().catch(() => setFailed(true))}
+            />
+          </View>
         )}
       </View>
+      <QueryState query={devices}>
+        {(devices.data?.length ?? 0) > 0 ? (
+          <View style={{ gap: 8 }}>
+            <Text size="sm" weight="bold" tone="muted">
+              {t("notifPrefs.devices")}
+            </Text>
+            <View style={[customerStyle.card, { padding: 0, gap: 0 }]}>
+              {devices.data?.map((device, index) => (
+                <View
+                  key={`${device.kind}:${device.id}`}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
+                    paddingHorizontal: 16,
+                    paddingVertical: 12,
+                    borderTopWidth: index ? 1 : 0,
+                    borderTopColor: colors.border,
+                  }}
+                >
+                  <Smartphone size={16} color={colors.muted} />
+                  <Text numberOfLines={1} style={{ flex: 1 }}>
+                    {device.device_label || t("notifPrefs.unknownDevice")}
+                  </Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t("notifPrefs.removeDevice")}
+                    disabled={revoke.isPending}
+                    onPress={() => revoke.mutate(device)}
+                    style={{
+                      width: 44,
+                      height: 44,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      opacity: revoke.isPending ? 0.5 : 1,
+                    }}
+                  >
+                    <Trash2 size={16} color={colors.muted} />
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
+      </QueryState>
       <Text size="sm" weight="bold" tone="muted">
         {t("notifPrefs.categories")}
       </Text>
@@ -116,7 +186,7 @@ export default function CustomerNotificationPreferences() {
       <Text size="xs" tone="muted">
         {t("providerNotificationPolish.footer")}
       </Text>
-      <ActionError error={update.error || failed} />
+      <ActionError error={update.error || revoke.error || failed} />
     </Page>
   );
 }

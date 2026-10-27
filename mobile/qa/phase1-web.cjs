@@ -7,6 +7,7 @@ const path = require("node:path");
 const http = require("node:http");
 const assert = require("node:assert/strict");
 const { waitForLaunchGateGone, screenshotWithoutLaunchOverlay } = require("./waitLaunchGate.cjs");
+const { captureMatchingWeb } = require("./parity-evidence/matching-web.cjs");
 
 const exportDir = path.resolve(process.argv[2]);
 const artifacts = path.resolve(process.argv[3]);
@@ -198,6 +199,7 @@ async function run() {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
     locale: "ar-EG",
+    timezoneId: "Africa/Cairo",
     permissions: ["clipboard-read", "clipboard-write"],
   });
   await context.addInitScript(
@@ -371,6 +373,7 @@ async function run() {
       body: method === "HEAD" ? "" : JSON.stringify(data),
     });
   });
+  await require("./parity-evidence/local-map.cjs").installLocalMap(context);
   const page = await context.newPage();
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (msg) => {
@@ -385,6 +388,44 @@ async function run() {
   async function shot(name) {
     const file = path.join(artifacts, `${name}.png`);
     await screenshotWithoutLaunchOverlay(page, file, name);
+    await captureMatchingWeb({
+      browser,
+      name,
+      nativePath: file,
+      origin: process.env.PARITY_WEB_ORIGIN,
+      fixture: {
+        provider,
+        service,
+        categories,
+        addresses,
+        member,
+        members,
+        favorites,
+        notifications,
+        bookings: [
+          booking,
+          {
+            ...booking,
+            id: id(12),
+            status: "completed",
+            start_at: "2026-01-01T10:00:00Z",
+            end_at: "2026-01-01T11:00:00Z",
+          },
+        ],
+        promos: [
+          {
+            id: id(11),
+            code: "LOCALTEST",
+            description_ar: "كود اختبار محلي فقط",
+            description_en: "Local test only",
+            discount_type: "percentage",
+            discount_value: 10,
+            minimum_booking_amount: 100,
+            expires_at: null,
+          },
+        ],
+      },
+    });
     screenshots.push({
       screen: name,
       path: file,

@@ -144,7 +144,7 @@ export function CustomerMenuRow({
 }
 export function CustomerMenuSection({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <View style={{ gap: 12, marginTop: 12 }}>
+    <View style={{ gap: 12, marginTop: 32 }}>
       <Text size="xs" weight="heavy" tone="muted">
         {title}
       </Text>
@@ -155,6 +155,7 @@ export function CustomerMenuSection({ title, children }: { title: string; childr
           borderWidth: 1,
           borderColor: colors.border,
           backgroundColor: colors.surface,
+          boxShadow: "0px 1px 2px rgba(0,0,0,0.05)",
         }}
       >
         {children}
