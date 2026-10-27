@@ -37,8 +37,21 @@ export default function BookingDetail() {
   const party = useBookingParty(id);
   const b = q.data;
   const [fileError, setFileError] = useState(false);
+  const [chatFeedback, setChatFeedback] = useState<"" | "unavailable" | "error">("");
   const conversation = useConversationByBooking(id, b?.status);
   const chatOpen = b ? chatPhaseForStatus(b.status) !== "unavailable" : false;
+  const openBookingChat = async () => {
+    setChatFeedback("");
+    if (!chatOpen) {
+      setChatFeedback("unavailable");
+      return;
+    }
+    // Resolve only this booking's authorized conversation; never create one client-side.
+    const result = await conversation.refetch();
+    if (result.isError) setChatFeedback("error");
+    else if (!result.data) setChatFeedback("unavailable");
+    else router.push({ pathname: "/chat/[id]", params: { id: result.data } });
+  };
   const locale = i18n.language === "ar" ? "ar-EG-u-nu-latn" : "en-EG";
   const location = Array.isArray(b?.location) ? b.location[0] : b?.location;
   const durationHours = b ? Math.round((+new Date(b.end_at) - +new Date(b.start_at)) / 3600000) : 0;
@@ -187,20 +200,33 @@ export default function BookingDetail() {
                   <Phone size={20} color={colors.foreground} />
                 </Pressable>
               )}
-              {chatOpen && conversation.data && (
-                <Pressable
-                  accessibilityRole="button"
-                  style={{ minHeight: 44, justifyContent: "center" }}
-                  onPress={() =>
-                    router.push({ pathname: "/chat/[id]", params: { id: conversation.data! } })
-                  }
-                >
-                  <Text size="sm" tone="brand" weight="bold">
-                    {t("provider.message")}
-                  </Text>
-                </Pressable>
-              )}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t("provider.message")}
+                accessibilityState={{ busy: conversation.isFetching }}
+                disabled={conversation.isFetching}
+                style={{
+                  minHeight: 44,
+                  minWidth: 44,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                onPress={() => void openBookingChat()}
+              >
+                <Text size="sm" tone="brand" weight="bold">
+                  {t("provider.message")}
+                </Text>
+              </Pressable>
             </View>
+            {!!chatFeedback && (
+              <Text size="sm" tone="muted" accessibilityLiveRegion="polite">
+                {t(
+                  chatFeedback === "error"
+                    ? "bookingChat.loadFailed"
+                    : "bookingChat.unavailableBody",
+                )}
+              </Text>
+            )}
             <View
               style={{
                 borderWidth: 1,

@@ -11,8 +11,10 @@ import { receiptText, calendarText, type BookingFileInfo } from "@/lib/bookingFi
 describe("web/native splash and booking file contracts", () => {
   it("uses the identical source PNG bytes", () => {
     for (const name of ["fam-white", "y-body-white", "y-eyes-white"]) {
-      const hash = (path: string) => createHash("sha256").update(readFileSync(path)).digest("hex");
-      expect(hash(`assets/splash/${name}.png`)).toBe(hash(`../src/assets/splash/${name}.png`));
+      const hash = (path: URL) => createHash("sha256").update(readFileSync(path)).digest("hex");
+      expect(hash(new URL(`../../../assets/splash/${name}.png`, import.meta.url))).toBe(
+        hash(new URL(`../../../../src/assets/splash/${name}.png`, import.meta.url)),
+      );
     }
   });
   it("keeps the shared reveal, blink, final coordinates and 4.2-second completion", () => {

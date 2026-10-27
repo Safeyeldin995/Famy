@@ -6,6 +6,14 @@ Current continuation base: `b5d1b4b` (merged PR #237), branch `codex/mobile-web-
 
 ## Current customer/launch group
 
+### PR #238 follow-up (2026-10-27)
+
+- Splash asset hashes resolve from `import.meta.url`, not the process working directory. The asset assertion now passes in the root unit suite as well as the mobile configuration.
+- The provider-row `مراسلة` action is always visible, with web-sized spacing. On tap it refetches only this booking's authorized conversation and opens `/chat/<conversation-id>`. Missing/status-unavailable chats show the translated explanation; query failures show the translated error. No conversation is created and no server access rule changes.
+- Requested root `npm run test:unit`: **exit 1 — 1533 passed, 64 skipped, 2 failed**. Both failures are in unchanged `fixed-price-packages.test.ts` (lines 127 and 142). Its `now() + 2 days` fixture currently falls on Cairo's 2026-10-29 DST transition: 18:00 plus six elapsed hours is 23:00, and plus seven is midnight. This contradicts those two ordinary-night assertions. The mobile splash assertion no longer fails; the root suite is not claimed green. No pricing/test-calendar fix was made in this mobile scope.
+- Mobile TypeScript and changed-file ESLint: exit 0. Remaining screens wait for the owner's merge of #238 before a fresh branch from main.
+- Mobile unit configuration: 22/22 passed. Web export: exit 0. Isolated customer browser: exit 0, 24 captures; asserts the visible message action, missing-conversation explanation, then navigation to the exact booking conversation and a loaded composer. Updated booking-detail pair below. No live backend interaction. The runner's initial pre-launch syntax failure was fixed by using a function replacement so embedded regex dollar signs remain literal.
+
 - LaunchGate uses the web's actual shared splash state function, 4.2-second timeline, blink/motion/reveal and byte-identical PNG layers. The current web source has **no tagline**; none was invented. The native process plays once; the web export uses the same session-storage marker. Reduced motion skips animation. The existing readiness guards, `launch-overlay` test ID and independent fail-safe remain.
 - Onboarding dots explicitly run right-to-left in Arabic and left-to-right in English. All three active positions are asserted in both languages.
 - Home uses the requested service titles, all returned active promotions in a horizontal snap carousel, the floating four-tab navigation and nearby-provider heading/see-all/cards. Provider cards use the web's compact round-avatar layout. Rebook/trust sections and exact shadow/spacing reconciliation remain unfinished.

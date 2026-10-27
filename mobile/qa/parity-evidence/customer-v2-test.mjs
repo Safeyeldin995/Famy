@@ -8,13 +8,19 @@ const sourcePath = path.resolve("qa/phase1-web.cjs");
 let source = fs.readFileSync(sourcePath, "utf8");
 function insert(anchor, replacement) {
   if (source.split(anchor).length !== 2) throw new Error(`Fixture anchor changed: ${anchor}`);
-  source = source.replace(anchor, replacement);
+  // A function replacement preserves literal "$'" in embedded regex assertions.
+  source = source.replace(anchor, () => replacement);
 }
-insert("const booking = {", "let reschedules = [];\nconst booking = {");
+insert("const booking = {", "let reschedules = [];\nlet chatFixture = false;\nconst booking = {");
 insert(
   "    let data;",
   `
     if (table === "booking_reschedule_requests") return route.fulfill({ json: reschedules });
+    if (chatFixture && table === "conversations") {
+      const conversation = { id: id(80), booking_id: bid, customer_id: uid, provider_user_id: pid };
+      return route.fulfill({ json: req.headers().accept?.includes('object') ? conversation : [conversation] });
+    }
+    if (chatFixture && (table === "messages" || table === "booking_message_reads")) return route.fulfill({ json: [] });
     if (table === "request_reschedule") {
       writes.push({ table, method, body });
       if (body.p_reason === "fail") return route.fulfill({ status: 400, json: { message: "Fixture rejection" } });
@@ -33,6 +39,16 @@ insert(
   `
   mode = "populated";
   await visit('/booking/' + bid, provider.full_name);
+  const messageAction = page.getByRole('button', { name: ar.provider.message, exact: true });
+  await expect(messageAction).toBeVisible();
+  await messageAction.click();
+  await expect(page.getByText(ar.bookingChat.unavailableBody, { exact: true })).toBeVisible();
+  chatFixture = true;
+  await messageAction.click();
+  await expect(page).toHaveURL(new RegExp('/chat/' + id(80) + '$'));
+  await expect(page.getByTestId('chat-input')).toBeVisible();
+  await visit('/booking/' + bid, provider.full_name);
+  await shot('booking-detail');
   await page.getByRole('button', { name: ar.reschedule.requestButton, exact: true }).click();
   await page.getByLabel(ar.reschedule.proposedTime, { exact: true }).fill('2027-01-15');
   await page.getByLabel(ar.reschedule.reasonOptional, { exact: true }).fill('local fixture');
