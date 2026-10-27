@@ -162,7 +162,7 @@ export default function BookingDetail() {
                 },
               ]}
             >
-              <Text size="xs" tone="muted" weight="bold">
+              <Text testID="booking-status" size="xs" tone="muted" weight="bold">
                 {t(`status.${b.status}`)}
               </Text>
               <Text size="xxl" weight="bold">

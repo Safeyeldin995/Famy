@@ -470,6 +470,7 @@ async function run() {
             ? []
             : [booking],
         payments: paymentRows,
+        booking_reschedule_requests: [],
         provider_services: [{ price_override: null, status: "approved", service }],
         reviews: reviewRows,
         provider_teaching_capabilities: scenario === "tutoring" ? [capability] : [],
@@ -531,6 +532,12 @@ async function run() {
     });
   });
   const page = await context.newPage();
+  page.on("crash", () =>
+    fs.writeFileSync(
+      path.join(artifacts, "browser-crash.json"),
+      JSON.stringify({ event: "page.crash", step: "booking flow", appErrors: errors }, null, 2),
+    ),
+  );
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (msg) => {
     if (msg.type() === "error" && mode !== "error") errors.push(msg.text());
@@ -597,13 +604,13 @@ async function run() {
     await button(ar.common.continue);
     const tomorrow = new Date(Date.now() + 86400000);
     const day = tomorrow.toLocaleDateString("ar-EG-u-nu-latn", {
-      weekday: "short",
+      weekday: "long",
       day: "numeric",
-      month: "short",
+      month: "long",
     });
-    await radio(day);
+    await button(day);
     await page
-      .getByRole("radio", { name: /^[0-9]+:[0-9]+/ })
+      .getByRole("button", { name: /^[0-9]+:[0-9]+/ })
       .first()
       .click();
     await expect(page.getByRole("button", { name: ar.common.continue, exact: true })).toBeEnabled();
@@ -614,6 +621,7 @@ async function run() {
     await expect(page.getByRole("button", { name: ar.common.continue, exact: true })).toBeEnabled();
     await shot(`${kind}-3-address-recipient`);
     await button(ar.common.continue);
+    await button(ar.customerBooking.promo);
     await page.getByLabel(ar.mobileBooking.promo, { exact: true }).fill("LOCALTEST");
     await button(ar.mobileBooking.applyPromo);
     await expect(
@@ -697,7 +705,8 @@ async function run() {
         .fill("Local note");
       await shot("cancel-reason");
       await button(ar.bookingDetail.confirmAction);
-      await expect(page.getByText(ar.status.cancelled, { exact: true })).toBeVisible();
+      assert.equal(booking.status, "cancelled");
+      await expect(page.getByTestId("booking-status")).toHaveText(ar.status.cancelled);
       await shot("cancelled");
     }
   }

@@ -36,7 +36,16 @@ export function CustomerProfilePhoto({ src, name }: { src?: string | null; name:
   }
   return (
     <View style={{ gap: 4 }}>
-      <View style={{ paddingBottom: 8, paddingEnd: 8, alignSelf: "flex-start" }}>
+      <View
+        testID="customer-profile-photo"
+        style={{
+          // Keep the small avatar canvas stable; align the camera per locale.
+          direction: "ltr",
+          paddingBottom: 8,
+          paddingEnd: 8,
+          alignSelf: "flex-start",
+        }}
+      >
         <Avatar raw={src} name={name} size={80} round />
         <Pressable
           accessibilityRole="button"
@@ -47,7 +56,7 @@ export function CustomerProfilePhoto({ src, name }: { src?: string | null; name:
           style={{
             position: "absolute",
             bottom: 0,
-            ...(i18n.language === "ar" ? { left: 0 } : { right: 0 }),
+            alignSelf: i18n.language === "ar" ? "flex-start" : "flex-end",
             width: 44,
             height: 44,
             borderRadius: 22,

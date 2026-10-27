@@ -787,6 +787,7 @@ export default function Book() {
           </View>
           <Pressable
             accessibilityRole="button"
+            accessibilityLabel={t("customerBooking.promo")}
             accessibilityState={{ expanded: promoOpen }}
             onPress={() => setPromoOpen(!promoOpen)}
             style={{ minHeight: 44, justifyContent: "center" }}

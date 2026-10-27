@@ -1,4 +1,4 @@
-// Extend existing protected fixtures with real mocks for the newly ported RPCs.
+// Extend the canonical CJS fixtures with additional customer account/RPC scenarios.
 // Keep all original assertions; never allowlist errors or contact a remote backend.
 import { createRequire, Module } from "node:module";
 import fs from "node:fs";
@@ -12,11 +12,6 @@ function insert(anchor, replacement) {
   source = source.replace(anchor, () => replacement);
 }
 insert("const booking = {", "let reschedules = [];\nlet chatFixture = false;\nconst booking = {");
-// Address cards now render the complete address as one text node.
-insert(
-  "page.getByText(addresses[0].area, { exact: true })",
-  'page.getByText([addresses[0].street, addresses[0].building, addresses[0].compound, addresses[0].area].filter(Boolean).join(", "), { exact: true })',
-);
 insert("let browser;", "let browser;\nlet failurePage;");
 insert(
   "const page = await context.newPage();",
@@ -28,32 +23,6 @@ insert(
     fs.writeFileSync(path.join(artifacts, 'failure.txt'), String(error.stack || error));
     try { await failurePage?.screenshot({ path: path.join(artifacts, 'failure.png'), fullPage: true }); }
     catch { console.error('Failure screenshot unavailable: browser page closed or crashed. Last successful screenshots retained.'); }`,
-);
-// The parity card now uses the web's accessible copy label, not the legacy mobile label.
-insert("name: ar.mobile.copyCode, exact: true", "name: ar.promoCodes.copyCode, exact: true");
-// Web address badge copy replaced the old native label; keep the exact count and write assertion.
-insert(
-  "page.getByText(ar.mobile.defaultAddress, { exact: true })",
-  "page.getByText(ar.addresses.default, { exact: true })",
-);
-// The actual web-style DOB selectors replace the old browser-native date input.
-// Keep the negative no-write assertion: an incomplete date cannot be submitted.
-insert(
-  `  await expect(page.getByLabel(ar.familyMembers.dateOfBirth, { exact: true })).toHaveAttribute(
-    "type",
-    "date",
-  );
-  await page.getByLabel(ar.familyMembers.dateOfBirth, { exact: true }).fill("2099-02-01");`,
-  `  await page.getByRole('button', { name: ar.customerRound2.year, exact: true }).click();
-  await expect(page.getByRole('radio', { name: '2099', exact: true })).toHaveCount(0);
-  await page.getByRole('radio', { name: '2019', exact: true }).click();`,
-);
-insert(
-  `  await page.getByLabel(ar.familyMembers.dateOfBirth, { exact: true }).fill("2019-02-03");`,
-  `  await page.getByRole('button', { name: ar.customerRound2.month, exact: true }).click();
-  await page.getByRole('radio', { name: 'فبراير', exact: true }).click();
-  await page.getByRole('button', { name: ar.customerRound2.day, exact: true }).click();
-  await page.getByRole('radio', { name: '3', exact: true }).click();`,
 );
 insert(
   "    let data;",

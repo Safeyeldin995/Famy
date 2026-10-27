@@ -4,7 +4,36 @@
 
 Current continuation base: `ee2b120` (merged PR #241), branch `codex/mobile-web-parity-4`. Customer PR A2 is a partial draft; provider PR B has not started. Screens are captured at 390 × 844 in Arabic. Each comparison has web on the left and the actual Expo React Native Web export on the right. These are not recreated HTML mockups of native screens.
 
-## Customer PR A2 — 2026-10-27 (current evidence)
+## PR #246 harness closure — 2026-10-27
+
+Merged `origin/main` at `4907938` with merge commit `e12da14`, including the launch-overlay wait correction. The owner authorized editing `mobile/qa/*.cjs` for this closure. The failed browser gate recorded below is **historical and superseded by these runs**; exact visual parity is still incomplete.
+
+All commands ran from `mobile/` against one fresh `dist-harness` web export, sequentially (never concurrent browser suites): `node qa/<name>.cjs dist-harness qa/parity-evidence/native/harness-final/<name>`.
+
+| Harness               | Final result       | Evidence / limits                                                                                                                    |
+| --------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `a11y-rtl.cjs`        | PASS, exit 0       | 71 touchables have role/label; RTL, contrast, font-scale and tab-height checks                                                       |
+| `unit.cjs`            | PASS, exit 0       | Validation, matching, pricing/payload guards, idempotency, deep links, locale and OTP state checks                                   |
+| `phase1-web.cjs`      | PASS, exit 0       | 22 Arabic captures; customer navigation and guarded mock writes, retry/empty states, DOB/consent validation                          |
+| `phase2a-web.cjs`     | PASS, exit 0       | 23 captures; hourly/package/tutoring, 3 booking creates, cash/transfer/mock checkout, 2 receipt uploads, cancellation/review/address |
+| `auth-signup-web.cjs` | PASS, exit 0       | Real exported login renders; local mock OTP send/context API smoke only. Not real SMS, Firebase or a complete sign-up flow           |
+| `chat-web.cjs`        | PASS, exit 0       | 6 captures; list/thread, send, incoming message reload and error state                                                               |
+| `provider-web.cjs`    | PASS, exit 0       | 13 captures and provider actions                                                                                                     |
+| `provider2-web.cjs`   | PASS, exit 0       | 6 captures and provider application/profile/preferences/documents                                                                    |
+| `waitLaunchGate.cjs`  | Module load exit 0 | Shared helper, not a standalone test; exercised by browser harnesses above                                                           |
+
+### Causes and bounded corrections
+
+- Added actual missing accessible labels using existing translated visible copy, and logical RTL style edges/corners. The splash artwork stays unchanged: the static RTL check verifies its explicit LTR coordinate canvas and only permits its two exact artwork coordinates, not arbitrary physical layout styles.
+- The reported Home text failure did not reproduce after merging the launch wait. Both web and native still use `home.headline`; no Home assertion was removed. Phase 1's remaining stale address/promo copy and native-date locator now match the existing web-parity text and DOB sheets, keeping exact count, invalid-date/no-write and consent assertions.
+- Booking dates/time buttons and promo disclosure locators match actual controls. The cancellation assertion targets `booking-status`, preserving the server-fixture cancellation assertion instead of matching the duplicate headline.
+- Receipt reload was reproduced once with a Chromium crash listener. **No crash occurred**, and no `page.crash` event was emitted. The test reached later assertions and exposed the missing `booking_reschedule_requests` fixture. After adding the empty pending-request fixture, the complete suite passed. The original reload and PDF/persisted payment checks remain; no reload workaround or assertion removal was needed.
+- Auth timeout was at launch wait after opening the HTTP-bundle export with `file://`. It now serves the actual export over local HTTP. Signed-out startup's exact OTP context request is fulfilled locally as missing intent, and unexpected external requests still fail. This replaced the ineffective `__MOCK_WEB_ORIGIN__` assumption without editing app auth. Reports contain booleans/status only, not intent tokens.
+- Unit provider fixtures now include `services: []`, matching the current `Provider` data contract. Shared-query/data guards were not weakened.
+
+Root `npm run test:unit -- --maxWorkers=2`: **exit 0; 261 files passed / 4 skipped; 1,540 tests passed / 64 skipped**, duration 226.21s. Mobile `npx tsc --noEmit`: **exit 0**. Changed-file ESLint (one existing Fast Refresh warning in Primitives), Prettier, CJS syntax checks, Arabic guard and diff check passed. No live data, credentials, production actions or provider parity implementation occurred. Existing screenshots below remain visual-gap evidence, not a claim that all screens now match.
+
+## Customer PR A2 — 2026-10-27 (historical, before harness closure)
 
 The owner authorized one focused harness correction and one sequential rerun, then instructed us to stop and push a draft if it failed. The stale exact-area locator was corrected to assert the complete address text. The customer suite passed; the booking suite crashed on reload. **No further browser rerun was attempted. This is not a completed parity release.** Older sections below describe historical runs, not this head.
 

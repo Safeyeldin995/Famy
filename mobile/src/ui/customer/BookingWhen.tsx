@@ -123,6 +123,7 @@ export function CustomerBookingWhen(props: Props) {
               <Pressable
                 key={slot.start.toISOString()}
                 accessibilityRole="button"
+                accessibilityLabel={bookingTimeLabel(slot.start, props.locale, props.cairoTime)}
                 accessibilityState={{ selected, disabled: !available }}
                 disabled={!available}
                 onPress={() => available && props.onTimeChange(available)}

@@ -153,6 +153,7 @@ export default function Addresses() {
                 )}
                 <Pressable
                   accessibilityRole="button"
+                  accessibilityLabel={t("common.edit")}
                   onPress={() => router.push({ pathname: "/addresses/[id]", params: { id: a.id } })}
                   style={{
                     flex: 1,
@@ -172,6 +173,7 @@ export default function Addresses() {
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
+                  accessibilityLabel={t("common.delete")}
                   disabled={remove.isPending || setDefault.isPending}
                   onPress={() => setSelected(a.id)}
                   style={{

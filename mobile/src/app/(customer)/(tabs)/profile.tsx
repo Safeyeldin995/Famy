@@ -75,6 +75,7 @@ export default function Profile() {
             </Text>
             <Pressable
               accessibilityRole="link"
+              accessibilityLabel={t("customerHome.profileEdit")}
               onPress={() => router.push("/setup")}
               style={{ minHeight: 44, justifyContent: "center" }}
             >

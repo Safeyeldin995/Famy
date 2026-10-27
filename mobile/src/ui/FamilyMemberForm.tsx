@@ -214,6 +214,7 @@ function FamilyChoiceGrid({
           <Pressable
             key={option.value}
             accessibilityRole="button"
+            accessibilityLabel={option.label}
             accessibilityState={{ selected: value === option.value }}
             onPress={() => onChange(option.value)}
             style={{

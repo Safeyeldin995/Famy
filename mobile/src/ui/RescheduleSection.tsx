@@ -89,6 +89,7 @@ export function RescheduleSection({
         ) : eligible && !form ? (
           <Pressable
             accessibilityRole="button"
+            accessibilityLabel={t("reschedule.requestButton")}
             style={{ minHeight: 44, justifyContent: "center" }}
             onPress={() => setForm("request")}
           >
@@ -163,6 +164,7 @@ export function RescheduleSection({
         {!!requests.data?.length && (
           <Pressable
             accessibilityRole="button"
+            accessibilityLabel={t("reschedule.history")}
             style={{ minHeight: 44, justifyContent: "center" }}
             onPress={() => setHistory(!history)}
           >
