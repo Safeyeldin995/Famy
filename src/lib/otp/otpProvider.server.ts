@@ -23,6 +23,11 @@ export async function resolveOtpProvider(): Promise<OTPProvider> {
     return getMockOtpProvider();
   }
 
+  if (kind === "http_sms") {
+    const { createHttpSmsOTPProvider } = await import("./HttpSmsOTPProvider.server");
+    return createHttpSmsOTPProvider();
+  }
+
   const { createMetaWhatsAppOTPProvider } = await import("./MetaWhatsAppOTPProvider.server");
   return createMetaWhatsAppOTPProvider();
 }
