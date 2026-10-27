@@ -1,9 +1,17 @@
 const LAUNCH_OVERLAY_SELECTOR = '[data-testid="launch-overlay"]';
 
-/** Wait until LaunchGate removes the intro overlay from the DOM (web export). */
+/**
+ * Wait until LaunchGate removes the intro overlay from the DOM (web export).
+ * LaunchGate only mounts after fonts and i18n load, so an empty page must not
+ * count as "overlay gone": require rendered app content with no overlay.
+ */
 async function waitForLaunchGateGone(page, timeoutMs = 20_000) {
   await page.waitForFunction(
-    (selector) => !document.querySelector(selector),
+    (selector) => {
+      if (document.querySelector(selector)) return false;
+      const root = document.getElementById("root");
+      return !!root && (root.innerText || "").trim().length > 0;
+    },
     LAUNCH_OVERLAY_SELECTOR,
     { timeout: timeoutMs },
   );
