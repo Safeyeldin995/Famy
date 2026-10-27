@@ -55,11 +55,16 @@ describe("firebase phone test mode config", () => {
 describe("mobile eas.json firebase test mode guard", () => {
   it("sets test mode only on preview/development and never on production", () => {
     const eas = JSON.parse(fs.readFileSync(easJsonPath, "utf8")) as {
-      build: Record<string, { env?: Record<string, string> }>;
+      build: Record<string, { env?: Record<string, string>; channel?: string }>;
+      cli?: { appVersionSource?: string };
     };
 
+    expect(eas.cli?.appVersionSource).toBe("remote");
     expect(eas.build.production?.env?.EXPO_PUBLIC_FIREBASE_TEST_MODE).toBeUndefined();
+    expect(eas.build.production?.env?.EXPO_PUBLIC_FIREBASE_TEST_NUMBERS).toBeUndefined();
     expect(eas.build.preview?.env?.EXPO_PUBLIC_FIREBASE_TEST_MODE).toBe("1");
     expect(eas.build.development?.env?.EXPO_PUBLIC_FIREBASE_TEST_MODE).toBe("1");
+    expect(eas.build.preview?.channel).toBe("preview");
+    expect(eas.build.production?.channel).toBe("production");
   });
 });
