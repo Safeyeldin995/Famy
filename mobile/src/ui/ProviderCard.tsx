@@ -1,10 +1,11 @@
 import { View, Pressable } from "react-native";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import { UserRound, BadgeCheck, Star } from "lucide-react-native";
+import { UserRound, ShieldCheck, Star } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useAvatarUrl, type Provider } from "@/lib/queries";
-import { localized, money } from "@/lib/presentation";
+import { localized } from "@/lib/presentation";
+import { customerMoney, customerNumber } from "@/lib/customerFormat";
 import { isFixedPackage, packageLabel } from "@shared/pricing/servicePackages";
 import { Text } from "./Text";
 import { colors, radius, space } from "./theme";
@@ -73,14 +74,19 @@ export function ProviderCard({ provider: p, subtitle }: { provider: Provider; su
         pressed && ui.pressed,
       ]}
     >
-      <Avatar raw={p.profile.avatar_url} size={56} round />
+      <Avatar
+        raw={p.profile.avatar_url}
+        name={p.profile.full_name || t("provider2.unnamed")}
+        size={56}
+        round
+      />
       <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <Text size="lg" weight="bold" style={{ flexShrink: 1 }}>
             {p.profile.full_name || t("provider2.unnamed")}
           </Text>
           {p.is_verified && (
-            <BadgeCheck
+            <ShieldCheck
               size={16}
               color={colors.success}
               accessibilityLabel={t("common.verified")}
@@ -99,27 +105,26 @@ export function ProviderCard({ provider: p, subtitle }: { provider: Provider; su
             .filter(Boolean)
             .join(" · ") || localized(service, i18n.language)}
         </Text>
-        <View style={ui.wrap}>
-          <Star size={16} color={colors.warning} />
-          <Text size="xs" tone="muted" style={ui.ltr}>
+        <View style={[ui.wrap, { gap: 4, marginTop: 4 }]}>
+          {Number(p.ratings.rating_count) > 0 ? (
+            <Star size={14} color={colors.warning} fill={colors.warning} />
+          ) : null}
+          <Text size="xs" tone="muted">
             {Number(p.ratings.rating_count) > 0
-              ? t("mobile.rating", {
-                  rating: Number(p.ratings.rating_avg).toFixed(1),
-                  count: p.ratings.rating_count,
-                })
-              : t("mobile.noReviews")}
+              ? `${customerNumber(Number(p.ratings.rating_avg), i18n.language)} (${customerNumber(Number(p.ratings.rating_count), i18n.language)})`
+              : t("providerPage.newOnFamy")}
           </Text>
         </View>
         {subtitle ? (
-          <Text size="sm" tone="muted">
+          <Text weight="bold" style={{ marginTop: 4 }}>
             {subtitle}
           </Text>
         ) : (
           p.hourly_rate != null && (
-            <Text weight="bold" style={[ui.ltr, { marginTop: 4 }]}>
+            <Text weight="bold" style={{ marginTop: 4 }}>
               {packageInfo
-                ? `${money(p.hourly_rate, i18n.language)} · ${t(packageInfo.key, packageInfo.values)}`
-                : t("providerPage.perHour", { price: money(p.hourly_rate, i18n.language) })}
+                ? `${customerMoney(p.hourly_rate, i18n.language)} · ${t(packageInfo.key, packageInfo.values)}`
+                : customerMoney(p.hourly_rate, i18n.language, true)}
             </Text>
           )
         )}

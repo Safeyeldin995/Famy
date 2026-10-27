@@ -2,7 +2,70 @@
 
 **This branch does not complete screen-by-screen parity. Do not merge it as a completed parity release.**
 
-Current continuation base: `ee2b120` (merged PR #241), branch `codex/mobile-web-parity-4`. Customer PR A2 is a partial draft; provider PR B has not started. Screens are captured at 390 × 844 in Arabic. Each comparison has web on the left and the actual Expo React Native Web export on the right. These are not recreated HTML mockups of native screens.
+Current continuation base: `e974a84` (merged PR #246), branch `codex/mobile-web-parity-5`. **This is still a partial customer implementation, not closure of every No row.** Provider files and protected auth/session/LaunchGate/app.json files are unchanged. Older sections below are historical evidence.
+
+## Customer parity 5 — 2026-10-27
+
+Implemented: web-style customer currency strings; profile language button/section spacing; booking-list spacing/shadows; category descriptions/student matching badges; grouped teaching-session choices; duration inside the selected service card; inline member/address sheets; return-to-review editing; review notes and web bill ordering; Leaflet/OSM pin picker with explicit confirmation; customer device registration/revocation metadata; atomic name/address setup with the existing optional contact-phone guard.
+
+### Current acceptance, not just implementation
+
+| Customer screen | Fixed (Yes/No) | Current evidence and remaining gap |
+| --- | --- | --- |
+| Profile | No | [Same-fixture pair](comparisons/parity-5/profile.png). Header/card height, avatar placement, shadows and font metrics still differ. |
+| Bookings | No | [Pair](comparisons/parity-5/bookings.png). Currency/status tones improved; summary radius/count badge, exact spacing and all populated segment states remain. |
+| Search | No | [Pair](comparisons/parity-5/search.png). Same provider fixture and currency; exact selector/card typography and spacing remain. |
+| Babysitting category | No | [Pair](comparisons/parity-5/category-babysitting.png). Exact full layout and all states remain. |
+| Tutoring category | No | [Pair](comparisons/parity-5/category-tutoring.png). This is an empty tutoring fixture, not proof of a populated matching badge. |
+| Public provider | No | Native navigation capture only in this run; no refreshed paired complete-state proof. |
+| Booking steps/completion | No | Inline forms, grouping and review ordering implemented. Final harness crashed on receipt reload; inline saves, map save and final tutoring path were not reached in that final run. No same-fixture full-step pairs yet. |
+| Addresses list/new/edit | No | [List pair](comparisons/parity-5/addresses.png). Pin picker/field changes implemented; final confirmed-pin save was not reached after the unrelated receipt-page crash. Native WebView not tested on a device. |
+| Name/address setup | No | Atomic RPC/PGlite rollback proof and contact-phone UI implemented; no fresh complete paired capture or authenticated native save. |
+| Notification preferences | No | Owner-scoped active-device list/revoke implemented and tested with mocked query contracts; no paired browser/device push proof. |
+| Messages/chat | No | Populated native chat harness passed 6 captures; no new matching web/thread pair. |
+| Family list/new/edit | No | [List](comparisons/parity-5/family-members.png), [new](comparisons/parity-5/family-member-new.png), [edit](comparisons/parity-5/family-member-edit.png). Same fixtures; field layout/spacing differences remain. |
+| Favorites | No | [Pair](comparisons/parity-5/favorites.png). Initial empty fixture; native populated toggle tested separately, not paired. |
+| Promos | No | [Pair](comparisons/parity-5/promo-codes.png). Exact styling and redeemed/error states remain. |
+| Notifications | No | [Pair](comparisons/parity-5/notifications.png). All routing/state permutations not proven. |
+| Help | No | [Pair](comparisons/parity-5/help.png). Exact layout and device actions remain. |
+| Terms/privacy/delete account | No | Legal native rendering covered by phase1; no refreshed paired legal/delete/error-state proof. |
+
+The 13 pairs above are **390×844 Arabic**, web left / actual native web export right. The adapter consumes the same synthetic fixture object on both sides, sets the real web `famio_lang` cookie, and injects cache data after preview hydration. It changes only intercepted local preview module responses, never production app/auth code. Preview chrome is removed, not application content. The initial adapter failed on hydration after seeding during initial render and used the wrong language-cookie name. After explicit owner approval, one corrected run passed (22 native captures, 13 pairs). No further comparison rerun was made. Passing capture is not pixel parity; no row was promoted to Yes.
+
+### Required checks
+
+- Root `npm run test:unit -- --maxWorkers=2`: **exit 0; 264 files passed / 4 skipped, 1,557 tests passed / 64 skipped**, 227.19s.
+- Mobile `npx tsc --noEmit`: **exit 0**.
+- Mobile `npx expo export --platform android`: **exit 0** (bundle only, not an installed APK).
+- Fresh web export `npx expo export --platform web --output-dir dist-parity-5`: **exit 0**.
+- Focused atomic-save + parity helpers: **13/13**; device ownership/error-path tests: **5/5** (also included in the root suite).
+- Changed-file ESLint: initial two test-helper hook-naming errors corrected; final full changed-file check **exit 0, 0 errors / 5 warnings**. Warnings concern Fast Refresh structure (including the new explicit-enable export in the existing push module) and an existing push callback dependency; no rule disabled.
+- Arabic tashkeel guard **exit 0**; `git diff --check` **exit 0**.
+- Both exports warn that local `GoogleService-Info.plist` is unavailable. Protected app configuration was not edited.
+
+All top-level CJS harnesses were run sequentially against the fresh local export. Browser traffic was mocked/intercepted; no live accounts, SMS, payments or database writes.
+
+| Harness | Result | Evidence/limits |
+| --- | --- | --- |
+| `a11y-rtl.cjs` | **FAIL, exit 1** | Existing `ui/provider/ScheduleDateSheet.tsx` physical corner styles at base `e974a84`. Provider-owned file left untouched; test not weakened. |
+| `unit.cjs` | **PASS, exit 0** | Pure validation/matching/pricing/locale/deep-link/OTP checks. |
+| `phase1-web.cjs` | **PASS, exit 0** | 22 Arabic captures and guarded mock interactions. Owner-approved final paired run also passed. |
+| `phase2a-web.cjs` | **FAIL, exit 1** | First run completed all 3 booking scenarios but stopped at the old GPS-only address label. One correction follows the web map-confirmation flow and asserts saved coordinates. Final run hit `page.reload: Page crashed` after package receipt upload. `page.crash` recorded, application error list empty; no retry. [Failure record](failures/parity-5-booking-crash.md). |
+| `auth-signup-web.cjs` | **PASS, exit 0** | Mock OTP API smoke, not live Firebase/SMS or full device signup. |
+| `chat-web.cjs` | **PASS, exit 0** | 6 populated/list/send/incoming/error captures. |
+| `provider-web.cjs` | **FAIL, exit 1** | Existing harness lacks `provider_vacations` and `availability_exceptions` fixtures. Assertion failed, then left its own browser/server open; only that identified harness process tree was stopped. No provider edits. |
+| `provider2-web.cjs` | **PASS, exit 0** | 6 provider part-2 captures. |
+| `waitLaunchGate.cjs` | **Module load exit 0** | Shared helper, exercised by browser suites, not a standalone scenario. |
+
+### Release constraints / next gate
+
+1. **Not merge-ready:** customer parity is incomplete and two provider-owned checks plus the booking browser gate are not passing. The booking gate needs a separately authorized bounded closure under AGENTS.md; do not silently retry it.
+2. New migration `20261027100644_customer_setup_atomic_save.sql` is **unapplied**. Claude must independently review it and apply before shipping a client that calls `save_customer_setup`; there is deliberately no fallback to two non-atomic writes. PGlite tests load the actual new RPC and existing contact-phone RPC, proving rollback, ownership, verified-phone and anonymous checks under a minimal schema—not full live PostgreSQL proof.
+3. The map adds Expo-compatible `react-native-webview@14.0.1`; a new native binary is required. It loads SRI-pinned Leaflet and OSM tiles without app credentials, with failure/retry UI. Local harness tiles are synthetic and only test interaction, not geographic correctness. Native WebView/GPS and offline paths remain unverified.
+4. Device revocation uses existing guarded RPCs and displays metadata only. Actual device delivery and whether the current-device auto-registration lifecycle re-registers a revoked token remain unverified.
+5. Dependency installation reported 10 high advisories. No broad dependency upgrades or vulnerability-remediation claim was made.
+
+Source commands and native evidence remain under `native/parity-5/` locally; only selected screenshots and the explicit failure record are versioned. Earlier captures left in a failed attempt's directory must not be treated as completed output of the final failed run.
 
 ## PR #246 harness closure — 2026-10-27
 

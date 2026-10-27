@@ -101,7 +101,10 @@ export function useUpdateAddress() {
       if (!session?.user) throw new Error("auth required");
       const { data, error } = await supabase
         .from("addresses")
-        .update(toAddressRow(input))
+        .update({
+          ...toAddressRow(input),
+          ...(input.is_default === undefined ? {} : { is_default: input.is_default }),
+        })
         .eq("id", input.id)
         .eq("user_id", session.user.id)
         .select()

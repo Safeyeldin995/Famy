@@ -6,7 +6,8 @@ import { colors, space } from "@/ui/theme";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMyBookings, useBookingParties } from "@/lib/queries";
-import { activeStatuses, localized, money } from "@/lib/presentation";
+import { activeStatuses, localized } from "@/lib/presentation";
+import { customerMoney } from "@/lib/customerFormat";
 import { Page, QueryState, ui } from "@/ui/Page";
 import { Segmented } from "@/ui/Segmented";
 import { bookingStatusStyle } from "@/ui/customer/bookingStatusStyle";
@@ -35,7 +36,7 @@ export default function Bookings() {
       tab
       title={t("bookings.title")}
       queries={[q, parties]}
-      contentStyle={{ paddingTop: 16 }}
+      contentStyle={{ paddingTop: 16, gap: 10 }}
       header={
         <CustomerPageHeader
           title={t("bookings.title")}
@@ -49,7 +50,12 @@ export default function Bookings() {
         />
       }
     >
-      <View style={[customerStyle.card, { borderRadius: 28 }]}>
+      <View
+        style={[
+          customerStyle.card,
+          { borderRadius: 28, marginBottom: 10, boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" },
+        ]}
+      >
         <View style={[ui.priceRow, { paddingVertical: 0 }]}>
           <Text weight="heavy">{t(`bookings.${tab}`)}</Text>
           {!q.isLoading && !q.isError ? (
@@ -99,6 +105,7 @@ export default function Bookings() {
                   padding: 0,
                   overflow: "hidden",
                   backgroundColor: past ? colors.surface2 : colors.surface,
+                  boxShadow: "0px 1px 2px rgba(0,0,0,0.05)",
                 },
               ]}
             >
@@ -175,7 +182,7 @@ export default function Bookings() {
                   ]}
                 >
                   <Text weight="heavy" tone={past ? "default" : "brand"}>
-                    {money(b.price_total, i18n.language)}
+                    {customerMoney(b.price_total, i18n.language)}
                   </Text>
                   <Text size="xs" tone="muted" style={ui.ltr}>
                     #{b.id.slice(0, 8).toUpperCase()}

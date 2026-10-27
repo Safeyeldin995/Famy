@@ -2,12 +2,28 @@ import { describe, expect, it } from "vitest";
 import { uniqueProviders } from "@/lib/presentation";
 import type { Provider } from "@/lib/queries";
 import { bookingStatusStyle } from "@/ui/customer/bookingStatusStyle";
+import { customerMoney } from "@/lib/customerFormat";
+import { mapDocument, parseMapMessage } from "@/ui/customer/mapDocument";
 import {
   customerNotificationDate,
   customerNotificationGroups,
 } from "@/lib/customerNotificationGroups";
 
 describe("customer list parity", () => {
+  it("validates map messages and never interpolates unchecked coordinates", () => {
+    expect(parseMapMessage('{"type":"center","lat":30,"lng":31}')).toEqual({ lat: 30, lng: 31 });
+    expect(parseMapMessage('{"type":"center","lat":999,"lng":31}')).toBeNull();
+    expect(parseMapMessage('{"type":"center","lat":"30","lng":31}')).toBeNull();
+    expect(parseMapMessage("invalid")).toBeNull();
+    expect(() => mapDocument({ lat: NaN, lng: 31 }, true)).toThrow("invalid_map_center");
+    expect(mapDocument({ lat: 30, lng: 31 }, true)).toContain("integrity=");
+    expect(mapDocument({ lat: 30, lng: 31 }, false)).not.toContain("map.on('moveend'");
+  });
+  it("uses the same Latin-digit currency strings as the web customer cards", () => {
+    expect(customerMoney(1250, "ar")).toBe("1,250 ج.م");
+    expect(customerMoney(150, "ar", true)).toBe("150 ج.م/س");
+    expect(customerMoney(150, "en", true)).toBe("EGP 150/hr");
+  });
   it("uses grey confirmed pills and web lifecycle tones", () => {
     for (const status of ["confirmed", "on_the_way", "arrived", "arrival_confirmed", "in_progress"])
       expect(bookingStatusStyle(status)).toEqual({

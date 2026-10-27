@@ -531,6 +531,7 @@ async function run() {
       body: method === "HEAD" ? "" : JSON.stringify(data),
     });
   });
+  await require("./parity-evidence/local-map.cjs").installLocalMap(context);
   const page = await context.newPage();
   page.on("crash", () =>
     fs.writeFileSync(
@@ -720,16 +721,34 @@ async function run() {
   await button(ar.bookingDetail.submitReview);
   await expect(page.getByText("Local review", { exact: true })).toBeVisible();
   await shot("review-saved");
-  await visit("/addresses/new", ar.mobileBooking.useLocation);
+  await visit("/addresses/new", ar.locationPicker.useMyLocation);
   await radio(ar.customerAreas.sheikhZayed);
   await page.getByLabel(ar.setup.address, { exact: true }).fill("Local street");
-  await button(ar.mobileBooking.useLocation);
-  await expect(page.getByText("30.03000, 31.00000", { exact: true })).toBeVisible();
+  const addressWritesBeforePick = writes.filter(
+    (w) => w.table === "addresses" && w.method === "POST",
+  ).length;
+  await button(ar.locationPicker.useMyLocation);
+  await expect(page.getByText(ar.locationPicker.sheetTitle, { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: ar.locationPicker.confirm, exact: true }),
+  ).toBeEnabled();
+  // A GPS result is a draft until the customer explicitly confirms the pin.
+  assert.equal(
+    writes.filter((w) => w.table === "addresses" && w.method === "POST").length,
+    addressWritesBeforePick,
+  );
+  await button(ar.locationPicker.confirm);
+  await expect(page.getByText(ar.locationPicker.saved, { exact: true })).toBeVisible();
   await shot("add-address");
   await button(ar.common.save);
   await expect
     .poll(() => writes.some((w) => w.table === "addresses" && w.method === "POST"))
     .toBeTruthy();
+  const savedAddress = writes
+    .filter((w) => w.table === "addresses" && w.method === "POST")
+    .at(-1).body;
+  assert.equal(savedAddress.lat, 30.03);
+  assert.equal(savedAddress.lng, 31);
   assert.equal(errors.length, 0, errors.join("\n"));
   fs.writeFileSync(path.join(artifacts, "screenshots.json"), JSON.stringify(screenshots, null, 2));
   fs.writeFileSync(

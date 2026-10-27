@@ -26,6 +26,10 @@ import { Search, SlidersHorizontal } from "lucide-react-native";
 import { router } from "expo-router";
 import { colors } from "./theme";
 import { isFixedPackage, packageLabel } from "@shared/pricing/servicePackages";
+import {
+  providerMatchesStudentEducation,
+  tutoringMatchBadgeLabel,
+} from "@shared/tutoring/tutoringProviderMatch";
 
 export function Discovery({ category }: { category?: string }) {
   const { t, i18n } = useTranslation();
@@ -147,6 +151,14 @@ export function Discovery({ category }: { category?: string }) {
       header={
         <CustomerPageHeader
           title={title}
+          subtitle={(() => {
+            const row = categories.data?.find((c) => c.slug === category);
+            return (
+              (i18n.language === "ar" ? row?.description_ar : row?.description_en) ||
+              row?.description_en ||
+              ""
+            );
+          })()}
           backTo="/home"
           right={
             <Button
@@ -227,7 +239,20 @@ export function Discovery({ category }: { category?: string }) {
           ) : null}
           <View style={{ gap: space.md }}>
             {ranked.map((p) => (
-              <ProviderCard key={p.id} provider={p} />
+              <View key={p.id} style={{ gap: 4 }}>
+                <ProviderCard provider={p} />
+                {category === "tutoring" &&
+                studentProfile.studentFirstName &&
+                providerMatchesStudentEducation(p.id, caps.data ?? [], {
+                  serviceId: serviceId || null,
+                  curriculumId: studentProfile.educationCurriculumId,
+                  levelId: studentProfile.educationLevelId,
+                }) ? (
+                  <Text size="xs" weight="bold" tone="brand" style={{ paddingHorizontal: 16 }}>
+                    {tutoringMatchBadgeLabel(studentProfile.studentFirstName, t)}
+                  </Text>
+                ) : null}
+              </View>
             ))}
           </View>
         </QueryState>

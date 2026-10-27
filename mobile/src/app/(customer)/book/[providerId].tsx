@@ -41,6 +41,7 @@ import {
   BOOKING_SCREENS,
   bookingScreenMissingStep,
   bookingScreenForStep,
+  groupBookingSubjects,
 } from "@shared/booking/bookingScreens";
 import { bookingDisabledReason } from "@shared/booking/disabledReason";
 import {
@@ -68,11 +69,13 @@ import {
   pickDefaultCapabilityForEducation,
   shouldPersistEducationAfterBookingSuccess,
 } from "@shared/tutoring/bookingEducationAutofill";
-import { localized, money, dateTime } from "@/lib/presentation";
+import { localized, dateTime } from "@/lib/presentation";
 import { Page, QueryState, Field, Choices, ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
 import { PaymentLogos } from "@/ui/PaymentLogos";
+import { BookingInlineForm } from "@/ui/customer/BookingInlineForm";
+import { customerMoney as money } from "@/lib/customerFormat";
 
 type Slot = { start: Date; end: Date; label: string };
 export default function Book() {
@@ -85,6 +88,8 @@ export default function Book() {
   const lang = i18n.language;
   const locale = lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB";
   const [promoOpen, setPromoOpen] = useState(false);
+  const [inlineForm, setInlineForm] = useState<"member" | "address" | null>(null);
+  const [editing, setEditing] = useState(false);
   const provider = useProvider(providerId);
   const servicesQ = useProviderServices(providerId);
   const addresses = useAddresses();
@@ -137,6 +142,12 @@ export default function Book() {
   const fixed = !tutoring && isFixedPackage(service?.service);
   const caps = useApprovedTeachingCapabilities(providerId, service?.service.id);
   const capability = (caps.data ?? []).find((c) => c.id === capId) ?? null;
+  const subjectGroups = groupBookingSubjects(
+    (caps.data ?? []).filter(
+      (c) => (!curriculum || c.curriculumId === curriculum) && (!level || c.levelId === level),
+    ),
+  );
+  const selectedGroup = subjectGroups.find((g) => g.capabilities.some((c) => c.id === capId));
   const needsRate = fixed && service?.price_override == null;
   const packageRate = useFixedPackageRate(
     providerId,
@@ -442,7 +453,7 @@ export default function Book() {
       <Button
         variant="secondary"
         label={t("customerBooking.addMember")}
-        onPress={() => router.push("/family-members/new")}
+        onPress={() => setInlineForm("member")}
       />
     </View>
   );
@@ -483,7 +494,10 @@ export default function Book() {
                 onPress={() => {
                   setError("");
                   if (step === 3) void submit();
-                  else setStep(step + 1);
+                  else {
+                    setStep(editing ? 3 : step + 1);
+                    setEditing(false);
+                  }
                 }}
               />
             </View>
@@ -511,7 +525,7 @@ export default function Book() {
       {!pinned.length && !addresses.isLoading && (
         <>
           <Text>{t("customerHome.addressHint")}</Text>
-          <Button label={t("addresses.addAddress")} onPress={() => router.push("/addresses/new")} />
+          <Button label={t("addresses.addAddress")} onPress={() => setInlineForm("address")} />
         </>
       )}
       {step === 0 && (
@@ -568,7 +582,27 @@ export default function Book() {
                 userCap.current = false;
                 setChoices({});
               }}
-            />
+            >
+              {!isFixedPackage(s.service) && s.service.category?.slug !== "tutoring" ? (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                  <Button
+                    variant="secondary"
+                    label={t("mobileBooking.less")}
+                    disabled={hours <= 2}
+                    onPress={() => setHours(Math.max(2, hours - 2))}
+                  />
+                  <Text weight="heavy" style={{ flex: 1, textAlign: "center" }}>
+                    {t("customerBooking.duration", { hours: String(hours) })}
+                  </Text>
+                  <Button
+                    variant="secondary"
+                    label={t("mobileBooking.more")}
+                    disabled={hours >= 8}
+                    onPress={() => setHours(Math.min(8, hours + 2))}
+                  />
+                </View>
+              ) : null}
+            </BookingServiceCard>
           ))}
           {!services.length && !loading && <Text>{t("bookFlow.unavailableBody")}</Text>}
           {tutoring ? (
@@ -585,25 +619,44 @@ export default function Book() {
                   userCap.current = false;
                 }}
               />
-              <Choices
-                layout="cards"
-                label={t("bookingUx.chooseSession")}
-                value={capId}
-                onChange={(v) => {
-                  setCapId(v);
-                  userCap.current = true;
-                }}
-                options={(caps.data ?? [])
-                  .filter(
-                    (c) =>
-                      (!curriculum || c.curriculumId === curriculum) &&
-                      (!level || c.levelId === level),
-                  )
-                  .map((c) => ({
-                    value: c.id,
-                    label: `${lang === "ar" ? c.subjectNameAr : c.subjectNameEn} · ${t("bookFlow.sessionLine", { minutes: String(c.durationMin) })} · ${money(c.price, lang)}`,
+              {subjectGroups.map((group) => {
+                const cap = group.capabilities[0];
+                const active = group === selectedGroup;
+                const chosen = active ? (capability ?? cap) : cap;
+                return (
+                  <BookingServiceCard
+                    key={group.key}
+                    selected={active}
+                    title={[
+                      lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn,
+                      lang === "ar" ? cap.curriculumNameAr : cap.curriculumNameEn,
+                      lang === "ar" ? cap.levelNameAr : cap.levelNameEn,
+                    ].join(" · ")}
+                    subtitle={`${chosen.price} ${t("pricePicker.sessionUnit")}`}
+                    icon={<BookOpen size={22} color={colors.brand} />}
+                    onPress={() => {
+                      userCap.current = true;
+                      setCapId(cap.id);
+                      setCurriculum(cap.curriculumId);
+                      setLevel(cap.levelId);
+                    }}
+                  />
+                );
+              })}
+              {selectedGroup ? (
+                <Choices
+                  label={t("customerBooking.sessionDuration")}
+                  value={capId}
+                  onChange={(v) => {
+                    userCap.current = true;
+                    setCapId(v);
+                  }}
+                  options={selectedGroup.capabilities.map((cap) => ({
+                    value: cap.id,
+                    label: t("bookFlow.sessionLine", { minutes: String(cap.durationMin) }),
                   }))}
-              />
+                />
+              ) : null}
               <Choices
                 layout="cards"
                 label={t("mobileBooking.saveSchool")}
@@ -619,29 +672,7 @@ export default function Book() {
             <Text>
               {t(packageLabel(service!.service).key, packageLabel(service!.service).values)}
             </Text>
-          ) : (
-            <View style={ui.card}>
-              <Text size="xl" weight="heavy">
-                {t("customerBooking.duration", { hours: String(hours) })}
-              </Text>
-              <View style={ui.wrap}>
-                <Button
-                  variant="secondary"
-                  style={{ flex: 1 }}
-                  label={t("mobileBooking.less")}
-                  disabled={hours <= 2}
-                  onPress={() => setHours(hours - 1)}
-                />
-                <Button
-                  variant="secondary"
-                  style={{ flex: 1 }}
-                  label={t("mobileBooking.more")}
-                  disabled={hours >= 8}
-                  onPress={() => setHours(hours + 1)}
-                />
-              </View>
-            </View>
-          )}
+          ) : null}
         </>
       )}
       {step === 1 && (
@@ -687,7 +718,7 @@ export default function Book() {
           <Button
             variant="secondary"
             label={t("addresses.addAddress")}
-            onPress={() => router.push("/addresses/new")}
+            onPress={() => setInlineForm("address")}
           />
           <QueryState query={zone} empty={!zone.data} emptyKey="bookingUx.outsideArea" />
           {!tutoring && recipientUI}
@@ -731,7 +762,7 @@ export default function Book() {
             {[
               {
                 label: t("bookFlow.stepName.service"),
-                value: localized(service?.service, lang),
+                value: `${localized(service?.service, lang)} · ${capability ? t("bookFlow.sessionLine", { minutes: String(capability.durationMin) }) : fixed ? t(packageLabel(service!.service).key, packageLabel(service!.service).values) : t("customerBooking.duration", { hours: String(hours) })}`,
                 step: 0,
               },
               {
@@ -754,7 +785,8 @@ export default function Book() {
                     : members.data?.find((m) => m.id === recipient)?.full_name,
                 step: tutoring ? 0 : 2,
               },
-            ].map((row) => (
+              ...(notes ? [{ label: t("bookFlow.rowNotes"), value: notes, step: 2 }] : []),
+            ].map((row, index, rows) => (
               <View
                 key={row.label}
                 style={{
@@ -762,7 +794,7 @@ export default function Book() {
                   alignItems: "center",
                   gap: 12,
                   paddingVertical: 10,
-                  borderBottomWidth: 1,
+                  borderBottomWidth: index === rows.length - 1 ? 0 : 1,
                   borderBottomColor: colors.border,
                 }}
               >
@@ -775,7 +807,10 @@ export default function Book() {
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={`${t("common.edit")} ${row.label}`}
-                  onPress={() => setStep(row.step)}
+                  onPress={() => {
+                    setEditing(true);
+                    setStep(row.step);
+                  }}
                   style={{ minWidth: 44, minHeight: 44, justifyContent: "center" }}
                 >
                   <Text size="sm" tone="brand" weight="bold">
@@ -784,6 +819,78 @@ export default function Book() {
                 </Pressable>
               </View>
             ))}
+          </View>
+          <View
+            style={{
+              borderRadius: 16,
+              backgroundColor: colors.surface2,
+              paddingHorizontal: 14,
+              paddingVertical: 12,
+              gap: 6,
+            }}
+          >
+            {Object.entries({
+              subtotal: quote.subtotal,
+              platform_fee: quote.fee,
+              vat: quote.vat,
+              extras_total: quote.extrasTotal,
+              travel_fee: quote.travelFee,
+              discount: applied?.discount ?? 0,
+              total: quote.total,
+            })
+              .filter(
+                ([key, v]) =>
+                  !["extras_total", "travel_fee", "discount"].includes(key) || Number(v) > 0,
+              )
+              .map(([key, v]) => (
+                <View
+                  key={key}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    ...(key === "total"
+                      ? { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 6 }
+                      : {}),
+                  }}
+                >
+                  <Text
+                    style={{ flex: 1 }}
+                    weight={key === "total" ? "heavy" : "regular"}
+                    tone={key === "total" ? "default" : "muted"}
+                  >
+                    {key === "subtotal"
+                      ? capability
+                        ? t("bookFlow.sessionLine", { minutes: String(capability.durationMin) })
+                        : fixed
+                          ? t("packages.fixedPrice")
+                          : t("customerBooking.rateLine", {
+                              rate: money(quote.subtotal / (duration / 60), lang),
+                              hours: String(hours),
+                            })
+                      : t(
+                          {
+                            platform_fee: "bookFlow.serviceFee",
+                            vat: "customerRound2.vat",
+                            extras_total: "bookFlow.extrasTotal",
+                            travel_fee: "bookFlow.travelFee",
+                            discount: "bookFlow.promoDiscount",
+                            total: "bookFlow.total",
+                          }[key] ?? `mobile.price.${key}`,
+                        )}
+                  </Text>
+                  <Text
+                    size={key === "total" ? "lg" : "md"}
+                    weight={key === "total" ? "heavy" : "regular"}
+                    tone="default"
+                    style={ui.ltr}
+                  >
+                    {key === "discount" ? "-" : ""}
+                    {money(v, lang)}
+                  </Text>
+                </View>
+              ))}
           </View>
           <Pressable
             accessibilityRole="button"
@@ -817,48 +924,6 @@ export default function Book() {
               )}
             </>
           )}
-          <View
-            style={{
-              borderRadius: 16,
-              backgroundColor: colors.surface2,
-              paddingHorizontal: 14,
-              paddingVertical: 12,
-              gap: 6,
-            }}
-          >
-            {Object.entries({
-              subtotal: quote.subtotal,
-              extras_total: quote.extrasTotal,
-              travel_fee: quote.travelFee,
-              platform_fee: quote.fee,
-              vat: quote.vat,
-              discount: applied?.discount ?? 0,
-              total: quote.total,
-            })
-              .filter(
-                ([key, v]) =>
-                  !["extras_total", "travel_fee", "discount"].includes(key) || Number(v) > 0,
-              )
-              .map(([key, v]) => (
-                <View key={key} style={[ui.priceRow, key === "total" && ui.priceTotal]}>
-                  <Text
-                    style={{ flex: 1 }}
-                    weight={key === "total" ? "heavy" : "regular"}
-                    tone={key === "total" ? "default" : "muted"}
-                  >
-                    {t(`mobile.price.${key}`)}
-                  </Text>
-                  <Text
-                    size={key === "total" ? "xl" : "md"}
-                    weight="bold"
-                    tone={key === "total" ? "brand" : "default"}
-                    style={ui.ltr}
-                  >
-                    {money(v, lang)}
-                  </Text>
-                </View>
-              ))}
-          </View>
           <QueryState query={methods} empty={!methods.data?.length} />
           <Choices
             layout="cards"
@@ -883,6 +948,18 @@ export default function Book() {
           onPress={() => setStep(BOOKING_SCREENS.indexOf(bookingScreenForStep(missing, tutoring)))}
         />
       )}
+      <BookingInlineForm
+        kind={inlineForm}
+        onClose={() => setInlineForm(null)}
+        onSaved={(id) => {
+          if (inlineForm === "member") setRecipient(id);
+          else {
+            setAddressId(id);
+            setSlot(null);
+          }
+          setInlineForm(null);
+        }}
+      />
     </Page>
   );
 }
