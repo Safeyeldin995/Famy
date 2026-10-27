@@ -103,8 +103,8 @@ export function ScheduleDateSheet({
         <View
           style={{
             backgroundColor: colors.surface,
-            borderTopLeftRadius: 28,
-            borderTopRightRadius: 28,
+            borderTopStartRadius: 28,
+            borderTopEndRadius: 28,
             padding: 20,
             paddingBottom: Math.max(insets.bottom, 20),
             gap: space.lg,

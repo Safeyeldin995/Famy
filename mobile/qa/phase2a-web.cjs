@@ -239,6 +239,8 @@ async function run() {
   });
   await context.addInitScript(
     ({ key, session }) => {
+      // Init scripts also run in the map's sandboxed iframe, where storage throws.
+      if (window !== window.top) return;
       localStorage.setItem("famy.lang", "ar");
       localStorage.setItem(key, JSON.stringify(session));
     },
@@ -542,9 +544,10 @@ async function run() {
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (msg) => {
     if (msg.type() !== "error" || mode === "error") return;
-    const text = msg.text();
-    if (/maps\.googleapis\.com|maps\.google\.com|google\.maps/i.test(text)) return;
-    errors.push(text);
+    // The map iframe loads Google Maps; remote map traffic is not part of this check.
+    const mapHost = /maps\.googleapis\.com|maps\.google\.com|maps\.gstatic\.com/;
+    if (mapHost.test(msg.location()?.url ?? "") || /google\.maps|maps\.googleapis/i.test(msg.text())) return;
+    errors.push(msg.text());
   });
   async function visit(route, text) {
     await page.goto(base + route);
