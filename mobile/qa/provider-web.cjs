@@ -86,6 +86,19 @@ const availability = [0, 1, 2, 3, 4].map((weekday) => ({
   start_time: "09:00:00",
   end_time: "17:00:00",
 }));
+const futureDate = (days) => new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
+const vacations = [
+  {
+    id: id(77),
+    provider_id: pid,
+    start_date: futureDate(7),
+    end_date: futureDate(9),
+    reason: null,
+  },
+];
+const exceptions = [
+  { id: id(78), provider_id: pid, date: futureDate(11), is_blocked: true, reason: null },
+];
 let providerMode = "approved";
 const writes = [];
 const errors = [];
@@ -206,6 +219,8 @@ async function run() {
         providers,
         bookings: [bookingPending, bookingConfirmed],
         availability_rules: availability,
+        provider_vacations: vacations,
+        availability_exceptions: exceptions,
         notifications: [
           {
             id: id(30),
@@ -348,6 +363,9 @@ async function run() {
 
   await visit("/schedule");
   await expect(page.getByText(ar.pro.schedule.title).first()).toBeVisible();
+  await expect(page.getByText(ar.scheduleUi.vacations, { exact: true })).toBeVisible();
+  await expect(page.getByText(ar.scheduleUi.holidays, { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: ar.common.delete })).toHaveCount(2);
   await shot("pro-schedule");
 
   await visit("/earnings");

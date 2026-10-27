@@ -186,6 +186,8 @@ async function run() {
         provider_onboarding_details: [],
         child_age_groups: [],
         availability_rules: [],
+        provider_vacations: [],
+        availability_exceptions: [],
         notification_preferences: [notificationPrefs],
         provider_teaching_capabilities: [],
         teaching_subjects: [],
