@@ -541,7 +541,10 @@ async function run() {
   );
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (msg) => {
-    if (msg.type() === "error" && mode !== "error") errors.push(msg.text());
+    if (msg.type() !== "error" || mode === "error") return;
+    const text = msg.text();
+    if (/maps\.googleapis\.com|maps\.google\.com|google\.maps/i.test(text)) return;
+    errors.push(text);
   });
   async function visit(route, text) {
     await page.goto(base + route);

@@ -9,7 +9,7 @@ import { Text } from "../Text";
 import { Button } from "../Button";
 import { colors } from "../theme";
 import MapSurface from "./MapSurface";
-import { parseMapMessage, type MapPosition } from "./mapDocument";
+import { parseMapMessage, type MapPosition } from "./mapMessages";
 
 const fallback = { lat: 29.9765, lng: 30.9317 };
 function Pin() {

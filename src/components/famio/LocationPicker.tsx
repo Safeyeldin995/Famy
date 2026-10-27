@@ -136,7 +136,7 @@ export function LocationPicker({
   const [locatedStart, setLocatedStart] = useState<LatLng | null>(null);
   const [locating, setLocating] = useState(false);
   const [cardNotice, setCardNotice] = useState<string | null>(null);
-  // Leaflet touches `window` on import, so maps only render after mount (never during SSR).
+  // Maps JS touches `window` on import, so maps only render after mount (never during SSR).
   const mounted = useSyncExternalStore(
     subscribeNoop,
     () => true,

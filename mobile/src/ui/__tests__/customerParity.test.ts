@@ -3,7 +3,11 @@ import { uniqueProviders } from "@/lib/presentation";
 import type { Provider } from "@/lib/queries";
 import { bookingStatusStyle } from "@/ui/customer/bookingStatusStyle";
 import { customerMoney } from "@/lib/customerFormat";
-import { mapDocument, parseMapMessage } from "@/ui/customer/mapDocument";
+import {
+  getExpoPublicGoogleMapsBrowserKey,
+  googleMapDocument,
+  parseMapMessage,
+} from "@/ui/customer/mapMessages";
 import {
   customerNotificationDate,
   customerNotificationGroups,
@@ -15,9 +19,19 @@ describe("customer list parity", () => {
     expect(parseMapMessage('{"type":"center","lat":999,"lng":31}')).toBeNull();
     expect(parseMapMessage('{"type":"center","lat":"30","lng":31}')).toBeNull();
     expect(parseMapMessage("invalid")).toBeNull();
-    expect(() => mapDocument({ lat: NaN, lng: 31 }, true)).toThrow("invalid_map_center");
-    expect(mapDocument({ lat: 30, lng: 31 }, true)).toContain("integrity=");
-    expect(mapDocument({ lat: 30, lng: 31 }, false)).not.toContain("map.on('moveend'");
+    expect(() => googleMapDocument({ lat: NaN, lng: 31 }, true, "test-key")).toThrow(
+      "invalid_map_center",
+    );
+    expect(() => googleMapDocument({ lat: 30, lng: 31 }, true, "")).toThrow(
+      "missing_google_maps_key",
+    );
+    const html = googleMapDocument({ lat: 30, lng: 31 }, true, "test-key");
+    expect(html).toContain("maps.googleapis.com");
+    expect(html).toContain("map.addListener('idle'");
+    expect(googleMapDocument({ lat: 30, lng: 31 }, false, "test-key")).not.toContain(
+      "map.addListener('idle'",
+    );
+    expect(getExpoPublicGoogleMapsBrowserKey()).toBe("");
   });
   it("uses the same Latin-digit currency strings as the web customer cards", () => {
     expect(customerMoney(1250, "ar")).toBe("1,250 ج.م");

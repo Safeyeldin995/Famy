@@ -13,7 +13,7 @@ test("admin can create a polygon zone and it persists after refresh", async ({ p
   await page.locator('input[dir="rtl"]').first().fill("QA_منطقة_اختبار");
 
   // Draw a small triangle on the polygon map (default mode).
-  const mapBox = page.locator(".leaflet-container").first();
+  const mapBox = page.locator(".famy-zone-map").first();
   await mapBox.waitFor({ state: "visible", timeout: 15_000 });
   const box = await mapBox.boundingBox();
   if (!box) throw new Error("map not visible");
