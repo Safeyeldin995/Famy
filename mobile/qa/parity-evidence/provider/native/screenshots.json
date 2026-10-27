@@ -90,6 +90,12 @@
     "language": "ar"
   },
   {
+    "screen": "pro-schedule-blocked",
+    "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native\\pro-schedule-blocked.png",
+    "viewport": "390x844",
+    "language": "ar"
+  },
+  {
     "screen": "pro-not-approved",
     "path": "D:\\Projects\\Famy-pro\\mobile\\qa\\parity-evidence\\provider\\native\\pro-not-approved.png",
     "viewport": "390x844",

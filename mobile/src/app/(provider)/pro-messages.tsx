@@ -4,14 +4,19 @@ import { useConversations } from "@/lib/chatQueries";
 import { ConversationRow } from "@/ui/chat/ConversationRow";
 import { Page, QueryState, ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
+import { ProviderHeader } from "@/ui/provider/ProviderHeader";
 import { space } from "@/ui/theme";
 
-export default function ProviderMessagesTab() {
+export default function ProviderMessagesScreen() {
   const { t } = useTranslation();
   const q = useConversations();
   const rows = q.data ?? [];
   return (
-    <Page tab title={t("nav.messages")} queries={[q]}>
+    <Page
+      title={t("nav.messages")}
+      header={<ProviderHeader title={t("nav.messages")} />}
+      queries={[q]}
+    >
       <Text tone="muted">{t("messages.chatNotice")}</Text>
       <QueryState query={q}>
         {!rows.length ? (

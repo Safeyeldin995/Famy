@@ -32,6 +32,11 @@ extended = extended.replace(
   bookingConfirmed.status = "completed";
   await visit(\`/pro-booking/\${bidActive}\`);
   await shot("pro-booking-completed");
+  await visit("/schedule");
+  await page.getByText(ar.scheduleUi.holidays, { exact: true }).scrollIntoViewIfNeeded();
+  await page.mouse.wheel(0, 420);
+  await page.waitForTimeout(250);
+  await shot("pro-schedule-blocked");
 
 ${endMarker}`,
 );

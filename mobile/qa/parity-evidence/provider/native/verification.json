@@ -1,6 +1,6 @@
 {
   "passed": true,
-  "screenshots": 16,
+  "screenshots": 17,
   "writes": [
     {
       "table": "booking_message_reads",
@@ -8,7 +8,7 @@
       "body": {
         "booking_id": "00000000-0000-4000-8000-000000000004",
         "user_id": "00000000-0000-4000-8000-000000000001",
-        "last_read_at": "2026-10-27T09:13:47.547Z"
+        "last_read_at": "2026-10-27T09:21:10.480Z"
       }
     },
     {

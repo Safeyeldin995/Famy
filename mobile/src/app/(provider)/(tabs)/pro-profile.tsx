@@ -168,6 +168,7 @@ export default function ProviderProfile() {
       </QueryState>
       <Row label={t("pro.profile.title")} onPress={() => router.push("/pro-profile-edit")} />
       <Row label={t("providerDocuments.title")} onPress={() => router.push("/pro-documents")} />
+      <Row label={t("nav.messages")} onPress={() => router.push("/pro-messages")} />
       <Row label={t("common.notifications")} onPress={() => router.push("/pro-notifications")} />
       <Row
         label={t("mobilePro.notificationPrefs")}
