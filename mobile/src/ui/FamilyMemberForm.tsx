@@ -1,6 +1,6 @@
-import { DateField } from "./DateField";
+import { CustomerBirthDateField } from "./customer/CustomerBirthDateField";
 import { useState } from "react";
-import { Pressable } from "react-native";
+import { Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTeachingCurricula, useTeachingLevels, type FamilyMemberInput } from "@/lib/queries";
 import { emptyMember, validMember, memberInput, relationships } from "@/lib/familyForm";
@@ -9,6 +9,7 @@ import { Field, Choices, QueryState, ActionError, ui } from "./Page";
 import { Text } from "./Text";
 import { Button } from "./Button";
 import { colors } from "./theme";
+import { BottomSheetSelect } from "./provider/BottomSheetSelect";
 
 export function FamilyMemberForm({
   initial,
@@ -46,18 +47,18 @@ export function FamilyMemberForm({
     ["allergies", "allergies"],
     ["medical_notes", "medicalNotes"],
     ["access_notes", "accessNotes"],
-    ["emergency_contact_name", "emergencyContactName"],
-    ["emergency_contact_phone", "emergencyContactPhone"],
   ] as const;
   return (
     <>
       <Field
         label={t("familyMembers.fullName")}
+        placeholder={t("familyMembers.fullNamePlaceholder")}
         value={value.full_name}
         onChangeText={(v) => set("full_name", v)}
       />
-      <Choices
+      <FamilyChoiceGrid
         label={t("familyMembers.relationship")}
+        columns={4}
         value={value.relationship}
         onChange={(v) => set("relationship", v as FamilyMemberInput["relationship"])}
         options={relationships.map((v) => ({
@@ -72,29 +73,29 @@ export function FamilyMemberForm({
           onChangeText={(v) => set("relationship_other", v)}
         />
       )}
-      <DateField
-        label={t("familyMembers.dateOfBirth")}
+      <CustomerBirthDateField
         value={value.date_of_birth}
-        maximumDate={new Date()}
         onChange={(v) => set("date_of_birth", v)}
       />
-      <Choices
+      <FamilyChoiceGrid
         label={t("familyMembers.gender")}
         value={value.gender ?? ""}
-        onChange={(v) => set("gender", (v || null) as FamilyMemberInput["gender"])}
+        onChange={(v) =>
+          set("gender", (v === value.gender ? null : v) as FamilyMemberInput["gender"])
+        }
+        columns={2}
         options={[
-          { value: "", label: t("familyMembers.optional") },
-          ...["male", "female", "other"].map((v) => ({
+          ...["male", "female"].map((v) => ({
             value: v,
             label: t(`familyMembers.genders.${v}`),
           })),
         ]}
       />
-      <Text tone="muted">{t("familyMembers.privacyNotice")}</Text>
       {optionalFields.map(([key, label]) => (
         <Field
           key={key}
           label={t(`familyMembers.${label}`)}
+          placeholder={t(`familyMembers.${label}Placeholder`)}
           value={value[key] ?? ""}
           onChangeText={(v) => set(key, v)}
           ltr={key.includes("phone")}
@@ -114,43 +115,64 @@ export function FamilyMemberForm({
           <Text>{t("familyMembers.healthConsent")}</Text>
         </Pressable>
       )}
-      <Text size="xl" weight="heavy">
-        {t("studentEducation.sectionTitle")}
-      </Text>
-      <QueryState query={curricula} empty={!curricula.data?.length}>
-        <Choices
-          label={t("studentEducation.curriculum")}
-          value={value.education_curriculum_id ?? ""}
-          onChange={(v) =>
-            setValue((current) => ({
-              ...current,
-              education_curriculum_id: v || null,
-              education_level_id: null,
-            }))
-          }
-          options={[
-            { value: "", label: t("studentEducation.optionalNone") },
-            ...(curricula.data ?? []).map((r) => ({
-              value: r.id,
-              label: localized(r, i18n.language),
-            })),
-          ]}
+      <View style={{ backgroundColor: colors.surface2, borderRadius: 16, padding: 16, gap: 12 }}>
+        <Text size="xs" weight="bold" tone="muted">
+          {t("studentEducation.sectionTitle")}
+        </Text>
+        <QueryState query={curricula} empty={!curricula.data?.length}>
+          <BottomSheetSelect
+            label={t("studentEducation.curriculum")}
+            value={value.education_curriculum_id ?? ""}
+            onChange={(v) =>
+              setValue((current) => ({
+                ...current,
+                education_curriculum_id: v || null,
+                education_level_id: null,
+              }))
+            }
+            options={[
+              { value: "", label: t("studentEducation.optionalNone") },
+              ...(curricula.data ?? []).map((r) => ({
+                value: r.id,
+                label: localized(r, i18n.language),
+              })),
+            ]}
+          />
+        </QueryState>
+        <QueryState query={levels} empty={!levels.data?.length}>
+          <BottomSheetSelect
+            label={t("studentEducation.grade")}
+            value={value.education_level_id ?? ""}
+            onChange={(v) => set("education_level_id", v || null)}
+            options={[
+              { value: "", label: t("studentEducation.optionalNone") },
+              ...(value.education_curriculum_id ? filteredLevels : []).map((r) => ({
+                value: r.id,
+                label: localized(r, i18n.language),
+              })),
+            ]}
+          />
+        </QueryState>
+      </View>
+      <View style={{ backgroundColor: colors.surface2, borderRadius: 16, padding: 16, gap: 12 }}>
+        <Text size="xs" weight="bold" tone="muted">
+          {t("familyMembers.emergencyContact")} ({t("familyMembers.optional")})
+        </Text>
+        <Field
+          label={t("familyMembers.emergencyContactName")}
+          placeholder={t("familyMembers.emergencyContactNamePlaceholder")}
+          value={value.emergency_contact_name ?? ""}
+          onChangeText={(v) => set("emergency_contact_name", v)}
         />
-      </QueryState>
-      <QueryState query={levels} empty={!levels.data?.length}>
-        <Choices
-          label={t("studentEducation.grade")}
-          value={value.education_level_id ?? ""}
-          onChange={(v) => set("education_level_id", v || null)}
-          options={[
-            { value: "", label: t("studentEducation.optionalNone") },
-            ...(value.education_curriculum_id ? filteredLevels : []).map((r) => ({
-              value: r.id,
-              label: localized(r, i18n.language),
-            })),
-          ]}
+        <Field
+          label={t("familyMembers.emergencyContactPhone")}
+          placeholder={t("familyMembers.phonePlaceholder")}
+          value={value.emergency_contact_phone ?? ""}
+          onChangeText={(v) => set("emergency_contact_phone", v)}
+          keyboardType="phone-pad"
+          ltr
         />
-      </QueryState>
+      </View>
       {touched && !valid && (
         <Text tone="danger" accessibilityLiveRegion="polite">
           {t("mobile.memberInvalid")}
@@ -166,5 +188,57 @@ export function FamilyMemberForm({
         }}
       />
     </>
+  );
+}
+
+function FamilyChoiceGrid({
+  label,
+  value,
+  options,
+  columns,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  columns: number;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <View style={{ gap: 8 }}>
+      <Text size="xs" weight="bold" tone="muted">
+        {label}
+      </Text>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+        {options.map((option) => (
+          <Pressable
+            key={option.value}
+            accessibilityRole="button"
+            accessibilityState={{ selected: value === option.value }}
+            onPress={() => onChange(option.value)}
+            style={{
+              width: columns === 4 ? "23%" : "48%",
+              flexGrow: 1,
+              minHeight: 44,
+              paddingVertical: 12,
+              borderWidth: 1,
+              borderRadius: 16,
+              borderColor: value === option.value ? colors.brand : colors.border,
+              backgroundColor: value === option.value ? colors.brandTint : colors.surface,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text
+              size={columns === 4 ? "xs" : "md"}
+              weight="bold"
+              tone={value === option.value ? "brand" : "muted"}
+            >
+              {option.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
   );
 }

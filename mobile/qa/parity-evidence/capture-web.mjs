@@ -5,7 +5,8 @@ import path from "node:path";
 const require = createRequire(import.meta.url);
 const { chromium } = require("../../../node_modules/@playwright/test");
 const out = path.dirname(new URL(import.meta.url).pathname.replace(/^\/(\w:)/, "$1"));
-const base = "http://127.0.0.1:5173";
+const base = process.env.PARITY_WEB_ORIGIN || "http://127.0.0.1:5173";
+if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(base)) throw new Error("Local preview origin required");
 let fontCss = "";
 for (const [family, directory, weights] of [
   [
@@ -95,7 +96,7 @@ const page = await context.newPage();
 const results = [];
 try {
   for (const [screen, route] of Object.entries(screens)) {
-    if (process.argv[2] && screen !== process.argv[2]) continue;
+    if (process.argv[2] && !process.argv[2].split(",").includes(screen)) continue;
     const errors = [];
     const listener = (error) => errors.push(error.message);
     page.on("pageerror", listener);
@@ -126,7 +127,11 @@ try {
       });
       await page.screenshot({ path: path.join(out, "web", `${screen}.png`) });
       const text = await page.locator("body").innerText();
-      const captured = text.trim().length > 30 && !text.includes("الصفحة غير موجودة");
+      const captured =
+        errors.length === 0 &&
+        text.trim().length > 30 &&
+        !text.includes("الصفحة غير موجودة") &&
+        !text.includes("Missing Supabase");
       results.push({ screen, route, errors, text: text.slice(0, 160), captured });
       if (screen === "onboarding") {
         for (const step of [2, 3]) {
@@ -144,4 +149,5 @@ try {
 } finally {
   await fs.writeFile(path.join(out, "web-capture.json"), JSON.stringify(results, null, 2));
   await browser.close();
+  if (results.some((result) => !result.captured)) process.exitCode = 1;
 }

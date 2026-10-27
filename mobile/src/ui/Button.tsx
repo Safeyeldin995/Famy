@@ -7,6 +7,7 @@ type Variant = "primary" | "secondary" | "ghost";
 
 export function Button({
   label,
+  accessibilityLabel,
   onPress,
   variant = "primary",
   disabled,
@@ -15,6 +16,7 @@ export function Button({
   style,
 }: {
   label: string;
+  accessibilityLabel?: string;
   onPress?: () => void;
   variant?: Variant;
   disabled?: boolean;
@@ -28,7 +30,7 @@ export function Button({
       disabled={!!inactive}
       aria-disabled={!!inactive}
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ disabled: !!inactive, busy: !!loading }}
       onPress={inactive ? undefined : onPress}
       style={({ pressed }) => [

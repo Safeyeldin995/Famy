@@ -6,7 +6,8 @@ const { getDefaultConfig } = require("expo/metro-config");
 const config = getDefaultConfig(__dirname);
 const sharedRoot = path.resolve(__dirname, "../src/lib");
 
-config.watchFolders = [sharedRoot];
+// customerDates is also pure and shared by notification grouping on both clients.
+config.watchFolders = [sharedRoot, path.resolve(__dirname, "../src/components/famio")];
 config.resolver.extraNodeModules = { "@shared": sharedRoot };
 config.resolver.nodeModulesPaths = [path.resolve(__dirname, "node_modules")];
 

@@ -31,6 +31,8 @@ export function Page({
   tab = false,
   footer,
   header,
+  contentStyle,
+  scrollHeader = false,
 }: {
   title: string;
   children: ReactNode;
@@ -38,6 +40,8 @@ export function Page({
   tab?: boolean;
   footer?: ReactNode;
   header?: ReactNode;
+  contentStyle?: import("react-native").StyleProp<import("react-native").ViewStyle>;
+  scrollHeader?: boolean;
 }) {
   const [refreshing, setRefreshing] = useState(false);
   const { i18n } = useTranslation();
@@ -49,11 +53,11 @@ export function Page({
       edges={header ? ["top", "bottom"] : tab ? ["top"] : footer ? ["top"] : ["bottom"]}
     >
       {!tab && <Stack.Screen options={{ title, ...(header ? { headerShown: false } : {}) }} />}
-      {header}
+      {!scrollHeader && header}
       <KeyboardAwareScrollView
         style={{ flex: 1 }}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={ui.content}
+        contentContainerStyle={[ui.content, tab && { paddingBottom: 112 }, contentStyle]}
         bottomOffset={
           footer
             ? KEYBOARD_FOCUS_GAP + KEYBOARD_PRIMARY_STICKY_RESERVE
@@ -77,7 +81,10 @@ export function Page({
           ) : undefined
         }
       >
-        {tab && (
+        {scrollHeader && header ? (
+          <View style={{ marginHorizontal: -20, marginBottom: -16 }}>{header}</View>
+        ) : null}
+        {tab && !header && (
           <Text size="title" weight="heavy">
             {title}
           </Text>

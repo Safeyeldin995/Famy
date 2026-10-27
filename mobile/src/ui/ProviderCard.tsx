@@ -44,7 +44,7 @@ export function Avatar({
     </View>
   );
 }
-export function ProviderCard({ provider: p }: { provider: Provider }) {
+export function ProviderCard({ provider: p, subtitle }: { provider: Provider; subtitle?: string }) {
   const { t, i18n } = useTranslation();
   const service = p.services[0]?.service;
   const packageInfo = service && isFixedPackage(service) ? packageLabel(service) : null;
@@ -55,14 +55,22 @@ export function ProviderCard({ provider: p }: { provider: Provider }) {
       onPress={() => router.push({ pathname: "/provider/[id]", params: { id: p.id } })}
       style={({ pressed }) => [
         ui.card,
-        { flexDirection: "row", gap: 12, padding: 16, borderRadius: 16, backgroundColor: "white" },
+        {
+          flexDirection: "row",
+          gap: 12,
+          padding: 16,
+          borderRadius: 16,
+          backgroundColor: "white",
+          shadowOpacity: 0,
+          elevation: 0,
+        },
         pressed && ui.pressed,
       ]}
     >
       <Avatar raw={p.profile.avatar_url} size={56} round />
       <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <Text size="md" weight="bold" style={{ flexShrink: 1 }}>
+          <Text size="lg" weight="bold" style={{ flexShrink: 1 }}>
             {p.profile.full_name || t("provider2.unnamed")}
           </Text>
           {p.is_verified && (
@@ -96,12 +104,18 @@ export function ProviderCard({ provider: p }: { provider: Provider }) {
               : t("mobile.noReviews")}
           </Text>
         </View>
-        {p.hourly_rate != null && (
-          <Text weight="bold" style={[ui.ltr, { marginTop: 4 }]}>
-            {packageInfo
-              ? `${money(p.hourly_rate, i18n.language)} · ${t(packageInfo.key, packageInfo.values)}`
-              : t("providerPage.perHour", { price: money(p.hourly_rate, i18n.language) })}
+        {subtitle ? (
+          <Text size="sm" tone="muted">
+            {subtitle}
           </Text>
+        ) : (
+          p.hourly_rate != null && (
+            <Text weight="bold" style={[ui.ltr, { marginTop: 4 }]}>
+              {packageInfo
+                ? `${money(p.hourly_rate, i18n.language)} · ${t(packageInfo.key, packageInfo.values)}`
+                : t("providerPage.perHour", { price: money(p.hourly_rate, i18n.language) })}
+            </Text>
+          )
         )}
       </View>
     </Pressable>

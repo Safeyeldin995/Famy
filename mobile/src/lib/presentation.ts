@@ -22,7 +22,14 @@ export function dateTime(value: string, language: string) {
 // Source: src/components/famio/customerProviders.ts - preserve categories when combining results.
 export function uniqueProviders(rows: Provider[]) {
   const seen = new Map<string, Provider>();
-  for (const row of rows) if (!seen.has(row.id)) seen.set(row.id, row);
+  for (const row of rows) {
+    const previous = seen.get(row.id);
+    if (!previous) seen.set(row.id, { ...row, services: [...row.services] });
+    else {
+      const ids = new Set(previous.services.map((entry) => entry.service.id));
+      previous.services.push(...row.services.filter((entry) => !ids.has(entry.service.id)));
+    }
+  }
   return [...seen.values()];
 }
 // Source: src/lib/home/rebookProviders.ts - completed bookings, unique providers, newest first.
