@@ -1,4 +1,6 @@
-export const LAUNCH_GATE_INTRO_MS = 1400;
+import { FAMY_SPLASH_DURATION_S } from "@shared/splash/famySplashState";
+
+export const LAUNCH_GATE_INTRO_MS = FAMY_SPLASH_DURATION_S * 1000;
 export const LAUNCH_GATE_REDUCE_MOTION_MS = 700;
 export const LAUNCH_GATE_FAIL_SAFE_BUFFER_MS = 500;
 

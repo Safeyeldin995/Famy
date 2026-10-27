@@ -10,12 +10,12 @@ import { completeOnboarding } from "@/lib/onboarding";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
 import { colors } from "@/ui/theme";
+import slideOne from "../../assets/onboarding/slide-1-trusted.png";
+import slideTwo from "../../assets/onboarding/slide-2-booking.png";
+import slideThree from "../../assets/onboarding/slide-3-peace.png";
+import wordmark from "../../assets/images/famy-wordmark.png";
 
-const slides = [
-  require("../../assets/onboarding/slide-1-trusted.png"),
-  require("../../assets/onboarding/slide-2-booking.png"),
-  require("../../assets/onboarding/slide-3-peace.png"),
-];
+const slides = [slideOne, slideTwo, slideThree];
 
 export default function Onboarding() {
   const { t, i18n } = useTranslation();
@@ -53,7 +53,7 @@ export default function Onboarding() {
             </Pressable>
           </View>
           <Image
-            source={require("../../assets/images/famy-wordmark.png")}
+            source={wordmark}
             accessibilityLabel={t("common.appName")}
             style={styles.wordmark}
             resizeMode="contain"
@@ -94,10 +94,14 @@ export default function Onboarding() {
           </Text>
         </View>
         <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 8) }]}>
-          <View style={styles.dots} accessible={false}>
+          <View
+            style={[styles.dots, { direction: "ltr", flexDirection: ar ? "row-reverse" : "row" }]}
+            accessible={false}
+          >
             {slides.map((_, n) => (
               <View
                 key={n}
+                testID={`onboarding-dot-${n}`}
                 style={[
                   styles.dot,
                   {

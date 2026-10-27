@@ -85,15 +85,73 @@ try {
   const page = await context.newPage();
   await page.goto(base);
   await expect(page.getByText("محترفون موثوقون", { exact: true })).toBeVisible();
-  await page.waitForTimeout(1800);
+  await expect(page.getByTestId("launch-overlay")).toBeVisible();
+  await page.waitForTimeout(2200);
+  await fs.mkdir(path.join(out, "native/onboarding"), { recursive: true });
+  await page.screenshot({ path: path.join(out, "native/onboarding/splash-assembled.png") });
+  await expect(page.getByTestId("launch-overlay")).toHaveCount(0, { timeout: 12000 });
+  assert.equal(await page.evaluate(() => sessionStorage.getItem("famy.splash.played")), "1");
   await fs.mkdir(path.join(out, "native/onboarding"), { recursive: true });
   for (let step = 1; step <= 3; step++) {
+    const dots = await page.locator('[data-testid^="onboarding-dot-"]').evaluateAll((elements) =>
+      elements.map((element) => ({
+        x: element.getBoundingClientRect().x,
+        width: element.getBoundingClientRect().width,
+      })),
+    );
+    assert(dots[0].x > dots[1].x && dots[1].x > dots[2].x, "Arabic dots run right to left");
+    assert.equal(dots[step - 1].width, 32);
     await page.screenshot({ path: path.join(out, `native/onboarding/slide-${step}.png`) });
     await page
       .getByRole("button", { name: step === 3 ? "ابدأ الآن" : "متابعة", exact: true })
       .click();
   }
   await expect(page).toHaveURL(/\/login/);
+  const en = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: "en-GB" });
+  await en.addInitScript(() => localStorage.setItem("famy.lang", "en"));
+  await en.route("**/*", (route) =>
+    new URL(route.request().url()).origin === base ? route.continue() : route.abort(),
+  );
+  const enPage = await en.newPage();
+  await enPage.goto(base);
+  await expect(enPage.getByTestId("launch-overlay")).toHaveCount(0, { timeout: 12000 });
+  for (let step = 0; step < 3; step++) {
+    await expect(enPage.getByTestId(`onboarding-dot-${step}`)).toBeVisible();
+    const dots = await enPage.locator('[data-testid^="onboarding-dot-"]').evaluateAll((elements) =>
+      elements.map((element) => ({
+        x: element.getBoundingClientRect().x,
+        width: element.getBoundingClientRect().width,
+      })),
+    );
+    assert(dots[0].x < dots[1].x && dots[1].x < dots[2].x, "English dots run left to right");
+    assert.equal(dots[step].width, 32);
+    await enPage.screenshot({ path: path.join(out, `native/onboarding/slide-en-${step + 1}.png`) });
+    if (step < 2) await enPage.getByRole("button", { name: "Continue", exact: true }).click();
+  }
+  await en.close();
+  for (const failSafe of [false, true]) {
+    const motion = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      reducedMotion: failSafe ? "no-preference" : "reduce",
+    });
+    await motion.addInitScript(
+      ({ failSafe }) => {
+        localStorage.setItem("famy.lang", "ar");
+        if (failSafe) window.requestAnimationFrame = () => 1;
+      },
+      { failSafe },
+    );
+    await motion.route("**/*", (route) =>
+      new URL(route.request().url()).origin === base ? route.continue() : route.abort(),
+    );
+    const testPage = await motion.newPage();
+    await testPage.goto(base);
+    await expect(testPage.getByText("محترفون موثوقون", { exact: true })).toBeVisible();
+    if (failSafe) await expect(testPage.getByTestId("launch-overlay")).toBeVisible();
+    await expect(testPage.getByTestId("launch-overlay")).toHaveCount(0, { timeout: 12000 });
+    assert.equal(await testPage.evaluate(() => sessionStorage.getItem("famy.splash.played")), "1");
+    await motion.close();
+  }
   assert.equal(await page.evaluate(() => localStorage.getItem("onboarded")), "true");
   await page.goto(base);
   await expect(page).toHaveURL(/\/login/);

@@ -38,12 +38,14 @@ const SERVICE_TILES = {
     surface: colors.brandTint,
     ink: colors.brand,
     taglineKey: "home.babysittingTag",
+    titleKey: "roles.babysitter",
   },
   tutoring: {
     icon: GraduationCap,
     surface: colors.lavenderTint,
     ink: colors.lavender,
     taglineKey: "home.tutoringTag",
+    titleKey: "categories.tutorSubtitle",
   },
 } as const;
 
@@ -81,7 +83,7 @@ export default function Home() {
         />
       }
       style={[styles.page, { direction: isAr ? "rtl" : "ltr" }]}
-      contentContainerStyle={{ paddingBottom: space.xxxl }}
+      contentContainerStyle={{ paddingBottom: 112 }}
     >
       <LinearGradient
         colors={[colors.brandTintStrong, colors.brandTint, colors.background]}
@@ -150,7 +152,7 @@ export default function Home() {
                     router.push({ pathname: "/category/[id]", params: { id: c.slug } })
                   }
                   accessibilityRole="button"
-                  accessibilityLabel={isAr ? c.name_ar : c.name_en}
+                  accessibilityLabel={t(tile.titleKey)}
                   style={({ pressed }) => [
                     styles.tile,
                     { backgroundColor: tile.surface },
@@ -165,7 +167,7 @@ export default function Home() {
                   </View>
                   <View style={{ gap: 4 }}>
                     <Text size="lg" weight="heavy">
-                      {isAr ? c.name_ar : c.name_en}
+                      {t(tile.titleKey)}
                     </Text>
                     <Text size="xs" weight="bold" tone="muted">
                       {t(tile.taglineKey)}
@@ -182,6 +184,9 @@ export default function Home() {
       ) : promos.data?.length ? (
         <ScrollView
           horizontal
+          testID="home-promos"
+          snapToInterval={284}
+          decelerationRate="fast"
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
           style={{ marginTop: 32 }}
@@ -313,7 +318,27 @@ function NearbyProviders({ addressId }: { addressId: string }) {
   const providers = uniqueProviders([...(a.data ?? []), ...(b.data ?? [])]);
   return (
     <View style={{ gap: space.md }}>
-      <Row label={t("customerHome.nearby")} href="/search" />
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <Text size="xl" weight="heavy">
+          {t("customerHome.nearby")}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push("/search")}
+          style={{ minHeight: 44, justifyContent: "center" }}
+        >
+          <Text size="sm" tone="brand" weight="bold">
+            {t("common.seeAll")}
+          </Text>
+        </Pressable>
+      </View>
       <QueryState
         query={{
           isLoading: a.isLoading || b.isLoading,

@@ -16,6 +16,7 @@ describe("launchGateTiming", () => {
   });
 
   it("fires the fail-safe at INTRO_MS + 500 ms when motion is enabled", () => {
+    expect(LAUNCH_GATE_INTRO_MS).toBe(4200);
     expect(launchGateFailSafeDelayMs(false)).toBe(
       LAUNCH_GATE_INTRO_MS + LAUNCH_GATE_FAIL_SAFE_BUFFER_MS,
     );
