@@ -25,6 +25,7 @@ export default defineConfig({
       "src/ui/__tests__/keyboardFormLayout.test.ts",
       "src/ui/__tests__/launchGateTiming.test.ts",
       "src/ui/__tests__/parityFoundation.test.ts",
+      "src/ui/__tests__/customerParity.test.ts",
     ],
     setupFiles: [path.join(repoRoot, "qa/vitest-unit-qa-env-guard.mjs")],
   },

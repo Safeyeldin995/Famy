@@ -5,17 +5,39 @@ import fs from "node:fs";
 import path from "node:path";
 const require = createRequire(import.meta.url);
 const sourcePath = path.resolve("qa/phase1-web.cjs");
-let source = fs.readFileSync(sourcePath, "utf8");
+let source = fs.readFileSync(sourcePath, "utf8").replace(/\r\n/g, "\n");
 function insert(anchor, replacement) {
   if (source.split(anchor).length !== 2) throw new Error(`Fixture anchor changed: ${anchor}`);
   // A function replacement preserves literal "$'" in embedded regex assertions.
   source = source.replace(anchor, () => replacement);
 }
 insert("const booking = {", "let reschedules = [];\nlet chatFixture = false;\nconst booking = {");
+// The parity card now uses the web's accessible copy label, not the legacy mobile label.
+insert("name: ar.mobile.copyCode, exact: true", "name: ar.promoCodes.copyCode, exact: true");
+// The actual web-style DOB selectors replace the old browser-native date input.
+// Keep the negative no-write assertion: an incomplete date cannot be submitted.
+insert(
+  `  await expect(page.getByLabel(ar.familyMembers.dateOfBirth, { exact: true })).toHaveAttribute(
+    "type",
+    "date",
+  );
+  await page.getByLabel(ar.familyMembers.dateOfBirth, { exact: true }).fill("2099-02-01");`,
+  `  await page.getByRole('button', { name: ar.customerRound2.year, exact: true }).click();
+  await expect(page.getByRole('radio', { name: '2099', exact: true })).toHaveCount(0);
+  await page.getByRole('radio', { name: '2019', exact: true }).click();`,
+);
+insert(
+  `  await page.getByLabel(ar.familyMembers.dateOfBirth, { exact: true }).fill("2019-02-03");`,
+  `  await page.getByRole('button', { name: ar.customerRound2.month, exact: true }).click();
+  await page.getByRole('radio', { name: 'فبراير', exact: true }).click();
+  await page.getByRole('button', { name: ar.customerRound2.day, exact: true }).click();
+  await page.getByRole('radio', { name: '3', exact: true }).click();`,
+);
 insert(
   "    let data;",
   `
     if (table === "booking_reschedule_requests") return route.fulfill({ json: reschedules });
+    if (table === "availability_rules") return route.fulfill({ json: [{ id: id(82), provider_id: pid, weekday: 1, start_time: "09:00", end_time: "17:00" }] });
     if (chatFixture && table === "conversations") {
       const conversation = { id: id(80), booking_id: bid, customer_id: uid, provider_user_id: pid };
       return route.fulfill({ json: req.headers().accept?.includes('object') ? conversation : [conversation] });

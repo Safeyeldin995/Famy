@@ -1,34 +1,40 @@
 import { View, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
-import { ShieldCheck } from "lucide-react-native";
+import { MessageCircle } from "lucide-react-native";
 import { useConversations } from "@/lib/chatQueries";
 import { ConversationRow } from "@/ui/chat/ConversationRow";
 import { Page, QueryState, ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { colors, space } from "@/ui/theme";
+import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
+import { CustomerEmpty } from "@/ui/customer/Primitives";
 
 export default function MessagesTab() {
   const { t } = useTranslation();
   const q = useConversations();
   const rows = q.data ?? [];
   return (
-    <Page tab title={t("messages.title")} queries={[q]}>
-      <Text tone="muted">{t("messages.chatNotice")}</Text>
+    <Page
+      tab
+      title={t("messages.title")}
+      queries={[q]}
+      header={
+        <CustomerPageHeader title={t("messages.title")} subtitle={t("messages.chatNotice")} />
+      }
+      contentStyle={{ paddingTop: 8 }}
+    >
       <QueryState query={q}>
         {!rows.length ? (
-          <View style={ui.card}>
-            <Text weight="heavy">{t("messages.emptyTitle")}</Text>
-            <Text tone="muted">{t("messages.emptyBody")}</Text>
-          </View>
+          <CustomerEmpty
+            Icon={MessageCircle}
+            title={t("messages.emptyTitle")}
+            body={t("messages.emptyBody")}
+          />
         ) : (
           <>
-            <View style={styles.notice}>
-              <ShieldCheck size={16} color={colors.success} />
-              <Text size="sm">{t("messages.stayInApp")}</Text>
-            </View>
             <View testID="conversation-list" style={styles.list}>
               {rows.map((item) => (
-                <ConversationRow key={item.id} item={item} />
+                <ConversationRow key={item.id} item={item} customer />
               ))}
             </View>
           </>

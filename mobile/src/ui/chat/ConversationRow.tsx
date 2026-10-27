@@ -10,9 +10,11 @@ import { formatChatListTime } from "./formatChatTime";
 export function ConversationRow({
   item,
   chatPath = "/chat/[id]",
+  customer = false,
 }: {
   item: ConversationListItem;
   chatPath?: "/chat/[id]" | "/pro-chat/[id]";
+  customer?: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const name = item.other_name || t("profile.famioUser");
@@ -25,15 +27,19 @@ export function ConversationRow({
       accessibilityRole="button"
       accessibilityLabel={`${name}. ${preview}`}
       onPress={() => router.push({ pathname: chatPath, params: { id: item.id } })}
-      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.row,
+        customer && { borderRadius: 16, padding: 14, gap: 14 },
+        pressed && styles.pressed,
+      ]}
     >
-      <Avatar raw={item.other_avatar} size={56} />
+      <Avatar raw={item.other_avatar} size={56} round={customer} />
       <View style={styles.body}>
         <View style={styles.top}>
           <Text weight="heavy" size="lg" numberOfLines={1} style={styles.name}>
             {name}
           </Text>
-          <Text tone="muted" size="sm" style={styles.time}>
+          <Text tone="muted" size={customer ? "xs" : "sm"} weight="bold" style={styles.time}>
             {formatChatListTime(item.last_time, i18n.language)}
           </Text>
         </View>
