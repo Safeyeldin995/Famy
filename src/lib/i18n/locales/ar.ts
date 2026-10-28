@@ -689,7 +689,7 @@ const ar: Translation = {
     firebaseSendFailed: "تعذر إرسال رسالة التحقق. حاول مرة أخرى لاحقا.",
     firebaseSendTooManyRequests: "محاولات كتير من الجهاز ده. استنى شوية وجرب تاني.",
     firebaseSendQuotaExceeded: "خدمة الرسائل مشغولة حاليا. حاول بعد قليل.",
-    firebaseSendDeviceVerifyFailed: "تعذر التحقق من الجهاز. حدث الصفحة وحاول تاني.",
+    firebaseSendDeviceVerifyFailed: "تعذر التحقق من الجهاز. حاول تاني بعد شوية.",
     firebaseSendTimeout: "التحقق اتأخر ومعرفناش نبعت الكود. حدث الصفحة وجرب تاني.",
     firebaseStartFailed: "تعذر بدء التحقق من الهاتف. حاول مرة أخرى.",
     firebaseRecaptchaUnavailable: "التحقق من الهاتف غير متاح حاليا. حدث الصفحة وحاول مرة أخرى.",

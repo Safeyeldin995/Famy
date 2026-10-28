@@ -107,7 +107,7 @@ export default function SetPasswordScreen() {
       .select("full_name")
       .eq("id", user.id)
       .maybeSingle();
-    router.replace(profile?.full_name?.trim() ? "/home" : "/auth-name");
+    router.replace(profile?.full_name?.trim() ? "/home" : "/setup");
   };
 
   if (!context) {
