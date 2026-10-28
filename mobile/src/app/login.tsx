@@ -25,7 +25,7 @@ import {
   handleUserBannedSession,
   isUserBannedAuthError,
 } from "@/lib/auth/bannedAccountSession";
-import { resolveWorkspace } from "@/lib/session";
+import { customerLandingPath, resolveWorkspace } from "@/lib/session";
 import { bodyTextInputProps } from "@/ui/a11y";
 import { Button } from "@/ui/Button";
 import { Segmented } from "@/ui/Segmented";
@@ -91,7 +91,7 @@ export default function Login() {
       router.replace("/dashboard");
       return;
     }
-    router.replace("/home");
+    router.replace(await customerLandingPath(data.user.id));
   };
 
   const finishOAuth = async () => {

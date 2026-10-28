@@ -696,7 +696,7 @@ const en = {
     firebaseSendFailed: "Could not send verification SMS. Try again later.",
     firebaseSendTooManyRequests: "Too many attempts from this device. Please wait and try again.",
     firebaseSendQuotaExceeded: "SMS service is busy right now. Please try again shortly.",
-    firebaseSendDeviceVerifyFailed: "Could not verify this device. Refresh the page and try again.",
+    firebaseSendDeviceVerifyFailed: "Could not verify this device. Please try again shortly.",
     firebaseSendTimeout: "Verification took too long and the code wasn't sent. Refresh the page and try again.",
     firebaseStartFailed: "Could not start phone verification. Try again.",
     firebaseRecaptchaUnavailable:

@@ -72,3 +72,13 @@ export async function resolveWorkspace(
       : "customer";
   return { workspace, roles };
 }
+
+/** Mirrors the web splash/login rule: a customer without a name finishes setup first. */
+export async function customerLandingPath(userId: string): Promise<"/home" | "/setup"> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("id", userId)
+    .maybeSingle();
+  return data?.full_name?.trim() ? "/home" : "/setup";
+}
