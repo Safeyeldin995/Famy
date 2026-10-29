@@ -174,7 +174,7 @@ export function DocumentUploadCard({
         variant="ghost"
         loading={busy}
         disabled={disabled}
-        label={t("mobileBooking.uploadPdf")}
+        label={t("providerDocuments.uploadIdFile")}
         onPress={() => void pick(true)}
       />
     </View>

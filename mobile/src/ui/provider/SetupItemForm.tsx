@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -87,7 +87,7 @@ export function SetupItemForm({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [file, setFile] = useState<PickedFile | null>(null);
-  const [years, setYears] = useState(snapshot.provider?.years_experience ?? 0);
+  const [years, setYears] = useState(String(snapshot.provider?.years_experience ?? 0));
   const [bio, setBio] = useState(
     ar ? (snapshot.provider?.bio_ar ?? "") : (snapshot.provider?.bio_en ?? ""),
   );
@@ -128,6 +128,15 @@ export function SetupItemForm({
     value,
     label: value,
   }));
+  const childrenOptions = Array.from({ length: 6 }, (_, index) => String(index + 1)).map(
+    (value) => ({ value, label: value }),
+  );
+  const relationshipOptions = ["former_client", "colleague", "neighbor", "friend", "relative"].map(
+    (key) => ({
+      value: t(`providerSetup.relationships.${key}`, { lng: "ar" }),
+      label: t(`providerSetup.relationships.${key}`),
+    }),
+  );
 
   const pickPhoto = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -162,12 +171,24 @@ export function SetupItemForm({
         return;
       }
       if (item === "about") {
+        if (
+          years === "" ||
+          Number(years) > 40 ||
+          !(bio.trim() || (ar ? snapshot.provider?.bio_en : snapshot.provider?.bio_ar)?.trim())
+        ) {
+          setError(t("providerSetup.missing.about"));
+          return;
+        }
         await onSave({
-          experience: { years_experience: years, [ar ? "bio_ar" : "bio_en"]: bio },
+          experience: { years_experience: Number(years), [ar ? "bio_ar" : "bio_en"]: bio },
         });
         return;
       }
       if (item === "babysitting") {
+        if (!ages.length || maxChildren < 1 || maxChildren > 6) {
+          setError(t("providerSetup.missing.babysitting"));
+          return;
+        }
         await onSave({
           experience: {
             max_children_per_booking: maxChildren,
@@ -236,20 +257,39 @@ export function SetupItemForm({
         <>
           <Field
             label={t("providerSetup.years")}
-            value={String(years)}
+            value={years}
             keyboardType="number-pad"
-            onChangeText={(v) => setYears(Number(v.replace(/\D/g, "")) || 0)}
+            onChangeText={(v) => setYears(v.replace(/\D/g, ""))}
           />
           <Field label={t("providerApply.about")} value={bio} multiline onChangeText={setBio} />
+          <Text weight="bold">{t("providerSetup.phrases")}</Text>
+          <View style={ui.wrap}>
+            {[0, 1, 2, 3, 4].map((index) => {
+              const phrase = t(`providerSetup.bioPhrases.p${index}`);
+              return (
+                <Pressable
+                  key={index}
+                  accessibilityRole="button"
+                  accessibilityLabel={phrase}
+                  onPress={() =>
+                    setBio((value) => [value.trim(), phrase].filter(Boolean).join(" "))
+                  }
+                  style={[ui.choice, { minHeight: 44, justifyContent: "center" }]}
+                >
+                  <Text weight="bold">{phrase}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
         </>
       )}
       {item === "babysitting" && needsBabysitting && (
         <>
-          <Field
+          <BottomSheetSelect
             label={t("providerSetup.maxChildren")}
             value={String(maxChildren)}
-            keyboardType="number-pad"
-            onChangeText={(v) => setMaxChildren(Number(v.replace(/\D/g, "")) || 1)}
+            options={childrenOptions}
+            onChange={(value) => setMaxChildren(Number(value))}
           />
           <Text weight="bold">{t("providerSetup.ages")}</Text>
           <View style={ui.wrap}>
@@ -294,10 +334,17 @@ export function SetupItemForm({
                     setRefs((rows) => rows.map((row, i) => (i === index ? { ...row, phone } : row)))
                   }
                 />
-                <Field
+                <BottomSheetSelect
                   label={t("pro.onboardingWizard.refRelationship")}
                   value={refs[index].relationship}
-                  onChangeText={(relationship) =>
+                  options={[
+                    ...relationshipOptions,
+                    ...(refs[index].relationship &&
+                    !relationshipOptions.some((option) => option.value === refs[index].relationship)
+                      ? [{ value: refs[index].relationship, label: refs[index].relationship }]
+                      : []),
+                  ]}
+                  onChange={(relationship) =>
                     setRefs((rows) =>
                       rows.map((row, i) => (i === index ? { ...row, relationship } : row)),
                     )

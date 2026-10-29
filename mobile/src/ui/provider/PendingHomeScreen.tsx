@@ -99,14 +99,11 @@ export function PendingHomeScreen({ changesRequested }: { changesRequested?: boo
         subjects.data ?? [],
       ),
       needsSubjects: selectedFiltered.some((s) => s.category?.slug === "tutoring"),
-      subjects: selectedFiltered
-        .filter((s) => s.category?.slug === "tutoring")
-        .every((s) =>
-          (subjects.data ?? []).some(
-            (row: { service_id: string; status: string }) =>
-              row.service_id === s.id && row.status !== "rejected",
-          ),
-        ),
+      subjects:
+        missingTeachingServices(
+          selectedFiltered.filter((s) => s.category?.slug === "tutoring"),
+          subjects.data ?? [],
+        ).length === 0,
     };
     const model = pendingHomeModel(pendingData);
     const firstName = (data.profile?.full_name || t("pro.common.customer")).trim().split(/\s+/)[0];
@@ -225,11 +222,19 @@ export function PendingHomeScreen({ changesRequested }: { changesRequested?: boo
                     {t(key === "hours" ? "providerSetup.titles.hours" : `providerApply.${key}`)}
                   </Text>
                   <Text tone="muted" size="xs">
-                    {t(
-                      key === "hours"
-                        ? "providerSetup.hoursHint"
-                        : `providerApply.pending.items.${key}`,
-                    )}
+                    {key === "subjects" && pendingData.missingSubjects.length
+                      ? t("providerClarity.missingSubjects", {
+                          services: pendingData.missingSubjects
+                            .map((service) =>
+                              i18n.language.startsWith("ar") ? service.name_ar : service.name_en,
+                            )
+                            .join(i18n.language.startsWith("ar") ? "، " : ", "),
+                        })
+                      : t(
+                          key === "hours"
+                            ? "providerSetup.hoursHint"
+                            : `providerApply.pending.items.${key}`,
+                        )}
                   </Text>
                 </View>
                 {done ? (

@@ -230,6 +230,7 @@ const en = {
       "Your documents are with Famy. Uploads are available only when your application is editable.",
     replace: "Upload again",
     upload: "Upload document",
+    uploadIdFile: "Upload an ID card photo or file",
     missing: "Not uploaded yet",
     other: "Other documents",
     id_card_front: "ID front",
