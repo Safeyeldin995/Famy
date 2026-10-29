@@ -695,8 +695,10 @@ export function AdminProvider({ id }: { id: string }) {
               <li key={age.age_group_code} className="rounded-xl border border-border p-3 text-sm">
                 {String(
                   t("pro.onboardingWizard.ageGroups." + age.age_group_code, age.age_group_code),
-                )}{" "}
-                · {t("adminReview.ageYears", { count: latin(age.years_experience) })}
+                )}
+                {age.years_experience != null
+                  ? ` · ${t("adminReview.ageYears", { count: latin(age.years_experience) })}`
+                  : null}
               </li>
             ))}
           </ul>
