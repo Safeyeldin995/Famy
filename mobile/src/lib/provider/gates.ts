@@ -13,7 +13,8 @@ export function providerStatusNativePath(
   onboardingStatus: string | null | undefined,
 ): ProviderNativePath {
   if (!hasProviderRow || onboardingStatus === "DRAFT" || !onboardingStatus) return "/pro-apply";
-  if (onboardingStatus === "NEEDS_CHANGES") return "/pro-apply";
+  // Like web /pro: show the admin's reason and the resubmit action, not the signup wizard.
+  if (onboardingStatus === "NEEDS_CHANGES") return "/pro-setup-home";
   if (onboardingStatus === "SUBMITTED" || onboardingStatus === "UNDER_REVIEW")
     return "/pro-documents";
   return "/pro-setup-home";
