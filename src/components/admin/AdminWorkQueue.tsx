@@ -13,6 +13,10 @@ export const WORK_QUEUE_ITEMS: ReadonlyArray<{
     route: "/admin/providers",
     search: { queue: "resubmitted_applications" },
   },
+  {
+    key: "new_service_requests",
+    route: "/admin/service-requests",
+  },
   { key: "pending_services", route: "/admin/providers", search: { queue: "pending_services" } },
   {
     key: "pending_teaching_groups",

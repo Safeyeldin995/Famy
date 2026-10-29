@@ -41,8 +41,20 @@ vi.mock("@tanstack/react-router", () => ({
   useRouterState: () => false,
   createFileRoute: () => (options: unknown) => ({ options }),
   useNavigate: () => vi.fn(),
-  Link: ({ to, hash, children }: { to: string; hash?: string; children: ReactNode }) => (
-    <a href={`${to}${hash ? `#${hash}` : ""}`}>{children}</a>
+  Link: ({
+    to,
+    hash,
+    params,
+    children,
+  }: {
+    to: string;
+    hash?: string;
+    params?: Record<string, string>;
+    children: ReactNode;
+  }) => (
+    <a href={`${to}${params ? `?${new URLSearchParams(params)}` : ""}${hash ? `#${hash}` : ""}`}>
+      {children}
+    </a>
   ),
 }));
 vi.mock("@tanstack/react-query", () => ({
@@ -85,6 +97,7 @@ vi.mock("@/lib/db/provider-queries", () => ({
   useAllServices: () => ({ data: state.services }),
   useMyProviderServices: () => ({ data: state.services.map((service) => ({ service_id: service.id, status: "approved" })) }),
   useToggleProviderService: () => ({ mutate: vi.fn() }),
+  useCancelProviderServiceRequest: () => ({ mutate: vi.fn(), isPending: false }),
   useSetProviderPrice: () => ({ mutate: vi.fn() }),
   useRequirementsForService: () => ({ data: [{ id: "req", name_en: "Synthetic requirement" }] }),
   useMyRequirementFulfillments: () => ({ data: [] }),

@@ -4283,7 +4283,13 @@ export type Database = {
       }
       provider_remove_teaching_capability: { Args: { p_id: string }; Returns: undefined }
       provider_remove_onboarding_service: { Args: { p_service_id: string }; Returns: undefined }
+      provider_cancel_service_request: { Args: { p_service_id: string }; Returns: undefined }
+      provider_request_service: {
+        Args: { p_service_id: string; p_payload: Json; p_idempotency_key?: string | null }
+        Returns: Json
+      }
       provider_resubmit_rejected_service: { Args: { p_service_id: string }; Returns: undefined }
+      admin_get_provider_service_request: { Args: { p_provider_service_id: string }; Returns: Json }
       provider_required_documents_approved: {
         Args: { p_provider_id: string }
         Returns: boolean
