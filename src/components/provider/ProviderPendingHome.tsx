@@ -249,11 +249,7 @@ function LivePendingHome({ providerId, changesRequested, reviewReason }: { provi
           !!data.provider?.max_children_per_booking && !!data.age_group_capabilities?.length,
         missingSubjects: missingTeachingServices(selected.filter(s => s.category?.slug === "tutoring"), subjects.data!),
         needsSubjects: selected.some((s) => s.category?.slug === "tutoring"),
-        subjects: selected
-          .filter((s) => s.category?.slug === "tutoring")
-          .every((s) =>
-            subjects.data!.some((row) => row.service_id === s.id && row.status !== "rejected"),
-          ),
+        subjects: missingTeachingServices(selected.filter(s => s.category?.slug === "tutoring"), subjects.data!).length === 0,
       }}
     />
   );

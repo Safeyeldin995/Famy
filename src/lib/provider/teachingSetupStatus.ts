@@ -1,10 +1,25 @@
-import { levelRanges } from "@/lib/tutoring/levelRanges";
+import { levelRanges } from "../tutoring/levelRanges";
 export function missingTeachingServices<T extends { id: string }>(
   services: T[],
-  rows: { service_id: string; status: string }[],
+  rows: {
+    service_id: string;
+    subject_id: string;
+    level_id: string;
+    session_price: number;
+    status: string;
+  }[],
 ) {
   return services.filter(
-    (service) => !rows.some((row) => row.service_id === service.id && row.status !== "rejected"),
+    (service) =>
+      !rows.some(
+        (row) =>
+          row.service_id === service.id &&
+          row.status !== "rejected" &&
+          !!row.subject_id &&
+          !!row.level_id &&
+          Number.isFinite(row.session_price) &&
+          row.session_price > 0,
+      ),
   );
 }
 export function gradeSummary(

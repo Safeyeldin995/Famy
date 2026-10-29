@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
+import { Baby, BookOpen, Check, Sun } from "lucide-react-native";
 import {
   applyStepReady,
   initialStepperPrice,
@@ -160,20 +161,66 @@ export function ProviderApplyFlow({
           {services.map((service) => {
             const selected = draft.services.includes(service.id);
             const locked = lockedServices.includes(service.id);
+            const Icon =
+              service.category?.slug === "tutoring"
+                ? BookOpen
+                : service.category?.slug === "babysitting"
+                  ? Baby
+                  : Sun;
             return (
-              <View key={service.id} style={proCard.card}>
+              <View
+                key={service.id}
+                style={[proCard.card, selected && { borderWidth: 2, borderColor: colors.brand }]}
+              >
                 <Pressable
                   accessibilityRole="checkbox"
                   accessibilityLabel={localized(service, i18n.language)}
                   accessibilityState={{ checked: selected, disabled: locked }}
                   onPress={() => toggleService(service)}
-                  style={{ gap: space.sm, minHeight: 44, justifyContent: "center" }}
+                  disabled={busy || locked}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: space.md,
+                    minHeight: 44,
+                  }}
                 >
-                  <Text weight="heavy">
+                  <View
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 12,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: selected ? colors.brandTint : colors.surface2,
+                    }}
+                  >
+                    <Icon size={22} color={selected ? colors.brand : colors.muted} />
+                  </View>
+                  <Text weight="heavy" style={{ flex: 1 }}>
                     {localized(service, i18n.language)}
                     {locked ? ` (${t("mobilePro.serviceLocked")})` : ""}
                   </Text>
+                  <View
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 8,
+                      borderWidth: selected ? 0 : 2,
+                      borderColor: colors.border,
+                      backgroundColor: selected ? colors.brand : colors.surface,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {selected ? <Check size={14} color={colors.brandForeground} /> : null}
+                  </View>
                 </Pressable>
+                {selected && service.category?.slug === "tutoring" ? (
+                  <Text size="xs" tone="muted">
+                    {t("providerApply.teachingLater")}
+                  </Text>
+                ) : null}
                 {selected && needsServicePrice(service) ? (
                   <ProviderPriceStepper
                     min={service.minimum_price ?? null}
