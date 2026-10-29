@@ -9,8 +9,9 @@ describe("admin work queue counts", () => {
     const counts = normalizeAdminWorkQueueCounts(rows);
     expect(counts.new_applications).toBe(0);
     expect(counts.resubmitted_applications).toBe(1);
-    expect(counts.pending_teaching_groups).toBe(3);
-    expect(counts.payments_pending_review).toBe(7);
+    expect(counts.new_service_requests).toBe(2);
+    expect(counts.pending_teaching_groups).toBe(4);
+    expect(counts.payments_pending_review).toBe(8);
     expect(WORK_QUEUE_ITEMS.every((item) => item.route.startsWith("/admin/"))).toBe(true);
   });
 

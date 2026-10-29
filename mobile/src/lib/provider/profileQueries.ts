@@ -57,6 +57,47 @@ export function useMyProviderServicesDetailed(providerId: string | undefined) {
   });
 }
 
+export function useProviderRequestService() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      serviceId,
+      payload,
+      idempotencyKey,
+    }: {
+      serviceId: string;
+      payload: Record<string, unknown>;
+      idempotencyKey?: string;
+    }) => {
+      const { data, error } = await supabase.rpc("provider_request_service", {
+        p_service_id: serviceId,
+        p_payload: payload as never,
+        p_idempotency_key: idempotencyKey ?? null,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["my-provider-services"] });
+    },
+  });
+}
+
+export function useCancelProviderServiceRequest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (serviceId: string) => {
+      const { error } = await supabase.rpc("provider_cancel_service_request", {
+        p_service_id: serviceId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["my-provider-services"] });
+    },
+  });
+}
+
 export function useToggleProviderService() {
   const qc = useQueryClient();
   return useMutation({

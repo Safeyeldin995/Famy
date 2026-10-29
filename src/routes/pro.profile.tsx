@@ -30,6 +30,7 @@ import {
   useAllServices,
   useMyProviderServices,
   useToggleProviderService,
+  useCancelProviderServiceRequest,
   useSetProviderPrice,
   useRequirementsForService,
   useMyRequirementFulfillments,
@@ -83,6 +84,7 @@ function ProProfile() {
   const services = useAllServices();
   const mine = useMyProviderServices(provider?.id);
   const toggle = useToggleProviderService();
+  const cancelRequest = useCancelProviderServiceRequest();
   const setPrice = useSetProviderPrice();
   const [priceDrafts, setPriceDrafts] = useState<Record<string, number>>({});
   const [priceErrors, setPriceErrors] = useState<Record<string, string>>({});
@@ -249,18 +251,10 @@ function ProProfile() {
     : [];
 
   const handleServiceToggle = (serviceId: string, currentlyOn: boolean) => {
-    if (currentlyOn && isApprovedProvider) {
-      const status = myStatus.get(serviceId);
-      if (status === "approved" || status === "pending") return;
-    }
+    if (isApprovedProvider) return;
     toggle.mutate(
       { providerId: provider.id, serviceId, on: !currentlyOn },
       {
-        onSuccess: () => {
-          if (!currentlyOn && isApprovedProvider) {
-            toast.success(t("pro.profile.newServicePending"));
-          }
-        },
         onError: () => toast.error(t("common.somethingWentWrong")),
       },
     );
@@ -538,14 +532,44 @@ function ProProfile() {
                 const priceError = priceErrors[s.id];
                 return (
                   <div key={s.id} id={`service-${s.id}`}>
-                    <ServiceCard selected={on} title={sname} subtitle={isFixedPackage(s) ? t(packageLabel(s).key, packageLabel(s).values) : cname ?? ""} icon={<BriefcaseBusiness size={20} />} onClick={() => handleServiceToggle(s.id, on)}>
+                    <ServiceCard selected={on} title={sname} subtitle={isFixedPackage(s) ? t(packageLabel(s).key, packageLabel(s).values) : cname ?? ""} icon={<BriefcaseBusiness size={20} />} onClick={isApprovedProvider ? () => {} : () => handleServiceToggle(s.id, on)} disabled={isApprovedProvider}>
                       <div className="px-4 pb-4">
                       {on && (
                         <span
                           className={`apply-tag ${myStatus.get(s.id) === "approved" ? "apply-success" : myStatus.get(s.id) === "pending" ? "apply-wait" : "apply-danger"}`}
                         >
-                          {t(`providerSetup.status.${myStatus.get(s.id) ?? "pending"}`)}
+                          {isApprovedProvider && !on && myStatus.get(s.id) == null
+                            ? t("pro.serviceRequest.notAdded")
+                            : t(
+                                myStatus.get(s.id) === "approved"
+                                  ? "pro.serviceRequest.statusActive"
+                                  : myStatus.get(s.id) === "pending"
+                                    ? "pro.serviceRequest.statusPending"
+                                    : myStatus.get(s.id) === "rejected"
+                                      ? "pro.serviceRequest.statusRejected"
+                                      : `providerSetup.status.${myStatus.get(s.id) ?? "pending"}`,
+                              )}
                         </span>
+                      )}
+                      {on && isApprovedProvider && myStatus.get(s.id) === "pending" && (
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          {t("pro.serviceRequest.pendingReadOnly")}
+                        </p>
+                      )}
+                      {on && isApprovedProvider && myStatus.get(s.id) === "pending" && (
+                        <button
+                          type="button"
+                          className="mt-2 min-h-11 rounded-lg border border-coral px-3 text-xs font-bold text-coral disabled:opacity-50"
+                          disabled={cancelRequest.isPending}
+                          onClick={() =>
+                            cancelRequest.mutate(s.id, {
+                              onSuccess: () => toast.success(t("pro.serviceRequest.cancelled")),
+                              onError: () => toast.error(t("common.somethingWentWrong")),
+                            })
+                          }
+                        >
+                          {t("pro.serviceRequest.cancelRequest")}
+                        </button>
                       )}
                     {on && myStatus.get(s.id) === "rejected" && myRejectionReason.get(s.id) && (
                       <p className="mt-2 text-xs font-semibold text-destructive">
@@ -554,19 +578,29 @@ function ProProfile() {
                     )}
                     {on && myStatus.get(s.id) === "rejected" && (
                       <div className="mt-2 flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          className="min-h-11 rounded-lg border border-brand px-3 text-xs font-bold text-brand disabled:opacity-50"
-                          disabled={resubmitService.isPending}
-                          onClick={() =>
-                            resubmitService.mutate(s.id, {
-                              onSuccess: () => toast.success(t("pro.profile.serviceResubmitted")),
-                              onError: () => toast.error(t("common.somethingWentWrong")),
-                            })
-                          }
-                        >
-                          {t("pro.profile.resubmitService")}
-                        </button>
+                        {isApprovedProvider ? (
+                          <Link
+                            to={proPath("/pro/request-service/$serviceId")}
+                            params={{ serviceId: s.id }}
+                            className="min-h-11 rounded-lg border border-brand px-3 text-xs font-bold text-brand inline-flex items-center"
+                          >
+                            {t("pro.serviceRequest.editAndResubmit")}
+                          </Link>
+                        ) : (
+                          <button
+                            type="button"
+                            className="min-h-11 rounded-lg border border-brand px-3 text-xs font-bold text-brand disabled:opacity-50"
+                            disabled={resubmitService.isPending}
+                            onClick={() =>
+                              resubmitService.mutate(s.id, {
+                                onSuccess: () => toast.success(t("pro.profile.serviceResubmitted")),
+                                onError: () => toast.error(t("common.somethingWentWrong")),
+                              })
+                            }
+                          >
+                            {t("pro.profile.resubmitService")}
+                          </button>
+                        )}
                         <button
                           type="button"
                           className="min-h-11 rounded-lg border border-coral px-3 text-xs font-bold text-coral disabled:opacity-50"
@@ -643,7 +677,7 @@ function ProProfile() {
                     )}
                     {on &&
                       isTutoringCategorySlug(s.category?.slug) &&
-                      (myStatus.get(s.id) === "pending" || myStatus.get(s.id) === "approved") && (
+                      myStatus.get(s.id) === "approved" && (
                         <Link
                           to={proPath("/pro/setup/subjects")}
                           className="mt-2 inline-block text-xs font-bold text-brand underline-offset-2 hover:underline"
@@ -680,19 +714,32 @@ function ProProfile() {
                         ? (s.category?.name_ar ?? s.category?.name_en)
                         : (s.category?.name_en ?? s.category?.name_ar);
                     return (
-                      <ServiceCard
-                        key={s.id}
-                        selected={false}
-                        title={sname}
-                        subtitle={
-                          isFixedPackage(s)
-                            ? t(packageLabel(s).key, packageLabel(s).values)
-                            : cname ?? ""
-                        }
-                        icon={<BriefcaseBusiness size={20} />}
-                        disabled={toggle.isPending}
-                        onClick={() => handleServiceToggle(s.id, false)}
-                      />
+                      <div key={s.id} className="rounded-2xl border border-border bg-surface p-4">
+                        <ServiceCard
+                          selected={false}
+                          title={sname}
+                          subtitle={
+                            isFixedPackage(s)
+                              ? t(packageLabel(s).key, packageLabel(s).values)
+                              : (cname ?? "")
+                          }
+                          icon={<BriefcaseBusiness size={20} />}
+                          onClick={() => {}}
+                          disabled
+                        />
+                        <p className="mt-1 px-4 text-xs text-muted-foreground">
+                          {t("pro.serviceRequest.notAdded")}
+                        </p>
+                        <div className="px-4 pb-2">
+                          <Link
+                            to={proPath("/pro/request-service/$serviceId")}
+                            params={{ serviceId: s.id }}
+                            className="mt-2 inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-brand px-3 text-xs font-bold text-brand-foreground"
+                          >
+                            {t("pro.serviceRequest.requestCta")}
+                          </Link>
+                        </div>
+                      </div>
                     );
                   })}
                 </div>

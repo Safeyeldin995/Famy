@@ -1062,6 +1062,7 @@ export function seedPreviewAdminQueries(qc: import("@tanstack/react-query").Quer
   qc.setQueryData(["admin", "work-queue"], {
     new_applications: 1,
     resubmitted_applications: 0,
+    new_service_requests: 0,
     pending_services: 2,
     pending_teaching_groups: 2,
     pending_documents: 0,
