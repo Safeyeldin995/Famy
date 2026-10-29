@@ -23,6 +23,7 @@ import { proCard } from "@/ui/provider/cards";
 import { Page, QueryState, Field, ActionError } from "@/ui/Page";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
+import { PendingServiceRequestSummary } from "@/ui/provider/PendingServiceRequestSummary";
 
 export default function ProProfileEditScreen() {
   const { t, i18n } = useTranslation();
@@ -180,6 +181,15 @@ export default function ProProfileEditScreen() {
                   <Text tone="muted" size="sm">
                     {t("pro.serviceRequest.statusPending")}
                   </Text>
+                  {providerId ? (
+                    <PendingServiceRequestSummary
+                      providerId={providerId}
+                      serviceId={id}
+                      categorySlug={(service.category as { slug?: string })?.slug}
+                      priceOverride={(row?.price_override as number | null) ?? null}
+                      maxChildren={(provider?.max_children_per_booking as number | null) ?? null}
+                    />
+                  ) : null}
                   <Button
                     variant="secondary"
                     label={t("pro.serviceRequest.cancelRequest")}

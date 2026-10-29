@@ -1,5 +1,4 @@
-import type { Database } from "@/integrations/supabase/types";
-import { expandChipsToCatalogueCodes } from "@/lib/provider/ageGroupCapabilities";
+import { expandChipsToCatalogueCodes } from "./ageGroupCapabilities";
 
 export type TeachingGroupDraft = {
   subject_id: string;
@@ -27,10 +26,11 @@ export type ServiceRequestPayload = {
   requirement_fulfillments?: RequirementFulfillmentDraft[];
 };
 
-type FulfillmentRow = Pick<
-  Database["public"]["Tables"]["provider_requirement_fulfillments"]["Row"],
-  "requirement_id" | "notes" | "evidence_storage_path"
->;
+type FulfillmentRow = {
+  requirement_id: string;
+  notes: string | null;
+  evidence_storage_path: string | null;
+};
 
 export function buildRequirementFulfillmentPayload(
   requirementIds: string[],

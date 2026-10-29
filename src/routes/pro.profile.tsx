@@ -18,6 +18,7 @@ import { ProviderShell } from "@/components/famio/ProviderShell";
 import { CheckChip } from "@/components/famio/CheckChip";
 import { ServiceCard } from "@/components/famio/ServiceCard";
 import { TeachingGroupsSummary } from "@/components/provider/TeachingGroupsSummary";
+import { PendingServiceRequestSummary } from "@/components/provider/PendingServiceRequestSummary";
 import { useMyTeachingCapabilities } from "@/lib/db/teaching-queries";
 import { saveProfileChanges, type ProfileFields } from "@/lib/provider/saveProfileChanges";
 import "@/components/famio/providerApply.css";
@@ -552,24 +553,31 @@ function ProProfile() {
                         </span>
                       )}
                       {on && isApprovedProvider && myStatus.get(s.id) === "pending" && (
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          {t("pro.serviceRequest.pendingReadOnly")}
-                        </p>
-                      )}
-                      {on && isApprovedProvider && myStatus.get(s.id) === "pending" && (
-                        <button
-                          type="button"
-                          className="mt-2 min-h-11 rounded-lg border border-coral px-3 text-xs font-bold text-coral disabled:opacity-50"
-                          disabled={cancelRequest.isPending}
-                          onClick={() =>
-                            cancelRequest.mutate(s.id, {
-                              onSuccess: () => toast.success(t("pro.serviceRequest.cancelled")),
-                              onError: () => toast.error(t("common.somethingWentWrong")),
-                            })
-                          }
-                        >
-                          {t("pro.serviceRequest.cancelRequest")}
-                        </button>
+                        <>
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            {t("pro.serviceRequest.pendingReadOnly")}
+                          </p>
+                          <PendingServiceRequestSummary
+                            providerId={provider.id}
+                            serviceId={s.id}
+                            categorySlug={s.category?.slug}
+                            priceOverride={myPriceOverride.get(s.id) ?? null}
+                            maxChildren={provider.max_children_per_booking ?? null}
+                          />
+                          <button
+                            type="button"
+                            className="mt-2 min-h-11 rounded-lg border border-coral px-3 text-xs font-bold text-coral disabled:opacity-50"
+                            disabled={cancelRequest.isPending}
+                            onClick={() =>
+                              cancelRequest.mutate(s.id, {
+                                onSuccess: () => toast.success(t("pro.serviceRequest.cancelled")),
+                                onError: () => toast.error(t("common.somethingWentWrong")),
+                              })
+                            }
+                          >
+                            {t("pro.serviceRequest.cancelRequest")}
+                          </button>
+                        </>
                       )}
                     {on && myStatus.get(s.id) === "rejected" && myRejectionReason.get(s.id) && (
                       <p className="mt-2 text-xs font-semibold text-destructive">

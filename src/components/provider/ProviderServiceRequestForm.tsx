@@ -145,7 +145,7 @@ export function ProviderServiceRequestForm({
       payload.price_override = price;
     }
     if (isBabysitting) {
-      if (maxChildren === "" || maxChildren < 1 || maxChildren > 4) {
+      if (maxChildren === "" || maxChildren < 1 || maxChildren > 6) {
         toast.error(t("pro.serviceRequest.maxChildrenRequired"));
         return;
       }
@@ -305,7 +305,7 @@ export function ProviderServiceRequestForm({
             <input
               type="number"
               min={1}
-              max={4}
+              max={6}
               className="mt-1 min-h-11 w-full rounded-xl border border-border px-3"
               value={maxChildren}
               onChange={(e) =>

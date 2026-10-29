@@ -247,8 +247,8 @@ BEGIN
   IF v_service.category_slug = 'babysitting' THEN
     IF p_payload ? 'max_children_per_booking' THEN
       v_max := (p_payload->>'max_children_per_booking')::int;
-      IF v_max IS NULL OR v_max < 1 OR v_max > 4 THEN
-        RAISE EXCEPTION 'max_children_per_booking must be between 1 and 4.' USING ERRCODE = '23514';
+      IF v_max IS NULL OR v_max < 1 OR v_max > 6 THEN
+        RAISE EXCEPTION 'max_children_per_booking must be between 1 and 6.' USING ERRCODE = '23514';
       END IF;
       PERFORM set_config('app.max_children_declaration', '1', true);
       UPDATE public.providers SET max_children_per_booking = v_max WHERE id = v_provider.id;
