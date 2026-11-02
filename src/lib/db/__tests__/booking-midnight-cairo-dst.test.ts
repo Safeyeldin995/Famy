@@ -7,18 +7,22 @@ import {
   readMigration,
   seedIdentities,
 } from "./babysitting-capabilities-harness";
-import { stableCairoBookingBaseDate } from "./cairo-stable-booking-date";
+import {
+  nextCairoFallBackDate,
+  nextCairoSpringForwardDate,
+  stableCairoBookingBaseDate,
+} from "./cairo-stable-booking-date";
 
 const FIXED_PACKAGES_MIGRATION = "20261005100000_fixed_price_babysitting_packages.sql";
 const DST_MIGRATION = "20261027100000_booking_midnight_cairo_dst.sql";
 const NIGHT = "00000000-0000-0000-0000-000000000999";
 
 /** Stable Cairo calendar day with no DST transition in the booking window. */
-const CAIRO_NORMAL_DAY = stableCairoBookingBaseDate(new Date("2026-11-01T12:00:00Z"));
+const CAIRO_NORMAL_DAY = stableCairoBookingBaseDate();
 /** Egypt DST fall-back night (clocks back at midnight). */
-const CAIRO_DST_FALL_BACK_DATE = "2026-10-29";
+const CAIRO_DST_FALL_BACK_DATE = nextCairoFallBackDate();
 /** Egypt DST spring-forward night (clocks forward at midnight), after `now()` in CI. */
-const CAIRO_DST_SPRING_FORWARD_DATE = "2027-04-30";
+const CAIRO_DST_SPRING_FORWARD_DATE = nextCairoSpringForwardDate();
 
 let db: PGlite;
 
