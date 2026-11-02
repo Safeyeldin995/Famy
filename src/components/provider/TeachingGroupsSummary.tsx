@@ -4,6 +4,7 @@ import { useProPath } from "@/lib/provider/useProPath";
 import { groupTeachingRows } from "@/lib/tutoring/teachingGroups";
 import type { ProviderTeachingCapabilityRow } from "@/lib/db/teaching-queries";
 import { effectiveTeachingGroupStatuses } from "@/lib/provider/providerServiceReview";
+import { isTeachingCurriculumNa } from "@/lib/tutoring/lessonServices";
 
 export function TeachingGroupsSummary({
   rows,
@@ -24,7 +25,10 @@ export function TeachingGroupsSummary({
         <div key={group.key} className="apply-li flex-wrap">
           <div className="apply-task-text">
             <b>
-              {name(group.first.subject)} · {name(group.first.curriculum)}
+              {name(group.first.subject)}
+              {group.first.curriculum && !isTeachingCurriculumNa(group.first.curriculum.code)
+                ? ` · ${name(group.first.curriculum)}`
+                : ""}
             </b>
             <small>{group.rows.map((row) => name(row.level)).join(" · ")}</small>
             <small>

@@ -6,6 +6,7 @@ import { useAdminReviewTeachingGroup } from "@/lib/db/teaching-group-queries";
 import { groupTeachingRows } from "@/lib/tutoring/teachingGroups";
 import { currentLang } from "@/lib/i18n";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
+import { isTeachingCurriculumNa } from "@/lib/tutoring/lessonServices";
 
 export function TeachingCapabilityReviewQueue({ providerId }: { providerId: string }) {
   const { t } = useTranslation();
@@ -54,8 +55,9 @@ export function TeachingCapabilityReviewQueue({ providerId }: { providerId: stri
               })
             : levelNames.join(lang === "ar" ? "، " : ", ");
         const subject = lang === "ar" ? group.first.subject_name_ar : group.first.subject_name_en;
-        const curriculum =
+        const curriculumLabel =
           lang === "ar" ? group.first.curriculum_name_ar : group.first.curriculum_name_en;
+        const showCurriculum = !isTeachingCurriculumNa(group.first.curriculum_code);
         const price = Number(group.first.session_price).toLocaleString("en-US");
         const note = notes[group.key] ?? "";
 
@@ -76,7 +78,8 @@ export function TeachingCapabilityReviewQueue({ providerId }: { providerId: stri
         return (
           <li key={group.key} className="rounded-xl border border-border p-3">
             <p className="text-sm font-bold">
-              {subject} · {curriculum} · {levels} ·{" "}
+              {subject}
+              {showCurriculum ? ` · ${curriculumLabel}` : ""} · {levels} ·{" "}
               {t("adminReview.sessionPrice", { amount: price })}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">

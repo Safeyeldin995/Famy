@@ -1,6 +1,18 @@
-import type { TeachingLevelRow } from "@/lib/db/teaching-queries";
+import type { TeachingLevelRow, TeachingServiceLevelRow } from "@/lib/db/teaching-queries";
 
 const BRITISH_LEVEL_CODES = new Set(["g10", "g11", "g12"]);
+
+export function teachingLevelsForService(
+  serviceId: string,
+  levels: TeachingLevelRow[],
+  serviceLevelLinks: TeachingServiceLevelRow[],
+): TeachingLevelRow[] {
+  const allowed = new Set(
+    serviceLevelLinks.filter((row) => row.service_id === serviceId).map((row) => row.level_id),
+  );
+  if (allowed.size === 0) return levels;
+  return levels.filter((row) => allowed.has(row.id));
+}
 
 export function teachingLevelsForCurriculum(
   curriculumCode: string | null | undefined,
@@ -10,6 +22,18 @@ export function teachingLevelsForCurriculum(
     return levels.filter((row) => BRITISH_LEVEL_CODES.has(row.code));
   }
   return levels;
+}
+
+export function teachingLevelsForServiceAndCurriculum(
+  serviceId: string,
+  curriculumCode: string | null | undefined,
+  levels: TeachingLevelRow[],
+  serviceLevelLinks: TeachingServiceLevelRow[],
+): TeachingLevelRow[] {
+  return teachingLevelsForCurriculum(
+    curriculumCode,
+    teachingLevelsForService(serviceId, levels, serviceLevelLinks),
+  );
 }
 
 export type TeachingCapabilityUpsertInput = {

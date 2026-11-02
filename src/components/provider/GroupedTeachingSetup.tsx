@@ -1,5 +1,9 @@
 import { BottomSheetMultiSelect } from "./BottomSheetMultiSelect";
-import { missingTeachingServices, gradeSummary, teachingDuration } from "@/lib/provider/teachingSetupStatus";
+import {
+  missingTeachingServices,
+  gradeSummary,
+  teachingDuration,
+} from "@/lib/provider/teachingSetupStatus";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SetupScreen } from "@/components/famio/SetupScreen";
@@ -16,12 +20,19 @@ import type {
 import type { SaveTeachingGroup } from "@/lib/db/teaching-group-queries";
 import { groupTeachingRows, teachingLevelDiff } from "@/lib/tutoring/teachingGroups";
 import { effectiveTeachingGroupStatuses } from "@/lib/provider/providerServiceReview";
-import { teachingLevelsForCurriculum } from "@/lib/tutoring/teachingLevelFilters";
+import { teachingLevelsForServiceAndCurriculum } from "@/lib/tutoring/teachingLevelFilters";
 import { allowedDurationsForSubject } from "@/lib/tutoring/teachingCapabilities";
 import { teachingMissingChoice } from "@/lib/tutoring/teachingEditorState";
 import { isPriceInRange } from "@/lib/provider/priceOptions";
+import {
+  isTeachingCurriculumNa,
+  serviceRequiresTeachingCurriculum,
+  TEACHING_CURRICULUM_NA_CODE,
+} from "@/lib/tutoring/lessonServices";
+import type { TeachingServiceLevelRow } from "@/lib/db/teaching-queries";
 export type SetupTeachingService = {
   id: string;
+  slug?: string | null;
   name_ar: string;
   name_en: string;
   minimum_price?: number | null;
@@ -34,6 +45,7 @@ export function GroupedTeachingSetup({
   curricula,
   levels,
   links,
+  serviceLevels,
   rows,
   serviceStatuses = {},
   rejectionMessages = {},
@@ -46,6 +58,7 @@ export function GroupedTeachingSetup({
   curricula: TeachingCurriculumRow[];
   levels: TeachingLevelRow[];
   links: TeachingSubjectServiceRow[];
+  serviceLevels: TeachingServiceLevelRow[];
   rows: ProviderTeachingCapabilityRow[];
   serviceStatuses?: Record<string, string>;
   rejectionMessages?: Record<string, string>;
@@ -66,13 +79,17 @@ export function GroupedTeachingSetup({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const service = services.find((row) => row.id === serviceId);
+  const requiresCurriculum = serviceRequiresTeachingCurriculum(service?.slug);
+  const naCurriculumId =
+    curricula.find((row) => row.code === TEACHING_CURRICULUM_NA_CODE)?.id ?? "";
+  const effectiveCurriculumId = requiresCurriculum ? curriculumId : naCurriculumId;
   const subject = subjects.find((row) => row.id === subjectId);
-  const curriculum = curricula.find((row) => row.id === curriculumId);
+  const curriculum = curricula.find((row) => row.id === effectiveCurriculumId);
   const saved = rows.filter(
     (row) =>
       row.service_id === serviceId &&
       row.subject_id === subjectId &&
-      row.curriculum_id === curriculumId,
+      row.curriculum_id === effectiveCurriculumId,
   );
   const diff = teachingLevelDiff(saved, selected);
   const chosen = [...new Set([...selected, ...diff.lockedApproved.map((row) => row.level_id)])];
@@ -80,7 +97,9 @@ export function GroupedTeachingSetup({
     subject?.max_session_duration_min ?? 120,
     service?.allowed_session_durations ?? [60, 90, 120, 180],
   );
-  const savedGroups = groupTeachingRows(rows).filter((group) => group.first.service_id === serviceId);
+  const savedGroups = groupTeachingRows(rows).filter(
+    (group) => group.first.service_id === serviceId,
+  );
   const editingGroup = groupTeachingRows(rows).find((group) => group.key === editingGroupKey);
   const parentServiceStatus = serviceStatuses[serviceId];
   const lockedValues = editingGroup?.rows.some((row) => row.status === "approved")
@@ -94,25 +113,39 @@ export function GroupedTeachingSetup({
   const shownDurations = lockedValues
     ? [...new Set([...durations, lockedValues.session_duration_min])]
     : durations;
-  const filteredLevels = teachingLevelsForCurriculum(curriculum?.code, levels);
+  const filteredLevels = teachingLevelsForServiceAndCurriculum(
+    serviceId,
+    curriculum?.code,
+    levels,
+    serviceLevels,
+  );
+  const selectableCurricula = curricula.filter((row) => !isTeachingCurriculumNa(row.code));
   const availableSubjects = subjects.filter((row) =>
     links.some((link) => link.subject_id === row.id && link.service_id === serviceId),
   );
   const missing = teachingMissingChoice(
     subjectId,
-    curriculumId,
+    effectiveCurriculumId,
     chosen,
     isPriceInRange(effectivePrice, service?.minimum_price ?? null, service?.maximum_price ?? null),
+    requiresCurriculum,
   );
   const save = async () => {
-    if (!service || missing || !effectiveDuration || effectivePrice == null) return;
+    if (
+      !service ||
+      missing ||
+      !effectiveDuration ||
+      effectivePrice == null ||
+      !effectiveCurriculumId
+    )
+      return;
     setBusy(true);
     setError("");
     try {
       await onSave({
         serviceId,
         subjectId,
-        curriculumId,
+        curriculumId: effectiveCurriculumId,
         levelIds: chosen,
         sessionDurationMin: effectiveDuration,
         sessionPrice: effectivePrice,
@@ -142,14 +175,24 @@ export function GroupedTeachingSetup({
       error={error}
     >
       <fieldset className="contents" disabled={busy}>
-        {!!missingTeachingServices(services, rows).length && <p role="status" className="text-sm text-amber-800">{t("providerClarity.missingSubjects", { services: missingTeachingServices(services, rows).map(name).join(ar ? "، " : ", ") })}</p>}
+        {!!missingTeachingServices(services, rows).length && (
+          <p role="status" className="text-sm text-amber-800">
+            {t("providerClarity.missingSubjects", {
+              services: missingTeachingServices(services, rows)
+                .map(name)
+                .join(ar ? "، " : ", "),
+            })}
+          </p>
+        )}
         {savedGroups.length > 0 && (
           <ul className="grid gap-3">
             {savedGroups.map((group) => (
               <li key={group.key} className="rounded-2xl bg-surface-2 p-3">
                 <p className="text-sm font-bold">
-                  {group.first.subject ? name(group.first.subject) : ""} ·{" "}
-                  {group.first.curriculum ? name(group.first.curriculum) : ""}
+                  {group.first.subject ? name(group.first.subject) : ""}
+                  {group.first.curriculum && !isTeachingCurriculumNa(group.first.curriculum.code)
+                    ? ` · ${name(group.first.curriculum)}`
+                    : ""}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {group.rows.map((row) => (row.level ? name(row.level) : "")).join(" · ")} ·{" "}
@@ -168,7 +211,19 @@ export function GroupedTeachingSetup({
                     </span>
                   ))}
                 </div>
-                {[...new Set(group.rows.filter(row => row.status === "rejected").map(row => rejectionMessages[row.id] || t("providerClarity.rejectedReason")))].map(reason => <p key={reason} className="text-sm text-destructive">{reason}</p>)}
+                {[
+                  ...new Set(
+                    group.rows
+                      .filter((row) => row.status === "rejected")
+                      .map(
+                        (row) => rejectionMessages[row.id] || t("providerClarity.rejectedReason"),
+                      ),
+                  ),
+                ].map((reason) => (
+                  <p key={reason} className="text-sm text-destructive">
+                    {reason}
+                  </p>
+                ))}
                 <div className="flex gap-4">
                   <button
                     type="button"
@@ -185,39 +240,58 @@ export function GroupedTeachingSetup({
                   >
                     {t("common.edit")}
                   </button>
-                  {group.rows.some((row) => row.status !== "approved") && parentServiceStatus !== "rejected" && (
-                    <button
-                      type="button"
-                      className="min-h-11 text-destructive"
-                      onClick={async () => {
-                        setBusy(true);
-                        setError("");
-                        try {
-                          await onRemove(
-                            teachingLevelDiff(group.rows, []).removable.map((row) => row.id),
-                          );
-                        } catch {
-                          setError(t("providerApply.saveError"));
-                        } finally {
-                          setBusy(false);
-                        }
-                      }}
-                    >
-                      {t("providerClarity.removeSubject")}
-                    </button>
-                  )}
+                  {group.rows.some((row) => row.status !== "approved") &&
+                    parentServiceStatus !== "rejected" && (
+                      <button
+                        type="button"
+                        className="min-h-11 text-destructive"
+                        onClick={async () => {
+                          setBusy(true);
+                          setError("");
+                          try {
+                            await onRemove(
+                              teachingLevelDiff(group.rows, []).removable.map((row) => row.id),
+                            );
+                          } catch {
+                            setError(t("providerApply.saveError"));
+                          } finally {
+                            setBusy(false);
+                          }
+                        }}
+                      >
+                        {t("providerClarity.removeSubject")}
+                      </button>
+                    )}
                 </div>
               </li>
             ))}
           </ul>
         )}
         <p className="apply-label">{t("providerSetup.addSubjectGroup")}</p>
-        <div className="apply-list">{services.map(row => {
-          const missing = missingTeachingServices([row], rows).length > 0;
-          return <button key={row.id} type="button" className="apply-li min-h-11 w-full text-start" aria-pressed={serviceId === row.id} onClick={() => { setServiceId(row.id); setSubjectId(""); setCurriculumId(""); reset(); }}>
-            <b className="flex-1">{name(row)}</b><span className={`apply-tag ${missing ? "apply-wait" : "apply-success"}`}>{missing ? t("providerClarity.addSubject") : "✓"}</span>
-          </button>;
-        })}</div>
+        <div className="apply-list">
+          {services.map((row) => {
+            const missing = missingTeachingServices([row], rows).length > 0;
+            return (
+              <button
+                key={row.id}
+                type="button"
+                className="apply-li min-h-11 w-full text-start"
+                aria-pressed={serviceId === row.id}
+                onClick={() => {
+                  setServiceId(row.id);
+                  setSubjectId("");
+                  setCurriculumId("");
+                  reset();
+                }}
+              >
+                <b className="flex-1">{name(row)}</b>
+                <span className={`apply-tag ${missing ? "apply-wait" : "apply-success"}`}>
+                  {missing ? t("providerClarity.addSubject") : "✓"}
+                </span>
+              </button>
+            );
+          })}
+        </div>
         {!services.length && <p role="status">{t("providerSetup.noTeachingServices")}</p>}
         <BottomSheetSelect
           label={t("teaching.subject")}
@@ -228,28 +302,42 @@ export function GroupedTeachingSetup({
             reset();
           }}
         />
-        <BottomSheetSelect
-          label={t("teaching.curriculum")}
-          value={curriculumId}
-          options={curricula.map((row) => ({ value: row.id, label: name(row) }))}
-          onChange={(value) => {
-            setCurriculumId(value);
-            reset();
-          }}
-        />
-        {subjectId && curriculumId ? <BottomSheetMultiSelect label={t("teaching.level")} value={chosen}
-          summary={gradeSummary(levels.filter(row => chosen.includes(row.id)), ar)}
-          options={filteredLevels.map(row => ({ value: row.id, label: name(row), locked: diff.lockedApproved.some(saved => saved.level_id === row.id) }))}
-          onChange={setSelected} /> : <p className="text-sm text-muted-foreground">{t("providerSetup.chooseSubjectFirst")}</p>}
+        {requiresCurriculum ? (
+          <BottomSheetSelect
+            label={t("teaching.curriculum")}
+            value={curriculumId}
+            options={selectableCurricula.map((row) => ({ value: row.id, label: name(row) }))}
+            onChange={(value) => {
+              setCurriculumId(value);
+              reset();
+            }}
+          />
+        ) : null}
+        {subjectId && (requiresCurriculum ? curriculumId : naCurriculumId) ? (
+          <BottomSheetMultiSelect
+            label={t("teaching.level")}
+            value={chosen}
+            summary={gradeSummary(
+              levels.filter((row) => chosen.includes(row.id)),
+              ar,
+            )}
+            options={filteredLevels.map((row) => ({
+              value: row.id,
+              label: name(row),
+              locked: diff.lockedApproved.some((saved) => saved.level_id === row.id),
+            }))}
+            onChange={setSelected}
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground">{t("providerSetup.chooseSubjectFirst")}</p>
+        )}
         {!!diff.lockedApproved.length && (
           <p className="text-xs text-muted-foreground">{t("providerSetup.approvedLocked")}</p>
         )}
         <p className="apply-label">{t("providerSetup.duration")}</p>
         <div className="flex flex-wrap gap-2">
           {shownDurations.length === 1 ? (
-            <span className="apply-chip on">
-              {teachingDuration(shownDurations[0], ar)}
-            </span>
+            <span className="apply-chip on">{teachingDuration(shownDurations[0], ar)}</span>
           ) : (
             shownDurations.map((value) => (
               <CheckChip

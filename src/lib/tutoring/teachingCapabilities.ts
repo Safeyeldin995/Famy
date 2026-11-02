@@ -1,6 +1,8 @@
-export const SESSION_DURATIONS_MIN = [60, 90, 120, 180] as const;
+export const SESSION_DURATIONS_MIN = [45, 60, 90, 120, 180] as const;
 export type SessionDurationMin = (typeof SESSION_DURATIONS_MIN)[number];
 export const DEFAULT_SESSION_DURATION_MIN: SessionDurationMin = 120;
+
+export const LESSON_SESSION_DURATIONS_MIN = [45, 60, 90] as const;
 
 export function isTutoringCategorySlug(slug: string | null | undefined): boolean {
   return slug === "tutoring";
@@ -10,7 +12,9 @@ export function isTutoringServiceSlug(slug: string | null | undefined): boolean 
   return (
     slug === "homework-support" ||
     slug === "school-subject-tutoring" ||
-    slug === "language-tutoring"
+    slug === "language-tutoring" ||
+    slug === "quran-lessons" ||
+    slug === "music-lessons"
   );
 }
 

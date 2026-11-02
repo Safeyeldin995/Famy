@@ -25,6 +25,11 @@ export type TeachingSubjectServiceRow = {
   service_id: string;
 };
 
+export type TeachingServiceLevelRow = {
+  service_id: string;
+  level_id: string;
+};
+
 export type ProviderTeachingCapabilityRow = {
   id: string;
   provider_id: string;
@@ -144,6 +149,19 @@ export function useTeachingSubjectServices() {
         .select("subject_id, service_id");
       if (error) throw error;
       return (data ?? []) as TeachingSubjectServiceRow[];
+    },
+  });
+}
+
+export function useTeachingServiceLevels() {
+  return useQuery({
+    queryKey: ["teaching-service-levels"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("service_teaching_levels")
+        .select("service_id, level_id");
+      if (error) throw error;
+      return (data ?? []) as TeachingServiceLevelRow[];
     },
   });
 }
