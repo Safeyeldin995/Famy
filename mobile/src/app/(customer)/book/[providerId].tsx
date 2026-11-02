@@ -1,7 +1,7 @@
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 import { CustomerBookingWhen } from "@/ui/customer/BookingWhen";
 import { BookingServiceCard } from "@/ui/customer/BookingServiceCard";
-import { BookOpen, Clock, UserRound } from "lucide-react-native";
+import { BookOpen, Clock, UserRound, Star } from "lucide-react-native";
 import { Avatar } from "@/ui/ProviderCard";
 import { colors } from "@/ui/theme";
 import { BookingEducation } from "@/ui/BookingEducation";
@@ -75,7 +75,7 @@ import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
 import { PaymentLogos } from "@/ui/PaymentLogos";
 import { BookingInlineForm } from "@/ui/customer/BookingInlineForm";
-import { customerMoney as money } from "@/lib/customerFormat";
+import { customerMoney as money, customerNumber } from "@/lib/customerFormat";
 
 type Slot = { start: Date; end: Date; label: string };
 export default function Book() {
@@ -141,6 +141,7 @@ export default function Book() {
   const babysitting = service?.service.category?.slug === "babysitting";
   const fixed = !tutoring && isFixedPackage(service?.service);
   const caps = useApprovedTeachingCapabilities(providerId, service?.service.id);
+  const allCaps = useApprovedTeachingCapabilities(providerId);
   const capability = (caps.data ?? []).find((c) => c.id === capId) ?? null;
   const subjectGroups = groupBookingSubjects(
     (caps.data ?? []).filter(
@@ -482,9 +483,18 @@ export default function Book() {
               {t("mobile.price.total")}
             </Text>
             <Text size="xxl" weight="heavy" tone="brand" style={ui.ltr}>
-              {loading ? t("common.loading") : money(quote.total, lang)}
+              {loading
+                ? t("common.loading")
+                : tutoring && !capability
+                  ? t("customerBooking.tutoringPrice")
+                  : money(quote.total, lang)}
             </Text>
           </View>
+          {reason && !busy ? (
+            <Text size="sm" tone="muted" style={{ textAlign: "center" }}>
+              {t(reason)}
+            </Text>
+          ) : null}
           <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
             <View style={{ flex: 1 }}>
               <Button
@@ -546,7 +556,8 @@ export default function Book() {
             <View style={{ flex: 1, gap: 4 }}>
               <Text weight="heavy">{provider.data?.profile.full_name}</Text>
               <Text size="xs" tone="muted">
-                {String(provider.data?.ratings?.rating_avg ?? 0)} ·{" "}
+                <Star size={12} color={colors.warning} />{" "}
+                {customerNumber(Number(provider.data?.ratings?.rating_avg ?? 0), lang)} ·{" "}
                 {t("customerBooking.jobs", {
                   count: provider.data?.ratings?.rating_count ?? 0,
                   countLabel: String(provider.data?.ratings?.rating_count ?? 0),
@@ -560,12 +571,26 @@ export default function Book() {
               key={s.service.id}
               selected={s.service.id === service?.service.id}
               title={localized(s.service, lang)}
-              subtitle={
-                isFixedPackage(s.service)
-                  ? t(packageLabel(s.service).key, packageLabel(s.service).values)
-                  : s.service.category?.slug === "tutoring"
-                    ? t("customerBooking.tutoringPrice")
-                    : `${money(s.price_override ?? provider.data?.hourly_rate ?? 0, lang)} ${t("customerBooking.hours")}`
+              subtitle={(() => {
+                // Same subtitles as web book.$providerId ServiceCard.
+                if (isFixedPackage(s.service))
+                  return t(packageLabel(s.service).key, packageLabel(s.service).values);
+                if (s.service.category?.slug === "tutoring") {
+                  const prices = (allCaps.data ?? [])
+                    .filter((c) => c.serviceId === s.service.id)
+                    .map((c) => c.price);
+                  return prices.length
+                    ? t("customerBooking.tutoringFrom", {
+                        price: customerNumber(Math.min(...prices), lang),
+                      })
+                    : t("customerBooking.tutoringPrice");
+                }
+                return `${customerNumber(Number(s.price_override ?? provider.data?.hourly_rate ?? 0), lang)} ${t("pricePicker.hourUnit")}`;
+              })()}
+              trailing={
+                isFixedPackage(s.service) && s.price_override != null
+                  ? money(Number(s.price_override), lang)
+                  : undefined
               }
               icon={
                 s.service.category?.slug === "tutoring" ? (
@@ -938,7 +963,6 @@ export default function Book() {
         </>
       )}
       {error && <Text tone="danger">{error}</Text>}
-      {reason && <Text>{t(reason)}</Text>}
       {blocked && !loading && <Text>{t("bookFlow.unavailableBody")}</Text>}
 
       {missing && step > 0 && (
