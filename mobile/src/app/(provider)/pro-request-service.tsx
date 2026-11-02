@@ -1,4 +1,5 @@
 import { useLocalSearchParams, router } from "expo-router";
+import { randomUUID } from "expo-crypto";
 import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
 import { View } from "react-native";
@@ -44,6 +45,7 @@ export default function ProRequestServiceScreen() {
   const [maxChildren, setMaxChildren] = useState(1);
   const [ageChips, setAgeChips] = useState<string[]>([]);
   const [teachingGroups, setTeachingGroups] = useState<TeachingGroupDraft[]>([]);
+  const [idempotencyKey, setIdempotencyKey] = useState(() => randomUUID());
   const [error, setError] = useState(false);
 
   const service = useMemo(
@@ -120,9 +122,14 @@ export default function ProRequestServiceScreen() {
       {
         serviceId: String(service.id),
         payload,
-        idempotencyKey: crypto.randomUUID(),
+        idempotencyKey,
       },
-      { onSuccess: () => router.back() },
+      {
+        onSuccess: () => {
+          setIdempotencyKey(randomUUID());
+          router.back();
+        },
+      },
     );
   };
 
