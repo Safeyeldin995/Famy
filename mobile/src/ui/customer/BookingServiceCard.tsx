@@ -8,6 +8,7 @@ export function BookingServiceCard({
   title,
   subtitle,
   icon,
+  trailing,
   children,
   onPress,
 }: {
@@ -15,6 +16,7 @@ export function BookingServiceCard({
   title: string;
   subtitle: string;
   icon: ReactNode;
+  trailing?: string;
   children?: ReactNode;
   onPress: () => void;
 }) {
@@ -54,6 +56,11 @@ export function BookingServiceCard({
             {subtitle}
           </Text>
         </View>
+        {trailing ? (
+          <Text weight="heavy" tone="brand">
+            {trailing}
+          </Text>
+        ) : null}
         <View
           style={{
             width: 24,
