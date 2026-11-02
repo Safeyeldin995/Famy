@@ -65,6 +65,10 @@ import { peekPendingPayment } from "@/lib/booking/post-create-payment";
 import { isProviderNoResponseCancellation } from "@/lib/booking/pending-expiry";
 import { PushEnablePrompt } from "@/components/famio/PushEnablePrompt";
 import { shouldOfferPushPrompt } from "@/lib/push-prompt";
+import {
+  isSupervisionMode,
+  supervisionModeProviderLabel,
+} from "@/lib/booking/supervisionMode";
 
 export const Route = createFileRoute("/booking/$id")({
   component: BookingDetail,
@@ -331,6 +335,12 @@ export function BookingDetailContent({
               label={`${booking.time} · ${booking.duration}`}
             />
             <Line icon={<MapPin className="h-4 w-4" />} label={booking.address} />
+            {isSupervisionMode(real.supervision_mode) && (
+              <Line
+                icon={<ShieldCheck className="h-4 w-4" />}
+                label={supervisionModeProviderLabel(real.supervision_mode, t) ?? ""}
+              />
+            )}
           </div>
           <div className="mt-4 flex justify-between gap-3 border-t border-border/60 pt-3 text-pro-16 font-bold">
             <span>{t("customerDetail.total")}</span>

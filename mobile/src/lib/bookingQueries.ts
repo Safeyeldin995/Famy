@@ -347,6 +347,7 @@ export type CreateBookingInput = {
   teaching_subject_code?: string | null;
   teaching_curriculum_code?: string | null;
   teaching_level_code?: string | null;
+  supervision_mode?: string | null;
 };
 
 export type CreateBookingResult = Tables["bookings"]["Row"] & {
@@ -382,6 +383,7 @@ export function useCreateBooking() {
         p_teaching_subject_code: input.teaching_subject_code ?? undefined,
         p_teaching_curriculum_code: input.teaching_curriculum_code ?? undefined,
         p_teaching_level_code: input.teaching_level_code ?? undefined,
+        p_supervision_mode: input.supervision_mode ?? undefined,
       });
       if (error) {
         throw mapBookingRpcError(error);

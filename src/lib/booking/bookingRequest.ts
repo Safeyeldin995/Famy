@@ -1,6 +1,7 @@
 import { bookingFamilyMemberId } from "./babysittingRecipient";
 import { serviceQuote, type PackageService } from "@/lib/pricing/servicePackages";
 import { tutoringSessionQuote } from "@/lib/tutoring/teachingCapabilities";
+import type { SupervisionMode } from "./supervisionMode";
 
 type Capability = {
   id: string;
@@ -23,6 +24,7 @@ export function buildBookingRequest(choices: {
   eitherRequirements: { id: string }[];
   requirementChoices: Record<string, "customer" | "provider">;
   selectedCapability: Capability | null;
+  supervisionMode: SupervisionMode | null;
 }) {
   return {
     provider_id: choices.providerId,
@@ -41,6 +43,7 @@ export function buildBookingRequest(choices: {
     teaching_subject_code: choices.selectedCapability?.subjectCode ?? null,
     teaching_curriculum_code: choices.selectedCapability?.curriculumCode ?? null,
     teaching_level_code: choices.selectedCapability?.levelCode ?? null,
+    supervision_mode: choices.supervisionMode,
   };
 }
 

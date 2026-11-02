@@ -479,6 +479,7 @@ const en = {
     capture: "Capture",
     privacy: "Only the Famy team can see your ID. Customers cannot see it.",
     agreement: "My details are accurate and I agree to the terms",
+    cameraNotice: "The customer's home may have security cameras during the service.",
     submit: "Send my application",
     next: "Next",
     saving: "Saving…",
@@ -1413,6 +1414,7 @@ const en = {
     chooseAddress: "Choose an address.",
     outsideArea: "This address is outside the service area. Choose another address.",
     chooseRecipient: "Choose an eligible recipient or add a family member.",
+    chooseSupervision: "Choose how your child will be supervised during the service.",
     chooseRequirements: "Choose who will provide each requirement.",
     choosePayment: "Choose an available payment method.",
     reviewChoices: "Review your choices to continue.",
@@ -1470,6 +1472,8 @@ const en = {
       INVALID_PROMO: "The promo code is no longer valid for this booking.",
       INVALID_BOOKING_REQUEST:
         "We couldn't process this booking request. Please review your details.",
+      SUPERVISION_REQUIRED:
+        "For your children's safety, choose how your child will be supervised before confirming.",
       DUPLICATE_REQUEST_CONFLICT:
         "Your booking details changed since your last attempt. Please review and submit again.",
       UNAUTHORIZED: "You are not authorized to create this booking.",
@@ -1525,6 +1529,23 @@ const en = {
     noAddressesYet: "You haven't saved an address yet.",
     zoneServed: "Serves {{zone}}",
     zoneNotServed: "This area is not currently served. Please choose another address.",
+    supervision: {
+      title: "Supervision during the service",
+      intro: "For your children's safety, someone must stay aware throughout the service.",
+      label: "Supervision",
+      cameras: {
+        title: "Security cameras",
+        body: "Working security cameras cover the areas where the child will be.",
+      },
+      adult_present: {
+        title: "Adult family member present",
+        body: "An adult family member will be at home for the full service.",
+      },
+      providerLine: {
+        cameras: "Supervision: security cameras",
+        adult_present: "Supervision: adult family member present",
+      },
+    },
     forWhomTitle: "Who is this for?",
     forWhomSub: "Choose yourself or a saved family member.",
     forWhomChildTitle: "Which child is this for?",

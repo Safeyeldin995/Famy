@@ -6,12 +6,17 @@ import { Text } from "@/ui/Text";
 import { colors, radius, space } from "@/ui/theme";
 import { localized, money } from "@/lib/presentation";
 import type { BookingParty } from "@/lib/provider/parties";
+import {
+  isSupervisionMode,
+  supervisionModeProviderLabel,
+} from "@shared/booking/supervisionMode";
 
 export type ProviderCardBooking = {
   id: string;
   start_at: string;
   status?: string;
   price_total?: number | null;
+  supervision_mode?: string | null;
   customer?: { full_name?: string | null; avatar_url?: string | null } | null;
   service?: { name_ar?: string | null; name_en?: string | null } | null;
   party?: BookingParty;
@@ -85,7 +90,7 @@ export function ProviderBookingCard({
           </Text>
         </View>
         <Text weight="bold">{localized(booking.service, language)}</Text>
-        {area || child ? (
+        {area || child || isSupervisionMode(booking.supervision_mode) ? (
           <Text tone="muted" size="sm">
             {[
               area,
@@ -94,6 +99,7 @@ export function ProviderBookingCard({
                   ? t("pro.booking.childWithAge", { name: child, count: age })
                   : child
                 : null,
+              supervisionModeProviderLabel(booking.supervision_mode, t),
             ]
               .filter(Boolean)
               .join(" · ")}

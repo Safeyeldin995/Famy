@@ -273,6 +273,7 @@ export function ProviderApplyFlow({
               <LockKeyhole size={18} className="shrink-0" />
               {t("providerApply.privacy")}
             </p>
+            <p className="apply-note">{t("providerApply.cameraNotice")}</p>
             <label className="apply-agree">
               <input
                 className="sr-only"

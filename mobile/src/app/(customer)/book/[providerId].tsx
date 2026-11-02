@@ -76,6 +76,13 @@ import { Button } from "@/ui/Button";
 import { PaymentLogos } from "@/ui/PaymentLogos";
 import { BookingInlineForm } from "@/ui/customer/BookingInlineForm";
 import { customerMoney as money } from "@/lib/customerFormat";
+import { SupervisionModeChoices } from "@/ui/customer/SupervisionModeChoices";
+import {
+  requiresSupervisionMode,
+  type SupervisionMode,
+  supervisionModeProviderLabel,
+  isSupervisionMode,
+} from "@shared/booking/supervisionMode";
 
 type Slot = { start: Date; end: Date; label: string };
 export default function Book() {
@@ -113,6 +120,7 @@ export default function Book() {
   const [slot, setSlot] = useState<Slot | null>(null);
   const [addressId, setAddressId] = useState("");
   const [recipient, setRecipient] = useState("myself");
+  const [supervisionMode, setSupervisionMode] = useState<SupervisionMode | "">("");
   const [notes, setNotes] = useState("");
   const [methodId, setMethodId] = useState("");
   const [choices, setChoices] = useState<Record<string, "customer" | "provider">>({});
@@ -139,6 +147,7 @@ export default function Book() {
   const service = services.find((s) => s.service.id === serviceId) ?? services[0];
   const tutoring = service?.service.category?.slug === "tutoring";
   const babysitting = service?.service.category?.slug === "babysitting";
+  const supervisionRequired = requiresSupervisionMode(service?.service.category?.slug);
   const fixed = !tutoring && isFixedPackage(service?.service);
   const caps = useApprovedTeachingCapabilities(providerId, service?.service.id);
   const capability = (caps.data ?? []).find((c) => c.id === capId) ?? null;
@@ -216,6 +225,9 @@ export default function Book() {
     setApplied(null);
   }, [service?.service.id, capId, hours, addressId]);
   useEffect(() => {
+    setSupervisionMode("");
+  }, [service?.service.id]);
+  useEffect(() => {
     if (fixed && service?.service.fixed_start_time)
       setSlot(!slots.isFetching && !slots.isError ? (available[0] ?? null) : null);
   }, [fixed, service?.service.fixed_start_time, slots.isFetching, slots.isError, available]);
@@ -253,18 +265,22 @@ export default function Book() {
     travelFee: Number(zone.data?.travel_fee ?? 0),
     promoDiscount: applied?.discount ?? 0,
   });
+  const recipientReady = canContinueForWhom({
+    isBabysitting: babysitting,
+    forWhom: recipient,
+    members: members.data ?? [],
+    startAt: currentSlot?.start ?? null,
+  });
+  const supervisionReady = !supervisionRequired || !!supervisionMode;
   const missing = bookingScreenMissingStep(BOOKING_SCREENS[step], {
     service: !!service,
     tutoring,
     capability: !!capability,
     slot: !!currentSlot && !slots.isFetching,
     address: !!selectedAddress && !!zone.data && !zone.isFetching,
-    recipient: canContinueForWhom({
-      isBabysitting: babysitting,
-      forWhom: recipient,
-      members: members.data ?? [],
-      startAt: currentSlot?.start ?? null,
-    }),
+    recipient: recipientReady,
+    supervisionRequired,
+    supervision: supervisionReady,
     requirements: requirements.isSuccess && either.every((r) => !!choices[r.id]),
     payment: !!methods.data?.some((m) => m.id === methodId),
   });
@@ -292,6 +308,9 @@ export default function Book() {
     hasDate: true,
     hasSlots: available.length > 0,
     hasAddress: !!addressId,
+    hasRecipient: recipientReady,
+    hasSupervision: supervisionReady,
+    supervisionRequired,
   });
   async function applyPromo() {
     if (!promo.trim() || !service) return;
@@ -361,6 +380,8 @@ export default function Book() {
         eitherRequirements: either,
         requirementChoices: choices,
         selectedCapability: capability,
+        supervisionMode:
+          supervisionRequired && isSupervisionMode(supervisionMode) ? supervisionMode : null,
       });
       idempotency.current = resolveIdempotencyKey(
         idempotency.current,
@@ -455,6 +476,9 @@ export default function Book() {
         label={t("customerBooking.addMember")}
         onPress={() => setInlineForm("member")}
       />
+      {supervisionRequired && (
+        <SupervisionModeChoices value={supervisionMode} onChange={setSupervisionMode} />
+      )}
     </View>
   );
   return (
@@ -785,6 +809,15 @@ export default function Book() {
                     : members.data?.find((m) => m.id === recipient)?.full_name,
                 step: tutoring ? 0 : 2,
               },
+              ...(supervisionRequired && isSupervisionMode(supervisionMode)
+                ? [
+                    {
+                      label: t("bookFlow.supervision.label"),
+                      value: supervisionModeProviderLabel(supervisionMode, t) ?? "",
+                      step: tutoring ? 0 : 2,
+                    },
+                  ]
+                : []),
               ...(notes ? [{ label: t("bookFlow.rowNotes"), value: notes, step: 2 }] : []),
             ].map((row, index, rows) => (
               <View

@@ -21,6 +21,10 @@ import { Page, QueryState, ActionError } from "@/ui/Page";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { colors, space } from "@/ui/theme";
+import {
+  isSupervisionMode,
+  supervisionModeProviderLabel,
+} from "@shared/booking/supervisionMode";
 
 export default function ProBookingDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -145,6 +149,17 @@ export default function ProBookingDetail() {
                   </Text>
                   <Text weight="bold" size="sm" style={{ flex: 1 }}>
                     {party.member_first_name}
+                  </Text>
+                </View>
+              ) : null}
+              {isSupervisionMode(b.supervision_mode as string | null | undefined) ? (
+                <View style={proCard.row}>
+                  <User size={16} color={colors.brand} />
+                  <Text tone="muted" size="sm" style={{ flex: 1 }}>
+                    {t("bookFlow.supervision.label")}
+                  </Text>
+                  <Text weight="bold" size="sm" style={{ flex: 1 }}>
+                    {supervisionModeProviderLabel(b.supervision_mode as string, t)}
                   </Text>
                 </View>
               ) : null}

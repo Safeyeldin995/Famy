@@ -788,6 +788,7 @@ export type Database = {
           service_id: string
           session_duration_min: number | null
           start_at: string
+          supervision_mode: string | null
           status: Database["public"]["Enums"]["booking_status"]
           status_changed_at: string | null
           status_changed_by: string | null
@@ -852,6 +853,7 @@ export type Database = {
           service_id: string
           session_duration_min?: number | null
           start_at: string
+          supervision_mode?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
           status_changed_at?: string | null
           status_changed_by?: string | null
@@ -916,6 +918,7 @@ export type Database = {
           service_id?: string
           session_duration_min?: number | null
           start_at?: string
+          supervision_mode?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
           status_changed_at?: string | null
           status_changed_by?: string | null
@@ -3990,6 +3993,7 @@ export type Database = {
           p_teaching_curriculum_code?: string
           p_teaching_level_code?: string
           p_teaching_subject_code?: string
+          p_supervision_mode?: string
         }
         Returns: Json
       }

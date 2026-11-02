@@ -21,6 +21,13 @@ import { CheckChip } from "@/components/famio/CheckChip";
 import { TextField } from "@/components/famio/TextField";
 import { BookingWhen } from "@/components/booking/BookingWhen";
 import { BookingDetailsSheet } from "@/components/booking/BookingDetailsSheet";
+import { SupervisionModeFields } from "@/components/booking/SupervisionModeFields";
+import {
+  requiresSupervisionMode,
+  type SupervisionMode,
+  supervisionModeProviderLabel,
+  isSupervisionMode,
+} from "@/lib/booking/supervisionMode";
 import "@/components/booking/customerBooking.css";
 import { isFixedPackage, filterFixedStartSlots, packageLabel } from "@/lib/pricing/servicePackages";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
@@ -162,6 +169,7 @@ export function BookContent({
   const [address, setAddress] = useState("");
   const [addressId, setAddressId] = useState<string | null>(null);
   const [forWhom, setForWhom] = useState("myself");
+  const [supervisionMode, setSupervisionMode] = useState<SupervisionMode | "">("");
   const [notes, setNotes] = useState("");
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
   const [promoCode, setPromoCode] = useState("");
@@ -259,6 +267,7 @@ export function BookContent({
   );
   const isBabysitting = isBabysittingCategorySlug(activeService?.service?.category?.slug);
   const isTutoring = isTutoringCategorySlug(activeService?.service?.category?.slug);
+  const supervisionRequired = requiresSupervisionMode(activeService?.service?.category?.slug);
   const capabilitiesQ = useApprovedTeachingCapabilities(
     providerId,
     activeService?.service?.id ?? serviceId ?? undefined,
@@ -316,6 +325,10 @@ export function BookContent({
       setForWhom(defaultForWhom(false));
     }
   }, [isBabysitting, forWhom]);
+
+  useEffect(() => {
+    setSupervisionMode("");
+  }, [activeService?.service?.id]);
 
   const packageSlots = useMemo(
     () => filterFixedStartSlots(slotsQ.data ?? [], activeService?.service),
@@ -561,18 +574,22 @@ export function BookContent({
 
   const requirementsReady =
     requirementsQ.isSuccess && eitherRequirements.every((r: any) => !!requirementChoices[r.id]);
+  const recipientReady = canContinueForWhom({
+    isBabysitting,
+    forWhom,
+    members: familyMembersQ.data ?? [],
+    startAt: selectedSlot?.start ?? null,
+  });
+  const supervisionReady = !supervisionRequired || !!supervisionMode;
   const missingStep = bookingScreenMissingStep(stepKey, {
     service: !!activeService,
     tutoring: isTutoring,
     capability: !!selectedCapability,
     slot: !!date && !!time && (!fixedPackage || !!selectedSlot),
     address: !!addressId && !!zoneQ.data,
-    recipient: canContinueForWhom({
-      isBabysitting,
-      forWhom,
-      members: familyMembersQ.data ?? [],
-      startAt: selectedSlot?.start ?? null,
-    }),
+    recipient: recipientReady,
+    supervisionRequired,
+    supervision: supervisionReady,
     requirements: requirementsReady,
     payment: !!paymentMethodId,
   });
@@ -606,6 +623,9 @@ export function BookContent({
     hasDate: !!date,
     hasSlots: packageSlots.length > 0,
     hasAddress: !!addressId,
+    hasRecipient: recipientReady,
+    hasSupervision: supervisionReady,
+    supervisionRequired,
   });
   const clearSlot = () => {
     setTime(null);
@@ -733,6 +753,7 @@ export function BookContent({
         eitherRequirements,
         requirementChoices,
         selectedCapability,
+        supervisionMode: supervisionRequired && isSupervisionMode(supervisionMode) ? supervisionMode : null,
       });
       const fingerprint = bookingSubmissionFingerprint(submissionPayload);
       idempotencyStateRef.current = resolveIdempotencyKey(idempotencyStateRef.current, fingerprint);
@@ -1036,6 +1057,9 @@ export function BookContent({
               {isTutoring && (
                 <>
                   {recipientFields}
+                  {supervisionRequired && (
+                    <SupervisionModeFields value={supervisionMode} onChange={setSupervisionMode} />
+                  )}
                   <Step title={t("bookFlow.pickCapability")}>
                     <details
                       className="booking-section"
@@ -1313,6 +1337,9 @@ export function BookContent({
           )}
 
           {stepKey === "whereWho" && !isTutoring && recipientFields}
+          {stepKey === "whereWho" && supervisionRequired && !isTutoring && (
+            <SupervisionModeFields value={supervisionMode} onChange={setSupervisionMode} />
+          )}
           {stepKey === "whereWho" &&
             (!requirementsQ.isSuccess || bookingRequirements.length > 0) && (
               <Step
@@ -1419,6 +1446,13 @@ export function BookContent({
                   value={forWhomLabel}
                   onEdit={() => editScreen(isTutoring ? "service" : "whereWho")}
                 />
+                {supervisionRequired && isSupervisionMode(supervisionMode) && (
+                  <ReviewRow
+                    label={t("bookFlow.supervision.label")}
+                    value={supervisionModeProviderLabel(supervisionMode, t) ?? ""}
+                    onEdit={() => editScreen(isTutoring ? "service" : "whereWho")}
+                  />
+                )}
                 {notes && (
                   <ReviewRow
                     label={t("bookFlow.rowNotes")}

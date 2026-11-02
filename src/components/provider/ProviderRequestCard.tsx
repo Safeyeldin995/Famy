@@ -7,12 +7,17 @@ import { useProPath } from "@/lib/provider/useProPath";
 import { BookingRequestActions } from "./BookingRequestActions";
 import { BookingCountdown } from "./BookingCountdown";
 import { ProfileAvatar } from "./ProfileAvatar";
+import {
+  isSupervisionMode,
+  supervisionModeProviderLabel,
+} from "@/lib/booking/supervisionMode";
 
 type RequestBooking = {
   id: string;
   start_at: string;
   created_at?: string;
   price_total?: number | null;
+  supervision_mode?: string | null;
   customer?: { full_name?: string | null; avatar_url?: string | null } | null;
   service?: { name_ar?: string | null; name_en?: string | null } | null;
   party?: BookingParty;
@@ -48,12 +53,15 @@ export function ProviderRequestCard({ booking: b }: { booking: RequestBooking })
           </span>
         </div>
         <p className="text-pro-14 font-bold">{ar ? b.service?.name_ar : b.service?.name_en}</p>
-        {(area || child) && (
+        {(area || child || isSupervisionMode(b.supervision_mode)) && (
           <p className="text-pro-13 text-muted-foreground">
             {[
               area,
               child &&
                 (age != null ? t("pro.booking.childWithAge", { name: child, count: age }) : child),
+              isSupervisionMode(b.supervision_mode)
+                ? supervisionModeProviderLabel(b.supervision_mode, t)
+                : null,
             ]
               .filter(Boolean)
               .join(" · ")}
