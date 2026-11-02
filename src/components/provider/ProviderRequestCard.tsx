@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { bookingMemberAgeTranslation } from "@/lib/familyMemberAge";
 import { useTranslation } from "react-i18next";
 import type { BookingParty } from "@/lib/db/booking-parties";
 import { useBookingExpirySettings } from "@/lib/db/settings-queries";
@@ -28,7 +29,7 @@ export function ProviderRequestCard({ booking: b }: { booking: RequestBooking })
   const name = b.customer?.full_name || t("pro.common.customer");
   const area = (ar ? b.party?.zone_name_ar : b.party?.zone_name_en) || b.party?.area;
   const child = b.party?.member_first_name;
-  const age = b.party?.member_age_years;
+  const age = bookingMemberAgeTranslation(b.party);
   return (
     <article className="overflow-hidden rounded-2xl border border-border/50 bg-surface">
       <Link
@@ -50,11 +51,7 @@ export function ProviderRequestCard({ booking: b }: { booking: RequestBooking })
         <p className="text-pro-14 font-bold">{ar ? b.service?.name_ar : b.service?.name_en}</p>
         {(area || child) && (
           <p className="text-pro-13 text-muted-foreground">
-            {[
-              area,
-              child &&
-                (age != null ? t("pro.booking.childWithAge", { name: child, count: age }) : child),
-            ]
+            {[area, child && `${child} · ${t(age.key, { count: age.count })}`]
               .filter(Boolean)
               .join(" · ")}
           </p>

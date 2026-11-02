@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { memberAgeTranslation } from "@shared/familyMemberAge";
 import { View } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -80,6 +81,10 @@ export default function FamilyMembers() {
                   {m.relationship === "other"
                     ? m.relationship_other || t("familyMembers.relationships.other")
                     : t(`familyMembers.relationships.${m.relationship}`)}
+                  {" · "}
+                  {t(memberAgeTranslation(m.date_of_birth).key, {
+                    count: memberAgeTranslation(m.date_of_birth).count,
+                  })}
                 </Text>
               </View>
             </View>

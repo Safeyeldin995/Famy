@@ -10,6 +10,7 @@ const { waitForLaunchGateGone, screenshotWithoutLaunchOverlay } = require("./wai
 
 const exportDir = path.resolve(process.argv[2]);
 const artifacts = path.resolve(process.argv[3]);
+const bookingAgeOnly = process.argv[4] === "booking-age";
 fs.mkdirSync(artifacts, { recursive: true });
 const config = require("../app.json").expo.extra;
 const apiOrigin = new URL(config.supabaseUrl).origin;
@@ -237,6 +238,10 @@ async function run() {
     geolocation: { latitude: 30.03, longitude: 31.0 },
     timezoneId: "Africa/Cairo",
   });
+  if (bookingAgeOnly)
+    await context.addInitScript(() => {
+      Object.defineProperty(Intl, "PluralRules", { value: undefined, configurable: true });
+    });
   await context.addInitScript(
     ({ key, session }) => {
       // Init scripts also run in the map's sandboxed iframe, where storage throws.
@@ -421,7 +426,10 @@ async function run() {
                   expires_at: null,
                 },
               ];
-      else if (table === "booking_party_profiles")
+      else if (
+        table === "booking_party_profiles" ||
+        table === "booking_party_profiles_with_member_age"
+      )
         data = (body.p_booking_ids || []).map((booking_id) => ({
           booking_id,
           other_name: provider.full_name,
@@ -546,7 +554,11 @@ async function run() {
     if (msg.type() !== "error" || mode === "error") return;
     // The map iframe loads Google Maps; remote map traffic is not part of this check.
     const mapHost = /maps\.googleapis\.com|maps\.google\.com|maps\.gstatic\.com/;
-    if (mapHost.test(msg.location()?.url ?? "") || /google\.maps|maps\.googleapis/i.test(msg.text())) return;
+    if (
+      mapHost.test(msg.location()?.url ?? "") ||
+      /google\.maps|maps\.googleapis/i.test(msg.text())
+    )
+      return;
     errors.push(msg.text());
   });
   async function visit(route, text) {
@@ -584,7 +596,7 @@ async function run() {
   async function radio(label) {
     await page.getByRole("radio", { name: label, exact: true }).click();
   }
-  for (const kind of ["hourly", "package", "tutoring"]) {
+  for (const kind of bookingAgeOnly ? ["package"] : ["hourly", "package", "tutoring"]) {
     scenario = kind;
     paymentRows = [];
     booking.status = "confirmed";
@@ -601,7 +613,7 @@ async function run() {
     await visit(`/book/${pid}`, ar.search2.service);
     await expect(page.getByRole("radio", { name: service.name_ar, exact: true })).toBeVisible();
     if (kind === "tutoring") {
-      await radio(member.full_name);
+      await page.getByRole("radio", { name: new RegExp(member.full_name) }).click();
       await radio("منهج اختبار");
       await radio("صف اختبار");
       await page.getByRole("radio", { name: /رياضيات اختبار/ }).click();
@@ -623,7 +635,8 @@ async function run() {
     await expect(page.getByRole("button", { name: ar.common.continue, exact: true })).toBeEnabled();
     await shot(`${kind}-2-time`);
     await button(ar.common.continue);
-    if (kind !== "tutoring") await radio(member.full_name);
+    if (kind !== "tutoring")
+      await page.getByRole("radio", { name: new RegExp(member.full_name) }).click();
     await page.getByRole("radio", { name: new RegExp(ar.mobileBooking.providerProvides) }).click();
     await expect(page.getByRole("button", { name: ar.common.continue, exact: true })).toBeEnabled();
     await shot(`${kind}-3-address-recipient`);
@@ -651,6 +664,11 @@ async function run() {
           })
     ).scrollIntoViewIfNeeded();
     await shot(`${kind}-5-payment`);
+    if (bookingAgeOnly) {
+      await page.getByTestId("booking-status").scrollIntoViewIfNeeded();
+      await shot("booking-detail-after-create");
+      continue;
+    }
     if (kind === "package") {
       const chooser = page.waitForEvent("filechooser");
       await button(ar.payment.uploadReceipt);
@@ -716,6 +734,48 @@ async function run() {
       await expect(page.getByTestId("booking-status")).toHaveText(ar.status.cancelled);
       await shot("cancelled");
     }
+  }
+  if (bookingAgeOnly) {
+    assert.equal(creates.length, 1);
+    await visit("/family-members/new", ar.familyMembers.fullName);
+    await page.getByLabel(ar.familyMembers.fullName, { exact: true }).fill("طفل اختبار محلي");
+    await button(ar.memberAge.years);
+    await radio("1");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await button(ar.memberAge.months);
+    await radio("8");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await page
+      .getByRole("button", { name: ar.memberAge.months, exact: true })
+      .scrollIntoViewIfNeeded();
+    await shot("member-form-mobile");
+    await button(ar.common.save);
+    await expect
+      .poll(() => writes.filter((w) => w.table === "family_members" && w.method === "POST").length)
+      .toBe(1);
+    const saved = writes.find((w) => w.table === "family_members" && w.method === "POST").body;
+    assert.equal(saved.date_of_birth_is_estimated, true);
+    assert(saved.date_of_birth.endsWith("-01"));
+    await expect(page.getByText("20 شهر", { exact: false })).toBeVisible();
+    assert.equal(errors.length, 0, errors.join("\n"));
+    fs.writeFileSync(
+      path.join(artifacts, "verification.json"),
+      JSON.stringify(
+        {
+          passed: true,
+          bookingCreated: true,
+          estimatedAgeSaved: true,
+          withoutIntlPluralRules: true,
+          screenshots,
+        },
+        null,
+        2,
+      ),
+    );
+    console.log(
+      "PASS: created fixed-package booking, rendered detail without Intl.PluralRules, saved member age; isolated local fixtures.",
+    );
+    return;
   }
   assert.equal(creates.length, 3);
   assert.equal(paymobCalls, 1);

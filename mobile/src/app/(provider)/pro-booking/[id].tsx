@@ -144,7 +144,10 @@ export default function ProBookingDetail() {
                     {t("pro.booking.forWhom")}
                   </Text>
                   <Text weight="bold" size="sm" style={{ flex: 1 }}>
-                    {party.member_first_name}
+                    {party.member_first_name} ·{" "}
+                    {t(bookingMemberAgeTranslation(party).key, {
+                      count: bookingMemberAgeTranslation(party).count,
+                    })}
                   </Text>
                 </View>
               ) : null}
@@ -270,3 +273,4 @@ export default function ProBookingDetail() {
     </Page>
   );
 }
+import { bookingMemberAgeTranslation } from "@shared/familyMemberAge";
