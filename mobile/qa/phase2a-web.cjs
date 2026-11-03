@@ -240,7 +240,7 @@ async function run() {
   });
   if (bookingAgeOnly)
     await context.addInitScript(() => {
-      Object.defineProperty(Intl, "PluralRules", { value: undefined, configurable: true });
+      Reflect.deleteProperty(Intl, "PluralRules");
     });
   await context.addInitScript(
     ({ key, session }) => {
