@@ -1,6 +1,7 @@
 export const ADMIN_WORK_QUEUE_KEYS = [
   "new_applications",
   "resubmitted_applications",
+  "new_service_requests",
   "pending_services",
   "pending_teaching_groups",
   "pending_documents",
@@ -18,6 +19,7 @@ export function isProviderWorkQueueKey(value: unknown): value is AdminWorkQueueK
     [
       "new_applications",
       "resubmitted_applications",
+      "new_service_requests",
       "pending_services",
       "pending_teaching_groups",
       "pending_documents",

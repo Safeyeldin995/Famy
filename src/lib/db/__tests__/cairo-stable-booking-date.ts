@@ -51,3 +51,26 @@ export function stableCairoBookingBaseDate(now = new Date()): string {
   }
   throw new Error("stableCairoBookingBaseDate: no stable Cairo date found within 90 days");
 }
+
+function cairoDayHours(ymd: string): number {
+  return (cairoMidnightMs(cairoDatePlusDays(ymd, 1)) - cairoMidnightMs(ymd)) / 3_600_000;
+}
+
+function nextCairoDayOfLength(hours: number, now: Date): string {
+  let candidate = cairoDatePlusDays(cairoYmd(now), 2);
+  for (let attempt = 0; attempt < 800; attempt++) {
+    if (cairoDayHours(candidate) === hours) return candidate;
+    candidate = cairoDatePlusDays(candidate, 1);
+  }
+  throw new Error(`no ${hours}h Cairo day found within 800 days`);
+}
+
+/** Next Cairo DST fall-back date (its day lasts 25h), at least two days ahead so it stays bookable. */
+export function nextCairoFallBackDate(now = new Date()): string {
+  return nextCairoDayOfLength(25, now);
+}
+
+/** Day after the next Cairo spring-forward (23h) day, at least two days ahead. */
+export function nextCairoSpringForwardDate(now = new Date()): string {
+  return cairoDatePlusDays(nextCairoDayOfLength(23, now), 1);
+}
