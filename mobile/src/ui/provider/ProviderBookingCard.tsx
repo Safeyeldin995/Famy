@@ -1,4 +1,5 @@
 import { Image, Pressable, View } from "react-native";
+import { bookingMemberAgeTranslation } from "@shared/familyMemberAge";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { BookingRequestActions } from "./BookingRequestActions";
@@ -38,7 +39,7 @@ export function ProviderBookingCard({
     ? booking.party?.zone_name_ar || booking.party?.area
     : booking.party?.zone_name_en || booking.party?.area;
   const child = booking.party?.member_first_name;
-  const age = booking.party?.member_age_years;
+  const age = bookingMemberAgeTranslation(booking.party);
   return (
     <View
       style={{
@@ -87,14 +88,7 @@ export function ProviderBookingCard({
         <Text weight="bold">{localized(booking.service, language)}</Text>
         {area || child ? (
           <Text tone="muted" size="sm">
-            {[
-              area,
-              child
-                ? age != null
-                  ? t("pro.booking.childWithAge", { name: child, count: age })
-                  : child
-                : null,
-            ]
+            {[area, child ? `${child} · ${t(age.key, { count: age.count })}` : null]
               .filter(Boolean)
               .join(" · ")}
           </Text>

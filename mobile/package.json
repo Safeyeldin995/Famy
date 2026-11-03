@@ -1,10 +1,11 @@
 {
   "name": "mobile",
   "version": "1.0.0",
-  "main": "expo-router/entry",
+  "main": "index.js",
   "dependencies": {
     "@expo-google-fonts/almarai": "^0.4.1",
     "@expo-google-fonts/manrope": "^0.4.2",
+    "@formatjs/intl-pluralrules": "7.0.2",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "9.2.1",
     "@react-native-firebase/app": "^27.0.0",

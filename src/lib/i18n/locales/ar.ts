@@ -1,6 +1,28 @@
 import type { Translation } from "./en";
 
 const ar: Translation = {
+  bookingDuration: { hour: "ساعة", hours: "ساعات" },
+  memberAge: {
+    label: "السن",
+    years: "السنين",
+    months: "الشهور",
+    required: "اختار السن من الاختيارات المتاحة",
+    unknown: "السن مش متاح",
+    yearCount: "{{count}} سنة",
+    yearCount_one: "سنة",
+    yearCount_other: "{{count}} سنة",
+    monthCount: "{{count}} شهر",
+    monthCount_zero: "أقل من شهر",
+    monthCount_one: "شهر",
+    monthCount_other: "{{count}} شهر",
+    yearCount_zero: "أقل من سنة",
+    yearCount_two: "سنتين",
+    yearCount_few: "{{count}} سنين",
+    yearCount_many: "{{count}} سنة",
+    monthCount_two: "شهرين",
+    monthCount_few: "{{count}} شهور",
+    monthCount_many: "{{count}} شهر",
+  },
   customerAreas: { sheikhZayed: "الشيخ زايد", october: "6 أكتوبر", maadi: "المعادي" },
   site: {
     nav: {

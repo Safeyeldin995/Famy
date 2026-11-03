@@ -1,4 +1,5 @@
 import { resolveStudentEducationProfile } from "@shared/tutoring/studentEducationProfile";
+import { memberAgeTranslation } from "@shared/familyMemberAge";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -204,7 +205,10 @@ export function Discovery({ category }: { category?: string }) {
             onChange={setStudent}
             options={[
               { value: "myself", label: t("bookFlow.forWhomMyself") },
-              ...(members.data ?? []).map((m) => ({ value: m.id, label: m.full_name })),
+              ...(members.data ?? []).map((m) => ({
+                value: m.id,
+                label: `${m.full_name} · ${t(memberAgeTranslation(m.date_of_birth).key, { count: memberAgeTranslation(m.date_of_birth).count })}`,
+              })),
             ]}
           />
           <QueryState query={caps} />

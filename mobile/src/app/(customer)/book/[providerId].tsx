@@ -1,4 +1,5 @@
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
+import { memberAgeTranslation } from "@shared/familyMemberAge";
 import { CustomerBookingWhen } from "@/ui/customer/BookingWhen";
 import { BookingServiceCard } from "@/ui/customer/BookingServiceCard";
 import { BookOpen, Clock, UserRound, Star } from "lucide-react-native";
@@ -447,7 +448,10 @@ export default function Book() {
                 !babysitting ||
                 familyMemberSelectableForBabysitting(m, currentSlot?.start ?? null).ok,
             )
-            .map((m) => ({ value: m.id, label: m.full_name })),
+            .map((m) => ({
+              value: m.id,
+              label: `${m.full_name} · ${t(memberAgeTranslation(m.date_of_birth).key, { count: memberAgeTranslation(m.date_of_birth).count })}`,
+            })),
         ]}
       />
       <QueryState query={members} empty={babysitting && !members.data?.length} />

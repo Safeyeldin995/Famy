@@ -1,4 +1,26 @@
 const en = {
+  bookingDuration: { hour: "hour", hours: "hours" },
+  memberAge: {
+    label: "Age",
+    years: "Years",
+    months: "Months",
+    required: "Choose an age in the allowed range",
+    unknown: "Age unavailable",
+    yearCount: "{{count}} years",
+    yearCount_one: "{{count}} year",
+    yearCount_other: "{{count}} years",
+    monthCount: "{{count}} months",
+    monthCount_zero: "Less than a month",
+    monthCount_one: "{{count}} month",
+    monthCount_other: "{{count}} months",
+    yearCount_zero: "Less than a year",
+    yearCount_two: "{{count}} years",
+    yearCount_few: "{{count}} years",
+    yearCount_many: "{{count}} years",
+    monthCount_two: "{{count}} months",
+    monthCount_few: "{{count}} months",
+    monthCount_many: "{{count}} months",
+  },
   customerAreas: { sheikhZayed: "Sheikh Zayed", october: "6th of October", maadi: "Maadi" },
   site: {
     nav: {

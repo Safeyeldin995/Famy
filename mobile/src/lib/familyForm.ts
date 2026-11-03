@@ -1,5 +1,10 @@
 import { normalizePhoneE164 } from "@shared/otp/normalizePhone";
 import type { FamilyMemberInput } from "./queries";
+import {
+  estimatedMemberBirthDate,
+  memberAgeFromDate,
+  memberMaxYears,
+} from "@shared/familyMemberAge";
 
 // Source: src/components/famio/FamilyMemberForm.tsx — pure validation/normalization.
 export const relationships = [
@@ -31,6 +36,7 @@ export function emptyMember(): FamilyMemberInput {
 }
 export function validMember(value: FamilyMemberInput, consent: boolean, today: string) {
   const dob = value.date_of_birth;
+  const age = memberAgeFromDate(dob, today);
   const date = new Date(`${dob}T12:00:00Z`);
   const dateValid =
     /^\d{4}-\d{2}-\d{2}$/.test(dob) &&
@@ -42,6 +48,8 @@ export function validMember(value: FamilyMemberInput, consent: boolean, today: s
   return (
     !!value.full_name.trim() &&
     dateValid &&
+    !!age &&
+    age.years <= memberMaxYears(value.relationship) &&
     relationships.includes(value.relationship) &&
     (value.relationship !== "other" || !!value.relationship_other?.trim()) &&
     phoneValid(value.phone) &&
@@ -53,6 +61,8 @@ export function validMember(value: FamilyMemberInput, consent: boolean, today: s
 export function memberInput(value: FamilyMemberInput): FamilyMemberInput {
   return {
     ...value,
+    date_of_birth: estimatedMemberBirthDate(value.date_of_birth),
+    date_of_birth_is_estimated: true,
     full_name: value.full_name.trim(),
     relationship_other: value.relationship === "other" ? value.relationship_other?.trim() : null,
     phone: value.phone?.trim() ? normalizePhoneE164(value.phone) : null,

@@ -17,7 +17,7 @@ describe("mobile Hermes-safe crypto", () => {
     const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
     const offenders = sourceFiles(root).filter(
       (file) =>
-        !file.includes("/__tests__/") &&
+        !file.replaceAll("\\", "/").includes("/__tests__/") &&
         readFileSync(file, "utf8").includes("crypto.randomUUID("),
     );
     expect(offenders).toEqual([]);

@@ -1380,6 +1380,7 @@ export type Database = {
           created_at: string
           customer_id: string
           date_of_birth: string
+          date_of_birth_is_estimated: boolean
           education_curriculum_id: string | null
           education_level_id: string | null
           emergency_contact_name: string | null
@@ -1400,6 +1401,7 @@ export type Database = {
           created_at?: string
           customer_id: string
           date_of_birth: string
+          date_of_birth_is_estimated?: boolean
           education_curriculum_id?: string | null
           education_level_id?: string | null
           emergency_contact_name?: string | null
@@ -1420,6 +1422,7 @@ export type Database = {
           created_at?: string
           customer_id?: string
           date_of_birth?: string
+          date_of_birth_is_estimated?: boolean
           education_curriculum_id?: string | null
           education_level_id?: string | null
           emergency_contact_name?: string | null
@@ -4112,6 +4115,23 @@ export type Database = {
           area: string | null
           booking_id: string
           member_age_years: number | null
+          member_first_name: string | null
+          other_avatar_url: string | null
+          other_name: string | null
+          other_phone: string | null
+          other_user_id: string
+          viewer_role: string
+          zone_name_ar: string | null
+          zone_name_en: string | null
+        }[]
+      }
+      booking_party_profiles_with_member_age: {
+        Args: { p_booking_ids: string[] }
+        Returns: {
+          area: string | null
+          booking_id: string
+          member_age_years: number | null
+          member_age_months: number | null
           member_first_name: string | null
           other_avatar_url: string | null
           other_name: string | null
