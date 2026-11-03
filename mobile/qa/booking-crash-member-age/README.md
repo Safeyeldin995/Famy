@@ -1,5 +1,24 @@
 # Booking crash and family member age
 
+## Follow-up: app-wide plurals (2026-11-03)
+
+Merged `origin/main` at `8805fd9` with merge commit `7d948ad`; retained both test lists and all provider-service-request / booking step-one parity behavior. The DST test has no diff from main.
+
+The duration helper only addressed the immediate render crash. The root fix now installs exact `@formatjs/intl-pluralrules@7.0.2`. `mobile/index.js` loads the conditional polyfill and ar/en data before Expo Router can load i18n or screens. Version 7 exports require the `.js` suffix. Supported native implementations are not force-replaced.
+
+The real mobile i18n initializer is tested with both `Intl.PluralRules` and `Intl.Locale` removed: `providerPage.reviewCount` resolves to `تقييمين` for 2 and `3 تقييمات` for 3; English singular/plural also pass. Current app languages are exactly `ar` and `en`. The existing duration helper remains.
+
+Scan of all `mobile/src` and `src/lib`: no `RelativeTimeFormat`, `ListFormat`, or `DisplayNames` uses. Existing NumberFormat and DateTimeFormat uses remain; shared `src/lib/format/index.ts` also uses PluralRules, now covered by the entry polyfill if imported by mobile.
+
+Current follow-up verification (all exit 0):
+
+- Mobile typecheck; 12 Vitest files / 55 tests; ESLint on changed source files.
+- Root typecheck; 8 focused Vitest files / 35 tests, including the fixed DST tests.
+- Mobile web export; full `phase2a-web.cjs`: 23 Arabic screenshots, hourly/package/tutoring, cash/transfer/Paymob, receipt/cancellation/review/address flows.
+- Focused `booking-age` harness: creation → detail with PluralRules removed before startup, plus estimated member-age save.
+
+The newly merged crypto guard test needed Windows path-separator normalization because it otherwise scanned its own test string. No production guard was weakened. Migration remains unapplied; native post-fix EAS verification remains pending. The initial-run results below are historical, not the follow-up gate results.
+
 ## Android crash evidence
 
 On `Medium_Phone_API_37.0`, cleared logcat and opened the existing pending full-day babysitting booking in the installed preview APK. The app immediately exited to the launcher. No duplicate live booking was created for reproduction.
