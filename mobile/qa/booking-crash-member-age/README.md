@@ -19,6 +19,8 @@ Current follow-up verification (all exit 0):
 
 The newly merged crypto guard test needed Windows path-separator normalization because it otherwise scanned its own test string. No production guard was weakened. Migration remains unapplied; native post-fix EAS verification remains pending. The initial-run results below are historical, not the follow-up gate results.
 
+CI's root Vitest job includes mobile tests. It now installs the locked mobile dependencies before testing, so the real polyfill imports resolve on clean CI runners; no tests were excluded or mocked to bypass the package.
+
 ## Android crash evidence
 
 On `Medium_Phone_API_37.0`, cleared logcat and opened the existing pending full-day babysitting booking in the installed preview APK. The app immediately exited to the launcher. No duplicate live booking was created for reproduction.
