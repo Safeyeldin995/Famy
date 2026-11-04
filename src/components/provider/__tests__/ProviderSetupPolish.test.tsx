@@ -80,6 +80,10 @@ const props = {
     { ...taxonomy, id: "other", name_en: "Other grade" },
   ],
   links: [{ subject_id: "subject", service_id: "service" }],
+  serviceLevels: [
+    { service_id: "service", level_id: "grade" },
+    { service_id: "service", level_id: "other" },
+  ],
   onSave: vi.fn().mockResolvedValue(undefined),
   onRemove: vi.fn(),
   onBack: vi.fn(),

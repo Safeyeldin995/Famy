@@ -29,6 +29,7 @@ import { toUICategory, toUIProvider, providerPriceLabel } from "@/lib/db/adapter
 import { formatNumber } from "@/lib/format";
 import { SlidersHorizontal } from "lucide-react";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
+import { LessonServiceTileRow } from "@/components/lessons/LessonServiceTileRow";
 
 export const Route = createFileRoute("/category/$id")({ component: CategoryPage });
 
@@ -146,6 +147,17 @@ export function CategoryPageContent({ categoryId }: { categoryId: string }) {
               <QueryError compact onRetry={() => servicesQ.refetch()} />
             </div>
           ) : (
+            <>
+            {isTutoring ? (
+              <div className="mt-3">
+                <LessonServiceTileRow
+                  services={(servicesQ.data ?? []) as { id: string; slug: string; name_en: string; name_ar?: string | null }[]}
+                  lang={lang === "ar" ? "ar" : "en"}
+                  selectedServiceId={serviceId}
+                  onSelectServiceId={setServiceId}
+                />
+              </div>
+            ) : null}
             <CustomerFilterPicker
               label={t("search2.service")}
               value={serviceId}
@@ -163,6 +175,7 @@ export function CategoryPageContent({ categoryId }: { categoryId: string }) {
                 }),
               )}
             />
+            </>
           )}
         </div>
 

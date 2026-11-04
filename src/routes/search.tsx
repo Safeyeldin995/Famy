@@ -21,6 +21,8 @@ import { useTranslation } from "react-i18next";
 import { Search as SearchIcon, X } from "lucide-react";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
 import { formatNumber } from "@/lib/format";
+import { LessonServiceTileRow } from "@/components/lessons/LessonServiceTileRow";
+import { isLessonServiceSlug } from "@/lib/tutoring/lessonServices";
 
 export function searchServiceFilter(search: Record<string, unknown>): { serviceId?: string } {
   return typeof search.serviceId === "string" ? { serviceId: search.serviceId } : {};
@@ -157,6 +159,19 @@ function SearchPage() {
             {t("category.sortTop")}
           </Chip>
         </div>
+
+        {filter === "tutoring" && (servicesQ.data?.length ?? 0) > 0 ? (
+          <div className="mt-5">
+            <LessonServiceTileRow
+              services={(servicesQ.data ?? []).filter((s: { slug?: string }) =>
+                isLessonServiceSlug(s.slug),
+              ) as { id: string; slug: string; name_en: string; name_ar: string }[]}
+              lang={lang === "ar" ? "ar" : "en"}
+              selectedServiceId={serviceId}
+              onSelectServiceId={setServiceId}
+            />
+          </div>
+        ) : null}
 
         <div className="mt-5 grid grid-cols-2 gap-3 rounded-2xl border border-border/50 bg-white p-4 shadow-sm">
           <CustomerFilterPicker

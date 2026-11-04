@@ -4,6 +4,15 @@ import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { groupTeachingRows, teachingLevelDiff } from "@shared/tutoring/teachingGroups";
 import { allowedDurationsForSubject } from "@shared/tutoring/teachingCapabilities";
+import { teachingLevelsForServiceAndCurriculum } from "@shared/tutoring/teachingLevelFilters";
+import {
+  isTeachingCurriculumNa,
+  serviceRequiresTeachingCurriculum,
+  TEACHING_CURRICULUM_NA_CODE,
+  isLessonServiceSlug,
+} from "@shared/tutoring/lessonServices";
+import { LessonIllustration } from "@/ui/lessons/LessonIllustration";
+import { LessonSubjectChips } from "@/ui/lessons/LessonSubjectChips";
 import { isPriceInRange } from "@shared/provider/priceOptions";
 import {
   useMyTeachingCapabilities,
@@ -13,6 +22,7 @@ import {
   useTeachingLevels,
   useTeachingSubjects,
   useTeachingSubjectServices,
+  useTeachingServiceLevels,
 } from "@/lib/provider/teachingQueries";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
@@ -21,8 +31,10 @@ import { BottomSheetSelect } from "./BottomSheetSelect";
 import { ProviderPriceStepper } from "./ProviderPriceStepper";
 import { proCard } from "./cards";
 
-type Named = { id: string; code?: string; name_ar: string; name_en: string };
+type Named = { id: string; code?: string | null; name_ar: string; name_en: string };
+type SubjectRow = { id: string; code: string; name_ar: string; name_en: string };
 type TeachingService = Named & {
+  slug?: string | null;
   minimum_price?: number | null;
   maximum_price?: number | null;
   allowed_session_durations?: number[] | null;
@@ -48,12 +60,14 @@ export function TeachingGroupsSetup({
 }) {
   const { t, i18n } = useTranslation();
   const ar = i18n.language.startsWith("ar");
-  const name = (row: Named) => (ar ? row.name_ar : row.name_en);
+  const name = (row: { name_ar?: string; name_en?: string }) =>
+    ar ? (row.name_ar ?? row.name_en ?? "") : (row.name_en ?? row.name_ar ?? "");
   const rowsQ = useMyTeachingCapabilities(providerId);
   const subjectsQ = useTeachingSubjects();
   const curriculaQ = useTeachingCurricula();
   const levelsQ = useTeachingLevels();
   const linksQ = useTeachingSubjectServices();
+  const serviceLevelsQ = useTeachingServiceLevels();
   const saveGroup = useSaveTeachingGroup();
   const removeGroup = useRemoveTeachingCapability();
   const [serviceId, setServiceId] = useState(services[0]?.id ?? "");
@@ -65,7 +79,7 @@ export function TeachingGroupsSetup({
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const queries = [rowsQ, subjectsQ, curriculaQ, levelsQ, linksQ];
+  const queries = [rowsQ, subjectsQ, curriculaQ, levelsQ, linksQ, serviceLevelsQ];
   if (queries.some((query) => query.isLoading)) return <Text>{t("common.loading")}</Text>;
   if (queries.some((query) => query.isError))
     return <Text tone="danger">{t("providerApply.saveError")}</Text>;
@@ -76,13 +90,18 @@ export function TeachingGroupsSetup({
   const levels = (levelsQ.data ?? []) as Named[];
   const links = (linksQ.data ?? []) as { subject_id: string; service_id: string }[];
   const service = services.find((row) => row.id === serviceId);
+  const requiresCurriculum = serviceRequiresTeachingCurriculum(service?.slug);
+  const naCurriculumId =
+    curricula.find((row) => row.code === TEACHING_CURRICULUM_NA_CODE)?.id ?? "";
+  const effectiveCurriculumId = requiresCurriculum ? curriculumId : naCurriculumId;
   const subject = subjects.find((row) => row.id === subjectId);
-  const curriculum = curricula.find((row) => row.id === curriculumId);
+  const curriculum = curricula.find((row) => row.id === effectiveCurriculumId);
+  const serviceLevels = (serviceLevelsQ.data ?? []) as { service_id: string; level_id: string }[];
   const saved = rows.filter(
     (row) =>
       row.service_id === serviceId &&
       row.subject_id === subjectId &&
-      row.curriculum_id === curriculumId,
+      row.curriculum_id === effectiveCurriculumId,
   );
   const diff = teachingLevelDiff(saved, levelIds);
   const chosen = [...new Set([...levelIds, ...diff.lockedApproved.map((row) => row.level_id)])];
@@ -90,9 +109,13 @@ export function TeachingGroupsSetup({
   const availableSubjects = subjects.filter((row) =>
     links.some((link) => link.service_id === serviceId && link.subject_id === row.id),
   );
-  const availableLevels = levels.filter(
-    (row) => curriculum?.code !== "british" || ["g10", "g11", "g12"].includes(row.code ?? ""),
+  const availableLevels = teachingLevelsForServiceAndCurriculum(
+    serviceId,
+    curriculum?.code,
+    levels,
+    serviceLevels,
   );
+  const selectableCurricula = curricula.filter((row) => !isTeachingCurriculumNa(row.code));
   const durations = allowedDurationsForSubject(
     (subject as Named & { max_session_duration_min?: number })?.max_session_duration_min ?? 120,
     service?.allowed_session_durations ?? [60, 90, 120, 180],
@@ -105,7 +128,7 @@ export function TeachingGroupsSetup({
   const valid =
     !!service &&
     !!subjectId &&
-    !!curriculumId &&
+    !!effectiveCurriculumId &&
     chosen.length > 0 &&
     !!effectiveDuration &&
     isPriceInRange(effectivePrice, service.minimum_price ?? null, service.maximum_price ?? null);
@@ -125,7 +148,7 @@ export function TeachingGroupsSetup({
       await saveGroup.mutateAsync({
         serviceId,
         subjectId,
-        curriculumId,
+        curriculumId: effectiveCurriculumId,
         levelIds: chosen,
         sessionDurationMin: effectiveDuration,
         sessionPrice: effectivePrice,
@@ -148,9 +171,22 @@ export function TeachingGroupsSetup({
         const removable = teachingLevelDiff(group.rows, []).removable.map((row) => row.id);
         return (
           <View key={group.key} style={[proCard.card, { gap: space.sm }]}>
-            <Text weight="bold">
-              {subjectName ? name(subjectName) : ""} · {curriculumName ? name(curriculumName) : ""}
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
+              {subjectName?.code ? (
+                <LessonIllustration
+                  subjectCode={subjectName.code}
+                  accessibilityLabel={subjectName ? name(subjectName) : ""}
+                  width={40}
+                  height={40}
+                />
+              ) : null}
+              <Text weight="bold" style={{ flex: 1 }}>
+              {subjectName ? name(subjectName) : ""}
+              {curriculumName && !isTeachingCurriculumNa(curriculumName.code)
+                ? ` · ${name(curriculumName)}`
+                : ""}
+              </Text>
+            </View>
             <Text tone="muted" size="sm">
               {group.rows
                 .map((row) => {
@@ -206,25 +242,41 @@ export function TeachingGroupsSetup({
           resetChoice();
         }}
       />
-      <BottomSheetSelect
-        label={t("teaching.subject")}
+      <LessonSubjectChips
+        serviceSlug={service?.slug}
+        subjects={availableSubjects as SubjectRow[]}
         value={subjectId}
-        options={availableSubjects.map((row) => ({ value: row.id, label: name(row) }))}
+        label={name}
         onChange={(value) => {
           setSubjectId(value);
           setLevelIds([]);
         }}
       />
-      <BottomSheetSelect
-        label={t("teaching.curriculum")}
-        value={curriculumId}
-        options={curricula.map((row) => ({ value: row.id, label: name(row) }))}
-        onChange={(value) => {
-          setCurriculumId(value);
-          setLevelIds([]);
-        }}
-      />
-      {subjectId && curriculumId ? (
+      {!isLessonServiceSlug(service?.slug) ? (
+        <BottomSheetSelect
+          label={t("teaching.subject")}
+          value={subjectId}
+          options={availableSubjects.map((row) => ({ value: row.id, label: name(row) }))}
+          onChange={(value) => {
+            setSubjectId(value);
+            setLevelIds([]);
+          }}
+        />
+      ) : (
+        <Text weight="bold">{t("teaching.subject")}</Text>
+      )}
+      {requiresCurriculum ? (
+        <BottomSheetSelect
+          label={t("teaching.curriculum")}
+          value={curriculumId}
+          options={selectableCurricula.map((row) => ({ value: row.id, label: name(row) }))}
+          onChange={(value) => {
+            setCurriculumId(value);
+            setLevelIds([]);
+          }}
+        />
+      ) : null}
+      {subjectId && (requiresCurriculum ? curriculumId : naCurriculumId) ? (
         <View style={{ gap: space.sm }}>
           <Text weight="bold">{t("teaching.level")}</Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
