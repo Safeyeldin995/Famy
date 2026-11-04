@@ -1,6 +1,7 @@
-import { Image, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { bookingMemberAgeTranslation } from "@shared/familyMemberAge";
 import { router } from "expo-router";
+import { Avatar } from "../ProviderCard";
 import { useTranslation } from "react-i18next";
 import { BookingRequestActions } from "./BookingRequestActions";
 import { Text } from "@/ui/Text";
@@ -57,27 +58,7 @@ export function ProviderBookingCard({
         style={{ padding: space.md, gap: space.sm }}
       >
         <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
-          {booking.customer?.avatar_url ? (
-            <Image
-              source={{ uri: booking.customer.avatar_url }}
-              style={{ width: 48, height: 48, borderRadius: 14 }}
-            />
-          ) : (
-            <View
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 14,
-                backgroundColor: colors.brandTint,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Text weight="heavy" tone="brand">
-                {name.trim().slice(0, 1)}
-              </Text>
-            </View>
-          )}
+          <Avatar raw={booking.customer?.avatar_url} size={48} name={name} />
           <Text weight="heavy" size="lg" style={{ flex: 1 }} numberOfLines={1}>
             {name}
           </Text>
