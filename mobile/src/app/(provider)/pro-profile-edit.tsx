@@ -12,6 +12,7 @@ import {
   useMyProviderServicesDetailed,
   useSetProviderPrice,
   useToggleProviderService,
+  useCancelProviderServiceRequest,
 } from "@/lib/provider/profileQueries";
 import { useMyProvider, useUpdateProvider } from "@/lib/provider/queries";
 import { localized, money } from "@/lib/presentation";
@@ -22,6 +23,7 @@ import { proCard } from "@/ui/provider/cards";
 import { Page, QueryState, Field, ActionError } from "@/ui/Page";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
+import { PendingServiceRequestSummary } from "@/ui/provider/PendingServiceRequestSummary";
 
 export default function ProProfileEditScreen() {
   const { t, i18n } = useTranslation();
@@ -32,6 +34,8 @@ export default function ProProfileEditScreen() {
   const servicesQ = useAllServices();
   const mineQ = useMyProviderServicesDetailed(providerId);
   const toggle = useToggleProviderService();
+  const cancelRequest = useCancelProviderServiceRequest();
+  const isApprovedProvider = provider?.onboarding_status === "APPROVED";
   const setPrice = useSetProviderPrice();
   const updateProv = useUpdateProvider();
   const [bioAr, setBioAr] = useState("");
@@ -161,15 +165,60 @@ export default function ProProfileEditScreen() {
                   {t(`providerSetup.status.${String(row.status)}`)}
                 </Text>
               ) : null}
-              <Button
-                variant={on ? "primary" : "secondary"}
-                label={t(on ? "mobilePro.serviceOn" : "mobilePro.serviceOff")}
-                disabled={row?.status === "approved" && on}
-                onPress={() => {
-                  if (!providerId) return;
-                  toggle.mutate({ providerId, serviceId: id, on: !on });
-                }}
-              />
+              {isApprovedProvider && !on ? (
+                <Button
+                  variant="secondary"
+                  label={t("pro.serviceRequest.requestCta")}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/pro-request-service",
+                      params: { serviceId: id },
+                    })
+                  }
+                />
+              ) : isApprovedProvider && row?.status === "pending" ? (
+                <>
+                  <Text tone="muted" size="sm">
+                    {t("pro.serviceRequest.statusPending")}
+                  </Text>
+                  {providerId ? (
+                    <PendingServiceRequestSummary
+                      providerId={providerId}
+                      serviceId={id}
+                      categorySlug={(service.category as { slug?: string })?.slug}
+                      priceOverride={(row?.price_override as number | null) ?? null}
+                      maxChildren={(provider?.max_children_per_booking as number | null) ?? null}
+                    />
+                  ) : null}
+                  <Button
+                    variant="secondary"
+                    label={t("pro.serviceRequest.cancelRequest")}
+                    onPress={() => cancelRequest.mutate(id)}
+                  />
+                </>
+              ) : (
+                <Button
+                  variant={on ? "primary" : "secondary"}
+                  label={t(on ? "mobilePro.serviceOn" : "mobilePro.serviceOff")}
+                  disabled={(row?.status === "approved" && on) || isApprovedProvider}
+                  onPress={() => {
+                    if (!providerId || isApprovedProvider) return;
+                    toggle.mutate({ providerId, serviceId: id, on: !on });
+                  }}
+                />
+              )}
+              {isApprovedProvider && row?.status === "rejected" ? (
+                <Button
+                  variant="secondary"
+                  label={t("pro.serviceRequest.editAndResubmit")}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/pro-request-service",
+                      params: { serviceId: id },
+                    })
+                  }
+                />
+              ) : null}
               {on && !tutoring && service.provider_pricing_allowed ? (
                 <>
                   <ProviderPriceStepper

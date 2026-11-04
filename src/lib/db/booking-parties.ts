@@ -15,6 +15,7 @@ export type BookingParty = {
   zone_name_ar: string | null;
   member_first_name: string | null;
   member_age_years: number | null;
+  member_age_months?: number | null;
 };
 
 const RPC_BATCH = 200;
@@ -31,7 +32,7 @@ export async function fetchBookingParties(
   const ids = [...new Set(bookingIds.filter(Boolean))];
   const parties = new Map<string, BookingParty>();
   for (let i = 0; i < ids.length; i += RPC_BATCH) {
-    const { data, error } = await supabase.rpc("booking_party_profiles", {
+    const { data, error } = await supabase.rpc("booking_party_profiles_with_member_age", {
       p_booking_ids: ids.slice(i, i + RPC_BATCH),
     });
     if (error) throw error;

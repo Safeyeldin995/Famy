@@ -40,6 +40,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Root Vitest includes mobile/vitest.config.ts and its real runtime imports.
+      - name: Install mobile test dependencies
+        run: npm ci --prefix mobile
+
       - name: Unit tests
         run: npm run test:unit
 

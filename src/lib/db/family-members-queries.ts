@@ -17,6 +17,7 @@ export type FamilyMemberInput = {
   relationship: Relationship;
   relationship_other?: string | null;
   date_of_birth: string;
+  date_of_birth_is_estimated?: boolean;
   gender?: 'male' | 'female' | 'other' | null;
   phone?: string | null;
   allergies?: string | null;
@@ -34,6 +35,9 @@ function toFamilyMemberRow(input: FamilyMemberInput) {
     relationship: input.relationship,
     relationship_other: input.relationship === 'other' ? (input.relationship_other?.trim() || null) : null,
     date_of_birth: input.date_of_birth,
+    ...(input.date_of_birth_is_estimated !== undefined
+      ? { date_of_birth_is_estimated: input.date_of_birth_is_estimated }
+      : {}),
     gender: input.gender ?? null,
     phone: input.phone ?? null,
     allergies: input.allergies ?? null,

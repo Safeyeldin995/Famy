@@ -1,0 +1,57 @@
+{
+  "passed": true,
+  "bookingCreated": true,
+  "estimatedAgeSaved": true,
+  "withoutIntlPluralRules": true,
+  "screenshots": [
+    {
+      "screen": "package-1-service",
+      "path": "D:\\Projects\\Famy\\mobile\\qa\\booking-crash-member-age\\screenshots\\package-1-service.png",
+      "viewport": "390x844",
+      "language": "ar",
+      "data": "isolated local test fixtures"
+    },
+    {
+      "screen": "package-2-time",
+      "path": "D:\\Projects\\Famy\\mobile\\qa\\booking-crash-member-age\\screenshots\\package-2-time.png",
+      "viewport": "390x844",
+      "language": "ar",
+      "data": "isolated local test fixtures"
+    },
+    {
+      "screen": "package-3-address-recipient",
+      "path": "D:\\Projects\\Famy\\mobile\\qa\\booking-crash-member-age\\screenshots\\package-3-address-recipient.png",
+      "viewport": "390x844",
+      "language": "ar",
+      "data": "isolated local test fixtures"
+    },
+    {
+      "screen": "package-4-review-payment",
+      "path": "D:\\Projects\\Famy\\mobile\\qa\\booking-crash-member-age\\screenshots\\package-4-review-payment.png",
+      "viewport": "390x844",
+      "language": "ar",
+      "data": "isolated local test fixtures"
+    },
+    {
+      "screen": "package-5-payment",
+      "path": "D:\\Projects\\Famy\\mobile\\qa\\booking-crash-member-age\\screenshots\\package-5-payment.png",
+      "viewport": "390x844",
+      "language": "ar",
+      "data": "isolated local test fixtures"
+    },
+    {
+      "screen": "booking-detail-after-create",
+      "path": "D:\\Projects\\Famy\\mobile\\qa\\booking-crash-member-age\\screenshots\\booking-detail-after-create.png",
+      "viewport": "390x844",
+      "language": "ar",
+      "data": "isolated local test fixtures"
+    },
+    {
+      "screen": "member-form-mobile",
+      "path": "D:\\Projects\\Famy\\mobile\\qa\\booking-crash-member-age\\screenshots\\member-form-mobile.png",
+      "viewport": "390x844",
+      "language": "ar",
+      "data": "isolated local test fixtures"
+    }
+  ]
+}

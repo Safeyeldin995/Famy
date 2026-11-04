@@ -231,7 +231,7 @@ async function toReview(serviceId = "booking-hourly") {
   render(<BookContent providerId="p1" searchServiceId={serviceId} />);
   fireEvent.click(next());
   const timeLabel = await selectTime();
-  fireEvent.click(screen.getByRole("button", { name: "Child fixture" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Child fixture ·/ }));
   fireEvent.click(next());
   expect(title("review")).toBeTruthy();
   return timeLabel;
@@ -337,7 +337,7 @@ describe("four-screen booking journey", () => {
     const view = render(<BookContent providerId="p1" />);
     fireEvent.click(next());
     await selectTime();
-    fireEvent.click(screen.getByRole("button", { name: "Child fixture" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Child fixture ·/ }));
     expect((next() as HTMLButtonElement).disabled).toBe(true);
     state.requirementsSuccess = true;
     state.requirements = [
@@ -360,7 +360,7 @@ describe("four-screen booking journey", () => {
     expect(
       screen.getByText(i18n.t("customerBooking.tutoringFrom", { price: formatNumber(450) })),
     ).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Child fixture" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Child fixture ·/ }));
     // Two approved durations require a subject-group choice; the existing autofill
     // intentionally does not select an ambiguous capability automatically.
     fireEvent.click(screen.getByRole("button", { name: /Math · Egyptian · Grade 1/ }));

@@ -1,4 +1,5 @@
 import { AdminLink as Link } from "@/components/admin/AdminNavigation";
+import { memberAgeTranslation } from "@/lib/familyMemberAge";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -371,10 +372,10 @@ export function AdminBookings({
                         </p>
                         {b.family_member.date_of_birth && (
                           <p>
-                            <span className="text-muted-foreground">
-                              {t("admin.bookings.dob")}:
-                            </span>{" "}
-                            {b.family_member.date_of_birth}
+                            <span className="text-muted-foreground">{t("memberAge.label")}:</span>{" "}
+                            {t(memberAgeTranslation(b.family_member.date_of_birth).key, {
+                              count: memberAgeTranslation(b.family_member.date_of_birth).count,
+                            })}
                           </p>
                         )}
                         {b.family_member.phone && (

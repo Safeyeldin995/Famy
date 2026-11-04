@@ -1,5 +1,6 @@
 import { customerDayKey, isCompleteBirthDate } from "./customerDates";
-import { CustomerBirthDateField } from "./CustomerBirthDateField";
+import { FamilyMemberAgeField } from "./FamilyMemberAgeField";
+import { estimatedMemberBirthDate, memberAgeFromDate, memberMaxYears } from "@/lib/familyMemberAge";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Loader2 } from "lucide-react";
@@ -43,7 +44,11 @@ export function validateFamilyMemberFormValue(
   emergencyPhoneValid: boolean;
   emergencyValid: boolean;
 } {
-  const dobValid = isCompleteBirthDate(value.dateOfBirth) && value.dateOfBirth <= today;
+  const age = memberAgeFromDate(value.dateOfBirth, today);
+  const dobValid =
+    isCompleteBirthDate(value.dateOfBirth) &&
+    !!age &&
+    age.years <= memberMaxYears(value.relationship);
   const relationshipOtherValid =
     value.relationship !== "other" || value.relationshipOther.trim().length > 0;
   const emergencyValid =
@@ -105,7 +110,8 @@ export function familyMemberFormValueToInput(v: FamilyMemberFormValue): FamilyMe
     full_name: v.fullName.trim(),
     relationship: v.relationship as Relationship,
     relationship_other: v.relationship === "other" ? v.relationshipOther.trim() : null,
-    date_of_birth: v.dateOfBirth,
+    date_of_birth: estimatedMemberBirthDate(v.dateOfBirth),
+    date_of_birth_is_estimated: true,
     gender: v.gender || null,
     phone: v.phone.trim() ? normalizePhoneE164(v.phone.trim()) : null,
     allergies: v.allergies.trim() || null,
@@ -158,8 +164,16 @@ export function FamilyMemberForm({
   const [healthConsent, setHealthConsent] = useState(false);
   const today = customerDayKey();
 
-  const set = <K extends keyof FamilyMemberFormValue>(k: K, v: FamilyMemberFormValue[K]) =>
-    onChange({ ...value, [k]: v });
+  const set = <K extends keyof FamilyMemberFormValue>(k: K, v: FamilyMemberFormValue[K]) => {
+    const age = memberAgeFromDate(value.dateOfBirth, today);
+    onChange({
+      ...value,
+      [k]: v,
+      ...(k === "relationship" && age && age.years > memberMaxYears(String(v))
+        ? { dateOfBirth: "" }
+        : {}),
+    });
+  };
 
   const {
     valid,
@@ -229,16 +243,13 @@ export function FamilyMemberForm({
       </div>
 
       <div>
-        <CustomerBirthDateField
+        <FamilyMemberAgeField
           nested={nestedDatePicker}
+          relationship={value.relationship}
           value={value.dateOfBirth}
           onChange={(v) => set("dateOfBirth", v)}
         />
-        {touched && !dobValid && (
-          <ErrorText>
-            {t("familyMembers.dobFuture", "Date of birth cannot be in the future")}
-          </ErrorText>
-        )}
+        {touched && !dobValid && <ErrorText>{t("memberAge.required")}</ErrorText>}
       </div>
 
       <div>

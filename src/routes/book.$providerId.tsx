@@ -1,4 +1,5 @@
 import { bookingWhenValues } from "@/lib/booking/bookingLabels";
+import { memberAgeTranslation } from "@/lib/familyMemberAge";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 import { applyServiceSubtitle } from "@/lib/provider/applyServiceSubtitle";
 import { buildBookingRequest, buildBookingQuote } from "@/lib/booking/bookingRequest";
@@ -907,7 +908,10 @@ export function BookContent({
                 disabled={!selectable.ok}
                 onClick={() => setForWhom(member.id)}
               >
-                {member.full_name}
+                {member.full_name} ·{" "}
+                {t(memberAgeTranslation(member.date_of_birth).key, {
+                  count: memberAgeTranslation(member.date_of_birth).count,
+                })}
                 {!selectable.ok && (
                   <span className="text-pro-12">{t("bookFlow.forWhomAgeOutOfRange")}</span>
                 )}
