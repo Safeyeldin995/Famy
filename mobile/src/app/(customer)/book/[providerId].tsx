@@ -70,6 +70,9 @@ import {
   pickDefaultCapabilityForEducation,
   shouldPersistEducationAfterBookingSuccess,
 } from "@shared/tutoring/bookingEducationAutofill";
+import { isLessonServiceSlug, teachingCapabilityTitleParts } from "@shared/tutoring/lessonServices";
+import { lessonIllustrationKeyForSubject } from "@shared/tutoring/lessonIllustrations";
+import { LessonIllustration } from "@/ui/lessons/LessonIllustration";
 import { localized, dateTime } from "@/lib/presentation";
 import { Page, QueryState, Field, Choices, ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
@@ -147,6 +150,7 @@ export default function Book() {
   );
   const service = services.find((s) => s.service.id === serviceId) ?? services[0];
   const tutoring = service?.service.category?.slug === "tutoring";
+  const isLessonService = isLessonServiceSlug(service?.service.slug);
   const babysitting = service?.service.category?.slug === "babysitting";
   const supervisionRequired = requiresSupervisionMode(service?.service.category?.slug);
   const fixed = !tutoring && isFixedPackage(service?.service);
@@ -154,9 +158,10 @@ export default function Book() {
   const allCaps = useApprovedTeachingCapabilities(providerId);
   const capability = (caps.data ?? []).find((c) => c.id === capId) ?? null;
   const subjectGroups = groupBookingSubjects(
-    (caps.data ?? []).filter(
-      (c) => (!curriculum || c.curriculumId === curriculum) && (!level || c.levelId === level),
-    ),
+    (caps.data ?? []).filter((c) => {
+      if (isLessonService) return true;
+      return (!curriculum || c.curriculumId === curriculum) && (!level || c.levelId === level);
+    }),
   );
   const selectedGroup = subjectGroups.find((g) => g.capabilities.some((c) => c.id === capId));
   const needsRate = fixed && service?.price_override == null;
@@ -206,13 +211,20 @@ export default function Book() {
     if (!babysitting && !recipient) setRecipient("myself");
   }, [babysitting, recipient]);
   useEffect(() => {
-    if (!tutoring) return;
+    if (!tutoring || isLessonService) return;
     setCurriculum(student.educationCurriculumId || "");
     setLevel(student.educationLevelId || "");
     userCap.current = !!initialCap;
-  }, [tutoring, recipient, student.educationCurriculumId, student.educationLevelId, initialCap]);
+  }, [
+    tutoring,
+    isLessonService,
+    recipient,
+    student.educationCurriculumId,
+    student.educationLevelId,
+    initialCap,
+  ]);
   useEffect(() => {
-    if (tutoring && !userCap.current)
+    if (tutoring && !isLessonService && !userCap.current)
       setCapId(
         pickDefaultCapabilityForEducation(
           caps.data ?? [],
@@ -221,7 +233,7 @@ export default function Book() {
           level || null,
         )?.id || "",
       );
-  }, [tutoring, caps.data, service?.service.id, curriculum, level]);
+  }, [tutoring, isLessonService, caps.data, service?.service.id, curriculum, level]);
   useEffect(() => {
     setSlot(null);
     setApplied(null);
@@ -662,16 +674,18 @@ export default function Book() {
             <>
               {recipientUI}
               <QueryState query={caps} empty={!caps.data?.length} />
-              <BookingEducation
-                curriculum={curriculum}
-                level={level}
-                onChange={(c, l) => {
-                  setCurriculum(c);
-                  setLevel(l);
-                  setCapId("");
-                  userCap.current = false;
-                }}
-              />
+              {!isLessonService ? (
+                <BookingEducation
+                  curriculum={curriculum}
+                  level={level}
+                  onChange={(c, l) => {
+                    setCurriculum(c);
+                    setLevel(l);
+                    setCapId("");
+                    userCap.current = false;
+                  }}
+                />
+              ) : null}
               {subjectGroups.map((group) => {
                 const cap = group.capabilities[0];
                 const active = group === selectedGroup;
@@ -680,13 +694,27 @@ export default function Book() {
                   <BookingServiceCard
                     key={group.key}
                     selected={active}
-                    title={[
-                      lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn,
-                      lang === "ar" ? cap.curriculumNameAr : cap.curriculumNameEn,
-                      lang === "ar" ? cap.levelNameAr : cap.levelNameEn,
-                    ].join(" · ")}
+                    title={teachingCapabilityTitleParts({
+                      subject: lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn,
+                      curriculum: lang === "ar" ? cap.curriculumNameAr : cap.curriculumNameEn,
+                      level: lang === "ar" ? cap.levelNameAr : cap.levelNameEn,
+                      curriculumCode: cap.curriculumCode,
+                    }).join(" · ")}
                     subtitle={`${chosen.price} ${t("pricePicker.sessionUnit")}`}
-                    icon={<BookOpen size={22} color={colors.brand} />}
+                    icon={
+                      lessonIllustrationKeyForSubject(cap.subjectCode) ? (
+                        <LessonIllustration
+                          subjectCode={cap.subjectCode}
+                          accessibilityLabel={
+                            lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn
+                          }
+                          width={28}
+                          height={28}
+                        />
+                      ) : (
+                        <BookOpen size={22} color={colors.brand} />
+                      )
+                    }
                     onPress={() => {
                       userCap.current = true;
                       setCapId(cap.id);

@@ -3096,6 +3096,7 @@ export type Database = {
           name_en: string
           pricing_model: string
           provider_pricing_allowed: boolean
+          requires_teaching_curriculum: boolean
           slug: string
           updated_at: string
         }
@@ -3118,6 +3119,7 @@ export type Database = {
           name_en: string
           pricing_model?: string
           provider_pricing_allowed?: boolean
+          requires_teaching_curriculum?: boolean
           slug: string
           updated_at?: string
         }
@@ -3140,6 +3142,7 @@ export type Database = {
           name_en?: string
           pricing_model?: string
           provider_pricing_allowed?: boolean
+          requires_teaching_curriculum?: boolean
           slug?: string
           updated_at?: string
         }
@@ -3260,12 +3263,43 @@ export type Database = {
         }
         Relationships: []
       }
+      service_teaching_levels: {
+        Row: {
+          level_id: string
+          service_id: string
+        }
+        Insert: {
+          level_id: string
+          service_id: string
+        }
+        Update: {
+          level_id?: string
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_teaching_levels_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "teaching_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_teaching_levels_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teaching_levels: {
         Row: {
           code: string
           created_at: string
           id: string
           is_active: boolean
+          level_kind: string
           name_ar: string
           name_en: string
           sort_order: number
@@ -3276,6 +3310,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          level_kind?: string
           name_ar: string
           name_en: string
           sort_order: number

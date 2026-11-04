@@ -47,6 +47,16 @@ export function CategoryIllustration({ slug, className = "h-16 w-16" }: { slug: 
           <circle cx="48" cy="46" r="6" fill="#FFD59A" />
         </svg>
       );
+    case "quran-lessons":
+    case "music-lessons":
+      return (
+        <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
+          <rect width="64" height="64" rx="16" fill="#FDEAF2" />
+          <rect x="20" y="18" width="24" height="22" rx="4" fill="#fff" />
+          <rect x="31" y="18" width="2" height="22" fill="#FBD3E5" />
+          <circle cx="46" cy="44" r="6" fill="#F10E72" opacity="0.85" />
+        </svg>
+      );
     case "pet-care":
       return (
         <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
