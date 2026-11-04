@@ -16,11 +16,17 @@ import {
 import {
   useTeachingCurricula,
   useTeachingLevels,
+  useTeachingServiceLevels,
   useTeachingSubjectServices,
   useTeachingSubjects,
 } from "@/lib/db/teaching-queries";
 import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
-import { teachingLevelsForCurriculum } from "@/lib/tutoring/teachingLevelFilters";
+import { teachingLevelsForServiceAndCurriculum } from "@/lib/tutoring/teachingLevelFilters";
+import {
+  isTeachingCurriculumNa,
+  serviceRequiresTeachingCurriculum,
+  TEACHING_CURRICULUM_NA_CODE,
+} from "@/lib/tutoring/lessonServices";
 import { servicePriceUnit } from "@/lib/pricing/servicePackages";
 import { PrimaryButton } from "@/components/famio/ui";
 import { useMemo, useState } from "react";
@@ -30,6 +36,7 @@ import { Upload } from "lucide-react";
 
 type ServiceRow = {
   id: string;
+  slug?: string | null;
   name_en?: string | null;
   name_ar?: string | null;
   category?: { slug?: string | null } | null;
@@ -60,8 +67,12 @@ export function ProviderServiceRequestForm({
   const curriculaQ = useTeachingCurricula();
   const levelsQ = useTeachingLevels();
   const linksQ = useTeachingSubjectServices();
+  const serviceLevelsQ = useTeachingServiceLevels();
 
   const isTutoring = isTutoringCategorySlug(service.category?.slug);
+  const requiresCurriculum = serviceRequiresTeachingCurriculum(service.slug);
+  const naCurriculumId =
+    (curriculaQ.data ?? []).find((row) => row.code === TEACHING_CURRICULUM_NA_CODE)?.id ?? "";
   const isBabysitting = service.category?.slug === "babysitting";
 
   const [price, setPrice] = useState<number | null>(null);
@@ -92,17 +103,30 @@ export function ProviderServiceRequestForm({
     [linksQ.data, service.id],
   );
   const subjects = (subjectsQ.data ?? []).filter((row) => linkedSubjectIds.has(row.id));
-  const curriculum = (curriculaQ.data ?? []).find((row) => row.id === draftCurriculum);
+  const effectiveDraftCurriculumId = requiresCurriculum ? draftCurriculum : naCurriculumId;
+  const curriculum = (curriculaQ.data ?? []).find((row) => row.id === effectiveDraftCurriculumId);
   const filteredLevels = useMemo(
-    () => teachingLevelsForCurriculum(curriculum?.code, levelsQ.data ?? []),
-    [curriculum?.code, levelsQ.data],
+    () =>
+      teachingLevelsForServiceAndCurriculum(
+        service.id,
+        curriculum?.code,
+        levelsQ.data ?? [],
+        serviceLevelsQ.data ?? [],
+      ),
+    [service.id, curriculum?.code, levelsQ.data, serviceLevelsQ.data],
   );
+  const selectableCurricula = (curriculaQ.data ?? []).filter((row) => !isTeachingCurriculumNa(row.code));
 
   const serviceName =
     lang === "ar" ? (service.name_ar ?? service.name_en) : (service.name_en ?? service.name_ar);
 
   const addTeachingGroup = () => {
-    if (!draftSubject || !draftCurriculum || draftLevels.length === 0 || draftPrice == null) {
+    if (
+      !draftSubject ||
+      !effectiveDraftCurriculumId ||
+      draftLevels.length === 0 ||
+      draftPrice == null
+    ) {
       toast.error(t("pro.serviceRequest.teachingIncomplete"));
       return;
     }
@@ -116,7 +140,7 @@ export function ProviderServiceRequestForm({
       ...rows,
       {
         subject_id: draftSubject,
-        curriculum_id: draftCurriculum,
+        curriculum_id: effectiveDraftCurriculumId,
         level_ids: draftLevels,
         session_duration_min: draftDuration,
         session_price: draftPrice,
@@ -205,20 +229,25 @@ export function ProviderServiceRequestForm({
                 </option>
               ))}
             </select>
-            <select
-              className="min-h-11 rounded-xl border border-border bg-surface px-3 text-sm"
-              value={draftCurriculum}
-              onChange={(e) => setDraftCurriculum(e.target.value)}
-            >
-              <option value="">{t("teaching.pickCurriculum")}</option>
-              {(curriculaQ.data ?? []).map((c) => (
-                <option key={c.id} value={c.id}>
-                  {lang === "ar" ? c.name_ar : c.name_en}
-                </option>
-              ))}
-            </select>
+            {requiresCurriculum ? (
+              <select
+                className="min-h-11 rounded-xl border border-border bg-surface px-3 text-sm"
+                value={draftCurriculum}
+                onChange={(e) => setDraftCurriculum(e.target.value)}
+              >
+                <option value="">{t("teaching.pickCurriculum")}</option>
+                {selectableCurricula.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {lang === "ar" ? c.name_ar : c.name_en}
+                  </option>
+                ))}
+              </select>
+            ) : null}
             <div className="flex flex-wrap gap-2">
-              {filteredLevels.map((level) => {
+              {((requiresCurriculum ? draftCurriculum : naCurriculumId) && draftSubject
+                ? filteredLevels
+                : []
+              ).map((level) => {
                 const on = draftLevels.includes(level.id);
                 return (
                   <button

@@ -47,6 +47,19 @@ describe("quran/music lesson catalog migration", () => {
       { slug: "quran-lessons", is_active: false, requires_teaching_curriculum: false },
     ]);
 
+    const prices = await db.query<{ slug: string; minimum_price: number; maximum_price: number }>(
+      `SELECT slug, minimum_price, maximum_price FROM public.services
+       WHERE slug IN ('quran-lessons', 'music-lessons') ORDER BY slug`,
+    );
+    expect(prices.rows.map((row) => ({
+      slug: row.slug,
+      minimum_price: Number(row.minimum_price),
+      maximum_price: Number(row.maximum_price),
+    }))).toEqual([
+      { slug: "music-lessons", minimum_price: 300, maximum_price: 1000 },
+      { slug: "quran-lessons", minimum_price: 150, maximum_price: 500 },
+    ]);
+
     const quranSubjects = await db.query<{ code: string }>(
       `SELECT sub.code
        FROM public.teaching_subjects sub

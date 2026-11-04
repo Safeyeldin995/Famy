@@ -1,4 +1,16 @@
-import type { TeachingLevelRow, TeachingServiceLevelRow } from "@/lib/db/teaching-queries";
+export type TeachingLevelRow = {
+  id: string;
+  code?: string | null;
+  name_en?: string;
+  name_ar?: string;
+  is_active?: boolean;
+  sort_order?: number;
+};
+
+export type TeachingServiceLevelRow = {
+  service_id: string;
+  level_id: string;
+};
 
 const BRITISH_LEVEL_CODES = new Set(["g10", "g11", "g12"]);
 
@@ -19,7 +31,7 @@ export function teachingLevelsForCurriculum(
   levels: TeachingLevelRow[],
 ): TeachingLevelRow[] {
   if (curriculumCode === "british") {
-    return levels.filter((row) => BRITISH_LEVEL_CODES.has(row.code));
+    return levels.filter((row) => BRITISH_LEVEL_CODES.has(row.code ?? ""));
   }
   return levels;
 }

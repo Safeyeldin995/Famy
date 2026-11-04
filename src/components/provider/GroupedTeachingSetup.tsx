@@ -68,7 +68,8 @@ export function GroupedTeachingSetup({
 }) {
   const { t, i18n } = useTranslation();
   const ar = i18n.language.startsWith("ar");
-  const name = (row: { name_ar: string; name_en: string }) => (ar ? row.name_ar : row.name_en);
+  const name = (row: { name_ar?: string; name_en?: string }) =>
+    ar ? (row.name_ar ?? row.name_en ?? "") : (row.name_en ?? row.name_ar ?? "");
   const [serviceId, setServiceId] = useState(services[0]?.id ?? "");
   const [subjectId, setSubjectId] = useState("");
   const [curriculumId, setCurriculumId] = useState("");

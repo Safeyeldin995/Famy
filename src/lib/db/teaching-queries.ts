@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { TeachingCapabilityOption } from "@/lib/tutoring/teachingCapabilities";
+import type { TeachingServiceLevelRow } from "@/lib/tutoring/teachingLevelFilters";
 
 const TAXONOMY_SELECT = "id, code, name_en, name_ar, is_active, sort_order";
 const SUBJECT_SELECT = `${TAXONOMY_SELECT}, max_session_duration_min`;
@@ -15,6 +16,7 @@ export type TeachingCurriculumRow = {
 };
 
 export type TeachingLevelRow = TeachingCurriculumRow;
+export type { TeachingServiceLevelRow } from "@/lib/tutoring/teachingLevelFilters";
 
 export type TeachingSubjectRow = TeachingCurriculumRow & {
   max_session_duration_min: number;
@@ -23,11 +25,6 @@ export type TeachingSubjectRow = TeachingCurriculumRow & {
 export type TeachingSubjectServiceRow = {
   subject_id: string;
   service_id: string;
-};
-
-export type TeachingServiceLevelRow = {
-  service_id: string;
-  level_id: string;
 };
 
 export type ProviderTeachingCapabilityRow = {

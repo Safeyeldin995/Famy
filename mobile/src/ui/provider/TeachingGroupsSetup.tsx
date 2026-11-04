@@ -28,7 +28,7 @@ import { BottomSheetSelect } from "./BottomSheetSelect";
 import { ProviderPriceStepper } from "./ProviderPriceStepper";
 import { proCard } from "./cards";
 
-type Named = { id: string; code?: string; name_ar: string; name_en: string };
+type Named = { id: string; code?: string | null; name_ar: string; name_en: string };
 type TeachingService = Named & {
   slug?: string | null;
   minimum_price?: number | null;
@@ -56,7 +56,8 @@ export function TeachingGroupsSetup({
 }) {
   const { t, i18n } = useTranslation();
   const ar = i18n.language.startsWith("ar");
-  const name = (row: Named) => (ar ? row.name_ar : row.name_en);
+  const name = (row: { name_ar?: string; name_en?: string }) =>
+    ar ? (row.name_ar ?? row.name_en ?? "") : (row.name_en ?? row.name_ar ?? "");
   const rowsQ = useMyTeachingCapabilities(providerId);
   const subjectsQ = useTeachingSubjects();
   const curriculaQ = useTeachingCurricula();

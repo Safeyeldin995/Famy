@@ -103,9 +103,9 @@ BEGIN
   END IF;
   FOR r IN
     SELECT * FROM (VALUES
-      ('quran-lessons', 'Quran memorization & tajweed', 'تحفيظ قرآن وتجويد'),
-      ('music-lessons', 'Music lessons', 'دروس موسيقى')
-    ) AS t(slug, name_en, name_ar)
+      ('quran-lessons', 'Quran memorization & tajweed', 'تحفيظ قرآن وتجويد', 150, 500),
+      ('music-lessons', 'Music lessons', 'دروس موسيقى', 300, 1000)
+    ) AS t(slug, name_en, name_ar, minimum_price, maximum_price)
   LOOP
     INSERT INTO public.services (
       id, category_id, slug, name_en, name_ar, pricing_model,
@@ -114,7 +114,7 @@ BEGIN
     )
     SELECT
       gen_random_uuid(), v_category_id, r.slug, r.name_en, r.name_ar, 'hourly',
-      300, 1500, ARRAY[45, 60, 90]::int[], false, false
+      r.minimum_price, r.maximum_price, ARRAY[45, 60, 90]::int[], false, false
     WHERE NOT EXISTS (SELECT 1 FROM public.services WHERE slug = r.slug);
   END LOOP;
 END $$;
