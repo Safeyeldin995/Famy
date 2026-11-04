@@ -14,6 +14,7 @@ const choices = {
   eitherRequirements: [],
   requirementChoices: {},
   selectedCapability: null,
+  supervisionMode: null,
 };
 const expected = {
   provider_id: "provider-fixture",
@@ -29,6 +30,7 @@ const expected = {
   teaching_subject_code: null,
   teaching_curriculum_code: null,
   teaching_level_code: null,
+  supervision_mode: null,
 };
 const quote = {
   service: { pricing_model: "hourly" },
@@ -118,6 +120,13 @@ describe("original booking payload and quote contracts", () => {
     expect(buildBookingQuote({ ...quote, capability }).total).toBe(563);
     expect(buildBookingQuote({ ...quote, capability }).subtotal).toBe(450);
   });
+  it("includes supervision_mode when provided", () => {
+    expect(buildBookingRequest({ ...choices, supervisionMode: "cameras" })).toEqual({
+      ...expected,
+      supervision_mode: "cameras",
+    });
+  });
+
   it("pins applied promo, preserving notes and ignoring unapplied promo IDs", () => {
     expect(
       buildBookingRequest({

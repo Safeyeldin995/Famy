@@ -30,6 +30,10 @@ import { ProviderRescheduleSection } from "@/components/provider/ProviderResched
 import { BookingChatPanel } from "@/components/famio/BookingChatPanel";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { useProviderBooking, useProviderUpdateBookingStatus } from "@/lib/db/provider-queries";
+import {
+  isSupervisionMode,
+  supervisionModeProviderLabel,
+} from "@/lib/booking/supervisionMode";
 import { useCancelBooking, useBookingCancellation } from "@/lib/db/cancellation-queries";
 import {
   useBookingDisputes,
@@ -309,6 +313,13 @@ export function ProBookingDetail({ id, preview = false }: { id: string; preview?
               icon={<UserIcon className="h-4 w-4" />}
               label={t("pro.booking.subject")}
               value={teaching}
+            />
+          )}
+          {isSupervisionMode(b.supervision_mode) && (
+            <Row
+              icon={<UserIcon className="h-4 w-4" />}
+              label={t("bookFlow.supervision.label")}
+              value={supervisionModeProviderLabel(b.supervision_mode, t) ?? ""}
             />
           )}
           {!b.family_member && party?.member_first_name && (

@@ -25,6 +25,10 @@ import { RescheduleSection } from "@/ui/RescheduleSection";
 import { receiptText, calendarText, type BookingFileInfo } from "@/lib/bookingFiles";
 import { shareBookingFile } from "@/lib/shareBookingFile";
 import { colors } from "@/ui/theme";
+import {
+  isSupervisionMode,
+  supervisionModeProviderLabel,
+} from "@shared/booking/supervisionMode";
 
 export default function BookingDetail() {
   const { id, created, educationWarning } = useLocalSearchParams<{
@@ -237,6 +241,14 @@ export default function BookingDetail() {
                 { Icon: Calendar, label: info.date },
                 { Icon: Clock, label: `${info.time} · ${info.duration}` },
                 { Icon: MapPin, label: info.address },
+                ...(isSupervisionMode(b.supervision_mode)
+                  ? [
+                      {
+                        Icon: HelpCircle,
+                        label: supervisionModeProviderLabel(b.supervision_mode, t) ?? "",
+                      },
+                    ]
+                  : []),
               ].map(({ Icon, label }, index) => (
                 <View key={index} style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
                   <View

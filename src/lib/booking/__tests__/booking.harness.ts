@@ -728,6 +728,7 @@ export async function rpcCreateBooking(
     notes?: string | null;
     promo_code_id?: string | null;
     requirement_selections?: unknown;
+    supervision_mode?: string | null;
   },
 ) {
   return client.rpc("create_booking", {
@@ -741,6 +742,7 @@ export async function rpcCreateBooking(
     p_notes: args.notes ?? undefined,
     p_promo_code_id: args.promo_code_id ?? undefined,
     p_requirement_selections: (args.requirement_selections ?? []) as never,
+    p_supervision_mode: args.supervision_mode ?? undefined,
   });
 }
 

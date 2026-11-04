@@ -8,6 +8,9 @@ export function bookingDisabledReason(input: {
   hasDate?: boolean;
   hasSlots?: boolean;
   hasAddress?: boolean;
+  supervisionRequired?: boolean;
+  hasSupervision?: boolean;
+  hasRecipient?: boolean;
 }): string | null {
   if (input.submitting) return "bookingUx.saving";
   if (input.allowed) return null;
@@ -27,6 +30,8 @@ export function bookingDisabledReason(input: {
     case "address":
       return !input.hasAddress ? "bookingUx.chooseAddress" : "bookingUx.outsideArea";
     case "forWhom":
+      if (input.hasRecipient === false) return "bookingUx.chooseRecipient";
+      if (input.supervisionRequired && !input.hasSupervision) return "bookingUx.chooseSupervision";
       return "bookingUx.chooseRecipient";
     case "requirements":
       return "bookingUx.chooseRequirements";
