@@ -1,4 +1,5 @@
 import { CustomerFilterPicker } from "@/components/famio/CustomerFilterPicker";
+import { memberAgeTranslation } from "@/lib/familyMemberAge";
 import { isFixedPackage, packageLabel, type PackageService } from "@/lib/pricing/servicePackages";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
@@ -175,7 +176,7 @@ export function CategoryPageContent({ categoryId }: { categoryId: string }) {
                 { value: "myself", label: t("bookFlow.forWhomMyself", "Myself") },
                 ...(familyMembersQ.data ?? []).map((member: FamilyMemberRow) => ({
                   value: member.id,
-                  label: member.full_name,
+                  label: `${member.full_name} · ${t(memberAgeTranslation(member.date_of_birth).key, { count: memberAgeTranslation(member.date_of_birth).count })}`,
                 })),
               ]}
             />

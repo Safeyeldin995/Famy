@@ -1,4 +1,5 @@
 import { PaymentBlock } from "@/ui/PaymentBlock";
+import { bookingDurationUnitKey } from "@/lib/bookingDuration";
 import { BookingActions } from "@/ui/BookingActions";
 import { useState } from "react";
 import { Linking, Pressable, View } from "react-native";
@@ -59,14 +60,7 @@ export default function BookingDetail() {
   const locale = i18n.language === "ar" ? "ar-EG-u-nu-latn" : "en-EG";
   const location = Array.isArray(b?.location) ? b.location[0] : b?.location;
   const durationHours = b ? Math.round((+new Date(b.end_at) - +new Date(b.start_at)) / 3600000) : 0;
-  const durationUnit =
-    i18n.language === "ar"
-      ? new Intl.PluralRules("ar").select(durationHours) === "few"
-        ? "ساعات"
-        : "ساعة"
-      : durationHours === 1
-        ? "hour"
-        : "hours";
+  const durationUnit = t(bookingDurationUnitKey(durationHours, i18n.language));
   const info: BookingFileInfo | null = b
     ? {
         id: b.id.slice(0, 8).toUpperCase(),

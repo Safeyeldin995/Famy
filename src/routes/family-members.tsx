@@ -1,4 +1,5 @@
 import { isPreviewRoute } from "@/lib/preview/constants";
+import { memberAgeTranslation } from "@/lib/familyMemberAge";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -77,7 +78,10 @@ export function FamilyMembers() {
                       )}
                     </div>
                     <p className="mt-0.5 truncate text-pro-12 text-muted-foreground">
-                      {relationshipLabel}
+                      {relationshipLabel} ·{" "}
+                      {t(memberAgeTranslation(m.date_of_birth).key, {
+                        count: memberAgeTranslation(m.date_of_birth).count,
+                      })}
                     </p>
                   </div>
                 </div>

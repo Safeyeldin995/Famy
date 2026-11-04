@@ -1,6 +1,7 @@
-import { Image, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { Avatar } from "@/ui/ProviderCard";
 import { Bell, Star } from "lucide-react-native";
 import { BOOKING_ACTIVE_STATUSES } from "@/lib/provider/constants";
 import { earningsHeadlineKind } from "@shared/earnings/aggregateProviderEarnings";
@@ -58,27 +59,7 @@ export default function ProviderDashboard() {
         {t("proWork.hello", { name: firstName })}
       </Text>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-        {profile?.avatar_url ? (
-          <Image
-            source={{ uri: profile.avatar_url }}
-            style={{ width: 44, height: 44, borderRadius: 22 }}
-          />
-        ) : (
-          <View
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 22,
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: colors.brandTint,
-            }}
-          >
-            <Text weight="heavy" tone="brand">
-              {firstName.slice(0, 1)}
-            </Text>
-          </View>
-        )}
+        <Avatar raw={profile?.avatar_url} size={44} round name={firstName} />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t("notifs.title")}

@@ -1,4 +1,3 @@
-import type { TFunction } from "i18next";
 import { isBabysittingCategorySlug } from "./babysittingRecipient";
 import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
 
@@ -13,13 +12,15 @@ export function isSupervisionMode(value: string | null | undefined): value is Su
   return value === "cameras" || value === "adult_present";
 }
 
-export function supervisionModeOptionLabel(mode: SupervisionMode, t: TFunction): string {
+type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
+
+export function supervisionModeOptionLabel(mode: SupervisionMode, t: TranslateFn): string {
   return t(`bookFlow.supervision.${mode}.title`);
 }
 
 export function supervisionModeProviderLabel(
-  mode: SupervisionMode | null | undefined,
-  t: TFunction,
+  mode: string | null | undefined,
+  t: TranslateFn,
 ): string | null {
   if (!isSupervisionMode(mode)) return null;
   return t(`bookFlow.supervision.providerLine.${mode}`);

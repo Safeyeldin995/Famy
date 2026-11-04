@@ -1,4 +1,5 @@
-import { CustomerBirthDateField } from "./customer/CustomerBirthDateField";
+import { FamilyMemberAgeField } from "./customer/FamilyMemberAgeField";
+import { memberToday, memberAgeFromDate, memberMaxYears } from "@shared/familyMemberAge";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -29,13 +30,17 @@ export function FamilyMemberForm({
   const curricula = useTeachingCurricula();
   const levels = useTeachingLevels();
   const set = <K extends keyof FamilyMemberInput>(key: K, next: FamilyMemberInput[K]) =>
-    setValue((v) => ({ ...v, [key]: next }));
-  const today = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Africa/Cairo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
+    setValue((v) => {
+      const age = memberAgeFromDate(v.date_of_birth);
+      return {
+        ...v,
+        [key]: next,
+        ...(key === "relationship" && age && age.years > memberMaxYears(String(next))
+          ? { date_of_birth: "" }
+          : {}),
+      };
+    });
+  const today = memberToday();
   // Source: src/lib/tutoring/teachingLevelFilters.ts - British secondary levels only.
   const curriculum = curricula.data?.find((c) => c.id === value.education_curriculum_id);
   const filteredLevels = (levels.data ?? []).filter(
@@ -73,7 +78,8 @@ export function FamilyMemberForm({
           onChangeText={(v) => set("relationship_other", v)}
         />
       )}
-      <CustomerBirthDateField
+      <FamilyMemberAgeField
+        relationship={value.relationship}
         value={value.date_of_birth}
         onChange={(v) => set("date_of_birth", v)}
       />

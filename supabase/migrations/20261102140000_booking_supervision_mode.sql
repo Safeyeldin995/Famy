@@ -25,7 +25,11 @@ CREATE OR REPLACE FUNCTION public.booking_request_fingerprint(
   p_teaching_curriculum_code text DEFAULT NULL,
   p_teaching_level_code text DEFAULT NULL,
   p_supervision_mode text DEFAULT NULL
-) RETURNS text LANGUAGE sql IMMUTABLE AS $$
+) RETURNS text
+LANGUAGE sql
+IMMUTABLE
+SET search_path = public
+AS $$
   SELECT concat_ws('|', p_provider_id::text, p_service_id::text, p_address_id::text,
     p_start_at::text, p_end_at::text, coalesce(p_family_member_id::text, ''),
     coalesce(p_notes, ''), coalesce(p_promo_code_id::text, ''),

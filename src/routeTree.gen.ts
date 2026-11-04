@@ -51,6 +51,7 @@ import { Route as AdminPaymentMethodsRouteImport } from './routes/admin.payment-
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
 import { Route as AdminPromoCodesRouteImport } from './routes/admin.promo-codes'
 import { Route as AdminProvidersRouteImport } from './routes/admin.providers'
+import { Route as AdminServiceRequestsRouteImport } from './routes/admin.service-requests'
 import { Route as AdminServicesRouteImport } from './routes/admin.services'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminZonesRouteImport } from './routes/admin.zones'
@@ -100,6 +101,7 @@ import { Route as ProSupportRouteImport } from './routes/pro.support'
 import { Route as ProviderIdRouteImport } from './routes/provider.$id'
 import { Route as AdminCustomerIdRouteImport } from './routes/admin.customer.$id'
 import { Route as AdminProviderIdRouteImport } from './routes/admin.provider.$id'
+import { Route as AdminServiceRequestIdRouteImport } from './routes/admin.service-request.$id'
 import { Route as ApiAccountDeleteRouteImport } from './routes/api.account.delete'
 import { Route as ApiMobilePaymobCheckoutRouteImport } from './routes/api.mobile.paymob-checkout'
 import { Route as PreviewAccountDeleteRouteImport } from './routes/preview.account.delete'
@@ -138,6 +140,7 @@ import { Route as PreviewProProfileRouteImport } from './routes/preview.pro.prof
 import { Route as PreviewProviderIdRouteImport } from './routes/preview.provider.$id'
 import { Route as ProAccountDeleteRouteImport } from './routes/pro.account.delete'
 import { Route as ProBookingIdRouteImport } from './routes/pro.booking.$id'
+import { Route as ProRequestServiceServiceIdRouteImport } from './routes/pro.request-service.$serviceId'
 import { Route as ProSetupItemRouteImport } from './routes/pro.setup.$item'
 import { Route as ApiMobileAuthCompletePasswordRouteImport } from './routes/api.mobile.auth.complete-password'
 import { Route as ApiMobileAuthSetPasswordContextRouteImport } from './routes/api.mobile.auth.set-password-context'
@@ -362,6 +365,11 @@ const AdminPromoCodesRoute = AdminPromoCodesRouteImport.update({
 const AdminProvidersRoute = AdminProvidersRouteImport.update({
   id: '/providers',
   path: '/providers',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminServiceRequestsRoute = AdminServiceRequestsRouteImport.update({
+  id: '/service-requests',
+  path: '/service-requests',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminServicesRoute = AdminServicesRouteImport.update({
@@ -611,6 +619,11 @@ const AdminProviderIdRoute = AdminProviderIdRouteImport.update({
   path: '/provider/$id',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminServiceRequestIdRoute = AdminServiceRequestIdRouteImport.update({
+  id: '/service-request/$id',
+  path: '/service-request/$id',
+  getParentRoute: () => AdminRoute,
+} as any)
 const ApiAccountDeleteRoute = ApiAccountDeleteRouteImport.update({
   id: '/api/account/delete',
   path: '/api/account/delete',
@@ -804,6 +817,12 @@ const ProBookingIdRoute = ProBookingIdRouteImport.update({
   path: '/booking/$id',
   getParentRoute: () => ProRoute,
 } as any)
+const ProRequestServiceServiceIdRoute =
+  ProRequestServiceServiceIdRouteImport.update({
+    id: '/request-service/$serviceId',
+    path: '/request-service/$serviceId',
+    getParentRoute: () => ProRoute,
+  } as any)
 const ProSetupItemRoute = ProSetupItemRouteImport.update({
   id: '/setup/$item',
   path: '/setup/$item',
@@ -919,6 +938,7 @@ export interface FileRoutesByFullPath {
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/promo-codes': typeof AdminPromoCodesRoute
   '/admin/providers': typeof AdminProvidersRoute
+  '/admin/service-requests': typeof AdminServiceRequestsRoute
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/zones': typeof AdminZonesRoute
@@ -970,6 +990,7 @@ export interface FileRoutesByFullPath {
   '/pro/': typeof ProIndexRoute
   '/admin/customer/$id': typeof AdminCustomerIdRoute
   '/admin/provider/$id': typeof AdminProviderIdRoute
+  '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
@@ -1005,6 +1026,7 @@ export interface FileRoutesByFullPath {
   '/preview/provider/$id': typeof PreviewProviderIdRoute
   '/pro/account/delete': typeof ProAccountDeleteRoute
   '/pro/booking/$id': typeof ProBookingIdRoute
+  '/pro/request-service/$serviceId': typeof ProRequestServiceServiceIdRoute
   '/pro/setup/$item': typeof ProSetupItemRoute
   '/preview/addresses/': typeof PreviewAddressesIndexRoute
   '/preview/admin/': typeof PreviewAdminIndexRoute
@@ -1059,6 +1081,7 @@ export interface FileRoutesByTo {
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/promo-codes': typeof AdminPromoCodesRoute
   '/admin/providers': typeof AdminProvidersRoute
+  '/admin/service-requests': typeof AdminServiceRequestsRoute
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/zones': typeof AdminZonesRoute
@@ -1107,6 +1130,7 @@ export interface FileRoutesByTo {
   '/pro': typeof ProIndexRoute
   '/admin/customer/$id': typeof AdminCustomerIdRoute
   '/admin/provider/$id': typeof AdminProviderIdRoute
+  '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
@@ -1142,6 +1166,7 @@ export interface FileRoutesByTo {
   '/preview/provider/$id': typeof PreviewProviderIdRoute
   '/pro/account/delete': typeof ProAccountDeleteRoute
   '/pro/booking/$id': typeof ProBookingIdRoute
+  '/pro/request-service/$serviceId': typeof ProRequestServiceServiceIdRoute
   '/pro/setup/$item': typeof ProSetupItemRoute
   '/preview/addresses': typeof PreviewAddressesIndexRoute
   '/preview/admin': typeof PreviewAdminIndexRoute
@@ -1202,6 +1227,7 @@ export interface FileRoutesById {
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/promo-codes': typeof AdminPromoCodesRoute
   '/admin/providers': typeof AdminProvidersRoute
+  '/admin/service-requests': typeof AdminServiceRequestsRoute
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/zones': typeof AdminZonesRoute
@@ -1253,6 +1279,7 @@ export interface FileRoutesById {
   '/pro/': typeof ProIndexRoute
   '/admin/customer/$id': typeof AdminCustomerIdRoute
   '/admin/provider/$id': typeof AdminProviderIdRoute
+  '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
@@ -1288,6 +1315,7 @@ export interface FileRoutesById {
   '/preview/provider/$id': typeof PreviewProviderIdRoute
   '/pro/account/delete': typeof ProAccountDeleteRoute
   '/pro/booking/$id': typeof ProBookingIdRoute
+  '/pro/request-service/$serviceId': typeof ProRequestServiceServiceIdRoute
   '/pro/setup/$item': typeof ProSetupItemRoute
   '/preview/addresses/': typeof PreviewAddressesIndexRoute
   '/preview/admin/': typeof PreviewAdminIndexRoute
@@ -1349,6 +1377,7 @@ export interface FileRouteTypes {
     | '/admin/payments'
     | '/admin/promo-codes'
     | '/admin/providers'
+    | '/admin/service-requests'
     | '/admin/services'
     | '/admin/settings'
     | '/admin/zones'
@@ -1400,6 +1429,7 @@ export interface FileRouteTypes {
     | '/pro/'
     | '/admin/customer/$id'
     | '/admin/provider/$id'
+    | '/admin/service-request/$id'
     | '/api/account/delete'
     | '/api/mobile/paymob-checkout'
     | '/preview/account/delete'
@@ -1435,6 +1465,7 @@ export interface FileRouteTypes {
     | '/preview/provider/$id'
     | '/pro/account/delete'
     | '/pro/booking/$id'
+    | '/pro/request-service/$serviceId'
     | '/pro/setup/$item'
     | '/preview/addresses/'
     | '/preview/admin/'
@@ -1489,6 +1520,7 @@ export interface FileRouteTypes {
     | '/admin/payments'
     | '/admin/promo-codes'
     | '/admin/providers'
+    | '/admin/service-requests'
     | '/admin/services'
     | '/admin/settings'
     | '/admin/zones'
@@ -1537,6 +1569,7 @@ export interface FileRouteTypes {
     | '/pro'
     | '/admin/customer/$id'
     | '/admin/provider/$id'
+    | '/admin/service-request/$id'
     | '/api/account/delete'
     | '/api/mobile/paymob-checkout'
     | '/preview/account/delete'
@@ -1572,6 +1605,7 @@ export interface FileRouteTypes {
     | '/preview/provider/$id'
     | '/pro/account/delete'
     | '/pro/booking/$id'
+    | '/pro/request-service/$serviceId'
     | '/pro/setup/$item'
     | '/preview/addresses'
     | '/preview/admin'
@@ -1631,6 +1665,7 @@ export interface FileRouteTypes {
     | '/admin/payments'
     | '/admin/promo-codes'
     | '/admin/providers'
+    | '/admin/service-requests'
     | '/admin/services'
     | '/admin/settings'
     | '/admin/zones'
@@ -1682,6 +1717,7 @@ export interface FileRouteTypes {
     | '/pro/'
     | '/admin/customer/$id'
     | '/admin/provider/$id'
+    | '/admin/service-request/$id'
     | '/api/account/delete'
     | '/api/mobile/paymob-checkout'
     | '/preview/account/delete'
@@ -1717,6 +1753,7 @@ export interface FileRouteTypes {
     | '/preview/provider/$id'
     | '/pro/account/delete'
     | '/pro/booking/$id'
+    | '/pro/request-service/$serviceId'
     | '/pro/setup/$item'
     | '/preview/addresses/'
     | '/preview/admin/'
@@ -2079,6 +2116,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProvidersRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/service-requests': {
+      id: '/admin/service-requests'
+      path: '/service-requests'
+      fullPath: '/admin/service-requests'
+      preLoaderRoute: typeof AdminServiceRequestsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/services': {
       id: '/admin/services'
       path: '/services'
@@ -2422,6 +2466,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProviderIdRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/service-request/$id': {
+      id: '/admin/service-request/$id'
+      path: '/service-request/$id'
+      fullPath: '/admin/service-request/$id'
+      preLoaderRoute: typeof AdminServiceRequestIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/api/account/delete': {
       id: '/api/account/delete'
       path: '/api/account/delete'
@@ -2688,6 +2739,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProBookingIdRouteImport
       parentRoute: typeof ProRoute
     }
+    '/pro/request-service/$serviceId': {
+      id: '/pro/request-service/$serviceId'
+      path: '/request-service/$serviceId'
+      fullPath: '/pro/request-service/$serviceId'
+      preLoaderRoute: typeof ProRequestServiceServiceIdRouteImport
+      parentRoute: typeof ProRoute
+    }
     '/pro/setup/$item': {
       id: '/pro/setup/$item'
       path: '/setup/$item'
@@ -2818,12 +2876,14 @@ interface AdminRouteChildren {
   AdminPaymentsRoute: typeof AdminPaymentsRoute
   AdminPromoCodesRoute: typeof AdminPromoCodesRoute
   AdminProvidersRoute: typeof AdminProvidersRoute
+  AdminServiceRequestsRoute: typeof AdminServiceRequestsRoute
   AdminServicesRoute: typeof AdminServicesRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminZonesRoute: typeof AdminZonesRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminCustomerIdRoute: typeof AdminCustomerIdRoute
   AdminProviderIdRoute: typeof AdminProviderIdRoute
+  AdminServiceRequestIdRoute: typeof AdminServiceRequestIdRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -2839,12 +2899,14 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPaymentsRoute: AdminPaymentsRoute,
   AdminPromoCodesRoute: AdminPromoCodesRoute,
   AdminProvidersRoute: AdminProvidersRoute,
+  AdminServiceRequestsRoute: AdminServiceRequestsRoute,
   AdminServicesRoute: AdminServicesRoute,
   AdminSettingsRoute: AdminSettingsRoute,
   AdminZonesRoute: AdminZonesRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminCustomerIdRoute: AdminCustomerIdRoute,
   AdminProviderIdRoute: AdminProviderIdRoute,
+  AdminServiceRequestIdRoute: AdminServiceRequestIdRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
@@ -3050,6 +3112,7 @@ interface ProRouteChildren {
   ProIndexRoute: typeof ProIndexRoute
   ProAccountDeleteRoute: typeof ProAccountDeleteRoute
   ProBookingIdRoute: typeof ProBookingIdRoute
+  ProRequestServiceServiceIdRoute: typeof ProRequestServiceServiceIdRoute
   ProSetupItemRoute: typeof ProSetupItemRoute
 }
 
@@ -3067,6 +3130,7 @@ const ProRouteChildren: ProRouteChildren = {
   ProIndexRoute: ProIndexRoute,
   ProAccountDeleteRoute: ProAccountDeleteRoute,
   ProBookingIdRoute: ProBookingIdRoute,
+  ProRequestServiceServiceIdRoute: ProRequestServiceServiceIdRoute,
   ProSetupItemRoute: ProSetupItemRoute,
 }
 

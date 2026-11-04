@@ -1,4 +1,5 @@
 import { PREVIEW_NOW_ISO } from "@/lib/preview/constants";
+import { memberAgeTranslation, bookingMemberAgeTranslation } from "@/lib/familyMemberAge";
 import { BookingActionDock } from "@/components/provider/BookingActionDock";
 import { BookingStatusCard } from "@/components/provider/BookingStatusCard";
 import { StickyCta } from "@/components/famio/StickyCta";
@@ -325,14 +326,7 @@ export function ProBookingDetail({ id, preview = false }: { id: string; preview?
             <Row
               icon={<UserIcon className="h-4 w-4" />}
               label={t("pro.booking.forWhom", "Service is for")}
-              value={
-                party.member_age_years != null
-                  ? t("pro.booking.childWithAge", {
-                      name: party.member_first_name,
-                      count: party.member_age_years,
-                    })
-                  : party.member_first_name
-              }
+              value={`${party.member_first_name} · ${t(bookingMemberAgeTranslation(party).key, { count: bookingMemberAgeTranslation(party).count })}`}
             />
           )}
           <Row
@@ -379,7 +373,7 @@ export function ProBookingDetail({ id, preview = false }: { id: string; preview?
             </div>
             <Row
               icon={<UserIcon className="h-4 w-4" />}
-              label={b.family_member.full_name}
+              label={`${b.family_member.full_name}${b.family_member.date_of_birth ? ` · ${t(memberAgeTranslation(b.family_member.date_of_birth).key, { count: memberAgeTranslation(b.family_member.date_of_birth).count })}` : ""}`}
               value={
                 b.family_member.relationship === "self"
                   ? t("pro.booking.forWhomMyself", "The customer")

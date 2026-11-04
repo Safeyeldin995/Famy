@@ -8,6 +8,7 @@ import {
   FamilyMemberForm,
   emptyFamilyMemberFormValue,
   validateFamilyMemberFormValue,
+  familyMemberFormValueToInput,
 } from "@/components/famio/FamilyMemberForm";
 
 vi.mock("react-i18next", () => ({
@@ -85,6 +86,34 @@ function FormHarness({ onSubmit }: { onSubmit: () => void }) {
 }
 
 describe("FamilyMemberForm", () => {
+  it("offers infant months, caps children at 17, and clears an adult age on switching to a child", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-02T10:00:00Z"));
+    render(<FormHarness onSubmit={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: "familyMembers.relationships.son" }));
+    const years = screen.getByRole("combobox", { name: "memberAge.years" }) as HTMLSelectElement;
+    expect([...years.options].some((o) => o.value === "18")).toBe(false);
+    fireEvent.change(years, { target: { value: "1" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "memberAge.months" }), {
+      target: { value: "8" },
+    });
+    expect(
+      (screen.getByRole("combobox", { name: "memberAge.months" }) as HTMLSelectElement).value,
+    ).toBe("8");
+    fireEvent.click(screen.getByRole("button", { name: "familyMembers.relationships.spouse" }));
+    fireEvent.change(years, { target: { value: "99" } });
+    expect(screen.queryByRole("combobox", { name: "memberAge.months" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "familyMembers.relationships.son" }));
+    expect(years.value).toBe("");
+    const saved = familyMemberFormValueToInput({
+      ...emptyFamilyMemberFormValue(),
+      fullName: "Test",
+      relationship: "son",
+      dateOfBirth: "2025-02-15",
+    });
+    expect(saved.date_of_birth).toBe("2025-03-01");
+    expect(saved.date_of_birth_is_estimated).toBe(true);
+  });
   afterEach(() => {
     cleanup();
     vi.useRealTimers();
@@ -112,12 +141,12 @@ describe("FamilyMemberForm", () => {
         submitLabel="Save"
       />,
     );
-    expect((screen.getByRole("combobox", { name: "Year" }) as HTMLSelectElement).value).toBe(
-      "2026",
-    );
     expect(
-      (screen.getByRole("combobox", { name: "Day" }) as HTMLSelectElement).options.length,
-    ).toBe(2);
+      (screen.getByRole("combobox", { name: "memberAge.years" }) as HTMLSelectElement).value,
+    ).toBe("0");
+    expect(
+      (screen.getByRole("combobox", { name: "memberAge.months" }) as HTMLSelectElement).value,
+    ).toBe("0");
     fireEvent.click(screen.getByTestId("family-member-save"));
     expect(onSubmit).toHaveBeenCalledOnce();
     for (const dateOfBirth of ["2026-01-02", "2020--", "2020-02-", "2025-02-29"]) {
@@ -174,9 +203,8 @@ describe("FamilyMemberForm", () => {
     await user.type(screen.getByPlaceholderText("e.g. Layla Ahmed"), "Layla Ahmed");
     await user.click(screen.getByRole("button", { name: "familyMembers.relationships.daughter" }));
     expect(document.querySelector('input[type="date"]')).toBeNull();
-    await user.selectOptions(screen.getByRole("combobox", { name: "Year" }), "2020");
-    await user.selectOptions(screen.getByRole("combobox", { name: "Month" }), "04");
-    await user.selectOptions(screen.getByRole("combobox", { name: "Day" }), "01");
+    await user.selectOptions(screen.getByRole("combobox", { name: "memberAge.years" }), "3");
+    expect(screen.queryByRole("combobox", { name: "memberAge.months" })).toBeNull();
     expect(screen.getByRole("button", { name: "familyMembers.genders.male" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "familyMembers.genders.female" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "familyMembers.genders.other" })).toBeNull();
