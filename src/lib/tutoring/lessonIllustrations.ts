@@ -14,7 +14,7 @@ export type LessonIllustrationKey =
 
 export const LESSON_BRAND = "#F10E72";
 export const LESSON_BRAND_TINT = "#FDEAF2";
-export const LESSON_BRAND_TINT_STRONG = "#FBD3E5";
+export const LESSON_BRAND_TINT_STRONG = "#FBC6DD";
 
 const SUBJECT_ILLUSTRATIONS: Record<string, LessonIllustrationKey> = {
   quran_memorization: "quran_memorization",
