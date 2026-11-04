@@ -7,7 +7,10 @@ import {
   isTeachingCurriculumNa,
   serviceRequiresTeachingCurriculum,
   TEACHING_CURRICULUM_NA_CODE,
+  isLessonServiceSlug,
 } from "@shared/tutoring/lessonServices";
+import { LessonIllustration } from "@/ui/lessons/LessonIllustration";
+import { LessonSubjectChips } from "@/ui/lessons/LessonSubjectChips";
 import { isPriceInRange } from "@shared/provider/priceOptions";
 import type { TeachingGroupDraft } from "@shared/provider/serviceRequestPayload";
 import {
@@ -121,7 +124,17 @@ export function ServiceRequestTeachingDraft({
 
   return (
     <View style={{ gap: space.lg }}>
-      <Text weight="bold">{t("pro.serviceRequest.teachingTitle")}</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
+        {isLessonServiceSlug(service.slug) ? (
+          <LessonIllustration
+            serviceSlug={service.slug}
+            accessibilityLabel={name(service)}
+            width={44}
+            height={44}
+          />
+        ) : null}
+        <Text weight="bold">{t("pro.serviceRequest.teachingTitle")}</Text>
+      </View>
       {groups.map((group, idx) => (
         <View key={idx} style={[proCard.card, { gap: space.xs }]}>
           <Text tone="muted" size="sm">
@@ -138,15 +151,29 @@ export function ServiceRequestTeachingDraft({
           />
         </View>
       ))}
-      <BottomSheetSelect
-        label={t("teaching.subject")}
+      <LessonSubjectChips
+        serviceSlug={service.slug}
+        subjects={availableSubjects as { id: string; code: string; name_ar: string; name_en: string }[]}
         value={subjectId}
-        options={availableSubjects.map((row) => ({ value: row.id, label: name(row) }))}
+        label={name}
         onChange={(value) => {
           setSubjectId(value);
           setLevelIds([]);
         }}
       />
+      {!isLessonServiceSlug(service.slug) ? (
+        <BottomSheetSelect
+          label={t("teaching.subject")}
+          value={subjectId}
+          options={availableSubjects.map((row) => ({ value: row.id, label: name(row) }))}
+          onChange={(value) => {
+            setSubjectId(value);
+            setLevelIds([]);
+          }}
+        />
+      ) : (
+        <Text weight="bold">{t("teaching.subject")}</Text>
+      )}
       {requiresCurriculum ? (
         <BottomSheetSelect
           label={t("teaching.curriculum")}

@@ -94,6 +94,7 @@ import { isClosedBetaCategorySlug } from "@/lib/catalog/closedBetaCategories";
 import { useApprovedTeachingCapabilities } from "@/lib/db/teaching-queries";
 import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
 import { isLessonServiceSlug, teachingCapabilityTitleParts } from "@/lib/tutoring/lessonServices";
+import { LessonSubjectIcon } from "@/components/lessons/LessonSubjectIcon";
 import { markCustomerPushPromptPending } from "@/lib/push-prompt";
 import {
   EducationProfileFields,
@@ -1107,8 +1108,10 @@ export function BookContent({
                         const cap = group.capabilities[0];
                         const active = group === selectedGroup;
                         const chosen = active ? (selectedCapability ?? cap) : cap;
+                        const subjectLabel =
+                          lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn;
                         const title = teachingCapabilityTitleParts({
-                          subject: lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn,
+                          subject: subjectLabel,
                           curriculum: lang === "ar" ? cap.curriculumNameAr : cap.curriculumNameEn,
                           level: lang === "ar" ? cap.levelNameAr : cap.levelNameEn,
                           curriculumCode: cap.curriculumCode,
@@ -1119,7 +1122,14 @@ export function BookContent({
                             selected={active}
                             title={title}
                             subtitle={`${formatNumber(chosen.price)} ${t("pricePicker.sessionUnit")}`}
-                            icon={<BookOpen size={22} />}
+                            icon={
+                              <LessonSubjectIcon
+                                subjectCode={cap.subjectCode}
+                                label={subjectLabel}
+                                className="h-6 w-6"
+                                fallback={<BookOpen size={22} />}
+                              />
+                            }
                             onClick={() => {
                               userPickedCapabilityRef.current = true;
                               setCapabilityId(cap.id);

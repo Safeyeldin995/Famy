@@ -26,10 +26,13 @@ import { teachingMissingChoice } from "@/lib/tutoring/teachingEditorState";
 import { isPriceInRange } from "@/lib/provider/priceOptions";
 import {
   isTeachingCurriculumNa,
+  isLessonServiceSlug,
   serviceRequiresTeachingCurriculum,
   TEACHING_CURRICULUM_NA_CODE,
 } from "@/lib/tutoring/lessonServices";
 import type { TeachingServiceLevelRow } from "@/lib/db/teaching-queries";
+import { LessonIllustration } from "@/components/lessons/LessonIllustration";
+import { LessonSubjectChipRow } from "@/components/lessons/LessonSubjectChipRow";
 export type SetupTeachingService = {
   id: string;
   slug?: string | null;
@@ -189,12 +192,21 @@ export function GroupedTeachingSetup({
           <ul className="grid gap-3">
             {savedGroups.map((group) => (
               <li key={group.key} className="rounded-2xl bg-surface-2 p-3">
-                <p className="text-sm font-bold">
+                <div className="flex items-start gap-3">
+                  {group.first.subject?.code ? (
+                    <LessonIllustration
+                      subjectCode={group.first.subject.code}
+                      label={group.first.subject ? name(group.first.subject) : ""}
+                      className="h-10 w-10 shrink-0"
+                    />
+                  ) : null}
+                  <p className="min-w-0 flex-1 text-sm font-bold">
                   {group.first.subject ? name(group.first.subject) : ""}
                   {group.first.curriculum && !isTeachingCurriculumNa(group.first.curriculum.code)
                     ? ` · ${name(group.first.curriculum)}`
                     : ""}
-                </p>
+                  </p>
+                </div>
                 <p className="text-xs text-muted-foreground">
                   {group.rows.map((row) => (row.level ? name(row.level) : "")).join(" · ")} ·{" "}
                   {group.first.session_price} {t("pricePicker.sessionUnit")}
@@ -285,6 +297,13 @@ export function GroupedTeachingSetup({
                   reset();
                 }}
               >
+                {isLessonServiceSlug(row.slug) ? (
+                  <LessonIllustration
+                    serviceSlug={row.slug}
+                    label={name(row)}
+                    className="h-10 w-10 shrink-0"
+                  />
+                ) : null}
                 <b className="flex-1">{name(row)}</b>
                 <span className={`apply-tag ${missing ? "apply-wait" : "apply-success"}`}>
                   {missing ? t("providerClarity.addSubject") : "✓"}
@@ -294,15 +313,30 @@ export function GroupedTeachingSetup({
           })}
         </div>
         {!services.length && <p role="status">{t("providerSetup.noTeachingServices")}</p>}
-        <BottomSheetSelect
-          label={t("teaching.subject")}
+        <LessonSubjectChipRow
+          serviceSlug={service?.slug}
+          subjects={availableSubjects}
           value={subjectId}
-          options={availableSubjects.map((row) => ({ value: row.id, label: name(row) }))}
+          groupAriaLabel={t("teaching.subject")}
+          label={name}
           onChange={(value) => {
             setSubjectId(value);
             reset();
           }}
         />
+        {!isLessonServiceSlug(service?.slug) ? (
+          <BottomSheetSelect
+            label={t("teaching.subject")}
+            value={subjectId}
+            options={availableSubjects.map((row) => ({ value: row.id, label: name(row) }))}
+            onChange={(value) => {
+              setSubjectId(value);
+              reset();
+            }}
+          />
+        ) : (
+          <p className="apply-label">{t("teaching.subject")}</p>
+        )}
         {requiresCurriculum ? (
           <BottomSheetSelect
             label={t("teaching.curriculum")}

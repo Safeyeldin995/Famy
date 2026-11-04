@@ -9,7 +9,10 @@ import {
   isTeachingCurriculumNa,
   serviceRequiresTeachingCurriculum,
   TEACHING_CURRICULUM_NA_CODE,
+  isLessonServiceSlug,
 } from "@shared/tutoring/lessonServices";
+import { LessonIllustration } from "@/ui/lessons/LessonIllustration";
+import { LessonSubjectChips } from "@/ui/lessons/LessonSubjectChips";
 import { isPriceInRange } from "@shared/provider/priceOptions";
 import {
   useMyTeachingCapabilities,
@@ -29,6 +32,7 @@ import { ProviderPriceStepper } from "./ProviderPriceStepper";
 import { proCard } from "./cards";
 
 type Named = { id: string; code?: string | null; name_ar: string; name_en: string };
+type SubjectRow = { id: string; code: string; name_ar: string; name_en: string };
 type TeachingService = Named & {
   slug?: string | null;
   minimum_price?: number | null;
@@ -167,12 +171,22 @@ export function TeachingGroupsSetup({
         const removable = teachingLevelDiff(group.rows, []).removable.map((row) => row.id);
         return (
           <View key={group.key} style={[proCard.card, { gap: space.sm }]}>
-            <Text weight="bold">
+            <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
+              {subjectName?.code ? (
+                <LessonIllustration
+                  subjectCode={subjectName.code}
+                  accessibilityLabel={subjectName ? name(subjectName) : ""}
+                  width={40}
+                  height={40}
+                />
+              ) : null}
+              <Text weight="bold" style={{ flex: 1 }}>
               {subjectName ? name(subjectName) : ""}
               {curriculumName && !isTeachingCurriculumNa(curriculumName.code)
                 ? ` · ${name(curriculumName)}`
                 : ""}
-            </Text>
+              </Text>
+            </View>
             <Text tone="muted" size="sm">
               {group.rows
                 .map((row) => {
@@ -228,15 +242,29 @@ export function TeachingGroupsSetup({
           resetChoice();
         }}
       />
-      <BottomSheetSelect
-        label={t("teaching.subject")}
+      <LessonSubjectChips
+        serviceSlug={service?.slug}
+        subjects={availableSubjects as SubjectRow[]}
         value={subjectId}
-        options={availableSubjects.map((row) => ({ value: row.id, label: name(row) }))}
+        label={name}
         onChange={(value) => {
           setSubjectId(value);
           setLevelIds([]);
         }}
       />
+      {!isLessonServiceSlug(service?.slug) ? (
+        <BottomSheetSelect
+          label={t("teaching.subject")}
+          value={subjectId}
+          options={availableSubjects.map((row) => ({ value: row.id, label: name(row) }))}
+          onChange={(value) => {
+            setSubjectId(value);
+            setLevelIds([]);
+          }}
+        />
+      ) : (
+        <Text weight="bold">{t("teaching.subject")}</Text>
+      )}
       {requiresCurriculum ? (
         <BottomSheetSelect
           label={t("teaching.curriculum")}

@@ -71,6 +71,8 @@ import {
   shouldPersistEducationAfterBookingSuccess,
 } from "@shared/tutoring/bookingEducationAutofill";
 import { isLessonServiceSlug, teachingCapabilityTitleParts } from "@shared/tutoring/lessonServices";
+import { lessonIllustrationKeyForSubject } from "@shared/tutoring/lessonIllustrations";
+import { LessonIllustration } from "@/ui/lessons/LessonIllustration";
 import { localized, dateTime } from "@/lib/presentation";
 import { Page, QueryState, Field, Choices, ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
@@ -675,7 +677,20 @@ export default function Book() {
                       curriculumCode: cap.curriculumCode,
                     }).join(" · ")}
                     subtitle={`${chosen.price} ${t("pricePicker.sessionUnit")}`}
-                    icon={<BookOpen size={22} color={colors.brand} />}
+                    icon={
+                      lessonIllustrationKeyForSubject(cap.subjectCode) ? (
+                        <LessonIllustration
+                          subjectCode={cap.subjectCode}
+                          accessibilityLabel={
+                            lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn
+                          }
+                          width={28}
+                          height={28}
+                        />
+                      ) : (
+                        <BookOpen size={22} color={colors.brand} />
+                      )
+                    }
                     onPress={() => {
                       userCap.current = true;
                       setCapId(cap.id);

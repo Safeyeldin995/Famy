@@ -26,7 +26,10 @@ import {
   isTeachingCurriculumNa,
   serviceRequiresTeachingCurriculum,
   TEACHING_CURRICULUM_NA_CODE,
+  isLessonServiceSlug,
 } from "@/lib/tutoring/lessonServices";
+import { LessonIllustration } from "@/components/lessons/LessonIllustration";
+import { LessonSubjectChipRow } from "@/components/lessons/LessonSubjectChipRow";
 import { servicePriceUnit } from "@/lib/pricing/servicePackages";
 import { PrimaryButton } from "@/components/famio/ui";
 import { useMemo, useState } from "react";
@@ -215,20 +218,39 @@ export function ProviderServiceRequestForm({
 
       {isTutoring && (
         <section className="space-y-3 rounded-2xl border border-border p-4">
-          <h3 className="text-sm font-bold">{t("pro.serviceRequest.teachingTitle")}</h3>
+          <div className="flex items-center gap-3">
+            {isLessonServiceSlug(service.slug) ? (
+              <LessonIllustration
+                serviceSlug={service.slug}
+                label={serviceName ?? ""}
+                className="h-12 w-12 shrink-0"
+              />
+            ) : null}
+            <h3 className="text-sm font-bold">{t("pro.serviceRequest.teachingTitle")}</h3>
+          </div>
           <div className="grid gap-2">
-            <select
-              className="min-h-11 rounded-xl border border-border bg-surface px-3 text-sm"
+            <LessonSubjectChipRow
+              serviceSlug={service.slug}
+              subjects={subjects}
               value={draftSubject}
-              onChange={(e) => setDraftSubject(e.target.value)}
-            >
-              <option value="">{t("teaching.pickSubject")}</option>
-              {subjects.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {lang === "ar" ? s.name_ar : s.name_en}
-                </option>
-              ))}
-            </select>
+              groupAriaLabel={t("teaching.subject")}
+              label={(row) => (lang === "ar" ? row.name_ar : row.name_en) ?? ""}
+              onChange={setDraftSubject}
+            />
+            {!isLessonServiceSlug(service.slug) ? (
+              <select
+                className="min-h-11 rounded-xl border border-border bg-surface px-3 text-sm"
+                value={draftSubject}
+                onChange={(e) => setDraftSubject(e.target.value)}
+              >
+                <option value="">{t("teaching.pickSubject")}</option>
+                {subjects.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {lang === "ar" ? s.name_ar : s.name_en}
+                  </option>
+                ))}
+              </select>
+            ) : null}
             {requiresCurriculum ? (
               <select
                 className="min-h-11 rounded-xl border border-border bg-surface px-3 text-sm"
