@@ -219,6 +219,13 @@ const title = (key: string) =>
   screen.getByRole("heading", {
     name: i18n.t(`customerBooking.titles.${key}`, { name: "Provider" }),
   });
+function pickSupervision() {
+  fireEvent.click(
+    screen.getByRole("button", {
+      name: new RegExp(i18n.t("bookFlow.supervision.cameras.title")),
+    }),
+  );
+}
 async function selectTime() {
   await waitFor(() => expect(title("when")).toBeTruthy());
   const buttons = document.querySelectorAll<HTMLButtonElement>(".booking-time");
@@ -232,6 +239,7 @@ async function toReview(serviceId = "booking-hourly") {
   fireEvent.click(next());
   const timeLabel = await selectTime();
   fireEvent.click(screen.getByRole("button", { name: /^Child fixture ·/ }));
+  pickSupervision();
   fireEvent.click(next());
   expect(title("review")).toBeTruthy();
   return timeLabel;
@@ -325,6 +333,7 @@ describe("four-screen booking journey", () => {
         teaching_subject_code: null,
         teaching_curriculum_code: null,
         teaching_level_code: null,
+        supervision_mode: "cameras",
         idempotency_key: expect.any(String),
       });
       expect((Date.parse(payload.end_at) - Date.parse(payload.start_at)) / 3600000).toBe(
@@ -338,6 +347,7 @@ describe("four-screen booking journey", () => {
     fireEvent.click(next());
     await selectTime();
     fireEvent.click(screen.getByRole("button", { name: /^Child fixture ·/ }));
+    pickSupervision();
     expect((next() as HTMLButtonElement).disabled).toBe(true);
     state.requirementsSuccess = true;
     state.requirements = [
@@ -361,6 +371,7 @@ describe("four-screen booking journey", () => {
       screen.getByText(i18n.t("customerBooking.tutoringFrom", { price: formatNumber(450) })),
     ).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /^Child fixture ·/ }));
+    pickSupervision();
     // Two approved durations require a subject-group choice; the existing autofill
     // intentionally does not select an ambiguous capability automatically.
     fireEvent.click(screen.getByRole("button", { name: /Math · Egyptian · Grade 1/ }));
@@ -385,6 +396,7 @@ describe("four-screen booking journey", () => {
       teaching_curriculum_code: "egypt",
       teaching_level_code: "grade-1",
       family_member_id: "child-fixture",
+      supervision_mode: "cameras",
     });
   });
   it("disables unavailable time candidates and keeps them out of selection", async () => {

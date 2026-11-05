@@ -134,8 +134,10 @@ const request = buildBookingRequest({
   eitherRequirements: [{ id: "r" }],
   requirementChoices: { r: "provider" },
   selectedCapability: null,
+  supervisionMode: "cameras",
 });
 assert.equal(request.family_member_id, "child");
+assert.equal(request.supervision_mode, "cameras");
 assert.equal(request.promo_code_id, "promo");
 assert(!("price_total" in request));
 const fingerprint = bookingSubmissionFingerprint(request),

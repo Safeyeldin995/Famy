@@ -14,18 +14,22 @@ export function bookingScreenMissingStep(
     slot: boolean;
     address: boolean;
     recipient: boolean;
+    supervisionRequired?: boolean;
+    supervision?: boolean;
     requirements: boolean;
     payment: boolean;
   },
 ): CustomerBookingStep | null {
   if (!input.service) return "service";
   if (input.tutoring && !input.recipient) return "forWhom";
+  if (input.tutoring && input.supervisionRequired && !input.supervision) return "forWhom";
   if (input.tutoring && !input.capability) return "duration";
   if (screen === "service") return null;
   if (!input.slot) return "schedule";
   if (screen === "when") return null;
   if (!input.address) return "address";
   if (!input.recipient) return "forWhom";
+  if (input.supervisionRequired && !input.supervision) return "forWhom";
   if (!input.requirements) return "requirements";
   if (screen === "whereWho") return null;
   return input.payment ? null : "payment";

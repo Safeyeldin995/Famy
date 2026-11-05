@@ -37,6 +37,8 @@ beforeEach(async () => {
     INSERT INTO public.services(id,category_id,slug,name_en,name_ar,minimum_price,maximum_price,allowed_session_durations)
       SELECT '${service}',id,'synthetic-group-service','Synthetic group','خدمة تجريبية',300,1500,ARRAY[60,90,120] FROM public.categories WHERE slug='tutoring';
     INSERT INTO public.teaching_subject_services(subject_id,service_id) VALUES ('${subject}','${service}');
+    INSERT INTO public.service_teaching_levels(service_id, level_id)
+    SELECT '${service}', lvl.id FROM public.teaching_levels lvl WHERE lvl.is_active;
   `);
 });
 afterEach(async () => {

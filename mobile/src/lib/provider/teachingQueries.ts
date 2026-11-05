@@ -79,6 +79,19 @@ export function useTeachingSubjectServices() {
   });
 }
 
+export function useTeachingServiceLevels() {
+  return useQuery({
+    queryKey: ["teaching-service-levels"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("service_teaching_levels")
+        .select("service_id, level_id");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
 export function useSaveTeachingGroup() {
   const qc = useQueryClient();
   return useMutation({

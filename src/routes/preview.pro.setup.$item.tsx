@@ -82,6 +82,7 @@ function PreviewSetup() {
         curricula={curricula}
         levels={levels}
         links={[{ service_id: "school", subject_id: "math" }]}
+        serviceLevels={levels.map((level) => ({ service_id: "school", level_id: level.id }))}
         rows={rows}
         onBack={back}
         onSave={async () => back()}

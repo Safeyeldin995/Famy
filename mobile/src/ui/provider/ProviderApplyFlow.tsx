@@ -268,6 +268,9 @@ export function ProviderApplyFlow({
               setDraft((d) => ({ ...d, back: true }));
             }}
           />
+          <Text tone="muted" size="sm">
+            {t("providerApply.cameraNotice")}
+          </Text>
           <Pressable
             accessibilityRole="checkbox"
             accessibilityLabel={t("providerApply.agreement")}

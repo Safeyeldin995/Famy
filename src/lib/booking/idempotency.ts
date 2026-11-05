@@ -17,6 +17,7 @@ export type BookingSubmissionPayload = {
   teaching_subject_code?: string | null;
   teaching_curriculum_code?: string | null;
   teaching_level_code?: string | null;
+  supervision_mode?: string | null;
 };
 
 export type IdempotencyKeyState = {
@@ -56,6 +57,7 @@ export function bookingSubmissionFingerprint(payload: BookingSubmissionPayload):
     teaching_subject_code: normalizeOptionalText(payload.teaching_subject_code),
     teaching_curriculum_code: normalizeOptionalText(payload.teaching_curriculum_code),
     teaching_level_code: normalizeOptionalText(payload.teaching_level_code),
+    supervision_mode: payload.supervision_mode ?? null,
   };
   return JSON.stringify(normalized);
 }

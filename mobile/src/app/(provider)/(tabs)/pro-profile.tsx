@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Image, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { Avatar } from "@/ui/ProviderCard";
 import { Camera, Globe, LogOut, ShieldCheck } from "lucide-react-native";
 import { reloadAppAsync } from "expo";
 import { applyDirection, saveLanguage } from "@/lib/i18n";
@@ -58,16 +59,12 @@ export default function ProviderProfile() {
               justifyContent: "center",
             }}
           >
-            {profile?.avatar_url?.startsWith("http") ? (
-              <Image
-                source={{ uri: profile.avatar_url }}
-                style={{ width: 64, height: 64, borderRadius: 32 }}
-              />
-            ) : (
-              <Text tone="brand" weight="heavy">
-                {(profile?.full_name || t("greetings.there")).slice(0, 1)}
-              </Text>
-            )}
+            <Avatar
+              raw={profile?.avatar_url}
+              size={64}
+              round
+              name={profile?.full_name || t("greetings.there")}
+            />
             <View
               style={{
                 position: "absolute",

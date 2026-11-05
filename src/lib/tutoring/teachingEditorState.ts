@@ -3,9 +3,10 @@ export function teachingMissingChoice(
   curriculum: string,
   levels: readonly string[],
   priceValid: boolean,
+  requiresCurriculum = true,
 ) {
   if (!subject) return "subject";
-  if (!curriculum) return "curriculum";
+  if (requiresCurriculum && !curriculum) return "curriculum";
   if (!levels.length) return "level";
   if (!priceValid) return "price";
   return null;

@@ -19,7 +19,9 @@ import {
   useMyProfile,
   useDefaultAddress,
   useMyBookings,
+  useMarketplaceServices,
 } from "@/lib/db/queries";
+import { LessonServiceTileRow } from "@/components/lessons/LessonServiceTileRow";
 import { providerPriceLabel } from "@/lib/db/adapters";
 import { previewPath } from "@/lib/preview/previewPath";
 import { isPreviewRoute } from "@/lib/preview/constants";
@@ -36,6 +38,7 @@ function Home() {
   const unread = useUnreadNotificationCount();
   const bookings = useMyBookings();
   const promos = useFeaturedPromoCodes();
+  const tutoringServices = useMarketplaceServices("tutoring");
   if (blocking) return null;
   const lang = i18n.language.startsWith("ar") ? "ar" : "en";
   const firstName = profile.data?.full_name?.split(" ")[0] || t("greetings.there");
@@ -127,6 +130,11 @@ function Home() {
                 })}
             </div>
           )}
+          {!tutoringServices.isLoading && (tutoringServices.data?.length ?? 0) > 0 ? (
+            <div className="mt-4">
+              <LessonServiceTileRow services={tutoringServices.data ?? []} lang={lang} />
+            </div>
+          ) : null}
         </section>
 
         {promos.isError ? (

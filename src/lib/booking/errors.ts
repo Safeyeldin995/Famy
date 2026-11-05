@@ -8,6 +8,7 @@ export const BOOKING_ERROR_CODES = {
   AVAILABILITY_CHANGED: "AVAILABILITY_CHANGED",
   INVALID_PROMO: "INVALID_PROMO",
   INVALID_BOOKING_REQUEST: "INVALID_BOOKING_REQUEST",
+  SUPERVISION_REQUIRED: "SUPERVISION_REQUIRED",
   DUPLICATE_REQUEST_CONFLICT: "DUPLICATE_REQUEST_CONFLICT",
   UNAUTHORIZED: "UNAUTHORIZED",
 } as const;
@@ -24,6 +25,7 @@ const CODE_ALIASES: Record<string, BookingErrorCode> = {
   BOOKING_AVAILABILITY_CHANGED: BOOKING_ERROR_CODES.AVAILABILITY_CHANGED,
   BOOKING_INVALID_PROMO: BOOKING_ERROR_CODES.INVALID_PROMO,
   BOOKING_INVALID_BOOKING_REQUEST: BOOKING_ERROR_CODES.INVALID_BOOKING_REQUEST,
+  BOOKING_SUPERVISION_REQUIRED: BOOKING_ERROR_CODES.SUPERVISION_REQUIRED,
   BOOKING_DUPLICATE_REQUEST_CONFLICT: BOOKING_ERROR_CODES.DUPLICATE_REQUEST_CONFLICT,
   BOOKING_UNAUTHORIZED: BOOKING_ERROR_CODES.UNAUTHORIZED,
 };
@@ -59,16 +61,21 @@ export function bookingErrorI18nKey(code: BookingErrorCode): string {
 }
 
 export function isSlotStaleBookingError(code: BookingErrorCode | null): boolean {
-  return code === BOOKING_ERROR_CODES.SLOT_UNAVAILABLE
-    || code === BOOKING_ERROR_CODES.AVAILABILITY_CHANGED;
+  return (
+    code === BOOKING_ERROR_CODES.SLOT_UNAVAILABLE ||
+    code === BOOKING_ERROR_CODES.AVAILABILITY_CHANGED
+  );
 }
 
 export function mapBookingRpcError(error: PostgrestError): BookingError {
-  const code = parseBookingErrorCode(error.message)
-    ?? (error.code === "42501" ? BOOKING_ERROR_CODES.UNAUTHORIZED : null)
-    ?? (error.code === "23P01" ? BOOKING_ERROR_CODES.SLOT_UNAVAILABLE : null)
-    ?? BOOKING_ERROR_CODES.INVALID_BOOKING_REQUEST;
-  const friendly = error.message?.includes(":") ? error.message.split(":").slice(1).join(":").trim() : error.message;
+  const code =
+    parseBookingErrorCode(error.message) ??
+    (error.code === "42501" ? BOOKING_ERROR_CODES.UNAUTHORIZED : null) ??
+    (error.code === "23P01" ? BOOKING_ERROR_CODES.SLOT_UNAVAILABLE : null) ??
+    BOOKING_ERROR_CODES.INVALID_BOOKING_REQUEST;
+  const friendly = error.message?.includes(":")
+    ? error.message.split(":").slice(1).join(":").trim()
+    : error.message;
   return new BookingError(code, friendly || code);
 }
 
@@ -79,7 +86,12 @@ export function getBookingErrorMessage(
   if (error instanceof BookingError) {
     return t(bookingErrorI18nKey(error.code), error.message);
   }
-  if (error && typeof error === "object" && "message" in error && typeof error.message === "string") {
+  if (
+    error &&
+    typeof error === "object" &&
+    "message" in error &&
+    typeof error.message === "string"
+  ) {
     const code = parseBookingErrorCode(error.message);
     if (code) return t(bookingErrorI18nKey(code), error.message);
     return error.message;

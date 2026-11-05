@@ -22,6 +22,13 @@ import { CheckChip } from "@/components/famio/CheckChip";
 import { TextField } from "@/components/famio/TextField";
 import { BookingWhen } from "@/components/booking/BookingWhen";
 import { BookingDetailsSheet } from "@/components/booking/BookingDetailsSheet";
+import { SupervisionModeFields } from "@/components/booking/SupervisionModeFields";
+import {
+  requiresSupervisionMode,
+  type SupervisionMode,
+  supervisionModeProviderLabel,
+  isSupervisionMode,
+} from "@/lib/booking/supervisionMode";
 import "@/components/booking/customerBooking.css";
 import { isFixedPackage, filterFixedStartSlots, packageLabel } from "@/lib/pricing/servicePackages";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
@@ -93,6 +100,8 @@ import {
 import { isClosedBetaCategorySlug } from "@/lib/catalog/closedBetaCategories";
 import { useApprovedTeachingCapabilities } from "@/lib/db/teaching-queries";
 import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
+import { isLessonServiceSlug, teachingCapabilityTitleParts } from "@/lib/tutoring/lessonServices";
+import { LessonSubjectIcon } from "@/components/lessons/LessonSubjectIcon";
 import { markCustomerPushPromptPending } from "@/lib/push-prompt";
 import {
   EducationProfileFields,
@@ -163,6 +172,7 @@ export function BookContent({
   const [address, setAddress] = useState("");
   const [addressId, setAddressId] = useState<string | null>(null);
   const [forWhom, setForWhom] = useState("myself");
+  const [supervisionMode, setSupervisionMode] = useState<SupervisionMode | "">("");
   const [notes, setNotes] = useState("");
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
   const [promoCode, setPromoCode] = useState("");
@@ -260,6 +270,8 @@ export function BookContent({
   );
   const isBabysitting = isBabysittingCategorySlug(activeService?.service?.category?.slug);
   const isTutoring = isTutoringCategorySlug(activeService?.service?.category?.slug);
+  const supervisionRequired = requiresSupervisionMode(activeService?.service?.category?.slug);
+  const isLessonService = isLessonServiceSlug(activeService?.service?.slug);
   const capabilitiesQ = useApprovedTeachingCapabilities(
     providerId,
     activeService?.service?.id ?? serviceId ?? undefined,
@@ -318,6 +330,10 @@ export function BookContent({
     }
   }, [isBabysitting, forWhom]);
 
+  useEffect(() => {
+    setSupervisionMode("");
+  }, [activeService?.service?.id]);
+
   const packageSlots = useMemo(
     () => filterFixedStartSlots(slotsQ.data ?? [], activeService?.service),
     [slotsQ.data, activeService?.service],
@@ -341,7 +357,7 @@ export function BookContent({
   );
 
   useEffect(() => {
-    if (!isTutoring) return;
+    if (!isTutoring || isLessonService) return;
     setBookingEducation(
       educationValueFromIds(
         studentEducation.educationCurriculumId,
@@ -351,6 +367,7 @@ export function BookContent({
     userPickedCapabilityRef.current = false;
   }, [
     isTutoring,
+    isLessonService,
     forWhom,
     studentEducation.educationCurriculumId,
     studentEducation.educationLevelId,
@@ -562,18 +579,22 @@ export function BookContent({
 
   const requirementsReady =
     requirementsQ.isSuccess && eitherRequirements.every((r: any) => !!requirementChoices[r.id]);
+  const recipientReady = canContinueForWhom({
+    isBabysitting,
+    forWhom,
+    members: familyMembersQ.data ?? [],
+    startAt: selectedSlot?.start ?? null,
+  });
+  const supervisionReady = !supervisionRequired || !!supervisionMode;
   const missingStep = bookingScreenMissingStep(stepKey, {
     service: !!activeService,
     tutoring: isTutoring,
     capability: !!selectedCapability,
     slot: !!date && !!time && (!fixedPackage || !!selectedSlot),
     address: !!addressId && !!zoneQ.data,
-    recipient: canContinueForWhom({
-      isBabysitting,
-      forWhom,
-      members: familyMembersQ.data ?? [],
-      startAt: selectedSlot?.start ?? null,
-    }),
+    recipient: recipientReady,
+    supervisionRequired,
+    supervision: supervisionReady,
     requirements: requirementsReady,
     payment: !!paymentMethodId,
   });
@@ -607,6 +628,9 @@ export function BookContent({
     hasDate: !!date,
     hasSlots: packageSlots.length > 0,
     hasAddress: !!addressId,
+    hasRecipient: recipientReady,
+    hasSupervision: supervisionReady,
+    supervisionRequired,
   });
   const clearSlot = () => {
     setTime(null);
@@ -617,12 +641,14 @@ export function BookContent({
     setEditingReview(true);
     setRequestedStep(screen);
   };
-  const visibleCapabilities = (capabilitiesQ.data ?? []).filter(
-    (cap) =>
+  const visibleCapabilities = (capabilitiesQ.data ?? []).filter((cap) => {
+    if (isLessonService) return true;
+    return (
       (!bookingEducation.educationCurriculumId ||
         cap.curriculumId === bookingEducation.educationCurriculumId) &&
-      (!bookingEducation.educationLevelId || cap.levelId === bookingEducation.educationLevelId),
-  );
+      (!bookingEducation.educationLevelId || cap.levelId === bookingEducation.educationLevelId)
+    );
+  });
   const subjectGroups = groupBookingSubjects(visibleCapabilities);
   const selectedGroup = subjectGroups.find((group) =>
     group.capabilities.some((cap) => cap.id === selectedCapability?.id),
@@ -734,6 +760,7 @@ export function BookContent({
         eitherRequirements,
         requirementChoices,
         selectedCapability,
+        supervisionMode: supervisionRequired && isSupervisionMode(supervisionMode) ? supervisionMode : null,
       });
       const fingerprint = bookingSubmissionFingerprint(submissionPayload);
       idempotencyStateRef.current = resolveIdempotencyKey(idempotencyStateRef.current, fingerprint);
@@ -1040,47 +1067,54 @@ export function BookContent({
               {isTutoring && (
                 <>
                   {recipientFields}
+                  {supervisionRequired && (
+                    <SupervisionModeFields value={supervisionMode} onChange={setSupervisionMode} />
+                  )}
                   <Step title={t("bookFlow.pickCapability")}>
-                    <details
-                      className="booking-section"
-                      open={
-                        !bookingEducation.educationCurriculumId ||
-                        !bookingEducation.educationLevelId
-                          ? true
-                          : undefined
-                      }
-                    >
-                      <summary className="booking-add">
-                        {t("customerBooking.schoolDetails")}
-                      </summary>
-                      <EducationProfileFields
-                        value={bookingEducation}
-                        onChange={(next) => {
-                          userPickedCapabilityRef.current = true;
-                          setBookingEducation(next);
-                          const match = pickDefaultCapabilityForEducation(
-                            capabilitiesQ.data ?? [],
-                            activeService?.service?.id ?? serviceId,
-                            next.educationCurriculumId || null,
-                            next.educationLevelId || null,
-                          );
-                          setCapabilityId(match?.id ?? null);
-                          clearSlot();
-                        }}
-                      />
-                      <label className="apply-agree">
-                        <input
-                          type="checkbox"
-                          checked={saveEducationForNextTime}
-                          onChange={(event) => setSaveEducationForNextTime(event.target.checked)}
-                          className="sr-only"
+                    {!isLessonService ? (
+                      <details
+                        className="booking-section"
+                        open={
+                          !bookingEducation.educationCurriculumId ||
+                          !bookingEducation.educationLevelId
+                            ? true
+                            : undefined
+                        }
+                      >
+                        <summary className="booking-add">
+                          {t("customerBooking.schoolDetails")}
+                        </summary>
+                        <EducationProfileFields
+                          value={bookingEducation}
+                          onChange={(next) => {
+                            userPickedCapabilityRef.current = true;
+                            setBookingEducation(next);
+                            const match = pickDefaultCapabilityForEducation(
+                              capabilitiesQ.data ?? [],
+                              activeService?.service?.id ?? serviceId,
+                              next.educationCurriculumId || null,
+                              next.educationLevelId || null,
+                            );
+                            setCapabilityId(match?.id ?? null);
+                            clearSlot();
+                          }}
                         />
-                        <span className={`apply-checkbox ${saveEducationForNextTime ? "on" : ""}`}>
-                          {saveEducationForNextTime && <Check size={14} />}
-                        </span>
-                        {t("studentEducation.saveForNextTime")}
-                      </label>
-                    </details>
+                        <label className="apply-agree">
+                          <input
+                            type="checkbox"
+                            checked={saveEducationForNextTime}
+                            onChange={(event) => setSaveEducationForNextTime(event.target.checked)}
+                            className="sr-only"
+                          />
+                          <span
+                            className={`apply-checkbox ${saveEducationForNextTime ? "on" : ""}`}
+                          >
+                            {saveEducationForNextTime && <Check size={14} />}
+                          </span>
+                          {t("studentEducation.saveForNextTime")}
+                        </label>
+                      </details>
+                    ) : null}
                     {requestedCapabilityMissing && (
                       <p className="booking-error">{t("bookFlow.capabilityUnavailable")}</p>
                     )}
@@ -1098,18 +1132,28 @@ export function BookContent({
                         const cap = group.capabilities[0];
                         const active = group === selectedGroup;
                         const chosen = active ? (selectedCapability ?? cap) : cap;
-                        const title = [
-                          lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn,
-                          lang === "ar" ? cap.curriculumNameAr : cap.curriculumNameEn,
-                          lang === "ar" ? cap.levelNameAr : cap.levelNameEn,
-                        ].join(" · ");
+                        const subjectLabel =
+                          lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn;
+                        const title = teachingCapabilityTitleParts({
+                          subject: subjectLabel,
+                          curriculum: lang === "ar" ? cap.curriculumNameAr : cap.curriculumNameEn,
+                          level: lang === "ar" ? cap.levelNameAr : cap.levelNameEn,
+                          curriculumCode: cap.curriculumCode,
+                        }).join(" · ");
                         return (
                           <ServiceCard
                             key={group.key}
                             selected={active}
                             title={title}
                             subtitle={`${formatNumber(chosen.price)} ${t("pricePicker.sessionUnit")}`}
-                            icon={<BookOpen size={22} />}
+                            icon={
+                              <LessonSubjectIcon
+                                subjectCode={cap.subjectCode}
+                                label={subjectLabel}
+                                className="h-6 w-6"
+                                fallback={<BookOpen size={22} />}
+                              />
+                            }
                             onClick={() => {
                               userPickedCapabilityRef.current = true;
                               setCapabilityId(cap.id);
@@ -1317,6 +1361,9 @@ export function BookContent({
           )}
 
           {stepKey === "whereWho" && !isTutoring && recipientFields}
+          {stepKey === "whereWho" && supervisionRequired && !isTutoring && (
+            <SupervisionModeFields value={supervisionMode} onChange={setSupervisionMode} />
+          )}
           {stepKey === "whereWho" &&
             (!requirementsQ.isSuccess || bookingRequirements.length > 0) && (
               <Step
@@ -1423,6 +1470,13 @@ export function BookContent({
                   value={forWhomLabel}
                   onEdit={() => editScreen(isTutoring ? "service" : "whereWho")}
                 />
+                {supervisionRequired && isSupervisionMode(supervisionMode) && (
+                  <ReviewRow
+                    label={t("bookFlow.supervision.label")}
+                    value={supervisionModeProviderLabel(supervisionMode, t) ?? ""}
+                    onEdit={() => editScreen(isTutoring ? "service" : "whereWho")}
+                  />
+                )}
                 {notes && (
                   <ReviewRow
                     label={t("bookFlow.rowNotes")}

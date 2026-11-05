@@ -1,18 +1,24 @@
-import { Image, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { bookingMemberAgeTranslation } from "@shared/familyMemberAge";
 import { router } from "expo-router";
+import { Avatar } from "../ProviderCard";
 import { useTranslation } from "react-i18next";
 import { BookingRequestActions } from "./BookingRequestActions";
 import { Text } from "@/ui/Text";
 import { colors, radius, space } from "@/ui/theme";
 import { localized, money } from "@/lib/presentation";
 import type { BookingParty } from "@/lib/provider/parties";
+import {
+  isSupervisionMode,
+  supervisionModeProviderLabel,
+} from "@shared/booking/supervisionMode";
 
 export type ProviderCardBooking = {
   id: string;
   start_at: string;
   status?: string;
   price_total?: number | null;
+  supervision_mode?: string | null;
   customer?: { full_name?: string | null; avatar_url?: string | null } | null;
   service?: { name_ar?: string | null; name_en?: string | null } | null;
   party?: BookingParty;
@@ -57,27 +63,7 @@ export function ProviderBookingCard({
         style={{ padding: space.md, gap: space.sm }}
       >
         <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
-          {booking.customer?.avatar_url ? (
-            <Image
-              source={{ uri: booking.customer.avatar_url }}
-              style={{ width: 48, height: 48, borderRadius: 14 }}
-            />
-          ) : (
-            <View
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 14,
-                backgroundColor: colors.brandTint,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Text weight="heavy" tone="brand">
-                {name.trim().slice(0, 1)}
-              </Text>
-            </View>
-          )}
+          <Avatar raw={booking.customer?.avatar_url} size={48} name={name} />
           <Text weight="heavy" size="lg" style={{ flex: 1 }} numberOfLines={1}>
             {name}
           </Text>
@@ -86,9 +72,13 @@ export function ProviderBookingCard({
           </Text>
         </View>
         <Text weight="bold">{localized(booking.service, language)}</Text>
-        {area || child ? (
+        {area || child || isSupervisionMode(booking.supervision_mode) ? (
           <Text tone="muted" size="sm">
-            {[area, child ? `${child} · ${t(age.key, { count: age.count })}` : null]
+            {[
+              area,
+              child ? `${child} · ${t(age.key, { count: age.count })}` : null,
+              supervisionModeProviderLabel(booking.supervision_mode, t),
+            ]
               .filter(Boolean)
               .join(" · ")}
           </Text>

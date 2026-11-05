@@ -1,4 +1,7 @@
-import { useTeachingReviewMessages, teachingReviewMessages } from "@/lib/provider/teachingReviewMessages";
+import {
+  useTeachingReviewMessages,
+  teachingReviewMessages,
+} from "@/lib/provider/teachingReviewMessages";
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
@@ -32,6 +35,7 @@ import {
   useTeachingLevels,
   useTeachingSubjects,
   useTeachingSubjectServices,
+  useTeachingServiceLevels,
 } from "@/lib/db/teaching-queries";
 import { useSaveTeachingGroup } from "@/lib/db/teaching-group-queries";
 import {
@@ -175,9 +179,10 @@ function LiveSubjects({
   const curricula = useTeachingCurricula();
   const levels = useTeachingLevels();
   const links = useTeachingSubjectServices();
+  const serviceLevels = useTeachingServiceLevels();
   const save = useSaveTeachingGroup();
   const remove = useRemoveTeachingCapability();
-  const queries = [rows, subjects, curricula, levels, links, reviews];
+  const queries = [rows, subjects, curricula, levels, links, serviceLevels, reviews];
   if (queries.some((q) => q.isError))
     return <QueryError onRetry={() => queries.forEach((q) => void q.refetch())} />;
   if (queries.some((q) => !q.isSuccess))
@@ -193,6 +198,7 @@ function LiveSubjects({
       curricula={curricula.data!}
       levels={levels.data!}
       links={links.data!}
+      serviceLevels={serviceLevels.data!}
       rows={rows.data!}
       serviceStatuses={serviceStatuses}
       rejectionMessages={teachingReviewMessages(reviews.data ?? [], i18n.language.startsWith("ar"))}

@@ -1,10 +1,23 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   teachingLevelsForCurriculum,
+  teachingLevelsForService,
   upsertTeachingCapabilitiesForLevels,
 } from "@/lib/tutoring/teachingLevelFilters";
 
 describe("teachingLevelFilters", () => {
+  it("scopes levels to a service when links exist", () => {
+    const levels = [
+      { id: "1", code: "g1", name_en: "G1", name_ar: "G1", is_active: true, sort_order: 1 },
+      { id: "2", code: "skill_beginner", name_en: "Beginner", name_ar: "Beginner", is_active: true, sort_order: 2 },
+    ];
+    expect(
+      teachingLevelsForService("svc", levels, [{ service_id: "svc", level_id: "2" }]).map(
+        (row) => row.code,
+      ),
+    ).toEqual(["skill_beginner"]);
+  });
+
   it("filters British curriculum levels to grades 10–12", () => {
     const levels = [
       { id: "1", code: "g9", name_en: "G9", name_ar: "G9", is_active: true, sort_order: 1 },

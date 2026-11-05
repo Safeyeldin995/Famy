@@ -381,6 +381,7 @@ async function run() {
         const duration = (new Date(body.p_end_at) - new Date(body.p_start_at)) / 60000;
         assert.equal(duration, scenario === "tutoring" ? 90 : scenario === "package" ? 480 : 240);
         if (scenario === "tutoring") assert.equal(body.p_teaching_capability_id, capability.id);
+        assert.equal(body.p_supervision_mode, "cameras");
         creates.push(body);
         Object.assign(booking, {
           start_at: body.p_start_at,
@@ -596,6 +597,9 @@ async function run() {
   async function radio(label) {
     await page.getByRole("radio", { name: label, exact: true }).click();
   }
+  async function pickSupervision() {
+    await radio(ar.bookFlow.supervision.cameras.title);
+  }
   for (const kind of bookingAgeOnly ? ["package"] : ["hourly", "package", "tutoring"]) {
     scenario = kind;
     paymentRows = [];
@@ -617,6 +621,7 @@ async function run() {
       await radio("منهج اختبار");
       await radio("صف اختبار");
       await page.getByRole("radio", { name: /رياضيات اختبار/ }).click();
+      await pickSupervision();
     }
     await expect(page.getByRole("button", { name: ar.common.continue, exact: true })).toBeEnabled();
     await shot(`${kind}-1-service`);
@@ -637,6 +642,7 @@ async function run() {
     await button(ar.common.continue);
     if (kind !== "tutoring")
       await page.getByRole("radio", { name: new RegExp(member.full_name) }).click();
+    if (kind !== "tutoring") await pickSupervision();
     await page.getByRole("radio", { name: new RegExp(ar.mobileBooking.providerProvides) }).click();
     await expect(page.getByRole("button", { name: ar.common.continue, exact: true })).toBeEnabled();
     await shot(`${kind}-3-address-recipient`);
