@@ -1,3 +1,4 @@
+import { PaymobAppReturn } from "@/components/site/PaymobAppReturn";
 import { CustomerPageHeader } from "@/components/famio/CustomerPageHeader";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 import { previewPath } from "@/lib/preview/previewPath";
@@ -103,6 +104,9 @@ type CustomerDialog =
 function BookingDetail() {
   const { id } = Route.useParams();
   const locationSearch = Route.useSearch() as { paymob_return?: string; paymob_checkout?: string };
+  if (locationSearch.paymob_return === "1") {
+    return <PaymobAppReturn bookingId={id} />;
+  }
   return (
     <BookingDetailContent
       bookingId={id}

@@ -10,7 +10,7 @@ import { StoreBadges } from "./StoreBadges";
 const NAV = [
   { to: "/", key: "site.nav.home" },
   { to: "/about", key: "site.nav.about" },
-  { to: "/join", key: "site.nav.join" },
+  { to: "/help", key: "site.footer.help" },
   { to: "/contact", key: "site.nav.contact" },
 ] as const;
 
@@ -56,12 +56,6 @@ export function SiteLayout({ children }: { children: ReactNode }) {
 
           <div className="flex items-center gap-2">
             <LanguageToggle variant="inline" />
-            <Link
-              to="/app"
-              className="focus-ring hidden min-h-11 items-center rounded-full bg-brand px-5 text-pro-14 font-extrabold text-brand-foreground sm:inline-flex"
-            >
-              {t("site.nav.openApp")}
-            </Link>
             <button
               type="button"
               onClick={() => setOpen((v) => !v)}
@@ -92,12 +86,6 @@ export function SiteLayout({ children }: { children: ReactNode }) {
                   {t(item.key)}
                 </Link>
               ))}
-              <Link
-                to="/app"
-                className="focus-ring mt-2 flex min-h-12 items-center justify-center rounded-2xl bg-brand text-pro-16 font-extrabold text-brand-foreground"
-              >
-                {t("site.nav.openApp")}
-              </Link>
             </div>
           </nav>
         ) : null}
@@ -156,6 +144,22 @@ export function SiteLayout({ children }: { children: ReactNode }) {
                   className="focus-ring inline-flex min-h-11 items-center text-pro-14 text-muted-foreground hover:text-foreground"
                 >
                   {t("profile.privacy")}
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/help"
+                  className="focus-ring inline-flex min-h-11 items-center text-pro-14 text-muted-foreground hover:text-foreground"
+                >
+                  {t("site.footer.help")}
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/account/delete"
+                  className="focus-ring inline-flex min-h-11 items-center text-pro-14 text-muted-foreground hover:text-foreground"
+                >
+                  {t("site.footer.deleteAccount")}
                 </Link>
               </li>
             </ul>

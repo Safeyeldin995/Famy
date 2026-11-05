@@ -31,6 +31,7 @@ import { ArrowLeft, BadgeCheck, Heart, Share2, Star } from "lucide-react";
 import { toast } from "sonner";
 import { useProviderOnlyCustomerRedirect } from "@/lib/auth/providerOnlyCustomerGuard";
 import { previewBookPath, previewPath } from "@/lib/preview/previewPath";
+import { ProviderWebShare } from "@/components/site/ProviderWebShare";
 
 export const Route = createFileRoute("/provider/$id")({ component: ProviderProfile });
 
@@ -453,5 +454,5 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function ProviderProfile() {
   const { id } = Route.useParams();
-  return <ProviderProfileContent providerId={id} />;
+  return <ProviderWebShare providerId={id} />;
 }

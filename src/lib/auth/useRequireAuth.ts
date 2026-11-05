@@ -15,14 +15,25 @@ import { useAuth } from "@/lib/auth/useAuth";
  *
  * Preview routes are unaffected: useAuth synthesises a session for them.
  */
-export function useRequireAuth(): { checking: boolean; isAuthenticated: boolean } {
+type RequireAuthOptions = {
+  loginIntent?: string;
+};
+
+export function useRequireAuth(
+  options?: RequireAuthOptions,
+): { checking: boolean; isAuthenticated: boolean } {
   const { loading, isAuthenticated } = useAuth();
   const nav = useNavigate();
+  const loginIntent = options?.loginIntent;
 
   useEffect(() => {
     if (loading || isAuthenticated) return;
-    void nav({ to: "/login", replace: true });
-  }, [loading, isAuthenticated, nav]);
+    void nav({
+      to: "/login",
+      replace: true,
+      search: loginIntent ? { intent: loginIntent } : undefined,
+    });
+  }, [loading, isAuthenticated, nav, loginIntent]);
 
   return { checking: loading || !isAuthenticated, isAuthenticated };
 }

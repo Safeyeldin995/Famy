@@ -8,8 +8,14 @@ import { useRequireAuth } from "@/lib/auth/useRequireAuth";
  * While the session is still hydrating — and during server rendering, where it never
  * resolves — it shows a spinner instead of redirecting. See useRequireAuth.
  */
-export function AuthGate({ children }: { children: ReactNode }) {
-  const { checking } = useRequireAuth();
+export function AuthGate({
+  children,
+  loginIntent,
+}: {
+  children: ReactNode;
+  loginIntent?: string;
+}) {
+  const { checking } = useRequireAuth({ loginIntent });
 
   if (checking) {
     return (
