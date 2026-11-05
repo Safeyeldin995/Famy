@@ -8,7 +8,16 @@ import {
   useNavigate,
   HeadContent,
   Scripts,
+  redirect,
 } from "@tanstack/react-router";
+import { isWebSurfacePathAllowed } from "@/lib/web/webSurface";
+
+function previewRoutesEnabledForWebSurface(): boolean {
+  if (import.meta.env.SSR) {
+    return process.env.PREVIEW_ROUTES_ENABLED === "true";
+  }
+  return import.meta.env.VITE_PREVIEW_ROUTES_ENABLED === "true";
+}
 import { useEffect, useState, useCallback, Fragment, type ReactNode } from "react";
 import { createSessionQueryIsolation } from "@/lib/auth/sessionQueryIsolation";
 
@@ -32,7 +41,7 @@ function NotFoundComponent() {
         <h1 className="mt-6 text-2xl font-bold text-foreground">{t("common.pageNotFound")}</h1>
         <p className="mt-2 text-sm text-muted-foreground">{t("common.pageNotFoundBody")}</p>
         <Link
-          to="/home"
+          to="/"
           className="mt-6 inline-flex h-12 items-center justify-center rounded-2xl bg-navy px-6 text-sm font-semibold text-navy-foreground"
         >
           {t("common.backHome")}
@@ -67,6 +76,14 @@ function ErrorComponent({ error, reset }: { error: unknown; reset: () => void })
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  beforeLoad: ({ location }) => {
+    const previewRoutesEnabled = previewRoutesEnabledForWebSurface();
+    if (
+      !isWebSurfacePathAllowed(location.pathname, location.search, { previewRoutesEnabled })
+    ) {
+      throw redirect({ to: "/", replace: true, statusCode: 302 });
+    }
+  },
   loader: async () => ({ language: await getInitialLanguage() }),
   head: () => ({
     meta: [

@@ -2,20 +2,24 @@ User-agent: *
 Disallow: /
 Allow: /$
 Allow: /about$
-Allow: /join$
 Allow: /contact$
+Allow: /help$
+Allow: /account/delete$
 Allow: /content/terms$
 Allow: /content/privacy$
+Allow: /provider/
 Allow: /assets/
 Allow: /favicon.ico
 Allow: /robots.txt
 Allow: /sitemap.xml
 Disallow: /app
 Disallow: /admin
+Disallow: /staff
 Disallow: /pro
 Disallow: /preview
 Disallow: /api
 Disallow: /auth
 Disallow: /booking
+Disallow: /login
 
 Sitemap: https://famy-chi.vercel.app/sitemap.xml

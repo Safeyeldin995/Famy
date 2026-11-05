@@ -133,7 +133,7 @@ export function AdminShell({
     if (previewMode) return;
     (async () => {
       const { data } = await supabase.auth.getSession();
-      if (!data.session?.user) nav({ to: "/login", replace: true });
+      if (!data.session?.user) nav({ to: "/staff", replace: true });
     })();
   }, [nav, previewMode]);
 
@@ -156,8 +156,8 @@ export function AdminShell({
         <ShieldCheck className="h-10 w-10 text-brand" />
         <h1 className="text-xl font-extrabold">{t("admin.layout.adminOnlyTitle")}</h1>
         <p className="text-sm text-muted-foreground">{t("admin.layout.adminOnlyBody")}</p>
-        <Link to="/home" className="focus-ring mt-2 text-sm font-semibold text-brand">
-          {t("admin.layout.backToApp")}
+        <Link to="/" className="focus-ring mt-2 text-sm font-semibold text-brand">
+          {t("admin.layout.backToSite")}
         </Link>
       </div>
     );
@@ -201,7 +201,7 @@ export function AdminShell({
                   type="button"
                   onClick={async () => {
                     await supabase.auth.signOut();
-                    nav({ to: "/login", replace: true });
+                    nav({ to: "/staff", replace: true });
                   }}
                   className="focus-ring inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-bold text-muted-foreground hover:bg-surface-2 hover:text-foreground"
                 >

@@ -64,7 +64,7 @@ export function AccountDeletionScreen({ backTo }: { backTo: string }) {
     qc.clear();
     await supabase.auth.signOut();
     reset();
-    nav({ to: "/login", replace: true });
+    nav({ to: "/", replace: true });
   };
 
   return (
