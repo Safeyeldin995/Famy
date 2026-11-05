@@ -68,6 +68,34 @@ describe("provider price change review migration", () => {
     ).rejects.toThrow(/provider_request_price_change/);
   });
 
+  it("blocks direct pending_price_override updates by providers", async () => {
+    db = await readyDatabase();
+    await db.query(`SELECT set_config('request.jwt.claim.sub', '${PROVIDER_USER}', false);`);
+    await expect(
+      db.query(
+        `UPDATE public.provider_services SET pending_price_override = 999, price_change_requested_at = now() WHERE id = '${PS_ID}'`,
+      ),
+    ).rejects.toThrow(/provider_request_price_change/);
+  });
+
+  it("refuses admin approval when pending price is out of range", async () => {
+    db = await readyDatabase();
+    await db.query(`SELECT set_config('request.jwt.claim.sub', '${PROVIDER_USER}', false);`);
+    await db.query(`SELECT public.provider_request_price_change('${SERVICE_ID}', 900)`);
+    await db.query(`UPDATE public.services SET maximum_price = 500 WHERE id = '${SERVICE_ID}'`);
+    await db.query(`SELECT set_config('request.jwt.claim.sub', '${ADMIN}', false);`);
+    await expect(
+      db.query(`SELECT public.admin_review_price_change('${PS_ID}', 'approved', NULL)`),
+    ).rejects.toThrow(/maximum/i);
+    const row = (
+      await db.query<{ price_override: number; pending_price_override: number | null }>(
+        `SELECT price_override, pending_price_override FROM public.provider_services`,
+      )
+    ).rows[0];
+    expect(Number(row.price_override)).toBe(300);
+    expect(Number(row.pending_price_override)).toBe(900);
+  });
+
   it("requests, approves, rejects, and cancels price changes", async () => {
     db = await readyDatabase();
     await db.query(`SELECT set_config('request.jwt.claim.sub', '${PROVIDER_USER}', false);`);

@@ -13,11 +13,8 @@ CREATE OR REPLACE FUNCTION public.tg_guard_provider_service_price_override()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
   v_onboarding text;
+  v_pending_fields_changed boolean;
 BEGIN
-  IF TG_OP = 'UPDATE' AND NEW.price_override IS NOT DISTINCT FROM OLD.price_override THEN
-    RETURN NEW;
-  END IF;
-
   IF auth.uid() IS NULL OR public.has_role(auth.uid(), 'admin') THEN
     RETURN NEW;
   END IF;
@@ -26,12 +23,32 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  SELECT p.onboarding_status::text INTO v_onboarding
-  FROM public.providers p WHERE p.id = NEW.provider_id;
+  IF TG_OP = 'UPDATE' THEN
+    v_pending_fields_changed :=
+      NEW.pending_price_override IS DISTINCT FROM OLD.pending_price_override
+      OR NEW.price_change_requested_at IS DISTINCT FROM OLD.price_change_requested_at
+      OR NEW.price_change_reason IS DISTINCT FROM OLD.price_change_reason;
+  ELSE
+    v_pending_fields_changed :=
+      NEW.pending_price_override IS NOT NULL
+      OR NEW.price_change_requested_at IS NOT NULL
+      OR NEW.price_change_reason IS NOT NULL;
+  END IF;
 
-  IF v_onboarding = 'APPROVED' AND NEW.status = 'approved' THEN
-    RAISE EXCEPTION 'Approved providers must request price changes through provider_request_price_change.'
+  IF v_pending_fields_changed
+     AND current_setting('app.provider_price_change_request', true) IS DISTINCT FROM '1' THEN
+    RAISE EXCEPTION 'Price change pending fields must be updated through provider_request_price_change or provider_cancel_price_change.'
       USING ERRCODE = '42501';
+  END IF;
+
+  IF TG_OP = 'INSERT' OR NEW.price_override IS DISTINCT FROM OLD.price_override THEN
+    SELECT p.onboarding_status::text INTO v_onboarding
+    FROM public.providers p WHERE p.id = NEW.provider_id;
+
+    IF v_onboarding = 'APPROVED' AND NEW.status = 'approved' THEN
+      RAISE EXCEPTION 'Approved providers must request price changes through provider_request_price_change.'
+        USING ERRCODE = '42501';
+    END IF;
   END IF;
 
   RETURN NEW;
@@ -42,7 +59,7 @@ REVOKE ALL ON FUNCTION public.tg_guard_provider_service_price_override() FROM PU
 
 DROP TRIGGER IF EXISTS trg_guard_provider_service_price_override ON public.provider_services;
 CREATE TRIGGER trg_guard_provider_service_price_override
-  BEFORE INSERT OR UPDATE OF price_override ON public.provider_services
+  BEFORE INSERT OR UPDATE ON public.provider_services
   FOR EACH ROW EXECUTE FUNCTION public.tg_guard_provider_service_price_override();
 
 CREATE OR REPLACE FUNCTION public.provider_request_price_change(
@@ -100,6 +117,7 @@ BEGIN
     RETURN;
   END IF;
 
+  PERFORM set_config('app.provider_price_change_request', '1', true);
   UPDATE public.provider_services
   SET pending_price_override = v_price,
       price_change_requested_at = now(),
@@ -138,6 +156,7 @@ BEGIN
     RETURN;
   END IF;
 
+  PERFORM set_config('app.provider_price_change_request', '1', true);
   UPDATE public.provider_services
   SET pending_price_override = NULL,
       price_change_requested_at = NULL,
@@ -157,8 +176,10 @@ CREATE OR REPLACE FUNCTION public.admin_review_price_change(
 DECLARE
   v_ps public.provider_services;
   v_provider public.providers;
+  v_service RECORD;
   v_service_name text;
   v_service_name_ar text;
+  v_pending numeric(10,2);
   v_body_en text;
   v_body_ar text;
 BEGIN
@@ -182,8 +203,20 @@ BEGIN
 
   SELECT * INTO v_provider FROM public.providers WHERE id = v_ps.provider_id;
   SELECT name_en, name_ar INTO v_service_name, v_service_name_ar FROM public.services WHERE id = v_ps.service_id;
+  v_pending := v_ps.pending_price_override;
 
   IF p_decision = 'approved' THEN
+    SELECT s.* INTO v_service FROM public.services s WHERE s.id = v_ps.service_id AND s.is_active;
+    IF NOT FOUND OR NOT v_service.provider_pricing_allowed THEN
+      RAISE EXCEPTION 'This service does not allow provider-set pricing.' USING ERRCODE = '23514';
+    END IF;
+    IF v_service.minimum_price IS NOT NULL AND v_pending < v_service.minimum_price THEN
+      RAISE EXCEPTION 'Price is below the allowed minimum.' USING ERRCODE = '23514';
+    END IF;
+    IF v_service.maximum_price IS NOT NULL AND v_pending > v_service.maximum_price THEN
+      RAISE EXCEPTION 'Price is above the allowed maximum.' USING ERRCODE = '23514';
+    END IF;
+
     PERFORM set_config('app.admin_price_change_review', '1', true);
     UPDATE public.provider_services
     SET price_override = pending_price_override,
