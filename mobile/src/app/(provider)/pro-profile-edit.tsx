@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import { LessonIllustration } from "@/ui/lessons/LessonIllustration";
+import { isLessonServiceSlug } from "@shared/tutoring/lessonServices";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
@@ -159,10 +161,21 @@ export default function ProProfileEditScreen() {
           const current = priceDrafts[id] ?? (row?.price_override as number | null) ?? min ?? 0;
           return (
             <View key={id} style={proCard.card}>
-              <Text weight="bold">{localized(service, i18n.language)}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                {isLessonServiceSlug(service.slug as string) ? (
+                  <LessonIllustration serviceSlug={service.slug as string} width={44} height={44} />
+                ) : null}
+                <Text weight="bold" style={{ flex: 1 }}>
+                  {localized(service, i18n.language)}
+                </Text>
+              </View>
               {row?.status ? (
                 <Text tone="muted" size="sm">
                   {t(`providerSetup.status.${String(row.status)}`)}
+                </Text>
+              ) : isApprovedProvider ? (
+                <Text tone="muted" size="sm">
+                  {t("pro.serviceRequest.notAdded")}
                 </Text>
               ) : null}
               {isApprovedProvider && !on ? (

@@ -598,7 +598,10 @@ async function run() {
     await page.getByRole("radio", { name: label, exact: true }).click();
   }
   async function pickSupervision() {
-    await radio(ar.bookFlow.supervision.cameras.title);
+    // The card's accessible name is "title\nbody".
+    await page
+      .getByRole("radio", { name: new RegExp(`^${ar.bookFlow.supervision.cameras.title}`) })
+      .click();
   }
   for (const kind of bookingAgeOnly ? ["package"] : ["hourly", "package", "tutoring"]) {
     scenario = kind;
