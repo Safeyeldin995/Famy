@@ -776,6 +776,10 @@ const en = {
   },
   home: {
     babysittingTag: "Trusted sitters for your kids at home",
+    quranTitle: "Quran lessons",
+    quranTag: "Memorization, tajweed and review at home",
+    musicTitle: "Music lessons",
+    musicTag: "Piano, guitar, oud and violin",
     tutoringTag: "Private tutors for every subject",
     searchHint: "Search for help…",
     headline: "What do you need help with?",
@@ -2302,6 +2306,7 @@ const en = {
       signOut: "Sign out",
     },
     serviceRequest: {
+      addServiceLink: "+ Add a service",
       pageTitle: "Request a new service",
       intro: "Complete the details for {{service}}. We will review your request before it goes live.",
       notApproved: "Your provider account must be approved before you can request new services.",

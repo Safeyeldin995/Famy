@@ -771,6 +771,10 @@ const ar: Translation = {
   },
   home: {
     babysittingTag: "جليسة موثوقة لأطفالك في البيت",
+    quranTitle: "تحفيظ قرآن",
+    quranTag: "حفظ وتجويد ومراجعة مع محفظ في البيت",
+    musicTitle: "دروس موسيقى",
+    musicTag: "بيانو وجيتار وعود وكمان",
     tutoringTag: "مدرس خصوصي لكل مادة",
     searchHint: "ابحث عن مساعدة…",
     headline: "بماذا تحتاج المساعدة اليوم؟",
@@ -2277,6 +2281,7 @@ const ar: Translation = {
       signOut: "تسجيل الخروج",
     },
     serviceRequest: {
+      addServiceLink: "+ أضف خدمة",
       pageTitle: "طلب إضافة خدمة",
       intro: "كمل تفاصيل {{service}}. هنراجع الطلب قبل ما تظهر للعملاء.",
       notApproved: "لازم يكون حسابك مقدم خدمة معتمد قبل ما تطلب خدمة جديدة.",

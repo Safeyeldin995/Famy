@@ -28,8 +28,11 @@ import {
   useProviders,
   useMyBookings,
   useFeaturedPromoCodes,
+  useMarketplaceServices,
 } from "@/lib/queries";
 import { Text } from "@/ui/Text";
+import { LessonIllustration } from "@/ui/lessons/LessonIllustration";
+import { HOME_CATEGORY_IDS, homeCategoryLessonSlug } from "@shared/catalog/homeCategories";
 import { colors, radius, shadow, space } from "@/ui/theme";
 
 const SERVICE_TILES = {
@@ -47,6 +50,20 @@ const SERVICE_TILES = {
     taglineKey: "home.tutoringTag",
     titleKey: "categories.tutorSubtitle",
   },
+  quran: {
+    lesson: "quran-lessons",
+    surface: colors.brandTint,
+    ink: colors.brand,
+    taglineKey: "home.quranTag",
+    titleKey: "home.quranTitle",
+  },
+  music: {
+    lesson: "music-lessons",
+    surface: colors.lavenderTint,
+    ink: colors.lavender,
+    taglineKey: "home.musicTag",
+    titleKey: "home.musicTitle",
+  },
 } as const;
 
 export default function Home() {
@@ -56,6 +73,7 @@ export default function Home() {
   const profile = useMyProfile();
   const address = useDefaultAddress();
   const categories = useCategories();
+  const tutoringServices = useMarketplaceServices("tutoring");
   const unread = useUnreadNotificationCount();
   const bookings = useMyBookings();
   const promos = useFeaturedPromoCodes();
@@ -73,7 +91,9 @@ export default function Home() {
             setRefreshing(true);
             try {
               await Promise.all(
-                [profile, address, categories, unread, bookings, promos].map((q) => q.refetch()),
+                [profile, address, categories, tutoringServices, unread, bookings, promos].map(
+                  (q) => q.refetch(),
+                ),
               );
             } finally {
               await cache.refetchQueries({ queryKey: ["providers"], type: "active" });
@@ -141,16 +161,17 @@ export default function Home() {
         </Text>
         <QueryState query={categories} empty={!categories.data?.length}>
           <View style={styles.tiles}>
-            {(categories.data ?? []).map((c) => {
-              const tile = SERVICE_TILES[c.slug as keyof typeof SERVICE_TILES];
-              if (!tile) return null;
-              const Icon = tile.icon;
+            {HOME_CATEGORY_IDS.map((id) => {
+              const tile = SERVICE_TILES[id];
+              const lesson = homeCategoryLessonSlug(id);
+              const available = lesson
+                ? (tutoringServices.data ?? []).some((svc) => svc.slug === lesson)
+                : (categories.data ?? []).some((c) => c.slug === id);
+              if (!available) return null;
               return (
                 <Pressable
-                  key={c.id}
-                  onPress={() =>
-                    router.push({ pathname: "/category/[id]", params: { id: c.slug } })
-                  }
+                  key={id}
+                  onPress={() => router.push({ pathname: "/category/[id]", params: { id } })}
                   accessibilityRole="button"
                   accessibilityLabel={t(tile.titleKey)}
                   style={({ pressed }) => [
@@ -161,7 +182,11 @@ export default function Home() {
                 >
                   <View style={styles.tileTop}>
                     <View style={styles.tileIcon}>
-                      <Icon size={24} color={tile.ink} strokeWidth={2.4} />
+                      {lesson ? (
+                        <LessonIllustration serviceSlug={lesson} width={44} height={44} />
+                      ) : "icon" in tile ? (
+                        <tile.icon size={24} color={tile.ink} strokeWidth={2.4} />
+                      ) : null}
                     </View>
                     <Arrow size={20} color={tile.ink} />
                   </View>
@@ -292,9 +317,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   section: { paddingHorizontal: space.xl, paddingTop: space.xxl, gap: space.md },
-  tiles: { flexDirection: "row", gap: space.md },
+  tiles: { flexDirection: "row", flexWrap: "wrap", gap: space.md },
   tile: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: "45%",
     minHeight: 160,
     borderRadius: radius.xl,
     padding: space.lg,
