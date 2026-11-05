@@ -2623,6 +2623,9 @@ export type Database = {
           created_at: string
           flagged_for_review: boolean
           id: string
+          pending_price_override: number | null
+          price_change_reason: string | null
+          price_change_requested_at: string | null
           price_override: number | null
           provider_id: string
           rejection_reason: string | null
@@ -2633,6 +2636,9 @@ export type Database = {
           created_at?: string
           flagged_for_review?: boolean
           id?: string
+          pending_price_override?: number | null
+          price_change_reason?: string | null
+          price_change_requested_at?: string | null
           price_override?: number | null
           provider_id: string
           rejection_reason?: string | null
@@ -2643,6 +2649,9 @@ export type Database = {
           created_at?: string
           flagged_for_review?: boolean
           id?: string
+          pending_price_override?: number | null
+          price_change_reason?: string | null
+          price_change_requested_at?: string | null
           price_override?: number | null
           provider_id?: string
           rejection_reason?: string | null
@@ -4343,6 +4352,19 @@ export type Database = {
       provider_remove_teaching_capability: { Args: { p_id: string }; Returns: undefined }
       provider_remove_onboarding_service: { Args: { p_service_id: string }; Returns: undefined }
       provider_cancel_service_request: { Args: { p_service_id: string }; Returns: undefined }
+      provider_cancel_price_change: { Args: { p_service_id: string }; Returns: undefined }
+      provider_request_price_change: {
+        Args: { p_service_id: string; p_price: number }
+        Returns: undefined
+      }
+      admin_review_price_change: {
+        Args: {
+          p_provider_service_id: string
+          p_decision: string
+          p_reason?: string | null
+        }
+        Returns: undefined
+      }
       provider_request_service: {
         Args: { p_service_id: string; p_payload: Json; p_idempotency_key?: string | null }
         Returns: Json

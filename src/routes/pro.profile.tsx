@@ -1,14 +1,11 @@
 import { ProfileWorkZones } from "@/components/provider/ProfileWorkZones";
 import { AutoGrowingBio } from "@/components/provider/AutoGrowingBio";
-import { profilePriceDirty } from "@/lib/provider/profilePriceDirty";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 import { workingHoursSummary } from "@/lib/provider/workingHoursSummary";
 import { isFixedPackage, packageLabel, servicePriceUnit } from "@/lib/pricing/servicePackages";
-import {
-  ServicePricePicker,
-  isPriceInRange,
-  isSavedPriceOutOfRange,
-} from "@/components/provider/ServicePricePicker";
+import { ProviderServicePricePanel } from "@/components/provider/ProviderServicePricePanel";
+import { isPriceInRange } from "@/components/provider/ServicePricePicker";
+import { providerPriceNeedsAdminReview } from "@/lib/provider/providerPriceChangeRequest";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -33,6 +30,8 @@ import {
   useToggleProviderService,
   useCancelProviderServiceRequest,
   useSetProviderPrice,
+  useRequestProviderPriceChange,
+  useCancelProviderPriceChange,
   useRequirementsForService,
   useMyRequirementFulfillments,
   useDeclareRequirement,
@@ -87,13 +86,17 @@ function ProProfile() {
   const toggle = useToggleProviderService();
   const cancelRequest = useCancelProviderServiceRequest();
   const setPrice = useSetProviderPrice();
+  const requestPriceChange = useRequestProviderPriceChange();
+  const cancelPriceChange = useCancelProviderPriceChange();
   const [priceDrafts, setPriceDrafts] = useState<Record<string, number>>({});
   const [priceErrors, setPriceErrors] = useState<Record<string, string>>({});
   const [expandedReqService, setExpandedReqService] = useState<string | null>(null);
   const focusRequirements = (serviceId: string) => {
     setExpandedReqService(serviceId);
     window.history.replaceState(null, "", `#requirements-${serviceId}`);
-    document.getElementById(`service-${serviceId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    document
+      .getElementById(`service-${serviceId}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   const focusPrice = (serviceId: string) => {
     const id = `price-${serviceId}`;
@@ -104,31 +107,47 @@ function ProProfile() {
   const nav = useNavigate();
   const qc = useQueryClient();
   const update = useMutation({
-    mutationFn: (edits: ProfileFields) => saveProfileChanges(provider, edits, {
-      snapshot: async () => {
-        const { data, error } = await supabase.rpc("provider_onboarding_snapshot");
-        if (error) throw error;
-        return data as { provider?: ProfileFields; details?: { previous_work?: string | null } };
-      },
-      section: async (section, payload) => {
-        const { error } = await supabase.rpc("provider_save_onboarding_section", { p_section: section, p_payload: payload as any });
-        if (error) throw error;
-      },
-      update: async (patch) => {
-        const { error } = await supabase.from("providers").update(patch).eq("id", provider.id);
-        if (error) throw error;
-      },
-    }),
+    mutationFn: (edits: ProfileFields) =>
+      saveProfileChanges(provider, edits, {
+        snapshot: async () => {
+          const { data, error } = await supabase.rpc("provider_onboarding_snapshot");
+          if (error) throw error;
+          return data as { provider?: ProfileFields; details?: { previous_work?: string | null } };
+        },
+        section: async (section, payload) => {
+          const { error } = await supabase.rpc("provider_save_onboarding_section", {
+            p_section: section,
+            p_payload: payload as any,
+          });
+          if (error) throw error;
+        },
+        update: async (patch) => {
+          const { error } = await supabase.from("providers").update(patch).eq("id", provider.id);
+          if (error) throw error;
+        },
+      }),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["my-provider"] });
       await qc.invalidateQueries({ queryKey: ["provider-onboarding-snapshot"] });
     },
   });
 
-  const pendingTeachingServices = useMemo(() => new Set((teachingQ.data ?? []).filter((row) => {
-    const service = services.data?.find((s) => s.id === row.service_id);
-    return row.status === "pending" && service && isPriceInRange(row.session_price, service.minimum_price, service.maximum_price);
-  }).map((row) => row.service_id)), [teachingQ.data, services.data]);
+  const pendingTeachingServices = useMemo(
+    () =>
+      new Set(
+        (teachingQ.data ?? [])
+          .filter((row) => {
+            const service = services.data?.find((s) => s.id === row.service_id);
+            return (
+              row.status === "pending" &&
+              service &&
+              isPriceInRange(row.session_price, service.minimum_price, service.maximum_price)
+            );
+          })
+          .map((row) => row.service_id),
+      ),
+    [teachingQ.data, services.data],
+  );
 
   const dedupedReasons = useMemo(
     () =>
@@ -221,7 +240,10 @@ function ProProfile() {
       { [lang === "ar" ? "bio_ar" : "bio_en"]: lang === "ar" ? bioAr : bioEn },
       {
         onError: (error: unknown) => {
-          const message = error && typeof error === "object" && "message" in error ? String(error.message) : undefined;
+          const message =
+            error && typeof error === "object" && "message" in error
+              ? String(error.message)
+              : undefined;
           toast.error(t(providerProfileSaveErrorKey(message)));
         },
       },
@@ -241,6 +263,12 @@ function ProProfile() {
   );
   const myPriceOverride = new Map(
     (mine.data ?? []).map((s: any) => [s.service_id, s.price_override]),
+  );
+  const myPendingPrice = new Map(
+    (mine.data ?? []).map((s: any) => [s.service_id, s.pending_price_override as number | null]),
+  );
+  const myPriceChangeReason = new Map(
+    (mine.data ?? []).map((s: any) => [s.service_id, s.price_change_reason as string | null]),
   );
   const isApprovedProvider = provider.onboarding_status === "APPROVED";
   const allCatalogServices = services.data ?? [];
@@ -292,6 +320,30 @@ function ProProfile() {
     setPrice.mutate(
       { providerId: provider.id, serviceId, price: value },
       {
+        onSuccess: () => toast.success(t("pro.profile.priceSaved")),
+        onError: (e: any) =>
+          setPriceErrors((errs) => ({
+            ...errs,
+            [serviceId]: e?.message ?? t("common.somethingWentWrong"),
+          })),
+      },
+    );
+  };
+  const submitPriceChangeRequest = (serviceId: string, min: number | null, max: number | null) => {
+    const value = priceDrafts[serviceId];
+    if (!isPriceInRange(value, min, max)) return;
+    setPriceErrors((e) => ({ ...e, [serviceId]: "" }));
+    requestPriceChange.mutate(
+      { providerId: provider.id, serviceId, price: value },
+      {
+        onSuccess: () => {
+          toast.success(t("pro.profile.priceChangeSubmitted"));
+          setPriceDrafts((drafts) => {
+            const next = { ...drafts };
+            delete next[serviceId];
+            return next;
+          });
+        },
         onError: (e: any) =>
           setPriceErrors((errs) => ({
             ...errs,
@@ -310,501 +362,649 @@ function ProProfile() {
   return (
     <ProviderShell>
       <main className="apply-ui apply-screen !pb-28" dir={lang === "ar" ? "rtl" : "ltr"}>
-        <header className="apply-header apply-profile-title"><h1 className="apply-title">{t("pro.profile.title")}</h1><LanguageToggle /></header>
+        <header className="apply-header apply-profile-title">
+          <h1 className="apply-title">{t("pro.profile.title")}</h1>
+          <LanguageToggle />
+        </header>
         <div className="apply-content">
-        <Card className="apply-list apply-profile-header p-4">
-          <div className="apply-profile-avatar-wrap">
-            <ProfileAvatar src={provider?.profile?.avatar_url} preview={photoPreview} name={provider.profile?.full_name || t("pro.profile.famioUser")} />
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              disabled={uploading}
-              aria-label={t("pro.profile.changePhoto")}
-              className="absolute bottom-0 start-0 grid h-11 w-11 place-items-center disabled:opacity-60"
-            >
-              <span className="apply-profile-camera pointer-events-none" aria-hidden="true">
-              {uploading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Camera className="h-3.5 w-3.5" />
-              )}
-              </span>
-            </button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) onPickAvatar(f);
-                e.target.value = "";
-              }}
-            />
-          </div>
-          <div className="apply-profile-info">
-            <div className="apply-profile-name break-words leading-snug">
-              {provider.profile?.full_name || t("pro.profile.famioUser")}
-            </div>
-            <div className={`apply-tag apply-profile-verified mt-2 ${provider.is_verified ? "apply-success" : "apply-wait"}`}>
-              {provider.is_verified ? (
-                <>
-                  <ShieldCheck className="h-3 w-3 text-success" /> {t("pro.profile.verified")}
-                </>
-              ) : (
-                t("pro.profile.verificationPending")
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              disabled={uploading}
-              className="mt-1 block text-pro-12 font-bold text-brand disabled:opacity-60"
-            >
-              {uploading ? t("pro.profile.uploading") : t("pro.profile.changePhoto")}
-            </button>
-          </div>
-        </Card>
-
-        <Card className="apply-list p-4">
-          <div>
-            <div className="text-sm font-extrabold">{t("providerProfileV3.visibility")}</div>
-            {eligibilityQ.isSuccess && providerZonesQ.isSuccess && eligibilityRows.length > 0 ? (
-              <p
-                className={`mt-1 text-xs font-bold ${eligibilityStatus.visible ? "text-success" : "text-amber-700"}`}
+          <Card className="apply-list apply-profile-header p-4">
+            <div className="apply-profile-avatar-wrap">
+              <ProfileAvatar
+                src={provider?.profile?.avatar_url}
+                preview={photoPreview}
+                name={provider.profile?.full_name || t("pro.profile.famioUser")}
+              />
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                disabled={uploading}
+                aria-label={t("pro.profile.changePhoto")}
+                className="absolute bottom-0 start-0 grid h-11 w-11 place-items-center disabled:opacity-60"
               >
-                {t(eligibilityStatus.visible ? "providerProfileV3.visible" : "providerProfileV3.hidden")}
-                {!eligibilityStatus.visible && eligibilityStatus.stepsLeft > 0 && <span> · {t("providerProfileV3.steps", { count: eligibilityStatus.stepsLeft })}</span>}
-              </p>
-            ) : null}
-          </div>
-          {eligibilityQ.isSuccess && providerZonesQ.isSuccess && eligibilityRows.some((row) => !row.is_eligible) && (
-            <div className="mt-2 space-y-1 text-xs">
-              {eligibilityRows.some((row) => row.is_eligible) && <p>{t("providerProfileV3.visibleServices", { services: eligibilityRows.filter((row) => row.is_eligible).map((row) => lang === "ar" ? row.service_name_ar : row.service_name_en).join("، ") })}</p>}
-              <p>{t("providerProfileV3.blockedServices", { services: eligibilityRows.filter((row) => !row.is_eligible).map((row) => lang === "ar" ? row.service_name_ar : row.service_name_en).join("، ") })}</p>
-            </div>
-          )}
-          {eligibilityQ.isLoading || providerZonesQ.isLoading ? (
-            <div className="mt-2 h-10 animate-pulse rounded-xl bg-muted" />
-          ) : eligibilityQ.isError || providerZonesQ.isError ? (
-            <div className="mt-2">
-              <QueryError
-                compact
-                onRetry={() => {
-                  eligibilityQ.refetch();
-                  providerZonesQ.refetch();
+                <span className="apply-profile-camera pointer-events-none" aria-hidden="true">
+                  {uploading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Camera className="h-3.5 w-3.5" />
+                  )}
+                </span>
+              </button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) onPickAvatar(f);
+                  e.target.value = "";
                 }}
               />
             </div>
-          ) : (
-            <div className="mt-2 space-y-2">
-              {(["provider", "famy"] as const).map((owner) => {
-                const entries = dedupedReasons.filter((entry) => entry.mapped.owner === owner);
-                if (!entries.length) return null;
-                return <section key={owner} className="apply-list">
-                  <h3 className="apply-label px-4 pt-4">{t(`providerProfileV3.${owner}Tasks`)}</h3>
-                  {owner === "famy" && <p className="px-4 text-sm text-muted-foreground">{t("providerProfileV3.reviewHint")}</p>}
-                  <ul>{entries.map((entry) => {
-                    const services = eligibilityRows.filter((row) => entry.serviceIds.includes(row.service_id));
-                    const action = entry.mapped.action;
-                    // Service-specific actions each retain their own full-row target.
-                    const targets = action.kind === "service" || action.kind === "requirements"
-                      ? services.map((row) => ({ mapped: { ...entry.mapped, action: { ...action, serviceId: row.service_id } }, services: [row] }))
-                      : [{ mapped: entry.mapped, services }];
-                    return <li key={entry.mapped.i18nKey}>{targets.map((target) => (
-                      <EligibilityReasonItem key={target.services[0]?.service_id ?? entry.mapped.i18nKey} mapped={target.mapped} t={t} onServiceFocus={focusPrice} onRequirementsFocus={focusRequirements}
-                        serviceNames={target.services.map((row) => lang === "ar" ? row.service_name_ar : row.service_name_en)} />
-                    ))}</li>;
-                  })}</ul>
-                </section>;
-              })}
-              {eligibilityRows.length > 0 ? (
-                <button
-                  type="button"
-                  onClick={() => setEligibilityExpanded((v) => !v)}
-                  aria-expanded={eligibilityExpanded}
-                  className="flex w-full items-center justify-between rounded-xl border border-border/60 px-2 py-2 text-pro-12 font-bold text-brand"
+            <div className="apply-profile-info">
+              <div className="apply-profile-name break-words leading-snug">
+                {provider.profile?.full_name || t("pro.profile.famioUser")}
+              </div>
+              <div
+                className={`apply-tag apply-profile-verified mt-2 ${provider.is_verified ? "apply-success" : "apply-wait"}`}
+              >
+                {provider.is_verified ? (
+                  <>
+                    <ShieldCheck className="h-3 w-3 text-success" /> {t("pro.profile.verified")}
+                  </>
+                ) : (
+                  t("pro.profile.verificationPending")
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                disabled={uploading}
+                className="mt-1 block text-pro-12 font-bold text-brand disabled:opacity-60"
+              >
+                {uploading ? t("pro.profile.uploading") : t("pro.profile.changePhoto")}
+              </button>
+            </div>
+          </Card>
+
+          <Card className="apply-list p-4">
+            <div>
+              <div className="text-sm font-extrabold">{t("providerProfileV3.visibility")}</div>
+              {eligibilityQ.isSuccess && providerZonesQ.isSuccess && eligibilityRows.length > 0 ? (
+                <p
+                  className={`mt-1 text-xs font-bold ${eligibilityStatus.visible ? "text-success" : "text-amber-700"}`}
                 >
-                  {t("pro.profile.eligibilityByService")}
-                  <ChevronDown
-                    className={`h-4 w-4 transition-transform ${eligibilityExpanded ? "rotate-180" : ""}`}
-                  />
-                </button>
-              ) : null}
-              {eligibilityExpanded ? (
-                <div className="space-y-2">
-                  {eligibilityRows.map((row) => (
-                    <div
-                      key={row.service_id}
-                      className="rounded-xl border border-border/60 p-2 text-xs"
-                    >
-                      <div className="break-words font-bold">
-                        {lang === "ar" ? row.service_name_ar : row.service_name_en}
-                      </div>
-                      {row.is_eligible ? (
-                        <div className="mt-1 text-success">
-                          {t("pro.profile.eligibilityServiceReady")}
-                        </div>
-                      ) : (
-                        <ul className="mt-1 space-y-1 text-coral">
-                          {(row.failure_reasons ?? []).map((reason) => {
-                            const mapped = mapMarketplaceEligibilityFailureReason(
-                              reason,
-                              row.service_id,
-                              providerZonesQ.data?.length ?? 0,
-                              pendingTeachingServices.has(row.service_id),
-                            );
-                            return (
-                              <li key={reason}>
-                                <EligibilityReasonItem
-                                  mapped={mapped}
-                                  t={t}
-                                  onServiceFocus={focusPrice} onRequirementsFocus={focusRequirements}
-                                />
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-              {!eligibilityQ.isLoading && eligibilityRows.length === 0 ? (
-                <div className="text-xs text-coral">
-                  {t("pro.profile.eligibilityBlockedByData")}
-                </div>
+                  {t(
+                    eligibilityStatus.visible
+                      ? "providerProfileV3.visible"
+                      : "providerProfileV3.hidden",
+                  )}
+                  {!eligibilityStatus.visible && eligibilityStatus.stepsLeft > 0 && (
+                    <span>
+                      {" "}
+                      · {t("providerProfileV3.steps", { count: eligibilityStatus.stepsLeft })}
+                    </span>
+                  )}
+                </p>
               ) : null}
             </div>
-          )}
-        </Card>
-
-        {/* About */}
-        <div>
-          <h2 className="mb-2 px-1 text-pro-13 font-bold text-muted-foreground">
-            {t("pro.profile.about")}
-          </h2>
-          <Card className="apply-list space-y-3 p-4">
-            <label>
-              <span className="apply-label">{t("providerApply.about")}</span>
-              <AutoGrowingBio value={lang === "ar" ? bioAr : bioEn} onChange={lang === "ar" ? setBioAr : setBioEn} />
-            </label>
-            <p className="apply-label">{t("providerSetup.phrases")}</p>
-            <div className="flex flex-wrap gap-2">{[0, 1, 2, 3, 4].map((index) => <CheckChip key={index} selected={false} onClick={() => (lang === "ar" ? setBioAr : setBioEn)((value) => [value.trim(), t(`providerSetup.bioPhrases.p${index}`)].filter(Boolean).join(" "))}>{t(`providerSetup.bioPhrases.p${index}`)}</CheckChip>)}</div>
-            <dl className="apply-list">
-              <div className="apply-li"><dt className="flex-1">{t("pro.profile.yearsExperience")}</dt><dd>{years}</dd><LockKeyhole size={16} aria-hidden="true" /></div>
-              <div className="apply-li"><dt className="flex-1 font-bold">{t("providerLocations.livesIn")}</dt><dd>{city ? t(`providerSetup.governorates.${city.trim().toLowerCase().replace(/\s+/g, "_")}`, { defaultValue: city }) : t("pro.profile.cityUnset")}</dd><LockKeyhole size={16} aria-hidden="true" /></div>
-              <ProfileWorkZones providerId={provider.id} applicationEditable={["DRAFT", "NEEDS_CHANGES"].includes(provider.onboarding_status)} />
-            </dl>
-            <PrimaryButton className="apply-cta" onClick={handleSave} disabled={update.isPending}>
-              {update.isPending ? t("pro.common.saving") : t("pro.profile.saveChanges")}
-            </PrimaryButton>
-            {update.isSuccess && (
-              <div className="text-center text-xs font-semibold text-success">
-                {t("pro.common.saved")}
+            {eligibilityQ.isSuccess &&
+              providerZonesQ.isSuccess &&
+              eligibilityRows.some((row) => !row.is_eligible) && (
+                <div className="mt-2 space-y-1 text-xs">
+                  {eligibilityRows.some((row) => row.is_eligible) && (
+                    <p>
+                      {t("providerProfileV3.visibleServices", {
+                        services: eligibilityRows
+                          .filter((row) => row.is_eligible)
+                          .map((row) => (lang === "ar" ? row.service_name_ar : row.service_name_en))
+                          .join("، "),
+                      })}
+                    </p>
+                  )}
+                  <p>
+                    {t("providerProfileV3.blockedServices", {
+                      services: eligibilityRows
+                        .filter((row) => !row.is_eligible)
+                        .map((row) => (lang === "ar" ? row.service_name_ar : row.service_name_en))
+                        .join("، "),
+                    })}
+                  </p>
+                </div>
+              )}
+            {eligibilityQ.isLoading || providerZonesQ.isLoading ? (
+              <div className="mt-2 h-10 animate-pulse rounded-xl bg-muted" />
+            ) : eligibilityQ.isError || providerZonesQ.isError ? (
+              <div className="mt-2">
+                <QueryError
+                  compact
+                  onRetry={() => {
+                    eligibilityQ.refetch();
+                    providerZonesQ.refetch();
+                  }}
+                />
+              </div>
+            ) : (
+              <div className="mt-2 space-y-2">
+                {(["provider", "famy"] as const).map((owner) => {
+                  const entries = dedupedReasons.filter((entry) => entry.mapped.owner === owner);
+                  if (!entries.length) return null;
+                  return (
+                    <section key={owner} className="apply-list">
+                      <h3 className="apply-label px-4 pt-4">
+                        {t(`providerProfileV3.${owner}Tasks`)}
+                      </h3>
+                      {owner === "famy" && (
+                        <p className="px-4 text-sm text-muted-foreground">
+                          {t("providerProfileV3.reviewHint")}
+                        </p>
+                      )}
+                      <ul>
+                        {entries.map((entry) => {
+                          const services = eligibilityRows.filter((row) =>
+                            entry.serviceIds.includes(row.service_id),
+                          );
+                          const action = entry.mapped.action;
+                          // Service-specific actions each retain their own full-row target.
+                          const targets =
+                            action.kind === "service" || action.kind === "requirements"
+                              ? services.map((row) => ({
+                                  mapped: {
+                                    ...entry.mapped,
+                                    action: { ...action, serviceId: row.service_id },
+                                  },
+                                  services: [row],
+                                }))
+                              : [{ mapped: entry.mapped, services }];
+                          return (
+                            <li key={entry.mapped.i18nKey}>
+                              {targets.map((target) => (
+                                <EligibilityReasonItem
+                                  key={target.services[0]?.service_id ?? entry.mapped.i18nKey}
+                                  mapped={target.mapped}
+                                  t={t}
+                                  onServiceFocus={focusPrice}
+                                  onRequirementsFocus={focusRequirements}
+                                  serviceNames={target.services.map((row) =>
+                                    lang === "ar" ? row.service_name_ar : row.service_name_en,
+                                  )}
+                                />
+                              ))}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </section>
+                  );
+                })}
+                {eligibilityRows.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setEligibilityExpanded((v) => !v)}
+                    aria-expanded={eligibilityExpanded}
+                    className="flex w-full items-center justify-between rounded-xl border border-border/60 px-2 py-2 text-pro-12 font-bold text-brand"
+                  >
+                    {t("pro.profile.eligibilityByService")}
+                    <ChevronDown
+                      className={`h-4 w-4 transition-transform ${eligibilityExpanded ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                ) : null}
+                {eligibilityExpanded ? (
+                  <div className="space-y-2">
+                    {eligibilityRows.map((row) => (
+                      <div
+                        key={row.service_id}
+                        className="rounded-xl border border-border/60 p-2 text-xs"
+                      >
+                        <div className="break-words font-bold">
+                          {lang === "ar" ? row.service_name_ar : row.service_name_en}
+                        </div>
+                        {row.is_eligible ? (
+                          <div className="mt-1 text-success">
+                            {t("pro.profile.eligibilityServiceReady")}
+                          </div>
+                        ) : (
+                          <ul className="mt-1 space-y-1 text-coral">
+                            {(row.failure_reasons ?? []).map((reason) => {
+                              const mapped = mapMarketplaceEligibilityFailureReason(
+                                reason,
+                                row.service_id,
+                                providerZonesQ.data?.length ?? 0,
+                                pendingTeachingServices.has(row.service_id),
+                              );
+                              return (
+                                <li key={reason}>
+                                  <EligibilityReasonItem
+                                    mapped={mapped}
+                                    t={t}
+                                    onServiceFocus={focusPrice}
+                                    onRequirementsFocus={focusRequirements}
+                                  />
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+                {!eligibilityQ.isLoading && eligibilityRows.length === 0 ? (
+                  <div className="text-xs text-coral">
+                    {t("pro.profile.eligibilityBlockedByData")}
+                  </div>
+                ) : null}
               </div>
             )}
           </Card>
-        </div>
 
-        {/* Services */}
-        <div>
-          <h2 className="mb-2 px-1 text-pro-13 font-bold text-muted-foreground">
-            {t("providerProfileV3.services")}
-          </h2>
-          {services.isError || mine.isError ? (
-            <QueryError
-              compact
-              onRetry={() => {
-                void services.refetch();
-                void mine.refetch();
-              }}
-            />
-          ) : (
-            <div id="requirements" className="grid gap-3 scroll-mt-4">
-              {profileServices.map((s: any) => {
-                const on = myIds.has(s.id);
-                const sname = lang === "ar" ? (s.name_ar ?? s.name_en) : (s.name_en ?? s.name_ar);
-                const cname =
-                  lang === "ar"
-                    ? (s.category?.name_ar ?? s.category?.name_en)
-                    : (s.category?.name_en ?? s.category?.name_ar);
-                const currentOverride = myPriceOverride.get(s.id);
-                const priceError = priceErrors[s.id];
-                return (
-                  <div key={s.id} id={`service-${s.id}`}>
-                    <ServiceCard selected={on} title={sname} subtitle={isFixedPackage(s) ? t(packageLabel(s).key, packageLabel(s).values) : cname ?? ""} icon={<BriefcaseBusiness size={20} />} onClick={isApprovedProvider ? () => {} : () => handleServiceToggle(s.id, on)} disabled={isApprovedProvider}>
-                      <div className="px-4 pb-4">
-                      {on && (
-                        <span
-                          className={`apply-tag ${myStatus.get(s.id) === "approved" ? "apply-success" : myStatus.get(s.id) === "pending" ? "apply-wait" : "apply-danger"}`}
-                        >
-                          {isApprovedProvider && !on && myStatus.get(s.id) == null
-                            ? t("pro.serviceRequest.notAdded")
-                            : t(
-                                myStatus.get(s.id) === "approved"
-                                  ? "pro.serviceRequest.statusActive"
-                                  : myStatus.get(s.id) === "pending"
-                                    ? "pro.serviceRequest.statusPending"
-                                    : myStatus.get(s.id) === "rejected"
-                                      ? "pro.serviceRequest.statusRejected"
-                                      : `providerSetup.status.${myStatus.get(s.id) ?? "pending"}`,
-                              )}
-                        </span>
-                      )}
-                      {on && isApprovedProvider && myStatus.get(s.id) === "pending" && (
-                        <>
-                          <p className="mt-2 text-xs text-muted-foreground">
-                            {t("pro.serviceRequest.pendingReadOnly")}
-                          </p>
-                          <PendingServiceRequestSummary
-                            providerId={provider.id}
-                            serviceId={s.id}
-                            categorySlug={s.category?.slug}
-                            priceOverride={myPriceOverride.get(s.id) ?? null}
-                            maxChildren={provider.max_children_per_booking ?? null}
-                          />
-                          <button
-                            type="button"
-                            className="mt-2 min-h-11 rounded-lg border border-coral px-3 text-xs font-bold text-coral disabled:opacity-50"
-                            disabled={cancelRequest.isPending}
-                            onClick={() =>
-                              cancelRequest.mutate(s.id, {
-                                onSuccess: () => toast.success(t("pro.serviceRequest.cancelled")),
-                                onError: () => toast.error(t("common.somethingWentWrong")),
-                              })
-                            }
-                          >
-                            {t("pro.serviceRequest.cancelRequest")}
-                          </button>
-                        </>
-                      )}
-                    {on && myStatus.get(s.id) === "rejected" && myRejectionReason.get(s.id) && (
-                      <p className="mt-2 text-xs font-semibold text-destructive">
-                        {myRejectionReason.get(s.id)}
-                      </p>
-                    )}
-                    {on && myStatus.get(s.id) === "rejected" && (
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {isApprovedProvider ? (
-                          <Link
-                            to={proPath("/pro/request-service/$serviceId")}
-                            params={{ serviceId: s.id }}
-                            className="min-h-11 rounded-lg border border-brand px-3 text-xs font-bold text-brand inline-flex items-center"
-                          >
-                            {t("pro.serviceRequest.editAndResubmit")}
-                          </Link>
-                        ) : (
-                          <button
-                            type="button"
-                            className="min-h-11 rounded-lg border border-brand px-3 text-xs font-bold text-brand disabled:opacity-50"
-                            disabled={resubmitService.isPending}
-                            onClick={() =>
-                              resubmitService.mutate(s.id, {
-                                onSuccess: () => toast.success(t("pro.profile.serviceResubmitted")),
-                                onError: () => toast.error(t("common.somethingWentWrong")),
-                              })
-                            }
-                          >
-                            {t("pro.profile.resubmitService")}
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          className="min-h-11 rounded-lg border border-coral px-3 text-xs font-bold text-coral disabled:opacity-50"
-                          disabled={removeRejectedService.isPending}
-                          onClick={() =>
-                            removeRejectedService.mutate(s.id, {
-                              onSuccess: () => toast.success(t("pro.profile.serviceRemoved")),
-                              onError: () => toast.error(t("common.somethingWentWrong")),
-                            })
-                          }
-                        >
-                          {t("pro.profile.removeService")}
-                        </button>
-                      </div>
-                    )}
-                    {on &&
-                      s.provider_pricing_allowed &&
-                      !isTutoringCategorySlug(s.category?.slug) && (
-                        <div id={`price-${s.id}`} className="mt-2 min-w-0 scroll-mt-4 space-y-2">
-                          {isSavedPriceOutOfRange(
-                            currentOverride,
-                            s.minimum_price ?? null,
-                            s.maximum_price ?? null,
-                          ) && (
-                            <p className="rounded-xl bg-amber-100 p-2 text-xs font-semibold text-amber-800">
-                              {t("pricePicker.outOfRange")}
-                            </p>
-                          )}
-                          <ServicePricePicker
-                            min={s.minimum_price ?? null}
-                            max={s.maximum_price ?? null}
-                            value={priceDrafts[s.id] ?? currentOverride ?? null}
-                            onChange={(price) =>
-                              setPriceDrafts((drafts) => ({ ...drafts, [s.id]: price }))
-                            }
-                            unitLabel={t(servicePriceUnit(s).key, servicePriceUnit(s).values)}
-                          />
-                          {profilePriceDirty(priceDrafts[s.id], currentOverride) && <button
-                            onClick={() =>
-                              submitPrice(s.id, s.minimum_price ?? null, s.maximum_price ?? null)
-                            }
-                            disabled={
-                              setPrice.isPending ||
-                              !isPriceInRange(
-                                priceDrafts[s.id],
-                                s.minimum_price ?? null,
-                                s.maximum_price ?? null,
-                              )
-                            }
-                            className="min-h-11 rounded-lg bg-brand px-3 py-2 text-xs font-bold text-brand-foreground disabled:opacity-50"
-                          >
-                            {t("common.save")}
-                          </button>}
-                        </div>
-                      )}
-                    {priceError && (
-                      <p className="mt-1 text-pro-12 font-semibold text-coral">{priceError}</p>
-                    )}
-                    {on && (
-                      <button
-                        onClick={() =>
-                          setExpandedReqService(expandedReqService === s.id ? null : s.id)
-                        }
-                        aria-expanded={expandedReqService === s.id}
-                        aria-controls={`requirements-${s.id}`}
-                        className="mt-2 flex min-h-11 w-full items-center justify-between gap-3 border-t border-border py-3 text-start text-pro-13 font-bold text-brand"
-                      >
-                        {t("providerProfilePolish.requirements")}
-                        <ChevronDown size={18} aria-hidden="true" className={expandedReqService === s.id ? "rotate-180" : ""} />
-                      </button>
-                    )}
-                    {on && expandedReqService === s.id && (
-                      <div id={`requirements-${s.id}`}><RequirementsChecklist providerId={provider.id} serviceId={s.id} /></div>
-                    )}
-                    {on &&
-                      isTutoringCategorySlug(s.category?.slug) &&
-                      myStatus.get(s.id) === "approved" && (
-                        <Link
-                          to={proPath("/pro/setup/subjects")}
-                          className="mt-2 inline-block text-xs font-bold text-brand underline-offset-2 hover:underline"
-                        >
-                          {t("pro.profile.addSubjectsForService")}
-                        </Link>
-                      )}
-                      </div>
-                    </ServiceCard>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          {isApprovedProvider && !services.isError && !mine.isError ? (
-            <div className="mt-4">
-              <h3 className="px-1 text-pro-13 font-bold text-foreground">
-                {t("pro.profile.addNewService")}
-              </h3>
-              <p className="mt-1 px-1 text-xs text-muted-foreground">
-                {t("pro.profile.addNewServiceHint")}
-              </p>
-              {addableServices.length === 0 ? (
-                <p className="mt-2 px-1 text-xs text-muted-foreground">
-                  {t("pro.profile.allServicesOnProfile")}
-                </p>
-              ) : (
-                <div className="mt-3 grid gap-3">
-                  {addableServices.map((s: any) => {
-                    const sname =
-                      lang === "ar" ? (s.name_ar ?? s.name_en) : (s.name_en ?? s.name_ar);
-                    const cname =
-                      lang === "ar"
-                        ? (s.category?.name_ar ?? s.category?.name_en)
-                        : (s.category?.name_en ?? s.category?.name_ar);
-                    return (
-                      <div key={s.id} className="rounded-2xl border border-border bg-surface p-4">
-                        <ServiceCard
-                          selected={false}
-                          title={sname}
-                          subtitle={
-                            isFixedPackage(s)
-                              ? t(packageLabel(s).key, packageLabel(s).values)
-                              : (cname ?? "")
-                          }
-                          icon={<BriefcaseBusiness size={20} />}
-                          onClick={() => {}}
-                          disabled
-                        />
-                        <p className="mt-1 px-4 text-xs text-muted-foreground">
-                          {t("pro.serviceRequest.notAdded")}
-                        </p>
-                        <div className="px-4 pb-2">
-                          <Link
-                            to={proPath("/pro/request-service/$serviceId")}
-                            params={{ serviceId: s.id }}
-                            className="mt-2 inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-brand px-3 text-xs font-bold text-brand-foreground"
-                          >
-                            {t("pro.serviceRequest.requestCta")}
-                          </Link>
-                        </div>
-                      </div>
-                    );
-                  })}
+          {/* About */}
+          <div>
+            <h2 className="mb-2 px-1 text-pro-13 font-bold text-muted-foreground">
+              {t("pro.profile.about")}
+            </h2>
+            <Card className="apply-list space-y-3 p-4">
+              <label>
+                <span className="apply-label">{t("providerApply.about")}</span>
+                <AutoGrowingBio
+                  value={lang === "ar" ? bioAr : bioEn}
+                  onChange={lang === "ar" ? setBioAr : setBioEn}
+                />
+              </label>
+              <p className="apply-label">{t("providerSetup.phrases")}</p>
+              <div className="flex flex-wrap gap-2">
+                {[0, 1, 2, 3, 4].map((index) => (
+                  <CheckChip
+                    key={index}
+                    selected={false}
+                    onClick={() =>
+                      (lang === "ar" ? setBioAr : setBioEn)((value) =>
+                        [value.trim(), t(`providerSetup.bioPhrases.p${index}`)]
+                          .filter(Boolean)
+                          .join(" "),
+                      )
+                    }
+                  >
+                    {t(`providerSetup.bioPhrases.p${index}`)}
+                  </CheckChip>
+                ))}
+              </div>
+              <dl className="apply-list">
+                <div className="apply-li">
+                  <dt className="flex-1">{t("pro.profile.yearsExperience")}</dt>
+                  <dd>{years}</dd>
+                  <LockKeyhole size={16} aria-hidden="true" />
+                </div>
+                <div className="apply-li">
+                  <dt className="flex-1 font-bold">{t("providerLocations.livesIn")}</dt>
+                  <dd>
+                    {city
+                      ? t(
+                          `providerSetup.governorates.${city.trim().toLowerCase().replace(/\s+/g, "_")}`,
+                          { defaultValue: city },
+                        )
+                      : t("pro.profile.cityUnset")}
+                  </dd>
+                  <LockKeyhole size={16} aria-hidden="true" />
+                </div>
+                <ProfileWorkZones
+                  providerId={provider.id}
+                  applicationEditable={["DRAFT", "NEEDS_CHANGES"].includes(
+                    provider.onboarding_status,
+                  )}
+                />
+              </dl>
+              <PrimaryButton className="apply-cta" onClick={handleSave} disabled={update.isPending}>
+                {update.isPending ? t("pro.common.saving") : t("pro.profile.saveChanges")}
+              </PrimaryButton>
+              {update.isSuccess && (
+                <div className="text-center text-xs font-semibold text-success">
+                  {t("pro.common.saved")}
                 </div>
               )}
-            </div>
-          ) : null}
-        </div>
+            </Card>
+          </div>
 
-        {teachingQ.isError ? (
-          <QueryError compact onRetry={() => teachingQ.refetch()} />
-        ) : (
-          <TeachingGroupsSummary
-            rows={teachingQ.data ?? []}
-            serviceStatuses={Object.fromEntries(
-              (mine.data ?? []).map((row: { service_id: string; status: string }) => [
-                row.service_id,
-                row.status,
-              ]),
+          {/* Services */}
+          <div>
+            <h2 className="mb-2 px-1 text-pro-13 font-bold text-muted-foreground">
+              {t("providerProfileV3.services")}
+            </h2>
+            {services.isError || mine.isError ? (
+              <QueryError
+                compact
+                onRetry={() => {
+                  void services.refetch();
+                  void mine.refetch();
+                }}
+              />
+            ) : (
+              <div id="requirements" className="grid gap-3 scroll-mt-4">
+                {profileServices.map((s: any) => {
+                  const on = myIds.has(s.id);
+                  const sname = lang === "ar" ? (s.name_ar ?? s.name_en) : (s.name_en ?? s.name_ar);
+                  const cname =
+                    lang === "ar"
+                      ? (s.category?.name_ar ?? s.category?.name_en)
+                      : (s.category?.name_en ?? s.category?.name_ar);
+                  const currentOverride = myPriceOverride.get(s.id);
+                  const priceError = priceErrors[s.id];
+                  return (
+                    <div key={s.id} id={`service-${s.id}`}>
+                      <ServiceCard
+                        selected={on}
+                        title={sname}
+                        subtitle={
+                          isFixedPackage(s)
+                            ? t(packageLabel(s).key, packageLabel(s).values)
+                            : (cname ?? "")
+                        }
+                        icon={<BriefcaseBusiness size={20} />}
+                        onClick={
+                          isApprovedProvider ? () => {} : () => handleServiceToggle(s.id, on)
+                        }
+                        disabled={isApprovedProvider}
+                      >
+                        <div className="px-4 pb-4">
+                          {on && (
+                            <span
+                              className={`apply-tag ${myStatus.get(s.id) === "approved" ? "apply-success" : myStatus.get(s.id) === "pending" ? "apply-wait" : "apply-danger"}`}
+                            >
+                              {isApprovedProvider && !on && myStatus.get(s.id) == null
+                                ? t("pro.serviceRequest.notAdded")
+                                : t(
+                                    myStatus.get(s.id) === "approved"
+                                      ? "pro.serviceRequest.statusActive"
+                                      : myStatus.get(s.id) === "pending"
+                                        ? "pro.serviceRequest.statusPending"
+                                        : myStatus.get(s.id) === "rejected"
+                                          ? "pro.serviceRequest.statusRejected"
+                                          : `providerSetup.status.${myStatus.get(s.id) ?? "pending"}`,
+                                  )}
+                            </span>
+                          )}
+                          {on && isApprovedProvider && myStatus.get(s.id) === "pending" && (
+                            <>
+                              <p className="mt-2 text-xs text-muted-foreground">
+                                {t("pro.serviceRequest.pendingReadOnly")}
+                              </p>
+                              <PendingServiceRequestSummary
+                                providerId={provider.id}
+                                serviceId={s.id}
+                                categorySlug={s.category?.slug}
+                                priceOverride={myPriceOverride.get(s.id) ?? null}
+                                maxChildren={provider.max_children_per_booking ?? null}
+                              />
+                              <button
+                                type="button"
+                                className="mt-2 min-h-11 rounded-lg border border-coral px-3 text-xs font-bold text-coral disabled:opacity-50"
+                                disabled={cancelRequest.isPending}
+                                onClick={() =>
+                                  cancelRequest.mutate(s.id, {
+                                    onSuccess: () =>
+                                      toast.success(t("pro.serviceRequest.cancelled")),
+                                    onError: () => toast.error(t("common.somethingWentWrong")),
+                                  })
+                                }
+                              >
+                                {t("pro.serviceRequest.cancelRequest")}
+                              </button>
+                            </>
+                          )}
+                          {on &&
+                            myStatus.get(s.id) === "rejected" &&
+                            myRejectionReason.get(s.id) && (
+                              <p className="mt-2 text-xs font-semibold text-destructive">
+                                {myRejectionReason.get(s.id)}
+                              </p>
+                            )}
+                          {on && myStatus.get(s.id) === "rejected" && (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {isApprovedProvider ? (
+                                <Link
+                                  to={proPath("/pro/request-service/$serviceId")}
+                                  params={{ serviceId: s.id }}
+                                  className="min-h-11 rounded-lg border border-brand px-3 text-xs font-bold text-brand inline-flex items-center"
+                                >
+                                  {t("pro.serviceRequest.editAndResubmit")}
+                                </Link>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="min-h-11 rounded-lg border border-brand px-3 text-xs font-bold text-brand disabled:opacity-50"
+                                  disabled={resubmitService.isPending}
+                                  onClick={() =>
+                                    resubmitService.mutate(s.id, {
+                                      onSuccess: () =>
+                                        toast.success(t("pro.profile.serviceResubmitted")),
+                                      onError: () => toast.error(t("common.somethingWentWrong")),
+                                    })
+                                  }
+                                >
+                                  {t("pro.profile.resubmitService")}
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                className="min-h-11 rounded-lg border border-coral px-3 text-xs font-bold text-coral disabled:opacity-50"
+                                disabled={removeRejectedService.isPending}
+                                onClick={() =>
+                                  removeRejectedService.mutate(s.id, {
+                                    onSuccess: () => toast.success(t("pro.profile.serviceRemoved")),
+                                    onError: () => toast.error(t("common.somethingWentWrong")),
+                                  })
+                                }
+                              >
+                                {t("pro.profile.removeService")}
+                              </button>
+                            </div>
+                          )}
+                          {on &&
+                            s.provider_pricing_allowed &&
+                            !isTutoringCategorySlug(s.category?.slug) && (
+                              <ProviderServicePricePanel
+                                serviceId={s.id}
+                                onboardingStatus={provider.onboarding_status}
+                                serviceStatus={myStatus.get(s.id) ?? "pending"}
+                                min={s.minimum_price ?? null}
+                                max={s.maximum_price ?? null}
+                                livePrice={currentOverride ?? null}
+                                pendingPrice={myPendingPrice.get(s.id) ?? null}
+                                rejectionReason={myPriceChangeReason.get(s.id) ?? null}
+                                draft={priceDrafts[s.id]}
+                                unitLabel={t(servicePriceUnit(s).key, servicePriceUnit(s).values)}
+                                onDraftChange={(price) =>
+                                  setPriceDrafts((drafts) => ({ ...drafts, [s.id]: price }))
+                                }
+                                onSaveDirect={() =>
+                                  submitPrice(
+                                    s.id,
+                                    s.minimum_price ?? null,
+                                    s.maximum_price ?? null,
+                                  )
+                                }
+                                onRequestChange={() =>
+                                  submitPriceChangeRequest(
+                                    s.id,
+                                    s.minimum_price ?? null,
+                                    s.maximum_price ?? null,
+                                  )
+                                }
+                                onCancelRequest={() =>
+                                  cancelPriceChange.mutate(
+                                    { providerId: provider.id, serviceId: s.id },
+                                    {
+                                      onSuccess: () =>
+                                        toast.success(t("pro.profile.priceChangeCancelled")),
+                                      onError: () => toast.error(t("common.somethingWentWrong")),
+                                    },
+                                  )
+                                }
+                                savePending={
+                                  providerPriceNeedsAdminReview(
+                                    provider.onboarding_status,
+                                    myStatus.get(s.id),
+                                  )
+                                    ? requestPriceChange.isPending
+                                    : setPrice.isPending
+                                }
+                                cancelPending={cancelPriceChange.isPending}
+                                errorMessage={priceError || undefined}
+                              />
+                            )}
+                          {on && (
+                            <button
+                              onClick={() =>
+                                setExpandedReqService(expandedReqService === s.id ? null : s.id)
+                              }
+                              aria-expanded={expandedReqService === s.id}
+                              aria-controls={`requirements-${s.id}`}
+                              className="mt-2 flex min-h-11 w-full items-center justify-between gap-3 border-t border-border py-3 text-start text-pro-13 font-bold text-brand"
+                            >
+                              {t("providerProfilePolish.requirements")}
+                              <ChevronDown
+                                size={18}
+                                aria-hidden="true"
+                                className={expandedReqService === s.id ? "rotate-180" : ""}
+                              />
+                            </button>
+                          )}
+                          {on && expandedReqService === s.id && (
+                            <div id={`requirements-${s.id}`}>
+                              <RequirementsChecklist providerId={provider.id} serviceId={s.id} />
+                            </div>
+                          )}
+                          {on &&
+                            isTutoringCategorySlug(s.category?.slug) &&
+                            myStatus.get(s.id) === "approved" && (
+                              <Link
+                                to={proPath("/pro/setup/subjects")}
+                                className="mt-2 inline-block text-xs font-bold text-brand underline-offset-2 hover:underline"
+                              >
+                                {t("pro.profile.addSubjectsForService")}
+                              </Link>
+                            )}
+                        </div>
+                      </ServiceCard>
+                    </div>
+                  );
+                })}
+              </div>
             )}
-          />
-        )}
-        <section className="apply-list">
-          <ProRow to={proPath("/pro/setup/hours")} icon={<Clock size={20} />} label={t("providerProfileV3.hours")} />
-          {hoursQ.isError ? <QueryError compact onRetry={() => hoursQ.refetch()} /> : <div className="px-4 pb-4 text-sm text-muted-foreground">{(hoursQ.data ?? []).length ? workingHoursSummary(hoursQ.data ?? [], t).map((line) => <p key={line}>{line}</p>) : t("providerProfileV3.noHours")}</div>}
-        </section>
+            {isApprovedProvider && !services.isError && !mine.isError ? (
+              <div className="mt-4">
+                <h3 className="px-1 text-pro-13 font-bold text-foreground">
+                  {t("pro.profile.addNewService")}
+                </h3>
+                <p className="mt-1 px-1 text-xs text-muted-foreground">
+                  {t("pro.profile.addNewServiceHint")}
+                </p>
+                {addableServices.length === 0 ? (
+                  <p className="mt-2 px-1 text-xs text-muted-foreground">
+                    {t("pro.profile.allServicesOnProfile")}
+                  </p>
+                ) : (
+                  <div className="mt-3 grid gap-3">
+                    {addableServices.map((s: any) => {
+                      const sname =
+                        lang === "ar" ? (s.name_ar ?? s.name_en) : (s.name_en ?? s.name_ar);
+                      const cname =
+                        lang === "ar"
+                          ? (s.category?.name_ar ?? s.category?.name_en)
+                          : (s.category?.name_en ?? s.category?.name_ar);
+                      return (
+                        <div key={s.id} className="rounded-2xl border border-border bg-surface p-4">
+                          <ServiceCard
+                            selected={false}
+                            title={sname}
+                            subtitle={
+                              isFixedPackage(s)
+                                ? t(packageLabel(s).key, packageLabel(s).values)
+                                : (cname ?? "")
+                            }
+                            icon={<BriefcaseBusiness size={20} />}
+                            onClick={() => {}}
+                            disabled
+                          />
+                          <p className="mt-1 px-4 text-xs text-muted-foreground">
+                            {t("pro.serviceRequest.notAdded")}
+                          </p>
+                          <div className="px-4 pb-2">
+                            <Link
+                              to={proPath("/pro/request-service/$serviceId")}
+                              params={{ serviceId: s.id }}
+                              className="mt-2 inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-brand px-3 text-xs font-bold text-brand-foreground"
+                            >
+                              {t("pro.serviceRequest.requestCta")}
+                            </Link>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
 
-        {/* Links */}
-        <div>
-          <h2 className="mb-2 px-1 text-pro-13 font-bold text-muted-foreground">
-            {t("pro.profile.more")}
-          </h2>
-          <Card className="apply-list">
-            <ProRow
-              to={proPath("/pro/documents")}
-              icon={<FileText className="h-5 w-5" />}
-              label={t("pro.profile.documentsRow")}
+          {teachingQ.isError ? (
+            <QueryError compact onRetry={() => teachingQ.refetch()} />
+          ) : (
+            <TeachingGroupsSummary
+              rows={teachingQ.data ?? []}
+              serviceStatuses={Object.fromEntries(
+                (mine.data ?? []).map((row: { service_id: string; status: string }) => [
+                  row.service_id,
+                  row.status,
+                ]),
+              )}
             />
+          )}
+          <section className="apply-list">
             <ProRow
-              to={proPath("/pro/notification-preferences")}
-              icon={<Bell className="h-5 w-5" />}
-              label={t("notifPrefs.title")}
+              to={proPath("/pro/setup/hours")}
+              icon={<Clock size={20} />}
+              label={t("providerProfileV3.hours")}
             />
-          </Card>
-        </div>
+            {hoursQ.isError ? (
+              <QueryError compact onRetry={() => hoursQ.refetch()} />
+            ) : (
+              <div className="px-4 pb-4 text-sm text-muted-foreground">
+                {(hoursQ.data ?? []).length
+                  ? workingHoursSummary(hoursQ.data ?? [], t).map((line) => (
+                      <p key={line}>{line}</p>
+                    ))
+                  : t("providerProfileV3.noHours")}
+              </div>
+            )}
+          </section>
 
-        <button
-          onClick={logout}
-          className="apply-li w-full text-destructive"
-        >
-          <LogOut className="h-4 w-4" /> {t("pro.profile.signOut")}
-        </button>
-        <Link
-          to={proPath("/pro/account/delete")}
-          className="apply-li w-full text-destructive"
-        >
-          {t("accountDeletion.menuLabel")}
-        </Link>
+          {/* Links */}
+          <div>
+            <h2 className="mb-2 px-1 text-pro-13 font-bold text-muted-foreground">
+              {t("pro.profile.more")}
+            </h2>
+            <Card className="apply-list">
+              <ProRow
+                to={proPath("/pro/documents")}
+                icon={<FileText className="h-5 w-5" />}
+                label={t("pro.profile.documentsRow")}
+              />
+              <ProRow
+                to={proPath("/pro/notification-preferences")}
+                icon={<Bell className="h-5 w-5" />}
+                label={t("notifPrefs.title")}
+              />
+            </Card>
+          </div>
+
+          <button onClick={logout} className="apply-li w-full text-destructive">
+            <LogOut className="h-4 w-4" /> {t("pro.profile.signOut")}
+          </button>
+          <Link to={proPath("/pro/account/delete")} className="apply-li w-full text-destructive">
+            {t("accountDeletion.menuLabel")}
+          </Link>
         </div>
       </main>
     </ProviderShell>
@@ -927,11 +1127,29 @@ function EligibilityReasonItem({
   const className = row
     ? `apply-li apply-profile-action ${waiting ? "apply-waiting" : "apply-next focus-ring"}`
     : "font-semibold text-brand underline-offset-2 hover:underline";
-  const label = row ? <>
-    <span className="apply-tile" aria-hidden="true">{waiting ? <Clock size={18} /> : <FileText size={18} />}</span>
-    <span className="apply-task-text"><b>{t(mapped.i18nKey)}</b><small>{serviceNames.map((name, index) => <span key={name}>{index > 0 && " · "}<span>{name}</span></span>)}</small></span>
-    <span className={`apply-tag ${waiting ? "apply-wait" : "apply-go"}`}>{t(`providerApply.pending.${waiting ? "waiting" : "start"}`)}</span>
-  </> : t(mapped.i18nKey);
+  const label = row ? (
+    <>
+      <span className="apply-tile" aria-hidden="true">
+        {waiting ? <Clock size={18} /> : <FileText size={18} />}
+      </span>
+      <span className="apply-task-text">
+        <b>{t(mapped.i18nKey)}</b>
+        <small>
+          {serviceNames.map((name, index) => (
+            <span key={name}>
+              {index > 0 && " · "}
+              <span>{name}</span>
+            </span>
+          ))}
+        </small>
+      </span>
+      <span className={`apply-tag ${waiting ? "apply-wait" : "apply-go"}`}>
+        {t(`providerApply.pending.${waiting ? "waiting" : "start"}`)}
+      </span>
+    </>
+  ) : (
+    t(mapped.i18nKey)
+  );
   if (row && waiting) return <div className={className}>{label}</div>;
   if (mapped.action.kind === "link") {
     return (
@@ -952,7 +1170,18 @@ function EligibilityReasonItem({
   }
   if (mapped.action.kind === "requirements") {
     const serviceId = mapped.action.serviceId;
-    return <a href={`${proPath("/pro/profile")}#requirements-${serviceId}`} className={className} onClick={(event) => { event.preventDefault(); onRequirementsFocus(serviceId); }}>{label}</a>;
+    return (
+      <a
+        href={`${proPath("/pro/profile")}#requirements-${serviceId}`}
+        className={className}
+        onClick={(event) => {
+          event.preventDefault();
+          onRequirementsFocus(serviceId);
+        }}
+      >
+        {label}
+      </a>
+    );
   }
   if (mapped.action.kind === "service") {
     const serviceId = mapped.action.serviceId;
@@ -979,9 +1208,7 @@ function EligibilityReasonItem({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <div className="mb-1 text-pro-13 font-bold text-muted-foreground">
-        {label}
-      </div>
+      <div className="mb-1 text-pro-13 font-bold text-muted-foreground">{label}</div>
       {children}
     </label>
   );
@@ -990,10 +1217,10 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function ProRow({ to, icon, label }: { to: string; icon: React.ReactNode; label: string }) {
   return (
     <Link to={to as any} className="apply-li focus-ring">
-      <div className="apply-tile">
-        {icon}
+      <div className="apply-tile">{icon}</div>
+      <div className="apply-task-text">
+        <b>{label}</b>
       </div>
-      <div className="apply-task-text"><b>{label}</b></div>
     </Link>
   );
 }

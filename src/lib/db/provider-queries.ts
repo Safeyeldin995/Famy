@@ -609,7 +609,7 @@ export function useMyProviderServices(providerId: string | undefined) {
       const { data, error } = await supabase
         .from("provider_services")
         .select(
-          "service_id, price_override, status, rejection_reason, service:services(id, name_en, name_ar, is_active, provider_pricing_allowed, minimum_price, maximum_price, category:categories(slug, name_en, name_ar))",
+          "service_id, price_override, pending_price_override, price_change_requested_at, price_change_reason, status, rejection_reason, service:services(id, name_en, name_ar, is_active, provider_pricing_allowed, minimum_price, maximum_price, category:categories(slug, name_en, name_ar))",
         )
         .eq("provider_id", providerId!);
       if (error) throw error;
@@ -680,9 +680,12 @@ export function useToggleProviderService() {
           .from("provider_services")
           .insert({ provider_id: providerId, service_id: serviceId });
         if (error?.code === "23505") {
-          const { error: resubmitError } = await supabase.rpc("provider_resubmit_rejected_service", {
-            p_service_id: serviceId,
-          });
+          const { error: resubmitError } = await supabase.rpc(
+            "provider_resubmit_rejected_service",
+            {
+              p_service_id: serviceId,
+            },
+          );
           if (resubmitError) throw resubmitError;
         } else if (error) {
           throw error;
@@ -722,6 +725,43 @@ export function useSetProviderPrice() {
         .update({ price_override: price })
         .eq("provider_id", providerId)
         .eq("service_id", serviceId);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) =>
+      qc.invalidateQueries({ queryKey: ["my-provider-services", vars.providerId] }),
+  });
+}
+
+export function useRequestProviderPriceChange() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      providerId,
+      serviceId,
+      price,
+    }: {
+      providerId: string;
+      serviceId: string;
+      price: number;
+    }) => {
+      const { error } = await supabase.rpc("provider_request_price_change", {
+        p_service_id: serviceId,
+        p_price: price,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) =>
+      qc.invalidateQueries({ queryKey: ["my-provider-services", vars.providerId] }),
+  });
+}
+
+export function useCancelProviderPriceChange() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ providerId, serviceId }: { providerId: string; serviceId: string }) => {
+      const { error } = await supabase.rpc("provider_cancel_price_change", {
+        p_service_id: serviceId,
+      });
       if (error) throw error;
     },
     onSuccess: (_d, vars) =>
