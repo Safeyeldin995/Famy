@@ -631,6 +631,7 @@ export function BookContent({
     hasRecipient: recipientReady,
     hasSupervision: supervisionReady,
     supervisionRequired,
+    lessonService: isLessonService,
   });
   const clearSlot = () => {
     setTime(null);

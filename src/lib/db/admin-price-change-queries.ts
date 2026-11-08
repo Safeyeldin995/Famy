@@ -38,8 +38,9 @@ export function useReviewProviderPriceChange(providerServiceId: string) {
       if (error) throw error;
     },
     onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["admin", "price-change", providerServiceId] });
       void qc.invalidateQueries({ queryKey: ["admin", "price-change-requests"] });
-      void qc.invalidateQueries({ queryKey: ["admin", "work-queue-counts"] });
+      void qc.invalidateQueries({ queryKey: ["admin", "work-queue"] });
     },
   });
 }

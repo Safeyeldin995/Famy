@@ -325,6 +325,7 @@ export default function Book() {
     hasRecipient: recipientReady,
     hasSupervision: supervisionReady,
     supervisionRequired,
+    lessonService: isLessonService,
   });
   async function applyPromo() {
     if (!promo.trim() || !service) return;

@@ -59,7 +59,12 @@ export function ProviderCard({ provider: p, subtitle }: { provider: Provider; su
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={p.profile.full_name || t("provider2.unnamed")}
-      onPress={() => router.push({ pathname: "/provider/[id]", params: { id: p.id } })}
+      onPress={() =>
+        router.push({
+          pathname: "/provider/[id]",
+          params: service?.id ? { id: p.id, serviceId: service.id } : { id: p.id },
+        })
+      }
       style={({ pressed }) => [
         ui.card,
         {
@@ -124,7 +129,11 @@ export function ProviderCard({ provider: p, subtitle }: { provider: Provider; su
             <Text weight="bold" style={{ marginTop: 4 }}>
               {packageInfo
                 ? `${customerMoney(p.hourly_rate, i18n.language)} · ${t(packageInfo.key, packageInfo.values)}`
-                : customerMoney(p.hourly_rate, i18n.language, true)}
+                : service?.category?.slug === "tutoring"
+                  ? t("providerPage.perSession", {
+                      price: customerMoney(p.hourly_rate, i18n.language),
+                    })
+                  : customerMoney(p.hourly_rate, i18n.language, true)}
             </Text>
           )
         )}

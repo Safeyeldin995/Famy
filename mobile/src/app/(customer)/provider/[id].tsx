@@ -40,7 +40,10 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 export default function ProviderProfile() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, serviceId: fromServiceId } = useLocalSearchParams<{
+    id: string;
+    serviceId?: string;
+  }>();
   const { t, i18n } = useTranslation();
   const ar = i18n.language === "ar";
   const address = useDefaultAddress();
@@ -160,7 +163,13 @@ export default function ProviderProfile() {
             <Button
               label={t("providerProfile.bookWith", { name: firstName })}
               onPress={() =>
-                router.push({ pathname: "/book/[providerId]", params: { providerId: id } })
+                router.push({
+                  pathname: "/book/[providerId]",
+                  params:
+                    fromServiceId && available.some((row) => row.service.id === fromServiceId)
+                      ? { providerId: id, serviceId: fromServiceId }
+                      : { providerId: id },
+                })
               }
             />
           </View>

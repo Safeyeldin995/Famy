@@ -11,6 +11,8 @@ export function bookingDisabledReason(input: {
   supervisionRequired?: boolean;
   hasSupervision?: boolean;
   hasRecipient?: boolean;
+  /** Quran/music lessons have no curriculum or school grade. */
+  lessonService?: boolean;
 }): string | null {
   if (input.submitting) return "bookingUx.saving";
   if (input.allowed) return null;
@@ -20,7 +22,7 @@ export function bookingDisabledReason(input: {
     case "service":
       return "bookingUx.chooseService";
     case "duration":
-      return "bookingUx.chooseSession";
+      return input.lessonService ? "bookingUx.chooseLessonSession" : "bookingUx.chooseSession";
     case "schedule":
       return !input.hasDate
         ? "bookingUx.chooseDate"
