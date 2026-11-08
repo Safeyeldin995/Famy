@@ -1,113 +1,95 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { PhoneFrame } from "@/components/famio/ui";
-import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
-import { CustomerFloatingPanel } from "@/components/famio/CustomerFloatingPanel";
-import { MessageCircle, Phone, MessageSquare, ChevronDown } from "lucide-react";
-import { useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
+import { ChevronDown, MessageCircle, Phone } from "lucide-react";
+import { SiteLayout, SiteSection } from "@/components/site/SiteLayout";
+import { siteHead, siteLanguage } from "@/lib/site/seo";
 import { useSupportContact } from "@/lib/db/queries";
 
-export const Route = createFileRoute("/help")({ component: Help });
+export const Route = createFileRoute("/help")({
+  head: ({ matches }) =>
+    siteHead(
+      "/help",
+      {
+        ar: {
+          title: "المساعدة | فامي",
+          description: "إجابات الأسئلة اللي بتتسأل كتير عن فامي، وطرق التواصل مع فريق الدعم.",
+        },
+        en: {
+          title: "Help | Famy",
+          description: "Answers to common questions about Famy and ways to reach our support team.",
+        },
+      },
+      siteLanguage(matches),
+    ),
+  component: Help,
+});
 
-function digits(v: string) {
-  return v.replace(/[^\d+]/g, "");
-}
+const digits = (v: string) => v.replace(/[^\d+]/g, "");
 
 function Help() {
   const { t } = useTranslation();
-  const [open, setOpen] = useState<number | null>(0);
   const faqs = t("helpC.faqs", { returnObjects: true }) as { q: string; a: string }[];
   const contact = useSupportContact();
-
-  // Closed Beta business decision: support is handled entirely through
-  // WhatsApp. Chat and WhatsApp both open the same conversation; Report
-  // Serious Issue opens it with a pre-filled urgent message. Contact
-  // details come from the existing Settings infrastructure (`settings`
-  // table) — this assumes real production configuration exists;
-  // configuration validity is a deployment/operations concern, not
-  // application logic.
-  const openWhatsapp = (prefill?: string) => {
-    const base = `https://wa.me/${digits(contact.data?.whatsapp ?? "").replace("+", "")}`;
-    window.open(prefill ? `${base}?text=${encodeURIComponent(prefill)}` : base, "_blank");
-  };
+  const whatsapp = contact.data?.whatsapp ? digits(contact.data.whatsapp).replace("+", "") : null;
+  const phone = contact.data?.phone ? digits(contact.data.phone) : null;
 
   return (
-    <PhoneFrame bg="bg-background">
-      <CustomerPageHero title={t("helpC.title")} subtitle={t("helpC.heroBody")} backTo="/profile" />
-      <div className="px-5 pb-10">
-        <CustomerFloatingPanel>
-          <h2 className="text-lg font-extrabold tracking-tight">{t("helpC.heroTitle")}</h2>
-          <div className="mt-4 grid grid-cols-3 gap-2">
-            <Contact
-              icon={<MessageCircle className="h-5 w-5" />}
-              label={t("helpC.chat")}
-              onClick={() => openWhatsapp()}
-            />
-            <Contact
-              icon={<Phone className="h-5 w-5" />}
-              label={t("helpC.call")}
-              onClick={() => {
-                window.location.href = `tel:${digits(contact.data?.phone ?? "")}`;
-              }}
-            />
-            <Contact
-              icon={<MessageSquare className="h-5 w-5" />}
-              label={t("helpC.whatsapp")}
-              onClick={() => openWhatsapp()}
-            />
-          </div>
-        </CustomerFloatingPanel>
-
-        <h3 className="mt-6 mb-2 px-1 text-pro-12 font-bold">{t("helpC.faqsTitle")}</h3>
-        <div className="divide-y divide-border/60 overflow-hidden rounded-[1.75rem] border border-border/50 bg-surface-elevated shadow-sm">
-          {faqs.map((f, i) => (
-            <button
-              key={i}
-              onClick={() => setOpen(open === i ? null : i)}
-              className="block w-full px-4 py-4 text-start"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-sm font-extrabold">{f.q}</span>
+    <SiteLayout>
+      <div className="bg-gradient-to-b from-brand/[0.08] to-white">
+        <SiteSection className="py-16 md:py-20">
+          <h1 className="text-[2.25rem] font-extrabold md:text-[3rem]">{t("helpC.title")}</h1>
+          <p className="mt-5 max-w-3xl text-pro-18 leading-relaxed text-muted-foreground">
+            {t("helpC.heroBody")}
+          </p>
+          {whatsapp || phone ? (
+            <div className="mt-8 flex flex-wrap gap-3">
+              {whatsapp ? (
+                <a
+                  href={`https://wa.me/${whatsapp}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="focus-ring inline-flex min-h-12 items-center gap-2 rounded-full bg-brand px-6 text-pro-16 font-extrabold text-brand-foreground"
+                >
+                  <MessageCircle className="h-5 w-5" aria-hidden="true" />
+                  {t("helpC.whatsapp")}
+                </a>
+              ) : null}
+              {phone ? (
+                <a
+                  href={`tel:${phone}`}
+                  className="focus-ring inline-flex min-h-12 items-center gap-2 rounded-full border border-border/80 bg-white px-6 text-pro-16 font-extrabold"
+                >
+                  <Phone className="h-5 w-5" aria-hidden="true" />
+                  <span dir="ltr">{phone}</span>
+                </a>
+              ) : null}
+            </div>
+          ) : null}
+        </SiteSection>
+      </div>
+      <SiteSection className="pb-20">
+        <h2 className="text-pro-24 font-extrabold">{t("helpC.faqsTitle")}</h2>
+        <div className="mt-6 max-w-3xl divide-y divide-border/70 rounded-3xl border border-border/70">
+          {faqs.map((f) => (
+            <details key={f.q} className="group px-6">
+              <summary className="focus-ring flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 py-4 text-pro-16 font-extrabold">
+                {f.q}
                 <ChevronDown
-                  className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open === i ? "rotate-180" : ""}`}
+                  className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
+                  aria-hidden="true"
                 />
-              </div>
-              {open === i && (
-                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{f.a}</p>
-              )}
-            </button>
+              </summary>
+              <p className="pb-5 text-pro-14 leading-relaxed text-muted-foreground">{f.a}</p>
+            </details>
           ))}
         </div>
-
-        <button
-          onClick={() => openWhatsapp(t("helpC.urgentPrefill"))}
-          className="focus-ring mt-4 w-full rounded-full border border-border/60 bg-surface-elevated py-4 text-sm font-extrabold text-destructive shadow-xs"
-        >
-          {t("helpC.reportIssue")}
-        </button>
-      </div>
-    </PhoneFrame>
-  );
-}
-
-function Contact({
-  icon,
-  label,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="focus-ring rounded-[1.25rem] bg-surface-2 p-3 text-center active:scale-95"
-    >
-      <div className="mx-auto grid h-11 w-11 place-items-center rounded-full bg-brand text-brand-foreground">
-        {icon}
-      </div>
-      <div className="mt-2 text-pro-12 font-extrabold">{label}</div>
-    </button>
+        <p className="mt-8 text-pro-14 text-muted-foreground">
+          {t("helpC.moreHelp")}{" "}
+          <Link to="/contact" className="focus-ring font-bold text-brand">
+            {t("site.nav.contact")}
+          </Link>
+        </p>
+      </SiteSection>
+    </SiteLayout>
   );
 }

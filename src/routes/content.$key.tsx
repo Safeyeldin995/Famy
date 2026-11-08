@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PhoneFrame, Card } from "@/components/famio/ui";
-import { CustomerPageHero } from "@/components/famio/CustomerPageHero";
+import { SiteLayout, SiteSection } from "@/components/site/SiteLayout";
 import { QueryError } from "@/components/famio/QueryError";
 import { usePlatformContent, type PlatformContentKey } from "@/lib/db/settings-queries";
 import { useLang } from "@/components/famio/LanguageToggle";
@@ -68,25 +67,25 @@ function ContentPage() {
   const body = lang === "ar" ? q.data?.body_ar : q.data?.body_en;
 
   return (
-    <PhoneFrame bg="bg-background">
-      <CustomerPageHero title={title} backTo="/profile" />
-      <div className="px-5 pb-10 pt-2">
-        <Card className="p-5">
+    <SiteLayout>
+      <SiteSection className="py-14 md:py-20">
+        <h1 className="text-[2rem] font-extrabold md:text-[2.75rem]">{title}</h1>
+        <div className="mt-8 max-w-3xl">
           {q.isLoading ? (
-            <div className="h-40 animate-pulse rounded-xl bg-muted" />
+            <div className="h-40 animate-pulse rounded-3xl bg-surface-2" />
           ) : q.isError ? (
             <QueryError compact onRetry={() => q.refetch()} />
           ) : body ? (
-            <p className="whitespace-pre-wrap text-[15px] font-medium leading-relaxed text-foreground">
+            <p className="whitespace-pre-wrap text-pro-16 leading-relaxed text-foreground/90">
               {body}
             </p>
           ) : (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-pro-14 text-muted-foreground">
               {t("content.empty", "This content hasn't been added yet.")}
             </p>
           )}
-        </Card>
-      </div>
-    </PhoneFrame>
+        </div>
+      </SiteSection>
+    </SiteLayout>
   );
 }

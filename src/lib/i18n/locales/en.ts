@@ -1416,6 +1416,7 @@ const en = {
     call: "Call",
     whatsapp: "WhatsApp",
     faqsTitle: "FAQs",
+    moreHelp: "Did not find your answer?",
     reportIssue: "Report a serious issue",
     urgentPrefill: "URGENT: I need help with a serious issue.",
     faqs: [
