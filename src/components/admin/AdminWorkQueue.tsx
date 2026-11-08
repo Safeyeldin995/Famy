@@ -17,6 +17,10 @@ export const WORK_QUEUE_ITEMS: ReadonlyArray<{
     key: "new_service_requests",
     route: "/admin/service-requests",
   },
+  {
+    key: "price_change_requests",
+    route: "/admin/price-change-requests",
+  },
   { key: "pending_services", route: "/admin/providers", search: { queue: "pending_services" } },
   {
     key: "pending_teaching_groups",
