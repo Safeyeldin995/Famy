@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import { LessonIllustration } from "@/ui/lessons/LessonIllustration";
+import { isLessonServiceSlug } from "@shared/tutoring/lessonServices";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
@@ -11,9 +13,15 @@ import {
   useAllServices,
   useMyProviderServicesDetailed,
   useSetProviderPrice,
+  useRequestProviderPriceChange,
+  useCancelProviderPriceChange,
   useToggleProviderService,
   useCancelProviderServiceRequest,
 } from "@/lib/provider/profileQueries";
+import {
+  providerPriceChangeDirty,
+  providerPriceNeedsAdminReview,
+} from "@shared/provider/providerPriceChangeRequest";
 import { useMyProvider, useUpdateProvider } from "@/lib/provider/queries";
 import { localized, money } from "@/lib/presentation";
 import { supabase } from "@/lib/supabase";
@@ -37,6 +45,9 @@ export default function ProProfileEditScreen() {
   const cancelRequest = useCancelProviderServiceRequest();
   const isApprovedProvider = provider?.onboarding_status === "APPROVED";
   const setPrice = useSetProviderPrice();
+  const requestPriceChange = useRequestProviderPriceChange();
+  const cancelPriceChange = useCancelProviderPriceChange();
+  const [priceSuccess, setPriceSuccess] = useState<string | null>(null);
   const updateProv = useUpdateProvider();
   const [bioAr, setBioAr] = useState("");
   const [bioEn, setBioEn] = useState("");
@@ -156,13 +167,31 @@ export default function ProProfileEditScreen() {
           const tutoring = isTutoringCategorySlug((service.category as { slug?: string })?.slug);
           const min = service.minimum_price as number | null;
           const max = service.maximum_price as number | null;
-          const current = priceDrafts[id] ?? (row?.price_override as number | null) ?? min ?? 0;
+          const livePrice = (row?.price_override as number | null) ?? null;
+          const pendingPrice = (row?.pending_price_override as number | null) ?? null;
+          const priceChangeReason = (row?.price_change_reason as string | null) ?? null;
+          const needsReview = providerPriceNeedsAdminReview(
+            provider?.onboarding_status as string,
+            row?.status as string | undefined,
+          );
+          const current = priceDrafts[id] ?? pendingPrice ?? livePrice ?? min ?? 0;
           return (
             <View key={id} style={proCard.card}>
-              <Text weight="bold">{localized(service, i18n.language)}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                {isLessonServiceSlug(service.slug as string) ? (
+                  <LessonIllustration serviceSlug={service.slug as string} width={44} height={44} />
+                ) : null}
+                <Text weight="bold" style={{ flex: 1 }}>
+                  {localized(service, i18n.language)}
+                </Text>
+              </View>
               {row?.status ? (
                 <Text tone="muted" size="sm">
                   {t(`providerSetup.status.${String(row.status)}`)}
+                </Text>
+              ) : isApprovedProvider ? (
+                <Text tone="muted" size="sm">
+                  {t("pro.serviceRequest.notAdded")}
                 </Text>
               ) : null}
               {isApprovedProvider && !on ? (
@@ -221,24 +250,93 @@ export default function ProProfileEditScreen() {
               ) : null}
               {on && !tutoring && service.provider_pricing_allowed ? (
                 <>
+                  {priceChangeReason && !pendingPrice ? (
+                    <Text tone="danger" size="sm">
+                      {t("pro.profile.priceChangeRejected", { reason: priceChangeReason })}
+                    </Text>
+                  ) : null}
+                  {pendingPrice != null ? (
+                    <Text tone="brand" size="sm">
+                      {t("pro.profile.priceChangePending", {
+                        requested: pendingPrice,
+                        current: livePrice ?? "—",
+                      })}
+                    </Text>
+                  ) : null}
                   <ProviderPriceStepper
                     min={min}
                     max={max}
                     value={current}
+                    disabled={pendingPrice != null}
                     onChange={(price) => setPriceDrafts((d) => ({ ...d, [id]: price }))}
                   />
-                  <Button
-                    variant="secondary"
-                    label={t("common.save")}
-                    onPress={() => {
-                      if (!providerId) return;
-                      if (!isPriceInRange(current, min, max)) {
-                        setActionError(true);
-                        return;
-                      }
-                      setPrice.mutate({ providerId, serviceId: id, price: current });
-                    }}
-                  />
+                  {needsReview ? (
+                    pendingPrice != null ? (
+                      <Button
+                        variant="secondary"
+                        label={t("pro.profile.cancelPriceChange")}
+                        loading={cancelPriceChange.isPending}
+                        onPress={() => {
+                          if (!providerId) return;
+                          cancelPriceChange.mutate(
+                            { providerId, serviceId: id },
+                            {
+                              onSuccess: () =>
+                                setPriceSuccess(t("pro.profile.priceChangeCancelled")),
+                              onError: () => setActionError(true),
+                            },
+                          );
+                        }}
+                      />
+                    ) : providerPriceChangeDirty(priceDrafts[id], livePrice, pendingPrice) ? (
+                      <Button
+                        variant="secondary"
+                        label={t("pro.profile.requestPriceChange")}
+                        loading={requestPriceChange.isPending}
+                        onPress={() => {
+                          if (!providerId) return;
+                          if (!isPriceInRange(current, min, max)) {
+                            setActionError(true);
+                            return;
+                          }
+                          requestPriceChange.mutate(
+                            { providerId, serviceId: id, price: current },
+                            {
+                              onSuccess: () => {
+                                setPriceSuccess(t("pro.profile.priceChangeSubmitted"));
+                                setPriceDrafts((d) => {
+                                  const next = { ...d };
+                                  delete next[id];
+                                  return next;
+                                });
+                              },
+                              onError: () => setActionError(true),
+                            },
+                          );
+                        }}
+                      />
+                    ) : null
+                  ) : (
+                    <Button
+                      variant="secondary"
+                      label={t("common.save")}
+                      loading={setPrice.isPending}
+                      onPress={() => {
+                        if (!providerId) return;
+                        if (!isPriceInRange(current, min, max)) {
+                          setActionError(true);
+                          return;
+                        }
+                        setPrice.mutate(
+                          { providerId, serviceId: id, price: current },
+                          {
+                            onSuccess: () => setPriceSuccess(t("pro.profile.priceSaved")),
+                            onError: () => setActionError(true),
+                          },
+                        );
+                      }}
+                    />
+                  )}
                   {!isPriceInRange(current, min, max) ? (
                     <Text tone="danger" size="sm">
                       {t("pricePicker.outOfRange")}
@@ -255,6 +353,11 @@ export default function ProProfileEditScreen() {
         label={t("providerSetup.titles.hours")}
         onPress={() => router.push({ pathname: "/pro-setup/[item]", params: { item: "hours" } })}
       />
+      {priceSuccess ? (
+        <Text tone="success" size="sm">
+          {priceSuccess}
+        </Text>
+      ) : null}
       <ActionError error={actionError} />
     </Page>
   );

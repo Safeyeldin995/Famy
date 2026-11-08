@@ -150,9 +150,22 @@ export default function ProviderProfile() {
           </Text>
         ) : null}
       </View>
-      <Text weight="bold" tone="muted">
-        {t("mobile.servicesPrices")}
-      </Text>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <Text weight="bold" tone="muted">
+          {t("mobile.servicesPrices")}
+        </Text>
+        {provider?.onboarding_status === "APPROVED" ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push("/pro-profile-edit")}
+            style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: 8 }}
+          >
+            <Text weight="bold" tone="brand" size="sm">
+              {t("pro.serviceRequest.addServiceLink")}
+            </Text>
+          </Pressable>
+        ) : null}
+      </View>
       <QueryState query={servicesQ} empty={!servicesQ.data?.length} emptyKey="mobile.empty">
         {servicesQ.data?.map((row) => {
           const service = row.service as { name_ar?: string; name_en?: string } | null;

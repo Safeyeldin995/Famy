@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Linking, Pressable, View } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Calendar, Clock, MapPin, Phone, User } from "lucide-react-native";
+import { BookOpen, Calendar, Clock, MapPin, Phone, User } from "lucide-react-native";
+import { bookingTeachingSummary } from "@shared/tutoring/bookingTeachingSummary";
 import { shortBookingCode } from "@/lib/provider/constants";
 import {
   isBookingTooEarlyError,
@@ -21,10 +22,7 @@ import { Page, QueryState, ActionError } from "@/ui/Page";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { colors, space } from "@/ui/theme";
-import {
-  isSupervisionMode,
-  supervisionModeProviderLabel,
-} from "@shared/booking/supervisionMode";
+import { isSupervisionMode, supervisionModeProviderLabel } from "@shared/booking/supervisionMode";
 
 export default function ProBookingDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -152,6 +150,17 @@ export default function ProBookingDetail() {
                     {t(bookingMemberAgeTranslation(party).key, {
                       count: bookingMemberAgeTranslation(party).count,
                     })}
+                  </Text>
+                </View>
+              ) : null}
+              {bookingTeachingSummary(b, i18n.language) ? (
+                <View style={proCard.row}>
+                  <BookOpen size={16} color={colors.brand} />
+                  <Text tone="muted" size="sm" style={{ flex: 1 }}>
+                    {t("pro.booking.subject")}
+                  </Text>
+                  <Text weight="bold" size="sm" style={{ flex: 1 }}>
+                    {bookingTeachingSummary(b, i18n.language)}
                   </Text>
                 </View>
               ) : null}

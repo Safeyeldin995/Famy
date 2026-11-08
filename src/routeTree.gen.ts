@@ -50,6 +50,7 @@ import { Route as AdminMonitoringRouteImport } from './routes/admin.monitoring'
 import { Route as AdminOperationsRouteImport } from './routes/admin.operations'
 import { Route as AdminPaymentMethodsRouteImport } from './routes/admin.payment-methods'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
+import { Route as AdminPriceChangeRequestsRouteImport } from './routes/admin.price-change-requests'
 import { Route as AdminPromoCodesRouteImport } from './routes/admin.promo-codes'
 import { Route as AdminProvidersRouteImport } from './routes/admin.providers'
 import { Route as AdminServiceRequestsRouteImport } from './routes/admin.service-requests'
@@ -101,6 +102,7 @@ import { Route as ProProfileRouteImport } from './routes/pro.profile'
 import { Route as ProSupportRouteImport } from './routes/pro.support'
 import { Route as ProviderIdRouteImport } from './routes/provider.$id'
 import { Route as AdminCustomerIdRouteImport } from './routes/admin.customer.$id'
+import { Route as AdminPriceChangeIdRouteImport } from './routes/admin.price-change.$id'
 import { Route as AdminProviderIdRouteImport } from './routes/admin.provider.$id'
 import { Route as AdminServiceRequestIdRouteImport } from './routes/admin.service-request.$id'
 import { Route as ApiAccountDeleteRouteImport } from './routes/api.account.delete'
@@ -363,6 +365,12 @@ const AdminPaymentsRoute = AdminPaymentsRouteImport.update({
   path: '/payments',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminPriceChangeRequestsRoute =
+  AdminPriceChangeRequestsRouteImport.update({
+    id: '/price-change-requests',
+    path: '/price-change-requests',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminPromoCodesRoute = AdminPromoCodesRouteImport.update({
   id: '/promo-codes',
   path: '/promo-codes',
@@ -618,6 +626,11 @@ const ProviderIdRoute = ProviderIdRouteImport.update({
 const AdminCustomerIdRoute = AdminCustomerIdRouteImport.update({
   id: '/customer/$id',
   path: '/customer/$id',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPriceChangeIdRoute = AdminPriceChangeIdRouteImport.update({
+  id: '/price-change/$id',
+  path: '/price-change/$id',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminProviderIdRoute = AdminProviderIdRouteImport.update({
@@ -943,6 +956,7 @@ export interface FileRoutesByFullPath {
   '/admin/operations': typeof AdminOperationsRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
   '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/price-change-requests': typeof AdminPriceChangeRequestsRoute
   '/admin/promo-codes': typeof AdminPromoCodesRoute
   '/admin/providers': typeof AdminProvidersRoute
   '/admin/service-requests': typeof AdminServiceRequestsRoute
@@ -996,6 +1010,7 @@ export interface FileRoutesByFullPath {
   '/preview/': typeof PreviewIndexRoute
   '/pro/': typeof ProIndexRoute
   '/admin/customer/$id': typeof AdminCustomerIdRoute
+  '/admin/price-change/$id': typeof AdminPriceChangeIdRoute
   '/admin/provider/$id': typeof AdminProviderIdRoute
   '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
@@ -1087,6 +1102,7 @@ export interface FileRoutesByTo {
   '/admin/operations': typeof AdminOperationsRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
   '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/price-change-requests': typeof AdminPriceChangeRequestsRoute
   '/admin/promo-codes': typeof AdminPromoCodesRoute
   '/admin/providers': typeof AdminProvidersRoute
   '/admin/service-requests': typeof AdminServiceRequestsRoute
@@ -1137,6 +1153,7 @@ export interface FileRoutesByTo {
   '/preview': typeof PreviewIndexRoute
   '/pro': typeof ProIndexRoute
   '/admin/customer/$id': typeof AdminCustomerIdRoute
+  '/admin/price-change/$id': typeof AdminPriceChangeIdRoute
   '/admin/provider/$id': typeof AdminProviderIdRoute
   '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
@@ -1234,6 +1251,7 @@ export interface FileRoutesById {
   '/admin/operations': typeof AdminOperationsRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
   '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/price-change-requests': typeof AdminPriceChangeRequestsRoute
   '/admin/promo-codes': typeof AdminPromoCodesRoute
   '/admin/providers': typeof AdminProvidersRoute
   '/admin/service-requests': typeof AdminServiceRequestsRoute
@@ -1287,6 +1305,7 @@ export interface FileRoutesById {
   '/preview/': typeof PreviewIndexRoute
   '/pro/': typeof ProIndexRoute
   '/admin/customer/$id': typeof AdminCustomerIdRoute
+  '/admin/price-change/$id': typeof AdminPriceChangeIdRoute
   '/admin/provider/$id': typeof AdminProviderIdRoute
   '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
@@ -1385,6 +1404,7 @@ export interface FileRouteTypes {
     | '/admin/operations'
     | '/admin/payment-methods'
     | '/admin/payments'
+    | '/admin/price-change-requests'
     | '/admin/promo-codes'
     | '/admin/providers'
     | '/admin/service-requests'
@@ -1438,6 +1458,7 @@ export interface FileRouteTypes {
     | '/preview/'
     | '/pro/'
     | '/admin/customer/$id'
+    | '/admin/price-change/$id'
     | '/admin/provider/$id'
     | '/admin/service-request/$id'
     | '/api/account/delete'
@@ -1529,6 +1550,7 @@ export interface FileRouteTypes {
     | '/admin/operations'
     | '/admin/payment-methods'
     | '/admin/payments'
+    | '/admin/price-change-requests'
     | '/admin/promo-codes'
     | '/admin/providers'
     | '/admin/service-requests'
@@ -1579,6 +1601,7 @@ export interface FileRouteTypes {
     | '/preview'
     | '/pro'
     | '/admin/customer/$id'
+    | '/admin/price-change/$id'
     | '/admin/provider/$id'
     | '/admin/service-request/$id'
     | '/api/account/delete'
@@ -1675,6 +1698,7 @@ export interface FileRouteTypes {
     | '/admin/operations'
     | '/admin/payment-methods'
     | '/admin/payments'
+    | '/admin/price-change-requests'
     | '/admin/promo-codes'
     | '/admin/providers'
     | '/admin/service-requests'
@@ -1728,6 +1752,7 @@ export interface FileRouteTypes {
     | '/preview/'
     | '/pro/'
     | '/admin/customer/$id'
+    | '/admin/price-change/$id'
     | '/admin/provider/$id'
     | '/admin/service-request/$id'
     | '/api/account/delete'
@@ -2122,6 +2147,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPaymentsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/price-change-requests': {
+      id: '/admin/price-change-requests'
+      path: '/price-change-requests'
+      fullPath: '/admin/price-change-requests'
+      preLoaderRoute: typeof AdminPriceChangeRequestsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/promo-codes': {
       id: '/admin/promo-codes'
       path: '/promo-codes'
@@ -2477,6 +2509,13 @@ declare module '@tanstack/react-router' {
       path: '/customer/$id'
       fullPath: '/admin/customer/$id'
       preLoaderRoute: typeof AdminCustomerIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/price-change/$id': {
+      id: '/admin/price-change/$id'
+      path: '/price-change/$id'
+      fullPath: '/admin/price-change/$id'
+      preLoaderRoute: typeof AdminPriceChangeIdRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/provider/$id': {
@@ -2894,6 +2933,7 @@ interface AdminRouteChildren {
   AdminOperationsRoute: typeof AdminOperationsRoute
   AdminPaymentMethodsRoute: typeof AdminPaymentMethodsRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
+  AdminPriceChangeRequestsRoute: typeof AdminPriceChangeRequestsRoute
   AdminPromoCodesRoute: typeof AdminPromoCodesRoute
   AdminProvidersRoute: typeof AdminProvidersRoute
   AdminServiceRequestsRoute: typeof AdminServiceRequestsRoute
@@ -2902,6 +2942,7 @@ interface AdminRouteChildren {
   AdminZonesRoute: typeof AdminZonesRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminCustomerIdRoute: typeof AdminCustomerIdRoute
+  AdminPriceChangeIdRoute: typeof AdminPriceChangeIdRoute
   AdminProviderIdRoute: typeof AdminProviderIdRoute
   AdminServiceRequestIdRoute: typeof AdminServiceRequestIdRoute
 }
@@ -2917,6 +2958,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminOperationsRoute: AdminOperationsRoute,
   AdminPaymentMethodsRoute: AdminPaymentMethodsRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,
+  AdminPriceChangeRequestsRoute: AdminPriceChangeRequestsRoute,
   AdminPromoCodesRoute: AdminPromoCodesRoute,
   AdminProvidersRoute: AdminProvidersRoute,
   AdminServiceRequestsRoute: AdminServiceRequestsRoute,
@@ -2925,6 +2967,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminZonesRoute: AdminZonesRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminCustomerIdRoute: AdminCustomerIdRoute,
+  AdminPriceChangeIdRoute: AdminPriceChangeIdRoute,
   AdminProviderIdRoute: AdminProviderIdRoute,
   AdminServiceRequestIdRoute: AdminServiceRequestIdRoute,
 }

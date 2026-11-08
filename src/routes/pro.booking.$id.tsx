@@ -1,4 +1,5 @@
 import { PREVIEW_NOW_ISO } from "@/lib/preview/constants";
+import { bookingTeachingSummary } from "@/lib/tutoring/bookingTeachingSummary";
 import { memberAgeTranslation, bookingMemberAgeTranslation } from "@/lib/familyMemberAge";
 import { BookingActionDock } from "@/components/provider/BookingActionDock";
 import { BookingStatusCard } from "@/components/provider/BookingStatusCard";
@@ -30,10 +31,7 @@ import { ProviderRescheduleSection } from "@/components/provider/ProviderResched
 import { BookingChatPanel } from "@/components/famio/BookingChatPanel";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { useProviderBooking, useProviderUpdateBookingStatus } from "@/lib/db/provider-queries";
-import {
-  isSupervisionMode,
-  supervisionModeProviderLabel,
-} from "@/lib/booking/supervisionMode";
+import { isSupervisionMode, supervisionModeProviderLabel } from "@/lib/booking/supervisionMode";
 import { useCancelBooking, useBookingCancellation } from "@/lib/db/cancellation-queries";
 import {
   useBookingDisputes,
@@ -184,15 +182,7 @@ export function ProBookingDetail({ id, preview = false }: { id: string; preview?
     : zoneName
       ? t("pro.booking.areaOnly", { area: zoneName })
       : t("pro.booking.addressMissing");
-  const teaching = b.teaching_subject_code
-    ? [
-        lang === "ar" ? b.teaching_subject_name_ar : b.teaching_subject_name_en,
-        lang === "ar" ? b.teaching_curriculum_name_ar : b.teaching_curriculum_name_en,
-        lang === "ar" ? b.teaching_level_name_ar : b.teaching_level_name_en,
-      ]
-        .filter(Boolean)
-        .join(" · ")
-    : null;
+  const teaching = bookingTeachingSummary(b, lang);
   const serviceName =
     lang === "ar"
       ? (b.service?.name_ar ?? b.service?.name_en)

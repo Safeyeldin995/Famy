@@ -25,6 +25,12 @@ import { CustomerChips, CustomerEmpty, customerStyle } from "./customer/Primitiv
 import { Button } from "./Button";
 import { Search, SlidersHorizontal } from "lucide-react-native";
 import { router } from "expo-router";
+import {
+  homeCategoryDbSlug,
+  homeCategoryLessonSlug,
+  isHomeCategoryId,
+  servicesForHomeCategory,
+} from "@shared/catalog/homeCategories";
 import { colors } from "./theme";
 import { isFixedPackage, packageLabel } from "@shared/pricing/servicePackages";
 import {
@@ -32,8 +38,13 @@ import {
   tutoringMatchBadgeLabel,
 } from "@shared/tutoring/tutoringProviderMatch";
 
-export function Discovery({ category }: { category?: string }) {
+export function Discovery({ category: group }: { category?: string }) {
   const { t, i18n } = useTranslation();
+  // Quran/music are their own groups but live in the "tutoring" DB category.
+  const homeGroup = isHomeCategoryId(group) ? group : null;
+  const category = homeGroup ? homeCategoryDbSlug(homeGroup) : group;
+  const lessonGroup = homeGroup ? homeCategoryLessonSlug(homeGroup) : null;
+  const schoolTutoring = category === "tutoring" && !lessonGroup;
   const [term, setTerm] = useState("");
   const [filter, setFilter] = useState("all");
   const [addressId, setAddressId] = useState("");
@@ -41,7 +52,15 @@ export function Discovery({ category }: { category?: string }) {
   const [sort, setSort] = useState("top");
   const addresses = useAddresses();
   const categories = useCategories();
-  const services = useMarketplaceServices(category);
+  const allServices = useMarketplaceServices(category);
+  const services = {
+    ...allServices,
+    data: allServices.data
+      ? homeGroup
+        ? servicesForHomeCategory(allServices.data, homeGroup)
+        : allServices.data
+      : undefined,
+  };
   const selectedAddress =
     addressId || addresses.data?.find((a) => a.is_default)?.id || addresses.data?.[0]?.id;
   useEffect(() => {
@@ -109,20 +128,21 @@ export function Discovery({ category }: { category?: string }) {
       education_level_id: m.education_level_id,
     })),
   });
-  const ranked =
-    category === "tutoring"
-      ? sortProvidersForStudentEducation(items, caps.data ?? [], {
-          serviceId: serviceId || null,
-          curriculumId: studentProfile.educationCurriculumId,
-          levelId: studentProfile.educationLevelId,
-        })
-      : items;
-  const title = category
-    ? localized(
-        categories.data?.find((c) => c.slug === category),
-        i18n.language,
-      ) || t("home.chooseService")
-    : t("search.title");
+  const ranked = schoolTutoring
+    ? sortProvidersForStudentEducation(items, caps.data ?? [], {
+        serviceId: serviceId || null,
+        curriculumId: studentProfile.educationCurriculumId,
+        levelId: studentProfile.educationLevelId,
+      })
+    : items;
+  const title = lessonGroup
+    ? t(lessonGroup === "quran-lessons" ? "home.quranTitle" : "home.musicTitle")
+    : category
+      ? localized(
+          categories.data?.find((c) => c.slug === category),
+          i18n.language,
+        ) || t("home.chooseService")
+      : t("search.title");
   if (!category)
     return (
       <CustomerSearchView
@@ -135,7 +155,7 @@ export function Discovery({ category }: { category?: string }) {
         addressId={selectedAddress ?? ""}
         setAddressId={setAddressId}
         addresses={addresses}
-        services={services}
+        services={allServices}
         results={items}
         capabilities={caps.data ?? []}
         providers={{
@@ -153,6 +173,8 @@ export function Discovery({ category }: { category?: string }) {
         <CustomerPageHeader
           title={title}
           subtitle={(() => {
+            if (lessonGroup)
+              return t(lessonGroup === "quran-lessons" ? "home.quranTag" : "home.musicTag");
             const row = categories.data?.find((c) => c.slug === category);
             return (
               (i18n.language === "ar" ? row?.description_ar : row?.description_en) ||
@@ -191,7 +213,7 @@ export function Discovery({ category }: { category?: string }) {
           />
         </QueryState>
       </View>
-      {category === "tutoring" && (
+      {schoolTutoring && (
         <QueryState
           query={{
             isLoading: members.isLoading || education.isLoading,
@@ -245,7 +267,7 @@ export function Discovery({ category }: { category?: string }) {
             {ranked.map((p) => (
               <View key={p.id} style={{ gap: 4 }}>
                 <ProviderCard provider={p} />
-                {category === "tutoring" &&
+                {schoolTutoring &&
                 studentProfile.studentFirstName &&
                 providerMatchesStudentEducation(p.id, caps.data ?? [], {
                   serviceId: serviceId || null,

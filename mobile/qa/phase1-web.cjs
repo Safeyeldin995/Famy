@@ -49,6 +49,16 @@ const service = {
   is_active: true,
   category: categories[0],
 };
+const lessonServices = ["quran-lessons", "music-lessons"].map((slug, i) => ({
+  id: `00000000-0000-4000-8000-00000000009${i}`,
+  slug,
+  name_ar: slug === "quran-lessons" ? "تحفيظ قرآن وتجويد" : "دروس موسيقى",
+  name_en: slug,
+  pricing_model: "hourly",
+  duration_min: 60,
+  is_active: true,
+  category: categories[1],
+}));
 const provider = {
   id: pid,
   full_name: "مقدمة خدمة - اختبار محلي",
@@ -273,7 +283,10 @@ async function run() {
                   expires_at: null,
                 },
               ];
-      else if (table === "booking_party_profiles")
+      else if (
+        table === "booking_party_profiles" ||
+        table === "booking_party_profiles_with_member_age"
+      )
         data = (body.p_booking_ids || []).map((booking_id) => ({
           booking_id,
           other_name: provider.full_name,
@@ -292,7 +305,9 @@ async function run() {
         profiles: [{ id: uid, full_name: "حساب اختبار محلي" }],
         user_roles: [{ role: "customer" }],
         categories,
-        services: url.searchParams.get("category.slug") === "eq.tutoring" ? [] : [service],
+        // Quran/music are tutoring-category services shown as their own home tiles.
+        services:
+          url.searchParams.get("category.slug") === "eq.tutoring" ? lessonServices : [service],
         addresses,
         favorites,
         notifications,
@@ -442,6 +457,7 @@ async function run() {
     ["search", "/search", ""],
     ["category-babysitting", "/category/babysitting", ""],
     ["category-tutoring", "/category/tutoring", ""],
+    ["category-quran", "/category/quran", ""],
     ["provider", `/provider/${pid}`, provider.full_name],
     ["legacy-booking-redirect", "/booking-coming-soon", ""],
     ["bookings", "/bookings", ""],
@@ -476,6 +492,7 @@ async function run() {
     search: ar.search.title,
     "category-babysitting": service.name_ar,
     "category-tutoring": ar.studentEducation.studentPicker,
+    "category-quran": ar.home.quranTag,
     bookings: ar.bookings.title,
     "family-member-new": ar.familyMembers.fullName,
     "family-member-edit": ar.familyMembers.fullName,
@@ -517,17 +534,12 @@ async function run() {
   assert(writes.some((w) => w.table === "addresses" && w.body?.is_default === true));
   await visit("/family-members/new", ar.familyMembers.fullName);
   await page.getByLabel(ar.familyMembers.fullName, { exact: true }).fill("عضو اختبار");
-  // Web parity uses day/month/year sheets, not a native date input.
-  await page.getByRole("button", { name: ar.customerRound2.year, exact: true }).click();
-  await expect(page.getByRole("radio", { name: "2099", exact: true })).toHaveCount(0);
-  await page.getByRole("radio", { name: "2019", exact: true }).click();
+  // Age-only form (#270): saving without an age is rejected, then pick years.
   await page.getByRole("button", { name: ar.common.save, exact: true }).click();
   await expect(page.getByText(ar.mobile.memberInvalid, { exact: true })).toBeVisible();
   assert(!writes.some((w) => w.table === "family_members"));
-  await page.getByRole("button", { name: ar.customerRound2.month, exact: true }).click();
-  await page.getByRole("radio", { name: "فبراير", exact: true }).click();
-  await page.getByRole("button", { name: ar.customerRound2.day, exact: true }).click();
-  await page.getByRole("radio", { name: "3", exact: true }).click();
+  await page.getByRole("button", { name: new RegExp(ar.memberAge.years) }).click();
+  await page.getByRole("radio", { name: "5", exact: true }).click();
   await page.getByLabel(ar.familyMembers.allergies, { exact: true }).fill("اختبار");
   await page.getByRole("button", { name: ar.common.save, exact: true }).click();
   assert(!writes.some((w) => w.table === "family_members"));
