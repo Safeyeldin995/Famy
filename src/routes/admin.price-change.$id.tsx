@@ -2,7 +2,7 @@ import { QueryError } from "@/components/famio/QueryError";
 import { useReviewProviderPriceChange } from "@/lib/db/admin-price-change-queries";
 import { supabase } from "@/integrations/supabase/client";
 import { currentLang } from "@/lib/i18n";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -18,6 +18,7 @@ function AdminPriceChangeReview() {
   const lang = currentLang() === "ar" ? "ar" : "en";
   const review = useReviewProviderPriceChange(id);
   const [reason, setReason] = useState("");
+  const nav = useNavigate();
 
   const q = useQuery({
     queryKey: ["admin", "price-change", id],
@@ -76,7 +77,10 @@ function AdminPriceChangeReview() {
             review.mutate(
               { decision: "approved" },
               {
-                onSuccess: () => toast.success(t("adminPriceChange.approved")),
+                onSuccess: () => {
+                  toast.success(t("adminPriceChange.approved"));
+                  void nav({ to: "/admin/price-change-requests" });
+                },
                 onError: () => toast.error(t("common.somethingWentWrong")),
               },
             )
@@ -100,7 +104,10 @@ function AdminPriceChangeReview() {
               review.mutate(
                 { decision: "rejected", reason: reason.trim() },
                 {
-                  onSuccess: () => toast.success(t("adminPriceChange.rejected")),
+                  onSuccess: () => {
+                    toast.success(t("adminPriceChange.rejected"));
+                    void nav({ to: "/admin/price-change-requests" });
+                  },
                   onError: () => toast.error(t("common.somethingWentWrong")),
                 },
               )

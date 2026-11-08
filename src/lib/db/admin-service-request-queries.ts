@@ -49,9 +49,11 @@ export function useReviewProviderServiceRequest(providerServiceId: string) {
       await review.mutateAsync({ providerServiceId, status, reason });
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["admin", "provider-service-request", providerServiceId] });
+      void qc.invalidateQueries({
+        queryKey: ["admin", "provider-service-request", providerServiceId],
+      });
       void qc.invalidateQueries({ queryKey: ["admin", "new-service-requests"] });
-      void qc.invalidateQueries({ queryKey: ["admin", "work-queue-counts"] });
+      void qc.invalidateQueries({ queryKey: ["admin", "work-queue"] });
     },
   });
 }

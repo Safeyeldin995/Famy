@@ -31,3 +31,10 @@ it.each(["service", "duration", "forWhom", "requirements", "payment", "summary"]
     );
   },
 );
+it("does not ask for curriculum or grade on Quran/music lessons", () => {
+  const base = { step: "duration" as const, allowed: false, submitting: false };
+  expect(bookingDisabledReason(base)).toBe("bookingUx.chooseSession");
+  expect(bookingDisabledReason({ ...base, lessonService: true })).toBe(
+    "bookingUx.chooseLessonSession",
+  );
+});
