@@ -33,6 +33,7 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PromoCodesRouteImport } from './routes/promo-codes'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SetupRouteImport } from './routes/setup'
+import { Route as StaffRouteImport } from './routes/staff'
 import { Route as _qaMonitoringErrorRouteImport } from './routes/__qa.monitoring-error'
 import { Route as AccountDeleteRouteImport } from './routes/account.delete'
 import { Route as AddressesIndexRouteImport } from './routes/addresses.index'
@@ -276,6 +277,11 @@ const SearchRoute = SearchRouteImport.update({
 const SetupRoute = SetupRouteImport.update({
   id: '/setup',
   path: '/setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffRoute = StaffRouteImport.update({
+  id: '/staff',
+  path: '/staff',
   getParentRoute: () => rootRouteImport,
 } as any)
 const _qaMonitoringErrorRoute = _qaMonitoringErrorRouteImport.update({
@@ -935,6 +941,7 @@ export interface FileRoutesByFullPath {
   '/promo-codes': typeof PromoCodesRoute
   '/search': typeof SearchRoute
   '/setup': typeof SetupRoute
+  '/staff': typeof StaffRoute
   '/monitoring-error': typeof _qaMonitoringErrorRoute
   '/account/delete': typeof AccountDeleteRoute
   '/addresses/$id': typeof AddressesIdRoute
@@ -1080,6 +1087,7 @@ export interface FileRoutesByTo {
   '/promo-codes': typeof PromoCodesRoute
   '/search': typeof SearchRoute
   '/setup': typeof SetupRoute
+  '/staff': typeof StaffRoute
   '/monitoring-error': typeof _qaMonitoringErrorRoute
   '/account/delete': typeof AccountDeleteRoute
   '/addresses/$id': typeof AddressesIdRoute
@@ -1228,6 +1236,7 @@ export interface FileRoutesById {
   '/promo-codes': typeof PromoCodesRoute
   '/search': typeof SearchRoute
   '/setup': typeof SetupRoute
+  '/staff': typeof StaffRoute
   '/__qa/monitoring-error': typeof _qaMonitoringErrorRoute
   '/account/delete': typeof AccountDeleteRoute
   '/addresses/$id': typeof AddressesIdRoute
@@ -1380,6 +1389,7 @@ export interface FileRouteTypes {
     | '/promo-codes'
     | '/search'
     | '/setup'
+    | '/staff'
     | '/monitoring-error'
     | '/account/delete'
     | '/addresses/$id'
@@ -1525,6 +1535,7 @@ export interface FileRouteTypes {
     | '/promo-codes'
     | '/search'
     | '/setup'
+    | '/staff'
     | '/monitoring-error'
     | '/account/delete'
     | '/addresses/$id'
@@ -1672,6 +1683,7 @@ export interface FileRouteTypes {
     | '/promo-codes'
     | '/search'
     | '/setup'
+    | '/staff'
     | '/__qa/monitoring-error'
     | '/account/delete'
     | '/addresses/$id'
@@ -1823,6 +1835,7 @@ export interface RootRouteChildren {
   PromoCodesRoute: typeof PromoCodesRoute
   SearchRoute: typeof SearchRoute
   SetupRoute: typeof SetupRoute
+  StaffRoute: typeof StaffRoute
   _qaMonitoringErrorRoute: typeof _qaMonitoringErrorRoute
   AccountDeleteRoute: typeof AccountDeleteRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
@@ -2013,6 +2026,13 @@ declare module '@tanstack/react-router' {
       path: '/setup'
       fullPath: '/setup'
       preLoaderRoute: typeof SetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff': {
+      id: '/staff'
+      path: '/staff'
+      fullPath: '/staff'
+      preLoaderRoute: typeof StaffRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/__qa/monitoring-error': {
@@ -3204,6 +3224,7 @@ const rootRouteChildren: RootRouteChildren = {
   PromoCodesRoute: PromoCodesRoute,
   SearchRoute: SearchRoute,
   SetupRoute: SetupRoute,
+  StaffRoute: StaffRoute,
   _qaMonitoringErrorRoute: _qaMonitoringErrorRoute,
   AccountDeleteRoute: AccountDeleteRoute,
   AuthCallbackRoute: AuthCallbackRoute,

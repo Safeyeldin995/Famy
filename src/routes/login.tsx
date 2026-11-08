@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -14,6 +14,7 @@ import {
   resolvePostPasswordLoginTarget,
   resolveRoleLandingForCurrentUser,
 } from "@/lib/auth/landing";
+import { ACCOUNT_DELETE_INTENT } from "@/lib/web/webSurface";
 import { useCustomerPreviewPath } from "@/components/famio/useCustomerPreviewPath";
 import { ICON_STROKE, ICON_STROKE_BOLD } from "@/lib/icons/constants";
 import {
@@ -107,6 +108,10 @@ function Segmented<T extends string>({
 }
 
 export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
+  const loginIntent = useRouterState({
+    select: (s) => (s.location.search as { intent?: string }).intent,
+  });
+  const accountDeleteFlow = !previewMode && loginIntent === ACCOUNT_DELETE_INTENT;
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -143,6 +148,10 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
       }
       setProfile({ phone: e164 });
       setAuthed(true);
+      if (accountDeleteFlow) {
+        nav({ to: "/account/delete", replace: true });
+        return;
+      }
       const roleLanding = await resolveRoleLandingForCurrentUser();
       const target = resolvePostPasswordLoginTarget({
         loginRole: role,
@@ -203,39 +212,43 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
             </p>
           </div>
 
-          <div className="mt-7">
-            <Segmented
-              value={mode}
-              onChange={(next) => {
-                setMode(next);
-                setErrorMsg(null);
-              }}
-              label={screenTitle}
-              options={[
-                { value: "signin", label: t("auth.signIn") },
-                { value: "signup", label: t("auth.signUp") },
-              ]}
-            />
-          </div>
-
-          <section className="mt-6 space-y-5">
-            <div>
-              <p className="mb-2 text-pro-13 font-bold text-muted-foreground">{t("auth.iAmA")}</p>
+          {!accountDeleteFlow ? (
+            <div className="mt-7">
               <Segmented
-                value={role}
-                onChange={setRole}
-                label={t("auth.iAmA")}
+                value={mode}
+                onChange={(next) => {
+                  setMode(next);
+                  setErrorMsg(null);
+                }}
+                label={screenTitle}
                 options={[
-                  { value: "customer", label: t("auth.roleCustomer"), icon: User },
-                  { value: "provider", label: t("auth.roleProvider"), icon: Briefcase },
+                  { value: "signin", label: t("auth.signIn") },
+                  { value: "signup", label: t("auth.signUp") },
                 ]}
               />
-              {mode === "signup" && role === "provider" ? (
-                <p className="mt-3 rounded-2xl bg-brand/[0.06] px-4 py-3 text-pro-12 font-semibold leading-relaxed text-foreground/80">
-                  {t("auth.providerNote")}
-                </p>
-              ) : null}
             </div>
+          ) : null}
+
+          <section className="mt-6 space-y-5">
+            {!accountDeleteFlow ? (
+              <div>
+                <p className="mb-2 text-pro-13 font-bold text-muted-foreground">{t("auth.iAmA")}</p>
+                <Segmented
+                  value={role}
+                  onChange={setRole}
+                  label={t("auth.iAmA")}
+                  options={[
+                    { value: "customer", label: t("auth.roleCustomer"), icon: User },
+                    { value: "provider", label: t("auth.roleProvider"), icon: Briefcase },
+                  ]}
+                />
+                {mode === "signup" && role === "provider" ? (
+                  <p className="mt-3 rounded-2xl bg-brand/[0.06] px-4 py-3 text-pro-12 font-semibold leading-relaxed text-foreground/80">
+                    {t("auth.providerNote")}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
 
             <div>
               <label
@@ -330,7 +343,7 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
             </PrimaryButton>
           </div>
 
-          {role === "customer" && oauthProviders.length > 0 ? (
+          {!accountDeleteFlow && role === "customer" && oauthProviders.length > 0 ? (
             <div className="mt-6">
               <div className="flex items-center gap-3 text-pro-12 font-semibold text-muted-foreground">
                 <span className="h-px flex-1 bg-border" />

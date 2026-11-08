@@ -29,7 +29,7 @@ export default function WorkspaceOnWeb() {
         </Text>
         <Button
           label={t("mobile.openOnWeb")}
-          onPress={() => WebBrowser.openBrowserAsync(appConfig.webOrigin)}
+          onPress={() => WebBrowser.openBrowserAsync(`${appConfig.webOrigin}/staff`)}
           style={{ alignSelf: "stretch" }}
         />
         <Button

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AuthGate } from "@/components/famio/AuthGate";
 import { AccountDeletionScreen } from "@/components/famio/AccountDeletionScreen";
-import { previewPath } from "@/lib/preview/previewPath";
+import { ACCOUNT_DELETE_INTENT } from "@/lib/web/webSurface";
 
 export const Route = createFileRoute("/account/delete")({
   component: AccountDeleteRoute,
@@ -9,8 +9,8 @@ export const Route = createFileRoute("/account/delete")({
 
 function AccountDeleteRoute() {
   return (
-    <AuthGate>
-      <AccountDeletionScreen backTo={previewPath("/profile")} />
+    <AuthGate loginIntent={ACCOUNT_DELETE_INTENT}>
+      <AccountDeletionScreen backTo="/" />
     </AuthGate>
   );
 }

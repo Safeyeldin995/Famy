@@ -1,5 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import {
   Baby,
@@ -11,18 +10,19 @@ import {
   MousePointerClick,
   ShieldCheck,
   Star,
+  Video,
   Wallet,
   HeartHandshake,
 } from "lucide-react";
 import { SiteLayout, SiteSection } from "@/components/site/SiteLayout";
 import { StoreBadges } from "@/components/site/StoreBadges";
 import { useServiceAreas } from "@/components/site/useServiceAreas";
-import { supabase } from "@/integrations/supabase/client";
 import heroImage from "@/assets/onboarding/slide-3-peace.png";
 import appImage from "@/assets/onboarding/slide-2-booking.png";
 import heroWebp from "@/assets/onboarding/slide-3-peace.webp";
 import appWebp from "@/assets/onboarding/slide-2-booking.webp";
 import { siteHead, siteLanguage, siteStructuredData } from "@/lib/site/seo";
+import { LessonIllustration } from "@/components/lessons/LessonIllustration";
 
 export const Route = createFileRoute("/")({
   head: ({ matches }) => {
@@ -32,12 +32,12 @@ export const Route = createFileRoute("/")({
         ar: {
           title: "فامي | جليسات أطفال ومدرسين خصوصيين في مصر",
           description:
-            "احجز جليسة أطفال أو مدرس خصوصي في مناطق الخدمة المتاحة، وتابع الحجز والدفع والمحادثة من فامي.",
+            "فامي بتربط العيلات بجليسات أطفال ومدرسين خصوصيين موثوقين في مصر. حمل التطبيق واحجز بأمان.",
         },
         en: {
-          title: "Famy | Babysitters and tutors in Egypt",
+          title: "Famy | Trusted babysitters and tutors in Egypt",
           description:
-            "Find babysitters and tutors in available service areas. Book, pay and chat through Famy.",
+            "Famy connects families with trusted babysitters and private tutors in Egypt. Get the app to book safely.",
         },
       },
       siteLanguage(matches),
@@ -51,27 +51,57 @@ export const Route = createFileRoute("/")({
   component: Landing,
 });
 
-/** Public home page. Signed-in users go straight to the app. */
 function Landing() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const areas = useServiceAreas();
-
-  useEffect(() => {
-    let cancelled = false;
-    supabase.auth.getSession().then(({ data }) => {
-      if (!cancelled && data.session) navigate({ to: "/app", replace: true });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [navigate]);
-
   const faqs = t("helpC.faqs", { returnObjects: true }) as { q: string; a: string }[];
+
+  const iconBox = "grid h-16 w-16 place-items-center rounded-2xl";
+  const services = [
+    {
+      key: "babysitting",
+      title: t("roles.babysitter"),
+      body: t("site.services.babysittingAllBody"),
+      art: (
+        <span className={`${iconBox} bg-brand/10 text-brand`}>
+          <Baby className="h-8 w-8" aria-hidden="true" />
+        </span>
+      ),
+    },
+    {
+      key: "tutoring",
+      title: t("categories.tutorSubtitle"),
+      body: t("site.services.tutoringAllBody"),
+      art: (
+        <span className={`${iconBox} bg-lavender/15 text-lavender`}>
+          <GraduationCap className="h-8 w-8" aria-hidden="true" />
+        </span>
+      ),
+    },
+    {
+      key: "quran",
+      title: t("site.services.quran"),
+      body: t("site.services.quranBody"),
+      art: (
+        <span className={`${iconBox} overflow-hidden`}>
+          <LessonIllustration serviceSlug="quran-lessons" className="h-16 w-16" />
+        </span>
+      ),
+    },
+    {
+      key: "music",
+      title: t("site.services.music"),
+      body: t("site.services.musicBody"),
+      art: (
+        <span className={`${iconBox} overflow-hidden`}>
+          <LessonIllustration serviceSlug="music-lessons" className="h-16 w-16" />
+        </span>
+      ),
+    },
+  ];
 
   return (
     <SiteLayout>
-      {/* Hero */}
       <div className="relative overflow-hidden bg-gradient-to-b from-brand/[0.08] via-brand/[0.03] to-white">
         <SiteSection className="grid items-center gap-10 py-14 md:grid-cols-2 md:py-20">
           <div className="space-y-6">
@@ -85,20 +115,7 @@ function Landing() {
             <p className="max-w-xl text-pro-16 leading-relaxed text-muted-foreground md:text-pro-18">
               {t("site.hero.body")}
             </p>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                to="/app"
-                className="focus-ring inline-flex min-h-13 items-center rounded-2xl bg-brand px-7 py-3.5 text-pro-16 font-extrabold text-brand-foreground shadow-card"
-              >
-                {t("site.hero.primary")}
-              </Link>
-              <Link
-                to="/join"
-                className="focus-ring inline-flex min-h-13 items-center rounded-2xl border border-border bg-white px-7 py-3.5 text-pro-16 font-extrabold"
-              >
-                {t("site.hero.secondary")}
-              </Link>
-            </div>
+            <StoreBadges />
             {areas.length ? (
               <p className="flex flex-wrap items-center gap-2 text-pro-14 font-semibold text-muted-foreground">
                 <MapPin className="h-4 w-4 text-brand" aria-hidden="true" />
@@ -136,28 +153,40 @@ function Landing() {
         </SiteSection>
       </div>
 
-      {/* Services */}
       <SiteSection className="py-16 md:py-20">
         <SectionHeading title={t("site.services.title")} body={t("site.services.body")} />
-        <div className="mt-10 grid gap-5 md:grid-cols-2">
-          <ServiceCard
-            icon={Baby}
-            tone="brand"
-            title={t("categories.kidsSubtitle")}
-            body={t("site.services.babysittingBody")}
-            cta={t("site.services.cta")}
-          />
-          <ServiceCard
-            icon={GraduationCap}
-            tone="lavender"
-            title={t("categories.tutorSubtitle")}
-            body={t("site.services.tutoringBody")}
-            cta={t("site.services.cta")}
-          />
+        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {services.map((item) => (
+            <article
+              key={item.key}
+              className="flex flex-col gap-4 rounded-[2rem] border border-border/60 bg-white p-6 shadow-sm"
+            >
+              {item.art}
+              <div>
+                <h3 className="text-pro-18 font-extrabold">{item.title}</h3>
+                <p className="mt-2 text-pro-14 leading-relaxed text-muted-foreground">
+                  {item.body}
+                </p>
+              </div>
+            </article>
+          ))}
         </div>
       </SiteSection>
 
-      {/* How it works */}
+      <div className="bg-brand/[0.06]">
+        <SiteSection className="grid items-center gap-8 py-14 md:grid-cols-[auto_1fr] md:py-16">
+          <span className="grid h-16 w-16 place-items-center rounded-2xl bg-white text-brand shadow-sm">
+            <Video className="h-8 w-8" aria-hidden="true" />
+          </span>
+          <div>
+            <h2 className="text-pro-24 font-extrabold">{t("site.supervision.title")}</h2>
+            <p className="mt-3 max-w-3xl text-pro-16 leading-relaxed text-muted-foreground">
+              {t("site.supervision.body")}
+            </p>
+          </div>
+        </SiteSection>
+      </div>
+
       <div className="bg-surface-2/60">
         <SiteSection className="py-16 md:py-20">
           <SectionHeading title={t("site.how.title")} />
@@ -184,7 +213,6 @@ function Landing() {
         </SiteSection>
       </div>
 
-      {/* Trust */}
       <SiteSection className="py-16 md:py-20">
         <SectionHeading title={t("site.trust.title")} />
         <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -211,27 +239,6 @@ function Landing() {
         </div>
       </SiteSection>
 
-      {/* Providers band */}
-      <SiteSection className="pb-16 md:pb-20">
-        <div className="flex flex-col items-start gap-6 rounded-[2rem] bg-brand px-7 py-10 text-brand-foreground md:flex-row md:items-center md:justify-between md:px-12">
-          <div className="max-w-2xl space-y-3">
-            <h2 className="text-pro-24 font-extrabold text-balance md:text-pro-32">
-              {t("site.providersBand.title")}
-            </h2>
-            <p className="text-pro-16 leading-relaxed text-white/85">
-              {t("site.providersBand.body")}
-            </p>
-          </div>
-          <Link
-            to="/join"
-            className="focus-ring inline-flex min-h-13 shrink-0 items-center rounded-2xl bg-white px-7 py-3.5 text-pro-16 font-extrabold text-brand"
-          >
-            {t("site.providersBand.cta")}
-          </Link>
-        </div>
-      </SiteSection>
-
-      {/* Download */}
       <div className="bg-surface-2/60">
         <SiteSection className="grid items-center gap-10 py-16 md:grid-cols-2 md:py-20">
           <picture className="md:order-2">
@@ -252,17 +259,10 @@ function Landing() {
               {t("site.download.body")}
             </p>
             <StoreBadges />
-            <Link
-              to="/app"
-              className="focus-ring inline-flex min-h-11 items-center text-pro-16 font-extrabold text-brand"
-            >
-              {t("site.download.useWeb")}
-            </Link>
           </div>
         </SiteSection>
       </div>
 
-      {/* FAQ */}
       <SiteSection className="py-16 md:py-20">
         <SectionHeading title={t("site.faq.title")} />
         <div className="mx-auto mt-10 max-w-3xl divide-y divide-border/70 rounded-3xl border border-border/70">
@@ -289,40 +289,6 @@ export function SectionHeading({ title, body }: { title: string; body?: string }
     <div className="mx-auto max-w-2xl text-center">
       <h2 className="text-pro-32 font-extrabold text-balance">{title}</h2>
       {body ? <p className="mt-3 text-pro-16 text-muted-foreground">{body}</p> : null}
-    </div>
-  );
-}
-
-function ServiceCard({
-  icon: Icon,
-  tone,
-  title,
-  body,
-  cta,
-}: {
-  icon: typeof Baby;
-  tone: "brand" | "lavender";
-  title: string;
-  body: string;
-  cta: string;
-}) {
-  const surface = tone === "brand" ? "bg-brand/[0.07]" : "bg-lavender/[0.12]";
-  const ink = tone === "brand" ? "text-brand" : "text-lavender";
-  return (
-    <div className={`flex flex-col gap-5 rounded-[2rem] p-7 ${surface}`}>
-      <span className={`grid h-14 w-14 place-items-center rounded-2xl bg-white shadow-sm ${ink}`}>
-        <Icon className="h-7 w-7" aria-hidden="true" />
-      </span>
-      <div>
-        <h3 className="text-pro-22 font-extrabold">{title}</h3>
-        <p className="mt-2 text-pro-16 leading-relaxed text-foreground/70">{body}</p>
-      </div>
-      <Link
-        to="/app"
-        className={`focus-ring mt-auto inline-flex min-h-11 items-center text-pro-16 font-extrabold ${ink}`}
-      >
-        {cta}
-      </Link>
     </div>
   );
 }

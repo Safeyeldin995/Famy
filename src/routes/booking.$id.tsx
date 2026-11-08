@@ -1,3 +1,4 @@
+import { PaymobAppReturn } from "@/components/site/PaymobAppReturn";
 import { CustomerPageHeader } from "@/components/famio/CustomerPageHeader";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 import { previewPath } from "@/lib/preview/previewPath";
@@ -65,10 +66,7 @@ import { peekPendingPayment } from "@/lib/booking/post-create-payment";
 import { isProviderNoResponseCancellation } from "@/lib/booking/pending-expiry";
 import { PushEnablePrompt } from "@/components/famio/PushEnablePrompt";
 import { shouldOfferPushPrompt } from "@/lib/push-prompt";
-import {
-  isSupervisionMode,
-  supervisionModeProviderLabel,
-} from "@/lib/booking/supervisionMode";
+import { isSupervisionMode, supervisionModeProviderLabel } from "@/lib/booking/supervisionMode";
 
 export const Route = createFileRoute("/booking/$id")({
   component: BookingDetail,
@@ -102,12 +100,19 @@ type CustomerDialog =
 
 function BookingDetail() {
   const { id } = Route.useParams();
-  const locationSearch = Route.useSearch() as { paymob_return?: string; paymob_checkout?: string };
+  const locationSearch = Route.useSearch() as {
+    paymob_return?: string | number;
+    paymob_checkout?: string | number;
+  };
+  // The router parses `?paymob_return=1` as the number 1, so compare as text.
+  if (String(locationSearch.paymob_return) === "1") {
+    return <PaymobAppReturn bookingId={id} />;
+  }
   return (
     <BookingDetailContent
       bookingId={id}
-      paymobReturn={locationSearch.paymob_return === "1"}
-      paymobCheckout={locationSearch.paymob_checkout === "1"}
+      paymobReturn={false}
+      paymobCheckout={String(locationSearch.paymob_checkout) === "1"}
     />
   );
 }
