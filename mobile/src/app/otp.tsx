@@ -44,6 +44,8 @@ export default function OtpScreen() {
   const [context, setContext] = useState<OtpContext | null>(null);
   const [phoneE164, setPhoneE164] = useState("");
   const [loadingContext, setLoadingContext] = useState(true);
+  const [leaving, setLeaving] = useState(false);
+  const leavingRef = useRef(false);
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [otpExpiresIn, setOtpExpiresIn] = useState(0);
   const [resendAvailableIn, setResendAvailableIn] = useState(0);
@@ -312,8 +314,17 @@ export default function OtpScreen() {
       <Button
         label={t("auth.changePhone")}
         variant="ghost"
+        disabled={leaving}
         onPress={async () => {
-          await abandonPhoneOtpFlow();
+          // One tap only: a slow network used to let repeated taps stack several screens.
+          if (leavingRef.current) return;
+          leavingRef.current = true;
+          setLeaving(true);
+          // Don't keep the user waiting on the server; the flow also expires on its own.
+          await Promise.race([
+            abandonPhoneOtpFlow().catch(() => undefined),
+            new Promise((resolve) => setTimeout(resolve, 4000)),
+          ]);
           router.replace(context.purpose === "reset" ? "/forgot-password" : "/login");
         }}
       />
