@@ -57,6 +57,11 @@ const en = {
       babysittingOvernight: "Overnight babysitting",
       babysittingOvernightBody: "Night coverage with verified sitters.",
       tutoringBody: "Private tutors for the subject and grade you need, with clear pricing before you book.",
+      babysittingAllBody: "By the hour, full day, or overnight, with a sitter whose ID and details our team reviewed.",
+      tutoringAllBody: "A private tutor for the subject and grade you need, plus homework help, with clear session prices before you book.",
+      homework: "Homework help",
+      quran: "Quran memorization",
+      music: "Music lessons",
       homeworkBody: "Help with daily homework and school follow-up.",
       quranBody: "Quran memorization, tajweed, and recitation with trusted teachers.",
       musicBody: "Music lessons including piano, guitar, oud, and violin.",
@@ -93,9 +98,19 @@ const en = {
     },
     download: {
       title: "Famy is coming to your phone",
-      body: "The Famy app for Android and iPhone is on its way. Until then, you can use all of Famy in your browser.",
+      body: "The Famy app for Android and iPhone is coming soon to the stores. You will book and follow everything from the app.",
       comingSoon: "Coming soon on",
       useWeb: "Use Famy in your browser",
+    },
+    providerShare: {
+      title: "Someone shared a Famy provider with you",
+      body: "Open the app to see their profile and ratings and book.",
+      cta: "Open in the app",
+    },
+    paymobReturn: {
+      title: "Taking you back to the app",
+      body: "If the app did not open by itself, tap the button below.",
+      cta: "Open your booking in Famy",
     },
     faq: { title: "Frequently asked questions" },
     about: {

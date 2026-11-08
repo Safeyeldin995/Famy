@@ -11,11 +11,11 @@ export type Lang = "en" | "ar";
 const STORAGE_KEY = "famio.lang";
 
 function readStoredLang(): Lang {
-  if (typeof window === "undefined") return "en";
+  if (typeof window === "undefined") return "ar";
   // Match the SSR document first; migrate localStorage only after hydration.
   const rendered = document.documentElement.dataset.lang;
   if (rendered === "ar" || rendered === "en") return rendered;
-  return readLanguageCookie(document.cookie) ?? "en";
+  return readLanguageCookie(document.cookie) ?? "ar";
 }
 
 if (!i18n.isInitialized) {
@@ -51,7 +51,7 @@ export function setLanguage(lang: Lang) {
 export const currentLang = createIsomorphicFn()
   .server((): Lang => {
     try {
-      return readLanguageCookie(getRequestHeader("cookie") ?? "") ?? "en";
+      return readLanguageCookie(getRequestHeader("cookie") ?? "") ?? "ar";
     } catch {
       // Non-request consumers such as unit tests retain the existing API.
       return i18n.language === "ar" ? "ar" : "en";

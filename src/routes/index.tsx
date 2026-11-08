@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import {
+  Baby,
   CalendarCheck,
   ChevronDown,
   GraduationCap,
@@ -21,7 +22,6 @@ import appImage from "@/assets/onboarding/slide-2-booking.png";
 import heroWebp from "@/assets/onboarding/slide-3-peace.webp";
 import appWebp from "@/assets/onboarding/slide-2-booking.webp";
 import { siteHead, siteLanguage, siteStructuredData } from "@/lib/site/seo";
-import { CategoryIllustration } from "@/components/home/CategoryIllustration";
 import { LessonIllustration } from "@/components/lessons/LessonIllustration";
 
 export const Route = createFileRoute("/")({
@@ -32,7 +32,7 @@ export const Route = createFileRoute("/")({
         ar: {
           title: "فامي | جليسات أطفال ومدرسين خصوصيين في مصر",
           description:
-            "فامي بتربط العيلات بجليسات أطفال ومدرسين خصوصيين موثوقين في مصر. حمّل التطبيق واحجز بأمان.",
+            "فامي بتربط العيلات بجليسات أطفال ومدرسين خصوصيين موثوقين في مصر. حمل التطبيق واحجز بأمان.",
         },
         en: {
           title: "Famy | Trusted babysitters and tutors in Egypt",
@@ -56,48 +56,47 @@ function Landing() {
   const areas = useServiceAreas();
   const faqs = t("helpC.faqs", { returnObjects: true }) as { q: string; a: string }[];
 
+  const iconBox = "grid h-16 w-16 place-items-center rounded-2xl";
   const services = [
     {
-      key: "hourly",
-      title: t("site.services.babysittingHourly"),
-      body: t("site.services.babysittingHourlyBody"),
-      art: <CategoryIllustration slug="babysitting" className="h-14 w-14" />,
+      key: "babysitting",
+      title: t("roles.babysitter"),
+      body: t("site.services.babysittingAllBody"),
+      art: (
+        <span className={`${iconBox} bg-brand/10 text-brand`}>
+          <Baby className="h-8 w-8" aria-hidden="true" />
+        </span>
+      ),
     },
     {
-      key: "fullday",
-      title: t("site.services.babysittingFullDay"),
-      body: t("site.services.babysittingFullDayBody"),
-      art: <CategoryIllustration slug="babysitting" className="h-14 w-14" />,
-    },
-    {
-      key: "overnight",
-      title: t("site.services.babysittingOvernight"),
-      body: t("site.services.babysittingOvernightBody"),
-      art: <CategoryIllustration slug="babysitting" className="h-14 w-14" />,
-    },
-    {
-      key: "tutor",
+      key: "tutoring",
       title: t("categories.tutorSubtitle"),
-      body: t("site.services.tutoringBody"),
-      art: <CategoryIllustration slug="tutoring" className="h-14 w-14" />,
-    },
-    {
-      key: "homework",
-      title: t("categories.homeworkSubtitle", "مساعدة في الواجبات"),
-      body: t("site.services.homeworkBody"),
-      art: <CategoryIllustration slug="tutoring" className="h-14 w-14" />,
+      body: t("site.services.tutoringAllBody"),
+      art: (
+        <span className={`${iconBox} bg-lavender/15 text-lavender`}>
+          <GraduationCap className="h-8 w-8" aria-hidden="true" />
+        </span>
+      ),
     },
     {
       key: "quran",
-      title: t("categories.quranSubtitle", "تحفيظ قرآن وتجويد"),
+      title: t("site.services.quran"),
       body: t("site.services.quranBody"),
-      art: <LessonIllustration serviceSlug="quran-lessons" className="h-14 w-14" />,
+      art: (
+        <span className={`${iconBox} overflow-hidden`}>
+          <LessonIllustration serviceSlug="quran-lessons" className="h-16 w-16" />
+        </span>
+      ),
     },
     {
       key: "music",
-      title: t("categories.musicSubtitle", "دروس موسيقى"),
+      title: t("site.services.music"),
       body: t("site.services.musicBody"),
-      art: <LessonIllustration serviceSlug="music-lessons" className="h-14 w-14" />,
+      art: (
+        <span className={`${iconBox} overflow-hidden`}>
+          <LessonIllustration serviceSlug="music-lessons" className="h-16 w-16" />
+        </span>
+      ),
     },
   ];
 
@@ -156,7 +155,7 @@ function Landing() {
 
       <SiteSection className="py-16 md:py-20">
         <SectionHeading title={t("site.services.title")} body={t("site.services.body")} />
-        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {services.map((item) => (
             <article
               key={item.key}
@@ -165,7 +164,9 @@ function Landing() {
               {item.art}
               <div>
                 <h3 className="text-pro-18 font-extrabold">{item.title}</h3>
-                <p className="mt-2 text-pro-14 leading-relaxed text-muted-foreground">{item.body}</p>
+                <p className="mt-2 text-pro-14 leading-relaxed text-muted-foreground">
+                  {item.body}
+                </p>
               </div>
             </article>
           ))}

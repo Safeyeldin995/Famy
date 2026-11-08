@@ -13,6 +13,8 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
   return {
     ...actual,
     useNavigate: () => mockNav,
+    useRouterState: ({ select }: { select: (s: { location: { search: object } }) => unknown }) =>
+      select({ location: { search: {} } }),
     Link: ({ children, ...props }: { children: React.ReactNode; to: string }) => (
       <a href={props.to}>{children}</a>
     ),
@@ -86,7 +88,9 @@ async function signIn(chooseProviderTab: boolean) {
   const user = userEvent.setup();
   render(<Login previewMode={false} />);
   if (chooseProviderTab) {
-    await user.click(screen.getByRole("button", { name: /Service Provider/i }));
+    await user.click(
+      screen.getByRole("button", { name: new RegExp(i18n.t("auth.roleProvider"), "i") }),
+    );
   }
   const phoneInputs = screen.getAllByPlaceholderText(i18n.t("auth.phonePlaceholder"));
   await user.type(phoneInputs[0]!, "1012345678");

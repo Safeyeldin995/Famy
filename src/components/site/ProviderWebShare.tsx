@@ -1,90 +1,38 @@
-import { useProvider, useProviderServices } from "@/lib/db/queries";
-import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
-import { toUIProvider } from "@/lib/db/adapters";
-import { currentLang } from "@/lib/i18n";
+import { useTranslation } from "react-i18next";
 import { SiteLayout, SiteSection } from "@/components/site/SiteLayout";
 import { StoreBadges } from "@/components/site/StoreBadges";
-import { QueryError } from "@/components/famio/QueryError";
-import { EmptyState, PrimaryButton } from "@/components/famio/ui";
+import { FamyWordmark } from "@/components/famio/FamyWordmark";
+import { PrimaryButton } from "@/components/famio/ui";
 
-/** Public provider card for app share links — no web booking. */
+/**
+ * Public landing for provider share links. Provider details are only readable
+ * by signed-in app users, so the web page shows no profile data: it hands the
+ * visitor to the app (or the stores) instead.
+ */
 export function ProviderWebShare({ providerId }: { providerId: string }) {
-  const lang = currentLang();
-  const ar = lang === "ar";
-  const providerQ = useProvider(providerId);
-  const servicesQ = useProviderServices(providerId);
-  const deepLink = `famy://provider/${providerId}`;
-
-  if (providerQ.isError) {
-    return (
-      <SiteLayout>
-        <SiteSection className="py-16">
-          <QueryError error={providerQ.error} onRetry={() => void providerQ.refetch()} />
-        </SiteSection>
-      </SiteLayout>
-    );
-  }
-
-  if (providerQ.isLoading) {
-    return (
-      <SiteLayout>
-        <SiteSection className="grid min-h-[40vh] place-items-center py-16">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-brand/20 border-t-brand" />
-        </SiteSection>
-      </SiteLayout>
-    );
-  }
-
-  const provider = providerQ.data ? toUIProvider(providerQ.data) : null;
-  if (!provider) {
-    return (
-      <SiteLayout>
-        <SiteSection className="py-16">
-          <EmptyState title={ar ? "مقدم الخدمة مش موجود" : "Provider not found"} />
-        </SiteSection>
-      </SiteLayout>
-    );
-  }
-
-  const services = (servicesQ.data ?? []).slice(0, 8);
+  const { t } = useTranslation();
+  const deepLink = `famy://provider/${encodeURIComponent(providerId)}`;
 
   return (
     <SiteLayout>
       <SiteSection className="py-14 md:py-20">
-        <div className="mx-auto max-w-lg rounded-[2rem] border border-border/70 bg-white p-8 shadow-sm">
-          <div className="flex flex-col items-center gap-4 text-center">
-            <ProfileAvatar src={provider.avatar} name={provider.name} className="h-24 w-24 text-pro-24" />
-            <h1 className="text-pro-24 font-extrabold">{provider.name}</h1>
-            {provider.bio ? (
-              <p className="text-pro-14 leading-relaxed text-muted-foreground">{provider.bio}</p>
-            ) : null}
-          </div>
-
-          {services.length ? (
-            <ul className="mt-8 space-y-2 border-t border-border/60 pt-6">
-              {services.map((row) => {
-                const svc = row.service;
-                const label = ar ? svc.name_ar : svc.name_en;
-                return (
-                  <li key={svc.id} className="text-pro-14 font-semibold text-foreground/85">
-                    {label}
-                  </li>
-                );
-              })}
-            </ul>
-          ) : null}
-
-          <div className="mt-8 flex flex-col gap-4">
-            <PrimaryButton
-              className="min-h-13 w-full"
-              onClick={() => {
-                window.location.href = deepLink;
-              }}
-            >
-              افتح في التطبيق
-            </PrimaryButton>
-            <StoreBadges className="justify-center" />
-          </div>
+        <div className="mx-auto flex max-w-lg flex-col items-center gap-5 rounded-[2rem] border border-border/70 bg-white p-8 text-center shadow-sm">
+          <FamyWordmark size="compact" className="!h-10 max-w-[8rem]" />
+          <h1 className="text-pro-24 font-extrabold text-balance">
+            {t("site.providerShare.title")}
+          </h1>
+          <p className="text-pro-16 leading-relaxed text-muted-foreground">
+            {t("site.providerShare.body")}
+          </p>
+          <PrimaryButton
+            className="min-h-13 w-full"
+            onClick={() => {
+              window.location.href = deepLink;
+            }}
+          >
+            {t("site.providerShare.cta")}
+          </PrimaryButton>
+          <StoreBadges className="justify-center" />
         </div>
       </SiteSection>
     </SiteLayout>
