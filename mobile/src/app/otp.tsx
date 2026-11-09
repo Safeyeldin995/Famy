@@ -139,6 +139,10 @@ export default function OtpScreen() {
         recoveryAttempted.current = false;
         return;
       }
+      if (res.error === "server_error") {
+        setError(t("auth.verifyServerError"));
+        return;
+      }
       setError(t("auth.invalidCode"));
       setCode(["", "", "", "", "", ""]);
       return;

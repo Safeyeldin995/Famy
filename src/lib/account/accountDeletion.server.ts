@@ -94,9 +94,8 @@ export async function runAccountDeletion(params: {
     return { ok: false, error: "admin_not_allowed", status: 403 };
   }
 
-  const { data: checkRaw, error: checkError } = await params.supabaseUser.rpc(
-    "account_deletion_check",
-  );
+  const { data: checkRaw, error: checkError } =
+    await params.supabaseUser.rpc("account_deletion_check");
   if (checkError) {
     console.error("[account.delete] eligibility check failed");
     return { ok: false, error: "deletion_failed", status: 500 };
@@ -129,6 +128,15 @@ export async function runAccountDeletion(params: {
       parseAnonymizeStoragePaths(anonymized),
     );
     await finalizeDeletedAuthUser(params.supabaseAdmin, params.userId);
+    // Old email/phone also live in auth.identities and user metadata; leaving
+    // them blocks re-signup with the same number and keeps the phone stored.
+    const { error: scrubError } = await (
+      params.supabaseAdmin.rpc as unknown as (
+        fn: "scrub_deleted_auth_identities",
+        args: { p_user_id: string },
+      ) => Promise<{ error: unknown }>
+    )("scrub_deleted_auth_identities", { p_user_id: params.userId });
+    if (scrubError) throw scrubError;
   } catch {
     console.error("[account.delete] post-anonymize failed");
     return { ok: false, error: "deletion_failed", status: 500 };

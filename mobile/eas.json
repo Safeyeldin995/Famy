@@ -11,7 +11,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_FIREBASE_TEST_MODE": "1"
+        "EXPO_PUBLIC_FIREBASE_TEST_MODE": "1",
+        "EXPO_PUBLIC_FIREBASE_FORCE_RECAPTCHA": "1"
       }
     },
     "preview": {
@@ -21,7 +22,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_FIREBASE_TEST_MODE": "1"
+        "EXPO_PUBLIC_FIREBASE_TEST_MODE": "1",
+        "EXPO_PUBLIC_FIREBASE_FORCE_RECAPTCHA": "1"
       }
     },
     "production": {

@@ -499,6 +499,23 @@ async function run() {
         ],
         customer_education_profiles: [],
         promo_code_redemptions: [],
+        zones: [
+          {
+            id: id(80),
+            name_en: "Sheikh Zayed",
+            name_ar: "الشيخ زايد",
+            boundary_type: "polygon",
+            polygon: [
+              { lat: 30.0685, lng: 30.9325 },
+              { lat: 30.0881, lng: 30.9723 },
+              { lat: 30.0391, lng: 31.0383 },
+              { lat: 30.0097, lng: 30.982 },
+            ],
+            center_lat: null,
+            center_lng: null,
+            radius_km: null,
+          },
+        ],
         settings: [
           {
             value:

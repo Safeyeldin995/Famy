@@ -47,18 +47,37 @@ export function shouldDisableAppVerificationForPhone(
 }
 
 type AuthWithVerificationSettings = {
-  settings: { appVerificationDisabledForTesting: boolean };
+  settings: { appVerificationDisabledForTesting: boolean; forceRecaptchaFlowForTesting?: boolean };
 };
+
+/**
+ * Builds installed outside Google Play (EAS preview/development APKs) fail
+ * Play Integrity ("Invalid app info in play_integrity_token"), so real numbers
+ * never get an SMS. Those builds set EXPO_PUBLIC_FIREBASE_FORCE_RECAPTCHA=1 to
+ * use Firebase's reCAPTCHA check instead. Store builds leave it unset.
+ */
+export function shouldForceFirebaseRecaptcha(env?: {
+  EXPO_PUBLIC_FIREBASE_FORCE_RECAPTCHA?: string;
+}): boolean {
+  const value = env
+    ? env.EXPO_PUBLIC_FIREBASE_FORCE_RECAPTCHA
+    : process.env.EXPO_PUBLIC_FIREBASE_FORCE_RECAPTCHA;
+  return value === "1";
+}
 
 export function applyFirebasePhoneTestModeBeforeSend(
   auth: AuthWithVerificationSettings,
   phoneE164: string,
   config?: FirebasePhoneTestModeConfig,
 ): void {
-  auth.settings.appVerificationDisabledForTesting = shouldDisableAppVerificationForPhone(
+  const disableVerification = shouldDisableAppVerificationForPhone(
     phoneE164,
     config ?? readFirebasePhoneTestModeConfig(),
   );
+  auth.settings.appVerificationDisabledForTesting = disableVerification;
+  if (!disableVerification && shouldForceFirebaseRecaptcha()) {
+    auth.settings.forceRecaptchaFlowForTesting = true;
+  }
 }
 
 export function resetFirebasePhoneTestModeAfterSend(auth: AuthWithVerificationSettings): void {

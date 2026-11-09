@@ -6,6 +6,7 @@ import {
   applyFirebasePhoneTestModeBeforeSend,
   readFirebasePhoneTestModeConfig,
   shouldDisableAppVerificationForPhone,
+  shouldForceFirebaseRecaptcha,
 } from "../firebasePhoneTestMode";
 
 const easJsonPath = path.join(path.dirname(fileURLToPath(import.meta.url)), "../../../../eas.json");
@@ -50,6 +51,13 @@ describe("firebase phone test mode config", () => {
     applyFirebasePhoneTestModeBeforeSend(auth, "+201012345678", config);
     expect(auth.settings.appVerificationDisabledForTesting).toBe(true);
   });
+
+  it("forces reCAPTCHA only when the build flag is set", () => {
+    expect(shouldForceFirebaseRecaptcha({ EXPO_PUBLIC_FIREBASE_FORCE_RECAPTCHA: "1" })).toBe(true);
+    expect(shouldForceFirebaseRecaptcha({ EXPO_PUBLIC_FIREBASE_FORCE_RECAPTCHA: undefined })).toBe(
+      false,
+    );
+  });
 });
 
 describe("mobile eas.json firebase test mode guard", () => {
@@ -64,6 +72,9 @@ describe("mobile eas.json firebase test mode guard", () => {
     expect(eas.build.production?.env?.EXPO_PUBLIC_FIREBASE_TEST_NUMBERS).toBeUndefined();
     expect(eas.build.preview?.env?.EXPO_PUBLIC_FIREBASE_TEST_MODE).toBe("1");
     expect(eas.build.development?.env?.EXPO_PUBLIC_FIREBASE_TEST_MODE).toBe("1");
+    // Sideloaded builds fail Play Integrity, so they use reCAPTCHA; store builds must not.
+    expect(eas.build.production?.env?.EXPO_PUBLIC_FIREBASE_FORCE_RECAPTCHA).toBeUndefined();
+    expect(eas.build.preview?.env?.EXPO_PUBLIC_FIREBASE_FORCE_RECAPTCHA).toBe("1");
     expect(eas.build.preview?.channel).toBe("preview");
     expect(eas.build.production?.channel).toBe("production");
   });
