@@ -70,6 +70,21 @@ describe("service zones", () => {
     expect(pointInZone({ lat: 30.05, lng: 30.98 }, circle)).toBe(false);
   });
 
+  it("picks the nearest containing circle when circles overlap", () => {
+    const circle = (id: string, lat: number, lng: number): ServiceZone => ({
+      ...zayed,
+      id,
+      boundary_type: "circle",
+      polygon: null,
+      center_lat: lat,
+      center_lng: lng,
+      radius_km: 20,
+    });
+    const far = circle("far", 30.1, 31.35);
+    const near = circle("near", 29.97, 31.26);
+    expect(zoneForPoint(maadi, [far, near])?.id).toBe("near");
+  });
+
   it("matches service-area names to zones ignoring case", () => {
     const areas = ["Sheikh Zayed", "6th of October"];
     expect(zoneForAreaName("6th of October", zones)?.id).toBe("o");

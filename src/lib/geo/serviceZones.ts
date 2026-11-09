@@ -51,13 +51,21 @@ export function pointInZone(point: LatLng, zone: ServiceZone): boolean {
   return false;
 }
 
-/** Polygons first, like resolve_zone. */
+/** Like resolve_zone: a containing polygon first, else the nearest containing circle. */
 export function zoneForPoint(point: LatLng, zones: ServiceZone[]): ServiceZone | null {
-  return (
-    zones.find((z) => z.boundary_type === "polygon" && pointInZone(point, z)) ??
-    zones.find((z) => z.boundary_type === "circle" && pointInZone(point, z)) ??
-    null
-  );
+  const polygon = zones.find((z) => z.boundary_type === "polygon" && pointInZone(point, z));
+  if (polygon) return polygon;
+  let best: ServiceZone | null = null;
+  let bestKm = Infinity;
+  for (const z of zones) {
+    if (z.boundary_type !== "circle" || !pointInZone(point, z)) continue;
+    const km = distanceKm(point, { lat: z.center_lat!, lng: z.center_lng! });
+    if (km < bestKm) {
+      best = z;
+      bestKm = km;
+    }
+  }
+  return best;
 }
 
 /** A point to centre the map on for a zone (average of polygon corners). */
