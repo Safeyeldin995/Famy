@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { Clock } from "lucide-react-native";
+import { shouldAbandonOtpOnExpiry } from "@/lib/cacheInvalidation";
 import { formatOtpExpiryClock, formatOtpSecondsDuration } from "@/lib/auth/otpCountdown";
 import { fetchMobileOtpContext } from "@/lib/auth/mobileOtpApi";
 import { readOtpFlowPhone } from "@/lib/auth/mobileOtpFlowPhone";
@@ -93,12 +94,21 @@ export default function OtpScreen() {
   }, []);
 
   useEffect(() => {
-    if (otpExpiresIn !== 0 || loadingContext) return;
+    if (
+      !shouldAbandonOtpOnExpiry({
+        otpExpiresIn,
+        loadingContext,
+        verifying: loading || verifyLock.current,
+        resending,
+      })
+    ) {
+      return;
+    }
     void abandonPhoneOtpFlow().then(() => {
       setError(t("auth.sessionExpired"));
       router.replace(context?.purpose === "reset" ? "/forgot-password" : "/login");
     });
-  }, [context?.purpose, loadingContext, otpExpiresIn, t]);
+  }, [context?.purpose, loading, loadingContext, otpExpiresIn, resending, t]);
 
   const finishVerified = () => {
     verifyLock.current = false;

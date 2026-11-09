@@ -50,11 +50,30 @@ export default function ProApplyScreen() {
   const queries = [providerQ, snapshot, services, zones, selections, docs];
   const status = provider?.onboarding_status as string | undefined;
   const dataReady = !!provider && queries.every((q) => q.isSuccess && !q.isLoading && !q.isPending);
+  const redirectHome = !!provider && !!status && status !== "DRAFT" && status !== "NEEDS_CHANGES";
 
-  if (provider && status && status !== "DRAFT" && status !== "NEEDS_CHANGES") {
-    router.replace("/pro-setup-home");
-    return null;
-  }
+  useEffect(() => {
+    if (redirectHome) router.replace("/pro-setup-home");
+  }, [redirectHome]);
+
+  const bootstrapping = providerQ.isSuccess && !provider && !start.isError;
+  const gateQuery = {
+    ...providerQ,
+    isError: providerQ.isError || start.isError,
+    isPending: providerQ.isPending || providerQ.isLoading || bootstrapping || start.isPending,
+    isLoading: providerQ.isLoading || providerQ.isPending || bootstrapping || start.isPending,
+    refetch: () => {
+      if (start.isError) {
+        started.current = false;
+        start.reset();
+        start.mutate();
+        return Promise.resolve();
+      }
+      return providerQ.refetch();
+    },
+  };
+
+  if (redirectHome) return null;
 
   const persist = async (saveStep: number, draft: ApplyDraft) => {
     const providerId = provider!.id as string;
@@ -163,7 +182,7 @@ export default function ProApplyScreen() {
 
   return (
     <Page title={t("providerApply.checklist")} queries={queries}>
-      <QueryState query={providerQ}>{dataReady ? flow : null}</QueryState>
+      <QueryState query={gateQuery}>{dataReady ? flow : null}</QueryState>
     </Page>
   );
 }

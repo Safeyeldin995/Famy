@@ -3,6 +3,7 @@ import { Linking, Pressable, View } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { BookOpen, Calendar, Clock, MapPin, Phone, User } from "lucide-react-native";
+import { bookingMemberAgeTranslation } from "@shared/familyMemberAge";
 import { bookingTeachingSummary } from "@shared/tutoring/bookingTeachingSummary";
 import { shortBookingCode } from "@/lib/provider/constants";
 import {
@@ -242,6 +243,7 @@ export default function ProBookingDetail() {
               <Button
                 variant="ghost"
                 label={t("pro.booking.cancelJob")}
+                disabled={mut.isPending}
                 onPress={() => setDialog("cancel")}
               />
             </>
@@ -297,4 +299,3 @@ export default function ProBookingDetail() {
     </Page>
   );
 }
-import { bookingMemberAgeTranslation } from "@shared/familyMemberAge";

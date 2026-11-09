@@ -1,5 +1,10 @@
 // Customer data operations ported from the named web data modules. Same RPCs, arguments and guards.
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  bookingCancelInvalidationKeys,
+  invalidateQueryKeyList,
+  submitReviewInvalidationKeys,
+} from "./cacheInvalidation";
 import { supabase } from "./supabase";
 import { cairoWallTime, packageRuleStart } from "@shared/pricing/servicePackages";
 import { creationMinHours, parseBookingExpirySettings } from "@shared/booking/pending-expiry";
@@ -447,7 +452,7 @@ export function useSubmitReview() {
       return data;
     },
     onSuccess: (_data, vars) => {
-      qc.invalidateQueries({ queryKey: ["booking-review", vars.bookingId] });
+      invalidateQueryKeyList(qc, submitReviewInvalidationKeys(vars.bookingId, vars.providerId));
     },
   });
 }
@@ -677,13 +682,7 @@ export function useCancelBooking() {
       return data;
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ["booking", vars.bookingId] });
-      qc.invalidateQueries({ queryKey: ["booking-cancellation", vars.bookingId] });
-      qc.invalidateQueries({ queryKey: ["provider-booking", vars.bookingId] });
-      qc.invalidateQueries({ queryKey: ["my-bookings"] });
-      qc.invalidateQueries({ queryKey: ["provider-bookings"] });
-      qc.invalidateQueries({ queryKey: ["admin", "bookings"] });
-      qc.invalidateQueries({ queryKey: ["payment", vars.bookingId] });
+      invalidateQueryKeyList(qc, bookingCancelInvalidationKeys(vars.bookingId));
     },
   });
 }
