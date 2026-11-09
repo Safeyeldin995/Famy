@@ -87,7 +87,12 @@ export function phoneOtpFlowErrorMessage(
 
 async function afterFirebaseNativeSend(): Promise<StartPhoneOtpResult> {
   const confirm = await confirmMobileFirebaseOtpSent();
-  if (confirm.ok && confirm.data && typeof confirm.data === "object" && (confirm.data as { ok?: boolean }).ok) {
+  if (
+    confirm.ok &&
+    confirm.data &&
+    typeof confirm.data === "object" &&
+    (confirm.data as { ok?: boolean }).ok
+  ) {
     return { ok: true, delivery: "firebase" };
   }
   await abandonMobileOtpFlow();
@@ -96,9 +101,9 @@ async function afterFirebaseNativeSend(): Promise<StartPhoneOtpResult> {
   return { ok: false, error: "firebase_send_failed", flowAbandoned: true, intentCleared: true };
 }
 
-async function finalizeFirebaseNativeSend(
-  data: { retryAfter?: number },
-): Promise<StartPhoneOtpResult> {
+async function finalizeFirebaseNativeSend(data: {
+  retryAfter?: number;
+}): Promise<StartPhoneOtpResult> {
   const confirmed = await afterFirebaseNativeSend();
   if (!confirmed.ok) return confirmed;
   return { ok: true, retryAfter: data.retryAfter, delivery: "firebase" };
@@ -157,7 +162,9 @@ export async function resendPhoneOtpFlow(phoneE164: string): Promise<StartPhoneO
   const refresh = await resendMobileOtp();
   if (!refresh.ok) {
     const error =
-      refresh.body && typeof refresh.body === "object" && (refresh.body as { error?: string }).error === "intent_missing"
+      refresh.body &&
+      typeof refresh.body === "object" &&
+      (refresh.body as { error?: string }).error === "intent_missing"
         ? "intent_missing"
         : mapSendError(refresh.body);
     return {
@@ -170,7 +177,11 @@ export async function resendPhoneOtpFlow(phoneE164: string): Promise<StartPhoneO
     };
   }
 
-  const data = refresh.data as { ok?: boolean; delivery?: "firebase" | "server"; retryAfter?: number };
+  const data = refresh.data as {
+    ok?: boolean;
+    delivery?: "firebase" | "server";
+    retryAfter?: number;
+  };
   if (!data.ok) {
     return { ok: false, error: mapSendError(data), retryAfter: data.retryAfter };
   }
@@ -212,6 +223,8 @@ export async function recoverNativeFirebaseOtpSession(
 async function verifyWithFirebaseIdToken(idToken: string) {
   const res = await verifyMobileFirebaseOtp(idToken);
   if (!res.ok) {
+    // Firebase already accepted the code; a 5xx is our failure, not a wrong code.
+    if (res.status >= 500) return { ok: false as const, error: "server_error" as const };
     return { ok: false as const, error: "invalid_code" as const };
   }
   const applied = await applyMobileVerifySession(res.data);
