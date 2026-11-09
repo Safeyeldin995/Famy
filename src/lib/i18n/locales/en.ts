@@ -992,6 +992,8 @@ const en = {
     discountPercent: "{{value}}% off",
   },
   addresses: {
+    outsideServiceArea: "This spot is outside the areas we serve right now. Move the pin inside the area you chose.",
+    pinInArea: "Pin is inside {{area}}",
     title: "Saved Addresses",
     subtitle: "Save places for faster booking",
     summary: "{{count}} saved",

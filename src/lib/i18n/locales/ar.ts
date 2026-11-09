@@ -987,6 +987,8 @@ const ar: Translation = {
     discountPercent: "خصم {{value}}٪",
   },
   addresses: {
+    outsideServiceArea: "المكان ده برة مناطق خدمتنا دلوقتي. حرك الدبوس جوه المنطقة اللي اخترتها.",
+    pinInArea: "الدبوس جوه {{area}}",
     title: "العناوين المحفوظة",
     subtitle: "احفظ أماكنك للحجز بسرعة",
     summary: "{{count}} محفوظ",

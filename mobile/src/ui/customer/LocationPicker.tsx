@@ -40,9 +40,12 @@ function Pin() {
 export function LocationPicker({
   value,
   onChange,
+  focus,
 }: {
   value: MapPosition | null;
   onChange: (p: MapPosition) => void;
+  /** Where to open the map when there is no pin yet (e.g. the chosen area). */
+  focus?: MapPosition | null;
 }) {
   const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -56,7 +59,7 @@ export function LocationPicker({
   const valid = isValidLatLng(value);
   const Back = i18n.language === "ar" ? ArrowRight : ArrowLeft;
   function show(position: MapPosition | null) {
-    setCenter(position ?? fallback);
+    setCenter(position ?? focus ?? fallback);
     setDraft(position);
     setFailed(false);
     setNotice("");
