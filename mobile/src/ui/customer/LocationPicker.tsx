@@ -10,6 +10,7 @@ import { Button } from "../Button";
 import { colors } from "../theme";
 import MapSurface from "./MapSurface";
 import { parseMapMessage, type MapPosition } from "./mapMessages";
+import type { ServiceZone } from "@shared/geo/serviceZones";
 
 const fallback = { lat: 29.9765, lng: 30.9317 };
 function Pin() {
@@ -41,16 +42,19 @@ export function LocationPicker({
   value,
   onChange,
   focus,
+  zones,
 }: {
   value: MapPosition | null;
   onChange: (p: MapPosition) => void;
   /** Where to open the map when there is no pin yet (e.g. the chosen area). */
   focus?: MapPosition | null;
+  zones?: ServiceZone[];
 }) {
   const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<MapPosition | null>(null);
   const [center, setCenter] = useState(fallback);
+  const [wide, setWide] = useState(false);
   const [key, setKey] = useState(0);
   const [failed, setFailed] = useState(false);
   const [previewFailed, setPreviewFailed] = useState(false);
@@ -60,6 +64,7 @@ export function LocationPicker({
   const Back = i18n.language === "ar" ? ArrowRight : ArrowLeft;
   function show(position: MapPosition | null) {
     setCenter(position ?? focus ?? fallback);
+    setWide(!position);
     setDraft(position);
     setFailed(false);
     setNotice("");
@@ -115,6 +120,7 @@ export function LocationPicker({
                 key={key}
                 center={value}
                 interactive={false}
+                zones={zones}
                 onMessage={(raw) => {
                   if (parseMapMessage(raw) === "unavailable") setPreviewFailed(true);
                 }}
@@ -204,6 +210,8 @@ export function LocationPicker({
                 key={key}
                 center={center}
                 interactive
+                wide={wide}
+                zones={zones}
                 onMessage={(raw) => {
                   const message = parseMapMessage(raw);
                   if (message === "unavailable") setFailed(true);

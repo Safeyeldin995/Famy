@@ -992,8 +992,12 @@ const en = {
     discountPercent: "{{value}}% off",
   },
   addresses: {
-    outsideServiceArea: "This spot is outside the areas we serve right now. Move the pin inside the area you chose.",
+    outsideServiceArea: "This address is outside the areas we serve right now. Choose a spot inside the shaded area on the map.",
     pinInArea: "Pin is inside {{area}}",
+    comingSoonTitle: "Famy is coming to your area soon",
+    comingSoonBody: "We're sorry, Famy isn't available here yet. We're growing all the time. Tap the button to let us know you want Famy here; it helps us choose our next areas.",
+    comingSoonCta: "I want Famy in my area",
+    comingSoonThanks: "Thanks, we've got your request. We'll do our best to reach your area soon.",
     title: "Saved Addresses",
     subtitle: "Save places for faster booking",
     summary: "{{count}} saved",

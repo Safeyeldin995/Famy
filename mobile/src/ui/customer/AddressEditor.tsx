@@ -17,6 +17,7 @@ import { Page, QueryState, Choices, Field, ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
 import { LocationPicker } from "./LocationPicker";
+import { AreaComingSoonCard } from "./AreaComingSoonCard";
 import { normalizeDigitsToWestern } from "@shared/otp/normalizePhone";
 import { contactPhoneErrorKey } from "@shared/auth/oauthShared";
 import {
@@ -249,11 +250,9 @@ export function AddressEditor({
           <Text size="xs" weight="bold" tone="muted">
             {t("addresses.location")}
           </Text>
-          <LocationPicker value={pin} focus={mapFocus} onChange={setPin} />
-          {pinOutside ? (
-            <Text size="sm" tone="danger">
-              {t("addresses.outsideServiceArea")}
-            </Text>
+          <LocationPicker value={pin} focus={mapFocus} zones={zones.data} onChange={setPin} />
+          {pinOutside && pin ? (
+            <AreaComingSoonCard pin={pin} />
           ) : pinZone && value.area ? (
             <Text size="xs" tone="muted">
               {t("addresses.pinInArea", { area: areaLabel(value.area) })}
@@ -283,11 +282,9 @@ export function AddressEditor({
           <Text size="xs" weight="bold" tone="muted">
             {t("addresses.location")}
           </Text>
-          <LocationPicker value={pin} focus={mapFocus} onChange={setPin} />
-          {pinOutside ? (
-            <Text size="sm" tone="danger">
-              {t("addresses.outsideServiceArea")}
-            </Text>
+          <LocationPicker value={pin} focus={mapFocus} zones={zones.data} onChange={setPin} />
+          {pinOutside && pin ? (
+            <AreaComingSoonCard pin={pin} />
           ) : pinZone && value.area ? (
             <Text size="xs" tone="muted">
               {t("addresses.pinInArea", { area: areaLabel(value.area) })}

@@ -712,6 +712,19 @@ export function useActiveZones() {
   });
 }
 
+/** "Bring Famy to my area" from a pin outside every service zone (max 5/day per user). */
+export function useRequestArea() {
+  return useMutation({
+    mutationFn: async (pos: { lat: number; lng: number }) => {
+      // area_requests is newer than the generated types.
+      const { error } = await supabase
+        .from("area_requests" as never)
+        .insert({ lat: pos.lat, lng: pos.lng } as never);
+      if (error) throw error;
+    },
+  });
+}
+
 export function useBookingConfig<T>(key: string) {
   return useQuery({
     queryKey: ["settings", key],
