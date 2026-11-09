@@ -745,6 +745,7 @@ const en = {
     alreadyRegistered: "This number is already registered. Please sign in.",
     noAccount: "No account for this number.",
     invalidCode: "Invalid code. Try again.",
+    verifyServerError: "Something went wrong on our side while confirming the code. Try again shortly.",
     codeSent: "Code sent.",
     sendFailed: "Could not send code. Try again later.",
     deliveryUnavailable:

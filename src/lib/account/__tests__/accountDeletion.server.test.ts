@@ -137,6 +137,9 @@ describe("runAccountDeletion", () => {
         ban_duration: "876000h",
       }),
     );
+    expect(supabaseAdmin.rpc).toHaveBeenCalledWith("scrub_deleted_auth_identities", {
+      p_user_id: "00000000-0000-0000-0000-000000000099",
+    });
   });
 });
 
