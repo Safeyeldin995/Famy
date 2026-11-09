@@ -31,7 +31,7 @@ describe("ProviderApprovalDecisionSummary (mocked markup)", () => {
         <ProviderApprovalDecisionSummary decision={decision} compact />
       </I18nextProvider>,
     );
-    expect(html).toContain("ناقص: 2 مستند لسه مستني المراجعة");
+    expect(html).toContain("ناقص: 2 مستند لسه في انتظار المراجعة");
     expect(html).toContain("#admin-provider-documents");
     expect(decision.canApprove).toBe(false);
   });

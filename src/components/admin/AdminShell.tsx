@@ -83,6 +83,7 @@ export const ADMIN_NAV_GROUPS: (NavGroup & { titleFallback: string })[] = [
     items: [
       { to: "/admin/services", labelKey: "admin.layout.nav.services", icon: Layers },
       { to: "/admin/zones", labelKey: "admin.layout.nav.zones", icon: MapPin },
+      { to: "/admin/area-requests", labelKey: "admin.layout.nav.areaRequests", icon: MapPin },
       { to: "/admin/promo-codes", labelKey: "admin.layout.nav.promoCodes", icon: Tag },
     ],
   },

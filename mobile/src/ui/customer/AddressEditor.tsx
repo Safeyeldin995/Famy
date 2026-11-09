@@ -4,6 +4,7 @@ import { View } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
+  useActiveZones,
   useBookingConfig,
   useCreateAddress,
   useUpdateAddress,
@@ -16,8 +17,15 @@ import { Page, QueryState, Choices, Field, ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
 import { LocationPicker } from "./LocationPicker";
+import { AreaComingSoonCard } from "./AreaComingSoonCard";
 import { normalizeDigitsToWestern } from "@shared/otp/normalizePhone";
 import { contactPhoneErrorKey } from "@shared/auth/oauthShared";
+import {
+  areaNameForZone,
+  zoneCenter,
+  zoneForAreaName,
+  zoneForPoint,
+} from "@shared/geo/serviceZones";
 export function AddressEditor({
   addressId,
   setup = false,
@@ -31,6 +39,7 @@ export function AddressEditor({
 }) {
   const { t } = useTranslation();
   const areas = useBookingConfig<{ areas: { name: string; enabled: boolean }[] }>("service_areas");
+  const zones = useActiveZones();
   const save = useCreateAddress();
   const updateAddress = useUpdateAddress();
   const saveSetup = useSaveCustomerSetup();
@@ -67,6 +76,37 @@ export function AddressEditor({
   const [details, setDetails] = useState(false);
   const set = (key: keyof AddressInput, v: AddressInput[keyof AddressInput]) =>
     setValue((s) => ({ ...s, [key]: v }));
+  const areaNames = (areas.data?.areas ?? []).filter((a) => a.enabled).map((a) => a.name);
+  const areaLabel = (name: string) =>
+    name === "Sheikh Zayed"
+      ? t("customerAreas.sheikhZayed")
+      : name === "6th of October"
+        ? t("customerAreas.october")
+        : name;
+  const pin = isValidLatLng({ lat: value.lat ?? NaN, lng: value.lng ?? NaN })
+    ? { lat: value.lat!, lng: value.lng! }
+    : null;
+  const pinZone = pin && zones.data ? zoneForPoint(pin, zones.data) : null;
+  const pinOutside = !!pin && !!zones.data && !pinZone;
+  const chosenZone = value.area && zones.data ? zoneForAreaName(value.area, zones.data) : null;
+  const mapFocus = chosenZone ? zoneCenter(chosenZone) : null;
+  // The pin decides the area: moving it into another zone switches the area.
+  const setPin = (pos: { lat: number; lng: number }) => {
+    const zone = zones.data ? zoneForPoint(pos, zones.data) : null;
+    const area = zone ? areaNameForZone(zone, areaNames) : null;
+    setValue((v) => ({ ...v, ...pos, area: area ?? v.area }));
+  };
+  // Picking an area moves the map there; a pin left in another area is cleared.
+  const chooseArea = (area: string) => {
+    const zone = zones.data ? zoneForAreaName(area, zones.data) : null;
+    setValue((v) => {
+      const keepPin =
+        !zone ||
+        !isValidLatLng({ lat: v.lat ?? NaN, lng: v.lng ?? NaN }) ||
+        zoneForPoint({ lat: v.lat!, lng: v.lng! }, zones.data ?? [])?.id === zone.id;
+      return keepPin ? { ...v, area } : { ...v, area, lat: null, lng: null };
+    });
+  };
   async function submit() {
     const valid =
       value.street.trim().length > 2 &&
@@ -80,6 +120,10 @@ export function AddressEditor({
       (addressId && !existing)
     ) {
       setError(t("mobileBooking.addressRequired"));
+      return;
+    }
+    if (pinOutside) {
+      setError(t("addresses.outsideServiceArea"));
       return;
     }
     setError("");
@@ -125,7 +169,7 @@ export function AddressEditor({
           onBack={onClose}
         />
       }
-      queries={[areas, addresses, profile]}
+      queries={[areas, zones, addresses, profile]}
       contentStyle={{ paddingHorizontal: 24, paddingTop: setup ? 8 : 16, gap: 20 }}
       footer={
         <Button
@@ -134,6 +178,8 @@ export function AddressEditor({
           disabled={
             areas.isLoading ||
             areas.isError ||
+            zones.isLoading ||
+            zones.isError ||
             addresses.isLoading ||
             addresses.isError ||
             profile.isLoading ||
@@ -189,18 +235,8 @@ export function AddressEditor({
         layout="grid"
         label={t("setup.area")}
         value={value.area || ""}
-        onChange={(v) => set("area", v)}
-        options={(areas.data?.areas ?? [])
-          .filter((a) => a.enabled)
-          .map((a) => ({
-            value: a.name,
-            label:
-              a.name === "Sheikh Zayed"
-                ? t("customerAreas.sheikhZayed")
-                : a.name === "6th of October"
-                  ? t("customerAreas.october")
-                  : a.name,
-          }))}
+        onChange={chooseArea}
+        options={areaNames.map((name) => ({ value: name, label: areaLabel(name) }))}
       />
       <Field
         label={t("setup.address")}
@@ -214,14 +250,14 @@ export function AddressEditor({
           <Text size="xs" weight="bold" tone="muted">
             {t("addresses.location")}
           </Text>
-          <LocationPicker
-            value={
-              isValidLatLng({ lat: value.lat ?? NaN, lng: value.lng ?? NaN })
-                ? { lat: value.lat!, lng: value.lng! }
-                : null
-            }
-            onChange={(pos) => setValue((v) => ({ ...v, ...pos }))}
-          />
+          <LocationPicker value={pin} focus={mapFocus} zones={zones.data} onChange={setPin} />
+          {pinOutside && pin ? (
+            <AreaComingSoonCard pin={pin} />
+          ) : pinZone && value.area ? (
+            <Text size="xs" tone="muted">
+              {t("addresses.pinInArea", { area: areaLabel(value.area) })}
+            </Text>
+          ) : null}
         </View>
       ) : null}
       <View style={{ flexDirection: setup ? "column" : "row", flexWrap: "wrap", gap: 12 }}>
@@ -246,14 +282,14 @@ export function AddressEditor({
           <Text size="xs" weight="bold" tone="muted">
             {t("addresses.location")}
           </Text>
-          <LocationPicker
-            value={
-              isValidLatLng({ lat: value.lat ?? NaN, lng: value.lng ?? NaN })
-                ? { lat: value.lat!, lng: value.lng! }
-                : null
-            }
-            onChange={(pos) => setValue((v) => ({ ...v, ...pos }))}
-          />
+          <LocationPicker value={pin} focus={mapFocus} zones={zones.data} onChange={setPin} />
+          {pinOutside && pin ? (
+            <AreaComingSoonCard pin={pin} />
+          ) : pinZone && value.area ? (
+            <Text size="xs" tone="muted">
+              {t("addresses.pinInArea", { area: areaLabel(value.area) })}
+            </Text>
+          ) : null}
         </View>
       ) : null}
       {!setup && (

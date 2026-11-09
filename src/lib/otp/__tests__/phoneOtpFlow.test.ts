@@ -185,8 +185,8 @@ describe("phoneOtpFlow", () => {
     ["auth/quota-exceeded", "en", "SMS service is busy"],
     ["auth/invalid-phone-number", "en", "valid phone number"],
     ["auth/captcha-check-failed", "en", "Could not verify this device"],
-    ["auth/invalid-app-credential", "ar", "تعذر التحقق من الجهاز"],
-    ["auth/missing-app-credential", "ar", "تعذر التحقق من الجهاز"],
+    ["auth/invalid-app-credential", "ar", "لم نتمكن من التحقق من الجهاز"],
+    ["auth/missing-app-credential", "ar", "لم نتمكن من التحقق من الجهاز"],
   ] as const)(
     "maps Firebase send code %s to a specific message (%s)",
     async (code, lang, expectedFragment) => {

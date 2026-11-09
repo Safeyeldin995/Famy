@@ -14,6 +14,9 @@ export default function MapSurface({
   center: MapPosition;
   interactive: boolean;
   onMessage: (raw: string) => void;
+  /** Native only; the web QA surface does not draw zones. */
+  zones?: unknown;
+  wide?: boolean;
 }) {
   const ref = useRef<HTMLIFrameElement>(null);
   const apiKey = getExpoPublicGoogleMapsBrowserKey();

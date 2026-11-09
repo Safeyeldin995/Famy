@@ -5,6 +5,7 @@ import { cairoWallTime, packageRuleStart } from "@shared/pricing/servicePackages
 import { creationMinHours, parseBookingExpirySettings } from "@shared/booking/pending-expiry";
 import { mapBookingRpcError } from "@shared/booking/errors";
 import { completeCreateBookingResult } from "./bookingPure";
+import type { ServiceZone } from "@shared/geo/serviceZones";
 import {
   ADDRESSES_QUERY_ROOT,
   ADDRESS_QUERY_ROOT,
@@ -695,6 +696,35 @@ export type EducationProfileInput = {
 };
 
 // Customer settings and validation RPCs from settings-queries.ts and promo-codes-queries.ts.
+/** Active service zones with their boundaries (zones_public_read: is_active). */
+export function useActiveZones() {
+  return useQuery({
+    queryKey: ["active-zones"],
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("zones")
+        .select("id, name_en, name_ar, boundary_type, polygon, center_lat, center_lng, radius_km")
+        .eq("is_active", true);
+      if (error) throw error;
+      return (data ?? []) as unknown as ServiceZone[];
+    },
+  });
+}
+
+/** "Bring Famy to my area" from a pin outside every service zone (max 5/day per user). */
+export function useRequestArea() {
+  return useMutation({
+    mutationFn: async (pos: { lat: number; lng: number }) => {
+      // area_requests is newer than the generated types.
+      const { error } = await supabase
+        .from("area_requests" as never)
+        .insert({ lat: pos.lat, lng: pos.lng } as never);
+      if (error) throw error;
+    },
+  });
+}
+
 export function useBookingConfig<T>(key: string) {
   return useQuery({
     queryKey: ["settings", key],

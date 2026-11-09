@@ -40,6 +40,7 @@ import { Route as AddressesIndexRouteImport } from './routes/addresses.index'
 import { Route as AddressesIdRouteImport } from './routes/addresses.$id'
 import { Route as AddressesNewRouteImport } from './routes/addresses.new'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminAreaRequestsRouteImport } from './routes/admin.area-requests'
 import { Route as AdminAuditLogRouteImport } from './routes/admin.audit-log'
 import { Route as AdminBookingsRouteImport } from './routes/admin.bookings'
 import { Route as AdminCampaignsRouteImport } from './routes/admin.campaigns'
@@ -312,6 +313,11 @@ const AddressesNewRoute = AddressesNewRouteImport.update({
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAreaRequestsRoute = AdminAreaRequestsRouteImport.update({
+  id: '/area-requests',
+  path: '/area-requests',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminAuditLogRoute = AdminAuditLogRouteImport.update({
@@ -946,6 +952,7 @@ export interface FileRoutesByFullPath {
   '/account/delete': typeof AccountDeleteRoute
   '/addresses/$id': typeof AddressesIdRoute
   '/addresses/new': typeof AddressesNewRoute
+  '/admin/area-requests': typeof AdminAreaRequestsRoute
   '/admin/audit-log': typeof AdminAuditLogRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/campaigns': typeof AdminCampaignsRoute
@@ -1092,6 +1099,7 @@ export interface FileRoutesByTo {
   '/account/delete': typeof AccountDeleteRoute
   '/addresses/$id': typeof AddressesIdRoute
   '/addresses/new': typeof AddressesNewRoute
+  '/admin/area-requests': typeof AdminAreaRequestsRoute
   '/admin/audit-log': typeof AdminAuditLogRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/campaigns': typeof AdminCampaignsRoute
@@ -1241,6 +1249,7 @@ export interface FileRoutesById {
   '/account/delete': typeof AccountDeleteRoute
   '/addresses/$id': typeof AddressesIdRoute
   '/addresses/new': typeof AddressesNewRoute
+  '/admin/area-requests': typeof AdminAreaRequestsRoute
   '/admin/audit-log': typeof AdminAuditLogRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/campaigns': typeof AdminCampaignsRoute
@@ -1394,6 +1403,7 @@ export interface FileRouteTypes {
     | '/account/delete'
     | '/addresses/$id'
     | '/addresses/new'
+    | '/admin/area-requests'
     | '/admin/audit-log'
     | '/admin/bookings'
     | '/admin/campaigns'
@@ -1540,6 +1550,7 @@ export interface FileRouteTypes {
     | '/account/delete'
     | '/addresses/$id'
     | '/addresses/new'
+    | '/admin/area-requests'
     | '/admin/audit-log'
     | '/admin/bookings'
     | '/admin/campaigns'
@@ -1688,6 +1699,7 @@ export interface FileRouteTypes {
     | '/account/delete'
     | '/addresses/$id'
     | '/addresses/new'
+    | '/admin/area-requests'
     | '/admin/audit-log'
     | '/admin/bookings'
     | '/admin/campaigns'
@@ -2075,6 +2087,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/area-requests': {
+      id: '/admin/area-requests'
+      path: '/area-requests'
+      fullPath: '/admin/area-requests'
+      preLoaderRoute: typeof AdminAreaRequestsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/audit-log': {
@@ -2923,6 +2942,7 @@ const AddressesRouteWithChildren = AddressesRoute._addFileChildren(
 )
 
 interface AdminRouteChildren {
+  AdminAreaRequestsRoute: typeof AdminAreaRequestsRoute
   AdminAuditLogRoute: typeof AdminAuditLogRoute
   AdminBookingsRoute: typeof AdminBookingsRoute
   AdminCampaignsRoute: typeof AdminCampaignsRoute
@@ -2948,6 +2968,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminAreaRequestsRoute: AdminAreaRequestsRoute,
   AdminAuditLogRoute: AdminAuditLogRoute,
   AdminBookingsRoute: AdminBookingsRoute,
   AdminCampaignsRoute: AdminCampaignsRoute,
