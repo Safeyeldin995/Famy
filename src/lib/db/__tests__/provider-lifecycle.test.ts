@@ -8,13 +8,16 @@ import {
   fillOnboardingSections,
   IDS,
   notificationCount,
+  OVERNIGHT_CREATE_BOOKING_SQL,
   queryRows,
   searchMarketplace,
+  seedAdminOwnSubmittedApplication,
   seedDraftProvider,
   submitOnboarding,
   tryAsAnon,
   tryAsUser,
 } from "./provider-lifecycle.harness";
+import { stableCairoBookingBaseDate } from "./cairo-stable-booking-date";
 
 let db: PGlite;
 
@@ -237,12 +240,14 @@ describe("provider lifecycle (migration replay)", () => {
     );
     expect(pendingPs[0]?.status).toBe("pending");
 
-    const beforeEligible = await queryRows<{ is_eligible: boolean }>(
+    const bookingDate = stableCairoBookingBaseDate();
+    const blockedBooking = await tryAsUser(
       db,
-      `SELECT is_eligible FROM public.marketplace_eligibility_internal($1, $2, $3)`,
-      [IDS.provider, extraServiceId, IDS.addressInZone],
+      IDS.customer,
+      OVERNIGHT_CREATE_BOOKING_SQL,
+      [IDS.provider, extraServiceId, IDS.addressInZone, bookingDate, IDS.childMember],
     );
-    expect(beforeEligible[0]?.is_eligible).toBe(false);
+    expect(blockedBooking.ok, blockedBooking.error).toBe(false);
 
     await asUser(db, IDS.adminUser, async () => {
       await queryRows(db, `SELECT public.admin_set_provider_service_status($1, 'approved', NULL)`, [
@@ -266,12 +271,13 @@ describe("provider lifecycle (migration replay)", () => {
       )[0]?.status,
     ).toBe("approved");
 
-    const hourlyEligible = await queryRows<{ is_eligible: boolean }>(
+    const allowedBooking = await tryAsUser(
       db,
-      `SELECT is_eligible FROM public.marketplace_eligibility_internal($1, $2, $3)`,
-      [IDS.provider, seed.serviceId, IDS.addressInZone],
+      IDS.customer,
+      OVERNIGHT_CREATE_BOOKING_SQL,
+      [IDS.provider, extraServiceId, IDS.addressInZone, bookingDate, IDS.childMember],
     );
-    expect(hourlyEligible[0]?.is_eligible).toBe(true);
+    expect(allowedBooking.ok, allowedBooking.error).toBe(true);
   });
 
   it("price change approval affects only new bookings", async () => {
@@ -448,13 +454,23 @@ describe("provider lifecycle (migration replay)", () => {
       )[0]?.onboarding_status,
     ).toBe("SUBMITTED");
 
-    const selfApprove = await tryAsUser(
+    const nonAdminApprove = await tryAsUser(
       db,
       IDS.providerUser,
       `SELECT public.admin_provider_onboarding_action($1, 'approve', NULL, NULL, NULL)`,
       [IDS.provider],
     );
-    expect(selfApprove.ok).toBe(false);
+    expect(nonAdminApprove.ok).toBe(false);
+
+    await seedAdminOwnSubmittedApplication(db, seed.serviceId);
+    const selfApproveAll = await tryAsUser(
+      db,
+      IDS.adminProviderUser,
+      `SELECT public.admin_approve_provider_application_all($1)`,
+      [IDS.adminOwnedProvider],
+    );
+    expect(selfApproveAll.ok).toBe(false);
+    expect(selfApproveAll.error ?? "").toMatch(/cannot approve their own/i);
 
     const commissionTamper = await tryAsUser(
       db,

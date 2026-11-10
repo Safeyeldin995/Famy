@@ -6,7 +6,9 @@ export const IDS = {
   providerUser: "00000000-0000-0000-0000-00000000a011",
   otherProviderUser: "00000000-0000-0000-0000-00000000a012",
   adminUser: "00000000-0000-0000-0000-00000000a021",
+  adminProviderUser: "00000000-0000-0000-0000-00000000a031",
   provider: "00000000-0000-0000-0000-00000000a111",
+  adminOwnedProvider: "00000000-0000-0000-0000-00000000a131",
   zone: "00000000-0000-0000-0000-00000000a411",
   otherZone: "00000000-0000-0000-0000-00000000a412",
   addressInZone: "00000000-0000-0000-0000-00000000a511",
@@ -43,10 +45,12 @@ export async function asUser<T>(db: PGlite, userId: string, fn: () => Promise<T>
   try {
     await db.query("SELECT set_config('request.jwt.claim.sub', $1, true)", [userId]);
     await db.query("SELECT set_config('request.jwt.claim.aal', 'aal2', true)");
+    await db.query("SELECT set_config('request.jwt.claim.role', 'authenticated', true)");
     await db.exec("SET LOCAL ROLE authenticated");
     const result = await fn();
     await db.exec("RESET ROLE");
     await db.query("SELECT set_config('request.jwt.claim.sub', '', true)");
+    await db.query("SELECT set_config('request.jwt.claim.role', '', true)");
     await db.exec("RELEASE SAVEPOINT provider_lifecycle_user");
     return result;
   } catch (error) {
@@ -64,10 +68,12 @@ export async function asServiceRole<T>(db: PGlite, fn: () => Promise<T>): Promis
     await db.exec("SET LOCAL ROLE service_role");
     const result = await fn();
     await db.exec("RESET ROLE");
+    await db.query("SELECT set_config('request.jwt.claim.role', '', true)");
     await db.exec("RELEASE SAVEPOINT provider_lifecycle_service");
     return result;
   } catch (error) {
     await db.exec("ROLLBACK TO SAVEPOINT provider_lifecycle_service");
+    await db.query("SELECT set_config('request.jwt.claim.role', '', true)");
     await db.exec("RELEASE SAVEPOINT provider_lifecycle_service");
     throw error;
   }
@@ -201,7 +207,7 @@ export async function seedDraftProvider(db: PGlite): Promise<LifecycleSeed> {
     ON CONFLICT (id) DO NOTHING;
 
     INSERT INTO public.availability_rules (provider_id, weekday, start_time, end_time)
-    SELECT '${IDS.provider}', day, '00:00'::time, '23:59'::time FROM generate_series(0, 6) AS day
+    SELECT '${IDS.provider}', day, '00:00'::time, '24:00'::time FROM generate_series(0, 6) AS day
     ON CONFLICT DO NOTHING;
   `);
 
@@ -335,3 +341,29 @@ export async function approveProviderApplication(db: PGlite): Promise<void> {
     );
   });
 }
+
+/** Submitted application owned by a user who is both admin and provider (self-approval guard). */
+export async function seedAdminOwnSubmittedApplication(db: PGlite, serviceId: string): Promise<void> {
+  await db.exec(`
+    INSERT INTO auth.users (id, raw_user_meta_data) VALUES
+      ('${IDS.adminProviderUser}', '{"signup_role":"provider","full_name":"Admin Provider Twin"}')
+    ON CONFLICT (id) DO NOTHING;
+    INSERT INTO public.user_roles (user_id, role) VALUES ('${IDS.adminProviderUser}', 'admin')
+    ON CONFLICT DO NOTHING;
+    INSERT INTO public.providers (id, profile_id, hourly_rate, onboarding_status)
+    VALUES ('${IDS.adminOwnedProvider}', '${IDS.adminProviderUser}', 150, 'SUBMITTED')
+    ON CONFLICT (id) DO NOTHING;
+    INSERT INTO public.provider_services (provider_id, service_id, status)
+    VALUES ('${IDS.adminOwnedProvider}', '${serviceId}', 'pending')
+    ON CONFLICT (provider_id, service_id) DO UPDATE SET status = 'pending';
+  `);
+}
+
+export const OVERNIGHT_CREATE_BOOKING_SQL = `
+  SELECT public.create_booking(
+    $1::uuid, $2::uuid, $3::uuid,
+    (SELECT (($4::date + time '18:00') AT TIME ZONE 'Africa/Cairo')),
+    (SELECT (($4::date + time '18:00') AT TIME ZONE 'Africa/Cairo') + interval '6 hours'),
+    gen_random_uuid(), $5::uuid, NULL, NULL, '[]'::jsonb, NULL, NULL, NULL, NULL, 'adult_present'
+  )
+`;
