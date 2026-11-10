@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { getRequestBearerUserId } from "@/lib/auth/requestAuth.server";
+import { mapPaymobCheckoutApiFailure } from "@/lib/mobile/mobileApiStatus.server";
 import type { SupabaseAdminClient } from "@/lib/paymob/paymobCheckout.server";
 
 const BodySchema = z.object({
@@ -46,9 +47,12 @@ export const Route = createFileRoute("/api/mobile/paymob-checkout")({
             paymentId: parsed.paymentId,
           });
           return json({ ok: true, ...result });
-        } catch {
-          console.error("[mobile.paymob-checkout] failed");
-          return json({ ok: false, error: "checkout_failed" }, 500);
+        } catch (error) {
+          const mapped = mapPaymobCheckoutApiFailure(error);
+          if (mapped.status >= 500) {
+            console.error("[mobile.paymob-checkout] failed");
+          }
+          return json({ ok: false, error: mapped.error }, mapped.status);
         }
       },
     },

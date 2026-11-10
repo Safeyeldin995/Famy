@@ -26,7 +26,7 @@ type ProfileRow = {
   phone: string | null;
 };
 
-type PostgrestResult = Promise<{ data: unknown; error: { message: string } | null }>;
+type PostgrestResult = Promise<{ data: unknown; error: { message: string; code?: string } | null }>;
 
 type SupabaseQueryBuilder = {
   select: (columns: string) => SupabaseQueryBuilder;
@@ -82,6 +82,10 @@ export async function createPaymobCheckoutForPayment(input: {
     .select("id, customer_id, price_total, currency, service:services(name_en, name_ar)")
     .eq("id", input.bookingId)
     .single();
+  // A lookup failure is an outage, not a missing booking: keep it a 5xx.
+  // .single() reports "no rows" as PGRST116; that is a missing booking, not an outage.
+  if (bookingErr && bookingErr.code !== "PGRST116")
+    throw new Error("Could not load checkout data.");
   if (bookingErr || !booking) throw new Error("Booking not found.");
   const bookingRow = booking as BookingRow;
   if (bookingRow.customer_id !== input.userId) {
@@ -108,7 +112,8 @@ export async function createPaymobCheckoutForPayment(input: {
         .maybeSingle();
 
   const { data: paymentData, error: paymentErr } = await paymentQuery;
-  if (paymentErr || !paymentData) throw new Error("Payment not found for this booking.");
+  if (paymentErr) throw new Error("Could not load checkout data.");
+  if (!paymentData) throw new Error("Payment not found for this booking.");
   const payment = paymentData as PaymentRow;
 
   if (payment.payment_method_code !== "paymob" || payment.payment_method_type !== "online") {

@@ -5,7 +5,7 @@ import {
 } from "@/lib/db/admin-service-request-queries";
 import { useAdminEvidenceSignedUrl } from "@/lib/db/admin-queries";
 import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -23,6 +23,7 @@ function AdminServiceRequestReview() {
   const review = useReviewProviderServiceRequest(id);
   const signUrl = useAdminEvidenceSignedUrl();
   const [reason, setReason] = useState("");
+  const nav = useNavigate();
 
   if (q.isLoading) return <p className="text-sm">{t("common.loading")}</p>;
   if (q.isError) return <QueryError onRetry={() => q.refetch()} />;
@@ -146,7 +147,10 @@ function AdminServiceRequestReview() {
               review.mutate(
                 { status: "approved" },
                 {
-                  onSuccess: () => toast.success(t("adminServiceRequest.approved")),
+                  onSuccess: () => {
+                    toast.success(t("adminServiceRequest.approved"));
+                    void nav({ to: "/admin/service-requests" });
+                  },
                   onError: () => toast.error(t("admin.provider.approveServiceError")),
                 },
               )
@@ -170,7 +174,10 @@ function AdminServiceRequestReview() {
                 review.mutate(
                   { status: "rejected", reason: reason.trim() },
                   {
-                    onSuccess: () => toast.success(t("adminServiceRequest.rejected")),
+                    onSuccess: () => {
+                      toast.success(t("adminServiceRequest.rejected"));
+                      void nav({ to: "/admin/service-requests" });
+                    },
                     onError: () => toast.error(t("admin.provider.rejectServiceError")),
                   },
                 )

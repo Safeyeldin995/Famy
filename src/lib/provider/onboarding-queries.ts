@@ -256,7 +256,10 @@ export function useReviewProviderDocument() {
       });
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin"] });
+      void qc.invalidateQueries({ queryKey: ["admin", "work-queue"] });
+    },
   });
 }
 
@@ -289,6 +292,7 @@ export function useAdminOnboardingAction() {
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["admin"] });
       qc.invalidateQueries({ queryKey: ["admin", "provider-onboarding-review", vars.providerId] });
+      void qc.invalidateQueries({ queryKey: ["admin", "work-queue"] });
     },
   });
 }

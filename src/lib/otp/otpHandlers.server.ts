@@ -188,7 +188,13 @@ async function completeVerifiedAuth(data: VerifiedAuthInput) {
     password: interimPassword,
   });
   if (signErr || !signed.session) {
-    console.error("[otp.verify] sign-in failed", signErr);
+    const code =
+      typeof signErr === "object" && signErr && "code" in signErr
+        ? String((signErr as { code?: string }).code ?? "unknown")
+        : signed.session
+          ? "no_session"
+          : "unknown";
+    console.error("[otp.verify] sign-in failed", { code });
     throw new Error(signErr?.message ?? "signin_failed");
   }
 

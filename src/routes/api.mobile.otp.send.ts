@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
+import { mobileOtpSendFailureStatus } from "@/lib/mobile/mobileApiStatus.server";
 import { mobileJson, runWithMobileAuthCookies } from "@/lib/mobile/mobileJson.server";
 import { mobileOtpSendHandler } from "@/lib/otp/otpHandlers.server";
 
@@ -25,7 +26,11 @@ export const Route = createFileRoute("/api/mobile/otp/send")({
             mobileOtpSendHandler(parsed),
           );
           if (!result.ok) {
-            return mobileJson(result, 429, intents);
+            return mobileJson(
+              result,
+              mobileOtpSendFailureStatus(result.error),
+              intents,
+            );
           }
           const { resolveOtpProviderKind } = await import("@/lib/otp/otpProviderKind.server");
           const delivery = resolveOtpProviderKind() === "firebase" ? "firebase" : "server";
