@@ -1,5 +1,6 @@
 // Queries ported from src/lib/db/queries.ts; table/RPC filters and ordering are preserved.
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { invalidateQueryKeyList, notificationReadInvalidationKeys } from "./cacheInvalidation";
 import { supabase } from "./supabase";
 import { useSession } from "./session";
 import { isQaCatalogSlug, isQaFixtureName, isQaCatalogService } from "@shared/catalog/qaCatalog";
@@ -485,8 +486,7 @@ export function useMarkNotificationRead() {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["notifications"] });
-      qc.invalidateQueries({ queryKey: ["pro-notifications"] });
+      return invalidateQueryKeyList(qc, notificationReadInvalidationKeys());
     },
   });
 }
@@ -502,8 +502,7 @@ export function useMarkAllNotificationsRead() {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["notifications"] });
-      qc.invalidateQueries({ queryKey: ["pro-notifications"] });
+      return invalidateQueryKeyList(qc, notificationReadInvalidationKeys());
     },
   });
 }

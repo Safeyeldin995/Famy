@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { bookingCancelInvalidationKeys, invalidateQueryKeyList } from "@/lib/cacheInvalidation";
 import { supabase } from "@/lib/supabase";
 
 export type CancellationReasonRow = {
@@ -43,9 +44,7 @@ export function useCancelBooking() {
       return data;
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ["provider-booking", vars.bookingId] });
-      qc.invalidateQueries({ queryKey: ["provider-bookings"] });
-      qc.invalidateQueries({ queryKey: ["payment", vars.bookingId] });
+      return invalidateQueryKeyList(qc, bookingCancelInvalidationKeys(vars.bookingId));
     },
   });
 }
