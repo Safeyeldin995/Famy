@@ -378,7 +378,7 @@ export function ProviderServiceRequestForm({
                     )
                   }
                 >
-                  {t(`pro.onboardingWizard.ageGroups.${chip}`)}
+                  {t(`pro.onboardingWizard.ageGroupChips.${chip}`)}
                 </button>
               );
             })}
