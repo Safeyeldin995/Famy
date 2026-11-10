@@ -52,3 +52,12 @@ describe("mapPaymobCheckoutApiFailure", () => {
     });
   });
 });
+
+describe("mapPaymobCheckoutApiFailure for lookup outages", () => {
+  it("keeps database lookup failures as a retryable 503", () => {
+    expect(mapPaymobCheckoutApiFailure(new Error("Could not load checkout data."))).toEqual({
+      status: 503,
+      error: "checkout_unavailable",
+    });
+  });
+});

@@ -51,6 +51,9 @@ export function mapPaymobCheckoutApiFailure(error: unknown): {
   if (message === "Paymob checkout is already in progress for this payment.") {
     return { status: 409, error: "checkout_in_progress" };
   }
+  if (message === "Could not load checkout data.") {
+    return { status: 503, error: "checkout_unavailable" };
+  }
   if (message === "Could not save Paymob checkout details.") {
     return { status: 503, error: "checkout_unavailable" };
   }

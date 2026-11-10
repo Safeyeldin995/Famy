@@ -335,3 +335,41 @@ describe("createPaymobCheckoutForPayment concurrency", () => {
     ).rejects.toThrow("already in progress");
   });
 });
+
+describe("createPaymobCheckoutForPayment booking lookup", () => {
+  const adminWithBookingError = (error: { message: string; code?: string }) =>
+    ({
+      from: () => {
+        const chain = {
+          select: () => chain,
+          eq: () => chain,
+          order: () => chain,
+          limit: () => chain,
+          maybeSingle: async () => ({ data: null, error: null }),
+          single: async () => ({ data: null, error }),
+        };
+        return chain;
+      },
+      rpc: async () => ({ data: null, error: null }),
+    }) as unknown as SupabaseAdminClient;
+
+  it("reports a missing booking (no rows) as not found", async () => {
+    await expect(
+      createPaymobCheckoutForPayment({
+        supabaseAdmin: adminWithBookingError({ message: "no rows", code: "PGRST116" }),
+        userId: "u1",
+        bookingId: "b1",
+      } as never),
+    ).rejects.toThrow("Booking not found.");
+  });
+
+  it("reports a database failure as an outage, not a missing booking", async () => {
+    await expect(
+      createPaymobCheckoutForPayment({
+        supabaseAdmin: adminWithBookingError({ message: "timeout", code: "57014" }),
+        userId: "u1",
+        bookingId: "b1",
+      } as never),
+    ).rejects.toThrow("Could not load checkout data.");
+  });
+});
