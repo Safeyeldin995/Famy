@@ -1394,7 +1394,7 @@ const en = {
       "Your name, phone number, and profile photo",
       "Saved addresses and family members",
       "Provider documents and photos",
-      "Push notification tokens and preferences",
+      "Notification settings on your devices",
     ],
     keptTitle: "What we keep (anonymized)",
     keptBody:
