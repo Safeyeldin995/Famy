@@ -2,6 +2,7 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { Home, Briefcase, Users, MapPin, Pencil, Trash2, Plus, Star } from "lucide-react-native";
+import { customerNumber } from "@/lib/customerFormat";
 import { colors } from "@/ui/theme";
 import { customerAreaLabel } from "../../../../src/components/famio/customerAreaLabel";
 import { useTranslation } from "react-i18next";
@@ -12,7 +13,7 @@ import { Button } from "@/ui/Button";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 
 export default function Addresses() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const q = useAddresses();
   const setDefault = useSetDefaultAddress();
   const remove = useDeleteAddress();
@@ -32,7 +33,9 @@ export default function Addresses() {
       <View style={[ui.card, { flexDirection: "row", alignItems: "center", gap: 12 }]}>
         <View style={{ flex: 1 }}>
           <Text weight="heavy">
-            {t("customerRound2.addressCount", { countLabel: String(q.data?.length ?? 0) })}
+            {t("customerRound2.addressCount", {
+              countLabel: customerNumber(q.data?.length ?? 0, i18n.language),
+            })}
           </Text>
           <Text size="xs" tone="muted">
             {t("addresses.subtitle")}

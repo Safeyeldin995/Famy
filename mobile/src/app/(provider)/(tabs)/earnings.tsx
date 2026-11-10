@@ -97,7 +97,7 @@ export default function ProviderEarnings() {
       <View
         style={{
           borderRadius: radius.xl,
-          padding: 20,
+          padding: space.xl,
           backgroundColor: colors.brand,
           gap: space.sm,
         }}

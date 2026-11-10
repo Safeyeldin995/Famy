@@ -1,13 +1,14 @@
 import { Pressable, View } from "react-native";
 import { router } from "expo-router";
-import { CalendarDays, Clock, ChevronRight, ChevronLeft } from "lucide-react-native";
+import { CalendarDays, Clock } from "lucide-react-native";
 import { Text } from "@/ui/Text";
 import { colors, space } from "@/ui/theme";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMyBookings, useBookingParties } from "@/lib/queries";
 import { activeStatuses, localized } from "@/lib/presentation";
-import { customerMoney } from "@/lib/customerFormat";
+import { customerMoney, customerNumber } from "@/lib/customerFormat";
+import { rowChevronIcon } from "@/ui/rtlNavigation";
 import { Page, QueryState, ui } from "@/ui/Page";
 import { Segmented } from "@/ui/Segmented";
 import { bookingStatusStyle } from "@/ui/customer/bookingStatusStyle";
@@ -30,7 +31,7 @@ export default function Bookings() {
         : ["cancelled", "no_show"].includes(b.status),
   );
   const locale = i18n.language === "ar" ? "ar-EG-u-nu-latn" : "en-EG";
-  const Arrow = i18n.language === "ar" ? ChevronLeft : ChevronRight;
+  const Arrow = rowChevronIcon(i18n.language);
   return (
     <Page
       tab
@@ -61,7 +62,7 @@ export default function Bookings() {
           {!q.isLoading && !q.isError ? (
             <View style={[ui.badge, { backgroundColor: colors.surface2 }]}>
               <Text size="xs" weight="bold" tone="muted">
-                {String(rows.length)}
+                {customerNumber(rows.length, i18n.language)}
               </Text>
             </View>
           ) : null}

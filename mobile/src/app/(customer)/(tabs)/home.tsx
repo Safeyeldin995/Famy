@@ -213,7 +213,7 @@ export default function Home() {
           snapToInterval={284}
           decelerationRate="fast"
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+          contentContainerStyle={{ paddingHorizontal: space.xl, gap: space.md }}
           style={{ marginTop: 32 }}
         >
           {promos.data.map((p) => (

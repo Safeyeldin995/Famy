@@ -5,13 +5,12 @@ import {
   Platform,
   Pressable,
   StyleSheet,
-  TextInput,
   View,
 } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Send, ShieldCheck } from "lucide-react-native";
+import { ShieldCheck } from "lucide-react-native";
 import {
   CONTACT_BLOCKED_MESSAGE,
   containsContactInfo,
@@ -23,11 +22,12 @@ import {
 import { useSession } from "@/lib/session";
 import { Avatar } from "@/ui/ProviderCard";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
+import { ChatComposer } from "@/ui/chat/ChatComposer";
 import { MessageBubble } from "@/ui/chat/MessageBubble";
 import { Button } from "@/ui/Button";
 import { ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
-import { colors, fonts, space } from "@/ui/theme";
+import { colors, space } from "@/ui/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ChatScreen() {
@@ -139,69 +139,15 @@ export default function ChatScreen() {
               </View>
             }
           />
-          {warning ? (
-            <View style={{ paddingHorizontal: 16, paddingVertical: 8, backgroundColor: "#FFFBEB" }}>
-              <Text size="xs" accessibilityRole="alert">
-                {warning}
-              </Text>
-            </View>
-          ) : null}
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "flex-end",
-              gap: 8,
-              paddingHorizontal: 12,
-              paddingTop: 10,
-              paddingBottom: 12,
-              backgroundColor: colors.surface,
-              borderTopWidth: 1,
-              borderTopColor: colors.border,
-            }}
-          >
-            <TextInput
-              testID="chat-input"
-              accessibilityLabel={t("messages.placeholder")}
-              value={draft}
-              onChangeText={(text) => {
-                setDraft(text);
-                setWarning(null);
-              }}
-              placeholder={t("messages.placeholder")}
-              placeholderTextColor={colors.muted}
-              maxLength={2000}
-              onSubmitEditing={() => handleSend(draft.trim())}
-              style={{
-                flex: 1,
-                height: 48,
-                borderRadius: 24,
-                backgroundColor: colors.surface2,
-                paddingHorizontal: 16,
-                fontSize: 14,
-                color: colors.foreground,
-                fontFamily: (i18n.language === "ar" ? fonts.ar : fonts.en).regular,
-                textAlign: "auto",
-              }}
-            />
-            <Pressable
-              testID="chat-send"
-              accessibilityRole="button"
-              accessibilityLabel={t("messages.send")}
-              disabled={!draft.trim() || send.isPending}
-              onPress={() => handleSend(draft.trim())}
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 24,
-                backgroundColor: colors.brand,
-                alignItems: "center",
-                justifyContent: "center",
-                opacity: !draft.trim() || send.isPending ? 0.4 : 1,
-              }}
-            >
-              <Send size={16} color={colors.surface} />
-            </Pressable>
-          </View>
+          <ChatComposer
+            value={draft}
+            onChangeText={setDraft}
+            onSend={handleSend}
+            pending={send.isPending}
+            warning={warning}
+            onClearWarning={() => setWarning(null)}
+            multiline={false}
+          />
         </>
       )}
     </KeyboardAvoidingView>

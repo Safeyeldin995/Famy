@@ -3,11 +3,12 @@ import { Tabs } from "expo-router/tabs";
 import { useTranslation } from "react-i18next";
 import { CalendarRange, ClipboardList, LayoutDashboard, User, Wallet } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useWindowDimensions, type TextStyle } from "react-native";
+import { useWindowDimensions } from "react-native";
 import { useSession } from "@/lib/session";
 import { ProviderGate } from "@/ui/provider/ProviderGate";
-import { colors, fonts } from "@/ui/theme";
-import { COMPACT_FONT_SCALE_CAP, scaledTabBarHeight } from "@/ui/a11y";
+import { colors } from "@/ui/theme";
+import { scaledTabBarHeight } from "@/ui/a11y";
+import { tabBarLabelStyle } from "@/ui/navigationTypography";
 
 export default function ProviderTabs() {
   const { session, ready } = useSession();
@@ -15,8 +16,6 @@ export default function ProviderTabs() {
   const insets = useSafeAreaInsets();
   const { fontScale } = useWindowDimensions();
   if (ready && !session) return <Redirect href="/login" />;
-  const labelFont = (i18n.language === "en" ? fonts.en : fonts.ar).bold;
-
   return (
     <ProviderGate>
       <Tabs
@@ -24,12 +23,7 @@ export default function ProviderTabs() {
           headerShown: false,
           tabBarActiveTintColor: colors.brandText,
           tabBarInactiveTintColor: colors.muted,
-          tabBarLabelStyle: {
-            fontFamily: labelFont,
-            fontSize: 11,
-            lineHeight: 18,
-            maxFontSizeMultiplier: COMPACT_FONT_SCALE_CAP,
-          } as TextStyle,
+          tabBarLabelStyle: tabBarLabelStyle(i18n.language),
           tabBarStyle: {
             borderTopColor: colors.border,
             backgroundColor: colors.surface,

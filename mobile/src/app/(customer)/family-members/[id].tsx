@@ -4,6 +4,7 @@ import { useFamilyMember, useUpdateFamilyMember, type FamilyMemberInput } from "
 import { Page, QueryState } from "@/ui/Page";
 import { FamilyMemberForm } from "@/ui/FamilyMemberForm";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
+import { space } from "@/ui/theme";
 export default function EditMember() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
@@ -13,7 +14,7 @@ export default function EditMember() {
     <Page
       title={t("common.edit")}
       header={<CustomerPageHeader title={t("common.edit")} backTo="/family-members" />}
-      contentStyle={{ paddingHorizontal: 24, gap: 20 }}
+      contentStyle={{ paddingHorizontal: space.xxl, gap: space.xl }}
     >
       <QueryState query={q} empty={!q.data} emptyKey="familyMembers.notFound">
         {q.data && (

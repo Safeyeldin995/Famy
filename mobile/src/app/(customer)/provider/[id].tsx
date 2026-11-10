@@ -16,6 +16,7 @@ import {
 } from "@/lib/queries";
 import { useProviderAvailability } from "@/lib/provider/queries";
 import { appConfig } from "@/lib/supabase";
+import { customerNumber } from "@/lib/customerFormat";
 import { localized, money } from "@/lib/presentation";
 import { isFixedPackage, packageLabel } from "@shared/pricing/servicePackages";
 import { workingHoursSummary } from "@shared/provider/workingHoursSummary";
@@ -222,7 +223,10 @@ export default function ProviderProfile() {
               ]}
             >
               {[
-                [t("providerPage.completed"), String(p.ratings.rating_count ?? 0)],
+                [
+                  t("providerPage.completed"),
+                  customerNumber(Number(p.ratings.rating_count ?? 0), i18n.language),
+                ],
                 [
                   t("providerPage.experience"),
                   t("providerPage.years", { count: Number(p.years_experience) }),
@@ -419,7 +423,7 @@ export default function ProviderProfile() {
                         </View>
                         <Star size={16} color={colors.warning} fill={colors.warning} />
                         <Text size="sm" weight="bold">
-                          {String(r.rating)}
+                          {customerNumber(r.rating, i18n.language)}
                         </Text>
                       </View>
                       {r.comment ? <Text>{r.comment}</Text> : null}

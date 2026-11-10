@@ -1,11 +1,11 @@
 import wordmark from "@/assets/images/famy-wordmark.png";
 import { useEffect, useState } from "react";
-import { Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { router } from "expo-router";
 import { Image } from "expo-image";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useTranslation } from "react-i18next";
-import { Briefcase, Eye, EyeOff, User } from "lucide-react-native";
+import { Briefcase, User } from "lucide-react-native";
 import Svg, { Path } from "react-native-svg";
 import { normalizeDigitsToWestern, normalizePhoneE164 } from "@shared/otp/normalizePhone";
 import { phoneOtpFlowErrorMessage, startPhoneOtpFlow } from "@/lib/auth/phoneOtpFlow";
@@ -26,12 +26,12 @@ import {
   isUserBannedAuthError,
 } from "@/lib/auth/bannedAccountSession";
 import { customerLandingPath, resolveWorkspace } from "@/lib/session";
-import { bodyTextInputProps } from "@/ui/a11y";
+import { AuthLabeledField, AuthPasswordField, AuthPhoneField } from "@/ui/auth/AuthFields";
 import { Button } from "@/ui/Button";
 import { Segmented } from "@/ui/Segmented";
 import { Text } from "@/ui/Text";
 import { KeyboardFormScreen } from "@/ui/KeyboardFormScreen";
-import { colors, fonts, radius, space } from "@/ui/theme";
+import { colors, radius, space } from "@/ui/theme";
 
 type Mode = "signin" | "signup";
 type Role = "customer" | "provider";
@@ -55,7 +55,6 @@ export default function Login() {
   }, [t]);
 
   const phoneValid = normalizeDigitsToWestern(phone).replace(/\D/g, "").length >= 9;
-  const inputFont = (i18n.language === "en" ? fonts.en : fonts.ar).bold;
 
   const signIn = async () => {
     if (!phoneValid || !password || loading) return;
@@ -201,66 +200,38 @@ export default function Login() {
         />
       </View>
 
-      <View style={{ gap: space.sm }}>
-        <Text size="sm" weight="bold" tone="muted">
-          {t("auth.phoneNumber")}
-        </Text>
-        <View style={[styles.field, styles.ltr]}>
-          <View style={styles.prefix}>
-            <Text weight="heavy">🇪🇬 +20</Text>
-          </View>
-          <TextInput
-            {...bodyTextInputProps()}
-            value={phone}
-            onChangeText={(v) => setPhone(v.replace(/[^\d٠-٩ ]/g, ""))}
-            placeholder={t("auth.phonePlaceholder")}
-            placeholderTextColor={colors.muted}
-            keyboardType="phone-pad"
-            autoComplete="tel"
-            textContentType="telephoneNumber"
-            style={[styles.input, { fontFamily: inputFont, textAlign: "left" }]}
-          />
-        </View>
-      </View>
+      <AuthLabeledField label={t("auth.phoneNumber")}>
+        <AuthPhoneField
+          value={phone}
+          onChangeText={setPhone}
+          placeholder={t("auth.phonePlaceholder")}
+        />
+      </AuthLabeledField>
 
       {mode === "signin" ? (
-        <View style={{ gap: space.sm }}>
-          <View style={styles.labelRow}>
-            <Text size="sm" weight="bold" tone="muted">
-              {t("auth.password")}
-            </Text>
+        <AuthLabeledField
+          label={t("auth.password")}
+          labelAccessory={
             <Pressable onPress={() => router.push("/forgot-password")} hitSlop={12}>
               <Text size="sm" weight="heavy" tone="brand">
                 {t("auth.forgot")}
               </Text>
             </Pressable>
-          </View>
-          <View style={styles.field}>
-            <TextInput
-              {...bodyTextInputProps()}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPw}
-              autoComplete="current-password"
-              textContentType="password"
-              placeholder="••••••••"
-              placeholderTextColor={colors.muted}
-              onSubmitEditing={signIn}
-              style={[styles.input, { fontFamily: inputFont }]}
-            />
-            <Pressable
-              onPress={() => setShowPw((v) => !v)}
-              accessibilityLabel={showPw ? t("auth.hidePassword") : t("auth.showPassword")}
-              style={styles.eye}
-            >
-              {showPw ? (
-                <EyeOff size={20} color={colors.muted} />
-              ) : (
-                <Eye size={20} color={colors.muted} />
-              )}
-            </Pressable>
-          </View>
-        </View>
+          }
+        >
+          <AuthPasswordField
+            value={password}
+            onChangeText={setPassword}
+            showPassword={showPw}
+            onToggleShow={() => setShowPw((v) => !v)}
+            showPasswordLabel={t("auth.showPassword")}
+            hidePasswordLabel={t("auth.hidePassword")}
+            autoComplete="current-password"
+            textContentType="password"
+            placeholder="••••••••"
+            onSubmitEditing={signIn}
+          />
+        </AuthLabeledField>
       ) : null}
 
       {error ? (
@@ -372,28 +343,6 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   content: { padding: space.xxl, gap: space.xxl, paddingBottom: 48 },
   wordmark: { width: 120, height: 38, alignSelf: "flex-start" },
-  field: {
-    minHeight: 56,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: space.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    backgroundColor: colors.surface,
-    paddingHorizontal: space.md,
-  },
-  ltr: { direction: "ltr" },
-  prefix: {
-    minHeight: 40,
-    justifyContent: "center",
-    paddingHorizontal: 10,
-    borderRadius: radius.sm,
-    backgroundColor: colors.surface2,
-  },
-  input: { flex: 1, minHeight: 48, fontSize: 16, color: colors.foreground },
-  eye: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  labelRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   error: { backgroundColor: "#FBE7E6", borderRadius: radius.md, padding: space.md },
   dividerRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
   dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },

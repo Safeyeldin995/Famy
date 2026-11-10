@@ -9,7 +9,7 @@ import { applyDirection, saveLanguage } from "@/lib/i18n";
 import { completeOnboarding } from "@/lib/onboarding";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
-import { colors } from "@/ui/theme";
+import { colors, space } from "@/ui/theme";
 import slideOne from "../../assets/onboarding/slide-1-trusted.png";
 import slideTwo from "../../assets/onboarding/slide-2-booking.png";
 import slideThree from "../../assets/onboarding/slide-3-peace.png";
@@ -137,7 +137,7 @@ export default function Onboarding() {
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: "white" },
-  content: { flex: 1, paddingHorizontal: 20, paddingBottom: 16 },
+  content: { flex: 1, paddingHorizontal: space.xl, paddingBottom: space.lg },
   header: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 12 },
   side: { flex: 1 },
   skip: {

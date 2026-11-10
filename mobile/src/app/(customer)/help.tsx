@@ -7,7 +7,7 @@ import { Page, QueryState, ActionError, ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
-import { colors } from "@/ui/theme";
+import { colors, space } from "@/ui/theme";
 export default function Help() {
   const { t } = useTranslation();
   const q = useSupportContact();
@@ -39,7 +39,7 @@ export default function Help() {
       contentStyle={{ paddingTop: 0, gap: 16 }}
       scrollHeader
     >
-      <View style={[ui.card, { marginTop: -32, borderRadius: 28, padding: 20 }]}>
+      <View style={[ui.card, { marginTop: -32, borderRadius: 28, padding: space.xl }]}>
         <Text size="xl" weight="heavy">
           {t("helpC.heroTitle")}
         </Text>

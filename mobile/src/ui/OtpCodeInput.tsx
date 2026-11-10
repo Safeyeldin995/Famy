@@ -3,7 +3,8 @@ import { StyleSheet, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { OTP_LENGTH, applyOtpBackspace, applyOtpDigitInput } from "@/lib/auth/otpCodeInputLogic";
 import { compactTextInputProps } from "./a11y";
-import { colors, fonts, radius, space } from "./theme";
+import { useInputFont } from "./auth/useInputFont";
+import { colors, fontSize, radius, space } from "./theme";
 
 type Props = {
   value: string[];
@@ -11,12 +12,14 @@ type Props = {
   onComplete?: (code: string) => void;
   disabled?: boolean;
   invalid?: boolean;
-  inputFont: string;
+  inputFont?: string;
 };
 
 export function OtpCodeInput({ value, onChange, onComplete, disabled, invalid, inputFont }: Props) {
   const refs = useRef<(ComponentRef<typeof TextInput> | null)[]>([]);
   const { t } = useTranslation();
+  const defaultFont = useInputFont("bold");
+  const cellFont = inputFont ?? defaultFont;
 
   const focusAt = (index: number) => {
     refs.current[index]?.focus();
@@ -58,7 +61,7 @@ export function OtpCodeInput({ value, onChange, onComplete, disabled, invalid, i
           }}
           style={[
             styles.cell,
-            { fontFamily: inputFont },
+            { fontFamily: cellFont },
             invalid && styles.cellInvalid,
             disabled && styles.cellDisabled,
           ]}
@@ -83,7 +86,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     backgroundColor: colors.surface2,
     textAlign: "center",
-    fontSize: 20,
+    fontSize: fontSize.xl,
     color: colors.foreground,
   },
   cellInvalid: { borderColor: colors.destructive },
