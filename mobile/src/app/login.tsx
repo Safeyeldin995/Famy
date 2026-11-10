@@ -25,6 +25,7 @@ import {
   handleUserBannedSession,
   isUserBannedAuthError,
 } from "@/lib/auth/bannedAccountSession";
+import { replaceAfterLoginNavigation } from "@/lib/afterLoginNavigation";
 import { customerLandingPath, resolveWorkspace } from "@/lib/session";
 import { bodyTextInputProps } from "@/ui/a11y";
 import { Button } from "@/ui/Button";
@@ -88,10 +89,10 @@ export default function Login() {
       return;
     }
     if (workspace === "provider") {
-      router.replace("/dashboard");
+      await replaceAfterLoginNavigation(workspace, "/dashboard");
       return;
     }
-    router.replace(await customerLandingPath(data.user.id));
+    await replaceAfterLoginNavigation(workspace, await customerLandingPath(data.user.id));
   };
 
   const finishOAuth = async () => {
@@ -104,7 +105,21 @@ export default function Login() {
       router.replace("/workspace-on-web");
       return;
     }
-    router.replace(route.path as "/home");
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      router.replace(route.path as "/home");
+      return;
+    }
+    const { workspace } = await resolveWorkspace(user.id);
+    if (workspace === "admin") {
+      router.replace("/workspace-on-web");
+      return;
+    }
+    const defaultPath =
+      workspace === "provider" ? "/dashboard" : (route.path as string);
+    await replaceAfterLoginNavigation(workspace, defaultPath);
   };
 
   const runOAuth = async (provider: OAuthProvider, action: () => Promise<void>) => {

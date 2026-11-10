@@ -9,7 +9,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { mapNotificationDeepLink, type PushWorkspace } from "@shared/push/mapNotificationDeepLink";
 import { supabase } from "./supabase";
 import { resolveWorkspace, useSession, type Workspace } from "./session";
-import { consumePendingPushDeepLink, stashPendingPushDeepLink } from "./pendingPushDeepLink";
+import { stashPendingPushDeepLink } from "./pendingPushDeepLink";
 import { navigatePushTarget } from "./pushNavigation";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
@@ -138,7 +138,6 @@ export function PushBridge() {
   const [promptOpen, setPromptOpen] = useState(false);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const handledColdStart = useRef(false);
-  const consumedPending = useRef(false);
 
   useEffect(() => {
     if (!session?.user.id) {
@@ -153,18 +152,6 @@ export function PushBridge() {
       cancelled = true;
     };
   }, [session?.user.id]);
-
-  useEffect(() => {
-    if (!session) {
-      consumedPending.current = false;
-      return;
-    }
-    if (!workspace || consumedPending.current) return;
-    consumedPending.current = true;
-    void consumePendingPushDeepLink().then((deepLink) => {
-      if (deepLink) handlePushDeepLink(deepLink, workspace, true);
-    });
-  }, [session, workspace]);
 
   const runPromptFlow = useCallback(async () => {
     if (!Device.isDevice || Platform.OS === "web" || !session) return;
