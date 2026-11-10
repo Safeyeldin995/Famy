@@ -18,7 +18,7 @@ Complete the [Data safety form](https://support.google.com/googleplay/android-de
 | **Email** | If OAuth / profile | As needed for auth | Sign-in | Optional (phone auth available) |
 | **User IDs** | Yes | No (internal) | Account | Required |
 | **Address** | Yes | With provider for service | Booking fulfillment | Required for booking |
-| **Precise location** | Yes (when user taps “use my location”) | Stored as address coordinates | Address pin on map | Optional per address |
+| **Precise location (lat/long)** | Yes — whenever a service address is saved (GPS **or** manual pin on the map) | No (third parties) | App functionality: save service address, map pin, booking fulfillment | **Required** to save a service address (valid coordinates on submit) |
 | **Photos** | Yes (user uploads) | Stored on Famy; admins/providers per policy | Profile, payment proof, provider ID docs | Optional except where required |
 | **Other documents** | Yes (providers / payment PDFs) | Reviewed per policy | Verification, payment proof | Context-dependent |
 | **Calendar / booking info** | Yes | Between customer and provider | Service scheduling | Required for bookings |
@@ -28,6 +28,14 @@ Complete the [Data safety form](https://support.google.com/googleplay/android-de
 | **Device or other IDs** | Push token | Push infrastructure | Notifications | Optional (push opt-in) |
 | **Crash logs** | Not explicitly integrated in mobile app reviewed | — | — | — |
 | **Payment card numbers** | **No in app** | Entered on Paymob hosted flow when paying online | Online payment | User choice |
+
+### Service address coordinates
+
+- Saving a service address stores **latitude and longitude** for the pinned location, not only a text label.
+- Coordinates come from **“use my location”** *or* from **manually moving the pin** on the map (`LocationPicker` → `AddressEditor`); denying GPS does **not** avoid coordinate collection if the user still saves an address.
+- **Not collected in the background** — only while the user is actively placing or editing an address (foreground map flow).
+- Used for **app functionality** (matching, routing context, booking fulfillment with the saved address).
+- **Not shared with third parties** (no ad/analytics location SDK); address details needed for an active booking are shared with the matched provider as part of fulfillment, not sold.
 
 ### Family / children
 
