@@ -97,6 +97,7 @@ export function AuthPasswordField({
       />
       <Pressable
         onPress={onToggleShow}
+        accessibilityRole="button"
         accessibilityLabel={showPassword ? hidePasswordLabel : showPasswordLabel}
         style={styles.eye}
       >
