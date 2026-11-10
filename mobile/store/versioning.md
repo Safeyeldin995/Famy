@@ -2,14 +2,13 @@
 
 Configured in `mobile/eas.json`:
 
-- **`cli.appVersionSource`: `remote`** — production `version`, iOS `buildNumber`, and Android `versionCode` are stored on EAS and updated at build time rather than only from git.
+- **`cli.appVersionSource`: `remote`** — production `version`, iOS `buildNumber`, and Android `versionCode` live on EAS, not in git. Local `ios.buildNumber` / `android.versionCode` in `app.json` are omitted so EAS does not warn about ignored values.
 - **`build.production.autoIncrement`: `true`** — each production store build bumps the native build number / version code on EAS.
 
-Local `app.json` values:
+Local `app.json`:
 
-- `expo.version` (`1.0.0`) — user-visible marketing version; bump when releasing noticeable product changes.
-- `expo.ios.buildNumber` (`1`) — baseline for new projects; production builds defer to EAS remote values after the first production build.
-- `expo.android.versionCode` (`1`) — same as iOS build number.
+- **`expo.version`** (`1.0.0`) — user-visible marketing version; bump when releasing noticeable product changes.
+- **Do not** set `expo.ios.buildNumber` or `expo.android.versionCode` while `appVersionSource` is `remote`.
 
 **Workflow**
 

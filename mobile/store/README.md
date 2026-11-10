@@ -15,8 +15,9 @@ Draft copy and checklists for Google Play and the Apple App Store. **Do not trea
 
 | Field | Value |
 | --- | --- |
-| Listing / config name | فامي / Famy |
-| iOS home screen (localized) | Famy (en), فامي (ar) — see `mobile/locales/*.json` |
+| `expo.name` (launcher default) | Famy |
+| Store listing title (draft) | فامي / Famy — see `listing.*.md` |
+| iOS home screen (localized) | Famy (en), فامي (ar) — `mobile/locales/*.json` (`CFBundleDisplayName`); Android launcher stays Famy unless localized labels are added later |
 | Slug | `famy` |
 | Deep link scheme | `famy` |
 | iOS bundle ID | `com.famy.app` |
