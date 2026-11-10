@@ -184,7 +184,10 @@ async function run() {
     }
     let data;
     if (url.pathname.includes("/rpc/")) {
-      if (table === "booking_party_profiles") {
+      if (
+        table === "booking_party_profiles" ||
+        table === "booking_party_profiles_with_member_age"
+      ) {
         data = (body.p_booking_ids || []).map((booking_id) => ({
           booking_id,
           other_name: "عميل - اختبار",

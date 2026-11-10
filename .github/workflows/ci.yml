@@ -88,5 +88,8 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
+      - name: Accessibility and RTL static checks
+        run: node qa/a11y-rtl.cjs
+
       - name: Bundle Android
         run: npx expo export --platform android --output-dir /tmp/mobile-export

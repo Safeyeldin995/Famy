@@ -159,6 +159,7 @@ export default function ProviderProfile() {
         {provider?.onboarding_status === "APPROVED" ? (
           <Pressable
             accessibilityRole="button"
+            accessibilityLabel={t("pro.serviceRequest.addServiceLink")}
             onPress={() => router.push("/pro-profile-edit")}
             style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: 8 }}
           >
