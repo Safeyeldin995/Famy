@@ -32,7 +32,7 @@ export const Route = createFileRoute("/")({
         ar: {
           title: "فامي | جليسات أطفال ومدرسين خصوصيين في مصر",
           description:
-            "فامي بتربط العيلات بجليسات أطفال ومدرسين خصوصيين موثوقين في مصر. حمل التطبيق واحجز بأمان.",
+            "فامي بتربط العائلات بجليسات أطفال ومدرسين خصوصيين موثوقين في مصر. حمل التطبيق واحجز بأمان.",
         },
         en: {
           title: "Famy | Trusted babysitters and tutors in Egypt",
@@ -140,7 +140,7 @@ function Landing() {
               <source srcSet={heroWebp} type="image/webp" />
               <img
                 src={heroImage}
-                alt=""
+                alt={t("site.hero.imageAlt")}
                 className="relative mx-auto w-full max-w-md rounded-[2.5rem] shadow-float"
                 width={771}
                 height={720}
@@ -245,7 +245,7 @@ function Landing() {
             <source srcSet={appWebp} type="image/webp" />
             <img
               src={appImage}
-              alt=""
+              alt={t("site.download.imageAlt")}
               className="mx-auto w-full max-w-sm rounded-[2.5rem] shadow-card"
               width={771}
               height={720}

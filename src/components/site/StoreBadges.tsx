@@ -5,19 +5,13 @@ const APPLE_PATH =
 const PLAY_PATH =
   "M22.018 13.298l-3.919 2.218-3.515-3.493 3.543-3.521 3.891 2.202a1.49 1.49 0 0 1 0 2.594zM1.337.924a1.486 1.486 0 0 0-.112.568v21.017c0 .217.045.419.124.6l11.155-11.087L1.337.924zm12.207 10.065l3.258-3.238L3.45.195a1.466 1.466 0 0 0-.946-.179l11.04 10.973zm0 2.067l-11 10.933c.298.036.612-.016.906-.183l13.324-7.54-3.23-3.21z";
 
-function Badge({
-  path,
-  store,
-  label,
-  href,
-}: {
-  path: string;
-  store: string;
-  label: string;
-  href?: string;
-}) {
-  const body = (
-    <>
+function Badge({ path, store, label }: { path: string; store: string; label: string }) {
+  return (
+    <div
+      className="inline-flex min-h-12 items-center gap-2.5 rounded-xl bg-ink px-4 py-2 text-ink-foreground"
+      dir="ltr"
+      aria-label={`${store} — ${label}`}
+    >
       <svg viewBox="0 0 24 24" className="h-6 w-6 shrink-0" fill="currentColor" aria-hidden="true">
         <path d={path} />
       </svg>
@@ -25,44 +19,18 @@ function Badge({
         <span className="text-pro-12 font-semibold opacity-80">{label}</span>
         <span className="text-pro-14 font-extrabold">{store}</span>
       </span>
-    </>
-  );
-
-  const className =
-    "inline-flex min-h-12 items-center gap-2.5 rounded-xl bg-ink px-4 py-2 text-ink-foreground";
-
-  if (href) {
-    return (
-      <a
-        href={href}
-        className={`focus-ring ${className}`}
-        dir="ltr"
-        rel="noopener noreferrer"
-        target="_blank"
-        aria-label={`${store} — ${label}`}
-      >
-        {body}
-      </a>
-    );
-  }
-
-  return (
-    <div className={className} dir="ltr" aria-label={`${store} — ${label}`}>
-      {body}
     </div>
   );
 }
 
 export function StoreBadges({ className = "" }: { className?: string }) {
   const { t } = useTranslation();
-  const appStoreUrl = import.meta.env.VITE_APP_STORE_URL?.trim();
-  const playStoreUrl = import.meta.env.VITE_PLAY_STORE_URL?.trim();
   const soon = t("site.download.comingSoon");
 
   return (
     <div className={`flex flex-wrap gap-3 ${className}`}>
-      <Badge path={APPLE_PATH} store="App Store" label={soon} href={appStoreUrl || undefined} />
-      <Badge path={PLAY_PATH} store="Google Play" label={soon} href={playStoreUrl || undefined} />
+      <Badge path={APPLE_PATH} store="App Store" label={soon} />
+      <Badge path={PLAY_PATH} store="Google Play" label={soon} />
     </div>
   );
 }

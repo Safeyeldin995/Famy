@@ -32,8 +32,28 @@ import { toast } from "sonner";
 import { useProviderOnlyCustomerRedirect } from "@/lib/auth/providerOnlyCustomerGuard";
 import { previewBookPath, previewPath } from "@/lib/preview/previewPath";
 import { ProviderWebShare } from "@/components/site/ProviderWebShare";
+import { siteHead, siteLanguage } from "@/lib/site/seo";
 
-export const Route = createFileRoute("/provider/$id")({ component: ProviderProfile });
+export const Route = createFileRoute("/provider/$id")({
+  head: ({ matches, params }) =>
+    siteHead(
+      `/provider/${params.id}`,
+      {
+        ar: {
+          title: "مقدم خدمة على فامي | Famy",
+          description:
+            "حد شارك معاك مقدم خدمة على فامي. حمل التطبيق علشان تشوف البروفايل وتحجز.",
+        },
+        en: {
+          title: "Famy provider profile",
+          description:
+            "Someone shared a Famy provider with you. Get the app to view their profile and book.",
+        },
+      },
+      siteLanguage(matches),
+    ),
+  component: ProviderProfile,
+});
 
 type ServiceRow = {
   price_override: number | null;

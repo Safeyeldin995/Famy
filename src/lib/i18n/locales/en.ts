@@ -43,6 +43,7 @@ const en = {
       eyebrow: "Trusted help for Egyptian families",
       title: "People you can trust, at home, on your schedule",
       body: "Babysitters and private tutors whose ID and details our team reviews before they start. Choose, book and follow everything in the app.",
+      imageAlt: "Parent and child at home with a babysitter",
       primary: "Get started",
       secondary: "Become a provider",
       areas: "Now available in",
@@ -99,6 +100,7 @@ const en = {
     download: {
       title: "Famy is coming to your phone",
       body: "The Famy app for Android and iPhone is coming soon to the stores. You will book and follow everything from the app.",
+      imageAlt: "Famy app booking screen on a phone",
       comingSoon: "Coming soon on",
       useWeb: "Use Famy in your browser",
     },
@@ -1382,6 +1384,9 @@ const en = {
   accountDeletion: {
     menuLabel: "Delete my account",
     title: "Delete account",
+    webPublicLead:
+      "Sign in with the phone number on your Famy account to confirm and finish deletion on this page.",
+    webSignIn: "Sign in to delete your account",
     intro:
       "This permanently removes your personal details from Famy. You will not be able to sign in again with this account.",
     deletedTitle: "What we delete",
