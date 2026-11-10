@@ -1,5 +1,15 @@
 import type { PGlite } from "@electric-sql/pglite";
+import { cairoDatePlusDays, stableCairoBookingBaseDate } from "./cairo-stable-booking-date";
 import { createMigrationReplayDb, replayAllMigrations } from "./migration-replay.harness";
+
+/** Fixed Cairo local times — daytime slot that stays inside 00:00–23:59 availability rules. */
+export const LIFECYCLE_SLOT_START = "10:00";
+export const LIFECYCLE_SLOT_END = "12:00";
+export const LIFECYCLE_RESCHEDULE_START = "14:00";
+export const LIFECYCLE_RESCHEDULE_END = "16:00";
+
+const PAYMENT_CASH_ID = "00000000-0000-0000-0000-000000000901";
+const PAYMENT_PAYMOB_ID = "00000000-0000-0000-0000-000000000902";
 
 export const IDS = {
   customer: "00000000-0000-0000-0000-000000000001",
@@ -150,7 +160,8 @@ export async function seedLifecycleBooking(
     `SELECT count(*)::int AS n FROM public.bookings WHERE provider_id = $1`,
     [providerId],
   );
-  const slotDays = 2 + (slotOffsetRows[0]?.n ?? 0);
+  const slotDays = slotOffsetRows[0]?.n ?? 0;
+  const slotDate = cairoDatePlusDays(lifecycleBookingBaseDate(), slotDays);
 
   const created = await asUser(db, customerId, () =>
     queryRows<{ result: { booking_id: string } }>(
@@ -158,15 +169,23 @@ export async function seedLifecycleBooking(
       `
         SELECT public.create_booking(
           $1::uuid, $2::uuid, $3::uuid,
-          now() + make_interval(days => $5::int),
-          now() + make_interval(days => $5::int, hours => 2),
+          ($5::date + $6::time) AT TIME ZONE 'Africa/Cairo',
+          ($5::date + $7::time) AT TIME ZONE 'Africa/Cairo',
           gen_random_uuid(),
           $4::uuid,
           NULL, NULL, '[]'::jsonb, NULL, NULL, NULL, NULL,
           'adult_present'
         ) AS result
       `,
-      [providerId, serviceId, IDS.address, IDS.childMember, slotDays],
+      [
+        providerId,
+        serviceId,
+        IDS.address,
+        IDS.childMember,
+        slotDate,
+        LIFECYCLE_SLOT_START,
+        LIFECYCLE_SLOT_END,
+      ],
     ),
   );
   const bookingId = created[0]?.result?.booking_id as string | undefined;
@@ -175,9 +194,10 @@ export async function seedLifecycleBooking(
     await asServiceRole(db, () =>
       db.exec(`
         UPDATE public.bookings
-        SET start_at = now() - interval '2 hours',
-            end_at = now() + interval '1 hour'
+        SET start_at = (c.d - interval '1 day' + time '${LIFECYCLE_SLOT_START}') AT TIME ZONE 'Africa/Cairo',
+            end_at = (c.d - interval '1 day' + time '${LIFECYCLE_SLOT_END}') AT TIME ZONE 'Africa/Cairo'
             ${status === "pending" ? "" : `, status = '${status}'::public.booking_status`}
+        FROM (SELECT (timezone('Africa/Cairo', now()))::date AS d) c
         WHERE id = '${bookingId}';
       `),
     );
@@ -320,6 +340,107 @@ export async function completeHappyPath(db: PGlite, bookingId: string): Promise<
     if (!result.ok) {
       throw new Error(`transition to ${step.status} failed: ${result.error}`);
     }
+  }
+}
+
+export function lifecycleBookingBaseDate(now = new Date()): string {
+  return stableCairoBookingBaseDate(now);
+}
+
+export function lifecycleRescheduleTargetDate(fromBookingStart: string): string {
+  const rows = fromBookingStart.match(/^(\d{4}-\d{2}-\d{2})/);
+  const ymd = rows?.[1];
+  if (!ymd) {
+    return cairoDatePlusDays(lifecycleBookingBaseDate(), 3);
+  }
+  return cairoDatePlusDays(ymd, 2);
+}
+
+/** Sets booking to a mid-lifecycle status for negative transition tests. */
+export async function setBookingStatusAsSystem(
+  db: PGlite,
+  bookingId: string,
+  status: BookingStatus,
+): Promise<void> {
+  await asServiceRole(db, () =>
+    db.exec(`
+      UPDATE public.bookings
+      SET status = '${status}'::public.booking_status
+      WHERE id = '${bookingId}';
+    `),
+  );
+}
+
+export async function seedPaymentsForBooking(
+  db: PGlite,
+  bookingId: string,
+  customerId: string = IDS.customer,
+): Promise<{ cashId: string; paymobId: string }> {
+  const bookingRows = await queryRows<{ price_total: string }>(
+    db,
+    `SELECT price_total::text FROM public.bookings WHERE id = $1`,
+    [bookingId],
+  );
+  const amount = bookingRows[0]?.price_total ?? "200";
+
+  const methods = await queryRows<{ code: string; id: string }>(
+    db,
+    `SELECT code, id FROM public.payment_methods WHERE code IN ('cash_on_delivery', 'paymob')`,
+  );
+  const cashMethod = methods.find((m) => m.code === "cash_on_delivery")?.id;
+  const paymobMethod = methods.find((m) => m.code === "paymob")?.id;
+  if (!cashMethod || !paymobMethod) {
+    throw new Error("expected payment_methods cash_on_delivery and paymob after migration replay");
+  }
+
+  await asServiceRole(db, () =>
+    db.exec(`
+      UPDATE public.payment_methods SET is_active = true
+      WHERE code IN ('cash_on_delivery', 'paymob');
+    `),
+  );
+
+  await asServiceRole(db, async () => {
+    await db.query(
+      `
+        INSERT INTO public.payments (
+          id, booking_id, customer_id, amount, status, payment_method_id, metadata
+        ) VALUES
+          ($1::uuid, $2::uuid, $3::uuid, $7::numeric, 'pending', $4::uuid, '{}'::jsonb),
+          ($5::uuid, $2::uuid, $3::uuid, $7::numeric, 'pending', $6::uuid, jsonb_build_object('paymob_order_id', '999001'))
+        ON CONFLICT (id) DO UPDATE SET
+          booking_id = EXCLUDED.booking_id,
+          status = 'pending',
+          payment_method_id = EXCLUDED.payment_method_id
+      `,
+      [PAYMENT_CASH_ID, bookingId, customerId, cashMethod, PAYMENT_PAYMOB_ID, paymobMethod, amount],
+    );
+  });
+  return { cashId: PAYMENT_CASH_ID, paymobId: PAYMENT_PAYMOB_ID };
+}
+
+export async function paymentStatus(db: PGlite, paymentId: string): Promise<string | undefined> {
+  const rows = await queryRows<{ status: string }>(
+    db,
+    `SELECT status::text AS status FROM public.payments WHERE id = $1`,
+    [paymentId],
+  );
+  return rows[0]?.status;
+}
+
+export async function assertTransitionRejected(
+  db: PGlite,
+  userId: string,
+  bookingId: string,
+  toStatus: BookingStatus,
+  pattern: RegExp,
+  label: string,
+): Promise<void> {
+  const before = await bookingStatus(db, bookingId);
+  expectRejected(await updateBookingStatus(db, userId, bookingId, toStatus), pattern, label);
+  const after = await bookingStatus(db, bookingId);
+  if (after !== before) {
+    throw new Error(`${label}: expected status ${before}, got ${after}`);
   }
 }
 

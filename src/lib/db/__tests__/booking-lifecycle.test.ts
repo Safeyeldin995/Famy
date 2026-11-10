@@ -1,16 +1,19 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { PGlite } from "@electric-sql/pglite";
 import {
+  assertTransitionRejected,
   asServiceRole,
-  asUser,
   bookingStatus,
   cancellationReasonFor,
   completeHappyPath,
   createBookingLifecycleDb,
   expectRejected,
   IDS,
+  lifecycleRescheduleTargetDate,
+  paymentStatus,
   queryRows,
   seedLifecycleBooking,
+  seedPaymentsForBooking,
   tryAsAnon,
   tryAsUser,
   updateBookingStatus,
@@ -172,18 +175,20 @@ describe("booking lifecycle (migration replay)", () => {
       [bookingId],
     );
 
+    const rescheduleDate = lifecycleRescheduleTargetDate(original[0]!.start_at);
+
     const request = await tryAsUser(
       db,
       IDS.customer,
       `
         SELECT public.request_reschedule(
           $1::uuid,
-          now() + interval '3 days',
-          now() + interval '3 days 2 hours',
+          ($2::date + time '14:00') AT TIME ZONE 'Africa/Cairo',
+          ($2::date + time '16:00') AT TIME ZONE 'Africa/Cairo',
           'need different time'
         ) AS request_id
       `,
-      [bookingId],
+      [bookingId, rescheduleDate],
     );
     expect(request.ok, request.error).toBe(true);
     const requestId = request.rows?.[0]?.request_id as string;
@@ -235,11 +240,68 @@ describe("booking lifecycle (migration replay)", () => {
     expectRejected(closedChat, /not open|42501/i, "chat after completed");
   });
 
-  it("negative: role boundaries and immutable pricing", async () => {
+  it("rejects skipped transitions and wrong lifecycle actors", async () => {
+    const pending = await seedLifecycleBooking(db);
+    await assertTransitionRejected(
+      db,
+      IDS.providerUser,
+      pending.bookingId,
+      "in_progress",
+      /not permitted|42501/i,
+      "provider skip to in_progress",
+    );
+    await assertTransitionRejected(
+      db,
+      IDS.providerUser,
+      pending.bookingId,
+      "completed",
+      /not permitted|42501/i,
+      "provider skip to completed",
+    );
+
+    const atArrived = await seedLifecycleBooking(db);
+    await updateBookingStatus(db, IDS.providerUser, atArrived.bookingId, "confirmed");
+    await updateBookingStatus(db, IDS.providerUser, atArrived.bookingId, "on_the_way");
+    await updateBookingStatus(db, IDS.providerUser, atArrived.bookingId, "arrived");
+    await assertTransitionRejected(
+      db,
+      IDS.providerUser,
+      atArrived.bookingId,
+      "arrival_confirmed",
+      /not permitted|42501/i,
+      "provider cannot confirm own arrival",
+    );
+
+    const atCompletionRequested = await seedLifecycleBooking(db);
+    await updateBookingStatus(db, IDS.providerUser, atCompletionRequested.bookingId, "confirmed");
+    await updateBookingStatus(db, IDS.providerUser, atCompletionRequested.bookingId, "on_the_way");
+    await updateBookingStatus(db, IDS.providerUser, atCompletionRequested.bookingId, "arrived");
+    await updateBookingStatus(db, IDS.customer, atCompletionRequested.bookingId, "arrival_confirmed");
+    await updateBookingStatus(db, IDS.providerUser, atCompletionRequested.bookingId, "in_progress");
+    await updateBookingStatus(
+      db,
+      IDS.providerUser,
+      atCompletionRequested.bookingId,
+      "completion_requested",
+    );
+    await assertTransitionRejected(
+      db,
+      IDS.providerUser,
+      atCompletionRequested.bookingId,
+      "completed",
+      /not permitted|42501/i,
+      "provider cannot complete booking",
+    );
+  });
+
+  it("negative: role boundaries, pricing, and payment writes", async () => {
     const { bookingId } = await seedLifecycleBooking(db);
 
-    expectRejected(
-      await updateBookingStatus(db, IDS.customer, bookingId, "confirmed"),
+    await assertTransitionRejected(
+      db,
+      IDS.customer,
+      bookingId,
+      "confirmed",
       /not permitted|42501/i,
       "customer confirm",
     );
@@ -251,11 +313,11 @@ describe("booking lifecycle (migration replay)", () => {
       other.bookingId,
       "confirmed",
     );
-  const otherStatus = await bookingStatus(db, other.bookingId);
-  expect(
-    wrongProvider.ok && otherStatus === "confirmed",
-    "provider must not confirm another provider's booking",
-  ).toBe(false);
+    const otherStatus = await bookingStatus(db, other.bookingId);
+    expect(
+      wrongProvider.ok && otherStatus === "confirmed",
+      "provider must not confirm another provider's booking",
+    ).toBe(false);
 
     expectRejected(
       await tryAsUser(
@@ -265,7 +327,18 @@ describe("booking lifecycle (migration replay)", () => {
         [bookingId],
       ),
       /pricing cannot be changed|42501/i,
-      "price_total tamper",
+      "customer price_total tamper",
+    );
+
+    expectRejected(
+      await tryAsUser(
+        db,
+        IDS.providerUser,
+        `UPDATE public.bookings SET price_total = 1 WHERE id = $1 RETURNING price_total`,
+        [bookingId],
+      ),
+      /pricing cannot be changed|42501/i,
+      "provider price_total tamper",
     );
 
     expectRejected(
@@ -280,5 +353,39 @@ describe("booking lifecycle (migration replay)", () => {
       /cancel_booking|not permitted|42501/i,
       "cancel completed",
     );
+
+    const { cashId, paymobId } = await seedPaymentsForBooking(db, bookingId);
+
+    const customerCapture = await tryAsUser(
+      db,
+      IDS.customer,
+      `UPDATE public.payments SET status = 'captured' WHERE id = $1 RETURNING status::text AS status`,
+      [cashId],
+    );
+    expect(await paymentStatus(db, cashId)).toBe("pending");
+    if (customerCapture.ok && customerCapture.rows?.[0]?.status === "captured") {
+      throw new Error("customer self-capture cash should be rejected");
+    }
+    if (!customerCapture.ok) {
+      expectRejected(customerCapture, /proof|not authorized|42501/i, "customer self-capture cash");
+    }
+
+    const providerPaymob = await tryAsUser(
+      db,
+      IDS.providerUser,
+      `UPDATE public.payments SET status = 'captured' WHERE id = $1 RETURNING status::text AS status`,
+      [paymobId],
+    );
+    expect(await paymentStatus(db, paymobId)).toBe("pending");
+    if (providerPaymob.ok && providerPaymob.rows?.[0]?.status === "captured") {
+      throw new Error("provider paymob capture should be rejected");
+    }
+    if (!providerPaymob.ok) {
+      expectRejected(
+        providerPaymob,
+        /payment gateway|not authorized|42501/i,
+        "provider paymob capture",
+      );
+    }
   });
 });
