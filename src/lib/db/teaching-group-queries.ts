@@ -46,6 +46,7 @@ export function useAdminReviewTeachingGroup() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["admin-teaching-capabilities"] });
       void qc.invalidateQueries({ queryKey: ["approved-teaching-capabilities"] });
+      void qc.invalidateQueries({ queryKey: ["admin", "work-queue"] });
     },
   });
 }

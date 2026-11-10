@@ -294,6 +294,7 @@ export function useAdminReviewTeachingCapability() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-teaching-capabilities"] });
       qc.invalidateQueries({ queryKey: ["approved-teaching-capabilities"] });
+      void qc.invalidateQueries({ queryKey: ["admin", "work-queue"] });
     },
   });
 }
