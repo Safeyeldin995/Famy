@@ -43,6 +43,7 @@ export default function ProProfileEditScreen() {
   const mineQ = useMyProviderServicesDetailed(providerId);
   const toggle = useToggleProviderService();
   const cancelRequest = useCancelProviderServiceRequest();
+  const serviceActionBusy = cancelRequest.isPending || toggle.isPending;
   const isApprovedProvider = provider?.onboarding_status === "APPROVED";
   const setPrice = useSetProviderPrice();
   const requestPriceChange = useRequestProviderPriceChange();
@@ -222,6 +223,8 @@ export default function ProProfileEditScreen() {
                   <Button
                     variant="secondary"
                     label={t("pro.serviceRequest.cancelRequest")}
+                    loading={cancelRequest.isPending}
+                    disabled={serviceActionBusy}
                     onPress={() => cancelRequest.mutate(id)}
                   />
                 </>
@@ -229,9 +232,12 @@ export default function ProProfileEditScreen() {
                 <Button
                   variant={on ? "primary" : "secondary"}
                   label={t(on ? "mobilePro.serviceOn" : "mobilePro.serviceOff")}
-                  disabled={(row?.status === "approved" && on) || isApprovedProvider}
+                  loading={toggle.isPending}
+                  disabled={
+                    serviceActionBusy || (row?.status === "approved" && on) || isApprovedProvider
+                  }
                   onPress={() => {
-                    if (!providerId || isApprovedProvider) return;
+                    if (!providerId || isApprovedProvider || serviceActionBusy) return;
                     toggle.mutate({ providerId, serviceId: id, on: !on });
                   }}
                 />

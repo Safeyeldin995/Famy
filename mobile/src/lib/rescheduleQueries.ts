@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { invalidateQueryKeyList, rescheduleActionInvalidationKeys } from "./cacheInvalidation";
 import { supabase } from "./supabase";
 
 // Same contracts as src/lib/db/queries.ts. Authorization and scheduling remain server-owned.
@@ -41,11 +42,7 @@ export function useRescheduleAction(bookingId: string) {
               });
       if (result.error) throw result.error;
     },
-    onSuccess: () =>
-      Promise.all(
-        [["reschedule-requests", bookingId], ["booking", bookingId], ["my-bookings"]].map(
-          (queryKey) => cache.invalidateQueries({ queryKey }),
-        ),
-      ),
+    // Returned so the mutation stays pending until the request list and booking refresh.
+    onSuccess: () => invalidateQueryKeyList(cache, rescheduleActionInvalidationKeys(bookingId)),
   });
 }

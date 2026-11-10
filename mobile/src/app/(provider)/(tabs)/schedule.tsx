@@ -37,6 +37,7 @@ export default function ProviderSchedule() {
   const deleteVacation = useDeleteVacation();
   const addException = useAddException();
   const deleteException = useDeleteException();
+  const deleteBusy = deleteVacation.isPending || deleteException.isPending;
   const [dateSheet, setDateSheet] = useState<"vacation" | "holiday" | null>(null);
   const [advanced, setAdvanced] = useState(false);
   const [rules, setRules] = useState({
@@ -222,6 +223,7 @@ export default function ProviderSchedule() {
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel={t("common.delete")}
+                      disabled={deleteBusy}
                       onPress={() =>
                         kind === "vacation"
                           ? deleteVacation.mutate({ id: item.id, providerId: providerId! })
@@ -232,6 +234,7 @@ export default function ProviderSchedule() {
                         height: 44,
                         alignItems: "center",
                         justifyContent: "center",
+                        opacity: deleteBusy ? 0.4 : 1,
                       }}
                     >
                       <Trash2 size={18} color={colors.muted} />
