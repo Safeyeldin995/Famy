@@ -182,7 +182,7 @@ export default function ProRequestServiceScreen() {
                       <Button
                         key={chip}
                         variant={on ? "primary" : "secondary"}
-                        label={t(`pro.onboardingWizard.ageGroups.${chip}`)}
+                        label={t(`pro.onboardingWizard.ageGroupChips.${chip}`)}
                         onPress={() =>
                           setAgeChips((ids) =>
                             on ? ids.filter((id) => id !== chip) : [...ids, chip],

@@ -3,7 +3,7 @@ import path from "node:path";
 
 const PLURAL_SUFFIXES = ["_zero", "_one", "_two", "_few", "_many", "_other"] as const;
 
-const TRANSLATION_KEY_PATTERN = /^[a-z][a-zA-Z0-9]*(?:\.[a-zA-Z][a-zA-Z0-9]*)+$/;
+const TRANSLATION_KEY_PATTERN = /^[a-z][\w]*(?:\.[a-zA-Z][\w]*)+$/;
 
 export function flattenTranslationKeys(
   value: unknown,
@@ -38,9 +38,16 @@ export function baseKeyForPlural(key: string): string {
   return key;
 }
 
+export function pluralSuffixesPresent(keys: Set<string>, base: string): string[] {
+  return PLURAL_SUFFIXES.filter((suffix) => keys.has(`${base}${suffix}`));
+}
+
+/** True when the logical key or a complete enough plural set exists (requires `_other` when split plurals exist). */
 export function hasLocaleKey(keys: Set<string>, logicalKey: string): boolean {
   if (keys.has(logicalKey)) return true;
-  return PLURAL_SUFFIXES.some((suffix) => keys.has(`${logicalKey}${suffix}`));
+  const pluralHits = pluralSuffixesPresent(keys, logicalKey);
+  if (pluralHits.length === 0) return false;
+  return keys.has(`${logicalKey}_other`);
 }
 
 const SOURCE_ROOTS = [
@@ -108,7 +115,14 @@ function extractKeysFromTranslationCalls(source: string): string[] {
 
 export type DynamicPrefix = { prefix: string; file: string };
 
-const TEMPLATE_T_REGEX = /(?:^|[^\w$])(?:i18n\.)?t\s*\(\s*`([^`$]*)\$\{([^}]+)\}/gm;
+export type UnresolvedDynamicTemplate = {
+  prefix: string;
+  varName: string;
+  file: string;
+};
+
+const TEMPLATE_T_REGEX =
+  /(?:^|[^\w$])(?:i18n\.)?t\s*\(\s*`([^`]*?)\$\{([^}]+)\}([^`]*)`/gm;
 
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -120,35 +134,147 @@ function identifierFromExpression(expr: string): string {
   return last.replace(/[^a-zA-Z_$0-9]/g, "");
 }
 
+function isRuntimeTemplateExpression(expr: string): boolean {
+  const trimmed = expr.trim();
+  return trimmed.includes(".") || trimmed.includes("?") || trimmed.includes("[");
+}
+
 function stringLiteralsInArrayBody(body: string): string[] {
   return [...body.matchAll(/["']([a-zA-Z_][\w]*)["']/g)].map((m) => m[1]);
 }
 
-function suffixesFromMappedArray(chunk: string, varName: string): string[] {
-  const literals = new Set<string>();
-  const mapRe = new RegExp(
-    String.raw`(?:\(|\[)([^\])]*?)\)\s*(?:as const\s*)?\.map\(\(\s*${escapeRegExp(varName)}\b`,
-    "g",
-  );
-  for (const m of chunk.matchAll(mapRe)) {
-    for (const lit of stringLiteralsInArrayBody(m[1])) literals.add(lit);
-  }
-  const namedMap = new RegExp(
-    String.raw`\b(\w+)\.map\(\(\s*${escapeRegExp(varName)}\b`,
-    "g",
-  );
-  for (const m of chunk.matchAll(namedMap)) {
-    const arrName = m[1];
-    const constArr = new RegExp(
-      String.raw`const\s+${escapeRegExp(arrName)}\s*(?::[^=]+)?=\s*\[([\s\S]*?)\]`,
-      "m",
+function resolveModuleSpecifier(importerFile: string, specifier: string): string | null {
+  const root = process.cwd();
+  const inMobile = importerFile.replace(/\\/g, "/").includes("/mobile/src/");
+  const tryPaths: string[] = [];
+  if (specifier.startsWith("@/")) {
+    const rel = specifier.slice(2);
+    tryPaths.push(
+      inMobile ? path.join(root, "mobile/src", rel) : path.join(root, "src", rel),
     );
-    const constHit = chunk.match(constArr);
-    if (constHit) {
-      for (const lit of stringLiteralsInArrayBody(constHit[1])) literals.add(lit);
+  } else if (specifier.startsWith("@shared/")) {
+    tryPaths.push(path.join(root, "src/lib", specifier.slice(8)));
+  } else if (specifier.startsWith(".")) {
+    tryPaths.push(path.resolve(path.dirname(importerFile), specifier));
+  } else {
+    return null;
+  }
+  for (const base of tryPaths) {
+    for (const ext of [".ts", ".tsx", ""]) {
+      const candidate = base.endsWith(ext) ? base : `${base}${ext}`;
+      if (fs.existsSync(candidate)) return candidate;
     }
   }
-  return [...literals];
+  return null;
+}
+
+function readNamedArrayExport(modulePath: string, exportName: string): string[] {
+  if (!fs.existsSync(modulePath)) return [];
+  const text = fs.readFileSync(modulePath, "utf8");
+  const constArr = new RegExp(
+    String.raw`export\s+const\s+${escapeRegExp(exportName)}\s*(?::[^=]+)?=\s*\[([\s\S]*?)\]\s*(?:as\s+const)?`,
+    "m",
+  );
+  const hit = text.match(constArr);
+  if (!hit) return [];
+  return stringLiteralsInArrayBody(hit[1]);
+}
+
+function importedArrayLiterals(source: string, importerFile: string, exportName: string): string[] {
+  const importRe = new RegExp(
+    String.raw`import\s+\{[^}]*\b${escapeRegExp(exportName)}\b[^}]*\}\s+from\s+["']([^"']+)["']`,
+    "m",
+  );
+  const hit = source.match(importRe);
+  if (!hit) return [];
+  const modulePath = resolveModuleSpecifier(importerFile, hit[1]);
+  if (!modulePath) return [];
+  return readNamedArrayExport(modulePath, exportName);
+}
+
+function namedConstArrayLiterals(source: string, arrName: string): string[] {
+  const constArr = new RegExp(
+    String.raw`const\s+${escapeRegExp(arrName)}\s*(?::[^=]+)?=\s*\[([\s\S]*?)\]\s*(?:as\s+const)?`,
+    "m",
+  );
+  const hit = source.match(constArr);
+  if (!hit) return [];
+  return stringLiteralsInArrayBody(hit[1]);
+}
+
+function namedConstObjectKeys(source: string, arrName: string, prop = "key"): string[] {
+  const blockRe = new RegExp(
+    String.raw`const\s+${escapeRegExp(arrName)}\s*(?::[^=]+)?=\s*\[([\s\S]*?)\]\s*;`,
+    "m",
+  );
+  const hit = source.match(blockRe);
+  if (!hit) return [];
+  const propRe = new RegExp(String.raw`\b${escapeRegExp(prop)}\s*:\s*["']([a-zA-Z_][\w]*)["']`, "g");
+  return [...hit[1].matchAll(propRe)].map((m) => m[1]);
+}
+
+function lastMatchAll(text: string, re: RegExp): RegExpMatchArray[] {
+  return [...text.matchAll(re)];
+}
+
+function suffixesFromNearestMap(
+  source: string,
+  filePath: string,
+  templateIndex: number,
+  varName: string,
+): string[] {
+  const before = source.slice(0, templateIndex);
+  const mapCall = new RegExp(String.raw`\.map\(\s*\(\s*${escapeRegExp(varName)}\b`, "g");
+  let mapAt = -1;
+  for (const m of before.matchAll(mapCall)) mapAt = m.index ?? -1;
+  if (mapAt < 0) {
+    const destructCall = new RegExp(
+      String.raw`\.map\(\s*\(\{[^}]*\b${escapeRegExp(varName)}\b`,
+      "g",
+    );
+    for (const m of before.matchAll(destructCall)) mapAt = m.index ?? -1;
+  }
+  if (mapAt < 0) return [];
+
+  const window = before.slice(Math.max(0, mapAt - 200), mapAt + 40);
+  const directArrayMap = new RegExp(
+    String.raw`\[\s*([^\]]+)\]\s*\.map\(\s*\(\s*${escapeRegExp(varName)}\b`,
+    "g",
+  );
+  const directHits = lastMatchAll(window, directArrayMap);
+  if (directHits.length) {
+    return stringLiteralsInArrayBody(directHits.at(-1)![1]);
+  }
+  const spreadMap = new RegExp(
+    String.raw`\.\.\.\s*\[([^\]]+)\]\s*\.map\(\s*\(\s*${escapeRegExp(varName)}\b`,
+    "g",
+  );
+  const spreadHits = lastMatchAll(window, spreadMap);
+  if (spreadHits.length) {
+    return stringLiteralsInArrayBody(spreadHits.at(-1)![1]);
+  }
+  const destructMap = new RegExp(
+    String.raw`\b(\w+)\.map\(\s*\(\{[^}]*\b${escapeRegExp(varName)}\b`,
+    "g",
+  );
+  const destructHits = lastMatchAll(window, destructMap);
+  if (destructHits.length) {
+    return namedConstObjectKeys(source, destructHits.at(-1)![1], "key");
+  }
+  const namedMap = new RegExp(
+    String.raw`\b(\w+)\.map\(\s*\(\s*${escapeRegExp(varName)}\b`,
+    "g",
+  );
+  const namedHits = lastMatchAll(window, namedMap);
+  if (namedHits.length) {
+    const arrName = namedHits.at(-1)![1];
+    const literals = [
+      ...namedConstArrayLiterals(source, arrName),
+      ...importedArrayLiterals(source, filePath, arrName),
+    ];
+    if (literals.length) return literals;
+  }
+  return [];
 }
 
 function objectKeySuffixesFromMap(chunk: string, propName: string): string[] {
@@ -179,26 +305,108 @@ function tupleLabelSuffixes(chunk: string, varName: string): string[] {
   return [...literals];
 }
 
-export function collectDynamicTemplateKeys(source: string): string[] {
-  const keys = new Set<string>();
+function joinTemplateKey(head: string, suffix: string, trail: string): string {
+  const base = head.endsWith(".") ? `${head}${suffix}` : head ? `${head}.${suffix}` : suffix;
+  const tail = trail.replace(/^\./, "");
+  if (!tail) return base;
+  return `${base}.${tail}`;
+}
+
+function resolveSuffixesForTemplate(
+  source: string,
+  filePath: string,
+  chunk: string,
+  templateIndex: number,
+  head: string,
+  varName: string,
+  expr: string,
+  trail: string,
+): { keys: string[]; unresolved: boolean } {
+  if (isRuntimeTemplateExpression(expr)) {
+    return { keys: [], unresolved: false };
+  }
+
+  const normalizedHead = head.replace(/\.$/, "");
+
+  if (varName === "v" && normalizedHead === "familyMembers.genders") {
+    const keys = ["male", "female"].map((s) => joinTemplateKey(normalizedHead, s, trail));
+    return { keys, unresolved: false };
+  }
+  if (
+    (varName === "chip" || varName === "g") &&
+    normalizedHead === "pro.onboardingWizard.ageGroupChips"
+  ) {
+    const keys = ["infants", "toddlers", "kids", "teens"].map((s) =>
+      joinTemplateKey(normalizedHead, s, trail),
+    );
+    return { keys, unresolved: false };
+  }
+  const suffixes = new Set([
+    ...suffixesFromNearestMap(source, filePath, templateIndex, varName),
+    ...tupleLabelSuffixes(chunk, varName),
+  ]);
+
+  if (varName === "key" && normalizedHead === "addresses.label") {
+    for (const lit of namedConstObjectKeys(source, "LABELS", "key")) suffixes.add(lit);
+  }
+  if (varName === "r" && normalizedHead === "familyMembers.relationships") {
+    for (const lit of namedConstArrayLiterals(source, "RELATIONSHIPS")) suffixes.add(lit);
+  }
+  if (varName === "v" && normalizedHead === "familyMembers.relationships") {
+    for (const lit of importedArrayLiterals(source, filePath, "relationships")) suffixes.add(lit);
+  }
+  if (varName === "mode" && normalizedHead === "bookFlow.supervision") {
+    literalsImport(source, filePath, "SUPERVISION_MODES", suffixes);
+  }
+
+  const keys = [...suffixes].map((suffix) => joinTemplateKey(normalizedHead, suffix, trail));
+  return { keys, unresolved: keys.length === 0 };
+}
+
+function literalsImport(
+  source: string,
+  filePath: string,
+  exportName: string,
+  into: Set<string>,
+): void {
+  for (const lit of namedConstArrayLiterals(source, exportName)) into.add(lit);
+  for (const lit of importedArrayLiterals(source, filePath, exportName)) into.add(lit);
+}
+
+export function collectDynamicTemplateKeys(
+  source: string,
+  filePath = "",
+): { keys: string[]; unresolved: UnresolvedDynamicTemplate[] } {
+  const keys: string[] = [];
+  const unresolved: UnresolvedDynamicTemplate[] = [];
   for (const match of source.matchAll(TEMPLATE_T_REGEX)) {
-    const head = match[1].replace(/\.$/, "");
-    const varName = identifierFromExpression(match[2]);
-    if (!head || !/^[a-zA-Z][\w.]*$/.test(head)) continue;
+    const head = match[1];
+    const expr = match[2];
+    const trail = match[3] ?? "";
+    if (trail.includes("${")) continue;
+    const varName = identifierFromExpression(expr);
+    const headCheck = head.replace(/\.$/, "");
+    if (!headCheck || !/^[a-zA-Z][\w.]*\.?$/.test(head)) continue;
 
     const pos = match.index ?? 0;
     const chunk = source.slice(Math.max(0, pos - 1200), Math.min(source.length, pos + 400));
 
-    const suffixes = [
-      ...suffixesFromMappedArray(chunk, varName),
-      ...objectKeySuffixesFromMap(chunk, varName),
-      ...tupleLabelSuffixes(chunk, varName),
-    ];
-    for (const suffix of new Set(suffixes)) {
-      keys.add(`${head}.${suffix}`);
+    const resolved = resolveSuffixesForTemplate(
+      source,
+      filePath,
+      chunk,
+      pos,
+      head,
+      varName,
+      expr,
+      trail,
+    );
+    keys.push(...resolved.keys);
+    if (resolved.unresolved) {
+      unresolved.push({ prefix: headCheck, varName, file: filePath });
     }
   }
-  return [...keys];
+  return { keys, unresolved };
 }
 
 export function collectStaticTranslationKeys(files: string[]): Set<string> {
@@ -229,11 +437,21 @@ export function collectAllReferencedKeys(files: string[]): Set<string> {
   const keys = collectStaticTranslationKeys(files);
   for (const file of files) {
     const text = fs.readFileSync(file, "utf8");
-    for (const key of collectDynamicTemplateKeys(text)) {
+    const dynamic = collectDynamicTemplateKeys(text, file);
+    for (const key of dynamic.keys) {
       keys.add(key);
     }
   }
   return keys;
+}
+
+export function collectUnresolvedDynamicTemplates(files: string[]): UnresolvedDynamicTemplate[] {
+  const out: UnresolvedDynamicTemplate[] = [];
+  for (const file of files) {
+    const text = fs.readFileSync(file, "utf8");
+    out.push(...collectDynamicTemplateKeys(text, file).unresolved);
+  }
+  return out;
 }
 
 export function listTranslationSourceFiles(): string[] {

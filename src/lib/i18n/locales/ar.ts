@@ -1008,7 +1008,7 @@ const ar: Translation = {
     addAddress: "أضف عنوانا",
     editAddress: "تعديل العنوان",
     geoDenied: "محتاجين إذن الموقع علشان نحدد مكانك.",
-    geoFailed: "مقدرناش نوصل لموقعك. حدده على الخريطة.",
+    geoFailed: "لم نتمكن من تحديد موقعك. حدده على الخريطة.",
     empty: "لا توجد عناوين محفوظة بعد",
     emptyBody: "أضف عنوانا لحجز الخدمات بشكل أسرع.",
     default: "افتراضي",
@@ -2509,7 +2509,7 @@ const ar: Translation = {
         auditLog: "سجل التدقيق",
         settings: "الإعدادات",
       },
-      collapseSidebar: "طوي القائمة الجانبية",
+      collapseSidebar: "طي القائمة الجانبية",
       expandSidebar: "توسيع القائمة الجانبية",
       navAria: "تنقل لوحة الإدارة",
     },
@@ -2809,7 +2809,7 @@ const ar: Translation = {
       suspendConfirmBody:
         "سيمنع العميل من إنشاء حجوزات جديدة. تبقى الحجوزات الحالية وبيانات الملف الشخصي مرئية.",
       unsuspendConfirmBody: "سيستعيد العميل القدرة على إنشاء حجوزات جديدة.",
-      suspendError: "ماقدرناش نوقف الحساب.",
+      suspendError: "لم نتمكن من إيقاف الحساب.",
     },
     bookings: {
       title: "إدارة الحجوزات",
