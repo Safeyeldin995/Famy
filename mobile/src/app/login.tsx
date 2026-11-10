@@ -37,7 +37,7 @@ type Mode = "signin" | "signup";
 type Role = "customer" | "provider";
 
 export default function Login() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [mode, setMode] = useState<Mode>("signin");
   const [role, setRole] = useState<Role>("customer");
   const [phone, setPhone] = useState("");
