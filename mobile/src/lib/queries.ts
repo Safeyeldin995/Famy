@@ -486,7 +486,7 @@ export function useMarkNotificationRead() {
       if (error) throw error;
     },
     onSuccess: () => {
-      invalidateQueryKeyList(qc, notificationReadInvalidationKeys());
+      return invalidateQueryKeyList(qc, notificationReadInvalidationKeys());
     },
   });
 }
@@ -502,7 +502,7 @@ export function useMarkAllNotificationsRead() {
       if (error) throw error;
     },
     onSuccess: () => {
-      invalidateQueryKeyList(qc, notificationReadInvalidationKeys());
+      return invalidateQueryKeyList(qc, notificationReadInvalidationKeys());
     },
   });
 }

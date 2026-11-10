@@ -64,7 +64,8 @@ export default function ProApplyScreen() {
     isLoading: providerQ.isLoading || providerQ.isPending || bootstrapping || start.isPending,
     refetch: () => {
       if (start.isError) {
-        started.current = false;
+        // Keep the latch set: the retry is started here, so the effect must not start a second one.
+        started.current = true;
         start.reset();
         start.mutate();
         return Promise.resolve();

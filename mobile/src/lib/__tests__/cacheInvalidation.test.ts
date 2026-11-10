@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   bookingCancelInvalidationKeys,
+  invalidateQueryKeyList,
   notificationReadInvalidationKeys,
   rescheduleActionInvalidationKeys,
   shouldAbandonOtpOnExpiry,
@@ -63,5 +64,23 @@ describe("shouldAbandonOtpOnExpiry", () => {
         resending: false,
       }),
     ).toBe(true);
+  });
+});
+
+describe("invalidateQueryKeyList", () => {
+  it("resolves only after every invalidation has finished", async () => {
+    const order: string[] = [];
+    const qc = {
+      invalidateQueries: ({ queryKey }: { queryKey: readonly string[] }) =>
+        new Promise<void>((resolve) =>
+          setTimeout(() => {
+            order.push(queryKey.join("/"));
+            resolve();
+          }, 5),
+        ),
+    };
+    await invalidateQueryKeyList(qc as never, [["a"], ["b"]]);
+    order.push("done");
+    expect(order).toEqual(["a", "b", "done"]);
   });
 });

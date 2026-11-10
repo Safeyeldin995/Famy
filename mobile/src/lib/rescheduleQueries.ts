@@ -42,8 +42,7 @@ export function useRescheduleAction(bookingId: string) {
               });
       if (result.error) throw result.error;
     },
-    onSuccess: () => {
-      invalidateQueryKeyList(cache, rescheduleActionInvalidationKeys(bookingId));
-    },
+    // Returned so the mutation stays pending until the request list and booking refresh.
+    onSuccess: () => invalidateQueryKeyList(cache, rescheduleActionInvalidationKeys(bookingId)),
   });
 }

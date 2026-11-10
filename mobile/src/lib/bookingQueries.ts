@@ -453,7 +453,10 @@ export function useSubmitReview() {
       return data;
     },
     onSuccess: (_data, vars) => {
-      invalidateQueryKeyList(qc, submitReviewInvalidationKeys(vars.bookingId, vars.providerId));
+      return invalidateQueryKeyList(
+        qc,
+        submitReviewInvalidationKeys(vars.bookingId, vars.providerId),
+      );
     },
   });
 }
@@ -683,7 +686,7 @@ export function useCancelBooking() {
       return data;
     },
     onSuccess: (_d, vars) => {
-      invalidateQueryKeyList(qc, bookingCancelInvalidationKeys(vars.bookingId));
+      return invalidateQueryKeyList(qc, bookingCancelInvalidationKeys(vars.bookingId));
     },
   });
 }

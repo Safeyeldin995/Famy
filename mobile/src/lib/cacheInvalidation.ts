@@ -44,13 +44,14 @@ export function submitReviewInvalidationKeys(
   ];
 }
 
+/** Resolves once every listed query has refetched, so callers can keep busy guards on until then. */
 export function invalidateQueryKeyList(
   qc: QueryClient,
   keys: readonly (readonly string[])[],
-): void {
-  for (const queryKey of keys) {
-    qc.invalidateQueries({ queryKey });
-  }
+): Promise<void> {
+  return Promise.all(keys.map((queryKey) => qc.invalidateQueries({ queryKey }))).then(
+    () => undefined,
+  );
 }
 
 /** Skip OTP auto-abandon while verify/resend is active so the user is not kicked mid-submit. */

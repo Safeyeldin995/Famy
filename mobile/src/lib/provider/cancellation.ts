@@ -44,7 +44,7 @@ export function useCancelBooking() {
       return data;
     },
     onSuccess: (_d, vars) => {
-      invalidateQueryKeyList(qc, bookingCancelInvalidationKeys(vars.bookingId));
+      return invalidateQueryKeyList(qc, bookingCancelInvalidationKeys(vars.bookingId));
     },
   });
 }
