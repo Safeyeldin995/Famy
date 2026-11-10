@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import { Eye, EyeOff } from "lucide-react-native";
 import { fetchMobileSetPasswordContext } from "@/lib/auth/mobileOtpApi";
 import { completePasswordSetup } from "@/lib/auth/passwordSetup";
 import { supabase } from "@/lib/supabase";
 import { KeyboardFormScreen } from "@/ui/KeyboardFormScreen";
+import { AuthLabeledField, AuthPasswordField } from "@/ui/auth/AuthFields";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
-import { colors, fonts, radius, space } from "@/ui/theme";
+import { colors, radius, space } from "@/ui/theme";
 
 type SetPasswordContext = {
   maskedPhone: string;
@@ -19,8 +19,7 @@ type SetPasswordContext = {
 };
 
 export default function SetPasswordScreen() {
-  const { t, i18n } = useTranslation();
-  const inputFont = (i18n.language === "en" ? fonts.en : fonts.ar).bold;
+  const { t } = useTranslation();
   const [context, setContext] = useState<SetPasswordContext | null>(null);
   const [pw, setPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
@@ -114,6 +113,7 @@ export default function SetPasswordScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.center}>
+          <ActivityIndicator color={colors.brand} />
           <Text tone="muted">{t("common.loading")}</Text>
         </View>
       </SafeAreaView>
@@ -140,22 +140,30 @@ export default function SetPasswordScreen() {
         </Text>
       </Text>
 
-      <PasswordField
-        label={t("auth.password")}
-        value={pw}
-        onChangeText={setPw}
-        show={show}
-        onToggle={() => setShow((v) => !v)}
-        inputFont={inputFont}
-      />
-      <PasswordField
-        label={t("auth.confirmPassword")}
-        value={confirmPw}
-        onChangeText={setConfirmPw}
-        show={showConfirm}
-        onToggle={() => setShowConfirm((v) => !v)}
-        inputFont={inputFont}
-      />
+      <AuthLabeledField label={t("auth.password")}>
+        <AuthPasswordField
+          value={pw}
+          onChangeText={setPw}
+          showPassword={show}
+          onToggleShow={() => setShow((v) => !v)}
+          showPasswordLabel={t("auth.showPassword")}
+          hidePasswordLabel={t("auth.hidePassword")}
+          autoComplete="new-password"
+          placeholder="••••••••"
+        />
+      </AuthLabeledField>
+      <AuthLabeledField label={t("auth.confirmPassword")}>
+        <AuthPasswordField
+          value={confirmPw}
+          onChangeText={setConfirmPw}
+          showPassword={showConfirm}
+          onToggleShow={() => setShowConfirm((v) => !v)}
+          showPasswordLabel={t("auth.showPassword")}
+          hidePasswordLabel={t("auth.hidePassword")}
+          autoComplete="new-password"
+          placeholder="••••••••"
+        />
+      </AuthLabeledField>
 
       <Rule ok={longEnough} label={t("auth.ruleLenStrong")} />
       <Rule ok={matches} label={t("auth.passwordsMatch")} />
@@ -171,55 +179,6 @@ export default function SetPasswordScreen() {
   );
 }
 
-function PasswordField({
-  label,
-  value,
-  onChangeText,
-  show,
-  onToggle,
-  inputFont,
-}: {
-  label: string;
-  value: string;
-  onChangeText: (v: string) => void;
-  show: boolean;
-  onToggle: () => void;
-  inputFont: string;
-}) {
-  const { t } = useTranslation();
-  return (
-    <View style={{ gap: space.sm }}>
-      <Text size="sm" weight="bold" tone="muted">
-        {label}
-      </Text>
-      <View style={styles.field}>
-        <TextInput
-          value={value}
-          onChangeText={onChangeText}
-          secureTextEntry={!show}
-          autoComplete="new-password"
-          placeholder="••••••••"
-          placeholderTextColor={colors.muted}
-          style={[styles.input, { fontFamily: inputFont }]}
-        />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={show ? t("auth.hidePassword") : t("auth.showPassword")}
-          onPress={onToggle}
-          style={styles.eye}
-          hitSlop={12}
-        >
-          {show ? (
-            <EyeOff size={20} color={colors.muted} />
-          ) : (
-            <Eye size={20} color={colors.muted} />
-          )}
-        </Pressable>
-      </View>
-    </View>
-  );
-}
-
 function Rule({ ok, label }: { ok: boolean; label: string }) {
   return (
     <Text size="sm" tone={ok ? "success" : "muted"}>
@@ -232,19 +191,7 @@ function Rule({ ok, label }: { ok: boolean; label: string }) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   content: { padding: space.xxl, gap: space.lg },
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: space.md },
   ltr: { direction: "ltr" },
-  field: {
-    minHeight: 56,
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    backgroundColor: colors.surface,
-    paddingHorizontal: space.md,
-  },
-  input: { flex: 1, minHeight: 48, fontSize: 16, color: colors.foreground },
-  eye: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   error: { backgroundColor: "#FBE7E6", borderRadius: radius.md, padding: space.md },
 });

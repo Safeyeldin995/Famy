@@ -1,7 +1,9 @@
+import { normalizeDigitsToWestern } from "@shared/otp/normalizePhone";
+
 export const OTP_LENGTH = 6;
 
 export function sanitizeOtpDigits(value: string): string {
-  return value.replace(/\D/g, "").slice(0, OTP_LENGTH);
+  return normalizeDigitsToWestern(value).replace(/\D/g, "").slice(0, OTP_LENGTH);
 }
 
 export function applyOtpDigitInput(

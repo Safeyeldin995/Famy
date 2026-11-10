@@ -17,11 +17,12 @@ import {
 } from "./keyboardFormConstants";
 import { Stack, router, type Href } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { ChevronLeft, ChevronRight, Check, Inbox, CircleAlert } from "lucide-react-native";
+import { Check, Inbox, CircleAlert } from "lucide-react-native";
+import { rowChevronIcon } from "./rtlNavigation";
 import { Text } from "./Text";
 import { Button } from "./Button";
 import { bodyTextInputProps } from "./a11y";
-import { colors, fonts, radius, space, shadow } from "./theme";
+import { colors, fontSize, fonts, radius, space, shadow } from "./theme";
 
 type Refreshable = { refetch: () => Promise<unknown> };
 export function Page({
@@ -165,7 +166,7 @@ export function Row({
   onPress?: () => void;
 }) {
   const { i18n } = useTranslation();
-  const Arrow = i18n.language === "ar" ? ChevronLeft : ChevronRight;
+  const Arrow = rowChevronIcon(i18n.language);
   return (
     <Pressable
       accessibilityRole="button"
@@ -378,7 +379,7 @@ export const ui = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radius.md,
     padding: space.md,
-    fontSize: 16,
+    fontSize: fontSize.lg,
     color: colors.foreground,
     backgroundColor: colors.surface,
   },

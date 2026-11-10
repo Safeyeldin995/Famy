@@ -14,6 +14,13 @@ describe("mobile otp input logic", () => {
     expect(pasted.next.join("")).toBe("123456");
   });
 
+  it("accepts Arabic-Indic OTP digits", () => {
+    const arabicSix = "١٢٣٤٥٦";
+    const pasted = applyOtpDigitInput(Array.from({ length: OTP_LENGTH }, () => ""), 0, arabicSix);
+    expect(pasted.complete).toBe(true);
+    expect(pasted.next.join("")).toBe("123456");
+  });
+
   it("moves focus back on backspace", () => {
     const cells = ["1", "2", "", "", "", ""];
     const cleared = applyOtpBackspace(cells, 2);

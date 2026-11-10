@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { StyleSheet, TextInput, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -7,14 +7,14 @@ import { contactPhoneErrorKey } from "@shared/auth/oauthShared";
 import { normalizeDigitsToWestern } from "@shared/otp/normalizePhone";
 import { supabase } from "@/lib/supabase";
 import { KeyboardFormScreen } from "@/ui/KeyboardFormScreen";
+import { AuthLabeledField, AuthPhoneField, AuthTextField } from "@/ui/auth/AuthFields";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
-import { colors, fonts, radius, space } from "@/ui/theme";
+import { colors, radius, space } from "@/ui/theme";
 
 /** After Google/Apple sign-in when profile phone or name is missing. */
 export default function OAuthSetupScreen() {
-  const { t, i18n } = useTranslation();
-  const inputFont = (i18n.language === "en" ? fonts.en : fonts.ar).bold;
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const [needsPhone, setNeedsPhone] = useState(false);
   const [contactPhone, setContactPhone] = useState("");
@@ -89,6 +89,7 @@ export default function OAuthSetupScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.center}>
+          <ActivityIndicator color={colors.brand} />
           <Text tone="muted">{t("common.loading")}</Text>
         </View>
       </SafeAreaView>
@@ -107,40 +108,23 @@ export default function OAuthSetupScreen() {
       </Text>
       <Text tone="muted">{t("auth.signUpSubtitle")}</Text>
 
-      <View style={{ gap: space.sm }}>
-        <Text size="sm" weight="bold" tone="muted">
-          {t("setup.name")}
-        </Text>
-        <TextInput
+      <AuthLabeledField label={t("setup.name")}>
+        <AuthTextField
           value={name}
           onChangeText={setName}
           autoComplete="name"
           placeholder={t("setup.namePlaceholder")}
-          placeholderTextColor={colors.muted}
-          style={[styles.input, { fontFamily: inputFont }]}
         />
-      </View>
+      </AuthLabeledField>
 
       {needsPhone ? (
-        <View style={{ gap: space.sm }}>
-          <Text size="sm" weight="bold" tone="muted">
-            {t("auth.phoneNumber")}
-          </Text>
-          <View style={[styles.field, styles.ltr]}>
-            <View style={styles.prefix}>
-              <Text weight="heavy">🇪🇬 +20</Text>
-            </View>
-            <TextInput
-              value={contactPhone}
-              onChangeText={(v) => setContactPhone(v.replace(/[^\d٠-٩ ]/g, ""))}
-              placeholder={t("auth.phonePlaceholder")}
-              placeholderTextColor={colors.muted}
-              keyboardType="phone-pad"
-              autoComplete="tel"
-              style={[styles.input, { fontFamily: inputFont, textAlign: "left", flex: 1 }]}
-            />
-          </View>
-        </View>
+        <AuthLabeledField label={t("auth.phoneNumber")}>
+          <AuthPhoneField
+            value={contactPhone}
+            onChangeText={setContactPhone}
+            placeholder={t("auth.phonePlaceholder")}
+          />
+        </AuthLabeledField>
       ) : null}
 
       {error ? (
@@ -157,35 +141,6 @@ export default function OAuthSetupScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   content: { padding: space.xxl, gap: space.lg },
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  input: {
-    minHeight: 56,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    backgroundColor: colors.surface,
-    paddingHorizontal: space.md,
-    fontSize: 16,
-    color: colors.foreground,
-  },
-  field: {
-    minHeight: 56,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: space.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    backgroundColor: colors.surface,
-    paddingHorizontal: space.md,
-  },
-  ltr: { direction: "ltr" },
-  prefix: {
-    minHeight: 40,
-    justifyContent: "center",
-    paddingHorizontal: 10,
-    borderRadius: radius.sm,
-    backgroundColor: colors.surface2,
-  },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: space.md },
   error: { backgroundColor: "#FBE7E6", borderRadius: radius.md, padding: space.md },
 });

@@ -3,10 +3,11 @@ import { Tabs } from "expo-router/tabs";
 import { useTranslation } from "react-i18next";
 import { Calendar, Home, MessageCircle, User } from "lucide-react-native";
 import { useSession } from "@/lib/session";
-import { colors, fonts } from "@/ui/theme";
-import { COMPACT_FONT_SCALE_CAP, scaledTabBarHeight } from "@/ui/a11y";
+import { colors } from "@/ui/theme";
+import { scaledTabBarHeight } from "@/ui/a11y";
+import { tabBarLabelStyle } from "@/ui/navigationTypography";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { View, useWindowDimensions, type TextStyle } from "react-native";
+import { View, useWindowDimensions } from "react-native";
 import { CustomerBottomNav } from "@/ui/CustomerBottomNav";
 
 export default function CustomerTabs() {
@@ -15,8 +16,6 @@ export default function CustomerTabs() {
   const insets = useSafeAreaInsets();
   const { fontScale } = useWindowDimensions();
   if (ready && !session) return <Redirect href="/login" />;
-  const labelFont = (i18n.language === "en" ? fonts.en : fonts.ar).bold;
-
   return (
     <Tabs
       tabBar={(props) => <CustomerBottomNav {...props} />}
@@ -24,12 +23,7 @@ export default function CustomerTabs() {
         headerShown: false,
         tabBarActiveTintColor: colors.brandText,
         tabBarInactiveTintColor: colors.muted,
-        tabBarLabelStyle: {
-          fontFamily: labelFont,
-          fontSize: 11,
-          lineHeight: 22,
-          maxFontSizeMultiplier: COMPACT_FONT_SCALE_CAP,
-        } as TextStyle,
+        tabBarLabelStyle: tabBarLabelStyle(i18n.language),
         tabBarStyle: {
           direction: i18n.language === "ar" ? "rtl" : "ltr",
           marginHorizontal: 12,

@@ -13,6 +13,7 @@ import { proCard } from "@/ui/provider/cards";
 import { Page, QueryState, Row, ActionError } from "@/ui/Page";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
+import { customerNumber } from "@/lib/customerFormat";
 import { colors, radius, space } from "@/ui/theme";
 
 export default function ProviderProfile() {
@@ -39,7 +40,7 @@ export default function ProviderProfile() {
             proCard.card,
             {
               borderRadius: radius.xl,
-              padding: 20,
+              padding: space.xl,
               flexDirection: "row",
               alignItems: "center",
               gap: 16,
@@ -141,7 +142,8 @@ export default function ProviderProfile() {
         </Text>
         {provider?.years_experience != null ? (
           <Text tone="muted" size="sm">
-            {t("pro.profile.yearsExperience")}: {String(provider.years_experience)}
+            {t("pro.profile.yearsExperience")}:{" "}
+            {customerNumber(Number(provider.years_experience), i18n.language)}
           </Text>
         ) : null}
         {provider?.city ? (

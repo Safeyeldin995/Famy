@@ -1,25 +1,36 @@
-import { useState } from "react";
-import { View, TextInput, StyleSheet, Pressable, ActivityIndicator } from "react-native";
+import { StyleSheet, View, TextInput, Pressable, ActivityIndicator } from "react-native";
 import { Send } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
+import { bodyTextInputProps } from "@/ui/a11y";
 import { Text } from "@/ui/Text";
-import { colors, fonts, radius, space } from "@/ui/theme";
+import { useInputFont } from "@/ui/auth/useInputFont";
+import { colors, fontSize, radius, space } from "@/ui/theme";
 
 export function ChatComposer({
+  value,
+  onChangeText,
   onSend,
   pending,
   warning,
   onClearWarning,
+  multiline = true,
 }: {
+  value: string;
+  onChangeText: (value: string) => void;
   onSend: (body: string) => void;
   pending: boolean;
   warning: string | null;
   onClearWarning: () => void;
+  multiline?: boolean;
 }) {
-  const { t, i18n } = useTranslation();
-  const [text, setText] = useState("");
-  const family = (i18n.language === "en" ? fonts.en : fonts.ar).regular;
-  const trimmed = text.trim();
+  const { t } = useTranslation();
+  const family = useInputFont("regular");
+  const trimmed = value.trim();
+  const submit = () => {
+    if (!trimmed || pending) return;
+    onSend(trimmed);
+    onChangeText("");
+  };
   return (
     <View style={styles.wrap}>
       {warning ? (
@@ -30,27 +41,26 @@ export function ChatComposer({
       <View style={styles.row}>
         <TextInput
           testID="chat-input"
-          value={text}
-          onChangeText={(value) => {
-            setText(value);
+          {...bodyTextInputProps()}
+          accessibilityLabel={t("messages.placeholder")}
+          value={value}
+          onChangeText={(next) => {
+            onChangeText(next);
             if (warning) onClearWarning();
           }}
           placeholder={t("messages.placeholder")}
           placeholderTextColor={colors.muted}
-          style={[styles.input, { fontFamily: family }]}
-          multiline
+          style={[styles.input, multiline ? styles.inputMultiline : styles.inputSingle, { fontFamily: family }]}
+          multiline={multiline}
           maxLength={2000}
+          onSubmitEditing={multiline ? undefined : submit}
         />
         <Pressable
           testID="chat-send"
           accessibilityRole="button"
           accessibilityLabel={t("messages.send")}
           disabled={!trimmed || pending}
-          onPress={() => {
-            if (!trimmed || pending) return;
-            onSend(trimmed);
-            setText("");
-          }}
+          onPress={submit}
           style={({ pressed }) => [
             styles.send,
             (!trimmed || pending) && styles.sendDisabled,
@@ -86,15 +96,21 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "flex-end", gap: space.sm },
   input: {
     flex: 1,
-    minHeight: 44,
-    maxHeight: 120,
     borderRadius: radius.pill,
     backgroundColor: colors.surface2,
     paddingHorizontal: space.lg,
-    paddingVertical: space.sm,
-    fontSize: 16,
+    fontSize: fontSize.md,
     color: colors.foreground,
     textAlign: "auto",
+  },
+  inputMultiline: {
+    minHeight: 44,
+    maxHeight: 120,
+    paddingVertical: space.sm,
+  },
+  inputSingle: {
+    height: 48,
+    borderRadius: radius.xl,
   },
   send: {
     width: 44,

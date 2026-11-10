@@ -31,6 +31,7 @@ export default function ProviderChatScreen() {
   const msgs = useMessages(id);
   const send = useSendMessage(id);
   const markRead = useMarkBookingMessagesRead();
+  const [draft, setDraft] = useState("");
   const [warning, setWarning] = useState<string | null>(null);
 
   useEffect(() => {
@@ -138,6 +139,8 @@ export default function ProviderChatScreen() {
               }
             />
             <ChatComposer
+              value={draft}
+              onChangeText={setDraft}
               onSend={handleSend}
               pending={send.isPending}
               warning={warning}

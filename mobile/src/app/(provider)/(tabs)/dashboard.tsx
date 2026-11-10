@@ -48,7 +48,7 @@ export default function ProviderDashboard() {
     <View
       style={{
         minHeight: 72,
-        paddingHorizontal: 20,
+        paddingHorizontal: space.xl,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",

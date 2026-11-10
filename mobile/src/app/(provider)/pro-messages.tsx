@@ -1,10 +1,12 @@
 import { View, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
+import { MessageCircle } from "lucide-react-native";
 import { useConversations } from "@/lib/chatQueries";
 import { ConversationRow } from "@/ui/chat/ConversationRow";
-import { Page, QueryState, ui } from "@/ui/Page";
+import { Page, QueryState } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { ProviderHeader } from "@/ui/provider/ProviderHeader";
+import { ProviderEmptyState } from "@/ui/ProviderEmptyState";
 import { space } from "@/ui/theme";
 
 export default function ProviderMessagesScreen() {
@@ -20,10 +22,11 @@ export default function ProviderMessagesScreen() {
       <Text tone="muted">{t("messages.chatNotice")}</Text>
       <QueryState query={q}>
         {!rows.length ? (
-          <View style={ui.card}>
-            <Text weight="heavy">{t("messages.emptyTitle")}</Text>
-            <Text tone="muted">{t("messages.emptyBody")}</Text>
-          </View>
+          <ProviderEmptyState
+            icon={MessageCircle}
+            title={t("messages.emptyTitle")}
+            body={t("messages.emptyBody")}
+          />
         ) : (
           <>
             <View testID="pro-conversation-list" style={styles.list}>
