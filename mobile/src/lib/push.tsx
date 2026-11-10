@@ -6,9 +6,11 @@ import Constants from "expo-constants";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { mapNotificationDeepLink, type PushWorkspace } from "@shared/push/mapNotificationDeepLink";
 import { supabase } from "./supabase";
-import { mapNotificationDeepLink } from "./deepLinks";
 import { resolveWorkspace, useSession, type Workspace } from "./session";
+import { stashPendingPushDeepLink } from "./pendingPushDeepLink";
+import { navigatePushTarget } from "./pushNavigation";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { colors, radius, space } from "@/ui/theme";
@@ -61,6 +63,25 @@ async function registerTokenWithBackend(token: string) {
   await AsyncStorage.setItem(ACTIVE_TOKEN_KEY, token);
 }
 
+/** Register when permission is granted; re-register when the Expo token changes. */
+export async function syncPushRegistration(): Promise<void> {
+  if (!Device.isDevice || Platform.OS === "web") return;
+  await ensureAndroidChannel();
+  const { status: existing } = await Notifications.getPermissionsAsync();
+  if (existing !== "granted") return;
+  const token = await fetchExpoPushToken();
+  if (!token) return;
+  const previous = await AsyncStorage.getItem(ACTIVE_TOKEN_KEY);
+  if (previous === token) {
+    await supabase.rpc("register_device_push_token", {
+      p_token: token,
+      p_platform: Platform.OS === "ios" ? "ios" : "android",
+    });
+    return;
+  }
+  await registerTokenWithBackend(token);
+}
+
 export async function revokeActivePushToken(): Promise<void> {
   try {
     const token = await AsyncStorage.getItem(ACTIVE_TOKEN_KEY);
@@ -86,23 +107,18 @@ function deepLinkFromResponse(
   return typeof data?.deepLink === "string" ? data.deepLink : null;
 }
 
-function navigateDeepLink(deepLink: string | null, workspace: Workspace) {
-  const target = mapNotificationDeepLink(deepLink, workspace);
-  if ("params" in target && target.params) {
-    router.push({ pathname: target.pathname, params: target.params });
-  } else {
-    router.push(target.pathname);
-  }
+function toPushWorkspace(workspace: Workspace): PushWorkspace {
+  return workspace === "provider" ? "provider" : "customer";
 }
 
-async function syncPushRegistration(): Promise<void> {
-  if (!Device.isDevice || Platform.OS === "web") return;
-  await ensureAndroidChannel();
-  const { status: existing } = await Notifications.getPermissionsAsync();
-  if (existing !== "granted") return;
-  const token = await fetchExpoPushToken();
-  if (!token) return;
-  await registerTokenWithBackend(token);
+function handlePushDeepLink(deepLink: string | null, workspace: Workspace | null, signedIn: boolean) {
+  if (!deepLink) return;
+  if (!signedIn || !workspace) {
+    void stashPendingPushDeepLink(deepLink);
+    router.push("/login");
+    return;
+  }
+  navigatePushTarget(mapNotificationDeepLink(deepLink, toPushWorkspace(workspace)));
 }
 
 /** Explicit customer settings action; never report success without backend registration. */
@@ -156,7 +172,7 @@ export function PushBridge() {
     } catch {
       // Permission or token failures must not break the app shell.
     }
-  }, [session, workspace]);
+  }, [session]);
 
   useEffect(() => {
     if (!ready || !session) return;
@@ -164,21 +180,23 @@ export function PushBridge() {
   }, [ready, session, runPromptFlow]);
 
   useEffect(() => {
-    if (!session || !workspace || Platform.OS === "web") return;
+    if (Platform.OS === "web") return;
 
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
-      navigateDeepLink(deepLinkFromResponse(response), workspace);
+      handlePushDeepLink(deepLinkFromResponse(response), workspace, !!session);
     });
 
-    if (!handledColdStart.current) {
+    if (!handledColdStart.current && ready && (!session || workspace)) {
       handledColdStart.current = true;
       void Notifications.getLastNotificationResponseAsync().then((response) => {
-        if (response) navigateDeepLink(deepLinkFromResponse(response), workspace);
+        if (response) {
+          handlePushDeepLink(deepLinkFromResponse(response), workspace, !!session);
+        }
       });
     }
 
     return () => sub.remove();
-  }, [session, workspace]);
+  }, [ready, session, workspace]);
 
   const onEnable = async () => {
     setPromptOpen(false);

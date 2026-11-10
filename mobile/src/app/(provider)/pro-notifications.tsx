@@ -1,5 +1,5 @@
 import { Pressable, View } from "react-native";
-import { router } from "expo-router";
+import { openNotificationDeepLink } from "@/lib/notificationNavigation";
 import { useTranslation } from "react-i18next";
 import { Bell } from "lucide-react-native";
 import { useMarkAllNotificationsRead, useMarkNotificationRead } from "@/lib/queries";
@@ -107,11 +107,7 @@ export default function ProNotifications() {
                       } catch {
                         return;
                       }
-                      const booking = String(item.deep_link ?? "").match(
-                        /^\/pro\/booking\/([a-zA-Z0-9-]+)$/,
-                      );
-                      if (booking)
-                        router.push({ pathname: "/pro-booking/[id]", params: { id: booking[1] } });
+                      if (item.deep_link) openNotificationDeepLink(item.deep_link, "provider");
                     }}
                     style={{
                       minHeight: 72,

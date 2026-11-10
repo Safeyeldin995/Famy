@@ -7,6 +7,7 @@ import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { colors, radius, space } from "@/ui/theme";
 import { supabase } from "@/lib/supabase";
+import { revokeActivePushToken } from "@/lib/push";
 import { requestMobileAccountDeletion } from "@/lib/accountDeletion";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 
@@ -51,6 +52,7 @@ export default function DeleteAccountScreen() {
       setBusy(false);
       return;
     }
+    await revokeActivePushToken();
     await supabase.auth.signOut();
     router.replace("/login");
   };

@@ -188,7 +188,7 @@ console.log(
   "PASS: 21 Phase 2A pricing, payload, gate, idempotency, package, recovery, chat and locale assertions.",
 );
 
-const { mapNotificationDeepLink } = load(path.join(root, "mobile/src/lib/deepLinks.ts"));
+const { mapNotificationDeepLink } = load(path.join(root, "src/lib/push/mapNotificationDeepLink.ts"));
 assert.deepEqual(mapNotificationDeepLink("/booking/abc", "customer"), {
   pathname: "/booking/[id]",
   params: { id: "abc" },
@@ -211,9 +211,12 @@ assert.deepEqual(mapNotificationDeepLink("/notifications", "customer"), {
 assert.deepEqual(mapNotificationDeepLink("/messages", "provider"), {
   pathname: "/pro-messages",
 });
-assert.deepEqual(mapNotificationDeepLink("/unknown/path", "provider"), {
-  pathname: "/pro-notifications",
+assert.deepEqual(mapNotificationDeepLink("/pro/onboarding", "provider"), {
+  pathname: "/pro-onboarding",
 });
+assert.deepEqual(mapNotificationDeepLink("/home", "customer"), { pathname: "/home" });
+assert.deepEqual(mapNotificationDeepLink("/unknown/path", "provider"), { pathname: "/dashboard" });
+assert.deepEqual(mapNotificationDeepLink("/unknown/path", "customer"), { pathname: "/home" });
 assert.deepEqual(Object.keys(en.mobilePush).sort(), Object.keys(ar.mobilePush).sort());
 assert(!/[\u064b-\u065f\u0670]/.test(JSON.stringify(ar.mobilePush)));
 const { mobileOAuthRedirectUrl, parseOAuthProviders, resolvePostOAuthNavigationTarget } = load(
