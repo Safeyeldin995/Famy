@@ -1,5 +1,6 @@
 import { View, Pressable } from "react-native";
 import { router } from "expo-router";
+import { openNotificationDeepLink } from "@/lib/notificationNavigation";
 import { useTranslation } from "react-i18next";
 import {
   useNotifications,
@@ -91,15 +92,7 @@ export default function Notifications() {
                     } catch {
                       return;
                     }
-                    // Only routes implemented in Phase 1 may be opened by server deep links.
-                    const match = String(n.deep_link ?? "").match(
-                      /^\/(booking|provider)\/([a-zA-Z0-9-]+)$/,
-                    );
-                    if (match)
-                      router.push({
-                        pathname: match[1] === "booking" ? "/booking/[id]" : "/provider/[id]",
-                        params: { id: match[2] },
-                      });
+                    if (n.deep_link) openNotificationDeepLink(n.deep_link, "customer");
                   }}
                 >
                   <View
