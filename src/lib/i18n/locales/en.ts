@@ -637,6 +637,12 @@ const en = {
     location: "Sheikh Zayed, Egypt",
     you: "You",
     typing: "typing…",
+    egp: "EGP",
+    noResults: "No results",
+    saving: "Saving…",
+  },
+  content: {
+    empty: "This content hasn't been added yet.",
   },
   nav: {
     home: "Home",
@@ -693,6 +699,9 @@ const en = {
     groupDiscover: "Discover & book",
     groupTabs: "Main tabs",
     groupAccount: "Account & settings",
+    banner: "Design preview — sample data only, no sign-in required",
+    allScreens: "All screens",
+    otpHint: "Preview only — OTP verification is disabled.",
   },
   auth: {
     welcomeBack: "Welcome back",
@@ -1002,6 +1011,9 @@ const en = {
     subtitle: "Save places for faster booking",
     summary: "{{count}} saved",
     addAddress: "Add address",
+    editAddress: "Edit address",
+    geoDenied: "Location permission is required to use your current position.",
+    geoFailed: "Couldn't get your location. Set it manually on the map.",
     empty: "No saved addresses yet",
     emptyBody: "Add an address to book services faster.",
     default: "Default",
@@ -1275,6 +1287,7 @@ const en = {
     free: "Free",
     busy: "Busy",
     freeCancel: "Free cancellation before the service starts",
+    call: "Call provider",
     bookNow: "Book Now · {{price}}",
     bookWith: "Book with {{name}}",
     topRated: "Top Rated",
@@ -1509,6 +1522,7 @@ const en = {
     promoDiscount: "Promo discount",
     promoApplied: "Promo applied — {{amount}} off",
     promoAppliedNote: "Code applied — {{amount}} off your total",
+    payCash: "Cash",
     promoError: {
       not_found: "This code isn't valid.",
       inactive: "This code is no longer active.",
@@ -2230,6 +2244,8 @@ const en = {
       idBack: "National ID (back)",
       accuracyConfirm: "I confirm this information is accurate.",
       submit: "Submit application",
+      submitSuccess: "Application submitted for review",
+      uploaded: "Document uploaded",
       submitIncomplete: "Please complete all required sections before submitting.",
       saveError: "Could not save this section. Please try again.",
       uploadError: "Upload failed. Check file type and size (max 10 MB).",
@@ -2518,6 +2534,9 @@ const en = {
         auditLog: "Audit Log",
         settings: "Settings",
       },
+      collapseSidebar: "Collapse sidebar",
+      expandSidebar: "Expand sidebar",
+      navAria: "Admin navigation",
     },
     index: {
       overview: "Overview",
@@ -2819,6 +2838,7 @@ const en = {
       suspendConfirmBody:
         "The customer will be blocked from creating new bookings. Existing bookings and profile data remain visible.",
       unsuspendConfirmBody: "The customer will regain the ability to create new bookings.",
+      suspendError: "Could not suspend this account.",
     },
     bookings: {
       title: "Booking Management",
@@ -3269,6 +3289,9 @@ const en = {
   },
   teaching: {
     service: "Service",
+    pickSubject: "Choose a subject",
+    pickCurriculum: "Choose a curriculum",
+    durationMinutes: "{{minutes}} minutes",
     serviceSubjects: "Subjects for this service",
     taxonomyLoading: "Loading {{label}}…",
     taxonomyError: "Could not load {{label}}. Try again.",
@@ -3402,6 +3425,7 @@ const en = {
     babysittingAges: "Babysitting ages",
     teachingGroups: "Teaching subject groups",
     hoursZones: "Working hours and zones",
+    rejectServicePlaceholder: "Why is this service request being rejected?",
     reviewEach: "Approve, request changes or reject each pending item. Give a reason for changes or rejection.",
     noReferences: "No references added.",
     noAgeGroups: "No babysitting age groups declared.",

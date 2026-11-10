@@ -637,6 +637,12 @@ const ar: Translation = {
     location: "الشيخ زايد، مصر",
     you: "أنت",
     typing: "يكتب…",
+    egp: "جنيه",
+    noResults: "مفيش نتائج",
+    saving: "جار الحفظ…",
+  },
+  content: {
+    empty: "المحتوى ده لسه متضافش.",
   },
   nav: {
     home: "الرئيسية",
@@ -693,6 +699,9 @@ const ar: Translation = {
     groupDiscover: "اكتشف واحجز",
     groupTabs: "التبويبات الرئيسية",
     groupAccount: "الحساب والإعدادات",
+    banner: "معاينة تصميم — بيانات تجريبية فقط، من غير تسجيل دخول",
+    allScreens: "كل الشاشات",
+    otpHint: "معاينة فقط — التحقق برمز OTP متوقف.",
   },
   auth: {
     welcomeBack: "أهلا بيك تاني",
@@ -997,6 +1006,9 @@ const ar: Translation = {
     subtitle: "احفظ أماكنك للحجز بسرعة",
     summary: "{{count}} محفوظ",
     addAddress: "أضف عنوانا",
+    editAddress: "تعديل العنوان",
+    geoDenied: "محتاجين إذن الموقع علشان نحدد مكانك.",
+    geoFailed: "مقدرناش نوصل لموقعك. حدده على الخريطة.",
     empty: "لا توجد عناوين محفوظة بعد",
     emptyBody: "أضف عنوانا لحجز الخدمات بشكل أسرع.",
     default: "افتراضي",
@@ -1269,6 +1281,7 @@ const ar: Translation = {
     free: "متاح",
     busy: "مشغول",
     freeCancel: "إلغاء مجاني قبل بداية الخدمة",
+    call: "اتصل بمقدم الخدمة",
     bookNow: "احجز الآن · {{price}}",
     bookWith: "احجز مع {{name}}",
     topRated: "الأعلى تقييما",
@@ -1500,6 +1513,7 @@ const ar: Translation = {
     promoDiscount: "خصم الكود",
     promoApplied: "تم تطبيق الكود — خصم {{amount}}",
     promoAppliedNote: "تم تطبيق الكود — خصم {{amount}} من الإجمالي",
+    payCash: "كاش",
     promoError: {
       not_found: "هذا الكود غير صالح.",
       inactive: "هذا الكود لم يعد نشطا.",
@@ -2207,6 +2221,8 @@ const ar: Translation = {
       idBack: "بطاقة الهوية (الظهر)",
       accuracyConfirm: "أؤكد أن هذه المعلومات دقيقة.",
       submit: "إرسال الطلب",
+      submitSuccess: "الطلب اتبعت للمراجعة",
+      uploaded: "الملف اترفع",
       submitIncomplete: "كمل كل الأقسام المطلوبة قبل الإرسال.",
       saveError: "لم نتمكن من حفظ القسم ده. حاول مرة تانية.",
       uploadError: "فشل الرفع. تحقق من نوع الملف والحجم (حد أقصى 10 م.ب).",
@@ -2493,6 +2509,9 @@ const ar: Translation = {
         auditLog: "سجل التدقيق",
         settings: "الإعدادات",
       },
+      collapseSidebar: "طوي القائمة الجانبية",
+      expandSidebar: "توسيع القائمة الجانبية",
+      navAria: "تنقل لوحة الإدارة",
     },
     index: {
       overview: "نظرة عامة",
@@ -2790,6 +2809,7 @@ const ar: Translation = {
       suspendConfirmBody:
         "سيمنع العميل من إنشاء حجوزات جديدة. تبقى الحجوزات الحالية وبيانات الملف الشخصي مرئية.",
       unsuspendConfirmBody: "سيستعيد العميل القدرة على إنشاء حجوزات جديدة.",
+      suspendError: "ماقدرناش نوقف الحساب.",
     },
     bookings: {
       title: "إدارة الحجوزات",
@@ -3235,6 +3255,9 @@ const ar: Translation = {
   },
   teaching: {
     service: "الخدمة",
+    pickSubject: "اختار المادة",
+    pickCurriculum: "اختار المنهج",
+    durationMinutes: "{{minutes}} دقيقة",
     serviceSubjects: "مواد الخدمة",
     taxonomyLoading: "بنحمل {{label}}...",
     taxonomyError: "مش قادرين نحمل {{label}}. حاول تاني.",
@@ -3363,6 +3386,7 @@ const ar: Translation = {
     babysittingAges: "أعمار الأطفال",
     teachingGroups: "مجموعات مواد التدريس",
     hoursZones: "ساعات الشغل والمناطق",
+    rejectServicePlaceholder: "ليه طلب الخدمة ده مرفوض؟",
     reviewEach: "راجع كل حاجة معلقة. لو هتطلب تعديل أو هترفض، اكتب السبب.",
     noReferences: "مفيش مراجع مضافة.",
     noAgeGroups: "مفيش أعمار أطفال محددة.",
