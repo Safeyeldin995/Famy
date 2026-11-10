@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Famy",
+    "name": "فامي / Famy",
     "slug": "famy",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -12,10 +12,11 @@
       "bundleIdentifier": "com.famy.app",
       "supportsTablet": false,
       "usesAppleSignIn": true,
+      "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSLocationWhenInUseUsageDescription": "Allow Famy to use your location to set your service address.",
-        "NSPhotoLibraryUsageDescription": "Allow Famy to access your photos for profile pictures, provider documents, and payment receipts."
+        "NSLocationWhenInUseUsageDescription": "Famy uses your location while the app is open to pin your service address on the map. We do not track your location in the background.",
+        "NSPhotoLibraryUsageDescription": "Famy lets you choose photos from your library for your profile picture, payment receipt uploads, and provider verification documents (such as ID). The app does not access your camera or microphone."
       }
     },
     "android": {
@@ -25,6 +26,7 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
+      "versionCode": 1,
       "predictiveBackGestureEnabled": false,
       "package": "com.famy.app",
       "blockedPermissions": [
@@ -53,13 +55,13 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow Famy to use your location to set your service address."
+          "locationWhenInUsePermission": "Famy uses your location while the app is open to pin your service address on the map. We do not track your location in the background."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Famy to access your photos for profile pictures, provider documents, and payment receipts.",
+          "photosPermission": "Famy lets you choose photos from your library for your profile picture, payment receipt uploads, and provider verification documents (such as ID). The app does not access your camera or microphone.",
           "cameraPermission": false,
           "microphonePermission": false
         }
