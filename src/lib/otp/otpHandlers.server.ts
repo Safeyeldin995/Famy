@@ -348,12 +348,35 @@ export async function getSetPasswordContextHandler(): Promise<SetPasswordContext
   return resolveSetPasswordContextFromCookie();
 }
 
+function otpSendRateLimitedResponse(retryAfter: number) {
+  return {
+    ok: false as const,
+    error: "rate_limited" as const,
+    retryAfter,
+    message: "Too many verification requests. Try again later.",
+  };
+}
+
+async function guardOtpSendRateLimit(phone: string) {
+  const { recordOtpSendAttemptIfAllowed, requestClientIpForOtpSend } = await import(
+    "@/lib/otp/otpSendAttempts.server"
+  );
+  return recordOtpSendAttemptIfAllowed({
+    phoneE164: phone,
+    ipAddress: requestClientIpForOtpSend(),
+  });
+}
+
 async function prepareFirebaseOtpIntent(params: {
   phone: string;
   purpose: "signup" | "reset";
   role?: "customer" | "provider";
 }) {
   const phone = parseCanonicalPhone(params.phone);
+  const rate = await guardOtpSendRateLimit(phone);
+  if (!rate.ok) {
+    return otpSendRateLimitedResponse(rate.retryAfter);
+  }
   const mismatch = await resolveOtpFlowMismatch(phone, params.purpose);
   if (!mismatch.ok) {
     clearOtpPendingIntent();
@@ -384,6 +407,10 @@ async function issueOtpSend(params: {
   role?: "customer" | "provider";
 }) {
   const phone = parseCanonicalPhone(params.phone);
+  const rate = await guardOtpSendRateLimit(phone);
+  if (!rate.ok) {
+    return otpSendRateLimitedResponse(rate.retryAfter);
+  }
   const mismatch = await resolveOtpFlowMismatch(phone, params.purpose);
   if (!mismatch.ok) {
     clearOtpPendingIntent();

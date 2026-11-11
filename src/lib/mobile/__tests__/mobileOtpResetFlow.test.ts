@@ -25,10 +25,30 @@ declare global {
 const rpc = vi.hoisted(() => vi.fn());
 const profileLookup = vi.hoisted(() => vi.fn());
 
+vi.mock("@/lib/otp/otpSendAttempts.server", () => ({
+  recordOtpSendAttemptIfAllowed: vi.fn().mockResolvedValue({ ok: true }),
+  requestClientIpForOtpSend: vi.fn().mockReturnValue(null),
+}));
+
 vi.mock("@/integrations/supabase/client.server", () => ({
   supabaseAdmin: {
     rpc: (...args: unknown[]) => rpc(...args),
     from: (table: string) => {
+      if (table === "otp_send_attempts") {
+        return {
+          select: () => ({
+            eq: () => ({
+              gte: async () => ({ count: 0, error: null }),
+            }),
+          }),
+          insert: async () => ({ error: null }),
+          delete: () => ({
+            eq: () => ({
+              lt: async () => ({ error: null }),
+            }),
+          }),
+        };
+      }
       if (table !== "profiles") throw new Error(`unexpected table ${table}`);
       return {
         select: () => ({

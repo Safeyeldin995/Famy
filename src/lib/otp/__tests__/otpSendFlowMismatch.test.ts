@@ -7,6 +7,11 @@ vi.mock("@tanstack/react-start/server", () => ({
   getRequest: () => ({ headers: new Headers() }),
 }));
 
+vi.mock("@/lib/otp/otpSendAttempts.server", () => ({
+  recordOtpSendAttemptIfAllowed: vi.fn().mockResolvedValue({ ok: true }),
+  requestClientIpForOtpSend: vi.fn().mockReturnValue(null),
+}));
+
 vi.mock("@/integrations/supabase/client.server", () => ({
   supabaseAdmin: {
     rpc: (...args: unknown[]) => rpc(...args),

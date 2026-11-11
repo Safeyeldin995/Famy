@@ -1337,6 +1337,27 @@ export type Database = {
         }
         Relationships: []
       }
+      otp_send_attempts: {
+        Row: {
+          created_at: string
+          id: string
+          ip_hash: string | null
+          phone_hash: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_hash?: string | null
+          phone_hash: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_hash?: string | null
+          phone_hash?: string
+        }
+        Relationships: []
+      }
       customer_education_profiles: {
         Row: {
           created_at: string
