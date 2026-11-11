@@ -3642,6 +3642,42 @@ export type Database = {
           },
         ]
       }
+      zone_combinations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          zone_a: string
+          zone_b: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          zone_a: string
+          zone_b: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          zone_a?: string
+          zone_b?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zone_combinations_zone_a_fkey"
+            columns: ["zone_a"]
+            isOneToOne: false
+            referencedRelation: "zones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "zone_combinations_zone_b_fkey"
+            columns: ["zone_b"]
+            isOneToOne: false
+            referencedRelation: "zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       zone_providers: {
         Row: {
           created_at: string
@@ -3929,6 +3965,10 @@ export type Database = {
       }
       admin_set_provider_verification: {
         Args: { p_provider_id: string; p_reason?: string; p_verified: boolean }
+        Returns: undefined
+      }
+      admin_sync_zone_combinations: {
+        Args: { p_partner_zone_ids: string[]; p_zone_id: string }
         Returns: undefined
       }
       admin_swap_cancellation_reason_order: {
@@ -4439,6 +4479,10 @@ export type Database = {
         }
       }
       provider_submit_onboarding: { Args: never; Returns: Json }
+      provider_update_service_zones: {
+        Args: { p_primary_zone_id: string; p_secondary_zone_id?: string }
+        Returns: undefined
+      }
       provider_save_teaching_group: {
         Args: {
           p_curriculum_id: string

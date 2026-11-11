@@ -238,6 +238,19 @@ describe("buildCoverageSavePayload", () => {
     });
   });
 
+  it("rejects more than two active zones", () => {
+    expect(
+      buildCoverageSavePayload(
+        "ready",
+        ["zone-maadi", "zone-zayed", "zone-old"],
+        ["zone-maadi", "zone-zayed", "zone-old"],
+      ),
+    ).toEqual({
+      ok: false,
+      error: "zone_max_two",
+    });
+  });
+
   it("does not report zone_required while the active-zone catalog is still loading", () => {
     const catalogStillLoading = combineSavedSelectionLoadState("ready", "loading");
     expect(catalogStillLoading).toBe("loading");

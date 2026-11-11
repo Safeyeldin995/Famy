@@ -31,6 +31,7 @@ import {
   useMyProvider,
   useProviderDocuments,
   useSetProviderPrice,
+  useZoneCombinationsCatalog,
 } from "@/lib/db/provider-queries";
 import {
   onboardingEditable,
@@ -50,6 +51,7 @@ import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
 import { buildReferencesPayload, showSecondReference } from "@/lib/provider/onboardingReferences";
 import {
   buildCoverageSavePayload,
+  coverageZoneIdsFromSelection,
   buildServicesSavePayload,
   mapSavedReferences,
   mapSavedServiceIds,
@@ -68,6 +70,7 @@ import {
   type AgeGroupChipId,
 } from "@/lib/provider/ageGroupCapabilities";
 import { suggestInitialZoneSelection } from "@/lib/provider/onboardingZones";
+import { partnerZoneIdsFor } from "@/lib/geo/zoneCombinations";
 import { useAvatarUrl } from "@/lib/db/queries";
 import { TeachingCapabilitiesEditor } from "@/components/provider/TeachingCapabilitiesEditor";
 import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
@@ -218,9 +221,24 @@ export function ProviderOnboardingFlow({ previewMode = false, initialSection }: 
   const [selectedServices, setSelectedServices] = useState<string[]>(
     previewMode ? PREVIEW_DEFAULTS.selectedServices : [],
   );
-  const [selectedZones, setSelectedZones] = useState<string[]>(
-    previewMode ? PREVIEW_DEFAULTS.selectedZones : [],
+  const [primaryZoneId, setPrimaryZoneId] = useState<string | null>(
+    previewMode ? (PREVIEW_DEFAULTS.selectedZones[0] ?? null) : null,
   );
+  const [secondaryZoneId, setSecondaryZoneId] = useState<string | null>(
+    previewMode ? (PREVIEW_DEFAULTS.selectedZones[1] ?? null) : null,
+  );
+  const combinationsQ = useZoneCombinationsCatalog();
+  const selectedZones = useMemo(
+    () => coverageZoneIdsFromSelection(primaryZoneId, secondaryZoneId),
+    [primaryZoneId, secondaryZoneId],
+  );
+  const secondaryPartnerZones = useMemo(() => {
+    if (!primaryZoneId) return [];
+    const partnerIds = new Set(
+      partnerZoneIdsFor(primaryZoneId, combinationsQ.data ?? []),
+    );
+    return (zonesQ.data ?? []).filter((z: any) => partnerIds.has(z.id) && z.is_active);
+  }, [primaryZoneId, combinationsQ.data, zonesQ.data]);
   const [ref1, setRef1] = useState(
     previewMode ? PREVIEW_DEFAULTS.ref1 : { full_name: "", relationship: "", phone: "", notes: "" },
   );
@@ -283,7 +301,9 @@ export function ProviderOnboardingFlow({ previewMode = false, initialSection }: 
     if (previewMode || zonesHydrated.current || !savedSelectionsQ.isSuccess) return;
     const saved = mapSavedZoneIds(savedSelectionsQ.data?.zones);
     const zones = zonesQ.data ?? [];
-    setSelectedZones(suggestInitialZoneSelection(zones, area, governorate, saved));
+    const picked = suggestInitialZoneSelection(zones, area, governorate, saved);
+    setPrimaryZoneId(picked[0] ?? null);
+    setSecondaryZoneId(picked[1] ?? null);
     zonesHydrated.current = true;
   }, [
     previewMode,
@@ -300,10 +320,16 @@ export function ProviderOnboardingFlow({ previewMode = false, initialSection }: 
     if (zones.length !== 1) return;
     const onlyId = zones[0]?.id;
     if (!onlyId) return;
-    setSelectedZones((current) =>
-      current.length === 1 && current[0] === onlyId ? current : [onlyId],
-    );
+    setPrimaryZoneId((current) => (current === onlyId ? current : onlyId));
+    setSecondaryZoneId(null);
   }, [previewMode, zonesQ.isSuccess, zonesQ.data]);
+
+  useEffect(() => {
+    if (!secondaryZoneId) return;
+    if (!secondaryPartnerZones.some((z: { id: string }) => z.id === secondaryZoneId)) {
+      setSecondaryZoneId(null);
+    }
+  }, [primaryZoneId, secondaryPartnerZones, secondaryZoneId]);
 
   useEffect(() => {
     if (previewMode || refsHydrated.current || !refsQ.isSuccess) return;
@@ -1070,26 +1096,55 @@ export function ProviderOnboardingFlow({ previewMode = false, initialSection }: 
                 </p>
               </div>
             ) : (
-              (zonesQ.data ?? []).map((z: any) => {
-                const on = selectedZones.includes(z.id);
-                return (
-                  <button
-                    key={z.id}
-                    type="button"
-                    disabled={coverageLoadState !== "ready"}
-                    onClick={() =>
-                      setSelectedZones((prev) =>
-                        on ? prev.filter((x) => x !== z.id) : [...prev, z.id],
-                      )
-                    }
-                    className={`w-full rounded-2xl border px-3 py-3 text-start text-sm font-bold break-words ${
-                      on ? "border-brand bg-brand/[0.06]" : "border-border/60"
-                    } ${coverageLoadState !== "ready" ? "opacity-70" : ""}`}
-                  >
-                    {lang === "ar" ? z.name_ar : z.name_en}
-                  </button>
-                );
-              })
+              <>
+                <p className="text-xs font-semibold text-muted-foreground">
+                  {t("pro.onboardingWizard.primaryZone")}
+                </p>
+                {(zonesQ.data ?? []).map((z: any) => {
+                  const on = primaryZoneId === z.id;
+                  return (
+                    <button
+                      key={z.id}
+                      type="button"
+                      disabled={coverageLoadState !== "ready"}
+                      onClick={() => {
+                        setPrimaryZoneId(z.id);
+                        setSecondaryZoneId((prev) =>
+                          prev && prev !== z.id ? prev : null,
+                        );
+                      }}
+                      className={`w-full rounded-2xl border px-3 py-3 text-start text-sm font-bold break-words ${
+                        on ? "border-brand bg-brand/[0.06]" : "border-border/60"
+                      } ${coverageLoadState !== "ready" ? "opacity-70" : ""}`}
+                    >
+                      {lang === "ar" ? z.name_ar : z.name_en}
+                    </button>
+                  );
+                })}
+                {primaryZoneId && secondaryPartnerZones.length > 0 ? (
+                  <div className="mt-3 space-y-2 border-t border-border/60 pt-3">
+                    <p className="text-xs font-semibold text-muted-foreground">
+                      {t("pro.onboardingWizard.secondaryZoneOptional")}
+                    </p>
+                    {secondaryPartnerZones.map((z: any) => {
+                      const on = secondaryZoneId === z.id;
+                      return (
+                        <button
+                          key={z.id}
+                          type="button"
+                          disabled={coverageLoadState !== "ready"}
+                          onClick={() => setSecondaryZoneId(on ? null : z.id)}
+                          className={`w-full rounded-2xl border px-3 py-3 text-start text-sm font-bold break-words ${
+                            on ? "border-brand bg-brand/[0.06]" : "border-border/60"
+                          } ${coverageLoadState !== "ready" ? "opacity-70" : ""}`}
+                        >
+                          {lang === "ar" ? z.name_ar : z.name_en}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </>
             )}
           </Card>
         )}

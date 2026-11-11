@@ -768,3 +768,38 @@ export function useCancelProviderPriceChange() {
       qc.invalidateQueries({ queryKey: ["my-provider-services", vars.providerId] }),
   });
 }
+
+export function useZoneCombinationsCatalog() {
+  return useQuery({
+    queryKey: ["zone-combinations"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("zone_combinations").select("zone_a, zone_b");
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 60_000,
+  });
+}
+
+export function useProviderUpdateServiceZones() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      primaryZoneId,
+      secondaryZoneId,
+    }: {
+      primaryZoneId: string;
+      secondaryZoneId?: string | null;
+    }) => {
+      const { error } = await supabase.rpc("provider_update_service_zones", {
+        p_primary_zone_id: primaryZoneId,
+        p_secondary_zone_id: secondaryZoneId ?? undefined,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["provider-work-zone-names"] });
+      qc.invalidateQueries({ queryKey: ["provider-saved-selections"] });
+    },
+  });
+}
