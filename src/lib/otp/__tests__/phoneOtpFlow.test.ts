@@ -58,6 +58,18 @@ describe("phoneOtpFlow", () => {
     expect(res).toEqual({ ok: false, error: "delivery_failed", retryAfter: 30 });
   });
 
+  it("maps send-time flow_mismatch without treating it as a delivery failure", async () => {
+    mockOtp.beginFirebaseOtp.mockResolvedValue({
+      ok: false,
+      error: "flow_mismatch",
+      nextStep: "signin",
+    });
+    mockFirebaseProvider.isClient = true;
+    const { startPhoneOtpFlow } = await import("../phoneOtpFlow");
+    const res = await startPhoneOtpFlow("+201012345678", "signup", "customer");
+    expect(res).toEqual({ ok: false, error: "flow_mismatch", nextStep: "signin" });
+  });
+
   it("confirms Firebase delivery before returning success", async () => {
     mockFirebaseProvider.isClient = true;
     mockOtp.beginFirebaseOtp.mockResolvedValue({ ok: true });

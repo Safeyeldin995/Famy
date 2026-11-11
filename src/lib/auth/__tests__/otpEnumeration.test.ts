@@ -17,13 +17,13 @@ describe("sendOtp enumeration resistance", () => {
     expect(successShape).not.toHaveProperty("no_account");
   });
 
-  it("reveals account existence only after OTP verification via flow_mismatch", () => {
+  it("returns flow_mismatch at send time before OTP delivery", () => {
     const signupExisting = { ok: false, error: "flow_mismatch", nextStep: "signin" };
     const resetMissing = { ok: false, error: "flow_mismatch", nextStep: "signup" };
 
     expect(signupExisting.nextStep).toBe("signin");
     expect(resetMissing.nextStep).toBe("signup");
-    expect(signupExisting.error).not.toBe("already_registered");
-    expect(resetMissing.error).not.toBe("no_account");
+    expect(signupExisting).not.toHaveProperty("requiresVerification");
+    expect(resetMissing).not.toHaveProperty("retryAfter");
   });
 });

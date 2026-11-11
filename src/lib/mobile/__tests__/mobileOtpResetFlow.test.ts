@@ -22,11 +22,36 @@ declare global {
   var __mobileTestIntentsHeader: string | undefined;
 }
 
+const rpc = vi.hoisted(() => vi.fn());
+const profileLookup = vi.hoisted(() => vi.fn());
+
+vi.mock("@/integrations/supabase/client.server", () => ({
+  supabaseAdmin: {
+    rpc: (...args: unknown[]) => rpc(...args),
+    from: (table: string) => {
+      if (table !== "profiles") throw new Error(`unexpected table ${table}`);
+      return {
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              is: () => ({
+                maybeSingle: () => profileLookup(),
+              }),
+            }),
+          }),
+        }),
+      };
+    },
+  },
+}));
+
 describe("mobile OTP reset purpose", () => {
   beforeEach(() => {
     cookieStore.clear();
     globalThis.__mobileTestIntentsHeader = undefined;
     process.env.AUTH_INTENT_SECRET = "test-auth-intent-secret";
+    rpc.mockResolvedValue({ data: "user-reset", error: null });
+    profileLookup.mockResolvedValue({ data: null, error: null });
   });
 
   afterEach(() => {

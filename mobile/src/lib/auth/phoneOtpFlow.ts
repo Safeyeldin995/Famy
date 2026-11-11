@@ -40,22 +40,34 @@ type StartPhoneOtpResult =
   | { ok: true; retryAfter?: number; delivery?: "firebase" | "server" }
   | {
       ok: false;
-      error: PhoneOtpFlowError;
+      error: PhoneOtpFlowError | "flow_mismatch";
       retryAfter?: number;
+      nextStep?: "signin" | "signup";
       flowAbandoned?: boolean;
       intentCleared?: boolean;
       firebaseAuthCode?: string;
     };
 
-function mapSendError(body: unknown): PhoneOtpFlowError {
-  if (!body || typeof body !== "object") return "send_failed";
-  const error = (body as { error?: string }).error;
-  if (error === "rate_limited" || error === "rate_limited_phone" || error === "rate_limited_ip") {
-    return "rate_limited";
+function mapSendFailure(body: unknown): Extract<StartPhoneOtpResult, { ok: false }> {
+  if (!body || typeof body !== "object") return { ok: false, error: "send_failed" };
+  const payload = body as { error?: string; nextStep?: string; retryAfter?: number };
+  if (payload.error === "flow_mismatch") {
+    return {
+      ok: false,
+      error: "flow_mismatch",
+      nextStep: payload.nextStep === "signup" ? "signup" : "signin",
+    };
   }
-  if (error === "delivery_failed") return "delivery_failed";
-  if (error === "temporarily_unavailable") return "temporarily_unavailable";
-  return "send_failed";
+  const error = payload.error;
+  let mapped: PhoneOtpFlowError = "send_failed";
+  if (error === "rate_limited" || error === "rate_limited_phone" || error === "rate_limited_ip") {
+    mapped = "rate_limited";
+  } else if (error === "delivery_failed") {
+    mapped = "delivery_failed";
+  } else if (error === "temporarily_unavailable") {
+    mapped = "temporarily_unavailable";
+  }
+  return { ok: false, error: mapped, retryAfter: payload.retryAfter };
 }
 
 export function phoneOtpFlowErrorMessage(
@@ -116,23 +128,12 @@ export async function startPhoneOtpFlow(
 ): Promise<StartPhoneOtpResult> {
   const send = await sendMobileOtp({ phone: phoneE164, purpose, role });
   if (!send.ok) {
-    return {
-      ok: false,
-      error: mapSendError(send.body),
-      retryAfter:
-        send.body && typeof send.body === "object"
-          ? (send.body as { retryAfter?: number }).retryAfter
-          : undefined,
-    };
+    return mapSendFailure(send.body);
   }
 
   const data = send.data as { ok?: boolean; delivery?: "firebase" | "server"; retryAfter?: number };
   if (!data.ok) {
-    return {
-      ok: false,
-      error: mapSendError(data),
-      retryAfter: data.retryAfter,
-    };
+    return mapSendFailure(data);
   }
 
   if (data.delivery === "firebase") {
@@ -161,20 +162,11 @@ export async function startPhoneOtpFlow(
 export async function resendPhoneOtpFlow(phoneE164: string): Promise<StartPhoneOtpResult> {
   const refresh = await resendMobileOtp();
   if (!refresh.ok) {
-    const error =
-      refresh.body &&
-      typeof refresh.body === "object" &&
-      (refresh.body as { error?: string }).error === "intent_missing"
-        ? "intent_missing"
-        : mapSendError(refresh.body);
-    return {
-      ok: false,
-      error,
-      retryAfter:
-        refresh.body && typeof refresh.body === "object"
-          ? (refresh.body as { retryAfter?: number }).retryAfter
-          : undefined,
-    };
+    const body = refresh.body;
+    if (body && typeof body === "object" && (body as { error?: string }).error === "intent_missing") {
+      return { ok: false, error: "intent_missing" };
+    }
+    return mapSendFailure(body);
   }
 
   const data = refresh.data as {
@@ -183,7 +175,7 @@ export async function resendPhoneOtpFlow(phoneE164: string): Promise<StartPhoneO
     retryAfter?: number;
   };
   if (!data.ok) {
-    return { ok: false, error: mapSendError(data), retryAfter: data.retryAfter };
+    return mapSendFailure(data);
   }
 
   if (data.delivery === "firebase") {
@@ -225,10 +217,18 @@ async function verifyWithFirebaseIdToken(idToken: string) {
   if (!res.ok) {
     // Firebase already accepted the code; a 5xx is our failure, not a wrong code.
     if (res.status >= 500) return { ok: false as const, error: "server_error" as const };
-    return { ok: false as const, error: "invalid_code" as const };
+    const body = res.body as { error?: string; nextStep?: string } | null;
+    if (body?.error === "flow_mismatch") {
+      return {
+        ok: false as const,
+        error: "flow_mismatch" as const,
+        nextStep: body.nextStep === "signup" ? ("signup" as const) : ("signin" as const),
+      };
+    }
+    return { ok: false as const, error: "session_expired" as const };
   }
   const applied = await applyMobileVerifySession(res.data);
-  if (!applied) return { ok: false as const, error: "invalid_code" as const };
+  if (!applied) return { ok: false as const, error: "session_expired" as const };
   const data = res.data as { userId?: string; isNewUser?: boolean };
   await forgetOtpFlowPhone();
   await signOutNativeFirebaseAuth();

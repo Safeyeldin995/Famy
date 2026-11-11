@@ -17,6 +17,7 @@ describe("mobileOtpSendFailureStatus", () => {
   });
 
   it("maps configuration mismatches to 400", () => {
+    expect(mobileOtpSendFailureStatus("flow_mismatch")).toBe(409);
     expect(mobileOtpSendFailureStatus("provider_mismatch")).toBe(400);
   });
 });

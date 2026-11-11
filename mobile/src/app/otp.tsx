@@ -18,6 +18,7 @@ import {
   shouldAutoResendFirebaseOtpOnMount,
   verifyPhoneOtpCode,
   verifyPhoneOtpWithFirebase,
+  type PhoneOtpFlowError,
 } from "@/lib/auth/phoneOtpFlow";
 import {
   hasNativeFirebasePhoneSession,
@@ -143,6 +144,14 @@ export default function OtpScreen() {
         setError(t("auth.verifyServerError"));
         return;
       }
+      if (res.error === "session_expired") {
+        setError(t("auth.sessionExpired"));
+        setCode(["", "", "", "", "", ""]);
+        void abandonPhoneOtpFlow().then(() => {
+          router.replace(context?.purpose === "reset" ? "/forgot-password" : "/login");
+        });
+        return;
+      }
       setError(t("auth.invalidCode"));
       setCode(["", "", "", "", "", ""]);
       return;
@@ -196,7 +205,7 @@ export default function OtpScreen() {
         logAuthFailure("otp_recover", recovered.error);
         setError(
           phoneOtpFlowErrorMessage(
-            recovered.error,
+            recovered.error as PhoneOtpFlowError,
             t,
             recovered.retryAfter,
             recovered.firebaseAuthCode,
@@ -229,7 +238,19 @@ export default function OtpScreen() {
     setResending(false);
     if (!res.ok) {
       logAuthFailure("otp_resend", res.error);
-      const msg = phoneOtpFlowErrorMessage(res.error, t, res.retryAfter, res.firebaseAuthCode);
+      if (res.error === "flow_mismatch") {
+        setError(
+          res.nextStep === "signup" ? t("auth.noAccount") : t("auth.alreadyRegistered"),
+        );
+        router.replace(res.nextStep === "signup" ? "/forgot-password" : "/login");
+        return;
+      }
+      const msg = phoneOtpFlowErrorMessage(
+        res.error as PhoneOtpFlowError,
+        t,
+        res.retryAfter,
+        res.firebaseAuthCode,
+      );
       setError(msg);
       if (res.flowAbandoned) {
         router.replace(context.purpose === "reset" ? "/forgot-password" : "/login");

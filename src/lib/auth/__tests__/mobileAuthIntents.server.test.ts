@@ -21,10 +21,35 @@ function intentsHeaderFromPayload(payload: {
   return JSON.stringify(payload);
 }
 
+const rpc = vi.hoisted(() => vi.fn());
+const profileLookup = vi.hoisted(() => vi.fn());
+
+vi.mock("@/integrations/supabase/client.server", () => ({
+  supabaseAdmin: {
+    rpc: (...args: unknown[]) => rpc(...args),
+    from: (table: string) => {
+      if (table !== "profiles") throw new Error(`unexpected table ${table}`);
+      return {
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              is: () => ({
+                maybeSingle: () => profileLookup(),
+              }),
+            }),
+          }),
+        }),
+      };
+    },
+  },
+}));
+
 describe("mobile auth intents header transport", () => {
   beforeEach(() => {
     cookieStore.clear();
     process.env.AUTH_INTENT_SECRET = "test-auth-intent-secret";
+    rpc.mockResolvedValue({ data: null, error: null });
+    profileLookup.mockResolvedValue({ data: null, error: null });
   });
 
   afterEach(() => {
@@ -64,6 +89,7 @@ describe("mobile auth intents header transport", () => {
     const { withMobileAuthCookies } = await import("@/lib/auth/authIntent.server");
 
     vi.stubEnv("OTP_PROVIDER", "firebase");
+    rpc.mockResolvedValue({ data: "user-reset", error: null });
 
     const send = await withMobileAuthCookies(undefined, () =>
       mobileOtpSendHandler({ phone: "+201012345678", purpose: "reset" }),

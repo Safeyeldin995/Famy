@@ -158,7 +158,12 @@ export function OtpScreen({
     try {
       const res = await resendPhoneOtpFlow(profile.phone, { languageCode: i18n.language });
       if (!res.ok) {
-        const msg = phoneOtpFlowErrorMessage(res.error, t, res.retryAfter, res.firebaseAuthCode);
+        const msg = phoneOtpFlowErrorMessage(
+          res.error as Exclude<typeof res.error, "flow_mismatch">,
+          t,
+          res.retryAfter,
+          res.firebaseAuthCode,
+        );
         toast.error(msg);
         if (res.flowAbandoned) {
           if (res.intentCleared === false) {

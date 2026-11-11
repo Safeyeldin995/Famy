@@ -216,19 +216,37 @@ function mapVerifyError(error: string) {
   return { ok: false as const, error: "invalid_code" as const };
 }
 
+type OtpFlowMismatch =
+  | { ok: true }
+  | { ok: false; error: "flow_mismatch"; nextStep: "signin" | "signup" };
+
+async function resolveOtpFlowMismatch(
+  phone: string,
+  purpose: "signup" | "reset",
+): Promise<OtpFlowMismatch> {
+  const existingUserId = await findUserIdByPhone(phone);
+  if (purpose === "signup" && existingUserId) {
+    return { ok: false, error: "flow_mismatch", nextStep: "signin" };
+  }
+  if (purpose === "reset" && !existingUserId) {
+    return { ok: false, error: "flow_mismatch", nextStep: "signup" };
+  }
+  return { ok: true };
+}
+
 async function finalizeOtpVerification(pending: {
   phone: string;
   purpose: "signup" | "reset";
   role?: "customer" | "provider";
 }) {
-  const existingUserId = await findUserIdByPhone(pending.phone);
-  if (pending.purpose === "signup" && existingUserId) {
+  const mismatch = await resolveOtpFlowMismatch(pending.phone, pending.purpose);
+  if (!mismatch.ok) {
     clearOtpPendingIntent();
-    return { ok: false as const, error: "flow_mismatch" as const, nextStep: "signin" as const };
-  }
-  if (pending.purpose === "reset" && !existingUserId) {
-    clearOtpPendingIntent();
-    return { ok: false as const, error: "flow_mismatch" as const, nextStep: "signup" as const };
+    return {
+      ok: false as const,
+      error: "flow_mismatch" as const,
+      nextStep: mismatch.nextStep,
+    };
   }
 
   const authResult = await completeVerifiedAuth({
@@ -336,6 +354,15 @@ async function prepareFirebaseOtpIntent(params: {
   role?: "customer" | "provider";
 }) {
   const phone = parseCanonicalPhone(params.phone);
+  const mismatch = await resolveOtpFlowMismatch(phone, params.purpose);
+  if (!mismatch.ok) {
+    clearOtpPendingIntent();
+    return {
+      ok: false as const,
+      error: "flow_mismatch" as const,
+      nextStep: mismatch.nextStep,
+    };
+  }
   setOtpPendingIntent({
     phone,
     purpose: params.purpose,
@@ -357,6 +384,15 @@ async function issueOtpSend(params: {
   role?: "customer" | "provider";
 }) {
   const phone = parseCanonicalPhone(params.phone);
+  const mismatch = await resolveOtpFlowMismatch(phone, params.purpose);
+  if (!mismatch.ok) {
+    clearOtpPendingIntent();
+    return {
+      ok: false as const,
+      error: "flow_mismatch" as const,
+      nextStep: mismatch.nextStep,
+    };
+  }
 
   const { loadOtpCoreService } = await import("@/lib/otp/OtpCoreService.server");
   const otp = await loadOtpCoreService();
