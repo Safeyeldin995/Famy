@@ -255,7 +255,7 @@ describe("formatAdminActionErrorMessage (admin review toast path)", () => {
       i18n.t.bind(i18n),
       POSTGREST_DOCUMENTS_NOT_APPROVED_ERROR,
     );
-    expect(msg).toBe("يجب اعتماد مستندات الهوية المطلوبة قبل الموافقة.");
+    expect(msg).toBe("يجب اعتماد مستندات الهوية المطلوبة قبل الموافقة");
     await i18n.changeLanguage("en");
   });
 
