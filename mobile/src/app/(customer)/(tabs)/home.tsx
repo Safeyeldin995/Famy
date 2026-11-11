@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { router } from "expo-router";
+import { useCallback, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
 import { QueryState, Row } from "@/ui/Page";
 import { ProviderCard } from "@/ui/ProviderCard";
 import { HomePromoStrip } from "@/ui/HomePromoStrip";
@@ -34,6 +34,9 @@ import { Text } from "@/ui/Text";
 import { LessonIllustration } from "@/ui/lessons/LessonIllustration";
 import { HOME_CATEGORY_IDS, homeCategoryLessonSlug } from "@shared/catalog/homeCategories";
 import { colors, radius, shadow, space } from "@/ui/theme";
+import { HomeActiveBookingCard } from "@/ui/customer/HomeActiveBookingCard";
+import { useBookingParties } from "@/lib/queries";
+import { customerHomeActiveBookings } from "@shared/home/activeHomeBookings";
 
 const SERVICE_TILES = {
   babysitting: {
@@ -76,8 +79,16 @@ export default function Home() {
   const tutoringServices = useMarketplaceServices("tutoring");
   const unread = useUnreadNotificationCount();
   const bookings = useMyBookings();
+  const activeIds = customerHomeActiveBookings(bookings.data ?? []).map((b) => b.id);
+  const parties = useBookingParties(activeIds);
   const promos = useFeaturedPromoCodes();
   const [refreshing, setRefreshing] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      void bookings.refetch();
+    }, [bookings.refetch]),
+  );
   const firstName = profile.data?.full_name?.split(" ")[0] || t("greetings.there");
   const Arrow = isAr ? ArrowUpLeft : ArrowUpRight;
 
@@ -91,7 +102,7 @@ export default function Home() {
             setRefreshing(true);
             try {
               await Promise.all(
-                [profile, address, categories, tutoringServices, unread, bookings, promos].map(
+                [profile, address, categories, tutoringServices, unread, bookings, parties, promos].map(
                   (q) => q.refetch(),
                 ),
               );
@@ -154,6 +165,10 @@ export default function Home() {
           </Pressable>
         </SafeAreaView>
       </LinearGradient>
+
+      {!bookings.isError && bookings.data ? (
+        <HomeActiveBookingCard bookings={bookings.data} parties={parties.data} />
+      ) : null}
 
       <View style={styles.section}>
         <Text size="xl" weight="heavy">

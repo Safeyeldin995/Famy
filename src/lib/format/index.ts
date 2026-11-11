@@ -50,6 +50,8 @@ export function formatDateTime(date: Date, language?: string) {
   return `${formatDate(date, undefined, language)} · ${formatTime(date, language)}`;
 }
 
+export { formatCustomerBookingListWhen } from "./customerBookingListWhen";
+
 export function formatNotificationDate(
   date: Date,
   now = new Date(),

@@ -7,6 +7,7 @@ import {
   formatNumber,
   formatTime,
 } from "./index";
+import { formatCustomerBookingListWhen } from "./customerBookingListWhen";
 
 describe("Egyptian display formatting", () => {
   const date = new Date(2026, 8, 2, 14, 0, 49);
@@ -15,6 +16,15 @@ describe("Egyptian display formatting", () => {
     expect(formatEGP(3240, undefined, "ar")).toBe("3,240 ج.م");
     expect(formatDate(date, undefined, "ar")).toBe("الأربعاء 2 سبتمبر");
     expect(formatNumber(3240, "ar")).toBe("3,240");
+  });
+
+  it("formats customer booking list when lines like the bookings screen", () => {
+    const line = formatCustomerBookingListWhen("2026-11-11T13:44:00+02:00", "ar");
+    expect(line).toMatch(/الأربعاء/);
+    expect(line).toMatch(/11/);
+    expect(line).toMatch(/نوفمبر/);
+    expect(line).toMatch(/·/);
+    expect(line).not.toMatch(/\d{4}\/\d{2}\/\d{2}/);
   });
 
   it("never mixes Arabic-Indic digits and abbreviated English durations", () => {
