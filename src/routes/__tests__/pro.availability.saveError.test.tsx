@@ -247,7 +247,7 @@ describe("provider weekly availability save error", () => {
     await i18n.changeLanguage("ar");
     rerender(<AvailabilityPage />);
     expect(screen.getByRole("alert").textContent).toBe(
-      "لم نتمكن من حفظ مواعيدك الأسبوعية، وجدولك السابق زي ما هو.",
+      "لم نتمكن من حفظ مواعيدك الأسبوعية، وجدولك السابق زي ما هو",
     );
     expect(screen.queryByText("تم الحفظ")).toBeNull();
     expect(screen.queryByText("Saved")).toBeNull();

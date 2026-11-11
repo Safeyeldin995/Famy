@@ -78,6 +78,6 @@ it("uses the profile first name and signed photo", () => {
   expect(screen.getByRole("heading", { name: "طلبك كامل ✓" })).toBeTruthy();
   expect(screen.queryByRole("img", { name: /7/ })).toBeNull();
   expect(
-    screen.getAllByText("فريق فامي هيراجع طلبك وهيرد عليك خلال 24 ساعة. هيوصلك إشعار أول ما نخلص"),
+    screen.getAllByText("فريق فامي هيراجع طلبك وهيرد عليك خلال 24 ساعة، هيوصلك إشعار أول ما نخلص"),
   ).toHaveLength(2);
 });

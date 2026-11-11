@@ -130,7 +130,7 @@ async function assertPrimaryControlsUsable(
 
   if (scenario === "incomplete") {
     const blocker = page.getByRole("link", {
-      name: lang === "en" ? /Experience: Complete experience information\./ : /الخبرة: أكمل معلومات الخبرة\./,
+      name: lang === "en" ? /Experience: Complete experience information\./ : /الخبرة: أكمل معلومات الخبرة/,
     });
     await expect(blocker).toBeVisible();
     await assertNotClippedByViewport(page, blocker);
@@ -166,7 +166,7 @@ test.describe("PR #82 admin provider approval review (issue68 mocked browser)", 
     mocks = await openAdminProviderReview(page, { lang: "ar", adminApprovalScenario: "incomplete" });
     await waitForDecisionLoaded(page);
     await expect(page.getByRole("heading", { name: "معلومات ناقصة — الموافقة متوقفة" })).toBeVisible();
-    await expect(page.getByRole("link", { name: /الخبرة: أكمل معلومات الخبرة\./ })).toBeVisible();
+    await expect(page.getByRole("link", { name: /الخبرة: أكمل معلومات الخبرة/ })).toBeVisible();
     await page.screenshot({ path: testInfo.outputPath("02-incomplete-ar-390.png"), fullPage: true });
     await mocks.assertIsolated();
   });
@@ -245,7 +245,7 @@ test.describe("PR #82 admin provider approval review (issue68 mocked browser)", 
     await waitForDecisionLoaded(page);
     await page.getByRole("button", { name: "قبول" }).first().click();
     const toast = page.locator("[data-sonner-toast]").last();
-    await expect(toast).toContainText("الطلب غير مكتمل ولا يمكن الموافقة عليه.");
+    await expect(toast).toContainText("الطلب غير مكتمل ولا يمكن الموافقة عليه");
     await expect(toast).not.toContainText("Application is incomplete");
     await page.screenshot({ path: testInfo.outputPath("05-approve-toast-ar-390.png"), fullPage: true });
     await mocks.assertIsolated();

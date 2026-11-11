@@ -64,6 +64,9 @@ jobs:
       - name: Check Arabic locale for tashkeel
         run: node qa/check-ar-tashkeel.mjs
 
+      - name: Check Arabic locale for UI periods
+        run: node qa/check-ar-periods.mjs
+
   mobile:
     name: Mobile typecheck and bundle
     runs-on: ubuntu-latest
