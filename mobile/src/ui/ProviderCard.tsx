@@ -5,7 +5,9 @@ import { UserRound, ShieldCheck, Star } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useAvatarUrl, type Provider } from "@/lib/queries";
 import { localized } from "@/lib/presentation";
-import { customerMoney, customerNumber } from "@/lib/customerFormat";
+import { customerMoney } from "@/lib/customerFormat";
+import { providerRatingSummary } from "@/lib/providerRating";
+import { joinUiParts, uiListSeparator } from "@shared/format/uiJoin";
 import { isFixedPackage, packageLabel } from "@shared/pricing/servicePackages";
 import { Text } from "./Text";
 import { colors, radius, space } from "./theme";
@@ -108,7 +110,7 @@ export function ProviderCard({ provider: p, subtitle }: { provider: Provider; su
                   : "",
             )
             .filter(Boolean)
-            .join(" · ") || localized(service, i18n.language)}
+            .join(uiListSeparator(i18n.language)) || localized(service, i18n.language)}
         </Text>
         <View style={[ui.wrap, { gap: 4, marginTop: 4 }]}>
           {Number(p.ratings.rating_count) > 0 ? (
@@ -116,7 +118,11 @@ export function ProviderCard({ provider: p, subtitle }: { provider: Provider; su
           ) : null}
           <Text size="xs" tone="muted">
             {Number(p.ratings.rating_count) > 0
-              ? `${customerNumber(Number(p.ratings.rating_avg), i18n.language)} (${customerNumber(Number(p.ratings.rating_count), i18n.language)})`
+              ? providerRatingSummary(
+                  Number(p.ratings.rating_avg),
+                  t("providerPage.reviewCount", { count: Number(p.ratings.rating_count) }),
+                  i18n.language,
+                )
               : t("providerPage.newOnFamy")}
           </Text>
         </View>
@@ -128,7 +134,10 @@ export function ProviderCard({ provider: p, subtitle }: { provider: Provider; su
           p.hourly_rate != null && (
             <Text weight="bold" style={{ marginTop: 4 }}>
               {packageInfo
-                ? `${customerMoney(p.hourly_rate, i18n.language)} · ${t(packageInfo.key, packageInfo.values)}`
+                ? joinUiParts(
+                    [customerMoney(p.hourly_rate, i18n.language), t(packageInfo.key, packageInfo.values)],
+                    i18n.language,
+                  )
                 : service?.category?.slug === "tutoring"
                   ? t("providerPage.perSession", {
                       price: customerMoney(p.hourly_rate, i18n.language),

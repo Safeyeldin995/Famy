@@ -8,6 +8,8 @@ import {
   fillOnboardingSections,
   IDS,
   notificationCount,
+  HOURLY_CREATE_BOOKING_SQL,
+  lifecycleBookingDates,
   OVERNIGHT_CREATE_BOOKING_SQL,
   queryRows,
   searchMarketplace,
@@ -133,18 +135,15 @@ describe("provider lifecycle (migration replay)", () => {
     await submitOnboarding(db);
     await approveProviderApplication(db);
 
+    const dates = lifecycleBookingDates();
     const booking = await asUser(db, IDS.customer, async () =>
-      queryRows<{ result: { booking_id: string } }>(
-        db,
-        `
-          SELECT public.create_booking(
-            $1::uuid, $2::uuid, $3::uuid,
-            now() + interval '3 days', now() + interval '3 days 2 hours',
-            gen_random_uuid(), $4::uuid, NULL, NULL, '[]'::jsonb, NULL, NULL, NULL, NULL, 'adult_present'
-          ) AS result
-        `,
-        [IDS.provider, seed.serviceId, IDS.addressInZone, IDS.childMember],
-      ),
+      queryRows<{ result: { booking_id: string } }>(db, HOURLY_CREATE_BOOKING_SQL, [
+        IDS.provider,
+        seed.serviceId,
+        IDS.addressInZone,
+        dates.first,
+        IDS.childMember,
+      ]),
     );
     const bookingId = booking[0]?.result?.booking_id;
     expect(bookingId).toBeTruthy();
@@ -296,18 +295,15 @@ describe("provider lifecycle (migration replay)", () => {
     await submitOnboarding(db);
     await approveProviderApplication(db);
 
+    const dates = lifecycleBookingDates();
     const firstBooking = await asUser(db, IDS.customer, async () =>
-      queryRows<{ result: { booking_id: string } }>(
-        db,
-        `
-          SELECT public.create_booking(
-            $1::uuid, $2::uuid, $3::uuid,
-            now() + interval '5 days', now() + interval '5 days 2 hours',
-            gen_random_uuid(), $4::uuid, NULL, NULL, '[]'::jsonb, NULL, NULL, NULL, NULL, 'adult_present'
-          ) AS result
-        `,
-        [IDS.provider, seed.serviceId, IDS.addressInZone, IDS.childMember],
-      ),
+      queryRows<{ result: { booking_id: string } }>(db, HOURLY_CREATE_BOOKING_SQL, [
+        IDS.provider,
+        seed.serviceId,
+        IDS.addressInZone,
+        dates.first,
+        IDS.childMember,
+      ]),
     );
     const firstBookingId = firstBooking[0]?.result?.booking_id;
     const beforePrice = (
@@ -330,17 +326,13 @@ describe("provider lifecycle (migration replay)", () => {
     });
 
     await asUser(db, IDS.customer, async () =>
-      queryRows(
-        db,
-        `
-          SELECT public.create_booking(
-            $1::uuid, $2::uuid, $3::uuid,
-            now() + interval '6 days', now() + interval '6 days 2 hours',
-            gen_random_uuid(), $4::uuid, NULL, NULL, '[]'::jsonb, NULL, NULL, NULL, NULL, 'adult_present'
-          )
-        `,
-        [IDS.provider, seed.serviceId, IDS.addressInZone, IDS.childMember],
-      ),
+      queryRows(db, HOURLY_CREATE_BOOKING_SQL, [
+        IDS.provider,
+        seed.serviceId,
+        IDS.addressInZone,
+        dates.second,
+        IDS.childMember,
+      ]),
     );
 
     const afterRows = await queryRows<{ id: string; price_total: string }>(

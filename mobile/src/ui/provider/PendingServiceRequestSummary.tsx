@@ -1,4 +1,5 @@
 import { View } from "react-native";
+import { joinUiParts, uiListSeparator } from "@shared/format/uiJoin";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { groupTeachingRows } from "@shared/tutoring/teachingGroups";
@@ -81,8 +82,16 @@ export function PendingServiceRequestSummary({
             .join(", ");
           return (
             <Text key={group.key} tone="muted" size="sm">
-              {name(subject)} · {name(curriculum)} · {levelNames} · {first.session_duration_min}{" "}
-              {t("scheduleUi.minutes")} · {first.session_price} {t("pricePicker.sessionUnit")}
+              {joinUiParts(
+                [
+                  name(subject),
+                  name(curriculum),
+                  levelNames,
+                  `${first.session_duration_min} ${t("scheduleUi.minutes")}`,
+                  `${first.session_price} ${t("pricePicker.sessionUnit")}`,
+                ].filter(Boolean) as string[],
+                i18n.language,
+              )}
             </Text>
           );
         })}
@@ -110,7 +119,9 @@ export function PendingServiceRequestSummary({
           return (
             <Text key={req.id} tone="muted" size="sm">
               {ar ? req.name_ar : req.name_en}
-              {mine?.evidence_storage_path ? ` · ${t("pro.serviceRequest.evidenceUploaded")}` : ""}
+              {mine?.evidence_storage_path
+                ? `${uiListSeparator(i18n.language)}${t("pro.serviceRequest.evidenceUploaded")}`
+                : ""}
             </Text>
           );
         })}

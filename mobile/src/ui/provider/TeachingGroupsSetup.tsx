@@ -11,6 +11,7 @@ import {
   TEACHING_CURRICULUM_NA_CODE,
   isLessonServiceSlug,
 } from "@shared/tutoring/lessonServices";
+import { joinUiParts, uiListSeparator } from "@shared/format/uiJoin";
 import { LessonIllustration } from "@/ui/lessons/LessonIllustration";
 import { LessonSubjectChips } from "@/ui/lessons/LessonSubjectChips";
 import { isPriceInRange } from "@shared/provider/priceOptions";
@@ -183,7 +184,7 @@ export function TeachingGroupsSetup({
               <Text weight="bold" style={{ flex: 1 }}>
               {subjectName ? name(subjectName) : ""}
               {curriculumName && !isTeachingCurriculumNa(curriculumName.code)
-                ? ` · ${name(curriculumName)}`
+                ? `${uiListSeparator(i18n.language)}${name(curriculumName)}`
                 : ""}
               </Text>
             </View>
@@ -193,13 +194,14 @@ export function TeachingGroupsSetup({
                   const level = levels.find((entry) => entry.id === row.level_id);
                   return level ? name(level) : "";
                 })
-                .join(" · ")}{" "}
-              · {first.session_price} {t("pricePicker.sessionUnit")}
+                .join(uiListSeparator(i18n.language))}
+              {uiListSeparator(i18n.language)}
+              {first.session_price} {t("pricePicker.sessionUnit")}
             </Text>
             <Text tone="muted" size="sm">
               {[...new Set(group.rows.map((row) => row.status))]
                 .map((status) => t(`providerSetup.status.${status}`))
-                .join(" · ")}
+                .join(uiListSeparator(i18n.language))}
             </Text>
             <View style={{ flexDirection: "row", gap: space.sm }}>
               <Button

@@ -14,12 +14,13 @@ import {
 import { useBookingParty } from "@/lib/provider/parties";
 import { useProviderBooking, useProviderUpdateBookingStatus } from "@/lib/provider/queries";
 import { localized, money, dateTime } from "@/lib/presentation";
+import { joinUiParts } from "@shared/format/uiJoin";
 import { DeclineSheet } from "@/ui/provider/DeclineSheet";
 import { ProviderPaymentBlock } from "@/ui/provider/ProviderPaymentBlock";
 import { ProviderHeader } from "@/ui/provider/ProviderHeader";
 import { BookingStatusCard } from "@/ui/provider/BookingStatusCard";
 import { proCard } from "@/ui/provider/cards";
-import { Page, QueryState, ActionError } from "@/ui/Page";
+import { Page, QueryState, ActionError, moneyTextStyle } from "@/ui/Page";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { colors, space } from "@/ui/theme";
@@ -147,10 +148,15 @@ export default function ProBookingDetail() {
                     {t("pro.booking.forWhom")}
                   </Text>
                   <Text weight="bold" size="sm" style={{ flex: 1 }}>
-                    {party.member_first_name} ·{" "}
-                    {t(bookingMemberAgeTranslation(party).key, {
-                      count: bookingMemberAgeTranslation(party).count,
-                    })}
+                    {joinUiParts(
+                      [
+                        party.member_first_name,
+                        t(bookingMemberAgeTranslation(party).key, {
+                          count: bookingMemberAgeTranslation(party).count,
+                        }),
+                      ],
+                      i18n.language,
+                    )}
                   </Text>
                 </View>
               ) : null}
@@ -205,7 +211,7 @@ export default function ProBookingDetail() {
             </View>
             <View style={[proCard.card, { flexDirection: "row", justifyContent: "space-between" }]}>
               <Text weight="bold">{t("pro.booking.total")}</Text>
-              <Text weight="heavy" tone="brand" size="lg" style={{ writingDirection: "ltr" }}>
+              <Text weight="heavy" tone="brand" size="lg" style={moneyTextStyle(i18n.language)}>
                 {money(Number(b.price_total ?? 0), i18n.language)}
               </Text>
             </View>

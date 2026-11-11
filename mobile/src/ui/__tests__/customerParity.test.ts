@@ -35,8 +35,8 @@ describe("customer list parity", () => {
   });
   it("uses the same Latin-digit currency strings as the web customer cards", () => {
     expect(customerMoney(1250, "ar")).toBe("1,250 ج.م");
-    expect(customerMoney(150, "ar", true)).toBe("150 ج.م/س");
-    expect(customerMoney(150, "en", true)).toBe("EGP 150/hr");
+    expect(customerMoney(150, "ar", true)).toBe("150 ج.م / الساعة");
+    expect(customerMoney(150, "en", true)).toBe("EGP 150 / hr");
   });
   it("uses grey confirmed pills and web lifecycle tones", () => {
     for (const status of ["confirmed", "on_the_way", "arrived", "arrival_confirmed", "in_progress"])

@@ -1,4 +1,5 @@
 import type { PGlite } from "@electric-sql/pglite";
+import { cairoDatePlusDays, stableCairoBookingBaseDate } from "./cairo-stable-booking-date";
 import { createMigrationReplayDb, replayAllMigrations } from "./migration-replay.harness";
 
 export const IDS = {
@@ -367,3 +368,22 @@ export const OVERNIGHT_CREATE_BOOKING_SQL = `
     gen_random_uuid(), $5::uuid, NULL, NULL, '[]'::jsonb, NULL, NULL, NULL, NULL, 'adult_present'
   )
 `;
+
+/** Two-hour babysitting slot on a stable Cairo calendar date (avoids `now() + interval` flake). */
+export const HOURLY_CREATE_BOOKING_SQL = `
+  SELECT public.create_booking(
+    $1::uuid, $2::uuid, $3::uuid,
+    (SELECT (($4::date + time '10:00') AT TIME ZONE 'Africa/Cairo')),
+    (SELECT (($4::date + time '10:00') AT TIME ZONE 'Africa/Cairo') + interval '2 hours'),
+    gen_random_uuid(), $5::uuid, NULL, NULL, '[]'::jsonb, NULL, NULL, NULL, NULL, 'adult_present'
+  ) AS result
+`;
+
+export function lifecycleBookingDates() {
+  const base = stableCairoBookingBaseDate();
+  return {
+    first: base,
+    second: cairoDatePlusDays(base, 1),
+    third: cairoDatePlusDays(base, 2),
+  };
+}

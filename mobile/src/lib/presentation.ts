@@ -1,16 +1,15 @@
 import type { Provider } from "./queries";
+import { formatEGP } from "@shared/format/egp";
+
 export function localized(
   row: { name_ar?: string | null; name_en?: string | null } | null | undefined,
   language: string,
 ) {
   return (language.startsWith("ar") ? row?.name_ar : row?.name_en) || row?.name_en || "";
 }
+
 export function money(value: number | string, language: string) {
-  return new Intl.NumberFormat(language === "ar" ? "ar-EG-u-nu-latn" : "en-EG", {
-    style: "currency",
-    currency: "EGP",
-    maximumFractionDigits: 2,
-  }).format(Number(value));
+  return formatEGP(Number(value), undefined, language);
 }
 export function dateTime(value: string, language: string) {
   return new Intl.DateTimeFormat(language === "ar" ? "ar-EG-u-nu-latn" : "en-GB", {

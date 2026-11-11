@@ -4,6 +4,7 @@ import { Search, X } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import type { useAddresses, useMarketplaceServices, Provider } from "@/lib/queries";
 import { localized } from "@/lib/presentation";
+import { joinUiParts } from "@shared/format/uiJoin";
 import { isFixedPackage, packageLabel } from "@shared/pricing/servicePackages";
 import {
   type TeachingCapabilityOption,
@@ -124,9 +125,12 @@ export function CustomerSearchView(p: Props) {
             { value: "", label: t("search2.allServices") },
             ...(p.services.data ?? []).map((s) => ({
               value: s.id,
-              label:
-                localized(s, i18n.language) +
-                (isFixedPackage(s) ? ` · ${t(packageLabel(s).key, packageLabel(s).values)}` : ""),
+              label: isFixedPackage(s)
+                ? joinUiParts(
+                    [localized(s, i18n.language), t(packageLabel(s).key, packageLabel(s).values)],
+                    i18n.language,
+                  )
+                : localized(s, i18n.language),
             })),
           ]}
         />
