@@ -9,6 +9,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { mapNotificationDeepLink, type PushWorkspace } from "@shared/push/mapNotificationDeepLink";
 import { supabase } from "./supabase";
 import { resolveWorkspace, useSession, type Workspace } from "./session";
+import { useQueryClient } from "@tanstack/react-query";
+import { bookingPushInvalidationKeys, invalidateQueryKeyList } from "./cacheInvalidation";
 import { stashPendingPushDeepLink } from "./pendingPushDeepLink";
 import { navigatePushTarget } from "./pushNavigation";
 import { Button } from "@/ui/Button";
@@ -135,6 +137,7 @@ export async function enableCustomerPushNotifications(): Promise<void> {
 export function PushBridge() {
   const { session, ready } = useSession();
   const { t } = useTranslation();
+  const qc = useQueryClient();
   const [promptOpen, setPromptOpen] = useState(false);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const handledColdStart = useRef(false);
@@ -182,6 +185,11 @@ export function PushBridge() {
   useEffect(() => {
     if (Platform.OS === "web") return;
 
+    const refreshSub = Notifications.addNotificationReceivedListener(() => {
+      if (!session) return;
+      void invalidateQueryKeyList(qc, bookingPushInvalidationKeys());
+    });
+
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
       handlePushDeepLink(deepLinkFromResponse(response), workspace, !!session);
     });
@@ -195,8 +203,11 @@ export function PushBridge() {
       });
     }
 
-    return () => sub.remove();
-  }, [ready, session, workspace]);
+    return () => {
+      refreshSub.remove();
+      sub.remove();
+    };
+  }, [ready, session, workspace, qc]);
 
   const onEnable = async () => {
     setPromptOpen(false);
