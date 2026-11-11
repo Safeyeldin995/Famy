@@ -7,7 +7,7 @@ import {
 } from "./cacheInvalidation";
 import { supabase } from "./supabase";
 import { cairoWallTime, packageRuleStart } from "@shared/pricing/servicePackages";
-import { earliestBookableInstant } from "@shared/booking/availableSlots";
+import { creationMinHours, parseBookingExpirySettings } from "@shared/booking/pending-expiry";
 import { mapBookingRpcError } from "@shared/booking/errors";
 import { completeCreateBookingResult } from "./bookingPure";
 import type { ServiceZone } from "@shared/geo/serviceZones";
@@ -238,7 +238,7 @@ export function useAvailableSlots(
       });
       if (!provider) return [];
 
-      const [rulesRes, vacRes, excRes, bookingsRes] = await Promise.all([
+      const [rulesRes, vacRes, excRes, bookingsRes, expiryRes] = await Promise.all([
         supabase
           .from("availability_rules")
           .select("start_time, end_time")
@@ -262,11 +262,13 @@ export function useAvailableSlots(
           .in("status", ACTIVE_BOOKING_STATUSES)
           .gte("start_at", queryStart.toISOString())
           .lte("start_at", queryEnd.toISOString()),
+        supabase.from("settings").select("value").eq("key", "booking_expiry").maybeSingle(),
       ]);
       if (rulesRes.error) throw rulesRes.error;
       if (vacRes.error) throw vacRes.error;
       if (excRes.error) throw excRes.error;
       if (bookingsRes.error) throw bookingsRes.error;
+      if (expiryRes.error) throw expiryRes.error;
 
       if (provider.vacation_mode) return [];
       // Provider is on vacation this date — no slots at all.
@@ -279,7 +281,10 @@ export function useAvailableSlots(
       if (exceptions.some((e) => !e.start_time || !e.end_time)) return [];
 
       const now = new Date();
-      const earliestAllowed = earliestBookableInstant(now, provider.min_notice_hours);
+      const expiry = parseBookingExpirySettings(expiryRes.data?.value);
+      const earliestAllowed = new Date(
+        now.getTime() + creationMinHours(provider.min_notice_hours, expiry) * 3600000,
+      );
       const latestAllowed = new Date(now.getTime() + provider.max_advance_days * 86400000);
       const bufferMs = provider.buffer_minutes * 60000;
 

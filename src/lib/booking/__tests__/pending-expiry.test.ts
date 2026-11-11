@@ -64,9 +64,11 @@ describe("pending expiry helpers", () => {
     );
   });
 
-  it("uses only provider min_notice for booking lead time", () => {
-    expect(creationMinHours(0)).toBe(0);
+  it("matches create_booking lead time: max(min_hours_before_start, provider notice)", () => {
+    expect(creationMinHours(0)).toBe(2);
     expect(creationMinHours(4)).toBe(4);
+    expect(creationMinHours(0, { pending_ttl_hours: 12, min_hours_before_start: 0 })).toBe(0);
+    expect(creationMinHours(3, { pending_ttl_hours: 12, min_hours_before_start: 2 })).toBe(3);
   });
 
   it("formats remaining response time", () => {

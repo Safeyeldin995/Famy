@@ -64,9 +64,12 @@ export function pendingResponseDeadline(
   return ttlDeadline.getTime() <= startDeadline.getTime() ? ttlDeadline : startDeadline;
 }
 
-/** @deprecated Use {@link earliestBookableInstant} for slot pickers; expiry settings do not limit bookable times. */
-export function creationMinHours(providerMinNoticeHours: number): number {
-  return Math.max(0, providerMinNoticeHours);
+/** Mirrors `create_booking`: GREATEST(min_hours_before_start, provider min_notice_hours). */
+export function creationMinHours(
+  providerMinNoticeHours: number,
+  settings: BookingExpirySettings = DEFAULT_BOOKING_EXPIRY_SETTINGS,
+): number {
+  return Math.max(settings.min_hours_before_start, Math.max(0, providerMinNoticeHours));
 }
 
 export type RespondWithinParts =
