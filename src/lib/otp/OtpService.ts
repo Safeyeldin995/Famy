@@ -23,7 +23,13 @@ export type Role = "customer" | "provider";
 
 export type SendOtpResult =
   | { ok: true; retryAfter?: number; requiresVerification?: true }
-  | { ok: false; error?: string; message?: string; retryAfter?: number };
+  | {
+      ok: false;
+      error?: string;
+      message?: string;
+      retryAfter?: number;
+      nextStep?: "signin" | "signup";
+    };
 export type VerifyOtpResult =
   | { ok: true; userId: string; isNewUser: boolean }
   | {

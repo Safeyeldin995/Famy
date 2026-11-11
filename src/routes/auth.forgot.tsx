@@ -14,6 +14,7 @@ export function Forgot({ previewMode = false }: { previewMode?: boolean } = {}) 
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [flowMismatchSignup, setFlowMismatchSignup] = useState(false);
   const nav = useNavigate();
   const { setProfile } = useApp();
   const { t, i18n } = useTranslation();
@@ -22,12 +23,25 @@ export function Forgot({ previewMode = false }: { previewMode?: boolean } = {}) 
   const submit = async () => {
     if (previewMode || !valid || loading) return;
     setErrorMsg(null);
+    setFlowMismatchSignup(false);
     const e164 = normalizePhone(phone);
     setLoading(true);
     const send = await startPhoneOtpFlow(e164, "reset", undefined, { languageCode: i18n.language });
     if (!send.ok) {
       setLoading(false);
-      const m = phoneOtpFlowErrorMessage(send.error, t, send.retryAfter, send.firebaseAuthCode);
+      if (send.error === "flow_mismatch" && send.nextStep === "signup") {
+        const m = t("auth.noAccount");
+        setErrorMsg(m);
+        setFlowMismatchSignup(true);
+        toast.error(m, { duration: 8000 });
+        return;
+      }
+      const m = phoneOtpFlowErrorMessage(
+        send.error as Exclude<typeof send.error, "flow_mismatch">,
+        t,
+        send.retryAfter,
+        send.firebaseAuthCode,
+      );
       setErrorMsg(m);
       toast.error(m, { duration: 8000 });
       return;
@@ -79,7 +93,25 @@ export function Forgot({ previewMode = false }: { previewMode?: boolean } = {}) 
         </div>
       </div>
       <div className="safe-bottom p-5">
-        {errorMsg && <p className="mb-4 text-sm font-bold text-destructive px-1">{errorMsg}</p>}
+        {errorMsg ? (
+          <div className="mb-4 space-y-3 px-1">
+            <p className="text-sm font-bold text-destructive">{errorMsg}</p>
+            {flowMismatchSignup ? (
+              <button
+                type="button"
+                onClick={() =>
+                  nav({
+                    to: "/login",
+                    search: { mode: "signup", phone: normalizePhone(phone) },
+                  })
+                }
+                className="focus-ring text-sm font-extrabold text-brand"
+              >
+                {t("auth.signUp")}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
         <PrimaryButton onClick={submit} disabled={!valid || loading} className="shadow-float h-14">
           {loading ? t("common.sending", "Sending…") : t("common.sendCode")}
         </PrimaryButton>

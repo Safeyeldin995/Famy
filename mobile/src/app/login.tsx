@@ -1,14 +1,18 @@
 import wordmark from "@/assets/images/famy-wordmark.png";
 import { useEffect, useState } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useTranslation } from "react-i18next";
 import { Briefcase, User } from "lucide-react-native";
 import Svg, { Path } from "react-native-svg";
 import { normalizeDigitsToWestern, normalizePhoneE164 } from "@shared/otp/normalizePhone";
-import { phoneOtpFlowErrorMessage, startPhoneOtpFlow } from "@/lib/auth/phoneOtpFlow";
+import {
+  phoneOtpFlowErrorMessage,
+  startPhoneOtpFlow,
+  type PhoneOtpFlowError,
+} from "@/lib/auth/phoneOtpFlow";
 import { authEmailForPhone } from "@shared/auth/authEmail";
 import type { OAuthProvider } from "@shared/auth/oauthShared";
 import { supabase } from "@/lib/supabase";
@@ -38,8 +42,10 @@ type Mode = "signin" | "signup";
 type Role = "customer" | "provider";
 
 export default function Login() {
+  const params = useLocalSearchParams<{ mode?: string; phone?: string }>();
   const { t } = useTranslation();
-  const [mode, setMode] = useState<Mode>("signin");
+  const initialMode = params.mode === "signup" ? "signup" : "signin";
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [role, setRole] = useState<Role>("customer");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -47,6 +53,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<OAuthProvider | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [flowMismatchNext, setFlowMismatchNext] = useState<"signin" | "signup" | null>(null);
   const oauthProviders = enabledMobileOAuthProviders();
   const showOAuth = mode === "signin" && role === "customer" && oauthProviders.length > 0;
 
@@ -54,6 +61,15 @@ export default function Login() {
     const noticeKey = consumePendingLoginNoticeKey();
     if (noticeKey) setError(t(noticeKey));
   }, [t]);
+
+  useEffect(() => {
+    if (typeof params.phone === "string" && params.phone.length > 0) {
+      setPhone(params.phone);
+    }
+    if (params.mode === "signup" || params.mode === "signin") {
+      setMode(params.mode);
+    }
+  }, [params.mode, params.phone]);
 
   const phoneValid = normalizeDigitsToWestern(phone).replace(/\D/g, "").length >= 9;
 
@@ -155,14 +171,25 @@ export default function Login() {
         onPress={async () => {
           if (!phoneValid || loading) return;
           setError(null);
+          setFlowMismatchNext(null);
           setLoading(true);
           const e164 = normalizePhoneE164(phone);
           const send = await startPhoneOtpFlow(e164, "signup", role);
           setLoading(false);
           if (!send.ok) {
             logAuthFailure("signup_send", send.error);
+            if (send.error === "flow_mismatch" && send.nextStep === "signin") {
+              setError(t("auth.alreadyRegistered"));
+              setFlowMismatchNext("signin");
+              return;
+            }
             setError(
-              phoneOtpFlowErrorMessage(send.error, t, send.retryAfter, send.firebaseAuthCode),
+              phoneOtpFlowErrorMessage(
+                send.error as PhoneOtpFlowError,
+                t,
+                send.retryAfter,
+                send.firebaseAuthCode,
+              ),
             );
             return;
           }
@@ -194,6 +221,7 @@ export default function Login() {
         onChange={(next) => {
           setMode(next);
           setError(null);
+          setFlowMismatchNext(null);
         }}
         options={[
           { value: "signin", label: t("auth.signIn") },
@@ -254,6 +282,17 @@ export default function Login() {
           <Text size="sm" weight="bold" tone="danger">
             {error}
           </Text>
+          {flowMismatchNext === "signin" ? (
+            <Button
+              label={t("auth.signIn")}
+              variant="ghost"
+              onPress={() => {
+                setMode("signin");
+                setFlowMismatchNext(null);
+                setError(null);
+              }}
+            />
+          ) : null}
         </View>
       ) : null}
 

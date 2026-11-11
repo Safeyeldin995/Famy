@@ -13,6 +13,7 @@ export function mobileOtpSendFailureStatus(error: string | undefined): number {
   if (!error) return 400;
   if (OTP_SEND_RATE_LIMIT_ERRORS.has(error)) return 429;
   if (OTP_SEND_UNAVAILABLE_ERRORS.has(error)) return 503;
+  if (error === "flow_mismatch") return 409;
   if (error === "provider_mismatch" || error === "intent_missing") return 400;
   return 400;
 }
