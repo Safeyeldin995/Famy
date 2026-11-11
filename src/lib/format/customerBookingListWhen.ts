@@ -1,4 +1,6 @@
-/** Customer bookings list: short weekday, day month · time (Cairo). No web-only imports. */
+import { joinUiParts } from "./uiJoin";
+
+/** Customer bookings list: short weekday, day month، time (Cairo). No web-only imports. */
 export function formatCustomerBookingListWhen(iso: string, language: string) {
   const locale = language.startsWith("ar") ? "ar-EG-u-nu-latn" : "en-EG";
   const start = new Date(iso);
@@ -13,5 +15,5 @@ export function formatCustomerBookingListWhen(iso: string, language: string) {
     minute: "2-digit",
     timeZone: "Africa/Cairo",
   });
-  return `${dateLabel} · ${timeLabel}`;
+  return joinUiParts([dateLabel, timeLabel], language);
 }

@@ -17,6 +17,7 @@ import { useTranslation } from "react-i18next";
 import { useBooking, useBookingPayment, useBookingParty } from "@/lib/queries";
 import { chatPhaseForStatus, useConversationByBooking } from "@/lib/chatQueries";
 import { dateTime, localized, money } from "@/lib/presentation";
+import { joinUiParts } from "@shared/format/uiJoin";
 import { Page, QueryState, ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Avatar } from "@/ui/ProviderCard";
@@ -239,7 +240,10 @@ export default function BookingDetail() {
               </Text>
               {[
                 { Icon: Calendar, label: info.date },
-                { Icon: Clock, label: `${info.time} · ${info.duration}` },
+                {
+                  Icon: Clock,
+                  label: info ? joinUiParts([info.time, info.duration], i18n.language) : "",
+                },
                 { Icon: MapPin, label: info.address },
                 ...(isSupervisionMode(b.supervision_mode)
                   ? [
@@ -250,16 +254,15 @@ export default function BookingDetail() {
                     ]
                   : []),
               ].map(({ Icon, label }, index) => (
-                <View key={index} style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                <View key={index} style={ui.metaIconRow}>
                   <View
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 12,
-                      backgroundColor: colors.brandTint,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
+                    style={[
+                      ui.metaIconSlot,
+                      {
+                        borderRadius: 12,
+                        backgroundColor: colors.brandTint,
+                      },
+                    ]}
                   >
                     <Icon size={16} color={colors.brand} />
                   </View>

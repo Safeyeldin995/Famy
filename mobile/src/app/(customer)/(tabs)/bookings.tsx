@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { useMyBookings, useBookingParties } from "@/lib/queries";
 import { activeStatuses, localized } from "@/lib/presentation";
 import { customerMoney, customerNumber } from "@/lib/customerFormat";
+import { uiListSeparator } from "@shared/format/uiJoin";
 import { rowChevronIcon } from "@/ui/rtlNavigation";
 import { Page, QueryState, ui } from "@/ui/Page";
 import { Segmented } from "@/ui/Segmented";
@@ -164,8 +165,9 @@ export default function Bookings() {
                       <View style={[customerStyle.row, { gap: 4 }]}>
                         <Clock size={12} color={colors.muted} />
                         <Text size="xs" tone="muted">
-                          {start.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" })}{" "}
-                          · {t("bookings.hoursShort", { hours: String(hours) })}
+                          {start.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" })}
+                          {uiListSeparator(i18n.language)}
+                          {t("bookings.hoursShort", { hours: String(hours) })}
                         </Text>
                       </View>
                     </View>

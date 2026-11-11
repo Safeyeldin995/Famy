@@ -7,6 +7,7 @@ import { BookingRequestActions } from "./BookingRequestActions";
 import { Text } from "@/ui/Text";
 import { colors, radius, space } from "@/ui/theme";
 import { localized, money } from "@/lib/presentation";
+import { joinUiParts } from "@shared/format/uiJoin";
 import type { BookingParty } from "@/lib/provider/parties";
 import {
   isSupervisionMode,
@@ -28,7 +29,15 @@ function bookingTime(value: string, language: string) {
   const date = new Date(value);
   const locale = language.startsWith("ar") ? "ar-EG-u-nu-latn" : "en-GB";
   const options = { timeZone: "Africa/Cairo" };
-  return `${new Intl.DateTimeFormat(locale, { ...options, day: "numeric", month: "long" }).format(date)} · ${new Intl.DateTimeFormat(locale, { ...options, hour: "numeric", minute: "2-digit" }).format(date)}`;
+  return joinUiParts(
+    [
+      new Intl.DateTimeFormat(locale, { ...options, day: "numeric", month: "long" }).format(date),
+      new Intl.DateTimeFormat(locale, { ...options, hour: "numeric", minute: "2-digit" }).format(
+        date,
+      ),
+    ],
+    language,
+  );
 }
 
 export function ProviderBookingCard({
@@ -74,13 +83,14 @@ export function ProviderBookingCard({
         <Text weight="bold">{localized(booking.service, language)}</Text>
         {area || child || isSupervisionMode(booking.supervision_mode) ? (
           <Text tone="muted" size="sm">
-            {[
-              area,
-              child ? `${child} · ${t(age.key, { count: age.count })}` : null,
-              supervisionModeProviderLabel(booking.supervision_mode, t),
-            ]
-              .filter(Boolean)
-              .join(" · ")}
+            {joinUiParts(
+              [
+                area,
+                child ? joinUiParts([child, t(age.key, { count: age.count })], language) : "",
+                supervisionModeProviderLabel(booking.supervision_mode, t) ?? "",
+              ].filter((part): part is string => Boolean(part)),
+              language,
+            )}
           </Text>
         ) : null}
         <Text tone="muted" size="sm">

@@ -1,12 +1,10 @@
-/** Same customer currency presentation as web src/lib/format, without its DOM i18n dependency. */
+import { formatEGP, formatNumber } from "@shared/format/egp";
+
+/** Same customer currency presentation as web `formatEGP`, without the web DOM i18n import. */
 export function customerNumber(value: number, language: string) {
-  return new Intl.NumberFormat(language.startsWith("ar") ? "ar-EG-u-nu-latn" : "en-EG").format(
-    value,
-  );
+  return formatNumber(value, language);
 }
+
 export function customerMoney(value: number | string, language: string, perHour = false) {
-  const number = customerNumber(Number(value), language);
-  return language.startsWith("ar")
-    ? `${number} ج.م${perHour ? "/س" : ""}`
-    : `EGP ${number}${perHour ? "/hr" : ""}`;
+  return formatEGP(Number(value), perHour ? { perHour: true } : undefined, language);
 }

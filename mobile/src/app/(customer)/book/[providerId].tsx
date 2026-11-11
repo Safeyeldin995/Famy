@@ -80,6 +80,8 @@ import { Button } from "@/ui/Button";
 import { PaymentLogos } from "@/ui/PaymentLogos";
 import { BookingInlineForm } from "@/ui/customer/BookingInlineForm";
 import { customerMoney as money, customerNumber } from "@/lib/customerFormat";
+import { providerRatingSummary } from "@/lib/providerRating";
+import { joinUiParts } from "@shared/format/uiJoin";
 import { SupervisionModeChoices } from "@/ui/customer/SupervisionModeChoices";
 import {
   requiresSupervisionMode,
@@ -483,7 +485,15 @@ export default function Book() {
             )
             .map((m) => ({
               value: m.id,
-              label: `${m.full_name} · ${t(memberAgeTranslation(m.date_of_birth).key, { count: memberAgeTranslation(m.date_of_birth).count })}`,
+              label: joinUiParts(
+                [
+                  m.full_name,
+                  t(memberAgeTranslation(m.date_of_birth).key, {
+                    count: memberAgeTranslation(m.date_of_birth).count,
+                  }),
+                ],
+                lang,
+              ),
             })),
         ]}
       />
@@ -597,11 +607,14 @@ export default function Book() {
               <Text weight="heavy">{provider.data?.profile.full_name}</Text>
               <Text size="xs" tone="muted">
                 <Star size={12} color={colors.warning} />{" "}
-                {customerNumber(Number(provider.data?.ratings?.rating_avg ?? 0), lang)} ·{" "}
-                {t("customerBooking.jobs", {
-                  count: provider.data?.ratings?.rating_count ?? 0,
-                  countLabel: String(provider.data?.ratings?.rating_count ?? 0),
-                })}
+                {providerRatingSummary(
+                  Number(provider.data?.ratings?.rating_avg ?? 0),
+                  t("customerBooking.jobs", {
+                    count: provider.data?.ratings?.rating_count ?? 0,
+                    countLabel: String(provider.data?.ratings?.rating_count ?? 0),
+                  }),
+                  lang,
+                )}
               </Text>
             </View>
           </View>
@@ -694,12 +707,15 @@ export default function Book() {
                   <BookingServiceCard
                     key={group.key}
                     selected={active}
-                    title={teachingCapabilityTitleParts({
-                      subject: lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn,
-                      curriculum: lang === "ar" ? cap.curriculumNameAr : cap.curriculumNameEn,
-                      level: lang === "ar" ? cap.levelNameAr : cap.levelNameEn,
-                      curriculumCode: cap.curriculumCode,
-                    }).join(" · ")}
+                    title={joinUiParts(
+                      teachingCapabilityTitleParts({
+                        subject: lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn,
+                        curriculum: lang === "ar" ? cap.curriculumNameAr : cap.curriculumNameEn,
+                        level: lang === "ar" ? cap.levelNameAr : cap.levelNameEn,
+                        curriculumCode: cap.curriculumCode,
+                      }),
+                      lang,
+                    )}
                     subtitle={`${chosen.price} ${t("pricePicker.sessionUnit")}`}
                     icon={
                       lessonIllustrationKeyForSubject(cap.subjectCode) ? (
@@ -793,7 +809,10 @@ export default function Book() {
             }}
             options={pinned.map((a) => ({
               value: a.id,
-              label: [a.area, a.street, a.building].filter(Boolean).join(" · "),
+              label: joinUiParts(
+                [a.area, a.street, a.building].filter(Boolean) as string[],
+                lang,
+              ),
             }))}
           />
           <Button
@@ -819,7 +838,10 @@ export default function Book() {
                     { value: "customer", label: t("mobileBooking.customerProvides") },
                     {
                       value: "provider",
-                      label: `${t("mobileBooking.providerProvides")} · ${money(r.provider_extra_fee, lang)}`,
+                      label: joinUiParts(
+                        [t("mobileBooking.providerProvides"), money(r.provider_extra_fee, lang)],
+                        lang,
+                      ),
                     },
                   ]}
                 />
@@ -843,7 +865,17 @@ export default function Book() {
             {[
               {
                 label: t("bookFlow.stepName.service"),
-                value: `${localized(service?.service, lang)} · ${capability ? t("bookFlow.sessionLine", { minutes: String(capability.durationMin) }) : fixed ? t(packageLabel(service!.service).key, packageLabel(service!.service).values) : t("customerBooking.duration", { hours: String(hours) })}`,
+                value: joinUiParts(
+                  [
+                    localized(service?.service, lang),
+                    capability
+                      ? t("bookFlow.sessionLine", { minutes: String(capability.durationMin) })
+                      : fixed
+                        ? t(packageLabel(service!.service).key, packageLabel(service!.service).values)
+                        : t("customerBooking.duration", { hours: String(hours) }),
+                  ],
+                  lang,
+                ),
                 step: 0,
               },
               {
@@ -855,7 +887,10 @@ export default function Book() {
               },
               {
                 label: t("bookFlow.rowAddress"),
-                value: [selectedAddress?.area, selectedAddress?.street].filter(Boolean).join(" · "),
+                value: joinUiParts(
+                  [selectedAddress?.area, selectedAddress?.street].filter(Boolean) as string[],
+                  lang,
+                ),
                 step: 2,
               },
               {

@@ -14,6 +14,7 @@ import {
 import { useBookingParty } from "@/lib/provider/parties";
 import { useProviderBooking, useProviderUpdateBookingStatus } from "@/lib/provider/queries";
 import { localized, money, dateTime } from "@/lib/presentation";
+import { joinUiParts } from "@shared/format/uiJoin";
 import { DeclineSheet } from "@/ui/provider/DeclineSheet";
 import { ProviderPaymentBlock } from "@/ui/provider/ProviderPaymentBlock";
 import { ProviderHeader } from "@/ui/provider/ProviderHeader";
@@ -147,10 +148,15 @@ export default function ProBookingDetail() {
                     {t("pro.booking.forWhom")}
                   </Text>
                   <Text weight="bold" size="sm" style={{ flex: 1 }}>
-                    {party.member_first_name} ·{" "}
-                    {t(bookingMemberAgeTranslation(party).key, {
-                      count: bookingMemberAgeTranslation(party).count,
-                    })}
+                    {joinUiParts(
+                      [
+                        party.member_first_name,
+                        t(bookingMemberAgeTranslation(party).key, {
+                          count: bookingMemberAgeTranslation(party).count,
+                        }),
+                      ],
+                      i18n.language,
+                    )}
                   </Text>
                 </View>
               ) : null}

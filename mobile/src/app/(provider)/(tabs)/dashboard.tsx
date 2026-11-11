@@ -12,6 +12,7 @@ import {
   useProviderEarnings,
 } from "@/lib/provider/queries";
 import { money } from "@/lib/presentation";
+import { joinUiParts, uiListSeparator } from "@shared/format/uiJoin";
 import { ProviderBookingCard, type ProviderCardBooking } from "@/ui/provider/ProviderBookingCard";
 import { Page, QueryState } from "@/ui/Page";
 import { Text } from "@/ui/Text";
@@ -127,8 +128,8 @@ export default function ProviderDashboard() {
       <Text tone="muted" size="sm">
         <Text weight="bold" size="sm">
           {t("proWork.today")}
-        </Text>{" "}
-        ·{" "}
+        </Text>
+        {uiListSeparator(i18n.language)}
         {upcoming[0]
           ? `${t("proWork.nextJob")}: ${new Intl.DateTimeFormat(i18n.language.startsWith("ar") ? "ar-EG-u-nu-latn" : "en-GB", { timeZone: "Africa/Cairo", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }).format(new Date(upcoming[0].start_at))}`
           : t("proWork.noJobToday")}
@@ -187,7 +188,7 @@ export default function ProviderDashboard() {
         <Text
           style={{ backgroundColor: colors.brandTint, borderRadius: radius.lg, padding: space.md }}
         >
-          {t("pro.dashboard.vacationOn")} · {t("pro.dashboard.vacationOnBody")}
+          {joinUiParts([t("pro.dashboard.vacationOn"), t("pro.dashboard.vacationOnBody")], i18n.language)}
         </Text>
       ) : null}
       {sectionTitle(

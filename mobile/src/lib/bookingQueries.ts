@@ -57,7 +57,7 @@ function toAddressRow(input: AddressInput) {
     lat: input.lat ?? null,
     lng: input.lng ?? null,
     line1: input.street,
-    line2: line2Parts.length > 0 ? line2Parts.join(" · ") : null,
+    line2: line2Parts.length > 0 ? line2Parts.join("، ") : null,
   };
 }
 

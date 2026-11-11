@@ -3,6 +3,7 @@ import { Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useRescheduleAction, useRescheduleRequests } from "@/lib/rescheduleQueries";
 import { dateTime } from "@/lib/presentation";
+import { joinUiParts } from "@shared/format/uiJoin";
 import { Field, QueryState, ui } from "./Page";
 import { Text } from "./Text";
 import { Button } from "./Button";
@@ -176,13 +177,18 @@ export function RescheduleSection({
         {history &&
           requests.data?.map((row) => (
             <Text key={row.id} size="xs" tone="muted">
-              {t(
-                row.requested_by === booking.customer_id
-                  ? "reschedule.byCustomer"
-                  : "reschedule.byProvider",
-              )}{" "}
-              · {dateTime(row.proposed_start_at, i18n.language)} ·{" "}
-              {t(`reschedule.status.${row.status}`)}
+              {joinUiParts(
+                [
+                  t(
+                    row.requested_by === booking.customer_id
+                      ? "reschedule.byCustomer"
+                      : "reschedule.byProvider",
+                  ),
+                  dateTime(row.proposed_start_at, i18n.language),
+                  t(`reschedule.status.${row.status}`),
+                ],
+                i18n.language,
+              )}
             </Text>
           ))}
       </QueryState>
