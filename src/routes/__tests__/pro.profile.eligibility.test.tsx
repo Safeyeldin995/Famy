@@ -105,6 +105,8 @@ vi.mock("@/lib/db/provider-queries", () => ({
   useMyRequirementFulfillments: () => ({ data: [] }),
   useDeclareRequirement: () => ({ mutate: vi.fn() }),
   useUploadRequirementEvidence: () => ({ mutate: vi.fn() }),
+  useZoneCombinationsCatalog: () => ({ data: [] }),
+  useProviderUpdateServiceZones: () => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false }),
 }));
 
 import { Route } from "../pro.profile";

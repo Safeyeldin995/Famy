@@ -42,6 +42,16 @@ CREATE POLICY zone_combinations_admin_all ON public.zone_combinations
   USING (has_role((select auth.uid()), 'admin'::app_role))
   WITH CHECK (has_role((select auth.uid()), 'admin'::app_role));
 
+-- Backfill: any pair a provider already serves together becomes combinable,
+-- so existing two-zone coverage (e.g. Sheikh Zayed + 6th of October) stays
+-- valid under the new rules. Additive insert only.
+INSERT INTO public.zone_combinations (zone_a, zone_b)
+SELECT DISTINCT LEAST(a.zone_id, b.zone_id), GREATEST(a.zone_id, b.zone_id)
+FROM public.zone_providers a
+JOIN public.zone_providers b
+  ON b.provider_id = a.provider_id AND b.zone_id <> a.zone_id
+ON CONFLICT (zone_a, zone_b) DO NOTHING;
+
 -- ============================================================
 -- 2) Helpers
 -- ============================================================
