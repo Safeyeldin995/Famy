@@ -16,6 +16,7 @@ export function CustomerProfilePhoto({ src, name }: { src?: string | null; name:
   const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  const ar = i18n.language.startsWith("ar");
   async function pick() {
     if (!session?.user.id || busy) return;
     setBusy(true);
@@ -39,9 +40,8 @@ export function CustomerProfilePhoto({ src, name }: { src?: string | null; name:
       <View
         testID="customer-profile-photo"
         style={{
-          direction: "ltr",
-          width: 80,
-          height: 80,
+          paddingBottom: 8,
+          ...(ar ? { paddingLeft: 10 } : { paddingRight: 10 }),
           alignSelf: "flex-start",
         }}
       >
@@ -54,11 +54,11 @@ export function CustomerProfilePhoto({ src, name }: { src?: string | null; name:
           onPress={() => void pick()}
           style={{
             position: "absolute",
-            bottom: -4,
-            end: -4,
-            width: 44,
-            height: 44,
-            borderRadius: 22,
+            bottom: 0,
+            ...(ar ? { left: 0 } : { right: 0 }),
+            width: 36,
+            height: 36,
+            borderRadius: 18,
             borderWidth: 2,
             borderColor: colors.surface,
             backgroundColor: colors.brand,
@@ -67,9 +67,9 @@ export function CustomerProfilePhoto({ src, name }: { src?: string | null; name:
           }}
         >
           {busy ? (
-            <ActivityIndicator color={colors.surface} />
+            <ActivityIndicator color={colors.surface} size="small" />
           ) : (
-            <Camera size={20} color={colors.surface} />
+            <Camera size={16} color={colors.surface} />
           )}
         </Pressable>
       </View>

@@ -417,3 +417,8 @@ export const ui = StyleSheet.create({
   },
   ltr: { writingDirection: "ltr" },
 });
+
+/** English prices stay LTR; Arabic uses natural RTL bidi (number first in the string). */
+export function moneyTextStyle(language: string) {
+  return language.startsWith("en") ? ui.ltr : null;
+}

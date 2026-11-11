@@ -14,7 +14,7 @@ import {
 import { money } from "@/lib/presentation";
 import { joinUiParts, uiListSeparator } from "@shared/format/uiJoin";
 import { ProviderBookingCard, type ProviderCardBooking } from "@/ui/provider/ProviderBookingCard";
-import { Page, QueryState } from "@/ui/Page";
+import { Page, QueryState, moneyTextStyle } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { colors, radius, space } from "@/ui/theme";
 
@@ -156,7 +156,7 @@ export default function ProviderDashboard() {
           <Text
             weight="heavy"
             size="xxl"
-            style={{ color: colors.brandForeground, writingDirection: "ltr" }}
+            style={{ color: colors.brandForeground, ...moneyTextStyle(i18n.language) }}
           >
             {money(mtdKind === "bookingValue" ? mtdBookingValue : mtdNet, i18n.language)}
           </Text>

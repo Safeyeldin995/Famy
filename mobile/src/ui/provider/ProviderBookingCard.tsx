@@ -5,6 +5,7 @@ import { Avatar } from "../ProviderCard";
 import { useTranslation } from "react-i18next";
 import { BookingRequestActions } from "./BookingRequestActions";
 import { Text } from "@/ui/Text";
+import { moneyTextStyle } from "@/ui/Page";
 import { colors, radius, space } from "@/ui/theme";
 import { localized, money } from "@/lib/presentation";
 import { joinUiParts } from "@shared/format/uiJoin";
@@ -76,7 +77,7 @@ export function ProviderBookingCard({
           <Text weight="heavy" size="lg" style={{ flex: 1 }} numberOfLines={1}>
             {name}
           </Text>
-          <Text weight="heavy" size="lg" tone="brand" style={{ writingDirection: "ltr" }}>
+          <Text weight="heavy" size="lg" tone="brand" style={moneyTextStyle(language)}>
             {money(Number(booking.price_total ?? 0), language)}
           </Text>
         </View>

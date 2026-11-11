@@ -74,7 +74,7 @@ import { isLessonServiceSlug, teachingCapabilityTitleParts } from "@shared/tutor
 import { lessonIllustrationKeyForSubject } from "@shared/tutoring/lessonIllustrations";
 import { LessonIllustration } from "@/ui/lessons/LessonIllustration";
 import { localized, dateTime } from "@/lib/presentation";
-import { Page, QueryState, Field, Choices, ui } from "@/ui/Page";
+import { Page, QueryState, Field, Choices, moneyTextStyle, ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
 import { PaymentLogos } from "@/ui/PaymentLogos";
@@ -532,7 +532,7 @@ export default function Book() {
             <Text tone="muted" weight="bold">
               {t("mobile.price.total")}
             </Text>
-            <Text size="xxl" weight="heavy" tone="brand" style={ui.ltr}>
+            <Text size="xxl" weight="heavy" tone="brand" style={moneyTextStyle(lang)}>
               {loading
                 ? t("common.loading")
                 : tutoring && !capability
@@ -1009,7 +1009,7 @@ export default function Book() {
                     size={key === "total" ? "lg" : "md"}
                     weight={key === "total" ? "heavy" : "regular"}
                     tone="default"
-                    style={ui.ltr}
+                    style={moneyTextStyle(lang)}
                   >
                     {key === "discount" ? "-" : ""}
                     {money(v, lang)}

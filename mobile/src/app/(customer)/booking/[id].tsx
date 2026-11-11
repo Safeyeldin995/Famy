@@ -18,7 +18,7 @@ import { useBooking, useBookingPayment, useBookingParty } from "@/lib/queries";
 import { chatPhaseForStatus, useConversationByBooking } from "@/lib/chatQueries";
 import { dateTime, localized, money } from "@/lib/presentation";
 import { joinUiParts } from "@shared/format/uiJoin";
-import { Page, QueryState, ui } from "@/ui/Page";
+import { Page, QueryState, moneyTextStyle, ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Avatar } from "@/ui/ProviderCard";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
@@ -342,7 +342,7 @@ export default function BookingDetail() {
                         size={field === "total" ? "xl" : "md"}
                         tone={field === "total" ? "brand" : "default"}
                         weight={field === "total" ? "heavy" : "regular"}
-                        style={ui.ltr}
+                        style={moneyTextStyle(i18n.language)}
                       >
                         {money(b[`price_${field}`], i18n.language)}
                       </Text>
