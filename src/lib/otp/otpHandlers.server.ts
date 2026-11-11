@@ -501,19 +501,25 @@ export async function verifyOtpHandler(data: z.infer<typeof VerifySchema>) {
 
 export async function verifyFirebaseOtpHandler(data: z.infer<typeof VerifyFirebaseSchema>) {
   const { isFirebaseOtpProvider } = await import("@/lib/otp/otpProviderKind.server");
-  if (!isFirebaseOtpProvider()) {
+  // Reasons are fixed enum strings only: no phone, code, token or cookie in logs.
+  const reject = (reason: string) => {
+    console.warn("[otp.verify-firebase] rejected", { reason });
     return { ok: false as const, error: "invalid_code" as const };
+  };
+  if (!isFirebaseOtpProvider()) {
+    return reject("provider_off");
   }
 
   const pending = readOtpPendingIntent();
-  if (!pending || pending.deliveryConfirmed === false) {
-    return { ok: false as const, error: "invalid_code" as const };
+  if (!pending) return reject("no_pending_intent");
+  if (pending.deliveryConfirmed === false) {
+    return reject("delivery_unconfirmed");
   }
 
   const now = Math.floor(Date.now() / 1000);
   if (pending.otpExp <= now) {
     clearOtpPendingIntent();
-    return { ok: false as const, error: "invalid_code" as const };
+    return reject("intent_expired");
   }
 
   const { verifyFirebasePhoneIdToken } = await import("@/lib/otp/firebaseAdmin.server");
@@ -524,7 +530,7 @@ export async function verifyFirebaseOtpHandler(data: z.infer<typeof VerifyFireba
     nowSec: now,
   });
   if (!verified.ok) {
-    return { ok: false as const, error: "invalid_code" as const };
+    return reject(`token_${verified.error}`);
   }
 
   return finalizeOtpVerification(pending);

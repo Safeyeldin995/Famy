@@ -21,7 +21,17 @@ describe("mobile otp input logic", () => {
     expect(pasted.next.join("")).toBe("123456");
   });
 
-  it("moves focus back on backspace", () => {
+  it("replaces a filled box instead of shifting the code", () => {
+    const cells = ["1", "2", "3", "4", "5", "6"];
+    const typedAfter = applyOtpDigitInput(cells, 2, "39");
+    expect(typedAfter.next.join("")).toBe("129456");
+    expect(typedAfter.focusIndex).toBe(3);
+    const typedBefore = applyOtpDigitInput(cells, 0, "71");
+    expect(typedBefore.next.join("")).toBe("723456");
+    expect(typedBefore.complete).toBe(true);
+  });
+
+    it("moves focus back on backspace", () => {
     const cells = ["1", "2", "", "", "", ""];
     const cleared = applyOtpBackspace(cells, 2);
     expect(cleared.next[1]).toBe("");

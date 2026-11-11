@@ -1,5 +1,13 @@
 import { useState } from "react";
-import { Image, Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
+import {
+  I18nManager,
+  Image,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { reloadAppAsync } from "expo";
@@ -24,6 +32,8 @@ export default function Onboarding() {
   const [index, setIndex] = useState(0);
   const [finishing, setFinishing] = useState(false);
   const ar = i18n.language === "ar";
+  // Native layout direction comes from I18nManager; web follows the page `direction` style.
+  const rtlLayout = Platform.OS === "web" ? ar : I18nManager.isRTL;
   // Same locale/Latin-digit policy as the web formatter, without its web-only store import.
   const numbers = new Intl.NumberFormat(ar ? "ar-EG-u-nu-latn" : "en-EG");
   const finish = async () => {
@@ -99,8 +109,11 @@ export default function Onboarding() {
           </Text>
         </View>
         <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+          {/* Product decision: progress reads left to right in both languages.
+              `direction` is not honoured on every native platform, so flip the
+              row against the active layout direction instead. */}
           <View
-            style={[styles.dots, { direction: "ltr", flexDirection: ar ? "row-reverse" : "row" }]}
+            style={[styles.dots, { flexDirection: rtlLayout ? "row-reverse" : "row" }]}
             accessible={false}
           >
             {slides.map((_, n) => (
@@ -117,11 +130,18 @@ export default function Onboarding() {
               />
             ))}
           </View>
-          <Text size="xs" weight="bold" tone="muted" style={styles.counter}>
-            {t("onboarding.pageOf", {
+          <Text
+            size="xs"
+            weight="bold"
+            tone="muted"
+            style={styles.counter}
+            accessibilityLabel={t("onboarding.pageOf", {
               current: numbers.format(index + 1),
               total: numbers.format(slides.length),
             })}
+          >
+            {/* Digits only, so it always reads "1 / 3" left to right. */}
+            {`${numbers.format(index + 1)} / ${numbers.format(slides.length)}`}
           </Text>
           <Button
             label={t(index === 2 ? "common.getStarted" : "common.continue")}
