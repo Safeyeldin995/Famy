@@ -1519,64 +1519,62 @@ export function BookContent({
                 </div>
               </div>
               {billingQ.isError && <QueryError onRetry={() => billingQ.refetch()} />}
-              <details>
-                <summary className="booking-add">{t("customerBooking.promo")}</summary>
-                <div className="mt-3 border-t border-border pt-3">
-                  <div className="flex items-center gap-2">
-                    <TextField
-                      label={t("bookFlow.promoPlaceholder")}
-                      value={promoCode}
-                      onChange={(e) => {
-                        setPromoCode(e.target.value);
-                        if (promoStatus !== "idle") {
-                          setPromoStatus("idle");
-                          setPromoDiscount(0);
-                          setAppliedPromoId(null);
-                        }
-                      }}
-                      placeholder={t("bookFlow.promoPlaceholder")}
-                      disabled={promoStatus === "applied"}
-                      className="h-12 min-w-0 flex-1 rounded-full bg-surface-2 px-4 text-pro-14 font-bold outline-none focus:ring-1 focus:ring-brand disabled:opacity-60"
-                    />
-                    {promoStatus === "applied" ? (
-                      <button
-                        onClick={() => {
-                          setPromoCode("");
-                          setPromoStatus("idle");
-                          setPromoDiscount(0);
-                          setAppliedPromoId(null);
-                        }}
-                        aria-label={t("bookFlow.promoRemove")}
-                        className="h-12 shrink-0 rounded-full border border-border px-4 text-pro-14 font-bold text-muted-foreground"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    ) : (
-                      <button
-                        onClick={applyPromo}
-                        disabled={!promoCode.trim() || promoStatus === "checking"}
-                        className="h-12 shrink-0 rounded-full bg-brand px-5 text-pro-14 font-extrabold text-brand-foreground disabled:opacity-50"
-                      >
-                        {promoStatus === "checking" ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          t("bookFlow.promoApply")
-                        )}
-                      </button>
-                    )}
-                  </div>
-                  {promoStatus === "applied" && (
-                    <div className="mt-1.5 flex items-center gap-1.5 text-pro-12 font-semibold text-success">
-                      <Check className="h-3 w-3" aria-hidden="true" />
-                      {t("bookFlow.promoAppliedNote", { amount: formatEGP(promoDiscount) })}
-                    </div>
-                  )}
-                </div>
-              </details>
             </>
           )}
           {stepKey === "review" && (
             <Step title={t("bookFlow.paymentTitle")} sub={t("customerRound2.paymentSub")}>
+              <p className="mb-2 text-pro-14 font-extrabold">{t("customerBooking.promo")}</p>
+              <div className="mb-4 flex items-center gap-2">
+                <TextField
+                  label={t("bookFlow.promoPlaceholder")}
+                  value={promoCode}
+                  onChange={(e) => {
+                    setPromoCode(e.target.value);
+                    if (promoStatus !== "idle") {
+                      setPromoStatus("idle");
+                      setPromoDiscount(0);
+                      setAppliedPromoId(null);
+                    }
+                  }}
+                  placeholder={t("bookFlow.promoPlaceholder")}
+                  disabled={promoStatus === "applied"}
+                  className="h-12 min-w-0 flex-1 rounded-full bg-surface-2 px-4 text-pro-14 font-bold outline-none focus:ring-1 focus:ring-brand disabled:opacity-60"
+                />
+                {promoStatus === "applied" ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPromoCode("");
+                      setPromoStatus("idle");
+                      setPromoDiscount(0);
+                      setAppliedPromoId(null);
+                    }}
+                    aria-label={t("bookFlow.promoRemove")}
+                    className="h-12 shrink-0 rounded-full border border-border px-4 text-pro-14 font-bold text-muted-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={applyPromo}
+                    disabled={!promoCode.trim() || promoStatus === "checking"}
+                    className="h-12 shrink-0 rounded-full bg-brand px-5 text-pro-14 font-extrabold text-brand-foreground disabled:opacity-50"
+                  >
+                    {promoStatus === "checking" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      t("bookFlow.promoApply")
+                    )}
+                  </button>
+                )}
+              </div>
+              {promoStatus === "applied" && (
+                <div className="mb-4 flex items-center gap-1.5 text-pro-12 font-semibold text-success">
+                  <Check className="h-3 w-3" aria-hidden="true" />
+                  {t("bookFlow.promoAppliedNote", { amount: formatEGP(promoDiscount) })}
+                </div>
+              )}
               {methodsQ.isLoading ? (
                 <div className="space-y-3">
                   {Array.from({ length: 2 }).map((_, i) => (

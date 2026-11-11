@@ -2,7 +2,7 @@ import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 import { memberAgeTranslation } from "@shared/familyMemberAge";
 import { CustomerBookingWhen } from "@/ui/customer/BookingWhen";
 import { BookingServiceCard } from "@/ui/customer/BookingServiceCard";
-import { BookOpen, Clock, UserRound, Star } from "lucide-react-native";
+import { BookOpen, Clock, UserRound, Star, X } from "lucide-react-native";
 import { Avatar } from "@/ui/ProviderCard";
 import { colors } from "@/ui/theme";
 import { BookingEducation } from "@/ui/BookingEducation";
@@ -98,7 +98,6 @@ export default function Book() {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const locale = lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB";
-  const [promoOpen, setPromoOpen] = useState(false);
   const [inlineForm, setInlineForm] = useState<"member" | "address" | null>(null);
   const [editing, setEditing] = useState(false);
   const provider = useProvider(providerId);
@@ -983,38 +982,55 @@ export default function Book() {
                 </View>
               ))}
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t("customerBooking.promo")}
-            accessibilityState={{ expanded: promoOpen }}
-            onPress={() => setPromoOpen(!promoOpen)}
-            style={{ minHeight: 44, justifyContent: "center" }}
-          >
-            <Text weight="heavy" tone="brand">
-              {t("customerBooking.promo")}
-            </Text>
-          </Pressable>
-          {promoOpen && (
-            <>
+          <Text weight="heavy">{t("customerBooking.promo")}</Text>
+          <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8 }}>
+            <View style={{ flex: 1 }}>
               <Field
-                label={t("mobileBooking.promo")}
+                label={t("bookFlow.promoPlaceholder")}
                 value={promo}
+                editable={!applied}
                 onChangeText={(v) => {
                   setPromo(v);
                   setApplied(null);
                 }}
               />
+            </View>
+            {applied ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t("bookFlow.promoRemove")}
+                onPress={() => {
+                  setPromo("");
+                  setApplied(null);
+                }}
+                style={{
+                  minHeight: 48,
+                  minWidth: 48,
+                  borderRadius: 24,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: 4,
+                }}
+              >
+                <X size={18} color={colors.muted} />
+              </Pressable>
+            ) : (
               <Button
                 variant="secondary"
-                label={t("mobileBooking.applyPromo")}
+                label={t("bookFlow.promoApply")}
                 loading={checking}
                 onPress={() => void applyPromo()}
+                style={{ marginBottom: 4 }}
               />
-              {applied && (
-                <Text>{t("bookFlow.promoApplied", { amount: money(applied.discount, lang) })}</Text>
-              )}
-            </>
-          )}
+            )}
+          </View>
+          {applied ? (
+            <Text tone="brand" size="sm">
+              {t("bookFlow.promoApplied", { amount: money(applied.discount, lang) })}
+            </Text>
+          ) : null}
           <QueryState query={methods} empty={!methods.data?.length} />
           <Choices
             layout="cards"

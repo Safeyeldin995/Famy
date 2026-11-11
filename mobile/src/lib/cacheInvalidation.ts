@@ -1,5 +1,10 @@
 import type { QueryClient } from "@tanstack/react-query";
 
+/** Keys refreshed when a booking-related push arrives while the app is open. */
+export function bookingPushInvalidationKeys(): readonly (readonly string[])[] {
+  return [["my-bookings"], ...notificationReadInvalidationKeys()];
+}
+
 /** Keys refreshed after notification read state changes (customer + provider tabs). */
 export function notificationReadInvalidationKeys(): readonly (readonly string[])[] {
   return [

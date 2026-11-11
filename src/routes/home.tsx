@@ -7,6 +7,7 @@ import { ProviderCard } from "@/components/famio/ProviderCard";
 import { latinCustomerText } from "@/components/famio/customerProviders";
 import { customerProviders } from "@/components/famio/customerProviders";
 import { HomePromos } from "@/components/home/HomePromoStrip";
+import { HomeActiveBookingCard } from "@/components/home/HomeActiveBookingCard";
 import { HomeRebookRow } from "@/components/home/HomeRebookRow";
 import { HomeTrustLine } from "@/components/home/HomeTrustLine";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
@@ -79,6 +80,8 @@ function Home() {
           <span className="truncate">{t("customerSearch.placeholder")}</span>
         </Link>
       </header>
+
+      {bookings.data ? <HomeActiveBookingCard bookings={bookings.data} /> : null}
 
       <div className="space-y-8 px-5 pt-6 pb-2">
         <section>
