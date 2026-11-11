@@ -23,6 +23,7 @@ export default defineConfig({
       "src/lib/auth/__tests__/firebasePhone.test.ts",
       "src/lib/auth/__tests__/firebasePhoneTestMode.test.ts",
       "src/lib/auth/__tests__/otpCodeInputLogic.test.ts",
+      "src/lib/auth/__tests__/phoneOtpFlow.verify.test.ts",
       "src/ui/__tests__/keyboardFormLayout.test.ts",
       "src/ui/__tests__/launchGateTiming.test.ts",
       "src/ui/__tests__/parityFoundation.test.ts",

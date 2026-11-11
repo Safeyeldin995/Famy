@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link, useRouterState } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Briefcase, Eye, EyeOff, User } from "lucide-react";
@@ -108,17 +108,30 @@ function Segmented<T extends string>({
 }
 
 export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
-  const loginIntent = useRouterState({
-    select: (s) => (s.location.search as { intent?: string }).intent,
+  const loginSearch = useRouterState({
+    select: (s) => {
+      const raw = s.location.search as { mode?: string; phone?: string; intent?: string };
+      return {
+        mode:
+          raw.mode === "signup"
+            ? ("signup" as const)
+            : raw.mode === "signin"
+              ? ("signin" as const)
+              : undefined,
+        phone: typeof raw.phone === "string" ? raw.phone : undefined,
+        intent: raw.intent,
+      };
+    },
   });
-  const accountDeleteFlow = !previewMode && loginIntent === ACCOUNT_DELETE_INTENT;
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const accountDeleteFlow = !previewMode && loginSearch.intent === ACCOUNT_DELETE_INTENT;
+  const [mode, setMode] = useState<"signin" | "signup">(loginSearch.mode ?? "signin");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [role, setRole] = useState<Role>("customer");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [flowMismatchSignin, setFlowMismatchSignin] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<OAuthProvider | null>(null);
   const oauthProviders = enabledWebOAuthProviders();
   const nav = useNavigate();
@@ -126,12 +139,21 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
   const { t, i18n } = useTranslation();
   const previewPath = useCustomerPreviewPath();
 
+  useEffect(() => {
+    if (loginSearch.mode) setMode(loginSearch.mode);
+    if (loginSearch.phone) {
+      const local = loginSearch.phone.replace(/^\+20/, "").replace(/\D/g, "");
+      if (local.length > 0) setPhone(local);
+    }
+  }, [loginSearch.mode, loginSearch.phone]);
+
   const phoneValid = normalizeDigitsToWestern(phone).replace(/\D/g, "").length >= 9;
   const screenTitle = mode === "signin" ? t("auth.signIn") : t("auth.signUp");
 
   const submit = async () => {
     if (previewMode || loading) return;
     setErrorMsg(null);
+    setFlowMismatchSignin(false);
     const e164 = normalizePhone(phone);
     if (!phoneValid) return;
 
@@ -177,7 +199,19 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
     const send = await startPhoneOtpFlow(e164, "signup", role, { languageCode: i18n.language });
     if (!send.ok) {
       setLoading(false);
-      const m = phoneOtpFlowErrorMessage(send.error, t, send.retryAfter, send.firebaseAuthCode);
+      if (send.error === "flow_mismatch" && send.nextStep === "signin") {
+        const m = t("auth.alreadyRegistered");
+        setErrorMsg(m);
+        setFlowMismatchSignin(true);
+        toast.error(m, { duration: 8000 });
+        return;
+      }
+      const m = phoneOtpFlowErrorMessage(
+        send.error as Exclude<typeof send.error, "flow_mismatch">,
+        t,
+        send.retryAfter,
+        send.firebaseAuthCode,
+      );
       setErrorMsg(m);
       toast.error(m, { duration: 8000 });
       return;
@@ -219,6 +253,7 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
                 onChange={(next) => {
                   setMode(next);
                   setErrorMsg(null);
+                  setFlowMismatchSignin(false);
                 }}
                 label={screenTitle}
                 options={[
@@ -321,9 +356,22 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
             ) : null}
 
             {errorMsg ? (
-              <p className="rounded-2xl bg-destructive/10 px-4 py-3 text-pro-13 font-bold text-destructive">
-                {errorMsg}
-              </p>
+              <div className="space-y-3 rounded-2xl bg-destructive/10 px-4 py-3">
+                <p className="text-pro-13 font-bold text-destructive">{errorMsg}</p>
+                {flowMismatchSignin ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode("signin");
+                      setFlowMismatchSignin(false);
+                      setErrorMsg(null);
+                    }}
+                    className="focus-ring text-pro-13 font-extrabold text-brand"
+                  >
+                    {t("auth.signIn")}
+                  </button>
+                ) : null}
+              </div>
             ) : null}
           </section>
 

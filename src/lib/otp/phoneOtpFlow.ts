@@ -23,8 +23,9 @@ type StartPhoneOtpResult =
   | { ok: true; retryAfter?: number }
   | {
       ok: false;
-      error: PhoneOtpFlowError;
+      error: PhoneOtpFlowError | "flow_mismatch";
       retryAfter?: number;
+      nextStep?: "signin" | "signup";
       /** Client should leave the OTP screen; pending delivery is unusable. */
       flowAbandoned?: boolean;
       /** True only when the server confirmed clearing the pending intent. */
@@ -100,13 +101,26 @@ export function phoneOtpFlowErrorMessage(
   }
 }
 
-function mapServerSendError(error: string | undefined): PhoneOtpFlowError {
-  if (error === "rate_limited" || error === "rate_limited_phone" || error === "rate_limited_ip") {
-    return "rate_limited";
+function mapServerSendFailure(
+  payload: { error?: string; nextStep?: string; retryAfter?: number } | null | undefined,
+): Extract<StartPhoneOtpResult, { ok: false }> {
+  if (payload?.error === "flow_mismatch") {
+    return {
+      ok: false,
+      error: "flow_mismatch",
+      nextStep: payload.nextStep === "signup" ? "signup" : "signin",
+    };
   }
-  if (error === "delivery_failed") return "delivery_failed";
-  if (error === "temporarily_unavailable") return "temporarily_unavailable";
-  return "send_failed";
+  const error = payload?.error;
+  let mapped: PhoneOtpFlowError = "send_failed";
+  if (error === "rate_limited" || error === "rate_limited_phone" || error === "rate_limited_ip") {
+    mapped = "rate_limited";
+  } else if (error === "delivery_failed") {
+    mapped = "delivery_failed";
+  } else if (error === "temporarily_unavailable") {
+    mapped = "temporarily_unavailable";
+  }
+  return { ok: false, error: mapped, retryAfter: payload?.retryAfter };
 }
 
 async function confirmClientOtpDelivery(): Promise<boolean> {
@@ -141,6 +155,13 @@ export async function startPhoneOtpFlow(
   if (isClientFirebaseOtpProvider()) {
     const begin = await otpService.beginFirebaseOtp(phoneE164, purpose, role);
     if (!begin.ok) {
+      if (begin.error === "flow_mismatch") {
+        return {
+          ok: false,
+          error: "flow_mismatch",
+          nextStep: begin.nextStep === "signup" ? "signup" : "signin",
+        };
+      }
       reportFirebaseSendFailure(`begin:${begin.error ?? "unknown"}`);
       return {
         ok: false,
@@ -168,11 +189,7 @@ export async function startPhoneOtpFlow(
 
   const send = await otpService.sendOtp(phoneE164, purpose, role);
   if (!send.ok) {
-    return {
-      ok: false,
-      error: mapServerSendError(send.error),
-      retryAfter: send.retryAfter,
-    };
+    return mapServerSendFailure(send);
   }
   return { ok: true, retryAfter: send.retryAfter };
 }
@@ -183,11 +200,18 @@ export async function resendPhoneOtpFlow(
 ): Promise<StartPhoneOtpResult> {
   const refresh = await otpService.resendOtp();
   if (!refresh.ok) {
+    if (refresh.error === "flow_mismatch") {
+      return {
+        ok: false,
+        error: "flow_mismatch",
+        nextStep: refresh.nextStep === "signup" ? "signup" : "signin",
+      };
+    }
     const mapped =
-      refresh.error === "intent_missing" ? "intent_missing" : mapServerSendError(refresh.error);
+      refresh.error === "intent_missing" ? "intent_missing" : mapServerSendFailure(refresh).error;
     return {
       ok: false,
-      error: mapped,
+      error: mapped as PhoneOtpFlowError,
       retryAfter: refresh.retryAfter,
     };
   }
