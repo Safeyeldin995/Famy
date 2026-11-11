@@ -1,11 +1,19 @@
 import { currentLang } from "@/lib/i18n";
+import { joinUiParts } from "./uiJoin";
+import * as egp from "./egp";
 
-export function formatLocale(language = currentLang() as string) {
-  return language.startsWith("ar") ? "ar-EG-u-nu-latn" : "en-EG";
+export { joinUiParts, uiListSeparator } from "./uiJoin";
+
+export function formatLocale(language?: string) {
+  return egp.formatLocale(language ?? (currentLang() as string));
 }
 
 export function formatNumber(value: number, language?: string) {
-  return new Intl.NumberFormat(formatLocale(language)).format(value);
+  return egp.formatNumber(value, language ?? (currentLang() as string));
+}
+
+export function formatMoneyNumber(value: number, language?: string) {
+  return egp.formatMoneyNumber(value, language ?? (currentLang() as string));
 }
 
 export function formatEGP(
@@ -13,10 +21,7 @@ export function formatEGP(
   opts?: { perHour?: boolean },
   language = currentLang() as string,
 ) {
-  const number = formatNumber(value, language);
-  return language.startsWith("ar")
-    ? `${number} ج.م${opts?.perHour ? "/س" : ""}`
-    : `EGP ${number}${opts?.perHour ? "/hr" : ""}`;
+  return egp.formatEGP(value, opts, language);
 }
 
 export function formatDate(
@@ -47,7 +52,8 @@ export function formatDuration(hours: number, language = currentLang() as string
 }
 
 export function formatDateTime(date: Date, language?: string) {
-  return `${formatDate(date, undefined, language)} · ${formatTime(date, language)}`;
+  const resolved = language ?? (currentLang() as string);
+  return joinUiParts([formatDate(date, undefined, resolved), formatTime(date, resolved)], resolved);
 }
 
 export { formatCustomerBookingListWhen } from "./customerBookingListWhen";
@@ -70,5 +76,5 @@ export function formatNotificationDate(
           ? "امبارح"
           : "Yesterday"
         : formatDate(date, undefined, language);
-  return `${label} · ${formatTime(date, language)}`;
+  return joinUiParts([label, formatTime(date, language)], language);
 }

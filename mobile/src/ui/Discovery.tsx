@@ -14,6 +14,7 @@ import {
   useApprovedTeachingCapabilitiesForProviders,
 } from "@/lib/queries";
 import { localized, uniqueProviders, sortProvidersForStudentEducation } from "@/lib/presentation";
+import { joinUiParts } from "@shared/format/uiJoin";
 import { Page, QueryState, Choices, Field, Row, ui } from "./Page";
 import { ProviderCard } from "./ProviderCard";
 import { Text } from "./Text";
@@ -206,9 +207,12 @@ export function Discovery({ category: group }: { category?: string }) {
             onChange={setServiceId}
             options={(services.data ?? []).map((s) => ({
               value: s.id,
-              label:
-                localized(s, i18n.language) +
-                (isFixedPackage(s) ? ` · ${t(packageLabel(s).key, packageLabel(s).values)}` : ""),
+              label: isFixedPackage(s)
+                ? joinUiParts(
+                    [localized(s, i18n.language), t(packageLabel(s).key, packageLabel(s).values)],
+                    i18n.language,
+                  )
+                : localized(s, i18n.language),
             }))}
           />
         </QueryState>
@@ -229,7 +233,15 @@ export function Discovery({ category: group }: { category?: string }) {
               { value: "myself", label: t("bookFlow.forWhomMyself") },
               ...(members.data ?? []).map((m) => ({
                 value: m.id,
-                label: `${m.full_name} · ${t(memberAgeTranslation(m.date_of_birth).key, { count: memberAgeTranslation(m.date_of_birth).count })}`,
+                label: joinUiParts(
+                  [
+                    m.full_name,
+                    t(memberAgeTranslation(m.date_of_birth).key, {
+                      count: memberAgeTranslation(m.date_of_birth).count,
+                    }),
+                  ],
+                  i18n.language,
+                ),
               })),
             ]}
           />

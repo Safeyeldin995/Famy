@@ -2,6 +2,7 @@ import { View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useFeaturedPromoCodes, useMyPromoRedemptions } from "@/lib/queries";
 import { money } from "@/lib/presentation";
+import { uiListSeparator } from "@shared/format/uiJoin";
 import { Tag } from "lucide-react-native";
 import { CustomerEmpty, customerStyle } from "@/ui/customer/Primitives";
 import { colors } from "@/ui/theme";
@@ -72,7 +73,8 @@ export default function Promos() {
                   i18n.language === "ar" ? "ar-EG-u-nu-latn" : "en-EG",
                   { day: "numeric", month: "short", year: "numeric" },
                 )}{" "}
-                · {money(p.discount_amount, i18n.language)}
+                {uiListSeparator(i18n.language)}
+                {money(p.discount_amount, i18n.language)}
               </Text>
             </View>
           ))}

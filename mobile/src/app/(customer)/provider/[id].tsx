@@ -17,6 +17,8 @@ import {
 import { useProviderAvailability } from "@/lib/provider/queries";
 import { appConfig } from "@/lib/supabase";
 import { customerNumber } from "@/lib/customerFormat";
+import { providerRatingSummary } from "@/lib/providerRating";
+import { joinUiParts, uiListSeparator } from "@shared/format/uiJoin";
 import { localized, money } from "@/lib/presentation";
 import { isFixedPackage, packageLabel } from "@shared/pricing/servicePackages";
 import { workingHoursSummary } from "@shared/provider/workingHoursSummary";
@@ -189,15 +191,18 @@ export default function ProviderProfile() {
               <Text tone="muted">
                 {[...new Set(available.map((row) => row.service.category?.slug))]
                   .map((slug) => t(slug === "tutoring" ? "roles.teacher" : "roles.babysitter"))
-                  .join(" · ")}
+                  .join(uiListSeparator(i18n.language))}
               </Text>
               <View style={[customerStyle.row, { justifyContent: "center", flexWrap: "wrap" }]}>
                 {Number(p.ratings.rating_count) > 0 ? (
                   <View style={[customerStyle.row, { gap: 4 }]}>
                     <Star size={16} color={colors.warning} fill={colors.warning} />
-                    <Text size="sm">{Number(p.ratings.rating_avg).toFixed(1)}</Text>
-                    <Text size="sm" tone="muted">
-                      ({t("providerPage.reviewCount", { count: Number(p.ratings.rating_count) })})
+                    <Text size="sm">
+                      {providerRatingSummary(
+                        Number(p.ratings.rating_avg),
+                        t("providerPage.reviewCount", { count: Number(p.ratings.rating_count) }),
+                        i18n.language,
+                      )}
                     </Text>
                   </View>
                 ) : (
@@ -330,8 +335,13 @@ export default function ProviderProfile() {
                         }}
                       >
                         <Text weight="bold">
-                          {ar ? c.subjectNameAr : c.subjectNameEn} ·{" "}
-                          {ar ? c.curriculumNameAr : c.curriculumNameEn}
+                          {joinUiParts(
+                            [
+                              ar ? c.subjectNameAr : c.subjectNameEn,
+                              ar ? c.curriculumNameAr : c.curriculumNameEn,
+                            ],
+                            i18n.language,
+                          )}
                         </Text>
                         <Text size="sm" tone="muted">
                           {ranges

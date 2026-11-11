@@ -15,7 +15,7 @@ import {
   openProof,
 } from "@/lib/mobilePayments";
 import { isPaymentEligibleBookingStatus, type PendingPaymentSelection } from "@/lib/bookingPure";
-import { QueryState, ui } from "./Page";
+import { QueryState, moneyTextStyle, ui } from "./Page";
 import { Button } from "./Button";
 import { Text } from "./Text";
 import { PaymentLogos } from "./PaymentLogos";
@@ -208,7 +208,7 @@ export function PaymentBlock({
               t("payment.title")}
           </Text>
           <Text>{t(`payment.status.${p.status}`)}</Text>
-          <Text style={ui.ltr}>{money(p.amount, i18n.language)}</Text>
+          <Text style={moneyTextStyle(i18n.language)}>{money(p.amount, i18n.language)}</Text>
           <Text>
             {(i18n.language === "ar" ? snapshot?.instructions_ar : snapshot?.instructions_en) ??
               (i18n.language === "ar" ? legacy?.instructions_ar : legacy?.instructions_en) ??

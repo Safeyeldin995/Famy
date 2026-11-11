@@ -16,6 +16,7 @@ export function CustomerProfilePhoto({ src, name }: { src?: string | null; name:
   const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  const ar = i18n.language.startsWith("ar");
   async function pick() {
     if (!session?.user.id || busy) return;
     setBusy(true);
@@ -39,11 +40,10 @@ export function CustomerProfilePhoto({ src, name }: { src?: string | null; name:
       <View
         testID="customer-profile-photo"
         style={{
-          // Keep the small avatar canvas stable; align the camera per locale.
-          direction: "ltr",
           paddingBottom: 8,
-          paddingEnd: 8,
+          ...(ar ? { paddingStart: 10 } : { paddingEnd: 10 }),
           alignSelf: "flex-start",
+          direction: "ltr",
         }}
       >
         <Avatar raw={src} name={name} size={80} round />
@@ -56,10 +56,10 @@ export function CustomerProfilePhoto({ src, name }: { src?: string | null; name:
           style={{
             position: "absolute",
             bottom: 0,
-            alignSelf: i18n.language === "ar" ? "flex-start" : "flex-end",
-            width: 44,
-            height: 44,
-            borderRadius: 22,
+            ...(ar ? { start: 0 } : { end: 0 }),
+            width: 36,
+            height: 36,
+            borderRadius: 18,
             borderWidth: 2,
             borderColor: colors.surface,
             backgroundColor: colors.brand,
@@ -68,9 +68,9 @@ export function CustomerProfilePhoto({ src, name }: { src?: string | null; name:
           }}
         >
           {busy ? (
-            <ActivityIndicator color={colors.surface} />
+            <ActivityIndicator color={colors.surface} size="small" />
           ) : (
-            <Camera size={20} color={colors.surface} />
+            <Camera size={16} color={colors.surface} />
           )}
         </Pressable>
       </View>

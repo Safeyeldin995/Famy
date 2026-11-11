@@ -8,7 +8,7 @@ import {
 } from "@shared/earnings/aggregateProviderEarnings";
 import { useMyProvider, useProviderBookings, useProviderEarnings } from "@/lib/provider/queries";
 import { localized, money } from "@/lib/presentation";
-import { Page, QueryState } from "@/ui/Page";
+import { Page, QueryState, moneyTextStyle } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { colors, radius, space } from "@/ui/theme";
 
@@ -30,7 +30,7 @@ function SplitAmounts({
           <Text size="xs" tone="muted">
             {t("pro.earnings.yourNet")}
           </Text>
-          <Text weight="heavy" size="lg" style={{ writingDirection: "ltr" }}>
+          <Text weight="heavy" size="lg" style={moneyTextStyle(i18n.language)}>
             {money(bucket?.net ?? 0, i18n.language)}
           </Text>
         </View>
@@ -42,7 +42,7 @@ function SplitAmounts({
               {t("proFinalPolish.beforeCommission")}
             </Text>
           ) : null}
-          <Text weight="heavy" size="lg" style={{ writingDirection: "ltr" }}>
+          <Text weight="heavy" size="lg" style={moneyTextStyle(i18n.language)}>
             {money(bucket?.bookingValue ?? 0, i18n.language)}
           </Text>
         </View>
@@ -113,7 +113,7 @@ export default function ProviderEarnings() {
         <Text
           weight="heavy"
           size="hero"
-          style={{ color: colors.brandForeground, writingDirection: "ltr" }}
+          style={{ color: colors.brandForeground, ...moneyTextStyle(i18n.language) }}
         >
           {money(heroAmount, i18n.language)}
         </Text>
@@ -210,7 +210,7 @@ export default function ProviderEarnings() {
                   </Text>
                 ) : null}
               </View>
-              <Text weight="heavy" style={{ writingDirection: "ltr" }}>
+              <Text weight="heavy" style={moneyTextStyle(i18n.language)}>
                 {money(
                   snapshotted
                     ? Number(booking.price_provider_net ?? 0)

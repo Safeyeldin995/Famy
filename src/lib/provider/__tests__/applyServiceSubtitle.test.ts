@@ -15,8 +15,8 @@ describe("apply service subtitles", () => {
       "ar",
       "السعر بالساعة",
       "السعر بالحصة",
-      "8 ساعات متواصلة · سعر ثابت",
-      "من 6 م لحد 12 بالليل · سعر ثابت",
+      "8 ساعات متواصلة، سعر ثابت",
+      "من 6 م لحد 12 بالليل، سعر ثابت",
     ],
   ])(
     "uses concise %s subtitles without repeating titles or stepper units",
@@ -41,6 +41,6 @@ describe("apply service subtitles", () => {
       "4.5 continuous hours · fixed price",
     );
     expect(applyServiceSubtitle(timed, i18n.getFixedT("en"))).toBe("9:30 AM to 2 PM · fixed price");
-    expect(applyServiceSubtitle(timed, i18n.getFixedT("ar"))).toBe("من 9:30 ص لحد 2 م · سعر ثابت");
+    expect(applyServiceSubtitle(timed, i18n.getFixedT("ar"))).toBe("من 9:30 ص لحد 2 م، سعر ثابت");
   });
 });

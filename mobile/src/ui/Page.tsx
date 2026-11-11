@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TextInput,
   View,
+  useWindowDimensions,
   type TextInputProps,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -22,6 +23,7 @@ import { rowChevronIcon } from "./rtlNavigation";
 import { Text } from "./Text";
 import { Button } from "./Button";
 import { bodyTextInputProps } from "./a11y";
+import { scaledTabBarHeight } from "./a11y";
 import { colors, fontSize, fonts, radius, space, shadow } from "./theme";
 
 type Refreshable = { refetch: () => Promise<unknown> };
@@ -47,7 +49,11 @@ export function Page({
   const [refreshing, setRefreshing] = useState(false);
   const { i18n } = useTranslation();
   const insets = useSafeAreaInsets();
+  const { fontScale } = useWindowDimensions();
   const safeBottom = Math.max(insets.bottom, space.md);
+  const tabScrollPad = tab
+    ? scaledTabBarHeight(fontScale, 22, insets.bottom) + 12 + space.lg
+    : undefined;
   return (
     <SafeAreaView
       style={[ui.page, { direction: i18n.language === "ar" ? "rtl" : "ltr" }]}
@@ -58,7 +64,11 @@ export function Page({
       <KeyboardAwareScrollView
         style={{ flex: 1 }}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={[ui.content, tab && { paddingBottom: 112 }, contentStyle]}
+        contentContainerStyle={[
+          ui.content,
+          tabScrollPad != null ? { paddingBottom: tabScrollPad } : null,
+          contentStyle,
+        ]}
         bottomOffset={
           footer
             ? KEYBOARD_FOCUS_GAP + KEYBOARD_PRIMARY_STICKY_RESERVE
@@ -331,6 +341,17 @@ export const ui = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  metaIconRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: space.md,
+  },
+  metaIconSlot: {
+    width: 32,
+    height: Math.round(fontSize.md * 1.45),
+    alignItems: "center",
+    justifyContent: "center",
+  },
   priceRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -396,3 +417,8 @@ export const ui = StyleSheet.create({
   },
   ltr: { writingDirection: "ltr" },
 });
+
+/** English prices stay LTR; Arabic uses natural RTL bidi (number first in the string). */
+export function moneyTextStyle(language: string) {
+  return language.startsWith("en") ? ui.ltr : null;
+}

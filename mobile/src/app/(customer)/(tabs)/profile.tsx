@@ -77,9 +77,11 @@ export default function Profile() {
             <Text size="xl" weight="heavy">
               {profile.data?.full_name || t("profile.famioUser")}
             </Text>
-            <Text tone="muted" weight="bold" style={{ direction: "ltr" }}>
-              {profile.data?.phone || "—"}
-            </Text>
+            {profile.data?.phone ? (
+              <Text tone="muted" weight="bold" style={{ direction: "ltr" }}>
+                {profile.data.phone}
+              </Text>
+            ) : null}
             <Pressable
               accessibilityRole="link"
               accessibilityLabel={t("customerHome.profileEdit")}

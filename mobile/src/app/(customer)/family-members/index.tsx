@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { memberAgeTranslation } from "@shared/familyMemberAge";
+import { uiListSeparator } from "@shared/format/uiJoin";
 import { View } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -13,7 +14,7 @@ import { CustomerEmpty, customerStyle } from "@/ui/customer/Primitives";
 import { colors } from "@/ui/theme";
 
 export default function FamilyMembers() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const q = useFamilyMembers();
   const remove = useDeactivateFamilyMember();
   const [selected, setSelected] = useState<string | null>(null);
@@ -81,7 +82,7 @@ export default function FamilyMembers() {
                   {m.relationship === "other"
                     ? m.relationship_other || t("familyMembers.relationships.other")
                     : t(`familyMembers.relationships.${m.relationship}`)}
-                  {" · "}
+                  {uiListSeparator(i18n.language)}
                   {t(memberAgeTranslation(m.date_of_birth).key, {
                     count: memberAgeTranslation(m.date_of_birth).count,
                   })}
