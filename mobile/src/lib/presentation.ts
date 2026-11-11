@@ -20,7 +20,7 @@ export function dateTime(value: string, language: string) {
   }).format(new Date(value));
 }
 
-export { formatCustomerBookingListWhen as customerBookingListWhen } from "@shared/format";
+export { formatCustomerBookingListWhen as customerBookingListWhen } from "@shared/format/customerBookingListWhen";
 // Source: src/components/famio/customerProviders.ts - preserve categories when combining results.
 export function uniqueProviders(rows: Provider[]) {
   const seen = new Map<string, Provider>();

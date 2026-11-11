@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  formatCustomerBookingListWhen,
   formatDate,
   formatDuration,
   formatEGP,
@@ -8,6 +7,7 @@ import {
   formatNumber,
   formatTime,
 } from "./index";
+import { formatCustomerBookingListWhen } from "./customerBookingListWhen";
 
 describe("Egyptian display formatting", () => {
   const date = new Date(2026, 8, 2, 14, 0, 49);
