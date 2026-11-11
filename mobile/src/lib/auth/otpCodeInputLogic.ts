@@ -19,6 +19,16 @@ export function applyOtpDigitInput(
     return { next, focusIndex: index, complete: false };
   }
 
+  // Typing into a box that already holds a digit gives the old digit plus the
+  // new one (e.g. "3" -> "37"). Replace the box instead of shifting the code
+  // into the next boxes, which silently turned a correct code into a wrong one.
+  const existing = current[index];
+  if (existing && digits.length === 2 && (digits[0] === existing || digits[1] === existing)) {
+    next[index] = digits[0] === existing ? digits[1]! : digits[0]!;
+    const focusIndex = Math.min(index + 1, OTP_LENGTH - 1);
+    return { next, focusIndex, complete: next.every((digit) => digit.length === 1) };
+  }
+
   let focusIndex = index;
   for (const digit of digits) {
     if (focusIndex >= OTP_LENGTH) break;
