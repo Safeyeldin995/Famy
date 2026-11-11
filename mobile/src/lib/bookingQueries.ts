@@ -408,6 +408,27 @@ export function useCreateBooking() {
   });
 }
 
+export function useUpdateBookingStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      status,
+    }: {
+      id: string;
+      status: Tables["bookings"]["Row"]["status"];
+    }) => {
+      const { error } = await supabase.from("bookings").update({ status }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_data, vars) => {
+      void qc.invalidateQueries({ queryKey: ["my-bookings"] });
+      void qc.invalidateQueries({ queryKey: ["booking", vars.id] });
+      void qc.invalidateQueries({ queryKey: ["payment", vars.id] });
+    },
+  });
+}
+
 export function useBookingReview(bookingId: string | undefined) {
   return useQuery({
     enabled: !!bookingId,

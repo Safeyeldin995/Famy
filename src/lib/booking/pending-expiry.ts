@@ -64,6 +64,7 @@ export function pendingResponseDeadline(
   return ttlDeadline.getTime() <= startDeadline.getTime() ? ttlDeadline : startDeadline;
 }
 
+/** Mirrors `create_booking`: GREATEST(min_hours_before_start, provider min_notice_hours). */
 export function creationMinHours(
   providerMinNoticeHours: number,
   settings: BookingExpirySettings = DEFAULT_BOOKING_EXPIRY_SETTINGS,

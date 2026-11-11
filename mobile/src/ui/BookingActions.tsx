@@ -8,6 +8,7 @@ import {
   useSubmitReview,
   useCancelBooking,
   useCancellationReasons,
+  useUpdateBookingStatus,
 } from "@/lib/bookingQueries";
 import { Button } from "./Button";
 import { Text } from "./Text";
@@ -15,15 +16,24 @@ import { Choices, Field, QueryState, ui } from "./Page";
 export function BookingActions({
   booking,
 }: {
-  booking: { id: string; provider_id: string; customer_id: string; status: string };
+  booking: {
+    id: string;
+    provider_id: string;
+    customer_id: string;
+    status: string;
+    start_at?: string;
+  };
 }) {
   const { t, i18n } = useTranslation();
   const { session } = useSession();
   const cancel = useCancelBooking();
+  const updateStatus = useUpdateBookingStatus();
   const reasons = useCancellationReasons();
   const review = useBookingReview(booking.status === "completed" ? booking.id : undefined);
   const submit = useSubmitReview();
   const [open, setOpen] = useState(false);
+  const [confirmArrivalOpen, setConfirmArrivalOpen] = useState(false);
+  const [confirmCompletionOpen, setConfirmCompletionOpen] = useState(false);
   const [reasonId, setReasonId] = useState("");
   const [note, setNote] = useState("");
   const [rating, setRating] = useState("");
@@ -38,6 +48,72 @@ export function BookingActions({
   return (
     <View style={ui.card}>
       {error && <Text tone="danger">{error}</Text>}
+      {booking.status === "arrived" && (
+        <>
+          <Text weight="bold">{t("bookingDetail.waitingArrivalConfirmTitle")}</Text>
+          <Text tone="muted">{t("bookingDetail.waitingArrivalConfirmBody")}</Text>
+          {confirmArrivalOpen ? (
+            <>
+              <Text>{t("bookingDetail.confirmArrivalBody")}</Text>
+              <Button
+                label={t("bookingDetail.confirmArrival")}
+                loading={updateStatus.isPending}
+                onPress={() =>
+                  updateStatus.mutate(
+                    { id: booking.id, status: "arrival_confirmed" },
+                    {
+                      onSuccess: () => setConfirmArrivalOpen(false),
+                      onError: () => setError(t("common.somethingWentWrong")),
+                    },
+                  )
+                }
+              />
+              <Button
+                variant="secondary"
+                label={t("bookingDetail.keep")}
+                onPress={() => setConfirmArrivalOpen(false)}
+              />
+            </>
+          ) : (
+            <Button
+              label={t("bookingDetail.confirmArrival")}
+              onPress={() => setConfirmArrivalOpen(true)}
+            />
+          )}
+        </>
+      )}
+      {booking.status === "completion_requested" && (
+        <>
+          <Text weight="bold">{t("bookingDetail.completionRequestedTitle")}</Text>
+          {confirmCompletionOpen ? (
+            <>
+              <Button
+                label={t("bookingDetail.confirmCompletion")}
+                loading={updateStatus.isPending}
+                onPress={() =>
+                  updateStatus.mutate(
+                    { id: booking.id, status: "completed" },
+                    {
+                      onSuccess: () => setConfirmCompletionOpen(false),
+                      onError: () => setError(t("common.somethingWentWrong")),
+                    },
+                  )
+                }
+              />
+              <Button
+                variant="secondary"
+                label={t("bookingDetail.keep")}
+                onPress={() => setConfirmCompletionOpen(false)}
+              />
+            </>
+          ) : (
+            <Button
+              label={t("bookingDetail.confirmCompletion")}
+              onPress={() => setConfirmCompletionOpen(true)}
+            />
+          )}
+        </>
+      )}
       {cancellable && (
         <Button
           variant="secondary"
