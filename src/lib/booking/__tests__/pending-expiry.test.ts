@@ -64,8 +64,8 @@ describe("pending expiry helpers", () => {
     );
   });
 
-  it("keeps the stricter creation window", () => {
-    expect(creationMinHours(0)).toBe(2);
+  it("uses only provider min_notice for booking lead time", () => {
+    expect(creationMinHours(0)).toBe(0);
     expect(creationMinHours(4)).toBe(4);
   });
 

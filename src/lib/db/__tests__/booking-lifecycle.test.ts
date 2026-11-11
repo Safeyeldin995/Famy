@@ -240,6 +240,32 @@ describe("booking lifecycle (migration replay)", () => {
     expectRejected(closedChat, /not open|42501/i, "chat after completed");
   });
 
+  it("lets the customer confirm arrival before the scheduled start time", async () => {
+    const { bookingId } = await seedLifecycleBooking(db);
+    await asServiceRole(db, () =>
+      db.exec(`
+        UPDATE public.bookings
+        SET start_at = now() + interval '2 hours',
+            end_at = now() + interval '4 hours'
+        WHERE id = '${bookingId}';
+      `),
+    );
+    await updateBookingStatus(db, IDS.providerUser, bookingId, "confirmed");
+    await updateBookingStatus(db, IDS.providerUser, bookingId, "on_the_way");
+    await updateBookingStatus(db, IDS.providerUser, bookingId, "arrived");
+
+    const confirm = await updateBookingStatus(db, IDS.customer, bookingId, "arrival_confirmed");
+    expect(confirm.ok, confirm.error ?? "customer confirm arrival").toBe(true);
+    expect(await bookingStatus(db, bookingId)).toBe("arrival_confirmed");
+
+    const meta = await queryRows<{ arrival_confirmed_at: string | null }>(
+      db,
+      `SELECT arrival_confirmed_at::text FROM public.bookings WHERE id = $1`,
+      [bookingId],
+    );
+    expect(meta[0]?.arrival_confirmed_at).toBeTruthy();
+  });
+
   it("rejects skipped transitions and wrong lifecycle actors", async () => {
     const pending = await seedLifecycleBooking(db);
     await assertTransitionRejected(
