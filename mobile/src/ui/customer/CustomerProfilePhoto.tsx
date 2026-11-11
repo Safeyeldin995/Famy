@@ -41,8 +41,9 @@ export function CustomerProfilePhoto({ src, name }: { src?: string | null; name:
         testID="customer-profile-photo"
         style={{
           paddingBottom: 8,
-          ...(ar ? { paddingLeft: 10 } : { paddingRight: 10 }),
+          ...(ar ? { paddingStart: 10 } : { paddingEnd: 10 }),
           alignSelf: "flex-start",
+          direction: "ltr",
         }}
       >
         <Avatar raw={src} name={name} size={80} round />
@@ -55,7 +56,7 @@ export function CustomerProfilePhoto({ src, name }: { src?: string | null; name:
           style={{
             position: "absolute",
             bottom: 0,
-            ...(ar ? { left: 0 } : { right: 0 }),
+            ...(ar ? { start: 0 } : { end: 0 }),
             width: 36,
             height: 36,
             borderRadius: 18,
