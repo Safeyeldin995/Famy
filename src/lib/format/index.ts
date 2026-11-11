@@ -50,6 +50,24 @@ export function formatDateTime(date: Date, language?: string) {
   return `${formatDate(date, undefined, language)} · ${formatTime(date, language)}`;
 }
 
+/** Customer bookings list: short weekday, day month · time (Cairo). */
+export function formatCustomerBookingListWhen(iso: string, language?: string) {
+  const locale = formatLocale(language);
+  const start = new Date(iso);
+  const dateLabel = start.toLocaleDateString(locale, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    timeZone: "Africa/Cairo",
+  });
+  const timeLabel = start.toLocaleTimeString(locale, {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "Africa/Cairo",
+  });
+  return `${dateLabel} · ${timeLabel}`;
+}
+
 export function formatNotificationDate(
   date: Date,
   now = new Date(),

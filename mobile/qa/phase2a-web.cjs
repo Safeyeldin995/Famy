@@ -667,12 +667,16 @@ async function run() {
     await expect(page.getByRole("button", { name: ar.common.continue, exact: true })).toBeEnabled();
     await shot(`${kind}-3-address-recipient`);
     await button(ar.common.continue);
-    await button(ar.customerBooking.promo);
-    await page.getByLabel(ar.mobileBooking.promo, { exact: true }).fill("LOCALTEST");
-    await button(ar.mobileBooking.applyPromo);
+    await page.getByLabel(ar.bookFlow.promoPlaceholder, { exact: true }).fill("LOCALTEST");
+    await button(ar.bookFlow.promoApply);
     await expect(
       page.getByText(ar.bookFlow.promoApplied.split("{{")[0], { exact: false }).first(),
     ).toBeVisible();
+    await expect(page.getByText(ar.bookFlow.promoDiscount, { exact: true })).toBeVisible();
+    await page.getByLabel(ar.bookFlow.promoRemove).click();
+    await expect(
+      page.getByText(ar.bookFlow.promoApplied.split("{{")[0], { exact: false }),
+    ).toHaveCount(0);
     const method = kind === "hourly" ? "cash" : kind === "package" ? "manual_transfer" : "online";
     const methodName = methodRows.find((m) => m.method_type === method).name_ar;
     await radio(methodName);

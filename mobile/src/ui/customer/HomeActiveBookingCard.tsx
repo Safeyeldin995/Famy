@@ -9,7 +9,7 @@ import {
   homeActiveBookingStatusKey,
   pickSoonestCustomerHomeActiveBooking,
 } from "@shared/home/activeHomeBookings";
-import { dateTime, localized } from "@/lib/presentation";
+import { customerBookingListWhen, localized } from "@/lib/presentation";
 import { customerNumber } from "@/lib/customerFormat";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
@@ -43,7 +43,7 @@ export function HomeActiveBookingCard({
     focus.provider?.profile.full_name ||
     t("provider2.unnamed");
   const service = localized(focus.service, i18n.language);
-  const when = dateTime(focus.start_at, i18n.language);
+  const when = customerBookingListWhen(focus.start_at, i18n.language);
   const testID = "home-active-booking";
 
   return (

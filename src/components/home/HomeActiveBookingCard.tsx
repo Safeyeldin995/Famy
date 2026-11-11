@@ -8,8 +8,8 @@ import {
   homeActiveBookingStatusKey,
   pickSoonestCustomerHomeActiveBooking,
 } from "@/lib/home/activeHomeBookings";
+import { formatCustomerBookingListWhen } from "@/lib/format";
 import { currentLang } from "@/lib/i18n";
-import { formatDateTime } from "@/lib/format";
 import { previewPath } from "@/lib/preview/previewPath";
 import { ICON_STROKE } from "@/lib/icons/constants";
 
@@ -39,7 +39,7 @@ export function HomeActiveBookingCard({ bookings }: { bookings: HomeBookingRow[]
   const needsAction = customerHomeActiveBookingNeedsAction(focus.status);
   const ctaKey = customerHomeActiveBookingCtaKey(focus.status);
   const name = focus.provider?.profile?.full_name || t("provider2.unnamed");
-  const when = formatDateTime(new Date(focus.start_at), lang);
+  const when = formatCustomerBookingListWhen(focus.start_at, lang);
 
   return (
     <section
