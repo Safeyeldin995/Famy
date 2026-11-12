@@ -848,6 +848,93 @@ describe("provider settlements ledger", () => {
     expect((after[0]?.n ?? 0) - (before[0]?.n ?? 0) >= 1).toBe(true);
   });
 
+  it("applies one online share for completion-then-capture and double apply", async () => {
+    await setLedgerCutoff("-1 day");
+    const booking = await seedLifecycleBooking(db, { status: "pending" });
+    await forceSnapshot(booking.bookingId, 1000, 850);
+    await insertPayment(booking.bookingId, "instapay");
+    await completeHappyPath(db, booking.bookingId);
+    const beforeCapture = await queryRows<{ n: number }>(
+      db,
+      `SELECT count(*)::int AS n FROM public.provider_ledger_entries WHERE booking_id = $1::uuid AND kind = 'online_provider_share'`,
+      [booking.bookingId],
+    );
+    expect(beforeCapture[0]?.n).toBe(0);
+    await asServiceRole(db, () =>
+      db.query(`UPDATE public.payments SET status = 'captured', captured_at = now() WHERE booking_id = $1`, [
+        booking.bookingId,
+      ]),
+    );
+    const afterCapture = await queryRows<{ n: number }>(
+      db,
+      `SELECT count(*)::int AS n FROM public.provider_ledger_entries WHERE booking_id = $1::uuid AND kind = 'online_provider_share'`,
+      [booking.bookingId],
+    );
+    expect(afterCapture[0]?.n).toBe(1);
+    await db.query(`SELECT public.ledger_apply_booking_shares($1::uuid)`, [booking.bookingId]);
+    const afterSecondApply = await queryRows<{ n: number }>(
+      db,
+      `SELECT count(*)::int AS n FROM public.provider_ledger_entries WHERE booking_id = $1::uuid AND kind = 'online_provider_share'`,
+      [booking.bookingId],
+    );
+    expect(afterSecondApply[0]?.n).toBe(1);
+    // Paymob capture runs inside a payment UPDATE (payment lock first). Manual capture is
+    // rejected until the booking is completed, so PGlite cannot open two connections to
+    // deadlock completion+capture; the advisory lock is covered by capture-then-reapply above.
+  });
+
+  it("does not change an existing pending settlement on a second weekly run", async () => {
+    const pendingProvider = "00000000-0000-4000-8000-000000000298";
+    const pendingUser = "00000000-0000-4000-8000-000000000198";
+    await db.exec(`
+      INSERT INTO auth.users (id) VALUES ('${pendingUser}') ON CONFLICT (id) DO NOTHING;
+      INSERT INTO public.providers (id, profile_id, hourly_rate, onboarding_status, is_active, vacation_mode, min_notice_hours, max_advance_days, buffer_minutes, bio_en, bio_ar)
+      VALUES ('${pendingProvider}', '${pendingUser}', 100, 'DRAFT', true, false, 0, 365, 0, 'Bio', 'سيرة')
+      ON CONFLICT (id) DO NOTHING;
+    `);
+    const period = await queryRows<{ period_start: string; period_end: string }>(
+      db,
+      `SELECT period_start::text, period_end::text FROM public.provider_settlement_closed_period()`,
+    );
+    const periodStart = period[0]?.period_start;
+    await db.query(
+      `
+        INSERT INTO public.provider_ledger_entries (provider_id, kind, direction, amount, created_at)
+        VALUES ($1::uuid, 'online_provider_share', 'credit', 3000, $2::timestamptz + interval '1 hour')
+      `,
+      [pendingProvider, periodStart],
+    );
+    await asServiceRole(db, () =>
+      queryRows<{ n: number }>(db, `SELECT public.run_provider_weekly_settlements()::int AS n`),
+    );
+    const first = await queryRows<{ amount: string; status: string }>(
+      db,
+      `SELECT amount::text, status FROM public.provider_settlements WHERE provider_id = $1::uuid AND period_start = $2::timestamptz`,
+      [pendingProvider, periodStart],
+    );
+    expect(first[0]?.status).toBe("pending");
+    expect(first[0]?.amount).toBe("3000.00");
+
+    await db.query(
+      `
+        INSERT INTO public.provider_ledger_entries (provider_id, kind, direction, amount, created_at)
+        VALUES ($1::uuid, 'debt_payment_received', 'credit', 3000, $2::timestamptz + interval '2 hours')
+      `,
+      [pendingProvider, periodStart],
+    );
+    await asServiceRole(db, () =>
+      queryRows<{ n: number }>(db, `SELECT public.run_provider_weekly_settlements()::int AS n`),
+    );
+    const second = await queryRows<{ amount: string; status: string }>(
+      db,
+      `SELECT amount::text, status FROM public.provider_settlements WHERE provider_id = $1::uuid AND period_start = $2::timestamptz`,
+      [pendingProvider, periodStart],
+    );
+    expect(second[0]?.status).toBe("pending");
+    expect(second[0]?.amount).toBe("3000.00");
+    expect(second[0]?.amount).toBe(first[0]?.amount);
+  });
+
   it("reports online platform share in admin finance summary", async () => {
     const booking = await seedLifecycleBooking(db, { status: "pending" });
     await forceSnapshot(booking.bookingId, 1000, 850);

@@ -422,7 +422,8 @@ DECLARE
   v_platform_share numeric;
   v_pay public.payments%ROWTYPE;
 BEGIN
-  SELECT * INTO v_booking FROM public.bookings WHERE id = p_booking_id FOR UPDATE;
+  PERFORM pg_advisory_xact_lock(hashtextextended('famy_ledger_booking:' || p_booking_id::text, 0));
+  SELECT * INTO v_booking FROM public.bookings WHERE id = p_booking_id;
   IF NOT FOUND OR v_booking.status IS DISTINCT FROM 'completed' THEN
     RETURN;
   END IF;
@@ -436,8 +437,6 @@ BEGIN
   END IF;
 
   v_platform_share := GREATEST(COALESCE(v_booking.price_total, 0) - COALESCE(v_booking.price_provider_net, 0), 0);
-
-  PERFORM 1 FROM public.payments WHERE booking_id = p_booking_id FOR UPDATE;
 
   SELECT * INTO v_pay
   FROM public.payments
@@ -494,7 +493,7 @@ BEGIN
     RAISE EXCEPTION 'Reason is required' USING ERRCODE = '23514';
   END IF;
   PERFORM set_config('app.audit_reason', btrim(p_reason), true);
-  SELECT * INTO v_booking FROM public.bookings WHERE id = p_booking_id FOR UPDATE;
+  SELECT * INTO v_booking FROM public.bookings WHERE id = p_booking_id;
   IF NOT FOUND OR v_booking.status IS DISTINCT FROM 'completed' THEN
     RAISE EXCEPTION 'Booking must be completed' USING ERRCODE = '23514';
   END IF;
@@ -532,7 +531,6 @@ AS $$
 BEGIN
   IF NEW.status = 'captured' AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'captured') THEN
     IF COALESCE(NEW.payment_method_type, '') IN ('online', 'manual_transfer') THEN
-      PERFORM 1 FROM public.bookings WHERE id = NEW.booking_id FOR UPDATE;
       PERFORM public.ledger_apply_booking_shares(NEW.booking_id);
     END IF;
   END IF;
@@ -767,6 +765,8 @@ DECLARE
     'payout_sent'
   ];
 BEGIN
+  PERFORM pg_advisory_xact_lock(hashtextextended('famy_weekly_settlements', 0));
+
   SELECT p.period_start, p.period_end
     INTO v_closed_start, v_closed_end
   FROM public.provider_settlement_closed_period() p;
@@ -818,31 +818,41 @@ BEGIN
       ) x;
 
       IF v_net = 0 THEN
-        v_settlement_id := NULL;
-        INSERT INTO public.provider_settlements (
-          provider_id, period_start, period_end, amount, direction, status, settled_at, totals_by_method
-        ) VALUES (
-          v_row.provider_id, v_period_start, v_period_end, 0, 'famy_pays_provider', 'paid', now(),
-          COALESCE(v_totals, '{}'::jsonb)
-        )
-        ON CONFLICT (provider_id, period_start, period_end) DO UPDATE
-          SET status = EXCLUDED.status, settled_at = COALESCE(provider_settlements.settled_at, EXCLUDED.settled_at)
-        RETURNING id INTO v_settlement_id;
+        SELECT id INTO v_settlement_id
+        FROM public.provider_settlements
+        WHERE provider_id = v_row.provider_id
+          AND period_start = v_period_start
+          AND period_end = v_period_end;
+
         IF v_settlement_id IS NULL THEN
-          SELECT id INTO v_settlement_id
-          FROM public.provider_settlements
-          WHERE provider_id = v_row.provider_id
-            AND period_start = v_period_start
-            AND period_end = v_period_end;
+          INSERT INTO public.provider_settlements (
+            provider_id, period_start, period_end, amount, direction, status, settled_at, totals_by_method
+          ) VALUES (
+            v_row.provider_id, v_period_start, v_period_end, 0, 'famy_pays_provider', 'paid', now(),
+            COALESCE(v_totals, '{}'::jsonb)
+          )
+          ON CONFLICT (provider_id, period_start, period_end) DO NOTHING
+          RETURNING id INTO v_settlement_id;
+
+          IF v_settlement_id IS NULL THEN
+            SELECT id INTO v_settlement_id
+            FROM public.provider_settlements
+            WHERE provider_id = v_row.provider_id
+              AND period_start = v_period_start
+              AND period_end = v_period_end;
+          END IF;
         END IF;
-        PERFORM set_config('app.ledger_link_settlement', 'on', true);
-        UPDATE public.provider_ledger_entries e
-        SET settlement_id = v_settlement_id
-        WHERE e.provider_id = v_row.provider_id
-          AND e.settlement_id IS NULL
-          AND e.created_at >= v_period_start
-          AND e.created_at < v_period_end
-          AND e.kind = ANY (v_settlement_kinds);
+
+        IF v_settlement_id IS NOT NULL THEN
+          PERFORM set_config('app.ledger_link_settlement', 'on', true);
+          UPDATE public.provider_ledger_entries e
+          SET settlement_id = v_settlement_id
+          WHERE e.provider_id = v_row.provider_id
+            AND e.settlement_id IS NULL
+            AND e.created_at >= v_period_start
+            AND e.created_at < v_period_end
+            AND e.kind = ANY (v_settlement_kinds);
+        END IF;
         CONTINUE;
       END IF;
 
