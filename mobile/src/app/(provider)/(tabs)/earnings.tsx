@@ -8,6 +8,7 @@ import {
 } from "@shared/earnings/aggregateProviderEarnings";
 import { useMyProvider, useProviderBookings, useProviderEarnings } from "@/lib/provider/queries";
 import { localized, money } from "@/lib/presentation";
+import { ProviderSettlementBanner } from "@/components/provider/ProviderSettlementBanner";
 import { Page, QueryState, moneyTextStyle } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { colors, radius, space } from "@/ui/theme";
@@ -89,6 +90,7 @@ export default function ProviderEarnings() {
       queries={[p, e, bookingsQ]}
       contentStyle={{ gap: 12 }}
     >
+      <ProviderSettlementBanner providerId={provider?.id} />
       {hasUnrecordedCommission ? (
         <Text tone="muted" size="xs">
           {t("pro.earnings.bookingValue")}

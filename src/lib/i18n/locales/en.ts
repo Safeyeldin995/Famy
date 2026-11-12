@@ -2176,6 +2176,17 @@ const en = {
         pending: "Pending",
       },
     },
+    settlement: {
+      currentBalance: "Settlement balance",
+      famyOwesYou: "Famy will transfer {{amount}} to you",
+      youOweFamy: "You owe Famy {{amount}}",
+      balanced: "You and Famy are settled for now",
+      cashHeld: "Cash jobs — platform share held: {{amount}}",
+      blockedBody:
+        "You reached the cash balance limit. Transfer {{amount}} to Famy (InstaPay) to receive new bookings",
+      history: "Weekly settlements",
+      ledger: "Ledger",
+    },
     earnings: {
       title: "Earnings",
       yourNet: "Your net earnings",
@@ -2575,6 +2586,17 @@ const en = {
     },
   },
   admin: {
+    settlement: {
+      title: "Provider finance",
+      net: "Net balance",
+      cashHeld: "Cash held for platform",
+      markSettled: "Mark settled",
+      markSettledBody: "Record an external transfer reference. This writes the ledger payout row.",
+      reference: "Transfer reference",
+      referenceRequired: "Reference and reason are required",
+      noteOptional: "Internal note (optional)",
+      settled: "Settlement recorded",
+    },
     layout: {
       group: {
         overview: "Overview",

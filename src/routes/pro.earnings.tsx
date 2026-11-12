@@ -15,6 +15,7 @@ import {
   type EarningsBucket,
 } from "@/lib/earnings/aggregateProviderEarnings";
 import { formatEGP } from "@/lib/utils";
+import { ProviderSettlementBanner } from "@/components/provider/ProviderSettlementBanner";
 
 export const Route = createFileRoute("/pro/earnings")({ component: EarningsPage });
 
@@ -85,6 +86,7 @@ function EarningsPage() {
     <ProviderShell>
       <PageHeader title={t("pro.earnings.title")} />
       <div className="space-y-3 px-5 pb-6 pt-2">
+        <ProviderSettlementBanner providerId={provider?.id} />
         {hasUnrecordedCommission && (
           <p className="text-pro-12 text-muted-foreground">{t("pro.earnings.bookingValue")}</p>
         )}

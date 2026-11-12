@@ -2153,6 +2153,16 @@ const ar: Translation = {
         pending: "قيد المراجعة",
       },
     },
+    settlement: {
+      currentBalance: "رصيد التسوية",
+      famyOwesYou: "فامي هتحولك {{amount}}",
+      youOweFamy: "عليك للمنصة {{amount}}",
+      balanced: "انت والمنصة متساويين دلوقتي",
+      cashHeld: "وظايف كاش — حصة المنصة: {{amount}}",
+      blockedBody: "وصلت لحد الرصيد، حول {{amount}} لفامي على إنستاباي عشان تستقبل طلبات جديدة",
+      history: "تسويات أسبوعية",
+      ledger: "سجل الحركة",
+    },
     earnings: {
       title: "الأرباح",
       yourNet: "صافي أرباحك",
@@ -2548,6 +2558,17 @@ const ar: Translation = {
     },
   },
   admin: {
+    settlement: {
+      title: "مالية مقدم الخدمة",
+      net: "صافي الرصيد",
+      cashHeld: "كاش محتجز للمنصة",
+      markSettled: "تم التحويل",
+      markSettledBody: "سجل مرجع التحويل الخارجي، وهيكتب حركة التسوية في السجل",
+      reference: "مرجع التحويل",
+      referenceRequired: "المرجع والسبب مطلوبين",
+      noteOptional: "ملاحظة داخلية (اختياري)",
+      settled: "اتسجلت التسوية",
+    },
     layout: {
       group: {
         overview: "نظرة عامة",
