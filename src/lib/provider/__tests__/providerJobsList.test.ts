@@ -33,7 +33,7 @@ describe("providerJobsList", () => {
         start_at: new Date("2026-11-12T12:00:00+02:00").toISOString(),
       },
     ];
-    const sections = groupProviderUpcomingBookings(bookings);
+    const sections = groupProviderUpcomingBookings(bookings, now);
     expect(sections.map((s) => s.kind)).toEqual(["now", "today", "day"]);
     expect(sections[0].kind === "now" && sections[0].bookings.map((b) => b.id)).toEqual(["now"]);
     expect(sections[1].kind === "today" && sections[1].bookings.map((b) => b.id)).toEqual([
