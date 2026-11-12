@@ -101,6 +101,45 @@ export function useProviderLedger(providerId: string | undefined, limit = 50) {
   });
 }
 
+export function useProviderSettlementPeriod() {
+  return useQuery({
+    queryKey: ["provider-settlement-closed-period"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("provider_settlement_closed_period");
+      if (error) throw error;
+      const row = (Array.isArray(data) ? data[0] : data) as {
+        period_start: string;
+        period_end: string;
+        next_settlement_at: string;
+      };
+      return row;
+    },
+  });
+}
+
+export function useProviderWeekLedgerTotals(providerId: string | undefined, periodStart: string | undefined) {
+  return useQuery({
+    enabled: !!providerId && !!periodStart,
+    queryKey: ["provider-week-ledger", providerId, periodStart],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("provider_ledger_entries")
+        .select("kind, amount")
+        .eq("provider_id", providerId!)
+        .gte("created_at", periodStart!);
+      if (error) throw error;
+      let cash = 0;
+      let online = 0;
+      for (const row of data ?? []) {
+        const amount = Number(row.amount ?? 0);
+        if (row.kind === "cash_collected_platform_share") cash += amount;
+        if (row.kind === "online_provider_share") online += amount;
+      }
+      return { cash, online };
+    },
+  });
+}
+
 export function useProviderSettlementSettings() {
   return useQuery({
     queryKey: ["settings", "provider_settlement"],

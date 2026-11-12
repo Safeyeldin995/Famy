@@ -47,6 +47,7 @@ import { Route as AdminCampaignsRouteImport } from './routes/admin.campaigns'
 import { Route as AdminCancellationReasonsRouteImport } from './routes/admin.cancellation-reasons'
 import { Route as AdminCasesRouteImport } from './routes/admin.cases'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
+import { Route as AdminFinanceRouteImport } from './routes/admin.finance'
 import { Route as AdminMonitoringRouteImport } from './routes/admin.monitoring'
 import { Route as AdminOperationsRouteImport } from './routes/admin.operations'
 import { Route as AdminPaymentMethodsRouteImport } from './routes/admin.payment-methods'
@@ -119,6 +120,7 @@ import { Route as PreviewAdminCampaignsRouteImport } from './routes/preview.admi
 import { Route as PreviewAdminCancellationReasonsRouteImport } from './routes/preview.admin.cancellation-reasons'
 import { Route as PreviewAdminCasesRouteImport } from './routes/preview.admin.cases'
 import { Route as PreviewAdminCustomersRouteImport } from './routes/preview.admin.customers'
+import { Route as PreviewAdminFinanceRouteImport } from './routes/preview.admin.finance'
 import { Route as PreviewAdminMonitoringRouteImport } from './routes/preview.admin.monitoring'
 import { Route as PreviewAdminOperationsRouteImport } from './routes/preview.admin.operations'
 import { Route as PreviewAdminPaymentMethodsRouteImport } from './routes/preview.admin.payment-methods'
@@ -349,6 +351,11 @@ const AdminCasesRoute = AdminCasesRouteImport.update({
 const AdminCustomersRoute = AdminCustomersRouteImport.update({
   id: '/customers',
   path: '/customers',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminFinanceRoute = AdminFinanceRouteImport.update({
+  id: '/finance',
+  path: '/finance',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminMonitoringRoute = AdminMonitoringRouteImport.update({
@@ -715,6 +722,11 @@ const PreviewAdminCustomersRoute = PreviewAdminCustomersRouteImport.update({
   path: '/customers',
   getParentRoute: () => PreviewAdminRoute,
 } as any)
+const PreviewAdminFinanceRoute = PreviewAdminFinanceRouteImport.update({
+  id: '/finance',
+  path: '/finance',
+  getParentRoute: () => PreviewAdminRoute,
+} as any)
 const PreviewAdminMonitoringRoute = PreviewAdminMonitoringRouteImport.update({
   id: '/monitoring',
   path: '/monitoring',
@@ -959,6 +971,7 @@ export interface FileRoutesByFullPath {
   '/admin/cancellation-reasons': typeof AdminCancellationReasonsRoute
   '/admin/cases': typeof AdminCasesRoute
   '/admin/customers': typeof AdminCustomersRoute
+  '/admin/finance': typeof AdminFinanceRoute
   '/admin/monitoring': typeof AdminMonitoringRoute
   '/admin/operations': typeof AdminOperationsRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
@@ -1031,6 +1044,7 @@ export interface FileRoutesByFullPath {
   '/preview/admin/cancellation-reasons': typeof PreviewAdminCancellationReasonsRoute
   '/preview/admin/cases': typeof PreviewAdminCasesRoute
   '/preview/admin/customers': typeof PreviewAdminCustomersRoute
+  '/preview/admin/finance': typeof PreviewAdminFinanceRoute
   '/preview/admin/monitoring': typeof PreviewAdminMonitoringRoute
   '/preview/admin/operations': typeof PreviewAdminOperationsRoute
   '/preview/admin/payment-methods': typeof PreviewAdminPaymentMethodsRoute
@@ -1106,6 +1120,7 @@ export interface FileRoutesByTo {
   '/admin/cancellation-reasons': typeof AdminCancellationReasonsRoute
   '/admin/cases': typeof AdminCasesRoute
   '/admin/customers': typeof AdminCustomersRoute
+  '/admin/finance': typeof AdminFinanceRoute
   '/admin/monitoring': typeof AdminMonitoringRoute
   '/admin/operations': typeof AdminOperationsRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
@@ -1175,6 +1190,7 @@ export interface FileRoutesByTo {
   '/preview/admin/cancellation-reasons': typeof PreviewAdminCancellationReasonsRoute
   '/preview/admin/cases': typeof PreviewAdminCasesRoute
   '/preview/admin/customers': typeof PreviewAdminCustomersRoute
+  '/preview/admin/finance': typeof PreviewAdminFinanceRoute
   '/preview/admin/monitoring': typeof PreviewAdminMonitoringRoute
   '/preview/admin/operations': typeof PreviewAdminOperationsRoute
   '/preview/admin/payment-methods': typeof PreviewAdminPaymentMethodsRoute
@@ -1256,6 +1272,7 @@ export interface FileRoutesById {
   '/admin/cancellation-reasons': typeof AdminCancellationReasonsRoute
   '/admin/cases': typeof AdminCasesRoute
   '/admin/customers': typeof AdminCustomersRoute
+  '/admin/finance': typeof AdminFinanceRoute
   '/admin/monitoring': typeof AdminMonitoringRoute
   '/admin/operations': typeof AdminOperationsRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
@@ -1328,6 +1345,7 @@ export interface FileRoutesById {
   '/preview/admin/cancellation-reasons': typeof PreviewAdminCancellationReasonsRoute
   '/preview/admin/cases': typeof PreviewAdminCasesRoute
   '/preview/admin/customers': typeof PreviewAdminCustomersRoute
+  '/preview/admin/finance': typeof PreviewAdminFinanceRoute
   '/preview/admin/monitoring': typeof PreviewAdminMonitoringRoute
   '/preview/admin/operations': typeof PreviewAdminOperationsRoute
   '/preview/admin/payment-methods': typeof PreviewAdminPaymentMethodsRoute
@@ -1410,6 +1428,7 @@ export interface FileRouteTypes {
     | '/admin/cancellation-reasons'
     | '/admin/cases'
     | '/admin/customers'
+    | '/admin/finance'
     | '/admin/monitoring'
     | '/admin/operations'
     | '/admin/payment-methods'
@@ -1482,6 +1501,7 @@ export interface FileRouteTypes {
     | '/preview/admin/cancellation-reasons'
     | '/preview/admin/cases'
     | '/preview/admin/customers'
+    | '/preview/admin/finance'
     | '/preview/admin/monitoring'
     | '/preview/admin/operations'
     | '/preview/admin/payment-methods'
@@ -1557,6 +1577,7 @@ export interface FileRouteTypes {
     | '/admin/cancellation-reasons'
     | '/admin/cases'
     | '/admin/customers'
+    | '/admin/finance'
     | '/admin/monitoring'
     | '/admin/operations'
     | '/admin/payment-methods'
@@ -1626,6 +1647,7 @@ export interface FileRouteTypes {
     | '/preview/admin/cancellation-reasons'
     | '/preview/admin/cases'
     | '/preview/admin/customers'
+    | '/preview/admin/finance'
     | '/preview/admin/monitoring'
     | '/preview/admin/operations'
     | '/preview/admin/payment-methods'
@@ -1706,6 +1728,7 @@ export interface FileRouteTypes {
     | '/admin/cancellation-reasons'
     | '/admin/cases'
     | '/admin/customers'
+    | '/admin/finance'
     | '/admin/monitoring'
     | '/admin/operations'
     | '/admin/payment-methods'
@@ -1778,6 +1801,7 @@ export interface FileRouteTypes {
     | '/preview/admin/cancellation-reasons'
     | '/preview/admin/cases'
     | '/preview/admin/customers'
+    | '/preview/admin/finance'
     | '/preview/admin/monitoring'
     | '/preview/admin/operations'
     | '/preview/admin/payment-methods'
@@ -2136,6 +2160,13 @@ declare module '@tanstack/react-router' {
       path: '/customers'
       fullPath: '/admin/customers'
       preLoaderRoute: typeof AdminCustomersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/finance': {
+      id: '/admin/finance'
+      path: '/finance'
+      fullPath: '/admin/finance'
+      preLoaderRoute: typeof AdminFinanceRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/monitoring': {
@@ -2642,6 +2673,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewAdminCustomersRouteImport
       parentRoute: typeof PreviewAdminRoute
     }
+    '/preview/admin/finance': {
+      id: '/preview/admin/finance'
+      path: '/finance'
+      fullPath: '/preview/admin/finance'
+      preLoaderRoute: typeof PreviewAdminFinanceRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
     '/preview/admin/monitoring': {
       id: '/preview/admin/monitoring'
       path: '/monitoring'
@@ -2949,6 +2987,7 @@ interface AdminRouteChildren {
   AdminCancellationReasonsRoute: typeof AdminCancellationReasonsRoute
   AdminCasesRoute: typeof AdminCasesRoute
   AdminCustomersRoute: typeof AdminCustomersRoute
+  AdminFinanceRoute: typeof AdminFinanceRoute
   AdminMonitoringRoute: typeof AdminMonitoringRoute
   AdminOperationsRoute: typeof AdminOperationsRoute
   AdminPaymentMethodsRoute: typeof AdminPaymentMethodsRoute
@@ -2975,6 +3014,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCancellationReasonsRoute: AdminCancellationReasonsRoute,
   AdminCasesRoute: AdminCasesRoute,
   AdminCustomersRoute: AdminCustomersRoute,
+  AdminFinanceRoute: AdminFinanceRoute,
   AdminMonitoringRoute: AdminMonitoringRoute,
   AdminOperationsRoute: AdminOperationsRoute,
   AdminPaymentMethodsRoute: AdminPaymentMethodsRoute,
@@ -3045,6 +3085,7 @@ interface PreviewAdminRouteChildren {
   PreviewAdminCancellationReasonsRoute: typeof PreviewAdminCancellationReasonsRoute
   PreviewAdminCasesRoute: typeof PreviewAdminCasesRoute
   PreviewAdminCustomersRoute: typeof PreviewAdminCustomersRoute
+  PreviewAdminFinanceRoute: typeof PreviewAdminFinanceRoute
   PreviewAdminMonitoringRoute: typeof PreviewAdminMonitoringRoute
   PreviewAdminOperationsRoute: typeof PreviewAdminOperationsRoute
   PreviewAdminPaymentMethodsRoute: typeof PreviewAdminPaymentMethodsRoute
@@ -3066,6 +3107,7 @@ const PreviewAdminRouteChildren: PreviewAdminRouteChildren = {
   PreviewAdminCancellationReasonsRoute: PreviewAdminCancellationReasonsRoute,
   PreviewAdminCasesRoute: PreviewAdminCasesRoute,
   PreviewAdminCustomersRoute: PreviewAdminCustomersRoute,
+  PreviewAdminFinanceRoute: PreviewAdminFinanceRoute,
   PreviewAdminMonitoringRoute: PreviewAdminMonitoringRoute,
   PreviewAdminOperationsRoute: PreviewAdminOperationsRoute,
   PreviewAdminPaymentMethodsRoute: PreviewAdminPaymentMethodsRoute,

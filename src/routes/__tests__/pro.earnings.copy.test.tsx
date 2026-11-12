@@ -22,6 +22,9 @@ vi.mock("@/components/famio/LanguageToggle", () => ({ useLang: () => "ar" }));
 vi.mock("@/components/provider/ProviderSettlementBanner", () => ({
   ProviderSettlementBanner: () => null,
 }));
+vi.mock("@/components/provider/ProviderEarningsSettlementPanel", () => ({
+  ProviderEarningsSettlementPanel: () => null,
+}));
 vi.mock("@/lib/db/provider-queries", () => ({
   useMyProvider: () => ({ data: { id: "provider" } }),
   useProviderEarnings: () => ({

@@ -40,6 +40,7 @@ export const ADMIN_NAV_GROUPS: (NavGroup & { titleFallback: string })[] = [
     titleFallback: "Overview",
     items: [
       { to: "/admin", labelKey: "admin.layout.nav.overview", icon: LayoutDashboard, exact: true },
+      { to: "/admin/finance", labelKey: "admin.layout.nav.finance", icon: Wallet },
     ],
   },
   {
@@ -64,7 +65,7 @@ export const ADMIN_NAV_GROUPS: (NavGroup & { titleFallback: string })[] = [
     items: [
       { to: "/admin/bookings", labelKey: "admin.layout.nav.bookings", icon: ClipboardList },
       { to: "/admin/cases", labelKey: "admin.layout.nav.cases", icon: LifeBuoy },
-      { to: "/admin/payments", labelKey: "admin.layout.nav.payments", icon: Wallet },
+      { to: "/admin/payments", labelKey: "admin.layout.nav.payments", icon: CreditCard },
       {
         to: "/admin/payment-methods",
         labelKey: "admin.layout.nav.paymentMethods",
