@@ -18,7 +18,10 @@ import {
   useMarkBookingMessagesRead,
   useMessages,
   useSendMessage,
+  chatPhaseForStatus,
 } from "@/lib/chatQueries";
+import { ChatClosedFooter } from "@/ui/chat/ChatClosedFooter";
+import { chatComposerVisible, isChatClosedError } from "@/ui/chat/chatThreadPresentation";
 import { useSession } from "@/lib/session";
 import { Avatar } from "@/ui/ProviderCard";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
@@ -52,6 +55,8 @@ export default function ChatScreen() {
 
   const otherName = conv.data?.other?.full_name || t("profile.famioUser");
   const otherAvatar = conv.data?.other?.avatar_url ?? null;
+  const phase = chatPhaseForStatus(conv.data?.booking_status ?? undefined);
+  const showComposer = chatComposerVisible(phase);
 
   const handleSend = (body: string) => {
     if (!body.trim() || send.isPending) return;
@@ -65,6 +70,10 @@ export default function ChatScreen() {
         setDraft("");
       },
       onError: (e: unknown) => {
+        if (isChatClosedError(e)) {
+          setWarning(t("bookingChat.closedThreadNote"));
+          return;
+        }
         const msg = e instanceof Error ? e.message : "";
         if (msg === "contact_masked")
           setWarning(t("bookingChat.contactBlocked", CONTACT_BLOCKED_MESSAGE));
@@ -139,15 +148,19 @@ export default function ChatScreen() {
               </View>
             }
           />
-          <ChatComposer
-            value={draft}
-            onChangeText={setDraft}
-            onSend={handleSend}
-            pending={send.isPending}
-            warning={warning}
-            onClearWarning={() => setWarning(null)}
-            multiline={false}
-          />
+          {showComposer ? (
+            <ChatComposer
+              value={draft}
+              onChangeText={setDraft}
+              onSend={handleSend}
+              pending={send.isPending}
+              warning={warning}
+              onClearWarning={() => setWarning(null)}
+              multiline={false}
+            />
+          ) : phase === "readonly" ? (
+            <ChatClosedFooter testID="customer-chat-closed" />
+          ) : null}
         </>
       )}
     </KeyboardAvoidingView>

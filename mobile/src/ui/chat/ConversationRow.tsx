@@ -36,9 +36,16 @@ export function ConversationRow({
       <Avatar raw={item.other_avatar} size={56} round={customer} />
       <View style={styles.body}>
         <View style={styles.top}>
-          <Text weight="heavy" size="lg" numberOfLines={1} style={styles.name}>
-            {name}
-          </Text>
+          <View style={styles.nameRow}>
+            <Text weight="heavy" size="lg" numberOfLines={1} style={styles.name}>
+              {name}
+            </Text>
+            {item.chat_closed ? (
+              <Text testID="conversation-closed-tag" size="xs" weight="bold" tone="muted" style={styles.closedTag}>
+                {t("messages.closedTag")}
+              </Text>
+            ) : null}
+          </View>
           <Text tone="muted" size={customer ? "xs" : "sm"} weight="bold" style={styles.time}>
             {formatChatListTime(item.last_time, i18n.language)}
           </Text>
@@ -70,7 +77,14 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.92 },
   body: { flex: 1, minWidth: 0, gap: space.xs },
   top: { flexDirection: "row", alignItems: "center", gap: space.sm },
-  name: { flex: 1 },
+  nameRow: { flex: 1, flexDirection: "row", alignItems: "center", gap: space.xs, minWidth: 0 },
+  name: { flexShrink: 1 },
+  closedTag: {
+    paddingHorizontal: space.sm,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface2,
+  },
   time: { flexShrink: 0 },
   bottom: { flexDirection: "row", alignItems: "center", gap: space.sm },
   preview: { flex: 1 },

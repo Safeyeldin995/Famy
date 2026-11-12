@@ -1,5 +1,5 @@
 import { formatTime } from "@/lib/format";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { PhoneFrame, EmptyState } from "@/components/famio/ui";
 import { CustomerPageHeader as CustomerPageHero } from "@/components/famio/CustomerPageHeader";
 import { QueryError } from "@/components/famio/QueryError";
@@ -14,6 +14,7 @@ import {
   useSendMessage,
   CONTACT_BLOCKED_MESSAGE,
   containsContactInfo,
+  chatPhaseForStatus,
 } from "@/lib/db/messaging";
 import { isPreviewRoute, PREVIEW_USER_ID } from "@/lib/preview/constants";
 
@@ -58,6 +59,8 @@ export function ChatContent({ conversationId }: { conversationId: string }) {
   const otherName = other?.full_name || t("profile.famioUser");
   const otherAvatar = other?.avatar_url;
   const sendFailedMsg = t("messages.sendFailed");
+  const phase = chatPhaseForStatus((conv.data as { booking_status?: string | null })?.booking_status ?? undefined);
+  const showComposer = phase === "writable";
 
   if (conv.isLoading || msgs.isLoading) {
     return (
@@ -112,6 +115,8 @@ export function ChatContent({ conversationId }: { conversationId: string }) {
       onError: (e: any) => {
         if (e?.message === "contact_masked")
           setWarning(t("bookingChat.contactBlocked", CONTACT_BLOCKED_MESSAGE));
+        else if (e?.message === "chat_closed" || String(e?.message ?? "").includes("chat_closed"))
+          setWarning(t("bookingChat.closedThreadNote"));
         else setWarning(sendFailedMsg);
       },
     });
@@ -180,31 +185,45 @@ export function ChatContent({ conversationId }: { conversationId: string }) {
         </div>
       )}
 
-      {/* Composer */}
-      <div className="safe-bottom border-t border-border/50 bg-surface px-3 pt-2.5">
-        <div className="flex items-end gap-2">
-          <div className="flex min-w-0 flex-1 items-center gap-1 rounded-full bg-surface-2 px-4">
-            <input
-              value={text}
-              onChange={(e) => {
-                setText(e.target.value);
-                if (warning) setWarning(null);
-              }}
-              onKeyDown={(e) => e.key === "Enter" && handleSend()}
-              placeholder={t("messages.placeholder")}
-              className="h-12 min-w-0 flex-1 bg-transparent text-pro-14 font-medium outline-none placeholder:text-muted-foreground"
-            />
+      {showComposer ? (
+        <div className="safe-bottom border-t border-border/50 bg-surface px-3 pt-2.5">
+          <div className="flex items-end gap-2">
+            <div className="flex min-w-0 flex-1 items-center gap-1 rounded-full bg-surface-2 px-4">
+              <input
+                value={text}
+                onChange={(e) => {
+                  setText(e.target.value);
+                  if (warning) setWarning(null);
+                }}
+                onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                placeholder={t("messages.placeholder")}
+                className="h-12 min-w-0 flex-1 bg-transparent text-pro-14 font-medium outline-none placeholder:text-muted-foreground"
+              />
+            </div>
+            <button
+              onClick={handleSend}
+              aria-label={t("messages.send")}
+              disabled={!text.trim() || send.isPending}
+              className="focus-ring grid h-12 w-12 shrink-0 place-items-center rounded-full bg-brand text-brand-foreground shadow-[0_8px_20px_-10px_var(--brand)] transition-transform active:scale-95 disabled:opacity-40"
+            >
+              <Send className="h-4 w-4" />
+            </button>
           </div>
-          <button
-            onClick={handleSend}
-            aria-label={t("messages.send")}
-            disabled={!text.trim() || send.isPending}
-            className="focus-ring grid h-12 w-12 shrink-0 place-items-center rounded-full bg-brand text-brand-foreground shadow-[0_8px_20px_-10px_var(--brand)] transition-transform active:scale-95 disabled:opacity-40"
-          >
-            <Send className="h-4 w-4" />
-          </button>
         </div>
-      </div>
+      ) : phase === "readonly" ? (
+        <div
+          data-testid="web-chat-closed-footer"
+          className="safe-bottom space-y-3 border-t border-border/50 bg-surface px-4 py-4 text-center"
+        >
+          <p className="text-pro-12 font-medium text-muted-foreground">{t("bookingChat.closedThreadNote")}</p>
+          <Link
+            to="/help"
+            className="focus-ring inline-flex min-h-11 items-center justify-center rounded-full border border-border bg-surface-2 px-5 text-pro-14 font-bold text-foreground"
+          >
+            {t("bookingChat.closedSupportCta")}
+          </Link>
+        </div>
+      ) : null}
     </PhoneFrame>
   );
 }

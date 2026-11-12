@@ -30,6 +30,8 @@ export type ConversationListItem = {
   last_time: string | null;
   /** Set for system messages; render via bookingChat.system.<key> so it follows the app language. */
   last_system_key?: string | null;
+  booking_status: string | null;
+  chat_closed: boolean;
 };
 
 export function useConversations() {
@@ -68,9 +70,17 @@ export function useConversations() {
         }
       }
 
+      const bookingIds = convs.map((c) => c.booking_id);
+      const { data: bookings } = await supabase
+        .from('bookings')
+        .select('id, status')
+        .in('id', bookingIds);
+      const statusMap = new Map((bookings ?? []).map((b) => [b.id, b.status as string]));
+
       return convs.map((c) => {
         const party = pMap.get(c.booking_id);
         const last = lastMap.get(c.id);
+        const bookingStatus = statusMap.get(c.booking_id) ?? null;
         return {
           ...c,
           other_name: party?.other_name || '',
@@ -78,6 +88,8 @@ export function useConversations() {
           last_message: last?.body ?? null,
           last_system_key: last?.system_key ?? null,
           last_time: last?.created_at ?? null,
+          booking_status: bookingStatus,
+          chat_closed: chatPhaseForStatus(bookingStatus ?? undefined) === 'readonly',
         };
       });
     },
@@ -119,7 +131,13 @@ export function useConversation(id: string | undefined) {
       const other = party
         ? { id: party.other_user_id, full_name: party.other_name, avatar_url: party.other_avatar_url }
         : null;
-      return { ...data, other };
+      const { data: booking, error: bookingError } = await supabase
+        .from('bookings')
+        .select('status')
+        .eq('id', data.booking_id)
+        .maybeSingle();
+      if (bookingError) throw bookingError;
+      return { ...data, other, booking_status: (booking?.status as string | undefined) ?? null };
     },
   });
 }
@@ -172,6 +190,7 @@ export function useSendMessage(conversationId: string | undefined) {
       if (error) {
         // server-side trigger also blocks; surface as contact_masked
         if (error.message?.includes('contact_masked')) throw new Error('contact_masked');
+        if (error.message?.includes('chat_closed')) throw new Error('chat_closed');
         throw error;
       }
       return data;
