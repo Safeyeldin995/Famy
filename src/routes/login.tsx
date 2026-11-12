@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, Link, useRouterState } from "@tanstack/re
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Briefcase, Eye, EyeOff, User } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { FamyWordmark } from "@/components/famio/FamyWordmark";
 import { PhoneFrame, PrimaryButton } from "@/components/famio/ui";
 import { LanguageToggle } from "@/components/famio/LanguageToggle";
@@ -10,13 +10,14 @@ import { useApp } from "@/lib/store";
 import { otpService, normalizePhone, type Role } from "@/lib/otp/OtpService";
 import { normalizeDigitsToWestern } from "@/lib/otp/normalizePhone";
 import { startPhoneOtpFlow, phoneOtpFlowErrorMessage } from "@/lib/otp/phoneOtpFlow";
+import { interpretSignupSendForLoginPhoneContinue } from "@/lib/auth/loginPhoneContinue";
 import {
   resolvePostPasswordLoginTarget,
   resolveRoleLandingForCurrentUser,
 } from "@/lib/auth/landing";
 import { ACCOUNT_DELETE_INTENT } from "@/lib/web/webSurface";
 import { useCustomerPreviewPath } from "@/components/famio/useCustomerPreviewPath";
-import { ICON_STROKE, ICON_STROKE_BOLD } from "@/lib/icons/constants";
+import { ICON_STROKE } from "@/lib/icons/constants";
 import {
   enabledWebOAuthProviders,
   signInWithOAuthProvider,
@@ -59,53 +60,7 @@ function GoogleMark() {
   );
 }
 
-function Segmented<T extends string>({
-  value,
-  onChange,
-  options,
-  label,
-}: {
-  value: T;
-  onChange: (value: T) => void;
-  options: {
-    value: T;
-    label: string;
-    icon?: React.ComponentType<{ className?: string; strokeWidth?: number }>;
-  }[];
-  label: string;
-}) {
-  return (
-    <div
-      role="group"
-      aria-label={label}
-      className="grid grid-cols-2 gap-1 rounded-2xl bg-surface-2 p-1"
-    >
-      {options.map((option) => {
-        const active = value === option.value;
-        const Icon = option.icon;
-        return (
-          <button
-            key={option.value}
-            type="button"
-            onClick={() => onChange(option.value)}
-            aria-pressed={active}
-            className={`focus-ring flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 text-pro-14 font-extrabold transition-all ${
-              active ? "bg-white text-foreground shadow-sm" : "text-muted-foreground"
-            }`}
-          >
-            {Icon ? (
-              <Icon
-                className={`h-4 w-4 ${active ? "text-brand" : ""}`}
-                strokeWidth={ICON_STROKE_BOLD}
-              />
-            ) : null}
-            {option.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
+type Step = "phone" | "password";
 
 export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
   const loginSearch = useRouterState({
@@ -124,14 +79,13 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
     },
   });
   const accountDeleteFlow = !previewMode && loginSearch.intent === ACCOUNT_DELETE_INTENT;
-  const [mode, setMode] = useState<"signin" | "signup">(loginSearch.mode ?? "signin");
+  const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
-  const [role, setRole] = useState<Role>("customer");
+  const [role, setRole] = useState<Role>(loginSearch.mode === "signup" ? "provider" : "customer");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [flowMismatchSignin, setFlowMismatchSignin] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<OAuthProvider | null>(null);
   const oauthProviders = enabledWebOAuthProviders();
   const nav = useNavigate();
@@ -140,7 +94,7 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
   const previewPath = useCustomerPreviewPath();
 
   useEffect(() => {
-    if (loginSearch.mode) setMode(loginSearch.mode);
+    if (loginSearch.mode === "signup") setRole("provider");
     if (loginSearch.phone) {
       const local = loginSearch.phone.replace(/^\+20/, "").replace(/\D/g, "");
       if (local.length > 0) setPhone(local);
@@ -148,81 +102,116 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
   }, [loginSearch.mode, loginSearch.phone]);
 
   const phoneValid = normalizeDigitsToWestern(phone).replace(/\D/g, "").length >= 9;
-  const screenTitle = mode === "signin" ? t("auth.signIn") : t("auth.signUp");
+  const providerMode = role === "provider";
+  const showOAuth =
+    !accountDeleteFlow && role === "customer" && step === "phone" && oauthProviders.length > 0;
 
-  const submit = async () => {
-    if (previewMode || loading) return;
+  const resetPhoneStep = () => {
+    setStep("phone");
+    setPassword("");
     setErrorMsg(null);
-    setFlowMismatchSignin(false);
-    const e164 = normalizePhone(phone);
-    if (!phoneValid) return;
+  };
 
-    if (mode === "signin") {
-      if (password.length < 1) return;
-      setLoading(true);
-      const res = await otpService.signInWithPassword(e164, password);
-      setLoading(false);
-      if (!res.ok) {
-        const m = t("auth.invalidCredentials");
-        setErrorMsg(m);
-        toast.error(m);
-        return;
-      }
-      setProfile({ phone: e164 });
-      setAuthed(true);
-      if (accountDeleteFlow) {
-        nav({ to: "/account/delete", replace: true });
-        return;
-      }
-      const roleLanding = await resolveRoleLandingForCurrentUser();
-      const target = resolvePostPasswordLoginTarget({
-        loginRole: role,
-        landing: roleLanding?.landing ?? null,
-        hasProviderRole: roleLanding?.hasProviderRole ?? false,
-      });
-      if (target === "provider_account_missing") {
-        const m = t(
-          "auth.noProviderAccount",
-          "This number has no provider account. Sign up as a provider first.",
-        );
-        setErrorMsg(m);
-        toast.error(m);
-        return;
-      }
-      if (target) {
-        nav({ to: target });
-      }
+  const signInWithPassword = async () => {
+    if (password.length < 1) return;
+    setLoading(true);
+    const e164 = normalizePhone(phone);
+    const res = await otpService.signInWithPassword(e164, password);
+    setLoading(false);
+    if (!res.ok) {
+      const m = t("auth.invalidCredentials");
+      setErrorMsg(m);
+      toast.error(m);
       return;
     }
+    setProfile({ phone: e164 });
+    setAuthed(true);
+    if (accountDeleteFlow) {
+      nav({ to: "/account/delete", replace: true });
+      return;
+    }
+    const roleLanding = await resolveRoleLandingForCurrentUser();
+    const target = resolvePostPasswordLoginTarget({
+      loginRole: role,
+      landing: roleLanding?.landing ?? null,
+      hasProviderRole: roleLanding?.hasProviderRole ?? false,
+    });
+    if (target === "provider_account_missing") {
+      const m = t("auth.noProviderAccount");
+      setErrorMsg(m);
+      toast.error(m);
+      return;
+    }
+    if (target) {
+      nav({ to: target });
+    }
+  };
 
+  const continueWithPhone = async () => {
+    const e164 = normalizePhone(phone);
     setLoading(true);
     const send = await startPhoneOtpFlow(e164, "signup", role, { languageCode: i18n.language });
-    if (!send.ok) {
-      setLoading(false);
-      if (send.error === "flow_mismatch" && send.nextStep === "signin") {
-        const m = t("auth.alreadyRegistered");
-        setErrorMsg(m);
-        setFlowMismatchSignin(true);
-        toast.error(m, { duration: 8000 });
-        return;
-      }
-      const m = phoneOtpFlowErrorMessage(
-        send.error as Exclude<typeof send.error, "flow_mismatch">,
-        t,
-        send.retryAfter,
-        send.firebaseAuthCode,
-      );
+    setLoading(false);
+    const interpreted = interpretSignupSendForLoginPhoneContinue(
+      send.ok
+        ? { ok: true }
+        : {
+            ok: false,
+            error: send.error,
+            nextStep: send.nextStep,
+            retryAfter: send.retryAfter,
+            firebaseAuthCode: send.firebaseAuthCode,
+          },
+    );
+    if (interpreted.kind === "flow_mismatch_signup") {
+      const m = t("auth.noAccount");
       setErrorMsg(m);
       toast.error(m, { duration: 8000 });
       return;
     }
-    setProfile({ phone: e164 });
-    setLoading(false);
-    nav({ to: "/otp" });
+    if (interpreted.kind === "registered") {
+      setStep("password");
+      return;
+    }
+    if (interpreted.kind === "proceed_signup_otp") {
+      setProfile({ phone: e164 });
+      nav({ to: "/otp" });
+      return;
+    }
+    const m = phoneOtpFlowErrorMessage(
+      interpreted.error as Parameters<typeof phoneOtpFlowErrorMessage>[0],
+      t,
+      interpreted.retryAfter,
+      interpreted.firebaseAuthCode,
+    );
+    setErrorMsg(m);
+    toast.error(m, { duration: 8000 });
+  };
+
+  const submit = async () => {
+    if (previewMode || loading || !phoneValid) return;
+    setErrorMsg(null);
+    if (step === "password") {
+      await signInWithPassword();
+      return;
+    }
+    await continueWithPhone();
   };
 
   const fieldClass =
     "flex h-14 items-center rounded-2xl border border-border/80 bg-white transition-colors focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/15";
+
+  const primaryDisabled =
+    !phoneValid || loading || (step === "password" && password.length < 1);
+
+  const primaryLabel =
+    loading && step === "password"
+      ? t("common.signingIn")
+      : loading
+        ? t("common.sending")
+        : step === "password"
+          ? t("auth.signIn")
+          : t("auth.continue");
 
   return (
     <PhoneFrame bg="bg-white">
@@ -237,54 +226,42 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
         </header>
 
         <div className="relative flex flex-1 flex-col px-6 pb-8">
-          <div className="pt-10">
-            <h1 className="text-[1.875rem] font-extrabold leading-tight text-foreground text-balance">
-              {mode === "signin" ? t("auth.welcomeBack") : t("auth.signUpTitle")}
-            </h1>
-            <p className="mt-2 text-pro-14 font-medium leading-relaxed text-muted-foreground">
-              {mode === "signin" ? t("auth.signInSubtitle") : t("auth.signUpSubtitle")}
-            </p>
-          </div>
-
-          {!accountDeleteFlow ? (
-            <div className="mt-7">
-              <Segmented
-                value={mode}
-                onChange={(next) => {
-                  setMode(next);
-                  setErrorMsg(null);
-                  setFlowMismatchSignin(false);
+          {providerMode ? (
+            <div className="space-y-2 pt-10">
+              <h1 className="text-[1.875rem] font-extrabold leading-tight text-foreground text-balance">
+                {t("auth.providerSignupTitle")}
+              </h1>
+              <p className="text-pro-14 font-medium leading-relaxed text-muted-foreground">
+                {t("auth.signUpSubtitle")}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setRole("customer");
+                  resetPhoneStep();
                 }}
-                label={screenTitle}
-                options={[
-                  { value: "signin", label: t("auth.signIn") },
-                  { value: "signup", label: t("auth.signUp") },
-                ]}
-              />
+                className="focus-ring inline-flex min-h-11 items-center text-pro-13 font-extrabold text-brand"
+              >
+                {t("auth.backToCustomerLogin")}
+              </button>
+              <p className="rounded-2xl bg-brand/[0.06] px-4 py-3 text-pro-12 font-semibold leading-relaxed text-foreground/80">
+                {t("auth.providerNote")}
+              </p>
             </div>
-          ) : null}
+          ) : step === "password" ? (
+            <div className="space-y-2 pt-10">
+              <h1 className="text-[1.875rem] font-extrabold leading-tight text-foreground text-balance">
+                {t("auth.welcomeBack")}
+              </h1>
+              <p className="text-pro-14 font-medium leading-relaxed text-muted-foreground">
+                {t("auth.signInSubtitle")}
+              </p>
+            </div>
+          ) : (
+            <div className="pt-10" aria-hidden="true" />
+          )}
 
           <section className="mt-6 space-y-5">
-            {!accountDeleteFlow ? (
-              <div>
-                <p className="mb-2 text-pro-13 font-bold text-muted-foreground">{t("auth.iAmA")}</p>
-                <Segmented
-                  value={role}
-                  onChange={setRole}
-                  label={t("auth.iAmA")}
-                  options={[
-                    { value: "customer", label: t("auth.roleCustomer"), icon: User },
-                    { value: "provider", label: t("auth.roleProvider"), icon: Briefcase },
-                  ]}
-                />
-                {mode === "signup" && role === "provider" ? (
-                  <p className="mt-3 rounded-2xl bg-brand/[0.06] px-4 py-3 text-pro-12 font-semibold leading-relaxed text-foreground/80">
-                    {t("auth.providerNote")}
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-
             <div>
               <label
                 htmlFor="login-phone"
@@ -304,13 +281,16 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
                   autoComplete="tel"
                   placeholder={t("auth.phonePlaceholder")}
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value.replace(/[^\d ]/g, ""))}
+                  onChange={(e) => {
+                    setPhone(e.target.value.replace(/[^\d ]/g, ""));
+                    if (step === "password") resetPhoneStep();
+                  }}
                   className="min-h-11 min-w-0 flex-1 bg-transparent px-1 text-[16px] font-bold tracking-wide outline-none placeholder:font-semibold placeholder:text-muted-foreground/50"
                 />
               </div>
             </div>
 
-            {mode === "signin" ? (
+            {step === "password" ? (
               <div>
                 <div className="mb-2 flex items-center justify-between gap-3">
                   <label
@@ -356,21 +336,8 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
             ) : null}
 
             {errorMsg ? (
-              <div className="space-y-3 rounded-2xl bg-destructive/10 px-4 py-3">
+              <div className="rounded-2xl bg-destructive/10 px-4 py-3">
                 <p className="text-pro-13 font-bold text-destructive">{errorMsg}</p>
-                {flowMismatchSignin ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMode("signin");
-                      setFlowMismatchSignin(false);
-                      setErrorMsg(null);
-                    }}
-                    className="focus-ring text-pro-13 font-extrabold text-brand"
-                  >
-                    {t("auth.signIn")}
-                  </button>
-                ) : null}
               </div>
             ) : null}
           </section>
@@ -378,20 +345,14 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
           <div className="mt-7">
             <PrimaryButton
               onClick={submit}
-              disabled={!phoneValid || (mode === "signin" && password.length < 1) || loading}
+              disabled={primaryDisabled}
               className="h-14 w-full rounded-2xl text-pro-16 shadow-none"
             >
-              {loading
-                ? mode === "signin"
-                  ? t("common.signingIn", "Signing in…")
-                  : t("common.sending", "Sending…")
-                : mode === "signin"
-                  ? t("auth.signIn", "Sign in")
-                  : t("common.sendCode")}
+              {primaryLabel}
             </PrimaryButton>
           </div>
 
-          {!accountDeleteFlow && role === "customer" && oauthProviders.length > 0 ? (
+          {showOAuth ? (
             <div className="mt-6">
               <div className="flex items-center gap-3 text-pro-12 font-semibold text-muted-foreground">
                 <span className="h-px flex-1 bg-border" />
@@ -444,7 +405,19 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
           ) : null}
 
           <div className="mt-auto pt-8">
-            {mode === "signup" ? (
+            {!accountDeleteFlow && !providerMode && step === "phone" ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setRole("provider");
+                  resetPhoneStep();
+                }}
+                className="focus-ring mx-auto flex min-h-11 w-full items-center justify-center text-pro-13 font-extrabold text-brand"
+              >
+                {t("auth.providerSignupLink")}
+              </button>
+            ) : null}
+            {providerMode && step === "phone" ? (
               <p className="text-center text-pro-12 font-semibold leading-7 text-muted-foreground">
                 {t("auth.terms")}{" "}
                 <Link
@@ -463,21 +436,7 @@ export function Login({ previewMode = false }: { previewMode?: boolean } = {}) {
                   {t("auth.privacyLink")}
                 </Link>
               </p>
-            ) : (
-              <p className="text-center text-pro-13 font-semibold text-muted-foreground">
-                {t("auth.newHere")}{" "}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMode("signup");
-                    setErrorMsg(null);
-                  }}
-                  className="inline-flex min-h-11 items-center font-extrabold text-brand"
-                >
-                  {t("auth.createAccountLink")}
-                </button>
-              </p>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

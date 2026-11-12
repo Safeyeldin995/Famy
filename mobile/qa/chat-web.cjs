@@ -157,6 +157,7 @@ async function run() {
         conversations: mode === "empty" ? [] : conversations,
         messages: mode === "empty" ? [] : messages,
         booking_message_reads: reads,
+        bookings: [{ id: bid, status: "confirmed" }],
       };
       data = tables[table] ?? [];
       const convFilter = url.searchParams.get("conversation_id");

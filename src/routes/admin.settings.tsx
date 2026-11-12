@@ -200,6 +200,7 @@ function BookingExpirySection() {
   const update = useUpdateBookingExpirySettings();
   const [ttl, setTtl] = useState("");
   const [minBefore, setMinBefore] = useState("");
+  const [autoCompleteHours, setAutoCompleteHours] = useState("");
   const saved = useSavedFlash(update.isPending, update.isSuccess);
   const initialized = useState(() => ({ done: false }))[0];
   useEffect(() => {
@@ -207,6 +208,7 @@ function BookingExpirySection() {
       initialized.done = true;
       setTtl(String(q.data.pending_ttl_hours));
       setMinBefore(String(q.data.min_hours_before_start));
+      setAutoCompleteHours(String(q.data.auto_complete_hours));
     }
   }, [q.data, initialized]);
 
@@ -241,7 +243,7 @@ function BookingExpirySection() {
       title={t("admin.settings.bookingExpiryTitle")}
       subtitle={t("admin.settings.bookingExpirySubtitle")}
     >
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <label className="block">
           <span className="text-xs font-semibold text-muted-foreground">
             {t("admin.settings.pendingTtlHours")}
@@ -268,6 +270,20 @@ function BookingExpirySection() {
             className="mt-1 h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm"
           />
         </label>
+        <label className="block sm:col-span-1">
+          <span className="text-xs font-semibold text-muted-foreground">
+            {t("admin.settings.autoCompleteHours")}
+          </span>
+          <input
+            value={autoCompleteHours}
+            onChange={(e) => setAutoCompleteHours(e.target.value)}
+            type="number"
+            min={1}
+            max={24}
+            step={1}
+            className="mt-1 h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm"
+          />
+        </label>
       </div>
       <SaveButton
         pending={update.isPending}
@@ -277,6 +293,7 @@ function BookingExpirySection() {
             {
               pending_ttl_hours: Math.max(0, Number(ttl) || 0),
               min_hours_before_start: Math.max(0, Number(minBefore) || 0),
+              auto_complete_hours: Math.min(24, Math.max(1, Number(autoCompleteHours) || 6)),
             },
             {
               onError: (e: any) =>

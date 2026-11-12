@@ -9,17 +9,20 @@ export const PROVIDER_NO_RESPONSE_REASON = "provider_no_response";
 export const DEFAULT_BOOKING_EXPIRY_SETTINGS = {
   pending_ttl_hours: 12,
   min_hours_before_start: 2,
+  auto_complete_hours: 6,
 } as const;
 
 export type BookingExpirySettings = {
   pending_ttl_hours: number;
   min_hours_before_start: number;
+  auto_complete_hours: number;
 };
 
 export function parseBookingExpirySettings(value: unknown): BookingExpirySettings {
   const row = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
   const ttl = Number(row.pending_ttl_hours);
   const minBefore = Number(row.min_hours_before_start);
+  const autoHours = Number(row.auto_complete_hours);
   return {
     pending_ttl_hours:
       Number.isFinite(ttl) && ttl >= 0 ? ttl : DEFAULT_BOOKING_EXPIRY_SETTINGS.pending_ttl_hours,
@@ -27,6 +30,10 @@ export function parseBookingExpirySettings(value: unknown): BookingExpirySetting
       Number.isFinite(minBefore) && minBefore >= 0
         ? minBefore
         : DEFAULT_BOOKING_EXPIRY_SETTINGS.min_hours_before_start,
+    auto_complete_hours:
+      Number.isFinite(autoHours) && autoHours >= 1 && autoHours <= 24
+        ? autoHours
+        : DEFAULT_BOOKING_EXPIRY_SETTINGS.auto_complete_hours,
   };
 }
 

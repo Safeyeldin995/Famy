@@ -14,6 +14,7 @@ import {
 import { money } from "@/lib/presentation";
 import { joinUiParts, uiListSeparator } from "@shared/format/uiJoin";
 import { ProviderBookingCard, type ProviderCardBooking } from "@/ui/provider/ProviderBookingCard";
+import { HomeProviderActiveBookingCard } from "@/ui/provider/HomeProviderActiveBookingCard";
 import { Page, QueryState, moneyTextStyle } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { colors, radius, space } from "@/ui/theme";
@@ -125,6 +126,9 @@ export default function ProviderDashboard() {
       queries={[p, bookingsQ, earningsQ]}
       contentStyle={{ paddingTop: 8, gap: 16 }}
     >
+      {!bookingsQ.isError && bookingsQ.data ? (
+        <HomeProviderActiveBookingCard bookings={all} pendingCount={pending.length} />
+      ) : null}
       <Text tone="muted" size="sm">
         <Text weight="bold" size="sm">
           {t("proWork.today")}

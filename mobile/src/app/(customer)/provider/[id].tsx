@@ -4,6 +4,7 @@ import { Pressable, Share, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, ArrowRight, BadgeCheck, Heart, Share2, Star } from "lucide-react-native";
+import { CustomerPreparationNotesSection } from "@/ui/customer/CustomerPreparationNotesSection";
 import {
   useDefaultAddress,
   useProvider,
@@ -277,38 +278,38 @@ export default function ProviderProfile() {
                     return (
                       <View
                         key={s.id}
-                        style={[
-                          customerStyle.row,
-                          {
-                            justifyContent: "space-between",
-                            paddingVertical: 12,
-                            borderBottomWidth: 1,
-                            borderBottomColor: colors.border,
-                          },
-                        ]}
+                        style={{
+                          paddingVertical: 12,
+                          borderBottomWidth: 1,
+                          borderBottomColor: colors.border,
+                          gap: 8,
+                        }}
                       >
-                        <View style={{ flex: 1 }}>
-                          <Text weight="bold">{localized(s, i18n.language)}</Text>
-                          <Text size="xs" tone="muted">
-                            {pack
-                              ? t(
-                                  pack.key === "packages.fullDay"
-                                    ? "providerPage.fullDayHint"
-                                    : pack.key === "packages.overnight"
-                                      ? "providerPage.overnightHint"
-                                      : pack.key,
-                                  pack.values,
-                                )
-                              : t("providerPage.hourlyHint")}
-                          </Text>
+                        <View style={[customerStyle.row, { justifyContent: "space-between" }]}>
+                          <View style={{ flex: 1 }}>
+                            <Text weight="bold">{localized(s, i18n.language)}</Text>
+                            <Text size="xs" tone="muted">
+                              {pack
+                                ? t(
+                                    pack.key === "packages.fullDay"
+                                      ? "providerPage.fullDayHint"
+                                      : pack.key === "packages.overnight"
+                                        ? "providerPage.overnightHint"
+                                        : pack.key,
+                                    pack.values,
+                                  )
+                                : t("providerPage.hourlyHint")}
+                            </Text>
+                          </View>
+                          {rate == null ? null : (
+                            <Text weight="bold" tone="brand">
+                              {fixed
+                                ? money(rate, i18n.language)
+                                : t("providerPage.perHour", { price: money(rate, i18n.language) })}
+                            </Text>
+                          )}
                         </View>
-                        {rate == null ? null : (
-                          <Text weight="bold" tone="brand">
-                            {fixed
-                              ? money(rate, i18n.language)
-                              : t("providerPage.perHour", { price: money(rate, i18n.language) })}
-                          </Text>
-                        )}
+                        <CustomerPreparationNotesSection notes={row.preparation_notes} />
                       </View>
                     );
                   })}

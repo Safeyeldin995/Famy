@@ -130,7 +130,7 @@ export function useAdminProvider(id: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('providers')
-        .select('*, profile:profiles(*), documents:provider_documents(*), services:provider_services(id, status, price_override, rejection_reason, service:services(id, name_en, name_ar, base_price, pricing_model, category:categories(slug, name_en, name_ar)))')
+        .select('*, profile:profiles(*), documents:provider_documents(*), services:provider_services(id, status, price_override, rejection_reason, preparation_notes, service:services(id, name_en, name_ar, base_price, pricing_model, category:categories(slug, name_en, name_ar)))')
         .eq('id', id)
         .maybeSingle();
       if (error) throw error;
@@ -177,6 +177,29 @@ export function useSetProviderVerified() {
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ['admin'] });
       invalidateCustomerMarketplaceQueries(qc, vars.id);
+    },
+  });
+}
+
+export function useAdminUpdateProviderServicePreparationNotes() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      providerServiceId,
+      notes,
+    }: {
+      providerServiceId: string;
+      notes: string | null;
+    }) => {
+      const { error } = await supabase
+        .from('provider_services')
+        .update({ preparation_notes: notes })
+        .eq('id', providerServiceId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin'] });
+      invalidateCustomerMarketplaceQueries(qc);
     },
   });
 }
@@ -243,6 +266,66 @@ export function useAdminBookings(status?: string | string[]) {
       const { data, error } = await q;
       if (error) throw error;
       return data ?? [];
+    },
+  });
+}
+
+export function useAdminSetBookingStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      bookingId: string;
+      status: string;
+      reason: string;
+    }) => {
+      const { error } = await supabase.rpc("admin_set_booking_status", {
+        p_booking_id: input.bookingId,
+        p_status: input.status as never,
+        p_reason: input.reason,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["admin", "bookings"] });
+      qc.invalidateQueries({ queryKey: ["admin", "work-queue"] });
+      qc.invalidateQueries({ queryKey: ["booking", vars.bookingId] });
+    },
+  });
+}
+
+export function useAdminSetBookingSessionTimes() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      bookingId: string;
+      reason: string;
+      sessionStartedAt?: string | null;
+      sessionEndedAt?: string | null;
+      arrivalConfirmedAt?: string | null;
+    }) => {
+      const { error } = await supabase.rpc("admin_set_booking_session_times", {
+        p_booking_id: input.bookingId,
+        p_reason: input.reason,
+        p_session_started_at: input.sessionStartedAt ?? undefined,
+        p_session_ended_at: input.sessionEndedAt ?? undefined,
+        p_arrival_confirmed_at: input.arrivalConfirmedAt ?? undefined,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["admin", "bookings"] });
+      qc.invalidateQueries({ queryKey: ["booking", vars.bookingId] });
+    },
+  });
+}
+
+export function useLifecycleAttentionBookingIds() {
+  return useQuery({
+    queryKey: ["admin", "bookings-lifecycle-attention"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("admin_bookings_needing_lifecycle_attention");
+      if (error) throw error;
+      return (data ?? []) as string[];
     },
   });
 }

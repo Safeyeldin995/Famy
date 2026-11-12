@@ -1,3 +1,4 @@
+import { CustomerPreparationNotesSection } from "@/ui/customer/CustomerPreparationNotesSection";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 import { memberAgeTranslation } from "@shared/familyMemberAge";
 import { CustomerBookingWhen } from "@/ui/customer/BookingWhen";
@@ -945,6 +946,7 @@ export default function Book() {
               </View>
             ))}
           </View>
+          <CustomerPreparationNotesSection notes={service?.preparation_notes} />
           <View
             style={{
               borderRadius: 16,

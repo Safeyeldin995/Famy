@@ -4,6 +4,8 @@ import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 import { workingHoursSummary } from "@/lib/provider/workingHoursSummary";
 import { isFixedPackage, packageLabel, servicePriceUnit } from "@/lib/pricing/servicePackages";
 import { ProviderServicePricePanel } from "@/components/provider/ProviderServicePricePanel";
+import { ProviderServicePreparationNotesField } from "@/components/provider/ProviderServicePreparationNotesField";
+import { normalizePreparationNotes } from "@/lib/provider/preparationNotes";
 import { isPriceInRange } from "@/components/provider/ServicePricePicker";
 import { providerPriceNeedsAdminReview } from "@/lib/provider/providerPriceChangeRequest";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
@@ -30,6 +32,7 @@ import {
   useToggleProviderService,
   useCancelProviderServiceRequest,
   useSetProviderPrice,
+  useSetProviderPreparationNotes,
   useRequestProviderPriceChange,
   useCancelProviderPriceChange,
   useRequirementsForService,
@@ -88,8 +91,11 @@ function ProProfile() {
   const setPrice = useSetProviderPrice();
   const requestPriceChange = useRequestProviderPriceChange();
   const cancelPriceChange = useCancelProviderPriceChange();
+  const savePreparationNotes = useSetProviderPreparationNotes();
   const [priceDrafts, setPriceDrafts] = useState<Record<string, number>>({});
   const [priceErrors, setPriceErrors] = useState<Record<string, string>>({});
+  const [preparationDrafts, setPreparationDrafts] = useState<Record<string, string>>({});
+  const [preparationErrors, setPreparationErrors] = useState<Record<string, string>>({});
   const [expandedReqService, setExpandedReqService] = useState<string | null>(null);
   const focusRequirements = (serviceId: string) => {
     setExpandedReqService(serviceId);
@@ -270,6 +276,9 @@ function ProProfile() {
   const myPriceChangeReason = new Map(
     (mine.data ?? []).map((s: any) => [s.service_id, s.price_change_reason as string | null]),
   );
+  const myPreparationNotes = new Map(
+    (mine.data ?? []).map((s: any) => [s.service_id, s.preparation_notes as string | null]),
+  );
   const isApprovedProvider = provider.onboarding_status === "APPROVED";
   const allCatalogServices = services.data ?? [];
   const profileServices = isApprovedProvider
@@ -346,6 +355,29 @@ function ProProfile() {
         },
         onError: (e: any) =>
           setPriceErrors((errs) => ({
+            ...errs,
+            [serviceId]: e?.message ?? t("common.somethingWentWrong"),
+          })),
+      },
+    );
+  };
+  const submitPreparationNotes = (serviceId: string) => {
+    const raw = preparationDrafts[serviceId] ?? myPreparationNotes.get(serviceId) ?? "";
+    const notes = normalizePreparationNotes(raw);
+    setPreparationErrors((e) => ({ ...e, [serviceId]: "" }));
+    savePreparationNotes.mutate(
+      { providerId: provider.id, serviceId, notes },
+      {
+        onSuccess: () => {
+          toast.success(t("pro.profile.preparationNotesSaved"));
+          setPreparationDrafts((drafts) => {
+            const next = { ...drafts };
+            delete next[serviceId];
+            return next;
+          });
+        },
+        onError: (e: any) =>
+          setPreparationErrors((errs) => ({
             ...errs,
             [serviceId]: e?.message ?? t("common.somethingWentWrong"),
           })),
@@ -853,6 +885,21 @@ function ProProfile() {
                                 errorMessage={priceError || undefined}
                               />
                             )}
+                          {on ? (
+                            <ProviderServicePreparationNotesField
+                              id={`preparation-${s.id}`}
+                              savedNotes={myPreparationNotes.get(s.id)}
+                              draft={
+                                preparationDrafts[s.id] ?? myPreparationNotes.get(s.id) ?? ""
+                              }
+                              onDraftChange={(value) =>
+                                setPreparationDrafts((drafts) => ({ ...drafts, [s.id]: value }))
+                              }
+                              onSave={() => submitPreparationNotes(s.id)}
+                              savePending={savePreparationNotes.isPending}
+                              errorMessage={preparationErrors[s.id]}
+                            />
+                          ) : null}
                           {on && (
                             <button
                               onClick={() =>

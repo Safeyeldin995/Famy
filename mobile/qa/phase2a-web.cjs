@@ -811,7 +811,7 @@ async function run() {
   assert.equal(paymobCalls, 1);
   booking.status = "completed";
   await visit(`/booking/${bid}`, ar.status.completed);
-  await radio("5");
+  await button(ar.mobileBooking.starA11y.replace(/\{\{n\}\}/g, "5"));
   await page.getByLabel(ar.mobileBooking.review, { exact: true }).fill("Local review");
   await shot("review-form");
   await button(ar.bookingDetail.submitReview);

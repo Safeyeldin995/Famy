@@ -8,7 +8,7 @@
 | Android adaptive foreground | `mobile/assets/images/android-icon-foreground.png` | Brand mark on `#F10E72` |
 | Android adaptive background | `mobile/assets/images/android-icon-background.png` | |
 | Android monochrome | `mobile/assets/images/android-icon-monochrome.png` | Themed icon |
-| Splash | `mobile/assets/images/splash-icon.png` on `#F10E72` | `expo-splash-screen` plugin |
+| Splash | `mobile/assets/images/splash-icon.png` (1024×1024, transparent) on `#F10E72` | `expo-splash-screen` plugin; square mark for Android 12+ icon mask |
 | Favicon (web) | `mobile/assets/images/favicon.png` | Not used for native stores |
 
 ## Product Owner must supply (not generated here)

@@ -48,7 +48,7 @@ export function useMyProviderServicesDetailed(providerId: string | undefined) {
       const { data, error } = await supabase
         .from("provider_services")
         .select(
-          "service_id, price_override, pending_price_override, price_change_reason, status, service:services(id, name_en, name_ar, is_active, provider_pricing_allowed, minimum_price, maximum_price, pricing_model, category:categories(slug, name_en, name_ar))",
+          "service_id, price_override, pending_price_override, price_change_reason, preparation_notes, status, service:services(id, name_en, name_ar, is_active, provider_pricing_allowed, minimum_price, maximum_price, pricing_model, category:categories(slug, name_en, name_ar))",
         )
         .eq("provider_id", providerId!);
       if (error) throw error;
@@ -160,6 +160,32 @@ export function useSetProviderPrice() {
     },
     onSuccess: (_d, vars) =>
       qc.invalidateQueries({ queryKey: ["my-provider-services", vars.providerId] }),
+  });
+}
+
+export function useSetProviderPreparationNotes() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      providerId,
+      serviceId,
+      notes,
+    }: {
+      providerId: string;
+      serviceId: string;
+      notes: string | null;
+    }) => {
+      const { error } = await supabase
+        .from("provider_services")
+        .update({ preparation_notes: notes })
+        .eq("provider_id", providerId)
+        .eq("service_id", serviceId);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      void qc.invalidateQueries({ queryKey: ["my-provider-services", vars.providerId] });
+      void qc.invalidateQueries({ queryKey: ["provider-services", vars.providerId] });
+    },
   });
 }
 

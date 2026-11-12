@@ -973,6 +973,27 @@ export function useFixedPackageRate(providerId: string, serviceId: string | unde
   });
 }
 
+export function useProviderServicePreparationNotes(
+  providerId: string | undefined,
+  serviceId: string | undefined,
+) {
+  return useQuery({
+    enabled: !!providerId && !!serviceId,
+    queryKey: ['provider-service-preparation-notes', providerId, serviceId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('provider_services')
+        .select('preparation_notes')
+        .eq('provider_id', providerId!)
+        .eq('service_id', serviceId!)
+        .eq('status', 'approved')
+        .maybeSingle();
+      if (error) throw error;
+      return data?.preparation_notes ?? null;
+    },
+  });
+}
+
 export function useProviderServices(providerId: string | undefined) {
   return useQuery({
     enabled: !!providerId,
@@ -984,7 +1005,7 @@ export function useProviderServices(providerId: string | undefined) {
       // booking, even if the provider's own offering of it is still approved.
       const { data, error } = await (supabase
         .from('provider_services')
-        .select('price_override, status, service:services!inner(*, category:categories(slug, name_en, name_ar))') as any)
+        .select('price_override, preparation_notes, status, service:services!inner(*, category:categories(slug, name_en, name_ar))') as any)
         .eq('provider_id', providerId!)
         .eq('status', 'approved')
         .eq('service.is_active', true);

@@ -793,3 +793,18 @@ export function useCancellationReasons() {
     },
   });
 }
+
+export function useBookingExpirySettings() {
+  return useQuery({
+    queryKey: ["settings", "booking_expiry"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("settings")
+        .select("value")
+        .eq("key", "booking_expiry")
+        .maybeSingle();
+      if (error) throw error;
+      return parseBookingExpirySettings(data?.value);
+    },
+  });
+}

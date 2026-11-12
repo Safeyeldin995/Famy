@@ -9,10 +9,14 @@ import {
   useCancelBooking,
   useCancellationReasons,
   useUpdateBookingStatus,
+  useBookingExpirySettings,
 } from "@/lib/bookingQueries";
+import { autoCompleteClosesAt } from "@shared/booking/completion-auto";
+import { dateTime } from "@/lib/presentation";
 import { Button } from "./Button";
 import { Text } from "./Text";
 import { Choices, Field, QueryState, ui } from "./Page";
+import { StarRatingInput } from "./StarRatingInput";
 export function BookingActions({
   booking,
 }: {
@@ -22,10 +26,12 @@ export function BookingActions({
     customer_id: string;
     status: string;
     start_at?: string;
+    completion_requested_at?: string | null;
   };
 }) {
   const { t, i18n } = useTranslation();
   const { session } = useSession();
+  const expirySettings = useBookingExpirySettings();
   const cancel = useCancelBooking();
   const updateStatus = useUpdateBookingStatus();
   const reasons = useCancellationReasons();
@@ -36,7 +42,7 @@ export function BookingActions({
   const [confirmCompletionOpen, setConfirmCompletionOpen] = useState(false);
   const [reasonId, setReasonId] = useState("");
   const [note, setNote] = useState("");
-  const [rating, setRating] = useState("");
+  const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [error, setError] = useState("");
   if (booking.customer_id !== session?.user.id) return null;
@@ -60,7 +66,7 @@ export function BookingActions({
                 loading={updateStatus.isPending}
                 onPress={() =>
                   updateStatus.mutate(
-                    { id: booking.id, status: "arrival_confirmed" },
+                    { id: booking.id, status: "in_progress" },
                     {
                       onSuccess: () => setConfirmArrivalOpen(false),
                       onError: () => setError(t("common.somethingWentWrong")),
@@ -85,6 +91,19 @@ export function BookingActions({
       {booking.status === "completion_requested" && (
         <>
           <Text weight="bold">{t("bookingDetail.completionRequestedTitle")}</Text>
+          {booking.completion_requested_at && expirySettings.data ? (
+            <Text tone="muted" style={{ textAlign: "center" }}>
+              {t("bookingDetail.autoCompleteHint", {
+                time: dateTime(
+                  autoCompleteClosesAt(
+                    booking.completion_requested_at,
+                    expirySettings.data,
+                  ).toISOString(),
+                  i18n.language,
+                ),
+              })}
+            </Text>
+          ) : null}
           {confirmCompletionOpen ? (
             <>
               <Button
@@ -166,18 +185,17 @@ export function BookingActions({
           <QueryState query={review} />
           {review.data ? (
             <>
-              <Text>{t("mobile.reviewRating", { rating: String(review.data.rating) })}</Text>
+              <StarRatingInput value={review.data.rating} readOnly />
               <Text>{review.data.comment}</Text>
             </>
           ) : (
             !review.isLoading &&
             !review.isError && (
               <>
-                <Choices
+                <StarRatingInput
                   label={t("mobileBooking.rating")}
                   value={rating}
                   onChange={setRating}
-                  options={[1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: String(n) }))}
                 />
                 <Field
                   label={t("mobileBooking.review")}
@@ -187,14 +205,14 @@ export function BookingActions({
                 />
                 <Button
                   label={t("bookingDetail.submitReview")}
-                  disabled={!rating}
+                  disabled={rating === 0}
                   loading={submit.isPending}
                   onPress={() =>
                     submit.mutate(
                       {
                         bookingId: booking.id,
                         providerId: booking.provider_id,
-                        rating: Number(rating),
+                        rating,
                         comment,
                       },
                       { onError: () => setError(t("common.somethingWentWrong")) },

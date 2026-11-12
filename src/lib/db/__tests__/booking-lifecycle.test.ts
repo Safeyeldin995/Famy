@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { PGlite } from "@electric-sql/pglite";
 import {
+  allowCompletionForBooking,
   assertTransitionRejected,
   asServiceRole,
   bookingStatus,
@@ -9,7 +10,7 @@ import {
   createBookingLifecycleDb,
   expectRejected,
   IDS,
-  lifecycleRescheduleTargetDate,
+  lifecycleBookingBaseDate,
   paymentStatus,
   queryRows,
   seedLifecycleBooking,
@@ -18,6 +19,7 @@ import {
   tryAsUser,
   updateBookingStatus,
 } from "./booking-lifecycle.harness";
+import { cairoDatePlusDays } from "./cairo-stable-booking-date";
 
 let db: PGlite;
 
@@ -150,8 +152,7 @@ describe("booking lifecycle (migration replay)", () => {
     await updateBookingStatus(db, IDS.providerUser, inProgress.bookingId, "confirmed");
     await updateBookingStatus(db, IDS.providerUser, inProgress.bookingId, "on_the_way");
     await updateBookingStatus(db, IDS.providerUser, inProgress.bookingId, "arrived");
-    await updateBookingStatus(db, IDS.customer, inProgress.bookingId, "arrival_confirmed");
-    await updateBookingStatus(db, IDS.providerUser, inProgress.bookingId, "in_progress");
+    await updateBookingStatus(db, IDS.customer, inProgress.bookingId, "in_progress");
 
     const dispute = await tryAsUser(
       db,
@@ -175,7 +176,15 @@ describe("booking lifecycle (migration replay)", () => {
       [bookingId],
     );
 
-    const rescheduleDate = lifecycleRescheduleTargetDate(original[0]!.start_at);
+    const providerBookings = await queryRows<{ n: number }>(
+      db,
+      `SELECT count(*)::int AS n FROM public.bookings WHERE provider_id = $1`,
+      [IDS.provider],
+    );
+    const rescheduleDate = cairoDatePlusDays(
+      lifecycleBookingBaseDate(),
+      45 + (providerBookings[0]?.n ?? 0),
+    );
 
     const request = await tryAsUser(
       db,
@@ -237,7 +246,7 @@ describe("booking lifecycle (migration replay)", () => {
       `INSERT INTO public.messages (conversation_id, body) VALUES ($1::uuid, 'after complete') RETURNING id`,
       [conversationId],
     );
-    expectRejected(closedChat, /not open|42501/i, "chat after completed");
+    expectRejected(closedChat, /chat_closed|42501/i, "chat after completed");
   });
 
   it("lets the customer confirm arrival before the scheduled start time", async () => {
@@ -254,16 +263,17 @@ describe("booking lifecycle (migration replay)", () => {
     await updateBookingStatus(db, IDS.providerUser, bookingId, "on_the_way");
     await updateBookingStatus(db, IDS.providerUser, bookingId, "arrived");
 
-    const confirm = await updateBookingStatus(db, IDS.customer, bookingId, "arrival_confirmed");
+    const confirm = await updateBookingStatus(db, IDS.customer, bookingId, "in_progress");
     expect(confirm.ok, confirm.error ?? "customer confirm arrival").toBe(true);
-    expect(await bookingStatus(db, bookingId)).toBe("arrival_confirmed");
+    expect(await bookingStatus(db, bookingId)).toBe("in_progress");
 
-    const meta = await queryRows<{ arrival_confirmed_at: string | null }>(
+    const meta = await queryRows<{ arrival_confirmed_at: string | null; session_started_at: string | null }>(
       db,
-      `SELECT arrival_confirmed_at::text FROM public.bookings WHERE id = $1`,
+      `SELECT arrival_confirmed_at::text, session_started_at::text FROM public.bookings WHERE id = $1`,
       [bookingId],
     );
     expect(meta[0]?.arrival_confirmed_at).toBeTruthy();
+    expect(meta[0]?.session_started_at).toBeTruthy();
   });
 
   it("rejects skipped transitions and wrong lifecycle actors", async () => {
@@ -302,8 +312,8 @@ describe("booking lifecycle (migration replay)", () => {
     await updateBookingStatus(db, IDS.providerUser, atCompletionRequested.bookingId, "confirmed");
     await updateBookingStatus(db, IDS.providerUser, atCompletionRequested.bookingId, "on_the_way");
     await updateBookingStatus(db, IDS.providerUser, atCompletionRequested.bookingId, "arrived");
-    await updateBookingStatus(db, IDS.customer, atCompletionRequested.bookingId, "arrival_confirmed");
-    await updateBookingStatus(db, IDS.providerUser, atCompletionRequested.bookingId, "in_progress");
+    await updateBookingStatus(db, IDS.customer, atCompletionRequested.bookingId, "in_progress");
+    await allowCompletionForBooking(db, atCompletionRequested.bookingId);
     await updateBookingStatus(
       db,
       IDS.providerUser,

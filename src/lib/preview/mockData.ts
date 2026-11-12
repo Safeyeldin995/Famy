@@ -1068,6 +1068,7 @@ export function seedPreviewAdminQueries(qc: import("@tanstack/react-query").Quer
     pending_documents: 0,
     open_cases: 1,
     bookings_needing_action: 0,
+    bookings_lifecycle_attention: 0,
     payments_pending_review: 0,
   });
   qc.setQueryData(["admin", "pending-providers"], [providers[1]]);

@@ -35,6 +35,11 @@ export const WORK_QUEUE_ITEMS: ReadonlyArray<{
     search: { statuses: "disputed,no_show" },
   },
   {
+    key: "bookings_lifecycle_attention",
+    route: "/admin/bookings",
+    search: { filter: "lifecycle_attention" },
+  },
+  {
     key: "payments_pending_review",
     route: "/admin/payments",
     search: { status: "pending_review" },

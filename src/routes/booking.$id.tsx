@@ -16,9 +16,11 @@ import {
   EmptyState,
 } from "@/components/famio/ui";
 import { PaymentBlock } from "@/components/famio/PaymentBlock";
+import { StarRatingInput } from "@/components/famio/StarRatingInput";
 import { RescheduleSection } from "@/components/famio/RescheduleSection";
 import {
   useBooking,
+  useProviderServicePreparationNotes,
   useFavoriteIds,
   useToggleFavorite,
   useBookingReview,
@@ -27,6 +29,9 @@ import {
   useMyPushSubscriptions,
 } from "@/lib/db/queries";
 import { useCancelBooking, useBookingCancellation } from "@/lib/db/cancellation-queries";
+import { useBookingExpirySettings } from "@/lib/db/settings-queries";
+import { autoCompleteClosesAt } from "@/lib/booking/completion-auto";
+import { formatDateTime } from "@/lib/format";
 import {
   useBookingDisputes,
   useOpenDispute,
@@ -57,6 +62,7 @@ import {
   UserCheck,
   LifeBuoy,
 } from "lucide-react";
+import { CustomerPreparationNotesSection } from "@/components/booking/CustomerPreparationNotesSection";
 import { BookingChatPanel } from "@/components/famio/BookingChatPanel";
 import { useBookingParty } from "@/lib/db/booking-parties";
 import { useEffect, useState } from "react";
@@ -130,8 +136,13 @@ export function BookingDetailContent({
   const realQ = useBooking(id);
   const real = realQ.data;
   const status: string | undefined = real?.status;
+  const preparationQ = useProviderServicePreparationNotes(
+    real?.provider_id,
+    real?.service_id ?? (real?.service as { id?: string } | undefined)?.id,
+  );
   const lang = currentLang();
   const locale = formatLocale(lang);
+  const expirySettings = useBookingExpirySettings();
   const updateStatus = useUpdateBookingStatus();
   const cancelBooking = useCancelBooking();
   const cancellationQ = useBookingCancellation(status === "cancelled" ? id : undefined);
@@ -482,14 +493,7 @@ export function BookingDetailContent({
           <Card className="mt-4 p-4">
             {existingReview ? (
               <>
-                <div className="mt-5 flex justify-center gap-2">
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <Star
-                      key={n}
-                      className={`h-9 w-9 ${n <= existingReview.rating ? "fill-warning text-warning" : "text-border"}`}
-                    />
-                  ))}
-                </div>
+                <StarRatingInput className="mt-5" value={existingReview.rating} readOnly />
                 {existingReview.comment && (
                   <p className="mt-4 rounded-2xl bg-surface-2 p-3 text-sm text-muted-foreground">
                     {existingReview.comment}
@@ -501,20 +505,12 @@ export function BookingDetailContent({
               </>
             ) : (
               <>
-                <div className="mt-5 flex justify-center gap-2">
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <button
-                      className="focus-ring grid h-11 w-11 place-items-center"
-                      key={n}
-                      onClick={() => setRating(n)}
-                      aria-label={`${n}`}
-                    >
-                      <Star
-                        className={`h-9 w-9 ${n <= rating ? "fill-warning text-warning" : "text-border"}`}
-                      />
-                    </button>
-                  ))}
-                </div>
+                <StarRatingInput
+                  className="mt-5"
+                  label={t("bookingDetail.yourRating")}
+                  value={rating}
+                  onChange={setRating}
+                />
                 <textarea
                   rows={3}
                   value={comment}
@@ -636,6 +632,11 @@ export function BookingDetailContent({
             />
           </Card>
 
+          <CustomerPreparationNotesSection
+            notes={preparationQ.data}
+            className="mt-4"
+          />
+
           <p className="mt-3 rounded-2xl bg-surface-2 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">
             {t("bookingDetail.cancelNoLongerAvailable")}
           </p>
@@ -677,13 +678,24 @@ export function BookingDetailContent({
           )}
 
           {status === "completion_requested" && (
-            <PrimaryButton
-              className="mt-4"
-              onClick={() => setDialog("confirmCompletion")}
-              disabled={updateStatus.isPending}
-            >
-              {t("bookingDetail.confirmCompletion")}
-            </PrimaryButton>
+            <div className="mt-4 space-y-2">
+              {real.completion_requested_at && expirySettings.data ? (
+                <p className="rounded-2xl bg-surface-2 px-4 py-3 text-center text-sm font-semibold text-muted-foreground">
+                  {t("bookingDetail.autoCompleteHint", {
+                    time: formatDateTime(
+                      autoCompleteClosesAt(real.completion_requested_at, expirySettings.data),
+                      locale,
+                    ),
+                  })}
+                </p>
+              ) : null}
+              <PrimaryButton
+                onClick={() => setDialog("confirmCompletion")}
+                disabled={updateStatus.isPending}
+              >
+                {t("bookingDetail.confirmCompletion")}
+              </PrimaryButton>
+            </div>
           )}
 
           {DISPUTE_ELIGIBLE_STATUSES.includes(status ?? "") && !dispute && (
@@ -741,7 +753,7 @@ export function BookingDetailContent({
           confirmVariant="coral"
           pending={updateStatus.isPending}
           onCancel={() => setDialog("")}
-          onConfirm={() => run("arrival_confirmed", undefined, () => setDialog(""))}
+          onConfirm={() => run("in_progress", undefined, () => setDialog(""))}
         />
         <ReasonDialog
           key={`confirm-completion-${dialog}`}
@@ -845,6 +857,8 @@ export function BookingDetailContent({
             onClick={() => nav({ to: "/help" })}
           />
         </div>
+
+        <CustomerPreparationNotesSection notes={preparationQ.data} className="mt-4" />
 
         <div className="mt-4">
           <PaymentBlock
