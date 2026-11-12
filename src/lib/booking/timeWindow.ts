@@ -1,24 +1,58 @@
+import { minutesUntilSessionCompletionAllowed, sessionDurationEndsAt } from "./sessionLifecycle";
+
 /**
- * Mirrors the database trigger `tg_booking_time_window_guard`: a provider
- * cannot run a booking's lifecycle far ahead of its scheduled start.
- * Returns when the provider's next step opens, or null when it is not
- * time-limited.
+ * Provider travel/actions window: from start_at - 2h through end_at (DB-enforced).
+ * Client mirrors for disabling buttons before the server rejects.
  */
-export function providerStepOpensAt(status: string, startAt: string | Date): Date | null {
+export function providerTravelWindowOpen(startAt: string | Date, endAt: string | Date, now = new Date()): boolean {
+  const start = new Date(startAt).getTime();
+  const end = new Date(endAt).getTime();
+  const t = now.getTime();
+  if (Number.isNaN(start) || Number.isNaN(end)) return true;
+  return t >= start - 2 * 60 * 60 * 1000 && t <= end;
+}
+
+export function providerStepOpensAt(status: string, startAt: string | Date, endAt: string | Date): Date | null {
   const start = new Date(startAt).getTime();
   if (Number.isNaN(start)) return null;
-  if (status === "confirmed") return new Date(start - 3 * 60 * 60 * 1000);
-  if (status === "arrival_confirmed") return new Date(start - 30 * 60 * 1000);
-  if (status === "in_progress") return new Date(start);
+  if (status === "confirmed") return new Date(start - 2 * 60 * 60 * 1000);
+  if (status === "on_the_way" || status === "arrived") return new Date(start - 2 * 60 * 60 * 1000);
   return null;
 }
 
-export function isProviderStepTooEarly(status: string, startAt: string | Date, now = new Date()) {
-  const opensAt = providerStepOpensAt(status, startAt);
-  return !!opensAt && now.getTime() < opensAt.getTime();
+export function isProviderStepTooEarly(
+  status: string,
+  startAt: string | Date,
+  endAt: string | Date,
+  now = new Date(),
+): boolean {
+  if (status === "confirmed" || status === "on_the_way" || status === "arrived") {
+    return !providerTravelWindowOpen(startAt, endAt, now);
+  }
+  return false;
+}
+
+export function providerCompletionOpensAt(
+  booking: Parameters<typeof sessionDurationEndsAt>[0],
+): Date {
+  return sessionDurationEndsAt(booking);
+}
+
+export function isProviderCompletionTooEarly(
+  booking: Parameters<typeof sessionDurationEndsAt>[0],
+  now = new Date(),
+): boolean {
+  return now.getTime() < sessionDurationEndsAt(booking).getTime();
+}
+
+export function providerCompletionMinutesRemaining(
+  booking: Parameters<typeof sessionDurationEndsAt>[0],
+  now = new Date(),
+): number {
+  return minutesUntilSessionCompletionAllowed(sessionDurationEndsAt(booking), now);
 }
 
 export function isBookingTooEarlyError(error: unknown): boolean {
   const message = (error as { message?: unknown } | null)?.message;
-  return typeof message === "string" && message.includes("BOOKING_TOO_EARLY");
+  return typeof message === "string" && (message.includes("BOOKING_TOO_EARLY") || message.includes("دقيقة"));
 }

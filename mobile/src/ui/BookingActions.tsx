@@ -60,7 +60,7 @@ export function BookingActions({
                 loading={updateStatus.isPending}
                 onPress={() =>
                   updateStatus.mutate(
-                    { id: booking.id, status: "arrival_confirmed" },
+                    { id: booking.id, status: "in_progress" },
                     {
                       onSuccess: () => setConfirmArrivalOpen(false),
                       onError: () => setError(t("common.somethingWentWrong")),

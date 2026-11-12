@@ -741,7 +741,7 @@ export function BookingDetailContent({
           confirmVariant="coral"
           pending={updateStatus.isPending}
           onCancel={() => setDialog("")}
-          onConfirm={() => run("arrival_confirmed", undefined, () => setDialog(""))}
+          onConfirm={() => run("in_progress", undefined, () => setDialog(""))}
         />
         <ReasonDialog
           key={`confirm-completion-${dialog}`}

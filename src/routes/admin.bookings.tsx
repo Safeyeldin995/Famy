@@ -14,6 +14,8 @@ import {
   operationDate,
 } from "@/components/admin/operations";
 import { AdminBookingReadContext } from "@/components/admin/AdminBookingReadContext";
+import { AdminBookingLifecyclePanel } from "@/components/admin/AdminBookingLifecyclePanel";
+import { useLifecycleAttentionBookingIds } from "@/lib/db/admin-queries";
 import { useRescheduleRequests } from "@/lib/db/queries";
 import { useCancelBooking } from "@/lib/db/cancellation-queries";
 import { CancelBookingDialog } from "@/components/famio/ui";
@@ -180,25 +182,34 @@ function paymentTone(status: string | undefined) {
 export function AdminBookings({
   search,
 }: {
-  search: { status?: string; statuses?: string; booking?: string };
+  search: { status?: string; statuses?: string; booking?: string; filter?: string };
 }) {
   const { t, i18n } = useTranslation();
   const [status, setStatus] = useState<string>(
-    search.statuses ? "problems" : (search.status ?? ""),
+    search.filter === "lifecycle_attention"
+      ? "lifecycle_attention"
+      : search.statuses
+        ? "problems"
+        : (search.status ?? ""),
   );
   const [query, setQuery] = useState(search.booking ?? "");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [cancelId, setCancelId] = useState<string | null>(null);
+  const attentionQ = useLifecycleAttentionBookingIds();
   const q = useAdminBookings(status === "problems" ? ["disputed", "no_show"] : status || undefined);
   const cancelBooking = useCancelBooking();
   const cancelTarget = (q.data ?? []).find((b: any) => b.id === cancelId) as any;
 
   const rows = useMemo(() => {
-    const all = q.data ?? [];
+    let all = q.data ?? [];
+    if (status === "lifecycle_attention") {
+      const ids = new Set(attentionQ.data ?? []);
+      all = all.filter((b: any) => ids.has(b.id));
+    }
     const needle = query.trim().toLowerCase();
     if (!needle) return all;
     return all.filter((b: any) => matchesBooking(b, needle));
-  }, [q.data, query]);
+  }, [q.data, query, status, attentionQ.data]);
 
   return (
     <div className={adminScreen}>
@@ -224,6 +235,7 @@ export function AdminBookings({
           {[
             { key: "", labelKey: "adminOps.all" },
             { key: "problems", labelKey: "adminWorkQueue.bookings_needing_action" },
+            { key: "lifecycle_attention", labelKey: "adminWorkQueue.bookings_lifecycle_attention" },
             ...STATUS_FILTERS,
           ].map((s) => (
             <button
@@ -423,6 +435,7 @@ export function AdminBookings({
                         )}
                       </div>
                     )}
+                    <AdminBookingLifecyclePanel booking={b} />
                     <AdminBookingReadContext bookingId={b.id} status={b.status} />
                     <AdminRescheduleHistory bookingId={b.id} customerId={b.customer_id} />
                   </div>
