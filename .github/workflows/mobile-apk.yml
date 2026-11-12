@@ -144,20 +144,21 @@ jobs:
         run: echo "sha=${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
 
       # EAS file variables with "Secret" visibility are not available to local
-      # builds, so google-services.json comes from a GitHub secret holding the
-      # file's base64 content. It is written outside the repo and never printed.
+      # builds, so google-services.json comes from the GitHub secret
+      # GOOGLE_SERVICES_JSON (the file's full text). It is written outside the
+      # repo and never printed.
       - name: Write google-services.json
         env:
-          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+          GOOGLE_SERVICES_JSON_CONTENT: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
-          if [ -z "$GOOGLE_SERVICES_JSON_BASE64" ]; then
-            echo "::error::Add the GOOGLE_SERVICES_JSON_BASE64 repository secret (base64 of mobile google-services.json) to build on the GitHub runner."
+          if [ -z "$GOOGLE_SERVICES_JSON_CONTENT" ]; then
+            echo "::error::Add the GOOGLE_SERVICES_JSON repository secret (the full text of the Android google-services.json) to build on the GitHub runner."
             exit 1
           fi
           gs_path="$RUNNER_TEMP/google-services.json"
-          printf '%s' "$GOOGLE_SERVICES_JSON_BASE64" | base64 -d > "$gs_path"
+          printf '%s' "$GOOGLE_SERVICES_JSON_CONTENT" > "$gs_path"
           node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))' "$gs_path" \
-            || { echo "::error::GOOGLE_SERVICES_JSON_BASE64 is not valid base64 JSON."; exit 1; }
+            || { echo "::error::The GOOGLE_SERVICES_JSON secret is not valid JSON."; exit 1; }
           echo "GOOGLE_SERVICES_JSON=$gs_path" >> "$GITHUB_ENV"
 
       - name: Build APK locally
