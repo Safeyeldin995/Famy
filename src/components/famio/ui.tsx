@@ -365,7 +365,7 @@ export function SegmentedControl<T extends string>({
           >
             <span>{option.label}</span>
             {option.badgeCount != null && option.badgeCount > 0 ? (
-              <span className="rounded-full bg-brand px-2 py-0.5 text-[11px] font-black text-brand-foreground">
+              <span className="rounded-full bg-brand px-2 py-0.5 text-pro-12 font-black text-brand-foreground">
                 {option.badgeCount}
               </span>
             ) : null}
