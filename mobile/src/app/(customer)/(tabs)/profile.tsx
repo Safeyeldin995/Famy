@@ -13,11 +13,12 @@ import {
   FileText,
   Shield,
   Heart,
-  Tag,
+  MessageCircle,
 } from "lucide-react-native";
 import { reloadAppAsync } from "expo";
 import { applyDirection, saveLanguage } from "@/lib/i18n";
 import { useMyProfile, useDefaultAddress } from "@/lib/queries";
+import { unreadConversationCount, useConversations } from "@/lib/chatQueries";
 import { signOutWithPushRevoke } from "@/lib/push";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
@@ -30,6 +31,8 @@ export default function Profile() {
   const { t, i18n } = useTranslation();
   const profile = useMyProfile();
   const address = useDefaultAddress();
+  const conversations = useConversations();
+  const messageUnread = unreadConversationCount(conversations.data);
   const [actionError, setActionError] = useState(false);
 
   const switchLanguage = async () => {
@@ -44,7 +47,7 @@ export default function Profile() {
     <Page
       tab
       title={t("nav.profile")}
-      queries={[profile, address]}
+      queries={[profile, address, conversations]}
       header={
         <CustomerPageHeader
           title={t("profile.title")}
@@ -103,10 +106,10 @@ export default function Profile() {
             onPress={() => router.push("/favorites")}
           />
           <CustomerMenuRow
-            Icon={Tag}
-            label={t("profile.promoCodes")}
-            detail={t("profile.promoCodesSub")}
-            onPress={() => router.push("/promo-codes")}
+            Icon={MessageCircle}
+            label={t("nav.messages")}
+            badge={messageUnread}
+            onPress={() => router.push("/messages")}
           />
           <CustomerMenuRow
             Icon={MapPin}

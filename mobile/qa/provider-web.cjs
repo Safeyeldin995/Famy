@@ -350,6 +350,14 @@ async function run() {
   providerMode = "approved";
   await visit("/dashboard");
   await expect(page.getByText("مقدمة", { exact: false }).first()).toBeVisible({ timeout: 20000 });
+  await expect(
+    page.getByRole("button", {
+      name: ar.pro.dashboard.scheduleCard
+        .replace("{{status}}", ar.pro.dashboard.scheduleStatusAvailable)
+        .trim(),
+      exact: true,
+    }),
+  ).toBeVisible();
   await shot("pro-dashboard");
 
   await visit("/jobs");
@@ -366,6 +374,8 @@ async function run() {
 
   await visit("/schedule");
   await expect(page.getByText(ar.pro.schedule.title).first()).toBeVisible();
+  await expect(page.getByText(ar.pro.schedule.minNoticeQuestion, { exact: true })).toBeVisible();
+  await expect(page.getByText(ar.pro.schedule.bufferQuestion, { exact: true })).toBeVisible();
   await expect(page.getByText(ar.scheduleUi.vacations, { exact: true })).toBeVisible();
   await expect(page.getByText(ar.scheduleUi.holidays, { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: ar.common.delete })).toHaveCount(2);

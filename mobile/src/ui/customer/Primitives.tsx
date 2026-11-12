@@ -98,12 +98,14 @@ export function CustomerMenuRow({
   Icon,
   label,
   detail,
+  badge,
   onPress,
   last = false,
 }: {
   Icon: LucideIcon;
   label: string;
   detail?: string;
+  badge?: number;
   onPress: () => void;
   last?: boolean;
 }) {
@@ -138,6 +140,24 @@ export function CustomerMenuRow({
           </Text>
         ) : null}
       </View>
+      {badge && badge > 0 ? (
+        <View
+          testID="profile-messages-unread"
+          style={{
+            minWidth: 22,
+            height: 22,
+            borderRadius: 11,
+            paddingHorizontal: 6,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: colors.brand,
+          }}
+        >
+          <Text size="xs" weight="heavy" style={{ color: colors.brandForeground }}>
+            {badge > 9 ? "9+" : String(badge)}
+          </Text>
+        </View>
+      ) : null}
       <Arrow size={20} color={colors.muted} />
     </Pressable>
   );

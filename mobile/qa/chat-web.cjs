@@ -214,6 +214,9 @@ async function run() {
   }
 
   mode = "list";
+  await visit("/profile");
+  await page.getByRole("button", { name: ar.nav.messages, exact: true }).click();
+  await expect(page).toHaveURL(/\/messages$/);
   await visit("/messages");
   await expect(page.getByTestId("conversation-list")).toBeVisible({ timeout: 20000 });
   await expect(page.getByTestId("conversation-unread")).toBeVisible();

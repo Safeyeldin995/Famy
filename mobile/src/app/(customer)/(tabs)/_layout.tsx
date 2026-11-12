@@ -1,7 +1,7 @@
 import { Redirect } from "expo-router";
 import { Tabs } from "expo-router/tabs";
 import { useTranslation } from "react-i18next";
-import { Calendar, Home, MessageCircle, User } from "lucide-react-native";
+import { Calendar, Home, User } from "lucide-react-native";
 import { useSession } from "@/lib/session";
 import { colors } from "@/ui/theme";
 import { scaledTabBarHeight } from "@/ui/a11y";
@@ -74,26 +74,6 @@ export default function CustomerTabs() {
               }}
             >
               <Calendar size={22} color={focused ? colors.brand : color} />
-            </View>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="messages"
-        options={{
-          title: t("nav.messages"),
-          tabBarIcon: ({ color, focused }) => (
-            <View
-              style={{
-                width: 56,
-                height: 36,
-                borderRadius: 999,
-                backgroundColor: focused ? colors.brandTint : "transparent",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <MessageCircle size={22} color={focused ? colors.brand : color} />
             </View>
           ),
         }}
