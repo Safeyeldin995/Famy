@@ -19,7 +19,7 @@ it("distinguishes date, empty slots, time, missing address and unserved area", (
     "bookingUx.chooseTime",
   );
   expect(bookingDisabledReason({ ...state, step: "address" })).toBe("bookingUx.chooseAddress");
-  expect(bookingDisabledReason({ ...state, step: "address", hasAddress: true })).toBe(
+  expect(bookingDisabledReason({ ...state, step: "address", hasAddress: true, addressOutside: true })).toBe(
     "bookingUx.outsideArea",
   );
 });
