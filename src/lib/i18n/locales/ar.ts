@@ -3624,6 +3624,9 @@ Object.assign(ar, {
     status: {
       pending: "في الانتظار",
       confirmed: "مؤكد",
+      on_the_way: "في الطريق",
+      arrived: "وصل",
+      arrival_confirmed: "تم تأكيد الوصول",
       in_progress: "شغال دلوقتي",
       completion_requested: "في انتظار تأكيد العميل",
       disputed: "فيه شكوى",

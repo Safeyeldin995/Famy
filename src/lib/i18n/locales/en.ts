@@ -3665,6 +3665,9 @@ Object.assign(en, {
     status: {
       pending: "Pending",
       confirmed: "Confirmed",
+      on_the_way: "On the way",
+      arrived: "Arrived",
+      arrival_confirmed: "Arrival confirmed",
       in_progress: "In progress",
       completion_requested: "Awaiting customer confirmation",
       disputed: "Disputed",
