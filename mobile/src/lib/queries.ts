@@ -1096,6 +1096,7 @@ type MarketplaceRpcRow = {
 };
 type ProviderService = {
   price_override: number | null;
+  preparation_notes?: string | null;
   status: string;
   service: MarketplaceService;
 };
