@@ -19,6 +19,7 @@ import { Choices, Field, QueryState, ui } from "./Page";
 import { StarRatingInput } from "./StarRatingInput";
 export function BookingActions({
   booking,
+  suppressRebook = false,
 }: {
   booking: {
     id: string;
@@ -28,6 +29,7 @@ export function BookingActions({
     start_at?: string;
     completion_requested_at?: string | null;
   };
+  suppressRebook?: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const { session } = useSession();
@@ -224,15 +226,17 @@ export function BookingActions({
           )}
         </>
       )}
-      <Button
-        label={t("mobile.bookAgain")}
-        onPress={() =>
-          router.push({
-            pathname: "/book/[providerId]",
-            params: { providerId: booking.provider_id },
-          })
-        }
-      />
+      {!suppressRebook ? (
+        <Button
+          label={t("mobile.bookAgain")}
+          onPress={() =>
+            router.push({
+              pathname: "/book/[providerId]",
+              params: { providerId: booking.provider_id },
+            })
+          }
+        />
+      ) : null}
     </View>
   );
 }

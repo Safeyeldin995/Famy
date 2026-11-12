@@ -55,10 +55,9 @@ for (const file of files) {
   let directionalSource = source;
   if (relative === "ui/LaunchGate.tsx") {
     assert.match(source, /direction: "ltr",\s*width: FAMY_SPLASH_ASSEMBLED.width \* scale/);
-    for (const coordinate of ["left: position.x * scale,", "left: fam.x * scale,"]) {
-      assert.equal(source.split(coordinate).length, 2, "expected one fixed artwork coordinate");
-      directionalSource = directionalSource.replace(coordinate, "");
-    }
+    assert.equal(source.split("left: fam.x * scale,").length, 2, "expected one fam artwork coordinate");
+    directionalSource = directionalSource.replace("left: fam.x * scale,", "");
+    directionalSource = directionalSource.replace(/left: y\.x \* scale,/g, "");
   }
   assert(
     !/allowFontScaling\s*=\s*\{false\}/.test(source),

@@ -20,6 +20,7 @@ import { chatPhaseForStatus, useConversationByBooking } from "@/lib/chatQueries"
 import { dateTime, localized, money } from "@/lib/presentation";
 import { joinUiParts } from "@shared/format/uiJoin";
 import { Page, QueryState, moneyTextStyle, ui } from "@/ui/Page";
+import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { Avatar } from "@/ui/ProviderCard";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
@@ -158,11 +159,26 @@ export default function BookingDetail() {
         />
       }
     >
-      {created === "1" && <Text>{t("bookFlow.created")}</Text>}
       {educationWarning === "1" && <Text tone="danger">{t("studentEducation.saveFailed")}</Text>}
       <QueryState query={q} empty={!b}>
         {b && info && (
           <>
+            {created === "1" && (
+              <View style={{ gap: 10 }}>
+                <Text weight="bold">{t("bookFlow.created")}</Text>
+                <Button label={t("bookFlow.goHome")} onPress={() => router.replace("/home")} />
+                <Button
+                  variant="secondary"
+                  label={t("mobile.bookAgain")}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/book/[providerId]",
+                      params: { providerId: b.provider_id },
+                    })
+                  }
+                />
+              </View>
+            )}
             <View
               style={[
                 {
@@ -373,7 +389,7 @@ export default function BookingDetail() {
               total={b.price_total}
               refetchBooking={q.refetch}
             />
-            <BookingActions booking={b} />
+            <BookingActions booking={b} suppressRebook={created === "1"} />
           </>
         )}
       </QueryState>

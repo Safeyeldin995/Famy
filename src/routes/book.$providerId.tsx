@@ -27,6 +27,7 @@ import { CheckChip } from "@/components/famio/CheckChip";
 import { TextField } from "@/components/famio/TextField";
 import { BookingWhen } from "@/components/booking/BookingWhen";
 import { CustomerPreparationNotesSection } from "@/components/booking/CustomerPreparationNotesSection";
+import { CheckoutPromoPicker } from "@/components/booking/CheckoutPromoPicker";
 import { BookingDetailsSheet } from "@/components/booking/BookingDetailsSheet";
 import { SupervisionModeFields } from "@/components/booking/SupervisionModeFields";
 import {
@@ -54,7 +55,6 @@ import {
   useMyProfile,
 } from "@/lib/db/queries";
 import { useActiveFamilyMembers } from "@/lib/db/family-members-queries";
-import { validatePromoCode } from "@/lib/db/promo-codes-queries";
 import { useCreatePayment, mapPaymentInsertError } from "@/lib/db/payment-queries";
 import { redirectToPaymobCheckout } from "@/lib/paymob/paymobRedirect";
 import { useProviderOnlyCustomerRedirect } from "@/lib/auth/providerOnlyCustomerGuard";
@@ -653,31 +653,6 @@ export function BookContent({
     group.capabilities.some((cap) => cap.id === selectedCapability?.id),
   );
 
-  const applyPromo = async () => {
-    const code = promoCode.trim();
-    if (!code) return;
-    setPromoStatus("checking");
-    try {
-      const result = await validatePromoCode(code, activeService?.service?.id ?? null, subtotal);
-      if (result.ok) {
-        setPromoDiscount(result.discount_amount);
-        setAppliedPromoId(result.promo_code_id);
-        setPromoStatus("applied");
-        toast.success(t("bookFlow.promoApplied", { amount: formatEGP(result.discount_amount) }));
-      } else {
-        setPromoDiscount(0);
-        setAppliedPromoId(null);
-        setPromoStatus("invalid");
-        toast.error(t(`bookFlow.promoError.${result.reason}`, t("bookFlow.promoError.not_found")));
-      }
-    } catch (e: any) {
-      setPromoDiscount(0);
-      setAppliedPromoId(null);
-      setPromoStatus("invalid");
-      toast.error(e?.message ?? t("bookFlow.promoError.not_found"));
-    }
-  };
-
   const submit = async () => {
     setInlineError(null);
     if (!activeService?.service?.id) {
@@ -853,7 +828,10 @@ export function BookContent({
       nav({
         to: "/booking/$id",
         params: { id: booking.id },
-        search: selectedMethod.method_type === "online" ? { paymob_checkout: "1" } : undefined,
+        search: {
+          ...(selectedMethod.method_type === "online" ? { paymob_checkout: "1" } : {}),
+          created: "1",
+        },
       });
     } catch (e: any) {
       const code = e instanceof BookingError ? e.code : null;
@@ -1520,60 +1498,37 @@ export function BookContent({
               {billingQ.isError && <QueryError onRetry={() => billingQ.refetch()} />}
             </>
           )}
-          {stepKey === "review" && (
+          {stepKey === "review" && activeService?.service?.id && (
             <Step title={t("bookFlow.paymentTitle")} sub={t("customerRound2.paymentSub")}>
-              <p className="mb-2 text-pro-14 font-extrabold">{t("customerBooking.promo")}</p>
-              <div className="mb-4 flex items-center gap-2">
-                <TextField
-                  label={t("bookFlow.promoPlaceholder")}
-                  value={promoCode}
-                  onChange={(e) => {
-                    setPromoCode(e.target.value);
-                    if (promoStatus !== "idle") {
-                      setPromoStatus("idle");
-                      setPromoDiscount(0);
-                      setAppliedPromoId(null);
-                    }
-                  }}
-                  placeholder={t("bookFlow.promoPlaceholder")}
-                  disabled={promoStatus === "applied"}
-                  className="h-12 min-w-0 flex-1 rounded-full bg-surface-2 px-4 text-pro-14 font-bold outline-none focus:ring-1 focus:ring-brand disabled:opacity-60"
-                />
-                {promoStatus === "applied" ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPromoCode("");
-                      setPromoStatus("idle");
-                      setPromoDiscount(0);
-                      setAppliedPromoId(null);
-                    }}
-                    aria-label={t("bookFlow.promoRemove")}
-                    className="h-12 shrink-0 rounded-full border border-border px-4 text-pro-14 font-bold text-muted-foreground"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={applyPromo}
-                    disabled={!promoCode.trim() || promoStatus === "checking"}
-                    className="h-12 shrink-0 rounded-full bg-brand px-5 text-pro-14 font-extrabold text-brand-foreground disabled:opacity-50"
-                  >
-                    {promoStatus === "checking" ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      t("bookFlow.promoApply")
-                    )}
-                  </button>
-                )}
-              </div>
-              {promoStatus === "applied" && (
-                <div className="mb-4 flex items-center gap-1.5 text-pro-12 font-semibold text-success">
-                  <Check className="h-3 w-3" aria-hidden="true" />
-                  {t("bookFlow.promoAppliedNote", { amount: formatEGP(promoDiscount) })}
-                </div>
-              )}
+              <CheckoutPromoPicker
+                serviceId={activeService.service.id}
+                subtotal={subtotal}
+                applied={
+                  promoStatus === "applied" && appliedPromoId
+                    ? {
+                        id: appliedPromoId,
+                        discount: promoDiscount,
+                        code: promoCode,
+                      }
+                    : null
+                }
+                onApplied={(value) => {
+                  if (value) {
+                    setPromoCode(value.code);
+                    setPromoDiscount(value.discount);
+                    setAppliedPromoId(value.id);
+                    setPromoStatus("applied");
+                    toast.success(
+                      t("bookFlow.promoApplied", { amount: formatEGP(value.discount) }),
+                    );
+                  } else {
+                    setPromoCode("");
+                    setPromoDiscount(0);
+                    setAppliedPromoId(null);
+                    setPromoStatus("idle");
+                  }
+                }}
+              />
               {methodsQ.isLoading ? (
                 <div className="space-y-3">
                   {Array.from({ length: 2 }).map((_, i) => (

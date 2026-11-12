@@ -623,6 +623,33 @@ async function run() {
       .getByRole("radio", { name: new RegExp(`^${ar.bookFlow.supervision.cameras.title}`) })
       .click();
   }
+  async function openPromoSheet() {
+    await page.getByRole("button", { name: ar.customerBooking.promo, exact: true }).click();
+    await expect(page.getByText(ar.bookFlow.promoAvailableTitle, { exact: true })).toBeVisible();
+  }
+  async function assertPromoApplied() {
+    await expect(page.getByText("LOCALTEST", { exact: true }).first()).toBeVisible();
+    await expect(
+      page.getByText(ar.bookFlow.promoApplied.split("{{")[0], { exact: false }).first(),
+    ).toBeVisible();
+    await expect(page.getByText(ar.bookFlow.promoDiscount, { exact: true })).toBeVisible();
+  }
+  async function exerciseCheckoutPromo() {
+    await openPromoSheet();
+    await expect(page.getByText("LOCALTEST", { exact: true }).first()).toBeVisible();
+    await page.getByRole("button", { name: ar.bookFlow.promoUse, exact: true }).first().click();
+    await assertPromoApplied();
+    await page.getByLabel(ar.bookFlow.promoRemove).click();
+    await expect(page.getByText("LOCALTEST", { exact: true })).toHaveCount(0);
+    await openPromoSheet();
+    await page.getByLabel(ar.bookFlow.promoPlaceholder, { exact: true }).fill("LOCALTEST");
+    await button(ar.bookFlow.promoApply);
+    await assertPromoApplied();
+    await page.getByLabel(ar.bookFlow.promoRemove).click();
+    await expect(
+      page.getByText(ar.bookFlow.promoApplied.split("{{")[0], { exact: false }),
+    ).toHaveCount(0);
+  }
   for (const kind of bookingAgeOnly ? ["package"] : ["hourly", "package", "tutoring"]) {
     scenario = kind;
     paymentRows = [];
@@ -670,16 +697,7 @@ async function run() {
     await expect(page.getByRole("button", { name: ar.common.continue, exact: true })).toBeEnabled();
     await shot(`${kind}-3-address-recipient`);
     await button(ar.common.continue);
-    await page.getByLabel(ar.bookFlow.promoPlaceholder, { exact: true }).fill("LOCALTEST");
-    await button(ar.bookFlow.promoApply);
-    await expect(
-      page.getByText(ar.bookFlow.promoApplied.split("{{")[0], { exact: false }).first(),
-    ).toBeVisible();
-    await expect(page.getByText(ar.bookFlow.promoDiscount, { exact: true })).toBeVisible();
-    await page.getByLabel(ar.bookFlow.promoRemove).click();
-    await expect(
-      page.getByText(ar.bookFlow.promoApplied.split("{{")[0], { exact: false }),
-    ).toHaveCount(0);
+    await exerciseCheckoutPromo();
     const method = kind === "hourly" ? "cash" : kind === "package" ? "manual_transfer" : "online";
     const methodName = methodRows.find((m) => m.method_type === method).name_ar;
     await radio(methodName);
