@@ -21,6 +21,7 @@ import { NumberStepper } from "@/components/famio/NumberStepper";
 import { CheckChip } from "@/components/famio/CheckChip";
 import { TextField } from "@/components/famio/TextField";
 import { BookingWhen } from "@/components/booking/BookingWhen";
+import { CustomerPreparationNotesSection } from "@/components/booking/CustomerPreparationNotesSection";
 import { BookingDetailsSheet } from "@/components/booking/BookingDetailsSheet";
 import { SupervisionModeFields } from "@/components/booking/SupervisionModeFields";
 import {
@@ -1485,6 +1486,10 @@ export function BookContent({
                     onEdit={() => editScreen("whereWho")}
                   />
                 )}
+                <CustomerPreparationNotesSection
+                  notes={activeService?.preparation_notes}
+                  className="mt-3"
+                />
               </div>
               <div className="booking-bill">
                 <Row

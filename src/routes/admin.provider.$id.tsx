@@ -13,7 +13,9 @@ import {
   useProviderEligibility,
   useSetProviderActive,
   useSetProviderServiceStatus,
+  useAdminUpdateProviderServicePreparationNotes,
 } from "@/lib/db/admin-queries";
+import { normalizePreparationNotes } from "@/lib/provider/preparationNotes";
 import {
   useAdminOnboardingAction,
   useAdminOnboardingReview,
@@ -198,8 +200,10 @@ function ProviderServices({ provider }: { provider: any }) {
   const { t } = useTranslation();
   const lang = currentLang() === "ar" ? "ar" : "en";
   const review = useSetProviderServiceStatus();
+  const updatePreparationNotes = useAdminUpdateProviderServicePreparationNotes();
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [reason, setReason] = useState("");
+  const [preparationDrafts, setPreparationDrafts] = useState<Record<string, string>>({});
   const services = provider.services ?? [];
   if (services.length === 0)
     return <p className="text-sm text-muted-foreground">{t("adminReview.noServices")}</p>;
@@ -259,6 +263,61 @@ function ProviderServices({ provider }: { provider: any }) {
                   </button>
                 </div>
               )}
+            </div>
+            <div className="mt-3 space-y-2">
+              <label
+                className="block text-sm font-semibold"
+                htmlFor={"service-preparation-" + row.id}
+              >
+                {t("pro.profile.preparationNotesLabel")}
+              </label>
+              <textarea
+                id={"service-preparation-" + row.id}
+                rows={2}
+                value={preparationDrafts[row.id] ?? row.preparation_notes ?? ""}
+                onChange={(event) =>
+                  setPreparationDrafts((drafts) => ({
+                    ...drafts,
+                    [row.id]: event.target.value,
+                  }))
+                }
+                className="w-full rounded-xl border border-border bg-surface p-3 text-sm leading-relaxed"
+              />
+              {(() => {
+                const draft = preparationDrafts[row.id] ?? row.preparation_notes ?? "";
+                const saved = row.preparation_notes ?? "";
+                const dirty =
+                  (normalizePreparationNotes(draft) ?? "") !==
+                  (normalizePreparationNotes(saved) ?? "");
+                return dirty ? (
+                  <button
+                    type="button"
+                    disabled={updatePreparationNotes.isPending}
+                    onClick={() =>
+                      updatePreparationNotes.mutate(
+                        {
+                          providerServiceId: row.id,
+                          notes: normalizePreparationNotes(draft),
+                        },
+                        {
+                          onSuccess: () => {
+                            toast.success(t("pro.profile.preparationNotesSaved"));
+                            setPreparationDrafts((d) => {
+                              const next = { ...d };
+                              delete next[row.id];
+                              return next;
+                            });
+                          },
+                          onError: () => toast.error(t("common.somethingWentWrong")),
+                        },
+                      )
+                    }
+                    className="focus-ring min-h-11 rounded-xl bg-brand px-3 text-sm font-bold text-brand-foreground disabled:opacity-50"
+                  >
+                    {t("common.save")}
+                  </button>
+                ) : null;
+              })()}
             </div>
             {rejecting === row.id && (
               <div className="mt-3 space-y-2">

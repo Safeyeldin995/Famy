@@ -20,6 +20,7 @@ import { StarRatingInput } from "@/components/famio/StarRatingInput";
 import { RescheduleSection } from "@/components/famio/RescheduleSection";
 import {
   useBooking,
+  useProviderServicePreparationNotes,
   useFavoriteIds,
   useToggleFavorite,
   useBookingReview,
@@ -58,6 +59,7 @@ import {
   UserCheck,
   LifeBuoy,
 } from "lucide-react";
+import { CustomerPreparationNotesSection } from "@/components/booking/CustomerPreparationNotesSection";
 import { BookingChatPanel } from "@/components/famio/BookingChatPanel";
 import { useBookingParty } from "@/lib/db/booking-parties";
 import { useEffect, useState } from "react";
@@ -131,6 +133,10 @@ export function BookingDetailContent({
   const realQ = useBooking(id);
   const real = realQ.data;
   const status: string | undefined = real?.status;
+  const preparationQ = useProviderServicePreparationNotes(
+    real?.provider_id,
+    real?.service_id ?? (real?.service as { id?: string } | undefined)?.id,
+  );
   const lang = currentLang();
   const locale = formatLocale(lang);
   const updateStatus = useUpdateBookingStatus();
@@ -622,6 +628,11 @@ export function BookingDetailContent({
             />
           </Card>
 
+          <CustomerPreparationNotesSection
+            notes={preparationQ.data}
+            className="mt-4"
+          />
+
           <p className="mt-3 rounded-2xl bg-surface-2 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">
             {t("bookingDetail.cancelNoLongerAvailable")}
           </p>
@@ -831,6 +842,8 @@ export function BookingDetailContent({
             onClick={() => nav({ to: "/help" })}
           />
         </div>
+
+        <CustomerPreparationNotesSection notes={preparationQ.data} className="mt-4" />
 
         <div className="mt-4">
           <PaymentBlock

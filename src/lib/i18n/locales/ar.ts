@@ -2340,6 +2340,10 @@ const ar: Translation = {
       priceChangeRejected: "تغيير السعر ماتوافقش عليه: {{reason}}",
       priceChangeSubmitted: "بعتنا طلب تغيير السعر للمراجعة",
       priceChangeCancelled: "اتلغى طلب تغيير السعر",
+      preparationNotesLabel: "تعليمات للعميل (أدوات، كتب، تجهيزات)",
+      preparationNotesPlaceholder: "مثال: كتب رياضيات وقلم وممحاة، أو زجاجات الرضيع جاهزة",
+      preparationNotesCounter: "{{count}} / {{max}} حرف",
+      preparationNotesSaved: "اتحفظت تعليمات العميل",
       priceSaved: "اتحفظ السعر",
       addNewService: "أضف خدمة جديدة",
       addNewServiceHint: "اختار خدمة علشان تتبعت للمراجعة، الخدمات المعتمدة بتفضل شغالة",
@@ -3526,6 +3530,9 @@ const ar: Translation = {
     completed: "خلصت",
     today: "النهارده",
     yesterday: "امبارح",
+  },
+  customerPreparation: {
+    sectionTitle: "جهز قبل الجلسة",
   },
   customerRound2: {
     emptyBookings: "لسه مفيش حجوزات هنا",
