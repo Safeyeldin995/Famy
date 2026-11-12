@@ -67,6 +67,9 @@ jobs:
       - name: Check Arabic locale for UI periods
         run: node qa/check-ar-periods.mjs
 
+      - name: Check Arabic locale plural forms
+        run: node qa/check-ar-plurals.mjs
+
   mobile:
     name: Mobile typecheck and bundle
     runs-on: ubuntu-latest
