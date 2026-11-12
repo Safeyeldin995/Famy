@@ -13,6 +13,7 @@ import {
   useAllServices,
   useMyProviderServicesDetailed,
   useSetProviderPrice,
+  useSetProviderPreparationNotes,
   useRequestProviderPriceChange,
   useCancelProviderPriceChange,
   useToggleProviderService,
@@ -32,6 +33,8 @@ import { Page, QueryState, Field, ActionError } from "@/ui/Page";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { PendingServiceRequestSummary } from "@/ui/provider/PendingServiceRequestSummary";
+import { ProviderServicePreparationNotesField } from "@/ui/provider/ProviderServicePreparationNotesField";
+import { normalizePreparationNotes } from "@shared/provider/preparationNotes";
 
 export default function ProProfileEditScreen() {
   const { t, i18n } = useTranslation();
@@ -46,9 +49,11 @@ export default function ProProfileEditScreen() {
   const serviceActionBusy = cancelRequest.isPending || toggle.isPending;
   const isApprovedProvider = provider?.onboarding_status === "APPROVED";
   const setPrice = useSetProviderPrice();
+  const savePreparationNotes = useSetProviderPreparationNotes();
   const requestPriceChange = useRequestProviderPriceChange();
   const cancelPriceChange = useCancelProviderPriceChange();
   const [priceSuccess, setPriceSuccess] = useState<string | null>(null);
+  const [preparationDrafts, setPreparationDrafts] = useState<Record<string, string>>({});
   const updateProv = useUpdateProvider();
   const [bioAr, setBioAr] = useState("");
   const [bioEn, setBioEn] = useState("");
@@ -349,6 +354,38 @@ export default function ProProfileEditScreen() {
                     </Text>
                   ) : null}
                 </>
+              ) : null}
+              {on ? (
+                <ProviderServicePreparationNotesField
+                  savedNotes={(row?.preparation_notes as string | null) ?? null}
+                  draft={
+                    preparationDrafts[id] ?? String(row?.preparation_notes ?? "")
+                  }
+                  onDraftChange={(value) =>
+                    setPreparationDrafts((drafts) => ({ ...drafts, [id]: value }))
+                  }
+                  onSave={() => {
+                    if (!providerId) return;
+                    const notes = normalizePreparationNotes(
+                      preparationDrafts[id] ?? String(row?.preparation_notes ?? ""),
+                    );
+                    savePreparationNotes.mutate(
+                      { providerId, serviceId: id, notes },
+                      {
+                        onSuccess: () => {
+                          setPriceSuccess(t("pro.profile.preparationNotesSaved"));
+                          setPreparationDrafts((drafts) => {
+                            const next = { ...drafts };
+                            delete next[id];
+                            return next;
+                          });
+                        },
+                        onError: () => setActionError(true),
+                      },
+                    );
+                  }}
+                  savePending={savePreparationNotes.isPending}
+                />
               ) : null}
             </View>
           );

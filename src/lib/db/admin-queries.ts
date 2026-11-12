@@ -130,7 +130,7 @@ export function useAdminProvider(id: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('providers')
-        .select('*, profile:profiles(*), documents:provider_documents(*), services:provider_services(id, status, price_override, rejection_reason, service:services(id, name_en, name_ar, base_price, pricing_model, category:categories(slug, name_en, name_ar)))')
+        .select('*, profile:profiles(*), documents:provider_documents(*), services:provider_services(id, status, price_override, rejection_reason, preparation_notes, service:services(id, name_en, name_ar, base_price, pricing_model, category:categories(slug, name_en, name_ar)))')
         .eq('id', id)
         .maybeSingle();
       if (error) throw error;
@@ -177,6 +177,29 @@ export function useSetProviderVerified() {
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ['admin'] });
       invalidateCustomerMarketplaceQueries(qc, vars.id);
+    },
+  });
+}
+
+export function useAdminUpdateProviderServicePreparationNotes() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      providerServiceId,
+      notes,
+    }: {
+      providerServiceId: string;
+      notes: string | null;
+    }) => {
+      const { error } = await supabase
+        .from('provider_services')
+        .update({ preparation_notes: notes })
+        .eq('id', providerServiceId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin'] });
+      invalidateCustomerMarketplaceQueries(qc);
     },
   });
 }

@@ -99,6 +99,7 @@ vi.mock("@/lib/db/provider-queries", () => ({
   useToggleProviderService: () => ({ mutate: vi.fn() }),
   useCancelProviderServiceRequest: () => ({ mutate: vi.fn(), isPending: false }),
   useSetProviderPrice: () => ({ mutate: vi.fn(), isPending: false }),
+  useSetProviderPreparationNotes: () => ({ mutate: vi.fn(), isPending: false }),
   useRequestProviderPriceChange: () => ({ mutate: vi.fn(), isPending: false }),
   useCancelProviderPriceChange: () => ({ mutate: vi.fn(), isPending: false }),
   useRequirementsForService: () => ({ data: [{ id: "req", name_en: "Synthetic requirement" }] }),

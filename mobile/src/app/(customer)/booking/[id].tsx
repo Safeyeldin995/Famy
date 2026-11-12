@@ -14,7 +14,8 @@ import {
 } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { useBooking, useBookingPayment, useBookingParty } from "@/lib/queries";
+import { useBooking, useBookingPayment, useBookingParty, useProviderServicePreparationNotes } from "@/lib/queries";
+import { CustomerPreparationNotesSection } from "@/ui/customer/CustomerPreparationNotesSection";
 import { chatPhaseForStatus, useConversationByBooking } from "@/lib/chatQueries";
 import { dateTime, localized, money } from "@/lib/presentation";
 import { joinUiParts } from "@shared/format/uiJoin";
@@ -42,6 +43,19 @@ export default function BookingDetail() {
   const payment = useBookingPayment(id);
   const party = useBookingParty(id);
   const b = q.data;
+  const preparation = useProviderServicePreparationNotes(
+    b?.provider_id,
+    b?.service_id ?? (b?.service as { id?: string } | undefined)?.id,
+  );
+  const activeBooking =
+    !!b &&
+    (b.status === "pending" ||
+      b.status === "confirmed" ||
+      b.status === "on_the_way" ||
+      b.status === "arrived" ||
+      b.status === "arrival_confirmed" ||
+      b.status === "in_progress" ||
+      b.status === "completion_requested");
   const [fileError, setFileError] = useState(false);
   const [chatFeedback, setChatFeedback] = useState<"" | "unavailable" | "error">("");
   const conversation = useConversationByBooking(id, b?.status);
@@ -326,6 +340,9 @@ export default function BookingDetail() {
                 {t("common.somethingWentWrong")}
               </Text>
             )}
+            {activeBooking ? (
+              <CustomerPreparationNotesSection notes={preparation.data} />
+            ) : null}
             <RescheduleSection booking={b} />
             <View style={ui.card}>
               <Text size="xl" weight="heavy">

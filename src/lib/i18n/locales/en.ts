@@ -2331,6 +2331,11 @@ const en = {
       priceChangeRejected: "Price change was rejected: {{reason}}",
       priceChangeSubmitted: "Price change sent for admin review",
       priceChangeCancelled: "Price change request cancelled",
+      preparationNotesLabel: "Instructions for the customer (tools, books, supplies)",
+      preparationNotesPlaceholder:
+        "Example: bring math workbook, pencil and eraser, or baby bottles ready",
+      preparationNotesCounter: "{{count}} / {{max}} characters",
+      preparationNotesSaved: "Customer instructions saved",
       priceSaved: "Price saved",
       addNewService: "Add a new service",
       addNewServiceHint: "Pick a service to send to admin review. Your approved services keep working.",
@@ -3533,6 +3538,9 @@ const en = {
     completed: "Finished",
     today: "Today",
     yesterday: "Yesterday",
+  },
+  customerPreparation: {
+    sectionTitle: "Prepare before the session",
   },
   customerRound2: {
     emptyBookings: "No bookings here yet",

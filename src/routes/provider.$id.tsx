@@ -1,3 +1,4 @@
+import { CustomerPreparationNotesSection } from "@/components/booking/CustomerPreparationNotesSection";
 import { isFixedPackage, packageLabel } from "@/lib/pricing/servicePackages";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PhoneFrame, EmptyState } from "@/components/famio/ui";
@@ -57,6 +58,7 @@ export const Route = createFileRoute("/provider/$id")({
 
 type ServiceRow = {
   price_override: number | null;
+  preparation_notes?: string | null;
   service: {
     id: string;
     name_ar: string;
@@ -309,24 +311,27 @@ export function ProviderProfileContent({ providerId }: { providerId: string }) {
                 const price = priceFor(row);
                 const label = isFixedPackage(row.service) ? packageLabel(row.service) : null;
                 return (
-                  <li key={row.service.id} className="flex items-center justify-between gap-3 py-3">
-                    <div className="min-w-0">
-                      <p className="text-pro-14 font-bold text-foreground">
-                        {ar ? row.service.name_ar : row.service.name_en}
-                      </p>
-                      <p className="mt-0.5 text-pro-12 text-muted-foreground">
-                        {label
-                          ? label.key === "packages.fullDay"
-                            ? t("providerPage.fullDayHint")
-                            : label.key === "packages.overnight"
-                              ? t("providerPage.overnightHint")
-                              : t(label.key, label.values)
-                          : t("providerPage.hourlyHint")}
-                      </p>
+                  <li key={row.service.id} className="space-y-2 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-pro-14 font-bold text-foreground">
+                          {ar ? row.service.name_ar : row.service.name_en}
+                        </p>
+                        <p className="mt-0.5 text-pro-12 text-muted-foreground">
+                          {label
+                            ? label.key === "packages.fullDay"
+                              ? t("providerPage.fullDayHint")
+                              : label.key === "packages.overnight"
+                                ? t("providerPage.overnightHint")
+                                : t(label.key, label.values)
+                            : t("providerPage.hourlyHint")}
+                        </p>
+                      </div>
+                      {price ? (
+                        <span className="shrink-0 text-pro-14 font-bold text-brand">{price}</span>
+                      ) : null}
                     </div>
-                    {price ? (
-                      <span className="shrink-0 text-pro-14 font-bold text-brand">{price}</span>
-                    ) : null}
+                    <CustomerPreparationNotesSection notes={row.preparation_notes} />
                   </li>
                 );
               })}

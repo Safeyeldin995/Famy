@@ -2645,6 +2645,7 @@ export type Database = {
           flagged_for_review: boolean
           id: string
           pending_price_override: number | null
+          preparation_notes: string | null
           price_change_reason: string | null
           price_change_requested_at: string | null
           price_override: number | null
@@ -2658,6 +2659,7 @@ export type Database = {
           flagged_for_review?: boolean
           id?: string
           pending_price_override?: number | null
+          preparation_notes?: string | null
           price_change_reason?: string | null
           price_change_requested_at?: string | null
           price_override?: number | null
@@ -2671,6 +2673,7 @@ export type Database = {
           flagged_for_review?: boolean
           id?: string
           pending_price_override?: number | null
+          preparation_notes?: string | null
           price_change_reason?: string | null
           price_change_requested_at?: string | null
           price_override?: number | null
