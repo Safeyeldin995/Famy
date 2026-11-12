@@ -94,7 +94,10 @@ export function BookingActions({
             <Text tone="muted" style={{ textAlign: "center" }}>
               {t("bookingDetail.autoCompleteHint", {
                 time: dateTime(
-                  autoCompleteClosesAt(booking.completion_requested_at, expirySettings.data),
+                  autoCompleteClosesAt(
+                    booking.completion_requested_at,
+                    expirySettings.data,
+                  ).toISOString(),
                   i18n.language,
                 ),
               })}

@@ -10,7 +10,7 @@ import {
   createBookingLifecycleDb,
   expectRejected,
   IDS,
-  lifecycleRescheduleTargetDate,
+  lifecycleBookingBaseDate,
   paymentStatus,
   queryRows,
   seedLifecycleBooking,
@@ -19,6 +19,7 @@ import {
   tryAsUser,
   updateBookingStatus,
 } from "./booking-lifecycle.harness";
+import { cairoDatePlusDays } from "./cairo-stable-booking-date";
 
 let db: PGlite;
 
@@ -175,7 +176,15 @@ describe("booking lifecycle (migration replay)", () => {
       [bookingId],
     );
 
-    const rescheduleDate = lifecycleRescheduleTargetDate(original[0]!.start_at);
+    const providerBookings = await queryRows<{ n: number }>(
+      db,
+      `SELECT count(*)::int AS n FROM public.bookings WHERE provider_id = $1`,
+      [IDS.provider],
+    );
+    const rescheduleDate = cairoDatePlusDays(
+      lifecycleBookingBaseDate(),
+      45 + (providerBookings[0]?.n ?? 0),
+    );
 
     const request = await tryAsUser(
       db,
