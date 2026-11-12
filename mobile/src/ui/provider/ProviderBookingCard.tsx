@@ -14,6 +14,11 @@ import {
   isSupervisionMode,
   supervisionModeProviderLabel,
 } from "@shared/booking/supervisionMode";
+import {
+  providerHomeActiveBookingNeedsAction,
+  providerHomeActiveBookingNextStepKey,
+  providerHomeActiveBookingStatusKey,
+} from "@shared/home/activeHomeBookings";
 
 export type ProviderCardBooking = {
   id: string;
@@ -44,9 +49,11 @@ function bookingTime(value: string, language: string) {
 export function ProviderBookingCard({
   booking,
   request = false,
+  emphasize = false,
 }: {
   booking: ProviderCardBooking;
   request?: boolean;
+  emphasize?: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const language = i18n.language;
@@ -56,6 +63,10 @@ export function ProviderBookingCard({
     : booking.party?.zone_name_en || booking.party?.area;
   const child = booking.party?.member_first_name;
   const age = bookingMemberAgeTranslation(booking.party);
+  const status = String(booking.status ?? "");
+  const statusKey = providerHomeActiveBookingStatusKey(status);
+  const nextStepKey = providerHomeActiveBookingNextStepKey(status);
+  const showEmphasis = emphasize && (statusKey || nextStepKey);
   return (
     <View
       style={{
@@ -97,6 +108,33 @@ export function ProviderBookingCard({
         <Text tone="muted" size="sm">
           {bookingTime(booking.start_at, language)}
         </Text>
+        {showEmphasis ? (
+          <View style={{ gap: space.xs, marginTop: space.xs }}>
+            {statusKey ? (
+              <Text
+                size="xs"
+                weight="bold"
+                tone="brand"
+                style={{
+                  alignSelf: "flex-start",
+                  backgroundColor: providerHomeActiveBookingNeedsAction(status)
+                    ? colors.brandTint
+                    : colors.surface2,
+                  borderRadius: 999,
+                  paddingHorizontal: 10,
+                  paddingVertical: 6,
+                }}
+              >
+                {t(statusKey)}
+              </Text>
+            ) : null}
+            {nextStepKey ? (
+              <Text size="sm" weight="bold" tone="brand">
+                {t(nextStepKey)}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
       </Pressable>
       {request ? (
         <View

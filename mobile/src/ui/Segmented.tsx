@@ -14,7 +14,7 @@ export function Segmented<T extends string>({
 }: {
   value: T;
   onChange: (value: T) => void;
-  options: { value: T; label: string; icon?: IconType }[];
+  options: { value: T; label: string; icon?: IconType; badgeCount?: number }[];
   brandSelection?: boolean;
 }) {
   return (
@@ -50,6 +50,23 @@ export function Segmented<T extends string>({
             >
               {option.label}
             </Text>
+            {option.badgeCount != null && option.badgeCount > 0 ? (
+              <View
+                style={{
+                  minWidth: 22,
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  borderRadius: 999,
+                  backgroundColor: colors.brand,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text size="xs" weight="heavy" tone="inverse">
+                  {String(option.badgeCount)}
+                </Text>
+              </View>
+            ) : null}
           </Pressable>
         );
       })}

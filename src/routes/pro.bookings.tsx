@@ -2,7 +2,7 @@ import { ProviderRequestCard } from "@/components/provider/ProviderRequestCard";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 import { formatDate, formatTime, formatDuration } from "@/lib/format";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ProviderShell } from "@/components/famio/ProviderShell";
 import { PageHeader } from "@/components/famio/PageHeader";
@@ -11,6 +11,15 @@ import { QueryError } from "@/components/famio/QueryError";
 import { useLang } from "@/components/famio/LanguageToggle";
 import { useMyProvider, useProviderBookings } from "@/lib/db/provider-queries";
 import { formatEGP, BOOKING_ACTIVE_STATUSES } from "@/lib/utils";
+import {
+  defaultProviderJobsTab,
+  groupProviderUpcomingBookings,
+  providerUpcomingDayLabel,
+} from "@/lib/provider/providerJobsList";
+import {
+  providerHomeActiveBookingNextStepKey,
+  providerHomeActiveBookingStatusKey,
+} from "@/lib/home/activeHomeBookings";
 import { Loader2 } from "lucide-react";
 import { useProPath } from "@/lib/provider/useProPath";
 
@@ -25,6 +34,80 @@ function statusTone(status: string): "brand" | "success" | "warning" | "muted" {
   return "brand";
 }
 
+function UpcomingBookingCard({
+  booking,
+  lang,
+  dateLoc,
+  emphasize,
+  proPath,
+  t,
+}: {
+  booking: any;
+  lang: string;
+  dateLoc: string;
+  emphasize: boolean;
+  proPath: (path: string) => string;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  const start = new Date(booking.start_at);
+  const end = new Date(booking.end_at);
+  const hours = Math.max(1, Math.round((+end - +start) / 36e5));
+  const name = booking.customer?.full_name || t("pro.common.customer");
+  const serviceName =
+    lang === "ar"
+      ? (booking.service?.name_ar ?? booking.service?.name_en)
+      : (booking.service?.name_en ?? booking.service?.name_ar);
+  const status = String(booking.status ?? "");
+  const statusKey = providerHomeActiveBookingStatusKey(status);
+  const nextStepKey = providerHomeActiveBookingNextStepKey(status);
+
+  return (
+    <Link
+      to={proPath("/pro/booking/$id") as "/pro/booking/$id"}
+      params={{ id: booking.id }}
+      className="focus-ring tap-scale block rounded-[1.25rem] border border-border/50 bg-surface p-4 shadow-xs"
+    >
+      <div className="flex items-center gap-3">
+        <ProfileAvatar
+          src={booking.customer?.avatar_url}
+          name={name}
+          className="h-11 w-11 rounded-full"
+        />
+        <div className="min-w-0 flex-1 truncate text-pro-16 font-extrabold">{name}</div>
+        <div className="shrink-0 whitespace-nowrap text-pro-16 font-extrabold text-brand">
+          {formatEGP(Number(booking.price_total ?? 0))}
+        </div>
+      </div>
+      {emphasize && (statusKey || nextStepKey) ? (
+        <div className="mt-2 flex flex-col items-start gap-2">
+          {statusKey ? (
+            <StatusPill tone={statusTone(status)}>{t(statusKey)}</StatusPill>
+          ) : (
+            <StatusPill tone={statusTone(status)}>
+              {String(t(`pro.statuses.${status}`, { defaultValue: status }))}
+            </StatusPill>
+          )}
+          {nextStepKey ? (
+            <p className="text-pro-13 font-extrabold text-brand">{t(nextStepKey)}</p>
+          ) : null}
+        </div>
+      ) : null}
+      <p className="mt-2 text-pro-13 leading-relaxed text-muted-foreground">
+        {serviceName} ·{" "}
+        {formatDate(start, { weekday: "short", day: "numeric", month: "short" }, dateLoc)} ·{" "}
+        {formatTime(start, dateLoc)} · {formatDuration(hours, lang)}
+      </p>
+      {!emphasize ? (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <StatusPill tone={statusTone(status)}>
+            {String(t(`pro.statuses.${status}`, { defaultValue: status }))}
+          </StatusPill>
+        </div>
+      ) : null}
+    </Link>
+  );
+}
+
 function ProBookings() {
   const proPath = useProPath();
   const { t } = useTranslation();
@@ -33,7 +116,8 @@ function ProBookings() {
   const p = useMyProvider();
   const provider = p.data as any;
   const q = useProviderBookings(provider?.id);
-  const [tab, setTab] = useState<Tab>("requests");
+  const [tab, setTab] = useState<Tab>("upcoming");
+  const [tabPinned, setTabPinned] = useState(false);
 
   const lists = useMemo(() => {
     const all = q.data ?? [];
@@ -47,6 +131,16 @@ function ProBookings() {
       ),
     };
   }, [q.data]);
+
+  useEffect(() => {
+    if (tabPinned || !q.data) return;
+    setTab(defaultProviderJobsTab(lists.requests.length, lists.upcoming));
+  }, [q.data, lists.requests.length, lists.upcoming, tabPinned]);
+
+  const upcomingSections = useMemo(
+    () => groupProviderUpcomingBookings(lists.upcoming),
+    [lists.upcoming],
+  );
 
   if (p.isLoading) {
     return (
@@ -81,13 +175,17 @@ function ProBookings() {
       <div className="px-5 pb-4 pt-2">
         <SegmentedControl
           value={tab}
-          onChange={setTab}
+          onChange={(value) => {
+            setTabPinned(true);
+            setTab(value);
+          }}
           options={[
+            { value: "upcoming", label: t("pro.bookings.upcoming") },
             {
               value: "requests",
-              label: `${t("pro.bookings.requests")} (${lists.requests.length})`,
+              label: t("pro.bookings.requests"),
+              badgeCount: lists.requests.length > 0 ? lists.requests.length : undefined,
             },
-            { value: "upcoming", label: t("pro.bookings.upcoming") },
             { value: "history", label: t("pro.bookings.history") },
           ]}
         />
@@ -106,50 +204,66 @@ function ProBookings() {
             title={t("pro.bookings.empty", { tab: tabLabel })}
             body={emptyBody}
           />
+        ) : tab === "upcoming" ? (
+          upcomingSections.map((section, index) => (
+            <JobsSection
+              key={`${section.kind}-${section.kind === "day" ? section.dayKey : section.kind}`}
+            >
+              {section.kind === "now" ? (
+                <p className="text-pro-13 font-black uppercase tracking-wider text-foreground">
+                  {t("pro.bookings.sectionNow")}
+                </p>
+              ) : null}
+              {section.kind === "today" ? (
+                <p className="text-pro-13 font-black uppercase tracking-wider text-foreground">
+                  {t("pro.bookings.sectionToday")}
+                </p>
+              ) : null}
+              {section.kind === "day" &&
+              !upcomingSections.slice(0, index).some((s) => s.kind === "day") ? (
+                <p className="text-pro-13 font-black uppercase tracking-wider text-foreground">
+                  {t("pro.bookings.sectionLater")}
+                </p>
+              ) : null}
+              {section.kind === "day" ? (
+                <p className="text-pro-12 font-bold text-muted-foreground">
+                  {providerUpcomingDayLabel(section.dayKey, lang)}
+                </p>
+              ) : null}
+              {section.bookings.map((b: any) => (
+                <UpcomingBookingCard
+                  key={b.id}
+                  booking={b}
+                  lang={lang}
+                  dateLoc={dateLoc}
+                  emphasize={section.kind === "now"}
+                  proPath={proPath}
+                  t={t}
+                />
+              ))}
+            </JobsSection>
+          ))
         ) : (
           list.map((b: any) => {
             if (tab === "requests") return <ProviderRequestCard key={b.id} booking={b} />;
-            const start = new Date(b.start_at);
-            const end = new Date(b.end_at);
-            const hours = Math.max(1, Math.round((+end - +start) / 36e5));
-            const name = b.customer?.full_name || t("pro.common.customer");
-            const serviceName =
-              lang === "ar"
-                ? (b.service?.name_ar ?? b.service?.name_en)
-                : (b.service?.name_en ?? b.service?.name_ar);
             return (
-              <Link
+              <UpcomingBookingCard
                 key={b.id}
-                to={proPath("/pro/booking/$id") as "/pro/booking/$id"}
-                params={{ id: b.id }}
-                className="focus-ring tap-scale block rounded-[1.25rem] border border-border/50 bg-surface p-4 shadow-xs"
-              >
-                <div className="flex items-center gap-3">
-                  <ProfileAvatar
-                    src={b.customer?.avatar_url}
-                    name={name}
-                    className="h-11 w-11 rounded-full"
-                  />
-                  <div className="min-w-0 flex-1 truncate text-pro-16 font-extrabold">{name}</div>
-                  <div className="shrink-0 whitespace-nowrap text-pro-16 font-extrabold text-brand">
-                    {formatEGP(Number(b.price_total ?? 0))}
-                  </div>
-                </div>
-                <p className="mt-2 text-pro-13 leading-relaxed text-muted-foreground">
-                  {serviceName} ·{" "}
-                  {formatDate(start, { weekday: "short", day: "numeric", month: "short" }, dateLoc)}{" "}
-                  · {formatTime(start, dateLoc)} · {formatDuration(hours, lang)}
-                </p>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <StatusPill tone={statusTone(b.status)}>
-                    {String(t(`pro.statuses.${b.status}`, { defaultValue: b.status }))}
-                  </StatusPill>
-                </div>
-              </Link>
+                booking={b}
+                lang={lang}
+                dateLoc={dateLoc}
+                emphasize={false}
+                proPath={proPath}
+                t={t}
+              />
             );
           })
         )}
       </div>
     </ProviderShell>
   );
+}
+
+function JobsSection({ children }: { children: ReactNode }) {
+  return <div className="space-y-4">{children}</div>;
 }

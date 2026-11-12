@@ -340,7 +340,7 @@ export function SegmentedControl<T extends string>({
   onChange,
   className = "",
 }: {
-  options: { value: T; label: string }[];
+  options: { value: T; label: string; badgeCount?: number }[];
   value: T;
   onChange: (value: T) => void;
   className?: string;
@@ -357,13 +357,18 @@ export function SegmentedControl<T extends string>({
             type="button"
             onClick={() => onChange(option.value)}
             aria-pressed={value === option.value}
-            className={`focus-ring tap-scale min-h-12 rounded-full px-3 text-[13px] font-black uppercase tracking-wider transition-all sm:text-sm ${
+            className={`focus-ring tap-scale flex min-h-12 items-center justify-center gap-2 rounded-full px-3 text-[13px] font-black uppercase tracking-wider transition-all sm:text-sm ${
               value === option.value
                 ? "bg-surface-elevated text-brand shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            {option.label}
+            <span>{option.label}</span>
+            {option.badgeCount != null && option.badgeCount > 0 ? (
+              <span className="rounded-full bg-brand px-2 py-0.5 text-[11px] font-black text-brand-foreground">
+                {option.badgeCount}
+              </span>
+            ) : null}
           </button>
         ))}
       </div>
