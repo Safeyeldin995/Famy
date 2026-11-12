@@ -3,7 +3,7 @@ import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 import { memberAgeTranslation } from "@shared/familyMemberAge";
 import { CustomerBookingWhen } from "@/ui/customer/BookingWhen";
 import { BookingServiceCard } from "@/ui/customer/BookingServiceCard";
-import { BookOpen, Clock, UserRound, Star, X } from "lucide-react-native";
+import { BookOpen, Clock, UserRound, Star } from "lucide-react-native";
 import { Avatar } from "@/ui/ProviderCard";
 import { colors } from "@/ui/theme";
 import { BookingEducation } from "@/ui/BookingEducation";
@@ -33,7 +33,6 @@ import {
   useActivePaymentMethods,
   useRequirementsForService,
   useBookingConfig,
-  validatePromoCode,
   useSaveStudentEducationProfile,
 } from "@/lib/bookingQueries";
 import { supabase } from "@/lib/supabase";
@@ -46,6 +45,12 @@ import {
   groupBookingSubjects,
 } from "@shared/booking/bookingScreens";
 import { bookingDisabledReason } from "@shared/booking/disabledReason";
+import {
+  checkoutAddressOutsideArea,
+  checkoutAddressReady,
+  checkoutContinueBlocked,
+  checkoutEligibilityServiceId,
+} from "@shared/booking/checkoutGates";
 import {
   bookingSubmissionFingerprint,
   resolveIdempotencyKey,
@@ -84,6 +89,7 @@ import { customerMoney as money, customerNumber } from "@/lib/customerFormat";
 import { providerRatingSummary } from "@/lib/providerRating";
 import { joinUiParts } from "@shared/format/uiJoin";
 import { SupervisionModeChoices } from "@/ui/customer/SupervisionModeChoices";
+import { CheckoutPromoPicker } from "@/ui/customer/CheckoutPromoPicker";
 import {
   requiresSupervisionMode,
   type SupervisionMode,
@@ -130,9 +136,9 @@ export default function Book() {
   const [notes, setNotes] = useState("");
   const [methodId, setMethodId] = useState("");
   const [choices, setChoices] = useState<Record<string, "customer" | "provider">>({});
-  const [promo, setPromo] = useState("");
-  const [applied, setApplied] = useState<{ id: string; discount: number } | null>(null);
-  const [checking, setChecking] = useState(false);
+  const [applied, setApplied] = useState<{ id: string; discount: number; code: string } | null>(
+    null,
+  );
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [curriculum, setCurriculum] = useState("");
@@ -151,6 +157,7 @@ export default function Book() {
     (s) => isClosedBetaCategorySlug(s.service.category?.slug) && bookable.data?.has(s.service.id),
   );
   const service = services.find((s) => s.service.id === serviceId) ?? services[0];
+  const eligibilityServiceId = checkoutEligibilityServiceId(serviceId, service?.service.id);
   const tutoring = service?.service.category?.slug === "tutoring";
   const isLessonService = isLessonServiceSlug(service?.service.slug);
   const babysitting = service?.service.category?.slug === "babysitting";
@@ -178,7 +185,7 @@ export default function Book() {
       ? Number(service?.service.duration_min)
       : hours * 60;
   const settings = useProviderBookingSettings(providerId, {
-    serviceId: service?.service.id,
+    serviceId: eligibilityServiceId,
     addressId: addressId || null,
   });
   const slots = useAvailableSlots(providerId, date, duration || 120, {
@@ -288,27 +295,43 @@ export default function Book() {
     startAt: currentSlot?.start ?? null,
   });
   const supervisionReady = !supervisionRequired || !!supervisionMode;
+  const addressReady = checkoutAddressReady({
+    addressId: addressId || null,
+    hasPinnedAddress: !!selectedAddress,
+    bookable,
+    serviceId: eligibilityServiceId,
+  });
+  const addressOutside = checkoutAddressOutsideArea({
+    addressId: addressId || null,
+    hasPinnedAddress: !!selectedAddress,
+    bookable,
+    serviceId: eligibilityServiceId,
+  });
   const missing = bookingScreenMissingStep(BOOKING_SCREENS[step], {
     service: !!service,
     tutoring,
     capability: !!capability,
     slot: !!currentSlot && !slots.isFetching,
-    address: !!selectedAddress && !!zone.data && !zone.isFetching,
+    address: addressReady,
     recipient: recipientReady,
     supervisionRequired,
     supervision: supervisionReady,
     requirements: requirements.isSuccess && either.every((r) => !!choices[r.id]),
     payment: !!methods.data?.some((m) => m.id === methodId),
   });
-  const blocked =
-    servicesQ.isError ||
-    bookable.isError ||
-    settings.isError ||
-    !settings.data ||
-    billing.isError ||
-    !Number.isFinite(quote.total) ||
-    (needsRate && (packageRate.isError || packageRate.data == null)) ||
-    (tutoring && caps.isError);
+  const blocked = checkoutContinueBlocked({
+    servicesError: servicesQ.isError,
+    bookable,
+    settings,
+    billingError: billing.isError,
+    quoteTotal: quote.total,
+    hasService: !!service,
+    needsRate,
+    packageRate,
+    capsError: tutoring && caps.isError,
+    addressId: addressId || null,
+    serviceId: eligibilityServiceId,
+  });
   const loading =
     servicesQ.isLoading ||
     bookable.isLoading ||
@@ -324,32 +347,12 @@ export default function Book() {
     hasDate: true,
     hasSlots: available.length > 0,
     hasAddress: !!addressId,
+    addressOutside,
     hasRecipient: recipientReady,
     hasSupervision: supervisionReady,
     supervisionRequired,
     lessonService: isLessonService,
   });
-  async function applyPromo() {
-    if (!promo.trim() || !service) return;
-    setChecking(true);
-    setError("");
-    try {
-      const r = await validatePromoCode(promo.trim(), service.service.id, quote.subtotal);
-      if (r.ok) setApplied({ id: r.promo_code_id, discount: r.discount_amount });
-      else {
-        setApplied(null);
-        setError(
-          t(`bookFlow.promoError.${r.reason}`, {
-            defaultValue: t("bookFlow.promoError.not_found"),
-          }),
-        );
-      }
-    } catch {
-      setError(t("common.somethingWentWrong"));
-    } finally {
-      setChecking(false);
-    }
-  }
   async function submit() {
     if (submitting.current || missing || blocked || !service || !currentSlot) return;
     submitting.current = true;
@@ -551,7 +554,7 @@ export default function Book() {
               <Button
                 label={t(step === 3 ? "mobileBooking.confirmBooking" : "common.continue")}
                 loading={busy}
-                disabled={!!missing || !!blocked || loading || checking}
+                disabled={!!missing || !!blocked || loading}
                 onPress={() => {
                   setError("");
                   if (step === 3) void submit();
@@ -821,7 +824,7 @@ export default function Book() {
             label={t("addresses.addAddress")}
             onPress={() => setInlineForm("address")}
           />
-          <QueryState query={zone} empty={!zone.data} emptyKey="bookingUx.outsideArea" />
+          <QueryState query={bookable} empty={addressOutside} emptyKey="bookingUx.outsideArea" />
           {!tutoring && recipientUI}
           <QueryState query={requirements} />
           {required.map((r) => (
@@ -1019,54 +1022,13 @@ export default function Book() {
                 </View>
               ))}
           </View>
-          <Text weight="heavy">{t("customerBooking.promo")}</Text>
-          <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8 }}>
-            <View style={{ flex: 1 }}>
-              <Field
-                label={t("bookFlow.promoPlaceholder")}
-                value={promo}
-                editable={!applied}
-                onChangeText={(v) => {
-                  setPromo(v);
-                  setApplied(null);
-                }}
-              />
-            </View>
-            {applied ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t("bookFlow.promoRemove")}
-                onPress={() => {
-                  setPromo("");
-                  setApplied(null);
-                }}
-                style={{
-                  minHeight: 48,
-                  minWidth: 48,
-                  borderRadius: 24,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginBottom: 4,
-                }}
-              >
-                <X size={18} color={colors.muted} />
-              </Pressable>
-            ) : (
-              <Button
-                variant="secondary"
-                label={t("bookFlow.promoApply")}
-                loading={checking}
-                onPress={() => void applyPromo()}
-                style={{ marginBottom: 4 }}
-              />
-            )}
-          </View>
-          {applied ? (
-            <Text tone="brand" size="sm">
-              {t("bookFlow.promoApplied", { amount: money(applied.discount, lang) })}
-            </Text>
+          {service ? (
+            <CheckoutPromoPicker
+              serviceId={service.service.id}
+              subtotal={quote.subtotal}
+              applied={applied}
+              onApplied={setApplied}
+            />
           ) : null}
           <QueryState query={methods} empty={!methods.data?.length} />
           <Choices

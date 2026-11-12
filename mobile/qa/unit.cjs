@@ -75,6 +75,11 @@ const { buildBookingQuote, buildBookingRequest } = load(
   path.join(root, "src/lib/booking/bookingRequest.ts"),
 );
 const { bookingScreenMissingStep } = load(path.join(root, "src/lib/booking/bookingScreens.ts"));
+const {
+  checkoutContinueBlocked,
+  checkoutAddressReady,
+  checkoutAddressOutsideArea,
+} = load(path.join(root, "src/lib/booking/checkoutGates.ts"));
 const { bookingSubmissionFingerprint, resolveIdempotencyKey } = load(
   path.join(root, "src/lib/booking/idempotency.ts"),
 );
@@ -121,6 +126,86 @@ assert.equal(
 );
 assert.equal(bookingScreenMissingStep("review", { ...gate, address: false }), "address");
 assert.equal(bookingScreenMissingStep("review", { ...gate, payment: false }), "payment");
+const coveredBookable = {
+  isError: false,
+  isFetching: false,
+  isLoading: false,
+  isSuccess: true,
+  data: new Map([["svc-1", null]]),
+};
+const uncoveredBookable = {
+  isError: false,
+  isFetching: false,
+  isLoading: false,
+  isSuccess: true,
+  data: new Map(),
+};
+const refetchingBookable = {
+  isError: false,
+  isFetching: true,
+  isLoading: true,
+  isSuccess: false,
+  data: undefined,
+};
+const checkoutBase = {
+  servicesError: false,
+  billingError: false,
+  quoteTotal: 481,
+  hasService: true,
+  needsRate: false,
+  packageRate: { isError: false, isFetching: false, isLoading: false, data: 250 },
+  capsError: false,
+  addressId: "addr-b",
+  serviceId: "svc-1",
+};
+const checkoutSettings = {
+  isError: false,
+  isFetching: false,
+  isLoading: false,
+  data: { max_advance_days: 12 },
+};
+assert.equal(
+  checkoutContinueBlocked({
+    ...checkoutBase,
+    bookable: uncoveredBookable,
+    settings: { ...checkoutSettings, data: null },
+  }),
+  true,
+);
+assert.equal(
+  checkoutContinueBlocked({
+    ...checkoutBase,
+    bookable: refetchingBookable,
+    settings: { ...checkoutSettings, isFetching: true, isLoading: true, data: undefined },
+  }),
+  false,
+);
+assert.equal(
+  checkoutContinueBlocked({
+    ...checkoutBase,
+    bookable: coveredBookable,
+    settings: checkoutSettings,
+  }),
+  false,
+);
+assert.equal(
+  checkoutAddressReady({
+    addressId: "addr-b",
+    hasPinnedAddress: true,
+    bookable: coveredBookable,
+    serviceId: "svc-1",
+  }),
+  true,
+);
+assert.equal(
+  checkoutAddressOutsideArea({
+    addressId: "addr-a",
+    hasPinnedAddress: true,
+    bookable: uncoveredBookable,
+    serviceId: "svc-1",
+  }),
+  true,
+);
 const request = buildBookingRequest({
   providerId: "p",
   serviceId: "s",

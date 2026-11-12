@@ -6,6 +6,11 @@ import { buildBookingRequest, buildBookingQuote } from "@/lib/booking/bookingReq
 import { paymentPresentation } from "@/lib/booking/paymentPresentation";
 import { bookingDisabledReason } from "@/lib/booking/disabledReason";
 import {
+  checkoutAddressOutsideArea,
+  checkoutAddressReady,
+  checkoutEligibilityServiceId,
+} from "@/lib/booking/checkoutGates";
+import {
   BOOKING_SCREENS,
   bookingScreenMissingStep,
   bookingScreenForStep,
@@ -22,6 +27,7 @@ import { CheckChip } from "@/components/famio/CheckChip";
 import { TextField } from "@/components/famio/TextField";
 import { BookingWhen } from "@/components/booking/BookingWhen";
 import { CustomerPreparationNotesSection } from "@/components/booking/CustomerPreparationNotesSection";
+import { CheckoutPromoPicker } from "@/components/booking/CheckoutPromoPicker";
 import { BookingDetailsSheet } from "@/components/booking/BookingDetailsSheet";
 import { SupervisionModeFields } from "@/components/booking/SupervisionModeFields";
 import {
@@ -49,7 +55,6 @@ import {
   useMyProfile,
 } from "@/lib/db/queries";
 import { useActiveFamilyMembers } from "@/lib/db/family-members-queries";
-import { validatePromoCode } from "@/lib/db/promo-codes-queries";
 import { useCreatePayment, mapPaymentInsertError } from "@/lib/db/payment-queries";
 import { redirectToPaymobCheckout } from "@/lib/paymob/paymobRedirect";
 import { useProviderOnlyCustomerRedirect } from "@/lib/auth/providerOnlyCustomerGuard";
@@ -222,10 +227,12 @@ export function BookContent({
       ),
     [servicesQ.data, bookableQ.data],
   );
-  const eligibilityServiceId =
-    (serviceId && services.some((row: any) => row.service?.id === serviceId) ? serviceId : null) ??
-    services[0]?.service?.id ??
-    null;
+  const resolvedServiceRow =
+    services.find((row: any) => row.service?.id === serviceId) ?? services[0];
+  const eligibilityServiceId = checkoutEligibilityServiceId(
+    serviceId,
+    resolvedServiceRow?.service?.id,
+  );
   const selectedAddress = bookableAddresses.find((a: any) => a.id === addressId) ?? null;
   // UX-only preview of the resolved service zone — the booking-creation DB
   // trigger re-resolves this itself and is the sole authoritative guard
@@ -489,29 +496,6 @@ export function BookContent({
       </PhoneFrame>
     );
   }
-  if (!bookingSettingsQ.data) {
-    return (
-      <PhoneFrame>
-        <EmptyState
-          icon="ban"
-          title={t("bookFlow.unavailable")}
-          body={t("bookFlow.unavailableBody")}
-          action={
-            <div>
-              {otherProviders}
-              <Link
-                to={previewPath("/addresses/new") as "/addresses/new"}
-                className="inline-flex min-h-11 items-center px-3 text-pro-14 font-bold text-brand"
-              >
-                {t("addresses.addAddress")}
-              </Link>
-            </div>
-          }
-        />
-      </PhoneFrame>
-    );
-  }
-
   const p = provQ.data ? toUIProvider(provQ.data) : null;
   if (!p) {
     return (
@@ -587,12 +571,24 @@ export function BookContent({
     startAt: selectedSlot?.start ?? null,
   });
   const supervisionReady = !supervisionRequired || !!supervisionMode;
+  const addressReady = checkoutAddressReady({
+    addressId: slotAddressId,
+    hasPinnedAddress: !!selectedAddress,
+    bookable: bookableQ,
+    serviceId: eligibilityServiceId,
+  });
+  const addressOutside = checkoutAddressOutsideArea({
+    addressId: slotAddressId,
+    hasPinnedAddress: !!selectedAddress,
+    bookable: bookableQ,
+    serviceId: eligibilityServiceId,
+  });
   const missingStep = bookingScreenMissingStep(stepKey, {
     service: !!activeService,
     tutoring: isTutoring,
     capability: !!selectedCapability,
     slot: !!date && !!time && (!fixedPackage || !!selectedSlot),
-    address: !!addressId && !!zoneQ.data,
+    address: addressReady,
     recipient: recipientReady,
     supervisionRequired,
     supervision: supervisionReady,
@@ -614,7 +610,7 @@ export function BookContent({
           : missingStep === "address"
             ? !addressId
               ? addrsQ
-              : zoneQ
+              : bookableQ
             : missingStep === "forWhom"
               ? familyMembersQ
               : missingStep === "payment"
@@ -629,6 +625,7 @@ export function BookContent({
     hasDate: !!date,
     hasSlots: packageSlots.length > 0,
     hasAddress: !!addressId,
+    addressOutside,
     hasRecipient: recipientReady,
     hasSupervision: supervisionReady,
     supervisionRequired,
@@ -655,31 +652,6 @@ export function BookContent({
   const selectedGroup = subjectGroups.find((group) =>
     group.capabilities.some((cap) => cap.id === selectedCapability?.id),
   );
-
-  const applyPromo = async () => {
-    const code = promoCode.trim();
-    if (!code) return;
-    setPromoStatus("checking");
-    try {
-      const result = await validatePromoCode(code, activeService?.service?.id ?? null, subtotal);
-      if (result.ok) {
-        setPromoDiscount(result.discount_amount);
-        setAppliedPromoId(result.promo_code_id);
-        setPromoStatus("applied");
-        toast.success(t("bookFlow.promoApplied", { amount: formatEGP(result.discount_amount) }));
-      } else {
-        setPromoDiscount(0);
-        setAppliedPromoId(null);
-        setPromoStatus("invalid");
-        toast.error(t(`bookFlow.promoError.${result.reason}`, t("bookFlow.promoError.not_found")));
-      }
-    } catch (e: any) {
-      setPromoDiscount(0);
-      setAppliedPromoId(null);
-      setPromoStatus("invalid");
-      toast.error(e?.message ?? t("bookFlow.promoError.not_found"));
-    }
-  };
 
   const submit = async () => {
     setInlineError(null);
@@ -856,7 +828,10 @@ export function BookContent({
       nav({
         to: "/booking/$id",
         params: { id: booking.id },
-        search: selectedMethod.method_type === "online" ? { paymob_checkout: "1" } : undefined,
+        search: {
+          ...(selectedMethod.method_type === "online" ? { paymob_checkout: "1" } : {}),
+          created: "1",
+        },
       });
     } catch (e: any) {
       const code = e instanceof BookingError ? e.code : null;
@@ -1318,24 +1293,14 @@ export function BookContent({
               )}
               {selectedAddress && (
                 <div className="mt-3">
-                  {zoneQ.isError ? (
-                    <QueryError onRetry={() => zoneQ.refetch()} />
-                  ) : zoneQ.isLoading ? (
+                  {bookableQ.isError ? (
+                    <QueryError onRetry={() => bookableQ.refetch()} />
+                  ) : bookableQ.isLoading || bookableQ.isFetching ? (
                     <div className="h-10 animate-pulse rounded-xl bg-surface-2" />
-                  ) : zoneQ.data ? (
-                    <div className="flex items-center gap-2 rounded-full bg-success/10 px-3.5 py-2.5 text-pro-12 font-bold text-foreground">
-                      <MapPin className="h-3.5 w-3.5 text-success" />
-                      {t("bookFlow.zoneServed", "Serves {{zone}}", {
-                        zone: lang === "ar" ? zoneQ.data.name_ar : zoneQ.data.name_en,
-                      })}
-                    </div>
-                  ) : (
+                  ) : addressOutside ? (
                     <div className="flex flex-wrap items-start gap-2 rounded-[1.25rem] bg-brand/8 px-3.5 py-2.5 text-pro-12 font-bold text-brand">
                       <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                      {t(
-                        "customerRound2.zoneNotServed",
-                        "This area is not currently served. Please choose another address.",
-                      )}
+                      {t("bookingUx.outsideArea")}
                       <button
                         type="button"
                         className="min-h-11 underline"
@@ -1356,7 +1321,14 @@ export function BookContent({
                         {t("customerBooking.addAddress")}
                       </button>
                     </div>
-                  )}
+                  ) : zoneQ.data ? (
+                    <div className="flex items-center gap-2 rounded-full bg-success/10 px-3.5 py-2.5 text-pro-12 font-bold text-foreground">
+                      <MapPin className="h-3.5 w-3.5 text-success" />
+                      {t("bookFlow.zoneServed", "Serves {{zone}}", {
+                        zone: lang === "ar" ? zoneQ.data.name_ar : zoneQ.data.name_en,
+                      })}
+                    </div>
+                  ) : null}
                 </div>
               )}
             </Step>
@@ -1526,60 +1498,37 @@ export function BookContent({
               {billingQ.isError && <QueryError onRetry={() => billingQ.refetch()} />}
             </>
           )}
-          {stepKey === "review" && (
+          {stepKey === "review" && activeService?.service?.id && (
             <Step title={t("bookFlow.paymentTitle")} sub={t("customerRound2.paymentSub")}>
-              <p className="mb-2 text-pro-14 font-extrabold">{t("customerBooking.promo")}</p>
-              <div className="mb-4 flex items-center gap-2">
-                <TextField
-                  label={t("bookFlow.promoPlaceholder")}
-                  value={promoCode}
-                  onChange={(e) => {
-                    setPromoCode(e.target.value);
-                    if (promoStatus !== "idle") {
-                      setPromoStatus("idle");
-                      setPromoDiscount(0);
-                      setAppliedPromoId(null);
-                    }
-                  }}
-                  placeholder={t("bookFlow.promoPlaceholder")}
-                  disabled={promoStatus === "applied"}
-                  className="h-12 min-w-0 flex-1 rounded-full bg-surface-2 px-4 text-pro-14 font-bold outline-none focus:ring-1 focus:ring-brand disabled:opacity-60"
-                />
-                {promoStatus === "applied" ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPromoCode("");
-                      setPromoStatus("idle");
-                      setPromoDiscount(0);
-                      setAppliedPromoId(null);
-                    }}
-                    aria-label={t("bookFlow.promoRemove")}
-                    className="h-12 shrink-0 rounded-full border border-border px-4 text-pro-14 font-bold text-muted-foreground"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={applyPromo}
-                    disabled={!promoCode.trim() || promoStatus === "checking"}
-                    className="h-12 shrink-0 rounded-full bg-brand px-5 text-pro-14 font-extrabold text-brand-foreground disabled:opacity-50"
-                  >
-                    {promoStatus === "checking" ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      t("bookFlow.promoApply")
-                    )}
-                  </button>
-                )}
-              </div>
-              {promoStatus === "applied" && (
-                <div className="mb-4 flex items-center gap-1.5 text-pro-12 font-semibold text-success">
-                  <Check className="h-3 w-3" aria-hidden="true" />
-                  {t("bookFlow.promoAppliedNote", { amount: formatEGP(promoDiscount) })}
-                </div>
-              )}
+              <CheckoutPromoPicker
+                serviceId={activeService.service.id}
+                subtotal={subtotal}
+                applied={
+                  promoStatus === "applied" && appliedPromoId
+                    ? {
+                        id: appliedPromoId,
+                        discount: promoDiscount,
+                        code: promoCode,
+                      }
+                    : null
+                }
+                onApplied={(value) => {
+                  if (value) {
+                    setPromoCode(value.code);
+                    setPromoDiscount(value.discount);
+                    setAppliedPromoId(value.id);
+                    setPromoStatus("applied");
+                    toast.success(
+                      t("bookFlow.promoApplied", { amount: formatEGP(value.discount) }),
+                    );
+                  } else {
+                    setPromoCode("");
+                    setPromoDiscount(0);
+                    setAppliedPromoId(null);
+                    setPromoStatus("idle");
+                  }
+                }}
+              />
               {methodsQ.isLoading ? (
                 <div className="space-y-3">
                   {Array.from({ length: 2 }).map((_, i) => (

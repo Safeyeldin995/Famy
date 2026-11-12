@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import {
-  AccessibilityInfo,
-  Image,
-  Platform,
-  StyleSheet,
-  View,
-  useWindowDimensions,
-} from "react-native";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { AccessibilityInfo, Platform, StyleSheet, View, useWindowDimensions } from "react-native";
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useFrameCallback,
+  useSharedValue,
+} from "react-native-reanimated";
+import { Asset } from "expo-asset";
 import * as SplashScreen from "expo-splash-screen";
 import { useSession } from "@/lib/session";
 import {
@@ -31,7 +31,7 @@ export {
 
 // A native process is the counterpart of a web tab session, not installation storage.
 let playedThisProcess = false;
-const sources = [famWhite, yBodyWhite, yEyesWhite];
+const imageSources = [famWhite, yBodyWhite, yEyesWhite];
 
 export function LaunchGate({
   bootstrapReady,
@@ -53,11 +53,7 @@ export function LaunchGate({
   useEffect(() => {
     if (!bootstrapReady || !sessionReady) return;
     let cancelled = false;
-    // Arm before native APIs, image loading or animation callbacks can fail/hang.
     const clearFailSafe = scheduleLaunchGateIntroFailSafe(false, finish);
-    void SplashScreen.hideAsync().catch(() => {
-      /* May already be hidden. */
-    });
     void AccessibilityInfo.isReduceMotionEnabled()
       .then((value) => {
         if (!cancelled) setReduced(value);
@@ -106,47 +102,112 @@ export function NativeFamySplash({
   onComplete: () => void;
 }) {
   const { width } = useWindowDimensions();
-  const [loaded, setLoaded] = useState<Set<number>>(() => new Set());
-  const [elapsed, setElapsed] = useState(0);
-  const start = useRef<number | null>(null);
-  const completed = useRef(false);
-  const completeRef = useRef(onComplete);
-  completeRef.current = onComplete;
-  useEffect(() => {
-    if (!running || loaded.size !== 3 || completed.current) return;
-    if (reducedMotion) {
-      completed.current = true;
-      completeRef.current();
-      return;
-    }
-    let frame = 0;
-    const tick = (now: number) => {
-      if (start.current === null) start.current = now;
-      const seconds = (now - start.current) / 1000;
-      setElapsed(seconds);
-      if (famySplashState(seconds).animationComplete) {
-        completed.current = true;
-        completeRef.current();
-      } else frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [running, reducedMotion, loaded.size]);
-  const state = famySplashState(reducedMotion ? 999 : elapsed);
   const scale = Math.min(width * 0.71, 385) / FAMY_SPLASH_ASSEMBLED.width;
   const { fam, y } = FAMY_SPLASH_ASSEMBLED;
-  const position = famySplashYPosition(state.smileMoveProgress, state.smileOffsetY);
-  const loadedImage = (index: number) => () =>
-    setLoaded((previous) => new Set([...previous, index]));
-  const yStyle = {
-    position: "absolute" as const,
-    left: position.x * scale,
-    top: position.y * scale,
-    width: y.width * scale,
-    height: y.height * scale,
-    opacity: state.smileOpacity,
-    transform: [{ scale: state.smileScale }],
-  };
+  const famFullW = fam.width * scale;
+  const famFullH = fam.height * scale;
+  const yFullW = y.width * scale;
+  const yFullH = y.height * scale;
+  const yBaseX = y.x * scale;
+  const yBaseY = y.y * scale;
+  const [assetsReady, setAssetsReady] = useState(false);
+  const elapsed = useSharedValue(reducedMotion ? 999 : 0);
+  const clockStart = useSharedValue(-1);
+  const completed = useSharedValue(false);
+  const completeFromUI = useCallback(() => onComplete(), [onComplete]);
+  const completeOnce = useCallback(() => {
+    onComplete();
+  }, [onComplete]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void Asset.loadAsync(imageSources)
+      .then(() => {
+        if (!cancelled) setAssetsReady(true);
+      })
+      .catch(() => {
+        if (!cancelled) onComplete();
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [onComplete]);
+
+  const hideNativeSplash = useCallback(() => {
+    void SplashScreen.hideAsync().catch(() => {
+      /* May already be hidden. */
+    });
+  }, []);
+
+  const frameCallback = useFrameCallback((frame) => {
+    "worklet";
+    if (completed.value) return;
+    if (clockStart.value < 0) {
+      clockStart.value = frame.timestamp;
+      runOnJS(hideNativeSplash)();
+    }
+    elapsed.value = (frame.timestamp - clockStart.value) / 1000;
+    if (famySplashState(elapsed.value).animationComplete) {
+      completed.value = true;
+      runOnJS(completeOnce)();
+    }
+  });
+
+  useEffect(() => {
+    const active = running && assetsReady && !reducedMotion;
+    frameCallback.setActive(active);
+  }, [assetsReady, frameCallback, reducedMotion, running]);
+
+  useEffect(() => {
+    if (!running || !assetsReady) return;
+    if (reducedMotion) {
+      hideNativeSplash();
+      completeOnce();
+    }
+  }, [assetsReady, completeOnce, hideNativeSplash, reducedMotion, running]);
+
+  const famStyle = useAnimatedStyle(() => {
+    const state = famySplashState(elapsed.value);
+    const progress = state.wordRevealProgress;
+    return {
+      opacity: progress,
+      transform: [{ translateX: (-famFullW * (1 - progress)) / 2 }, { scaleX: progress }],
+    };
+  });
+
+  const yMotionStyle = useAnimatedStyle(() => {
+    const state = famySplashState(elapsed.value);
+    const position = famySplashYPosition(state.smileMoveProgress, state.smileOffsetY);
+    return {
+      opacity: state.smileOpacity,
+      transform: [
+        { translateX: position.x * scale - yBaseX },
+        { translateY: position.y * scale - yBaseY },
+        { scale: state.smileScale },
+      ],
+    };
+  });
+
+  const yEyesStyle = useAnimatedStyle(() => {
+    const state = famySplashState(elapsed.value);
+    return {
+      opacity: state.eyesClosed ? 0 : state.smileOpacity,
+      transform: [
+        {
+          translateX:
+            famySplashYPosition(state.smileMoveProgress, state.smileOffsetY).x * scale - yBaseX,
+        },
+        {
+          translateY:
+            famySplashYPosition(state.smileMoveProgress, state.smileOffsetY).y * scale - yBaseY,
+        },
+        { scale: state.smileScale },
+      ],
+    };
+  });
+
+  if (!assetsReady && !reducedMotion) return <View style={styles.overlay} />;
+
   return (
     <View style={styles.overlay}>
       <View
@@ -161,33 +222,47 @@ export function NativeFamySplash({
             position: "absolute",
             left: fam.x * scale,
             top: fam.y * scale,
-            width: fam.width * scale * state.wordRevealProgress,
-            height: fam.height * scale,
+            width: famFullW,
+            height: famFullH,
             overflow: "hidden",
-            opacity: state.wordRevealProgress,
           }}
         >
-          <Image
-            source={sources[0]}
-            onLoad={loadedImage(0)}
-            onError={onComplete}
+          <Animated.Image
+            source={famWhite}
+            onError={completeFromUI}
             resizeMode="stretch"
-            style={{ width: fam.width * scale, height: fam.height * scale }}
+            style={[{ width: famFullW, height: famFullH }, famStyle]}
           />
         </View>
-        <Image
-          source={sources[1]}
-          onLoad={loadedImage(1)}
-          onError={onComplete}
+        <Animated.Image
+          source={yBodyWhite}
+          onError={completeFromUI}
           resizeMode="stretch"
-          style={yStyle}
+          style={[
+            {
+              position: "absolute",
+              left: y.x * scale,
+              top: yBaseY,
+              width: yFullW,
+              height: yFullH,
+            },
+            yMotionStyle,
+          ]}
         />
-        <Image
-          source={sources[2]}
-          onLoad={loadedImage(2)}
-          onError={onComplete}
+        <Animated.Image
+          source={yEyesWhite}
+          onError={completeFromUI}
           resizeMode="stretch"
-          style={[yStyle, { opacity: state.eyesClosed ? 0 : state.smileOpacity }]}
+          style={[
+            {
+              position: "absolute",
+              left: y.x * scale,
+              top: yBaseY,
+              width: yFullW,
+              height: yFullH,
+            },
+            yEyesStyle,
+          ]}
         />
       </View>
     </View>

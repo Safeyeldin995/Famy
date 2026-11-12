@@ -8,6 +8,8 @@ export function bookingDisabledReason(input: {
   hasDate?: boolean;
   hasSlots?: boolean;
   hasAddress?: boolean;
+  /** Provider does not serve the selected address (distinct from a missing pin). */
+  addressOutside?: boolean;
   supervisionRequired?: boolean;
   hasSupervision?: boolean;
   hasRecipient?: boolean;
@@ -30,7 +32,11 @@ export function bookingDisabledReason(input: {
           ? "bookingUx.noSlots"
           : "bookingUx.chooseTime";
     case "address":
-      return !input.hasAddress ? "bookingUx.chooseAddress" : "bookingUx.outsideArea";
+      return !input.hasAddress
+        ? "bookingUx.chooseAddress"
+        : input.addressOutside
+          ? "bookingUx.outsideArea"
+          : "bookingUx.reviewChoices";
     case "forWhom":
       if (input.hasRecipient === false) return "bookingUx.chooseRecipient";
       if (input.supervisionRequired && !input.hasSupervision) return "bookingUx.chooseSupervision";
