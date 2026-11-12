@@ -21,8 +21,11 @@ import {
   useSetZoneProvider,
   useAdminServices,
   useAdminProviders,
+  useAllZoneCombinations,
+  useSyncZoneCombinations,
   type AdminZoneInput,
 } from "@/lib/db/admin-queries";
+import { combinationLabel, partnerZoneIdsFor } from "@/lib/geo/zoneCombinations";
 import { LocationPicker, isValidLatLng } from "@/components/famio/LocationPicker";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
 import {
@@ -44,6 +47,7 @@ type ZoneForm = {
   center_lng: number | null;
   radius_km: string;
   travel_fee: string;
+  combinablePartnerIds: string[];
 };
 
 const EMPTY_FORM: ZoneForm = {
@@ -55,9 +59,10 @@ const EMPTY_FORM: ZoneForm = {
   center_lng: null,
   radius_km: "5",
   travel_fee: "0",
+  combinablePartnerIds: [],
 };
 
-function formFromZone(z: any): ZoneForm {
+function formFromZone(z: any, combinablePartnerIds: string[] = []): ZoneForm {
   return {
     name_en: z.name_en ?? "",
     name_ar: z.name_ar ?? "",
@@ -67,6 +72,7 @@ function formFromZone(z: any): ZoneForm {
     center_lng: z.center_lng ?? null,
     radius_km: String(z.radius_km ?? 5),
     travel_fee: String(z.travel_fee ?? 0),
+    combinablePartnerIds,
   };
 }
 
@@ -187,18 +193,64 @@ function AddressTestTool({ zone }: { zone: any }) {
   );
 }
 
+function ZoneCombinablePartnersField({
+  zoneOptions,
+  excludeZoneId,
+  selected,
+  onChange,
+  disabled,
+}: {
+  zoneOptions: { id: string; name_en: string; name_ar: string; is_active: boolean }[];
+  excludeZoneId?: string;
+  selected: string[];
+  onChange: (ids: string[]) => void;
+  disabled?: boolean;
+}) {
+  const { t, i18n } = useTranslation();
+  const candidates = zoneOptions.filter((z) => z.is_active && z.id !== excludeZoneId);
+  if (candidates.length === 0) return null;
+  return (
+    <div>
+      <p className="text-xs font-semibold text-muted-foreground">{t("admin.zones.combinableWith")}</p>
+      <p className="mt-0.5 text-xs text-muted-foreground">{t("admin.zones.combinableHint")}</p>
+      <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto rounded-xl border border-border/60 p-2">
+        {candidates.map((z) => {
+          const on = selected.includes(z.id);
+          return (
+            <li key={z.id}>
+              <label className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-semibold hover:bg-surface-2">
+                <input
+                  type="checkbox"
+                  disabled={disabled}
+                  checked={on}
+                  onChange={() =>
+                    onChange(on ? selected.filter((id) => id !== z.id) : [...selected, z.id])
+                  }
+                />
+                {i18n.language.startsWith("ar") ? z.name_ar : z.name_en}
+              </label>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 function ZoneFormFields({
   form,
   setForm,
   errors,
   otherZones,
   excludeZoneId,
+  zoneOptions,
 }: {
   form: ZoneForm;
   setForm: (f: ZoneForm) => void;
   errors: Record<string, string>;
   otherZones: OtherZone[];
   excludeZoneId?: string;
+  zoneOptions: { id: string; name_en: string; name_ar: string; is_active: boolean }[];
 }) {
   const { t, i18n } = useTranslation();
   return (
@@ -319,7 +371,37 @@ function ZoneFormFields({
           </div>
         </>
       )}
+
+      <ZoneCombinablePartnersField
+        zoneOptions={zoneOptions}
+        excludeZoneId={excludeZoneId}
+        selected={form.combinablePartnerIds}
+        onChange={(combinablePartnerIds) => setForm({ ...form, combinablePartnerIds })}
+      />
     </div>
+  );
+}
+
+function ZoneCombinationsSummary({
+  zoneId,
+  combinations,
+  zones,
+}: {
+  zoneId: string;
+  combinations: { zone_a: string; zone_b: string }[];
+  zones: { id: string; name_en: string; name_ar: string }[];
+}) {
+  const { t, i18n } = useTranslation();
+  const nameFor = (id: string) => {
+    const z = zones.find((row) => row.id === id);
+    return z ? (i18n.language.startsWith("ar") ? z.name_ar : z.name_en) : undefined;
+  };
+  const label = combinationLabel(zoneId, combinations, nameFor);
+  if (!label) return null;
+  return (
+    <p className="text-xs text-muted-foreground">
+      {t("admin.zones.combinableSummary", { names: label })}
+    </p>
   );
 }
 
@@ -460,9 +542,11 @@ function ZoneCoverageSummary({ zoneId }: { zoneId: string }) {
 function AdminZones() {
   const { t, i18n } = useTranslation();
   const q = useAdminZones();
+  const combinationsQ = useAllZoneCombinations();
   const create = useCreateZone();
   const update = useUpdateZone();
   const setActive = useSetZoneActive();
+  const syncCombinations = useSyncZoneCombinations();
 
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
@@ -504,14 +588,23 @@ function AdminZones() {
     setCreating(true);
   };
 
+  const persistCombinations = async (zoneId: string, partnerIds: string[]) => {
+    await syncCombinations.mutateAsync({ zoneId, partnerIds });
+  };
+
   const submitCreate = () => {
     const errors = validate(createForm, t);
     setCreateErrors(errors);
     if (Object.keys(errors).length > 0) return;
     create.mutate(toInput(createForm, true), {
-      onSuccess: () => {
-        setCreating(false);
-        toast.success(t("admin.zones.created"));
+      onSuccess: async (row) => {
+        try {
+          await persistCombinations(row.id, createForm.combinablePartnerIds);
+          setCreating(false);
+          toast.success(t("admin.zones.created"));
+        } catch (e: any) {
+          toast.error(dbErrorMessage(e, t));
+        }
       },
       onError: (e: any) => toast.error(dbErrorMessage(e, t)),
     });
@@ -520,7 +613,8 @@ function AdminZones() {
   const startEdit = (z: any) => {
     setCreating(false);
     setEditErrors({});
-    setEditForm(formFromZone(z));
+    const partners = partnerZoneIdsFor(z.id, combinationsQ.data ?? []);
+    setEditForm(formFromZone(z, partners));
     setEditingId(z.id);
   };
 
@@ -531,9 +625,14 @@ function AdminZones() {
     update.mutate(
       { id: z.id, ...toInput(editForm, z.is_active) },
       {
-        onSuccess: () => {
-          setEditingId(null);
-          toast.success(t("admin.zones.updated"));
+        onSuccess: async () => {
+          try {
+            await persistCombinations(z.id, editForm.combinablePartnerIds);
+            setEditingId(null);
+            toast.success(t("admin.zones.updated"));
+          } catch (e: any) {
+            toast.error(dbErrorMessage(e, t));
+          }
         },
         onError: (e: any) => toast.error(dbErrorMessage(e, t)),
       },
@@ -593,6 +692,7 @@ function AdminZones() {
               setForm={setCreateForm}
               errors={createErrors}
               otherZones={allOtherZones}
+              zoneOptions={zones}
             />
           </div>
           <div className="mt-4 flex gap-2">
@@ -642,6 +742,7 @@ function AdminZones() {
                       errors={editErrors}
                       otherZones={allOtherZones.filter((o) => o.id !== z.id)}
                       excludeZoneId={z.id}
+                      zoneOptions={zones}
                     />
                     <div className="flex gap-2">
                       <button
@@ -682,6 +783,13 @@ function AdminZones() {
                         )}
                       </div>
                       <ZoneCoverageSummary zoneId={z.id} />
+                      {combinationsQ.isSuccess ? (
+                        <ZoneCombinationsSummary
+                          zoneId={z.id}
+                          combinations={combinationsQ.data ?? []}
+                          zones={zones}
+                        />
+                      ) : null}
                       <p className="text-xs text-muted-foreground">
                         {z.boundary_type === "polygon"
                           ? t("admin.zones.polygonMode")

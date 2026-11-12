@@ -816,6 +816,33 @@ export function useAdminZones() {
   });
 }
 
+export function useAllZoneCombinations() {
+  return useQuery({
+    queryKey: ['admin', 'zone-combinations'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('zone_combinations').select('zone_a, zone_b');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useSyncZoneCombinations() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ zoneId, partnerIds }: { zoneId: string; partnerIds: string[] }) => {
+      const { error } = await supabase.rpc('admin_sync_zone_combinations', {
+        p_zone_id: zoneId,
+        p_partner_zone_ids: partnerIds,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'zone-combinations'] });
+    },
+  });
+}
+
 export function useCreateZone() {
   const qc = useQueryClient();
   return useMutation({

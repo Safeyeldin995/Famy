@@ -52,6 +52,7 @@ vi.mock("@/lib/db/provider-queries", () => ({
   useMyProvider: () => ({ data: mocks.provider }),
   useProviderDocuments: () => ({ data: mocks.empty }),
   useSetProviderPrice: () => ({}),
+  useZoneCombinationsCatalog: () => ({ data: mocks.empty }),
 }));
 vi.mock("@/lib/provider/onboarding-queries", () => ({
   onboardingEditable: () => true,

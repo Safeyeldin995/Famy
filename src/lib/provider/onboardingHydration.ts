@@ -167,17 +167,28 @@ export function mapSavedReferences(rows: SavedReferenceRow[] | null | undefined)
   };
 }
 
+export function coverageZoneIdsFromSelection(
+  primaryZoneId: string | null | undefined,
+  secondaryZoneId: string | null | undefined,
+): string[] {
+  const ids = [primaryZoneId, secondaryZoneId].filter(
+    (id): id is string => typeof id === "string" && id.length > 0,
+  );
+  return ids;
+}
+
 export function buildCoverageSavePayload(
   loadState: SavedSelectionLoadState,
   selectedZoneIds: string[],
   activeZoneIds: string[],
 ):
   | { ok: true; zone_ids: string[] }
-  | { ok: false; error: "not_loaded" | "load_failed" | "zone_required" } {
+  | { ok: false; error: "not_loaded" | "load_failed" | "zone_required" | "zone_max_two" } {
   if (loadState === "loading") return { ok: false, error: "not_loaded" };
   if (loadState === "error") return { ok: false, error: "load_failed" };
   const zone_ids = selectedZoneIds.filter((id) => activeZoneIds.includes(id));
   if (zone_ids.length === 0) return { ok: false, error: "zone_required" };
+  if (zone_ids.length > 2) return { ok: false, error: "zone_max_two" };
   return { ok: true, zone_ids };
 }
 
