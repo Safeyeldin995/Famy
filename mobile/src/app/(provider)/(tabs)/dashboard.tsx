@@ -2,7 +2,7 @@ import { Pressable, View } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Avatar } from "@/ui/ProviderCard";
-import { Bell, Star } from "lucide-react-native";
+import { Bell, CalendarRange, Star } from "lucide-react-native";
 import { BOOKING_ACTIVE_STATUSES } from "@/lib/provider/constants";
 import { earningsHeadlineKind } from "@shared/earnings/aggregateProviderEarnings";
 import {
@@ -129,6 +129,50 @@ export default function ProviderDashboard() {
       {!bookingsQ.isError && bookingsQ.data ? (
         <HomeProviderActiveBookingCard bookings={all} pendingCount={pending.length} />
       ) : null}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t("pro.dashboard.scheduleCard", {
+          status: t(
+            provider?.vacation_mode
+              ? "pro.dashboard.scheduleStatusVacation"
+              : "pro.dashboard.scheduleStatusAvailable",
+          ),
+        })}
+        onPress={() => router.push("/schedule")}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: space.md,
+          minHeight: 56,
+          borderRadius: radius.xl,
+          padding: space.md,
+          borderWidth: 1,
+          borderColor: colors.border,
+          backgroundColor: colors.surface,
+        }}
+      >
+        <View
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 12,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: colors.brandTint,
+          }}
+        >
+          <CalendarRange size={22} color={colors.brand} />
+        </View>
+        <Text weight="heavy" style={{ flex: 1 }}>
+          {t("pro.dashboard.scheduleCard", {
+            status: t(
+              provider?.vacation_mode
+                ? "pro.dashboard.scheduleStatusVacation"
+                : "pro.dashboard.scheduleStatusAvailable",
+            ),
+          })}
+        </Text>
+      </Pressable>
       <Text tone="muted" size="sm">
         <Text weight="bold" size="sm">
           {t("proWork.today")}

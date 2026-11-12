@@ -6,6 +6,7 @@ import { colors, space } from "@/ui/theme";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMyBookings, useBookingParties } from "@/lib/queries";
+import { unreadConversationsByBookingId, useConversations } from "@/lib/chatQueries";
 import { activeStatuses, localized } from "@/lib/presentation";
 import { customerMoney, customerNumber } from "@/lib/customerFormat";
 import { uiListSeparator } from "@shared/format/uiJoin";
@@ -23,6 +24,8 @@ export default function Bookings() {
   const { t, i18n } = useTranslation();
   const [tab, setTab] = useState("upcoming");
   const q = useMyBookings();
+  const conversations = useConversations();
+  const unreadByBooking = unreadConversationsByBookingId(conversations.data);
   const parties = useBookingParties((q.data ?? []).map((b) => b.id));
   const rows = (q.data ?? []).filter((b) =>
     tab === "upcoming"
@@ -37,7 +40,7 @@ export default function Bookings() {
     <Page
       tab
       title={t("bookings.title")}
-      queries={[q, parties]}
+      queries={[q, parties, conversations]}
       contentStyle={{ paddingTop: 16, gap: 10 }}
       header={
         <CustomerPageHeader
@@ -97,6 +100,7 @@ export default function Bookings() {
           const past = tab !== "upcoming";
           const statusStyle = bookingStatusStyle(b.status);
           const hours = Math.max(1, Math.round((+new Date(b.end_at) - +start) / 36e5));
+          const hasUnread = unreadByBooking.get(b.id) === true;
           return (
             <View
               key={b.id}
@@ -118,14 +122,32 @@ export default function Bookings() {
                 style={({ pressed }) => [{ padding: 16, gap: 12 }, pressed && ui.pressed]}
               >
                 <View style={[customerStyle.row, { alignItems: "flex-start" }]}>
-                  <Avatar
-                    name={
-                      party?.other_name || b.provider?.profile.full_name || t("provider2.unnamed")
-                    }
-                    raw={party?.other_avatar_url || b.provider?.profile.avatar_url}
-                    size={56}
-                    round
-                  />
+                  <View>
+                    <Avatar
+                      name={
+                        party?.other_name || b.provider?.profile.full_name || t("provider2.unnamed")
+                      }
+                      raw={party?.other_avatar_url || b.provider?.profile.avatar_url}
+                      size={56}
+                      round
+                    />
+                    {hasUnread ? (
+                      <View
+                        testID={`booking-row-unread-${b.id}`}
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          end: 0,
+                          width: 12,
+                          height: 12,
+                          borderRadius: 6,
+                          borderWidth: 2,
+                          borderColor: past ? colors.surface2 : colors.surface,
+                          backgroundColor: colors.brand,
+                        }}
+                      />
+                    ) : null}
+                  </View>
                   <View style={{ flex: 1, gap: 8 }}>
                     <View style={[customerStyle.row, { alignItems: "flex-start", gap: 8 }]}>
                       <View style={{ flex: 1 }}>

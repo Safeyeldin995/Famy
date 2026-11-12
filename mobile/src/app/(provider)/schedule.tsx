@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Pressable, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Trash2 } from "lucide-react-native";
 import { hasSharedWorkingHours, type WorkingRule } from "@/lib/provider/availabilityHelpers";
@@ -19,9 +19,68 @@ import { WeeklyHoursEditor } from "@/ui/provider/WeeklyHoursEditor";
 import { ScheduleDateSheet } from "@/ui/provider/ScheduleDateSheet";
 import { proCard } from "@/ui/provider/cards";
 import { Page, QueryState, ActionError } from "@/ui/Page";
+import { ProviderHeader } from "@/ui/provider/ProviderHeader";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { colors, space } from "@/ui/theme";
+import { customerNumber } from "@/lib/customerFormat";
+
+const NOTICE_HOURS = [0, 1, 2, 3, 6, 12, 24] as const;
+const BUFFER_MINUTES = [0, 15, 30, 60] as const;
+
+function RuleChipRow({
+  values,
+  selected,
+  unitKey,
+  disabled,
+  onSelect,
+}: {
+  values: readonly number[];
+  selected: number;
+  unitKey: "hoursUnit" | "minutes";
+  disabled?: boolean;
+  onSelect: (value: number) => void;
+}) {
+  const { t, i18n } = useTranslation();
+  return (
+    <ScrollView
+      horizontal
+      style={{ flexGrow: 0 }}
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ flexDirection: "row", gap: 8, paddingVertical: 4 }}
+    >
+      {values.map((value) => {
+        const active = selected === value;
+        const label = `${customerNumber(value, i18n.language)} ${t(`scheduleUi.${unitKey}`)}`;
+        return (
+          <Pressable
+            key={value}
+            accessibilityRole="button"
+            accessibilityLabel={label}
+            accessibilityState={{ selected: active, disabled }}
+            disabled={disabled}
+            onPress={() => onSelect(value)}
+            style={{
+              minHeight: 44,
+              paddingHorizontal: 14,
+              borderRadius: 999,
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 1,
+              borderColor: active ? colors.brand : colors.border,
+              backgroundColor: active ? colors.brandTint : colors.surface2,
+              opacity: disabled ? 0.5 : 1,
+            }}
+          >
+            <Text weight="bold" tone={active ? "brand" : "default"}>
+              {label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+}
 
 export default function ProviderSchedule() {
   const { t, i18n } = useTranslation();
@@ -39,7 +98,6 @@ export default function ProviderSchedule() {
   const deleteException = useDeleteException();
   const deleteBusy = deleteVacation.isPending || deleteException.isPending;
   const [dateSheet, setDateSheet] = useState<"vacation" | "holiday" | null>(null);
-  const [advanced, setAdvanced] = useState(false);
   const [rules, setRules] = useState({
     buffer_minutes: 30,
     min_notice_hours: 4,
@@ -95,6 +153,13 @@ export default function ProviderSchedule() {
   };
 
   const vacation = !!provider?.vacation_mode;
+  const rulesBusy = updateProv.isPending || !provider?.id;
+  const persistRules = (patch: Partial<typeof rules>) => {
+    const next = { ...rules, ...patch };
+    setRules(next);
+    if (!provider?.id || updateProv.isPending) return;
+    updateProv.mutate(next);
+  };
   const dateLabel = (value: string, weekday = false) => {
     const [year, month, day] = value.split("-").map(Number);
     return new Intl.DateTimeFormat(i18n.language.startsWith("ar") ? "ar-EG-u-nu-latn" : "en-GB", {
@@ -106,7 +171,11 @@ export default function ProviderSchedule() {
   };
 
   return (
-    <Page tab title={t("pro.schedule.title")} queries={[p, availQ, vacations, exceptions]}>
+    <Page
+      title={t("pro.schedule.title")}
+      header={<ProviderHeader title={t("pro.schedule.title")} />}
+      queries={[p, availQ, vacations, exceptions]}
+    >
       <QueryState query={availQ}>
         <View style={proCard.card}>
           <Text weight="heavy">{t("scheduleUi.hours")}</Text>
@@ -131,6 +200,34 @@ export default function ProviderSchedule() {
           {t("pro.common.saved")}
         </Text>
       ) : null}
+      <View style={[proCard.card, { gap: 16 }]}>
+        <View style={{ gap: 8 }}>
+          <Text weight="heavy">{t("pro.schedule.minNoticeQuestion")}</Text>
+          <Text size="xs" tone="muted">
+            {t("pro.schedule.minNoticeHelper")}
+          </Text>
+          <RuleChipRow
+            values={NOTICE_HOURS}
+            selected={rules.min_notice_hours}
+            unitKey="hoursUnit"
+            disabled={rulesBusy}
+            onSelect={(min_notice_hours) => persistRules({ min_notice_hours })}
+          />
+        </View>
+        <View style={{ gap: 8 }}>
+          <Text weight="heavy">{t("pro.schedule.bufferQuestion")}</Text>
+          <Text size="xs" tone="muted">
+            {t("pro.schedule.bufferHelper")}
+          </Text>
+          <RuleChipRow
+            values={BUFFER_MINUTES}
+            selected={rules.buffer_minutes}
+            unitKey="minutes"
+            disabled={rulesBusy}
+            onSelect={(buffer_minutes) => persistRules({ buffer_minutes })}
+          />
+        </View>
+      </View>
       <View style={[proCard.card, { marginTop: space.lg }]}>
         <Pressable
           accessibilityRole="switch"
@@ -246,80 +343,6 @@ export default function ProviderSchedule() {
           </View>
         );
       })}
-      <View style={proCard.card}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t("pro.schedule.advanced")}
-          accessibilityState={{ expanded: advanced }}
-          onPress={() => setAdvanced((value) => !value)}
-          style={{ minHeight: 44, justifyContent: "center" }}
-        >
-          <Text weight="bold">{t("pro.schedule.advanced")}</Text>
-        </Pressable>
-        {advanced ? (
-          <View style={{ gap: 16 }}>
-            {(
-              [
-                ["buffer_minutes", "bufferMinutes", "minutes", 0, 5],
-                ["min_notice_hours", "minNoticeHours", "hoursUnit", 0, 1],
-                ["max_advance_days", "maxAdvanceDays", "days", 1, 1],
-              ] as const
-            ).map(([key, label, unit, minimum, step]) => (
-              <View key={key} style={{ gap: 8 }}>
-                <Text weight="bold">{t(`pro.schedule.${label}`)}</Text>
-                <Text size="xs" tone="muted">
-                  {t(`pro.schedule.${label}Example`)}
-                </Text>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`${t(`pro.schedule.${label}`)} -`}
-                    onPress={() =>
-                      setRules((value) => ({
-                        ...value,
-                        [key]: Math.max(minimum, value[key] - step),
-                      }))
-                    }
-                    style={{
-                      width: 44,
-                      height: 44,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      borderRadius: 12,
-                      backgroundColor: colors.surface2,
-                    }}
-                  >
-                    <Text weight="heavy">−</Text>
-                  </Pressable>
-                  <Text weight="heavy" style={{ writingDirection: "ltr" }}>
-                    {rules[key]} {t(`scheduleUi.${unit}`)}
-                  </Text>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`${t(`pro.schedule.${label}`)} +`}
-                    onPress={() => setRules((value) => ({ ...value, [key]: value[key] + step }))}
-                    style={{
-                      width: 44,
-                      height: 44,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      borderRadius: 12,
-                      backgroundColor: colors.surface2,
-                    }}
-                  >
-                    <Text weight="heavy">+</Text>
-                  </Pressable>
-                </View>
-              </View>
-            ))}
-            <Button
-              label={t(updateProv.isPending ? "pro.common.saving" : "pro.schedule.saveRules")}
-              disabled={updateProv.isPending}
-              onPress={() => updateProv.mutate(rules)}
-            />
-          </View>
-        ) : null}
-      </View>
       <ActionError
         error={
           updateProv.error ||

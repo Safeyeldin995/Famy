@@ -123,6 +123,7 @@ export default function ProviderProfile() {
           </View>
         </View>
       </QueryState>
+      <Row label={t("scheduleUi.hours")} onPress={() => router.push("/schedule")} />
       <Text weight="bold" tone="muted" size="sm">
         {t("pro.profile.about")}
       </Text>

@@ -1,17 +1,20 @@
 import type { ComponentProps } from "react";
 import { Tabs } from "expo-router/tabs";
 import { Pressable, StyleSheet, View } from "react-native";
-import { Calendar, Home, MessageCircle, User } from "lucide-react-native";
+import { Calendar, Home, User } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
+import { unreadConversationCount, useConversations } from "@/lib/chatQueries";
 import { Text } from "./Text";
 import { colors } from "./theme";
 
-const tabs = { home: Home, bookings: Calendar, messages: MessageCircle, profile: User };
+const tabs = { home: Home, bookings: Calendar, profile: User };
 type BottomTabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>["tabBar"]>>[0];
 export function CustomerBottomNav({ state, emitter, navigateToTab }: BottomTabBarProps) {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
+  const conversations = useConversations();
+  const messageUnread = unreadConversationCount(conversations.data);
   return (
     <View
       style={[
@@ -28,6 +31,7 @@ export function CustomerBottomNav({ state, emitter, navigateToTab }: BottomTabBa
           const name = route.name as keyof typeof tabs;
           const Icon = tabs[name];
           const active = state.routes[state.index].key === route.key;
+          const showUnread = name === "bookings" && messageUnread > 0;
           return (
             <Pressable
               key={route.key}
@@ -51,6 +55,9 @@ export function CustomerBottomNav({ state, emitter, navigateToTab }: BottomTabBa
                   strokeWidth={active ? 2.5 : 1.75}
                   color={active ? colors.brand : colors.muted}
                 />
+                {showUnread ? (
+                  <View testID="bookings-tab-unread" style={styles.dot} />
+                ) : null}
               </View>
               <Text size="xs" weight="heavy" tone={active ? "brand" : "muted"}>
                 {t(`nav.${name}`)}
@@ -88,4 +95,13 @@ const styles = StyleSheet.create({
     borderRadius: 24,
   },
   icon: { height: 36, width: 56, borderRadius: 28, alignItems: "center", justifyContent: "center" },
+  dot: {
+    position: "absolute",
+    top: 4,
+    end: 14,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.brand,
+  },
 });

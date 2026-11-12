@@ -34,6 +34,18 @@ export type ConversationListItem = {
   chat_closed: boolean;
 };
 
+export function unreadConversationCount(items: ConversationListItem[] | undefined) {
+  return (items ?? []).filter((item) => item.unread).length;
+}
+
+export function unreadConversationsByBookingId(items: ConversationListItem[] | undefined) {
+  const map = new Map<string, boolean>();
+  for (const item of items ?? []) {
+    if (item.unread) map.set(item.booking_id, true);
+  }
+  return map;
+}
+
 export function useConversations() {
   const { session } = useSession();
   return useQuery({

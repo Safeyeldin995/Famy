@@ -262,6 +262,9 @@ async function run() {
   await expect(page.getByText(ar.pro.profile.title).first()).toBeVisible();
   await shot("profile-edit");
 
+  await visit("/pro-profile");
+  await page.getByRole("button", { name: ar.scheduleUi.hours, exact: true }).click();
+  await expect(page).toHaveURL(/\/schedule$/);
   await visit("/pro-notification-preferences");
   await expect(page.getByText(ar.mobilePro.notificationPrefs).first()).toBeVisible();
   await page.getByRole("switch", { name: ar.notifPrefs.bookingUpdates }).click();

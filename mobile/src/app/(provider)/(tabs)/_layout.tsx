@@ -1,7 +1,7 @@
 import { Redirect } from "expo-router";
 import { Tabs } from "expo-router/tabs";
 import { useTranslation } from "react-i18next";
-import { CalendarRange, ClipboardList, LayoutDashboard, User, Wallet } from "lucide-react-native";
+import { ClipboardList, LayoutDashboard, User, Wallet } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useWindowDimensions } from "react-native";
 import { useSession } from "@/lib/session";
@@ -48,15 +48,6 @@ export default function ProviderTabs() {
             title: t("pro.nav.jobs"),
             tabBarIcon: ({ color, focused }) => (
               <ClipboardList size={22} color={focused ? colors.brand : color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="schedule"
-          options={{
-            title: t("pro.nav.schedule"),
-            tabBarIcon: ({ color, focused }) => (
-              <CalendarRange size={22} color={focused ? colors.brand : color} />
             ),
           }}
         />

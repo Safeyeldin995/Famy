@@ -608,6 +608,9 @@ async function run() {
     ),
   )(mod.exports, mod);
   const ar = mod.exports.default;
+  await visit("/profile", ar.profile.title);
+  await page.getByRole("button", { name: ar.nav.messages, exact: true }).click();
+  await expect(page).toHaveURL(/\/messages$/);
   async function button(label) {
     await page.getByRole("button", { name: label, exact: true }).click();
   }
