@@ -6,6 +6,13 @@ import {
   customerHomeActiveBookings,
   homeActiveBookingStatusKey,
   pickSoonestCustomerHomeActiveBooking,
+  pickSoonestProviderHomeActiveBooking,
+  providerHomeActiveBookingCtaKey,
+  providerHomeActiveBookingNextStepKey,
+  providerHomeActiveBookingNeedsAction,
+  providerHomeActiveBookingTargetStatus,
+  PROVIDER_HOME_ACTIVE_STATUSES,
+  providerHomeActiveBookingStatusKey,
 } from "../activeHomeBookings";
 
 describe("activeHomeBookings", () => {
@@ -25,6 +32,20 @@ describe("activeHomeBookings", () => {
     ];
     expect(customerHomeActiveBookings(bookings).map((b) => b.id)).toEqual(["a", "b"]);
     expect(pickSoonestCustomerHomeActiveBooking(bookings)?.id).toBe("a");
+  });
+
+  it("maps provider home statuses and provider CTAs", () => {
+    for (const status of PROVIDER_HOME_ACTIVE_STATUSES) {
+      expect(providerHomeActiveBookingStatusKey(status)).toBe(`providerHome.activeStatus.${status}`);
+    }
+    expect(pickSoonestProviderHomeActiveBooking([
+      { id: "b", status: "confirmed", start_at: "2026-06-02T10:00:00Z" },
+      { id: "a", status: "on_the_way", start_at: "2026-06-01T10:00:00Z" },
+    ])?.id).toBe("a");
+    expect(providerHomeActiveBookingNeedsAction("arrived")).toBe(true);
+    expect(providerHomeActiveBookingNextStepKey("arrived")).toBe("providerHome.nextStep.arrived");
+    expect(providerHomeActiveBookingCtaKey("confirmed")).toBe("providerHome.cta.onTheWay");
+    expect(providerHomeActiveBookingTargetStatus("in_progress")).toBe("completion_requested");
   });
 
   it("flags arrived and completion_requested for customer action CTAs", () => {
