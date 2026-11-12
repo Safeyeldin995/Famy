@@ -743,6 +743,8 @@ export type Database = {
           address_id: string | null
           arrival_confirmed_at: string | null
           arrival_confirmed_by: string | null
+          session_started_at: string | null
+          session_ended_at: string | null
           cancellation_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
@@ -808,6 +810,8 @@ export type Database = {
           address_id?: string | null
           arrival_confirmed_at?: string | null
           arrival_confirmed_by?: string | null
+          session_started_at?: string | null
+          session_ended_at?: string | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
@@ -873,6 +877,8 @@ export type Database = {
           address_id?: string | null
           arrival_confirmed_at?: string | null
           arrival_confirmed_by?: string | null
+          session_started_at?: string | null
+          session_ended_at?: string | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
@@ -3914,6 +3920,28 @@ export type Database = {
         Args: { p_action: string; p_reason: string; p_request_id: string }
         Returns: undefined
       }
+      admin_set_booking_status: {
+        Args: {
+          p_booking_id: string
+          p_status: Database["public"]["Enums"]["booking_status"]
+          p_reason: string
+        }
+        Returns: undefined
+      }
+      admin_set_booking_session_times: {
+        Args: {
+          p_booking_id: string
+          p_session_started_at?: string | null
+          p_session_ended_at?: string | null
+          p_arrival_confirmed_at?: string | null
+          p_reason: string
+        }
+        Returns: undefined
+      }
+      admin_bookings_needing_lifecycle_attention: {
+        Args: Record<string, never>
+        Returns: string[]
+      }
       admin_retry_notification: { Args: { p_id: string }; Returns: undefined }
       admin_list_provider_teaching_capabilities: {
         Args: { p_provider_id: string }
@@ -4351,8 +4379,11 @@ export type Database = {
         Returns: {
           min_hours_before_start: number
           pending_ttl_hours: number
+          auto_complete_hours: number
+          completion_auto_from: string
         }[]
       }
+      auto_complete_bookings: { Args: never; Returns: number }
       provider_finalize_document_upload: {
         Args: {
           p_path: string

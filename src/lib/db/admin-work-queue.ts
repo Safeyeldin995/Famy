@@ -8,6 +8,7 @@ export const ADMIN_WORK_QUEUE_KEYS = [
   "pending_documents",
   "open_cases",
   "bookings_needing_action",
+  "bookings_lifecycle_attention",
   "payments_pending_review",
 ] as const;
 

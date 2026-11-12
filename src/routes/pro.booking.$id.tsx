@@ -8,7 +8,9 @@ import { shortBookingCode } from "@/lib/provider/workScreenPresentation";
 import { useBookingParty } from "@/lib/db/booking-parties";
 import {
   isBookingTooEarlyError,
+  isProviderCompletionTooEarly,
   isProviderStepTooEarly,
+  providerCompletionMinutesRemaining,
   providerStepOpensAt,
 } from "@/lib/booking/timeWindow";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
@@ -188,8 +190,13 @@ export function ProBookingDetail({ id, preview = false }: { id: string; preview?
       ? (b.service?.name_ar ?? b.service?.name_en)
       : (b.service?.name_en ?? b.service?.name_ar);
   const terminal = ["completed", "cancelled", "no_show", "disputed"].includes(b.status);
-  const stepOpensAt = providerStepOpensAt(b.status, b.start_at);
-  const tooEarly = isProviderStepTooEarly(b.status, b.start_at, new Date(nowMs));
+  const stepOpensAt = providerStepOpensAt(b.status, b.start_at, b.end_at);
+  const tooEarly = isProviderStepTooEarly(b.status, b.start_at, b.end_at, new Date(nowMs));
+  const completionTooEarly =
+    b.status === "in_progress" && isProviderCompletionTooEarly(b, new Date(nowMs));
+  const completionMinutesLeft = completionTooEarly
+    ? providerCompletionMinutesRemaining(b, new Date(nowMs))
+    : 0;
   const opensHint =
     tooEarly && stepOpensAt ? (
       <p className="rounded-2xl bg-surface-2 px-4 py-3 text-center text-pro-13 font-semibold text-muted-foreground">
@@ -575,10 +582,21 @@ export function ProBookingDetail({ id, preview = false }: { id: string; preview?
 
         {b.status === "in_progress" && (
           <div className="space-y-2">
-            {opensHint}
+            {b.session_started_at && (
+              <p className="rounded-2xl bg-surface-2 px-4 py-3 text-center text-pro-13 font-semibold text-muted-foreground">
+                {t("pro.booking.sessionStartedAt", {
+                  time: formatDateTime(new Date(b.session_started_at), dateLoc),
+                })}
+              </p>
+            )}
+            {completionTooEarly && (
+              <p className="rounded-2xl bg-surface-2 px-4 py-3 text-center text-pro-13 font-semibold text-muted-foreground">
+                {t("pro.booking.completionWaitMinutes", { count: completionMinutesLeft })}
+              </p>
+            )}
             <PrimaryButton
               onClick={() => run("completion_requested")}
-              disabled={mut.isPending || tooEarly}
+              disabled={mut.isPending || completionTooEarly}
               variant="coral"
             >
               {t("pro.booking.requestCompletion")}

@@ -24,6 +24,15 @@
       "@/lib/booking/childAgeMonths": [
         "../src/lib/booking/childAgeMonths"
       ],
+      "@/lib/booking/timeWindow": [
+        "../src/lib/booking/timeWindow"
+      ],
+      "@/lib/booking/sessionLifecycle": [
+        "../src/lib/booking/sessionLifecycle"
+      ],
+      "@shared/booking/completion-auto": [
+        "../src/lib/booking/completion-auto"
+      ],
       "@supabase/supabase-js": [
         "./node_modules/@supabase/supabase-js"
       ]

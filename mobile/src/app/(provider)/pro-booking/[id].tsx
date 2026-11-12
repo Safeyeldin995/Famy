@@ -8,7 +8,9 @@ import { bookingTeachingSummary } from "@shared/tutoring/bookingTeachingSummary"
 import { shortBookingCode } from "@/lib/provider/constants";
 import {
   isBookingTooEarlyError,
+  isProviderCompletionTooEarly,
   isProviderStepTooEarly,
+  providerCompletionMinutesRemaining,
   providerStepOpensAt,
 } from "@/lib/provider/timeWindow";
 import { useBookingParty } from "@/lib/provider/parties";
@@ -52,11 +54,37 @@ export default function ProBookingDetail() {
     (i18n.language.startsWith("ar") ? party?.zone_name_ar : party?.zone_name_en) || party?.area;
   const status = String(b?.status ?? "");
   const tooEarly =
-    b?.start_at && status
-      ? isProviderStepTooEarly(status, String(b.start_at), new Date(nowMs))
+    b?.start_at && b?.end_at && status
+      ? isProviderStepTooEarly(status, String(b.start_at), String(b.end_at), new Date(nowMs))
       : false;
   const stepOpensAt =
-    b?.start_at && status ? providerStepOpensAt(status, String(b.start_at)) : null;
+    b?.start_at && b?.end_at && status
+      ? providerStepOpensAt(status, String(b.start_at), String(b.end_at))
+      : null;
+  const completionTooEarly =
+    b?.start_at && b?.end_at && status === "in_progress"
+      ? isProviderCompletionTooEarly(
+          {
+            start_at: String(b.start_at),
+            end_at: String(b.end_at),
+            session_started_at: (b.session_started_at as string | null) ?? null,
+            arrival_confirmed_at: (b.arrival_confirmed_at as string | null) ?? null,
+          },
+          new Date(nowMs),
+        )
+      : false;
+  const completionMinutesLeft =
+    completionTooEarly && b?.start_at && b?.end_at
+      ? providerCompletionMinutesRemaining(
+          {
+            start_at: String(b.start_at),
+            end_at: String(b.end_at),
+            session_started_at: (b.session_started_at as string | null) ?? null,
+            arrival_confirmed_at: (b.arrival_confirmed_at as string | null) ?? null,
+          },
+          new Date(nowMs),
+        )
+      : 0;
 
   const run = (nextStatus: string, onSuccess?: () => void) => {
     mut.mutate(
@@ -274,11 +302,18 @@ export default function ProBookingDetail() {
             />
           ) : null}
           {status === "in_progress" ? (
-            <Button
-              label={t("pro.booking.requestCompletion")}
-              disabled={tooEarly || mut.isPending}
-              onPress={() => run("completion_requested")}
-            />
+            <>
+              {completionTooEarly ? (
+                <Text tone="muted" style={{ textAlign: "center" }}>
+                  {t("pro.booking.completionWaitMinutes", { count: completionMinutesLeft })}
+                </Text>
+              ) : null}
+              <Button
+                label={t("pro.booking.requestCompletion")}
+                disabled={completionTooEarly || mut.isPending}
+                onPress={() => run("completion_requested")}
+              />
+            </>
           ) : null}
           {status === "completion_requested" ? (
             <Text tone="muted" style={{ textAlign: "center" }}>

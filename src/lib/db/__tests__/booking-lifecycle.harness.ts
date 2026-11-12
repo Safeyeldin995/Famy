@@ -194,10 +194,9 @@ export async function seedLifecycleBooking(
     await asServiceRole(db, () =>
       db.exec(`
         UPDATE public.bookings
-        SET start_at = (c.d - interval '1 day' + time '${LIFECYCLE_SLOT_START}') AT TIME ZONE 'Africa/Cairo',
-            end_at = (c.d - interval '1 day' + time '${LIFECYCLE_SLOT_END}') AT TIME ZONE 'Africa/Cairo'
+        SET start_at = now() - interval '45 minutes',
+            end_at = now() + interval '75 minutes'
             ${status === "pending" ? "" : `, status = '${status}'::public.booking_status`}
-        FROM (SELECT (timezone('Africa/Cairo', now()))::date AS d) c
         WHERE id = '${bookingId}';
       `),
     );
@@ -325,17 +324,36 @@ export async function cancellationReasonFor(
 }
 
 /** Walks the standard happy-path lifecycle through to completed. */
+/** Backdate session start so completion can be requested (service role; trigger skips when auth.uid() is null). */
+export async function allowCompletionForBooking(db: PGlite, bookingId: string): Promise<void> {
+  await asServiceRole(db, async () => {
+    const rows = await queryRows<{ duration: string }>(
+      db,
+      `SELECT (end_at - start_at)::text AS duration FROM public.bookings WHERE id = $1`,
+      [bookingId],
+    );
+    const duration = rows[0]?.duration ?? "2 hours";
+    await db.exec(`
+      UPDATE public.bookings
+      SET session_started_at = now() - interval '${duration}'
+      WHERE id = '${bookingId}';
+    `);
+  });
+}
+
 export async function completeHappyPath(db: PGlite, bookingId: string): Promise<void> {
   const steps: Array<{ user: string; status: BookingStatus }> = [
     { user: IDS.providerUser, status: "confirmed" },
     { user: IDS.providerUser, status: "on_the_way" },
     { user: IDS.providerUser, status: "arrived" },
-    { user: IDS.customer, status: "arrival_confirmed" },
-    { user: IDS.providerUser, status: "in_progress" },
+    { user: IDS.customer, status: "in_progress" },
     { user: IDS.providerUser, status: "completion_requested" },
     { user: IDS.customer, status: "completed" },
   ];
   for (const step of steps) {
+    if (step.status === "completion_requested") {
+      await allowCompletionForBooking(db, bookingId);
+    }
     const result = await updateBookingStatus(db, step.user, bookingId, step.status);
     if (!result.ok) {
       throw new Error(`transition to ${step.status} failed: ${result.error}`);

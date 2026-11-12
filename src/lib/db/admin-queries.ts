@@ -270,6 +270,66 @@ export function useAdminBookings(status?: string | string[]) {
   });
 }
 
+export function useAdminSetBookingStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      bookingId: string;
+      status: string;
+      reason: string;
+    }) => {
+      const { error } = await supabase.rpc("admin_set_booking_status", {
+        p_booking_id: input.bookingId,
+        p_status: input.status as never,
+        p_reason: input.reason,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["admin", "bookings"] });
+      qc.invalidateQueries({ queryKey: ["admin", "work-queue"] });
+      qc.invalidateQueries({ queryKey: ["booking", vars.bookingId] });
+    },
+  });
+}
+
+export function useAdminSetBookingSessionTimes() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      bookingId: string;
+      reason: string;
+      sessionStartedAt?: string | null;
+      sessionEndedAt?: string | null;
+      arrivalConfirmedAt?: string | null;
+    }) => {
+      const { error } = await supabase.rpc("admin_set_booking_session_times", {
+        p_booking_id: input.bookingId,
+        p_reason: input.reason,
+        p_session_started_at: input.sessionStartedAt ?? undefined,
+        p_session_ended_at: input.sessionEndedAt ?? undefined,
+        p_arrival_confirmed_at: input.arrivalConfirmedAt ?? undefined,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["admin", "bookings"] });
+      qc.invalidateQueries({ queryKey: ["booking", vars.bookingId] });
+    },
+  });
+}
+
+export function useLifecycleAttentionBookingIds() {
+  return useQuery({
+    queryKey: ["admin", "bookings-lifecycle-attention"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("admin_bookings_needing_lifecycle_attention");
+      if (error) throw error;
+      return (data ?? []) as string[];
+    },
+  });
+}
+
 export function useUpdateBookingStatus() {
   const qc = useQueryClient();
   return useMutation({

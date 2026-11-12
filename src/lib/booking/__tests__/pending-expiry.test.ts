@@ -12,12 +12,22 @@ import {
 describe("pending expiry helpers", () => {
   it("parses booking_expiry settings with defaults", () => {
     expect(parseBookingExpirySettings(null)).toEqual(DEFAULT_BOOKING_EXPIRY_SETTINGS);
-    expect(parseBookingExpirySettings({ pending_ttl_hours: 6, min_hours_before_start: 3 })).toEqual(
-      {
+    expect(
+      parseBookingExpirySettings({
         pending_ttl_hours: 6,
         min_hours_before_start: 3,
-      },
-    );
+        auto_complete_hours: 8,
+      }),
+    ).toEqual({
+      pending_ttl_hours: 6,
+      min_hours_before_start: 3,
+      auto_complete_hours: 8,
+    });
+    expect(parseBookingExpirySettings({ pending_ttl_hours: 6, min_hours_before_start: 3 })).toEqual({
+      pending_ttl_hours: 6,
+      min_hours_before_start: 3,
+      auto_complete_hours: 6,
+    });
   });
 
   it("detects provider_no_response cancellations", () => {
@@ -67,8 +77,12 @@ describe("pending expiry helpers", () => {
   it("matches create_booking lead time: max(min_hours_before_start, provider notice)", () => {
     expect(creationMinHours(0)).toBe(2);
     expect(creationMinHours(4)).toBe(4);
-    expect(creationMinHours(0, { pending_ttl_hours: 12, min_hours_before_start: 0 })).toBe(0);
-    expect(creationMinHours(3, { pending_ttl_hours: 12, min_hours_before_start: 2 })).toBe(3);
+    expect(
+      creationMinHours(0, { pending_ttl_hours: 12, min_hours_before_start: 0, auto_complete_hours: 6 }),
+    ).toBe(0);
+    expect(
+      creationMinHours(3, { pending_ttl_hours: 12, min_hours_before_start: 2, auto_complete_hours: 6 }),
+    ).toBe(3);
   });
 
   it("formats remaining response time", () => {
