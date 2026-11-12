@@ -50,13 +50,27 @@ BEGIN
     GROUP BY 1
   ) x;
 
-  SELECT COALESCE(SUM(e.amount), 0)
+  SELECT COALESCE(SUM(x.share), 0)
   INTO v_platform_share
-  FROM public.provider_ledger_entries e
-  WHERE e.created_at >= p_from
-    AND e.created_at < p_to
-    AND e.kind = 'cash_collected_platform_share'
-    AND e.direction = 'debit';
+  FROM (
+    SELECT e.amount AS share
+    FROM public.provider_ledger_entries e
+    WHERE e.created_at >= p_from
+      AND e.created_at < p_to
+      AND e.kind = 'cash_collected_platform_share'
+      AND e.direction = 'debit'
+    UNION ALL
+    SELECT GREATEST(b.price_total - b.price_provider_net, 0) AS share
+    FROM public.provider_ledger_entries e
+    JOIN public.bookings b ON b.id = e.booking_id
+    WHERE e.created_at >= p_from
+      AND e.created_at < p_to
+      AND e.kind = 'online_provider_share'
+      AND e.direction = 'credit'
+      AND b.status = 'completed'
+      AND b.price_provider_net IS NOT NULL
+      AND b.price_total IS NOT NULL
+  ) x;
 
   SELECT
     COALESCE(SUM(GREATEST(b.net, 0)), 0),

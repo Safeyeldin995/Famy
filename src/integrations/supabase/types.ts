@@ -4438,6 +4438,17 @@ export type Database = {
       process_due_campaigns: { Args: never; Returns: number }
       process_due_reminders: { Args: never; Returns: number }
       expire_pending_bookings: { Args: never; Returns: number }
+      admin_reconcile_booking_ledger: {
+        Args: { p_booking_id: string; p_reason: string }
+        Returns: undefined
+      }
+      provider_settlement_period_containing: {
+        Args: { p_moment: string }
+        Returns: {
+          period_start: string
+          period_end: string
+        }[]
+      }
       admin_finance_summary: {
         Args: { p_from: string; p_to: string }
         Returns: Json

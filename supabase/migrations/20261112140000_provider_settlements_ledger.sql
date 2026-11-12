@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS public.provider_settlements (
   provider_id uuid NOT NULL REFERENCES public.providers(id) ON DELETE CASCADE,
   period_start timestamptz NOT NULL,
   period_end timestamptz NOT NULL,
-  amount numeric(12,2) NOT NULL CHECK (amount > 0),
+  amount numeric(12,2) NOT NULL CHECK (amount >= 0),
   direction text NOT NULL CHECK (direction IN ('famy_pays_provider', 'provider_pays_famy')),
   status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'received', 'cancelled')),
   totals_by_method jsonb NOT NULL DEFAULT '{}'::jsonb,
@@ -422,7 +422,7 @@ DECLARE
   v_platform_share numeric;
   v_pay public.payments%ROWTYPE;
 BEGIN
-  SELECT * INTO v_booking FROM public.bookings WHERE id = p_booking_id;
+  SELECT * INTO v_booking FROM public.bookings WHERE id = p_booking_id FOR UPDATE;
   IF NOT FOUND OR v_booking.status IS DISTINCT FROM 'completed' THEN
     RETURN;
   END IF;
@@ -436,6 +436,8 @@ BEGIN
   END IF;
 
   v_platform_share := GREATEST(COALESCE(v_booking.price_total, 0) - COALESCE(v_booking.price_provider_net, 0), 0);
+
+  PERFORM 1 FROM public.payments WHERE booking_id = p_booking_id FOR UPDATE;
 
   SELECT * INTO v_pay
   FROM public.payments
@@ -476,6 +478,32 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.ledger_apply_booking_shares(uuid) FROM PUBLIC, anon, authenticated;
 
+CREATE OR REPLACE FUNCTION public.admin_reconcile_booking_ledger(p_booking_id uuid, p_reason text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_booking public.bookings%ROWTYPE;
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.has_role(auth.uid(), 'admin') THEN
+    RAISE EXCEPTION 'Admin required' USING ERRCODE = '42501';
+  END IF;
+  IF p_reason IS NULL OR btrim(p_reason) = '' THEN
+    RAISE EXCEPTION 'Reason is required' USING ERRCODE = '23514';
+  END IF;
+  PERFORM set_config('app.audit_reason', btrim(p_reason), true);
+  SELECT * INTO v_booking FROM public.bookings WHERE id = p_booking_id FOR UPDATE;
+  IF NOT FOUND OR v_booking.status IS DISTINCT FROM 'completed' THEN
+    RAISE EXCEPTION 'Booking must be completed' USING ERRCODE = '23514';
+  END IF;
+  PERFORM public.ledger_apply_booking_shares(p_booking_id);
+END;
+$$;
+REVOKE ALL ON FUNCTION public.admin_reconcile_booking_ledger(uuid, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_reconcile_booking_ledger(uuid, text) TO authenticated;
+
 CREATE OR REPLACE FUNCTION public.tg_booking_ledger_on_complete()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -501,25 +529,11 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
-DECLARE
-  v_booking public.bookings%ROWTYPE;
 BEGIN
   IF NEW.status = 'captured' AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'captured') THEN
     IF COALESCE(NEW.payment_method_type, '') IN ('online', 'manual_transfer') THEN
-      SELECT * INTO v_booking FROM public.bookings WHERE id = NEW.booking_id;
-      IF FOUND
-         AND v_booking.status = 'completed'
-         AND v_booking.completed_at IS NOT NULL
-         AND v_booking.price_provider_net IS NOT NULL
-         AND v_booking.price_provider_net > 0
-         AND v_booking.completed_at >= (SELECT s.ledger_auto_from FROM public.provider_settlement_settings() s)
-      THEN
-        PERFORM public.ledger_insert_entry(
-          v_booking.provider_id, v_booking.id, 'online_provider_share', 'credit',
-          v_booking.price_provider_net,
-          COALESCE(NEW.payment_method_code, NEW.payment_method_type), NULL, NULL, NULL
-        );
-      END IF;
+      PERFORM 1 FROM public.bookings WHERE id = NEW.booking_id FOR UPDATE;
+      PERFORM public.ledger_apply_booking_shares(NEW.booking_id);
     END IF;
   END IF;
   RETURN NEW;
@@ -650,8 +664,43 @@ $$;
 -- ============================================================
 -- 7) Weekly settlement job (no money movement)
 -- Closed period ends at the most recent settlement_weekday 10:00 Africa/Cairo
--- that is not in the future. Entries created after that wait for the next run.
+-- that is not in the future. Boundaries use Cairo local dates, not timestamptz ±7 days.
 -- ============================================================
+CREATE OR REPLACE FUNCTION public.provider_settlement_period_containing(p_moment timestamptz)
+RETURNS TABLE (
+  period_start timestamptz,
+  period_end timestamptz
+)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_weekday int;
+  v_local timestamp;
+  v_date date;
+  v_end timestamptz;
+BEGIN
+  SELECT s.settlement_weekday INTO v_weekday FROM public.provider_settlement_settings() s;
+  v_local := timezone('Africa/Cairo', p_moment);
+  v_date := v_local::date;
+  WHILE EXTRACT(DOW FROM v_date)::int <> v_weekday LOOP
+    v_date := v_date - 1;
+  END LOOP;
+  v_end := (v_date + time '10:00') AT TIME ZONE 'Africa/Cairo';
+  IF p_moment >= v_end THEN
+    v_date := v_date + 7;
+    v_end := (v_date + time '10:00') AT TIME ZONE 'Africa/Cairo';
+  END IF;
+  period_end := v_end;
+  period_start := ((v_date - 7) + time '10:00') AT TIME ZONE 'Africa/Cairo';
+  RETURN NEXT;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.provider_settlement_period_containing(timestamptz) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.provider_settlement_period_containing(timestamptz) TO authenticated, service_role;
+
 CREATE OR REPLACE FUNCTION public.provider_settlement_closed_period()
 RETURNS TABLE (
   period_start timestamptz,
@@ -677,11 +726,12 @@ BEGIN
   END LOOP;
   v_end := (v_date + time '10:00') AT TIME ZONE 'Africa/Cairo';
   IF v_end > now() THEN
-    v_end := ((v_date - 7) + time '10:00') AT TIME ZONE 'Africa/Cairo';
+    v_date := v_date - 7;
+    v_end := (v_date + time '10:00') AT TIME ZONE 'Africa/Cairo';
   END IF;
   period_end := v_end;
-  period_start := v_end - interval '7 days';
-  next_settlement_at := v_end + interval '7 days';
+  period_start := ((v_date - 7) + time '10:00') AT TIME ZONE 'Africa/Cairo';
+  next_settlement_at := ((v_date + 7) + time '10:00') AT TIME ZONE 'Africa/Cairo';
   RETURN NEXT;
 END;
 $$;
@@ -695,9 +745,12 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_weekday int;
-  v_period_end timestamptz;
+  v_closed_start timestamptz;
+  v_closed_end timestamptz;
   v_period_start timestamptz;
+  v_period_end timestamptz;
+  v_oldest timestamptz;
+  v_cairo_date date;
   v_row RECORD;
   v_net numeric;
   v_abs numeric;
@@ -706,91 +759,142 @@ DECLARE
   v_totals jsonb;
   v_count integer := 0;
   v_profile uuid;
+  v_settlement_kinds text[] := ARRAY[
+    'cash_collected_platform_share',
+    'online_provider_share',
+    'adjustment',
+    'debt_payment_received',
+    'payout_sent'
+  ];
 BEGIN
   SELECT p.period_start, p.period_end
-    INTO v_period_start, v_period_end
+    INTO v_closed_start, v_closed_end
   FROM public.provider_settlement_closed_period() p;
 
-  FOR v_row IN
-    SELECT e.provider_id
-    FROM public.provider_ledger_entries e
-    WHERE e.settlement_id IS NULL
-      AND e.created_at >= v_period_start
-      AND e.created_at < v_period_end
-      AND e.kind IN ('cash_collected_platform_share', 'online_provider_share', 'adjustment')
-    GROUP BY e.provider_id
-  LOOP
-    SELECT COALESCE(SUM(CASE WHEN e.direction = 'credit' THEN e.amount ELSE -e.amount END), 0)
-    INTO v_net
-    FROM public.provider_ledger_entries e
-    WHERE e.provider_id = v_row.provider_id
-      AND e.settlement_id IS NULL
-      AND e.created_at >= v_period_start
-      AND e.created_at < v_period_end
-      AND e.kind IN ('cash_collected_platform_share', 'online_provider_share', 'adjustment');
+  SELECT min(e.created_at) INTO v_oldest
+  FROM public.provider_ledger_entries e
+  WHERE e.settlement_id IS NULL
+    AND e.kind = ANY (v_settlement_kinds);
 
-    SELECT COALESCE(jsonb_object_agg(x.method, x.amt), '{}'::jsonb)
-    INTO v_totals
-    FROM (
-      SELECT COALESCE(e.payment_method, 'unknown') AS method,
-             SUM(CASE WHEN e.direction = 'credit' THEN e.amount ELSE -e.amount END) AS amt
+  IF v_oldest IS NULL THEN
+    RETURN 0;
+  END IF;
+
+  SELECT pc.period_start, pc.period_end
+    INTO v_period_start, v_period_end
+  FROM public.provider_settlement_period_containing(v_oldest) pc;
+
+  WHILE v_period_end <= v_closed_end LOOP
+    FOR v_row IN
+      SELECT e.provider_id
+      FROM public.provider_ledger_entries e
+      WHERE e.settlement_id IS NULL
+        AND e.created_at >= v_period_start
+        AND e.created_at < v_period_end
+        AND e.kind = ANY (v_settlement_kinds)
+      GROUP BY e.provider_id
+    LOOP
+      SELECT COALESCE(SUM(CASE WHEN e.direction = 'credit' THEN e.amount ELSE -e.amount END), 0)
+      INTO v_net
       FROM public.provider_ledger_entries e
       WHERE e.provider_id = v_row.provider_id
         AND e.settlement_id IS NULL
         AND e.created_at >= v_period_start
         AND e.created_at < v_period_end
-        AND e.kind IN ('cash_collected_platform_share', 'online_provider_share', 'adjustment')
-      GROUP BY 1
-    ) x;
+        AND e.kind = ANY (v_settlement_kinds);
 
-    IF v_net = 0 THEN
-      CONTINUE;
-    END IF;
+      SELECT COALESCE(jsonb_object_agg(x.method, x.amt), '{}'::jsonb)
+      INTO v_totals
+      FROM (
+        SELECT COALESCE(e.payment_method, 'unknown') AS method,
+               SUM(CASE WHEN e.direction = 'credit' THEN e.amount ELSE -e.amount END) AS amt
+        FROM public.provider_ledger_entries e
+        WHERE e.provider_id = v_row.provider_id
+          AND e.settlement_id IS NULL
+          AND e.created_at >= v_period_start
+          AND e.created_at < v_period_end
+          AND e.kind = ANY (v_settlement_kinds)
+        GROUP BY 1
+      ) x;
 
-    v_abs := abs(v_net);
-    v_direction := CASE WHEN v_net > 0 THEN 'famy_pays_provider' ELSE 'provider_pays_famy' END;
-    v_settlement_id := NULL;
-
-    INSERT INTO public.provider_settlements (
-      provider_id, period_start, period_end, amount, direction, totals_by_method
-    ) VALUES (
-      v_row.provider_id, v_period_start, v_period_end, v_abs, v_direction, COALESCE(v_totals, '{}'::jsonb)
-    )
-    ON CONFLICT (provider_id, period_start, period_end) DO NOTHING
-    RETURNING id INTO v_settlement_id;
-
-    IF v_settlement_id IS NULL THEN
-      SELECT id INTO v_settlement_id
-      FROM public.provider_settlements
-      WHERE provider_id = v_row.provider_id
-        AND period_start = v_period_start
-        AND period_end = v_period_end;
-    ELSE
-      v_count := v_count + 1;
-      SELECT p.profile_id INTO v_profile FROM public.providers p WHERE p.id = v_row.provider_id;
-      IF v_profile IS NOT NULL THEN
-        INSERT INTO public.notifications (
-          user_id, type, category, title, body, title_en, title_ar, body_en, body_ar, payload, deep_link
+      IF v_net = 0 THEN
+        v_settlement_id := NULL;
+        INSERT INTO public.provider_settlements (
+          provider_id, period_start, period_end, amount, direction, status, settled_at, totals_by_method
         ) VALUES (
-          v_profile, 'provider_settlement_created', 'provider',
-          'Weekly settlement', 'A weekly settlement was created. Check your earnings for details.',
-          'Weekly settlement', 'تسوية أسبوعية',
-          'A weekly settlement was created. Check your earnings for details.',
-          'اتعملت تسوية أسبوعية، شوف تفاصيلها في الأرباح',
-          jsonb_build_object('provider_id', v_row.provider_id, 'settlement_id', v_settlement_id),
-          '/pro/earnings'
-        );
+          v_row.provider_id, v_period_start, v_period_end, 0, 'famy_pays_provider', 'paid', now(),
+          COALESCE(v_totals, '{}'::jsonb)
+        )
+        ON CONFLICT (provider_id, period_start, period_end) DO UPDATE
+          SET status = EXCLUDED.status, settled_at = COALESCE(provider_settlements.settled_at, EXCLUDED.settled_at)
+        RETURNING id INTO v_settlement_id;
+        IF v_settlement_id IS NULL THEN
+          SELECT id INTO v_settlement_id
+          FROM public.provider_settlements
+          WHERE provider_id = v_row.provider_id
+            AND period_start = v_period_start
+            AND period_end = v_period_end;
+        END IF;
+        PERFORM set_config('app.ledger_link_settlement', 'on', true);
+        UPDATE public.provider_ledger_entries e
+        SET settlement_id = v_settlement_id
+        WHERE e.provider_id = v_row.provider_id
+          AND e.settlement_id IS NULL
+          AND e.created_at >= v_period_start
+          AND e.created_at < v_period_end
+          AND e.kind = ANY (v_settlement_kinds);
+        CONTINUE;
       END IF;
-    END IF;
 
-    PERFORM set_config('app.ledger_link_settlement', 'on', true);
-    UPDATE public.provider_ledger_entries e
-    SET settlement_id = v_settlement_id
-    WHERE e.provider_id = v_row.provider_id
-      AND e.settlement_id IS NULL
-      AND e.created_at >= v_period_start
-      AND e.created_at < v_period_end
-      AND e.kind IN ('cash_collected_platform_share', 'online_provider_share', 'adjustment');
+      v_abs := abs(v_net);
+      v_direction := CASE WHEN v_net > 0 THEN 'famy_pays_provider' ELSE 'provider_pays_famy' END;
+      v_settlement_id := NULL;
+
+      INSERT INTO public.provider_settlements (
+        provider_id, period_start, period_end, amount, direction, totals_by_method
+      ) VALUES (
+        v_row.provider_id, v_period_start, v_period_end, v_abs, v_direction, COALESCE(v_totals, '{}'::jsonb)
+      )
+      ON CONFLICT (provider_id, period_start, period_end) DO NOTHING
+      RETURNING id INTO v_settlement_id;
+
+      IF v_settlement_id IS NULL THEN
+        SELECT id INTO v_settlement_id
+        FROM public.provider_settlements
+        WHERE provider_id = v_row.provider_id
+          AND period_start = v_period_start
+          AND period_end = v_period_end;
+      ELSE
+        v_count := v_count + 1;
+        SELECT p.profile_id INTO v_profile FROM public.providers p WHERE p.id = v_row.provider_id;
+        IF v_profile IS NOT NULL THEN
+          INSERT INTO public.notifications (
+            user_id, type, category, title, body, title_en, title_ar, body_en, body_ar, payload, deep_link
+          ) VALUES (
+            v_profile, 'provider_settlement_created', 'provider',
+            'Weekly settlement', 'A weekly settlement was created. Check your earnings for details.',
+            'Weekly settlement', 'تسوية أسبوعية',
+            'A weekly settlement was created. Check your earnings for details.',
+            'اتعملت تسوية أسبوعية، شوف تفاصيلها في الأرباح',
+            jsonb_build_object('provider_id', v_row.provider_id, 'settlement_id', v_settlement_id),
+            '/pro/earnings'
+          );
+        END IF;
+      END IF;
+
+      PERFORM set_config('app.ledger_link_settlement', 'on', true);
+      UPDATE public.provider_ledger_entries e
+      SET settlement_id = v_settlement_id
+      WHERE e.provider_id = v_row.provider_id
+        AND e.settlement_id IS NULL
+        AND e.created_at >= v_period_start
+        AND e.created_at < v_period_end
+        AND e.kind = ANY (v_settlement_kinds);
+    END LOOP;
+
+    v_cairo_date := (timezone('Africa/Cairo', v_period_end))::date;
+    v_period_start := v_period_end;
+    v_period_end := ((v_cairo_date + 7) + time '10:00') AT TIME ZONE 'Africa/Cairo';
   END LOOP;
 
   RETURN v_count;
@@ -934,6 +1038,22 @@ BEGIN
   IF v_booking.price_provider_net IS NULL THEN
     RAISE EXCEPTION 'Booking has no commission snapshot' USING ERRCODE = '23514';
   END IF;
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.payments p
+    WHERE p.booking_id = p_booking_id
+      AND COALESCE(p.payment_method_type, '') = 'cash'
+  ) THEN
+    RAISE EXCEPTION 'Historic cash collection requires a cash payment on the booking' USING ERRCODE = '23514';
+  END IF;
+  IF EXISTS (
+    SELECT 1
+    FROM public.provider_ledger_entries e
+    WHERE e.booking_id = p_booking_id
+      AND e.kind = 'online_provider_share'
+  ) THEN
+    RAISE EXCEPTION 'Booking already has an online provider share ledger entry' USING ERRCODE = '23514';
+  END IF;
   v_platform_share := GREATEST(COALESCE(v_booking.price_total, 0) - COALESCE(v_booking.price_provider_net, 0), 0);
   IF v_platform_share <= 0 THEN
     RAISE EXCEPTION 'Platform share must be positive' USING ERRCODE = '23514';
@@ -946,12 +1066,6 @@ BEGIN
   IF v_id IS NULL THEN
     RAISE EXCEPTION 'Cash share for this booking is already recorded' USING ERRCODE = '23505';
   END IF;
-  PERFORM set_config('app.ledger_internal_capture', 'on', true);
-  UPDATE public.payments
-  SET status = 'captured', captured_at = COALESCE(captured_at, now())
-  WHERE booking_id = p_booking_id
-    AND COALESCE(payment_method_type, '') = 'cash'
-    AND status IS DISTINCT FROM 'captured';
   RETURN v_id;
 END;
 $$;

@@ -23,6 +23,11 @@ const WEEKLY = {
   owesProvider: "00000000-0000-0000-0000-0000000000b3",
 } as const;
 
+const DEBT_NET = {
+  user: "00000000-0000-4000-8000-000000000099",
+  provider: "00000000-0000-4000-8000-000000000199",
+} as const;
+
 type Balance = {
   total_credits: string;
   total_debits: string;
@@ -39,7 +44,8 @@ beforeAll(async () => {
       ('${IDS.adminUser}', '{"full_name":"Lifecycle Admin"}'),
       ('${BARE.user}', '{"signup_role":"provider","full_name":"Bare Provider"}'),
       ('${WEEKLY.user}', '{"signup_role":"provider","full_name":"Weekly Provider"}'),
-      ('${WEEKLY.owesUser}', '{"signup_role":"provider","full_name":"Owes Provider"}')
+      ('${WEEKLY.owesUser}', '{"signup_role":"provider","full_name":"Owes Provider"}'),
+      ('${DEBT_NET.user}', '{"signup_role":"provider","full_name":"Debt Net Provider"}')
     ON CONFLICT (id) DO NOTHING;
 
     INSERT INTO public.user_roles (user_id, role) VALUES
@@ -52,7 +58,8 @@ beforeAll(async () => {
     ) VALUES
       ('${BARE.provider}', '${BARE.user}', 100, 'DRAFT', true, false, 0, 365, 0, 'Bio', 'سيرة'),
       ('${WEEKLY.provider}', '${WEEKLY.user}', 100, 'DRAFT', true, false, 0, 365, 0, 'Bio', 'سيرة'),
-      ('${WEEKLY.owesProvider}', '${WEEKLY.owesUser}', 100, 'DRAFT', true, false, 0, 365, 0, 'Bio', 'سيرة')
+      ('${WEEKLY.owesProvider}', '${WEEKLY.owesUser}', 100, 'DRAFT', true, false, 0, 365, 0, 'Bio', 'سيرة'),
+      ('${DEBT_NET.provider}', '${DEBT_NET.user}', 100, 'DRAFT', true, false, 0, 365, 0, 'Bio', 'سيرة')
     ON CONFLICT (id) DO NOTHING;
   `);
 }, 180_000);
@@ -636,5 +643,237 @@ describe("provider settlements ledger", () => {
         ),
       ),
     ).rejects.toThrow(/Admin required/i);
+  });
+
+  it("nets cash debits with debt repayments in the same closed week", async () => {
+    const period = await queryRows<{ period_start: string; period_end: string }>(
+      db,
+      `SELECT period_start::text, period_end::text FROM public.provider_settlement_closed_period()`,
+    );
+    const periodStart = period[0]?.period_start;
+    expect(periodStart).toBeTruthy();
+
+    await db.query(
+      `
+        INSERT INTO public.provider_ledger_entries (
+          provider_id, kind, direction, amount, payment_method, created_at
+        ) VALUES ($1::uuid, 'cash_collected_platform_share', 'debit', 400, 'cash', $2::timestamptz + interval '1 hour')
+      `,
+      [DEBT_NET.provider, periodStart],
+    );
+    await db.query(
+      `
+        INSERT INTO public.provider_ledger_entries (
+          provider_id, kind, direction, amount, payment_method, note, created_at
+        ) VALUES ($1::uuid, 'debt_payment_received', 'credit', 400, 'manual_transfer', 'REF-400', $2::timestamptz + interval '2 hours')
+      `,
+      [DEBT_NET.provider, periodStart],
+    );
+
+    const created = await asServiceRole(db, () =>
+      queryRows<{ n: number }>(db, `SELECT public.run_provider_weekly_settlements()::int AS n`),
+    );
+    expect(created[0]?.n).toBe(0);
+
+    const pending = await queryRows<{ n: number }>(
+      db,
+      `SELECT count(*)::int AS n FROM public.provider_settlements WHERE provider_id = $1::uuid AND status = 'pending'`,
+      [DEBT_NET.provider],
+    );
+    expect(pending[0]?.n).toBe(0);
+    expect(Number((await balanceOf(DEBT_NET.provider)).net)).toBe(0);
+
+    const unlinked = await queryRows<{ n: number }>(
+      db,
+      `SELECT count(*)::int AS n FROM public.provider_ledger_entries WHERE provider_id = $1::uuid AND settlement_id IS NULL`,
+      [DEBT_NET.provider],
+    );
+    expect(unlinked[0]?.n).toBe(0);
+  });
+
+  it("reconciles ledger shares after ledger cutoff moves forward", async () => {
+    await setLedgerCutoff("2 days");
+    const booking = await seedLifecycleBooking(db, { status: "pending" });
+    await forceSnapshot(booking.bookingId, 1000, 850);
+    await insertPayment(booking.bookingId, "instapay");
+    await completeHappyPath(db, booking.bookingId);
+    await asServiceRole(db, () =>
+      db.query(`UPDATE public.payments SET status = 'captured', captured_at = now() WHERE booking_id = $1`, [
+        booking.bookingId,
+      ]),
+    );
+    const empty = await queryRows<{ n: number }>(
+      db,
+      `SELECT count(*)::int AS n FROM public.provider_ledger_entries WHERE booking_id = $1`,
+      [booking.bookingId],
+    );
+    expect(empty[0]?.n).toBe(0);
+    await setLedgerCutoff("-1 day");
+    await asUser(db, IDS.adminUser, () =>
+      db.query(`SELECT public.admin_reconcile_booking_ledger($1::uuid, 'catch-up')`, [booking.bookingId]),
+    );
+    const rows = await queryRows<{ kind: string; amount: string }>(
+      db,
+      `SELECT kind, amount::text FROM public.provider_ledger_entries WHERE booking_id = $1`,
+      [booking.bookingId],
+    );
+    expect(rows).toEqual([{ kind: "online_provider_share", amount: "850.00" }]);
+  });
+
+  it("historic cash ledger does not capture payments and rejects online bookings", async () => {
+    await setLedgerCutoff("2 days");
+    const historic = await seedLifecycleBooking(db, { status: "pending" });
+    await forceSnapshot(historic.bookingId, 1000, 850);
+    await insertPayment(historic.bookingId, "cash_on_delivery");
+    await completeHappyPath(db, historic.bookingId);
+    const payBefore = await queryRows<{ status: string }>(
+      db,
+      `SELECT status::text AS status FROM public.payments WHERE booking_id = $1`,
+      [historic.bookingId],
+    );
+    await asUser(db, IDS.adminUser, () =>
+      db.query(`SELECT public.admin_record_historic_cash_collected($1::uuid, 'historic cash', NULL)`, [
+        historic.bookingId,
+      ]),
+    );
+    const payAfter = await queryRows<{ status: string }>(
+      db,
+      `SELECT status::text AS status FROM public.payments WHERE booking_id = $1`,
+      [historic.bookingId],
+    );
+    expect(payAfter[0]?.status).toBe(payBefore[0]?.status);
+
+    const online = await seedLifecycleBooking(db, { status: "pending" });
+    await forceSnapshot(online.bookingId, 1000, 850);
+    const payId = await insertPayment(online.bookingId, "instapay");
+    await asServiceRole(db, () =>
+      db.query(`UPDATE public.payments SET payment_method_type = 'online' WHERE id = $1::uuid`, [payId]),
+    );
+    await completeHappyPath(db, online.bookingId);
+    await asServiceRole(db, () =>
+      db.query(`UPDATE public.payments SET status = 'captured', captured_at = now() WHERE booking_id = $1`, [
+        online.bookingId,
+      ]),
+    );
+    await expect(
+      asUser(db, IDS.adminUser, () =>
+        db.query(`SELECT public.admin_record_historic_cash_collected($1::uuid, 'nope', NULL)`, [online.bookingId]),
+      ),
+    ).rejects.toThrow(/cash payment/i);
+    await setLedgerCutoff("-1 day");
+  });
+
+  it("aligns Cairo weekly boundaries without timestamptz drift", async () => {
+    const closed = await queryRows<{ period_start: string; period_end: string; next_settlement_at: string }>(
+      db,
+      `SELECT period_start::text, period_end::text, next_settlement_at::text FROM public.provider_settlement_closed_period()`,
+    );
+    const boundary = await queryRows<{ period_start: string; period_end: string }>(
+      db,
+      `
+        SELECT pc.period_start::text, pc.period_end::text
+        FROM public.provider_settlement_closed_period() c,
+             public.provider_settlement_period_containing(c.period_end + interval '1 hour') pc
+      `,
+    );
+    expect(boundary[0]?.period_start).toBe(closed[0]?.period_end);
+
+    const dstEdge = await queryRows<{ period_start: string; period_end: string }>(
+      db,
+      `
+        SELECT period_start::text, period_end::text
+        FROM public.provider_settlement_period_containing(timestamptz '2026-10-25 09:00:00+03')
+      `,
+    );
+    const dstNext = await queryRows<{ period_start: string; period_end: string }>(
+      db,
+      `
+        SELECT period_start::text, period_end::text
+        FROM public.provider_settlement_period_containing(timestamptz '2026-11-01 09:30:00+02')
+      `,
+    );
+    expect(new Date(dstEdge[0]!.period_end).toISOString()).toBe(new Date(dstNext[0]!.period_start).toISOString());
+    expect(
+      (new Date(closed[0]!.next_settlement_at).getTime() - new Date(closed[0]!.period_end).getTime()) /
+        3600000,
+    ).toBe(168);
+  });
+
+  it("settles missed closed weeks in one run", async () => {
+    const periods = await queryRows<{ closed_start: string; prev_start: string; prev_end: string }>(
+      db,
+      `
+        SELECT
+          c.period_start::text AS closed_start,
+          pc.period_start::text AS prev_start,
+          pc.period_end::text AS prev_end
+        FROM public.provider_settlement_closed_period() c,
+             public.provider_settlement_period_containing(c.period_start - interval '1 second') pc
+      `,
+    );
+    const closedStart = periods[0]?.closed_start;
+    const prevStart = periods[0]?.prev_start;
+    expect(closedStart).toBeTruthy();
+    expect(prevStart).toBeTruthy();
+
+    await db.query(
+      `
+        INSERT INTO public.provider_ledger_entries (provider_id, kind, direction, amount, created_at)
+        VALUES ($1::uuid, 'cash_collected_platform_share', 'debit', 50, $2::timestamptz + interval '1 hour')
+      `,
+      [WEEKLY.owesProvider, prevStart],
+    );
+    await db.query(
+      `
+        INSERT INTO public.provider_ledger_entries (provider_id, kind, direction, amount, created_at)
+        VALUES ($1::uuid, 'cash_collected_platform_share', 'debit', 60, $2::timestamptz + interval '1 hour')
+      `,
+      [WEEKLY.owesProvider, closedStart],
+    );
+
+    const before = await queryRows<{ n: number }>(
+      db,
+      `SELECT count(*)::int AS n FROM public.provider_settlements WHERE provider_id = $1::uuid`,
+      [WEEKLY.owesProvider],
+    );
+    const n = await asServiceRole(db, () =>
+      queryRows<{ n: number }>(db, `SELECT public.run_provider_weekly_settlements()::int AS n`),
+    );
+    expect((n[0]?.n ?? 0) >= 1).toBe(true);
+    const after = await queryRows<{ n: number }>(
+      db,
+      `SELECT count(*)::int AS n FROM public.provider_settlements WHERE provider_id = $1::uuid`,
+      [WEEKLY.owesProvider],
+    );
+    expect((after[0]?.n ?? 0) - (before[0]?.n ?? 0) >= 1).toBe(true);
+  });
+
+  it("reports online platform share in admin finance summary", async () => {
+    const booking = await seedLifecycleBooking(db, { status: "pending" });
+    await forceSnapshot(booking.bookingId, 1000, 850);
+    await asServiceRole(db, () =>
+      db.query(`UPDATE public.bookings SET status = 'completed', completed_at = now() WHERE id = $1::uuid`, [
+        booking.bookingId,
+      ]),
+    );
+    const at = "2099-07-15T10:00:00.000Z";
+    await db.query(
+      `
+        INSERT INTO public.provider_ledger_entries (
+          provider_id, booking_id, kind, direction, amount, payment_method, created_at
+        ) VALUES ($1::uuid, $2::uuid, 'online_provider_share', 'credit', 850, 'instapay', $3::timestamptz)
+      `,
+      [IDS.provider, booking.bookingId, at],
+    );
+    const from = "2099-07-15T09:00:00.000Z";
+    const to = "2099-07-15T11:00:00.000Z";
+    const summary = await asUser(db, IDS.adminUser, () =>
+      queryRows<{ platform_share: string }>(
+        db,
+        `SELECT (public.admin_finance_summary($1::timestamptz, $2::timestamptz)->>'platform_share') AS platform_share`,
+        [from, to],
+      ),
+    );
+    expect(summary[0]?.platform_share).toBe("150.00");
   });
 });
