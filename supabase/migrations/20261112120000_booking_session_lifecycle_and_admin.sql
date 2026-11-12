@@ -242,6 +242,8 @@ BEGIN
          (OLD.status = 'pending' AND NEW.status = 'cancelled')
       OR (OLD.status = 'confirmed' AND NEW.status = 'cancelled')
       OR (OLD.status = 'arrived' AND NEW.status = 'in_progress')
+      -- Legacy step, kept so app versions released before this migration still work.
+      OR (OLD.status = 'arrived' AND NEW.status = 'arrival_confirmed')
       OR (OLD.status = 'completion_requested' AND NEW.status = 'completed')
     ) THEN
       v_allowed := true;

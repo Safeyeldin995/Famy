@@ -12,7 +12,7 @@ const SERVICE_ID = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
 
 const migrationPath = fileURLToPath(
   new URL(
-    "../../../../supabase/migrations/20261112120000_provider_service_preparation_notes.sql",
+    "../../../../supabase/migrations/20261112110000_provider_service_preparation_notes.sql",
     import.meta.url,
   ),
 );

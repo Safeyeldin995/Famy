@@ -55,7 +55,7 @@ describe("preview route tree", () => {
       resolve(process.cwd(), "src/routes/preview.forgot.tsx"),
       "utf8",
     );
-    expect(login).toContain("if (previewMode || loading) return");
+    expect(login).toContain("if (previewMode || loading || !phoneValid) return");
     expect(forgot).toContain("if (previewMode || !valid || loading) return");
     expect(previewLogin).toContain("<Login previewMode />");
     expect(previewForgot).toContain("<Forgot previewMode />");

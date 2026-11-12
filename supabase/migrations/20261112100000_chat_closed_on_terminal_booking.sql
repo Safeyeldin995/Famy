@@ -1,5 +1,6 @@
 -- Reject customer/provider text after booking chat closes (completed/cancelled/no_show).
--- additive: replaces validation function; ensures guard trigger exists under a stable name.
+-- Additive: replaces the validation function only. Terminal bookings now raise 'chat_closed',
+-- and admins may also write on terminal bookings (previously disputed only).
 
 CREATE OR REPLACE FUNCTION public.tg_validate_booking_message()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
@@ -83,6 +84,4 @@ END;
 $$;
 REVOKE EXECUTE ON FUNCTION public.tg_validate_booking_message() FROM PUBLIC, anon, authenticated;
 
-DROP TRIGGER IF EXISTS trg_messages_booking_chat_guard ON public.messages;
-CREATE TRIGGER trg_messages_booking_chat_guard BEFORE INSERT ON public.messages
-  FOR EACH ROW EXECUTE FUNCTION public.tg_validate_booking_message();
+-- The existing trigger trg_messages_validate already runs this function on INSERT.

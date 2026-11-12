@@ -293,6 +293,8 @@ BEGIN
          (OLD.status = 'pending' AND NEW.status = 'cancelled')
       OR (OLD.status = 'confirmed' AND NEW.status = 'cancelled')
       OR (OLD.status = 'arrived' AND NEW.status = 'in_progress')
+      -- Legacy step, kept so app versions released before this migration still work.
+      OR (OLD.status = 'arrived' AND NEW.status = 'arrival_confirmed')
       OR (OLD.status = 'completion_requested' AND NEW.status = 'completed')
     ) THEN
       v_allowed := true;
@@ -602,7 +604,7 @@ BEGIN
       'Your provider marked this booking as done. Please confirm to complete it. If there is no problem, it will close automatically after ' || v_hours_en || '.',
       'Confirm your service', 'أكد إتمام الخدمة',
       'Your provider marked this booking as done. Please confirm to complete it. If there is no problem, it will close automatically after ' || v_hours_en || '.',
-      'مقدم الخدمة قال إن الخدمة خلصت لو مفيش مشكلة الحجز هيتقفل لوحده بعد ' || v_hours_ar,
+      'مقدم الخدمة قال إن الخدمة خلصت، ولو مفيش مشكلة الحجز هيتقفل لوحده بعد ' || v_hours_ar,
       jsonb_build_object('booking_id', NEW.id), v_customer_link, NEW.id
     );
     IF v_conversation_id IS NOT NULL THEN
