@@ -3,9 +3,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "./supabase";
 import { fetchBookingParties, type BookingParty } from "./queries";
 import { useSession } from "./session";
-import { conversationUnread } from "./chatPure";
+import { chatPhaseForStatus, conversationUnread } from "./chatPure";
 
-export { conversationUnread } from "./chatPure";
+export { chatPhaseForStatus, conversationUnread, type ChatPhase } from "./chatPure";
 
 export const CONTACT_BLOCKED_MESSAGE =
   "For your safety and to keep Famy's protections active on this booking, please keep communication inside the Famy app.";
@@ -30,6 +30,8 @@ export type ConversationListItem = {
   last_system_key?: string | null;
   last_sender_id: string | null;
   unread: boolean;
+  booking_status: string | null;
+  chat_closed: boolean;
 };
 
 export function useConversations() {
@@ -73,6 +75,12 @@ export function useConversations() {
       }
 
       const bookingIds = convs.map((c) => c.booking_id);
+      const { data: bookings } = await supabase
+        .from("bookings")
+        .select("id, status")
+        .in("id", bookingIds);
+      const statusMap = new Map((bookings ?? []).map((b) => [b.id, b.status as string]));
+
       const { data: reads } = await supabase
         .from("booking_message_reads")
         .select("booking_id, last_read_at")
@@ -83,6 +91,7 @@ export function useConversations() {
       return convs.map((c) => {
         const party = pMap.get(c.booking_id);
         const last = lastMap.get(c.id);
+        const bookingStatus = statusMap.get(c.booking_id) ?? null;
         return {
           ...c,
           other_name: party?.other_name || "",
@@ -92,6 +101,8 @@ export function useConversations() {
           last_time: last?.created_at ?? null,
           last_sender_id: last?.sender_id ?? null,
           unread: conversationUnread(last, user.id, readMap.get(c.booking_id)),
+          booking_status: bookingStatus,
+          chat_closed: chatPhaseForStatus(bookingStatus ?? undefined) === "readonly",
         };
       });
     },
@@ -136,7 +147,13 @@ export function useConversation(id: string | undefined) {
             avatar_url: party.other_avatar_url,
           }
         : null;
-      return { ...data, other };
+      const { data: booking, error: bookingError } = await supabase
+        .from("bookings")
+        .select("status")
+        .eq("id", data.booking_id)
+        .maybeSingle();
+      if (bookingError) throw bookingError;
+      return { ...data, other, booking_status: (booking?.status as string | undefined) ?? null };
     },
   });
 }
@@ -218,6 +235,7 @@ export function useSendMessage(conversationId: string | undefined) {
         .single();
       if (error) {
         if (error.message?.includes("contact_masked")) throw new Error("contact_masked");
+        if (error.message?.includes("chat_closed")) throw new Error("chat_closed");
         throw error;
       }
       return data;
@@ -227,26 +245,6 @@ export function useSendMessage(conversationId: string | undefined) {
       qc.invalidateQueries({ queryKey: ["conversations"] });
     },
   });
-}
-
-export type ChatPhase = "unavailable" | "writable" | "readonly" | "disputed";
-
-const WRITABLE_STATUSES = new Set([
-  "confirmed",
-  "on_the_way",
-  "arrived",
-  "arrival_confirmed",
-  "in_progress",
-  "completion_requested",
-]);
-const TERMINAL_STATUSES = new Set(["completed", "cancelled", "no_show"]);
-
-export function chatPhaseForStatus(status: string | undefined): ChatPhase {
-  if (!status) return "unavailable";
-  if (status === "disputed") return "disputed";
-  if (WRITABLE_STATUSES.has(status)) return "writable";
-  if (TERMINAL_STATUSES.has(status)) return "readonly";
-  return "unavailable";
 }
 
 export function useMarkBookingMessagesRead() {

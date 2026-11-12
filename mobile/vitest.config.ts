@@ -34,6 +34,7 @@ export default defineConfig({
       "src/lib/__tests__/bookingDuration.test.ts",
       "src/lib/__tests__/intlPluralRules.test.ts",
       "src/lib/__tests__/cacheInvalidation.test.ts",
+      "src/ui/__tests__/chatThreadPresentation.test.ts",
       "src/ui/__tests__/noGlobalCryptoRandomUUID.test.ts",
       "src/ui/__tests__/starRating.test.ts",
     ],

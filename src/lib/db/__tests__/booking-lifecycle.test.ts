@@ -237,7 +237,7 @@ describe("booking lifecycle (migration replay)", () => {
       `INSERT INTO public.messages (conversation_id, body) VALUES ($1::uuid, 'after complete') RETURNING id`,
       [conversationId],
     );
-    expectRejected(closedChat, /not open|42501/i, "chat after completed");
+    expectRejected(closedChat, /chat_closed|42501/i, "chat after completed");
   });
 
   it("lets the customer confirm arrival before the scheduled start time", async () => {

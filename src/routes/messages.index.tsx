@@ -61,8 +61,18 @@ function Messages() {
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-3">
-                      <span className="truncate text-pro-16 font-extrabold text-foreground">
-                        {c.other_name || t("profile.famioUser")}
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span className="truncate text-pro-16 font-extrabold text-foreground">
+                          {c.other_name || t("profile.famioUser")}
+                        </span>
+                        {c.chat_closed ? (
+                          <span
+                            data-testid="conversation-closed-tag"
+                            className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-pro-10 font-bold text-muted-foreground"
+                          >
+                            {t("messages.closedTag")}
+                          </span>
+                        ) : null}
                       </span>
                       <span className="shrink-0 text-pro-12 font-bold text-muted-foreground">
                         {formatTime(c.last_time)}

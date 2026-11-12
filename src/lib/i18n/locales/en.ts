@@ -982,6 +982,7 @@ const en = {
     stayInApp: "Please keep all communication inside Famy.",
     send: "Send",
     sendFailed: "Failed to send",
+    closedTag: "Closed",
     preview: {
       m1: "I'll be there at 10 sharp",
       m2: "Thank you! See you Friday.",
@@ -1866,6 +1867,9 @@ const en = {
       "For your safety, keep the conversation inside Famy and don't share phone numbers or emails.",
     validationEmpty: "Message can't be empty.",
     closedBody: "This conversation is closed. You can still read the full history above.",
+    closedThreadNote:
+      "This chat closed after the booking ended. If you need help, contact support.",
+    closedSupportCta: "Contact support",
     disputedBody:
       "This booking is under review. Famy support can see your history and will follow up here.",
     actor: {
