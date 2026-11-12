@@ -44,7 +44,7 @@ export function useProviderCashDebtBlocked(providerId: string | undefined) {
 
 export function settlementBalanceHeadline(
   net: number,
-  t: (k: string, o?: object) => string,
+  t: (key: string, opts?: Record<string, string>) => string,
   formatAmount: (n: number) => string,
 ) {
   if (net > 0) return t("pro.settlement.famyOwesYou", { amount: formatAmount(net) });

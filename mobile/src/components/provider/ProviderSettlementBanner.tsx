@@ -25,21 +25,23 @@ export function ProviderSettlementBanner({ providerId }: { providerId?: string }
       style={{
         borderRadius: radius.xl,
         borderWidth: 1,
-        borderColor: blockedActive ? colors.coral : colors.border,
-        backgroundColor: blockedActive ? `${colors.coral}15` : colors.surface,
+        borderColor: blockedActive ? colors.destructive : colors.border,
+        backgroundColor: blockedActive ? colors.brandTint : colors.surface,
         padding: space.md,
         gap: space.xs,
       }}
     >
       <Text weight="heavy">{t("pro.settlement.currentBalance")}</Text>
-      <Text weight="heavy">{settlementBalanceHeadline(net, (k, o) => t(k, o), formatAmount)}</Text>
+      <Text weight="heavy">
+        {settlementBalanceHeadline(net, (k, o) => t(k, o as Record<string, string> | undefined), formatAmount)}
+      </Text>
       {balance.data && balance.data.cash_held_for_platform > 0 ? (
         <Text size="xs" tone="muted">
           {t("pro.settlement.cashHeld", { amount: formatAmount(balance.data.cash_held_for_platform) })}
         </Text>
       ) : null}
       {blockedActive ? (
-        <Text size="sm" style={{ color: colors.coral }}>
+        <Text size="sm" style={{ color: colors.destructive }}>
           {t("pro.settlement.blockedBody", { amount: formatAmount(debt) })}
         </Text>
       ) : null}
