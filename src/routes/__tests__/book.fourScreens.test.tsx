@@ -191,7 +191,10 @@ vi.mock("@/lib/db/payment-queries", () => ({
   useCreatePayment: () => ({ mutateAsync: state.payment }),
   mapPaymentInsertError: () => "Payment error",
 }));
-vi.mock("@/lib/db/promo-codes-queries", () => ({ validatePromoCode: vi.fn() }));
+vi.mock("@/lib/db/promo-codes-queries", () => ({
+  validatePromoCode: vi.fn(),
+  useFeaturedPromoCodes: () => query([]),
+}));
 vi.mock("@/lib/paymob/paymobRedirect", () => ({ redirectToPaymobCheckout: vi.fn() }));
 vi.mock("@/lib/push-prompt", () => ({ markCustomerPushPromptPending: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => ({

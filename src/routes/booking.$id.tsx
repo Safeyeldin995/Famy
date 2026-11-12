@@ -109,6 +109,7 @@ function BookingDetail() {
   const locationSearch = Route.useSearch() as {
     paymob_return?: string | number;
     paymob_checkout?: string | number;
+    created?: string | number;
   };
   // The router parses `?paymob_return=1` as the number 1, so compare as text.
   if (String(locationSearch.paymob_return) === "1") {
@@ -119,6 +120,7 @@ function BookingDetail() {
       bookingId={id}
       paymobReturn={false}
       paymobCheckout={String(locationSearch.paymob_checkout) === "1"}
+      justCreated={String(locationSearch.created) === "1"}
     />
   );
 }
@@ -127,10 +129,12 @@ export function BookingDetailContent({
   bookingId: id,
   paymobReturn = false,
   paymobCheckout = false,
+  justCreated = false,
 }: {
   bookingId: string;
   paymobReturn?: boolean;
   paymobCheckout?: boolean;
+  justCreated?: boolean;
 }) {
   const { t } = useTranslation();
   const realQ = useBooking(id);
@@ -290,7 +294,7 @@ export function BookingDetailContent({
     total: formatEGP(Number(real.price_total ?? 0)),
   };
 
-  const overview = (headline: string) => (
+  const overview = (headline: string, showCreatedNav = false) => (
     <>
       <CustomerPageHeader
         title={t("customerDetail.title")}
@@ -307,6 +311,25 @@ export function BookingDetailContent({
         }
       />
       <div className="space-y-4 px-5 pt-4">
+        {showCreatedNav && (
+          <div className="space-y-2">
+            <p className="text-pro-14 font-bold">{t("bookFlow.created")}</p>
+            <PrimaryButton onClick={() => nav({ to: "/home" })}>{t("bookFlow.goHome")}</PrimaryButton>
+            <button
+              type="button"
+              onClick={() =>
+                nav({
+                  to: "/book/$providerId",
+                  params: { providerId: real!.provider_id },
+                  search: { serviceId: undefined, capabilityId: undefined },
+                })
+              }
+              className="focus-ring tap-scale inline-flex min-h-11 w-full items-center justify-center rounded-full border border-border text-pro-14 font-extrabold"
+            >
+              {t("bookings.bookAgain")}
+            </button>
+          </div>
+        )}
         <section className="rounded-2xl border border-border/60 bg-surface-2 p-4">
           <p className="text-pro-12 font-bold text-muted-foreground">
             {t(`status.${status}`, { defaultValue: t("customerDetail.unknownStatus") })}
@@ -398,7 +421,7 @@ export function BookingDetailContent({
           : t("bookingDetail.closedDisputedTitle");
     return (
       <PhoneFrame bg="bg-white">
-        {overview(title)}
+        {overview(title, justCreated)}
         <div className="flex-1 px-5 pt-4">
           {(reason || cancellation) && (
             <Card className="mt-4 p-4">
@@ -488,7 +511,7 @@ export function BookingDetailContent({
     const existingReview = reviewQ.data;
     return (
       <PhoneFrame bg="bg-white">
-        {overview(t("bookingDetail.completedTitle"))}
+        {overview(t("bookingDetail.completedTitle"), justCreated)}
         <div className="flex-1 px-5 pt-4">
           <Card className="mt-4 p-4">
             {existingReview ? (
@@ -614,7 +637,7 @@ export function BookingDetailContent({
 
     return (
       <PhoneFrame bg="bg-white">
-        {overview(headline)}
+        {overview(headline, justCreated)}
         <button
           type="button"
           onClick={() => setDialog("support")}
@@ -818,7 +841,10 @@ export function BookingDetailContent({
 
   return (
     <PhoneFrame bg="bg-white">
-      {overview(status === "pending" ? t("customerDetail.pending") : t("bookingDetail.allSet"))}
+      {overview(
+        status === "pending" ? t("customerDetail.pending") : t("bookingDetail.allSet"),
+        justCreated,
+      )}
       <div className="flex-1 px-5 pt-4">
         <div className="mt-4 grid grid-cols-3 gap-2">
           <Action
