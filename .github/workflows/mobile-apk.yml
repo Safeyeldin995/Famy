@@ -1,9 +1,10 @@
 name: Mobile preview APK
 
-# Starts an EAS cloud build of the Android preview APK from the chosen ref,
-# so new test builds do not need the Product Owner's PC.
-# Needs the repository secret EXPO_TOKEN (an Expo access token). Maps keys,
-# google-services.json and signing credentials stay in EAS, not in GitHub.
+# Builds the Android preview/development APK from the chosen ref.
+# Default: EAS local build on the GitHub runner (no EAS cloud build quota).
+# Optional: EAS cloud build (legacy path) when runner=eas-cloud.
+# Needs repository secret EXPO_TOKEN (Expo access token). Signing, Maps keys,
+# and google-services.json stay in EAS — nothing secret is committed or logged.
 on:
   workflow_dispatch:
     inputs:
@@ -15,17 +16,27 @@ on:
         options:
           - preview
           - development
+      runner:
+        description: "Where to run the Android build"
+        required: true
+        default: github
+        type: choice
+        options:
+          - github
+          - eas-cloud
 
 permissions:
   contents: read
+  actions: write
 
 concurrency:
   group: mobile-apk-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  build:
-    name: Start EAS Android build
+  build-eas-cloud:
+    name: Start EAS Android build (cloud)
+    if: inputs.runner == 'eas-cloud'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
@@ -76,3 +87,89 @@ jobs:
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
               `### Android build started\n\n- Commit: ${b?.gitCommitHash ?? process.env.GITHUB_SHA}\n- Build: ${url}\n\nThe APK link appears on the build page when it finishes.\n`);
           ' "$RUNNER_TEMP/build.json"
+
+  build-github-runner:
+    name: Build Android APK on runner
+    if: inputs.runner == 'github'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - name: Free disk space
+        working-directory: .
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc
+          df -h /
+
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Check EXPO_TOKEN
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        working-directory: .
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::Add the EXPO_TOKEN repository secret (Settings > Secrets and variables > Actions) to enable APK builds."
+            exit 1
+          fi
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Short SHA
+        id: short_sha
+        working-directory: .
+        run: echo "sha=${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
+
+      - name: Build APK locally
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          apk_path="$RUNNER_TEMP/famy-${{ inputs.profile }}.apk"
+          eas build --platform android --profile "${{ inputs.profile }}" \
+            --local --non-interactive --output "$apk_path"
+          echo "apk_path=$apk_path" >> "$GITHUB_ENV"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: famy-android-${{ inputs.profile }}-${{ steps.short_sha.outputs.sha }}
+          path: ${{ env.apk_path }}
+          retention-days: 14
+
+      - name: Publish artifact link
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        working-directory: .
+        run: |
+          {
+            echo "### Android APK (GitHub runner)"
+            echo ""
+            echo "- Profile: \`${{ inputs.profile }}\`"
+            echo "- Commit: \`${{ steps.short_sha.outputs.sha }}\`"
+            echo ""
+            echo "Download the APK from the [workflow run artifacts](${RUN_URL}#artifacts)."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "APK artifact: ${RUN_URL}#artifacts"

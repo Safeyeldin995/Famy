@@ -67,6 +67,20 @@ To learn more about developing your project with Expo, look at the following res
 - [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
 - [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
 
+## Test APK from GitHub Actions
+
+The **Mobile preview APK** workflow (`.github/workflows/mobile-apk.yml`) can build installable Android APKs without a developer machine.
+
+1. In GitHub: **Actions → Mobile preview APK → Run workflow**.
+2. Choose the **EAS build profile** (`preview` or `development`).
+3. Leave **runner** at **`github`** (default) to build on the GitHub Actions runner with `eas build --local`. This uses the same EAS signing credentials and project environment as cloud builds, but does not consume the EAS cloud build quota.
+4. Pick the branch or tag to build from, then run the workflow.
+5. When the job finishes, open the workflow run’s **Artifacts** section and download `famy-android-<profile>-<short-sha>.apk`.
+
+Use **runner `eas-cloud`** only if you prefer the previous behavior (queued EAS cloud build; link on expo.dev when it completes).
+
+The repository needs the **`EXPO_TOKEN`** Actions secret (Expo access token). Map API keys and `google-services.json` remain configured in EAS, not in the repo.
+
 ## Join the community
 
 Join our community of developers creating universal apps.
