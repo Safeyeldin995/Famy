@@ -5,9 +5,9 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useTranslation } from "react-i18next";
-import { Briefcase, User } from "lucide-react-native";
 import Svg, { Path } from "react-native-svg";
 import { normalizeDigitsToWestern, normalizePhoneE164 } from "@shared/otp/normalizePhone";
+import { interpretSignupSendForLoginPhoneContinue } from "@shared/auth/loginPhoneContinue";
 import {
   phoneOtpFlowErrorMessage,
   startPhoneOtpFlow,
@@ -33,29 +33,29 @@ import { replaceAfterLoginNavigation } from "@/lib/afterLoginNavigation";
 import { customerLandingPath, resolveWorkspace } from "@/lib/session";
 import { AuthLabeledField, AuthPasswordField, AuthPhoneField } from "@/ui/auth/AuthFields";
 import { Button } from "@/ui/Button";
-import { Segmented } from "@/ui/Segmented";
 import { Text } from "@/ui/Text";
 import { KeyboardFormScreen } from "@/ui/KeyboardFormScreen";
 import { colors, radius, space } from "@/ui/theme";
 
-type Mode = "signin" | "signup";
 type Role = "customer" | "provider";
+type Step = "phone" | "password";
 
 export default function Login() {
   const params = useLocalSearchParams<{ mode?: string; phone?: string }>();
   const { t } = useTranslation();
-  const initialMode = params.mode === "signup" ? "signup" : "signin";
-  const [mode, setMode] = useState<Mode>(initialMode);
-  const [role, setRole] = useState<Role>("customer");
+  const [role, setRole] = useState<Role>(
+    params.mode === "signup" ? "provider" : "customer",
+  );
+  const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<OAuthProvider | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [flowMismatchNext, setFlowMismatchNext] = useState<"signin" | "signup" | null>(null);
   const oauthProviders = enabledMobileOAuthProviders();
-  const showOAuth = mode === "signin" && role === "customer" && oauthProviders.length > 0;
+  const showOAuth =
+    role === "customer" && step === "phone" && oauthProviders.length > 0;
 
   useEffect(() => {
     const noticeKey = consumePendingLoginNoticeKey();
@@ -66,12 +66,18 @@ export default function Login() {
     if (typeof params.phone === "string" && params.phone.length > 0) {
       setPhone(params.phone);
     }
-    if (params.mode === "signup" || params.mode === "signin") {
-      setMode(params.mode);
+    if (params.mode === "signup") {
+      setRole("provider");
     }
   }, [params.mode, params.phone]);
 
   const phoneValid = normalizeDigitsToWestern(phone).replace(/\D/g, "").length >= 9;
+
+  const resetPhoneStep = () => {
+    setStep("phone");
+    setPassword("");
+    setError(null);
+  };
 
   const signIn = async () => {
     if (!phoneValid || !password || loading) return;
@@ -108,6 +114,49 @@ export default function Login() {
       return;
     }
     await replaceAfterLoginNavigation(workspace, await customerLandingPath(data.user.id));
+  };
+
+  const continueWithPhone = async () => {
+    if (!phoneValid || loading) return;
+    setError(null);
+    setLoading(true);
+    const e164 = normalizePhoneE164(phone);
+    const send = await startPhoneOtpFlow(e164, "signup", role);
+    setLoading(false);
+    const interpreted = interpretSignupSendForLoginPhoneContinue(
+      send.ok
+        ? { ok: true }
+        : {
+            ok: false,
+            error: send.error,
+            nextStep: send.nextStep,
+            retryAfter: send.retryAfter,
+            firebaseAuthCode: send.firebaseAuthCode,
+          },
+    );
+    if (interpreted.kind === "flow_mismatch_signup") {
+      setError(t("auth.noAccount"));
+      return;
+    }
+    if (interpreted.kind === "registered") {
+      setStep("password");
+      return;
+    }
+    if (interpreted.kind === "proceed_signup_otp") {
+      router.push({ pathname: "/otp", params: { purpose: "signup", phone: e164, role } });
+      return;
+    }
+    if (!send.ok) {
+      logAuthFailure("signup_send", send.error);
+    }
+    setError(
+      phoneOtpFlowErrorMessage(
+        interpreted.error as PhoneOtpFlowError,
+        t,
+        interpreted.retryAfter,
+        interpreted.firebaseAuthCode,
+      ),
+    );
   };
 
   const finishOAuth = async () => {
@@ -156,7 +205,7 @@ export default function Login() {
   };
 
   const primaryFooter =
-    mode === "signin" ? (
+    step === "password" ? (
       <Button
         label={t("auth.signIn")}
         onPress={signIn}
@@ -165,38 +214,14 @@ export default function Login() {
       />
     ) : (
       <Button
-        label={t("common.sendCode")}
+        label={t("auth.continue")}
         loading={loading}
         disabled={!phoneValid || oauthLoading !== null}
-        onPress={async () => {
-          if (!phoneValid || loading) return;
-          setError(null);
-          setFlowMismatchNext(null);
-          setLoading(true);
-          const e164 = normalizePhoneE164(phone);
-          const send = await startPhoneOtpFlow(e164, "signup", role);
-          setLoading(false);
-          if (!send.ok) {
-            logAuthFailure("signup_send", send.error);
-            if (send.error === "flow_mismatch" && send.nextStep === "signin") {
-              setError(t("auth.alreadyRegistered"));
-              setFlowMismatchNext("signin");
-              return;
-            }
-            setError(
-              phoneOtpFlowErrorMessage(
-                send.error as PhoneOtpFlowError,
-                t,
-                send.retryAfter,
-                send.firebaseAuthCode,
-              ),
-            );
-            return;
-          }
-          router.push({ pathname: "/otp", params: { purpose: "signup", phone: e164, role } });
-        }}
+        onPress={continueWithPhone}
       />
     );
+
+  const providerMode = role === "provider";
 
   return (
     <KeyboardFormScreen contentContainerStyle={styles.content} footer={primaryFooter}>
@@ -207,51 +232,50 @@ export default function Login() {
         accessibilityLabel={t("common.appName")}
       />
 
-      <View style={{ gap: space.sm }}>
-        <Text size="hero" weight="heavy">
-          {mode === "signin" ? t("auth.welcomeBack") : t("auth.signUpTitle")}
-        </Text>
-        <Text tone="muted">
-          {mode === "signin" ? t("auth.signInSubtitle") : t("auth.signUpSubtitle")}
-        </Text>
-      </View>
-
-      <Segmented
-        value={mode}
-        onChange={(next) => {
-          setMode(next);
-          setError(null);
-          setFlowMismatchNext(null);
-        }}
-        options={[
-          { value: "signin", label: t("auth.signIn") },
-          { value: "signup", label: t("auth.signUp") },
-        ]}
-      />
-
-      <View style={{ gap: space.sm }}>
-        <Text size="sm" weight="bold" tone="muted">
-          {t("auth.iAmA")}
-        </Text>
-        <Segmented
-          value={role}
-          onChange={setRole}
-          options={[
-            { value: "customer", label: t("auth.roleCustomer"), icon: User },
-            { value: "provider", label: t("auth.roleProvider"), icon: Briefcase },
-          ]}
-        />
-      </View>
+      {providerMode ? (
+        <View style={{ gap: space.sm }}>
+          <Text size="hero" weight="heavy">
+            {t("auth.providerSignupTitle")}
+          </Text>
+          <Text tone="muted">{t("auth.signUpSubtitle")}</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t("auth.backToCustomerLogin")}
+            onPress={() => {
+              setRole("customer");
+              resetPhoneStep();
+            }}
+            hitSlop={8}
+          >
+            <Text size="sm" weight="heavy" tone="brand">
+              {t("auth.backToCustomerLogin")}
+            </Text>
+          </Pressable>
+          <Text size="sm" tone="muted">
+            {t("auth.providerNote")}
+          </Text>
+        </View>
+      ) : step === "password" ? (
+        <View style={{ gap: space.sm }}>
+          <Text size="hero" weight="heavy">
+            {t("auth.welcomeBack")}
+          </Text>
+          <Text tone="muted">{t("auth.signInSubtitle")}</Text>
+        </View>
+      ) : null}
 
       <AuthLabeledField label={t("auth.phoneNumber")}>
         <AuthPhoneField
           value={phone}
-          onChangeText={setPhone}
+          onChangeText={(value) => {
+            setPhone(value);
+            if (step === "password") resetPhoneStep();
+          }}
           placeholder={t("auth.phonePlaceholder")}
         />
       </AuthLabeledField>
 
-      {mode === "signin" ? (
+      {step === "password" ? (
         <AuthLabeledField
           label={t("auth.password")}
           labelAccessory={
@@ -282,17 +306,6 @@ export default function Login() {
           <Text size="sm" weight="bold" tone="danger">
             {error}
           </Text>
-          {flowMismatchNext === "signin" ? (
-            <Button
-              label={t("auth.signIn")}
-              variant="ghost"
-              onPress={() => {
-                setMode("signin");
-                setFlowMismatchNext(null);
-                setError(null);
-              }}
-            />
-          ) : null}
         </View>
       ) : null}
 
@@ -353,6 +366,47 @@ export default function Login() {
               </Text>
             </Pressable>
           ) : null}
+        </View>
+      ) : null}
+
+      {!providerMode && step === "phone" ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("auth.providerSignupLink")}
+          onPress={() => {
+            setRole("provider");
+            resetPhoneStep();
+          }}
+          style={styles.providerLink}
+        >
+          <Text size="sm" weight="heavy" tone="brand" style={{ textAlign: "center" }}>
+            {t("auth.providerSignupLink")}
+          </Text>
+        </Pressable>
+      ) : null}
+
+      {providerMode && step === "phone" ? (
+        <View style={styles.termsRow}>
+          <Text size="xs" tone="muted" style={{ textAlign: "center" }}>
+            {t("auth.terms")}{" "}
+            <Text
+              size="xs"
+              weight="heavy"
+              tone="brand"
+              onPress={() => router.push("/content/terms")}
+            >
+              {t("auth.termsLink")}
+            </Text>{" "}
+            {t("auth.and")}{" "}
+            <Text
+              size="xs"
+              weight="heavy"
+              tone="brand"
+              onPress={() => router.push("/content/privacy")}
+            >
+              {t("auth.privacyLink")}
+            </Text>
+          </Text>
         </View>
       ) : null}
     </KeyboardFormScreen>
@@ -418,4 +472,6 @@ const styles = StyleSheet.create({
   oauthPressed: { opacity: 0.92 },
   oauthDisabled: { opacity: 0.6 },
   appleBtn: { width: "100%", height: 56 },
+  providerLink: { marginTop: space.md, paddingVertical: space.sm },
+  termsRow: { marginTop: space.sm },
 });

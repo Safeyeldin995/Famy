@@ -36,6 +36,12 @@ vi.mock("@/lib/otp/OtpService", () => ({
   normalizePhone: (phone: string) => phone,
 }));
 
+const mockStartPhoneOtpFlow = vi.fn();
+vi.mock("@/lib/otp/phoneOtpFlow", () => ({
+  startPhoneOtpFlow: (...args: unknown[]) => mockStartPhoneOtpFlow(...args),
+  phoneOtpFlowErrorMessage: () => "send failed",
+}));
+
 vi.mock("@/lib/auth/landing", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/auth/landing")>();
   return {
@@ -89,11 +95,12 @@ async function signIn(chooseProviderTab: boolean) {
   render(<Login previewMode={false} />);
   if (chooseProviderTab) {
     await user.click(
-      screen.getByRole("button", { name: new RegExp(i18n.t("auth.roleProvider"), "i") }),
+      screen.getByRole("button", { name: new RegExp(i18n.t("auth.providerSignupLink"), "i") }),
     );
   }
   const phoneInputs = screen.getAllByPlaceholderText(i18n.t("auth.phonePlaceholder"));
   await user.type(phoneInputs[0]!, "1012345678");
+  await user.click(screen.getByTestId("login-submit"));
   await user.type(screen.getAllByPlaceholderText("••••••••")[0]!, "secret123");
   await user.click(screen.getByTestId("login-submit"));
 }
@@ -104,7 +111,13 @@ describe("login post-password landing", () => {
     mockNav.mockClear();
     mockSignIn.mockReset();
     mockResolveRoleLanding.mockReset();
+    mockStartPhoneOtpFlow.mockReset();
     mockSignIn.mockResolvedValue({ ok: true });
+    mockStartPhoneOtpFlow.mockResolvedValue({
+      ok: false,
+      error: "flow_mismatch",
+      nextStep: "signin",
+    });
   });
 
   it("lands provider-only users on /pro even when customer tab is selected", async () => {
