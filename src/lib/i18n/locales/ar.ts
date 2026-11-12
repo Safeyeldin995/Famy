@@ -194,6 +194,13 @@ const ar: Translation = {
     "confirmBooking": "تأكيد الحجز",
     "editChoices": "راجع الاختيارات",
     "rating": "تقييمك",
+    starA11y: "{{n}} من 5 نجوم",
+    starSelectedGroup: "التقييم المختار {{n}} من 5",
+    starLabel1: "سيئ",
+    starLabel2: "مقبول",
+    starLabel3: "كويس",
+    starLabel4: "جيد جدا",
+    starLabel5: "ممتاز",
     "review": "اكتب رأيك",
     "photosPermission": "اسمح لفامي باختيار صورة إيصال الدفع من صورك"
 },

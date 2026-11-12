@@ -192,6 +192,13 @@ const en = {
     "confirmBooking": "Confirm booking",
     "editChoices": "Review choices",
     "rating": "Your rating",
+    starA11y: "{{n}} of 5 stars",
+    starSelectedGroup: "Selected rating {{n}} of 5",
+    starLabel1: "Poor",
+    starLabel2: "Fair",
+    starLabel3: "Good",
+    starLabel4: "Very good",
+    starLabel5: "Excellent",
     "review": "Your review",
     "photosPermission": "Allow Famy to select a payment receipt from your photos."
 },

@@ -18,6 +18,7 @@ export const colors = {
   border: "#E7DEE2",
   success: "#1F9D63",
   warning: "#D88A0B",
+  ratingGold: "#F5B301",
   destructive: "#D6342C",
   lavender: "#8E6CD8",
   lavenderTint: "#EFEAFB",

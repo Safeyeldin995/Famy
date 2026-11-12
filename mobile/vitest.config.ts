@@ -35,6 +35,7 @@ export default defineConfig({
       "src/lib/__tests__/intlPluralRules.test.ts",
       "src/lib/__tests__/cacheInvalidation.test.ts",
       "src/ui/__tests__/noGlobalCryptoRandomUUID.test.ts",
+      "src/ui/__tests__/starRating.test.ts",
     ],
     setupFiles: [path.join(repoRoot, "qa/vitest-unit-qa-env-guard.mjs")],
   },

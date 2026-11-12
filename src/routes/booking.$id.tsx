@@ -16,6 +16,7 @@ import {
   EmptyState,
 } from "@/components/famio/ui";
 import { PaymentBlock } from "@/components/famio/PaymentBlock";
+import { StarRatingInput } from "@/components/famio/StarRatingInput";
 import { RescheduleSection } from "@/components/famio/RescheduleSection";
 import {
   useBooking,
@@ -482,14 +483,7 @@ export function BookingDetailContent({
           <Card className="mt-4 p-4">
             {existingReview ? (
               <>
-                <div className="mt-5 flex justify-center gap-2">
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <Star
-                      key={n}
-                      className={`h-9 w-9 ${n <= existingReview.rating ? "fill-warning text-warning" : "text-border"}`}
-                    />
-                  ))}
-                </div>
+                <StarRatingInput className="mt-5" value={existingReview.rating} readOnly />
                 {existingReview.comment && (
                   <p className="mt-4 rounded-2xl bg-surface-2 p-3 text-sm text-muted-foreground">
                     {existingReview.comment}
@@ -501,20 +495,12 @@ export function BookingDetailContent({
               </>
             ) : (
               <>
-                <div className="mt-5 flex justify-center gap-2">
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <button
-                      className="focus-ring grid h-11 w-11 place-items-center"
-                      key={n}
-                      onClick={() => setRating(n)}
-                      aria-label={`${n}`}
-                    >
-                      <Star
-                        className={`h-9 w-9 ${n <= rating ? "fill-warning text-warning" : "text-border"}`}
-                      />
-                    </button>
-                  ))}
-                </div>
+                <StarRatingInput
+                  className="mt-5"
+                  label={t("bookingDetail.yourRating")}
+                  value={rating}
+                  onChange={setRating}
+                />
                 <textarea
                   rows={3}
                   value={comment}
