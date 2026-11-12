@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { randomUUID } from "node:crypto";
 import type { PGlite } from "@electric-sql/pglite";
 import {
   IDS,
@@ -8,33 +9,76 @@ import {
   createBookingLifecycleDb,
   queryRows,
   seedLifecycleBooking,
-  seedPaymentsForBooking,
 } from "./booking-lifecycle.harness";
 
-async function ensureAdminRole(db: PGlite): Promise<void> {
-  await db.exec(`
-    INSERT INTO auth.users (id) VALUES ('${IDS.adminUser}') ON CONFLICT DO NOTHING;
-    INSERT INTO public.user_roles (user_id, role) VALUES ('${IDS.adminUser}', 'admin') ON CONFLICT DO NOTHING;
-  `);
-}
+const BARE = {
+  user: "00000000-0000-0000-0000-0000000000a1",
+  provider: "00000000-0000-0000-0000-0000000000b1",
+} as const;
 
-async function setLedgerAutoFromPast(db: PGlite): Promise<void> {
+const WEEKLY = {
+  user: "00000000-0000-0000-0000-0000000000a2",
+  provider: "00000000-0000-0000-0000-0000000000b2",
+  owesUser: "00000000-0000-0000-0000-0000000000a3",
+  owesProvider: "00000000-0000-0000-0000-0000000000b3",
+} as const;
+
+type Balance = {
+  total_credits: string;
+  total_debits: string;
+  net: string;
+  cash_held_for_platform: string;
+};
+
+let db: PGlite;
+
+beforeAll(async () => {
+  db = await createBookingLifecycleDb();
+  await db.exec(`
+    INSERT INTO auth.users (id, raw_user_meta_data) VALUES
+      ('${IDS.adminUser}', '{"full_name":"Lifecycle Admin"}'),
+      ('${BARE.user}', '{"signup_role":"provider","full_name":"Bare Provider"}'),
+      ('${WEEKLY.user}', '{"signup_role":"provider","full_name":"Weekly Provider"}'),
+      ('${WEEKLY.owesUser}', '{"signup_role":"provider","full_name":"Owes Provider"}')
+    ON CONFLICT (id) DO NOTHING;
+
+    INSERT INTO public.user_roles (user_id, role) VALUES
+      ('${IDS.adminUser}', 'admin')
+    ON CONFLICT DO NOTHING;
+
+    INSERT INTO public.providers (
+      id, profile_id, hourly_rate, onboarding_status, is_active, vacation_mode,
+      min_notice_hours, max_advance_days, buffer_minutes, bio_en, bio_ar
+    ) VALUES
+      ('${BARE.provider}', '${BARE.user}', 100, 'DRAFT', true, false, 0, 365, 0, 'Bio', 'سيرة'),
+      ('${WEEKLY.provider}', '${WEEKLY.user}', 100, 'DRAFT', true, false, 0, 365, 0, 'Bio', 'سيرة'),
+      ('${WEEKLY.owesProvider}', '${WEEKLY.owesUser}', 100, 'DRAFT', true, false, 0, 365, 0, 'Bio', 'سيرة')
+    ON CONFLICT (id) DO NOTHING;
+  `);
+}, 180_000);
+
+afterAll(async () => {
+  await db?.close();
+});
+
+async function setLedgerCutoff(offset: string): Promise<void> {
   await asServiceRole(db, () =>
     db.query(
       `
         UPDATE public.settings
         SET value = COALESCE(value, '{}'::jsonb)
-          || jsonb_build_object('ledger_auto_from', (now() - interval '1 day')::timestamptz)
+          || jsonb_build_object('ledger_auto_from', (now() + $1::interval)::timestamptz)
         WHERE key = 'provider_settlement'
       `,
+      [offset],
     ),
   );
 }
 
-async function forceCommissionSnapshot(
-  db: PGlite,
+async function forceSnapshot(
   bookingId: string,
-  opts: { total: number; providerNet: number },
+  total: number,
+  providerNet: number,
 ): Promise<void> {
   await asServiceRole(db, () =>
     db.query(
@@ -43,266 +87,554 @@ async function forceCommissionSnapshot(
         SET price_total = $2::numeric,
             price_provider_net = $3::numeric,
             price_commission_percent = 10,
-            price_commission_amount = $2::numeric - $3::numeric
+            price_commission_amount = ($2::numeric - $3::numeric)
         WHERE id = $1::uuid
       `,
-      [bookingId, opts.total, opts.providerNet],
+      [bookingId, total, providerNet],
     ),
   );
 }
 
-async function ledgerNet(db: PGlite, providerId: string): Promise<number> {
-  const rows = await queryRows<{ net: string }>(
+async function insertPayment(
+  bookingId: string,
+  methodCode: "cash_on_delivery" | "instapay",
+): Promise<string> {
+  const methods = await queryRows<{ id: string }>(
     db,
-    `SELECT net::text FROM public.provider_balance($1)`,
+    `SELECT id::text AS id FROM public.payment_methods WHERE code = $1`,
+    [methodCode],
+  );
+  const methodId = methods[0]?.id;
+  if (!methodId) throw new Error(`missing payment method ${methodCode}`);
+  const totals = await queryRows<{ price_total: string }>(
+    db,
+    `SELECT price_total::text FROM public.bookings WHERE id = $1`,
+    [bookingId],
+  );
+  const paymentId = randomUUID();
+  await asServiceRole(db, () =>
+    db.query(
+      `
+        INSERT INTO public.payments (
+          id, booking_id, customer_id, amount, status, payment_method_id, metadata
+        ) VALUES ($1::uuid, $2::uuid, $3::uuid, $4::numeric, 'pending', $5::uuid, '{}'::jsonb)
+      `,
+      [paymentId, bookingId, IDS.customer, totals[0]?.price_total ?? "0", methodId],
+    ),
+  );
+  return paymentId;
+}
+
+async function balanceOf(providerId: string): Promise<Balance> {
+  const rows = await queryRows<Balance>(
+    db,
+    `
+      SELECT total_credits::text, total_debits::text, net::text, cash_held_for_platform::text
+      FROM public.provider_balance($1::uuid)
+    `,
     [providerId],
   );
-  return Number(rows[0]?.net ?? 0);
+  const row = rows[0];
+  if (!row) throw new Error("provider_balance returned no row");
+  return row;
+}
+
+async function notificationCount(userId: string, type: string): Promise<number> {
+  const rows = await queryRows<{ n: number }>(
+    db,
+    `SELECT count(*)::int AS n FROM public.notifications WHERE user_id = $1::uuid AND type = $2`,
+    [userId, type],
+  );
+  return rows[0]?.n ?? 0;
 }
 
 describe("provider settlements ledger", () => {
-  let db: PGlite | undefined;
+  it("stores settlement settings and schedules Sunday 10:00 Cairo", async () => {
+    const settings = await queryRows<{ value: Record<string, unknown> }>(
+      db,
+      `SELECT value FROM public.settings WHERE key = 'provider_settlement'`,
+    );
+    const value = settings[0]?.value;
+    expect(Number(value?.cash_debt_limit)).toBe(1000);
+    expect(Number(value?.cash_debt_warn_percent)).toBe(80);
+    expect(Number(value?.settlement_weekday)).toBe(0);
+    expect(value?.ledger_auto_from).toBeTruthy();
 
-  afterEach(async () => {
-    await db?.close();
-    db = undefined;
+    const jobs = await queryRows<{ schedule: string; command: string }>(
+      db,
+      `SELECT schedule, command FROM cron.job WHERE jobname = 'famy-provider-weekly-settlements'`,
+    );
+    expect(jobs[0]?.schedule).toBe("0 7,8 * * 0");
+    expect(jobs[0]?.command).toContain("run_provider_weekly_settlements");
+
+    const privileges = await queryRows<{
+      anon_admin: boolean;
+      auth_insert: boolean;
+      anon_insert: boolean;
+    }>(
+      db,
+      `
+        SELECT
+          has_function_privilege(
+            'anon',
+            'public.admin_provider_ledger_adjustment(uuid, text, numeric, text, text)',
+            'EXECUTE'
+          ) AS anon_admin,
+          has_table_privilege('authenticated', 'public.provider_ledger_entries', 'INSERT') AS auth_insert,
+          has_table_privilege('anon', 'public.provider_ledger_entries', 'INSERT') AS anon_insert
+      `,
+    );
+    expect(privileges[0]?.anon_admin).toBe(false);
+    expect(privileges[0]?.auth_insert).toBe(false);
+    expect(privileges[0]?.anon_insert).toBe(false);
   });
 
-  it("cash completion captures payment and creates platform-share debit", async () => {
-    db = await createBookingLifecycleDb();
-    await ensureAdminRole(db!);
-    await setLedgerAutoFromPast(db!);
-    const { bookingId } = await seedLifecycleBooking(db!, { status: "confirmed" });
-    await forceCommissionSnapshot(db!, bookingId, { total: 2000, providerNet: 1700 });
-    const { cashId } = await seedPaymentsForBooking(db!, bookingId);
-    await asServiceRole(db!, async () => {
-      await db!.query(`DELETE FROM public.payments WHERE booking_id = $1 AND id <> $2::uuid`, [bookingId, cashId]);
-      await db!.query(
-        `
-          UPDATE public.payments
-          SET payment_method_type = 'cash', payment_method_code = 'cash_on_delivery', status = 'pending'
-          WHERE id = $1
-        `,
-        [cashId],
-      );
-    });
-    await completeHappyPath(db!, bookingId);
-
-    const payment = await queryRows<{ status: string; captured_at: string | null }>(
-      db!,
-      `SELECT status::text AS status, captured_at::text FROM public.payments WHERE booking_id = $1 LIMIT 1`,
-      [bookingId],
+  it("posts cash debit and online credit, and Famy owes the net", async () => {
+    await setLedgerCutoff("-1 day");
+    // Both bookings are created before the cash debit posts. A 2000 platform
+    // share is already over the 1000 debt limit, so a later create_booking
+    // would be rejected while the existing online booking still completes.
+    const cash = await seedLifecycleBooking(db, { status: "pending" });
+    const online = await seedLifecycleBooking(db, { status: "pending" });
+    await forceSnapshot(cash.bookingId, 3500, 1500);
+    const before = await queryRows<{ price_total: string; price_provider_net: string }>(
+      db,
+      `SELECT price_total::text, price_provider_net::text FROM public.bookings WHERE id = $1`,
+      [cash.bookingId],
     );
-    expect(payment[0]?.status).toBe("captured");
-    expect(payment[0]?.captured_at).toBeTruthy();
+    await insertPayment(cash.bookingId, "cash_on_delivery");
+    await completeHappyPath(db, cash.bookingId);
 
-    const ledger = await queryRows<{ kind: string; direction: string; amount: string }>(
-      db!,
+    const after = await queryRows<{
+      price_total: string;
+      price_provider_net: string;
+      status: string;
+    }>(
+      db,
+      `
+        SELECT b.price_total::text, b.price_provider_net::text, p.status::text AS status
+        FROM public.bookings b
+        JOIN public.payments p ON p.booking_id = b.id
+        WHERE b.id = $1
+      `,
+      [cash.bookingId],
+    );
+    expect(after[0]?.price_total).toBe(before[0]?.price_total);
+    expect(after[0]?.price_provider_net).toBe(before[0]?.price_provider_net);
+    expect(after[0]?.status).toBe("captured");
+
+    const cashLedger = await queryRows<{ kind: string; direction: string; amount: string }>(
+      db,
       `SELECT kind, direction, amount::text FROM public.provider_ledger_entries WHERE booking_id = $1`,
-      [bookingId],
+      [cash.bookingId],
     );
-    expect(ledger).toHaveLength(1);
-    expect(ledger[0]?.kind).toBe("cash_collected_platform_share");
-    expect(ledger[0]?.direction).toBe("debit");
-    expect(Number(ledger[0]?.amount)).toBe(300);
-  });
+    expect(cashLedger).toEqual([
+      { kind: "cash_collected_platform_share", direction: "debit", amount: "2000.00" },
+    ]);
 
-  it("online capture creates provider credit when booking is completed", async () => {
-    db = await createBookingLifecycleDb();
-    await ensureAdminRole(db!);
-    await setLedgerAutoFromPast(db!);
-    const { bookingId } = await seedLifecycleBooking(db!, { status: "confirmed" });
-    await forceCommissionSnapshot(db!, bookingId, { total: 5000, providerNet: 4250 });
-    const { cashId } = await seedPaymentsForBooking(db!, bookingId);
-    await asServiceRole(db!, async () => {
-      await db!.query(`DELETE FROM public.payments WHERE booking_id = $1 AND id <> $2::uuid`, [bookingId, cashId]);
-      const instapay = await queryRows<{ id: string }>(
-        db!,
-        `SELECT id FROM public.payment_methods WHERE code = 'instapay' LIMIT 1`,
-      );
-      await db!.query(
-        `
-          UPDATE public.payments
-          SET payment_method_id = $2,
-              payment_method_type = 'manual_transfer',
-              payment_method_code = 'instapay',
-              status = 'pending'
-          WHERE id = $1
-        `,
-        [cashId, instapay[0]!.id],
-      );
-    });
-    await completeHappyPath(db!, bookingId);
-    await asServiceRole(db!, () =>
-      db!.query(
+    await forceSnapshot(online.bookingId, 6000, 5000);
+    await insertPayment(online.bookingId, "instapay");
+    await completeHappyPath(db, online.bookingId);
+    const beforeCapture = await queryRows<{ n: number }>(
+      db,
+      `SELECT count(*)::int AS n FROM public.provider_ledger_entries WHERE booking_id = $1`,
+      [online.bookingId],
+    );
+    expect(beforeCapture[0]?.n).toBe(0);
+
+    await asServiceRole(db, () =>
+      db.query(
         `UPDATE public.payments SET status = 'captured', captured_at = now() WHERE booking_id = $1`,
-        [bookingId],
+        [online.bookingId],
       ),
     );
-
-    const ledger = await queryRows<{ kind: string; amount: string }>(
-      db!,
-      `SELECT kind, amount::text FROM public.provider_ledger_entries WHERE booking_id = $1 AND kind = 'online_provider_share'`,
-      [bookingId],
+    const onlineLedger = await queryRows<{ kind: string; direction: string; amount: string }>(
+      db,
+      `SELECT kind, direction, amount::text FROM public.provider_ledger_entries WHERE booking_id = $1`,
+      [online.bookingId],
     );
-    expect(ledger).toHaveLength(1);
-    expect(Number(ledger[0]?.amount)).toBe(4250);
-    expect(await ledgerNet(db!, IDS.provider)).toBe(4250);
+    expect(onlineLedger).toEqual([
+      { kind: "online_provider_share", direction: "credit", amount: "5000.00" },
+    ]);
+
+    const balance = await balanceOf(IDS.provider);
+    expect(Number(balance.total_credits)).toBe(5000);
+    expect(Number(balance.total_debits)).toBe(2000);
+    expect(Number(balance.net)).toBe(3000);
+    expect(Number(balance.cash_held_for_platform)).toBe(2000);
+  }, 60_000);
+
+  it("leaves bookings completed before the cutoff, and rows with no snapshot, untouched", async () => {
+    const historic = await seedLifecycleBooking(db, { status: "pending" });
+    await forceSnapshot(historic.bookingId, 2000, 1700);
+    const pricesBefore = await queryRows<{ price_total: string; price_provider_net: string }>(
+      db,
+      `SELECT price_total::text, price_provider_net::text FROM public.bookings WHERE id = $1`,
+      [historic.bookingId],
+    );
+    await insertPayment(historic.bookingId, "cash_on_delivery");
+    await setLedgerCutoff("1 day");
+    await completeHappyPath(db, historic.bookingId);
+
+    const historicRows = await queryRows<{ n: number; pay: string; price_total: string }>(
+      db,
+      `
+        SELECT
+          (SELECT count(*)::int FROM public.provider_ledger_entries WHERE booking_id = $1) AS n,
+          p.status::text AS pay,
+          b.price_total::text
+        FROM public.bookings b
+        JOIN public.payments p ON p.booking_id = b.id
+        WHERE b.id = $1
+      `,
+      [historic.bookingId],
+    );
+    expect(historicRows[0]?.n).toBe(0);
+    expect(historicRows[0]?.pay).toBe("pending");
+    expect(historicRows[0]?.price_total).toBe(pricesBefore[0]?.price_total);
+
+    await setLedgerCutoff("-1 day");
+    const unsnapshotted = await seedLifecycleBooking(db, { status: "pending" });
+    await asServiceRole(db, () =>
+      db.query(
+        `UPDATE public.bookings SET price_provider_net = NULL, price_commission_amount = NULL, price_commission_percent = NULL WHERE id = $1`,
+        [unsnapshotted.bookingId],
+      ),
+    );
+    await insertPayment(unsnapshotted.bookingId, "cash_on_delivery");
+    await completeHappyPath(db, unsnapshotted.bookingId);
+    const unsnap = await queryRows<{ n: number; pay: string }>(
+      db,
+      `
+        SELECT
+          (SELECT count(*)::int FROM public.provider_ledger_entries WHERE booking_id = $1) AS n,
+          status::text AS pay
+        FROM public.payments WHERE booking_id = $1
+      `,
+      [unsnapshotted.bookingId],
+    );
+    expect(unsnap[0]?.n).toBe(0);
+    expect(unsnap[0]?.pay).toBe("pending");
+  }, 60_000);
+
+  it("warns once per crossing of 80 percent", async () => {
+    await asUser(db, IDS.adminUser, () =>
+      db.query(
+        `SELECT public.admin_provider_ledger_adjustment($1::uuid, 'debit', 800, 'warn seed', 'first')`,
+        [BARE.provider],
+      ),
+    );
+    expect(await notificationCount(BARE.user, "provider_settlement_debt_warning")).toBe(1);
+    const body = await queryRows<{ body_ar: string }>(
+      db,
+      `SELECT body_ar FROM public.notifications WHERE user_id = $1::uuid AND type = 'provider_settlement_debt_warning'`,
+      [BARE.user],
+    );
+    expect(body[0]?.body_ar).toBe(
+      "رصيدك المستحق للمنصة قرب يوصل للحد، حول المبلغ عشان تفضل تستقبل طلبات",
+    );
+
+    await asUser(db, IDS.adminUser, () =>
+      db.query(
+        `SELECT public.admin_provider_ledger_adjustment($1::uuid, 'debit', 50, 'still warning', 'second')`,
+        [BARE.provider],
+      ),
+    );
+    expect(await notificationCount(BARE.user, "provider_settlement_debt_warning")).toBe(1);
+
+    const audited = await queryRows<{ n: number }>(
+      db,
+      `
+        SELECT count(*)::int AS n FROM public.audit_logs
+        WHERE entity = 'provider_ledger_entries' AND reason = 'warn seed'
+      `,
+    );
+    expect(audited[0]?.n).toBeGreaterThan(0);
+
+    await asUser(db, IDS.adminUser, () =>
+      db.query(
+        `SELECT public.admin_provider_ledger_adjustment($1::uuid, 'credit', 250, 'below warning', 'relief')`,
+        [BARE.provider],
+      ),
+    );
+    await asUser(db, IDS.adminUser, () =>
+      db.query(
+        `SELECT public.admin_provider_ledger_adjustment($1::uuid, 'debit', 250, 'cross again', 'again')`,
+        [BARE.provider],
+      ),
+    );
+    expect(await notificationCount(BARE.user, "provider_settlement_debt_warning")).toBe(2);
   });
 
-  it("mixed cash and online balance matches Famy transfer amount", async () => {
-    db = await createBookingLifecycleDb();
-    await ensureAdminRole(db!);
-    await setLedgerAutoFromPast(db!);
-
-    const cashBooking = await seedLifecycleBooking(db!, { status: "confirmed" });
-    await forceCommissionSnapshot(db!, cashBooking.bookingId, { total: 2000, providerNet: 1700 });
-    const { cashId: cashOnlyId } = await seedPaymentsForBooking(db!, cashBooking.bookingId);
-    await asServiceRole(db!, async () => {
-      await db!.query(`DELETE FROM public.payments WHERE booking_id = $1 AND id <> $2::uuid`, [
-        cashBooking.bookingId,
-        cashOnlyId,
-      ]);
-      await db!.query(
-        `UPDATE public.payments SET payment_method_type = 'cash', payment_method_code = 'cash_on_delivery', status = 'pending' WHERE id = $1`,
-        [cashOnlyId],
-      );
-    });
-    await completeHappyPath(db!, cashBooking.bookingId);
-
-    const onlineBooking = await seedLifecycleBooking(db!, { status: "confirmed" });
-    await forceCommissionSnapshot(db!, onlineBooking.bookingId, { total: 5000, providerNet: 4250 });
-    const { cashId: onlinePayId } = await seedPaymentsForBooking(db!, onlineBooking.bookingId);
-    await asServiceRole(db!, async () => {
-      await db!.query(`DELETE FROM public.payments WHERE booking_id = $1 AND id <> $2::uuid`, [
-        onlineBooking.bookingId,
-        onlinePayId,
-      ]);
-      const instapay = await queryRows<{ id: string }>(
-        db!,
-        `SELECT id FROM public.payment_methods WHERE code = 'instapay' LIMIT 1`,
-      );
-      await db!.query(
-        `
-          UPDATE public.payments
-          SET payment_method_id = $2,
-              payment_method_type = 'manual_transfer',
-              payment_method_code = 'instapay',
-              status = 'pending'
-          WHERE id = $1
-        `,
-        [onlinePayId, instapay[0]!.id],
-      );
-    });
-    await completeHappyPath(db!, onlineBooking.bookingId);
-    await asServiceRole(db!, () =>
-      db!.query(
-        `UPDATE public.payments SET status = 'captured', captured_at = now() WHERE booking_id = $1`,
-        [onlineBooking.bookingId],
+  it("blocks new bookings at the limit and lifts the block after payment", async () => {
+    const existing = await seedLifecycleBooking(db, { providerId: IDS.otherProvider, status: "pending" });
+    const visibleBefore = await asUser(db, IDS.customer, () =>
+      queryRows<{ id: string }>(
+        db,
+        `SELECT id::text FROM public.search_marketplace_providers(NULL, $1::uuid) WHERE id = $2::uuid`,
+        [IDS.address, IDS.otherProvider],
       ),
     );
+    expect(visibleBefore.length).toBeGreaterThan(0);
 
-    // cash debit 300 + online credit 4250 => net 3950 (Famy owes provider)
-    expect(await ledgerNet(db!, IDS.provider)).toBe(3950);
-  });
-
-  it("blocks create_booking at debt limit and lifts after payment", async () => {
-    db = await createBookingLifecycleDb();
-    await ensureAdminRole(db!);
-    const seeded = await seedLifecycleBooking(db!, { status: "pending" });
-    await asServiceRole(db!, () =>
-      db!.query(
-        `UPDATE public.settings SET value = jsonb_set(value, '{cash_debt_limit}', '100') WHERE key = 'provider_settlement'`,
+    await asUser(db, IDS.adminUser, () =>
+      db.query(
+        `SELECT public.admin_provider_ledger_adjustment($1::uuid, 'debit', 1000, 'hit limit', 'limit')`,
+        [IDS.otherProvider],
       ),
     );
-    await asUser(db!, IDS.adminUser, () =>
-      db!.query(`SELECT public.admin_provider_ledger_adjustment($1, 'debit', 100, 'test debt', 'limit test')`, [
-        IDS.provider,
-      ]),
-    );
+    expect(await notificationCount(IDS.otherProviderUser, "provider_settlement_debt_blocked")).toBe(1);
 
-    const createResult = await asUser(db!, IDS.customer, async () => {
+    await asUser(db, IDS.adminUser, () =>
+      db.query(
+        `SELECT public.admin_provider_ledger_adjustment($1::uuid, 'debit', 100, 'still blocked', 'more')`,
+        [IDS.otherProvider],
+      ),
+    );
+    expect(await notificationCount(IDS.otherProviderUser, "provider_settlement_debt_blocked")).toBe(1);
+
+    const hidden = await asUser(db, IDS.customer, () =>
+      queryRows<{ id: string }>(
+        db,
+        `SELECT id::text FROM public.search_marketplace_providers(NULL, $1::uuid) WHERE id = $2::uuid`,
+        [IDS.address, IDS.otherProvider],
+      ),
+    );
+    expect(hidden).toEqual([]);
+
+    const bookable = await asUser(db, IDS.customer, () =>
+      queryRows<{ service_id: string }>(
+        db,
+        `SELECT service_id::text FROM public.marketplace_provider_bookable_services($1::uuid, $2::uuid)`,
+        [IDS.otherProvider, IDS.address],
+      ),
+    );
+    expect(bookable).toEqual([]);
+
+    const rejected = await asUser(db, IDS.customer, async () => {
       try {
-        await db!.query(
+        await db.query(
           `
             SELECT public.create_booking(
               $1::uuid, $2::uuid, $3::uuid,
-              (now() + interval '3 days'),
-              (now() + interval '3 days' + interval '2 hours'),
+              now() + interval '4 days',
+              now() + interval '4 days' + interval '2 hours',
               gen_random_uuid(),
               $4::uuid,
               NULL, NULL, '[]'::jsonb, NULL, NULL, NULL, NULL,
               'adult_present'
             )
           `,
-          [
-            IDS.provider,
-            seeded.serviceId,
-            IDS.address,
-            IDS.childMember,
-          ],
+          [IDS.otherProvider, existing.serviceId, IDS.address, IDS.childMember],
         );
-        return { ok: true };
-      } catch (e) {
-        return { ok: false, err: String(e) };
+        return { ok: true as const };
+      } catch (error) {
+        return { ok: false as const, error: error instanceof Error ? error.message : String(error) };
       }
     });
-    expect(createResult.ok).toBe(false);
-    expect(String(createResult.err)).toContain("BOOKING_PROVIDER_SETTLEMENT_BLOCKED");
+    expect(rejected.ok).toBe(false);
+    if (!rejected.ok) expect(rejected.error).toContain("BOOKING_PROVIDER_SETTLEMENT_BLOCKED");
 
-    await asUser(db!, IDS.adminUser, () =>
-      db!.query(
-        `SELECT public.admin_record_provider_debt_payment($1, 50, 'ref1', 'partial', 'partial pay')`,
-        [IDS.provider],
+    const stillPending = await queryRows<{ status: string }>(
+      db,
+      `SELECT status::text AS status FROM public.bookings WHERE id = $1`,
+      [existing.bookingId],
+    );
+    expect(stillPending[0]?.status).toBe("pending");
+
+    await asUser(db, IDS.adminUser, () =>
+      db.query(
+        `SELECT public.admin_record_provider_debt_payment($1::uuid, 1100, 'BANK-1', 'paid down', 'settled')`,
+        [IDS.otherProvider],
       ),
     );
-    await asUser(db!, IDS.adminUser, () =>
-      db!.query(
-        `SELECT public.admin_record_provider_debt_payment($1, 50, 'ref2', 'final', 'final pay')`,
-        [IDS.provider],
+    expect(Number((await balanceOf(IDS.otherProvider)).net)).toBe(0);
+
+    const visibleAfter = await asUser(db, IDS.customer, () =>
+      queryRows<{ id: string }>(
+        db,
+        `SELECT id::text FROM public.search_marketplace_providers(NULL, $1::uuid) WHERE id = $2::uuid`,
+        [IDS.address, IDS.otherProvider],
       ),
     );
-    expect(await ledgerNet(db!, IDS.provider)).toBe(0);
+    expect(visibleAfter.length).toBeGreaterThan(0);
+
+    const created = await asUser(db, IDS.customer, () =>
+      queryRows<{ result: { booking_id?: string } }>(
+        db,
+        `
+          SELECT public.create_booking(
+            $1::uuid, $2::uuid, $3::uuid,
+            now() + interval '5 days',
+            now() + interval '5 days' + interval '2 hours',
+            gen_random_uuid(),
+            $4::uuid,
+            NULL, NULL, '[]'::jsonb, NULL, NULL, NULL, NULL,
+            'adult_present'
+          ) AS result
+        `,
+        [IDS.otherProvider, existing.serviceId, IDS.address, IDS.childMember],
+      ),
+    );
+    expect(created[0]?.result?.booking_id).toBeTruthy();
+  }, 60_000);
+
+  it("creates one weekly settlement per provider and a second run is a no-op", async () => {
+    const period = await queryRows<{ period_start: string; period_end: string }>(
+      db,
+      `SELECT period_start::text, period_end::text FROM public.provider_settlement_closed_period()`,
+    );
+    const periodStart = period[0]?.period_start;
+    const periodEnd = period[0]?.period_end;
+    expect(periodStart).toBeTruthy();
+    expect(new Date(periodEnd ?? 0).getTime()).toBeLessThanOrEqual(Date.now());
+
+    await db.query(
+      `
+        INSERT INTO public.provider_ledger_entries (
+          provider_id, kind, direction, amount, payment_method, created_at
+        ) VALUES
+          ($1::uuid, 'cash_collected_platform_share', 'debit', 2000, 'cash', $3::timestamptz + interval '1 hour'),
+          ($1::uuid, 'online_provider_share', 'credit', 5000, 'instapay', $3::timestamptz + interval '2 hours'),
+          ($1::uuid, 'adjustment', 'credit', 25, NULL, now()),
+          ($2::uuid, 'cash_collected_platform_share', 'debit', 400, 'cash', $3::timestamptz + interval '3 hours')
+      `,
+      [WEEKLY.provider, WEEKLY.owesProvider, periodStart],
+    );
+
+    const first = await asServiceRole(db, () =>
+      queryRows<{ n: number }>(db, `SELECT public.run_provider_weekly_settlements()::int AS n`),
+    );
+    const second = await asServiceRole(db, () =>
+      queryRows<{ n: number }>(db, `SELECT public.run_provider_weekly_settlements()::int AS n`),
+    );
+    expect(first[0]?.n).toBe(2);
+    expect(second[0]?.n).toBe(0);
+
+    const owed = await queryRows<{ amount: string; direction: string; status: string }>(
+      db,
+      `
+        SELECT amount::text, direction, status
+        FROM public.provider_settlements
+        WHERE provider_id = $1::uuid
+      `,
+      [WEEKLY.provider],
+    );
+    expect(owed).toEqual([
+      { amount: "3000.00", direction: "famy_pays_provider", status: "pending" },
+    ]);
+
+    const owes = await queryRows<{ amount: string; direction: string }>(
+      db,
+      `SELECT amount::text, direction FROM public.provider_settlements WHERE provider_id = $1::uuid`,
+      [WEEKLY.owesProvider],
+    );
+    expect(owes).toEqual([{ amount: "400.00", direction: "provider_pays_famy" }]);
+
+    const open = await queryRows<{ n: number }>(
+      db,
+      `
+        SELECT count(*)::int AS n FROM public.provider_ledger_entries
+        WHERE provider_id = $1::uuid AND settlement_id IS NULL AND kind = 'adjustment'
+      `,
+      [WEEKLY.provider],
+    );
+    expect(open[0]?.n).toBe(1);
+
+    const settlementId = await queryRows<{ id: string }>(
+      db,
+      `SELECT id::text FROM public.provider_settlements WHERE provider_id = $1::uuid`,
+      [WEEKLY.provider],
+    );
+    const missing = await asUser(db, IDS.providerUser, async () => {
+      try {
+        await db.query(
+          `SELECT public.admin_mark_provider_settlement_settled($1::uuid, 'REF', NULL, 'reason')`,
+          [settlementId[0]?.id],
+        );
+        return false;
+      } catch {
+        return true;
+      }
+    });
+    expect(missing).toBe(true);
+
+    await asUser(db, IDS.adminUser, () =>
+      db.query(
+        `SELECT public.admin_mark_provider_settlement_settled($1::uuid, 'INSTAPAY-9', 'weekly transfer', 'paid the provider')`,
+        [settlementId[0]?.id],
+      ),
+    );
+    const paid = await queryRows<{ status: string }>(
+      db,
+      `SELECT status FROM public.provider_settlements WHERE id = $1::uuid`,
+      [settlementId[0]?.id],
+    );
+    expect(paid[0]?.status).toBe("paid");
+    const afterPay = await balanceOf(WEEKLY.provider);
+    // 5000 credit - 2000 cash debit - 3000 payout + 25 open adjustment = 25
+    expect(Number(afterPay.net)).toBe(25);
+    expect(Number(afterPay.cash_held_for_platform)).toBe(2000);
+    expect(await notificationCount(WEEKLY.user, "provider_settlement_created")).toBe(1);
+    expect(await notificationCount(WEEKLY.user, "provider_settlement_settled")).toBe(1);
   });
 
-  it("rejects ledger row mutations for non-admin callers", async () => {
-    db = await createBookingLifecycleDb();
-    await ensureAdminRole(db!);
-    await seedLifecycleBooking(db!, { status: "pending" });
-    await asUser(db!, IDS.adminUser, () =>
-      db!.query(`SELECT public.admin_provider_ledger_adjustment($1, 'credit', 10, 'seed', NULL)`, [IDS.provider]),
-    );
+  it("rejects ledger edits and hides other providers from non-admins", async () => {
     const row = await queryRows<{ id: string }>(
-      db!,
-      `SELECT id::text FROM public.provider_ledger_entries WHERE provider_id = $1 LIMIT 1`,
+      db,
+      `SELECT id::text FROM public.provider_ledger_entries WHERE provider_id = $1::uuid LIMIT 1`,
       [IDS.provider],
     );
     const id = row[0]?.id;
     expect(id).toBeTruthy();
 
     await expect(
-      asUser(db!, IDS.providerUser, () => db!.query(`UPDATE public.provider_ledger_entries SET note = 'hack' WHERE id = $1`, [id])),
-    ).rejects.toThrow();
+      db.query(`UPDATE public.provider_ledger_entries SET note = 'hack' WHERE id = $1::uuid`, [id]),
+    ).rejects.toThrow(/immutable/i);
+    await expect(
+      db.query(`DELETE FROM public.provider_ledger_entries WHERE id = $1::uuid`, [id]),
+    ).rejects.toThrow(/immutable/i);
+
+    const asOther = await asUser(db, IDS.otherProviderUser, () =>
+      queryRows<{ n: number }>(
+        db,
+        `SELECT count(*)::int AS n FROM public.provider_ledger_entries WHERE provider_id = $1::uuid`,
+        [IDS.provider],
+      ),
+    );
+    expect(asOther[0]?.n).toBe(0);
+
+    const asOwner = await asUser(db, IDS.providerUser, () =>
+      queryRows<{ n: number }>(
+        db,
+        `SELECT count(*)::int AS n FROM public.provider_ledger_entries WHERE provider_id = $1::uuid`,
+        [IDS.provider],
+      ),
+    );
+    expect(asOwner[0]?.n).toBeGreaterThan(0);
+
+    const asAdmin = await asUser(db, IDS.adminUser, () =>
+      queryRows<{ n: number }>(
+        db,
+        `SELECT count(*)::int AS n FROM public.provider_ledger_entries WHERE provider_id = $1::uuid`,
+        [IDS.provider],
+      ),
+    );
+    expect(asAdmin[0]?.n).toBe(asOwner[0]?.n);
 
     await expect(
-      asUser(db!, IDS.providerUser, () => db!.query(`DELETE FROM public.provider_ledger_entries WHERE id = $1`, [id])),
-    ).rejects.toThrow();
-  });
+      asUser(db, IDS.customer, () =>
+        db.query(`SELECT * FROM public.provider_balance($1::uuid)`, [IDS.provider]),
+      ),
+    ).rejects.toThrow(/not visible/i);
 
-  it("run_provider_weekly_settlements is idempotent", async () => {
-    db = await createBookingLifecycleDb();
-    await ensureAdminRole(db!);
-    await seedLifecycleBooking(db!, { status: "pending" });
-    await asUser(db!, IDS.adminUser, () =>
-      db!.query(`SELECT public.admin_provider_ledger_adjustment($1, 'credit', 250, 'weekly', NULL)`, [IDS.provider]),
-    );
-    const first = await asServiceRole(db!, () =>
-      queryRows<{ n: number }>(db!, `SELECT public.run_provider_weekly_settlements()::int AS n`),
-    );
-    const second = await asServiceRole(db!, () =>
-      queryRows<{ n: number }>(db!, `SELECT public.run_provider_weekly_settlements()::int AS n`),
-    );
-    expect((first[0]?.n ?? 0) >= 0).toBe(true);
-    expect(second[0]?.n ?? 0).toBe(0);
+    await expect(
+      asUser(db, IDS.providerUser, () =>
+        db.query(
+          `SELECT public.admin_provider_ledger_adjustment($1::uuid, 'credit', 1, 'nope', NULL)`,
+          [IDS.provider],
+        ),
+      ),
+    ).rejects.toThrow(/Admin required/i);
   });
 });

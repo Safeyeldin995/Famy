@@ -206,11 +206,24 @@ RETURNS TABLE (
   net numeric,
   cash_held_for_platform numeric
 )
-LANGUAGE sql
+LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
+BEGIN
+  IF coalesce(current_setting('app.ledger_internal', true), '') IS DISTINCT FROM 'on'
+     AND auth.uid() IS NOT NULL
+     AND public.has_role(auth.uid(), 'admin') IS NOT TRUE
+     AND NOT EXISTS (
+       SELECT 1 FROM public.providers p
+       WHERE p.id = p_provider_id AND p.profile_id = auth.uid()
+     )
+  THEN
+    RAISE EXCEPTION 'Provider balance is not visible to this account.' USING ERRCODE = '42501';
+  END IF;
+
+  RETURN QUERY
   SELECT
     COALESCE(SUM(CASE WHEN e.direction = 'credit' THEN e.amount ELSE 0 END), 0),
     COALESCE(SUM(CASE WHEN e.direction = 'debit' THEN e.amount ELSE 0 END), 0),
@@ -228,6 +241,7 @@ AS $$
     )
   FROM public.provider_ledger_entries e
   WHERE e.provider_id = p_provider_id;
+END;
 $$;
 REVOKE ALL ON FUNCTION public.provider_balance(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.provider_balance(uuid) TO authenticated, service_role;
@@ -244,8 +258,11 @@ DECLARE
   v_net numeric;
 BEGIN
   SELECT s.cash_debt_limit INTO v_limit FROM public.provider_settlement_settings() s;
-  SELECT b.net INTO v_net FROM public.provider_balance(p_provider_id) b;
-  RETURN v_net < 0 AND abs(v_net) >= v_limit;
+  SELECT COALESCE(SUM(CASE WHEN e.direction = 'credit' THEN e.amount ELSE -e.amount END), 0)
+    INTO v_net
+  FROM public.provider_ledger_entries e
+  WHERE e.provider_id = p_provider_id;
+  RETURN COALESCE(v_net, 0) <= -v_limit;
 END;
 $$;
 REVOKE ALL ON FUNCTION public.provider_cash_debt_blocked(uuid) FROM PUBLIC, anon;
@@ -324,15 +341,9 @@ BEGIN
     INTO v_limit, v_warn_pct
   FROM public.provider_settlement_settings() s;
 
+  PERFORM set_config('app.ledger_internal', 'on', true);
   SELECT b.net INTO v_net FROM public.provider_balance(p_provider_id) b;
-  IF v_net >= 0 THEN
-    UPDATE public.provider_settlement_accounts
-    SET debt_warned_at = NULL, debt_warned_net = NULL, debt_blocked_notified_at = NULL, updated_at = now()
-    WHERE provider_id = p_provider_id;
-    RETURN;
-  END IF;
-
-  v_debt := abs(v_net);
+  v_debt := CASE WHEN v_net < 0 THEN abs(v_net) ELSE 0 END;
   v_warn_threshold := v_limit * (v_warn_pct / 100.0);
 
   INSERT INTO public.provider_settlement_accounts AS a (provider_id)
@@ -341,8 +352,17 @@ BEGIN
 
   SELECT * INTO v_acct FROM public.provider_settlement_accounts WHERE provider_id = p_provider_id FOR UPDATE;
 
+  -- Once per upward crossing. Dropping under a threshold clears that flag
+  -- so the next crossing notifies again. A higher balance does not re-notify.
+  IF v_debt < v_warn_threshold THEN
+    UPDATE public.provider_settlement_accounts
+    SET debt_warned_at = NULL, debt_warned_net = NULL, debt_blocked_notified_at = NULL, updated_at = now()
+    WHERE provider_id = p_provider_id;
+    RETURN;
+  END IF;
+
   IF v_debt >= v_limit THEN
-    IF v_acct.debt_blocked_notified_at IS NULL OR v_acct.debt_warned_net IS DISTINCT FROM v_net THEN
+    IF v_acct.debt_blocked_notified_at IS NULL THEN
       INSERT INTO public.notifications (
         user_id, type, category, title, body, title_en, title_ar, body_en, body_ar, payload, deep_link
       ) VALUES (
@@ -354,30 +374,37 @@ BEGIN
         jsonb_build_object('provider_id', p_provider_id, 'net', v_net),
         '/pro/earnings'
       );
-      UPDATE public.provider_settlement_accounts
-      SET debt_blocked_notified_at = now(), debt_warned_net = v_net, updated_at = now()
-      WHERE provider_id = p_provider_id;
     END IF;
+    UPDATE public.provider_settlement_accounts
+    SET debt_blocked_notified_at = COALESCE(debt_blocked_notified_at, now()),
+        debt_warned_at = COALESCE(debt_warned_at, now()),
+        debt_warned_net = v_net,
+        updated_at = now()
+    WHERE provider_id = p_provider_id;
     RETURN;
   END IF;
 
-  IF v_debt >= v_warn_threshold THEN
-    IF v_acct.debt_warned_at IS NULL OR v_acct.debt_warned_net IS DISTINCT FROM v_net THEN
-      INSERT INTO public.notifications (
-        user_id, type, category, title, body, title_en, title_ar, body_en, body_ar, payload, deep_link
-      ) VALUES (
-        v_profile, 'provider_settlement_debt_warning', 'provider',
-        'Balance warning', 'Your balance owed to the platform is nearing the limit. Please transfer the amount to keep receiving bookings.',
-        'Balance warning', 'تنبيه الرصيد',
-        'Your balance owed to the platform is nearing the limit. Please transfer the amount to keep receiving bookings.',
-        'رصيدك المستحق للمنصة قرب يوصل للحد، حول المبلغ عشان تفضل تستقبل طلبات',
-        jsonb_build_object('provider_id', p_provider_id, 'net', v_net),
-        '/pro/earnings'
-      );
-      UPDATE public.provider_settlement_accounts
-      SET debt_warned_at = now(), debt_warned_net = v_net, updated_at = now()
-      WHERE provider_id = p_provider_id;
-    END IF;
+  IF v_acct.debt_blocked_notified_at IS NOT NULL THEN
+    UPDATE public.provider_settlement_accounts
+    SET debt_blocked_notified_at = NULL, updated_at = now()
+    WHERE provider_id = p_provider_id;
+  END IF;
+
+  IF v_acct.debt_warned_at IS NULL THEN
+    INSERT INTO public.notifications (
+      user_id, type, category, title, body, title_en, title_ar, body_en, body_ar, payload, deep_link
+    ) VALUES (
+      v_profile, 'provider_settlement_debt_warning', 'provider',
+      'Balance warning', 'Your balance owed to the platform is nearing the limit. Please transfer the amount to keep receiving bookings.',
+      'Balance warning', 'تنبيه الرصيد',
+      'Your balance owed to the platform is nearing the limit. Please transfer the amount to keep receiving bookings.',
+      'رصيدك المستحق للمنصة قرب يوصل للحد، حول المبلغ عشان تفضل تستقبل طلبات',
+      jsonb_build_object('provider_id', p_provider_id, 'net', v_net),
+      '/pro/earnings'
+    );
+    UPDATE public.provider_settlement_accounts
+    SET debt_warned_at = now(), debt_warned_net = v_net, updated_at = now()
+    WHERE provider_id = p_provider_id;
   END IF;
 END;
 $$;
@@ -404,7 +431,7 @@ BEGIN
   END IF;
 
   SELECT s.ledger_auto_from INTO v_cutoff FROM public.provider_settlement_settings() s;
-  IF COALESCE(v_booking.completed_at, v_booking.updated_at) < v_cutoff THEN
+  IF v_booking.completed_at IS NULL OR v_booking.completed_at < v_cutoff THEN
     RETURN;
   END IF;
 
@@ -434,12 +461,14 @@ BEGIN
       UPDATE public.payments
       SET status = 'captured', captured_at = COALESCE(captured_at, now())
       WHERE id = v_pay.id AND status IS DISTINCT FROM 'captured';
+      PERFORM set_config('app.ledger_internal_capture', 'off', true);
     END IF;
   ELSIF v_pay.status = 'captured'
-        AND COALESCE(v_pay.payment_method_type, '') IN ('online', 'manual_transfer') THEN
+        AND COALESCE(v_pay.payment_method_type, '') IN ('online', 'manual_transfer')
+        AND COALESCE(v_booking.price_provider_net, 0) > 0 THEN
     PERFORM public.ledger_insert_entry(
       v_booking.provider_id, p_booking_id, 'online_provider_share', 'credit',
-      COALESCE(v_booking.price_provider_net, 0),
+      v_booking.price_provider_net,
       COALESCE(v_pay.payment_method_code, v_pay.payment_method_type), NULL, NULL, NULL
     );
   END IF;
@@ -478,10 +507,16 @@ BEGIN
   IF NEW.status = 'captured' AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'captured') THEN
     IF COALESCE(NEW.payment_method_type, '') IN ('online', 'manual_transfer') THEN
       SELECT * INTO v_booking FROM public.bookings WHERE id = NEW.booking_id;
-      IF FOUND AND v_booking.status = 'completed' AND v_booking.price_provider_net IS NOT NULL THEN
+      IF FOUND
+         AND v_booking.status = 'completed'
+         AND v_booking.completed_at IS NOT NULL
+         AND v_booking.price_provider_net IS NOT NULL
+         AND v_booking.price_provider_net > 0
+         AND v_booking.completed_at >= (SELECT s.ledger_auto_from FROM public.provider_settlement_settings() s)
+      THEN
         PERFORM public.ledger_insert_entry(
           v_booking.provider_id, v_booking.id, 'online_provider_share', 'credit',
-          COALESCE(v_booking.price_provider_net, 0),
+          v_booking.price_provider_net,
           COALESCE(NEW.payment_method_code, NEW.payment_method_type), NULL, NULL, NULL
         );
       END IF;
@@ -614,7 +649,45 @@ $$;
 
 -- ============================================================
 -- 7) Weekly settlement job (no money movement)
+-- Closed period ends at the most recent settlement_weekday 10:00 Africa/Cairo
+-- that is not in the future. Entries created after that wait for the next run.
 -- ============================================================
+CREATE OR REPLACE FUNCTION public.provider_settlement_closed_period()
+RETURNS TABLE (
+  period_start timestamptz,
+  period_end timestamptz,
+  next_settlement_at timestamptz
+)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_weekday int;
+  v_local timestamp;
+  v_date date;
+  v_end timestamptz;
+BEGIN
+  SELECT s.settlement_weekday INTO v_weekday FROM public.provider_settlement_settings() s;
+  v_local := timezone('Africa/Cairo', now());
+  v_date := v_local::date;
+  WHILE EXTRACT(DOW FROM v_date)::int <> v_weekday LOOP
+    v_date := v_date - 1;
+  END LOOP;
+  v_end := (v_date + time '10:00') AT TIME ZONE 'Africa/Cairo';
+  IF v_end > now() THEN
+    v_end := ((v_date - 7) + time '10:00') AT TIME ZONE 'Africa/Cairo';
+  END IF;
+  period_end := v_end;
+  period_start := v_end - interval '7 days';
+  next_settlement_at := v_end + interval '7 days';
+  RETURN NEXT;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.provider_settlement_closed_period() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.provider_settlement_closed_period() TO authenticated, service_role;
+
 CREATE OR REPLACE FUNCTION public.run_provider_weekly_settlements()
 RETURNS integer
 LANGUAGE plpgsql
@@ -634,14 +707,9 @@ DECLARE
   v_count integer := 0;
   v_profile uuid;
 BEGIN
-  SELECT s.settlement_weekday INTO v_weekday FROM public.provider_settlement_settings() s;
-
-  v_period_end := (timezone('Africa/Cairo', now()))::date::timestamptz;
-  WHILE EXTRACT(dow FROM timezone('Africa/Cairo', v_period_end))::int <> v_weekday LOOP
-    v_period_end := v_period_end - interval '1 day';
-  END LOOP;
-  v_period_end := v_period_end + time '10:00';
-  v_period_start := v_period_end - interval '7 days';
+  SELECT p.period_start, p.period_end
+    INTO v_period_start, v_period_end
+  FROM public.provider_settlement_closed_period() p;
 
   FOR v_row IN
     SELECT e.provider_id
@@ -681,6 +749,7 @@ BEGIN
 
     v_abs := abs(v_net);
     v_direction := CASE WHEN v_net > 0 THEN 'famy_pays_provider' ELSE 'provider_pays_famy' END;
+    v_settlement_id := NULL;
 
     INSERT INTO public.provider_settlements (
       provider_id, period_start, period_end, amount, direction, totals_by_method
@@ -751,8 +820,10 @@ BEGIN
   IF auth.uid() IS NULL OR NOT public.has_role(auth.uid(), 'admin') THEN
     RAISE EXCEPTION 'Admin required' USING ERRCODE = '42501';
   END IF;
-  IF p_reference IS NULL OR btrim(p_reference) = '' OR p_reason IS NULL OR btrim(p_reason) = '' THEN
-    RAISE EXCEPTION 'Reference and reason are required' USING ERRCODE = '23514';
+  IF p_reference IS NULL OR btrim(p_reference) = ''
+     OR p_note IS NULL OR btrim(p_note) = ''
+     OR p_reason IS NULL OR btrim(p_reason) = '' THEN
+    RAISE EXCEPTION 'Reference, note and reason are required' USING ERRCODE = '23514';
   END IF;
 
   SELECT * INTO v_settlement FROM public.provider_settlements WHERE id = p_settlement_id FOR UPDATE;
@@ -864,11 +935,17 @@ BEGIN
     RAISE EXCEPTION 'Booking has no commission snapshot' USING ERRCODE = '23514';
   END IF;
   v_platform_share := GREATEST(COALESCE(v_booking.price_total, 0) - COALESCE(v_booking.price_provider_net, 0), 0);
+  IF v_platform_share <= 0 THEN
+    RAISE EXCEPTION 'Platform share must be positive' USING ERRCODE = '23514';
+  END IF;
   PERFORM set_config('app.audit_reason', btrim(p_reason), true);
   v_id := public.ledger_insert_entry(
     v_booking.provider_id, p_booking_id, 'cash_collected_platform_share', 'debit',
     v_platform_share, 'cash', btrim(p_note), auth.uid(), NULL
   );
+  IF v_id IS NULL THEN
+    RAISE EXCEPTION 'Cash share for this booking is already recorded' USING ERRCODE = '23505';
+  END IF;
   PERFORM set_config('app.ledger_internal_capture', 'on', true);
   UPDATE public.payments
   SET status = 'captured', captured_at = COALESCE(captured_at, now())
@@ -1215,8 +1292,28 @@ $$;
 REVOKE ALL ON FUNCTION public.marketplace_provider_bookable_services(uuid, uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.marketplace_provider_bookable_services(uuid, uuid) TO authenticated;
 
+REVOKE ALL ON FUNCTION public.tg_block_provider_ledger_mutation() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.tg_booking_ledger_on_complete() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.tg_payment_ledger_on_capture() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.tg_guard_payment_writes() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.tg_validate_payment_capture() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS trg_audit_provider_ledger_entries ON public.provider_ledger_entries;
+CREATE TRIGGER trg_audit_provider_ledger_entries
+  AFTER INSERT OR UPDATE ON public.provider_ledger_entries
+  FOR EACH ROW EXECUTE FUNCTION public.tg_audit_changes();
+
+DROP TRIGGER IF EXISTS trg_audit_provider_settlements ON public.provider_settlements;
+CREATE TRIGGER trg_audit_provider_settlements
+  AFTER INSERT OR UPDATE ON public.provider_settlements
+  FOR EACH ROW EXECUTE FUNCTION public.tg_audit_changes();
+
 -- ============================================================
--- 11) pg_cron — Sunday 10:00 Cairo
+-- 11) pg_cron — Sunday 10:00 Africa/Cairo
+-- pg_cron fires in UTC. 10:00 Cairo is 08:00 UTC in winter (UTC+2) and
+-- 07:00 UTC in summer (UTC+3). Both hours are scheduled on Sunday.
+-- The job is idempotent, so the extra hour does not open a second settlement.
+-- The function itself closes the week at 10:00 Africa/Cairo.
 -- ============================================================
 DO $$
 BEGIN
@@ -1233,7 +1330,7 @@ BEGIN
     END IF;
     PERFORM cron.schedule(
       'famy-provider-weekly-settlements',
-      '0 10 * * 0',
+      '0 7,8 * * 0',
       $cron$SELECT public.run_provider_weekly_settlements();$cron$
     );
   END IF;
