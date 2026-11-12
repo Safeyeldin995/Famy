@@ -36,11 +36,12 @@ export type ProviderUpcomingSection<T extends ProviderJobsBooking = ProviderJobs
 
 export function groupProviderUpcomingBookings<T extends ProviderJobsBooking>(
   bookings: readonly T[],
+  now = new Date(),
 ): ProviderUpcomingSection<T>[] {
   const sorted = [...bookings].sort(
     (a, b) => +new Date(a.start_at) - +new Date(b.start_at),
   );
-  const todayKey = cairoBookingDayKey(new Date());
+  const todayKey = cairoBookingDayKey(now);
   const nowBookings = sorted.filter((b) => isProviderJobsNowStatus(String(b.status ?? "")));
   const nowIds = new Set(nowBookings.map((b) => b.id));
   const rest = sorted.filter((b) => !nowIds.has(b.id));
