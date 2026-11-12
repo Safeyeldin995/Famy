@@ -1742,6 +1742,13 @@ const en = {
     dash: "—",
     dayLabel: "Day {{day}}",
   },
+  bookingJourney: {
+    accepted: "Confirmed",
+    onTheWay: "On the way",
+    arrived: "Arrived",
+    started: "Started",
+    completed: "Finished",
+  },
   bookingDetail: {
     title: "Booking",
     notFound: "Booking not found",
