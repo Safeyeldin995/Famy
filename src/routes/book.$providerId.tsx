@@ -6,6 +6,11 @@ import { buildBookingRequest, buildBookingQuote } from "@/lib/booking/bookingReq
 import { paymentPresentation } from "@/lib/booking/paymentPresentation";
 import { bookingDisabledReason } from "@/lib/booking/disabledReason";
 import {
+  checkoutAddressOutsideArea,
+  checkoutAddressReady,
+  checkoutEligibilityServiceId,
+} from "@/lib/booking/checkoutGates";
+import {
   BOOKING_SCREENS,
   bookingScreenMissingStep,
   bookingScreenForStep,
@@ -222,10 +227,12 @@ export function BookContent({
       ),
     [servicesQ.data, bookableQ.data],
   );
-  const eligibilityServiceId =
-    (serviceId && services.some((row: any) => row.service?.id === serviceId) ? serviceId : null) ??
-    services[0]?.service?.id ??
-    null;
+  const resolvedServiceRow =
+    services.find((row: any) => row.service?.id === serviceId) ?? services[0];
+  const eligibilityServiceId = checkoutEligibilityServiceId(
+    serviceId,
+    resolvedServiceRow?.service?.id,
+  );
   const selectedAddress = bookableAddresses.find((a: any) => a.id === addressId) ?? null;
   // UX-only preview of the resolved service zone — the booking-creation DB
   // trigger re-resolves this itself and is the sole authoritative guard
@@ -489,29 +496,6 @@ export function BookContent({
       </PhoneFrame>
     );
   }
-  if (!bookingSettingsQ.data) {
-    return (
-      <PhoneFrame>
-        <EmptyState
-          icon="ban"
-          title={t("bookFlow.unavailable")}
-          body={t("bookFlow.unavailableBody")}
-          action={
-            <div>
-              {otherProviders}
-              <Link
-                to={previewPath("/addresses/new") as "/addresses/new"}
-                className="inline-flex min-h-11 items-center px-3 text-pro-14 font-bold text-brand"
-              >
-                {t("addresses.addAddress")}
-              </Link>
-            </div>
-          }
-        />
-      </PhoneFrame>
-    );
-  }
-
   const p = provQ.data ? toUIProvider(provQ.data) : null;
   if (!p) {
     return (
@@ -587,12 +571,24 @@ export function BookContent({
     startAt: selectedSlot?.start ?? null,
   });
   const supervisionReady = !supervisionRequired || !!supervisionMode;
+  const addressReady = checkoutAddressReady({
+    addressId: slotAddressId,
+    hasPinnedAddress: !!selectedAddress,
+    bookable: bookableQ,
+    serviceId: eligibilityServiceId,
+  });
+  const addressOutside = checkoutAddressOutsideArea({
+    addressId: slotAddressId,
+    hasPinnedAddress: !!selectedAddress,
+    bookable: bookableQ,
+    serviceId: eligibilityServiceId,
+  });
   const missingStep = bookingScreenMissingStep(stepKey, {
     service: !!activeService,
     tutoring: isTutoring,
     capability: !!selectedCapability,
     slot: !!date && !!time && (!fixedPackage || !!selectedSlot),
-    address: !!addressId && !!zoneQ.data,
+    address: addressReady,
     recipient: recipientReady,
     supervisionRequired,
     supervision: supervisionReady,
@@ -614,7 +610,7 @@ export function BookContent({
           : missingStep === "address"
             ? !addressId
               ? addrsQ
-              : zoneQ
+              : bookableQ
             : missingStep === "forWhom"
               ? familyMembersQ
               : missingStep === "payment"
@@ -629,6 +625,7 @@ export function BookContent({
     hasDate: !!date,
     hasSlots: packageSlots.length > 0,
     hasAddress: !!addressId,
+    addressOutside,
     hasRecipient: recipientReady,
     hasSupervision: supervisionReady,
     supervisionRequired,
@@ -1318,24 +1315,14 @@ export function BookContent({
               )}
               {selectedAddress && (
                 <div className="mt-3">
-                  {zoneQ.isError ? (
-                    <QueryError onRetry={() => zoneQ.refetch()} />
-                  ) : zoneQ.isLoading ? (
+                  {bookableQ.isError ? (
+                    <QueryError onRetry={() => bookableQ.refetch()} />
+                  ) : bookableQ.isLoading || bookableQ.isFetching ? (
                     <div className="h-10 animate-pulse rounded-xl bg-surface-2" />
-                  ) : zoneQ.data ? (
-                    <div className="flex items-center gap-2 rounded-full bg-success/10 px-3.5 py-2.5 text-pro-12 font-bold text-foreground">
-                      <MapPin className="h-3.5 w-3.5 text-success" />
-                      {t("bookFlow.zoneServed", "Serves {{zone}}", {
-                        zone: lang === "ar" ? zoneQ.data.name_ar : zoneQ.data.name_en,
-                      })}
-                    </div>
-                  ) : (
+                  ) : addressOutside ? (
                     <div className="flex flex-wrap items-start gap-2 rounded-[1.25rem] bg-brand/8 px-3.5 py-2.5 text-pro-12 font-bold text-brand">
                       <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                      {t(
-                        "customerRound2.zoneNotServed",
-                        "This area is not currently served. Please choose another address.",
-                      )}
+                      {t("bookingUx.outsideArea")}
                       <button
                         type="button"
                         className="min-h-11 underline"
@@ -1356,7 +1343,14 @@ export function BookContent({
                         {t("customerBooking.addAddress")}
                       </button>
                     </div>
-                  )}
+                  ) : zoneQ.data ? (
+                    <div className="flex items-center gap-2 rounded-full bg-success/10 px-3.5 py-2.5 text-pro-12 font-bold text-foreground">
+                      <MapPin className="h-3.5 w-3.5 text-success" />
+                      {t("bookFlow.zoneServed", "Serves {{zone}}", {
+                        zone: lang === "ar" ? zoneQ.data.name_ar : zoneQ.data.name_en,
+                      })}
+                    </div>
+                  ) : null}
                 </div>
               )}
             </Step>

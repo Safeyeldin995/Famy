@@ -47,6 +47,12 @@ import {
 } from "@shared/booking/bookingScreens";
 import { bookingDisabledReason } from "@shared/booking/disabledReason";
 import {
+  checkoutAddressOutsideArea,
+  checkoutAddressReady,
+  checkoutContinueBlocked,
+  checkoutEligibilityServiceId,
+} from "@shared/booking/checkoutGates";
+import {
   bookingSubmissionFingerprint,
   resolveIdempotencyKey,
   type IdempotencyKeyState,
@@ -151,6 +157,7 @@ export default function Book() {
     (s) => isClosedBetaCategorySlug(s.service.category?.slug) && bookable.data?.has(s.service.id),
   );
   const service = services.find((s) => s.service.id === serviceId) ?? services[0];
+  const eligibilityServiceId = checkoutEligibilityServiceId(serviceId, service?.service.id);
   const tutoring = service?.service.category?.slug === "tutoring";
   const isLessonService = isLessonServiceSlug(service?.service.slug);
   const babysitting = service?.service.category?.slug === "babysitting";
@@ -178,7 +185,7 @@ export default function Book() {
       ? Number(service?.service.duration_min)
       : hours * 60;
   const settings = useProviderBookingSettings(providerId, {
-    serviceId: service?.service.id,
+    serviceId: eligibilityServiceId,
     addressId: addressId || null,
   });
   const slots = useAvailableSlots(providerId, date, duration || 120, {
@@ -288,27 +295,43 @@ export default function Book() {
     startAt: currentSlot?.start ?? null,
   });
   const supervisionReady = !supervisionRequired || !!supervisionMode;
+  const addressReady = checkoutAddressReady({
+    addressId: addressId || null,
+    hasPinnedAddress: !!selectedAddress,
+    bookable,
+    serviceId: eligibilityServiceId,
+  });
+  const addressOutside = checkoutAddressOutsideArea({
+    addressId: addressId || null,
+    hasPinnedAddress: !!selectedAddress,
+    bookable,
+    serviceId: eligibilityServiceId,
+  });
   const missing = bookingScreenMissingStep(BOOKING_SCREENS[step], {
     service: !!service,
     tutoring,
     capability: !!capability,
     slot: !!currentSlot && !slots.isFetching,
-    address: !!selectedAddress && !!zone.data && !zone.isFetching,
+    address: addressReady,
     recipient: recipientReady,
     supervisionRequired,
     supervision: supervisionReady,
     requirements: requirements.isSuccess && either.every((r) => !!choices[r.id]),
     payment: !!methods.data?.some((m) => m.id === methodId),
   });
-  const blocked =
-    servicesQ.isError ||
-    bookable.isError ||
-    settings.isError ||
-    !settings.data ||
-    billing.isError ||
-    !Number.isFinite(quote.total) ||
-    (needsRate && (packageRate.isError || packageRate.data == null)) ||
-    (tutoring && caps.isError);
+  const blocked = checkoutContinueBlocked({
+    servicesError: servicesQ.isError,
+    bookable,
+    settings,
+    billingError: billing.isError,
+    quoteTotal: quote.total,
+    hasService: !!service,
+    needsRate,
+    packageRate,
+    capsError: tutoring && caps.isError,
+    addressId: addressId || null,
+    serviceId: eligibilityServiceId,
+  });
   const loading =
     servicesQ.isLoading ||
     bookable.isLoading ||
@@ -324,6 +347,7 @@ export default function Book() {
     hasDate: true,
     hasSlots: available.length > 0,
     hasAddress: !!addressId,
+    addressOutside,
     hasRecipient: recipientReady,
     hasSupervision: supervisionReady,
     supervisionRequired,
@@ -821,7 +845,7 @@ export default function Book() {
             label={t("addresses.addAddress")}
             onPress={() => setInlineForm("address")}
           />
-          <QueryState query={zone} empty={!zone.data} emptyKey="bookingUx.outsideArea" />
+          <QueryState query={bookable} empty={addressOutside} emptyKey="bookingUx.outsideArea" />
           {!tutoring && recipientUI}
           <QueryState query={requirements} />
           {required.map((r) => (
