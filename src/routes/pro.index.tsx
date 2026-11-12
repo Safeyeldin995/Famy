@@ -23,6 +23,7 @@ import type { ReactNode } from "react";
 import { Bell, Star, Plane, AlertCircle } from "lucide-react";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
 import { useProPath } from "@/lib/provider/useProPath";
+import { HomeProviderActiveBookingCard } from "@/components/provider/HomeProviderActiveBookingCard";
 
 export const Route = createFileRoute("/pro/")({ component: ProDashboard });
 
@@ -99,6 +100,10 @@ function ProDashboard() {
           </div>
         }
       />
+
+      {bookingsQ.data ? (
+        <HomeProviderActiveBookingCard bookings={all} pendingCount={pending.length} />
+      ) : null}
 
       <div className="space-y-3 px-5">
         <p className="text-pro-14 text-muted-foreground">

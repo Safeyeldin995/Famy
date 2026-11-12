@@ -270,6 +270,31 @@ const ar: Translation = {
       completion_requested: "أكد إن الخدمة خلصت",
     },
   },
+  providerHome: {
+    activeBookingTitle: "مهمتك النشطة",
+    openBooking: "تفاصيل المهمة",
+    viewAllBookings: "عرض كل المهام",
+    pendingRequestsChip_one: "{{count}} طلب جديد",
+    pendingRequestsChip_other: "{{count}} طلبات جديدة",
+    nextStep: {
+      arrived: "مستني العميل يأكد وصولك",
+      completion_requested: "مستني العميل يأكد الإنهاء",
+    },
+    cta: {
+      onTheWay: "في الطريق",
+      arrived: "وصلت",
+      startService: "بدء الخدمة",
+      endSession: "إنهاء الجلسة",
+    },
+    activeStatus: {
+      confirmed: "حجز مؤكد",
+      on_the_way: "في الطريق للعميل",
+      arrived: "وصلت عند العميل",
+      arrival_confirmed: "العميل أكد وصولك",
+      in_progress: "الجلسة شغالة",
+      completion_requested: "في انتظار تأكيد الإنهاء",
+    },
+  },
   customerSetup: { arrivalDetails: "تفاصيل تساعد مقدم الخدمة يوصل" },
   customerChat: { unavailable: "المحادثة دي مش متاحة لسه" },
   customerSearch: {

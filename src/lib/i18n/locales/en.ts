@@ -268,6 +268,31 @@ const en = {
       completion_requested: "Confirm the service is complete",
     },
   },
+  providerHome: {
+    activeBookingTitle: "Your active job",
+    openBooking: "Job details",
+    viewAllBookings: "View all jobs",
+    pendingRequestsChip_one: "{{count}} new request",
+    pendingRequestsChip_other: "{{count}} new requests",
+    nextStep: {
+      arrived: "Waiting for the customer to confirm your arrival",
+      completion_requested: "Waiting for the customer to confirm completion",
+    },
+    cta: {
+      onTheWay: "On the way",
+      arrived: "I've arrived",
+      startService: "Start service",
+      endSession: "End session",
+    },
+    activeStatus: {
+      confirmed: "Booking confirmed",
+      on_the_way: "On the way to the customer",
+      arrived: "Arrived at the customer",
+      arrival_confirmed: "Customer confirmed your arrival",
+      in_progress: "Session in progress",
+      completion_requested: "Waiting for completion confirmation",
+    },
+  },
   customerSetup: { arrivalDetails: "Details to help your provider find you" },
   customerChat: { unavailable: "This conversation is not available yet" },
   customerSearch: {
