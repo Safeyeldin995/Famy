@@ -27,6 +27,9 @@ import {
   useMyPushSubscriptions,
 } from "@/lib/db/queries";
 import { useCancelBooking, useBookingCancellation } from "@/lib/db/cancellation-queries";
+import { useBookingExpirySettings } from "@/lib/db/settings-queries";
+import { autoCompleteClosesAt } from "@/lib/booking/completion-auto";
+import { formatDateTime } from "@/lib/format";
 import {
   useBookingDisputes,
   useOpenDispute,
@@ -132,6 +135,7 @@ export function BookingDetailContent({
   const status: string | undefined = real?.status;
   const lang = currentLang();
   const locale = formatLocale(lang);
+  const expirySettings = useBookingExpirySettings();
   const updateStatus = useUpdateBookingStatus();
   const cancelBooking = useCancelBooking();
   const cancellationQ = useBookingCancellation(status === "cancelled" ? id : undefined);
@@ -677,13 +681,24 @@ export function BookingDetailContent({
           )}
 
           {status === "completion_requested" && (
-            <PrimaryButton
-              className="mt-4"
-              onClick={() => setDialog("confirmCompletion")}
-              disabled={updateStatus.isPending}
-            >
-              {t("bookingDetail.confirmCompletion")}
-            </PrimaryButton>
+            <div className="mt-4 space-y-2">
+              {real.completion_requested_at && expirySettings.data ? (
+                <p className="rounded-2xl bg-surface-2 px-4 py-3 text-center text-sm font-semibold text-muted-foreground">
+                  {t("bookingDetail.autoCompleteHint", {
+                    time: formatDateTime(
+                      autoCompleteClosesAt(real.completion_requested_at, expirySettings.data),
+                      locale,
+                    ),
+                  })}
+                </p>
+              ) : null}
+              <PrimaryButton
+                onClick={() => setDialog("confirmCompletion")}
+                disabled={updateStatus.isPending}
+              >
+                {t("bookingDetail.confirmCompletion")}
+              </PrimaryButton>
+            </div>
           )}
 
           {DISPUTE_ELIGIBLE_STATUSES.includes(status ?? "") && !dispute && (

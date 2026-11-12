@@ -1753,6 +1753,7 @@ const en = {
     noShowIrreversible: "This will be recorded and reviewed. It cannot be undone.",
     completionRequestedTitle: "Is the service done?",
     completionRequestedBody: "{{name}} marked this booking as complete.",
+    autoCompleteHint: "It will close automatically at {{time}} if there is no problem",
     confirmCompletion: "Yes, it's done",
     disputeCompletion: "Something's wrong",
     disputeReasonTitle: "What went wrong?",
@@ -3295,6 +3296,7 @@ const en = {
       bookingExpirySubtitle:
         "A pending booking expires at the earlier of these two windows. Changing them affects new expiry checks immediately.",
       pendingTtlHours: "Hours after request created",
+      autoCompleteHours: "Hours to auto-complete if customer is silent",
       minHoursBeforeStart: "Hours before start (must respond by)",
       bookingExpirySaveError: "Could not save booking expiry settings",
       bookingExpiryLoadError: "Could not load booking expiry settings.",

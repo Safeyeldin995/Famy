@@ -4376,8 +4376,11 @@ export type Database = {
         Returns: {
           min_hours_before_start: number
           pending_ttl_hours: number
+          auto_complete_hours: number
+          completion_auto_from: string
         }[]
       }
+      auto_complete_bookings: { Args: never; Returns: number }
       provider_finalize_document_upload: {
         Args: {
           p_path: string

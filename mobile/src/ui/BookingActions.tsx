@@ -9,7 +9,10 @@ import {
   useCancelBooking,
   useCancellationReasons,
   useUpdateBookingStatus,
+  useBookingExpirySettings,
 } from "@/lib/bookingQueries";
+import { autoCompleteClosesAt } from "@shared/booking/completion-auto";
+import { dateTime } from "@/lib/presentation";
 import { Button } from "./Button";
 import { Text } from "./Text";
 import { Choices, Field, QueryState, ui } from "./Page";
@@ -22,10 +25,12 @@ export function BookingActions({
     customer_id: string;
     status: string;
     start_at?: string;
+    completion_requested_at?: string | null;
   };
 }) {
   const { t, i18n } = useTranslation();
   const { session } = useSession();
+  const expirySettings = useBookingExpirySettings();
   const cancel = useCancelBooking();
   const updateStatus = useUpdateBookingStatus();
   const reasons = useCancellationReasons();
@@ -85,6 +90,16 @@ export function BookingActions({
       {booking.status === "completion_requested" && (
         <>
           <Text weight="bold">{t("bookingDetail.completionRequestedTitle")}</Text>
+          {booking.completion_requested_at && expirySettings.data ? (
+            <Text tone="muted" style={{ textAlign: "center" }}>
+              {t("bookingDetail.autoCompleteHint", {
+                time: dateTime(
+                  autoCompleteClosesAt(booking.completion_requested_at, expirySettings.data),
+                  i18n.language,
+                ),
+              })}
+            </Text>
+          ) : null}
           {confirmCompletionOpen ? (
             <>
               <Button

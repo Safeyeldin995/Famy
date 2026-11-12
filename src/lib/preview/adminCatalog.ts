@@ -5,6 +5,7 @@ export function seedAdminCatalog(qc: QueryClient) {
   qc.setQueryData(["settings", "booking_expiry"], {
     pending_ttl_hours: 24,
     min_hours_before_start: 2,
+    auto_complete_hours: 6,
   });
   for (const key of ["terms", "privacy", "about", "contact"])
     qc.setQueryData(["settings", "content", key], {

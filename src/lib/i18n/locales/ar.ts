@@ -1738,6 +1738,7 @@ const ar: Translation = {
     noShowIrreversible: "البلاغ هيتسجل وهنراجعه، مش هتقدر ترجع فيه",
     completionRequestedTitle: "الخدمة خلصت؟",
     completionRequestedBody: "{{name}} قال إن الخدمة خلصت",
+    autoCompleteHint: "هيتقفل تلقائي بعد {{time}} لو مفيش مشكلة",
     confirmCompletion: "نعم، خلصت",
     disputeCompletion: "فيه مشكلة",
     disputeReasonTitle: "إيه اللي حصل بالضبط؟",
@@ -3263,6 +3264,7 @@ const ar: Translation = {
       bookingExpirySubtitle:
         "ينتهي طلب الحجز قيد الانتظار عند حلول الأقرب من هاتين المدتين، التغيير يسري فورا على فحوصات الانتهاء التالية",
       pendingTtlHours: "الساعات بعد إنشاء الطلب",
+      autoCompleteHours: "ساعات الإغلاق التلقائي لو العميل ساكت",
       minHoursBeforeStart: "الساعات قبل موعد البدء (يجب الرد قبلها)",
       bookingExpirySaveError: "تعذر حفظ إعدادات انتهاء صلاحية الحجز",
       bookingExpiryLoadError: "تعذر تحميل إعدادات انتهاء صلاحية الحجز",

@@ -99,7 +99,7 @@ describe("booking session lifecycle (issue scenarios)", () => {
     expect(ok.ok, ok.error).toBe(true);
   });
 
-  it("4) stuck completion_requested appears in attention; admin completes", async () => {
+  it("4) legacy completion_requested stall appears in attention; admin completes", async () => {
     const { bookingId } = await seedLifecycleBooking(db);
     await updateBookingStatus(db, IDS.providerUser, bookingId, "confirmed");
     await updateBookingStatus(db, IDS.providerUser, bookingId, "on_the_way");
@@ -107,10 +107,15 @@ describe("booking session lifecycle (issue scenarios)", () => {
     await updateBookingStatus(db, IDS.customer, bookingId, "in_progress");
     await allowCompletionForBooking(db, bookingId);
     await updateBookingStatus(db, IDS.providerUser, bookingId, "completion_requested");
+    const cutoff = await queryRows<{ cutoff: string }>(
+      db,
+      `SELECT completion_auto_from::text AS cutoff FROM public.booking_expiry_settings()`,
+    );
+    const from = cutoff[0]?.cutoff ?? "2000-01-01";
     await asServiceRole(db, () =>
       db.exec(`
         UPDATE public.bookings
-        SET completion_requested_at = now() - interval '13 hours'
+        SET completion_requested_at = timestamptz '${from}' - interval '13 hours'
         WHERE id = '${bookingId}';
       `),
     );

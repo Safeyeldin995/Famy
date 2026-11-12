@@ -199,7 +199,8 @@ export function useUpdateBookingExpirySettings() {
       const stored = parseBookingExpirySettings(data.value);
       if (
         stored.pending_ttl_hours !== value.pending_ttl_hours ||
-        stored.min_hours_before_start !== value.min_hours_before_start
+        stored.min_hours_before_start !== value.min_hours_before_start ||
+        stored.auto_complete_hours !== value.auto_complete_hours
       ) {
         throw new Error("Booking expiry settings did not persist.");
       }

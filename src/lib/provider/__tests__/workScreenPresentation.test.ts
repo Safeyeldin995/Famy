@@ -30,7 +30,7 @@ describe("response countdown labels", () => {
       bookingCountdownLabel(
         created,
         start,
-        { pending_ttl_hours: 2, min_hours_before_start: 2 },
+        { pending_ttl_hours: 2, min_hours_before_start: 2, auto_complete_hours: 6 },
         new Date(created),
         "ar",
         t,
