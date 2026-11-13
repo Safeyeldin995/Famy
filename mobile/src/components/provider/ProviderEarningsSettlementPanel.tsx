@@ -12,6 +12,10 @@ import {
   useProviderWeekLedgerTotals,
 } from "@/lib/provider/settlementQueries";
 import { providerSettlementDirectionLabel } from "@shared/settlement/providerSettlementDirection";
+import {
+  settlementPeriodShort,
+  settlementStatusLabel,
+} from "@shared/settlement/settlementPresentation";
 
 function formatSettlementWhen(iso: string, locale: string): string {
   const d = new Date(iso);
@@ -37,6 +41,7 @@ export function ProviderEarningsSettlementPanel({
   const settlements = useProviderSettlements(providerId);
   const net = balance.data?.net ?? 0;
   const formatAmount = (n: number) => money(n, i18n.language);
+  const history = settlements.data ?? [];
 
   if (!providerId) return null;
 
@@ -51,14 +56,16 @@ export function ProviderEarningsSettlementPanel({
         gap: space.sm,
       }}
     >
-      <Text weight="heavy">{t("pro.settlement.title")}</Text>
-      <Text weight="bold">{settlementBalanceHeadline(net, t, formatAmount)}</Text>
+      <Text weight="heavy">{t("pro.settlement.thisWeekTitle")}</Text>
+      <Text weight="bold">
+        {settlementBalanceHeadline(net, (k, o) => t(k, o as Record<string, string> | undefined), formatAmount)}
+      </Text>
       <View style={{ flexDirection: "row", gap: space.sm }}>
         <View style={{ flex: 1, borderRadius: radius.lg, backgroundColor: colors.surface2, padding: space.sm }}>
           <Text tone="muted" size="xs">
             {t("pro.settlement.cashWeek")}
           </Text>
-          <Text weight="bold" style={moneyTextStyle(i18n.language)}>
+          <Text weight="heavy" style={moneyTextStyle(i18n.language)}>
             {money(week.data?.cash ?? 0, i18n.language)}
           </Text>
         </View>
@@ -66,7 +73,7 @@ export function ProviderEarningsSettlementPanel({
           <Text tone="muted" size="xs">
             {t("pro.settlement.onlineWeek")}
           </Text>
-          <Text weight="bold" style={moneyTextStyle(i18n.language)}>
+          <Text weight="heavy" style={moneyTextStyle(i18n.language)}>
             {money(week.data?.online ?? 0, i18n.language)}
           </Text>
         </View>
@@ -78,29 +85,43 @@ export function ProviderEarningsSettlementPanel({
           })}
         </Text>
       ) : null}
-      <Text weight="bold" size="sm">
+      <Text weight="heavy" size="sm">
         {t("pro.settlement.history")}
       </Text>
-      {(settlements.data ?? []).slice(0, 8).map((s) => (
-        <View key={s.id} style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text size="xs" tone="muted">
-              {new Date(s.period_start).toLocaleDateString()} · {s.status}
-            </Text>
-            <Text size="xs" weight="bold" tone="muted">
-              {providerSettlementDirectionLabel(s.direction, t)}
-            </Text>
-          </View>
-          <Text weight="bold" size="xs" style={moneyTextStyle(i18n.language)}>
-            {money(s.amount, i18n.language)}
-          </Text>
-        </View>
-      ))}
-      {!settlements.data?.length ? (
-        <Text tone="muted" size="xs">
+      {history.length === 0 ? (
+        <Text tone="muted" size="xs" style={{ textAlign: "center", paddingVertical: space.md }}>
           {t("pro.settlement.noHistory")}
         </Text>
-      ) : null}
+      ) : (
+        history.slice(0, 8).map((s) => (
+          <View
+            key={s.id}
+            style={{
+              borderTopWidth: 1,
+              borderTopColor: colors.border,
+              paddingTop: space.sm,
+              flexDirection: "row",
+              justifyContent: "space-between",
+              gap: 8,
+            }}
+          >
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text weight="heavy" size="xs" style={moneyTextStyle(i18n.language)}>
+                {money(s.amount, i18n.language)}
+              </Text>
+              <Text size="xs" tone="muted">
+                {settlementPeriodShort(s.period_start, s.period_end, i18n.language)}
+              </Text>
+              <Text size="xs" weight="bold">
+                {providerSettlementDirectionLabel(s.direction, t)}
+              </Text>
+              <Text size="xs" tone="muted">
+                {settlementStatusLabel(s.status, t)}
+              </Text>
+            </View>
+          </View>
+        ))
+      )}
     </View>
   );
 }

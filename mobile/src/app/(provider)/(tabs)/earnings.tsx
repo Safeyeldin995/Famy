@@ -103,6 +103,16 @@ export default function ProviderEarnings() {
     >
       <ProviderSettlementBanner providerId={provider?.id} />
       <ProviderEarningsSettlementPanel providerId={provider?.id} />
+      <View style={{ ...card, borderColor: colors.brand, backgroundColor: colors.brandTint }}>
+        <Text weight="bold" size="sm">
+          {t("proWork.last7")}
+        </Text>
+        <SplitAmounts
+          bucket={e.data?.last7}
+          hasNet={(e.data?.last7.net ?? 0) > 0}
+          hasBookingValue={(e.data?.last7.bookingValue ?? 0) > 0}
+        />
+      </View>
       {hasUnrecordedCommission ? (
         <Text tone="muted" size="xs">
           {t("pro.earnings.bookingValue")}
@@ -150,16 +160,6 @@ export default function ProviderEarnings() {
             bucket={e.data?.mtd}
             hasNet={(e.data?.mtd.net ?? 0) > 0}
             hasBookingValue={(e.data?.mtd.bookingValue ?? 0) > 0}
-          />
-        </View>
-        <View style={[card, { flex: 1 }]}>
-          <Text weight="bold" size="sm">
-            {t("proWork.last7")}
-          </Text>
-          <SplitAmounts
-            bucket={e.data?.last7}
-            hasNet={(e.data?.last7.net ?? 0) > 0}
-            hasBookingValue={(e.data?.last7.bookingValue ?? 0) > 0}
           />
         </View>
       </View>

@@ -45,6 +45,7 @@ export function useProviderCashDebtBlocked(providerId: string | undefined) {
 export type ProviderSettlementRow = {
   id: string;
   period_start: string;
+  period_end: string;
   amount: number;
   direction: "famy_pays_provider" | "provider_pays_famy";
   status: string;
@@ -118,11 +119,31 @@ export function useProviderSettlements(providerId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("provider_settlements")
-        .select("id, period_start, amount, direction, status")
+        .select("id, period_start, period_end, amount, direction, status")
         .eq("provider_id", providerId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as ProviderSettlementRow[];
+    },
+  });
+}
+
+export function useProviderSettlementSettings() {
+  return useQuery({
+    queryKey: ["settings", "provider_settlement"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("settings")
+        .select("value")
+        .eq("key", "provider_settlement")
+        .maybeSingle();
+      if (error) throw error;
+      const value = (data?.value ?? {}) as Record<string, unknown>;
+      return {
+        cash_debt_limit: Number(value.cash_debt_limit ?? 1000),
+        cash_debt_warn_percent: Number(value.cash_debt_warn_percent ?? 80),
+        settlement_weekday: Number(value.settlement_weekday ?? 0),
+      };
     },
   });
 }
