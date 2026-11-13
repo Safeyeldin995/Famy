@@ -103,6 +103,7 @@ import {
   buildRebookPrefillContext,
 } from "@shared/booking/rebookPrefillContext";
 import type { RebookPrefillNotice } from "@shared/booking/rebookPrefill";
+import { savedAddressMobileUiParts } from "@shared/booking/savedAddressReviewLine";
 import {
   rebookSupervisionSeedMatches,
   rebookTutoringSeedMatches,
@@ -189,6 +190,12 @@ export default function Book() {
   const createdId = useRef<string | null>(null);
   const pinned = (addresses.data ?? []).filter((a) => a.lat != null && a.lng != null);
   const selectedAddress = pinned.find((a) => a.id === addressId);
+  const reviewAddressId =
+    addressId || pinned.find((a) => a.is_default)?.id || pinned[0]?.id || "";
+  const reviewAddressLine = useMemo(() => {
+    const addr = pinned.find((a) => a.id === reviewAddressId);
+    return joinUiParts(savedAddressMobileUiParts(addr), lang);
+  }, [pinned, reviewAddressId, lang]);
   const zone = useResolveZone(selectedAddress?.lat, selectedAddress?.lng);
   const bookable = useBookableServiceIds(providerId, addressId || undefined);
   const rebookEligibilityAddressId = useMemo(() => {
@@ -1062,10 +1069,7 @@ export default function Book() {
               },
               {
                 label: t("bookFlow.rowAddress"),
-                value: joinUiParts(
-                  [selectedAddress?.area, selectedAddress?.street].filter(Boolean) as string[],
-                  lang,
-                ),
+                value: reviewAddressLine,
                 step: 2,
               },
               {

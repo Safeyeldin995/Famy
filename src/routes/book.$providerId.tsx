@@ -10,6 +10,7 @@ import {
   checkoutAddressReady,
   checkoutEligibilityServiceId,
 } from "@/lib/booking/checkoutGates";
+import { reviewLineForAddressId } from "@/lib/booking/savedAddressReviewLine";
 import {
   BOOKING_SCREENS,
   bookingScreenMissingStep,
@@ -199,7 +200,6 @@ export function BookContent({
   const [date, setDate] = useState<Date | null>(null);
   const [time, setTime] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null);
-  const [address, setAddress] = useState("");
   const [addressId, setAddressId] = useState<string | null>(null);
   const [forWhom, setForWhom] = useState("myself");
   const [supervisionMode, setSupervisionMode] = useState<SupervisionMode | "">("");
@@ -285,6 +285,15 @@ export function BookContent({
     resolvedServiceRow?.service?.id,
   );
   const selectedAddress = bookableAddresses.find((a: any) => a.id === addressId) ?? null;
+  const reviewAddressLine = useMemo(
+    () =>
+      reviewLineForAddressId(
+        bookableAddresses as { id: string; street?: string; line1?: string; building?: string; compound?: string; area?: string }[],
+        slotAddressId,
+        (area) => (area ? customerAreaLabel(area, t) : null),
+      ),
+    [bookableAddresses, slotAddressId, t],
+  );
   // UX-only preview of the resolved service zone — the booking-creation DB
   // trigger re-resolves this itself and is the sole authoritative guard
   // (zone_id is never accepted from the client, see Module 2 migration).
@@ -297,16 +306,6 @@ export function BookContent({
     if (addressId === null && bookableAddresses.length > 0) {
       const def = bookableAddresses.find((a: any) => a.is_default) ?? bookableAddresses[0];
       setAddressId(def.id);
-      setAddress(
-        [
-          def.street ?? def.line1,
-          def.building,
-          def.compound,
-          def.area ? customerAreaLabel(def.area, t) : "",
-        ]
-          .filter(Boolean)
-          .join(", "),
-      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addrsQ.data]);
@@ -1432,7 +1431,6 @@ export function BookContent({
                         key={a.id}
                         onClick={() => {
                           setAddressId(a.id);
-                          setAddress(lineParts.join(", "));
                         }}
                         aria-pressed={addressId === a.id}
                         className={`booking-option ${addressId === a.id ? "on" : ""}`}
@@ -1607,7 +1605,7 @@ export function BookContent({
                 />
                 <ReviewRow
                   label={t("bookFlow.rowAddress")}
-                  value={address}
+                  value={reviewAddressLine}
                   onEdit={() => editScreen("whereWho")}
                 />
                 <ReviewRow
