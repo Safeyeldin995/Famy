@@ -757,6 +757,7 @@ DECLARE
   v_totals jsonb;
   v_count integer := 0;
   v_profile uuid;
+  v_entry_ids uuid[];
   v_settlement_kinds text[] := ARRAY[
     'cash_collected_platform_share',
     'online_provider_share',
@@ -803,13 +804,22 @@ BEGIN
         CONTINUE;
       END IF;
 
-      SELECT COALESCE(SUM(CASE WHEN e.direction = 'credit' THEN e.amount ELSE -e.amount END), 0)
-      INTO v_net
+      SELECT COALESCE(array_agg(e.id ORDER BY e.created_at), ARRAY[]::uuid[])
+      INTO v_entry_ids
       FROM public.provider_ledger_entries e
       WHERE e.provider_id = v_row.provider_id
         AND e.settlement_id IS NULL
         AND e.created_at < v_period_end
         AND e.kind = ANY (v_settlement_kinds);
+
+      IF v_entry_ids IS NULL OR cardinality(v_entry_ids) = 0 THEN
+        CONTINUE;
+      END IF;
+
+      SELECT COALESCE(SUM(CASE WHEN e.direction = 'credit' THEN e.amount ELSE -e.amount END), 0)
+      INTO v_net
+      FROM public.provider_ledger_entries e
+      WHERE e.id = ANY (v_entry_ids);
 
       SELECT COALESCE(jsonb_object_agg(x.method, x.amt), '{}'::jsonb)
       INTO v_totals
@@ -817,10 +827,7 @@ BEGIN
         SELECT COALESCE(e.payment_method, 'unknown') AS method,
                SUM(CASE WHEN e.direction = 'credit' THEN e.amount ELSE -e.amount END) AS amt
         FROM public.provider_ledger_entries e
-        WHERE e.provider_id = v_row.provider_id
-          AND e.settlement_id IS NULL
-          AND e.created_at < v_period_end
-          AND e.kind = ANY (v_settlement_kinds)
+        WHERE e.id = ANY (v_entry_ids)
         GROUP BY 1
       ) x;
 
@@ -841,10 +848,8 @@ BEGIN
         PERFORM set_config('app.ledger_link_settlement', 'on', true);
         UPDATE public.provider_ledger_entries e
         SET settlement_id = v_settlement_id
-        WHERE e.provider_id = v_row.provider_id
-          AND e.settlement_id IS NULL
-          AND e.created_at < v_period_end
-          AND e.kind = ANY (v_settlement_kinds);
+        WHERE e.id = ANY (v_entry_ids)
+          AND e.settlement_id IS NULL;
         CONTINUE;
       END IF;
 
@@ -883,10 +888,8 @@ BEGIN
       PERFORM set_config('app.ledger_link_settlement', 'on', true);
       UPDATE public.provider_ledger_entries e
       SET settlement_id = v_settlement_id
-      WHERE e.provider_id = v_row.provider_id
-        AND e.settlement_id IS NULL
-        AND e.created_at < v_period_end
-        AND e.kind = ANY (v_settlement_kinds);
+      WHERE e.id = ANY (v_entry_ids)
+        AND e.settlement_id IS NULL;
     END LOOP;
 
     v_cairo_date := (timezone('Africa/Cairo', v_period_end))::date;
@@ -1101,6 +1104,57 @@ $$;
 REVOKE ALL ON FUNCTION public.admin_record_provider_debt_payment(uuid, numeric, text, text, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.admin_record_provider_debt_payment(uuid, numeric, text, text, text) TO authenticated;
 
+CREATE OR REPLACE FUNCTION public.admin_list_provider_settlements(p_provider_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.has_role(auth.uid(), 'admin') THEN
+    RAISE EXCEPTION 'Admin required' USING ERRCODE = '42501';
+  END IF;
+  RETURN COALESCE(
+    (
+      SELECT jsonb_agg(to_jsonb(s) ORDER BY s.created_at DESC)
+      FROM public.provider_settlements s
+      WHERE s.provider_id = p_provider_id
+    ),
+    '[]'::jsonb
+  );
+END;
+$$;
+REVOKE ALL ON FUNCTION public.admin_list_provider_settlements(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_list_provider_settlements(uuid) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.admin_list_provider_ledger_entries(p_provider_id uuid, p_limit int DEFAULT 50)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.has_role(auth.uid(), 'admin') THEN
+    RAISE EXCEPTION 'Admin required' USING ERRCODE = '42501';
+  END IF;
+  RETURN COALESCE(
+    (
+      SELECT jsonb_agg(to_jsonb(e) ORDER BY e.created_at DESC)
+      FROM (
+        SELECT *
+        FROM public.provider_ledger_entries
+        WHERE provider_id = p_provider_id
+        ORDER BY created_at DESC
+        LIMIT GREATEST(1, LEAST(COALESCE(p_limit, 50), 200))
+      ) e
+    ),
+    '[]'::jsonb
+  );
+END;
+$$;
+REVOKE ALL ON FUNCTION public.admin_list_provider_ledger_entries(uuid, int) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_list_provider_ledger_entries(uuid, int) TO authenticated;
+
 -- ============================================================
 -- 9) RLS
 -- ============================================================
@@ -1149,8 +1203,18 @@ CREATE INDEX IF NOT EXISTS idx_provider_ledger_entries_created_by
 CREATE INDEX IF NOT EXISTS idx_provider_settlements_settled_by
   ON public.provider_settlements (settled_by);
 
-GRANT SELECT ON public.provider_ledger_entries TO authenticated;
-GRANT SELECT ON public.provider_settlements TO authenticated;
+REVOKE SELECT ON public.provider_ledger_entries FROM authenticated;
+GRANT SELECT (
+  id, provider_id, booking_id, settlement_id, kind, direction, amount, payment_method,
+  created_by, created_at
+) ON public.provider_ledger_entries TO authenticated;
+
+REVOKE SELECT ON public.provider_settlements FROM authenticated;
+GRANT SELECT (
+  id, provider_id, period_start, period_end, amount, direction, status, totals_by_method,
+  payment_reference, created_at, settled_at, settled_by
+) ON public.provider_settlements TO authenticated;
+
 GRANT SELECT ON public.provider_settlement_accounts TO authenticated;
 
 -- ============================================================

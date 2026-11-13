@@ -4478,6 +4478,14 @@ export type Database = {
         Args: { p_provider_id: string }
         Returns: boolean
       }
+      admin_list_provider_ledger_entries: {
+        Args: { p_provider_id: string; p_limit?: number }
+        Returns: Json
+      }
+      admin_list_provider_settlements: {
+        Args: { p_provider_id: string }
+        Returns: Json
+      }
       admin_mark_provider_settlement_settled: {
         Args: {
           p_settlement_id: string

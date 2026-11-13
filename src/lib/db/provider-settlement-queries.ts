@@ -18,7 +18,6 @@ export type ProviderSettlementRow = {
   status: string;
   totals_by_method: Record<string, number>;
   payment_reference: string | null;
-  note: string | null;
   created_at: string;
   settled_at: string | null;
 };
@@ -29,7 +28,6 @@ export type ProviderLedgerRow = {
   direction: "credit" | "debit";
   amount: number;
   payment_method: string | null;
-  note: string | null;
   booking_id: string | null;
   created_at: string;
 };
@@ -75,7 +73,9 @@ export function useProviderSettlements(providerId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("provider_settlements")
-        .select("*")
+        .select(
+          "id, provider_id, period_start, period_end, amount, direction, status, totals_by_method, payment_reference, created_at, settled_at",
+        )
         .eq("provider_id", providerId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -91,7 +91,7 @@ export function useProviderLedger(providerId: string | undefined, limit = 50) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("provider_ledger_entries")
-        .select("id, kind, direction, amount, payment_method, note, booking_id, created_at")
+        .select("id, kind, direction, amount, payment_method, booking_id, created_at")
         .eq("provider_id", providerId!)
         .order("created_at", { ascending: false })
         .limit(limit);

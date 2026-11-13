@@ -30,8 +30,8 @@ function AdminFinancePage() {
   useEffect(() => {
     if (periodQ.data && !from) {
       const range = defaultFinanceRangeFromPeriod(periodQ.data);
-      setFrom(range.from.slice(0, 16));
-      setTo(range.to.slice(0, 16));
+      setFrom(range.from);
+      setTo(range.to);
     }
   }, [periodQ.data, from]);
   const fromIso = from ? new Date(from).toISOString() : undefined;

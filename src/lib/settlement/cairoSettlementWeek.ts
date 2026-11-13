@@ -6,12 +6,19 @@ export type SettlementClosedPeriod = {
   next_settlement_at: string;
 };
 
+/** `datetime-local` value using the viewer's local calendar clock (no UTC slice). */
+export function formatInstantForDatetimeLocal(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export function defaultFinanceRangeFromPeriod(period: SettlementClosedPeriod): {
   from: string;
   to: string;
 } {
-  const from = period.period_start;
-  const to = new Date().toISOString();
+  const from = formatInstantForDatetimeLocal(period.period_start);
+  const to = formatInstantForDatetimeLocal(new Date().toISOString());
   return { from, to };
 }
 

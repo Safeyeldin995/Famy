@@ -1102,4 +1102,132 @@ describe("provider settlements ledger", () => {
     );
     expect(summary[0]?.platform_share).toBe("150.00");
   });
+
+  it("run_provider_weekly_settlements snapshots entry ids before linking", async () => {
+    const def = await queryRows<{ def: string }>(
+      db,
+      `SELECT pg_get_functiondef('public.run_provider_weekly_settlements()'::regprocedure) AS def`,
+    );
+    expect(def[0]?.def).toContain("v_entry_ids");
+    expect(def[0]?.def).toContain("e.id = ANY (v_entry_ids)");
+    // PGlite cannot interleave a ledger insert between SUM and UPDATE inside one RPC transaction;
+    // the uuid[] snapshot in the function is the concurrency guard.
+  });
+
+  it("links settlement amount to exactly the snapshotted ledger rows", async () => {
+    const snapProvider = "00000000-0000-4000-8000-000000000295";
+    const snapUser = "00000000-0000-4000-8000-000000000195";
+    await db.exec(`
+      INSERT INTO auth.users (id) VALUES ('${snapUser}') ON CONFLICT (id) DO NOTHING;
+      INSERT INTO public.providers (id, profile_id, hourly_rate, onboarding_status, is_active, vacation_mode, min_notice_hours, max_advance_days, buffer_minutes, bio_en, bio_ar)
+      VALUES ('${snapProvider}', '${snapUser}', 100, 'DRAFT', true, false, 0, 365, 0, 'Bio', 'سيرة')
+      ON CONFLICT (id) DO NOTHING;
+    `);
+    const period = await queryRows<{ period_start: string }>(
+      db,
+      `SELECT period_start::text FROM public.provider_settlement_closed_period()`,
+    );
+    const periodStart = period[0]?.period_start;
+    await db.query(
+      `
+        INSERT INTO public.provider_ledger_entries (provider_id, kind, direction, amount, created_at)
+        VALUES
+          ($1::uuid, 'online_provider_share', 'credit', 700, $2::timestamptz + interval '1 hour'),
+          ($1::uuid, 'online_provider_share', 'credit', 300, $2::timestamptz + interval '2 hours')
+      `,
+      [snapProvider, periodStart],
+    );
+    await asServiceRole(db, () =>
+      queryRows<{ n: number }>(db, `SELECT public.run_provider_weekly_settlements()::int AS n`),
+    );
+    const settlement = await queryRows<{ amount: string; id: string }>(
+      db,
+      `SELECT amount::text, id::text FROM public.provider_settlements WHERE provider_id = $1::uuid`,
+      [snapProvider],
+    );
+    expect(settlement[0]?.amount).toBe("1000.00");
+    const linked = await queryRows<{ n: number; sum: string }>(
+      db,
+      `
+        SELECT count(*)::int AS n, COALESCE(sum(amount), 0)::text AS sum
+        FROM public.provider_ledger_entries
+        WHERE settlement_id = $1::uuid
+      `,
+      [settlement[0]?.id],
+    );
+    expect(linked[0]?.n).toBe(2);
+    expect(linked[0]?.sum).toBe("1000.00");
+  });
+
+  it("hides internal notes from providers but exposes them to admin list RPCs", async () => {
+    const secretProvider = "00000000-0000-4000-8000-000000000294";
+    const secretUser = "00000000-0000-4000-8000-000000000194";
+    await db.exec(`
+      INSERT INTO auth.users (id) VALUES ('${secretUser}') ON CONFLICT (id) DO NOTHING;
+      INSERT INTO public.providers (id, profile_id, hourly_rate, onboarding_status, is_active, vacation_mode, min_notice_hours, max_advance_days, buffer_minutes, bio_en, bio_ar)
+      VALUES ('${secretProvider}', '${secretUser}', 100, 'DRAFT', true, false, 0, 365, 0, 'Bio', 'سيرة')
+      ON CONFLICT (id) DO NOTHING;
+    `);
+    const period = await queryRows<{ period_start: string }>(
+      db,
+      `SELECT period_start::text FROM public.provider_settlement_closed_period()`,
+    );
+    await db.query(
+      `
+        INSERT INTO public.provider_ledger_entries (
+          provider_id, kind, direction, amount, note, created_at
+        ) VALUES ($1::uuid, 'adjustment', 'credit', 50, 'ledger-admin-only', $2::timestamptz)
+      `,
+      [secretProvider, period[0]?.period_start],
+    );
+    await asServiceRole(db, () =>
+      queryRows<{ n: number }>(db, `SELECT public.run_provider_weekly_settlements()::int AS n`),
+    );
+    const settlementId = await queryRows<{ id: string }>(
+      db,
+      `SELECT id::text FROM public.provider_settlements WHERE provider_id = $1::uuid`,
+      [secretProvider],
+    );
+    await db.query(`UPDATE public.provider_settlements SET note = 'settlement-admin-only' WHERE id = $1::uuid`, [
+      settlementId[0]?.id,
+    ]);
+
+    await expect(
+      asUser(db, secretUser, () =>
+        db.query(
+          `SELECT note FROM public.provider_settlements WHERE provider_id = $1::uuid LIMIT 1`,
+          [secretProvider],
+        ),
+      ),
+    ).rejects.toThrow(/permission denied/i);
+
+    await expect(
+      asUser(db, secretUser, () =>
+        db.query(
+          `SELECT note FROM public.provider_ledger_entries WHERE provider_id = $1::uuid LIMIT 1`,
+          [secretProvider],
+        ),
+      ),
+    ).rejects.toThrow(/permission denied/i);
+
+    const adminSettlements = await asUser(db, IDS.adminUser, () =>
+      queryRows<{ data: unknown }>(
+        db,
+        `SELECT public.admin_list_provider_settlements($1::uuid) AS data`,
+        [secretProvider],
+      ),
+    );
+    const settlementsJson = adminSettlements[0]?.data as Array<{ note?: string }>;
+    expect(settlementsJson?.[0]?.note).toBe("settlement-admin-only");
+
+    const adminLedger = await asUser(db, IDS.adminUser, () =>
+      queryRows<{ data: unknown }>(
+        db,
+        `SELECT public.admin_list_provider_ledger_entries($1::uuid, 10) AS data`,
+        [secretProvider],
+      ),
+    );
+    const ledgerJson = adminLedger[0]?.data as Array<{ note?: string }>;
+    expect(ledgerJson?.[0]?.note).toBe("ledger-admin-only");
+  });
 });
