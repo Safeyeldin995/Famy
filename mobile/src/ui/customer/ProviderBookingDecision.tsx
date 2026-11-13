@@ -11,10 +11,8 @@ import {
   useProviderBookingSettings,
 } from "@/lib/bookingQueries";
 import { filterFixedStartSlots, isFixedPackage } from "@shared/pricing/servicePackages";
-import {
-  formatProviderNextSlotLine,
-  nextProviderScanDay,
-} from "@shared/booking/providerNextSlot";
+import { nextProviderScanDay } from "@shared/booking/providerNextSlot";
+import { providerDecisionNextSlotLine } from "@shared/booking/providerDecisionNextSlot";
 import {
   providerProfileHighlightService,
   providerProfilePriceLine,
@@ -71,7 +69,7 @@ export function ProviderBookingDecision({
     serviceId: row?.service.id ?? null,
     addressId: address.data?.id ?? null,
   });
-  const slots = useAvailableSlots(providerId, scanDate, duration, {
+  const slots = useAvailableSlots(providerId, settings.isSuccess ? scanDate : null, duration, {
     serviceId: row?.service.id,
     addressId: address.data?.id ?? null,
     cairoTime: fixed,
@@ -82,6 +80,7 @@ export function ProviderBookingDecision({
     [row, slots.data],
   );
   useEffect(() => {
+    if (!settings.isSuccess) return;
     const next = nextProviderScanDay(scanDate, settings.data?.max_advance_days ?? 12, {
       loading: slots.isLoading || slots.isFetching,
       slotCount: available.length,
@@ -102,16 +101,16 @@ export function ProviderBookingDecision({
     capability: tutoring ? capability : null,
   });
   const qualification = providerProfileQualificationLine(row, caps.data ?? [], lang, t);
-  const when =
-    available[0] && !slots.isLoading
-      ? t("providerPage.nextSlot", {
-          when: formatProviderNextSlotLine(available[0], lang, fixed),
-        })
-      : slots.isError
-        ? t("bookFlow.slotsLoadError")
-        : slots.isLoading || slots.isFetching
-          ? t("common.loading")
-          : t("providerPage.noSlotYet");
+  const when = providerDecisionNextSlotLine({
+    slot: available[0],
+    settingsReady: settings.isSuccess,
+    slotsReady: slots.isSuccess && !slots.isLoading && !slots.isFetching,
+    settingsErrored: settings.isError,
+    slotsErrored: slots.isError,
+    language: lang,
+    cairoTime: fixed,
+    t,
+  });
 
   return (
     <View style={[customerStyle.card, { gap: 6 }]}>
@@ -119,7 +118,7 @@ export function ProviderBookingDecision({
         {t("providerPage.decisionPrice")}
       </Text>
       <Text weight="heavy">{price}</Text>
-      <Text>{when}</Text>
+      {when ? <Text>{when}</Text> : null}
       {qualification ? (
         <Text size="sm" tone="muted">
           {qualification}

@@ -9,10 +9,8 @@ import {
 import { useApprovedTeachingCapabilities } from "@/lib/db/teaching-queries";
 import { currentLang } from "@/lib/i18n";
 import { filterFixedStartSlots, isFixedPackage } from "@/lib/pricing/servicePackages";
-import {
-  formatProviderNextSlotLine,
-  nextProviderScanDay,
-} from "@/lib/booking/providerNextSlot";
+import { nextProviderScanDay } from "@/lib/booking/providerNextSlot";
+import { providerDecisionNextSlotLine } from "@/lib/booking/providerDecisionNextSlot";
 import {
   providerProfileHighlightService,
   providerProfilePriceLine,
@@ -66,7 +64,7 @@ export function ProviderBookingDecision({
     serviceId: row?.service.id ?? null,
     addressId: addressQ.data?.id ?? null,
   });
-  const slotsQ = useAvailableSlots(providerId, scanDate, duration, {
+  const slotsQ = useAvailableSlots(providerId, settingsQ.isSuccess ? scanDate : null, duration, {
     serviceId: row?.service.id,
     addressId: addressQ.data?.id ?? null,
     cairoTime: fixed,
@@ -77,6 +75,7 @@ export function ProviderBookingDecision({
     [row, slotsQ.data],
   );
   useEffect(() => {
+    if (!settingsQ.isSuccess) return;
     const next = nextProviderScanDay(scanDate, settingsQ.data?.max_advance_days ?? 12, {
       loading: slotsQ.isLoading || slotsQ.isFetching,
       slotCount: slots.length,
@@ -102,22 +101,22 @@ export function ProviderBookingDecision({
     lang,
     t,
   );
-  const when =
-    slots[0] && !slotsQ.isLoading
-      ? t("providerPage.nextSlot", {
-          when: formatProviderNextSlotLine(slots[0], lang, fixed),
-        })
-      : slotsQ.isError
-        ? t("bookFlow.slotsLoadError")
-        : slotsQ.isLoading || slotsQ.isFetching
-          ? t("common.loading")
-          : t("providerPage.noSlotYet");
+  const when = providerDecisionNextSlotLine({
+    slot: slots[0],
+    settingsReady: settingsQ.isSuccess,
+    slotsReady: slotsQ.isSuccess && !slotsQ.isLoading && !slotsQ.isFetching,
+    settingsErrored: settingsQ.isError,
+    slotsErrored: slotsQ.isError,
+    language: lang,
+    cairoTime: fixed,
+    t,
+  });
 
   return (
     <div className="rounded-2xl border border-border/60 bg-white p-3.5 text-pro-13 shadow-sm">
       <p className="text-pro-12 font-bold text-muted-foreground">{t("providerPage.decisionPrice")}</p>
       <p className="mt-1 font-extrabold text-foreground">{price}</p>
-      <p className="mt-2 text-foreground">{when}</p>
+      {when ? <p className="mt-2 text-foreground">{when}</p> : null}
       {qualification ? <p className="mt-1 text-muted-foreground">{qualification}</p> : null}
     </div>
   );
