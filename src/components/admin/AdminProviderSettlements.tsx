@@ -9,9 +9,13 @@ import {
   useProviderSettlements,
 } from "@/lib/db/provider-settlement-queries";
 import { useQueryClient } from "@tanstack/react-query";
+import { adminSettlementDirectionLabel } from "@/lib/settlement/providerSettlementDirection";
+import { settlementPeriodShort, settlementStatusLabel } from "@/lib/settlement/settlementPresentation";
+import { useLang } from "@/components/famio/LanguageToggle";
 
 export function AdminProviderSettlements({ providerId }: { providerId: string }) {
   const { t } = useTranslation();
+  const lang = useLang();
   const qc = useQueryClient();
   const balance = useProviderSettlementBalance(providerId);
   const settlements = useProviderSettlements(providerId);
@@ -22,11 +26,6 @@ export function AdminProviderSettlements({ providerId }: { providerId: string })
   const [reason, setReason] = useState("");
 
   const selectedSettlement = (settlements.data ?? []).find((s) => s.id === settlementId);
-
-  const directionLabel = (direction: string) =>
-    direction === "famy_pays_provider"
-      ? t("admin.settlement.directionFamyPays")
-      : t("admin.settlement.directionProviderPays");
 
   const settle = async () => {
     if (!settlementId || !reference.trim() || !reason.trim()) {
@@ -70,14 +69,14 @@ export function AdminProviderSettlements({ providerId }: { providerId: string })
         {(settlements.data ?? []).map((s) => (
           <li key={s.id} className="rounded-xl border border-border/60 p-3 text-sm">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="font-bold">{formatEGP(s.amount)}</span>
-              <span>{s.status}</span>
+              <span className="font-bold tabular-nums">{formatEGP(s.amount)}</span>
+              <span className="text-xs font-bold">{settlementStatusLabel(s.status, t)}</span>
             </div>
-            <p className="text-xs font-semibold text-muted-foreground">
-              {directionLabel(s.direction)}
+            <p className="text-xs font-semibold text-foreground">
+              {adminSettlementDirectionLabel(s.direction, t)}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              {new Date(s.period_start).toLocaleDateString()} – {new Date(s.period_end).toLocaleDateString()}
+              {settlementPeriodShort(s.period_start, s.period_end, lang)}
             </p>
             {s.status === "pending" && (
               <button
@@ -95,7 +94,8 @@ export function AdminProviderSettlements({ providerId }: { providerId: string })
         <div className="space-y-2 rounded-xl border border-brand/30 bg-brand/5 p-3">
           {selectedSettlement ? (
             <p className="text-sm font-bold">
-              {formatEGP(selectedSettlement.amount)} · {directionLabel(selectedSettlement.direction)}
+              {formatEGP(selectedSettlement.amount)} ·{" "}
+              {adminSettlementDirectionLabel(selectedSettlement.direction, t)}
             </p>
           ) : null}
           <input

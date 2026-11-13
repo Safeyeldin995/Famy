@@ -27,7 +27,19 @@ import {
   PanelLeftClose,
   PanelLeft,
   LogOut,
+  Menu,
+  X,
+  CircleDollarSign,
+  FileText,
 } from "lucide-react";
+import { useAdminWorkQueueCounts } from "@/lib/db/admin-queries";
+import {
+  useAdminFinanceProviders,
+  useAdminFinanceSummary,
+  useSettlementClosedPeriod,
+} from "@/lib/db/admin-finance-queries";
+import { defaultFinanceRangeFromPeriod } from "@/lib/settlement/cairoSettlementWeek";
+import { adminNavBadgeCount } from "@/lib/admin/adminNavBadges";
 import type { LucideIcon } from "lucide-react";
 import famyLogo from "@/assets/famy-wordmark.png";
 
@@ -36,65 +48,67 @@ type NavGroup = { titleKey: string; items: NavItem[] };
 
 export const ADMIN_NAV_GROUPS: (NavGroup & { titleFallback: string })[] = [
   {
-    titleKey: "admin.layout.group.overview",
-    titleFallback: "Overview",
-    items: [
-      { to: "/admin", labelKey: "admin.layout.nav.overview", icon: LayoutDashboard, exact: true },
-      { to: "/admin/finance", labelKey: "admin.layout.nav.finance", icon: Wallet },
-    ],
-  },
-  {
     titleKey: "admin.layout.group.operations",
     titleFallback: "Operations",
     items: [
+      { to: "/admin", labelKey: "admin.layout.nav.overview", icon: LayoutDashboard, exact: true },
+      { to: "/admin/bookings", labelKey: "admin.layout.nav.bookings", icon: ClipboardList },
       { to: "/admin/operations", labelKey: "admin.layout.nav.operations", icon: Activity },
+      { to: "/admin/cases", labelKey: "admin.layout.nav.cases", icon: LifeBuoy },
       { to: "/admin/monitoring", labelKey: "admin.layout.nav.monitoring", icon: Radar },
     ],
   },
   {
-    titleKey: "admin.layout.group.people",
-    titleFallback: "People",
+    titleKey: "admin.layout.group.providers",
+    titleFallback: "Providers",
     items: [
       { to: "/admin/providers", labelKey: "admin.layout.nav.providers", icon: ShieldCheck },
-      { to: "/admin/customers", labelKey: "admin.layout.nav.customers", icon: UserRound },
+      {
+        to: "/admin/service-requests",
+        labelKey: "admin.layout.nav.serviceRequests",
+        icon: FileText,
+      },
+      {
+        to: "/admin/price-change-requests",
+        labelKey: "admin.layout.nav.priceChangeRequests",
+        icon: CircleDollarSign,
+      },
+      { to: "/admin/area-requests", labelKey: "admin.layout.nav.areaRequests", icon: MapPin },
     ],
   },
   {
-    titleKey: "admin.layout.group.transactions",
-    titleFallback: "Transactions",
+    titleKey: "admin.layout.group.customers",
+    titleFallback: "Customers",
+    items: [{ to: "/admin/customers", labelKey: "admin.layout.nav.customers", icon: UserRound }],
+  },
+  {
+    titleKey: "admin.layout.group.finance",
+    titleFallback: "Finance",
     items: [
-      { to: "/admin/bookings", labelKey: "admin.layout.nav.bookings", icon: ClipboardList },
-      { to: "/admin/cases", labelKey: "admin.layout.nav.cases", icon: LifeBuoy },
+      { to: "/admin/finance", labelKey: "admin.layout.nav.finance", icon: Wallet },
       { to: "/admin/payments", labelKey: "admin.layout.nav.payments", icon: CreditCard },
       {
         to: "/admin/payment-methods",
         labelKey: "admin.layout.nav.paymentMethods",
         icon: CreditCard,
       },
+      { to: "/admin/promo-codes", labelKey: "admin.layout.nav.promoCodes", icon: Tag },
+    ],
+  },
+  {
+    titleKey: "admin.layout.group.settings",
+    titleFallback: "Settings",
+    items: [
+      { to: "/admin/zones", labelKey: "admin.layout.nav.zones", icon: MapPin },
+      { to: "/admin/services", labelKey: "admin.layout.nav.services", icon: Layers },
       {
         to: "/admin/cancellation-reasons",
         labelKey: "admin.layout.nav.cancellationReasons",
         icon: Ban,
       },
-    ],
-  },
-  {
-    titleKey: "admin.layout.group.catalog",
-    titleFallback: "Catalog",
-    items: [
-      { to: "/admin/services", labelKey: "admin.layout.nav.services", icon: Layers },
-      { to: "/admin/zones", labelKey: "admin.layout.nav.zones", icon: MapPin },
-      { to: "/admin/area-requests", labelKey: "admin.layout.nav.areaRequests", icon: MapPin },
-      { to: "/admin/promo-codes", labelKey: "admin.layout.nav.promoCodes", icon: Tag },
-    ],
-  },
-  {
-    titleKey: "admin.layout.group.system",
-    titleFallback: "System",
-    items: [
       { to: "/admin/campaigns", labelKey: "admin.layout.nav.campaigns", icon: Megaphone },
-      { to: "/admin/audit-log", labelKey: "admin.layout.nav.auditLog", icon: History },
       { to: "/admin/settings", labelKey: "admin.layout.nav.settings", icon: Settings },
+      { to: "/admin/audit-log", labelKey: "admin.layout.nav.auditLog", icon: History },
     ],
   },
 ];
@@ -114,6 +128,21 @@ export function AdminShell({
     .replace(/^\/admin\/provider\//, "/admin/providers/")
     .replace(/^\/admin\/customer\//, "/admin/customers/");
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const queue = useAdminWorkQueueCounts();
+  const settlementPeriod = useSettlementClosedPeriod();
+  const financeRange =
+    settlementPeriod.data != null
+      ? defaultFinanceRangeFromPeriod(settlementPeriod.data)
+      : { from: "", to: "" };
+  const financeFrom = financeRange.from ? new Date(financeRange.from).toISOString() : undefined;
+  const financeTo = financeRange.to ? new Date(financeRange.to).toISOString() : undefined;
+  const financeSummary = useAdminFinanceSummary(financeFrom, financeTo);
+  const financeProviders = useAdminFinanceProviders();
+  const navBadgeExtras = {
+    pendingSettlements: financeSummary.data?.pending_settlement_count ?? 0,
+    providersAtCashLimit: (financeProviders.data ?? []).filter((row) => row.at_limit).length,
+  };
   const mobileTabs = useRef<HTMLElement>(null);
   useEffect(() => {
     let active = true;
@@ -130,6 +159,10 @@ export function AdminShell({
       window.removeEventListener("resize", reveal);
     };
   }, [rawPathname, role.isLoading]);
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [rawPathname]);
 
   useEffect(() => {
     if (previewMode) return;
@@ -189,6 +222,18 @@ export function AdminShell({
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="focus-ring grid h-9 w-9 place-items-center rounded-lg border border-border bg-surface text-foreground lg:hidden"
+                onClick={() => setMobileNavOpen((open) => !open)}
+                aria-expanded={mobileNavOpen}
+                aria-controls="admin-mobile-nav"
+                aria-label={
+                  mobileNavOpen ? t("admin.layout.closeMenu", "Close menu") : t("admin.layout.openMenu", "Open menu")
+                }
+              >
+                {mobileNavOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </button>
               {previewMode ? (
                 <Link
                   to="/preview"
@@ -255,6 +300,10 @@ export function AdminShell({
                       const active = isActive(tab);
                       const Icon = tab.icon;
                       const href = tab.to;
+                      const badge =
+                        queue.data != null
+                          ? adminNavBadgeCount(tab.to, queue.data, navBadgeExtras)
+                          : 0;
                       return (
                         <li key={tab.to}>
                           <Link
@@ -270,7 +319,18 @@ export function AdminShell({
                           >
                             <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                             {!collapsed ? (
-                              <span className="truncate">{t(tab.labelKey)}</span>
+                              <span className="min-w-0 flex-1 truncate">{t(tab.labelKey)}</span>
+                            ) : null}
+                            {badge > 0 ? (
+                              <span
+                                className={`min-w-[1.25rem] rounded-md px-1.5 py-0.5 text-center text-[10px] font-extrabold tabular-nums ${
+                                  active
+                                    ? "bg-brand-foreground/20 text-brand-foreground"
+                                    : "bg-brand/15 text-brand"
+                                }`}
+                              >
+                                {badge > 99 ? "99+" : badge.toLocaleString("en-US")}
+                              </span>
                             ) : null}
                           </Link>
                         </li>
@@ -283,33 +343,53 @@ export function AdminShell({
           </aside>
 
           <main className="min-w-0 flex-1 bg-surface lg:rounded-xl lg:border lg:border-border/50 lg:shadow-sm">
-            <nav
-              ref={mobileTabs}
-              data-admin-mobile-tabs
-              className="flex gap-1.5 overflow-x-auto border-b border-border/50 p-2 lg:hidden"
-              aria-label={t("admin.layout.navAria", "Admin navigation")}
-            >
-              {flatTabs.map((tab) => {
-                const active = isActive(tab);
-                const href = tab.to;
-                return (
-                  <Link
-                    key={tab.to}
-                    to={href as "/admin"}
-                    activeOptions={{ exact: true }}
-                    data-admin-active={active ? "true" : undefined}
-                    className={`focus-ring inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-bold ${
-                      active
-                        ? "bg-brand text-brand-foreground"
-                        : "bg-surface-2 text-muted-foreground"
-                    }`}
-                    aria-current={active ? "page" : undefined}
-                  >
-                    {t(tab.labelKey)}
-                  </Link>
-                );
-              })}
-            </nav>
+            {mobileNavOpen ? (
+              <nav
+                id="admin-mobile-nav"
+                ref={mobileTabs}
+                className="max-h-[min(70dvh,28rem)] overflow-y-auto border-b border-border/50 bg-surface p-3 lg:hidden"
+                aria-label={t("admin.layout.navAria", "Admin navigation")}
+              >
+                {ADMIN_NAV_GROUPS.map((group) => (
+                  <div key={group.titleKey} className="mb-4 last:mb-0">
+                    <p className="mb-1 px-1 text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
+                      {t(group.titleKey, group.titleFallback)}
+                    </p>
+                    <ul className="space-y-1">
+                      {group.items.map((tab) => {
+                        const active = isActive(tab);
+                        const badge =
+                          queue.data != null
+                            ? adminNavBadgeCount(tab.to, queue.data, navBadgeExtras)
+                            : 0;
+                        return (
+                          <li key={tab.to}>
+                            <Link
+                              to={tab.to as "/admin"}
+                              activeOptions={{ exact: true }}
+                              data-admin-active={active ? "true" : undefined}
+                              className={`focus-ring flex min-h-11 items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm font-semibold ${
+                                active
+                                  ? "bg-brand text-brand-foreground"
+                                  : "bg-surface-2 text-muted-foreground"
+                              }`}
+                              aria-current={active ? "page" : undefined}
+                            >
+                              <span>{t(tab.labelKey)}</span>
+                              {badge > 0 ? (
+                                <span className="rounded-md bg-brand/15 px-2 py-0.5 text-xs font-extrabold tabular-nums text-brand">
+                                  {badge.toLocaleString("en-US")}
+                                </span>
+                              ) : null}
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ))}
+              </nav>
+            ) : null}
             {children}
           </main>
         </div>
