@@ -53,3 +53,33 @@ export function formatSettlementWhen(iso: string, locale: string): string {
     timeZone: "Africa/Cairo",
   });
 }
+
+export type FinancePreset = "thisWeek" | "lastWeek" | "thisMonth" | "custom";
+
+/** ISO range for a finance-page period preset. `to` is exclusive. */
+export function financeRangeForPreset(
+  preset: Exclude<FinancePreset, "custom">,
+  period: SettlementClosedPeriod,
+  now: Date = new Date(),
+): { from: string; to: string } {
+  if (preset === "lastWeek") return { from: period.period_start, to: period.period_end };
+  if (preset === "thisMonth") {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    return { from: start.toISOString(), to: now.toISOString() };
+  }
+  return { from: period.period_end, to: now.toISOString() };
+}
+
+/** Custom range from two `yyyy-mm-dd` day inputs (local days, end day inclusive). */
+export function financeRangeForDays(fromDay: string, toDay: string): { from: string; to: string } | null {
+  const parse = (v: string) => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
+    return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 0, 0, 0, 0) : null;
+  };
+  const a = parse(fromDay);
+  const b = parse(toDay);
+  if (!a || !b) return null;
+  const end = new Date(b.getFullYear(), b.getMonth(), b.getDate() + 1, 0, 0, 0, 0);
+  if (end.getTime() <= a.getTime()) return null;
+  return { from: a.toISOString(), to: end.toISOString() };
+}

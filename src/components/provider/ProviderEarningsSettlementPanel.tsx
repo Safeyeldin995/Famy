@@ -9,10 +9,9 @@ import {
   useProviderWeekLedgerTotals,
 } from "@/lib/db/provider-settlement-queries";
 import { formatSettlementWhen } from "@/lib/settlement/cairoSettlementWeek";
-import { providerSettlementDirectionLabel } from "@/lib/settlement/providerSettlementDirection";
+import { settlementStateLabel } from "@/lib/settlement/moneyText";
 import {
   settlementPeriodShort,
-  settlementStatusLabel,
 } from "@/lib/settlement/settlementPresentation";
 import { useLang } from "@/components/famio/LanguageToggle";
 
@@ -24,7 +23,7 @@ export function ProviderEarningsSettlementPanel({ providerId }: { providerId: st
   const week = useProviderWeekLedgerTotals(providerId, period.data);
   const settlements = useProviderSettlements(providerId);
   const net = balance.data?.net ?? 0;
-  const history = settlements.data ?? [];
+  const history = (settlements.data ?? []).filter((s) => Number(s.amount) > 0);
 
   if (!providerId) return null;
 
@@ -69,9 +68,8 @@ export function ProviderEarningsSettlementPanel({ providerId }: { providerId: st
                     {settlementPeriodShort(s.period_start, s.period_end, lang)}
                   </p>
                   <p className="text-pro-11 font-semibold text-foreground">
-                    {providerSettlementDirectionLabel(s.direction, t)}
+                    {settlementStateLabel(s, "provider", t)}
                   </p>
-                  <p className="text-pro-11 text-muted-foreground">{settlementStatusLabel(s.status, t)}</p>
                 </div>
               </li>
             ))}

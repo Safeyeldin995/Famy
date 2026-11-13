@@ -609,7 +609,9 @@ export function AdminProvider({ id }: { id: string }) {
             ? String(t("pro.onboardingWizard.status." + p.onboarding_status, p.onboarding_status))
             : t("admin.provider.approvalReview.statusUnknown")}
         </p>
-        <p className="mt-2 text-xs text-muted-foreground">{t("adminReview.sectionApproveHint")}</p>
+        {p.onboarding_status !== "APPROVED" && (
+          <p className="mt-2 text-xs text-muted-foreground">{t("adminReview.sectionApproveHint")}</p>
+        )}
       </header>
       <ProviderApprovalDecisionSummary decision={decision} compact />
       {decision.canStartReview && (
@@ -647,6 +649,8 @@ export function AdminProvider({ id }: { id: string }) {
           </button>
         </div>
       )}
+
+      {p.onboarding_status === "APPROVED" && <AdminProviderSettlements providerId={id} />}
 
       <AdminReviewSection
         providerId={id}
@@ -776,7 +780,6 @@ export function AdminProvider({ id }: { id: string }) {
         submittedAt={submittedAt}
       >
         <TeachingCapabilityReviewQueue providerId={id} />
-        {p.onboarding_status === "APPROVED" && <AdminProviderSettlements providerId={id} />}
       </AdminReviewSection>
       <AdminReviewSection
         providerId={id}

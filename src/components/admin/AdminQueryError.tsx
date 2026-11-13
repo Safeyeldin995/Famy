@@ -15,7 +15,14 @@ export function AdminQueryError({ message, error, onRetry, compact = false }: Ad
   return (
     <div className={`rounded-lg border border-destructive/30 bg-destructive/5 text-destructive ${compact ? "p-2 text-xs" : "p-3 text-sm"}`}>
       <p className="font-semibold">{message}</p>
-      {detail && detail !== message && <p className="mt-1 break-words text-[11px]" dir="ltr">{detail}</p>}
+      {detail && detail !== message && (
+        <details className="mt-1 text-[11px] opacity-80">
+          <summary className="cursor-pointer">{t("adminFinal.technicalDetails")}</summary>
+          <p className="mt-1 break-words" dir="ltr">
+            {detail}
+          </p>
+        </details>
+      )}
       <button
         type="button"
         onClick={onRetry}

@@ -11,10 +11,9 @@ import {
   useProviderSettlements,
   useProviderWeekLedgerTotals,
 } from "@/lib/provider/settlementQueries";
-import { providerSettlementDirectionLabel } from "@shared/settlement/providerSettlementDirection";
+import { settlementStateLabel } from "@shared/settlement/moneyText";
 import {
   settlementPeriodShort,
-  settlementStatusLabel,
 } from "@shared/settlement/settlementPresentation";
 
 function formatSettlementWhen(iso: string, locale: string): string {
@@ -41,7 +40,7 @@ export function ProviderEarningsSettlementPanel({
   const settlements = useProviderSettlements(providerId);
   const net = balance.data?.net ?? 0;
   const formatAmount = (n: number) => money(n, i18n.language);
-  const history = settlements.data ?? [];
+  const history = (settlements.data ?? []).filter((s) => Number(s.amount) > 0);
 
   if (!providerId) return null;
 
@@ -113,10 +112,7 @@ export function ProviderEarningsSettlementPanel({
                 {settlementPeriodShort(s.period_start, s.period_end, i18n.language)}
               </Text>
               <Text size="xs" weight="bold">
-                {providerSettlementDirectionLabel(s.direction, t)}
-              </Text>
-              <Text size="xs" tone="muted">
-                {settlementStatusLabel(s.status, t)}
+                {settlementStateLabel(s, "provider", t)}
               </Text>
             </View>
           </View>

@@ -4,6 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { paymentStatusLabel } from "@/lib/settlement/moneyText";
 import { useAdminBookings, useAdminResolveReschedule } from "@/lib/db/admin-queries";
 import {
   adminControl,
@@ -309,9 +310,7 @@ export function AdminBookings({
                       className={`rounded-full px-2 py-0.5 text-xs font-bold uppercase ${paymentTone(payment?.status)}`}
                     >
                       {payment
-                        ? t(`adminOps.status.${payment.status}`, {
-                            defaultValue: t("adminOps.unknown"),
-                          })
+                        ? paymentStatusLabel(payment.status, t)
                         : t("admin.bookings.noPayment")}
                     </span>
                     {isProviderNoResponseCancellation(b) &&

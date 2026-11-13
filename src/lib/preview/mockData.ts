@@ -1088,6 +1088,7 @@ export function seedPreviewAdminQueries(qc: import("@tanstack/react-query").Quer
   }
   qc.setQueryData(["admin", "provider", PREVIEW_PROVIDER_ID], {
     ...providers[0],
+    onboarding_status: "APPROVED",
     documents: [{ id: "doc-1", document_type: "national_id", status: "approved" }],
     services: [
       {

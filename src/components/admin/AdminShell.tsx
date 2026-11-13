@@ -1,7 +1,7 @@
 import { AdminPreviewContext, AdminLink as Link } from "@/components/admin/AdminNavigation";
 import { AdminMfaGate } from "@/components/admin/AdminMfaGate";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyRole } from "@/lib/db/provider-queries";
@@ -38,7 +38,7 @@ import {
   useAdminFinanceSummary,
   useSettlementClosedPeriod,
 } from "@/lib/db/admin-finance-queries";
-import { defaultFinanceRangeFromPeriod } from "@/lib/settlement/cairoSettlementWeek";
+import { financeRangeForPreset } from "@/lib/settlement/cairoSettlementWeek";
 import { adminNavBadgeCount } from "@/lib/admin/adminNavBadges";
 import type { LucideIcon } from "lucide-react";
 import famyLogo from "@/assets/famy-wordmark.png";
@@ -131,13 +131,15 @@ export function AdminShell({
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const queue = useAdminWorkQueueCounts();
   const settlementPeriod = useSettlementClosedPeriod();
-  const financeRange =
-    settlementPeriod.data != null
-      ? defaultFinanceRangeFromPeriod(settlementPeriod.data)
-      : { from: "", to: "" };
-  const financeFrom = financeRange.from ? new Date(financeRange.from).toISOString() : undefined;
-  const financeTo = financeRange.to ? new Date(financeRange.to).toISOString() : undefined;
-  const financeSummary = useAdminFinanceSummary(financeFrom, financeTo);
+  const [financeAnchor] = useState(() => new Date());
+  const financeRange = useMemo(
+    () =>
+      settlementPeriod.data != null
+        ? financeRangeForPreset("thisWeek", settlementPeriod.data, financeAnchor)
+        : null,
+    [settlementPeriod.data, financeAnchor],
+  );
+  const financeSummary = useAdminFinanceSummary(financeRange?.from, financeRange?.to);
   const financeProviders = useAdminFinanceProviders();
   const navBadgeExtras = {
     pendingSettlements: financeSummary.data?.pending_settlement_count ?? 0,

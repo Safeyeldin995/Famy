@@ -11,6 +11,7 @@ import { paymentPresentation } from "@/lib/booking/paymentPresentation";
  */
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { paymentStatusLabel } from "@/lib/settlement/moneyText";
 import {
   useBookingPayment,
   useUploadPaymentProof,
@@ -221,7 +222,7 @@ export function PaymentBlock({
       await upload.mutateAsync({ paymentId: p.id, bookingId, file });
       toast.success(t("payment.receiptUploaded"));
     } catch (e: any) {
-      toast.error(e?.message ?? t("payment.uploadFailed"));
+      toast.error(t("payment.uploadFailed"));
     }
   };
 
@@ -231,7 +232,7 @@ export function PaymentBlock({
       const url = await getSignedProofUrl(p.proof_path);
       window.open(url, "_blank");
     } catch (e: any) {
-      toast.error(e?.message ?? t("payment.cannotOpenReceipt"));
+      toast.error(t("payment.cannotOpenReceipt"));
     }
   };
 
@@ -239,7 +240,7 @@ export function PaymentBlock({
     try {
       await capture.mutateAsync({ paymentId: p.id, bookingId });
       toast.success(t("payment.markedReceived"));
-    } catch (e: any) { toast.error(e?.message ?? t("payment.actionFailed")); }
+    } catch { toast.error(t("payment.actionFailed")); }
   };
 
   const onReject = async () => {
@@ -247,7 +248,7 @@ export function PaymentBlock({
       await reject.mutateAsync({ paymentId: p.id, bookingId, reason: rejectReason || undefined });
       toast.success(t("payment.rejected"));
       setShowReject(false); setRejectReason("");
-    } catch (e: any) { toast.error(e?.message ?? t("payment.actionFailed")); }
+    } catch { toast.error(t("payment.actionFailed")); }
   };
 
   const copyHandle = async () => {
@@ -272,7 +273,7 @@ export function PaymentBlock({
             {!embedded && <div className="text-pro-12 text-muted-foreground">{formatEGP(Number(p.amount ?? 0))}</div>}
           </div>
         </div>
-        <Badge tone={statusTone(p.status)}>{t(`payment.status.${p.status}`, String(p.status).replace("_", " "))}</Badge>
+        <Badge tone={statusTone(p.status)}>{paymentStatusLabel(p.status, t)}</Badge>
       </div>
 
       {viewer === "customer" && (isCash || isManualTransfer) && p.status !== "captured" && (
