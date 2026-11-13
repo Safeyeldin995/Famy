@@ -98,9 +98,6 @@ import { joinUiParts } from "@shared/format/uiJoin";
 import { SupervisionModeChoices } from "@/ui/customer/SupervisionModeChoices";
 import { CheckoutPromoPicker } from "@/ui/customer/CheckoutPromoPicker";
 import { RebookPrefillNoticeList } from "@/ui/customer/RebookPrefillNotice";
-import {
-  applyRebookPrefill,
-  buildRebookPrefillContext,
 import type { RebookPrefillNotice } from "@shared/booking/rebookPrefill";
 import { savedAddressMobileUiParts } from "@shared/booking/savedAddressReviewLine";
 import type { RebookFormInitial } from "@shared/booking/rebookFormBootstrap";

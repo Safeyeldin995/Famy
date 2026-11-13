@@ -6,12 +6,15 @@ import type {
   RebookPrefillValues,
   RebookSourceBooking,
 } from "./rebookPrefill";
-import type { EducationProfileValue } from "@/components/famio/EducationProfileFields";
+export type RebookEducationProfileValue = {
+  educationCurriculumId: string;
+  educationLevelId: string;
+};
 
 function educationValueFromIds(
   curriculumId: string | null,
   levelId: string | null,
-): EducationProfileValue {
+): RebookEducationProfileValue {
   return {
     educationCurriculumId: curriculumId ?? "",
     educationLevelId: levelId ?? "",
@@ -38,7 +41,7 @@ export type RebookFormInitial = {
   supervisionMode: SupervisionMode | "";
   notes: string;
   requirementChoices: Record<string, "customer" | "provider">;
-  education: EducationProfileValue;
+  education: RebookEducationProfileValue;
   capabilityUserPicked: boolean;
   seededFields: ReadonlySet<RebookSeedField>;
   notices: RebookPrefillNotice[];
