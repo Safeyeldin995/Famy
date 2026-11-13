@@ -572,12 +572,13 @@ describe("provider settlements ledger", () => {
         [settlementId[0]?.id],
       ),
     );
-    const paid = await queryRows<{ status: string }>(
+    const paid = await queryRows<{ status: string; note: string | null }>(
       db,
-      `SELECT status FROM public.provider_settlements WHERE id = $1::uuid`,
+      `SELECT status, note FROM public.provider_settlements WHERE id = $1::uuid`,
       [settlementId[0]?.id],
     );
     expect(paid[0]?.status).toBe("paid");
+    expect(paid[0]?.note).toBe("weekly transfer");
     const afterPay = await balanceOf(WEEKLY.provider);
     // 5000 credit - 2000 cash debit - 3000 payout + 25 open adjustment = 25
     expect(Number(afterPay.net)).toBe(25);
@@ -881,6 +882,144 @@ describe("provider settlements ledger", () => {
     // Paymob capture runs inside a payment UPDATE (payment lock first). Manual capture is
     // rejected until the booking is completed, so PGlite cannot open two connections to
     // deadlock completion+capture; the advisory lock is covered by capture-then-reapply above.
+  });
+
+  it("marks a settlement settled when the internal note is omitted", async () => {
+    const noteProvider = "00000000-0000-4000-8000-000000000296";
+    const noteUser = "00000000-0000-4000-8000-000000000196";
+    await db.exec(`
+      INSERT INTO auth.users (id) VALUES ('${noteUser}') ON CONFLICT (id) DO NOTHING;
+      INSERT INTO public.providers (id, profile_id, hourly_rate, onboarding_status, is_active, vacation_mode, min_notice_hours, max_advance_days, buffer_minutes, bio_en, bio_ar)
+      VALUES ('${noteProvider}', '${noteUser}', 100, 'DRAFT', true, false, 0, 365, 0, 'Bio', 'سيرة')
+      ON CONFLICT (id) DO NOTHING;
+    `);
+    const period = await queryRows<{ period_start: string }>(
+      db,
+      `SELECT period_start::text FROM public.provider_settlement_closed_period()`,
+    );
+    const periodStart = period[0]?.period_start;
+    await db.query(
+      `
+        INSERT INTO public.provider_ledger_entries (provider_id, kind, direction, amount, created_at)
+        VALUES ($1::uuid, 'online_provider_share', 'credit', 120, $2::timestamptz + interval '1 hour')
+      `,
+      [noteProvider, periodStart],
+    );
+    await asServiceRole(db, () =>
+      queryRows<{ n: number }>(db, `SELECT public.run_provider_weekly_settlements()::int AS n`),
+    );
+    const settlement = await queryRows<{ id: string }>(
+      db,
+      `SELECT id::text FROM public.provider_settlements WHERE provider_id = $1::uuid`,
+      [noteProvider],
+    );
+    await asUser(db, IDS.adminUser, () =>
+      db.query(
+        `SELECT public.admin_mark_provider_settlement_settled($1::uuid, 'WIRE-12', NULL, 'paid out')`,
+        [settlement[0]?.id],
+      ),
+    );
+    const row = await queryRows<{ status: string; note: string | null; reference: string }>(
+      db,
+      `SELECT status, note, payment_reference AS reference FROM public.provider_settlements WHERE id = $1::uuid`,
+      [settlement[0]?.id],
+    );
+    expect(row[0]?.status).toBe("paid");
+    expect(row[0]?.note).toBeNull();
+    expect(row[0]?.reference).toBe("WIRE-12");
+  });
+
+  it("rolls late ledger entries into the next settlement without changing prior period", async () => {
+    const rollProvider = "00000000-0000-4000-8000-000000000297";
+    const rollUser = "00000000-0000-4000-8000-000000000197";
+    await db.exec(`
+      INSERT INTO auth.users (id) VALUES ('${rollUser}') ON CONFLICT (id) DO NOTHING;
+      INSERT INTO public.providers (id, profile_id, hourly_rate, onboarding_status, is_active, vacation_mode, min_notice_hours, max_advance_days, buffer_minutes, bio_en, bio_ar)
+      VALUES ('${rollProvider}', '${rollUser}', 100, 'DRAFT', true, false, 0, 365, 0, 'Bio', 'سيرة')
+      ON CONFLICT (id) DO NOTHING;
+    `);
+    const periods = await queryRows<{
+      week1_start: string;
+      week1_end: string;
+      week2_start: string;
+      week2_end: string;
+    }>(
+      db,
+      `
+        SELECT
+          pc.period_start::text AS week1_start,
+          pc.period_end::text AS week1_end,
+          c.period_start::text AS week2_start,
+          c.period_end::text AS week2_end
+        FROM public.provider_settlement_closed_period() c,
+             public.provider_settlement_period_containing(c.period_start - interval '1 second') pc
+      `,
+    );
+    const week1Start = periods[0]?.week1_start;
+    const week1End = periods[0]?.week1_end;
+    const week2Start = periods[0]?.week2_start;
+    expect(week1Start).toBeTruthy();
+    expect(week2Start).toBeTruthy();
+
+    await db.query(
+      `
+        INSERT INTO public.provider_ledger_entries (provider_id, kind, direction, amount, created_at)
+        VALUES ($1::uuid, 'online_provider_share', 'credit', 1000, $2::timestamptz + interval '1 hour')
+      `,
+      [rollProvider, week1Start],
+    );
+    await asServiceRole(db, () =>
+      queryRows<{ n: number }>(db, `SELECT public.run_provider_weekly_settlements()::int AS n`),
+    );
+    const week1 = await queryRows<{ amount: string; id: string }>(
+      db,
+      `
+        SELECT amount::text, id::text
+        FROM public.provider_settlements
+        WHERE provider_id = $1::uuid AND period_start = $2::timestamptz AND period_end = $3::timestamptz
+      `,
+      [rollProvider, week1Start, week1End],
+    );
+    expect(week1[0]?.amount).toBe("1000.00");
+
+    await db.query(
+      `
+        INSERT INTO public.provider_ledger_entries (provider_id, kind, direction, amount, created_at)
+        VALUES ($1::uuid, 'online_provider_share', 'credit', 850, $2::timestamptz + interval '2 hours')
+      `,
+      [rollProvider, week1Start],
+    );
+
+    await asServiceRole(db, () =>
+      queryRows<{ n: number }>(db, `SELECT public.run_provider_weekly_settlements()::int AS n`),
+    );
+
+    const week1After = await queryRows<{ amount: string; status: string }>(
+      db,
+      `SELECT amount::text, status FROM public.provider_settlements WHERE id = $1::uuid`,
+      [week1[0]?.id],
+    );
+    expect(week1After[0]?.amount).toBe("1000.00");
+    expect(week1After[0]?.status).toBe("pending");
+
+    const week2 = await queryRows<{ amount: string }>(
+      db,
+      `
+        SELECT amount::text FROM public.provider_settlements
+        WHERE provider_id = $1::uuid AND period_start = $2::timestamptz
+      `,
+      [rollProvider, week2Start],
+    );
+    expect(week2[0]?.amount).toBe("850.00");
+    const linkedLate = await queryRows<{ n: number }>(
+      db,
+      `
+        SELECT count(*)::int AS n FROM public.provider_ledger_entries
+        WHERE provider_id = $1::uuid AND amount = 850 AND settlement_id IS NOT NULL
+      `,
+      [rollProvider],
+    );
+    expect(linkedLate[0]?.n).toBe(1);
   });
 
   it("does not change an existing pending settlement on a second weekly run", async () => {

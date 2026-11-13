@@ -789,17 +789,25 @@ BEGIN
       SELECT e.provider_id
       FROM public.provider_ledger_entries e
       WHERE e.settlement_id IS NULL
-        AND e.created_at >= v_period_start
         AND e.created_at < v_period_end
         AND e.kind = ANY (v_settlement_kinds)
       GROUP BY e.provider_id
     LOOP
+      SELECT id INTO v_settlement_id
+      FROM public.provider_settlements
+      WHERE provider_id = v_row.provider_id
+        AND period_start = v_period_start
+        AND period_end = v_period_end;
+
+      IF v_settlement_id IS NOT NULL THEN
+        CONTINUE;
+      END IF;
+
       SELECT COALESCE(SUM(CASE WHEN e.direction = 'credit' THEN e.amount ELSE -e.amount END), 0)
       INTO v_net
       FROM public.provider_ledger_entries e
       WHERE e.provider_id = v_row.provider_id
         AND e.settlement_id IS NULL
-        AND e.created_at >= v_period_start
         AND e.created_at < v_period_end
         AND e.kind = ANY (v_settlement_kinds);
 
@@ -811,48 +819,32 @@ BEGIN
         FROM public.provider_ledger_entries e
         WHERE e.provider_id = v_row.provider_id
           AND e.settlement_id IS NULL
-          AND e.created_at >= v_period_start
           AND e.created_at < v_period_end
           AND e.kind = ANY (v_settlement_kinds)
         GROUP BY 1
       ) x;
 
       IF v_net = 0 THEN
-        SELECT id INTO v_settlement_id
-        FROM public.provider_settlements
-        WHERE provider_id = v_row.provider_id
-          AND period_start = v_period_start
-          AND period_end = v_period_end;
+        INSERT INTO public.provider_settlements (
+          provider_id, period_start, period_end, amount, direction, status, settled_at, totals_by_method
+        ) VALUES (
+          v_row.provider_id, v_period_start, v_period_end, 0, 'famy_pays_provider', 'paid', now(),
+          COALESCE(v_totals, '{}'::jsonb)
+        )
+        ON CONFLICT (provider_id, period_start, period_end) DO NOTHING
+        RETURNING id INTO v_settlement_id;
 
         IF v_settlement_id IS NULL THEN
-          INSERT INTO public.provider_settlements (
-            provider_id, period_start, period_end, amount, direction, status, settled_at, totals_by_method
-          ) VALUES (
-            v_row.provider_id, v_period_start, v_period_end, 0, 'famy_pays_provider', 'paid', now(),
-            COALESCE(v_totals, '{}'::jsonb)
-          )
-          ON CONFLICT (provider_id, period_start, period_end) DO NOTHING
-          RETURNING id INTO v_settlement_id;
-
-          IF v_settlement_id IS NULL THEN
-            SELECT id INTO v_settlement_id
-            FROM public.provider_settlements
-            WHERE provider_id = v_row.provider_id
-              AND period_start = v_period_start
-              AND period_end = v_period_end;
-          END IF;
+          CONTINUE;
         END IF;
 
-        IF v_settlement_id IS NOT NULL THEN
-          PERFORM set_config('app.ledger_link_settlement', 'on', true);
-          UPDATE public.provider_ledger_entries e
-          SET settlement_id = v_settlement_id
-          WHERE e.provider_id = v_row.provider_id
-            AND e.settlement_id IS NULL
-            AND e.created_at >= v_period_start
-            AND e.created_at < v_period_end
-            AND e.kind = ANY (v_settlement_kinds);
-        END IF;
+        PERFORM set_config('app.ledger_link_settlement', 'on', true);
+        UPDATE public.provider_ledger_entries e
+        SET settlement_id = v_settlement_id
+        WHERE e.provider_id = v_row.provider_id
+          AND e.settlement_id IS NULL
+          AND e.created_at < v_period_end
+          AND e.kind = ANY (v_settlement_kinds);
         CONTINUE;
       END IF;
 
@@ -869,27 +861,23 @@ BEGIN
       RETURNING id INTO v_settlement_id;
 
       IF v_settlement_id IS NULL THEN
-        SELECT id INTO v_settlement_id
-        FROM public.provider_settlements
-        WHERE provider_id = v_row.provider_id
-          AND period_start = v_period_start
-          AND period_end = v_period_end;
-      ELSE
-        v_count := v_count + 1;
-        SELECT p.profile_id INTO v_profile FROM public.providers p WHERE p.id = v_row.provider_id;
-        IF v_profile IS NOT NULL THEN
-          INSERT INTO public.notifications (
-            user_id, type, category, title, body, title_en, title_ar, body_en, body_ar, payload, deep_link
-          ) VALUES (
-            v_profile, 'provider_settlement_created', 'provider',
-            'Weekly settlement', 'A weekly settlement was created. Check your earnings for details.',
-            'Weekly settlement', 'تسوية أسبوعية',
-            'A weekly settlement was created. Check your earnings for details.',
-            'اتعملت تسوية أسبوعية، شوف تفاصيلها في الأرباح',
-            jsonb_build_object('provider_id', v_row.provider_id, 'settlement_id', v_settlement_id),
-            '/pro/earnings'
-          );
-        END IF;
+        CONTINUE;
+      END IF;
+
+      v_count := v_count + 1;
+      SELECT p.profile_id INTO v_profile FROM public.providers p WHERE p.id = v_row.provider_id;
+      IF v_profile IS NOT NULL THEN
+        INSERT INTO public.notifications (
+          user_id, type, category, title, body, title_en, title_ar, body_en, body_ar, payload, deep_link
+        ) VALUES (
+          v_profile, 'provider_settlement_created', 'provider',
+          'Weekly settlement', 'A weekly settlement was created. Check your earnings for details.',
+          'Weekly settlement', 'تسوية أسبوعية',
+          'A weekly settlement was created. Check your earnings for details.',
+          'اتعملت تسوية أسبوعية، شوف تفاصيلها في الأرباح',
+          jsonb_build_object('provider_id', v_row.provider_id, 'settlement_id', v_settlement_id),
+          '/pro/earnings'
+        );
       END IF;
 
       PERFORM set_config('app.ledger_link_settlement', 'on', true);
@@ -897,7 +885,6 @@ BEGIN
       SET settlement_id = v_settlement_id
       WHERE e.provider_id = v_row.provider_id
         AND e.settlement_id IS NULL
-        AND e.created_at >= v_period_start
         AND e.created_at < v_period_end
         AND e.kind = ANY (v_settlement_kinds);
     END LOOP;
@@ -935,9 +922,8 @@ BEGIN
     RAISE EXCEPTION 'Admin required' USING ERRCODE = '42501';
   END IF;
   IF p_reference IS NULL OR btrim(p_reference) = ''
-     OR p_note IS NULL OR btrim(p_note) = ''
      OR p_reason IS NULL OR btrim(p_reason) = '' THEN
-    RAISE EXCEPTION 'Reference, note and reason are required' USING ERRCODE = '23514';
+    RAISE EXCEPTION 'Reference and reason are required' USING ERRCODE = '23514';
   END IF;
 
   SELECT * INTO v_settlement FROM public.provider_settlements WHERE id = p_settlement_id FOR UPDATE;
@@ -953,19 +939,19 @@ BEGIN
   IF v_settlement.direction = 'famy_pays_provider' THEN
     PERFORM public.ledger_insert_entry(
       v_settlement.provider_id, NULL, 'payout_sent', 'debit', v_settlement.amount,
-      NULL, btrim(p_note), auth.uid(), p_settlement_id
+      NULL, NULLIF(btrim(p_note), ''), auth.uid(), p_settlement_id
     );
     UPDATE public.provider_settlements
-    SET status = 'paid', payment_reference = btrim(p_reference), note = btrim(p_note),
+    SET status = 'paid', payment_reference = btrim(p_reference), note = NULLIF(btrim(p_note), ''),
         settled_at = now(), settled_by = auth.uid()
     WHERE id = p_settlement_id;
   ELSE
     PERFORM public.ledger_insert_entry(
       v_settlement.provider_id, NULL, 'debt_payment_received', 'credit', v_settlement.amount,
-      NULL, btrim(p_note), auth.uid(), p_settlement_id
+      NULL, NULLIF(btrim(p_note), ''), auth.uid(), p_settlement_id
     );
     UPDATE public.provider_settlements
-    SET status = 'received', payment_reference = btrim(p_reference), note = btrim(p_note),
+    SET status = 'received', payment_reference = btrim(p_reference), note = NULLIF(btrim(p_note), ''),
         settled_at = now(), settled_by = auth.uid()
     WHERE id = p_settlement_id;
   END IF;
