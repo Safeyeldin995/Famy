@@ -104,6 +104,12 @@ import {
 } from "@shared/booking/rebookPrefillContext";
 import type { RebookPrefillNotice } from "@shared/booking/rebookPrefill";
 import {
+  rebookSupervisionSeedMatches,
+  rebookTutoringSeedMatches,
+  type RebookSupervisionSeed,
+  type RebookTutoringSeed,
+} from "@shared/booking/rebookFlowSeeds";
+import {
   requiresSupervisionMode,
   type SupervisionMode,
   supervisionModeProviderLabel,
@@ -169,7 +175,8 @@ export default function Book() {
   const userDate = useRef(false);
   const userCap = useRef(!!initialCap);
   const rebookApplied = useRef(false);
-  const rebookTutoringLock = useRef(false);
+  const rebookTutoringSeed = useRef<RebookTutoringSeed | null>(null);
+  const rebookSupervisionSeed = useRef<RebookSupervisionSeed | null>(null);
   const [rebookNotices, setRebookNotices] = useState<RebookPrefillNotice[]>([]);
   const rebookBooking = useBooking(rebookFrom);
   const rebookRequirements = useRequirementsForService(
@@ -265,24 +272,27 @@ export default function Book() {
     setRebookNotices(result.notices);
     const { values } = result;
     if (values.serviceId) setServiceId(values.serviceId);
+    const restoredServiceId = values.serviceId ?? (rebookBooking.data.service_id as string);
     if (values.capabilityId) {
       setCapId(values.capabilityId);
       userCap.current = true;
-      rebookTutoringLock.current = true;
     }
     if (values.hours) setHours(values.hours);
     if (values.addressId) setAddressId(values.addressId);
     if (values.forWhom) setRecipient(values.forWhom);
-    if (values.supervisionMode) setSupervisionMode(values.supervisionMode);
+    if (values.supervisionMode && restoredServiceId) {
+      setSupervisionMode(values.supervisionMode);
+      rebookSupervisionSeed.current = { serviceId: restoredServiceId };
+    }
     if (values.notes) setNotes(values.notes);
     if (Object.keys(values.requirementChoices).length) setChoices(values.requirementChoices);
-    if (values.curriculumId) {
-      setCurriculum(values.curriculumId);
-      rebookTutoringLock.current = true;
-    }
-    if (values.levelId) {
-      setLevel(values.levelId);
-      rebookTutoringLock.current = true;
+    if (values.curriculumId) setCurriculum(values.curriculumId);
+    if (values.levelId) setLevel(values.levelId);
+    if (values.capabilityId || values.curriculumId || values.levelId) {
+      rebookTutoringSeed.current = {
+        serviceId: restoredServiceId,
+        forWhom: values.forWhom,
+      };
     }
   }, [
     rebookFrom,
@@ -314,8 +324,22 @@ export default function Book() {
     if (!babysitting && !recipient) setRecipient("myself");
   }, [babysitting, recipient]);
   useEffect(() => {
+    if (
+      rebookTutoringSeed.current &&
+      !rebookTutoringSeedMatches(
+        rebookTutoringSeed.current,
+        service?.service.id,
+        recipient,
+      )
+    ) {
+      rebookTutoringSeed.current = null;
+      userCap.current = false;
+    }
+  }, [service?.service.id, recipient]);
+
+  useEffect(() => {
     if (!tutoring || isLessonService) return;
-    if (rebookTutoringLock.current) return;
+    if (rebookTutoringSeedMatches(rebookTutoringSeed.current, service?.service.id, recipient)) return;
     setCurriculum(student.educationCurriculumId || "");
     setLevel(student.educationLevelId || "");
     userCap.current = !!initialCap;
@@ -343,7 +367,9 @@ export default function Book() {
     setApplied(null);
   }, [service?.service.id, capId, hours, addressId]);
   useEffect(() => {
+    if (rebookSupervisionSeedMatches(rebookSupervisionSeed.current, service?.service.id)) return;
     setSupervisionMode("");
+    rebookSupervisionSeed.current = null;
   }, [service?.service.id]);
   useEffect(() => {
     if (fixed && service?.service.fixed_start_time)

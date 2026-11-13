@@ -1,7 +1,7 @@
 /**
  * Famy Provider Portal data-access hooks.
  */
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchBookingParties } from "@/lib/db/booking-parties";
 import { useAuth } from "@/lib/auth/useAuth";
@@ -522,6 +522,7 @@ export function useRequirementsForServices(serviceIds: string[]) {
         if (error) throw error;
         return data ?? [];
       }),
+    placeholderData: keepPreviousData,
   });
 }
 

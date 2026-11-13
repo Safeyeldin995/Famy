@@ -25,6 +25,7 @@ import { needsServicePrice } from "@/lib/provider/priceOptions";
 import { defaultWorkingHours } from "@/lib/provider/setupHelpers";
 import { useReplaceAvailability } from "@/lib/db/provider-queries";
 import { supabase } from "@/integrations/supabase/client";
+import { providerApplyBootstrapLoading } from "@/lib/provider/providerApplyBootstrap";
 
 export const Route = createFileRoute("/pro/apply")({ validateSearch: applyStepSearch, component: ProviderApplyRoute });
 function ProviderApplyRoute() {
@@ -63,7 +64,8 @@ function ProviderApplyRoute() {
       start.mutate();
     }
   }, [provider.isSuccess, provider.data, start.mutate]);
-  const queries = [provider, snapshot, services, zones, selections, docs, applyRequirements];
+  const bootstrapQueries = [provider, snapshot, services, zones, selections, docs];
+  const queries = [...bootstrapQueries, applyRequirements];
   if (start.isError || queries.some((q) => q.isError))
     return (
       <QueryError
@@ -73,7 +75,7 @@ function ProviderApplyRoute() {
         }}
       />
     );
-  if (!provider.data || queries.some((q) => !q.isSuccess))
+  if (!provider.data || providerApplyBootstrapLoading(bootstrapQueries))
     return (
       <div className="apply-ui apply-screen p-5" role="status">
         {t("providerApply.loading")}

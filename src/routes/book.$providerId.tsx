@@ -135,6 +135,12 @@ import {
   buildRebookPrefillContext,
 } from "@/lib/booking/rebookPrefillContext";
 import type { RebookPrefillNotice } from "@/lib/booking/rebookPrefill";
+import {
+  rebookSupervisionSeedMatches,
+  rebookTutoringSeedMatches,
+  type RebookSupervisionSeed,
+  type RebookTutoringSeed,
+} from "@/lib/booking/rebookFlowSeeds";
 
 export const Route = createFileRoute("/book/$providerId")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -221,7 +227,8 @@ export function BookContent({
   const userPickedDateRef = useRef(false);
   const userPickedCapabilityRef = useRef(false);
   const rebookAppliedRef = useRef(false);
-  const rebookTutoringLockRef = useRef(false);
+  const rebookTutoringSeedRef = useRef<RebookTutoringSeed | null>(null);
+  const rebookSupervisionSeedRef = useRef<RebookSupervisionSeed | null>(null);
   const idempotencyStateRef = useRef<IdempotencyKeyState | null>(null);
   const [rebookNotices, setRebookNotices] = useState<RebookPrefillNotice[]>([]);
   const rebookBookingQ = useBooking(searchRebookFrom);
@@ -383,15 +390,18 @@ export function BookContent({
     setRebookNotices(result.notices);
     const { values } = result;
     if (values.serviceId) setServiceId(values.serviceId);
+    const restoredServiceId = values.serviceId ?? rebookBookingQ.data.service_id;
     if (values.capabilityId) {
       setCapabilityId(values.capabilityId);
       userPickedCapabilityRef.current = true;
-      rebookTutoringLockRef.current = true;
     }
     if (values.hours) setDuration(`${values.hours}h`);
     if (values.addressId) setAddressId(values.addressId);
     if (values.forWhom) setForWhom(values.forWhom);
-    if (values.supervisionMode) setSupervisionMode(values.supervisionMode);
+    if (values.supervisionMode && restoredServiceId) {
+      setSupervisionMode(values.supervisionMode);
+      rebookSupervisionSeedRef.current = { serviceId: restoredServiceId };
+    }
     if (values.notes) setNotes(values.notes);
     if (values.requirementChoices && Object.keys(values.requirementChoices).length) {
       setRequirementChoices(values.requirementChoices);
@@ -400,7 +410,12 @@ export function BookContent({
       setBookingEducation(
         educationValueFromIds(values.curriculumId ?? null, values.levelId ?? null),
       );
-      rebookTutoringLockRef.current = true;
+    }
+    if (values.capabilityId || values.curriculumId || values.levelId) {
+      rebookTutoringSeedRef.current = {
+        serviceId: restoredServiceId,
+        forWhom: values.forWhom,
+      };
     }
   }, [
     searchRebookFrom,
@@ -436,8 +451,22 @@ export function BookContent({
   }, [isBabysitting, forWhom]);
 
   useEffect(() => {
+    const sid = activeService?.service?.id ?? serviceId;
+    if (rebookSupervisionSeedMatches(rebookSupervisionSeedRef.current, sid)) return;
     setSupervisionMode("");
-  }, [activeService?.service?.id]);
+    rebookSupervisionSeedRef.current = null;
+  }, [activeService?.service?.id, serviceId]);
+
+  useEffect(() => {
+    const sid = activeService?.service?.id ?? serviceId;
+    if (
+      rebookTutoringSeedRef.current &&
+      !rebookTutoringSeedMatches(rebookTutoringSeedRef.current, sid, forWhom)
+    ) {
+      rebookTutoringSeedRef.current = null;
+      userPickedCapabilityRef.current = false;
+    }
+  }, [activeService?.service?.id, serviceId, forWhom]);
 
   const packageSlots = useMemo(
     () => filterFixedStartSlots(slotsQ.data ?? [], activeService?.service),
@@ -463,7 +492,8 @@ export function BookContent({
 
   useEffect(() => {
     if (!isTutoring || isLessonService) return;
-    if (rebookTutoringLockRef.current) return;
+    const sid = activeService?.service?.id ?? serviceId;
+    if (rebookTutoringSeedMatches(rebookTutoringSeedRef.current, sid, forWhom)) return;
     setBookingEducation(
       educationValueFromIds(
         studentEducation.educationCurriculumId,
@@ -475,6 +505,8 @@ export function BookContent({
     isTutoring,
     isLessonService,
     forWhom,
+    activeService?.service?.id,
+    serviceId,
     studentEducation.educationCurriculumId,
     studentEducation.educationLevelId,
   ]);

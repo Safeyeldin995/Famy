@@ -53,9 +53,12 @@ export default function ProApplyScreen() {
     }
   }, [providerQ.isSuccess, provider, start]);
 
-  const queries = [providerQ, snapshot, services, zones, selections, docs, applyRequirements];
+  const bootstrapQueries = [providerQ, snapshot, services, zones, selections, docs];
+  const queries = [...bootstrapQueries, applyRequirements];
   const status = provider?.onboarding_status as string | undefined;
-  const dataReady = !!provider && queries.every((q) => q.isSuccess && !q.isLoading && !q.isPending);
+  const dataReady =
+    !!provider &&
+    bootstrapQueries.every((q) => q.isSuccess && !q.isLoading && !q.isPending);
   const redirectHome = !!provider && !!status && status !== "DRAFT" && status !== "NEEDS_CHANGES";
 
   useEffect(() => {

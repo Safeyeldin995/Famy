@@ -1,5 +1,5 @@
 // Customer data operations ported from the named web data modules. Same RPCs, arguments and guards.
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   bookingCancelInvalidationKeys,
   invalidateQueryKeyList,
@@ -637,6 +637,7 @@ export function useRequirementsForServices(serviceIds: string[]) {
         if (error) throw error;
         return data ?? [];
       }),
+    placeholderData: keepPreviousData,
   });
 }
 
