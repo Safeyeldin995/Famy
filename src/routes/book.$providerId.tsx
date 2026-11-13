@@ -58,7 +58,6 @@ import {
   useResolveZone,
   useProviderBookingSettings,
   useMyProfile,
-  useBooking,
 } from "@/lib/db/queries";
 import { useActiveFamilyMembers } from "@/lib/db/family-members-queries";
 import { useCreatePayment, mapPaymentInsertError } from "@/lib/db/payment-queries";
@@ -131,17 +130,10 @@ import {
   resolveAutoFillCapabilityId,
   shouldPersistEducationAfterBookingSuccess,
 } from "@/lib/tutoring/bookingEducationAutofill";
-import {
-  applyRebookPrefill,
-  buildRebookPrefillContext,
-} from "@/lib/booking/rebookPrefillContext";
+import type { RebookFormInitial } from "@/lib/booking/rebookFormBootstrap";
 import type { RebookPrefillNotice } from "@/lib/booking/rebookPrefill";
-import {
-  rebookSupervisionSeedMatches,
-  rebookTutoringSeedMatches,
-  type RebookSupervisionSeed,
-  type RebookTutoringSeed,
-} from "@/lib/booking/rebookFlowSeeds";
+import { useRebookSeedGuard } from "@/lib/booking/rebookSeedGuard";
+import { BookRebookGate } from "@/components/booking/BookRebookGate";
 
 export const Route = createFileRoute("/book/$providerId")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -171,16 +163,40 @@ function Book() {
   );
 }
 
-export function BookContent({
+export function BookContent(props: {
+  providerId: string;
+  searchServiceId?: string;
+  searchCapabilityId?: string;
+  searchRebookFrom?: string;
+}) {
+  return (
+    <BookRebookGate providerId={props.providerId} rebookFrom={props.searchRebookFrom}>
+      {({ mountKey, rebookInitial, rebookNotices }) => (
+        <BookContentForm
+          key={mountKey}
+          {...props}
+          rebookInitial={rebookInitial}
+          rebookNotices={rebookNotices}
+        />
+      )}
+    </BookRebookGate>
+  );
+}
+
+function BookContentForm({
   providerId,
   searchServiceId,
   searchCapabilityId,
   searchRebookFrom,
+  rebookInitial,
+  rebookNotices: rebookNoticesProp,
 }: {
   providerId: string;
   searchServiceId?: string;
   searchCapabilityId?: string;
   searchRebookFrom?: string;
+  rebookInitial: RebookFormInitial | null;
+  rebookNotices: RebookPrefillNotice[];
 }) {
   const provQ = useProvider(providerId);
   const servicesQ = useProviderServices(providerId);
@@ -194,16 +210,25 @@ export function BookContent({
   const nav = useNavigate();
 
   const [requestedStep, setRequestedStep] = useState<BookingScreen>("service");
-  const [serviceId, setServiceId] = useState<string | null>(searchServiceId ?? null);
-  const [capabilityId, setCapabilityId] = useState<string | null>(searchCapabilityId ?? null);
-  const [duration, setDuration] = useState("4h");
+  const rebookSeed = useRebookSeedGuard(rebookInitial?.seededFields);
+  const [serviceId, setServiceId] = useState<string | null>(
+    rebookInitial?.serviceId ?? searchServiceId ?? null,
+  );
+  const [capabilityId, setCapabilityId] = useState<string | null>(
+    rebookInitial?.capabilityId ?? searchCapabilityId ?? null,
+  );
+  const [duration, setDuration] = useState(
+    rebookInitial?.durationHours ? `${rebookInitial.durationHours}h` : "4h",
+  );
   const [date, setDate] = useState<Date | null>(null);
   const [time, setTime] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null);
-  const [addressId, setAddressId] = useState<string | null>(null);
-  const [forWhom, setForWhom] = useState("myself");
-  const [supervisionMode, setSupervisionMode] = useState<SupervisionMode | "">("");
-  const [notes, setNotes] = useState("");
+  const [addressId, setAddressId] = useState<string | null>(rebookInitial?.addressId ?? null);
+  const [forWhom, setForWhom] = useState(rebookInitial?.forWhom ?? "myself");
+  const [supervisionMode, setSupervisionMode] = useState<SupervisionMode | "">(
+    rebookInitial?.supervisionMode ?? "",
+  );
+  const [notes, setNotes] = useState(rebookInitial?.notes ?? "");
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
   const [promoCode, setPromoCode] = useState("");
   const [promoStatus, setPromoStatus] = useState<"idle" | "checking" | "applied" | "invalid">(
@@ -213,7 +238,7 @@ export function BookContent({
   const [appliedPromoId, setAppliedPromoId] = useState<string | null>(null);
   const [requirementChoices, setRequirementChoices] = useState<
     Record<string, "customer" | "provider">
-  >({});
+  >(rebookInitial?.requirementChoices ?? {});
   const [editingReview, setEditingReview] = useState(false);
   const [detailsSheet, setDetailsSheet] = useState<"address" | "member" | null>(null);
   const [inlineError, setInlineError] = useState<{ screen: BookingScreen; message: string } | null>(
@@ -221,24 +246,15 @@ export function BookContent({
   );
   const [scanningSchedule, setScanningSchedule] = useState(false);
   const [bookingEducation, setBookingEducation] = useState<EducationProfileValue>(
-    educationValueFromIds(null, null),
+    rebookInitial?.education ?? educationValueFromIds(null, null),
   );
   const [saveEducationForNextTime, setSaveEducationForNextTime] = useState(false);
   const userPickedDateRef = useRef(false);
-  const userPickedCapabilityRef = useRef(false);
-  const rebookAppliedRef = useRef(false);
-  const rebookTutoringSeedRef = useRef<RebookTutoringSeed | null>(null);
-  const rebookSupervisionSeedRef = useRef<RebookSupervisionSeed | null>(null);
+  const userPickedCapabilityRef = useRef(
+    rebookInitial?.capabilityUserPicked ?? !!searchCapabilityId,
+  );
   const idempotencyStateRef = useRef<IdempotencyKeyState | null>(null);
-  const [rebookNotices, setRebookNotices] = useState<RebookPrefillNotice[]>([]);
-  const rebookBookingQ = useBooking(searchRebookFrom);
-  const rebookRequirementsQ = useRequirementsForService(
-    searchRebookFrom ? (rebookBookingQ.data?.service_id ?? undefined) : undefined,
-  );
-  const rebookCapsQ = useApprovedTeachingCapabilities(
-    providerId,
-    searchRebookFrom ? (rebookBookingQ.data?.service_id ?? undefined) : undefined,
-  );
+  const rebookNotices = rebookNoticesProp;
   const customerEducationQ = useCustomerEducationProfile();
   const myProfileQ = useMyProfile();
   const saveEducation = useSaveStudentEducationProfile();
@@ -254,21 +270,6 @@ export function BookContent({
   // the booking trigger enforces), so the customer never picks a service that
   // fails later with PROVIDER_INELIGIBLE (e.g. subjects still under review).
   const bookableQ = useBookableServiceIds(providerId, slotAddressId ?? undefined);
-  const rebookEligibilityAddressId = useMemo(() => {
-    if (!searchRebookFrom) return slotAddressId;
-    const bookingAddr = rebookBookingQ.data?.address_id;
-    if (
-      bookingAddr &&
-      bookableAddresses.some((a: { id: string }) => a.id === bookingAddr)
-    ) {
-      return bookingAddr;
-    }
-    return slotAddressId;
-  }, [searchRebookFrom, rebookBookingQ.data?.address_id, bookableAddresses, slotAddressId]);
-  const rebookBookableQ = useBookableServiceIds(
-    searchRebookFrom ? providerId : undefined,
-    rebookEligibilityAddressId ?? undefined,
-  );
   const services = useMemo(
     () =>
       (servicesQ.data ?? []).filter(
@@ -303,13 +304,13 @@ export function BookContent({
   // bookable saved address once it loads. Only runs once, before the
   // customer has interacted with this step, so it never clobbers their edits.
   useEffect(() => {
-    if (searchRebookFrom && !rebookAppliedRef.current) return;
+    if (rebookSeed.guardDefault("addressId")) return;
     if (addressId === null && bookableAddresses.length > 0) {
       const def = bookableAddresses.find((a: any) => a.is_default) ?? bookableAddresses[0];
       setAddressId(def.id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [addrsQ.data, searchRebookFrom]);
+  }, [addrsQ.data, rebookSeed]);
 
   // Auto-select the admin-configured default payment method once it loads —
   // the customer can still change it in the payment step before confirming.
@@ -375,87 +376,6 @@ export function BookContent({
     addressId: slotAddressId,
   });
   const requirementsQ = useRequirementsForService(activeService?.service?.id);
-  useEffect(() => {
-    if (!searchRebookFrom || rebookAppliedRef.current) return;
-    if (!rebookBookingQ.isSuccess || !rebookBookingQ.data) return;
-    if (rebookBookingQ.data.provider_id !== providerId) return;
-    if (!servicesQ.isSuccess || servicesQ.isLoading) return;
-    if (!addrsQ.isSuccess || !familyMembersQ.isSuccess) return;
-    if (rebookCapsQ.isLoading || rebookRequirementsQ.isLoading) return;
-    if (rebookBookableQ.isLoading) return;
-
-    const ctx = buildRebookPrefillContext({
-      providerId,
-      services: servicesQ.data ?? [],
-      bookableServiceIds: new Set([...(rebookBookableQ.data?.keys() ?? [])]),
-      addresses: bookableAddresses,
-      familyMembers: familyMembersQ.data ?? [],
-      capabilities: (rebookCapsQ.data ?? []).map((cap) => ({
-        id: cap.id,
-        serviceId: cap.serviceId,
-        status: cap.status,
-        curriculumId: cap.curriculumId,
-        levelId: cap.levelId,
-      })),
-      bookingRequirements: rebookRequirementsQ.data ?? [],
-    });
-    const result = applyRebookPrefill(rebookBookingQ.data, ctx);
-    if (!result) return;
-    rebookAppliedRef.current = true;
-    setRebookNotices(result.notices);
-    const { values } = result;
-    if (values.serviceId) setServiceId(values.serviceId);
-    const restoredServiceId = values.serviceId ?? rebookBookingQ.data.service_id;
-    if (values.capabilityId) {
-      setCapabilityId(values.capabilityId);
-      userPickedCapabilityRef.current = true;
-    }
-    if (values.hours) setDuration(`${values.hours}h`);
-    if (values.addressId) {
-      setAddressId(values.addressId);
-    } else if (bookableAddresses.length > 0) {
-      const def = bookableAddresses.find((a: any) => a.is_default) ?? bookableAddresses[0];
-      setAddressId(def.id);
-    }
-    if (values.forWhom) setForWhom(values.forWhom);
-    if (values.supervisionMode && restoredServiceId) {
-      setSupervisionMode(values.supervisionMode);
-      rebookSupervisionSeedRef.current = { serviceId: restoredServiceId };
-    }
-    if (values.notes) setNotes(values.notes);
-    if (values.requirementChoices && Object.keys(values.requirementChoices).length) {
-      setRequirementChoices(values.requirementChoices);
-    }
-    if (values.curriculumId || values.levelId) {
-      setBookingEducation(
-        educationValueFromIds(values.curriculumId ?? null, values.levelId ?? null),
-      );
-    }
-    if (values.capabilityId || values.curriculumId || values.levelId) {
-      rebookTutoringSeedRef.current = {
-        serviceId: restoredServiceId,
-        forWhom: values.forWhom,
-      };
-    }
-  }, [
-    searchRebookFrom,
-    rebookBookingQ.isSuccess,
-    rebookBookingQ.data,
-    providerId,
-    servicesQ.isSuccess,
-    servicesQ.isLoading,
-    servicesQ.data,
-    addrsQ.isSuccess,
-    familyMembersQ.isSuccess,
-    familyMembersQ.data,
-    rebookCapsQ.isLoading,
-    rebookCapsQ.data,
-    rebookRequirementsQ.isLoading,
-    rebookRequirementsQ.data,
-    rebookBookableQ.isLoading,
-    rebookBookableQ.data,
-    bookableAddresses,
-  ]);
   const stepKeys = BOOKING_SCREENS;
   const stepKey = requestedStep;
   const step = stepKeys.indexOf(stepKey);
@@ -463,30 +383,18 @@ export function BookContent({
   const setStep = (index: number) => setRequestedStep(stepKeys[index] ?? "service");
 
   useEffect(() => {
+    if (rebookSeed.guardDefault("forWhom")) return;
     if (isBabysitting && forWhom === "myself") {
       setForWhom(defaultForWhom(true));
     } else if (!isBabysitting && forWhom === "") {
       setForWhom(defaultForWhom(false));
     }
-  }, [isBabysitting, forWhom]);
+  }, [isBabysitting, forWhom, rebookSeed]);
 
   useEffect(() => {
-    const sid = activeService?.service?.id ?? serviceId;
-    if (rebookSupervisionSeedMatches(rebookSupervisionSeedRef.current, sid)) return;
+    if (rebookSeed.guardDefault("supervisionMode")) return;
     setSupervisionMode("");
-    rebookSupervisionSeedRef.current = null;
-  }, [activeService?.service?.id, serviceId]);
-
-  useEffect(() => {
-    const sid = activeService?.service?.id ?? serviceId;
-    if (
-      rebookTutoringSeedRef.current &&
-      !rebookTutoringSeedMatches(rebookTutoringSeedRef.current, sid, forWhom)
-    ) {
-      rebookTutoringSeedRef.current = null;
-      userPickedCapabilityRef.current = false;
-    }
-  }, [activeService?.service?.id, serviceId, forWhom]);
+  }, [activeService?.service?.id, serviceId, rebookSeed]);
 
   const packageSlots = useMemo(
     () => filterFixedStartSlots(slotsQ.data ?? [], activeService?.service),
@@ -512,8 +420,7 @@ export function BookContent({
 
   useEffect(() => {
     if (!isTutoring || isLessonService) return;
-    const sid = activeService?.service?.id ?? serviceId;
-    if (rebookTutoringSeedMatches(rebookTutoringSeedRef.current, sid, forWhom)) return;
+    if (rebookSeed.guardDefault("education")) return;
     setBookingEducation(
       educationValueFromIds(
         studentEducation.educationCurriculumId,
@@ -529,10 +436,12 @@ export function BookContent({
     serviceId,
     studentEducation.educationCurriculumId,
     studentEducation.educationLevelId,
+    rebookSeed,
   ]);
 
   useEffect(() => {
     if (stepKey !== "service" || !isTutoring || userPickedCapabilityRef.current) return;
+    if (rebookSeed.guardDefault("capabilityId")) return;
     const match = pickDefaultCapabilityForEducation(
       capabilitiesQ.data ?? [],
       activeService?.service?.id ?? serviceId,
@@ -557,6 +466,7 @@ export function BookContent({
     studentEducation.educationCurriculumId,
     studentEducation.educationLevelId,
     capabilityId,
+    rebookSeed,
   ]);
 
   useEffect(() => {
@@ -1056,7 +966,13 @@ export function BookContent({
     >
       <div className="apply-chips">
         {showMyselfOption(isBabysitting) && (
-          <CheckChip selected={forWhom === "myself"} onClick={() => setForWhom("myself")}>
+          <CheckChip
+            selected={forWhom === "myself"}
+            onClick={() => {
+              rebookSeed.touch("forWhom");
+              setForWhom("myself");
+            }}
+          >
             {t("bookFlow.forWhomMyself")}
           </CheckChip>
         )}
@@ -1074,7 +990,10 @@ export function BookContent({
                 key={member.id}
                 selected={forWhom === member.id}
                 disabled={!selectable.ok}
-                onClick={() => setForWhom(member.id)}
+                onClick={() => {
+                  rebookSeed.touch("forWhom");
+                  setForWhom(member.id);
+                }}
               >
                 {member.full_name} ·{" "}
                 {t(memberAgeTranslation(member.date_of_birth).key, {
@@ -1182,6 +1101,10 @@ export function BookContent({
                         )
                       }
                       onClick={() => {
+                        rebookSeed.touch("serviceId");
+                        rebookSeed.touch("supervisionMode");
+                        rebookSeed.touch("capabilityId");
+                        rebookSeed.touch("education");
                         setServiceId(s.service.id);
                         setCapabilityId(null);
                         clearSlot();
@@ -1215,7 +1138,13 @@ export function BookContent({
                 <>
                   {recipientFields}
                   {supervisionRequired && (
-                    <SupervisionModeFields value={supervisionMode} onChange={setSupervisionMode} />
+                    <SupervisionModeFields
+                      value={supervisionMode}
+                      onChange={(mode) => {
+                        rebookSeed.touch("supervisionMode");
+                        setSupervisionMode(mode);
+                      }}
+                    />
                   )}
                   <Step title={t("bookFlow.pickCapability")}>
                     {!isLessonService ? (
@@ -1234,6 +1163,8 @@ export function BookContent({
                         <EducationProfileFields
                           value={bookingEducation}
                           onChange={(next) => {
+                            rebookSeed.touch("education");
+                            rebookSeed.touch("capabilityId");
                             userPickedCapabilityRef.current = true;
                             setBookingEducation(next);
                             const match = pickDefaultCapabilityForEducation(
@@ -1436,6 +1367,7 @@ export function BookContent({
                       <button
                         key={a.id}
                         onClick={() => {
+                          rebookSeed.touch("addressId");
                           setAddressId(a.id);
                         }}
                         aria-pressed={addressId === a.id}
@@ -1511,7 +1443,13 @@ export function BookContent({
 
           {stepKey === "whereWho" && !isTutoring && recipientFields}
           {stepKey === "whereWho" && supervisionRequired && !isTutoring && (
-            <SupervisionModeFields value={supervisionMode} onChange={setSupervisionMode} />
+            <SupervisionModeFields
+              value={supervisionMode}
+              onChange={(mode) => {
+                rebookSeed.touch("supervisionMode");
+                setSupervisionMode(mode);
+              }}
+            />
           )}
           {stepKey === "whereWho" &&
             (!requirementsQ.isSuccess || bookingRequirements.length > 0) && (
