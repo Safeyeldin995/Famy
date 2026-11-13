@@ -38,10 +38,10 @@ describe("money glossary (Arabic)", () => {
   it("says who pays whom and whether it happened", () => {
     expect(
       settlementStateLabel({ status: "pending", direction: "famy_pays_provider", amount: 300 }, "admin", t),
-    ).toBe("فامي لازم تحول للمقدم");
+    ).toBe("مستحق لمقدم الخدمة");
     expect(
       settlementStateLabel({ status: "paid", direction: "famy_pays_provider", amount: 300 }, "admin", t),
-    ).toBe("فامي حولت للمقدم");
+    ).toBe("تم التحويل لمقدم الخدمة");
     expect(
       settlementStateLabel({ status: "received", direction: "provider_pays_famy", amount: 300 }, "provider", t),
     ).toBe("فامي استلمت تحويلك");
@@ -65,9 +65,9 @@ describe("money glossary (Arabic)", () => {
   });
 
   it("writes balances as sentences", () => {
-    expect(balanceSentence(300, "admin", t, egp)).toBe("فامي عليها 300 ج للمقدم");
-    expect(balanceSentence(-450, "admin", t, egp)).toBe("المقدم عليه 450 ج لفامي");
-    expect(balanceSentence(0, "admin", t, egp)).toBe("مفيش فلوس على حد");
+    expect(balanceSentence(300, "admin", t, egp)).toBe("مستحق لمقدم الخدمة: 300 ج");
+    expect(balanceSentence(-450, "admin", t, egp)).toBe("مستحق على مقدم الخدمة: 450 ج");
+    expect(balanceSentence(0, "admin", t, egp)).toBe("لا توجد مستحقات");
   });
 
   it("has a distinct label for every payment status", () => {
@@ -84,6 +84,6 @@ describe("money glossary (Arabic)", () => {
     const labels = statuses.map((s) => paymentStatusLabel(s, t));
     for (const label of labels) expect(label).not.toMatch(/MISSING|_/);
     expect(new Set(labels).size).toBe(statuses.length);
-    expect(paymentStatusLabel("weird", t)).toBe("حالة مش معروفة");
+    expect(paymentStatusLabel("weird", t)).toBe("حالة غير معروفة");
   });
 });

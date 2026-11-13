@@ -35,12 +35,12 @@ describe("admin provider approval page (mocked)", () => {
       formatAdminActionErrorMessage(t, {
         message: "Administrators cannot approve their own provider application.",
       }),
-    ).toContain("أدمن تاني");
+    ).toContain("مشرف آخر");
     expect(
       formatAdminActionErrorMessage(t, {
         message: "Pending teaching group has no reviewable provider service.",
       }),
-    ).toContain("راجع الخدمات الأول");
+    ).toContain("راجع الخدمات أولا");
     expect(formatAdminActionErrorMessage(t, POSTGREST_INCOMPLETE_APPROVE_ERROR)).not.toContain(
       "Application",
     );

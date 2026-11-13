@@ -31,7 +31,7 @@ describe("ProviderApprovalDecisionSummary (mocked markup)", () => {
         <ProviderApprovalDecisionSummary decision={decision} compact />
       </I18nextProvider>,
     );
-    expect(html).toContain("ناقص: 2 مستند لسه في انتظار المراجعة");
+    expect(html).toContain("مستندات بانتظار المراجعة: 2");
     expect(html).toContain("#admin-provider-documents");
     expect(decision.canApprove).toBe(false);
   });
@@ -70,7 +70,7 @@ describe("ProviderApprovalDecisionSummary (mocked markup)", () => {
       isError: false,
     });
     const html = renderSummary(decision);
-    expect(html).toContain("معلومات ناقصة");
+    expect(html).toContain("بيانات ناقصة");
     expect(html).toContain("أكمل معلومات الخبرة");
     expect(html).toContain("قيد المراجعة");
     await i18n.changeLanguage("en");
