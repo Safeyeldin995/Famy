@@ -107,6 +107,11 @@ describe("finance presets use Cairo calendar and never invert", () => {
     next_settlement_at: "2026-11-15T08:00:00.000Z",
   };
 
+  it("uses the first valid instant when Cairo skips midnight for summer time", () => {
+    expect(financeRangeForDays("2026-04-24", "2026-04-24")?.from).toBe("2026-04-23T22:00:00.000Z");
+    expect(financeRangeForDays("2026-04-23", "2026-04-23")?.to).toBe("2026-04-23T22:00:00.000Z");
+  });
+
   it("this month starts at Cairo midnight on the 1st", () => {
     const r = financeRangeForPreset("thisMonth", period, new Date("2026-11-13T12:00:00.000Z"));
     expect(r.from).toBe("2026-10-31T22:00:00.000Z");

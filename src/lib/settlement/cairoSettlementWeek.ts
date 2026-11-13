@@ -82,6 +82,16 @@ export function cairoMidnight(year: number, month: number, day: number): Date {
     if (next === guess) break;
     guess = next;
   }
+  // On the spring DST change Cairo skips 00:00, so the loop can land on 23:00 of the
+  // previous day. Move forward to the first instant that is on the requested day.
+  const want = new Date(target);
+  for (let i = 0; i < 3; i++) {
+    const p = cairoParts(new Date(guess));
+    const sameDay =
+      p.y === want.getUTCFullYear() && p.m === want.getUTCMonth() + 1 && p.d === want.getUTCDate();
+    if (sameDay) break;
+    guess += 60 * 60 * 1000;
+  }
   return new Date(guess);
 }
 
