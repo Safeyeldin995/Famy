@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react-n
 import { router, type Href } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Text } from "./Text";
-import { colors } from "./theme";
+import { colors, space, radius, fontSize } from "./theme";
 
 /** Ports the web CustomerPageHeader and CustomerPageHero, not a new page design. */
 export function CustomerPageHeader({
@@ -74,13 +74,13 @@ export function CustomerPageHeader({
 }
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: "white",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    backgroundColor: colors.surface,
+    paddingHorizontal: space.xl,
+    paddingVertical: space.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  row: { flexDirection: "row", alignItems: "center", gap: 12 },
+  row: { flexDirection: "row", alignItems: "center", gap: space.md },
   back: {
     height: 44,
     width: 44,
@@ -91,12 +91,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   hero: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 56,
-    borderBottomStartRadius: 40,
-    borderBottomEndRadius: 40,
+    paddingHorizontal: space.xl,
+    paddingTop: space.md,
+    paddingBottom: space.xxxl + space.xl,
+    borderBottomStartRadius: radius.xl + space.lg,
+    borderBottomEndRadius: radius.xl + space.lg,
   },
   heroBack: { borderColor: "rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.15)" },
-  heroTitle: { fontSize: 28, lineHeight: 33, marginTop: 16 },
+  heroTitle: { fontSize: fontSize.xxl + space.sm, lineHeight: fontSize.xxl + space.lg, marginTop: space.lg },
 });

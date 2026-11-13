@@ -2,7 +2,7 @@ import { Pressable, View } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Avatar } from "@/ui/ProviderCard";
-import { Bell, CalendarRange, Star } from "lucide-react-native";
+import { Bell, CalendarDays, CalendarRange, Star } from "lucide-react-native";
 import { BOOKING_ACTIVE_STATUSES } from "@/lib/provider/constants";
 import { earningsHeadlineKind } from "@shared/earnings/aggregateProviderEarnings";
 import {
@@ -17,6 +17,8 @@ import { ProviderBookingCard, type ProviderCardBooking } from "@/ui/provider/Pro
 import { HomeProviderActiveBookingCard } from "@/ui/provider/HomeProviderActiveBookingCard";
 import { Page, QueryState, moneyTextStyle } from "@/ui/Page";
 import { Text } from "@/ui/Text";
+import { Button } from "@/ui/Button";
+import { ProviderEmptyState } from "@/ui/ProviderEmptyState";
 import { colors, radius, space } from "@/ui/theme";
 
 export default function ProviderDashboard() {
@@ -60,7 +62,7 @@ export default function ProviderDashboard() {
       <Text weight="heavy" size="title" style={{ flex: 1 }} numberOfLines={1}>
         {t("proWork.hello", { name: firstName })}
       </Text>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
         <Avatar raw={profile?.avatar_url} size={44} round name={firstName} />
         <Pressable
           accessibilityRole="button"
@@ -69,7 +71,7 @@ export default function ProviderDashboard() {
           style={{
             width: 44,
             height: 44,
-            borderRadius: 12,
+            borderRadius: radius.sm,
             borderWidth: 1,
             borderColor: colors.border,
             alignItems: "center",
@@ -124,7 +126,7 @@ export default function ProviderDashboard() {
       title={t("pro.nav.dashboard")}
       header={header}
       queries={[p, bookingsQ, earningsQ]}
-      contentStyle={{ paddingTop: 8, gap: 16 }}
+      contentStyle={{ paddingTop: space.sm, gap: space.lg }}
     >
       {!bookingsQ.isError && bookingsQ.data ? (
         <HomeProviderActiveBookingCard bookings={all} pendingCount={pending.length} />
@@ -155,7 +157,7 @@ export default function ProviderDashboard() {
           style={{
             width: 44,
             height: 44,
-            borderRadius: 12,
+            borderRadius: radius.sm,
             alignItems: "center",
             justifyContent: "center",
             backgroundColor: colors.brandTint,
@@ -252,20 +254,13 @@ export default function ProviderDashboard() {
       {upcoming.length ? (
         upcoming.map((booking) => <ProviderBookingCard key={booking.id} booking={booking} />)
       ) : (
-        <Text
-          tone="muted"
-          size="sm"
-          style={{
-            borderWidth: 1,
-            borderStyle: "dashed",
-            borderColor: colors.border,
-            borderRadius: radius.xl,
-            padding: 24,
-            textAlign: "center",
-          }}
+        <ProviderEmptyState
+          icon={CalendarDays}
+          title={t("pro.dashboard.noUpcoming")}
+          body={t("pro.bookings.emptyUpcoming")}
         >
-          {t("pro.dashboard.noUpcoming")}
-        </Text>
+          <Button label={t("pro.common.seeAll")} variant="secondary" onPress={() => router.push("/schedule")} />
+        </ProviderEmptyState>
       )}
     </Page>
   );

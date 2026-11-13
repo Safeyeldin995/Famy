@@ -29,7 +29,7 @@ export function ConversationRow({
       onPress={() => router.push({ pathname: chatPath, params: { id: item.id } })}
       style={({ pressed }) => [
         styles.row,
-        customer && { borderRadius: 16, padding: 14, gap: 14 },
+        customer && { borderRadius: radius.lg, padding: space.md + 2, gap: space.md + 2 },
         pressed && styles.pressed,
       ]}
     >

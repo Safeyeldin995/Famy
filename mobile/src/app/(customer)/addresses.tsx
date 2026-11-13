@@ -3,7 +3,8 @@ import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { Home, Briefcase, Users, MapPin, Pencil, Trash2, Plus, Star } from "lucide-react-native";
 import { customerNumber } from "@/lib/customerFormat";
-import { colors } from "@/ui/theme";
+import { colors, radius, space } from "@/ui/theme";
+import { useToast } from "@/ui/Toast";
 import { customerAreaLabel } from "../../../../src/components/famio/customerAreaLabel";
 import { useTranslation } from "react-i18next";
 import { useAddresses, useSetDefaultAddress, useDeleteAddress } from "@/lib/queries";
@@ -14,6 +15,7 @@ import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 
 export default function Addresses() {
   const { t, i18n } = useTranslation();
+  const toast = useToast();
   const q = useAddresses();
   const setDefault = useSetDefaultAddress();
   const remove = useDeleteAddress();
@@ -55,7 +57,14 @@ export default function Addresses() {
           body={t("mobile.deleteAddressBody")}
           busy={remove.isPending}
           onCancel={() => setSelected(null)}
-          onConfirm={() => remove.mutate(selected, { onSuccess: () => setSelected(null) })}
+          onConfirm={() =>
+            remove.mutate(selected, {
+              onSuccess: () => {
+                setSelected(null);
+                toast.show(t("mobile.addressDeleted"));
+              },
+            })
+          }
         />
       )}
       <QueryState query={q} empty={!q.data?.length} emptyKey="customerHome.addressHint">
@@ -139,7 +148,11 @@ export default function Addresses() {
                     accessibilityRole="button"
                     accessibilityLabel={t("mobile.setDefault")}
                     disabled={setDefault.isPending}
-                    onPress={() => setDefault.mutate(a.id)}
+                    onPress={() =>
+                      setDefault.mutate(a.id, {
+                        onSuccess: () => toast.show(t("addresses.saved")),
+                      })
+                    }
                     style={{
                       flex: 1,
                       minHeight: 44,

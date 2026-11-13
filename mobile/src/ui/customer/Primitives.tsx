@@ -3,23 +3,24 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { Text } from "../Text";
-import { colors } from "../theme";
+import { colors, radius, space, shadow } from "../theme";
 
 /** Layout tokens and controls copied from the web customer screens. */
 export const customerStyle = StyleSheet.create({
   card: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 16,
+    borderRadius: radius.lg,
     backgroundColor: colors.surface,
-    padding: 16,
-    gap: 12,
+    padding: space.lg,
+    gap: space.md,
+    ...shadow.card,
   },
-  row: { flexDirection: "row", alignItems: "center", gap: 12 },
+  row: { flexDirection: "row", alignItems: "center", gap: space.md },
   icon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: radius.xl,
     backgroundColor: colors.brandTint,
     alignItems: "center",
     justifyContent: "center",
@@ -37,8 +38,10 @@ export function CustomerEmpty({
   children?: ReactNode;
 }) {
   return (
-    <View style={{ alignItems: "center", paddingVertical: 40, gap: 12 }}>
-      <View style={[customerStyle.icon, { width: 80, height: 80, borderRadius: 28 }]}>
+    <View style={{ alignItems: "center", paddingVertical: space.xxxl + space.sm, gap: space.md }}>
+      <View
+        style={[customerStyle.icon, { width: 80, height: 80, borderRadius: radius.xl + space.xs }]}
+      >
         <Icon size={32} color={colors.brand} />
       </View>
       <Text size="xl" weight="heavy" style={{ textAlign: "center" }}>

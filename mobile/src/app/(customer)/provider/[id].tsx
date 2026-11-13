@@ -30,6 +30,7 @@ import { Page, QueryState, ActionError, ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
 import { colors } from "@/ui/theme";
+import { useToast } from "@/ui/Toast";
 import { customerStyle } from "@/ui/customer/Primitives";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -59,6 +60,7 @@ export default function ProviderProfile() {
   const availability = useProviderAvailability(id);
   const favoriteIds = useFavoriteIds();
   const favorite = useToggleFavorite();
+  const toast = useToast();
   const [shareError, setShareError] = useState(false);
   const p = provider.data;
   const liked = favoriteIds.data?.includes(id) ?? false;
@@ -147,7 +149,17 @@ export default function ProviderProfile() {
               }}
               disabled={favorite.isPending || favoriteIds.isLoading || favoriteIds.isError}
               style={iconStyle}
-              onPress={() => favorite.mutate({ providerId: id, on: !liked })}
+              onPress={() =>
+                favorite.mutate(
+                  { providerId: id, on: !liked },
+                  {
+                    onSuccess: () =>
+                      toast.show(
+                        t(liked ? "mobile.removedFavorite" : "bookingDetail.savedFavorite"),
+                      ),
+                  },
+                )
+              }
             >
               <Heart
                 size={20}

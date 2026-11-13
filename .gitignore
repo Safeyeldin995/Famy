@@ -47,3 +47,4 @@ recovery-codes*.txt
 backup-recovery-codes*.txt
 
 .vercel
+mobile/qa/artifacts-*/

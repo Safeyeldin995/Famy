@@ -36,6 +36,7 @@ export function Page({
   header,
   contentStyle,
   scrollHeader = false,
+  scroll = true,
 }: {
   title: string;
   children: ReactNode;
@@ -45,6 +46,8 @@ export function Page({
   header?: ReactNode;
   contentStyle?: import("react-native").StyleProp<import("react-native").ViewStyle>;
   scrollHeader?: boolean;
+  /** When false, children manage their own scroll (e.g. FlatList). Omit queries or refresh in the list. */
+  scroll?: boolean;
 }) {
   const [refreshing, setRefreshing] = useState(false);
   const { i18n } = useTranslation();
@@ -61,47 +64,51 @@ export function Page({
     >
       {!tab && <Stack.Screen options={{ title, ...(header ? { headerShown: false } : {}) }} />}
       {!scrollHeader && header}
-      <KeyboardAwareScrollView
-        style={{ flex: 1 }}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={[
-          ui.content,
-          tabScrollPad != null ? { paddingBottom: tabScrollPad } : null,
-          contentStyle,
-        ]}
-        bottomOffset={
-          footer
-            ? KEYBOARD_FOCUS_GAP + KEYBOARD_PRIMARY_STICKY_RESERVE
-            : KEYBOARD_PRIMARY_INLINE_OFFSET
-        }
-        refreshControl={
-          queries.length ? (
-            <RefreshControl
-              refreshing={refreshing}
-              tintColor={colors.brand}
-              colors={[colors.brand]}
-              onRefresh={async () => {
-                setRefreshing(true);
-                try {
-                  await Promise.all(queries.map((q) => q.refetch()));
-                } finally {
-                  setRefreshing(false);
-                }
-              }}
-            />
-          ) : undefined
-        }
-      >
-        {scrollHeader && header ? (
-          <View style={{ marginHorizontal: -20, marginBottom: -16 }}>{header}</View>
-        ) : null}
-        {tab && !header && (
-          <Text size="title" weight="heavy">
-            {title}
-          </Text>
-        )}
-        {children}
-      </KeyboardAwareScrollView>
+      {scroll ? (
+        <KeyboardAwareScrollView
+          style={{ flex: 1 }}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={[
+            ui.content,
+            tabScrollPad != null ? { paddingBottom: tabScrollPad } : null,
+            contentStyle,
+          ]}
+          bottomOffset={
+            footer
+              ? KEYBOARD_FOCUS_GAP + KEYBOARD_PRIMARY_STICKY_RESERVE
+              : KEYBOARD_PRIMARY_INLINE_OFFSET
+          }
+          refreshControl={
+            queries.length ? (
+              <RefreshControl
+                refreshing={refreshing}
+                tintColor={colors.brand}
+                colors={[colors.brand]}
+                onRefresh={async () => {
+                  setRefreshing(true);
+                  try {
+                    await Promise.all(queries.map((q) => q.refetch()));
+                  } finally {
+                    setRefreshing(false);
+                  }
+                }}
+              />
+            ) : undefined
+          }
+        >
+          {scrollHeader && header ? (
+            <View style={{ marginHorizontal: -20, marginBottom: -16 }}>{header}</View>
+          ) : null}
+          {tab && !header && (
+            <Text size="title" weight="heavy">
+              {title}
+            </Text>
+          )}
+          {children}
+        </KeyboardAwareScrollView>
+      ) : (
+        <View style={[{ flex: 1 }, ui.content, contentStyle]}>{children}</View>
+      )}
       {footer ? (
         <KeyboardStickyView offset={{ closed: 0, opened: 0 }}>
           <View style={[ui.footer, { paddingBottom: safeBottom }]}>{footer}</View>
