@@ -26,6 +26,9 @@ import { NumberStepper } from "@/components/famio/NumberStepper";
 import { CheckChip } from "@/components/famio/CheckChip";
 import { TextField } from "@/components/famio/TextField";
 import { BookingWhen } from "@/components/booking/BookingWhen";
+import { BookingVisitRequirements } from "@/components/booking/BookingVisitRequirements";
+import { bookingScreenPrimaryCtaKey } from "@/lib/booking/bookingStepCta";
+import { bookingFieldHintForStep } from "@/lib/booking/bookingFieldHints";
 import { CustomerPreparationNotesSection } from "@/components/booking/CustomerPreparationNotesSection";
 import { CheckoutPromoPicker } from "@/components/booking/CheckoutPromoPicker";
 import { BookingDetailsSheet } from "@/components/booking/BookingDetailsSheet";
@@ -851,9 +854,28 @@ export function BookContent({
     }
   };
 
+  const focusBookingField = (id: string) => {
+    const el = document.getElementById(id);
+    el?.scrollIntoView?.({ block: "center", behavior: "smooth" });
+    if (el instanceof HTMLElement) el.focus();
+  };
   const next = () => {
+    if (!canNext() && missingStep) {
+      const hint = bookingFieldHintForStep(missingStep, isTutoring);
+      if (hint && hint.screen === stepKey) {
+        setInlineError({ screen: stepKey, message: t(hint.messageKey) });
+        focusBookingField(hint.focusId);
+      } else if (hint) {
+        setRequestedStep(hint.screen);
+        setEditingReview(false);
+        setInlineError({ screen: hint.screen, message: t(hint.messageKey) });
+        queueMicrotask(() => focusBookingField(hint.focusId));
+      }
+      return;
+    }
     if (stepKey === "review") void submit();
     else {
+      setInlineError(null);
       setRequestedStep(nextBookingScreen(stepKey, editingReview));
       setEditingReview(false);
     }
@@ -949,7 +971,7 @@ export function BookContent({
           )}
           {stepKey === "service" && (
             <>
-              <div className="booking-provider">
+              <div id="booking-services" className="booking-provider" tabIndex={-1}>
                 <ProfileAvatar src={p.avatar} name={p.name} />
                 <span className="booking-provider-text">
                   <b>{p.name}</b>
@@ -1172,6 +1194,11 @@ export function BookContent({
           )}
           {stepKey === "when" && (
             <>
+              <BookingVisitRequirements
+                categorySlug={activeService?.service?.category?.slug}
+                requirements={bookingRequirements}
+              />
+              <div id="booking-schedule" tabIndex={-1}>
               <BookingWhen
                 providerId={providerId}
                 serviceId={activeService?.service?.id ?? serviceId ?? ""}
@@ -1200,6 +1227,7 @@ export function BookContent({
                 }}
               />
               {!slotsQ.isLoading && packageSlots.length === 0 && otherProviders}
+              </div>
             </>
           )}
           {stepKey === "whereWho" && (
@@ -1623,9 +1651,7 @@ export function BookContent({
                 }
               : next
           }
-          disabled={
-            !(stepKey === "review" && noPaymentMethods) && (!canNext() || createBooking.isPending)
-          }
+          disabled={!!createBooking.isPending}
           hint={
             disabledReason
               ? disabledReason === "bookingUx.chooseRecipient"
@@ -1638,10 +1664,10 @@ export function BookContent({
             <Loader2 className="h-5 w-5 animate-spin" />
           ) : stepKey === "review" && noPaymentMethods ? (
             t("bookingUx.contactSupport")
+          ) : stepKey === "review" ? (
+            t("customerBooking.confirm", { total: formatEGP(total) })
           ) : (
-            t(stepKey === "review" ? "customerBooking.confirm" : "customerBooking.next", {
-              total: formatEGP(total),
-            })
+            t(bookingScreenPrimaryCtaKey(stepKey, editingReview), { total: formatEGP(total) })
           )}
         </StickyCta>
         {detailsSheet && (

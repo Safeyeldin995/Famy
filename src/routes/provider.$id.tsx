@@ -34,6 +34,7 @@ import { useProviderOnlyCustomerRedirect } from "@/lib/auth/providerOnlyCustomer
 import { previewBookPath, previewPath } from "@/lib/preview/previewPath";
 import { ProviderWebShare } from "@/components/site/ProviderWebShare";
 import { siteHead, siteLanguage } from "@/lib/site/seo";
+import { ProviderBookingDecision } from "@/components/booking/ProviderBookingDecision";
 
 export const Route = createFileRoute("/provider/$id")({
   head: ({ matches, params }) =>
@@ -287,8 +288,8 @@ export function ProviderProfileContent({ providerId }: { providerId: string }) {
 
         <dl className="mt-5 grid grid-cols-3 divide-x divide-border/60 rounded-2xl border border-border/60 bg-white py-3 text-center rtl:divide-x-reverse">
           <div>
-            <dt className="text-pro-12 text-muted-foreground">{t("providerPage.completed")}</dt>
-            <dd className="mt-0.5 text-pro-16 font-bold text-foreground">{formatNumber(p.jobs)}</dd>
+            <dt className="text-pro-12 text-muted-foreground">{t("providerPage.reviewsStat")}</dt>
+            <dd className="mt-0.5 text-pro-16 font-bold text-foreground">{formatNumber(p.reviews)}</dd>
           </div>
           <div>
             <dt className="text-pro-12 text-muted-foreground">{t("providerPage.experience")}</dt>
@@ -374,19 +375,6 @@ export function ProviderProfileContent({ providerId }: { providerId: string }) {
           </p>
         ) : null}
 
-        {p.bio ? (
-          <Section title={t("providerPage.about", { name: firstName })}>
-            <p className="whitespace-pre-line text-pro-14 leading-relaxed text-foreground/85">
-              {p.bio}
-            </p>
-            {p.languages.length > 0 ? (
-              <p className="mt-3 text-pro-13 text-muted-foreground">
-                {t("providerPage.languages")}: {p.languages.map(languageLabel).join("، ")}
-              </p>
-            ) : null}
-          </Section>
-        ) : null}
-
         <Section title={t("providerPage.hours")}>
           {availQ.isLoading ? (
             <div className="h-10 animate-pulse rounded-xl bg-surface-2" />
@@ -403,6 +391,19 @@ export function ProviderProfileContent({ providerId }: { providerId: string }) {
           )}
           <p className="mt-2 text-pro-12 text-muted-foreground">{t("providerPage.hoursHint")}</p>
         </Section>
+
+        {p.bio ? (
+          <Section title={t("providerPage.about", { name: firstName })}>
+            <p className="whitespace-pre-line text-pro-14 leading-relaxed text-foreground/85">
+              {p.bio}
+            </p>
+            {p.languages.length > 0 ? (
+              <p className="mt-3 text-pro-13 text-muted-foreground">
+                {t("providerPage.languages")}: {p.languages.map(languageLabel).join("، ")}
+              </p>
+            ) : null}
+          </Section>
+        ) : null}
 
         <Section
           title={
@@ -457,12 +458,19 @@ export function ProviderProfileContent({ providerId }: { providerId: string }) {
       </div>
 
       {canBook ? (
-        <StickyCta
-          hint={t("providerProfile.freeCancel")}
-          onClick={() => nav({ to: previewBookPath(p.id), search: { serviceId: undefined } })}
-        >
-          {t("providerProfile.bookWith", { name: firstName })}
-        </StickyCta>
+        <div className="fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-[430px] bg-background/95 px-5 pb-[max(env(safe-area-inset-bottom),1rem)] pt-3 backdrop-blur">
+          <ProviderBookingDecision
+            providerId={p.id}
+            services={services}
+            hourlyRate={p.hourlyRate}
+          />
+          <StickyCta
+            hint={t("providerProfile.freeCancel")}
+            onClick={() => nav({ to: previewBookPath(p.id), search: { serviceId: undefined } })}
+          >
+            {t("providerProfile.bookWith", { name: firstName })}
+          </StickyCta>
+        </div>
       ) : null}
     </PhoneFrame>
   );

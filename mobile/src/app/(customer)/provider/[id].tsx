@@ -32,6 +32,7 @@ import { Button } from "@/ui/Button";
 import { colors, radius, space } from "@/ui/theme";
 import { useToast } from "@/ui/Toast";
 import { customerStyle } from "@/ui/customer/Primitives";
+import { ProviderBookingDecision } from "@/ui/customer/ProviderBookingDecision";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -173,6 +174,12 @@ export default function ProviderProfile() {
       footer={
         p && available.length ? (
           <View style={{ gap: space.sm }}>
+            <ProviderBookingDecision
+              providerId={id}
+              services={available}
+              preferredServiceId={fromServiceId}
+              hourlyRate={Number(p.hourly_rate ?? 0)}
+            />
             <Text size="xs" tone="muted" style={{ textAlign: "center" }}>
               {t("providerProfile.freeCancel")}
             </Text>
@@ -242,7 +249,7 @@ export default function ProviderProfile() {
             >
               {[
                 [
-                  t("providerPage.completed"),
+                  t("providerPage.reviewsStat"),
                   customerNumber(Number(p.ratings.rating_count ?? 0), i18n.language),
                 ],
                 [
@@ -382,6 +389,18 @@ export default function ProviderProfile() {
                 </View>
               ) : null}
             </QueryState>
+            <Section title={t("providerPage.hours")}>
+              <QueryState query={availability}>
+                {hours.length ? (
+                  hours.map((line) => <Text key={line}>{line}</Text>)
+                ) : (
+                  <Text tone="muted">{t("providerPage.noHours")}</Text>
+                )}
+              </QueryState>
+              <Text size="xs" tone="muted">
+                {t("providerPage.hoursHint")}
+              </Text>
+            </Section>
             {bio ? (
               <Section title={t("providerPage.about", { name: firstName })}>
                 <Text style={{ lineHeight: 23 }}>{bio}</Text>
@@ -401,18 +420,6 @@ export default function ProviderProfile() {
                 ) : null}
               </Section>
             ) : null}
-            <Section title={t("providerPage.hours")}>
-              <QueryState query={availability}>
-                {hours.length ? (
-                  hours.map((line) => <Text key={line}>{line}</Text>)
-                ) : (
-                  <Text tone="muted">{t("providerPage.noHours")}</Text>
-                )}
-              </QueryState>
-              <Text size="xs" tone="muted">
-                {t("providerPage.hoursHint")}
-              </Text>
-            </Section>
             <Section
               title={t(
                 reviews.data?.length

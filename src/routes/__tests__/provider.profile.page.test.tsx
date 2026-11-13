@@ -122,6 +122,14 @@ vi.mock("@/lib/db/queries", () => ({
   useProviderReviews: () => query([]),
   useProviderServices: () => query(services),
   useBookableServiceIds: () => query(state.bookable),
+  useProviderBookingSettings: () =>
+    query({
+      max_advance_days: 12,
+      min_notice_hours: 4,
+      buffer_minutes: 30,
+      vacation_mode: false,
+    }),
+  useAvailableSlots: () => query([]),
   useFavoriteIds: () => query([]),
   useToggleFavorite: () => ({ mutate: vi.fn() }),
 }));

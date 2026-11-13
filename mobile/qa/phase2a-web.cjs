@@ -685,9 +685,11 @@ async function run() {
       await page.getByRole("radio", { name: /رياضيات اختبار/ }).click();
       await pickSupervision();
     }
-    await expect(page.getByRole("button", { name: ar.common.continue, exact: true })).toBeEnabled();
+    await expect(
+      page.getByRole("button", { name: ar.bookFlow.ctaPickWhen, exact: true }),
+    ).toBeEnabled();
     await shot(`${kind}-1-service`);
-    await button(ar.common.continue);
+    await button(ar.bookFlow.ctaPickWhen);
     const tomorrow = new Date(Date.now() + 86400000);
     const day = tomorrow.toLocaleDateString("ar-EG-u-nu-latn", {
       weekday: "long",
@@ -699,16 +701,20 @@ async function run() {
       .getByRole("button", { name: /^[0-9]+:[0-9]+/ })
       .first()
       .click();
-    await expect(page.getByRole("button", { name: ar.common.continue, exact: true })).toBeEnabled();
+    await expect(
+      page.getByRole("button", { name: ar.bookFlow.ctaConfirmVisit, exact: true }),
+    ).toBeEnabled();
     await shot(`${kind}-2-time`);
-    await button(ar.common.continue);
+    await button(ar.bookFlow.ctaConfirmVisit);
     if (kind !== "tutoring")
       await page.getByRole("radio", { name: new RegExp(member.full_name) }).click();
     if (kind !== "tutoring") await pickSupervision();
     await page.getByRole("radio", { name: new RegExp(ar.mobileBooking.providerProvides) }).click();
-    await expect(page.getByRole("button", { name: ar.common.continue, exact: true })).toBeEnabled();
+    await expect(
+      page.getByRole("button", { name: ar.bookFlow.ctaReviewPay, exact: true }),
+    ).toBeEnabled();
     await shot(`${kind}-3-address-recipient`);
-    await button(ar.common.continue);
+    await button(ar.bookFlow.ctaReviewPay);
     await exerciseCheckoutPromo();
     const method = kind === "hourly" ? "cash" : kind === "package" ? "manual_transfer" : "online";
     const methodName = methodRows.find((m) => m.method_type === method).name_ar;

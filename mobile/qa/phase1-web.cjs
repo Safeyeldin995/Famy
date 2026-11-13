@@ -135,6 +135,8 @@ let addresses = [
     street: "شارع اختبار",
     building: "1",
     is_default: true,
+    lat: 30.02,
+    lng: 31.0,
     created_at: now,
   },
   {
@@ -270,7 +272,11 @@ async function run() {
     }
     let data;
     if (url.pathname.includes("/rpc/")) {
-      if (table === "search_marketplace_providers") data = mode === "empty" ? [] : [provider];
+      if (table === "marketplace_provider_booking_settings")
+        data = [
+          { vacation_mode: false, min_notice_hours: 0, max_advance_days: 12, buffer_minutes: 0 },
+        ];
+      else if (table === "search_marketplace_providers") data = mode === "empty" ? [] : [provider];
       else if (table === "marketplace_provider_details") data = mode === "empty" ? [] : [provider];
       else if (table === "marketplace_provider_bookable_services")
         data = [{ service_id: sid, effective_price: 150 }];
@@ -343,9 +349,15 @@ async function run() {
         reviews: [{ id: id(14), rating: 5, comment: "تقييم اختبار محلي.", created_at: now }],
         provider_teaching_capabilities: [],
         booking_reschedule_requests: [],
-        availability_rules: [
-          { id: id(82), provider_id: pid, weekday: 1, start_time: "09:00", end_time: "17:00" },
-        ],
+        availability_rules: [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({
+          id: id(80 + weekday),
+          provider_id: pid,
+          weekday,
+          start_time: "08:00:00",
+          end_time: "22:00:00",
+        })),
+        provider_vacations: [],
+        availability_exceptions: [],
         teaching_curricula: [],
         teaching_levels: [],
         customer_education_profiles: [],
@@ -370,15 +382,17 @@ async function run() {
         settings:
           url.searchParams.get("key") === "eq.support_contact"
             ? [{ value: { phone: "+19999999999", whatsapp: "19999999999" } }]
-            : [
-                {
-                  value: {
-                    body_ar:
-                      "محتوى اختبار محلي للتحقق من عرض النصوص القانونية. لا يمثل سياسة منشورة.",
-                    body_en: "Local content rendering fixture.",
+            : url.searchParams.get("key") === "eq.booking_expiry"
+              ? [{ value: { pending_minutes: 30 } }]
+              : [
+                  {
+                    value: {
+                      body_ar:
+                        "محتوى اختبار محلي للتحقق من عرض النصوص القانونية. لا يمثل سياسة منشورة.",
+                      body_en: "Local content rendering fixture.",
+                    },
                   },
-                },
-              ],
+                ],
         booking_status_history: bookingStatusHistory,
       };
       if (!(table in tables)) errors.push(`Unhandled table: ${table}`);

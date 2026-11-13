@@ -50,7 +50,6 @@ export function toUIProvider(row: any): UIProvider {
   // (background check, first aid, ...) without a real verified record.
   const badges: string[] = [];
   if (row.is_verified) badges.push("ID Verified");
-  if (row.is_top_pro) badges.push("Famy Certified");
 
   return {
     id: row.id,
