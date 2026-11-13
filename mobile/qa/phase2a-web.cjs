@@ -602,7 +602,9 @@ async function run() {
   async function visit(route, text) {
     await page.goto(base + route);
     await waitForLaunchGateGone(page);
-    await expect(page.getByText(text, { exact: false }).first()).toBeVisible({ timeout: 20000 });
+    if (text != null && text !== "") {
+      await expect(page.getByText(text, { exact: false }).first()).toBeVisible({ timeout: 20000 });
+    }
     await page.evaluate(() => document.fonts.ready);
   }
   async function shot(name) {

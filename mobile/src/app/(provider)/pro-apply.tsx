@@ -15,7 +15,11 @@ import {
   useStartOnboarding,
   useSubmitOnboarding,
 } from "@/lib/provider/onboardingQueries";
-import { useProviderDocuments, useSetProviderPrice } from "@/lib/provider/profileQueries";
+import {
+  useMyRequirementFulfillments,
+  useProviderDocuments,
+  useSetProviderPrice,
+} from "@/lib/provider/profileQueries";
 import { useRequirementsForServices } from "@/lib/bookingQueries";
 import { useMyProvider, useReplaceAvailability } from "@/lib/provider/queries";
 import { supabase } from "@/lib/supabase";
@@ -38,6 +42,7 @@ export default function ProApplyScreen() {
       ?.map((s: { service_id: string }) => s.service_id)
       .filter((id: string) => services.data?.some((s: { id: string }) => s.id === id)) ?? [];
   const applyRequirements = useRequirementsForServices(selectedServiceIds);
+  const requirementFulfillments = useMyRequirementFulfillments(provider?.id as string | undefined);
   const save = useSaveOnboardingSection();
   const submit = useSubmitOnboarding();
   const price = useSetProviderPrice();
@@ -184,6 +189,7 @@ export default function ProApplyScreen() {
           .map((s: { service_id: string }) => s.service_id)}
         documents={docs.data ?? []}
         requirements={applyRequirements.data ?? []}
+        fulfillments={requirementFulfillments.data ?? []}
         changesRequested={status === "NEEDS_CHANGES"}
         onSave={persist}
         onCapture={async (type, file) => {

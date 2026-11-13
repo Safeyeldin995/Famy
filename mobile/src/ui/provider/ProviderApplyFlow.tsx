@@ -22,6 +22,7 @@ import { ApplyDocumentChecklist } from "./ApplyDocumentChecklist";
 import {
   buildApplyDocumentChecklist,
   type ProviderDocumentRow,
+  type RequirementFulfillmentRow,
   type ServiceRequirementRow,
 } from "@shared/provider/applyDocumentChecklist";
 
@@ -33,6 +34,7 @@ export function ProviderApplyFlow({
   lockedServices = [],
   documents = [],
   requirements = [],
+  fulfillments = [],
   changesRequested = false,
   onSave,
   onCapture,
@@ -44,6 +46,7 @@ export function ProviderApplyFlow({
   lockedServices?: string[];
   documents?: ProviderDocumentRow[];
   requirements?: ServiceRequirementRow[];
+  fulfillments?: RequirementFulfillmentRow[];
   changesRequested?: boolean;
   onSave: (step: number, draft: ApplyDraft) => Promise<void>;
   onCapture: (type: "id_card_front" | "id_card_back", file: PickedFile) => Promise<void>;
@@ -59,6 +62,7 @@ export function ProviderApplyFlow({
     selectedServiceIds: draft.services,
     requirements,
     documents,
+    fulfillments,
     captured: { front: draft.front, back: draft.back },
     changesRequested,
   });

@@ -191,6 +191,16 @@ export default function Book() {
   const selectedAddress = pinned.find((a) => a.id === addressId);
   const zone = useResolveZone(selectedAddress?.lat, selectedAddress?.lng);
   const bookable = useBookableServiceIds(providerId, addressId || undefined);
+  const rebookEligibilityAddressId = useMemo(() => {
+    if (!rebookFrom) return addressId || pinned[0]?.id;
+    const bookingAddr = rebookBooking.data?.address_id as string | undefined;
+    if (bookingAddr && pinned.some((a) => a.id === bookingAddr)) return bookingAddr;
+    return addressId || pinned[0]?.id;
+  }, [rebookFrom, rebookBooking.data?.address_id, pinned, addressId]);
+  const rebookBookable = useBookableServiceIds(
+    rebookFrom ? providerId : undefined,
+    rebookEligibilityAddressId || undefined,
+  );
   const services = (servicesQ.data ?? []).filter(
     (s) => isClosedBetaCategorySlug(s.service.category?.slug) && bookable.data?.has(s.service.id),
   );
@@ -251,10 +261,11 @@ export default function Book() {
     if (rebookBooking.data.provider_id !== providerId) return;
     if (!servicesQ.isSuccess || addresses.isLoading || members.isLoading) return;
     if (rebookCaps.isLoading || rebookRequirements.isLoading) return;
+    if (rebookBookable.isLoading) return;
     const ctx = buildRebookPrefillContext({
       providerId,
       services: servicesQ.data ?? [],
-      bookableServiceIds: new Set((servicesQ.data ?? []).map((row) => row.service.id)),
+      bookableServiceIds: new Set([...(rebookBookable.data?.keys() ?? [])]),
       addresses: pinned,
       familyMembers: members.data ?? [],
       capabilities: (rebookCaps.data ?? []).map((cap) => ({
@@ -308,6 +319,8 @@ export default function Book() {
     rebookCaps.data,
     rebookRequirements.isLoading,
     rebookRequirements.data,
+    rebookBookable.isLoading,
+    rebookBookable.data,
     pinned,
   ]);
 

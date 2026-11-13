@@ -8,6 +8,7 @@ import { ProviderApplyFlow, type ApplyDraft } from "@/components/provider/Provid
 import { QueryError } from "@/components/famio/QueryError";
 import {
   useMyProvider,
+  useMyRequirementFulfillments,
   useProviderDocuments,
   useRequirementsForServices,
   useSetProviderPrice,
@@ -44,6 +45,7 @@ function ProviderApplyRoute() {
       .map((s) => s.service_id)
       .filter((id) => services.data?.some((s) => s.id === id)) ?? [];
   const applyRequirements = useRequirementsForServices(selectedServiceIds);
+  const requirementFulfillments = useMyRequirementFulfillments(provider.data?.id);
   const save = useSaveOnboardingSection();
   const submit = useSubmitOnboarding();
   const price = useSetProviderPrice();
@@ -159,6 +161,7 @@ function ProviderApplyRoute() {
       onSave={persist}
       documents={docs.data ?? []}
       requirements={applyRequirements.data ?? []}
+      fulfillments={requirementFulfillments.data ?? []}
       changesRequested={provider.data.onboarding_status === "NEEDS_CHANGES"}
       onCapture={async (type, file) => {
         await upload.mutateAsync({ type, file });

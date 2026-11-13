@@ -14,6 +14,14 @@ export type ServiceRequirementRow = {
   is_active?: boolean;
 };
 
+export type RequirementFulfillmentRow = {
+  requirement_id: string;
+  status: string;
+  evidence_storage_path?: string | null;
+  notes?: string | null;
+  review_notes?: string | null;
+};
+
 export type ApplyChecklistItemKind = "identity" | "requirement";
 
 export type ApplyDocumentChecklistItem = {
@@ -44,14 +52,40 @@ function mapDocumentStatus(
   return captured ? "saved" : "missing";
 }
 
+function mapRequirementFulfillmentStatus(
+  fulfillment: RequirementFulfillmentRow | undefined,
+): Pick<ApplyDocumentChecklistItem, "status" | "highlight" | "reason"> {
+  if (!fulfillment) {
+    return { status: "missing", highlight: false };
+  }
+  if (fulfillment.status === "passed" || fulfillment.status === "waived") {
+    return { status: "approved", highlight: false };
+  }
+  if (fulfillment.status === "failed") {
+    return {
+      status: "needs_change",
+      highlight: false,
+      reason: fulfillment.review_notes ?? null,
+    };
+  }
+  const hasEvidence = !!fulfillment.evidence_storage_path?.trim();
+  if (hasEvidence) return { status: "pending", highlight: false };
+  if (fulfillment.notes?.trim()) return { status: "saved", highlight: false };
+  return { status: "missing", highlight: false };
+}
+
 export function buildApplyDocumentChecklist(input: {
   selectedServiceIds: string[];
   requirements: ServiceRequirementRow[];
   documents: ProviderDocumentRow[];
+  fulfillments?: RequirementFulfillmentRow[];
   captured?: { front?: boolean; back?: boolean };
   changesRequested?: boolean;
 }): ApplyDocumentChecklistItem[] {
   const docsByType = new Map(input.documents.map((d) => [d.type, d]));
+  const fulfillmentByReq = new Map(
+    (input.fulfillments ?? []).map((row) => [row.requirement_id, row]),
+  );
   const items: ApplyDocumentChecklistItem[] = [];
 
   for (const type of APPLY_IDENTITY_TYPES) {
@@ -76,12 +110,15 @@ export function buildApplyDocumentChecklist(input: {
     if (!req.required_for_provider_approval || !req.evidence_required) continue;
     if (seen.has(req.id)) continue;
     seen.add(req.id);
+    const fulfillment = fulfillmentByReq.get(req.id);
+    const mapped = mapRequirementFulfillmentStatus(fulfillment);
     items.push({
       kind: "requirement",
       key: req.id,
       label: req.name_ar || req.name_en,
-      status: "missing",
-      highlight: false,
+      status: mapped.status,
+      highlight: input.changesRequested === true && fulfillment?.status === "failed",
+      reason: mapped.reason,
     });
   }
 

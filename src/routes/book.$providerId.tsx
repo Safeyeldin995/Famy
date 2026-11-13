@@ -254,6 +254,21 @@ export function BookContent({
   // the booking trigger enforces), so the customer never picks a service that
   // fails later with PROVIDER_INELIGIBLE (e.g. subjects still under review).
   const bookableQ = useBookableServiceIds(providerId, slotAddressId ?? undefined);
+  const rebookEligibilityAddressId = useMemo(() => {
+    if (!searchRebookFrom) return slotAddressId;
+    const bookingAddr = rebookBookingQ.data?.address_id;
+    if (
+      bookingAddr &&
+      bookableAddresses.some((a: { id: string }) => a.id === bookingAddr)
+    ) {
+      return bookingAddr;
+    }
+    return slotAddressId;
+  }, [searchRebookFrom, rebookBookingQ.data?.address_id, bookableAddresses, slotAddressId]);
+  const rebookBookableQ = useBookableServiceIds(
+    searchRebookFrom ? providerId : undefined,
+    rebookEligibilityAddressId ?? undefined,
+  );
   const services = useMemo(
     () =>
       (servicesQ.data ?? []).filter(
@@ -367,12 +382,12 @@ export function BookContent({
     if (!servicesQ.isSuccess || servicesQ.isLoading) return;
     if (!addrsQ.isSuccess || !familyMembersQ.isSuccess) return;
     if (rebookCapsQ.isLoading || rebookRequirementsQ.isLoading) return;
-    if (bookableQ.isLoading) return;
+    if (rebookBookableQ.isLoading) return;
 
     const ctx = buildRebookPrefillContext({
       providerId,
       services: servicesQ.data ?? [],
-      bookableServiceIds: new Set((servicesQ.data ?? []).map((row) => row.service.id)),
+      bookableServiceIds: new Set([...(rebookBookableQ.data?.keys() ?? [])]),
       addresses: bookableAddresses,
       familyMembers: familyMembersQ.data ?? [],
       capabilities: (rebookCapsQ.data ?? []).map((cap) => ({
@@ -432,8 +447,8 @@ export function BookContent({
     rebookCapsQ.data,
     rebookRequirementsQ.isLoading,
     rebookRequirementsQ.data,
-    bookableQ.isLoading,
-    bookableQ.data,
+    rebookBookableQ.isLoading,
+    rebookBookableQ.data,
     bookableAddresses,
   ]);
   const stepKeys = BOOKING_SCREENS;

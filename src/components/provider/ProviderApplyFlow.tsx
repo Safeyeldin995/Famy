@@ -12,6 +12,7 @@ import { IdCaptureCard } from "@/components/famio/IdCaptureCard";
 import { ApplyDocumentChecklist } from "@/components/provider/ApplyDocumentChecklist";
 import {
   buildApplyDocumentChecklist,
+  type RequirementFulfillmentRow,
   type ServiceRequirementRow,
   type ProviderDocumentRow,
 } from "@/lib/provider/applyDocumentChecklist";
@@ -56,6 +57,7 @@ export function ProviderApplyFlow({
   lockedServices = [],
   documents = [],
   requirements = [],
+  fulfillments = [],
   changesRequested = false,
   onSave,
   onCapture,
@@ -67,6 +69,7 @@ export function ProviderApplyFlow({
   lockedServices?: string[];
   documents?: ProviderDocumentRow[];
   requirements?: ServiceRequirementRow[];
+  fulfillments?: RequirementFulfillmentRow[];
   changesRequested?: boolean;
   onSave: (step: number, draft: ApplyDraft) => Promise<void>;
   onCapture: (type: "id_card_front" | "id_card_back", file: File) => Promise<void>;
@@ -84,6 +87,7 @@ export function ProviderApplyFlow({
     selectedServiceIds: draft.services,
     requirements,
     documents,
+    fulfillments,
     captured: { front: draft.front, back: draft.back },
     changesRequested,
   });
