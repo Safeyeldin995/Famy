@@ -101,7 +101,7 @@ import { RebookPrefillNoticeList } from "@/ui/customer/RebookPrefillNotice";
 import type { RebookPrefillNotice } from "@shared/booking/rebookPrefill";
 import { savedAddressMobileUiParts } from "@shared/booking/savedAddressReviewLine";
 import type { RebookFormInitial } from "@shared/booking/rebookFormBootstrap";
-import { useRebookSeedGuard } from "@shared/booking/rebookSeedGuard";
+import { useRebookSeedGuard } from "@/lib/booking/rebookSeedGuard";
 import { BookRebookGate } from "@/ui/customer/BookRebookGate";
 import {
   requiresSupervisionMode,
