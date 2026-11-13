@@ -66,7 +66,7 @@ vi.mock("@/lib/db/teaching-queries", () => ({
 describe("BookRebookGate", () => {
   it("mounts rebook initial state when cached queries are already successful", () => {
     let captured: {
-      mountKey: string;
+      mountKey: string | null | undefined;
       addressId?: string;
       forWhom?: string;
       supervisionMode?: string;
