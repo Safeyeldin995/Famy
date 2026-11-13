@@ -176,7 +176,7 @@ export default function BookingDetail() {
                   onPress={() =>
                     router.push({
                       pathname: "/book/[providerId]",
-                      params: { providerId: b.provider_id },
+                      params: { providerId: b.provider_id, rebookFrom: b.id },
                     })
                   }
                 />

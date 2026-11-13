@@ -110,6 +110,13 @@ const booking = {
   provider_id: pid,
   customer_id: uid,
   service_id: sid,
+  address_id: aid,
+  family_member_id: null,
+  supervision_mode: null,
+  teaching_capability_id: null,
+  session_duration_min: 240,
+  requirement_selections: [{ requirement_id: id(63), chosen_by: "customer" }],
+  notes: "نفس المكان",
   status: "confirmed",
   start_at: now,
   end_at: new Date(Date.now() + 3600000).toISOString(),
@@ -458,6 +465,7 @@ async function run() {
         service_requirements: [
           {
             id: id(63),
+            service_id: sid,
             name_ar: "مستلزم اختبار",
             name_en: "Requirement",
             required_during_booking: true,
@@ -676,6 +684,13 @@ async function run() {
     });
     provider.category_slug = service.category.slug;
     provider.hourly_rate = kind === "package" ? 800 : 100;
+    await visit(`/book/${pid}`, ar.search2.service);
+    if (kind === "hourly") {
+      await visit(`/book/${pid}?rebookFrom=${bid}`);
+      await expect(
+        page.getByRole("button", { name: ar.bookFlow.ctaPickWhen, exact: true }),
+      ).toBeEnabled();
+    }
     await visit(`/book/${pid}`, ar.search2.service);
     await expect(page.getByRole("radio", { name: service.name_ar, exact: true })).toBeVisible();
     if (kind === "tutoring") {

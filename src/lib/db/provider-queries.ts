@@ -503,6 +503,24 @@ export function useRequirementsForService(serviceId: string | undefined) {
   });
 }
 
+export function useRequirementsForServices(serviceIds: string[]) {
+  const key = [...serviceIds].sort().join(",");
+  return useQuery({
+    enabled: serviceIds.length > 0,
+    queryKey: ["service-requirements-batch", key],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("service_requirements")
+        .select("*")
+        .in("service_id", serviceIds)
+        .eq("is_active", true)
+        .order("sort_order");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
 export function useMyRequirementFulfillments(providerId: string | undefined) {
   return useQuery({
     enabled: !!providerId,

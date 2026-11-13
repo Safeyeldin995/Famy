@@ -9,6 +9,7 @@ import { QueryError } from "@/components/famio/QueryError";
 import {
   useMyProvider,
   useProviderDocuments,
+  useRequirementsForServices,
   useSetProviderPrice,
 } from "@/lib/db/provider-queries";
 import {
@@ -37,6 +38,11 @@ function ProviderApplyRoute() {
   const zones = useActiveZones();
   const selections = useMySavedSelections(provider.data?.id);
   const docs = useProviderDocuments(provider.data?.id);
+  const selectedServiceIds =
+    selections.data?.services
+      .map((s) => s.service_id)
+      .filter((id) => services.data?.some((s) => s.id === id)) ?? [];
+  const applyRequirements = useRequirementsForServices(selectedServiceIds);
   const save = useSaveOnboardingSection();
   const submit = useSubmitOnboarding();
   const price = useSetProviderPrice();
@@ -57,7 +63,7 @@ function ProviderApplyRoute() {
       start.mutate();
     }
   }, [provider.isSuccess, provider.data, start.mutate]);
-  const queries = [provider, snapshot, services, zones, selections, docs];
+  const queries = [provider, snapshot, services, zones, selections, docs, applyRequirements];
   if (start.isError || queries.some((q) => q.isError))
     return (
       <QueryError
@@ -149,6 +155,9 @@ function ProviderApplyRoute() {
       zones={zones.data!}
       lockedServices={savedServices.filter((s) => s.status === "approved").map((s) => s.service_id)}
       onSave={persist}
+      documents={docs.data ?? []}
+      requirements={applyRequirements.data ?? []}
+      changesRequested={provider.data.onboarding_status === "NEEDS_CHANGES"}
       onCapture={async (type, file) => {
         await upload.mutateAsync({ type, file });
       }}

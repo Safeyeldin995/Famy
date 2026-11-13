@@ -27,6 +27,7 @@ import { CheckChip } from "@/components/famio/CheckChip";
 import { TextField } from "@/components/famio/TextField";
 import { BookingWhen } from "@/components/booking/BookingWhen";
 import { BookingVisitRequirements } from "@/components/booking/BookingVisitRequirements";
+import { RebookPrefillNoticeList } from "@/components/booking/RebookPrefillNotice";
 import { bookingScreenPrimaryCtaKey } from "@/lib/booking/bookingStepCta";
 import { bookingFieldHintForStep } from "@/lib/booking/bookingFieldHints";
 import { CustomerPreparationNotesSection } from "@/components/booking/CustomerPreparationNotesSection";
@@ -56,6 +57,7 @@ import {
   useResolveZone,
   useProviderBookingSettings,
   useMyProfile,
+  useBooking,
 } from "@/lib/db/queries";
 import { useActiveFamilyMembers } from "@/lib/db/family-members-queries";
 import { useCreatePayment, mapPaymentInsertError } from "@/lib/db/payment-queries";
@@ -128,11 +130,17 @@ import {
   resolveAutoFillCapabilityId,
   shouldPersistEducationAfterBookingSuccess,
 } from "@/lib/tutoring/bookingEducationAutofill";
+import {
+  applyRebookPrefill,
+  buildRebookPrefillContext,
+} from "@/lib/booking/rebookPrefillContext";
+import type { RebookPrefillNotice } from "@/lib/booking/rebookPrefill";
 
 export const Route = createFileRoute("/book/$providerId")({
   validateSearch: (search: Record<string, unknown>) => ({
     serviceId: typeof search.serviceId === "string" ? search.serviceId : undefined,
     capabilityId: typeof search.capabilityId === "string" ? search.capabilityId : undefined,
+    rebookFrom: typeof search.rebookFrom === "string" ? search.rebookFrom : undefined,
   }),
   component: Book,
 });
@@ -140,13 +148,18 @@ export const Route = createFileRoute("/book/$providerId")({
 function Book() {
   const { blocking } = useProviderOnlyCustomerRedirect();
   const { providerId } = Route.useParams();
-  const { serviceId: searchServiceId, capabilityId: searchCapabilityId } = Route.useSearch();
+  const {
+    serviceId: searchServiceId,
+    capabilityId: searchCapabilityId,
+    rebookFrom: searchRebookFrom,
+  } = Route.useSearch();
   if (blocking) return null;
   return (
     <BookContent
       providerId={providerId}
       searchServiceId={searchServiceId}
       searchCapabilityId={searchCapabilityId}
+      searchRebookFrom={searchRebookFrom}
     />
   );
 }
@@ -155,10 +168,12 @@ export function BookContent({
   providerId,
   searchServiceId,
   searchCapabilityId,
+  searchRebookFrom,
 }: {
   providerId: string;
   searchServiceId?: string;
   searchCapabilityId?: string;
+  searchRebookFrom?: string;
 }) {
   const provQ = useProvider(providerId);
   const servicesQ = useProviderServices(providerId);
@@ -205,7 +220,17 @@ export function BookContent({
   const [saveEducationForNextTime, setSaveEducationForNextTime] = useState(false);
   const userPickedDateRef = useRef(false);
   const userPickedCapabilityRef = useRef(false);
+  const rebookAppliedRef = useRef(false);
   const idempotencyStateRef = useRef<IdempotencyKeyState | null>(null);
+  const [rebookNotices, setRebookNotices] = useState<RebookPrefillNotice[]>([]);
+  const rebookBookingQ = useBooking(searchRebookFrom);
+  const rebookRequirementsQ = useRequirementsForService(
+    searchRebookFrom ? (rebookBookingQ.data?.service_id ?? undefined) : undefined,
+  );
+  const rebookCapsQ = useApprovedTeachingCapabilities(
+    providerId,
+    searchRebookFrom ? (rebookBookingQ.data?.service_id ?? undefined) : undefined,
+  );
   const customerEducationQ = useCustomerEducationProfile();
   const myProfileQ = useMyProfile();
   const saveEducation = useSaveStudentEducationProfile();
@@ -327,6 +352,72 @@ export function BookContent({
     addressId: slotAddressId,
   });
   const requirementsQ = useRequirementsForService(activeService?.service?.id);
+  useEffect(() => {
+    if (!searchRebookFrom || rebookAppliedRef.current) return;
+    if (!rebookBookingQ.isSuccess || !rebookBookingQ.data) return;
+    if (rebookBookingQ.data.provider_id !== providerId) return;
+    if (!servicesQ.isSuccess || servicesQ.isLoading) return;
+    if (!addrsQ.isSuccess || !familyMembersQ.isSuccess) return;
+    if (rebookCapsQ.isLoading || rebookRequirementsQ.isLoading) return;
+    if (bookableQ.isLoading) return;
+
+    const ctx = buildRebookPrefillContext({
+      providerId,
+      services: servicesQ.data ?? [],
+      bookableServiceIds: new Set((servicesQ.data ?? []).map((row) => row.service.id)),
+      addresses: bookableAddresses,
+      familyMembers: familyMembersQ.data ?? [],
+      capabilities: (rebookCapsQ.data ?? []).map((cap) => ({
+        id: cap.id,
+        serviceId: cap.serviceId,
+        status: cap.status,
+        curriculumId: cap.curriculumId,
+        levelId: cap.levelId,
+      })),
+      bookingRequirements: rebookRequirementsQ.data ?? [],
+    });
+    const result = applyRebookPrefill(rebookBookingQ.data, ctx);
+    if (!result) return;
+    rebookAppliedRef.current = true;
+    setRebookNotices(result.notices);
+    const { values } = result;
+    if (values.serviceId) setServiceId(values.serviceId);
+    if (values.capabilityId) {
+      setCapabilityId(values.capabilityId);
+      userPickedCapabilityRef.current = true;
+    }
+    if (values.hours) setDuration(`${values.hours}h`);
+    if (values.addressId) setAddressId(values.addressId);
+    if (values.forWhom) setForWhom(values.forWhom);
+    if (values.supervisionMode) setSupervisionMode(values.supervisionMode);
+    if (values.notes) setNotes(values.notes);
+    if (values.requirementChoices && Object.keys(values.requirementChoices).length) {
+      setRequirementChoices(values.requirementChoices);
+    }
+    if (values.curriculumId || values.levelId) {
+      setBookingEducation(
+        educationValueFromIds(values.curriculumId ?? null, values.levelId ?? null),
+      );
+    }
+  }, [
+    searchRebookFrom,
+    rebookBookingQ.isSuccess,
+    rebookBookingQ.data,
+    providerId,
+    servicesQ.isSuccess,
+    servicesQ.isLoading,
+    servicesQ.data,
+    addrsQ.isSuccess,
+    familyMembersQ.isSuccess,
+    familyMembersQ.data,
+    rebookCapsQ.isLoading,
+    rebookCapsQ.data,
+    rebookRequirementsQ.isLoading,
+    rebookRequirementsQ.data,
+    bookableQ.isLoading,
+    bookableQ.data,
+    bookableAddresses,
+  ]);
   const stepKeys = BOOKING_SCREENS;
   const stepKey = requestedStep;
   const step = stepKeys.indexOf(stepKey);
@@ -964,6 +1055,7 @@ export function BookContent({
           onBack={handleBack}
         />
         <div className="apply-content">
+          <RebookPrefillNoticeList notices={rebookNotices} />
           {inlineError?.screen === stepKey && (
             <p role="alert" className="booking-error">
               {inlineError.message}

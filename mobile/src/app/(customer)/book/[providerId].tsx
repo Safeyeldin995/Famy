@@ -28,6 +28,7 @@ import {
   useApprovedTeachingCapabilities,
   useCustomerEducationProfile,
   useMyProfile,
+  useBooking,
 } from "@/lib/queries";
 import {
   useAvailableSlots,
@@ -96,6 +97,12 @@ import { providerRatingSummary } from "@/lib/providerRating";
 import { joinUiParts } from "@shared/format/uiJoin";
 import { SupervisionModeChoices } from "@/ui/customer/SupervisionModeChoices";
 import { CheckoutPromoPicker } from "@/ui/customer/CheckoutPromoPicker";
+import { RebookPrefillNoticeList } from "@/ui/customer/RebookPrefillNotice";
+import {
+  applyRebookPrefill,
+  buildRebookPrefillContext,
+} from "@shared/booking/rebookPrefillContext";
+import type { RebookPrefillNotice } from "@shared/booking/rebookPrefill";
 import {
   requiresSupervisionMode,
   type SupervisionMode,
@@ -109,7 +116,13 @@ export default function Book() {
     providerId,
     serviceId: initialService,
     capabilityId: initialCap,
-  } = useLocalSearchParams<{ providerId: string; serviceId?: string; capabilityId?: string }>();
+    rebookFrom,
+  } = useLocalSearchParams<{
+    providerId: string;
+    serviceId?: string;
+    capabilityId?: string;
+    rebookFrom?: string;
+  }>();
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const locale = lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB";
@@ -155,6 +168,16 @@ export default function Book() {
   const submitting = useRef(false);
   const userDate = useRef(false);
   const userCap = useRef(!!initialCap);
+  const rebookApplied = useRef(false);
+  const [rebookNotices, setRebookNotices] = useState<RebookPrefillNotice[]>([]);
+  const rebookBooking = useBooking(rebookFrom);
+  const rebookRequirements = useRequirementsForService(
+    rebookFrom ? (rebookBooking.data?.service_id as string | undefined) : undefined,
+  );
+  const rebookCaps = useApprovedTeachingCapabilities(
+    providerId,
+    rebookFrom ? (rebookBooking.data?.service_id as string | undefined) : undefined,
+  );
   const createdId = useRef<string | null>(null);
   const pinned = (addresses.data ?? []).filter((a) => a.lat != null && a.lng != null);
   const selectedAddress = pinned.find((a) => a.id === addressId);
@@ -214,6 +237,62 @@ export default function Book() {
     customerFullName: profile.data?.full_name,
     familyMembers: members.data ?? [],
   });
+  useEffect(() => {
+    if (!rebookFrom || rebookApplied.current) return;
+    if (!rebookBooking.isSuccess || !rebookBooking.data) return;
+    if (rebookBooking.data.provider_id !== providerId) return;
+    if (!servicesQ.isSuccess || addresses.isLoading || members.isLoading) return;
+    if (rebookCaps.isLoading || rebookRequirements.isLoading) return;
+    const ctx = buildRebookPrefillContext({
+      providerId,
+      services: servicesQ.data ?? [],
+      bookableServiceIds: new Set((servicesQ.data ?? []).map((row) => row.service.id)),
+      addresses: pinned,
+      familyMembers: members.data ?? [],
+      capabilities: (rebookCaps.data ?? []).map((cap) => ({
+        id: cap.id,
+        serviceId: cap.serviceId,
+        status: cap.status,
+        curriculumId: cap.curriculumId,
+        levelId: cap.levelId,
+      })),
+      bookingRequirements: rebookRequirements.data ?? [],
+    });
+    const result = applyRebookPrefill(rebookBooking.data as any, ctx);
+    if (!result) return;
+    rebookApplied.current = true;
+    setRebookNotices(result.notices);
+    const { values } = result;
+    if (values.serviceId) setServiceId(values.serviceId);
+    if (values.capabilityId) {
+      setCapId(values.capabilityId);
+      userCap.current = true;
+    }
+    if (values.hours) setHours(values.hours);
+    if (values.addressId) setAddressId(values.addressId);
+    if (values.forWhom) setRecipient(values.forWhom);
+    if (values.supervisionMode) setSupervisionMode(values.supervisionMode);
+    if (values.notes) setNotes(values.notes);
+    if (Object.keys(values.requirementChoices).length) setChoices(values.requirementChoices);
+    if (values.curriculumId) setCurriculum(values.curriculumId);
+    if (values.levelId) setLevel(values.levelId);
+  }, [
+    rebookFrom,
+    rebookBooking.isSuccess,
+    rebookBooking.data,
+    providerId,
+    servicesQ.isSuccess,
+    servicesQ.data,
+    addresses.isLoading,
+    members.isLoading,
+    members.data,
+    rebookCaps.isLoading,
+    rebookCaps.data,
+    rebookRequirements.isLoading,
+    rebookRequirements.data,
+    pinned,
+  ]);
+
   useEffect(() => {
     if (!addressId && pinned.length)
       setAddressId((pinned.find((a) => a.is_default) ?? pinned[0]).id);
@@ -609,6 +688,7 @@ export default function Book() {
       <QueryState query={settings} />
       <QueryState query={billing} />
       {needsRate && <QueryState query={packageRate} />}
+      <RebookPrefillNoticeList notices={rebookNotices} />
       {!pinned.length && !addresses.isLoading && (
         <>
           <Text>{t("customerHome.addressHint")}</Text>

@@ -152,6 +152,7 @@ vi.mock("@/lib/db/queries", () => ({
     }
     return query(slotCache.get(key));
   },
+  useBooking: () => query(null),
   useCreateBooking: () => ({ mutateAsync: state.create, isPending: false }),
 }));
 vi.mock("@/lib/db/family-members-queries", () => ({
