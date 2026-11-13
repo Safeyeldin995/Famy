@@ -1,5 +1,5 @@
 // Customer data operations ported from the named web data modules. Same RPCs, arguments and guards.
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   bookingCancelInvalidationKeys,
   invalidateQueryKeyList,
@@ -9,6 +9,10 @@ import { supabase } from "./supabase";
 import { cairoWallTime, packageRuleStart } from "@shared/pricing/servicePackages";
 import { creationMinHours, parseBookingExpirySettings } from "@shared/booking/pending-expiry";
 import { mapBookingRpcError } from "@shared/booking/errors";
+import {
+  fetchRequirementsForServiceIds,
+  requirementsBatchQueryKey,
+} from "@shared/db/serviceRequirementsBatch";
 import { completeCreateBookingResult } from "./bookingPure";
 import type { ServiceZone } from "@shared/geo/serviceZones";
 import {
@@ -615,6 +619,25 @@ export function useRequirementsForService(serviceId: string | undefined) {
       if (error) throw error;
       return data ?? [];
     },
+  });
+}
+
+export function useRequirementsForServices(serviceIds: string[]) {
+  const key = requirementsBatchQueryKey(serviceIds);
+  return useQuery({
+    queryKey: ["service-requirements-batch", key],
+    queryFn: async () =>
+      fetchRequirementsForServiceIds(serviceIds, async (ids) => {
+        const { data, error } = await supabase
+          .from("service_requirements")
+          .select("*")
+          .in("service_id", ids)
+          .eq("is_active", true)
+          .order("sort_order");
+        if (error) throw error;
+        return data ?? [];
+      }),
+    placeholderData: keepPreviousData,
   });
 }
 

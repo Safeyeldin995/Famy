@@ -8,7 +8,9 @@ import { ProviderApplyFlow, type ApplyDraft } from "@/components/provider/Provid
 import { QueryError } from "@/components/famio/QueryError";
 import {
   useMyProvider,
+  useMyRequirementFulfillments,
   useProviderDocuments,
+  useRequirementsForServices,
   useSetProviderPrice,
 } from "@/lib/db/provider-queries";
 import {
@@ -24,6 +26,7 @@ import { needsServicePrice } from "@/lib/provider/priceOptions";
 import { defaultWorkingHours } from "@/lib/provider/setupHelpers";
 import { useReplaceAvailability } from "@/lib/db/provider-queries";
 import { supabase } from "@/integrations/supabase/client";
+import { providerApplyBootstrapLoading } from "@/lib/provider/providerApplyBootstrap";
 
 export const Route = createFileRoute("/pro/apply")({ validateSearch: applyStepSearch, component: ProviderApplyRoute });
 function ProviderApplyRoute() {
@@ -37,6 +40,12 @@ function ProviderApplyRoute() {
   const zones = useActiveZones();
   const selections = useMySavedSelections(provider.data?.id);
   const docs = useProviderDocuments(provider.data?.id);
+  const selectedServiceIds =
+    selections.data?.services
+      .map((s) => s.service_id)
+      .filter((id) => services.data?.some((s) => s.id === id)) ?? [];
+  const applyRequirements = useRequirementsForServices(selectedServiceIds);
+  const requirementFulfillments = useMyRequirementFulfillments(provider.data?.id);
   const save = useSaveOnboardingSection();
   const submit = useSubmitOnboarding();
   const price = useSetProviderPrice();
@@ -57,7 +66,8 @@ function ProviderApplyRoute() {
       start.mutate();
     }
   }, [provider.isSuccess, provider.data, start.mutate]);
-  const queries = [provider, snapshot, services, zones, selections, docs];
+  const bootstrapQueries = [provider, snapshot, services, zones, selections, docs];
+  const queries = [...bootstrapQueries, applyRequirements];
   if (start.isError || queries.some((q) => q.isError))
     return (
       <QueryError
@@ -67,7 +77,7 @@ function ProviderApplyRoute() {
         }}
       />
     );
-  if (!provider.data || queries.some((q) => !q.isSuccess))
+  if (!provider.data || providerApplyBootstrapLoading(bootstrapQueries))
     return (
       <div className="apply-ui apply-screen p-5" role="status">
         {t("providerApply.loading")}
@@ -149,6 +159,10 @@ function ProviderApplyRoute() {
       zones={zones.data!}
       lockedServices={savedServices.filter((s) => s.status === "approved").map((s) => s.service_id)}
       onSave={persist}
+      documents={docs.data ?? []}
+      requirements={applyRequirements.data ?? []}
+      fulfillments={requirementFulfillments.data ?? []}
+      changesRequested={provider.data.onboarding_status === "NEEDS_CHANGES"}
       onCapture={async (type, file) => {
         await upload.mutateAsync({ type, file });
       }}

@@ -9,6 +9,13 @@ import { CheckChip } from "@/components/famio/CheckChip";
 import { ServiceCard } from "@/components/famio/ServiceCard";
 import { PriceStepper, initialStepperPrice } from "@/components/famio/PriceStepper";
 import { IdCaptureCard } from "@/components/famio/IdCaptureCard";
+import { ApplyDocumentChecklist } from "@/components/provider/ApplyDocumentChecklist";
+import {
+  buildApplyDocumentChecklist,
+  type RequirementFulfillmentRow,
+  type ServiceRequirementRow,
+  type ProviderDocumentRow,
+} from "@/lib/provider/applyDocumentChecklist";
 import { hasSelectedServicePrices, needsServicePrice } from "@/lib/provider/priceOptions";
 import { isFixedPackage, servicePriceUnit } from "@/lib/pricing/servicePackages";
 import { applyServiceSubtitle } from "@/lib/provider/applyServiceSubtitle";
@@ -48,6 +55,10 @@ export function ProviderApplyFlow({
   zones,
   services,
   lockedServices = [],
+  documents = [],
+  requirements = [],
+  fulfillments = [],
+  changesRequested = false,
   onSave,
   onCapture,
 }: {
@@ -56,6 +67,10 @@ export function ProviderApplyFlow({
   zones: { id: string; name_en: string; name_ar: string }[];
   services: ApplyService[];
   lockedServices?: string[];
+  documents?: ProviderDocumentRow[];
+  requirements?: ServiceRequirementRow[];
+  fulfillments?: RequirementFulfillmentRow[];
+  changesRequested?: boolean;
   onSave: (step: number, draft: ApplyDraft) => Promise<void>;
   onCapture: (type: "id_card_front" | "id_card_back", file: File) => Promise<void>;
 }) {
@@ -68,6 +83,14 @@ export function ProviderApplyFlow({
   const [captureError, setCaptureError] = useState<string | null>(null);
   const ar = i18n.language.startsWith("ar");
   const ready = applyStepReady(step, draft, services);
+  const checklist = buildApplyDocumentChecklist({
+    selectedServiceIds: draft.services,
+    requirements,
+    documents,
+    fulfillments,
+    captured: { front: draft.front, back: draft.back },
+    changesRequested,
+  });
   const advance = async () => {
     if (busy) return;
     setAttempted(true);
@@ -233,6 +256,7 @@ export function ProviderApplyFlow({
         )}
         {step === 3 && (
           <>
+            <ApplyDocumentChecklist items={checklist} />
             <IdCaptureCard
               title={t("providerApply.front")}
               captured={draft.front}

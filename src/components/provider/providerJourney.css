@@ -25,3 +25,30 @@
   min-height: 44px;
   min-width: 44px;
 }
+.apply-doc-checklist-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+.apply-doc-checklist-row {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--surface);
+}
+.apply-doc-checklist-row.highlight {
+  border-color: var(--destructive);
+  background: color-mix(in srgb, var(--destructive) 8%, var(--surface));
+}
+.apply-doc-checklist-name {
+  font-weight: 700;
+  font-size: 14px;
+}
+.apply-doc-checklist-status {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}

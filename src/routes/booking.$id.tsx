@@ -321,7 +321,11 @@ export function BookingDetailContent({
                 nav({
                   to: "/book/$providerId",
                   params: { providerId: real!.provider_id },
-                  search: { serviceId: undefined, capabilityId: undefined },
+                  search: {
+                    serviceId: undefined,
+                    capabilityId: undefined,
+                    rebookFrom: real!.id,
+                  },
                 })
               }
               className="focus-ring tap-scale inline-flex min-h-11 w-full items-center justify-center rounded-full border border-border text-pro-14 font-extrabold"

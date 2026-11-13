@@ -28,6 +28,7 @@ import {
   useApprovedTeachingCapabilities,
   useCustomerEducationProfile,
   useMyProfile,
+  useBooking,
 } from "@/lib/queries";
 import {
   useAvailableSlots,
@@ -96,6 +97,12 @@ import { providerRatingSummary } from "@/lib/providerRating";
 import { joinUiParts } from "@shared/format/uiJoin";
 import { SupervisionModeChoices } from "@/ui/customer/SupervisionModeChoices";
 import { CheckoutPromoPicker } from "@/ui/customer/CheckoutPromoPicker";
+import { RebookPrefillNoticeList } from "@/ui/customer/RebookPrefillNotice";
+import type { RebookPrefillNotice } from "@shared/booking/rebookPrefill";
+import { savedAddressMobileUiParts } from "@shared/booking/savedAddressReviewLine";
+import type { RebookFormInitial } from "@shared/booking/rebookFormBootstrap";
+import { useRebookSeedGuard } from "@/lib/booking/rebookSeedGuard";
+import { BookRebookGate } from "@/ui/customer/BookRebookGate";
 import {
   requiresSupervisionMode,
   type SupervisionMode,
@@ -109,7 +116,45 @@ export default function Book() {
     providerId,
     serviceId: initialService,
     capabilityId: initialCap,
-  } = useLocalSearchParams<{ providerId: string; serviceId?: string; capabilityId?: string }>();
+    rebookFrom,
+  } = useLocalSearchParams<{
+    providerId: string;
+    serviceId?: string;
+    capabilityId?: string;
+    rebookFrom?: string;
+  }>();
+  return (
+    <BookRebookGate providerId={providerId} rebookFrom={rebookFrom}>
+      {({ mountKey, rebookInitial, rebookNotices }) => (
+        <BookForm
+          key={mountKey}
+          providerId={providerId}
+          initialService={initialService}
+          initialCap={initialCap}
+          rebookFrom={rebookFrom}
+          rebookInitial={rebookInitial}
+          rebookNotices={rebookNotices}
+        />
+      )}
+    </BookRebookGate>
+  );
+}
+
+function BookForm({
+  providerId,
+  initialService,
+  initialCap,
+  rebookFrom,
+  rebookInitial,
+  rebookNotices: rebookNoticesProp,
+}: {
+  providerId: string;
+  initialService?: string;
+  initialCap?: string;
+  rebookFrom?: string;
+  rebookInitial: RebookFormInitial | null;
+  rebookNotices: import("@shared/booking/rebookPrefill").RebookPrefillNotice[];
+}) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const locale = lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB";
@@ -127,37 +172,53 @@ export default function Book() {
   const savedEducation = useCustomerEducationProfile();
   const profile = useMyProfile();
   const [step, setStep] = useState(0);
-  const [serviceId, setServiceId] = useState(initialService || "");
-  const [capId, setCapId] = useState(initialCap || "");
-  const [hours, setHours] = useState(4);
+  const { guardDefault, touch } = useRebookSeedGuard(rebookInitial?.seededFields);
+  const [serviceId, setServiceId] = useState(
+    rebookInitial?.serviceId ?? initialService ?? "",
+  );
+  const [capId, setCapId] = useState(rebookInitial?.capabilityId ?? initialCap ?? "");
+  const [hours, setHours] = useState(rebookInitial?.durationHours ?? 4);
   const [date, setDate] = useState(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
     return d;
   });
   const [slot, setSlot] = useState<Slot | null>(null);
-  const [addressId, setAddressId] = useState("");
-  const [recipient, setRecipient] = useState("myself");
-  const [supervisionMode, setSupervisionMode] = useState<SupervisionMode | "">("");
-  const [notes, setNotes] = useState("");
+  const [addressId, setAddressId] = useState(rebookInitial?.addressId ?? "");
+  const [recipient, setRecipient] = useState(rebookInitial?.forWhom ?? "myself");
+  const [supervisionMode, setSupervisionMode] = useState<SupervisionMode | "">(
+    rebookInitial?.supervisionMode ?? "",
+  );
+  const [notes, setNotes] = useState(rebookInitial?.notes ?? "");
   const [methodId, setMethodId] = useState("");
-  const [choices, setChoices] = useState<Record<string, "customer" | "provider">>({});
+  const [choices, setChoices] = useState<Record<string, "customer" | "provider">>(
+    rebookInitial?.requirementChoices ?? {},
+  );
   const [applied, setApplied] = useState<{ id: string; discount: number; code: string } | null>(
     null,
   );
   const [error, setError] = useState("");
   const [fieldHint, setFieldHint] = useState<BookingFieldHint | null>(null);
   const [busy, setBusy] = useState(false);
-  const [curriculum, setCurriculum] = useState("");
-  const [level, setLevel] = useState("");
+  const [curriculum, setCurriculum] = useState(
+    rebookInitial?.education.educationCurriculumId ?? "",
+  );
+  const [level, setLevel] = useState(rebookInitial?.education.educationLevelId ?? "");
   const [saveSchool, setSaveSchool] = useState(false);
   const idempotency = useRef<IdempotencyKeyState | null>(null);
   const submitting = useRef(false);
   const userDate = useRef(false);
-  const userCap = useRef(!!initialCap);
+  const userCap = useRef(rebookInitial?.capabilityUserPicked ?? !!initialCap);
+  const rebookNotices = rebookNoticesProp;
   const createdId = useRef<string | null>(null);
   const pinned = (addresses.data ?? []).filter((a) => a.lat != null && a.lng != null);
   const selectedAddress = pinned.find((a) => a.id === addressId);
+  const reviewAddressId =
+    addressId || pinned.find((a) => a.is_default)?.id || pinned[0]?.id || "";
+  const reviewAddressLine = useMemo(() => {
+    const addr = pinned.find((a) => a.id === reviewAddressId);
+    return joinUiParts(savedAddressMobileUiParts(addr), lang);
+  }, [pinned, reviewAddressId, lang]);
   const zone = useResolveZone(selectedAddress?.lat, selectedAddress?.lng);
   const bookable = useBookableServiceIds(providerId, addressId || undefined);
   const services = (servicesQ.data ?? []).filter(
@@ -215,19 +276,24 @@ export default function Book() {
     familyMembers: members.data ?? [],
   });
   useEffect(() => {
-    if (!addressId && pinned.length)
+    if (guardDefault("addressId")) return;
+    if (!addressId && pinned.length) {
       setAddressId((pinned.find((a) => a.is_default) ?? pinned[0]).id);
-  }, [addressId, pinned]);
+    }
+  }, [addressId, pinned, guardDefault]);
   useEffect(() => {
     if (!methodId && methods.data?.length)
       setMethodId((methods.data.find((m) => m.is_default) ?? methods.data[0]).id);
   }, [methodId, methods.data]);
   useEffect(() => {
+    if (guardDefault("forWhom")) return;
     if (babysitting && recipient === "myself") setRecipient("");
     if (!babysitting && !recipient) setRecipient("myself");
-  }, [babysitting, recipient]);
+  }, [babysitting, recipient, guardDefault]);
+
   useEffect(() => {
     if (!tutoring || isLessonService) return;
+    if (guardDefault("education")) return;
     setCurriculum(student.educationCurriculumId || "");
     setLevel(student.educationLevelId || "");
     userCap.current = !!initialCap;
@@ -238,8 +304,10 @@ export default function Book() {
     student.educationCurriculumId,
     student.educationLevelId,
     initialCap,
+    guardDefault,
   ]);
   useEffect(() => {
+    if (guardDefault("capabilityId")) return;
     if (tutoring && !isLessonService && !userCap.current)
       setCapId(
         pickDefaultCapabilityForEducation(
@@ -249,14 +317,15 @@ export default function Book() {
           level || null,
         )?.id || "",
       );
-  }, [tutoring, isLessonService, caps.data, service?.service.id, curriculum, level]);
+  }, [tutoring, isLessonService, caps.data, service?.service.id, curriculum, level, guardDefault]);
   useEffect(() => {
     setSlot(null);
     setApplied(null);
   }, [service?.service.id, capId, hours, addressId]);
   useEffect(() => {
+    if (guardDefault("supervisionMode")) return;
     setSupervisionMode("");
-  }, [service?.service.id]);
+  }, [service?.service.id, guardDefault]);
   useEffect(() => {
     if (fixed && service?.service.fixed_start_time)
       setSlot(!slots.isFetching && !slots.isError ? (available[0] ?? null) : null);
@@ -485,7 +554,10 @@ export default function Book() {
       <Choices
         label={t("bookFlow.forWhomTitle")}
         value={recipient}
-        onChange={setRecipient}
+        onChange={(v) => {
+          touch("forWhom");
+          setRecipient(v);
+        }}
         options={[
           ...(!babysitting ? [{ value: "myself", label: t("bookFlow.forWhomMyself") }] : []),
           ...(members.data ?? [])
@@ -515,7 +587,13 @@ export default function Book() {
         onPress={() => setInlineForm("member")}
       />
       {supervisionRequired && (
-        <SupervisionModeChoices value={supervisionMode} onChange={setSupervisionMode} />
+        <SupervisionModeChoices
+          value={supervisionMode}
+          onChange={(mode) => {
+            touch("supervisionMode");
+            setSupervisionMode(mode);
+          }}
+        />
       )}
     </View>
   );
@@ -609,6 +687,7 @@ export default function Book() {
       <QueryState query={settings} />
       <QueryState query={billing} />
       {needsRate && <QueryState query={packageRate} />}
+      <RebookPrefillNoticeList notices={rebookNotices} />
       {!pinned.length && !addresses.isLoading && (
         <>
           <Text>{t("customerHome.addressHint")}</Text>
@@ -850,6 +929,7 @@ export default function Book() {
             label={t("bookingUx.chooseAddress")}
             value={addressId}
             onChange={(v) => {
+              touch("addressId");
               setAddressId(v);
               setSlot(null);
             }}
@@ -934,10 +1014,7 @@ export default function Book() {
               },
               {
                 label: t("bookFlow.rowAddress"),
-                value: joinUiParts(
-                  [selectedAddress?.area, selectedAddress?.street].filter(Boolean) as string[],
-                  lang,
-                ),
+                value: reviewAddressLine,
                 step: 2,
               },
               {
@@ -1100,7 +1177,10 @@ export default function Book() {
         kind={inlineForm}
         onClose={() => setInlineForm(null)}
         onSaved={(id) => {
-          if (inlineForm === "member") setRecipient(id);
+          if (inlineForm === "member") {
+            touch("forWhom");
+            setRecipient(id);
+          }
           else {
             setAddressId(id);
             setSlot(null);

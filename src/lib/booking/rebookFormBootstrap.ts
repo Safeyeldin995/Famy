@@ -1,0 +1,161 @@
+import type { SupervisionMode } from "./supervisionMode";
+import { applyRebookPrefill, buildRebookPrefillContext } from "./rebookPrefillContext";
+import type {
+  RebookPrefillNotice,
+  RebookPrefillResult,
+  RebookPrefillValues,
+  RebookSourceBooking,
+} from "./rebookPrefill";
+export type RebookEducationProfileValue = {
+  educationCurriculumId: string;
+  educationLevelId: string;
+};
+
+function educationValueFromIds(
+  curriculumId: string | null,
+  levelId: string | null,
+): RebookEducationProfileValue {
+  return {
+    educationCurriculumId: curriculumId ?? "",
+    educationLevelId: levelId ?? "",
+  };
+}
+
+export type RebookSeedField =
+  | "serviceId"
+  | "capabilityId"
+  | "addressId"
+  | "forWhom"
+  | "supervisionMode"
+  | "duration"
+  | "notes"
+  | "requirementChoices"
+  | "education";
+
+export type RebookFormInitial = {
+  serviceId: string | null;
+  capabilityId: string | null;
+  durationHours: number | null;
+  addressId: string | null;
+  forWhom: string;
+  supervisionMode: SupervisionMode | "";
+  notes: string;
+  requirementChoices: Record<string, "customer" | "provider">;
+  education: RebookEducationProfileValue;
+  capabilityUserPicked: boolean;
+  seededFields: ReadonlySet<RebookSeedField>;
+  notices: RebookPrefillNotice[];
+};
+
+export function rebookBootstrapQueriesLoading(input: {
+  rebookFrom?: string;
+  bookingLoading: boolean;
+  bookingSuccess: boolean;
+  servicesLoading: boolean;
+  servicesError: boolean;
+  servicesReady: boolean;
+  addressesLoading: boolean;
+  membersLoading: boolean;
+  capsLoading: boolean;
+  requirementsLoading: boolean;
+  bookableLoading: boolean;
+}): boolean {
+  if (!input.rebookFrom) return false;
+  if (input.bookingLoading) return true;
+  if (!input.bookingSuccess) return false;
+  if (input.servicesError && !input.servicesLoading) return false;
+  if (input.servicesLoading || !input.servicesReady) return true;
+  if (input.addressesLoading || input.membersLoading) return true;
+  if (input.capsLoading || input.requirementsLoading || input.bookableLoading) return true;
+  return false;
+}
+
+/** Source booking loaded but provider services failed; skip prefill and mount the booking form. */
+export function rebookPrefillBlockedByServices(input: {
+  rebookFrom?: string;
+  bookingSuccess: boolean;
+  bookingData: unknown;
+  servicesLoading: boolean;
+  servicesError: boolean;
+}): boolean {
+  if (!input.rebookFrom || !input.bookingSuccess || input.bookingData == null) return false;
+  return input.servicesError && !input.servicesLoading;
+}
+
+export function rebookSourceUnavailable(input: {
+  rebookFrom?: string;
+  bookingLoading: boolean;
+  bookingSuccess: boolean;
+  bookingData: unknown;
+}): boolean {
+  if (!input.rebookFrom || input.bookingLoading) return false;
+  return !input.bookingSuccess || input.bookingData == null;
+}
+
+function collectSeededFields(
+  values: RebookPrefillValues,
+  source: RebookSourceBooking,
+): Set<RebookSeedField> {
+  const seeded = new Set<RebookSeedField>();
+  if (values.serviceId) seeded.add("serviceId");
+  if (values.capabilityId) seeded.add("capabilityId");
+  if (values.addressId) seeded.add("addressId");
+  seeded.add("forWhom");
+  if (values.supervisionMode) seeded.add("supervisionMode");
+  if (values.hours) seeded.add("duration");
+  if (values.notes?.trim()) seeded.add("notes");
+  if (Object.keys(values.requirementChoices).length) seeded.add("requirementChoices");
+  if (values.curriculumId || values.levelId) seeded.add("education");
+  return seeded;
+}
+
+export function buildRebookFormInitial(
+  result: RebookPrefillResult,
+  booking: RebookSourceBooking,
+  fallbackAddressId: string | null,
+): RebookFormInitial {
+  const { values, notices } = result;
+  const seededFields = collectSeededFields(values, booking);
+  return {
+    serviceId: values.serviceId ?? null,
+    capabilityId: values.capabilityId ?? null,
+    durationHours: values.hours ?? null,
+    addressId: values.addressId ?? fallbackAddressId,
+    forWhom: values.forWhom,
+    supervisionMode: values.supervisionMode,
+    notes: values.notes,
+    requirementChoices: values.requirementChoices,
+    education: educationValueFromIds(values.curriculumId ?? null, values.levelId ?? null),
+    capabilityUserPicked: !!values.capabilityId,
+    seededFields,
+    notices,
+  };
+}
+
+export function computeRebookFormBootstrap(input: {
+  rebookFrom?: string;
+  providerId: string;
+  booking: RebookSourceBooking | null | undefined;
+  services: Parameters<typeof buildRebookPrefillContext>[0]["services"];
+  bookableServiceIds: Set<string>;
+  addresses: Parameters<typeof buildRebookPrefillContext>[0]["addresses"];
+  familyMembers: Parameters<typeof buildRebookPrefillContext>[0]["familyMembers"];
+  capabilities: Parameters<typeof buildRebookPrefillContext>[0]["capabilities"];
+  bookingRequirements: Parameters<typeof buildRebookPrefillContext>[0]["bookingRequirements"];
+  fallbackAddressId: string | null;
+}): RebookFormInitial | null {
+  if (!input.rebookFrom || !input.booking) return null;
+  if (input.booking.provider_id !== input.providerId) return null;
+  const ctx = buildRebookPrefillContext({
+    providerId: input.providerId,
+    services: input.services,
+    bookableServiceIds: input.bookableServiceIds,
+    addresses: input.addresses,
+    familyMembers: input.familyMembers,
+    capabilities: input.capabilities,
+    bookingRequirements: input.bookingRequirements,
+  });
+  const result = applyRebookPrefill(input.booking, ctx);
+  if (!result) return null;
+  return buildRebookFormInitial(result, input.booking, input.fallbackAddressId);
+}

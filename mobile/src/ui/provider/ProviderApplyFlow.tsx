@@ -18,6 +18,13 @@ import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { colors, space } from "@/ui/theme";
 import type { PickedFile } from "@/lib/provider/documentUpload";
+import { ApplyDocumentChecklist } from "./ApplyDocumentChecklist";
+import {
+  buildApplyDocumentChecklist,
+  type ProviderDocumentRow,
+  type RequirementFulfillmentRow,
+  type ServiceRequirementRow,
+} from "@shared/provider/applyDocumentChecklist";
 
 export function ProviderApplyFlow({
   initial,
@@ -25,6 +32,10 @@ export function ProviderApplyFlow({
   zones,
   services,
   lockedServices = [],
+  documents = [],
+  requirements = [],
+  fulfillments = [],
+  changesRequested = false,
   onSave,
   onCapture,
 }: {
@@ -33,6 +44,10 @@ export function ProviderApplyFlow({
   zones: { id: string; name_en: string; name_ar: string }[];
   services: ApplyService[];
   lockedServices?: string[];
+  documents?: ProviderDocumentRow[];
+  requirements?: ServiceRequirementRow[];
+  fulfillments?: RequirementFulfillmentRow[];
+  changesRequested?: boolean;
   onSave: (step: number, draft: ApplyDraft) => Promise<void>;
   onCapture: (type: "id_card_front" | "id_card_back", file: PickedFile) => Promise<void>;
 }) {
@@ -43,6 +58,14 @@ export function ProviderApplyFlow({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const ready = applyStepReady(step, draft, services);
+  const checklist = buildApplyDocumentChecklist({
+    selectedServiceIds: draft.services,
+    requirements,
+    documents,
+    fulfillments,
+    captured: { front: draft.front, back: draft.back },
+    changesRequested,
+  });
 
   const advance = async () => {
     if (busy) return;
@@ -248,6 +271,7 @@ export function ProviderApplyFlow({
 
       {step === 3 && (
         <>
+          <ApplyDocumentChecklist items={checklist} />
           <DocumentUploadCard
             title={t("providerDocuments.id_card_front")}
             statusLabel={t(`providerDocuments.${draft.front ? "pending" : "missing"}`)}

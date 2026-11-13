@@ -1,13 +1,17 @@
 /**
  * Famy Provider Portal data-access hooks.
  */
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchBookingParties } from "@/lib/db/booking-parties";
 import { useAuth } from "@/lib/auth/useAuth";
 import { isClosedBetaCategorySlug } from "@/lib/catalog/closedBetaCategories";
 import { isQaCatalogService } from "@/lib/catalog/qaCatalog";
 import { aggregateProviderEarnings } from "@/lib/earnings/aggregateProviderEarnings";
+import {
+  fetchRequirementsForServiceIds,
+  requirementsBatchQueryKey,
+} from "@/lib/db/serviceRequirementsBatch";
 
 // ---------- Identity ----------
 export function useMyRole() {
@@ -500,6 +504,25 @@ export function useRequirementsForService(serviceId: string | undefined) {
       if (error) throw error;
       return data ?? [];
     },
+  });
+}
+
+export function useRequirementsForServices(serviceIds: string[]) {
+  const key = requirementsBatchQueryKey(serviceIds);
+  return useQuery({
+    queryKey: ["service-requirements-batch", key],
+    queryFn: async () =>
+      fetchRequirementsForServiceIds(serviceIds, async (ids) => {
+        const { data, error } = await supabase
+          .from("service_requirements")
+          .select("*")
+          .in("service_id", ids)
+          .eq("is_active", true)
+          .order("sort_order");
+        if (error) throw error;
+        return data ?? [];
+      }),
+    placeholderData: keepPreviousData,
   });
 }
 

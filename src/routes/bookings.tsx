@@ -214,8 +214,9 @@ function Bookings() {
                         nav({
                           to: previewBookPath(b.provider_id),
                           search: {
-                            serviceId: b.service_id ?? undefined,
-                            capabilityId: b.teaching_capability_id ?? undefined,
+                            serviceId: undefined,
+                            capabilityId: undefined,
+                            rebookFrom: b.id,
                           },
                         });
                       }}

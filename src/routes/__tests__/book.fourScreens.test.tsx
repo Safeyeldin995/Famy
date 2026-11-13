@@ -152,6 +152,7 @@ vi.mock("@/lib/db/queries", () => ({
     }
     return query(slotCache.get(key));
   },
+  useBooking: () => query(null),
   useCreateBooking: () => ({ mutateAsync: state.create, isPending: false }),
 }));
 vi.mock("@/lib/db/family-members-queries", () => ({
@@ -277,6 +278,23 @@ beforeEach(async () => {
 afterEach(cleanup);
 
 describe("four-screen booking journey", () => {
+  it("keeps supervision selected on a new babysitting booking after UI updates", async () => {
+    render(<BookContent providerId="p1" searchServiceId="booking-hourly" />);
+    next();
+    await waitFor(() => expect(title("when")).toBeTruthy());
+    const buttons = document.querySelectorAll<HTMLButtonElement>(".booking-time");
+    fireEvent.click(buttons[0]);
+    next();
+    fireEvent.click(screen.getByRole("button", { name: /^Child fixture ·/ }));
+    pickSupervision();
+    const cameras = screen.getByRole("button", {
+      name: new RegExp(i18n.t("bookFlow.supervision.cameras.title")),
+    });
+    await waitFor(() => expect(cameras.getAttribute("aria-pressed")).toBe("true"));
+    fireEvent.click(screen.getByRole("button", { name: /^Child fixture ·/ }));
+    await waitFor(() => expect(cameras.getAttribute("aria-pressed")).toBe("true"));
+  });
+
   it.each(["en", "ar"])(
     "uses the same time range and full duration copy on review in %s",
     async (lang) => {

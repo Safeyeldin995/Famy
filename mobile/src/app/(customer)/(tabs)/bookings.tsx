@@ -234,10 +234,7 @@ export default function Bookings() {
                             pathname: "/book/[providerId]",
                             params: {
                               providerId: b.provider_id,
-                              serviceId: b.service_id,
-                              ...(b.teaching_capability_id
-                                ? { capabilityId: b.teaching_capability_id }
-                                : {}),
+                              rebookFrom: b.id,
                             },
                           })
                     }

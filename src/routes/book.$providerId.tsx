@@ -10,6 +10,7 @@ import {
   checkoutAddressReady,
   checkoutEligibilityServiceId,
 } from "@/lib/booking/checkoutGates";
+import { reviewLineForAddressId } from "@/lib/booking/savedAddressReviewLine";
 import {
   BOOKING_SCREENS,
   bookingScreenMissingStep,
@@ -27,6 +28,7 @@ import { CheckChip } from "@/components/famio/CheckChip";
 import { TextField } from "@/components/famio/TextField";
 import { BookingWhen } from "@/components/booking/BookingWhen";
 import { BookingVisitRequirements } from "@/components/booking/BookingVisitRequirements";
+import { RebookPrefillNoticeList } from "@/components/booking/RebookPrefillNotice";
 import { bookingScreenPrimaryCtaKey } from "@/lib/booking/bookingStepCta";
 import { bookingFieldHintForStep } from "@/lib/booking/bookingFieldHints";
 import { CustomerPreparationNotesSection } from "@/components/booking/CustomerPreparationNotesSection";
@@ -128,11 +130,16 @@ import {
   resolveAutoFillCapabilityId,
   shouldPersistEducationAfterBookingSuccess,
 } from "@/lib/tutoring/bookingEducationAutofill";
+import type { RebookFormInitial } from "@/lib/booking/rebookFormBootstrap";
+import type { RebookPrefillNotice } from "@/lib/booking/rebookPrefill";
+import { useRebookSeedGuard } from "@/lib/booking/rebookSeedGuard";
+import { BookRebookGate } from "@/components/booking/BookRebookGate";
 
 export const Route = createFileRoute("/book/$providerId")({
   validateSearch: (search: Record<string, unknown>) => ({
     serviceId: typeof search.serviceId === "string" ? search.serviceId : undefined,
     capabilityId: typeof search.capabilityId === "string" ? search.capabilityId : undefined,
+    rebookFrom: typeof search.rebookFrom === "string" ? search.rebookFrom : undefined,
   }),
   component: Book,
 });
@@ -140,25 +147,56 @@ export const Route = createFileRoute("/book/$providerId")({
 function Book() {
   const { blocking } = useProviderOnlyCustomerRedirect();
   const { providerId } = Route.useParams();
-  const { serviceId: searchServiceId, capabilityId: searchCapabilityId } = Route.useSearch();
+  const {
+    serviceId: searchServiceId,
+    capabilityId: searchCapabilityId,
+    rebookFrom: searchRebookFrom,
+  } = Route.useSearch();
   if (blocking) return null;
   return (
     <BookContent
       providerId={providerId}
       searchServiceId={searchServiceId}
       searchCapabilityId={searchCapabilityId}
+      searchRebookFrom={searchRebookFrom}
     />
   );
 }
 
-export function BookContent({
+export function BookContent(props: {
+  providerId: string;
+  searchServiceId?: string;
+  searchCapabilityId?: string;
+  searchRebookFrom?: string;
+}) {
+  return (
+    <BookRebookGate providerId={props.providerId} rebookFrom={props.searchRebookFrom}>
+      {({ mountKey, rebookInitial, rebookNotices }) => (
+        <BookContentForm
+          key={mountKey}
+          {...props}
+          rebookInitial={rebookInitial}
+          rebookNotices={rebookNotices}
+        />
+      )}
+    </BookRebookGate>
+  );
+}
+
+function BookContentForm({
   providerId,
   searchServiceId,
   searchCapabilityId,
+  searchRebookFrom,
+  rebookInitial,
+  rebookNotices: rebookNoticesProp,
 }: {
   providerId: string;
   searchServiceId?: string;
   searchCapabilityId?: string;
+  searchRebookFrom?: string;
+  rebookInitial: RebookFormInitial | null;
+  rebookNotices: RebookPrefillNotice[];
 }) {
   const provQ = useProvider(providerId);
   const servicesQ = useProviderServices(providerId);
@@ -172,17 +210,25 @@ export function BookContent({
   const nav = useNavigate();
 
   const [requestedStep, setRequestedStep] = useState<BookingScreen>("service");
-  const [serviceId, setServiceId] = useState<string | null>(searchServiceId ?? null);
-  const [capabilityId, setCapabilityId] = useState<string | null>(searchCapabilityId ?? null);
-  const [duration, setDuration] = useState("4h");
+  const { guardDefault, touch } = useRebookSeedGuard(rebookInitial?.seededFields);
+  const [serviceId, setServiceId] = useState<string | null>(
+    rebookInitial?.serviceId ?? searchServiceId ?? null,
+  );
+  const [capabilityId, setCapabilityId] = useState<string | null>(
+    rebookInitial?.capabilityId ?? searchCapabilityId ?? null,
+  );
+  const [duration, setDuration] = useState(
+    rebookInitial?.durationHours ? `${rebookInitial.durationHours}h` : "4h",
+  );
   const [date, setDate] = useState<Date | null>(null);
   const [time, setTime] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null);
-  const [address, setAddress] = useState("");
-  const [addressId, setAddressId] = useState<string | null>(null);
-  const [forWhom, setForWhom] = useState("myself");
-  const [supervisionMode, setSupervisionMode] = useState<SupervisionMode | "">("");
-  const [notes, setNotes] = useState("");
+  const [addressId, setAddressId] = useState<string | null>(rebookInitial?.addressId ?? null);
+  const [forWhom, setForWhom] = useState(rebookInitial?.forWhom ?? "myself");
+  const [supervisionMode, setSupervisionMode] = useState<SupervisionMode | "">(
+    rebookInitial?.supervisionMode ?? "",
+  );
+  const [notes, setNotes] = useState(rebookInitial?.notes ?? "");
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
   const [promoCode, setPromoCode] = useState("");
   const [promoStatus, setPromoStatus] = useState<"idle" | "checking" | "applied" | "invalid">(
@@ -192,7 +238,7 @@ export function BookContent({
   const [appliedPromoId, setAppliedPromoId] = useState<string | null>(null);
   const [requirementChoices, setRequirementChoices] = useState<
     Record<string, "customer" | "provider">
-  >({});
+  >(rebookInitial?.requirementChoices ?? {});
   const [editingReview, setEditingReview] = useState(false);
   const [detailsSheet, setDetailsSheet] = useState<"address" | "member" | null>(null);
   const [inlineError, setInlineError] = useState<{ screen: BookingScreen; message: string } | null>(
@@ -200,12 +246,15 @@ export function BookContent({
   );
   const [scanningSchedule, setScanningSchedule] = useState(false);
   const [bookingEducation, setBookingEducation] = useState<EducationProfileValue>(
-    educationValueFromIds(null, null),
+    rebookInitial?.education ?? educationValueFromIds(null, null),
   );
   const [saveEducationForNextTime, setSaveEducationForNextTime] = useState(false);
   const userPickedDateRef = useRef(false);
-  const userPickedCapabilityRef = useRef(false);
+  const userPickedCapabilityRef = useRef(
+    rebookInitial?.capabilityUserPicked ?? !!searchCapabilityId,
+  );
   const idempotencyStateRef = useRef<IdempotencyKeyState | null>(null);
+  const rebookNotices = rebookNoticesProp;
   const customerEducationQ = useCustomerEducationProfile();
   const myProfileQ = useMyProfile();
   const saveEducation = useSaveStudentEducationProfile();
@@ -237,6 +286,15 @@ export function BookContent({
     resolvedServiceRow?.service?.id,
   );
   const selectedAddress = bookableAddresses.find((a: any) => a.id === addressId) ?? null;
+  const reviewAddressLine = useMemo(
+    () =>
+      reviewLineForAddressId(
+        bookableAddresses as { id: string; street?: string; line1?: string; building?: string; compound?: string; area?: string }[],
+        slotAddressId,
+        (area) => (area ? customerAreaLabel(area, t) : null),
+      ),
+    [bookableAddresses, slotAddressId, t],
+  );
   // UX-only preview of the resolved service zone — the booking-creation DB
   // trigger re-resolves this itself and is the sole authoritative guard
   // (zone_id is never accepted from the client, see Module 2 migration).
@@ -246,22 +304,13 @@ export function BookContent({
   // bookable saved address once it loads. Only runs once, before the
   // customer has interacted with this step, so it never clobbers their edits.
   useEffect(() => {
+    if (guardDefault("addressId")) return;
     if (addressId === null && bookableAddresses.length > 0) {
       const def = bookableAddresses.find((a: any) => a.is_default) ?? bookableAddresses[0];
       setAddressId(def.id);
-      setAddress(
-        [
-          def.street ?? def.line1,
-          def.building,
-          def.compound,
-          def.area ? customerAreaLabel(def.area, t) : "",
-        ]
-          .filter(Boolean)
-          .join(", "),
-      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [addrsQ.data]);
+  }, [addrsQ.data, guardDefault]);
 
   // Auto-select the admin-configured default payment method once it loads —
   // the customer can still change it in the payment step before confirming.
@@ -334,16 +383,18 @@ export function BookContent({
   const setStep = (index: number) => setRequestedStep(stepKeys[index] ?? "service");
 
   useEffect(() => {
+    if (guardDefault("forWhom")) return;
     if (isBabysitting && forWhom === "myself") {
       setForWhom(defaultForWhom(true));
     } else if (!isBabysitting && forWhom === "") {
       setForWhom(defaultForWhom(false));
     }
-  }, [isBabysitting, forWhom]);
+  }, [isBabysitting, forWhom, guardDefault]);
 
   useEffect(() => {
+    if (guardDefault("supervisionMode")) return;
     setSupervisionMode("");
-  }, [activeService?.service?.id]);
+  }, [activeService?.service?.id, serviceId, guardDefault]);
 
   const packageSlots = useMemo(
     () => filterFixedStartSlots(slotsQ.data ?? [], activeService?.service),
@@ -369,6 +420,7 @@ export function BookContent({
 
   useEffect(() => {
     if (!isTutoring || isLessonService) return;
+    if (guardDefault("education")) return;
     setBookingEducation(
       educationValueFromIds(
         studentEducation.educationCurriculumId,
@@ -380,12 +432,16 @@ export function BookContent({
     isTutoring,
     isLessonService,
     forWhom,
+    activeService?.service?.id,
+    serviceId,
     studentEducation.educationCurriculumId,
     studentEducation.educationLevelId,
+    guardDefault,
   ]);
 
   useEffect(() => {
     if (stepKey !== "service" || !isTutoring || userPickedCapabilityRef.current) return;
+    if (guardDefault("capabilityId")) return;
     const match = pickDefaultCapabilityForEducation(
       capabilitiesQ.data ?? [],
       activeService?.service?.id ?? serviceId,
@@ -410,6 +466,7 @@ export function BookContent({
     studentEducation.educationCurriculumId,
     studentEducation.educationLevelId,
     capabilityId,
+    guardDefault,
   ]);
 
   useEffect(() => {
@@ -909,7 +966,13 @@ export function BookContent({
     >
       <div className="apply-chips">
         {showMyselfOption(isBabysitting) && (
-          <CheckChip selected={forWhom === "myself"} onClick={() => setForWhom("myself")}>
+          <CheckChip
+            selected={forWhom === "myself"}
+            onClick={() => {
+              touch("forWhom");
+              setForWhom("myself");
+            }}
+          >
             {t("bookFlow.forWhomMyself")}
           </CheckChip>
         )}
@@ -927,7 +990,10 @@ export function BookContent({
                 key={member.id}
                 selected={forWhom === member.id}
                 disabled={!selectable.ok}
-                onClick={() => setForWhom(member.id)}
+                onClick={() => {
+                  touch("forWhom");
+                  setForWhom(member.id);
+                }}
               >
                 {member.full_name} ·{" "}
                 {t(memberAgeTranslation(member.date_of_birth).key, {
@@ -964,6 +1030,7 @@ export function BookContent({
           onBack={handleBack}
         />
         <div className="apply-content">
+          <RebookPrefillNoticeList notices={rebookNotices} />
           {inlineError?.screen === stepKey && (
             <p role="alert" className="booking-error">
               {inlineError.message}
@@ -1034,6 +1101,10 @@ export function BookContent({
                         )
                       }
                       onClick={() => {
+                        touch("serviceId");
+                        touch("supervisionMode");
+                        touch("capabilityId");
+                        touch("education");
                         setServiceId(s.service.id);
                         setCapabilityId(null);
                         clearSlot();
@@ -1067,7 +1138,13 @@ export function BookContent({
                 <>
                   {recipientFields}
                   {supervisionRequired && (
-                    <SupervisionModeFields value={supervisionMode} onChange={setSupervisionMode} />
+                    <SupervisionModeFields
+                      value={supervisionMode}
+                      onChange={(mode) => {
+                        touch("supervisionMode");
+                        setSupervisionMode(mode);
+                      }}
+                    />
                   )}
                   <Step title={t("bookFlow.pickCapability")}>
                     {!isLessonService ? (
@@ -1086,6 +1163,8 @@ export function BookContent({
                         <EducationProfileFields
                           value={bookingEducation}
                           onChange={(next) => {
+                            touch("education");
+                            touch("capabilityId");
                             userPickedCapabilityRef.current = true;
                             setBookingEducation(next);
                             const match = pickDefaultCapabilityForEducation(
@@ -1288,8 +1367,8 @@ export function BookContent({
                       <button
                         key={a.id}
                         onClick={() => {
+                          touch("addressId");
                           setAddressId(a.id);
-                          setAddress(lineParts.join(", "));
                         }}
                         aria-pressed={addressId === a.id}
                         className={`booking-option ${addressId === a.id ? "on" : ""}`}
@@ -1364,7 +1443,13 @@ export function BookContent({
 
           {stepKey === "whereWho" && !isTutoring && recipientFields}
           {stepKey === "whereWho" && supervisionRequired && !isTutoring && (
-            <SupervisionModeFields value={supervisionMode} onChange={setSupervisionMode} />
+            <SupervisionModeFields
+              value={supervisionMode}
+              onChange={(mode) => {
+                touch("supervisionMode");
+                setSupervisionMode(mode);
+              }}
+            />
           )}
           {stepKey === "whereWho" &&
             (!requirementsQ.isSuccess || bookingRequirements.length > 0) && (
@@ -1464,7 +1549,7 @@ export function BookContent({
                 />
                 <ReviewRow
                   label={t("bookFlow.rowAddress")}
-                  value={address}
+                  value={reviewAddressLine}
                   onEdit={() => editScreen("whereWho")}
                 />
                 <ReviewRow

@@ -6,6 +6,21 @@ import { File } from "expo-file-system";
 import { Platform } from "react-native";
 import type { PickedFile } from "./documentUpload";
 
+export function useMyRequirementFulfillments(providerId: string | undefined) {
+  return useQuery({
+    enabled: !!providerId,
+    queryKey: ["my-requirement-fulfillments", providerId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("provider_requirement_fulfillments")
+        .select("*")
+        .eq("provider_id", providerId!);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
 export function useProviderDocuments(providerId: string | undefined) {
   return useQuery({
     enabled: !!providerId,

@@ -15,7 +15,12 @@ import {
   useStartOnboarding,
   useSubmitOnboarding,
 } from "@/lib/provider/onboardingQueries";
-import { useProviderDocuments, useSetProviderPrice } from "@/lib/provider/profileQueries";
+import {
+  useMyRequirementFulfillments,
+  useProviderDocuments,
+  useSetProviderPrice,
+} from "@/lib/provider/profileQueries";
+import { useRequirementsForServices } from "@/lib/bookingQueries";
 import { useMyProvider, useReplaceAvailability } from "@/lib/provider/queries";
 import { supabase } from "@/lib/supabase";
 import { Page, QueryState } from "@/ui/Page";
@@ -32,6 +37,12 @@ export default function ProApplyScreen() {
   const zones = useActiveZones();
   const selections = useMySavedSelections(provider?.id as string | undefined);
   const docs = useProviderDocuments(provider?.id as string | undefined);
+  const selectedServiceIds =
+    selections.data?.services
+      ?.map((s: { service_id: string }) => s.service_id)
+      .filter((id: string) => services.data?.some((s: { id: string }) => s.id === id)) ?? [];
+  const applyRequirements = useRequirementsForServices(selectedServiceIds);
+  const requirementFulfillments = useMyRequirementFulfillments(provider?.id as string | undefined);
   const save = useSaveOnboardingSection();
   const submit = useSubmitOnboarding();
   const price = useSetProviderPrice();
@@ -47,9 +58,12 @@ export default function ProApplyScreen() {
     }
   }, [providerQ.isSuccess, provider, start]);
 
-  const queries = [providerQ, snapshot, services, zones, selections, docs];
+  const bootstrapQueries = [providerQ, snapshot, services, zones, selections, docs];
+  const queries = [...bootstrapQueries, applyRequirements];
   const status = provider?.onboarding_status as string | undefined;
-  const dataReady = !!provider && queries.every((q) => q.isSuccess && !q.isLoading && !q.isPending);
+  const dataReady =
+    !!provider &&
+    bootstrapQueries.every((q) => q.isSuccess && !q.isLoading && !q.isPending);
   const redirectHome = !!provider && !!status && status !== "DRAFT" && status !== "NEEDS_CHANGES";
 
   useEffect(() => {
@@ -173,6 +187,10 @@ export default function ProApplyScreen() {
         lockedServices={savedServices
           .filter((s: { status: string }) => s.status === "approved")
           .map((s: { service_id: string }) => s.service_id)}
+        documents={docs.data ?? []}
+        requirements={applyRequirements.data ?? []}
+        fulfillments={requirementFulfillments.data ?? []}
+        changesRequested={status === "NEEDS_CHANGES"}
         onSave={persist}
         onCapture={async (type, file) => {
           await upload.mutateAsync({ type, file });

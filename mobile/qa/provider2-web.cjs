@@ -16,6 +16,9 @@ const uid = id(1);
 const pid = id(2);
 const sid = id(5);
 const zoneId = id(7);
+const reqUploaded = id(61);
+const reqRejected = id(62);
+const reqMissing = id(63);
 const now = new Date().toISOString();
 const service = {
   id: sid,
@@ -194,11 +197,78 @@ async function run() {
         teaching_curricula: [],
         teaching_levels: [],
         teaching_subject_services: [],
+        service_requirements: [
+          {
+            id: reqUploaded,
+            service_id: sid,
+            name_ar: "شهادة إسعافات",
+            name_en: "First aid",
+            required_for_provider_approval: true,
+            evidence_required: true,
+            is_active: true,
+            sort_order: 1,
+          },
+          {
+            id: reqRejected,
+            service_id: sid,
+            name_ar: "شهادة سلامة",
+            name_en: "Safety cert",
+            required_for_provider_approval: true,
+            evidence_required: true,
+            is_active: true,
+            sort_order: 2,
+          },
+          {
+            id: reqMissing,
+            service_id: sid,
+            name_ar: "تدريب رعاية",
+            name_en: "Care training",
+            required_for_provider_approval: true,
+            evidence_required: true,
+            is_active: true,
+            sort_order: 3,
+          },
+        ],
+        provider_requirement_fulfillments: [
+          {
+            id: id(71),
+            provider_id: pid,
+            requirement_id: reqUploaded,
+            status: "pending",
+            evidence_storage_path: `${pid}/evidence-first-aid.pdf`,
+            notes: null,
+            review_notes: null,
+            created_at: now,
+            updated_at: now,
+          },
+          {
+            id: id(72),
+            provider_id: pid,
+            requirement_id: reqRejected,
+            status: "failed",
+            evidence_storage_path: null,
+            notes: null,
+            review_notes: "الملف غير واضح — ارفع صورة أوضح",
+            created_at: now,
+            updated_at: now,
+          },
+        ],
       };
       if (!(table in tables)) errors.push(`Unhandled table: ${table}`);
       data = tables[table] || [];
       if (table === "providers" && url.searchParams.get("profile_id")?.startsWith("eq."))
         data = [providerRow];
+      if (table === "provider_requirement_fulfillments" && url.searchParams.get("provider_id")?.startsWith("eq.")) {
+        const want = url.searchParams.get("provider_id").slice(3);
+        data = data.filter((row) => row.provider_id === want);
+      }
+      if (table === "service_requirements" && url.searchParams.get("service_id")?.startsWith("in.")) {
+        const raw = url.searchParams.get("service_id").slice(4);
+        const want = new Set(
+          (raw.startsWith("(") ? raw.slice(1, -1) : raw).split(",").map((s) => s.trim()),
+        );
+        data = data.filter((row) => want.has(row.service_id));
+      }
     }
     const count = Array.isArray(data) ? data.length : data ? 1 : 0;
     if (req.headers().accept?.includes("vnd.pgrst.object"))
