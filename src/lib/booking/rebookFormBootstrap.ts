@@ -51,6 +51,8 @@ export function rebookBootstrapQueriesLoading(input: {
   rebookFrom?: string;
   bookingLoading: boolean;
   bookingSuccess: boolean;
+  servicesLoading: boolean;
+  servicesError: boolean;
   servicesReady: boolean;
   addressesLoading: boolean;
   membersLoading: boolean;
@@ -61,9 +63,23 @@ export function rebookBootstrapQueriesLoading(input: {
   if (!input.rebookFrom) return false;
   if (input.bookingLoading) return true;
   if (!input.bookingSuccess) return false;
-  if (!input.servicesReady || input.addressesLoading || input.membersLoading) return true;
+  if (input.servicesError && !input.servicesLoading) return false;
+  if (input.servicesLoading || !input.servicesReady) return true;
+  if (input.addressesLoading || input.membersLoading) return true;
   if (input.capsLoading || input.requirementsLoading || input.bookableLoading) return true;
   return false;
+}
+
+/** Source booking loaded but provider services failed; skip prefill and mount the booking form. */
+export function rebookPrefillBlockedByServices(input: {
+  rebookFrom?: string;
+  bookingSuccess: boolean;
+  bookingData: unknown;
+  servicesLoading: boolean;
+  servicesError: boolean;
+}): boolean {
+  if (!input.rebookFrom || !input.bookingSuccess || input.bookingData == null) return false;
+  return input.servicesError && !input.servicesLoading;
 }
 
 export function rebookSourceUnavailable(input: {

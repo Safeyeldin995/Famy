@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   computeRebookFormBootstrap,
   rebookBootstrapQueriesLoading,
+  rebookPrefillBlockedByServices,
   rebookSourceUnavailable,
   type RebookFormInitial,
 } from "@shared/booking/rebookFormBootstrap";
@@ -69,12 +70,22 @@ export function BookRebookGate({
     rebookFrom,
     bookingLoading: rebookBooking.isLoading,
     bookingSuccess: rebookBooking.isSuccess,
-    servicesReady: servicesQ.isSuccess,
+    servicesLoading: servicesQ.isLoading,
+    servicesError: servicesQ.isError,
+    servicesReady: servicesQ.isSuccess && !servicesQ.isLoading,
     addressesLoading: addresses.isLoading,
     membersLoading: members.isLoading,
     capsLoading: rebookCaps.isLoading,
     requirementsLoading: rebookRequirements.isLoading,
     bookableLoading: rebookBookable.isLoading,
+  });
+
+  const prefillBlockedByServices = rebookPrefillBlockedByServices({
+    rebookFrom,
+    bookingSuccess: rebookBooking.isSuccess,
+    bookingData: rebookBooking.data,
+    servicesLoading: servicesQ.isLoading,
+    servicesError: servicesQ.isError,
   });
 
   const bootstrap = useMemo(() => {
@@ -119,6 +130,10 @@ export function BookRebookGate({
     rebookInitial: null,
     rebookNotices: [] as RebookPrefillNotice[],
   };
+
+  if (prefillBlockedByServices) {
+    return children(freshBooking);
+  }
 
   if (
     rebookSourceUnavailable({

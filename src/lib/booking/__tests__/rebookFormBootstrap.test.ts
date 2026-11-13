@@ -3,6 +3,7 @@ import {
   buildRebookFormInitial,
   computeRebookFormBootstrap,
   rebookBootstrapQueriesLoading,
+  rebookPrefillBlockedByServices,
   rebookSourceUnavailable,
 } from "../rebookFormBootstrap";
 import type { RebookPrefillResult } from "../rebookPrefill";
@@ -21,6 +22,8 @@ describe("rebookFormBootstrap", () => {
         rebookFrom: "bid-1",
         bookingLoading: false,
         bookingSuccess: false,
+        servicesLoading: false,
+        servicesError: false,
         servicesReady: false,
         addressesLoading: true,
         membersLoading: true,
@@ -53,6 +56,8 @@ describe("rebookFormBootstrap", () => {
         rebookFrom: "bid-1",
         bookingLoading: false,
         bookingSuccess: true,
+        servicesLoading: false,
+        servicesError: false,
         servicesReady: true,
         addressesLoading: false,
         membersLoading: false,
@@ -66,6 +71,8 @@ describe("rebookFormBootstrap", () => {
         rebookFrom: "bid-1",
         bookingLoading: false,
         bookingSuccess: true,
+        servicesLoading: false,
+        servicesError: false,
         servicesReady: true,
         addressesLoading: false,
         membersLoading: false,
@@ -74,6 +81,33 @@ describe("rebookFormBootstrap", () => {
         bookableLoading: false,
       }),
     ).toBe(false);
+  });
+
+  it("stops loading when provider services fail after the source booking loads", () => {
+    expect(
+      rebookBootstrapQueriesLoading({
+        rebookFrom: "bid-1",
+        bookingLoading: false,
+        bookingSuccess: true,
+        servicesLoading: false,
+        servicesError: true,
+        servicesReady: false,
+        addressesLoading: true,
+        membersLoading: true,
+        capsLoading: true,
+        requirementsLoading: true,
+        bookableLoading: true,
+      }),
+    ).toBe(false);
+    expect(
+      rebookPrefillBlockedByServices({
+        rebookFrom: "bid-1",
+        bookingSuccess: true,
+        bookingData: { id: "bid-1" },
+        servicesLoading: false,
+        servicesError: true,
+      }),
+    ).toBe(true);
   });
 
   it("builds seeded initial state for child, address, tutoring capability, and supervision", () => {
