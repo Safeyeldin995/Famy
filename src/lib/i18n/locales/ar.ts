@@ -2179,6 +2179,8 @@ const ar: Translation = {
       noHistory: "لسه مفيش تسويات",
       blockedBody: "وصلت لحد الرصيد، حول {{amount}} لفامي على إنستاباي عشان تستقبل طلبات جديدة",
       history: "تسويات أسبوعية",
+      directionFamyPays: "فامي هتحولك",
+      directionYouPay: "مطلوب منك تحول",
       ledger: "سجل الحركة",
     },
     earnings: {

@@ -46,6 +46,7 @@ export type ProviderSettlementRow = {
   id: string;
   period_start: string;
   amount: number;
+  direction: "famy_pays_provider" | "provider_pays_famy";
   status: string;
 };
 
@@ -117,7 +118,7 @@ export function useProviderSettlements(providerId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("provider_settlements")
-        .select("id, period_start, amount, status")
+        .select("id, period_start, amount, direction, status")
         .eq("provider_id", providerId!)
         .order("created_at", { ascending: false });
       if (error) throw error;

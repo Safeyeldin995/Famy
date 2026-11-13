@@ -11,6 +11,7 @@ import {
   useProviderSettlements,
   useProviderWeekLedgerTotals,
 } from "@/lib/provider/settlementQueries";
+import { providerSettlementDirectionLabel } from "@shared/settlement/providerSettlementDirection";
 
 function formatSettlementWhen(iso: string, locale: string): string {
   const d = new Date(iso);
@@ -82,9 +83,14 @@ export function ProviderEarningsSettlementPanel({
       </Text>
       {(settlements.data ?? []).slice(0, 8).map((s) => (
         <View key={s.id} style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
-          <Text size="xs" tone="muted" style={{ flex: 1 }}>
-            {new Date(s.period_start).toLocaleDateString()} · {s.status}
-          </Text>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text size="xs" tone="muted">
+              {new Date(s.period_start).toLocaleDateString()} · {s.status}
+            </Text>
+            <Text size="xs" weight="bold" tone="muted">
+              {providerSettlementDirectionLabel(s.direction, t)}
+            </Text>
+          </View>
           <Text weight="bold" size="xs" style={moneyTextStyle(i18n.language)}>
             {money(s.amount, i18n.language)}
           </Text>

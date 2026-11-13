@@ -9,6 +9,7 @@ import {
   useProviderWeekLedgerTotals,
 } from "@/lib/db/provider-settlement-queries";
 import { formatSettlementWhen } from "@/lib/settlement/cairoSettlementWeek";
+import { providerSettlementDirectionLabel } from "@/lib/settlement/providerSettlementDirection";
 import { useLang } from "@/components/famio/LanguageToggle";
 
 export function ProviderEarningsSettlementPanel({ providerId }: { providerId: string | undefined }) {
@@ -50,10 +51,15 @@ export function ProviderEarningsSettlementPanel({ providerId }: { providerId: st
         <ul className="mt-2 space-y-2">
           {(settlements.data ?? []).slice(0, 8).map((s) => (
             <li key={s.id} className="flex justify-between gap-2 text-pro-12">
-              <span>
-                {new Date(s.period_start).toLocaleDateString()} – {s.status}
+              <span className="min-w-0">
+                <span className="block">
+                  {new Date(s.period_start).toLocaleDateString()} – {s.status}
+                </span>
+                <span className="text-pro-11 font-semibold text-muted-foreground">
+                  {providerSettlementDirectionLabel(s.direction, t)}
+                </span>
               </span>
-              <span className="font-bold tabular-nums">{formatEGP(s.amount)}</span>
+              <span className="shrink-0 font-bold tabular-nums">{formatEGP(s.amount)}</span>
             </li>
           ))}
           {!settlements.data?.length ? (

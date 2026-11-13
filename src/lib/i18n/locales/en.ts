@@ -2203,6 +2203,8 @@ const en = {
       blockedBody:
         "You reached the cash balance limit. Transfer {{amount}} to Famy (InstaPay) to receive new bookings",
       history: "Weekly settlements",
+      directionFamyPays: "Famy will transfer to you",
+      directionYouPay: "Transfer required from you",
       ledger: "Ledger",
     },
     earnings: {
