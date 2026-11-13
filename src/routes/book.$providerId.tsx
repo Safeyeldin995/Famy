@@ -210,7 +210,7 @@ function BookContentForm({
   const nav = useNavigate();
 
   const [requestedStep, setRequestedStep] = useState<BookingScreen>("service");
-  const rebookSeed = useRebookSeedGuard(rebookInitial?.seededFields);
+  const { guardDefault, touch } = useRebookSeedGuard(rebookInitial?.seededFields);
   const [serviceId, setServiceId] = useState<string | null>(
     rebookInitial?.serviceId ?? searchServiceId ?? null,
   );
@@ -304,13 +304,13 @@ function BookContentForm({
   // bookable saved address once it loads. Only runs once, before the
   // customer has interacted with this step, so it never clobbers their edits.
   useEffect(() => {
-    if (rebookSeed.guardDefault("addressId")) return;
+    if (guardDefault("addressId")) return;
     if (addressId === null && bookableAddresses.length > 0) {
       const def = bookableAddresses.find((a: any) => a.is_default) ?? bookableAddresses[0];
       setAddressId(def.id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [addrsQ.data, rebookSeed]);
+  }, [addrsQ.data, guardDefault]);
 
   // Auto-select the admin-configured default payment method once it loads —
   // the customer can still change it in the payment step before confirming.
@@ -383,18 +383,18 @@ function BookContentForm({
   const setStep = (index: number) => setRequestedStep(stepKeys[index] ?? "service");
 
   useEffect(() => {
-    if (rebookSeed.guardDefault("forWhom")) return;
+    if (guardDefault("forWhom")) return;
     if (isBabysitting && forWhom === "myself") {
       setForWhom(defaultForWhom(true));
     } else if (!isBabysitting && forWhom === "") {
       setForWhom(defaultForWhom(false));
     }
-  }, [isBabysitting, forWhom, rebookSeed]);
+  }, [isBabysitting, forWhom, guardDefault]);
 
   useEffect(() => {
-    if (rebookSeed.guardDefault("supervisionMode")) return;
+    if (guardDefault("supervisionMode")) return;
     setSupervisionMode("");
-  }, [activeService?.service?.id, serviceId, rebookSeed]);
+  }, [activeService?.service?.id, serviceId, guardDefault]);
 
   const packageSlots = useMemo(
     () => filterFixedStartSlots(slotsQ.data ?? [], activeService?.service),
@@ -420,7 +420,7 @@ function BookContentForm({
 
   useEffect(() => {
     if (!isTutoring || isLessonService) return;
-    if (rebookSeed.guardDefault("education")) return;
+    if (guardDefault("education")) return;
     setBookingEducation(
       educationValueFromIds(
         studentEducation.educationCurriculumId,
@@ -436,12 +436,12 @@ function BookContentForm({
     serviceId,
     studentEducation.educationCurriculumId,
     studentEducation.educationLevelId,
-    rebookSeed,
+    guardDefault,
   ]);
 
   useEffect(() => {
     if (stepKey !== "service" || !isTutoring || userPickedCapabilityRef.current) return;
-    if (rebookSeed.guardDefault("capabilityId")) return;
+    if (guardDefault("capabilityId")) return;
     const match = pickDefaultCapabilityForEducation(
       capabilitiesQ.data ?? [],
       activeService?.service?.id ?? serviceId,
@@ -466,7 +466,7 @@ function BookContentForm({
     studentEducation.educationCurriculumId,
     studentEducation.educationLevelId,
     capabilityId,
-    rebookSeed,
+    guardDefault,
   ]);
 
   useEffect(() => {
@@ -969,7 +969,7 @@ function BookContentForm({
           <CheckChip
             selected={forWhom === "myself"}
             onClick={() => {
-              rebookSeed.touch("forWhom");
+              touch("forWhom");
               setForWhom("myself");
             }}
           >
@@ -991,7 +991,7 @@ function BookContentForm({
                 selected={forWhom === member.id}
                 disabled={!selectable.ok}
                 onClick={() => {
-                  rebookSeed.touch("forWhom");
+                  touch("forWhom");
                   setForWhom(member.id);
                 }}
               >
@@ -1101,10 +1101,10 @@ function BookContentForm({
                         )
                       }
                       onClick={() => {
-                        rebookSeed.touch("serviceId");
-                        rebookSeed.touch("supervisionMode");
-                        rebookSeed.touch("capabilityId");
-                        rebookSeed.touch("education");
+                        touch("serviceId");
+                        touch("supervisionMode");
+                        touch("capabilityId");
+                        touch("education");
                         setServiceId(s.service.id);
                         setCapabilityId(null);
                         clearSlot();
@@ -1141,7 +1141,7 @@ function BookContentForm({
                     <SupervisionModeFields
                       value={supervisionMode}
                       onChange={(mode) => {
-                        rebookSeed.touch("supervisionMode");
+                        touch("supervisionMode");
                         setSupervisionMode(mode);
                       }}
                     />
@@ -1163,8 +1163,8 @@ function BookContentForm({
                         <EducationProfileFields
                           value={bookingEducation}
                           onChange={(next) => {
-                            rebookSeed.touch("education");
-                            rebookSeed.touch("capabilityId");
+                            touch("education");
+                            touch("capabilityId");
                             userPickedCapabilityRef.current = true;
                             setBookingEducation(next);
                             const match = pickDefaultCapabilityForEducation(
@@ -1367,7 +1367,7 @@ function BookContentForm({
                       <button
                         key={a.id}
                         onClick={() => {
-                          rebookSeed.touch("addressId");
+                          touch("addressId");
                           setAddressId(a.id);
                         }}
                         aria-pressed={addressId === a.id}
@@ -1446,7 +1446,7 @@ function BookContentForm({
             <SupervisionModeFields
               value={supervisionMode}
               onChange={(mode) => {
-                rebookSeed.touch("supervisionMode");
+                touch("supervisionMode");
                 setSupervisionMode(mode);
               }}
             />

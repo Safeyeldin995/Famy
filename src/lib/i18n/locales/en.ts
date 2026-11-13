@@ -1625,6 +1625,8 @@ const en = {
     slotTaken: "That time slot was just taken. Please pick another.",
     created: "Booking created",
     rebookPrefillTitle: "Some details from your last booking were not carried over",
+    rebookSourceUnavailable:
+      "We couldn't load your previous booking. Continue with a new booking.",
     rebookDropped: {
       serviceUnavailable: "The previous service is no longer available",
       capabilityUnavailable: "The previous tutoring option is no longer available",

@@ -1,20 +1,30 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import type { RebookSeedField } from "./rebookFormBootstrap";
+
+function seededFieldsKey(seededFields: ReadonlySet<RebookSeedField> | null | undefined): string {
+  if (!seededFields?.size) return "";
+  return [...seededFields].sort().join("\0");
+}
 
 export function useRebookSeedGuard(seededFields: ReadonlySet<RebookSeedField> | null | undefined) {
   const touched = useRef(new Set<RebookSeedField>());
+  const seededKey = seededFieldsKey(seededFields);
+  const stableSeeded = useMemo(
+    () => (seededKey ? seededFields : undefined),
+    [seededKey, seededFields],
+  );
 
   const guardDefault = useCallback(
     (field: RebookSeedField) => {
-      if (!seededFields?.has(field)) return false;
+      if (!stableSeeded?.has(field)) return false;
       return !touched.current.has(field);
     },
-    [seededFields],
+    [stableSeeded],
   );
 
   const touch = useCallback((field: RebookSeedField) => {
     touched.current.add(field);
   }, []);
 
-  return { guardDefault, touch };
+  return useMemo(() => ({ guardDefault, touch }), [guardDefault, touch]);
 }

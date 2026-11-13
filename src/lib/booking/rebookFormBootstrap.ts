@@ -59,10 +59,21 @@ export function rebookBootstrapQueriesLoading(input: {
   bookableLoading: boolean;
 }): boolean {
   if (!input.rebookFrom) return false;
-  if (input.bookingLoading || !input.bookingSuccess) return true;
+  if (input.bookingLoading) return true;
+  if (!input.bookingSuccess) return false;
   if (!input.servicesReady || input.addressesLoading || input.membersLoading) return true;
   if (input.capsLoading || input.requirementsLoading || input.bookableLoading) return true;
   return false;
+}
+
+export function rebookSourceUnavailable(input: {
+  rebookFrom?: string;
+  bookingLoading: boolean;
+  bookingSuccess: boolean;
+  bookingData: unknown;
+}): boolean {
+  if (!input.rebookFrom || input.bookingLoading) return false;
+  return !input.bookingSuccess || input.bookingData == null;
 }
 
 function collectSeededFields(

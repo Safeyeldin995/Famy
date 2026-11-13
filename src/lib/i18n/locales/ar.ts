@@ -1616,6 +1616,7 @@ const ar: Translation = {
     slotTaken: "الموعد ده اتحجز حالا، اختار موعدا آخر",
     created: "تم إنشاء الحجز",
     rebookPrefillTitle: "جزء من بيانات الحجز القديم ما اتحطش تلقائيا",
+    rebookSourceUnavailable: "ماقدرناش نحمل الحجز السابق، كمل حجز جديد من الأول",
     rebookDropped: {
       serviceUnavailable: "الخدمة السابقة مش متاحة دلوقتي",
       capabilityUnavailable: "خيار الدرس السابق مش متاح دلوقتي",

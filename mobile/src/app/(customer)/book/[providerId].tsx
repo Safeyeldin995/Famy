@@ -172,7 +172,7 @@ function BookForm({
   const savedEducation = useCustomerEducationProfile();
   const profile = useMyProfile();
   const [step, setStep] = useState(0);
-  const rebookSeed = useRebookSeedGuard(rebookInitial?.seededFields);
+  const { guardDefault, touch } = useRebookSeedGuard(rebookInitial?.seededFields);
   const [serviceId, setServiceId] = useState(
     rebookInitial?.serviceId ?? initialService ?? "",
   );
@@ -276,24 +276,24 @@ function BookForm({
     familyMembers: members.data ?? [],
   });
   useEffect(() => {
-    if (rebookSeed.guardDefault("addressId")) return;
+    if (guardDefault("addressId")) return;
     if (!addressId && pinned.length) {
       setAddressId((pinned.find((a) => a.is_default) ?? pinned[0]).id);
     }
-  }, [addressId, pinned, rebookSeed]);
+  }, [addressId, pinned, guardDefault]);
   useEffect(() => {
     if (!methodId && methods.data?.length)
       setMethodId((methods.data.find((m) => m.is_default) ?? methods.data[0]).id);
   }, [methodId, methods.data]);
   useEffect(() => {
-    if (rebookSeed.guardDefault("forWhom")) return;
+    if (guardDefault("forWhom")) return;
     if (babysitting && recipient === "myself") setRecipient("");
     if (!babysitting && !recipient) setRecipient("myself");
-  }, [babysitting, recipient, rebookSeed]);
+  }, [babysitting, recipient, guardDefault]);
 
   useEffect(() => {
     if (!tutoring || isLessonService) return;
-    if (rebookSeed.guardDefault("education")) return;
+    if (guardDefault("education")) return;
     setCurriculum(student.educationCurriculumId || "");
     setLevel(student.educationLevelId || "");
     userCap.current = !!initialCap;
@@ -304,10 +304,10 @@ function BookForm({
     student.educationCurriculumId,
     student.educationLevelId,
     initialCap,
-    rebookSeed,
+    guardDefault,
   ]);
   useEffect(() => {
-    if (rebookSeed.guardDefault("capabilityId")) return;
+    if (guardDefault("capabilityId")) return;
     if (tutoring && !isLessonService && !userCap.current)
       setCapId(
         pickDefaultCapabilityForEducation(
@@ -317,15 +317,15 @@ function BookForm({
           level || null,
         )?.id || "",
       );
-  }, [tutoring, isLessonService, caps.data, service?.service.id, curriculum, level, rebookSeed]);
+  }, [tutoring, isLessonService, caps.data, service?.service.id, curriculum, level, guardDefault]);
   useEffect(() => {
     setSlot(null);
     setApplied(null);
   }, [service?.service.id, capId, hours, addressId]);
   useEffect(() => {
-    if (rebookSeed.guardDefault("supervisionMode")) return;
+    if (guardDefault("supervisionMode")) return;
     setSupervisionMode("");
-  }, [service?.service.id, rebookSeed]);
+  }, [service?.service.id, guardDefault]);
   useEffect(() => {
     if (fixed && service?.service.fixed_start_time)
       setSlot(!slots.isFetching && !slots.isError ? (available[0] ?? null) : null);
@@ -555,7 +555,7 @@ function BookForm({
         label={t("bookFlow.forWhomTitle")}
         value={recipient}
         onChange={(v) => {
-          rebookSeed.touch("forWhom");
+          touch("forWhom");
           setRecipient(v);
         }}
         options={[
@@ -590,7 +590,7 @@ function BookForm({
         <SupervisionModeChoices
           value={supervisionMode}
           onChange={(mode) => {
-            rebookSeed.touch("supervisionMode");
+            touch("supervisionMode");
             setSupervisionMode(mode);
           }}
         />
@@ -929,7 +929,7 @@ function BookForm({
             label={t("bookingUx.chooseAddress")}
             value={addressId}
             onChange={(v) => {
-              rebookSeed.touch("addressId");
+              touch("addressId");
               setAddressId(v);
               setSlot(null);
             }}
@@ -1178,7 +1178,7 @@ function BookForm({
         onClose={() => setInlineForm(null)}
         onSaved={(id) => {
           if (inlineForm === "member") {
-            rebookSeed.touch("forWhom");
+            touch("forWhom");
             setRecipient(id);
           }
           else {

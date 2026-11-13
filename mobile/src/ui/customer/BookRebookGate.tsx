@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   computeRebookFormBootstrap,
   rebookBootstrapQueriesLoading,
+  rebookSourceUnavailable,
   type RebookFormInitial,
 } from "@shared/booking/rebookFormBootstrap";
 import type { RebookPrefillNotice } from "@shared/booking/rebookPrefill";
@@ -111,6 +112,29 @@ export function BookRebookGate({
 
   if (!rebookFrom) {
     return children({ mountKey: "new-booking", rebookInitial: null, rebookNotices: [] });
+  }
+
+  const freshBooking = {
+    mountKey: "new-booking" as const,
+    rebookInitial: null,
+    rebookNotices: [] as RebookPrefillNotice[],
+  };
+
+  if (
+    rebookSourceUnavailable({
+      rebookFrom,
+      bookingLoading: rebookBooking.isLoading,
+      bookingSuccess: rebookBooking.isSuccess,
+      bookingData: rebookBooking.data,
+    }) ||
+    (!loading && rebookBooking.isSuccess && !bootstrap)
+  ) {
+    return (
+      <>
+        <Text style={{ marginBottom: 8 }}>{t("bookFlow.rebookSourceUnavailable")}</Text>
+        {children(freshBooking)}
+      </>
+    );
   }
 
   if (loading || !bootstrap) {

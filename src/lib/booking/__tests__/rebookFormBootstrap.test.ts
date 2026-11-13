@@ -3,6 +3,7 @@ import {
   buildRebookFormInitial,
   computeRebookFormBootstrap,
   rebookBootstrapQueriesLoading,
+  rebookSourceUnavailable,
 } from "../rebookFormBootstrap";
 import type { RebookPrefillResult } from "../rebookPrefill";
 
@@ -14,6 +15,38 @@ const hourlyService = {
 };
 
 describe("rebookFormBootstrap", () => {
+  it("marks failed or missing source bookings unavailable instead of loading", () => {
+    expect(
+      rebookBootstrapQueriesLoading({
+        rebookFrom: "bid-1",
+        bookingLoading: false,
+        bookingSuccess: false,
+        servicesReady: false,
+        addressesLoading: true,
+        membersLoading: true,
+        capsLoading: true,
+        requirementsLoading: true,
+        bookableLoading: true,
+      }),
+    ).toBe(false);
+    expect(
+      rebookSourceUnavailable({
+        rebookFrom: "bid-1",
+        bookingLoading: false,
+        bookingSuccess: false,
+        bookingData: null,
+      }),
+    ).toBe(true);
+    expect(
+      rebookSourceUnavailable({
+        rebookFrom: "bid-1",
+        bookingLoading: false,
+        bookingSuccess: true,
+        bookingData: null,
+      }),
+    ).toBe(true);
+  });
+
   it("reports loading until bookable services and members are ready (cached rebook)", () => {
     expect(
       rebookBootstrapQueriesLoading({
