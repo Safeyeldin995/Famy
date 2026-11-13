@@ -1483,11 +1483,10 @@ CREATE TRIGGER trg_audit_provider_settlements
   FOR EACH ROW EXECUTE FUNCTION public.tg_audit_changes();
 
 -- ============================================================
--- 11) pg_cron — Sunday 10:00 Africa/Cairo
+-- 11) pg_cron — daily 10:00 Africa/Cairo (settlement close)
 -- pg_cron fires in UTC. 10:00 Cairo is 08:00 UTC in winter (UTC+2) and
--- 07:00 UTC in summer (UTC+3). Both hours are scheduled on Sunday.
--- The job is idempotent, so the extra hour does not open a second settlement.
--- The function itself closes the week at 10:00 Africa/Cairo.
+-- 07:00 UTC in summer (UTC+3). Both hours run every day; the job is idempotent
+-- and honours provider_settlement_settings().settlement_weekday internally.
 -- ============================================================
 DO $$
 BEGIN
@@ -1504,7 +1503,7 @@ BEGIN
     END IF;
     PERFORM cron.schedule(
       'famy-provider-weekly-settlements',
-      '0 7,8 * * 0',
+      '0 7,8 * * *',
       $cron$SELECT public.run_provider_weekly_settlements();$cron$
     );
   END IF;

@@ -22,6 +22,18 @@ export function defaultFinanceRangeFromPeriod(period: SettlementClosedPeriod): {
   return { from, to };
 }
 
+/** Ledger activity for the in-progress week: from last close through now (capped at next settlement). */
+export function currentWeekLedgerRange(
+  period: SettlementClosedPeriod,
+  now: Date = new Date(),
+): { from: string; to: string } {
+  const from = period.period_end;
+  const nextMs = new Date(period.next_settlement_at).getTime();
+  const to =
+    now.getTime() < nextMs ? now.toISOString() : period.next_settlement_at;
+  return { from, to };
+}
+
 export function formatSettlementWhen(iso: string, locale: string): string {
   const d = new Date(iso);
   return d.toLocaleString(locale === "ar" ? "ar-EG" : "en-US", {

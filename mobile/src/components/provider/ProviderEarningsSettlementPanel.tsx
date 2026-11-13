@@ -10,6 +10,7 @@ import {
   useProviderSettlementPeriod,
   useProviderSettlements,
   useProviderWeekLedgerTotals,
+  currentWeekLedgerRange,
 } from "@/lib/provider/settlementQueries";
 
 function formatSettlementWhen(iso: string, locale: string): string {
@@ -32,7 +33,8 @@ export function ProviderEarningsSettlementPanel({
   const { t, i18n } = useTranslation();
   const balance = useProviderSettlementBalance(providerId);
   const period = useProviderSettlementPeriod();
-  const week = useProviderWeekLedgerTotals(providerId, period.data?.period_start);
+  const weekRange = period.data ? currentWeekLedgerRange(period.data) : undefined;
+  const week = useProviderWeekLedgerTotals(providerId, weekRange);
   const settlements = useProviderSettlements(providerId);
   const net = balance.data?.net ?? 0;
   const formatAmount = (n: number) => money(n, i18n.language);

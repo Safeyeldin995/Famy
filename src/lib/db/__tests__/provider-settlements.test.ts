@@ -171,7 +171,7 @@ describe("provider settlements ledger", () => {
       db,
       `SELECT schedule, command FROM cron.job WHERE jobname = 'famy-provider-weekly-settlements'`,
     );
-    expect(jobs[0]?.schedule).toBe("0 7,8 * * 0");
+    expect(jobs[0]?.schedule).toBe("0 7,8 * * *");
     expect(jobs[0]?.command).toContain("run_provider_weekly_settlements");
 
     const privileges = await queryRows<{
@@ -1101,6 +1101,44 @@ describe("provider settlements ledger", () => {
       ),
     );
     expect(summary[0]?.platform_share).toBe("150.00");
+  });
+
+  it("does not settle entries in the open week when the closed period is already caught up", async () => {
+    const openProvider = "00000000-0000-4000-8000-000000000293";
+    const openUser = "00000000-0000-4000-8000-000000000193";
+    await db.exec(`
+      INSERT INTO auth.users (id) VALUES ('${openUser}') ON CONFLICT (id) DO NOTHING;
+      INSERT INTO public.providers (id, profile_id, hourly_rate, onboarding_status, is_active, vacation_mode, min_notice_hours, max_advance_days, buffer_minutes, bio_en, bio_ar)
+      VALUES ('${openProvider}', '${openUser}', 100, 'DRAFT', true, false, 0, 365, 0, 'Bio', 'سيرة')
+      ON CONFLICT (id) DO NOTHING;
+    `);
+    await db.query(
+      `
+        INSERT INTO public.provider_ledger_entries (provider_id, kind, direction, amount, created_at)
+        VALUES ($1::uuid, 'online_provider_share', 'credit', 999, now())
+      `,
+      [openProvider],
+    );
+    const before = await queryRows<{ n: number }>(
+      db,
+      `SELECT count(*)::int AS n FROM public.provider_settlements WHERE provider_id = $1::uuid`,
+      [openProvider],
+    );
+    await asServiceRole(db, () =>
+      queryRows<{ n: number }>(db, `SELECT public.run_provider_weekly_settlements()::int AS n`),
+    );
+    const after = await queryRows<{ n: number }>(
+      db,
+      `SELECT count(*)::int AS n FROM public.provider_settlements WHERE provider_id = $1::uuid`,
+      [openProvider],
+    );
+    expect(after[0]?.n).toBe(before[0]?.n);
+    const unlinked = await queryRows<{ n: number }>(
+      db,
+      `SELECT count(*)::int AS n FROM public.provider_ledger_entries WHERE provider_id = $1::uuid AND settlement_id IS NULL`,
+      [openProvider],
+    );
+    expect(unlinked[0]?.n).toBe(1);
   });
 
   it("run_provider_weekly_settlements snapshots entry ids before linking", async () => {

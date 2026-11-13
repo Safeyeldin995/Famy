@@ -65,16 +65,33 @@ export function useProviderSettlementPeriod() {
   });
 }
 
-export function useProviderWeekLedgerTotals(providerId: string | undefined, periodStart: string | undefined) {
+export type WeekLedgerRange = { from: string; to: string };
+
+/** Ledger activity for the in-progress week: from last close through now (capped at next settlement). */
+export function currentWeekLedgerRange(
+  period: { period_end: string; next_settlement_at: string },
+  now: Date = new Date(),
+): WeekLedgerRange {
+  const from = period.period_end;
+  const nextMs = new Date(period.next_settlement_at).getTime();
+  const to = now.getTime() < nextMs ? now.toISOString() : period.next_settlement_at;
+  return { from, to };
+}
+
+export function useProviderWeekLedgerTotals(
+  providerId: string | undefined,
+  range: WeekLedgerRange | undefined,
+) {
   return useQuery({
-    enabled: !!providerId && !!periodStart,
-    queryKey: ["provider-week-ledger", providerId, periodStart],
+    enabled: !!providerId && !!range?.from && !!range?.to,
+    queryKey: ["provider-week-ledger", providerId, range?.from, range?.to],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("provider_ledger_entries")
         .select("kind, amount")
         .eq("provider_id", providerId!)
-        .gte("created_at", periodStart!);
+        .gte("created_at", range!.from)
+        .lte("created_at", range!.to);
       if (error) throw error;
       let cash = 0;
       let online = 0;

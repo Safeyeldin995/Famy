@@ -117,16 +117,22 @@ export function useProviderSettlementPeriod() {
   });
 }
 
-export function useProviderWeekLedgerTotals(providerId: string | undefined, periodStart: string | undefined) {
+export type WeekLedgerRange = { from: string; to: string };
+
+export function useProviderWeekLedgerTotals(
+  providerId: string | undefined,
+  range: WeekLedgerRange | undefined,
+) {
   return useQuery({
-    enabled: !!providerId && !!periodStart,
-    queryKey: ["provider-week-ledger", providerId, periodStart],
+    enabled: !!providerId && !!range?.from && !!range?.to,
+    queryKey: ["provider-week-ledger", providerId, range?.from, range?.to],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("provider_ledger_entries")
         .select("kind, amount")
         .eq("provider_id", providerId!)
-        .gte("created_at", periodStart!);
+        .gte("created_at", range!.from)
+        .lte("created_at", range!.to);
       if (error) throw error;
       let cash = 0;
       let online = 0;
