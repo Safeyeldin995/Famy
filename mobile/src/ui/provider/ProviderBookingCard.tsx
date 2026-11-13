@@ -23,6 +23,9 @@ import {
 export type ProviderCardBooking = {
   id: string;
   start_at: string;
+  end_at?: string;
+  session_started_at?: string | null;
+  arrival_confirmed_at?: string | null;
   status?: string;
   price_total?: number | null;
   supervision_mode?: string | null;

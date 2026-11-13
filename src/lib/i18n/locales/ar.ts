@@ -1728,6 +1728,13 @@ const ar: Translation = {
     dash: "—",
     dayLabel: "يوم {{day}}",
   },
+  bookingJourney: {
+    accepted: "اتأكد",
+    onTheWay: "في الطريق",
+    arrived: "وصل",
+    started: "بدأت",
+    completed: "خلصت",
+  },
   bookingDetail: {
     title: "الحجز",
     notFound: "الحجز مش موجود",

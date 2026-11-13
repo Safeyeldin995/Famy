@@ -14,7 +14,10 @@ import {
 } from "@shared/home/activeHomeBookings";
 import {
   isBookingTooEarlyError,
+  isProviderCompletionTooEarly,
   isProviderStepTooEarly,
+  providerCompletionMinutesRemaining,
+  providerStepOpensAt,
 } from "@/lib/provider/timeWindow";
 import { useProviderUpdateBookingStatus } from "@/lib/provider/queries";
 import type { BookingParty } from "@/lib/provider/parties";
@@ -29,6 +32,9 @@ type HomeBookingRow = {
   id: string;
   status?: string;
   start_at: string;
+  end_at?: string;
+  session_started_at?: string | null;
+  arrival_confirmed_at?: string | null;
   customer?: { full_name?: string | null } | null;
   service?: { name_ar?: string | null; name_en?: string | null } | null;
   party?: BookingParty;
@@ -96,7 +102,35 @@ export function HomeProviderActiveBookingCard({
     (i18n.language.startsWith("ar")
       ? focus.party?.zone_name_ar
       : focus.party?.zone_name_en) || focus.party?.area;
-  const tooEarly = isProviderStepTooEarly(status, focus.start_at, new Date(nowMs));
+  const now = new Date(nowMs);
+  const endAt = focus.end_at ?? focus.start_at;
+  const stepTooEarly = isProviderStepTooEarly(status, focus.start_at, endAt, now);
+  const stepOpensAt = providerStepOpensAt(status, focus.start_at, endAt);
+  const completionTooEarly =
+    status === "in_progress"
+      ? isProviderCompletionTooEarly(
+          {
+            start_at: focus.start_at,
+            end_at: endAt,
+            session_started_at: focus.session_started_at ?? null,
+            arrival_confirmed_at: focus.arrival_confirmed_at ?? null,
+          },
+          now,
+        )
+      : false;
+  const completionMinutesLeft =
+    completionTooEarly && status === "in_progress"
+      ? providerCompletionMinutesRemaining(
+          {
+            start_at: focus.start_at,
+            end_at: endAt,
+            session_started_at: focus.session_started_at ?? null,
+            arrival_confirmed_at: focus.arrival_confirmed_at ?? null,
+          },
+          now,
+        )
+      : 0;
+  const ctaDisabled = stepTooEarly || completionTooEarly || mut.isPending;
   const testID = "provider-home-active-booking";
 
   const runStatus = () => {
@@ -156,12 +190,24 @@ export function HomeProviderActiveBookingCard({
           </Text>
         </View>
         {ctaKey ? (
-          <Button
-            label={t(ctaKey)}
-            loading={mut.isPending}
-            disabled={tooEarly}
-            onPress={runStatus}
-          />
+          <View style={{ gap: space.xs }}>
+            <Button
+              label={t(ctaKey)}
+              loading={mut.isPending}
+              disabled={ctaDisabled}
+              onPress={runStatus}
+            />
+            {stepTooEarly && stepOpensAt ? (
+              <Text size="sm" tone="muted" style={{ textAlign: "center" }}>
+                {t("pro.booking.tooEarly")}
+              </Text>
+            ) : null}
+            {completionTooEarly ? (
+              <Text size="sm" tone="muted" style={{ textAlign: "center" }}>
+                {t("pro.booking.completionWaitMinutes", { count: completionMinutesLeft })}
+              </Text>
+            ) : null}
+          </View>
         ) : (
           <Button
             label={t("providerHome.openBooking")}

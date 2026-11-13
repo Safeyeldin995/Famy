@@ -124,6 +124,13 @@ const booking = {
   service,
   location: [],
 };
+const bookingStatusHistory = [
+  { booking_id: bid, to_status: "confirmed", created_at: now },
+  { booking_id: bid, to_status: "on_the_way", created_at: now },
+  { booking_id: bid, to_status: "arrived", created_at: now },
+  { booking_id: bid, to_status: "in_progress", created_at: now },
+  { booking_id: bid, to_status: "completed", created_at: now },
+];
 const member = {
   id: mid,
   customer_id: uid,
@@ -526,6 +533,7 @@ async function run() {
                   : { pending_ttl_hours: 12, min_hours_before_start: 2 },
           },
         ],
+        booking_status_history: bookingStatusHistory,
       };
       if (!(table in tables)) errors.push(`Unhandled table: ${table}`);
       data = tables[table] || [];
@@ -537,6 +545,10 @@ async function run() {
         data = data.filter((m) => m.is_active);
       if (table === "addresses" && url.searchParams.get("order")?.startsWith("is_default"))
         data = [...data].sort((a, b) => Number(b.is_default) - Number(a.is_default));
+      if (table === "booking_status_history" && url.searchParams.get("booking_id")?.startsWith("eq.")) {
+        const bookingId = url.searchParams.get("booking_id").slice(3);
+        data = data.filter((row) => row.booking_id === bookingId);
+      }
       if (
         mode === "empty" &&
         !["profiles", "user_roles", "settings", "categories", "services"].includes(table)
