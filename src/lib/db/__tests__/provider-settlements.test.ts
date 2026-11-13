@@ -849,6 +849,31 @@ describe("provider settlements ledger", () => {
     expect((after[0]?.n ?? 0) - (before[0]?.n ?? 0) >= 1).toBe(true);
   });
 
+  it("applies cash platform share for completion-then-capture", async () => {
+    await setLedgerCutoff("-1 day");
+    const booking = await seedLifecycleBooking(db, { status: "pending" });
+    await forceSnapshot(booking.bookingId, 3500, 1500);
+    await completeHappyPath(db, booking.bookingId);
+    const beforePayment = await queryRows<{ n: number }>(
+      db,
+      `SELECT count(*)::int AS n FROM public.provider_ledger_entries WHERE booking_id = $1::uuid`,
+      [booking.bookingId],
+    );
+    expect(beforePayment[0]?.n).toBe(0);
+    await insertPayment(booking.bookingId, "cash_on_delivery");
+    await asServiceRole(db, () =>
+      db.query(`UPDATE public.payments SET status = 'captured', captured_at = now() WHERE booking_id = $1`, [
+        booking.bookingId,
+      ]),
+    );
+    const cashShare = await queryRows<{ kind: string; amount: string }>(
+      db,
+      `SELECT kind, amount::text FROM public.provider_ledger_entries WHERE booking_id = $1::uuid`,
+      [booking.bookingId],
+    );
+    expect(cashShare).toEqual([{ kind: "cash_collected_platform_share", amount: "2000.00" }]);
+  });
+
   it("applies one online share for completion-then-capture and double apply", async () => {
     await setLedgerCutoff("-1 day");
     const booking = await seedLifecycleBooking(db, { status: "pending" });

@@ -530,9 +530,7 @@ SET search_path = public
 AS $$
 BEGIN
   IF NEW.status = 'captured' AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'captured') THEN
-    IF COALESCE(NEW.payment_method_type, '') IN ('online', 'manual_transfer') THEN
-      PERFORM public.ledger_apply_booking_shares(NEW.booking_id);
-    END IF;
+    PERFORM public.ledger_apply_booking_shares(NEW.booking_id);
   END IF;
   RETURN NEW;
 END;

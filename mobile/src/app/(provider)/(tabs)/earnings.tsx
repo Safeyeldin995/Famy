@@ -10,6 +10,12 @@ import { useMyProvider, useProviderBookings, useProviderEarnings } from "@/lib/p
 import { localized, money } from "@/lib/presentation";
 import { ProviderSettlementBanner } from "@/components/provider/ProviderSettlementBanner";
 import { ProviderEarningsSettlementPanel } from "@/components/provider/ProviderEarningsSettlementPanel";
+import {
+  useProviderSettlementBalance,
+  useProviderSettlementPeriod,
+  useProviderSettlements,
+  useProviderWeekLedgerTotals,
+} from "@/lib/provider/settlementQueries";
 import { Page, QueryState, moneyTextStyle } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { colors, radius, space } from "@/ui/theme";
@@ -59,6 +65,10 @@ export default function ProviderEarnings() {
   const provider = p.data as { id?: string } | null | undefined;
   const e = useProviderEarnings(provider?.id);
   const bookingsQ = useProviderBookings(provider?.id);
+  const periodQ = useProviderSettlementPeriod();
+  const balanceQ = useProviderSettlementBalance(provider?.id);
+  const weekQ = useProviderWeekLedgerTotals(provider?.id, periodQ.data);
+  const settlementsQ = useProviderSettlements(provider?.id);
   const capturedKind = earningsHeadlineKind(
     e.data?.hasSnapshottedCaptured ?? false,
     e.data?.hasUnsnapshottedCaptured ?? false,
@@ -88,7 +98,7 @@ export default function ProviderEarnings() {
     <Page
       tab
       title={t("pro.earnings.title")}
-      queries={[p, e, bookingsQ]}
+      queries={[p, e, bookingsQ, periodQ, balanceQ, weekQ, settlementsQ]}
       contentStyle={{ gap: 12 }}
     >
       <ProviderSettlementBanner providerId={provider?.id} />

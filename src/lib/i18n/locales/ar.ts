@@ -2586,6 +2586,8 @@ const ar: Translation = {
       referenceRequired: "المرجع والسبب مطلوبين",
       noteOptional: "ملاحظة داخلية (اختياري)",
       settled: "اتسجلت التسوية",
+      directionFamyPays: "فامي تدفع للمقدم",
+      directionProviderPays: "المقدم يدفع لنا",
     },
     finance: {
       title: "لوحة المالية",

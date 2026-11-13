@@ -21,6 +21,13 @@ export function AdminProviderSettlements({ providerId }: { providerId: string })
   const [note, setNote] = useState("");
   const [reason, setReason] = useState("");
 
+  const selectedSettlement = (settlements.data ?? []).find((s) => s.id === settlementId);
+
+  const directionLabel = (direction: string) =>
+    direction === "famy_pays_provider"
+      ? t("admin.settlement.directionFamyPays")
+      : t("admin.settlement.directionProviderPays");
+
   const settle = async () => {
     if (!settlementId || !reference.trim() || !reason.trim()) {
       toast.error(t("admin.settlement.referenceRequired"));
@@ -66,6 +73,9 @@ export function AdminProviderSettlements({ providerId }: { providerId: string })
               <span className="font-bold">{formatEGP(s.amount)}</span>
               <span>{s.status}</span>
             </div>
+            <p className="text-xs font-semibold text-muted-foreground">
+              {directionLabel(s.direction)}
+            </p>
             <p className="mt-1 text-xs text-muted-foreground">
               {new Date(s.period_start).toLocaleDateString()} – {new Date(s.period_end).toLocaleDateString()}
             </p>
@@ -83,6 +93,11 @@ export function AdminProviderSettlements({ providerId }: { providerId: string })
       </ul>
       {settlementId && (
         <div className="space-y-2 rounded-xl border border-brand/30 bg-brand/5 p-3">
+          {selectedSettlement ? (
+            <p className="text-sm font-bold">
+              {formatEGP(selectedSettlement.amount)} · {directionLabel(selectedSettlement.direction)}
+            </p>
+          ) : null}
           <input
             value={reference}
             onChange={(e) => setReference(e.target.value)}

@@ -2614,6 +2614,8 @@ const en = {
       referenceRequired: "Reference and reason are required",
       noteOptional: "Internal note (optional)",
       settled: "Settlement recorded",
+      directionFamyPays: "Famy pays the provider",
+      directionProviderPays: "Provider pays Famy",
     },
     finance: {
       title: "Finance dashboard",
