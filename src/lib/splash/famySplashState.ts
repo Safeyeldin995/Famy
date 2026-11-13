@@ -3,9 +3,9 @@ export const FAMY_SPLASH_FOREGROUND = "#FFFFFF";
 
 export const FAMY_SPLASH_ASSEMBLED = {
   width: 1092,
-  height: 344,
-  fam: { x: 0, y: 0, width: 814, height: 304 },
-  y: { x: 830, y: 18, width: 262, height: 326 },
+  height: 375,
+  fam: { x: 0, y: 0, width: 836, height: 326 },
+  y: { x: 844, y: 46, width: 248, height: 329 },
 } as const;
 
 export const FAMY_SPLASH_DURATION_S = 4.2;

@@ -5,18 +5,18 @@
   },
   "assembled": {
     "width": 1092,
-    "height": 344,
+    "height": 375,
     "fam": {
       "x": 0,
       "y": 0,
-      "width": 814,
-      "height": 304
+      "width": 836,
+      "height": 326
     },
     "y": {
-      "x": 830,
-      "y": 18,
-      "width": 262,
-      "height": 326
+      "x": 844,
+      "y": 46,
+      "width": 248,
+      "height": 329
     }
   },
   "colors": {
