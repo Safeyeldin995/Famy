@@ -2751,7 +2751,7 @@ const en = {
         operations: "Operations",
         providers: "Providers",
         customers: "Customers",
-        finance: "Money and accounts",
+        finance: "Finance",
         settings: "Settings",
         people: "People",
         transactions: "Bookings and money",
