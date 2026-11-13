@@ -52,6 +52,7 @@ import { Route as AdminMonitoringRouteImport } from './routes/admin.monitoring'
 import { Route as AdminOperationsRouteImport } from './routes/admin.operations'
 import { Route as AdminPaymentMethodsRouteImport } from './routes/admin.payment-methods'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
+import { Route as AdminPerformanceRouteImport } from './routes/admin.performance'
 import { Route as AdminPriceChangeRequestsRouteImport } from './routes/admin.price-change-requests'
 import { Route as AdminPromoCodesRouteImport } from './routes/admin.promo-codes'
 import { Route as AdminProvidersRouteImport } from './routes/admin.providers'
@@ -125,6 +126,7 @@ import { Route as PreviewAdminMonitoringRouteImport } from './routes/preview.adm
 import { Route as PreviewAdminOperationsRouteImport } from './routes/preview.admin.operations'
 import { Route as PreviewAdminPaymentMethodsRouteImport } from './routes/preview.admin.payment-methods'
 import { Route as PreviewAdminPaymentsRouteImport } from './routes/preview.admin.payments'
+import { Route as PreviewAdminPerformanceRouteImport } from './routes/preview.admin.performance'
 import { Route as PreviewAdminPromoCodesRouteImport } from './routes/preview.admin.promo-codes'
 import { Route as PreviewAdminProvidersRouteImport } from './routes/preview.admin.providers'
 import { Route as PreviewAdminServicesRouteImport } from './routes/preview.admin.services'
@@ -376,6 +378,11 @@ const AdminPaymentMethodsRoute = AdminPaymentMethodsRouteImport.update({
 const AdminPaymentsRoute = AdminPaymentsRouteImport.update({
   id: '/payments',
   path: '/payments',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPerformanceRoute = AdminPerformanceRouteImport.update({
+  id: '/performance',
+  path: '/performance',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminPriceChangeRequestsRoute =
@@ -748,6 +755,11 @@ const PreviewAdminPaymentsRoute = PreviewAdminPaymentsRouteImport.update({
   path: '/payments',
   getParentRoute: () => PreviewAdminRoute,
 } as any)
+const PreviewAdminPerformanceRoute = PreviewAdminPerformanceRouteImport.update({
+  id: '/performance',
+  path: '/performance',
+  getParentRoute: () => PreviewAdminRoute,
+} as any)
 const PreviewAdminPromoCodesRoute = PreviewAdminPromoCodesRouteImport.update({
   id: '/promo-codes',
   path: '/promo-codes',
@@ -976,6 +988,7 @@ export interface FileRoutesByFullPath {
   '/admin/operations': typeof AdminOperationsRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
   '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/performance': typeof AdminPerformanceRoute
   '/admin/price-change-requests': typeof AdminPriceChangeRequestsRoute
   '/admin/promo-codes': typeof AdminPromoCodesRoute
   '/admin/providers': typeof AdminProvidersRoute
@@ -1049,6 +1062,7 @@ export interface FileRoutesByFullPath {
   '/preview/admin/operations': typeof PreviewAdminOperationsRoute
   '/preview/admin/payment-methods': typeof PreviewAdminPaymentMethodsRoute
   '/preview/admin/payments': typeof PreviewAdminPaymentsRoute
+  '/preview/admin/performance': typeof PreviewAdminPerformanceRoute
   '/preview/admin/promo-codes': typeof PreviewAdminPromoCodesRoute
   '/preview/admin/providers': typeof PreviewAdminProvidersRoute
   '/preview/admin/services': typeof PreviewAdminServicesRoute
@@ -1125,6 +1139,7 @@ export interface FileRoutesByTo {
   '/admin/operations': typeof AdminOperationsRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
   '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/performance': typeof AdminPerformanceRoute
   '/admin/price-change-requests': typeof AdminPriceChangeRequestsRoute
   '/admin/promo-codes': typeof AdminPromoCodesRoute
   '/admin/providers': typeof AdminProvidersRoute
@@ -1195,6 +1210,7 @@ export interface FileRoutesByTo {
   '/preview/admin/operations': typeof PreviewAdminOperationsRoute
   '/preview/admin/payment-methods': typeof PreviewAdminPaymentMethodsRoute
   '/preview/admin/payments': typeof PreviewAdminPaymentsRoute
+  '/preview/admin/performance': typeof PreviewAdminPerformanceRoute
   '/preview/admin/promo-codes': typeof PreviewAdminPromoCodesRoute
   '/preview/admin/providers': typeof PreviewAdminProvidersRoute
   '/preview/admin/services': typeof PreviewAdminServicesRoute
@@ -1277,6 +1293,7 @@ export interface FileRoutesById {
   '/admin/operations': typeof AdminOperationsRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
   '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/performance': typeof AdminPerformanceRoute
   '/admin/price-change-requests': typeof AdminPriceChangeRequestsRoute
   '/admin/promo-codes': typeof AdminPromoCodesRoute
   '/admin/providers': typeof AdminProvidersRoute
@@ -1350,6 +1367,7 @@ export interface FileRoutesById {
   '/preview/admin/operations': typeof PreviewAdminOperationsRoute
   '/preview/admin/payment-methods': typeof PreviewAdminPaymentMethodsRoute
   '/preview/admin/payments': typeof PreviewAdminPaymentsRoute
+  '/preview/admin/performance': typeof PreviewAdminPerformanceRoute
   '/preview/admin/promo-codes': typeof PreviewAdminPromoCodesRoute
   '/preview/admin/providers': typeof PreviewAdminProvidersRoute
   '/preview/admin/services': typeof PreviewAdminServicesRoute
@@ -1433,6 +1451,7 @@ export interface FileRouteTypes {
     | '/admin/operations'
     | '/admin/payment-methods'
     | '/admin/payments'
+    | '/admin/performance'
     | '/admin/price-change-requests'
     | '/admin/promo-codes'
     | '/admin/providers'
@@ -1506,6 +1525,7 @@ export interface FileRouteTypes {
     | '/preview/admin/operations'
     | '/preview/admin/payment-methods'
     | '/preview/admin/payments'
+    | '/preview/admin/performance'
     | '/preview/admin/promo-codes'
     | '/preview/admin/providers'
     | '/preview/admin/services'
@@ -1582,6 +1602,7 @@ export interface FileRouteTypes {
     | '/admin/operations'
     | '/admin/payment-methods'
     | '/admin/payments'
+    | '/admin/performance'
     | '/admin/price-change-requests'
     | '/admin/promo-codes'
     | '/admin/providers'
@@ -1652,6 +1673,7 @@ export interface FileRouteTypes {
     | '/preview/admin/operations'
     | '/preview/admin/payment-methods'
     | '/preview/admin/payments'
+    | '/preview/admin/performance'
     | '/preview/admin/promo-codes'
     | '/preview/admin/providers'
     | '/preview/admin/services'
@@ -1733,6 +1755,7 @@ export interface FileRouteTypes {
     | '/admin/operations'
     | '/admin/payment-methods'
     | '/admin/payments'
+    | '/admin/performance'
     | '/admin/price-change-requests'
     | '/admin/promo-codes'
     | '/admin/providers'
@@ -1806,6 +1829,7 @@ export interface FileRouteTypes {
     | '/preview/admin/operations'
     | '/preview/admin/payment-methods'
     | '/preview/admin/payments'
+    | '/preview/admin/performance'
     | '/preview/admin/promo-codes'
     | '/preview/admin/providers'
     | '/preview/admin/services'
@@ -2195,6 +2219,13 @@ declare module '@tanstack/react-router' {
       path: '/payments'
       fullPath: '/admin/payments'
       preLoaderRoute: typeof AdminPaymentsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/performance': {
+      id: '/admin/performance'
+      path: '/performance'
+      fullPath: '/admin/performance'
+      preLoaderRoute: typeof AdminPerformanceRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/price-change-requests': {
@@ -2708,6 +2739,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewAdminPaymentsRouteImport
       parentRoute: typeof PreviewAdminRoute
     }
+    '/preview/admin/performance': {
+      id: '/preview/admin/performance'
+      path: '/performance'
+      fullPath: '/preview/admin/performance'
+      preLoaderRoute: typeof PreviewAdminPerformanceRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
     '/preview/admin/promo-codes': {
       id: '/preview/admin/promo-codes'
       path: '/promo-codes'
@@ -2992,6 +3030,7 @@ interface AdminRouteChildren {
   AdminOperationsRoute: typeof AdminOperationsRoute
   AdminPaymentMethodsRoute: typeof AdminPaymentMethodsRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
+  AdminPerformanceRoute: typeof AdminPerformanceRoute
   AdminPriceChangeRequestsRoute: typeof AdminPriceChangeRequestsRoute
   AdminPromoCodesRoute: typeof AdminPromoCodesRoute
   AdminProvidersRoute: typeof AdminProvidersRoute
@@ -3019,6 +3058,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminOperationsRoute: AdminOperationsRoute,
   AdminPaymentMethodsRoute: AdminPaymentMethodsRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,
+  AdminPerformanceRoute: AdminPerformanceRoute,
   AdminPriceChangeRequestsRoute: AdminPriceChangeRequestsRoute,
   AdminPromoCodesRoute: AdminPromoCodesRoute,
   AdminProvidersRoute: AdminProvidersRoute,
@@ -3090,6 +3130,7 @@ interface PreviewAdminRouteChildren {
   PreviewAdminOperationsRoute: typeof PreviewAdminOperationsRoute
   PreviewAdminPaymentMethodsRoute: typeof PreviewAdminPaymentMethodsRoute
   PreviewAdminPaymentsRoute: typeof PreviewAdminPaymentsRoute
+  PreviewAdminPerformanceRoute: typeof PreviewAdminPerformanceRoute
   PreviewAdminPromoCodesRoute: typeof PreviewAdminPromoCodesRoute
   PreviewAdminProvidersRoute: typeof PreviewAdminProvidersRoute
   PreviewAdminServicesRoute: typeof PreviewAdminServicesRoute
@@ -3112,6 +3153,7 @@ const PreviewAdminRouteChildren: PreviewAdminRouteChildren = {
   PreviewAdminOperationsRoute: PreviewAdminOperationsRoute,
   PreviewAdminPaymentMethodsRoute: PreviewAdminPaymentMethodsRoute,
   PreviewAdminPaymentsRoute: PreviewAdminPaymentsRoute,
+  PreviewAdminPerformanceRoute: PreviewAdminPerformanceRoute,
   PreviewAdminPromoCodesRoute: PreviewAdminPromoCodesRoute,
   PreviewAdminProvidersRoute: PreviewAdminProvidersRoute,
   PreviewAdminServicesRoute: PreviewAdminServicesRoute,

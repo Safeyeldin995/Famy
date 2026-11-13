@@ -23,6 +23,7 @@ import {
   Activity,
   History,
   Radar,
+  BarChart3,
   LayoutDashboard,
   PanelLeftClose,
   PanelLeft,
@@ -52,6 +53,7 @@ export const ADMIN_NAV_GROUPS: (NavGroup & { titleFallback: string })[] = [
     titleFallback: "Operations",
     items: [
       { to: "/admin", labelKey: "admin.layout.nav.overview", icon: LayoutDashboard, exact: true },
+      { to: "/admin/performance", labelKey: "admin.layout.nav.performance", icon: BarChart3 },
       { to: "/admin/bookings", labelKey: "admin.layout.nav.bookings", icon: ClipboardList },
       { to: "/admin/operations", labelKey: "admin.layout.nav.operations", icon: Activity },
       { to: "/admin/cases", labelKey: "admin.layout.nav.cases", icon: LifeBuoy },
