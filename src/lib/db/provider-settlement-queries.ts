@@ -117,22 +117,38 @@ export function useProviderSettlementPeriod() {
   });
 }
 
-export type WeekLedgerRange = { from: string; to: string };
+export type WeekLedgerPeriodBounds = {
+  period_end: string;
+  next_settlement_at: string;
+};
+
+export function providerWeekLedgerQueryKey(
+  providerId: string | undefined,
+  period: WeekLedgerPeriodBounds | undefined,
+) {
+  return ["provider-week-ledger", providerId, period?.period_end, period?.next_settlement_at] as const;
+}
+
+export function weekLedgerUpperBound(period: WeekLedgerPeriodBounds, now: Date = new Date()): string {
+  const nextMs = new Date(period.next_settlement_at).getTime();
+  return now.getTime() < nextMs ? now.toISOString() : period.next_settlement_at;
+}
 
 export function useProviderWeekLedgerTotals(
   providerId: string | undefined,
-  range: WeekLedgerRange | undefined,
+  period: WeekLedgerPeriodBounds | undefined,
 ) {
   return useQuery({
-    enabled: !!providerId && !!range?.from && !!range?.to,
-    queryKey: ["provider-week-ledger", providerId, range?.from, range?.to],
+    enabled: !!providerId && !!period?.period_end && !!period?.next_settlement_at,
+    queryKey: providerWeekLedgerQueryKey(providerId, period),
     queryFn: async () => {
+      const to = weekLedgerUpperBound(period!);
       const { data, error } = await supabase
         .from("provider_ledger_entries")
         .select("kind, amount")
         .eq("provider_id", providerId!)
-        .gte("created_at", range!.from)
-        .lte("created_at", range!.to);
+        .gte("created_at", period!.period_end)
+        .lte("created_at", to);
       if (error) throw error;
       let cash = 0;
       let online = 0;

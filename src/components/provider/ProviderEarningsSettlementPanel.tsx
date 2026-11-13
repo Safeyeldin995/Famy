@@ -8,7 +8,7 @@ import {
   useProviderSettlements,
   useProviderWeekLedgerTotals,
 } from "@/lib/db/provider-settlement-queries";
-import { currentWeekLedgerRange, formatSettlementWhen } from "@/lib/settlement/cairoSettlementWeek";
+import { formatSettlementWhen } from "@/lib/settlement/cairoSettlementWeek";
 import { useLang } from "@/components/famio/LanguageToggle";
 
 export function ProviderEarningsSettlementPanel({ providerId }: { providerId: string | undefined }) {
@@ -16,8 +16,7 @@ export function ProviderEarningsSettlementPanel({ providerId }: { providerId: st
   const lang = useLang();
   const balance = useProviderSettlementBalance(providerId);
   const period = useProviderSettlementPeriod();
-  const weekRange = period.data ? currentWeekLedgerRange(period.data) : undefined;
-  const week = useProviderWeekLedgerTotals(providerId, weekRange);
+  const week = useProviderWeekLedgerTotals(providerId, period.data);
   const settlements = useProviderSettlements(providerId);
   const net = balance.data?.net ?? 0;
 
