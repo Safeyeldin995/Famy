@@ -221,6 +221,7 @@ export function BookContent({
   const userPickedDateRef = useRef(false);
   const userPickedCapabilityRef = useRef(false);
   const rebookAppliedRef = useRef(false);
+  const rebookTutoringLockRef = useRef(false);
   const idempotencyStateRef = useRef<IdempotencyKeyState | null>(null);
   const [rebookNotices, setRebookNotices] = useState<RebookPrefillNotice[]>([]);
   const rebookBookingQ = useBooking(searchRebookFrom);
@@ -385,6 +386,7 @@ export function BookContent({
     if (values.capabilityId) {
       setCapabilityId(values.capabilityId);
       userPickedCapabilityRef.current = true;
+      rebookTutoringLockRef.current = true;
     }
     if (values.hours) setDuration(`${values.hours}h`);
     if (values.addressId) setAddressId(values.addressId);
@@ -398,6 +400,7 @@ export function BookContent({
       setBookingEducation(
         educationValueFromIds(values.curriculumId ?? null, values.levelId ?? null),
       );
+      rebookTutoringLockRef.current = true;
     }
   }, [
     searchRebookFrom,
@@ -460,6 +463,7 @@ export function BookContent({
 
   useEffect(() => {
     if (!isTutoring || isLessonService) return;
+    if (rebookTutoringLockRef.current) return;
     setBookingEducation(
       educationValueFromIds(
         studentEducation.educationCurriculumId,

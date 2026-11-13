@@ -9,6 +9,10 @@ import { supabase } from "./supabase";
 import { cairoWallTime, packageRuleStart } from "@shared/pricing/servicePackages";
 import { creationMinHours, parseBookingExpirySettings } from "@shared/booking/pending-expiry";
 import { mapBookingRpcError } from "@shared/booking/errors";
+import {
+  fetchRequirementsForServiceIds,
+  requirementsBatchQueryKey,
+} from "@shared/db/serviceRequirementsBatch";
 import { completeCreateBookingResult } from "./bookingPure";
 import type { ServiceZone } from "@shared/geo/serviceZones";
 import {
@@ -619,20 +623,20 @@ export function useRequirementsForService(serviceId: string | undefined) {
 }
 
 export function useRequirementsForServices(serviceIds: string[]) {
-  const key = [...serviceIds].sort().join(",");
+  const key = requirementsBatchQueryKey(serviceIds);
   return useQuery({
-    enabled: serviceIds.length > 0,
     queryKey: ["service-requirements-batch", key],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("service_requirements")
-        .select("*")
-        .in("service_id", serviceIds)
-        .eq("is_active", true)
-        .order("sort_order");
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: async () =>
+      fetchRequirementsForServiceIds(serviceIds, async (ids) => {
+        const { data, error } = await supabase
+          .from("service_requirements")
+          .select("*")
+          .in("service_id", ids)
+          .eq("is_active", true)
+          .order("sort_order");
+        if (error) throw error;
+        return data ?? [];
+      }),
   });
 }
 

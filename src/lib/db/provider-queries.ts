@@ -8,6 +8,10 @@ import { useAuth } from "@/lib/auth/useAuth";
 import { isClosedBetaCategorySlug } from "@/lib/catalog/closedBetaCategories";
 import { isQaCatalogService } from "@/lib/catalog/qaCatalog";
 import { aggregateProviderEarnings } from "@/lib/earnings/aggregateProviderEarnings";
+import {
+  fetchRequirementsForServiceIds,
+  requirementsBatchQueryKey,
+} from "@/lib/db/serviceRequirementsBatch";
 
 // ---------- Identity ----------
 export function useMyRole() {
@@ -504,20 +508,20 @@ export function useRequirementsForService(serviceId: string | undefined) {
 }
 
 export function useRequirementsForServices(serviceIds: string[]) {
-  const key = [...serviceIds].sort().join(",");
+  const key = requirementsBatchQueryKey(serviceIds);
   return useQuery({
-    enabled: serviceIds.length > 0,
     queryKey: ["service-requirements-batch", key],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("service_requirements")
-        .select("*")
-        .in("service_id", serviceIds)
-        .eq("is_active", true)
-        .order("sort_order");
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: async () =>
+      fetchRequirementsForServiceIds(serviceIds, async (ids) => {
+        const { data, error } = await supabase
+          .from("service_requirements")
+          .select("*")
+          .in("service_id", ids)
+          .eq("is_active", true)
+          .order("sort_order");
+        if (error) throw error;
+        return data ?? [];
+      }),
   });
 }
 

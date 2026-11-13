@@ -169,6 +169,7 @@ export default function Book() {
   const userDate = useRef(false);
   const userCap = useRef(!!initialCap);
   const rebookApplied = useRef(false);
+  const rebookTutoringLock = useRef(false);
   const [rebookNotices, setRebookNotices] = useState<RebookPrefillNotice[]>([]);
   const rebookBooking = useBooking(rebookFrom);
   const rebookRequirements = useRequirementsForService(
@@ -267,6 +268,7 @@ export default function Book() {
     if (values.capabilityId) {
       setCapId(values.capabilityId);
       userCap.current = true;
+      rebookTutoringLock.current = true;
     }
     if (values.hours) setHours(values.hours);
     if (values.addressId) setAddressId(values.addressId);
@@ -274,8 +276,14 @@ export default function Book() {
     if (values.supervisionMode) setSupervisionMode(values.supervisionMode);
     if (values.notes) setNotes(values.notes);
     if (Object.keys(values.requirementChoices).length) setChoices(values.requirementChoices);
-    if (values.curriculumId) setCurriculum(values.curriculumId);
-    if (values.levelId) setLevel(values.levelId);
+    if (values.curriculumId) {
+      setCurriculum(values.curriculumId);
+      rebookTutoringLock.current = true;
+    }
+    if (values.levelId) {
+      setLevel(values.levelId);
+      rebookTutoringLock.current = true;
+    }
   }, [
     rebookFrom,
     rebookBooking.isSuccess,
@@ -307,6 +315,7 @@ export default function Book() {
   }, [babysitting, recipient]);
   useEffect(() => {
     if (!tutoring || isLessonService) return;
+    if (rebookTutoringLock.current) return;
     setCurriculum(student.educationCurriculumId || "");
     setLevel(student.educationLevelId || "");
     userCap.current = !!initialCap;

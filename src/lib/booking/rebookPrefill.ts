@@ -16,6 +16,8 @@ export type RebookPrefillNotice = { code: RebookNoticeCode; requirementId?: stri
 export type RebookSourceBooking = {
   provider_id: string;
   service_id: string;
+  start_at: string;
+  end_at: string;
   address_id: string | null;
   family_member_id: string | null;
   supervision_mode: string | null;
@@ -93,6 +95,13 @@ function hourlyHoursFromMinutes(minutes: number | null | undefined): number | un
   return hours;
 }
 
+function hourlyHoursFromInterval(startAt: string, endAt: string): number | undefined {
+  const start = Date.parse(startAt);
+  const end = Date.parse(endAt);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return undefined;
+  return hourlyHoursFromMinutes((end - start) / 60_000);
+}
+
 export function mapRebookPrefill(
   booking: RebookSourceBooking,
   ctx: RebookPrefillContext,
@@ -130,9 +139,9 @@ export function mapRebookPrefill(
         notices.push({ code: "capabilityUnavailable" });
       }
     } else if (!fixed) {
-      const hours = hourlyHoursFromMinutes(booking.session_duration_min);
+      const hours = hourlyHoursFromInterval(booking.start_at, booking.end_at);
       if (hours) values.hours = hours;
-      else if (booking.session_duration_min != null) notices.push({ code: "durationUnavailable" });
+      else notices.push({ code: "durationUnavailable" });
     }
 
     if (booking.address_id && ctx.pinnedAddressIds.has(booking.address_id)) {

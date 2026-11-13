@@ -8,7 +8,9 @@ const baseBooking: RebookSourceBooking = {
   family_member_id: null,
   supervision_mode: null,
   teaching_capability_id: null,
-  session_duration_min: 240,
+  session_duration_min: null,
+  start_at: "2026-10-12T07:00:00.000Z",
+  end_at: "2026-10-12T11:00:00.000Z",
   requirement_selections: [],
   notes: "same place",
 };
@@ -129,5 +131,31 @@ describe("mapRebookPrefill", () => {
     );
     expect(result.values.requirementChoices).toEqual({ "req-active": "provider" });
     expect(result.notices.some((n) => n.code === "requirementUnavailable")).toBe(true);
+  });
+
+  it("ignores session_duration_min for hourly and uses start/end timestamps", () => {
+    const result = mapRebookPrefill(
+      {
+        ...baseBooking,
+        session_duration_min: 120,
+        start_at: "2026-10-12T08:00:00.000Z",
+        end_at: "2026-10-12T12:00:00.000Z",
+      },
+      ctx(),
+    );
+    expect(result.values.hours).toBe(4);
+  });
+
+  it("drops hourly duration when timestamps do not map to allowed hours", () => {
+    const result = mapRebookPrefill(
+      {
+        ...baseBooking,
+        start_at: "2026-10-12T08:00:00.000Z",
+        end_at: "2026-10-12T09:30:00.000Z",
+      },
+      ctx(),
+    );
+    expect(result.values.hours).toBeUndefined();
+    expect(result.notices).toContainEqual({ code: "durationUnavailable" });
   });
 });
