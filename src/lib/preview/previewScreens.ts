@@ -328,6 +328,12 @@ export const PREVIEW_SCREEN_GROUPS: {
         badge: "new",
       },
       {
+        to: "/preview/admin/finance",
+        labelKey: "admin.layout.nav.finance",
+        fallback: "Finance",
+        badge: "new",
+      },
+      {
         to: "/preview/admin/services",
         labelKey: "admin.layout.nav.services",
         fallback: "Services",

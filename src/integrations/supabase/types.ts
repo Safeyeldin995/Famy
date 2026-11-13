@@ -2488,6 +2488,70 @@ export type Database = {
           },
         ]
       }
+      provider_ledger_entries: {
+        Row: {
+          id: string
+          provider_id: string
+          booking_id: string | null
+          settlement_id: string | null
+          kind: string
+          direction: string
+          amount: number
+          payment_method: string | null
+          note: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          provider_id: string
+          booking_id?: string | null
+          settlement_id?: string | null
+          kind: string
+          direction: string
+          amount: number
+          payment_method?: string | null
+          note?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          settlement_id?: string | null
+        }
+        Relationships: []
+      }
+      provider_settlements: {
+        Row: {
+          id: string
+          provider_id: string
+          period_start: string
+          period_end: string
+          amount: number
+          direction: string
+          status: string
+          totals_by_method: Json
+          payment_reference: string | null
+          note: string | null
+          created_at: string
+          settled_at: string | null
+          settled_by: string | null
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
+      provider_settlement_accounts: {
+        Row: {
+          provider_id: string
+          debt_warned_at: string | null
+          debt_warned_net: number | null
+          debt_blocked_notified_at: string | null
+          updated_at: string
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
       provider_onboarding_events: {
         Row: {
           action: string
@@ -4374,6 +4438,88 @@ export type Database = {
       process_due_campaigns: { Args: never; Returns: number }
       process_due_reminders: { Args: never; Returns: number }
       expire_pending_bookings: { Args: never; Returns: number }
+      admin_reconcile_booking_ledger: {
+        Args: { p_booking_id: string; p_reason: string }
+        Returns: undefined
+      }
+      provider_settlement_period_containing: {
+        Args: { p_moment: string }
+        Returns: {
+          period_start: string
+          period_end: string
+        }[]
+      }
+      admin_finance_summary: {
+        Args: { p_from: string; p_to: string }
+        Returns: Json
+      }
+      admin_finance_provider_rows: {
+        Args: Record<PropertyKey, never>
+        Returns: Json[]
+      }
+      provider_settlement_closed_period: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          period_start: string
+          period_end: string
+          next_settlement_at: string
+        }[]
+      }
+      provider_balance: {
+        Args: { p_provider_id: string }
+        Returns: {
+          total_credits: number
+          total_debits: number
+          net: number
+          cash_held_for_platform: number
+        }[]
+      }
+      provider_cash_debt_blocked: {
+        Args: { p_provider_id: string }
+        Returns: boolean
+      }
+      admin_list_provider_ledger_entries: {
+        Args: { p_provider_id: string; p_limit?: number }
+        Returns: Json
+      }
+      admin_list_provider_settlements: {
+        Args: { p_provider_id: string }
+        Returns: Json
+      }
+      admin_mark_provider_settlement_settled: {
+        Args: {
+          p_settlement_id: string
+          p_reference: string
+          p_note: string | null
+          p_reason: string
+        }
+        Returns: undefined
+      }
+      admin_provider_ledger_adjustment: {
+        Args: {
+          p_provider_id: string
+          p_direction: string
+          p_amount: number
+          p_reason: string
+          p_note?: string | null
+        }
+        Returns: string
+      }
+      admin_record_provider_debt_payment: {
+        Args: {
+          p_provider_id: string
+          p_amount: number
+          p_reference: string
+          p_reason: string
+          p_note?: string | null
+        }
+        Returns: string
+      }
+      admin_record_historic_cash_collected: {
+        Args: { p_booking_id: string; p_reason: string; p_note?: string | null }
+        Returns: string
+      }
+      run_provider_weekly_settlements: { Args: never; Returns: number }
       booking_expiry_settings: {
         Args: never
         Returns: {

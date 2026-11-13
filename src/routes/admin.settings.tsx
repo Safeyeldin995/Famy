@@ -18,6 +18,8 @@ import {
   type PlatformContentKey,
   useBookingExpirySettings,
   useUpdateBookingExpirySettings,
+  useProviderSettlementSettingsAdmin,
+  useUpdateProviderSettlementSettings,
 } from "@/lib/db/settings-queries";
 import {
   useAdminCategories,
@@ -658,6 +660,114 @@ function ContentEditor({ contentKey, label }: { contentKey: PlatformContentKey; 
   );
 }
 
+function ProviderSettlementSettingsSection() {
+  const { t } = useTranslation();
+  const q = useProviderSettlementSettingsAdmin();
+  const update = useUpdateProviderSettlementSettings();
+  const [limit, setLimit] = useState("");
+  const [warn, setWarn] = useState("");
+  const [weekday, setWeekday] = useState("0");
+  useEffect(() => {
+    if (q.data) {
+      setLimit(String(q.data.cash_debt_limit));
+      setWarn(String(q.data.cash_debt_warn_percent));
+      setWeekday(String(q.data.settlement_weekday));
+    }
+  }, [q.data]);
+  const limitN = Number(limit);
+  const warnN = Number(warn);
+  const weekdayN = Number(weekday);
+  const valid =
+    limit.trim() !== "" &&
+    warn.trim() !== "" &&
+    Number.isFinite(limitN) &&
+    limitN > 0 &&
+    Number.isFinite(warnN) &&
+    warnN > 0 &&
+    warnN <= 100 &&
+    Number.isInteger(weekdayN) &&
+    weekdayN >= 0 &&
+    weekdayN <= 6;
+  const saved = useSavedFlash(update.isPending, update.isSuccess);
+  return (
+    <SectionCard
+      title={t("admin.settings.providerSettlementTitle")}
+      subtitle={t("admin.settings.providerSettlementSubtitle")}
+    >
+      {q.isLoading ? (
+        <p>{t("common.loading")}</p>
+      ) : q.isError ? (
+        <AdminQueryError
+          message={t("admin.settings.providerSettlementLoadError")}
+          error={q.error}
+          onRetry={() => q.refetch()}
+        />
+      ) : (
+        <div className="space-y-3">
+          <label className="block space-y-1">
+            <span className="text-pro-13 font-semibold">{t("admin.settings.cashDebtLimit")}</span>
+            <input
+              type="number"
+              min={1}
+              dir="ltr"
+              value={limit}
+              onChange={(e) => setLimit(e.target.value)}
+              className="min-h-11 w-full rounded-xl border bg-surface px-3 text-pro-14"
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-pro-13 font-semibold">{t("admin.settings.cashDebtWarnPercent")}</span>
+            <input
+              type="number"
+              min={1}
+              max={100}
+              dir="ltr"
+              value={warn}
+              onChange={(e) => setWarn(e.target.value)}
+              className="min-h-11 w-full rounded-xl border bg-surface px-3 text-pro-14"
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-pro-13 font-semibold">{t("admin.settings.settlementWeekday")}</span>
+            <select
+              value={weekday}
+              onChange={(e) => setWeekday(e.target.value)}
+              className="min-h-11 w-full rounded-xl border bg-surface px-3 text-pro-14"
+            >
+              {[0, 1, 2, 3, 4, 5, 6].map((d) => (
+                <option key={d} value={d}>
+                  {t(`admin.settings.settlementWeekday${d}`)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <SaveButton
+            pending={update.isPending}
+            saved={saved}
+            onClick={() => {
+              if (!valid) {
+                toast.error(t("admin.settings.providerSettlementInvalid"));
+                return;
+              }
+              update.mutate(
+                {
+                  cash_debt_limit: limitN,
+                  cash_debt_warn_percent: warnN,
+                  settlement_weekday: weekdayN,
+                },
+                {
+                  onSuccess: () => toast.success(t("admin.settings.saved")),
+                  onError: () => toast.error(t("admin.settings.providerSettlementSaveError")),
+                },
+              );
+            }}
+          />
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
 function PlatformContentSection() {
   const { t, i18n } = useTranslation();
   return (
@@ -685,6 +795,7 @@ function AdminSettings() {
         <p className="text-xs text-muted-foreground">{t("admin.settings.subtitle")}</p>
       </div>
       <BillingSection />
+      <ProviderSettlementSettingsSection />
       <BookingExpirySection />
       <CategoriesSection />
       <ServiceAreasSection />
