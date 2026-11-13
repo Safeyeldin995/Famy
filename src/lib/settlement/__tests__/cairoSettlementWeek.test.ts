@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
   currentWeekLedgerRange,
+  defaultFinanceRangeFromPeriod,
   formatInstantForDatetimeLocal,
 } from "../cairoSettlementWeek";
 
@@ -17,6 +18,19 @@ describe("formatInstantForDatetimeLocal", () => {
     const iso = "2026-11-13T12:00:00.000Z";
     expect(formatInstantForDatetimeLocal(iso)).toBe("2026-11-13T14:00");
     expect(formatInstantForDatetimeLocal(iso)).not.toBe(iso.slice(0, 16));
+  });
+});
+
+describe("defaultFinanceRangeFromPeriod", () => {
+  it("starts at period_end (current week boundary), not period_start", () => {
+    const period = {
+      period_start: "2026-11-08T08:00:00.000Z",
+      period_end: "2026-11-15T08:00:00.000Z",
+      next_settlement_at: "2026-11-22T08:00:00.000Z",
+    };
+    const range = defaultFinanceRangeFromPeriod(period);
+    expect(range.from).toBe(formatInstantForDatetimeLocal(period.period_end));
+    expect(range.from).not.toBe(formatInstantForDatetimeLocal(period.period_start));
   });
 });
 

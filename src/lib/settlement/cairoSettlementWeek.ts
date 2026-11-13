@@ -17,7 +17,7 @@ export function defaultFinanceRangeFromPeriod(period: SettlementClosedPeriod): {
   from: string;
   to: string;
 } {
-  const from = formatInstantForDatetimeLocal(period.period_start);
+  const from = formatInstantForDatetimeLocal(period.period_end);
   const to = formatInstantForDatetimeLocal(new Date().toISOString());
   return { from, to };
 }

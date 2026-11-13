@@ -30,23 +30,24 @@ BEGIN
   FROM (
     SELECT
       CASE
-        WHEN COALESCE(e.payment_method, '') IN ('cash', 'cash_on_delivery') THEN 'cash'
-        WHEN COALESCE(e.payment_method, '') IN ('paymob') THEN 'gateway'
-        WHEN COALESCE(e.payment_method, '') IN ('instapay', 'manual_transfer') THEN 'transfer'
-        ELSE COALESCE(NULLIF(e.payment_method, ''), 'unknown')
+        WHEN COALESCE(p.payment_method_type, '') = 'cash'
+          OR COALESCE(p.payment_method_code, p.method::text, '') IN ('cash', 'cash_on_delivery')
+          THEN 'cash'
+        WHEN COALESCE(p.payment_method_code, p.method::text, '') = 'paymob'
+          OR COALESCE(p.payment_method_type, '') = 'online'
+          THEN 'gateway'
+        WHEN COALESCE(p.payment_method_type, '') = 'manual_transfer'
+          OR COALESCE(p.payment_method_code, p.method::text, '') IN ('instapay', 'manual_transfer')
+          THEN 'transfer'
+        ELSE COALESCE(NULLIF(COALESCE(p.payment_method_code, p.method::text), ''), 'unknown')
       END AS bucket,
-      SUM(
-        CASE
-          WHEN e.kind IN ('online_provider_share', 'debt_payment_received') AND e.direction = 'credit' THEN e.amount
-          WHEN e.kind = 'cash_collected_platform_share' AND e.direction = 'debit' THEN e.amount
-          WHEN e.kind = 'payout_sent' AND e.direction = 'debit' THEN e.amount
-          WHEN e.kind = 'adjustment' AND e.direction = 'credit' THEN e.amount
-          WHEN e.kind = 'adjustment' AND e.direction = 'debit' THEN -e.amount
-          ELSE 0
-        END
-      ) AS amt
-    FROM public.provider_ledger_entries e
-    WHERE e.created_at >= p_from AND e.created_at < p_to
+      SUM(p.amount) AS amt
+    FROM public.payments p
+    INNER JOIN public.bookings b ON b.id = p.booking_id
+    WHERE p.status = 'captured'
+      AND b.status = 'completed'
+      AND b.completed_at >= p_from
+      AND b.completed_at < p_to
     GROUP BY 1
   ) x;
 
@@ -55,19 +56,21 @@ BEGIN
   FROM (
     SELECT e.amount AS share
     FROM public.provider_ledger_entries e
-    WHERE e.created_at >= p_from
-      AND e.created_at < p_to
-      AND e.kind = 'cash_collected_platform_share'
+    JOIN public.bookings b ON b.id = e.booking_id
+    WHERE e.kind = 'cash_collected_platform_share'
       AND e.direction = 'debit'
+      AND b.status = 'completed'
+      AND b.completed_at >= p_from
+      AND b.completed_at < p_to
     UNION ALL
     SELECT GREATEST(b.price_total - b.price_provider_net, 0) AS share
     FROM public.provider_ledger_entries e
     JOIN public.bookings b ON b.id = e.booking_id
-    WHERE e.created_at >= p_from
-      AND e.created_at < p_to
-      AND e.kind = 'online_provider_share'
+    WHERE e.kind = 'online_provider_share'
       AND e.direction = 'credit'
       AND b.status = 'completed'
+      AND b.completed_at >= p_from
+      AND b.completed_at < p_to
       AND b.price_provider_net IS NOT NULL
       AND b.price_total IS NOT NULL
   ) x;

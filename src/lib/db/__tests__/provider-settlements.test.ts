@@ -1099,15 +1099,61 @@ describe("provider settlements ledger", () => {
     expect(second[0]?.amount).toBe(first[0]?.amount);
   });
 
+  it("admin finance summary totals_by_method uses captured payment amounts", async () => {
+    await setLedgerCutoff("-1 day");
+    const cash = await seedLifecycleBooking(db, { status: "pending" });
+    const online = await seedLifecycleBooking(db, { status: "pending" });
+    await forceSnapshot(cash.bookingId, 1000, 850);
+    await forceSnapshot(online.bookingId, 1000, 850);
+    await insertPayment(cash.bookingId, "cash_on_delivery");
+    await insertPayment(online.bookingId, "instapay");
+    await completeHappyPath(db, cash.bookingId);
+    await completeHappyPath(db, online.bookingId);
+    const at = "2099-08-20T10:00:00.000Z";
+    await asServiceRole(db, () =>
+      db.query(
+        `
+          UPDATE public.bookings SET completed_at = $2::timestamptz WHERE id = ANY($1::uuid[])
+        `,
+        [[cash.bookingId, online.bookingId], at],
+      ),
+    );
+    await asServiceRole(db, () =>
+      db.query(
+        `
+          UPDATE public.payments
+          SET status = 'captured', captured_at = $2::timestamptz
+          WHERE booking_id = ANY($1::uuid[])
+        `,
+        [[cash.bookingId, online.bookingId], at],
+      ),
+    );
+    const from = "2099-08-20T09:00:00.000Z";
+    const to = "2099-08-20T11:00:00.000Z";
+    const summary = await asUser(db, IDS.adminUser, () =>
+      queryRows<{ summary: Record<string, unknown> }>(
+        db,
+        `SELECT public.admin_finance_summary($1::timestamptz, $2::timestamptz) AS summary`,
+        [from, to],
+      ),
+    );
+    const body = summary[0]?.summary;
+    const methods = body?.totals_by_method as Record<string, number>;
+    expect(Number(methods?.cash)).toBe(1000);
+    expect(Number(methods?.transfer)).toBe(1000);
+    expect(Number(body?.platform_share)).toBe(300);
+  }, 60_000);
+
   it("reports online platform share in admin finance summary", async () => {
     const booking = await seedLifecycleBooking(db, { status: "pending" });
     await forceSnapshot(booking.bookingId, 1000, 850);
-    await asServiceRole(db, () =>
-      db.query(`UPDATE public.bookings SET status = 'completed', completed_at = now() WHERE id = $1::uuid`, [
-        booking.bookingId,
-      ]),
-    );
     const at = "2099-07-15T10:00:00.000Z";
+    await asServiceRole(db, () =>
+      db.query(
+        `UPDATE public.bookings SET status = 'completed', completed_at = $2::timestamptz WHERE id = $1::uuid`,
+        [booking.bookingId, at],
+      ),
+    );
     await db.query(
       `
         INSERT INTO public.provider_ledger_entries (
