@@ -29,13 +29,13 @@ import { Avatar } from "@/ui/ProviderCard";
 import { Page, QueryState, ActionError, ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
-import { colors } from "@/ui/theme";
+import { colors, radius, space } from "@/ui/theme";
 import { useToast } from "@/ui/Toast";
 import { customerStyle } from "@/ui/customer/Primitives";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <View style={{ gap: 8, marginTop: 8 }}>
+    <View style={{ gap: space.sm, marginTop: space.sm }}>
       <Text size="lg" weight="heavy">
         {title}
       </Text>
@@ -97,10 +97,10 @@ export default function ProviderProfile() {
   const iconStyle = {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: "white",
+    backgroundColor: colors.surface,
     alignItems: "center" as const,
     justifyContent: "center" as const,
   };
@@ -108,12 +108,12 @@ export default function ProviderProfile() {
     <Page
       title={name}
       queries={[provider, reviews, services, bookable, caps, availability, favoriteIds]}
-      contentStyle={{ paddingTop: 8, gap: 16 }}
+      contentStyle={{ paddingTop: space.sm, gap: space.lg }}
       header={
         <View
           style={[
             customerStyle.row,
-            { justifyContent: "space-between", paddingHorizontal: 16, paddingTop: 12 },
+            { justifyContent: "space-between", paddingHorizontal: space.lg, paddingTop: space.md },
           ]}
         >
           <Pressable
@@ -124,7 +124,7 @@ export default function ProviderProfile() {
           >
             <Back size={20} color={colors.foreground} />
           </Pressable>
-          <View style={[customerStyle.row, { gap: 8 }]}>
+          <View style={[customerStyle.row, { gap: space.sm }]}>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t("common.share")}
@@ -172,7 +172,7 @@ export default function ProviderProfile() {
       }
       footer={
         p && available.length ? (
-          <View style={{ gap: 8 }}>
+          <View style={{ gap: space.sm }}>
             <Text size="xs" tone="muted" style={{ textAlign: "center" }}>
               {t("providerProfile.freeCancel")}
             </Text>
@@ -193,10 +193,10 @@ export default function ProviderProfile() {
       }
     >
       <ActionError error={shareError || favorite.error} />
-      <QueryState query={provider} empty={!p} emptyKey="provider2.notFound">
+      <QueryState query={provider} empty={!p} emptyKey="provider2.notFound" skeleton="detail">
         {p ? (
           <>
-            <View style={{ alignItems: "center", gap: 8 }}>
+            <View style={{ alignItems: "center", gap: space.sm }}>
               <Avatar raw={p.profile.avatar_url} size={96} round />
               <Text size="xxl" weight="heavy" style={{ textAlign: "center", marginTop: 4 }}>
                 {name}

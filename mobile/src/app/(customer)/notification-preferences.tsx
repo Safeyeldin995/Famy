@@ -13,9 +13,11 @@ import { Button } from "@/ui/Button";
 import { colors } from "@/ui/theme";
 import { useState } from "react";
 import { enableCustomerPushNotifications } from "@/lib/push";
+import { useToast } from "@/ui/Toast";
 
 export default function CustomerNotificationPreferences() {
   const { t } = useTranslation();
+  const toast = useToast();
   const prefs = useNotificationPreferences();
   const update = useUpdateNotificationPreferences();
   const [failed, setFailed] = useState(false);
@@ -99,7 +101,12 @@ export default function CustomerNotificationPreferences() {
                   disabled: update.isPending || !prefs.data,
                 }}
                 disabled={update.isPending || !prefs.data}
-                onPress={() => update.mutate({ [key]: !prefs.data?.[key] })}
+                onPress={() =>
+                  update.mutate(
+                    { [key]: !prefs.data?.[key] },
+                    { onSuccess: () => toast.show(t("mobile.settingsSaved")) },
+                  )
+                }
                 style={{ minHeight: 44, flexDirection: "row", alignItems: "center", gap: 8 }}
               >
                 <Text size="xs" weight="bold" tone={prefs.data?.[key] ? "brand" : "muted"}>
