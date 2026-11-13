@@ -1,7 +1,8 @@
-import type { TFunction } from "i18next";
+/** Minimal i18n translator (root + mobile `i18next` stay structurally compatible). */
+export type SettlementTranslate = (key: string, opts?: Record<string, unknown>) => string;
 
 /** Provider- and admin-facing settlement batch status (no raw DB codes in UI). */
-export function settlementStatusLabel(status: string, t: TFunction): string {
+export function settlementStatusLabel(status: string, t: SettlementTranslate): string {
   const key = String(status ?? "").toLowerCase();
   if (key === "pending") return t("pro.settlement.statusPending");
   if (key === "settled") return t("pro.settlement.statusSettled");

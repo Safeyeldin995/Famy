@@ -125,6 +125,7 @@ const providerSettlementsFixture = [
     id: id(90),
     provider_id: pid,
     period_start: settlementPeriod.period_start,
+    period_end: settlementPeriod.period_end,
     amount: 1200,
     direction: "famy_pays_provider",
     status: "pending",
@@ -134,6 +135,7 @@ const providerSettlementsFixture = [
     id: id(91),
     provider_id: pid,
     period_start: new Date(settlementPeriodEnd.getTime() - 2 * weekMs).toISOString(),
+    period_end: new Date(settlementPeriodEnd.getTime() - weekMs).toISOString(),
     amount: 600,
     direction: "provider_pays_famy",
     status: "settled",
@@ -357,6 +359,16 @@ async function run() {
         provider_settlements: providerSettlementsFixture,
         provider_ledger_entries: providerLedgerEntriesFixture,
         booking_status_history: bookingStatusHistory,
+        settings: [
+          {
+            key: "provider_settlement",
+            value: {
+              cash_debt_limit: 1000,
+              cash_debt_warn_percent: 80,
+              settlement_weekday: 0,
+            },
+          },
+        ],
       };
       if (!(table in tables)) errors.push(`Unhandled table: ${table}`);
       data = tables[table] || [];
@@ -470,8 +482,12 @@ async function run() {
   await shot("pro-schedule");
 
   await visit("/earnings");
-  await expect(page.getByText(ar.pro.earnings.title).first()).toBeVisible();
-  await expect(page.getByText(ar.pro.settlement.title).first()).toBeVisible({ timeout: 20000 });
+  await expect(page.getByText(ar.pro.earnings.title, { exact: true }).first()).toBeVisible({
+    timeout: 20000,
+  });
+  await expect(page.getByText(ar.pro.settlement.thisWeekTitle).first()).toBeVisible({
+    timeout: 20000,
+  });
   await expect(page.getByText(ar.pro.settlement.directionFamyPays).first()).toBeVisible();
   await shot("pro-earnings");
 
