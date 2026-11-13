@@ -303,12 +303,13 @@ export function BookContent({
   // bookable saved address once it loads. Only runs once, before the
   // customer has interacted with this step, so it never clobbers their edits.
   useEffect(() => {
+    if (searchRebookFrom && !rebookAppliedRef.current) return;
     if (addressId === null && bookableAddresses.length > 0) {
       const def = bookableAddresses.find((a: any) => a.is_default) ?? bookableAddresses[0];
       setAddressId(def.id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [addrsQ.data]);
+  }, [addrsQ.data, searchRebookFrom]);
 
   // Auto-select the admin-configured default payment method once it loads —
   // the customer can still change it in the payment step before confirming.
@@ -410,7 +411,12 @@ export function BookContent({
       userPickedCapabilityRef.current = true;
     }
     if (values.hours) setDuration(`${values.hours}h`);
-    if (values.addressId) setAddressId(values.addressId);
+    if (values.addressId) {
+      setAddressId(values.addressId);
+    } else if (bookableAddresses.length > 0) {
+      const def = bookableAddresses.find((a: any) => a.is_default) ?? bookableAddresses[0];
+      setAddressId(def.id);
+    }
     if (values.forWhom) setForWhom(values.forWhom);
     if (values.supervisionMode && restoredServiceId) {
       setSupervisionMode(values.supervisionMode);

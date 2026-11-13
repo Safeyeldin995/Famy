@@ -176,6 +176,7 @@ export default function Book() {
   const userDate = useRef(false);
   const userCap = useRef(!!initialCap);
   const rebookApplied = useRef(false);
+  const skipDefaultAddressOnce = useRef(false);
   const rebookTutoringSeed = useRef<RebookTutoringSeed | null>(null);
   const rebookSupervisionSeed = useRef<RebookSupervisionSeed | null>(null);
   const [rebookNotices, setRebookNotices] = useState<RebookPrefillNotice[]>([]);
@@ -296,7 +297,12 @@ export default function Book() {
       userCap.current = true;
     }
     if (values.hours) setHours(values.hours);
-    if (values.addressId) setAddressId(values.addressId);
+    if (values.addressId) {
+      skipDefaultAddressOnce.current = true;
+      setAddressId(values.addressId);
+    } else if (pinned.length) {
+      setAddressId((pinned.find((a) => a.is_default) ?? pinned[0]).id);
+    }
     if (values.forWhom) setRecipient(values.forWhom);
     if (values.supervisionMode && restoredServiceId) {
       setSupervisionMode(values.supervisionMode);
@@ -332,9 +338,15 @@ export default function Book() {
   ]);
 
   useEffect(() => {
-    if (!addressId && pinned.length)
+    if (skipDefaultAddressOnce.current) {
+      skipDefaultAddressOnce.current = false;
+      return;
+    }
+    if (rebookFrom && !rebookApplied.current) return;
+    if (!addressId && pinned.length) {
       setAddressId((pinned.find((a) => a.is_default) ?? pinned[0]).id);
-  }, [addressId, pinned]);
+    }
+  }, [addressId, pinned, rebookFrom]);
   useEffect(() => {
     if (!methodId && methods.data?.length)
       setMethodId((methods.data.find((m) => m.is_default) ?? methods.data[0]).id);
