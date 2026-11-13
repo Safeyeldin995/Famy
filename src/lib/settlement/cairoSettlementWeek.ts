@@ -56,7 +56,36 @@ export function formatSettlementWhen(iso: string, locale: string): string {
 
 export type FinancePreset = "thisWeek" | "lastWeek" | "thisMonth" | "custom";
 
-/** ISO range for a finance-page period preset. `to` is exclusive. */
+/** Cairo wall-clock parts for an instant. */
+function cairoParts(d: Date): { y: number; m: number; d: number; h: number; min: number } {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Africa/Cairo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(d);
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0);
+  return { y: get("year"), m: get("month"), d: get("day"), h: get("hour"), min: get("minute") };
+}
+
+/** Instant of 00:00 Cairo time on the given Cairo calendar day (month is 1-based; overflow allowed). */
+export function cairoMidnight(year: number, month: number, day: number): Date {
+  const target = Date.UTC(year, month - 1, day, 0, 0, 0, 0);
+  let guess = target;
+  for (let i = 0; i < 3; i++) {
+    const p = cairoParts(new Date(guess));
+    const wall = Date.UTC(p.y, p.m - 1, p.d, p.h, p.min, 0, 0);
+    const next = guess + (target - wall);
+    if (next === guess) break;
+    guess = next;
+  }
+  return new Date(guess);
+}
+
+/** ISO range for a finance-page period preset (Cairo calendar). `to` is exclusive. */
 export function financeRangeForPreset(
   preset: Exclude<FinancePreset, "custom">,
   period: SettlementClosedPeriod,
@@ -64,22 +93,28 @@ export function financeRangeForPreset(
 ): { from: string; to: string } {
   if (preset === "lastWeek") return { from: period.period_start, to: period.period_end };
   if (preset === "thisMonth") {
-    const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-    return { from: start.toISOString(), to: now.toISOString() };
+    const c = cairoParts(now);
+    return { from: cairoMidnight(c.y, c.m, 1).toISOString(), to: now.toISOString() };
   }
-  return { from: period.period_end, to: now.toISOString() };
+  // A long-open page can hold an anchor older than a newly closed week: never return from > to.
+  const end = now.getTime() > Date.parse(period.period_end) ? now : new Date();
+  return { from: period.period_end, to: end.toISOString() };
 }
 
-/** Custom range from two `yyyy-mm-dd` day inputs (local days, end day inclusive). */
-export function financeRangeForDays(fromDay: string, toDay: string): { from: string; to: string } | null {
+/** Custom range from two `yyyy-mm-dd` inputs read as Cairo days (end day inclusive). */
+export function financeRangeForDays(
+  fromDay: string,
+  toDay: string,
+): { from: string; to: string } | null {
   const parse = (v: string) => {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
-    return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 0, 0, 0, 0) : null;
+    return m ? ([Number(m[1]), Number(m[2]), Number(m[3])] as const) : null;
   };
   const a = parse(fromDay);
   const b = parse(toDay);
   if (!a || !b) return null;
-  const end = new Date(b.getFullYear(), b.getMonth(), b.getDate() + 1, 0, 0, 0, 0);
-  if (end.getTime() <= a.getTime()) return null;
-  return { from: a.toISOString(), to: end.toISOString() };
+  const start = cairoMidnight(a[0], a[1], a[2]);
+  const end = cairoMidnight(b[0], b[1], b[2] + 1);
+  if (end.getTime() <= start.getTime()) return null;
+  return { from: start.toISOString(), to: end.toISOString() };
 }

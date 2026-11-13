@@ -79,6 +79,16 @@ function rangeDate(iso: string, lang: string) {
   return `${day.replace("،", "")} ${ar ? "الساعة" : "at"} ${time}`;
 }
 
+/** Weekday name for a settlement weekday index (0 = Sunday). */
+function weekdayName(weekday: number, lang: string) {
+  // 15 Nov 2026 is a Sunday.
+  const d = new Date(Date.UTC(2026, 10, 15 + (((weekday % 7) + 7) % 7), 12));
+  return new Intl.DateTimeFormat(lang.startsWith("ar") ? "ar-EG" : "en-GB", {
+    weekday: "long",
+    timeZone: "Africa/Cairo",
+  }).format(d);
+}
+
 function AdminFinancePage() {
   const { t } = useTranslation();
   const lang = useLang();
@@ -431,7 +441,11 @@ function AdminFinancePage() {
         <ul className="list-disc space-y-1 ps-5 text-sm text-muted-foreground">
           <li>{t("admin.finance.how1")}</li>
           <li>{t("admin.finance.how2")}</li>
-          <li>{t("admin.finance.how3")}</li>
+          <li>
+            {t("admin.finance.how3", {
+              day: weekdayName(settingsQ.data?.settlement_weekday ?? 0, lang),
+            })}
+          </li>
           <li>{t("admin.finance.how4", { limit: formatEGP(limit) })}</li>
           <li>{t("admin.finance.how5")}</li>
         </ul>

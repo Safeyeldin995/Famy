@@ -87,11 +87,33 @@ describe("finance period presets", () => {
     });
   });
 
-  it("custom days include the whole end day and reject reversed ranges", () => {
+  it("custom days are Cairo days, include the whole end day and reject reversed ranges", () => {
     const r = financeRangeForDays("2026-11-01", "2026-11-01");
-    expect(r).not.toBeNull();
-    expect(new Date(r!.to).getTime() - new Date(r!.from).getTime()).toBe(24 * 60 * 60 * 1000);
+    expect(r).toEqual({ from: "2026-10-31T22:00:00.000Z", to: "2026-11-01T22:00:00.000Z" });
+    // Summer time in Cairo (UTC+3).
+    expect(financeRangeForDays("2026-07-01", "2026-07-01")).toEqual({
+      from: "2026-06-30T21:00:00.000Z",
+      to: "2026-07-01T21:00:00.000Z",
+    });
     expect(financeRangeForDays("2026-11-05", "2026-11-01")).toBeNull();
     expect(financeRangeForDays("", "2026-11-01")).toBeNull();
+  });
+});
+
+describe("finance presets use Cairo calendar and never invert", () => {
+  const period = {
+    period_start: "2026-11-01T08:00:00.000Z",
+    period_end: "2026-11-08T08:00:00.000Z",
+    next_settlement_at: "2026-11-15T08:00:00.000Z",
+  };
+
+  it("this month starts at Cairo midnight on the 1st", () => {
+    const r = financeRangeForPreset("thisMonth", period, new Date("2026-11-13T12:00:00.000Z"));
+    expect(r.from).toBe("2026-10-31T22:00:00.000Z");
+  });
+
+  it("this week never returns from after to when the anchor predates a new close", () => {
+    const r = financeRangeForPreset("thisWeek", period, new Date("2026-11-07T12:00:00.000Z"));
+    expect(Date.parse(r.to)).toBeGreaterThan(Date.parse(r.from));
   });
 });

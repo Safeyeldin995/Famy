@@ -2741,7 +2741,7 @@ const en = {
       howTitle: "How the accounts work",
       how1: "If the customer pays cash, the provider keeps all of it and owes Famy its commission",
       how2: "If the customer pays online or by InstaPay, the money reaches Famy and Famy owes the provider their share",
-      how3: "Every Sunday at 10 AM we close the week, and whoever owes money transfers it",
+      how3: "Every {{day}} at 10 AM we close the week, and whoever owes money transfers it",
       how4: "If a provider owes {{limit}} or more, they stop receiving new jobs until they pay",
       how5: "Recording here does not move money. Make the transfer outside, then record it here.",
     },
