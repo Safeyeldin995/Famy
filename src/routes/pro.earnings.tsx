@@ -89,6 +89,14 @@ function EarningsPage() {
       <div className="space-y-3 px-5 pb-6 pt-2">
         <ProviderSettlementBanner providerId={provider?.id} />
         <ProviderEarningsSettlementPanel providerId={provider?.id} />
+        <Card className="min-w-0 border-brand/20 bg-brand/5 p-4">
+          <h2 className="text-pro-13 font-extrabold">{t("proWork.last7")}</h2>
+          <SplitAmounts
+            bucket={e.data?.last7}
+            hasNet={(e.data?.last7.net ?? 0) > 0}
+            hasBookingValue={(e.data?.last7.bookingValue ?? 0) > 0}
+          />
+        </Card>
         {hasUnrecordedCommission && (
           <p className="text-pro-12 text-muted-foreground">{t("pro.earnings.bookingValue")}</p>
         )}
@@ -119,14 +127,6 @@ function EarningsPage() {
               bucket={e.data?.mtd}
               hasNet={(e.data?.mtd.net ?? 0) > 0}
               hasBookingValue={(e.data?.mtd.bookingValue ?? 0) > 0}
-            />
-          </Card>
-          <Card className="min-w-0 p-3">
-            <h2 className="text-pro-13 font-bold">{t("proWork.last7")}</h2>
-            <SplitAmounts
-              bucket={e.data?.last7}
-              hasNet={(e.data?.last7.net ?? 0) > 0}
-              hasBookingValue={(e.data?.last7.bookingValue ?? 0) > 0}
             />
           </Card>
         </div>
