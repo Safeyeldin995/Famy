@@ -100,6 +100,13 @@ const booking = {
   service,
   location: [],
 };
+const bookingStatusHistory = [
+  { booking_id: bid, to_status: "confirmed", created_at: now },
+  { booking_id: bid, to_status: "on_the_way", created_at: now },
+  { booking_id: bid, to_status: "completed", created_at: now },
+  { booking_id: id(12), to_status: "confirmed", created_at: now },
+  { booking_id: id(12), to_status: "completed", created_at: "2026-01-01T11:00:00Z" },
+];
 const member = {
   id: mid,
   customer_id: uid,
@@ -128,6 +135,8 @@ let addresses = [
     street: "شارع اختبار",
     building: "1",
     is_default: true,
+    lat: 30.02,
+    lng: 31.0,
     created_at: now,
   },
   {
@@ -263,7 +272,11 @@ async function run() {
     }
     let data;
     if (url.pathname.includes("/rpc/")) {
-      if (table === "search_marketplace_providers") data = mode === "empty" ? [] : [provider];
+      if (table === "marketplace_provider_booking_settings")
+        data = [
+          { vacation_mode: false, min_notice_hours: 0, max_advance_days: 12, buffer_minutes: 0 },
+        ];
+      else if (table === "search_marketplace_providers") data = mode === "empty" ? [] : [provider];
       else if (table === "marketplace_provider_details") data = mode === "empty" ? [] : [provider];
       else if (table === "marketplace_provider_bookable_services")
         data = [{ service_id: sid, effective_price: 150 }];
@@ -336,9 +349,15 @@ async function run() {
         reviews: [{ id: id(14), rating: 5, comment: "تقييم اختبار محلي.", created_at: now }],
         provider_teaching_capabilities: [],
         booking_reschedule_requests: [],
-        availability_rules: [
-          { id: id(82), provider_id: pid, weekday: 1, start_time: "09:00", end_time: "17:00" },
-        ],
+        availability_rules: [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({
+          id: id(80 + weekday),
+          provider_id: pid,
+          weekday,
+          start_time: "08:00:00",
+          end_time: "22:00:00",
+        })),
+        provider_vacations: [],
+        availability_exceptions: [],
         teaching_curricula: [],
         teaching_levels: [],
         customer_education_profiles: [],
@@ -363,15 +382,18 @@ async function run() {
         settings:
           url.searchParams.get("key") === "eq.support_contact"
             ? [{ value: { phone: "+19999999999", whatsapp: "19999999999" } }]
-            : [
-                {
-                  value: {
-                    body_ar:
-                      "محتوى اختبار محلي للتحقق من عرض النصوص القانونية. لا يمثل سياسة منشورة.",
-                    body_en: "Local content rendering fixture.",
+            : url.searchParams.get("key") === "eq.booking_expiry"
+              ? [{ value: { pending_minutes: 30 } }]
+              : [
+                  {
+                    value: {
+                      body_ar:
+                        "محتوى اختبار محلي للتحقق من عرض النصوص القانونية. لا يمثل سياسة منشورة.",
+                      body_en: "Local content rendering fixture.",
+                    },
                   },
-                },
-              ],
+                ],
+        booking_status_history: bookingStatusHistory,
       };
       if (!(table in tables)) errors.push(`Unhandled table: ${table}`);
       data = tables[table] || [];
@@ -383,6 +405,10 @@ async function run() {
         data = data.filter((m) => m.is_active);
       if (table === "addresses" && url.searchParams.get("order")?.startsWith("is_default"))
         data = [...data].sort((a, b) => Number(b.is_default) - Number(a.is_default));
+      if (table === "booking_status_history" && url.searchParams.get("booking_id")?.startsWith("eq.")) {
+        const bookingId = url.searchParams.get("booking_id").slice(3);
+        data = data.filter((row) => row.booking_id === bookingId);
+      }
       if (
         mode === "empty" &&
         !["profiles", "user_roles", "settings", "categories", "services"].includes(table)

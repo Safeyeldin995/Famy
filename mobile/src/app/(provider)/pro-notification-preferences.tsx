@@ -10,6 +10,7 @@ import { Text } from "@/ui/Text";
 import { colors, space } from "@/ui/theme";
 import { proCard } from "@/ui/provider/cards";
 import { ProviderHeader } from "@/ui/provider/ProviderHeader";
+import { useToast } from "@/ui/Toast";
 
 type ToggleKey = Extract<keyof NotificationPreferences, `${string}_push` | "campaign_in_app">;
 
@@ -80,13 +81,16 @@ function ToggleRow({
 
 export default function ProNotificationPreferencesScreen() {
   const { t } = useTranslation();
+  const toast = useToast();
   const prefsQ = useNotificationPreferences();
   const update = useUpdateNotificationPreferences();
   const prefs = prefsQ.data;
 
   const toggle = (key: ToggleKey) => {
     if (!prefs) return;
-    update.mutate({ [key]: !prefs[key] } as Partial<NotificationPreferences>);
+    update.mutate({ [key]: !prefs[key] } as Partial<NotificationPreferences>, {
+      onSuccess: () => toast.show(t("mobile.settingsSaved")),
+    });
   };
 
   const categories: { key: ToggleKey; label: string; sub: string }[] = [

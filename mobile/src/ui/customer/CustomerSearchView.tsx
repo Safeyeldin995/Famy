@@ -16,7 +16,7 @@ import { Button } from "../Button";
 import { CustomerPageHeader } from "../CustomerPageHeader";
 import { BottomSheetSelect } from "../provider/BottomSheetSelect";
 import { ProviderCard } from "../ProviderCard";
-import { colors, fonts } from "../theme";
+import { colors, fontSize, fonts, radius, space } from "../theme";
 import { CustomerChips, CustomerEmpty, customerStyle } from "./Primitives";
 
 type Props = {
@@ -70,10 +70,10 @@ export function CustomerSearchView(p: Props) {
         />
       }
       queries={[p.addresses, p.services, p.providers]}
-      contentStyle={{ paddingTop: 16, gap: 20 }}
+      contentStyle={{ paddingTop: space.lg, gap: space.xl }}
     >
-      <View style={[customerStyle.card, customerStyle.row, { padding: 12 }]}>
-        <View style={[customerStyle.icon, { borderRadius: 18, backgroundColor: colors.brand }]}>
+      <View style={[customerStyle.card, customerStyle.row, { padding: space.md }]}>
+        <View style={[customerStyle.icon, { borderRadius: radius.lg, backgroundColor: colors.brand }]}>
           <Search size={20} color="white" />
         </View>
         <TextInput
@@ -87,7 +87,7 @@ export function CustomerSearchView(p: Props) {
             minWidth: 0,
             minHeight: 44,
             fontFamily: fonts[i18n.language === "ar" ? "ar" : "en"].bold,
-            fontSize: 14,
+            fontSize: fontSize.md,
             color: colors.foreground,
             textAlign: i18n.language === "ar" ? "right" : "left",
           }}
@@ -176,7 +176,7 @@ export function CustomerSearchView(p: Props) {
           {recovery}
         </CustomerEmpty>
       ) : (
-        <View style={{ gap: 10 }}>
+        <View style={{ gap: space.md + 2 }}>
           {p.results.map((provider) => {
             const cap = p.capabilities.find((row) => row.providerId === provider.id);
             const subtitle =

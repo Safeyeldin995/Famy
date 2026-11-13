@@ -215,10 +215,20 @@ vi.mock("@/integrations/supabase/client", () => ({
 }));
 
 import { BookContent } from "../book.$providerId";
-const next = () =>
-  screen.getByRole("button", {
-    name: new RegExp(`^${i18n.t("customerBooking.next", { total: "" }).split(" · ")[0]}`),
-  });
+const ctaButton = () => {
+  const labels = [
+    i18n.t("bookFlow.ctaPickWhen"),
+    i18n.t("bookFlow.ctaConfirmVisit"),
+    i18n.t("bookFlow.ctaReviewPay"),
+    i18n.t("customerBooking.next", { total: "" }).split(" · ")[0],
+  ];
+  const button = labels
+    .map((label) => screen.queryByRole("button", { name: new RegExp(`^${label}`) }))
+    .find(Boolean);
+  if (!button) throw new Error("next CTA not found");
+  return button as HTMLButtonElement;
+};
+const next = () => fireEvent.click(ctaButton());
 const title = (key: string) =>
   screen.getByRole("heading", {
     name: i18n.t(`customerBooking.titles.${key}`, { name: "Provider" }),
@@ -235,16 +245,16 @@ async function selectTime() {
   const buttons = document.querySelectorAll<HTMLButtonElement>(".booking-time");
   fireEvent.click(buttons[0]);
   const label = document.querySelector(".booking-when")?.textContent;
-  fireEvent.click(next());
+  next();
   return label;
 }
 async function toReview(serviceId = "booking-hourly") {
   render(<BookContent providerId="p1" searchServiceId={serviceId} />);
-  fireEvent.click(next());
+  next();
   const timeLabel = await selectTime();
   fireEvent.click(screen.getByRole("button", { name: /^Child fixture ·/ }));
   pickSupervision();
-  fireEvent.click(next());
+  next();
   expect(title("review")).toBeTruthy();
   return timeLabel;
 }
@@ -311,7 +321,7 @@ describe("four-screen booking journey", () => {
       fireEvent.click(screen.getByRole("button", { name: i18n.t("customerBooking.addMember") }));
       fireEvent.click(screen.getByRole("button", { name: "Close add details" }));
       expect((notes as HTMLTextAreaElement).value).toBe("Keep draft");
-      fireEvent.click(next());
+      next();
       expect(title("review")).toBeTruthy();
       expect(screen.getByText("Keep draft")).toBeTruthy();
     },
@@ -348,11 +358,12 @@ describe("four-screen booking journey", () => {
   it("keeps unknown requirements blocked inline, then requires an explicit either choice", async () => {
     state.requirementsSuccess = false;
     const view = render(<BookContent providerId="p1" />);
-    fireEvent.click(next());
+    next();
     await selectTime();
     fireEvent.click(screen.getByRole("button", { name: /^Child fixture ·/ }));
     pickSupervision();
-    expect((next() as HTMLButtonElement).disabled).toBe(true);
+    next();
+    expect(title("whereWho")).toBeTruthy();
     state.requirementsSuccess = true;
     state.requirements = [
       {
@@ -365,9 +376,11 @@ describe("four-screen booking journey", () => {
       },
     ];
     view.rerender(<BookContent providerId="p1" />);
-    expect((next() as HTMLButtonElement).disabled).toBe(true);
+    next();
+    expect(title("whereWho")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: i18n.t("bookFlow.reqIWillProvide") }));
-    expect((next() as HTMLButtonElement).disabled).toBe(false);
+    next();
+    expect(title("review")).toBeTruthy();
   });
   it("renders tutoring recipient, grouped subject and approved duration choices on screen one", async () => {
     render(<BookContent providerId="p1" searchServiceId="booking-tutoring" />);
@@ -388,9 +401,9 @@ describe("four-screen booking journey", () => {
       screen.getByRole("button", { name: i18n.t("bookFlow.sessionLine", { minutes: "90" }) }),
     );
     expect(title("service")).toBeTruthy();
-    fireEvent.click(next());
+    next();
     await selectTime();
-    fireEvent.click(next());
+    next();
     expect(title("review")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /^Confirm booking ·/ }));
     await waitFor(() => expect(state.create).toHaveBeenCalledOnce());
@@ -405,15 +418,17 @@ describe("four-screen booking journey", () => {
   });
   it("disables unavailable time candidates and keeps them out of selection", async () => {
     render(<BookContent providerId="p1" />);
-    fireEvent.click(next());
+    next();
     await waitFor(() => expect(title("when")).toBeTruthy());
     const blocked = document.querySelector<HTMLButtonElement>(".booking-time:disabled");
     expect(blocked).not.toBeNull();
     if (!blocked) throw new Error("Expected unavailable chip");
     fireEvent.click(blocked);
-    expect((next() as HTMLButtonElement).disabled).toBe(true);
+    next();
+    expect(title("when")).toBeTruthy();
     fireEvent.click(document.querySelector<HTMLButtonElement>(".booking-time:not(:disabled)")!);
-    expect((next() as HTMLButtonElement).disabled).toBe(false);
+    next();
+    expect(title("whereWho")).toBeTruthy();
   });
   it("shows slot-taken errors inline on When and keeps the other choices", async () => {
     await toReview();

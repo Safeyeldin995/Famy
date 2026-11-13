@@ -2,7 +2,7 @@ import { Pressable, View } from "react-native";
 import { router } from "expo-router";
 import { CalendarDays, Clock } from "lucide-react-native";
 import { Text } from "@/ui/Text";
-import { colors, space } from "@/ui/theme";
+import { colors, radius, space, shadow } from "@/ui/theme";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMyBookings, useBookingParties } from "@/lib/queries";
@@ -41,7 +41,7 @@ export default function Bookings() {
       tab
       title={t("bookings.title")}
       queries={[q, parties, conversations]}
-      contentStyle={{ paddingTop: 16, gap: 10 }}
+      contentStyle={{ paddingTop: space.lg, gap: space.sm + 2 }}
       header={
         <CustomerPageHeader
           title={t("bookings.title")}
@@ -58,7 +58,7 @@ export default function Bookings() {
       <View
         style={[
           customerStyle.card,
-          { borderRadius: 28, marginBottom: 10, boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" },
+          { borderRadius: radius.xl + space.xs, marginBottom: space.sm + 2, ...shadow.card },
         ]}
       >
         <View style={[ui.priceRow, { paddingVertical: 0 }]}>
@@ -82,8 +82,8 @@ export default function Bookings() {
           ]}
         />
       </View>
-      <QueryState query={q}>
-        <QueryState query={parties} />
+      <QueryState query={q} skeleton="list">
+        <QueryState query={parties} skeleton="inline" />
         {!rows.length ? (
           <CustomerEmpty
             Icon={CalendarDays}
@@ -107,11 +107,11 @@ export default function Bookings() {
               style={[
                 customerStyle.card,
                 {
-                  borderRadius: 28,
+                  borderRadius: radius.xl + space.xs,
                   padding: 0,
                   overflow: "hidden",
                   backgroundColor: past ? colors.surface2 : colors.surface,
-                  boxShadow: "0px 1px 2px rgba(0,0,0,0.05)",
+                  ...shadow.card,
                 },
               ]}
             >

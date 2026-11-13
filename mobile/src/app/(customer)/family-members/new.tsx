@@ -5,8 +5,10 @@ import { Page } from "@/ui/Page";
 import { FamilyMemberForm } from "@/ui/FamilyMemberForm";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 import { space } from "@/ui/theme";
+import { useToast } from "@/ui/Toast";
 export default function NewMember() {
   const { t } = useTranslation();
+  const toast = useToast();
   const create = useCreateFamilyMember();
   return (
     <Page
@@ -17,7 +19,14 @@ export default function NewMember() {
       <FamilyMemberForm
         busy={create.isPending}
         error={create.error}
-        onSave={(v) => create.mutate(v, { onSuccess: () => router.replace("/family-members") })}
+        onSave={(v) =>
+          create.mutate(v, {
+            onSuccess: () => {
+              toast.show(t("familyMembers.saved"));
+              router.replace("/family-members");
+            },
+          })
+        }
       />
     </Page>
   );

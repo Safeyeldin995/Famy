@@ -26,6 +26,8 @@ import {
   zoneForAreaName,
   zoneForPoint,
 } from "@shared/geo/serviceZones";
+import { useToast } from "@/ui/Toast";
+import { space } from "@/ui/theme";
 export function AddressEditor({
   addressId,
   setup = false,
@@ -38,6 +40,7 @@ export function AddressEditor({
   onClose?: () => void;
 }) {
   const { t } = useTranslation();
+  const toast = useToast();
   const areas = useBookingConfig<{ areas: { name: string; enabled: boolean }[] }>("service_areas");
   const zones = useActiveZones();
   const save = useCreateAddress();
@@ -146,7 +149,10 @@ export function AddressEditor({
           })
         ).id;
       if (onSaved) onSaved(savedId);
-      else router.replace(setup ? "/home" : "/addresses");
+      else {
+        toast.show(t("addresses.saved"));
+        router.replace(setup ? "/home" : "/addresses");
+      }
     } catch (error) {
       const message =
         error && typeof error === "object" && "message" in error ? String(error.message) : "";
@@ -170,7 +176,11 @@ export function AddressEditor({
         />
       }
       queries={[areas, zones, addresses, profile]}
-      contentStyle={{ paddingHorizontal: 24, paddingTop: setup ? 8 : 16, gap: 20 }}
+      contentStyle={{
+        paddingHorizontal: space.xxl,
+        paddingTop: setup ? space.sm : space.lg,
+        gap: space.xl,
+      }}
       footer={
         <Button
           label={t(setup ? "common.continue" : "common.save")}

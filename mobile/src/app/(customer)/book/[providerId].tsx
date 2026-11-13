@@ -2,10 +2,16 @@ import { CustomerPreparationNotesSection } from "@/ui/customer/CustomerPreparati
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 import { memberAgeTranslation } from "@shared/familyMemberAge";
 import { CustomerBookingWhen } from "@/ui/customer/BookingWhen";
+import { bookingScreenPrimaryCtaKey } from "@shared/booking/bookingStepCta";
+import {
+  bookingFieldHintForStep,
+  type BookingFieldHint,
+} from "@shared/booking/bookingFieldHints";
+import { BookingVisitRequirements } from "@/ui/customer/BookingVisitRequirements";
 import { BookingServiceCard } from "@/ui/customer/BookingServiceCard";
 import { BookOpen, Clock, UserRound, Star } from "lucide-react-native";
 import { Avatar } from "@/ui/ProviderCard";
-import { colors } from "@/ui/theme";
+import { colors, space } from "@/ui/theme";
 import { BookingEducation } from "@/ui/BookingEducation";
 import { planPostCreatePayment } from "@/lib/bookingPure";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -140,6 +146,7 @@ export default function Book() {
     null,
   );
   const [error, setError] = useState("");
+  const [fieldHint, setFieldHint] = useState<BookingFieldHint | null>(null);
   const [busy, setBusy] = useState(false);
   const [curriculum, setCurriculum] = useState("");
   const [level, setLevel] = useState("");
@@ -549,16 +556,32 @@ export default function Book() {
               {t(reason)}
             </Text>
           ) : null}
-          <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
+          <View style={{ flexDirection: "row", gap: space.md, alignItems: "center" }}>
             <View style={{ flex: 1 }}>
               <Button
-                label={t(step === 3 ? "mobileBooking.confirmBooking" : "common.continue")}
+                label={t(
+                  step === 3
+                    ? "mobileBooking.confirmBooking"
+                    : bookingScreenPrimaryCtaKey(BOOKING_SCREENS[step], editing),
+                )}
                 loading={busy}
-                disabled={!!missing || !!blocked || loading}
+                disabled={busy || loading}
                 onPress={() => {
                   setError("");
+                  if (missing || blocked) {
+                    if (missing) {
+                      const hint = bookingFieldHintForStep(missing, tutoring);
+                      if (hint) {
+                        setFieldHint(hint);
+                        const target = BOOKING_SCREENS.indexOf(hint.screen);
+                        if (target >= 0) setStep(target);
+                      }
+                    }
+                    return;
+                  }
                   if (step === 3) void submit();
                   else {
+                    setFieldHint(null);
                     setStep(editing ? 3 : step + 1);
                     setEditing(false);
                   }
@@ -580,7 +603,7 @@ export default function Book() {
         billing,
       ]}
     >
-      <QueryState query={provider} />
+      <QueryState query={provider} skeleton="detail" />
       <QueryState query={servicesQ} />
       <QueryState query={bookable} />
       <QueryState query={settings} />
@@ -595,6 +618,7 @@ export default function Book() {
       {step === 0 && (
         <>
           <View
+            nativeID="booking-services"
             style={{
               flexDirection: "row",
               alignItems: "center",
@@ -623,6 +647,9 @@ export default function Book() {
             </View>
           </View>
           <Text weight="bold">{t("search2.service")}</Text>
+          {fieldHint?.focusId === "booking-services" ? (
+            <Text tone="danger">{t(fieldHint.messageKey)}</Text>
+          ) : null}
           {services.map((s) => (
             <BookingServiceCard
               key={s.service.id}
@@ -777,6 +804,15 @@ export default function Book() {
         </>
       )}
       {step === 1 && (
+        <>
+          <BookingVisitRequirements
+            categorySlug={service?.service.category?.slug}
+            requirements={requirements.data ?? []}
+          />
+          {fieldHint?.focusId === "booking-schedule" ? (
+            <Text tone="danger">{t(fieldHint.messageKey)}</Text>
+          ) : null}
+          <View nativeID="booking-schedule">
         <CustomerBookingWhen
           providerId={providerId}
           serviceId={service?.service.id ?? ""}
@@ -799,10 +835,16 @@ export default function Book() {
           }}
           onTimeChange={setSlot}
         />
+          </View>
+        </>
       )}
       {step === 2 && (
         <>
           <QueryState query={addresses} empty={!pinned.length} />
+          {fieldHint?.focusId === "booking-addresses" ? (
+            <Text tone="danger">{t(fieldHint.messageKey)}</Text>
+          ) : null}
+          <View nativeID="booking-addresses">
           <Choices
             layout="cards"
             label={t("bookingUx.chooseAddress")}
@@ -824,6 +866,7 @@ export default function Book() {
             label={t("addresses.addAddress")}
             onPress={() => setInlineForm("address")}
           />
+          </View>
           <QueryState query={bookable} empty={addressOutside} emptyKey="bookingUx.outsideArea" />
           {!tutoring && recipientUI}
           <QueryState query={requirements} />

@@ -91,6 +91,22 @@ export default function Home() {
   );
   const firstName = profile.data?.full_name?.split(" ")[0] || t("greetings.there");
   const Arrow = isAr ? ArrowUpLeft : ArrowUpRight;
+  const recent = recentProviders(bookings.data ?? []);
+  const returning = activeIds.length > 0 || recent.length > 0;
+
+  const bookAgainSection =
+    returning && recent.length ? (
+      <View style={styles.sectionCompact}>
+        <Text size="lg" weight="heavy">
+          {t("mobile.bookAgain")}
+        </Text>
+        <QueryState query={bookings} empty={!recent.length}>
+          {recent.map((p) => (
+            <ProviderCard key={p.id} provider={p} />
+          ))}
+        </QueryState>
+      </View>
+    ) : null;
 
   return (
     <ScrollView
@@ -145,10 +161,15 @@ export default function Home() {
             </Pressable>
           </View>
 
-          <Text weight="bold" tone="muted" style={{ marginTop: space.xxl }}>
+          <Text
+            weight="bold"
+            tone="muted"
+            size="sm"
+            style={{ marginTop: returning ? space.lg : space.md }}
+          >
             {t("greetings.withName", { greeting: t("greetings.hello"), name: firstName })}
           </Text>
-          <Text size="title" weight="heavy">
+          <Text size={returning ? "xl" : "xxl"} weight="heavy">
             {t("home.headline")}
           </Text>
 
@@ -170,8 +191,10 @@ export default function Home() {
         <HomeActiveBookingCard bookings={bookings.data} parties={parties.data} />
       ) : null}
 
-      <View style={styles.section}>
-        <Text size="xl" weight="heavy">
+      {bookAgainSection}
+
+      <View style={[styles.sectionCompact, !returning && styles.sectionAboveFold]}>
+        <Text size="lg" weight="heavy">
           {t("home.chooseService")}
         </Text>
         <QueryState query={categories} empty={!categories.data?.length}>
@@ -205,7 +228,7 @@ export default function Home() {
                     </View>
                     <Arrow size={20} color={tile.ink} />
                   </View>
-                  <View style={{ gap: 4 }}>
+                  <View style={{ gap: space.xs }}>
                     <Text size="lg" weight="heavy">
                       {t(tile.titleKey)}
                     </Text>
@@ -229,14 +252,14 @@ export default function Home() {
           decelerationRate="fast"
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: space.xl, gap: space.md }}
-          style={{ marginTop: 32 }}
+          style={{ marginTop: space.xxxl }}
         >
           {promos.data.map((p) => (
             <HomePromoStrip key={p.id} offer={p} />
           ))}
         </ScrollView>
       ) : null}
-      <View style={styles.section}>
+      <View style={styles.sectionCompact}>
         <QueryState query={address}>
           {address.data ? (
             <NearbyProviders addressId={address.data.id} />
@@ -247,14 +270,6 @@ export default function Home() {
               href="/addresses"
             />
           )}
-        </QueryState>
-        <Text size="xl" weight="heavy">
-          {t("mobile.bookAgain")}
-        </Text>
-        <QueryState query={bookings} empty={!recentProviders(bookings.data ?? []).length}>
-          {recentProviders(bookings.data ?? []).map((p) => (
-            <ProviderCard key={p.id} provider={p} />
-          ))}
         </QueryState>
         {["home.trust1", "home.trust2", "home.trust3"].map((k) => (
           <View
@@ -281,7 +296,7 @@ const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
   header: {
     paddingHorizontal: space.xl,
-    paddingBottom: space.xxl,
+    paddingBottom: space.lg,
     borderBottomStartRadius: 32,
     borderBottomEndRadius: 32,
   },
@@ -297,8 +312,8 @@ const styles = StyleSheet.create({
     minHeight: 44,
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 14,
+    gap: space.xs + 2,
+    paddingHorizontal: space.md + 2,
     borderRadius: radius.pill,
     backgroundColor: colors.surface,
   },
@@ -332,11 +347,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   section: { paddingHorizontal: space.xl, paddingTop: space.xxl, gap: space.md },
+  sectionCompact: { paddingHorizontal: space.xl, paddingTop: space.lg, gap: space.md },
+  sectionAboveFold: { paddingTop: space.md },
   tiles: { flexDirection: "row", flexWrap: "wrap", gap: space.md },
   tile: {
     flexGrow: 1,
     flexBasis: "45%",
-    minHeight: 160,
+    minHeight: 148,
     borderRadius: radius.xl,
     padding: space.lg,
     justifyContent: "space-between",
@@ -364,10 +381,10 @@ function NearbyProviders({ addressId }: { addressId: string }) {
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: 12,
+          gap: space.md,
         }}
       >
-        <Text size="xl" weight="heavy">
+        <Text size="lg" weight="heavy">
           {t("customerHome.nearby")}
         </Text>
         <Pressable

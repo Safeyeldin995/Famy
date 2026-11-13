@@ -27,7 +27,9 @@ import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 import { RescheduleSection } from "@/ui/RescheduleSection";
 import { receiptText, calendarText, type BookingFileInfo } from "@/lib/bookingFiles";
 import { shareBookingFile } from "@/lib/shareBookingFile";
-import { colors } from "@/ui/theme";
+import { colors, radius, space } from "@/ui/theme";
+import { BookingJourneyStepper } from "@/ui/BookingJourneyStepper";
+import { useBookingStatusHistory } from "@/lib/bookingJourneyQueries";
 import {
   isSupervisionMode,
   supervisionModeProviderLabel,
@@ -60,6 +62,7 @@ export default function BookingDetail() {
   const [fileError, setFileError] = useState(false);
   const [chatFeedback, setChatFeedback] = useState<"" | "unavailable" | "error">("");
   const conversation = useConversationByBooking(id, b?.status);
+  const journeyHistory = useBookingStatusHistory(id);
   const chatOpen = b ? chatPhaseForStatus(b.status) !== "unavailable" : false;
   const openBookingChat = async () => {
     setChatFeedback("");
@@ -160,7 +163,7 @@ export default function BookingDetail() {
       }
     >
       {educationWarning === "1" && <Text tone="danger">{t("studentEducation.saveFailed")}</Text>}
-      <QueryState query={q} empty={!b}>
+      <QueryState query={q} empty={!b} skeleton="detail">
         {b && info && (
           <>
             {created === "1" && (
@@ -180,16 +183,14 @@ export default function BookingDetail() {
               </View>
             )}
             <View
-              style={[
-                {
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  backgroundColor: colors.surface2,
-                  borderRadius: 16,
-                  padding: 16,
-                  gap: 4,
-                },
-              ]}
+              style={{
+                borderWidth: 1,
+                borderColor: colors.border,
+                backgroundColor: colors.surface2,
+                borderRadius: radius.xl,
+                padding: space.lg,
+                gap: space.sm,
+              }}
             >
               <Text testID="booking-status" size="xs" tone="muted" weight="bold">
                 {t(`status.${b.status}`)}
@@ -197,9 +198,21 @@ export default function BookingDetail() {
               <Text size="xxl" weight="bold">
                 {t(headline)}
               </Text>
-              <Text size="xs" tone="muted" style={{ marginTop: 4 }}>
+              <Text size="xs" tone="muted">
                 {t("customerDetail.code", { id: info.id })}
               </Text>
+              <BookingJourneyStepper
+                status={b.status}
+                booking={{
+                  status: b.status,
+                  session_started_at: b.session_started_at ?? null,
+                  arrival_confirmed_at: b.arrival_confirmed_at ?? null,
+                  completion_requested_at: b.completion_requested_at ?? null,
+                  completed_at: b.completed_at ?? null,
+                }}
+                history={journeyHistory.data ?? []}
+                labelNamespace="bookingJourney"
+              />
             </View>
             {party.isError && <QueryState query={party} />}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>

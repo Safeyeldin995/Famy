@@ -27,10 +27,12 @@ import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { colors, space } from "@/ui/theme";
 import { isSupervisionMode, supervisionModeProviderLabel } from "@shared/booking/supervisionMode";
+import { useToast } from "@/ui/Toast";
 
 export default function ProBookingDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t, i18n } = useTranslation();
+  const toast = useToast();
   const q = useProviderBooking(id);
   const partyQ = useBookingParty(id);
   const mut = useProviderUpdateBookingStatus();
@@ -90,7 +92,10 @@ export default function ProBookingDetail() {
     mut.mutate(
       { id: id!, status: nextStatus },
       {
-        onSuccess,
+        onSuccess: () => {
+          toast.show(t("mobile.bookingUpdated"));
+          onSuccess?.();
+        },
         onError: (e: Error) => {
           if (isBookingTooEarlyError(e)) {
             mut.reset();
@@ -107,7 +112,7 @@ export default function ProBookingDetail() {
       queries={[q]}
       contentStyle={{ paddingBottom: 120 }}
     >
-      <QueryState query={q}>
+      <QueryState query={q} skeleton="detail">
         {b ? (
           <>
             <View style={[proCard.card, { flexDirection: "row", alignItems: "center", gap: 12 }]}>
@@ -134,7 +139,17 @@ export default function ProBookingDetail() {
                 </Text>
               </View>
             </View>
-            <BookingStatusCard status={status} />
+            <BookingStatusCard
+              bookingId={id!}
+              status={status}
+              booking={{
+                status,
+                session_started_at: (b.session_started_at as string | null) ?? null,
+                arrival_confirmed_at: (b.arrival_confirmed_at as string | null) ?? null,
+                completion_requested_at: (b.completion_requested_at as string | null) ?? null,
+                completed_at: (b.completed_at as string | null) ?? null,
+              }}
+            />
             <View style={proCard.card}>
               <View style={proCard.row}>
                 <User size={16} color={colors.brand} />
@@ -244,7 +259,6 @@ export default function ProBookingDetail() {
               </Text>
             </View>
             <ProviderPaymentBlock bookingId={id!} bookingStatus={status} />
-            {tooEarly && stepOpensAt ? <Text tone="muted">{t("pro.booking.tooEarly")}</Text> : null}
             <ActionError error={mut.error} />
           </>
         ) : null}
@@ -269,11 +283,18 @@ export default function ProBookingDetail() {
           ) : null}
           {status === "confirmed" ? (
             <>
-              <Button
-                label={t("pro.booking.onTheWay")}
-                disabled={tooEarly || mut.isPending}
-                onPress={() => run("on_the_way")}
-              />
+              <View style={{ gap: space.xs }}>
+                <Button
+                  label={t("pro.booking.onTheWay")}
+                  disabled={tooEarly || mut.isPending}
+                  onPress={() => run("on_the_way")}
+                />
+                {tooEarly && stepOpensAt ? (
+                  <Text size="sm" tone="muted" style={{ textAlign: "center" }}>
+                    {t("pro.booking.tooEarly")}
+                  </Text>
+                ) : null}
+              </View>
               <Button
                 variant="ghost"
                 label={t("pro.booking.cancelJob")}
@@ -295,25 +316,32 @@ export default function ProBookingDetail() {
             </Text>
           ) : null}
           {status === "arrival_confirmed" ? (
-            <Button
-              label={t("pro.booking.startService")}
-              disabled={tooEarly || mut.isPending}
-              onPress={() => run("in_progress")}
-            />
-          ) : null}
-          {status === "in_progress" ? (
-            <>
-              {completionTooEarly ? (
-                <Text tone="muted" style={{ textAlign: "center" }}>
-                  {t("pro.booking.completionWaitMinutes", { count: completionMinutesLeft })}
+            <View style={{ gap: space.xs }}>
+              <Button
+                label={t("pro.booking.startService")}
+                disabled={tooEarly || mut.isPending}
+                onPress={() => run("in_progress")}
+              />
+              {tooEarly && stepOpensAt ? (
+                <Text size="sm" tone="muted" style={{ textAlign: "center" }}>
+                  {t("pro.booking.tooEarly")}
                 </Text>
               ) : null}
+            </View>
+          ) : null}
+          {status === "in_progress" ? (
+            <View style={{ gap: space.xs }}>
               <Button
                 label={t("pro.booking.requestCompletion")}
                 disabled={completionTooEarly || mut.isPending}
                 onPress={() => run("completion_requested")}
               />
-            </>
+              {completionTooEarly ? (
+                <Text size="sm" tone="muted" style={{ textAlign: "center" }}>
+                  {t("pro.booking.completionWaitMinutes", { count: completionMinutesLeft })}
+                </Text>
+              ) : null}
+            </View>
           ) : null}
           {status === "completion_requested" ? (
             <Text tone="muted" style={{ textAlign: "center" }}>

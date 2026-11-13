@@ -21,6 +21,7 @@ import { initI18n } from "@/lib/i18n";
 import { PushBridge } from "@/lib/push";
 import { SessionProvider } from "@/lib/session";
 import { LaunchGate } from "@/ui/LaunchGate";
+import { ToastProvider } from "@/ui/Toast";
 import { colors } from "@/ui/theme";
 
 SplashScreen.preventAutoHideAsync();
@@ -53,14 +54,16 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <SessionProvider>
             <LaunchGate bootstrapReady={bootstrapReady}>
-              <PushBridge />
-              <StatusBar style="dark" />
-              <Stack
-                screenOptions={{
-                  headerShown: false,
-                  contentStyle: { backgroundColor: colors.background },
-                }}
-              />
+              <ToastProvider>
+                <PushBridge />
+                <StatusBar style="dark" />
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                    contentStyle: { backgroundColor: colors.background },
+                  }}
+                />
+              </ToastProvider>
             </LaunchGate>
           </SessionProvider>
         </QueryClientProvider>

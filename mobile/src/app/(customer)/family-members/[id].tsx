@@ -5,9 +5,11 @@ import { Page, QueryState } from "@/ui/Page";
 import { FamilyMemberForm } from "@/ui/FamilyMemberForm";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 import { space } from "@/ui/theme";
+import { useToast } from "@/ui/Toast";
 export default function EditMember() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
+  const toast = useToast();
   const q = useFamilyMember(id);
   const update = useUpdateFamilyMember();
   return (
@@ -24,7 +26,15 @@ export default function EditMember() {
             busy={update.isPending}
             error={update.error}
             onSave={(v) =>
-              update.mutate({ ...v, id }, { onSuccess: () => router.replace("/family-members") })
+              update.mutate(
+                { ...v, id },
+                {
+                  onSuccess: () => {
+                    toast.show(t("familyMembers.saved"));
+                    router.replace("/family-members");
+                  },
+                },
+              )
             }
           />
         )}

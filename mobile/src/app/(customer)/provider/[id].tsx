@@ -29,12 +29,14 @@ import { Avatar } from "@/ui/ProviderCard";
 import { Page, QueryState, ActionError, ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
-import { colors } from "@/ui/theme";
+import { colors, radius, space } from "@/ui/theme";
+import { useToast } from "@/ui/Toast";
 import { customerStyle } from "@/ui/customer/Primitives";
+import { ProviderBookingDecision } from "@/ui/customer/ProviderBookingDecision";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <View style={{ gap: 8, marginTop: 8 }}>
+    <View style={{ gap: space.sm, marginTop: space.sm }}>
       <Text size="lg" weight="heavy">
         {title}
       </Text>
@@ -59,6 +61,7 @@ export default function ProviderProfile() {
   const availability = useProviderAvailability(id);
   const favoriteIds = useFavoriteIds();
   const favorite = useToggleFavorite();
+  const toast = useToast();
   const [shareError, setShareError] = useState(false);
   const p = provider.data;
   const liked = favoriteIds.data?.includes(id) ?? false;
@@ -95,10 +98,10 @@ export default function ProviderProfile() {
   const iconStyle = {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: "white",
+    backgroundColor: colors.surface,
     alignItems: "center" as const,
     justifyContent: "center" as const,
   };
@@ -106,12 +109,12 @@ export default function ProviderProfile() {
     <Page
       title={name}
       queries={[provider, reviews, services, bookable, caps, availability, favoriteIds]}
-      contentStyle={{ paddingTop: 8, gap: 16 }}
+      contentStyle={{ paddingTop: space.sm, gap: space.lg }}
       header={
         <View
           style={[
             customerStyle.row,
-            { justifyContent: "space-between", paddingHorizontal: 16, paddingTop: 12 },
+            { justifyContent: "space-between", paddingHorizontal: space.lg, paddingTop: space.md },
           ]}
         >
           <Pressable
@@ -122,7 +125,7 @@ export default function ProviderProfile() {
           >
             <Back size={20} color={colors.foreground} />
           </Pressable>
-          <View style={[customerStyle.row, { gap: 8 }]}>
+          <View style={[customerStyle.row, { gap: space.sm }]}>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t("common.share")}
@@ -147,7 +150,17 @@ export default function ProviderProfile() {
               }}
               disabled={favorite.isPending || favoriteIds.isLoading || favoriteIds.isError}
               style={iconStyle}
-              onPress={() => favorite.mutate({ providerId: id, on: !liked })}
+              onPress={() =>
+                favorite.mutate(
+                  { providerId: id, on: !liked },
+                  {
+                    onSuccess: () =>
+                      toast.show(
+                        t(liked ? "mobile.removedFavorite" : "bookingDetail.savedFavorite"),
+                      ),
+                  },
+                )
+              }
             >
               <Heart
                 size={20}
@@ -160,7 +173,13 @@ export default function ProviderProfile() {
       }
       footer={
         p && available.length ? (
-          <View style={{ gap: 8 }}>
+          <View style={{ gap: space.sm }}>
+            <ProviderBookingDecision
+              providerId={id}
+              services={available}
+              preferredServiceId={fromServiceId}
+              hourlyRate={Number(p.hourly_rate ?? 0)}
+            />
             <Text size="xs" tone="muted" style={{ textAlign: "center" }}>
               {t("providerProfile.freeCancel")}
             </Text>
@@ -181,10 +200,10 @@ export default function ProviderProfile() {
       }
     >
       <ActionError error={shareError || favorite.error} />
-      <QueryState query={provider} empty={!p} emptyKey="provider2.notFound">
+      <QueryState query={provider} empty={!p} emptyKey="provider2.notFound" skeleton="detail">
         {p ? (
           <>
-            <View style={{ alignItems: "center", gap: 8 }}>
+            <View style={{ alignItems: "center", gap: space.sm }}>
               <Avatar raw={p.profile.avatar_url} size={96} round />
               <Text size="xxl" weight="heavy" style={{ textAlign: "center", marginTop: 4 }}>
                 {name}
@@ -230,7 +249,7 @@ export default function ProviderProfile() {
             >
               {[
                 [
-                  t("providerPage.completed"),
+                  t("providerPage.reviewsStat"),
                   customerNumber(Number(p.ratings.rating_count ?? 0), i18n.language),
                 ],
                 [
@@ -370,6 +389,18 @@ export default function ProviderProfile() {
                 </View>
               ) : null}
             </QueryState>
+            <Section title={t("providerPage.hours")}>
+              <QueryState query={availability}>
+                {hours.length ? (
+                  hours.map((line) => <Text key={line}>{line}</Text>)
+                ) : (
+                  <Text tone="muted">{t("providerPage.noHours")}</Text>
+                )}
+              </QueryState>
+              <Text size="xs" tone="muted">
+                {t("providerPage.hoursHint")}
+              </Text>
+            </Section>
             {bio ? (
               <Section title={t("providerPage.about", { name: firstName })}>
                 <Text style={{ lineHeight: 23 }}>{bio}</Text>
@@ -389,18 +420,6 @@ export default function ProviderProfile() {
                 ) : null}
               </Section>
             ) : null}
-            <Section title={t("providerPage.hours")}>
-              <QueryState query={availability}>
-                {hours.length ? (
-                  hours.map((line) => <Text key={line}>{line}</Text>)
-                ) : (
-                  <Text tone="muted">{t("providerPage.noHours")}</Text>
-                )}
-              </QueryState>
-              <Text size="xs" tone="muted">
-                {t("providerPage.hoursHint")}
-              </Text>
-            </Section>
             <Section
               title={t(
                 reviews.data?.length

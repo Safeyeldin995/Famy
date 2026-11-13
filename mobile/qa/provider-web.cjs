@@ -19,6 +19,13 @@ const bidActive = id(4);
 const sid = id(5);
 const cid = id(40);
 const now = new Date().toISOString();
+const bookingStatusHistory = [
+  { booking_id: bidPending, to_status: "confirmed", created_at: now },
+  { booking_id: bidActive, to_status: "confirmed", created_at: now },
+  { booking_id: bidActive, to_status: "on_the_way", created_at: now },
+  { booking_id: bidActive, to_status: "arrived", created_at: now },
+  { booking_id: bidActive, to_status: "in_progress", created_at: now },
+];
 const service = {
   id: sid,
   slug: "babysitting-hourly",
@@ -349,6 +356,7 @@ async function run() {
         provider_documents: [],
         provider_settlements: providerSettlementsFixture,
         provider_ledger_entries: providerLedgerEntriesFixture,
+        booking_status_history: bookingStatusHistory,
       };
       if (!(table in tables)) errors.push(`Unhandled table: ${table}`);
       data = tables[table] || [];
@@ -377,6 +385,10 @@ async function run() {
             data = data.filter((row) => row.created_at <= bound);
           }
         }
+      }
+      if (table === "booking_status_history" && url.searchParams.get("booking_id")?.startsWith("eq.")) {
+        const bookingId = url.searchParams.get("booking_id").slice(3);
+        data = data.filter((row) => row.booking_id === bookingId);
       }
       if (url.searchParams.get("limit"))
         data = data.slice(0, Number(url.searchParams.get("limit")));

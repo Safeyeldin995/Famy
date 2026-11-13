@@ -12,9 +12,11 @@ import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 import { Users, Plus, Pencil, Trash2 } from "lucide-react-native";
 import { CustomerEmpty, customerStyle } from "@/ui/customer/Primitives";
 import { colors } from "@/ui/theme";
+import { useToast } from "@/ui/Toast";
 
 export default function FamilyMembers() {
   const { t, i18n } = useTranslation();
+  const toast = useToast();
   const q = useFamilyMembers();
   const remove = useDeactivateFamilyMember();
   const [selected, setSelected] = useState<string | null>(null);
@@ -45,7 +47,14 @@ export default function FamilyMembers() {
           body={t("familyMembers.deactivateBody")}
           busy={remove.isPending}
           onCancel={() => setSelected(null)}
-          onConfirm={() => remove.mutate(selected, { onSuccess: () => setSelected(null) })}
+          onConfirm={() =>
+            remove.mutate(selected, {
+              onSuccess: () => {
+                setSelected(null);
+                toast.show(t("familyMembers.removed"));
+              },
+            })
+          }
         />
       )}
       <ActionError error={remove.error} />

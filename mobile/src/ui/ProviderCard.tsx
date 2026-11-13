@@ -42,6 +42,7 @@ export function Avatar({
           source={{ uri: image.data }}
           style={{ width: size, height: size }}
           contentFit="cover"
+          accessibilityLabel={name?.trim() ? name : undefined}
         />
       ) : name ? (
         <Text weight="bold" style={{ fontSize: Math.min(24, size / 2), color: colors.brand }}>

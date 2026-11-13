@@ -1,21 +1,29 @@
-import { View, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
 import { MessageCircle } from "lucide-react-native";
 import { useConversations } from "@/lib/chatQueries";
-import { ConversationRow } from "@/ui/chat/ConversationRow";
+import { ConversationList } from "@/ui/chat/ConversationList";
 import { Page, QueryState } from "@/ui/Page";
-import { colors, space } from "@/ui/theme";
+import { ConversationListSkeleton } from "@/ui/Skeleton";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 import { CustomerEmpty } from "@/ui/customer/Primitives";
+import { space } from "@/ui/theme";
 
 export default function CustomerMessages() {
   const { t } = useTranslation();
   const q = useConversations();
   const rows = q.data ?? [];
+  const empty = (
+    <CustomerEmpty
+      Icon={MessageCircle}
+      title={t("messages.emptyTitle")}
+      body={t("messages.emptyBody")}
+    />
+  );
+
   return (
     <Page
+      scroll={false}
       title={t("messages.title")}
-      queries={[q]}
       header={
         <CustomerPageHeader
           title={t("messages.title")}
@@ -23,27 +31,20 @@ export default function CustomerMessages() {
           backTo="/profile"
         />
       }
-      contentStyle={{ paddingTop: 8 }}
+      contentStyle={{ padding: 0, paddingTop: space.sm, flex: 1 }}
     >
-      <QueryState query={q}>
-        {!rows.length ? (
-          <CustomerEmpty
-            Icon={MessageCircle}
-            title={t("messages.emptyTitle")}
-            body={t("messages.emptyBody")}
-          />
-        ) : (
-          <View testID="conversation-list" style={styles.list}>
-            {rows.map((item) => (
-              <ConversationRow key={item.id} item={item} customer />
-            ))}
-          </View>
-        )}
-      </QueryState>
+      {q.isError ? (
+        <QueryState query={q} />
+      ) : q.isLoading || q.isPending ? (
+        <ConversationListSkeleton />
+      ) : (
+        <ConversationList
+          items={rows}
+          customer
+          onRefresh={() => q.refetch()}
+          ListEmptyComponent={empty}
+        />
+      )}
     </Page>
   );
 }
-
-const styles = StyleSheet.create({
-  list: { gap: space.md, paddingBottom: space.xxl },
-});

@@ -124,6 +124,13 @@ const booking = {
   service,
   location: [],
 };
+const bookingStatusHistory = [
+  { booking_id: bid, to_status: "confirmed", created_at: now },
+  { booking_id: bid, to_status: "on_the_way", created_at: now },
+  { booking_id: bid, to_status: "arrived", created_at: now },
+  { booking_id: bid, to_status: "in_progress", created_at: now },
+  { booking_id: bid, to_status: "completed", created_at: now },
+];
 const member = {
   id: mid,
   customer_id: uid,
@@ -526,6 +533,7 @@ async function run() {
                   : { pending_ttl_hours: 12, min_hours_before_start: 2 },
           },
         ],
+        booking_status_history: bookingStatusHistory,
       };
       if (!(table in tables)) errors.push(`Unhandled table: ${table}`);
       data = tables[table] || [];
@@ -537,6 +545,10 @@ async function run() {
         data = data.filter((m) => m.is_active);
       if (table === "addresses" && url.searchParams.get("order")?.startsWith("is_default"))
         data = [...data].sort((a, b) => Number(b.is_default) - Number(a.is_default));
+      if (table === "booking_status_history" && url.searchParams.get("booking_id")?.startsWith("eq.")) {
+        const bookingId = url.searchParams.get("booking_id").slice(3);
+        data = data.filter((row) => row.booking_id === bookingId);
+      }
       if (
         mode === "empty" &&
         !["profiles", "user_roles", "settings", "categories", "services"].includes(table)
@@ -673,9 +685,11 @@ async function run() {
       await page.getByRole("radio", { name: /رياضيات اختبار/ }).click();
       await pickSupervision();
     }
-    await expect(page.getByRole("button", { name: ar.common.continue, exact: true })).toBeEnabled();
+    await expect(
+      page.getByRole("button", { name: ar.bookFlow.ctaPickWhen, exact: true }),
+    ).toBeEnabled();
     await shot(`${kind}-1-service`);
-    await button(ar.common.continue);
+    await button(ar.bookFlow.ctaPickWhen);
     const tomorrow = new Date(Date.now() + 86400000);
     const day = tomorrow.toLocaleDateString("ar-EG-u-nu-latn", {
       weekday: "long",
@@ -687,16 +701,20 @@ async function run() {
       .getByRole("button", { name: /^[0-9]+:[0-9]+/ })
       .first()
       .click();
-    await expect(page.getByRole("button", { name: ar.common.continue, exact: true })).toBeEnabled();
+    await expect(
+      page.getByRole("button", { name: ar.bookFlow.ctaConfirmVisit, exact: true }),
+    ).toBeEnabled();
     await shot(`${kind}-2-time`);
-    await button(ar.common.continue);
+    await button(ar.bookFlow.ctaConfirmVisit);
     if (kind !== "tutoring")
       await page.getByRole("radio", { name: new RegExp(member.full_name) }).click();
     if (kind !== "tutoring") await pickSupervision();
     await page.getByRole("radio", { name: new RegExp(ar.mobileBooking.providerProvides) }).click();
-    await expect(page.getByRole("button", { name: ar.common.continue, exact: true })).toBeEnabled();
+    await expect(
+      page.getByRole("button", { name: ar.bookFlow.ctaReviewPay, exact: true }),
+    ).toBeEnabled();
     await shot(`${kind}-3-address-recipient`);
-    await button(ar.common.continue);
+    await button(ar.bookFlow.ctaReviewPay);
     await exerciseCheckoutPromo();
     const method = kind === "hourly" ? "cash" : kind === "package" ? "manual_transfer" : "online";
     const methodName = methodRows.find((m) => m.method_type === method).name_ar;

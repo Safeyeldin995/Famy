@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from "react";
 import {
-  ActivityIndicator,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -25,8 +24,11 @@ import { Button } from "./Button";
 import { bodyTextInputProps } from "./a11y";
 import { scaledTabBarHeight } from "./a11y";
 import { colors, fontSize, fonts, radius, space, shadow } from "./theme";
+import { DetailSkeleton, ListSkeleton } from "./Skeleton";
 
 type Refreshable = { refetch: () => Promise<unknown> };
+
+export type QuerySkeletonVariant = "list" | "detail" | "inline";
 export function Page({
   title,
   children,
@@ -36,6 +38,7 @@ export function Page({
   header,
   contentStyle,
   scrollHeader = false,
+  scroll = true,
 }: {
   title: string;
   children: ReactNode;
@@ -45,6 +48,8 @@ export function Page({
   header?: ReactNode;
   contentStyle?: import("react-native").StyleProp<import("react-native").ViewStyle>;
   scrollHeader?: boolean;
+  /** When false, children manage their own scroll (e.g. FlatList). Omit queries or refresh in the list. */
+  scroll?: boolean;
 }) {
   const [refreshing, setRefreshing] = useState(false);
   const { i18n } = useTranslation();
@@ -61,47 +66,51 @@ export function Page({
     >
       {!tab && <Stack.Screen options={{ title, ...(header ? { headerShown: false } : {}) }} />}
       {!scrollHeader && header}
-      <KeyboardAwareScrollView
-        style={{ flex: 1 }}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={[
-          ui.content,
-          tabScrollPad != null ? { paddingBottom: tabScrollPad } : null,
-          contentStyle,
-        ]}
-        bottomOffset={
-          footer
-            ? KEYBOARD_FOCUS_GAP + KEYBOARD_PRIMARY_STICKY_RESERVE
-            : KEYBOARD_PRIMARY_INLINE_OFFSET
-        }
-        refreshControl={
-          queries.length ? (
-            <RefreshControl
-              refreshing={refreshing}
-              tintColor={colors.brand}
-              colors={[colors.brand]}
-              onRefresh={async () => {
-                setRefreshing(true);
-                try {
-                  await Promise.all(queries.map((q) => q.refetch()));
-                } finally {
-                  setRefreshing(false);
-                }
-              }}
-            />
-          ) : undefined
-        }
-      >
-        {scrollHeader && header ? (
-          <View style={{ marginHorizontal: -20, marginBottom: -16 }}>{header}</View>
-        ) : null}
-        {tab && !header && (
-          <Text size="title" weight="heavy">
-            {title}
-          </Text>
-        )}
-        {children}
-      </KeyboardAwareScrollView>
+      {scroll ? (
+        <KeyboardAwareScrollView
+          style={{ flex: 1 }}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={[
+            ui.content,
+            tabScrollPad != null ? { paddingBottom: tabScrollPad } : null,
+            contentStyle,
+          ]}
+          bottomOffset={
+            footer
+              ? KEYBOARD_FOCUS_GAP + KEYBOARD_PRIMARY_STICKY_RESERVE
+              : KEYBOARD_PRIMARY_INLINE_OFFSET
+          }
+          refreshControl={
+            queries.length ? (
+              <RefreshControl
+                refreshing={refreshing}
+                tintColor={colors.brand}
+                colors={[colors.brand]}
+                onRefresh={async () => {
+                  setRefreshing(true);
+                  try {
+                    await Promise.all(queries.map((q) => q.refetch()));
+                  } finally {
+                    setRefreshing(false);
+                  }
+                }}
+              />
+            ) : undefined
+          }
+        >
+          {scrollHeader && header ? (
+            <View style={{ marginHorizontal: -20, marginBottom: -16 }}>{header}</View>
+          ) : null}
+          {tab && !header && (
+            <Text size="title" weight="heavy">
+              {title}
+            </Text>
+          )}
+          {children}
+        </KeyboardAwareScrollView>
+      ) : (
+        <View style={[{ flex: 1 }, ui.content, contentStyle]}>{children}</View>
+      )}
       {footer ? (
         <KeyboardStickyView offset={{ closed: 0, opened: 0 }}>
           <View style={[ui.footer, { paddingBottom: safeBottom }]}>{footer}</View>
@@ -114,11 +123,13 @@ export function QueryState({
   query,
   empty,
   emptyKey = "mobile.empty",
+  skeleton = "list",
   children,
 }: {
   query: { isPending?: boolean; isLoading?: boolean; isError: boolean; refetch: () => unknown };
   empty?: boolean;
   emptyKey?: string;
+  skeleton?: QuerySkeletonVariant;
   children?: ReactNode;
 }) {
   const { t } = useTranslation();
@@ -136,13 +147,11 @@ export function QueryState({
         />
       </View>
     );
-  if (query.isLoading ?? query.isPending)
-    return (
-      <View style={[ui.card, ui.state]}>
-        <ActivityIndicator color={colors.brand} />
-        <Text tone="muted">{t("common.loading")}</Text>
-      </View>
-    );
+  if (query.isLoading ?? query.isPending) {
+    if (skeleton === "inline") return <ListSkeleton count={2} />;
+    if (skeleton === "detail") return <DetailSkeleton />;
+    return <ListSkeleton />;
+  }
   if (empty)
     return (
       <View style={[ui.card, ui.state]}>

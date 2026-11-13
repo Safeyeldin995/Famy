@@ -1,7 +1,7 @@
 import { ActivityIndicator, Pressable, StyleSheet, View, type ViewStyle } from "react-native";
 import type { ReactNode } from "react";
 import { Text } from "./Text";
-import { colors, radius, shadow } from "./theme";
+import { colors, radius, shadow, space } from "./theme";
 
 type Variant = "primary" | "secondary" | "ghost";
 
@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: space.xl,
   },
   primary: {
     backgroundColor: colors.brand,
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
+    gap: space.sm + 2,
     flexShrink: 1,
   },
 });
