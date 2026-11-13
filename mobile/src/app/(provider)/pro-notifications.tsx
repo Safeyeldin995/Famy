@@ -7,7 +7,10 @@ import { useProNotifications } from "@/lib/provider/queries";
 import { notificationText } from "@/lib/presentation";
 import { ProviderHeader } from "@/ui/provider/ProviderHeader";
 import { Page, QueryState, ActionError } from "@/ui/Page";
+import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
+import { ProviderEmptyState } from "@/ui/ProviderEmptyState";
+import { useToast } from "@/ui/Toast";
 import { colors, radius, space } from "@/ui/theme";
 
 type Notification = {
@@ -35,6 +38,7 @@ const dayKey = (date: Date) => {
 
 export default function ProNotifications() {
   const { t, i18n } = useTranslation();
+  const toast = useToast();
   const q = useProNotifications();
   const mark = useMarkNotificationRead();
   const all = useMarkAllNotificationsRead();
@@ -64,25 +68,28 @@ export default function ProNotifications() {
       title={t("notifs.title")}
       action={
         items.some((item) => !item.read_at) ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t("notifs.markAllRead")}
-            disabled={all.isPending}
-            onPress={() => all.mutate()}
-            style={{ minHeight: 44, justifyContent: "center" }}
-          >
-            <Text tone="brand" weight="heavy" size="xs">
-              {t("notifs.markAllRead")}
-            </Text>
-          </Pressable>
+          <Button
+            variant="ghost"
+            label={t("notifs.markAllRead")}
+            loading={all.isPending}
+            onPress={() =>
+              all.mutate(undefined, {
+                onSuccess: () => toast.show(t("mobile.allMarkedRead")),
+              })
+            }
+            style={{ minHeight: 44, paddingHorizontal: space.sm }}
+          />
         ) : undefined
       }
     />
   );
   return (
-    <Page title={t("notifs.title")} header={header} queries={[q]} contentStyle={{ paddingTop: 8 }}>
+    <Page title={t("notifs.title")} header={header} queries={[q]} contentStyle={{ paddingTop: space.sm }}>
       <ActionError error={mark.error || all.error} />
-      <QueryState query={q} empty={!items.length} emptyKey="notifs.empty">
+      <QueryState query={q}>
+        {!items.length ? (
+          <ProviderEmptyState icon={Bell} title={t("notifs.empty")} body={t("notifs.emptyBody")} />
+        ) : null}
         {[...groups.entries()].map(([key, group]) => (
           <View key={key} style={{ gap: space.sm, marginBottom: space.lg }}>
             <Text weight="heavy">{label(key)}</Text>
@@ -112,8 +119,8 @@ export default function ProNotifications() {
                     style={{
                       minHeight: 72,
                       flexDirection: "row",
-                      gap: 12,
-                      padding: 16,
+                      gap: space.md,
+                      padding: space.lg,
                       borderBottomWidth: 1,
                       borderBottomColor: colors.border,
                       opacity: item.read_at ? 0.7 : 1,
@@ -123,7 +130,7 @@ export default function ProNotifications() {
                       style={{
                         width: 40,
                         height: 40,
-                        borderRadius: 12,
+                        borderRadius: radius.sm,
                         alignItems: "center",
                         justifyContent: "center",
                         backgroundColor: colors.brandTint,

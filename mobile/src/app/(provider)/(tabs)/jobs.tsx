@@ -74,7 +74,7 @@ export default function ProviderJobs() {
   const requestCount = lists.requests.length;
 
   return (
-    <Page tab title={t("pro.bookings.title")} queries={[p, q]} contentStyle={{ gap: 16 }}>
+    <Page tab title={t("pro.bookings.title")} queries={[p, q]} contentStyle={{ gap: space.lg }}>
       <Segmented
         value={tab}
         onChange={(value) => {
@@ -92,10 +92,10 @@ export default function ProviderJobs() {
         ]}
       />
       <QueryState query={q} empty={!list.length} emptyKey={emptyKey}>
-        <View style={{ gap: 12 }}>
+        <View style={{ gap: space.md }}>
           {tab === "upcoming"
             ? upcomingSections.map((section, index) => (
-                <View key={`${section.kind}-${section.kind === "day" ? section.dayKey : section.kind}`} style={{ gap: 12 }}>
+                <View key={`${section.kind}-${section.kind === "day" ? section.dayKey : section.kind}`} style={{ gap: space.md }}>
                   {section.kind === "now" ? (
                     <JobsSectionHeader title={t("pro.bookings.sectionNow")} />
                   ) : null}

@@ -17,11 +17,13 @@ import { CustomerEmpty, customerStyle } from "@/ui/customer/Primitives";
 import { Page, QueryState, ActionError, ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
-import { colors } from "@/ui/theme";
+import { colors, radius, space } from "@/ui/theme";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
+import { useToast } from "@/ui/Toast";
 
 export default function Notifications() {
   const { t, i18n } = useTranslation();
+  const toast = useToast();
   const q = useNotifications();
   const mark = useMarkNotificationRead();
   const all = useMarkAllNotificationsRead();
@@ -39,8 +41,12 @@ export default function Notifications() {
                 variant="secondary"
                 label={t("notifs.markAllRead")}
                 loading={all.isPending}
-                onPress={() => all.mutate()}
-                style={{ minHeight: 44, borderRadius: 999, paddingHorizontal: 14 }}
+                onPress={() =>
+                  all.mutate(undefined, {
+                    onSuccess: () => toast.show(t("mobile.allMarkedRead")),
+                  })
+                }
+                style={{ minHeight: 44, borderRadius: radius.pill, paddingHorizontal: space.md + 2 }}
               />
             ) : null
           }
@@ -59,7 +65,7 @@ export default function Notifications() {
           </CustomerEmpty>
         ) : null}
         {customerNotificationGroups(q.data ?? []).map((group) => (
-          <View key={group.key} style={{ gap: 12, marginBottom: 12 }}>
+          <View key={group.key} style={{ gap: space.md, marginBottom: space.md }}>
             <Text size="lg" weight="bold">
               {group.labelKey
                 ? t(group.labelKey)
@@ -80,10 +86,10 @@ export default function Notifications() {
                     customerStyle.row,
                     {
                       alignItems: "flex-start",
-                      borderRadius: 24,
-                      gap: 14,
+                      borderRadius: radius.xl,
+                      gap: space.md + 2,
                       backgroundColor: n.read_at ? colors.surface2 : colors.surface,
-                      borderColor: n.read_at ? "transparent" : "#F10E7233",
+                      borderColor: n.read_at ? "transparent" : colors.brandTintStrong,
                     },
                   ]}
                   onPress={async () => {
