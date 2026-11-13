@@ -120,16 +120,14 @@ function EarningsPage() {
             {t("pro.earnings.fromCompleted", { count: e.data?.completedCount ?? 0 })}
           </p>
         </section>
-        <div className="grid grid-cols-2 gap-3">
-          <Card className="min-w-0 p-3">
-            <h2 className="text-pro-13 font-bold">{t("proWork.thisMonth")}</h2>
-            <SplitAmounts
-              bucket={e.data?.mtd}
-              hasNet={(e.data?.mtd.net ?? 0) > 0}
-              hasBookingValue={(e.data?.mtd.bookingValue ?? 0) > 0}
-            />
-          </Card>
-        </div>
+        <Card className="min-w-0 p-3">
+          <h2 className="text-pro-13 font-bold">{t("proWork.thisMonth")}</h2>
+          <SplitAmounts
+            bucket={e.data?.mtd}
+            hasNet={(e.data?.mtd.net ?? 0) > 0}
+            hasBookingValue={(e.data?.mtd.bookingValue ?? 0) > 0}
+          />
+        </Card>
         <Card className="p-3">
           <h2 className="text-pro-13 font-bold">{t("proRound2.upcomingWork")}</h2>
           <SplitAmounts
