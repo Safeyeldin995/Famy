@@ -6,7 +6,7 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-const query = <T,>(data: T, overrides: Partial<ReturnType<typeof query>> = {}) => ({
+const query = <T,>(data: T, overrides: Record<string, unknown> = {}) => ({
   data,
   isSuccess: true,
   isLoading: false,
@@ -65,7 +65,13 @@ vi.mock("@/lib/db/teaching-queries", () => ({
 
 describe("BookRebookGate", () => {
   it("mounts rebook initial state when cached queries are already successful", () => {
-    let captured: Record<string, unknown> | null = null;
+    let captured: {
+      mountKey: string;
+      addressId?: string;
+      forWhom?: string;
+      supervisionMode?: string;
+      seeded?: string[];
+    } | null = null;
     render(
       <BookRebookGate providerId="prov-1" rebookFrom="bid-1">
         {({ mountKey, rebookInitial }) => {
@@ -87,7 +93,7 @@ describe("BookRebookGate", () => {
       forWhom: "child-1",
       supervisionMode: "adult_present",
     });
-    expect(captured?.seeded).toEqual(
+    expect(captured!.seeded).toEqual(
       expect.arrayContaining(["forWhom", "addressId", "supervisionMode"]),
     );
   });
