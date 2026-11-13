@@ -5,20 +5,27 @@ import * as Clipboard from "expo-clipboard";
 import type { FeaturedPromoCode } from "@/lib/queries";
 import { money } from "@/lib/presentation";
 import { Copy, Check } from "lucide-react-native";
-import { colors } from "./theme";
+import { colors, radius, space } from "./theme";
 import { Text } from "./Text";
 import { Button } from "./Button";
 import { ActionError, ui } from "./Page";
+import { useToast } from "./Toast";
 
 export function PromoCard({ offer }: { offer: FeaturedPromoCode }) {
   const { t, i18n } = useTranslation();
+  const toast = useToast();
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState(false);
   return (
     <View
       style={[
         ui.card,
-        { padding: 16, borderRadius: 28, backgroundColor: colors.ink, borderColor: colors.ink },
+        {
+          padding: space.lg,
+          borderRadius: radius.xl + space.xs,
+          backgroundColor: colors.ink,
+          borderColor: colors.ink,
+        },
       ]}
     >
       <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
@@ -63,6 +70,7 @@ export function PromoCard({ offer }: { offer: FeaturedPromoCode }) {
                 throw new Error("Clipboard unavailable");
               setCopied(true);
               setError(false);
+              toast.show(t("mobile.copied"));
             } catch {
               setError(true);
             }

@@ -18,7 +18,7 @@ import { joinUiParts } from "@shared/format/uiJoin";
 import { Page, QueryState, Choices, Field, Row, ui } from "./Page";
 import { ProviderCard } from "./ProviderCard";
 import { Text } from "./Text";
-import { space } from "./theme";
+import { radius, space } from "./theme";
 import { CustomerSearchView } from "./customer/CustomerSearchView";
 import { CustomerPageHeader } from "./CustomerPageHeader";
 import { BottomSheetSelect } from "./provider/BottomSheetSelect";
@@ -189,7 +189,7 @@ export function Discovery({ category: group }: { category?: string }) {
               variant="secondary"
               label={t("category.filters")}
               icon={<SlidersHorizontal size={14} color={colors.brand} />}
-              style={{ minHeight: 44, borderRadius: 999, paddingHorizontal: 14 }}
+              style={{ minHeight: 44, borderRadius: radius.pill, paddingHorizontal: space.md + 2 }}
               onPress={() => router.push("/search")}
             />
           }
@@ -277,7 +277,7 @@ export function Discovery({ category: group }: { category?: string }) {
           ) : null}
           <View style={{ gap: space.md }}>
             {ranked.map((p) => (
-              <View key={p.id} style={{ gap: 4 }}>
+              <View key={p.id} style={{ gap: space.xs }}>
                 <ProviderCard provider={p} />
                 {schoolTutoring &&
                 studentProfile.studentFirstName &&
@@ -286,7 +286,7 @@ export function Discovery({ category: group }: { category?: string }) {
                   curriculumId: studentProfile.educationCurriculumId,
                   levelId: studentProfile.educationLevelId,
                 }) ? (
-                  <Text size="xs" weight="bold" tone="brand" style={{ paddingHorizontal: 16 }}>
+                  <Text size="xs" weight="bold" tone="brand" style={{ paddingHorizontal: space.lg }}>
                     {tutoringMatchBadgeLabel(studentProfile.studentFirstName, t)}
                   </Text>
                 ) : null}

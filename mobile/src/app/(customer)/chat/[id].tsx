@@ -1,12 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  Platform,
-  Pressable,
-  StyleSheet,
-  View,
-} from "react-native";
+import { FlatList, Platform, Pressable, StyleSheet, View } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -31,6 +24,7 @@ import { Button } from "@/ui/Button";
 import { ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { colors, space } from "@/ui/theme";
+import { ChatThreadSkeleton } from "@/ui/Skeleton";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ChatScreen() {
@@ -96,10 +90,7 @@ export default function ChatScreen() {
         right={<Avatar raw={otherAvatar} size={44} round />}
       />
       {conv.isLoading || msgs.isLoading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={colors.brand} />
-          <Text tone="muted">{t("common.loading")}</Text>
-        </View>
+        <ChatThreadSkeleton />
       ) : conv.isError || msgs.isError ? (
         <View style={ui.card}>
           <Text tone="danger">{t("common.somethingWentWrong")}</Text>

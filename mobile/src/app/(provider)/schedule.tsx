@@ -24,6 +24,7 @@ import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { colors, space } from "@/ui/theme";
 import { customerNumber } from "@/lib/customerFormat";
+import { useToast } from "@/ui/Toast";
 
 const NOTICE_HOURS = [0, 1, 2, 3, 6, 12, 24] as const;
 const BUFFER_MINUTES = [0, 15, 30, 60] as const;
@@ -84,6 +85,7 @@ function RuleChipRow({
 
 export default function ProviderSchedule() {
   const { t, i18n } = useTranslation();
+  const toast = useToast();
   const p = useMyProvider();
   const provider = p.data as Record<string, unknown> | null | undefined;
   const availQ = useProviderAvailability(provider?.id as string | undefined);
@@ -148,7 +150,12 @@ export default function ProviderSchedule() {
           end_time: r.end_time,
         })),
       },
-      { onSuccess: () => setSaved(true) },
+      {
+        onSuccess: () => {
+          setSaved(true);
+          toast.show(t("pro.common.saved"));
+        },
+      },
     );
   };
 

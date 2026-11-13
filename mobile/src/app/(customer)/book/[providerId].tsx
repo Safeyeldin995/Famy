@@ -5,7 +5,7 @@ import { CustomerBookingWhen } from "@/ui/customer/BookingWhen";
 import { BookingServiceCard } from "@/ui/customer/BookingServiceCard";
 import { BookOpen, Clock, UserRound, Star } from "lucide-react-native";
 import { Avatar } from "@/ui/ProviderCard";
-import { colors } from "@/ui/theme";
+import { colors, space } from "@/ui/theme";
 import { BookingEducation } from "@/ui/BookingEducation";
 import { planPostCreatePayment } from "@/lib/bookingPure";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -549,7 +549,7 @@ export default function Book() {
               {t(reason)}
             </Text>
           ) : null}
-          <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
+          <View style={{ flexDirection: "row", gap: space.md, alignItems: "center" }}>
             <View style={{ flex: 1 }}>
               <Button
                 label={t(step === 3 ? "mobileBooking.confirmBooking" : "common.continue")}
@@ -580,7 +580,7 @@ export default function Book() {
         billing,
       ]}
     >
-      <QueryState query={provider} />
+      <QueryState query={provider} skeleton="detail" />
       <QueryState query={servicesQ} />
       <QueryState query={bookable} />
       <QueryState query={settings} />

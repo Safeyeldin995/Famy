@@ -82,8 +82,8 @@ export default function Bookings() {
           ]}
         />
       </View>
-      <QueryState query={q}>
-        <QueryState query={parties} />
+      <QueryState query={q} skeleton="list">
+        <QueryState query={parties} skeleton="inline" />
         {!rows.length ? (
           <CustomerEmpty
             Icon={CalendarDays}
