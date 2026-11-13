@@ -35,7 +35,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
               src={wordmark}
               alt={t("common.appName")}
               width={1092}
-              height={344}
+              height={375}
               className="h-8 w-auto max-w-[6.5rem] object-contain"
             />
           </Link>
@@ -100,7 +100,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
               src={wordmark}
               alt={t("common.appName")}
               width={1092}
-              height={344}
+              height={375}
               loading="lazy"
               decoding="async"
               className="h-9 w-auto max-w-[7rem] object-contain"

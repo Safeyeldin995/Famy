@@ -34,7 +34,7 @@ describe("famySplashState", () => {
     expect(atStart.y).toBeCloseTo(centered.y);
 
     const atEnd = famySplashYPosition(1, 0);
-    expect(atEnd.x).toBe(830);
-    expect(atEnd.y).toBe(18);
+    expect(atEnd.x).toBe(844);
+    expect(atEnd.y).toBe(46);
   });
 });
