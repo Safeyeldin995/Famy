@@ -3,6 +3,7 @@ import { MessageCircle } from "lucide-react-native";
 import { useConversations } from "@/lib/chatQueries";
 import { ConversationList } from "@/ui/chat/ConversationList";
 import { Page, QueryState } from "@/ui/Page";
+import { ConversationListSkeleton } from "@/ui/Skeleton";
 import { Text } from "@/ui/Text";
 import { ProviderHeader } from "@/ui/provider/ProviderHeader";
 import { ProviderEmptyState } from "@/ui/ProviderEmptyState";
@@ -33,7 +34,7 @@ export default function ProviderMessagesScreen() {
       {q.isError ? (
         <QueryState query={q} />
       ) : q.isLoading || q.isPending ? (
-        <QueryState query={q} />
+        <ConversationListSkeleton />
       ) : (
         <ConversationList
           testID="pro-conversation-list"

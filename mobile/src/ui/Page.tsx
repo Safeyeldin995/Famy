@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from "react";
 import {
-  ActivityIndicator,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -25,8 +24,11 @@ import { Button } from "./Button";
 import { bodyTextInputProps } from "./a11y";
 import { scaledTabBarHeight } from "./a11y";
 import { colors, fontSize, fonts, radius, space, shadow } from "./theme";
+import { DetailSkeleton, ListSkeleton } from "./Skeleton";
 
 type Refreshable = { refetch: () => Promise<unknown> };
+
+export type QuerySkeletonVariant = "list" | "detail" | "inline";
 export function Page({
   title,
   children,
@@ -121,11 +123,13 @@ export function QueryState({
   query,
   empty,
   emptyKey = "mobile.empty",
+  skeleton = "list",
   children,
 }: {
   query: { isPending?: boolean; isLoading?: boolean; isError: boolean; refetch: () => unknown };
   empty?: boolean;
   emptyKey?: string;
+  skeleton?: QuerySkeletonVariant;
   children?: ReactNode;
 }) {
   const { t } = useTranslation();
@@ -143,13 +147,11 @@ export function QueryState({
         />
       </View>
     );
-  if (query.isLoading ?? query.isPending)
-    return (
-      <View style={[ui.card, ui.state]}>
-        <ActivityIndicator color={colors.brand} />
-        <Text tone="muted">{t("common.loading")}</Text>
-      </View>
-    );
+  if (query.isLoading ?? query.isPending) {
+    if (skeleton === "inline") return <ListSkeleton count={2} />;
+    if (skeleton === "detail") return <DetailSkeleton />;
+    return <ListSkeleton />;
+  }
   if (empty)
     return (
       <View style={[ui.card, ui.state]}>

@@ -205,7 +205,7 @@ export default function Home() {
                     </View>
                     <Arrow size={20} color={tile.ink} />
                   </View>
-                  <View style={{ gap: 4 }}>
+                  <View style={{ gap: space.xs }}>
                     <Text size="lg" weight="heavy">
                       {t(tile.titleKey)}
                     </Text>
@@ -229,7 +229,7 @@ export default function Home() {
           decelerationRate="fast"
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: space.xl, gap: space.md }}
-          style={{ marginTop: 32 }}
+          style={{ marginTop: space.xxxl }}
         >
           {promos.data.map((p) => (
             <HomePromoStrip key={p.id} offer={p} />
@@ -297,8 +297,8 @@ const styles = StyleSheet.create({
     minHeight: 44,
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 14,
+    gap: space.xs + 2,
+    paddingHorizontal: space.md + 2,
     borderRadius: radius.pill,
     backgroundColor: colors.surface,
   },
@@ -364,7 +364,7 @@ function NearbyProviders({ addressId }: { addressId: string }) {
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: 12,
+          gap: space.md,
         }}
       >
         <Text size="xl" weight="heavy">

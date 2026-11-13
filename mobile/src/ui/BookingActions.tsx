@@ -17,6 +17,7 @@ import { Button } from "./Button";
 import { Text } from "./Text";
 import { Choices, Field, QueryState, ui } from "./Page";
 import { StarRatingInput } from "./StarRatingInput";
+import { useToast } from "./Toast";
 export function BookingActions({
   booking,
   suppressRebook = false,
@@ -32,6 +33,7 @@ export function BookingActions({
   suppressRebook?: boolean;
 }) {
   const { t, i18n } = useTranslation();
+  const toast = useToast();
   const { session } = useSession();
   const expirySettings = useBookingExpirySettings();
   const cancel = useCancelBooking();
@@ -70,7 +72,10 @@ export function BookingActions({
                   updateStatus.mutate(
                     { id: booking.id, status: "in_progress" },
                     {
-                      onSuccess: () => setConfirmArrivalOpen(false),
+                      onSuccess: () => {
+                        setConfirmArrivalOpen(false);
+                        toast.show(t("mobile.bookingUpdated"));
+                      },
                       onError: () => setError(t("common.somethingWentWrong")),
                     },
                   )
@@ -79,12 +84,14 @@ export function BookingActions({
               <Button
                 variant="secondary"
                 label={t("bookingDetail.keep")}
+                disabled={updateStatus.isPending}
                 onPress={() => setConfirmArrivalOpen(false)}
               />
             </>
           ) : (
             <Button
               label={t("bookingDetail.confirmArrival")}
+              disabled={updateStatus.isPending}
               onPress={() => setConfirmArrivalOpen(true)}
             />
           )}
@@ -115,7 +122,10 @@ export function BookingActions({
                   updateStatus.mutate(
                     { id: booking.id, status: "completed" },
                     {
-                      onSuccess: () => setConfirmCompletionOpen(false),
+                      onSuccess: () => {
+                        setConfirmCompletionOpen(false);
+                        toast.show(t("mobile.bookingUpdated"));
+                      },
                       onError: () => setError(t("common.somethingWentWrong")),
                     },
                   )
@@ -124,12 +134,14 @@ export function BookingActions({
               <Button
                 variant="secondary"
                 label={t("bookingDetail.keep")}
+                disabled={updateStatus.isPending}
                 onPress={() => setConfirmCompletionOpen(false)}
               />
             </>
           ) : (
             <Button
               label={t("bookingDetail.confirmCompletion")}
+              disabled={updateStatus.isPending}
               onPress={() => setConfirmCompletionOpen(true)}
             />
           )}
@@ -169,7 +181,10 @@ export function BookingActions({
               cancel.mutate(
                 { bookingId: booking.id, reasonId, note },
                 {
-                  onSuccess: () => setOpen(false),
+                  onSuccess: () => {
+                    setOpen(false);
+                    toast.show(t("bookingDetail.closedCancelledTitle"));
+                  },
                   onError: () => setError(t("common.somethingWentWrong")),
                 },
               )
@@ -217,7 +232,10 @@ export function BookingActions({
                         rating,
                         comment,
                       },
-                      { onError: () => setError(t("common.somethingWentWrong")) },
+                      {
+                        onSuccess: () => toast.show(t("bookingDetail.reviewSubmitted")),
+                        onError: () => setError(t("common.somethingWentWrong")),
+                      },
                     )
                   }
                 />

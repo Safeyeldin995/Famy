@@ -27,10 +27,12 @@ import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { colors, space } from "@/ui/theme";
 import { isSupervisionMode, supervisionModeProviderLabel } from "@shared/booking/supervisionMode";
+import { useToast } from "@/ui/Toast";
 
 export default function ProBookingDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t, i18n } = useTranslation();
+  const toast = useToast();
   const q = useProviderBooking(id);
   const partyQ = useBookingParty(id);
   const mut = useProviderUpdateBookingStatus();
@@ -90,7 +92,10 @@ export default function ProBookingDetail() {
     mut.mutate(
       { id: id!, status: nextStatus },
       {
-        onSuccess,
+        onSuccess: () => {
+          toast.show(t("mobile.bookingUpdated"));
+          onSuccess?.();
+        },
         onError: (e: Error) => {
           if (isBookingTooEarlyError(e)) {
             mut.reset();
@@ -107,7 +112,7 @@ export default function ProBookingDetail() {
       queries={[q]}
       contentStyle={{ paddingBottom: 120 }}
     >
-      <QueryState query={q}>
+      <QueryState query={q} skeleton="detail">
         {b ? (
           <>
             <View style={[proCard.card, { flexDirection: "row", alignItems: "center", gap: 12 }]}>

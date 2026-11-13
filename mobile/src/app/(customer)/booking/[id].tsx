@@ -163,7 +163,7 @@ export default function BookingDetail() {
       }
     >
       {educationWarning === "1" && <Text tone="danger">{t("studentEducation.saveFailed")}</Text>}
-      <QueryState query={q} empty={!b}>
+      <QueryState query={q} empty={!b} skeleton="detail">
         {b && info && (
           <>
             {created === "1" && (

@@ -3,6 +3,7 @@ import { MessageCircle } from "lucide-react-native";
 import { useConversations } from "@/lib/chatQueries";
 import { ConversationList } from "@/ui/chat/ConversationList";
 import { Page, QueryState } from "@/ui/Page";
+import { ConversationListSkeleton } from "@/ui/Skeleton";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 import { CustomerEmpty } from "@/ui/customer/Primitives";
 import { space } from "@/ui/theme";
@@ -35,7 +36,7 @@ export default function CustomerMessages() {
       {q.isError ? (
         <QueryState query={q} />
       ) : q.isLoading || q.isPending ? (
-        <QueryState query={q} />
+        <ConversationListSkeleton />
       ) : (
         <ConversationList
           items={rows}
