@@ -186,6 +186,78 @@ export function useBookingExpirySettings() {
   });
 }
 
+export type ProviderSettlementSettings = {
+  cash_debt_limit: number;
+  cash_debt_warn_percent: number;
+  settlement_weekday: number;
+};
+
+export function parseProviderSettlementSettings(
+  value: Record<string, unknown> | null | undefined,
+): ProviderSettlementSettings {
+  const limit = Number(value?.cash_debt_limit ?? 1000);
+  const warn = Number(value?.cash_debt_warn_percent ?? 80);
+  const weekday = Number(value?.settlement_weekday ?? 0);
+  return {
+    cash_debt_limit: Number.isFinite(limit) && limit > 0 ? limit : 1000,
+    cash_debt_warn_percent: Number.isFinite(warn) && warn > 0 && warn <= 100 ? warn : 80,
+    settlement_weekday: Number.isInteger(weekday) && weekday >= 0 && weekday <= 6 ? weekday : 0,
+  };
+}
+
+export function useProviderSettlementSettingsAdmin() {
+  return useQuery({
+    queryKey: ["settings", "provider_settlement", "admin"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("settings")
+        .select("value")
+        .eq("key", "provider_settlement")
+        .maybeSingle();
+      if (error) throw error;
+      return parseProviderSettlementSettings((data?.value as Record<string, unknown>) ?? {});
+    },
+  });
+}
+
+export function useUpdateProviderSettlementSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (patch: ProviderSettlementSettings) => {
+      const { data: current, error: readErr } = await supabase
+        .from("settings")
+        .select("value")
+        .eq("key", "provider_settlement")
+        .maybeSingle();
+      if (readErr) throw readErr;
+      const existing = (current?.value as Record<string, unknown>) ?? {};
+      const merged = {
+        ...existing,
+        cash_debt_limit: patch.cash_debt_limit,
+        cash_debt_warn_percent: patch.cash_debt_warn_percent,
+        settlement_weekday: patch.settlement_weekday,
+      };
+      const { data, error } = await supabase
+        .from("settings")
+        .upsert({ key: "provider_settlement", value: merged }, { onConflict: "key" })
+        .select("value")
+        .single();
+      if (error) throw error;
+      const stored = parseProviderSettlementSettings(data.value as Record<string, unknown>);
+      if (
+        stored.cash_debt_limit !== patch.cash_debt_limit ||
+        stored.cash_debt_warn_percent !== patch.cash_debt_warn_percent ||
+        stored.settlement_weekday !== patch.settlement_weekday
+      ) {
+        throw new Error("Provider settlement settings did not persist.");
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["settings", "provider_settlement"] });
+    },
+  });
+}
+
 export function useUpdateBookingExpirySettings() {
   const qc = useQueryClient();
   return useMutation({

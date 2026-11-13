@@ -50,3 +50,4 @@ example
 # Local parity exports (not app source or screenshot evidence)
 /dist-parity/
 /dist-parity-android/
+/qa-artifacts/

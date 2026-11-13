@@ -106,6 +106,56 @@ const vacations = [
 const exceptions = [
   { id: id(78), provider_id: pid, date: futureDate(11), is_blocked: true, reason: null },
 ];
+const weekMs = 7 * 86400000;
+const settlementPeriodEnd = new Date(Date.now() - 2 * 86400000);
+settlementPeriodEnd.setUTCHours(8, 0, 0, 0);
+const settlementPeriod = {
+  period_start: new Date(settlementPeriodEnd.getTime() - weekMs).toISOString(),
+  period_end: settlementPeriodEnd.toISOString(),
+  next_settlement_at: new Date(settlementPeriodEnd.getTime() + weekMs).toISOString(),
+};
+const providerBalanceFixture = {
+  total_credits: 5200,
+  total_debits: 800,
+  net: 4400,
+  cash_held_for_platform: 450,
+};
+const providerSettlementsFixture = [
+  {
+    id: id(90),
+    provider_id: pid,
+    period_start: settlementPeriod.period_start,
+    amount: 1200,
+    direction: "famy_pays_provider",
+    status: "pending",
+    created_at: now,
+  },
+  {
+    id: id(91),
+    provider_id: pid,
+    period_start: new Date(settlementPeriodEnd.getTime() - 2 * weekMs).toISOString(),
+    amount: 600,
+    direction: "provider_pays_famy",
+    status: "settled",
+    created_at: new Date(Date.now() - 10 * 86400000).toISOString(),
+  },
+];
+const providerLedgerEntriesFixture = [
+  {
+    id: id(92),
+    provider_id: pid,
+    kind: "cash_collected_platform_share",
+    amount: 350,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: id(93),
+    provider_id: pid,
+    kind: "online_provider_share",
+    amount: 2100,
+    created_at: new Date().toISOString(),
+  },
+];
 let providerMode = "approved";
 const writes = [];
 const errors = [];
@@ -211,6 +261,12 @@ async function run() {
         writes.push({ table, method, body });
         bookingPending.status = "cancelled";
         return route.fulfill({ json: { ok: true } });
+      } else if (table === "provider_balance") {
+        data = [providerBalanceFixture];
+      } else if (table === "provider_cash_debt_blocked") {
+        return route.fulfill({ json: false });
+      } else if (table === "provider_settlement_closed_period") {
+        data = [settlementPeriod];
       } else {
         errors.push(`Unhandled RPC: ${table}`);
         data = [];
@@ -298,6 +354,8 @@ async function run() {
         ],
         booking_message_reads: [],
         provider_documents: [],
+        provider_settlements: providerSettlementsFixture,
+        provider_ledger_entries: providerLedgerEntriesFixture,
         booking_status_history: bookingStatusHistory,
       };
       if (!(table in tables)) errors.push(`Unhandled table: ${table}`);
@@ -309,6 +367,24 @@ async function run() {
       }
       if (table === "bookings" && url.searchParams.get("provider_id")?.startsWith("eq.")) {
         data = [bookingPending, bookingConfirmed];
+      }
+      if (table === "provider_settlements" && url.searchParams.get("provider_id")?.startsWith("eq.")) {
+        const want = url.searchParams.get("provider_id").slice(3);
+        data = providerSettlementsFixture.filter((row) => row.provider_id === want);
+      }
+      if (table === "provider_ledger_entries" && url.searchParams.get("provider_id")?.startsWith("eq.")) {
+        const want = url.searchParams.get("provider_id").slice(3);
+        data = providerLedgerEntriesFixture.filter((row) => row.provider_id === want);
+        for (const [key, value] of url.searchParams.entries()) {
+          if (key === "created_at" && value.startsWith("gte.")) {
+            const bound = decodeURIComponent(value.slice(4));
+            data = data.filter((row) => row.created_at >= bound);
+          }
+          if (key === "created_at" && value.startsWith("lte.")) {
+            const bound = decodeURIComponent(value.slice(4));
+            data = data.filter((row) => row.created_at <= bound);
+          }
+        }
       }
       if (table === "booking_status_history" && url.searchParams.get("booking_id")?.startsWith("eq.")) {
         const bookingId = url.searchParams.get("booking_id").slice(3);
@@ -395,6 +471,8 @@ async function run() {
 
   await visit("/earnings");
   await expect(page.getByText(ar.pro.earnings.title).first()).toBeVisible();
+  await expect(page.getByText(ar.pro.settlement.title).first()).toBeVisible({ timeout: 20000 });
+  await expect(page.getByText(ar.pro.settlement.directionFamyPays).first()).toBeVisible();
   await shot("pro-earnings");
 
   await visit("/pro-profile");
