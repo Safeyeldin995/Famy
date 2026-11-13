@@ -9,7 +9,7 @@ import {
   useProviderSettlements,
 } from "@/lib/db/provider-settlement-queries";
 import { useQueryClient } from "@tanstack/react-query";
-import { providerSettlementDirectionLabel } from "@/lib/settlement/providerSettlementDirection";
+import { adminSettlementDirectionLabel } from "@/lib/settlement/providerSettlementDirection";
 import { settlementPeriodShort, settlementStatusLabel } from "@/lib/settlement/settlementPresentation";
 import { useLang } from "@/components/famio/LanguageToggle";
 
@@ -73,7 +73,7 @@ export function AdminProviderSettlements({ providerId }: { providerId: string })
               <span className="text-xs font-bold">{settlementStatusLabel(s.status, t)}</span>
             </div>
             <p className="text-xs font-semibold text-foreground">
-              {providerSettlementDirectionLabel(s.direction, t)}
+              {adminSettlementDirectionLabel(s.direction, t)}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               {settlementPeriodShort(s.period_start, s.period_end, lang)}
@@ -95,7 +95,7 @@ export function AdminProviderSettlements({ providerId }: { providerId: string })
           {selectedSettlement ? (
             <p className="text-sm font-bold">
               {formatEGP(selectedSettlement.amount)} ·{" "}
-              {providerSettlementDirectionLabel(selectedSettlement.direction, t)}
+              {adminSettlementDirectionLabel(selectedSettlement.direction, t)}
             </p>
           ) : null}
           <input
