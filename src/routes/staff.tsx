@@ -13,7 +13,7 @@ import { useMyRole } from "@/lib/db/provider-queries";
 
 export const Route = createFileRoute("/staff")({
   head: () => ({
-    meta: [{ name: "robots", content: "noindex, nofollow" }],
+    meta: [{ title: "دخول فريق فامي | Famy" }, { name: "robots", content: "noindex, nofollow" }],
   }),
   component: StaffSignIn,
 });
