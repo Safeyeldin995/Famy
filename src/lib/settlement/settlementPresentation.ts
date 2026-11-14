@@ -1,13 +1,17 @@
 /** Minimal i18n translator (root + mobile `i18next` stay structurally compatible). */
 export type SettlementTranslate = (key: string, opts?: Record<string, unknown>) => string;
 
-/** Provider- and admin-facing settlement batch status (no raw DB codes in UI). */
+/**
+ * Settlement batch status (no raw DB codes in UI). The database stores
+ * `pending`, `paid` (Famy paid the provider), `received` (Famy received the
+ * provider's transfer) and `cancelled`.
+ */
 export function settlementStatusLabel(status: string, t: SettlementTranslate): string {
   const key = String(status ?? "").toLowerCase();
   if (key === "pending") return t("pro.settlement.statusPending");
-  if (key === "settled") return t("pro.settlement.statusSettled");
+  if (key === "paid" || key === "received" || key === "settled") return t("pro.settlement.statusSettled");
   if (key === "cancelled") return t("pro.settlement.statusCancelled");
-  return status;
+  return t("money.unknown");
 }
 
 export function settlementPeriodShort(periodStart: string, periodEnd: string, locale: string): string {

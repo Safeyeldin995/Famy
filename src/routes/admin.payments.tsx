@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AdminLink as Link } from "@/components/admin/AdminNavigation";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { paymentStatusLabel } from "@/lib/settlement/moneyText";
 import { toast } from "sonner";
 import { useAdminPayments } from "@/lib/db/admin-queries";
 import { getSignedProofUrl, useCapturePayment, useRejectPayment } from "@/lib/db/payment-queries";
@@ -81,7 +82,7 @@ function PaymentCard({ payment: p }: { payment: any }) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <strong className="text-lg">{formatEGP(Number(p.amount ?? 0))}</strong>
         <span className="rounded-full bg-muted px-3 py-1 text-xs font-bold">
-          {t(`adminOps.status.${p.status}`, { defaultValue: t("adminOps.unknown") })}
+          {paymentStatusLabel(p.status, t)}
         </span>
       </div>
       <p className="font-semibold">
@@ -222,7 +223,7 @@ export function AdminPayments({ search }: { search: { status?: string; statuses?
             aria-pressed={status === s}
             onClick={() => setStatus(s)}
           >
-            {t(s ? `adminOps.status.${s}` : "adminOps.allPayments")}
+            {s ? paymentStatusLabel(s, t) : t("adminOps.allPayments")}
           </button>
         ))}
       </div>

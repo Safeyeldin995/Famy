@@ -1,18 +1,20 @@
 import { AdminLink as Link } from "@/components/admin/AdminNavigation";
 import { useTranslation } from "react-i18next";
 import { useAdminFinanceProviders, useAdminFinanceSummary, useSettlementClosedPeriod } from "@/lib/db/admin-finance-queries";
-import { defaultFinanceRangeFromPeriod } from "@/lib/settlement/cairoSettlementWeek";
+import { financeRangeForPreset } from "@/lib/settlement/cairoSettlementWeek";
+import { useMemo, useState } from "react";
 import { AdminQueryState } from "@/components/admin";
 import { formatEGP } from "@/lib/utils";
 
 export function AdminFinanceHomeStrip() {
   const { t } = useTranslation();
   const period = useSettlementClosedPeriod();
-  const range =
-    period.data != null ? defaultFinanceRangeFromPeriod(period.data) : { from: "", to: "" };
-  const fromIso = range.from ? new Date(range.from).toISOString() : undefined;
-  const toIso = range.to ? new Date(range.to).toISOString() : undefined;
-  const summary = useAdminFinanceSummary(fromIso, toIso);
+  const [anchor] = useState(() => new Date());
+  const range = useMemo(
+    () => (period.data != null ? financeRangeForPreset("thisWeek", period.data, anchor) : null),
+    [period.data, anchor],
+  );
+  const summary = useAdminFinanceSummary(range?.from, range?.to);
   const providers = useAdminFinanceProviders();
 
   const atLimit = (providers.data ?? []).filter((row) => row.at_limit).length;

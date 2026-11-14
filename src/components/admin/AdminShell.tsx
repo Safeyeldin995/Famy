@@ -1,7 +1,7 @@
 import { AdminPreviewContext, AdminLink as Link } from "@/components/admin/AdminNavigation";
 import { AdminMfaGate } from "@/components/admin/AdminMfaGate";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyRole } from "@/lib/db/provider-queries";
@@ -23,6 +23,7 @@ import {
   Activity,
   History,
   Radar,
+  BarChart3,
   LayoutDashboard,
   PanelLeftClose,
   PanelLeft,
@@ -38,7 +39,7 @@ import {
   useAdminFinanceSummary,
   useSettlementClosedPeriod,
 } from "@/lib/db/admin-finance-queries";
-import { defaultFinanceRangeFromPeriod } from "@/lib/settlement/cairoSettlementWeek";
+import { financeRangeForPreset } from "@/lib/settlement/cairoSettlementWeek";
 import { adminNavBadgeCount } from "@/lib/admin/adminNavBadges";
 import type { LucideIcon } from "lucide-react";
 import famyLogo from "@/assets/famy-wordmark.png";
@@ -52,6 +53,7 @@ export const ADMIN_NAV_GROUPS: (NavGroup & { titleFallback: string })[] = [
     titleFallback: "Operations",
     items: [
       { to: "/admin", labelKey: "admin.layout.nav.overview", icon: LayoutDashboard, exact: true },
+      { to: "/admin/performance", labelKey: "admin.layout.nav.performance", icon: BarChart3 },
       { to: "/admin/bookings", labelKey: "admin.layout.nav.bookings", icon: ClipboardList },
       { to: "/admin/operations", labelKey: "admin.layout.nav.operations", icon: Activity },
       { to: "/admin/cases", labelKey: "admin.layout.nav.cases", icon: LifeBuoy },
@@ -131,13 +133,15 @@ export function AdminShell({
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const queue = useAdminWorkQueueCounts();
   const settlementPeriod = useSettlementClosedPeriod();
-  const financeRange =
-    settlementPeriod.data != null
-      ? defaultFinanceRangeFromPeriod(settlementPeriod.data)
-      : { from: "", to: "" };
-  const financeFrom = financeRange.from ? new Date(financeRange.from).toISOString() : undefined;
-  const financeTo = financeRange.to ? new Date(financeRange.to).toISOString() : undefined;
-  const financeSummary = useAdminFinanceSummary(financeFrom, financeTo);
+  const [financeAnchor] = useState(() => new Date());
+  const financeRange = useMemo(
+    () =>
+      settlementPeriod.data != null
+        ? financeRangeForPreset("thisWeek", settlementPeriod.data, financeAnchor)
+        : null,
+    [settlementPeriod.data, financeAnchor],
+  );
+  const financeSummary = useAdminFinanceSummary(financeRange?.from, financeRange?.to);
   const financeProviders = useAdminFinanceProviders();
   const navBadgeExtras = {
     pendingSettlements: financeSummary.data?.pending_settlement_count ?? 0,

@@ -3,6 +3,7 @@ import { adminDate, adminLabel } from "@/components/admin/adminPresentation";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { paymentStatusLabel } from "@/lib/settlement/moneyText";
 import { useAdminCustomer, useSetCustomerSuspended } from "@/lib/db/admin-queries";
 import { ChevronLeft, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
@@ -144,7 +145,7 @@ export function AdminCustomer({ id }: { id: string }) {
                   </p>
                 </div>
                 <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-bold uppercase">
-                  {t("adminOps.status." + pay.status, { defaultValue: t("adminOps.unknown") })}
+                  {paymentStatusLabel(pay.status, t)}
                 </span>
               </li>
             ))}

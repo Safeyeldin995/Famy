@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   currentWeekLedgerRange,
   defaultFinanceRangeFromPeriod,
+  financeRangeForDays,
+  financeRangeForPreset,
   formatInstantForDatetimeLocal,
 } from "../cairoSettlementWeek";
 
@@ -60,5 +62,63 @@ describe("currentWeekLedgerRange", () => {
       from: period.period_end,
       to: period.next_settlement_at,
     });
+  });
+});
+
+describe("finance period presets", () => {
+  const period = {
+    period_start: "2026-11-01T08:00:00.000Z",
+    period_end: "2026-11-08T08:00:00.000Z",
+    next_settlement_at: "2026-11-15T08:00:00.000Z",
+  };
+  const now = new Date("2026-11-13T12:00:00.000Z");
+
+  it("this week runs from the last close until now", () => {
+    expect(financeRangeForPreset("thisWeek", period, now)).toEqual({
+      from: period.period_end,
+      to: now.toISOString(),
+    });
+  });
+
+  it("last week is the closed settlement week", () => {
+    expect(financeRangeForPreset("lastWeek", period, now)).toEqual({
+      from: period.period_start,
+      to: period.period_end,
+    });
+  });
+
+  it("custom days are Cairo days, include the whole end day and reject reversed ranges", () => {
+    const r = financeRangeForDays("2026-11-01", "2026-11-01");
+    expect(r).toEqual({ from: "2026-10-31T22:00:00.000Z", to: "2026-11-01T22:00:00.000Z" });
+    // Summer time in Cairo (UTC+3).
+    expect(financeRangeForDays("2026-07-01", "2026-07-01")).toEqual({
+      from: "2026-06-30T21:00:00.000Z",
+      to: "2026-07-01T21:00:00.000Z",
+    });
+    expect(financeRangeForDays("2026-11-05", "2026-11-01")).toBeNull();
+    expect(financeRangeForDays("", "2026-11-01")).toBeNull();
+  });
+});
+
+describe("finance presets use Cairo calendar and never invert", () => {
+  const period = {
+    period_start: "2026-11-01T08:00:00.000Z",
+    period_end: "2026-11-08T08:00:00.000Z",
+    next_settlement_at: "2026-11-15T08:00:00.000Z",
+  };
+
+  it("uses the first valid instant when Cairo skips midnight for summer time", () => {
+    expect(financeRangeForDays("2026-04-24", "2026-04-24")?.from).toBe("2026-04-23T22:00:00.000Z");
+    expect(financeRangeForDays("2026-04-23", "2026-04-23")?.to).toBe("2026-04-23T22:00:00.000Z");
+  });
+
+  it("this month starts at Cairo midnight on the 1st", () => {
+    const r = financeRangeForPreset("thisMonth", period, new Date("2026-11-13T12:00:00.000Z"));
+    expect(r.from).toBe("2026-10-31T22:00:00.000Z");
+  });
+
+  it("this week never returns from after to when the anchor predates a new close", () => {
+    const r = financeRangeForPreset("thisWeek", period, new Date("2026-11-07T12:00:00.000Z"));
+    expect(Date.parse(r.to)).toBeGreaterThan(Date.parse(r.from));
   });
 });
