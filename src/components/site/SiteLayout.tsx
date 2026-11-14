@@ -148,14 +148,6 @@ export function SiteLayout({ children }: { children: ReactNode }) {
               </li>
               <li>
                 <Link
-                  to="/help"
-                  className="focus-ring inline-flex min-h-11 items-center text-pro-14 text-muted-foreground hover:text-foreground"
-                >
-                  {t("site.footer.help")}
-                </Link>
-              </li>
-              <li>
-                <Link
                   to="/account/delete"
                   className="focus-ring inline-flex min-h-11 items-center text-pro-14 text-muted-foreground hover:text-foreground"
                 >
