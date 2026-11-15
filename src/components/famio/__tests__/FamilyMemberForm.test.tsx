@@ -200,7 +200,7 @@ describe("FamilyMemberForm", () => {
     const onSubmit = vi.fn();
     render(<FormHarness onSubmit={onSubmit} />);
 
-    await user.type(screen.getByPlaceholderText("e.g. Layla Ahmed"), "Layla Ahmed");
+    await user.type(screen.getByPlaceholderText("Enter the full name"), "Layla Ahmed");
     await user.click(screen.getByRole("button", { name: "familyMembers.relationships.daughter" }));
     expect(document.querySelector('input[type="date"]')).toBeNull();
     await user.selectOptions(screen.getByRole("combobox", { name: "memberAge.years" }), "3");

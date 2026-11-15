@@ -385,6 +385,19 @@ export default function Login() {
         </Pressable>
       ) : null}
 
+      {!providerMode && step === "phone" ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("guest.browse")}
+          onPress={() => router.push("/guest")}
+          style={styles.providerLink}
+        >
+          <Text size="sm" weight="heavy" tone="muted" style={{ textAlign: "center" }}>
+            {t("guest.browse")}
+          </Text>
+        </Pressable>
+      ) : null}
+
       {providerMode && step === "phone" ? (
         <View style={styles.termsRow}>
           <Text size="xs" tone="muted" style={{ textAlign: "center" }}>

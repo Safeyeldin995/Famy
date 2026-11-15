@@ -6,7 +6,7 @@ function toArabicIndicDigits(western: string): string {
 }
 
 async function fillMinimalChildForm(page: import("@playwright/test").Page, phone: string) {
-  await page.getByPlaceholder("e.g. Layla Ahmed").fill("Youssef Ali");
+  await page.getByPlaceholder("Enter the full name").fill("Youssef Ali");
   await page.getByRole("button", { name: "Daughter", exact: true }).click();
   await page.locator('input[type="date"]').fill("2020-06-15");
   const phoneInputs = page.getByPlaceholder("01xxxxxxxxx");

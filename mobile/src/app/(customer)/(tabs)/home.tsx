@@ -1,10 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { QueryState, Row } from "@/ui/Page";
 import { ProviderCard } from "@/ui/ProviderCard";
 import { HomePromoStrip } from "@/ui/HomePromoStrip";
 import { recentProviders, uniqueProviders } from "@/lib/presentation";
+import { takeGuestIntent } from "@/lib/guest";
 import { Pressable, ScrollView, RefreshControl, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -83,6 +84,23 @@ export default function Home() {
   const parties = useBookingParties(activeIds);
   const promos = useFeaturedPromoCodes();
   const [refreshing, setRefreshing] = useState(false);
+
+  // A visitor who tapped "book" while browsing as a guest resumes at that provider.
+  useEffect(() => {
+    let cancelled = false;
+    void takeGuestIntent().then((intent) => {
+      if (cancelled || !intent) return;
+      router.push({
+        pathname: "/provider/[id]",
+        params: intent.serviceId
+          ? { id: intent.providerId, serviceId: intent.serviceId }
+          : { id: intent.providerId },
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useFocusEffect(
     useCallback(() => {

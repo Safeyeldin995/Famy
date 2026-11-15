@@ -77,8 +77,9 @@ export async function resolveWorkspace(
 export async function customerLandingPath(userId: string): Promise<"/home" | "/setup"> {
   const { data } = await supabase
     .from("profiles")
-    .select("full_name")
+    .select("full_name, phone")
     .eq("id", userId)
     .maybeSingle();
-  return data?.full_name?.trim() ? "/home" : "/setup";
+  // Google/Apple accounts must add a phone before using the app (setup collects it).
+  return data?.full_name?.trim() && data?.phone?.trim() ? "/home" : "/setup";
 }
