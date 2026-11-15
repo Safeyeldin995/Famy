@@ -739,6 +739,48 @@ export function useAdminPayments(status?: string | string[]) {
   });
 }
 
+/** Booking ids whose cash share is already on the provider ledger (admin can read all rows). */
+export function useAdminCashLedgerBookings(bookingIds: string[]) {
+  const ids = [...new Set(bookingIds.filter(Boolean))].sort();
+  return useQuery({
+    queryKey: ['admin', 'cash-ledger-bookings', ids],
+    enabled: ids.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('provider_ledger_entries')
+        .select('booking_id')
+        .eq('kind', 'cash_collected_platform_share')
+        .in('booking_id', ids);
+      if (error) throw error;
+      return new Set((data ?? []).map((r) => r.booking_id as string));
+    },
+  });
+}
+
+/**
+ * For a cash booking completed before the ledger started: records that the provider
+ * collected the cash, so Famy's share is added to the provider's account. The server
+ * checks the booking is completed, paid in cash and not already recorded.
+ */
+export function useRecordHistoricCash() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ bookingId, reason }: { bookingId: string; reason: string }) => {
+      const { error } = await supabase.rpc('admin_record_historic_cash_collected', {
+        p_booking_id: bookingId,
+        p_reason: reason,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'cash-ledger-bookings'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'payments'] });
+      qc.invalidateQueries({ queryKey: ['admin-finance-summary'] });
+      qc.invalidateQueries({ queryKey: ['admin-finance-providers'] });
+    },
+  });
+}
+
 export type AdminCustomerFilter = "all" | "active" | "suspended" | "has_bookings" | "no_bookings";
 
 export function useAdminCustomers(filter: AdminCustomerFilter = "all") {

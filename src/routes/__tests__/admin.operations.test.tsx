@@ -16,7 +16,11 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 vi.mock("@/lib/preview/previewPath", () => ({ adminPath: (p: string) => p }));
 vi.mock("@/lib/i18n", () => ({ currentLang: () => "ar" }));
-vi.mock("@/lib/db/admin-queries", () => ({ useAdminPayments: () => ({ data: h.payments }) }));
+vi.mock("@/lib/db/admin-queries", () => ({
+  useAdminPayments: () => ({ data: h.payments }),
+  useAdminCashLedgerBookings: () => ({ data: new Set<string>() }),
+  useRecordHistoricCash: () => ({ mutate: vi.fn(), isPending: false }),
+}));
 vi.mock("@/lib/db/payment-queries", () => ({
   useCapturePayment: () => ({ mutate: h.capture }),
   useRejectPayment: () => ({ mutate: h.reject }),

@@ -120,7 +120,30 @@ export function seedAdminOperations(qc: QueryClient) {
       created_at: at(-24),
       proof_path: null,
     },
+    // One cash/transfer case per admin payment situation (see paymentSituation.ts).
+    ...(
+      [
+        ["payment-preview-cash-upcoming", "pending", "cash", 540, "confirmed"],
+        ["payment-preview-cash-historic", "pending", "cash", 253, "completed"],
+        ["payment-preview-cash-cancelled", "pending", "cash", 1621, "cancelled"],
+        ["payment-preview-transfer-rejected", "rejected", "manual_transfer", 1165, "cancelled"],
+      ] as const
+    ).map(([id, status, type, amount, bookingStatus], i) => ({
+      id,
+      booking_id: `${id}-booking`,
+      booking: { ...bookings[0], id: `${id}-booking`, status: bookingStatus },
+      status,
+      method: type === "cash" ? "cash" : "instapay",
+      payment_method_type: type,
+      amount,
+      created_at: at(-30 - i),
+      proof_path: null,
+    })),
   ];
+  qc.setQueryData(
+    ["admin", "cash-ledger-bookings", ["payment-preview-cash-historic-booking"]],
+    new Set<string>(),
+  );
   for (const status of ["all", ...paymentStatuses])
     qc.setQueryData(
       ["admin", "payments", status],
