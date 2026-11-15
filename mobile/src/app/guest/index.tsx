@@ -49,7 +49,7 @@ export default function GuestHome() {
     <Page
       title={t("guest.title")}
       queries={zoneId ? [zones, providers] : [zones]}
-      footer={<Button label={t("guest.signIn")} onPress={() => router.replace("/login")} />}
+      footer={<Button label={t("guest.signIn")} onPress={() => router.dismissTo("/login")} />}
     >
       <View style={{ gap: space.xs }}>
         <Text size="lg" weight="heavy">
@@ -83,7 +83,9 @@ export default function GuestHome() {
                   onPress={() =>
                     router.push({
                       pathname: "/guest/provider/[id]",
-                      params: serviceId ? { id: p.id, serviceId } : { id: p.id },
+                      params: serviceId
+                        ? { id: p.id, zone: zoneId, serviceId }
+                        : { id: p.id, zone: zoneId },
                     })
                   }
                 />

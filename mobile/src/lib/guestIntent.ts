@@ -1,5 +1,8 @@
-/** An intent older than this is ignored (the visitor likely moved on). */
-export const GUEST_INTENT_TTL_MS = 24 * 60 * 60 * 1000;
+/**
+ * An intent older than this is ignored. Kept short because it is stored per device,
+ * so it should only resume the sign-up that started from the guest screen.
+ */
+export const GUEST_INTENT_TTL_MS = 2 * 60 * 60 * 1000;
 
 export type GuestIntent = { providerId: string; serviceId?: string; savedAt: number };
 

@@ -296,6 +296,7 @@ export function useGuestProvider(id: string | undefined, zoneId: string | null |
         (row) =>
           row.id === id &&
           !isQaCatalogSlug(row.category_slug, row.service_slug) &&
+          !isQaFixtureName(row.full_name) &&
           isClosedBetaCategorySlug(row.category_slug),
       );
       if (!rows.length) return null;

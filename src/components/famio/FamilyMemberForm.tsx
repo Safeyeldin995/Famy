@@ -232,7 +232,7 @@ export function FamilyMemberForm({
             <input
               value={value.relationshipOther}
               onChange={(e) => set("relationshipOther", e.target.value)}
-              placeholder={t("familyMembers.relationshipOtherPlaceholder", "e.g. Cousin")}
+              placeholder={t("familyMembers.relationshipOtherPlaceholder", "Enter the relationship")}
               className="mt-2 h-12 w-full rounded-2xl border border-border bg-surface px-4 text-pro-14 font-medium outline-none focus:border-brand"
             />
             {touched && !relationshipOtherValid && (
@@ -326,7 +326,7 @@ export function FamilyMemberForm({
         label={`${t("familyMembers.accessNotes", "Access notes")} (${t("familyMembers.optional", "optional")})`}
         value={value.accessNotes}
         onChange={(v) => set("accessNotes", v)}
-        placeholder={t("familyMembers.accessNotesPlaceholder", "e.g. Needs help with stairs")}
+        placeholder={t("familyMembers.accessNotesPlaceholder", "Any special needs we should know about")}
       />
 
       <div className="space-y-3 rounded-2xl bg-surface-2 p-4">

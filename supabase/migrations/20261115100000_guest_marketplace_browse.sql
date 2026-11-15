@@ -29,16 +29,18 @@ BEGIN
     p.years_experience, p.languages, p.city, p.is_top_pro, p.is_verified,
     p.response_time_min, s.id, s.slug, s.name_en, s.name_ar, c.slug,
     COALESCE(rs.rating_avg, 0), COALESCE(rs.rating_count, 0)::bigint, COALESCE(ts.score, 0)
-  FROM public.providers p
+  -- Start from the zone's providers so eligibility runs only for them (anon-callable).
+  FROM public.zone_providers zp
+  JOIN public.providers p ON p.id = zp.provider_id
   JOIN LATERAL public.marketplace_eligibility_internal(p.id, p_service_id, NULL) e ON e.is_eligible
   JOIN public.profiles pr ON pr.id = p.profile_id
   JOIN public.services s ON s.id = e.service_id
   JOIN public.categories c ON c.id = s.category_id
   LEFT JOIN public.ratings_summary rs ON rs.provider_id = p.id
   LEFT JOIN public.trust_scores ts ON ts.provider_id = p.id
-  WHERE public.is_phase1_category_slug(c.slug)
+  WHERE zp.zone_id = p_zone_id
+    AND public.is_phase1_category_slug(c.slug)
     AND NOT public.provider_cash_debt_blocked(p.id)
-    AND EXISTS (SELECT 1 FROM public.zone_providers zp WHERE zp.zone_id = p_zone_id AND zp.provider_id = p.id)
     AND EXISTS (SELECT 1 FROM public.zone_services zs WHERE zs.zone_id = p_zone_id AND zs.service_id = s.id)
   ORDER BY p.id, s.id, p.is_top_pro DESC, COALESCE(rs.rating_avg, 0) DESC;
 END;
@@ -100,6 +102,7 @@ $$;
 REVOKE ALL ON FUNCTION public.is_public_provider_avatar(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.is_public_provider_avatar(text) TO anon, authenticated;
 
+DROP POLICY IF EXISTS avatars_anon_read_approved_provider ON storage.objects;
 CREATE POLICY avatars_anon_read_approved_provider
   ON storage.objects FOR SELECT TO anon
   USING (bucket_id = 'avatars' AND public.is_public_provider_avatar(name));

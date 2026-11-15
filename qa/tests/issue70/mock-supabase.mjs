@@ -170,7 +170,7 @@ export async function installIssue70Mocks(page, options = {}) {
 
 export async function waitForSetupForm(page) {
   await expect(page.getByText("Complete your profile")).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByPlaceholder("Sarah Mostafa")).toBeVisible();
+  await expect(page.getByPlaceholder("Enter your full name")).toBeVisible();
   await expect(page.getByRole("button", { name: "Sheikh Zayed", exact: true })).toBeVisible();
 }
 
@@ -178,9 +178,9 @@ export async function fillRequiredSetupFields(page, values = {}) {
   const name = values.name ?? "Nour Hassan";
   const address = values.address ?? "Street 12, Gate 3";
   const area = values.area ?? "Sheikh Zayed";
-  await page.getByPlaceholder("Sarah Mostafa").fill(name);
+  await page.getByPlaceholder("Enter your full name").fill(name);
   await page.getByRole("button", { name: area, exact: true }).click();
-  await page.getByPlaceholder("Street, landmark, gate number…").fill(address);
+  await page.getByPlaceholder("Street name and nearest landmark").fill(address);
 }
 
 export async function clickContinue(page) {

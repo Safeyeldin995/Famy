@@ -17,22 +17,36 @@ import { customerStyle } from "@/ui/customer/Primitives";
 
 /** Public provider profile for guests. Booking needs an account; we resume here after sign-up. */
 export default function GuestProvider() {
-  const { id, serviceId } = useLocalSearchParams<{ id: string; serviceId?: string }>();
+  const { id, serviceId, zone } = useLocalSearchParams<{
+    id: string;
+    serviceId?: string;
+    zone?: string;
+  }>();
   const { t, i18n } = useTranslation();
   const ar = i18n.language === "ar";
-  const [zoneId, setZoneId] = useState<string | null>(null);
+  // The list passes the area; a deep link falls back to the saved one.
+  const [storedZone, setStoredZone] = useState<string | null>(null);
+  const [zoneReady, setZoneReady] = useState(!!zone);
+  const zoneId = zone || storedZone;
   const detail = useGuestProvider(id, zoneId);
   const reviews = useProviderReviews(id);
 
   useEffect(() => {
+    if (zone) return;
     let cancelled = false;
     void getGuestZone().then((saved) => {
-      if (!cancelled) setZoneId(saved);
+      if (cancelled) return;
+      setStoredZone(saved);
+      setZoneReady(true);
     });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [zone]);
+
+  // Until the area is known the query is idle; show loading, not "unavailable".
+  const detailState =
+    zoneReady && zoneId ? detail : { ...detail, isPending: !zoneReady, isLoading: !zoneReady };
 
   const p = detail.data?.provider;
   const name = p?.profile.full_name || t("provider2.unnamed");
@@ -41,7 +55,7 @@ export default function GuestProvider() {
 
   const book = async () => {
     if (id) await saveGuestIntent(id, serviceId);
-    router.replace("/login");
+    router.dismissTo("/login");
   };
 
   return (
@@ -59,7 +73,7 @@ export default function GuestProvider() {
         ) : null
       }
     >
-      <QueryState query={detail} empty={!p} emptyKey="guest.unavailable">
+      <QueryState query={detailState} empty={!p} emptyKey="guest.unavailable">
         {p ? (
           <>
             <View style={{ alignItems: "center", gap: space.sm }}>

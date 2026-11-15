@@ -21,6 +21,7 @@ $$;
 
 REVOKE ALL ON FUNCTION public.tg_booking_requires_customer_phone() FROM PUBLIC, anon, authenticated;
 
+DROP TRIGGER IF EXISTS booking_requires_customer_phone ON public.bookings;
 CREATE TRIGGER booking_requires_customer_phone
   BEFORE INSERT ON public.bookings
   FOR EACH ROW EXECUTE FUNCTION public.tg_booking_requires_customer_phone();

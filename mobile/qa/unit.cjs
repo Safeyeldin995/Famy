@@ -325,7 +325,7 @@ assert.equal(OTP_LENGTH, 6);
 assert.equal(applyOtpDigitInput(["", "", "", "", "", ""], 0, "123456").complete, true);
 console.log("PASS: mobile OTP input state machine checks.");
 
-// Guest browsing: the saved "book this provider" intent survives sign-up once, for a day.
+// Guest browsing: the saved "book this provider" intent survives sign-up once, for 2 hours.
 {
   const { parseGuestIntent, GUEST_INTENT_TTL_MS } = load(
     path.join(root, "mobile/src/lib/guestIntent.ts"),
