@@ -93,10 +93,11 @@ export function walletBookingRows(
   return rows.sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
 }
 
-/** "ref:IP-123 note" -> "IP-123" */
+/** "ref:InstaPay 55821 " -> "InstaPay 55821" (the wallet form stores only the reference). */
 export function transferReference(note: string | null | undefined): string | null {
-  const m = /^ref:(\S+)/.exec(String(note ?? "").trim());
-  return m ? m[1] : null;
+  const m = /^ref:([\s\S]*)$/.exec(String(note ?? "").trim());
+  const ref = m ? m[1].trim() : "";
+  return ref || null;
 }
 
 export function walletTransferRows(ledger: WalletLedgerRow[]): WalletTransferRow[] {

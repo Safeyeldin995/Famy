@@ -6,16 +6,13 @@ import { colors, radius, space } from "@/ui/theme";
 import { money, dateTime } from "@/lib/presentation";
 import { moneyTextStyle } from "@/ui/Page";
 import {
+  useProviderCashDebtBlocked,
   useProviderSettlementBalance,
   useProviderSettlementSettings,
   useProviderWalletBookings,
   useProviderWalletLedger,
 } from "@/lib/provider/settlementQueries";
-import {
-  walletBookingRows,
-  walletState,
-  walletTransferRows,
-} from "@shared/settlement/walletView";
+import { walletBookingRows, walletState, walletTransferRows } from "@shared/settlement/walletView";
 
 function Signed({ value, language }: { value: number; language: string }) {
   // Sign and amount in separate texts so right-to-left layout never flips them.
@@ -40,6 +37,7 @@ export function ProviderWalletPanel({ providerId }: { providerId: string | undef
   const settings = useProviderSettlementSettings();
   const ledger = useProviderWalletLedger(providerId);
   const bookings = useProviderWalletBookings(ledger.data);
+  const blockedQ = useProviderCashDebtBlocked(providerId);
   const [howOpen, setHowOpen] = useState(false);
 
   if (!providerId) return null;
@@ -47,11 +45,15 @@ export function ProviderWalletPanel({ providerId }: { providerId: string | undef
   const net = balance.data?.net ?? 0;
   const state = walletState(net);
   const limit = settings.data?.cash_debt_limit ?? 1000;
-  const blocked = net <= -limit;
+  const blocked = blockedQ.data === true;
   const bookingRows = walletBookingRows(ledger.data ?? [], bookings.data ?? new Map());
   const transfers = walletTransferRows(ledger.data ?? []);
   const amountColor =
-    state === "providerOwes" ? colors.destructive : state === "famyOwes" ? colors.success : colors.foreground;
+    state === "providerOwes"
+      ? colors.destructive
+      : state === "famyOwes"
+        ? colors.success
+        : colors.foreground;
 
   const card = {
     borderRadius: radius.xl,
@@ -133,6 +135,10 @@ export function ProviderWalletPanel({ providerId }: { providerId: string | undef
           <Text tone="muted" size="sm">
             {t("common.loading")}
           </Text>
+        ) : ledger.isError ? (
+          <Text tone="danger" size="sm">
+            {t("wallet.pro.loadError")}
+          </Text>
         ) : bookingRows.length === 0 ? (
           <Text tone="muted" size="sm">
             {t("wallet.pro.bookingsEmpty")}
@@ -146,7 +152,9 @@ export function ProviderWalletPanel({ providerId }: { providerId: string | undef
                     ? t(r.method === "cash" ? "wallet.pro.paidCash" : "wallet.pro.paidOnline", {
                         amount: money(r.price, lang),
                       })
-                    : t(r.method === "cash" ? "wallet.pro.cashBooking" : "wallet.pro.onlineBooking")}
+                    : t(
+                        r.method === "cash" ? "wallet.pro.cashBooking" : "wallet.pro.onlineBooking",
+                      )}
                 </Text>
                 <Text size="xs" tone="muted">
                   {dateTime(r.at, lang)}
@@ -172,7 +180,15 @@ export function ProviderWalletPanel({ providerId }: { providerId: string | undef
 
       <View style={card}>
         <Text weight="heavy">{t("wallet.pro.transfersTitle")}</Text>
-        {transfers.length === 0 ? (
+        {ledger.isLoading ? (
+          <Text tone="muted" size="sm">
+            {t("common.loading")}
+          </Text>
+        ) : ledger.isError ? (
+          <Text tone="danger" size="sm">
+            {t("wallet.pro.loadError")}
+          </Text>
+        ) : transfers.length === 0 ? (
           <Text tone="muted" size="sm">
             {t("wallet.pro.transfersEmpty")}
           </Text>

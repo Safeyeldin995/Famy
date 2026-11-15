@@ -10,7 +10,6 @@ import {
   AdminTableTd,
   AdminTableTh,
 } from "@/components/admin";
-import { adminDate } from "@/components/admin/adminPresentation";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";

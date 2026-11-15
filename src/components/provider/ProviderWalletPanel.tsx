@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { formatEGP } from "@/lib/utils";
 import {
+  useProviderCashDebtBlocked,
   useProviderLedger,
   useProviderSettlementBalance,
   useProviderSettlementSettings,
@@ -62,7 +63,11 @@ export function ProviderWalletPanel({
   const bookings = useWalletBookings(ledger.data);
   const settings = useProviderSettlementSettings();
   const record = useRecordProviderTransfer(providerId);
-  const [open, setOpen] = useState(false);
+  const blockedQ = useProviderCashDebtBlocked(providerId);
+  // The form keeps the direction and cap from when it was opened, so a balance
+  // refetch can't turn a "received" record into a payout.
+  const [form, setForm] = useState<{ direction: "received" | "sent"; max: number } | null>(null);
+  const open = form !== null;
   const [amount, setAmount] = useState("");
   const [reference, setReference] = useState("");
 
@@ -71,31 +76,31 @@ export function ProviderWalletPanel({
   const net = balance.data?.net ?? 0;
   const state = walletState(net);
   const limit = settings.data?.cash_debt_limit ?? 1000;
-  const blocked = net <= -limit;
+  const blocked = blockedQ.data === true;
   const bookingRows = walletBookingRows(ledger.data ?? [], bookings.data ?? new Map());
   const transfers = walletTransferRows(ledger.data ?? []);
   const owed = Math.abs(net);
   const amountValue = Number(amount);
-  const amountValid = amountValue > 0 && amountValue <= owed + 0.005;
+  const amountValid = !!form && amountValue > 0 && amountValue <= form.max + 0.005;
 
   const startRecord = () => {
     setAmount(String(Math.round(owed * 100) / 100));
     setReference("");
-    setOpen(true);
+    setForm({ direction: state === "providerOwes" ? "received" : "sent", max: owed });
   };
 
   const save = () => {
-    if (!amountValid || !reference.trim()) return;
+    if (!form || !amountValid || !reference.trim()) return;
     record.mutate(
       {
-        direction: state === "providerOwes" ? "received" : "sent",
+        direction: form.direction,
         amount: amountValue,
         reference: reference.trim(),
         reason: t("wallet.admin.reason"),
       },
       {
         onSuccess: () => {
-          setOpen(false);
+          setForm(null);
           toast.success(t("wallet.admin.saved"));
         },
         onError: () => toast.error(t("wallet.admin.failed")),
@@ -129,9 +134,7 @@ export function ProviderWalletPanel({
             <p className={`text-2xl font-extrabold tabular-nums ${STATE_CLASS[state]}`}>
               {state === "even" ? t(`${ns}.even`) : formatEGP(owed)}
             </p>
-            {state !== "even" ? (
-              <p className="text-sm font-bold">{t(`${ns}.${state}`)}</p>
-            ) : null}
+            {state !== "even" ? <p className="text-sm font-bold">{t(`${ns}.${state}`)}</p> : null}
             <p className="text-sm text-muted-foreground">{t(`${ns}.${state}Hint`)}</p>
             {blocked ? (
               <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm font-bold text-destructive">
@@ -154,7 +157,11 @@ export function ProviderWalletPanel({
         {audience === "admin" && open ? (
           <div className="space-y-3 rounded-xl border border-brand/30 bg-brand/5 p-3">
             <p className="text-sm font-extrabold">
-              {t(state === "providerOwes" ? "wallet.admin.actionReceive" : "wallet.admin.actionPay")}
+              {t(
+                form?.direction === "received"
+                  ? "wallet.admin.actionReceive"
+                  : "wallet.admin.actionPay",
+              )}
             </p>
             <label className="block text-sm">
               <span className="font-semibold">{t("wallet.admin.amount")}</span>
@@ -166,7 +173,9 @@ export function ProviderWalletPanel({
               />
             </label>
             {amount && !amountValid ? (
-              <p className="text-xs font-bold text-destructive">{t("wallet.admin.amountTooHigh")}</p>
+              <p className="text-xs font-bold text-destructive">
+                {t("wallet.admin.amountTooHigh")}
+              </p>
             ) : null}
             <label className="block text-sm">
               <span className="font-semibold">{t("wallet.admin.reference")}</span>
@@ -190,7 +199,7 @@ export function ProviderWalletPanel({
                 type="button"
                 disabled={record.isPending}
                 className="focus-ring min-h-11 rounded-xl border border-border px-4 text-sm font-bold"
-                onClick={() => setOpen(false)}
+                onClick={() => setForm(null)}
               >
                 {t("wallet.admin.cancel")}
               </button>
@@ -212,7 +221,7 @@ export function ProviderWalletPanel({
         <h3 className="text-sm font-extrabold">{t(`${ns}.bookingsTitle`)}</h3>
         {ledger.isLoading ? (
           <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
-        ) : bookingRows.length === 0 ? (
+        ) : ledger.isError ? null : bookingRows.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t(`${ns}.bookingsEmpty`)}</p>
         ) : (
           <ul className="divide-y divide-border/50 rounded-xl border border-border text-sm">
@@ -251,7 +260,9 @@ export function ProviderWalletPanel({
 
       <div className="space-y-2">
         <h3 className="text-sm font-extrabold">{t(`${ns}.transfersTitle`)}</h3>
-        {transfers.length === 0 ? (
+        {ledger.isLoading ? (
+          <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
+        ) : ledger.isError ? null : transfers.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t(`${ns}.transfersEmpty`)}</p>
         ) : (
           <ul className="divide-y divide-border/50 rounded-xl border border-border text-sm">

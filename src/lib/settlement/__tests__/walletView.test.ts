@@ -30,7 +30,7 @@ const ledger: WalletLedgerRow[] = [
     kind: "debt_payment_received",
     direction: "credit",
     amount: 83,
-    note: "ref:IP-55821 paid via instapay",
+    note: "ref:IP-55821 ",
     created_at: "2026-11-12T10:00:00Z",
   },
   {
@@ -101,6 +101,8 @@ describe("walletView", () => {
       ["received", 83, "IP-55821"],
     ]);
     expect(transferReference("no ref")).toBeNull();
+    expect(transferReference("ref:InstaPay 55821 ")).toBe("InstaPay 55821");
+    expect(transferReference("ref: ")).toBeNull();
   });
 
   it("state", () => {
