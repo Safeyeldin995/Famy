@@ -122,7 +122,9 @@ export function ProfileWorkZones({
                   onClick={() => void addSecondZone()}
                   className="focus-ring rounded-xl bg-brand px-3 py-2 text-xs font-bold text-brand-foreground disabled:opacity-50"
                 >
-                  {updateZones.isPending ? t("common.saving") : t("providerLocations.saveSecondZone")}
+                  {updateZones.isPending
+                    ? t("common.saving")
+                    : t("providerLocations.saveSecondZone")}
                 </button>
               </div>
             ) : (

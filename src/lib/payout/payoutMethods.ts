@@ -77,7 +77,7 @@ export function normalizeEgyptMobile(v: string): string | null {
 export function normalizeInstapayAddress(v: string): string | null {
   const t = v.trim().toLowerCase().replace(/\s+/g, "");
   if (/^[a-z0-9._-]{2,64}@instapay$/.test(t)) return t;
-  if (/^[a-z0-9._-]{2,64}$/.test(t) && /[a-z]/.test(t)) return `${t}@instapay`;
+  // A bare name is refused: money must never go to a guessed address.
   return normalizeEgyptMobile(t);
 }
 

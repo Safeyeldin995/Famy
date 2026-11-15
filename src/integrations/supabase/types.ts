@@ -4555,6 +4555,10 @@ export type Database = {
         }
         Returns: string
       }
+      set_primary_payout_method: {
+        Args: { p_method_id: string }
+        Returns: undefined
+      }
       admin_record_provider_debt_payment: {
         Args: {
           p_provider_id: string

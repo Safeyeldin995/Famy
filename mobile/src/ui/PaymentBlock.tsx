@@ -91,7 +91,8 @@ export function PaymentBlock({
   const live = instapayConfig(methods.data?.find((m) => m.code === p?.method)?.public_config);
   const handle = snap.handle || live.handle;
   const note = snap.note || live.note;
-  const payLink = snap.payLink || live.payLink;
+  // Only InstaPay gets the "Open InstaPay" button.
+  const payLink = p?.method === "instapay" ? snap.payLink || live.payLink : "";
   async function checkout() {
     setBusy(true);
     setError("");

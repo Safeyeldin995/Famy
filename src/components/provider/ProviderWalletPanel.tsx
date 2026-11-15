@@ -66,7 +66,7 @@ export function ProviderWalletPanel({
   const settings = useProviderSettlementSettings();
   const record = useRecordProviderTransfer(providerId);
   const blockedQ = useProviderCashDebtBlocked(providerId);
-  const famyInstapay = useFamyInstapay();
+  const famyInstapay = useFamyInstapay(audience === "pro");
   // The form keeps the direction and cap from when it was opened, so a balance
   // refetch can't turn a "received" record into a payout.
   const [form, setForm] = useState<{ direction: "received" | "sent"; max: number } | null>(null);

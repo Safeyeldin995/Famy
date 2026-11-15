@@ -225,10 +225,13 @@ export function PaymentBlock({
   const receiverHandle = typeof publicConfig.handle === "string" ? publicConfig.handle : null;
   const receiverNote = typeof publicConfig.note === "string" ? publicConfig.note : null;
   // Payments made before the link existed fall back to the method's current settings.
+  // Only InstaPay gets the "Open InstaPay" button.
   const payLink =
-    instapayConfig(publicConfig).payLink ||
-    instapayConfig((activeMethodsQ.data ?? []).find((m) => m.code === p.method)?.public_config)
-      .payLink;
+    p.method !== "instapay"
+      ? ""
+      : instapayConfig(publicConfig).payLink ||
+        instapayConfig((activeMethodsQ.data ?? []).find((m) => m.code === p.method)?.public_config)
+          .payLink;
 
   const isCash = resolvedMethodType === "cash";
   const isManualTransfer = resolvedMethodType === "manual_transfer";

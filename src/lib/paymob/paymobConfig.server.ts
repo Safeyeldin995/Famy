@@ -44,10 +44,12 @@ function assertSecureNotificationUrl(url: string): void {
 
 function resolveAppOrigin(env: NodeJS.ProcessEnv): string {
   const candidates = [env.FAMY_QA_APP_ORIGIN, env.FAMY_PRODUCTION_APP_ORIGIN, env.VITE_APP_ORIGIN];
-  // Vercel exposes the production domain (host only). Without it Paymob would send
-  // paying customers back to localhost after checkout.
-  const vercelHost = env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
-  if (vercelHost) candidates.push(`https://${vercelHost.replace(/^https?:\/\//, "")}`);
+  // On Vercel, fall back to this deployment's own address (Production uses the production
+  // domain). Without it Paymob would send paying customers back to localhost.
+  const vercelHost =
+    env.VERCEL_ENV === "production" ? env.VERCEL_PROJECT_PRODUCTION_URL : env.VERCEL_URL;
+  if (vercelHost?.trim())
+    candidates.push(`https://${vercelHost.trim().replace(/^https?:\/\//, "")}`);
   const origin = candidates.map((c) => c?.trim()).find((c) => !!c) ?? "http://localhost:8099";
   return origin.replace(/\/$/, "");
 }

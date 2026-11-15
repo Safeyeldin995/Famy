@@ -11,10 +11,7 @@ import {
   providerHomeActiveBookings,
   pickSoonestProviderHomeActiveBooking,
 } from "@/lib/home/activeHomeBookings";
-import {
-  isBookingTooEarlyError,
-  isProviderStepTooEarly,
-} from "@/lib/booking/timeWindow";
+import { isBookingTooEarlyError, isProviderStepTooEarly } from "@/lib/booking/timeWindow";
 import { formatCustomerBookingListWhen } from "@/lib/format";
 import { currentLang } from "@/lib/i18n";
 import { useProPath } from "@/lib/provider/useProPath";
@@ -31,10 +28,7 @@ type HomeBookingRow = {
   party?: BookingParty;
 };
 
-function serviceLabel(
-  service: HomeBookingRow["service"],
-  lang: "ar" | "en",
-): string {
+function serviceLabel(service: HomeBookingRow["service"], lang: "ar" | "en"): string {
   if (!service) return "";
   return (lang === "ar" ? service.name_ar : service.name_en) || service.name_en || "";
 }

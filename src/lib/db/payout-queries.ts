@@ -36,41 +36,18 @@ export function usePayoutMethodMutations(providerId: string | undefined) {
     },
     onSuccess: invalidate,
   });
+  // The database keeps exactly one primary method (first added becomes primary;
+  // removing the primary promotes the oldest remaining one).
   const remove = useMutation({
     mutationFn: async (row: PayoutMethodRow) => {
       const { error } = await supabase.from("provider_payout_methods").delete().eq("id", row.id);
       if (error) throw error;
-      // Keep one primary method when the primary one is removed.
-      if (row.is_default) {
-        const { data } = await supabase
-          .from("provider_payout_methods")
-          .select("id")
-          .eq("provider_id", row.provider_id)
-          .order("created_at", { ascending: true })
-          .limit(1);
-        const next = data?.[0]?.id;
-        if (next)
-          await supabase
-            .from("provider_payout_methods")
-            .update({ is_default: true })
-            .eq("id", next);
-      }
     },
     onSuccess: invalidate,
   });
   const makeDefault = useMutation({
     mutationFn: async (row: PayoutMethodRow) => {
-      // Clear first: only one primary method per provider is allowed.
-      const { error: clearErr } = await supabase
-        .from("provider_payout_methods")
-        .update({ is_default: false })
-        .eq("provider_id", row.provider_id)
-        .eq("is_default", true);
-      if (clearErr) throw clearErr;
-      const { error } = await supabase
-        .from("provider_payout_methods")
-        .update({ is_default: true })
-        .eq("id", row.id);
+      const { error } = await supabase.rpc("set_primary_payout_method", { p_method_id: row.id });
       if (error) throw error;
     },
     onSuccess: invalidate,
@@ -79,8 +56,9 @@ export function usePayoutMethodMutations(providerId: string | undefined) {
 }
 
 /** Famy's own InstaPay details (address + payment link), editable by admin. */
-export function useFamyInstapay() {
+export function useFamyInstapay(enabled = true) {
   return useQuery({
+    enabled,
     queryKey: ["famy-instapay"],
     staleTime: 5 * 60_000,
     queryFn: async () => {

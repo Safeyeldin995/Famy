@@ -40,10 +40,7 @@ describe("provider_payout_methods", () => {
     const wallet = await tryAsUser(
       db,
       IDS.providerUser,
-      insert(
-        "method, holder_name, wallet_phone, is_default",
-        "'vodafone_cash', 'Mona Ali', '01012345678', true",
-      ),
+      insert("method, holder_name, wallet_phone", "'vodafone_cash', 'Mona Ali', '01012345678'"),
     );
     expect(wallet.error).toBeUndefined();
 
@@ -124,11 +121,48 @@ describe("provider_payout_methods", () => {
     expect(adminUpdate.rows?.length ?? 0).toBe(0);
   });
 
+  it("keeps exactly one primary method: first added, switch in one step, promote on removal", async () => {
+    const primary = () =>
+      queryRows<{ method: string }>(
+        db,
+        "SELECT method FROM public.provider_payout_methods WHERE is_default ORDER BY method",
+      );
+    expect((await primary()).map((r) => r.method)).toEqual(["vodafone_cash"]);
+
+    const bank = await queryRows<{ id: string }>(
+      db,
+      "SELECT id FROM public.provider_payout_methods WHERE method = 'bank'",
+    );
+    const stranger = await tryAsUser(
+      db,
+      IDS.otherProviderUser,
+      `SELECT public.set_primary_payout_method('${bank[0].id}')`,
+    );
+    expect(stranger.ok).toBe(false);
+    expect((await primary()).map((r) => r.method)).toEqual(["vodafone_cash"]);
+
+    const own = await tryAsUser(
+      db,
+      IDS.providerUser,
+      `SELECT public.set_primary_payout_method('${bank[0].id}')`,
+    );
+    expect(own.error).toBeUndefined();
+    expect((await primary()).map((r) => r.method)).toEqual(["bank"]);
+
+    const del = await tryAsUser(
+      db,
+      IDS.providerUser,
+      `DELETE FROM public.provider_payout_methods WHERE id = '${bank[0].id}' RETURNING id`,
+    );
+    expect(del.error).toBeUndefined();
+    expect((await primary()).map((r) => r.method)).toEqual(["vodafone_cash"]);
+  });
+
   it("audits every change to where money is sent", async () => {
     const rows = await queryRows<{ n: number }>(
       db,
       "SELECT count(*)::int AS n FROM public.audit_logs WHERE entity = 'provider_payout_methods'",
     );
-    expect(rows[0].n).toBeGreaterThanOrEqual(2);
+    expect(rows[0].n).toBeGreaterThanOrEqual(4);
   });
 });

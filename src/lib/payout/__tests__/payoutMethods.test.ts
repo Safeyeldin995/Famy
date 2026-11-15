@@ -22,7 +22,8 @@ describe("payout methods", () => {
 
   it("accepts an InstaPay name or linked mobile number", () => {
     expect(normalizeInstapayAddress("Safey@InstaPay")).toBe("safey@instapay");
-    expect(normalizeInstapayAddress("safey.qnb")).toBe("safey.qnb@instapay");
+    expect(normalizeInstapayAddress("safey.qnb")).toBeNull();
+    expect(normalizeInstapayAddress("Ahmed Ali")).toBeNull();
     expect(normalizeInstapayAddress("01212345678")).toBe("01212345678");
     expect(normalizeInstapayAddress("@instapay")).toBeNull();
   });

@@ -4,12 +4,18 @@
 -- 3. Provider payout methods: bank account, mobile wallets and InstaPay, so admin can pay providers.
 
 -- 1 + 2: payment method display data (admin-editable rows; no secrets)
+-- Merge (keep other admin settings). The old English-only sample note is dropped because
+-- it was shown to Arabic customers ahead of the localized instructions.
 UPDATE public.payment_methods
-SET public_config = jsonb_build_object(
-      'handle', 'safeyqnb2@instapay',
-      'pay_link', 'https://ipn.eg/S/safeyqnb2/instapay/3VFChS',
-      'note', 'Open InstaPay, send the full amount, then upload the transfer screenshot.'
-    ),
+SET public_config = (CASE
+        WHEN public_config->>'note' = 'Send your transfer to this InstaPay handle and upload the screenshot as proof.'
+          THEN public_config - 'note'
+        ELSE public_config
+      END)
+      || jsonb_build_object(
+        'handle', 'safeyqnb2@instapay',
+        'pay_link', 'https://ipn.eg/S/safeyqnb2/instapay/3VFChS'
+      ),
     updated_at = now()
 WHERE code = 'instapay';
 
@@ -93,5 +99,73 @@ DROP TRIGGER IF EXISTS trg_audit_provider_payout_methods ON public.provider_payo
 CREATE TRIGGER trg_audit_provider_payout_methods
   AFTER INSERT OR UPDATE OR DELETE ON public.provider_payout_methods
   FOR EACH ROW EXECUTE FUNCTION public.tg_audit_changes();
+
+-- Exactly one primary method whenever a provider has any: the first one added becomes
+-- primary, and removing the primary promotes the oldest remaining one.
+CREATE OR REPLACE FUNCTION public.tg_provider_payout_methods_primary()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM public.provider_payout_methods m
+      WHERE m.provider_id = NEW.provider_id AND m.is_default
+    ) THEN
+      NEW.is_default := true;
+    END IF;
+    RETURN NEW;
+  END IF;
+  IF OLD.is_default THEN
+    UPDATE public.provider_payout_methods m
+    SET is_default = true
+    WHERE m.id = (
+      SELECT m2.id FROM public.provider_payout_methods m2
+      WHERE m2.provider_id = OLD.provider_id
+      ORDER BY m2.created_at, m2.id
+      LIMIT 1
+    );
+  END IF;
+  RETURN OLD;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_payout_methods_primary_insert ON public.provider_payout_methods;
+CREATE TRIGGER trg_payout_methods_primary_insert
+  BEFORE INSERT ON public.provider_payout_methods
+  FOR EACH ROW EXECUTE FUNCTION public.tg_provider_payout_methods_primary();
+DROP TRIGGER IF EXISTS trg_payout_methods_primary_delete ON public.provider_payout_methods;
+CREATE TRIGGER trg_payout_methods_primary_delete
+  AFTER DELETE ON public.provider_payout_methods
+  FOR EACH ROW EXECUTE FUNCTION public.tg_provider_payout_methods_primary();
+
+-- Switch the primary method in one step (runs with the caller's permissions, so RLS applies).
+CREATE OR REPLACE FUNCTION public.set_primary_payout_method(p_method_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = ''
+AS $$
+DECLARE
+  v_provider uuid;
+BEGIN
+  SELECT m.provider_id INTO v_provider
+  FROM public.provider_payout_methods m WHERE m.id = p_method_id;
+  IF v_provider IS NULL THEN
+    RAISE EXCEPTION 'Payout method not found' USING ERRCODE = 'P0002';
+  END IF;
+  UPDATE public.provider_payout_methods m
+  SET is_default = false
+  WHERE m.provider_id = v_provider AND m.is_default AND m.id <> p_method_id;
+  UPDATE public.provider_payout_methods m SET is_default = true WHERE m.id = p_method_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Payout method not found' USING ERRCODE = 'P0002';
+  END IF;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.set_primary_payout_method(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.set_primary_payout_method(uuid) TO authenticated;
 
 NOTIFY pgrst, 'reload schema';

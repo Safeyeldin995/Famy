@@ -71,7 +71,7 @@ export function ProviderPayoutMethods({ providerId }: { providerId: string | und
 
   const save = () => {
     if (!draft) return;
-    const built = buildPayoutInsert(providerId, draft, rows.length === 0);
+    const built = buildPayoutInsert(providerId, draft, false);
     if (!built.ok) {
       setErrors(built.errors);
       return;
@@ -153,7 +153,9 @@ export function ProviderPayoutMethods({ providerId }: { providerId: string | und
                 accessibilityRole="button"
                 accessibilityLabel={t("payout.pro.makeDefault")}
                 disabled={busy}
-                onPress={() => makeDefault.mutate(r)}
+                onPress={() =>
+                  makeDefault.mutate(r, { onError: () => setMessage(t("payout.pro.failed")) })
+                }
                 style={{ paddingVertical: 6 }}
               >
                 <Text size="sm" weight="bold" tone="brand">

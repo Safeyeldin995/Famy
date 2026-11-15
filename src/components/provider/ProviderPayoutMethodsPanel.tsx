@@ -70,7 +70,7 @@ export function ProviderPayoutMethodsPanel({
 
   const save = () => {
     if (!draft) return;
-    const built = buildPayoutInsert(providerId, draft, rows.length === 0);
+    const built = buildPayoutInsert(providerId, draft, false);
     if (!built.ok) return setErrors(built.errors);
     setErrors([]);
     add.mutate(built.row, {
@@ -134,7 +134,11 @@ export function ProviderPayoutMethodsPanel({
                           type="button"
                           disabled={busy}
                           className="focus-ring min-h-9 text-xs font-bold text-brand disabled:opacity-50"
-                          onClick={() => makeDefault.mutate(r)}
+                          onClick={() =>
+                            makeDefault.mutate(r, {
+                              onError: () => toast.error(t("payout.pro.failed")),
+                            })
+                          }
                         >
                           {t("payout.pro.makeDefault")}
                         </button>
