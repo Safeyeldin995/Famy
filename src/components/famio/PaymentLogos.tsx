@@ -1,11 +1,16 @@
-import { Banknote, CreditCard, Smartphone, Wallet } from "lucide-react";
+import { Banknote, CreditCard, Landmark, Wallet } from "lucide-react";
 import paymobLogo from "@/assets/payment/paymob.png";
+import meezaLogo from "@/assets/payment/meeza.png";
+import instapayLogo from "@/assets/payment/instapay.png";
+import vodafoneLogo from "@/assets/payment/vodafone.png";
+import orangeLogo from "@/assets/payment/orange.png";
+import eandLogo from "@/assets/payment/eand.png";
 
 /**
  * Official card-network marks shown on online (Paymob) payment options.
  * Visa path: Simple Icons (CC0). Mastercard: the standard two-circle symbol.
- * InstaPay has no official artwork in the repo yet, so it uses a neutral icon
- * rather than an invented logo.
+ * Meeza, InstaPay and wallet logos: official artwork from the brands' own sites
+ * or Wikimedia Commons (src/assets/payment).
  */
 export function VisaLogo({ className = "h-3.5" }: { className?: string }) {
   return (
@@ -54,6 +59,9 @@ export function CardBrands({ className = "" }: { className?: string }) {
       <BrandChip>
         <MastercardLogo className="h-4" />
       </BrandChip>
+      <BrandChip>
+        <img src={meezaLogo} alt="Meeza" className="h-4 w-auto" />
+      </BrandChip>
     </span>
   );
 }
@@ -68,6 +76,35 @@ export function PaymentMethodIcon({
 }) {
   if (methodType === "cash") return <Banknote className="h-5 w-5" aria-hidden="true" />;
   if (methodType === "online") return <CreditCard className="h-5 w-5" aria-hidden="true" />;
-  if (code === "instapay") return <Smartphone className="h-5 w-5" aria-hidden="true" />;
+  if (code === "instapay") return <img src={instapayLogo} alt="InstaPay" className="h-3 w-auto" />;
   return <Wallet className="h-5 w-5" aria-hidden="true" />;
+}
+
+const PAYOUT_LOGO: Record<string, { src: string; alt: string } | undefined> = {
+  instapay: { src: instapayLogo, alt: "InstaPay" },
+  vodafone_cash: { src: vodafoneLogo, alt: "Vodafone Cash" },
+  etisalat_cash: { src: eandLogo, alt: "Etisalat Cash" },
+  orange_cash: { src: orangeLogo, alt: "Orange Cash" },
+};
+
+/** Logo chip for a provider payout method (bank uses an icon). */
+export function PayoutMethodLogo({ method }: { method: string }) {
+  const l = PAYOUT_LOGO[method];
+  return (
+    <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-md border border-border/70 bg-white px-1.5">
+      {l ? (
+        <img
+          src={l.src}
+          alt={l.alt}
+          className={method === "instapay" ? "h-3 w-auto" : "h-4 w-auto"}
+        />
+      ) : (
+        <Landmark className="h-4 w-4 text-foreground" aria-hidden="true" />
+      )}
+    </span>
+  );
+}
+
+export function InstapayLogo({ className = "h-3.5" }: { className?: string }) {
+  return <img src={instapayLogo} alt="InstaPay" className={`w-auto ${className}`} />;
 }

@@ -2520,6 +2520,56 @@ export type Database = {
         }
         Relationships: []
       }
+      provider_payout_methods: {
+        Row: {
+          id: string
+          provider_id: string
+          method: string
+          holder_name: string
+          bank_name: string | null
+          account_number: string | null
+          wallet_phone: string | null
+          instapay_address: string | null
+          is_default: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          provider_id: string
+          method: string
+          holder_name: string
+          bank_name?: string | null
+          account_number?: string | null
+          wallet_phone?: string | null
+          instapay_address?: string | null
+          is_default?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          provider_id?: string
+          method?: string
+          holder_name?: string
+          bank_name?: string | null
+          account_number?: string | null
+          wallet_phone?: string | null
+          instapay_address?: string | null
+          is_default?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_payout_methods_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       provider_settlements: {
         Row: {
           id: string
@@ -4504,6 +4554,10 @@ export type Database = {
           p_note?: string | null
         }
         Returns: string
+      }
+      set_primary_payout_method: {
+        Args: { p_method_id: string }
+        Returns: undefined
       }
       admin_record_provider_debt_payment: {
         Args: {

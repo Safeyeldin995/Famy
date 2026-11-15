@@ -39,6 +39,7 @@ type MethodForm = {
   instructions_ar: string;
   method_type: MethodType;
   handle: string;
+  payLink: string;
   note: string;
 };
 
@@ -50,6 +51,7 @@ const EMPTY_FORM: MethodForm = {
   instructions_ar: "",
   method_type: "manual_transfer",
   handle: "",
+  payLink: "",
   note: "",
 };
 
@@ -63,6 +65,7 @@ function formFromRow(m: PaymentMethodRow): MethodForm {
     instructions_ar: m.instructions_ar ?? "",
     method_type: m.method_type,
     handle: typeof cfg.handle === "string" ? cfg.handle : "",
+    payLink: typeof cfg.pay_link === "string" ? cfg.pay_link : "",
     note: typeof cfg.note === "string" ? cfg.note : "",
   };
 }
@@ -74,12 +77,15 @@ function validate(f: MethodForm, t: (key: string) => string): Record<string, str
     errors.code = t("admin.cancellationReasons.codeFormat");
   if (!f.name_en.trim()) errors.name_en = t("admin.cancellationReasons.nameEnRequired");
   if (!f.name_ar.trim()) errors.name_ar = t("admin.cancellationReasons.nameArRequired");
+  if (f.payLink.trim() && !/^https:\/\/\S+$/.test(f.payLink.trim()))
+    errors.payLink = t("admin.paymentMethods.payLinkInvalid");
   return errors;
 }
 
 function toInput(f: MethodForm, is_active: boolean, display_order: number): PaymentMethodInput {
   const public_config: Record<string, unknown> = {};
   if (f.handle.trim()) public_config.handle = f.handle.trim();
+  if (f.payLink.trim()) public_config.pay_link = f.payLink.trim();
   if (f.note.trim()) public_config.note = f.note.trim();
   return {
     code: f.code.trim(),
@@ -238,6 +244,25 @@ function MethodFormFields({
               onChange={(e) => setForm({ ...form, note: e.target.value })}
               className="mt-1 h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm"
             />
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="text-xs font-semibold text-muted-foreground">
+              {t("admin.paymentMethods.payLink")}
+            </span>
+            <input
+              value={form.payLink}
+              onChange={(e) => setForm({ ...form, payLink: e.target.value })}
+              dir="ltr"
+              inputMode="url"
+              placeholder="https://ipn.eg/S/..."
+              className="mt-1 h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm"
+            />
+            <span className="mt-1 block text-xs text-muted-foreground">
+              {t("admin.paymentMethods.payLinkHint")}
+            </span>
+            {errors.payLink && (
+              <span className="mt-1 block text-xs font-semibold text-coral">{errors.payLink}</span>
+            )}
           </label>
           <p className="sm:col-span-2 text-xs text-muted-foreground">
             {t("admin.paymentMethods.customerSafeNote")}

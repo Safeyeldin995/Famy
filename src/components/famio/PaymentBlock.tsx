@@ -33,8 +33,20 @@ import type { Tables } from "@/integrations/supabase/types";
 import { Card, Badge } from "@/components/famio/ui";
 import { formatEGP } from "@/lib/utils";
 import { currentLang } from "@/lib/i18n";
-import { Banknote, Upload, Check, X, Eye, Copy, ShieldCheck, Wallet, ExternalLink, Loader2 } from "lucide-react";
+import {
+  Banknote,
+  Upload,
+  Check,
+  X,
+  Eye,
+  Copy,
+  ShieldCheck,
+  Wallet,
+  ExternalLink,
+  Loader2,
+} from "lucide-react";
 import { toast } from "sonner";
+import { instapayConfig } from "@/lib/payout/payoutMethods";
 
 export type ViewerRole = "customer" | "provider" | "admin";
 
@@ -88,48 +100,54 @@ export function PaymentBlock({
   refetchPaymentRef.current = q.refetch;
 
   const canRecoverDeferredPayment =
-    viewer === "customer"
-    && !q.data
-    && !q.isLoading
-    && !!pendingPaymentSelection
-    && authoritativePriceTotal != null
-    && Number.isFinite(Number(authoritativePriceTotal))
-    && Number(authoritativePriceTotal) > 0
-    && isPaymentEligibleBookingStatus(bookingStatus);
+    viewer === "customer" &&
+    !q.data &&
+    !q.isLoading &&
+    !!pendingPaymentSelection &&
+    authoritativePriceTotal != null &&
+    Number.isFinite(Number(authoritativePriceTotal)) &&
+    Number(authoritativePriceTotal) > 0 &&
+    isPaymentEligibleBookingStatus(bookingStatus);
 
   useEffect(() => {
     if (!canRecoverDeferredPayment || recoveryStartedRef.current || createPayment.isPending) return;
     recoveryStartedRef.current = true;
     const selection = pendingPaymentSelection!;
-    createPayment.mutateAsync({
-      bookingId,
-      paymentMethodId: selection.paymentMethodId,
-      methodType: selection.methodType,
-    }).then(async (payment) => {
-      clearPendingPayment(bookingId);
-      if (selection.methodType === "online" && payment?.id) {
-        setPaymobStarting(true);
-        const result = await redirectToPaymobCheckout(bookingId, payment.id);
-        if (!result.ok) {
-          setPaymobStarting(false);
-          toast.error(result.message || t("payment.paymobStartFailed"));
+    createPayment
+      .mutateAsync({
+        bookingId,
+        paymentMethodId: selection.paymentMethodId,
+        methodType: selection.methodType,
+      })
+      .then(async (payment) => {
+        clearPendingPayment(bookingId);
+        if (selection.methodType === "online" && payment?.id) {
+          setPaymobStarting(true);
+          const result = await redirectToPaymobCheckout(bookingId, payment.id);
+          if (!result.ok) {
+            setPaymobStarting(false);
+            toast.error(result.message || t("payment.paymobStartFailed"));
+          }
         }
-      }
-    }).catch((e: unknown) => {
-      recoveryStartedRef.current = false;
-      toast.error(mapPaymentInsertError(e) || t("bookFlow.paymentFailed"));
-    });
+      })
+      .catch((e: unknown) => {
+        recoveryStartedRef.current = false;
+        toast.error(mapPaymentInsertError(e) || t("bookFlow.paymentFailed"));
+      });
   }, [bookingId, canRecoverDeferredPayment, createPayment, pendingPaymentSelection, t]);
 
   const payment = q.data as Tables<"payments"> | null | undefined;
-  const legacyFallback = payment && !payment.payment_method_type
-    ? (activeMethodsQ.data ?? []).find((m) => m.code === payment.method)
-    : null;
-  const methodType: string | null = payment?.payment_method_type ?? legacyFallback?.method_type ?? null;
+  const legacyFallback =
+    payment && !payment.payment_method_type
+      ? (activeMethodsQ.data ?? []).find((m) => m.code === payment.method)
+      : null;
+  const methodType: string | null =
+    payment?.payment_method_type ?? legacyFallback?.method_type ?? null;
   const isOnline = methodType === "online";
 
   useEffect(() => {
-    if (!autoStartPaymobCheckout || paymobAutoStartedRef.current || !payment?.id || !isOnline) return;
+    if (!autoStartPaymobCheckout || paymobAutoStartedRef.current || !payment?.id || !isOnline)
+      return;
     if (payment.status !== "pending" || viewer !== "customer") return;
     paymobAutoStartedRef.current = true;
     setPaymobStarting(true);
@@ -155,16 +173,25 @@ export function PaymentBlock({
   }, [paymobReturn, viewer, isOnline, bookingId]);
 
   if (q.isLoading || (canRecoverDeferredPayment && !q.data)) {
-    return <Container className="h-24 animate-pulse p-4"><span /></Container>;
+    return (
+      <Container className="h-24 animate-pulse p-4">
+        <span />
+      </Container>
+    );
   }
   const p = payment;
   if (!p) {
     return (
       <Container className={embedded ? "" : "p-4"}>
-        <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("payment.title")}</div>
+        <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          {t("payment.title")}
+        </div>
         <div className="mt-1 text-sm text-muted-foreground">
           {pendingPaymentSelection
-            ? t("bookFlow.paymentDeferred", "Your booking was created. Payment details will load on the booking page.")
+            ? t(
+                "bookFlow.paymentDeferred",
+                "Your booking was created. Payment details will load on the booking page.",
+              )
             : t("payment.noneRecorded")}
         </div>
       </Container>
@@ -173,7 +200,8 @@ export function PaymentBlock({
 
   // Rows written after 20260714120000 always carry their own snapshot. Older
   // rows fall back to whatever the matching method currently looks like.
-  const resolvedMethodType: string | null = p.payment_method_type ?? legacyFallback?.method_type ?? null;
+  const resolvedMethodType: string | null =
+    p.payment_method_type ?? legacyFallback?.method_type ?? null;
   const resolvedIsOnline = resolvedMethodType === "online";
   const nameEn = p.payment_method_name_en ?? legacyFallback?.name_en ?? t("bookFlow.payCash");
   const nameAr = p.payment_method_name_ar ?? legacyFallback?.name_ar ?? nameEn;
@@ -196,6 +224,14 @@ export function PaymentBlock({
     {};
   const receiverHandle = typeof publicConfig.handle === "string" ? publicConfig.handle : null;
   const receiverNote = typeof publicConfig.note === "string" ? publicConfig.note : null;
+  // Payments made before the link existed fall back to the method's current settings.
+  // Only InstaPay gets the "Open InstaPay" button.
+  const payLink =
+    p.method !== "instapay"
+      ? ""
+      : instapayConfig(publicConfig).payLink ||
+        instapayConfig((activeMethodsQ.data ?? []).find((m) => m.code === p.method)?.public_config)
+          .payLink;
 
   const isCash = resolvedMethodType === "cash";
   const isManualTransfer = resolvedMethodType === "manual_transfer";
@@ -217,7 +253,10 @@ export function PaymentBlock({
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { toast.error(t("payment.fileTooLarge")); return; }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error(t("payment.fileTooLarge"));
+      return;
+    }
     try {
       await upload.mutateAsync({ paymentId: p.id, bookingId, file });
       toast.success(t("payment.receiptUploaded"));
@@ -240,15 +279,20 @@ export function PaymentBlock({
     try {
       await capture.mutateAsync({ paymentId: p.id, bookingId });
       toast.success(t("payment.markedReceived"));
-    } catch { toast.error(t("payment.actionFailed")); }
+    } catch {
+      toast.error(t("payment.actionFailed"));
+    }
   };
 
   const onReject = async () => {
     try {
       await reject.mutateAsync({ paymentId: p.id, bookingId, reason: rejectReason || undefined });
       toast.success(t("payment.rejected"));
-      setShowReject(false); setRejectReason("");
-    } catch { toast.error(t("payment.actionFailed")); }
+      setShowReject(false);
+      setRejectReason("");
+    } catch {
+      toast.error(t("payment.actionFailed"));
+    }
   };
 
   const copyHandle = async () => {
@@ -266,18 +310,28 @@ export function PaymentBlock({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="grid h-9 w-9 place-items-center rounded-full bg-brand/8 text-brand">
-            {isCash ? <Banknote className="h-4 w-4" /> : <Wallet className="h-4 w-4" aria-label={nameEn} />}
+            {isCash ? (
+              <Banknote className="h-4 w-4" />
+            ) : (
+              <Wallet className="h-4 w-4" aria-label={nameEn} />
+            )}
           </div>
           <div>
             <div className="text-sm font-extrabold">{lang === "ar" ? nameAr : nameEn}</div>
-            {!embedded && <div className="text-pro-12 text-muted-foreground">{formatEGP(Number(p.amount ?? 0))}</div>}
+            {!embedded && (
+              <div className="text-pro-12 text-muted-foreground">
+                {formatEGP(Number(p.amount ?? 0))}
+              </div>
+            )}
           </div>
         </div>
         <Badge tone={statusTone(p.status)}>{paymentStatusLabel(p.status, t)}</Badge>
       </div>
 
       {viewer === "customer" && (isCash || isManualTransfer) && p.status !== "captured" && (
-        <p className="text-xs text-muted-foreground">{t(paymentPresentation(resolvedMethodType).next)}</p>
+        <p className="text-xs text-muted-foreground">
+          {t(paymentPresentation(resolvedMethodType).next)}
+        </p>
       )}
       {/* Customer online checkout (Paymob) */}
       {canPayOnline && (
@@ -293,46 +347,76 @@ export function PaymentBlock({
             disabled={paymobStarting}
             className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-brand text-sm font-extrabold text-brand-foreground active:scale-[0.98] disabled:opacity-50"
           >
-            {paymobStarting
-              ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-              : <ExternalLink className="h-4 w-4" aria-hidden="true" />}
+            {paymobStarting ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <ExternalLink className="h-4 w-4" aria-hidden="true" />
+            )}
             {paymobStarting ? t("payment.paymobStarting") : t("payment.paymobContinue")}
           </button>
         </div>
       )}
 
       {/* Customer manual-transfer instructions + upload */}
-      {viewer === "customer" && isManualTransfer && p.status === "pending_review" && !p.proof_path && (
-        <div className="space-y-3 rounded-2xl bg-surface-2 p-3">
-          <div className="text-pro-12 font-bold uppercase tracking-wider text-muted-foreground">
-            {t("payment.transferTo")}
-          </div>
-          {receiverHandle ? (
-            <>
-              <button
-                onClick={copyHandle}
-                className="flex w-full items-center justify-between gap-2 rounded-xl bg-surface p-3 text-start active:scale-[0.99]"
-                aria-label={t("payment.copyHandle")}
+      {viewer === "customer" &&
+        isManualTransfer &&
+        p.status === "pending_review" &&
+        !p.proof_path && (
+          <div className="space-y-3 rounded-2xl bg-surface-2 p-3">
+            <div className="text-pro-12 font-bold uppercase tracking-wider text-muted-foreground">
+              {t("payment.transferTo")}
+            </div>
+            {payLink ? (
+              <a
+                href={payLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand text-sm font-extrabold text-brand-foreground active:scale-[0.98]"
               >
-                <div className="min-w-0">
-                  <div className="text-xs text-muted-foreground">{lang === "ar" ? nameAr : nameEn}</div>
-                  <div className="truncate text-sm font-extrabold text-brand" dir="ltr">{receiverHandle}</div>
-                </div>
-                <Copy className="h-4 w-4 text-muted-foreground" />
-              </button>
-              {(receiverNote || instructions) && (
-                <p className="text-pro-12 text-muted-foreground">{receiverNote || instructions}</p>
-              )}
-            </>
-          ) : (
-            <p className="text-pro-12 text-muted-foreground">{t("payment.handleNotConfigured")}</p>
-          )}
-          <label className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-brand/30 bg-brand/5 text-sm font-extrabold text-brand active:scale-[0.98]">
-            <Upload className="h-4 w-4" /> {upload.isPending ? t("payment.uploading") : t("payment.uploadReceipt")}
-            <input type="file" accept="image/*,application/pdf" onChange={onFile} disabled={upload.isPending} className="hidden" />
-          </label>
-        </div>
-      )}
+                {t("payment.openInstapay")}
+              </a>
+            ) : null}
+            {receiverHandle ? (
+              <>
+                <button
+                  onClick={copyHandle}
+                  className="flex w-full items-center justify-between gap-2 rounded-xl bg-surface p-3 text-start active:scale-[0.99]"
+                  aria-label={t("payment.copyHandle")}
+                >
+                  <div className="min-w-0">
+                    <div className="text-xs text-muted-foreground">
+                      {lang === "ar" ? nameAr : nameEn}
+                    </div>
+                    <div className="truncate text-sm font-extrabold text-brand" dir="ltr">
+                      {receiverHandle}
+                    </div>
+                  </div>
+                  <Copy className="h-4 w-4 text-muted-foreground" />
+                </button>
+                {(receiverNote || instructions) && (
+                  <p className="text-pro-12 text-muted-foreground">
+                    {receiverNote || instructions}
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-pro-12 text-muted-foreground">
+                {t("payment.handleNotConfigured")}
+              </p>
+            )}
+            <label className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-brand/30 bg-brand/5 text-sm font-extrabold text-brand active:scale-[0.98]">
+              <Upload className="h-4 w-4" />{" "}
+              {upload.isPending ? t("payment.uploading") : t("payment.uploadReceipt")}
+              <input
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={onFile}
+                disabled={upload.isPending}
+                className="hidden"
+              />
+            </label>
+          </div>
+        )}
 
       {/* Proof uploaded — awaiting review */}
       {isManualTransfer && p.proof_path && p.status === "pending_review" && (
@@ -341,7 +425,11 @@ export function PaymentBlock({
             <ShieldCheck className="h-4 w-4 text-success" />
             <span className="font-semibold">{t("payment.awaitingReview")}</span>
           </div>
-          <button onClick={openProof} className="grid h-9 w-9 place-items-center rounded-xl bg-surface" aria-label={t("payment.viewReceipt")}>
+          <button
+            onClick={openProof}
+            className="grid h-9 w-9 place-items-center rounded-xl bg-surface"
+            aria-label={t("payment.viewReceipt")}
+          >
             <Eye className="h-4 w-4" />
           </button>
         </div>
@@ -355,46 +443,55 @@ export function PaymentBlock({
             <p className="mt-1 text-pro-12 text-muted-foreground">{p.rejection_reason}</p>
           )}
           {viewer === "customer" && isManualTransfer && (
-            <p className="mt-1 text-pro-12 text-muted-foreground">
-              {t("payment.rejectedRetry")}
-            </p>
+            <p className="mt-1 text-pro-12 text-muted-foreground">{t("payment.rejectedRetry")}</p>
           )}
         </div>
       )}
 
       {/* Provider/Admin actions */}
-      {canConfirm && !resolvedIsOnline && (p.status === "pending" || p.status === "pending_review") && (
-        <div className="space-y-2 border-t border-border pt-3">
-          {p.proof_path && (
-            <button onClick={openProof} className="flex w-full items-center justify-center gap-2 rounded-xl bg-surface-2 py-2 text-xs font-bold">
-              <Eye className="h-4 w-4" /> {t("payment.viewReceipt")}
-            </button>
-          )}
-          <div className="flex gap-2">
-            {captureAllowed ? (
+      {canConfirm &&
+        !resolvedIsOnline &&
+        (p.status === "pending" || p.status === "pending_review") && (
+          <div className="space-y-2 border-t border-border pt-3">
+            {p.proof_path && (
               <button
-                onClick={onCapture}
-                disabled={capture.isPending}
-                className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full bg-brand text-sm font-extrabold text-brand-foreground active:scale-[0.98] disabled:opacity-50"
+                onClick={openProof}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-surface-2 py-2 text-xs font-bold"
               >
-                <Check className="h-4 w-4" /> {t("payment.markReceived")}
-              </button>
-            ) : (
-              <div className={embedded ? "text-pro-12 text-muted-foreground" : "flex h-11 flex-1 items-center justify-center rounded-2xl bg-surface-2 px-3 text-center text-xs font-semibold text-muted-foreground"}>
-                {t("payment.waitingForCompletion")}
-              </div>
-            )}
-            {isManualTransfer && (
-              <button
-                onClick={() => setShowReject(true)}
-                className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full border border-brand text-sm font-extrabold text-brand active:scale-[0.98]"
-              >
-                <X className="h-4 w-4" /> {t("payment.reject")}
+                <Eye className="h-4 w-4" /> {t("payment.viewReceipt")}
               </button>
             )}
+            <div className="flex gap-2">
+              {captureAllowed ? (
+                <button
+                  onClick={onCapture}
+                  disabled={capture.isPending}
+                  className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full bg-brand text-sm font-extrabold text-brand-foreground active:scale-[0.98] disabled:opacity-50"
+                >
+                  <Check className="h-4 w-4" /> {t("payment.markReceived")}
+                </button>
+              ) : (
+                <div
+                  className={
+                    embedded
+                      ? "text-pro-12 text-muted-foreground"
+                      : "flex h-11 flex-1 items-center justify-center rounded-2xl bg-surface-2 px-3 text-center text-xs font-semibold text-muted-foreground"
+                  }
+                >
+                  {t("payment.waitingForCompletion")}
+                </div>
+              )}
+              {isManualTransfer && (
+                <button
+                  onClick={() => setShowReject(true)}
+                  className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full border border-brand text-sm font-extrabold text-brand active:scale-[0.98]"
+                >
+                  <X className="h-4 w-4" /> {t("payment.reject")}
+                </button>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {p.status === "captured" && (
         <div className="flex items-center gap-2 rounded-2xl bg-mint/30 px-3 py-2 text-xs">
@@ -405,12 +502,16 @@ export function PaymentBlock({
 
       {/* Reject dialog */}
       {showReject && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-6" onClick={() => setShowReject(false)}>
-          <div className="w-full max-w-sm rounded-3xl bg-surface p-5" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-6"
+          onClick={() => setShowReject(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-3xl bg-surface p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="text-base font-extrabold">{t("payment.rejectDialogTitle")}</div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {t("payment.rejectDialogBody")}
-            </p>
+            <p className="mt-1 text-xs text-muted-foreground">{t("payment.rejectDialogBody")}</p>
             <textarea
               rows={3}
               value={rejectReason}
@@ -419,8 +520,19 @@ export function PaymentBlock({
               className="mt-3 w-full resize-none rounded-2xl border border-border bg-surface-2 p-3 text-sm outline-none"
             />
             <div className="mt-4 flex gap-2">
-              <button onClick={() => setShowReject(false)} className="h-12 flex-1 rounded-2xl border border-border bg-surface text-sm font-bold">{t("payment.cancel")}</button>
-              <button onClick={onReject} disabled={reject.isPending} className="h-12 flex-1 rounded-full bg-brand text-sm font-extrabold text-brand-foreground disabled:opacity-50">{t("payment.confirmReject")}</button>
+              <button
+                onClick={() => setShowReject(false)}
+                className="h-12 flex-1 rounded-2xl border border-border bg-surface text-sm font-bold"
+              >
+                {t("payment.cancel")}
+              </button>
+              <button
+                onClick={onReject}
+                disabled={reject.isPending}
+                className="h-12 flex-1 rounded-full bg-brand text-sm font-extrabold text-brand-foreground disabled:opacity-50"
+              >
+                {t("payment.confirmReject")}
+              </button>
             </div>
           </div>
         </div>

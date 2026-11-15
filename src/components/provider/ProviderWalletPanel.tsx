@@ -20,6 +20,8 @@ import { adminDate } from "@/components/admin/adminPresentation";
 import { bookingCode } from "@/components/admin/operations";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
 import { useLang } from "@/components/famio/LanguageToggle";
+import { InstapayLogo } from "@/components/famio/PaymentLogos";
+import { useFamyInstapay } from "@/lib/db/payout-queries";
 
 type Audience = "admin" | "pro";
 
@@ -64,6 +66,7 @@ export function ProviderWalletPanel({
   const settings = useProviderSettlementSettings();
   const record = useRecordProviderTransfer(providerId);
   const blockedQ = useProviderCashDebtBlocked(providerId);
+  const famyInstapay = useFamyInstapay(audience === "pro");
   // The form keeps the direction and cap from when it was opened, so a balance
   // refetch can't turn a "received" record into a payout.
   const [form, setForm] = useState<{ direction: "received" | "sent"; max: number } | null>(null);
@@ -140,6 +143,32 @@ export function ProviderWalletPanel({
               <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm font-bold text-destructive">
                 {t(`${ns}.blocked`, { limit: formatEGP(limit) })}
               </p>
+            ) : null}
+            {audience === "pro" &&
+            state === "providerOwes" &&
+            (famyInstapay.data?.handle || famyInstapay.data?.payLink) ? (
+              <div className="space-y-2 rounded-xl border border-border bg-background p-3">
+                <div className="flex items-center gap-2">
+                  <InstapayLogo className="h-3" />
+                  <span className="text-sm font-bold">{t("payout.pro.payInTitle")}</span>
+                </div>
+                <p className="text-sm text-muted-foreground">{t("payout.pro.payInBody")}</p>
+                {famyInstapay.data.handle ? (
+                  <p className="text-sm font-bold">
+                    <bdi dir="ltr">{famyInstapay.data.handle}</bdi>
+                  </p>
+                ) : null}
+                {famyInstapay.data.payLink ? (
+                  <a
+                    href={famyInstapay.data.payLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="focus-ring inline-flex min-h-11 items-center rounded-xl bg-brand px-4 text-sm font-bold text-brand-foreground"
+                  >
+                    {t("payout.pro.payInOpen")}
+                  </a>
+                ) : null}
+              </div>
             ) : null}
           </>
         )}

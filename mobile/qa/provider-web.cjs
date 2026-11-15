@@ -377,6 +377,27 @@ async function run() {
         provider_documents: [],
         provider_settlements: providerSettlementsFixture,
         provider_ledger_entries: providerLedgerEntriesFixture,
+        provider_payout_methods: [
+          {
+            id: id(91),
+            provider_id: pid,
+            method: "vodafone_cash",
+            holder_name: "مقدم اختبار",
+            bank_name: null,
+            account_number: null,
+            wallet_phone: "01012345678",
+            instapay_address: null,
+            is_default: true,
+            created_at: now,
+          },
+        ],
+        payment_methods: [
+          {
+            code: "instapay",
+            is_active: true,
+            public_config: { handle: "famy@instapay", pay_link: "https://ipn.eg/S/famy" },
+          },
+        ],
         booking_status_history: bookingStatusHistory,
         settings: [
           {
@@ -399,11 +420,17 @@ async function run() {
       if (table === "bookings" && url.searchParams.get("provider_id")?.startsWith("eq.")) {
         data = [bookingPending, bookingConfirmed];
       }
-      if (table === "provider_settlements" && url.searchParams.get("provider_id")?.startsWith("eq.")) {
+      if (
+        table === "provider_settlements" &&
+        url.searchParams.get("provider_id")?.startsWith("eq.")
+      ) {
         const want = url.searchParams.get("provider_id").slice(3);
         data = providerSettlementsFixture.filter((row) => row.provider_id === want);
       }
-      if (table === "provider_ledger_entries" && url.searchParams.get("provider_id")?.startsWith("eq.")) {
+      if (
+        table === "provider_ledger_entries" &&
+        url.searchParams.get("provider_id")?.startsWith("eq.")
+      ) {
         const want = url.searchParams.get("provider_id").slice(3);
         data = providerLedgerEntriesFixture.filter((row) => row.provider_id === want);
         for (const [key, value] of url.searchParams.entries()) {
@@ -417,7 +444,10 @@ async function run() {
           }
         }
       }
-      if (table === "booking_status_history" && url.searchParams.get("booking_id")?.startsWith("eq.")) {
+      if (
+        table === "booking_status_history" &&
+        url.searchParams.get("booking_id")?.startsWith("eq.")
+      ) {
         const bookingId = url.searchParams.get("booking_id").slice(3);
         data = data.filter((row) => row.booking_id === bookingId);
       }
@@ -509,6 +539,15 @@ async function run() {
   });
   await expect(page.getByText(ar.wallet.pro.famyOwes, { exact: true }).first()).toBeVisible();
   await expect(page.getByText(ar.wallet.pro.transfer.sent).first()).toBeVisible();
+  await expect(page.getByText(ar.payout.pro.title, { exact: true }).first()).toBeVisible();
+  await expect(
+    page.getByText(ar.payout.methods.vodafone_cash, { exact: true }).first(),
+  ).toBeVisible();
+  await expect(page.getByText("01012345678").first()).toBeVisible();
+  await page.getByRole("button", { name: ar.payout.pro.add }).click();
+  await page.getByRole("button", { name: ar.payout.pro.save }).click();
+  await expect(page.getByText(ar.payout.pro.errors.holderName).first()).toBeVisible();
+  await page.getByRole("button", { name: ar.payout.pro.cancel }).click();
   await shot("pro-earnings");
 
   await visit("/pro-profile");

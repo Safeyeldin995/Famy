@@ -36,6 +36,7 @@ import { ScheduleDateSheet } from "@/components/provider/ScheduleDateSheet";
 import { ProviderApprovalDecisionSummary } from "@/components/admin/ProviderApprovalDecisionSummary";
 import { TeachingCapabilityReviewQueue } from "@/components/admin/TeachingCapabilityReviewQueue";
 import { ProviderWalletPanel } from "@/components/provider/ProviderWalletPanel";
+import { ProviderPayoutMethodsPanel } from "@/components/provider/ProviderPayoutMethodsPanel";
 import { RequestUpdatedDetailsAction } from "@/components/admin/RequestUpdatedDetailsAction";
 import {
   deriveAdminApprovalDecision,
@@ -232,8 +233,8 @@ function ProviderServices({ provider }: { provider: any }) {
               <div className="min-w-0">
                 <p className="text-sm font-bold">{name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {priceLabel}{" "}
-                  · {String(t("admin.provider.serviceStatus." + row.status, row.status))}
+                  {priceLabel} ·{" "}
+                  {String(t("admin.provider.serviceStatus." + row.status, row.status))}
                 </p>
               </div>
               {row.status === "pending" && (
@@ -610,7 +611,9 @@ export function AdminProvider({ id }: { id: string }) {
             : t("admin.provider.approvalReview.statusUnknown")}
         </p>
         {p.onboarding_status !== "APPROVED" && (
-          <p className="mt-2 text-xs text-muted-foreground">{t("adminReview.sectionApproveHint")}</p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {t("adminReview.sectionApproveHint")}
+          </p>
         )}
       </header>
       <ProviderApprovalDecisionSummary decision={decision} compact />
@@ -650,7 +653,12 @@ export function AdminProvider({ id }: { id: string }) {
         </div>
       )}
 
-      {p.onboarding_status === "APPROVED" && <ProviderWalletPanel providerId={id} audience="admin" />}
+      {p.onboarding_status === "APPROVED" && (
+        <>
+          <ProviderWalletPanel providerId={id} audience="admin" />
+          <ProviderPayoutMethodsPanel providerId={id} audience="admin" />
+        </>
+      )}
 
       <AdminReviewSection
         providerId={id}

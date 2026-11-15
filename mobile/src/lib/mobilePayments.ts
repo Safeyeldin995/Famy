@@ -53,7 +53,14 @@ export async function startPaymob(bookingId: string, paymentId?: string) {
     !result.checkoutUrl.startsWith("https://")
   )
     throw new Error("checkout failed");
-  await WebBrowser.openBrowserAsync(result.checkoutUrl);
+  if (Platform.OS === "web") {
+    await WebBrowser.openBrowserAsync(result.checkoutUrl);
+    return;
+  }
+  // Paymob returns to the site's /booking page, which redirects to famy://booking/<id>;
+  // the auth session closes the in-app browser on that redirect. Waiting here keeps the
+  // Pay button busy until the customer is back, then callers refresh the payment.
+  await WebBrowser.openAuthSessionAsync(result.checkoutUrl, `famy://booking/${bookingId}`);
 }
 
 // Same bucket/path/mutation as src/lib/db/payment-queries.ts; ArrayBuffer works on native.

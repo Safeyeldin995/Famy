@@ -1,7 +1,8 @@
 import * as DocumentPicker from "expo-document-picker";
 import { runPaymobReturnPolling } from "@shared/paymob/paymobReturnPolling";
 import { useEffect, useState, useCallback, useRef } from "react";
-import { AppState, View } from "react-native";
+import { AppState, Linking, View } from "react-native";
+import { instapayConfig } from "@shared/payout/payoutMethods";
 import * as Clipboard from "expo-clipboard";
 import * as ImagePicker from "expo-image-picker";
 import { useTranslation } from "react-i18next";
@@ -18,7 +19,7 @@ import { isPaymentEligibleBookingStatus, type PendingPaymentSelection } from "@/
 import { QueryState, moneyTextStyle, ui } from "./Page";
 import { Button } from "./Button";
 import { Text } from "./Text";
-import { PaymentLogos } from "./PaymentLogos";
+import { BrandLogo, PaymentLogos } from "./PaymentLogos";
 import { money } from "@/lib/presentation";
 
 export function PaymentBlock({
@@ -85,9 +86,13 @@ export function PaymentBlock({
     instructions_en?: string;
     public_config?: { handle?: string; note?: string };
   } | null;
-  const config = snapshot?.public_config ?? legacy?.public_config;
-  const handle = typeof config?.handle === "string" ? config.handle : "";
-  const note = typeof config?.note === "string" ? config.note : "";
+  const snap = instapayConfig(snapshot?.public_config ?? legacy?.public_config);
+  // Payments made before the link existed fall back to the method's current settings.
+  const live = instapayConfig(methods.data?.find((m) => m.code === p?.method)?.public_config);
+  const handle = snap.handle || live.handle;
+  const note = snap.note || live.note;
+  // Only InstaPay gets the "Open InstaPay" button.
+  const payLink = p?.method === "instapay" ? snap.payLink || live.payLink : "";
   async function checkout() {
     setBusy(true);
     setError("");
@@ -217,6 +222,17 @@ export function PaymentBlock({
           {type === "cash" && <Text>{t("mobileBooking.cashNext")}</Text>}
           {type === "manual_transfer" && (
             <>
+              {p.method === "instapay" && <BrandLogo brand="instapay" height={16} />}
+              {payLink && p.status === "pending_review" && !p.proof_path && (
+                <Button
+                  label={t("payment.openInstapay")}
+                  onPress={() => {
+                    void Linking.openURL(payLink).catch(() =>
+                      setError(t("payment.cannotOpenInstapay")),
+                    );
+                  }}
+                />
+              )}
               {handle && (
                 <>
                   <Text style={ui.ltr}>{handle}</Text>
