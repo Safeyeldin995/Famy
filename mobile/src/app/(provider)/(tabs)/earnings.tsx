@@ -8,13 +8,10 @@ import {
 } from "@shared/earnings/aggregateProviderEarnings";
 import { useMyProvider, useProviderBookings, useProviderEarnings } from "@/lib/provider/queries";
 import { localized, money } from "@/lib/presentation";
-import { ProviderSettlementBanner } from "@/components/provider/ProviderSettlementBanner";
-import { ProviderEarningsSettlementPanel } from "@/components/provider/ProviderEarningsSettlementPanel";
+import { ProviderWalletPanel } from "@/components/provider/ProviderWalletPanel";
 import {
   useProviderSettlementBalance,
-  useProviderSettlementPeriod,
-  useProviderSettlements,
-  useProviderWeekLedgerTotals,
+  useProviderWalletLedger,
 } from "@/lib/provider/settlementQueries";
 import { Page, QueryState, moneyTextStyle } from "@/ui/Page";
 import { Text } from "@/ui/Text";
@@ -65,10 +62,8 @@ export default function ProviderEarnings() {
   const provider = p.data as { id?: string } | null | undefined;
   const e = useProviderEarnings(provider?.id);
   const bookingsQ = useProviderBookings(provider?.id);
-  const periodQ = useProviderSettlementPeriod();
   const balanceQ = useProviderSettlementBalance(provider?.id);
-  const weekQ = useProviderWeekLedgerTotals(provider?.id, periodQ.data);
-  const settlementsQ = useProviderSettlements(provider?.id);
+  const walletQ = useProviderWalletLedger(provider?.id);
   const capturedKind = earningsHeadlineKind(
     e.data?.hasSnapshottedCaptured ?? false,
     e.data?.hasUnsnapshottedCaptured ?? false,
@@ -98,11 +93,10 @@ export default function ProviderEarnings() {
     <Page
       tab
       title={t("pro.earnings.title")}
-      queries={[p, e, bookingsQ, periodQ, balanceQ, weekQ, settlementsQ]}
+      queries={[p, e, bookingsQ, balanceQ, walletQ]}
       contentStyle={{ gap: 12 }}
     >
-      <ProviderSettlementBanner providerId={provider?.id} />
-      <ProviderEarningsSettlementPanel providerId={provider?.id} />
+      <ProviderWalletPanel providerId={provider?.id} />
       <View style={{ ...card, borderColor: colors.brand, backgroundColor: colors.brandTint }}>
         <Text weight="bold" size="sm">
           {t("proWork.last7")}

@@ -157,3 +157,56 @@ export function settlementBalanceHeadline(
   if (net < 0) return t("pro.settlement.youOweFamy", { amount: formatAmount(Math.abs(net)) });
   return t("pro.settlement.balanced");
 }
+
+export type WalletLedgerRowMobile = {
+  id: string;
+  kind: string;
+  direction: string;
+  amount: number;
+  payment_method: string | null;
+  booking_id: string | null;
+  note: string | null;
+  created_at: string;
+};
+
+/** The provider's own wallet movements (RLS: provider_ledger_select_own). */
+export function useProviderWalletLedger(providerId: string | undefined) {
+  return useQuery({
+    enabled: !!providerId,
+    queryKey: ["provider-ledger", providerId, 200],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("provider_ledger_entries")
+        .select("id, kind, direction, amount, payment_method, booking_id, note, created_at")
+        .eq("provider_id", providerId!)
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return (data ?? []) as WalletLedgerRowMobile[];
+    },
+  });
+}
+
+/** Price and provider share of the bookings that moved the wallet. */
+export function useProviderWalletBookings(ledger: WalletLedgerRowMobile[] | undefined) {
+  const ids = [
+    ...new Set((ledger ?? []).map((r) => r.booking_id).filter(Boolean) as string[]),
+  ].sort();
+  return useQuery({
+    enabled: ids.length > 0,
+    queryKey: ["wallet-bookings", ids],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("bookings")
+        .select("id, price_total, price_provider_net, start_at")
+        .in("id", ids);
+      if (error) throw error;
+      return new Map(
+        (data ?? []).map((b) => [
+          b.id as string,
+          b as { id: string; price_total: number | null; price_provider_net: number | null; start_at: string },
+        ]),
+      );
+    },
+  });
+}
