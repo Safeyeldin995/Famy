@@ -58,7 +58,7 @@ test.describe("Issue #70 signed-in /setup address browser harness", () => {
     await expect(page.getByTestId("issue70-login")).toBeVisible({ timeout: 15_000 });
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.getByText("Complete your profile")).toHaveCount(0);
-    await expect(page.getByPlaceholder("Sarah Mostafa")).toHaveCount(0);
+    await expect(page.getByPlaceholder("Enter your full name")).toHaveCount(0);
     await expect(page.getByPlaceholder("Street, landmark, gate number…")).toHaveCount(0);
     await expect(page.getByText("Location on map")).toHaveCount(0);
     await mocks.assertIsolated();
@@ -112,13 +112,13 @@ test.describe("Issue #70 signed-in /setup address browser harness", () => {
     await page.goto("/setup");
     await waitForSetupForm(page);
 
-    await expect(page.getByPlaceholder("Sarah Mostafa")).toHaveValue("Nour Hassan");
+    await expect(page.getByPlaceholder("Enter your full name")).toHaveValue("Nour Hassan");
     await expect(page.getByPlaceholder("Street, landmark, gate number…")).toHaveValue(
       "Villa 8, Allegria Gate 4",
     );
-    await expect(page.getByPlaceholder("Allegria, Sheikh Zayed")).toHaveValue("Allegria");
-    await expect(page.getByPlaceholder("Villa 12")).toHaveValue("Villa 8");
-    await expect(page.getByPlaceholder("Apt 3B (optional)")).toHaveValue("1");
+    await expect(page.getByPlaceholder("Compound or residential area name")).toHaveValue("Allegria");
+    await expect(page.getByPlaceholder("Villa or building number")).toHaveValue("Villa 8");
+    await expect(page.getByPlaceholder("Apartment number (optional)")).toHaveValue("1");
     await expect(
       page.getByPlaceholder("Anything we should know? (Gate code, dogs, etc.)"),
     ).toHaveValue("Call on arrival");
@@ -191,7 +191,7 @@ test.describe("Issue #70 signed-in /setup address browser harness", () => {
     });
     await page.goto("/setup");
     await expect(page.getByTestId("issue70-setup-host")).toBeVisible();
-    await expect(page.getByPlaceholder("Sarah Mostafa")).toHaveCount(0);
+    await expect(page.getByPlaceholder("Enter your full name")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Continue" })).toHaveCount(0);
 
     await waitForSetupForm(page);
@@ -219,17 +219,17 @@ test.describe("Issue #70 signed-in /setup address browser harness", () => {
     await page.goto("/setup");
     await waitForSetupForm(page);
     await fillRequiredSetupFields(page, { name: "Kept Name", address: "Kept Street 99" });
-    await page.getByPlaceholder("Villa 12").fill("Villa Kept");
+    await page.getByPlaceholder("Villa or building number").fill("Villa Kept");
     await clickContinue(page);
 
     await expect(page.getByText("Could not save address")).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId("issue70-home")).toHaveCount(0);
     await expect(page).toHaveURL(/\/setup$/);
-    await expect(page.getByPlaceholder("Sarah Mostafa")).toHaveValue("Kept Name");
+    await expect(page.getByPlaceholder("Enter your full name")).toHaveValue("Kept Name");
     await expect(page.getByPlaceholder("Street, landmark, gate number…")).toHaveValue(
       "Kept Street 99",
     );
-    await expect(page.getByPlaceholder("Villa 12")).toHaveValue("Villa Kept");
+    await expect(page.getByPlaceholder("Villa or building number")).toHaveValue("Villa Kept");
     await expect(page.getByRole("button", { name: "Continue" })).toBeEnabled();
 
     const calls = await mocks.getCalls();

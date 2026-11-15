@@ -199,7 +199,7 @@ export function FamilyMemberForm({
         label={t("familyMembers.fullName", "Full name")}
         value={value.fullName}
         onChange={(v) => set("fullName", v)}
-        placeholder={t("familyMembers.fullNamePlaceholder", "e.g. Layla Ahmed")}
+        placeholder={t("familyMembers.fullNamePlaceholder", "Enter the full name")}
       />
       {touched && value.fullName.trim().length === 0 && (
         <ErrorText>{t("validation.required")}</ErrorText>
@@ -292,7 +292,7 @@ export function FamilyMemberForm({
         label={`${t("familyMembers.allergies", "Allergies")} (${t("familyMembers.optional", "optional")})`}
         value={value.allergies}
         onChange={(v) => set("allergies", v)}
-        placeholder={t("familyMembers.allergiesPlaceholder", "e.g. Peanuts, penicillin")}
+        placeholder={t("familyMembers.allergiesPlaceholder", "List any allergies")}
       />
       <TextArea
         label={`${t("familyMembers.medicalNotes", "Medical notes")} (${t("familyMembers.optional", "optional")})`}

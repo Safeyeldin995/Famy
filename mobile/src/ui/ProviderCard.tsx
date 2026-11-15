@@ -54,7 +54,16 @@ export function Avatar({
     </View>
   );
 }
-export function ProviderCard({ provider: p, subtitle }: { provider: Provider; subtitle?: string }) {
+export function ProviderCard({
+  provider: p,
+  subtitle,
+  onPress,
+}: {
+  provider: Provider;
+  subtitle?: string;
+  /** Overrides the default navigation (guest browsing opens the guest profile). */
+  onPress?: () => void;
+}) {
   const { t, i18n } = useTranslation();
   const service = p.services[0]?.service;
   const packageInfo = service && isFixedPackage(service) ? packageLabel(service) : null;
@@ -62,11 +71,13 @@ export function ProviderCard({ provider: p, subtitle }: { provider: Provider; su
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={p.profile.full_name || t("provider2.unnamed")}
-      onPress={() =>
-        router.push({
-          pathname: "/provider/[id]",
-          params: service?.id ? { id: p.id, serviceId: service.id } : { id: p.id },
-        })
+      onPress={
+        onPress ??
+        (() =>
+          router.push({
+            pathname: "/provider/[id]",
+            params: service?.id ? { id: p.id, serviceId: service.id } : { id: p.id },
+          }))
       }
       style={({ pressed }) => [
         ui.card,

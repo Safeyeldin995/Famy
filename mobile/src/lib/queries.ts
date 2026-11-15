@@ -263,6 +263,54 @@ export function useProvider(id: string | undefined, addressId?: string) {
   });
 }
 
+/** Signed-out browsing: eligible providers in the visitor's chosen area. */
+export function useGuestProviders(zoneId: string | null | undefined) {
+  return useQuery({
+    enabled: !!zoneId,
+    queryKey: ["guest-providers", zoneId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc(
+        "guest_search_marketplace_providers" as never,
+        { p_zone_id: zoneId } as never,
+      );
+      if (error) throw error;
+      return marketplaceRowsWithPackages(
+        selectMarketplaceProviderRows((data ?? []) as MarketplaceRpcRow[]),
+      );
+    },
+  });
+}
+
+/** One provider for a guest: the profile card plus every service they offer in the area. */
+export function useGuestProvider(id: string | undefined, zoneId: string | null | undefined) {
+  return useQuery({
+    enabled: !!id && !!zoneId,
+    queryKey: ["guest-provider", id, zoneId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc(
+        "guest_search_marketplace_providers" as never,
+        { p_zone_id: zoneId } as never,
+      );
+      if (error) throw error;
+      const rows = ((data ?? []) as MarketplaceRpcRow[]).filter(
+        (row) =>
+          row.id === id &&
+          !isQaCatalogSlug(row.category_slug, row.service_slug) &&
+          isClosedBetaCategorySlug(row.category_slug),
+      );
+      if (!rows.length) return null;
+      const cards = await marketplaceRowsWithPackages(rows);
+      return {
+        provider: cards[0],
+        services: cards.map((card, i) => ({
+          service: card.services[0].service,
+          price: rows[i].hourly_rate == null ? null : Number(rows[i].hourly_rate),
+        })),
+      };
+    },
+  });
+}
+
 export function useBookableServiceIds(providerId: string | undefined, addressId?: string) {
   return useQuery({
     enabled: !!providerId,

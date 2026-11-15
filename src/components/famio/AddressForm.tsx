@@ -113,7 +113,7 @@ export function AddressForm({
           <input
             value={value.customLabel}
             onChange={(e) => set("customLabel", e.target.value)}
-            placeholder={t("addresses.customLabelPlaceholder", "e.g. Grandma's house")}
+            placeholder={t("addresses.customLabelPlaceholder", "Name this address")}
             className="mt-2 h-12 w-full rounded-2xl border border-border/80 bg-surface px-4 text-pro-14 font-medium outline-none focus:border-brand"
           />
         )}
@@ -176,7 +176,7 @@ export function AddressForm({
           label={t("addresses.floor", "Floor")}
           value={value.floor}
           onChange={(v) => set("floor", v)}
-          placeholder={t("addresses.floorPlaceholder", "e.g. 3rd")}
+          placeholder={t("addresses.floorPlaceholder", "Floor number")}
         />
         <Field
           label={t("setup.apartment")}

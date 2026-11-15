@@ -324,3 +324,21 @@ const { OTP_LENGTH, applyOtpDigitInput } = load(
 assert.equal(OTP_LENGTH, 6);
 assert.equal(applyOtpDigitInput(["", "", "", "", "", ""], 0, "123456").complete, true);
 console.log("PASS: mobile OTP input state machine checks.");
+
+// Guest browsing: the saved "book this provider" intent survives sign-up once, for a day.
+{
+  const { parseGuestIntent, GUEST_INTENT_TTL_MS } = load(
+    path.join(root, "mobile/src/lib/guestIntent.ts"),
+  );
+  const now = 1_800_000_000_000;
+  const fresh = JSON.stringify({ providerId: "p1", serviceId: "s1", savedAt: now - 1000 });
+  assert.deepEqual(parseGuestIntent(fresh, now), { providerId: "p1", serviceId: "s1", savedAt: now - 1000 });
+  assert.equal(
+    parseGuestIntent(JSON.stringify({ providerId: "p1", savedAt: now - GUEST_INTENT_TTL_MS - 1 }), now),
+    null,
+  );
+  assert.equal(parseGuestIntent(JSON.stringify({ providerId: "", savedAt: now }), now), null);
+  assert.equal(parseGuestIntent("{not json", now), null);
+  assert.equal(parseGuestIntent(null, now), null);
+  assert.equal(parseGuestIntent(JSON.stringify({ providerId: "p1", serviceId: "", savedAt: now }), now).serviceId, undefined);
+}
