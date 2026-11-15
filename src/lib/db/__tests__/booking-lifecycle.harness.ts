@@ -91,6 +91,11 @@ export async function seedLifecycleBooking(
       ('${IDS.adminUser}', 'admin')
     ON CONFLICT DO NOTHING;
 
+    -- Bookings require a customer contact phone (booking_requires_customer_phone).
+    UPDATE public.profiles
+    SET phone = '010' || lpad((abs(hashtext(id::text)) % 100000000)::text, 8, '0')
+    WHERE id = '${customerId}' AND coalesce(phone, '') = '';
+
     INSERT INTO public.providers (
       id, profile_id, hourly_rate, onboarding_status, is_active, vacation_mode,
       min_notice_hours, max_advance_days, buffer_minutes, bio_en, bio_ar

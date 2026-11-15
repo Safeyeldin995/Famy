@@ -88,6 +88,9 @@ AS $$
     SELECT 1 FROM public.providers p
     JOIN public.profiles pr ON pr.id = p.profile_id
     WHERE pr.avatar_url = p_name
+      -- The object must live in the provider's own folder, so an edited avatar_url
+      -- cannot expose another user's file.
+      AND split_part(p_name, '/', 1) = pr.id::text
       AND p.onboarding_status = 'APPROVED'
       AND p.deleted_at IS NULL
       AND p.is_active

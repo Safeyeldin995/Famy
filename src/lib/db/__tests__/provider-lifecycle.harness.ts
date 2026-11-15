@@ -166,6 +166,10 @@ export async function seedDraftProvider(db: PGlite): Promise<LifecycleSeed> {
       ('${IDS.adminUser}', 'admin')
     ON CONFLICT DO NOTHING;
 
+    -- Bookings require a customer contact phone (booking_requires_customer_phone).
+    UPDATE public.profiles SET phone = '01011112222'
+    WHERE id = '${IDS.customer}' AND coalesce(phone, '') = '';
+
     INSERT INTO public.providers (
       id, profile_id, hourly_rate, onboarding_status, bio_en, bio_ar, years_experience
     ) VALUES (
