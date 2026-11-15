@@ -196,21 +196,27 @@ export function AdminBookings({
   const [query, setQuery] = useState(search.booking ?? "");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [cancelId, setCancelId] = useState<string | null>(null);
+  const attention = status === "lifecycle_attention";
   const attentionQ = useLifecycleAttentionBookingIds();
-  const q = useAdminBookings(status === "problems" ? ["disputed", "no_show"] : status || undefined);
+  // "lifecycle_attention" is a work queue, not a booking status: load those bookings by id.
+  const bookingsQ = useAdminBookings(
+    attention
+      ? { ids: attentionQ.data ?? [] }
+      : status === "problems"
+        ? ["disputed", "no_show"]
+        : status || undefined,
+    { enabled: !attention || attentionQ.isSuccess },
+  );
+  const q = attention && !attentionQ.isSuccess ? attentionQ : bookingsQ;
   const cancelBooking = useCancelBooking();
-  const cancelTarget = (q.data ?? []).find((b: any) => b.id === cancelId) as any;
+  const cancelTarget = (bookingsQ.data ?? []).find((b: any) => b.id === cancelId) as any;
 
   const rows = useMemo(() => {
-    let all = q.data ?? [];
-    if (status === "lifecycle_attention") {
-      const ids = new Set(attentionQ.data ?? []);
-      all = all.filter((b: any) => ids.has(b.id));
-    }
+    const all = (bookingsQ.data ?? []) as any[];
     const needle = query.trim().toLowerCase();
     if (!needle) return all;
     return all.filter((b: any) => matchesBooking(b, needle));
-  }, [q.data, query, status, attentionQ.data]);
+  }, [bookingsQ.data, query]);
 
   return (
     <div className={adminScreen}>
