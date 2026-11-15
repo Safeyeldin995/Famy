@@ -16,6 +16,7 @@ import {
 } from "@/lib/earnings/aggregateProviderEarnings";
 import { formatEGP } from "@/lib/utils";
 import { ProviderWalletPanel } from "@/components/provider/ProviderWalletPanel";
+import { ProviderPayoutMethodsPanel } from "@/components/provider/ProviderPayoutMethodsPanel";
 
 export const Route = createFileRoute("/pro/earnings")({ component: EarningsPage });
 
@@ -87,6 +88,7 @@ function EarningsPage() {
       <PageHeader title={t("pro.earnings.title")} />
       <div className="space-y-3 px-5 pb-6 pt-2">
         <ProviderWalletPanel providerId={provider?.id} audience="pro" />
+        <ProviderPayoutMethodsPanel providerId={provider?.id} audience="pro" />
         <Card className="min-w-0 border-brand/20 bg-brand/5 p-4">
           <h2 className="text-pro-13 font-extrabold">{t("proWork.last7")}</h2>
           <SplitAmounts

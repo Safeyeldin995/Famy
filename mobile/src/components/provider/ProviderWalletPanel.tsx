@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { Linking, Pressable, View } from "react-native";
+import * as Clipboard from "expo-clipboard";
+import { Button } from "@/ui/Button";
+import { BrandLogo } from "@/ui/PaymentLogos";
+import { useFamyInstapay } from "@/lib/provider/payoutQueries";
 import { useTranslation } from "react-i18next";
 import { Text } from "@/ui/Text";
 import { colors, radius, space } from "@/ui/theme";
@@ -39,6 +43,8 @@ export function ProviderWalletPanel({ providerId }: { providerId: string | undef
   const bookings = useProviderWalletBookings(ledger.data);
   const blockedQ = useProviderCashDebtBlocked(providerId);
   const [howOpen, setHowOpen] = useState(false);
+  const famyInstapay = useFamyInstapay();
+  const [copied, setCopied] = useState(false);
 
   if (!providerId) return null;
 
@@ -104,6 +110,53 @@ export function ProviderWalletPanel({ providerId }: { providerId: string | undef
                 <Text size="sm" weight="bold" tone="danger">
                   {t("wallet.pro.blocked", { limit: money(limit, lang) })}
                 </Text>
+              </View>
+            ) : null}
+            {state === "providerOwes" &&
+            (famyInstapay.data?.handle || famyInstapay.data?.payLink) ? (
+              <View
+                style={{
+                  gap: 8,
+                  borderRadius: radius.md,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  padding: space.sm,
+                }}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <BrandLogo brand="instapay" height={12} />
+                  <Text weight="bold" style={{ flexShrink: 1 }}>
+                    {t("payout.pro.payInTitle")}
+                  </Text>
+                </View>
+                <Text size="sm" tone="muted">
+                  {t("payout.pro.payInBody")}
+                </Text>
+                {famyInstapay.data.handle ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t("payout.pro.copy")}
+                    onPress={() =>
+                      void Clipboard.setStringAsync(famyInstapay.data!.handle).then(() =>
+                        setCopied(true),
+                      )
+                    }
+                    style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}
+                  >
+                    <Text weight="bold" style={{ writingDirection: "ltr" }}>
+                      {famyInstapay.data.handle}
+                    </Text>
+                    <Text size="sm" weight="bold" tone="brand">
+                      {copied ? t("payout.pro.copied") : t("payout.pro.copy")}
+                    </Text>
+                  </Pressable>
+                ) : null}
+                {famyInstapay.data.payLink ? (
+                  <Button
+                    label={t("payout.pro.payInOpen")}
+                    onPress={() => void Linking.openURL(famyInstapay.data!.payLink).catch(() => {})}
+                  />
+                ) : null}
               </View>
             ) : null}
           </>

@@ -9,6 +9,7 @@ import {
 import { useMyProvider, useProviderBookings, useProviderEarnings } from "@/lib/provider/queries";
 import { localized, money } from "@/lib/presentation";
 import { ProviderWalletPanel } from "@/components/provider/ProviderWalletPanel";
+import { ProviderPayoutMethods } from "@/components/provider/ProviderPayoutMethods";
 import {
   useProviderSettlementBalance,
   useProviderWalletLedger,
@@ -97,6 +98,7 @@ export default function ProviderEarnings() {
       contentStyle={{ gap: 12 }}
     >
       <ProviderWalletPanel providerId={provider?.id} />
+      <ProviderPayoutMethods providerId={provider?.id} />
       <View style={{ ...card, borderColor: colors.brand, backgroundColor: colors.brandTint }}>
         <Text weight="bold" size="sm">
           {t("proWork.last7")}

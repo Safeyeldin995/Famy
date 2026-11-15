@@ -240,7 +240,7 @@ export function Choices({
   label: string;
   value: string;
   onChange: (s: string) => void;
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; adornment?: ReactNode }[];
   layout?: "chips" | "cards" | "grid";
 }) {
   return (
@@ -280,6 +280,9 @@ export function Choices({
             >
               {o.label}
             </Text>
+            {layout === "cards" && o.adornment ? (
+              <View style={{ marginStart: "auto" }}>{o.adornment}</View>
+            ) : null}
           </Pressable>
         ))}
       </View>

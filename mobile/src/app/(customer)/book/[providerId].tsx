@@ -3,10 +3,7 @@ import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 import { memberAgeTranslation } from "@shared/familyMemberAge";
 import { CustomerBookingWhen } from "@/ui/customer/BookingWhen";
 import { bookingScreenPrimaryCtaKey } from "@shared/booking/bookingStepCta";
-import {
-  bookingFieldHintForStep,
-  type BookingFieldHint,
-} from "@shared/booking/bookingFieldHints";
+import { bookingFieldHintForStep, type BookingFieldHint } from "@shared/booking/bookingFieldHints";
 import { BookingVisitRequirements } from "@/ui/customer/BookingVisitRequirements";
 import { BookingServiceCard } from "@/ui/customer/BookingServiceCard";
 import { BookOpen, Clock, UserRound, Star } from "lucide-react-native";
@@ -90,7 +87,7 @@ import { localized, dateTime } from "@/lib/presentation";
 import { Page, QueryState, Field, Choices, moneyTextStyle, ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
-import { PaymentLogos } from "@/ui/PaymentLogos";
+import { PaymentMethodLogos } from "@/ui/PaymentLogos";
 import { BookingInlineForm } from "@/ui/customer/BookingInlineForm";
 import { customerMoney as money, customerNumber } from "@/lib/customerFormat";
 import { providerRatingSummary } from "@/lib/providerRating";
@@ -173,9 +170,7 @@ function BookForm({
   const profile = useMyProfile();
   const [step, setStep] = useState(0);
   const { guardDefault, touch } = useRebookSeedGuard(rebookInitial?.seededFields);
-  const [serviceId, setServiceId] = useState(
-    rebookInitial?.serviceId ?? initialService ?? "",
-  );
+  const [serviceId, setServiceId] = useState(rebookInitial?.serviceId ?? initialService ?? "");
   const [capId, setCapId] = useState(rebookInitial?.capabilityId ?? initialCap ?? "");
   const [hours, setHours] = useState(rebookInitial?.durationHours ?? 4);
   const [date, setDate] = useState(() => {
@@ -213,8 +208,7 @@ function BookForm({
   const createdId = useRef<string | null>(null);
   const pinned = (addresses.data ?? []).filter((a) => a.lat != null && a.lng != null);
   const selectedAddress = pinned.find((a) => a.id === addressId);
-  const reviewAddressId =
-    addressId || pinned.find((a) => a.is_default)?.id || pinned[0]?.id || "";
+  const reviewAddressId = addressId || pinned.find((a) => a.is_default)?.id || pinned[0]?.id || "";
   const reviewAddressLine = useMemo(() => {
     const addr = pinned.find((a) => a.id === reviewAddressId);
     return joinUiParts(savedAddressMobileUiParts(addr), lang);
@@ -831,9 +825,7 @@ function BookForm({
                       lessonIllustrationKeyForSubject(cap.subjectCode) ? (
                         <LessonIllustration
                           subjectCode={cap.subjectCode}
-                          accessibilityLabel={
-                            lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn
-                          }
+                          accessibilityLabel={lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn}
                           width={28}
                           height={28}
                         />
@@ -892,28 +884,28 @@ function BookForm({
             <Text tone="danger">{t(fieldHint.messageKey)}</Text>
           ) : null}
           <View nativeID="booking-schedule">
-        <CustomerBookingWhen
-          providerId={providerId}
-          serviceId={service?.service.id ?? ""}
-          addressId={addressId}
-          service={service?.service ?? {}}
-          durationMinutes={duration || 120}
-          maxAdvanceDays={settings.data?.max_advance_days ?? 12}
-          cairoTime={fixed}
-          locale={locale}
-          date={date}
-          selected={currentSlot}
-          slots={available}
-          loading={slots.isLoading || slots.isFetching}
-          error={slots.isError}
-          onRetry={() => slots.refetch()}
-          onDateChange={(day) => {
-            userDate.current = true;
-            setDate(day);
-            setSlot(null);
-          }}
-          onTimeChange={setSlot}
-        />
+            <CustomerBookingWhen
+              providerId={providerId}
+              serviceId={service?.service.id ?? ""}
+              addressId={addressId}
+              service={service?.service ?? {}}
+              durationMinutes={duration || 120}
+              maxAdvanceDays={settings.data?.max_advance_days ?? 12}
+              cairoTime={fixed}
+              locale={locale}
+              date={date}
+              selected={currentSlot}
+              slots={available}
+              loading={slots.isLoading || slots.isFetching}
+              error={slots.isError}
+              onRetry={() => slots.refetch()}
+              onDateChange={(day) => {
+                userDate.current = true;
+                setDate(day);
+                setSlot(null);
+              }}
+              onTimeChange={setSlot}
+            />
           </View>
         </>
       )}
@@ -924,28 +916,28 @@ function BookForm({
             <Text tone="danger">{t(fieldHint.messageKey)}</Text>
           ) : null}
           <View nativeID="booking-addresses">
-          <Choices
-            layout="cards"
-            label={t("bookingUx.chooseAddress")}
-            value={addressId}
-            onChange={(v) => {
-              touch("addressId");
-              setAddressId(v);
-              setSlot(null);
-            }}
-            options={pinned.map((a) => ({
-              value: a.id,
-              label: joinUiParts(
-                [a.area, a.street, a.building].filter(Boolean) as string[],
-                lang,
-              ),
-            }))}
-          />
-          <Button
-            variant="secondary"
-            label={t("addresses.addAddress")}
-            onPress={() => setInlineForm("address")}
-          />
+            <Choices
+              layout="cards"
+              label={t("bookingUx.chooseAddress")}
+              value={addressId}
+              onChange={(v) => {
+                touch("addressId");
+                setAddressId(v);
+                setSlot(null);
+              }}
+              options={pinned.map((a) => ({
+                value: a.id,
+                label: joinUiParts(
+                  [a.area, a.street, a.building].filter(Boolean) as string[],
+                  lang,
+                ),
+              }))}
+            />
+            <Button
+              variant="secondary"
+              label={t("addresses.addAddress")}
+              onPress={() => setInlineForm("address")}
+            />
           </View>
           <QueryState query={bookable} empty={addressOutside} emptyKey="bookingUx.outsideArea" />
           {!tutoring && recipientUI}
@@ -998,7 +990,10 @@ function BookForm({
                     capability
                       ? t("bookFlow.sessionLine", { minutes: String(capability.durationMin) })
                       : fixed
-                        ? t(packageLabel(service!.service).key, packageLabel(service!.service).values)
+                        ? t(
+                            packageLabel(service!.service).key,
+                            packageLabel(service!.service).values,
+                          )
                         : t("customerBooking.duration", { hours: String(hours) }),
                   ],
                   lang,
@@ -1156,11 +1151,12 @@ function BookForm({
             label={t("payment.title")}
             value={methodId}
             onChange={setMethodId}
-            options={(methods.data ?? []).map((m) => ({ value: m.id, label: localized(m, lang) }))}
+            options={(methods.data ?? []).map((m) => ({
+              value: m.id,
+              label: localized(m, lang),
+              adornment: <PaymentMethodLogos code={m.code} type={m.method_type} />,
+            }))}
           />
-          {methods.data?.find((m) => m.id === methodId)?.method_type === "online" && (
-            <PaymentLogos />
-          )}
         </>
       )}
       {error && <Text tone="danger">{error}</Text>}
@@ -1180,8 +1176,7 @@ function BookForm({
           if (inlineForm === "member") {
             touch("forWhom");
             setRecipient(id);
-          }
-          else {
+          } else {
             setAddressId(id);
             setSlot(null);
           }
