@@ -151,6 +151,7 @@ export function ProviderPayoutMethods({ providerId }: { providerId: string | und
             {!r.is_default ? (
               <Pressable
                 accessibilityRole="button"
+                accessibilityLabel={t("payout.pro.makeDefault")}
                 disabled={busy}
                 onPress={() => makeDefault.mutate(r)}
                 style={{ paddingVertical: 6 }}
@@ -162,6 +163,7 @@ export function ProviderPayoutMethods({ providerId }: { providerId: string | und
             ) : null}
             <Pressable
               accessibilityRole="button"
+              accessibilityLabel={`${t("payout.pro.remove")} ${t(`payout.methods.${r.method}`)}`}
               disabled={busy}
               onPress={() =>
                 remove.mutate(r, {

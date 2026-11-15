@@ -19,6 +19,9 @@ vi.mock("@/components/famio/PageHeader", () => ({
 }));
 vi.mock("@/components/provider/ProfileAvatar", () => ({ ProfileAvatar: () => null }));
 vi.mock("@/components/famio/LanguageToggle", () => ({ useLang: () => "ar" }));
+vi.mock("@/components/provider/ProviderPayoutMethodsPanel", () => ({
+  ProviderPayoutMethodsPanel: () => null,
+}));
 vi.mock("@/components/provider/ProviderWalletPanel", () => ({
   ProviderWalletPanel: () => null,
 }));
