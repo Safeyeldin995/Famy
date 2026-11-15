@@ -2655,6 +2655,33 @@ const en = {
     },
   },
   admin: {
+    paymentSituation: {
+      pageHint: "Each card shows what actually happened with the payment and what you need to do, if anything.",
+      needsAction: "Payments that need your decision: {{count}}",
+      confirmCash: "Confirm cash was received",
+      confirmCashHint:
+        "This records that the provider collected {{amount}} in cash and adds Famy's commission from this booking to what they owe. Write the reason or source of the confirmation.",
+      review: { label: "Needs your review", note: "The customer uploaded a transfer receipt. Review it, then confirm or reject." },
+      awaitingProof: { label: "Waiting for receipt", note: "The customer chose transfer but hasn't uploaded the receipt yet." },
+      awaitingCard: { label: "Waiting for card payment", note: "The customer hasn't finished paying by card yet." },
+      cashAtVisit: {
+        label: "Cash at the visit",
+        note: "The provider collects the amount from the customer at the visit. Nothing to do now.",
+      },
+      cashRecorded: {
+        label: "Collected in cash",
+        note: "The provider collected the amount and Famy's commission is on their account.",
+      },
+      cashUnconfirmed: {
+        label: "Needs your confirmation",
+        note: "This booking was completed before the accounts system started. Confirm the cash was received to record Famy's commission.",
+      },
+      noPaymentDue: { label: "Nothing owed", note: "The booking was cancelled before payment. Nothing to do." },
+      paid: { label: "Paid", note: "Famy received the amount." },
+      rejected: { label: "Transfer rejected", note: "The receipt was rejected and no amount was counted." },
+      failed: { label: "Payment failed", note: "The payment didn't go through and nothing was charged." },
+      refunded: { label: "Refunded", note: "The amount was returned to the customer." },
+    },
     settlement: {
       title: "Provider account with Famy",
       balanceNow: "Balance now",

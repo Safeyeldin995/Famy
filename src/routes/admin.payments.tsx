@@ -4,7 +4,17 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { paymentStatusLabel } from "@/lib/settlement/moneyText";
 import { toast } from "sonner";
-import { useAdminPayments } from "@/lib/db/admin-queries";
+import {
+  useAdminCashLedgerBookings,
+  useAdminPayments,
+  useRecordHistoricCash,
+} from "@/lib/db/admin-queries";
+import {
+  needsAdminAction,
+  paymentSituation,
+  situationTone,
+  type SituationTone,
+} from "@/components/admin/paymentSituation";
 import { getSignedProofUrl, useCapturePayment, useRejectPayment } from "@/lib/db/payment-queries";
 import { formatEGP } from "@/lib/format";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
@@ -27,15 +37,29 @@ export const Route = createFileRoute("/admin/payments")({
     ...(typeof search.statuses === "string" ? { statuses: search.statuses } : {}),
   }),
 });
-function PaymentCard({ payment: p }: { payment: any }) {
+const TONE_CLASS: Record<SituationTone, string> = {
+  action: "bg-amber-500/15 text-amber-800 dark:text-amber-200",
+  waiting: "bg-muted text-muted-foreground",
+  done: "bg-success/15 text-success",
+  closed: "bg-muted text-muted-foreground",
+  problem: "bg-destructive/10 text-destructive",
+};
+
+function PaymentCard({ payment: p, cashRecorded }: { payment: any; cashRecorded: boolean }) {
   const { t, i18n } = useTranslation();
   const capture = useCapturePayment();
   const reject = useRejectPayment();
+  const recordCash = useRecordHistoricCash();
+  const [cashSheet, setCashSheet] = useState(false);
+  const situation = paymentSituation(p, cashRecorded);
+  const isTransfer =
+    p.payment_method_type === "manual_transfer" ||
+    (!p.payment_method_type && p.method === "instapay");
   const [proof, setProof] = useState<string | null>(null);
   const [proofBusy, setProofBusy] = useState(false);
   const [action, setAction] = useState<"confirm" | "reject" | null>(null);
   const reviewable = canReviewTransfer(p);
-  const busy = capture.isPending || reject.isPending;
+  const busy = capture.isPending || reject.isPending || recordCash.isPending;
   useEffect(() => {
     if (!p.proof_path || !reviewable) return;
     let active = true;
@@ -81,10 +105,17 @@ function PaymentCard({ payment: p }: { payment: any }) {
     <li className="min-w-0 space-y-3 rounded-2xl border border-border bg-surface p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <strong className="text-lg">{formatEGP(Number(p.amount ?? 0))}</strong>
-        <span className="rounded-full bg-muted px-3 py-1 text-xs font-bold">
-          {paymentStatusLabel(p.status, t)}
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-bold ${TONE_CLASS[situationTone(situation)]}`}
+        >
+          {situation === "other"
+            ? paymentStatusLabel(p.status, t)
+            : t(`admin.paymentSituation.${situation}.label`)}
         </span>
       </div>
+      {situation !== "other" ? (
+        <p className="text-sm">{t(`admin.paymentSituation.${situation}.note`)}</p>
+      ) : null}
       <p className="font-semibold">
         {p.booking?.customer?.full_name || "—"} → {p.booking?.provider?.profile?.full_name || "—"}
       </p>
@@ -103,7 +134,7 @@ function PaymentCard({ payment: p }: { payment: any }) {
       >
         {t("adminOps.booking")} <bdi dir="ltr">{bookingCode(p.booking_id)}</bdi>
       </Link>
-      {p.proof_path ? (
+      {isTransfer && p.proof_path ? (
         <div>
           <button className={adminControl} disabled={proofBusy} onClick={openProof}>
             {t("adminOps.proof")}
@@ -123,9 +154,7 @@ function PaymentCard({ payment: p }: { payment: any }) {
             </a>
           )}
         </div>
-      ) : (
-        <p className="text-xs text-muted-foreground">{t("adminOps.noProof")}</p>
-      )}
+      ) : null}
       {reviewable ? (
         <div className="space-y-2">
           <div className="flex flex-wrap gap-2">
@@ -144,8 +173,36 @@ function PaymentCard({ payment: p }: { payment: any }) {
             <p className="text-xs text-muted-foreground">{t("adminOps.completedOnly")}</p>
           )}
         </div>
-      ) : (
-        <p className="text-xs text-muted-foreground">{t("adminOps.readOnlyPayment")}</p>
+      ) : situation === "cashUnconfirmed" ? (
+        <button
+          className={`${adminControl} bg-brand text-brand-foreground`}
+          disabled={busy}
+          onClick={() => setCashSheet(true)}
+        >
+          {t("admin.paymentSituation.confirmCash")}
+        </button>
+      ) : null}
+      {cashSheet && (
+        <AdminReasonSheet
+          title={t("admin.paymentSituation.confirmCash")}
+          description={t("admin.paymentSituation.confirmCashHint", {
+            amount: formatEGP(Number(p.amount ?? 0)),
+          })}
+          busy={busy}
+          onClose={() => setCashSheet(false)}
+          onConfirm={(reason) =>
+            recordCash.mutate(
+              { bookingId: p.booking_id, reason },
+              {
+                onSuccess: () => {
+                  setCashSheet(false);
+                  toast.success(t("adminOps.saved"));
+                },
+                onError: failure,
+              },
+            )
+          }
+        />
       )}
       {action === "confirm" && reviewable && (
         <div
@@ -196,18 +253,30 @@ export function AdminPayments({ search }: { search: { status?: string; statuses?
   const [status, setStatus] = useState(search.statuses || search.status || "pending_review");
   const [query, setQuery] = useState("");
   const q = useAdminPayments(status.includes(",") ? status.split(",") : status || undefined);
+  const cashLedger = useAdminCashLedgerBookings(
+    (q.data ?? [])
+      .filter((p: any) => p.booking?.status === "completed" && p.status !== "captured")
+      .map((p: any) => p.booking_id),
+  );
+  const recorded = cashLedger.data ?? new Set<string>();
+  const situationOf = (p: any) => paymentSituation(p, recorded.has(p.booking_id));
   const rows = [...(q.data ?? [])]
     .filter((p: any) => matchesBooking({ ...p.booking, id: p.booking_id }, query))
     .sort(
       (a: any, b: any) =>
-        Number(canReviewTransfer(b)) - Number(canReviewTransfer(a)) ||
-        Date.parse(a.created_at) - Date.parse(b.created_at),
+        Number(needsAdminAction(situationOf(b))) - Number(needsAdminAction(situationOf(a))) ||
+        Date.parse(b.created_at) - Date.parse(a.created_at),
     );
+  const actionCount = rows.filter((p: any) => needsAdminAction(situationOf(p))).length;
   return (
     <div className={adminScreen}>
       <h1 className="text-xl font-bold">{t("admin.layout.nav.payments")}</h1>
-      <h2 className="font-bold">{t("adminOps.pendingTransfers")}</h2>
-      <p className="text-sm text-muted-foreground">{t("adminOps.transferHint")}</p>
+      <p className="text-sm text-muted-foreground">{t("admin.paymentSituation.pageHint")}</p>
+      {actionCount > 0 ? (
+        <p className="rounded-xl bg-amber-500/15 px-3 py-2 text-sm font-bold text-amber-800 dark:text-amber-200">
+          {t("admin.paymentSituation.needsAction", { count: actionCount })}
+        </p>
+      ) : null}
       <input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
@@ -236,7 +305,7 @@ export function AdminPayments({ search }: { search: { status?: string; statuses?
       ) : (
         <ul className="grid gap-4 lg:grid-cols-2">
           {rows.map((p: any) => (
-            <PaymentCard key={p.id} payment={p} />
+            <PaymentCard key={p.id} payment={p} cashRecorded={recorded.has(p.booking_id)} />
           ))}
         </ul>
       )}
