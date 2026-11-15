@@ -15,8 +15,7 @@ import {
   type EarningsBucket,
 } from "@/lib/earnings/aggregateProviderEarnings";
 import { formatEGP } from "@/lib/utils";
-import { ProviderSettlementBanner } from "@/components/provider/ProviderSettlementBanner";
-import { ProviderEarningsSettlementPanel } from "@/components/provider/ProviderEarningsSettlementPanel";
+import { ProviderWalletPanel } from "@/components/provider/ProviderWalletPanel";
 
 export const Route = createFileRoute("/pro/earnings")({ component: EarningsPage });
 
@@ -87,8 +86,7 @@ function EarningsPage() {
     <ProviderShell>
       <PageHeader title={t("pro.earnings.title")} />
       <div className="space-y-3 px-5 pb-6 pt-2">
-        <ProviderSettlementBanner providerId={provider?.id} />
-        <ProviderEarningsSettlementPanel providerId={provider?.id} />
+        <ProviderWalletPanel providerId={provider?.id} audience="pro" />
         <Card className="min-w-0 border-brand/20 bg-brand/5 p-4">
           <h2 className="text-pro-13 font-extrabold">{t("proWork.last7")}</h2>
           <SplitAmounts

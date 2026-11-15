@@ -10,7 +10,6 @@ import {
   AdminTableTd,
   AdminTableTh,
 } from "@/components/admin";
-import { adminDate } from "@/components/admin/adminPresentation";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -79,15 +78,6 @@ function rangeDate(iso: string, lang: string) {
   return `${day.replace("،", "")} ${ar ? "الساعة" : "at"} ${time}`;
 }
 
-/** Weekday name for a settlement weekday index (0 = Sunday). */
-function weekdayName(weekday: number, lang: string) {
-  // 15 Nov 2026 is a Sunday.
-  const d = new Date(Date.UTC(2026, 10, 15 + (((weekday % 7) + 7) % 7), 12));
-  return new Intl.DateTimeFormat(lang.startsWith("ar") ? "ar-EG" : "en-GB", {
-    weekday: "long",
-    timeZone: "Africa/Cairo",
-  }).format(d);
-}
 
 function AdminFinancePage() {
   const { t } = useTranslation();
@@ -185,15 +175,6 @@ function AdminFinancePage() {
     return <span className="text-xs text-muted-foreground">{t("admin.finance.statusOk")}</span>;
   };
 
-  const lastSettlementCell = (row: AdminFinanceProviderRow) => {
-    const status = String(row.last_settlement_status ?? "").toLowerCase();
-    if (!status) return t("admin.finance.noSettlementYet");
-    if (status === "pending") return t("admin.finance.lastPending");
-    if (status === "cancelled") return t("admin.finance.lastCancelled");
-    return t("admin.finance.lastClosed", {
-      date: row.last_settlement_at ? adminDate(row.last_settlement_at, lang, false) : "",
-    }).trim();
-  };
 
   return (
     <main className="space-y-6 px-4 py-5 sm:px-6">
@@ -318,7 +299,7 @@ function AdminFinancePage() {
           <p className="text-xs text-muted-foreground">{t("admin.finance.accountsHint")}</p>
         </div>
         {summaryQ.data ? (
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <MoneyCard
               label={t("admin.finance.owedToProviders")}
               value={formatEGP(summaryQ.data.owed_to_providers)}
@@ -329,14 +310,6 @@ function AdminFinancePage() {
               value={formatEGP(summaryQ.data.owed_by_providers)}
               hint={t("admin.finance.owedByProvidersHint")}
               tone={summaryQ.data.owed_by_providers > 0 ? "warn" : "default"}
-            />
-            <MoneyCard
-              label={t("admin.finance.pendingSettlements")}
-              value={formatEGP(summaryQ.data.pending_settlement_amount)}
-              sub={t("admin.finance.pendingSettlementsCount", {
-                count: summaryQ.data.pending_settlement_count.toLocaleString("en-US"),
-              })}
-              hint={t("admin.finance.pendingSettlementsHint")}
             />
           </div>
         ) : null}
@@ -383,9 +356,6 @@ function AdminFinancePage() {
                     {balanceSentence(row.net, "admin", t, formatEGP)}
                   </p>
                   <div>{statusCell(row)}</div>
-                  <p className="text-xs text-muted-foreground">
-                    {t("admin.finance.colLastSettlement")}: {lastSettlementCell(row)}
-                  </p>
                 </li>
               ))}
             </ul>
@@ -395,7 +365,6 @@ function AdminFinancePage() {
                   <AdminTableTh>{t("admin.finance.colProvider")}</AdminTableTh>
                   <AdminTableTh>{t("admin.finance.colBalance")}</AdminTableTh>
                   <AdminTableTh>{t("admin.finance.colStatus")}</AdminTableTh>
-                  <AdminTableTh>{t("admin.finance.colLastSettlement")}</AdminTableTh>
                   <AdminTableTh />
                 </AdminTableHead>
                 <AdminTableBody>
@@ -414,9 +383,6 @@ function AdminFinancePage() {
                         {balanceSentence(row.net, "admin", t, formatEGP)}
                       </AdminTableTd>
                       <AdminTableTd>{statusCell(row)}</AdminTableTd>
-                      <AdminTableTd className="text-xs text-muted-foreground">
-                        {lastSettlementCell(row)}
-                      </AdminTableTd>
                       <AdminTableTd>
                         <Link
                           to="/admin/provider/$id"
@@ -441,11 +407,7 @@ function AdminFinancePage() {
         <ul className="list-disc space-y-1 ps-5 text-sm text-muted-foreground">
           <li>{t("admin.finance.how1")}</li>
           <li>{t("admin.finance.how2")}</li>
-          <li>
-            {t("admin.finance.how3", {
-              day: weekdayName(settingsQ.data?.settlement_weekday ?? 0, lang),
-            })}
-          </li>
+          <li>{t("admin.finance.how3")}</li>
           <li>{t("admin.finance.how4", { limit: formatEGP(limit) })}</li>
           <li>{t("admin.finance.how5")}</li>
         </ul>

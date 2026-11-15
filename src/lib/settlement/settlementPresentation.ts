@@ -9,12 +9,17 @@ export type SettlementTranslate = (key: string, opts?: Record<string, unknown>) 
 export function settlementStatusLabel(status: string, t: SettlementTranslate): string {
   const key = String(status ?? "").toLowerCase();
   if (key === "pending") return t("pro.settlement.statusPending");
-  if (key === "paid" || key === "received" || key === "settled") return t("pro.settlement.statusSettled");
+  if (key === "paid" || key === "received" || key === "settled")
+    return t("pro.settlement.statusSettled");
   if (key === "cancelled") return t("pro.settlement.statusCancelled");
   return t("money.unknown");
 }
 
-export function settlementPeriodShort(periodStart: string, periodEnd: string, locale: string): string {
+export function settlementPeriodShort(
+  periodStart: string,
+  periodEnd: string,
+  locale: string,
+): string {
   const loc = locale.startsWith("ar") ? "ar-EG-u-nu-latn" : "en-US";
   const fmt = new Intl.DateTimeFormat(loc, {
     day: "numeric",

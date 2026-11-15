@@ -35,7 +35,7 @@ import { adminLocationLabel } from "@/components/admin/adminLocationLabel";
 import { ScheduleDateSheet } from "@/components/provider/ScheduleDateSheet";
 import { ProviderApprovalDecisionSummary } from "@/components/admin/ProviderApprovalDecisionSummary";
 import { TeachingCapabilityReviewQueue } from "@/components/admin/TeachingCapabilityReviewQueue";
-import { AdminProviderSettlements } from "@/components/admin/AdminProviderSettlements";
+import { ProviderWalletPanel } from "@/components/provider/ProviderWalletPanel";
 import { RequestUpdatedDetailsAction } from "@/components/admin/RequestUpdatedDetailsAction";
 import {
   deriveAdminApprovalDecision,
@@ -650,7 +650,7 @@ export function AdminProvider({ id }: { id: string }) {
         </div>
       )}
 
-      {p.onboarding_status === "APPROVED" && <AdminProviderSettlements providerId={id} />}
+      {p.onboarding_status === "APPROVED" && <ProviderWalletPanel providerId={id} audience="admin" />}
 
       <AdminReviewSection
         providerId={id}

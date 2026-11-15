@@ -37,16 +37,32 @@ describe("money glossary (Arabic)", () => {
 
   it("says who pays whom and whether it happened", () => {
     expect(
-      settlementStateLabel({ status: "pending", direction: "famy_pays_provider", amount: 300 }, "admin", t),
+      settlementStateLabel(
+        { status: "pending", direction: "famy_pays_provider", amount: 300 },
+        "admin",
+        t,
+      ),
     ).toBe("مستحق لمقدم الخدمة");
     expect(
-      settlementStateLabel({ status: "paid", direction: "famy_pays_provider", amount: 300 }, "admin", t),
+      settlementStateLabel(
+        { status: "paid", direction: "famy_pays_provider", amount: 300 },
+        "admin",
+        t,
+      ),
     ).toBe("تم التحويل لمقدم الخدمة");
     expect(
-      settlementStateLabel({ status: "received", direction: "provider_pays_famy", amount: 300 }, "provider", t),
+      settlementStateLabel(
+        { status: "received", direction: "provider_pays_famy", amount: 300 },
+        "provider",
+        t,
+      ),
     ).toBe("فامي استلمت تحويلك");
-    expect(settlementTone({ status: "pending", direction: "provider_pays_famy", amount: 5 })).toBe("pending");
-    expect(settlementTone({ status: "paid", direction: "famy_pays_provider", amount: 0 })).toBe("muted");
+    expect(settlementTone({ status: "pending", direction: "provider_pays_famy", amount: 5 })).toBe(
+      "pending",
+    );
+    expect(settlementTone({ status: "paid", direction: "famy_pays_provider", amount: 0 })).toBe(
+      "muted",
+    );
   });
 
   it("translates every ledger kind and signs amounts from the provider's side", () => {

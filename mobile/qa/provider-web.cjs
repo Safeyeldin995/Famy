@@ -147,14 +147,33 @@ const providerLedgerEntriesFixture = [
     id: id(92),
     provider_id: pid,
     kind: "cash_collected_platform_share",
+    direction: "debit",
     amount: 350,
+    booking_id: id(94),
+    payment_method: "cash",
+    note: null,
     created_at: new Date().toISOString(),
   },
   {
     id: id(93),
     provider_id: pid,
     kind: "online_provider_share",
+    direction: "credit",
     amount: 2100,
+    booking_id: id(95),
+    payment_method: "online",
+    note: null,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: id(96),
+    provider_id: pid,
+    kind: "payout_sent",
+    direction: "debit",
+    amount: 500,
+    booking_id: null,
+    payment_method: "manual_transfer",
+    note: "ref:TR-77 ",
     created_at: new Date().toISOString(),
   },
 ];
@@ -485,10 +504,11 @@ async function run() {
   await expect(page.getByText(ar.pro.earnings.title, { exact: true }).first()).toBeVisible({
     timeout: 20000,
   });
-  await expect(page.getByText(ar.pro.settlement.thisWeekTitle).first()).toBeVisible({
+  await expect(page.getByText(ar.wallet.pro.title).first()).toBeVisible({
     timeout: 20000,
   });
-  await expect(page.getByText(ar.pro.settlement.directionFamyPays).first()).toBeVisible();
+  await expect(page.getByText(ar.wallet.pro.famyOwes, { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(ar.wallet.pro.transfer.sent).first()).toBeVisible();
   await shot("pro-earnings");
 
   await visit("/pro-profile");

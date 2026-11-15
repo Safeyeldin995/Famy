@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { WalletBooking, WalletLedgerRow } from "@/lib/settlement/walletView";
 import { supabase } from "@/integrations/supabase/client";
 
 export type ProviderBalance = {
@@ -29,6 +30,7 @@ export type ProviderLedgerRow = {
   amount: number;
   payment_method: string | null;
   booking_id: string | null;
+  note?: string | null;
   created_at: string;
 };
 
@@ -91,7 +93,7 @@ export function useProviderLedger(providerId: string | undefined, limit = 50) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("provider_ledger_entries")
-        .select("id, kind, direction, amount, payment_method, booking_id, created_at")
+        .select("id, kind, direction, amount, payment_method, booking_id, note, created_at")
         .eq("provider_id", providerId!)
         .order("created_at", { ascending: false })
         .limit(limit);
@@ -190,4 +192,57 @@ export function settlementBalanceHeadline(
   if (net > 0) return t("pro.settlement.famyOwesYou", { amount: formatAmount(net) });
   if (net < 0) return t("pro.settlement.youOweFamy", { amount: formatAmount(Math.abs(net)) });
   return t("pro.settlement.balanced");
+}
+
+/** Price and provider share of the bookings that moved a provider's wallet. */
+export function useWalletBookings(ledger: WalletLedgerRow[] | undefined) {
+  const ids = [...new Set((ledger ?? []).map((r) => r.booking_id).filter(Boolean) as string[])].sort();
+  return useQuery({
+    enabled: ids.length > 0,
+    queryKey: ["wallet-bookings", ids],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("bookings")
+        .select("id, price_total, price_provider_net, start_at")
+        .in("id", ids);
+      if (error) throw error;
+      return new Map((data ?? []).map((b) => [b.id, b as WalletBooking]));
+    },
+  });
+}
+
+/**
+ * Admin records money that actually moved: "received" from the provider (they owed Famy)
+ * or "sent" to the provider (Famy owed them). The server checks the role and, for a
+ * payout, that it does not exceed what Famy owes.
+ */
+export function useRecordProviderTransfer(providerId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      direction: "received" | "sent";
+      amount: number;
+      reference: string;
+      reason: string;
+    }) => {
+      const args = {
+        p_provider_id: providerId!,
+        p_amount: input.amount,
+        p_reference: input.reference,
+        p_reason: input.reason,
+      };
+      const { error } =
+        input.direction === "received"
+          ? await supabase.rpc("admin_record_provider_debt_payment", args)
+          : await supabase.rpc("admin_record_provider_payout" as never, args as never);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["provider-ledger", providerId] });
+      void qc.invalidateQueries({ queryKey: ["provider-settlement-balance", providerId] });
+      void qc.invalidateQueries({ queryKey: ["provider-cash-debt-blocked", providerId] });
+      void qc.invalidateQueries({ queryKey: ["admin-finance-summary"] });
+      void qc.invalidateQueries({ queryKey: ["admin-finance-providers"] });
+    },
+  });
 }
