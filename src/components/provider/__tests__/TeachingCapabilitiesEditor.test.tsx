@@ -4,30 +4,9 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 const levels = vi.hoisted(() => [
   { id: "lvl-g9", code: "g9", name_en: "Grade 9", name_ar: "G9", is_active: true, sort_order: 9 },
-  {
-    id: "lvl-g10",
-    code: "g10",
-    name_en: "Grade 10",
-    name_ar: "G10",
-    is_active: true,
-    sort_order: 10,
-  },
-  {
-    id: "lvl-g11",
-    code: "g11",
-    name_en: "Grade 11",
-    name_ar: "G11",
-    is_active: true,
-    sort_order: 11,
-  },
-  {
-    id: "lvl-g12",
-    code: "g12",
-    name_en: "Grade 12",
-    name_ar: "G12",
-    is_active: true,
-    sort_order: 12,
-  },
+  { id: "lvl-g10", code: "g10", name_en: "Grade 10", name_ar: "G10", is_active: true, sort_order: 10 },
+  { id: "lvl-g11", code: "g11", name_en: "Grade 11", name_ar: "G11", is_active: true, sort_order: 11 },
+  { id: "lvl-g12", code: "g12", name_en: "Grade 12", name_ar: "G12", is_active: true, sort_order: 12 },
 ]);
 
 const curricula = vi.hoisted(() => [

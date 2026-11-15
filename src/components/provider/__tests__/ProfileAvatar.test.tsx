@@ -11,9 +11,7 @@ it.each(["h-11 w-11 rounded-full", "h-12 w-12 shrink-0 rounded-xl"])(
   "keeps the initial visible until loading succeeds and restores it onError (%s)",
   (className) => {
     state.url = "/customer.png";
-    const { rerender } = render(
-      <ProfileAvatar decorative={false} name="Mona" src="stored-path" className={className} />,
-    );
+    const { rerender } = render(<ProfileAvatar decorative={false} name="Mona" src="stored-path" className={className} />);
     const image = screen.getByRole("img", { name: "Mona" });
     expect(screen.getByText("M")).toBeTruthy();
     expect((image as HTMLImageElement).style.opacity).toBe("0");
@@ -24,9 +22,7 @@ it.each(["h-11 w-11 rounded-full", "h-12 w-12 shrink-0 rounded-xl"])(
     expect(screen.getByRole("img", { name: "Mona" }).textContent).toBe("M");
     expect(document.querySelector("img")).toBeNull();
     state.url = "/replacement.png";
-    rerender(
-      <ProfileAvatar decorative={false} name="Mona" src="replacement" className={className} />,
-    );
+    rerender(<ProfileAvatar decorative={false} name="Mona" src="replacement" className={className} />);
     expect((screen.getByRole("img", { name: "Mona" }) as HTMLImageElement).style.opacity).toBe("0");
     fireEvent.error(screen.getByRole("img", { name: "Mona" }));
     expect(screen.getByRole("img", { name: "Mona" }).textContent).toBe("M");
@@ -40,9 +36,7 @@ it("shows a first-letter fallback for a missing or failed avatar", () => {
   fireEvent.error(screen.getByRole("img", { name: "منى" }));
   expect(screen.getByRole("img", { name: "منى" }).textContent).toBe("م");
   expect(document.querySelector("img")).toBeNull();
-  rerender(
-    <ProfileAvatar decorative={false} name="منى" src="stored-path" preview="blob:synthetic" />,
-  );
+  rerender(<ProfileAvatar decorative={false} name="منى" src="stored-path" preview="blob:synthetic" />);
   expect(screen.getByRole("img", { name: "منى" }).getAttribute("src")).toBe("blob:synthetic");
 });
 

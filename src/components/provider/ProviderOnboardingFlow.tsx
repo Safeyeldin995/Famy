@@ -1,10 +1,5 @@
 import { ProfileAvatar } from "./ProfileAvatar";
-import {
-  localOnboardingMissing,
-  onboardingMissingItems,
-  type GuidanceField,
-  type MissingItem,
-} from "@/lib/provider/onboardingGuidance";
+import { localOnboardingMissing, onboardingMissingItems, type GuidanceField, type MissingItem } from "@/lib/provider/onboardingGuidance";
 import { useSearch } from "@tanstack/react-router";
 import { onboardingInitialStep } from "@/lib/provider/onboardingSection";
 import { isFixedPackage, packageLabel, servicePriceUnit } from "@/lib/pricing/servicePackages";
@@ -141,13 +136,7 @@ const PREVIEW_DEFAULTS = {
   ref2: { full_name: "Layla Hassan", relationship: "neighbor", phone: "+201022233344", notes: "" },
 };
 
-export function ProviderOnboardingFlow({
-  previewMode = false,
-  initialSection,
-}: {
-  previewMode?: boolean;
-  initialSection?: OnboardingSection;
-}) {
+export function ProviderOnboardingFlow({ previewMode = false, initialSection }: { previewMode?: boolean; initialSection?: OnboardingSection }) {
   const { t } = useTranslation();
   const lang = useLang();
   const nav = useNavigate();
@@ -194,17 +183,14 @@ export function ProviderOnboardingFlow({
   const search = useSearch({ strict: false });
   const [step, setStep] = useState(() => onboardingInitialStep(initialSection ?? search.section));
   const [err, setErr] = useState("");
-  const [attemptedSections, setAttemptedSections] = useState<Set<OnboardingSection>>(
-    () => new Set(),
-  );
+  const [attemptedSections, setAttemptedSections] = useState<Set<OnboardingSection>>(() => new Set());
   const [submissionErrors, setSubmissionErrors] = useState<Record<string, string> | null>(null);
   const [focusTarget, setFocusTarget] = useState<GuidanceField | null>(null);
   const [announcement, setAnnouncement] = useState("");
   useEffect(() => {
     if (!focusTarget) return;
     const frame = requestAnimationFrame(() => {
-      const element =
-        document.getElementById(focusTarget) ?? document.getElementById("onboarding-error");
+      const element = document.getElementById(focusTarget) ?? document.getElementById("onboarding-error");
       element?.scrollIntoView({ block: "center" });
       element?.focus({ preventScroll: true });
       setFocusTarget(null);
@@ -248,7 +234,9 @@ export function ProviderOnboardingFlow({
   );
   const secondaryPartnerZones = useMemo(() => {
     if (!primaryZoneId) return [];
-    const partnerIds = new Set(partnerZoneIdsFor(primaryZoneId, combinationsQ.data ?? []));
+    const partnerIds = new Set(
+      partnerZoneIdsFor(primaryZoneId, combinationsQ.data ?? []),
+    );
     return (zonesQ.data ?? []).filter((z: any) => partnerIds.has(z.id) && z.is_active);
   }, [primaryZoneId, combinationsQ.data, zonesQ.data]);
   const [ref1, setRef1] = useState(
@@ -383,53 +371,28 @@ export function ProviderOnboardingFlow({
     );
   }, [selectedServices, servicesQ.data]);
 
-  const hasDocument = (type: string) =>
-    !!uploadedDocs[type] || (docsQ.data ?? []).some((doc) => doc.type === type);
+  const hasDocument = (type: string) => !!uploadedDocs[type] || (docsQ.data ?? []).some(doc => doc.type === type);
   const localMissing = localOnboardingMissing({
-    legalName,
-    dob,
-    governorate,
-    area,
-    address,
-    photo: !!avatarPath || !!profile.avatar_url,
-    services: selectedServices.length > 0,
-    prices: pricesReady,
-    bioEn,
-    bioAr,
-    years: Number(years),
-    babysitting: babysittingSelected,
-    maxChildren,
-    ageGroups: childGroups.length,
-    coverage: selectedZones.length > 0,
-    references: [ref1, ref2],
-    idFront: hasDocument("id_card_front"),
-    idBack: hasDocument("id_card_back"),
-    confirmed,
+    legalName, dob, governorate, area, address, photo: !!avatarPath || !!profile.avatar_url,
+    services: selectedServices.length > 0, prices: pricesReady, bioEn, bioAr, years: Number(years),
+    babysitting: babysittingSelected, maxChildren, ageGroups: childGroups.length,
+    coverage: selectedZones.length > 0, references: [ref1, ref2],
+    idFront: hasDocument("id_card_front"), idBack: hasDocument("id_card_back"), confirmed,
   });
   const missingItems = onboardingMissingItems(localMissing, submissionErrors ?? errors);
-  const itemText = (item: MissingItem) =>
-    item.error
-      ? t(
-          `pro.onboardingWizard.errors.${item.error}`,
-          t("pro.onboardingWizard.guidance.checkSection"),
-        )
-      : t("pro.onboardingWizard.guidance.completeField", {
-          field: t(`pro.onboardingWizard.${item.label}`),
-        });
+  const itemText = (item: MissingItem) => item.error
+    ? t(`pro.onboardingWizard.errors.${item.error}`, t("pro.onboardingWizard.guidance.checkSection"))
+    : t("pro.onboardingWizard.guidance.completeField", { field: t(`pro.onboardingWizard.${item.label}`) });
   const openMissing = (item: MissingItem) => {
-    setAttemptedSections((sections) => new Set(sections).add(item.section as OnboardingSection));
+    setAttemptedSections(sections => new Set(sections).add(item.section as OnboardingSection));
     if (item.field.startsWith("reference-1")) setSecondReferenceExpanded(true);
-    setStep(STEPS.indexOf(item.section as (typeof STEPS)[number]));
+    setStep(STEPS.indexOf(item.section as typeof STEPS[number]));
     setAnnouncement(`${t(`pro.onboardingWizard.steps.${item.section}`)}: ${itemText(item)}`);
     setFocusTarget(item.field);
   };
   const fieldHint = (field: GuidanceField) => {
-    const item = localMissing.find((item) => item.field === field);
-    return item && attemptedSections.has(item.section as OnboardingSection) ? (
-      <p id={`${field}-hint`} className="mt-1 text-xs font-medium text-coral">
-        {itemText(item)}
-      </p>
-    ) : null;
+    const item = localMissing.find(item => item.field === field);
+    return item && attemptedSections.has(item.section as OnboardingSection) ? <p id={`${field}-hint`} className="mt-1 text-xs font-medium text-coral">{itemText(item)}</p> : null;
   };
 
   const toggleAgeChip = (chipId: AgeGroupChipId) => {
@@ -443,7 +406,7 @@ export function ProviderOnboardingFlow({
 
   const saveCurrent = async () => {
     if (deferred && !["personal", "experience", "references"].includes(current)) return;
-    setAttemptedSections((sections) => new Set(sections).add(current));
+    setAttemptedSections(sections => new Set(sections).add(current));
     setErr("");
     if (current === "services" && !pricesReady) return;
     if (current === "review" && localMissing.length) {
@@ -537,7 +500,7 @@ export function ProviderOnboardingFlow({
       } else if (current === "coverage") {
         const packed = buildCoverageSavePayload(coverageLoadState, selectedZones, activeZoneIds);
         if (!packed.ok) {
-          const first = localMissing.find((item) => item.field === "coverage");
+          const first = localMissing.find(item => item.field === "coverage");
           if (packed.error === "zone_required" && first) openMissing(first);
           setErr(
             packed.error === "zone_required"
@@ -563,7 +526,7 @@ export function ProviderOnboardingFlow({
         }
         const packed = buildReferencesPayload(ref1, ref2);
         if (!packed.ok) {
-          const first = localMissing.find((item) => item.section === "references");
+          const first = localMissing.find(item => item.section === "references");
           if (first) openMissing(first);
           setErr(
             packed.error === "ref1"
@@ -584,10 +547,7 @@ export function ProviderOnboardingFlow({
         return;
       }
       setSubmissionErrors(null);
-      if (deferred) {
-        nav({ to: proPath("/pro") as "/pro" });
-        return;
-      }
+      if (deferred) { nav({ to: proPath("/pro") as "/pro" }); return; }
       if (step < STEPS.length - 1) setStep(step + 1);
     } catch (e: any) {
       if (e?.message === "submission_incomplete") {
@@ -601,7 +561,7 @@ export function ProviderOnboardingFlow({
         }
       } else {
         setErr(t("pro.onboardingWizard.saveError"));
-        const first = localMissing.find((item) => item.section === current);
+        const first = localMissing.find(item => item.section === current);
         if (first) openMissing(first);
         else setFocusTarget("review");
       }
@@ -658,12 +618,7 @@ export function ProviderOnboardingFlow({
     docsQ.refetch();
   };
 
-  if (
-    !previewMode &&
-    (!editable || (deferred && current === "review")) &&
-    status &&
-    status !== "DRAFT"
-  ) {
+  if (!previewMode && (!editable || (deferred && current === "review")) && status && status !== "DRAFT") {
     const submittedRefs = refsQ.data ?? [];
     return (
       <PhoneFrame className="pro-surface" bg="bg-[#FEFAFC]">
@@ -756,9 +711,7 @@ export function ProviderOnboardingFlow({
                 <button
                   key={s}
                   type="button"
-                  disabled={
-                    deferred && !["personal", "experience", "references", "services"].includes(s)
-                  }
+                  disabled={deferred && !["personal", "experience", "references", "services"].includes(s)}
                   onClick={() => setStep(idx)}
                   className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-pro-12 font-extrabold transition-colors ${
                     active
@@ -786,11 +739,7 @@ export function ProviderOnboardingFlow({
             <label className="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border border-dashed border-brand/30 bg-brand/[0.04] px-4 py-5">
               <div className="grid h-20 w-20 place-items-center overflow-hidden rounded-2xl bg-brand/10 text-brand">
                 {shownPhoto ? (
-                  <ProfileAvatar
-                    preview={shownPhoto}
-                    name={legalName}
-                    className="h-20 w-20 rounded-full"
-                  />
+                  <ProfileAvatar preview={shownPhoto} name={legalName} className="h-20 w-20 rounded-full" />
                 ) : (
                   <Camera className="h-6 w-6" strokeWidth={ICON_STROKE_BOLD} aria-hidden="true" />
                 )}
@@ -802,8 +751,7 @@ export function ProviderOnboardingFlow({
                 {t("pro.onboardingWizard.photoHint")}
               </span>
               <input
-                id="photo"
-                aria-describedby="photo-hint"
+                id="photo" aria-describedby="photo-hint"
                 type="file"
                 accept="image/*"
                 className="sr-only"
@@ -813,8 +761,7 @@ export function ProviderOnboardingFlow({
             {fieldHint("photo")}
             <Field label={t("pro.onboardingWizard.legalName")}>
               <input
-                id="legalName"
-                aria-describedby="legalName-hint"
+                id="legalName" aria-describedby="legalName-hint"
                 value={legalName}
                 disabled={deferred}
                 onChange={(e) => setLegalName(e.target.value)}
@@ -822,27 +769,24 @@ export function ProviderOnboardingFlow({
               />
               {fieldHint("legalName")}
             </Field>
-            <div id="phone" tabIndex={-1}>
-              <Field label={t("pro.onboardingWizard.phone")}>
-                <input
-                  value={profile.phone ?? "+201098765432"}
-                  readOnly
-                  disabled
-                  className={`${inputClass} opacity-70`}
-                />
-              </Field>
-            </div>
+            <div id="phone" tabIndex={-1}><Field label={t("pro.onboardingWizard.phone")}>
+              <input
+                value={profile.phone ?? "+201098765432"}
+                readOnly
+                disabled
+                className={`${inputClass} opacity-70`}
+              />
+            </Field></div>
             <div className="grid grid-cols-2 gap-3">
               <Field label={t("pro.onboardingWizard.dob")}>
                 <input
                   type="date"
-                  id="dob"
-                  aria-describedby="dob-hint"
-                  value={dob}
+                  id="dob" aria-describedby="dob-hint"
+                value={dob}
                   onChange={(e) => setDob(e.target.value)}
                   className={inputClass}
                 />
-                {fieldHint("dob")}
+              {fieldHint("dob")}
               </Field>
               <Field label={t("pro.onboardingWizard.gender")}>
                 <select
@@ -858,8 +802,7 @@ export function ProviderOnboardingFlow({
             </div>
             <Field label={t("pro.onboardingWizard.governorate")}>
               <input
-                id="governorate"
-                aria-describedby="governorate-hint"
+                id="governorate" aria-describedby="governorate-hint"
                 value={governorate}
                 onChange={(e) => setGovernorate(e.target.value)}
                 className={inputClass}
@@ -868,8 +811,7 @@ export function ProviderOnboardingFlow({
             </Field>
             <Field label={t("pro.onboardingWizard.area")}>
               <input
-                id="area"
-                aria-describedby="area-hint"
+                id="area" aria-describedby="area-hint"
                 value={area}
                 onChange={(e) => setArea(e.target.value)}
                 className={inputClass}
@@ -878,8 +820,7 @@ export function ProviderOnboardingFlow({
             </Field>
             <Field label={t("pro.onboardingWizard.address")}>
               <textarea
-                id="address"
-                aria-describedby="address-hint"
+                id="address" aria-describedby="address-hint"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 rows={3}
@@ -892,9 +833,7 @@ export function ProviderOnboardingFlow({
 
         {current === "services" && (
           <Card className="space-y-2 rounded-[1.25rem] p-4">
-            <div id="services" tabIndex={-1}>
-              {fieldHint("services")}
-            </div>
+            <div id="services" tabIndex={-1}>{fieldHint("services")}</div>
             <p className="mb-2 text-xs font-semibold text-muted-foreground">
               {t("pro.onboardingWizard.servicesHint")}
             </p>
@@ -916,8 +855,7 @@ export function ProviderOnboardingFlow({
             {(servicesQ.data ?? []).map((s: any) => {
               const on = selectedServices.includes(s.id);
               const saved = savedServices.find((row) => row.service_id === s.id);
-              const locked =
-                deferred || (saved != null && (!editable || saved.status === "approved"));
+              const locked = deferred || (saved != null && (!editable || saved.status === "approved"));
               return (
                 <div key={s.id} className="space-y-2">
                   <button
@@ -945,11 +883,7 @@ export function ProviderOnboardingFlow({
                     <div className="break-words text-sm font-bold text-foreground">
                       {lang === "ar" ? s.name_ar : s.name_en}
                     </div>
-                    {isFixedPackage(s) && (
-                      <p className="mt-1 text-xs text-brand">
-                        {t(packageLabel(s).key, packageLabel(s).values)}
-                      </p>
-                    )}
+                    {isFixedPackage(s) && <p className="mt-1 text-xs text-brand">{t(packageLabel(s).key, packageLabel(s).values)}</p>}
                     <div className="mt-0.5 break-words text-xs font-medium text-muted-foreground">
                       {lang === "ar" ? s.category?.name_ar : s.category?.name_en}
                     </div>
@@ -975,11 +909,7 @@ export function ProviderOnboardingFlow({
           </Card>
         )}
 
-        {current === "services" && (
-          <div id="prices" tabIndex={-1}>
-            {fieldHint("prices")}
-          </div>
-        )}
+        {current === "services" && <div id="prices" tabIndex={-1}>{fieldHint("prices")}</div>}
         {current === "services" && tutoringSelected && providerId ? (
           <div className="mt-4">
             <TeachingCapabilitiesEditor
@@ -1007,8 +937,7 @@ export function ProviderOnboardingFlow({
               <input
                 type="number"
                 min={0}
-                id="years"
-                aria-describedby="years-hint"
+                id="years" aria-describedby="years-hint"
                 value={years}
                 onChange={(e) => setYears(Number(e.target.value))}
                 className={inputClass}
@@ -1018,15 +947,14 @@ export function ProviderOnboardingFlow({
             {lang === "ar" ? (
               <Field label={t("pro.onboarding.bioAr")}>
                 <textarea
-                  id="bio"
-                  aria-describedby="bio-hint"
-                  value={bioAr}
+                  id="bio" aria-describedby="bio-hint"
+                value={bioAr}
                   onChange={(e) => setBioAr(e.target.value)}
                   rows={4}
                   dir="rtl"
                   className={`${inputClass} min-h-[6rem] py-3`}
                 />
-                {fieldHint("bio")}
+              {fieldHint("bio")}
               </Field>
             ) : (
               <Field label={t("pro.onboarding.bioEn")}>
@@ -1053,21 +981,18 @@ export function ProviderOnboardingFlow({
                     type="number"
                     min={1}
                     max={20}
-                    id="maxChildren"
-                    aria-describedby="maxChildren-hint"
-                    value={maxChildren}
+                    id="maxChildren" aria-describedby="maxChildren-hint"
+                value={maxChildren}
                     disabled={!editable}
                     onChange={(e) =>
                       setMaxChildren(e.target.value === "" ? "" : Number(e.target.value))
                     }
                     className={inputClass}
                   />
-                  {fieldHint("maxChildren")}
+              {fieldHint("maxChildren")}
                 </Field>
                 <Field label={t("pro.onboardingWizard.childAgeGroups")}>
-                  <div id="ageGroups" tabIndex={-1}>
-                    {fieldHint("ageGroups")}
-                  </div>
+                  <div id="ageGroups" tabIndex={-1}>{fieldHint("ageGroups")}</div>
                   <div className="flex flex-wrap gap-2">
                     {AGE_GROUP_CHIP_IDS.map((chipId) => {
                       const verified = chipHasVerifiedCode(chipId, capabilityForms);
@@ -1149,9 +1074,7 @@ export function ProviderOnboardingFlow({
 
         {current === "coverage" && (
           <Card className="space-y-2 rounded-[1.25rem] p-4">
-            <div id="coverage" tabIndex={-1}>
-              {fieldHint("coverage")}
-            </div>
+            <div id="coverage" tabIndex={-1}>{fieldHint("coverage")}</div>
             <p className="mb-2 text-xs font-semibold text-muted-foreground">
               {t("pro.onboardingWizard.coverageHint")}
             </p>
@@ -1186,7 +1109,9 @@ export function ProviderOnboardingFlow({
                       disabled={coverageLoadState !== "ready"}
                       onClick={() => {
                         setPrimaryZoneId(z.id);
-                        setSecondaryZoneId((prev) => (prev && prev !== z.id ? prev : null));
+                        setSecondaryZoneId((prev) =>
+                          prev && prev !== z.id ? prev : null,
+                        );
                       }}
                       className={`w-full rounded-2xl border px-3 py-3 text-start text-sm font-bold break-words ${
                         on ? "border-brand bg-brand/[0.06]" : "border-border/60"
@@ -1341,17 +1266,11 @@ export function ProviderOnboardingFlow({
 
         {current === "review" && (
           <Card className="space-y-4 rounded-[1.25rem] p-4">
-            <div id="review" tabIndex={-1} className="text-sm font-extrabold">
-              {t("pro.onboardingWizard.reviewTitle")}
-            </div>
+            <div id="review" tabIndex={-1} className="text-sm font-extrabold">{t("pro.onboardingWizard.reviewTitle")}</div>
             <ul className="space-y-1 text-xs font-medium text-muted-foreground">
-              {missingItems.map((item) => (
+              {missingItems.map(item => (
                 <li key={item.field}>
-                  <button
-                    type="button"
-                    className="min-h-11 text-start text-coral underline"
-                    onClick={() => openMissing(item)}
-                  >
+                  <button type="button" className="min-h-11 text-start text-coral underline" onClick={() => openMissing(item)}>
                     {t(`pro.onboardingWizard.steps.${item.section}`)}: {itemText(item)}
                   </button>
                 </li>
@@ -1382,8 +1301,7 @@ export function ProviderOnboardingFlow({
             <label className="flex items-start gap-3 rounded-2xl border border-border/60 bg-surface-2/40 p-4 text-sm font-medium">
               <input
                 type="checkbox"
-                id="confirmed"
-                aria-describedby="confirmed-hint"
+                id="confirmed" aria-describedby="confirmed-hint"
                 checked={confirmed}
                 onChange={(e) => setConfirmed(e.target.checked)}
                 className="mt-0.5 accent-brand"
@@ -1394,16 +1312,9 @@ export function ProviderOnboardingFlow({
           </Card>
         )}
 
-        <p role="status" aria-live="assertive" className="sr-only">
-          {announcement}
-        </p>
+        <p role="status" aria-live="assertive" className="sr-only">{announcement}</p>
         {err && (
-          <div
-            id="onboarding-error"
-            tabIndex={-1}
-            role="alert"
-            className="rounded-2xl bg-coral/10 px-4 py-3 text-xs font-bold text-coral"
-          >
+          <div id="onboarding-error" tabIndex={-1} role="alert" className="rounded-2xl bg-coral/10 px-4 py-3 text-xs font-bold text-coral">
             {err}
           </div>
         )}
@@ -1485,8 +1396,7 @@ function DocButton({
       {label}
       {hint}
       <input
-        id={id}
-        aria-describedby={`${id}-hint`}
+        id={id} aria-describedby={`${id}-hint`}
         type="file"
         accept="image/*,application/pdf"
         className="sr-only"

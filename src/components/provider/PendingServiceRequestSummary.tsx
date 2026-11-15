@@ -1,4 +1,7 @@
-import { useMyRequirementFulfillments, useRequirementsForService } from "@/lib/db/provider-queries";
+import {
+  useMyRequirementFulfillments,
+  useRequirementsForService,
+} from "@/lib/db/provider-queries";
 import {
   useMyTeachingCapabilities,
   useTeachingCurricula,
@@ -76,9 +79,9 @@ export function PendingServiceRequestSummary({
           return (
             <p key={group.key} className="text-muted-foreground">
               {subject ? localizedTaxonomyName(subject, lang) : ""} ·{" "}
-              {curriculum ? localizedTaxonomyName(curriculum, lang) : ""} · {levelNames.join(", ")}{" "}
-              · {first.session_duration_min} {t("scheduleUi.minutes")} · {first.session_price}{" "}
-              {t("pricePicker.sessionUnit")}
+              {curriculum ? localizedTaxonomyName(curriculum, lang) : ""} ·{" "}
+              {levelNames.join(", ")} · {first.session_duration_min} {t("scheduleUi.minutes")} ·{" "}
+              {first.session_price} {t("pricePicker.sessionUnit")}
             </p>
           );
         })}

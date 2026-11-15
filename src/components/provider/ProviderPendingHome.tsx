@@ -4,11 +4,7 @@ import { missingTeachingServices } from "@/lib/provider/teachingSetupStatus";
 import { useState } from "react";
 import { StickyCta } from "@/components/famio/StickyCta";
 import { useProviderSubmittable } from "@/lib/provider/useProviderSubmittable";
-import {
-  changesHomeModel,
-  submissionErrors,
-  type SubmitCompletion,
-} from "@/lib/provider/changesHomeModel";
+import { changesHomeModel, submissionErrors, type SubmitCompletion } from "@/lib/provider/changesHomeModel";
 import { Link } from "@tanstack/react-router";
 import {
   Baby,
@@ -66,11 +62,7 @@ export function PendingHomeView({
   avatarUrl?: string;
   hoursHint?: string;
   hoursWarning?: string;
-  changes?: {
-    reason?: string | null;
-    completion?: SubmitCompletion;
-    onSubmit: () => Promise<void>;
-  };
+  changes?: { reason?: string | null; completion?: SubmitCompletion; onSubmit: () => Promise<void> };
 }) {
   const { t, i18n } = useTranslation();
   const proPath = useProPath();
@@ -85,122 +77,78 @@ export function PendingHomeView({
     setBusy(true);
     setFailed(false);
     setErrors({});
-    try {
-      await changes.onSubmit();
-    } catch (error) {
-      setFailed(true);
-      setErrors(submissionErrors(error));
-    } finally {
-      setBusy(false);
-    }
+    try { await changes.onSubmit(); }
+    catch (error) { setFailed(true); setErrors(submissionErrors(error)); }
+    finally { setBusy(false); }
   };
   return (
-    <section
-      className={`apply-ui apply-content apply-pending-home ${changes ? "apply-changes-home" : ""}`}
-      dir={i18n.dir()}
-    >
+    <section className={`apply-ui apply-content apply-pending-home ${changes ? "apply-changes-home" : ""}`} dir={i18n.dir()}>
       <div className="apply-hello">
         <h1>{t("providerApply.pending.hello", { name: firstName })}</h1>
         <ProfileAvatar src={avatarUrl} name={fullName} className="h-11 w-11 rounded-full" />
       </div>
-      {changes ? (
-        <div
-          className="apply-note !block"
-          style={{ background: "var(--apply-wait-tint)", color: "var(--apply-wait)" }}
-          role="status"
+      {changes ? <div className="apply-note !block" style={{ background: "var(--apply-wait-tint)", color: "var(--apply-wait)" }} role="status">
+        <h2 className="text-base font-bold">{t("providerChanges.title")}</h2>
+        <p className="mt-2 whitespace-pre-wrap break-words">{changes.reason || t("providerChanges.reasonFallback")}</p>
+      </div> : model.remaining === 0 ? <div className="apply-note !block border border-success/30 bg-success/10 text-success" role="status">
+        <h2 className="text-lg font-bold">{t("providerComplete.title")}</h2>
+        <p className="mt-2">{t("providerComplete.message")}</p>
+      </div> : <div className="apply-progcard">
+        <svg
+          width="58"
+          height="58"
+          viewBox="0 0 58 58"
+          role="img"
+          aria-label={t("providerApply.pending.progress", { done: model.done, total: model.total })}
         >
-          <h2 className="text-base font-bold">{t("providerChanges.title")}</h2>
-          <p className="mt-2 whitespace-pre-wrap break-words">
-            {changes.reason || t("providerChanges.reasonFallback")}
-          </p>
-        </div>
-      ) : model.remaining === 0 ? (
-        <div
-          className="apply-note !block border border-success/30 bg-success/10 text-success"
-          role="status"
-        >
-          <h2 className="text-lg font-bold">{t("providerComplete.title")}</h2>
-          <p className="mt-2">{t("providerComplete.message")}</p>
-        </div>
-      ) : (
-        <div className="apply-progcard">
-          <svg
-            width="58"
-            height="58"
-            viewBox="0 0 58 58"
-            role="img"
-            aria-label={t("providerApply.pending.progress", {
-              done: model.done,
-              total: model.total,
-            })}
+          <circle
+            cx="29"
+            cy="29"
+            r="24"
+            fill="none"
+            stroke="rgba(255,255,255,.18)"
+            strokeWidth="6"
+          />
+          <circle
+            cx="29"
+            cy="29"
+            r="24"
+            fill="none"
+            stroke="var(--brand)"
+            strokeWidth="6"
+            strokeLinecap="round"
+            strokeDasharray="150.8"
+            strokeDashoffset={model.strokeDashoffset}
+            transform="rotate(-90 29 29)"
+          />
+          <text
+            x="29"
+            y="34"
+            textAnchor="middle"
+            fill="#fff"
+            fontSize="14"
+            fontWeight="800"
+            direction="ltr"
           >
-            <circle
-              cx="29"
-              cy="29"
-              r="24"
-              fill="none"
-              stroke="rgba(255,255,255,.18)"
-              strokeWidth="6"
-            />
-            <circle
-              cx="29"
-              cy="29"
-              r="24"
-              fill="none"
-              stroke="var(--brand)"
-              strokeWidth="6"
-              strokeLinecap="round"
-              strokeDasharray="150.8"
-              strokeDashoffset={model.strokeDashoffset}
-              transform="rotate(-90 29 29)"
-            />
-            <text
-              x="29"
-              y="34"
-              textAnchor="middle"
-              fill="#fff"
-              fontSize="14"
-              fontWeight="800"
-              direction="ltr"
-            >
-              {model.done}/{model.total}
-            </text>
-          </svg>
-          <div>
-            <h2>{t(model.titleKey, { remaining: model.remaining })}</h2>
-            <p>{t(model.subtitleKey)}</p>
-          </div>
+            {model.done}/{model.total}
+          </text>
+        </svg>
+        <div>
+          <h2>{t(model.titleKey, { remaining: model.remaining })}</h2>
+          <p>{t(model.subtitleKey)}</p>
         </div>
-      )}
+      </div>}
       <ul className="apply-list">
-        {changes &&
-          changesModel.applicationItems.map(({ key, step, done, highlighted }) => {
-            const Icon = icons[key];
-            return (
-              <li key={key}>
-                <Link
-                  to={proPath("/pro/apply") as "/pro/apply"}
-                  search={{ step }}
-                  className={`apply-li focus-ring ${highlighted ? "border-s-4 border-destructive" : done ? "apply-done" : ""}`}
-                >
-                  <span className="apply-tile">
-                    <Icon size={20} aria-hidden="true" />
-                  </span>
-                  <span className="apply-task-text">
-                    <b>{t(`providerChanges.${key}`)}</b>
-                    <small>
-                      {highlighted ? t("providerChanges.fixRow") : t("providerChanges.editRow")}
-                    </small>
-                  </span>
-                  {done && !highlighted ? (
-                    <Check size={18} className="apply-done-check" aria-label={t("common.done")} />
-                  ) : (
-                    <span className="apply-tag apply-go">{t("common.edit")}</span>
-                  )}
-                </Link>
-              </li>
-            );
-          })}
+        {changes && changesModel.applicationItems.map(({ key, step, done, highlighted }) => {
+          const Icon = icons[key];
+          return <li key={key}>
+            <Link to={proPath("/pro/apply") as "/pro/apply"} search={{ step }} className={`apply-li focus-ring ${highlighted ? "border-s-4 border-destructive" : done ? "apply-done" : ""}`}>
+              <span className="apply-tile"><Icon size={20} aria-hidden="true" /></span>
+              <span className="apply-task-text"><b>{t(`providerChanges.${key}`)}</b><small>{highlighted ? t("providerChanges.fixRow") : t("providerChanges.editRow")}</small></span>
+              {done && !highlighted ? <Check size={18} className="apply-done-check" aria-label={t("common.done")} /> : <span className="apply-tag apply-go">{t("common.edit")}</span>}
+            </Link>
+          </li>;
+        })}
         {model.items.map(({ key, done, next }) => {
           const Icon = icons[key];
           return (
@@ -214,22 +162,8 @@ export function PendingHomeView({
                   <Icon size={20} aria-hidden="true" />
                 </span>
                 <span className="apply-task-text">
-                  <b>
-                    {t(key === "hours" ? "providerSetup.titles.hours" : `providerApply.${key}`)}
-                  </b>
-                  <small>
-                    {key === "hours" && hoursWarning
-                      ? hoursWarning
-                      : key === "subjects" && data.missingSubjects?.length
-                        ? t("providerClarity.missingSubjects", {
-                            services: data.missingSubjects
-                              .map((service) =>
-                                i18n.language.startsWith("ar") ? service.name_ar : service.name_en,
-                              )
-                              .join(i18n.language.startsWith("ar") ? "، " : ", "),
-                          })
-                        : t(key === "hours" ? hoursHint : `providerApply.pending.items.${key}`)}
-                  </small>
+                  <b>{t(key === "hours" ? "providerSetup.titles.hours" : `providerApply.${key}`)}</b>
+                  <small>{key === "hours" && hoursWarning ? hoursWarning : key === "subjects" && data.missingSubjects?.length ? t("providerClarity.missingSubjects", { services: data.missingSubjects.map(service => i18n.language.startsWith("ar") ? service.name_ar : service.name_en).join(i18n.language.startsWith("ar") ? "، " : ", ") }) : t(key === "hours" ? hoursHint : `providerApply.pending.items.${key}`)}</small>
                 </span>
                 {done ? (
                   <Check size={18} className="apply-done-check" aria-label={t("common.done")} />
@@ -242,49 +176,27 @@ export function PendingHomeView({
             </li>
           );
         })}
-        {!changes && (
-          <li>
-            <div className="apply-li apply-waiting">
-              <span className="apply-tile">
-                <ShieldCheck size={20} aria-hidden="true" />
-              </span>
-              <span className="apply-task-text">
-                <b>{t("providerApply.pending.review")}</b>
-                <small>{t("providerComplete.message")}</small>
-              </span>
-              <span className="apply-tag apply-wait">{t("providerApply.pending.waiting")}</span>
-            </div>
-          </li>
-        )}
+        {!changes && <li>
+          <div className="apply-li apply-waiting">
+            <span className="apply-tile">
+              <ShieldCheck size={20} aria-hidden="true" />
+            </span>
+            <span className="apply-task-text">
+              <b>{t("providerApply.pending.review")}</b>
+              <small>{t("providerComplete.message")}</small>
+            </span>
+            <span className="apply-tag apply-wait">{t("providerApply.pending.waiting")}</span>
+          </div>
+        </li>}
       </ul>
-      {changes && (
-        <>
-          {failed && (
-            <p role="alert" className="text-sm text-destructive">
-              {t("providerApply.saveError")} {t(changesModel.hintKey)}
-            </p>
-          )}
-          <StickyCta
-            disabled={!changesModel.canSubmit || busy}
-            onClick={() => void resubmit()}
-            hint={!changesModel.canSubmit || failed ? t(changesModel.hintKey) : undefined}
-          >
-            {t(busy ? "providerApply.saving" : "providerChanges.resubmit")}
-          </StickyCta>
-        </>
-      )}
+      {changes && <>
+        {failed && <p role="alert" className="text-sm text-destructive">{t("providerApply.saveError")} {t(changesModel.hintKey)}</p>}
+        <StickyCta disabled={!changesModel.canSubmit || busy} onClick={() => void resubmit()} hint={!changesModel.canSubmit || failed ? t(changesModel.hintKey) : undefined}>{t(busy ? "providerApply.saving" : "providerChanges.resubmit")}</StickyCta>
+      </>}
     </section>
   );
 }
-function LivePendingHome({
-  providerId,
-  changesRequested,
-  reviewReason,
-}: {
-  providerId: string;
-  changesRequested: boolean;
-  reviewReason?: string | null;
-}) {
+function LivePendingHome({ providerId, changesRequested, reviewReason }: { providerId: string; changesRequested: boolean; reviewReason?: string | null }) {
   const { t, i18n } = useTranslation();
   const proPath = useProPath();
   const completion = useProviderSubmittable(providerId, changesRequested);
@@ -295,15 +207,7 @@ function LivePendingHome({
   const services = usePhase1Services();
   const subjects = useMyTeachingCapabilities(providerId);
   const availability = useProviderAvailability(providerId);
-  const queries = [
-    snapshot,
-    refs,
-    selections,
-    services,
-    subjects,
-    availability,
-    ...(changesRequested ? [completion] : []),
-  ];
+  const queries = [snapshot, refs, selections, services, subjects, availability, ...(changesRequested ? [completion] : [])];
   if (queries.some((q) => q.isError))
     return <QueryError onRetry={() => queries.forEach((q) => void q.refetch())} />;
   if (queries.some((q) => !q.isSuccess)) return null;
@@ -324,34 +228,9 @@ function LivePendingHome({
   const hours = workingHoursState(availability.data!, selected);
   return (
     <PendingHomeView
-      changes={
-        changesRequested
-          ? {
-              reason: reviewReason,
-              completion: completion.data,
-              onSubmit: async () => {
-                await submit.mutateAsync();
-              },
-            }
-          : undefined
-      }
-      hoursWarning={hours.missingPackages
-        .map((service) =>
-          service.fixed_start_time?.slice(0, 5) === "18:00" && service.duration_min === 360
-            ? t("providerHoursFix.nightConflict")
-            : t("providerHoursFix.packageConflict", {
-                start: timeChoiceLabel(service.fixed_start_time!, i18n.language),
-                end: timeChoiceLabel(packageEndTime(service), i18n.language),
-              }),
-        )
-        .join(" · ")}
-      hoursHint={
-        hours.needsNight
-          ? "providerSetup.nightHint"
-          : hours.isDefault
-            ? "providerSetup.defaultHoursHint"
-            : "providerSetup.hoursHint"
-      }
+      changes={changesRequested ? { reason: reviewReason, completion: completion.data, onSubmit: async () => { await submit.mutateAsync(); } } : undefined}
+      hoursWarning={hours.missingPackages.map(service => service.fixed_start_time?.slice(0, 5) === "18:00" && service.duration_min === 360 ? t("providerHoursFix.nightConflict") : t("providerHoursFix.packageConflict", { start: timeChoiceLabel(service.fixed_start_time!, i18n.language), end: timeChoiceLabel(packageEndTime(service), i18n.language) })).join(" · ")}
+      hoursHint={hours.needsNight ? "providerSetup.nightHint" : hours.isDefault ? "providerSetup.defaultHoursHint" : "providerSetup.hoursHint"}
       fullName={data.profile?.full_name ?? ""}
       avatarUrl={data.profile?.avatar_url}
       data={{
@@ -368,16 +247,9 @@ function LivePendingHome({
         needsBabysitting: selected.some((s) => s.category?.slug === "babysitting"),
         babysitting:
           !!data.provider?.max_children_per_booking && !!data.age_group_capabilities?.length,
-        missingSubjects: missingTeachingServices(
-          selected.filter((s) => s.category?.slug === "tutoring"),
-          subjects.data!,
-        ),
+        missingSubjects: missingTeachingServices(selected.filter(s => s.category?.slug === "tutoring"), subjects.data!),
         needsSubjects: selected.some((s) => s.category?.slug === "tutoring"),
-        subjects:
-          missingTeachingServices(
-            selected.filter((s) => s.category?.slug === "tutoring"),
-            subjects.data!,
-          ).length === 0,
+        subjects: missingTeachingServices(selected.filter(s => s.category?.slug === "tutoring"), subjects.data!).length === 0,
       }}
     />
   );
@@ -397,17 +269,7 @@ export function ProviderPendingHome({
   const [previewSubmitted, setPreviewSubmitted] = useState(false);
   return preview ? (
     <PendingHomeView
-      changes={
-        changesRequested && !previewSubmitted
-          ? {
-              reason: t("providerChanges.previewReason"),
-              completion: { ok: true, complete: true, errors: {} },
-              onSubmit: async () => {
-                setPreviewSubmitted(true);
-              },
-            }
-          : undefined
-      }
+      changes={changesRequested && !previewSubmitted ? { reason: t("providerChanges.previewReason"), completion: { ok: true, complete: true, errors: {} }, onSubmit: async () => { setPreviewSubmitted(true); } } : undefined}
       fullName="منى عادل"
       hoursHint="providerSetup.defaultHoursHint"
       data={{
@@ -423,10 +285,6 @@ export function ProviderPendingHome({
       }}
     />
   ) : providerId ? (
-    <LivePendingHome
-      providerId={providerId}
-      changesRequested={changesRequested}
-      reviewReason={reviewReason}
-    />
+    <LivePendingHome providerId={providerId} changesRequested={changesRequested} reviewReason={reviewReason} />
   ) : null;
 }

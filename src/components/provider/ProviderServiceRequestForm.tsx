@@ -86,7 +86,9 @@ export function ProviderServiceRequestForm({
   const [draftSubject, setDraftSubject] = useState("");
   const [draftCurriculum, setDraftCurriculum] = useState("");
   const [draftLevels, setDraftLevels] = useState<string[]>([]);
-  const [draftDuration, setDraftDuration] = useState(service.allowed_session_durations?.[0] ?? 60);
+  const [draftDuration, setDraftDuration] = useState(
+    service.allowed_session_durations?.[0] ?? 60,
+  );
   const [draftPrice, setDraftPrice] = useState<number | null>(null);
 
   const approvalRequirements = useMemo(
@@ -116,9 +118,7 @@ export function ProviderServiceRequestForm({
       ),
     [service.id, curriculum?.code, levelsQ.data, serviceLevelsQ.data],
   );
-  const selectableCurricula = (curriculaQ.data ?? []).filter(
-    (row) => !isTeachingCurriculumNa(row.code),
-  );
+  const selectableCurricula = (curriculaQ.data ?? []).filter((row) => !isTeachingCurriculumNa(row.code));
 
   const serviceName =
     lang === "ar" ? (service.name_ar ?? service.name_en) : (service.name_en ?? service.name_ar);
@@ -133,7 +133,9 @@ export function ProviderServiceRequestForm({
       toast.error(t("pro.serviceRequest.teachingIncomplete"));
       return;
     }
-    if (!isPriceInRange(draftPrice, service.minimum_price ?? null, service.maximum_price ?? null)) {
+    if (
+      !isPriceInRange(draftPrice, service.minimum_price ?? null, service.maximum_price ?? null)
+    ) {
       toast.error(t("pricePicker.outOfRange"));
       return;
     }
@@ -302,9 +304,9 @@ export function ProviderServiceRequestForm({
               value={draftPrice}
               onChange={setDraftPrice}
               unitLabel={t(
-                servicePriceUnit(service as Parameters<typeof servicePriceUnit>[0]).key,
-                servicePriceUnit(service as Parameters<typeof servicePriceUnit>[0]).values,
-              )}
+              servicePriceUnit(service as Parameters<typeof servicePriceUnit>[0]).key,
+              servicePriceUnit(service as Parameters<typeof servicePriceUnit>[0]).values,
+            )}
             />
             <button
               type="button"
@@ -357,7 +359,9 @@ export function ProviderServiceRequestForm({
               max={6}
               className="mt-1 min-h-11 w-full rounded-xl border border-border px-3"
               value={maxChildren}
-              onChange={(e) => setMaxChildren(e.target.value === "" ? "" : Number(e.target.value))}
+              onChange={(e) =>
+                setMaxChildren(e.target.value === "" ? "" : Number(e.target.value))
+              }
             />
           </label>
           <div className="flex flex-wrap gap-2">
@@ -369,7 +373,9 @@ export function ProviderServiceRequestForm({
                   type="button"
                   className={`min-h-11 rounded-xl border px-3 text-xs font-bold ${on ? "border-brand bg-brand/10" : "border-border"}`}
                   onClick={() =>
-                    setAgeChips((ids) => (on ? ids.filter((id) => id !== chip) : [...ids, chip]))
+                    setAgeChips((ids) =>
+                      on ? ids.filter((id) => id !== chip) : [...ids, chip],
+                    )
                   }
                 >
                   {t(`pro.onboardingWizard.ageGroupChips.${chip}`)}
