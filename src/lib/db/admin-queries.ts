@@ -244,9 +244,14 @@ export function useDocumentSignedUrl() {
   });
 }
 
-export function useAdminBookings(status?: string | string[]) {
+/** `status` filters by booking status; `{ ids }` loads specific bookings (e.g. a work queue). */
+export function useAdminBookings(
+  status?: string | string[] | { ids: string[] },
+  options: { enabled?: boolean } = {},
+) {
   return useQuery({
     queryKey: ['admin', 'bookings', status ?? 'all'],
+    enabled: options.enabled ?? true,
     queryFn: async () => {
       let q = supabase
         .from('bookings')
@@ -261,7 +266,10 @@ export function useAdminBookings(status?: string | string[]) {
         `)
         .order('created_at', { ascending: false })
         .limit(200);
-      if (Array.isArray(status)) q = q.in('status', status as any);
+      if (status && typeof status === 'object' && !Array.isArray(status)) {
+        if (!status.ids.length) return [];
+        q = q.in('id', status.ids);
+      } else if (Array.isArray(status)) q = q.in('status', status as any);
       else if (status) q = q.eq('status', status as any);
       const { data, error } = await q;
       if (error) throw error;
