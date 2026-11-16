@@ -4559,6 +4559,10 @@ export type Database = {
         Args: { p_method_id: string }
         Returns: undefined
       }
+      admin_record_payment_refund: {
+        Args: { p_payment_id: string; p_reference: string }
+        Returns: undefined
+      }
       admin_record_provider_debt_payment: {
         Args: {
           p_provider_id: string

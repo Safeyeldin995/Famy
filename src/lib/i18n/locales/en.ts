@@ -2612,6 +2612,7 @@ const en = {
     notPending: "This price change is no longer pending.",
   },
   payment: {
+    refundOnTheWay: "The booking was cancelled after you paid. Famy will send the money back the same way you paid",
     openInstapay: "Open InstaPay to pay",
     cannotOpenInstapay: "Couldn't open InstaPay. Copy the address and pay from the app.",
     title: "Payment",
@@ -2682,6 +2683,10 @@ const en = {
       paid: { label: "Paid", note: "Famy received the amount." },
       rejected: { label: "Transfer rejected", note: "The receipt was rejected and no amount was counted." },
       failed: { label: "Payment failed", note: "The payment didn't go through and nothing was charged." },
+      recordRefund: "Record refund to customer",
+      recordRefundHint: "Send {{amount}} back to the customer first (Paymob dashboard or InstaPay), then record the transaction reference here. Recording does not move any money",
+      refundReference: "Refund transaction reference",
+      refundDue: { label: "Refund due", note: "The customer paid and the booking was cancelled. Send the money back and record it" },
       refunded: { label: "Refunded", note: "The amount was returned to the customer." },
     },
     settlement: {

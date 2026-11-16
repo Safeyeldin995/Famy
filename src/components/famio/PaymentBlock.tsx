@@ -236,6 +236,11 @@ export function PaymentBlock({
   const isCash = resolvedMethodType === "cash";
   const isManualTransfer = resolvedMethodType === "manual_transfer";
   const canConfirm = viewer === "admin" || viewer === "provider";
+  // Paid (card captured, or InstaPay receipt sent) but the booking was cancelled: Famy sends it back.
+  const refundOnTheWay =
+    (bookingStatus === "cancelled" || bookingStatus === "no_show") &&
+    ((p.status === "captured" && !isCash) ||
+      (p.status === "pending_review" && isManualTransfer && !!p.proof_path));
   const captureAllowed = bookingStatus === "completed";
   const canUpload = viewer === "customer" && isManualTransfer && p.status === "pending_review";
   const canPayOnline = viewer === "customer" && resolvedIsOnline && p.status === "pending";
@@ -355,6 +360,12 @@ export function PaymentBlock({
             {paymobStarting ? t("payment.paymobStarting") : t("payment.paymobContinue")}
           </button>
         </div>
+      )}
+
+      {viewer === "customer" && refundOnTheWay && (
+        <p className="rounded-2xl bg-surface-2 p-3 text-sm font-semibold">
+          {t("payment.refundOnTheWay")}
+        </p>
       )}
 
       {/* Customer manual-transfer instructions + upload */}

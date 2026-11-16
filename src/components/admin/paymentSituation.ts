@@ -15,6 +15,7 @@ export type PaymentSituation =
   | "cashRecorded" // cash, completed, Famy's share is on the provider's account
   | "cashUnconfirmed" // cash, completed before the ledger, admin must confirm
   | "noPaymentDue" // booking cancelled / no-show before any payment
+  | "refundDue" // money received but the booking was cancelled / no-show: send it back
   | "paid"
   | "rejected"
   | "failed"
@@ -51,11 +52,15 @@ export function paymentSituation(
   const booking = p.booking?.status ?? "";
   const type = methodType(p);
 
-  if (status === "captured") return "paid";
+  const closed = CLOSED_WITHOUT_SERVICE.has(booking);
+  // Money already with Famy on a booking that will not happen: it goes back to the customer.
+  if (status === "captured") return closed && type !== "cash" ? "refundDue" : "paid";
+  if (closed && status === "pending_review" && type === "manual_transfer" && p.proof_path)
+    return "refundDue";
   if (status === "refunded" || status === "partially_refunded") return "refunded";
   if (status === "rejected") return "rejected";
   if (status === "failed") return "failed";
-  if (status === "pending_review" && type === "manual_transfer") return "review";
+  if (status === "pending_review" && type === "manual_transfer" && !closed) return "review";
 
   if (status === "pending" || status === "pending_review" || status === "authorized") {
     if (CLOSED_WITHOUT_SERVICE.has(booking)) return "noPaymentDue";
@@ -75,6 +80,7 @@ export function situationTone(s: PaymentSituation): SituationTone {
   switch (s) {
     case "review":
     case "cashUnconfirmed":
+    case "refundDue":
       return "action";
     case "awaitingProof":
     case "awaitingCard":

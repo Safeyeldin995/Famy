@@ -213,6 +213,11 @@ export function PaymentBlock({
               t("payment.title")}
           </Text>
           <Text>{t(`payment.status.${p.status}`)}</Text>
+          {(status === "cancelled" || status === "no_show") &&
+            ((p.status === "captured" && type !== "cash") ||
+              (p.status === "pending_review" && type === "manual_transfer" && !!p.proof_path)) && (
+              <Text weight="bold">{t("payment.refundOnTheWay")}</Text>
+            )}
           <Text style={moneyTextStyle(i18n.language)}>{money(p.amount, i18n.language)}</Text>
           <Text>
             {(i18n.language === "ar" ? snapshot?.instructions_ar : snapshot?.instructions_en) ??
