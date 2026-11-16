@@ -71,7 +71,9 @@ export function AccountDeletionScreen({ backTo }: { backTo: string }) {
     <AppShell>
       <CustomerPageHeader title={t("accountDeletion.title")} backTo={backTo} />
       <div className="space-y-6 px-5 pb-8 pt-4">
-        <p className="text-pro-14 font-medium text-muted-foreground">{t("accountDeletion.intro")}</p>
+        <p className="text-pro-14 font-medium text-muted-foreground">
+          {t("accountDeletion.intro")}
+        </p>
 
         <section className="rounded-2xl border border-border/60 bg-white p-4">
           <h2 className="text-pro-14 font-extrabold text-foreground">
@@ -102,19 +104,37 @@ export function AccountDeletionScreen({ backTo }: { backTo: string }) {
         ) : null}
 
         {!loadingCheck && blockedReason === "active_bookings" ? (
-          <p role="alert" className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-pro-13 font-semibold text-destructive">
+          <p
+            role="alert"
+            className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-pro-13 font-semibold text-destructive"
+          >
             {t("accountDeletion.blockedActiveBookings")}
           </p>
         ) : null}
 
+        {!loadingCheck && blockedReason === "unpaid_balance" ? (
+          <p
+            role="alert"
+            className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-pro-13 font-semibold text-destructive"
+          >
+            {t("accountDeletion.blockedUnpaid")}
+          </p>
+        ) : null}
+
         {!loadingCheck && blockedReason === "admin" ? (
-          <p role="alert" className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-pro-13 font-semibold text-destructive">
+          <p
+            role="alert"
+            className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-pro-13 font-semibold text-destructive"
+          >
             {t("accountDeletion.blockedAdmin")}
           </p>
         ) : null}
 
         {!loadingCheck && blockedReason === "not_authenticated" ? (
-          <p role="alert" className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-pro-13 font-semibold text-destructive">
+          <p
+            role="alert"
+            className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-pro-13 font-semibold text-destructive"
+          >
             {t("accountDeletion.errors.unauthorized")}
           </p>
         ) : null}

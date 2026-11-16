@@ -1483,6 +1483,7 @@ const en = {
     keptTitle: "What we keep (anonymized)",
     keptBody:
       "Bookings, payments, reviews, and messages stay for accounting, tax, and the other party's history. You will appear as \"Deleted user\".",
+    blockedUnpaid: "You owe Famy money (cancellation fees or a balance). Settle it first, then you can delete your account",
     blockedActiveBookings: "Finish or cancel your upcoming bookings first.",
     blockedAdmin: "Admin accounts cannot be deleted from the app. Contact engineering support.",
     confirmWord: "DELETE",
@@ -1493,6 +1494,7 @@ const en = {
     checking: "Checking whether deletion is allowed…",
     errors: {
       unauthorized: "Sign in again to delete your account.",
+      unpaid_balance: "You owe Famy money. Settle it first, then delete your account",
       active_bookings: "Finish or cancel your upcoming bookings first.",
       admin_not_allowed: "Admin accounts cannot be deleted from the app.",
       deletion_failed: "Could not delete your account. Try again later.",

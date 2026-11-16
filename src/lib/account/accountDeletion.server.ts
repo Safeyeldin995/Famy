@@ -110,6 +110,9 @@ export async function runAccountDeletion(params: {
     if (reason === "admin") {
       return { ok: false, error: "admin_not_allowed", status: 403 };
     }
+    if (reason === "unpaid_balance") {
+      return { ok: false, error: "unpaid_balance", status: 409 };
+    }
     return { ok: false, error: "active_bookings", status: 409 };
   }
 
