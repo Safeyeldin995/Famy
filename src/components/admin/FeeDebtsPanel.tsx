@@ -172,16 +172,15 @@ export function FeeDebtsPanel() {
                     </p>
                   ) : null}
                 </div>
-                {d.carried_booking_id ? null : (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    className={`${btn} border border-border`}
-                    onClick={() => setSheet({ kind: "waive", id: d.id })}
-                  >
-                    {t("admin.feeDebts.waive")}
-                  </button>
-                )}
+                {/* The database refuses a fee the customer is paying with an active booking. */}
+                <button
+                  type="button"
+                  disabled={busy}
+                  className={`${btn} border border-border`}
+                  onClick={() => setSheet({ kind: "waive", id: d.id })}
+                >
+                  {t("admin.feeDebts.waive")}
+                </button>
               </li>
             ))}
           </ul>

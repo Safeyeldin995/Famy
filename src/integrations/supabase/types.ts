@@ -4685,6 +4685,10 @@ export type Database = {
         Args: { p_proof_path: string }
         Returns: string
       }
+      admin_payment_refund_breakdown: {
+        Args: { p_payment_id: string }
+        Returns: Json
+      }
       my_unpaid_fees: {
         Args: Record<PropertyKey, never>
         Returns: {

@@ -743,6 +743,17 @@ function BookContentForm({
       toast.error(t("bookFlow.paymentFailed", "Could not record payment method"));
       return;
     }
+    // The server adds unpaid fees when it creates the booking: make sure the total shown
+    // is still right before confirming.
+    const fees = await feeDebtsQ.refetch();
+    if (fees.isError || !fees.data) {
+      toast.error(t("bookFlow.feesCheckFailed"));
+      return;
+    }
+    if (fees.data.total !== carriedFees) {
+      toast.info(t("bookFlow.feesChanged"));
+      return;
+    }
     // Use the real slot's start/end (set when the customer picked it from
     // real availability data) rather than re-parsing the display label —
     // more robust than string-matching a locale-formatted time string.

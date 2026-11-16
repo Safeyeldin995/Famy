@@ -10,7 +10,10 @@ import { colors, radius, space } from "@/ui/theme";
 import { localized, money } from "@/lib/presentation";
 import { joinUiParts } from "@shared/format/uiJoin";
 import type { BookingParty } from "@/lib/provider/parties";
-import { isSupervisionMode, supervisionModeProviderLabel } from "@shared/booking/supervisionMode";
+import {
+  isSupervisionMode,
+  supervisionModeProviderLabel,
+} from "@shared/booking/supervisionMode";
 import {
   providerHomeActiveBookingNeedsAction,
   providerHomeActiveBookingNextStepKey,

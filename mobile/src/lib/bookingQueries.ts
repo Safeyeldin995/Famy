@@ -409,7 +409,11 @@ export function useCreateBooking() {
         { retryDelayMs: 250 },
       );
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["my-bookings"] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["my-bookings"] });
+      // Unpaid fees were attached to this booking.
+      void qc.invalidateQueries({ queryKey: ["customer-fee-debts"] });
+    },
   });
 }
 

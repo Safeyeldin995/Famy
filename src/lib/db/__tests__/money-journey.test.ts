@@ -21,6 +21,10 @@ import {
 } from "./booking-lifecycle.harness";
 
 let db: PGlite;
+
+/** A receipt file the customer uploaded (storage is a stub in the migration replay). */
+const putReceipt = (path: string) =>
+  db.query("INSERT INTO storage.objects (bucket_id, name) VALUES ('payment-proofs', $1)", [path]);
 let customerReason: string;
 let expectedNet = 0;
 
@@ -95,6 +99,7 @@ beforeAll(async () => {
     "SELECT id FROM public.cancellation_reasons WHERE code = 'customer_change_of_plans'",
   );
   customerReason = reasons[0].id;
+  await putReceipt(`fees/${IDS.customer}/e1.jpg`);
   await asServiceRole(db, () =>
     db.exec(`
       UPDATE public.settings SET value = '{"fee_mode":"fixed","fee_value":${FEE},"free_cancel_hours":2}'::jsonb
@@ -293,6 +298,13 @@ describe("money journey", () => {
     await keepOnly(bookingId, paymobId);
     await capture(paymobId);
     expect((await cancel(bookingId)).error).toBeUndefined();
+    const preview = await tryAsUser(
+      db,
+      IDS.adminUser,
+      "SELECT public.admin_payment_refund_breakdown($1) AS b",
+      [paymobId],
+    );
+    expect(preview.rows![0].b).toEqual({ paid: 550, fee: 0, carried: FEE, refund: 500 });
     expect((await refund(paymobId, "PM-J")).error).toBeUndefined();
     const meta = await queryRows<{ back: string; kept: string }>(
       db,

@@ -465,6 +465,17 @@ function BookForm({
         await slots.refetch();
         return;
       }
+      // The server adds unpaid fees when it creates the booking: make sure the total shown
+      // is still right before confirming.
+      const fees = await feeDebts.refetch();
+      if (fees.isError || !fees.data) {
+        setError(t("bookFlow.feesCheckFailed"));
+        return;
+      }
+      if (fees.data.total !== carriedFees) {
+        setError(t("bookFlow.feesChanged"));
+        return;
+      }
       const payload = buildBookingRequest({
         providerId,
         serviceId: service.service.id,

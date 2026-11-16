@@ -69,19 +69,17 @@ export async function seedLifecycleBooking(
   );
   const serviceId = serviceRows[0]?.id;
   if (!serviceId) {
-    throw new Error(
-      "expected seeded babysitting service hourly-babysitting after migration replay",
-    );
+    throw new Error("expected seeded babysitting service hourly-babysitting after migration replay");
   }
 
   const fixtureReady = await queryRows<{ ok: number }>(
     db,
-    `SELECT 1 AS ok FROM public.providers WHERE id = $1 AND onboarding_status = 'APPROVED' LIMIT 1`,
+  `SELECT 1 AS ok FROM public.providers WHERE id = $1 AND onboarding_status = 'APPROVED' LIMIT 1`,
     [providerId],
   );
 
   if (!fixtureReady.length) {
-    await db.exec(`
+  await db.exec(`
     INSERT INTO auth.users (id, raw_user_meta_data) VALUES
       ('${customerId}', '{"full_name":"Lifecycle Customer"}'),
       ('${IDS.providerUser}', '{"signup_role":"provider","full_name":"Lifecycle Provider"}'),
@@ -147,14 +145,14 @@ export async function seedLifecycleBooking(
     ON CONFLICT DO NOTHING;
   `);
 
-    await asUser(db, IDS.adminUser, () =>
-      db.exec(`
+  await asUser(db, IDS.adminUser, () =>
+    db.exec(`
       UPDATE public.provider_services SET status = 'approved'
       WHERE provider_id IN ('${providerId}', '${IDS.otherProvider}') AND service_id = '${serviceId}';
     `),
-    );
+  );
 
-    await db.exec(`
+  await db.exec(`
     SELECT set_config('app.onboarding_status_transition', '1', true);
     UPDATE public.providers
     SET onboarding_status = 'APPROVED', is_verified = true, is_active = true
@@ -284,7 +282,9 @@ export async function updateBookingStatus(
   status: BookingStatus,
   extra?: { no_show_party?: "customer" | "provider" },
 ): Promise<{ ok: boolean; error?: string }> {
-  const extraSql = extra?.no_show_party ? `, no_show_party = '${extra.no_show_party}'` : "";
+  const extraSql = extra?.no_show_party
+    ? `, no_show_party = '${extra.no_show_party}'`
+    : "";
   const result = await tryAsUser(
     db,
     userId,

@@ -85,7 +85,12 @@ export function FeeDebtBanner() {
         {t("feeDebt.title", { amount: formatEGP(d.total) })}
       </p>
       <p className="text-sm text-muted-foreground">{t("feeDebt.body")}</p>
-      {mode === "choose" ? (
+      {d.inReview ? (
+        // One receipt at a time: the next payment opens once Famy checks this one.
+        <p className="text-sm font-bold">
+          {t("feeDebt.inReview", { amount: formatEGP(d.inReview.amount) })}
+        </p>
+      ) : mode === "choose" ? (
         <>
           {d.lastRejected ? (
             <p className="text-sm text-destructive">

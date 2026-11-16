@@ -51,6 +51,18 @@ CREATE UNIQUE INDEX provider_ledger_booking_kind_uidx
                  'cancellation_fee_provider_share', 'carried_fee_collected');
 
 -- 3) Which unpaid fees are free to carry or pay now ---------------------------------------
+-- Every change to a customer's unpaid fees takes this lock (to the end of the transaction),
+-- so a booking's carried amount always matches the fees it attaches.
+CREATE OR REPLACE FUNCTION public.lock_customer_debts(p_customer_id uuid)
+RETURNS void
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT pg_advisory_xact_lock(hashtextextended('famy_customer_debt:' || p_customer_id::text, 0))
+$$;
+REVOKE ALL ON FUNCTION public.lock_customer_debts(uuid) FROM PUBLIC, anon, authenticated;
+
 -- Open, not riding on a live booking, and not inside an InstaPay receipt waiting for review.
 -- A fee whose booking was cancelled with no money held is free again (self-healing).
 CREATE OR REPLACE FUNCTION public.customer_carryable_debt_ids(p_customer_id uuid)
@@ -106,7 +118,7 @@ AS $$
 BEGIN
   -- Same lock as fee creation and settlements, held to the end of the transaction, so the
   -- AFTER INSERT attach sees exactly the fees summed here.
-  PERFORM pg_advisory_xact_lock(hashtextextended('famy_customer_debt:' || NEW.customer_id::text, 0));
+  PERFORM public.lock_customer_debts(NEW.customer_id);
   SELECT COALESCE(sum(d.amount), 0) INTO NEW.carried_fees_amount
   FROM public.customer_debts d
   WHERE d.id = ANY(public.customer_carryable_debt_ids(NEW.customer_id));
@@ -193,7 +205,7 @@ BEGIN
     RETURN NEW; -- deducted from the refund instead
   END IF;
   SELECT * INTO v_b FROM public.bookings WHERE id = NEW.booking_id;
-  PERFORM pg_advisory_xact_lock(hashtextextended('famy_customer_debt:' || v_b.customer_id::text, 0));
+  PERFORM public.lock_customer_debts(v_b.customer_id);
   INSERT INTO public.customer_debts (customer_id, booking_id, provider_id, kind, amount)
   VALUES (v_b.customer_id, v_b.id, v_b.provider_id, v_kind, NEW.cancellation_fee)
   ON CONFLICT (booking_id) DO NOTHING;
@@ -237,7 +249,10 @@ AS $$
 DECLARE
   v_d public.customer_debts%ROWTYPE;
   v_total numeric := 0;
+  v_customer uuid;
 BEGIN
+  SELECT customer_id INTO v_customer FROM public.bookings WHERE id = p_booking_id;
+  PERFORM public.lock_customer_debts(v_customer);
   FOR v_d IN
     SELECT * FROM public.customer_debts
     WHERE carried_booking_id = p_booking_id AND status = 'open'
@@ -359,6 +374,7 @@ BEGIN
      AND NEW.status::text IN ('cancelled', 'no_show')
      AND OLD.status IS DISTINCT FROM NEW.status
      AND NOT public.booking_money_held(NEW.id) THEN
+    PERFORM public.lock_customer_debts(NEW.customer_id);
     UPDATE public.customer_debts
     SET carried_booking_id = NULL
     WHERE carried_booking_id = NEW.id AND status = 'open';
@@ -385,6 +401,7 @@ DECLARE
   v_paid numeric := 0;
 BEGIN
   SELECT * INTO v_s FROM public.customer_debt_settlements WHERE id = p_settlement_id FOR UPDATE;
+  PERFORM public.lock_customer_debts(v_s.customer_id);
   FOR v_d IN
     SELECT d.* FROM public.customer_debts d
     LEFT JOIN public.bookings cb ON cb.id = d.carried_booking_id
@@ -438,11 +455,14 @@ BEGIN
     p_proof_path IS NULL
     OR p_proof_path NOT LIKE 'fees/' || p_customer_id::text || '/%'
     OR p_proof_path LIKE '%..%'
+    OR NOT EXISTS (SELECT 1 FROM storage.objects o
+                   WHERE o.bucket_id = 'payment-proofs' AND o.name = p_proof_path)
+    OR EXISTS (SELECT 1 FROM public.customer_debt_settlements s WHERE s.proof_path = p_proof_path)
   ) THEN
     RAISE EXCEPTION 'Upload the InstaPay receipt.' USING ERRCODE = '23514';
   END IF;
 
-  PERFORM pg_advisory_xact_lock(hashtextextended('famy_customer_debt:' || p_customer_id::text, 0));
+  PERFORM public.lock_customer_debts(p_customer_id);
   IF EXISTS (SELECT 1 FROM public.customer_debt_settlements
              WHERE customer_id = p_customer_id AND status = 'pending_review') THEN
     RAISE EXCEPTION 'A payment is already waiting for review.' USING ERRCODE = '23514';
@@ -504,7 +524,7 @@ CREATE POLICY payment_proofs_fee_receipt_read ON storage.objects
     AND (storage.foldername(name))[2] = (SELECT auth.uid())::text
   );
 
--- 8) Admin: a fee riding on a live booking cannot be waived (the customer is paying it) ----
+-- 8) Admin: a fee riding on an active booking cannot be waived (the customer is paying it) --
 CREATE OR REPLACE FUNCTION public.admin_waive_customer_debt(p_debt_id uuid, p_reason text)
 RETURNS void
 LANGUAGE plpgsql
@@ -518,11 +538,12 @@ BEGIN
   IF p_reason IS NULL OR btrim(p_reason) = '' THEN
     RAISE EXCEPTION 'A reason is required.' USING ERRCODE = '23514';
   END IF;
+  PERFORM public.lock_customer_debts((SELECT customer_id FROM public.customer_debts WHERE id = p_debt_id));
   IF EXISTS (
     SELECT 1 FROM public.customer_debts d
     JOIN public.bookings cb ON cb.id = d.carried_booking_id
     WHERE d.id = p_debt_id AND d.status = 'open'
-      AND NOT (cb.status::text IN ('cancelled', 'no_show') AND NOT public.booking_money_held(cb.id))
+      AND cb.status::text NOT IN ('cancelled', 'no_show', 'completed')
   ) THEN
     RAISE EXCEPTION 'This fee is part of an active booking.' USING ERRCODE = '23514';
   END IF;
@@ -627,5 +648,42 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.admin_record_payment_refund(uuid, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.admin_record_payment_refund(uuid, text) TO authenticated;
+
+-- 10) Admin: what a refund will send back (same rule as admin_record_payment_refund) -------
+CREATE OR REPLACE FUNCTION public.admin_payment_refund_breakdown(p_payment_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_pay public.payments%ROWTYPE;
+  v_carried numeric;
+  v_fee numeric;
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.has_role(auth.uid(), 'admin') THEN
+    RAISE EXCEPTION 'Admin required' USING ERRCODE = '42501';
+  END IF;
+  SELECT * INTO v_pay FROM public.payments WHERE id = p_payment_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Payment not found' USING ERRCODE = 'P0002';
+  END IF;
+  SELECT LEAST(COALESCE(sum(d.amount), 0), v_pay.amount) INTO v_carried
+  FROM public.customer_debts d
+  WHERE d.carried_booking_id = v_pay.booking_id AND d.status = 'open';
+  IF EXISTS (SELECT 1 FROM public.customer_debts d WHERE d.booking_id = v_pay.booking_id AND d.status = 'paid') THEN
+    v_fee := 0;
+  ELSE
+    v_fee := LEAST(public.booking_cancellation_fee(v_pay.booking_id), v_pay.amount - v_carried);
+  END IF;
+  RETURN jsonb_build_object(
+    'paid', v_pay.amount, 'fee', v_fee, 'carried', v_carried,
+    'refund', v_pay.amount - v_fee - v_carried
+  );
+END;
+$$;
+REVOKE ALL ON FUNCTION public.admin_payment_refund_breakdown(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_payment_refund_breakdown(uuid) TO authenticated;
 
 NOTIFY pgrst, 'reload schema';

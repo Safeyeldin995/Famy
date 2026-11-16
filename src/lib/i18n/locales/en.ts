@@ -1602,6 +1602,8 @@ const en = {
     promoRemove: "Remove promo code",
     promoDiscount: "Promo discount",
     carriedFees: "Earlier cancellation fees",
+    feesCheckFailed: "We couldn't check your earlier cancellation fees, try again",
+    feesChanged: "Your earlier cancellation fees changed. Check the new total and confirm again",
     promoApplied: "Promo applied — {{amount}} off",
     promoAppliedNote: "Code applied — {{amount}} off your total",
     payCash: "Cash",

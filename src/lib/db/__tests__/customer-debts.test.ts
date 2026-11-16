@@ -12,6 +12,10 @@ import {
 } from "./booking-lifecycle.harness";
 
 let db: PGlite;
+
+/** A receipt file the customer uploaded (storage is a stub in the migration replay). */
+const putReceipt = (path: string) =>
+  db.query("INSERT INTO storage.objects (bucket_id, name) VALUES ('payment-proofs', $1)", [path]);
 let customerReason: string;
 
 const openDebts = async () =>
@@ -50,6 +54,7 @@ beforeAll(async () => {
     "SELECT id FROM public.cancellation_reasons WHERE code = 'customer_change_of_plans'",
   );
   customerReason = reasons[0].id;
+  for (const r of ["r1", "r2", "r3", "r4"]) await putReceipt(`fees/${IDS.customer}/${r}.jpg`);
   await asServiceRole(db, () =>
     db.exec(
       `UPDATE public.settings SET value = '{"fee_mode":"fixed","fee_value":50,"free_cancel_hours":2}'::jsonb
@@ -103,6 +108,13 @@ describe("customer fee debts", () => {
       `SELECT public.customer_submit_debt_instapay('fees/${IDS.otherProviderUser}/x.jpg')`,
     );
     expect(foreign.ok).toBe(false);
+    // So is a receipt that was never uploaded.
+    const missing = await tryAsUser(
+      db,
+      IDS.customer,
+      `SELECT public.customer_submit_debt_instapay('fees/${IDS.customer}/nothing.jpg')`,
+    );
+    expect(missing.ok).toBe(false);
     const first = await tryAsUser(
       db,
       IDS.customer,
@@ -125,6 +137,13 @@ describe("customer fee debts", () => {
     );
     expect(reject.error).toBeUndefined();
     expect(await openDebts()).toHaveLength(1);
+    // The rejected receipt can't be sent again.
+    const reused = await tryAsUser(
+      db,
+      IDS.customer,
+      `SELECT public.customer_submit_debt_instapay('fees/${IDS.customer}/r1.jpg')`,
+    );
+    expect(reused.ok).toBe(false);
 
     const second = await tryAsUser(
       db,

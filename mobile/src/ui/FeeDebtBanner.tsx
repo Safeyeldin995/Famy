@@ -81,7 +81,12 @@ export function FeeDebtBanner() {
           {t("feeDebt.confirming")}
         </Text>
       ) : null}
-      {mode === "choose" ? (
+      {d.inReview ? (
+        // One receipt at a time: the next payment opens once Famy checks this one.
+        <Text size="sm" weight="bold">
+          {t("feeDebt.inReview", { amount: money(d.inReview.amount, lang) })}
+        </Text>
+      ) : mode === "choose" ? (
         <>
           {d.lastRejected ? (
             <Text size="sm" tone="danger">

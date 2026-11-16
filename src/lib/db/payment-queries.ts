@@ -106,16 +106,23 @@ export function useCreatePayment() {
   });
 }
 
+/** Uploads a receipt to payment-proofs at `folder/<name>-<time>.<ext>` and returns its path. */
+export async function uploadPaymentProofFile(folder: string, name: string, file: File) {
+  if (file.size > 10 * 1024 * 1024) throw new Error('fileTooLarge');
+  const ext = (file.name.split('.').pop() || 'bin').replace(/[^a-z0-9]/gi, '') || 'bin';
+  const path = `${folder}/${name}-${Date.now()}.${ext}`;
+  const { error } = await supabase.storage
+    .from('payment-proofs')
+    .upload(path, file, { contentType: file.type, upsert: false });
+  if (error) throw error;
+  return path;
+}
+
 export function useUploadPaymentProof() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ paymentId, bookingId, file }: { paymentId: string; bookingId: string; file: File }) => {
-      const ext = file.name.split('.').pop() ?? 'bin';
-      const path = `${bookingId}/proof-${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from('payment-proofs')
-        .upload(path, file, { contentType: file.type, upsert: false });
-      if (upErr) throw upErr;
+      const path = await uploadPaymentProofFile(bookingId, 'proof', file);
       const { error } = await supabase
         .from('payments')
         .update({ proof_path: path, proof_uploaded_at: new Date().toISOString() })

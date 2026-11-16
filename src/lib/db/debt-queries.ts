@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadPaymentProofFile } from "@/lib/db/payment-queries";
 
 export type CustomerDebt = {
   id: string;
@@ -62,13 +63,7 @@ export function useSubmitDebtInstapay(customerId: string | undefined) {
   return useMutation({
     mutationFn: async (file: File) => {
       if (!customerId) throw new Error("auth required");
-      if (file.size > 10 * 1024 * 1024) throw new Error("fileTooLarge");
-      const ext = (file.name.split(".").pop() || "jpg").replace(/[^a-z0-9]/gi, "");
-      const path = `fees/${customerId}/receipt-${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from("payment-proofs")
-        .upload(path, file, { contentType: file.type || "image/jpeg", upsert: false });
-      if (upErr) throw upErr;
+      const path = await uploadPaymentProofFile(`fees/${customerId}`, "receipt", file);
       const { error } = await supabase.rpc("customer_submit_debt_instapay", {
         p_proof_path: path,
       });
@@ -197,4 +192,31 @@ export function useAdminDebtActions() {
     onSuccess: done,
   });
   return { review, waive, refundOverpayment };
+}
+
+export type RefundBreakdown = { paid: number; fee: number; carried: number; refund: number };
+
+/**
+ * Admin: what recording a refund for this payment sends back. Computed by the database with
+ * the same rule as admin_record_payment_refund: the booking's own cancellation fee stays with
+ * its provider, and earlier unpaid fees the booking carried stay with Famy for theirs.
+ */
+export function useAdminRefundBreakdown(paymentId: string, enabled: boolean) {
+  return useQuery({
+    enabled,
+    queryKey: ["admin", "refund-breakdown", paymentId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("admin_payment_refund_breakdown", {
+        p_payment_id: paymentId,
+      });
+      if (error) throw error;
+      const b = (data ?? {}) as Record<string, number | string>;
+      return {
+        paid: Number(b.paid ?? 0),
+        fee: Number(b.fee ?? 0),
+        carried: Number(b.carried ?? 0),
+        refund: Number(b.refund ?? 0),
+      } satisfies RefundBreakdown;
+    },
+  });
 }

@@ -729,7 +729,6 @@ export function useAdminPayments(status?: string | string[]) {
           booking:bookings(
             id,
             status,
-            carried_fees_amount,
             provider:providers(id, profile:profiles(full_name)),
             customer:profiles!bookings_customer_id_fkey(id, full_name, phone)
           )

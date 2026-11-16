@@ -14,12 +14,7 @@ import {
 } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
-import {
-  useBooking,
-  useBookingPayment,
-  useBookingParty,
-  useProviderServicePreparationNotes,
-} from "@/lib/queries";
+import { useBooking, useBookingPayment, useBookingParty, useProviderServicePreparationNotes } from "@/lib/queries";
 import { CustomerPreparationNotesSection } from "@/ui/customer/CustomerPreparationNotesSection";
 import { chatPhaseForStatus, useConversationByBooking } from "@/lib/chatQueries";
 import { dateTime, localized, money } from "@/lib/presentation";
@@ -35,7 +30,10 @@ import { shareBookingFile } from "@/lib/shareBookingFile";
 import { colors, radius, space } from "@/ui/theme";
 import { BookingJourneyStepper } from "@/ui/BookingJourneyStepper";
 import { useBookingStatusHistory } from "@/lib/bookingJourneyQueries";
-import { isSupervisionMode, supervisionModeProviderLabel } from "@shared/booking/supervisionMode";
+import {
+  isSupervisionMode,
+  supervisionModeProviderLabel,
+} from "@shared/booking/supervisionMode";
 import { bookingAmountDue, carriedFees } from "@shared/payments/amountDue";
 
 export default function BookingDetail() {
@@ -378,7 +376,9 @@ export default function BookingDetail() {
                 {t("common.somethingWentWrong")}
               </Text>
             )}
-            {activeBooking ? <CustomerPreparationNotesSection notes={preparation.data} /> : null}
+            {activeBooking ? (
+              <CustomerPreparationNotesSection notes={preparation.data} />
+            ) : null}
             <RescheduleSection booking={b} />
             <View style={ui.card}>
               <Text size="xl" weight="heavy">

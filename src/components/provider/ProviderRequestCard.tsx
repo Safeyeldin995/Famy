@@ -8,7 +8,10 @@ import { useProPath } from "@/lib/provider/useProPath";
 import { BookingRequestActions } from "./BookingRequestActions";
 import { BookingCountdown } from "./BookingCountdown";
 import { ProfileAvatar } from "./ProfileAvatar";
-import { isSupervisionMode, supervisionModeProviderLabel } from "@/lib/booking/supervisionMode";
+import {
+  isSupervisionMode,
+  supervisionModeProviderLabel,
+} from "@/lib/booking/supervisionMode";
 import { bookingAmountDue } from "@/lib/payments/amountDue";
 
 type RequestBooking = {
