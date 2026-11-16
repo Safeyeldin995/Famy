@@ -36,6 +36,7 @@ import { LessonIllustration } from "@/ui/lessons/LessonIllustration";
 import { HOME_CATEGORY_IDS, homeCategoryLessonSlug } from "@shared/catalog/homeCategories";
 import { colors, radius, shadow, space } from "@/ui/theme";
 import { HomeActiveBookingCard } from "@/ui/customer/HomeActiveBookingCard";
+import { FeeDebtBanner } from "@/ui/FeeDebtBanner";
 import { useBookingParties } from "@/lib/queries";
 import { customerHomeActiveBookings } from "@shared/home/activeHomeBookings";
 
@@ -105,7 +106,9 @@ export default function Home() {
   useFocusEffect(
     useCallback(() => {
       void bookings.refetch();
-    }, [bookings.refetch]),
+      // Back from paying fees (card return or admin confirmation): refresh what is owed.
+      void cache.invalidateQueries({ queryKey: ["customer-fee-debts"] });
+    }, [bookings.refetch, cache]),
   );
   const firstName = profile.data?.full_name?.split(" ")[0] || t("greetings.there");
   const Arrow = isAr ? ArrowUpLeft : ArrowUpRight;
@@ -136,9 +139,16 @@ export default function Home() {
             setRefreshing(true);
             try {
               await Promise.all(
-                [profile, address, categories, tutoringServices, unread, bookings, parties, promos].map(
-                  (q) => q.refetch(),
-                ),
+                [
+                  profile,
+                  address,
+                  categories,
+                  tutoringServices,
+                  unread,
+                  bookings,
+                  parties,
+                  promos,
+                ].map((q) => q.refetch()),
               );
             } finally {
               await cache.refetchQueries({ queryKey: ["providers"], type: "active" });
@@ -205,6 +215,7 @@ export default function Home() {
         </SafeAreaView>
       </LinearGradient>
 
+      <FeeDebtBanner />
       {!bookings.isError && bookings.data ? (
         <HomeActiveBookingCard bookings={bookings.data} parties={parties.data} />
       ) : null}

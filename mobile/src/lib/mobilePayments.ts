@@ -63,6 +63,40 @@ export async function startPaymob(bookingId: string, paymentId?: string) {
   await WebBrowser.openAuthSessionAsync(result.checkoutUrl, `famy://booking/${bookingId}`);
 }
 
+/** Card payment for unpaid cancellation fees; the server computes the amount. */
+export async function startFeeDebtCheckout() {
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
+  if (error || !session) throw new Error("auth required");
+  const response = await fetch(
+    `${appConfig.webOrigin.replace(/\/$/, "")}/api/mobile/debt-checkout`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        "Content-Type": "application/json",
+      },
+      body: "{}",
+    },
+  );
+  const result = await response.json();
+  if (
+    !response.ok ||
+    !result.ok ||
+    typeof result.checkoutUrl !== "string" ||
+    !result.checkoutUrl.startsWith("https://")
+  )
+    throw new Error(result?.error ?? "checkout failed");
+  if (Platform.OS === "web") {
+    await WebBrowser.openBrowserAsync(result.checkoutUrl);
+    return;
+  }
+  // Paymob returns to /pay/fees-return, which redirects to famy://home and closes this browser.
+  await WebBrowser.openAuthSessionAsync(result.checkoutUrl, "famy://home");
+}
+
 // Same bucket/path/mutation as src/lib/db/payment-queries.ts; ArrayBuffer works on native.
 export async function uploadProof(
   bookingId: string,

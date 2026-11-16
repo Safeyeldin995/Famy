@@ -420,7 +420,9 @@ export function BookingDetailContent({
       body={
         feeApplies
           ? t("bookingDetail.cancelFeeNotice", { amount: formatEGP(cancelFee.data ?? 0) })
-          : t("bookingDetail.cancelIrreversible")
+          : (cancelFee.data ?? 0) > 0 && cancelPayment.isSuccess
+            ? t("bookingDetail.cancelFeeNoticeUnpaid", { amount: formatEGP(cancelFee.data ?? 0) })
+            : t("bookingDetail.cancelIrreversible")
       }
       reasonLabel={t("bookingDetail.cancelReasonLabel")}
       notePlaceholder={t("bookingDetail.cancelReasonPlaceholder")}

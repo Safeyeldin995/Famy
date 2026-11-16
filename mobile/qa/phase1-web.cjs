@@ -394,6 +394,9 @@ async function run() {
                   },
                 ],
         booking_status_history: bookingStatusHistory,
+        // No unpaid cancellation fees: the fee banner stays hidden.
+        customer_debts: [],
+        customer_debt_settlements: [],
       };
       if (!(table in tables)) errors.push(`Unhandled table: ${table}`);
       data = tables[table] || [];

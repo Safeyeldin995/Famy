@@ -2520,6 +2520,110 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_debts: {
+        Row: {
+          id: string
+          customer_id: string
+          booking_id: string
+          provider_id: string
+          kind: string
+          amount: number
+          status: string
+          settlement_id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          resolution_note: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          customer_id: string
+          booking_id: string
+          provider_id: string
+          kind: string
+          amount: number
+          status?: string
+          settlement_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolution_note?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          customer_id?: string
+          booking_id?: string
+          provider_id?: string
+          kind?: string
+          amount?: number
+          status?: string
+          settlement_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolution_note?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      customer_debt_settlements: {
+        Row: {
+          id: string
+          customer_id: string
+          amount: number
+          currency: string
+          method: string
+          status: string
+          debt_ids: string[]
+          instapay_reference: string | null
+          paymob_order_id: number | null
+          paymob_integration_id: number | null
+          paymob_transaction_id: number | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          rejection_reason: string | null
+          needs_refund: boolean
+          refund_reference: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          customer_id: string
+          amount: number
+          currency?: string
+          method: string
+          status: string
+          debt_ids: string[]
+          instapay_reference?: string | null
+          paymob_order_id?: number | null
+          paymob_integration_id?: number | null
+          paymob_transaction_id?: number | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          rejection_reason?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          customer_id?: string
+          amount?: number
+          currency?: string
+          method?: string
+          status?: string
+          debt_ids?: string[]
+          instapay_reference?: string | null
+          paymob_order_id?: number | null
+          paymob_integration_id?: number | null
+          paymob_transaction_id?: number | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          rejection_reason?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       provider_payout_methods: {
         Row: {
           id: string
@@ -4570,6 +4674,22 @@ export type Database = {
       cancellation_policy: {
         Args: Record<PropertyKey, never>
         Returns: { fee_mode: string; fee_value: number; free_cancel_hours: number }[]
+      }
+      customer_submit_debt_instapay: {
+        Args: { p_reference: string }
+        Returns: string
+      }
+      admin_review_debt_settlement: {
+        Args: { p_settlement_id: string; p_approve: boolean; p_reason?: string | null }
+        Returns: undefined
+      }
+      admin_waive_customer_debt: {
+        Args: { p_debt_id: string; p_reason: string }
+        Returns: undefined
+      }
+      admin_record_debt_overpayment_refund: {
+        Args: { p_settlement_id: string; p_reference: string }
+        Returns: undefined
       }
       admin_record_provider_debt_payment: {
         Args: {

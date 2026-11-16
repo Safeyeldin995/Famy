@@ -20,6 +20,7 @@ import { getSignedProofUrl, useCapturePayment, useRejectPayment } from "@/lib/db
 import { formatEGP } from "@/lib/format";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
 import { useBookingCancellationFee } from "@/lib/db/settings-queries";
+import { FeeDebtsPanel } from "@/components/admin/FeeDebtsPanel";
 import { AdminReasonSheet } from "@/components/admin/AdminReasonSheet";
 import {
   adminControl,
@@ -329,6 +330,7 @@ export function AdminPayments({ search }: { search: { status?: string; statuses?
     <div className={adminScreen}>
       <h1 className="text-xl font-bold">{t("admin.layout.nav.payments")}</h1>
       <p className="text-sm text-muted-foreground">{t("admin.paymentSituation.pageHint")}</p>
+      <FeeDebtsPanel />
       {actionCount > 0 ? (
         <p className="rounded-xl bg-amber-500/15 px-3 py-2 text-sm font-bold text-amber-800 dark:text-amber-200">
           {t("admin.paymentSituation.needsAction", { count: actionCount })}
