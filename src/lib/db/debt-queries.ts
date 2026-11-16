@@ -92,7 +92,7 @@ export function useAdminFeeDebts() {
   return useQuery({
     queryKey: ["admin", "fee-debts"],
     queryFn: async () => {
-      const [settlements, debts] = await Promise.all([
+      const [settlements, debts, overpaid] = await Promise.all([
         supabase
           .from("customer_debt_settlements")
           .select(
@@ -105,9 +105,17 @@ export function useAdminFeeDebts() {
           .select("id, customer_id, provider_id, booking_id, kind, amount, status, created_at")
           .eq("status", "open")
           .order("created_at", { ascending: true }),
+        supabase
+          .from("customer_debt_settlements")
+          .select(
+            "id, customer_id, amount, method, status, instapay_reference, rejection_reason, created_at",
+          )
+          .eq("needs_refund", true)
+          .order("created_at", { ascending: true }),
       ]);
       if (settlements.error) throw settlements.error;
       if (debts.error) throw debts.error;
+      if (overpaid.error) throw overpaid.error;
       const names = await namesFor([
         ...new Set(
           [...(settlements.data ?? []), ...(debts.data ?? [])].map((r) => r.customer_id as string),
@@ -115,6 +123,11 @@ export function useAdminFeeDebts() {
       ]);
       return {
         settlements: (settlements.data ?? []).map((s) => ({
+          ...s,
+          amount: Number(s.amount),
+          customer_name: names.get(s.customer_id as string) ?? null,
+        })) as AdminDebtSettlement[],
+        overpaid: (overpaid.data ?? []).map((s) => ({
           ...s,
           amount: Number(s.amount),
           customer_name: names.get(s.customer_id as string) ?? null,
@@ -156,5 +169,15 @@ export function useAdminDebtActions() {
     },
     onSuccess: done,
   });
-  return { review, waive };
+  const refundOverpayment = useMutation({
+    mutationFn: async (v: { id: string; reference: string }) => {
+      const { error } = await supabase.rpc("admin_record_debt_overpayment_refund", {
+        p_settlement_id: v.id,
+        p_reference: v.reference,
+      });
+      if (error) throw error;
+    },
+    onSuccess: done,
+  });
+  return { review, waive, refundOverpayment };
 }

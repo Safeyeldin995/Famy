@@ -2581,6 +2581,8 @@ export type Database = {
           reviewed_at: string | null
           reviewed_by: string | null
           rejection_reason: string | null
+          needs_refund: boolean
+          refund_reference: string | null
           created_at: string
           updated_at: string
         }
@@ -4683,6 +4685,10 @@ export type Database = {
       }
       admin_waive_customer_debt: {
         Args: { p_debt_id: string; p_reason: string }
+        Returns: undefined
+      }
+      admin_record_debt_overpayment_refund: {
+        Args: { p_settlement_id: string; p_reference: string }
         Returns: undefined
       }
       admin_record_provider_debt_payment: {

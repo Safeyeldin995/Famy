@@ -2663,6 +2663,10 @@ const en = {
   },
   admin: {
     feeDebts: {
+      overpaid: "Duplicate payments to refund",
+      overpaidLine: "{{name}} paid {{amount}} after the fees were settled another way",
+      recordRefund: "Record refund",
+      recordRefundHint: "Send the money back to the customer first, then record the refund reference here",
       title: "Cancellation fees owed by customers",
       subtitle: "Late-cancellation or no-show fees on bookings the customer hadn't prepaid. The customer can't book until they pay",
       toReview: "InstaPay transfers waiting for confirmation",
@@ -4289,6 +4293,8 @@ Object.assign(en, {
     },
   },
   feeDebt: {
+    confirming: "Confirming your payment, one moment",
+    continueWeb: "Continue on the website",
     title: "You owe {{amount}} in cancellation fees",
     body: "From a booking you cancelled late or weren't there for. The fee goes to the provider, and you need to pay it before booking again",
     payCard: "Pay by card",

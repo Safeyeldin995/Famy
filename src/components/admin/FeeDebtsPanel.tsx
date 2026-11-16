@@ -19,14 +19,20 @@ export function FeeDebtsPanel() {
   const { t } = useTranslation();
   const lang = useLang();
   const q = useAdminFeeDebts();
-  const { review, waive } = useAdminDebtActions();
-  const [sheet, setSheet] = useState<{ kind: "reject" | "waive"; id: string } | null>(null);
-  const busy = review.isPending || waive.isPending;
+  const { review, waive, refundOverpayment } = useAdminDebtActions();
+  const [sheet, setSheet] = useState<{ kind: "reject" | "waive" | "refund"; id: string } | null>(
+    null,
+  );
+  const busy = review.isPending || waive.isPending || refundOverpayment.isPending;
 
   if (q.isError)
     return <AdminQueryError message={t("admin.feeDebts.loadError")} onRetry={() => q.refetch()} />;
   const data = q.data;
-  if (!data || (data.settlements.length === 0 && data.debts.length === 0)) return null;
+  if (
+    !data ||
+    (data.settlements.length === 0 && data.debts.length === 0 && data.overpaid.length === 0)
+  )
+    return null;
 
   const fail = () => toast.error(t("admin.feeDebts.failed"));
   const ok = () => {
@@ -86,6 +92,37 @@ export function FeeDebtsPanel() {
         </div>
       ) : null}
 
+      {data.overpaid.length > 0 ? (
+        <div className="space-y-2">
+          <h3 className="text-sm font-extrabold text-destructive">
+            {t("admin.feeDebts.overpaid")}
+          </h3>
+          <ul className="divide-y divide-border/50 rounded-xl border border-border text-sm">
+            {data.overpaid.map((s) => (
+              <li
+                key={s.id}
+                className="flex flex-wrap items-center justify-between gap-2 px-3 py-3"
+              >
+                <p className="min-w-0 font-bold">
+                  {t("admin.feeDebts.overpaidLine", {
+                    name: s.customer_name || "—",
+                    amount: formatEGP(s.amount),
+                  })}
+                </p>
+                <button
+                  type="button"
+                  disabled={busy}
+                  className={`${btn} bg-brand text-brand-foreground`}
+                  onClick={() => setSheet({ kind: "refund", id: s.id })}
+                >
+                  {t("admin.feeDebts.recordRefund")}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
       {data.debts.length > 0 ? (
         <div className="space-y-2">
           <h3 className="text-sm font-extrabold">{t("admin.feeDebts.open")}</h3>
@@ -121,10 +158,17 @@ export function FeeDebtsPanel() {
 
       {sheet ? (
         <AdminReasonSheet
-          title={t(sheet.kind === "reject" ? "admin.feeDebts.reject" : "admin.feeDebts.waive")}
+          title={t(`admin.feeDebts.${sheet.kind === "refund" ? "recordRefund" : sheet.kind}`)}
           description={t(
-            sheet.kind === "reject" ? "admin.feeDebts.rejectHint" : "admin.feeDebts.waiveHint",
+            sheet.kind === "reject"
+              ? "admin.feeDebts.rejectHint"
+              : sheet.kind === "refund"
+                ? "admin.feeDebts.recordRefundHint"
+                : "admin.feeDebts.waiveHint",
           )}
+          fieldLabel={
+            sheet.kind === "refund" ? t("admin.paymentSituation.refundReference") : undefined
+          }
           busy={busy}
           onClose={() => setSheet(null)}
           onConfirm={(reason) =>
@@ -133,7 +177,12 @@ export function FeeDebtsPanel() {
                   { id: sheet.id, approve: false, reason },
                   { onSuccess: ok, onError: fail },
                 )
-              : waive.mutate({ id: sheet.id, reason }, { onSuccess: ok, onError: fail })
+              : sheet.kind === "refund"
+                ? refundOverpayment.mutate(
+                    { id: sheet.id, reference: reason },
+                    { onSuccess: ok, onError: fail },
+                  )
+                : waive.mutate({ id: sheet.id, reason }, { onSuccess: ok, onError: fail })
           }
         />
       ) : null}

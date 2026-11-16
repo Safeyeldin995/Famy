@@ -55,6 +55,7 @@ const capabilities = [
   { ...bookingPreviewCapability, id: "90", durationMin: 90, price: 600 },
 ];
 const slotCache = new Map<string, { label: string; start: Date; end: Date }[]>();
+vi.mock("@/components/famio/FeeDebtBanner", () => ({ FeeDebtBanner: () => null }));
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: i18n.t.bind(i18n), i18n }) }));
 vi.mock("@/lib/i18n", () => ({ currentLang: () => state.lang }));
 vi.mock("@tanstack/react-router", () => ({

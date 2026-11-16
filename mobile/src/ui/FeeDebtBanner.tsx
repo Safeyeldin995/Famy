@@ -27,6 +27,7 @@ export function FeeDebtBanner() {
   const [reference, setReference] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [confirming, setConfirming] = useState(false);
 
   const d = debts.data;
   if (!d || d.total <= 0) return null;
@@ -47,6 +48,11 @@ export function FeeDebtBanner() {
       <Text size="sm" tone="muted">
         {t("feeDebt.body")}
       </Text>
+      {confirming ? (
+        <Text size="sm" weight="bold">
+          {t("feeDebt.confirming")}
+        </Text>
+      ) : null}
       {d.inReview ? (
         <Text size="sm" weight="bold">
           {t("feeDebt.inReview")}
@@ -67,11 +73,19 @@ export function FeeDebtBanner() {
               setMessage("");
               try {
                 await startFeeDebtCheckout();
+                // Paymob confirms through the webhook a few seconds later: wait for it
+                // instead of offering to pay again.
+                setConfirming(true);
+                for (let i = 0; i < 10; i++) {
+                  await new Promise((r) => setTimeout(r, 3000));
+                  const next = await debts.refetch();
+                  if ((next.data?.total ?? 0) <= 0) break;
+                }
               } catch {
                 setMessage(t("feeDebt.cardFailed"));
               } finally {
+                setConfirming(false);
                 setBusy(false);
-                void debts.refetch();
               }
             }}
           />

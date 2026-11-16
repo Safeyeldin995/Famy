@@ -207,6 +207,77 @@ describe("customer fee debts", () => {
     expect(await ledgerFor(c)).toEqual([]);
   });
 
+  it("a second successful card payment after the debt was settled is flagged for refund", async () => {
+    const b = await cashBookingOnTheWay();
+    await cancelAsCustomer(b);
+    const first = await asServiceRole(db, async () => {
+      const rows = await queryRows<{ id: string }>(
+        db,
+        "SELECT public.open_debt_settlement_for($1, 'card') AS id",
+        [IDS.customer],
+      );
+      await db.query("SELECT public.debt_settlement_attach_paymob($1, $2, 515151, 77)", [
+        rows[0].id,
+        IDS.customer,
+      ]);
+      return rows[0].id;
+    });
+    // Customer gives up on the card and pays by InstaPay; admin confirms.
+    const ip = await tryAsUser(
+      db,
+      IDS.customer,
+      "SELECT public.customer_submit_debt_instapay('IP-4321')",
+    );
+    const ipId = String(Object.values(ip.rows![0])[0]);
+    await tryAsUser(db, IDS.adminUser, "SELECT public.admin_review_debt_settlement($1, true)", [
+      ipId,
+    ]);
+    // The abandoned card payment still completes.
+    await asServiceRole(db, () =>
+      db.query(
+        "SELECT public.paymob_apply_transaction_webhook(9101, 515151, 77, 'EGP', true, false, 5000, '9101')",
+      ),
+    );
+    const rows = await queryRows<{ status: string; needs_refund: boolean }>(
+      db,
+      "SELECT status, needs_refund FROM public.customer_debt_settlements WHERE id = $1",
+      [first],
+    );
+    expect(rows[0]).toEqual({ status: "paid", needs_refund: true });
+    // The provider is credited once.
+    expect(await ledgerFor(b)).toEqual([
+      { kind: "cancellation_fee_provider_share", amount: "50.00" },
+    ]);
+    const done = await tryAsUser(
+      db,
+      IDS.adminUser,
+      "SELECT public.admin_record_debt_overpayment_refund($1, 'IP-BACK-1')",
+      [first],
+    );
+    expect(done.error).toBeUndefined();
+  });
+
+  it("a rejected no-show report cancels the customer's fee", async () => {
+    const b = await cashBookingOnTheWay();
+    const report = await tryAsUser(
+      db,
+      IDS.providerUser,
+      "SELECT public.report_no_show($1, 'Nobody answered', '{}') AS id",
+      [b],
+    );
+    expect(report.error).toBeUndefined();
+    expect(await openDebts()).toEqual([expect.objectContaining({ kind: "no_show" })]);
+    const reportId = String(report.rows![0].id);
+    const resolve = await tryAsUser(
+      db,
+      IDS.adminUser,
+      "SELECT public.admin_resolve_no_show($1, 'rejected', 'Customer was home', 'completed')",
+      [reportId],
+    );
+    expect(resolve.error).toBeUndefined();
+    expect(await openDebts()).toHaveLength(0);
+  });
+
   it("customers see only their own debts", async () => {
     const other = await tryAsUser(
       db,

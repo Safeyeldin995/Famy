@@ -7,9 +7,12 @@ import { PrimaryButton } from "@/components/famio/ui";
 export function PaymobAppReturn({
   bookingId,
   deepLink: link,
+  webFallback,
 }: {
   bookingId?: string;
   deepLink?: string;
+  /** Website customers continue here instead of the app. */
+  webFallback?: string;
 }) {
   const { t } = useTranslation();
   const deepLink = link ?? `famy://booking/${bookingId}`;
@@ -33,6 +36,11 @@ export function PaymobAppReturn({
         >
           {t("site.paymobReturn.cta")}
         </PrimaryButton>
+        {webFallback ? (
+          <a href={webFallback} className="text-sm font-bold text-brand underline">
+            {t("feeDebt.continueWeb")}
+          </a>
+        ) : null}
       </SiteSection>
     </SiteLayout>
   );

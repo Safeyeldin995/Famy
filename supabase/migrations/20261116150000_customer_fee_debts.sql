@@ -38,9 +38,16 @@ CREATE TABLE IF NOT EXISTS public.customer_debt_settlements (
   reviewed_at timestamptz,
   reviewed_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
   rejection_reason text,
+  -- Paid, but the debts were already settled another way: Famy must return this money.
+  needs_refund boolean NOT NULL DEFAULT false,
+  refund_reference text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+CREATE INDEX IF NOT EXISTS customer_debts_provider_idx ON public.customer_debts (provider_id);
+CREATE INDEX IF NOT EXISTS customer_debts_resolved_by_idx ON public.customer_debts (resolved_by);
+CREATE INDEX IF NOT EXISTS customer_debt_settlements_reviewed_by_idx
+  ON public.customer_debt_settlements (reviewed_by);
 -- One live settlement attempt per customer.
 CREATE UNIQUE INDEX IF NOT EXISTS customer_debt_settlements_one_live
   ON public.customer_debt_settlements (customer_id) WHERE status IN ('pending', 'pending_review');
@@ -125,6 +132,28 @@ DROP TRIGGER IF EXISTS trg_no_show_fee_debt ON public.no_show_reports;
 CREATE TRIGGER trg_no_show_fee_debt AFTER INSERT ON public.no_show_reports
   FOR EACH ROW EXECUTE FUNCTION public.tg_record_customer_fee_debt();
 
+-- A no-show report the admin rejects (the customer was there) cancels its fee.
+CREATE OR REPLACE FUNCTION public.tg_waive_debt_on_rejected_no_show()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NEW.status = 'rejected' AND OLD.status IS DISTINCT FROM 'rejected' AND NEW.reported_party = 'customer' THEN
+    UPDATE public.customer_debts
+    SET status = 'waived', resolved_at = now(), resolved_by = auth.uid(),
+        resolution_note = 'No-show report rejected'
+    WHERE booking_id = NEW.booking_id AND kind = 'no_show' AND status = 'open';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.tg_waive_debt_on_rejected_no_show() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS trg_waive_debt_on_rejected_no_show ON public.no_show_reports;
+CREATE TRIGGER trg_waive_debt_on_rejected_no_show AFTER UPDATE OF status ON public.no_show_reports
+  FOR EACH ROW EXECUTE FUNCTION public.tg_waive_debt_on_rejected_no_show();
+
 -- No new booking while fees are unpaid.
 CREATE OR REPLACE FUNCTION public.tg_booking_requires_no_open_debt()
 RETURNS trigger
@@ -150,7 +179,7 @@ CREATE TRIGGER booking_requires_no_open_debt BEFORE INSERT ON public.bookings
 
 -- Settle: mark the debts paid and credit each provider with its fee.
 CREATE OR REPLACE FUNCTION public.settle_customer_debts(p_settlement_id uuid, p_actor uuid)
-RETURNS void
+RETURNS integer
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
@@ -158,6 +187,7 @@ AS $$
 DECLARE
   v_s public.customer_debt_settlements%ROWTYPE;
   v_d public.customer_debts%ROWTYPE;
+  v_count integer := 0;
 BEGIN
   SELECT * INTO v_s FROM public.customer_debt_settlements WHERE id = p_settlement_id FOR UPDATE;
   FOR v_d IN
@@ -172,7 +202,14 @@ BEGIN
       v_d.provider_id, v_d.booking_id, 'cancellation_fee_provider_share', 'credit', v_d.amount,
       v_s.method, NULL, p_actor, NULL
     );
+    v_count := v_count + 1;
   END LOOP;
+  -- Nothing left to settle (paid another way meanwhile): this money goes back.
+  IF v_count = 0 THEN
+    UPDATE public.customer_debt_settlements SET needs_refund = true, updated_at = now()
+    WHERE id = v_s.id;
+  END IF;
+  RETURN v_count;
 END;
 $$;
 REVOKE ALL ON FUNCTION public.settle_customer_debts(uuid, uuid) FROM PUBLIC, anon, authenticated;
@@ -435,5 +472,112 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.admin_waive_customer_debt(uuid, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.admin_waive_customer_debt(uuid, text) TO authenticated;
+
+-- Admin: record that a duplicate fee payment was sent back to the customer.
+CREATE OR REPLACE FUNCTION public.admin_record_debt_overpayment_refund(p_settlement_id uuid, p_reference text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.has_role(auth.uid(), 'admin') THEN
+    RAISE EXCEPTION 'Admin required' USING ERRCODE = '42501';
+  END IF;
+  IF p_reference IS NULL OR btrim(p_reference) = '' THEN
+    RAISE EXCEPTION 'Refund reference is required' USING ERRCODE = '23514';
+  END IF;
+  PERFORM set_config('app.audit_reason', 'Duplicate fee payment refunded: ' || btrim(p_reference), true);
+  UPDATE public.customer_debt_settlements
+  SET needs_refund = false, refund_reference = btrim(p_reference), updated_at = now()
+  WHERE id = p_settlement_id AND needs_refund;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Nothing to refund for this payment.' USING ERRCODE = '23514';
+  END IF;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.admin_record_debt_overpayment_refund(uuid, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_record_debt_overpayment_refund(uuid, text) TO authenticated;
+
+-- Refunds never charge a fee that is (or was) a customer debt.
+CREATE OR REPLACE FUNCTION public.admin_record_payment_refund(
+  p_payment_id uuid,
+  p_reference text
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_pay public.payments%ROWTYPE;
+  v_booking public.bookings%ROWTYPE;
+  v_fee numeric;
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.has_role(auth.uid(), 'admin') THEN
+    RAISE EXCEPTION 'Admin required' USING ERRCODE = '42501';
+  END IF;
+  IF p_reference IS NULL OR btrim(p_reference) = '' THEN
+    RAISE EXCEPTION 'Refund reference is required' USING ERRCODE = '23514';
+  END IF;
+
+  SELECT * INTO v_pay FROM public.payments WHERE id = p_payment_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Payment not found' USING ERRCODE = 'P0002';
+  END IF;
+  SELECT * INTO v_booking FROM public.bookings b WHERE b.id = v_pay.booking_id;
+
+  IF v_booking.status::text NOT IN ('cancelled', 'no_show') THEN
+    RAISE EXCEPTION 'Refunds are recorded only for cancelled or no-show bookings' USING ERRCODE = '23514';
+  END IF;
+  IF NOT (
+    (v_pay.status = 'captured' AND COALESCE(v_pay.payment_method_type, '') IN ('online', 'manual_transfer'))
+    OR (v_pay.status = 'pending_review' AND v_pay.payment_method_type = 'manual_transfer'
+        AND v_pay.proof_path IS NOT NULL)
+  ) THEN
+    RAISE EXCEPTION 'This payment has no money to refund' USING ERRCODE = '23514';
+  END IF;
+
+  v_fee := LEAST(public.booking_cancellation_fee(v_booking.id), v_pay.amount);
+  -- The fee may already be a customer debt (the card payment was confirmed after the
+  -- cancellation). Never charge it twice: paid debt -> nothing more to keep; open debt ->
+  -- it is taken from this refund instead, so the debt is closed.
+  IF EXISTS (SELECT 1 FROM public.customer_debts d WHERE d.booking_id = v_booking.id AND d.status = 'paid') THEN
+    v_fee := 0;
+  ELSE
+    UPDATE public.customer_debts
+    SET status = 'waived', resolved_at = now(), resolved_by = auth.uid(),
+        resolution_note = 'Deducted from the refund'
+    WHERE booking_id = v_booking.id AND status = 'open';
+  END IF;
+
+  PERFORM set_config('app.audit_reason', 'Refund recorded: ' || btrim(p_reference), true);
+  PERFORM set_config('app.ledger_internal_capture', 'on', true);
+  UPDATE public.payments
+  SET status = CASE WHEN v_fee > 0 THEN 'partially_refunded'::public.payment_status
+                    ELSE 'refunded'::public.payment_status END,
+      reviewed_by = auth.uid(),
+      reviewed_at = now(),
+      metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object(
+        'refund', jsonb_build_object(
+          'reference', btrim(p_reference),
+          'amount_refunded', v_pay.amount - v_fee,
+          'cancellation_fee', v_fee,
+          'recorded_at', now(),
+          'recorded_by', auth.uid(),
+          'previous_status', v_pay.status
+        )
+      )
+  WHERE id = p_payment_id;
+  PERFORM set_config('app.ledger_internal_capture', 'off', true);
+
+  IF v_fee > 0 THEN
+    PERFORM public.ledger_insert_entry(
+      v_booking.provider_id, v_booking.id, 'cancellation_fee_provider_share', 'credit', v_fee,
+      COALESCE(v_pay.payment_method_code, v_pay.payment_method_type), NULL, auth.uid(), NULL
+    );
+  END IF;
+END;
+$$;
 
 NOTIFY pgrst, 'reload schema';

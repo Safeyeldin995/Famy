@@ -65,6 +65,7 @@ import { redirectToPaymobCheckout } from "@/lib/paymob/paymobRedirect";
 import { useProviderOnlyCustomerRedirect } from "@/lib/auth/providerOnlyCustomerGuard";
 import { useActivePaymentMethods } from "@/lib/db/payment-methods-queries";
 import { CardBrands, PaymentMethodIcon } from "@/components/famio/PaymentLogos";
+import { FeeDebtBanner } from "@/components/famio/FeeDebtBanner";
 import { useRequirementsForService } from "@/lib/db/provider-queries";
 import { toUIProvider } from "@/lib/db/adapters";
 import { currentLang } from "@/lib/i18n";
@@ -289,7 +290,14 @@ function BookContentForm({
   const reviewAddressLine = useMemo(
     () =>
       reviewLineForAddressId(
-        bookableAddresses as { id: string; street?: string; line1?: string; building?: string; compound?: string; area?: string }[],
+        bookableAddresses as {
+          id: string;
+          street?: string;
+          line1?: string;
+          building?: string;
+          compound?: string;
+          area?: string;
+        }[],
         slotAddressId,
         (area) => (area ? customerAreaLabel(area, t) : null),
       ),
@@ -794,7 +802,8 @@ function BookContentForm({
         eitherRequirements,
         requirementChoices,
         selectedCapability,
-        supervisionMode: supervisionRequired && isSupervisionMode(supervisionMode) ? supervisionMode : null,
+        supervisionMode:
+          supervisionRequired && isSupervisionMode(supervisionMode) ? supervisionMode : null,
       });
       const fingerprint = bookingSubmissionFingerprint(submissionPayload);
       idempotencyStateRef.current = resolveIdempotencyKey(idempotencyStateRef.current, fingerprint);
@@ -1030,6 +1039,7 @@ function BookContentForm({
           onBack={handleBack}
         />
         <div className="apply-content">
+          <FeeDebtBanner />
           <RebookPrefillNoticeList notices={rebookNotices} />
           {inlineError?.screen === stepKey && (
             <p role="alert" className="booking-error">
@@ -1210,8 +1220,7 @@ function BookContentForm({
                         const cap = group.capabilities[0];
                         const active = group === selectedGroup;
                         const chosen = active ? (selectedCapability ?? cap) : cap;
-                        const subjectLabel =
-                          lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn;
+                        const subjectLabel = lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn;
                         const title = teachingCapabilityTitleParts({
                           subject: subjectLabel,
                           curriculum: lang === "ar" ? cap.curriculumNameAr : cap.curriculumNameEn,
@@ -1278,34 +1287,34 @@ function BookContentForm({
                 requirements={bookingRequirements}
               />
               <div id="booking-schedule" tabIndex={-1}>
-              <BookingWhen
-                providerId={providerId}
-                serviceId={activeService?.service?.id ?? serviceId ?? ""}
-                addressId={slotAddressId}
-                service={activeService?.service ?? {}}
-                durationMinutes={selectedCapability?.durationMin || hours * 60 || 120}
-                maxAdvanceDays={bookingSettingsQ.data?.max_advance_days ?? 12}
-                cairoTime={fixedPackage}
-                locale={locale}
-                date={date}
-                time={time}
-                slots={packageSlots}
-                loading={slotsQ.isLoading || slotsQ.isFetching || scanningSchedule}
-                error={slotsQ.isError}
-                onRetry={() => void slotsQ.refetch()}
-                onDateChange={(day) => {
-                  userPickedDateRef.current = true;
-                  setScanningSchedule(false);
-                  setDate(day);
-                  clearSlot();
-                }}
-                onTimeChange={(slot) => {
-                  setTime(slot.label);
-                  setSelectedSlot({ start: slot.start, end: slot.end });
-                  setInlineError(null);
-                }}
-              />
-              {!slotsQ.isLoading && packageSlots.length === 0 && otherProviders}
+                <BookingWhen
+                  providerId={providerId}
+                  serviceId={activeService?.service?.id ?? serviceId ?? ""}
+                  addressId={slotAddressId}
+                  service={activeService?.service ?? {}}
+                  durationMinutes={selectedCapability?.durationMin || hours * 60 || 120}
+                  maxAdvanceDays={bookingSettingsQ.data?.max_advance_days ?? 12}
+                  cairoTime={fixedPackage}
+                  locale={locale}
+                  date={date}
+                  time={time}
+                  slots={packageSlots}
+                  loading={slotsQ.isLoading || slotsQ.isFetching || scanningSchedule}
+                  error={slotsQ.isError}
+                  onRetry={() => void slotsQ.refetch()}
+                  onDateChange={(day) => {
+                    userPickedDateRef.current = true;
+                    setScanningSchedule(false);
+                    setDate(day);
+                    clearSlot();
+                  }}
+                  onTimeChange={(slot) => {
+                    setTime(slot.label);
+                    setSelectedSlot({ start: slot.start, end: slot.end });
+                    setInlineError(null);
+                  }}
+                />
+                {!slotsQ.isLoading && packageSlots.length === 0 && otherProviders}
               </div>
             </>
           )}
