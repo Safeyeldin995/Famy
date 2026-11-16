@@ -1787,6 +1787,8 @@ const en = {
     completed: "Finished",
   },
   bookingDetail: {
+    cancelWithFee: "Cancel booking (cancellation fee applies)",
+    cancelFeeNotice: "If you cancel now, a {{amount}} cancellation fee goes to the provider and the rest of what you paid comes back to you. This cannot be undone",
     title: "Booking",
     notFound: "Booking not found",
     notFoundBody: "This booking doesn't exist or you don't have access to it.",
@@ -2612,7 +2614,7 @@ const en = {
     notPending: "This price change is no longer pending.",
   },
   payment: {
-    refundOnTheWay: "The booking was cancelled after you paid. Famy will send the money back the same way you paid",
+    refundOnTheWay: "The booking was cancelled after you paid. Famy will send the money back the same way you paid, minus the cancellation fee if you cancelled late",
     openInstapay: "Open InstaPay to pay",
     cannotOpenInstapay: "Couldn't open InstaPay. Copy the address and pay from the app.",
     title: "Payment",
@@ -2659,6 +2661,8 @@ const en = {
   },
   admin: {
     paymentSituation: {
+      refundFeeNote: "The {{fee}} cancellation fee stays with the provider and is added to their balance when you record this",
+      refundFeeError: "Couldn't calculate the cancellation fee, try again",
       pageHint: "Each card shows what actually happened with the payment and what you need to do, if anything.",
       needsAction: "Payments that need your decision: {{count}}",
       confirmCash: "Confirm cash was received",
@@ -2688,6 +2692,7 @@ const en = {
       recordRefundHintTransfer: "Send {{amount}} back to the customer first by InstaPay (the sender account is on the transfer receipt), then record the refund reference here. Recording does not move any money",
       refundReference: "Refund transaction reference",
       refundDue: { label: "Refund due", note: "The customer paid and the booking was cancelled. Send the money back and record it" },
+      partiallyRefunded: { label: "Refunded after fee", note: "The money was returned to the customer minus the cancellation fee, which was added to the provider balance" },
       refunded: { label: "Refunded", note: "The amount was returned to the customer." },
     },
     settlement: {
@@ -3547,6 +3552,21 @@ const en = {
       noCampaigns: "No campaigns yet.",
     },
     settings: {
+      cancellationTitle: "Cancellation policy",
+      cancellationSubtitle: "Fees for late cancellation and customer no-show. The whole fee goes to the provider",
+      cancellationLoadError: "Couldn't load the cancellation policy",
+      cancellationFeeMode: "How the fee is calculated",
+      cancellationFeeFixed: "Fixed amount",
+      cancellationFeePercent: "Percentage of the booking",
+      cancellationFeeValueFixed: "Fee amount (EGP)",
+      cancellationFeeValuePercent: "Fee percentage (%)",
+      cancellationFreeHours: "Free cancellation up to this many hours before the visit",
+      cancellationRule1: "The fee applies if the customer cancels less than {{hours}} hours before the visit",
+      cancellationRule2: "The fee applies if the customer cancels after the provider set off",
+      cancellationRule3: "The fee applies if the customer doesn't show up and the provider reports it",
+      cancellationRule4: "No fee if the provider or admin cancels, or the provider doesn't show up. The rest of a prepaid amount goes back to the customer",
+      cancellationInvalid: "Enter a valid value; a percentage cannot exceed 100",
+      cancellationSaveError: "Couldn't save the cancellation policy",
       subtitle: "Platform configuration — changes here have real, immediate effect on the app.",
       saved: "Saved",
       paymentsTitle: "Payments",
@@ -4117,6 +4137,7 @@ Object.assign(en, {
   },
   wallet: {
     admin: {
+      cancellationFee: "Cancellation fee the customer paid the provider",
       title: "Provider account",
       loadError: "Couldn't load the provider account",
       balanceLabel: "Current balance",
@@ -4159,6 +4180,7 @@ Object.assign(en, {
       },
     },
     pro: {
+      cancellationFee: "Cancellation fee from the customer, yours",
       title: "Your wallet",
       loadError: "Couldn't load your wallet. Try again.",
       balanceLabel: "Your balance now",

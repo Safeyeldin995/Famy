@@ -4563,6 +4563,14 @@ export type Database = {
         Args: { p_payment_id: string; p_reference: string }
         Returns: undefined
       }
+      booking_cancellation_fee: {
+        Args: { p_booking_id: string }
+        Returns: number
+      }
+      cancellation_policy: {
+        Args: Record<PropertyKey, never>
+        Returns: { fee_mode: string; fee_value: number; free_cancel_hours: number }[]
+      }
       admin_record_provider_debt_payment: {
         Args: {
           p_provider_id: string

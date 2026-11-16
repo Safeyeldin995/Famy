@@ -831,3 +831,18 @@ export function useBookingExpirySettings() {
     },
   });
 }
+
+/** What the customer would pay to cancel now (late, or after the provider set off). */
+export function useBookingCancellationFee(bookingId: string | undefined, enabled = true) {
+  return useQuery({
+    enabled: !!bookingId && enabled,
+    queryKey: ["booking-cancellation-fee", bookingId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("booking_cancellation_fee", {
+        p_booking_id: bookingId!,
+      });
+      if (error) throw error;
+      return Number(data ?? 0);
+    },
+  });
+}

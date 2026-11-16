@@ -27,8 +27,8 @@ export type WalletBooking = {
 export type WalletBookingRow = {
   bookingId: string;
   at: string;
-  /** How the customer paid. */
-  method: "cash" | "online";
+  /** How the customer paid ("fee": a cancellation fee the customer paid the provider). */
+  method: "cash" | "online" | "fee";
   /** What the customer paid, when known. */
   price: number | null;
   /** Famy's commission, when known. */
@@ -72,6 +72,19 @@ export function walletBookingRows(
   const rows: WalletBookingRow[] = [];
   for (const e of ledger) {
     if (!e.booking_id) continue;
+    if (e.kind === "cancellation_fee_provider_share") {
+      const b = get(e.booking_id);
+      rows.push({
+        bookingId: e.booking_id,
+        at: b?.start_at ?? e.created_at,
+        method: "fee",
+        price: null,
+        commission: null,
+        providerNet: Math.abs(num(e.amount)),
+        effect: signedAmount(e),
+      });
+      continue;
+    }
     if (e.kind !== "cash_collected_platform_share" && e.kind !== "online_provider_share") continue;
     const b = get(e.booking_id);
     const price = b?.price_total == null ? null : num(b.price_total);

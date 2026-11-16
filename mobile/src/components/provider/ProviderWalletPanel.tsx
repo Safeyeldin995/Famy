@@ -201,13 +201,17 @@ export function ProviderWalletPanel({ providerId }: { providerId: string | undef
             <View key={r.bookingId} style={row}>
               <View style={{ flex: 1, gap: 2 }}>
                 <Text weight="bold" size="sm">
-                  {r.price != null
-                    ? t(r.method === "cash" ? "wallet.pro.paidCash" : "wallet.pro.paidOnline", {
-                        amount: money(r.price, lang),
-                      })
-                    : t(
-                        r.method === "cash" ? "wallet.pro.cashBooking" : "wallet.pro.onlineBooking",
-                      )}
+                  {r.method === "fee"
+                    ? t("wallet.pro.cancellationFee")
+                    : r.price != null
+                      ? t(r.method === "cash" ? "wallet.pro.paidCash" : "wallet.pro.paidOnline", {
+                          amount: money(r.price, lang),
+                        })
+                      : t(
+                          r.method === "cash"
+                            ? "wallet.pro.cashBooking"
+                            : "wallet.pro.onlineBooking",
+                        )}
                 </Text>
                 <Text size="xs" tone="muted">
                   {dateTime(r.at, lang)}

@@ -105,6 +105,25 @@ describe("walletView", () => {
     expect(transferReference("ref: ")).toBeNull();
   });
 
+  it("a cancellation fee shows as the provider's earning on that booking", () => {
+    const rows = walletBookingRows(
+      [
+        {
+          id: "f",
+          kind: "cancellation_fee_provider_share",
+          direction: "credit",
+          amount: "50",
+          booking_id: "b-x",
+          created_at: "2026-11-14T10:00:00Z",
+        },
+      ],
+      new Map(),
+    );
+    expect(rows).toEqual([
+      expect.objectContaining({ bookingId: "b-x", method: "fee", providerNet: 50, effect: 50 }),
+    ]);
+  });
+
   it("state", () => {
     expect(walletState(0.001)).toBe("even");
     expect(walletState(-83)).toBe("providerOwes");

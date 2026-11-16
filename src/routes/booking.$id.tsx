@@ -29,7 +29,9 @@ import {
   useMyPushSubscriptions,
 } from "@/lib/db/queries";
 import { useCancelBooking, useBookingCancellation } from "@/lib/db/cancellation-queries";
-import { useBookingExpirySettings } from "@/lib/db/settings-queries";
+import { useBookingCancellationFee, useBookingExpirySettings } from "@/lib/db/settings-queries";
+import { useBookingPayment } from "@/lib/db/payment-queries";
+import { moneyHeld } from "@/lib/payments/refundOwed";
 import { autoCompleteClosesAt } from "@/lib/booking/completion-auto";
 import { formatDateTime } from "@/lib/format";
 import {
@@ -151,6 +153,19 @@ export function BookingDetailContent({
   const cancelBooking = useCancelBooking();
   const cancellationQ = useBookingCancellation(status === "cancelled" ? id : undefined);
   const [dialog, setDialog] = useState<CustomerDialog>("");
+  // Cancelling after the provider set off (or inside the free window) has a fee:
+  // show it before the customer confirms.
+  const cancelFee = useBookingCancellationFee(realQ.data?.id, dialog === "cancel");
+  const cancelPayment = useBookingPayment(dialog === "cancel" ? realQ.data?.id : undefined);
+  // The fee is only deducted from money already paid (card or InstaPay receipt).
+  const feeApplies =
+    (cancelFee.data ?? 0) > 0 &&
+    !!cancelPayment.data &&
+    moneyHeld({
+      paymentStatus: cancelPayment.data.status,
+      methodType: cancelPayment.data.payment_method_type,
+      proofPath: cancelPayment.data.proof_path,
+    });
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const favIdsQ = useFavoriteIds();
@@ -314,7 +329,9 @@ export function BookingDetailContent({
         {showCreatedNav && (
           <div className="space-y-2">
             <p className="text-pro-14 font-bold">{t("bookFlow.created")}</p>
-            <PrimaryButton onClick={() => nav({ to: "/home" })}>{t("bookFlow.goHome")}</PrimaryButton>
+            <PrimaryButton onClick={() => nav({ to: "/home" })}>
+              {t("bookFlow.goHome")}
+            </PrimaryButton>
             <button
               type="button"
               onClick={() =>
@@ -392,6 +409,35 @@ export function BookingDetailContent({
         </section>
       </div>
     </>
+  );
+
+  const cancelDialog = (
+    <CancelBookingDialog
+      open={dialog === "cancel"}
+      actorType="customer"
+      bookingStatus={status}
+      title={t("bookingDetail.cancelReasonTitle")}
+      body={
+        feeApplies
+          ? t("bookingDetail.cancelFeeNotice", { amount: formatEGP(cancelFee.data ?? 0) })
+          : t("bookingDetail.cancelIrreversible")
+      }
+      reasonLabel={t("bookingDetail.cancelReasonLabel")}
+      notePlaceholder={t("bookingDetail.cancelReasonPlaceholder")}
+      confirmLabel={t("bookingDetail.confirmAction")}
+      cancelLabel={t("bookingDetail.keep")}
+      pending={cancelBooking.isPending}
+      onCancel={() => setDialog("")}
+      onConfirm={(reasonId, note) =>
+        cancelBooking.mutate(
+          { bookingId: real.id, reasonId, note },
+          {
+            onSuccess: () => setDialog(""),
+            onError: (e: any) => toast.error(e?.message ?? t("common.somethingWentWrong")),
+          },
+        )
+      }
+    />
   );
 
   // The real database status is the only thing that decides which screen
@@ -659,14 +705,21 @@ export function BookingDetailContent({
             />
           </Card>
 
-          <CustomerPreparationNotesSection
-            notes={preparationQ.data}
-            className="mt-4"
-          />
+          <CustomerPreparationNotesSection notes={preparationQ.data} className="mt-4" />
 
-          <p className="mt-3 rounded-2xl bg-surface-2 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">
-            {t("bookingDetail.cancelNoLongerAvailable")}
-          </p>
+          {status === "on_the_way" || status === "arrived" ? (
+            <button
+              onClick={() => setDialog("cancel")}
+              disabled={cancelBooking.isPending}
+              className="mt-3 w-full rounded-full py-3 text-sm font-extrabold text-destructive disabled:opacity-50"
+            >
+              {t("bookingDetail.cancelWithFee")}
+            </button>
+          ) : (
+            <p className="mt-3 rounded-2xl bg-surface-2 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">
+              {t("bookingDetail.cancelNoLongerAvailable")}
+            </p>
+          )}
 
           {status === "on_the_way" && !noShowReport && (
             <button
@@ -754,6 +807,7 @@ export function BookingDetailContent({
           </div>
         </div>
 
+        {cancelDialog}
         <CaseDialog
           key={`no-show-${dialog}`}
           open={dialog === "no_show"}
@@ -988,28 +1042,7 @@ export function BookingDetailContent({
         </Link>
       </div>
 
-      <CancelBookingDialog
-        open={dialog === "cancel"}
-        actorType="customer"
-        bookingStatus={status}
-        title={t("bookingDetail.cancelReasonTitle")}
-        body={t("bookingDetail.cancelIrreversible")}
-        reasonLabel={t("bookingDetail.cancelReasonLabel")}
-        notePlaceholder={t("bookingDetail.cancelReasonPlaceholder")}
-        confirmLabel={t("bookingDetail.confirmAction")}
-        cancelLabel={t("bookingDetail.keep")}
-        pending={cancelBooking.isPending}
-        onCancel={() => setDialog("")}
-        onConfirm={(reasonId, note) =>
-          cancelBooking.mutate(
-            { bookingId: real.id, reasonId, note },
-            {
-              onSuccess: () => setDialog(""),
-              onError: (e: any) => toast.error(e?.message ?? t("common.somethingWentWrong")),
-            },
-          )
-        }
-      />
+      {cancelDialog}
 
       <CaseDialog
         key={`support-upcoming-${dialog}`}

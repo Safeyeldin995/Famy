@@ -3,6 +3,8 @@ import { View } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSession } from "@/lib/session";
+import { useBookingPayment } from "@/lib/queries";
+import { moneyHeld } from "@shared/payments/refundOwed";
 import {
   useBookingReview,
   useSubmitReview,
@@ -10,9 +12,10 @@ import {
   useCancellationReasons,
   useUpdateBookingStatus,
   useBookingExpirySettings,
+  useBookingCancellationFee,
 } from "@/lib/bookingQueries";
 import { autoCompleteClosesAt } from "@shared/booking/completion-auto";
-import { dateTime } from "@/lib/presentation";
+import { dateTime, money } from "@/lib/presentation";
 import { Button } from "./Button";
 import { Text } from "./Text";
 import { Choices, Field, QueryState, ui } from "./Page";
@@ -49,12 +52,25 @@ export function BookingActions({
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [error, setError] = useState("");
+  const cancelFee = useBookingCancellationFee(booking.id, open);
+  const cancelPayment = useBookingPayment(open ? booking.id : undefined);
+  // The fee is only deducted from money already paid (card or InstaPay receipt).
+  const feeApplies =
+    (cancelFee.data ?? 0) > 0 &&
+    !!cancelPayment.data &&
+    moneyHeld({
+      paymentStatus: cancelPayment.data.status,
+      methodType: cancelPayment.data.payment_method_type,
+      proofPath: cancelPayment.data.proof_path,
+    });
   if (booking.customer_id !== session?.user.id) return null;
   const available = (reasons.data ?? []).filter((r) =>
     r.applicable_statuses.includes(booking.status),
   );
   const selected = available.find((r) => r.id === reasonId);
-  const cancellable = booking.status === "pending" || booking.status === "confirmed";
+  // After the provider set off, cancelling is still possible but has a fee.
+  const lateStage = booking.status === "on_the_way" || booking.status === "arrived";
+  const cancellable = booking.status === "pending" || booking.status === "confirmed" || lateStage;
   return (
     <View style={ui.card}>
       {error && <Text tone="danger">{error}</Text>}
@@ -150,13 +166,19 @@ export function BookingActions({
       {cancellable && (
         <Button
           variant="secondary"
-          label={t("bookingDetail.cancel")}
+          label={t(lateStage ? "bookingDetail.cancelWithFee" : "bookingDetail.cancel")}
           onPress={() => setOpen(true)}
         />
       )}
       {open && cancellable && (
         <>
-          <Text>{t("bookingDetail.cancelIrreversible")}</Text>
+          <Text weight={feeApplies ? "bold" : undefined}>
+            {feeApplies
+              ? t("bookingDetail.cancelFeeNotice", {
+                  amount: money(cancelFee.data ?? 0, i18n.language),
+                })
+              : t("bookingDetail.cancelIrreversible")}
+          </Text>
           <QueryState query={reasons} empty={!available.length} />
           <Choices
             label={t("bookingDetail.cancelReasonLabel")}

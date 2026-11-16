@@ -19,6 +19,8 @@ import {
   useBookingExpirySettings,
   useUpdateBookingExpirySettings,
   useProviderSettlementSettingsAdmin,
+  useCancellationPolicyAdmin,
+  useUpdateCancellationPolicy,
   useUpdateProviderSettlementSettings,
 } from "@/lib/db/settings-queries";
 import {
@@ -716,7 +718,9 @@ function ProviderSettlementSettingsSection() {
             />
           </label>
           <label className="block space-y-1">
-            <span className="text-pro-13 font-semibold">{t("admin.settings.cashDebtWarnPercent")}</span>
+            <span className="text-pro-13 font-semibold">
+              {t("admin.settings.cashDebtWarnPercent")}
+            </span>
             <input
               type="number"
               min={1}
@@ -728,7 +732,9 @@ function ProviderSettlementSettingsSection() {
             />
           </label>
           <label className="block space-y-1">
-            <span className="text-pro-13 font-semibold">{t("admin.settings.settlementWeekday")}</span>
+            <span className="text-pro-13 font-semibold">
+              {t("admin.settings.settlementWeekday")}
+            </span>
             <select
               value={weekday}
               onChange={(e) => setWeekday(e.target.value)}
@@ -768,6 +774,119 @@ function ProviderSettlementSettingsSection() {
   );
 }
 
+function CancellationPolicySection() {
+  const { t } = useTranslation();
+  const q = useCancellationPolicyAdmin();
+  const update = useUpdateCancellationPolicy();
+  const [mode, setMode] = useState<"fixed" | "percent">("fixed");
+  const [value, setValue] = useState("0");
+  const [hours, setHours] = useState("2");
+  useEffect(() => {
+    if (q.data) {
+      setMode(q.data.fee_mode);
+      setValue(String(q.data.fee_value));
+      setHours(String(q.data.free_cancel_hours));
+    }
+  }, [q.data]);
+  const valueN = Number(value);
+  const hoursN = Number(hours);
+  const valid =
+    value.trim() !== "" &&
+    hours.trim() !== "" &&
+    Number.isFinite(valueN) &&
+    valueN >= 0 &&
+    (mode === "fixed" || valueN <= 100) &&
+    Number.isFinite(hoursN) &&
+    hoursN >= 0;
+  const saved = useSavedFlash(update.isPending, update.isSuccess);
+  return (
+    <SectionCard
+      title={t("admin.settings.cancellationTitle")}
+      subtitle={t("admin.settings.cancellationSubtitle")}
+    >
+      {q.isLoading ? (
+        <p>{t("common.loading")}</p>
+      ) : q.isError ? (
+        <AdminQueryError
+          message={t("admin.settings.cancellationLoadError")}
+          error={q.error}
+          onRetry={() => q.refetch()}
+        />
+      ) : (
+        <div className="space-y-3">
+          <label className="block space-y-1">
+            <span className="text-pro-13 font-semibold">
+              {t("admin.settings.cancellationFeeMode")}
+            </span>
+            <select
+              value={mode}
+              onChange={(e) => setMode(e.target.value === "percent" ? "percent" : "fixed")}
+              className="min-h-11 w-full rounded-xl border bg-surface px-3 text-pro-14"
+            >
+              <option value="fixed">{t("admin.settings.cancellationFeeFixed")}</option>
+              <option value="percent">{t("admin.settings.cancellationFeePercent")}</option>
+            </select>
+          </label>
+          <label className="block space-y-1">
+            <span className="text-pro-13 font-semibold">
+              {t(
+                mode === "percent"
+                  ? "admin.settings.cancellationFeeValuePercent"
+                  : "admin.settings.cancellationFeeValueFixed",
+              )}
+            </span>
+            <input
+              type="number"
+              min={0}
+              max={mode === "percent" ? 100 : undefined}
+              dir="ltr"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              className="min-h-11 w-full rounded-xl border bg-surface px-3 text-pro-14"
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-pro-13 font-semibold">
+              {t("admin.settings.cancellationFreeHours")}
+            </span>
+            <input
+              type="number"
+              min={0}
+              dir="ltr"
+              value={hours}
+              onChange={(e) => setHours(e.target.value)}
+              className="min-h-11 w-full rounded-xl border bg-surface px-3 text-pro-14"
+            />
+          </label>
+          <ul className="list-disc space-y-1 ps-5 text-pro-12 text-muted-foreground">
+            <li>{t("admin.settings.cancellationRule1", { hours: hoursN || 0 })}</li>
+            <li>{t("admin.settings.cancellationRule2")}</li>
+            <li>{t("admin.settings.cancellationRule3")}</li>
+            <li>{t("admin.settings.cancellationRule4")}</li>
+          </ul>
+          <SaveButton
+            pending={update.isPending}
+            saved={saved}
+            onClick={() => {
+              if (!valid) {
+                toast.error(t("admin.settings.cancellationInvalid"));
+                return;
+              }
+              update.mutate(
+                { fee_mode: mode, fee_value: valueN, free_cancel_hours: hoursN },
+                {
+                  onSuccess: () => toast.success(t("admin.settings.saved")),
+                  onError: () => toast.error(t("admin.settings.cancellationSaveError")),
+                },
+              );
+            }}
+          />
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
 function PlatformContentSection() {
   const { t, i18n } = useTranslation();
   return (
@@ -796,6 +915,7 @@ function AdminSettings() {
       </div>
       <BillingSection />
       <ProviderSettlementSettingsSection />
+      <CancellationPolicySection />
       <BookingExpirySection />
       <CategoriesSection />
       <ServiceAreasSection />

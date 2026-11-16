@@ -280,3 +280,77 @@ export function useUpdateBookingExpirySettings() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["settings", "booking_expiry"] }),
   });
 }
+
+export type CancellationPolicy = {
+  fee_mode: "fixed" | "percent";
+  fee_value: number;
+  free_cancel_hours: number;
+};
+
+/** Same defaults and bounds as the database's cancellation_policy(). */
+export function parseCancellationPolicy(
+  value: Record<string, unknown> | null | undefined,
+): CancellationPolicy {
+  const mode = value?.fee_mode === "percent" ? "percent" : "fixed";
+  const fee = Number(value?.fee_value ?? 0);
+  const hours = Number(value?.free_cancel_hours ?? 2);
+  return {
+    fee_mode: mode,
+    fee_value:
+      Number.isFinite(fee) && fee > 0 ? (mode === "percent" ? Math.min(fee, 100) : fee) : 0,
+    free_cancel_hours: Number.isFinite(hours) && hours >= 0 ? hours : 2,
+  };
+}
+
+export function useCancellationPolicyAdmin() {
+  return useQuery({
+    queryKey: ["settings", "cancellation_policy"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("settings")
+        .select("value")
+        .eq("key", "cancellation_policy")
+        .maybeSingle();
+      if (error) throw error;
+      return parseCancellationPolicy((data?.value as Record<string, unknown>) ?? {});
+    },
+  });
+}
+
+export function useUpdateCancellationPolicy() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (policy: CancellationPolicy) => {
+      const { data, error } = await supabase
+        .from("settings")
+        .upsert({ key: "cancellation_policy", value: policy }, { onConflict: "key" })
+        .select("value")
+        .single();
+      if (error) throw error;
+      const stored = parseCancellationPolicy(data.value as Record<string, unknown>);
+      if (
+        stored.fee_mode !== policy.fee_mode ||
+        stored.fee_value !== policy.fee_value ||
+        stored.free_cancel_hours !== policy.free_cancel_hours
+      ) {
+        throw new Error("Cancellation policy did not persist.");
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["settings", "cancellation_policy"] }),
+  });
+}
+
+/** What the customer would pay to cancel now (or what was charged). */
+export function useBookingCancellationFee(bookingId: string | undefined, enabled = true) {
+  return useQuery({
+    enabled: !!bookingId && enabled,
+    queryKey: ["booking-cancellation-fee", bookingId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("booking_cancellation_fee", {
+        p_booking_id: bookingId!,
+      });
+      if (error) throw error;
+      return Number(data ?? 0);
+    },
+  });
+}
