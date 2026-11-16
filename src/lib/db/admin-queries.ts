@@ -729,6 +729,7 @@ export function useAdminPayments(status?: string | string[]) {
           booking:bookings(
             id,
             status,
+            carried_fees_amount,
             provider:providers(id, profile:profiles(full_name)),
             customer:profiles!bookings_customer_id_fkey(id, full_name, phone)
           )
@@ -904,7 +905,7 @@ export function useAdminCustomer(id: string) {
       if (error) throw error;
       const { data: bookings, error: bookingsError } = await supabase
         .from('bookings')
-        .select('id, status, start_at, price_total')
+        .select('id, status, start_at, price_total, carried_fees_amount')
         .eq('customer_id', id)
         .order('created_at', { ascending: false })
         .limit(50);

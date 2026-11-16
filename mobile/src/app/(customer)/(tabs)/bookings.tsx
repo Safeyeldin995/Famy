@@ -19,6 +19,7 @@ import { CustomerEmpty, customerStyle } from "@/ui/customer/Primitives";
 import { Avatar } from "@/ui/ProviderCard";
 import { Button } from "@/ui/Button";
 import { isProviderNoResponseCancellation } from "@shared/booking/pending-expiry";
+import { bookingAmountDue } from "@shared/payments/amountDue";
 
 export default function Bookings() {
   const { t, i18n } = useTranslation();
@@ -207,7 +208,7 @@ export default function Bookings() {
                   ]}
                 >
                   <Text weight="heavy" tone={past ? "default" : "brand"}>
-                    {customerMoney(b.price_total, i18n.language)}
+                    {customerMoney(bookingAmountDue(b), i18n.language)}
                   </Text>
                   <Text size="xs" tone="muted" style={ui.ltr}>
                     #{b.id.slice(0, 8).toUpperCase()}

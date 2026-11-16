@@ -22,6 +22,7 @@ import { Calendar, Clock, Repeat, ChevronRight } from "lucide-react";
 import { ICON_STROKE } from "@/lib/icons/constants";
 import { isProviderNoResponseCancellation } from "@/lib/booking/pending-expiry";
 import { useProviderOnlyCustomerRedirect } from "@/lib/auth/providerOnlyCustomerGuard";
+import { bookingAmountDue } from "@/lib/payments/amountDue";
 
 export const Route = createFileRoute("/bookings")({ component: Bookings });
 
@@ -187,7 +188,7 @@ function Bookings() {
                       <p
                         className={`text-pro-14 font-extrabold ${isPast ? "text-foreground" : "text-brand"}`}
                       >
-                        {formatEGP(Number(b.price_total ?? 0))}
+                        {formatEGP(bookingAmountDue(b))}
                       </p>
                       <p className="mt-0.5 text-pro-12 text-muted-foreground" dir="ltr">
                         #{shortId}

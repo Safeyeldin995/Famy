@@ -1,4 +1,5 @@
 import { useState } from "react";
+import * as ImagePicker from "expo-image-picker";
 import { Linking, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useSession } from "@/lib/session";
@@ -8,13 +9,12 @@ import { startFeeDebtCheckout } from "@/lib/mobilePayments";
 import { money } from "@/lib/presentation";
 import { Button } from "./Button";
 import { Text } from "./Text";
-import { Field } from "./Page";
 import { BrandLogo, PaymentLogos } from "./PaymentLogos";
 import { colors, radius, space } from "./theme";
 
 /**
- * Unpaid cancellation fees: the customer cannot book again until they pay them
- * (card through Paymob, or InstaPay confirmed by Famy). Renders nothing when clear.
+ * Unpaid cancellation fees: added to the customer's next booking, or paid now by card
+ * (Paymob) or InstaPay (receipt checked by Famy). Renders nothing when clear.
  */
 export function FeeDebtBanner() {
   const { t, i18n } = useTranslation();
@@ -24,26 +24,54 @@ export function FeeDebtBanner() {
   const submit = useSubmitDebtInstapay(uid);
   const famyInstapay = useFamyInstapay();
   const [mode, setMode] = useState<"choose" | "instapay">("choose");
-  const [reference, setReference] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [confirming, setConfirming] = useState(false);
 
   const d = debts.data;
-  if (!d || d.total <= 0) return null;
+  if (!d || (d.total <= 0 && !d.inReview)) return null;
   const lang = i18n.language;
+  const box = {
+    gap: space.sm,
+    padding: space.md,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  } as const;
+
+  if (d.total <= 0 && d.inReview) {
+    return (
+      <View style={box}>
+        <Text size="sm" weight="bold">
+          {t("feeDebt.inReview", { amount: money(d.inReview.amount, lang) })}
+        </Text>
+      </View>
+    );
+  }
+
+  const pickReceipt = async () => {
+    setMessage("");
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 1,
+    });
+    if (result.canceled) return;
+    submit.mutate(result.assets[0], {
+      onSuccess: () => setMode("choose"),
+      onError: (e) =>
+        setMessage(
+          t(
+            e instanceof Error && e.message === "fileTooLarge"
+              ? "payment.fileTooLarge"
+              : "payment.uploadFailed",
+          ),
+        ),
+    });
+  };
 
   return (
-    <View
-      style={{
-        gap: space.sm,
-        padding: space.md,
-        borderRadius: radius.xl,
-        borderWidth: 1,
-        borderColor: colors.destructive,
-        backgroundColor: colors.surface,
-      }}
-    >
+    <View style={box}>
       <Text weight="heavy">{t("feeDebt.title", { amount: money(d.total, lang) })}</Text>
       <Text size="sm" tone="muted">
         {t("feeDebt.body")}
@@ -53,11 +81,7 @@ export function FeeDebtBanner() {
           {t("feeDebt.confirming")}
         </Text>
       ) : null}
-      {d.inReview ? (
-        <Text size="sm" weight="bold">
-          {t("feeDebt.inReview")}
-        </Text>
-      ) : mode === "choose" ? (
+      {mode === "choose" ? (
         <>
           {d.lastRejected ? (
             <Text size="sm" tone="danger">
@@ -111,26 +135,10 @@ export function FeeDebtBanner() {
               {famyInstapay.data.handle}
             </Text>
           ) : null}
-          <Field
-            label={t("feeDebt.reference")}
-            value={reference}
-            onChangeText={setReference}
-            autoCapitalize="characters"
-            ltr
-          />
           <Button
-            label={t("feeDebt.sendReference")}
+            label={t("feeDebt.uploadReceipt")}
             loading={submit.isPending}
-            disabled={reference.trim().length < 4}
-            onPress={() =>
-              submit.mutate(reference.trim(), {
-                onSuccess: () => {
-                  setMode("choose");
-                  setReference("");
-                },
-                onError: () => setMessage(t("common.somethingWentWrong")),
-              })
-            }
+            onPress={() => void pickReceipt()}
           />
           <Button
             variant="secondary"

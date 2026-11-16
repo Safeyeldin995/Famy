@@ -14,7 +14,12 @@ import {
 } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { useBooking, useBookingPayment, useBookingParty, useProviderServicePreparationNotes } from "@/lib/queries";
+import {
+  useBooking,
+  useBookingPayment,
+  useBookingParty,
+  useProviderServicePreparationNotes,
+} from "@/lib/queries";
 import { CustomerPreparationNotesSection } from "@/ui/customer/CustomerPreparationNotesSection";
 import { chatPhaseForStatus, useConversationByBooking } from "@/lib/chatQueries";
 import { dateTime, localized, money } from "@/lib/presentation";
@@ -30,10 +35,8 @@ import { shareBookingFile } from "@/lib/shareBookingFile";
 import { colors, radius, space } from "@/ui/theme";
 import { BookingJourneyStepper } from "@/ui/BookingJourneyStepper";
 import { useBookingStatusHistory } from "@/lib/bookingJourneyQueries";
-import {
-  isSupervisionMode,
-  supervisionModeProviderLabel,
-} from "@shared/booking/supervisionMode";
+import { isSupervisionMode, supervisionModeProviderLabel } from "@shared/booking/supervisionMode";
+import { bookingAmountDue, carriedFees } from "@shared/payments/amountDue";
 
 export default function BookingDetail() {
   const { id, created, educationWarning } = useLocalSearchParams<{
@@ -100,7 +103,7 @@ export default function BookingDetail() {
               .filter(Boolean)
               .join(", ")
           : t("bookingDetail.addressMissing"),
-        total: money(b.price_total ?? 0, i18n.language),
+        total: money(bookingAmountDue(b), i18n.language),
         start: b.start_at,
         end: b.end_at,
       }
@@ -312,6 +315,12 @@ export default function BookingDetail() {
                   <Text style={{ flex: 1 }}>{label}</Text>
                 </View>
               ))}
+              {carriedFees(b) > 0 ? (
+                <View style={ui.priceRow}>
+                  <Text tone="muted">{t("bookFlow.carriedFees")}</Text>
+                  <Text tone="muted">{money(carriedFees(b), i18n.language)}</Text>
+                </View>
+              ) : null}
               <View
                 style={[
                   ui.priceRow,
@@ -369,9 +378,7 @@ export default function BookingDetail() {
                 {t("common.somethingWentWrong")}
               </Text>
             )}
-            {activeBooking ? (
-              <CustomerPreparationNotesSection notes={preparation.data} />
-            ) : null}
+            {activeBooking ? <CustomerPreparationNotesSection notes={preparation.data} /> : null}
             <RescheduleSection booking={b} />
             <View style={ui.card}>
               <Text size="xl" weight="heavy">

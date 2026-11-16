@@ -59,7 +59,9 @@ function PaymentCard({ payment: p, cashRecorded }: { payment: any; cashRecorded:
   // The customer's cancellation fee (if any) stays with the provider; only the rest is refunded.
   const refundFee = useBookingCancellationFee(p.booking_id, refundSheet);
   const paidAmount = Number(p.amount ?? 0);
-  const feeAmount = Math.min(refundFee.data ?? 0, paidAmount);
+  // Earlier unpaid fees this booking carried: Famy keeps them for their providers.
+  const carriedAmount = Math.min(Number(p.booking?.carried_fees_amount ?? 0), paidAmount);
+  const feeAmount = Math.min(refundFee.data ?? 0, paidAmount - carriedAmount);
   const situation = paymentSituation(p, cashRecorded);
   const isTransfer =
     p.payment_method_type === "manual_transfer" ||
@@ -213,11 +215,16 @@ function PaymentCard({ payment: p, cashRecorded }: { payment: any; cashRecorded:
                     feeAmount > 0
                       ? t("admin.paymentSituation.refundFeeNote", { fee: formatEGP(feeAmount) })
                       : "",
+                    carriedAmount > 0
+                      ? t("admin.paymentSituation.refundCarriedNote", {
+                          amount: formatEGP(carriedAmount),
+                        })
+                      : "",
                     t(
                       isTransfer
                         ? "admin.paymentSituation.recordRefundHintTransfer"
                         : "admin.paymentSituation.recordRefundHint",
-                      { amount: formatEGP(paidAmount - feeAmount) },
+                      { amount: formatEGP(paidAmount - feeAmount - carriedAmount) },
                     ),
                   ]
                     .filter(Boolean)

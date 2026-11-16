@@ -65,7 +65,7 @@ afterAll(async () => {
 describe("customer fee debts", () => {
   let firstBooking: string;
 
-  it("a late cancellation on an unpaid booking becomes a debt that blocks new bookings", async () => {
+  it("a late cancellation on an unpaid booking becomes a debt that rides on the next booking", async () => {
     firstBooking = await cashBookingOnTheWay();
     expect((await cancelAsCustomer(firstBooking)).error).toBeUndefined();
     const debts = await openDebts();
@@ -73,20 +73,46 @@ describe("customer fee debts", () => {
       expect.objectContaining({ amount: "50.00", kind: "late_cancellation" }),
     ]);
 
-    await expect(seedLifecycleBooking(db)).rejects.toThrow(/BOOKING_DEBT_OUTSTANDING/);
+    // Booking is allowed; the fee is added to it.
+    const { bookingId: next } = await seedLifecycleBooking(db);
+    const carried = await queryRows<{ c: string }>(
+      db,
+      "SELECT carried_fees_amount::text AS c FROM public.bookings WHERE id = $1",
+      [next],
+    );
+    expect(carried[0].c).toBe("50.00");
+    expect(
+      (await tryAsUser(db, IDS.customer, "SELECT * FROM public.my_unpaid_fees()")).rows,
+    ).toEqual([]);
+
+    // That booking is cancelled before anything was paid: the fee is free again.
+    await setBookingStatusAsSystem(db, next, "cancelled");
+    const mine = await tryAsUser(
+      db,
+      IDS.customer,
+      "SELECT amount::text AS a FROM public.my_unpaid_fees()",
+    );
+    expect(mine.rows).toEqual([{ a: "50.00" }]);
   });
 
-  it("InstaPay: one transfer waits for review; admin rejection keeps the debt, approval settles it", async () => {
+  it("InstaPay: one receipt waits for review; admin rejection keeps the debt, approval settles it", async () => {
+    // A receipt outside the customer's own folder is refused.
+    const foreign = await tryAsUser(
+      db,
+      IDS.customer,
+      `SELECT public.customer_submit_debt_instapay('fees/${IDS.otherProviderUser}/x.jpg')`,
+    );
+    expect(foreign.ok).toBe(false);
     const first = await tryAsUser(
       db,
       IDS.customer,
-      "SELECT public.customer_submit_debt_instapay('IP-1234')",
+      `SELECT public.customer_submit_debt_instapay('fees/${IDS.customer}/r1.jpg')`,
     );
     expect(first.error).toBeUndefined();
     const again = await tryAsUser(
       db,
       IDS.customer,
-      "SELECT public.customer_submit_debt_instapay('IP-9999')",
+      `SELECT public.customer_submit_debt_instapay('fees/${IDS.customer}/r2.jpg')`,
     );
     expect(again.ok).toBe(false);
 
@@ -103,7 +129,7 @@ describe("customer fee debts", () => {
     const second = await tryAsUser(
       db,
       IDS.customer,
-      "SELECT public.customer_submit_debt_instapay('IP-5678')",
+      `SELECT public.customer_submit_debt_instapay('fees/${IDS.customer}/r3.jpg')`,
     );
     const sid2 = String(Object.values(second.rows![0])[0]);
     // Only an admin can confirm.
@@ -226,7 +252,7 @@ describe("customer fee debts", () => {
     const ip = await tryAsUser(
       db,
       IDS.customer,
-      "SELECT public.customer_submit_debt_instapay('IP-4321')",
+      `SELECT public.customer_submit_debt_instapay('fees/${IDS.customer}/r4.jpg')`,
     );
     const ipId = String(Object.values(ip.rows![0])[0]);
     await tryAsUser(db, IDS.adminUser, "SELECT public.admin_review_debt_settlement($1, true)", [
@@ -238,12 +264,12 @@ describe("customer fee debts", () => {
         "SELECT public.paymob_apply_transaction_webhook(9101, 515151, 77, 'EGP', true, false, 5000, '9101')",
       ),
     );
-    const rows = await queryRows<{ status: string; needs_refund: boolean }>(
+    const rows = await queryRows<{ status: string; needs_refund: boolean; r: string }>(
       db,
-      "SELECT status, needs_refund FROM public.customer_debt_settlements WHERE id = $1",
+      "SELECT status, needs_refund, refund_amount::text AS r FROM public.customer_debt_settlements WHERE id = $1",
       [first],
     );
-    expect(rows[0]).toEqual({ status: "paid", needs_refund: true });
+    expect(rows[0]).toEqual({ status: "paid", needs_refund: true, r: "50.00" });
     // The provider is credited once.
     expect(await ledgerFor(b)).toEqual([
       { kind: "cancellation_fee_provider_share", amount: "50.00" },

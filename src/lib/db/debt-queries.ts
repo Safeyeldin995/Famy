@@ -19,19 +19,18 @@ export type DebtSettlement = {
   created_at: string;
 };
 
-/** The signed-in customer's unpaid fees and their latest payment attempt. */
+/**
+ * The signed-in customer's unpaid fees: those that will be added to their next booking
+ * (fees already riding on a live booking, or inside a receipt being checked, are left out),
+ * plus their latest standalone payment attempt.
+ */
 export function useMyFeeDebts(customerId: string | undefined) {
   return useQuery({
     enabled: !!customerId,
     queryKey: ["customer-fee-debts", customerId],
     queryFn: async () => {
       const [debts, settlements] = await Promise.all([
-        supabase
-          .from("customer_debts")
-          .select("id, booking_id, kind, amount, status, created_at")
-          .eq("customer_id", customerId!)
-          .eq("status", "open")
-          .order("created_at", { ascending: true }),
+        supabase.rpc("my_unpaid_fees"),
         supabase
           .from("customer_debt_settlements")
           .select("id, amount, method, status, rejection_reason, created_at")
@@ -41,27 +40,37 @@ export function useMyFeeDebts(customerId: string | undefined) {
       ]);
       if (debts.error) throw debts.error;
       if (settlements.error) throw settlements.error;
-      const open = (debts.data ?? []).map((d) => ({
+      const open = ((debts.data ?? []) as Omit<CustomerDebt, "status">[]).map((d) => ({
         ...d,
+        status: "open",
         amount: Number(d.amount),
       })) as CustomerDebt[];
       const latest = (settlements.data?.[0] ?? null) as DebtSettlement | null;
       return {
         open,
         total: open.reduce((s, d) => s + d.amount, 0),
-        inReview: latest?.status === "pending_review",
+        inReview: latest?.status === "pending_review" ? { amount: Number(latest.amount) } : null,
         lastRejected: latest?.status === "rejected" ? latest : null,
       };
     },
   });
 }
 
+/** Uploads the InstaPay receipt under fees/<customer id>/ and sends it for review. */
 export function useSubmitDebtInstapay(customerId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (reference: string) => {
+    mutationFn: async (file: File) => {
+      if (!customerId) throw new Error("auth required");
+      if (file.size > 10 * 1024 * 1024) throw new Error("fileTooLarge");
+      const ext = (file.name.split(".").pop() || "jpg").replace(/[^a-z0-9]/gi, "");
+      const path = `fees/${customerId}/receipt-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("payment-proofs")
+        .upload(path, file, { contentType: file.type || "image/jpeg", upsert: false });
+      if (upErr) throw upErr;
       const { error } = await supabase.rpc("customer_submit_debt_instapay", {
-        p_reference: reference,
+        p_proof_path: path,
       });
       if (error) throw error;
     },
@@ -72,11 +81,14 @@ export function useSubmitDebtInstapay(customerId: string | undefined) {
 export type AdminDebtSettlement = DebtSettlement & {
   customer_id: string;
   instapay_reference: string | null;
+  proof_path: string | null;
+  refund_amount: number | null;
   customer_name: string | null;
 };
 export type AdminCustomerDebt = CustomerDebt & {
   customer_id: string;
   provider_id: string;
+  carried_booking_id: string | null;
   customer_name: string | null;
 };
 
@@ -96,19 +108,21 @@ export function useAdminFeeDebts() {
         supabase
           .from("customer_debt_settlements")
           .select(
-            "id, customer_id, amount, method, status, instapay_reference, rejection_reason, created_at",
+            "id, customer_id, amount, method, status, instapay_reference, proof_path, refund_amount, rejection_reason, created_at",
           )
           .eq("status", "pending_review")
           .order("created_at", { ascending: true }),
         supabase
           .from("customer_debts")
-          .select("id, customer_id, provider_id, booking_id, kind, amount, status, created_at")
+          .select(
+            "id, customer_id, provider_id, booking_id, carried_booking_id, kind, amount, status, created_at",
+          )
           .eq("status", "open")
           .order("created_at", { ascending: true }),
         supabase
           .from("customer_debt_settlements")
           .select(
-            "id, customer_id, amount, method, status, instapay_reference, rejection_reason, created_at",
+            "id, customer_id, amount, method, status, instapay_reference, proof_path, refund_amount, rejection_reason, created_at",
           )
           .eq("needs_refund", true)
           .order("created_at", { ascending: true }),
@@ -118,7 +132,9 @@ export function useAdminFeeDebts() {
       if (overpaid.error) throw overpaid.error;
       const names = await namesFor([
         ...new Set(
-          [...(settlements.data ?? []), ...(debts.data ?? [])].map((r) => r.customer_id as string),
+          [...(settlements.data ?? []), ...(debts.data ?? []), ...(overpaid.data ?? [])].map(
+            (r) => r.customer_id as string,
+          ),
         ),
       ]);
       return {
@@ -130,6 +146,7 @@ export function useAdminFeeDebts() {
         overpaid: (overpaid.data ?? []).map((s) => ({
           ...s,
           amount: Number(s.amount),
+          refund_amount: s.refund_amount == null ? null : Number(s.refund_amount),
           customer_name: names.get(s.customer_id as string) ?? null,
         })) as AdminDebtSettlement[],
         debts: (debts.data ?? []).map((d) => ({

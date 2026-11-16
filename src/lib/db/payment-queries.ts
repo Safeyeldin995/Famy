@@ -6,6 +6,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { bookingAmountDue } from '@/lib/payments/amountDue';
 
 export type PaymentStatus = 'pending' | 'pending_review' | 'captured' | 'rejected';
 
@@ -54,7 +55,7 @@ export function mapPaymentInsertError(error: unknown): string {
 }
 
 /**
- * Creates a payment row via direct insert. Amount is loaded from bookings.price_total
+ * Creates a payment row via direct insert. Amount is loaded from bookings.price_total + carried_fees_amount
  * before insert; trg_validate_payment_amount enforces the match server-side.
  * PATCH 6D: move initialization into a SECURITY DEFINER RPC (not implemented here).
  */
@@ -72,14 +73,15 @@ export function useCreatePayment() {
 
       const { data: booking, error: bookingErr } = await supabase
         .from('bookings')
-        .select('price_total, currency, customer_id')
+        .select('price_total, carried_fees_amount, currency, customer_id')
         .eq('id', input.bookingId)
         .single();
       if (bookingErr) throw bookingErr;
       if (booking.customer_id !== user.id) {
         throw new Error('You cannot record payment for this booking.');
       }
-      const amount = Number(booking.price_total);
+      // Includes earlier unpaid cancellation fees added to this booking.
+      const amount = bookingAmountDue(booking);
       if (!Number.isFinite(amount) || amount <= 0) {
         throw new Error('Booking total is not available yet.');
       }

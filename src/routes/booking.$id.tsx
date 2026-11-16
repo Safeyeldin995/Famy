@@ -75,6 +75,7 @@ import { isProviderNoResponseCancellation } from "@/lib/booking/pending-expiry";
 import { PushEnablePrompt } from "@/components/famio/PushEnablePrompt";
 import { shouldOfferPushPrompt } from "@/lib/push-prompt";
 import { isSupervisionMode, supervisionModeProviderLabel } from "@/lib/booking/supervisionMode";
+import { bookingAmountDue, carriedFees } from "@/lib/payments/amountDue";
 
 export const Route = createFileRoute("/booking/$id")({
   component: BookingDetail,
@@ -306,7 +307,8 @@ export function BookingDetailContent({
           .filter(Boolean)
           .join(", ")
       : t("bookingDetail.addressMissing"),
-    total: formatEGP(Number(real.price_total ?? 0)),
+    // Includes earlier unpaid cancellation fees added to this booking.
+    total: formatEGP(bookingAmountDue(real)),
   };
 
   const overview = (headline: string, showCreatedNav = false) => (
@@ -402,6 +404,12 @@ export function BookingDetailContent({
               />
             )}
           </div>
+          {carriedFees(real) > 0 && (
+            <div className="mt-4 flex justify-between gap-3 text-sm text-muted-foreground">
+              <span>{t("bookFlow.carriedFees")}</span>
+              <span>{formatEGP(carriedFees(real))}</span>
+            </div>
+          )}
           <div className="mt-4 flex justify-between gap-3 border-t border-border/60 pt-3 text-pro-16 font-bold">
             <span>{t("customerDetail.total")}</span>
             <span>{booking.total}</span>

@@ -10,15 +10,13 @@ import { colors, radius, space } from "@/ui/theme";
 import { localized, money } from "@/lib/presentation";
 import { joinUiParts } from "@shared/format/uiJoin";
 import type { BookingParty } from "@/lib/provider/parties";
-import {
-  isSupervisionMode,
-  supervisionModeProviderLabel,
-} from "@shared/booking/supervisionMode";
+import { isSupervisionMode, supervisionModeProviderLabel } from "@shared/booking/supervisionMode";
 import {
   providerHomeActiveBookingNeedsAction,
   providerHomeActiveBookingNextStepKey,
   providerHomeActiveBookingStatusKey,
 } from "@shared/home/activeHomeBookings";
+import { bookingAmountDue } from "@shared/payments/amountDue";
 
 export type ProviderCardBooking = {
   id: string;
@@ -28,6 +26,7 @@ export type ProviderCardBooking = {
   arrival_confirmed_at?: string | null;
   status?: string;
   price_total?: number | null;
+  carried_fees_amount?: number | null;
   supervision_mode?: string | null;
   customer?: { full_name?: string | null; avatar_url?: string | null } | null;
   service?: { name_ar?: string | null; name_en?: string | null } | null;
@@ -92,7 +91,7 @@ export function ProviderBookingCard({
             {name}
           </Text>
           <Text weight="heavy" size="lg" tone="brand" style={moneyTextStyle(language)}>
-            {money(Number(booking.price_total ?? 0), language)}
+            {money(bookingAmountDue(booking), language)}
           </Text>
         </View>
         <Text weight="bold">{localized(booking.service, language)}</Text>
