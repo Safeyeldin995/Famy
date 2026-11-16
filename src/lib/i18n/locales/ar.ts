@@ -1772,6 +1772,8 @@ const ar: Translation = {
     completed: "خلصت",
   },
   bookingDetail: {
+    cancelWithFee: "الغي الحجز (فيه رسوم إلغاء)",
+    cancelFeeNotice: "لو لغيت دلوقتي هيتخصم {{amount}} رسوم إلغاء بتروح لمقدم الخدمة، والباقي من اللي دفعته يرجعلك، والإلغاء مش هينفع يترجع",
     title: "الحجز",
     notFound: "الحجز مش موجود",
     notFoundBody: "الحجز ده مش موجود أو مش متاح لحسابك",
@@ -2630,6 +2632,8 @@ const ar: Translation = {
   },
   admin: {
     paymentSituation: {
+      refundFeeNote: "رسوم الإلغاء {{fee}} تبقى لمقدم الخدمة وتضاف إلى رصيده عند التسجيل",
+      refundFeeError: "تعذر حساب رسوم الإلغاء، أعد المحاولة",
       pageHint: "توضح كل بطاقة حالة الدفع الفعلية والإجراء المطلوب منك إن وجد",
       needsAction: "مدفوعات تحتاج قرارك: {{count}}",
       confirmCash: "تأكيد استلام المبلغ النقدي",
@@ -3512,6 +3516,21 @@ const ar: Translation = {
       noCampaigns: "لا توجد حملات بعد",
     },
     settings: {
+      cancellationTitle: "سياسة الإلغاء",
+      cancellationSubtitle: "رسوم الإلغاء المتأخر وعدم حضور العميل، وتذهب الرسوم كاملة إلى مقدم الخدمة",
+      cancellationLoadError: "تعذر تحميل سياسة الإلغاء",
+      cancellationFeeMode: "طريقة حساب الرسوم",
+      cancellationFeeFixed: "مبلغ ثابت",
+      cancellationFeePercent: "نسبة من قيمة الحجز",
+      cancellationFeeValueFixed: "قيمة الرسوم (ج.م)",
+      cancellationFeeValuePercent: "نسبة الرسوم (٪)",
+      cancellationFreeHours: "الإلغاء مجاني حتى عدد الساعات التالي قبل الموعد",
+      cancellationRule1: "تطبق الرسوم إذا ألغى العميل قبل الموعد بأقل من {{hours}} ساعة",
+      cancellationRule2: "تطبق الرسوم إذا ألغى العميل بعد تحرك مقدم الخدمة إليه",
+      cancellationRule3: "تطبق الرسوم إذا لم يحضر العميل وأبلغ مقدم الخدمة بذلك",
+      cancellationRule4: "لا رسوم إذا ألغى مقدم الخدمة أو الإدارة، أو لم يحضر مقدم الخدمة، ويرد باقي المبلغ المدفوع إلى العميل",
+      cancellationInvalid: "أدخل قيمة صحيحة، والنسبة لا تزيد على 100",
+      cancellationSaveError: "تعذر حفظ سياسة الإلغاء",
       subtitle: "إعدادات المنصة، وأي تغيير هنا يطبق فورا على التطبيق",
       saved: "تم الحفظ",
       paymentsTitle: "المدفوعات",
@@ -4071,6 +4090,7 @@ Object.assign(ar, {
   },
   wallet: {
     admin: {
+      cancellationFee: "رسوم إلغاء دفعها العميل لمقدم الخدمة",
       title: "حساب مقدم الخدمة",
       loadError: "تعذر تحميل حساب مقدم الخدمة",
       balanceLabel: "الرصيد الحالي",
@@ -4113,6 +4133,7 @@ Object.assign(ar, {
       },
     },
     pro: {
+      cancellationFee: "رسوم إلغاء من العميل ليك",
       title: "محفظتك",
       loadError: "مقدرناش نحمل محفظتك، جرب تاني",
       balanceLabel: "رصيدك دلوقتي",

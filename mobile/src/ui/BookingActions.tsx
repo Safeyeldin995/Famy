@@ -10,9 +10,10 @@ import {
   useCancellationReasons,
   useUpdateBookingStatus,
   useBookingExpirySettings,
+  useBookingCancellationFee,
 } from "@/lib/bookingQueries";
 import { autoCompleteClosesAt } from "@shared/booking/completion-auto";
-import { dateTime } from "@/lib/presentation";
+import { dateTime, money } from "@/lib/presentation";
 import { Button } from "./Button";
 import { Text } from "./Text";
 import { Choices, Field, QueryState, ui } from "./Page";
@@ -49,12 +50,15 @@ export function BookingActions({
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [error, setError] = useState("");
+  const cancelFee = useBookingCancellationFee(booking.id, open);
   if (booking.customer_id !== session?.user.id) return null;
   const available = (reasons.data ?? []).filter((r) =>
     r.applicable_statuses.includes(booking.status),
   );
   const selected = available.find((r) => r.id === reasonId);
-  const cancellable = booking.status === "pending" || booking.status === "confirmed";
+  // After the provider set off, cancelling is still possible but has a fee.
+  const lateStage = booking.status === "on_the_way" || booking.status === "arrived";
+  const cancellable = booking.status === "pending" || booking.status === "confirmed" || lateStage;
   return (
     <View style={ui.card}>
       {error && <Text tone="danger">{error}</Text>}
@@ -150,13 +154,17 @@ export function BookingActions({
       {cancellable && (
         <Button
           variant="secondary"
-          label={t("bookingDetail.cancel")}
+          label={t(lateStage ? "bookingDetail.cancelWithFee" : "bookingDetail.cancel")}
           onPress={() => setOpen(true)}
         />
       )}
       {open && cancellable && (
         <>
-          <Text>{t("bookingDetail.cancelIrreversible")}</Text>
+          <Text weight={cancelFee.data ? "bold" : undefined}>
+            {cancelFee.data && cancelFee.data > 0
+              ? t("bookingDetail.cancelFeeNotice", { amount: money(cancelFee.data, i18n.language) })
+              : t("bookingDetail.cancelIrreversible")}
+          </Text>
           <QueryState query={reasons} empty={!available.length} />
           <Choices
             label={t("bookingDetail.cancelReasonLabel")}

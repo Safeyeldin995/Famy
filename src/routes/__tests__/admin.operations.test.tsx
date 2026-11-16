@@ -22,6 +22,9 @@ vi.mock("@/lib/db/admin-queries", () => ({
   useRecordHistoricCash: () => ({ mutate: vi.fn(), isPending: false }),
   useRecordPaymentRefund: () => ({ mutate: vi.fn(), isPending: false }),
 }));
+vi.mock("@/lib/db/settings-queries", () => ({
+  useBookingCancellationFee: () => ({ data: 0, isLoading: false, isError: false }),
+}));
 vi.mock("@/lib/db/payment-queries", () => ({
   useCapturePayment: () => ({ mutate: h.capture }),
   useRejectPayment: () => ({ mutate: h.reject }),

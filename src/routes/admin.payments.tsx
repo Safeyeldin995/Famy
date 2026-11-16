@@ -19,6 +19,7 @@ import {
 import { getSignedProofUrl, useCapturePayment, useRejectPayment } from "@/lib/db/payment-queries";
 import { formatEGP } from "@/lib/format";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
+import { useBookingCancellationFee } from "@/lib/db/settings-queries";
 import { AdminReasonSheet } from "@/components/admin/AdminReasonSheet";
 import {
   adminControl,
@@ -54,6 +55,10 @@ function PaymentCard({ payment: p, cashRecorded }: { payment: any; cashRecorded:
   const recordRefund = useRecordPaymentRefund();
   const [cashSheet, setCashSheet] = useState(false);
   const [refundSheet, setRefundSheet] = useState(false);
+  // The customer's cancellation fee (if any) stays with the provider; only the rest is refunded.
+  const refundFee = useBookingCancellationFee(p.booking_id, refundSheet);
+  const paidAmount = Number(p.amount ?? 0);
+  const feeAmount = Math.min(refundFee.data ?? 0, paidAmount);
   const situation = paymentSituation(p, cashRecorded);
   const isTransfer =
     p.payment_method_type === "manual_transfer" ||
@@ -198,14 +203,27 @@ function PaymentCard({ payment: p, cashRecorded }: { payment: any; cashRecorded:
       {refundSheet && (
         <AdminReasonSheet
           title={t("admin.paymentSituation.recordRefund")}
-          description={t(
-            isTransfer
-              ? "admin.paymentSituation.recordRefundHintTransfer"
-              : "admin.paymentSituation.recordRefundHint",
-            { amount: formatEGP(Number(p.amount ?? 0)) },
-          )}
+          description={
+            refundFee.isLoading
+              ? t("common.loading")
+              : refundFee.isError
+                ? t("admin.paymentSituation.refundFeeError")
+                : [
+                    feeAmount > 0
+                      ? t("admin.paymentSituation.refundFeeNote", { fee: formatEGP(feeAmount) })
+                      : "",
+                    t(
+                      isTransfer
+                        ? "admin.paymentSituation.recordRefundHintTransfer"
+                        : "admin.paymentSituation.recordRefundHint",
+                      { amount: formatEGP(paidAmount - feeAmount) },
+                    ),
+                  ]
+                    .filter(Boolean)
+                    .join("، ")
+          }
           fieldLabel={t("admin.paymentSituation.refundReference")}
-          busy={busy}
+          busy={busy || refundFee.isLoading || refundFee.isError}
           onClose={() => setRefundSheet(false)}
           onConfirm={(reference) =>
             recordRefund.mutate(

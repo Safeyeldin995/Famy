@@ -259,11 +259,13 @@ export function ProviderWalletPanel({
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-bold">
-                      {r.price != null
-                        ? t(r.method === "cash" ? `${ns}.paidCash` : `${ns}.paidOnline`, {
-                            amount: formatEGP(r.price),
-                          })
-                        : t(r.method === "cash" ? `${ns}.cashBooking` : `${ns}.onlineBooking`)}
+                      {r.method === "fee"
+                        ? t(`${ns}.cancellationFee`)
+                        : r.price != null
+                          ? t(r.method === "cash" ? `${ns}.paidCash` : `${ns}.paidOnline`, {
+                              amount: formatEGP(r.price),
+                            })
+                          : t(r.method === "cash" ? `${ns}.cashBooking` : `${ns}.onlineBooking`)}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {adminDate(r.at, lang, false)} · {t("adminOps.booking")}{" "}
