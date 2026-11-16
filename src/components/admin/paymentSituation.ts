@@ -20,6 +20,7 @@ export type PaymentSituation =
   | "rejected"
   | "failed"
   | "refunded"
+  | "partiallyRefunded" // refunded after keeping the cancellation fee for the provider
   | "other";
 
 export type PaymentSituationInput = {
@@ -64,7 +65,8 @@ export function paymentSituation(
   )
     return "refundDue";
   if (status === "captured") return "paid";
-  if (status === "refunded" || status === "partially_refunded") return "refunded";
+  if (status === "refunded") return "refunded";
+  if (status === "partially_refunded") return "partiallyRefunded";
   if (status === "rejected") return "rejected";
   if (status === "failed") return "failed";
   if (status === "pending_review" && type === "manual_transfer" && !closed) return "review";
@@ -96,6 +98,7 @@ export function situationTone(s: PaymentSituation): SituationTone {
     case "paid":
     case "cashRecorded":
     case "refunded":
+    case "partiallyRefunded":
       return "done";
     case "noPaymentDue":
       return "closed";

@@ -86,8 +86,15 @@ BEGIN
     ), 0);
   END IF;
   IF v_b.status = 'no_show' THEN
-    RETURN CASE WHEN v_b.no_show_party = 'customer'
-      THEN public.cancellation_fee_for_total(v_b.price_total) ELSE 0 END;
+    IF v_b.no_show_party IS DISTINCT FROM 'customer' THEN
+      RETURN 0;
+    END IF;
+    -- Fee saved when the no-show was reported; older reports fall back to the policy.
+    RETURN COALESCE((
+      SELECT r.cancellation_fee FROM public.no_show_reports r
+      WHERE r.booking_id = p_booking_id AND r.reported_party = 'customer'
+      ORDER BY r.created_at DESC LIMIT 1
+    ), public.cancellation_fee_for_total(v_b.price_total));
   END IF;
   IF v_b.status IN ('on_the_way', 'arrived') THEN
     RETURN public.cancellation_fee_for_total(v_b.price_total);
@@ -104,6 +111,73 @@ $$;
 
 REVOKE ALL ON FUNCTION public.booking_cancellation_fee(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.booking_cancellation_fee(uuid) TO authenticated;
+
+-- Customer no-show: the fee is saved with the report (like cancellations).
+ALTER TABLE public.no_show_reports
+  ADD COLUMN IF NOT EXISTS cancellation_fee numeric(12,2) CHECK (cancellation_fee >= 0);
+
+CREATE OR REPLACE FUNCTION public.report_no_show(
+  p_booking_id uuid, p_reason text, p_evidence_paths text[] DEFAULT '{}'
+) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+  v_booking RECORD;
+  v_role text;
+  v_reported_party text;
+  v_id uuid;
+  v_fee numeric;
+  v_eligible CONSTANT public.booking_status[] := ARRAY['on_the_way', 'arrived']::public.booking_status[];
+BEGIN
+  IF v_uid IS NULL THEN RAISE EXCEPTION 'Authentication required.' USING ERRCODE = '42501'; END IF;
+
+  SELECT * INTO v_booking FROM public.bookings WHERE id = p_booking_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Booking not found.' USING ERRCODE = '42501'; END IF;
+
+  IF v_booking.customer_id = v_uid THEN
+    v_role := 'customer'; v_reported_party := 'provider';
+  ELSIF EXISTS (SELECT 1 FROM public.providers p WHERE p.id = v_booking.provider_id AND p.profile_id = v_uid) THEN
+    v_role := 'provider'; v_reported_party := 'customer';
+  ELSE
+    RAISE EXCEPTION 'You are not authorized to report this booking.' USING ERRCODE = '42501';
+  END IF;
+
+  IF NOT (v_booking.status = ANY(v_eligible)) THEN
+    RAISE EXCEPTION 'A no-show can only be reported while the provider is on the way or has arrived.' USING ERRCODE = '23514';
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM public.no_show_reports WHERE booking_id = p_booking_id AND status IN ('open', 'info_requested')) THEN
+    RAISE EXCEPTION 'This booking already has an active no-show report.' USING ERRCODE = '23514';
+  END IF;
+
+  IF p_reason IS NULL OR btrim(p_reason) = '' THEN
+    RAISE EXCEPTION 'A reason is required.' USING ERRCODE = '23514';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM unnest(COALESCE(p_evidence_paths, '{}')) AS ep(path)
+    WHERE left(ep.path, length(p_booking_id::text) + 1) IS DISTINCT FROM (p_booking_id::text || '/')
+  ) THEN
+    RAISE EXCEPTION 'Evidence must belong to this booking.' USING ERRCODE = '23514';
+  END IF;
+
+  PERFORM set_config('app.no_show_in_progress', 'on', true);
+  UPDATE public.bookings SET status = 'no_show', no_show_party = v_reported_party, no_show_reason = btrim(p_reason) WHERE id = p_booking_id;
+
+  -- A customer no-show carries the cancellation fee in force right now (snapshot).
+  v_fee := CASE WHEN v_reported_party = 'customer'
+    THEN public.cancellation_fee_for_total(v_booking.price_total) ELSE 0 END;
+
+  INSERT INTO public.no_show_reports (
+    booking_id, reported_by, reporter_role, reported_party, previous_status, reason, evidence_paths,
+    cancellation_fee
+  ) VALUES (
+    p_booking_id, v_uid, v_role, v_reported_party, v_booking.status, btrim(p_reason), COALESCE(p_evidence_paths, '{}'),
+    v_fee
+  ) RETURNING id INTO v_id;
+
+  RETURN v_id;
+END;
+$$;
 
 -- 3) Customers may also cancel after the provider set off (with the fee).
 ALTER TABLE public.cancellation_reasons

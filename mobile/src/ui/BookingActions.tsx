@@ -3,6 +3,8 @@ import { View } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSession } from "@/lib/session";
+import { useBookingPayment } from "@/lib/queries";
+import { moneyHeld } from "@shared/payments/refundOwed";
 import {
   useBookingReview,
   useSubmitReview,
@@ -51,6 +53,16 @@ export function BookingActions({
   const [comment, setComment] = useState("");
   const [error, setError] = useState("");
   const cancelFee = useBookingCancellationFee(booking.id, open);
+  const cancelPayment = useBookingPayment(open ? booking.id : undefined);
+  // The fee is only deducted from money already paid (card or InstaPay receipt).
+  const feeApplies =
+    (cancelFee.data ?? 0) > 0 &&
+    !!cancelPayment.data &&
+    moneyHeld({
+      paymentStatus: cancelPayment.data.status,
+      methodType: cancelPayment.data.payment_method_type,
+      proofPath: cancelPayment.data.proof_path,
+    });
   if (booking.customer_id !== session?.user.id) return null;
   const available = (reasons.data ?? []).filter((r) =>
     r.applicable_statuses.includes(booking.status),
@@ -160,9 +172,11 @@ export function BookingActions({
       )}
       {open && cancellable && (
         <>
-          <Text weight={cancelFee.data ? "bold" : undefined}>
-            {cancelFee.data && cancelFee.data > 0
-              ? t("bookingDetail.cancelFeeNotice", { amount: money(cancelFee.data, i18n.language) })
+          <Text weight={feeApplies ? "bold" : undefined}>
+            {feeApplies
+              ? t("bookingDetail.cancelFeeNotice", {
+                  amount: money(cancelFee.data ?? 0, i18n.language),
+                })
               : t("bookingDetail.cancelIrreversible")}
           </Text>
           <QueryState query={reasons} empty={!available.length} />

@@ -165,6 +165,20 @@ describe("cancellation fee policy", () => {
     expect(await fee(c.bookingId)).toBe(50);
   });
 
+  it("saves the no-show fee when the provider reports it, so later policy edits don't change it", async () => {
+    await setPolicy("fixed", 40, 2);
+    const { bookingId } = await paidBooking("on_the_way");
+    const report = await tryAsUser(
+      db,
+      IDS.providerUser,
+      "SELECT public.report_no_show($1, 'Nobody answered the door', '{}')",
+      [bookingId],
+    );
+    expect(report.error).toBeUndefined();
+    await setPolicy("fixed", 300, 2);
+    expect(await fee(bookingId)).toBe(40);
+  });
+
   it("hides the fee from unrelated users", async () => {
     const { bookingId } = await paidBooking("confirmed");
     const r = await tryAsUser(

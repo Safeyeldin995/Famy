@@ -2614,7 +2614,7 @@ const en = {
     notPending: "This price change is no longer pending.",
   },
   payment: {
-    refundOnTheWay: "The booking was cancelled after you paid. Famy will send the money back the same way you paid",
+    refundOnTheWay: "The booking was cancelled after you paid. Famy will send the money back the same way you paid, minus the cancellation fee if you cancelled late",
     openInstapay: "Open InstaPay to pay",
     cannotOpenInstapay: "Couldn't open InstaPay. Copy the address and pay from the app.",
     title: "Payment",
@@ -2692,6 +2692,7 @@ const en = {
       recordRefundHintTransfer: "Send {{amount}} back to the customer first by InstaPay (the sender account is on the transfer receipt), then record the refund reference here. Recording does not move any money",
       refundReference: "Refund transaction reference",
       refundDue: { label: "Refund due", note: "The customer paid and the booking was cancelled. Send the money back and record it" },
+      partiallyRefunded: { label: "Refunded after fee", note: "The money was returned to the customer minus the cancellation fee, which was added to the provider balance" },
       refunded: { label: "Refunded", note: "The amount was returned to the customer." },
     },
     settlement: {

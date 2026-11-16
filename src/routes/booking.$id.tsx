@@ -30,6 +30,8 @@ import {
 } from "@/lib/db/queries";
 import { useCancelBooking, useBookingCancellation } from "@/lib/db/cancellation-queries";
 import { useBookingCancellationFee, useBookingExpirySettings } from "@/lib/db/settings-queries";
+import { useBookingPayment } from "@/lib/db/payment-queries";
+import { moneyHeld } from "@/lib/payments/refundOwed";
 import { autoCompleteClosesAt } from "@/lib/booking/completion-auto";
 import { formatDateTime } from "@/lib/format";
 import {
@@ -154,6 +156,16 @@ export function BookingDetailContent({
   // Cancelling after the provider set off (or inside the free window) has a fee:
   // show it before the customer confirms.
   const cancelFee = useBookingCancellationFee(realQ.data?.id, dialog === "cancel");
+  const cancelPayment = useBookingPayment(dialog === "cancel" ? realQ.data?.id : undefined);
+  // The fee is only deducted from money already paid (card or InstaPay receipt).
+  const feeApplies =
+    (cancelFee.data ?? 0) > 0 &&
+    !!cancelPayment.data &&
+    moneyHeld({
+      paymentStatus: cancelPayment.data.status,
+      methodType: cancelPayment.data.payment_method_type,
+      proofPath: cancelPayment.data.proof_path,
+    });
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const favIdsQ = useFavoriteIds();
@@ -406,8 +418,8 @@ export function BookingDetailContent({
       bookingStatus={status}
       title={t("bookingDetail.cancelReasonTitle")}
       body={
-        cancelFee.data && cancelFee.data > 0
-          ? t("bookingDetail.cancelFeeNotice", { amount: formatEGP(cancelFee.data) })
+        feeApplies
+          ? t("bookingDetail.cancelFeeNotice", { amount: formatEGP(cancelFee.data ?? 0) })
           : t("bookingDetail.cancelIrreversible")
       }
       reasonLabel={t("bookingDetail.cancelReasonLabel")}
