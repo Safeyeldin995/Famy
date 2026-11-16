@@ -20,6 +20,7 @@ vi.mock("@/lib/db/admin-queries", () => ({
   useAdminPayments: () => ({ data: h.payments }),
   useAdminCashLedgerBookings: () => ({ data: new Set<string>() }),
   useRecordHistoricCash: () => ({ mutate: vi.fn(), isPending: false }),
+  useRecordPaymentRefund: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 vi.mock("@/lib/db/payment-queries", () => ({
   useCapturePayment: () => ({ mutate: h.capture }),
