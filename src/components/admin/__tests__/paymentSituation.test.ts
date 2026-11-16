@@ -34,6 +34,29 @@ describe("paymentSituation", () => {
     expect(paymentSituation({ method: "instapay", status: "pending_review" })).toBe("review");
   });
 
+  it("money received on a cancelled or no-show booking is a refund to make", () => {
+    for (const b of ["cancelled", "no_show"]) {
+      const card = { status: "captured", payment_method_type: "online", booking: { status: b } };
+      expect(paymentSituation(card)).toBe("refundDue");
+      const transfer = {
+        status: "pending_review",
+        payment_method_type: "manual_transfer",
+        proof_path: "x",
+        booking: { status: b },
+      };
+      expect(paymentSituation(transfer)).toBe("refundDue");
+    }
+    expect(needsAdminAction("refundDue")).toBe(true);
+    // No receipt uploaded: nothing was sent.
+    expect(
+      paymentSituation({
+        status: "pending_review",
+        payment_method_type: "manual_transfer",
+        booking: { status: "cancelled" },
+      }),
+    ).toBe("noPaymentDue");
+  });
+
   it("final payment states win over the booking state", () => {
     expect(paymentSituation(cash("captured", "completed"))).toBe("paid");
     expect(

@@ -8,6 +8,7 @@ import {
   useAdminCashLedgerBookings,
   useAdminPayments,
   useRecordHistoricCash,
+  useRecordPaymentRefund,
 } from "@/lib/db/admin-queries";
 import {
   needsAdminAction,
@@ -50,7 +51,9 @@ function PaymentCard({ payment: p, cashRecorded }: { payment: any; cashRecorded:
   const capture = useCapturePayment();
   const reject = useRejectPayment();
   const recordCash = useRecordHistoricCash();
+  const recordRefund = useRecordPaymentRefund();
   const [cashSheet, setCashSheet] = useState(false);
+  const [refundSheet, setRefundSheet] = useState(false);
   const situation = paymentSituation(p, cashRecorded);
   const isTransfer =
     p.payment_method_type === "manual_transfer" ||
@@ -58,8 +61,10 @@ function PaymentCard({ payment: p, cashRecorded }: { payment: any; cashRecorded:
   const [proof, setProof] = useState<string | null>(null);
   const [proofBusy, setProofBusy] = useState(false);
   const [action, setAction] = useState<"confirm" | "reject" | null>(null);
-  const reviewable = canReviewTransfer(p);
-  const busy = capture.isPending || reject.isPending || recordCash.isPending;
+  // A receipt on a cancelled booking is a refund, not a review.
+  const reviewable = canReviewTransfer(p) && situation !== "refundDue";
+  const busy =
+    capture.isPending || reject.isPending || recordCash.isPending || recordRefund.isPending;
   useEffect(() => {
     if (!p.proof_path || !reviewable) return;
     let active = true;
@@ -173,6 +178,14 @@ function PaymentCard({ payment: p, cashRecorded }: { payment: any; cashRecorded:
             <p className="text-xs text-muted-foreground">{t("adminOps.completedOnly")}</p>
           )}
         </div>
+      ) : situation === "refundDue" ? (
+        <button
+          className={`${adminControl} bg-brand text-brand-foreground`}
+          disabled={busy}
+          onClick={() => setRefundSheet(true)}
+        >
+          {t("admin.paymentSituation.recordRefund")}
+        </button>
       ) : situation === "cashUnconfirmed" ? (
         <button
           className={`${adminControl} bg-brand text-brand-foreground`}
@@ -182,6 +195,32 @@ function PaymentCard({ payment: p, cashRecorded }: { payment: any; cashRecorded:
           {t("admin.paymentSituation.confirmCash")}
         </button>
       ) : null}
+      {refundSheet && (
+        <AdminReasonSheet
+          title={t("admin.paymentSituation.recordRefund")}
+          description={t(
+            isTransfer
+              ? "admin.paymentSituation.recordRefundHintTransfer"
+              : "admin.paymentSituation.recordRefundHint",
+            { amount: formatEGP(Number(p.amount ?? 0)) },
+          )}
+          fieldLabel={t("admin.paymentSituation.refundReference")}
+          busy={busy}
+          onClose={() => setRefundSheet(false)}
+          onConfirm={(reference) =>
+            recordRefund.mutate(
+              { paymentId: p.id, reference },
+              {
+                onSuccess: () => {
+                  setRefundSheet(false);
+                  toast.success(t("adminOps.saved"));
+                },
+                onError: failure,
+              },
+            )
+          }
+        />
+      )}
       {cashSheet && (
         <AdminReasonSheet
           title={t("admin.paymentSituation.confirmCash")}

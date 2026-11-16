@@ -15,7 +15,9 @@ export function AdminReasonSheet({
   busy,
   onClose,
   onConfirm,
+  fieldLabel,
 }: {
+  fieldLabel?: string;
   title: string;
   description: string;
   busy: boolean;
@@ -38,7 +40,7 @@ export function AdminReasonSheet({
           <DrawerDescription>{description}</DrawerDescription>
         </DrawerHeader>
         <label className="mx-4 text-sm font-semibold">
-          {t("adminReview.reason")}
+          {fieldLabel ?? t("adminReview.reason")}
           <textarea
             autoFocus
             value={reason}

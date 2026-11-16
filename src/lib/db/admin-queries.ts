@@ -789,6 +789,24 @@ export function useRecordHistoricCash() {
   });
 }
 
+/** Records that a cancelled booking's payment was sent back to the customer. */
+export function useRecordPaymentRefund() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ paymentId, reference }: { paymentId: string; reference: string }) => {
+      const { error } = await supabase.rpc('admin_record_payment_refund', {
+        p_payment_id: paymentId,
+        p_reference: reference,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'payments'] });
+      qc.invalidateQueries({ queryKey: ['admin-finance-summary'] });
+    },
+  });
+}
+
 export type AdminCustomerFilter = "all" | "active" | "suspended" | "has_bookings" | "no_bookings";
 
 export function useAdminCustomers(filter: AdminCustomerFilter = "all") {
