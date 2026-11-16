@@ -278,6 +278,22 @@ describe("customer fee debts", () => {
     expect(await openDebts()).toHaveLength(0);
   });
 
+  it("an account with unpaid fees cannot be deleted", async () => {
+    const b = await cashBookingOnTheWay();
+    await cancelAsCustomer(b);
+    const check = await tryAsUser(db, IDS.customer, "SELECT public.account_deletion_check() AS c");
+    expect((check.rows![0].c as { reason: string }).reason).toBe("unpaid_balance");
+    await expect(
+      asServiceRole(db, () => db.query("SELECT public.anonymize_account($1)", [IDS.customer])),
+    ).rejects.toThrow(/account_deletion_blocked/);
+    const [debt] = await openDebts();
+    await tryAsUser(db, IDS.adminUser, "SELECT public.admin_waive_customer_debt($1, 'Test')", [
+      debt.id,
+    ]);
+    const after = await tryAsUser(db, IDS.customer, "SELECT public.account_deletion_check() AS c");
+    expect((after.rows![0].c as { reason?: string }).reason).not.toBe("unpaid_balance");
+  });
+
   it("customers see only their own debts", async () => {
     const other = await tryAsUser(
       db,
