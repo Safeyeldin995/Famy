@@ -71,6 +71,7 @@ import { Route as FamilyMembersIdRouteImport } from './routes/family-members.$id
 import { Route as FamilyMembersNewRouteImport } from './routes/family-members.new'
 import { Route as MessagesIndexRouteImport } from './routes/messages.index'
 import { Route as MessagesIdRouteImport } from './routes/messages.$id'
+import { Route as PayFeesReturnRouteImport } from './routes/pay.fees-return'
 import { Route as PreviewIndexRouteImport } from './routes/preview.index'
 import { Route as PreviewAddressesRouteImport } from './routes/preview.addresses'
 import { Route as PreviewAdminRouteImport } from './routes/preview.admin'
@@ -109,6 +110,7 @@ import { Route as AdminPriceChangeIdRouteImport } from './routes/admin.price-cha
 import { Route as AdminProviderIdRouteImport } from './routes/admin.provider.$id'
 import { Route as AdminServiceRequestIdRouteImport } from './routes/admin.service-request.$id'
 import { Route as ApiAccountDeleteRouteImport } from './routes/api.account.delete'
+import { Route as ApiMobileDebtCheckoutRouteImport } from './routes/api.mobile.debt-checkout'
 import { Route as ApiMobilePaymobCheckoutRouteImport } from './routes/api.mobile.paymob-checkout'
 import { Route as PreviewAccountDeleteRouteImport } from './routes/preview.account.delete'
 import { Route as PreviewAddressesIndexRouteImport } from './routes/preview.addresses.index'
@@ -476,6 +478,11 @@ const MessagesIdRoute = MessagesIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => MessagesRoute,
 } as any)
+const PayFeesReturnRoute = PayFeesReturnRouteImport.update({
+  id: '/pay/fees-return',
+  path: '/pay/fees-return',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PreviewIndexRoute = PreviewIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -666,6 +673,11 @@ const AdminServiceRequestIdRoute = AdminServiceRequestIdRouteImport.update({
 const ApiAccountDeleteRoute = ApiAccountDeleteRouteImport.update({
   id: '/api/account/delete',
   path: '/api/account/delete',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMobileDebtCheckoutRoute = ApiMobileDebtCheckoutRouteImport.update({
+  id: '/api/mobile/debt-checkout',
+  path: '/api/mobile/debt-checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMobilePaymobCheckoutRoute = ApiMobilePaymobCheckoutRouteImport.update({
@@ -1006,6 +1018,7 @@ export interface FileRoutesByFullPath {
   '/family-members/$id': typeof FamilyMembersIdRoute
   '/family-members/new': typeof FamilyMembersNewRoute
   '/messages/$id': typeof MessagesIdRoute
+  '/pay/fees-return': typeof PayFeesReturnRoute
   '/preview/addresses': typeof PreviewAddressesRouteWithChildren
   '/preview/admin': typeof PreviewAdminRouteWithChildren
   '/preview/bookings': typeof PreviewBookingsRoute
@@ -1047,6 +1060,7 @@ export interface FileRoutesByFullPath {
   '/admin/provider/$id': typeof AdminProviderIdRoute
   '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
+  '/api/mobile/debt-checkout': typeof ApiMobileDebtCheckoutRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
@@ -1157,6 +1171,7 @@ export interface FileRoutesByTo {
   '/family-members/$id': typeof FamilyMembersIdRoute
   '/family-members/new': typeof FamilyMembersNewRoute
   '/messages/$id': typeof MessagesIdRoute
+  '/pay/fees-return': typeof PayFeesReturnRoute
   '/preview/bookings': typeof PreviewBookingsRoute
   '/preview/family-members': typeof PreviewFamilyMembersRoute
   '/preview/favorites': typeof PreviewFavoritesRoute
@@ -1195,6 +1210,7 @@ export interface FileRoutesByTo {
   '/admin/provider/$id': typeof AdminProviderIdRoute
   '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
+  '/api/mobile/debt-checkout': typeof ApiMobileDebtCheckoutRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
@@ -1311,6 +1327,7 @@ export interface FileRoutesById {
   '/family-members/$id': typeof FamilyMembersIdRoute
   '/family-members/new': typeof FamilyMembersNewRoute
   '/messages/$id': typeof MessagesIdRoute
+  '/pay/fees-return': typeof PayFeesReturnRoute
   '/preview/addresses': typeof PreviewAddressesRouteWithChildren
   '/preview/admin': typeof PreviewAdminRouteWithChildren
   '/preview/bookings': typeof PreviewBookingsRoute
@@ -1352,6 +1369,7 @@ export interface FileRoutesById {
   '/admin/provider/$id': typeof AdminProviderIdRoute
   '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
+  '/api/mobile/debt-checkout': typeof ApiMobileDebtCheckoutRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
@@ -1469,6 +1487,7 @@ export interface FileRouteTypes {
     | '/family-members/$id'
     | '/family-members/new'
     | '/messages/$id'
+    | '/pay/fees-return'
     | '/preview/addresses'
     | '/preview/admin'
     | '/preview/bookings'
@@ -1510,6 +1529,7 @@ export interface FileRouteTypes {
     | '/admin/provider/$id'
     | '/admin/service-request/$id'
     | '/api/account/delete'
+    | '/api/mobile/debt-checkout'
     | '/api/mobile/paymob-checkout'
     | '/preview/account/delete'
     | '/preview/addresses/$id'
@@ -1620,6 +1640,7 @@ export interface FileRouteTypes {
     | '/family-members/$id'
     | '/family-members/new'
     | '/messages/$id'
+    | '/pay/fees-return'
     | '/preview/bookings'
     | '/preview/family-members'
     | '/preview/favorites'
@@ -1658,6 +1679,7 @@ export interface FileRouteTypes {
     | '/admin/provider/$id'
     | '/admin/service-request/$id'
     | '/api/account/delete'
+    | '/api/mobile/debt-checkout'
     | '/api/mobile/paymob-checkout'
     | '/preview/account/delete'
     | '/preview/addresses/$id'
@@ -1773,6 +1795,7 @@ export interface FileRouteTypes {
     | '/family-members/$id'
     | '/family-members/new'
     | '/messages/$id'
+    | '/pay/fees-return'
     | '/preview/addresses'
     | '/preview/admin'
     | '/preview/bookings'
@@ -1814,6 +1837,7 @@ export interface FileRouteTypes {
     | '/admin/provider/$id'
     | '/admin/service-request/$id'
     | '/api/account/delete'
+    | '/api/mobile/debt-checkout'
     | '/api/mobile/paymob-checkout'
     | '/preview/account/delete'
     | '/preview/addresses/$id'
@@ -1905,8 +1929,10 @@ export interface RootRouteChildren {
   BookingIdRoute: typeof BookingIdRoute
   CategoryIdRoute: typeof CategoryIdRoute
   ContentKeyRoute: typeof ContentKeyRoute
+  PayFeesReturnRoute: typeof PayFeesReturnRoute
   ProviderIdRoute: typeof ProviderIdRoute
   ApiAccountDeleteRoute: typeof ApiAccountDeleteRoute
+  ApiMobileDebtCheckoutRoute: typeof ApiMobileDebtCheckoutRoute
   ApiMobilePaymobCheckoutRoute: typeof ApiMobilePaymobCheckoutRoute
   ApiMobileAuthCompletePasswordRoute: typeof ApiMobileAuthCompletePasswordRoute
   ApiMobileAuthSetPasswordContextRoute: typeof ApiMobileAuthSetPasswordContextRoute
@@ -2354,6 +2380,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MessagesIdRouteImport
       parentRoute: typeof MessagesRoute
     }
+    '/pay/fees-return': {
+      id: '/pay/fees-return'
+      path: '/pay/fees-return'
+      fullPath: '/pay/fees-return'
+      preLoaderRoute: typeof PayFeesReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/preview/': {
       id: '/preview/'
       path: '/'
@@ -2618,6 +2651,13 @@ declare module '@tanstack/react-router' {
       path: '/api/account/delete'
       fullPath: '/api/account/delete'
       preLoaderRoute: typeof ApiAccountDeleteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/debt-checkout': {
+      id: '/api/mobile/debt-checkout'
+      path: '/api/mobile/debt-checkout'
+      fullPath: '/api/mobile/debt-checkout'
+      preLoaderRoute: typeof ApiMobileDebtCheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/mobile/paymob-checkout': {
@@ -3339,8 +3379,10 @@ const rootRouteChildren: RootRouteChildren = {
   BookingIdRoute: BookingIdRoute,
   CategoryIdRoute: CategoryIdRoute,
   ContentKeyRoute: ContentKeyRoute,
+  PayFeesReturnRoute: PayFeesReturnRoute,
   ProviderIdRoute: ProviderIdRoute,
   ApiAccountDeleteRoute: ApiAccountDeleteRoute,
+  ApiMobileDebtCheckoutRoute: ApiMobileDebtCheckoutRoute,
   ApiMobilePaymobCheckoutRoute: ApiMobilePaymobCheckoutRoute,
   ApiMobileAuthCompletePasswordRoute: ApiMobileAuthCompletePasswordRoute,
   ApiMobileAuthSetPasswordContextRoute: ApiMobileAuthSetPasswordContextRoute,
@@ -3354,13 +3396,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

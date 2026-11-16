@@ -88,6 +88,7 @@ import { Page, QueryState, Field, Choices, moneyTextStyle, ui } from "@/ui/Page"
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
 import { PaymentMethodLogos } from "@/ui/PaymentLogos";
+import { FeeDebtBanner } from "@/ui/FeeDebtBanner";
 import { BookingInlineForm } from "@/ui/customer/BookingInlineForm";
 import { customerMoney as money, customerNumber } from "@/lib/customerFormat";
 import { providerRatingSummary } from "@/lib/providerRating";
@@ -675,6 +676,7 @@ function BookForm({
         billing,
       ]}
     >
+      <FeeDebtBanner />
       <QueryState query={provider} skeleton="detail" />
       <QueryState query={servicesQ} />
       <QueryState query={bookable} />

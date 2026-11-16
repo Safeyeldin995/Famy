@@ -1650,6 +1650,7 @@ const en = {
         "We couldn't process this booking request. Please review your details.",
       SUPERVISION_REQUIRED:
         "For your children's safety, choose how your child will be supervised before confirming.",
+      DEBT_OUTSTANDING: "You have an unpaid cancellation fee from an earlier booking. Pay it first to book again",
       PHONE_REQUIRED: "Add your mobile number to your account before booking.",
       DUPLICATE_REQUEST_CONFLICT:
         "Your booking details changed since your last attempt. Please review and submit again.",
@@ -1787,6 +1788,7 @@ const en = {
     completed: "Finished",
   },
   bookingDetail: {
+    cancelFeeNoticeUnpaid: "If you cancel now, a {{amount}} cancellation fee for the provider will be added to your account, and you'll need to pay it before booking again. This cannot be undone",
     cancelWithFee: "Cancel booking (cancellation fee applies)",
     cancelFeeNotice: "If you cancel now, a {{amount}} cancellation fee goes to the provider and the rest of what you paid comes back to you. This cannot be undone",
     title: "Booking",
@@ -2660,6 +2662,26 @@ const en = {
     },
   },
   admin: {
+    feeDebts: {
+      title: "Cancellation fees owed by customers",
+      subtitle: "Late-cancellation or no-show fees on bookings the customer hadn't prepaid. The customer can't book until they pay",
+      toReview: "InstaPay transfers waiting for confirmation",
+      instapayLine: "{{name}} reported a {{amount}} transfer",
+      reference: "Transaction number",
+      checkHint: "Check the transfer arrived in the InstaPay account before confirming. The fee is added to the provider's balance when you confirm",
+      confirm: "Confirm received",
+      reject: "Reject transfer",
+      rejectHint: "Write the reason; the customer sees it",
+      open: "Unpaid fees",
+      waive: "Waive",
+      waiveHint: "Write the reason. The provider won't receive this fee",
+      failed: "Couldn't complete the action, try again",
+      loadError: "Couldn't load fees owed",
+      kind: {
+        late_cancellation: "Late cancellation",
+        no_show: "Customer no-show",
+      },
+    },
     paymentSituation: {
       refundFeeNote: "The {{fee}} cancellation fee stays with the provider and is added to their balance when you record this",
       refundFeeError: "Couldn't calculate the cancellation fee, try again",
@@ -4265,6 +4287,18 @@ Object.assign(en, {
       bank: "Bank",
       loadError: "Couldn't load payout methods",
     },
+  },
+  feeDebt: {
+    title: "You owe {{amount}} in cancellation fees",
+    body: "From a booking you cancelled late or weren't there for. The fee goes to the provider, and you need to pay it before booking again",
+    payCard: "Pay by card",
+    payInstapay: "I paid by InstaPay",
+    instapaySteps: "Send {{amount}} to Famy's InstaPay, then enter the transaction number here and the Famy team will confirm it",
+    reference: "Transfer transaction number",
+    sendReference: "Send transaction number",
+    inReview: "We're checking your transfer. You can book again once it's confirmed",
+    rejected: "Your transfer wasn't confirmed: {{reason}}",
+    cardFailed: "Couldn't open card payment. Try again or pay by InstaPay",
   },
   oauth: {
     or: "or",

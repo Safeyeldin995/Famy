@@ -172,12 +172,16 @@ export function BookingActions({
       )}
       {open && cancellable && (
         <>
-          <Text weight={feeApplies ? "bold" : undefined}>
+          <Text weight={(cancelFee.data ?? 0) > 0 ? "bold" : undefined}>
             {feeApplies
               ? t("bookingDetail.cancelFeeNotice", {
                   amount: money(cancelFee.data ?? 0, i18n.language),
                 })
-              : t("bookingDetail.cancelIrreversible")}
+              : (cancelFee.data ?? 0) > 0 && cancelPayment.isSuccess
+                ? t("bookingDetail.cancelFeeNoticeUnpaid", {
+                    amount: money(cancelFee.data ?? 0, i18n.language),
+                  })
+                : t("bookingDetail.cancelIrreversible")}
           </Text>
           <QueryState query={reasons} empty={!available.length} />
           <Choices

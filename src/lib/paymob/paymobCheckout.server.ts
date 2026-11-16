@@ -49,7 +49,7 @@ function bookingAmountCents(amount: number): number {
   return Math.round(amount * 100);
 }
 
-function defaultBillingFromProfile(profile: ProfileRow | null | undefined): {
+export function defaultBillingFromProfile(profile: ProfileRow | null | undefined): {
   first_name: string;
   last_name: string;
   phone_number: string;

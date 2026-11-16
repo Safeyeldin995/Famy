@@ -4,9 +4,15 @@ import { SiteLayout, SiteSection } from "@/components/site/SiteLayout";
 import { PrimaryButton } from "@/components/famio/ui";
 
 /** Paymob card redirect — deep-link back into the mobile app; no booking fetch. */
-export function PaymobAppReturn({ bookingId }: { bookingId: string }) {
+export function PaymobAppReturn({
+  bookingId,
+  deepLink: link,
+}: {
+  bookingId?: string;
+  deepLink?: string;
+}) {
   const { t } = useTranslation();
-  const deepLink = `famy://booking/${bookingId}`;
+  const deepLink = link ?? `famy://booking/${bookingId}`;
 
   useEffect(() => {
     window.location.href = deepLink;
