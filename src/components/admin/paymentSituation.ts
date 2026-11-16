@@ -30,7 +30,7 @@ export type PaymentSituationInput = {
   booking?: { status?: string | null } | null;
 };
 
-const CLOSED_WITHOUT_SERVICE = new Set(["cancelled", "no_show"]);
+import { CLOSED_WITHOUT_SERVICE, refundOwed } from "@/lib/payments/refundOwed";
 
 function methodType(p: PaymentSituationInput) {
   if (p.payment_method_type) return p.payment_method_type;
@@ -54,9 +54,16 @@ export function paymentSituation(
 
   const closed = CLOSED_WITHOUT_SERVICE.has(booking);
   // Money already with Famy on a booking that will not happen: it goes back to the customer.
-  if (status === "captured") return closed && type !== "cash" ? "refundDue" : "paid";
-  if (closed && status === "pending_review" && type === "manual_transfer" && p.proof_path)
+  if (
+    refundOwed({
+      paymentStatus: status,
+      methodType: type,
+      proofPath: p.proof_path,
+      bookingStatus: booking,
+    })
+  )
     return "refundDue";
+  if (status === "captured") return "paid";
   if (status === "refunded" || status === "partially_refunded") return "refunded";
   if (status === "rejected") return "rejected";
   if (status === "failed") return "failed";

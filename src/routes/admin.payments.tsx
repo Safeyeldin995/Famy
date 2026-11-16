@@ -198,9 +198,12 @@ function PaymentCard({ payment: p, cashRecorded }: { payment: any; cashRecorded:
       {refundSheet && (
         <AdminReasonSheet
           title={t("admin.paymentSituation.recordRefund")}
-          description={t("admin.paymentSituation.recordRefundHint", {
-            amount: formatEGP(Number(p.amount ?? 0)),
-          })}
+          description={t(
+            isTransfer
+              ? "admin.paymentSituation.recordRefundHintTransfer"
+              : "admin.paymentSituation.recordRefundHint",
+            { amount: formatEGP(Number(p.amount ?? 0)) },
+          )}
           fieldLabel={t("admin.paymentSituation.refundReference")}
           busy={busy}
           onClose={() => setRefundSheet(false)}

@@ -47,6 +47,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { instapayConfig } from "@/lib/payout/payoutMethods";
+import { refundOwed } from "@/lib/payments/refundOwed";
 
 export type ViewerRole = "customer" | "provider" | "admin";
 
@@ -237,10 +238,12 @@ export function PaymentBlock({
   const isManualTransfer = resolvedMethodType === "manual_transfer";
   const canConfirm = viewer === "admin" || viewer === "provider";
   // Paid (card captured, or InstaPay receipt sent) but the booking was cancelled: Famy sends it back.
-  const refundOnTheWay =
-    (bookingStatus === "cancelled" || bookingStatus === "no_show") &&
-    ((p.status === "captured" && !isCash) ||
-      (p.status === "pending_review" && isManualTransfer && !!p.proof_path));
+  const refundOnTheWay = refundOwed({
+    paymentStatus: p.status,
+    methodType: resolvedMethodType,
+    proofPath: p.proof_path,
+    bookingStatus,
+  });
   const captureAllowed = bookingStatus === "completed";
   const canUpload = viewer === "customer" && isManualTransfer && p.status === "pending_review";
   const canPayOnline = viewer === "customer" && resolvedIsOnline && p.status === "pending";
@@ -430,7 +433,7 @@ export function PaymentBlock({
         )}
 
       {/* Proof uploaded — awaiting review */}
-      {isManualTransfer && p.proof_path && p.status === "pending_review" && (
+      {isManualTransfer && p.proof_path && p.status === "pending_review" && !refundOnTheWay && (
         <div className="flex items-center justify-between gap-2 rounded-2xl bg-surface-2 p-3">
           <div className="flex items-center gap-2 text-xs">
             <ShieldCheck className="h-4 w-4 text-success" />

@@ -3,6 +3,7 @@ import { runPaymobReturnPolling } from "@shared/paymob/paymobReturnPolling";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { AppState, Linking, View } from "react-native";
 import { instapayConfig } from "@shared/payout/payoutMethods";
+import { refundOwed } from "@shared/payments/refundOwed";
 import * as Clipboard from "expo-clipboard";
 import * as ImagePicker from "expo-image-picker";
 import { useTranslation } from "react-i18next";
@@ -92,6 +93,12 @@ export function PaymentBlock({
   const handle = snap.handle || live.handle;
   const note = snap.note || live.note;
   // Only InstaPay gets the "Open InstaPay" button.
+  const refundOnTheWay = refundOwed({
+    paymentStatus: p?.status,
+    methodType: type,
+    proofPath: p?.proof_path,
+    bookingStatus: status,
+  });
   const payLink = p?.method === "instapay" ? snap.payLink || live.payLink : "";
   async function checkout() {
     setBusy(true);
@@ -213,11 +220,7 @@ export function PaymentBlock({
               t("payment.title")}
           </Text>
           <Text>{t(`payment.status.${p.status}`)}</Text>
-          {(status === "cancelled" || status === "no_show") &&
-            ((p.status === "captured" && type !== "cash") ||
-              (p.status === "pending_review" && type === "manual_transfer" && !!p.proof_path)) && (
-              <Text weight="bold">{t("payment.refundOnTheWay")}</Text>
-            )}
+          {refundOnTheWay && <Text weight="bold">{t("payment.refundOnTheWay")}</Text>}
           <Text style={moneyTextStyle(i18n.language)}>{money(p.amount, i18n.language)}</Text>
           <Text>
             {(i18n.language === "ar" ? snapshot?.instructions_ar : snapshot?.instructions_en) ??
@@ -273,7 +276,7 @@ export function PaymentBlock({
               )}
             </>
           )}
-          {type === "manual_transfer" && p.proof_path && (
+          {type === "manual_transfer" && p.proof_path && !refundOnTheWay && (
             <>
               <Text>
                 {t(
