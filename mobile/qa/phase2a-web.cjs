@@ -384,6 +384,8 @@ async function run() {
           { vacation_mode: false, min_notice_hours: 0, max_advance_days: 12, buffer_minutes: 0 },
         ];
       else if (table === "resolve_zone") data = [{ id: id(80), travel_fee: 10 }];
+      // Cancel dialog asks for the fee first; this booking is cancelled early, so no fee.
+      else if (table === "booking_cancellation_fee") data = 0;
       else if (table === "create_booking") {
         assert.equal(body.p_provider_id, pid);
         assert.equal(body.p_service_id, sid);
