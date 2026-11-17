@@ -399,12 +399,12 @@ export async function seedPaymentsForBooking(
   bookingId: string,
   customerId: string = IDS.customer,
 ): Promise<{ cashId: string; paymobId: string }> {
-  const bookingRows = await queryRows<{ price_total: string }>(
+  const bookingRows = await queryRows<{ due: string }>(
     db,
-    `SELECT price_total::text FROM public.bookings WHERE id = $1`,
+    `SELECT (price_total + carried_fees_amount)::text AS due FROM public.bookings WHERE id = $1`,
     [bookingId],
   );
-  const amount = bookingRows[0]?.price_total ?? "200";
+  const amount = bookingRows[0]?.due ?? "200";
 
   const methods = await queryRows<{ code: string; id: string }>(
     db,

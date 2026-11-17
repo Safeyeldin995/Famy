@@ -27,8 +27,11 @@ export type WalletBooking = {
 export type WalletBookingRow = {
   bookingId: string;
   at: string;
-  /** How the customer paid ("fee": a cancellation fee the customer paid the provider). */
-  method: "cash" | "online" | "fee";
+  /**
+   * How the customer paid ("fee": a cancellation fee the customer paid the provider;
+   * "carried": an earlier fee the provider collected in cash for another provider).
+   */
+  method: "cash" | "online" | "fee" | "carried";
   /** What the customer paid, when known. */
   price: number | null;
   /** Famy's commission, when known. */
@@ -72,15 +75,15 @@ export function walletBookingRows(
   const rows: WalletBookingRow[] = [];
   for (const e of ledger) {
     if (!e.booking_id) continue;
-    if (e.kind === "cancellation_fee_provider_share") {
+    if (e.kind === "cancellation_fee_provider_share" || e.kind === "carried_fee_collected") {
       const b = get(e.booking_id);
       rows.push({
         bookingId: e.booking_id,
         at: b?.start_at ?? e.created_at,
-        method: "fee",
+        method: e.kind === "carried_fee_collected" ? "carried" : "fee",
         price: null,
         commission: null,
-        providerNet: Math.abs(num(e.amount)),
+        providerNet: e.kind === "carried_fee_collected" ? null : Math.abs(num(e.amount)),
         effect: signedAmount(e),
       });
       continue;

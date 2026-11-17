@@ -24,6 +24,7 @@ import { Bell, Star, Plane, AlertCircle } from "lucide-react";
 import { ICON_STROKE_BOLD } from "@/lib/icons/constants";
 import { useProPath } from "@/lib/provider/useProPath";
 import { HomeProviderActiveBookingCard } from "@/components/provider/HomeProviderActiveBookingCard";
+import { bookingAmountDue } from "@/lib/payments/amountDue";
 
 export const Route = createFileRoute("/pro/")({ component: ProDashboard });
 
@@ -354,7 +355,7 @@ function BookingRow({
             <div className="flex items-center justify-between gap-2">
               <p className="truncate text-sm font-extrabold text-foreground">{name}</p>
               <p className="shrink-0 whitespace-nowrap text-sm font-black text-brand">
-                {formatEGP(Number(b.price_total ?? 0))}
+                {formatEGP(bookingAmountDue(b))}
               </p>
             </div>
             <p className="mt-0.5 truncate text-xs font-medium text-muted-foreground">

@@ -19,7 +19,7 @@ import {
 import { getSignedProofUrl, useCapturePayment, useRejectPayment } from "@/lib/db/payment-queries";
 import { formatEGP } from "@/lib/format";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
-import { useBookingCancellationFee } from "@/lib/db/settings-queries";
+import { useAdminRefundBreakdown } from "@/lib/db/debt-queries";
 import { FeeDebtsPanel } from "@/components/admin/FeeDebtsPanel";
 import { AdminReasonSheet } from "@/components/admin/AdminReasonSheet";
 import {
@@ -56,10 +56,11 @@ function PaymentCard({ payment: p, cashRecorded }: { payment: any; cashRecorded:
   const recordRefund = useRecordPaymentRefund();
   const [cashSheet, setCashSheet] = useState(false);
   const [refundSheet, setRefundSheet] = useState(false);
-  // The customer's cancellation fee (if any) stays with the provider; only the rest is refunded.
-  const refundFee = useBookingCancellationFee(p.booking_id, refundSheet);
-  const paidAmount = Number(p.amount ?? 0);
-  const feeAmount = Math.min(refundFee.data ?? 0, paidAmount);
+  // The customer's cancellation fee (if any) stays with the provider, and earlier unpaid fees
+  // the booking carried stay with Famy for theirs; only the rest is refunded.
+  const refundFee = useAdminRefundBreakdown(p.id, refundSheet);
+  const feeAmount = refundFee.data?.fee ?? 0;
+  const carriedAmount = refundFee.data?.carried ?? 0;
   const situation = paymentSituation(p, cashRecorded);
   const isTransfer =
     p.payment_method_type === "manual_transfer" ||
@@ -213,11 +214,16 @@ function PaymentCard({ payment: p, cashRecorded }: { payment: any; cashRecorded:
                     feeAmount > 0
                       ? t("admin.paymentSituation.refundFeeNote", { fee: formatEGP(feeAmount) })
                       : "",
+                    carriedAmount > 0
+                      ? t("admin.paymentSituation.refundCarriedNote", {
+                          amount: formatEGP(carriedAmount),
+                        })
+                      : "",
                     t(
                       isTransfer
                         ? "admin.paymentSituation.recordRefundHintTransfer"
                         : "admin.paymentSituation.recordRefundHint",
-                      { amount: formatEGP(paidAmount - feeAmount) },
+                      { amount: formatEGP(refundFee.data?.refund ?? 0) },
                     ),
                   ]
                     .filter(Boolean)

@@ -34,6 +34,7 @@ import {
   isSupervisionMode,
   supervisionModeProviderLabel,
 } from "@shared/booking/supervisionMode";
+import { bookingAmountDue, carriedFees } from "@shared/payments/amountDue";
 
 export default function BookingDetail() {
   const { id, created, educationWarning } = useLocalSearchParams<{
@@ -100,7 +101,7 @@ export default function BookingDetail() {
               .filter(Boolean)
               .join(", ")
           : t("bookingDetail.addressMissing"),
-        total: money(b.price_total ?? 0, i18n.language),
+        total: money(bookingAmountDue(b), i18n.language),
         start: b.start_at,
         end: b.end_at,
       }
@@ -312,6 +313,12 @@ export default function BookingDetail() {
                   <Text style={{ flex: 1 }}>{label}</Text>
                 </View>
               ))}
+              {carriedFees(b) > 0 ? (
+                <View style={ui.priceRow}>
+                  <Text tone="muted">{t("bookFlow.carriedFees")}</Text>
+                  <Text tone="muted">{money(carriedFees(b), i18n.language)}</Text>
+                </View>
+              ) : null}
               <View
                 style={[
                   ui.priceRow,

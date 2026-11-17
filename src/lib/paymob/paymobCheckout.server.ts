@@ -1,11 +1,13 @@
 import { readPaymobConfig } from "./paymobConfig.server";
 import { createPaymobIntention, PaymobIntentionIndeterminateError } from "./paymobApi.server";
 import { buildPaymobBookingReturnUrl } from "./paymobConfig.server";
+import { bookingAmountDue } from "@/lib/payments/amountDue";
 
 type BookingRow = {
   id: string;
   customer_id: string;
   price_total: number | null;
+  carried_fees_amount?: number | null;
   currency: string | null;
   service?: { name_en?: string | null; name_ar?: string | null } | null;
 };
@@ -79,7 +81,9 @@ export async function createPaymobCheckoutForPayment(input: {
 
   const { data: booking, error: bookingErr } = await input.supabaseAdmin
     .from("bookings")
-    .select("id, customer_id, price_total, currency, service:services(name_en, name_ar)")
+    .select(
+      "id, customer_id, price_total, carried_fees_amount, currency, service:services(name_en, name_ar)",
+    )
     .eq("id", input.bookingId)
     .single();
   // A lookup failure is an outage, not a missing booking: keep it a 5xx.
@@ -120,7 +124,8 @@ export async function createPaymobCheckoutForPayment(input: {
     throw new Error("This booking is not using Paymob online payment.");
   }
 
-  const authoritativeAmount = Number(bookingRow.price_total);
+  // The booking price plus any earlier unpaid cancellation fees added to it.
+  const authoritativeAmount = bookingAmountDue(bookingRow);
   const paymentAmount = Number(payment.amount);
   if (
     !Number.isFinite(authoritativeAmount) ||

@@ -36,6 +36,8 @@ export function bookingCancelInvalidationKeys(bookingId: string): readonly (read
     ["provider-bookings"],
     ["admin", "bookings"],
     ["payment", bookingId],
+    // A cancellation can add a fee, or free fees this booking carried.
+    ["customer-fee-debts"],
   ];
 }
 

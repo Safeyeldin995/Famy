@@ -10,8 +10,9 @@ import { CardBrands, InstapayLogo } from "@/components/famio/PaymentLogos";
 const btn = "focus-ring min-h-11 rounded-xl px-4 text-sm font-bold disabled:opacity-50";
 
 /**
- * Website version of the app's fee banner: unpaid cancellation fees block booking until
- * paid by card (Paymob) or InstaPay (confirmed by Famy). Renders nothing when clear.
+ * Website version of the app's fee banner. Unpaid cancellation fees are added to the
+ * customer's next booking; they can also pay them now by card (Paymob) or InstaPay
+ * (receipt checked by Famy). Renders nothing when clear.
  */
 export function FeeDebtBanner() {
   const { t } = useTranslation();
@@ -20,12 +21,11 @@ export function FeeDebtBanner() {
   const submit = useSubmitDebtInstapay(user?.id);
   const famyInstapay = useFamyInstapay();
   const [mode, setMode] = useState<"choose" | "instapay">("choose");
-  const [reference, setReference] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   const d = debts.data;
-  if (!d || d.total <= 0) return null;
+  if (!d || (d.total <= 0 && !d.inReview)) return null;
 
   const payCard = async () => {
     setBusy(true);
@@ -48,17 +48,48 @@ export function FeeDebtBanner() {
     }
   };
 
+  const onReceipt = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setError("");
+    submit.mutate(file, {
+      onSuccess: () => setMode("choose"),
+      onError: (err) =>
+        setError(
+          t(
+            err instanceof Error && err.message === "fileTooLarge"
+              ? "payment.fileTooLarge"
+              : "payment.uploadFailed",
+          ),
+        ),
+    });
+  };
+
+  if (d.total <= 0 && d.inReview) {
+    return (
+      <section className="rounded-2xl border border-border bg-surface p-4" role="status">
+        <p className="text-sm font-bold">
+          {t("feeDebt.inReview", { amount: formatEGP(d.inReview.amount) })}
+        </p>
+      </section>
+    );
+  }
+
   return (
     <section
-      className="space-y-2 rounded-2xl border border-destructive/40 bg-surface p-4"
-      role="alert"
+      className="space-y-2 rounded-2xl border border-amber-500/50 bg-surface p-4"
+      role="status"
     >
       <p className="text-base font-extrabold">
         {t("feeDebt.title", { amount: formatEGP(d.total) })}
       </p>
       <p className="text-sm text-muted-foreground">{t("feeDebt.body")}</p>
       {d.inReview ? (
-        <p className="text-sm font-bold">{t("feeDebt.inReview")}</p>
+        // One receipt at a time: the next payment opens once Famy checks this one.
+        <p className="text-sm font-bold">
+          {t("feeDebt.inReview", { amount: formatEGP(d.inReview.amount) })}
+        </p>
       ) : mode === "choose" ? (
         <>
           {d.lastRejected ? (
@@ -94,42 +125,31 @@ export function FeeDebtBanner() {
               <bdi dir="ltr">{famyInstapay.data.handle}</bdi>
             </p>
           ) : null}
-          {famyInstapay.data?.payLink ? (
-            <a
-              href={famyInstapay.data.payLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`${btn} inline-flex items-center border border-border`}
-            >
-              {t("payout.pro.payInOpen")}
-            </a>
-          ) : null}
-          <label className="block text-sm">
-            <span className="font-semibold">{t("feeDebt.reference")}</span>
-            <input
-              value={reference}
-              onChange={(e) => setReference(e.target.value)}
-              dir="ltr"
-              className="mt-1 block min-h-11 w-full rounded-xl border border-border bg-background px-3 text-sm"
-            />
-          </label>
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={submit.isPending || reference.trim().length < 4}
-              className={`${btn} bg-brand text-brand-foreground`}
-              onClick={() =>
-                submit.mutate(reference.trim(), {
-                  onSuccess: () => {
-                    setMode("choose");
-                    setReference("");
-                  },
-                  onError: () => setError(t("common.somethingWentWrong")),
-                })
-              }
+            {famyInstapay.data?.payLink ? (
+              <a
+                href={famyInstapay.data.payLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${btn} inline-flex items-center border border-border`}
+              >
+                {t("payout.pro.payInOpen")}
+              </a>
+            ) : null}
+            <label
+              className={`${btn} inline-flex cursor-pointer items-center bg-brand text-brand-foreground ${
+                submit.isPending ? "pointer-events-none opacity-50" : ""
+              }`}
             >
-              {t("feeDebt.sendReference")}
-            </button>
+              {submit.isPending ? t("payment.uploading") : t("feeDebt.uploadReceipt")}
+              <input
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={onReceipt}
+                disabled={submit.isPending}
+                className="hidden"
+              />
+            </label>
             <button
               type="button"
               className={`${btn} border border-border`}

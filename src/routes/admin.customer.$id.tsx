@@ -8,6 +8,7 @@ import { useAdminCustomer, useSetCustomerSuspended } from "@/lib/db/admin-querie
 import { ChevronLeft, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
+import { bookingAmountDue } from "@/lib/payments/amountDue";
 
 export const Route = createFileRoute("/admin/customer/$id")({ component: AdminCustomerRoute });
 
@@ -108,7 +109,7 @@ export function AdminCustomer({ id }: { id: string }) {
                 <div>
                   <p className="font-semibold">{adminDate(b.start_at, i18n.language)}</p>
                   <p className="text-muted-foreground">
-                    {b.price_total} {i18n.language.startsWith("ar") ? "ج.م" : "EGP"}
+                    {bookingAmountDue(b)} {i18n.language.startsWith("ar") ? "ج.م" : "EGP"}
                   </p>
                 </div>
                 <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-bold uppercase">

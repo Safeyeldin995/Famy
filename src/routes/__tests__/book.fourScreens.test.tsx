@@ -56,6 +56,17 @@ const capabilities = [
 ];
 const slotCache = new Map<string, { label: string; start: Date; end: Date }[]>();
 vi.mock("@/components/famio/FeeDebtBanner", () => ({ FeeDebtBanner: () => null }));
+vi.mock("@/lib/auth/useAuth", () => ({ useAuth: () => ({ user: { id: "customer-1" } }) }));
+vi.mock("@/lib/db/debt-queries", () => ({
+  useMyFeeDebts: () => ({
+    data: { open: [], total: 0, inReview: null, lastRejected: null },
+    isSuccess: true,
+    refetch: async () => ({
+      data: { open: [], total: 0, inReview: null, lastRejected: null },
+      isError: false,
+    }),
+  }),
+}));
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: i18n.t.bind(i18n), i18n }) }));
 vi.mock("@/lib/i18n", () => ({ currentLang: () => state.lang }));
 vi.mock("@tanstack/react-router", () => ({

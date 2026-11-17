@@ -904,7 +904,7 @@ export function useAdminCustomer(id: string) {
       if (error) throw error;
       const { data: bookings, error: bookingsError } = await supabase
         .from('bookings')
-        .select('id, status, start_at, price_total')
+        .select('id, status, start_at, price_total, carried_fees_amount')
         .eq('customer_id', id)
         .order('created_at', { ascending: false })
         .limit(50);

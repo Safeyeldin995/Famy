@@ -60,6 +60,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { proPath } from "@/lib/preview/previewPath";
+import { bookingAmountDue, carriedFees } from "@/lib/payments/amountDue";
 
 export const Route = createFileRoute("/pro/booking/$id")({ component: ProBookingDetailRoute });
 
@@ -455,9 +456,14 @@ export function ProBookingDetail({ id, preview = false }: { id: string; preview?
           <div className="flex items-center justify-between gap-2">
             <span className="text-pro-14 font-bold">{t("pro.booking.total")}</span>
             <span className="whitespace-nowrap text-pro-22 font-extrabold text-brand">
-              {formatEGP(Number(b.price_total ?? 0))}
+              {formatEGP(bookingAmountDue(b))}
             </span>
           </div>
+          {carriedFees(b) > 0 && (
+            <p className="text-pro-12 text-muted-foreground">
+              {t("pro.booking.carriedFeesNote", { amount: formatEGP(carriedFees(b)) })}
+            </p>
+          )}
           <PaymentBlock bookingId={b.id} viewer="provider" bookingStatus={b.status} embedded />
           <details>
             <summary className="flex min-h-11 cursor-pointer items-center text-pro-12 font-bold text-muted-foreground">

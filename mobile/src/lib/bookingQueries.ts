@@ -21,6 +21,7 @@ import {
   DEFAULT_ADDRESS_QUERY_ROOT,
 } from "@shared/db/address-query-keys";
 import type { Database } from "../../../src/integrations/supabase/types";
+import { bookingAmountDue } from "@shared/payments/amountDue";
 type Tables = Database["public"]["Tables"];
 export type AddressLabel = "home" | "work" | "family" | "other";
 export type AddressInput = {
@@ -408,7 +409,11 @@ export function useCreateBooking() {
         { retryDelayMs: 250 },
       );
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["my-bookings"] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["my-bookings"] });
+      // Unpaid fees were attached to this booking.
+      void qc.invalidateQueries({ queryKey: ["customer-fee-debts"] });
+    },
   });
 }
 
@@ -524,14 +529,15 @@ export function useCreatePayment() {
 
       const { data: booking, error: bookingErr } = await supabase
         .from("bookings")
-        .select("price_total, currency, customer_id")
+        .select("price_total, carried_fees_amount, currency, customer_id")
         .eq("id", input.bookingId)
         .single();
       if (bookingErr) throw bookingErr;
       if (booking.customer_id !== user.id) {
         throw new Error("You cannot record payment for this booking.");
       }
-      const amount = Number(booking.price_total);
+      // Includes earlier unpaid cancellation fees added to this booking.
+      const amount = bookingAmountDue(booking);
       if (!Number.isFinite(amount) || amount <= 0) {
         throw new Error("Booking total is not available yet.");
       }

@@ -89,6 +89,8 @@ import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
 import { PaymentMethodLogos } from "@/ui/PaymentLogos";
 import { FeeDebtBanner } from "@/ui/FeeDebtBanner";
+import { useMyFeeDebts } from "@/lib/debtQueries";
+import { useSession } from "@/lib/session";
 import { BookingInlineForm } from "@/ui/customer/BookingInlineForm";
 import { customerMoney as money, customerNumber } from "@/lib/customerFormat";
 import { providerRatingSummary } from "@/lib/providerRating";
@@ -345,6 +347,8 @@ function BookForm({
   ]);
   const currentSlot =
     slot && available.some((s) => +s.start === +slot.start && +s.end === +slot.end) ? slot : null;
+  const { session } = useSession();
+  const feeDebts = useMyFeeDebts(session?.user.id);
   const quote = buildBookingQuote({
     service: service?.service,
     rate: Number(
@@ -359,6 +363,9 @@ function BookForm({
     travelFee: Number(zone.data?.travel_fee ?? 0),
     promoDiscount: applied?.discount ?? 0,
   });
+  // Earlier unpaid cancellation fees are added to this booking by the server.
+  const carriedFees = feeDebts.data?.total ?? 0;
+  const amountDue = quote.total + carriedFees;
   const recipientReady = canContinueForWhom({
     isBabysitting: babysitting,
     forWhom: recipient,
@@ -456,6 +463,17 @@ function BookForm({
         setStep(1);
         setError(t("bookFlow.slotTaken"));
         await slots.refetch();
+        return;
+      }
+      // The server adds unpaid fees when it creates the booking: make sure the total shown
+      // is still right before confirming.
+      const fees = await feeDebts.refetch();
+      if (fees.isError || !fees.data) {
+        setError(t("bookFlow.feesCheckFailed"));
+        return;
+      }
+      if (fees.data.total !== carriedFees) {
+        setError(t("bookFlow.feesChanged"));
         return;
       }
       const payload = buildBookingRequest({
@@ -621,7 +639,7 @@ function BookForm({
                 ? t("common.loading")
                 : tutoring && !capability
                   ? t("customerBooking.tutoringPrice")
-                  : money(quote.total, lang)}
+                  : money(amountDue, lang)}
             </Text>
           </View>
           {reason && !busy ? (
@@ -1083,11 +1101,13 @@ function BookForm({
               extras_total: quote.extrasTotal,
               travel_fee: quote.travelFee,
               discount: applied?.discount ?? 0,
-              total: quote.total,
+              carried_fees: carriedFees,
+              total: amountDue,
             })
               .filter(
                 ([key, v]) =>
-                  !["extras_total", "travel_fee", "discount"].includes(key) || Number(v) > 0,
+                  !["extras_total", "travel_fee", "discount", "carried_fees"].includes(key) ||
+                  Number(v) > 0,
               )
               .map(([key, v]) => (
                 <View
@@ -1123,6 +1143,7 @@ function BookForm({
                             extras_total: "bookFlow.extrasTotal",
                             travel_fee: "bookFlow.travelFee",
                             discount: "bookFlow.promoDiscount",
+                            carried_fees: "bookFlow.carriedFees",
                             total: "bookFlow.total",
                           }[key] ?? `mobile.price.${key}`,
                         )}

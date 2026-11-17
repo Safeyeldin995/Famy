@@ -28,6 +28,7 @@ import { Text } from "@/ui/Text";
 import { colors, space } from "@/ui/theme";
 import { isSupervisionMode, supervisionModeProviderLabel } from "@shared/booking/supervisionMode";
 import { useToast } from "@/ui/Toast";
+import { bookingAmountDue, carriedFees } from "@shared/payments/amountDue";
 
 export default function ProBookingDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -255,9 +256,14 @@ export default function ProBookingDetail() {
             <View style={[proCard.card, { flexDirection: "row", justifyContent: "space-between" }]}>
               <Text weight="bold">{t("pro.booking.total")}</Text>
               <Text weight="heavy" tone="brand" size="lg" style={moneyTextStyle(i18n.language)}>
-                {money(Number(b.price_total ?? 0), i18n.language)}
+                {money(bookingAmountDue(b), i18n.language)}
               </Text>
             </View>
+            {carriedFees(b) > 0 ? (
+              <Text size="sm" tone="muted">
+                {t("pro.booking.carriedFeesNote", { amount: money(carriedFees(b), i18n.language) })}
+              </Text>
+            ) : null}
             <ProviderPaymentBlock bookingId={id!} bookingStatus={status} />
             <ActionError error={mut.error} />
           </>

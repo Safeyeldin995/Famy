@@ -21,6 +21,10 @@ import {
 } from "./booking-lifecycle.harness";
 
 let db: PGlite;
+
+/** A receipt file the customer uploaded (storage is a stub in the migration replay). */
+const putReceipt = (path: string) =>
+  db.query("INSERT INTO storage.objects (bucket_id, name) VALUES ('payment-proofs', $1)", [path]);
 let customerReason: string;
 let expectedNet = 0;
 
@@ -95,6 +99,7 @@ beforeAll(async () => {
     "SELECT id FROM public.cancellation_reasons WHERE code = 'customer_change_of_plans'",
   );
   customerReason = reasons[0].id;
+  await putReceipt(`fees/${IDS.customer}/e1.jpg`);
   await asServiceRole(db, () =>
     db.exec(`
       UPDATE public.settings SET value = '{"fee_mode":"fixed","fee_value":${FEE},"free_cancel_hours":2}'::jsonb
@@ -171,7 +176,7 @@ describe("money journey", () => {
     expect(await providerNet()).toBeCloseTo(expectedNet, 2);
   });
 
-  it("E. cash, cancelled after the provider set off: debt, blocked, paid by InstaPay, fee to the provider", async () => {
+  it("E. cash, cancelled after the provider set off: debt, paid by InstaPay receipt, fee to the provider", async () => {
     const { bookingId } = await newBooking("confirmed");
     const { cashId } = await seedPaymentsForBooking(db, bookingId);
     await keepOnly(bookingId, cashId);
@@ -179,14 +184,13 @@ describe("money journey", () => {
     expect((await cancel(bookingId)).error).toBeUndefined();
     // Nothing moves on the wallet until the customer pays.
     expect(await providerNet()).toBeCloseTo(expectedNet, 2);
-    await expect(seedLifecycleBooking(db)).rejects.toThrow(/BOOKING_DEBT_OUTSTANDING/);
     const del = await tryAsUser(db, IDS.customer, "SELECT public.account_deletion_check() AS c");
     expect((del.rows![0].c as { reason: string }).reason).toBe("unpaid_balance");
 
     const sub = await tryAsUser(
       db,
       IDS.customer,
-      "SELECT public.customer_submit_debt_instapay('IP-E1') AS id",
+      `SELECT public.customer_submit_debt_instapay('fees/${IDS.customer}/e1.jpg') AS id`,
     );
     const sid = String(sub.rows![0].id);
     expect(
@@ -198,8 +202,9 @@ describe("money journey", () => {
     ).toBeUndefined();
     expectedNet += FEE;
     expect(await providerNet()).toBeCloseTo(expectedNet, 2);
-    const { bookingId: again } = await seedLifecycleBooking(db);
-    expect(again).toBeTruthy();
+    // Nothing left to add to the next booking.
+    const left = await tryAsUser(db, IDS.customer, "SELECT * FROM public.my_unpaid_fees()");
+    expect(left.rows).toEqual([]);
   });
 
   it("F. provider didn't show up on a paid booking: full refund, no fee", async () => {
@@ -217,6 +222,139 @@ describe("money journey", () => {
     expect(report.error).toBeUndefined();
     expect((await refund(paymobId, "PM-F")).error).toBeUndefined();
     expect(await paymentStatus(db, paymobId)).toBe("refunded");
+    expect(await providerNet()).toBeCloseTo(expectedNet, 2);
+  });
+
+  /** Cash booking cancelled after the provider set off: leaves an unpaid fee. */
+  async function lateCashCancel() {
+    const { bookingId } = await newBooking("confirmed");
+    const { cashId } = await seedPaymentsForBooking(db, bookingId);
+    await keepOnly(bookingId, cashId);
+    await setBookingStatusAsSystem(db, bookingId, "on_the_way");
+    expect((await cancel(bookingId)).error).toBeUndefined();
+    return bookingId;
+  }
+
+  async function carried(bookingId: string) {
+    const rows = await queryRows<{ c: string; due: string }>(
+      db,
+      "SELECT carried_fees_amount::text AS c, (price_total + carried_fees_amount)::text AS due FROM public.bookings WHERE id = $1",
+      [bookingId],
+    );
+    return { carried: Number(rows[0].c), due: Number(rows[0].due) };
+  }
+
+  it("H. unpaid fee rides on the next cash booking: provider collects it, wallet debited, fee credited", async () => {
+    const owed = await lateCashCancel();
+    const { bookingId } = await newBooking();
+    expect(await carried(bookingId)).toEqual({ carried: FEE, due: 500 + FEE });
+    const { cashId } = await seedPaymentsForBooking(db, bookingId);
+    await keepOnly(bookingId, cashId);
+    await completeHappyPath(db, bookingId);
+    const ledger = await queryRows<{ kind: string; amount: string }>(
+      db,
+      "SELECT kind, amount::text AS amount FROM public.provider_ledger_entries WHERE booking_id IN ($1, $2) ORDER BY kind",
+      [owed, bookingId],
+    );
+    expect(ledger).toEqual([
+      { kind: "cancellation_fee_provider_share", amount: "50.00" },
+      { kind: "carried_fee_collected", amount: "50.00" },
+      { kind: "cash_collected_platform_share", amount: "100.00" },
+    ]);
+    // Collected the fee (-50), earned the fee (+50), owes the commission (-100).
+    expectedNet -= 100;
+    expect(await providerNet()).toBeCloseTo(expectedNet, 2);
+    const left = await tryAsUser(db, IDS.customer, "SELECT * FROM public.my_unpaid_fees()");
+    expect(left.rows).toEqual([]);
+  });
+
+  it("I. unpaid fee rides on the next card booking: paid with it, fee credited on completion", async () => {
+    await lateCashCancel();
+    const { bookingId } = await newBooking();
+    const { paymobId } = await seedPaymentsForBooking(db, bookingId);
+    await keepOnly(bookingId, paymobId);
+    const pay = await queryRows<{ a: string }>(
+      db,
+      "SELECT amount::text AS a FROM public.payments WHERE id = $1",
+      [paymobId],
+    );
+    expect(Number(pay[0].a)).toBe(500 + FEE);
+    await capture(paymobId);
+    await completeHappyPath(db, bookingId);
+    expectedNet += 400 + FEE;
+    expect(await providerNet()).toBeCloseTo(expectedNet, 2);
+  });
+
+  it("J. card booking carrying a fee, cancelled early: refund keeps only the carried fee", async () => {
+    await lateCashCancel();
+    const { bookingId } = await newBooking("confirmed");
+    await asServiceRole(db, () =>
+      db.query(
+        "UPDATE public.bookings SET start_at = now() + interval '3 days', end_at = now() + interval '3 days 2 hours' WHERE id = $1",
+        [bookingId],
+      ),
+    );
+    const { paymobId } = await seedPaymentsForBooking(db, bookingId);
+    await keepOnly(bookingId, paymobId);
+    await capture(paymobId);
+    expect((await cancel(bookingId)).error).toBeUndefined();
+    const preview = await tryAsUser(
+      db,
+      IDS.adminUser,
+      "SELECT public.admin_payment_refund_breakdown($1) AS b",
+      [paymobId],
+    );
+    expect(preview.rows![0].b).toEqual({ paid: 550, fee: 0, carried: FEE, refund: 500 });
+    expect((await refund(paymobId, "PM-J")).error).toBeUndefined();
+    const meta = await queryRows<{ back: string; kept: string }>(
+      db,
+      "SELECT metadata->'refund'->>'amount_refunded' AS back, metadata->'refund'->>'carried_fees' AS kept FROM public.payments WHERE id = $1",
+      [paymobId],
+    );
+    expect(Number(meta[0].back)).toBeCloseTo(500, 2);
+    expect(Number(meta[0].kept)).toBeCloseTo(FEE, 2);
+    expect(await paymentStatus(db, paymobId)).toBe("partially_refunded");
+    expectedNet += FEE;
+    expect(await providerNet()).toBeCloseTo(expectedNet, 2);
+  });
+
+  it("K. a booking must be paid in full, carried fees included; the fee can't be waived mid-booking", async () => {
+    await lateCashCancel();
+    const { bookingId } = await newBooking();
+    const methods = await queryRows<{ id: string }>(
+      db,
+      "SELECT id FROM public.payment_methods WHERE code = 'paymob'",
+    );
+    await expect(
+      asServiceRole(db, () =>
+        db.query(
+          `INSERT INTO public.payments (booking_id, customer_id, amount, status, payment_method_id, metadata)
+           VALUES ($1, $2, 500, 'pending', $3, '{}'::jsonb)`,
+          [bookingId, IDS.customer, methods[0].id],
+        ),
+      ),
+    ).rejects.toThrow(/must match the booking total/);
+    const debt = await queryRows<{ id: string }>(
+      db,
+      "SELECT id FROM public.customer_debts WHERE carried_booking_id = $1",
+      [bookingId],
+    );
+    const waive = await tryAsUser(
+      db,
+      IDS.adminUser,
+      "SELECT public.admin_waive_customer_debt($1, 'test')",
+      [debt[0].id],
+    );
+    expect(waive.error).toMatch(/active booking/);
+    // Customer cancels before anything is paid: the fee is free again, then waived.
+    await setBookingStatusAsSystem(db, bookingId, "cancelled");
+    expect(
+      (
+        await tryAsUser(db, IDS.adminUser, "SELECT public.admin_waive_customer_debt($1, 'test')", [
+          debt[0].id,
+        ])
+      ).error,
+    ).toBeUndefined();
     expect(await providerNet()).toBeCloseTo(expectedNet, 2);
   });
 

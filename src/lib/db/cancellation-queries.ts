@@ -151,6 +151,8 @@ export function useCancelBooking() {
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ['booking', vars.bookingId] });
       qc.invalidateQueries({ queryKey: ['booking-cancellation', vars.bookingId] });
+      // A cancellation can add a fee, or free fees this booking carried.
+      qc.invalidateQueries({ queryKey: ['customer-fee-debts'] });
       qc.invalidateQueries({ queryKey: ['provider-booking', vars.bookingId] });
       qc.invalidateQueries({ queryKey: ['my-bookings'] });
       qc.invalidateQueries({ queryKey: ['provider-bookings'] });

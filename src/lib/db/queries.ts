@@ -740,7 +740,11 @@ export function useCreateBooking() {
       const payload = data as { booking_id: string; created: boolean; idempotent_replay: boolean };
       return completeCreateBookingResult(payload, createBookingFetcher(supabase), { retryDelayMs: 250 });
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['my-bookings'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['my-bookings'] });
+      // Unpaid fees were attached to this booking.
+      qc.invalidateQueries({ queryKey: ['customer-fee-debts'] });
+    },
   });
 }
 

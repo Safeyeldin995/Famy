@@ -27,6 +27,7 @@ import {
 } from "@/lib/booking/pending-expiry";
 import { Search } from "lucide-react";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
+import { bookingAmountDue } from "@/lib/payments/amountDue";
 
 function AdminCancellationDetails({ cancellation }: { cancellation: any }) {
   const { t, i18n } = useTranslation();
@@ -298,8 +299,7 @@ export function AdminBookings({
                       </Link>
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {operationDate(b.start_at, i18n.language)} ·{" "}
-                      {formatEGP(Number(b.price_total ?? 0))}
+                      {operationDate(b.start_at, i18n.language)} · {formatEGP(bookingAmountDue(b))}
                     </p>
                     <p className="text-sm">
                       {i18n.language.startsWith("ar") ? b.service?.name_ar : b.service?.name_en}

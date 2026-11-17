@@ -276,6 +276,8 @@ async function run() {
         data = [
           { vacation_mode: false, min_notice_hours: 0, max_advance_days: 12, buffer_minutes: 0 },
         ];
+      // No unpaid cancellation fees to add to the booking.
+      else if (table === "my_unpaid_fees") data = [];
       else if (table === "search_marketplace_providers") data = mode === "empty" ? [] : [provider];
       else if (table === "marketplace_provider_details") data = mode === "empty" ? [] : [provider];
       else if (table === "marketplace_provider_bookable_services")

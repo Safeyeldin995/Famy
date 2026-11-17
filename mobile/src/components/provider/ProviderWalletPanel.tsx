@@ -198,20 +198,22 @@ export function ProviderWalletPanel({ providerId }: { providerId: string | undef
           </Text>
         ) : (
           bookingRows.map((r) => (
-            <View key={r.bookingId} style={row}>
+            <View key={`${r.bookingId}-${r.method}`} style={row}>
               <View style={{ flex: 1, gap: 2 }}>
                 <Text weight="bold" size="sm">
                   {r.method === "fee"
                     ? t("wallet.pro.cancellationFee")
-                    : r.price != null
-                      ? t(r.method === "cash" ? "wallet.pro.paidCash" : "wallet.pro.paidOnline", {
-                          amount: money(r.price, lang),
-                        })
-                      : t(
-                          r.method === "cash"
-                            ? "wallet.pro.cashBooking"
-                            : "wallet.pro.onlineBooking",
-                        )}
+                    : r.method === "carried"
+                      ? t("wallet.pro.carriedFee")
+                      : r.price != null
+                        ? t(r.method === "cash" ? "wallet.pro.paidCash" : "wallet.pro.paidOnline", {
+                            amount: money(r.price, lang),
+                          })
+                        : t(
+                            r.method === "cash"
+                              ? "wallet.pro.cashBooking"
+                              : "wallet.pro.onlineBooking",
+                          )}
                 </Text>
                 <Text size="xs" tone="muted">
                   {dateTime(r.at, lang)}

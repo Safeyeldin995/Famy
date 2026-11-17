@@ -66,6 +66,8 @@ import { useProviderOnlyCustomerRedirect } from "@/lib/auth/providerOnlyCustomer
 import { useActivePaymentMethods } from "@/lib/db/payment-methods-queries";
 import { CardBrands, PaymentMethodIcon } from "@/components/famio/PaymentLogos";
 import { FeeDebtBanner } from "@/components/famio/FeeDebtBanner";
+import { useMyFeeDebts } from "@/lib/db/debt-queries";
+import { useAuth } from "@/lib/auth/useAuth";
 import { useRequirementsForService } from "@/lib/db/provider-queries";
 import { toUIProvider } from "@/lib/db/adapters";
 import { currentLang } from "@/lib/i18n";
@@ -207,6 +209,9 @@ function BookContentForm({
   const createPayment = useCreatePayment();
   const methodsQ = useActivePaymentMethods();
   const billingQ = useBillingSettings();
+  const { user: authUser } = useAuth();
+  // Earlier unpaid cancellation fees are added to this booking by the server.
+  const feeDebtsQ = useMyFeeDebts(authUser?.id);
   const { t } = useTranslation();
   const nav = useNavigate();
 
@@ -629,6 +634,8 @@ function BookContentForm({
     travelFee: Number(zoneQ.data?.travel_fee ?? 0),
     promoDiscount,
   });
+  const carriedFees = feeDebtsQ.data?.total ?? 0;
+  const amountDue = total + carriedFees;
 
   const requirementsReady =
     requirementsQ.isSuccess && eitherRequirements.every((r: any) => !!requirementChoices[r.id]);
@@ -734,6 +741,17 @@ function BookContentForm({
     const selectedMethod = (methodsQ.data ?? []).find((m) => m.id === paymentMethodId);
     if (!selectedMethod) {
       toast.error(t("bookFlow.paymentFailed", "Could not record payment method"));
+      return;
+    }
+    // The server adds unpaid fees when it creates the booking: make sure the total shown
+    // is still right before confirming.
+    const fees = await feeDebtsQ.refetch();
+    if (fees.isError || !fees.data) {
+      toast.error(t("bookFlow.feesCheckFailed"));
+      return;
+    }
+    if (fees.data.total !== carriedFees) {
+      toast.info(t("bookFlow.feesChanged"));
       return;
     }
     // Use the real slot's start/end (set when the customer picked it from
@@ -1612,9 +1630,12 @@ function BookContentForm({
                 {promoDiscount > 0 && (
                   <Row label={t("bookFlow.promoDiscount")} value={`-${formatEGP(promoDiscount)}`} />
                 )}
+                {carriedFees > 0 && (
+                  <Row label={t("bookFlow.carriedFees")} value={formatEGP(carriedFees)} />
+                )}
                 <div className="booking-total">
                   <span>{t("bookFlow.total")}</span>
-                  <span>{formatEGP(total)}</span>
+                  <span>{formatEGP(amountDue)}</span>
                 </div>
               </div>
               {billingQ.isError && <QueryError onRetry={() => billingQ.refetch()} />}
@@ -1759,9 +1780,9 @@ function BookContentForm({
           ) : stepKey === "review" && noPaymentMethods ? (
             t("bookingUx.contactSupport")
           ) : stepKey === "review" ? (
-            t("customerBooking.confirm", { total: formatEGP(total) })
+            t("customerBooking.confirm", { total: formatEGP(amountDue) })
           ) : (
-            t(bookingScreenPrimaryCtaKey(stepKey, editingReview), { total: formatEGP(total) })
+            t(bookingScreenPrimaryCtaKey(stepKey, editingReview), { total: formatEGP(amountDue) })
           )}
         </StickyCta>
         {detailsSheet && (

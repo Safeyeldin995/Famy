@@ -97,12 +97,15 @@ export async function startFeeDebtCheckout() {
   await WebBrowser.openAuthSessionAsync(result.checkoutUrl, "famy://home");
 }
 
-// Same bucket/path/mutation as src/lib/db/payment-queries.ts; ArrayBuffer works on native.
-export async function uploadProof(
-  bookingId: string,
-  paymentId: string,
-  asset: { uri: string; fileName?: string | null; mimeType?: string | null; fileSize?: number },
-) {
+type ReceiptAsset = {
+  uri: string;
+  fileName?: string | null;
+  mimeType?: string | null;
+  fileSize?: number;
+};
+
+/** Uploads a receipt to payment-proofs at `folder/<name>-<time>.<ext>`; ArrayBuffer works on native. */
+async function uploadReceiptFile(folder: string, name: string, asset: ReceiptAsset) {
   if (asset.fileSize != null && asset.fileSize > 10 * 1024 * 1024) throw new Error("fileTooLarge");
   const nativeFile = Platform.OS !== "web" ? new File(asset.uri) : null;
   if (nativeFile && nativeFile.size > 10 * 1024 * 1024) throw new Error("fileTooLarge");
@@ -115,16 +118,27 @@ export async function uploadProof(
     asset.mimeType?.split("/").pop() ||
     "jpg"
   ).replace(/[^a-z0-9]/gi, "");
-  const path = `${bookingId}/proof-${Date.now()}.${ext}`;
+  const path = `${folder}/${name}-${Date.now()}.${ext}`;
   const { error: upError } = await supabase.storage
     .from("payment-proofs")
     .upload(path, bytes, { contentType: asset.mimeType || "image/jpeg", upsert: false });
   if (upError) throw upError;
+  return path;
+}
+
+// Same bucket/path/mutation as src/lib/db/payment-queries.ts.
+export async function uploadProof(bookingId: string, paymentId: string, asset: ReceiptAsset) {
+  const path = await uploadReceiptFile(bookingId, "proof", asset);
   const { error } = await supabase
     .from("payments")
     .update({ proof_path: path, proof_uploaded_at: new Date().toISOString() })
     .eq("id", paymentId);
   if (error) throw error;
+}
+
+/** InstaPay receipt for unpaid cancellation fees: stored under fees/<customer id>/. */
+export async function uploadFeeReceipt(customerId: string, asset: ReceiptAsset) {
+  return uploadReceiptFile(`fees/${customerId}`, "receipt", asset);
 }
 
 // Same ten-minute signed receipt URL as src/lib/db/payment-queries.ts.

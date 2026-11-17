@@ -255,17 +255,19 @@ export function ProviderWalletPanel({
         ) : (
           <ul className="divide-y divide-border/50 rounded-xl border border-border text-sm">
             {bookingRows.map((r) => (
-              <li key={r.bookingId} className="space-y-1 px-3 py-3">
+              <li key={`${r.bookingId}-${r.method}`} className="space-y-1 px-3 py-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-bold">
                       {r.method === "fee"
                         ? t(`${ns}.cancellationFee`)
-                        : r.price != null
-                          ? t(r.method === "cash" ? `${ns}.paidCash` : `${ns}.paidOnline`, {
-                              amount: formatEGP(r.price),
-                            })
-                          : t(r.method === "cash" ? `${ns}.cashBooking` : `${ns}.onlineBooking`)}
+                        : r.method === "carried"
+                          ? t(`${ns}.carriedFee`)
+                          : r.price != null
+                            ? t(r.method === "cash" ? `${ns}.paidCash` : `${ns}.paidOnline`, {
+                                amount: formatEGP(r.price),
+                              })
+                            : t(r.method === "cash" ? `${ns}.cashBooking` : `${ns}.onlineBooking`)}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {adminDate(r.at, lang, false)} · {t("adminOps.booking")}{" "}

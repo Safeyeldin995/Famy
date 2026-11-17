@@ -383,6 +383,8 @@ async function run() {
         data = [
           { vacation_mode: false, min_notice_hours: 0, max_advance_days: 12, buffer_minutes: 0 },
         ];
+      // No unpaid cancellation fees to add to the booking.
+      else if (table === "my_unpaid_fees") data = [];
       else if (table === "resolve_zone") data = [{ id: id(80), travel_fee: 10 }];
       // Cancel dialog asks for the fee first; this booking is cancelled early, so no fee.
       else if (table === "booking_cancellation_fee") data = 0;

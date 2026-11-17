@@ -773,6 +773,7 @@ export type Database = {
           price_platform_fee: number
           price_subtotal: number
           price_total: number
+          carried_fees_amount: number
           price_travel_fee: number
           price_vat: number
           price_commission_percent: number | null
@@ -840,6 +841,7 @@ export type Database = {
           price_platform_fee?: number
           price_subtotal?: number
           price_total?: number
+          carried_fees_amount?: number
           price_travel_fee?: number
           price_vat?: number
           price_commission_percent?: number | null
@@ -907,6 +909,7 @@ export type Database = {
           price_platform_fee?: number
           price_subtotal?: number
           price_total?: number
+          carried_fees_amount?: number
           price_travel_fee?: number
           price_vat?: number
           price_commission_percent?: number | null
@@ -2533,6 +2536,7 @@ export type Database = {
           resolved_at: string | null
           resolved_by: string | null
           resolution_note: string | null
+          carried_booking_id: string | null
           created_at: string
         }
         Insert: {
@@ -2583,6 +2587,8 @@ export type Database = {
           rejection_reason: string | null
           needs_refund: boolean
           refund_reference: string | null
+          proof_path: string | null
+          refund_amount: number | null
           created_at: string
           updated_at: string
         }
@@ -4676,8 +4682,22 @@ export type Database = {
         Returns: { fee_mode: string; fee_value: number; free_cancel_hours: number }[]
       }
       customer_submit_debt_instapay: {
-        Args: { p_reference: string }
+        Args: { p_proof_path: string }
         Returns: string
+      }
+      admin_payment_refund_breakdown: {
+        Args: { p_payment_id: string }
+        Returns: Json
+      }
+      my_unpaid_fees: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          booking_id: string
+          kind: string
+          amount: number
+          created_at: string
+        }[]
       }
       admin_review_debt_settlement: {
         Args: { p_settlement_id: string; p_approve: boolean; p_reason?: string | null }

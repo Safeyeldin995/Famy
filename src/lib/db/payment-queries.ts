@@ -6,6 +6,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { bookingAmountDue } from '@/lib/payments/amountDue';
 
 export type PaymentStatus = 'pending' | 'pending_review' | 'captured' | 'rejected';
 
@@ -54,7 +55,7 @@ export function mapPaymentInsertError(error: unknown): string {
 }
 
 /**
- * Creates a payment row via direct insert. Amount is loaded from bookings.price_total
+ * Creates a payment row via direct insert. Amount is loaded from bookings.price_total + carried_fees_amount
  * before insert; trg_validate_payment_amount enforces the match server-side.
  * PATCH 6D: move initialization into a SECURITY DEFINER RPC (not implemented here).
  */
@@ -72,14 +73,15 @@ export function useCreatePayment() {
 
       const { data: booking, error: bookingErr } = await supabase
         .from('bookings')
-        .select('price_total, currency, customer_id')
+        .select('price_total, carried_fees_amount, currency, customer_id')
         .eq('id', input.bookingId)
         .single();
       if (bookingErr) throw bookingErr;
       if (booking.customer_id !== user.id) {
         throw new Error('You cannot record payment for this booking.');
       }
-      const amount = Number(booking.price_total);
+      // Includes earlier unpaid cancellation fees added to this booking.
+      const amount = bookingAmountDue(booking);
       if (!Number.isFinite(amount) || amount <= 0) {
         throw new Error('Booking total is not available yet.');
       }
@@ -104,16 +106,23 @@ export function useCreatePayment() {
   });
 }
 
+/** Uploads a receipt to payment-proofs at `folder/<name>-<time>.<ext>` and returns its path. */
+export async function uploadPaymentProofFile(folder: string, name: string, file: File) {
+  if (file.size > 10 * 1024 * 1024) throw new Error('fileTooLarge');
+  const ext = (file.name.split('.').pop() || 'bin').replace(/[^a-z0-9]/gi, '') || 'bin';
+  const path = `${folder}/${name}-${Date.now()}.${ext}`;
+  const { error } = await supabase.storage
+    .from('payment-proofs')
+    .upload(path, file, { contentType: file.type, upsert: false });
+  if (error) throw error;
+  return path;
+}
+
 export function useUploadPaymentProof() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ paymentId, bookingId, file }: { paymentId: string; bookingId: string; file: File }) => {
-      const ext = file.name.split('.').pop() ?? 'bin';
-      const path = `${bookingId}/proof-${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from('payment-proofs')
-        .upload(path, file, { contentType: file.type, upsert: false });
-      if (upErr) throw upErr;
+      const path = await uploadPaymentProofFile(bookingId, 'proof', file);
       const { error } = await supabase
         .from('payments')
         .update({ proof_path: path, proof_uploaded_at: new Date().toISOString() })

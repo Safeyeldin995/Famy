@@ -12,12 +12,14 @@ import {
   isSupervisionMode,
   supervisionModeProviderLabel,
 } from "@/lib/booking/supervisionMode";
+import { bookingAmountDue } from "@/lib/payments/amountDue";
 
 type RequestBooking = {
   id: string;
   start_at: string;
   created_at?: string;
   price_total?: number | null;
+  carried_fees_amount?: number | null;
   supervision_mode?: string | null;
   customer?: { full_name?: string | null; avatar_url?: string | null } | null;
   service?: { name_ar?: string | null; name_en?: string | null } | null;
@@ -50,7 +52,7 @@ export function ProviderRequestCard({ booking: b }: { booking: RequestBooking })
           />
           <h3 className="min-w-0 flex-1 break-words text-pro-16 font-extrabold">{name}</h3>
           <span className="shrink-0 whitespace-nowrap text-pro-16 font-extrabold text-brand">
-            {formatEGP(Number(b.price_total ?? 0), undefined, lang)}
+            {formatEGP(bookingAmountDue(b), undefined, lang)}
           </span>
         </div>
         <p className="text-pro-14 font-bold">{ar ? b.service?.name_ar : b.service?.name_en}</p>

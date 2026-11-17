@@ -22,6 +22,7 @@ import {
 } from "@/lib/home/activeHomeBookings";
 import { Loader2 } from "lucide-react";
 import { useProPath } from "@/lib/provider/useProPath";
+import { bookingAmountDue } from "@/lib/payments/amountDue";
 
 export const Route = createFileRoute("/pro/bookings")({ component: ProBookings });
 
@@ -75,7 +76,7 @@ function UpcomingBookingCard({
         />
         <div className="min-w-0 flex-1 truncate text-pro-16 font-extrabold">{name}</div>
         <div className="shrink-0 whitespace-nowrap text-pro-16 font-extrabold text-brand">
-          {formatEGP(Number(booking.price_total ?? 0))}
+          {formatEGP(bookingAmountDue(booking))}
         </div>
       </div>
       {emphasize && (statusKey || nextStepKey) ? (
