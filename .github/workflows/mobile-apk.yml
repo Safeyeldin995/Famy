@@ -177,6 +177,19 @@ jobs:
           path: ${{ env.apk_path }}
           retention-days: 14
 
+      # Puts the same APK on expo.dev (a page with an install QR code). This does not
+      # use EAS cloud build minutes; if it fails the GitHub artifact is still there.
+      - name: Share APK on Expo
+        id: expo_share
+        continue-on-error: true
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          out="$(eas upload --platform android --build-path "$apk_path" --non-interactive 2>&1)"
+          echo "$out"
+          url="$(printf '%s' "$out" | grep -oE 'https://expo\.dev/[^ )"]+' | tail -1)"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
       - name: Publish artifact link
         env:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -189,5 +202,9 @@ jobs:
             echo "- Commit: \`${{ steps.short_sha.outputs.sha }}\`"
             echo ""
             echo "Download the APK from the [workflow run artifacts](${RUN_URL}#artifacts)."
+            if [ -n "${{ steps.expo_share.outputs.url }}" ]; then
+              echo ""
+              echo "Install with a QR code on Expo: ${{ steps.expo_share.outputs.url }}"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
           echo "APK artifact: ${RUN_URL}#artifacts"
