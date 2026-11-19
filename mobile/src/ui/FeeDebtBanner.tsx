@@ -1,5 +1,4 @@
 import { useState } from "react";
-import * as ImagePicker from "expo-image-picker";
 import { Linking, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useSession } from "@/lib/session";
@@ -52,6 +51,8 @@ export function FeeDebtBanner() {
 
   const pickReceipt = async () => {
     setMessage("");
+    // Loaded on tap only: keeps the native picker out of app start-up.
+    const ImagePicker = await import("expo-image-picker");
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       quality: 1,
