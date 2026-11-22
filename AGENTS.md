@@ -60,15 +60,16 @@ Safeyeldin (Product Owner) has delegated engineering ownership to Claude as CTO,
 
 | Agent | Role |
 |---|---|
-| Claude | CTO: plans, writes the Issue and acceptance criteria, decides, reviews risk, merges, applies migrations, deploys, reports to the Product Owner. Writes code only for small urgent fixes. |
+| Claude | CTO and coordinator: plans, writes the Issue and acceptance criteria, decides, reviews risk, merges, applies migrations, deploys, reports to the Product Owner. Does not write code. |
 | Cursor | Main software engineer: implements Issues on its own branch and opens the PR. |
 | Codex | Auditor: reviews every PR and every release build before it ships. Findings are fixed before merge. |
 
 Model use, to save tokens:
 
-- Routine work: Cursor Composer or Grok.
-- Complex work (money logic, database, native/crash debugging, security): Sol.
-- Do not use Astra.
+- Codex reviews: Luna or Terra by default; Sol only for complex work (money, database, native crashes, security).
+- Cursor implementation: Composer or Grok for routine work; Sol for that same complex work when needed.
+- Never use Astra.
+- Claude stays a coordinator and does not write code.
 - No agent builds an APK to "try again". Before any build: the change is audited by Codex and the Android bundle check passes. One good build, not many.
 
 Claude's responsibilities, end to end and without waiting for per-task approval:
