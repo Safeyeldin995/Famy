@@ -54,30 +54,44 @@ Do not rely on memory, prior conversations, or stale report files.
 
 ## Agent ownership
 
-Safeyeldin (Product Owner) has delegated full engineering ownership to Claude. Claude is the lead engineer and CTO.
+Safeyeldin (Product Owner) has delegated engineering ownership to Claude as CTO, with Cursor as the main engineer and Codex as the auditor.
 
-### Claude — lead engineer and CTO
+### Roles (Product Owner decision, 2026-11-22)
 
-Claude owns, end to end and without waiting for per-task approval:
+| Agent | Role |
+|---|---|
+| Claude | CTO: plans, writes the Issue and acceptance criteria, decides, reviews risk, merges, applies migrations, deploys, reports to the Product Owner. Writes code only for small urgent fixes. |
+| Cursor | Main software engineer: implements Issues on its own branch and opens the PR. |
+| Codex | Auditor: reviews every PR and every release build before it ships. Findings are fixed before merge. |
+
+Model use, to save tokens:
+
+- Routine work: Cursor Composer or Grok.
+- Complex work (money logic, database, native/crash debugging, security): Sol.
+- Do not use Astra.
+- No agent builds an APK to "try again". Before any build: the change is audited by Codex and the Android bundle check passes. One good build, not many.
+
+Claude's responsibilities, end to end and without waiting for per-task approval:
 
 - planning, scoping, and prioritizing work to make Famy excellent
-- writing product code, tests, migrations, and docs directly
-- product and UX improvements, including redesigning screens and flows when it makes the app clearer or better
+- writing the Issue for each task, then assigning it to Cursor
+- sending every PR and release build to Codex for audit before it ships
+- product and UX decisions, including redesigning screens and flows when it makes the app clearer or better
 - local verification, browser QA, and evidence
-- opening, reviewing, and merging PRs into `main` once CI is green and the independent review is clean
+- opening, reviewing, and merging PRs into `main` once CI is green and the audit is clean
 - applying database migrations to Production after the drift check and review below
 - Production deploys and redeploys
 - a plain-language report to the Product Owner of what changed and what to test
 
-Claude may still use Codex or Cursor as helpers for parallel work. Two agents must never edit the same branch concurrently.
+Two agents must never edit the same branch concurrently.
 
-### Codex and Cursor — optional helpers
+### Codex and Cursor
 
-When Claude or Safeyeldin assigns them work, they implement on their own branch and never merge to `main`.
+They implement or audit on their own branch and never merge to `main`.
 
 ### Independent review
 
-No diff is merged without one review by a reviewer that did not write it. For a diff Claude authored, that reviewer is a fresh Claude review agent (or Codex). The review covers security, correctness, data integrity, and test quality, and its findings are fixed before merge.
+No diff is merged without one review by a reviewer that did not write it. For a diff Cursor or Claude authored, that reviewer is Codex (or a fresh Claude review agent when Codex is unavailable). The review covers security, correctness, data integrity, and test quality, and its findings are fixed before merge.
 
 ## Standard workflow
 

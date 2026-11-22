@@ -24,6 +24,8 @@ export type FamySplashState = {
 
 /** Approved splash timing — t is elapsed seconds. */
 export function famySplashState(t: number): FamySplashState {
+  // Runs on the UI thread from the native splash animation: it must be a worklet.
+  "worklet";
   const clamp = (v: number) => Math.max(0, Math.min(1, v));
   const ease = (v: number) => 1 - Math.pow(1 - clamp(v), 3);
   const appear = ease((t - 0.12) / 0.55);
@@ -42,6 +44,7 @@ export function famySplashState(t: number): FamySplashState {
 
 /** Y position when centered alone in the assembled coordinate space. */
 export function famySplashCenteredY() {
+  "worklet";
   const { width, height, y } = FAMY_SPLASH_ASSEMBLED;
   return {
     x: width / 2 - y.width / 2,
@@ -50,6 +53,7 @@ export function famySplashCenteredY() {
 }
 
 export function famySplashYPosition(moveProgress: number, offsetY: number) {
+  "worklet";
   const centered = famySplashCenteredY();
   const final = FAMY_SPLASH_ASSEMBLED.y;
   return {
