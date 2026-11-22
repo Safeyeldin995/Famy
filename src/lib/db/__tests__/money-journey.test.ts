@@ -318,6 +318,64 @@ describe("money journey", () => {
     expect(await providerNet()).toBeCloseTo(expectedNet, 2);
   });
 
+  it("L. a late refund on the cancelled booking does not keep fees on the next booking", async () => {
+    const owed = await lateCashCancel();
+    const { bookingId } = await newBooking();
+    expect(await carried(bookingId)).toEqual({ carried: FEE, due: 500 + FEE });
+    const { paymobId } = await seedPaymentsForBooking(db, owed);
+    await keepOnly(owed, paymobId);
+    await capture(paymobId);
+    expect((await refund(paymobId, "PM-L")).error).toBeUndefined();
+    expect(await carried(bookingId)).toEqual({ carried: 0, due: 500 });
+    const debt = await queryRows<{ status: string; carried: string | null }>(
+      db,
+      "SELECT status, carried_booking_id::text AS carried FROM public.customer_debts WHERE booking_id = $1",
+      [owed],
+    );
+    expect(debt[0].status).toBe("paid");
+    expect(debt[0].carried).toBeNull();
+    const methods = await queryRows<{ id: string }>(
+      db,
+      "SELECT id FROM public.payment_methods WHERE code = 'paymob'",
+    );
+    await expect(
+      asServiceRole(db, () =>
+        db.query(
+          `INSERT INTO public.payments (booking_id, customer_id, amount, status, payment_method_id, metadata)
+           VALUES ($1, $2, 500, 'pending', $3, '{}'::jsonb)`,
+          [bookingId, IDS.customer, methods[0].id],
+        ),
+      ),
+    ).resolves.toBeDefined();
+    expectedNet += FEE;
+    expect(await providerNet()).toBeCloseTo(expectedNet, 2);
+  });
+
+  it("M. rejecting a no-show after the fee rode forward clears it from the next booking", async () => {
+    const { bookingId: owed } = await newBooking("confirmed");
+    await setBookingStatusAsSystem(db, owed, "on_the_way");
+    const report = await tryAsUser(
+      db,
+      IDS.providerUser,
+      "SELECT public.report_no_show($1, 'Customer absent', '{}')",
+      [owed],
+    );
+    expect(report.error).toBeUndefined();
+    const reportId = String(Object.values(report.rows![0])[0]);
+    const { bookingId: next } = await newBooking();
+    expect(await carried(next)).toEqual({ carried: FEE, due: 500 + FEE });
+    const resolve = await tryAsUser(
+      db,
+      IDS.adminUser,
+      "SELECT public.admin_resolve_no_show($1, 'rejected', 'Customer was there', 'completed')",
+      [reportId],
+    );
+    expect(resolve.error).toBeUndefined();
+    expect(await carried(next)).toEqual({ carried: 0, due: 500 });
+    const left = await tryAsUser(db, IDS.customer, "SELECT * FROM public.my_unpaid_fees()");
+    expect(left.rows).toEqual([]);
+  });
+
   it("K. a booking must be paid in full, carried fees included; the fee can't be waived mid-booking", async () => {
     await lateCashCancel();
     const { bookingId } = await newBooking();

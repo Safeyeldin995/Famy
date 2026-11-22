@@ -51,24 +51,28 @@ export function FeeDebtBanner() {
 
   const pickReceipt = async () => {
     setMessage("");
-    // Loaded on tap only: keeps the native picker out of app start-up.
-    const ImagePicker = await import("expo-image-picker");
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      quality: 1,
-    });
-    if (result.canceled) return;
-    submit.mutate(result.assets[0], {
-      onSuccess: () => setMode("choose"),
-      onError: (e) =>
-        setMessage(
-          t(
-            e instanceof Error && e.message === "fileTooLarge"
-              ? "payment.fileTooLarge"
-              : "payment.uploadFailed",
+    try {
+      // Loaded on tap only: keeps the native picker out of app start-up.
+      const ImagePicker = await import("expo-image-picker");
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        quality: 1,
+      });
+      if (result.canceled) return;
+      submit.mutate(result.assets[0], {
+        onSuccess: () => setMode("choose"),
+        onError: (e) =>
+          setMessage(
+            t(
+              e instanceof Error && e.message === "fileTooLarge"
+                ? "payment.fileTooLarge"
+                : "payment.uploadFailed",
+            ),
           ),
-        ),
-    });
+      });
+    } catch {
+      setMessage(t("payment.uploadFailed"));
+    }
   };
 
   return (
