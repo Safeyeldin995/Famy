@@ -1,53 +1,20 @@
--- Rule: when an open fee debt is resolved (paid, waived, or deducted from a refund) while it
--- is attached to a live booking (customer_debts.carried_booking_id), that booking's
--- carried_fees_amount is reduced so the customer cannot be charged twice.
--- Lock order: every path that touches debts and settlements takes lock_customer_debts first.
+-- Carried-fee double-charge rule: bookings.carried_fees_amount never changes after creation.
+-- If this booking's own fee debt already rides on a live later booking, refunds and rejected
+-- no-shows must not take the fee again or close the debt — the later booking collects it once.
+-- Lock order: lock_customer_debts(customer) before any FOR UPDATE on debts or settlements.
 
--- Allow internal reconciliation to adjust bookings.carried_fees_amount (normally frozen).
+DROP FUNCTION IF EXISTS public.detach_carried_debt_from_booking(uuid, numeric);
+
 CREATE OR REPLACE FUNCTION public.tg_booking_lock_carried_fees()
 RETURNS trigger
 LANGUAGE plpgsql
 SET search_path = public
 AS $$
 BEGIN
-  IF current_setting('app.adjust_carried_fees', true) = 'on' THEN
-    RETURN NEW;
-  END IF;
   NEW.carried_fees_amount := OLD.carried_fees_amount;
   RETURN NEW;
 END;
 $$;
-
--- Drop carried amounts from a live booking when a fee debt stops riding on it.
-CREATE OR REPLACE FUNCTION public.detach_carried_debt_from_booking(p_debt_id uuid, p_amount numeric)
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  v_d public.customer_debts%ROWTYPE;
-  v_cb public.bookings%ROWTYPE;
-BEGIN
-  SELECT * INTO v_d FROM public.customer_debts WHERE id = p_debt_id;
-  IF v_d.carried_booking_id IS NULL THEN
-    RETURN;
-  END IF;
-  SELECT * INTO v_cb FROM public.bookings WHERE id = v_d.carried_booking_id FOR UPDATE;
-  IF NOT FOUND THEN
-    RETURN;
-  END IF;
-  IF v_cb.status::text NOT IN ('cancelled', 'no_show') OR public.booking_money_held(v_cb.id) THEN
-    PERFORM set_config('app.adjust_carried_fees', 'on', true);
-    UPDATE public.bookings
-    SET carried_fees_amount = GREATEST(carried_fees_amount - p_amount, 0)
-    WHERE id = v_cb.id;
-    PERFORM set_config('app.adjust_carried_fees', 'off', true);
-  END IF;
-  UPDATE public.customer_debts SET carried_booking_id = NULL WHERE id = p_debt_id;
-END;
-$$;
-REVOKE ALL ON FUNCTION public.detach_carried_debt_from_booking(uuid, numeric) FROM PUBLIC, anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.tg_waive_debt_on_rejected_no_show()
 RETURNS trigger
@@ -56,22 +23,25 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_d public.customer_debts%ROWTYPE;
+  v_customer uuid;
 BEGIN
   IF NEW.status = 'rejected' AND OLD.status IS DISTINCT FROM 'rejected' AND NEW.reported_party = 'customer' THEN
-    FOR v_d IN
-      SELECT * FROM public.customer_debts
-      WHERE booking_id = NEW.booking_id AND kind = 'no_show' AND status = 'open'
-      FOR UPDATE
-    LOOP
-      PERFORM public.lock_customer_debts(v_d.customer_id);
-      PERFORM public.detach_carried_debt_from_booking(v_d.id, v_d.amount);
-      UPDATE public.customer_debts
-      SET status = 'waived', resolved_at = now(), resolved_by = auth.uid(),
-          resolution_note = 'No-show report rejected',
-          carried_booking_id = NULL
-      WHERE id = v_d.id;
-    END LOOP;
+    SELECT customer_id INTO v_customer FROM public.bookings WHERE id = NEW.booking_id;
+    PERFORM public.lock_customer_debts(v_customer);
+    IF EXISTS (
+      SELECT 1 FROM public.customer_debts d
+      JOIN public.bookings cb ON cb.id = d.carried_booking_id
+      WHERE d.booking_id = NEW.booking_id AND d.kind = 'no_show' AND d.status = 'open'
+        AND cb.status::text NOT IN ('cancelled', 'no_show', 'completed')
+    ) THEN
+      RAISE EXCEPTION
+        'This fee is already added to the customer''s next booking. Resolve it after that booking ends.'
+        USING ERRCODE = '23514';
+    END IF;
+    UPDATE public.customer_debts
+    SET status = 'waived', resolved_at = now(), resolved_by = auth.uid(),
+        resolution_note = 'No-show report rejected'
+    WHERE booking_id = NEW.booking_id AND kind = 'no_show' AND status = 'open';
   END IF;
   RETURN NEW;
 END;
@@ -92,7 +62,7 @@ DECLARE
   v_fee numeric;
   v_carried numeric;
   v_method text;
-  v_d public.customer_debts%ROWTYPE;
+  v_customer_id uuid;
 BEGIN
   IF auth.uid() IS NULL OR NOT public.has_role(auth.uid(), 'admin') THEN
     RAISE EXCEPTION 'Admin required' USING ERRCODE = '42501';
@@ -101,10 +71,16 @@ BEGIN
     RAISE EXCEPTION 'Refund reference is required' USING ERRCODE = '23514';
   END IF;
 
-  SELECT * INTO v_pay FROM public.payments WHERE id = p_payment_id FOR UPDATE;
+  SELECT b.customer_id INTO v_customer_id
+  FROM public.payments p
+  JOIN public.bookings b ON b.id = p.booking_id
+  WHERE p.id = p_payment_id;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Payment not found' USING ERRCODE = 'P0002';
   END IF;
+  PERFORM public.lock_customer_debts(v_customer_id);
+
+  SELECT * INTO v_pay FROM public.payments WHERE id = p_payment_id FOR UPDATE;
   SELECT * INTO v_booking FROM public.bookings b WHERE b.id = v_pay.booking_id;
 
   IF v_booking.status::text NOT IN ('cancelled', 'no_show') THEN
@@ -122,33 +98,20 @@ BEGIN
   v_carried := LEAST(public.settle_carried_fees(v_booking.id, v_method, auth.uid()), v_pay.amount);
 
   v_fee := LEAST(public.booking_cancellation_fee(v_booking.id), v_pay.amount - v_carried);
-  PERFORM public.lock_customer_debts(v_booking.customer_id);
   IF EXISTS (SELECT 1 FROM public.customer_debts d WHERE d.booking_id = v_booking.id AND d.status = 'paid') THEN
     v_fee := 0;
-  ELSIF v_fee > 0 THEN
-    FOR v_d IN
-      SELECT * FROM public.customer_debts
-      WHERE booking_id = v_booking.id AND status = 'open'
-      FOR UPDATE
-    LOOP
-      PERFORM public.detach_carried_debt_from_booking(v_d.id, v_d.amount);
-      UPDATE public.customer_debts
-      SET status = 'paid', resolved_at = now(), resolved_by = auth.uid(),
-          resolution_note = 'Deducted from the refund', carried_booking_id = NULL
-      WHERE id = v_d.id;
-    END LOOP;
+  ELSIF EXISTS (
+    SELECT 1 FROM public.customer_debts d
+    JOIN public.bookings cb ON cb.id = d.carried_booking_id
+    WHERE d.booking_id = v_booking.id AND d.status = 'open'
+      AND cb.status::text NOT IN ('cancelled', 'no_show', 'completed')
+  ) THEN
+    v_fee := 0;
   ELSE
-    FOR v_d IN
-      SELECT * FROM public.customer_debts
-      WHERE booking_id = v_booking.id AND status = 'open'
-      FOR UPDATE
-    LOOP
-      PERFORM public.detach_carried_debt_from_booking(v_d.id, v_d.amount);
-      UPDATE public.customer_debts
-      SET status = 'waived', resolved_at = now(), resolved_by = auth.uid(),
-          resolution_note = 'Deducted from the refund', carried_booking_id = NULL
-      WHERE id = v_d.id;
-    END LOOP;
+    UPDATE public.customer_debts
+    SET status = 'waived', resolved_at = now(), resolved_by = auth.uid(),
+        resolution_note = 'Deducted from the refund'
+    WHERE booking_id = v_booking.id AND status = 'open';
   END IF;
 
   PERFORM set_config('app.audit_reason', 'Refund recorded: ' || btrim(p_reference), true);
@@ -182,6 +145,51 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.admin_record_payment_refund(uuid, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.admin_record_payment_refund(uuid, text) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.admin_payment_refund_breakdown(p_payment_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_pay public.payments%ROWTYPE;
+  v_carried numeric;
+  v_fee numeric;
+  v_booking_id uuid;
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.has_role(auth.uid(), 'admin') THEN
+    RAISE EXCEPTION 'Admin required' USING ERRCODE = '42501';
+  END IF;
+  SELECT * INTO v_pay FROM public.payments WHERE id = p_payment_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Payment not found' USING ERRCODE = 'P0002';
+  END IF;
+  v_booking_id := v_pay.booking_id;
+  SELECT LEAST(COALESCE(sum(d.amount), 0), v_pay.amount) INTO v_carried
+  FROM public.customer_debts d
+  WHERE d.carried_booking_id = v_booking_id AND d.status = 'open';
+  IF EXISTS (SELECT 1 FROM public.customer_debts d WHERE d.booking_id = v_booking_id AND d.status = 'paid') THEN
+    v_fee := 0;
+  ELSIF EXISTS (
+    SELECT 1 FROM public.customer_debts d
+    JOIN public.bookings cb ON cb.id = d.carried_booking_id
+    WHERE d.booking_id = v_booking_id AND d.status = 'open'
+      AND cb.status::text NOT IN ('cancelled', 'no_show', 'completed')
+  ) THEN
+    v_fee := 0;
+  ELSE
+    v_fee := LEAST(public.booking_cancellation_fee(v_booking_id), v_pay.amount - v_carried);
+  END IF;
+  RETURN jsonb_build_object(
+    'paid', v_pay.amount, 'fee', v_fee, 'carried', v_carried,
+    'refund', v_pay.amount - v_fee - v_carried
+  );
+END;
+$$;
+REVOKE ALL ON FUNCTION public.admin_payment_refund_breakdown(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_payment_refund_breakdown(uuid) TO authenticated;
 
 CREATE OR REPLACE FUNCTION public.paymob_apply_debt_settlement(
   p_paymob_transaction_id bigint, p_order_id bigint, p_integration_id bigint, p_currency text,
@@ -280,7 +288,6 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.settle_customer_debts(uuid, uuid) FROM PUBLIC, anon, authenticated;
 
--- Same lock order when an admin confirms a debt settlement.
 CREATE OR REPLACE FUNCTION public.admin_review_debt_settlement(p_settlement_id uuid, p_approve boolean, p_reason text DEFAULT NULL)
 RETURNS void
 LANGUAGE plpgsql
