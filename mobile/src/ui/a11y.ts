@@ -1,5 +1,7 @@
-/** Max system font scale multipliers (accessibility on, but capped like the web type scale). */
-export const BODY_FONT_SCALE_CAP = 1.3;
+import { space } from "./theme";
+
+/** Max system font scale multipliers (accessibility on, layouts stay stable on Android). */
+export const BODY_FONT_SCALE_CAP = 1.2;
 export const COMPACT_FONT_SCALE_CAP = 1.2;
 
 const compactTextSizes = new Set(["hero", "title", "xxl", "xl"]);
@@ -31,4 +33,9 @@ export function scaledTabBarHeight(
 ) {
   const labelLines = fontScale > 1.3 ? 2 : 1;
   return Math.max(80, 44 + labelLines * labelLineHeight * fontScale + 12) + bottomInset;
+}
+
+/** Bottom padding for tab screens that scroll outside `Page` (e.g. customer home). */
+export function tabScrollContentPadding(fontScale: number, bottomInset: number, extra = space.lg) {
+  return scaledTabBarHeight(fontScale, 22, bottomInset) + 12 + extra;
 }

@@ -1,14 +1,16 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { QueryState, Row } from "@/ui/Page";
 import { ProviderCard } from "@/ui/ProviderCard";
 import { HomePromoStrip } from "@/ui/HomePromoStrip";
 import { recentProviders, uniqueProviders } from "@/lib/presentation";
 import { takeGuestIntent } from "@/lib/guest";
-import { Pressable, ScrollView, RefreshControl, StyleSheet, View } from "react-native";
+import { Platform, Pressable, ScrollView, RefreshControl, StyleSheet, View, useWindowDimensions } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { tabScrollContentPadding } from "@/ui/a11y";
 import { useTranslation } from "react-i18next";
 import {
   ArrowUpLeft,
@@ -74,6 +76,9 @@ const SERVICE_TILES = {
 export default function Home() {
   const { t, i18n } = useTranslation();
   const cache = useQueryClient();
+  const insets = useSafeAreaInsets();
+  const { fontScale } = useWindowDimensions();
+  const tabScrollPad = tabScrollContentPadding(fontScale, insets.bottom);
   const isAr = i18n.language !== "en";
   const profile = useMyProfile();
   const address = useDefaultAddress();
@@ -81,7 +86,10 @@ export default function Home() {
   const tutoringServices = useMarketplaceServices("tutoring");
   const unread = useUnreadNotificationCount();
   const bookings = useMyBookings();
-  const activeIds = customerHomeActiveBookings(bookings.data ?? []).map((b) => b.id);
+  const activeIds = useMemo(
+    () => customerHomeActiveBookings(bookings.data ?? []).map((b) => b.id),
+    [bookings.data],
+  );
   const parties = useBookingParties(activeIds);
   const promos = useFeaturedPromoCodes();
   const [refreshing, setRefreshing] = useState(false);
@@ -105,10 +113,11 @@ export default function Home() {
 
   useFocusEffect(
     useCallback(() => {
-      void bookings.refetch();
-      // Back from paying fees (card return or admin confirmation): refresh what is owed.
+      // Stable deps only: an unstable `bookings.refetch` identity re-ran this effect every
+      // render while Home was focused and could flood the JS thread (home "stopping").
+      void cache.invalidateQueries({ queryKey: ["my-bookings"] });
       void cache.invalidateQueries({ queryKey: ["customer-fee-debts"] });
-    }, [bookings.refetch, cache]),
+    }, [cache]),
   );
   const firstName = profile.data?.full_name?.split(" ")[0] || t("greetings.there");
   const Arrow = isAr ? ArrowUpLeft : ArrowUpRight;
@@ -158,7 +167,7 @@ export default function Home() {
         />
       }
       style={[styles.page, { direction: isAr ? "rtl" : "ltr" }]}
-      contentContainerStyle={{ paddingBottom: 112 }}
+      contentContainerStyle={{ paddingBottom: tabScrollPad }}
     >
       <LinearGradient
         colors={[colors.brandTintStrong, colors.brandTint, colors.background]}
@@ -276,6 +285,7 @@ export default function Home() {
       ) : promos.data?.length ? (
         <ScrollView
           horizontal
+          nestedScrollEnabled={Platform.OS === "android"}
           testID="home-promos"
           snapToInterval={284}
           decelerationRate="fast"

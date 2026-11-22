@@ -32,11 +32,12 @@ export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, xxxl: 32 }
 export const fontSize = {
   xs: 12,
   sm: 13,
-  md: 14,
+  /** Default body copy (web body ≈ 15px). */
+  md: 15,
   lg: 16,
   xl: 18,
-  xxl: 22,
-  /** Primary buttons (web PrimaryButton ≈ 15px). */
+  /** Section titles (20–24px scale). */
+  xxl: 20,
   button: 15,
   title: 24,
   hero: 30,

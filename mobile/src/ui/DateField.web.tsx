@@ -1,7 +1,7 @@
 import { View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Text } from "./Text";
-import { colors } from "./theme";
+import { colors, fontSize } from "./theme";
 import type { DateFieldProps } from "./DateField";
 export function DateField({ label, value, onChange, maximumDate }: DateFieldProps) {
   const { i18n } = useTranslation();

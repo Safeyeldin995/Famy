@@ -12,7 +12,7 @@ import {
 } from "@shared/auth/oauthShared";
 import { supabase } from "@/lib/supabase";
 
-type Extra = { oauthProviders?: string; scheme?: string };
+type Extra = { oauthProviders?: string; scheme?: string; appleSignInReady?: boolean | string };
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -26,8 +26,19 @@ export function enabledMobileOAuthProviders(): OAuthProvider[] {
   return parseOAuthProviders(extra?.oauthProviders);
 }
 
+export function mobileAppleSignInConfigured(): boolean {
+  const extra = Constants.expoConfig?.extra as Extra | undefined;
+  const fromExtra = extra?.appleSignInReady;
+  if (fromExtra === true || fromExtra === "1") return true;
+  return process.env.EXPO_PUBLIC_APPLE_SIGNIN_READY === "1";
+}
+
 export function showAppleSignInOnMobile() {
-  return Platform.OS === "ios" && enabledMobileOAuthProviders().includes("apple");
+  return (
+    Platform.OS === "ios" &&
+    enabledMobileOAuthProviders().includes("apple") &&
+    mobileAppleSignInConfigured()
+  );
 }
 
 async function finishOAuthSessionFromRedirectUrl(redirectUrl: string) {

@@ -98,7 +98,8 @@
     "extra": {
       "supportsRTL": true,
       "scheme": "famy",
-      "oauthProviders": "google",
+      "oauthProviders": "google,apple",
+      "appleSignInReady": false,
       "supabaseUrl": "https://mjhkaiabfnzewprcnojp.supabase.co",
       "supabasePublishableKey": "sb_publishable_D64qG4N5jldifQODMKizXQ_F5_095-H",
       "webOrigin": "https://famy-chi.vercel.app",
