@@ -1,7 +1,14 @@
 -- Carried-fee double-charge rule: bookings.carried_fees_amount never changes after creation.
 -- If this booking's own fee debt already rides on a live later booking, refunds and rejected
 -- no-shows must not take the fee again or close the debt — the later booking collects it once.
--- Lock order: lock_customer_debts(customer) before any FOR UPDATE on debts or settlements.
+--
+-- Global lock order (no path may lock or update a bookings row after lock_customer_debts):
+--   booking row (only when this path changes a booking)
+--   → customer advisory lock (lock_customer_debts)
+--   → no-show report row
+--   → customer_debts rows
+--   → customer_debt_settlements rows
+-- Status-transition triggers run after the booking row is locked by UPDATE (booking → customer → debt).
 
 DROP FUNCTION IF EXISTS public.detach_carried_debt_from_booking(uuid, numeric);
 
@@ -326,3 +333,71 @@ BEGIN
   END IF;
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION public.admin_resolve_no_show(
+  p_report_id uuid, p_status text, p_admin_notes text DEFAULT NULL, p_booking_status text DEFAULT NULL
+) RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+  v_booking_id uuid;
+  v_customer uuid;
+  v_report public.no_show_reports%ROWTYPE;
+BEGIN
+  IF v_uid IS NULL OR NOT public.has_role(v_uid, 'admin') THEN
+    RAISE EXCEPTION 'Admin authorization required.' USING ERRCODE = '42501';
+  END IF;
+  IF p_status NOT IN ('info_requested', 'resolved', 'rejected') THEN
+    RAISE EXCEPTION 'Invalid no-show report status.' USING ERRCODE = '23514';
+  END IF;
+
+  SELECT booking_id INTO v_booking_id FROM public.no_show_reports WHERE id = p_report_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'No-show report not found.' USING ERRCODE = '42501';
+  END IF;
+  SELECT customer_id INTO v_customer FROM public.bookings WHERE id = v_booking_id;
+
+  IF p_booking_status IS NOT NULL THEN
+    IF p_status NOT IN ('resolved', 'rejected') THEN
+      RAISE EXCEPTION 'Booking status can only be set when resolving or rejecting a no-show report.' USING ERRCODE = '23514';
+    END IF;
+    IF p_booking_status NOT IN ('completed', 'cancelled') THEN
+      RAISE EXCEPTION 'Invalid booking resolution status.' USING ERRCODE = '23514';
+    END IF;
+    PERFORM 1 FROM public.bookings WHERE id = v_booking_id FOR UPDATE;
+    PERFORM public.lock_customer_debts(v_customer);
+    PERFORM set_config('app.no_show_resolution_in_progress', 'on', true);
+    UPDATE public.bookings SET status = p_booking_status::public.booking_status
+      WHERE id = v_booking_id AND status = 'no_show';
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Booking is no longer in no-show status.' USING ERRCODE = '23514';
+    END IF;
+  ELSE
+    PERFORM public.lock_customer_debts(v_customer);
+  END IF;
+
+  SELECT * INTO v_report FROM public.no_show_reports WHERE id = p_report_id FOR UPDATE;
+  IF v_report.status IN ('resolved', 'rejected') THEN
+    RAISE EXCEPTION 'This no-show report has already been closed.' USING ERRCODE = '23514';
+  END IF;
+
+  IF p_status IN ('resolved', 'rejected') AND (p_admin_notes IS NULL OR btrim(p_admin_notes) = '') THEN
+    RAISE EXCEPTION 'Resolution notes are required to resolve or reject a no-show report.' USING ERRCODE = '23514';
+  END IF;
+
+  UPDATE public.no_show_reports SET
+    status = p_status,
+    admin_notes = COALESCE(NULLIF(btrim(p_admin_notes), ''), admin_notes),
+    resolved_by = CASE WHEN p_status IN ('resolved', 'rejected') THEN v_uid ELSE resolved_by END,
+    resolved_at = CASE WHEN p_status IN ('resolved', 'rejected') THEN now() ELSE resolved_at END,
+    updated_at = now()
+  WHERE id = p_report_id;
+
+  RETURN p_report_id;
+END;
+$$;
+REVOKE EXECUTE ON FUNCTION public.admin_resolve_no_show(uuid, text, text, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_resolve_no_show(uuid, text, text, text) TO authenticated;
