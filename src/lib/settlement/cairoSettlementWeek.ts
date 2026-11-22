@@ -55,6 +55,22 @@ export function formatSettlementWhen(iso: string, locale: string): string {
 }
 
 export type FinancePreset = "thisWeek" | "lastWeek" | "thisMonth" | "custom";
+export type StatementPreset = "thisMonth" | "lastMonth" | "custom";
+
+/** Statement period in Cairo time (`to` is exclusive). */
+export function statementRangeForPreset(
+  preset: Exclude<StatementPreset, "custom">,
+  now: Date = new Date(),
+): { from: string; to: string } {
+  const c = cairoParts(now);
+  if (preset === "thisMonth") {
+    return { from: cairoMidnight(c.y, c.m, 1).toISOString(), to: now.toISOString() };
+  }
+  const lastMonth = c.m === 1 ? { y: c.y - 1, m: 12 } : { y: c.y, m: c.m - 1 };
+  const start = cairoMidnight(lastMonth.y, lastMonth.m, 1);
+  const end = cairoMidnight(c.y, c.m, 1);
+  return { from: start.toISOString(), to: end.toISOString() };
+}
 
 /** Cairo wall-clock parts for an instant. */
 function cairoParts(d: Date): { y: number; m: number; d: number; h: number; min: number } {

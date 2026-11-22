@@ -4613,6 +4613,41 @@ export type Database = {
         Args: { p_from: string; p_to: string }
         Returns: Json
       }
+      admin_global_search: {
+        Args: { p_query: string; p_limit?: number; p_offset?: number }
+        Returns: Json
+      }
+      admin_payment_queue: {
+        Args: { p_tab: string; p_limit: number; p_offset: number }
+        Returns: Json
+      }
+      admin_payment_queue_counts: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      admin_payment_situation: {
+        Args: {
+          p_status: string
+          p_payment_method_type: string
+          p_method: string
+          p_proof_path: string
+          p_booking_status: string
+          p_has_cash_ledger: boolean
+        }
+        Returns: string
+      }
+      admin_provider_statement: {
+        Args: { p_provider_id: string; p_from: string; p_to: string }
+        Returns: Json
+      }
+      admin_reports: {
+        Args: { p_from: string; p_to: string; p_group: string }
+        Returns: Json
+      }
+      provider_net_as_of: {
+        Args: { p_provider_id: string; p_as_of: string }
+        Returns: number
+      }
       admin_finance_provider_rows: {
         Args: Record<PropertyKey, never>
         Returns: Json[]

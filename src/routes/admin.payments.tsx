@@ -11,7 +11,11 @@ import {
   useRecordPaymentRefund,
 } from "@/lib/db/admin-queries";
 import {
-  needsAdminAction,
+  useAdminPaymentQueue,
+  useAdminPaymentQueueCounts,
+  type PaymentQueueTab,
+} from "@/lib/db/admin-daily-ops-queries";
+import {
   paymentSituation,
   situationTone,
   type SituationTone,
@@ -33,12 +37,24 @@ import {
 } from "@/components/admin/operations";
 import { isPreviewAdminRoute } from "@/lib/preview/constants";
 
+type PaymentsTab = PaymentQueueTab | "fee_payments" | "all";
+
 export const Route = createFileRoute("/admin/payments")({
   component: AdminPaymentsRoute,
-  validateSearch: (search: Record<string, unknown>): { status?: string; statuses?: string } => ({
-    ...(typeof search.status === "string" ? { status: search.status } : {}),
-    ...(typeof search.statuses === "string" ? { statuses: search.statuses } : {}),
-  }),
+  validateSearch: (search: Record<string, unknown>): { tab?: PaymentsTab; status?: string } => {
+    const tab = search.tab;
+    const allowed: PaymentsTab[] = [
+      "refunds_due",
+      "receipts_ready",
+      "cash_to_confirm",
+      "fee_payments",
+      "all",
+    ];
+    return {
+      tab: typeof tab === "string" && allowed.includes(tab as PaymentsTab) ? (tab as PaymentsTab) : "refunds_due",
+      ...(typeof search.status === "string" ? { status: search.status } : {}),
+    };
+  },
 });
 const TONE_CLASS: Record<SituationTone, string> = {
   action: "bg-amber-500/15 text-amber-800 dark:text-amber-200",
@@ -312,67 +328,134 @@ function PaymentCard({ payment: p, cashRecorded }: { payment: any; cashRecorded:
     </li>
   );
 }
-export function AdminPayments({ search }: { search: { status?: string; statuses?: string } }) {
+const PAYMENT_TABS: {
+  key: PaymentsTab;
+  labelKey: string;
+  countKey?: "refunds_due" | "receipts_ready" | "cash_to_confirm" | "fee_payments";
+}[] = [
+  { key: "refunds_due", labelKey: "admin.paymentsQueue.refunds", countKey: "refunds_due" },
+  { key: "receipts_ready", labelKey: "admin.paymentsQueue.receipts", countKey: "receipts_ready" },
+  { key: "cash_to_confirm", labelKey: "admin.paymentsQueue.cash", countKey: "cash_to_confirm" },
+  { key: "fee_payments", labelKey: "admin.paymentsQueue.fees", countKey: "fee_payments" },
+  { key: "all", labelKey: "admin.paymentsQueue.all" },
+];
+
+export function AdminPayments({ search }: { search: { tab?: PaymentsTab; status?: string } }) {
   const { t } = useTranslation();
-  const [status, setStatus] = useState(search.statuses || search.status || "pending_review");
+  const tab = search.tab ?? "refunds_due";
+  const [page, setPage] = useState(0);
   const [query, setQuery] = useState("");
-  const q = useAdminPayments(status.includes(",") ? status.split(",") : status || undefined);
+  const [allStatus, setAllStatus] = useState(search.status ?? "");
+  const counts = useAdminPaymentQueueCounts();
+  const queueTab: PaymentQueueTab =
+    tab === "refunds_due" || tab === "receipts_ready" || tab === "cash_to_confirm" ? tab : "refunds_due";
+  const queue = useAdminPaymentQueue(queueTab, page, 50, tab === queueTab);
+  const allQ = useAdminPayments(allStatus || undefined);
+  const paymentRows =
+    tab === "all"
+      ? (allQ.data ?? []).filter((p: any) =>
+          matchesBooking({ ...p.booking, id: p.booking_id }, query),
+        )
+      : tab === "fee_payments"
+        ? []
+        : (queue.data?.items ?? []).filter((p: any) =>
+            matchesBooking({ ...p.booking, id: p.booking_id }, query),
+          );
   const cashLedger = useAdminCashLedgerBookings(
-    (q.data ?? [])
+    paymentRows
       .filter((p: any) => p.booking?.status === "completed" && p.status !== "captured")
       .map((p: any) => p.booking_id),
   );
   const recorded = cashLedger.data ?? new Set<string>();
-  const situationOf = (p: any) => paymentSituation(p, recorded.has(p.booking_id));
-  const rows = [...(q.data ?? [])]
-    .filter((p: any) => matchesBooking({ ...p.booking, id: p.booking_id }, query))
-    .sort(
-      (a: any, b: any) =>
-        Number(needsAdminAction(situationOf(b))) - Number(needsAdminAction(situationOf(a))) ||
-        Date.parse(b.created_at) - Date.parse(a.created_at),
-    );
-  const actionCount = rows.filter((p: any) => needsAdminAction(situationOf(p))).length;
+  const needsTotal =
+    (counts.data?.refunds_due ?? 0) +
+    (counts.data?.receipts_ready ?? 0) +
+    (counts.data?.cash_to_confirm ?? 0) +
+    (counts.data?.fee_payments ?? 0);
+  const loading =
+    tab === "all" ? allQ.isLoading : tab === "fee_payments" ? counts.isLoading : queue.isLoading;
+  const error =
+    tab === "all" ? allQ.isError : tab === "fee_payments" ? counts.isError : queue.isError;
+  const refetch =
+    tab === "all" ? () => allQ.refetch() : tab === "fee_payments" ? () => counts.refetch() : () => queue.refetch();
+
   return (
     <div className={adminScreen}>
-      <h1 className="text-xl font-bold">{t("admin.layout.nav.payments")}</h1>
-      <p className="text-sm text-muted-foreground">{t("admin.paymentSituation.pageHint")}</p>
-      <FeeDebtsPanel />
-      {actionCount > 0 ? (
+      <h1 className="text-xl font-bold">{t("admin.paymentsQueue.title")}</h1>
+      <p className="text-sm text-muted-foreground">{t("admin.paymentsQueue.subtitle")}</p>
+      {needsTotal > 0 ? (
         <p className="rounded-xl bg-amber-500/15 px-3 py-2 text-sm font-bold text-amber-800 dark:text-amber-200">
-          {t("admin.paymentSituation.needsAction", { count: actionCount })}
+          {t("admin.paymentSituation.needsAction", { count: needsTotal })}
         </p>
       ) : null}
-      <input
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder={t("adminOps.search")}
-        aria-label={t("adminOps.search")}
-        className="min-h-11 w-full rounded-xl border bg-surface px-3 text-sm"
-      />
       <div className="flex flex-wrap gap-2">
-        {["", ...paymentStatuses].map((s) => (
-          <button
-            key={s}
-            className={`${adminControl} ${status === s ? "bg-brand text-brand-foreground" : ""}`}
-            aria-pressed={status === s}
-            onClick={() => setStatus(s)}
-          >
-            {s ? paymentStatusLabel(s, t) : t("adminOps.allPayments")}
-          </button>
-        ))}
+        {PAYMENT_TABS.map(({ key, labelKey, countKey }) => {
+          const n = countKey && counts.data ? Number(counts.data[countKey] ?? 0) : 0;
+          return (
+            <Link
+              key={key}
+              to="/admin/payments"
+              search={{ tab: key }}
+              className={`${adminControl} ${tab === key ? "bg-brand text-brand-foreground" : ""}`}
+            >
+              {t(labelKey)}
+              {n > 0 ? ` (${n.toLocaleString("en-US")})` : ""}
+            </Link>
+          );
+        })}
       </div>
-      {q.isLoading ? (
+      {tab === "fee_payments" ? (
+        <FeeDebtsPanel />
+      ) : tab === "all" ? (
+        <>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t("adminOps.search")}
+            aria-label={t("adminOps.search")}
+            className="min-h-11 w-full rounded-xl border bg-surface px-3 text-sm"
+          />
+          <div className="flex flex-wrap gap-2">
+            {["", ...paymentStatuses].map((s) => (
+              <button
+                key={s}
+                type="button"
+                className={`${adminControl} ${allStatus === s ? "bg-brand text-brand-foreground" : ""}`}
+                onClick={() => setAllStatus(s)}
+              >
+                {s ? paymentStatusLabel(s, t) : t("adminOps.allPayments")}
+              </button>
+            ))}
+          </div>
+        </>
+      ) : (
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={t("adminOps.search")}
+          aria-label={t("adminOps.search")}
+          className="min-h-11 w-full rounded-xl border bg-surface px-3 text-sm"
+        />
+      )}
+      {loading ? (
         <p>{t("adminOps.loading")}</p>
-      ) : q.isError ? (
-        <AdminQueryError message={t("adminOps.loadError")} onRetry={() => q.refetch()} />
-      ) : !rows.length ? (
+      ) : error ? (
+        <AdminQueryError message={t("adminOps.loadError")} onRetry={refetch} />
+      ) : tab === "fee_payments" ? null : !paymentRows.length ? (
         <p>{t("admin.payments.noResults")}</p>
       ) : (
-        <ul className="grid gap-4 lg:grid-cols-2">
-          {rows.map((p: any) => (
-            <PaymentCard key={p.id} payment={p} cashRecorded={recorded.has(p.booking_id)} />
-          ))}
-        </ul>
+        <>
+          <ul className="grid gap-4 lg:grid-cols-2">
+            {paymentRows.map((p: any) => (
+              <PaymentCard key={p.id} payment={p} cashRecorded={recorded.has(p.booking_id)} />
+            ))}
+          </ul>
+          {tab !== "all" && (queue.data?.total ?? 0) > (page + 1) * 50 ? (
+            <button type="button" className={adminControl} onClick={() => setPage((p) => p + 1)}>
+              {t("admin.paymentsQueue.loadMore")}
+            </button>
+          ) : null}
+        </>
       )}
     </div>
   );

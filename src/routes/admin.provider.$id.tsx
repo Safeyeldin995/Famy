@@ -37,6 +37,7 @@ import { ProviderApprovalDecisionSummary } from "@/components/admin/ProviderAppr
 import { TeachingCapabilityReviewQueue } from "@/components/admin/TeachingCapabilityReviewQueue";
 import { ProviderWalletPanel } from "@/components/provider/ProviderWalletPanel";
 import { ProviderPayoutMethodsPanel } from "@/components/provider/ProviderPayoutMethodsPanel";
+import { AdminProviderStatementPanel } from "@/components/admin/AdminProviderStatementPanel";
 import { RequestUpdatedDetailsAction } from "@/components/admin/RequestUpdatedDetailsAction";
 import {
   deriveAdminApprovalDecision,
@@ -655,6 +656,10 @@ export function AdminProvider({ id }: { id: string }) {
 
       {p.onboarding_status === "APPROVED" && (
         <>
+          <AdminProviderStatementPanel
+            providerId={id}
+            providerName={p.profile?.full_name || t("admin.provider.unnamed")}
+          />
           <ProviderWalletPanel providerId={id} audience="admin" />
           <ProviderPayoutMethodsPanel providerId={id} audience="admin" />
         </>

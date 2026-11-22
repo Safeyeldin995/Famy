@@ -56,6 +56,7 @@ import { Route as AdminPerformanceRouteImport } from './routes/admin.performance
 import { Route as AdminPriceChangeRequestsRouteImport } from './routes/admin.price-change-requests'
 import { Route as AdminPromoCodesRouteImport } from './routes/admin.promo-codes'
 import { Route as AdminProvidersRouteImport } from './routes/admin.providers'
+import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminServiceRequestsRouteImport } from './routes/admin.service-requests'
 import { Route as AdminServicesRouteImport } from './routes/admin.services'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
@@ -401,6 +402,11 @@ const AdminPromoCodesRoute = AdminPromoCodesRouteImport.update({
 const AdminProvidersRoute = AdminProvidersRouteImport.update({
   id: '/providers',
   path: '/providers',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminReportsRoute = AdminReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminServiceRequestsRoute = AdminServiceRequestsRouteImport.update({
@@ -1004,6 +1010,7 @@ export interface FileRoutesByFullPath {
   '/admin/price-change-requests': typeof AdminPriceChangeRequestsRoute
   '/admin/promo-codes': typeof AdminPromoCodesRoute
   '/admin/providers': typeof AdminProvidersRoute
+  '/admin/reports': typeof AdminReportsRoute
   '/admin/service-requests': typeof AdminServiceRequestsRoute
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
@@ -1157,6 +1164,7 @@ export interface FileRoutesByTo {
   '/admin/price-change-requests': typeof AdminPriceChangeRequestsRoute
   '/admin/promo-codes': typeof AdminPromoCodesRoute
   '/admin/providers': typeof AdminProvidersRoute
+  '/admin/reports': typeof AdminReportsRoute
   '/admin/service-requests': typeof AdminServiceRequestsRoute
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
@@ -1313,6 +1321,7 @@ export interface FileRoutesById {
   '/admin/price-change-requests': typeof AdminPriceChangeRequestsRoute
   '/admin/promo-codes': typeof AdminPromoCodesRoute
   '/admin/providers': typeof AdminProvidersRoute
+  '/admin/reports': typeof AdminReportsRoute
   '/admin/service-requests': typeof AdminServiceRequestsRoute
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
@@ -1473,6 +1482,7 @@ export interface FileRouteTypes {
     | '/admin/price-change-requests'
     | '/admin/promo-codes'
     | '/admin/providers'
+    | '/admin/reports'
     | '/admin/service-requests'
     | '/admin/services'
     | '/admin/settings'
@@ -1626,6 +1636,7 @@ export interface FileRouteTypes {
     | '/admin/price-change-requests'
     | '/admin/promo-codes'
     | '/admin/providers'
+    | '/admin/reports'
     | '/admin/service-requests'
     | '/admin/services'
     | '/admin/settings'
@@ -1781,6 +1792,7 @@ export interface FileRouteTypes {
     | '/admin/price-change-requests'
     | '/admin/promo-codes'
     | '/admin/providers'
+    | '/admin/reports'
     | '/admin/service-requests'
     | '/admin/services'
     | '/admin/settings'
@@ -2273,6 +2285,13 @@ declare module '@tanstack/react-router' {
       path: '/providers'
       fullPath: '/admin/providers'
       preLoaderRoute: typeof AdminProvidersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/reports': {
+      id: '/admin/reports'
+      path: '/reports'
+      fullPath: '/admin/reports'
+      preLoaderRoute: typeof AdminReportsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/service-requests': {
@@ -3074,6 +3093,7 @@ interface AdminRouteChildren {
   AdminPriceChangeRequestsRoute: typeof AdminPriceChangeRequestsRoute
   AdminPromoCodesRoute: typeof AdminPromoCodesRoute
   AdminProvidersRoute: typeof AdminProvidersRoute
+  AdminReportsRoute: typeof AdminReportsRoute
   AdminServiceRequestsRoute: typeof AdminServiceRequestsRoute
   AdminServicesRoute: typeof AdminServicesRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
@@ -3102,6 +3122,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPriceChangeRequestsRoute: AdminPriceChangeRequestsRoute,
   AdminPromoCodesRoute: AdminPromoCodesRoute,
   AdminProvidersRoute: AdminProvidersRoute,
+  AdminReportsRoute: AdminReportsRoute,
   AdminServiceRequestsRoute: AdminServiceRequestsRoute,
   AdminServicesRoute: AdminServicesRoute,
   AdminSettingsRoute: AdminSettingsRoute,

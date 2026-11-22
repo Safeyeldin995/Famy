@@ -43,6 +43,7 @@ import { financeRangeForPreset } from "@/lib/settlement/cairoSettlementWeek";
 import { adminNavBadgeCount } from "@/lib/admin/adminNavBadges";
 import type { LucideIcon } from "lucide-react";
 import famyLogo from "@/assets/famy-wordmark.png";
+import { AdminGlobalSearch } from "@/components/admin/AdminGlobalSearch";
 
 type NavItem = { to: string; labelKey: string; icon: LucideIcon; exact?: boolean };
 type NavGroup = { titleKey: string; items: NavItem[] };
@@ -88,6 +89,7 @@ export const ADMIN_NAV_GROUPS: (NavGroup & { titleFallback: string })[] = [
     titleFallback: "Finance",
     items: [
       { to: "/admin/finance", labelKey: "admin.layout.nav.finance", icon: Wallet },
+      { to: "/admin/reports", labelKey: "admin.layout.nav.reports", icon: FileText },
       { to: "/admin/payments", labelKey: "admin.layout.nav.payments", icon: CreditCard },
       {
         to: "/admin/payment-methods",
@@ -225,7 +227,8 @@ export function AdminShell({
                 ) : null}
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-1 items-center justify-end gap-2">
+              <AdminGlobalSearch />
               <button
                 type="button"
                 className="focus-ring grid h-9 w-9 place-items-center rounded-lg border border-border bg-surface text-foreground lg:hidden"
