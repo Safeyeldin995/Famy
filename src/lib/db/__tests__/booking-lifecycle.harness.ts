@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { PGlite } from "@electric-sql/pglite";
 import { cairoDatePlusDays, stableCairoBookingBaseDate } from "./cairo-stable-booking-date";
 import { createMigrationReplayDb, replayAllMigrations } from "./migration-replay.harness";
@@ -8,8 +9,6 @@ export const LIFECYCLE_SLOT_END = "12:00";
 export const LIFECYCLE_RESCHEDULE_START = "14:00";
 export const LIFECYCLE_RESCHEDULE_END = "16:00";
 
-const PAYMENT_CASH_ID = "00000000-0000-0000-0000-000000000901";
-const PAYMENT_PAYMOB_ID = "00000000-0000-0000-0000-000000000902";
 
 export const IDS = {
   customer: "00000000-0000-0000-0000-000000000001",
@@ -401,7 +400,7 @@ export async function seedPaymentsForBooking(
 ): Promise<{ cashId: string; paymobId: string }> {
   const bookingRows = await queryRows<{ due: string }>(
     db,
-    `SELECT (price_total + carried_fees_amount)::text AS due FROM public.bookings WHERE id = $1`,
+    `SELECT (price_total + COALESCE(carried_fees_amount, 0))::text AS due FROM public.bookings WHERE id = $1`,
     [bookingId],
   );
   const amount = bookingRows[0]?.due ?? "200";
@@ -423,6 +422,9 @@ export async function seedPaymentsForBooking(
     `),
   );
 
+  const cashId = randomUUID();
+  const paymobId = randomUUID();
+
   await asServiceRole(db, async () => {
     await db.query(
       `
@@ -431,15 +433,11 @@ export async function seedPaymentsForBooking(
         ) VALUES
           ($1::uuid, $2::uuid, $3::uuid, $7::numeric, 'pending', $4::uuid, '{}'::jsonb),
           ($5::uuid, $2::uuid, $3::uuid, $7::numeric, 'pending', $6::uuid, jsonb_build_object('paymob_order_id', '999001'))
-        ON CONFLICT (id) DO UPDATE SET
-          booking_id = EXCLUDED.booking_id,
-          status = 'pending',
-          payment_method_id = EXCLUDED.payment_method_id
       `,
-      [PAYMENT_CASH_ID, bookingId, customerId, cashMethod, PAYMENT_PAYMOB_ID, paymobMethod, amount],
+      [cashId, bookingId, customerId, cashMethod, paymobId, paymobMethod, amount],
     );
   });
-  return { cashId: PAYMENT_CASH_ID, paymobId: PAYMENT_PAYMOB_ID };
+  return { cashId, paymobId };
 }
 
 export async function paymentStatus(db: PGlite, paymentId: string): Promise<string | undefined> {
