@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import {
   Baby,
@@ -116,6 +116,13 @@ function Landing() {
               {t("site.hero.body")}
             </p>
             <StoreBadges />
+            <Link
+              to="/online"
+              className="focus-ring inline-flex items-center gap-2 rounded-2xl border border-brand/25 bg-white px-5 py-3 text-pro-14 font-extrabold text-brand shadow-sm transition-colors hover:bg-brand/5"
+            >
+              <Video className="h-5 w-5" aria-hidden="true" />
+              {t("site.hero.onlineLessons")}
+            </Link>
             {areas.length ? (
               <p className="flex flex-wrap items-center gap-2 text-pro-14 font-semibold text-muted-foreground">
                 <MapPin className="h-4 w-4 text-brand" aria-hidden="true" />

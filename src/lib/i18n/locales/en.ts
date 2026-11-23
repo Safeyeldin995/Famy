@@ -31,6 +31,7 @@ const en = {
       contact: "Contact",
       openApp: "Open the app",
       menu: "Menu",
+      onlineLessons: "Online lessons",
     },
     meta: {
       homeTitle: "Famy — Trusted babysitters and tutors in Egypt",
@@ -47,6 +48,7 @@ const en = {
       primary: "Get started",
       secondary: "Become a provider",
       areas: "Now available in",
+      onlineLessons: "Book live online tutoring on the web",
     },
     services: {
       title: "Our services",
@@ -4713,5 +4715,59 @@ Object.assign((en as any).admin, {
     appIos: "iPhone",
     appActive7: "Active last 7 days",
     appActive30: "Active last 30 days",
+  },
+  onlineWeb: {
+    title: "Famy online lessons",
+    badge: "Online",
+    walletTerms: "Your balance stays on Famy and you can use it on any future booking.",
+    home: {
+      title: "Private tutoring, live online",
+      lead: "Browse verified tutors, sign in with your Famy account, and manage lessons and wallet from your computer.",
+      browseTutors: "Browse tutors",
+      signIn: "Sign in",
+    },
+    signIn: {
+      title: "Sign in for online lessons",
+      lead: "Use the phone number on your Famy customer account.",
+    },
+    nav: {
+      label: "Online lessons",
+      tutors: "Tutors",
+      lessons: "My lessons",
+      wallet: "Wallet",
+      providerLessons: "Provider lessons",
+    },
+    tutors: {
+      title: "Online tutors",
+      lead: "Live video tutoring with Famy-verified tutors.",
+      search: "Search by name or bio",
+      empty: "No tutors yet",
+      emptyBody: "Check again soon — we're adding more online tutors.",
+      inPersonCta: "Need in-home babysitting or tutoring?",
+    },
+    profile: {
+      reviews: "{{count}} reviews",
+      requestLesson: "Sign in to request a lesson",
+    },
+    lessons: {
+      title: "My online lessons",
+      empty: "You don't have online lessons here yet.",
+      browse: "Browse tutors",
+    },
+    wallet: {
+      balanceLabel: "Wallet balance",
+      noEntries: "No wallet activity yet.",
+      reason: {
+        provider_cancelled: "Provider cancelled",
+        customer_cancelled_refund: "Cancellation credit",
+        admin_credit: "Credit from Famy",
+        admin_debit: "Adjustment",
+        checkout_spend: "Used at checkout",
+      },
+    },
+    providerLessons: {
+      title: "Your online lessons",
+      lead: "When you're a provider with online lessons, they'll show up here. Join from the app or this page when a session starts.",
+    },
   },
 });
