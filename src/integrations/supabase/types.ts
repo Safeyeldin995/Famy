@@ -4618,7 +4618,7 @@ export type Database = {
         Returns: Json
       }
       admin_payment_queue: {
-        Args: { p_tab: string; p_limit: number; p_offset: number }
+        Args: { p_tab: string; p_query?: string; p_limit?: number; p_offset?: number }
         Returns: Json
       }
       admin_payment_queue_counts: {

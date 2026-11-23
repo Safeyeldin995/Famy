@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { paymentStatusLabel } from "@/lib/settlement/moneyText";
-import { useAdminBookings, useAdminResolveReschedule } from "@/lib/db/admin-queries";
+import { useAdminBookingById, useAdminBookings, useAdminResolveReschedule } from "@/lib/db/admin-queries";
 import {
   adminControl,
   adminScreen,
@@ -195,7 +195,9 @@ export function AdminBookings({
         : (search.status ?? ""),
   );
   const [query, setQuery] = useState(search.booking ?? "");
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const pinnedId = /^[0-9a-f-]{36}$/i.test(search.booking ?? "") ? search.booking : undefined;
+  const pinnedQ = useAdminBookingById(pinnedId);
+  const [expanded, setExpanded] = useState<string | null>(pinnedId ?? null);
   const [cancelId, setCancelId] = useState<string | null>(null);
   const attention = status === "lifecycle_attention";
   const attentionQ = useLifecycleAttentionBookingIds();
@@ -214,10 +216,13 @@ export function AdminBookings({
 
   const rows = useMemo(() => {
     const all = (bookingsQ.data ?? []) as any[];
+    const pinned = pinnedQ.data as any;
+    const merged =
+      pinned && !all.some((b) => b.id === pinned.id) ? [pinned, ...all] : all;
     const needle = query.trim().toLowerCase();
-    if (!needle) return all;
-    return all.filter((b: any) => matchesBooking(b, needle));
-  }, [bookingsQ.data, query]);
+    if (!needle) return merged;
+    return merged.filter((b: any) => matchesBooking(b, needle));
+  }, [bookingsQ.data, pinnedQ.data, query]);
 
   return (
     <div className={adminScreen}>

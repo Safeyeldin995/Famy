@@ -12,11 +12,24 @@ import { AdminQueryError } from "@/components/admin/AdminQueryError";
 import { adminControl, adminScreen } from "@/components/admin/operations";
 import { formatEGP } from "@/lib/utils";
 import { useLang } from "@/components/famio/LanguageToggle";
-import { downloadReportsExcel } from "@/lib/admin/reportsExport";
+import { downloadReportsCsv } from "@/lib/admin/reportsExport";
 
 export const Route = createFileRoute("/admin/reports")({ component: AdminReportsPage });
 
 type ReportGroup = "day" | "week" | "month";
+
+const METRIC_KEYS = [
+  "bookings_created",
+  "bookings_completed",
+  "bookings_cancelled",
+  "revenue",
+  "platform_commission",
+  "cash_collected",
+  "card_received",
+  "instapay_received",
+  "refunds_total",
+  "cancellation_fees",
+] as const;
 
 function AdminReportsPage() {
   const { t } = useTranslation();
@@ -53,15 +66,40 @@ function AdminReportsPage() {
   );
 
   const formatBucket = (iso: string) =>
-    new Date(iso).toLocaleDateString(lang, { timeZone: "Africa/Cairo" });
+    new Date(iso).toLocaleString(lang, { timeZone: "Africa/Cairo", dateStyle: "medium" });
+
+  const formatMetric = (key: (typeof METRIC_KEYS)[number], value: number) => {
+    if (key === "bookings_created" || key === "bookings_completed" || key === "bookings_cancelled") {
+      return value.toLocaleString("en-US");
+    }
+    return formatEGP(value);
+  };
 
   return (
     <div className={adminScreen}>
       <h1 className="text-xl font-bold">{t("admin.reports.title")}</h1>
       <p className="text-sm text-muted-foreground">{t("admin.reports.subtitle")}</p>
-      <p className="rounded-xl bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
-        {t("admin.reports.dateBasisNote")}
-      </p>
+      {q.data?.date_basis ? (
+        <ul className="space-y-1 rounded-xl bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+          {METRIC_KEYS.map((key) => {
+            const basis = q.data!.date_basis[key];
+            if (!basis) return null;
+            return (
+              <li key={key}>
+                <strong className="text-foreground">{columnLabels[key]}:</strong>{" "}
+                {t("admin.reports.basisLine", {
+                  basis: basis.basis,
+                  timestamp: basis.timestamp,
+                })}
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="rounded-xl bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+          {t("admin.reports.dateBasisNote")}
+        </p>
+      )}
       <div className="flex flex-wrap gap-2">
         {(
           [
@@ -116,7 +154,7 @@ function AdminReportsPage() {
           type="button"
           className={`${adminControl} inline-flex items-center gap-2`}
           disabled={!q.data?.buckets.length}
-          onClick={() => q.data && downloadReportsExcel(q.data, columnLabels, "famy_reports.xlsx")}
+          onClick={() => q.data && downloadReportsCsv(q.data, columnLabels, "famy_reports.csv")}
         >
           <FileSpreadsheet className="h-4 w-4" />
           {t("admin.reports.exportExcel")}
@@ -128,32 +166,36 @@ function AdminReportsPage() {
         <AdminQueryError message={t("admin.reports.loadError")} onRetry={() => q.refetch()} />
       ) : q.data ? (
         <div className="overflow-x-auto rounded-xl border">
-          <table className="w-full min-w-[56rem] text-sm">
+          <table className="w-full min-w-[72rem] text-sm">
             <thead className="bg-muted/50 text-start">
               <tr>
                 <th className="p-2">{columnLabels.bucket_start}</th>
-                <th className="p-2">{columnLabels.bookings_created}</th>
-                <th className="p-2">{columnLabels.bookings_completed}</th>
-                <th className="p-2">{columnLabels.revenue}</th>
-                <th className="p-2">{columnLabels.platform_commission}</th>
-                <th className="p-2">{columnLabels.cash_collected}</th>
-                <th className="p-2">{columnLabels.instapay_received}</th>
-                <th className="p-2">{columnLabels.refunds_total}</th>
+                {METRIC_KEYS.map((key) => (
+                  <th key={key} className="p-2">
+                    {columnLabels[key]}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {q.data.buckets.map((row) => (
                 <tr key={row.bucket_start} className="border-t">
                   <td className="p-2 whitespace-nowrap">{formatBucket(row.bucket_start)}</td>
-                  <td className="p-2 tabular-nums">{row.bookings_created}</td>
-                  <td className="p-2 tabular-nums">{row.bookings_completed}</td>
-                  <td className="p-2 tabular-nums">{formatEGP(row.revenue)}</td>
-                  <td className="p-2 tabular-nums">{formatEGP(row.platform_commission)}</td>
-                  <td className="p-2 tabular-nums">{formatEGP(row.cash_collected)}</td>
-                  <td className="p-2 tabular-nums">{formatEGP(row.instapay_received)}</td>
-                  <td className="p-2 tabular-nums">{formatEGP(row.refunds_total)}</td>
+                  {METRIC_KEYS.map((key) => (
+                    <td key={key} className="p-2 tabular-nums">
+                      {formatMetric(key, Number(row[key] ?? 0))}
+                    </td>
+                  ))}
                 </tr>
               ))}
+              <tr className="border-t bg-muted/40 font-bold">
+                <td className="p-2">{columnLabels.totals}</td>
+                {METRIC_KEYS.map((key) => (
+                  <td key={key} className="p-2 tabular-nums">
+                    {formatMetric(key, Number(q.data!.totals[key] ?? 0))}
+                  </td>
+                ))}
+              </tr>
             </tbody>
           </table>
         </div>

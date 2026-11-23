@@ -1,7 +1,5 @@
-import * as XLSX from "xlsx";
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
-import type { ProviderStatement, ProviderStatementRow } from "@/lib/db/admin-daily-ops-queries";
+import { downloadCsv } from "@/lib/admin/csvExport";
+import type { ProviderStatement } from "@/lib/db/admin-daily-ops-queries";
 
 type Labels = {
   title: string;
@@ -18,36 +16,19 @@ type Labels = {
     share: string;
     debit: string;
     credit: string;
-    note: string;
   };
   kindLabels: Record<string, string>;
 };
 
 function kindLabel(kind: string, labels: Labels) {
-  return labels.kindLabels[kind] ?? kind;
+  return (labels.kindLabels as Record<string, string>)[kind] ?? kind;
 }
 
-function rowCells(row: ProviderStatementRow, labels: Labels, locale: string) {
-  const debit = row.direction === "debit" ? row.amount : "";
-  const credit = row.direction === "credit" ? row.amount : "";
-  const date = new Date(row.created_at).toLocaleString(locale, { timeZone: "Africa/Cairo" });
-  return [
-    date,
-    kindLabel(row.kind, labels),
-    row.booking_code ? `#${row.booking_code}` : "",
-    row.price_total ?? "",
-    row.commission ?? "",
-    row.provider_share ?? "",
-    debit,
-    credit,
-    row.note ?? "",
-  ];
-}
-
-export function downloadStatementExcel(
+export function downloadStatementCsv(
   statement: ProviderStatement,
   labels: Labels,
   filename: string,
+  locale: string,
 ) {
   const header = [
     labels.columns.date,
@@ -58,61 +39,94 @@ export function downloadStatementExcel(
     labels.columns.share,
     labels.columns.debit,
     labels.columns.credit,
-    labels.columns.note,
   ];
-  const rows = statement.rows.map((r) => rowCells(r, labels, "ar-EG-u-nu-latn"));
-  const sheet = XLSX.utils.aoa_to_sheet([
+  const rows = statement.rows.map((row) => {
+    const debit = row.direction === "debit" ? String(row.amount) : "";
+    const credit = row.direction === "credit" ? String(row.amount) : "";
+    const date = new Date(row.created_at).toLocaleString(locale, { timeZone: "Africa/Cairo" });
+    return [
+      date,
+      kindLabel(row.kind, labels),
+      row.booking_code ? `#${row.booking_code}` : "",
+      row.price_total != null ? String(row.price_total) : "",
+      row.commission != null ? String(row.commission) : "",
+      row.provider_share != null ? String(row.provider_share) : "",
+      debit,
+      credit,
+    ];
+  });
+  downloadCsv(filename, [
     [labels.title],
     [labels.provider, statement.provider_name],
-    [labels.opening, statement.opening_balance],
-    [labels.closing, statement.closing_balance],
+    [labels.opening, String(statement.opening_balance)],
+    [labels.closing, String(statement.closing_balance)],
     [],
     header,
     ...rows,
   ]);
-  const book = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(book, sheet, "Statement");
-  XLSX.writeFile(book, filename);
 }
 
-export function downloadStatementPdf(
+export function printStatementPdf(
   statement: ProviderStatement,
   labels: Labels,
-  filename: string,
   locale: string,
 ) {
-  const doc = new jsPDF({ orientation: "landscape", unit: "pt" });
   const ar = locale.startsWith("ar");
-  doc.setFontSize(14);
-  doc.text(labels.title, 40, 40);
-  doc.setFontSize(10);
-  doc.text(`${labels.provider}: ${statement.provider_name}`, 40, 58);
-  doc.text(
-    `${labels.period}: ${new Date(statement.period_from).toLocaleDateString(locale, { timeZone: "Africa/Cairo" })} — ${new Date(statement.period_to).toLocaleDateString(locale, { timeZone: "Africa/Cairo" })}`,
-    40,
-    72,
-  );
-  doc.text(`${labels.opening}: ${statement.opening_balance}`, 40, 86);
-  doc.text(`${labels.closing}: ${statement.closing_balance}`, 40, 100);
-
-  autoTable(doc, {
-    startY: 112,
-    head: [
-      [
-        labels.columns.date,
-        labels.columns.kind,
-        labels.columns.booking,
-        labels.columns.price,
-        labels.columns.commission,
-        labels.columns.share,
-        labels.columns.debit,
-        labels.columns.credit,
-        labels.columns.note,
-      ],
-    ],
-    body: statement.rows.map((r) => rowCells(r, labels, ar ? "ar-EG-u-nu-latn" : "en-GB")),
-    styles: { fontSize: 8, halign: ar ? "right" : "left" },
-    headStyles: { fillColor: [120, 20, 80] },
-  });
-  doc.save(filename);
+  const dir = ar ? "rtl" : "ltr";
+  const rows = statement.rows
+    .map((row) => {
+      const debit = row.direction === "debit" ? row.amount : "";
+      const credit = row.direction === "credit" ? row.amount : "";
+      const date = new Date(row.created_at).toLocaleString(locale, { timeZone: "Africa/Cairo" });
+      return `<tr>
+        <td>${date}</td>
+        <td>${kindLabel(row.kind, labels)}</td>
+        <td dir="ltr">${row.booking_code ? `#${row.booking_code}` : ""}</td>
+        <td>${row.price_total ?? ""}</td>
+        <td>${row.commission ?? ""}</td>
+        <td>${row.provider_share ?? ""}</td>
+        <td>${debit}</td>
+        <td>${credit}</td>
+      </tr>`;
+    })
+    .join("");
+  const html = `<!DOCTYPE html>
+<html lang="${ar ? "ar" : "en"}" dir="${dir}">
+<head>
+  <meta charset="utf-8" />
+  <title>${labels.title}</title>
+  <style>
+    body { font-family: system-ui, "Segoe UI", Tahoma, Arial, sans-serif; margin: 24px; }
+    h1 { font-size: 1.25rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 12px; }
+    th, td { border: 1px solid #ccc; padding: 6px; text-align: ${ar ? "right" : "left"}; }
+    th { background: #f5f5f5; }
+    @media print { body { margin: 12px; } }
+  </style>
+</head>
+<body>
+  <h1>${labels.title}</h1>
+  <p><strong>${labels.provider}:</strong> ${statement.provider_name}</p>
+  <p><strong>${labels.opening}:</strong> ${statement.opening_balance}</p>
+  <p><strong>${labels.closing}:</strong> ${statement.closing_balance}</p>
+  <table>
+    <thead><tr>
+      <th>${labels.columns.date}</th>
+      <th>${labels.columns.kind}</th>
+      <th>${labels.columns.booking}</th>
+      <th>${labels.columns.price}</th>
+      <th>${labels.columns.commission}</th>
+      <th>${labels.columns.share}</th>
+      <th>${labels.columns.debit}</th>
+      <th>${labels.columns.credit}</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <script>window.addEventListener('load', () => { window.print(); });</script>
+</body>
+</html>`;
+  const win = window.open("", "_blank", "noopener,noreferrer");
+  if (!win) return;
+  win.document.write(html);
+  win.document.close();
 }

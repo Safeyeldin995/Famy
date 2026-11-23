@@ -653,6 +653,7 @@ const en = {
     next: "Next",
     back: "Back",
     cancel: "Cancel",
+    close: "Close",
     confirm: "Confirm",
     save: "Save",
     edit: "Edit",
@@ -3342,6 +3343,7 @@ const en = {
       title: "Payments — needs action",
       subtitle:
         "Work queues filtered on the server. Transfers still waiting for a customer receipt stay in waiting, not here.",
+      needsAction: "Needs action",
       refunds: "Refunds due",
       receipts: "Receipts ready",
       cash: "Cash to confirm",
@@ -3399,6 +3401,7 @@ const en = {
       subtitle: "Operational and payment totals for a Cairo period.",
       dateBasisNote:
         "Booking metrics use booking timestamps; captured payments and refunds use payment timestamps. Each export row follows the same rules as the database function.",
+      basisLine: "{{basis}} · {{timestamp}}",
       group: { day: "By day", week: "By week", month: "By month" },
       loadError: "Could not load reports.",
       exportExcel: "Export Excel",

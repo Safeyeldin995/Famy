@@ -92,20 +92,27 @@ export function useAdminReports(
   });
 }
 
-export type PaymentQueueTab = "refunds_due" | "receipts_ready" | "cash_to_confirm";
+export type PaymentQueueTab =
+  | "needs_action"
+  | "refunds_due"
+  | "receipts_ready"
+  | "cash_to_confirm";
 
 export function useAdminPaymentQueue(
   tab: PaymentQueueTab,
   page: number,
+  query: string,
   pageSize = 50,
   enabled = true,
 ) {
+  const q = query.trim();
   return useQuery({
     enabled,
-    queryKey: ["admin", "payment-queue", tab, page, pageSize],
+    queryKey: ["admin", "payment-queue", tab, q, page, pageSize],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("admin_payment_queue", {
         p_tab: tab,
+        p_query: q,
         p_limit: pageSize,
         p_offset: page * pageSize,
       });
@@ -122,6 +129,7 @@ export function useAdminPaymentQueueCounts() {
       const { data, error } = await supabase.rpc("admin_payment_queue_counts");
       if (error) throw error;
       return data as {
+        needs_action: number;
         refunds_due: number;
         receipts_ready: number;
         cash_to_confirm: number;

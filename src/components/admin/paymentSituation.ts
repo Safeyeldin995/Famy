@@ -69,7 +69,6 @@ export function paymentSituation(
   if (status === "partially_refunded") return "partiallyRefunded";
   if (status === "rejected") return "rejected";
   if (status === "failed") return "failed";
-  if (status === "pending_review" && type === "manual_transfer" && !closed) return "review";
 
   if (status === "pending" || status === "pending_review" || status === "authorized") {
     if (CLOSED_WITHOUT_SERVICE.has(booking)) return "noPaymentDue";

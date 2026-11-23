@@ -245,6 +245,32 @@ export function useDocumentSignedUrl() {
 }
 
 /** `status` filters by booking status; `{ ids }` loads specific bookings (e.g. a work queue). */
+const ADMIN_BOOKING_SELECT = `
+  *,
+  customer:profiles!bookings_customer_id_fkey(id, full_name, phone),
+  provider:providers(id, profile:profiles(full_name)),
+  payments(id, status, method, amount, created_at, needs_admin_review, metadata),
+  family_member:booking_family_member_snapshots(*),
+  service:services(name_ar, name_en),
+  cancellation:booking_cancellations(*)
+`;
+
+export function useAdminBookingById(bookingId: string | undefined) {
+  return useQuery({
+    enabled: !!bookingId,
+    queryKey: ["admin", "booking", bookingId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("bookings")
+        .select(ADMIN_BOOKING_SELECT)
+        .eq("id", bookingId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
 export function useAdminBookings(
   status?: string | string[] | { ids: string[] },
   options: { enabled?: boolean } = {},
@@ -255,15 +281,7 @@ export function useAdminBookings(
     queryFn: async () => {
       let q = supabase
         .from('bookings')
-        .select(`
-          *,
-          customer:profiles!bookings_customer_id_fkey(id, full_name, phone),
-          provider:providers(id, profile:profiles(full_name)),
-          payments(id, status, method, amount, created_at, needs_admin_review, metadata),
-          family_member:booking_family_member_snapshots(*),
-          service:services(name_ar, name_en),
-          cancellation:booking_cancellations(*)
-        `)
+        .select(ADMIN_BOOKING_SELECT)
         .order('created_at', { ascending: false })
         .limit(200);
       if (status && typeof status === 'object' && !Array.isArray(status)) {

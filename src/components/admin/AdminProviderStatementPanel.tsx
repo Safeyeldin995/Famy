@@ -11,7 +11,7 @@ import { AdminQueryError } from "@/components/admin/AdminQueryError";
 import { formatEGP } from "@/lib/utils";
 import { adminControl, adminScreen, bookingCode } from "@/components/admin/operations";
 import { useLang } from "@/components/famio/LanguageToggle";
-import { downloadStatementExcel, downloadStatementPdf } from "@/lib/admin/statementExport";
+import { downloadStatementCsv, printStatementPdf } from "@/lib/admin/statementExport";
 
 export function AdminProviderStatementPanel({
   providerId,
@@ -51,7 +51,6 @@ export function AdminProviderStatementPanel({
         share: t("admin.statement.colShare"),
         debit: t("admin.statement.colDebit"),
         credit: t("admin.statement.colCredit"),
-        note: t("admin.statement.colNote"),
       },
       kindLabels: {
         online_provider_share: t("admin.statement.kind.online_provider_share"),
@@ -136,7 +135,7 @@ export function AdminProviderStatementPanel({
               type="button"
               className={`${adminControl} inline-flex items-center gap-2`}
               disabled={!q.data.rows.length}
-              onClick={() => downloadStatementPdf(q.data!, labels, `${exportBase}.pdf`, lang)}
+              onClick={() => printStatementPdf(q.data!, labels, lang)}
             >
               <Download className="h-4 w-4" />
               {t("admin.statement.downloadPdf")}
@@ -145,7 +144,7 @@ export function AdminProviderStatementPanel({
               type="button"
               className={`${adminControl} inline-flex items-center gap-2`}
               disabled={!q.data.rows.length}
-              onClick={() => downloadStatementExcel(q.data!, labels, `${exportBase}.xlsx`)}
+              onClick={() => downloadStatementCsv(q.data!, labels, `${exportBase}.csv`, lang)}
             >
               <FileSpreadsheet className="h-4 w-4" />
               {t("admin.statement.downloadExcel")}
@@ -172,11 +171,7 @@ export function AdminProviderStatementPanel({
                       {(labels.kindLabels as Record<string, string>)[row.kind] ?? row.kind}
                     </td>
                     <td className="p-2">
-                      {row.booking_id ? (
-                        <bdi dir="ltr">{bookingCode(row.booking_id)}</bdi>
-                      ) : (
-                        "—"
-                      )}
+                      {row.booking_id ? <bdi dir="ltr">{bookingCode(row.booking_id)}</bdi> : "—"}
                     </td>
                     <td className="p-2 tabular-nums">
                       {row.direction === "debit" ? formatEGP(row.amount) : "—"}

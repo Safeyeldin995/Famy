@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AdminLink as Link } from "@/components/admin/AdminNavigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { paymentStatusLabel } from "@/lib/settlement/moneyText";
 import { toast } from "sonner";
@@ -44,6 +44,7 @@ export const Route = createFileRoute("/admin/payments")({
   validateSearch: (search: Record<string, unknown>): { tab?: PaymentsTab; status?: string } => {
     const tab = search.tab;
     const allowed: PaymentsTab[] = [
+      "needs_action",
       "refunds_due",
       "receipts_ready",
       "cash_to_confirm",
@@ -51,7 +52,10 @@ export const Route = createFileRoute("/admin/payments")({
       "all",
     ];
     return {
-      tab: typeof tab === "string" && allowed.includes(tab as PaymentsTab) ? (tab as PaymentsTab) : "refunds_due",
+      tab:
+        typeof tab === "string" && allowed.includes(tab as PaymentsTab)
+          ? (tab as PaymentsTab)
+          : "needs_action",
       ...(typeof search.status === "string" ? { status: search.status } : {}),
     };
   },
@@ -331,8 +335,9 @@ function PaymentCard({ payment: p, cashRecorded }: { payment: any; cashRecorded:
 const PAYMENT_TABS: {
   key: PaymentsTab;
   labelKey: string;
-  countKey?: "refunds_due" | "receipts_ready" | "cash_to_confirm" | "fee_payments";
+  countKey?: "needs_action" | "refunds_due" | "receipts_ready" | "cash_to_confirm" | "fee_payments";
 }[] = [
+  { key: "needs_action", labelKey: "admin.paymentsQueue.needsAction", countKey: "needs_action" },
   { key: "refunds_due", labelKey: "admin.paymentsQueue.refunds", countKey: "refunds_due" },
   { key: "receipts_ready", labelKey: "admin.paymentsQueue.receipts", countKey: "receipts_ready" },
   { key: "cash_to_confirm", labelKey: "admin.paymentsQueue.cash", countKey: "cash_to_confirm" },
@@ -340,27 +345,49 @@ const PAYMENT_TABS: {
   { key: "all", labelKey: "admin.paymentsQueue.all" },
 ];
 
+function useDebounced(value: string, ms: number) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebounced(value), ms);
+    return () => window.clearTimeout(id);
+  }, [value, ms]);
+  return debounced;
+}
+
 export function AdminPayments({ search }: { search: { tab?: PaymentsTab; status?: string } }) {
   const { t } = useTranslation();
-  const tab = search.tab ?? "refunds_due";
+  const tab = search.tab ?? "needs_action";
   const [page, setPage] = useState(0);
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebounced(query, 300);
   const [allStatus, setAllStatus] = useState(search.status ?? "");
   const counts = useAdminPaymentQueueCounts();
-  const queueTab: PaymentQueueTab =
-    tab === "refunds_due" || tab === "receipts_ready" || tab === "cash_to_confirm" ? tab : "refunds_due";
-  const queue = useAdminPaymentQueue(queueTab, page, 50, tab === queueTab);
+  const queueTab: PaymentQueueTab | null =
+    tab === "needs_action" ||
+    tab === "refunds_due" ||
+    tab === "receipts_ready" ||
+    tab === "cash_to_confirm"
+      ? tab
+      : null;
+  const queue = useAdminPaymentQueue(
+    queueTab ?? "needs_action",
+    page,
+    debouncedQuery,
+    50,
+    queueTab != null,
+  );
+  useEffect(() => {
+    setPage(0);
+  }, [debouncedQuery, tab]);
   const allQ = useAdminPayments(allStatus || undefined);
   const paymentRows =
     tab === "all"
       ? (allQ.data ?? []).filter((p: any) =>
-          matchesBooking({ ...p.booking, id: p.booking_id }, query),
+          matchesBooking({ ...p.booking, id: p.booking_id }, debouncedQuery),
         )
       : tab === "fee_payments"
         ? []
-        : (queue.data?.items ?? []).filter((p: any) =>
-            matchesBooking({ ...p.booking, id: p.booking_id }, query),
-          );
+        : (queue.data?.items ?? []);
   const cashLedger = useAdminCashLedgerBookings(
     paymentRows
       .filter((p: any) => p.booking?.status === "completed" && p.status !== "captured")
@@ -368,16 +395,21 @@ export function AdminPayments({ search }: { search: { tab?: PaymentsTab; status?
   );
   const recorded = cashLedger.data ?? new Set<string>();
   const needsTotal =
+    counts.data?.needs_action ??
     (counts.data?.refunds_due ?? 0) +
-    (counts.data?.receipts_ready ?? 0) +
-    (counts.data?.cash_to_confirm ?? 0) +
-    (counts.data?.fee_payments ?? 0);
+      (counts.data?.receipts_ready ?? 0) +
+      (counts.data?.cash_to_confirm ?? 0) +
+      (counts.data?.fee_payments ?? 0);
   const loading =
     tab === "all" ? allQ.isLoading : tab === "fee_payments" ? counts.isLoading : queue.isLoading;
   const error =
     tab === "all" ? allQ.isError : tab === "fee_payments" ? counts.isError : queue.isError;
   const refetch =
-    tab === "all" ? () => allQ.refetch() : tab === "fee_payments" ? () => counts.refetch() : () => queue.refetch();
+    tab === "all"
+      ? () => allQ.refetch()
+      : tab === "fee_payments"
+        ? () => counts.refetch()
+        : () => queue.refetch();
 
   return (
     <div className={adminScreen}>

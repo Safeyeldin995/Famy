@@ -132,6 +132,7 @@ import { Route as PreviewAdminPaymentsRouteImport } from './routes/preview.admin
 import { Route as PreviewAdminPerformanceRouteImport } from './routes/preview.admin.performance'
 import { Route as PreviewAdminPromoCodesRouteImport } from './routes/preview.admin.promo-codes'
 import { Route as PreviewAdminProvidersRouteImport } from './routes/preview.admin.providers'
+import { Route as PreviewAdminReportsRouteImport } from './routes/preview.admin.reports'
 import { Route as PreviewAdminServicesRouteImport } from './routes/preview.admin.services'
 import { Route as PreviewAdminSettingsRouteImport } from './routes/preview.admin.settings'
 import { Route as PreviewAdminZonesRouteImport } from './routes/preview.admin.zones'
@@ -788,6 +789,11 @@ const PreviewAdminProvidersRoute = PreviewAdminProvidersRouteImport.update({
   path: '/providers',
   getParentRoute: () => PreviewAdminRoute,
 } as any)
+const PreviewAdminReportsRoute = PreviewAdminReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => PreviewAdminRoute,
+} as any)
 const PreviewAdminServicesRoute = PreviewAdminServicesRouteImport.update({
   id: '/services',
   path: '/services',
@@ -1086,6 +1092,7 @@ export interface FileRoutesByFullPath {
   '/preview/admin/performance': typeof PreviewAdminPerformanceRoute
   '/preview/admin/promo-codes': typeof PreviewAdminPromoCodesRoute
   '/preview/admin/providers': typeof PreviewAdminProvidersRoute
+  '/preview/admin/reports': typeof PreviewAdminReportsRoute
   '/preview/admin/services': typeof PreviewAdminServicesRoute
   '/preview/admin/settings': typeof PreviewAdminSettingsRoute
   '/preview/admin/zones': typeof PreviewAdminZonesRoute
@@ -1237,6 +1244,7 @@ export interface FileRoutesByTo {
   '/preview/admin/performance': typeof PreviewAdminPerformanceRoute
   '/preview/admin/promo-codes': typeof PreviewAdminPromoCodesRoute
   '/preview/admin/providers': typeof PreviewAdminProvidersRoute
+  '/preview/admin/reports': typeof PreviewAdminReportsRoute
   '/preview/admin/services': typeof PreviewAdminServicesRoute
   '/preview/admin/settings': typeof PreviewAdminSettingsRoute
   '/preview/admin/zones': typeof PreviewAdminZonesRoute
@@ -1397,6 +1405,7 @@ export interface FileRoutesById {
   '/preview/admin/performance': typeof PreviewAdminPerformanceRoute
   '/preview/admin/promo-codes': typeof PreviewAdminPromoCodesRoute
   '/preview/admin/providers': typeof PreviewAdminProvidersRoute
+  '/preview/admin/reports': typeof PreviewAdminReportsRoute
   '/preview/admin/services': typeof PreviewAdminServicesRoute
   '/preview/admin/settings': typeof PreviewAdminSettingsRoute
   '/preview/admin/zones': typeof PreviewAdminZonesRoute
@@ -1558,6 +1567,7 @@ export interface FileRouteTypes {
     | '/preview/admin/performance'
     | '/preview/admin/promo-codes'
     | '/preview/admin/providers'
+    | '/preview/admin/reports'
     | '/preview/admin/services'
     | '/preview/admin/settings'
     | '/preview/admin/zones'
@@ -1709,6 +1719,7 @@ export interface FileRouteTypes {
     | '/preview/admin/performance'
     | '/preview/admin/promo-codes'
     | '/preview/admin/providers'
+    | '/preview/admin/reports'
     | '/preview/admin/services'
     | '/preview/admin/settings'
     | '/preview/admin/zones'
@@ -1868,6 +1879,7 @@ export interface FileRouteTypes {
     | '/preview/admin/performance'
     | '/preview/admin/promo-codes'
     | '/preview/admin/providers'
+    | '/preview/admin/reports'
     | '/preview/admin/services'
     | '/preview/admin/settings'
     | '/preview/admin/zones'
@@ -2819,6 +2831,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewAdminProvidersRouteImport
       parentRoute: typeof PreviewAdminRoute
     }
+    '/preview/admin/reports': {
+      id: '/preview/admin/reports'
+      path: '/reports'
+      fullPath: '/preview/admin/reports'
+      preLoaderRoute: typeof PreviewAdminReportsRouteImport
+      parentRoute: typeof PreviewAdminRoute
+    }
     '/preview/admin/services': {
       id: '/preview/admin/services'
       path: '/services'
@@ -3194,6 +3213,7 @@ interface PreviewAdminRouteChildren {
   PreviewAdminPerformanceRoute: typeof PreviewAdminPerformanceRoute
   PreviewAdminPromoCodesRoute: typeof PreviewAdminPromoCodesRoute
   PreviewAdminProvidersRoute: typeof PreviewAdminProvidersRoute
+  PreviewAdminReportsRoute: typeof PreviewAdminReportsRoute
   PreviewAdminServicesRoute: typeof PreviewAdminServicesRoute
   PreviewAdminSettingsRoute: typeof PreviewAdminSettingsRoute
   PreviewAdminZonesRoute: typeof PreviewAdminZonesRoute
@@ -3217,6 +3237,7 @@ const PreviewAdminRouteChildren: PreviewAdminRouteChildren = {
   PreviewAdminPerformanceRoute: PreviewAdminPerformanceRoute,
   PreviewAdminPromoCodesRoute: PreviewAdminPromoCodesRoute,
   PreviewAdminProvidersRoute: PreviewAdminProvidersRoute,
+  PreviewAdminReportsRoute: PreviewAdminReportsRoute,
   PreviewAdminServicesRoute: PreviewAdminServicesRoute,
   PreviewAdminSettingsRoute: PreviewAdminSettingsRoute,
   PreviewAdminZonesRoute: PreviewAdminZonesRoute,

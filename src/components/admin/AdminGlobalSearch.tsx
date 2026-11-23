@@ -48,7 +48,9 @@ export function AdminGlobalSearch() {
           ) : q.isError ? (
             <p className="px-2 py-3 text-sm text-destructive">{t("admin.globalSearch.error")}</p>
           ) : !hasResults ? (
-            <p className="px-2 py-3 text-sm text-muted-foreground">{t("admin.globalSearch.empty")}</p>
+            <p className="px-2 py-3 text-sm text-muted-foreground">
+              {t("admin.globalSearch.empty")}
+            </p>
           ) : (
             <div className="space-y-3 text-sm">
               {data!.customers.items.length > 0 ? (
