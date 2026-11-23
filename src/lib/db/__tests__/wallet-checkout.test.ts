@@ -122,6 +122,21 @@ describe("customer_apply_wallet_at_checkout", () => {
     expect(Number(funded[0]?.total)).toBeLessThan(Number(cardDue[0]?.checkout_total ?? 500));
   });
 
+  it("refuses wallet apply when the booking is no longer payable", async () => {
+    const { bookingId } = await seedLifecycleBooking(db, { status: "confirmed" });
+    const { paymobId } = await seedPaymentsForBooking(db, bookingId);
+    await asServiceRole(db, () =>
+      db.query(`UPDATE public.bookings SET status = 'cancelled' WHERE id = $1`, [bookingId]),
+    );
+    const result = await tryAsUser(
+      db,
+      IDS.customer,
+      "SELECT public.customer_apply_wallet_at_checkout($1::uuid)",
+      [paymobId],
+    );
+    expect(result.error).toMatch(/no longer payable/);
+  });
+
   it("blocks customer wallet release while a pending checkout is still open", async () => {
     const { bookingId } = await seedLifecycleBooking(db, { status: "confirmed" });
     const { paymobId } = await seedPaymentsForBooking(db, bookingId);
