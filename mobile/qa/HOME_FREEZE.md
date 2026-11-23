@@ -22,17 +22,19 @@ Committed outputs: `mobile/qa/home-freeze-diag-current.json`, `mobile/qa/home-fr
 | `bookingsFocusInvalidate` (after cycles) | 3 | — |
 | `bookingsFocusRefetch` (after cycles) | — | 3 |
 
-**Plain result:** tab-return **focus effect count and booking fetch-start edges are the same** in this run; legacy only adds explicit `bookings.refetch()` on focus (3×), while current uses invalidation markers instead. That does **not** support “unstable `refetch` in deps” as the freeze cause.
+**Plain result:** the **refetch-dependency theory is ruled out** by these counters — tab-return focus effect count and booking fetch-start edges are the same for current vs legacy; legacy only adds explicit `bookings.refetch()` on focus (3×) vs invalidation markers.
 
-## Supported causes
+This harness does **not** pull-to-refresh, does not measure frame jank, and is **web-only** (no nested Android scroll). **Real-device verification on Android is pending** (Product Owner, next build).
 
-1. **Pull-to-refresh main-thread load** — `onRefresh` awaited eight `refetch()` calls, then **awaited** `refetchQueries({ queryKey: ["providers"], type: "active" })`, which fans out to every mounted providers query. On Android, holding the refresh spinner until that fan-out completes keeps the JS thread busy.
+## Unverified hypotheses (mitigations kept, cause not proven here)
 
-   **Fix (current):** end refresh **before** scheduling the providers fan-out (`setRefreshing(false)` then `void cache.refetchQueries(...)`); skip `parties.refetch()` when there are no active booking ids.
+1. **Pull-to-refresh provider fan-out** — `onRefresh` previously awaited eight `refetch()` calls and then **awaited** `refetchQueries({ queryKey: ["providers"], type: "active" })`. Awaiting network work can keep the refresh spinner visible longer even though it does not by itself block the JS thread.
 
-2. **Nested scroll (Android)** — vertical home `ScrollView` + horizontal promo `ScrollView` without `nestedScrollEnabled` can steal touch responders.
+   **Mitigation (current):** end refresh before scheduling the providers fan-out (`setRefreshing(false)` then `void cache.refetchQueries(...)`); skip `parties.refetch()` when there are no active booking ids.
 
-   **Fix:** `nestedScrollEnabled` on the promo carousel (Android only).
+2. **Nested scroll (Android)** — vertical home `ScrollView` + horizontal promo `ScrollView` without `nestedScrollEnabled` may steal touch responders on Android.
+
+   **Mitigation:** `nestedScrollEnabled` on the promo carousel (Android only).
 
 ## Kept hardening
 

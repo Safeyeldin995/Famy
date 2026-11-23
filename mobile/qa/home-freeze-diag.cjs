@@ -42,7 +42,10 @@ async function run() {
   });
 
   const page = await context.newPage();
-  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
+  page.on("console", (msg) => {
+    if (msg.type() === "error") errors.push(`console: ${msg.text()}`);
+  });
 
   const tabs = { home: "الرئيسية", bookings: "الحجوزات", profile: "حسابي" };
   const openTab = async (key) => {
@@ -66,7 +69,11 @@ async function run() {
   await browser.close();
   server.close();
 
-  if (errors.length) console.warn("home-freeze-diag warnings:", errors.slice(0, 5));
+  if (errors.length) {
+    console.error("home-freeze-diag failed: page errors or unexpected requests");
+    for (const err of errors) console.error(err);
+    process.exit(1);
+  }
 
   const out = {
     legacy,
