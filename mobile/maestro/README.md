@@ -1,6 +1,8 @@
 # Maestro — release gate flows
 
-CI validates these files with `node qa/check-maestro-flows.mjs`. Full emulator runs need:
+**CI (every PR):** only validates YAML via `node qa/check-maestro-flows.mjs` in the main CI workflow.
+
+**Emulator runs are manual-only** — GitHub Actions workflow `Mobile Maestro (manual emulator)` (`workflow_dispatch`). They are not run on every PR because they need:
 
 - Android emulator API 34+
 - APK from `eas build` (preview or release-gate profile)
