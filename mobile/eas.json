@@ -33,6 +33,9 @@
       "autoIncrement": true,
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_DEMO_PAYMENTS_BUILD_DISABLED": "1"
       }
     }
   },

@@ -188,6 +188,15 @@ export default function ProviderProfile() {
         label={t("mobilePro.notificationPrefs")}
         onPress={() => router.push("/pro-notification-preferences")}
       />
+      <Row label={t("profile.help")} onPress={() => router.push("/help")} />
+      <Row
+        label={t("profile.terms")}
+        onPress={() => router.push({ pathname: "/content/[key]", params: { key: "terms" } })}
+      />
+      <Row
+        label={t("profile.privacy")}
+        onPress={() => router.push({ pathname: "/content/[key]", params: { key: "privacy" } })}
+      />
       <ActionError error={actionError} />
       <View style={{ gap: space.md, marginTop: space.lg }}>
         <Button

@@ -40,7 +40,11 @@ export async function completeCreateBookingResult(
     }
   }
 
-  console.error("[create_booking] post-create fetch failed", { bookingId: payload.booking_id });
+  const devLog =
+    typeof __DEV__ !== "undefined" ? __DEV__ : process.env.NODE_ENV !== "production";
+  if (devLog) {
+    console.error("[create_booking] post-create fetch failed", { bookingId: payload.booking_id });
+  }
 
   return {
     id: payload.booking_id,
