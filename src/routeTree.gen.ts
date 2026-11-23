@@ -117,7 +117,6 @@ import { Route as ApiMobilePaymobCapabilitiesRouteImport } from './routes/api.mo
 import { Route as ApiMobilePaymobCheckoutRouteImport } from './routes/api.mobile.paymob-checkout'
 import { Route as ApiSessionCapabilitiesRouteImport } from './routes/api.session.capabilities'
 import { Route as ApiSessionTokenRouteImport } from './routes/api.session.token'
-import { Route as BookingIdSessionRouteImport } from './routes/booking.$id.session'
 import { Route as PreviewAccountDeleteRouteImport } from './routes/preview.account.delete'
 import { Route as PreviewAddressesIndexRouteImport } from './routes/preview.addresses.index'
 import { Route as PreviewAddressesIdRouteImport } from './routes/preview.addresses.$id'
@@ -720,11 +719,6 @@ const ApiSessionTokenRoute = ApiSessionTokenRouteImport.update({
   path: '/api/session/token',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BookingIdSessionRoute = BookingIdSessionRouteImport.update({
-  id: '/session',
-  path: '/session',
-  getParentRoute: () => BookingIdRoute,
-} as any)
 const PreviewAccountDeleteRoute = PreviewAccountDeleteRouteImport.update({
   id: '/account/delete',
   path: '/account/delete',
@@ -1070,7 +1064,7 @@ export interface FileRoutesByFullPath {
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/set-password': typeof AuthSetPasswordRoute
   '/book/$providerId': typeof BookProviderIdRoute
-  '/booking/$id': typeof BookingIdRouteWithChildren
+  '/booking/$id': typeof BookingIdRoute
   '/category/$id': typeof CategoryIdRoute
   '/content/$key': typeof ContentKeyRoute
   '/family-members/$id': typeof FamilyMembersIdRoute
@@ -1124,7 +1118,6 @@ export interface FileRoutesByFullPath {
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
   '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
   '/api/session/token': typeof ApiSessionTokenRoute
-  '/booking/$id/session': typeof BookingIdSessionRoute
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
   '/preview/addresses/new': typeof PreviewAddressesNewRoute
@@ -1232,7 +1225,7 @@ export interface FileRoutesByTo {
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/set-password': typeof AuthSetPasswordRoute
   '/book/$providerId': typeof BookProviderIdRoute
-  '/booking/$id': typeof BookingIdRouteWithChildren
+  '/booking/$id': typeof BookingIdRoute
   '/category/$id': typeof CategoryIdRoute
   '/content/$key': typeof ContentKeyRoute
   '/family-members/$id': typeof FamilyMembersIdRoute
@@ -1283,7 +1276,6 @@ export interface FileRoutesByTo {
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
   '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
   '/api/session/token': typeof ApiSessionTokenRoute
-  '/booking/$id/session': typeof BookingIdSessionRoute
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
   '/preview/addresses/new': typeof PreviewAddressesNewRoute
@@ -1397,7 +1389,7 @@ export interface FileRoutesById {
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/set-password': typeof AuthSetPasswordRoute
   '/book/$providerId': typeof BookProviderIdRoute
-  '/booking/$id': typeof BookingIdRouteWithChildren
+  '/booking/$id': typeof BookingIdRoute
   '/category/$id': typeof CategoryIdRoute
   '/content/$key': typeof ContentKeyRoute
   '/family-members/$id': typeof FamilyMembersIdRoute
@@ -1451,7 +1443,6 @@ export interface FileRoutesById {
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
   '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
   '/api/session/token': typeof ApiSessionTokenRoute
-  '/booking/$id/session': typeof BookingIdSessionRoute
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
   '/preview/addresses/new': typeof PreviewAddressesNewRoute
@@ -1620,7 +1611,6 @@ export interface FileRouteTypes {
     | '/api/mobile/paymob-checkout'
     | '/api/session/capabilities'
     | '/api/session/token'
-    | '/booking/$id/session'
     | '/preview/account/delete'
     | '/preview/addresses/$id'
     | '/preview/addresses/new'
@@ -1779,7 +1769,6 @@ export interface FileRouteTypes {
     | '/api/mobile/paymob-checkout'
     | '/api/session/capabilities'
     | '/api/session/token'
-    | '/booking/$id/session'
     | '/preview/account/delete'
     | '/preview/addresses/$id'
     | '/preview/addresses/new'
@@ -1946,7 +1935,6 @@ export interface FileRouteTypes {
     | '/api/mobile/paymob-checkout'
     | '/api/session/capabilities'
     | '/api/session/token'
-    | '/booking/$id/session'
     | '/preview/account/delete'
     | '/preview/addresses/$id'
     | '/preview/addresses/new'
@@ -2037,7 +2025,7 @@ export interface RootRouteChildren {
   AuthForgotRoute: typeof AuthForgotRoute
   AuthSetPasswordRoute: typeof AuthSetPasswordRoute
   BookProviderIdRoute: typeof BookProviderIdRoute
-  BookingIdRoute: typeof BookingIdRouteWithChildren
+  BookingIdRoute: typeof BookingIdRoute
   CategoryIdRoute: typeof CategoryIdRoute
   ContentKeyRoute: typeof ContentKeyRoute
   PayFeesReturnRoute: typeof PayFeesReturnRoute
@@ -2817,13 +2805,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSessionTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/booking/$id/session': {
-      id: '/booking/$id/session'
-      path: '/session'
-      fullPath: '/booking/$id/session'
-      preLoaderRoute: typeof BookingIdSessionRouteImport
-      parentRoute: typeof BookingIdRoute
-    }
     '/preview/account/delete': {
       id: '/preview/account/delete'
       path: '/account/delete'
@@ -3531,18 +3512,6 @@ const ProRouteChildren: ProRouteChildren = {
 
 const ProRouteWithChildren = ProRoute._addFileChildren(ProRouteChildren)
 
-interface BookingIdRouteChildren {
-  BookingIdSessionRoute: typeof BookingIdSessionRoute
-}
-
-const BookingIdRouteChildren: BookingIdRouteChildren = {
-  BookingIdSessionRoute: BookingIdSessionRoute,
-}
-
-const BookingIdRouteWithChildren = BookingIdRoute._addFileChildren(
-  BookingIdRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
@@ -3575,7 +3544,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthForgotRoute: AuthForgotRoute,
   AuthSetPasswordRoute: AuthSetPasswordRoute,
   BookProviderIdRoute: BookProviderIdRoute,
-  BookingIdRoute: BookingIdRouteWithChildren,
+  BookingIdRoute: BookingIdRoute,
   CategoryIdRoute: CategoryIdRoute,
   ContentKeyRoute: ContentKeyRoute,
   PayFeesReturnRoute: PayFeesReturnRoute,
@@ -3599,3 +3568,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

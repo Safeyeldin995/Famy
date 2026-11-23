@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   assertOnlineBookingPrepaid,
   authorizeSessionJoin,
+  authorizeSessionJoinWithCredential,
   sessionJoinWindow,
   type SessionBookingSnapshot,
 } from "@/lib/livekit/sessionAccess";
@@ -49,6 +50,21 @@ describe("authorizeSessionJoin", () => {
       new Date("2026-11-23T14:05:00Z"),
     );
     expect(result).toEqual({ ok: false, code: "payment_required" });
+  });
+
+  it("supports future session-code credentials with the same rules", () => {
+    const result = authorizeSessionJoinWithCredential(
+      baseBooking(),
+      { kind: "session_code", userId: "c1", party: "customer" },
+      new Date("2026-11-23T14:05:00Z"),
+    );
+    expect(result).toEqual({ ok: true, party: "customer" });
+    const mismatch = authorizeSessionJoinWithCredential(
+      baseBooking(),
+      { kind: "session_code", userId: "c1", party: "provider" },
+      new Date("2026-11-23T14:05:00Z"),
+    );
+    expect(mismatch).toEqual({ ok: false, code: "not_participant" });
   });
 
   it("rejects cash-style payment for online bookings at RPC layer", () => {

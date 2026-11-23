@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { getRequestBearerUserId } from "@/lib/auth/requestAuth.server";
 import { isLiveKitConfigured } from "@/lib/livekit/config.server";
-import { authorizeSessionJoin } from "@/lib/livekit/sessionAccess";
+import { authorizeSessionJoinWithCredential } from "@/lib/livekit/sessionAccess";
+import { resolveSessionJoinCredential } from "@/lib/livekit/sessionJoinCredential.server";
 import { loadSessionBookingSnapshot } from "@/lib/livekit/sessionBooking.server";
 import { mintLiveKitSessionToken } from "@/lib/livekit/sessionToken.server";
 
@@ -25,8 +25,8 @@ export const Route = createFileRoute("/api/session/token")({
         if (!isLiveKitConfigured()) {
           return json({ ok: false, error: "livekit_unavailable" }, 503);
         }
-        const userId = await getRequestBearerUserId();
-        if (!userId) return json({ ok: false, error: "unauthorized" }, 401);
+        const credential = await resolveSessionJoinCredential(request);
+        if (!credential) return json({ ok: false, error: "unauthorized" }, 401);
 
         let parsed: z.infer<typeof BodySchema>;
         try {
@@ -43,13 +43,13 @@ export const Route = createFileRoute("/api/session/token")({
         );
         if (!booking) return json({ ok: false, error: "not_found" }, 404);
 
-        const authz = authorizeSessionJoin(booking, userId);
+        const authz = authorizeSessionJoinWithCredential(booking, credential);
         if (!authz.ok) return json({ ok: false, error: authz.code }, 403);
 
         try {
           const result = await mintLiveKitSessionToken({
             bookingId: booking.id,
-            userId,
+            userId: credential.userId,
             party: authz.party,
             displayName: parsed.displayName?.trim() || (authz.party === "customer" ? "Customer" : "Provider"),
           });

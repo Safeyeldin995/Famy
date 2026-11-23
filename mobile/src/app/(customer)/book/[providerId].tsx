@@ -118,6 +118,7 @@ import {
   supervisionModeProviderLabel,
   isSupervisionMode,
 } from "@shared/booking/supervisionMode";
+import { normalizeServiceDeliveryMode } from "@shared/online/serviceMode";
 
 type Slot = { start: Date; end: Date; label: string };
 export default function Book() {
@@ -126,12 +127,15 @@ export default function Book() {
     serviceId: initialService,
     capabilityId: initialCap,
     rebookFrom,
+    serviceMode: serviceModeParam,
   } = useLocalSearchParams<{
     providerId: string;
     serviceId?: string;
     capabilityId?: string;
     rebookFrom?: string;
+    serviceMode?: string;
   }>();
+  const serviceMode = normalizeServiceDeliveryMode(serviceModeParam);
   return (
     <BookRebookGate providerId={providerId} rebookFrom={rebookFrom}>
       {({ mountKey, rebookInitial, rebookNotices }) => (
@@ -143,6 +147,7 @@ export default function Book() {
           rebookFrom={rebookFrom}
           rebookInitial={rebookInitial}
           rebookNotices={rebookNotices}
+          serviceMode={serviceMode}
         />
       )}
     </BookRebookGate>
@@ -156,6 +161,7 @@ function BookForm({
   rebookFrom,
   rebookInitial,
   rebookNotices: rebookNoticesProp,
+  serviceMode,
 }: {
   providerId: string;
   initialService?: string;
@@ -163,13 +169,15 @@ function BookForm({
   rebookFrom?: string;
   rebookInitial: RebookFormInitial | null;
   rebookNotices: import("@shared/booking/rebookPrefill").RebookPrefillNotice[];
+  serviceMode: "in_person" | "online";
 }) {
+  const isOnlineBooking = serviceMode === "online";
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const locale = lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB";
   const [inlineForm, setInlineForm] = useState<"member" | "address" | null>(null);
   const [editing, setEditing] = useState(false);
-  const provider = useProvider(providerId);
+  const provider = useProvider(providerId, undefined, serviceMode);
   const servicesQ = useProviderServices(providerId);
   const addresses = useAddresses();
   const members = useActiveFamilyMembers();
@@ -227,7 +235,11 @@ function BookForm({
     return joinUiParts(savedAddressMobileUiParts(addr), lang);
   }, [pinned, reviewAddressId, lang]);
   const zone = useResolveZone(selectedAddress?.lat, selectedAddress?.lng);
-  const bookable = useBookableServiceIds(providerId, addressId || undefined);
+  const bookable = useBookableServiceIds(
+    providerId,
+    isOnlineBooking ? undefined : addressId || undefined,
+    serviceMode,
+  );
   const services = (servicesQ.data ?? []).filter(
     (s) => isClosedBetaCategorySlug(s.service.category?.slug) && bookable.data?.has(s.service.id),
   );
@@ -261,11 +273,11 @@ function BookForm({
       : hours * 60;
   const settings = useProviderBookingSettings(providerId, {
     serviceId: eligibilityServiceId,
-    addressId: addressId || null,
+    addressId: isOnlineBooking ? null : addressId || null,
   });
   const slots = useAvailableSlots(providerId, date, duration || 120, {
     serviceId: service?.service.id,
-    addressId: addressId || null,
+    addressId: isOnlineBooking ? null : addressId || null,
     cairoTime: fixed,
     fixedStartTime: fixed ? service?.service.fixed_start_time : null,
   });
@@ -370,7 +382,7 @@ function BookForm({
     vatPercent: billing.data?.vat_percent ?? 14,
     requirements: required,
     requirementChoices: choices,
-    travelFee: Number(zone.data?.travel_fee ?? 0),
+    travelFee: isOnlineBooking ? 0 : Number(zone.data?.travel_fee ?? 0),
     promoDiscount: applied?.discount ?? 0,
   });
   // Earlier unpaid cancellation fees are added to this booking by the server.
@@ -384,18 +396,25 @@ function BookForm({
   });
   const supervisionReady = !supervisionRequired || !!supervisionMode;
   const addressReady = checkoutAddressReady({
-    addressId: addressId || null,
+    addressId: isOnlineBooking ? null : addressId || null,
     hasPinnedAddress: !!selectedAddress,
     bookable,
     serviceId: eligibilityServiceId,
   });
   const addressOutside = checkoutAddressOutsideArea({
-    addressId: addressId || null,
+    addressId: isOnlineBooking ? null : addressId || null,
     hasPinnedAddress: !!selectedAddress,
     bookable,
     serviceId: eligibilityServiceId,
   });
-  const paymobOnline = resolvePaymobOnlinePaymentMethod(methods.data);
+  const checkoutMethods = useMemo(
+    () =>
+      isOnlineBooking
+        ? (methods.data ?? []).filter((m) => m.method_type !== "cash")
+        : (methods.data ?? []),
+    [isOnlineBooking, methods.data],
+  );
+  const paymobOnline = resolvePaymobOnlinePaymentMethod(checkoutMethods);
   const showApplePay =
     !!paymobOnline && showApplePayPaymentOption(!!paymobCaps.data?.applePay);
   const showGooglePay =
@@ -410,7 +429,7 @@ function BookForm({
     tutoring,
     capability: !!capability,
     slot: !!currentSlot && !slots.isFetching,
-    address: addressReady,
+    address: isOnlineBooking || addressReady,
     recipient: recipientReady,
     supervisionRequired,
     supervision: supervisionReady,
@@ -427,7 +446,7 @@ function BookForm({
     needsRate,
     packageRate,
     capsError: tutoring && caps.isError,
-    addressId: addressId || null,
+    addressId: isOnlineBooking ? null : addressId || null,
     serviceId: eligibilityServiceId,
   });
   const loading =
@@ -444,7 +463,7 @@ function BookForm({
     error: !!blocked,
     hasDate: true,
     hasSlots: available.length > 0,
-    hasAddress: !!addressId,
+    hasAddress: isOnlineBooking || !!addressId,
     addressOutside,
     hasRecipient: recipientReady,
     hasSupervision: supervisionReady,
@@ -499,7 +518,8 @@ function BookForm({
       const payload = buildBookingRequest({
         providerId,
         serviceId: service.service.id,
-        addressId,
+        addressId: isOnlineBooking ? null : addressId,
+        serviceMode,
         forWhom: recipient,
         start: currentSlot.start,
         end: currentSlot.end,
@@ -934,7 +954,7 @@ function BookForm({
             <CustomerBookingWhen
               providerId={providerId}
               serviceId={service?.service.id ?? ""}
-              addressId={addressId}
+              addressId={isOnlineBooking ? "" : addressId}
               service={service?.service ?? {}}
               durationMinutes={duration || 120}
               maxAdvanceDays={settings.data?.max_advance_days ?? 12}
@@ -958,35 +978,39 @@ function BookForm({
       )}
       {step === 2 && (
         <>
-          <QueryState query={addresses} empty={!pinned.length} />
-          {fieldHint?.focusId === "booking-addresses" ? (
-            <Text tone="danger">{t(fieldHint.messageKey)}</Text>
+          {!isOnlineBooking ? (
+            <>
+              <QueryState query={addresses} empty={!pinned.length} />
+              {fieldHint?.focusId === "booking-addresses" ? (
+                <Text tone="danger">{t(fieldHint.messageKey)}</Text>
+              ) : null}
+              <View nativeID="booking-addresses">
+                <Choices
+                  layout="cards"
+                  label={t("bookingUx.chooseAddress")}
+                  value={addressId}
+                  onChange={(v) => {
+                    touch("addressId");
+                    setAddressId(v);
+                    setSlot(null);
+                  }}
+                  options={pinned.map((a) => ({
+                    value: a.id,
+                    label: joinUiParts(
+                      [a.area, a.street, a.building].filter(Boolean) as string[],
+                      lang,
+                    ),
+                  }))}
+                />
+                <Button
+                  variant="secondary"
+                  label={t("addresses.addAddress")}
+                  onPress={() => setInlineForm("address")}
+                />
+              </View>
+              <QueryState query={bookable} empty={addressOutside} emptyKey="bookingUx.outsideArea" />
+            </>
           ) : null}
-          <View nativeID="booking-addresses">
-            <Choices
-              layout="cards"
-              label={t("bookingUx.chooseAddress")}
-              value={addressId}
-              onChange={(v) => {
-                touch("addressId");
-                setAddressId(v);
-                setSlot(null);
-              }}
-              options={pinned.map((a) => ({
-                value: a.id,
-                label: joinUiParts(
-                  [a.area, a.street, a.building].filter(Boolean) as string[],
-                  lang,
-                ),
-              }))}
-            />
-            <Button
-              variant="secondary"
-              label={t("addresses.addAddress")}
-              onPress={() => setInlineForm("address")}
-            />
-          </View>
-          <QueryState query={bookable} empty={addressOutside} emptyKey="bookingUx.outsideArea" />
           {!tutoring && recipientUI}
           <QueryState query={requirements} />
           {required.map((r) => (
@@ -1202,7 +1226,7 @@ function BookForm({
             value={methodId}
             onChange={setMethodId}
             options={[
-              ...(methods.data ?? []).map((m) => ({
+              ...checkoutMethods.map((m) => ({
                 value: m.id,
                 label: localized(m, lang),
                 adornment: <PaymentMethodLogos code={m.code} type={m.method_type} />,

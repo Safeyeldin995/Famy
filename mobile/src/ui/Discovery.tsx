@@ -3,6 +3,8 @@ import { memberAgeTranslation } from "@shared/familyMemberAge";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { useTranslation } from "react-i18next";
+import { useOnlineSessionsAvailable } from "@/lib/useOnlineSessionsAvailable";
+import { normalizeServiceDeliveryMode } from "@shared/online/serviceMode";
 import {
   useAddresses,
   useCategories,
@@ -50,7 +52,9 @@ export function Discovery({ category: group }: { category?: string }) {
   const [filter, setFilter] = useState("all");
   const [addressId, setAddressId] = useState("");
   const [serviceId, setServiceId] = useState("");
+  const [serviceMode, setServiceMode] = useState<"in_person" | "online">("in_person");
   const [sort, setSort] = useState("top");
+  const onlineCaps = useOnlineSessionsAvailable();
   const addresses = useAddresses();
   const categories = useCategories();
   const allServices = useMarketplaceServices(category);
@@ -67,16 +71,19 @@ export function Discovery({ category: group }: { category?: string }) {
   useEffect(() => {
     if (category && !serviceId && services.data?.[0]) setServiceId(services.data[0].id);
   }, [category, services.data, serviceId]);
+  const deliveryMode = normalizeServiceDeliveryMode(serviceMode);
   const a = useProviders({
     categorySlug: category || "babysitting",
     serviceId: serviceId || undefined,
     addressId: selectedAddress,
+    serviceMode: deliveryMode,
     limit: category ? 50 : 60,
   });
   const b = useProviders({
     categorySlug: category || "tutoring",
     serviceId: serviceId || undefined,
     addressId: selectedAddress,
+    serviceMode: deliveryMode,
     limit: category ? 50 : 60,
   });
   const members = useActiveFamilyMembers();
@@ -248,6 +255,16 @@ export function Discovery({ category: group }: { category?: string }) {
           <QueryState query={caps} />
         </QueryState>
       )}
+      {onlineCaps.data?.onlineSessions ? (
+        <CustomerChips
+          value={deliveryMode}
+          onChange={(v) => setServiceMode(v === "online" ? "online" : "in_person")}
+          options={[
+            { value: "in_person", label: t("search.deliveryInPerson") },
+            { value: "online", label: t("search.deliveryOnline") },
+          ]}
+        />
+      ) : null}
       <CustomerChips
         value={sort}
         onChange={setSort}
@@ -258,7 +275,7 @@ export function Discovery({ category: group }: { category?: string }) {
         ]}
       />
       {categories.isError ? <QueryState query={categories} /> : null}
-      {selectedAddress ? (
+      {selectedAddress || deliveryMode === "online" ? (
         <QueryState
           query={{
             isLoading: a.isLoading || b.isLoading,
@@ -278,7 +295,20 @@ export function Discovery({ category: group }: { category?: string }) {
           <View style={{ gap: space.md }}>
             {ranked.map((p) => (
               <View key={p.id} style={{ gap: space.xs }}>
-                <ProviderCard provider={p} />
+                <ProviderCard
+                  provider={p}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/provider/[id]",
+                      params:
+                        deliveryMode === "online"
+                          ? { id: p.id, serviceMode: "online" }
+                          : p.services[0]?.service?.id
+                            ? { id: p.id, serviceId: p.services[0].service.id }
+                            : { id: p.id },
+                    })
+                  }
+                />
                 {schoolTutoring &&
                 studentProfile.studentFirstName &&
                 providerMatchesStudentEducation(p.id, caps.data ?? [], {

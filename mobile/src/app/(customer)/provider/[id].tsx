@@ -33,6 +33,7 @@ import { colors, radius, space } from "@/ui/theme";
 import { useToast } from "@/ui/Toast";
 import { customerStyle } from "@/ui/customer/Primitives";
 import { ProviderBookingDecision } from "@/ui/customer/ProviderBookingDecision";
+import { normalizeServiceDeliveryMode } from "@shared/online/serviceMode";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -46,17 +47,27 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 export default function ProviderProfile() {
-  const { id, serviceId: fromServiceId } = useLocalSearchParams<{
+  const { id, serviceId: fromServiceId, serviceMode: serviceModeParam } = useLocalSearchParams<{
     id: string;
     serviceId?: string;
+    serviceMode?: string;
   }>();
+  const serviceMode = normalizeServiceDeliveryMode(serviceModeParam);
   const { t, i18n } = useTranslation();
   const ar = i18n.language === "ar";
   const address = useDefaultAddress();
-  const provider = useProvider(id, address.data?.id);
+  const provider = useProvider(
+    id,
+    serviceMode === "online" ? undefined : address.data?.id,
+    serviceMode,
+  );
   const reviews = useProviderReviews(id);
   const services = useProviderServices(id);
-  const bookable = useBookableServiceIds(id, address.data?.id);
+  const bookable = useBookableServiceIds(
+    id,
+    serviceMode === "online" ? undefined : address.data?.id,
+    serviceMode,
+  );
   const caps = useApprovedTeachingCapabilities(id);
   const availability = useProviderAvailability(id);
   const favoriteIds = useFavoriteIds();
@@ -190,8 +201,15 @@ export default function ProviderProfile() {
                   pathname: "/book/[providerId]",
                   params:
                     fromServiceId && available.some((row) => row.service.id === fromServiceId)
-                      ? { providerId: id, serviceId: fromServiceId }
-                      : { providerId: id },
+                      ? {
+                          providerId: id,
+                          serviceId: fromServiceId,
+                          ...(serviceMode === "online" ? { serviceMode: "online" } : {}),
+                        }
+                      : {
+                          providerId: id,
+                          ...(serviceMode === "online" ? { serviceMode: "online" } : {}),
+                        },
                 })
               }
             />

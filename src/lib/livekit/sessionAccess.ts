@@ -41,6 +41,24 @@ export type SessionAuthorizeResult =
   | { ok: true; party: SessionJoinParty }
   | { ok: false; code: string };
 
+export type SessionJoinCredentialInput =
+  | { kind: "authenticated"; userId: string }
+  | { kind: "session_code"; userId: string; party: SessionJoinParty };
+
+/** Maps a credential to participant authorization (shared by bearer and future session codes). */
+export function authorizeSessionJoinWithCredential(
+  booking: SessionBookingSnapshot,
+  credential: SessionJoinCredentialInput,
+  now: Date = new Date(),
+): SessionAuthorizeResult {
+  const authz = authorizeSessionJoin(booking, credential.userId, now);
+  if (!authz.ok) return authz;
+  if (credential.kind === "session_code" && authz.party !== credential.party) {
+    return { ok: false, code: "not_participant" };
+  }
+  return authz;
+}
+
 /** Pure authorization for LiveKit session token (Issue #396). */
 export function authorizeSessionJoin(
   booking: SessionBookingSnapshot,

@@ -230,16 +230,23 @@ async function safeProviderDetails(providerId: string) {
 }
 
 export function useProviders(
-  opts: { categorySlug?: string; serviceId?: string; addressId?: string; limit?: number } = {},
+  opts: {
+    categorySlug?: string;
+    serviceId?: string;
+    addressId?: string;
+    serviceMode?: "in_person" | "online";
+    limit?: number;
+  } = {},
 ) {
   return useQuery({
     queryKey: ["providers", opts],
     refetchInterval: customerMarketplaceRefetchInterval,
     refetchIntervalInBackground: false,
     queryFn: async () => {
-      const args: { p_service_id?: string; p_address_id?: string } = {};
+      const args: { p_service_id?: string; p_address_id?: string; p_service_mode?: string } = {};
       if (opts.serviceId) args.p_service_id = opts.serviceId;
-      if (opts.addressId) args.p_address_id = opts.addressId;
+      if (opts.addressId && opts.serviceMode !== "online") args.p_address_id = opts.addressId;
+      if (opts.serviceMode) args.p_service_mode = opts.serviceMode;
       const { data, error } = await supabase.rpc("search_marketplace_providers", args);
       if (error) throw error;
       return marketplaceRowsWithPackages(selectMarketplaceProviderRows(data ?? [], opts));
@@ -247,15 +254,22 @@ export function useProviders(
   });
 }
 
-export function useProvider(id: string | undefined, addressId?: string) {
+export function useProvider(
+  id: string | undefined,
+  addressId?: string,
+  serviceMode: "in_person" | "online" = "in_person",
+) {
   return useQuery({
     enabled: !!id,
-    queryKey: ["provider", id, addressId],
+    queryKey: ["provider", id, addressId, serviceMode],
     refetchInterval: customerMarketplaceRefetchInterval,
     refetchIntervalInBackground: false,
     queryFn: async () => {
-      const args: { p_provider_id: string; p_address_id?: string } = { p_provider_id: id! };
-      if (addressId) args.p_address_id = addressId;
+      const args: { p_provider_id: string; p_address_id?: string; p_service_mode?: string } = {
+        p_provider_id: id!,
+        p_service_mode: serviceMode,
+      };
+      if (addressId && serviceMode !== "online") args.p_address_id = addressId;
       const { data, error } = await supabase.rpc("marketplace_provider_details", args);
       if (error) throw error;
       return data?.[0] ? (await marketplaceRowsWithPackages([data[0]]))[0] : null;
@@ -312,15 +326,22 @@ export function useGuestProvider(id: string | undefined, zoneId: string | null |
   });
 }
 
-export function useBookableServiceIds(providerId: string | undefined, addressId?: string) {
+export function useBookableServiceIds(
+  providerId: string | undefined,
+  addressId?: string,
+  serviceMode: "in_person" | "online" = "in_person",
+) {
   return useQuery({
     enabled: !!providerId,
     // Signed-out visitors and providers get a permission error; don't retry it.
     retry: false,
-    queryKey: ["bookable-services", providerId, addressId ?? null],
+    queryKey: ["bookable-services", providerId, addressId ?? null, serviceMode],
     queryFn: async () => {
-      const args: { p_provider_id: string; p_address_id?: string } = { p_provider_id: providerId! };
-      if (addressId) args.p_address_id = addressId;
+      const args: { p_provider_id: string; p_address_id?: string; p_service_mode?: string } = {
+        p_provider_id: providerId!,
+        p_service_mode: serviceMode,
+      };
+      if (addressId && serviceMode !== "online") args.p_address_id = addressId;
       const { data, error } = await supabase.rpc("marketplace_provider_bookable_services", args);
       if (error) throw error;
       return new Map<string, number | null>(

@@ -15,6 +15,8 @@ import {
 import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useBooking, useBookingPayment, useBookingParty, useProviderServicePreparationNotes } from "@/lib/queries";
+import { useSession } from "@/lib/session";
+import { OnlineSessionJoinButton } from "@/ui/OnlineSessionJoinButton";
 import { CustomerPreparationNotesSection } from "@/ui/customer/CustomerPreparationNotesSection";
 import { chatPhaseForStatus, useConversationByBooking } from "@/lib/chatQueries";
 import { dateTime, localized, money } from "@/lib/presentation";
@@ -43,6 +45,7 @@ export default function BookingDetail() {
     educationWarning?: string;
   }>();
   const { t, i18n } = useTranslation();
+  const { session } = useSession();
   const q = useBooking(id);
   const payment = useBookingPayment(id);
   const party = useBookingParty(id);
@@ -394,6 +397,18 @@ export default function BookingDetail() {
                   ),
               )}
             </View>
+            <OnlineSessionJoinButton
+              booking={b}
+              providerProfileId={b.provider?.profile?.id}
+              viewerUserId={session?.user.id}
+              paymentStatus={payment.data?.status}
+              paymentMethodType={payment.data?.payment_method_type}
+              proofPath={payment.data?.proof_path}
+              party="customer"
+              onJoin={() =>
+                router.push({ pathname: "/booking/[id]/session", params: { id: b.id } })
+              }
+            />
             <PaymentBlock
               bookingId={id}
               status={b.status}

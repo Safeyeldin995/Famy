@@ -1,39 +1,47 @@
-import { PrimaryButton } from "@/components/famio/ui";
-import { authorizeSessionJoin, sessionJoinWindow, type SessionBookingSnapshot } from "@/lib/livekit/sessionAccess";
-import { useTranslation } from "react-i18next";
-import { useAuth } from "@/lib/auth/useAuth";
 import { useMemo } from "react";
-import { moneyHeld } from "@/lib/payments/refundOwed";
+import { useTranslation } from "react-i18next";
+import {
+  authorizeSessionJoin,
+  sessionJoinWindow,
+  type SessionBookingSnapshot,
+} from "@shared/livekit/sessionAccess";
+import { moneyHeld } from "@shared/payments/refundOwed";
+import { Button } from "./Button";
+
+type BookingLike = {
+  id: string;
+  service_mode?: string | null;
+  status: string;
+  customer_id: string;
+  start_at: string;
+  end_at: string;
+};
 
 type Props = {
-  booking: {
-    id: string;
-    service_mode?: string | null;
-    status: string;
-    customer_id: string;
-    start_at: string;
-    end_at: string;
-  };
+  booking: BookingLike;
   providerProfileId: string | undefined;
+  viewerUserId: string | undefined;
   paymentStatus?: string | null;
   paymentMethodType?: string | null;
   proofPath?: string | null;
   party: "customer" | "provider";
+  onJoin: () => void;
 };
 
 export function OnlineSessionJoinButton({
   booking,
   providerProfileId,
+  viewerUserId,
   paymentStatus,
   paymentMethodType,
   proofPath,
   party,
+  onJoin,
 }: Props) {
   const { t } = useTranslation();
-  const { user } = useAuth();
 
   const snapshot: SessionBookingSnapshot | null = useMemo(() => {
-    if (!user?.id || !providerProfileId || booking.service_mode !== "online") return null;
+    if (!viewerUserId || !providerProfileId || booking.service_mode !== "online") return null;
     return {
       id: booking.id,
       service_mode: "online",
@@ -49,12 +57,12 @@ export function OnlineSessionJoinButton({
         proofPath,
       }),
     };
-  }, [booking, paymentMethodType, paymentStatus, proofPath, providerProfileId, user?.id]);
+  }, [booking, paymentMethodType, paymentStatus, proofPath, providerProfileId, viewerUserId]);
 
   const authz = useMemo(() => {
-    if (!snapshot || !user?.id) return null;
-    return authorizeSessionJoin(snapshot, user.id);
-  }, [snapshot, user?.id]);
+    if (!snapshot || !viewerUserId) return null;
+    return authorizeSessionJoin(snapshot, viewerUserId);
+  }, [snapshot, viewerUserId]);
 
   const windowOpen = useMemo(() => {
     const start = new Date(booking.start_at);
@@ -66,10 +74,9 @@ export function OnlineSessionJoinButton({
   if (booking.service_mode !== "online" || !windowOpen || !authz?.ok) return null;
 
   return (
-    <a href={`/booking/${booking.id}/session`} className="block w-full">
-      <PrimaryButton type="button" className="w-full">
-        {party === "customer" ? t("onlineSession.joinCustomer") : t("onlineSession.joinProvider")}
-      </PrimaryButton>
-    </a>
+    <Button
+      label={party === "customer" ? t("onlineSession.joinCustomer") : t("onlineSession.joinProvider")}
+      onPress={onJoin}
+    />
   );
 }

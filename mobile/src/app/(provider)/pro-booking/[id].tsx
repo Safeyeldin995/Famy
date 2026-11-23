@@ -14,6 +14,9 @@ import {
   providerStepOpensAt,
 } from "@/lib/provider/timeWindow";
 import { useBookingParty } from "@/lib/provider/parties";
+import { useBookingPayment } from "@/lib/queries";
+import { useSession } from "@/lib/session";
+import { OnlineSessionJoinButton } from "@/ui/OnlineSessionJoinButton";
 import { useProviderBooking, useProviderUpdateBookingStatus } from "@/lib/provider/queries";
 import { localized, money, dateTime } from "@/lib/presentation";
 import { joinUiParts } from "@shared/format/uiJoin";
@@ -34,8 +37,10 @@ export default function ProBookingDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t, i18n } = useTranslation();
   const toast = useToast();
+  const { session } = useSession();
   const q = useProviderBooking(id);
   const partyQ = useBookingParty(id);
+  const paymentQ = useBookingPayment(id);
   const mut = useProviderUpdateBookingStatus();
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [dialog, setDialog] = useState<"" | "decline" | "cancel">("");
@@ -262,6 +267,27 @@ export default function ProBookingDetail() {
               <Text size="sm" tone="muted">
                 {t("pro.booking.carriedFeesNote", { amount: money(carriedFees(b), i18n.language) })}
               </Text>
+            ) : null}
+            {b && typeof b.id === "string" ? (
+              <OnlineSessionJoinButton
+                booking={{
+                  id: String(b.id),
+                  service_mode: (b.service_mode as string | null) ?? "in_person",
+                  status: String(b.status),
+                  customer_id: String(b.customer_id),
+                  start_at: String(b.start_at),
+                  end_at: String(b.end_at),
+                }}
+                providerProfileId={session?.user.id}
+                viewerUserId={session?.user.id}
+                paymentStatus={paymentQ.data?.status}
+                paymentMethodType={paymentQ.data?.payment_method_type}
+                proofPath={paymentQ.data?.proof_path}
+                party="provider"
+                onJoin={() =>
+                  router.push({ pathname: "/pro-booking/[id]/session", params: { id: String(b.id) } })
+                }
+              />
             ) : null}
             <ProviderPaymentBlock bookingId={id!} bookingStatus={status} />
             <ActionError error={mut.error} />

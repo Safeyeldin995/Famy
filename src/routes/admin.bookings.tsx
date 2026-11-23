@@ -15,6 +15,7 @@ import {
   operationDate,
 } from "@/components/admin/operations";
 import { AdminBookingReadContext } from "@/components/admin/AdminBookingReadContext";
+import { AdminOnlineSessionTimeline } from "@/components/admin/AdminOnlineSessionTimeline";
 import { AdminBookingLifecyclePanel } from "@/components/admin/AdminBookingLifecyclePanel";
 import { useLifecycleAttentionBookingIds } from "@/lib/db/admin-queries";
 import { useRescheduleRequests } from "@/lib/db/queries";
@@ -446,6 +447,7 @@ export function AdminBookings({
                       </div>
                     )}
                     <AdminBookingLifecyclePanel booking={b} />
+                    <AdminOnlineSessionTimeline bookingId={b.id} serviceMode={b.service_mode} />
                     <AdminBookingReadContext bookingId={b.id} status={b.status} />
                     <AdminRescheduleHistory bookingId={b.id} customerId={b.customer_id} />
                   </div>
