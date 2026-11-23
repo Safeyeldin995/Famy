@@ -1232,8 +1232,7 @@ const ar: Translation = {
   wallet: {
     title: "المحفظة",
     availableBalance: "المتاح: {{amount}}",
-    terms:
-      "رصيدك متاح تستخدمه في أي حجز على فامي. لا يمكن سحبه على حساب بنكي أو بطاقة.",
+    terms: "رصيدك متاح تستخدمه في أي حجز جاي على فامي",
     reason: {
       provider_cancelled: "رصيد إلغاء من مقدم الخدمة",
       customer_cancelled_refund: "رصيد إلغاء",

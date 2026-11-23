@@ -1237,8 +1237,7 @@ const en = {
   wallet: {
     title: "Wallet",
     availableBalance: "Available: {{amount}}",
-    terms:
-      "Your balance is available on any Famy booking. It cannot be withdrawn to a bank account or card.",
+    terms: "Your balance is ready to use on any upcoming Famy booking.",
     reason: {
       provider_cancelled: "Provider cancellation credit",
       customer_cancelled_refund: "Cancellation credit",
