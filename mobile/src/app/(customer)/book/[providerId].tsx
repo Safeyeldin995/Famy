@@ -119,8 +119,6 @@ import {
   isSupervisionMode,
 } from "@shared/booking/supervisionMode";
 import { normalizeServiceDeliveryMode } from "@shared/online/serviceMode";
-import { requiresOnlineGuardianConsent } from "@shared/online/guardianConsent";
-
 type Slot = { start: Date; end: Date; label: string };
 export default function Book() {
   const {
@@ -222,7 +220,6 @@ function BookForm({
   );
   const [level, setLevel] = useState(rebookInitial?.education.educationLevelId ?? "");
   const [saveSchool, setSaveSchool] = useState(false);
-  const [onlineGuardianConsent, setOnlineGuardianConsent] = useState(false);
   const idempotency = useRef<IdempotencyKeyState | null>(null);
   const submitting = useRef(false);
   const userDate = useRef(false);
@@ -390,13 +387,6 @@ function BookForm({
   // Earlier unpaid cancellation fees are added to this booking by the server.
   const carriedFees = feeDebts.data?.total ?? 0;
   const amountDue = quote.total + carriedFees;
-  const selectedMember = members.data?.find((m) => m.id === recipient);
-  const needsOnlineGuardianConsent = requiresOnlineGuardianConsent({
-    serviceMode,
-    forWhom: recipient,
-    familyMemberDateOfBirth: selectedMember?.date_of_birth,
-  });
-  const guardianConsentReady = !needsOnlineGuardianConsent || onlineGuardianConsent;
   const recipientReady = canContinueForWhom({
     isBabysitting: babysitting,
     forWhom: recipient,
@@ -443,7 +433,7 @@ function BookForm({
     supervisionRequired,
     supervision: supervisionReady,
     requirements: requirements.isSuccess && either.every((r) => !!choices[r.id]),
-    payment: paymentMethodReady && guardianConsentReady,
+    payment: paymentMethodReady,
   });
   const blocked = checkoutContinueBlocked({
     servicesError: servicesQ.isError,
@@ -549,7 +539,6 @@ function BookForm({
       const booking = await create.mutateAsync({
         ...payload,
         idempotency_key: idempotency.current.key,
-        online_guardian_consent: needsOnlineGuardianConsent,
       });
       createdId.current = booking.id;
       const walletChannel = paymobChannelForUiMethodId(methodId);
@@ -1228,19 +1217,6 @@ function BookForm({
               applied={applied}
               onApplied={setApplied}
             />
-          ) : null}
-          {needsOnlineGuardianConsent ? (
-            <Pressable
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: onlineGuardianConsent }}
-              onPress={() => setOnlineGuardianConsent((v) => !v)}
-              style={[ui.card, { minHeight: 44, borderColor: onlineGuardianConsent ? colors.brand : colors.border }]}
-            >
-              <Text weight="bold">{t("onlineSession.guardianConsentTitle")}</Text>
-              <Text size="sm" tone="muted">
-                {t("onlineSession.guardianConsentBody")}
-              </Text>
-            </Pressable>
           ) : null}
           <QueryState query={methods} empty={!methods.data?.length} />
           <Choices
