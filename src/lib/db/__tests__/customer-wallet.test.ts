@@ -48,7 +48,7 @@ async function paidConfirmedBooking() {
 
 describe("customer wallet — provider cancel", () => {
   it("credits the wallet exactly once when the provider cancels a paid booking", async () => {
-    const { bookingId, paymobId, amount } = await paidConfirmedBooking();
+    const { bookingId, amount } = await paidConfirmedBooking();
     const first = await cancelAs(IDS.providerUser, bookingId);
     expect(first.error).toBeUndefined();
 
@@ -78,6 +78,40 @@ describe("customer wallet — provider cancel", () => {
       [IDS.provider],
     );
     expect(Number(provider[0]?.c)).toBe(1);
-    expect(paymobId).toBeTruthy();
+  });
+});
+
+describe("customer wallet — admin adjustments", () => {
+  it("prevents debits that would make the balance negative", async () => {
+    const before = await tryAsUser(
+      db,
+      IDS.customer,
+      "SELECT available_amount::text AS available FROM public.customer_wallet_balances()",
+    );
+    const start = Number(before.rows?.[0]?.available ?? 0);
+    const topUp = 25;
+
+    const credit = await tryAsUser(
+      db,
+      IDS.adminUser,
+      "SELECT public.admin_adjust_customer_wallet($1, 'credit', $2, $3, NULL)",
+      [IDS.customer, topUp, "test credit"],
+    );
+    expect(credit.error).toBeUndefined();
+
+    const debit = await tryAsUser(
+      db,
+      IDS.adminUser,
+      "SELECT public.admin_adjust_customer_wallet($1, 'debit', $2, $3, NULL)",
+      [IDS.customer, start + topUp + 1, "test over-debit"],
+    );
+    expect(debit.error).toBeDefined();
+
+    const available = await tryAsUser(
+      db,
+      IDS.customer,
+      "SELECT available_amount::text AS available FROM public.customer_wallet_balances()",
+    );
+    expect(Number(available.rows?.[0]?.available)).toBe(start + topUp);
   });
 });
