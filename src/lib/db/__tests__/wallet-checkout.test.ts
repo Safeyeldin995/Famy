@@ -7,6 +7,7 @@ import {
   queryRows,
   seedLifecycleBooking,
   seedPaymentsForBooking,
+  cancellationReasonFor,
   tryAsUser,
 } from "./booking-lifecycle.harness";
 
@@ -71,6 +72,65 @@ describe("customer_apply_wallet_at_checkout", () => {
     );
     expect(debits[0]?.count).toBe("1");
   });
+
+  it("restore_customer_wallet_checkout_debit credits back a pending Paymob wallet spend", async () => {
+    const { bookingId } = await seedLifecycleBooking(db, { status: "confirmed" });
+    const { paymobId } = await seedPaymentsForBooking(db, bookingId);
+    await tryAsUser(
+      db,
+      IDS.adminUser,
+      "SELECT public.admin_adjust_customer_wallet($1, 'credit', 40, 'test top-up', NULL)",
+      [IDS.customer],
+    );
+    const applied = await tryAsUser(
+      db,
+      IDS.customer,
+      "SELECT public.customer_apply_wallet_at_checkout($1::uuid)",
+      [paymobId],
+    );
+    expect(applied.error).toBeUndefined();
+    const restored = await asServiceRole(db, () =>
+      db.query(`SELECT public.restore_customer_wallet_checkout_debit($1::uuid)`, [bookingId]),
+    );
+    expect(restored).toBeDefined();
+    const release = await queryRows<{ count: string }>(
+      db,
+      `SELECT count(*)::text AS count FROM public.customer_wallet_entries
+       WHERE idempotency_key = $1`,
+      [`checkout_release:${paymobId}`],
+    );
+    expect(release[0]?.count).toBe("1");
+  });
+
+  it("customer cancel releases wallet debit when checkout stays pending", async () => {
+    const { bookingId } = await seedLifecycleBooking(db, { status: "confirmed" });
+    const { paymobId } = await seedPaymentsForBooking(db, bookingId);
+    await tryAsUser(
+      db,
+      IDS.adminUser,
+      "SELECT public.admin_adjust_customer_wallet($1, 'credit', 40, 'test top-up', NULL)",
+      [IDS.customer],
+    );
+    await tryAsUser(
+      db,
+      IDS.customer,
+      "SELECT public.customer_apply_wallet_at_checkout($1::uuid)",
+      [paymobId],
+    );
+    const customerReason = await cancellationReasonFor(db, "customer", ["confirmed"]);
+    const cancel = await tryAsUser(db, IDS.customer, "SELECT public.cancel_booking($1, $2, NULL)", [
+      bookingId,
+      customerReason,
+    ]);
+    expect(cancel.error).toBeUndefined();
+    const release = await queryRows<{ count: string }>(
+      db,
+      `SELECT count(*)::text AS count FROM public.customer_wallet_entries
+       WHERE idempotency_key = $1`,
+      [`checkout_release:${paymobId}`],
+    );
+    expect(release[0]?.count).toBe("1");
+  });
 });
 
 describe("provider payout hold after lesson report", () => {
@@ -95,13 +155,20 @@ describe("provider payout hold after lesson report", () => {
         $1, $2, 'online_provider_share', 'credit', 120, 'online', NULL, $3, NULL)`,
       [IDS.provider, bookingId, IDS.adminUser],
     );
-    const creditAmount = 120;
+
+    await tryAsUser(
+      db,
+      IDS.adminUser,
+      `SELECT public.ledger_insert_entry(
+        $1, $2, 'adjustment', 'debit', 120, NULL, $3, $4, NULL)`,
+      [IDS.provider, bookingId, `lesson_report_hold:${bookingId}`, IDS.adminUser],
+    );
 
     const over = await tryAsUser(
       db,
       IDS.adminUser,
       "SELECT public.admin_record_provider_payout($1, $2, 'TR-HOLD', 'payout')",
-      [IDS.provider, creditAmount],
+      [IDS.provider, 120],
     );
     expect(over.ok).toBe(false);
   });

@@ -81,14 +81,17 @@ export function OnlineLessonPaymentPanel({ bookingId, total, onPaid }: Props) {
         await clearPayment(bookingId);
       }
       const { data: walletResult, error: walletErr } = await supabase.rpc(
-        "apply_customer_wallet_to_booking_payment",
+        "customer_apply_wallet_at_checkout",
         { p_payment_id: paymentId },
       );
       if (walletErr) throw walletErr;
+      const payload =
+        walletResult && typeof walletResult === "object"
+          ? (walletResult as { paid_via_wallet_only?: boolean; card_amount?: number })
+          : null;
       const captured =
-        walletResult &&
-        typeof walletResult === "object" &&
-        (walletResult as { captured?: boolean }).captured === true;
+        payload?.paid_via_wallet_only === true ||
+        (payload?.card_amount != null && Number(payload.card_amount) <= 0.01);
       if (captured) {
         await paymentQ.refetch();
         onPaid();
