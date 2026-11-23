@@ -15,7 +15,7 @@ export function useAdminOnlineSessionReviews(status: "open" | "resolved" | "dism
     queryKey: ["admin", "online-session-reviews", status],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("online_session_reviews")
+        .from("online_session_admin_reviews")
         .select("id, booking_id, reason, overlap_minutes, status, created_at")
         .eq("status", status)
         .order("created_at", { ascending: false })

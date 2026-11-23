@@ -29,21 +29,29 @@ export function createLiveKitWebhookReceiver(): WebhookReceiver {
   return new WebhookReceiver(apiKey, apiSecret);
 }
 
-export async function recordLiveKitWebhookDedup(
+async function recordWebhookDedup(
   supabaseAdmin: SupabaseAdminClient,
-  payload: LiveKitWebhookPayload,
-  bookingId: string | null,
+  input: {
+    eventId: string;
+    bookingId: string;
+    eventType: string;
+    participant: "customer" | "provider" | null;
+    eventAt: Date;
+  },
 ): Promise<boolean> {
   const db = supabaseAdmin as any;
-  if (!payload.id) return true;
-  const { error } = await db.from("livekit_webhook_events").insert({
-    event_id: payload.id,
-    event_type: payload.event,
-    booking_id: bookingId,
+  const { error } = await db.from("session_livekit_webhook_events").insert({
+    id: input.eventId,
+    booking_id: input.bookingId,
+    event_type: input.eventType,
+    participant: input.participant,
+    event_at: input.eventAt.toISOString(),
   });
-  if (!error) return true;
-  if (error.code === "23505") return false;
-  throw error;
+  if (error) {
+    if (error.code === "23505") return false;
+    throw error;
+  }
+  return true;
 }
 
 export async function applyLiveKitWebhookEvent(
@@ -56,17 +64,19 @@ export async function applyLiveKitWebhookEvent(
   const participant = parseParticipant(payload.participant?.identity);
   if (!bookingId || !participant) return;
 
-  const isNew = await recordLiveKitWebhookDedup(supabaseAdmin, payload, bookingId);
-  if (!isNew) return;
+  const eventId = payload.id?.trim();
+  if (eventId) {
+    const isNew = await recordWebhookDedup(supabaseAdmin, {
+      eventId,
+      bookingId,
+      eventType: payload.event,
+      participant,
+      eventAt,
+    });
+    if (!isNew) return;
+  }
 
   if (payload.event === "participant_joined") {
-    await db
-      .from("session_events")
-      .update({ left_at: eventAt.toISOString() })
-      .eq("booking_id", bookingId)
-      .eq("participant", participant)
-      .is("left_at", null);
-
     const { error } = await db.from("session_events").insert({
       booking_id: bookingId,
       participant,
@@ -79,7 +89,7 @@ export async function applyLiveKitWebhookEvent(
   if (payload.event === "participant_left") {
     const { data: open, error: selErr } = await db
       .from("session_events")
-      .select("id")
+      .select("id, joined_at")
       .eq("booking_id", bookingId)
       .eq("participant", participant)
       .is("left_at", null)
@@ -87,7 +97,26 @@ export async function applyLiveKitWebhookEvent(
       .limit(1)
       .maybeSingle();
     if (selErr) throw selErr;
-    if (!open) return;
+    if (!open) {
+      const { error } = await db.from("session_events").insert({
+        booking_id: bookingId,
+        participant,
+        joined_at: eventAt.toISOString(),
+        left_at: eventAt.toISOString(),
+      });
+      if (error) throw error;
+      return;
+    }
+    if (new Date(open.joined_at) > eventAt) {
+      const { error } = await db.from("session_events").insert({
+        booking_id: bookingId,
+        participant,
+        joined_at: eventAt.toISOString(),
+        left_at: eventAt.toISOString(),
+      });
+      if (error) throw error;
+      return;
+    }
     const { error } = await db
       .from("session_events")
       .update({ left_at: eventAt.toISOString() })

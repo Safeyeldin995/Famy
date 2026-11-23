@@ -1,15 +1,15 @@
-import { useEffect, useState } from "react";
-import { View, StyleSheet } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { View, StyleSheet, Pressable } from "react-native";
 import {
   AudioSession,
   LiveKitRoom,
   VideoTrack,
   registerGlobals,
-  useTracks,
   useLocalParticipant,
   useRoomContext,
+  useTracks,
 } from "@livekit/react-native";
-import { Track, ConnectionState } from "livekit-client";
+import { ConnectionQuality, Track } from "livekit-client";
 import { useTranslation } from "react-i18next";
 import { Text } from "./Text";
 import { Button } from "./Button";
@@ -23,7 +23,7 @@ function SessionVideoTiles({ audioOnly }: { audioOnly: boolean }) {
   if (audioOnly) {
     return (
       <View style={styles.centered}>
-        <Text>{/* audio-only session */}</Text>
+        <Text tone="muted">{/* audio-only fallback active */}</Text>
       </View>
     );
   }
@@ -43,123 +43,112 @@ function SessionVideoTiles({ audioOnly }: { audioOnly: boolean }) {
   );
 }
 
-function SessionControls({
-  audioOnly,
+function SessionCallControls({
   bookingId,
   party,
+  audioOnly,
+  setAudioOnly,
   onLeave,
 }: {
-  audioOnly: boolean;
   bookingId: string;
-  party: "customer" | "provider";
+  party?: "customer" | "provider";
+  audioOnly: boolean;
+  setAudioOnly: (v: boolean) => void;
   onLeave: () => void;
 }) {
   const { t } = useTranslation();
-  const { localParticipant } = useLocalParticipant();
   const room = useRoomContext();
-  const [muted, setMuted] = useState(false);
-  const [cameraOff, setCameraOff] = useState(audioOnly);
-  const [reconnecting, setReconnecting] = useState(false);
+  const { localParticipant } = useLocalParticipant();
+  const [micEnabled, setMicEnabled] = useState(true);
+  const [camEnabled, setCamEnabled] = useState(true);
+  const [reporting, setReporting] = useState(false);
 
   useEffect(() => {
-    const onState = (state: ConnectionState) => setReconnecting(state === ConnectionState.Reconnecting);
-    room.on("connectionStateChanged", onState);
-    return () => {
-      room.off("connectionStateChanged", onState);
+    const onQuality = () => {
+      const quality = localParticipant.connectionQuality;
+      if (quality === ConnectionQuality.Poor || quality === ConnectionQuality.Lost) {
+        setAudioOnly(true);
+        void localParticipant.setCameraEnabled(false);
+        setCamEnabled(false);
+      }
     };
-  }, [room]);
+    localParticipant.on("connectionQualityChanged", onQuality);
+    return () => {
+      localParticipant.off("connectionQualityChanged", onQuality);
+    };
+  }, [localParticipant, setAudioOnly]);
 
-  const toggleMute = async () => {
-    const next = !muted;
-    await localParticipant.setMicrophoneEnabled(!next);
-    setMuted(next);
-  };
+  const toggleMic = useCallback(async () => {
+    const next = !micEnabled;
+    await localParticipant.setMicrophoneEnabled(next);
+    setMicEnabled(next);
+  }, [localParticipant, micEnabled]);
 
-  const toggleCamera = async () => {
-    const next = !cameraOff;
-    await localParticipant.setCameraEnabled(!next);
-    setCameraOff(next);
-  };
+  const toggleCam = useCallback(async () => {
+    const next = !camEnabled;
+    await localParticipant.setCameraEnabled(next);
+    setCamEnabled(next);
+    if (next) setAudioOnly(false);
+  }, [camEnabled, localParticipant, setAudioOnly]);
 
-  const reportAndLeave = async () => {
-    await reportOnlineSessionAndLeave({
-      bookingId,
-      description: t("onlineSession.reportDefaultBody"),
-    });
-    room.disconnect(true);
+  const flipCamera = useCallback(async () => {
+    const pub = localParticipant.getTrackPublication(Track.Source.Camera);
+    const track = pub?.videoTrack as { switchCamera?: () => Promise<void> } | undefined;
+    if (track?.switchCamera) await track.switchCamera();
+  }, [localParticipant]);
+
+  const reportAndLeave = useCallback(async () => {
+    setReporting(true);
+    await reportOnlineSessionAndLeave({ bookingId });
+    room.disconnect();
     onLeave();
-  };
+  }, [bookingId, onLeave, room]);
 
   return (
     <View style={styles.controls}>
-      {reconnecting ? <Text size="sm">{t("onlineSession.reconnecting")}</Text> : null}
-      <View style={styles.controlRow}>
-        <Button
-          variant="secondary"
-          label={muted ? t("onlineSession.unmute") : t("onlineSession.mute")}
-          onPress={toggleMute}
-        />
-        {!audioOnly ? (
-          <Button
-            variant="secondary"
-            label={cameraOff ? t("onlineSession.cameraOn") : t("onlineSession.cameraOff")}
-            onPress={toggleCamera}
-          />
-        ) : null}
-        {party === "provider" ? (
-          <Button
-            variant="secondary"
-            label={t("onlineSession.screenShare")}
-            onPress={() => localParticipant.setScreenShareEnabled(true)}
-          />
-        ) : null}
-      </View>
-      <Button label={t("onlineSession.reportAndLeave")} onPress={reportAndLeave} />
-      <Button variant="secondary" label={t("onlineSession.leave")} onPress={() => room.disconnect(true)} />
-    </View>
-  );
-}
-
-function SessionRoomInner({
-  audioOnly,
-  bookingId,
-  party,
-  onLeave,
-}: {
-  audioOnly: boolean;
-  bookingId: string;
-  party: "customer" | "provider";
-  onLeave: () => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <View style={styles.wrap}>
-      <Text size="lg" weight="bold">
-        {t("onlineSession.title")}
-      </Text>
-      <SessionVideoTiles audioOnly={audioOnly} />
-      <SessionControls audioOnly={audioOnly} bookingId={bookingId} party={party} onLeave={onLeave} />
+      <Pressable style={styles.controlBtn} onPress={toggleMic} accessibilityRole="button">
+        <Text>{micEnabled ? t("onlineSession.unmute") : t("onlineSession.mute")}</Text>
+      </Pressable>
+      <Pressable style={styles.controlBtn} onPress={toggleCam} accessibilityRole="button">
+        <Text>{camEnabled ? t("onlineSession.cameraOn") : t("onlineSession.cameraOff")}</Text>
+      </Pressable>
+      <Pressable style={styles.controlBtn} onPress={flipCamera} accessibilityRole="button">
+        <Text>{t("onlineSession.flipCamera")}</Text>
+      </Pressable>
+      {party === "provider" ? (
+        <Pressable
+          style={styles.controlBtn}
+          onPress={() => void localParticipant.setScreenShareEnabled(true)}
+          accessibilityRole="button"
+        >
+          <Text>{t("onlineSession.screenShare")}</Text>
+        </Pressable>
+      ) : null}
+      <Pressable
+        style={[styles.controlBtn, styles.reportBtn]}
+        onPress={reportAndLeave}
+        disabled={reporting}
+        accessibilityRole="button"
+      >
+        <Text tone="danger">{t("onlineSession.reportAndLeave")}</Text>
+      </Pressable>
+      <Button label={t("onlineSession.leave")} variant="secondary" onPress={() => room.disconnect()} />
     </View>
   );
 }
 
 type Props = {
+  bookingId: string;
   token: string;
   serverUrl: string;
-  bookingId: string;
-  party: "customer" | "provider";
-  audioOnly?: boolean;
+  party?: "customer" | "provider";
   onLeave: () => void;
 };
 
-export function OnlineSessionRoom({
-  token,
-  serverUrl,
-  bookingId,
-  party,
-  audioOnly = false,
-  onLeave,
-}: Props) {
+export function OnlineSessionRoom({ bookingId, token, serverUrl, party, onLeave }: Props) {
+  const { t } = useTranslation();
+  const [audioOnly, setAudioOnly] = useState(false);
+
   useEffect(() => {
     if (!registered) {
       registerGlobals();
@@ -178,15 +167,29 @@ export function OnlineSessionRoom({
       connect
       audio
       video={!audioOnly}
+      options={{
+        adaptiveStream: true,
+        dynacast: true,
+        publishDefaults: {
+          simulcast: true,
+          videoEncoding: { maxBitrate: 900_000, maxFramerate: 30 },
+        },
+      }}
       onDisconnected={onLeave}
-      options={{ adaptiveStream: true, dynacast: true }}
     >
-      <SessionRoomInner
-        audioOnly={audioOnly}
-        bookingId={bookingId}
-        party={party}
-        onLeave={onLeave}
-      />
+      <View style={styles.wrap}>
+        <Text size="lg" weight="bold">
+          {t("onlineSession.title")}
+        </Text>
+        <SessionVideoTiles audioOnly={audioOnly} />
+        <SessionCallControls
+          bookingId={bookingId}
+          party={party}
+          audioOnly={audioOnly}
+          setAudioOnly={setAudioOnly}
+          onLeave={onLeave}
+        />
+      </View>
     </LiveKitRoom>
   );
 }
@@ -203,5 +206,13 @@ const styles = StyleSheet.create({
   },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
   controls: { gap: space.sm },
-  controlRow: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
+  controlBtn: {
+    minHeight: 44,
+    justifyContent: "center",
+    paddingHorizontal: space.md,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  reportBtn: { borderColor: colors.destructive },
 });

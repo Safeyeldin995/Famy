@@ -1,32 +1,119 @@
-import { View } from "react-native";
+import { useEffect, useState } from "react";
+import { View, StyleSheet, Linking, Platform } from "react-native";
 import { useTranslation } from "react-i18next";
-import { Button } from "./Button";
 import { Text } from "./Text";
+import { Button } from "./Button";
 import { space } from "./theme";
+import { appConfig } from "@/lib/supabase";
 
 type Props = {
-  onReady: (opts: { audioOnly: boolean }) => void;
+  onReady: () => void;
   onCancel: () => void;
 };
 
-/** Mic/camera permissions are requested by LiveKit when the room connects. */
 export function OnlineSessionPreJoin({ onReady, onCancel }: Props) {
   const { t } = useTranslation();
+  const [micReady, setMicReady] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [networkOk, setNetworkOk] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${appConfig.webOrigin.replace(/\/$/, "")}/api/session/capabilities`, {
+      method: "GET",
+      headers: { "Cache-Control": "no-store" },
+    })
+      .then((r) => {
+        if (!cancelled) setNetworkOk(r.ok);
+      })
+      .catch(() => {
+        if (!cancelled) setNetworkOk(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const ready = micReady && cameraReady && networkOk === true;
+
+  const openSettings = () => {
+    if (Platform.OS === "ios") void Linking.openURL("app-settings:");
+    else void Linking.openSettings();
+  };
 
   return (
-    <View style={{ gap: space.md, paddingVertical: space.md }}>
-      <Text weight="bold">{t("onlineSession.preJoinTitle")}</Text>
-      <Text tone="muted">{t("onlineSession.preJoinBody")}</Text>
-      <Button
-        label={t("onlineSession.joinCustomer")}
-        onPress={() => onReady({ audioOnly: false })}
+    <View style={styles.wrap}>
+      <Text size="lg" weight="bold">
+        {t("onlineSession.preJoinTitle")}
+      </Text>
+      <Text tone="muted">{t("onlineSession.preJoinHint")}</Text>
+      <CheckRow
+        ok={micReady}
+        label={t("onlineSession.preJoinMic")}
+        actionLabel={t("onlineSession.preJoinConfirmReady")}
+        onAction={() => setMicReady(true)}
+        settingsLabel={t("onlineSession.preJoinOpenSettings")}
+        onSettings={openSettings}
       />
-      <Button
-        variant="secondary"
-        label={t("onlineSession.audioOnlyFallback")}
-        onPress={() => onReady({ audioOnly: true })}
+      <CheckRow
+        ok={cameraReady}
+        label={t("onlineSession.preJoinCamera")}
+        actionLabel={t("onlineSession.preJoinConfirmReady")}
+        onAction={() => setCameraReady(true)}
+        settingsLabel={t("onlineSession.preJoinOpenSettings")}
+        onSettings={openSettings}
       />
-      <Button variant="secondary" label={t("common.cancel")} onPress={onCancel} />
+      <CheckRow
+        ok={networkOk === true}
+        label={t("onlineSession.preJoinNetwork")}
+        pending={networkOk === null}
+      />
+      <View style={styles.actions}>
+        <Button label={t("onlineSession.preJoinContinue")} disabled={!ready} onPress={onReady} />
+        <Button label={t("onlineSession.preJoinBack")} variant="secondary" onPress={onCancel} />
+      </View>
     </View>
   );
 }
+
+function CheckRow({
+  label,
+  ok,
+  pending,
+  actionLabel,
+  onAction,
+  settingsLabel,
+  onSettings,
+}: {
+  label: string;
+  ok?: boolean;
+  pending?: boolean;
+  actionLabel?: string;
+  onAction?: () => void;
+  settingsLabel?: string;
+  onSettings?: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <View style={styles.row}>
+      <Text>
+        {label} {pending ? t("onlineSession.preJoinChecking") : ok ? "✓" : "…"}
+      </Text>
+      {!ok && !pending && onAction && actionLabel ? (
+        <View style={styles.rowActions}>
+          <Button label={actionLabel} variant="secondary" onPress={onAction} />
+          {onSettings && settingsLabel ? (
+            <Button label={settingsLabel} variant="secondary" onPress={onSettings} />
+          ) : null}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  wrap: { gap: space.md, paddingVertical: space.md },
+  row: { gap: space.sm },
+  rowActions: { gap: space.sm },
+  actions: { gap: space.sm, marginTop: space.md },
+});

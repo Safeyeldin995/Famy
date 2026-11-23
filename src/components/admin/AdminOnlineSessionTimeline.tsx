@@ -5,9 +5,15 @@ import { operationDate } from "@/components/admin/operations";
 export function AdminOnlineSessionTimeline({
   bookingId,
   serviceMode,
+  guardianConsentAt,
+  sessionOutcome,
+  participantMinutes,
 }: {
   bookingId: string;
   serviceMode?: string | null;
+  guardianConsentAt?: string | null;
+  sessionOutcome?: string | null;
+  participantMinutes?: number | null;
 }) {
   const { t, i18n } = useTranslation();
   const eventsQ = useAdminSessionEvents(serviceMode === "online" ? bookingId : undefined);
@@ -35,6 +41,21 @@ export function AdminOnlineSessionTimeline({
       <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
         {t("admin.bookings.sessionTimeline")}
       </p>
+      {guardianConsentAt ? (
+        <p>
+          <span className="text-muted-foreground">{t("admin.bookings.guardianConsent")}:</span>{" "}
+          {operationDate(guardianConsentAt, i18n.language)}
+        </p>
+      ) : null}
+      {sessionOutcome ? (
+        <p>
+          <span className="text-muted-foreground">{t("admin.bookings.sessionOutcome")}:</span>{" "}
+          {t(`admin.bookings.sessionOutcomes.${sessionOutcome}`, { defaultValue: sessionOutcome })}
+          {participantMinutes != null
+            ? ` · ${t("admin.bookings.participantMinutes", { count: participantMinutes })}`
+            : ""}
+        </p>
+      ) : null}
       <ul className="space-y-1">
         {rows.map((ev) => (
           <li key={ev.id} className="flex flex-wrap gap-x-2 gap-y-0.5">

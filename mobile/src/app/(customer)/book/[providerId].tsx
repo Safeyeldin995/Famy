@@ -1,6 +1,6 @@
 import { CustomerPreparationNotesSection } from "@/ui/customer/CustomerPreparationNotesSection";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
-import { memberAgeFromDate, memberAgeTranslation } from "@shared/familyMemberAge";
+import { memberAgeTranslation } from "@shared/familyMemberAge";
 import { CustomerBookingWhen } from "@/ui/customer/BookingWhen";
 import { bookingScreenPrimaryCtaKey } from "@shared/booking/bookingStepCta";
 import { bookingFieldHintForStep, type BookingFieldHint } from "@shared/booking/bookingFieldHints";
@@ -119,6 +119,7 @@ import {
   isSupervisionMode,
 } from "@shared/booking/supervisionMode";
 import { normalizeServiceDeliveryMode } from "@shared/online/serviceMode";
+import { requiresOnlineGuardianConsent } from "@shared/online/guardianConsent";
 
 type Slot = { start: Date; end: Date; label: string };
 export default function Book() {
@@ -207,7 +208,6 @@ function BookForm({
   );
   const [notes, setNotes] = useState(rebookInitial?.notes ?? "");
   const [methodId, setMethodId] = useState("");
-  const [guardianConsent, setGuardianConsent] = useState(false);
   const [choices, setChoices] = useState<Record<string, "customer" | "provider">>(
     rebookInitial?.requirementChoices ?? {},
   );
@@ -222,6 +222,7 @@ function BookForm({
   );
   const [level, setLevel] = useState(rebookInitial?.education.educationLevelId ?? "");
   const [saveSchool, setSaveSchool] = useState(false);
+  const [onlineGuardianConsent, setOnlineGuardianConsent] = useState(false);
   const idempotency = useRef<IdempotencyKeyState | null>(null);
   const submitting = useRef(false);
   const userDate = useRef(false);
@@ -372,13 +373,6 @@ function BookForm({
     slot && available.some((s) => +s.start === +slot.start && +s.end === +slot.end) ? slot : null;
   const { session } = useSession();
   const feeDebts = useMyFeeDebts(session?.user.id);
-  const needsGuardianConsent = useMemo(() => {
-    if (!isOnlineBooking || recipient === "myself") return false;
-    const member = members.data?.find((m) => m.id === recipient);
-    if (!member?.date_of_birth) return false;
-    const age = memberAgeFromDate(member.date_of_birth);
-    return !!age && age.years < 18;
-  }, [isOnlineBooking, recipient, members.data]);
   const quote = buildBookingQuote({
     service: service?.service,
     rate: Number(
@@ -396,6 +390,13 @@ function BookForm({
   // Earlier unpaid cancellation fees are added to this booking by the server.
   const carriedFees = feeDebts.data?.total ?? 0;
   const amountDue = quote.total + carriedFees;
+  const selectedMember = members.data?.find((m) => m.id === recipient);
+  const needsOnlineGuardianConsent = requiresOnlineGuardianConsent({
+    serviceMode,
+    forWhom: recipient,
+    familyMemberDateOfBirth: selectedMember?.date_of_birth,
+  });
+  const guardianConsentReady = !needsOnlineGuardianConsent || onlineGuardianConsent;
   const recipientReady = canContinueForWhom({
     isBabysitting: babysitting,
     forWhom: recipient,
@@ -442,7 +443,7 @@ function BookForm({
     supervisionRequired,
     supervision: supervisionReady,
     requirements: requirements.isSuccess && either.every((r) => !!choices[r.id]),
-    payment: paymentMethodReady,
+    payment: paymentMethodReady && guardianConsentReady,
   });
   const blocked = checkoutContinueBlocked({
     servicesError: servicesQ.isError,
@@ -480,10 +481,6 @@ function BookForm({
   });
   async function submit() {
     if (submitting.current || missing || blocked || !service || !currentSlot) return;
-    if (needsGuardianConsent && !guardianConsent) {
-      setError(t("onlineSession.guardianConsentLabel"));
-      return;
-    }
     submitting.current = true;
     setBusy(true);
     setError("");
@@ -552,7 +549,7 @@ function BookForm({
       const booking = await create.mutateAsync({
         ...payload,
         idempotency_key: idempotency.current.key,
-        guardian_consent: needsGuardianConsent ? guardianConsent : undefined,
+        online_guardian_consent: needsOnlineGuardianConsent,
       });
       createdId.current = booking.id;
       const walletChannel = paymobChannelForUiMethodId(methodId);
@@ -1148,32 +1145,6 @@ function BookForm({
               </View>
             ))}
           </View>
-          {needsGuardianConsent ? (
-            <Pressable
-              onPress={() => setGuardianConsent((v) => !v)}
-              style={{
-                flexDirection: "row",
-                alignItems: "flex-start",
-                gap: space.sm,
-                padding: space.md,
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: guardianConsent ? colors.brand : colors.border,
-              }}
-            >
-              <View
-                style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: 6,
-                  borderWidth: 2,
-                  borderColor: colors.brand,
-                  backgroundColor: guardianConsent ? colors.brand : "transparent",
-                }}
-              />
-              <Text style={{ flex: 1 }}>{t("onlineSession.guardianConsentLabel")}</Text>
-            </Pressable>
-          ) : null}
           <CustomerPreparationNotesSection notes={service?.preparation_notes} />
           <View
             style={{
@@ -1257,6 +1228,19 @@ function BookForm({
               applied={applied}
               onApplied={setApplied}
             />
+          ) : null}
+          {needsOnlineGuardianConsent ? (
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: onlineGuardianConsent }}
+              onPress={() => setOnlineGuardianConsent((v) => !v)}
+              style={[ui.card, { minHeight: 44, borderColor: onlineGuardianConsent ? colors.brand : colors.border }]}
+            >
+              <Text weight="bold">{t("onlineSession.guardianConsentTitle")}</Text>
+              <Text size="sm" tone="muted">
+                {t("onlineSession.guardianConsentBody")}
+              </Text>
+            </Pressable>
           ) : null}
           <QueryState query={methods} empty={!methods.data?.length} />
           <Choices
