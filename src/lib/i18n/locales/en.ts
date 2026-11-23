@@ -806,6 +806,7 @@ const en = {
     providerNote:
       "Providers must complete verification and admin approval before receiving bookings.",
     password: "Password",
+    phone: "Phone number",
     forgot: "Forgot password?",
     forgotTitle: "Reset password",
     forgotBody: "Enter your phone. We'll send a verification code so you can set a new password.",
@@ -4716,6 +4717,9 @@ Object.assign((en as any).admin, {
     appActive7: "Active last 7 days",
     appActive30: "Active last 30 days",
   },
+});
+
+Object.assign(en, {
   onlineWeb: {
     title: "Famy online lessons",
     badge: "Online",
@@ -4732,6 +4736,7 @@ Object.assign((en as any).admin, {
     },
     nav: {
       label: "Online lessons",
+      menu: "Menu",
       tutors: "Tutors",
       lessons: "My lessons",
       wallet: "Wallet",
@@ -4743,6 +4748,7 @@ Object.assign((en as any).admin, {
       search: "Search by name or bio",
       empty: "No tutors yet",
       emptyBody: "Check again soon — we're adding more online tutors.",
+      emptyAction: "Try again",
       inPersonCta: "Need in-home babysitting or tutoring?",
     },
     profile: {

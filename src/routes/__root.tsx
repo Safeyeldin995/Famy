@@ -29,6 +29,7 @@ import { supabase } from "../integrations/supabase/client";
 import i18n from "../lib/i18n";
 import { startProfileLocaleSync } from "../lib/i18n/syncProfileLocale";
 import { ClientErrorMonitoringBridge } from "../components/ClientErrorMonitoringBridge";
+import { SuppressHostedDevOverlays } from "../components/site/SuppressHostedDevOverlays";
 
 import { useTranslation } from "react-i18next";
 
@@ -145,6 +146,7 @@ function RootComponent() {
         <PushNavigationBridge />
         <ProfileLocaleBridge />
         <ClientErrorMonitoringBridge />
+        <SuppressHostedDevOverlays />
         <Outlet />
         <div id="firebase-recaptcha" className="hidden" aria-hidden="true" />
         <Toaster />
