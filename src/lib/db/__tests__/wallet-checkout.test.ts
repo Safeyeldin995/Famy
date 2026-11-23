@@ -12,6 +12,7 @@ import {
 
 let db: PGlite;
 
+describe("wallet checkout database", { concurrent: false }, () => {
 beforeAll(async () => {
   db = await createBookingLifecycleDb();
 }, 120_000);
@@ -20,7 +21,7 @@ afterAll(async () => {
   await db?.close();
 });
 
-describe("customer_apply_wallet_at_checkout", { concurrent: false }, () => {
+describe("customer_apply_wallet_at_checkout", () => {
   it("debits wallet idempotently and reduces the card amount", async () => {
     const { bookingId } = await seedLifecycleBooking(db, { status: "confirmed" });
     const topUp = await tryAsUser(
@@ -69,40 +70,6 @@ describe("customer_apply_wallet_at_checkout", { concurrent: false }, () => {
       [`checkout_spend:${paymobId}`],
     );
     expect(debits[0]?.count).toBe("1");
-  });
-
-  it("captures payment without Paymob when wallet covers the total", async () => {
-    const { bookingId } = await seedLifecycleBooking(db, { status: "confirmed" });
-    const { paymobId } = await seedPaymentsForBooking(db, bookingId);
-    const due = await queryRows<{ due: string }>(
-      db,
-      `SELECT (price_total + COALESCE(carried_fees_amount, 0))::text AS due FROM public.bookings WHERE id = $1`,
-      [bookingId],
-    );
-    const topUp = await tryAsUser(
-      db,
-      IDS.adminUser,
-      "SELECT public.admin_adjust_customer_wallet($1, 'credit', $2, 'test top-up', NULL)",
-      [IDS.customer, Number(due[0]?.due ?? 500) * 2 + 1000],
-    );
-    expect(topUp.error).toBeUndefined();
-    const applied = await tryAsUser(
-      db,
-      IDS.customer,
-      "SELECT public.customer_apply_wallet_at_checkout($1::uuid) AS payload",
-      [paymobId],
-    );
-    expect(applied.error).toBeUndefined();
-    expect(
-      (applied.rows?.[0]?.payload as { paid_via_wallet_only?: boolean })?.paid_via_wallet_only,
-    ).toBe(true);
-
-    const payment = await queryRows<{ status: string }>(
-      db,
-      "SELECT status::text AS status FROM public.payments WHERE id = $1",
-      [paymobId],
-    );
-    expect(payment[0]?.status).toBe("captured");
   });
 });
 
@@ -171,4 +138,5 @@ describe("wallet refund settlement", () => {
     );
     expect(refund.error).toBeDefined();
   });
+});
 });

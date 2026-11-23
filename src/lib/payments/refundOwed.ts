@@ -23,10 +23,16 @@ export function moneyHeld(p: PaymentLike): boolean {
 }
 
 export function refundOwed(p: PaymentLike & { bookingStatus?: string | null }): boolean {
+  const meta = p.metadata as
+    | { refund_settled_via_wallet?: boolean; wallet_refund_settled?: boolean | string }
+    | undefined
+    | null;
   const settled =
     p.refundSettledViaWallet === true ||
     p.walletRefundSettled === true ||
-    (p.metadata && (p.metadata as { refund_settled_via_wallet?: boolean }).refund_settled_via_wallet === true);
+    meta?.refund_settled_via_wallet === true ||
+    meta?.wallet_refund_settled === true ||
+    meta?.wallet_refund_settled === "true";
   if (settled) return false;
   if (p.paymentStatus === "refunded" || p.paymentStatus === "partially_refunded") return false;
   return CLOSED_WITHOUT_SERVICE.has(p.bookingStatus ?? "") && moneyHeld(p);

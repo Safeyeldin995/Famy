@@ -95,7 +95,8 @@ describe("online lesson — codex audit database", () => {
       [reportId],
     );
     expect(tableRead.ok).toBe(true);
-    expect(tableRead.rows?.[0]?.description).toContain("Connection");
+    expect(tableRead.rows?.length ?? 0).toBeGreaterThan(0);
+    expect(String(tableRead.rows?.[0]?.description ?? "")).toContain("Connection");
   });
 
   it("final create_booking enforces online age check", async () => {
