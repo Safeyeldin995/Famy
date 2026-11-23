@@ -32,6 +32,7 @@ export type PaymentSituationInput = {
 };
 
 import { CLOSED_WITHOUT_SERVICE, refundOwed } from "@/lib/payments/refundOwed";
+import { normalizedPaymentProof } from "@/lib/payments/paymentProof";
 
 function methodType(p: PaymentSituationInput) {
   if (p.payment_method_type) return p.payment_method_type;
@@ -52,6 +53,8 @@ export function paymentSituation(
   const status = p.status ?? "";
   const booking = p.booking?.status ?? "";
   const type = methodType(p);
+  const proofPath = normalizedPaymentProof(p.proof_path);
+  const withProof = { ...p, proof_path: proofPath };
 
   const closed = CLOSED_WITHOUT_SERVICE.has(booking);
   // Money already with Famy on a booking that will not happen: it goes back to the customer.
@@ -59,7 +62,7 @@ export function paymentSituation(
     refundOwed({
       paymentStatus: status,
       methodType: type,
-      proofPath: p.proof_path,
+      proofPath,
       bookingStatus: booking,
     })
   )
@@ -69,7 +72,6 @@ export function paymentSituation(
   if (status === "partially_refunded") return "partiallyRefunded";
   if (status === "rejected") return "rejected";
   if (status === "failed") return "failed";
-  if (status === "pending_review" && type === "manual_transfer" && !closed) return "review";
 
   if (status === "pending" || status === "pending_review" || status === "authorized") {
     if (CLOSED_WITHOUT_SERVICE.has(booking)) return "noPaymentDue";
@@ -77,7 +79,7 @@ export function paymentSituation(
       if (booking !== "completed") return "cashAtVisit";
       return hasCashLedger ? "cashRecorded" : "cashUnconfirmed";
     }
-    if (type === "manual_transfer") return p.proof_path ? "review" : "awaitingProof";
+    if (type === "manual_transfer") return withProof.proof_path ? "review" : "awaitingProof";
     if (type === "online") return "awaitingCard";
   }
   return "other";

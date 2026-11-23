@@ -31,7 +31,7 @@ describe("paymentSituation", () => {
       "review",
     );
     expect(paymentSituation({ ...transfer, status: "pending" })).toBe("awaitingProof");
-    expect(paymentSituation({ method: "instapay", status: "pending_review" })).toBe("review");
+    expect(paymentSituation({ method: "instapay", status: "pending_review" })).toBe("awaitingProof");
   });
 
   it("money received on a cancelled or no-show booking is a refund to make", () => {

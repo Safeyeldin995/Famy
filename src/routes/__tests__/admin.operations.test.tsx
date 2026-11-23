@@ -17,10 +17,30 @@ vi.mock("@tanstack/react-router", () => ({
 vi.mock("@/lib/preview/previewPath", () => ({ adminPath: (p: string) => p }));
 vi.mock("@/lib/i18n", () => ({ currentLang: () => "ar" }));
 vi.mock("@/lib/db/admin-queries", () => ({
-  useAdminPayments: () => ({ data: h.payments }),
+  useAdminPayments: () => ({ data: h.payments, isLoading: false, isError: false, refetch: vi.fn() }),
   useAdminCashLedgerBookings: () => ({ data: new Set<string>() }),
   useRecordHistoricCash: () => ({ mutate: vi.fn(), isPending: false }),
   useRecordPaymentRefund: () => ({ mutate: vi.fn(), isPending: false }),
+}));
+vi.mock("@/lib/db/admin-daily-ops-queries", () => ({
+  useAdminPaymentQueue: () => ({
+    data: { items: h.payments, total: h.payments.length },
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
+  useAdminPaymentQueueCounts: () => ({
+    data: {
+      needs_action: 1,
+      refunds_due: 0,
+      receipts_ready: 1,
+      cash_to_confirm: 0,
+      fee_payments: 0,
+    },
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
 }));
 vi.mock("@/components/admin/FeeDebtsPanel", () => ({ FeeDebtsPanel: () => null }));
 vi.mock("@/lib/db/debt-queries", () => ({
@@ -60,7 +80,7 @@ beforeEach(() => {
 afterEach(cleanup);
 describe("payment review actions", () => {
   it("requires confirmation and calls only the existing capture path for this row", () => {
-    render(<AdminPayments search={{}} />);
+    render(<AdminPayments search={{ tab: "receipts_ready" }} />);
     fireEvent.click(screen.getByText("adminOps.confirmTransfer"));
     expect(h.capture).not.toHaveBeenCalled();
     fireEvent.click(screen.getByText("common.confirm"));
@@ -70,7 +90,7 @@ describe("payment review actions", () => {
     );
   });
   it("rejects through the existing path with the reason", () => {
-    render(<AdminPayments search={{}} />);
+    render(<AdminPayments search={{ tab: "receipts_ready" }} />);
     fireEvent.click(screen.getByText("adminOps.rejectReason"));
     fireEvent.click(screen.getByText("submit reason"));
     expect(h.reject).toHaveBeenCalledWith(
@@ -80,18 +100,18 @@ describe("payment review actions", () => {
   });
   it("cannot capture an incomplete booking", () => {
     h.payments = [{ ...payment, booking: { ...payment.booking, status: "confirmed" } }];
-    render(<AdminPayments search={{}} />);
+    render(<AdminPayments search={{ tab: "receipts_ready" }} />);
     expect((screen.getByText("adminOps.confirmTransfer") as HTMLButtonElement).disabled).toBe(true);
   });
   it("historic captured payment has no receipt/reject actions", () => {
     h.payments = [{ ...payment, status: "captured" }];
-    render(<AdminPayments search={{ status: "captured" }} />);
+    render(<AdminPayments search={{ tab: "all", status: "captured" }} />);
     expect(screen.queryByText("adminOps.confirmTransfer")).toBeNull();
     expect(screen.queryByText("adminOps.rejectReason")).toBeNull();
   });
   it("pending proof is fetched from the private signed-URL helper", async () => {
     h.signed.mockResolvedValue("https://example.invalid/signed-proof");
-    render(<AdminPayments search={{}} />);
+    render(<AdminPayments search={{ tab: "receipts_ready" }} />);
     expect(h.signed).toHaveBeenCalledWith("private/proof");
     expect(await screen.findByRole("img")).toBeTruthy();
   });
