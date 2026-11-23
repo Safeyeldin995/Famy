@@ -14,7 +14,6 @@ import { ChevronLeft, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
 import { bookingAmountDue } from "@/lib/payments/amountDue";
-
 export const Route = createFileRoute("/admin/customer/$id")({ component: AdminCustomerRoute });
 
 export function AdminCustomer({ id }: { id: string }) {

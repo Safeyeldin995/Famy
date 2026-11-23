@@ -1295,9 +1295,6 @@ const en = {
     lessonReportHint: "Available from 10 minutes before start until 24 hours after the lesson ends.",
     lessonReportSubmitted: "Thanks — we received your report.",
     lessonReportReviewEta: "We'll review within 48 hours.",
-    guardianConsentTitle: "Guardian consent for online session",
-    guardianConsentBody:
-      "As the parent or guardian, I consent to this minor joining a live video session with the booked provider inside Famy.",
     errors: {
       unauthorized: "Sign in to join the session.",
       payment_required: "Payment must be completed before joining.",
@@ -3320,7 +3317,6 @@ const en = {
       sessionTimelineLoading: "Loading session attendance…",
       sessionTimelineError: "Could not load session attendance.",
       sessionTimelineEmpty: "No join events recorded yet.",
-      guardianConsent: "Guardian consent",
       sessionOutcome: "Session outcome",
       participantMinutes: "{{count}} participant-min",
       sessionOutcomes: {

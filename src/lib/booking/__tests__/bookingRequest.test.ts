@@ -31,6 +31,7 @@ const expected = {
   teaching_curriculum_code: null,
   teaching_level_code: null,
   supervision_mode: null,
+  service_mode: "in_person",
 };
 const quote = {
   service: { pricing_model: "hourly" },

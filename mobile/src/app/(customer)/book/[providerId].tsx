@@ -122,7 +122,6 @@ import { normalizeServiceDeliveryMode } from "@shared/online/serviceMode";
 import { onlineBookingLearnerAgeIssue } from "@shared/online/onlineBookingLearnerAge";
 import { memberAgeFromDate } from "@shared/familyMemberAge";
 import { FamilyMemberAgeField } from "@/ui/customer/FamilyMemberAgeField";
-
 type Slot = { start: Date; end: Date; label: string };
 export default function Book() {
   const {

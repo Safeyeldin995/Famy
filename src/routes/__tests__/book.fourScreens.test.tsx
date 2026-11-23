@@ -378,6 +378,7 @@ describe("four-screen booking journey", () => {
         teaching_curriculum_code: null,
         teaching_level_code: null,
         supervision_mode: "cameras",
+        service_mode: "in_person",
         idempotency_key: expect.any(String),
       });
       expect((Date.parse(payload.end_at) - Date.parse(payload.start_at)) / 3600000).toBe(

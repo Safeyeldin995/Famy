@@ -107,6 +107,11 @@ export default function Profile() {
             onPress={() => router.push("/favorites")}
           />
           <CustomerMenuRow
+            Icon={Wallet}
+            label={t("wallet.title")}
+            onPress={() => router.push("/wallet")}
+          />
+          <CustomerMenuRow
             Icon={MessageCircle}
             label={t("nav.messages")}
             badge={messageUnread}
@@ -133,11 +138,6 @@ export default function Profile() {
           />
         </CustomerMenuSection>
         <CustomerMenuSection title={t("profile.preferences")}>
-          <CustomerMenuRow
-            Icon={Wallet}
-            label={t("wallet.title")}
-            onPress={() => router.push("/wallet")}
-          />
           <CustomerMenuRow
             Icon={Bell}
             label={t("common.notifications")}
