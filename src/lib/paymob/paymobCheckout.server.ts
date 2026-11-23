@@ -84,6 +84,7 @@ export async function createPaymobCheckoutForPayment(input: {
   paymentId: string;
   clientSecret: string;
   publicKey: string;
+  paidViaWallet?: boolean;
 }> {
   const config = readPaymobConfig();
   const channel = input.channel ?? "card";
@@ -134,22 +135,53 @@ export async function createPaymobCheckoutForPayment(input: {
     throw new Error("This booking is not using Paymob online payment.");
   }
 
-  // The booking price plus any earlier unpaid cancellation fees added to it.
-  const authoritativeAmount = bookingAmountDue(bookingRow);
-  const paymentAmount = Number(payment.amount);
-  const walletSpend = Number(
-    (payment.metadata as { wallet_checkout_spend?: number } | null)?.wallet_checkout_spend ?? 0,
+  const { data: walletCheckout, error: walletErr } = await input.supabaseAdmin.rpc(
+    "customer_apply_wallet_at_checkout",
+    { p_payment_id: payment.id, p_customer_id: input.userId },
   );
-  const cardDue = paymentAmount - (Number.isFinite(walletSpend) ? walletSpend : 0);
-  if (
-    !Number.isFinite(authoritativeAmount) ||
-    authoritativeAmount <= 0 ||
-    Math.abs(authoritativeAmount - paymentAmount) > 0.01
-  ) {
-    throw new Error("Payment amount does not match the booking total.");
+  if (walletErr) throw new Error(walletErr.message || "Could not apply wallet at checkout.");
+
+  const walletRow = walletCheckout as {
+    paid_via_wallet_only?: boolean;
+    card_amount?: number;
+    payment_id?: string;
+  } | null;
+
+  if (walletRow?.paid_via_wallet_only) {
+    return {
+      checkoutUrl: "",
+      paymentId: payment.id,
+      clientSecret: "",
+      publicKey: config.publicKey,
+      paidViaWallet: true,
+    };
   }
-  if (cardDue <= 0.01) {
+
+  const { data: paymentDataAfterWallet, error: paymentReloadErr } = await input.supabaseAdmin
+    .from("payments")
+    .select(paymentSelect)
+    .eq("id", payment.id)
+    .single();
+  if (paymentReloadErr || !paymentDataAfterWallet) throw new Error("Could not load checkout data.");
+  const paymentAfterWallet = paymentDataAfterWallet as PaymentRow;
+
+  if (paymentAfterWallet.status === "captured") {
+    return {
+      checkoutUrl: "",
+      paymentId: payment.id,
+      clientSecret: "",
+      publicKey: config.publicKey,
+      paidViaWallet: true,
+    };
+  }
+
+  const authoritativeAmount = bookingAmountDue(bookingRow);
+  const paymentAmount = Number(paymentAfterWallet.amount);
+  if (!Number.isFinite(paymentAmount) || paymentAmount <= 0.01) {
     throw new Error("This booking is already covered by wallet credit.");
+  }
+  if (!Number.isFinite(authoritativeAmount) || authoritativeAmount <= 0 || paymentAmount > authoritativeAmount + 0.01) {
+    throw new Error("Payment amount does not match the booking total.");
   }
 
   const { data: reservation, error: reserveErr } = await input.supabaseAdmin.rpc(
@@ -193,7 +225,7 @@ export async function createPaymobCheckoutForPayment(input: {
 
   const billing = defaultBillingFromProfile(profile as ProfileRow | null);
   const serviceName = bookingRow.service?.name_en || bookingRow.service?.name_ar || "Famy booking";
-  const amountCents = bookingAmountCents(cardDue);
+  const amountCents = bookingAmountCents(paymentAmount);
   const currency = (payment.currency || bookingRow.currency || "EGP").toUpperCase();
 
   const releaseReservation = async () => {

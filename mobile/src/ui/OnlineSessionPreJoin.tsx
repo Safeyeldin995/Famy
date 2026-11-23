@@ -54,12 +54,13 @@ export function OnlineSessionPreJoin({ onReady, onCancel }: Props) {
 
   useEffect(() => {
     if (advanceScheduled.current) return;
-    if (micReady && cameraReady && networkOk === true) {
-      advanceScheduled.current = true;
+    if (!(micReady && cameraReady && networkOk === true)) return;
+    advanceScheduled.current = true;
+    const timer = setTimeout(() => {
       setAutoSkipped(true);
-      const timer = setTimeout(onReady, 350);
-      return () => clearTimeout(timer);
-    }
+      onReady();
+    }, 350);
+    return () => clearTimeout(timer);
   }, [cameraReady, micReady, networkOk, onReady]);
 
   const ready = micReady && cameraReady && networkOk === true;

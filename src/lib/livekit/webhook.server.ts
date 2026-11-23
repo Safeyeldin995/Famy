@@ -45,13 +45,13 @@ export async function applyLiveKitWebhookEvent(
     return;
   }
 
-  const { error } = await supabaseAdmin.rpc("apply_livekit_session_webhook", {
+  const { data, error } = await supabaseAdmin.rpc("apply_livekit_session_webhook_event", {
     p_event_id: eventId,
     p_booking_id: bookingId,
     p_event_type: payload.event,
     p_participant: participant,
     p_event_at: eventAt.toISOString(),
   });
-
   if (error) throw error;
+  if (data === false) return;
 }

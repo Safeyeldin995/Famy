@@ -10,6 +10,8 @@ type PaymentLike = {
   paymentStatus?: string | null;
   methodType?: string | null;
   proofPath?: string | null;
+  metadata?: Record<string, unknown> | null;
+  refundSettledViaWallet?: boolean;
   walletRefundSettled?: boolean;
 };
 
@@ -21,7 +23,11 @@ export function moneyHeld(p: PaymentLike): boolean {
 }
 
 export function refundOwed(p: PaymentLike & { bookingStatus?: string | null }): boolean {
-  if (p.walletRefundSettled) return false;
+  const settled =
+    p.refundSettledViaWallet === true ||
+    p.walletRefundSettled === true ||
+    (p.metadata && (p.metadata as { refund_settled_via_wallet?: boolean }).refund_settled_via_wallet === true);
+  if (settled) return false;
   if (p.paymentStatus === "refunded" || p.paymentStatus === "partially_refunded") return false;
   return CLOSED_WITHOUT_SERVICE.has(p.bookingStatus ?? "") && moneyHeld(p);
 }
