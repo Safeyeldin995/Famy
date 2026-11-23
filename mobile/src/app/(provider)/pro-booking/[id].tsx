@@ -111,7 +111,6 @@ export default function ProBookingDetail() {
       title={t("pro.booking.title")}
       header={<ProviderHeader title={t("pro.booking.title")} />}
       queries={[q]}
-      contentStyle={{ paddingBottom: 120 }}
     >
       <QueryState query={q} skeleton="detail">
         {b ? (

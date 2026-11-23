@@ -32,6 +32,8 @@ export function FeeDebtBanner() {
   const lang = i18n.language;
   const box = {
     gap: space.sm,
+    marginHorizontal: space.xl,
+    marginTop: space.lg,
     padding: space.md,
     borderRadius: radius.xl,
     borderWidth: 1,

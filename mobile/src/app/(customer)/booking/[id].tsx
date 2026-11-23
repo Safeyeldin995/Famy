@@ -183,16 +183,7 @@ export default function BookingDetail() {
                 />
               </View>
             )}
-            <View
-              style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                backgroundColor: colors.surface2,
-                borderRadius: radius.xl,
-                padding: space.lg,
-                gap: space.sm,
-              }}
-            >
+            <View style={[ui.card, { backgroundColor: colors.surface2, gap: space.sm }]}>
               <Text testID="booking-status" size="xs" tone="muted" weight="bold">
                 {t(`status.${b.status}`)}
               </Text>

@@ -32,15 +32,29 @@ export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, xxxl: 32 }
 export const fontSize = {
   xs: 12,
   sm: 13,
-  md: 14,
+  /** Default body copy (web body ≈ 15px). */
+  md: 15,
   lg: 16,
   xl: 18,
-  xxl: 22,
-  /** Primary buttons (web PrimaryButton ≈ 15px). */
+  /** Section titles (20–24px scale). */
+  xxl: 20,
   button: 15,
   title: 24,
   hero: 30,
+  /** Customer hero header title on gradient screens. */
+  heroTitle: 28,
+  heroTitleLine: 32,
 } as const;
+
+const AVATAR_INITIAL_BY_DIAMETER: { min: number; size: keyof typeof fontSize }[] = [
+  { min: 64, size: "title" },
+  { min: 48, size: "xxl" },
+  { min: 0, size: "lg" },
+];
+
+export function fontSizeTokenForAvatarInitial(diameter: number): keyof typeof fontSize {
+  return AVATAR_INITIAL_BY_DIAMETER.find((row) => diameter >= row.min)!.size;
+}
 
 export const fonts = {
   ar: { regular: "Almarai_400Regular", bold: "Almarai_700Bold", heavy: "Almarai_800ExtraBold" },

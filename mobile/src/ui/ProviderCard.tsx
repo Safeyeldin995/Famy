@@ -10,7 +10,7 @@ import { providerRatingSummary } from "@/lib/providerRating";
 import { joinUiParts, uiListSeparator } from "@shared/format/uiJoin";
 import { isFixedPackage, packageLabel } from "@shared/pricing/servicePackages";
 import { Text } from "./Text";
-import { colors, radius, space } from "./theme";
+import { colors, fontSizeTokenForAvatarInitial, radius, space } from "./theme";
 import { ui } from "./Page";
 
 export function Avatar({
@@ -45,7 +45,7 @@ export function Avatar({
           accessibilityLabel={name?.trim() ? name : undefined}
         />
       ) : name ? (
-        <Text weight="bold" style={{ fontSize: Math.min(24, size / 2), color: colors.brand }}>
+        <Text size={fontSizeTokenForAvatarInitial(size)} weight="bold" tone="brand">
           {name.trim().slice(0, 1)}
         </Text>
       ) : (
@@ -83,12 +83,9 @@ export function ProviderCard({
         ui.card,
         {
           flexDirection: "row",
-          gap: 12,
-          padding: 16,
-          borderRadius: 16,
-          backgroundColor: "white",
-          shadowOpacity: 0,
-          elevation: 0,
+          gap: space.md,
+          padding: space.lg,
+          borderRadius: radius.xl,
         },
         pressed && ui.pressed,
       ]}

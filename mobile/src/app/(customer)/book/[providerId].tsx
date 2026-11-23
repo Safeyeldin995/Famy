@@ -87,7 +87,8 @@ import { localized, dateTime } from "@/lib/presentation";
 import { Page, QueryState, Field, Choices, moneyTextStyle, ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
-import { PaymentMethodLogos } from "@/ui/PaymentLogos";
+import { ApplePayMark, PaymentMethodLogos } from "@/ui/PaymentLogos";
+import { DEMO_APPLE_PAY_METHOD_ID, demoPaymentsEnabled } from "@/lib/demoPayments";
 import { FeeDebtBanner } from "@/ui/FeeDebtBanner";
 import { useMyFeeDebts } from "@/lib/debtQueries";
 import { useSession } from "@/lib/session";
@@ -385,6 +386,11 @@ function BookForm({
     bookable,
     serviceId: eligibilityServiceId,
   });
+  const demoApplePay = demoPaymentsEnabled();
+  const paymentMethodReady =
+    !!methodId &&
+    methodId !== DEMO_APPLE_PAY_METHOD_ID &&
+    !!methods.data?.some((m) => m.id === methodId);
   const missing = bookingScreenMissingStep(BOOKING_SCREENS[step], {
     service: !!service,
     tutoring,
@@ -395,7 +401,7 @@ function BookForm({
     supervisionRequired,
     supervision: supervisionReady,
     requirements: requirements.isSuccess && either.every((r) => !!choices[r.id]),
-    payment: !!methods.data?.some((m) => m.id === methodId),
+    payment: paymentMethodReady,
   });
   const blocked = checkoutContinueBlocked({
     servicesError: servicesQ.isError,
@@ -1174,12 +1180,28 @@ function BookForm({
             label={t("payment.title")}
             value={methodId}
             onChange={setMethodId}
-            options={(methods.data ?? []).map((m) => ({
-              value: m.id,
-              label: localized(m, lang),
-              adornment: <PaymentMethodLogos code={m.code} type={m.method_type} />,
-            }))}
+            options={[
+              ...(methods.data ?? []).map((m) => ({
+                value: m.id,
+                label: localized(m, lang),
+                adornment: <PaymentMethodLogos code={m.code} type={m.method_type} />,
+              })),
+              ...(demoApplePay
+                ? [
+                    {
+                      value: DEMO_APPLE_PAY_METHOD_ID,
+                      label: t("payment.applePayLabel"),
+                      adornment: <ApplePayMark height={16} />,
+                    },
+                  ]
+                : []),
+            ]}
           />
+          {methodId === DEMO_APPLE_PAY_METHOD_ID ? (
+            <Text size="sm" tone="muted">
+              {t("payment.applePaySoon")}
+            </Text>
+          ) : null}
         </>
       )}
       {error && <Text tone="danger">{error}</Text>}

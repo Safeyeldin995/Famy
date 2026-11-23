@@ -1,0 +1,177 @@
+[
+  {
+    "screen": "home",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/home-font-1.2.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "search",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/search-font-1.2.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "category-babysitting",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/category-babysitting-font-1.2.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "category-tutoring",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/category-tutoring-font-1.2.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "category-quran",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/category-quran-font-1.2.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "provider",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/provider-font-1.2.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "legacy-booking-redirect",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/legacy-booking-redirect-font-1.2.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "bookings",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/bookings-font-1.2.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "booking-detail",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/booking-detail-font-1.2.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "notifications",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/notifications-font-1.2.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "profile",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/profile-font-1.2.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "messages",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/messages-font-1.2.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "addresses",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/addresses-font-1.2.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "family-members",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/family-members-font-1.2.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "family-member-new",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/family-member-new-font-1.2.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "family-member-edit",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/family-member-edit-font-1.2.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "favorites",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/favorites-font-1.2.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "promo-codes",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/promo-codes-font-1.2.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "help",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/help-font-1.2.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "terms",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/terms-font-1.2.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "privacy",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/privacy-font-1.2.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "favorites-populated",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/favorites-populated-font-1.2.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "addresses-empty",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/addresses-empty-font-1.2.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "addresses-error",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/addresses-error-font-1.2.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "sign-in",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/sign-in-font-1.2.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "unauthenticated login"
+  }
+]

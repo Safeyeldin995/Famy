@@ -22,7 +22,7 @@ import { unreadConversationCount, useConversations } from "@/lib/chatQueries";
 import { signOutWithPushRevoke } from "@/lib/push";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
-import { colors } from "@/ui/theme";
+import { colors, radius, shadow, space } from "@/ui/theme";
 import { CustomerProfilePhoto } from "@/ui/customer/CustomerProfilePhoto";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 import { CustomerMenuSection, CustomerMenuRow } from "@/ui/customer/Primitives";
@@ -196,15 +196,16 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 16,
+    borderRadius: radius.lg,
     backgroundColor: colors.surface,
-    boxShadow: "0px 4px 16px rgba(42,30,37,0.06)",
+    ...shadow.card,
   },
   card: {
-    padding: 16,
-    borderRadius: 16,
+    padding: space.lg,
+    borderRadius: radius.xl,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
+    ...shadow.card,
   },
 });

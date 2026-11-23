@@ -22,7 +22,7 @@ import { rowChevronIcon } from "./rtlNavigation";
 import { Text } from "./Text";
 import { Button } from "./Button";
 import { bodyTextInputProps } from "./a11y";
-import { scaledTabBarHeight } from "./a11y";
+import { tabScrollContentPadding } from "./a11y";
 import { colors, fontSize, fonts, radius, space, shadow } from "./theme";
 import { DetailSkeleton, ListSkeleton } from "./Skeleton";
 
@@ -56,9 +56,7 @@ export function Page({
   const insets = useSafeAreaInsets();
   const { fontScale } = useWindowDimensions();
   const safeBottom = Math.max(insets.bottom, space.md);
-  const tabScrollPad = tab
-    ? scaledTabBarHeight(fontScale, 22, insets.bottom) + 12 + space.lg
-    : undefined;
+  const tabScrollPad = tab ? tabScrollContentPadding(fontScale, insets.bottom) : undefined;
   return (
     <SafeAreaView
       style={[ui.page, { direction: i18n.language === "ar" ? "rtl" : "ltr" }]}
@@ -72,7 +70,9 @@ export function Page({
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={[
             ui.content,
-            tabScrollPad != null ? { paddingBottom: tabScrollPad } : null,
+            tabScrollPad != null
+              ? { paddingBottom: tabScrollPad }
+              : { paddingBottom: space.xxxl + safeBottom },
             contentStyle,
           ]}
           bottomOffset={

@@ -2661,6 +2661,8 @@ const en = {
     paymobStarting: "Opening checkout…",
     paymobConfirming: "Confirming your payment. This usually takes a few seconds.",
     paymobStartFailed: "Could not start online payment. Try again or contact support.",
+    applePayLabel: "Apple Pay",
+    applePaySoon: "Apple Pay will be available soon. Choose card or cash to complete this booking.",
     status: {
       pending: "Pending",
       pending_review: "Pending",
@@ -4322,6 +4324,8 @@ Object.assign(en, {
     or: "or",
     continueWithGoogle: "Continue with Google",
     continueWithApple: "Continue with Apple",
+    appleSoon: "Sign in with Apple is coming soon. Use Google or your phone number for now.",
+    appleSoonShort: "Soon",
     redirectingGoogle: "Taking you to Google…",
     redirectingApple: "Taking you to Apple…",
     signingIn: "Signing you in…",

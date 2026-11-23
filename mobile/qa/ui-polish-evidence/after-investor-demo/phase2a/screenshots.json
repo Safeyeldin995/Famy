@@ -1,0 +1,163 @@
+[
+  {
+    "screen": "hourly-1-service",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/phase2a/hourly-1-service.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "hourly-2-time",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/phase2a/hourly-2-time.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "hourly-3-address-recipient",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/phase2a/hourly-3-address-recipient.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "hourly-4-review-payment",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/phase2a/hourly-4-review-payment.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "hourly-5-payment",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/phase2a/hourly-5-payment.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "cancel-reason",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/phase2a/cancel-reason.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "cancelled",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/phase2a/cancelled.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "package-1-service",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/phase2a/package-1-service.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "package-2-time",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/phase2a/package-2-time.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "package-3-address-recipient",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/phase2a/package-3-address-recipient.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "package-4-review-payment",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/phase2a/package-4-review-payment.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "package-5-payment",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/phase2a/package-5-payment.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "receipt-uploaded",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/phase2a/receipt-uploaded.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "receipt-size-limit",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/phase2a/receipt-size-limit.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "pdf-receipt-uploaded",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/phase2a/pdf-receipt-uploaded.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "tutoring-1-service",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/phase2a/tutoring-1-service.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "tutoring-2-time",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/phase2a/tutoring-2-time.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "tutoring-3-address-recipient",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/phase2a/tutoring-3-address-recipient.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "tutoring-4-review-payment",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/phase2a/tutoring-4-review-payment.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "tutoring-5-payment",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/phase2a/tutoring-5-payment.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "review-form",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/phase2a/review-form.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "review-saved",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/phase2a/review-saved.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  },
+  {
+    "screen": "add-address",
+    "path": "/agent/repos/Famy/mobile/qa/ui-polish-evidence/after-investor-demo/phase2a/add-address.png",
+    "viewport": "390x844",
+    "language": "ar",
+    "data": "isolated local test fixtures"
+  }
+]

@@ -18,6 +18,7 @@ import type { OAuthProvider } from "@shared/auth/oauthShared";
 import { supabase } from "@/lib/supabase";
 import {
   enabledMobileOAuthProviders,
+  mobileAppleSignInConfigured,
   resolvePostMobileOAuthRoute,
   showAppleSignInOnMobile,
   signInWithAppleNative,
@@ -54,6 +55,8 @@ export default function Login() {
   const [oauthLoading, setOauthLoading] = useState<OAuthProvider | null>(null);
   const [error, setError] = useState<string | null>(null);
   const oauthProviders = enabledMobileOAuthProviders();
+  const appleOAuth = oauthProviders.includes("apple");
+  const appleSignInReady = mobileAppleSignInConfigured();
   const showOAuth =
     role === "customer" && step === "phone" && oauthProviders.length > 0;
 
@@ -338,7 +341,7 @@ export default function Login() {
               </Text>
             </Pressable>
           ) : null}
-          {oauthProviders.includes("apple") && showAppleSignInOnMobile() ? (
+          {appleOAuth && showAppleSignInOnMobile() ? (
             <AppleAuthentication.AppleAuthenticationButton
               buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
               buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
@@ -346,7 +349,7 @@ export default function Login() {
               style={styles.appleBtn}
               onPress={() => runOAuth("apple", signInWithAppleNative)}
             />
-          ) : oauthProviders.includes("apple") && Platform.OS === "android" ? (
+          ) : appleOAuth && appleSignInReady && Platform.OS === "android" ? (
             <Pressable
               accessibilityRole="button"
               disabled={loading || oauthLoading !== null}
@@ -363,6 +366,23 @@ export default function Login() {
                 {oauthLoading === "apple"
                   ? t("oauth.redirectingApple")
                   : t("oauth.continueWithApple")}
+              </Text>
+            </Pressable>
+          ) : appleOAuth ? (
+            <Pressable
+              accessibilityRole="button"
+              disabled={loading || oauthLoading !== null}
+              onPress={() => setError(t("oauth.appleSoon"))}
+              style={({ pressed }) => [
+                styles.oauthBtn,
+                styles.oauthApple,
+                pressed && styles.oauthPressed,
+                (loading || oauthLoading !== null) && styles.oauthDisabled,
+              ]}
+            >
+              <AppleMark color="#fff" />
+              <Text weight="heavy" style={{ color: "#fff" }}>
+                {t("oauth.continueWithApple")} — {t("oauth.appleSoonShort")}
               </Text>
             </Pressable>
           ) : null}

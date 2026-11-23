@@ -2632,6 +2632,8 @@ const ar: Translation = {
     paymobStarting: "جاري فتح صفحة الدفع…",
     paymobConfirming: "جاري تأكيد دفعتك، عادة يستغرق ذلك بضع ثوان",
     paymobStartFailed: "لم نتمكن من بدء الدفع بالكارت، حاول مرة تانية أو تواصل مع الدعم",
+    applePayLabel: "Apple Pay",
+    applePaySoon: "Apple Pay هيكون متاح قريبا، اختار كارت أو كاش علشان تكمل الحجز",
     status: {
       pending: "مستني الدفع",
       pending_review: "مستني نراجع التحويل",
@@ -4276,6 +4278,8 @@ Object.assign(ar, {
     or: "أو",
     continueWithGoogle: "كمل بحساب جوجل",
     continueWithApple: "كمل بحساب أبل",
+    appleSoon: "تسجيل الدخول بحساب أبل هيكون متاح قريبا، دلوقتي كمل بجوجل أو برقم الموبايل",
+    appleSoonShort: "قريبا",
     redirectingGoogle: "بنوديك على جوجل…",
     redirectingApple: "بنوديك على أبل…",
     signingIn: "بنسجل دخولك…",

@@ -1,0 +1,34 @@
+{
+  "legacy": false,
+  "after30sOnHome": {
+    "focusEffectRuns": 1,
+    "queryFetchStarts": {
+      "profile": 1,
+      "address": 1,
+      "categories": 1,
+      "tutoringServices": 1,
+      "unread": 1,
+      "bookings": 1,
+      "promos": 1,
+      "bookingsFocusInvalidate": 1,
+      "parties": 1
+    },
+    "legacyMode": false
+  },
+  "afterTwoTabCycles": {
+    "focusEffectRuns": 3,
+    "queryFetchStarts": {
+      "profile": 2,
+      "address": 2,
+      "categories": 1,
+      "tutoringServices": 1,
+      "unread": 1,
+      "bookings": 4,
+      "promos": 1,
+      "bookingsFocusInvalidate": 3,
+      "parties": 2
+    },
+    "legacyMode": false
+  },
+  "capturedAt": "2026-11-23T09:58:41.895Z"
+}

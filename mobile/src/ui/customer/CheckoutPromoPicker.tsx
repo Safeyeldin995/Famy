@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFeaturedPromoCodes, type FeaturedPromoCode } from "@/lib/queries";
 import { validatePromoCode } from "@/lib/bookingQueries";
 import { money } from "@/lib/presentation";
-import { colors } from "@/ui/theme";
+import { colors, radius, space } from "@/ui/theme";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
 import { Field, QueryState, ui } from "@/ui/Page";
@@ -281,13 +281,13 @@ const styles = StyleSheet.create({
   modal: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(15,13,16,.42)" },
   sheet: {
     maxHeight: "88%",
-    backgroundColor: "white",
-    borderTopStartRadius: 28,
-    borderTopEndRadius: 28,
-    padding: 20,
-    gap: 12,
+    backgroundColor: colors.surface,
+    borderTopStartRadius: radius.xl + 4,
+    borderTopEndRadius: radius.xl + 4,
+    padding: space.xl,
+    gap: space.md,
   },
-  grab: { height: 4, width: 40, borderRadius: 2, backgroundColor: "#ece8ea", alignSelf: "center" },
+  grab: { height: 4, width: 40, borderRadius: 2, backgroundColor: colors.border, alignSelf: "center" },
   heading: { alignItems: "center", justifyContent: "space-between" },
   close: {
     width: 44,
@@ -295,6 +295,6 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f6f4f5",
+    backgroundColor: colors.surface2,
   },
 });

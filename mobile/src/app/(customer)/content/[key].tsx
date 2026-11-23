@@ -6,7 +6,7 @@ import { Text } from "@/ui/Text";
 import { View } from "react-native";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 import { customerStyle } from "@/ui/customer/Primitives";
-import { space } from "@/ui/theme";
+import { radius, shadow, space } from "@/ui/theme";
 export default function Content() {
   const { key } = useLocalSearchParams<{ key: string }>();
   const { t, i18n } = useTranslation();
@@ -20,7 +20,7 @@ export default function Content() {
       header={<CustomerPageHeader title={t(`profile.${contentKey}`)} backTo="/profile" />}
       contentStyle={{ paddingTop: 8 }}
     >
-      <View style={[customerStyle.card, { padding: space.xl }]}>
+      <View style={[customerStyle.card, { padding: space.xl, borderRadius: radius.xl, ...shadow.card }]}>
         <QueryState query={q} empty={!body} emptyKey="content.empty">
           <Text selectable size="button">
             {body}

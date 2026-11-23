@@ -4,7 +4,8 @@ import { ChevronDown, X } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/ui/Text";
-import { colors, fonts } from "@/ui/theme";
+import { bodyTextInputProps } from "@/ui/a11y";
+import { colors, fontSize, fonts, radius, space } from "@/ui/theme";
 
 /** Native counterpart of the web provider form's searchable bottom-sheet select. */
 export function BottomSheetSelect({
@@ -47,7 +48,7 @@ export function BottomSheetSelect({
         }}
         style={{ opacity: disabled ? 0.5 : 1 }}
       >
-        <Text weight="bold" style={styles.label}>
+        <Text size="sm" weight="bold" tone="muted" style={styles.label}>
           {label}
         </Text>
         <View style={[styles.input, direction]}>
@@ -91,11 +92,13 @@ export function BottomSheetSelect({
                 onChangeText={setSearch}
                 style={[
                   styles.input,
+                  styles.searchInput,
                   {
                     fontFamily: (ar ? fonts.ar : fonts.en).regular,
                     textAlign: ar ? "right" : "left",
                   },
                 ]}
+                {...bodyTextInputProps()}
               />
             )}
             <ScrollView
@@ -136,27 +139,38 @@ export function BottomSheetSelect({
 }
 
 const styles = StyleSheet.create({
-  label: { fontSize: 13, color: "#4d4550", marginBottom: 8 },
+  label: { marginBottom: space.sm },
   input: {
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: "#f6f4f5",
-    paddingHorizontal: 16,
+    minHeight: 56,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surface2,
+    paddingHorizontal: space.lg,
     alignItems: "center",
     justifyContent: "space-between",
-    fontSize: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  searchInput: {
+    fontSize: fontSize.lg,
     color: colors.foreground,
+    justifyContent: "center",
   },
   modal: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(15,13,16,.42)" },
   sheet: {
     maxHeight: "80%",
-    backgroundColor: "white",
-    borderTopStartRadius: 28,
-    borderTopEndRadius: 28,
-    padding: 20,
-    gap: 12,
+    backgroundColor: colors.surface,
+    borderTopStartRadius: radius.xl + 4,
+    borderTopEndRadius: radius.xl + 4,
+    padding: space.xl,
+    gap: space.md,
   },
-  grab: { height: 4, width: 40, borderRadius: 2, backgroundColor: "#ece8ea", alignSelf: "center" },
+  grab: {
+    height: 4,
+    width: 40,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+    alignSelf: "center",
+  },
   heading: { alignItems: "center", justifyContent: "space-between" },
   close: {
     width: 44,
@@ -164,14 +178,20 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f6f4f5",
+    backgroundColor: colors.surface2,
   },
   option: {
     minHeight: 52,
-    paddingVertical: 12,
+    paddingVertical: space.md,
     alignItems: "center",
     justifyContent: "space-between",
   },
-  radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 1, borderColor: "#ece8ea" },
+  radio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
   selected: { borderWidth: 6, borderColor: colors.brand },
 });
