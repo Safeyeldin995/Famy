@@ -3,6 +3,7 @@ import { View, ActivityIndicator } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { fetchOnlineSessionToken } from "@/lib/onlineSessionApi";
+import { OnlineSessionPreJoin } from "@/ui/OnlineSessionPreJoin";
 import { OnlineSessionRoom } from "@/ui/OnlineSessionRoom";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 import { Page } from "@/ui/Page";
@@ -14,6 +15,7 @@ export default function CustomerOnlineSessionScreen() {
   const { t } = useTranslation();
   const [state, setState] = useState<
     | { status: "loading" }
+    | { status: "prejoin"; token: string; url: string }
     | { status: "ready"; token: string; url: string }
     | { status: "error"; code: string }
   >({ status: "loading" });
@@ -24,7 +26,7 @@ export default function CustomerOnlineSessionScreen() {
       .then((result) => {
         if (cancelled) return;
         if (!result.ok) setState({ status: "error", code: result.error });
-        else setState({ status: "ready", token: result.token, url: result.url });
+        else setState({ status: "prejoin", token: result.token, url: result.url });
       })
       .catch(() => {
         if (!cancelled) setState({ status: "error", code: "server_error" });
@@ -48,8 +50,21 @@ export default function CustomerOnlineSessionScreen() {
           <Button label={t("onlineSession.joinFailed")} onPress={() => router.back()} />
         </View>
       ) : null}
+      {state.status === "prejoin" ? (
+        <OnlineSessionPreJoin
+          onReady={() =>
+            setState({
+              status: "ready",
+              token: state.token,
+              url: state.url,
+            })
+          }
+          onCancel={() => router.back()}
+        />
+      ) : null}
       {state.status === "ready" ? (
         <OnlineSessionRoom
+          bookingId={id!}
           token={state.token}
           serverUrl={state.url}
           onLeave={() => router.replace({ pathname: "/booking/[id]", params: { id } })}

@@ -29,6 +29,31 @@ export function createLiveKitWebhookReceiver(): WebhookReceiver {
   return new WebhookReceiver(apiKey, apiSecret);
 }
 
+async function recordWebhookDedup(
+  supabaseAdmin: SupabaseAdminClient,
+  input: {
+    eventId: string;
+    bookingId: string;
+    eventType: string;
+    participant: "customer" | "provider" | null;
+    eventAt: Date;
+  },
+): Promise<boolean> {
+  const db = supabaseAdmin as any;
+  const { error } = await db.from("session_livekit_webhook_events").insert({
+    id: input.eventId,
+    booking_id: input.bookingId,
+    event_type: input.eventType,
+    participant: input.participant,
+    event_at: input.eventAt.toISOString(),
+  });
+  if (error) {
+    if (error.code === "23505") return false;
+    throw error;
+  }
+  return true;
+}
+
 export async function applyLiveKitWebhookEvent(
   supabaseAdmin: SupabaseAdminClient,
   payload: LiveKitWebhookPayload,
@@ -38,6 +63,18 @@ export async function applyLiveKitWebhookEvent(
   const bookingId = parseBookingId(payload.room?.name);
   const participant = parseParticipant(payload.participant?.identity);
   if (!bookingId || !participant) return;
+
+  const eventId = payload.id?.trim();
+  if (eventId) {
+    const isNew = await recordWebhookDedup(supabaseAdmin, {
+      eventId,
+      bookingId,
+      eventType: payload.event,
+      participant,
+      eventAt,
+    });
+    if (!isNew) return;
+  }
 
   if (payload.event === "participant_joined") {
     const { error } = await db.from("session_events").insert({
@@ -52,7 +89,7 @@ export async function applyLiveKitWebhookEvent(
   if (payload.event === "participant_left") {
     const { data: open, error: selErr } = await db
       .from("session_events")
-      .select("id")
+      .select("id, joined_at")
       .eq("booking_id", bookingId)
       .eq("participant", participant)
       .is("left_at", null)
@@ -60,7 +97,26 @@ export async function applyLiveKitWebhookEvent(
       .limit(1)
       .maybeSingle();
     if (selErr) throw selErr;
-    if (!open) return;
+    if (!open) {
+      const { error } = await db.from("session_events").insert({
+        booking_id: bookingId,
+        participant,
+        joined_at: eventAt.toISOString(),
+        left_at: eventAt.toISOString(),
+      });
+      if (error) throw error;
+      return;
+    }
+    if (new Date(open.joined_at) > eventAt) {
+      const { error } = await db.from("session_events").insert({
+        booking_id: bookingId,
+        participant,
+        joined_at: eventAt.toISOString(),
+        left_at: eventAt.toISOString(),
+      });
+      if (error) throw error;
+      return;
+    }
     const { error } = await db
       .from("session_events")
       .update({ left_at: eventAt.toISOString() })

@@ -116,6 +116,7 @@ import { Route as ApiMobileDebtCheckoutRouteImport } from './routes/api.mobile.d
 import { Route as ApiMobilePaymobCapabilitiesRouteImport } from './routes/api.mobile.paymob-capabilities'
 import { Route as ApiMobilePaymobCheckoutRouteImport } from './routes/api.mobile.paymob-checkout'
 import { Route as ApiSessionCapabilitiesRouteImport } from './routes/api.session.capabilities'
+import { Route as ApiSessionReportRouteImport } from './routes/api.session.report'
 import { Route as ApiSessionTokenRouteImport } from './routes/api.session.token'
 import { Route as PreviewAccountDeleteRouteImport } from './routes/preview.account.delete'
 import { Route as PreviewAddressesIndexRouteImport } from './routes/preview.addresses.index'
@@ -714,6 +715,11 @@ const ApiSessionCapabilitiesRoute = ApiSessionCapabilitiesRouteImport.update({
   path: '/api/session/capabilities',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSessionReportRoute = ApiSessionReportRouteImport.update({
+  id: '/api/session/report',
+  path: '/api/session/report',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSessionTokenRoute = ApiSessionTokenRouteImport.update({
   id: '/api/session/token',
   path: '/api/session/token',
@@ -1117,6 +1123,7 @@ export interface FileRoutesByFullPath {
   '/api/mobile/paymob-capabilities': typeof ApiMobilePaymobCapabilitiesRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
   '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
+  '/api/session/report': typeof ApiSessionReportRoute
   '/api/session/token': typeof ApiSessionTokenRoute
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
@@ -1275,6 +1282,7 @@ export interface FileRoutesByTo {
   '/api/mobile/paymob-capabilities': typeof ApiMobilePaymobCapabilitiesRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
   '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
+  '/api/session/report': typeof ApiSessionReportRoute
   '/api/session/token': typeof ApiSessionTokenRoute
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
@@ -1442,6 +1450,7 @@ export interface FileRoutesById {
   '/api/mobile/paymob-capabilities': typeof ApiMobilePaymobCapabilitiesRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
   '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
+  '/api/session/report': typeof ApiSessionReportRoute
   '/api/session/token': typeof ApiSessionTokenRoute
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
@@ -1610,6 +1619,7 @@ export interface FileRouteTypes {
     | '/api/mobile/paymob-capabilities'
     | '/api/mobile/paymob-checkout'
     | '/api/session/capabilities'
+    | '/api/session/report'
     | '/api/session/token'
     | '/preview/account/delete'
     | '/preview/addresses/$id'
@@ -1768,6 +1778,7 @@ export interface FileRouteTypes {
     | '/api/mobile/paymob-capabilities'
     | '/api/mobile/paymob-checkout'
     | '/api/session/capabilities'
+    | '/api/session/report'
     | '/api/session/token'
     | '/preview/account/delete'
     | '/preview/addresses/$id'
@@ -1934,6 +1945,7 @@ export interface FileRouteTypes {
     | '/api/mobile/paymob-capabilities'
     | '/api/mobile/paymob-checkout'
     | '/api/session/capabilities'
+    | '/api/session/report'
     | '/api/session/token'
     | '/preview/account/delete'
     | '/preview/addresses/$id'
@@ -2036,6 +2048,7 @@ export interface RootRouteChildren {
   ApiMobilePaymobCapabilitiesRoute: typeof ApiMobilePaymobCapabilitiesRoute
   ApiMobilePaymobCheckoutRoute: typeof ApiMobilePaymobCheckoutRoute
   ApiSessionCapabilitiesRoute: typeof ApiSessionCapabilitiesRoute
+  ApiSessionReportRoute: typeof ApiSessionReportRoute
   ApiSessionTokenRoute: typeof ApiSessionTokenRoute
   ApiMobileAuthCompletePasswordRoute: typeof ApiMobileAuthCompletePasswordRoute
   ApiMobileAuthSetPasswordContextRoute: typeof ApiMobileAuthSetPasswordContextRoute
@@ -2798,6 +2811,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSessionCapabilitiesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/session/report': {
+      id: '/api/session/report'
+      path: '/api/session/report'
+      fullPath: '/api/session/report'
+      preLoaderRoute: typeof ApiSessionReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/session/token': {
       id: '/api/session/token'
       path: '/api/session/token'
@@ -3555,6 +3575,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMobilePaymobCapabilitiesRoute: ApiMobilePaymobCapabilitiesRoute,
   ApiMobilePaymobCheckoutRoute: ApiMobilePaymobCheckoutRoute,
   ApiSessionCapabilitiesRoute: ApiSessionCapabilitiesRoute,
+  ApiSessionReportRoute: ApiSessionReportRoute,
   ApiSessionTokenRoute: ApiSessionTokenRoute,
   ApiMobileAuthCompletePasswordRoute: ApiMobileAuthCompletePasswordRoute,
   ApiMobileAuthSetPasswordContextRoute: ApiMobileAuthSetPasswordContextRoute,

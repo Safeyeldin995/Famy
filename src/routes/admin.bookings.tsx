@@ -447,7 +447,15 @@ export function AdminBookings({
                       </div>
                     )}
                     <AdminBookingLifecyclePanel booking={b} />
-                    <AdminOnlineSessionTimeline bookingId={b.id} serviceMode={b.service_mode} />
+                    <AdminOnlineSessionTimeline
+                      bookingId={b.id}
+                      serviceMode={b.service_mode}
+                      guardianConsentAt={(b as { guardian_consent_at?: string | null }).guardian_consent_at}
+                      sessionOutcome={(b as { online_session_outcome?: string | null }).online_session_outcome}
+                      participantMinutes={
+                        (b as { online_participant_minutes?: number | null }).online_participant_minutes
+                      }
+                    />
                     <AdminBookingReadContext bookingId={b.id} status={b.status} />
                     <AdminRescheduleHistory bookingId={b.id} customerId={b.customer_id} />
                   </div>
