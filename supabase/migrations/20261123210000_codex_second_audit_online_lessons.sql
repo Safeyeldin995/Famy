@@ -69,6 +69,8 @@ CREATE OR REPLACE FUNCTION public.booking_expiry_settings()
 RETURNS TABLE (
   pending_ttl_hours numeric,
   min_hours_before_start numeric,
+  auto_complete_hours numeric,
+  completion_auto_from timestamptz,
   confirmed_unpaid_hours_after_confirm numeric,
   confirmed_unpaid_minutes_before_start numeric
 )
@@ -81,6 +83,8 @@ DECLARE
   v_value jsonb;
   v_ttl numeric;
   v_min numeric;
+  v_auto numeric;
+  v_from timestamptz;
 BEGIN
   SELECT s.value INTO v_value FROM public.settings s WHERE s.key = 'booking_expiry';
   pending_ttl_hours := NULL;
@@ -91,11 +95,26 @@ BEGIN
   IF jsonb_typeof(v_value->'min_hours_before_start') = 'number' THEN
     min_hours_before_start := (v_value->>'min_hours_before_start')::numeric;
   END IF;
+  IF jsonb_typeof(v_value->'auto_complete_hours') = 'number' THEN
+    v_auto := (v_value->>'auto_complete_hours')::numeric;
+  END IF;
+  IF jsonb_typeof(v_value->'completion_auto_from') = 'string' THEN
+    BEGIN
+      v_from := (v_value->>'completion_auto_from')::timestamptz;
+    EXCEPTION WHEN OTHERS THEN
+      v_from := NULL;
+    END;
+  END IF;
   pending_ttl_hours :=
     CASE WHEN pending_ttl_hours IS NOT NULL AND pending_ttl_hours >= 0 THEN pending_ttl_hours ELSE 12 END;
   min_hours_before_start :=
     CASE WHEN min_hours_before_start IS NOT NULL AND min_hours_before_start >= 0
       THEN min_hours_before_start ELSE 2 END;
+  auto_complete_hours := CASE
+    WHEN v_auto IS NULL THEN 6
+    ELSE LEAST(24, GREATEST(1, v_auto))
+  END;
+  completion_auto_from := COALESCE(v_from, now());
   confirmed_unpaid_hours_after_confirm :=
     COALESCE((v_value->>'confirmed_unpaid_hours_after_confirm')::numeric, 2);
   confirmed_unpaid_minutes_before_start :=
@@ -103,6 +122,9 @@ BEGIN
   RETURN NEXT;
 END;
 $$;
+REVOKE ALL ON FUNCTION public.booking_expiry_settings() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.booking_expiry_settings() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.booking_expiry_settings() TO service_role;
 
 CREATE OR REPLACE FUNCTION public.expire_unpaid_confirmed_bookings()
 RETURNS integer
@@ -181,6 +203,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS online_lesson_issue_reports_open_reporter_uidx
 CREATE INDEX IF NOT EXISTS online_lesson_issue_reports_open_age_idx
   ON public.online_lesson_issue_reports (created_at)
   WHERE status = 'open';
+CREATE INDEX IF NOT EXISTS online_lesson_issue_reports_resolved_by_idx
+  ON public.online_lesson_issue_reports (resolved_by);
 
 ALTER TABLE public.online_lesson_issue_reports ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.online_lesson_issue_reports FROM PUBLIC, anon;
@@ -190,25 +214,25 @@ GRANT ALL ON public.online_lesson_issue_reports TO service_role;
 CREATE POLICY online_lesson_issue_reports_party_read
   ON public.online_lesson_issue_reports FOR SELECT TO authenticated
   USING (
-    reported_by = auth.uid()
+    reported_by = (select auth.uid())
     OR EXISTS (
       SELECT 1
       FROM public.bookings b
       JOIN public.providers p ON p.id = b.provider_id
       WHERE b.id = booking_id
-        AND (b.customer_id = auth.uid() OR p.profile_id = auth.uid())
+        AND (b.customer_id = (select auth.uid()) OR p.profile_id = (select auth.uid()))
     )
-    OR public.has_role(auth.uid(), 'admin')
+    OR public.has_role((select auth.uid()), 'admin')
   );
 
 CREATE POLICY online_lesson_issue_reports_party_insert
   ON public.online_lesson_issue_reports FOR INSERT TO authenticated
-  WITH CHECK (reported_by = auth.uid());
+  WITH CHECK (reported_by = (select auth.uid()));
 
 CREATE POLICY online_lesson_issue_reports_admin_write
   ON public.online_lesson_issue_reports FOR ALL TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'))
-  WITH CHECK (public.has_role(auth.uid(), 'admin'));
+  USING (public.has_role((select auth.uid()), 'admin'))
+  WITH CHECK (public.has_role((select auth.uid()), 'admin'));
 
 CREATE OR REPLACE FUNCTION public.report_online_lesson_issue(
   p_booking_id uuid,

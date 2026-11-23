@@ -26,6 +26,12 @@ CREATE TABLE IF NOT EXISTS public.customer_wallet_entries (
 
 CREATE INDEX IF NOT EXISTS customer_wallet_entries_customer_idx
   ON public.customer_wallet_entries (customer_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS customer_wallet_entries_booking_id_idx
+  ON public.customer_wallet_entries (booking_id);
+CREATE INDEX IF NOT EXISTS customer_wallet_entries_payment_id_idx
+  ON public.customer_wallet_entries (payment_id);
+CREATE INDEX IF NOT EXISTS customer_wallet_entries_admin_id_idx
+  ON public.customer_wallet_entries (admin_id);
 
 ALTER TABLE public.customer_wallet_entries ENABLE ROW LEVEL SECURITY;
 

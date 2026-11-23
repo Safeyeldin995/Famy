@@ -147,10 +147,10 @@ describe("full migration replay", () => {
       }>(
         db,
         `SELECT
-          pg_get_function_result('public.marketplace_eligibility_internal(uuid,uuid,uuid)'::regprocedure) AS internal,
+          pg_get_function_result('public.marketplace_eligibility_internal(uuid,uuid,uuid,text)'::regprocedure) AS internal,
           pg_get_function_result('public.provider_marketplace_eligibility(uuid,uuid,uuid)'::regprocedure) AS wrapper,
-          has_function_privilege('anon', 'public.marketplace_eligibility_internal(uuid,uuid,uuid)', 'EXECUTE') AS anon,
-          has_function_privilege('authenticated', 'public.marketplace_eligibility_internal(uuid,uuid,uuid)', 'EXECUTE') AS authenticated`,
+          has_function_privilege('anon', 'public.marketplace_eligibility_internal(uuid,uuid,uuid,text)', 'EXECUTE') AS anon,
+          has_function_privilege('authenticated', 'public.marketplace_eligibility_internal(uuid,uuid,uuid,text)', 'EXECUTE') AS authenticated`,
       );
       expect(eligibilitySignatures[0]?.internal).toBe(eligibilitySignatures[0]?.wrapper);
       expect(eligibilitySignatures[0]?.anon).toBe(false);

@@ -670,6 +670,7 @@ const en = {
     getStarted: "Get Started",
     backHome: "Back home",
     somethingWentWrong: "Something went wrong",
+    error: "Something went wrong. Please try again.",
     errorTitle: "Something went wrong",
     tryAgain: "Please try again.",
     tryAgainSoon: "Try again in a moment.",
@@ -1234,32 +1235,6 @@ const en = {
     deliveryInPerson: "At home",
     deliveryOnline: "Online",
   },
-  wallet: {
-    title: "Wallet",
-    availableBalance: "Available: {{amount}}",
-    terms: "Your balance is ready to use on any upcoming Famy booking.",
-    customer: {
-      title: "Wallet",
-      availableBalance: "Available: {{amount}}",
-      terms: "Your balance is ready to use on any upcoming Famy booking.",
-      reason: {
-        provider_cancelled: "Provider cancellation credit",
-        customer_cancelled_refund: "Cancellation credit",
-        admin_credit: "Admin credit",
-        admin_debit: "Admin adjustment",
-        checkout_spend: "Used at checkout",
-      },
-    },
-    reason: {
-      provider_cancelled: "Provider cancellation credit",
-      customer_cancelled_refund: "Cancellation credit",
-      admin_credit: "Admin credit",
-      admin_debit: "Admin adjustment",
-      checkout_spend: "Used at checkout",
-    },
-    refundDisclosure:
-      "Any refunded amount is added to your Famy wallet for use on your next Famy booking.",
-  },
   onlineLesson: {
     requestLesson: "Request lesson",
     noteOptional: "Note for the teacher (optional)",
@@ -1317,6 +1292,7 @@ const en = {
     cameraOn: "Camera on",
     cameraOff: "Camera off",
     flipCamera: "Flip camera",
+    screenShare: "Share screen",
     leave: "Leave session",
     reportAndLeave: "Report and leave",
     lessonReportTitle: "Report a problem with this lesson",
@@ -3350,6 +3326,7 @@ const en = {
       at: "At",
       noRescheduleHistory: "No reschedule history for this booking.",
       sessionTimeline: "Online session attendance",
+      onlineSessionReviewQueue: "Online session overlap reviews",
       sessionTimelineLoading: "Loading session attendance…",
       sessionTimelineError: "Could not load session attendance.",
       sessionTimelineEmpty: "No join events recorded yet.",
@@ -4418,6 +4395,30 @@ Object.assign(en, {
     reviews: "What customers say",
   },
   wallet: {
+    title: "Wallet",
+    availableBalance: "Available: {{amount}}",
+    terms: "Your balance is ready to use on any upcoming Famy booking.",
+    customer: {
+      title: "Wallet",
+      availableBalance: "Available: {{amount}}",
+      terms: "Your balance is ready to use on any upcoming Famy booking.",
+      reason: {
+        provider_cancelled: "Provider cancellation credit",
+        customer_cancelled_refund: "Cancellation credit",
+        admin_credit: "Admin credit",
+        admin_debit: "Admin adjustment",
+        checkout_spend: "Used at checkout",
+      },
+    },
+    reason: {
+      provider_cancelled: "Provider cancellation credit",
+      customer_cancelled_refund: "Cancellation credit",
+      admin_credit: "Admin credit",
+      admin_debit: "Admin adjustment",
+      checkout_spend: "Used at checkout",
+    },
+    refundDisclosure:
+      "Any refunded amount is added to your Famy wallet for use on your next Famy booking.",
     admin: {
       cancellationFee: "Cancellation fee the customer paid the provider",
       carriedFee: "Earlier cancellation fee the provider collected in cash for another provider",

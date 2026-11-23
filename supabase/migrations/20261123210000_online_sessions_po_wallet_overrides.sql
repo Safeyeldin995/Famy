@@ -351,6 +351,8 @@ AS $$
   SELECT * FROM public.cancellation_policy_for('in_person');
 $$;
 
+DROP FUNCTION IF EXISTS public.cancellation_fee_for_total(numeric);
+
 CREATE OR REPLACE FUNCTION public.cancellation_fee_for_total(
   p_total numeric,
   p_service_mode text DEFAULT 'in_person'

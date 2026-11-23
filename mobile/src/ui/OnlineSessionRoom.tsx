@@ -110,13 +110,28 @@ function SessionCallControls({
 
   return (
     <View style={styles.controls}>
-      <Pressable style={styles.controlBtn} onPress={toggleMic} accessibilityRole="button">
+      <Pressable
+        style={styles.controlBtn}
+        onPress={toggleMic}
+        accessibilityRole="button"
+        accessibilityLabel={micEnabled ? t("onlineSession.unmute") : t("onlineSession.mute")}
+      >
         <Text>{micEnabled ? t("onlineSession.unmute") : t("onlineSession.mute")}</Text>
       </Pressable>
-      <Pressable style={styles.controlBtn} onPress={toggleCam} accessibilityRole="button">
+      <Pressable
+        style={styles.controlBtn}
+        onPress={toggleCam}
+        accessibilityRole="button"
+        accessibilityLabel={camEnabled ? t("onlineSession.cameraOn") : t("onlineSession.cameraOff")}
+      >
         <Text>{camEnabled ? t("onlineSession.cameraOn") : t("onlineSession.cameraOff")}</Text>
       </Pressable>
-      <Pressable style={styles.controlBtn} onPress={flipCamera} accessibilityRole="button">
+      <Pressable
+        style={styles.controlBtn}
+        onPress={flipCamera}
+        accessibilityRole="button"
+        accessibilityLabel={t("onlineSession.flipCamera")}
+      >
         <Text>{t("onlineSession.flipCamera")}</Text>
       </Pressable>
       {party === "provider" ? (
@@ -124,6 +139,7 @@ function SessionCallControls({
           style={styles.controlBtn}
           onPress={() => void localParticipant.setScreenShareEnabled(true)}
           accessibilityRole="button"
+          accessibilityLabel={t("onlineSession.screenShare")}
         >
           <Text>{t("onlineSession.screenShare")}</Text>
         </Pressable>
@@ -133,6 +149,7 @@ function SessionCallControls({
         onPress={reportAndLeave}
         disabled={reporting}
         accessibilityRole="button"
+        accessibilityLabel={t("onlineSession.reportAndLeave")}
       >
         <Text tone="danger">{t("onlineSession.reportAndLeave")}</Text>
       </Pressable>
