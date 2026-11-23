@@ -1,5 +1,3 @@
-import { space } from "./theme";
-
 /** Max system font scale multipliers (accessibility on, layouts stay stable on Android). */
 export const BODY_FONT_SCALE_CAP = 1.2;
 export const COMPACT_FONT_SCALE_CAP = 1.2;
@@ -36,6 +34,7 @@ export function scaledTabBarHeight(
 }
 
 /** Bottom padding for tab screens that scroll outside `Page` (e.g. customer home). */
-export function tabScrollContentPadding(fontScale: number, bottomInset: number, extra = space.lg) {
+/** Default trailing gap matches `theme.space.lg` (16) without importing theme (a11y-rtl VM check). */
+export function tabScrollContentPadding(fontScale: number, bottomInset: number, extra = 16) {
   return scaledTabBarHeight(fontScale, 22, bottomInset) + 12 + extra;
 }

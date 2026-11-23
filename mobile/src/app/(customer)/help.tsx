@@ -7,7 +7,7 @@ import { Page, QueryState, ActionError, ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
-import { colors, space } from "@/ui/theme";
+import { colors, radius, shadow, space } from "@/ui/theme";
 export default function Help() {
   const { t } = useTranslation();
   const q = useSupportContact();
@@ -39,7 +39,7 @@ export default function Help() {
       contentStyle={{ paddingTop: 0, gap: 16 }}
       scrollHeader
     >
-      <View style={[ui.card, { marginTop: -32, borderRadius: 28, padding: space.xl }]}>
+      <View style={[ui.card, { marginTop: -32, borderRadius: radius.xl, padding: space.xl }]}>
         <Text size="xl" weight="heavy">
           {t("helpC.heroTitle")}
         </Text>
@@ -66,11 +66,13 @@ export default function Help() {
                 onPress={() => url && void open(url)}
                 style={{
                   flex: 1,
-                  borderRadius: 20,
-                  padding: 12,
+                  borderRadius: radius.lg,
+                  padding: space.md,
                   alignItems: "center",
-                  gap: 8,
+                  gap: space.sm,
                   backgroundColor: colors.surface2,
+                  borderWidth: 1,
+                  borderColor: colors.border,
                   opacity: url ? 1 : 0.5,
                 }}
               >
@@ -102,9 +104,10 @@ export default function Help() {
         style={{
           borderWidth: 1,
           borderColor: colors.border,
-          borderRadius: 28,
+          borderRadius: radius.xl,
           backgroundColor: colors.surface,
           overflow: "hidden",
+          ...shadow.card,
         }}
       >
         {faqs.map((f, i) => (
@@ -115,7 +118,7 @@ export default function Help() {
             accessibilityState={{ expanded: expanded === i }}
             onPress={() => setExpanded(expanded === i ? null : i)}
             style={{
-              padding: 16,
+              padding: space.lg,
               borderBottomWidth: i === faqs.length - 1 ? 0 : 1,
               borderColor: colors.border,
             }}

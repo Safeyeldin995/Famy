@@ -123,7 +123,7 @@ export default function ChatScreen() {
             }
             data={msgs.data ?? []}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.thread}
+            contentContainerStyle={[styles.thread, { paddingBottom: space.xxxl + insets.bottom }]}
             renderItem={({ item }) => (
               <MessageBubble
                 message={item}

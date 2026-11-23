@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { QueryState, Row } from "@/ui/Page";
 import { ProviderCard } from "@/ui/ProviderCard";
@@ -41,6 +41,13 @@ import { HomeActiveBookingCard } from "@/ui/customer/HomeActiveBookingCard";
 import { FeeDebtBanner } from "@/ui/FeeDebtBanner";
 import { useBookingParties } from "@/lib/queries";
 import { customerHomeActiveBookings } from "@shared/home/activeHomeBookings";
+import {
+  bumpHomeFocusEffect,
+  bumpHomeQueryFetch,
+  homeFreezeDiagEnabled,
+  homeFreezeLegacyMode,
+  resetHomeFreezeDiagnostics,
+} from "@/lib/homeFreezeDiagnostics";
 
 const SERVICE_TILES = {
   babysitting: {
@@ -92,7 +99,40 @@ export default function Home() {
   );
   const parties = useBookingParties(activeIds);
   const promos = useFeaturedPromoCodes();
+  const legacyFreeze = homeFreezeLegacyMode();
   const [refreshing, setRefreshing] = useState(false);
+  const fetchWasActive = useRef<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (homeFreezeDiagEnabled()) resetHomeFreezeDiagnostics();
+  }, []);
+
+  useEffect(() => {
+    if (!homeFreezeDiagEnabled()) return;
+    const tracked: [string, boolean][] = [
+      ["profile", profile.isFetching],
+      ["address", address.isFetching],
+      ["categories", categories.isFetching],
+      ["tutoringServices", tutoringServices.isFetching],
+      ["unread", unread.isFetching],
+      ["bookings", bookings.isFetching],
+      ["parties", parties.isFetching],
+      ["promos", promos.isFetching],
+    ];
+    for (const [key, active] of tracked) {
+      if (active && !fetchWasActive.current[key]) bumpHomeQueryFetch(key);
+      fetchWasActive.current[key] = active;
+    }
+  }, [
+    profile.isFetching,
+    address.isFetching,
+    categories.isFetching,
+    tutoringServices.isFetching,
+    unread.isFetching,
+    bookings.isFetching,
+    parties.isFetching,
+    promos.isFetching,
+  ]);
 
   // A visitor who tapped "book" while browsing as a guest resumes at that provider.
   useEffect(() => {
@@ -113,9 +153,16 @@ export default function Home() {
 
   useFocusEffect(
     useCallback(() => {
+      bumpHomeFocusEffect();
+      if (legacyFreeze) {
+        bumpHomeQueryFetch("bookingsFocusRefetch");
+        void bookings.refetch();
+      } else {
+        bumpHomeQueryFetch("bookingsFocusInvalidate");
+      }
       void cache.invalidateQueries({ queryKey: ["my-bookings"] });
       void cache.invalidateQueries({ queryKey: ["customer-fee-debts"] });
-    }, [cache]),
+    }, [cache, legacyFreeze, bookings.refetch]),
   );
   const firstName = profile.data?.full_name?.split(" ")[0] || t("greetings.there");
   const Arrow = isAr ? ArrowUpLeft : ArrowUpRight;
@@ -154,12 +201,16 @@ export default function Home() {
                 bookings,
                 promos,
               ].map((q) => q.refetch());
-              if (activeIds.length) core.push(parties.refetch());
+              if (legacyFreeze || activeIds.length) core.push(parties.refetch());
               await Promise.all(core);
+              if (legacyFreeze) {
+                await cache.refetchQueries({ queryKey: ["providers"], type: "active" });
+              }
             } finally {
-              // Fan-out refetch for every active providers query after the spinner clears.
               setRefreshing(false);
-              void cache.refetchQueries({ queryKey: ["providers"], type: "active" });
+              if (!legacyFreeze) {
+                void cache.refetchQueries({ queryKey: ["providers"], type: "active" });
+              }
             }
           }}
         />

@@ -4,7 +4,7 @@ import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, ArrowRight, ShieldCheck } from "lucide-react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   CONTACT_BLOCKED_MESSAGE,
   containsContactInfo,
@@ -29,6 +29,7 @@ import { ChatThreadSkeleton } from "@/ui/Skeleton";
 export default function ProviderChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t, i18n } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { session } = useSession();
   const meId = session?.user.id ?? null;
   const conv = useConversation(id);
@@ -130,7 +131,7 @@ export default function ProviderChatScreen() {
               inverted
               data={msgs.data ?? []}
               keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.thread}
+              contentContainerStyle={[styles.thread, { paddingBottom: space.xxxl + insets.bottom }]}
               renderItem={({ item }) => (
                 <MessageBubble
                   message={item}

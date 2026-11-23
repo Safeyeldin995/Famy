@@ -22,7 +22,7 @@ import { Page, QueryState, ActionError } from "@/ui/Page";
 import { ProviderHeader } from "@/ui/provider/ProviderHeader";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
-import { colors, space } from "@/ui/theme";
+import { colors, radius, space } from "@/ui/theme";
 import { customerNumber } from "@/lib/customerFormat";
 import { useToast } from "@/ui/Toast";
 
@@ -48,7 +48,7 @@ function RuleChipRow({
       horizontal
       style={{ flexGrow: 0 }}
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ flexDirection: "row", gap: 8, paddingVertical: 4 }}
+      contentContainerStyle={{ flexDirection: "row", gap: space.sm, paddingVertical: space.xs }}
     >
       {values.map((value) => {
         const active = selected === value;
@@ -63,8 +63,8 @@ function RuleChipRow({
             onPress={() => onSelect(value)}
             style={{
               minHeight: 44,
-              paddingHorizontal: 14,
-              borderRadius: 999,
+              paddingHorizontal: space.md + 2,
+              borderRadius: radius.pill,
               alignItems: "center",
               justifyContent: "center",
               borderWidth: 1,

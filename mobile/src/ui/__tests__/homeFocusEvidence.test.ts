@@ -9,15 +9,19 @@ const querySource = readFileSync(
 );
 
 describe("customer home freeze guardrails", () => {
-  it("does not tie useFocusEffect to bookings.refetch (unproven root cause)", () => {
+  it("does not tie useFocusEffect to bookings.refetch unless legacy diag mode", () => {
     const src = readFileSync(homePath, "utf8");
     const block = src.match(/useFocusEffect\([\s\S]*?\n  \);/)?.[0] ?? "";
-    expect(block.includes("bookings.refetch")).toBe(false);
+    expect(block).toMatch(/if \(legacyFreeze\)/);
+    expect(block.includes("void bookings.refetch()")).toBe(true);
+    expect(block.match(/bookings\.refetch/g)?.length).toBe(2); // body + deps (stable in v5)
   });
 
-  it("ends refresh before providers fan-out refetch", () => {
+  it("ends refresh before providers fan-out refetch in current (non-legacy) mode", () => {
     const src = readFileSync(homePath, "utf8");
-    expect(src).toMatch(/setRefreshing\(false\);\s*\n\s*void cache\.refetchQueries/);
+    expect(src).toMatch(
+      /setRefreshing\(false\);\s*\n\s*if \(!legacyFreeze\) \{\s*\n\s*void cache\.refetchQueries/,
+    );
   });
 
   it("documents TanStack Query refetch as stable in the built package", () => {
