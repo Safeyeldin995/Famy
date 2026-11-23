@@ -72,9 +72,16 @@ export function OnlineLessonPaymentPanel({ bookingId, total, onPaid }: Props) {
     try {
       let paymentId = paymentQ.data?.id;
       if (!paymentId) {
-        await supabase.rpc("customer_release_booking_checkout_wallet", {
-          p_booking_id: bookingId,
-        });
+        const { count } = await supabase
+          .from("payments")
+          .select("id", { count: "exact", head: true })
+          .eq("booking_id", bookingId)
+          .eq("status", "rejected");
+        if (count && count > 0) {
+          await supabase.rpc("customer_release_booking_checkout_wallet", {
+            p_booking_id: bookingId,
+          });
+        }
         const payment = await create.mutateAsync({
           bookingId,
           paymentMethodId: onlineMethod.id,

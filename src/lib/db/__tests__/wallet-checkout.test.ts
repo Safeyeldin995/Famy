@@ -122,6 +122,30 @@ describe("customer_apply_wallet_at_checkout", () => {
     expect(Number(funded[0]?.total)).toBeLessThan(Number(cardDue[0]?.checkout_total ?? 500));
   });
 
+  it("blocks customer wallet release while a pending checkout is still open", async () => {
+    const { bookingId } = await seedLifecycleBooking(db, { status: "confirmed" });
+    const { paymobId } = await seedPaymentsForBooking(db, bookingId);
+    await tryAsUser(
+      db,
+      IDS.adminUser,
+      "SELECT public.admin_adjust_customer_wallet($1, 'credit', 40, 'test top-up', NULL)",
+      [IDS.customer],
+    );
+    await tryAsUser(
+      db,
+      IDS.customer,
+      "SELECT public.customer_apply_wallet_at_checkout($1::uuid)",
+      [paymobId],
+    );
+    const blocked = await tryAsUser(
+      db,
+      IDS.customer,
+      "SELECT public.customer_release_booking_checkout_wallet($1::uuid)",
+      [bookingId],
+    );
+    expect(blocked.error).toMatch(/still active/);
+  });
+
   it("customer cancel releases wallet debit when checkout stays pending", async () => {
     const { bookingId } = await seedLifecycleBooking(db, { status: "confirmed" });
     const { paymobId } = await seedPaymentsForBooking(db, bookingId);
