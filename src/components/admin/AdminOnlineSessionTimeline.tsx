@@ -5,13 +5,11 @@ import { operationDate } from "@/components/admin/operations";
 export function AdminOnlineSessionTimeline({
   bookingId,
   serviceMode,
-  guardianConsentAt,
   sessionOutcome,
   participantMinutes,
 }: {
   bookingId: string;
   serviceMode?: string | null;
-  guardianConsentAt?: string | null;
   sessionOutcome?: string | null;
   participantMinutes?: number | null;
 }) {
@@ -41,12 +39,6 @@ export function AdminOnlineSessionTimeline({
       <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
         {t("admin.bookings.sessionTimeline")}
       </p>
-      {guardianConsentAt ? (
-        <p>
-          <span className="text-muted-foreground">{t("admin.bookings.guardianConsent")}:</span>{" "}
-          {operationDate(guardianConsentAt, i18n.language)}
-        </p>
-      ) : null}
       {sessionOutcome ? (
         <p>
           <span className="text-muted-foreground">{t("admin.bookings.sessionOutcome")}:</span>{" "}
