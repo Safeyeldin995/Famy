@@ -119,6 +119,12 @@ import {
   isSupervisionMode,
 } from "@shared/booking/supervisionMode";
 import { normalizeServiceDeliveryMode } from "@shared/online/serviceMode";
+import {
+  isOnlineRequestStep,
+  isOnlineWhenStep,
+  onlineLessonBookMissing,
+  ONLINE_LESSON_BOOK_STEPS,
+} from "@shared/booking/onlineLessonBookSteps";
 import { onlineBookingLearnerAgeIssue } from "@shared/online/onlineBookingLearnerAge";
 import { memberAgeFromDate } from "@shared/familyMemberAge";
 import { FamilyMemberAgeField } from "@/ui/customer/FamilyMemberAgeField";
@@ -192,6 +198,10 @@ function BookForm({
   const savedEducation = useCustomerEducationProfile();
   const profile = useMyProfile();
   const [step, setStep] = useState(0);
+  useEffect(() => {
+    if (!isOnlineBooking) return;
+    setRecipient("myself");
+  }, [isOnlineBooking]);
   const { guardDefault, touch } = useRebookSeedGuard(rebookInitial?.seededFields);
   const [serviceId, setServiceId] = useState(rebookInitial?.serviceId ?? initialService ?? "");
   const [capId, setCapId] = useState(rebookInitial?.capabilityId ?? initialCap ?? "");
@@ -273,6 +283,18 @@ function BookForm({
     : fixed
       ? Number(service?.service.duration_min)
       : hours * 60;
+  useEffect(() => {
+    if (!isOnlineBooking || !tutoring || capId || !(caps.data?.length ?? 0)) return;
+    const pick =
+      caps.data!.find((c) => c.id === initialCap) ??
+      caps.data!.find((c) => c.durationMin === duration) ??
+      caps.data![0];
+    if (pick) setCapId(pick.id);
+  }, [isOnlineBooking, tutoring, capId, caps.data, initialCap, duration]);
+  useEffect(() => {
+    if (!isOnlineBooking || !initialService || serviceId) return;
+    if (services.some((s) => s.service.id === initialService)) setServiceId(initialService);
+  }, [isOnlineBooking, initialService, serviceId, services]);
   const settings = useProviderBookingSettings(providerId, {
     serviceId: eligibilityServiceId,
     addressId: isOnlineBooking ? null : addressId || null,
@@ -434,18 +456,26 @@ function BookForm({
     (isPaymobWalletUiMethodId(methodId)
       ? !!paymobOnline
       : !!methods.data?.some((m) => m.id === methodId));
-  const missing = bookingScreenMissingStep(BOOKING_SCREENS[step], {
-    service: !!service,
-    tutoring,
-    capability: !!capability,
-    slot: !!currentSlot && !slots.isFetching,
-    address: isOnlineBooking || addressReady,
-    recipient: onlineRecipientReady,
-    supervisionRequired,
-    supervision: supervisionReady,
-    requirements: requirements.isSuccess && either.every((r) => !!choices[r.id]),
-    payment: paymentMethodReady,
-  });
+  const missing = isOnlineBooking
+    ? onlineLessonBookMissing({
+        service: !!service,
+        slot: !!currentSlot && !slots.isFetching,
+        tutoring,
+        capability: !!capability,
+        recipient: onlineRecipientReady,
+      })
+    : bookingScreenMissingStep(BOOKING_SCREENS[step], {
+        service: !!service,
+        tutoring,
+        capability: !!capability,
+        slot: !!currentSlot && !slots.isFetching,
+        address: addressReady,
+        recipient: onlineRecipientReady,
+        supervisionRequired,
+        supervision: supervisionReady,
+        requirements: requirements.isSuccess && either.every((r) => !!choices[r.id]),
+        payment: paymentMethodReady,
+      });
   const blocked = checkoutContinueBlocked({
     servicesError: servicesQ.isError,
     bookable,
@@ -552,17 +582,18 @@ function BookForm({
         idempotency_key: idempotency.current.key,
       });
       createdId.current = booking.id;
-      const walletChannel = paymobChannelForUiMethodId(methodId);
-      const method = walletChannel
-        ? paymobOnline!
-        : methods.data!.find((m) => m.id === methodId)!;
-      const paymobChannel = walletChannel ?? "card";
-      // Persist before navigation so payment recovery survives a fetch failure or app restart.
-      await stashPayment(booking.id, {
-        paymentMethodId: method.id,
-        methodType: method.method_type,
-        ...(paymobChannel !== "card" ? { paymobChannel } : {}),
-      });
+      if (!isOnlineBooking) {
+        const walletChannel = paymobChannelForUiMethodId(methodId);
+        const method = walletChannel
+          ? paymobOnline!
+          : methods.data!.find((m) => m.id === methodId)!;
+        const paymobChannel = walletChannel ?? "card";
+        await stashPayment(booking.id, {
+          paymentMethodId: method.id,
+          methodType: method.method_type,
+          ...(paymobChannel !== "card" ? { paymobChannel } : {}),
+        });
+      }
       let educationWarning = false;
       if (
         shouldPersistEducationAfterBookingSuccess({
@@ -583,20 +614,27 @@ function BookForm({
           educationWarning = true;
         }
       }
-      const paymentPlan = planPostCreatePayment(booking, method);
-      if (paymentPlan.action === "create_now") {
-        try {
-          const payment = await createPayment.mutateAsync({
-            bookingId: booking.id,
-            paymentMethodId: method.id,
-            methodType: method.method_type,
-          });
-          await clearPayment(booking.id);
-          if (method.method_type === "online") {
-            await startPaymob(booking.id, payment.id, paymobChannel);
+      if (!isOnlineBooking) {
+        const walletChannel = paymobChannelForUiMethodId(methodId);
+        const method = walletChannel
+          ? paymobOnline!
+          : methods.data!.find((m) => m.id === methodId)!;
+        const paymobChannel = walletChannel ?? "card";
+        const paymentPlan = planPostCreatePayment(booking, method);
+        if (paymentPlan.action === "create_now") {
+          try {
+            const payment = await createPayment.mutateAsync({
+              bookingId: booking.id,
+              paymentMethodId: method.id,
+              methodType: method.method_type,
+            });
+            await clearPayment(booking.id);
+            if (method.method_type === "online") {
+              await startPaymob(booking.id, payment.id, paymobChannel);
+            }
+          } catch {
+            /* Booking is already created; detail recovers payment or offers checkout retry. */
           }
-        } catch {
-          /* Booking is already created; detail recovers payment or offers checkout retry. */
         }
       }
       router.replace({
@@ -700,7 +738,10 @@ function BookForm({
           title={t(`customerBooking.titles.${BOOKING_SCREENS[step]}`, {
             name: provider.data?.profile.full_name?.split(" ")[0] || "",
           })}
-          subtitle={t("customerRound2.step", { step: String(step + 1), total: "4" })}
+          subtitle={t("customerRound2.step", {
+            step: String(step + 1),
+            total: isOnlineBooking ? String(ONLINE_LESSON_BOOK_STEPS) : "4",
+          })}
           onBack={() => {
             if (busy) return;
             if (step > 0) setStep(step - 1);
@@ -734,9 +775,11 @@ function BookForm({
             <View style={{ flex: 1 }}>
               <Button
                 label={t(
-                  step === 3
-                    ? "mobileBooking.confirmBooking"
-                    : bookingScreenPrimaryCtaKey(BOOKING_SCREENS[step], editing),
+                  isOnlineRequestStep(step, isOnlineBooking)
+                    ? "onlineLesson.requestLesson"
+                    : step === 3
+                      ? "mobileBooking.confirmBooking"
+                      : bookingScreenPrimaryCtaKey(BOOKING_SCREENS[step], editing),
                 )}
                 loading={busy}
                 disabled={busy || loading}
@@ -753,10 +796,11 @@ function BookForm({
                     }
                     return;
                   }
-                  if (step === 3) void submit();
+                  if (isOnlineRequestStep(step, isOnlineBooking) || step === 3) void submit();
                   else {
                     setFieldHint(null);
-                    setStep(editing ? 3 : step + 1);
+                    const last = isOnlineBooking ? ONLINE_LESSON_BOOK_STEPS - 1 : 3;
+                    setStep(editing ? last : Math.min(step + 1, last));
                     setEditing(false);
                   }
                 }}
@@ -785,13 +829,13 @@ function BookForm({
       <QueryState query={billing} />
       {needsRate && <QueryState query={packageRate} />}
       <RebookPrefillNoticeList notices={rebookNotices} />
-      {!pinned.length && !addresses.isLoading && (
+      {!isOnlineBooking && !pinned.length && !addresses.isLoading && (
         <>
           <Text>{t("customerHome.addressHint")}</Text>
           <Button label={t("addresses.addAddress")} onPress={() => setInlineForm("address")} />
         </>
       )}
-      {step === 0 && (
+      {step === 0 && !isOnlineBooking && (
         <>
           <View
             nativeID="booking-services"
@@ -977,12 +1021,19 @@ function BookForm({
           ) : null}
         </>
       )}
-      {step === 1 && (
+      {isOnlineWhenStep(step, isOnlineBooking) && (
         <>
-          <BookingVisitRequirements
-            categorySlug={service?.service.category?.slug}
-            requirements={requirements.data ?? []}
-          />
+          {isOnlineBooking && service ? (
+            <Text weight="bold">
+              {localized(service.service, lang)} · {provider.data?.profile.full_name?.split(" ")[0]}
+            </Text>
+          ) : null}
+          {!isOnlineBooking ? (
+            <BookingVisitRequirements
+              categorySlug={service?.service.category?.slug}
+              requirements={requirements.data ?? []}
+            />
+          ) : null}
           {fieldHint?.focusId === "booking-schedule" ? (
             <Text tone="danger">{t(fieldHint.messageKey)}</Text>
           ) : null}
@@ -1010,6 +1061,14 @@ function BookForm({
               onTimeChange={setSlot}
             />
           </View>
+          {isOnlineBooking ? (
+            <Field
+              label={t("onlineLesson.noteOptional")}
+              value={notes}
+              onChangeText={setNotes}
+              multiline
+            />
+          ) : null}
         </>
       )}
       {step === 2 && (
@@ -1085,8 +1144,13 @@ function BookForm({
           <Field label={t("setup.notes")} value={notes} onChangeText={setNotes} multiline />
         </>
       )}
-      {step === 3 && (
+      {(step === 3 || isOnlineRequestStep(step, isOnlineBooking)) && (
         <>
+          {isOnlineBooking ? (
+            <Text size="sm" tone="muted">
+              {t("onlineLesson.requestHint")}
+            </Text>
+          ) : null}
           <View>
             {[
               {
@@ -1114,11 +1178,15 @@ function BookForm({
                   : t("bookFlow.dash"),
                 step: 1,
               },
-              {
-                label: t("bookFlow.rowAddress"),
-                value: reviewAddressLine,
-                step: 2,
-              },
+              ...(isOnlineBooking
+                ? []
+                : [
+                    {
+                      label: t("bookFlow.rowAddress"),
+                      value: reviewAddressLine,
+                      step: 2,
+                    },
+                  ]),
               {
                 label: t("customerBooking.recipient"),
                 value:
@@ -1256,11 +1324,17 @@ function BookForm({
             />
           ) : null}
           {isOnlineBooking ? (
-            <Text size="sm" tone="muted">
-              {t("wallet.refundDisclosure")}
-            </Text>
+            <>
+              <Text size="sm" tone="muted">
+                {t("wallet.refundDisclosure")}
+              </Text>
+              <Text size="sm" tone="muted">
+                {t("onlineLesson.requestHint")}
+              </Text>
+            </>
           ) : null}
-          <QueryState query={methods} empty={!methods.data?.length} />
+          {!isOnlineBooking ? <QueryState query={methods} empty={!methods.data?.length} /> : null}
+          {!isOnlineBooking ? (
           <Choices
             layout="cards"
             label={t("payment.title")}
@@ -1292,6 +1366,7 @@ function BookForm({
                 : []),
             ]}
           />
+          ) : null}
         </>
       )}
       {error && <Text tone="danger">{error}</Text>}

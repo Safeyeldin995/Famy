@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { View, StyleSheet, Linking, Platform } from "react-native";
 import { useTranslation } from "react-i18next";
+import * as ImagePicker from "expo-image-picker";
 import { Text } from "./Text";
 import { Button } from "./Button";
 import { space } from "./theme";
@@ -16,9 +17,25 @@ export function OnlineSessionPreJoin({ onReady, onCancel }: Props) {
   const [micReady, setMicReady] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
   const [networkOk, setNetworkOk] = useState<boolean | null>(null);
+  const [autoSkipped, setAutoSkipped] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    void (async () => {
+      const cam = await ImagePicker.getCameraPermissionsAsync();
+      if (cancelled) return;
+      if (cam.granted) {
+        setCameraReady(true);
+        setMicReady(true);
+      }
+      if (!cam.granted) {
+        const req = await ImagePicker.requestCameraPermissionsAsync();
+        if (req.granted) {
+          setCameraReady(true);
+          setMicReady(true);
+        }
+      }
+    })();
     fetch(`${appConfig.webOrigin.replace(/\/$/, "")}/api/session/capabilities`, {
       method: "GET",
       headers: { "Cache-Control": "no-store" },
@@ -34,6 +51,15 @@ export function OnlineSessionPreJoin({ onReady, onCancel }: Props) {
     };
   }, []);
 
+  useEffect(() => {
+    if (autoSkipped) return;
+    if (micReady && cameraReady && networkOk === true) {
+      setAutoSkipped(true);
+      const timer = setTimeout(onReady, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [autoSkipped, cameraReady, micReady, networkOk, onReady]);
+
   const ready = micReady && cameraReady && networkOk === true;
 
   const openSettings = () => {
@@ -41,12 +67,20 @@ export function OnlineSessionPreJoin({ onReady, onCancel }: Props) {
     else void Linking.openSettings();
   };
 
+  if (autoSkipped && ready) {
+    return (
+      <View style={styles.wrap}>
+        <Text tone="muted">{t("onlineSession.preJoinAutoReady")}</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.wrap}>
       <Text size="lg" weight="bold">
         {t("onlineSession.preJoinTitle")}
       </Text>
-      <Text tone="muted">{t("onlineSession.preJoinHint")}</Text>
+      <Text tone="muted">{t("onlineSession.preJoinHintShort")}</Text>
       <CheckRow
         ok={micReady}
         label={t("onlineSession.preJoinMic")}

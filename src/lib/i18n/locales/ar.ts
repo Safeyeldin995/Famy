@@ -1232,8 +1232,19 @@ const ar: Translation = {
   wallet: {
     title: "المحفظة",
     availableBalance: "المتاح: {{amount}}",
-    terms:
-      "رصيدك متاح تستخدمه في أي حجز على فامي، ولا يمكن سحبه على حساب بنكي أو بطاقة",
+    terms: "رصيدك متاح تستخدمه في أي حجز جاي على فامي",
+    customer: {
+      title: "المحفظة",
+      availableBalance: "المتاح: {{amount}}",
+      terms: "رصيدك متاح تستخدمه في أي حجز جاي على فامي",
+      reason: {
+        provider_cancelled: "رصيد إلغاء من مقدم الخدمة",
+        customer_cancelled_refund: "رصيد إلغاء",
+        admin_credit: "رصيد من الإدارة",
+        admin_debit: "تعديل من الإدارة",
+        checkout_spend: "استخدم عند الدفع",
+      },
+    },
     reason: {
       provider_cancelled: "رصيد إلغاء من مقدم الخدمة",
       customer_cancelled_refund: "رصيد إلغاء",
@@ -1244,6 +1255,38 @@ const ar: Translation = {
     refundDisclosure:
       "أي مبلغ مسترد بيتضاف لرصيدك في فامي وتقدر تستخدمه في أي حجز جاي",
   },
+  onlineLesson: {
+    requestLesson: "اطلب الحصة",
+    noteOptional: "ملاحظة للمدرس (اختياري)",
+    requestHint: "المدرس هيرد الأول؛ الدفع بعد التأكيد.",
+    payTitle: "ادفع تمن الحصة",
+    payNowOneTap: "ادفع دلوقتي",
+    confirmWalletPay: "تأكيد",
+    walletApplied: "هيتطبق {{amount}} من رصيد فامي تلقائيًا.",
+    walletCoversTotal: "رصيدك يكفي الحصة دي.",
+    cardDue: "ادفع {{amount}} بالكارت",
+    payCountdown: "ادفع خلال {{time}}",
+    payFailedNext: "الدفع ما تمش. جرّب تاني أو اختار وقت تاني.",
+    payNoMethod: "الدفع الأونلاين مش متاح دلوقتي. حاول بعد شوية.",
+    journey: {
+      steps: {
+        requested: "طلب",
+        confirmed: "اتأكد",
+        paid: "اتدفع",
+        startingSoon: "قرب تبدأ",
+        inLesson: "في الحصة",
+        done: "خلصت",
+      },
+      next: {
+        requested: "بنستنى المدرس يأكد طلبك.",
+        confirmed: "ادفع دلوقتي عشان تثبّت الحصة.",
+        paid: "تمام — مستنّيين معاد الحصة.",
+        startingSoon: "جهّز نفسك — تقدر تدخل قريب.",
+        inLesson: "الحصة شغالة.",
+        done: "قيم الحصة أو احجز تاني.",
+      },
+    },
+  },
   onlineSession: {
     title: "جلسة مباشرة",
     joinCustomer: "ادخل الجلسة",
@@ -1251,6 +1294,10 @@ const ar: Translation = {
     joinFailed: "تعذر الدخول للجلسة",
     preJoinTitle: "قبل ما تدخل",
     preJoinHint: "اتأكد من الميكروفون والكاميرا والاتصال.",
+    preJoinHintShort: "بنراجع الميك والكاميرا والاتصال.",
+    preJoinAutoReady: "بنفتح الغرفة…",
+    audioOnlyBanner: "صوت بس",
+    audioOnlyHint: "النت ضعيف — الفيديو اتقفل عشان المكالمة تفضل ثابتة.",
     preJoinMic: "الميكروفون",
     preJoinCamera: "الكاميرا",
     preJoinNetwork: "الاتصال بفامي",
@@ -1279,9 +1326,6 @@ const ar: Translation = {
     lessonReportHint: "متاح من ١٠ دقايق قبل البداية لحد ٢٤ ساعة بعد نهاية الحصة.",
     lessonReportSubmitted: "استلمنا بلاغك.",
     lessonReportReviewEta: "هنراجع خلال ٤٨ ساعة.",
-    guardianConsentTitle: "موافقة ولي الأمر على الجلسة الأونلاين",
-    guardianConsentBody:
-      "بصفتك ولي الأمر أو الوصي، أوافق على انضمام القاصر لجلسة فيديو مباشرة مع مقدم الخدمة المحجوز داخل فامي.",
     errors: {
       unauthorized: "سجّل الدخول للانضمام للجلسة.",
       payment_required: "لازم تكمّل الدفع قبل الدخول.",
@@ -3276,7 +3320,6 @@ const ar: Translation = {
       sessionTimelineLoading: "جاري تحميل حضور الجلسة…",
       sessionTimelineError: "تعذّر تحميل حضور الجلسة.",
       sessionTimelineEmpty: "لم يُسجَّل أي دخول بعد.",
-      guardianConsent: "موافقة ولي الأمر",
       sessionOutcome: "نتيجة الجلسة",
       participantMinutes: "{{count}} دقيقة مشاركة",
       sessionOutcomes: {

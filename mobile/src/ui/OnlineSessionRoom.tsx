@@ -19,11 +19,15 @@ import { reportOnlineSessionAndLeave } from "@/lib/onlineSessionApi";
 let registered = false;
 
 function SessionVideoTiles({ audioOnly }: { audioOnly: boolean }) {
+  const { t } = useTranslation();
   const tracks = useTracks([Track.Source.Camera], { onlySubscribed: false });
   if (audioOnly) {
     return (
-      <View style={styles.centered}>
-        <Text tone="muted">{/* audio-only fallback active */}</Text>
+      <View style={[styles.centered, { gap: space.sm, padding: space.md }]}>
+        <Text weight="bold">{t("onlineSession.audioOnlyBanner")}</Text>
+        <Text tone="muted" size="sm">
+          {t("onlineSession.audioOnlyHint")}
+        </Text>
       </View>
     );
   }

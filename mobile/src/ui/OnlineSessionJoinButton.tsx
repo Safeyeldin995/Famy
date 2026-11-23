@@ -73,10 +73,10 @@ export function OnlineSessionJoinButton({
 
   if (booking.service_mode !== "online" || !windowOpen || !authz?.ok) return null;
 
-  return (
-    <Button
-      label={party === "customer" ? t("onlineSession.joinCustomer") : t("onlineSession.joinProvider")}
-      onPress={onJoin}
-    />
-  );
+  const label =
+    party === "customer"
+      ? t("onlineSession.joinCustomer")
+      : t("onlineSession.joinProvider");
+
+  return <Button label={label} onPress={onJoin} />;
 }
