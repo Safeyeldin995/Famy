@@ -175,8 +175,12 @@ export async function createPaymobCheckoutForPayment(input: {
     };
   }
 
+  const authoritativeAmount = bookingAmountDue(bookingRow);
   const paymentAmount = Number(paymentAfterWallet.amount);
-  if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) {
+  if (!Number.isFinite(paymentAmount) || paymentAmount <= 0.01) {
+    throw new Error("This booking is already covered by wallet credit.");
+  }
+  if (!Number.isFinite(authoritativeAmount) || authoritativeAmount <= 0 || paymentAmount > authoritativeAmount + 0.01) {
     throw new Error("Payment amount does not match the booking total.");
   }
 

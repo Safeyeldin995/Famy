@@ -18,7 +18,7 @@ export function OnlineSessionPreJoin({ onReady, onCancel }: Props) {
   const [cameraReady, setCameraReady] = useState(false);
   const [networkOk, setNetworkOk] = useState<boolean | null>(null);
   const [autoSkipped, setAutoSkipped] = useState(false);
-  const autoSkipStarted = useRef(false);
+  const advanceScheduled = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -53,9 +53,9 @@ export function OnlineSessionPreJoin({ onReady, onCancel }: Props) {
   }, []);
 
   useEffect(() => {
-    if (autoSkipStarted.current) return;
+    if (advanceScheduled.current) return;
     if (!(micReady && cameraReady && networkOk === true)) return;
-    autoSkipStarted.current = true;
+    advanceScheduled.current = true;
     const timer = setTimeout(() => {
       setAutoSkipped(true);
       onReady();
@@ -70,20 +70,15 @@ export function OnlineSessionPreJoin({ onReady, onCancel }: Props) {
     else void Linking.openSettings();
   };
 
-  if (autoSkipped && ready) {
-    return (
-      <View style={styles.wrap}>
-        <Text tone="muted">{t("onlineSession.preJoinAutoReady")}</Text>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.wrap}>
       <Text size="lg" weight="bold">
         {t("onlineSession.preJoinTitle")}
       </Text>
       <Text tone="muted">{t("onlineSession.preJoinHintShort")}</Text>
+      {autoSkipped && ready ? (
+        <Text tone="muted">{t("onlineSession.preJoinAutoReady")}</Text>
+      ) : null}
       <CheckRow
         ok={micReady}
         label={t("onlineSession.preJoinMic")}

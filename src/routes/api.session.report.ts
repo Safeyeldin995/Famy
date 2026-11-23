@@ -47,6 +47,7 @@ export const Route = createFileRoute("/api/session/report")({
         );
         const supabase = createRequestUserSupabase();
         if (!supabase) return json({ ok: false, error: "unauthorized" }, 401);
+
         const detail =
           parsed.note?.trim() ||
           "In-call safety report: participant left and requested admin review.";
