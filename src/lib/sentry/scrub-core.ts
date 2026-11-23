@@ -49,7 +49,7 @@ export type ScrubbableRequest = {
   query_string?: string;
   headers?: Record<string, string>;
   data?: unknown;
-  cookies?: string;
+  cookies?: Record<string, string> | string;
   method?: string;
 };
 
@@ -126,7 +126,11 @@ export function scrubRequest(request: ScrubbableRequest): ScrubbableRequest {
   if (typeof out.url === "string") out.url = scrubRequestUrl(out.url);
   if (typeof out.query_string === "string") out.query_string = scrubQueryString(out.query_string);
   if (out.headers) out.headers = scrubRequestHeaders(out.headers);
-  if (typeof out.cookies === "string") out.cookies = "[redacted]";
+  if (typeof out.cookies === "string") {
+    out.cookies = "[redacted]";
+  } else if (out.cookies && typeof out.cookies === "object") {
+    out.cookies = Object.fromEntries(Object.keys(out.cookies).map((key) => [key, "[redacted]"]));
+  }
   if (out.data !== undefined) out.data = scrubUnknown(out.data);
   return out;
 }

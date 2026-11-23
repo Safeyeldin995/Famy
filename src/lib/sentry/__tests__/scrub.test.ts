@@ -87,7 +87,7 @@ describe("scrubSentryEvent", () => {
           "X-Custom": "ok",
         },
         data: { password: "pw", note: "user 01099998888" },
-        cookies: "session=1",
+        cookies: { session: "secret-cookie" },
       },
     });
     expect(event.request?.url).not.toContain("01012345678");
@@ -100,7 +100,7 @@ describe("scrubSentryEvent", () => {
     const data = event.request?.data as Record<string, unknown>;
     expect(data.password).toBe("[redacted]");
     expect(String(data.note)).toContain("[redacted]");
-    expect(event.request?.cookies).toBe("[redacted]");
+    expect(event.request?.cookies).toEqual({ session: "[redacted]" });
   });
 
   it("strips user PII fields", () => {

@@ -27,7 +27,11 @@ const RELEASE_GATE_SCREENS: ReleaseGateScreen[] = [
       await expect(
         page
           .locator("ul.grid")
-          .or(page.getByText(/no results|لا نتائج/i))
+          .or(
+            page.getByText(
+              /No payments match this search\/filter\.|لا توجد مدفوعات مطابقة/,
+            ),
+          )
           .or(page.getByRole("button", { name: /retry|إعادة/i }))
           .first(),
       ).toBeVisible({ timeout: 20_000 });
@@ -54,8 +58,13 @@ const RELEASE_GATE_SCREENS: ReleaseGateScreen[] = [
     path: "/admin/settings",
     heading: /settings/i,
     async waitForLoaded(page) {
+      const billingSection = page.locator("details").filter({ has: page.locator("#billing-vatPercent") });
+      const billingInput = page.locator("#billing-vatPercent");
+      if ((await billingSection.count()) > 0 && !(await billingInput.isVisible())) {
+        await billingSection.locator("summary").click();
+      }
       await expect(
-        page.locator("#billing-vatPercent").or(page.getByRole("button", { name: /retry|إعادة/i })),
+        billingInput.or(page.getByRole("button", { name: /retry|إعادة/i })),
       ).toBeVisible({ timeout: 20_000 });
     },
   },
