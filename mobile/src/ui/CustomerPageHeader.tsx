@@ -98,5 +98,9 @@ const styles = StyleSheet.create({
     borderBottomEndRadius: radius.xl + space.lg,
   },
   heroBack: { borderColor: "rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.15)" },
-  heroTitle: { fontSize: fontSize.xxl + space.sm, lineHeight: fontSize.xxl + space.lg, marginTop: space.lg },
+  heroTitle: {
+    fontSize: fontSize.heroTitle,
+    lineHeight: fontSize.heroTitleLine,
+    marginTop: space.lg,
+  },
 });

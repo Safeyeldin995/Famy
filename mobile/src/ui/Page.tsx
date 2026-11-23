@@ -70,7 +70,9 @@ export function Page({
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={[
             ui.content,
-            tabScrollPad != null ? { paddingBottom: tabScrollPad } : null,
+            tabScrollPad != null
+              ? { paddingBottom: tabScrollPad }
+              : { paddingBottom: space.xxxl + safeBottom },
             contentStyle,
           ]}
           bottomOffset={

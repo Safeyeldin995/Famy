@@ -113,8 +113,6 @@ export default function Home() {
 
   useFocusEffect(
     useCallback(() => {
-      // Stable deps only: an unstable `bookings.refetch` identity re-ran this effect every
-      // render while Home was focused and could flood the JS thread (home "stopping").
       void cache.invalidateQueries({ queryKey: ["my-bookings"] });
       void cache.invalidateQueries({ queryKey: ["customer-fee-debts"] });
     }, [cache]),
@@ -147,21 +145,21 @@ export default function Home() {
           onRefresh={async () => {
             setRefreshing(true);
             try {
-              await Promise.all(
-                [
-                  profile,
-                  address,
-                  categories,
-                  tutoringServices,
-                  unread,
-                  bookings,
-                  parties,
-                  promos,
-                ].map((q) => q.refetch()),
-              );
+              const core = [
+                profile,
+                address,
+                categories,
+                tutoringServices,
+                unread,
+                bookings,
+                promos,
+              ].map((q) => q.refetch());
+              if (activeIds.length) core.push(parties.refetch());
+              await Promise.all(core);
             } finally {
-              await cache.refetchQueries({ queryKey: ["providers"], type: "active" });
+              // Fan-out refetch for every active providers query after the spinner clears.
               setRefreshing(false);
+              void cache.refetchQueries({ queryKey: ["providers"], type: "active" });
             }
           }}
         />

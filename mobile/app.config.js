@@ -1,6 +1,12 @@
 const androidMapsKey = process.env.GOOGLE_MAPS_ANDROID_API_KEY?.trim() || undefined;
 const iosMapsKey = process.env.GOOGLE_MAPS_IOS_API_KEY?.trim() || undefined;
 
+const productionBuild = process.env.EAS_BUILD_PROFILE === "production";
+if (productionBuild) {
+  process.env.EXPO_PUBLIC_DEMO_PAYMENTS = "0";
+  process.env.EXPO_PUBLIC_DEMO_PAYMENTS_BUILD_DISABLED = "1";
+}
+
 module.exports = ({ config }) => ({
   ...config,
   plugins: [

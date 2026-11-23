@@ -10,6 +10,7 @@ import {
   resolvePostOAuthNavigationTarget,
   type OAuthProvider,
 } from "@shared/auth/oauthShared";
+import { mobileAppleSignInConfiguredFromEnv } from "./mobileAppleSignIn";
 import { supabase } from "@/lib/supabase";
 
 type Extra = { oauthProviders?: string; scheme?: string; appleSignInReady?: boolean | string };
@@ -28,9 +29,10 @@ export function enabledMobileOAuthProviders(): OAuthProvider[] {
 
 export function mobileAppleSignInConfigured(): boolean {
   const extra = Constants.expoConfig?.extra as Extra | undefined;
-  const fromExtra = extra?.appleSignInReady;
-  if (fromExtra === true || fromExtra === "1") return true;
-  return process.env.EXPO_PUBLIC_APPLE_SIGNIN_READY === "1";
+  return mobileAppleSignInConfiguredFromEnv({
+    appleSignInReady: extra?.appleSignInReady,
+    EXPO_PUBLIC_APPLE_SIGNIN_READY: process.env.EXPO_PUBLIC_APPLE_SIGNIN_READY,
+  });
 }
 
 export function showAppleSignInOnMobile() {

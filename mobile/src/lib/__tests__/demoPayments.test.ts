@@ -1,5 +1,9 @@
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
-import { DEMO_APPLE_PAY_METHOD_ID, demoPaymentsEnabled } from "../demoPayments";
+import {
+  DEMO_APPLE_PAY_METHOD_ID,
+  demoPaymentsEnabled,
+  demoPaymentsEnabledForBuildEnv,
+} from "../demoPayments";
 
 describe("demoPayments", () => {
   const prev = process.env.EXPO_PUBLIC_DEMO_PAYMENTS;
@@ -26,5 +30,26 @@ describe("demoPayments", () => {
 
   it("uses a stable sentinel id for the demo Apple Pay row", () => {
     expect(DEMO_APPLE_PAY_METHOD_ID.startsWith("__")).toBe(true);
+  });
+
+  it("stays off for production EAS profile even when env is 1", () => {
+    expect(
+      demoPaymentsEnabledForBuildEnv({
+        EAS_BUILD_PROFILE: "production",
+        EXPO_PUBLIC_DEMO_PAYMENTS: "1",
+      }),
+    ).toBe(false);
+    expect(
+      demoPaymentsEnabledForBuildEnv({
+        EXPO_PUBLIC_DEMO_PAYMENTS_BUILD_DISABLED: "1",
+        EXPO_PUBLIC_DEMO_PAYMENTS: "1",
+      }),
+    ).toBe(false);
+    expect(
+      demoPaymentsEnabledForBuildEnv({
+        EAS_BUILD_PROFILE: "preview",
+        EXPO_PUBLIC_DEMO_PAYMENTS: "1",
+      }),
+    ).toBe(true);
   });
 });

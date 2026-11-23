@@ -41,7 +41,20 @@ export const fontSize = {
   button: 15,
   title: 24,
   hero: 30,
+  /** Customer hero header title on gradient screens. */
+  heroTitle: 28,
+  heroTitleLine: 32,
 } as const;
+
+const AVATAR_INITIAL_BY_DIAMETER: { min: number; size: keyof typeof fontSize }[] = [
+  { min: 64, size: "title" },
+  { min: 48, size: "xxl" },
+  { min: 0, size: "lg" },
+];
+
+export function fontSizeTokenForAvatarInitial(diameter: number): keyof typeof fontSize {
+  return AVATAR_INITIAL_BY_DIAMETER.find((row) => diameter >= row.min)!.size;
+}
 
 export const fonts = {
   ar: { regular: "Almarai_400Regular", bold: "Almarai_700Bold", heavy: "Almarai_800ExtraBold" },

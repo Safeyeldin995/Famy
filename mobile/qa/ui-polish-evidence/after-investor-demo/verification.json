@@ -1,0 +1,42 @@
+{
+  "passed": true,
+  "screenshots": 25,
+  "viewport": "390x844",
+  "language": "ar",
+  "network": "all remote traffic intercepted; no live data accessed",
+  "checks": [
+    "all screens render",
+    "favorite toggle",
+    "mark all notifications read",
+    "default address",
+    "invalid DOB rejected",
+    "health consent required",
+    "family create",
+    "soft removal",
+    "promo copy",
+    "empty state",
+    "error retry"
+  ],
+  "writes": [
+    {
+      "table": "favorites",
+      "method": "POST"
+    },
+    {
+      "table": "notifications",
+      "method": "PATCH"
+    },
+    {
+      "table": "addresses",
+      "method": "PATCH"
+    },
+    {
+      "table": "family_members",
+      "method": "POST"
+    },
+    {
+      "table": "family_members",
+      "method": "PATCH"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "scenarios": 3,
+  "paymobCalls": 1,
+  "receiptUploads": 2,
+  "creates": 3,
+  "screenshots": 23,
+  "network": "all remote traffic intercepted"
+}

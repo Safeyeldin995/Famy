@@ -215,12 +215,23 @@ async function run() {
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const base = `http://127.0.0.1:${server.address().port}`;
   browser = await chromium.launch({ headless: true });
+  const fontScale = Number(process.env.MOBILE_WEB_FONT_SCALE || 1);
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
     locale: "ar-EG",
     timezoneId: "Africa/Cairo",
     permissions: ["clipboard-read", "clipboard-write"],
   });
+  if (fontScale !== 1) {
+    await context.addInitScript((scale) => {
+      const apply = () => {
+        document.documentElement?.style.setProperty("font-size", `${scale * 100}%`);
+      };
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", apply);
+      } else apply();
+    }, fontScale);
+  }
   await context.addInitScript(
     ({ key, session }) => {
       localStorage.setItem("famy.lang", "ar");
@@ -452,7 +463,8 @@ async function run() {
     await page.evaluate(() => document.fonts.ready);
   }
   async function shot(name) {
-    const file = path.join(artifacts, `${name}.png`);
+    const suffix = fontScale !== 1 ? `-font-${fontScale}` : "";
+    const file = path.join(artifacts, `${name}${suffix}.png`);
     await screenshotWithoutLaunchOverlay(page, file, name);
     await captureMatchingWeb({
       browser,
@@ -628,6 +640,35 @@ async function run() {
     ),
   ).toBeVisible();
   assert.deepEqual(errors, []);
+  const loginContext = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    locale: "ar-EG",
+    timezoneId: "Africa/Cairo",
+  });
+  if (fontScale !== 1) {
+    await loginContext.addInitScript((scale) => {
+      const apply = () => {
+        document.documentElement?.style.setProperty("font-size", `${scale * 100}%`);
+      };
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", apply);
+      } else apply();
+    }, fontScale);
+  }
+  const loginPage = await loginContext.newPage();
+  await loginPage.goto(`${base}/login`);
+  await waitForLaunchGateGone(loginPage);
+  const loginSuffix = fontScale !== 1 ? `-font-${fontScale}` : "";
+  const loginFile = path.join(artifacts, `sign-in${loginSuffix}.png`);
+  await screenshotWithoutLaunchOverlay(loginPage, loginFile, "sign-in");
+  screenshots.push({
+    screen: "sign-in",
+    path: loginFile,
+    viewport: "390x844",
+    language: "ar",
+    data: "unauthenticated login",
+  });
+  await loginContext.close();
   fs.writeFileSync(path.join(artifacts, "screenshots.json"), JSON.stringify(screenshots, null, 2));
   fs.writeFileSync(
     path.join(artifacts, "verification.json"),

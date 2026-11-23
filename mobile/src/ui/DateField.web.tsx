@@ -21,7 +21,7 @@ export function DateField({ label, value, onChange, maximumDate }: DateFieldProp
         onChange={(e) => onChange(e.target.value)}
         style={{
           minHeight: 48,
-          fontSize: 16,
+          fontSize: fontSize.lg,
           color: colors.ink,
           background: colors.surface,
           borderColor: colors.border,
