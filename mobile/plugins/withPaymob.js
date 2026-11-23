@@ -1,11 +1,15 @@
 const {
   withProjectBuildGradle,
   withAppBuildGradle,
+  withAndroidManifest,
   withEntitlementsPlist,
+  AndroidConfig,
   createRunOncePlugin,
 } = require("@expo/config-plugins");
 
-const PAYMOB_LIBS = 'url = rootProject.projectDir.toURI().resolve("../node_modules/paymob-reactnative/android/libs")';
+const PAYMOB_LIBS =
+  'url = rootProject.projectDir.toURI().resolve("../node_modules/paymob-reactnative/android/libs")';
+const PAYMOB_BACK_CALLBACK_ATTR = "android:enableOnBackInvokedCallback";
 
 function withPaymobProjectGradle(config) {
   return withProjectBuildGradle(config, (mod) => {
@@ -37,6 +41,24 @@ function withApplePayMerchant(config, merchantId) {
   });
 }
 
+/** Paymob's library manifest sets enableOnBackInvokedCallback=true; Famy keeps predictive back disabled. */
+function withPaymobAndroidManifest(config) {
+  return withAndroidManifest(config, (mod) => {
+    const manifest = AndroidConfig.Manifest.ensureToolsAvailable(mod.modResults);
+    const application = AndroidConfig.Manifest.getMainApplicationOrThrow(manifest);
+    const existing = application.$["tools:replace"];
+    const merged = new Set(
+      (typeof existing === "string" ? existing.split(",") : [])
+        .map((entry) => entry.trim())
+        .filter(Boolean),
+    );
+    merged.add(PAYMOB_BACK_CALLBACK_ATTR);
+    application.$["tools:replace"] = [...merged].join(",");
+    mod.modResults = manifest;
+    return mod;
+  });
+}
+
 function withPaymob(config, props = {}) {
   const merchantId =
     props.applePayMerchantId ??
@@ -44,6 +66,7 @@ function withPaymob(config, props = {}) {
     process.env.EXPO_PUBLIC_APPLE_PAY_MERCHANT_ID;
   config = withPaymobProjectGradle(config);
   config = withPaymobAppGradle(config);
+  config = withPaymobAndroidManifest(config);
   return withApplePayMerchant(config, merchantId?.trim() || undefined);
 }
 
