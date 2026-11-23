@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AdminProviderStatementPrint } from "@/components/admin/AdminProviderStatementPrint";
 
-export const Route = createFileRoute("/admin/provider/$id/statement/print")({
+export const Route = createFileRoute("/admin/provider_/$id/statement/print")({
   validateSearch: (search: Record<string, unknown>): { from?: string; to?: string } => ({
     ...(typeof search.from === "string" ? { from: search.from } : {}),
     ...(typeof search.to === "string" ? { to: search.to } : {}),

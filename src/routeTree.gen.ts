@@ -167,8 +167,8 @@ import { Route as PreviewAdminProviderIdRouteImport } from './routes/preview.adm
 import { Route as PreviewProAccountDeleteRouteImport } from './routes/preview.pro.account.delete'
 import { Route as PreviewProBookingIdRouteImport } from './routes/preview.pro.booking.$id'
 import { Route as PreviewProSetupItemRouteImport } from './routes/preview.pro.setup.$item'
-import { Route as AdminProviderIdStatementPrintRouteImport } from './routes/admin.provider.$id.statement.print'
-import { Route as PreviewAdminProviderIdStatementPrintRouteImport } from './routes/preview.admin.provider.$id.statement.print'
+import { Route as AdminProviderIdStatementPrintRouteImport } from './routes/admin.provider_.$id.statement.print'
+import { Route as PreviewAdminProviderIdStatementPrintRouteImport } from './routes/preview.admin.provider_.$id.statement.print'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -973,15 +973,15 @@ const PreviewProSetupItemRoute = PreviewProSetupItemRouteImport.update({
 } as any)
 const AdminProviderIdStatementPrintRoute =
   AdminProviderIdStatementPrintRouteImport.update({
-    id: '/statement/print',
-    path: '/statement/print',
-    getParentRoute: () => AdminProviderIdRoute,
+    id: '/provider_/$id/statement/print',
+    path: '/provider/$id/statement/print',
+    getParentRoute: () => AdminRoute,
   } as any)
 const PreviewAdminProviderIdStatementPrintRoute =
   PreviewAdminProviderIdStatementPrintRouteImport.update({
-    id: '/statement/print',
-    path: '/statement/print',
-    getParentRoute: () => PreviewAdminProviderIdRoute,
+    id: '/provider_/$id/statement/print',
+    path: '/provider/$id/statement/print',
+    getParentRoute: () => PreviewAdminRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -1084,7 +1084,7 @@ export interface FileRoutesByFullPath {
   '/pro/': typeof ProIndexRoute
   '/admin/customer/$id': typeof AdminCustomerIdRoute
   '/admin/price-change/$id': typeof AdminPriceChangeIdRoute
-  '/admin/provider/$id': typeof AdminProviderIdRouteWithChildren
+  '/admin/provider/$id': typeof AdminProviderIdRoute
   '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/mobile/debt-checkout': typeof ApiMobileDebtCheckoutRoute
@@ -1139,7 +1139,7 @@ export interface FileRoutesByFullPath {
   '/api/mobile/otp/send': typeof ApiMobileOtpSendRoute
   '/api/mobile/otp/verify': typeof ApiMobileOtpVerifyRoute
   '/preview/admin/customer/$id': typeof PreviewAdminCustomerIdRoute
-  '/preview/admin/provider/$id': typeof PreviewAdminProviderIdRouteWithChildren
+  '/preview/admin/provider/$id': typeof PreviewAdminProviderIdRoute
   '/preview/pro/account/delete': typeof PreviewProAccountDeleteRoute
   '/preview/pro/booking/$id': typeof PreviewProBookingIdRoute
   '/preview/pro/setup/$item': typeof PreviewProSetupItemRoute
@@ -1238,7 +1238,7 @@ export interface FileRoutesByTo {
   '/pro': typeof ProIndexRoute
   '/admin/customer/$id': typeof AdminCustomerIdRoute
   '/admin/price-change/$id': typeof AdminPriceChangeIdRoute
-  '/admin/provider/$id': typeof AdminProviderIdRouteWithChildren
+  '/admin/provider/$id': typeof AdminProviderIdRoute
   '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/mobile/debt-checkout': typeof ApiMobileDebtCheckoutRoute
@@ -1293,7 +1293,7 @@ export interface FileRoutesByTo {
   '/api/mobile/otp/send': typeof ApiMobileOtpSendRoute
   '/api/mobile/otp/verify': typeof ApiMobileOtpVerifyRoute
   '/preview/admin/customer/$id': typeof PreviewAdminCustomerIdRoute
-  '/preview/admin/provider/$id': typeof PreviewAdminProviderIdRouteWithChildren
+  '/preview/admin/provider/$id': typeof PreviewAdminProviderIdRoute
   '/preview/pro/account/delete': typeof PreviewProAccountDeleteRoute
   '/preview/pro/booking/$id': typeof PreviewProBookingIdRoute
   '/preview/pro/setup/$item': typeof PreviewProSetupItemRoute
@@ -1401,7 +1401,7 @@ export interface FileRoutesById {
   '/pro/': typeof ProIndexRoute
   '/admin/customer/$id': typeof AdminCustomerIdRoute
   '/admin/price-change/$id': typeof AdminPriceChangeIdRoute
-  '/admin/provider/$id': typeof AdminProviderIdRouteWithChildren
+  '/admin/provider/$id': typeof AdminProviderIdRoute
   '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/mobile/debt-checkout': typeof ApiMobileDebtCheckoutRoute
@@ -1456,12 +1456,12 @@ export interface FileRoutesById {
   '/api/mobile/otp/send': typeof ApiMobileOtpSendRoute
   '/api/mobile/otp/verify': typeof ApiMobileOtpVerifyRoute
   '/preview/admin/customer/$id': typeof PreviewAdminCustomerIdRoute
-  '/preview/admin/provider/$id': typeof PreviewAdminProviderIdRouteWithChildren
+  '/preview/admin/provider/$id': typeof PreviewAdminProviderIdRoute
   '/preview/pro/account/delete': typeof PreviewProAccountDeleteRoute
   '/preview/pro/booking/$id': typeof PreviewProBookingIdRoute
   '/preview/pro/setup/$item': typeof PreviewProSetupItemRoute
-  '/admin/provider/$id/statement/print': typeof AdminProviderIdStatementPrintRoute
-  '/preview/admin/provider/$id/statement/print': typeof PreviewAdminProviderIdStatementPrintRoute
+  '/admin/provider_/$id/statement/print': typeof AdminProviderIdStatementPrintRoute
+  '/preview/admin/provider_/$id/statement/print': typeof PreviewAdminProviderIdStatementPrintRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1940,8 +1940,8 @@ export interface FileRouteTypes {
     | '/preview/pro/account/delete'
     | '/preview/pro/booking/$id'
     | '/preview/pro/setup/$item'
-    | '/admin/provider/$id/statement/print'
-    | '/preview/admin/provider/$id/statement/print'
+    | '/admin/provider_/$id/statement/print'
+    | '/preview/admin/provider_/$id/statement/print'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -3102,19 +3102,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewProSetupItemRouteImport
       parentRoute: typeof PreviewProRoute
     }
-    '/admin/provider/$id/statement/print': {
-      id: '/admin/provider/$id/statement/print'
-      path: '/statement/print'
+    '/admin/provider_/$id/statement/print': {
+      id: '/admin/provider_/$id/statement/print'
+      path: '/provider/$id/statement/print'
       fullPath: '/admin/provider/$id/statement/print'
       preLoaderRoute: typeof AdminProviderIdStatementPrintRouteImport
-      parentRoute: typeof AdminProviderIdRoute
+      parentRoute: typeof AdminRoute
     }
-    '/preview/admin/provider/$id/statement/print': {
-      id: '/preview/admin/provider/$id/statement/print'
-      path: '/statement/print'
+    '/preview/admin/provider_/$id/statement/print': {
+      id: '/preview/admin/provider_/$id/statement/print'
+      path: '/provider/$id/statement/print'
       fullPath: '/preview/admin/provider/$id/statement/print'
       preLoaderRoute: typeof PreviewAdminProviderIdStatementPrintRouteImport
-      parentRoute: typeof PreviewAdminProviderIdRoute
+      parentRoute: typeof PreviewAdminRoute
     }
   }
 }
@@ -3133,18 +3133,6 @@ const AddressesRouteChildren: AddressesRouteChildren = {
 
 const AddressesRouteWithChildren = AddressesRoute._addFileChildren(
   AddressesRouteChildren,
-)
-
-interface AdminProviderIdRouteChildren {
-  AdminProviderIdStatementPrintRoute: typeof AdminProviderIdStatementPrintRoute
-}
-
-const AdminProviderIdRouteChildren: AdminProviderIdRouteChildren = {
-  AdminProviderIdStatementPrintRoute: AdminProviderIdStatementPrintRoute,
-}
-
-const AdminProviderIdRouteWithChildren = AdminProviderIdRoute._addFileChildren(
-  AdminProviderIdRouteChildren,
 )
 
 interface AdminRouteChildren {
@@ -3172,8 +3160,9 @@ interface AdminRouteChildren {
   AdminIndexRoute: typeof AdminIndexRoute
   AdminCustomerIdRoute: typeof AdminCustomerIdRoute
   AdminPriceChangeIdRoute: typeof AdminPriceChangeIdRoute
-  AdminProviderIdRoute: typeof AdminProviderIdRouteWithChildren
+  AdminProviderIdRoute: typeof AdminProviderIdRoute
   AdminServiceRequestIdRoute: typeof AdminServiceRequestIdRoute
+  AdminProviderIdStatementPrintRoute: typeof AdminProviderIdStatementPrintRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -3201,8 +3190,9 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminIndexRoute: AdminIndexRoute,
   AdminCustomerIdRoute: AdminCustomerIdRoute,
   AdminPriceChangeIdRoute: AdminPriceChangeIdRoute,
-  AdminProviderIdRoute: AdminProviderIdRouteWithChildren,
+  AdminProviderIdRoute: AdminProviderIdRoute,
   AdminServiceRequestIdRoute: AdminServiceRequestIdRoute,
+  AdminProviderIdStatementPrintRoute: AdminProviderIdStatementPrintRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
@@ -3250,21 +3240,6 @@ const PreviewAddressesRouteChildren: PreviewAddressesRouteChildren = {
 const PreviewAddressesRouteWithChildren =
   PreviewAddressesRoute._addFileChildren(PreviewAddressesRouteChildren)
 
-interface PreviewAdminProviderIdRouteChildren {
-  PreviewAdminProviderIdStatementPrintRoute: typeof PreviewAdminProviderIdStatementPrintRoute
-}
-
-const PreviewAdminProviderIdRouteChildren: PreviewAdminProviderIdRouteChildren =
-  {
-    PreviewAdminProviderIdStatementPrintRoute:
-      PreviewAdminProviderIdStatementPrintRoute,
-  }
-
-const PreviewAdminProviderIdRouteWithChildren =
-  PreviewAdminProviderIdRoute._addFileChildren(
-    PreviewAdminProviderIdRouteChildren,
-  )
-
 interface PreviewAdminRouteChildren {
   PreviewAdminAuditLogRoute: typeof PreviewAdminAuditLogRoute
   PreviewAdminBookingsRoute: typeof PreviewAdminBookingsRoute
@@ -3286,7 +3261,8 @@ interface PreviewAdminRouteChildren {
   PreviewAdminZonesRoute: typeof PreviewAdminZonesRoute
   PreviewAdminIndexRoute: typeof PreviewAdminIndexRoute
   PreviewAdminCustomerIdRoute: typeof PreviewAdminCustomerIdRoute
-  PreviewAdminProviderIdRoute: typeof PreviewAdminProviderIdRouteWithChildren
+  PreviewAdminProviderIdRoute: typeof PreviewAdminProviderIdRoute
+  PreviewAdminProviderIdStatementPrintRoute: typeof PreviewAdminProviderIdStatementPrintRoute
 }
 
 const PreviewAdminRouteChildren: PreviewAdminRouteChildren = {
@@ -3310,7 +3286,9 @@ const PreviewAdminRouteChildren: PreviewAdminRouteChildren = {
   PreviewAdminZonesRoute: PreviewAdminZonesRoute,
   PreviewAdminIndexRoute: PreviewAdminIndexRoute,
   PreviewAdminCustomerIdRoute: PreviewAdminCustomerIdRoute,
-  PreviewAdminProviderIdRoute: PreviewAdminProviderIdRouteWithChildren,
+  PreviewAdminProviderIdRoute: PreviewAdminProviderIdRoute,
+  PreviewAdminProviderIdStatementPrintRoute:
+    PreviewAdminProviderIdStatementPrintRoute,
 }
 
 const PreviewAdminRouteWithChildren = PreviewAdminRoute._addFileChildren(
