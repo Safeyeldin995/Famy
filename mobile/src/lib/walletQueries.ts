@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "./supabase";
 
 export type WalletBalances = {
@@ -14,14 +14,6 @@ export type WalletEntry = {
   reason: string;
   booking_id: string | null;
   created_at: string;
-};
-
-export type WalletRefundRequest = {
-  id: string;
-  amount: number;
-  status: string;
-  created_at: string;
-  wallet_entry_id: string;
 };
 
 export function useWalletBalances() {
@@ -50,38 +42,6 @@ export function useWalletEntries() {
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as WalletEntry[];
-    },
-  });
-}
-
-export function useWalletRefundRequests() {
-  return useQuery({
-    queryKey: ["customer-wallet-refund-requests"],
-    queryFn: async (): Promise<WalletRefundRequest[]> => {
-      const { data, error } = await supabase
-        .from("customer_wallet_refund_requests")
-        .select("id, amount, status, created_at, wallet_entry_id")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as WalletRefundRequest[];
-    },
-  });
-}
-
-export function useRequestWalletRefund() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (walletEntryId: string) => {
-      const { data, error } = await supabase.rpc("customer_request_wallet_refund", {
-        p_wallet_entry_id: walletEntryId,
-      });
-      if (error) throw error;
-      return data as string;
-    },
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["customer-wallet-balances"] });
-      void qc.invalidateQueries({ queryKey: ["customer-wallet-entries"] });
-      void qc.invalidateQueries({ queryKey: ["customer-wallet-refund-requests"] });
     },
   });
 }

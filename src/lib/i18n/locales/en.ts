@@ -1237,9 +1237,19 @@ const en = {
   wallet: {
     title: "Wallet",
     availableBalance: "Available: {{amount}}",
-    pendingRefundHold: "{{amount}} pending refund",
-    refundRequests: "Refund requests",
-    requestPaymentRefund: "Refund to original payment method",
+    terms: "Your balance is available for any upcoming Famy booking.",
+    customer: {
+      title: "Wallet",
+      availableBalance: "Available: {{amount}}",
+      terms: "Your balance is available for any upcoming Famy booking.",
+      reason: {
+        provider_cancelled: "Provider cancellation credit",
+        customer_cancelled_refund: "Cancellation credit",
+        admin_credit: "Admin credit",
+        admin_debit: "Admin adjustment",
+        checkout_spend: "Used at checkout",
+      },
+    },
     reason: {
       provider_cancelled: "Provider cancellation credit",
       customer_cancelled_refund: "Cancellation credit",

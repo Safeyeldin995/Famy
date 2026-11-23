@@ -360,7 +360,6 @@ export type CreateBookingInput = {
   teaching_level_code?: string | null;
   supervision_mode?: string | null;
   service_mode?: "in_person" | "online";
-  online_guardian_consent?: boolean;
 };
 
 export type CreateBookingResult = Tables["bookings"]["Row"] & {
@@ -398,7 +397,6 @@ export function useCreateBooking() {
         p_teaching_level_code: input.teaching_level_code ?? undefined,
         p_supervision_mode: input.supervision_mode ?? undefined,
         p_service_mode: input.service_mode ?? "in_person",
-        p_online_guardian_consent: input.online_guardian_consent ?? false,
       } as never);
       if (error) {
         throw mapBookingRpcError(error);

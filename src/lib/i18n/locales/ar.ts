@@ -1232,9 +1232,19 @@ const ar: Translation = {
   wallet: {
     title: "المحفظة",
     availableBalance: "المتاح: {{amount}}",
-    pendingRefundHold: "{{amount}} قيد الاسترداد",
-    refundRequests: "طلبات الاسترداد",
-    requestPaymentRefund: "استرداد لطريقة الدفع الأصلية",
+    terms: "رصيدك متاح تستخدمه في أي حجز جاي على فامي.",
+    customer: {
+      title: "المحفظة",
+      availableBalance: "المتاح: {{amount}}",
+      terms: "رصيدك متاح تستخدمه في أي حجز جاي على فامي.",
+      reason: {
+        provider_cancelled: "رصيد إلغاء من مقدم الخدمة",
+        customer_cancelled_refund: "رصيد إلغاء",
+        admin_credit: "رصيد من الإدارة",
+        admin_debit: "تعديل من الإدارة",
+        checkout_spend: "استخدم عند الدفع",
+      },
+    },
     reason: {
       provider_cancelled: "رصيد إلغاء من مقدم الخدمة",
       customer_cancelled_refund: "رصيد إلغاء",

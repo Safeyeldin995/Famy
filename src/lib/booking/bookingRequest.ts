@@ -26,7 +26,6 @@ export function buildBookingRequest(choices: {
   requirementChoices: Record<string, "customer" | "provider">;
   selectedCapability: Capability | null;
   supervisionMode: SupervisionMode | null;
-  guardianConsent?: boolean;
 }) {
   return {
     provider_id: choices.providerId,
