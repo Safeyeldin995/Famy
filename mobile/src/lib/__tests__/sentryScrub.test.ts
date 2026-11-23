@@ -41,6 +41,17 @@ describe("scrubMobileSentryEvent", () => {
     expect(creds.authorization).toBe("[redacted]");
   });
 
+  it("scrubs request URLs and headers like web scrub-core", () => {
+    const event = scrubMobileSentryEvent({
+      request: {
+        url: "https://app.famy.test/login?phone=01012345678",
+        headers: { Authorization: "Bearer mobile" },
+      },
+    });
+    expect(event.request?.url).not.toContain("01012345678");
+    expect(event.request?.headers?.Authorization).toBe("[redacted]");
+  });
+
   it("scrubs breadcrumbs, extra, and contexts", () => {
     const event = scrubMobileSentryEvent({
       breadcrumbs: [{ message: "clicked 01099998888", data: { email: "a@b.com" } }],

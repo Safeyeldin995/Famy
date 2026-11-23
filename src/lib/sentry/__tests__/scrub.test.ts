@@ -75,6 +75,34 @@ describe("scrubSentryEvent", () => {
     expect(event.extra?.phoneNumber).toBe("[redacted]");
   });
 
+  it("scrubs request url, query_string, headers, and data", () => {
+    const event = scrubSentryEvent({
+      message: "route error",
+      request: {
+        url: "/login?phone=01012345678&next=%2Fhome",
+        query_string: "phone=01012345678&email=test@example.com",
+        headers: {
+          Cookie: "sb=eyJhbGciOiJIUzI1NiJ9.x",
+          Authorization: "Bearer super-secret",
+          "X-Custom": "ok",
+        },
+        data: { password: "pw", note: "user 01099998888" },
+        cookies: "session=1",
+      },
+    });
+    expect(event.request?.url).not.toContain("01012345678");
+    expect(event.request?.url).toMatch(/phone=(%5Bredacted%5D|\[redacted\])/);
+    expect(event.request?.query_string).not.toContain("01012345678");
+    expect(event.request?.query_string).toMatch(/phone=(%5Bredacted%5D|\[redacted\])/);
+    expect(event.request?.headers?.Cookie).toBe("[redacted]");
+    expect(event.request?.headers?.Authorization).toBe("[redacted]");
+    expect(event.request?.headers?.["X-Custom"]).toBe("ok");
+    const data = event.request?.data as Record<string, unknown>;
+    expect(data.password).toBe("[redacted]");
+    expect(String(data.note)).toContain("[redacted]");
+    expect(event.request?.cookies).toBe("[redacted]");
+  });
+
   it("strips user PII fields", () => {
     const event = scrubSentryEvent({
       user: {

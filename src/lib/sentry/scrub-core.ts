@@ -44,16 +44,92 @@ export function scrubUnknown(value: unknown): unknown {
   return value;
 }
 
+export type ScrubbableRequest = {
+  url?: string;
+  query_string?: string;
+  headers?: Record<string, string>;
+  data?: unknown;
+  cookies?: string;
+  method?: string;
+};
+
 export type ScrubbableSentryEvent = {
   message?: string;
   user?: Record<string, unknown>;
   breadcrumbs?: Array<{ message?: string; data?: Record<string, unknown> }>;
   extra?: Record<string, unknown>;
   contexts?: Record<string, Record<string, unknown>>;
+  request?: ScrubbableRequest;
   exception?: {
     values?: Array<{ type?: string; value?: string }>;
   };
 };
+
+const SENSITIVE_HEADER_NAMES = new Set([
+  "cookie",
+  "authorization",
+  "set-cookie",
+  "x-api-key",
+  "api-key",
+]);
+
+function scrubSearchParams(params: URLSearchParams): void {
+  for (const key of [...params.keys()]) {
+    if (isSensitiveScrubKey(key)) {
+      params.set(key, "[redacted]");
+      continue;
+    }
+    const value = params.get(key);
+    if (value) params.set(key, redactSensitiveText(value));
+  }
+}
+
+/** @param url Absolute or app-relative URL with optional query. */
+export function scrubRequestUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return url;
+  try {
+    const hasProtocol = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(trimmed);
+    const parsed = new URL(trimmed, hasProtocol ? undefined : "https://famy.local");
+    scrubSearchParams(parsed.searchParams);
+    const pathAndQuery = `${parsed.pathname}${parsed.search ? `?${parsed.searchParams.toString()}` : ""}${parsed.hash}`;
+    const out = hasProtocol ? parsed.toString() : pathAndQuery;
+    return redactSensitiveText(out);
+  } catch {
+    return redactSensitiveText(trimmed);
+  }
+}
+
+export function scrubQueryString(queryString: string): string {
+  const trimmed = queryString.trim().replace(/^\?/, "");
+  if (!trimmed) return queryString;
+  const params = new URLSearchParams(trimmed);
+  scrubSearchParams(params);
+  return params.toString();
+}
+
+function scrubRequestHeaders(headers: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(headers)) {
+    const normalized = key.toLowerCase();
+    if (SENSITIVE_HEADER_NAMES.has(normalized) || isSensitiveScrubKey(key)) {
+      out[key] = "[redacted]";
+    } else {
+      out[key] = redactSensitiveText(value);
+    }
+  }
+  return out;
+}
+
+export function scrubRequest(request: ScrubbableRequest): ScrubbableRequest {
+  const out: ScrubbableRequest = { ...request };
+  if (typeof out.url === "string") out.url = scrubRequestUrl(out.url);
+  if (typeof out.query_string === "string") out.query_string = scrubQueryString(out.query_string);
+  if (out.headers) out.headers = scrubRequestHeaders(out.headers);
+  if (typeof out.cookies === "string") out.cookies = "[redacted]";
+  if (out.data !== undefined) out.data = scrubUnknown(out.data);
+  return out;
+}
 
 function scrubExceptionValues(exception: ScrubbableSentryEvent["exception"]): void {
   for (const value of exception?.values ?? []) {
@@ -96,6 +172,10 @@ export function applySentryScrubRules<T extends ScrubbableSentryEvent>(event: T)
 
   if (event.contexts) {
     event.contexts = scrubUnknown(event.contexts) as Record<string, Record<string, unknown>>;
+  }
+
+  if (event.request) {
+    event.request = scrubRequest(event.request);
   }
 
   return event;
