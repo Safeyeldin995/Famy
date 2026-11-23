@@ -24,7 +24,7 @@ Evidence to keep: screenshots or screen recordings for payment proof, cancellati
 
 **Store-specific (customer build):**
 
-- [ ] Production build: **no** “Apple Pay” demo row on checkout (`EXPO_PUBLIC_DEMO_PAYMENTS` off; see `mobile/src/lib/demoPayments.ts`).
+- [ ] Production build: Apple Pay / Google Pay rows appear **only** when Paymob wallet integration IDs and (iOS) merchant ID are configured; no demo or “soon” payment labels.
 - [ ] iOS permission strings: Arabic device language shows `mobile/locales/ar.json` copy for location/photos.
 - [ ] Version **1.0.0** with EAS `autoIncrement` on production profile (`mobile/eas.json`).
 
@@ -74,7 +74,7 @@ cd mobile && npx tsc --noEmit && npm run test:unit
 Optional focused mobile unit check for store payments flag:
 
 ```bash
-cd mobile && npx vitest run src/lib/__tests__/demoPayments.test.ts
+cd mobile && npx vitest run src/lib/__tests__/paymobWalletMethods.test.ts
 ```
 
 ---
@@ -84,7 +84,7 @@ cd mobile && npx vitest run src/lib/__tests__/demoPayments.test.ts
 - Store submission prep: [docs/store/checklist.md](../store/checklist.md)
 - Permissions audit: [mobile/store/permissions.md](../../mobile/store/permissions.md)
 - EAS profiles: [mobile/eas.json](../../mobile/eas.json)
-- Demo payments (preview only): [mobile/src/lib/demoPayments.ts](../../mobile/src/lib/demoPayments.ts)
+- Paymob wallet checkout: [mobile/src/lib/mobilePayments.ts](../../mobile/src/lib/mobilePayments.ts), [mobile/src/lib/paymobNative.ts](../../mobile/src/lib/paymobNative.ts)
 
 ---
 

@@ -141,6 +141,7 @@ vi.mock("../paymobConfig.server", () => ({
     notificationUrl: "https://example.test/functions/v1/paymob-webhook",
     appOrigin: "http://localhost:8099",
   }),
+  readOptionalPaymobIntegrationIdForChannel: () => 123456,
   buildPaymobBookingReturnUrl: (origin: string, bookingId: string) =>
     `${origin}/booking/${bookingId}?paymob_return=1`,
 }));

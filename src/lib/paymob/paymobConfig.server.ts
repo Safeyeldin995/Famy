@@ -1,3 +1,5 @@
+import type { PaymobCheckoutChannel } from "./paymobChannels";
+
 export const PAYMOB_EGYPT_BASE_URL = "https://accept.paymob.com";
 
 export type PaymobConfig = {
@@ -90,6 +92,55 @@ export function isPaymobConfigured(env: NodeJS.ProcessEnv = process.env): boolea
   } catch {
     return false;
   }
+}
+
+function readOptionalIntegrationId(
+  env: NodeJS.ProcessEnv,
+  key: "PAYMOB_APPLE_PAY_INTEGRATION_ID" | "PAYMOB_GOOGLE_PAY_INTEGRATION_ID",
+): number | null {
+  const raw = env[key]?.trim();
+  if (!raw || !/^\d+$/.test(raw)) return null;
+  return Number(raw);
+}
+
+export function isPaymobApplePayConfigured(env: NodeJS.ProcessEnv = process.env): boolean {
+  return readOptionalIntegrationId(env, "PAYMOB_APPLE_PAY_INTEGRATION_ID") != null;
+}
+
+export function isPaymobGooglePayConfigured(env: NodeJS.ProcessEnv = process.env): boolean {
+  return readOptionalIntegrationId(env, "PAYMOB_GOOGLE_PAY_INTEGRATION_ID") != null;
+}
+
+export type PaymobWalletCapabilities = {
+  applePay: boolean;
+  googlePay: boolean;
+};
+
+export function readPaymobWalletCapabilities(
+  env: NodeJS.ProcessEnv = process.env,
+): PaymobWalletCapabilities {
+  return {
+    applePay: isPaymobApplePayConfigured(env),
+    googlePay: isPaymobGooglePayConfigured(env),
+  };
+}
+
+export function readOptionalPaymobIntegrationIdForChannel(channel: PaymobCheckoutChannel): number {
+  const env = process.env;
+  const card = readPaymobConfig(env);
+  if (channel === "card") return card.integrationId;
+  if (channel === "apple_pay") {
+    const id = readOptionalIntegrationId(env, "PAYMOB_APPLE_PAY_INTEGRATION_ID");
+    if (id == null) {
+      throw new PaymobConfigurationError("PAYMOB_APPLE_PAY_INTEGRATION_ID is not configured");
+    }
+    return id;
+  }
+  const id = readOptionalIntegrationId(env, "PAYMOB_GOOGLE_PAY_INTEGRATION_ID");
+  if (id == null) {
+    throw new PaymobConfigurationError("PAYMOB_GOOGLE_PAY_INTEGRATION_ID is not configured");
+  }
+  return id;
 }
 
 export function buildPaymobUnifiedCheckoutUrl(

@@ -1,11 +1,10 @@
 const androidMapsKey = process.env.GOOGLE_MAPS_ANDROID_API_KEY?.trim() || undefined;
 const iosMapsKey = process.env.GOOGLE_MAPS_IOS_API_KEY?.trim() || undefined;
 
-const productionBuild = process.env.EAS_BUILD_PROFILE === "production";
-if (productionBuild) {
-  process.env.EXPO_PUBLIC_DEMO_PAYMENTS = "0";
-  process.env.EXPO_PUBLIC_DEMO_PAYMENTS_BUILD_DISABLED = "1";
-}
+const applePayMerchantId =
+  process.env.APPLE_PAY_MERCHANT_ID?.trim() ||
+  process.env.EXPO_PUBLIC_APPLE_PAY_MERCHANT_ID?.trim() ||
+  undefined;
 
 module.exports = ({ config }) => ({
   ...config,
@@ -13,11 +12,13 @@ module.exports = ({ config }) => ({
     ...(config.plugins ?? []),
     // Writes the keys into the native manifest/plist only; never into JS.
     ["react-native-maps", { androidGoogleMapsApiKey: androidMapsKey, iosGoogleMapsApiKey: iosMapsKey }],
+    ["./plugins/withPaymob.js", { applePayMerchantId }],
   ],
   extra: {
     ...config.extra,
     // Expo strips android/ios.config at runtime, so expose only whether a key exists.
     googleMapsConfigured: { android: !!androidMapsKey, ios: !!iosMapsKey },
+    applePayMerchantId,
   },
   ios: {
     ...config.ios,

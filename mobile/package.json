@@ -38,6 +38,7 @@
     "expo-web-browser": "~58.0.6",
     "i18next": "^26.5.3",
     "lucide-react-native": "^1.60.0",
+    "paymob-reactnative": "https://github.com/PaymobAccept/paymob-reactnative-sdk.git",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-i18next": "^17.1.0",

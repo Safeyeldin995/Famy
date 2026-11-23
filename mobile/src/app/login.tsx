@@ -368,23 +368,6 @@ export default function Login() {
                   : t("oauth.continueWithApple")}
               </Text>
             </Pressable>
-          ) : appleOAuth ? (
-            <Pressable
-              accessibilityRole="button"
-              disabled={loading || oauthLoading !== null}
-              onPress={() => setError(t("oauth.appleSoon"))}
-              style={({ pressed }) => [
-                styles.oauthBtn,
-                styles.oauthApple,
-                pressed && styles.oauthPressed,
-                (loading || oauthLoading !== null) && styles.oauthDisabled,
-              ]}
-            >
-              <AppleMark color="#fff" />
-              <Text weight="heavy" style={{ color: "#fff" }}>
-                {t("oauth.continueWithApple")} — {t("oauth.appleSoonShort")}
-              </Text>
-            </Pressable>
           ) : null}
         </View>
       ) : null}

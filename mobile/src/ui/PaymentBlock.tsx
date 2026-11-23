@@ -104,7 +104,7 @@ export function PaymentBlock({
     setBusy(true);
     setError("");
     try {
-      await startPaymob(bookingId, p?.id);
+      await startPaymob(bookingId, p?.id, selection?.paymobChannel ?? "card");
       await refresh();
       setMessage(t("mobileBooking.paymentRefresh"));
     } catch {
@@ -123,7 +123,7 @@ export function PaymentBlock({
       setSelection(null);
       await refresh();
       if (selection.methodType === "online") {
-        await startPaymob(bookingId, payment.id);
+        await startPaymob(bookingId, payment.id, selection.paymobChannel ?? "card");
         await refresh();
       }
     } catch {

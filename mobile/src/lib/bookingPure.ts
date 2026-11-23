@@ -60,6 +60,8 @@ export type PaymentMethodType = "cash" | "manual_transfer" | "online";
 export type PendingPaymentSelection = {
   paymentMethodId: string;
   methodType: PaymentMethodType;
+  /** Paymob wallet checkout (Apple Pay / Google Pay); card uses the hosted browser flow. */
+  paymobChannel?: "card" | "apple_pay" | "google_pay";
 };
 
 export type PostCreatePaymentPlan =

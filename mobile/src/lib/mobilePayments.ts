@@ -2,8 +2,10 @@ import { Platform } from "react-native";
 import { File } from "expo-file-system";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as WebBrowser from "expo-web-browser";
+import type { PaymobCheckoutChannel } from "@shared/paymob/paymobChannels";
 import { appConfig, supabase } from "./supabase";
 import type { PendingPaymentSelection } from "./bookingPure";
+import { presentPaymobNativeCheckout, shouldUsePaymobNativeSdk } from "./paymobNative";
 
 async function selectionKey(bookingId: string) {
   const {
@@ -28,7 +30,11 @@ export async function clearPayment(id: string) {
   await AsyncStorage.removeItem(await selectionKey(id));
 }
 
-export async function startPaymob(bookingId: string, paymentId?: string) {
+export async function startPaymob(
+  bookingId: string,
+  paymentId?: string,
+  channel: PaymobCheckoutChannel = "card",
+) {
   const {
     data: { session },
     error,
@@ -42,7 +48,11 @@ export async function startPaymob(bookingId: string, paymentId?: string) {
         Authorization: `Bearer ${session.access_token}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ bookingId, ...(paymentId ? { paymentId } : {}) }),
+      body: JSON.stringify({
+        bookingId,
+        ...(paymentId ? { paymentId } : {}),
+        channel,
+      }),
     },
   );
   const result = await response.json();
@@ -53,6 +63,17 @@ export async function startPaymob(bookingId: string, paymentId?: string) {
     !result.checkoutUrl.startsWith("https://")
   )
     throw new Error("checkout failed");
+
+  if (shouldUsePaymobNativeSdk(channel)) {
+    const clientSecret = result.clientSecret;
+    const publicKey = result.publicKey;
+    if (typeof clientSecret !== "string" || typeof publicKey !== "string") {
+      throw new Error("checkout failed");
+    }
+    await presentPaymobNativeCheckout(clientSecret, publicKey);
+    return;
+  }
+
   if (Platform.OS === "web") {
     await WebBrowser.openBrowserAsync(result.checkoutUrl);
     return;

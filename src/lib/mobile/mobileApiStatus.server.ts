@@ -1,4 +1,5 @@
 import { PaymobIntentionIndeterminateError } from "@/lib/paymob/paymobApi.server";
+import { PaymobConfigurationError } from "@/lib/paymob/paymobConfig.server";
 
 const OTP_SEND_RATE_LIMIT_ERRORS = new Set([
   "rate_limited",
@@ -34,6 +35,9 @@ export function mapPaymobCheckoutApiFailure(error: unknown): {
   error: PaymobCheckoutApiError;
 } {
   if (error instanceof PaymobIntentionIndeterminateError) {
+    return { status: 503, error: "checkout_unavailable" };
+  }
+  if (error instanceof PaymobConfigurationError) {
     return { status: 503, error: "checkout_unavailable" };
   }
   const message = error instanceof Error ? error.message : "";
