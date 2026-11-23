@@ -592,18 +592,21 @@ export function useAvailableSlots(
 }
 
 // ---------- Bookings ----------
-export function useMyBookings() {
+export function useMyBookings(opts?: { serviceMode?: "in_person" | "online" }) {
   return useQuery({
-    queryKey: ['my-bookings'],
+    queryKey: ['my-bookings', opts?.serviceMode ?? "all"],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
       const user = session?.user;
       if (!user) return [];
-      const { data, error } = await supabase
+      let query = supabase
         .from('bookings')
         .select(`*, service:services(*)`)
-        .eq('customer_id', user.id)
-        .order('start_at', { ascending: false });
+        .eq('customer_id', user.id);
+      if (opts?.serviceMode) {
+        query = query.eq('service_mode', opts.serviceMode);
+      }
+      const { data, error } = await query.order('start_at', { ascending: false });
       if (error) throw error;
       const providerIds = [...new Set((data ?? []).map((booking) => booking.provider_id))];
       const providers = new Map((await Promise.all(providerIds.map(async (id) => [id, await safeProviderDetails(id)] as const))));

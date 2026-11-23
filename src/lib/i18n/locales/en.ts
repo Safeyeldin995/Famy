@@ -4751,6 +4751,9 @@ Object.assign((en as any).admin, {
     },
     lessons: {
       title: "My online lessons",
+      lead: "Upcoming and past video lessons booked on Famy.",
+      upcoming: "Upcoming",
+      past: "Past",
       empty: "You don't have online lessons here yet.",
       browse: "Browse tutors",
     },
