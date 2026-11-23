@@ -128,6 +128,9 @@ export function AdminShell({
   const nav = useNavigate();
   const role = useMyRole();
   const rawPathname = useRouterState({ select: (s) => s.location.pathname });
+  if (/\/statement\/print\/?$/.test(rawPathname)) {
+    return <AdminPreviewContext.Provider value={previewMode}>{children}</AdminPreviewContext.Provider>;
+  }
   const pathname = normalizeAdminPathname(rawPathname)
     .replace(/^\/admin\/provider\//, "/admin/providers/")
     .replace(/^\/admin\/customer\//, "/admin/customers/");

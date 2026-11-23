@@ -27,6 +27,19 @@ export const paymentSituationFixtures = [
     expect: "awaitingProof",
   },
   {
+    name: "awaitingProof blank proof path",
+    sql: ["pending_review", "manual_transfer", "instapay", "   ", "completed", false],
+    ts: {
+      status: "pending_review",
+      payment_method_type: "manual_transfer",
+      method: "instapay",
+      proof_path: "   ",
+      booking: { status: "completed" },
+      hasCashLedger: false,
+    },
+    expect: "awaitingProof",
+  },
+  {
     name: "review transfer with receipt",
     sql: ["pending_review", "manual_transfer", "instapay", "proof.jpg", "completed", false],
     ts: {

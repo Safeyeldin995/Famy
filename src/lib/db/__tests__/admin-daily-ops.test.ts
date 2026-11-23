@@ -62,24 +62,14 @@ describe("admin daily operations RPCs", () => {
     expect(Number(rows.net)).toBe(Number(asOf[0]?.net));
   });
 
-  it("admin_reports uses bucket_start and price_commission_amount totals", async () => {
-    const from = "2020-01-01T00:00:00.000Z";
-    const to = new Date(Date.now() + 86_400_000).toISOString();
-    const rows = await asUser(db, IDS.adminUser, () =>
-      queryRows<{
-        report: {
-          buckets: Array<{ bucket_start: string; platform_commission: number }>;
-          totals: { bookings_completed: number; platform_commission: number; revenue: number };
-        };
-      }>(
-        db,
-        `SELECT public.admin_reports($1::timestamptz, $2::timestamptz, 'month') AS report`,
-        [from, to],
-      ),
+  it("admin_reports exact completed totals for an isolated completed_at window", async () => {
+    const isolatedCompletedAt = "2099-07-15T12:00:00.000Z";
+    await asServiceRole(db, () =>
+      db.query(`UPDATE public.bookings SET completed_at = $1::timestamptz WHERE id = $2`, [
+        isolatedCompletedAt,
+        bookingId,
+      ]),
     );
-    const report = rows[0]?.report;
-    expect(report?.totals.bookings_completed).toBeGreaterThanOrEqual(1);
-    expect(report?.buckets[0]?.bucket_start).toBeTruthy();
     const booking = await queryRows<{ commission: string; total: string }>(
       db,
       `SELECT price_commission_amount::text AS commission, price_total::text AS total
@@ -88,8 +78,28 @@ describe("admin daily operations RPCs", () => {
     );
     const commission = Number(booking[0]?.commission ?? 0);
     const total = Number(booking[0]?.total ?? 0);
-    expect(report?.totals.revenue).toBeGreaterThanOrEqual(total);
-    expect(report?.totals.platform_commission).toBeGreaterThanOrEqual(commission);
+    const from = "2099-07-15T00:00:00.000Z";
+    const to = "2099-07-16T00:00:00.000Z";
+    const rows = await asUser(db, IDS.adminUser, () =>
+      queryRows<{
+        report: {
+          buckets: Array<{ bucket_start: string; platform_commission: number; revenue: number; bookings_completed: number }>;
+          totals: { bookings_completed: number; platform_commission: number; revenue: number };
+        };
+      }>(
+        db,
+        `SELECT public.admin_reports($1::timestamptz, $2::timestamptz, 'day') AS report`,
+        [from, to],
+      ),
+    );
+    const report = rows[0]?.report;
+    expect(report?.totals.bookings_completed).toBe(1);
+    expect(report?.totals.revenue).toBe(total);
+    expect(report?.totals.platform_commission).toBe(commission);
+    const dayBucket = report?.buckets.find((b) => b.bookings_completed === 1);
+    expect(dayBucket?.bucket_start).toBeTruthy();
+    expect(dayBucket?.revenue).toBe(total);
+    expect(dayBucket?.platform_commission).toBe(commission);
   });
 
   it("admin_reports periods: capture counted before refund in later period", async () => {

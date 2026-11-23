@@ -3308,7 +3308,7 @@ const ar: Translation = {
     paymentsQueue: {
       title: "المدفوعات — تحتاج إجراء",
       subtitle:
-        "قوائم عمل تُصفى على الخادم، والتحويلات بانتظار إيصال من العميل تبقى في الانتظار وليست هنا",
+        "قوائم عمل تصفى على الخادم، والتحويلات بانتظار إيصال من العميل تبقى في الانتظار وليست هنا",
       needsAction: "تحتاج إجراء",
       refunds: "مستحقات الاسترداد",
       receipts: "إيصالات جاهزة للمراجعة",
@@ -3359,7 +3359,7 @@ const ar: Translation = {
         debt_payment_received: "سداد مديونية",
         adjustment: "تسوية يدوية",
         cancellation_fee_provider_share: "حصة رسوم الإلغاء",
-        carried_fee_collected: "رسوم محمّلة تم تحصيلها",
+        carried_fee_collected: "رسوم محملة تم تحصيلها",
       },
     },
     reports: {
@@ -3378,7 +3378,7 @@ const ar: Translation = {
       colCancelled: "ملغاة",
       colRevenue: "الإيراد",
       colCommission: "عمولة فامي",
-      colCash: "نقد محصّل",
+      colCash: "نقد محصل",
       colCard: "بطاقة",
       colInstapay: "إنستاباي",
       colRefunds: "استردادات",

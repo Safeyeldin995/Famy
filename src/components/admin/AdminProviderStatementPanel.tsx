@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Download, FileSpreadsheet } from "lucide-react";
+import { AdminLink as Link } from "@/components/admin/AdminNavigation";
 import {
   statementRangeForPreset,
   financeRangeForDays,
@@ -11,7 +12,7 @@ import { AdminQueryError } from "@/components/admin/AdminQueryError";
 import { formatEGP } from "@/lib/utils";
 import { adminControl, adminScreen, bookingCode } from "@/components/admin/operations";
 import { useLang } from "@/components/famio/LanguageToggle";
-import { downloadStatementCsv, printStatementPdf } from "@/lib/admin/statementExport";
+import { downloadStatementCsv } from "@/lib/admin/statementExport";
 
 export function AdminProviderStatementPanel({
   providerId,
@@ -131,15 +132,19 @@ export function AdminProviderStatementPanel({
         <>
           <StatementTotals data={q.data} lang={lang} t={t} />
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              className={`${adminControl} inline-flex items-center gap-2`}
-              disabled={!q.data.rows.length}
-              onClick={() => printStatementPdf(q.data!, labels, lang)}
+            <Link
+              to="/admin/provider/$id/statement/print"
+              params={{ id: providerId }}
+              search={{ from: range!.from, to: range!.to }}
+              target="_blank"
+              rel="noopener"
+              className={`${adminControl} inline-flex items-center gap-2 ${!q.data.rows.length ? "pointer-events-none opacity-50" : ""}`}
+              aria-disabled={!q.data.rows.length}
+              tabIndex={!q.data.rows.length ? -1 : undefined}
             >
               <Download className="h-4 w-4" />
               {t("admin.statement.downloadPdf")}
-            </button>
+            </Link>
             <button
               type="button"
               className={`${adminControl} inline-flex items-center gap-2`}
