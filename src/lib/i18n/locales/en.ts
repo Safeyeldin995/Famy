@@ -938,6 +938,7 @@ const en = {
   },
   roles: {
     babysitter: "Babysitter",
+    tutor: "Private tutor",
     teacher: "Private tutor",
     professional: "Professional",
     angel: "Angel",
@@ -4777,6 +4778,24 @@ Object.assign(en, {
     providerLessons: {
       title: "Your online lessons",
       lead: "When you're a provider with online lessons, they'll show up here. Join from the app or this page when a session starts.",
+    },
+    walkthrough: {
+      requestLesson: "Request a lesson",
+      statusRequested: "Waiting for confirmation",
+      statusPay: "Confirmed — pay now",
+      statusJoin: "Paid — join when ready",
+      payCountdown: "Pay within {{time}}",
+      payNow: "Pay now",
+      joinNow: "Join session",
+      checkoutTitle: "Confirm payment",
+      walletApplied: "Wallet applied: {{amount}}",
+      cardRemainder: "Card: {{amount}}",
+      confirmPay: "Confirm & pay",
+      refundNote: "Any refunded amount is added to your Famy balance for your next booking.",
+      providerRequestsTitle: "Incoming lesson requests",
+      accept: "Accept",
+      decline: "Decline",
+      roomLive: "Live lesson",
     },
   },
 });

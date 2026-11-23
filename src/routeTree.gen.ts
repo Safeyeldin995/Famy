@@ -95,6 +95,7 @@ import { Route as PreviewMessagesRouteImport } from './routes/preview.messages'
 import { Route as PreviewNotificationPreferencesRouteImport } from './routes/preview.notification-preferences'
 import { Route as PreviewNotificationsRouteImport } from './routes/preview.notifications'
 import { Route as PreviewOnboardingRouteImport } from './routes/preview.onboarding'
+import { Route as PreviewOnlineRouteImport } from './routes/preview.online'
 import { Route as PreviewOtpRouteImport } from './routes/preview.otp'
 import { Route as PreviewProRouteImport } from './routes/preview.pro'
 import { Route as PreviewProfileRouteImport } from './routes/preview.profile'
@@ -154,6 +155,7 @@ import { Route as PreviewAdminZonesRouteImport } from './routes/preview.admin.zo
 import { Route as PreviewBookProviderIdRouteImport } from './routes/preview.book.$providerId'
 import { Route as PreviewCategoryIdRouteImport } from './routes/preview.category.$id'
 import { Route as PreviewChatIdRouteImport } from './routes/preview.chat.$id'
+import { Route as PreviewOnlineWalkthroughRouteImport } from './routes/preview.online.walkthrough'
 import { Route as PreviewProIndexRouteImport } from './routes/preview.pro.index'
 import { Route as PreviewProApplyRouteImport } from './routes/preview.pro.apply'
 import { Route as PreviewProAvailabilityRouteImport } from './routes/preview.pro.availability'
@@ -618,6 +620,11 @@ const PreviewOnboardingRoute = PreviewOnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => PreviewRoute,
 } as any)
+const PreviewOnlineRoute = PreviewOnlineRouteImport.update({
+  id: '/online',
+  path: '/online',
+  getParentRoute: () => PreviewRoute,
+} as any)
 const PreviewOtpRoute = PreviewOtpRouteImport.update({
   id: '/otp',
   path: '/otp',
@@ -917,6 +924,12 @@ const PreviewChatIdRoute = PreviewChatIdRouteImport.update({
   path: '/chat/$id',
   getParentRoute: () => PreviewRoute,
 } as any)
+const PreviewOnlineWalkthroughRoute =
+  PreviewOnlineWalkthroughRouteImport.update({
+    id: '/walkthrough',
+    path: '/walkthrough',
+    getParentRoute: () => PreviewOnlineRoute,
+  } as any)
 const PreviewProIndexRoute = PreviewProIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -1157,6 +1170,7 @@ export interface FileRoutesByFullPath {
   '/preview/notification-preferences': typeof PreviewNotificationPreferencesRoute
   '/preview/notifications': typeof PreviewNotificationsRoute
   '/preview/onboarding': typeof PreviewOnboardingRoute
+  '/preview/online': typeof PreviewOnlineRouteWithChildren
   '/preview/otp': typeof PreviewOtpRoute
   '/preview/pro': typeof PreviewProRouteWithChildren
   '/preview/profile': typeof PreviewProfileRoute
@@ -1219,6 +1233,7 @@ export interface FileRoutesByFullPath {
   '/preview/book/$providerId': typeof PreviewBookProviderIdRoute
   '/preview/category/$id': typeof PreviewCategoryIdRoute
   '/preview/chat/$id': typeof PreviewChatIdRoute
+  '/preview/online/walkthrough': typeof PreviewOnlineWalkthroughRoute
   '/preview/pro/apply': typeof PreviewProApplyRoute
   '/preview/pro/availability': typeof PreviewProAvailabilityRoute
   '/preview/pro/bookings': typeof PreviewProBookingsRoute
@@ -1326,6 +1341,7 @@ export interface FileRoutesByTo {
   '/preview/notification-preferences': typeof PreviewNotificationPreferencesRoute
   '/preview/notifications': typeof PreviewNotificationsRoute
   '/preview/onboarding': typeof PreviewOnboardingRoute
+  '/preview/online': typeof PreviewOnlineRouteWithChildren
   '/preview/otp': typeof PreviewOtpRoute
   '/preview/profile': typeof PreviewProfileRoute
   '/preview/promo-codes': typeof PreviewPromoCodesRoute
@@ -1387,6 +1403,7 @@ export interface FileRoutesByTo {
   '/preview/book/$providerId': typeof PreviewBookProviderIdRoute
   '/preview/category/$id': typeof PreviewCategoryIdRoute
   '/preview/chat/$id': typeof PreviewChatIdRoute
+  '/preview/online/walkthrough': typeof PreviewOnlineWalkthroughRoute
   '/preview/pro/apply': typeof PreviewProApplyRoute
   '/preview/pro/availability': typeof PreviewProAvailabilityRoute
   '/preview/pro/bookings': typeof PreviewProBookingsRoute
@@ -1503,6 +1520,7 @@ export interface FileRoutesById {
   '/preview/notification-preferences': typeof PreviewNotificationPreferencesRoute
   '/preview/notifications': typeof PreviewNotificationsRoute
   '/preview/onboarding': typeof PreviewOnboardingRoute
+  '/preview/online': typeof PreviewOnlineRouteWithChildren
   '/preview/otp': typeof PreviewOtpRoute
   '/preview/pro': typeof PreviewProRouteWithChildren
   '/preview/profile': typeof PreviewProfileRoute
@@ -1565,6 +1583,7 @@ export interface FileRoutesById {
   '/preview/book/$providerId': typeof PreviewBookProviderIdRoute
   '/preview/category/$id': typeof PreviewCategoryIdRoute
   '/preview/chat/$id': typeof PreviewChatIdRoute
+  '/preview/online/walkthrough': typeof PreviewOnlineWalkthroughRoute
   '/preview/pro/apply': typeof PreviewProApplyRoute
   '/preview/pro/availability': typeof PreviewProAvailabilityRoute
   '/preview/pro/bookings': typeof PreviewProBookingsRoute
@@ -1682,6 +1701,7 @@ export interface FileRouteTypes {
     | '/preview/notification-preferences'
     | '/preview/notifications'
     | '/preview/onboarding'
+    | '/preview/online'
     | '/preview/otp'
     | '/preview/pro'
     | '/preview/profile'
@@ -1744,6 +1764,7 @@ export interface FileRouteTypes {
     | '/preview/book/$providerId'
     | '/preview/category/$id'
     | '/preview/chat/$id'
+    | '/preview/online/walkthrough'
     | '/preview/pro/apply'
     | '/preview/pro/availability'
     | '/preview/pro/bookings'
@@ -1851,6 +1872,7 @@ export interface FileRouteTypes {
     | '/preview/notification-preferences'
     | '/preview/notifications'
     | '/preview/onboarding'
+    | '/preview/online'
     | '/preview/otp'
     | '/preview/profile'
     | '/preview/promo-codes'
@@ -1912,6 +1934,7 @@ export interface FileRouteTypes {
     | '/preview/book/$providerId'
     | '/preview/category/$id'
     | '/preview/chat/$id'
+    | '/preview/online/walkthrough'
     | '/preview/pro/apply'
     | '/preview/pro/availability'
     | '/preview/pro/bookings'
@@ -2027,6 +2050,7 @@ export interface FileRouteTypes {
     | '/preview/notification-preferences'
     | '/preview/notifications'
     | '/preview/onboarding'
+    | '/preview/online'
     | '/preview/otp'
     | '/preview/pro'
     | '/preview/profile'
@@ -2089,6 +2113,7 @@ export interface FileRouteTypes {
     | '/preview/book/$providerId'
     | '/preview/category/$id'
     | '/preview/chat/$id'
+    | '/preview/online/walkthrough'
     | '/preview/pro/apply'
     | '/preview/pro/availability'
     | '/preview/pro/bookings'
@@ -2783,6 +2808,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewOnboardingRouteImport
       parentRoute: typeof PreviewRoute
     }
+    '/preview/online': {
+      id: '/preview/online'
+      path: '/online'
+      fullPath: '/preview/online'
+      preLoaderRoute: typeof PreviewOnlineRouteImport
+      parentRoute: typeof PreviewRoute
+    }
     '/preview/otp': {
       id: '/preview/otp'
       path: '/otp'
@@ -3195,6 +3227,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/preview/chat/$id'
       preLoaderRoute: typeof PreviewChatIdRouteImport
       parentRoute: typeof PreviewRoute
+    }
+    '/preview/online/walkthrough': {
+      id: '/preview/online/walkthrough'
+      path: '/walkthrough'
+      fullPath: '/preview/online/walkthrough'
+      preLoaderRoute: typeof PreviewOnlineWalkthroughRouteImport
+      parentRoute: typeof PreviewOnlineRoute
     }
     '/preview/pro/': {
       id: '/preview/pro/'
@@ -3622,6 +3661,18 @@ const PreviewAdminRouteWithChildren = PreviewAdminRoute._addFileChildren(
   PreviewAdminRouteChildren,
 )
 
+interface PreviewOnlineRouteChildren {
+  PreviewOnlineWalkthroughRoute: typeof PreviewOnlineWalkthroughRoute
+}
+
+const PreviewOnlineRouteChildren: PreviewOnlineRouteChildren = {
+  PreviewOnlineWalkthroughRoute: PreviewOnlineWalkthroughRoute,
+}
+
+const PreviewOnlineRouteWithChildren = PreviewOnlineRoute._addFileChildren(
+  PreviewOnlineRouteChildren,
+)
+
 interface PreviewProRouteChildren {
   PreviewProApplyRoute: typeof PreviewProApplyRoute
   PreviewProAvailabilityRoute: typeof PreviewProAvailabilityRoute
@@ -3673,6 +3724,7 @@ interface PreviewRouteChildren {
   PreviewNotificationPreferencesRoute: typeof PreviewNotificationPreferencesRoute
   PreviewNotificationsRoute: typeof PreviewNotificationsRoute
   PreviewOnboardingRoute: typeof PreviewOnboardingRoute
+  PreviewOnlineRoute: typeof PreviewOnlineRouteWithChildren
   PreviewOtpRoute: typeof PreviewOtpRoute
   PreviewProRoute: typeof PreviewProRouteWithChildren
   PreviewProfileRoute: typeof PreviewProfileRoute
@@ -3702,6 +3754,7 @@ const PreviewRouteChildren: PreviewRouteChildren = {
   PreviewNotificationPreferencesRoute: PreviewNotificationPreferencesRoute,
   PreviewNotificationsRoute: PreviewNotificationsRoute,
   PreviewOnboardingRoute: PreviewOnboardingRoute,
+  PreviewOnlineRoute: PreviewOnlineRouteWithChildren,
   PreviewOtpRoute: PreviewOtpRoute,
   PreviewProRoute: PreviewProRouteWithChildren,
   PreviewProfileRoute: PreviewProfileRoute,

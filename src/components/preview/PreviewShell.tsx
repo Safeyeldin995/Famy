@@ -24,8 +24,12 @@ export function PreviewShell({ children }: { children: ReactNode }) {
   );
   const isAdminPreview = isPreviewAdminRoute(pathname);
   const applyPreview = pathname === "/preview/pro/apply" || pathname.startsWith("/preview/pro/setup/") || pathname.startsWith("/preview/book/");
-  const showBanner = !fullBleed && !isAdminPreview && !applyPreview;
-  const showFloatingHub = !isHubIndex(pathname) && !isAdminPreview && !applyPreview;
+  const isOnlineWalkthrough =
+    pathname === "/preview/online/walkthrough" ||
+    pathname.startsWith("/preview/online/walkthrough/");
+  const showBanner = !fullBleed && !isAdminPreview && !applyPreview && !isOnlineWalkthrough;
+  const showFloatingHub =
+    !isHubIndex(pathname) && !isAdminPreview && !applyPreview && !isOnlineWalkthrough;
 
   const qc = useMemo(() => createPreviewQueryClient(), []);
 

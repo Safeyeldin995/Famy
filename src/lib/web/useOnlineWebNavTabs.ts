@@ -13,7 +13,14 @@ export type OnlineWebNavTab = {
     | "onlineWeb.nav.providerLessons";
 };
 
+function isOnlineWalkthroughPath(): boolean {
+  if (typeof window === "undefined") return false;
+  const path = window.location.pathname;
+  return path === "/preview/online/walkthrough" || path.startsWith("/preview/online/walkthrough/");
+}
+
 export function useOnlineWebNavTabs(): OnlineWebNavTab[] {
+  const walkthrough = isOnlineWalkthroughPath();
   const sessionQ = useQuery({
     queryKey: ["online-web-session"],
     queryFn: async () => {
@@ -28,18 +35,20 @@ export function useOnlineWebNavTabs(): OnlineWebNavTab[] {
     const tabs: OnlineWebNavTab[] = [
       { to: ONLINE_WEB_ROUTE_IDS.tutors, key: "onlineWeb.nav.tutors" },
     ];
-    if (sessionQ.data) {
+    const signedIn = walkthrough || sessionQ.data;
+    const isProvider = walkthrough || Boolean(providerQ.data?.id);
+    if (signedIn) {
       tabs.push(
         { to: ONLINE_WEB_ROUTE_IDS.lessons, key: "onlineWeb.nav.lessons" },
         { to: ONLINE_WEB_ROUTE_IDS.wallet, key: "onlineWeb.nav.wallet" },
       );
     }
-    if (providerQ.data?.id) {
+    if (isProvider) {
       tabs.push({
         to: ONLINE_WEB_ROUTE_IDS.providerLessons,
         key: "onlineWeb.nav.providerLessons",
       });
     }
     return tabs;
-  }, [sessionQ.data, providerQ.data?.id]);
+  }, [walkthrough, sessionQ.data, providerQ.data?.id]);
 }
