@@ -17,7 +17,7 @@ describe("applyLiveKitWebhookEvent", () => {
       new Date("2026-11-23T12:00:00.000Z"),
     );
 
-    expect(rpc).toHaveBeenCalledWith("apply_livekit_session_webhook", {
+    expect(rpc).toHaveBeenCalledWith("apply_livekit_session_webhook_event", {
       p_event_id: "evt-1",
       p_booking_id: "00000000-0000-0000-0000-000000000901",
       p_event_type: "participant_joined",
