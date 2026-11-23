@@ -31,9 +31,6 @@ export const Route = createFileRoute("/api/session/report")({
         }
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { createRequestUserSupabase } = await import(
-          "@/lib/auth/requestSupabaseUser.server"
-        );
         const booking = await loadSessionBookingSnapshot(
           supabaseAdmin as never,
           parsed.bookingId,
@@ -45,37 +42,26 @@ export const Route = createFileRoute("/api/session/report")({
           return json({ ok: false, error: authz.code }, 403);
         }
 
+        const { createRequestUserSupabase } = await import(
+          "@/lib/auth/requestSupabaseUser.server"
+        );
         const supabase = createRequestUserSupabase();
         if (!supabase) return json({ ok: false, error: "unauthorized" }, 401);
         const detail =
           parsed.note?.trim() ||
           "In-call safety report: participant left and requested admin review.";
-        const { data, error } = await supabase.rpc("create_support_ticket", {
+        const { data, error } = await (supabase as any).rpc("report_online_lesson_issue", {
           p_booking_id: parsed.bookingId,
-          p_category: "provider_behavior",
-          p_subject: "Online session safety report",
-          p_description: `${detail}\n\nReported at: ${new Date().toISOString()}`,
-        } as never);
+          p_category: "behavior",
+          p_description: detail,
+        });
 
         if (error) {
-          console.error("[api.session.report] ticket failed");
+          console.error("[api.session.report] lesson report failed");
           return json({ ok: false, error: "server_error" }, 500);
         }
 
-        const { error: reviewErr } = await (supabaseAdmin as any).rpc(
-          "open_online_session_admin_review",
-          {
-            p_booking_id: parsed.bookingId,
-            p_reason: "in_call_safety_report",
-            p_metadata: {
-              ticket_id: data,
-              party: authz.ok ? authz.party : credential.userId,
-            },
-          },
-        );
-        if (reviewErr) console.error("[api.session.report] review queue failed");
-
-        return json({ ok: true, ticketId: data, leaveSession: true });
+        return json({ ok: true, reportId: data, leaveSession: true });
       },
     },
   },

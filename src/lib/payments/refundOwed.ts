@@ -10,6 +10,8 @@ type PaymentLike = {
   paymentStatus?: string | null;
   methodType?: string | null;
   proofPath?: string | null;
+  metadata?: Record<string, unknown> | null;
+  refundSettledViaWallet?: boolean;
 };
 
 /** The customer has already paid Famy (so a fee can be deducted and the rest refunded). */
@@ -20,5 +22,9 @@ export function moneyHeld(p: PaymentLike): boolean {
 }
 
 export function refundOwed(p: PaymentLike & { bookingStatus?: string | null }): boolean {
+  const settled =
+    p.refundSettledViaWallet === true ||
+    (p.metadata && (p.metadata as { refund_settled_via_wallet?: boolean }).refund_settled_via_wallet === true);
+  if (settled) return false;
   return CLOSED_WITHOUT_SERVICE.has(p.bookingStatus ?? "") && moneyHeld(p);
 }

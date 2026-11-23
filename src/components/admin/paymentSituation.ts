@@ -28,6 +28,7 @@ export type PaymentSituationInput = {
   payment_method_type?: string | null;
   method?: string | null;
   proof_path?: string | null;
+  metadata?: Record<string, unknown> | null;
   booking?: { status?: string | null } | null;
 };
 
@@ -64,6 +65,10 @@ export function paymentSituation(
       methodType: type,
       proofPath,
       bookingStatus: booking,
+      metadata:
+        typeof p.metadata === "object" && p.metadata !== null
+          ? (p.metadata as Record<string, unknown>)
+          : undefined,
     })
   )
     return "refundDue";

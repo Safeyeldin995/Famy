@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { View, StyleSheet, Linking, Platform } from "react-native";
 import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
@@ -18,6 +18,7 @@ export function OnlineSessionPreJoin({ onReady, onCancel }: Props) {
   const [cameraReady, setCameraReady] = useState(false);
   const [networkOk, setNetworkOk] = useState<boolean | null>(null);
   const [autoSkipped, setAutoSkipped] = useState(false);
+  const autoSkipStarted = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,13 +53,15 @@ export function OnlineSessionPreJoin({ onReady, onCancel }: Props) {
   }, []);
 
   useEffect(() => {
-    if (autoSkipped) return;
-    if (micReady && cameraReady && networkOk === true) {
+    if (autoSkipStarted.current) return;
+    if (!(micReady && cameraReady && networkOk === true)) return;
+    autoSkipStarted.current = true;
+    const timer = setTimeout(() => {
       setAutoSkipped(true);
-      const timer = setTimeout(onReady, 350);
-      return () => clearTimeout(timer);
-    }
-  }, [autoSkipped, cameraReady, micReady, networkOk, onReady]);
+      onReady();
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [cameraReady, micReady, networkOk, onReady]);
 
   const ready = micReady && cameraReady && networkOk === true;
 

@@ -80,8 +80,16 @@ export function OnlineLessonPaymentPanel({ bookingId, total, onPaid }: Props) {
         await clearPayment(bookingId);
       }
       await startPaymob(bookingId, paymentId, "card");
-      await paymentQ.refetch();
-      onPaid();
+      const refetched = await paymentQ.refetch();
+      if (
+        moneyHeld({
+          paymentStatus: refetched.data?.status,
+          methodType: refetched.data?.payment_method_type,
+          proofPath: refetched.data?.proof_path,
+        })
+      ) {
+        onPaid();
+      }
     } catch {
       setError(t("onlineLesson.payFailedNext"));
     } finally {

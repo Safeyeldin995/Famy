@@ -43,6 +43,7 @@ DECLARE
   v_provider_min_notice integer;
   v_required_hours numeric;
   v_category_slug text;
+  v_age integer;
 BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'BOOKING_UNAUTHORIZED: Authentication required.'
@@ -154,6 +155,19 @@ BEGIN
     RAISE EXCEPTION
       'BOOKING_PROVIDER_SETTLEMENT_BLOCKED: Provider cannot receive new bookings until platform balance is settled.'
       USING ERRCODE = '23514';
+  END IF;
+
+  IF v_mode = 'online' THEN
+    v_age := public.booking_online_age_years(v_uid, p_family_member_id);
+    IF v_age IS NULL THEN
+      RAISE EXCEPTION
+        'BOOKING_ONLINE_BIRTH_DATE_REQUIRED: Add a date of birth before booking an online lesson.'
+        USING ERRCODE = '23514';
+    ELSIF v_age < 12 THEN
+      RAISE EXCEPTION
+        'BOOKING_ONLINE_AGE_MINIMUM: Online lessons are available from age 12.'
+        USING ERRCODE = '23514';
+    END IF;
   END IF;
 
   PERFORM set_config('app.create_booking_in_progress', 'on', true);

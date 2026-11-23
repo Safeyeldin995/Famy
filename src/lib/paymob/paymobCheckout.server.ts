@@ -84,6 +84,7 @@ export async function createPaymobCheckoutForPayment(input: {
   paymentId: string;
   clientSecret: string;
   publicKey: string;
+  paidViaWallet?: boolean;
 }> {
   const config = readPaymobConfig();
   const channel = input.channel ?? "card";
@@ -134,14 +135,48 @@ export async function createPaymobCheckoutForPayment(input: {
     throw new Error("This booking is not using Paymob online payment.");
   }
 
-  // The booking price plus any earlier unpaid cancellation fees added to it.
-  const authoritativeAmount = bookingAmountDue(bookingRow);
-  const paymentAmount = Number(payment.amount);
-  if (
-    !Number.isFinite(authoritativeAmount) ||
-    authoritativeAmount <= 0 ||
-    Math.abs(authoritativeAmount - paymentAmount) > 0.01
-  ) {
+  const { data: walletCheckout, error: walletErr } = await input.supabaseAdmin.rpc(
+    "customer_apply_wallet_at_checkout",
+    { p_payment_id: payment.id, p_customer_id: input.userId },
+  );
+  if (walletErr) throw new Error(walletErr.message || "Could not apply wallet at checkout.");
+
+  const walletRow = walletCheckout as {
+    paid_via_wallet_only?: boolean;
+    card_amount?: number;
+    payment_id?: string;
+  } | null;
+
+  if (walletRow?.paid_via_wallet_only) {
+    return {
+      checkoutUrl: "",
+      paymentId: payment.id,
+      clientSecret: "",
+      publicKey: config.publicKey,
+      paidViaWallet: true,
+    };
+  }
+
+  const { data: paymentDataAfterWallet, error: paymentReloadErr } = await input.supabaseAdmin
+    .from("payments")
+    .select(paymentSelect)
+    .eq("id", payment.id)
+    .single();
+  if (paymentReloadErr || !paymentDataAfterWallet) throw new Error("Could not load checkout data.");
+  const paymentAfterWallet = paymentDataAfterWallet as PaymentRow;
+
+  if (paymentAfterWallet.status === "captured") {
+    return {
+      checkoutUrl: "",
+      paymentId: payment.id,
+      clientSecret: "",
+      publicKey: config.publicKey,
+      paidViaWallet: true,
+    };
+  }
+
+  const paymentAmount = Number(paymentAfterWallet.amount);
+  if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) {
     throw new Error("Payment amount does not match the booking total.");
   }
 
