@@ -1058,7 +1058,7 @@ BEGIN
   JOIN public.categories cat ON cat.id = s.category_id
   WHERE s.id = p_service_id;
 
-  IF v_category_slug IN ('babysitting', 'tutoring') THEN
+  IF v_mode = 'in_person' AND v_category_slug IN ('babysitting', 'tutoring') THEN
     IF p_supervision_mode IS NULL
        OR p_supervision_mode NOT IN ('cameras', 'adult_present') THEN
       RAISE EXCEPTION

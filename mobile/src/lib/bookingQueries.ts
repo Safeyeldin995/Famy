@@ -346,7 +346,7 @@ export function useAvailableSlots(
 export type CreateBookingInput = {
   provider_id: string;
   service_id: string;
-  address_id: string;
+  address_id: string | null;
   start_at: string;
   end_at: string;
   idempotency_key: string;
@@ -359,6 +359,7 @@ export type CreateBookingInput = {
   teaching_curriculum_code?: string | null;
   teaching_level_code?: string | null;
   supervision_mode?: string | null;
+  service_mode?: "in_person" | "online";
 };
 
 export type CreateBookingResult = Tables["bookings"]["Row"] & {
@@ -395,7 +396,8 @@ export function useCreateBooking() {
         p_teaching_curriculum_code: input.teaching_curriculum_code ?? undefined,
         p_teaching_level_code: input.teaching_level_code ?? undefined,
         p_supervision_mode: input.supervision_mode ?? undefined,
-      });
+        p_service_mode: input.service_mode ?? "in_person",
+      } as never);
       if (error) {
         throw mapBookingRpcError(error);
       }

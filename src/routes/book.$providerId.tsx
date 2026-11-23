@@ -143,6 +143,7 @@ export const Route = createFileRoute("/book/$providerId")({
     serviceId: typeof search.serviceId === "string" ? search.serviceId : undefined,
     capabilityId: typeof search.capabilityId === "string" ? search.capabilityId : undefined,
     rebookFrom: typeof search.rebookFrom === "string" ? search.rebookFrom : undefined,
+    serviceMode: search.serviceMode === "online" ? ("online" as const) : ("in_person" as const),
   }),
   component: Book,
 });
@@ -154,6 +155,7 @@ function Book() {
     serviceId: searchServiceId,
     capabilityId: searchCapabilityId,
     rebookFrom: searchRebookFrom,
+    serviceMode: searchServiceMode,
   } = Route.useSearch();
   if (blocking) return null;
   return (
@@ -162,6 +164,7 @@ function Book() {
       searchServiceId={searchServiceId}
       searchCapabilityId={searchCapabilityId}
       searchRebookFrom={searchRebookFrom}
+      searchServiceMode={searchServiceMode}
     />
   );
 }
@@ -171,6 +174,7 @@ export function BookContent(props: {
   searchServiceId?: string;
   searchCapabilityId?: string;
   searchRebookFrom?: string;
+  searchServiceMode?: "in_person" | "online";
 }) {
   return (
     <BookRebookGate providerId={props.providerId} rebookFrom={props.searchRebookFrom}>
@@ -191,6 +195,7 @@ function BookContentForm({
   searchServiceId,
   searchCapabilityId,
   searchRebookFrom,
+  searchServiceMode = "in_person",
   rebookInitial,
   rebookNotices: rebookNoticesProp,
 }: {
@@ -198,10 +203,12 @@ function BookContentForm({
   searchServiceId?: string;
   searchCapabilityId?: string;
   searchRebookFrom?: string;
+  searchServiceMode?: "in_person" | "online";
   rebookInitial: RebookFormInitial | null;
   rebookNotices: RebookPrefillNotice[];
 }) {
-  const provQ = useProvider(providerId);
+  const isOnlineBooking = searchServiceMode === "online";
+  const provQ = useProvider(providerId, undefined, searchServiceMode);
   const servicesQ = useProviderServices(providerId);
   const addrsQ = useAddresses();
   const familyMembersQ = useActiveFamilyMembers();
@@ -275,7 +282,7 @@ function BookContentForm({
   // Only services the provider can actually be booked for (same eligibility
   // the booking trigger enforces), so the customer never picks a service that
   // fails later with PROVIDER_INELIGIBLE (e.g. subjects still under review).
-  const bookableQ = useBookableServiceIds(providerId, slotAddressId ?? undefined);
+  const bookableQ = useBookableServiceIds(providerId, slotAddressId ?? undefined, searchServiceMode);
   const services = useMemo(
     () =>
       (servicesQ.data ?? []).filter(
@@ -631,7 +638,7 @@ function BookContentForm({
     vatPercent: billingQ.data?.vat_percent ?? DEFAULT_BILLING_SETTINGS.vat_percent,
     requirements: bookingRequirements,
     requirementChoices,
-    travelFee: Number(zoneQ.data?.travel_fee ?? 0),
+    travelFee: isOnlineBooking ? 0 : Number(zoneQ.data?.travel_fee ?? 0),
     promoDiscount,
   });
   const carriedFees = feeDebtsQ.data?.total ?? 0;
@@ -646,12 +653,14 @@ function BookContentForm({
     startAt: selectedSlot?.start ?? null,
   });
   const supervisionReady = !supervisionRequired || !!supervisionMode;
-  const addressReady = checkoutAddressReady({
-    addressId: slotAddressId,
-    hasPinnedAddress: !!selectedAddress,
-    bookable: bookableQ,
-    serviceId: eligibilityServiceId,
-  });
+  const addressReady =
+    isOnlineBooking ||
+    checkoutAddressReady({
+      addressId: slotAddressId,
+      hasPinnedAddress: !!selectedAddress,
+      bookable: bookableQ,
+      serviceId: eligibilityServiceId,
+    });
   const addressOutside = checkoutAddressOutsideArea({
     addressId: slotAddressId,
     hasPinnedAddress: !!selectedAddress,
@@ -674,7 +683,11 @@ function BookContentForm({
   const paymentCopy = paymentPresentation(
     (methodsQ.data ?? []).find((method) => method.id === paymentMethodId)?.method_type,
   );
-  const noPaymentMethods = methodsQ.isSuccess && methodsQ.data.length === 0;
+  const payableMethods = useMemo(() => {
+    const methods = methodsQ.data ?? [];
+    return isOnlineBooking ? methods.filter((m) => m.method_type !== "cash") : methods;
+  }, [isOnlineBooking, methodsQ.data]);
+  const noPaymentMethods = methodsQ.isSuccess && payableMethods.length === 0;
   const stepQuery =
     missingStep === "requirements"
       ? requirementsQ
@@ -699,7 +712,7 @@ function BookContentForm({
     error: stepQuery.isError,
     hasDate: !!date,
     hasSlots: packageSlots.length > 0,
-    hasAddress: !!addressId,
+    hasAddress: isOnlineBooking || !!addressId,
     addressOutside,
     hasRecipient: recipientReady,
     hasSupervision: supervisionReady,
@@ -810,7 +823,8 @@ function BookContentForm({
       const submissionPayload = buildBookingRequest({
         providerId: p.id,
         serviceId: activeService.service.id,
-        addressId: addressId!,
+        addressId: isOnlineBooking ? null : addressId,
+        serviceMode: searchServiceMode,
         forWhom,
         start,
         end,
@@ -821,7 +835,9 @@ function BookContentForm({
         requirementChoices,
         selectedCapability,
         supervisionMode:
-          supervisionRequired && isSupervisionMode(supervisionMode) ? supervisionMode : null,
+          !isOnlineBooking && supervisionRequired && isSupervisionMode(supervisionMode)
+            ? supervisionMode
+            : null,
       });
       const fingerprint = bookingSubmissionFingerprint(submissionPayload);
       idempotencyStateRef.current = resolveIdempotencyKey(idempotencyStateRef.current, fingerprint);
@@ -1690,7 +1706,7 @@ function BookContentForm({
                     {t("common.retry")}
                   </button>
                 </div>
-              ) : (methodsQ.data ?? []).length === 0 ? (
+              ) : payableMethods.length === 0 ? (
                 <div>
                   <p className="text-pro-14 text-muted-foreground">
                     {t("customerRound2.paymentEmpty")}
@@ -1705,7 +1721,7 @@ function BookContentForm({
               ) : (
                 <>
                   <div className="space-y-3">
-                    {methodsQ.data!.map((m) => {
+                    {payableMethods.map((m) => {
                       const label = lang === "ar" ? m.name_ar : m.name_en;
                       const sub =
                         (lang === "ar" ? m.instructions_ar : m.instructions_en) ?? undefined;

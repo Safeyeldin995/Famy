@@ -1,8 +1,9 @@
 import { CustomerFilterPicker } from "@/components/famio/CustomerFilterPicker";
 import { useCustomerPreviewPath } from "@/components/famio/useCustomerPreviewPath";
 import { isFixedPackage, packageLabel, type PackageService } from "@/lib/pricing/servicePackages";
-import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useOnlineSessionsAvailable } from "@/lib/online/useOnlineSessionsAvailable";
 import { PhoneFrame, Chip, EmptyState } from "@/components/famio/ui";
 import { CustomerPageHeader as CustomerPageHero } from "@/components/famio/CustomerPageHeader";
 import { ProviderCard } from "@/components/famio/ProviderCard";
@@ -24,8 +25,14 @@ import { formatNumber } from "@/lib/format";
 import { LessonServiceTileRow } from "@/components/lessons/LessonServiceTileRow";
 import { isLessonServiceSlug } from "@/lib/tutoring/lessonServices";
 
-export function searchServiceFilter(search: Record<string, unknown>): { serviceId?: string } {
-  return typeof search.serviceId === "string" ? { serviceId: search.serviceId } : {};
+export function searchServiceFilter(search: Record<string, unknown>): {
+  serviceId?: string;
+  serviceMode?: "in_person" | "online";
+} {
+  return {
+    ...(typeof search.serviceId === "string" ? { serviceId: search.serviceId } : {}),
+    ...(search.serviceMode === "online" ? { serviceMode: "online" as const } : {}),
+  };
 }
 export const Route = createFileRoute("/search")({
   validateSearch: searchServiceFilter,
@@ -36,6 +43,7 @@ type Filter = "all" | "babysitting" | "tutoring" | "top";
 
 function SearchPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate({ from: Route.fullPath });
   const previewPath = useCustomerPreviewPath();
   const lang = currentLang();
   const [q, setQ] = useState("");
@@ -43,6 +51,8 @@ function SearchPage() {
   const search = useSearch({ strict: false });
   const [serviceId, setServiceId] = useState(search.serviceId ?? "");
   const [addressId, setAddressId] = useState("");
+  const serviceMode = search.serviceMode === "online" ? "online" : "in_person";
+  const onlineCapsQ = useOnlineSessionsAvailable();
   const servicesQ = useMarketplaceServices();
   const addressesQ = useAddresses();
   const selectedAddressId =
@@ -51,12 +61,14 @@ function SearchPage() {
     categorySlug: "babysitting",
     serviceId: serviceId || undefined,
     addressId: selectedAddressId,
+    serviceMode,
     limit: 60,
   });
   const teachersQ = useProviders({
     categorySlug: "tutoring",
     serviceId: serviceId || undefined,
     addressId: selectedAddressId,
+    serviceMode,
     limit: 60,
   });
   const provsQ = {
@@ -159,6 +171,35 @@ function SearchPage() {
             {t("category.sortTop")}
           </Chip>
         </div>
+
+        {onlineCapsQ.data?.onlineSessions ? (
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+            <Chip
+              active={serviceMode === "in_person"}
+              onClick={() =>
+                navigate({
+                  search: (prev) => ({ ...searchServiceFilter(prev), serviceId: prev.serviceId as string | undefined }),
+                })
+              }
+            >
+              {t("search.deliveryInPerson")}
+            </Chip>
+            <Chip
+              active={serviceMode === "online"}
+              onClick={() =>
+                navigate({
+                  search: (prev) => ({
+                    ...searchServiceFilter(prev),
+                    serviceId: prev.serviceId as string | undefined,
+                    serviceMode: "online",
+                  }),
+                })
+              }
+            >
+              {t("search.deliveryOnline")}
+            </Chip>
+          </div>
+        ) : null}
 
         {filter === "tutoring" && (servicesQ.data?.length ?? 0) > 0 ? (
           <div className="mt-5">
@@ -271,7 +312,14 @@ function SearchPage() {
                       price: cap.price,
                     })
                   : providerPriceLabel(p, t);
-              return <ProviderCard key={p.id} p={p} subtitle={subtitle} />;
+              return (
+                <ProviderCard
+                  key={p.id}
+                  p={p}
+                  subtitle={subtitle}
+                  deliverySearch={serviceMode === "online" ? { serviceMode: "online" } : undefined}
+                />
+              );
             })
           )}
         </div>

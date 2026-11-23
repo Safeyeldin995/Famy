@@ -1226,6 +1226,24 @@ const ar: Translation = {
   search: {
     title: "بحث",
     placeholder: "ابحث عن محترفين وخدمات…",
+    deliveryInPerson: "في البيت",
+    deliveryOnline: "أونلاين",
+  },
+  onlineSession: {
+    title: "جلسة مباشرة",
+    joinCustomer: "ادخل الجلسة",
+    joinProvider: "ادخل الجلسة",
+    joinFailed: "تعذر الدخول للجلسة",
+    errors: {
+      unauthorized: "سجّل الدخول للانضمام للجلسة.",
+      payment_required: "لازم تكمّل الدفع قبل الدخول.",
+      outside_join_window: "الدخول يفتح قبل الموعد بـ 10 دقايق ولحد 15 دقيقة بعد الانتهاء.",
+      not_online_booking: "الحجز ده مش جلسة أونلاين.",
+      booking_not_active: "الحجز لسه مش جاهز للجلسة المباشرة.",
+      not_participant: "العميل ومقدم الخدمة بس اللي يقدروا يدخلوا.",
+      livekit_unavailable: "جلسات الأونلاين مش متاحة دلوقتي.",
+      server_error: "حصل خطأ، جرّب تاني.",
+    },
   },
   booking: {
     summary: "ملخص الحجز",

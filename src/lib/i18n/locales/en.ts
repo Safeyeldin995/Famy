@@ -1231,6 +1231,24 @@ const en = {
   search: {
     title: "Search",
     placeholder: "Search professionals, services…",
+    deliveryInPerson: "At home",
+    deliveryOnline: "Online",
+  },
+  onlineSession: {
+    title: "Live session",
+    joinCustomer: "Join session",
+    joinProvider: "Join session",
+    joinFailed: "Could not join the session",
+    errors: {
+      unauthorized: "Sign in to join the session.",
+      payment_required: "Payment must be completed before joining.",
+      outside_join_window: "Join opens 10 minutes before start and until 15 minutes after the end.",
+      not_online_booking: "This booking is not an online session.",
+      booking_not_active: "This booking is not ready for a live session yet.",
+      not_participant: "Only the customer and provider can join.",
+      livekit_unavailable: "Online sessions are not available right now.",
+      server_error: "Something went wrong. Try again.",
+    },
   },
   booking: {
     summary: "Booking summary",

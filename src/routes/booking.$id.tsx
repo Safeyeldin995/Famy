@@ -76,6 +76,7 @@ import { PushEnablePrompt } from "@/components/famio/PushEnablePrompt";
 import { shouldOfferPushPrompt } from "@/lib/push-prompt";
 import { isSupervisionMode, supervisionModeProviderLabel } from "@/lib/booking/supervisionMode";
 import { bookingAmountDue, carriedFees } from "@/lib/payments/amountDue";
+import { OnlineSessionJoinButton } from "@/components/session/OnlineSessionJoinButton";
 
 export const Route = createFileRoute("/booking/$id")({
   component: BookingDetail,
@@ -141,6 +142,7 @@ export function BookingDetailContent({
 }) {
   const { t } = useTranslation();
   const realQ = useBooking(id);
+  const sessionPaymentQ = useBookingPayment(realQ.data?.service_mode === "online" ? id : undefined);
   const real = realQ.data;
   const status: string | undefined = real?.status;
   const preparationQ = useProviderServicePreparationNotes(
@@ -344,6 +346,7 @@ export function BookingDetailContent({
                     serviceId: undefined,
                     capabilityId: undefined,
                     rebookFrom: real!.id,
+                    serviceMode: real!.service_mode === "online" ? "online" : "in_person",
                   },
                 })
               }
@@ -954,7 +957,22 @@ export function BookingDetailContent({
 
         <CustomerPreparationNotesSection notes={preparationQ.data} className="mt-4" />
 
-        <div className="mt-4">
+        <div className="mt-4 space-y-3">
+          <OnlineSessionJoinButton
+            booking={{
+              id: real.id,
+              service_mode: real.service_mode,
+              status: status ?? real.status,
+              customer_id: real.customer_id,
+              start_at: real.start_at,
+              end_at: real.end_at,
+            }}
+            providerProfileId={real.provider_profile_id ?? undefined}
+            paymentStatus={sessionPaymentQ.data?.status}
+            paymentMethodType={sessionPaymentQ.data?.payment_method_type}
+            proofPath={sessionPaymentQ.data?.proof_path}
+            party="customer"
+          />
           <PaymentBlock
             bookingId={real.id}
             viewer="customer"

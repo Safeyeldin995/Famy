@@ -12,10 +12,12 @@ export function ProviderCard({
   p,
   subtitle,
   categoryLabel,
+  deliverySearch,
 }: {
   p: Provider & { categorySlugs?: string[] };
   subtitle?: string;
   categoryLabel?: string;
+  deliverySearch?: { serviceMode?: "in_person" | "online" };
 }) {
   const preview = useCustomerPreviewMode();
   const { t } = useTranslation();
@@ -23,6 +25,7 @@ export function ProviderCard({
     <Link
       to={preview ? "/preview/provider/$id" : "/provider/$id"}
       params={{ id: p.id }}
+      search={deliverySearch}
       className="focus-ring block min-h-11 rounded-2xl border border-border/60 bg-white p-4"
     >
       <div className="flex items-start gap-3">

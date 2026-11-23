@@ -312,32 +312,46 @@ async function safeProviderDetails(providerId: string) {
   return data?.[0] ? (await marketplaceRowsWithPackages([data[0]]))[0] : null;
 }
 
-export function useProviders(opts: { categorySlug?: string; serviceId?: string; addressId?: string; limit?: number } = {}) {
+export function useProviders(opts: {
+  categorySlug?: string;
+  serviceId?: string;
+  addressId?: string;
+  serviceMode?: "in_person" | "online";
+  limit?: number;
+} = {}) {
   return useQuery({
     queryKey: ['providers', opts],
     refetchInterval: customerMarketplaceRefetchInterval,
     refetchIntervalInBackground: false,
     queryFn: async () => {
-      const args: { p_service_id?: string; p_address_id?: string } = {};
+      const args: { p_service_id?: string; p_address_id?: string; p_service_mode?: string } = {};
       if (opts.serviceId) args.p_service_id = opts.serviceId;
-      if (opts.addressId) args.p_address_id = opts.addressId;
-      const { data, error } = await supabase.rpc('search_marketplace_providers', args);
+      if (opts.addressId && opts.serviceMode !== "online") args.p_address_id = opts.addressId;
+      if (opts.serviceMode) args.p_service_mode = opts.serviceMode;
+      const { data, error } = await supabase.rpc('search_marketplace_providers', args as never);
       if (error) throw error;
       return marketplaceRowsWithPackages(selectMarketplaceProviderRows(data ?? [], opts));
     },
   });
 }
 
-export function useProvider(id: string | undefined, addressId?: string) {
+export function useProvider(
+  id: string | undefined,
+  addressId?: string,
+  serviceMode: "in_person" | "online" = "in_person",
+) {
   return useQuery({
     enabled: !!id,
-    queryKey: ['provider', id, addressId],
+    queryKey: ['provider', id, addressId, serviceMode],
     refetchInterval: customerMarketplaceRefetchInterval,
     refetchIntervalInBackground: false,
     queryFn: async () => {
-      const args: { p_provider_id: string; p_address_id?: string } = { p_provider_id: id! };
-      if (addressId) args.p_address_id = addressId;
-      const { data, error } = await supabase.rpc('marketplace_provider_details', args);
+      const args: { p_provider_id: string; p_address_id?: string; p_service_mode?: string } = {
+        p_provider_id: id!,
+        p_service_mode: serviceMode,
+      };
+      if (addressId && serviceMode !== "online") args.p_address_id = addressId;
+      const { data, error } = await supabase.rpc('marketplace_provider_details', args as never);
       if (error) throw error;
       return data?.[0] ? (await marketplaceRowsWithPackages([data[0]]))[0] : null;
     },
@@ -349,16 +363,23 @@ export function useProvider(id: string | undefined, addressId?: string) {
  * eligibility the booking trigger enforces). `null` means "unknown" (still
  * loading, preview, or failed) so callers fall back to the approved list.
  */
-export function useBookableServiceIds(providerId: string | undefined, addressId?: string) {
+export function useBookableServiceIds(
+  providerId: string | undefined,
+  addressId?: string,
+  serviceMode: "in_person" | "online" = "in_person",
+) {
   return useQuery({
     enabled: !!providerId && !isPreviewRoute(),
     // Signed-out visitors and providers get a permission error; don't retry it.
     retry: false,
-    queryKey: ['bookable-services', providerId, addressId ?? null],
+    queryKey: ['bookable-services', providerId, addressId ?? null, serviceMode],
     queryFn: async () => {
-      const args: { p_provider_id: string; p_address_id?: string } = { p_provider_id: providerId! };
-      if (addressId) args.p_address_id = addressId;
-      const { data, error } = await supabase.rpc('marketplace_provider_bookable_services', args);
+      const args: { p_provider_id: string; p_address_id?: string; p_service_mode?: string } = {
+        p_provider_id: providerId!,
+        p_service_mode: serviceMode,
+      };
+      if (addressId && serviceMode !== "online") args.p_address_id = addressId;
+      const { data, error } = await supabase.rpc('marketplace_provider_bookable_services', args as never);
       if (error) throw error;
       return new Map((data ?? []).map((row) => [row.service_id, row.effective_price as number | null]));
     },
@@ -603,7 +624,16 @@ export function useBooking(id: string | undefined) {
         .maybeSingle();
       if (error) throw error;
       if (!data) return null;
-      return { ...data, provider: await safeProviderDetails(data.provider_id) };
+      const { data: providerMeta } = await supabase
+        .from("providers")
+        .select("profile_id")
+        .eq("id", data.provider_id)
+        .maybeSingle();
+      return {
+        ...data,
+        provider_profile_id: providerMeta?.profile_id ?? null,
+        provider: await safeProviderDetails(data.provider_id),
+      };
     },
   });
 }
@@ -688,7 +718,7 @@ export function useCancelRescheduleRequest() {
 export type CreateBookingInput = {
   provider_id: string;
   service_id: string;
-  address_id: string;
+  address_id: string | null;
   start_at: string;
   end_at: string;
   idempotency_key: string;
@@ -701,6 +731,7 @@ export type CreateBookingInput = {
   teaching_curriculum_code?: string | null;
   teaching_level_code?: string | null;
   supervision_mode?: string | null;
+  service_mode?: "in_person" | "online";
 };
 
 export type CreateBookingResult = Tables['bookings']['Row'] & {
@@ -720,7 +751,7 @@ export function useCreateBooking() {
       const { data, error } = await supabase.rpc('create_booking', {
         p_provider_id: input.provider_id,
         p_service_id: input.service_id,
-        p_address_id: input.address_id,
+        p_address_id: input.address_id ?? undefined,
         p_start_at: input.start_at,
         p_end_at: input.end_at,
         p_idempotency_key: input.idempotency_key,
@@ -733,7 +764,8 @@ export function useCreateBooking() {
         p_teaching_curriculum_code: input.teaching_curriculum_code ?? undefined,
         p_teaching_level_code: input.teaching_level_code ?? undefined,
         p_supervision_mode: input.supervision_mode ?? undefined,
-      });
+        p_service_mode: input.service_mode ?? "in_person",
+      } as never);
       if (error) {
         throw mapBookingRpcError(error);
       }

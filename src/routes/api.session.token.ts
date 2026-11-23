@@ -1,0 +1,67 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { z } from "zod";
+import { getRequestBearerUserId } from "@/lib/auth/requestAuth.server";
+import { isLiveKitConfigured } from "@/lib/livekit/config.server";
+import { authorizeSessionJoin } from "@/lib/livekit/sessionAccess";
+import { loadSessionBookingSnapshot } from "@/lib/livekit/sessionBooking.server";
+import { mintLiveKitSessionToken } from "@/lib/livekit/sessionToken.server";
+
+const BodySchema = z.object({
+  bookingId: z.string().uuid(),
+  displayName: z.string().min(1).max(120).optional(),
+});
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+  });
+}
+
+export const Route = createFileRoute("/api/session/token")({
+  server: {
+    handlers: {
+      POST: async ({ request }) => {
+        if (!isLiveKitConfigured()) {
+          return json({ ok: false, error: "livekit_unavailable" }, 503);
+        }
+        const userId = await getRequestBearerUserId();
+        if (!userId) return json({ ok: false, error: "unauthorized" }, 401);
+
+        let parsed: z.infer<typeof BodySchema>;
+        try {
+          parsed = BodySchema.parse(await request.json());
+        } catch {
+          return json({ ok: false, error: "invalid_request" }, 400);
+        }
+
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+        const booking = await loadSessionBookingSnapshot(
+          supabaseAdmin as never,
+          parsed.bookingId,
+        );
+        if (!booking) return json({ ok: false, error: "not_found" }, 404);
+
+        const authz = authorizeSessionJoin(booking, userId);
+        if (!authz.ok) return json({ ok: false, error: authz.code }, 403);
+
+        try {
+          const result = await mintLiveKitSessionToken({
+            bookingId: booking.id,
+            userId,
+            party: authz.party,
+            displayName: parsed.displayName?.trim() || (authz.party === "customer" ? "Customer" : "Provider"),
+          });
+          return json({ ok: true, ...result });
+        } catch (error) {
+          if (error instanceof Error && error.message === "livekit_not_configured") {
+            return json({ ok: false, error: "livekit_unavailable" }, 503);
+          }
+          console.error("[api.session.token] failed");
+          return json({ ok: false, error: "server_error" }, 500);
+        }
+      },
+    },
+  },
+});

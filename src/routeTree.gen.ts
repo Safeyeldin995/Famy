@@ -111,9 +111,13 @@ import { Route as AdminPriceChangeIdRouteImport } from './routes/admin.price-cha
 import { Route as AdminProviderIdRouteImport } from './routes/admin.provider.$id'
 import { Route as AdminServiceRequestIdRouteImport } from './routes/admin.service-request.$id'
 import { Route as ApiAccountDeleteRouteImport } from './routes/api.account.delete'
+import { Route as ApiLivekitWebhookRouteImport } from './routes/api.livekit.webhook'
 import { Route as ApiMobileDebtCheckoutRouteImport } from './routes/api.mobile.debt-checkout'
 import { Route as ApiMobilePaymobCapabilitiesRouteImport } from './routes/api.mobile.paymob-capabilities'
 import { Route as ApiMobilePaymobCheckoutRouteImport } from './routes/api.mobile.paymob-checkout'
+import { Route as ApiSessionCapabilitiesRouteImport } from './routes/api.session.capabilities'
+import { Route as ApiSessionTokenRouteImport } from './routes/api.session.token'
+import { Route as BookingIdSessionRouteImport } from './routes/booking.$id.session'
 import { Route as PreviewAccountDeleteRouteImport } from './routes/preview.account.delete'
 import { Route as PreviewAddressesIndexRouteImport } from './routes/preview.addresses.index'
 import { Route as PreviewAddressesIdRouteImport } from './routes/preview.addresses.$id'
@@ -685,6 +689,11 @@ const ApiAccountDeleteRoute = ApiAccountDeleteRouteImport.update({
   path: '/api/account/delete',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiLivekitWebhookRoute = ApiLivekitWebhookRouteImport.update({
+  id: '/api/livekit/webhook',
+  path: '/api/livekit/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMobileDebtCheckoutRoute = ApiMobileDebtCheckoutRouteImport.update({
   id: '/api/mobile/debt-checkout',
   path: '/api/mobile/debt-checkout',
@@ -700,6 +709,21 @@ const ApiMobilePaymobCheckoutRoute = ApiMobilePaymobCheckoutRouteImport.update({
   id: '/api/mobile/paymob-checkout',
   path: '/api/mobile/paymob-checkout',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSessionCapabilitiesRoute = ApiSessionCapabilitiesRouteImport.update({
+  id: '/api/session/capabilities',
+  path: '/api/session/capabilities',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSessionTokenRoute = ApiSessionTokenRouteImport.update({
+  id: '/api/session/token',
+  path: '/api/session/token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BookingIdSessionRoute = BookingIdSessionRouteImport.update({
+  id: '/session',
+  path: '/session',
+  getParentRoute: () => BookingIdRoute,
 } as any)
 const PreviewAccountDeleteRoute = PreviewAccountDeleteRouteImport.update({
   id: '/account/delete',
@@ -1046,7 +1070,7 @@ export interface FileRoutesByFullPath {
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/set-password': typeof AuthSetPasswordRoute
   '/book/$providerId': typeof BookProviderIdRoute
-  '/booking/$id': typeof BookingIdRoute
+  '/booking/$id': typeof BookingIdRouteWithChildren
   '/category/$id': typeof CategoryIdRoute
   '/content/$key': typeof ContentKeyRoute
   '/family-members/$id': typeof FamilyMembersIdRoute
@@ -1094,9 +1118,13 @@ export interface FileRoutesByFullPath {
   '/admin/provider/$id': typeof AdminProviderIdRoute
   '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
+  '/api/livekit/webhook': typeof ApiLivekitWebhookRoute
   '/api/mobile/debt-checkout': typeof ApiMobileDebtCheckoutRoute
   '/api/mobile/paymob-capabilities': typeof ApiMobilePaymobCapabilitiesRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
+  '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
+  '/api/session/token': typeof ApiSessionTokenRoute
+  '/booking/$id/session': typeof BookingIdSessionRoute
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
   '/preview/addresses/new': typeof PreviewAddressesNewRoute
@@ -1204,7 +1232,7 @@ export interface FileRoutesByTo {
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/set-password': typeof AuthSetPasswordRoute
   '/book/$providerId': typeof BookProviderIdRoute
-  '/booking/$id': typeof BookingIdRoute
+  '/booking/$id': typeof BookingIdRouteWithChildren
   '/category/$id': typeof CategoryIdRoute
   '/content/$key': typeof ContentKeyRoute
   '/family-members/$id': typeof FamilyMembersIdRoute
@@ -1249,9 +1277,13 @@ export interface FileRoutesByTo {
   '/admin/provider/$id': typeof AdminProviderIdRoute
   '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
+  '/api/livekit/webhook': typeof ApiLivekitWebhookRoute
   '/api/mobile/debt-checkout': typeof ApiMobileDebtCheckoutRoute
   '/api/mobile/paymob-capabilities': typeof ApiMobilePaymobCapabilitiesRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
+  '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
+  '/api/session/token': typeof ApiSessionTokenRoute
+  '/booking/$id/session': typeof BookingIdSessionRoute
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
   '/preview/addresses/new': typeof PreviewAddressesNewRoute
@@ -1365,7 +1397,7 @@ export interface FileRoutesById {
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/set-password': typeof AuthSetPasswordRoute
   '/book/$providerId': typeof BookProviderIdRoute
-  '/booking/$id': typeof BookingIdRoute
+  '/booking/$id': typeof BookingIdRouteWithChildren
   '/category/$id': typeof CategoryIdRoute
   '/content/$key': typeof ContentKeyRoute
   '/family-members/$id': typeof FamilyMembersIdRoute
@@ -1413,9 +1445,13 @@ export interface FileRoutesById {
   '/admin/provider/$id': typeof AdminProviderIdRoute
   '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
+  '/api/livekit/webhook': typeof ApiLivekitWebhookRoute
   '/api/mobile/debt-checkout': typeof ApiMobileDebtCheckoutRoute
   '/api/mobile/paymob-capabilities': typeof ApiMobilePaymobCapabilitiesRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
+  '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
+  '/api/session/token': typeof ApiSessionTokenRoute
+  '/booking/$id/session': typeof BookingIdSessionRoute
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
   '/preview/addresses/new': typeof PreviewAddressesNewRoute
@@ -1578,9 +1614,13 @@ export interface FileRouteTypes {
     | '/admin/provider/$id'
     | '/admin/service-request/$id'
     | '/api/account/delete'
+    | '/api/livekit/webhook'
     | '/api/mobile/debt-checkout'
     | '/api/mobile/paymob-capabilities'
     | '/api/mobile/paymob-checkout'
+    | '/api/session/capabilities'
+    | '/api/session/token'
+    | '/booking/$id/session'
     | '/preview/account/delete'
     | '/preview/addresses/$id'
     | '/preview/addresses/new'
@@ -1733,9 +1773,13 @@ export interface FileRouteTypes {
     | '/admin/provider/$id'
     | '/admin/service-request/$id'
     | '/api/account/delete'
+    | '/api/livekit/webhook'
     | '/api/mobile/debt-checkout'
     | '/api/mobile/paymob-capabilities'
     | '/api/mobile/paymob-checkout'
+    | '/api/session/capabilities'
+    | '/api/session/token'
+    | '/booking/$id/session'
     | '/preview/account/delete'
     | '/preview/addresses/$id'
     | '/preview/addresses/new'
@@ -1896,9 +1940,13 @@ export interface FileRouteTypes {
     | '/admin/provider/$id'
     | '/admin/service-request/$id'
     | '/api/account/delete'
+    | '/api/livekit/webhook'
     | '/api/mobile/debt-checkout'
     | '/api/mobile/paymob-capabilities'
     | '/api/mobile/paymob-checkout'
+    | '/api/session/capabilities'
+    | '/api/session/token'
+    | '/booking/$id/session'
     | '/preview/account/delete'
     | '/preview/addresses/$id'
     | '/preview/addresses/new'
@@ -1989,15 +2037,18 @@ export interface RootRouteChildren {
   AuthForgotRoute: typeof AuthForgotRoute
   AuthSetPasswordRoute: typeof AuthSetPasswordRoute
   BookProviderIdRoute: typeof BookProviderIdRoute
-  BookingIdRoute: typeof BookingIdRoute
+  BookingIdRoute: typeof BookingIdRouteWithChildren
   CategoryIdRoute: typeof CategoryIdRoute
   ContentKeyRoute: typeof ContentKeyRoute
   PayFeesReturnRoute: typeof PayFeesReturnRoute
   ProviderIdRoute: typeof ProviderIdRoute
   ApiAccountDeleteRoute: typeof ApiAccountDeleteRoute
+  ApiLivekitWebhookRoute: typeof ApiLivekitWebhookRoute
   ApiMobileDebtCheckoutRoute: typeof ApiMobileDebtCheckoutRoute
   ApiMobilePaymobCapabilitiesRoute: typeof ApiMobilePaymobCapabilitiesRoute
   ApiMobilePaymobCheckoutRoute: typeof ApiMobilePaymobCheckoutRoute
+  ApiSessionCapabilitiesRoute: typeof ApiSessionCapabilitiesRoute
+  ApiSessionTokenRoute: typeof ApiSessionTokenRoute
   ApiMobileAuthCompletePasswordRoute: typeof ApiMobileAuthCompletePasswordRoute
   ApiMobileAuthSetPasswordContextRoute: typeof ApiMobileAuthSetPasswordContextRoute
   ApiMobileOtpAbandonRoute: typeof ApiMobileOtpAbandonRoute
@@ -2724,6 +2775,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAccountDeleteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/livekit/webhook': {
+      id: '/api/livekit/webhook'
+      path: '/api/livekit/webhook'
+      fullPath: '/api/livekit/webhook'
+      preLoaderRoute: typeof ApiLivekitWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/mobile/debt-checkout': {
       id: '/api/mobile/debt-checkout'
       path: '/api/mobile/debt-checkout'
@@ -2744,6 +2802,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/mobile/paymob-checkout'
       preLoaderRoute: typeof ApiMobilePaymobCheckoutRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/session/capabilities': {
+      id: '/api/session/capabilities'
+      path: '/api/session/capabilities'
+      fullPath: '/api/session/capabilities'
+      preLoaderRoute: typeof ApiSessionCapabilitiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/session/token': {
+      id: '/api/session/token'
+      path: '/api/session/token'
+      fullPath: '/api/session/token'
+      preLoaderRoute: typeof ApiSessionTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/booking/$id/session': {
+      id: '/booking/$id/session'
+      path: '/session'
+      fullPath: '/booking/$id/session'
+      preLoaderRoute: typeof BookingIdSessionRouteImport
+      parentRoute: typeof BookingIdRoute
     }
     '/preview/account/delete': {
       id: '/preview/account/delete'
@@ -3452,6 +3531,18 @@ const ProRouteChildren: ProRouteChildren = {
 
 const ProRouteWithChildren = ProRoute._addFileChildren(ProRouteChildren)
 
+interface BookingIdRouteChildren {
+  BookingIdSessionRoute: typeof BookingIdSessionRoute
+}
+
+const BookingIdRouteChildren: BookingIdRouteChildren = {
+  BookingIdSessionRoute: BookingIdSessionRoute,
+}
+
+const BookingIdRouteWithChildren = BookingIdRoute._addFileChildren(
+  BookingIdRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
@@ -3484,15 +3575,18 @@ const rootRouteChildren: RootRouteChildren = {
   AuthForgotRoute: AuthForgotRoute,
   AuthSetPasswordRoute: AuthSetPasswordRoute,
   BookProviderIdRoute: BookProviderIdRoute,
-  BookingIdRoute: BookingIdRoute,
+  BookingIdRoute: BookingIdRouteWithChildren,
   CategoryIdRoute: CategoryIdRoute,
   ContentKeyRoute: ContentKeyRoute,
   PayFeesReturnRoute: PayFeesReturnRoute,
   ProviderIdRoute: ProviderIdRoute,
   ApiAccountDeleteRoute: ApiAccountDeleteRoute,
+  ApiLivekitWebhookRoute: ApiLivekitWebhookRoute,
   ApiMobileDebtCheckoutRoute: ApiMobileDebtCheckoutRoute,
   ApiMobilePaymobCapabilitiesRoute: ApiMobilePaymobCapabilitiesRoute,
   ApiMobilePaymobCheckoutRoute: ApiMobilePaymobCheckoutRoute,
+  ApiSessionCapabilitiesRoute: ApiSessionCapabilitiesRoute,
+  ApiSessionTokenRoute: ApiSessionTokenRoute,
   ApiMobileAuthCompletePasswordRoute: ApiMobileAuthCompletePasswordRoute,
   ApiMobileAuthSetPasswordContextRoute: ApiMobileAuthSetPasswordContextRoute,
   ApiMobileOtpAbandonRoute: ApiMobileOtpAbandonRoute,
@@ -3505,13 +3599,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
