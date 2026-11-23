@@ -22,6 +22,10 @@ import { Button } from "./Button";
 import { Text } from "./Text";
 import { BrandLogo, PaymentLogos } from "./PaymentLogos";
 import { money } from "@/lib/presentation";
+import {
+  paymobChannelForPaymentBlock,
+  resolvePaymobCheckoutChannelForPayment,
+} from "@/lib/paymobPaymentChannel";
 
 export function PaymentBlock({
   bookingId,
@@ -100,11 +104,12 @@ export function PaymentBlock({
     bookingStatus: status,
   });
   const payLink = p?.method === "instapay" ? snap.payLink || live.payLink : "";
+  const paymobChannel = paymobChannelForPaymentBlock({ payment: p, selection });
   async function checkout() {
     setBusy(true);
     setError("");
     try {
-      await startPaymob(bookingId, p?.id, selection?.paymobChannel ?? "card");
+      await startPaymob(bookingId, p?.id, paymobChannel);
       await refresh();
       setMessage(t("mobileBooking.paymentRefresh"));
     } catch {
@@ -123,7 +128,14 @@ export function PaymentBlock({
       setSelection(null);
       await refresh();
       if (selection.methodType === "online") {
-        await startPaymob(bookingId, payment.id, selection.paymobChannel ?? "card");
+        await startPaymob(
+          bookingId,
+          payment.id,
+          resolvePaymobCheckoutChannelForPayment({
+            metadata: payment.metadata,
+            selectionChannel: selection.paymobChannel,
+          }),
+        );
         await refresh();
       }
     } catch {

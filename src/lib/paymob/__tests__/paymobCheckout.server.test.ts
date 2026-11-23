@@ -53,12 +53,18 @@ function createMockSupabase(initialPayment: PaymentRecord) {
               error: { message: "Paymob checkout is already in progress for this payment" },
             };
           }
+          const channel =
+            args.p_channel === "apple_pay" || args.p_channel === "google_pay"
+              ? args.p_channel
+              : "card";
           payment.metadata = {
             ...payment.metadata,
             paymob_checkout_reservation: crypto.randomUUID(),
             paymob_checkout_reserved_at: new Date().toISOString(),
+            channel,
+            paymob_checkout_channel: channel,
           };
-          return { data: { reused: false, payment_id: payment.id }, error: null };
+          return { data: { reused: false, payment_id: payment.id, channel }, error: null };
         }
         if (fn === "paymob_store_checkout_intention") {
           if (state.failNextStore) {
@@ -213,6 +219,34 @@ describe("createPaymobCheckoutForPayment concurrency", () => {
     expect(mock.payment.metadata.paymob_intention_id).toBe("intent-pay-1");
     expect(mock.payment.metadata.trusted_order_id).toBe(987654);
     expect(mock.payment.metadata.trusted_integration_id).toBe(123456);
+  });
+
+  it("records the wallet channel on reserve before the intention is stored", async () => {
+    intentionGate = Promise.resolve();
+
+    const mock = createMockSupabase({
+      id: "pay-w",
+      booking_id: "book-w",
+      customer_id: "user-1",
+      amount: 100,
+      currency: "EGP",
+      status: "pending",
+      payment_method_code: "paymob",
+      payment_method_type: "online",
+      provider_ref: null,
+      metadata: {},
+    });
+
+    await createPaymobCheckoutForPayment({
+      supabaseAdmin: mock as unknown as SupabaseAdminClient,
+      userId: "user-1",
+      bookingId: "book-w",
+      paymentId: "pay-w",
+      channel: "apple_pay",
+    });
+
+    expect(mock.payment.metadata.channel).toBe("apple_pay");
+    expect(mock.payment.metadata.paymob_checkout_channel).toBe("apple_pay");
   });
 
   it("releases the reservation when Paymob explicitly rejects the intention request, allowing an immediate retry", async () => {

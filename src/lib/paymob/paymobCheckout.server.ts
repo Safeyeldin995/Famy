@@ -149,6 +149,7 @@ export async function createPaymobCheckoutForPayment(input: {
     "paymob_reserve_checkout",
     {
       p_payment_id: payment.id,
+      p_channel: channel,
     },
   );
   if (reserveErr) {
@@ -245,7 +246,11 @@ export async function createPaymobCheckoutForPayment(input: {
     p_checkout_url: intention.checkoutUrl,
     p_order_id: intention.orderId,
     p_integration_id: integrationId,
-    p_extra_metadata: { paymob_checkout_channel: channel, paymob_client_secret: intention.clientSecret },
+    p_extra_metadata: {
+      channel,
+      paymob_checkout_channel: channel,
+      paymob_client_secret: intention.clientSecret,
+    },
   });
   if (storeErr) {
     console.error("[paymob.checkout] failed to persist intention metadata", storeErr.message);

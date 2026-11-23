@@ -13,3 +13,7 @@ export function parsePaymobCheckoutChannel(
   if (value === "apple_pay" || value === "google_pay" || value === "card") return value;
   return fallback;
 }
+
+export function isPaymobCheckoutChannel(value: unknown): value is PaymobCheckoutChannel {
+  return value === "card" || value === "apple_pay" || value === "google_pay";
+}
