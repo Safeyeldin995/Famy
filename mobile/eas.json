@@ -23,8 +23,7 @@
       },
       "env": {
         "EXPO_PUBLIC_FIREBASE_TEST_MODE": "1",
-        "EXPO_PUBLIC_FIREBASE_FORCE_RECAPTCHA": "1",
-        "EXPO_PUBLIC_DEMO_PAYMENTS": "1"
+        "EXPO_PUBLIC_FIREBASE_FORCE_RECAPTCHA": "1"
       }
     },
     "production": {
@@ -33,7 +32,8 @@
       "autoIncrement": true,
       "android": {
         "buildType": "app-bundle"
-      }
+      },
+      "env": {}
     }
   },
   "submit": {

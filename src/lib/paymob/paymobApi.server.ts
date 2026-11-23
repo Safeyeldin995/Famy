@@ -22,6 +22,8 @@ export type CreatePaymobIntentionInput = {
   notificationUrl: string;
   redirectionUrl: string;
   items: Array<{ name: string; amount: number; description?: string; quantity?: number }>;
+  /** Defaults to config.integrationId (card / unified checkout). */
+  integrationId?: number;
 };
 
 export type PaymobIntentionResponse = {
@@ -61,7 +63,7 @@ export async function createPaymobIntention(
   const body = {
     amount: input.amountCents,
     currency: input.currency,
-    payment_methods: [config.integrationId],
+    payment_methods: [input.integrationId ?? config.integrationId],
     items: input.items,
     billing_data: input.billingData,
     special_reference: input.specialReference,

@@ -112,6 +112,7 @@ import { Route as AdminProviderIdRouteImport } from './routes/admin.provider.$id
 import { Route as AdminServiceRequestIdRouteImport } from './routes/admin.service-request.$id'
 import { Route as ApiAccountDeleteRouteImport } from './routes/api.account.delete'
 import { Route as ApiMobileDebtCheckoutRouteImport } from './routes/api.mobile.debt-checkout'
+import { Route as ApiMobilePaymobCapabilitiesRouteImport } from './routes/api.mobile.paymob-capabilities'
 import { Route as ApiMobilePaymobCheckoutRouteImport } from './routes/api.mobile.paymob-checkout'
 import { Route as PreviewAccountDeleteRouteImport } from './routes/preview.account.delete'
 import { Route as PreviewAddressesIndexRouteImport } from './routes/preview.addresses.index'
@@ -689,6 +690,12 @@ const ApiMobileDebtCheckoutRoute = ApiMobileDebtCheckoutRouteImport.update({
   path: '/api/mobile/debt-checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMobilePaymobCapabilitiesRoute =
+  ApiMobilePaymobCapabilitiesRouteImport.update({
+    id: '/api/mobile/paymob-capabilities',
+    path: '/api/mobile/paymob-capabilities',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiMobilePaymobCheckoutRoute = ApiMobilePaymobCheckoutRouteImport.update({
   id: '/api/mobile/paymob-checkout',
   path: '/api/mobile/paymob-checkout',
@@ -1088,6 +1095,7 @@ export interface FileRoutesByFullPath {
   '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/mobile/debt-checkout': typeof ApiMobileDebtCheckoutRoute
+  '/api/mobile/paymob-capabilities': typeof ApiMobilePaymobCapabilitiesRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
@@ -1242,6 +1250,7 @@ export interface FileRoutesByTo {
   '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/mobile/debt-checkout': typeof ApiMobileDebtCheckoutRoute
+  '/api/mobile/paymob-capabilities': typeof ApiMobilePaymobCapabilitiesRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
@@ -1405,6 +1414,7 @@ export interface FileRoutesById {
   '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/mobile/debt-checkout': typeof ApiMobileDebtCheckoutRoute
+  '/api/mobile/paymob-capabilities': typeof ApiMobilePaymobCapabilitiesRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
@@ -1569,6 +1579,7 @@ export interface FileRouteTypes {
     | '/admin/service-request/$id'
     | '/api/account/delete'
     | '/api/mobile/debt-checkout'
+    | '/api/mobile/paymob-capabilities'
     | '/api/mobile/paymob-checkout'
     | '/preview/account/delete'
     | '/preview/addresses/$id'
@@ -1723,6 +1734,7 @@ export interface FileRouteTypes {
     | '/admin/service-request/$id'
     | '/api/account/delete'
     | '/api/mobile/debt-checkout'
+    | '/api/mobile/paymob-capabilities'
     | '/api/mobile/paymob-checkout'
     | '/preview/account/delete'
     | '/preview/addresses/$id'
@@ -1885,6 +1897,7 @@ export interface FileRouteTypes {
     | '/admin/service-request/$id'
     | '/api/account/delete'
     | '/api/mobile/debt-checkout'
+    | '/api/mobile/paymob-capabilities'
     | '/api/mobile/paymob-checkout'
     | '/preview/account/delete'
     | '/preview/addresses/$id'
@@ -1983,6 +1996,7 @@ export interface RootRouteChildren {
   ProviderIdRoute: typeof ProviderIdRoute
   ApiAccountDeleteRoute: typeof ApiAccountDeleteRoute
   ApiMobileDebtCheckoutRoute: typeof ApiMobileDebtCheckoutRoute
+  ApiMobilePaymobCapabilitiesRoute: typeof ApiMobilePaymobCapabilitiesRoute
   ApiMobilePaymobCheckoutRoute: typeof ApiMobilePaymobCheckoutRoute
   ApiMobileAuthCompletePasswordRoute: typeof ApiMobileAuthCompletePasswordRoute
   ApiMobileAuthSetPasswordContextRoute: typeof ApiMobileAuthSetPasswordContextRoute
@@ -2715,6 +2729,13 @@ declare module '@tanstack/react-router' {
       path: '/api/mobile/debt-checkout'
       fullPath: '/api/mobile/debt-checkout'
       preLoaderRoute: typeof ApiMobileDebtCheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/paymob-capabilities': {
+      id: '/api/mobile/paymob-capabilities'
+      path: '/api/mobile/paymob-capabilities'
+      fullPath: '/api/mobile/paymob-capabilities'
+      preLoaderRoute: typeof ApiMobilePaymobCapabilitiesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/mobile/paymob-checkout': {
@@ -3470,6 +3491,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProviderIdRoute: ProviderIdRoute,
   ApiAccountDeleteRoute: ApiAccountDeleteRoute,
   ApiMobileDebtCheckoutRoute: ApiMobileDebtCheckoutRoute,
+  ApiMobilePaymobCapabilitiesRoute: ApiMobilePaymobCapabilitiesRoute,
   ApiMobilePaymobCheckoutRoute: ApiMobilePaymobCheckoutRoute,
   ApiMobileAuthCompletePasswordRoute: ApiMobileAuthCompletePasswordRoute,
   ApiMobileAuthSetPasswordContextRoute: ApiMobileAuthSetPasswordContextRoute,

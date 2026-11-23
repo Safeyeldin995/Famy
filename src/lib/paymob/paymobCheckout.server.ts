@@ -1,6 +1,7 @@
-import { readPaymobConfig } from "./paymobConfig.server";
+import { readPaymobConfig, readOptionalPaymobIntegrationIdForChannel } from "./paymobConfig.server";
 import { createPaymobIntention, PaymobIntentionIndeterminateError } from "./paymobApi.server";
 import { buildPaymobBookingReturnUrl } from "./paymobConfig.server";
+import type { PaymobCheckoutChannel } from "./paymobChannels";
 import { bookingAmountDue } from "@/lib/payments/amountDue";
 
 type BookingRow = {
@@ -21,6 +22,7 @@ type PaymentRow = {
   status: string;
   payment_method_code: string | null;
   payment_method_type: string | null;
+  metadata?: Record<string, unknown> | null;
 };
 
 type ProfileRow = {
@@ -76,8 +78,16 @@ export async function createPaymobCheckoutForPayment(input: {
   userId: string;
   bookingId: string;
   paymentId?: string;
-}): Promise<{ checkoutUrl: string; paymentId: string }> {
+  channel?: PaymobCheckoutChannel;
+}): Promise<{
+  checkoutUrl: string;
+  paymentId: string;
+  clientSecret: string;
+  publicKey: string;
+}> {
   const config = readPaymobConfig();
+  const channel = input.channel ?? "card";
+  const integrationId = readOptionalPaymobIntegrationIdForChannel(channel);
 
   const { data: booking, error: bookingErr } = await input.supabaseAdmin
     .from("bookings")
@@ -97,7 +107,7 @@ export async function createPaymobCheckoutForPayment(input: {
   }
 
   const paymentSelect =
-    "id, booking_id, customer_id, amount, currency, status, payment_method_code, payment_method_type";
+    "id, booking_id, customer_id, amount, currency, status, payment_method_code, payment_method_type, metadata";
   const paymentQuery = input.paymentId
     ? input.supabaseAdmin
         .from("payments")
@@ -139,6 +149,7 @@ export async function createPaymobCheckoutForPayment(input: {
     "paymob_reserve_checkout",
     {
       p_payment_id: payment.id,
+      p_channel: channel,
     },
   );
   if (reserveErr) {
@@ -155,7 +166,16 @@ export async function createPaymobCheckoutForPayment(input: {
   } | null;
 
   if (reservationRow?.reused && reservationRow.checkout_url) {
-    return { checkoutUrl: reservationRow.checkout_url, paymentId: payment.id };
+    const cachedSecret =
+      typeof payment.metadata?.paymob_client_secret === "string"
+        ? payment.metadata.paymob_client_secret
+        : "";
+    return {
+      checkoutUrl: reservationRow.checkout_url,
+      paymentId: payment.id,
+      clientSecret: cachedSecret,
+      publicKey: config.publicKey,
+    };
   }
 
   const { data: profile } = await input.supabaseAdmin
@@ -185,6 +205,7 @@ export async function createPaymobCheckoutForPayment(input: {
       amountCents,
       currency,
       specialReference: payment.id,
+      integrationId,
       notificationUrl: config.notificationUrl,
       redirectionUrl: buildPaymobBookingReturnUrl(config.appOrigin, bookingRow.id),
       billingData: {
@@ -224,8 +245,12 @@ export async function createPaymobCheckoutForPayment(input: {
     p_intention_id: intention.intentionId,
     p_checkout_url: intention.checkoutUrl,
     p_order_id: intention.orderId,
-    p_integration_id: config.integrationId,
-    p_extra_metadata: {},
+    p_integration_id: integrationId,
+    p_extra_metadata: {
+      channel,
+      paymob_checkout_channel: channel,
+      paymob_client_secret: intention.clientSecret,
+    },
   });
   if (storeErr) {
     console.error("[paymob.checkout] failed to persist intention metadata", storeErr.message);
@@ -238,5 +263,10 @@ export async function createPaymobCheckoutForPayment(input: {
     throw new Error("Could not save Paymob checkout details.");
   }
 
-  return { checkoutUrl: intention.checkoutUrl, paymentId: payment.id };
+  return {
+    checkoutUrl: intention.checkoutUrl,
+    paymentId: payment.id,
+    clientSecret: intention.clientSecret,
+    publicKey: config.publicKey,
+  };
 }

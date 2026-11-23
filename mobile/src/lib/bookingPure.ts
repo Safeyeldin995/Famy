@@ -40,7 +40,11 @@ export async function completeCreateBookingResult(
     }
   }
 
-  console.error("[create_booking] post-create fetch failed", { bookingId: payload.booking_id });
+  const devLog =
+    typeof __DEV__ !== "undefined" ? __DEV__ : process.env.NODE_ENV !== "production";
+  if (devLog) {
+    console.error("[create_booking] post-create fetch failed", { bookingId: payload.booking_id });
+  }
 
   return {
     id: payload.booking_id,
@@ -56,6 +60,8 @@ export type PaymentMethodType = "cash" | "manual_transfer" | "online";
 export type PendingPaymentSelection = {
   paymentMethodId: string;
   methodType: PaymentMethodType;
+  /** Paymob wallet checkout (Apple Pay / Google Pay); card uses the hosted browser flow. */
+  paymobChannel?: "card" | "apple_pay" | "google_pay";
 };
 
 export type PostCreatePaymentPlan =

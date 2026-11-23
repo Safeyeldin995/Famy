@@ -3,10 +3,12 @@ import { z } from "zod";
 import { getRequestBearerUserId } from "@/lib/auth/requestAuth.server";
 import { mapPaymobCheckoutApiFailure } from "@/lib/mobile/mobileApiStatus.server";
 import type { SupabaseAdminClient } from "@/lib/paymob/paymobCheckout.server";
+import { parsePaymobCheckoutChannel } from "@/lib/paymob/paymobChannels";
 
 const BodySchema = z.object({
   bookingId: z.string().uuid(),
   paymentId: z.string().uuid().optional(),
+  channel: z.enum(["card", "apple_pay", "google_pay"]).optional(),
 });
 
 function json(body: unknown, status = 200) {
@@ -45,6 +47,7 @@ export const Route = createFileRoute("/api/mobile/paymob-checkout")({
             userId,
             bookingId: parsed.bookingId,
             paymentId: parsed.paymentId,
+            channel: parsePaymobCheckoutChannel(parsed.channel),
           });
           return json({ ok: true, ...result });
         } catch (error) {

@@ -87,8 +87,16 @@ import { localized, dateTime } from "@/lib/presentation";
 import { Page, QueryState, Field, Choices, moneyTextStyle, ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
-import { ApplePayMark, PaymentMethodLogos } from "@/ui/PaymentLogos";
-import { DEMO_APPLE_PAY_METHOD_ID, demoPaymentsEnabled } from "@/lib/demoPayments";
+import { ApplePayMark, GooglePayMark, PaymentMethodLogos } from "@/ui/PaymentLogos";
+import { showApplePayPaymentOption, showGooglePayPaymentOption } from "@/lib/paymobDevice";
+import { usePaymobWalletCapabilities } from "@/lib/usePaymobWalletCapabilities";
+import {
+  PAYMOB_WALLET_APPLE_PAY_METHOD_ID,
+  PAYMOB_WALLET_GOOGLE_PAY_METHOD_ID,
+  isPaymobWalletUiMethodId,
+  paymobChannelForUiMethodId,
+  resolvePaymobOnlinePaymentMethod,
+} from "@/lib/paymobWalletMethods";
 import { FeeDebtBanner } from "@/ui/FeeDebtBanner";
 import { useMyFeeDebts } from "@/lib/debtQueries";
 import { useSession } from "@/lib/session";
@@ -166,6 +174,7 @@ function BookForm({
   const addresses = useAddresses();
   const members = useActiveFamilyMembers();
   const methods = useActivePaymentMethods();
+  const paymobCaps = usePaymobWalletCapabilities();
   const billing = useBookingConfig<{ platform_fee: number; vat_percent: number }>("billing");
   const create = useCreateBooking();
   const createPayment = useCreatePayment();
@@ -386,11 +395,16 @@ function BookForm({
     bookable,
     serviceId: eligibilityServiceId,
   });
-  const demoApplePay = demoPaymentsEnabled();
+  const paymobOnline = resolvePaymobOnlinePaymentMethod(methods.data);
+  const showApplePay =
+    !!paymobOnline && showApplePayPaymentOption(!!paymobCaps.data?.applePay);
+  const showGooglePay =
+    !!paymobOnline && showGooglePayPaymentOption(!!paymobCaps.data?.googlePay);
   const paymentMethodReady =
     !!methodId &&
-    methodId !== DEMO_APPLE_PAY_METHOD_ID &&
-    !!methods.data?.some((m) => m.id === methodId);
+    (isPaymobWalletUiMethodId(methodId)
+      ? !!paymobOnline
+      : !!methods.data?.some((m) => m.id === methodId));
   const missing = bookingScreenMissingStep(BOOKING_SCREENS[step], {
     service: !!service,
     tutoring,
@@ -508,11 +522,16 @@ function BookForm({
         idempotency_key: idempotency.current.key,
       });
       createdId.current = booking.id;
-      const method = methods.data!.find((m) => m.id === methodId)!;
+      const walletChannel = paymobChannelForUiMethodId(methodId);
+      const method = walletChannel
+        ? paymobOnline!
+        : methods.data!.find((m) => m.id === methodId)!;
+      const paymobChannel = walletChannel ?? "card";
       // Persist before navigation so payment recovery survives a fetch failure or app restart.
       await stashPayment(booking.id, {
         paymentMethodId: method.id,
         methodType: method.method_type,
+        ...(paymobChannel !== "card" ? { paymobChannel } : {}),
       });
       let educationWarning = false;
       if (
@@ -543,7 +562,9 @@ function BookForm({
             methodType: method.method_type,
           });
           await clearPayment(booking.id);
-          if (method.method_type === "online") await startPaymob(booking.id, payment.id);
+          if (method.method_type === "online") {
+            await startPaymob(booking.id, payment.id, paymobChannel);
+          }
         } catch {
           /* Booking is already created; detail recovers payment or offers checkout retry. */
         }
@@ -1186,22 +1207,26 @@ function BookForm({
                 label: localized(m, lang),
                 adornment: <PaymentMethodLogos code={m.code} type={m.method_type} />,
               })),
-              ...(demoApplePay
+              ...(showApplePay
                 ? [
                     {
-                      value: DEMO_APPLE_PAY_METHOD_ID,
+                      value: PAYMOB_WALLET_APPLE_PAY_METHOD_ID,
                       label: t("payment.applePayLabel"),
                       adornment: <ApplePayMark height={16} />,
                     },
                   ]
                 : []),
+              ...(showGooglePay
+                ? [
+                    {
+                      value: PAYMOB_WALLET_GOOGLE_PAY_METHOD_ID,
+                      label: t("payment.googlePayLabel"),
+                      adornment: <GooglePayMark height={16} />,
+                    },
+                  ]
+                : []),
             ]}
           />
-          {methodId === DEMO_APPLE_PAY_METHOD_ID ? (
-            <Text size="sm" tone="muted">
-              {t("payment.applePaySoon")}
-            </Text>
-          ) : null}
         </>
       )}
       {error && <Text tone="danger">{error}</Text>}
