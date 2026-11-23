@@ -166,16 +166,20 @@ BEGIN
   PERFORM public.lock_customer_debts(v_uid);
   PERFORM public.lock_customer_wallet(v_uid);
 
-  v_due := COALESCE(v_booking.price_total, 0) + COALESCE(v_booking.carried_fees_amount, 0);
-  IF v_due <= 0 THEN
+  v_due := COALESCE(
+    NULLIF((v_pay.metadata->>'checkout_total')::numeric, 0),
+    v_pay.amount + COALESCE((v_pay.metadata->>'wallet_applied')::numeric, 0),
+    COALESCE(v_booking.price_total, 0) + COALESCE(v_booking.carried_fees_amount, 0)
+  );
+  IF v_due <= 0 OR v_pay.amount <= 0 THEN
     RAISE EXCEPTION 'Nothing to pay.' USING ERRCODE = '23514';
   END IF;
 
   SELECT b.available_amount INTO v_available
   FROM public.customer_wallet_balances(v_uid) b;
 
-  v_spend := LEAST(GREATEST(COALESCE(v_available, 0), 0), v_due);
-  v_card := GREATEST(v_due - v_spend, 0);
+  v_spend := LEAST(GREATEST(COALESCE(v_available, 0), 0), v_pay.amount);
+  v_card := GREATEST(v_pay.amount - v_spend, 0);
 
   v_key := 'checkout_spend:' || p_payment_id::text;
 
@@ -295,6 +299,55 @@ GRANT SELECT (
   resolved_by,
   admin_notes
 ) ON public.online_lesson_issue_reports TO service_role;
+
+DROP VIEW IF EXISTS public.online_lesson_issue_reports_party;
+CREATE VIEW public.online_lesson_issue_reports_party AS
+SELECT
+  r.id,
+  r.booking_id,
+  r.reported_by,
+  r.reporter_role,
+  r.category,
+  r.description,
+  r.status,
+  r.priority,
+  r.minor_involved,
+  r.created_at,
+  r.resolved_at
+FROM public.online_lesson_issue_reports r
+WHERE
+  r.reported_by = (SELECT auth.uid())
+  OR EXISTS (
+    SELECT 1
+    FROM public.bookings b
+    JOIN public.providers p ON p.id = b.provider_id
+    WHERE b.id = r.booking_id
+      AND (b.customer_id = (SELECT auth.uid()) OR p.profile_id = (SELECT auth.uid()))
+  )
+  OR public.has_role((SELECT auth.uid()), 'admin');
+
+REVOKE ALL ON public.online_lesson_issue_reports_party FROM PUBLIC, anon;
+GRANT SELECT ON public.online_lesson_issue_reports_party TO authenticated;
+
+DROP POLICY IF EXISTS online_lesson_issue_reports_party_read ON public.online_lesson_issue_reports;
+DROP POLICY IF EXISTS online_lesson_issue_reports_admin_table_read ON public.online_lesson_issue_reports;
+
+CREATE POLICY online_lesson_issue_reports_party_read
+  ON public.online_lesson_issue_reports FOR SELECT TO authenticated
+  USING (
+    reported_by = (SELECT auth.uid())
+    OR EXISTS (
+      SELECT 1
+      FROM public.bookings b
+      JOIN public.providers p ON p.id = b.provider_id
+      WHERE b.id = booking_id
+        AND (b.customer_id = (SELECT auth.uid()) OR p.profile_id = (SELECT auth.uid()))
+    )
+  );
+
+CREATE POLICY online_lesson_issue_reports_admin_table_read
+  ON public.online_lesson_issue_reports FOR SELECT TO authenticated
+  USING (public.has_role((SELECT auth.uid()), 'admin'));
 
 -- ---------------------------------------------------------------------------
 -- Provider payout: reserve earnings under open lesson reports / holds
@@ -430,14 +483,24 @@ BEGIN
   );
 
   IF v_entry_id IS NOT NULL THEN
-    PERFORM set_config('app.wallet_checkout_adjust', 'on', true);
+    PERFORM set_config('app.ledger_internal_capture', 'on', true);
     UPDATE public.payments
-    SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object(
-      'refund_settled_via_wallet', true,
-      'refund_settled_at', now()
-    )
-    WHERE id = v_pay.id;
-    PERFORM set_config('app.wallet_checkout_adjust', 'off', true);
+    SET status = 'refunded',
+        reviewed_at = COALESCE(reviewed_at, now()),
+        metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object(
+          'refund_settled_via_wallet', true,
+          'wallet_refund_settled', true,
+          'refund_settled_at', now(),
+          'refund', jsonb_build_object(
+            'channel', 'customer_wallet',
+            'amount_refunded', v_amount,
+            'wallet_entry_id', v_entry_id,
+            'recorded_at', now()
+          )
+        )
+    WHERE id = v_pay.id
+      AND status = 'captured';
+    PERFORM set_config('app.ledger_internal_capture', 'off', true);
 
     UPDATE public.providers
     SET paid_booking_cancellations = paid_booking_cancellations + 1
@@ -598,7 +661,8 @@ BEGIN
   SELECT * INTO v_pay FROM public.payments WHERE id = p_payment_id FOR UPDATE;
   SELECT * INTO v_booking FROM public.bookings b WHERE b.id = v_pay.booking_id;
 
-  IF COALESCE((v_pay.metadata->>'refund_settled_via_wallet')::boolean, false) THEN
+  IF COALESCE((v_pay.metadata->>'refund_settled_via_wallet')::boolean, false)
+     OR COALESCE(v_pay.metadata->>'wallet_refund_settled', 'false') = 'true' THEN
     RAISE EXCEPTION 'Refund already settled via customer wallet.' USING ERRCODE = '23514';
   END IF;
   IF EXISTS (

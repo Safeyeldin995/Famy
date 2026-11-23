@@ -139,12 +139,10 @@ describe("Codex PR #397 database fixes", () => {
     const eventId = randomUUID();
 
     await asServiceRole(db, () =>
-      db.query("SELECT public.apply_livekit_session_webhook($1, $2, $3, $4, now())", [
-        eventId,
-        bookingId,
-        "participant_joined",
-        "customer",
-      ]),
+      db.query(
+        "SELECT public.apply_livekit_session_webhook_event($1, $2, 'participant_joined', 'customer', now())",
+        [eventId, bookingId],
+      ),
     );
 
     const events = await queryRows<{ count: string }>(
@@ -155,12 +153,10 @@ describe("Codex PR #397 database fixes", () => {
     expect(events[0]?.count).toBe("1");
 
     await asServiceRole(db, () =>
-      db.query("SELECT public.apply_livekit_session_webhook($1, $2, $3, $4, now())", [
-        eventId,
-        bookingId,
-        "participant_joined",
-        "customer",
-      ]),
+      db.query(
+        "SELECT public.apply_livekit_session_webhook_event($1, $2, 'participant_joined', 'customer', now())",
+        [eventId, bookingId],
+      ),
     );
     const again = await queryRows<{ count: string }>(
       db,
