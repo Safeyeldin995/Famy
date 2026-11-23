@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Search } from "lucide-react";
 import { ProviderCard } from "@/components/famio/ProviderCard";
-import { EmptyState, PhoneFrame } from "@/components/famio/ui";
+import { EmptyState, PhoneFrame, ProviderCardSkeleton, PrimaryButton } from "@/components/famio/ui";
 import { QueryError } from "@/components/famio/QueryError";
 import { customerProviders } from "@/components/famio/customerProviders";
 import { useProviders } from "@/lib/db/queries";
@@ -56,9 +56,27 @@ function OnlineTutorsPage() {
         {tutorsQ.isError ? (
           <QueryError onRetry={() => void tutorsQ.refetch()} />
         ) : tutorsQ.isLoading ? (
-          <p className="text-pro-14 text-muted-foreground">{t("common.loading")}</p>
+          <ul className="grid gap-4 sm:grid-cols-2" aria-busy="true" aria-label={t("common.loading")}>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <li key={i}>
+                <ProviderCardSkeleton />
+              </li>
+            ))}
+          </ul>
         ) : results.length === 0 ? (
-          <EmptyState title={t("onlineWeb.tutors.empty")} body={t("onlineWeb.tutors.emptyBody")} />
+          <EmptyState
+            title={t("onlineWeb.tutors.empty")}
+            body={t("onlineWeb.tutors.emptyBody")}
+            action={
+              <PrimaryButton
+                type="button"
+                className="h-12 px-6"
+                onClick={() => void tutorsQ.refetch()}
+              >
+                {t("onlineWeb.tutors.emptyAction")}
+              </PrimaryButton>
+            }
+          />
         ) : (
           <ul className="grid gap-4 sm:grid-cols-2">
             {results.map((p) => (

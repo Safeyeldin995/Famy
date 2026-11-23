@@ -376,3 +376,18 @@ html[dir="rtl"] [aria-label="رجوع"] svg {
 /* Bidirectional text utilities */
 .text-start { text-align: start; }
 .text-end { text-align: end; }
+
+.online-web-nav-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.online-web-nav-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+html[data-hide-dev-overlays="1"] [data-lovable-tagger],
+html[data-hide-dev-overlays="1"] [data-lovable-component-tagger],
+html[data-hide-dev-overlays="1"] #vercel-live-feedback,
+html[data-hide-dev-overlays="1"] [class*="vercel-live-feedback"] {
+  display: none !important;
+}
