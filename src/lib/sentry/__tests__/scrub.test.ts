@@ -31,6 +31,50 @@ describe("scrubSentryEvent", () => {
     expect(event.extra?.detail).toContain("[redacted]");
   });
 
+  it("redacts structured secret keys in breadcrumbs and contexts before recursing", () => {
+    const event = scrubSentryEvent({
+      breadcrumbs: [
+        {
+          message: "[MockOTPProvider]",
+          data: {
+            phone: "+201012345678",
+            otp: "654321",
+            purpose: "login",
+            timestamp: "2026-01-01T00:00:00.000Z",
+          },
+        },
+      ],
+      contexts: {
+        auth: {
+          password: "example-password",
+          token: "opaque-token",
+          otp: "654321",
+          secret: "shh",
+          authorization: "Bearer xyz",
+          apiKey: "key-123",
+          nested: { email: "leak@example.com", ok: "visible" },
+        },
+      },
+      extra: { phoneNumber: "01099998888" },
+    });
+    const data = event.breadcrumbs?.[0]?.data as Record<string, unknown>;
+    expect(data.phone).toBe("[redacted]");
+    expect(data.otp).toBe("[redacted]");
+    expect(data.purpose).toBe("login");
+    expect(data.timestamp).toBe("2026-01-01T00:00:00.000Z");
+    const auth = event.contexts?.auth as Record<string, unknown>;
+    expect(auth.password).toBe("[redacted]");
+    expect(auth.token).toBe("[redacted]");
+    expect(auth.otp).toBe("[redacted]");
+    expect(auth.secret).toBe("[redacted]");
+    expect(auth.authorization).toBe("[redacted]");
+    expect(auth.apiKey).toBe("[redacted]");
+    const nested = auth.nested as Record<string, unknown>;
+    expect(nested.email).toBe("[redacted]");
+    expect(nested.ok).toBe("visible");
+    expect(event.extra?.phoneNumber).toBe("[redacted]");
+  });
+
   it("strips user PII fields", () => {
     const event = scrubSentryEvent({
       user: {

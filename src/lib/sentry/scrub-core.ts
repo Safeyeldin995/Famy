@@ -2,13 +2,42 @@ import { redactSensitiveText } from "../error-logging";
 
 const SENSITIVE_USER_FIELDS = ["email", "username", "name", "ip_address", "geo"] as const;
 
+/** Object keys whose values must never be sent to Sentry (redact before recursing). */
+const SENSITIVE_OBJECT_KEYS = new Set([
+  "password",
+  "token",
+  "otp",
+  "secret",
+  "authorization",
+  "apikey",
+  "phone",
+  "email",
+]);
+
+function normalizeObjectKey(key: string): string {
+  return key.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+/** @see SENSITIVE_OBJECT_KEYS — matches exact keys and common suffixes (e.g. `phoneNumber`). */
+export function isSensitiveScrubKey(key: string): boolean {
+  const normalized = normalizeObjectKey(key);
+  if (!normalized) return false;
+  if (SENSITIVE_OBJECT_KEYS.has(normalized)) return true;
+  for (const sensitive of SENSITIVE_OBJECT_KEYS) {
+    if (normalized.endsWith(sensitive) && normalized.length > sensitive.length) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function scrubUnknown(value: unknown): unknown {
   if (typeof value === "string") return redactSensitiveText(value);
   if (Array.isArray(value)) return value.map(scrubUnknown);
   if (value && typeof value === "object") {
     const out: Record<string, unknown> = {};
     for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
-      out[key] = scrubUnknown(nested);
+      out[key] = isSensitiveScrubKey(key) ? "[redacted]" : scrubUnknown(nested);
     }
     return out;
   }
