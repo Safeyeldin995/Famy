@@ -940,6 +940,72 @@ export function useAdminCustomer(id: string) {
   });
 }
 
+export function useAdminCustomerWallet(customerId: string) {
+  return useQuery({
+    queryKey: ['admin', 'customer', customerId, 'wallet'],
+    queryFn: async () => {
+      const { data: identityRows, error: identityError } = await supabase.rpc('admin_customer_identity_ids');
+      if (identityError) throw identityError;
+      if (!(identityRows ?? []).some((row) => row.user_id === customerId)) {
+        return { available: 0, entries: [] as AdminCustomerWalletEntry[] };
+      }
+      const { data: balanceRows, error: balanceError } = await (supabase.rpc as any)(
+        'customer_wallet_balances',
+        { p_customer_id: customerId },
+      );
+      if (balanceError) throw balanceError;
+      const balanceRow = Array.isArray(balanceRows) ? balanceRows[0] : balanceRows;
+      const { data: entries, error: entriesError } = await supabase
+        .from('customer_wallet_entries' as never)
+        .select('id, direction, amount, reason, booking_id, created_at, metadata')
+        .eq('customer_id', customerId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (entriesError) throw entriesError;
+      return {
+        available: Number((balanceRow as { available_amount?: number })?.available_amount ?? 0),
+        entries: (entries ?? []) as AdminCustomerWalletEntry[],
+      };
+    },
+    enabled: !!customerId,
+  });
+}
+
+export type AdminCustomerWalletEntry = {
+  id: string;
+  direction: string;
+  amount: number;
+  reason: string;
+  booking_id: string | null;
+  created_at: string;
+  metadata: { admin_reason?: string } | null;
+};
+
+export function useAdminAdjustCustomerWallet() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      customerId: string;
+      direction: 'credit' | 'debit';
+      amount: number;
+      reasonNote: string;
+      bookingId?: string | null;
+    }) => {
+      const { error } = await (supabase.rpc as any)('admin_adjust_customer_wallet', {
+        p_customer_id: input.customerId,
+        p_direction: input.direction,
+        p_amount: input.amount,
+        p_reason_note: input.reasonNote,
+        p_booking_id: input.bookingId ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'customer', vars.customerId, 'wallet'] });
+    },
+  });
+}
+
 export function useSetCustomerSuspended() {
   const qc = useQueryClient();
   return useMutation({

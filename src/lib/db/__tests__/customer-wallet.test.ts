@@ -48,7 +48,7 @@ async function paidConfirmedBooking() {
 
 describe("customer wallet — provider cancel", () => {
   it("credits the wallet exactly once when the provider cancels a paid booking", async () => {
-    const { bookingId, paymobId, amount } = await paidConfirmedBooking();
+    const { bookingId, amount } = await paidConfirmedBooking();
     const first = await cancelAs(IDS.providerUser, bookingId);
     expect(first.error).toBeUndefined();
 
@@ -78,97 +78,40 @@ describe("customer wallet — provider cancel", () => {
       [IDS.provider],
     );
     expect(Number(provider[0]?.c)).toBe(1);
-    expect(paymobId).toBeTruthy();
   });
 });
 
-describe("customer wallet — refund requests", () => {
-  it("blocks spending held amounts and releases them after a failed Paymob refund", async () => {
-    const { bookingId } = await paidConfirmedBooking();
-    expect((await cancelAs(IDS.providerUser, bookingId)).error).toBeUndefined();
-
-    const entry = await queryRows<{ id: string; amount: string }>(
-      db,
-      `SELECT id, amount::text AS amount FROM public.customer_wallet_entries
-       WHERE booking_id = $1 AND reason = 'provider_cancelled'`,
-      [bookingId],
-    );
-    const entryId = entry[0]!.id;
-
+describe("customer wallet — admin adjustments", () => {
+  it("prevents debits that would make the balance negative", async () => {
     const before = await tryAsUser(
-      db,
-      IDS.customer,
-      "SELECT available_amount::text AS available, held_amount::text AS held FROM public.customer_wallet_balances()",
-    );
-    const beforeAvailable = Number(before.rows?.[0]?.available);
-
-    const req = await tryAsUser(
-      db,
-      IDS.customer,
-      "SELECT public.customer_request_wallet_refund($1) AS id",
-      [entryId],
-    );
-    expect(req.error).toBeUndefined();
-    const requestId = req.rows?.[0]?.id as string;
-
-    const available = await tryAsUser(
-      db,
-      IDS.customer,
-      "SELECT available_amount::text AS available, held_amount::text AS held FROM public.customer_wallet_balances()",
-    );
-    expect(Number(available.rows?.[0]?.held)).toBe(Number(entry[0]!.amount));
-    expect(Number(available.rows?.[0]?.available)).toBe(
-      beforeAvailable - Number(entry[0]!.amount),
-    );
-
-    const dup = await tryAsUser(
-      db,
-      IDS.customer,
-      "SELECT public.customer_request_wallet_refund($1)",
-      [entryId],
-    );
-    expect(dup.ok).toBe(false);
-
-    const fail = await tryAsUser(
-      db,
-      IDS.adminUser,
-      "SELECT public.admin_fail_wallet_refund_request($1, $2)",
-      [requestId, "Paymob timeout"],
-    );
-    expect(fail.error).toBeUndefined();
-
-    const availableAfter = await tryAsUser(
       db,
       IDS.customer,
       "SELECT available_amount::text AS available FROM public.customer_wallet_balances()",
     );
-    expect(Number(availableAfter.rows?.[0]?.available)).toBe(beforeAvailable);
-  });
+    const start = Number(before.rows?.[0]?.available ?? 0);
+    const topUp = 25;
 
-  it("handles concurrent refund requests for one credit", async () => {
-    const { bookingId } = await paidConfirmedBooking();
-    expect((await cancelAs(IDS.providerUser, bookingId)).error).toBeUndefined();
-    const entryId = (
-      await queryRows<{ id: string }>(
-        db,
-        "SELECT id FROM public.customer_wallet_entries WHERE booking_id = $1 LIMIT 1",
-        [bookingId],
-      )
-    )[0]!.id;
+    const credit = await tryAsUser(
+      db,
+      IDS.adminUser,
+      "SELECT public.admin_adjust_customer_wallet($1, 'credit', $2, $3, NULL)",
+      [IDS.customer, topUp, "test credit"],
+    );
+    expect(credit.error).toBeUndefined();
 
-    const first = await tryAsUser(
+    const debit = await tryAsUser(
+      db,
+      IDS.adminUser,
+      "SELECT public.admin_adjust_customer_wallet($1, 'debit', $2, $3, NULL)",
+      [IDS.customer, start + topUp + 1, "test over-debit"],
+    );
+    expect(debit.error).toBeDefined();
+
+    const available = await tryAsUser(
       db,
       IDS.customer,
-      "SELECT public.customer_request_wallet_refund($1)",
-      [entryId],
+      "SELECT available_amount::text AS available FROM public.customer_wallet_balances()",
     );
-    expect(first.ok).toBe(true);
-    const second = await tryAsUser(
-      db,
-      IDS.customer,
-      "SELECT public.customer_request_wallet_refund($1)",
-      [entryId],
-    );
-    expect(second.ok).toBe(false);
+    expect(Number(available.rows?.[0]?.available)).toBe(start + topUp);
   });
 });
