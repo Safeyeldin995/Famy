@@ -44,6 +44,10 @@ export const WORK_QUEUE_ITEMS: ReadonlyArray<{
     route: "/admin/payments",
     search: { status: "pending_review" },
   },
+  {
+    key: "wallet_refund_requests",
+    route: "/admin/wallet-refunds",
+  },
 ];
 
 export function AdminWorkQueue({ counts }: { counts: Record<AdminWorkQueueKey, number> }) {

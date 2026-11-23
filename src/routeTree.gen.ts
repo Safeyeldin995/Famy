@@ -60,6 +60,7 @@ import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminServiceRequestsRouteImport } from './routes/admin.service-requests'
 import { Route as AdminServicesRouteImport } from './routes/admin.services'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
+import { Route as AdminWalletRefundsRouteImport } from './routes/admin.wallet-refunds'
 import { Route as AdminZonesRouteImport } from './routes/admin.zones'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthForgotRouteImport } from './routes/auth.forgot'
@@ -111,6 +112,7 @@ import { Route as AdminPriceChangeIdRouteImport } from './routes/admin.price-cha
 import { Route as AdminProviderIdRouteImport } from './routes/admin.provider.$id'
 import { Route as AdminServiceRequestIdRouteImport } from './routes/admin.service-request.$id'
 import { Route as ApiAccountDeleteRouteImport } from './routes/api.account.delete'
+import { Route as ApiAdminWalletRefundRouteImport } from './routes/api.admin.wallet-refund'
 import { Route as ApiLivekitWebhookRouteImport } from './routes/api.livekit.webhook'
 import { Route as ApiMobileDebtCheckoutRouteImport } from './routes/api.mobile.debt-checkout'
 import { Route as ApiMobilePaymobCapabilitiesRouteImport } from './routes/api.mobile.paymob-capabilities'
@@ -432,6 +434,11 @@ const AdminSettingsRoute = AdminSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminWalletRefundsRoute = AdminWalletRefundsRouteImport.update({
+  id: '/wallet-refunds',
+  path: '/wallet-refunds',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminZonesRoute = AdminZonesRouteImport.update({
   id: '/zones',
   path: '/zones',
@@ -687,6 +694,11 @@ const AdminServiceRequestIdRoute = AdminServiceRequestIdRouteImport.update({
 const ApiAccountDeleteRoute = ApiAccountDeleteRouteImport.update({
   id: '/api/account/delete',
   path: '/api/account/delete',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminWalletRefundRoute = ApiAdminWalletRefundRouteImport.update({
+  id: '/api/admin/wallet-refund',
+  path: '/api/admin/wallet-refund',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiLivekitWebhookRoute = ApiLivekitWebhookRouteImport.update({
@@ -1065,6 +1077,7 @@ export interface FileRoutesByFullPath {
   '/admin/service-requests': typeof AdminServiceRequestsRoute
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/wallet-refunds': typeof AdminWalletRefundsRoute
   '/admin/zones': typeof AdminZonesRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/forgot': typeof AuthForgotRoute
@@ -1118,6 +1131,7 @@ export interface FileRoutesByFullPath {
   '/admin/provider/$id': typeof AdminProviderIdRoute
   '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
+  '/api/admin/wallet-refund': typeof ApiAdminWalletRefundRoute
   '/api/livekit/webhook': typeof ApiLivekitWebhookRoute
   '/api/mobile/debt-checkout': typeof ApiMobileDebtCheckoutRoute
   '/api/mobile/paymob-capabilities': typeof ApiMobilePaymobCapabilitiesRoute
@@ -1227,6 +1241,7 @@ export interface FileRoutesByTo {
   '/admin/service-requests': typeof AdminServiceRequestsRoute
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/wallet-refunds': typeof AdminWalletRefundsRoute
   '/admin/zones': typeof AdminZonesRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/forgot': typeof AuthForgotRoute
@@ -1277,6 +1292,7 @@ export interface FileRoutesByTo {
   '/admin/provider/$id': typeof AdminProviderIdRoute
   '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
+  '/api/admin/wallet-refund': typeof ApiAdminWalletRefundRoute
   '/api/livekit/webhook': typeof ApiLivekitWebhookRoute
   '/api/mobile/debt-checkout': typeof ApiMobileDebtCheckoutRoute
   '/api/mobile/paymob-capabilities': typeof ApiMobilePaymobCapabilitiesRoute
@@ -1392,6 +1408,7 @@ export interface FileRoutesById {
   '/admin/service-requests': typeof AdminServiceRequestsRoute
   '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/wallet-refunds': typeof AdminWalletRefundsRoute
   '/admin/zones': typeof AdminZonesRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/forgot': typeof AuthForgotRoute
@@ -1445,6 +1462,7 @@ export interface FileRoutesById {
   '/admin/provider/$id': typeof AdminProviderIdRoute
   '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
+  '/api/admin/wallet-refund': typeof ApiAdminWalletRefundRoute
   '/api/livekit/webhook': typeof ApiLivekitWebhookRoute
   '/api/mobile/debt-checkout': typeof ApiMobileDebtCheckoutRoute
   '/api/mobile/paymob-capabilities': typeof ApiMobilePaymobCapabilitiesRoute
@@ -1561,6 +1579,7 @@ export interface FileRouteTypes {
     | '/admin/service-requests'
     | '/admin/services'
     | '/admin/settings'
+    | '/admin/wallet-refunds'
     | '/admin/zones'
     | '/auth/callback'
     | '/auth/forgot'
@@ -1614,6 +1633,7 @@ export interface FileRouteTypes {
     | '/admin/provider/$id'
     | '/admin/service-request/$id'
     | '/api/account/delete'
+    | '/api/admin/wallet-refund'
     | '/api/livekit/webhook'
     | '/api/mobile/debt-checkout'
     | '/api/mobile/paymob-capabilities'
@@ -1723,6 +1743,7 @@ export interface FileRouteTypes {
     | '/admin/service-requests'
     | '/admin/services'
     | '/admin/settings'
+    | '/admin/wallet-refunds'
     | '/admin/zones'
     | '/auth/callback'
     | '/auth/forgot'
@@ -1773,6 +1794,7 @@ export interface FileRouteTypes {
     | '/admin/provider/$id'
     | '/admin/service-request/$id'
     | '/api/account/delete'
+    | '/api/admin/wallet-refund'
     | '/api/livekit/webhook'
     | '/api/mobile/debt-checkout'
     | '/api/mobile/paymob-capabilities'
@@ -1887,6 +1909,7 @@ export interface FileRouteTypes {
     | '/admin/service-requests'
     | '/admin/services'
     | '/admin/settings'
+    | '/admin/wallet-refunds'
     | '/admin/zones'
     | '/auth/callback'
     | '/auth/forgot'
@@ -1940,6 +1963,7 @@ export interface FileRouteTypes {
     | '/admin/provider/$id'
     | '/admin/service-request/$id'
     | '/api/account/delete'
+    | '/api/admin/wallet-refund'
     | '/api/livekit/webhook'
     | '/api/mobile/debt-checkout'
     | '/api/mobile/paymob-capabilities'
@@ -2043,6 +2067,7 @@ export interface RootRouteChildren {
   PayFeesReturnRoute: typeof PayFeesReturnRoute
   ProviderIdRoute: typeof ProviderIdRoute
   ApiAccountDeleteRoute: typeof ApiAccountDeleteRoute
+  ApiAdminWalletRefundRoute: typeof ApiAdminWalletRefundRoute
   ApiLivekitWebhookRoute: typeof ApiLivekitWebhookRoute
   ApiMobileDebtCheckoutRoute: typeof ApiMobileDebtCheckoutRoute
   ApiMobilePaymobCapabilitiesRoute: typeof ApiMobilePaymobCapabilitiesRoute
@@ -2419,6 +2444,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSettingsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/wallet-refunds': {
+      id: '/admin/wallet-refunds'
+      path: '/wallet-refunds'
+      fullPath: '/admin/wallet-refunds'
+      preLoaderRoute: typeof AdminWalletRefundsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/zones': {
       id: '/admin/zones'
       path: '/zones'
@@ -2774,6 +2806,13 @@ declare module '@tanstack/react-router' {
       path: '/api/account/delete'
       fullPath: '/api/account/delete'
       preLoaderRoute: typeof ApiAccountDeleteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/wallet-refund': {
+      id: '/api/admin/wallet-refund'
+      path: '/api/admin/wallet-refund'
+      fullPath: '/api/admin/wallet-refund'
+      preLoaderRoute: typeof ApiAdminWalletRefundRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/livekit/webhook': {
@@ -3257,6 +3296,7 @@ interface AdminRouteChildren {
   AdminServiceRequestsRoute: typeof AdminServiceRequestsRoute
   AdminServicesRoute: typeof AdminServicesRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminWalletRefundsRoute: typeof AdminWalletRefundsRoute
   AdminZonesRoute: typeof AdminZonesRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminCustomerIdRoute: typeof AdminCustomerIdRoute
@@ -3287,6 +3327,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminServiceRequestsRoute: AdminServiceRequestsRoute,
   AdminServicesRoute: AdminServicesRoute,
   AdminSettingsRoute: AdminSettingsRoute,
+  AdminWalletRefundsRoute: AdminWalletRefundsRoute,
   AdminZonesRoute: AdminZonesRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminCustomerIdRoute: AdminCustomerIdRoute,
@@ -3570,6 +3611,7 @@ const rootRouteChildren: RootRouteChildren = {
   PayFeesReturnRoute: PayFeesReturnRoute,
   ProviderIdRoute: ProviderIdRoute,
   ApiAccountDeleteRoute: ApiAccountDeleteRoute,
+  ApiAdminWalletRefundRoute: ApiAdminWalletRefundRoute,
   ApiLivekitWebhookRoute: ApiLivekitWebhookRoute,
   ApiMobileDebtCheckoutRoute: ApiMobileDebtCheckoutRoute,
   ApiMobilePaymobCapabilitiesRoute: ApiMobilePaymobCapabilitiesRoute,
