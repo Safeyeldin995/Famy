@@ -10,6 +10,7 @@ export const ADMIN_WORK_QUEUE_KEYS = [
   "bookings_needing_action",
   "bookings_lifecycle_attention",
   "payments_pending_review",
+  "online_lesson_issue_reports",
 ] as const;
 
 export type AdminWorkQueueKey = (typeof ADMIN_WORK_QUEUE_KEYS)[number];

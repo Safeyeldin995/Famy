@@ -1252,6 +1252,8 @@ const ar: Translation = {
       admin_debit: "تعديل من الإدارة",
       checkout_spend: "استخدم عند الدفع",
     },
+    refundDisclosure:
+      "أي مبلغ مسترد بيتضاف لرصيدك في فامي وتقدر تستخدمه في أي حجز جاي",
   },
   onlineSession: {
     title: "جلسة مباشرة",
@@ -1276,6 +1278,18 @@ const ar: Translation = {
     flipCamera: "اقلب الكاميرا",
     leave: "اخرج من الجلسة",
     reportAndLeave: "بلّغ واخرج",
+    lessonReportTitle: "بلّغ عن مشكلة في الحصة",
+    lessonReportCategory: "إيه اللي حصل؟",
+    lessonReportCategories: {
+      absence: "حد ما حضرش",
+      connection: "الاتصال ماكانش شغال",
+      behavior: "سلوك مش مناسب",
+    },
+    lessonReportPlaceholder: "اكتب اللي حصل (١٠ أحرف على الأقل)",
+    lessonReportSubmit: "إرسال البلاغ",
+    lessonReportHint: "متاح من ١٠ دقايق قبل البداية لحد ٢٤ ساعة بعد نهاية الحصة.",
+    lessonReportSubmitted: "استلمنا بلاغك.",
+    lessonReportReviewEta: "هنراجع خلال ٤٨ ساعة.",
     guardianConsentTitle: "موافقة ولي الأمر على الجلسة الأونلاين",
     guardianConsentBody:
       "بصفتك ولي الأمر أو الوصي، أوافق على انضمام القاصر لجلسة فيديو مباشرة مع مقدم الخدمة المحجوز داخل فامي.",
@@ -1711,7 +1725,12 @@ const ar: Translation = {
       DUPLICATE_REQUEST_CONFLICT:
         "تفاصيل حجزك اتغيرت من آخر محاولة، راجعها وابعت الطلب مرة تانية",
       UNAUTHORIZED: "غير مصرح لك بإنشاء هذا الحجز",
+      ONLINE_BIRTH_DATE_REQUIRED:
+        "ضيف تاريخ ميلادك في ملفك الشخصي قبل ما تحجز درس أونلاين.",
+      ONLINE_AGE_MINIMUM: "الدروس الأونلاين متاحة من سن 12.",
     },
+    onlineBirthDatePrompt:
+      "ضيف تاريخ ميلادك علشان نتأكد إنك مستوفي سن الحجز للدروس الأونلاين.",
     stepLabel: "الخطوة {{current}} من {{total}}",
     ctaPickWhen: "اختار الميعاد",
     ctaConfirmVisit: "أكد تفاصيل الزيارة",
@@ -2706,6 +2725,21 @@ const ar: Translation = {
     },
   },
   admin: {
+    onlineLessonIssues: {
+      title: "بلاغات الحصص الأونلاين",
+      subtitle: "الأقدم أولا. أرباح مقدم الخدمة متوقفة لحد ما الإدارة تقرر.",
+      booking: "حجز",
+      highPriority: "أولوية عالية (قاصر)",
+      categories: {
+        absence: "غياب",
+        connection: "اتصال",
+        behavior: "سلوك",
+      },
+      roles: {
+        customer: "عميل",
+        provider: "مقدم خدمة",
+      },
+    },
     feeDebts: {
       overpaid: "مبالغ مدفوعة مرتين يلزم ردها",
       overpaidLine: "دفع {{name}} مبلغ {{amount}} بعد تسوية الرسوم بطريقة أخرى",
@@ -3938,6 +3972,7 @@ const ar: Translation = {
     bookings_needing_action: "حجوزات فيها مشكلة",
     bookings_lifecycle_attention: "حجوزات محتاجة متابعة للجلسة",
     payments_pending_review: "تحويلات بانتظار المراجعة",
+    online_lesson_issue_reports: "بلاغات الحصص الأونلاين",
     providers_at_cash_limit: "مقدمو خدمة موقوفون بسبب المديونية",
     settlements_due: "تسويات قيد التحصيل",
   },

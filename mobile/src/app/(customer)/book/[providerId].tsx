@@ -119,6 +119,9 @@ import {
   isSupervisionMode,
 } from "@shared/booking/supervisionMode";
 import { normalizeServiceDeliveryMode } from "@shared/online/serviceMode";
+import { onlineBookingLearnerAgeIssue } from "@shared/online/onlineBookingLearnerAge";
+import { memberAgeFromDate } from "@shared/familyMemberAge";
+import { FamilyMemberAgeField } from "@/ui/customer/FamilyMemberAgeField";
 
 type Slot = { start: Date; end: Date; label: string };
 export default function Book() {
@@ -394,6 +397,14 @@ function BookForm({
     members: members.data ?? [],
     startAt: currentSlot?.start ?? null,
   });
+  const onlineLearnerAgeIssue = isOnlineBooking
+    ? onlineBookingLearnerAgeIssue(
+        recipient,
+        profile.data?.date_of_birth ?? null,
+        members.data ?? [],
+      )
+    : null;
+  const onlineRecipientReady = recipientReady && !onlineLearnerAgeIssue;
   const supervisionReady = !supervisionRequired || !!supervisionMode;
   const addressReady = checkoutAddressReady({
     addressId: isOnlineBooking ? null : addressId || null,
@@ -430,7 +441,7 @@ function BookForm({
     capability: !!capability,
     slot: !!currentSlot && !slots.isFetching,
     address: isOnlineBooking || addressReady,
-    recipient: recipientReady,
+    recipient: onlineRecipientReady,
     supervisionRequired,
     supervision: supervisionReady,
     requirements: requirements.isSuccess && either.every((r) => !!choices[r.id]),
@@ -623,8 +634,10 @@ function BookForm({
           ...(members.data ?? [])
             .filter(
               (m) =>
-                !babysitting ||
-                familyMemberSelectableForBabysitting(m, currentSlot?.start ?? null).ok,
+                (!isOnlineBooking ||
+                  (memberAgeFromDate(m.date_of_birth)?.years ?? 0) >= 12) &&
+                (!babysitting ||
+                  familyMemberSelectableForBabysitting(m, currentSlot?.start ?? null).ok),
             )
             .map((m) => ({
               value: m.id,
@@ -655,6 +668,30 @@ function BookForm({
           }}
         />
       )}
+      {isOnlineBooking && recipient === "myself" && !profile.data?.date_of_birth ? (
+        <View style={{ gap: 8 }}>
+          <Text tone="muted">{t("bookFlow.onlineBirthDatePrompt")}</Text>
+          <FamilyMemberAgeField
+            value={profile.data?.date_of_birth ?? ""}
+            relationship="friend"
+            onChange={(dob) => {
+              const userId = session?.user.id;
+              if (!userId) return;
+              void supabase
+                .from("profiles")
+                .update({ date_of_birth: dob })
+                .eq("id", userId)
+                .then(({ error }) => {
+                  if (error) setError(t("common.somethingWentWrong"));
+                  else void profile.refetch();
+                });
+            }}
+          />
+        </View>
+      ) : null}
+      {isOnlineBooking && onlineLearnerAgeIssue === "age_minimum" ? (
+        <Text tone="danger">{t("bookFlow.errors.ONLINE_AGE_MINIMUM")}</Text>
+      ) : null}
     </View>
   );
   return (
@@ -1218,6 +1255,11 @@ function BookForm({
               applied={applied}
               onApplied={setApplied}
             />
+          ) : null}
+          {isOnlineBooking ? (
+            <Text size="sm" tone="muted">
+              {t("wallet.refundDisclosure")}
+            </Text>
           ) : null}
           <QueryState query={methods} empty={!methods.data?.length} />
           <Choices

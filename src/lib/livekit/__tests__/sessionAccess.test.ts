@@ -3,6 +3,7 @@ import {
   assertOnlineBookingPrepaid,
   authorizeSessionJoin,
   authorizeSessionJoinWithCredential,
+  onlineLessonReportWindow,
   sessionJoinWindow,
   type SessionBookingSnapshot,
 } from "@/lib/livekit/sessionAccess";
@@ -70,5 +71,25 @@ describe("authorizeSessionJoin", () => {
   it("rejects cash-style payment for online bookings at RPC layer", () => {
     expect(() => assertOnlineBookingPrepaid("cash")).toThrow("BOOKING_ONLINE_PREPAID_ONLY");
     expect(() => assertOnlineBookingPrepaid("online")).not.toThrow();
+  });
+
+  it("allows re-authorizing join in the same window after a drop", () => {
+    const booking = baseBooking();
+    const at = new Date("2026-11-23T14:20:00Z");
+    const first = authorizeSessionJoin(booking, "c1", at);
+    const second = authorizeSessionJoin(booking, "c1", new Date(at.getTime() + 5 * 60_000));
+    expect(first).toEqual({ ok: true, party: "customer" });
+    expect(second).toEqual({ ok: true, party: "customer" });
+  });
+});
+
+describe("onlineLessonReportWindow", () => {
+  it("opens 10 minutes before start through 24 hours after end", () => {
+    const start = new Date("2026-11-23T14:00:00Z");
+    const end = new Date("2026-11-23T15:00:00Z");
+    expect(onlineLessonReportWindow(start, end, new Date("2026-11-23T13:49:00Z")).open).toBe(false);
+    expect(onlineLessonReportWindow(start, end, new Date("2026-11-23T14:05:00Z")).open).toBe(true);
+    expect(onlineLessonReportWindow(start, end, new Date("2026-11-24T14:59:00Z")).open).toBe(true);
+    expect(onlineLessonReportWindow(start, end, new Date("2026-11-24T15:01:00Z")).open).toBe(false);
   });
 });

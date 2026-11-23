@@ -32,6 +32,7 @@ export function BookingActions({
     status: string;
     start_at?: string;
     completion_requested_at?: string | null;
+    service_mode?: string | null;
   };
   suppressRebook?: boolean;
 }) {
@@ -183,6 +184,11 @@ export function BookingActions({
                   })
                 : t("bookingDetail.cancelIrreversible")}
           </Text>
+          {booking.service_mode === "online" ? (
+            <Text size="sm" tone="muted">
+              {t("wallet.refundDisclosure")}
+            </Text>
+          ) : null}
           <QueryState query={reasons} empty={!available.length} />
           <Choices
             label={t("bookingDetail.cancelReasonLabel")}

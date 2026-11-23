@@ -49,6 +49,7 @@ import { Route as AdminCasesRouteImport } from './routes/admin.cases'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
 import { Route as AdminFinanceRouteImport } from './routes/admin.finance'
 import { Route as AdminMonitoringRouteImport } from './routes/admin.monitoring'
+import { Route as AdminOnlineLessonIssuesRouteImport } from './routes/admin.online-lesson-issues'
 import { Route as AdminOperationsRouteImport } from './routes/admin.operations'
 import { Route as AdminPaymentMethodsRouteImport } from './routes/admin.payment-methods'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
@@ -374,6 +375,11 @@ const AdminFinanceRoute = AdminFinanceRouteImport.update({
 const AdminMonitoringRoute = AdminMonitoringRouteImport.update({
   id: '/monitoring',
   path: '/monitoring',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOnlineLessonIssuesRoute = AdminOnlineLessonIssuesRouteImport.update({
+  id: '/online-lesson-issues',
+  path: '/online-lesson-issues',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminOperationsRoute = AdminOperationsRouteImport.update({
@@ -1054,6 +1060,7 @@ export interface FileRoutesByFullPath {
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/monitoring': typeof AdminMonitoringRoute
+  '/admin/online-lesson-issues': typeof AdminOnlineLessonIssuesRoute
   '/admin/operations': typeof AdminOperationsRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -1216,6 +1223,7 @@ export interface FileRoutesByTo {
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/monitoring': typeof AdminMonitoringRoute
+  '/admin/online-lesson-issues': typeof AdminOnlineLessonIssuesRoute
   '/admin/operations': typeof AdminOperationsRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -1381,6 +1389,7 @@ export interface FileRoutesById {
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/monitoring': typeof AdminMonitoringRoute
+  '/admin/online-lesson-issues': typeof AdminOnlineLessonIssuesRoute
   '/admin/operations': typeof AdminOperationsRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -1550,6 +1559,7 @@ export interface FileRouteTypes {
     | '/admin/customers'
     | '/admin/finance'
     | '/admin/monitoring'
+    | '/admin/online-lesson-issues'
     | '/admin/operations'
     | '/admin/payment-methods'
     | '/admin/payments'
@@ -1712,6 +1722,7 @@ export interface FileRouteTypes {
     | '/admin/customers'
     | '/admin/finance'
     | '/admin/monitoring'
+    | '/admin/online-lesson-issues'
     | '/admin/operations'
     | '/admin/payment-methods'
     | '/admin/payments'
@@ -1876,6 +1887,7 @@ export interface FileRouteTypes {
     | '/admin/customers'
     | '/admin/finance'
     | '/admin/monitoring'
+    | '/admin/online-lesson-issues'
     | '/admin/operations'
     | '/admin/payment-methods'
     | '/admin/payments'
@@ -2340,6 +2352,13 @@ declare module '@tanstack/react-router' {
       path: '/monitoring'
       fullPath: '/admin/monitoring'
       preLoaderRoute: typeof AdminMonitoringRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/online-lesson-issues': {
+      id: '/admin/online-lesson-issues'
+      path: '/online-lesson-issues'
+      fullPath: '/admin/online-lesson-issues'
+      preLoaderRoute: typeof AdminOnlineLessonIssuesRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/operations': {
@@ -3246,6 +3265,7 @@ interface AdminRouteChildren {
   AdminCustomersRoute: typeof AdminCustomersRoute
   AdminFinanceRoute: typeof AdminFinanceRoute
   AdminMonitoringRoute: typeof AdminMonitoringRoute
+  AdminOnlineLessonIssuesRoute: typeof AdminOnlineLessonIssuesRoute
   AdminOperationsRoute: typeof AdminOperationsRoute
   AdminPaymentMethodsRoute: typeof AdminPaymentMethodsRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
@@ -3276,6 +3296,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCustomersRoute: AdminCustomersRoute,
   AdminFinanceRoute: AdminFinanceRoute,
   AdminMonitoringRoute: AdminMonitoringRoute,
+  AdminOnlineLessonIssuesRoute: AdminOnlineLessonIssuesRoute,
   AdminOperationsRoute: AdminOperationsRoute,
   AdminPaymentMethodsRoute: AdminPaymentMethodsRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,

@@ -17,6 +17,7 @@ import { useTranslation } from "react-i18next";
 import { useBooking, useBookingPayment, useBookingParty, useProviderServicePreparationNotes } from "@/lib/queries";
 import { useSession } from "@/lib/session";
 import { OnlineSessionJoinButton } from "@/ui/OnlineSessionJoinButton";
+import { OnlineLessonIssueReport } from "@/ui/OnlineLessonIssueReport";
 import { CustomerPreparationNotesSection } from "@/ui/customer/CustomerPreparationNotesSection";
 import { chatPhaseForStatus, useConversationByBooking } from "@/lib/chatQueries";
 import { dateTime, localized, money } from "@/lib/presentation";
@@ -107,6 +108,8 @@ export default function BookingDetail() {
         total: money(bookingAmountDue(b), i18n.language),
         start: b.start_at,
         end: b.end_at,
+        online: (b as { service_mode?: string }).service_mode === "online",
+        language: i18n.language,
       }
     : null;
   const share = async (calendar: boolean) => {
@@ -409,6 +412,9 @@ export default function BookingDetail() {
                 router.push({ pathname: "/booking/[id]/session", params: { id: b.id } })
               }
             />
+            {(b as { service_mode?: string }).service_mode === "online" ? (
+              <OnlineLessonIssueReport bookingId={b.id} startAt={b.start_at} endAt={b.end_at} />
+            ) : null}
             <PaymentBlock
               bookingId={id}
               status={b.status}

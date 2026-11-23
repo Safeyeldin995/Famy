@@ -308,7 +308,7 @@ BEGIN
   UNION ALL
   SELECT 'bookings_needing_action'::text,
     (SELECT count(*) FROM public.bookings b WHERE b.status IN ('disputed', 'no_show'))
-    + (SELECT count(*) FROM public.online_session_review_cases rc WHERE rc.status = 'open')
+    + (SELECT count(*) FROM public.online_session_admin_reviews rc WHERE rc.status = 'open')
   UNION ALL
   SELECT 'payments_pending_review'::text, count(*) FROM public.payments pay
     WHERE pay.status = 'pending_review'

@@ -1257,6 +1257,8 @@ const en = {
       admin_debit: "Admin adjustment",
       checkout_spend: "Used at checkout",
     },
+    refundDisclosure:
+      "Any refunded amount is added to your Famy wallet for use on your next Famy booking.",
   },
   onlineSession: {
     title: "Live session",
@@ -1281,6 +1283,18 @@ const en = {
     flipCamera: "Flip camera",
     leave: "Leave session",
     reportAndLeave: "Report and leave",
+    lessonReportTitle: "Report a problem with this lesson",
+    lessonReportCategory: "What went wrong?",
+    lessonReportCategories: {
+      absence: "Someone was absent",
+      connection: "Connection was unusable",
+      behavior: "Behavior concern",
+    },
+    lessonReportPlaceholder: "Describe what happened (at least 10 characters)",
+    lessonReportSubmit: "Submit report",
+    lessonReportHint: "Available from 10 minutes before start until 24 hours after the lesson ends.",
+    lessonReportSubmitted: "Thanks — we received your report.",
+    lessonReportReviewEta: "We'll review within 48 hours.",
     guardianConsentTitle: "Guardian consent for online session",
     guardianConsentBody:
       "As the parent or guardian, I consent to this minor joining a live video session with the booked provider inside Famy.",
@@ -1724,7 +1738,12 @@ const en = {
       DUPLICATE_REQUEST_CONFLICT:
         "Your booking details changed since your last attempt. Please review and submit again.",
       UNAUTHORIZED: "You are not authorized to create this booking.",
+      ONLINE_BIRTH_DATE_REQUIRED:
+        "Add a date of birth on your profile before booking an online lesson.",
+      ONLINE_AGE_MINIMUM: "Online lessons are available from age 12.",
     },
+    onlineBirthDatePrompt:
+      "Add your date of birth so we can confirm you meet the age requirement for online lessons.",
     stepLabel: "Step {{current}} of {{total}}",
     ctaPickWhen: "Choose a time",
     ctaConfirmVisit: "Confirm visit details",
@@ -2735,6 +2754,21 @@ const en = {
     },
   },
   admin: {
+    onlineLessonIssues: {
+      title: "Online lesson reports",
+      subtitle: "Oldest open reports first. Provider payout stays on hold until resolved.",
+      booking: "Booking",
+      highPriority: "High priority (minor involved)",
+      categories: {
+        absence: "Absence",
+        connection: "Connection",
+        behavior: "Behavior",
+      },
+      roles: {
+        customer: "Customer",
+        provider: "Provider",
+      },
+    },
     feeDebts: {
       overpaid: "Duplicate payments to refund",
       overpaidLine: "{{name}} paid {{amount}} after the fees were settled another way",
@@ -3977,6 +4011,7 @@ const en = {
     bookings_needing_action: "Bookings with a problem",
     bookings_lifecycle_attention: "Bookings needing lifecycle attention",
     payments_pending_review: "Payments pending review",
+    online_lesson_issue_reports: "Online lesson reports",
     providers_at_cash_limit: "Providers at cash debt limit",
     settlements_due: "Settlements this week",
   },

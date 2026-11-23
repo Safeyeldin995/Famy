@@ -16,6 +16,7 @@ const JOINABLE_STATUSES = new Set(["confirmed", "on_the_way", "arrived", "arriva
 
 const PREJOIN_MS = 10 * 60 * 1000;
 const POSTSESSION_MS = 15 * 60 * 1000;
+const LESSON_REPORT_POSTSESSION_MS = 24 * 60 * 60 * 1000;
 
 export function sessionJoinWindow(
   startAt: Date,
@@ -103,4 +104,14 @@ export function assertOnlineBookingPrepaid(methodType: string | null | undefined
   if (!isPrepaidPaymentMethodType(methodType)) {
     throw new Error("BOOKING_ONLINE_PREPAID_ONLY");
   }
+}
+
+export function onlineLessonReportWindow(
+  startAt: Date,
+  endAt: Date,
+  now: Date = new Date(),
+): { open: boolean; opensAt: Date; closesAt: Date } {
+  const opensAt = new Date(startAt.getTime() - PREJOIN_MS);
+  const closesAt = new Date(endAt.getTime() + LESSON_REPORT_POSTSESSION_MS);
+  return { open: now >= opensAt && now <= closesAt, opensAt, closesAt };
 }
