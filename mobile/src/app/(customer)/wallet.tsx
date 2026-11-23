@@ -12,18 +12,16 @@ export default function CustomerWalletScreen() {
   const entries = useWalletEntries();
 
   return (
-    <Page title={t("wallet.title")} scrollHeader>
-      <CustomerPageHeader title={t("wallet.title")} />
+    <Page title={t("wallet.customer.title")} scrollHeader>
+      <CustomerPageHeader title={t("wallet.customer.title")} />
+      <Text tone="muted">{t("wallet.customer.terms")}</Text>
       <QueryState query={balances} />
       {balances.data ? (
-        <View style={{ gap: 8 }}>
+        <View style={{ gap: 8, marginTop: 12 }}>
           <Text weight="bold">
-            {t("wallet.availableBalance", {
+            {t("wallet.customer.availableBalance", {
               amount: customerMoney(balances.data.available_amount, i18n.language),
             })}
-          </Text>
-          <Text size="sm" tone="muted">
-            {t("wallet.terms")}
           </Text>
         </View>
       ) : null}
@@ -32,7 +30,7 @@ export default function CustomerWalletScreen() {
       {(entries.data ?? []).map((entry) => (
         <View key={entry.id} style={{ marginTop: 12, gap: 6 }}>
           <Text>
-            {t(`wallet.reason.${entry.reason}`, { defaultValue: entry.reason })} ·{" "}
+            {t(`wallet.customer.reason.${entry.reason}`, { defaultValue: entry.reason })} ·{" "}
             {entry.direction === "credit" ? "+" : "-"}
             {customerMoney(entry.amount, i18n.language)}
           </Text>
