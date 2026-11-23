@@ -63,6 +63,7 @@ export default function ProviderOnlineSessionScreen() {
           bookingId={id!}
           token={state.token}
           serverUrl={state.url}
+          party="provider"
           onLeave={() => router.replace({ pathname: "/pro-booking/[id]", params: { id } })}
         />
       ) : null}

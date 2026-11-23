@@ -45,11 +45,13 @@ function SessionVideoTiles({ audioOnly }: { audioOnly: boolean }) {
 
 function SessionCallControls({
   bookingId,
+  party,
   audioOnly,
   setAudioOnly,
   onLeave,
 }: {
   bookingId: string;
+  party?: "customer" | "provider";
   audioOnly: boolean;
   setAudioOnly: (v: boolean) => void;
   onLeave: () => void;
@@ -62,7 +64,7 @@ function SessionCallControls({
   const [reporting, setReporting] = useState(false);
 
   useEffect(() => {
-  const onQuality = () => {
+    const onQuality = () => {
       const quality = localParticipant.connectionQuality;
       if (quality === ConnectionQuality.Poor || quality === ConnectionQuality.Lost) {
         setAudioOnly(true);
@@ -113,6 +115,15 @@ function SessionCallControls({
       <Pressable style={styles.controlBtn} onPress={flipCamera} accessibilityRole="button">
         <Text>{t("onlineSession.flipCamera")}</Text>
       </Pressable>
+      {party === "provider" ? (
+        <Pressable
+          style={styles.controlBtn}
+          onPress={() => void localParticipant.setScreenShareEnabled(true)}
+          accessibilityRole="button"
+        >
+          <Text>{t("onlineSession.screenShare")}</Text>
+        </Pressable>
+      ) : null}
       <Pressable
         style={[styles.controlBtn, styles.reportBtn]}
         onPress={reportAndLeave}
@@ -130,10 +141,11 @@ type Props = {
   bookingId: string;
   token: string;
   serverUrl: string;
+  party?: "customer" | "provider";
   onLeave: () => void;
 };
 
-export function OnlineSessionRoom({ bookingId, token, serverUrl, onLeave }: Props) {
+export function OnlineSessionRoom({ bookingId, token, serverUrl, party, onLeave }: Props) {
   const { t } = useTranslation();
   const [audioOnly, setAudioOnly] = useState(false);
 
@@ -172,6 +184,7 @@ export function OnlineSessionRoom({ bookingId, token, serverUrl, onLeave }: Prop
         <SessionVideoTiles audioOnly={audioOnly} />
         <SessionCallControls
           bookingId={bookingId}
+          party={party}
           audioOnly={audioOnly}
           setAudioOnly={setAudioOnly}
           onLeave={onLeave}
