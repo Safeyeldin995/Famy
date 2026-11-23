@@ -38,3 +38,15 @@ export async function fetchOnlineSessionToken(input: {
   }
   return { ok: true, token: body.token, url: body.url, room: (body as { room?: string }).room ?? "" };
 }
+
+export async function reportOnlineSessionAndLeave(input: {
+  bookingId: string;
+  description: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const { error } = await supabase.rpc("online_session_report_and_leave", {
+    p_booking_id: input.bookingId,
+    p_description: input.description,
+  });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}

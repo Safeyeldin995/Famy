@@ -32,16 +32,11 @@ export async function loadSessionBookingSnapshot(
     .limit(5);
   if (payErr) throw payErr;
 
-  const payment_captured = (payments ?? []).some((p: { status: string; payment_method_type: string | null; proof_path: string | null }) => {
-    if (CAPTURED.has(p.status) && (p.payment_method_type === "online" || p.payment_method_type === "manual_transfer")) {
-      return true;
-    }
-    return (
-      p.status === PENDING_REVIEW_MANUAL &&
-      p.payment_method_type === "manual_transfer" &&
-      Boolean(p.proof_path)
-    );
-  });
+  const payment_captured = (payments ?? []).some(
+    (p: { status: string; payment_method_type: string | null }) =>
+      CAPTURED.has(p.status) &&
+      (p.payment_method_type === "online" || p.payment_method_type === "manual_transfer"),
+  );
 
   return {
     id: booking.id,

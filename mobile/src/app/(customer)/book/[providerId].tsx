@@ -1,6 +1,6 @@
 import { CustomerPreparationNotesSection } from "@/ui/customer/CustomerPreparationNotesSection";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
-import { memberAgeTranslation } from "@shared/familyMemberAge";
+import { memberAgeFromDate, memberAgeTranslation } from "@shared/familyMemberAge";
 import { CustomerBookingWhen } from "@/ui/customer/BookingWhen";
 import { bookingScreenPrimaryCtaKey } from "@shared/booking/bookingStepCta";
 import { bookingFieldHintForStep, type BookingFieldHint } from "@shared/booking/bookingFieldHints";
@@ -207,6 +207,7 @@ function BookForm({
   );
   const [notes, setNotes] = useState(rebookInitial?.notes ?? "");
   const [methodId, setMethodId] = useState("");
+  const [guardianConsent, setGuardianConsent] = useState(false);
   const [choices, setChoices] = useState<Record<string, "customer" | "provider">>(
     rebookInitial?.requirementChoices ?? {},
   );
@@ -371,6 +372,13 @@ function BookForm({
     slot && available.some((s) => +s.start === +slot.start && +s.end === +slot.end) ? slot : null;
   const { session } = useSession();
   const feeDebts = useMyFeeDebts(session?.user.id);
+  const needsGuardianConsent = useMemo(() => {
+    if (!isOnlineBooking || recipient === "myself") return false;
+    const member = members.data?.find((m) => m.id === recipient);
+    if (!member?.date_of_birth) return false;
+    const age = memberAgeFromDate(member.date_of_birth);
+    return !!age && age.years < 18;
+  }, [isOnlineBooking, recipient, members.data]);
   const quote = buildBookingQuote({
     service: service?.service,
     rate: Number(
@@ -472,6 +480,10 @@ function BookForm({
   });
   async function submit() {
     if (submitting.current || missing || blocked || !service || !currentSlot) return;
+    if (needsGuardianConsent && !guardianConsent) {
+      setError(t("onlineSession.guardianConsentLabel"));
+      return;
+    }
     submitting.current = true;
     setBusy(true);
     setError("");
@@ -540,6 +552,7 @@ function BookForm({
       const booking = await create.mutateAsync({
         ...payload,
         idempotency_key: idempotency.current.key,
+        guardian_consent: needsGuardianConsent ? guardianConsent : undefined,
       });
       createdId.current = booking.id;
       const walletChannel = paymobChannelForUiMethodId(methodId);
@@ -1135,6 +1148,32 @@ function BookForm({
               </View>
             ))}
           </View>
+          {needsGuardianConsent ? (
+            <Pressable
+              onPress={() => setGuardianConsent((v) => !v)}
+              style={{
+                flexDirection: "row",
+                alignItems: "flex-start",
+                gap: space.sm,
+                padding: space.md,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: guardianConsent ? colors.brand : colors.border,
+              }}
+            >
+              <View
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: 6,
+                  borderWidth: 2,
+                  borderColor: colors.brand,
+                  backgroundColor: guardianConsent ? colors.brand : "transparent",
+                }}
+              />
+              <Text style={{ flex: 1 }}>{t("onlineSession.guardianConsentLabel")}</Text>
+            </Pressable>
+          ) : null}
           <CustomerPreparationNotesSection notes={service?.preparation_notes} />
           <View
             style={{

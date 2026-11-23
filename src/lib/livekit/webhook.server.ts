@@ -29,6 +29,23 @@ export function createLiveKitWebhookReceiver(): WebhookReceiver {
   return new WebhookReceiver(apiKey, apiSecret);
 }
 
+export async function recordLiveKitWebhookDedup(
+  supabaseAdmin: SupabaseAdminClient,
+  payload: LiveKitWebhookPayload,
+  bookingId: string | null,
+): Promise<boolean> {
+  const db = supabaseAdmin as any;
+  if (!payload.id) return true;
+  const { error } = await db.from("livekit_webhook_events").insert({
+    event_id: payload.id,
+    event_type: payload.event,
+    booking_id: bookingId,
+  });
+  if (!error) return true;
+  if (error.code === "23505") return false;
+  throw error;
+}
+
 export async function applyLiveKitWebhookEvent(
   supabaseAdmin: SupabaseAdminClient,
   payload: LiveKitWebhookPayload,
@@ -39,7 +56,17 @@ export async function applyLiveKitWebhookEvent(
   const participant = parseParticipant(payload.participant?.identity);
   if (!bookingId || !participant) return;
 
+  const isNew = await recordLiveKitWebhookDedup(supabaseAdmin, payload, bookingId);
+  if (!isNew) return;
+
   if (payload.event === "participant_joined") {
+    await db
+      .from("session_events")
+      .update({ left_at: eventAt.toISOString() })
+      .eq("booking_id", bookingId)
+      .eq("participant", participant)
+      .is("left_at", null);
+
     const { error } = await db.from("session_events").insert({
       booking_id: bookingId,
       participant,

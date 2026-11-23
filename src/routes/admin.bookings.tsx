@@ -16,6 +16,7 @@ import {
 } from "@/components/admin/operations";
 import { AdminBookingReadContext } from "@/components/admin/AdminBookingReadContext";
 import { AdminOnlineSessionTimeline } from "@/components/admin/AdminOnlineSessionTimeline";
+import { AdminOnlineSessionReviewQueue } from "@/components/admin/AdminOnlineSessionReviewQueue";
 import { AdminBookingLifecyclePanel } from "@/components/admin/AdminBookingLifecyclePanel";
 import { useLifecycleAttentionBookingIds } from "@/lib/db/admin-queries";
 import { useRescheduleRequests } from "@/lib/db/queries";
@@ -233,6 +234,8 @@ export function AdminBookings({
         </h1>
         <p className="text-xs text-muted-foreground">{t("admin.bookings.subtitle")}</p>
       </div>
+
+      <AdminOnlineSessionReviewQueue />
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex h-10 min-w-[260px] flex-1 items-center gap-2 rounded-xl border border-border bg-surface px-3">

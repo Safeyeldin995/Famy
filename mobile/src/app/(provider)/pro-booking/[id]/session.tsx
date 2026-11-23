@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { fetchOnlineSessionToken } from "@/lib/onlineSessionApi";
 import { OnlineSessionRoom } from "@/ui/OnlineSessionRoom";
+import { OnlineSessionPreJoin } from "@/ui/OnlineSessionPreJoin";
 import { ProviderHeader } from "@/ui/provider/ProviderHeader";
 import { Page } from "@/ui/Page";
 import { Text } from "@/ui/Text";
@@ -14,7 +15,8 @@ export default function ProviderOnlineSessionScreen() {
   const { t } = useTranslation();
   const [state, setState] = useState<
     | { status: "loading" }
-    | { status: "ready"; token: string; url: string }
+    | { status: "prejoin"; token: string; url: string }
+    | { status: "live"; token: string; url: string; audioOnly: boolean }
     | { status: "error"; code: string }
   >({ status: "loading" });
 
@@ -24,7 +26,7 @@ export default function ProviderOnlineSessionScreen() {
       .then((result) => {
         if (cancelled) return;
         if (!result.ok) setState({ status: "error", code: result.error });
-        else setState({ status: "ready", token: result.token, url: result.url });
+        else setState({ status: "prejoin", token: result.token, url: result.url });
       })
       .catch(() => {
         if (!cancelled) setState({ status: "error", code: "server_error" });
@@ -48,10 +50,21 @@ export default function ProviderOnlineSessionScreen() {
           <Button label={t("onlineSession.joinFailed")} onPress={() => router.back()} />
         </View>
       ) : null}
-      {state.status === "ready" ? (
+      {state.status === "prejoin" ? (
+        <OnlineSessionPreJoin
+          onCancel={() => router.back()}
+          onReady={({ audioOnly }) =>
+            setState({ status: "live", token: state.token, url: state.url, audioOnly })
+          }
+        />
+      ) : null}
+      {state.status === "live" ? (
         <OnlineSessionRoom
           token={state.token}
           serverUrl={state.url}
+          bookingId={id}
+          party="provider"
+          audioOnly={state.audioOnly}
           onLeave={() => router.replace({ pathname: "/pro-booking/[id]", params: { id } })}
         />
       ) : null}

@@ -30,6 +30,8 @@ export async function mintLiveKitSessionToken(input: {
     canPublish: true,
     canSubscribe: true,
     canPublishData: true,
+    roomRecord: false,
+    roomAdmin: false,
   });
   const token = await at.toJwt();
   return { token, url, room };
