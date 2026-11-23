@@ -1,8 +1,12 @@
 import { expect, test } from "@playwright/test";
 import path from "path";
+import { authenticatedClient } from "../authenticated-client.mjs";
 import { supabaseAdmin } from "../admin-client.mjs";
 import { readRegistry } from "../registry.mjs";
 import { captureErrors } from "./helpers";
+
+const STATEMENT_FIXTURE_REASON = "QA_release_gate_statement_fixture";
+const STATEMENT_CLEANUP_REASON = "QA_release_gate_statement_cleanup";
 
 test.use({ storageState: path.resolve(process.cwd(), "qa/.auth/admin.json") });
 
@@ -39,26 +43,49 @@ test("release gate: provider statement print preview", async ({ page, context })
   expect(error).toBeNull();
   const providerId = provider!.id;
 
-  await page.goto(`/admin/provider/${providerId}`);
-  await expect(page.getByRole("heading", { name: /QA_provider_e2e/i })).toBeVisible({
-    timeout: 20_000,
+  const admin = authenticatedClient("admin");
+  const { data: ledgerEntryId, error: seedError } = await admin.rpc("admin_provider_ledger_adjustment", {
+    p_provider_id: providerId,
+    p_direction: "credit",
+    p_amount: 1,
+    p_reason: STATEMENT_FIXTURE_REASON,
+    p_note: "QA release gate provider statement PDF",
   });
+  expect(seedError).toBeNull();
+  expect(ledgerEntryId).toBeTruthy();
 
-  const statementButton = page.getByRole("button", { name: /statement|كشف حساب/i });
-  await statementButton.click();
-  await expect(
-    page.getByRole("heading", { name: /provider statement|كشف حساب مقدم/i }).first(),
-  ).toBeVisible({
-    timeout: 20_000,
-  });
+  try {
+    await page.goto(`/admin/provider/${providerId}`);
+    await expect(page.getByRole("heading", { name: /QA_provider_e2e/i })).toBeVisible({
+      timeout: 20_000,
+    });
 
-  const popupPromise = context.waitForEvent("page");
-  const downloadLink = page.getByRole("link", { name: /download pdf|تنزيل pdf/i });
-  await expect(downloadLink).toBeVisible({ timeout: 15_000 });
-  await downloadLink.click();
-  const printPage = await popupPromise;
-  await printPage.waitForLoadState("domcontentloaded");
-  await expect(printPage.locator(".statement-print")).toBeVisible({ timeout: 20_000 });
-  await expect(printPage.getByText(/opening balance|الرصيد/i)).toBeVisible();
-  expect(readErrors().console).toEqual([]);
+    const statementButton = page.getByRole("button", { name: /statement|كشف حساب/i });
+    await statementButton.click();
+    await expect(
+      page.getByRole("heading", { name: /provider statement|كشف حساب مقدم/i }).first(),
+    ).toBeVisible({
+      timeout: 20_000,
+    });
+
+    const popupPromise = context.waitForEvent("page");
+    const downloadLink = page.getByRole("link", { name: /download pdf|تنزيل pdf/i });
+    await expect(downloadLink).toBeVisible({ timeout: 15_000 });
+    await expect(downloadLink).not.toHaveAttribute("aria-disabled", "true");
+    await downloadLink.click();
+    const printPage = await popupPromise;
+    await printPage.waitForLoadState("domcontentloaded");
+    await expect(printPage.locator(".statement-print")).toBeVisible({ timeout: 20_000 });
+    await expect(printPage.getByText(/opening balance|الرصيد/i)).toBeVisible();
+    expect(readErrors().console).toEqual([]);
+  } finally {
+    const { error: cleanupError } = await admin.rpc("admin_provider_ledger_adjustment", {
+      p_provider_id: providerId,
+      p_direction: "debit",
+      p_amount: 1,
+      p_reason: STATEMENT_CLEANUP_REASON,
+      p_note: `reverse ${ledgerEntryId}`,
+    });
+    expect(cleanupError).toBeNull();
+  }
 });

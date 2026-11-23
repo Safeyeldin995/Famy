@@ -71,7 +71,9 @@ jobs:
         run: node qa/check-ar-plurals.mjs
 
       - name: Validate Maestro release flows
-        run: node qa/check-maestro-flows.mjs
+        run: |
+          node qa/check-maestro-flows.mjs
+          npm run test:unit -- qa/__tests__/verify-maestro-apk-qa.test.ts
 
   release-gate:
     name: Release gate (money + monitoring)
