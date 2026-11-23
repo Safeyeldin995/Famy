@@ -9,5 +9,11 @@ appId: com.famy.app
 - tapOn:
     id: "auth-continue"
 - assertVisible:
-    text: ".*"
-    optional: true
+    id: "otp-code-0"
+- tapOn:
+    id: "otp-code-0"
+- inputText: ${MAESTRO_TEST_OTP}
+- tapOn:
+    id: "auth-verify"
+- assertVisible:
+    id: "home-promos"

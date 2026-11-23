@@ -3,3 +3,17 @@ appId: com.famy.app
 - launchApp
 - assertVisible:
     id: "auth-phone-input"
+- tapOn:
+    id: "auth-phone-input"
+- inputText: ${MAESTRO_PROVIDER_PHONE}
+- tapOn:
+    id: "auth-continue"
+- assertVisible:
+    id: "otp-code-0"
+- tapOn:
+    id: "otp-code-0"
+- inputText: ${MAESTRO_PROVIDER_OTP}
+- tapOn:
+    id: "auth-verify"
+- assertVisible:
+    id: "tab-bookings"

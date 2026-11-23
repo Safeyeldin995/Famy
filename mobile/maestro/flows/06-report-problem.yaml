@@ -1,6 +1,19 @@
 appId: com.famy.app
 ---
-- runFlow: 01-customer-sign-in.yaml
+- runFlow:
+    file: 01-customer-sign-in.yaml
+    env:
+      MAESTRO_TEST_PHONE: ${MAESTRO_TEST_PHONE}
+      MAESTRO_TEST_OTP: ${MAESTRO_TEST_OTP}
 - tapOn:
-    text: ".*help.*"
-    optional: true
+    id: "tab-profile"
+- tapOn:
+    id: "profile-help-link"
+- assertVisible:
+    id: "help-report-issue"
+- assertVisible:
+    id: "help-screen"
+- assertVisible:
+    id: "help-report-issue"
+- tapOn:
+    id: "help-report-issue"

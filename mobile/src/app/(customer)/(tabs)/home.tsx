@@ -260,6 +260,7 @@ export default function Home() {
           </Text>
 
           <Pressable
+            testID="customer-home-search"
             onPress={() => router.push("/search")}
             style={({ pressed }) => [styles.search, shadow.card, pressed && { opacity: 0.8 }]}
             accessibilityRole="button"

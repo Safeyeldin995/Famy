@@ -1,6 +1,17 @@
 appId: com.famy.app
 ---
-- runFlow: 01-customer-sign-in.yaml
+- runFlow:
+    file: 01-customer-sign-in.yaml
+    env:
+      MAESTRO_TEST_PHONE: ${MAESTRO_TEST_PHONE}
+      MAESTRO_TEST_OTP: ${MAESTRO_TEST_OTP}
 - tapOn:
-    text: ".*booking.*"
-    optional: true
+    id: "tab-bookings"
+- assertVisible:
+    id: "bookings-list-screen"
+- assertVisible:
+    id: "booking-row-${MAESTRO_QA_BOOKING_ID}"
+- tapOn:
+    id: "booking-row-${MAESTRO_QA_BOOKING_ID}"
+- assertVisible:
+    id: "booking-status"

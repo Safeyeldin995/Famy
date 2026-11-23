@@ -1,13 +1,13 @@
 appId: com.famy.app
 ---
-- runFlow: 01-customer-sign-in.yaml
-- tapOn:
-    text: "Search"
-    optional: true
-- tapOn:
-    text: ".*"
-    index: 0
-    optional: true
+- runFlow:
+    file: 01-customer-sign-in.yaml
+    env:
+      MAESTRO_TEST_PHONE: ${MAESTRO_TEST_PHONE}
+      MAESTRO_TEST_OTP: ${MAESTRO_TEST_OTP}
 - assertVisible:
-    text: ".*book.*"
-    optional: true
+    id: "customer-home-search"
+- tapOn:
+    id: "customer-home-search"
+- assertVisible:
+    id: "search-discovery"

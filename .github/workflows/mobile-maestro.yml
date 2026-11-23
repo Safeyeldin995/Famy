@@ -78,6 +78,9 @@ jobs:
           curl -fL "$MAESTRO_APK_URL" -o "$RUNNER_TEMP/famy-maestro.apk"
           file "$RUNNER_TEMP/famy-maestro.apk"
 
+      - name: Verify APK targets QA Supabase (not Production)
+        run: node qa/verify-maestro-apk-qa.mjs "$RUNNER_TEMP/famy-maestro.apk"
+
       - name: Run flows on emulator
         uses: reactivecircus/android-emulator-runner@v2
         env:

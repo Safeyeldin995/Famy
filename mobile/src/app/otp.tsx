@@ -281,6 +281,7 @@ export default function OtpScreen() {
       contentContainerStyle={styles.content}
       footer={
         <Button
+          testID="auth-verify"
           label={loading ? t("common.verifying") : t("common.verify")}
           onPress={() => verify(code.join(""))}
           loading={loading}

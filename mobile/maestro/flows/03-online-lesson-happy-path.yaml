@@ -2,7 +2,10 @@ appId: com.famy.app
 tags:
   - requires-online-lessons-flag
 ---
-- runFlow: 01-customer-sign-in.yaml
+- runFlow:
+    file: 01-customer-sign-in.yaml
+    env:
+      MAESTRO_TEST_PHONE: ${MAESTRO_TEST_PHONE}
+      MAESTRO_TEST_OTP: ${MAESTRO_TEST_OTP}
 - assertVisible:
-  text: ".*"
-  optional: true
+    id: "home-promos"

@@ -25,6 +25,10 @@ for (const file of REQUIRED) {
     console.error(`[release-gate] Invalid Maestro flow (missing appId): ${file}`);
     failed = true;
   }
+  if (/optional:\s*true/.test(raw)) {
+    console.error(`[release-gate] Flow must not use optional steps: ${file}`);
+    failed = true;
+  }
 }
 
 if (failed) process.exit(1);
