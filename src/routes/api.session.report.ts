@@ -45,8 +45,9 @@ export const Route = createFileRoute("/api/session/report")({
           return json({ ok: false, error: authz.code }, 403);
         }
 
-        const supabase = createRequestUserSupabase();
-        if (!supabase) return json({ ok: false, error: "unauthorized" }, 401);
+        const supabaseClient = createRequestUserSupabase();
+        if (!supabaseClient) return json({ ok: false, error: "unauthorized" }, 401);
+        const supabase = supabaseClient;
         const detail =
           parsed.note?.trim() ||
           "In-call safety report: participant left and requested admin review.";
@@ -62,6 +63,24 @@ export const Route = createFileRoute("/api/session/report")({
           return json({ ok: false, error: "server_error" }, 500);
         }
 
+        const party = authz.ok ? authz.party : null;
+        const { error: reportErr } = await (
+          supabase as unknown as {
+            rpc: (
+              fn: string,
+              args: Record<string, unknown>,
+            ) => ReturnType<typeof supabase.rpc>;
+          }
+        ).rpc("report_online_lesson_issue", {
+          p_booking_id: parsed.bookingId,
+          p_category: "behavior",
+          p_description: detail,
+        });
+        if (reportErr) {
+          console.error("[api.session.report] lesson issue report failed");
+          return json({ ok: false, error: "server_error" }, 500);
+        }
+
         const { error: reviewErr } = await (supabaseAdmin as any).rpc(
           "open_online_session_admin_review",
           {
@@ -69,7 +88,7 @@ export const Route = createFileRoute("/api/session/report")({
             p_reason: "in_call_safety_report",
             p_metadata: {
               ticket_id: data,
-              party: authz.ok ? authz.party : credential.userId,
+              party: party ?? credential.userId,
             },
           },
         );

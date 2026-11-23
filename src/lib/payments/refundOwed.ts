@@ -10,6 +10,7 @@ type PaymentLike = {
   paymentStatus?: string | null;
   methodType?: string | null;
   proofPath?: string | null;
+  walletRefundSettled?: boolean;
 };
 
 /** The customer has already paid Famy (so a fee can be deducted and the rest refunded). */
@@ -20,5 +21,7 @@ export function moneyHeld(p: PaymentLike): boolean {
 }
 
 export function refundOwed(p: PaymentLike & { bookingStatus?: string | null }): boolean {
+  if (p.walletRefundSettled) return false;
+  if (p.paymentStatus === "refunded" || p.paymentStatus === "partially_refunded") return false;
   return CLOSED_WITHOUT_SERVICE.has(p.bookingStatus ?? "") && moneyHeld(p);
 }

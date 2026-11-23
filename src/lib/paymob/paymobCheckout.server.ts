@@ -137,12 +137,19 @@ export async function createPaymobCheckoutForPayment(input: {
   // The booking price plus any earlier unpaid cancellation fees added to it.
   const authoritativeAmount = bookingAmountDue(bookingRow);
   const paymentAmount = Number(payment.amount);
+  const walletSpend = Number(
+    (payment.metadata as { wallet_checkout_spend?: number } | null)?.wallet_checkout_spend ?? 0,
+  );
+  const cardDue = paymentAmount - (Number.isFinite(walletSpend) ? walletSpend : 0);
   if (
     !Number.isFinite(authoritativeAmount) ||
     authoritativeAmount <= 0 ||
     Math.abs(authoritativeAmount - paymentAmount) > 0.01
   ) {
     throw new Error("Payment amount does not match the booking total.");
+  }
+  if (cardDue <= 0.01) {
+    throw new Error("This booking is already covered by wallet credit.");
   }
 
   const { data: reservation, error: reserveErr } = await input.supabaseAdmin.rpc(
@@ -186,7 +193,7 @@ export async function createPaymobCheckoutForPayment(input: {
 
   const billing = defaultBillingFromProfile(profile as ProfileRow | null);
   const serviceName = bookingRow.service?.name_en || bookingRow.service?.name_ar || "Famy booking";
-  const amountCents = bookingAmountCents(paymentAmount);
+  const amountCents = bookingAmountCents(cardDue);
   const currency = (payment.currency || bookingRow.currency || "EGP").toUpperCase();
 
   const releaseReservation = async () => {
