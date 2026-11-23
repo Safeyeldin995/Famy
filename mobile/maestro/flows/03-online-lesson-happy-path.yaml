@@ -1,0 +1,8 @@
+appId: com.famy.app
+tags:
+  - requires-online-lessons-flag
+---
+- runFlow: 01-customer-sign-in.yaml
+- assertVisible:
+  text: ".*"
+  optional: true

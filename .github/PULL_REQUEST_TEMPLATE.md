@@ -23,6 +23,16 @@
 | `npx tsc --noEmit` | |
 | `npm run build` | |
 | QA module syntax (`node --check` for every `qa/**/*.mjs`) | |
+| `npm run test:release-gate:db` | |
+| `node qa/check-maestro-flows.mjs` | |
+| Release gate admin Playwright (`npm run test:release-gate:admin`) | |
+
+## Crash-free sessions (store builds only)
+
+| Metric | Value |
+|---|---|
+| Sentry crash-free sessions % (last 7 days) | |
+| Meets ≥ 99.5% gate | Yes / No / N/A (not a store build) |
 
 ## Database migration
 

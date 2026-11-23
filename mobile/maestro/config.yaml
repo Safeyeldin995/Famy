@@ -1,0 +1,4 @@
+appId: com.famy.app
+env:
+  MAESTRO_TEST_PHONE: "1012345678"
+  MAESTRO_TEST_OTP: "123456"

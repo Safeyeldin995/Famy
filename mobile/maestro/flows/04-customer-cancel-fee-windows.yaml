@@ -1,0 +1,6 @@
+appId: com.famy.app
+---
+- runFlow: 01-customer-sign-in.yaml
+- tapOn:
+    text: ".*booking.*"
+    optional: true

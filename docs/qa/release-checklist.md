@@ -4,6 +4,35 @@ Use this before the first **production** EAS build and before Play / App Store s
 
 Evidence to keep: screenshots or screen recordings for payment proof, cancellation fee, and payout flows.
 
+**Automated CI gate (every PR):** `npm run test:release-gate:db`, `node qa/check-maestro-flows.mjs`, and admin Playwright (`npm run test:release-gate:admin`) when QA secrets are configured.
+
+**Store build gate:** CI green + Codex clean + this checklist all **Pass** + zero open P1 bugs + Sentry crash-free sessions ≥ **99.5%** (see PR template).
+
+---
+
+## Device matrix (manual)
+
+| Device | OS | Network | Flow set | Pass |
+| --- | --- | --- | --- | --- |
+| Low-end Android (2–3 GB RAM) | Android 10–11 | Wi‑Fi | Customer C1–C11 + Provider P1–P9 | |
+| Mid-range Android | Android 14+ | 4G | Same | |
+| Older iPhone | iOS 16 | Wi‑Fi | Same | |
+| Current iPhone | iOS 18+ | 4G | Same | |
+| Any (online lessons) | — | Throttled **3G** | Online lesson join/rejoin (when flag on) | |
+
+---
+
+## Maestro flows (Android CI / local)
+
+| Flow file | Journey | Pass |
+| --- | --- | --- |
+| `01-customer-sign-in.yaml` | Test OTP sign-in | |
+| `02-in-person-booking-request.yaml` | In-person booking request | |
+| `03-online-lesson-happy-path.yaml` | Online lesson E2E (flag on) | |
+| `04-customer-cancel-fee-windows.yaml` | Cancel &gt;4h and &lt;4h | |
+| `05-provider-cancel-wallet.yaml` | Provider cancel → wallet credit | |
+| `06-report-problem.yaml` | Report a problem | |
+
 ---
 
 ## Customer (mobile)

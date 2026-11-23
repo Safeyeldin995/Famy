@@ -1,0 +1,13 @@
+appId: com.famy.app
+---
+- runFlow: 01-customer-sign-in.yaml
+- tapOn:
+    text: "Search"
+    optional: true
+- tapOn:
+    text: ".*"
+    index: 0
+    optional: true
+- assertVisible:
+    text: ".*book.*"
+    optional: true

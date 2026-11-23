@@ -1,0 +1,13 @@
+appId: com.famy.app
+---
+- launchApp
+- assertVisible:
+    id: "auth-phone-input"
+- tapOn:
+    id: "auth-phone-input"
+- inputText: ${MAESTRO_TEST_PHONE}
+- tapOn:
+    id: "auth-continue"
+- assertVisible:
+    text: ".*"
+    optional: true

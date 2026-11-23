@@ -1,0 +1,33 @@
+name: Mobile Maestro (release gate)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "mobile/maestro/**"
+      - "mobile/src/**"
+      - ".github/workflows/mobile-maestro.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  maestro:
+    name: Android emulator flows
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Validate flow definitions
+        run: node qa/check-maestro-flows.mjs
+
+      - name: Skip full emulator run without APK
+        env:
+          MAESTRO_APK_URL: ${{ secrets.MAESTRO_APK_URL }}
+        run: |
+          if [ -z "$MAESTRO_APK_URL" ]; then
+            echo "MAESTRO_APK_URL not set — emulator run skipped; flow YAML checks passed."
+            exit 0
+          fi
+          echo "Download APK from secret URL and run: cd mobile && maestro test maestro/flows"

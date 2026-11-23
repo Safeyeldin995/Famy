@@ -217,6 +217,7 @@ export default function Login() {
       />
     ) : (
       <Button
+        testID="auth-continue"
         label={t("auth.continue")}
         loading={loading}
         disabled={!phoneValid || oauthLoading !== null}
