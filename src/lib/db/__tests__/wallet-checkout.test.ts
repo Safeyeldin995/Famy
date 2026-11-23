@@ -100,6 +100,26 @@ describe("customer_apply_wallet_at_checkout", () => {
       [`checkout_release:${paymobId}`],
     );
     expect(release[0]?.count).toBe("1");
+    const funded = await queryRows<{ total: string }>(
+      db,
+      `SELECT public.payment_checkout_funded_total(p.*)::text AS total
+       FROM public.payments p WHERE id = $1`,
+      [paymobId],
+    );
+    const meta = await queryRows<{ released: string }>(
+      db,
+      `SELECT metadata->>'wallet_checkout_released' AS released FROM public.payments WHERE id = $1`,
+      [paymobId],
+    );
+    expect(Number(meta[0]?.released)).toBeGreaterThan(0);
+    const cardDue = await queryRows<{ amount: string; checkout_total: string }>(
+      db,
+      `SELECT amount::text AS amount, metadata->>'checkout_total' AS checkout_total
+       FROM public.payments WHERE id = $1`,
+      [paymobId],
+    );
+    expect(Number(funded[0]?.total)).toBeCloseTo(Number(cardDue[0]?.amount), 2);
+    expect(Number(funded[0]?.total)).toBeLessThan(Number(cardDue[0]?.checkout_total ?? 500));
   });
 
   it("customer cancel releases wallet debit when checkout stays pending", async () => {
