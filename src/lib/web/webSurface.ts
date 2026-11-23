@@ -1,4 +1,6 @@
-/** Public web allowlist: landing, legal, admin staff entry, app-deeplink helpers, APIs. */
+/** Public web allowlist: landing, legal, admin staff entry, app-deeplink helpers, online lessons, APIs. */
+
+import { isOnlineWebSurfacePath } from "./onlineWebSurface";
 
 export const ACCOUNT_DELETE_INTENT = "account-delete";
 
@@ -71,6 +73,8 @@ export function isWebSurfacePathAllowed(
   if (path.startsWith("/content/")) return true;
   if (path === "/auth/callback") return true;
   if (path.startsWith("/provider/")) return true;
+
+  if (isOnlineWebSurfacePath(path)) return true;
 
   if (path.startsWith("/booking/")) {
     return params.get("paymob_return") === "1";
