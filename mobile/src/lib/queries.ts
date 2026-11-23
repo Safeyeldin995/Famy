@@ -664,6 +664,7 @@ export function useBookingPayment(bookingId: string | undefined) {
         .from("payments")
         .select("*")
         .eq("booking_id", bookingId!)
+        .in("status", ["pending", "pending_review", "captured", "partially_refunded"])
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
