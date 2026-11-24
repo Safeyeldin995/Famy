@@ -1,4 +1,5 @@
 import { QueryError } from "@/components/famio/QueryError";
+import { adminPriceChangeKindLabelAr, type AdminPriceChangeKind } from "@/lib/admin/priceChangeQueue";
 import { useReviewProviderPriceChange } from "@/lib/db/admin-price-change-queries";
 import { supabase } from "@/integrations/supabase/client";
 import { currentLang } from "@/lib/i18n";
@@ -8,15 +9,21 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
+type PriceChangeSearch = { kind?: AdminPriceChangeKind };
+
 export const Route = createFileRoute("/admin/price-change/$id")({
   component: AdminPriceChangeReview,
+  validateSearch: (search: Record<string, unknown>): PriceChangeSearch => ({
+    kind: search.kind === "online" ? "online" : "in_person",
+  }),
 });
 
 function AdminPriceChangeReview() {
   const { id } = Route.useParams();
+  const { kind = "in_person" } = Route.useSearch();
   const { t } = useTranslation();
   const lang = currentLang() === "ar" ? "ar" : "en";
-  const review = useReviewProviderPriceChange(id);
+  const review = useReviewProviderPriceChange(id, kind);
   const [reason, setReason] = useState("");
   const nav = useNavigate();
 
@@ -26,7 +33,7 @@ function AdminPriceChangeReview() {
       const { data, error } = await supabase
         .from("provider_services")
         .select(
-          "id, price_override, pending_price_override, price_change_requested_at, provider:providers(profile:profiles(full_name, phone)), service:services(name_en, name_ar, minimum_price, maximum_price)",
+          "id, price_override, pending_price_override, online_price_override, pending_online_price_override, price_change_requested_at, online_price_change_requested_at, provider:providers(profile:profiles(full_name, phone)), service:services(name_en, name_ar, minimum_price, maximum_price)",
         )
         .eq("id", id)
         .maybeSingle();
@@ -37,12 +44,28 @@ function AdminPriceChangeReview() {
 
   if (q.isLoading) return <p className="text-sm">{t("common.loading")}</p>;
   if (q.isError) return <QueryError onRetry={() => q.refetch()} />;
-  if (!q.data?.pending_price_override) {
+
+  const pending =
+    kind === "online" ? q.data?.pending_online_price_override : q.data?.pending_price_override;
+  if (!pending) {
     return <p className="text-sm text-muted-foreground">{t("adminPriceChange.notPending")}</p>;
   }
 
-  const service = q.data.service as { name_en?: string; name_ar?: string } | null;
-  const profile = (q.data.provider as { profile?: { full_name?: string; phone?: string } } | null)
+  const live =
+    kind === "online" ? q.data?.online_price_override : q.data?.price_override;
+  const kindLabel =
+    lang === "ar"
+      ? adminPriceChangeKindLabelAr(kind)
+      : kind === "online"
+        ? t("adminPriceChange.kindOnline")
+        : t("adminPriceChange.kindInPerson");
+  const currentLabel =
+    kind === "online" ? t("adminPriceChange.currentOnline") : t("adminPriceChange.current");
+  const requestedLabel =
+    kind === "online" ? t("adminPriceChange.requestedOnline") : t("adminPriceChange.requested");
+
+  const service = q.data?.service as { name_en?: string; name_ar?: string } | null;
+  const profile = (q.data?.provider as { profile?: { full_name?: string; phone?: string } } | null)
     ?.profile;
   const serviceName =
     lang === "ar" ? (service?.name_ar ?? service?.name_en) : (service?.name_en ?? service?.name_ar);
@@ -51,6 +74,7 @@ function AdminPriceChangeReview() {
     <div className="mx-auto max-w-3xl space-y-6 pb-16">
       <div>
         <h1 className="text-xl font-extrabold">{t("adminPriceChange.reviewTitle")}</h1>
+        <p className="text-sm font-semibold text-muted-foreground">{kindLabel}</p>
         <p className="text-sm text-muted-foreground">{serviceName}</p>
         <p className="text-sm">{profile?.full_name}</p>
       </div>
@@ -58,13 +82,12 @@ function AdminPriceChangeReview() {
       <section className="rounded-2xl border border-border p-4 text-sm">
         <h2 className="mb-2 font-bold">{t("adminPriceChange.comparison")}</h2>
         <p>
-          {t("adminPriceChange.current")}:{" "}
-          <span className="font-bold tabular-nums">{q.data.price_override ?? "—"}</span> EGP
+          {currentLabel}:{" "}
+          <span className="font-bold tabular-nums">{live ?? "—"}</span> EGP
         </p>
         <p>
-          {t("adminPriceChange.requested")}:{" "}
-          <span className="font-bold tabular-nums text-brand">{q.data.pending_price_override}</span>{" "}
-          EGP
+          {requestedLabel}:{" "}
+          <span className="font-bold tabular-nums text-brand">{pending}</span> EGP
         </p>
       </section>
 
