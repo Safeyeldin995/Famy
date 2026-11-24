@@ -34,9 +34,15 @@ function OnlineWallet() {
   const entriesQ = useQuery({
     queryKey: ["customer-wallet-entries-web"],
     queryFn: async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const customerId = session?.user?.id;
+      if (!customerId) return [];
       const { data, error } = await supabase
         .from("customer_wallet_entries" as never)
         .select("id, direction, amount, reason, created_at")
+        .eq("customer_id", customerId)
         .order("created_at", { ascending: false })
         .limit(40);
       if (error) throw error;

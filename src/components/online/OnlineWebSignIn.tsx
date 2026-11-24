@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
@@ -10,10 +10,14 @@ import { normalizeDigitsToWestern } from "@/lib/otp/normalizePhone";
 import { startPhoneOtpFlow, phoneOtpFlowErrorMessage } from "@/lib/otp/phoneOtpFlow";
 import { interpretSignupSendForLoginPhoneContinue } from "@/lib/auth/loginPhoneContinue";
 import { ONLINE_WEB_ROUTE_IDS } from "@/lib/web/onlineWebSurface";
+import { stashOnlineWebReturnTo } from "@/lib/web/onlineWebReturnTo";
 
 type Step = "phone" | "password";
 
 export function OnlineWebSignIn({ returnTo }: { returnTo: string }) {
+  useEffect(() => {
+    stashOnlineWebReturnTo(returnTo);
+  }, [returnTo]);
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -70,6 +74,7 @@ export function OnlineWebSignIn({ returnTo }: { returnTo: string }) {
       return;
     }
     if (interpreted.kind === "proceed_signup_otp") {
+      stashOnlineWebReturnTo(returnTo);
       setProfile({ phone: e164 });
       nav({ to: ONLINE_WEB_ROUTE_IDS.otp });
       return;

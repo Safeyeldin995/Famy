@@ -1,13 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { PrimaryButton } from "@/components/famio/ui";
+import { supabase } from "@/integrations/supabase/client";
 import { QueryError } from "@/components/famio/QueryError";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
 import { useProvider, useProviderReviews } from "@/lib/db/queries";
 import { toUIProvider, providerPriceLabel } from "@/lib/db/adapters";
 import { formatNumber } from "@/lib/format";
 import { Star } from "lucide-react";
-import { ONLINE_WEB_ROUTE_IDS } from "@/lib/web/onlineWebSurface";
+import { ONLINE_WEB_ROUTE_IDS, onlineWebTutorRequestPath } from "@/lib/web/onlineWebSurface";
+import { stashOnlineWebReturnTo } from "@/lib/web/onlineWebReturnTo";
 
 export const Route = createFileRoute("/online/tutors/$providerId")({
   component: OnlineTutorProfile,
@@ -18,6 +21,14 @@ function OnlineTutorProfile() {
   const { t, i18n } = useTranslation();
   const providerQ = useProvider(providerId, undefined, "online");
   const reviewsQ = useProviderReviews(providerId);
+  const sessionQ = useQuery({
+    queryKey: ["online-web-session"],
+    queryFn: async () => {
+      const { data } = await supabase.auth.getSession();
+      return Boolean(data.session);
+    },
+  });
+  const requestPath = onlineWebTutorRequestPath(providerId);
 
   if (providerQ.isError) {
     return <QueryError onRetry={() => void providerQ.refetch()} />;
@@ -51,9 +62,19 @@ function OnlineTutorProfile() {
       {ui.bio ? (
         <p className="text-pro-15 leading-relaxed text-muted-foreground">{ui.bio}</p>
       ) : null}
-      <Link to={ONLINE_WEB_ROUTE_IDS.login} search={{ returnTo: undefined }}>
-        <PrimaryButton className="h-12 w-full">{t("onlineWeb.profile.requestLesson")}</PrimaryButton>
-      </Link>
+      {sessionQ.data ? (
+        <Link to="/online/tutors/$providerId/request" params={{ providerId }}>
+          <PrimaryButton className="h-12 w-full">{t("onlineWeb.walkthrough.requestLesson")}</PrimaryButton>
+        </Link>
+      ) : (
+        <Link
+          to={ONLINE_WEB_ROUTE_IDS.login}
+          search={{ returnTo: requestPath }}
+          onClick={() => stashOnlineWebReturnTo(requestPath)}
+        >
+          <PrimaryButton className="h-12 w-full">{t("onlineWeb.walkthrough.requestLesson")}</PrimaryButton>
+        </Link>
+      )}
     </div>
   );
 }

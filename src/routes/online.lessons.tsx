@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { toUIProvider } from "@/lib/db/adapters";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Calendar, ChevronRight } from "lucide-react";
@@ -89,17 +90,21 @@ function OnlineLessons() {
       ) : (
         <ul className="space-y-3">
           {list.map((booking) => {
-            const provider = (booking as { provider?: { name?: string; avatar?: string } | null }).provider;
-            const providerName = provider?.name ?? "";
+            const provider = (booking as { provider?: Record<string, unknown> | null }).provider;
+            const ui = provider ? toUIProvider(provider) : null;
+            const providerName = ui?.name ?? "";
             const startAt = new Date(String(booking.start_at));
             return (
-              <li
-                key={String(booking.id)}
-                className="rounded-2xl border border-border/60 bg-white p-4 shadow-sm"
-              >
+              <li key={String(booking.id)}>
+                <Link
+                  to="/online/lessons/$bookingId"
+                  params={{ bookingId: String(booking.id) }}
+                  search={{ paymob_return: undefined }}
+                  className="block rounded-2xl border border-border/60 bg-white p-4 shadow-sm"
+                >
                 <div className="flex items-start gap-3">
                   <ProfileAvatar
-                    src={provider?.avatar}
+                    src={ui?.avatar}
                     name={providerName}
                     className="h-12 w-12 rounded-full text-pro-16"
                   />
@@ -115,6 +120,7 @@ function OnlineLessons() {
                   </div>
                   <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground ltr:rotate-0 rtl:rotate-180" />
                 </div>
+                </Link>
               </li>
             );
           })}

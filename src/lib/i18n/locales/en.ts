@@ -4764,6 +4764,16 @@ Object.assign(en, {
       reviews: "{{count}} reviews",
       requestLesson: "Sign in to request a lesson",
     },
+    request: {
+      title: "Request an online lesson",
+      pickDay: "Choose a day",
+      pickTime: "Choose a time",
+      notes: "Note for your tutor (optional)",
+      notesPlaceholder: "Subject, level, or what you want to cover",
+      noSlots: "No open times on this day — try another date.",
+      noService: "This tutor is not bookable online right now.",
+      success: "Lesson requested — we will notify you when it is confirmed.",
+    },
     lessons: {
       title: "My online lessons",
       lead: "Upcoming and past video lessons booked on Famy.",
@@ -4786,6 +4796,8 @@ Object.assign(en, {
     providerRequests: {
       title: "Incoming lesson requests",
       lead: "Accept or decline new online lesson requests. After you accept, the student can pay and join when the session starts.",
+      empty: "No pending online requests right now.",
+      noProvider: "Sign in with a provider account to manage online lesson requests.",
     },
     providerLessons: {
       title: "Your online lessons",

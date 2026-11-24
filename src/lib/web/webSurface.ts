@@ -80,6 +80,10 @@ export function isWebSurfacePathAllowed(
     return params.get("paymob_return") === "1";
   }
 
+  if (path.startsWith("/online/lessons/") && params.get("paymob_return") === "1") {
+    return true;
+  }
+
   if (isAccountDeletionAuthPath(path) && hasAccountDeleteIntent(params)) {
     return true;
   }

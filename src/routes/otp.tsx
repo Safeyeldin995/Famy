@@ -51,11 +51,14 @@ export function OtpScreen({
   otpContext,
   previewMode = false,
   loginPath = "/login",
+  setPasswordPath = "/auth/set-password",
 }: {
   otpContext: OtpContextData;
   previewMode?: boolean;
   /** Where to send the user when the flow is abandoned (e.g. online web login). */
   loginPath?: string;
+  /** Successful signup verification continues here (online web uses `/online/set-password`). */
+  setPasswordPath?: string;
 }) {
   const { profile } = useApp();
   const [code, setCode] = useState(["", "", "", "", "", ""]);
@@ -140,7 +143,7 @@ export function OtpScreen({
       setCode(["", "", "", "", "", ""]);
       return;
     }
-    nav({ to: "/auth/set-password", replace: true });
+    nav({ to: setPasswordPath, replace: true });
   };
 
   const resend = async () => {

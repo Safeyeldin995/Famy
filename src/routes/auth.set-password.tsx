@@ -27,11 +27,27 @@ export const Route = createFileRoute("/auth/set-password")({
     }
     return { setPasswordContext: context };
   },
-  component: SetPassword,
+  component: AuthSetPasswordRoute,
 });
 
-function SetPassword() {
+function AuthSetPasswordRoute() {
   const { setPasswordContext } = Route.useRouteContext();
+  return <SetPasswordScreen setPasswordContext={setPasswordContext} />;
+}
+
+export type SetPasswordContextData = Extract<
+  Awaited<ReturnType<typeof otpService.getSetPasswordContext>>,
+  { ok: true }
+>;
+
+export function SetPasswordScreen({
+  setPasswordContext,
+  customerSuccessPath,
+}: {
+  setPasswordContext: SetPasswordContextData;
+  /** When set, customers navigate here after password setup (online web). */
+  customerSuccessPath?: string;
+}) {
   const [pw, setPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
   const [show, setShow] = useState(false);
@@ -167,6 +183,10 @@ function SetPassword() {
         .then(({ data }) => data),
       new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000)),
     ]).catch(() => null);
+    if (customerSuccessPath) {
+      nav({ to: customerSuccessPath, replace: true });
+      return;
+    }
     nav({ to: prof?.full_name ? "/home" : "/setup", replace: true });
   };
 

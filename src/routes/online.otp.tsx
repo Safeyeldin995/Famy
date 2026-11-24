@@ -19,5 +19,11 @@ export const Route = createFileRoute("/online/otp")({
 
 function OnlineOtp() {
   const { otpContext } = Route.useRouteContext();
-  return <OtpScreen otpContext={otpContext} loginPath={ONLINE_WEB_ROUTE_IDS.login} />;
+  return (
+    <OtpScreen
+      otpContext={otpContext}
+      loginPath={ONLINE_WEB_ROUTE_IDS.login}
+      setPasswordPath={ONLINE_WEB_ROUTE_IDS.setPassword}
+    />
+  );
 }
