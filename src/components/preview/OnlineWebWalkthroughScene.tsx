@@ -206,6 +206,9 @@ function StudentPayment() {
           {t("onlineWeb.walkthrough.cardRemainder", { amount: formatEGP(170, undefined, "ar") })}
         </p>
       </div>
+      <p className="rounded-2xl bg-surface-2 px-3 py-2 text-pro-12 font-semibold text-muted-foreground">
+        {t("onlineWeb.cancelPolicy.body")}
+      </p>
       <PrimaryButton className="h-12 w-full">{t("onlineWeb.walkthrough.confirmPay")}</PrimaryButton>
       <p className="text-pro-12 text-muted-foreground">{t("onlineWeb.walkthrough.refundNote")}</p>
     </div>

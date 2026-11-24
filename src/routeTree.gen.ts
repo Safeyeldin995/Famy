@@ -128,6 +128,7 @@ import { Route as ApiSessionCapabilitiesRouteImport } from './routes/api.session
 import { Route as ApiSessionReportRouteImport } from './routes/api.session.report'
 import { Route as ApiSessionTokenRouteImport } from './routes/api.session.token'
 import { Route as OnlineProviderLessonsRouteImport } from './routes/online.provider.lessons'
+import { Route as OnlineProviderRequestsRouteImport } from './routes/online.provider.requests'
 import { Route as OnlineTutorsProviderIdRouteImport } from './routes/online.tutors.$providerId'
 import { Route as PreviewAccountDeleteRouteImport } from './routes/preview.account.delete'
 import { Route as PreviewAddressesIndexRouteImport } from './routes/preview.addresses.index'
@@ -787,6 +788,11 @@ const OnlineProviderLessonsRoute = OnlineProviderLessonsRouteImport.update({
   path: '/provider/lessons',
   getParentRoute: () => OnlineRoute,
 } as any)
+const OnlineProviderRequestsRoute = OnlineProviderRequestsRouteImport.update({
+  id: '/provider/requests',
+  path: '/provider/requests',
+  getParentRoute: () => OnlineRoute,
+} as any)
 const OnlineTutorsProviderIdRoute = OnlineTutorsProviderIdRouteImport.update({
   id: '/$providerId',
   path: '/$providerId',
@@ -1208,6 +1214,7 @@ export interface FileRoutesByFullPath {
   '/api/session/report': typeof ApiSessionReportRoute
   '/api/session/token': typeof ApiSessionTokenRoute
   '/online/provider/lessons': typeof OnlineProviderLessonsRoute
+  '/online/provider/requests': typeof OnlineProviderRequestsRoute
   '/online/tutors/$providerId': typeof OnlineTutorsProviderIdRoute
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
@@ -1378,6 +1385,7 @@ export interface FileRoutesByTo {
   '/api/session/report': typeof ApiSessionReportRoute
   '/api/session/token': typeof ApiSessionTokenRoute
   '/online/provider/lessons': typeof OnlineProviderLessonsRoute
+  '/online/provider/requests': typeof OnlineProviderRequestsRoute
   '/online/tutors/$providerId': typeof OnlineTutorsProviderIdRoute
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
@@ -1558,6 +1566,7 @@ export interface FileRoutesById {
   '/api/session/report': typeof ApiSessionReportRoute
   '/api/session/token': typeof ApiSessionTokenRoute
   '/online/provider/lessons': typeof OnlineProviderLessonsRoute
+  '/online/provider/requests': typeof OnlineProviderRequestsRoute
   '/online/tutors/$providerId': typeof OnlineTutorsProviderIdRoute
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
@@ -1739,6 +1748,7 @@ export interface FileRouteTypes {
     | '/api/session/report'
     | '/api/session/token'
     | '/online/provider/lessons'
+    | '/online/provider/requests'
     | '/online/tutors/$providerId'
     | '/preview/account/delete'
     | '/preview/addresses/$id'
@@ -1909,6 +1919,7 @@ export interface FileRouteTypes {
     | '/api/session/report'
     | '/api/session/token'
     | '/online/provider/lessons'
+    | '/online/provider/requests'
     | '/online/tutors/$providerId'
     | '/preview/account/delete'
     | '/preview/addresses/$id'
@@ -2088,6 +2099,7 @@ export interface FileRouteTypes {
     | '/api/session/report'
     | '/api/session/token'
     | '/online/provider/lessons'
+    | '/online/provider/requests'
     | '/online/tutors/$providerId'
     | '/preview/account/delete'
     | '/preview/addresses/$id'
@@ -3039,6 +3051,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnlineProviderLessonsRouteImport
       parentRoute: typeof OnlineRoute
     }
+    '/online/provider/requests': {
+      id: '/online/provider/requests'
+      path: '/provider/requests'
+      fullPath: '/online/provider/requests'
+      preLoaderRoute: typeof OnlineProviderRequestsRouteImport
+      parentRoute: typeof OnlineRoute
+    }
     '/online/tutors/$providerId': {
       id: '/online/tutors/$providerId'
       path: '/$providerId'
@@ -3576,6 +3595,7 @@ interface OnlineRouteChildren {
   OnlineWalletRoute: typeof OnlineWalletRoute
   OnlineIndexRoute: typeof OnlineIndexRoute
   OnlineProviderLessonsRoute: typeof OnlineProviderLessonsRoute
+  OnlineProviderRequestsRoute: typeof OnlineProviderRequestsRoute
 }
 
 const OnlineRouteChildren: OnlineRouteChildren = {
@@ -3586,6 +3606,7 @@ const OnlineRouteChildren: OnlineRouteChildren = {
   OnlineWalletRoute: OnlineWalletRoute,
   OnlineIndexRoute: OnlineIndexRoute,
   OnlineProviderLessonsRoute: OnlineProviderLessonsRoute,
+  OnlineProviderRequestsRoute: OnlineProviderRequestsRoute,
 }
 
 const OnlineRouteWithChildren =

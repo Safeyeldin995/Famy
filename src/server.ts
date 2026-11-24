@@ -1,4 +1,7 @@
 import "./lib/error-capture";
+import { captureSentryServerException, initSentryServer } from "./lib/sentry/server";
+
+initSentryServer();
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
@@ -27,6 +30,7 @@ async function logServerError(error: unknown, contextRoute: string, contextLabel
       contextRoute,
       contextLabel,
     });
+    captureSentryServerException(error, { contextRoute, contextLabel });
   } catch (loggingError) {
     console.error("[server] Failed to persist server error_log row", loggingError);
   }

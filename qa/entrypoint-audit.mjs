@@ -28,6 +28,7 @@ export const QA_ENTRYPOINT_CLASSIFICATION = {
   "env.mjs": "pure-library",
   "entrypoint-audit.mjs": "pure-library",
   "list-users-paginated.mjs": "pure-library",
+  "maestro-apk-qa-inspect.mjs": "pure-library",
   "load-qa-env.mjs": "pure-library",
   "orphan-recovery.mjs": "pure-library",
   "playwright-webserver-env.mjs": "pure-library",

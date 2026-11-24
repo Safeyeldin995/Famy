@@ -10,6 +10,7 @@ export type OnlineWebNavTab = {
     | "onlineWeb.nav.tutors"
     | "onlineWeb.nav.lessons"
     | "onlineWeb.nav.wallet"
+    | "onlineWeb.nav.providerRequests"
     | "onlineWeb.nav.providerLessons";
 };
 
@@ -32,22 +33,46 @@ export function useOnlineWebNavTabs(): OnlineWebNavTab[] {
   const providerQ = useMyProvider();
 
   return useMemo(() => {
+    const signedIn = walkthrough || sessionQ.data;
+    const isProvider = walkthrough || Boolean(providerQ.data?.id);
+
+    if (walkthrough) {
+      return [
+        { to: ONLINE_WEB_ROUTE_IDS.tutors, key: "onlineWeb.nav.tutors" },
+        { to: ONLINE_WEB_ROUTE_IDS.lessons, key: "onlineWeb.nav.lessons" },
+        { to: ONLINE_WEB_ROUTE_IDS.wallet, key: "onlineWeb.nav.wallet" },
+        {
+          to: ONLINE_WEB_ROUTE_IDS.providerRequests,
+          key: "onlineWeb.nav.providerRequests",
+        },
+        {
+          to: ONLINE_WEB_ROUTE_IDS.providerLessons,
+          key: "onlineWeb.nav.providerLessons",
+        },
+      ];
+    }
+
+    if (isProvider) {
+      return [
+        {
+          to: ONLINE_WEB_ROUTE_IDS.providerRequests,
+          key: "onlineWeb.nav.providerRequests",
+        },
+        {
+          to: ONLINE_WEB_ROUTE_IDS.providerLessons,
+          key: "onlineWeb.nav.providerLessons",
+        },
+      ];
+    }
+
     const tabs: OnlineWebNavTab[] = [
       { to: ONLINE_WEB_ROUTE_IDS.tutors, key: "onlineWeb.nav.tutors" },
     ];
-    const signedIn = walkthrough || sessionQ.data;
-    const isProvider = walkthrough || Boolean(providerQ.data?.id);
     if (signedIn) {
       tabs.push(
         { to: ONLINE_WEB_ROUTE_IDS.lessons, key: "onlineWeb.nav.lessons" },
         { to: ONLINE_WEB_ROUTE_IDS.wallet, key: "onlineWeb.nav.wallet" },
       );
-    }
-    if (isProvider) {
-      tabs.push({
-        to: ONLINE_WEB_ROUTE_IDS.providerLessons,
-        key: "onlineWeb.nav.providerLessons",
-      });
     }
     return tabs;
   }, [walkthrough, sessionQ.data, providerQ.data?.id]);

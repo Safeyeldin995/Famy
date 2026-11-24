@@ -39,11 +39,13 @@ export function AuthPhoneField({
   value,
   onChangeText,
   placeholder,
+  testID = "auth-phone-input",
   ...rest
 }: Omit<TextInputProps, "value" | "onChangeText"> & {
   value: string;
   onChangeText: (value: string) => void;
   placeholder: string;
+  testID?: string;
 }) {
   const inputFont = useInputFont("bold");
   return (
@@ -54,6 +56,7 @@ export function AuthPhoneField({
       <TextInput
         {...bodyTextInputProps()}
         {...rest}
+        testID={testID}
         value={value}
         onChangeText={(v) => onChangeText(v.replace(/[^\d٠-٩۰-۹ ]/g, ""))}
         placeholder={placeholder}

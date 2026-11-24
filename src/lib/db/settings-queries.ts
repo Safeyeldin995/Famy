@@ -341,6 +341,56 @@ export function useUpdateCancellationPolicy() {
 }
 
 /** What the customer would pay to cancel now (or what was charged). */
+export type ReleaseFeatureSettings = {
+  online_lessons_enabled: boolean;
+};
+
+export const DEFAULT_RELEASE_FEATURES: ReleaseFeatureSettings = {
+  online_lessons_enabled: false,
+};
+
+export function parseReleaseFeatureSettings(
+  value: Record<string, unknown> | null | undefined,
+): ReleaseFeatureSettings {
+  return {
+    online_lessons_enabled: value?.online_lessons_enabled === true,
+  };
+}
+
+export function useReleaseFeatureSettingsAdmin() {
+  return useQuery({
+    queryKey: ["settings", "release_features"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("settings")
+        .select("value")
+        .eq("key", "release_features")
+        .maybeSingle();
+      if (error) throw error;
+      return parseReleaseFeatureSettings((data?.value as Record<string, unknown>) ?? {});
+    },
+  });
+}
+
+export function useUpdateReleaseFeatureSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (value: ReleaseFeatureSettings) => {
+      const { data, error } = await supabase
+        .from("settings")
+        .upsert({ key: "release_features", value }, { onConflict: "key" })
+        .select("value")
+        .single();
+      if (error) throw error;
+      const stored = parseReleaseFeatureSettings(data.value as Record<string, unknown>);
+      if (stored.online_lessons_enabled !== value.online_lessons_enabled) {
+        throw new Error("Release feature settings did not persist.");
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["settings", "release_features"] }),
+  });
+}
+
 export function useBookingCancellationFee(bookingId: string | undefined, enabled = true) {
   return useQuery({
     enabled: !!bookingId && enabled,

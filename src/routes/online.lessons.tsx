@@ -120,6 +120,8 @@ function OnlineLessons() {
           })}
         </ul>
       )}
+
+      <p className="text-pro-12 leading-relaxed text-muted-foreground">{t("onlineWeb.cancelPolicy.body")}</p>
     </div>
   );
 }

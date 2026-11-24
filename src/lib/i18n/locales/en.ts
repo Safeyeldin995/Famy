@@ -3829,6 +3829,13 @@ const en = {
       cancellationRule4: "No fee if the provider or admin cancels, or the provider doesn't show up. The rest of a prepaid amount goes back to the customer",
       cancellationInvalid: "Enter a valid value; a percentage cannot exceed 100",
       cancellationSaveError: "Couldn't save the cancellation policy",
+      releaseFeaturesTitle: "Release features",
+      releaseFeaturesSubtitle:
+        "Instant server toggles for high-risk journeys. Turning off online lessons blocks new online bookings without a store build.",
+      onlineLessonsToggle: "Online lessons (live video)",
+      onlineLessonsToggleHint: "When off, customers cannot start new online lesson bookings.",
+      releaseFeaturesLoadError: "Couldn't load release feature settings",
+      releaseFeaturesSaveError: "Couldn't save release feature settings",
       subtitle: "Platform configuration — changes here have real, immediate effect on the app.",
       saved: "Saved",
       paymentsTitle: "Payments",
@@ -4741,6 +4748,7 @@ Object.assign(en, {
       tutors: "Tutors",
       lessons: "My lessons",
       wallet: "Wallet",
+      providerRequests: "Incoming requests",
       providerLessons: "Provider lessons",
     },
     tutors: {
@@ -4775,9 +4783,17 @@ Object.assign(en, {
         checkout_spend: "Used at checkout",
       },
     },
+    providerRequests: {
+      title: "Incoming lesson requests",
+      lead: "Accept or decline new online lesson requests. After you accept, the student can pay and join when the session starts.",
+    },
     providerLessons: {
       title: "Your online lessons",
       lead: "When you're a provider with online lessons, they'll show up here. Join from the app or this page when a session starts.",
+    },
+    cancelPolicy: {
+      title: "Cancellation",
+      body: "Cancel more than 4 hours before the lesson for free. After that, a 50% fee applies; the rest is credited to your Famy wallet.",
     },
     walkthrough: {
       requestLesson: "Request a lesson",

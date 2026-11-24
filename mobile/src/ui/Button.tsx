@@ -14,6 +14,7 @@ export function Button({
   loading,
   icon,
   style,
+  testID,
 }: {
   label: string;
   accessibilityLabel?: string;
@@ -23,10 +24,12 @@ export function Button({
   loading?: boolean;
   icon?: ReactNode;
   style?: ViewStyle;
+  testID?: string;
 }) {
   const inactive = disabled || loading;
   return (
     <Pressable
+      testID={testID}
       disabled={!!inactive}
       aria-disabled={!!inactive}
       accessibilityRole="button"

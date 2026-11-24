@@ -37,6 +37,7 @@ export function OtpCodeInput({ value, onChange, onComplete, disabled, invalid, i
       {value.map((digit, index) => (
         <TextInput
           key={index}
+          testID={`otp-code-${index}`}
           ref={(el) => {
             refs.current[index] = el;
           }}

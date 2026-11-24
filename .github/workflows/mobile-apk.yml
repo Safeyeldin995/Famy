@@ -192,6 +192,20 @@ jobs:
             --local --non-interactive --output "$apk_path"
           echo "apk_path=$apk_path" >> "$GITHUB_ENV"
 
+      - name: Upload Sentry source maps (optional)
+        continue-on-error: true
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        run: |
+          if [ -z "$SENTRY_AUTH_TOKEN" ] || [ -z "$SENTRY_ORG" ] || [ -z "$SENTRY_PROJECT" ]; then
+            echo "Sentry upload skipped — set SENTRY_AUTH_TOKEN, SENTRY_ORG, SENTRY_PROJECT for source maps."
+            exit 0
+          fi
+          npx @sentry/cli sourcemaps upload --org "$SENTRY_ORG" --project "$SENTRY_PROJECT" mobile/dist 2>/dev/null || \
+            echo "No mobile/dist source maps in this build path; upload from EAS artifacts when configured."
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:

@@ -3794,6 +3794,13 @@ const ar: Translation = {
       cancellationRule4: "لا رسوم إذا ألغى مقدم الخدمة أو الإدارة، أو لم يحضر مقدم الخدمة، ويرد باقي المبلغ المدفوع إلى العميل",
       cancellationInvalid: "أدخل قيمة صحيحة، والنسبة لا تزيد على 100",
       cancellationSaveError: "تعذر حفظ سياسة الإلغاء",
+      releaseFeaturesTitle: "ميزات الإصدار",
+      releaseFeaturesSubtitle:
+        "تفعيل فوري من السيرفر للمسارات الحساسة، إيقاف الدروس الأونلاين يمنع حجوزات أونلاين جديدة بدون نسخة متجر",
+      onlineLessonsToggle: "الدروس الأونلاين (فيديو مباشر)",
+      onlineLessonsToggleHint: "عند الإيقاف، لا يمكن للعملاء بدء حجوزات دروس أونلاين جديدة",
+      releaseFeaturesLoadError: "تعذر تحميل إعدادات ميزات الإصدار",
+      releaseFeaturesSaveError: "تعذر حفظ إعدادات ميزات الإصدار",
       subtitle: "إعدادات المنصة، وأي تغيير هنا يطبق فورا على التطبيق",
       saved: "تم الحفظ",
       paymentsTitle: "المدفوعات",
@@ -4694,6 +4701,7 @@ Object.assign(ar, {
       tutors: "المدربين",
       lessons: "دروسي",
       wallet: "المحفظة",
+      providerRequests: "طلبات واردة",
       providerLessons: "دروس المقدم",
     },
     tutors: {
@@ -4727,6 +4735,14 @@ Object.assign(ar, {
         admin_debit: "تعديل رصيد",
         checkout_spend: "استخدم في الدفع",
       },
+    },
+    providerRequests: {
+      title: "طلبات الدروس الواردة",
+      lead: "اقبل أو ارفض طلبات الدروس أونلاين الجديدة. بعد القبول يقدر الطالب يدفع ويدخل الحصة في وقتها",
+    },
+    cancelPolicy: {
+      title: "سياسة الإلغاء",
+      body: "الإلغاء مجاني لو قبل الحصة بأكتر من 4 ساعات. بعد كده بتتخصم 50% من قيمة الحصة، والباقي يرجع لمحفظتك على فامي",
     },
     providerLessons: {
       title: "دروسك أونلاين",
