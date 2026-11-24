@@ -25,7 +25,8 @@ export default function Help() {
   const whatsapp = q.data?.whatsapp?.replace(/\D/g, "");
   const faqs = t("helpC.faqs", { returnObjects: true }) as { q: string; a: string }[];
   return (
-    <Page
+    <View testID="help-screen" style={{ flex: 1 }}>
+      <Page
       title={t("helpC.title")}
       queries={[q]}
       header={
@@ -142,6 +143,7 @@ export default function Help() {
         ))}
       </View>
       <Button
+        testID="help-report-issue"
         variant="secondary"
         label={t("helpC.reportIssue")}
         disabled={!whatsapp || q.isError || q.isLoading}
@@ -152,5 +154,6 @@ export default function Help() {
         }
       />
     </Page>
+    </View>
   );
 }

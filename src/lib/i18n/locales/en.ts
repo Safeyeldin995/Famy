@@ -3825,6 +3825,13 @@ const en = {
       cancellationRule4: "No fee if the provider or admin cancels, or the provider doesn't show up. The rest of a prepaid amount goes back to the customer",
       cancellationInvalid: "Enter a valid value; a percentage cannot exceed 100",
       cancellationSaveError: "Couldn't save the cancellation policy",
+      releaseFeaturesTitle: "Release features",
+      releaseFeaturesSubtitle:
+        "Instant server toggles for high-risk journeys. Turning off online lessons blocks new online bookings without a store build.",
+      onlineLessonsToggle: "Online lessons (live video)",
+      onlineLessonsToggleHint: "When off, customers cannot start new online lesson bookings.",
+      releaseFeaturesLoadError: "Couldn't load release feature settings",
+      releaseFeaturesSaveError: "Couldn't save release feature settings",
       subtitle: "Platform configuration — changes here have real, immediate effect on the app.",
       saved: "Saved",
       paymentsTitle: "Payments",

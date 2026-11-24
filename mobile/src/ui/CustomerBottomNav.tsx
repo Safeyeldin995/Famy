@@ -35,6 +35,7 @@ export function CustomerBottomNav({ state, emitter, navigateToTab }: BottomTabBa
           return (
             <Pressable
               key={route.key}
+              testID={`tab-${name}`}
               accessibilityRole="tab"
               accessibilityLabel={t(`nav.${name}`)}
               accessibilityState={{ selected: active }}

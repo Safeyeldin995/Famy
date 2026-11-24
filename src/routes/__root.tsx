@@ -29,6 +29,7 @@ import { supabase } from "../integrations/supabase/client";
 import i18n from "../lib/i18n";
 import { startProfileLocaleSync } from "../lib/i18n/syncProfileLocale";
 import { ClientErrorMonitoringBridge } from "../components/ClientErrorMonitoringBridge";
+import { initSentryClient } from "../lib/sentry/client";
 
 import { useTranslation } from "react-i18next";
 
@@ -138,6 +139,9 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const [identityEpoch, setIdentityEpoch] = useState(0);
   const remountForIdentity = useCallback(() => setIdentityEpoch((epoch) => epoch + 1), []);
+  useEffect(() => {
+    initSentryClient();
+  }, []);
   return (
     <QueryClientProvider client={queryClient}>
       <AuthCacheBridge onIdentityChange={remountForIdentity} />

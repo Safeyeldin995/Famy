@@ -154,6 +154,7 @@ export default function Profile() {
         </CustomerMenuSection>
         <CustomerMenuSection title={t("profile.support")}>
           <CustomerMenuRow
+            testID="profile-help-link"
             Icon={HelpCircle}
             label={t("profile.help")}
             onPress={() => router.push("/help")}

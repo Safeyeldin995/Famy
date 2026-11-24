@@ -1,0 +1,13 @@
+appId: com.famy.app
+---
+- runFlow:
+    file: 01-customer-sign-in.yaml
+    env:
+      MAESTRO_TEST_PHONE: ${MAESTRO_TEST_PHONE}
+      MAESTRO_TEST_OTP: ${MAESTRO_TEST_OTP}
+- assertVisible:
+    id: "customer-home-search"
+- tapOn:
+    id: "customer-home-search"
+- assertVisible:
+    id: "search-discovery"

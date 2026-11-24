@@ -58,6 +58,9 @@ jobs:
         run: |
           find qa -type f -name '*.mjs' -print0 | xargs -0 -n1 node --check
 
+      - name: Report db-migrate incompatible migrations (inventory)
+        run: node qa/report-migration-transaction-control.mjs
+
       - name: Guard single Firebase reCAPTCHA container
         run: node qa/check-firebase-recaptcha-container.mjs
 
@@ -69,6 +72,79 @@ jobs:
 
       - name: Check Arabic locale plural forms
         run: node qa/check-ar-plurals.mjs
+
+      - name: Validate Maestro release flows
+        run: |
+          node qa/check-maestro-flows.mjs
+          npm run test:unit -- qa/__tests__/verify-maestro-apk-qa.test.ts
+
+  release-gate:
+    name: Release gate (money + monitoring)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sentry scrub + release flag unit tests
+        run: |
+          npm run test:unit -- src/lib/sentry/__tests__/scrub.test.ts
+          npm run test:unit -- src/lib/db/__tests__/release-features.test.ts
+          npm run test:unit -- src/lib/db/__tests__/release-gate-wallet-lock.test.ts
+          cd mobile && npx vitest run src/lib/__tests__/sentryScrub.test.ts
+
+      - name: Money RPC regression (PGlite)
+        run: |
+          npm run test:unit -- \
+            src/lib/db/__tests__/money-journey.test.ts \
+            src/lib/db/__tests__/cancellation-fee.test.ts \
+            src/lib/db/__tests__/expire-pending-bookings.test.ts
+
+  # Non-required until PO adds QA Supabase + FAMY_QA_APP_ORIGIN secrets (job fails closed if incomplete).
+  release-gate-admin-e2e:
+    name: Release gate admin E2E (QA secrets required)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install chromium --with-deps
+
+      - name: Materialize QA env (fail closed)
+        env:
+          QA_SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
+          QA_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.QA_SUPABASE_PUBLISHABLE_KEY }}
+          QA_SUPABASE_SECRET_KEY: ${{ secrets.QA_SUPABASE_SECRET_KEY }}
+          QA_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.QA_SUPABASE_SERVICE_ROLE_KEY }}
+          FAMY_QA_APP_ORIGIN: ${{ secrets.FAMY_QA_APP_ORIGIN }}
+          FAMY_PRODUCTION_APP_ORIGIN: ${{ secrets.FAMY_PRODUCTION_APP_ORIGIN }}
+          OTP_PROVIDER: mock
+          VITE_OTP_PROVIDER: mock
+        run: node qa/ci/materialize-qa-env.mjs
+
+      - name: Release gate admin Playwright
+        run: npm run test:release-gate:admin
 
   mobile:
     name: Mobile typecheck and bundle

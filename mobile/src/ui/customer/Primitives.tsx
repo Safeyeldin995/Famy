@@ -104,6 +104,7 @@ export function CustomerMenuRow({
   badge,
   onPress,
   last = false,
+  testID,
 }: {
   Icon: LucideIcon;
   label: string;
@@ -111,11 +112,13 @@ export function CustomerMenuRow({
   badge?: number;
   onPress: () => void;
   last?: boolean;
+  testID?: string;
 }) {
   const { i18n } = useTranslation();
   const Arrow = i18n.language === "ar" ? ChevronLeft : ChevronRight;
   return (
     <Pressable
+      testID={testID}
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
