@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import type { FeaturedPromoCode } from "@/lib/queries";
 import { money } from "@/lib/presentation";
 import { Text } from "./Text";
-import { colors } from "./theme";
+import { colors, space } from "./theme";
 
 /** Native rendering of components/home/HomePromoStrip, using the same copy and actions. */
 export function HomePromoStrip({ offer }: { offer: FeaturedPromoCode }) {
@@ -24,13 +24,13 @@ export function HomePromoStrip({ offer }: { offer: FeaturedPromoCode }) {
           {t("home.offers.promoLabel")}
         </Text>
       </View>
-      <Text size="xxl" weight="heavy" tone="inverse" style={{ marginTop: 12 }}>
+      <Text size="xxl" weight="heavy" tone="inverse" style={{ marginTop: space.md }}>
         {offer.discount_type === "percentage"
           ? t("promoCodes.discountPercent", { value: offer.discount_value })
           : t("promoCodes.discountFixed", { amount: money(offer.discount_value, i18n.language) })}
       </Text>
       {description ? (
-        <Text size="xs" tone="inverse" numberOfLines={2} style={{ opacity: 0.75, marginTop: 6 }}>
+        <Text size="xs" tone="inverse" numberOfLines={2} style={{ opacity: 0.75, marginTop: space.sm }}>
           {description}
         </Text>
       ) : null}
@@ -66,28 +66,28 @@ const styles = StyleSheet.create({
     width: 272,
     flexShrink: 0,
     borderRadius: 28,
-    padding: 20,
+    padding: space.xl,
     backgroundColor: "#1F1419",
     alignItems: "flex-start",
   },
   badge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: space.sm,
     borderRadius: 999,
     backgroundColor: "rgba(255,255,255,0.15)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: space.md,
+    paddingVertical: space.xs,
   },
   copy: {
     direction: "ltr",
     flexDirection: "row",
-    gap: 6,
+    gap: space.sm,
     minHeight: 44,
     alignItems: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    marginTop: 16,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.sm,
+    marginTop: space.lg,
     borderRadius: 999,
     backgroundColor: colors.brand,
   },

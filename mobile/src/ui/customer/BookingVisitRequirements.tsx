@@ -2,7 +2,7 @@ import { View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { requiresSupervisionMode } from "@shared/booking/supervisionMode";
 import { Text } from "@/ui/Text";
-import { colors } from "@/ui/theme";
+import { colors, space } from "@/ui/theme";
 
 type RequirementRow = {
   id: string;
@@ -34,8 +34,8 @@ export function BookingVisitRequirements({
         borderWidth: 1,
         borderColor: colors.border,
         backgroundColor: colors.surface2,
-        padding: 14,
-        gap: 6,
+        padding: space.lg,
+        gap: space.sm,
       }}
     >
       <Text weight="heavy">{t("bookFlow.visitRequirementsTitle")}</Text>

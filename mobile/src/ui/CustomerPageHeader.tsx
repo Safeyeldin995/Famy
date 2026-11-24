@@ -47,7 +47,7 @@ export function CustomerPageHeader({
           {title}
         </Text>
         {subtitle ? (
-          <Text tone="inverse" style={{ marginTop: 8, opacity: 0.75 }}>
+          <Text tone="inverse" style={{ marginTop: space.sm, opacity: 0.75 }}>
             {subtitle}
           </Text>
         ) : null}
@@ -62,7 +62,7 @@ export function CustomerPageHeader({
             {title}
           </Text>
           {subtitle ? (
-            <Text size="sm" tone="muted" style={{ marginTop: 4 }}>
+            <Text size="sm" tone="muted" style={{ marginTop: space.xs }}>
               {subtitle}
             </Text>
           ) : null}

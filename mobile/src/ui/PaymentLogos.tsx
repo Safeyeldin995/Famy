@@ -8,7 +8,7 @@ import instapay from "@/assets/images/pay/instapay.png";
 import vodafone from "@/assets/images/pay/vodafone.png";
 import orange from "@/assets/images/pay/orange.png";
 import eand from "@/assets/images/pay/eand.png";
-import { colors } from "./theme";
+import { colors, space } from "./theme";
 
 /** Official brand artwork (trimmed PNGs, 96px tall), keyed by brand. */
 const LOGOS = {
@@ -31,7 +31,7 @@ export function BrandLogo({ brand, height = 18 }: { brand: Brand; height?: numbe
       accessibilityLabel={brand}
       style={{
         height: height + 10,
-        paddingHorizontal: 6,
+        paddingHorizontal: space.sm,
         borderRadius: 8,
         borderWidth: 1,
         borderColor: colors.border,
@@ -48,7 +48,7 @@ export function BrandLogo({ brand, height = 18 }: { brand: Brand; height?: numbe
 /** Accepted cards for online card payment. */
 export function PaymentLogos({ height = 16 }: { height?: number }) {
   return (
-    <View style={{ flexDirection: "row", direction: "ltr", gap: 6, alignItems: "center" }}>
+    <View style={{ flexDirection: "row", direction: "ltr", gap: space.sm, alignItems: "center" }}>
       <BrandLogo brand="visa" height={height - 4} />
       <BrandLogo brand="mastercard" height={height} />
       <BrandLogo brand="meeza" height={height} />
@@ -64,7 +64,7 @@ export function ApplePayMark({ height = 20 }: { height?: number }) {
       accessibilityLabel="Apple Pay"
       style={{
         height: height + 8,
-        paddingHorizontal: 8,
+        paddingHorizontal: space.sm,
         borderRadius: 8,
         backgroundColor: "#000",
         alignItems: "center",
@@ -93,7 +93,7 @@ export function GooglePayMark({ height = 20 }: { height?: number }) {
       accessibilityLabel="Google Pay"
       style={{
         height: height + 8,
-        paddingHorizontal: 10,
+        paddingHorizontal: space.md,
         borderRadius: 8,
         backgroundColor: "#000",
         alignItems: "center",

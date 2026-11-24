@@ -86,11 +86,11 @@ export function CheckoutPromoPicker({
   };
 
   return (
-    <View style={{ gap: 8 }}>
+    <View style={{ gap: space.sm }}>
       {applied ? (
         <View style={[styles.chip, direction]}>
           <Tag size={16} color={colors.brand} />
-          <View style={{ flex: 1, gap: 2 }}>
+          <View style={{ flex: 1, gap: space.xs }}>
             <Text weight="heavy" style={ui.ltr}>
               {applied.code}
             </Text>
@@ -141,7 +141,7 @@ export function CheckoutPromoPicker({
           />
           <View
             accessibilityViewIsModal
-            style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 20) }]}
+            style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, space.xl) }]}
           >
             <View style={styles.grab} />
             <View style={[styles.heading, direction]}>
@@ -167,7 +167,7 @@ export function CheckoutPromoPicker({
                     {t("promoCodes.availableEmptyBody")}
                   </Text>
                 ) : (
-                  <View style={{ gap: 10, paddingBottom: 8 }}>
+                  <View style={{ gap: space.md, paddingBottom: space.sm }}>
                     {promos.data.map((offer) => (
                       <CheckoutPromoOfferCard
                         key={offer.id}
@@ -183,7 +183,7 @@ export function CheckoutPromoPicker({
                 )}
               </QueryState>
             </ScrollView>
-            <View style={{ gap: 8, marginTop: 4 }}>
+            <View style={{ gap: space.sm, marginTop: space.xs }}>
               <Field
                 label={t("bookFlow.promoPlaceholder")}
                 value={manual}
@@ -226,8 +226,8 @@ function CheckoutPromoOfferCard({
       ? t("promoCodes.discountPercent", { value: offer.discount_value })
       : t("promoCodes.discountFixed", { amount: money(offer.discount_value, i18n.language) });
   return (
-    <View style={[ui.card, { padding: 14, gap: 8, backgroundColor: colors.surface2 }]}>
-      <View style={{ gap: 4 }}>
+    <View style={[ui.card, { padding: space.lg, gap: space.sm, backgroundColor: colors.surface2 }]}>
+      <View style={{ gap: space.xs }}>
         <Text weight="heavy" style={ui.ltr}>
           {offer.code}
         </Text>
@@ -245,7 +245,7 @@ function CheckoutPromoOfferCard({
         label={busy ? "" : t("bookFlow.promoUse")}
         loading={busy}
         onPress={onUse}
-        style={{ alignSelf: "flex-start", minHeight: 40, paddingHorizontal: 16 }}
+        style={{ alignSelf: "flex-start", minHeight: 40, paddingHorizontal: space.lg }}
       />
     </View>
   );
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface2,
-    paddingHorizontal: 16,
+    paddingHorizontal: space.lg,
     alignItems: "center",
     justifyContent: "space-between",
   },
@@ -267,10 +267,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.brand,
     backgroundColor: colors.brandTint,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
     alignItems: "center",
-    gap: 10,
+    gap: space.md,
   },
   chipRemove: {
     minHeight: 44,

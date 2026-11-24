@@ -211,7 +211,7 @@ export function AddressEditor({
         />
       ) : null}
       {needsPhone && (
-        <View style={{ gap: 6 }}>
+        <View style={{ gap: space.sm }}>
           <Field
             label={t("oauth.phoneLabel")}
             value={phone}
@@ -256,7 +256,7 @@ export function AddressEditor({
         multiline={setup}
       />
       {setup ? (
-        <View style={{ gap: 8 }}>
+        <View style={{ gap: space.sm }}>
           <Text size="xs" weight="bold" tone="muted">
             {t("addresses.location")}
           </Text>
@@ -270,7 +270,7 @@ export function AddressEditor({
           ) : null}
         </View>
       ) : null}
-      <View style={{ flexDirection: setup ? "column" : "row", flexWrap: "wrap", gap: 12 }}>
+      <View style={{ flexDirection: setup ? "column" : "row", flexWrap: "wrap", gap: space.md }}>
         {(setup
           ? (["building", "floor", "apartment"] as const)
           : (["compound", "building", "floor", "apartment"] as const)
@@ -288,7 +288,7 @@ export function AddressEditor({
         ))}
       </View>
       {!setup ? (
-        <View style={{ gap: 8 }}>
+        <View style={{ gap: space.sm }}>
           <Text size="xs" weight="bold" tone="muted">
             {t("addresses.location")}
           </Text>

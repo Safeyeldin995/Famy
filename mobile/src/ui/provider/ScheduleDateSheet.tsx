@@ -105,8 +105,8 @@ export function ScheduleDateSheet({
             backgroundColor: colors.surface,
             borderTopStartRadius: 28,
             borderTopEndRadius: 28,
-            padding: 20,
-            paddingBottom: Math.max(insets.bottom, 20),
+            padding: space.xl,
+            paddingBottom: Math.max(insets.bottom, space.xl),
             gap: space.lg,
           }}
         >
@@ -146,7 +146,7 @@ export function ScheduleDateSheet({
               borderRadius: 14,
               borderWidth: 1,
               borderColor: colors.border,
-              paddingHorizontal: 14,
+              paddingHorizontal: space.lg,
               fontFamily: (i18n.language === "en" ? fonts.en : fonts.ar).regular,
               color: colors.foreground,
             }}

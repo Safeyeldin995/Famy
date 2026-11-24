@@ -3,7 +3,7 @@ import { Tabs } from "expo-router/tabs";
 import { useTranslation } from "react-i18next";
 import { Calendar, Home, User } from "lucide-react-native";
 import { useSession } from "@/lib/session";
-import { colors } from "@/ui/theme";
+import { colors, space } from "@/ui/theme";
 import { scaledTabBarHeight } from "@/ui/a11y";
 import { tabBarLabelStyle } from "@/ui/navigationTypography";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -26,15 +26,15 @@ export default function CustomerTabs() {
         tabBarLabelStyle: tabBarLabelStyle(i18n.language),
         tabBarStyle: {
           direction: i18n.language === "ar" ? "rtl" : "ltr",
-          marginHorizontal: 12,
-          marginBottom: 12,
+          marginHorizontal: space.md,
+          marginBottom: space.md,
           borderRadius: 28,
           borderWidth: 1,
           borderColor: colors.border,
           backgroundColor: colors.surface,
           height: scaledTabBarHeight(fontScale, 22, insets.bottom),
-          paddingTop: 6,
-          paddingBottom: Math.max(insets.bottom, 8),
+          paddingTop: space.sm,
+          paddingBottom: Math.max(insets.bottom, space.sm),
         },
       }}
     >

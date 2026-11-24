@@ -4,7 +4,7 @@ import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, ArrowRight } from "lucide-react-native";
 import { Text } from "@/ui/Text";
-import { colors } from "@/ui/theme";
+import { colors, space } from "@/ui/theme";
 
 export function ProviderHeader({
   title,
@@ -21,11 +21,11 @@ export function ProviderHeader({
     <View
       style={{
         minHeight: 72,
-        paddingHorizontal: 20,
+        paddingHorizontal: space.xl,
         backgroundColor: colors.surface,
         flexDirection: "row",
         alignItems: "center",
-        gap: 12,
+        gap: space.md,
       }}
     >
       <Pressable

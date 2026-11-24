@@ -466,7 +466,7 @@ function AppleMark({ color = colors.foreground }: { color?: string }) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  content: { padding: space.xxl, gap: space.xxl, paddingBottom: 48 },
+  content: { padding: space.xxl, gap: space.xxl, paddingBottom: space.xxxl + space.lg },
   wordmark: { width: 120, height: 38, alignSelf: "flex-start" },
   error: { backgroundColor: "#FBE7E6", borderRadius: radius.md, padding: space.md },
   dividerRow: { flexDirection: "row", alignItems: "center", gap: space.sm },

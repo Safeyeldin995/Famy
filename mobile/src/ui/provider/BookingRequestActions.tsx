@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useProviderUpdateBookingStatus } from "@/lib/provider/queries";
 import { Button } from "@/ui/Button";
 import { ActionError } from "@/ui/Page";
-import { colors } from "@/ui/theme";
+import { colors, space } from "@/ui/theme";
 import { DeclineSheet } from "./DeclineSheet";
 
 export function BookingRequestActions({ id }: { id: string }) {
@@ -14,7 +14,7 @@ export function BookingRequestActions({ id }: { id: string }) {
 
   return (
     <>
-      <View style={{ flexDirection: "row", gap: 8, paddingTop: 8 }}>
+      <View style={{ flexDirection: "row", gap: space.sm, paddingTop: space.sm }}>
         <Button
           label={t("proWork.accept")}
           loading={update.isPending}

@@ -11,7 +11,7 @@ import { Button } from "@/ui/Button";
 import { CustomerPageHeader } from "@/ui/CustomerPageHeader";
 import { Users, Plus, Pencil, Trash2 } from "lucide-react-native";
 import { CustomerEmpty, customerStyle } from "@/ui/customer/Primitives";
-import { colors } from "@/ui/theme";
+import { colors, space } from "@/ui/theme";
 import { useToast } from "@/ui/Toast";
 
 export default function FamilyMembers() {
@@ -102,7 +102,7 @@ export default function FamilyMembers() {
               <View
                 style={[
                   customerStyle.row,
-                  { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 12, gap: 8 },
+                  { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: space.md, gap: space.sm },
                 ]}
               >
                 <Button

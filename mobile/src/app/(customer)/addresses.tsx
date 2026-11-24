@@ -32,7 +32,7 @@ export default function Addresses() {
         />
       }
     >
-      <View style={[ui.card, { flexDirection: "row", alignItems: "center", gap: 12 }]}>
+      <View style={[ui.card, { flexDirection: "row", alignItems: "center", gap: space.md }]}>
         <View style={{ flex: 1 }}>
           <Text weight="heavy">
             {t("customerRound2.addressCount", {
@@ -44,7 +44,7 @@ export default function Addresses() {
           </Text>
         </View>
         <Button
-          style={{ minHeight: 44, borderRadius: 999, paddingHorizontal: 12 }}
+          style={{ minHeight: 44, borderRadius: 999, paddingHorizontal: space.md }}
           icon={<Plus size={14} color={colors.surface} />}
           label={t("addresses.addAddress")}
           onPress={() => router.push("/addresses/new")}
@@ -79,7 +79,7 @@ export default function Addresses() {
                   : MapPin;
           return (
             <View key={a.id} style={[ui.card, { padding: 0, borderRadius: 28, gap: 0 }]}>
-              <View style={{ padding: 16, flexDirection: "row", gap: 12 }}>
+              <View style={{ padding: space.lg, flexDirection: "row", gap: space.md }}>
                 <View
                   style={{
                     width: 48,
@@ -92,9 +92,9 @@ export default function Addresses() {
                 >
                   <Icon size={20} color={colors.brand} />
                 </View>
-                <View style={{ flex: 1, gap: 3 }}>
+                <View style={{ flex: 1, gap: space.xs }}>
                   <View
-                    style={{ flexDirection: "row", gap: 8, flexWrap: "wrap", alignItems: "center" }}
+                    style={{ flexDirection: "row", gap: space.sm, flexWrap: "wrap", alignItems: "center" }}
                   >
                     <Text size="lg" weight="heavy">
                       {a.label === "other"
@@ -109,7 +109,7 @@ export default function Addresses() {
                         style={{
                           backgroundColor: colors.brandTint,
                           borderRadius: 999,
-                          paddingHorizontal: 8,
+                          paddingHorizontal: space.sm,
                         }}
                       >
                         {t("addresses.default")}
@@ -136,9 +136,9 @@ export default function Addresses() {
               <View
                 style={{
                   flexDirection: "row",
-                  gap: 8,
-                  padding: 16,
-                  paddingTop: 12,
+                  gap: space.sm,
+                  padding: space.lg,
+                  paddingTop: space.md,
                   borderTopWidth: 1,
                   borderTopColor: colors.border,
                 }}
@@ -177,7 +177,7 @@ export default function Addresses() {
                     borderRadius: 999,
                     backgroundColor: colors.surface2,
                     flexDirection: "row",
-                    gap: 4,
+                    gap: space.xs,
                     alignItems: "center",
                     justifyContent: "center",
                   }}
@@ -198,7 +198,7 @@ export default function Addresses() {
                     borderRadius: 999,
                     backgroundColor: colors.brandTint,
                     flexDirection: "row",
-                    gap: 4,
+                    gap: space.xs,
                     alignItems: "center",
                     justifyContent: "center",
                   }}

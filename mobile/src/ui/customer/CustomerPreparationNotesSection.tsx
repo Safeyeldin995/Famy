@@ -1,4 +1,5 @@
 import { preparationNotesForDisplay } from "@shared/provider/preparationNotes";
+import { space } from "../theme";
 import { View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Text } from "@/ui/Text";
@@ -13,7 +14,7 @@ export function CustomerPreparationNotesSection({ notes }: Props) {
   const text = preparationNotesForDisplay(notes);
   if (!text) return null;
   return (
-    <View style={[ui.card, { marginTop: 12, gap: 8 }]}>
+    <View style={[ui.card, { marginTop: space.md, gap: space.sm }]}>
       <Text size="sm" weight="bold" tone="muted">
         {t("customerPreparation.sectionTitle")}
       </Text>

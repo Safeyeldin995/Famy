@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useWindowDimensions } from "react-native";
 import { useSession } from "@/lib/session";
 import { ProviderGate } from "@/ui/provider/ProviderGate";
-import { colors } from "@/ui/theme";
+import { colors, space } from "@/ui/theme";
 import { scaledTabBarHeight } from "@/ui/a11y";
 import { tabBarLabelStyle } from "@/ui/navigationTypography";
 
@@ -28,8 +28,8 @@ export default function ProviderTabs() {
             borderTopColor: colors.border,
             backgroundColor: colors.surface,
             height: scaledTabBarHeight(fontScale, 18, insets.bottom),
-            paddingTop: 6,
-            paddingBottom: Math.max(insets.bottom, 8),
+            paddingTop: space.sm,
+            paddingBottom: Math.max(insets.bottom, space.sm),
           },
         }}
       >

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { space } from "@/ui/theme";
 import { View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { LessonIllustration } from "@/ui/lessons/LessonIllustration";
@@ -146,7 +147,7 @@ export default function ProProfileEditScreen() {
       title={t("pro.profile.title")}
       header={<ProviderHeader title={t("pro.profile.title")} />}
       queries={[p, servicesQ, mineQ]}
-      contentStyle={{ paddingTop: 8 }}
+      contentStyle={{ paddingTop: space.sm }}
     >
       <QueryState query={p}>
         <Button
@@ -183,7 +184,7 @@ export default function ProProfileEditScreen() {
           const current = priceDrafts[id] ?? pendingPrice ?? livePrice ?? min ?? 0;
           return (
             <View key={id} style={proCard.card}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
                 {isLessonServiceSlug(service.slug as string) ? (
                   <LessonIllustration serviceSlug={service.slug as string} width={44} height={44} />
                 ) : null}

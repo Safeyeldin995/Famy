@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import { isValidLatLng } from "@shared/geo/latLng";
 import { Text } from "../Text";
 import { Button } from "../Button";
-import { colors } from "../theme";
+import { colors, space } from "../theme";
 import MapSurface from "./MapSurface";
 import { parseMapMessage, type MapPosition } from "./mapMessages";
 import type { ServiceZone } from "@shared/geo/serviceZones";
@@ -91,7 +91,7 @@ export function LocationPicker({
     }
   }
   const unavailable = (retry: () => void) => (
-    <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 8 }}>
+    <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: space.sm }}>
       <Text size="xs" weight="bold">
         {t("addresses.mapUnavailable")}
       </Text>
@@ -130,11 +130,11 @@ export function LocationPicker({
           </View>
           <View
             style={{
-              paddingHorizontal: 16,
-              paddingVertical: 12,
+              paddingHorizontal: space.lg,
+              paddingVertical: space.md,
               flexDirection: "row",
               alignItems: "center",
-              gap: 8,
+              gap: space.sm,
             }}
           >
             <Check size={20} color={colors.success} />
@@ -152,16 +152,16 @@ export function LocationPicker({
       ) : (
         <View
           style={{
-            padding: 16,
+            padding: space.lg,
             borderWidth: 2,
             borderStyle: "dashed",
             borderColor: colors.brandTintStrong,
             borderRadius: 16,
             backgroundColor: "#F10E7208",
-            gap: 16,
+            gap: space.lg,
           }}
         >
-          <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
+          <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space.md }}>
             <MapPin size={24} color={colors.brand} />
             <View style={{ flex: 1 }}>
               <Text weight="heavy">{t("locationPicker.emptyTitle")}</Text>
@@ -170,7 +170,7 @@ export function LocationPicker({
               </Text>
             </View>
           </View>
-          <View style={{ flexDirection: "row", gap: 8 }}>
+          <View style={{ flexDirection: "row", gap: space.sm }}>
             <Button
               style={{ flex: 1 }}
               label={t("locationPicker.useMyLocation")}
@@ -221,7 +221,7 @@ export function LocationPicker({
             )}
             {!failed ? <Pin /> : null}
           </View>
-          <View style={{ flexDirection: "row", gap: 12, padding: 16, alignItems: "center" }}>
+          <View style={{ flexDirection: "row", gap: space.md, padding: space.lg, alignItems: "center" }}>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t("common.back")}
@@ -239,12 +239,12 @@ export function LocationPicker({
             </Pressable>
             <Text
               weight="heavy"
-              style={{ backgroundColor: "white", borderRadius: 24, padding: 12 }}
+              style={{ backgroundColor: "white", borderRadius: 24, padding: space.md }}
             >
               {t("locationPicker.sheetTitle")}
             </Text>
           </View>
-          <View style={{ marginTop: "auto", padding: 16, gap: 12 }}>
+          <View style={{ marginTop: "auto", padding: space.lg, gap: space.md }}>
             <Button
               variant="secondary"
               style={{ alignSelf: "flex-end" }}
@@ -253,7 +253,7 @@ export function LocationPicker({
               loading={locating}
               onPress={() => void locate()}
             />
-            <View style={{ padding: 16, borderRadius: 24, backgroundColor: "white", gap: 8 }}>
+            <View style={{ padding: space.lg, borderRadius: 24, backgroundColor: "white", gap: space.sm }}>
               <Text weight="heavy">{t("locationPicker.sheetHintTitle")}</Text>
               <Text size="xs" tone="muted">
                 {t("locationPicker.sheetHintBody")}

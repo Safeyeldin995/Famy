@@ -30,7 +30,7 @@ function SplitAmounts({
   const { t, i18n } = useTranslation();
   const kind = earningsHeadlineKind(hasNet, hasBookingValue);
   return (
-    <View style={{ gap: 8 }}>
+    <View style={{ gap: space.sm }}>
       {kind !== "bookingValue" ? (
         <View>
           <Text size="xs" tone="muted">
@@ -95,7 +95,7 @@ export default function ProviderEarnings() {
       tab
       title={t("pro.earnings.title")}
       queries={[p, e, bookingsQ, balanceQ, walletQ]}
-      contentStyle={{ gap: 12 }}
+      contentStyle={{ gap: space.md }}
     >
       <ProviderWalletPanel providerId={provider?.id} />
       <ProviderPayoutMethods providerId={provider?.id} />
@@ -189,10 +189,10 @@ export default function ProviderEarnings() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 12,
+                gap: space.md,
                 backgroundColor: colors.surface,
                 borderRadius: radius.xl,
-                padding: 12,
+                padding: space.md,
               }}
             >
               <View
@@ -209,7 +209,7 @@ export default function ProviderEarnings() {
                   {(customer?.full_name || t("pro.common.customer")).slice(0, 1)}
                 </Text>
               </View>
-              <View style={{ flex: 1, gap: 4 }}>
+              <View style={{ flex: 1, gap: space.xs }}>
                 <Text weight="bold">{customer?.full_name || t("pro.common.customer")}</Text>
                 <Text tone="muted" size="xs">
                   {localized(service, i18n.language)}

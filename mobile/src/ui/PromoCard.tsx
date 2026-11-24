@@ -28,8 +28,8 @@ export function PromoCard({ offer }: { offer: FeaturedPromoCode }) {
         },
       ]}
     >
-      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
-        <View style={{ flex: 1, gap: 4 }}>
+      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space.md }}>
+        <View style={{ flex: 1, gap: space.xs }}>
           <Text size="xl" weight="heavy" tone="inverse">
             {offer.discount_type === "percentage"
               ? t("promoCodes.discountPercent", { value: offer.discount_value })
@@ -42,7 +42,7 @@ export function PromoCard({ offer }: { offer: FeaturedPromoCode }) {
               offer.description_en}
           </Text>
           {offer.expires_at && (
-            <Text size="xs" weight="bold" tone="inverse" style={{ opacity: 0.6, marginTop: 4 }}>
+            <Text size="xs" weight="bold" tone="inverse" style={{ opacity: 0.6, marginTop: space.xs }}>
               {t("promoCodes.expires", {
                 date: new Date(offer.expires_at).toLocaleDateString(
                   i18n.language === "ar" ? "ar-EG-u-nu-latn" : "en-EG",
@@ -63,7 +63,7 @@ export function PromoCard({ offer }: { offer: FeaturedPromoCode }) {
           label={copied ? t("mobile.copied") : offer.code}
           accessibilityLabel={t(copied ? "mobile.copied" : "promoCodes.copyCode")}
           icon={copied ? <Check size={14} color="white" /> : <Copy size={14} color="white" />}
-          style={{ minHeight: 44, paddingHorizontal: 14, borderRadius: 999, direction: "ltr" }}
+          style={{ minHeight: 44, paddingHorizontal: space.lg, borderRadius: 999, direction: "ltr" }}
           onPress={async () => {
             try {
               if (!(await Clipboard.setStringAsync(offer.code)))

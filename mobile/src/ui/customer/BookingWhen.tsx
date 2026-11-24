@@ -6,7 +6,7 @@ import { useAvailableSlots } from "@/lib/bookingQueries";
 import { filterFixedStartSlots, type PackageService } from "@shared/pricing/servicePackages";
 import { bookingTimeLabel, bookingWhenValues } from "@shared/booking/bookingLabels";
 import { Text } from "../Text";
-import { colors } from "../theme";
+import { colors, space } from "../theme";
 import { QueryState } from "../Page";
 type Slot = { start: Date; end: Date; label: string };
 type Props = {
@@ -58,7 +58,7 @@ function Day({ day, index, ...props }: Props & { day: Date; index: number }) {
         backgroundColor: selected ? colors.brand : colors.surface2,
         justifyContent: "center",
         alignItems: "center",
-        gap: 2,
+        gap: space.xs,
         opacity: disabled ? 0.4 : 1,
       }}
     >
@@ -94,14 +94,14 @@ export function CustomerBookingWhen(props: Props) {
     ? filterFixedStartSlots(candidates.data ?? [], props.service)
     : props.slots;
   return (
-    <View style={{ gap: 12 }}>
+    <View style={{ gap: space.md }}>
       <Text size="sm" weight="bold">
         {props.date.toLocaleDateString(props.locale, { month: "long" })}
       </Text>
       <ScrollView
         horizontal
         style={{ flexGrow: 0, height: 76 }}
-        contentContainerStyle={{ gap: 8 }}
+        contentContainerStyle={{ gap: space.sm }}
         accessibilityLabel={t("bookFlow.datesLabel")}
       >
         {days.map((day, index) => (
@@ -115,7 +115,7 @@ export function CustomerBookingWhen(props: Props) {
         query={{ isLoading: props.loading, isError: props.error, refetch: props.onRetry }}
       >
         {!props.slots.length && <Text tone="muted">{t("customerRound2.noSlots")}</Text>}
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
           {display.map((slot) => {
             const available = props.slots.find((s) => +s.start === +slot.start);
             const selected = props.selected != null && +props.selected.start === +slot.start;
@@ -156,10 +156,10 @@ export function CustomerBookingWhen(props: Props) {
         <View
           style={{
             flexDirection: "row",
-            gap: 10,
+            gap: space.md,
             alignItems: "center",
-            paddingHorizontal: 14,
-            paddingVertical: 12,
+            paddingHorizontal: space.lg,
+            paddingVertical: space.md,
             borderRadius: 14,
             backgroundColor: colors.brandTint,
           }}

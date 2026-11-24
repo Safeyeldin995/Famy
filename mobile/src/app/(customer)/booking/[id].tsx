@@ -177,7 +177,7 @@ export default function BookingDetail() {
         {b && info && (
           <>
             {created === "1" && (
-              <View style={{ gap: 10 }}>
+              <View style={{ gap: space.md }}>
                 <Text weight="bold">{t("bookFlow.created")}</Text>
                 <Button label={t("bookFlow.goHome")} onPress={() => router.replace("/home")} />
                 <Button
@@ -237,13 +237,13 @@ export default function BookingDetail() {
               )}
             </View>
             {party.isError && <QueryState query={party} />}
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
               <Avatar
                 raw={party.party?.other_avatar_url || b.provider?.profile.avatar_url}
                 size={56}
                 round
               />
-              <View style={{ flex: 1, gap: 4 }}>
+              <View style={{ flex: 1, gap: space.xs }}>
                 <Text weight="bold">{info.provider}</Text>
                 <Text size="sm" tone="muted">
                   {info.service}
@@ -296,8 +296,8 @@ export default function BookingDetail() {
                 borderWidth: 1,
                 borderColor: colors.border,
                 borderRadius: 16,
-                padding: 16,
-                gap: 12,
+                padding: space.lg,
+                gap: space.md,
               }}
             >
               <Text size="lg" weight="bold">
@@ -343,14 +343,14 @@ export default function BookingDetail() {
               <View
                 style={[
                   ui.priceRow,
-                  { borderTopWidth: 1, borderColor: colors.border, paddingTop: 12, marginTop: 4 },
+                  { borderTopWidth: 1, borderColor: colors.border, paddingTop: space.md, marginTop: space.xs },
                 ]}
               >
                 <Text weight="bold">{t("customerDetail.total")}</Text>
                 <Text weight="bold">{info.total}</Text>
               </View>
             </View>
-            <View style={{ flexDirection: "row", gap: 8 }}>
+            <View style={{ flexDirection: "row", gap: space.sm }}>
               {[
                 { Icon: Download, key: "receipt", onPress: () => void share(false) },
                 { Icon: Calendar, key: "addCalendar", onPress: () => void share(true) },
@@ -368,8 +368,8 @@ export default function BookingDetail() {
                     borderColor: colors.border,
                     borderRadius: 20,
                     backgroundColor: colors.surface,
-                    padding: 12,
-                    gap: 8,
+                    padding: space.md,
+                    gap: space.sm,
                     alignItems: "center",
                     justifyContent: "center",
                   }}

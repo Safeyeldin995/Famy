@@ -19,7 +19,7 @@ import {
   providerProfileQualificationLine,
 } from "@shared/booking/providerProfileDecision";
 import { Text } from "@/ui/Text";
-import { colors } from "@/ui/theme";
+import { colors, space } from "@/ui/theme";
 import { customerStyle } from "@/ui/customer/Primitives";
 
 type ServiceRow = {
@@ -113,7 +113,7 @@ export function ProviderBookingDecision({
   });
 
   return (
-    <View style={[customerStyle.card, { gap: 6 }]}>
+    <View style={[customerStyle.card, { gap: space.sm }]}>
       <Text size="xs" tone="muted" weight="bold">
         {t("providerPage.decisionPrice")}
       </Text>

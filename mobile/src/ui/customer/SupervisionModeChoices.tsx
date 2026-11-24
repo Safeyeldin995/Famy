@@ -1,4 +1,5 @@
 import { View } from "react-native";
+import { space } from "../theme";
 import { useTranslation } from "react-i18next";
 import {
   SUPERVISION_MODES,
@@ -17,7 +18,7 @@ export function SupervisionModeChoices({
 }) {
   const { t } = useTranslation();
   return (
-    <View style={{ gap: 12 }}>
+    <View style={{ gap: space.md }}>
       <Text weight="bold">{t("bookFlow.supervision.title")}</Text>
       <Text tone="muted" size="sm">
         {t("bookFlow.supervision.intro")}

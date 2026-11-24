@@ -91,7 +91,7 @@ export function DocumentUploadCard({
             padding: space.md,
             flexDirection: "row",
             alignItems: "center",
-            gap: 12,
+            gap: space.md,
             backgroundColor: approved || pending ? "#E7F7EF" : colors.surface,
           }}
         >
@@ -111,7 +111,7 @@ export function DocumentUploadCard({
               <IdCard size={24} color={colors.muted} />
             )}
           </View>
-          <View style={{ flex: 1, gap: 4 }}>
+          <View style={{ flex: 1, gap: space.xs }}>
             <Text weight="bold" size="sm">
               {title}
             </Text>

@@ -138,8 +138,8 @@ export default function ProNotifications() {
                     >
                       <Bell size={20} color={colors.brand} />
                     </View>
-                    <View style={{ flex: 1, gap: 4 }}>
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <View style={{ flex: 1, gap: space.xs }}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
                         <Text weight="bold" style={{ flexShrink: 1 }}>
                           {content.title}
                         </Text>

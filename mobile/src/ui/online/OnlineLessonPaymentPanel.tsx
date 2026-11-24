@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { space } from "../theme";
 import { View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useActivePaymentMethods, useCreatePayment } from "@/lib/bookingQueries";
@@ -126,7 +127,7 @@ export function OnlineLessonPaymentPanel({ bookingId, total, onPaid }: Props) {
   }
 
   return (
-    <View style={[ui.card, { gap: 10 }]}>
+    <View style={[ui.card, { gap: space.md }]}>
       <Text size="xl" weight="heavy">
         {t("onlineLesson.payTitle")}
       </Text>

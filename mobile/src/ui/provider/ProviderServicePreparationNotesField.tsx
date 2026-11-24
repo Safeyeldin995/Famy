@@ -1,4 +1,5 @@
 import {
+import { space } from "../theme";
   normalizePreparationNotes,
   PREPARATION_NOTES_MAX_LENGTH,
 } from "@shared/provider/preparationNotes";
@@ -30,7 +31,7 @@ export function ProviderServicePreparationNotesField({
   const overLimit = draft.length > PREPARATION_NOTES_MAX_LENGTH;
 
   return (
-    <View style={{ marginTop: 12, gap: 8 }}>
+    <View style={{ marginTop: space.md, gap: space.sm }}>
       <Field
         label={t("pro.profile.preparationNotesLabel")}
         value={draft}

@@ -4,7 +4,7 @@ import { MapPinned } from "lucide-react-native";
 import { useRequestArea } from "@/lib/bookingQueries";
 import { Button } from "../Button";
 import { Text } from "../Text";
-import { colors, radius } from "../theme";
+import { colors, radius, space } from "../theme";
 
 /** Shown when the address pin is outside every service zone. */
 export function AreaComingSoonCard({ pin }: { pin: { lat: number; lng: number } }) {
@@ -18,15 +18,15 @@ export function AreaComingSoonCard({ pin }: { pin: { lat: number; lng: number } 
   return (
     <View
       style={{
-        gap: 10,
-        padding: 16,
+        gap: space.md,
+        padding: space.lg,
         borderRadius: radius.lg,
         backgroundColor: colors.brandTint,
         borderWidth: 1,
         borderColor: colors.border,
       }}
     >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
         <MapPinned size={20} color={colors.brand} />
         <Text weight="heavy">{t("addresses.comingSoonTitle")}</Text>
       </View>

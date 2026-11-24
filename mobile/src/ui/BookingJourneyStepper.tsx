@@ -68,7 +68,7 @@ export function BookingJourneyStepper({
                 </Text>
               )}
             </View>
-            <View style={{ flex: 1, gap: 2 }}>
+            <View style={{ flex: 1, gap: space.xs }}>
               <Text
                 size="sm"
                 weight={done ? "bold" : "regular"}

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { space } from "./theme";
 import { Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useRescheduleAction, useRescheduleRequests } from "@/lib/rescheduleQueries";
@@ -46,7 +47,7 @@ export function RescheduleSection({
       },
     });
   return (
-    <View style={[ui.card, { borderRadius: 16, gap: 12 }]}>
+    <View style={[ui.card, { borderRadius: 16, gap: space.md }]}>
       <Text weight="bold">{t("reschedule.title")}</Text>
       <QueryState query={requests}>
         {open ? (
@@ -70,7 +71,7 @@ export function RescheduleSection({
                 />
               </>
             ) : (
-              <View style={{ flexDirection: "row", gap: 8 }}>
+              <View style={{ flexDirection: "row", gap: space.sm }}>
                 <Button
                   style={{ flex: 1 }}
                   label={t("reschedule.accept")}

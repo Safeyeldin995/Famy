@@ -1,4 +1,5 @@
 import { Modal, View } from "react-native";
+import { space } from "../theme";
 import { useTranslation } from "react-i18next";
 import { useCreateFamilyMember } from "@/lib/queries";
 import { Page } from "../Page";
@@ -35,7 +36,7 @@ export function BookingInlineForm({
             <Page
               title={t("familyMembers.addMember")}
               header={<CustomerPageHeader title={t("familyMembers.addMember")} onBack={onClose} />}
-              contentStyle={{ paddingHorizontal: 24, gap: 20 }}
+              contentStyle={{ paddingHorizontal: space.xxl, gap: space.xl }}
             >
               <FamilyMemberForm
                 busy={createMember.isPending}

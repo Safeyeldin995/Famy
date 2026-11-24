@@ -226,7 +226,7 @@ export default function ProviderDashboard() {
           <Text weight="bold" size="xs" tone="muted">
             {t("proWork.rating")}
           </Text>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: space.xs }}>
             <Star size={16} color={colors.warning} fill={colors.warning} />
             <Text weight="heavy" size="xxl" style={{ writingDirection: "ltr" }}>
               {rating ? Number(rating).toFixed(2) : "—"}
