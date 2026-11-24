@@ -56,12 +56,11 @@ export async function startPaymob(
     },
   );
   const result = await response.json();
-  if (
-    !response.ok ||
-    !result.ok ||
-    typeof result.checkoutUrl !== "string" ||
-    !result.checkoutUrl.startsWith("https://")
-  )
+  if (!response.ok || !result.ok) throw new Error("checkout failed");
+
+  if (result.paidViaWallet) return;
+
+  if (typeof result.checkoutUrl !== "string" || !result.checkoutUrl.startsWith("https://"))
     throw new Error("checkout failed");
 
   if (shouldUsePaymobNativeSdk(channel)) {

@@ -15,6 +15,8 @@ import {
   operationDate,
 } from "@/components/admin/operations";
 import { AdminBookingReadContext } from "@/components/admin/AdminBookingReadContext";
+import { AdminOnlineSessionTimeline } from "@/components/admin/AdminOnlineSessionTimeline";
+import { AdminOnlineSessionReviewQueue } from "@/components/admin/AdminOnlineSessionReviewQueue";
 import { AdminBookingLifecyclePanel } from "@/components/admin/AdminBookingLifecyclePanel";
 import { useLifecycleAttentionBookingIds } from "@/lib/db/admin-queries";
 import { useRescheduleRequests } from "@/lib/db/queries";
@@ -233,6 +235,8 @@ export function AdminBookings({
         <p className="text-xs text-muted-foreground">{t("admin.bookings.subtitle")}</p>
       </div>
 
+      <AdminOnlineSessionReviewQueue />
+
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex h-10 min-w-[260px] flex-1 items-center gap-2 rounded-xl border border-border bg-surface px-3">
           <Search className="h-4 w-4 text-muted-foreground" />
@@ -446,6 +450,14 @@ export function AdminBookings({
                       </div>
                     )}
                     <AdminBookingLifecyclePanel booking={b} />
+                    <AdminOnlineSessionTimeline
+                      bookingId={b.id}
+                      serviceMode={b.service_mode}
+                      sessionOutcome={(b as { online_session_outcome?: string | null }).online_session_outcome}
+                      participantMinutes={
+                        (b as { online_participant_minutes?: number | null }).online_participant_minutes
+                      }
+                    />
                     <AdminBookingReadContext bookingId={b.id} status={b.status} />
                     <AdminRescheduleHistory bookingId={b.id} customerId={b.customer_id} />
                   </div>

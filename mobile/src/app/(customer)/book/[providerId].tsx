@@ -118,7 +118,16 @@ import {
   supervisionModeProviderLabel,
   isSupervisionMode,
 } from "@shared/booking/supervisionMode";
-
+import { normalizeServiceDeliveryMode } from "@shared/online/serviceMode";
+import {
+  isOnlineRequestStep,
+  isOnlineWhenStep,
+  onlineLessonBookMissing,
+  ONLINE_LESSON_BOOK_STEPS,
+} from "@shared/booking/onlineLessonBookSteps";
+import { onlineBookingLearnerAgeIssue } from "@shared/online/onlineBookingLearnerAge";
+import { memberAgeFromDate } from "@shared/familyMemberAge";
+import { FamilyMemberAgeField } from "@/ui/customer/FamilyMemberAgeField";
 type Slot = { start: Date; end: Date; label: string };
 export default function Book() {
   const {
@@ -126,12 +135,15 @@ export default function Book() {
     serviceId: initialService,
     capabilityId: initialCap,
     rebookFrom,
+    serviceMode: serviceModeParam,
   } = useLocalSearchParams<{
     providerId: string;
     serviceId?: string;
     capabilityId?: string;
     rebookFrom?: string;
+    serviceMode?: string;
   }>();
+  const serviceMode = normalizeServiceDeliveryMode(serviceModeParam);
   return (
     <BookRebookGate providerId={providerId} rebookFrom={rebookFrom}>
       {({ mountKey, rebookInitial, rebookNotices }) => (
@@ -143,6 +155,7 @@ export default function Book() {
           rebookFrom={rebookFrom}
           rebookInitial={rebookInitial}
           rebookNotices={rebookNotices}
+          serviceMode={serviceMode}
         />
       )}
     </BookRebookGate>
@@ -156,6 +169,7 @@ function BookForm({
   rebookFrom,
   rebookInitial,
   rebookNotices: rebookNoticesProp,
+  serviceMode,
 }: {
   providerId: string;
   initialService?: string;
@@ -163,13 +177,15 @@ function BookForm({
   rebookFrom?: string;
   rebookInitial: RebookFormInitial | null;
   rebookNotices: import("@shared/booking/rebookPrefill").RebookPrefillNotice[];
+  serviceMode: "in_person" | "online";
 }) {
+  const isOnlineBooking = serviceMode === "online";
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const locale = lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB";
   const [inlineForm, setInlineForm] = useState<"member" | "address" | null>(null);
   const [editing, setEditing] = useState(false);
-  const provider = useProvider(providerId);
+  const provider = useProvider(providerId, undefined, serviceMode);
   const servicesQ = useProviderServices(providerId);
   const addresses = useAddresses();
   const members = useActiveFamilyMembers();
@@ -182,6 +198,10 @@ function BookForm({
   const savedEducation = useCustomerEducationProfile();
   const profile = useMyProfile();
   const [step, setStep] = useState(0);
+  useEffect(() => {
+    if (!isOnlineBooking) return;
+    setRecipient("myself");
+  }, [isOnlineBooking]);
   const { guardDefault, touch } = useRebookSeedGuard(rebookInitial?.seededFields);
   const [serviceId, setServiceId] = useState(rebookInitial?.serviceId ?? initialService ?? "");
   const [capId, setCapId] = useState(rebookInitial?.capabilityId ?? initialCap ?? "");
@@ -227,7 +247,11 @@ function BookForm({
     return joinUiParts(savedAddressMobileUiParts(addr), lang);
   }, [pinned, reviewAddressId, lang]);
   const zone = useResolveZone(selectedAddress?.lat, selectedAddress?.lng);
-  const bookable = useBookableServiceIds(providerId, addressId || undefined);
+  const bookable = useBookableServiceIds(
+    providerId,
+    isOnlineBooking ? undefined : addressId || undefined,
+    serviceMode,
+  );
   const services = (servicesQ.data ?? []).filter(
     (s) => isClosedBetaCategorySlug(s.service.category?.slug) && bookable.data?.has(s.service.id),
   );
@@ -259,13 +283,25 @@ function BookForm({
     : fixed
       ? Number(service?.service.duration_min)
       : hours * 60;
+  useEffect(() => {
+    if (!isOnlineBooking || !tutoring || capId || !(caps.data?.length ?? 0)) return;
+    const pick =
+      caps.data!.find((c) => c.id === initialCap) ??
+      caps.data!.find((c) => c.durationMin === duration) ??
+      caps.data![0];
+    if (pick) setCapId(pick.id);
+  }, [isOnlineBooking, tutoring, capId, caps.data, initialCap, duration]);
+  useEffect(() => {
+    if (!isOnlineBooking || !initialService || serviceId) return;
+    if (services.some((s) => s.service.id === initialService)) setServiceId(initialService);
+  }, [isOnlineBooking, initialService, serviceId, services]);
   const settings = useProviderBookingSettings(providerId, {
     serviceId: eligibilityServiceId,
-    addressId: addressId || null,
+    addressId: isOnlineBooking ? null : addressId || null,
   });
   const slots = useAvailableSlots(providerId, date, duration || 120, {
     serviceId: service?.service.id,
-    addressId: addressId || null,
+    addressId: isOnlineBooking ? null : addressId || null,
     cairoTime: fixed,
     fixedStartTime: fixed ? service?.service.fixed_start_time : null,
   });
@@ -370,7 +406,7 @@ function BookForm({
     vatPercent: billing.data?.vat_percent ?? 14,
     requirements: required,
     requirementChoices: choices,
-    travelFee: Number(zone.data?.travel_fee ?? 0),
+    travelFee: isOnlineBooking ? 0 : Number(zone.data?.travel_fee ?? 0),
     promoDiscount: applied?.discount ?? 0,
   });
   // Earlier unpaid cancellation fees are added to this booking by the server.
@@ -382,20 +418,35 @@ function BookForm({
     members: members.data ?? [],
     startAt: currentSlot?.start ?? null,
   });
+  const onlineLearnerAgeIssue = isOnlineBooking
+    ? onlineBookingLearnerAgeIssue(
+        recipient,
+        profile.data?.date_of_birth ?? null,
+        members.data ?? [],
+      )
+    : null;
+  const onlineRecipientReady = recipientReady && !onlineLearnerAgeIssue;
   const supervisionReady = !supervisionRequired || !!supervisionMode;
   const addressReady = checkoutAddressReady({
-    addressId: addressId || null,
+    addressId: isOnlineBooking ? null : addressId || null,
     hasPinnedAddress: !!selectedAddress,
     bookable,
     serviceId: eligibilityServiceId,
   });
   const addressOutside = checkoutAddressOutsideArea({
-    addressId: addressId || null,
+    addressId: isOnlineBooking ? null : addressId || null,
     hasPinnedAddress: !!selectedAddress,
     bookable,
     serviceId: eligibilityServiceId,
   });
-  const paymobOnline = resolvePaymobOnlinePaymentMethod(methods.data);
+  const checkoutMethods = useMemo(
+    () =>
+      isOnlineBooking
+        ? (methods.data ?? []).filter((m) => m.method_type !== "cash")
+        : (methods.data ?? []),
+    [isOnlineBooking, methods.data],
+  );
+  const paymobOnline = resolvePaymobOnlinePaymentMethod(checkoutMethods);
   const showApplePay =
     !!paymobOnline && showApplePayPaymentOption(!!paymobCaps.data?.applePay);
   const showGooglePay =
@@ -405,18 +456,26 @@ function BookForm({
     (isPaymobWalletUiMethodId(methodId)
       ? !!paymobOnline
       : !!methods.data?.some((m) => m.id === methodId));
-  const missing = bookingScreenMissingStep(BOOKING_SCREENS[step], {
-    service: !!service,
-    tutoring,
-    capability: !!capability,
-    slot: !!currentSlot && !slots.isFetching,
-    address: addressReady,
-    recipient: recipientReady,
-    supervisionRequired,
-    supervision: supervisionReady,
-    requirements: requirements.isSuccess && either.every((r) => !!choices[r.id]),
-    payment: paymentMethodReady,
-  });
+  const missing = isOnlineBooking
+    ? onlineLessonBookMissing({
+        service: !!service,
+        slot: !!currentSlot && !slots.isFetching,
+        tutoring,
+        capability: !!capability,
+        recipient: onlineRecipientReady,
+      })
+    : bookingScreenMissingStep(BOOKING_SCREENS[step], {
+        service: !!service,
+        tutoring,
+        capability: !!capability,
+        slot: !!currentSlot && !slots.isFetching,
+        address: addressReady,
+        recipient: onlineRecipientReady,
+        supervisionRequired,
+        supervision: supervisionReady,
+        requirements: requirements.isSuccess && either.every((r) => !!choices[r.id]),
+        payment: paymentMethodReady,
+      });
   const blocked = checkoutContinueBlocked({
     servicesError: servicesQ.isError,
     bookable,
@@ -427,7 +486,7 @@ function BookForm({
     needsRate,
     packageRate,
     capsError: tutoring && caps.isError,
-    addressId: addressId || null,
+    addressId: isOnlineBooking ? null : addressId || null,
     serviceId: eligibilityServiceId,
   });
   const loading =
@@ -444,7 +503,7 @@ function BookForm({
     error: !!blocked,
     hasDate: true,
     hasSlots: available.length > 0,
-    hasAddress: !!addressId,
+    hasAddress: isOnlineBooking || !!addressId,
     addressOutside,
     hasRecipient: recipientReady,
     hasSupervision: supervisionReady,
@@ -499,7 +558,8 @@ function BookForm({
       const payload = buildBookingRequest({
         providerId,
         serviceId: service.service.id,
-        addressId,
+        addressId: isOnlineBooking ? null : addressId,
+        serviceMode,
         forWhom: recipient,
         start: currentSlot.start,
         end: currentSlot.end,
@@ -522,17 +582,18 @@ function BookForm({
         idempotency_key: idempotency.current.key,
       });
       createdId.current = booking.id;
-      const walletChannel = paymobChannelForUiMethodId(methodId);
-      const method = walletChannel
-        ? paymobOnline!
-        : methods.data!.find((m) => m.id === methodId)!;
-      const paymobChannel = walletChannel ?? "card";
-      // Persist before navigation so payment recovery survives a fetch failure or app restart.
-      await stashPayment(booking.id, {
-        paymentMethodId: method.id,
-        methodType: method.method_type,
-        ...(paymobChannel !== "card" ? { paymobChannel } : {}),
-      });
+      if (!isOnlineBooking) {
+        const walletChannel = paymobChannelForUiMethodId(methodId);
+        const method = walletChannel
+          ? paymobOnline!
+          : methods.data!.find((m) => m.id === methodId)!;
+        const paymobChannel = walletChannel ?? "card";
+        await stashPayment(booking.id, {
+          paymentMethodId: method.id,
+          methodType: method.method_type,
+          ...(paymobChannel !== "card" ? { paymobChannel } : {}),
+        });
+      }
       let educationWarning = false;
       if (
         shouldPersistEducationAfterBookingSuccess({
@@ -553,20 +614,27 @@ function BookForm({
           educationWarning = true;
         }
       }
-      const paymentPlan = planPostCreatePayment(booking, method);
-      if (paymentPlan.action === "create_now") {
-        try {
-          const payment = await createPayment.mutateAsync({
-            bookingId: booking.id,
-            paymentMethodId: method.id,
-            methodType: method.method_type,
-          });
-          await clearPayment(booking.id);
-          if (method.method_type === "online") {
-            await startPaymob(booking.id, payment.id, paymobChannel);
+      if (!isOnlineBooking) {
+        const walletChannel = paymobChannelForUiMethodId(methodId);
+        const method = walletChannel
+          ? paymobOnline!
+          : methods.data!.find((m) => m.id === methodId)!;
+        const paymobChannel = walletChannel ?? "card";
+        const paymentPlan = planPostCreatePayment(booking, method);
+        if (paymentPlan.action === "create_now") {
+          try {
+            const payment = await createPayment.mutateAsync({
+              bookingId: booking.id,
+              paymentMethodId: method.id,
+              methodType: method.method_type,
+            });
+            await clearPayment(booking.id);
+            if (method.method_type === "online") {
+              await startPaymob(booking.id, payment.id, paymobChannel);
+            }
+          } catch {
+            /* Booking is already created; detail recovers payment or offers checkout retry. */
           }
-        } catch {
-          /* Booking is already created; detail recovers payment or offers checkout retry. */
         }
       }
       router.replace({
@@ -603,8 +671,10 @@ function BookForm({
           ...(members.data ?? [])
             .filter(
               (m) =>
-                !babysitting ||
-                familyMemberSelectableForBabysitting(m, currentSlot?.start ?? null).ok,
+                (!isOnlineBooking ||
+                  (memberAgeFromDate(m.date_of_birth)?.years ?? 0) >= 12) &&
+                (!babysitting ||
+                  familyMemberSelectableForBabysitting(m, currentSlot?.start ?? null).ok),
             )
             .map((m) => ({
               value: m.id,
@@ -635,6 +705,30 @@ function BookForm({
           }}
         />
       )}
+      {isOnlineBooking && recipient === "myself" && !profile.data?.date_of_birth ? (
+        <View style={{ gap: 8 }}>
+          <Text tone="muted">{t("bookFlow.onlineBirthDatePrompt")}</Text>
+          <FamilyMemberAgeField
+            value={profile.data?.date_of_birth ?? ""}
+            relationship="friend"
+            onChange={(dob) => {
+              const userId = session?.user.id;
+              if (!userId) return;
+              void supabase
+                .from("profiles")
+                .update({ date_of_birth: dob })
+                .eq("id", userId)
+                .then(({ error }) => {
+                  if (error) setError(t("common.somethingWentWrong"));
+                  else void profile.refetch();
+                });
+            }}
+          />
+        </View>
+      ) : null}
+      {isOnlineBooking && onlineLearnerAgeIssue === "age_minimum" ? (
+        <Text tone="danger">{t("bookFlow.errors.ONLINE_AGE_MINIMUM")}</Text>
+      ) : null}
     </View>
   );
   return (
@@ -644,7 +738,10 @@ function BookForm({
           title={t(`customerBooking.titles.${BOOKING_SCREENS[step]}`, {
             name: provider.data?.profile.full_name?.split(" ")[0] || "",
           })}
-          subtitle={t("customerRound2.step", { step: String(step + 1), total: "4" })}
+          subtitle={t("customerRound2.step", {
+            step: String(step + 1),
+            total: isOnlineBooking ? String(ONLINE_LESSON_BOOK_STEPS) : "4",
+          })}
           onBack={() => {
             if (busy) return;
             if (step > 0) setStep(step - 1);
@@ -678,9 +775,11 @@ function BookForm({
             <View style={{ flex: 1 }}>
               <Button
                 label={t(
-                  step === 3
-                    ? "mobileBooking.confirmBooking"
-                    : bookingScreenPrimaryCtaKey(BOOKING_SCREENS[step], editing),
+                  isOnlineRequestStep(step, isOnlineBooking)
+                    ? "onlineLesson.requestLesson"
+                    : step === 3
+                      ? "mobileBooking.confirmBooking"
+                      : bookingScreenPrimaryCtaKey(BOOKING_SCREENS[step], editing),
                 )}
                 loading={busy}
                 disabled={busy || loading}
@@ -697,10 +796,11 @@ function BookForm({
                     }
                     return;
                   }
-                  if (step === 3) void submit();
+                  if (isOnlineRequestStep(step, isOnlineBooking) || step === 3) void submit();
                   else {
                     setFieldHint(null);
-                    setStep(editing ? 3 : step + 1);
+                    const last = isOnlineBooking ? ONLINE_LESSON_BOOK_STEPS - 1 : 3;
+                    setStep(editing ? last : Math.min(step + 1, last));
                     setEditing(false);
                   }
                 }}
@@ -729,13 +829,13 @@ function BookForm({
       <QueryState query={billing} />
       {needsRate && <QueryState query={packageRate} />}
       <RebookPrefillNoticeList notices={rebookNotices} />
-      {!pinned.length && !addresses.isLoading && (
+      {!isOnlineBooking && !pinned.length && !addresses.isLoading && (
         <>
           <Text>{t("customerHome.addressHint")}</Text>
           <Button label={t("addresses.addAddress")} onPress={() => setInlineForm("address")} />
         </>
       )}
-      {step === 0 && (
+      {step === 0 && !isOnlineBooking && (
         <>
           <View
             nativeID="booking-services"
@@ -921,12 +1021,19 @@ function BookForm({
           ) : null}
         </>
       )}
-      {step === 1 && (
+      {isOnlineWhenStep(step, isOnlineBooking) && (
         <>
-          <BookingVisitRequirements
-            categorySlug={service?.service.category?.slug}
-            requirements={requirements.data ?? []}
-          />
+          {isOnlineBooking && service ? (
+            <Text weight="bold">
+              {localized(service.service, lang)} · {provider.data?.profile.full_name?.split(" ")[0]}
+            </Text>
+          ) : null}
+          {!isOnlineBooking ? (
+            <BookingVisitRequirements
+              categorySlug={service?.service.category?.slug}
+              requirements={requirements.data ?? []}
+            />
+          ) : null}
           {fieldHint?.focusId === "booking-schedule" ? (
             <Text tone="danger">{t(fieldHint.messageKey)}</Text>
           ) : null}
@@ -934,7 +1041,7 @@ function BookForm({
             <CustomerBookingWhen
               providerId={providerId}
               serviceId={service?.service.id ?? ""}
-              addressId={addressId}
+              addressId={isOnlineBooking ? "" : addressId}
               service={service?.service ?? {}}
               durationMinutes={duration || 120}
               maxAdvanceDays={settings.data?.max_advance_days ?? 12}
@@ -954,39 +1061,51 @@ function BookForm({
               onTimeChange={setSlot}
             />
           </View>
+          {isOnlineBooking ? (
+            <Field
+              label={t("onlineLesson.noteOptional")}
+              value={notes}
+              onChangeText={setNotes}
+              multiline
+            />
+          ) : null}
         </>
       )}
       {step === 2 && (
         <>
-          <QueryState query={addresses} empty={!pinned.length} />
-          {fieldHint?.focusId === "booking-addresses" ? (
-            <Text tone="danger">{t(fieldHint.messageKey)}</Text>
+          {!isOnlineBooking ? (
+            <>
+              <QueryState query={addresses} empty={!pinned.length} />
+              {fieldHint?.focusId === "booking-addresses" ? (
+                <Text tone="danger">{t(fieldHint.messageKey)}</Text>
+              ) : null}
+              <View nativeID="booking-addresses">
+                <Choices
+                  layout="cards"
+                  label={t("bookingUx.chooseAddress")}
+                  value={addressId}
+                  onChange={(v) => {
+                    touch("addressId");
+                    setAddressId(v);
+                    setSlot(null);
+                  }}
+                  options={pinned.map((a) => ({
+                    value: a.id,
+                    label: joinUiParts(
+                      [a.area, a.street, a.building].filter(Boolean) as string[],
+                      lang,
+                    ),
+                  }))}
+                />
+                <Button
+                  variant="secondary"
+                  label={t("addresses.addAddress")}
+                  onPress={() => setInlineForm("address")}
+                />
+              </View>
+              <QueryState query={bookable} empty={addressOutside} emptyKey="bookingUx.outsideArea" />
+            </>
           ) : null}
-          <View nativeID="booking-addresses">
-            <Choices
-              layout="cards"
-              label={t("bookingUx.chooseAddress")}
-              value={addressId}
-              onChange={(v) => {
-                touch("addressId");
-                setAddressId(v);
-                setSlot(null);
-              }}
-              options={pinned.map((a) => ({
-                value: a.id,
-                label: joinUiParts(
-                  [a.area, a.street, a.building].filter(Boolean) as string[],
-                  lang,
-                ),
-              }))}
-            />
-            <Button
-              variant="secondary"
-              label={t("addresses.addAddress")}
-              onPress={() => setInlineForm("address")}
-            />
-          </View>
-          <QueryState query={bookable} empty={addressOutside} emptyKey="bookingUx.outsideArea" />
           {!tutoring && recipientUI}
           <QueryState query={requirements} />
           {required.map((r) => (
@@ -1025,8 +1144,13 @@ function BookForm({
           <Field label={t("setup.notes")} value={notes} onChangeText={setNotes} multiline />
         </>
       )}
-      {step === 3 && (
+      {(step === 3 || isOnlineRequestStep(step, isOnlineBooking)) && (
         <>
+          {isOnlineBooking ? (
+            <Text size="sm" tone="muted">
+              {t("onlineLesson.requestHint")}
+            </Text>
+          ) : null}
           <View>
             {[
               {
@@ -1054,11 +1178,15 @@ function BookForm({
                   : t("bookFlow.dash"),
                 step: 1,
               },
-              {
-                label: t("bookFlow.rowAddress"),
-                value: reviewAddressLine,
-                step: 2,
-              },
+              ...(isOnlineBooking
+                ? []
+                : [
+                    {
+                      label: t("bookFlow.rowAddress"),
+                      value: reviewAddressLine,
+                      step: 2,
+                    },
+                  ]),
               {
                 label: t("customerBooking.recipient"),
                 value:
@@ -1195,14 +1323,25 @@ function BookForm({
               onApplied={setApplied}
             />
           ) : null}
-          <QueryState query={methods} empty={!methods.data?.length} />
+          {isOnlineBooking ? (
+            <>
+              <Text size="sm" tone="muted">
+                {t("wallet.refundDisclosure")}
+              </Text>
+              <Text size="sm" tone="muted">
+                {t("onlineLesson.requestHint")}
+              </Text>
+            </>
+          ) : null}
+          {!isOnlineBooking ? <QueryState query={methods} empty={!methods.data?.length} /> : null}
+          {!isOnlineBooking ? (
           <Choices
             layout="cards"
             label={t("payment.title")}
             value={methodId}
             onChange={setMethodId}
             options={[
-              ...(methods.data ?? []).map((m) => ({
+              ...checkoutMethods.map((m) => ({
                 value: m.id,
                 label: localized(m, lang),
                 adornment: <PaymentMethodLogos code={m.code} type={m.method_type} />,
@@ -1227,6 +1366,7 @@ function BookForm({
                 : []),
             ]}
           />
+          ) : null}
         </>
       )}
       {error && <Text tone="danger">{error}</Text>}

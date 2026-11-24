@@ -14,6 +14,7 @@ import {
   Shield,
   Heart,
   MessageCircle,
+  Wallet,
 } from "lucide-react-native";
 import { reloadAppAsync } from "expo";
 import { applyDirection, saveLanguage } from "@/lib/i18n";
@@ -104,6 +105,11 @@ export default function Profile() {
             Icon={Heart}
             label={t("profile.favorites")}
             onPress={() => router.push("/favorites")}
+          />
+          <CustomerMenuRow
+            Icon={Wallet}
+            label={t("wallet.title")}
+            onPress={() => router.push("/wallet")}
           />
           <CustomerMenuRow
             Icon={MessageCircle}

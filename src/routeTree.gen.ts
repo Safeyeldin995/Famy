@@ -49,6 +49,7 @@ import { Route as AdminCasesRouteImport } from './routes/admin.cases'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
 import { Route as AdminFinanceRouteImport } from './routes/admin.finance'
 import { Route as AdminMonitoringRouteImport } from './routes/admin.monitoring'
+import { Route as AdminOnlineLessonIssuesRouteImport } from './routes/admin.online-lesson-issues'
 import { Route as AdminOperationsRouteImport } from './routes/admin.operations'
 import { Route as AdminPaymentMethodsRouteImport } from './routes/admin.payment-methods'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
@@ -111,9 +112,13 @@ import { Route as AdminPriceChangeIdRouteImport } from './routes/admin.price-cha
 import { Route as AdminProviderIdRouteImport } from './routes/admin.provider.$id'
 import { Route as AdminServiceRequestIdRouteImport } from './routes/admin.service-request.$id'
 import { Route as ApiAccountDeleteRouteImport } from './routes/api.account.delete'
+import { Route as ApiLivekitWebhookRouteImport } from './routes/api.livekit.webhook'
 import { Route as ApiMobileDebtCheckoutRouteImport } from './routes/api.mobile.debt-checkout'
 import { Route as ApiMobilePaymobCapabilitiesRouteImport } from './routes/api.mobile.paymob-capabilities'
 import { Route as ApiMobilePaymobCheckoutRouteImport } from './routes/api.mobile.paymob-checkout'
+import { Route as ApiSessionCapabilitiesRouteImport } from './routes/api.session.capabilities'
+import { Route as ApiSessionReportRouteImport } from './routes/api.session.report'
+import { Route as ApiSessionTokenRouteImport } from './routes/api.session.token'
 import { Route as PreviewAccountDeleteRouteImport } from './routes/preview.account.delete'
 import { Route as PreviewAddressesIndexRouteImport } from './routes/preview.addresses.index'
 import { Route as PreviewAddressesIdRouteImport } from './routes/preview.addresses.$id'
@@ -370,6 +375,11 @@ const AdminFinanceRoute = AdminFinanceRouteImport.update({
 const AdminMonitoringRoute = AdminMonitoringRouteImport.update({
   id: '/monitoring',
   path: '/monitoring',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOnlineLessonIssuesRoute = AdminOnlineLessonIssuesRouteImport.update({
+  id: '/online-lesson-issues',
+  path: '/online-lesson-issues',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminOperationsRoute = AdminOperationsRouteImport.update({
@@ -685,6 +695,11 @@ const ApiAccountDeleteRoute = ApiAccountDeleteRouteImport.update({
   path: '/api/account/delete',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiLivekitWebhookRoute = ApiLivekitWebhookRouteImport.update({
+  id: '/api/livekit/webhook',
+  path: '/api/livekit/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMobileDebtCheckoutRoute = ApiMobileDebtCheckoutRouteImport.update({
   id: '/api/mobile/debt-checkout',
   path: '/api/mobile/debt-checkout',
@@ -699,6 +714,21 @@ const ApiMobilePaymobCapabilitiesRoute =
 const ApiMobilePaymobCheckoutRoute = ApiMobilePaymobCheckoutRouteImport.update({
   id: '/api/mobile/paymob-checkout',
   path: '/api/mobile/paymob-checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSessionCapabilitiesRoute = ApiSessionCapabilitiesRouteImport.update({
+  id: '/api/session/capabilities',
+  path: '/api/session/capabilities',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSessionReportRoute = ApiSessionReportRouteImport.update({
+  id: '/api/session/report',
+  path: '/api/session/report',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSessionTokenRoute = ApiSessionTokenRouteImport.update({
+  id: '/api/session/token',
+  path: '/api/session/token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PreviewAccountDeleteRoute = PreviewAccountDeleteRouteImport.update({
@@ -1030,6 +1060,7 @@ export interface FileRoutesByFullPath {
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/monitoring': typeof AdminMonitoringRoute
+  '/admin/online-lesson-issues': typeof AdminOnlineLessonIssuesRoute
   '/admin/operations': typeof AdminOperationsRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -1094,9 +1125,13 @@ export interface FileRoutesByFullPath {
   '/admin/provider/$id': typeof AdminProviderIdRoute
   '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
+  '/api/livekit/webhook': typeof ApiLivekitWebhookRoute
   '/api/mobile/debt-checkout': typeof ApiMobileDebtCheckoutRoute
   '/api/mobile/paymob-capabilities': typeof ApiMobilePaymobCapabilitiesRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
+  '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
+  '/api/session/report': typeof ApiSessionReportRoute
+  '/api/session/token': typeof ApiSessionTokenRoute
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
   '/preview/addresses/new': typeof PreviewAddressesNewRoute
@@ -1188,6 +1223,7 @@ export interface FileRoutesByTo {
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/monitoring': typeof AdminMonitoringRoute
+  '/admin/online-lesson-issues': typeof AdminOnlineLessonIssuesRoute
   '/admin/operations': typeof AdminOperationsRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -1249,9 +1285,13 @@ export interface FileRoutesByTo {
   '/admin/provider/$id': typeof AdminProviderIdRoute
   '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
+  '/api/livekit/webhook': typeof ApiLivekitWebhookRoute
   '/api/mobile/debt-checkout': typeof ApiMobileDebtCheckoutRoute
   '/api/mobile/paymob-capabilities': typeof ApiMobilePaymobCapabilitiesRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
+  '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
+  '/api/session/report': typeof ApiSessionReportRoute
+  '/api/session/token': typeof ApiSessionTokenRoute
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
   '/preview/addresses/new': typeof PreviewAddressesNewRoute
@@ -1349,6 +1389,7 @@ export interface FileRoutesById {
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/monitoring': typeof AdminMonitoringRoute
+  '/admin/online-lesson-issues': typeof AdminOnlineLessonIssuesRoute
   '/admin/operations': typeof AdminOperationsRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -1413,9 +1454,13 @@ export interface FileRoutesById {
   '/admin/provider/$id': typeof AdminProviderIdRoute
   '/admin/service-request/$id': typeof AdminServiceRequestIdRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
+  '/api/livekit/webhook': typeof ApiLivekitWebhookRoute
   '/api/mobile/debt-checkout': typeof ApiMobileDebtCheckoutRoute
   '/api/mobile/paymob-capabilities': typeof ApiMobilePaymobCapabilitiesRoute
   '/api/mobile/paymob-checkout': typeof ApiMobilePaymobCheckoutRoute
+  '/api/session/capabilities': typeof ApiSessionCapabilitiesRoute
+  '/api/session/report': typeof ApiSessionReportRoute
+  '/api/session/token': typeof ApiSessionTokenRoute
   '/preview/account/delete': typeof PreviewAccountDeleteRoute
   '/preview/addresses/$id': typeof PreviewAddressesIdRoute
   '/preview/addresses/new': typeof PreviewAddressesNewRoute
@@ -1514,6 +1559,7 @@ export interface FileRouteTypes {
     | '/admin/customers'
     | '/admin/finance'
     | '/admin/monitoring'
+    | '/admin/online-lesson-issues'
     | '/admin/operations'
     | '/admin/payment-methods'
     | '/admin/payments'
@@ -1578,9 +1624,13 @@ export interface FileRouteTypes {
     | '/admin/provider/$id'
     | '/admin/service-request/$id'
     | '/api/account/delete'
+    | '/api/livekit/webhook'
     | '/api/mobile/debt-checkout'
     | '/api/mobile/paymob-capabilities'
     | '/api/mobile/paymob-checkout'
+    | '/api/session/capabilities'
+    | '/api/session/report'
+    | '/api/session/token'
     | '/preview/account/delete'
     | '/preview/addresses/$id'
     | '/preview/addresses/new'
@@ -1672,6 +1722,7 @@ export interface FileRouteTypes {
     | '/admin/customers'
     | '/admin/finance'
     | '/admin/monitoring'
+    | '/admin/online-lesson-issues'
     | '/admin/operations'
     | '/admin/payment-methods'
     | '/admin/payments'
@@ -1733,9 +1784,13 @@ export interface FileRouteTypes {
     | '/admin/provider/$id'
     | '/admin/service-request/$id'
     | '/api/account/delete'
+    | '/api/livekit/webhook'
     | '/api/mobile/debt-checkout'
     | '/api/mobile/paymob-capabilities'
     | '/api/mobile/paymob-checkout'
+    | '/api/session/capabilities'
+    | '/api/session/report'
+    | '/api/session/token'
     | '/preview/account/delete'
     | '/preview/addresses/$id'
     | '/preview/addresses/new'
@@ -1832,6 +1887,7 @@ export interface FileRouteTypes {
     | '/admin/customers'
     | '/admin/finance'
     | '/admin/monitoring'
+    | '/admin/online-lesson-issues'
     | '/admin/operations'
     | '/admin/payment-methods'
     | '/admin/payments'
@@ -1896,9 +1952,13 @@ export interface FileRouteTypes {
     | '/admin/provider/$id'
     | '/admin/service-request/$id'
     | '/api/account/delete'
+    | '/api/livekit/webhook'
     | '/api/mobile/debt-checkout'
     | '/api/mobile/paymob-capabilities'
     | '/api/mobile/paymob-checkout'
+    | '/api/session/capabilities'
+    | '/api/session/report'
+    | '/api/session/token'
     | '/preview/account/delete'
     | '/preview/addresses/$id'
     | '/preview/addresses/new'
@@ -1995,9 +2055,13 @@ export interface RootRouteChildren {
   PayFeesReturnRoute: typeof PayFeesReturnRoute
   ProviderIdRoute: typeof ProviderIdRoute
   ApiAccountDeleteRoute: typeof ApiAccountDeleteRoute
+  ApiLivekitWebhookRoute: typeof ApiLivekitWebhookRoute
   ApiMobileDebtCheckoutRoute: typeof ApiMobileDebtCheckoutRoute
   ApiMobilePaymobCapabilitiesRoute: typeof ApiMobilePaymobCapabilitiesRoute
   ApiMobilePaymobCheckoutRoute: typeof ApiMobilePaymobCheckoutRoute
+  ApiSessionCapabilitiesRoute: typeof ApiSessionCapabilitiesRoute
+  ApiSessionReportRoute: typeof ApiSessionReportRoute
+  ApiSessionTokenRoute: typeof ApiSessionTokenRoute
   ApiMobileAuthCompletePasswordRoute: typeof ApiMobileAuthCompletePasswordRoute
   ApiMobileAuthSetPasswordContextRoute: typeof ApiMobileAuthSetPasswordContextRoute
   ApiMobileOtpAbandonRoute: typeof ApiMobileOtpAbandonRoute
@@ -2288,6 +2352,13 @@ declare module '@tanstack/react-router' {
       path: '/monitoring'
       fullPath: '/admin/monitoring'
       preLoaderRoute: typeof AdminMonitoringRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/online-lesson-issues': {
+      id: '/admin/online-lesson-issues'
+      path: '/online-lesson-issues'
+      fullPath: '/admin/online-lesson-issues'
+      preLoaderRoute: typeof AdminOnlineLessonIssuesRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/operations': {
@@ -2724,6 +2795,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAccountDeleteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/livekit/webhook': {
+      id: '/api/livekit/webhook'
+      path: '/api/livekit/webhook'
+      fullPath: '/api/livekit/webhook'
+      preLoaderRoute: typeof ApiLivekitWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/mobile/debt-checkout': {
       id: '/api/mobile/debt-checkout'
       path: '/api/mobile/debt-checkout'
@@ -2743,6 +2821,27 @@ declare module '@tanstack/react-router' {
       path: '/api/mobile/paymob-checkout'
       fullPath: '/api/mobile/paymob-checkout'
       preLoaderRoute: typeof ApiMobilePaymobCheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/session/capabilities': {
+      id: '/api/session/capabilities'
+      path: '/api/session/capabilities'
+      fullPath: '/api/session/capabilities'
+      preLoaderRoute: typeof ApiSessionCapabilitiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/session/report': {
+      id: '/api/session/report'
+      path: '/api/session/report'
+      fullPath: '/api/session/report'
+      preLoaderRoute: typeof ApiSessionReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/session/token': {
+      id: '/api/session/token'
+      path: '/api/session/token'
+      fullPath: '/api/session/token'
+      preLoaderRoute: typeof ApiSessionTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/preview/account/delete': {
@@ -3166,6 +3265,7 @@ interface AdminRouteChildren {
   AdminCustomersRoute: typeof AdminCustomersRoute
   AdminFinanceRoute: typeof AdminFinanceRoute
   AdminMonitoringRoute: typeof AdminMonitoringRoute
+  AdminOnlineLessonIssuesRoute: typeof AdminOnlineLessonIssuesRoute
   AdminOperationsRoute: typeof AdminOperationsRoute
   AdminPaymentMethodsRoute: typeof AdminPaymentMethodsRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
@@ -3196,6 +3296,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCustomersRoute: AdminCustomersRoute,
   AdminFinanceRoute: AdminFinanceRoute,
   AdminMonitoringRoute: AdminMonitoringRoute,
+  AdminOnlineLessonIssuesRoute: AdminOnlineLessonIssuesRoute,
   AdminOperationsRoute: AdminOperationsRoute,
   AdminPaymentMethodsRoute: AdminPaymentMethodsRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,
@@ -3490,9 +3591,13 @@ const rootRouteChildren: RootRouteChildren = {
   PayFeesReturnRoute: PayFeesReturnRoute,
   ProviderIdRoute: ProviderIdRoute,
   ApiAccountDeleteRoute: ApiAccountDeleteRoute,
+  ApiLivekitWebhookRoute: ApiLivekitWebhookRoute,
   ApiMobileDebtCheckoutRoute: ApiMobileDebtCheckoutRoute,
   ApiMobilePaymobCapabilitiesRoute: ApiMobilePaymobCapabilitiesRoute,
   ApiMobilePaymobCheckoutRoute: ApiMobilePaymobCheckoutRoute,
+  ApiSessionCapabilitiesRoute: ApiSessionCapabilitiesRoute,
+  ApiSessionReportRoute: ApiSessionReportRoute,
+  ApiSessionTokenRoute: ApiSessionTokenRoute,
   ApiMobileAuthCompletePasswordRoute: ApiMobileAuthCompletePasswordRoute,
   ApiMobileAuthSetPasswordContextRoute: ApiMobileAuthSetPasswordContextRoute,
   ApiMobileOtpAbandonRoute: ApiMobileOtpAbandonRoute,

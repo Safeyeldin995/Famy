@@ -38,6 +38,17 @@ function createMockSupabase(initialPayment: PaymentRecord) {
     state,
     async rpc(fn: string, args: Record<string, unknown>) {
       return withLock(async () => {
+        if (fn === "customer_apply_wallet_at_checkout") {
+          return {
+            data: {
+              payment_id: payment.id,
+              wallet_spent: 0,
+              card_amount: payment.amount,
+              paid_via_wallet_only: false,
+            },
+            error: null,
+          };
+        }
         if (fn === "paymob_reserve_checkout") {
           const checkoutUrl = payment.metadata.paymob_checkout_url;
           const intentionId = payment.metadata.paymob_intention_id ?? payment.provider_ref;
@@ -120,7 +131,12 @@ function createMockSupabase(initialPayment: PaymentRecord) {
           error: null,
         }),
         single: async () => ({
-          data: table === "bookings" ? buildBookingRow() : buildProfileRow(),
+          data:
+            table === "bookings"
+              ? buildBookingRow()
+              : table === "payments"
+                ? buildPaymentRow()
+                : buildProfileRow(),
           error: null,
         }),
       };

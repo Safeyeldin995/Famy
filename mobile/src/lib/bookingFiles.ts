@@ -1,4 +1,9 @@
 /** File payloads matching the web receipt/calendar actions. No uploads or payment mutation. */
+import {
+  WALLET_REFUND_DISCLOSURE_AR,
+  WALLET_REFUND_DISCLOSURE_EN,
+} from "@shared/online/walletRefundDisclosure";
+
 export type BookingFileInfo = {
   id: string;
   provider: string;
@@ -10,8 +15,14 @@ export type BookingFileInfo = {
   total: string;
   start: string;
   end: string;
+  online?: boolean;
+  language?: string;
 };
 export function receiptText(b: BookingFileInfo) {
+  const refundLine =
+    b.online === true
+      ? (b.language === "ar" ? WALLET_REFUND_DISCLOSURE_AR : WALLET_REFUND_DISCLOSURE_EN)
+      : null;
   return [
     "FAMY — Booking Receipt",
     "========================",
@@ -23,6 +34,7 @@ export function receiptText(b: BookingFileInfo) {
     `Address:    ${b.address}`,
     `Total:      ${b.total}`,
     "",
+    ...(refundLine ? [refundLine, ""] : []),
     "Thank you for booking with Famy.",
   ].join("\n");
 }

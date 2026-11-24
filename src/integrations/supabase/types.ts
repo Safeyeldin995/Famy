@@ -788,6 +788,7 @@ export type Database = {
           provider_id: string
           request_fingerprint: string | null
           requirement_selections: Json
+          service_mode: string
           service_id: string
           session_duration_min: number | null
           start_at: string
@@ -4342,7 +4343,7 @@ export type Database = {
       }
       create_booking: {
         Args: {
-          p_address_id: string
+          p_address_id?: string | null
           p_end_at: string
           p_family_member_id?: string
           p_idempotency_key: string
@@ -4357,6 +4358,7 @@ export type Database = {
           p_teaching_level_code?: string
           p_teaching_subject_code?: string
           p_supervision_mode?: string
+          p_service_mode?: string
         }
         Returns: Json
       }
@@ -5045,7 +5047,7 @@ export type Database = {
         Returns: undefined
       }
       search_marketplace_providers: {
-        Args: { p_address_id?: string; p_service_id?: string }
+        Args: { p_address_id?: string; p_service_id?: string; p_service_mode?: string }
         Returns: {
           avatar_url: string
           bio_ar: string

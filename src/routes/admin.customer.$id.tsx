@@ -4,19 +4,27 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { paymentStatusLabel } from "@/lib/settlement/moneyText";
-import { useAdminCustomer, useSetCustomerSuspended } from "@/lib/db/admin-queries";
+import {
+  useAdminAdjustCustomerWallet,
+  useAdminCustomer,
+  useAdminCustomerWallet,
+  useSetCustomerSuspended,
+} from "@/lib/db/admin-queries";
 import { ChevronLeft, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
 import { bookingAmountDue } from "@/lib/payments/amountDue";
-
 export const Route = createFileRoute("/admin/customer/$id")({ component: AdminCustomerRoute });
 
 export function AdminCustomer({ id }: { id: string }) {
   const { t, i18n } = useTranslation();
   const q = useAdminCustomer(id);
+  const walletQ = useAdminCustomerWallet(id);
+  const adjustWallet = useAdminAdjustCustomerWallet();
   const setSuspended = useSetCustomerSuspended();
   const [showConfirm, setShowConfirm] = useState(false);
+  const [walletAmount, setWalletAmount] = useState("");
+  const [walletReason, setWalletReason] = useState("");
 
   if (q.isLoading)
     return <div className="p-6 text-sm text-muted-foreground">{t("common.loading")}</div>;
@@ -118,6 +126,128 @@ export function AdminCustomer({ id }: { id: string }) {
               </li>
             ))}
           </ul>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <h3 className="mb-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+          {t("admin.customer.walletTitle")}
+        </h3>
+        {walletQ.isLoading ? (
+          <p className="px-1 text-xs text-muted-foreground">{t("common.loading")}</p>
+        ) : (
+          <>
+            <p className="px-1 text-sm font-semibold">
+              {t("admin.customer.walletBalance", {
+                amount: Number(walletQ.data?.available ?? 0).toLocaleString("en-US"),
+              })}
+            </p>
+            {(walletQ.data?.entries ?? []).length === 0 ? (
+              <p className="px-1 text-xs text-muted-foreground">{t("admin.customer.walletEmpty")}</p>
+            ) : (
+              <ul className="space-y-2">
+                {(walletQ.data?.entries ?? []).map((entry) => (
+                  <li
+                    key={entry.id}
+                    className="rounded-xl border border-border/60 bg-surface p-3 text-xs"
+                  >
+                    <p className="font-semibold">
+                      {entry.direction === "credit" ? "+" : "-"}
+                      {entry.amount} {i18n.language.startsWith("ar") ? "ج.م" : "EGP"} ·{" "}
+                      {entry.reason}
+                    </p>
+                    <p className="text-muted-foreground">{adminDate(entry.created_at, i18n.language)}</p>
+                    {entry.metadata?.admin_reason ? (
+                      <p className="mt-1 text-muted-foreground">{entry.metadata.admin_reason}</p>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="grid gap-2 rounded-xl border border-border/60 bg-surface p-3">
+              <label className="text-xs font-semibold" htmlFor="wallet-amount">
+                {t("admin.customer.walletAmount")}
+              </label>
+              <input
+                id="wallet-amount"
+                type="number"
+                min="0"
+                step="0.01"
+                value={walletAmount}
+                onChange={(e) => setWalletAmount(e.target.value)}
+                className="h-10 rounded-xl border border-border bg-surface px-3 text-sm"
+              />
+              <label className="text-xs font-semibold" htmlFor="wallet-reason">
+                {t("admin.customer.walletReason")}
+              </label>
+              <textarea
+                id="wallet-reason"
+                rows={2}
+                value={walletReason}
+                onChange={(e) => setWalletReason(e.target.value)}
+                placeholder={t("admin.customer.walletReasonPlaceholder")}
+                className="rounded-xl border border-border bg-surface px-3 py-2 text-sm"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={adjustWallet.isPending}
+                  onClick={() => {
+                    const amount = Number(walletAmount);
+                    if (!Number.isFinite(amount) || amount <= 0 || !walletReason.trim()) return;
+                    adjustWallet.mutate(
+                      {
+                        customerId: id,
+                        direction: "credit",
+                        amount,
+                        reasonNote: walletReason.trim(),
+                      },
+                      {
+                        onSuccess: () => {
+                          setWalletAmount("");
+                          setWalletReason("");
+                          toast.success(t("admin.customer.walletAdjustSuccess"));
+                        },
+                        onError: (e: Error) =>
+                          toast.error(e?.message ?? t("admin.customer.walletAdjustError")),
+                      },
+                    );
+                  }}
+                  className="focus-ring h-10 flex-1 rounded-xl bg-brand text-xs font-bold text-brand-foreground disabled:opacity-50"
+                >
+                  {t("admin.customer.walletCredit")}
+                </button>
+                <button
+                  type="button"
+                  disabled={adjustWallet.isPending}
+                  onClick={() => {
+                    const amount = Number(walletAmount);
+                    if (!Number.isFinite(amount) || amount <= 0 || !walletReason.trim()) return;
+                    adjustWallet.mutate(
+                      {
+                        customerId: id,
+                        direction: "debit",
+                        amount,
+                        reasonNote: walletReason.trim(),
+                      },
+                      {
+                        onSuccess: () => {
+                          setWalletAmount("");
+                          setWalletReason("");
+                          toast.success(t("admin.customer.walletAdjustSuccess"));
+                        },
+                        onError: (e: Error) =>
+                          toast.error(e?.message ?? t("admin.customer.walletAdjustError")),
+                      },
+                    );
+                  }}
+                  className="focus-ring h-10 flex-1 rounded-xl border border-border text-xs font-bold disabled:opacity-50"
+                >
+                  {t("admin.customer.walletDebit")}
+                </button>
+              </div>
+            </div>
+          </>
         )}
       </section>
 

@@ -14,7 +14,8 @@ type Capability = {
 export function buildBookingRequest(choices: {
   providerId: string;
   serviceId: string;
-  addressId: string;
+  addressId: string | null;
+  serviceMode?: "in_person" | "online";
   forWhom: string;
   start: Date;
   end: Date;
@@ -44,6 +45,7 @@ export function buildBookingRequest(choices: {
     teaching_curriculum_code: choices.selectedCapability?.curriculumCode ?? null,
     teaching_level_code: choices.selectedCapability?.levelCode ?? null,
     supervision_mode: choices.supervisionMode,
+    service_mode: choices.serviceMode ?? "in_person",
   };
 }
 

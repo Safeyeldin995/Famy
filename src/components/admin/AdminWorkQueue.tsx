@@ -44,6 +44,10 @@ export const WORK_QUEUE_ITEMS: ReadonlyArray<{
     route: "/admin/payments",
     search: { status: "pending_review" },
   },
+  {
+    key: "online_lesson_issue_reports",
+    route: "/admin/online-lesson-issues",
+  },
 ];
 
 export function AdminWorkQueue({ counts }: { counts: Record<AdminWorkQueueKey, number> }) {

@@ -6,7 +6,7 @@ export type BookingRequirementSelection = {
 export type BookingSubmissionPayload = {
   provider_id: string;
   service_id: string;
-  address_id: string;
+  address_id: string | null;
   start_at: string;
   end_at: string;
   family_member_id?: string | null;

@@ -52,6 +52,16 @@ Evidence to keep: screenshots or screen recordings for payment proof, cancellati
 | C9 | Account deletion entry | Profile → delete account (bottom) | Screen loads guards; terms/privacy reachable from profile and login |
 | C10 | Legal on login | Login screen → terms + privacy links | Native content screens open without error |
 | C11 | Promo / search smoke | Promo codes list; search providers | Empty states show Arabic copy; no clipped text on small Android |
+| O1 | Online book (3 taps) | Provider profile (online tutoring) → book → pick slot → optional note → **Request lesson** | No address step; DOB inline once if missing; booking lands as **requested** |
+| O2 | Timeline + pay countdown | Provider confirms → customer opens booking | Timeline shows Confirmed + live pay countdown; copy says who waits on whom |
+| O3 | One-tap pay | Confirmed booking → **Pay now** (saved card preselected) | Paymob opens once; status moves to paid; timeline advances |
+| O4 | Wallet credit notice | Provider cancels a paid online lesson | Push + wallet history; balance increases once |
+| O5 | Join flow | Paid lesson within join window → **Join** | Pre-join auto-advances when mic/cam/network OK; lands in room |
+| O6 | Weak network | Simulate poor network in lesson | Audio-only banner; auto-rejoin after brief drop without extra taps |
+| O7 | Rejoin after leave | Leave room before end time | Rejoin stays available until lesson end |
+| O8 | Post-lesson | Complete lesson → rate 1–5 + optional comment → **Book again** | Rating saves; rebook opens same provider with online mode |
+| O9 | Provider request push | New online request + no response 15m (staging cron) | Provider gets reminder; tap opens pending request |
+| O10 | Lesson starting push | Start window → **Join** action on notification | Deep link opens pre-join / room for that booking |
 
 **Store-specific (customer build):**
 

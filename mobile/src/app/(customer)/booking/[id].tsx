@@ -15,6 +15,9 @@ import {
 import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useBooking, useBookingPayment, useBookingParty, useProviderServicePreparationNotes } from "@/lib/queries";
+import { useSession } from "@/lib/session";
+import { OnlineSessionJoinButton } from "@/ui/OnlineSessionJoinButton";
+import { OnlineLessonIssueReport } from "@/ui/OnlineLessonIssueReport";
 import { CustomerPreparationNotesSection } from "@/ui/customer/CustomerPreparationNotesSection";
 import { chatPhaseForStatus, useConversationByBooking } from "@/lib/chatQueries";
 import { dateTime, localized, money } from "@/lib/presentation";
@@ -29,12 +32,15 @@ import { receiptText, calendarText, type BookingFileInfo } from "@/lib/bookingFi
 import { shareBookingFile } from "@/lib/shareBookingFile";
 import { colors, radius, space } from "@/ui/theme";
 import { BookingJourneyStepper } from "@/ui/BookingJourneyStepper";
+import { OnlineLessonTimeline } from "@/ui/online/OnlineLessonTimeline";
+import { OnlineLessonPaymentPanel } from "@/ui/online/OnlineLessonPaymentPanel";
 import { useBookingStatusHistory } from "@/lib/bookingJourneyQueries";
 import {
   isSupervisionMode,
   supervisionModeProviderLabel,
 } from "@shared/booking/supervisionMode";
 import { bookingAmountDue, carriedFees } from "@shared/payments/amountDue";
+import { moneyHeld } from "@shared/payments/refundOwed";
 
 export default function BookingDetail() {
   const { id, created, educationWarning } = useLocalSearchParams<{
@@ -43,6 +49,7 @@ export default function BookingDetail() {
     educationWarning?: string;
   }>();
   const { t, i18n } = useTranslation();
+  const { session } = useSession();
   const q = useBooking(id);
   const payment = useBookingPayment(id);
   const party = useBookingParty(id);
@@ -104,6 +111,8 @@ export default function BookingDetail() {
         total: money(bookingAmountDue(b), i18n.language),
         start: b.start_at,
         end: b.end_at,
+        online: (b as { service_mode?: string }).service_mode === "online",
+        language: i18n.language,
       }
     : null;
   const share = async (calendar: boolean) => {
@@ -177,7 +186,13 @@ export default function BookingDetail() {
                   onPress={() =>
                     router.push({
                       pathname: "/book/[providerId]",
-                      params: { providerId: b.provider_id, rebookFrom: b.id },
+                      params: {
+                        providerId: b.provider_id,
+                        rebookFrom: b.id,
+                        ...((b as { service_mode?: string }).service_mode === "online"
+                          ? { serviceMode: "online" }
+                          : {}),
+                      },
                     })
                   }
                 />
@@ -193,18 +208,33 @@ export default function BookingDetail() {
               <Text size="xs" tone="muted">
                 {t("customerDetail.code", { id: info.id })}
               </Text>
-              <BookingJourneyStepper
-                status={b.status}
-                booking={{
-                  status: b.status,
-                  session_started_at: b.session_started_at ?? null,
-                  arrival_confirmed_at: b.arrival_confirmed_at ?? null,
-                  completion_requested_at: b.completion_requested_at ?? null,
-                  completed_at: b.completed_at ?? null,
-                }}
-                history={journeyHistory.data ?? []}
-                labelNamespace="bookingJourney"
-              />
+              {(b as { service_mode?: string }).service_mode === "online" ? (
+                <OnlineLessonTimeline
+                  status={b.status}
+                  startAt={b.start_at}
+                  endAt={b.end_at}
+                  paymentCaptured={moneyHeld({
+                    paymentStatus: payment.data?.status,
+                    methodType: payment.data?.payment_method_type,
+                    proofPath: payment.data?.proof_path,
+                  })}
+                  statusChangedAt={b.status_changed_at ?? null}
+                  amountDue={bookingAmountDue(b)}
+                />
+              ) : (
+                <BookingJourneyStepper
+                  status={b.status}
+                  booking={{
+                    status: b.status,
+                    session_started_at: b.session_started_at ?? null,
+                    arrival_confirmed_at: b.arrival_confirmed_at ?? null,
+                    completion_requested_at: b.completion_requested_at ?? null,
+                    completed_at: b.completed_at ?? null,
+                  }}
+                  history={journeyHistory.data ?? []}
+                  labelNamespace="bookingJourney"
+                />
+              )}
             </View>
             {party.isError && <QueryState query={party} />}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
@@ -394,12 +424,36 @@ export default function BookingDetail() {
                   ),
               )}
             </View>
-            <PaymentBlock
-              bookingId={id}
-              status={b.status}
-              total={b.price_total}
-              refetchBooking={q.refetch}
+            <OnlineSessionJoinButton
+              booking={b}
+              providerProfileId={b.provider?.profile?.id}
+              viewerUserId={session?.user.id}
+              paymentStatus={payment.data?.status}
+              paymentMethodType={payment.data?.payment_method_type}
+              proofPath={payment.data?.proof_path}
+              party="customer"
+              onJoin={() =>
+                router.push({ pathname: "/booking/[id]/session", params: { id: b.id } })
+              }
             />
+            {(b as { service_mode?: string }).service_mode === "online" ? (
+              <OnlineLessonIssueReport bookingId={b.id} startAt={b.start_at} endAt={b.end_at} />
+            ) : null}
+            {(b as { service_mode?: string }).service_mode === "online" &&
+            b.status === "confirmed" ? (
+              <OnlineLessonPaymentPanel
+                bookingId={id}
+                total={bookingAmountDue(b)}
+                onPaid={() => void q.refetch()}
+              />
+            ) : (
+              <PaymentBlock
+                bookingId={id}
+                status={b.status}
+                total={b.price_total}
+                refetchBooking={q.refetch}
+              />
+            )}
             <BookingActions booking={b} suppressRebook={created === "1"} />
           </>
         )}

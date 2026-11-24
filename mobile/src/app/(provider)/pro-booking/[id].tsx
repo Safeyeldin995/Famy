@@ -14,6 +14,10 @@ import {
   providerStepOpensAt,
 } from "@/lib/provider/timeWindow";
 import { useBookingParty } from "@/lib/provider/parties";
+import { useBookingPayment } from "@/lib/queries";
+import { useSession } from "@/lib/session";
+import { OnlineSessionJoinButton } from "@/ui/OnlineSessionJoinButton";
+import { OnlineLessonIssueReport } from "@/ui/OnlineLessonIssueReport";
 import { useProviderBooking, useProviderUpdateBookingStatus } from "@/lib/provider/queries";
 import { localized, money, dateTime } from "@/lib/presentation";
 import { joinUiParts } from "@shared/format/uiJoin";
@@ -34,8 +38,10 @@ export default function ProBookingDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t, i18n } = useTranslation();
   const toast = useToast();
+  const { session } = useSession();
   const q = useProviderBooking(id);
   const partyQ = useBookingParty(id);
+  const paymentQ = useBookingPayment(id);
   const mut = useProviderUpdateBookingStatus();
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [dialog, setDialog] = useState<"" | "decline" | "cancel">("");
@@ -49,7 +55,8 @@ export default function ProBookingDetail() {
   const party = partyQ.data;
   const customer = (b?.customer ?? {}) as { full_name?: string; phone?: string | null };
   const name = party?.other_name || customer.full_name || t("pro.common.customer");
-  const phone = party?.other_phone ?? customer.phone ?? null;
+  const isOnline = String((b as { service_mode?: string } | undefined)?.service_mode ?? "") === "online";
+  const phone = isOnline ? null : party?.other_phone ?? customer.phone ?? null;
   const service = b?.service as { name_ar?: string; name_en?: string } | undefined;
   const loc = Array.isArray(b?.location) ? b?.location[0] : b?.location;
   const addr = loc as Record<string, string | null> | undefined;
@@ -262,6 +269,34 @@ export default function ProBookingDetail() {
               <Text size="sm" tone="muted">
                 {t("pro.booking.carriedFeesNote", { amount: money(carriedFees(b), i18n.language) })}
               </Text>
+            ) : null}
+            {b && typeof b.id === "string" ? (
+              <OnlineSessionJoinButton
+                booking={{
+                  id: String(b.id),
+                  service_mode: (b.service_mode as string | null) ?? "in_person",
+                  status: String(b.status),
+                  customer_id: String(b.customer_id),
+                  start_at: String(b.start_at),
+                  end_at: String(b.end_at),
+                }}
+                providerProfileId={session?.user.id}
+                viewerUserId={session?.user.id}
+                paymentStatus={paymentQ.data?.status}
+                paymentMethodType={paymentQ.data?.payment_method_type}
+                proofPath={paymentQ.data?.proof_path}
+                party="provider"
+                onJoin={() =>
+                  router.push({ pathname: "/pro-booking/[id]/session", params: { id: String(b.id) } })
+                }
+              />
+            ) : null}
+            {isOnline && b && typeof b.id === "string" ? (
+              <OnlineLessonIssueReport
+                bookingId={String(b.id)}
+                startAt={String(b.start_at)}
+                endAt={String(b.end_at)}
+              />
             ) : null}
             <ProviderPaymentBlock bookingId={id!} bookingStatus={status} />
             <ActionError error={mut.error} />
