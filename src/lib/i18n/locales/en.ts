@@ -2976,6 +2976,7 @@ const en = {
         settings: "Settings",
         serviceRequests: "Service requests",
         priceChangeRequests: "Price change requests",
+        onlineLessonIssues: "Online lesson reports",
       },
       collapseSidebar: "Collapse sidebar",
       expandSidebar: "Expand sidebar",
@@ -3840,6 +3841,7 @@ const en = {
       vatPercent: "VAT (%)",
       platformFee: "Platform fee (EGP, flat)",
       commissionPercent: "Famy commission (% of provider service price)",
+      commissionPercentOnline: "Online lessons commission (%)",
       commissionPercentHint:
         "Leave empty if not set. Changing this does not affect existing bookings.",
       commissionPercentInvalid:
