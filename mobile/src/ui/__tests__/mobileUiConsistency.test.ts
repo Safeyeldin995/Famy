@@ -18,16 +18,17 @@ function walk(dir: string): string[] {
 
 const RAW_HEX = /#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b/;
 
-const GOOGLE_LOGIN_ALLOWLIST = ["fill=\"#FFC107\"", "fill=\"#FF3D00\"", "fill=\"#4CAF50\"", "fill=\"#1976D2\""];
+const GOOGLE_LOGIN_ALLOWLIST = [
+  'fill="#FFC107"',
+  'fill="#FF3D00"',
+  'fill="#4CAF50"',
+  'fill="#1976D2"',
+];
 
 const FONT_FAMILY_ALLOW =
-  /fontFamily:\s*(?:family|familyFor|inputFont|cellFont|tabBarLabelStyle|fonts[\[.]|useInputFont)/;
+  /fontFamily:\s*(?:family|familyFor|inputFont|cellFont|tabBarLabelStyle|fonts(?:\[|\.)|useInputFont)/;
 
-const TYPOGRAPHY_HELPER_FILES = new Set([
-  "Text.tsx",
-  "navigationTypography.ts",
-  "useInputFont.ts",
-]);
+const TYPOGRAPHY_HELPER_FILES = new Set(["Text.tsx", "navigationTypography.ts", "useInputFont.ts"]);
 
 function relativeFromMobileSrc(abs: string) {
   const idx = abs.indexOf("/mobile/src/");
@@ -55,7 +56,10 @@ describe("mobile app screen style guardrails", () => {
     const offenders: string[] = [];
     for (const file of screens) {
       const text = readFileSync(file, "utf8");
-      if (/\b(margin|padding)(Left|Right)\s*:/.test(text) || /\btextAlign\s*:\s*"(left|right)"/.test(text)) {
+      if (
+        /\b(margin|padding)(Left|Right)\s*:/.test(text) ||
+        /\btextAlign\s*:\s*"(left|right)"/.test(text)
+      ) {
         offenders.push(file.slice(appRoot.length + 1));
       }
     }
@@ -99,7 +103,9 @@ describe("mobile app screen style guardrails", () => {
       const text = readFileSync(file, "utf8");
       if (!/\bfontFamily\s*:/.test(text)) continue;
       const allowed =
-        FONT_FAMILY_ALLOW.test(text) || /\bfonts\.(ar|en)\b/.test(text) || text.includes("familyFor(");
+        FONT_FAMILY_ALLOW.test(text) ||
+        /\bfonts\.(ar|en)\b/.test(text) ||
+        text.includes("familyFor(");
       if (!allowed) offenders.push(relativeFromMobileSrc(file));
     }
     expect(offenders).toEqual([]);
