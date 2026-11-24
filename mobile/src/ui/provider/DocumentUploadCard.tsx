@@ -92,7 +92,7 @@ export function DocumentUploadCard({
             flexDirection: "row",
             alignItems: "center",
             gap: space.md,
-            backgroundColor: approved || pending ? "#E7F7EF" : colors.surface,
+            backgroundColor: approved || pending ? colors.successTint : colors.surface,
           }}
         >
           <View

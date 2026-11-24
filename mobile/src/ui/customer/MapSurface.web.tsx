@@ -1,5 +1,6 @@
 import { createElement, useEffect, useMemo, useRef } from "react";
 
+import { colors } from "../theme";
 import {
   getExpoPublicGoogleMapsBrowserKey,
   googleMapDocument,
@@ -44,7 +45,7 @@ export default function MapSurface({
 
   if (!html) {
     return createElement("div", {
-      style: { width: "100%", height: "100%", backgroundColor: "#F3EEF0" },
+      style: { width: "100%", height: "100%", backgroundColor: colors.surface2 },
     });
   }
 

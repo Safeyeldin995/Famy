@@ -36,7 +36,7 @@ export function BookingStatusCard({
         tone={status === "completed" ? "success" : status === "pending" ? "muted" : "brand"}
         style={{
           alignSelf: "flex-start",
-          backgroundColor: status === "pending" ? "#FFF5DF" : colors.brandTint,
+          backgroundColor: status === "pending" ? colors.warningTint : colors.brandTint,
           borderRadius: radius.pill,
           paddingHorizontal: space.sm,
           paddingVertical: space.xs,

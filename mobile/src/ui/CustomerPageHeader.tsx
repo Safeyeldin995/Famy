@@ -38,7 +38,7 @@ export function CustomerPageHeader({
   );
   if (hero)
     return (
-      <LinearGradient colors={["#F32B88", colors.brand]} style={styles.hero}>
+      <LinearGradient colors={[colors.brandGradientStart, colors.brand]} style={styles.hero}>
         <View style={[styles.row, { justifyContent: "space-between" }]}>
           {back}
           {right}

@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(230,224,228,.5)",
     backgroundColor: "rgba(255,255,255,.95)",
-    shadowColor: "#25141d",
+    shadowColor: colors.ink,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.12,
     shadowRadius: 24,

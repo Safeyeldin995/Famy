@@ -10,7 +10,8 @@ import { KeyboardFormScreen } from "@/ui/KeyboardFormScreen";
 import { AuthLabeledField, AuthPasswordField } from "@/ui/auth/AuthFields";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
-import { colors, radius, space } from "@/ui/theme";
+import { ErrorBanner } from "@/ui/ErrorBanner";
+import { colors, space } from "@/ui/theme";
 
 type SetPasswordContext = {
   maskedPhone: string;
@@ -168,13 +169,7 @@ export default function SetPasswordScreen() {
       <Rule ok={longEnough} label={t("auth.ruleLenStrong")} />
       <Rule ok={matches} label={t("auth.passwordsMatch")} />
 
-      {error ? (
-        <View style={styles.error}>
-          <Text size="sm" weight="bold" tone="danger">
-            {error}
-          </Text>
-        </View>
-      ) : null}
+      {error ? <ErrorBanner>{error}</ErrorBanner> : null}
     </KeyboardFormScreen>
   );
 }
@@ -193,5 +188,4 @@ const styles = StyleSheet.create({
   content: { padding: space.xxl, gap: space.lg },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: space.md },
   ltr: { direction: "ltr" },
-  error: { backgroundColor: "#FBE7E6", borderRadius: radius.md, padding: space.md },
 });

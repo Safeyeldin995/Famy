@@ -6,6 +6,7 @@ import { BrandLogo } from "@/ui/PaymentLogos";
 import { useFamyInstapay } from "@/lib/provider/payoutQueries";
 import { useTranslation } from "react-i18next";
 import { Text } from "@/ui/Text";
+import { ErrorBanner } from "@/ui/ErrorBanner";
 import { colors, radius, space } from "@/ui/theme";
 import { money, dateTime } from "@/lib/presentation";
 import { moneyTextStyle } from "@/ui/Page";
@@ -104,13 +105,9 @@ export function ProviderWalletPanel({ providerId }: { providerId: string | undef
               {t(`wallet.pro.${state}Hint`)}
             </Text>
             {blocked ? (
-              <View
-                style={{ backgroundColor: "#FBE7E6", borderRadius: radius.md, padding: space.sm }}
-              >
-                <Text size="sm" weight="bold" tone="danger">
-                  {t("wallet.pro.blocked", { limit: money(limit, lang) })}
-                </Text>
-              </View>
+              <ErrorBanner style={{ padding: space.sm }}>
+                {t("wallet.pro.blocked", { limit: money(limit, lang) })}
+              </ErrorBanner>
             ) : null}
             {state === "providerOwes" &&
             (famyInstapay.data?.handle || famyInstapay.data?.payLink) ? (

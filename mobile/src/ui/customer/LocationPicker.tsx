@@ -157,7 +157,7 @@ export function LocationPicker({
             borderStyle: "dashed",
             borderColor: colors.brandTintStrong,
             borderRadius: 16,
-            backgroundColor: "#F10E7208",
+            backgroundColor: colors.brandHighlightOverlay,
             gap: space.lg,
           }}
         >

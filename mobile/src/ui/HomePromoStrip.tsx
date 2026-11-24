@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     borderRadius: 28,
     padding: space.xl,
-    backgroundColor: "#1F1419",
+    backgroundColor: colors.foreground,
     alignItems: "flex-start",
   },
   badge: {

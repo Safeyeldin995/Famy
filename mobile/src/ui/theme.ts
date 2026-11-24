@@ -22,6 +22,21 @@ export const colors = {
   destructive: "#D6342C",
   lavender: "#8E6CD8",
   lavenderTint: "#EFEAFB",
+  destructiveTint: "#FBE7E6",
+  successTint: "#E7F7EF",
+  warningTint: "#FFF5DF",
+  composerWarningTint: "#FEF3C7",
+  brandGradientStart: "#F32B88",
+  /** Online / typing indicator chip above chat threads. */
+  chatPresenceNotice: "#D9F5E780",
+  brandHighlightOverlay: "#F10E7208",
+  statusCompletedBg: "#1F9D6326",
+  statusPendingBg: "#F10E721A",
+  statusActiveBg: "#2A1E251A",
+  /** Apple Pay / Sign in with Apple marks (brand-mandated). */
+  paymentMarkBackground: "#000000",
+  paymentMarkForeground: "#FFFFFF",
+  oauthAppleBackground: "#000000",
 } as const;
 
 export const radius = { sm: 10, md: 14, lg: 18, xl: 24, pill: 999 } as const;
@@ -63,7 +78,7 @@ export const fonts = {
 
 export const shadow = {
   card: {
-    shadowColor: "#2A1E25",
+    shadowColor: colors.ink,
     shadowOpacity: 0.08,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 6 },

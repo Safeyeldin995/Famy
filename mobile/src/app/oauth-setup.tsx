@@ -10,7 +10,8 @@ import { KeyboardFormScreen } from "@/ui/KeyboardFormScreen";
 import { AuthLabeledField, AuthPhoneField, AuthTextField } from "@/ui/auth/AuthFields";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
-import { colors, radius, space } from "@/ui/theme";
+import { ErrorBanner } from "@/ui/ErrorBanner";
+import { colors, space } from "@/ui/theme";
 
 /** After Google/Apple sign-in when profile phone or name is missing. */
 export default function OAuthSetupScreen() {
@@ -127,13 +128,7 @@ export default function OAuthSetupScreen() {
         </AuthLabeledField>
       ) : null}
 
-      {error ? (
-        <View style={styles.error}>
-          <Text size="sm" weight="bold" tone="danger">
-            {error}
-          </Text>
-        </View>
-      ) : null}
+      {error ? <ErrorBanner>{error}</ErrorBanner> : null}
     </KeyboardFormScreen>
   );
 }
@@ -142,5 +137,4 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   content: { padding: space.xxl, gap: space.lg },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: space.md },
-  error: { backgroundColor: "#FBE7E6", borderRadius: radius.md, padding: space.md },
 });

@@ -1,8 +1,8 @@
 import {
-import { space } from "../theme";
   normalizePreparationNotes,
   PREPARATION_NOTES_MAX_LENGTH,
 } from "@shared/provider/preparationNotes";
+import { space } from "../theme";
 import { View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Field } from "@/ui/Page";

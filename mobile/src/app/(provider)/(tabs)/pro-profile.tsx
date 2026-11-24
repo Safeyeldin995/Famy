@@ -92,7 +92,7 @@ export default function ProviderProfile() {
                 flexDirection: "row",
                 alignItems: "center",
                 gap: space.xs,
-                backgroundColor: provider?.is_verified ? "#E7F7EF" : colors.surface2,
+                backgroundColor: provider?.is_verified ? colors.successTint : colors.surface2,
                 paddingHorizontal: space.md,
                 paddingVertical: space.xs,
                 borderRadius: 999,

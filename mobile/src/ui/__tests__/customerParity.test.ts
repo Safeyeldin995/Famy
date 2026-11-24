@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { uniqueProviders } from "@/lib/presentation";
 import type { Provider } from "@/lib/queries";
 import { bookingStatusStyle } from "@/ui/customer/bookingStatusStyle";
+import { colors } from "@/ui/theme";
 import { customerMoney } from "@/lib/customerFormat";
 import {
   getExpoPublicGoogleMapsBrowserKey,
@@ -41,8 +42,8 @@ describe("customer list parity", () => {
   it("uses grey confirmed pills and web lifecycle tones", () => {
     for (const status of ["confirmed", "on_the_way", "arrived", "arrival_confirmed", "in_progress"])
       expect(bookingStatusStyle(status)).toEqual({
-        backgroundColor: "#2A1E251A",
-        color: "#2A1E25",
+        backgroundColor: colors.statusActiveBg,
+        color: colors.ink,
       });
     expect(bookingStatusStyle("pending").color).toBe("#F10E72");
     expect(bookingStatusStyle("completed").color).toBe("#1F9D63");

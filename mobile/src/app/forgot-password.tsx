@@ -13,7 +13,8 @@ import { AuthLabeledField, AuthPhoneField } from "@/ui/auth/AuthFields";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { KeyboardFormScreen } from "@/ui/KeyboardFormScreen";
-import { colors, radius, space } from "@/ui/theme";
+import { ErrorBanner } from "@/ui/ErrorBanner";
+import { colors, space } from "@/ui/theme";
 
 export default function ForgotPassword() {
   const { t } = useTranslation();
@@ -72,7 +73,7 @@ export default function ForgotPassword() {
       </AuthLabeledField>
 
       {error ? (
-        <View style={styles.error}>
+        <ErrorBanner>
           <Text size="sm" weight="bold" tone="danger">
             {error}
           </Text>
@@ -88,7 +89,7 @@ export default function ForgotPassword() {
               }
             />
           ) : null}
-        </View>
+        </ErrorBanner>
       ) : null}
 
       <Button label={t("common.back")} variant="ghost" onPress={() => router.back()} />
@@ -98,5 +99,4 @@ export default function ForgotPassword() {
 
 const styles = StyleSheet.create({
   content: { padding: space.xxl, gap: space.xl },
-  error: { backgroundColor: "#FBE7E6", borderRadius: radius.md, padding: space.md },
 });

@@ -176,7 +176,7 @@ export function PendingHomeScreen({ changesRequested }: { changesRequested?: boo
             </View>
           </View>
         ) : (
-          <View style={[proCard.card, { backgroundColor: "#E7F7EF" }]}>
+          <View style={[proCard.card, { backgroundColor: colors.successTint }]}>
             <Text weight="heavy" tone="success">
               {t("providerComplete.title")}
             </Text>
@@ -210,7 +210,7 @@ export function PendingHomeScreen({ changesRequested }: { changesRequested?: boo
                     width: 40,
                     height: 40,
                     borderRadius: 12,
-                    backgroundColor: done ? "#E7F7EF" : colors.surface2,
+                    backgroundColor: done ? colors.successTint : colors.surface2,
                     alignItems: "center",
                     justifyContent: "center",
                   }}
@@ -253,7 +253,7 @@ export function PendingHomeScreen({ changesRequested }: { changesRequested?: boo
                 width: 40,
                 height: 40,
                 borderRadius: 12,
-                backgroundColor: "#FFF5DF",
+                backgroundColor: colors.warningTint,
                 alignItems: "center",
                 justifyContent: "center",
               }}
