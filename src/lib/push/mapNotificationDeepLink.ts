@@ -13,6 +13,7 @@ export type NativeDeepLinkTarget =
   | { pathname: "/pro-onboarding" }
   | { pathname: "/pro-profile" }
   | { pathname: "/pro-request-service" }
+  | { pathname: "/pro-online-lessons" }
   | { pathname: "/login" }
   | { pathname: "/booking/[id]"; params: { id: string } }
   | { pathname: "/pro-booking/[id]"; params: { id: string } }
@@ -74,6 +75,7 @@ export function mapNotificationDeepLink(
   if (path === "/pro/onboarding" && workspace === "provider") return { pathname: "/pro-onboarding" };
   if (path === "/pro/profile" && workspace === "provider") return { pathname: "/pro-profile" };
   if (path === "/pro/request-service" && workspace === "provider") return { pathname: "/pro-request-service" };
+  if (path === "/pro/online-lessons" && workspace === "provider") return { pathname: "/pro-online-lessons" };
 
   return home;
 }

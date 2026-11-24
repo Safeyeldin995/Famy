@@ -22,6 +22,12 @@ const onlineMigration = fileURLToPath(
     import.meta.url,
   ),
 );
+const selfReviewGuardMigration = fileURLToPath(
+  new URL(
+    "../../../../supabase/migrations/20261124150000_admin_online_price_self_review_guard.sql",
+    import.meta.url,
+  ),
+);
 
 async function readyDatabase() {
   const db = new PGlite();
@@ -57,6 +63,7 @@ async function readyDatabase() {
   );
   await db.exec(readFileSync(priceChangeMigration, "utf8"));
   await db.exec(readFileSync(onlineMigration, "utf8"));
+  await db.exec(readFileSync(selfReviewGuardMigration, "utf8"));
   return db;
 }
 
@@ -105,5 +112,29 @@ describe("admin_review_online_price_change migration", () => {
     ).rows[0];
     expect(Number(rejected.online_price_override)).toBe(320);
     expect(rejected.online_price_change_reason).toBe("Too high for now");
+  });
+
+  it("rejects admin self-approval of own pending online price change", async () => {
+    db = await readyDatabase();
+    await db.exec(
+      `CREATE OR REPLACE FUNCTION public.has_role(p_uid uuid, p_role text) RETURNS boolean LANGUAGE sql STABLE AS $$
+        SELECT (p_role = 'admin' AND p_uid = '${ADMIN}'::uuid)
+            OR (p_role = 'provider' AND p_uid IN ('${PROVIDER_USER}'::uuid, '${ADMIN}'::uuid))
+      $$;`,
+    );
+    await db.query(`UPDATE public.providers SET profile_id = '${ADMIN}' WHERE id = '${PROVIDER_ID}'`);
+
+    await db.query(`SELECT set_config('request.jwt.claim.sub', '${ADMIN}', false);`);
+    await db.query(`SELECT public.provider_request_online_price_change('${SERVICE_ID}', 320)`);
+    await expect(
+      db.query(`SELECT public.admin_review_online_price_change('${PS_ID}', 'approved', NULL)`),
+    ).rejects.toThrow(/cannot review their own price change/i);
+
+    const row = (
+      await db.query<{
+        pending_online_price_override: number | null;
+      }>(`SELECT pending_online_price_override FROM public.provider_services`)
+    ).rows[0];
+    expect(Number(row.pending_online_price_override)).toBe(320);
   });
 });
