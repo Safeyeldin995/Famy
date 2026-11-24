@@ -1,6 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it } from "vitest";
 import type { PGlite } from "@electric-sql/pglite";
-import { createMigrationReplayDb, replayAllMigrations } from "./migration-replay.harness";
+import { createMigrationReplayDb, grantAdminOnlyRole, replayAllMigrations } from "./migration-replay.harness";
 const user = "00000000-0000-0000-0000-000000001381";
 const other = "00000000-0000-0000-0000-000000001382";
 const admin = "00000000-0000-0000-0000-000000001383";
@@ -31,7 +31,6 @@ afterAll(async () => {
 beforeEach(async () => {
   await db.exec(`BEGIN;
     INSERT INTO auth.users(id,raw_user_meta_data) VALUES ('${user}','{"signup_role":"provider"}'),('${other}','{}'),('${admin}','{}');
-    INSERT INTO public.user_roles(user_id,role) VALUES ('${admin}','admin');
     INSERT INTO public.providers(id,profile_id,hourly_rate) VALUES ('${provider}','${user}',1);
     INSERT INTO public.services(id,category_id,slug,name_en,name_ar,minimum_price,maximum_price,allowed_session_durations)
       SELECT '${service}',id,'synthetic-group-service','Synthetic group','خدمة تجريبية',300,1500,ARRAY[60,90,120] FROM public.categories WHERE slug='tutoring';
@@ -39,6 +38,7 @@ beforeEach(async () => {
     INSERT INTO public.service_teaching_levels(service_id, level_id)
     SELECT '${service}', lvl.id FROM public.teaching_levels lvl WHERE lvl.is_active;
   `);
+  await grantAdminOnlyRole(db, admin);
 });
 afterEach(async () => {
   await db.exec("ROLLBACK");
@@ -132,8 +132,11 @@ it("sends one localized post-approval group notice and rejects self-review", asy
   expect(notices).toHaveLength(1);
   expect(notices[0].body_ar).toContain("اتوافق");
   expect(notices[0].body_en).toContain("approved");
-  await db.exec(`INSERT INTO user_roles(user_id,role) VALUES ('${user}','admin')`);
-  await expect(review(saved.ids, "approved", user)).rejects.toThrow("TEACHING_SELF_REVIEW");
+  await db.exec("SAVEPOINT grant_admin_to_provider");
+  await expect(
+    db.exec(`INSERT INTO user_roles(user_id,role) VALUES ('${user}','admin')`),
+  ).rejects.toThrow(/admin_account_restricted/i);
+  await db.exec("ROLLBACK TO SAVEPOINT grant_admin_to_provider");
 });
 it("does not leak private rejection notes and retains RLS", async () => {
   const saved = await save();

@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { PGlite } from "@electric-sql/pglite";
-import { createMigrationReplayDb, replayAllMigrations } from "./migration-replay.harness";
+import { createMigrationReplayDb, grantAdminOnlyRole, replayAllMigrations } from "./migration-replay.harness";
 
 const admin = "00000000-0000-0000-0000-000000001901";
 const customer = "00000000-0000-0000-0000-000000001902";
@@ -13,10 +13,8 @@ beforeAll(async () => {
   await db.exec(
     "ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS raw_user_meta_data jsonb DEFAULT '{}'::jsonb",
   );
-  await db.exec(`
-    INSERT INTO auth.users(id) VALUES ('${admin}'), ('${customer}');
-    INSERT INTO public.user_roles(user_id, role) VALUES ('${admin}', 'admin');
-  `);
+  await db.exec(`INSERT INTO auth.users(id) VALUES ('${admin}'), ('${customer}');`);
+  await grantAdminOnlyRole(db, admin);
 }, 60000);
 
 afterAll(async () => {

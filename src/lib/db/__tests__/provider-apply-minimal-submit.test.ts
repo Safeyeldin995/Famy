@@ -1,6 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it } from "vitest";
 import type { PGlite } from "@electric-sql/pglite";
-import { createMigrationReplayDb, replayAllMigrations } from "./migration-replay.harness";
+import { createMigrationReplayDb, grantAdminOnlyRole, replayAllMigrations } from "./migration-replay.harness";
 const user = "00000000-0000-0000-0000-000000001361";
 const admin = "00000000-0000-0000-0000-000000001362";
 const provider = "00000000-0000-0000-0000-000000001363";
@@ -20,7 +20,6 @@ afterAll(async () => {
 beforeEach(async () => {
   await db.exec(`BEGIN;
     INSERT INTO auth.users (id, raw_user_meta_data) VALUES ('${user}', '{"signup_role":"provider","full_name":"Synthetic Applicant"}'), ('${admin}', '{}');
-    INSERT INTO public.user_roles(user_id,role) VALUES ('${admin}','admin');
     UPDATE public.profiles SET phone = 'synthetic-phone' WHERE id = '${user}';
     INSERT INTO public.providers(id,profile_id,hourly_rate,onboarding_status) VALUES ('${provider}','${user}',1,'DRAFT');
     INSERT INTO public.provider_onboarding_details(provider_id,accuracy_confirmed_at) VALUES ('${provider}',now());
@@ -31,6 +30,7 @@ beforeEach(async () => {
     INSERT INTO public.zone_providers(provider_id,zone_id) VALUES ('${provider}','${zone}');
     INSERT INTO public.provider_documents(provider_id,type,storage_path) VALUES ('${provider}','id_card_front','synthetic/front.jpg'), ('${provider}','id_card_back','synthetic/back.jpg');
   `);
+  await grantAdminOnlyRole(db, admin);
 });
 afterEach(async () => {
   await db.exec("ROLLBACK");
