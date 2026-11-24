@@ -16,7 +16,7 @@ on:
         required: true
         type: string
       dry_run:
-        description: If true, each file runs inside BEGIN … ROLLBACK only (default).
+        description: If true, all files run in one BEGIN … ROLLBACK transaction (default).
         required: true
         default: true
         type: boolean
