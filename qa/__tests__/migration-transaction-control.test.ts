@@ -77,6 +77,27 @@ $$;`;
     expect(transactionControlError("do.sql", sql)).toBeNull();
   });
 
+  it("rejects lexer GUC changes that can hide COMMIT from the parser", () => {
+    const sql = `SET standard_conforming_strings = off;
+SELECT '\\'; SELECT '; COMMIT; --';`;
+    const analysis = analyzeMigrationSql("lexer.sql", sql);
+    expect(analysis.ok).toBe(false);
+    expect(
+      analysis.issues.some(
+        (i) => i.kind === "lexer_setting" && i.name === "standard_conforming_strings",
+      ),
+    ).toBe(true);
+    expect(transactionControlError("lexer.sql", sql)).toMatch(
+      /lexer-affecting setting/,
+    );
+  });
+
+  it("rejects top-level set_config for lexer GUCs", () => {
+    const sql =
+      "SELECT set_config('backslash_quote', 'on', false);";
+    expect(transactionControlError("setcfg.sql", sql)).toMatch(/backslash_quote/);
+  });
+
   it("flags the security advisor migration file", () => {
     const file = path.join(
       REPO_ROOT,

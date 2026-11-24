@@ -37,7 +37,8 @@ The workflow fails closed if the secret is missing. Logs never print the URL.
 ### Apply behavior (`dry_run = false`)
 
 - Migration SQL is loaded with `git show <sha>:<path>` from the supplied commit; the workflow script itself always comes from **`main`**.
-- Files are validated with **libpg_query** (npm `libpg-query@17.8.3`): top-level `TransactionStmt` (including `COMMIT WORK`, savepoints, prepared transactions) or `CALL` are **rejected** — they would break the outer transaction wrapper. `COMMIT` inside function bodies is allowed.
+- Files are validated with **libpg_query** (npm `libpg-query@17.8.3`): top-level `TransactionStmt` (including `COMMIT WORK`, savepoints, prepared transactions) or `CALL` are **rejected** — they would break the outer transaction wrapper. `COMMIT` inside function bodies is allowed. Top-level `SET` / `set_config()` on lexer GUCs (`standard_conforming_strings`, `backslash_quote`, `escape_string_warning`, `client_encoding`) is also rejected.
+- `psql` runs with `PGOPTIONS='-c standard_conforming_strings=on'` so execution matches validation.
 - All listed files run in **one** transaction (`ON_ERROR_STOP`; failure rolls back everything).
 - Each file records a row in `supabase_migrations.schema_migrations` (`version` = 14-digit timestamp, `name` = rest of filename) only if that `version` is not already present.
 - PostgREST schema reload: `NOTIFY pgrst, 'reload schema'`.

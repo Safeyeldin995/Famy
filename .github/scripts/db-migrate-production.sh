@@ -37,7 +37,9 @@ fi
 echo "Migration source commit: ${MIGRATION_REF_SHA}"
 
 psql_conn() {
-  psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 "$@"
+  # Match libpg-query validation: do not allow lexer drift during \i execution.
+  PGOPTIONS='-c standard_conforming_strings=on' \
+    psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 "$@"
 }
 
 install_pg_client() {
