@@ -26,6 +26,13 @@ describe("mobile app screen style guardrails", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("blocks admin accounts from customer and provider stacks", () => {
+    const customerLayout = readFileSync(join(appRoot, "(customer)/_layout.tsx"), "utf8");
+    const providerLayout = readFileSync(join(appRoot, "(provider)/_layout.tsx"), "utf8");
+    expect(customerLayout).toContain("useAdminOnlyMobileBlock");
+    expect(providerLayout).toContain("useAdminOnlyMobileBlock");
+  });
+
   it("avoids physical left/right layout props in route screens", () => {
     const offenders: string[] = [];
     for (const file of screens) {

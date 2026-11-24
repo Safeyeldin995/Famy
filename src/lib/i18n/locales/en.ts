@@ -258,8 +258,11 @@ const en = {
     price: {"subtotal": "Subtotal", "extras_total": "Extras", "travel_fee": "Travel fee", "platform_fee": "Platform fee", "vat": "Tax", "discount": "Discount", "total": "Total"},
     comingSoon: "This screen is not available in the app yet.",
     workspaceOnWebTitle: "These screens are still on the web",
-    workspaceOnWebBody: "Provider and admin screens are coming to the app. Until then, continue on the website with the same account.",
+    workspaceOnWebBody: "Provider screens are still on the website. Continue there with the same account until the app catches up.",
+    adminAccountTitle: "This is an admin account. Use the website admin dashboard.",
+    adminAccountBody: "Admin sign-in is available on the website only.",
     openOnWeb: "Open the website",
+    openAdminOnWeb: "Open admin dashboard",
   },
   customerHome: {
     profileEdit: "Edit name and address",

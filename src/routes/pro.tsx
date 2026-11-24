@@ -1,3 +1,4 @@
+import { useAdminAccountRedirect } from "@/lib/auth/adminAccountGuard";
 import { providerEntryRedirect } from "@/lib/provider/changesHomeModel";
 import { createFileRoute, Outlet, useNavigate, Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
@@ -16,6 +17,7 @@ import { customerPath } from "@/lib/preview/previewPath";
 export const Route = createFileRoute("/pro")({ component: ProviderLayout });
 
 function ProviderLayout() {
+  const { blocking: adminBlocking } = useAdminAccountRedirect();
   const { t } = useTranslation();
   const nav = useNavigate();
   const role = useMyRole();
@@ -48,7 +50,19 @@ function ProviderLayout() {
     if (role.isError || provider.isError || onApply) return;
     const target = providerEntryRedirect(role.data, !!provider.data, onboardingStatus, pathname);
     if (target) nav({ to: target, replace: true });
-  }, [role.isLoading, provider.isLoading, provider.data, role.data, role.isError, provider.isError, onboardingStatus, onOnboarding, onApply, pathname, nav]);
+  }, [
+    role.isLoading,
+    provider.isLoading,
+    provider.data,
+    role.data,
+    role.isError,
+    provider.isError,
+    onboardingStatus,
+    onOnboarding,
+    onApply,
+    pathname,
+    nav,
+  ]);
 
   useEffect(() => {
     if (onOnboarding || role.isLoading || provider.isLoading || !provider.data) return;
@@ -68,7 +82,7 @@ function ProviderLayout() {
     devicesQ.data,
   ]);
 
-  if (role.isLoading || provider.isLoading) {
+  if (adminBlocking || role.isLoading || provider.isLoading) {
     return (
       <PhoneFrame bg="bg-[#FEFAFC]">
         <div className="grid min-h-dvh place-items-center px-8">

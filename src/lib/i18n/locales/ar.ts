@@ -260,8 +260,11 @@ const ar: Translation = {
     price: {"subtotal": "المجموع الفرعي", "extras_total": "الإضافات", "travel_fee": "رسوم الانتقال", "platform_fee": "رسوم المنصة", "vat": "الضريبة", "discount": "الخصم", "total": "الإجمالي"},
     comingSoon: "الشاشة دي لسه مش متاحة في التطبيق",
     workspaceOnWebTitle: "الشاشات دي لسه على الويب",
-    workspaceOnWebBody: "شاشات مقدم الخدمة ولوحة الإدارة بتتجهز للتطبيق، لحد ما تخلص، كمل من الموقع بنفس الحساب",
+    workspaceOnWebBody: "شاشات مقدم الخدمة بتتجهز للتطبيق، لحد ما تخلص، كمل من الموقع بنفس الحساب",
+    adminAccountTitle: "الحساب ده حساب إدارة، استخدم لوحة التحكم على الموقع",
+    adminAccountBody: "تسجيل الدخول للوحة الإدارة بيتم من الموقع فقط",
     openOnWeb: "افتح الموقع",
+    openAdminOnWeb: "افتح لوحة التحكم",
   },
   customerHome: {
     profileEdit: "عدل الاسم والعنوان",
