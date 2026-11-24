@@ -1,0 +1,25 @@
+#!/usr/bin/env node
+/**
+ * CLI: fail if a migration file contains top-level transaction control statements.
+ * Usage: node qa/check-migration-transaction-control.mjs <path> [path...]
+ */
+import { readFileSync } from "node:fs";
+import { transactionControlError } from "./lib/migration-transaction-control.mjs";
+
+const paths = process.argv.slice(2);
+if (paths.length === 0) {
+  console.error("Usage: check-migration-transaction-control.mjs <file.sql> [...]");
+  process.exit(2);
+}
+
+let failed = 0;
+for (const file of paths) {
+  const sql = readFileSync(file, "utf8");
+  const err = transactionControlError(file, sql);
+  if (err) {
+    console.error(`::error::${err}`);
+    failed++;
+  }
+}
+
+process.exit(failed > 0 ? 1 : 0);

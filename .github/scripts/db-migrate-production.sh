@@ -1,22 +1,41 @@
 #!/usr/bin/env bash
 # Apply explicit supabase/migrations SQL files to Production via psql.
-# Invoked from .github/workflows/db-migrate.yml — do not pass secrets on argv.
+# Invoked from .github/workflows/db-migrate.yml — inputs via env; do not pass secrets on argv.
 set -euo pipefail
 
-DRY_RUN="${1:-true}"
-FILES_RAW="${2:-}"
+MIGRATION_DRY_RUN="${MIGRATION_DRY_RUN:-true}"
+MIGRATION_FILES="${MIGRATION_FILES:-}"
+MIGRATIONS_ROOT="${MIGRATIONS_ROOT:-}"
+MIGRATION_REF_SHA="${MIGRATION_REF_SHA:-}"
+RUNNER_ROOT="${RUNNER_ROOT:-}"
 
 if [[ -z "${SUPABASE_DB_URL:-}" ]]; then
   echo "::error::SUPABASE_DB_URL is not set. Add the repository secret before running this workflow."
   exit 1
 fi
 
-if [[ -z "$FILES_RAW" ]]; then
+if [[ -z "$MIGRATION_FILES" ]]; then
   echo "::error::No migration files were provided."
   exit 1
 fi
 
-# Never print the connection string (GitHub also masks it when configured as a secret).
+if [[ -z "$MIGRATIONS_ROOT" || ! -d "$MIGRATIONS_ROOT" ]]; then
+  echo "::error::MIGRATIONS_ROOT must point to the staged migration directory."
+  exit 1
+fi
+
+if [[ ! "$MIGRATION_REF_SHA" =~ ^[0-9a-fA-F]{40}$ ]]; then
+  echo "::error::MIGRATION_REF_SHA must be a full 40-character commit SHA."
+  exit 1
+fi
+
+if [[ -z "$RUNNER_ROOT" || ! -f "$RUNNER_ROOT/qa/check-migration-transaction-control.mjs" ]]; then
+  echo "::error::RUNNER_ROOT must reference the trusted main checkout."
+  exit 1
+fi
+
+echo "Migration source commit: ${MIGRATION_REF_SHA}"
+
 psql_conn() {
   psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 "$@"
 }
@@ -34,11 +53,10 @@ install_pg_client() {
 }
 
 parse_files() {
-  # Normalize newlines and commas to spaces; drop empties.
   local normalized
-  normalized="$(printf '%s' "$FILES_RAW" | tr ',\n\r' '   ')"
+  normalized="$(printf '%s' "$MIGRATION_FILES" | tr ',\n\r' '   ')"
   local -a paths=()
-  local token relpath
+  local token relpath abs
   for token in $normalized; do
     token="${token#"${token%%[![:space:]]*}"}"
     token="${token%"${token##*[![:space:]]}"}"
@@ -58,11 +76,12 @@ parse_files() {
       echo "::error::Unexpected migration filename: ${relpath}"
       exit 1
     fi
-    if [[ ! -f "$relpath" ]]; then
-      echo "::error::Migration file not found at ref: ${relpath}"
+    abs="${MIGRATIONS_ROOT}/${relpath}"
+    if [[ ! -f "$abs" ]]; then
+      echo "::error::Staged migration file not found: ${relpath}"
       exit 1
     fi
-    paths+=("$relpath")
+    paths+=("$abs")
   done
 
   if [[ ${#paths[@]} -eq 0 ]]; then
@@ -71,6 +90,12 @@ parse_files() {
   fi
 
   printf '%s\n' "${paths[@]}"
+}
+
+assert_no_embedded_transactions() {
+  local -a files=()
+  mapfile -t files < <(parse_files)
+  node "$RUNNER_ROOT/qa/check-migration-transaction-control.mjs" "${files[@]}"
 }
 
 migration_version() {
@@ -85,6 +110,12 @@ migration_name() {
   printf '%s' "${base#*_}"
 }
 
+migration_relpath_log() {
+  local abs="$1"
+  local prefix="${MIGRATIONS_ROOT%/}/"
+  printf '%s' "${abs#"$prefix"}"
+}
+
 functions_in_file() {
   local file="$1"
   grep -oiE 'CREATE[[:space:]]+(OR[[:space:]]+REPLACE[[:space:]]+)?FUNCTION[[:space:]]+([a-zA-Z0-9_"$.]+)' "$file" \
@@ -96,7 +127,7 @@ functions_in_file() {
 print_function_md5s_for_file() {
   local file="$1"
   local -a names=()
-  local fn schema name bare
+  local fn schema name
   while IFS= read -r fn; do
     [[ -z "$fn" ]] && continue
     names+=("$fn")
@@ -118,20 +149,20 @@ print_function_md5s_for_file() {
       echo "  (skip non-identifier function name: ${fn})"
       continue
     fi
-    psql_conn -v schema="${schema}" -v fname="${name}" -Atqc "
-    SELECT format('%s.%s(%s) md5=%s',
-      n.nspname,
-      p.proname,
-      pg_get_function_identity_arguments(p.oid),
-      md5(pg_get_functiondef(p.oid))
-    )
-    FROM pg_proc p
-    JOIN pg_namespace n ON n.oid = p.pronamespace
-    WHERE n.nspname = :'schema'
-      AND p.proname = :'fname'
-      AND p.prokind = 'f'
-    ORDER BY pg_get_function_identity_arguments(p.oid);
-  " | sed 's/^/  /' || true
+    psql_conn -v schema="${schema}" -v fname="${name}" -Atq <<'SQL' | sed 's/^/  /'
+SELECT format('%s.%s(%s) md5=%s',
+  n.nspname,
+  p.proname,
+  pg_get_function_identity_arguments(p.oid),
+  md5(pg_get_functiondef(p.oid))
+)
+FROM pg_proc p
+JOIN pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname = :'schema'
+  AND p.proname = :'fname'
+  AND p.prokind = 'f'
+ORDER BY pg_get_function_identity_arguments(p.oid);
+SQL
   done
 }
 
@@ -140,19 +171,20 @@ run_dry_run() {
   mapfile -t files < <(parse_files)
 
   echo "Dry run: ${#files[@]} migration file(s) (each in BEGIN … ROLLBACK)."
-  local file ok=0 fail=0
+  local file ok=0 fail=0 label
   for file in "${files[@]}"; do
-    echo "--- ${file}"
+    label="$(migration_relpath_log "$file")"
+    echo "--- ${label}"
     if psql_conn <<SQL
 BEGIN;
 \\i ${file}
 ROLLBACK;
 SQL
     then
-      echo "PASS: ${file}"
+      echo "PASS: ${label}"
       ok=$((ok + 1))
     else
-      echo "::error::FAIL: ${file}"
+      echo "::error::FAIL: ${label}"
       fail=$((fail + 1))
     fi
   done
@@ -192,15 +224,18 @@ SQL
 
   echo ""
   echo "=== Apply summary ==="
+  local file label
   for file in "${files[@]}"; do
-    echo "Applied: ${file}"
+    label="$(migration_relpath_log "$file")"
+    echo "Applied: ${label}"
     print_function_md5s_for_file "$file"
   done
 }
 
 main() {
+  assert_no_embedded_transactions
   install_pg_client
-  case "${DRY_RUN,,}" in
+  case "${MIGRATION_DRY_RUN,,}" in
     true | 1 | yes)
       run_dry_run
       ;;
@@ -208,7 +243,7 @@ main() {
       run_apply
       ;;
     *)
-      echo "::error::Invalid dry_run value: ${DRY_RUN}"
+      echo "::error::Invalid MIGRATION_DRY_RUN value: ${MIGRATION_DRY_RUN}"
       exit 1
       ;;
   esac

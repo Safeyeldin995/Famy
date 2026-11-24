@@ -23,7 +23,7 @@ The workflow fails closed if the secret is missing. Logs never print the URL.
 ## How to run
 
 1. **Actions → Production DB migrate → Run workflow**
-2. **ref:** usually `main` (or a release branch SHA).
+2. **ref:** full **40-character commit SHA** on `main` (or the merged release commit). Branch names are not accepted.
 3. **files:** migration paths, one per line or comma-separated, **in dependency order**, for example:
 
    ```text
@@ -36,6 +36,8 @@ The workflow fails closed if the secret is missing. Logs never print the URL.
 
 ### Apply behavior (`dry_run = false`)
 
+- Migration SQL is loaded with `git show <sha>:<path>` from the supplied commit; the workflow script itself always comes from **`main`**.
+- Files that contain top-level `BEGIN` / `COMMIT` / `ROLLBACK` / `START TRANSACTION` / `END` (outside comments or `$$` bodies) are **rejected** — they would break the outer transaction wrapper.
 - All listed files run in **one** transaction (`ON_ERROR_STOP`; failure rolls back everything).
 - Each file records a row in `supabase_migrations.schema_migrations` (`version` = 14-digit timestamp, `name` = rest of filename) only if that `version` is not already present.
 - PostgREST schema reload: `NOTIFY pgrst, 'reload schema'`.
