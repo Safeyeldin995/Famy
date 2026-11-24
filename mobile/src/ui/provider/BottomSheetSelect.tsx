@@ -17,7 +17,7 @@ export function BottomSheetSelect({
 }: {
   label: string;
   value: string;
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; disabled?: boolean }[];
   onChange: (value: string) => void;
   disabled?: boolean;
 }) {
@@ -112,8 +112,11 @@ export function BottomSheetSelect({
                   key={option.value}
                   accessibilityRole="radio"
                   accessibilityLabel={option.label}
-                  accessibilityState={{ checked: option.value === value }}
-                  style={[styles.option, direction]}
+                  accessibilityState={{
+                    checked: option.value === value,
+                    disabled: !!option.disabled,
+                  }}
+                  style={[styles.option, direction, option.disabled ? { opacity: 0.45 } : null]}
                   onLayout={(event) => {
                     if (!search && option.value === value)
                       scroll.current?.scrollTo({
@@ -122,7 +125,8 @@ export function BottomSheetSelect({
                       });
                   }}
                   onPress={() => {
-                    if (!disabled) onChange(option.value);
+                    if (disabled || option.disabled) return;
+                    onChange(option.value);
                     close();
                   }}
                 >

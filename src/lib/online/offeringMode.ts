@@ -18,3 +18,18 @@ export function offeringModeAllowsInPerson(
 ): boolean {
   return mode === "in_person" || mode === "both";
 }
+
+/** UI: only in-person stays selectable when online is not allowed. */
+export function isOfferingModeOptionDisabled(
+  mode: ProviderOfferingMode,
+  canEnableOnline: boolean,
+): boolean {
+  return !canEnableOnline && mode !== "in_person";
+}
+
+export function isOfferingModeSaveAllowed(
+  mode: ProviderOfferingMode,
+  canEnableOnline: boolean,
+): boolean {
+  return canEnableOnline || mode === "in_person";
+}

@@ -3,6 +3,8 @@ import { View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { isPriceInRange } from "@shared/provider/priceOptions";
 import {
+  isOfferingModeOptionDisabled,
+  isOfferingModeSaveAllowed,
   normalizeOfferingMode,
   type ProviderOfferingMode,
 } from "@shared/online/offeringMode";
@@ -95,16 +97,23 @@ export function OnlineLessonsSettings({
     [capabilities],
   );
 
+  const canEnableOnline = isVerified && isApproved && onlineReady.length > 0;
+
   const modeOptions = MODE_OPTIONS.map((value) => ({
     value,
-    label: t(`pro.onlineLessons.mode${value === "in_person" ? "InPerson" : value === "online" ? "Online" : "Both"}`),
+    label: t(
+      `pro.onlineLessons.mode${value === "in_person" ? "InPerson" : value === "online" ? "Online" : "Both"}`,
+    ),
+    disabled: isOfferingModeOptionDisabled(value, canEnableOnline),
   }));
-
-  const canEnableOnline = isVerified && isApproved && onlineReady.length > 0;
 
   const persistMode = async () => {
     setActionError(false);
     setSuccess("");
+    if (!isOfferingModeSaveAllowed(mode, canEnableOnline)) {
+      setActionError(true);
+      return;
+    }
     try {
       await saveMode.mutateAsync(mode);
       setSuccess(t("pro.onlineLessons.modeSaved"));
@@ -198,7 +207,6 @@ export function OnlineLessonsSettings({
           value={mode}
           options={modeOptions}
           onChange={(value) => setMode(value as ProviderOfferingMode)}
-          disabled={!canEnableOnline && mode !== "in_person"}
         />
         <Button
           label={t("pro.onlineLessons.saveMode")}
