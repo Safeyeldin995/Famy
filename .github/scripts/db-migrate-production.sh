@@ -42,13 +42,28 @@ psql_conn() {
     psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 "$@"
 }
 
-install_pg_client() {
+install_pgdg_apt_repo() {
   sudo apt-get update -qq
-  sudo apt-get install -y postgresql-client
-  local major
-  major="$(psql_conn -Atqc "SELECT current_setting('server_version_num')::int / 10000")"
-  if ! dpkg -s "postgresql-client-${major}" >/dev/null 2>&1; then
-    sudo apt-get install -y "postgresql-client-${major}"
+  sudo apt-get install -y curl ca-certificates
+  sudo install -d /usr/share/postgresql-common/pgdg
+  sudo curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+    -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+  sudo sh -c "printf '%s\n' \
+    \"deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main\" \
+    > /etc/apt/sources.list.d/pgdg.list"
+  sudo apt-get update -qq
+}
+
+install_pg_client() {
+  install_pgdg_apt_repo
+  local major=17
+  sudo apt-get install -y "postgresql-client-${major}"
+  if detected="$(psql_conn -Atqc "SELECT current_setting('server_version_num')::int / 10000" 2>/dev/null)" \
+    && [[ -n "$detected" && "$detected" =~ ^[0-9]+$ ]]; then
+    major="$detected"
+    if ! dpkg -s "postgresql-client-${major}" >/dev/null 2>&1; then
+      sudo apt-get install -y "postgresql-client-${major}"
+    fi
   fi
   echo "Using PostgreSQL client for server major version ${major}."
   psql --version
@@ -172,26 +187,31 @@ run_dry_run() {
   local -a files=()
   mapfile -t files < <(parse_files)
 
-  echo "Dry run: ${#files[@]} migration file(s) (each in BEGIN … ROLLBACK)."
-  local file ok=0 fail=0 label
+  local txn_sql
+  txn_sql="$(mktemp)"
+  trap 'rm -f "$txn_sql"' EXIT
+
+  {
+    printf 'BEGIN;\n'
+    for file in "${files[@]}"; do
+      printf '\\i %s\n' "$file"
+    done
+    printf 'ROLLBACK;\n'
+  } >"$txn_sql"
+
+  echo "Dry run: ${#files[@]} migration file(s) in one transaction (BEGIN … ROLLBACK)."
+  local file label
   for file in "${files[@]}"; do
     label="$(migration_relpath_log "$file")"
-    echo "--- ${label}"
-    if psql_conn <<SQL
-BEGIN;
-\\i ${file}
-ROLLBACK;
-SQL
-    then
-      echo "PASS: ${label}"
-      ok=$((ok + 1))
-    else
-      echo "::error::FAIL: ${label}"
-      fail=$((fail + 1))
-    fi
+    echo "  - ${label}"
   done
-  echo "Dry run summary: ${ok} passed, ${fail} failed."
-  [[ "$fail" -eq 0 ]]
+
+  if psql_conn -f "$txn_sql"; then
+    echo "Dry run PASS: all ${#files[@]} file(s) executed successfully (rolled back)."
+  else
+    echo "::error::Dry run FAIL: transaction rolled back due to error."
+    return 1
+  fi
 }
 
 run_apply() {
