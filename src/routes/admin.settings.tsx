@@ -114,10 +114,14 @@ function BillingSection() {
   const update = useUpdateBillingSettings();
   const [vat, setVat] = useState("");
   const [fee, setFee] = useState("");
+  const [onlineCommission, setOnlineCommission] = useState("");
   useEffect(() => {
     if (q.data) {
       setVat(String(q.data.vat_percent ?? ""));
       setFee(String(q.data.platform_fee ?? ""));
+      setOnlineCommission(
+        q.data.commission_percent_online == null ? "" : String(q.data.commission_percent_online),
+      );
     }
   }, [q.data]);
   const vatNumber = Number(vat);
@@ -130,9 +134,18 @@ function BillingSection() {
     vatNumber >= 0 &&
     vatNumber <= 100 &&
     feeNumber >= 0;
+  const onlineCommissionNumber =
+    onlineCommission.trim() === "" ? null : Number(onlineCommission);
+  const onlineCommissionValid =
+    onlineCommission.trim() === "" ||
+    (Number.isFinite(onlineCommissionNumber) &&
+      onlineCommissionNumber! >= 0 &&
+      onlineCommissionNumber! <= 50);
   const changed =
     !!q.data &&
-    (vatNumber !== Number(q.data.vat_percent) || feeNumber !== Number(q.data.platform_fee));
+    (vatNumber !== Number(q.data.vat_percent) ||
+      feeNumber !== Number(q.data.platform_fee) ||
+      (q.data.commission_percent_online ?? null) !== onlineCommissionNumber);
   // VAT and the platform fee are editable; the commission is passed through
   // exactly as stored, so this screen can never change it.
   const save = () =>
@@ -141,6 +154,7 @@ function BillingSection() {
         vat_percent: vatNumber,
         platform_fee: feeNumber,
         commission_percent: q.data?.commission_percent ?? null,
+        commission_percent_online: onlineCommissionNumber,
       },
       {
         onSuccess: () => toast.success(t("admin.settings.saved", "Saved")),
@@ -184,13 +198,25 @@ function BillingSection() {
             <span>{t("admin.settings.commissionPercent")}</span>
             <bdi dir="ltr">{q.data?.commission_percent ?? "—"}</bdi>
           </div>
+          <label className="block space-y-1">
+            <span className="text-pro-13 font-semibold">
+              {t("admin.settings.commissionPercentOnline")}
+            </span>
+            <input
+              inputMode="decimal"
+              dir="ltr"
+              value={onlineCommission}
+              onChange={(e) => setOnlineCommission(e.target.value)}
+              className="min-h-11 w-full rounded-xl border bg-surface px-3 text-pro-14"
+            />
+          </label>
           <p className="rounded-xl border p-3 text-pro-13 font-semibold">
             {t("adminCatalog.ownerDecision")}
           </p>
           <ConfirmCatalogButton
             description={t("adminCatalog.billingConfirm")}
             onConfirm={save}
-            disabled={!valid || !changed || update.isPending}
+            disabled={!valid || !onlineCommissionValid || !changed || update.isPending}
           >
             {t("common.save")}
           </ConfirmCatalogButton>

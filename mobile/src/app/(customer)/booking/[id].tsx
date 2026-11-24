@@ -324,7 +324,7 @@ export default function BookingDetail() {
                     style={[
                       ui.metaIconSlot,
                       {
-                        borderRadius: 12,
+                        borderRadius: radius.md,
                         backgroundColor: colors.brandTint,
                       },
                     ]}
@@ -350,53 +350,6 @@ export default function BookingDetail() {
                 <Text weight="bold">{info.total}</Text>
               </View>
             </View>
-            <View style={{ flexDirection: "row", gap: space.sm }}>
-              {[
-                { Icon: Download, key: "receipt", onPress: () => void share(false) },
-                { Icon: Calendar, key: "addCalendar", onPress: () => void share(true) },
-                { Icon: HelpCircle, key: "support", onPress: () => router.push("/help") },
-              ].map(({ Icon, key, onPress }) => (
-                <Pressable
-                  key={key}
-                  accessibilityRole="button"
-                  accessibilityLabel={t(`bookingDetail.${key}`)}
-                  onPress={onPress}
-                  style={{
-                    flex: 1,
-                    minHeight: 90,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    borderRadius: 20,
-                    backgroundColor: colors.surface,
-                    padding: space.md,
-                    gap: space.sm,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 20,
-                      backgroundColor: colors.brandTint,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Icon size={20} color={colors.brand} />
-                  </View>
-                  <Text size="xs" weight="bold">
-                    {t(`bookingDetail.${key}`)}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            {fileError && (
-              <Text tone="danger" accessibilityLiveRegion="polite">
-                {t("common.somethingWentWrong")}
-              </Text>
-            )}
             {activeBooking ? (
               <CustomerPreparationNotesSection notes={preparation.data} />
             ) : null}
@@ -453,6 +406,56 @@ export default function BookingDetail() {
                 total={b.price_total}
                 refetchBooking={q.refetch}
               />
+            )}
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
+              {[
+                { Icon: Download, key: "receipt", onPress: () => void share(false) },
+                { Icon: Calendar, key: "addCalendar", onPress: () => void share(true) },
+                { Icon: HelpCircle, key: "support", onPress: () => router.push("/help") },
+              ].map(({ Icon, key, onPress }) => (
+                <Pressable
+                  key={key}
+                  accessibilityRole="button"
+                  accessibilityLabel={t(`bookingDetail.${key}`)}
+                  onPress={onPress}
+                  style={{
+                    flexGrow: 1,
+                    flexBasis: "30%",
+                    minWidth: 96,
+                    minHeight: 72,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: radius.lg,
+                    backgroundColor: colors.surface,
+                    paddingHorizontal: space.sm,
+                    paddingVertical: space.md,
+                    gap: space.sm,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: radius.lg,
+                      backgroundColor: colors.brandTint,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Icon size={18} color={colors.brand} />
+                  </View>
+                  <Text size="xs" weight="bold" style={{ textAlign: "center" }}>
+                    {t(`bookingDetail.${key}`)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            {fileError && (
+              <Text tone="danger" accessibilityLiveRegion="polite">
+                {t("common.somethingWentWrong")}
+              </Text>
             )}
             <BookingActions booking={b} suppressRebook={created === "1"} />
           </>

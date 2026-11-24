@@ -413,16 +413,17 @@ describe("four-screen booking journey", () => {
     next();
     expect(title("review")).toBeTruthy();
   });
-  it("renders tutoring recipient, grouped subject and approved duration choices on screen one", async () => {
+  it("renders tutoring recipient, cascade pickers, and approved duration choices on screen one", async () => {
     render(<BookContent providerId="p1" searchServiceId="booking-tutoring" />);
     expect(
       screen.getByText(i18n.t("customerBooking.tutoringFrom", { price: formatNumber(450) })),
     ).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /^Child fixture ·/ }));
     pickSupervision();
-    // Two approved durations require a subject-group choice; the existing autofill
-    // intentionally does not select an ambiguous capability automatically.
-    fireEvent.click(screen.getByRole("button", { name: /Math · Egyptian · Grade 1/ }));
+    expect(screen.getByRole("button", { name: i18n.t("teaching.subject") })).toBeTruthy();
+    expect(screen.getByRole("button", { name: i18n.t("studentEducation.curriculum") })).toBeTruthy();
+    expect(screen.getByRole("button", { name: i18n.t("studentEducation.grade") })).toBeTruthy();
+    // Same subject/curriculum/level with two durations: cascade preselects taxonomy, user picks duration.
     await waitFor(() =>
       expect(
         screen.getByRole("button", { name: i18n.t("bookFlow.sessionLine", { minutes: "90" }) }),
