@@ -63,7 +63,7 @@ export function useMyProviderServicesDetailed(providerId: string | undefined) {
       const { data, error } = await supabase
         .from("provider_services")
         .select(
-          "service_id, price_override, pending_price_override, price_change_reason, preparation_notes, status, service:services(id, name_en, name_ar, is_active, provider_pricing_allowed, minimum_price, maximum_price, pricing_model, category:categories(slug, name_en, name_ar))",
+          "service_id, price_override, online_price_override, pending_online_price_override, online_price_change_reason, pending_price_override, price_change_reason, preparation_notes, status, service:services(id, name_en, name_ar, is_active, online_allowed, provider_pricing_allowed, minimum_price, maximum_price, pricing_model, category:categories(slug, name_en, name_ar, online_allowed))",
         )
         .eq("provider_id", providerId!);
       if (error) throw error;

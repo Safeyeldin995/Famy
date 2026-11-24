@@ -124,6 +124,7 @@ export default function ProviderProfile() {
         </View>
       </QueryState>
       <Row label={t("scheduleUi.hours")} onPress={() => router.push("/schedule")} />
+      <Row label={t("pro.profile.onlineLessonsLink")} onPress={() => router.push("/pro-online-lessons")} />
       <Text weight="bold" tone="muted" size="sm">
         {t("pro.profile.about")}
       </Text>

@@ -2630,6 +2630,36 @@ const en = {
       more: "More",
       documentsRow: "Documents & verification",
       signOut: "Sign out",
+      onlineLessonsLink: "Online lessons",
+    },
+    onlineLessons: {
+      title: "Online lessons",
+      helpTitle: "Teach from home",
+      helpBody:
+        "Online lessons are live video sessions inside Famy. Customers pay before the lesson, then join from the app when it starts. You need a stable connection and a quiet space.",
+      emptyTitle: "No online-ready services yet",
+      emptyBody:
+        "Add a tutoring service and get it approved first. Famy currently enables online lessons for approved tutoring services.",
+      modeLabel: "Lesson mode",
+      modeInPerson: "In person only",
+      modeOnline: "Online only",
+      modeBoth: "In person and online",
+      modeHint:
+        "Choose how customers can book you. Online-only providers do not need a service area (zone).",
+      verifyRequired: "Complete verification before you can enable online lessons.",
+      saveMode: "Save lesson mode",
+      modeSaved: "Lesson mode saved",
+      onlinePriceLabel: "Online session price",
+      onlinePriceHint: "Price per online session for this subject. Leave blank to use your in-person price.",
+      onlinePriceSaved: "Online price saved",
+      onlinePricePending:
+        "Online price pending review: {{requested}} EGP (current {{current}} EGP)",
+      requestOnlinePriceChange: "Request online price change",
+      cancelOnlinePriceChange: "Cancel online price request",
+      onlinePriceChangeSubmitted: "Online price sent for admin review",
+      onlinePriceChangeCancelled: "Online price request cancelled",
+      capabilityApprovedOnly: "Only approved subjects can set an online price.",
+      usesInPersonPrice: "Uses in-person price ({{price}} EGP)",
     },
     serviceRequest: {
       addServiceLink: "+ Add a service",

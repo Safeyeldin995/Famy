@@ -2601,6 +2601,36 @@ const ar: Translation = {
       more: "المزيد",
       documentsRow: "المستندات والتوثيق",
       signOut: "تسجيل الخروج",
+      onlineLessonsLink: "الحصص الأونلاين",
+    },
+    onlineLessons: {
+      title: "الحصص الأونلاين",
+      helpTitle: "درّس من البيت",
+      helpBody:
+        "الحصص الأونلاين جلسات فيديو مباشرة جوّه فامي. العميل يدفع قبل الحصة وبعدين ينضم من التطبيق وقت البداية. محتاج نت ثابت ومكان هادي.",
+      emptyTitle: "مفيش خدمة جاهزة للأونلاين لسه",
+      emptyBody:
+        "أضف خدمة دروس واستنى اعتمادها. حاليًا فامي بيفعّل الأونلاين لخدمات الدروس المعتمدة.",
+      modeLabel: "طريقة الحصة",
+      modeInPerson: "حضوري بس",
+      modeOnline: "أونلاين بس",
+      modeBoth: "حضوري وأونلاين",
+      modeHint:
+        "اختار إزاي العملاء يحجزوا معاك. اللي بيقدّم أونلاين بس مش محتاج منطقة خدمة.",
+      verifyRequired: "كمّل التوثيق قبل ما تفعّل الحصص الأونلاين.",
+      saveMode: "حفظ طريقة الحصة",
+      modeSaved: "اتحفظت طريقة الحصة",
+      onlinePriceLabel: "سعر الحصة الأونلاين",
+      onlinePriceHint: "سعر كل حصة أونلاين للمادة دي. سيبه فاضي لو عايز نفس سعر الحضور.",
+      onlinePriceSaved: "اتحفظ سعر الأونلاين",
+      onlinePricePending:
+        "سعر الأونلاين تحت المراجعة: {{requested}} ج.م (الحالي {{current}} ج.م)",
+      requestOnlinePriceChange: "اطلب تغيير سعر الأونلاين",
+      cancelOnlinePriceChange: "إلغاء طلب سعر الأونلاين",
+      onlinePriceChangeSubmitted: "اتبعت سعر الأونلاين للمراجعة",
+      onlinePriceChangeCancelled: "اتلغى طلب سعر الأونلاين",
+      capabilityApprovedOnly: "المواد المعتمدة بس اللي تقدر تحدد لها سعر أونلاين.",
+      usesInPersonPrice: "بيستخدم سعر الحضور ({{price}} ج.م)",
     },
     serviceRequest: {
       addServiceLink: "+ أضف خدمة",
