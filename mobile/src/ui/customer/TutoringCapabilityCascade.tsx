@@ -31,7 +31,7 @@ export function TutoringCapabilityCascade({
   capabilities: TeachingCapabilityOption[];
   pick: CapabilityPickValue;
   capabilityId: string;
-  onPickChange: (next: CapabilityPickValue) => void;
+  onPickChange: (next: CapabilityPickValue, source?: "user" | "normalize") => void;
   onCapabilityChange: (id: string) => void;
 }) {
   const { t, i18n } = useTranslation();
@@ -66,7 +66,7 @@ export function TutoringCapabilityCascade({
       coerced.curriculumId !== pick.curriculumId ||
       coerced.levelId !== pick.levelId
     ) {
-      onPickChange(coerced);
+      onPickChange(coerced, "normalize");
     }
   }, [approved, pick, requiresCurriculum, onPickChange]);
 

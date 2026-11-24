@@ -3,12 +3,14 @@ import type { TeachingCapabilityOption } from "@/lib/tutoring/teachingCapabiliti
 import {
   approvedCapabilitiesForService,
   capabilitiesMatchingPick,
+  capabilityPickFromCapability,
   coerceCapabilityPick,
   curriculumOptionsFromCapabilities,
   levelOptionsFromCapabilities,
   soleOptionValue,
   subjectOptionsFromCapabilities,
 } from "@/lib/tutoring/providerCapabilityCascade";
+import { TEACHING_CURRICULUM_NA_CODE } from "@/lib/tutoring/lessonServices";
 
 function cap(partial: Partial<TeachingCapabilityOption> & { id: string }): TeachingCapabilityOption {
   return {
@@ -97,5 +99,33 @@ describe("providerCapabilityCascade", () => {
   it("soleOptionValue returns empty when ambiguous", () => {
     expect(soleOptionValue([{ value: "a", label: "A" }, { value: "b", label: "B" }])).toBe("");
     expect(soleOptionValue([{ value: "a", label: "A" }])).toBe("a");
+  });
+
+  it("represents na curriculum the same in fromCapability and coerce (single quran lesson)", () => {
+    const quran = cap({
+      id: "quran-60",
+      subjectCode: "quran",
+      subjectNameEn: "Quran",
+      subjectNameAr: "قرآن",
+      curriculumId: "cur-na",
+      curriculumCode: TEACHING_CURRICULUM_NA_CODE,
+      curriculumNameEn: "N/A",
+      curriculumNameAr: "—",
+      levelId: "lvl-a",
+      levelCode: "beginner",
+      levelNameEn: "Beginner",
+      levelNameAr: "مبتدئ",
+      durationMin: 60,
+    });
+    const fromCap = capabilityPickFromCapability(quran);
+    expect(fromCap).toEqual({
+      subjectCode: "quran",
+      curriculumId: "",
+      levelId: "lvl-a",
+    });
+    const coerced = coerceCapabilityPick([quran], fromCap, false);
+    expect(coerced).toEqual(fromCap);
+    const matches = capabilitiesMatchingPick([quran], coerced);
+    expect(matches).toEqual([quran]);
   });
 });

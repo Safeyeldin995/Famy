@@ -132,12 +132,7 @@ export function coerceCapabilityPick(
   let levelId = levels.some((row) => row.value === pick.levelId)
     ? pick.levelId
     : soleOptionValue(levels);
-  if (!requiresCurriculum && !curriculumId && levels.length) {
-    const lessonCap = capabilities.find(
-      (cap) => cap.subjectCode === subjectCode && cap.levelId === levelId,
-    );
-    curriculumId = lessonCap?.curriculumId ?? "";
-  }
+  // Lesson services (na curriculum) keep curriculumId empty in pick state — same as capabilityPickFromCapability.
   return { subjectCode, curriculumId, levelId };
 }
 

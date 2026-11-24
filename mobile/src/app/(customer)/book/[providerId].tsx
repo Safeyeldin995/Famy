@@ -961,12 +961,14 @@ function BookForm({
                   capabilities={caps.data ?? []}
                   pick={capabilityPick}
                   capabilityId={capId}
-                  onPickChange={(next) => {
-                    userCap.current = true;
+                  onPickChange={(next, source) => {
                     setCapabilityPick(next);
                     setCurriculum(next.curriculumId);
                     setLevel(next.levelId);
-                    setCapId("");
+                    if (source !== "normalize") {
+                      userCap.current = true;
+                      setCapId("");
+                    }
                   }}
                   onCapabilityChange={(id) => {
                     userCap.current = true;

@@ -1200,15 +1200,17 @@ function BookContentForm({
                           capabilities={capabilitiesQ.data ?? []}
                           pick={capabilityPick}
                           capabilityId={capabilityId}
-                          onPickChange={(next) => {
+                          onPickChange={(next, source) => {
                             touch("education");
-                            touch("capabilityId");
-                            userPickedCapabilityRef.current = true;
                             setCapabilityPick(next);
                             setBookingEducation(
                               educationValueFromIds(next.curriculumId, next.levelId),
                             );
-                            clearSlot();
+                            if (source !== "normalize") {
+                              touch("capabilityId");
+                              userPickedCapabilityRef.current = true;
+                              clearSlot();
+                            }
                           }}
                           onCapabilityChange={(id) => {
                             touch("capabilityId");

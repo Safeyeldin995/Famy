@@ -29,7 +29,7 @@ export function TutoringCapabilityCascadeFields({
   capabilities: TeachingCapabilityOption[];
   pick: CapabilityPickValue;
   capabilityId: string | null;
-  onPickChange: (next: CapabilityPickValue) => void;
+  onPickChange: (next: CapabilityPickValue, source?: "user" | "normalize") => void;
   onCapabilityChange: (id: string | null) => void;
 }) {
   const { t } = useTranslation();
@@ -70,7 +70,7 @@ export function TutoringCapabilityCascadeFields({
       coerced.curriculumId !== pick.curriculumId ||
       coerced.levelId !== pick.levelId
     ) {
-      onPickChange(coerced);
+      onPickChange(coerced, "normalize");
     }
   }, [approved, pick, requiresCurriculum, onPickChange]);
 
