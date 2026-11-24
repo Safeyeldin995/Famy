@@ -2951,6 +2951,7 @@ const ar: Translation = {
         settings: "الإعدادات",
         serviceRequests: "طلبات خدمات جديدة",
         priceChangeRequests: "طلبات تغيير السعر",
+        onlineLessonIssues: "بلاغات الحصص الأونلاين",
       },
       collapseSidebar: "طي القائمة الجانبية",
       expandSidebar: "توسيع القائمة الجانبية",
@@ -3809,6 +3810,7 @@ const ar: Translation = {
       vatPercent: "ضريبة القيمة المضافة (%)",
       platformFee: "رسوم المنصة (ج.م، ثابتة)",
       commissionPercent: "عمولة فامي (٪ من سعر خدمة مقدم الخدمة)",
+      commissionPercentOnline: "عمولة الدروس الأونلاين (%)",
       commissionPercentHint:
         "اتركه فارغا إن لم تحدد نسبة، تغيير هذه القيمة لا يؤثر على الحجوزات الحالية",
       commissionPercentInvalid: "أدخل رقما من 0 إلى 50 بحد أقصى خانتين عشريتين، أو اتركه فارغا",

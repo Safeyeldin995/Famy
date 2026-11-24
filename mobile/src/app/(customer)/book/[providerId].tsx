@@ -9,7 +9,11 @@ import { BookingServiceCard } from "@/ui/customer/BookingServiceCard";
 import { BookOpen, Clock, UserRound, Star } from "lucide-react-native";
 import { Avatar } from "@/ui/ProviderCard";
 import { colors, space } from "@/ui/theme";
-import { BookingEducation } from "@/ui/BookingEducation";
+import { TutoringCapabilityCascade } from "@/ui/customer/TutoringCapabilityCascade";
+import {
+  capabilityPickFromCapability,
+  type CapabilityPickValue,
+} from "@shared/tutoring/providerCapabilityCascade";
 import { planPostCreatePayment } from "@/lib/bookingPure";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
@@ -46,7 +50,6 @@ import {
   BOOKING_SCREENS,
   bookingScreenMissingStep,
   bookingScreenForStep,
-  groupBookingSubjects,
 } from "@shared/booking/bookingScreens";
 import { bookingDisabledReason } from "@shared/booking/disabledReason";
 import {
@@ -80,9 +83,7 @@ import {
   pickDefaultCapabilityForEducation,
   shouldPersistEducationAfterBookingSuccess,
 } from "@shared/tutoring/bookingEducationAutofill";
-import { isLessonServiceSlug, teachingCapabilityTitleParts } from "@shared/tutoring/lessonServices";
-import { lessonIllustrationKeyForSubject } from "@shared/tutoring/lessonIllustrations";
-import { LessonIllustration } from "@/ui/lessons/LessonIllustration";
+import { isLessonServiceSlug } from "@shared/tutoring/lessonServices";
 import { localized, dateTime } from "@/lib/presentation";
 import { Page, QueryState, Field, Choices, moneyTextStyle, ui } from "@/ui/Page";
 import { Text } from "@/ui/Text";
@@ -232,6 +233,11 @@ function BookForm({
     rebookInitial?.education.educationCurriculumId ?? "",
   );
   const [level, setLevel] = useState(rebookInitial?.education.educationLevelId ?? "");
+  const [capabilityPick, setCapabilityPick] = useState<CapabilityPickValue>({
+    subjectCode: "",
+    curriculumId: rebookInitial?.education.educationCurriculumId ?? "",
+    levelId: rebookInitial?.education.educationLevelId ?? "",
+  });
   const [saveSchool, setSaveSchool] = useState(false);
   const idempotency = useRef<IdempotencyKeyState | null>(null);
   const submitting = useRef(false);
@@ -265,13 +271,7 @@ function BookForm({
   const caps = useApprovedTeachingCapabilities(providerId, service?.service.id);
   const allCaps = useApprovedTeachingCapabilities(providerId);
   const capability = (caps.data ?? []).find((c) => c.id === capId) ?? null;
-  const subjectGroups = groupBookingSubjects(
-    (caps.data ?? []).filter((c) => {
-      if (isLessonService) return true;
-      return (!curriculum || c.curriculumId === curriculum) && (!level || c.levelId === level);
-    }),
-  );
-  const selectedGroup = subjectGroups.find((g) => g.capabilities.some((c) => c.id === capId));
+  const hasApprovedCapabilities = (caps.data ?? []).length > 0;
   const needsRate = fixed && service?.price_override == null;
   const packageRate = useFixedPackageRate(
     providerId,
@@ -335,10 +335,22 @@ function BookForm({
   }, [babysitting, recipient, guardDefault]);
 
   useEffect(() => {
+    if (!capability) return;
+    setCapabilityPick(capabilityPickFromCapability(capability));
+  }, [capability?.id]);
+
+  useEffect(() => {
     if (!tutoring || isLessonService) return;
     if (guardDefault("education")) return;
-    setCurriculum(student.educationCurriculumId || "");
-    setLevel(student.educationLevelId || "");
+    const nextCurriculum = student.educationCurriculumId || "";
+    const nextLevel = student.educationLevelId || "";
+    setCurriculum(nextCurriculum);
+    setLevel(nextLevel);
+    setCapabilityPick((pick) => ({
+      ...pick,
+      curriculumId: nextCurriculum,
+      levelId: nextLevel,
+    }));
     userCap.current = !!initialCap;
   }, [
     tutoring,
@@ -782,7 +794,11 @@ function BookForm({
                       : bookingScreenPrimaryCtaKey(BOOKING_SCREENS[step], editing),
                 )}
                 loading={busy}
-                disabled={busy || loading}
+                disabled={
+                  busy ||
+                  loading ||
+                  (tutoring && step === 0 && (!hasApprovedCapabilities || caps.isLoading))
+                }
                 onPress={() => {
                   setError("");
                   if (missing || blocked) {
@@ -937,82 +953,41 @@ function BookForm({
           {tutoring ? (
             <>
               {recipientUI}
-              <QueryState query={caps} empty={!caps.data?.length} />
-              {!isLessonService ? (
-                <BookingEducation
-                  curriculum={curriculum}
-                  level={level}
-                  onChange={(c, l) => {
-                    setCurriculum(c);
-                    setLevel(l);
-                    setCapId("");
-                    userCap.current = false;
-                  }}
-                />
-              ) : null}
-              {subjectGroups.map((group) => {
-                const cap = group.capabilities[0];
-                const active = group === selectedGroup;
-                const chosen = active ? (capability ?? cap) : cap;
-                return (
-                  <BookingServiceCard
-                    key={group.key}
-                    selected={active}
-                    title={joinUiParts(
-                      teachingCapabilityTitleParts({
-                        subject: lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn,
-                        curriculum: lang === "ar" ? cap.curriculumNameAr : cap.curriculumNameEn,
-                        level: lang === "ar" ? cap.levelNameAr : cap.levelNameEn,
-                        curriculumCode: cap.curriculumCode,
-                      }),
-                      lang,
-                    )}
-                    subtitle={`${chosen.price} ${t("pricePicker.sessionUnit")}`}
-                    icon={
-                      lessonIllustrationKeyForSubject(cap.subjectCode) ? (
-                        <LessonIllustration
-                          subjectCode={cap.subjectCode}
-                          accessibilityLabel={lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn}
-                          width={28}
-                          height={28}
-                        />
-                      ) : (
-                        <BookOpen size={22} color={colors.brand} />
-                      )
-                    }
-                    onPress={() => {
+              <QueryState query={caps} empty={!hasApprovedCapabilities} />
+              {service?.service.id ? (
+                <TutoringCapabilityCascade
+                  serviceId={service.service.id}
+                  serviceSlug={service.service.slug}
+                  capabilities={caps.data ?? []}
+                  pick={capabilityPick}
+                  capabilityId={capId}
+                  onPickChange={(next, source) => {
+                    setCapabilityPick(next);
+                    setCurriculum(next.curriculumId);
+                    setLevel(next.levelId);
+                    if (source !== "normalize") {
                       userCap.current = true;
-                      setCapId(cap.id);
-                      setCurriculum(cap.curriculumId);
-                      setLevel(cap.levelId);
-                    }}
-                  />
-                );
-              })}
-              {selectedGroup ? (
-                <Choices
-                  label={t("customerBooking.sessionDuration")}
-                  value={capId}
-                  onChange={(v) => {
-                    userCap.current = true;
-                    setCapId(v);
+                      setCapId("");
+                    }
                   }}
-                  options={selectedGroup.capabilities.map((cap) => ({
-                    value: cap.id,
-                    label: t("bookFlow.sessionLine", { minutes: String(cap.durationMin) }),
-                  }))}
+                  onCapabilityChange={(id) => {
+                    userCap.current = true;
+                    setCapId(id);
+                  }}
                 />
               ) : null}
-              <Choices
-                layout="cards"
-                label={t("mobileBooking.saveSchool")}
-                value={saveSchool ? "yes" : "no"}
-                onChange={(v) => setSaveSchool(v === "yes")}
-                options={[
-                  { value: "yes", label: t("mobileBooking.yes") },
-                  { value: "no", label: t("mobileBooking.no") },
-                ]}
-              />
+              {!isLessonService ? (
+                <Choices
+                  layout="cards"
+                  label={t("mobileBooking.saveSchool")}
+                  value={saveSchool ? "yes" : "no"}
+                  onChange={(v) => setSaveSchool(v === "yes")}
+                  options={[
+                    { value: "yes", label: t("mobileBooking.yes") },
+                    { value: "no", label: t("mobileBooking.no") },
+                  ]}
+                />
+              ) : null}
             </>
           ) : fixed ? (
             <Text>
