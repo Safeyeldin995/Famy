@@ -36,6 +36,27 @@ SELECT 1;`;
     expect(findTopLevelTransactionControl(sql)).toEqual([]);
   });
 
+  it("flags COMMIT with an inline block comment before semicolon", () => {
+    const sql = `SELECT 1;
+COMMIT /* note */;`;
+    const hits = findTopLevelTransactionControl(sql);
+    expect(hits.map((h) => h.keyword)).toEqual(["COMMIT"]);
+  });
+
+  it("flags BEGIN with trailing line comment and semicolon on the next line", () => {
+    const sql = `BEGIN -- explanation
+;`;
+    const hits = findTopLevelTransactionControl(sql);
+    expect(hits.map((h) => h.keyword)).toEqual(["BEGIN"]);
+  });
+
+  it("flags transaction keywords split by inline comments", () => {
+    const sql = `COM/*mid*/MIT;
+START/*gap*/ TRANSACTION;`;
+    const hits = findTopLevelTransactionControl(sql);
+    expect(hits.map((h) => h.keyword)).toEqual(["COMMIT", "START TRANSACTION"]);
+  });
+
   it("flags the security advisor migration file", () => {
     const file = path.join(
       REPO_ROOT,

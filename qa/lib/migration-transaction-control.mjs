@@ -9,6 +9,38 @@ const TX_KEYWORD_RE =
   /^\s*(BEGIN|COMMIT|ROLLBACK|START\s+TRANSACTION|END)\s*;?\s*$/i;
 
 /**
+ * @param {string} fragment
+ * @returns {string}
+ */
+export function stripSqlComments(fragment) {
+  let out = "";
+  let j = 0;
+  const len = fragment.length;
+  while (j < len) {
+    const rest = fragment.slice(j);
+    if (rest.startsWith("--")) {
+      const nl = rest.indexOf("\n");
+      if (nl === -1) {
+        break;
+      }
+      j += nl + 1;
+      continue;
+    }
+    if (rest.startsWith("/*")) {
+      const end = rest.indexOf("*/");
+      if (end === -1) {
+        break;
+      }
+      j += end + 2;
+      continue;
+    }
+    out += rest[0];
+    j++;
+  }
+  return out;
+}
+
+/**
  * @param {string} sql
  * @returns {TransactionControlHit[]}
  */
@@ -22,16 +54,21 @@ export function findTopLevelTransactionControl(sql) {
   let stmtStart = 0;
   let stmtStartLine = 1;
 
+  /** @param {number} pos */
+  const stmtHasContentBefore = (pos) =>
+    sql.slice(stmtStart, pos).trim().length > 0;
+
   /** @param {number} endExclusive */
   const flushStatement = (endExclusive) => {
-    const stmt = sql.slice(stmtStart, endExclusive).trim();
-    if (stmt) {
+    const raw = sql.slice(stmtStart, endExclusive).trim();
+    if (raw) {
+      const stmt = stripSqlComments(raw).trim();
       const match = stmt.match(TX_KEYWORD_RE);
       if (match) {
         hits.push({
           line: stmtStartLine,
           keyword: match[1].toUpperCase().replace(/\s+/g, " "),
-          text: stmt,
+          text: raw,
         });
       }
     }
@@ -54,8 +91,10 @@ export function findTopLevelTransactionControl(sql) {
       const chunk = rest.slice(0, nl + 1);
       advanceLines(chunk);
       i += nl + 1;
-      stmtStart = i;
-      stmtStartLine = line;
+      if (!stmtHasContentBefore(i - chunk.length)) {
+        stmtStart = i;
+        stmtStartLine = line;
+      }
       continue;
     }
 
@@ -67,8 +106,10 @@ export function findTopLevelTransactionControl(sql) {
       const chunk = rest.slice(0, end + 2);
       advanceLines(chunk);
       i += end + 2;
-      stmtStart = i;
-      stmtStartLine = line;
+      if (!stmtHasContentBefore(i - chunk.length)) {
+        stmtStart = i;
+        stmtStartLine = line;
+      }
       continue;
     }
 
