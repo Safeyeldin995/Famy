@@ -1,0 +1,57 @@
+name: Production DB migrate
+
+# Run explicit supabase/migrations/*.sql files against Production Postgres via psql.
+# Does not use `supabase db push` — Production schema_migrations history does not match repo filenames.
+# Requires repository secret SUPABASE_DB_URL and GitHub environment "production" (required reviewers).
+on:
+  workflow_dispatch:
+    inputs:
+      files:
+        description: >-
+          Newline- or comma-separated repo paths under supabase/migrations/ (order preserved).
+        required: true
+        type: string
+      ref:
+        description: Git branch or SHA to read migration files from
+        required: false
+        default: main
+        type: string
+      dry_run:
+        description: If true, each file runs inside BEGIN … ROLLBACK only (default).
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db-migrate-production
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Migrate (${{ inputs.dry_run && 'dry run' || 'apply' }})
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 45
+    steps:
+      - name: Checkout ref
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Verify SUPABASE_DB_URL secret
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error::Add the SUPABASE_DB_URL repository secret (Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
+          echo "SUPABASE_DB_URL is configured (value not shown)."
+
+      - name: Run migrations
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: bash .github/scripts/db-migrate-production.sh "${{ inputs.dry_run }}" "${{ inputs.files }}"
