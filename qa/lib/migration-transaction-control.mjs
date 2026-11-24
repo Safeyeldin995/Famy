@@ -1,166 +1,101 @@
 /**
- * Detect top-level SQL transaction control outside comments and dollar-quoted bodies.
+ * Detect top-level transaction control via PostgreSQL libpg_query (libpg-query).
  * Used by Production db-migrate workflow — embedded BEGIN/COMMIT breaks outer transactions.
  */
+import { loadModule, parseSync, SqlError } from "libpg-query";
 
-/** @typedef {{ line: number; keyword: string; text: string }} TransactionControlHit */
+let parserReady = null;
 
-const TX_KEYWORD_RE =
-  /^\s*(BEGIN|COMMIT|ROLLBACK|START\s+TRANSACTION|END)\s*;?\s*$/i;
-
-/**
- * @param {string} fragment
- * @returns {string}
- */
-export function stripSqlComments(fragment) {
-  let out = "";
-  let j = 0;
-  const len = fragment.length;
-  while (j < len) {
-    const rest = fragment.slice(j);
-    if (rest.startsWith("--")) {
-      const nl = rest.indexOf("\n");
-      if (nl === -1) {
-        break;
-      }
-      j += nl + 1;
-      continue;
-    }
-    if (rest.startsWith("/*")) {
-      const end = rest.indexOf("*/");
-      if (end === -1) {
-        break;
-      }
-      j += end + 2;
-      continue;
-    }
-    out += rest[0];
-    j++;
+/** @returns {Promise<void>} */
+export async function initMigrationParser() {
+  if (!parserReady) {
+    parserReady = loadModule();
   }
-  return out;
+  await parserReady;
 }
 
 /**
- * @param {string} sql
- * @returns {TransactionControlHit[]}
+ * @typedef {{ kind: 'parse_error'; message: string } | { kind: 'transaction_control'; keyword: string } | { kind: 'call_stmt' }} MigrationIssue
+ * @typedef {{ ok: boolean; filePath: string; issues: MigrationIssue[] }} MigrationAnalysis
  */
-export function findTopLevelTransactionControl(sql) {
-  /** @type {TransactionControlHit[]} */
-  const hits = [];
-  let i = 0;
-  let line = 1;
-  const len = sql.length;
 
-  let stmtStart = 0;
-  let stmtStartLine = 1;
-
-  /** @param {number} pos */
-  const stmtHasContentBefore = (pos) =>
-    sql.slice(stmtStart, pos).trim().length > 0;
-
-  /** @param {number} endExclusive */
-  const flushStatement = (endExclusive) => {
-    const raw = sql.slice(stmtStart, endExclusive).trim();
-    if (raw) {
-      const stmt = stripSqlComments(raw).trim();
-      const match = stmt.match(TX_KEYWORD_RE);
-      if (match) {
-        hits.push({
-          line: stmtStartLine,
-          keyword: match[1].toUpperCase().replace(/\s+/g, " "),
-          text: raw,
-        });
-      }
-    }
-    stmtStart = endExclusive + 1;
-    stmtStartLine = line;
-  };
-
-  const advanceLines = (chunk) => {
-    line += (chunk.match(/\n/g) ?? []).length;
-  };
-
-  while (i < len) {
-    const rest = sql.slice(i);
-
-    if (rest.startsWith("--")) {
-      const nl = rest.indexOf("\n");
-      if (nl === -1) {
-        break;
-      }
-      const chunk = rest.slice(0, nl + 1);
-      advanceLines(chunk);
-      i += nl + 1;
-      if (!stmtHasContentBefore(i - chunk.length)) {
-        stmtStart = i;
-        stmtStartLine = line;
-      }
-      continue;
-    }
-
-    if (rest.startsWith("/*")) {
-      const end = rest.indexOf("*/");
-      if (end === -1) {
-        break;
-      }
-      const chunk = rest.slice(0, end + 2);
-      advanceLines(chunk);
-      i += end + 2;
-      if (!stmtHasContentBefore(i - chunk.length)) {
-        stmtStart = i;
-        stmtStartLine = line;
-      }
-      continue;
-    }
-
-    const dollar = rest.match(/^\$([A-Za-z0-9_]*)\$/);
-    if (dollar) {
-      const tag = dollar[1];
-      const openLen = dollar[0].length;
-      const close = `$${tag}$`;
-      const closeIdx = rest.indexOf(close, openLen);
-      if (closeIdx === -1) {
-        break;
-      }
-      const chunk = rest.slice(0, closeIdx + close.length);
-      advanceLines(chunk);
-      i += closeIdx + close.length;
-      stmtStart = i;
-      stmtStartLine = line;
-      continue;
-    }
-
-    const ch = sql[i];
-    if (ch === ";") {
-      flushStatement(i);
-      i++;
-      continue;
-    }
-
-    if (ch === "\n") {
-      i++;
-      line++;
-      continue;
-    }
-
-    i++;
+/**
+ * @param {string} filePath
+ * @param {string} sql
+ * @returns {MigrationAnalysis}
+ */
+export function analyzeMigrationSql(filePath, sql) {
+  let parsed;
+  try {
+    parsed = parseSync(sql);
+  } catch (error) {
+    const message =
+      error instanceof SqlError || error instanceof Error
+        ? error.message
+        : String(error);
+    return {
+      ok: false,
+      filePath,
+      issues: [{ kind: "parse_error", message }],
+    };
   }
 
-  return hits;
+  /** @type {MigrationIssue[]} */
+  const issues = [];
+  for (const entry of parsed.stmts ?? []) {
+    const stmt = entry?.stmt;
+    if (!stmt) {
+      continue;
+    }
+    const type = Object.keys(stmt)[0];
+    if (type === "TransactionStmt") {
+      const tx = stmt.TransactionStmt;
+      issues.push({
+        kind: "transaction_control",
+        keyword: tx?.kind ?? "TransactionStmt",
+      });
+    } else if (type === "CallStmt") {
+      issues.push({ kind: "call_stmt" });
+    }
+  }
+
+  return {
+    ok: issues.length === 0,
+    filePath,
+    issues,
+  };
+}
+
+/**
+ * @param {MigrationAnalysis} analysis
+ * @returns {string | null}
+ */
+export function formatMigrationAnalysisError(analysis) {
+  if (analysis.ok) {
+    return null;
+  }
+  const detail = analysis.issues
+    .map((issue) => {
+      if (issue.kind === "parse_error") {
+        return `parse error: ${issue.message}`;
+      }
+      if (issue.kind === "transaction_control") {
+        return `transaction statement: ${issue.keyword}`;
+      }
+      if (issue.kind === "call_stmt") {
+        return "top-level CALL statement";
+      }
+      return issue.kind;
+    })
+    .join("; ");
+  return `${analysis.filePath}: migration is not safe for Production db-migrate workflow (${detail}). Remove top-level transaction/CALL statements or split the migration.`;
 }
 
 /**
  * @param {string} filePath
  * @param {string} sql
- * @returns {string | null} error message, or null if clean
+ * @returns {string | null}
  */
 export function transactionControlError(filePath, sql) {
-  const hits = findTopLevelTransactionControl(sql);
-  if (hits.length === 0) {
-    return null;
-  }
-  const detail = hits
-    .map((h) => `line ${h.line}: ${h.keyword}`)
-    .join("; ");
-  return `${filePath}: migration contains top-level transaction control (${detail}). Remove BEGIN/COMMIT/ROLLBACK/START TRANSACTION/END or split into a workflow-safe migration.`;
+  return formatMigrationAnalysisError(analyzeMigrationSql(filePath, sql));
 }
