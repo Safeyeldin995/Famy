@@ -78,7 +78,7 @@ export const fonts = {
 
 export const shadow = {
   card: {
-    shadowColor: colors.ink,
+    shadowColor: "#2A1E25",
     shadowOpacity: 0.08,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 6 },
