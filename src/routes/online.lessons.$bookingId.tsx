@@ -140,7 +140,7 @@ function OnlineLessonDetail() {
           className="text-pro-13 font-bold text-coral underline-offset-2 hover:underline"
           onClick={() => setCancelOpen(true)}
         >
-          {t("booking.cancelBooking")}
+          {t("bookingDetail.cancel")}
         </button>
       ) : null}
 
@@ -150,12 +150,12 @@ function OnlineLessonDetail() {
         open={cancelOpen}
         actorType="customer"
         bookingStatus={String(booking.status)}
-        title={t("booking.cancelBooking")}
+        title={t("bookingDetail.cancelReasonTitle")}
         body={t("onlineWeb.cancelPolicy.body")}
-        reasonLabel={t("booking.cancelReason")}
-        notePlaceholder={t("booking.cancelNote")}
-        confirmLabel={t("booking.confirmCancel")}
-        cancelLabel={t("common.keep")}
+        reasonLabel={t("bookingDetail.cancelReasonLabel")}
+        notePlaceholder={t("bookingDetail.cancelReasonPlaceholder")}
+        confirmLabel={t("bookingDetail.confirmAction")}
+        cancelLabel={t("bookingDetail.keep")}
         pending={cancel.isPending}
         onCancel={() => setCancelOpen(false)}
         onConfirm={(reasonId, note) =>
@@ -164,7 +164,7 @@ function OnlineLessonDetail() {
             {
               onSuccess: () => {
                 setCancelOpen(false);
-                toast.success(t("booking.cancelled"));
+                toast.success(t("admin.bookings.cancelSuccess"));
                 void bookingQ.refetch();
               },
             },
