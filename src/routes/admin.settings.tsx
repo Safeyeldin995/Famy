@@ -22,6 +22,8 @@ import {
   useCancellationPolicyAdmin,
   useUpdateCancellationPolicy,
   useUpdateProviderSettlementSettings,
+  useReleaseFeatureSettingsAdmin,
+  useUpdateReleaseFeatureSettings,
 } from "@/lib/db/settings-queries";
 import {
   useAdminCategories,
@@ -887,6 +889,64 @@ function CancellationPolicySection() {
   );
 }
 
+function ReleaseFeaturesSection() {
+  const { t } = useTranslation();
+  const q = useReleaseFeatureSettingsAdmin();
+  const update = useUpdateReleaseFeatureSettings();
+  const [onlineLessons, setOnlineLessons] = useState(false);
+  useEffect(() => {
+    if (q.data) setOnlineLessons(q.data.online_lessons_enabled);
+  }, [q.data]);
+  const saved = useSavedFlash(update.isPending, !update.isError);
+
+  return (
+    <SectionCard
+      title={t("admin.settings.releaseFeaturesTitle")}
+      subtitle={t("admin.settings.releaseFeaturesSubtitle")}
+    >
+      {q.isLoading ? (
+        <p className="text-xs text-muted-foreground">{t("common.loading")}</p>
+      ) : q.isError ? (
+        <AdminQueryError
+          message={t("admin.settings.releaseFeaturesLoadError")}
+          error={q.error}
+          onRetry={() => q.refetch()}
+        />
+      ) : (
+        <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-xl border border-border/60 bg-surface-2 px-3 py-2">
+          <span>
+            <span className="block text-sm font-semibold">
+              {t("admin.settings.onlineLessonsToggle")}
+            </span>
+            <span className="mt-0.5 block text-xs text-muted-foreground">
+              {t("admin.settings.onlineLessonsToggleHint")}
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={onlineLessons}
+            onChange={(e) => setOnlineLessons(e.target.checked)}
+            className="h-5 w-5 rounded border-border"
+          />
+        </label>
+      )}
+      <SaveButton
+        pending={update.isPending}
+        saved={saved}
+        onClick={() => {
+          update.mutate(
+            { online_lessons_enabled: onlineLessons },
+            {
+              onSuccess: () => toast.success(t("admin.settings.saved")),
+              onError: () => toast.error(t("admin.settings.releaseFeaturesSaveError")),
+            },
+          );
+        }}
+      />
+    </SectionCard>
+  );
+}
+
 function PlatformContentSection() {
   const { t, i18n } = useTranslation();
   return (
@@ -920,6 +980,7 @@ function AdminSettings() {
       <CategoriesSection />
       <ServiceAreasSection />
       <ReminderRulesSection />
+      <ReleaseFeaturesSection />
       <PlatformContentSection />
     </div>
   );

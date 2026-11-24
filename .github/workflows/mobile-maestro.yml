@@ -1,0 +1,101 @@
+# Manual-only: Android emulator Maestro runs are too heavy for every PR (APK build + emulator + QA OTP).
+# PRs still validate flow YAML in the main CI job `Validate Maestro release flows`.
+name: Mobile Maestro (manual emulator)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_emulator_run:
+        description: "Run all Maestro flows on an Android emulator (needs MAESTRO_APK_URL secret)"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-maestro-manual-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-flows:
+    name: Validate Maestro YAML (no emulator)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Validate flow definitions
+        run: node qa/check-maestro-flows.mjs
+
+      - name: Manual emulator note
+        run: |
+          {
+            echo "### Maestro on CI"
+            echo ""
+            echo "This workflow does **not** run on pull requests. Emulator runs are **manual-only** because they need:"
+            echo "- A release-candidate **APK** (EAS preview/production profile)"
+            echo "- **QA** Supabase OTP test user (\`MAESTRO_TEST_PHONE\` / \`MAESTRO_TEST_OTP\`)"
+            echo "- Android emulator time (~30+ min)"
+            echo ""
+            echo "Every PR still runs \`node qa/check-maestro-flows.mjs\` in the **Unit, Typecheck, Build** job."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  emulator-maestro:
+    name: Run Maestro on Android emulator
+    if: inputs.confirm_emulator_run == true
+    needs: validate-flows
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Require MAESTRO_APK_URL
+        env:
+          MAESTRO_APK_URL: ${{ secrets.MAESTRO_APK_URL }}
+        run: |
+          if [ -z "$MAESTRO_APK_URL" ]; then
+            echo "::error::Set repository secret MAESTRO_APK_URL (HTTPS URL to a Famy Android APK built from QA)."
+            exit 1
+          fi
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install Maestro CLI
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Download APK
+        env:
+          MAESTRO_APK_URL: ${{ secrets.MAESTRO_APK_URL }}
+        run: |
+          curl -fL "$MAESTRO_APK_URL" -o "$RUNNER_TEMP/famy-maestro.apk"
+          file "$RUNNER_TEMP/famy-maestro.apk"
+
+      - name: Verify APK targets QA Supabase (not Production)
+        run: node qa/verify-maestro-apk-qa.mjs "$RUNNER_TEMP/famy-maestro.apk"
+
+      - name: Run flows on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          MAESTRO_TEST_PHONE: ${{ secrets.MAESTRO_TEST_PHONE }}
+          MAESTRO_TEST_OTP: ${{ secrets.MAESTRO_TEST_OTP }}
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: Nexus 6
+          script: |
+            adb install -r "$RUNNER_TEMP/famy-maestro.apk"
+            cd mobile
+            export MAESTRO_TEST_PHONE="${MAESTRO_TEST_PHONE:-1012345678}"
+            export MAESTRO_TEST_OTP="${MAESTRO_TEST_OTP:-123456}"
+            maestro test maestro/flows/01-customer-sign-in.yaml
+            maestro test maestro/flows/02-in-person-booking-request.yaml
+            maestro test maestro/flows/06-report-problem.yaml

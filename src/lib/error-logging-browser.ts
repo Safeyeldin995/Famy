@@ -1,5 +1,6 @@
 import { logClientErrorFn } from "./error-log.functions";
 import { sanitizeErrorMessage } from "./error-logging";
+import { captureSentryException } from "./sentry/client";
 
 type ClientErrorContext = {
   boundary?: string;
@@ -14,6 +15,10 @@ export function reportClientErrorToMonitoring(error: unknown, context: ClientErr
   if (typeof window === "undefined") return;
 
   const route = context.route ?? window.location.pathname;
+  captureSentryException(error, {
+    boundary: context.boundary ?? context.label,
+    route,
+  });
   void logClientErrorFn({
     data: {
       message: sanitizeErrorMessage(error),

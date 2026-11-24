@@ -3652,6 +3652,13 @@ const ar: Translation = {
       cancellationRule4: "لا رسوم إذا ألغى مقدم الخدمة أو الإدارة، أو لم يحضر مقدم الخدمة، ويرد باقي المبلغ المدفوع إلى العميل",
       cancellationInvalid: "أدخل قيمة صحيحة، والنسبة لا تزيد على 100",
       cancellationSaveError: "تعذر حفظ سياسة الإلغاء",
+      releaseFeaturesTitle: "ميزات الإصدار",
+      releaseFeaturesSubtitle:
+        "تفعيل فوري من السيرفر للمسارات الحساسة، إيقاف الدروس الأونلاين يمنع حجوزات أونلاين جديدة بدون نسخة متجر",
+      onlineLessonsToggle: "الدروس الأونلاين (فيديو مباشر)",
+      onlineLessonsToggleHint: "عند الإيقاف، لا يمكن للعملاء بدء حجوزات دروس أونلاين جديدة",
+      releaseFeaturesLoadError: "تعذر تحميل إعدادات ميزات الإصدار",
+      releaseFeaturesSaveError: "تعذر حفظ إعدادات ميزات الإصدار",
       subtitle: "إعدادات المنصة، وأي تغيير هنا يطبق فورا على التطبيق",
       saved: "تم الحفظ",
       paymentsTitle: "المدفوعات",

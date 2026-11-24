@@ -7,9 +7,13 @@ import {
   asUser,
   completeHappyPath,
   createBookingLifecycleDb,
+  lifecycleBookingBaseDate,
+  LIFECYCLE_SLOT_END,
+  LIFECYCLE_SLOT_START,
   queryRows,
   seedLifecycleBooking,
 } from "./booking-lifecycle.harness";
+import { cairoDatePlusDays } from "./cairo-stable-booking-date";
 
 const BARE = {
   user: "00000000-0000-0000-0000-0000000000a1",
@@ -375,6 +379,14 @@ describe("provider settlements ledger", () => {
 
   it("blocks new bookings at the limit and lifts the block after payment", async () => {
     const existing = await seedLifecycleBooking(db, { providerId: IDS.otherProvider, status: "pending" });
+    const bookedCount = await queryRows<{ n: number }>(
+      db,
+      `SELECT count(*)::int AS n FROM public.bookings WHERE provider_id = $1`,
+      [IDS.otherProvider],
+    );
+    const slotBase = bookedCount[0]?.n ?? 0;
+    const rejectSlotDate = cairoDatePlusDays(lifecycleBookingBaseDate(), 50 + slotBase);
+    const unblockSlotDate = cairoDatePlusDays(lifecycleBookingBaseDate(), 51 + slotBase);
     const visibleBefore = await asUser(db, IDS.customer, () =>
       queryRows<{ id: string }>(
         db,
@@ -424,15 +436,23 @@ describe("provider settlements ledger", () => {
           `
             SELECT public.create_booking(
               $1::uuid, $2::uuid, $3::uuid,
-              now() + interval '4 days',
-              now() + interval '4 days' + interval '2 hours',
+              ($5::date + $6::time) AT TIME ZONE 'Africa/Cairo',
+              ($5::date + $7::time) AT TIME ZONE 'Africa/Cairo',
               gen_random_uuid(),
               $4::uuid,
               NULL, NULL, '[]'::jsonb, NULL, NULL, NULL, NULL,
               'adult_present'
             )
           `,
-          [IDS.otherProvider, existing.serviceId, IDS.address, IDS.childMember],
+          [
+            IDS.otherProvider,
+            existing.serviceId,
+            IDS.address,
+            IDS.childMember,
+            rejectSlotDate,
+            LIFECYCLE_SLOT_START,
+            LIFECYCLE_SLOT_END,
+          ],
         );
         return { ok: true as const };
       } catch (error) {
@@ -472,15 +492,23 @@ describe("provider settlements ledger", () => {
         `
           SELECT public.create_booking(
             $1::uuid, $2::uuid, $3::uuid,
-            now() + interval '5 days',
-            now() + interval '5 days' + interval '2 hours',
+            ($5::date + $6::time) AT TIME ZONE 'Africa/Cairo',
+            ($5::date + $7::time) AT TIME ZONE 'Africa/Cairo',
             gen_random_uuid(),
             $4::uuid,
             NULL, NULL, '[]'::jsonb, NULL, NULL, NULL, NULL,
             'adult_present'
           ) AS result
         `,
-        [IDS.otherProvider, existing.serviceId, IDS.address, IDS.childMember],
+        [
+          IDS.otherProvider,
+          existing.serviceId,
+          IDS.address,
+          IDS.childMember,
+          unblockSlotDate,
+          LIFECYCLE_SLOT_START,
+          LIFECYCLE_SLOT_END,
+        ],
       ),
     );
     expect(created[0]?.result?.booking_id).toBeTruthy();

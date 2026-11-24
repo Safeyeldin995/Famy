@@ -15,7 +15,10 @@
     "test:e2e:verify-residue": "node qa/run-with-qa-env.mjs node qa/verify-residue.mjs",
     "test:unit": "vitest run --exclude 'src/**/*.integration.test.ts'",
     "test:otp-integration": "node qa/run-with-qa-env.mjs vitest run --config vitest.otp-integration.config.ts",
-    "qa:preflight": "node qa/preflight.mjs"
+    "test:release-gate:admin": "node qa/run-with-qa-env.mjs playwright test qa/tests/release-gate-admin.spec.ts",
+    "test:release-gate:db": "vitest run src/lib/db/__tests__/money-journey.test.ts src/lib/db/__tests__/cancellation-fee.test.ts src/lib/db/__tests__/release-features.test.ts src/lib/db/__tests__/release-gate-wallet-lock.test.ts",
+    "qa:preflight": "node qa/preflight.mjs",
+    "qa:check-maestro": "node qa/check-maestro-flows.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -45,6 +48,8 @@
     "@radix-ui/react-toggle": "^1.1.10",
     "@radix-ui/react-toggle-group": "^1.1.11",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@sentry/node": "^9.47.2",
+    "@sentry/react": "^9.47.2",
     "@supabase/supabase-js": "^2.108.2",
     "@tailwindcss/vite": "^4.2.1",
     "@tanstack/react-query": "^5.83.0",
