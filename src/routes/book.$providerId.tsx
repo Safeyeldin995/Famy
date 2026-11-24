@@ -16,7 +16,6 @@ import {
   bookingScreenMissingStep,
   bookingScreenForStep,
   nextBookingScreen,
-  groupBookingSubjects,
   type BookingScreen,
 } from "@/lib/booking/bookingScreens";
 import { CustomerPageHeader } from "@/components/famio/CustomerPageHeader";
@@ -114,14 +113,14 @@ import {
 import { isClosedBetaCategorySlug } from "@/lib/catalog/closedBetaCategories";
 import { useApprovedTeachingCapabilities } from "@/lib/db/teaching-queries";
 import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
-import { isLessonServiceSlug, teachingCapabilityTitleParts } from "@/lib/tutoring/lessonServices";
-import { LessonSubjectIcon } from "@/components/lessons/LessonSubjectIcon";
+import { isLessonServiceSlug } from "@/lib/tutoring/lessonServices";
 import { markCustomerPushPromptPending } from "@/lib/push-prompt";
+import { educationValueFromIds, type EducationProfileValue } from "@/components/famio/EducationProfileFields";
+import { TutoringCapabilityCascadeFields } from "@/components/booking/TutoringCapabilityCascadeFields";
 import {
-  EducationProfileFields,
-  educationValueFromIds,
-  type EducationProfileValue,
-} from "@/components/famio/EducationProfileFields";
+  capabilityPickFromCapability,
+  type CapabilityPickValue,
+} from "@/lib/tutoring/providerCapabilityCascade";
 import {
   useCustomerEducationProfile,
   useSaveStudentEducationProfile,
@@ -254,6 +253,11 @@ function BookContentForm({
   const [bookingEducation, setBookingEducation] = useState<EducationProfileValue>(
     rebookInitial?.education ?? educationValueFromIds(null, null),
   );
+  const [capabilityPick, setCapabilityPick] = useState<CapabilityPickValue>({
+    subjectCode: "",
+    curriculumId: "",
+    levelId: "",
+  });
   const [saveEducationForNextTime, setSaveEducationForNextTime] = useState(false);
   const userPickedDateRef = useRef(false);
   const userPickedCapabilityRef = useRef(
@@ -432,14 +436,23 @@ function BookContentForm({
   );
 
   useEffect(() => {
+    if (!selectedCapability) return;
+    setCapabilityPick(capabilityPickFromCapability(selectedCapability));
+  }, [selectedCapability?.id]);
+
+  useEffect(() => {
     if (!isTutoring || isLessonService) return;
     if (guardDefault("education")) return;
-    setBookingEducation(
-      educationValueFromIds(
-        studentEducation.educationCurriculumId,
-        studentEducation.educationLevelId,
-      ),
+    const next = educationValueFromIds(
+      studentEducation.educationCurriculumId,
+      studentEducation.educationLevelId,
     );
+    setBookingEducation(next);
+    setCapabilityPick((pick) => ({
+      ...pick,
+      curriculumId: next.educationCurriculumId,
+      levelId: next.educationLevelId,
+    }));
     userPickedCapabilityRef.current = false;
   }, [
     isTutoring,
@@ -458,8 +471,8 @@ function BookContentForm({
     const match = pickDefaultCapabilityForEducation(
       capabilitiesQ.data ?? [],
       activeService?.service?.id ?? serviceId,
-      bookingEducation.educationCurriculumId || studentEducation.educationCurriculumId,
-      bookingEducation.educationLevelId || studentEducation.educationLevelId,
+      capabilityPick.curriculumId || studentEducation.educationCurriculumId,
+      capabilityPick.levelId || studentEducation.educationLevelId,
     );
     setCapabilityId(
       resolveAutoFillCapabilityId({
@@ -474,8 +487,8 @@ function BookContentForm({
     capabilitiesQ.data,
     activeService?.service?.id,
     serviceId,
-    bookingEducation.educationCurriculumId,
-    bookingEducation.educationLevelId,
+    capabilityPick.curriculumId,
+    capabilityPick.levelId,
     studentEducation.educationCurriculumId,
     studentEducation.educationLevelId,
     capabilityId,
@@ -715,17 +728,9 @@ function BookContentForm({
     setEditingReview(true);
     setRequestedStep(screen);
   };
-  const visibleCapabilities = (capabilitiesQ.data ?? []).filter((cap) => {
-    if (isLessonService) return true;
-    return (
-      (!bookingEducation.educationCurriculumId ||
-        cap.curriculumId === bookingEducation.educationCurriculumId) &&
-      (!bookingEducation.educationLevelId || cap.levelId === bookingEducation.educationLevelId)
-    );
-  });
-  const subjectGroups = groupBookingSubjects(visibleCapabilities);
-  const selectedGroup = subjectGroups.find((group) =>
-    group.capabilities.some((cap) => cap.id === selectedCapability?.id),
+  const tutoringCapabilitiesReady = !capabilitiesQ.isLoading && !capabilitiesQ.isError;
+  const hasApprovedCapabilities = (capabilitiesQ.data ?? []).some(
+    (cap) => cap.status === "approved",
   );
 
   const submit = async () => {
@@ -1175,52 +1180,6 @@ function BookContentForm({
                     />
                   )}
                   <Step title={t("bookFlow.pickCapability")}>
-                    {!isLessonService ? (
-                      <details
-                        className="booking-section"
-                        open={
-                          !bookingEducation.educationCurriculumId ||
-                          !bookingEducation.educationLevelId
-                            ? true
-                            : undefined
-                        }
-                      >
-                        <summary className="booking-add">
-                          {t("customerBooking.schoolDetails")}
-                        </summary>
-                        <EducationProfileFields
-                          value={bookingEducation}
-                          onChange={(next) => {
-                            touch("education");
-                            touch("capabilityId");
-                            userPickedCapabilityRef.current = true;
-                            setBookingEducation(next);
-                            const match = pickDefaultCapabilityForEducation(
-                              capabilitiesQ.data ?? [],
-                              activeService?.service?.id ?? serviceId,
-                              next.educationCurriculumId || null,
-                              next.educationLevelId || null,
-                            );
-                            setCapabilityId(match?.id ?? null);
-                            clearSlot();
-                          }}
-                        />
-                        <label className="apply-agree">
-                          <input
-                            type="checkbox"
-                            checked={saveEducationForNextTime}
-                            onChange={(event) => setSaveEducationForNextTime(event.target.checked)}
-                            className="sr-only"
-                          />
-                          <span
-                            className={`apply-checkbox ${saveEducationForNextTime ? "on" : ""}`}
-                          >
-                            {saveEducationForNextTime && <Check size={14} />}
-                          </span>
-                          {t("studentEducation.saveForNextTime")}
-                        </label>
-                      </details>
-                    ) : null}
                     {requestedCapabilityMissing && (
                       <p className="booking-error">{t("bookFlow.capabilityUnavailable")}</p>
                     )}
@@ -1228,71 +1187,56 @@ function BookContentForm({
                       <QueryError onRetry={() => capabilitiesQ.refetch()} />
                     ) : capabilitiesQ.isLoading ? (
                       <p role="status">{t("common.loading")}</p>
-                    ) : subjectGroups.length === 0 ? (
+                    ) : !hasApprovedCapabilities ? (
                       <div>
                         <p>{t("customerRound2.noCapabilities")}</p>
                         {otherProviders}
                       </div>
-                    ) : (
-                      subjectGroups.map((group) => {
-                        const cap = group.capabilities[0];
-                        const active = group === selectedGroup;
-                        const chosen = active ? (selectedCapability ?? cap) : cap;
-                        const subjectLabel = lang === "ar" ? cap.subjectNameAr : cap.subjectNameEn;
-                        const title = teachingCapabilityTitleParts({
-                          subject: subjectLabel,
-                          curriculum: lang === "ar" ? cap.curriculumNameAr : cap.curriculumNameEn,
-                          level: lang === "ar" ? cap.levelNameAr : cap.levelNameEn,
-                          curriculumCode: cap.curriculumCode,
-                        }).join(" · ");
-                        return (
-                          <ServiceCard
-                            key={group.key}
-                            selected={active}
-                            title={title}
-                            subtitle={`${formatNumber(chosen.price)} ${t("pricePicker.sessionUnit")}`}
-                            icon={
-                              <LessonSubjectIcon
-                                subjectCode={cap.subjectCode}
-                                label={subjectLabel}
-                                className="h-6 w-6"
-                                fallback={<BookOpen size={22} />}
-                              />
-                            }
-                            onClick={() => {
-                              userPickedCapabilityRef.current = true;
-                              setCapabilityId(cap.id);
-                              setBookingEducation(
-                                educationValueFromIds(cap.curriculumId, cap.levelId),
-                              );
-                              clearSlot();
-                            }}
-                          />
-                        );
-                      })
-                    )}
-                    {selectedGroup && (
-                      <div>
-                        <span className="apply-label">{t("customerBooking.sessionDuration")}</span>
-                        <div className="apply-chips">
-                          {selectedGroup.capabilities.map((cap) => (
-                            <CheckChip
-                              key={cap.id}
-                              selected={cap.id === selectedCapability?.id}
-                              onClick={() => {
-                                userPickedCapabilityRef.current = true;
-                                setCapabilityId(cap.id);
-                                clearSlot();
-                              }}
+                    ) : activeService?.service?.id ? (
+                      <>
+                        <TutoringCapabilityCascadeFields
+                          serviceId={activeService.service.id}
+                          serviceSlug={activeService.service.slug}
+                          capabilities={capabilitiesQ.data ?? []}
+                          pick={capabilityPick}
+                          capabilityId={capabilityId}
+                          onPickChange={(next) => {
+                            touch("education");
+                            touch("capabilityId");
+                            userPickedCapabilityRef.current = true;
+                            setCapabilityPick(next);
+                            setBookingEducation(
+                              educationValueFromIds(next.curriculumId, next.levelId),
+                            );
+                            clearSlot();
+                          }}
+                          onCapabilityChange={(id) => {
+                            touch("capabilityId");
+                            userPickedCapabilityRef.current = true;
+                            setCapabilityId(id);
+                            clearSlot();
+                          }}
+                        />
+                        {!isLessonService ? (
+                          <label className="apply-agree">
+                            <input
+                              type="checkbox"
+                              checked={saveEducationForNextTime}
+                              onChange={(event) =>
+                                setSaveEducationForNextTime(event.target.checked)
+                              }
+                              className="sr-only"
+                            />
+                            <span
+                              className={`apply-checkbox ${saveEducationForNextTime ? "on" : ""}`}
                             >
-                              {t("bookFlow.sessionLine", {
-                                minutes: formatNumber(cap.durationMin),
-                              })}
-                            </CheckChip>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                              {saveEducationForNextTime && <Check size={14} />}
+                            </span>
+                            {t("studentEducation.saveForNextTime")}
+                          </label>
+                        ) : null}
+                      </>
+                    ) : null}
                   </Step>
                 </>
               )}

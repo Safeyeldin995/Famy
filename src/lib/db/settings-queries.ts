@@ -17,6 +17,7 @@ export type BillingSettings = {
   platform_fee: number;
   /** Null means the admin has not set a Famy commission rate. Never invent a number. */
   commission_percent: number | null;
+  commission_percent_online: number | null;
 };
 
 // Same hardcoded values the booking flow used before this change — kept only
@@ -26,6 +27,7 @@ export const DEFAULT_BILLING_SETTINGS: BillingSettings = {
   vat_percent: 14,
   platform_fee: 25,
   commission_percent: null,
+  commission_percent_online: null,
 };
 
 function readCommissionPercent(value: Partial<BillingSettings> | null | undefined): number | null {
@@ -48,6 +50,10 @@ export function useBillingSettings() {
         vat_percent: value?.vat_percent ?? DEFAULT_BILLING_SETTINGS.vat_percent,
         platform_fee: value?.platform_fee ?? DEFAULT_BILLING_SETTINGS.platform_fee,
         commission_percent: readCommissionPercent(value),
+        commission_percent_online: (() => {
+          const parsed = parseCommissionPercent(value?.commission_percent_online ?? null);
+          return parsed.ok ? parsed.value : null;
+        })(),
       } satisfies BillingSettings;
     },
   });
@@ -61,10 +67,15 @@ export function useUpdateBillingSettings() {
       if (!parsedCommission.ok) {
         throw new Error("Commission percent is invalid.");
       }
+      const parsedOnline = parseCommissionPercent(value.commission_percent_online);
+      if (!parsedOnline.ok) {
+        throw new Error("Online commission percent is invalid.");
+      }
       const payload: BillingSettings = {
         vat_percent: value.vat_percent,
         platform_fee: value.platform_fee,
         commission_percent: parsedCommission.value,
+        commission_percent_online: parsedOnline.value,
       };
       const { data, error } = await supabase
         .from("settings")
@@ -76,7 +87,13 @@ export function useUpdateBillingSettings() {
       if (
         Number(stored.vat_percent) !== payload.vat_percent ||
         Number(stored.platform_fee) !== payload.platform_fee ||
-        !commissionPercentEqual(readCommissionPercent(stored), payload.commission_percent)
+        !commissionPercentEqual(readCommissionPercent(stored), payload.commission_percent) ||
+        !commissionPercentEqual(
+          readCommissionPercent({
+            commission_percent: stored.commission_percent_online ?? null,
+          }),
+          payload.commission_percent_online,
+        )
       ) {
         throw new Error("Billing settings did not persist.");
       }
