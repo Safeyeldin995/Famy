@@ -1,0 +1,108 @@
+name: Production DB migrate
+
+# Run explicit supabase/migrations/*.sql files against Production Postgres via psql.
+# Does not use `supabase db push` — Production schema_migrations history does not match repo filenames.
+# Requires repository secret SUPABASE_DB_URL and GitHub environment "production" (required reviewers).
+on:
+  workflow_dispatch:
+    inputs:
+      files:
+        description: >-
+          Newline- or comma-separated repo paths under supabase/migrations/ (order preserved).
+        required: true
+        type: string
+      ref:
+        description: Full 40-character commit SHA to read migration file contents from
+        required: true
+        type: string
+      dry_run:
+        description: If true, each file runs inside BEGIN … ROLLBACK only (default).
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db-migrate-production
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Migrate (${{ inputs.dry_run && 'dry run' || 'apply' }})
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 45
+    steps:
+      - name: Checkout trusted runner (main)
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          path: famy-runner
+          fetch-depth: 1
+
+      - name: Stage migration SQL from commit
+        env:
+          MIGRATION_REF: ${{ inputs.ref }}
+          MIGRATION_FILES: ${{ inputs.files }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$MIGRATION_REF" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            echo "::error::ref must be a full 40-character commit SHA"
+            exit 1
+          fi
+          echo "Migration source commit: $MIGRATION_REF"
+          cd famy-runner
+          git fetch --depth 1 origin "$MIGRATION_REF"
+          resolved="$(git rev-parse "$MIGRATION_REF^{commit}")"
+          echo "Resolved commit: $resolved"
+          staging="${GITHUB_WORKSPACE}/migrations-staging"
+          rm -rf "$staging"
+          mkdir -p "$staging"
+          normalized="$(printf '%s' "$MIGRATION_FILES" | tr ',\n\r' '   ')"
+          for token in $normalized; do
+            token="${token#"${token%%[![:space:]]*}"}"
+            token="${token%"${token##*[![:space:]]}"}"
+            if [ -z "$token" ]; then
+              continue
+            fi
+            relpath="$token"
+            relpath="${relpath#./}"
+            if [[ "$relpath" != supabase/migrations/* ]]; then
+              echo "::error::Path must be under supabase/migrations/: $relpath"
+              exit 1
+            fi
+            if [[ "$relpath" == *".."* ]]; then
+              echo "::error::Path traversal is not allowed: $relpath"
+              exit 1
+            fi
+            if [[ ! "$relpath" =~ ^supabase/migrations/[0-9]{14}_[a-z0-9_]+\.sql$ ]]; then
+              echo "::error::Unexpected migration filename: $relpath"
+              exit 1
+            fi
+            dest="$staging/$relpath"
+            mkdir -p "$(dirname "$dest")"
+            git show "${resolved}:$relpath" >"$dest"
+          done
+
+      - name: Setup Node for validator
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: famy-runner/package-lock.json
+
+      - name: Install runner dependencies (libpg-query)
+        working-directory: famy-runner
+        run: npm ci --ignore-scripts
+
+      - name: Run migrations
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          MIGRATION_DRY_RUN: ${{ inputs.dry_run }}
+          MIGRATION_FILES: ${{ inputs.files }}
+          MIGRATION_REF_SHA: ${{ inputs.ref }}
+          MIGRATIONS_ROOT: ${{ github.workspace }}/migrations-staging
+          RUNNER_ROOT: ${{ github.workspace }}/famy-runner
+        run: bash famy-runner/.github/scripts/db-migrate-production.sh

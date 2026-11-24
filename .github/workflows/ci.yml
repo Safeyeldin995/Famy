@@ -58,6 +58,9 @@ jobs:
         run: |
           find qa -type f -name '*.mjs' -print0 | xargs -0 -n1 node --check
 
+      - name: Report db-migrate incompatible migrations (inventory)
+        run: node qa/report-migration-transaction-control.mjs
+
       - name: Guard single Firebase reCAPTCHA container
         run: node qa/check-firebase-recaptcha-container.mjs
 
