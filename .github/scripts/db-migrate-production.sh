@@ -189,7 +189,7 @@ run_dry_run() {
 
   local txn_sql
   txn_sql="$(mktemp)"
-  trap 'rm -f "$txn_sql"' EXIT
+  trap "rm -f '$txn_sql'" EXIT
 
   {
     printf 'BEGIN;\n'
@@ -207,6 +207,8 @@ run_dry_run() {
   done
 
   if psql_conn -f "$txn_sql"; then
+    rm -f "$txn_sql"
+    trap - EXIT
     echo "Dry run PASS: all ${#files[@]} file(s) executed successfully (rolled back)."
   else
     echo "::error::Dry run FAIL: transaction rolled back due to error."
@@ -220,7 +222,7 @@ run_apply() {
 
   local txn_sql
   txn_sql="$(mktemp)"
-  trap 'rm -f "$txn_sql"' EXIT
+  trap "rm -f '$txn_sql'" EXIT
 
   {
     for file in "${files[@]}"; do
@@ -243,6 +245,8 @@ SQL
 
   echo "Applying ${#files[@]} migration file(s) in a single transaction."
   psql_conn -1 -f "$txn_sql"
+  rm -f "$txn_sql"
+  trap - EXIT
 
   echo ""
   echo "=== Apply summary ==="
