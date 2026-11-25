@@ -14,6 +14,7 @@ import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { colors, fonts, radius, space } from "@/ui/theme";
 import { proCard } from "./cards";
+import { bodyTextInputProps } from "../a11y";
 
 export function ProviderPaymentBlock({
   bookingId,
@@ -119,6 +120,7 @@ export function ProviderPaymentBlock({
               {t("payment.rejectDialogBody")}
             </Text>
             <TextInput
+              {...bodyTextInputProps()}
               value={rejectReason}
               onChangeText={setRejectReason}
               placeholder={t("payment.rejectReasonPlaceholder")}

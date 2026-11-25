@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
   },
   cell: {
     width: 48,
-    height: 56,
+    height: 48,
     borderWidth: 2,
     borderColor: colors.border,
     borderRadius: radius.lg,

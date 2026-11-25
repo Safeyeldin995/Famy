@@ -240,7 +240,7 @@ export default function BookingDetail() {
             <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
               <Avatar
                 raw={party.party?.other_avatar_url || b.provider?.profile.avatar_url}
-                size={56}
+                size={48}
                 round
               />
               <View style={{ flex: 1, gap: space.xs }}>

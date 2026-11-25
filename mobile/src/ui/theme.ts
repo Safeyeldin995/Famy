@@ -43,23 +43,41 @@ export const radius = { sm: 10, md: 14, lg: 18, xl: 24, pill: 999 } as const;
 
 export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, xxxl: 32 } as const;
 
-/** Type scale shared with the web (`--text-pro-*`). */
+/**
+ * Mobile type scale (phone density, smaller than the desktop web scale).
+ * Arabic (Almarai) renders larger than Manrope at the same px, so `Text`
+ * applies `ARABIC_FONT_FACTOR` on top of these values.
+ */
 export const fontSize = {
-  xs: 12,
-  sm: 13,
-  /** Default body copy (web body ≈ 15px). */
-  md: 15,
-  lg: 16,
-  xl: 18,
-  /** Section titles (20–24px scale). */
-  xxl: 20,
+  xs: 11,
+  sm: 12,
+  /** Default body copy. */
+  md: 14,
+  lg: 15,
+  xl: 16,
+  /** Section titles. */
+  xxl: 18,
   button: 15,
-  title: 24,
-  hero: 30,
+  title: 20,
+  hero: 24,
   /** Customer hero header title on gradient screens. */
-  heroTitle: 28,
-  heroTitleLine: 32,
+  heroTitle: 22,
+  heroTitleLine: 28,
 } as const;
+
+/** Almarai is drawn visually larger than Manrope; shrink Arabic text to match. */
+export const ARABIC_FONT_FACTOR = 0.94;
+
+/** Font size for the active language (Arabic scaled by `ARABIC_FONT_FACTOR`, rounded to 0.5). */
+export function scaledFontSize(px: number, language: string): number {
+  if (language === "en") return px;
+  return Math.round(px * ARABIC_FONT_FACTOR * 2) / 2;
+}
+
+/** Line height: 1.35× for body sizes, 1.2× for headings (16px and up). */
+export function lineHeightFor(px: number): number {
+  return Math.round(px * (px >= 16 ? 1.2 : 1.35));
+}
 
 const AVATAR_INITIAL_BY_DIAMETER: { min: number; size: keyof typeof fontSize }[] = [
   { min: 64, size: "title" },

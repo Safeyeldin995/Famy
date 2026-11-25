@@ -22,14 +22,20 @@ export default function ProOnlineLessonsScreen() {
     >
       <QueryState query={providerQ}>
         {providerId ? (
-          <OnlineLessonsSettings
-            providerId={providerId}
-            isVerified={!!provider?.is_verified}
-            isApproved={provider?.onboarding_status === "APPROVED"}
-            offeringMode={provider?.offering_mode as string | undefined}
-            services={(servicesQ.data ?? []) as never[]}
-            capabilities={(capsQ.data ?? []) as never[]}
-          />
+          // Wait for the services and teaching subjects: rendering with empty lists showed
+          // "no service ready for online yet" until the teacher reloaded the screen.
+          <QueryState query={servicesQ}>
+            <QueryState query={capsQ}>
+              <OnlineLessonsSettings
+                providerId={providerId}
+                isVerified={!!provider?.is_verified}
+                isApproved={provider?.onboarding_status === "APPROVED"}
+                offeringMode={provider?.offering_mode as string | undefined}
+                services={(servicesQ.data ?? []) as never[]}
+                capabilities={(capsQ.data ?? []) as never[]}
+              />
+            </QueryState>
+          </QueryState>
         ) : null}
       </QueryState>
     </Page>

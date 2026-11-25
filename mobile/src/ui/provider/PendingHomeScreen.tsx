@@ -197,7 +197,7 @@ export function PendingHomeScreen({ changesRequested }: { changesRequested?: boo
                   router.push({ pathname: "/pro-setup/[item]", params: { item: key } })
                 }
                 style={{
-                  minHeight: 68,
+                  minHeight: 56,
                   flexDirection: "row",
                   alignItems: "center",
                   gap: space.md,
@@ -247,7 +247,7 @@ export function PendingHomeScreen({ changesRequested }: { changesRequested?: boo
               </Pressable>
             );
           })}
-          <View style={{ minHeight: 68, flexDirection: "row", alignItems: "center", gap: space.md }}>
+          <View style={{ minHeight: 56, flexDirection: "row", alignItems: "center", gap: space.md }}>
             <View
               style={{
                 width: 40,
