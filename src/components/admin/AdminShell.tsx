@@ -325,6 +325,8 @@ export function AdminShell({
                         queue.data != null
                           ? adminNavBadgeCount(tab.to, queue.data, navBadgeExtras)
                           : 0;
+                      const urgent =
+                        queue.data != null ? adminNavBadgeUrgentCount(tab.to, queue.data) : 0;
                       return (
                         <li key={tab.to}>
                           <Link
@@ -345,9 +347,11 @@ export function AdminShell({
                             {badge > 0 ? (
                               <span
                                 className={`min-w-[1.25rem] rounded-md px-1.5 py-0.5 text-center text-[10px] font-extrabold tabular-nums ${
-                                  active
-                                    ? "bg-brand-foreground/20 text-brand-foreground"
-                                    : "bg-brand/15 text-brand"
+                                  urgent > 0
+                                    ? "bg-coral text-white"
+                                    : active
+                                      ? "bg-brand-foreground/20 text-brand-foreground"
+                                      : "bg-brand/15 text-brand"
                                 }`}
                               >
                                 {badge > 99 ? "99+" : badge.toLocaleString("en-US")}
@@ -383,6 +387,8 @@ export function AdminShell({
                           queue.data != null
                             ? adminNavBadgeCount(tab.to, queue.data, navBadgeExtras)
                             : 0;
+                        const urgent =
+                          queue.data != null ? adminNavBadgeUrgentCount(tab.to, queue.data) : 0;
                         return (
                           <li key={tab.to}>
                             <Link
@@ -398,7 +404,11 @@ export function AdminShell({
                             >
                               <span>{t(tab.labelKey)}</span>
                               {badge > 0 ? (
-                                <span className="rounded-md bg-brand/15 px-2 py-0.5 text-xs font-extrabold tabular-nums text-brand">
+                                <span
+                                  className={`rounded-md px-2 py-0.5 text-xs font-extrabold tabular-nums ${
+                                    urgent > 0 ? "bg-coral text-white" : "bg-brand/15 text-brand"
+                                  }`}
+                                >
                                   {badge.toLocaleString("en-US")}
                                 </span>
                               ) : null}
