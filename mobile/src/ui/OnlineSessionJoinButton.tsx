@@ -1,12 +1,9 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  authorizeSessionJoin,
-  sessionJoinWindow,
-  type SessionBookingSnapshot,
-} from "@shared/livekit/sessionAccess";
+import { authorizeSessionJoin, type SessionBookingSnapshot } from "@shared/livekit/sessionAccess";
 import { moneyHeld } from "@shared/payments/refundOwed";
 import { Button } from "./Button";
+import { isJoinWindowOpen, JOIN_WINDOW_TICK_MS } from "@/lib/onlineSessionUi";
 
 type BookingLike = {
   id: string;
@@ -64,12 +61,18 @@ export function OnlineSessionJoinButton({
     return authorizeSessionJoin(snapshot, viewerUserId);
   }, [snapshot, viewerUserId]);
 
-  const windowOpen = useMemo(() => {
-    const start = new Date(booking.start_at);
-    const end = new Date(booking.end_at);
-    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return false;
-    return sessionJoinWindow(start, end).open;
-  }, [booking.end_at, booking.start_at]);
+  // Re-check the window while the screen stays open, so the button appears on time.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    if (booking.service_mode !== "online") return;
+    const id = setInterval(() => setNow(new Date()), JOIN_WINDOW_TICK_MS);
+    return () => clearInterval(id);
+  }, [booking.service_mode]);
+
+  const windowOpen = useMemo(
+    () => isJoinWindowOpen(booking.start_at, booking.end_at, now),
+    [booking.end_at, booking.start_at, now],
+  );
 
   if (booking.service_mode !== "online" || !windowOpen || !authz?.ok) return null;
 

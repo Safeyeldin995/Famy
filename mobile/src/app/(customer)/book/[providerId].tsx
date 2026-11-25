@@ -96,6 +96,7 @@ import {
   PAYMOB_WALLET_GOOGLE_PAY_METHOD_ID,
   isPaymobWalletUiMethodId,
   paymobChannelForUiMethodId,
+  resolveCheckoutPaymentMethod,
   resolvePaymobOnlinePaymentMethod,
 } from "@/lib/paymobWalletMethods";
 import { FeeDebtBanner } from "@/ui/FeeDebtBanner";
@@ -589,16 +590,22 @@ function BookForm({
         bookingSubmissionFingerprint(payload),
         randomUUID,
       );
+      // Resolve the payment method before creating the booking: it can disappear after a refetch.
+      const checkoutMethod = isOnlineBooking
+        ? null
+        : resolveCheckoutPaymentMethod(methodId, methods.data, paymobOnline);
+      if (!isOnlineBooking && !checkoutMethod) {
+        setError(t("bookFlow.paymentMethodUnavailable"));
+        return;
+      }
       const booking = await create.mutateAsync({
         ...payload,
         idempotency_key: idempotency.current.key,
       });
       createdId.current = booking.id;
-      if (!isOnlineBooking) {
+      if (checkoutMethod) {
         const walletChannel = paymobChannelForUiMethodId(methodId);
-        const method = walletChannel
-          ? paymobOnline!
-          : methods.data!.find((m) => m.id === methodId)!;
+        const method = checkoutMethod;
         const paymobChannel = walletChannel ?? "card";
         await stashPayment(booking.id, {
           paymentMethodId: method.id,
@@ -626,11 +633,9 @@ function BookForm({
           educationWarning = true;
         }
       }
-      if (!isOnlineBooking) {
+      if (checkoutMethod) {
         const walletChannel = paymobChannelForUiMethodId(methodId);
-        const method = walletChannel
-          ? paymobOnline!
-          : methods.data!.find((m) => m.id === methodId)!;
+        const method = checkoutMethod;
         const paymobChannel = walletChannel ?? "card";
         const paymentPlan = planPostCreatePayment(booking, method);
         if (paymentPlan.action === "create_now") {

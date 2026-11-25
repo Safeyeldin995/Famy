@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { View, StyleSheet, Pressable } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Linking, Platform, View, StyleSheet, Pressable } from "react-native";
 import {
   AudioSession,
   LiveKitRoom,
@@ -15,6 +15,7 @@ import { Text } from "./Text";
 import { Button } from "./Button";
 import { colors, space } from "./theme";
 import { reportOnlineSessionAndLeave } from "@/lib/onlineSessionApi";
+import { canOfferScreenShare, micButtonLabelKey } from "@/lib/onlineSessionUi";
 
 let registered = false;
 
@@ -34,7 +35,7 @@ function SessionVideoTiles({ audioOnly }: { audioOnly: boolean }) {
   if (tracks.length === 0) {
     return (
       <View style={styles.centered}>
-        <Text tone="muted">{/* waiting for video */}</Text>
+        <Text tone="muted">{t("onlineSession.waitingForOther")}</Text>
       </View>
     );
   }
@@ -66,14 +67,17 @@ function SessionCallControls({
   const [micEnabled, setMicEnabled] = useState(true);
   const [camEnabled, setCamEnabled] = useState(true);
   const [reporting, setReporting] = useState(false);
+  const [controlError, setControlError] = useState(false);
 
   useEffect(() => {
     const onQuality = () => {
       const quality = localParticipant.connectionQuality;
       if (quality === ConnectionQuality.Poor || quality === ConnectionQuality.Lost) {
         setAudioOnly(true);
-        void localParticipant.setCameraEnabled(false);
-        setCamEnabled(false);
+        localParticipant
+          .setCameraEnabled(false)
+          .then(() => setCamEnabled(false))
+          .catch(() => setControlError(true));
       }
     };
     localParticipant.on("connectionQualityChanged", onQuality);
@@ -84,39 +88,66 @@ function SessionCallControls({
 
   const toggleMic = useCallback(async () => {
     const next = !micEnabled;
-    await localParticipant.setMicrophoneEnabled(next);
-    setMicEnabled(next);
+    try {
+      await localParticipant.setMicrophoneEnabled(next);
+      setMicEnabled(next);
+      setControlError(false);
+    } catch {
+      setControlError(true);
+    }
   }, [localParticipant, micEnabled]);
 
   const toggleCam = useCallback(async () => {
     const next = !camEnabled;
-    await localParticipant.setCameraEnabled(next);
-    setCamEnabled(next);
-    if (next) setAudioOnly(false);
+    try {
+      await localParticipant.setCameraEnabled(next);
+      setCamEnabled(next);
+      setControlError(false);
+      if (next) setAudioOnly(false);
+    } catch {
+      setControlError(true);
+    }
   }, [camEnabled, localParticipant, setAudioOnly]);
 
   const flipCamera = useCallback(async () => {
     const pub = localParticipant.getTrackPublication(Track.Source.Camera);
     const track = pub?.videoTrack as { switchCamera?: () => Promise<void> } | undefined;
-    if (track?.switchCamera) await track.switchCamera();
+    try {
+      if (track?.switchCamera) await track.switchCamera();
+    } catch {
+      setControlError(true);
+    }
+  }, [localParticipant]);
+
+  const shareScreen = useCallback(() => {
+    localParticipant.setScreenShareEnabled(true).catch(() => setControlError(true));
   }, [localParticipant]);
 
   const reportAndLeave = useCallback(async () => {
     setReporting(true);
-    await reportOnlineSessionAndLeave({ bookingId });
-    room.disconnect();
-    onLeave();
+    try {
+      // The report is best effort: leaving must never hang on it.
+      await reportOnlineSessionAndLeave({ bookingId });
+    } finally {
+      room.disconnect();
+      onLeave();
+    }
   }, [bookingId, onLeave, room]);
 
   return (
     <View style={styles.controls}>
+      {controlError ? (
+        <Text tone="danger" size="sm">
+          {t("onlineSession.controlFailed")}
+        </Text>
+      ) : null}
       <Pressable
         style={styles.controlBtn}
         onPress={toggleMic}
         accessibilityRole="button"
-        accessibilityLabel={micEnabled ? t("onlineSession.unmute") : t("onlineSession.mute")}
+        accessibilityLabel={t(micButtonLabelKey(micEnabled))}
       >
-        <Text>{micEnabled ? t("onlineSession.unmute") : t("onlineSession.mute")}</Text>
+        <Text>{t(micButtonLabelKey(micEnabled))}</Text>
       </Pressable>
       <Pressable
         style={styles.controlBtn}
@@ -134,10 +165,10 @@ function SessionCallControls({
       >
         <Text>{t("onlineSession.flipCamera")}</Text>
       </Pressable>
-      {party === "provider" ? (
+      {canOfferScreenShare(Platform.OS, party) ? (
         <Pressable
           style={styles.controlBtn}
-          onPress={() => void localParticipant.setScreenShareEnabled(true)}
+          onPress={shareScreen}
           accessibilityRole="button"
           accessibilityLabel={t("onlineSession.screenShare")}
         >
@@ -166,9 +197,60 @@ type Props = {
   onLeave: () => void;
 };
 
+function openAppSettings() {
+  if (Platform.OS === "ios") void Linking.openURL("app-settings:");
+  else void Linking.openSettings();
+}
+
+function SessionErrorPanel({
+  kind,
+  onRetry,
+  onLeave,
+}: {
+  kind: "media" | "room";
+  onRetry: () => void;
+  onLeave: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <View style={[styles.centered, { gap: space.md, padding: space.lg }]}>
+      <Text weight="bold" style={{ textAlign: "center" }}>
+        {kind === "media" ? t("onlineSession.mediaErrorTitle") : t("onlineSession.roomErrorTitle")}
+      </Text>
+      <Text tone="muted" style={{ textAlign: "center" }}>
+        {kind === "media" ? t("onlineSession.mediaErrorBody") : t("onlineSession.roomErrorBody")}
+      </Text>
+      {kind === "media" ? (
+        <Button label={t("onlineSession.openSettings")} variant="secondary" onPress={openAppSettings} />
+      ) : null}
+      <Button label={t("onlineSession.retry")} onPress={onRetry} />
+      <Button label={t("onlineSession.leave")} variant="secondary" onPress={onLeave} />
+    </View>
+  );
+}
+
 export function OnlineSessionRoom({ bookingId, token, serverUrl, party, onLeave }: Props) {
   const { t } = useTranslation();
   const [audioOnly, setAudioOnly] = useState(false);
+  const [failure, setFailure] = useState<"media" | "room" | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  // Tearing the room down to show an error must not count as the user leaving.
+  const tearingDown = useRef(false);
+
+  const fail = useCallback((kind: "media" | "room") => {
+    tearingDown.current = true;
+    setFailure(kind);
+  }, []);
+
+  const retry = useCallback(() => {
+    setFailure(null);
+    setAttempt((n) => n + 1);
+  }, []);
+
+  const handleDisconnected = useCallback(() => {
+    if (tearingDown.current) return;
+    onLeave();
+  }, [onLeave]);
 
   useEffect(() => {
     if (!registered) {
@@ -181,8 +263,13 @@ export function OnlineSessionRoom({ bookingId, token, serverUrl, party, onLeave 
     };
   }, []);
 
+  if (failure) {
+    return <SessionErrorPanel kind={failure} onRetry={retry} onLeave={onLeave} />;
+  }
+
   return (
     <LiveKitRoom
+      key={attempt}
       serverUrl={serverUrl}
       token={token}
       connect
@@ -196,7 +283,12 @@ export function OnlineSessionRoom({ bookingId, token, serverUrl, party, onLeave 
           videoEncoding: { maxBitrate: 900_000, maxFramerate: 30 },
         },
       }}
-      onDisconnected={onLeave}
+      onConnected={() => {
+        tearingDown.current = false;
+      }}
+      onDisconnected={handleDisconnected}
+      onError={() => fail("room")}
+      onMediaDeviceFailure={() => fail("media")}
     >
       <View style={styles.wrap}>
         <Text size="lg" weight="bold">

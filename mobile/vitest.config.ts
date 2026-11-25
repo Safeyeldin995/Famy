@@ -46,6 +46,7 @@ export default defineConfig({
       "src/ui/__tests__/mobileUiConsistency.test.ts",
       "src/ui/__tests__/textFontScaleCap.test.ts",
       "src/lib/__tests__/homeFreezeDiagnostics.test.ts",
+      "src/lib/__tests__/onlineSessionUi.test.ts",
     ],
     setupFiles: [path.join(repoRoot, "qa/vitest-unit-qa-env-guard.mjs")],
   },

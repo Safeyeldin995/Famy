@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { View, StyleSheet, Linking, Platform } from "react-native";
 import { useTranslation } from "react-i18next";
-import * as ImagePicker from "expo-image-picker";
+import { permissions } from "@livekit/react-native-webrtc";
 import { Text } from "./Text";
 import { Button } from "./Button";
 import { space } from "./theme";
@@ -16,26 +16,37 @@ export function OnlineSessionPreJoin({ onReady, onCancel }: Props) {
   const { t } = useTranslation();
   const [micReady, setMicReady] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
+  const [micDenied, setMicDenied] = useState(false);
+  const [cameraDenied, setCameraDenied] = useState(false);
   const [networkOk, setNetworkOk] = useState<boolean | null>(null);
   const [autoSkipped, setAutoSkipped] = useState(false);
   const advanceScheduled = useRef(false);
 
+  const isCancelled = useRef(false);
+
+  // Checks each device on its own: a denied mic must never be shown as ready.
+  const requestDevice = useCallback(async (name: "microphone" | "camera") => {
+    const setReady = name === "microphone" ? setMicReady : setCameraReady;
+    const setDenied = name === "microphone" ? setMicDenied : setCameraDenied;
+    try {
+      const granted = await ensureMediaPermission(name);
+      if (isCancelled.current) return;
+      setReady(granted);
+      setDenied(!granted);
+    } catch {
+      if (isCancelled.current) return;
+      setReady(false);
+      setDenied(true);
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
+    isCancelled.current = false;
     void (async () => {
-      const cam = await ImagePicker.getCameraPermissionsAsync();
-      if (cancelled) return;
-      if (cam.granted) {
-        setCameraReady(true);
-        setMicReady(true);
-      }
-      if (!cam.granted) {
-        const req = await ImagePicker.requestCameraPermissionsAsync();
-        if (req.granted) {
-          setCameraReady(true);
-          setMicReady(true);
-        }
-      }
+      // One system prompt at a time.
+      await requestDevice("microphone");
+      await requestDevice("camera");
     })();
     fetch(`${appConfig.webOrigin.replace(/\/$/, "")}/api/session/capabilities`, {
       method: "GET",
@@ -49,8 +60,9 @@ export function OnlineSessionPreJoin({ onReady, onCancel }: Props) {
       });
     return () => {
       cancelled = true;
+      isCancelled.current = true;
     };
-  }, []);
+  }, [requestDevice]);
 
   useEffect(() => {
     if (advanceScheduled.current) return;
@@ -81,18 +93,20 @@ export function OnlineSessionPreJoin({ onReady, onCancel }: Props) {
       ) : null}
       <CheckRow
         ok={micReady}
+        denied={micDenied}
         label={t("onlineSession.preJoinMic")}
-        actionLabel={t("onlineSession.preJoinConfirmReady")}
-        onAction={() => setMicReady(true)}
-        settingsLabel={t("onlineSession.preJoinOpenSettings")}
+        actionLabel={t("onlineSession.retry")}
+        onAction={() => void requestDevice("microphone")}
+        settingsLabel={t("onlineSession.openSettings")}
         onSettings={openSettings}
       />
       <CheckRow
         ok={cameraReady}
+        denied={cameraDenied}
         label={t("onlineSession.preJoinCamera")}
-        actionLabel={t("onlineSession.preJoinConfirmReady")}
-        onAction={() => setCameraReady(true)}
-        settingsLabel={t("onlineSession.preJoinOpenSettings")}
+        actionLabel={t("onlineSession.retry")}
+        onAction={() => void requestDevice("camera")}
+        settingsLabel={t("onlineSession.openSettings")}
         onSettings={openSettings}
       />
       <CheckRow
@@ -108,9 +122,17 @@ export function OnlineSessionPreJoin({ onReady, onCancel }: Props) {
   );
 }
 
+async function ensureMediaPermission(name: "microphone" | "camera"): Promise<boolean> {
+  const current = await permissions.query({ name });
+  if (current === permissions.RESULT.GRANTED) return true;
+  const granted = await permissions.request({ name });
+  return granted === true || granted === permissions.RESULT.GRANTED;
+}
+
 function CheckRow({
   label,
   ok,
+  denied,
   pending,
   actionLabel,
   onAction,
@@ -119,6 +141,7 @@ function CheckRow({
 }: {
   label: string;
   ok?: boolean;
+  denied?: boolean;
   pending?: boolean;
   actionLabel?: string;
   onAction?: () => void;
@@ -131,6 +154,11 @@ function CheckRow({
       <Text>
         {label} {pending ? t("onlineSession.preJoinChecking") : ok ? "✓" : "…"}
       </Text>
+      {denied && !ok ? (
+        <Text tone="danger" size="sm">
+          {t("onlineSession.preJoinDenied")}
+        </Text>
+      ) : null}
       {!ok && !pending && onAction && actionLabel ? (
         <View style={styles.rowActions}>
           <Button label={actionLabel} variant="secondary" onPress={onAction} />

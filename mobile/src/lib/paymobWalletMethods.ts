@@ -18,3 +18,13 @@ export function resolvePaymobOnlinePaymentMethod<
 >(methods: T[] | undefined): T | undefined {
   return methods?.find((m) => m.method_type === "online" && m.code === "paymob");
 }
+/**
+ * The payment method behind the UI choice, or null when it is no longer in the list
+ * (for example after a refetch). Callers must show an error instead of crashing.
+ */
+export function resolveCheckoutPaymentMethod<
+  T extends { id: string; code?: string; method_type: string },
+>(methodId: string, methods: T[] | undefined, paymobOnline: T | undefined): T | null {
+  if (paymobChannelForUiMethodId(methodId)) return paymobOnline ?? null;
+  return methods?.find((m) => m.id === methodId) ?? null;
+}
