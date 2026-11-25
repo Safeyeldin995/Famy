@@ -2564,6 +2564,7 @@ const en = {
         accuracy_confirmation_required: "Confirm your information is accurate.",
         phone_required: "Phone number is required.",
         duplicate_reference_phones: "Reference phone numbers must be unique.",
+        provider_price_invalid: "Price is outside the allowed range for this service.",
       },
     },
     profile: {

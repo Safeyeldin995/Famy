@@ -26,6 +26,9 @@ function firstErrorCode(error: unknown): string | undefined {
 /** Maps server onboarding validation codes to Egyptian Arabic / English copy. */
 export function onboardingMutationErrorMessage(t: TFunction, error: unknown): string {
   const code = firstErrorCode(error);
-  if (!code) return t("providerApply.saveError");
-  return t(`pro.onboardingWizard.errors.${code}`);
+  const generic = t("providerApply.saveError");
+  if (!code) return generic;
+  const key = `pro.onboardingWizard.errors.${code}`;
+  const msg = t(key, { defaultValue: generic });
+  return msg === key ? generic : msg;
 }
