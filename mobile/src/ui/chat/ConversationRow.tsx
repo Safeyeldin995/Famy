@@ -33,7 +33,7 @@ export function ConversationRow({
         pressed && styles.pressed,
       ]}
     >
-      <Avatar raw={item.other_avatar} size={56} round={customer} />
+      <Avatar raw={item.other_avatar} size={48} round={customer} />
       <View style={styles.body}>
         <View style={styles.top}>
           <View style={styles.nameRow}>

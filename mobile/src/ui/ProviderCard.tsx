@@ -93,7 +93,7 @@ export function ProviderCard({
       <Avatar
         raw={p.profile.avatar_url}
         name={p.profile.full_name || t("provider2.unnamed")}
-        size={56}
+        size={48}
         round
       />
       <View style={{ flex: 1, minWidth: 0, gap: space.xs }}>

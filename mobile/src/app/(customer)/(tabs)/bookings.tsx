@@ -131,7 +131,7 @@ export default function Bookings() {
                         party?.other_name || b.provider?.profile.full_name || t("provider2.unnamed")
                       }
                       raw={party?.other_avatar_url || b.provider?.profile.avatar_url}
-                      size={56}
+                      size={48}
                       round
                     />
                     {hasUnread ? (
