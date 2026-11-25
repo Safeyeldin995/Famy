@@ -9,6 +9,7 @@ export type OnlineKpiDelta = {
 };
 
 export type AdminOnlineLessonsReport = {
+  has_activity: boolean;
   period_from: string;
   period_to: string;
   previous_from: string;

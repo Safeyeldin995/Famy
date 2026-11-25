@@ -129,7 +129,7 @@ function AdminOnlineLessonsReportPage() {
   );
 
   const heatmapMax = Math.max(1, ...(q.data?.heatmap.map((c) => c.lessons) ?? [1]));
-  const empty = q.data && Number(q.data.funnel.request) === 0;
+  const empty = q.data && q.data.has_activity === false;
 
   const exportLabels = useMemo(
     () => ({
