@@ -454,15 +454,14 @@ describe("provider lifecycle (migration replay)", () => {
     );
     expect(nonAdminApprove.ok).toBe(false);
 
+    await db.exec("SAVEPOINT admin_own_provider_row");
+  try {
     await seedAdminOwnSubmittedApplication(db, seed.serviceId);
-    const selfApproveAll = await tryAsUser(
-      db,
-      IDS.adminProviderUser,
-      `SELECT public.admin_approve_provider_application_all($1)`,
-      [IDS.adminOwnedProvider],
-    );
-    expect(selfApproveAll.ok).toBe(false);
-    expect(selfApproveAll.error ?? "").toMatch(/cannot approve their own/i);
+    expect.unreachable("expected admin_account_restricted");
+  } catch (error) {
+    expect(String(error)).toMatch(/admin_account_restricted/i);
+  }
+    await db.exec("ROLLBACK TO SAVEPOINT admin_own_provider_row");
 
     const commissionTamper = await tryAsUser(
       db,

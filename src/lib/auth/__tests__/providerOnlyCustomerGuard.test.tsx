@@ -27,13 +27,16 @@ async function runGuard(state: {
   const { useProviderOnlyCustomerRedirect, isProviderOnlyCustomerPortalBlocked } =
     await import("@/lib/auth/providerOnlyCustomerGuard");
   const { result } = renderHook(() => useProviderOnlyCustomerRedirect());
-  const shouldRedirect =
+  const adminOnly = state.roles.includes("admin");
+  const providerOnly =
     !state.loading &&
     !state.rolesLoading &&
     !state.rolesError &&
     isProviderOnlyCustomerPortalBlocked(state.roles as never);
+  const shouldRedirect = adminOnly || providerOnly;
   if (shouldRedirect) {
-    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: "/pro", replace: true }));
+    const target = adminOnly ? "/admin" : "/pro";
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: target, replace: true }));
   } else {
     await waitFor(() => expect(navigate).not.toHaveBeenCalled());
   }
@@ -47,13 +50,11 @@ describe("isProviderOnlyCustomerPortalBlocked", () => {
     expect(isProviderOnlyCustomerPortalBlocked(["provider"])).toBe(true);
   });
 
-  it("allows customer-only, dual-role, and admin users", async () => {
+  it("allows customer-only and dual-role users", async () => {
     const { isProviderOnlyCustomerPortalBlocked } =
       await import("@/lib/auth/providerOnlyCustomerGuard");
     expect(isProviderOnlyCustomerPortalBlocked(["customer"])).toBe(false);
     expect(isProviderOnlyCustomerPortalBlocked(["customer", "provider"])).toBe(false);
-    expect(isProviderOnlyCustomerPortalBlocked(["admin"])).toBe(false);
-    expect(isProviderOnlyCustomerPortalBlocked(["admin", "provider"])).toBe(false);
   });
 });
 
@@ -78,6 +79,11 @@ describe("useProviderOnlyCustomerRedirect", () => {
 
   it("redirects provider-only users away from customer routes", async () => {
     const { result } = await runGuard({ loading: false, roles: ["provider"] });
+    expect(result.blocking).toBe(true);
+  });
+
+  it("redirects admin accounts to the staff portal", async () => {
+    const { result } = await runGuard({ loading: false, roles: ["admin"] });
     expect(result.blocking).toBe(true);
   });
 

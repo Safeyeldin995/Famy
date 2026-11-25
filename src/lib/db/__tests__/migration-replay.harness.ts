@@ -153,3 +153,13 @@ export async function replayAllMigrations(db: PGlite): Promise<void> {
     await db.exec(sql);
   }
 }
+
+/** Admin accounts carry only the admin role — clear signup grants first. */
+export async function grantAdminOnlyRole(db: PGlite, userId: string): Promise<void> {
+  await db.exec(`
+    DELETE FROM public.user_roles WHERE user_id = '${userId}'::uuid;
+    INSERT INTO public.user_roles (user_id, role)
+    VALUES ('${userId}'::uuid, 'admin'::public.app_role)
+    ON CONFLICT DO NOTHING;
+  `);
+}

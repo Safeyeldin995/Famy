@@ -1,6 +1,6 @@
 import type { PGlite } from "@electric-sql/pglite";
 import { cairoDatePlusDays, stableCairoBookingBaseDate } from "./cairo-stable-booking-date";
-import { createMigrationReplayDb, replayAllMigrations } from "./migration-replay.harness";
+import { createMigrationReplayDb, grantAdminOnlyRole, replayAllMigrations } from "./migration-replay.harness";
 
 export const IDS = {
   customer: "00000000-0000-0000-0000-00000000a001",
@@ -162,8 +162,7 @@ export async function seedDraftProvider(db: PGlite): Promise<LifecycleSeed> {
     ON CONFLICT (id) DO NOTHING;
 
     INSERT INTO public.user_roles (user_id, role) VALUES
-      ('${IDS.customer}', 'customer'),
-      ('${IDS.adminUser}', 'admin')
+      ('${IDS.customer}', 'customer')
     ON CONFLICT DO NOTHING;
 
     -- Bookings require a customer contact phone (booking_requires_customer_phone).
@@ -215,6 +214,8 @@ export async function seedDraftProvider(db: PGlite): Promise<LifecycleSeed> {
     SELECT '${IDS.provider}', day, '00:00'::time, '24:00'::time FROM generate_series(0, 6) AS day
     ON CONFLICT DO NOTHING;
   `);
+
+  await grantAdminOnlyRole(db, IDS.adminUser);
 
   const psRows = await queryRows<{ id: string }>(
     db,
@@ -347,20 +348,19 @@ export async function approveProviderApplication(db: PGlite): Promise<void> {
   });
 }
 
-/** Submitted application owned by a user who is both admin and provider (self-approval guard). */
+/** Admin accounts cannot also own provider applications (enforced in DB). */
 export async function seedAdminOwnSubmittedApplication(db: PGlite, serviceId: string): Promise<void> {
+  void serviceId;
   await db.exec(`
     INSERT INTO auth.users (id, raw_user_meta_data) VALUES
       ('${IDS.adminProviderUser}', '{"signup_role":"provider","full_name":"Admin Provider Twin"}')
     ON CONFLICT (id) DO NOTHING;
-    INSERT INTO public.user_roles (user_id, role) VALUES ('${IDS.adminProviderUser}', 'admin')
-    ON CONFLICT DO NOTHING;
+  `);
+  await grantAdminOnlyRole(db, IDS.adminProviderUser);
+  await db.exec(`
     INSERT INTO public.providers (id, profile_id, hourly_rate, onboarding_status)
     VALUES ('${IDS.adminOwnedProvider}', '${IDS.adminProviderUser}', 150, 'SUBMITTED')
     ON CONFLICT (id) DO NOTHING;
-    INSERT INTO public.provider_services (provider_id, service_id, status)
-    VALUES ('${IDS.adminOwnedProvider}', '${serviceId}', 'pending')
-    ON CONFLICT (provider_id, service_id) DO UPDATE SET status = 'pending';
   `);
 }
 

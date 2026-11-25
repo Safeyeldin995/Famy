@@ -258,8 +258,11 @@ const en = {
     price: {"subtotal": "Subtotal", "extras_total": "Extras", "travel_fee": "Travel fee", "platform_fee": "Platform fee", "vat": "Tax", "discount": "Discount", "total": "Total"},
     comingSoon: "This screen is not available in the app yet.",
     workspaceOnWebTitle: "These screens are still on the web",
-    workspaceOnWebBody: "Provider and admin screens are coming to the app. Until then, continue on the website with the same account.",
+    workspaceOnWebBody: "Provider screens are still on the website. Continue there with the same account until the app catches up.",
+    adminAccountTitle: "This is an admin account. Use the website admin dashboard.",
+    adminAccountBody: "Admin sign-in is available on the website only.",
     openOnWeb: "Open the website",
+    openAdminOnWeb: "Open admin dashboard",
   },
   customerHome: {
     profileEdit: "Edit name and address",
@@ -4138,7 +4141,10 @@ const en = {
     identityConflictTypes: {
       dual_normal_roles: "This account has both customer and provider roles.",
       provider_row_missing_role: "A provider profile exists, but its provider role is missing.",
-      admin_normal_role_count: "An admin account must have exactly one standard role.",
+      admin_has_customer_role: "This admin account still has a customer role.",
+      admin_has_provider_role: "This admin account still has a provider role.",
+      admin_has_provider_row: "This admin account still has a provider business row.",
+      admin_has_booking: "This admin account still has customer bookings.",
       unknown: "Review this account's identity data before taking action.",
     },
     locationNames: {

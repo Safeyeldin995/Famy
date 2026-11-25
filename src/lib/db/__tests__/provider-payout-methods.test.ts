@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { PGlite } from "@electric-sql/pglite";
+import { grantAdminOnlyRole } from "./migration-replay.harness";
 import {
   createProviderLifecycleDb,
   IDS,
@@ -104,9 +105,7 @@ describe("provider_payout_methods", () => {
 
     expect((await tryAsAnon(db, "SELECT id FROM public.provider_payout_methods")).ok).toBe(false);
 
-    await db.exec(
-      `INSERT INTO public.user_roles (user_id, role) VALUES ('${IDS.adminUser}', 'admin') ON CONFLICT DO NOTHING`,
-    );
+    await grantAdminOnlyRole(db, IDS.adminUser);
     const admin = await tryAsUser(
       db,
       IDS.adminUser,
