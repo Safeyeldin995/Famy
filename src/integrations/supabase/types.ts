@@ -5038,6 +5038,17 @@ export type Database = {
         }
         Returns: string
       }
+      provider_busy_ranges: {
+        Args: {
+          p_from: string
+          p_provider_id: string
+          p_to: string
+        }
+        Returns: {
+          end_at: string
+          start_at: string
+        }[]
+      }
       request_reschedule: {
         Args: {
           p_booking_id: string

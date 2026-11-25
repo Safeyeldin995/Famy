@@ -35,14 +35,13 @@ export function RescheduleSection({
   const respond = useRespondReschedule();
   const cancelReq = useCancelRescheduleRequest();
 
+  const sessionMs = +new Date(currentEnd) - +new Date(currentStart);
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [proposedStart, setProposedStart] = useState(() => toLocalInputValue(currentStart));
-  const [durationHours, setDurationHours] = useState(() => Math.max(1, Math.round((+new Date(currentEnd) - +new Date(currentStart)) / 3600000)));
   const [reason, setReason] = useState("");
 
   const [counterOpen, setCounterOpen] = useState(false);
   const [counterStart, setCounterStart] = useState(() => toLocalInputValue(currentStart));
-  const [counterHours, setCounterHours] = useState(() => Math.max(1, Math.round((+new Date(currentEnd) - +new Date(currentStart)) / 3600000)));
   const [counterReason, setCounterReason] = useState("");
 
   const [rejectOpen, setRejectOpen] = useState(false);
@@ -62,7 +61,7 @@ export function RescheduleSection({
 
   const submitRequest = () => {
     const start = new Date(proposedStart);
-    const end = new Date(start.getTime() + durationHours * 3600000);
+    const end = new Date(start.getTime() + sessionMs);
     requestReschedule.mutate(
       { bookingId, proposedStart: start.toISOString(), proposedEnd: end.toISOString(), reason: reason || undefined },
       {
@@ -97,7 +96,7 @@ export function RescheduleSection({
   const submitCounter = () => {
     if (!open) return;
     const start = new Date(counterStart);
-    const end = new Date(start.getTime() + counterHours * 3600000);
+    const end = new Date(start.getTime() + sessionMs);
     respond.mutate(
       { requestId: open.id, bookingId, action: "counter", reason: counterReason || undefined, counterStart: start.toISOString(), counterEnd: end.toISOString() },
       {
@@ -130,7 +129,9 @@ export function RescheduleSection({
       {open ? (
         <div className="rounded-2xl bg-surface-2 p-3">
           <div className="text-sm font-bold">{t("reschedule.proposedTime", "Proposed time")}</div>
-          <div className="mt-0.5 text-sm">{fmt(open.proposed_start_at)}</div>
+          <div className="mt-0.5 text-sm">
+            {fmt(open.proposed_start_at)} — {fmt(open.proposed_end_at)}
+          </div>
           {open.request_reason && <div className="mt-1 text-xs text-muted-foreground">{open.request_reason}</div>}
 
           {awaitingMe ? (
@@ -160,9 +161,6 @@ export function RescheduleSection({
             <div className="mt-3 space-y-2 border-t border-border pt-3">
               <input type="datetime-local" value={counterStart} onChange={(e) => setCounterStart(e.target.value)}
                 className="h-10 w-full rounded-xl border border-border bg-surface px-2 text-sm" />
-              <input type="number" min={1} step={1} value={counterHours} onChange={(e) => setCounterHours(Math.max(1, parseInt(e.target.value) || 1))}
-                placeholder={t("reschedule.durationHours", "Duration (hours)")}
-                className="h-10 w-full rounded-xl border border-border bg-surface px-2 text-sm" />
               <input value={counterReason} onChange={(e) => setCounterReason(e.target.value)} placeholder={t("reschedule.reasonOptional", "Reason (optional)")}
                 className="h-10 w-full rounded-xl border border-border bg-surface px-2 text-sm" />
               <button onClick={submitCounter} disabled={respond.isPending} className="h-10 w-full rounded-full bg-brand text-sm font-extrabold text-brand-foreground disabled:opacity-50">
@@ -175,9 +173,6 @@ export function RescheduleSection({
         showRequestForm ? (
           <div className="space-y-2">
             <input type="datetime-local" value={proposedStart} onChange={(e) => setProposedStart(e.target.value)}
-              className="h-10 w-full rounded-xl border border-border bg-surface px-2 text-sm" />
-            <input type="number" min={1} step={1} value={durationHours} onChange={(e) => setDurationHours(Math.max(1, parseInt(e.target.value) || 1))}
-              placeholder={t("reschedule.durationHours", "Duration (hours)")}
               className="h-10 w-full rounded-xl border border-border bg-surface px-2 text-sm" />
             <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t("reschedule.reasonOptional", "Reason (optional)")}
               className="h-10 w-full rounded-xl border border-border bg-surface px-2 text-sm" />
@@ -202,7 +197,7 @@ export function RescheduleSection({
             {rows.map((r: any) => (
               <li key={r.id} className="text-pro-12 text-muted-foreground">
                 {(r.requested_by === customerId ? t("reschedule.byCustomer", "Customer") : t("reschedule.byProvider", "Provider"))}
-                {" → "}{fmt(r.proposed_start_at)} · {String(t(`reschedule.status.${r.status}`, { defaultValue: r.status }))}
+                {" → "}{fmt(r.proposed_start_at)} — {fmt(r.proposed_end_at)} · {String(t(`reschedule.status.${r.status}`, { defaultValue: r.status }))}
               </li>
             ))}
           </ul>
