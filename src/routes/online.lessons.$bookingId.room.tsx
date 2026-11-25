@@ -1,4 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { OnlineWebSessionRoom } from "@/components/online/OnlineWebSessionRoom";
 import { useBooking } from "@/lib/db/queries";
 import { requireOnlineWebSession } from "@/lib/web/onlineWebSession";
@@ -15,16 +17,32 @@ export const Route = createFileRoute("/online/lessons/$bookingId/room")({
 function OnlineLessonRoomRoute() {
   const { bookingId } = Route.useParams();
   const nav = useNavigate();
+  const { t } = useTranslation();
   const bookingQ = useBooking(bookingId);
-  if (bookingQ.isLoading) return null;
+
   const booking = bookingQ.data;
-  if (!booking || !assertWebOnlineBookingRow(booking).ok) {
-    void nav({ to: onlineWebLessonPath(bookingId) });
-    return null;
+  const ok = booking && assertWebOnlineBookingRow(booking).ok;
+
+  useEffect(() => {
+    if (bookingQ.isLoading) return;
+    if (!ok) {
+      void nav({ to: onlineWebLessonPath(bookingId), replace: true });
+    }
+  }, [bookingQ.isLoading, ok, bookingId, nav]);
+
+  if (bookingQ.isLoading) {
+    return <p className="text-pro-14 text-muted-foreground">{t("common.loading")}</p>;
   }
+  if (!ok || !booking) return null;
+
+  const startAt = new Date(String(booking.start_at));
+  const endAt = new Date(String(booking.end_at));
+
   return (
     <OnlineWebSessionRoom
       bookingId={bookingId}
+      startAt={startAt}
+      endAt={endAt}
       onLeave={() => void nav({ to: onlineWebLessonPath(bookingId) })}
     />
   );

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { router } from "expo-router";
+import { router, type Href } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { View, TextInput, StyleSheet } from "react-native";
 import { Page, ActionError } from "@/ui/Page";
@@ -14,7 +14,12 @@ import { bodyTextInputProps } from "@/ui/a11y";
 
 type DeletionCheck = { ok: boolean; reason?: string };
 
-export default function DeleteAccountScreen() {
+function leaveTo(backTo: Href) {
+  if (router.canGoBack()) router.back();
+  else router.navigate(backTo);
+}
+
+export default function DeleteAccountScreen({ backTo = "/profile" as Href }: { backTo?: Href }) {
   const { t } = useTranslation();
   const [check, setCheck] = useState<DeletionCheck | null>(null);
   const [confirmText, setConfirmText] = useState("");
@@ -67,7 +72,13 @@ export default function DeleteAccountScreen() {
   return (
     <Page
       title={t("accountDeletion.title")}
-      header={<CustomerPageHeader title={t("accountDeletion.title")} backTo="/profile" />}
+      header={
+        <CustomerPageHeader
+          title={t("accountDeletion.title")}
+          backTo={backTo}
+          onBack={() => leaveTo(backTo)}
+        />
+      }
       contentStyle={{ gap: space.xxl }}
     >
       <Text tone="muted">{t("accountDeletion.intro")}</Text>
@@ -138,7 +149,7 @@ export default function DeleteAccountScreen() {
         variant="secondary"
         label={t("common.cancel")}
         disabled={busy}
-        onPress={() => router.navigate("/profile")}
+        onPress={() => leaveTo(backTo)}
       />
     </Page>
   );

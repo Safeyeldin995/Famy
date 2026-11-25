@@ -68,6 +68,11 @@ import {
   type MappedEligibilityReason,
 } from "@/lib/provider/marketplaceEligibilityReasons";
 import { providerProfileSaveErrorKey } from "@/lib/provider/providerProfileSaveErrors";
+import { ProviderServiceLifecycleActions } from "@/components/provider/ProviderServiceLifecycleActions";
+import {
+  providerServiceStatusI18nKey,
+  type ProviderServiceRowStatus,
+} from "@/lib/provider/providerServiceGroups";
 
 export const Route = createFileRoute("/pro/profile")({ component: ProProfile });
 
@@ -97,6 +102,7 @@ function ProProfile() {
   const [preparationDrafts, setPreparationDrafts] = useState<Record<string, string>>({});
   const [preparationErrors, setPreparationErrors] = useState<Record<string, string>>({});
   const [expandedReqService, setExpandedReqService] = useState<string | null>(null);
+  const [rejectedSectionOpen, setRejectedSectionOpen] = useState(false);
   const focusRequirements = (serviceId: string) => {
     setExpandedReqService(serviceId);
     window.history.replaceState(null, "", `#requirements-${serviceId}`);
@@ -262,28 +268,43 @@ function ProProfile() {
     pendingTeachingServices,
   );
 
-  const myIds = new Set((mine.data ?? []).map((s: any) => s.service_id));
-  const myStatus = new Map((mine.data ?? []).map((s: any) => [s.service_id, s.status]));
+  const mineRows = (mine.data ?? []).filter((s: { status?: string }) => s.status !== "removed");
+  const myIds = new Set(mineRows.map((s: any) => s.service_id));
+  const myStatus = new Map(mineRows.map((s: any) => [s.service_id, s.status]));
   const myRejectionReason = new Map(
-    (mine.data ?? []).map((s: any) => [s.service_id, s.rejection_reason as string | null]),
+    mineRows.map((s: any) => [s.service_id, s.rejection_reason as string | null]),
   );
-  const myPriceOverride = new Map(
-    (mine.data ?? []).map((s: any) => [s.service_id, s.price_override]),
-  );
+  const myPriceOverride = new Map(mineRows.map((s: any) => [s.service_id, s.price_override]));
   const myPendingPrice = new Map(
-    (mine.data ?? []).map((s: any) => [s.service_id, s.pending_price_override as number | null]),
+    mineRows.map((s: any) => [s.service_id, s.pending_price_override as number | null]),
   );
   const myPriceChangeReason = new Map(
-    (mine.data ?? []).map((s: any) => [s.service_id, s.price_change_reason as string | null]),
+    mineRows.map((s: any) => [s.service_id, s.price_change_reason as string | null]),
   );
   const myPreparationNotes = new Map(
-    (mine.data ?? []).map((s: any) => [s.service_id, s.preparation_notes as string | null]),
+    mineRows.map((s: any) => [s.service_id, s.preparation_notes as string | null]),
   );
   const isApprovedProvider = provider.onboarding_status === "APPROVED";
   const allCatalogServices = services.data ?? [];
-  const profileServices = isApprovedProvider
+  const profileServicesAll = isApprovedProvider
     ? allCatalogServices.filter((s: { id: string }) => myIds.has(s.id))
     : allCatalogServices;
+  const rejectedServices = isApprovedProvider
+    ? profileServicesAll.filter((s: { id: string }) => myStatus.get(s.id) === "rejected")
+    : [];
+  const profileServices = isApprovedProvider
+    ? profileServicesAll.filter((s: { id: string }) => myStatus.get(s.id) !== "rejected")
+    : profileServicesAll;
+  const groupRank = (serviceId: string) => {
+    const status = myStatus.get(serviceId);
+    if (status === "approved") return 0;
+    if (status === "pending") return 1;
+    if (status === "paused") return 2;
+    return 3;
+  };
+  const profileServicesSorted = [...profileServices].sort(
+    (a, b) => groupRank(a.id) - groupRank(b.id),
+  );
   const addableServices = isApprovedProvider
     ? allCatalogServices.filter((s: { id: string }) => !myIds.has(s.id))
     : [];
@@ -713,7 +734,7 @@ function ProProfile() {
               />
             ) : (
               <div id="requirements" className="grid gap-3 scroll-mt-4">
-                {profileServices.map((s: any) => {
+                {profileServicesSorted.map((s: any) => {
                   const on = myIds.has(s.id);
                   const sname = lang === "ar" ? (s.name_ar ?? s.name_en) : (s.name_en ?? s.name_ar);
                   const cname =
@@ -741,18 +762,20 @@ function ProProfile() {
                         <div className="px-4 pb-4">
                           {on && (
                             <span
-                              className={`apply-tag ${myStatus.get(s.id) === "approved" ? "apply-success" : myStatus.get(s.id) === "pending" ? "apply-wait" : "apply-danger"}`}
+                              className={`apply-tag ${
+                                myStatus.get(s.id) === "approved"
+                                  ? "apply-success"
+                                  : myStatus.get(s.id) === "pending" || myStatus.get(s.id) === "paused"
+                                    ? "apply-wait"
+                                    : "apply-danger"
+                              }`}
                             >
                               {isApprovedProvider && !on && myStatus.get(s.id) == null
                                 ? t("pro.serviceRequest.notAdded")
                                 : t(
-                                    myStatus.get(s.id) === "approved"
-                                      ? "pro.serviceRequest.statusActive"
-                                      : myStatus.get(s.id) === "pending"
-                                        ? "pro.serviceRequest.statusPending"
-                                        : myStatus.get(s.id) === "rejected"
-                                          ? "pro.serviceRequest.statusRejected"
-                                          : `providerSetup.status.${myStatus.get(s.id) ?? "pending"}`,
+                                    providerServiceStatusI18nKey(
+                                      (myStatus.get(s.id) ?? "pending") as ProviderServiceRowStatus,
+                                    ),
                                   )}
                             </span>
                           )}
@@ -790,6 +813,15 @@ function ProProfile() {
                               <p className="mt-2 text-xs font-semibold text-destructive">
                                 {myRejectionReason.get(s.id)}
                               </p>
+                            )}
+                          {on &&
+                            isApprovedProvider &&
+                            (myStatus.get(s.id) === "approved" || myStatus.get(s.id) === "paused") && (
+                              <ProviderServiceLifecycleActions
+                                providerId={provider.id}
+                                serviceId={s.id}
+                                status={myStatus.get(s.id) as ProviderServiceRowStatus}
+                              />
                             )}
                           {on && myStatus.get(s.id) === "rejected" && (
                             <div className="mt-2 flex flex-wrap gap-2">
@@ -937,6 +969,47 @@ function ProProfile() {
                     </div>
                   );
                 })}
+                {rejectedServices.length > 0 ? (
+                  <section className="mt-2">
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between rounded-xl border border-border/60 px-3 py-2 text-pro-12 font-bold"
+                      onClick={() => setRejectedSectionOpen((v) => !v)}
+                    >
+                      {t("pro.serviceLifecycle.rejectedSection")}
+                      <ChevronDown
+                        size={18}
+                        className={rejectedSectionOpen ? "rotate-180" : ""}
+                      />
+                    </button>
+                    {rejectedSectionOpen
+                      ? rejectedServices.map((s: any) => {
+                          const sname =
+                            lang === "ar" ? (s.name_ar ?? s.name_en) : (s.name_en ?? s.name_ar);
+                          return (
+                            <div key={s.id} className="mt-2 rounded-2xl border border-border p-3">
+                              <div className="text-sm font-bold">{sname}</div>
+                              <span className="apply-tag apply-danger mt-1 inline-block">
+                                {t("pro.serviceLifecycle.statusRejected")}
+                              </span>
+                              {myRejectionReason.get(s.id) ? (
+                                <p className="mt-2 text-xs font-semibold text-destructive">
+                                  {myRejectionReason.get(s.id)}
+                                </p>
+                              ) : null}
+                              <Link
+                                to={proPath("/pro/request-service/$serviceId")}
+                                params={{ serviceId: s.id }}
+                                className="mt-2 inline-flex min-h-11 items-center rounded-lg border border-brand px-3 text-xs font-bold text-brand"
+                              >
+                                {t("pro.serviceRequest.editAndResubmit")}
+                              </Link>
+                            </div>
+                          );
+                        })
+                      : null}
+                  </section>
+                ) : null}
               </div>
             )}
             {isApprovedProvider && !services.isError && !mine.isError ? (
