@@ -41,7 +41,7 @@ import {
   useSettlementClosedPeriod,
 } from "@/lib/db/admin-finance-queries";
 import { financeRangeForPreset } from "@/lib/settlement/cairoSettlementWeek";
-import { adminNavBadgeCount } from "@/lib/admin/adminNavBadges";
+import { adminNavBadgeCount, adminNavBadgeUrgentCount } from "@/lib/admin/adminNavBadges";
 import type { LucideIcon } from "lucide-react";
 import famyLogo from "@/assets/famy-wordmark.png";
 import { AdminGlobalSearch } from "@/components/admin/AdminGlobalSearch";
@@ -72,6 +72,11 @@ export const ADMIN_NAV_GROUPS: (NavGroup & { titleFallback: string })[] = [
     titleFallback: "Providers",
     items: [
       { to: "/admin/providers", labelKey: "admin.layout.nav.providers", icon: ShieldCheck },
+      {
+        to: "/admin/documents-expiring",
+        labelKey: "admin.layout.nav.documentsExpiring",
+        icon: FileText,
+      },
       {
         to: "/admin/service-requests",
         labelKey: "admin.layout.nav.serviceRequests",

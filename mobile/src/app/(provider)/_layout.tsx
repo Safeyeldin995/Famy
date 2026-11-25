@@ -37,6 +37,7 @@ export default function ProviderStack() {
       <Stack.Screen name="pro-setup-home" options={{ title: t("providerApply.checklist") }} />
       <Stack.Screen name="pro-setup/[item]" options={{ title: t("providerApply.checklist") }} />
       <Stack.Screen name="pro-profile-edit" options={{ title: t("pro.profile.title") }} />
+      <Stack.Screen name="pro-my-reviews" options={{ title: t("proReviews.title") }} />
       <Stack.Screen
         name="pro-notification-preferences"
         options={{ title: t("mobilePro.notificationPrefs") }}

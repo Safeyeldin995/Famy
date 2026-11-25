@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Pressable, View } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -5,20 +6,26 @@ import { Avatar } from "@/ui/ProviderCard";
 import { Bell, CalendarDays, CalendarRange, Star } from "lucide-react-native";
 import { BOOKING_ACTIVE_STATUSES } from "@/lib/provider/constants";
 import { earningsHeadlineKind } from "@shared/earnings/aggregateProviderEarnings";
+import { pickProviderNextAction } from "@shared/provider/providerNextAction";
 import {
   useMyProvider,
+  useMyProviderServices,
   useProUnreadNotificationCount,
   useProviderBookings,
   useProviderEarnings,
 } from "@/lib/provider/queries";
+import { useProviderDocuments } from "@/lib/provider/profileQueries";
+import { useProviderPerformanceStats } from "@/lib/provider/journeyQueries";
 import { money } from "@/lib/presentation";
-import { joinUiParts, uiListSeparator } from "@shared/format/uiJoin";
+import { joinUiParts } from "@shared/format/uiJoin";
 import { ProviderBookingCard, type ProviderCardBooking } from "@/ui/provider/ProviderBookingCard";
 import { HomeProviderActiveBookingCard } from "@/ui/provider/HomeProviderActiveBookingCard";
 import { Page, QueryState, moneyTextStyle } from "@/ui/Page";
 import { Text } from "@/ui/Text";
 import { Button } from "@/ui/Button";
 import { ProviderEmptyState } from "@/ui/ProviderEmptyState";
+import { ProviderPerformanceCard } from "@/ui/provider/ProviderPerformanceCard";
+import { ProviderNextActionStrip } from "@/ui/provider/ProviderNextActionStrip";
 import { colors, radius, space } from "@/ui/theme";
 
 export default function ProviderDashboard() {
@@ -28,6 +35,9 @@ export default function ProviderDashboard() {
   const providerId = provider?.id as string | undefined;
   const bookingsQ = useProviderBookings(providerId);
   const earningsQ = useProviderEarnings(providerId);
+  const statsQ = useProviderPerformanceStats();
+  const servicesQ = useMyProviderServices(providerId);
+  const docsQ = useProviderDocuments(providerId);
   const unreadQ = useProUnreadNotificationCount();
   const profile = provider?.profile as { full_name?: string; avatar_url?: string } | undefined;
   const name = profile?.full_name || t("pro.common.customer");
@@ -42,6 +52,23 @@ export default function ProviderDashboard() {
     )
     .sort((a, b) => +new Date(a.start_at) - +new Date(b.start_at))
     .slice(0, 3);
+  const nextAction = useMemo(() => {
+    if (!bookingsQ.data) return null;
+    const services = (servicesQ.data ?? []) as { status?: string }[];
+    const docs = (docsQ.data ?? []) as { status?: string; type?: string }[];
+    const requiredTypes = new Set(["id_card_front", "id_card_back"]);
+    const missingDocument =
+      docs.some((d) => d.status === "rejected") ||
+      [...requiredTypes].some((type) => !docs.some((d) => d.type === type && d.status === "approved"));
+    const rejectedService = services.some((s) => s.status === "rejected");
+    return pickProviderNextAction({
+      pending,
+      upcoming,
+      missingDocument,
+      rejectedService,
+    });
+  }, [bookingsQ.data, docsQ.data, pending, servicesQ.data, upcoming]);
+
   const mtdNet = earningsQ.data?.mtd.net ?? 0;
   const mtdBookingValue = earningsQ.data?.mtd.bookingValue ?? 0;
   const mtdKind = earningsHeadlineKind(mtdNet > 0, mtdBookingValue > 0);
@@ -125,7 +152,7 @@ export default function ProviderDashboard() {
       tab
       title={t("pro.nav.dashboard")}
       header={header}
-      queries={[p, bookingsQ, earningsQ]}
+      queries={[p, bookingsQ, earningsQ, statsQ]}
       contentStyle={{ paddingTop: space.sm, gap: space.lg }}
     >
       {!bookingsQ.isError && bookingsQ.data ? (
@@ -175,15 +202,8 @@ export default function ProviderDashboard() {
           })}
         </Text>
       </Pressable>
-      <Text tone="muted" size="sm">
-        <Text weight="bold" size="sm">
-          {t("proWork.today")}
-        </Text>
-        {uiListSeparator(i18n.language)}
-        {upcoming[0]
-          ? `${t("proWork.nextJob")}: ${new Intl.DateTimeFormat(i18n.language.startsWith("ar") ? "ar-EG-u-nu-latn" : "en-GB", { timeZone: "Africa/Cairo", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }).format(new Date(upcoming[0].start_at))}`
-          : t("proWork.noJobToday")}
-      </Text>
+      {nextAction ? <ProviderNextActionStrip action={nextAction} /> : null}
+      {statsQ.data && provider?.is_verified ? <ProviderPerformanceCard stats={statsQ.data} /> : null}
       <View style={{ flexDirection: "row", gap: space.md }}>
         <Pressable
           accessibilityRole="button"
@@ -211,7 +231,10 @@ export default function ProviderDashboard() {
             {money(mtdKind === "bookingValue" ? mtdBookingValue : mtdNet, i18n.language)}
           </Text>
         </Pressable>
-        <View
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("proReviews.title")}
+          onPress={() => router.push("/pro-my-reviews")}
           style={{
             flex: 1,
             minHeight: 90,
@@ -232,7 +255,7 @@ export default function ProviderDashboard() {
               {rating ? Number(rating).toFixed(2) : "—"}
             </Text>
           </View>
-        </View>
+        </Pressable>
       </View>
       {provider?.vacation_mode ? (
         <Text

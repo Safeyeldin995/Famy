@@ -6,15 +6,18 @@ const emptyQueue = Object.fromEntries(
   [
     "new_applications",
     "resubmitted_applications",
+    "applications_over_sla",
     "new_service_requests",
     "price_change_requests",
     "pending_services",
     "pending_teaching_groups",
     "pending_documents",
+    "documents_expiring_soon",
     "open_cases",
     "bookings_needing_action",
     "bookings_lifecycle_attention",
     "payments_pending_review",
+    "online_lesson_issue_reports",
   ].map((key) => [key, 0]),
 ) as Record<AdminWorkQueueKey, number>;
 

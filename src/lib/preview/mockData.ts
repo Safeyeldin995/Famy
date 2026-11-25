@@ -1062,14 +1062,17 @@ export function seedPreviewAdminQueries(qc: import("@tanstack/react-query").Quer
   qc.setQueryData(["admin", "work-queue"], {
     new_applications: 1,
     resubmitted_applications: 0,
+    applications_over_sla: 0,
     new_service_requests: 0,
     pending_services: 2,
     pending_teaching_groups: 2,
     pending_documents: 0,
+    documents_expiring_soon: 0,
     open_cases: 1,
     bookings_needing_action: 0,
     bookings_lifecycle_attention: 0,
     payments_pending_review: 0,
+    online_lesson_issue_reports: 0,
   });
   qc.setQueryData(["admin", "pending-providers"], [providers[1]]);
   for (const filter of ["pending", "verified", "suspended", "all"] as const) {
