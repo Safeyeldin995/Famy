@@ -13,10 +13,12 @@ export function initMobileSentry(): void {
   const dsn = readDsn();
   if (!dsn) return;
 
+  const scrubEvent = (event: SentryLikeEvent) => scrubMobileSentryEvent(event) as typeof event;
   Sentry.init({
     dsn,
     sendDefaultPii: false,
-    beforeSend: (event) => scrubMobileSentryEvent(event as SentryLikeEvent) as typeof event,
+    beforeSend: scrubEvent,
+    beforeSendTransaction: scrubEvent,
     enableAutoSessionTracking: true,
     tracesSampleRate: __DEV__ ? 1 : 0.1,
   });

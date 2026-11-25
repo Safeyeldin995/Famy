@@ -41,7 +41,10 @@ describe("server HTML security headers", () => {
     expect(response.headers.get("Permissions-Policy")).toBe(
       "camera=(), microphone=(), geolocation=(self)",
     );
-    expect(response.headers.get("Content-Security-Policy")).toBe("frame-ancestors 'none'");
+    const csp = response.headers.get("Content-Security-Policy") ?? "";
+    expect(csp).toContain("default-src 'self'");
+    expect(csp).toContain("frame-ancestors 'none'");
+    expect(csp).toContain("object-src 'none'");
     expect(await response.text()).toBe("<html><body>ok</body></html>");
   });
 

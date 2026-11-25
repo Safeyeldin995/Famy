@@ -13,8 +13,19 @@ import { bookingStatusTone } from "@/lib/utils";
 import { formatDate, formatTime, formatLocale } from "@/lib/format";
 import { currentLang } from "@/lib/i18n";
 import { ICON_STROKE } from "@/lib/icons/constants";
+import { useOnlineCancellationPolicySummary } from "@/lib/online/useOnlineCancellationPolicy";
+import { siteHeadPrivate, siteLanguage } from "@/lib/site/seo";
 
 export const Route = createFileRoute("/online/lessons/")({
+  head: ({ matches }) =>
+    siteHeadPrivate(
+      "/online/lessons",
+      {
+        ar: { title: "حصصي | دروس أونلاين", description: "حصصك القادمة والسابقة على فامي." },
+        en: { title: "My lessons | Online", description: "Your upcoming and past online lessons on Famy." },
+      },
+      siteLanguage(matches),
+    ),
   component: OnlineLessonsIndex,
 });
 
@@ -41,6 +52,7 @@ function statusTone(status: string): "brand" | "ink" | "success" | "warning" | "
 
 function OnlineLessonsIndex() {
   const { t } = useTranslation();
+  const cancelPolicyQ = useOnlineCancellationPolicySummary();
   const [tab, setTab] = useState<Tab>("upcoming");
   const bookingsQ = useMyBookings({ serviceMode: "online" });
   const lang = currentLang();
@@ -123,7 +135,7 @@ function OnlineLessonsIndex() {
         </ul>
       )}
 
-      <p className="text-pro-12 leading-relaxed text-muted-foreground">{t("onlineWeb.cancelPolicy.body")}</p>
+      <p className="text-pro-12 leading-relaxed text-muted-foreground">{cancelPolicyQ.summary}</p>
     </div>
   );
 }

@@ -4,6 +4,7 @@ Allow: /$
 Allow: /about$
 Allow: /contact$
 Allow: /help$
+Allow: /online$
 Allow: /account/delete$
 Allow: /content/terms$
 Allow: /content/privacy$

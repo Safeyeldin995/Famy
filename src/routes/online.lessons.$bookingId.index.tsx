@@ -11,7 +11,7 @@ import { ONLINE_WEB_ROUTE_IDS } from "@/lib/web/onlineWebSurface";
 import { assertWebOnlineBookingRow } from "@/lib/web/webOnlineDataBoundary";
 import { bookingAmountDue } from "@/lib/payments/amountDue";
 import { authorizeSessionJoin, paymentCapturedForJoin, sessionJoinWindow } from "@/lib/livekit/sessionAccess";
-import { formatDate, formatTime, formatLocale } from "@/lib/format";
+import { formatDate, formatEGP, formatLocale, formatTime } from "@/lib/format";
 import { currentLang } from "@/lib/i18n";
 import { ICON_STROKE } from "@/lib/icons/constants";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +22,12 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { usePaymobReturnPaymentPoll } from "@/hooks/usePaymobReturnPaymentPoll";
 import { useNowTick } from "@/hooks/useNowTick";
+import { OnlineProviderBookingSummary } from "@/components/online/OnlineProviderBookingSummary";
+import type { OnlineProviderBookingSummaryRow } from "@/components/online/OnlineProviderBookingSummary";
+import { OnlineWebLessonIssueReport } from "@/components/online/OnlineWebLessonIssueReport";
+import { BookingRequestActions } from "@/components/provider/BookingRequestActions";
+import { useOnlineCancellationPolicySummary } from "@/lib/online/useOnlineCancellationPolicy";
+import { useBookingCancellationFee } from "@/lib/db/settings-queries";
 
 export const Route = createFileRoute("/online/lessons/$bookingId/")({
   component: OnlineLessonDetail,
@@ -35,6 +41,8 @@ function OnlineLessonDetail() {
   const paymentQ = useBookingPayment(bookingId);
   const cancel = useCancelBooking();
   const [cancelOpen, setCancelOpen] = useState(false);
+  const cancelPolicyQ = useOnlineCancellationPolicySummary();
+  const cancelFeeQ = useBookingCancellationFee(bookingId, cancelOpen);
   const lang = currentLang();
   const locale = formatLocale(lang);
 
@@ -125,6 +133,14 @@ function OnlineLessonDetail() {
   const joinWindow = sessionJoinWindow(startAt, endAt);
   const backTo = isProvider ? ONLINE_WEB_ROUTE_IDS.providerLessons : ONLINE_WEB_ROUTE_IDS.lessons;
   const customer = (booking as { customer?: { full_name?: string; avatar_url?: string } }).customer;
+  const cancelPolicyBody = cancelPolicyQ.summary;
+  const cancelFee = cancelFeeQ.data;
+  const cancelDialogBody =
+    cancelFee != null && cancelFee > 0
+      ? `${cancelPolicyBody} ${t("onlineWeb.cancelPolicy.feeNow", {
+          amount: formatEGP(cancelFee, undefined, lang),
+        })}`
+      : cancelPolicyBody;
 
   return (
     <div className="space-y-6">
@@ -160,6 +176,18 @@ function OnlineLessonDetail() {
         </Link>
       ) : null}
 
+      {userId && (isCustomer || isProvider) ? (
+        <OnlineWebLessonIssueReport
+          bookingId={bookingId}
+          startAt={String(booking.start_at)}
+          endAt={String(booking.end_at)}
+        />
+      ) : null}
+
+      {isProvider && String(booking.status) === "pending" ? (
+        <BookingRequestActions id={bookingId} />
+      ) : null}
+
       {isCustomer && ["pending", "confirmed"].includes(String(booking.status)) ? (
         <button
           type="button"
@@ -170,14 +198,14 @@ function OnlineLessonDetail() {
         </button>
       ) : null}
 
-      <p className="text-pro-12 text-muted-foreground">{t("onlineWeb.cancelPolicy.body")}</p>
+      <p className="text-pro-12 text-muted-foreground">{cancelPolicyBody}</p>
 
       <CancelBookingDialog
         open={cancelOpen}
         actorType="customer"
         bookingStatus={String(booking.status)}
         title={t("bookingDetail.cancelReasonTitle")}
-        body={t("onlineWeb.cancelPolicy.body")}
+        body={cancelDialogBody}
         reasonLabel={t("bookingDetail.cancelReasonLabel")}
         notePlaceholder={t("bookingDetail.cancelReasonPlaceholder")}
         confirmLabel={t("bookingDetail.confirmAction")}
@@ -239,6 +267,11 @@ function LessonCard({
             <span aria-hidden>·</span>
             {formatTime(startAt, locale)}
           </p>
+          {isProviderView ? (
+            <div className="mt-3">
+              <OnlineProviderBookingSummary booking={booking as OnlineProviderBookingSummaryRow} />
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

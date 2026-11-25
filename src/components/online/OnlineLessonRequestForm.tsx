@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -16,6 +16,7 @@ import { bookingFamilyMemberId } from "@/lib/booking/babysittingRecipient";
 import { onlineWebLessonPath } from "@/lib/web/onlineWebSurface";
 import { OnlineWebCustomerDobGate } from "@/components/online/OnlineWebCustomerDobGate";
 import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
+import { getBookingErrorMessage } from "@/lib/booking/errors";
 import type { CapabilityPickValue } from "@/lib/tutoring/providerCapabilityCascade";
 import type { TeachingCapabilityOption } from "@/lib/tutoring/teachingCapabilities";
 
@@ -43,6 +44,7 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
   });
   const [slotStart, setSlotStart] = useState<Date | null>(null);
   const [notes, setNotes] = useState("");
+  const idempotencyKeyRef = useRef(crypto.randomUUID());
 
   const tutoringServices = useMemo(() => {
     const bookable = bookableQ.data;
@@ -101,6 +103,10 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
     setSlotStart(null);
   }, [capabilityId, day]);
 
+  useEffect(() => {
+    idempotencyKeyRef.current = crypto.randomUUID();
+  }, [resolvedServiceId, capabilityId, slotStart?.toISOString()]);
+
   const dayOptions = useMemo(() => {
     const out: Date[] = [];
     const base = new Date();
@@ -145,12 +151,12 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
       const result = await create.mutateAsync({
         ...payload,
         family_member_id: bookingFamilyMemberId("myself"),
-        idempotency_key: crypto.randomUUID(),
+        idempotency_key: idempotencyKeyRef.current,
       });
       toast.success(t("onlineWeb.request.success"));
       nav({ to: onlineWebLessonPath(result.id), replace: true });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t("common.somethingWentWrong"));
+      toast.error(getBookingErrorMessage(error, (key, fallback) => t(key, fallback ?? key)));
     }
   };
 

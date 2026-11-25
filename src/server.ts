@@ -1,4 +1,5 @@
 import "./lib/error-capture";
+import { buildContentSecurityPolicy } from "./lib/security/contentSecurityPolicy";
 import { captureSentryServerException, initSentryServer } from "./lib/sentry/server";
 
 initSentryServer();
@@ -41,7 +42,7 @@ const HTML_SECURITY_HEADERS: Record<string, string> = {
   "X-Content-Type-Options": "nosniff",
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-  "Content-Security-Policy": "frame-ancestors 'none'",
+  "Content-Security-Policy": buildContentSecurityPolicy(),
 };
 
 const PERMISSIONS_POLICY_DEFAULT = "camera=(), microphone=(), geolocation=(self)";

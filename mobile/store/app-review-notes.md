@@ -4,7 +4,7 @@ Paste the text below into the Notes field for every iOS submission.
 
 ---
 
-Famy is a marketplace in Egypt that connects families with independent service providers (babysitting, home tutoring, elderly care and similar in-person services).
+Famy is a marketplace in Egypt that connects families with independent service providers (babysitting, home tutoring, elderly care, and live online lessons).
 
 **Payments (guideline 3.1.3(d) and 3.1.3(e))**
 - In-person services are physical services consumed outside the app, so they are paid by card through Paymob (Apple Pay is offered through Paymob where available), not with in-app purchase.
@@ -15,10 +15,16 @@ Famy is a marketplace in Egypt that connects families with independent service p
 Used only inside a live online lesson so the student and teacher can see and hear each other. Nothing is recorded or stored.
 
 **Sign-in**
-Phone number with SMS code is the main sign-in method. Sign in with Apple is offered on iOS whenever any third-party sign-in is offered.
+- **Existing accounts:** phone number **and password** (not SMS OTP at login). OTP is only for new sign-up and password reset.
+- **Sign in with Apple** is offered on iOS when any third-party sign-in is offered.
 
 **Account deletion**
 Profile → Delete account (customers) and Pro profile → Delete account (providers). The web page is https://famy-chi.vercel.app/account/delete
 
-**Demo account**
-Fill in before submitting: a test customer phone number and SMS code, and a test provider phone number and SMS code (Firebase test numbers). Never put real users' numbers here.
+**Demo accounts (fill in Play Console / ASC only — do not commit real credentials)**
+- **Customer:** phone + password for a customer with at least one active or recent booking; set the service address pin inside a served zone when booking.
+- **Provider:** phone + password for an approved provider with online tutoring enabled and at least one booking to show.
+- Never put real users' numbers or passwords in this repository.
+
+**Staged rollout**
+See [../docs/store/staged-rollout.md](../docs/store/staged-rollout.md) if a phased release is planned.

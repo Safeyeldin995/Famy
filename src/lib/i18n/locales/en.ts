@@ -4817,6 +4817,7 @@ Object.assign(en, {
       title: "Private tutoring, live online",
       lead: "Pick a verified tutor, book and pay per lesson, and join from your phone or computer with no extra apps.",
       browseTutors: "Browse tutors",
+      browseTutorsSignIn: "Sign in to browse tutors",
       signIn: "Sign in",
       howTitle: "How it works",
       step1Title: "Pick a tutor and send a request",
@@ -4916,6 +4917,7 @@ Object.assign(en, {
     cancelPolicy: {
       title: "Cancellation",
       body: "Cancel more than 4 hours before the lesson for free. After that, a 50% fee applies; the rest is credited to your Famy wallet.",
+      feeNow: "If you cancel now, the fee is {{amount}}.",
     },
     walkthrough: {
       requestLesson: "Request a lesson",
