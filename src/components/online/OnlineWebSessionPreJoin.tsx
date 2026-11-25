@@ -13,6 +13,7 @@ export function OnlineWebSessionPreJoin({ onReady, onCancel }: Props) {
   const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const cancelledRef = useRef(false);
   const [micOk, setMicOk] = useState<boolean | null>(null);
   const [camOk, setCamOk] = useState<boolean | null>(null);
   const [checking, setChecking] = useState(true);
@@ -30,6 +31,10 @@ export function OnlineWebSessionPreJoin({ onReady, onCancel }: Props) {
     setCamOk(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+      if (cancelledRef.current) {
+        stream.getTracks().forEach((tr) => tr.stop());
+        return;
+      }
       streamRef.current = stream;
       setMicOk(true);
       setCamOk(true);
@@ -40,21 +45,31 @@ export function OnlineWebSessionPreJoin({ onReady, onCancel }: Props) {
     } catch {
       try {
         const audioOnly = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        if (cancelledRef.current) {
+          audioOnly.getTracks().forEach((tr) => tr.stop());
+          return;
+        }
         streamRef.current = audioOnly;
         setMicOk(true);
         setCamOk(false);
       } catch {
-        setMicOk(false);
-        setCamOk(false);
+        if (!cancelledRef.current) {
+          setMicOk(false);
+          setCamOk(false);
+        }
       }
     } finally {
-      setChecking(false);
+      if (!cancelledRef.current) setChecking(false);
     }
   }, [stopPreview]);
 
   useEffect(() => {
+    cancelledRef.current = false;
     void probe();
-    return () => stopPreview();
+    return () => {
+      cancelledRef.current = true;
+      stopPreview();
+    };
   }, [probe, stopPreview]);
 
   const canJoin = micOk === true;

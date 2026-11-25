@@ -91,6 +91,7 @@ export function OnlineWebSessionRoom({ bookingId, displayName, startAt, endAt, o
   const [connState, setConnState] = useState<ConnectionState>(ConnectionState.Disconnected);
   const [countdownLabel, setCountdownLabel] = useState<string | null>(null);
   const joinWindow = sessionJoinWindow(startAt, endAt);
+  const connectStartedRef = useRef(false);
 
   const toggleMic = useCallback(async () => {
     const room = roomRef.current;
@@ -140,7 +141,6 @@ export function OnlineWebSessionRoom({ bookingId, displayName, startAt, endAt, o
       const audioHost = remoteAudioRef.current;
       if (!localVideo || !remoteVideoHost || !audioHost) return;
 
-      setPhase("connecting");
       setErrorMessage(null);
       setAudioOnly(choice.audioOnly);
 
@@ -213,6 +213,16 @@ export function OnlineWebSessionRoom({ bookingId, displayName, startAt, endAt, o
   }, [teardownRoom]);
 
   useEffect(() => {
+    if (phase === "prejoin") connectStartedRef.current = false;
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase !== "connecting" || !prejoin || connectStartedRef.current) return;
+    connectStartedRef.current = true;
+    void connectLive(prejoin);
+  }, [phase, prejoin, connectLive]);
+
+  useEffect(() => {
     if (phase !== "live") return;
     const tick = () => {
       const now = Date.now();
@@ -238,7 +248,7 @@ export function OnlineWebSessionRoom({ bookingId, displayName, startAt, endAt, o
         onCancel={onLeave}
         onReady={(choice) => {
           setPrejoin(choice);
-          void connectLive(choice);
+          setPhase("connecting");
         }}
       />
     );

@@ -37,10 +37,16 @@ export function cairoDayStartFromYmd(ymd: string): Date {
   );
 }
 
+/** Add whole days to a Cairo calendar Y-M-D without shifting the zero-day case. */
 export function cairoDatePlusDays(ymd: string, days: number): string {
-  const noon = cairoDayStartFromYmd(ymd);
-  noon.setUTCHours(noon.getUTCHours() + 12);
-  return cairoYmd(new Date(noon.getTime() + days * DAY_MS));
+  if (days === 0) return ymd;
+  const { y, m, d } = parseYmd(ymd);
+  const cursor = new Date(Date.UTC(y, m - 1, d));
+  cursor.setUTCDate(cursor.getUTCDate() + days);
+  const yy = cursor.getUTCFullYear();
+  const mm = String(cursor.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(cursor.getUTCDate()).padStart(2, "0");
+  return `${yy}-${mm}-${dd}`;
 }
 
 export function cairoTodayStart(): Date {

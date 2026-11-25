@@ -12,10 +12,12 @@ import {
 } from "@/lib/db/queries";
 import { useApprovedTeachingCapabilities } from "@/lib/db/teaching-queries";
 import { buildBookingRequest } from "@/lib/booking/bookingRequest";
+import { useBillingSettings } from "@/lib/db/settings-queries";
+import { onlineLessonRequestTotal } from "@/lib/online/onlineLessonRequestQuote";
 import { bookingFamilyMemberId } from "@/lib/booking/babysittingRecipient";
 import { onlineWebLessonPath } from "@/lib/web/onlineWebSurface";
 import { OnlineWebCustomerDobGate } from "@/components/online/OnlineWebCustomerDobGate";
-import { isTutoringCategorySlug, tutoringSessionQuote } from "@/lib/tutoring/teachingCapabilities";
+import { isTutoringCategorySlug } from "@/lib/tutoring/teachingCapabilities";
 import {
   cairoDayStrip,
   cairoTodayStart,
@@ -37,6 +39,7 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
   const servicesQ = useProviderServices(providerId);
   const bookableQ = useBookableServiceIds(providerId, undefined, "online");
   const create = useCreateBooking();
+  const billingQ = useBillingSettings();
   const [serviceId, setServiceId] = useState<string | null>(null);
   const [capabilityPick, setCapabilityPick] = useState<CapabilityPickValue>({
     subjectCode: "",
@@ -109,10 +112,13 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
 
   const dayOptions = useMemo(() => cairoDayStrip(14), []);
 
-  const priceQuote = useMemo(() => {
-    if (!selectedCapability) return null;
-    return tutoringSessionQuote(selectedCapability.durationMin, selectedCapability.price);
-  }, [selectedCapability]);
+  const priceTotal = useMemo(() => {
+    if (!selectedCapability || !billingQ.data) return null;
+    return onlineLessonRequestTotal(
+      { durationMin: selectedCapability.durationMin, price: selectedCapability.price },
+      billingQ.data,
+    );
+  }, [billingQ.data, selectedCapability]);
 
   const selectedSlot = useMemo(() => {
     if (!slotStart) return null;
@@ -257,13 +263,13 @@ export function OnlineLessonRequestForm({ providerId }: Props) {
           />
         </label>
 
-        {priceQuote ? (
+        {priceTotal != null && selectedCapability ? (
           <div className="rounded-2xl border border-border/60 bg-surface-2 p-4">
             <p className="text-pro-14 font-extrabold">
-              {t("booking.total")}: {formatEGP(priceQuote.subtotal, undefined, lang)}
+              {t("booking.total")}: {formatEGP(priceTotal, undefined, lang)}
             </p>
             <p className="mt-1 text-pro-13 text-muted-foreground">
-              {t("bookFlow.sessionLine", { minutes: formatNumber(priceQuote.durationMin, lang) })}
+              {t("bookFlow.sessionLine", { minutes: formatNumber(selectedCapability.durationMin, lang) })}
               {selectedSlot
                 ? ` · ${formatTime(selectedSlot.end, locale, ONLINE_WEB_TIME_ZONE)}`
                 : null}
