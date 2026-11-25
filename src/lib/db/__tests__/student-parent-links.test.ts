@@ -72,6 +72,45 @@ describe("student_parent_links", () => {
     expect(payload?.parent_on_famy).toBe(false);
   });
 
+  it("register_parent_guardian_contact replaces an existing linked contact", async () => {
+    const linkedStudent = "00000000-0000-0000-0000-00000000c106";
+    await db.exec(`
+      INSERT INTO auth.users (id) VALUES ('${linkedStudent}') ON CONFLICT DO NOTHING;
+      INSERT INTO public.user_roles (user_id, role) VALUES ('${linkedStudent}', 'customer') ON CONFLICT DO NOTHING;
+      UPDATE public.profiles SET
+        phone = '201066666666',
+        date_of_birth = (CURRENT_DATE - interval '16 years')::date,
+        full_name = 'Linked Replacer'
+      WHERE id = '${linkedStudent}';
+    `);
+    const first = await tryAsUser(
+      db,
+      linkedStudent,
+      `SELECT public.register_parent_guardian_contact($1, $2) AS payload`,
+      ["01022222222", "first.parent@example.com"],
+    );
+    expect(first.error).toBeUndefined();
+    expect((first.rows?.[0]?.payload as { status?: string })?.status).toBe("linked");
+
+    const second = await tryAsUser(
+      db,
+      linkedStudent,
+      `SELECT public.register_parent_guardian_contact($1, $2) AS payload`,
+      ["01099998888", "new.parent@example.com"],
+    );
+    expect(second.error).toBeUndefined();
+    expect((second.rows?.[0]?.payload as { status?: string })?.status).toBe("notified");
+
+    const active = await queryRows<{ status: string }>(
+      db,
+      `SELECT status FROM public.student_parent_links
+       WHERE student_id = $1 AND status IN ('notified', 'linked', 'flagged_not_my_child')`,
+      [linkedStudent],
+    );
+    expect(active).toHaveLength(1);
+    expect(active[0]?.status).toBe("notified");
+  });
+
   it("register_parent_guardian_contact auto-links when parent exists on Famy", async () => {
     const orphan = "00000000-0000-0000-0000-00000000c199";
     await db.exec(`

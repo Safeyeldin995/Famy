@@ -193,7 +193,7 @@ BEGIN
 
   UPDATE public.student_parent_links
   SET status = 'revoked', decided_at = now()
-  WHERE student_id = v_uid AND status IN ('notified', 'flagged_not_my_child');
+  WHERE student_id = v_uid AND status IN ('notified', 'linked', 'flagged_not_my_child');
 
   INSERT INTO public.student_parent_links (
     student_id, parent_id, requested_parent_phone, parent_email, status
@@ -1081,6 +1081,9 @@ BEGIN
     v_old := to_jsonb(OLD); v_id := OLD.id;
   END IF;
 
+  -- booking_id/reason are read from the raw (pre-redaction) row — neither
+  -- is ever a deny-listed key, and resolving them first keeps this
+  -- independent of the redaction step below.
   IF TG_TABLE_NAME = 'bookings' THEN
     v_booking_id := v_id;
   ELSE
@@ -1097,6 +1100,11 @@ BEGIN
     );
   END IF;
 
+  -- Changed-keys-only object: for every key in the new row whose value is
+  -- distinct from the old row's value at that key. (jsonb - jsonb is not a
+  -- valid Postgres operator; the previous expression using it would raise
+  -- "42883: operator does not exist" on every UPDATE and abort the
+  -- triggering statement.)
   IF TG_OP = 'UPDATE' THEN
     SELECT COALESCE(jsonb_object_agg(t.key, t.value), '{}'::jsonb)
       INTO v_diff
