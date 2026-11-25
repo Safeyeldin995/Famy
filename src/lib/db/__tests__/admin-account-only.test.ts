@@ -5,6 +5,7 @@ import { createMigrationReplayDb, replayAllMigrations } from "./migration-replay
 const adminId = "00000000-0000-0000-0000-00000000b901";
 const customerId = "00000000-0000-0000-0000-00000000b902";
 const providerUserId = "00000000-0000-0000-0000-00000000b903";
+const identityRaceUserId = "00000000-0000-0000-0000-00000000b904";
 
 let db: PGlite;
 
@@ -36,6 +37,12 @@ async function expectAdminRestricted(promise: Promise<unknown>) {
   await expect(promise).rejects.toMatchObject({
     message: expect.stringMatching(/admin_account_restricted/i),
   });
+}
+
+async function asAuthenticated<T>(userId: string, run: () => Promise<T>): Promise<T> {
+  await db.query("SELECT set_config('request.jwt.claim.sub', $1, false)", [userId]);
+  await db.query("SELECT set_config('request.jwt.claim.aal', 'aal2', false)");
+  return run();
 }
 
 describe("admin account database guards", () => {
@@ -90,5 +97,52 @@ describe("admin account database guards", () => {
     await expectAdminRestricted(
       db.query(`SELECT public.raise_if_admin_account($1::uuid)`, [adminId]),
     );
+  });
+
+  it("blocks provider row creation in the same transaction after an admin grant", async () => {
+    await db.exec(`
+      INSERT INTO auth.users (id, raw_user_meta_data) VALUES
+        ('${identityRaceUserId}', '{"signup_role":"provider"}'::jsonb)
+      ON CONFLICT (id) DO NOTHING;
+    `);
+    await db.exec("BEGIN");
+    try {
+      await db.query(`DELETE FROM public.user_roles WHERE user_id = $1::uuid`, [identityRaceUserId]);
+      await db.query(`INSERT INTO public.user_roles (user_id, role) VALUES ($1, 'admin')`, [
+        identityRaceUserId,
+      ]);
+      await expectAdminRestricted(
+        db.query(
+          `INSERT INTO public.providers (
+          profile_id, bio_en, bio_ar, years_experience, hourly_rate, city, country, languages
+        ) VALUES ($1, '', '', 1, 100, 'Cairo', 'EG', ARRAY[]::text[])`,
+          [identityRaceUserId],
+        ),
+      );
+    } finally {
+      await db.exec("ROLLBACK");
+    }
+  });
+
+  it("rejects provider profile updates that target an admin account", async () => {
+    const { rows } = await db.query<{ id: string }>(
+      "SELECT id FROM public.providers WHERE profile_id = $1",
+      [providerUserId],
+    );
+    const providerId = rows[0]?.id;
+    expect(providerId).toBeTruthy();
+    await expectAdminRestricted(
+      db.query(`UPDATE public.providers SET profile_id = $1 WHERE id = $2`, [adminId, providerId]),
+    );
+  });
+
+  it("rejects provider_save_onboarding_section for admin-only accounts", async () => {
+    await expect(
+      asAuthenticated(adminId, () =>
+        db.query(`SELECT public.provider_save_onboarding_section('identity', '{}'::jsonb)`),
+      ),
+    ).rejects.toMatchObject({
+      message: expect.stringMatching(/admin_account_restricted/i),
+    });
   });
 });
