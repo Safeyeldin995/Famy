@@ -38,7 +38,12 @@ export function AdminCustomer({ id }: { id: string }) {
         />
       </div>
     );
-  const { profile, bookings, payments } = q.data ?? { profile: null, bookings: [], payments: [] };
+  const { profile, bookings, payments, parentLink } = q.data ?? {
+    profile: null,
+    bookings: [],
+    payments: [],
+    parentLink: null,
+  };
   if (!profile)
     return <div className="p-6 text-sm text-muted-foreground">{t("admin.customer.notFound")}</div>;
 
@@ -82,6 +87,13 @@ export function AdminCustomer({ id }: { id: string }) {
                 date: adminDate(profile.created_at, i18n.language, false),
               })}
             </p>
+            {parentLink && parentLink !== null && typeof parentLink === "object" ? (
+              <p className="mt-2 text-xs font-semibold text-muted-foreground">
+                {t("admin.customer.parentLinkStatus", {
+                  status: String((parentLink as { status?: string }).status ?? "—"),
+                })}
+              </p>
+            ) : null}
           </div>
           <span
             className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold uppercase ${isSuspended ? "bg-coral/10 text-coral" : "bg-mint/20 text-success"}`}

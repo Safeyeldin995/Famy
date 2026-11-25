@@ -1123,6 +1123,25 @@ const ar: Translation = {
     mapUnavailable: "الخريطة غير متاحة حاليا",
     mapUnavailableBody: "موقعك محفوظ، تقدر تحاول تحمل الخريطة مرة تانية",
   },
+  studentParentLink: {
+    title: "اربط حسابك بحساب ولي الأمر",
+    lead: "اكتب رقم موبايل ولي أمرك على فامي علشان يوافق على الربط",
+    parentPhone: "رقم ولي الأمر",
+    sendRequest: "ابعت طلب الربط",
+    requestSent: "اتبعت طلب لولي أمرك",
+    notOnFamy: "اطلب من ولي أمرك ينزل فامي ويسجل بالرقم ده",
+    pending: "مستنيين موافقة ولي الأمر",
+    rejected: "ولي الأمر رفض الطلب. تقدر تبعت طلب تاني",
+    approvedState: "حساب ولي الأمر مربوط",
+    parentApprovalBody: "الطالب ده عايز يربط حسابه بحسابك",
+    approve: "موافق",
+    decline: "رفض",
+    approvedToast: "تم ربط حساب الطالب",
+    declinedToast: "تم رفض طلب الربط",
+    appHint: "متابعة الدروس كاملة من تطبيق فامي",
+    myChildren: "أولادي",
+    linkRequiredCta: "اربط حساب ولي الأمر",
+  },
   familyMembers: {
     title: "أفراد العائلة",
     addMember: "أضف فردا من العائلة",
@@ -1754,6 +1773,8 @@ const ar: Translation = {
       ONLINE_BIRTH_DATE_REQUIRED:
         "ضيف تاريخ ميلادك في ملفك الشخصي قبل ما تحجز درس أونلاين",
       ONLINE_AGE_MINIMUM: "الدروس الأونلاين متاحة من سن 12",
+      STUDENT_PARENT_LINK_REQUIRED:
+        "لازم تربط حساب ولي أمر قبل ما تطلب درس أونلاين",
     },
     onlineBirthDatePrompt:
       "ضيف تاريخ ميلادك علشان نتأكد إنك مستوفي سن الحجز للدروس الأونلاين",
@@ -3289,6 +3310,7 @@ const ar: Translation = {
     customer: {
       notFound: "العميل غير موجود",
       joined: "انضم في {{date}}",
+      parentLinkStatus: "ربط ولي الأمر: {{status}}",
       suspendAccount: "إيقاف الحساب",
       unsuspendAccount: "إلغاء إيقاف الحساب",
       recentBookings: "الحجوزات الأخيرة ({{count}})",

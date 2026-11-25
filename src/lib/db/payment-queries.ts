@@ -78,7 +78,17 @@ export function useCreatePayment() {
         .eq('id', input.bookingId)
         .single();
       if (bookingErr) throw bookingErr;
-      if (booking.customer_id !== user.id) {
+      const isBookingCustomer = booking.customer_id === user.id;
+      let parentMayPay = false;
+      if (!isBookingCustomer) {
+        const { data: mayPay, error: parentErr } = await (supabase.rpc as any)(
+          "parent_may_pay_student_booking",
+          { p_parent_id: user.id, p_booking_id: input.bookingId },
+        );
+        if (parentErr) throw parentErr;
+        parentMayPay = !!mayPay;
+      }
+      if (!isBookingCustomer && !parentMayPay) {
         throw new Error('You cannot record payment for this booking.');
       }
       // Includes earlier unpaid cancellation fees added to this booking.
@@ -92,7 +102,7 @@ export function useCreatePayment() {
         .from('payments')
         .insert({
           booking_id: input.bookingId,
-          customer_id: user.id,
+          customer_id: booking.customer_id,
           payment_method_id: input.paymentMethodId,
           amount,
           currency: booking.currency ?? 'EGP',

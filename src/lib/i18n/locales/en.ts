@@ -1128,6 +1128,25 @@ const en = {
     mapUnavailable: "Map unavailable right now",
     mapUnavailableBody: "Your location is still saved. You can retry loading the map.",
   },
+  studentParentLink: {
+    title: "Link parent account",
+    lead: "Enter your parent’s Famy phone number. They approve the link in the app",
+    parentPhone: "Parent phone number",
+    sendRequest: "Send link request",
+    requestSent: "Request sent to your parent",
+    notOnFamy: "Ask your parent to download Famy and sign up with this number",
+    pending: "Waiting for parent approval",
+    rejected: "Parent declined. You can send another request",
+    approvedState: "Parent account linked",
+    parentApprovalBody: "This student wants to link their account to yours",
+    approve: "Approve",
+    decline: "Decline",
+    approvedToast: "Student linked",
+    declinedToast: "Link request declined",
+    appHint: "Full parent supervision is in the Famy app",
+    myChildren: "My children",
+    linkRequiredCta: "Link parent account",
+  },
   familyMembers: {
     title: "Family Members",
     addMember: "Add family member",
@@ -1767,6 +1786,8 @@ const en = {
       ONLINE_BIRTH_DATE_REQUIRED:
         "Add a date of birth on your profile before booking an online lesson.",
       ONLINE_AGE_MINIMUM: "Online lessons are available from age 12.",
+      STUDENT_PARENT_LINK_REQUIRED:
+        "Link a parent account before you request an online lesson",
     },
     onlineBirthDatePrompt:
       "Add your date of birth so we can confirm you meet the age requirement for online lessons.",
@@ -3322,6 +3343,7 @@ const en = {
     customer: {
       notFound: "Customer not found.",
       joined: "Joined {{date}}",
+      parentLinkStatus: "Parent link: {{status}}",
       suspendAccount: "Suspend account",
       unsuspendAccount: "Unsuspend account",
       recentBookings: "Recent bookings ({{count}})",
