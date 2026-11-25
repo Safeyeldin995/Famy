@@ -9,7 +9,12 @@ import * as ImagePicker from "expo-image-picker";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { useBookingPayment } from "@/lib/queries";
-import { useActivePaymentMethods, useCreatePayment } from "@/lib/bookingQueries";
+import {
+  useActivePaymentMethods,
+  useCreatePayment,
+  type PaymentMethodRow,
+} from "@/lib/bookingQueries";
+import { supabase } from "@/lib/supabase";
 import {
   clearPayment,
   peekPayment,
@@ -19,6 +24,7 @@ import {
 } from "@/lib/mobilePayments";
 import { isPaymentEligibleBookingStatus, type PendingPaymentSelection } from "@/lib/bookingPure";
 import { QueryState, moneyTextStyle, ui } from "./Page";
+import { space } from "./theme";
 import { Button } from "./Button";
 import { Text } from "./Text";
 import { BrandLogo, PaymentLogos } from "./PaymentLogos";
@@ -150,20 +156,53 @@ export function PaymentBlock({
   }
   async function recover() {
     if (!selection) return;
+    await startNewPayment({
+      paymentMethodId: selection.paymentMethodId,
+      methodType: selection.methodType,
+      paymobChannel: selection.paymobChannel,
+    });
+  }
+
+  async function startNewPayment(method: {
+    paymentMethodId: string;
+    methodType: PendingPaymentSelection["methodType"];
+    paymobChannel?: PendingPaymentSelection["paymobChannel"];
+  }) {
+    if (
+      !isPaymentEligibleBookingStatus(status) ||
+      total == null ||
+      !Number.isFinite(Number(total)) ||
+      Number(total) <= 0
+    ) {
+      return;
+    }
     setBusy(true);
     setError("");
     try {
-      const payment = await create.mutateAsync({ bookingId, ...selection });
+      if (p?.status === "rejected") {
+        // The wallet money held by the rejected attempt must be released before a
+        // new attempt is created; otherwise the new checkout would double-count it.
+        const { error: releaseError } = await supabase.rpc(
+          "customer_release_booking_checkout_wallet",
+          { p_booking_id: bookingId },
+        );
+        if (releaseError) throw releaseError;
+      }
+      const payment = await create.mutateAsync({
+        bookingId,
+        paymentMethodId: method.paymentMethodId,
+        methodType: method.methodType,
+      });
       await clearPayment(bookingId);
       setSelection(null);
       await refresh();
-      if (selection.methodType === "online") {
+      if (method.methodType === "online") {
         await startPaymob(
           bookingId,
           payment.id,
           resolvePaymobCheckoutChannelForPayment({
             metadata: payment.metadata,
-            selectionChannel: selection.paymobChannel,
+            selectionChannel: method.paymobChannel,
           }),
         );
         await refresh();
@@ -174,6 +213,20 @@ export function PaymentBlock({
       setBusy(false);
     }
   }
+
+  function onPickMethod(m: PaymentMethodRow) {
+    void startNewPayment({
+      paymentMethodId: m.id,
+      methodType: m.method_type,
+    });
+  }
+
+  const canChoosePaymentMethod =
+    isPaymentEligibleBookingStatus(status) &&
+    total != null &&
+    Number.isFinite(Number(total)) &&
+    Number(total) > 0 &&
+    ((!p && !q.isLoading) || p?.status === "rejected");
   useEffect(() => {
     if (
       selection &&
@@ -340,7 +393,7 @@ export function PaymentBlock({
             <>
               <Text tone="danger">{t("payment.rejectedTitle")}</Text>
               {p.rejection_reason && <Text>{p.rejection_reason}</Text>}
-              {type === "manual_transfer" && <Text>{t("payment.rejectedRetry")}</Text>}
+              <Text>{t("payment.rejectedRetry")}</Text>
             </>
           )}
           {type === "online" && (
@@ -378,6 +431,20 @@ export function PaymentBlock({
             </>
           )}
         </>
+      )}
+      {canChoosePaymentMethod && (methods.data?.length ?? 0) > 0 && (
+        <View style={{ gap: space.sm }}>
+          <Text weight="bold">{t("payment.title")}</Text>
+          {methods.data!.map((m) => (
+            <Button
+              key={m.id}
+              variant="secondary"
+              label={(i18n.language === "ar" ? m.name_ar : m.name_en) || m.code}
+              loading={busy}
+              onPress={() => onPickMethod(m)}
+            />
+          ))}
+        </View>
       )}
     </View>
   );
