@@ -18,7 +18,7 @@ export type ProviderNextAction = {
 type BookingRow = {
   id: string;
   status?: string | null;
-  created_at?: string;
+  created_at?: string | null;
   start_at: string;
 };
 
