@@ -38,9 +38,11 @@ import { LessonIllustration } from "@/ui/lessons/LessonIllustration";
 import { HOME_CATEGORY_IDS, homeCategoryLessonSlug } from "@shared/catalog/homeCategories";
 import { colors, radius, shadow, space } from "@/ui/theme";
 import { HomeActiveBookingCard } from "@/ui/customer/HomeActiveBookingCard";
+import { RatingPromptCard } from "@/ui/customer/RatingPromptCard";
 import { FeeDebtBanner } from "@/ui/FeeDebtBanner";
 import { useBookingParties } from "@/lib/queries";
 import { customerHomeActiveBookings } from "@shared/home/activeHomeBookings";
+import { latestCompletedBookingWithoutReview } from "@/lib/customerBookingsList";
 import {
   bumpHomeFocusEffect,
   bumpHomeQueryFetch,
@@ -93,11 +95,20 @@ export default function Home() {
   const tutoringServices = useMarketplaceServices("tutoring");
   const unread = useUnreadNotificationCount();
   const bookings = useMyBookings();
+  const rateTarget = useMemo(
+    () => latestCompletedBookingWithoutReview(bookings.data ?? []),
+    [bookings.data],
+  );
   const activeIds = useMemo(
     () => customerHomeActiveBookings(bookings.data ?? []).map((b) => b.id),
     [bookings.data],
   );
-  const parties = useBookingParties(activeIds);
+  const partyBookingIds = useMemo(() => {
+    const ids = [...activeIds];
+    if (rateTarget) ids.push(rateTarget.id);
+    return ids;
+  }, [activeIds, rateTarget]);
+  const parties = useBookingParties(partyBookingIds);
   const promos = useFeaturedPromoCodes();
   const legacyFreeze = homeFreezeLegacyMode();
   const [refreshing, setRefreshing] = useState(false);
@@ -277,6 +288,17 @@ export default function Home() {
       <FeeDebtBanner />
       {!bookings.isError && bookings.data ? (
         <HomeActiveBookingCard bookings={bookings.data} parties={parties.data} />
+      ) : null}
+      {rateTarget ? (
+        <RatingPromptCard
+          testID="home-rate-prompt"
+          bookingId={rateTarget.id}
+          providerName={
+            parties.data?.get(rateTarget.id)?.other_name ||
+            rateTarget.provider?.profile.full_name ||
+            t("provider2.unnamed")
+          }
+        />
       ) : null}
 
       {bookAgainSection}

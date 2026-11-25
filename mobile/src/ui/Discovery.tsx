@@ -1,6 +1,6 @@
 import { resolveStudentEducationProfile } from "@shared/tutoring/studentEducationProfile";
 import { memberAgeTranslation } from "@shared/familyMemberAge";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useOnlineSessionsAvailable } from "@/lib/useOnlineSessionsAvailable";
@@ -54,6 +54,8 @@ export function Discovery({ category: group }: { category?: string }) {
   const [serviceId, setServiceId] = useState("");
   const [serviceMode, setServiceMode] = useState<"in_person" | "online">("in_person");
   const [sort, setSort] = useState("top");
+  const [searchSort, setSearchSort] = useState<"default" | "price" | "next">("default");
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
   const onlineCaps = useOnlineSessionsAvailable();
   const addresses = useAddresses();
   const categories = useCategories();
@@ -151,6 +153,21 @@ export function Discovery({ category: group }: { category?: string }) {
           i18n.language,
         ) || t("home.chooseService")
       : t("search.title");
+  const searchResults = useMemo(() => {
+    let list = items;
+    if (verifiedOnly) list = list.filter((p) => p.is_verified);
+    if (searchSort === "price") {
+      list = [...list].sort((a, b) => Number(a.hourly_rate ?? 0) - Number(b.hourly_rate ?? 0));
+    } else if (searchSort === "next") {
+      list = [...list].sort((a, b) => {
+        const ar = a.response_time_min ?? 999_999;
+        const br = b.response_time_min ?? 999_999;
+        return ar - br;
+      });
+    }
+    return list;
+  }, [items, searchSort, verifiedOnly]);
+
   if (!category)
     return (
       <CustomerSearchView
@@ -164,7 +181,11 @@ export function Discovery({ category: group }: { category?: string }) {
         setAddressId={setAddressId}
         addresses={addresses}
         services={allServices}
-        results={items}
+        results={searchResults}
+        sort={searchSort}
+        setSort={setSearchSort}
+        verifiedOnly={verifiedOnly}
+        setVerifiedOnly={setVerifiedOnly}
         capabilities={caps.data ?? []}
         providers={{
           isLoading: a.isLoading || b.isLoading,

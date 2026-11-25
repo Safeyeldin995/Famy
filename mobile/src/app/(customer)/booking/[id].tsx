@@ -1,7 +1,7 @@
 import { PaymentBlock } from "@/ui/PaymentBlock";
 import { bookingDurationUnitKey } from "@/lib/bookingDuration";
 import { BookingActions } from "@/ui/BookingActions";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Linking, Pressable, View } from "react-native";
 import {
   Calendar,
@@ -10,11 +10,21 @@ import {
   HelpCircle,
   LifeBuoy,
   MapPin,
+  MessageSquare,
   Phone,
+  Share2,
 } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { useBooking, useBookingPayment, useBookingParty, useProviderServicePreparationNotes } from "@/lib/queries";
+import {
+  useBooking,
+  useBookingPayment,
+  useBookingParty,
+  useProviderServicePreparationNotes,
+  useSupportContact,
+} from "@/lib/queries";
+import { openCustomerPushExplanationPrompt } from "@/lib/push";
+import { hapticSuccess } from "@/ui/haptics";
 import { useSession } from "@/lib/session";
 import { OnlineSessionJoinButton } from "@/ui/OnlineSessionJoinButton";
 import { OnlineLessonIssueReport } from "@/ui/OnlineLessonIssueReport";
@@ -43,16 +53,20 @@ import { bookingAmountDue, carriedFees } from "@shared/payments/amountDue";
 import { moneyHeld } from "@shared/payments/refundOwed";
 
 export default function BookingDetail() {
-  const { id, created, educationWarning } = useLocalSearchParams<{
+  const { id, created, educationWarning, review, presetRating } = useLocalSearchParams<{
     id: string;
     created?: string;
     educationWarning?: string;
+    review?: string;
+    presetRating?: string;
   }>();
   const { t, i18n } = useTranslation();
   const { session } = useSession();
   const q = useBooking(id);
   const payment = useBookingPayment(id);
+  const support = useSupportContact();
   const party = useBookingParty(id);
+  const paymentStatusRef = useRef<string | undefined>(undefined);
   const b = q.data;
   const preparation = useProviderServicePreparationNotes(
     b?.provider_id,
@@ -115,6 +129,23 @@ export default function BookingDetail() {
         language: i18n.language,
       }
     : null;
+  useEffect(() => {
+    if (created === "1") openCustomerPushExplanationPrompt();
+  }, [created]);
+
+  useEffect(() => {
+    const status = payment.data?.status;
+    if (status === "captured" && paymentStatusRef.current !== "captured") {
+      hapticSuccess();
+    }
+    paymentStatusRef.current = status;
+  }, [payment.data?.status]);
+
+  const initialRating = (() => {
+    const n = Number(presetRating);
+    return n >= 1 && n <= 5 ? n : 0;
+  })();
+
   const share = async (calendar: boolean) => {
     if (!info) return;
     setFileError(false);
@@ -134,6 +165,8 @@ export default function BookingDetail() {
       : b?.status === "confirmed"
         ? "bookingDetail.allSet"
         : `status.${b?.status}`;
+  const supportPhone = support.data?.phone?.replace(/[^\d+]/g, "");
+  const supportWhatsapp = support.data?.whatsapp?.replace(/\D/g, "");
   const fields = [
     "subtotal",
     "extras_total",
@@ -237,6 +270,52 @@ export default function BookingDetail() {
               )}
             </View>
             {party.isError && <QueryState query={party} />}
+            {b.status === "confirmed" ? (
+              <QueryState query={support}>
+                <View style={{ flexDirection: "row", gap: space.sm }}>
+                  {[
+                    {
+                      key: "call",
+                      Icon: Phone,
+                      label: t("bookingDetail.supportCall"),
+                      url: supportPhone ? `tel:${supportPhone}` : null,
+                    },
+                    {
+                      key: "whatsapp",
+                      Icon: MessageSquare,
+                      label: t("bookingDetail.supportWhatsapp"),
+                      url: supportWhatsapp ? `https://wa.me/${supportWhatsapp}` : null,
+                    },
+                  ].map(({ key, Icon, label, url }) => (
+                    <Pressable
+                      key={key}
+                      accessibilityRole="button"
+                      accessibilityLabel={label}
+                      disabled={!url}
+                      onPress={() => url && void Linking.openURL(url)}
+                      style={{
+                        flex: 1,
+                        minHeight: 72,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        borderRadius: radius.lg,
+                        backgroundColor: colors.surface,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: space.sm,
+                        padding: space.md,
+                        opacity: url ? 1 : 0.5,
+                      }}
+                    >
+                      <Icon size={20} color={colors.brand} />
+                      <Text size="xs" weight="bold" style={{ textAlign: "center" }}>
+                        {label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </QueryState>
+            ) : null}
             <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
               <Avatar
                 raw={party.party?.other_avatar_url || b.provider?.profile.avatar_url}
@@ -410,7 +489,6 @@ export default function BookingDetail() {
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
               {[
                 { Icon: Download, key: "receipt", onPress: () => void share(false) },
-                { Icon: Calendar, key: "addCalendar", onPress: () => void share(true) },
                 { Icon: HelpCircle, key: "support", onPress: () => router.push("/help") },
               ].map(({ Icon, key, onPress }) => (
                 <Pressable
@@ -452,12 +530,58 @@ export default function BookingDetail() {
                 </Pressable>
               ))}
             </View>
+            <View style={{ flexDirection: "row", gap: space.sm }}>
+              {[
+                { Icon: Calendar, key: "addCalendar", onPress: () => void share(true) },
+                { Icon: Share2, key: "shareBooking", onPress: () => void share(true) },
+              ].map(({ Icon, key, onPress }) => (
+                <Pressable
+                  key={key}
+                  accessibilityRole="button"
+                  accessibilityLabel={t(`bookingDetail.${key}`)}
+                  onPress={onPress}
+                  style={{
+                    flex: 1,
+                    minHeight: 72,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: radius.lg,
+                    backgroundColor: colors.surface,
+                    paddingHorizontal: space.sm,
+                    paddingVertical: space.md,
+                    gap: space.sm,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: radius.lg,
+                      backgroundColor: colors.brandTint,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Icon size={18} color={colors.brand} />
+                  </View>
+                  <Text size="xs" weight="bold" style={{ textAlign: "center" }}>
+                    {t(`bookingDetail.${key}`)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
             {fileError && (
               <Text tone="danger" accessibilityLiveRegion="polite">
                 {t("common.somethingWentWrong")}
               </Text>
             )}
-            <BookingActions booking={b} suppressRebook={created === "1"} />
+            <BookingActions
+              booking={b}
+              suppressRebook={created === "1"}
+              initialRating={review === "1" ? initialRating : 0}
+            />
           </>
         )}
       </QueryState>

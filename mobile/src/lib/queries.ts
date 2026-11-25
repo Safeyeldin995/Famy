@@ -407,18 +407,32 @@ export function useMyBookings() {
       if (!user) return [];
       const { data, error } = await supabase
         .from("bookings")
-        .select(`*, service:services(*)`)
+        .select(
+          `*, service:services(*), payments(status, payment_method_type, proof_path)`,
+        )
         .eq("customer_id", user.id)
         .order("start_at", { ascending: false });
       if (error) throw error;
-      const providerIds = [...new Set((data ?? []).map((booking) => booking.provider_id))];
+      const rows = data ?? [];
+      const bookingIds = rows.map((booking) => booking.id);
+      let reviewedIds = new Set<string>();
+      if (bookingIds.length) {
+        const { data: reviewRows, error: reviewError } = await supabase
+          .from("reviews")
+          .select("booking_id")
+          .in("booking_id", bookingIds);
+        if (reviewError) throw reviewError;
+        reviewedIds = new Set((reviewRows ?? []).map((row) => row.booking_id));
+      }
+      const providerIds = [...new Set(rows.map((booking) => booking.provider_id))];
       const providers = new Map(
         await Promise.all(
           providerIds.map(async (id) => [id, await safeProviderDetails(id)] as const),
         ),
       );
-      return (data ?? []).map((booking) => ({
+      return rows.map((booking) => ({
         ...booking,
+        hasReview: reviewedIds.has(booking.id),
         provider: providers.get(booking.provider_id) ?? null,
       }));
     },

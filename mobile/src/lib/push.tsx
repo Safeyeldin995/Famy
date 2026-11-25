@@ -20,6 +20,13 @@ import { colors, radius, space } from "@/ui/theme";
 const PROMPT_SEEN_KEY = "famy.mobilePush.promptSeen";
 const ACTIVE_TOKEN_KEY = "famy.mobilePush.activeToken";
 
+let openExplanationPrompt: (() => void) | null = null;
+
+/** After the first booking (or from settings), show the explanation modal once. */
+export function openCustomerPushExplanationPrompt(): void {
+  openExplanationPrompt?.();
+}
+
 if (Platform.OS !== "web") {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -156,22 +163,27 @@ export function PushBridge() {
     };
   }, [session?.user.id]);
 
+  useEffect(() => {
+    openExplanationPrompt = () => {
+      void (async () => {
+        if (!Device.isDevice || Platform.OS === "web" || !session) return;
+        const { status: existing } = await Notifications.getPermissionsAsync();
+        if (existing === "granted" || existing === "denied") return;
+        const seen = await AsyncStorage.getItem(PROMPT_SEEN_KEY);
+        if (seen) return;
+        setPromptOpen(true);
+      })();
+    };
+    return () => {
+      openExplanationPrompt = null;
+    };
+  }, [session]);
+
   const runPromptFlow = useCallback(async () => {
     if (!Device.isDevice || Platform.OS === "web" || !session) return;
     try {
-      const seen = await AsyncStorage.getItem(PROMPT_SEEN_KEY);
       const { status: existing } = await Notifications.getPermissionsAsync();
-      if (existing === "granted") {
-        await syncPushRegistration();
-        return;
-      }
-      if (existing === "denied") return;
-      if (!seen) {
-        setPromptOpen(true);
-        return;
-      }
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status === "granted") await syncPushRegistration();
+      if (existing === "granted") await syncPushRegistration();
     } catch {
       // Permission or token failures must not break the app shell.
     }

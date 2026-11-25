@@ -32,6 +32,10 @@ type Props = {
   addresses: ReturnType<typeof useAddresses>;
   services: ReturnType<typeof useMarketplaceServices>;
   results: Provider[];
+  sort: "default" | "price" | "next";
+  setSort: (v: "default" | "price" | "next") => void;
+  verifiedOnly: boolean;
+  setVerifiedOnly: (v: boolean) => void;
   capabilities: TeachingCapabilityOption[];
   providers: { isLoading: boolean; isError: boolean; refetch: () => Promise<unknown> };
 };
@@ -46,6 +50,8 @@ export function CustomerSearchView(p: Props) {
           p.setTerm("");
           p.setFilter("all");
           p.setServiceId("");
+          p.setSort("default");
+          p.setVerifiedOnly(false);
         }}
       />
       <Button
@@ -116,6 +122,23 @@ export function CustomerSearchView(p: Props) {
           { value: "babysitting", label: t("categories.kidsTitle") },
           { value: "tutoring", label: t("categories.tutorTitle") },
           { value: "top", label: t("category.sortTop") },
+        ]}
+      />
+      <CustomerChips
+        value={p.sort}
+        onChange={(v) => p.setSort(v as "default" | "price" | "next")}
+        options={[
+          { value: "default", label: t("category.sortTop") },
+          { value: "price", label: t("category.sortPrice") },
+          { value: "next", label: t("customerSearch.sortNext") },
+        ]}
+      />
+      <CustomerChips
+        value={p.verifiedOnly ? "verified" : "all"}
+        onChange={(v) => p.setVerifiedOnly(v === "verified")}
+        options={[
+          { value: "all", label: t("common.seeAll") },
+          { value: "verified", label: t("customerSearch.verifiedOnly") },
         ]}
       />
       <View style={[customerStyle.card, customerStyle.row, { alignItems: "flex-start" }]}>
