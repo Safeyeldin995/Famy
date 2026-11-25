@@ -7,7 +7,7 @@ export const Route = createFileRoute("/online/login")({
     siteHeadPrivate(
       "/online/login",
       {
-        ar: { title: "تسجيل الدخول | دروس أونلاين", description: "سجّل دخولك لحجز دروس أونلاين على فامي." },
+        ar: { title: "تسجيل الدخول | دروس أونلاين", description: "سجل دخولك لحجز دروس أونلاين على فامي." },
         en: { title: "Sign in | Online lessons", description: "Sign in to book online lessons on Famy." },
       },
       siteLanguage(matches),
