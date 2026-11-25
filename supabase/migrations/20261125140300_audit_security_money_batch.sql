@@ -358,6 +358,9 @@ CREATE INDEX IF NOT EXISTS idx_paymob_unmapped_captures_order
   ON public.paymob_unmapped_captures (paymob_order_id)
   WHERE reconciled_payment_id IS NULL;
 
+CREATE INDEX IF NOT EXISTS paymob_unmapped_captures_reconciled_payment_id_idx
+  ON public.paymob_unmapped_captures (reconciled_payment_id);
+
 ALTER TABLE public.paymob_unmapped_captures ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.paymob_unmapped_captures FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT, UPDATE ON TABLE public.paymob_unmapped_captures TO service_role;
