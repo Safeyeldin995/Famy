@@ -2175,6 +2175,8 @@ const en = {
       respondWithinMinutes: "Respond within {{count}} min",
       respondWithinHours: "Respond within {{count}} hours",
       respondOverdue: "Response window closed",
+      respondCountdownHoursMinutes: "Respond within {{hours}}h {{minutes}}m",
+      respondCountdownMinutes: "Respond within {{minutes}}m",
     },
     booking: {
       tooEarly: "It's too early for this step. Wait until closer to the booking time.",
@@ -2408,9 +2410,14 @@ const en = {
       upcomingPipelineSubNet: "Snapshotted net from accepted and in-progress jobs",
       upcomingPipelineSubBookingValue:
         "Booking value from accepted and in-progress jobs without a recorded commission",
-      recentPayouts: "Recent completed jobs",
+      recentPayouts: "Recently completed work",
+      recentWorkHint: "Money actually sent to you shows under «Transfers» above",
+      breakdownBookingValue: "Booking price",
+      breakdownCommission: "Famy commission",
+      breakdownNet: "Your net",
+      inWallet: "In your balance",
       noPayouts: "No completed jobs yet",
-      noPayoutsBody: "Completed jobs will appear here.",
+      noPayoutsBody: "Completed work will appear here.",
     },
     notifications: {
       title: "Notifications",

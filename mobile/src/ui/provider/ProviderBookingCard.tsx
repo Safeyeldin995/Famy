@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 import { bookingMemberAgeTranslation } from "@shared/familyMemberAge";
 import { router } from "expo-router";
@@ -20,9 +21,12 @@ import {
   providerHomeActiveBookingStatusKey,
 } from "@shared/home/activeHomeBookings";
 import { bookingAmountDue } from "@shared/payments/amountDue";
+import { requestCountdown, requestCountdownLabel } from "@shared/provider/providerWorkHelpers";
+import { useBookingExpirySettings } from "@/lib/bookingQueries";
 
 export type ProviderCardBooking = {
   id: string;
+  created_at?: string | null;
   start_at: string;
   end_at?: string;
   session_started_at?: string | null;
@@ -72,6 +76,17 @@ export function ProviderBookingCard({
   const statusKey = providerHomeActiveBookingStatusKey(status);
   const nextStepKey = providerHomeActiveBookingNextStepKey(status);
   const showEmphasis = emphasize && (statusKey || nextStepKey);
+  const isOpenRequest = request && status === "pending" && !!booking.created_at;
+  const expiryQ = useBookingExpirySettings();
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    if (!isOpenRequest) return;
+    const timer = setInterval(() => setNowMs(Date.now()), 30_000);
+    return () => clearInterval(timer);
+  }, [isOpenRequest]);
+  const countdown = isOpenRequest
+    ? requestCountdown(String(booking.created_at), booking.start_at, expiryQ.data, new Date(nowMs))
+    : null;
   return (
     <View
       style={{
@@ -113,6 +128,16 @@ export function ProviderBookingCard({
         <Text tone="muted" size="sm">
           {bookingTime(booking.start_at, language)}
         </Text>
+        {countdown ? (
+          <Text
+            size="sm"
+            weight="bold"
+            tone={countdown.kind === "overdue" || countdown.urgent ? "danger" : "brand"}
+            accessibilityLiveRegion="polite"
+          >
+            {requestCountdownLabel(countdown, t)}
+          </Text>
+        ) : null}
         {showEmphasis ? (
           <View style={{ gap: space.xs, marginTop: space.xs }}>
             {statusKey ? (
