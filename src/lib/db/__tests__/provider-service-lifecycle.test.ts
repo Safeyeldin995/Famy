@@ -123,6 +123,55 @@ describe("provider service pause and remove", () => {
     expect(row[0]?.status).toBe("removed");
   });
 
+  it("rejects provider direct status bump pending to approved", async () => {
+    await asUser(db, IDS.adminUser, async () => {
+      await queryRows(
+        db,
+        `UPDATE public.provider_services SET status = 'pending' WHERE provider_id = $1 AND service_id = $2`,
+        [IDS.provider, serviceId],
+      );
+    });
+
+    const blocked = await tryAsUser(
+      db,
+      IDS.providerUser,
+      `UPDATE public.provider_services SET status = 'approved' WHERE provider_id = $1 AND service_id = $2`,
+      [IDS.provider, serviceId],
+    );
+    expect(blocked.ok).toBe(false);
+
+    const row = await queryRows<{ status: string }>(
+      db,
+      `SELECT status FROM public.provider_services WHERE provider_id = $1 AND service_id = $2`,
+      [IDS.provider, serviceId],
+    );
+    expect(row[0]?.status).toBe("pending");
+  });
+
+  it("re-requests a removed service into pending review", async () => {
+    await asUser(db, IDS.providerUser, async () => {
+      await queryRows(db, `SELECT public.provider_remove_service($1::uuid)`, [serviceId]);
+    });
+
+    const payload = JSON.stringify({
+      age_group_capabilities: [{ age_group_code: "preschool" }],
+    });
+    const requested = await tryAsUser(
+      db,
+      IDS.providerUser,
+      `SELECT public.provider_request_service($1::uuid, $2::jsonb, gen_random_uuid())`,
+      [serviceId, payload],
+    );
+    expect(requested.ok, requested.error).toBe(true);
+
+    const row = await queryRows<{ status: string }>(
+      db,
+      `SELECT status FROM public.provider_services WHERE provider_id = $1 AND service_id = $2`,
+      [IDS.provider, serviceId],
+    );
+    expect(row[0]?.status).toBe("pending");
+  });
+
   it("rejects pause/remove from another provider", async () => {
     const deniedPause = await tryAsUser(
       db,
