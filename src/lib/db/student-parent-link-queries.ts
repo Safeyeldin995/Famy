@@ -20,6 +20,45 @@ export type ParentLinkedStudent = {
   decided_at: string | null;
 };
 
+export type StudentParentLinkStatusName =
+  | "notified"
+  | "linked"
+  | "flagged_not_my_child"
+  | "revoked";
+
+export type AdminStudentLinkRow = {
+  link_id: string;
+  student_id: string;
+  student_name: string;
+  parent_id: string | null;
+  parent_name: string | null;
+  parent_phone_masked: string | null;
+  parent_email_masked: string | null;
+  status: StudentParentLinkStatusName;
+  requested_at: string;
+  decided_at: string | null;
+};
+
+export type AdminCustomerParentLink = {
+  link_id: string;
+  status: StudentParentLinkStatusName;
+  parent_id: string | null;
+  parent_name: string | null;
+  parent_phone_masked: string;
+  parent_email_masked: string;
+  requested_at: string;
+  decided_at: string | null;
+};
+
+export type AdminLinkedStudentRow = {
+  link_id: string;
+  student_id: string;
+  student_name: string;
+  status: StudentParentLinkStatusName;
+  requested_at: string;
+  decided_at?: string | null;
+};
+
 export type RegisterParentGuardianResult = {
   link_id: string;
   status: string;
@@ -151,16 +190,45 @@ export function useParentStudentLessons(studentId: string | undefined) {
   });
 }
 
-export function useAdminStudentLinks(status: string | null, search: string) {
+export function useAdminCustomerParentLink(customerId: string) {
+  return useQuery({
+    enabled: !!customerId,
+    queryKey: ["admin", "customer-parent-link", customerId],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("admin_customer_parent_link", {
+        p_customer_id: customerId,
+      });
+      if (error) throw error;
+      if (!data || data === null) return null;
+      return data as AdminCustomerParentLink;
+    },
+  });
+}
+
+export function useAdminCustomerLinkedStudents(parentId: string) {
+  return useQuery({
+    enabled: !!parentId,
+    queryKey: ["admin", "customer-linked-students", parentId],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("admin_parent_linked_students", {
+        p_parent_id: parentId,
+      });
+      if (error) throw error;
+      return (data ?? []) as AdminLinkedStudentRow[];
+    },
+  });
+}
+
+export function useAdminStudentLinks(status: string, search: string) {
   return useQuery({
     queryKey: ["admin", "student-links", status, search],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("admin_list_student_links", {
-        p_status: status,
+        p_status: status || null,
         p_search: search.trim() || null,
       });
       if (error) throw error;
-      return (data ?? []) as Record<string, unknown>[];
+      return (data ?? []) as AdminStudentLinkRow[];
     },
   });
 }
@@ -177,6 +245,7 @@ export function useAdminRevokeStudentLink() {
       return data;
     },
     onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["admin"] });
       void qc.invalidateQueries({ queryKey: ["admin", "student-links"] });
       void qc.invalidateQueries({ queryKey: ["admin", "student-parent-flags"] });
     },

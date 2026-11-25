@@ -10,6 +10,12 @@ import {
   useAdminCustomerWallet,
   useSetCustomerSuspended,
 } from "@/lib/db/admin-queries";
+import {
+  useAdminCustomerLinkedStudents,
+  useAdminCustomerParentLink,
+  useAdminRevokeStudentLink,
+} from "@/lib/db/student-parent-link-queries";
+import { AdminReasonSheet } from "@/components/admin/AdminReasonSheet";
 import { ChevronLeft, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { AdminQueryError } from "@/components/admin/AdminQueryError";
@@ -20,11 +26,15 @@ export function AdminCustomer({ id }: { id: string }) {
   const { t, i18n } = useTranslation();
   const q = useAdminCustomer(id);
   const walletQ = useAdminCustomerWallet(id);
+  const parentLinkQ = useAdminCustomerParentLink(id);
+  const linkedStudentsQ = useAdminCustomerLinkedStudents(id);
+  const revokeLink = useAdminRevokeStudentLink();
   const adjustWallet = useAdminAdjustCustomerWallet();
   const setSuspended = useSetCustomerSuspended();
   const [showConfirm, setShowConfirm] = useState(false);
   const [walletAmount, setWalletAmount] = useState("");
   const [walletReason, setWalletReason] = useState("");
+  const [revokeLinkId, setRevokeLinkId] = useState<string | null>(null);
 
   if (q.isLoading)
     return <div className="p-6 text-sm text-muted-foreground">{t("common.loading")}</div>;
@@ -38,11 +48,10 @@ export function AdminCustomer({ id }: { id: string }) {
         />
       </div>
     );
-  const { profile, bookings, payments, parentLink } = q.data ?? {
+  const { profile, bookings, payments } = q.data ?? {
     profile: null,
     bookings: [],
     payments: [],
-    parentLink: null,
   };
   if (!profile)
     return <div className="p-6 text-sm text-muted-foreground">{t("admin.customer.notFound")}</div>;
@@ -87,36 +96,6 @@ export function AdminCustomer({ id }: { id: string }) {
                 date: adminDate(profile.created_at, i18n.language, false),
               })}
             </p>
-            {parentLink && parentLink !== null && typeof parentLink === "object" ? (
-              <div className="mt-3 rounded-xl border border-border/60 bg-surface-2 p-3 text-xs">
-                <p className="font-extrabold">{t("admin.customer.guardianCardTitle")}</p>
-                <p>
-                  {t("admin.customer.parentLinkStatus", {
-                    status: String((parentLink as { status?: string }).status ?? "—"),
-                  })}
-                </p>
-                {(parentLink as { parent_name?: string }).parent_name ? (
-                  <p>{String((parentLink as { parent_name?: string }).parent_name)}</p>
-                ) : null}
-                <p dir="ltr" className="text-muted-foreground">
-                  {t("admin.customer.guardianMaskedContact", {
-                    phone: String((parentLink as { parent_phone_masked?: string }).parent_phone_masked ?? "—"),
-                    email: String(
-                      (parentLink as { parent_email_masked?: string }).parent_email_masked ?? "—",
-                    ),
-                  })}
-                </p>
-                {(parentLink as { parent_id?: string }).parent_id ? (
-                  <Link
-                    to={"/admin/customer/$id"}
-                    params={{ id: String((parentLink as { parent_id?: string }).parent_id) }}
-                    className="mt-1 inline-block font-semibold text-brand underline"
-                  >
-                    {t("admin.customer.openParentProfile")}
-                  </Link>
-                ) : null}
-              </div>
-            ) : null}
           </div>
           <span
             className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold uppercase ${isSuspended ? "bg-coral/10 text-coral" : "bg-mint/20 text-success"}`}
@@ -135,6 +114,76 @@ export function AdminCustomer({ id }: { id: string }) {
           {isSuspended ? t("admin.customer.unsuspendAccount") : t("admin.customer.suspendAccount")}
         </button>
       </section>
+
+      {parentLinkQ.data ? (
+        <section className="rounded-2xl border border-border/60 bg-surface p-4 shadow-sm">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+            {t("admin.customer.parentLinkTitle")}
+          </h3>
+          <p className="mt-2 text-sm font-semibold">
+            {parentLinkQ.data.parent_id ? (
+              <Link
+                to="/admin/customer/$id"
+                params={{ id: parentLinkQ.data.parent_id }}
+                className="hover:text-brand"
+              >
+                {parentLinkQ.data.parent_name || t("admin.studentLinks.parent")}
+              </Link>
+            ) : (
+              t("admin.studentLinks.parentNotOnFamy")
+            )}
+          </p>
+          <p dir="ltr" className="text-xs text-muted-foreground">
+            {t("admin.customer.guardianMaskedContact", {
+              phone: parentLinkQ.data.parent_phone_masked,
+              email: parentLinkQ.data.parent_email_masked,
+            })}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t(`admin.studentLinks.status.${parentLinkQ.data.status}`)}
+            {" · "}
+            {adminDate(parentLinkQ.data.requested_at, i18n.language)}
+            {parentLinkQ.data.decided_at
+              ? ` · ${adminDate(parentLinkQ.data.decided_at, i18n.language)}`
+              : ""}
+          </p>
+          {parentLinkQ.data.status === "notified" ||
+          parentLinkQ.data.status === "linked" ||
+          parentLinkQ.data.status === "flagged_not_my_child" ? (
+            <button
+              type="button"
+              className="focus-ring mt-3 rounded-xl border border-coral px-3 py-1.5 text-xs font-bold text-coral"
+              onClick={() => setRevokeLinkId(parentLinkQ.data!.link_id)}
+            >
+              {t("admin.studentLinks.revoke")}
+            </button>
+          ) : null}
+        </section>
+      ) : null}
+
+      {(linkedStudentsQ.data ?? []).length > 0 ? (
+        <section className="rounded-2xl border border-border/60 bg-surface p-4 shadow-sm">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+            {t("admin.customer.linkedStudentsTitle")}
+          </h3>
+          <ul className="mt-2 space-y-2">
+            {(linkedStudentsQ.data ?? []).map((row) => (
+              <li key={row.link_id} className="flex items-center justify-between text-xs">
+                <Link
+                  to="/admin/customer/$id"
+                  params={{ id: row.student_id }}
+                  className="font-semibold hover:text-brand"
+                >
+                  {row.student_name}
+                </Link>
+                <span className="text-muted-foreground">
+                  {t(`admin.studentLinks.status.${row.status}`)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section>
         <h3 className="mb-2 px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
@@ -318,6 +367,30 @@ export function AdminCustomer({ id }: { id: string }) {
           </ul>
         )}
       </section>
+
+      {revokeLinkId ? (
+        <AdminReasonSheet
+          title={t("admin.studentLinks.revoke")}
+          description={t("admin.studentLinks.revokeHint")}
+          busy={revokeLink.isPending}
+          onClose={() => setRevokeLinkId(null)}
+          onConfirm={(reason) => {
+            revokeLink.mutate(
+              { linkId: revokeLinkId, reason },
+              {
+                onSuccess: () => {
+                  setRevokeLinkId(null);
+                  toast.success(t("admin.studentLinks.revokeSuccess"));
+                  void parentLinkQ.refetch();
+                  void linkedStudentsQ.refetch();
+                },
+                onError: (e: Error) =>
+                  toast.error(e.message || t("admin.studentLinks.revokeError")),
+              },
+            );
+          }}
+        />
+      ) : null}
 
       {showConfirm && (
         <div

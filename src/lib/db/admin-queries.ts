@@ -934,16 +934,10 @@ export function useAdminCustomer(id: string) {
         .order('created_at', { ascending: false })
         .limit(50);
       if (paymentsError) throw paymentsError;
-      const { data: parentLink, error: parentLinkError } = await (supabase.rpc as any)(
-        "admin_customer_parent_link",
-        { p_customer_id: id },
-      );
-      if (parentLinkError) throw parentLinkError;
       return {
         profile,
         bookings: bookings ?? [],
         payments: payments ?? [],
-        parentLink: parentLink && parentLink !== null ? parentLink : null,
       };
     },
     enabled: !!id,
