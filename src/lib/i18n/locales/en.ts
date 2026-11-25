@@ -1598,6 +1598,8 @@ const en = {
     keptBody:
       "Bookings, payments, reviews, and messages stay for accounting, tax, and the other party's history. You will appear as \"Deleted user\".",
     blockedUnpaid: "You owe Famy money (cancellation fees or a balance). Settle it first, then you can delete your account",
+    blockedFundsOwed:
+      "Famy still owes you money (wallet credit or a provider balance). Contact support before deleting your account.",
     blockedActiveBookings: "Finish or cancel your upcoming bookings first.",
     blockedAdmin: "Admin accounts cannot be deleted from the app. Contact engineering support.",
     confirmWord: "DELETE",
@@ -1609,6 +1611,8 @@ const en = {
     errors: {
       unauthorized: "Sign in again to delete your account.",
       unpaid_balance: "You owe Famy money. Settle it first, then delete your account",
+      funds_owed_to_user:
+        "Famy still owes you money. Contact support before deleting your account.",
       active_bookings: "Finish or cancel your upcoming bookings first.",
       admin_not_allowed: "Admin accounts cannot be deleted from the app.",
       deletion_failed: "Could not delete your account. Try again later.",
@@ -3355,6 +3359,13 @@ const en = {
       walletReasonPlaceholder: "Why is this adjustment being made?",
       walletAdjustSuccess: "Wallet updated.",
       walletAdjustError: "Could not update wallet.",
+      walletLoadError: "Could not load wallet balance.",
+      walletAmountInvalid: "Enter a valid amount greater than zero.",
+      walletReasonRequired: "A reason is required.",
+      walletConfirmTitle: "Confirm wallet adjustment",
+      walletConfirmBody: "{{direction}} {{amount}} EGP for {{name}}?",
+      walletConfirmCredit: "Credit",
+      walletConfirmDebit: "Debit",
     },
     bookings: {
       title: "Booking Management",
@@ -3573,6 +3584,7 @@ const en = {
       to: "To",
       opening: "Opening balance",
       closing: "Closing balance",
+      periodNet: "Period net",
       rows: "{{count}} ledger rows",
       loadError: "Could not load the statement.",
       downloadPdf: "Download PDF",
@@ -3867,6 +3879,14 @@ const en = {
       scheduled: "scheduled",
       delivered: "delivered",
       activateError: "Could not activate campaign",
+      activateConfirmTitle: "Send this campaign?",
+      activateConfirmBody:
+        "Target: {{target}} · Push: {{push}} · Recipients: {{count}}. This cannot be undone once sent.",
+      activateConfirmWord: "SEND",
+      activateTypeConfirm: 'Type "{{word}}" to confirm sending',
+      scheduleRequired: "Pick a date and time for a scheduled campaign.",
+      scheduleInvalid: "The schedule date is not valid.",
+      scheduleMustBeFuture: "Scheduled time must be in the future.",
       activate: "Activate",
       cancelError: "Could not cancel campaign",
       loadError: "Could not load campaigns. Please refresh.",

@@ -10,11 +10,21 @@ import { bookingAmountDue } from '@/lib/payments/amountDue';
 
 export type PaymentStatus = 'pending' | 'pending_review' | 'captured' | 'rejected';
 
-export function useBookingPayment(bookingId: string | undefined) {
+export function useBookingPayment(
+  bookingId: string | undefined,
+  options?: { providerSafe?: boolean },
+) {
   return useQuery({
     enabled: !!bookingId,
-    queryKey: ['payment', bookingId],
+    queryKey: ['payment', bookingId, options?.providerSafe ? 'provider' : 'full'],
     queryFn: async () => {
+      if (options?.providerSafe) {
+        const { data, error } = await (supabase.rpc as any)('provider_booking_payment', {
+          p_booking_id: bookingId!,
+        });
+        if (error) throw error;
+        return data;
+      }
       const { data, error } = await supabase
         .from('payments')
         .select('*')

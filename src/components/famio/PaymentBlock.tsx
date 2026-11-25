@@ -83,7 +83,7 @@ export function PaymentBlock({
   embedded?: boolean;
 }) {
   const Container = embedded ? "div" : Card;
-  const q = useBookingPayment(bookingId);
+  const q = useBookingPayment(bookingId, { providerSafe: viewer === "provider" });
   const createPayment = useCreatePayment();
   const activeMethodsQ = useActivePaymentMethods();
   const upload = useUploadPaymentProof();

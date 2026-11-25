@@ -90,6 +90,9 @@ export default function DeleteAccountScreen() {
       {blockedReason === "active_bookings" ? (
         <Text tone="danger">{t("accountDeletion.blockedActiveBookings")}</Text>
       ) : null}
+      {blockedReason === "funds_owed_to_user" ? (
+        <Text tone="danger">{t("accountDeletion.blockedFundsOwed")}</Text>
+      ) : null}
       {blockedReason === "unpaid_balance" ? (
         <Text tone="danger">{t("accountDeletion.blockedUnpaid")}</Text>
       ) : null}

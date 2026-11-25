@@ -113,6 +113,9 @@ export async function runAccountDeletion(params: {
     if (reason === "unpaid_balance") {
       return { ok: false, error: "unpaid_balance", status: 409 };
     }
+    if (reason === "funds_owed_to_user") {
+      return { ok: false, error: "funds_owed_to_user", status: 409 };
+    }
     return { ok: false, error: "active_bookings", status: 409 };
   }
 

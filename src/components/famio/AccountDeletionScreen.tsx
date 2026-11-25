@@ -112,6 +112,15 @@ export function AccountDeletionScreen({ backTo }: { backTo: string }) {
           </p>
         ) : null}
 
+        {!loadingCheck && blockedReason === "funds_owed_to_user" ? (
+          <p
+            role="alert"
+            className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-pro-13 font-semibold text-destructive"
+          >
+            {t("accountDeletion.blockedFundsOwed")}
+          </p>
+        ) : null}
+
         {!loadingCheck && blockedReason === "unpaid_balance" ? (
           <p
             role="alert"

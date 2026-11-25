@@ -1,14 +1,7 @@
 import { useState } from "react";
 import { View, Pressable, TextInput, Modal } from "react-native";
-import * as WebBrowser from "expo-web-browser";
 import { useTranslation } from "react-i18next";
-import { Eye } from "lucide-react-native";
-import {
-  getSignedProofUrl,
-  useBookingPayment,
-  useCapturePayment,
-  useRejectPayment,
-} from "@/lib/provider/payments";
+import { useBookingPayment, useCapturePayment, useRejectPayment } from "@/lib/provider/payments";
 import { money } from "@/lib/presentation";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
@@ -43,17 +36,6 @@ export function ProviderPaymentBlock({
     ? (p.payment_method_name_ar as string) || (p.payment_method_name_en as string)
     : (p.payment_method_name_en as string) || (p.payment_method_name_ar as string);
 
-  const openProof = async () => {
-    const path = p.proof_path as string | null;
-    if (!path) return;
-    try {
-      const url = await getSignedProofUrl(path);
-      await WebBrowser.openBrowserAsync(url);
-    } catch {
-      // ActionError handled by parent if needed
-    }
-  };
-
   return (
     <View style={proCard.card}>
       <View style={proCard.row}>
@@ -65,19 +47,6 @@ export function ProviderPaymentBlock({
       <Text tone="muted" size="sm">
         {t(`payment.status.${String(p.status)}`, String(p.status))}
       </Text>
-      {p.proof_path && p.status === "pending_review" ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t("payment.viewReceipt")}
-          onPress={() => void openProof()}
-          style={[proCard.row, { justifyContent: "center", minHeight: 44 }]}
-        >
-          <Eye size={18} color={colors.brand} />
-          <Text weight="bold" tone="brand">
-            {t("payment.viewReceipt")}
-          </Text>
-        </Pressable>
-      ) : null}
       {canAct ? (
         <View style={{ gap: space.sm }}>
           {captureAllowed ? (

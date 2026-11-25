@@ -10,11 +10,19 @@ export function neutralizeCsvCell(cell: unknown): string {
 }
 
 export function escapeCsvCell(cell: unknown): string {
+  const raw = String(cell ?? "");
   const neutralized = neutralizeCsvCell(cell);
-  if (FORMULA_PREFIX.test(String(cell ?? "")) || /[",\n\r]/.test(neutralized)) {
+  if (FORMULA_PREFIX.test(raw) || /[",\n\r]/.test(neutralized)) {
     return `"${neutralized.replace(/"/g, '""')}"`;
   }
   return neutralized;
+}
+
+/** Strip path/formula-hostile characters from download filenames. */
+export function sanitizeDownloadFilename(name: string): string {
+  const trimmed = String(name ?? "export").trim().replace(/[\\/:*?"<>|\r\n]+/g, "_");
+  const safe = trimmed.replace(/^[\s.=+\-@]+/, "").slice(0, 160);
+  return safe || "export";
 }
 
 export function csvBody(rows: string[][]): string {
@@ -27,7 +35,8 @@ export function downloadCsv(filename: string, rows: string[][]) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = filename.endsWith(".csv") ? filename : `${filename}.csv`;
+  const base = sanitizeDownloadFilename(filename.replace(/\.csv$/i, ""));
+  a.download = `${base}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }

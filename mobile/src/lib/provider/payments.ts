@@ -6,13 +6,9 @@ export function useBookingPayment(bookingId: string | undefined) {
     enabled: !!bookingId,
     queryKey: ["payment", bookingId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("payments")
-        .select("*")
-        .eq("booking_id", bookingId!)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data, error } = await supabase.rpc("provider_booking_payment", {
+        p_booking_id: bookingId!,
+      });
       if (error) throw error;
       return data;
     },
