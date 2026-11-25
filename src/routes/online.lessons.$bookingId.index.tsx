@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { useEffect } from "react";
 import { Calendar } from "lucide-react";
 import { PrimaryButton, StatusPill, CancelBookingDialog } from "@/components/famio/ui";
 import { ProfileAvatar } from "@/components/provider/ProfileAvatar";
@@ -21,6 +20,7 @@ import { useBookingPayment } from "@/lib/db/payment-queries";
 import { moneyHeld } from "@/lib/payments/refundOwed";
 import { useState } from "react";
 import { toast } from "sonner";
+import { usePaymobReturnPaymentPoll } from "@/hooks/usePaymobReturnPaymentPoll";
 
 export const Route = createFileRoute("/online/lessons/$bookingId/")({
   component: OnlineLessonDetail,
@@ -45,9 +45,7 @@ function OnlineLessonDetail() {
     },
   });
 
-  useEffect(() => {
-    if (paymob_return === "1") void paymentQ.refetch();
-  }, [paymob_return, paymentQ]);
+  usePaymobReturnPaymentPoll(paymob_return, paymentQ.refetch);
 
   if (bookingQ.isLoading) {
     return <p className="text-pro-14 text-muted-foreground">{t("common.loading")}</p>;
@@ -59,6 +57,14 @@ function OnlineLessonDetail() {
 
   const boundary = assertWebOnlineBookingRow(booking);
   if (!boundary.ok) {
+    return <p className="text-pro-14 text-muted-foreground">{t("common.pageNotFound")}</p>;
+  }
+
+  const userId = userQ.data;
+  const isCustomer = userId === String(booking.customer_id);
+  const isProvider =
+    userId === String((booking as { provider_profile_id?: string | null }).provider_profile_id ?? "");
+  if (userId && !isCustomer && !isProvider) {
     return <p className="text-pro-14 text-muted-foreground">{t("common.pageNotFound")}</p>;
   }
 
@@ -94,22 +100,26 @@ function OnlineLessonDetail() {
       : { ok: false as const, code: "not_participant" };
 
   const joinWindow = sessionJoinWindow(startAt, endAt);
+  const backTo = isProvider ? ONLINE_WEB_ROUTE_IDS.providerLessons : ONLINE_WEB_ROUTE_IDS.lessons;
+  const customer = (booking as { customer?: { full_name?: string; avatar_url?: string } }).customer;
 
   return (
     <div className="space-y-6">
-      <Link to={ONLINE_WEB_ROUTE_IDS.lessons} className="text-pro-14 font-bold text-brand">
+      <Link to={backTo} className="text-pro-14 font-bold text-brand">
         {t("common.back")}
       </Link>
 
       <LessonCard
         provider={provider}
+        customer={customer}
+        isProviderView={isProvider}
         booking={booking}
         locale={locale}
         startAt={startAt}
         t={t}
       />
 
-      {String(booking.status) === "confirmed" && !paid ? (
+      {isCustomer && String(booking.status) === "confirmed" && !paid ? (
         <OnlineWebLessonPaymentPanel
           bookingId={bookingId}
           total={totalDue}
@@ -123,7 +133,7 @@ function OnlineLessonDetail() {
         </Link>
       ) : null}
 
-      {["pending", "confirmed"].includes(String(booking.status)) ? (
+      {isCustomer && ["pending", "confirmed"].includes(String(booking.status)) ? (
         <button
           type="button"
           className="text-pro-13 font-bold text-coral underline-offset-2 hover:underline"
@@ -166,28 +176,36 @@ function OnlineLessonDetail() {
 
 function LessonCard({
   provider,
+  customer,
+  isProviderView,
   booking,
   locale,
   startAt,
   t,
 }: {
   provider: ReturnType<typeof toUIProvider> | null;
+  customer?: { full_name?: string; avatar_url?: string } | null;
+  isProviderView: boolean;
   booking: Record<string, unknown>;
   locale: string;
   startAt: Date;
   t: ReturnType<typeof useTranslation>["t"];
 }) {
+  const displayName = isProviderView
+    ? customer?.full_name || t("pro.common.customer")
+    : provider?.name || t("provider2.unnamed");
+  const displayAvatar = isProviderView ? customer?.avatar_url : provider?.avatar;
   return (
     <div className="rounded-2xl border border-border/60 bg-white p-4 shadow-sm">
       <div className="flex items-start gap-3">
         <ProfileAvatar
-          src={provider?.avatar}
-          name={provider?.name ?? ""}
+          src={displayAvatar}
+          name={displayName}
           className="h-12 w-12 rounded-full text-pro-16"
         />
         <div className="min-w-0 flex-1">
           <StatusPill tone="brand">{t(`status.${String(booking.status)}` as "status.pending")}</StatusPill>
-          <p className="mt-1 text-pro-16 font-bold">{provider?.name || t("provider2.unnamed")}</p>
+          <p className="mt-1 text-pro-16 font-bold">{displayName}</p>
           <p className="mt-1 flex items-center gap-1.5 text-pro-13 text-muted-foreground">
             <Calendar className="h-4 w-4" strokeWidth={ICON_STROKE} aria-hidden />
             {formatDate(startAt, { weekday: "short", day: "numeric", month: "short" }, locale)}

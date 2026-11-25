@@ -650,7 +650,9 @@ export function useBooking(id: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('bookings')
-        .select(`*, service:services(*), location:booking_locations(*)`)
+        .select(
+          `*, service:services(*), location:booking_locations(*), customer:profiles!bookings_customer_id_fkey(full_name, avatar_url)`,
+        )
         .eq('id', id!)
         .maybeSingle();
       if (error) throw error;
@@ -771,6 +773,28 @@ export type CreateBookingResult = Tables['bookings']['Row'] & {
   fetch_degraded?: boolean;
 };
 
+/** RPC payload for `create_booking` — preserves explicit `null` (online has no address). */
+export function buildCreateBookingRpcArgs(input: CreateBookingInput) {
+  return {
+    p_provider_id: input.provider_id,
+    p_service_id: input.service_id,
+    p_address_id: input.address_id,
+    p_start_at: input.start_at,
+    p_end_at: input.end_at,
+    p_idempotency_key: input.idempotency_key,
+    p_family_member_id: input.family_member_id ?? undefined,
+    p_notes: input.notes ?? undefined,
+    p_promo_code_id: input.promo_code_id ?? undefined,
+    p_requirement_selections: (input.requirement_selections ?? []) as never,
+    p_teaching_capability_id: input.teaching_capability_id ?? undefined,
+    p_teaching_subject_code: input.teaching_subject_code ?? undefined,
+    p_teaching_curriculum_code: input.teaching_curriculum_code ?? undefined,
+    p_teaching_level_code: input.teaching_level_code ?? undefined,
+    p_supervision_mode: input.supervision_mode ?? undefined,
+    p_service_mode: input.service_mode ?? "in_person",
+  };
+}
+
 export function useCreateBooking() {
   const qc = useQueryClient();
   return useMutation({
@@ -779,24 +803,7 @@ export function useCreateBooking() {
       if (!session?.user) {
         throw new Error('auth required');
       }
-      const { data, error } = await supabase.rpc('create_booking', {
-        p_provider_id: input.provider_id,
-        p_service_id: input.service_id,
-        p_address_id: input.address_id ?? undefined,
-        p_start_at: input.start_at,
-        p_end_at: input.end_at,
-        p_idempotency_key: input.idempotency_key,
-        p_family_member_id: input.family_member_id ?? undefined,
-        p_notes: input.notes ?? undefined,
-        p_promo_code_id: input.promo_code_id ?? undefined,
-        p_requirement_selections: (input.requirement_selections ?? []) as never,
-        p_teaching_capability_id: input.teaching_capability_id ?? undefined,
-        p_teaching_subject_code: input.teaching_subject_code ?? undefined,
-        p_teaching_curriculum_code: input.teaching_curriculum_code ?? undefined,
-        p_teaching_level_code: input.teaching_level_code ?? undefined,
-        p_supervision_mode: input.supervision_mode ?? undefined,
-        p_service_mode: input.service_mode ?? "in_person",
-      } as never);
+      const { data, error } = await supabase.rpc('create_booking', buildCreateBookingRpcArgs(input) as never);
       if (error) {
         throw mapBookingRpcError(error);
       }
