@@ -131,6 +131,10 @@ import {
 import { onlineBookingLearnerAgeIssue } from "@shared/online/onlineBookingLearnerAge";
 import { memberAgeFromDate } from "@shared/familyMemberAge";
 import { FamilyMemberAgeField } from "@/ui/customer/FamilyMemberAgeField";
+import {
+  useSaveParentGuardianContact,
+  useStudentParentLinkStatus,
+} from "@/lib/studentParentLinkQueries";
 import { useCancellationPolicy } from "@/lib/caseQueries";
 import { cancellationPolicyLine, normalizeCancellationPolicy } from "@/lib/customerCasesPure";
 type Slot = { start: Date; end: Date; label: string };
@@ -225,6 +229,9 @@ function BookForm({
   const [slot, setSlot] = useState<Slot | null>(null);
   const [addressId, setAddressId] = useState(rebookInitial?.addressId ?? "");
   const [recipient, setRecipient] = useState(rebookInitial?.forWhom ?? "myself");
+  const [guardianPhone, setGuardianPhone] = useState("");
+  const [guardianEmail, setGuardianEmail] = useState("");
+  const saveGuardian = useSaveParentGuardianContact();
   const [supervisionMode, setSupervisionMode] = useState<SupervisionMode | "">(
     rebookInitial?.supervisionMode ?? "",
   );
@@ -448,6 +455,15 @@ function BookForm({
       )
     : null;
   const onlineRecipientReady = recipientReady && !onlineLearnerAgeIssue;
+  // Students aged 12-17 booking for themselves add a parent's phone and email (same rule as
+  // the website). Optional: the lesson request is never blocked by it.
+  const selfDob = profile.data?.date_of_birth ?? null;
+  const selfAge = selfDob ? memberAgeFromDate(selfDob)?.years : null;
+  const minorSelfOnline =
+    isOnlineBooking && recipient === "myself" && selfAge != null && selfAge >= 12 && selfAge < 18;
+  const guardianStatus = useStudentParentLinkStatus({ enabled: minorSelfOnline });
+  const needsGuardianContact =
+    minorSelfOnline && guardianStatus.isSuccess && !guardianStatus.data;
   const supervisionReady = !supervisionRequired || !!supervisionMode;
   const addressReady = checkoutAddressReady({
     addressId: isOnlineBooking ? null : addressId || null,
@@ -601,6 +617,13 @@ function BookForm({
         idempotency_key: idempotency.current.key,
       });
       createdId.current = booking.id;
+      if (needsGuardianContact && guardianPhone.trim() && guardianEmail.trim()) {
+        // Best effort, after the booking exists: a wrong number or a mail failure never
+        // blocks the lesson; the student can fix it later from Account.
+        saveGuardian
+          .mutateAsync({ parentPhone: guardianPhone.trim(), parentEmail: guardianEmail.trim() })
+          .catch(() => undefined);
+      }
       if (checkoutMethod) {
         const walletChannel = paymobChannelForUiMethodId(methodId);
         const method = checkoutMethod;
@@ -1133,6 +1156,32 @@ function BookForm({
             <Text size="sm" tone="muted">
               {t("onlineLesson.requestHint")}
             </Text>
+          ) : null}
+          {needsGuardianContact ? (
+            <View style={{ gap: space.sm }}>
+              <Text weight="bold">{t("studentParentLink.title")}</Text>
+              <Text size="sm" tone="muted">
+                {t("studentParentLink.bookingStepLead")}
+              </Text>
+              <Field
+                label={t("studentParentLink.parentPhone")}
+                value={guardianPhone}
+                onChangeText={setGuardianPhone}
+                keyboardType="phone-pad"
+                placeholder="01XXXXXXXXX"
+                ltr
+              />
+              <Field
+                label={t("studentParentLink.parentEmail")}
+                value={guardianEmail}
+                onChangeText={setGuardianEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder="parent@email.com"
+                ltr
+              />
+            </View>
           ) : null}
           <View>
             {[
