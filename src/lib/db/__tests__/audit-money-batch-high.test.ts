@@ -139,7 +139,7 @@ describe("audit money batch — #439 online session auto-complete", () => {
     expect(row[0]?.status).toBe("confirmed");
   });
 
-  it("does not retroactively complete lessons that ended before rollout cutoff", async () => {
+  it("completes an older unresolved lesson (no rollout cutoff)", async () => {
     const bookingId = await seedOnlineBookingEnding("2025-11-20T12:00:00Z");
     await addFullAttendance(bookingId);
 
@@ -153,6 +153,29 @@ describe("audit money batch — #439 online session auto-complete", () => {
       [bookingId],
     );
     expect(row[0]?.outcome).toBe("complete");
+    expect(row[0]?.status).toBe("completed");
+  });
+
+  it("never revisits a lesson that was already resolved", async () => {
+    const bookingId = await seedOnlineBookingEnding("2025-11-20T12:00:00Z");
+    await addFullAttendance(bookingId);
+    await asServiceRole(db, () =>
+      db.query(
+        "UPDATE public.bookings SET online_session_outcome = 'admin_review_overlap' WHERE id = $1",
+        [bookingId],
+      ),
+    );
+
+    await asServiceRole(db, () =>
+      queryRows<{ n: number }>(db, "SELECT public.resolve_online_session_bookings()::int AS n"),
+    );
+
+    const row = await queryRows<{ status: string; outcome: string | null }>(
+      db,
+      "SELECT status::text AS status, online_session_outcome AS outcome FROM public.bookings WHERE id = $1",
+      [bookingId],
+    );
+    expect(row[0]?.outcome).toBe("admin_review_overlap");
     expect(row[0]?.status).toBe("confirmed");
   });
 });
@@ -222,6 +245,62 @@ describe("audit money batch — #440 superseded Paymob capture", () => {
       [bookingId],
     );
     expect(funded[0]?.count).toBe("1");
+
+    // The superseded row is closed as refunded through the wallet, so nothing
+    // that looks for "the booking's captured payment" can pick it again.
+    const rowA = await queryRows<{ status: string; channel: string | null; settled: string | null }>(
+      db,
+      `SELECT status::text AS status,
+              metadata->'refund'->>'channel' AS channel,
+              metadata->>'wallet_refund_settled' AS settled
+       FROM public.payments WHERE id = $1`,
+      [paymentA],
+    );
+    expect(rowA[0]?.status).toBe("refunded");
+    expect(rowA[0]?.channel).toBe("customer_wallet");
+    expect(rowA[0]?.settled).toBe("true");
+
+    // A repeated gateway callback for A changes nothing.
+    const replay = await applyPaymobWebhook(880_001, 880_104, amountCents, true, false);
+    expect(replay[0]?.payload?.ignored).toBe(true);
+
+    // Provider cancels: the customer gets the funding payment (B) back exactly once,
+    // on top of the single superseded-excess credit for A.
+    await asServiceRole(db, () =>
+      db.query(
+        "UPDATE public.bookings SET status = 'cancelled', cancelled_at = now() WHERE id = $1",
+        [bookingId],
+      ),
+    );
+    await asServiceRole(db, () =>
+      db.query("SELECT public.credit_customer_wallet_provider_cancelled($1)", [bookingId]),
+    );
+    await asServiceRole(db, () =>
+      db.query("SELECT public.credit_customer_wallet_provider_cancelled($1)", [bookingId]),
+    );
+
+    const credits = await queryRows<{ reason: string; payment_id: string; amount: string }>(
+      db,
+      `SELECT reason, payment_id::text AS payment_id, amount::text AS amount
+       FROM public.customer_wallet_entries
+       WHERE booking_id = $1 AND direction = 'credit'
+       ORDER BY created_at`,
+      [bookingId],
+    );
+    expect(credits.map((c) => c.reason).sort()).toEqual(
+      ["paymob_superseded_capture", "provider_cancelled"].sort(),
+    );
+    const cancelCredit = credits.find((c) => c.reason === "provider_cancelled");
+    expect(cancelCredit?.payment_id).toBe(paymentB);
+    expect(Number(cancelCredit?.amount)).toBeCloseTo(Number(amount), 2);
+
+    const statuses = await queryRows<{ id: string; status: string }>(
+      db,
+      "SELECT id::text AS id, status::text AS status FROM public.payments WHERE id IN ($1, $2)",
+      [paymentA, paymentB],
+    );
+    expect(statuses.find((r) => r.id === paymentB)?.status).toBe("refunded");
+    expect(statuses.find((r) => r.id === paymentA)?.status).toBe("refunded");
   });
 });
 

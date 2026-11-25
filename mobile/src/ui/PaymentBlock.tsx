@@ -180,9 +180,13 @@ export function PaymentBlock({
     setError("");
     try {
       if (p?.status === "rejected") {
-        await supabase.rpc("customer_release_booking_checkout_wallet", {
-          p_booking_id: bookingId,
-        });
+        // The wallet money held by the rejected attempt must be released before a
+        // new attempt is created; otherwise the new checkout would double-count it.
+        const { error: releaseError } = await supabase.rpc(
+          "customer_release_booking_checkout_wallet",
+          { p_booking_id: bookingId },
+        );
+        if (releaseError) throw releaseError;
       }
       const payment = await create.mutateAsync({
         bookingId,

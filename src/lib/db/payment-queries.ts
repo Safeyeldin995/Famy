@@ -7,7 +7,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { bookingAmountDue } from "@/lib/payments/amountDue";
-import { BOOKING_PAYMENT_QUERY_STATUSES } from "@/lib/payments/bookingPaymentVisibility";
+import {
+  BOOKING_PAYMENT_QUERY_LIMIT,
+  BOOKING_PAYMENT_QUERY_STATUSES,
+  pickBookingPaymentRow,
+} from "@/lib/payments/bookingPaymentVisibility";
 
 export type PaymentStatus = "pending" | "pending_review" | "captured" | "rejected";
 
@@ -22,10 +26,9 @@ export function useBookingPayment(bookingId: string | undefined) {
         .eq("booking_id", bookingId!)
         .in("status", [...BOOKING_PAYMENT_QUERY_STATUSES])
         .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(BOOKING_PAYMENT_QUERY_LIMIT);
       if (error) throw error;
-      return data;
+      return pickBookingPaymentRow(data);
     },
   });
 }

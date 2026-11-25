@@ -220,8 +220,11 @@ export function PaymentBlock({
           setPaymobStarting(false);
           toast.error(result.message || t("payment.paymobStartFailed"));
         }
+      } else if (input.methodType === "manual_transfer") {
+        // Nothing is uploaded yet: point the customer to the receipt step.
+        toast.success(t("payment.transferStarted"));
       } else {
-        toast.success(t("payment.receiptUploaded"));
+        toast.success(t("payment.methodSaved"));
       }
     } catch (e: unknown) {
       toast.error(mapPaymentInsertError(e));

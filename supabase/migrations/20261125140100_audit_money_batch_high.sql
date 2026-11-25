@@ -21,7 +21,6 @@ DECLARE
   v_provider_present boolean;
   v_participant_minutes integer;
   v_count integer := 0;
-  v_auto_complete_from timestamptz := TIMESTAMPTZ '2026-11-25T17:00:00+00';
 BEGIN
   SELECT * INTO v_settings FROM public.online_session_settings() LIMIT 1;
 
@@ -96,9 +95,10 @@ BEGIN
       );
     END IF;
 
+    -- History is protected by the online_session_outcome IS NULL filter above:
+    -- lessons already resolved are never revisited.
     IF v_outcome = 'complete'
-       AND v_booking.status = 'confirmed'
-       AND v_booking.end_at >= v_auto_complete_from THEN
+       AND v_booking.status = 'confirmed' THEN
       PERFORM set_config('app.auto_complete_in_progress', 'on', true);
       PERFORM set_config('app.audit_reason', 'online_session_auto_complete', true);
 
@@ -349,6 +349,9 @@ BEGIN
   IF v_payment.status = 'captured' THEN
     RETURN jsonb_build_object('ok', true, 'ignored', true, 'reason', 'already_captured');
   END IF;
+  IF v_payment.status IN ('refunded', 'partially_refunded') THEN
+    RETURN jsonb_build_object('ok', true, 'ignored', true, 'reason', 'already_refunded');
+  END IF;
   IF p_pending AND v_payment.status <> 'pending' THEN
     RETURN jsonb_build_object('ok', true, 'ignored', true, 'reason', 'already_final');
   END IF;
@@ -385,11 +388,24 @@ BEGIN
           jsonb_build_object('funding_payment_id', v_funding_payment_id)
         );
       END IF;
+      -- The booking is already funded by another payment: this capture is
+      -- settled to the customer's wallet and the row is closed as refunded, so
+      -- readers of "the booking's captured payment" (wallet refunds on cancel,
+      -- admin card refunds, payment cards) never pick it.
+      v_status := 'refunded'::public.payment_status;
       v_meta := v_meta || jsonb_build_object(
         'superseded_capture', true,
         'superseded_by_payment_id', v_funding_payment_id,
         'excluded_from_booking_funding', true,
-        'superseded_excess_credited', GREATEST(v_excess, 0)
+        'superseded_excess_credited', GREATEST(v_excess, 0),
+        'refund_settled_via_wallet', true,
+        'wallet_refund_settled', true,
+        'refund', jsonb_build_object(
+          'channel', 'customer_wallet',
+          'amount_refunded', GREATEST(v_excess, 0),
+          'wallet_entry_id', v_entry_id,
+          'recorded_at', now()
+        )
       );
     ELSE
       SELECT * INTO v_booking FROM public.bookings WHERE id = v_payment.booking_id FOR SHARE;
@@ -447,8 +463,8 @@ BEGIN
   ON CONFLICT(paymob_transaction_id) DO UPDATE SET outcome = EXCLUDED.outcome, processed_at = now();
   UPDATE public.payments SET status = v_status, provider_ref = p_provider_ref,
     metadata = COALESCE(metadata, '{}'::jsonb) || v_meta,
-    captured_at = CASE WHEN v_status = 'captured' THEN now() ELSE captured_at END,
-    reviewed_at = CASE WHEN v_status IN ('captured','rejected') THEN now() ELSE reviewed_at END,
+    captured_at = CASE WHEN v_outcome = 'captured' THEN now() ELSE captured_at END,
+    reviewed_at = CASE WHEN v_outcome IN ('captured','rejected') THEN now() ELSE reviewed_at END,
     rejection_reason = CASE WHEN v_status = 'rejected' THEN 'Paymob payment failed or was declined.' ELSE NULL END
   WHERE id = v_payment.id;
   RETURN jsonb_build_object(
@@ -456,7 +472,7 @@ BEGIN
     'payment_id', v_payment.id,
     'status', v_status,
     'outcome', v_outcome,
-    'superseded_capture', v_funding_payment_id IS NOT NULL AND v_status = 'captured'
+    'superseded_capture', v_funding_payment_id IS NOT NULL AND v_outcome = 'captured'
   );
 END;
 $$;

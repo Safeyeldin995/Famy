@@ -2828,6 +2828,8 @@ const ar: Translation = {
     noneRecorded: "لا يوجد دفع مسجل لهذا الحجز",
     fileTooLarge: "الملف كبير جدا (الحد الأقصى ١٠ ميجابايت)",
     receiptUploaded: "تم رفع الإيصال — ستقوم فامي بمراجعته قريبا",
+    transferStarted: "تم حفظ طريقة الدفع — حول المبلغ ثم ارفع صورة الإيصال بالأسفل",
+    methodSaved: "تم حفظ طريقة الدفع",
     uploadFailed: "فشل الرفع",
     cannotOpenReceipt: "لم نتمكن من فتح الإيصال",
     markedReceived: "تم تسجيل الدفعة كمستلمة",

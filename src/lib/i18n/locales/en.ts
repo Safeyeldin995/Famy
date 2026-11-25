@@ -2859,6 +2859,8 @@ const en = {
     noneRecorded: "No payment recorded for this booking.",
     fileTooLarge: "File too large (max 10MB).",
     receiptUploaded: "Receipt uploaded — Famy will review it shortly.",
+    transferStarted: "Payment method saved. Transfer the amount, then upload your receipt below.",
+    methodSaved: "Payment method saved.",
     uploadFailed: "Upload failed",
     cannotOpenReceipt: "Cannot open receipt",
     markedReceived: "Payment marked as received.",
