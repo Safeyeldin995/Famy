@@ -1,4 +1,5 @@
-import analytics from "@react-native-firebase/analytics";
+import { getApp } from "@react-native-firebase/app";
+import { getAnalytics, logEvent } from "@react-native-firebase/analytics";
 
 export type FamyAnalyticsEvent =
   | "sign_up"
@@ -17,9 +18,11 @@ export async function logFamyEvent(
   params?: AnalyticsParams,
 ): Promise<void> {
   try {
-    await (analytics as () => { logEvent: (n: string, p?: AnalyticsParams) => Promise<void> })().logEvent(
-      name,
-      params,
+    const analytics = getAnalytics(getApp());
+    await logEvent(
+      analytics,
+      name as Parameters<typeof logEvent>[1],
+      params as Parameters<typeof logEvent>[2],
     );
   } catch {
     // Analytics must never block user flows when native Firebase is unavailable.
