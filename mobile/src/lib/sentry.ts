@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/react-native";
+import type { ErrorEvent, EventHint, TransactionEvent } from "@sentry/types";
 import { scrubMobileSentryEvent, type SentryLikeEvent } from "./sentryScrub";
 
 let initialized = false;
@@ -13,12 +14,15 @@ export function initMobileSentry(): void {
   const dsn = readDsn();
   if (!dsn) return;
 
-  const scrubEvent = (event: SentryLikeEvent) => scrubMobileSentryEvent(event) as typeof event;
+  const beforeSend = (event: ErrorEvent, _hint: EventHint): ErrorEvent | null =>
+    scrubMobileSentryEvent(event as SentryLikeEvent) as ErrorEvent;
+  const beforeSendTransaction = (event: TransactionEvent, _hint: EventHint): TransactionEvent | null =>
+    scrubMobileSentryEvent(event as SentryLikeEvent) as TransactionEvent;
   Sentry.init({
     dsn,
     sendDefaultPii: false,
-    beforeSend: scrubEvent,
-    beforeSendTransaction: scrubEvent,
+    beforeSend,
+    beforeSendTransaction,
     enableAutoSessionTracking: true,
     tracesSampleRate: __DEV__ ? 1 : 0.1,
   });
