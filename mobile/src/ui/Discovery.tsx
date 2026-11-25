@@ -34,6 +34,7 @@ import {
   isHomeCategoryId,
   servicesForHomeCategory,
 } from "@shared/catalog/homeCategories";
+import { categoryAllowsOnlineDiscovery } from "@shared/catalog/discoveryOnlineDelivery";
 import { colors } from "./theme";
 import { isFixedPackage, packageLabel } from "@shared/pricing/servicePackages";
 import {
@@ -255,7 +256,7 @@ export function Discovery({ category: group }: { category?: string }) {
           <QueryState query={caps} />
         </QueryState>
       )}
-      {onlineCaps.data?.onlineSessions ? (
+      {onlineCaps.data?.onlineSessions && categoryAllowsOnlineDiscovery(group) ? (
         <CustomerChips
           value={deliveryMode}
           onChange={(v) => setServiceMode(v === "online" ? "online" : "in_person")}
@@ -316,7 +317,12 @@ export function Discovery({ category: group }: { category?: string }) {
                   curriculumId: studentProfile.educationCurriculumId,
                   levelId: studentProfile.educationLevelId,
                 }) ? (
-                  <Text size="xs" weight="bold" tone="brand" style={{ paddingHorizontal: space.lg }}>
+                  <Text
+                    size="xs"
+                    weight="bold"
+                    tone="brand"
+                    style={{ paddingHorizontal: space.lg }}
+                  >
                     {tutoringMatchBadgeLabel(studentProfile.studentFirstName, t)}
                   </Text>
                 ) : null}

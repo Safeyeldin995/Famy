@@ -18,6 +18,7 @@ export default function OAuthSetupScreen() {
   const { t } = useTranslation();
   const [name, setName] = useState("");
   const [needsPhone, setNeedsPhone] = useState(false);
+  const [needsName, setNeedsName] = useState(true);
   const [contactPhone, setContactPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [booting, setBooting] = useState(true);
@@ -25,7 +26,7 @@ export default function OAuthSetupScreen() {
 
   const contactPhoneDigits = normalizeDigitsToWestern(contactPhone).replace(/\D/g, "");
   const contactPhoneValid = /^(0|20)?1[0125]\d{8}$/.test(contactPhoneDigits);
-  const valid = name.trim().length > 1 && (!needsPhone || contactPhoneValid);
+  const valid = (!needsName || name.trim().length > 1) && (!needsPhone || contactPhoneValid);
 
   useEffect(() => {
     let cancelled = false;
@@ -44,6 +45,7 @@ export default function OAuthSetupScreen() {
         .maybeSingle();
       if (cancelled) return;
       if (profile?.full_name) setName(profile.full_name);
+      setNeedsName(!profile?.full_name?.trim());
       setNeedsPhone(!profile?.phone);
       setBooting(false);
     })();
@@ -74,15 +76,18 @@ export default function OAuthSetupScreen() {
         return;
       }
     }
-    const { error: nameError } = await supabase
-      .from("profiles")
-      .update({ full_name: name.trim() })
-      .eq("id", user.id);
-    setLoading(false);
-    if (nameError) {
-      setError(t("common.tryAgain"));
-      return;
+    if (needsName) {
+      const { error: nameError } = await supabase
+        .from("profiles")
+        .update({ full_name: name.trim() })
+        .eq("id", user.id);
+      if (nameError) {
+        setLoading(false);
+        setError(t("common.tryAgain"));
+        return;
+      }
     }
+    setLoading(false);
     router.replace("/home");
   };
 
@@ -109,14 +114,16 @@ export default function OAuthSetupScreen() {
       </Text>
       <Text tone="muted">{t("auth.signUpSubtitle")}</Text>
 
-      <AuthLabeledField label={t("setup.name")}>
-        <AuthTextField
-          value={name}
-          onChangeText={setName}
-          autoComplete="name"
-          placeholder={t("setup.namePlaceholder")}
-        />
-      </AuthLabeledField>
+      {needsName ? (
+        <AuthLabeledField label={t("setup.name")}>
+          <AuthTextField
+            value={name}
+            onChangeText={setName}
+            autoComplete="name"
+            placeholder={t("setup.namePlaceholder")}
+          />
+        </AuthLabeledField>
+      ) : null}
 
       {needsPhone ? (
         <AuthLabeledField label={t("auth.phoneNumber")}>

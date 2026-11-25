@@ -2753,6 +2753,7 @@ const ar: Translation = {
     cannotOpenInstapay: "مقدرناش نفتح إنستاباي، انسخ العنوان وحول منه",
     title: "الدفع",
     noneRecorded: "لا يوجد دفع مسجل لهذا الحجز",
+    closedBooking: "الحجز اتقفل — مفيش دفع مطلوب",
     fileTooLarge: "الملف كبير جدا (الحد الأقصى ١٠ ميجابايت)",
     receiptUploaded: "تم رفع الإيصال — ستقوم فامي بمراجعته قريبا",
     uploadFailed: "فشل الرفع",

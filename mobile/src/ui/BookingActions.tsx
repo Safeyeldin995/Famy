@@ -21,6 +21,7 @@ import { Text } from "./Text";
 import { Choices, Field, QueryState, ui } from "./Page";
 import { StarRatingInput } from "./StarRatingInput";
 import { useToast } from "./Toast";
+import { customerRebookParams, shouldShowCustomerRebook } from "@shared/booking/customerRebook";
 export function BookingActions({
   booking,
   suppressRebook = false,
@@ -276,13 +277,13 @@ export function BookingActions({
           )}
         </>
       )}
-      {!suppressRebook ? (
+      {!suppressRebook && shouldShowCustomerRebook(booking.status) ? (
         <Button
           label={t("mobile.bookAgain")}
           onPress={() =>
             router.push({
               pathname: "/book/[providerId]",
-              params: { providerId: booking.provider_id, rebookFrom: booking.id },
+              params: customerRebookParams(booking),
             })
           }
         />

@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { revokeAppleSignInAuthorizationCode } from "@/lib/auth/appleTokenRevocation.server";
 import type { AccountDeletionCheck, StoragePathRef } from "@/lib/account/accountDeletion.types";
 
 export type { AccountDeletionCheck, StoragePathRef } from "@/lib/account/accountDeletion.types";
@@ -12,6 +13,10 @@ type AdminAuthClient = {
         id: string,
         attrs: Record<string, unknown>,
       ) => Promise<{ error: { message: string } | null }>;
+      getUserById: (id: string) => Promise<{
+        data: { user: { user_metadata?: Record<string, unknown> } | null };
+        error: { message: string } | null;
+      }>;
     };
   };
 };
@@ -126,6 +131,13 @@ export async function runAccountDeletion(params: {
   }
 
   try {
+    const { data: authUser } = await params.supabaseAdmin.auth.admin.getUserById(params.userId);
+    const appleCode =
+      typeof authUser?.user?.user_metadata?.apple_authorization_code === "string"
+        ? authUser.user.user_metadata.apple_authorization_code
+        : null;
+    await revokeAppleSignInAuthorizationCode(appleCode);
+
     await removeAnonymizedStorageObjects(
       params.supabaseAdmin,
       parseAnonymizeStoragePaths(anonymized),

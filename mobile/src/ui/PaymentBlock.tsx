@@ -47,6 +47,7 @@ export function PaymentBlock({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const paymentEligible = isPaymentEligibleBookingStatus(status);
   useEffect(() => {
     let live = true;
     peekPayment(bookingId)
@@ -232,6 +233,9 @@ export function PaymentBlock({
               t("payment.title")}
           </Text>
           <Text>{t(`payment.status.${p.status}`)}</Text>
+          {!paymentEligible && (p.status === "pending" || p.status === "pending_review") && (
+            <Text tone="muted">{t("payment.closedBooking")}</Text>
+          )}
           {refundOnTheWay && <Text weight="bold">{t("payment.refundOnTheWay")}</Text>}
           <Text style={moneyTextStyle(i18n.language)}>{money(p.amount, i18n.language)}</Text>
           <Text>
@@ -243,7 +247,7 @@ export function PaymentBlock({
           {type === "manual_transfer" && (
             <>
               {p.method === "instapay" && <BrandLogo brand="instapay" height={16} />}
-              {payLink && p.status === "pending_review" && !p.proof_path && (
+              {paymentEligible && payLink && p.status === "pending_review" && !p.proof_path && (
                 <Button
                   label={t("payment.openInstapay")}
                   onPress={() => {
@@ -271,7 +275,7 @@ export function PaymentBlock({
                 </>
               )}
               {note && <Text>{note}</Text>}
-              {p.status === "pending_review" && !p.proof_path && (
+              {paymentEligible && p.status === "pending_review" && !p.proof_path && (
                 <>
                   <Button
                     label={t("payment.uploadReceipt")}
@@ -316,7 +320,7 @@ export function PaymentBlock({
           {type === "online" && (
             <>
               <PaymentLogos />
-              {p.status === "pending" && (
+              {paymentEligible && p.status === "pending" && (
                 <Button
                   label={t("mobileBooking.payOnline")}
                   loading={busy}

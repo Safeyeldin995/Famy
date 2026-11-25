@@ -14,7 +14,12 @@ import {
 } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { useBooking, useBookingPayment, useBookingParty, useProviderServicePreparationNotes } from "@/lib/queries";
+import {
+  useBooking,
+  useBookingPayment,
+  useBookingParty,
+  useProviderServicePreparationNotes,
+} from "@/lib/queries";
 import { useSession } from "@/lib/session";
 import { OnlineSessionJoinButton } from "@/ui/OnlineSessionJoinButton";
 import { OnlineLessonIssueReport } from "@/ui/OnlineLessonIssueReport";
@@ -35,10 +40,7 @@ import { BookingJourneyStepper } from "@/ui/BookingJourneyStepper";
 import { OnlineLessonTimeline } from "@/ui/online/OnlineLessonTimeline";
 import { OnlineLessonPaymentPanel } from "@/ui/online/OnlineLessonPaymentPanel";
 import { useBookingStatusHistory } from "@/lib/bookingJourneyQueries";
-import {
-  isSupervisionMode,
-  supervisionModeProviderLabel,
-} from "@shared/booking/supervisionMode";
+import { isSupervisionMode, supervisionModeProviderLabel } from "@shared/booking/supervisionMode";
 import { bookingAmountDue, carriedFees } from "@shared/payments/amountDue";
 import { moneyHeld } from "@shared/payments/refundOwed";
 
@@ -343,39 +345,57 @@ export default function BookingDetail() {
               <View
                 style={[
                   ui.priceRow,
-                  { borderTopWidth: 1, borderColor: colors.border, paddingTop: space.md, marginTop: space.xs },
+                  {
+                    borderTopWidth: 1,
+                    borderColor: colors.border,
+                    paddingTop: space.md,
+                    marginTop: space.xs,
+                  },
                 ]}
               >
                 <Text weight="bold">{t("customerDetail.total")}</Text>
                 <Text weight="bold">{info.total}</Text>
               </View>
             </View>
-            {activeBooking ? (
-              <CustomerPreparationNotesSection notes={preparation.data} />
-            ) : null}
+            {activeBooking ? <CustomerPreparationNotesSection notes={preparation.data} /> : null}
             <RescheduleSection booking={b} />
             <View style={ui.card}>
               <Text size="xl" weight="heavy">
                 {t("mobile.priceBreakdown")}
               </Text>
-              {fields.map(
-                (field) =>
-                  b[`price_${field}`] != null && (
-                    <View key={field} style={[ui.priceRow, field === "total" && ui.priceTotal]}>
-                      <Text style={{ flex: 1 }} tone={field === "total" ? "default" : "muted"}>
-                        {t(`mobile.price.${field}`)}
-                      </Text>
-                      <Text
-                        size={field === "total" ? "xl" : "md"}
-                        tone={field === "total" ? "brand" : "default"}
-                        weight={field === "total" ? "heavy" : "regular"}
-                        style={moneyTextStyle(i18n.language)}
-                      >
-                        {money(b[`price_${field}`], i18n.language)}
-                      </Text>
-                    </View>
-                  ),
-              )}
+              {fields
+                .filter((field) => field !== "total")
+                .map(
+                  (field) =>
+                    b[`price_${field}`] != null && (
+                      <View key={field} style={ui.priceRow}>
+                        <Text style={{ flex: 1 }} tone="muted">
+                          {t(`mobile.price.${field}`)}
+                        </Text>
+                        <Text style={moneyTextStyle(i18n.language)}>
+                          {money(b[`price_${field}`], i18n.language)}
+                        </Text>
+                      </View>
+                    ),
+                )}
+              {carriedFees(b) > 0 ? (
+                <View style={ui.priceRow}>
+                  <Text style={{ flex: 1 }} tone="muted">
+                    {t("bookFlow.carriedFees")}
+                  </Text>
+                  <Text style={moneyTextStyle(i18n.language)}>
+                    {money(carriedFees(b), i18n.language)}
+                  </Text>
+                </View>
+              ) : null}
+              <View style={[ui.priceRow, ui.priceTotal]}>
+                <Text style={{ flex: 1 }} weight="heavy">
+                  {t(`mobile.price.total`)}
+                </Text>
+                <Text size="xl" tone="brand" weight="heavy" style={moneyTextStyle(i18n.language)}>
+                  {money(bookingAmountDue(b), i18n.language)}
+                </Text>
+              </View>
             </View>
             <OnlineSessionJoinButton
               booking={b}
@@ -403,7 +423,7 @@ export default function BookingDetail() {
               <PaymentBlock
                 bookingId={id}
                 status={b.status}
-                total={b.price_total}
+                total={bookingAmountDue(b)}
                 refetchBooking={q.refetch}
               />
             )}

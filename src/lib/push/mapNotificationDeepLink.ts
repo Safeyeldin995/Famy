@@ -14,6 +14,9 @@ export type NativeDeepLinkTarget =
   | { pathname: "/pro-profile" }
   | { pathname: "/pro-request-service" }
   | { pathname: "/pro-online-lessons" }
+  | { pathname: "/wallet" }
+  | { pathname: "/pro-setup/[item]"; params: { item: string } }
+  | { pathname: "/pro-documents" }
   | { pathname: "/login" }
   | { pathname: "/booking/[id]"; params: { id: string } }
   | { pathname: "/pro-booking/[id]"; params: { id: string } }
@@ -63,7 +66,9 @@ export function mapNotificationDeepLink(
   }
 
   if (path === "/notifications") {
-    return workspace === "provider" ? { pathname: "/pro-notifications" } : { pathname: "/notifications" };
+    return workspace === "provider"
+      ? { pathname: "/pro-notifications" }
+      : { pathname: "/notifications" };
   }
   if (path === "/bookings" && workspace === "customer") return { pathname: "/bookings" };
   if (path === "/messages" && workspace === "customer") return { pathname: "/messages" };
@@ -72,10 +77,23 @@ export function mapNotificationDeepLink(
   if (path === "/pro/bookings" && workspace === "provider") return { pathname: "/jobs" };
   if (path === "/pro" && workspace === "provider") return { pathname: "/dashboard" };
   if (path === "/pro/earnings" && workspace === "provider") return { pathname: "/earnings" };
-  if (path === "/pro/onboarding" && workspace === "provider") return { pathname: "/pro-onboarding" };
+  if (path === "/pro/onboarding" && workspace === "provider")
+    return { pathname: "/pro-onboarding" };
   if (path === "/pro/profile" && workspace === "provider") return { pathname: "/pro-profile" };
-  if (path === "/pro/request-service" && workspace === "provider") return { pathname: "/pro-request-service" };
-  if (path === "/pro/online-lessons" && workspace === "provider") return { pathname: "/pro-online-lessons" };
+  if (path === "/pro/request-service" && workspace === "provider")
+    return { pathname: "/pro-request-service" };
+  if (path === "/pro/online-lessons" && workspace === "provider")
+    return { pathname: "/pro-online-lessons" };
+  if (path === "/wallet" && workspace === "customer") return { pathname: "/wallet" };
+
+  if (path === "/pro/documents" && workspace === "provider") return { pathname: "/pro-documents" };
+
+  const proSetup = path.match(/^\/pro\/setup\/([^/]+)$/);
+  if (proSetup && workspace === "provider") {
+    const raw = proSetup[1]!;
+    const item = raw === "references" ? "reference" : raw;
+    return { pathname: "/pro-setup/[item]", params: { item } };
+  }
 
   return home;
 }

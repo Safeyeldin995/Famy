@@ -299,6 +299,12 @@ assert.deepEqual(mapNotificationDeepLink("/messages", "provider"), {
 assert.deepEqual(mapNotificationDeepLink("/pro/onboarding", "provider"), {
   pathname: "/pro-onboarding",
 });
+assert.deepEqual(mapNotificationDeepLink("/wallet", "customer"), { pathname: "/wallet" });
+assert.deepEqual(mapNotificationDeepLink("/pro/setup/hours", "provider"), {
+  pathname: "/pro-setup/[item]",
+  params: { item: "hours" },
+});
+assert.deepEqual(mapNotificationDeepLink("/pro/documents", "provider"), { pathname: "/pro-documents" });
 assert.deepEqual(mapNotificationDeepLink("/home", "customer"), { pathname: "/home" });
 assert.deepEqual(mapNotificationDeepLink("/unknown/path", "provider"), { pathname: "/dashboard" });
 assert.deepEqual(mapNotificationDeepLink("/unknown/path", "customer"), { pathname: "/home" });
