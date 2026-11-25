@@ -3,8 +3,9 @@ const TAB_BAR_LABEL_GAP = 12;
 const TAB_SCROLL_EXTRA = 16;
 
 /** Max system font scale multipliers (accessibility on, layouts stay stable on Android). */
-export const BODY_FONT_SCALE_CAP = 1.2;
-export const COMPACT_FONT_SCALE_CAP = 1.2;
+export const BODY_FONT_SCALE_CAP = 1.15;
+/** Headings, bold labels, buttons, tabs and headers: grow a little, never break the layout. */
+export const COMPACT_FONT_SCALE_CAP = 1.1;
 
 const compactTextSizes = new Set(["hero", "title", "xxl", "xl"]);
 

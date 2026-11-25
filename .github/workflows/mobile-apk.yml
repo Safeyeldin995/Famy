@@ -186,7 +186,13 @@ jobs:
       - name: Build APK locally
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          # Read by mobile/app.config.js and written into the native manifest only.
+          # Without it the in-app map shows "unavailable".
+          GOOGLE_MAPS_ANDROID_API_KEY: ${{ secrets.GOOGLE_MAPS_ANDROID_API_KEY }}
         run: |
+          if [ -z "$GOOGLE_MAPS_ANDROID_API_KEY" ]; then
+            echo "::warning::GOOGLE_MAPS_ANDROID_API_KEY secret is not set; the address map will show as unavailable in this APK."
+          fi
           apk_path="$RUNNER_TEMP/famy-${{ inputs.profile }}.apk"
           eas build --platform android --profile "${{ inputs.profile }}" \
             --local --non-interactive --output "$apk_path"

@@ -18,6 +18,7 @@ import { BottomSheetSelect } from "../provider/BottomSheetSelect";
 import { ProviderCard } from "../ProviderCard";
 import { colors, fontSize, fonts, radius, space } from "../theme";
 import { CustomerChips, CustomerEmpty, customerStyle } from "./Primitives";
+import { bodyTextInputProps } from "../a11y";
 
 type Props = {
   term: string;
@@ -77,6 +78,7 @@ export function CustomerSearchView(p: Props) {
           <Search size={20} color="white" />
         </View>
         <TextInput
+          {...bodyTextInputProps()}
           accessibilityLabel={t("search.title")}
           placeholder={t("customerSearch.placeholder")}
           placeholderTextColor={colors.muted}
