@@ -9,7 +9,9 @@ export function isOnlineWebProtectedPath(pathname: string): boolean {
   if (p === `${ONLINE_WEB_PREFIX}/lessons` || p.startsWith(`${ONLINE_WEB_PREFIX}/lessons/`))
     return true;
   if (p.startsWith(`${ONLINE_WEB_PREFIX}/provider/`)) return true;
-  return /^\/online\/tutors\/[^/]+\/request$/.test(p);
+  // Tutor browsing reads marketplace data, which is signed-in only (anon has no
+  // execute grant on search_marketplace_providers), so the tutor pages need a session too.
+  return p === `${ONLINE_WEB_PREFIX}/tutors` || p.startsWith(`${ONLINE_WEB_PREFIX}/tutors/`);
 }
 
 /**

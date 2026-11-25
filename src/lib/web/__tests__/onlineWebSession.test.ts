@@ -21,8 +21,8 @@ describe("isOnlineWebProtectedPath", () => {
     ["/online/provider/lessons", true],
     ["/online/tutors/p1/request", true],
     ["/online", false],
-    ["/online/tutors", false],
-    ["/online/tutors/p1", false],
+    ["/online/tutors", true],
+    ["/online/tutors/p1", true],
     ["/online/login", false],
   ])("%s → %s", (path, expected) => {
     expect(isOnlineWebProtectedPath(path)).toBe(expected);
