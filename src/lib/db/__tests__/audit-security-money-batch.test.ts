@@ -372,25 +372,6 @@ describe("audit security money batch", { concurrent: false }, () => {
     expect(reconciled[0]?.needs_review).toBe(false);
   });
 
-  it("account_deletion_check returns funds_owed_to_user for wallet credit before active_bookings", async () => {
-    await seedLifecycleBooking(db, { status: "pending" });
-    const credit = await tryAsUser(
-      db,
-      IDS.adminUser,
-      "SELECT public.admin_adjust_customer_wallet($1, 'credit', 12.5, 'deletion-block credit', NULL)",
-      [IDS.customer],
-    );
-    expect(credit.error).toBeUndefined();
-
-    const check = await tryAsUser(
-      db,
-      IDS.customer,
-      "SELECT public.account_deletion_check() AS payload",
-    );
-    expect(check.error).toBeUndefined();
-    expect(check.rows?.[0]?.payload).toEqual({ ok: false, reason: "funds_owed_to_user" });
-  });
-
   it("anonymize_account deletes provider payout methods", async () => {
     const { bookingId } = await seedLifecycleBooking(db, { status: "completed" });
     await setBookingStatusAsSystem(db, bookingId, "completed");

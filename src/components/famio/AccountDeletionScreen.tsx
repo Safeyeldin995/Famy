@@ -21,8 +21,13 @@ export function AccountDeletionScreen({ backTo }: { backTo: string }) {
   const [check, setCheck] = useState<AccountDeletionCheck | null>(null);
   const [loadingCheck, setLoadingCheck] = useState(true);
   const [confirmText, setConfirmText] = useState("");
+  const [walletForfeitConfirmed, setWalletForfeitConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [errorKey, setErrorKey] = useState<string | null>(null);
+
+  const walletForfeitAmount =
+    check?.ok && check.wallet_forfeit_amount != null ? Number(check.wallet_forfeit_amount) : 0;
+  const needsWalletForfeitConfirm = walletForfeitAmount > 0.005;
 
   const confirmWord = t("accountDeletion.confirmWord");
   const confirmMatches = useMemo(
@@ -52,9 +57,12 @@ export function AccountDeletionScreen({ backTo }: { backTo: string }) {
 
   const handleDelete = async () => {
     if (!confirmMatches || !check?.ok) return;
+    if (needsWalletForfeitConfirm && !walletForfeitConfirmed) return;
     setBusy(true);
     setErrorKey(null);
-    const result = await requestAccountDeletion();
+    const result = await requestAccountDeletion({
+      confirmWalletForfeit: needsWalletForfeitConfirm && walletForfeitConfirmed,
+    });
     if (!result.ok) {
       setErrorKey(`accountDeletion.errors.${result.error}`);
       setBusy(false);
@@ -148,6 +156,28 @@ export function AccountDeletionScreen({ backTo }: { backTo: string }) {
           </p>
         ) : null}
 
+        {!loadingCheck && check?.ok && needsWalletForfeitConfirm ? (
+          <div
+            role="alert"
+            className="space-y-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4"
+          >
+            <p className="text-pro-13 font-semibold text-foreground">
+              {t("accountDeletion.walletForfeitWarning", {
+                amount: walletForfeitAmount.toFixed(2),
+              })}
+            </p>
+            <label className="flex cursor-pointer items-start gap-3 text-pro-13 font-medium text-foreground">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 shrink-0"
+                checked={walletForfeitConfirmed}
+                onChange={(e) => setWalletForfeitConfirmed(e.target.checked)}
+              />
+              <span>{t("accountDeletion.walletForfeitConfirm")}</span>
+            </label>
+          </div>
+        ) : null}
+
         {!loadingCheck && check?.ok ? (
           <div className="space-y-3">
             <label className="block text-pro-13 font-bold text-foreground" htmlFor="delete-confirm">
@@ -177,7 +207,12 @@ export function AccountDeletionScreen({ backTo }: { backTo: string }) {
         <div className="flex flex-col gap-3 pt-2">
           <PrimaryButton
             className="!bg-destructive hover:!bg-destructive/90"
-            disabled={!check?.ok || !confirmMatches || busy}
+            disabled={
+              !check?.ok ||
+              !confirmMatches ||
+              busy ||
+              (needsWalletForfeitConfirm && !walletForfeitConfirmed)
+            }
             onClick={() => void handleDelete()}
           >
             {busy ? t("accountDeletion.deleting") : t("accountDeletion.deleteButton")}

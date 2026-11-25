@@ -1,5 +1,6 @@
 export type AccountDeletionCheck = {
   ok: boolean;
+  wallet_forfeit_amount?: number;
   reason?:
     | "active_bookings"
     | "unpaid_balance"

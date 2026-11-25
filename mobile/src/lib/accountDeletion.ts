@@ -1,8 +1,8 @@
 import { appConfig, supabase } from "./supabase";
 
-export async function requestMobileAccountDeletion(): Promise<
-  { ok: true } | { ok: false; error: string }
-> {
+export async function requestMobileAccountDeletion(options?: {
+  confirmWalletForfeit?: boolean;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
   const {
     data: { session },
     error: sessionError,
@@ -17,6 +17,9 @@ export async function requestMobileAccountDeletion(): Promise<
       Authorization: `Bearer ${session.access_token}`,
       "Content-Type": "application/json",
     },
+    body: JSON.stringify({
+      confirm_wallet_forfeit: options?.confirmWalletForfeit === true,
+    }),
   });
 
   let body: { ok?: boolean; error?: string } = {};

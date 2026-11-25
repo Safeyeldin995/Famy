@@ -1599,7 +1599,10 @@ const en = {
       "Bookings, payments, reviews, and messages stay for accounting, tax, and the other party's history. You will appear as \"Deleted user\".",
     blockedUnpaid: "You owe Famy money (cancellation fees or a balance). Settle it first, then you can delete your account",
     blockedFundsOwed:
-      "Famy still owes you money (wallet credit or a provider balance). Contact support before deleting your account.",
+      "Famy still owes you a provider balance. Contact support before deleting your account.",
+    walletForfeitWarning:
+      "You have {{amount}} EGP in your Famy wallet. If you delete your account, this balance will be lost and cannot be recovered.",
+    walletForfeitConfirm: "I understand my wallet balance will be forfeited and cannot be recovered",
     blockedActiveBookings: "Finish or cancel your upcoming bookings first.",
     blockedAdmin: "Admin accounts cannot be deleted from the app. Contact engineering support.",
     confirmWord: "DELETE",
@@ -1616,6 +1619,8 @@ const en = {
       active_bookings: "Finish or cancel your upcoming bookings first.",
       admin_not_allowed: "Admin accounts cannot be deleted from the app.",
       deletion_failed: "Could not delete your account. Try again later.",
+      wallet_forfeit_confirm_required:
+        "Confirm that you forfeit your wallet balance before deleting your account.",
     },
   },
   mobilePush: {
