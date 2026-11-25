@@ -92,9 +92,6 @@ export async function signInWithAppleNative() {
   if (!user) return;
 
   const metadataPatch: Record<string, string> = {};
-  if (credential.authorizationCode?.trim()) {
-    metadataPatch.apple_authorization_code = credential.authorizationCode.trim();
-  }
 
   if (fullName) {
     const { data: profile } = await supabase

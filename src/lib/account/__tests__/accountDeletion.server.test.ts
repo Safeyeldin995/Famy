@@ -93,12 +93,7 @@ describe("runAccountDeletion", () => {
       ...adminRoleClient(false),
       rpc: vi.fn(async () => ({ data: { storage_paths: [] }, error: null })),
       storage: { from: vi.fn(() => ({ remove })) },
-      auth: {
-        admin: {
-          updateUserById,
-          getUserById: vi.fn(async () => ({ data: { user: { user_metadata: {} } }, error: null })),
-        },
-      },
+      auth: { admin: { updateUserById } },
     };
 
     const result = await runAccountDeletion({
@@ -123,12 +118,7 @@ describe("runAccountDeletion", () => {
         error: null,
       })),
       storage: { from: vi.fn(() => ({ remove })) },
-      auth: {
-        admin: {
-          updateUserById,
-          getUserById: vi.fn(async () => ({ data: { user: { user_metadata: {} } }, error: null })),
-        },
-      },
+      auth: { admin: { updateUserById } },
     };
 
     const result = await runAccountDeletion({
@@ -170,17 +160,7 @@ describe("storage helpers", () => {
 
   it("sets deleted auth email and ban", async () => {
     const updateUserById = vi.fn(async () => ({ error: null }));
-    await finalizeDeletedAuthUser(
-      {
-        auth: {
-          admin: {
-            updateUserById,
-            getUserById: vi.fn(async () => ({ data: { user: null }, error: null })),
-          },
-        },
-      },
-      "abc",
-    );
+    await finalizeDeletedAuthUser({ auth: { admin: { updateUserById } } }, "abc");
     expect(updateUserById).toHaveBeenCalledWith(
       "abc",
       expect.objectContaining({ email: "deleted-abc@famio.local", ban_duration: "876000h" }),
