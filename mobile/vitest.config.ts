@@ -47,6 +47,8 @@ export default defineConfig({
       "src/ui/__tests__/textFontScaleCap.test.ts",
       "src/lib/__tests__/homeFreezeDiagnostics.test.ts",
       "src/lib/__tests__/onlineSessionUi.test.ts",
+      "src/lib/__tests__/customerCasesPure.test.ts",
+      "src/lib/__tests__/bookingPolling.test.ts",
       "src/lib/__tests__/adminAccountRouting.test.ts",
       "src/lib/provider/__tests__/gates.test.ts",
       "src/lib/provider/__tests__/onboardingErrors.test.ts",

@@ -5,6 +5,7 @@
  * and are reused as-is.
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { Json } from "@/integrations/supabase/types";
 import {
   parseAppReleaseSettings,
   validateAppReleaseSettings,
@@ -324,6 +325,61 @@ export function parseCancellationPolicy(
   };
 }
 
+export type CancellationServiceMode = "in_person" | "online";
+export type CancellationPolicyModes = Record<CancellationServiceMode, CancellationPolicy>;
+
+const LEGACY_FLAT_POLICY_KEYS = ["fee_mode", "fee_value", "free_cancel_hours"] as const;
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+/**
+ * Reads settings.cancellation_policy the same way the database's
+ * cancellation_policy_for(mode) does:
+ * - in_person: root.in_person, else the legacy flat root;
+ * - online: root.online, else root.in_person, else the legacy flat root.
+ */
+export function parseCancellationPolicySettings(value: unknown): CancellationPolicyModes {
+  const root = asObject(value) ?? {};
+  const inPerson = asObject(root.in_person);
+  const online = asObject(root.online);
+  return {
+    in_person: parseCancellationPolicy(inPerson ?? root),
+    online: parseCancellationPolicy(online ?? inPerson ?? root),
+  };
+}
+
+/**
+ * The value to store: always the per-mode shape. Unknown keys already in the
+ * stored object are kept; legacy flat rule keys are dropped because the
+ * per-mode entries now replace them.
+ */
+export function serializeCancellationPolicySettings(
+  existing: unknown,
+  modes: CancellationPolicyModes,
+): Record<string, unknown> {
+  const rest: Record<string, unknown> = { ...(asObject(existing) ?? {}) };
+  for (const key of LEGACY_FLAT_POLICY_KEYS) delete rest[key];
+  const keep = (mode: CancellationServiceMode) => ({
+    ...(asObject(rest[mode]) ?? {}),
+    fee_mode: modes[mode].fee_mode,
+    fee_value: modes[mode].fee_value,
+    free_cancel_hours: modes[mode].free_cancel_hours,
+  });
+  return { ...rest, in_person: keep("in_person"), online: keep("online") };
+}
+
+function samePolicy(a: CancellationPolicy, b: CancellationPolicy): boolean {
+  return (
+    a.fee_mode === b.fee_mode &&
+    a.fee_value === b.fee_value &&
+    a.free_cancel_hours === b.free_cancel_hours
+  );
+}
+
 export function useCancellationPolicyAdmin() {
   return useQuery({
     queryKey: ["settings", "cancellation_policy"],
@@ -334,7 +390,7 @@ export function useCancellationPolicyAdmin() {
         .eq("key", "cancellation_policy")
         .maybeSingle();
       if (error) throw error;
-      return parseCancellationPolicy((data?.value as Record<string, unknown>) ?? {});
+      return parseCancellationPolicySettings(data?.value ?? {});
     },
   });
 }
@@ -342,18 +398,25 @@ export function useCancellationPolicyAdmin() {
 export function useUpdateCancellationPolicy() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (policy: CancellationPolicy) => {
+    mutationFn: async (modes: CancellationPolicyModes) => {
+      // Read the current value first so keys we don't manage are kept.
+      const { data: current, error: readError } = await supabase
+        .from("settings")
+        .select("value")
+        .eq("key", "cancellation_policy")
+        .maybeSingle();
+      if (readError) throw readError;
+      const value = serializeCancellationPolicySettings(current?.value ?? {}, modes);
       const { data, error } = await supabase
         .from("settings")
-        .upsert({ key: "cancellation_policy", value: policy }, { onConflict: "key" })
+        .upsert({ key: "cancellation_policy", value: value as Json }, { onConflict: "key" })
         .select("value")
         .single();
       if (error) throw error;
-      const stored = parseCancellationPolicy(data.value as Record<string, unknown>);
+      const stored = parseCancellationPolicySettings(data.value);
       if (
-        stored.fee_mode !== policy.fee_mode ||
-        stored.fee_value !== policy.fee_value ||
-        stored.free_cancel_hours !== policy.free_cancel_hours
+        !samePolicy(stored.in_person, modes.in_person) ||
+        !samePolicy(stored.online, modes.online)
       ) {
         throw new Error("Cancellation policy did not persist.");
       }
