@@ -1,5 +1,5 @@
 const en = {
-  bookingDuration: { hour: "hour", hours: "hours" },
+  bookingDuration: { hour: "hour", hours: "hours", minute: "minute", minutes: "minutes" },
   memberAge: {
     label: "Age",
     years: "Years",
@@ -46,7 +46,8 @@ const en = {
     },
     meta: {
       homeTitle: "Famy — Trusted babysitters and tutors in Egypt",
-      homeDescription: "Book a babysitter or private tutor reviewed by the Famy team, at home and at a time that suits you.",
+      homeDescription:
+        "Book a babysitter or private tutor reviewed by the Famy team, at home and at a time that suits you.",
       aboutTitle: "About Famy",
       joinTitle: "Join Famy as a provider",
       contactTitle: "Contact Famy",
@@ -70,9 +71,12 @@ const en = {
       babysittingFullDayBody: "Coverage for your full day when you need it.",
       babysittingOvernight: "Overnight babysitting",
       babysittingOvernightBody: "Night coverage with verified sitters.",
-      tutoringBody: "Private tutors for the subject and grade you need, with clear pricing before you book.",
-      babysittingAllBody: "By the hour, full day, or overnight, with a sitter whose ID and details our team reviewed.",
-      tutoringAllBody: "A private tutor for the subject and grade you need, plus homework help, with clear session prices before you book.",
+      tutoringBody:
+        "Private tutors for the subject and grade you need, with clear pricing before you book.",
+      babysittingAllBody:
+        "By the hour, full day, or overnight, with a sitter whose ID and details our team reviewed.",
+      tutoringAllBody:
+        "A private tutor for the subject and grade you need, plus homework help, with clear session prices before you book.",
       homework: "Homework help",
       quran: "Quran memorization",
       music: "Music lessons",
@@ -97,7 +101,8 @@ const en = {
     trust: {
       title: "Why families choose Famy",
       verifiedTitle: "Reviewed ID",
-      verifiedBody: "Our team checks the national ID, details and references before approving any provider.",
+      verifiedBody:
+        "Our team checks the national ID, details and references before approving any provider.",
       ratingsTitle: "Real ratings",
       ratingsBody: "Ratings come from families who actually booked through Famy.",
       paymentTitle: "Pay your way",
@@ -132,9 +137,11 @@ const en = {
       title: "About Famy",
       lead: "Famy is an Egyptian platform connecting families with trusted home-service providers, starting with babysitters and private tutors.",
       missionTitle: "Our mission",
-      missionBody: "That every parent can easily find help they trust, without relying on word of mouth and without worry.",
+      missionBody:
+        "That every parent can easily find help they trust, without relying on word of mouth and without worry.",
       howTitle: "How we choose providers",
-      howBody: "Every provider submits their details, national ID and references, and our team reviews them before approval. After every booking, the family rates the visit.",
+      howBody:
+        "Every provider submits their details, national ID and references, and our team reviews them before approval. After every booking, the family rates the visit.",
       valuesTitle: "What we care about",
       value1: "Safety first",
       value2: "Clear prices, no surprises",
@@ -184,27 +191,30 @@ const en = {
     uploadPdf: "Upload PDF receipt",
     yes: "Yes",
     no: "No",
-    "paymentRefresh": "Returned from checkout. Checking payment status.",
-    "cashNext": "Pay the provider in cash according to the booking instructions. Follow booking status here.",
-    "payOnline": "Pay online",
-    "refreshStatus": "Refresh payment status",
-    "locationDenied": "Allow location access in device settings to save this address.",
-    "locationFailed": "Could not find your location. Enable location services and try again.",
-    "locationPermission": "Famy needs your current location to set the service address coordinates, only when you press the button.",
-    "useLocation": "Use my current location",
-    "addressRequired": "Choose an area, enter a street and set your location. Add a label for an other address.",
-    "curriculum": "Curriculum",
-    "level": "Grade",
-    "saveSchool": "Save school details for next time",
-    "less": "One hour less",
-    "more": "One hour more",
-    "customerProvides": "I will provide it",
-    "providerProvides": "Provider will supply it",
-    "promo": "Promo code",
-    "applyPromo": "Apply code",
-    "confirmBooking": "Confirm booking",
-    "editChoices": "Review choices",
-    "rating": "Your rating",
+    paymentRefresh: "Returned from checkout. Checking payment status.",
+    cashNext:
+      "Pay the provider in cash according to the booking instructions. Follow booking status here.",
+    payOnline: "Pay online",
+    refreshStatus: "Refresh payment status",
+    locationDenied: "Allow location access in device settings to save this address.",
+    locationFailed: "Could not find your location. Enable location services and try again.",
+    locationPermission:
+      "Famy needs your current location to set the service address coordinates, only when you press the button.",
+    useLocation: "Use my current location",
+    addressRequired:
+      "Choose an area, enter a street and set your location. Add a label for an other address.",
+    curriculum: "Curriculum",
+    level: "Grade",
+    saveSchool: "Save school details for next time",
+    less: "One hour less",
+    more: "One hour more",
+    customerProvides: "I will provide it",
+    providerProvides: "Provider will supply it",
+    promo: "Promo code",
+    applyPromo: "Apply code",
+    confirmBooking: "Confirm booking",
+    editChoices: "Review choices",
+    rating: "Your rating",
     starA11y: "{{n}} of 5 stars",
     starSelectedGroup: "Selected rating {{n}} of 5",
     starLabel1: "Poor",
@@ -212,9 +222,9 @@ const en = {
     starLabel3: "Good",
     starLabel4: "Very good",
     starLabel5: "Excellent",
-    "review": "Your review",
-    "photosPermission": "Allow Famy to select a payment receipt from your photos."
-},
+    review: "Your review",
+    photosPermission: "Allow Famy to select a payment receipt from your photos.",
+  },
   mobile: {
     polish: {
       service: "Service",
@@ -267,11 +277,21 @@ const en = {
     dateFormat: "YYYY-MM-DD",
     consentGiven: "Consent given",
     consentNeeded: "Tap to give consent",
-    memberInvalid: "Check the name, birth date (YYYY-MM-DD), relationship, phone numbers and health consent.",
-    price: {"subtotal": "Subtotal", "extras_total": "Extras", "travel_fee": "Travel fee", "platform_fee": "Platform fee", "vat": "Tax", "discount": "Discount", "total": "Total"},
+    memberInvalid:
+      "Check the name, birth date (YYYY-MM-DD), relationship, phone numbers and health consent.",
+    price: {
+      subtotal: "Subtotal",
+      extras_total: "Extras",
+      travel_fee: "Travel fee",
+      platform_fee: "Platform fee",
+      vat: "Tax",
+      discount: "Discount",
+      total: "Total",
+    },
     comingSoon: "This screen is not available in the app yet.",
     workspaceOnWebTitle: "These screens are still on the web",
-    workspaceOnWebBody: "Provider screens are still on the website. Continue there with the same account until the app catches up.",
+    workspaceOnWebBody:
+      "Provider screens are still on the website. Continue there with the same account until the app catches up.",
     adminAccountTitle: "This is an admin account. Use the website admin dashboard.",
     adminAccountBody: "Admin sign-in is available on the website only.",
     openOnWeb: "Open the website",
@@ -295,6 +315,9 @@ const en = {
       in_progress: "Service in progress",
       completion_requested: "Confirm the service is complete",
     },
+    ratePrompt: "Rate {{provider}}",
+    openRateForm: "Open review",
+    ratePromptLater: "Not now",
   },
   providerHome: {
     activeBookingTitle: "Your active job",
@@ -330,6 +353,8 @@ const en = {
   customerSearch: {
     placeholder: "Search for a babysitter or private tutor",
     results: "Results: {{value}}",
+    sortNext: "Next available",
+    verifiedOnly: "Verified only",
   },
   customerDetail: {
     title: "Booking details",
@@ -838,11 +863,13 @@ const en = {
     ruleLetter: "Contains a letter",
     ruleNumber: "Contains a number",
     invalidCredentials: "Wrong phone or password.",
-    accountDeleted: "This account was deleted. You can create a new account with the same phone number.",
+    accountDeleted:
+      "This account was deleted. You can create a new account with the same phone number.",
     alreadyRegistered: "This number already has an account. Sign in instead.",
     noAccount: "No account for this number. Create one instead.",
     invalidCode: "Invalid code. Try again.",
-    verifyServerError: "Something went wrong on our side while confirming the code. Try again shortly.",
+    verifyServerError:
+      "Something went wrong on our side while confirming the code. Try again shortly.",
     codeSent: "Code sent.",
     sendFailed: "Could not send code. Try again later.",
     deliveryUnavailable:
@@ -853,7 +880,8 @@ const en = {
     firebaseSendTooManyRequests: "Too many attempts from this device. Please wait and try again.",
     firebaseSendQuotaExceeded: "SMS service is busy right now. Please try again shortly.",
     firebaseSendDeviceVerifyFailed: "Could not verify this device. Please try again shortly.",
-    firebaseSendTimeout: "Verification took too long and the code wasn't sent. Refresh the page and try again.",
+    firebaseSendTimeout:
+      "Verification took too long and the code wasn't sent. Refresh the page and try again.",
     firebaseStartFailed: "Could not start phone verification. Try again.",
     firebaseRecaptchaUnavailable:
       "Phone verification is temporarily unavailable. Refresh the page and try again.",
@@ -990,6 +1018,8 @@ const en = {
     hoursShort: "{{hours}}h",
     whatsNext: "What happens next",
     confirmed: "Booking confirmed",
+    payNow: "Pay now",
+    rate: "Rate",
   },
   status: {
     upcoming: "upcoming",
@@ -1091,12 +1121,15 @@ const en = {
     discountPercent: "{{value}}% off",
   },
   addresses: {
-    outsideServiceArea: "This address is outside the areas we serve right now. Choose a spot inside the shaded area on the map.",
+    outsideServiceArea:
+      "This address is outside the areas we serve right now. Choose a spot inside the shaded area on the map.",
     pinInArea: "Pin is inside {{area}}",
     comingSoonTitle: "Famy isn't in your area yet",
-    comingSoonBody: "We're sorry, Famy isn't available here yet. We're growing all the time. Tap the button to let us know you want Famy here; it helps us choose our next areas.",
+    comingSoonBody:
+      "We're sorry, Famy isn't available here yet. We're growing all the time. Tap the button to let us know you want Famy here; it helps us choose our next areas.",
     comingSoonCta: "I want Famy in my area",
-    comingSoonThanks: "Thanks, we've got your request. We'll use it when we plan the next service areas.",
+    comingSoonThanks:
+      "Thanks, we've got your request. We'll use it when we plan the next service areas.",
     title: "Saved Addresses",
     subtitle: "Save places for faster booking",
     summary: "{{count}} saved",
@@ -1186,7 +1219,8 @@ const en = {
     medicalNotesPlaceholder: "Anything the provider should know",
     healthConsent:
       "As the parent or guardian, I agree that Famy may store this health information and show it only to the provider of this child's booking, as described in the Privacy Policy.",
-    healthConsentRequired: "Please give your consent to save health information, or clear it if you don't want to add it.",
+    healthConsentRequired:
+      "Please give your consent to save health information, or clear it if you don't want to add it.",
     accessNotes: "Access notes",
     accessNotesPlaceholder: "Any special needs we should know about",
     emergencyContact: "Emergency contact",
@@ -1231,6 +1265,16 @@ const en = {
     withdrawTitle: "Withdraw this request?",
     withdrawn: "Request withdrawn",
     noneOpen: "No open reschedule request.",
+    sameDuration: "The booking keeps the same length: {{duration}}",
+    errors: {
+      notOpen: "This request is no longer open. Refresh the page.",
+      sameLength: "A reschedule must keep the same booking length.",
+      notReschedulable: "This booking can no longer be rescheduled.",
+      reasonRequired: "Add a reason for declining.",
+      slotTaken: "This time isn't available. Pick another time.",
+      invalidTime: "The time you picked isn't valid.",
+      notAllowed: "You're not allowed to do this.",
+    },
     history: "History",
     byCustomer: "Customer",
     byProvider: "Provider",
@@ -1317,7 +1361,8 @@ const en = {
     reportAndLeave: "Report and leave",
     waitingForOther: "Waiting for the other person to join",
     mediaErrorTitle: "We could not turn on your microphone or camera",
-    mediaErrorBody: "Allow Famy to use the microphone and camera in your phone settings, then try again",
+    mediaErrorBody:
+      "Allow Famy to use the microphone and camera in your phone settings, then try again",
     roomErrorTitle: "Something went wrong connecting to the lesson",
     roomErrorBody: "Check your internet connection and try again",
     openSettings: "Open settings",
@@ -1333,7 +1378,8 @@ const en = {
     },
     lessonReportPlaceholder: "Describe what happened (at least 10 characters)",
     lessonReportSubmit: "Submit report",
-    lessonReportHint: "Available from 10 minutes before start until 24 hours after the lesson ends.",
+    lessonReportHint:
+      "Available from 10 minutes before start until 24 hours after the lesson ends.",
     lessonReportSubmitted: "Thanks — we received your report.",
     lessonReportReviewEta: "We'll review within 48 hours.",
     errors: {
@@ -1345,7 +1391,11 @@ const en = {
       not_participant: "Only the customer and provider can join.",
       livekit_unavailable: "Online sessions are not available right now.",
       server_error: "Something went wrong. Try again.",
+      invalid_request: "We could not start the session with this request.",
+      not_found: "This booking session was not found.",
+      invalid_schedule: "This booking time is not valid for a live session.",
     },
+    paymentRequiredProvider: "The student has not paid yet. Join opens once payment is confirmed.",
   },
   booking: {
     summary: "Booking summary",
@@ -1577,6 +1627,8 @@ const en = {
     emptyTitle: "No favorites yet",
     emptyBody: "Tap the heart on a professional to save them here.",
     browse: "Browse",
+    book: "Book",
+    findProviders: "Find a provider",
   },
   mobileChat: {
     message: "Message",
@@ -1598,8 +1650,9 @@ const en = {
     ],
     keptTitle: "What we keep (anonymized)",
     keptBody:
-      "Bookings, payments, reviews, and messages stay for accounting, tax, and the other party's history. You will appear as \"Deleted user\".",
-    blockedUnpaid: "You owe Famy money (cancellation fees or a balance). Settle it first, then you can delete your account",
+      'Bookings, payments, reviews, and messages stay for accounting, tax, and the other party\'s history. You will appear as "Deleted user".',
+    blockedUnpaid:
+      "You owe Famy money (cancellation fees or a balance). Settle it first, then you can delete your account",
     blockedActiveBookings: "Finish or cancel your upcoming bookings first.",
     blockedAdmin: "Admin accounts cannot be deleted from the app. Contact engineering support.",
     confirmWord: "DELETE",
@@ -1660,7 +1713,8 @@ const en = {
   mobilePro: {
     continueOnWeb: "Continue on the web",
     finishOnWeb: "Finish setup on the web",
-    finishOnWebBody: "Your provider account is not ready for the app yet. Continue on the Famy website to complete the remaining steps.",
+    finishOnWebBody:
+      "Your provider account is not ready for the app yet. Continue on the Famy website to complete the remaining steps.",
     editOnWeb: "Edit profile and services on the web",
     notificationPrefs: "Notification preferences",
     fileTooLarge: "File must be 10 MB or smaller.",
@@ -1753,7 +1807,8 @@ const en = {
     promoDiscount: "Promo discount",
     carriedFees: "Earlier cancellation fees",
     feesCheckFailed: "We couldn't check your earlier cancellation fees, try again",
-    paymentMethodUnavailable: "The payment method you chose is not available right now, choose another one",
+    paymentMethodUnavailable:
+      "The payment method you chose is not available right now, choose another one",
     feesChanged: "Your earlier cancellation fees changed. Check the new total and confirm again",
     promoApplied: "Promo applied — {{amount}} off",
     promoAppliedNote: "Code applied — {{amount}} off your total",
@@ -1781,8 +1836,7 @@ const en = {
     slotTaken: "That time slot was just taken. Please pick another.",
     created: "Booking created",
     rebookPrefillTitle: "Some details from your last booking were not carried over",
-    rebookSourceUnavailable:
-      "We couldn't load your previous booking. Continue with a new booking.",
+    rebookSourceUnavailable: "We couldn't load your previous booking. Continue with a new booking.",
     rebookDropped: {
       serviceUnavailable: "The previous service is no longer available",
       capabilityUnavailable: "The previous tutoring option is no longer available",
@@ -1806,7 +1860,8 @@ const en = {
         "We couldn't process this booking request. Please review your details.",
       SUPERVISION_REQUIRED:
         "For your children's safety, choose how your child will be supervised before confirming.",
-      DEBT_OUTSTANDING: "You have an unpaid cancellation fee from an earlier booking. Pay it first to book again",
+      DEBT_OUTSTANDING:
+        "You have an unpaid cancellation fee from an earlier booking. Pay it first to book again",
       PHONE_REQUIRED: "Add your mobile number to your account before booking.",
       DUPLICATE_REQUEST_CONFLICT:
         "Your booking details changed since your last attempt. Please review and submit again.",
@@ -1949,9 +2004,11 @@ const en = {
     completed: "Finished",
   },
   bookingDetail: {
-    cancelFeeNoticeUnpaid: "If you cancel now, a {{amount}} cancellation fee for the provider will be added to your account, and you'll need to pay it before booking again. This cannot be undone",
+    cancelFeeNoticeUnpaid:
+      "If you cancel now, a {{amount}} cancellation fee for the provider will be added to your account, and you'll need to pay it before booking again. This cannot be undone",
     cancelWithFee: "Cancel booking (cancellation fee applies)",
-    cancelFeeNotice: "If you cancel now, a {{amount}} cancellation fee goes to the provider and the rest of what you paid comes back to you. This cannot be undone",
+    cancelFeeNotice:
+      "If you cancel now, a {{amount}} cancellation fee goes to the provider and the rest of what you paid comes back to you. This cannot be undone",
     title: "Booking",
     notFound: "Booking not found",
     notFoundBody: "This booking doesn't exist or you don't have access to it.",
@@ -1960,7 +2017,10 @@ const en = {
     confirmedNumber: "Booking #{{id}} is confirmed.",
     receipt: "Receipt",
     addCalendar: "Add to calendar",
+    shareBooking: "Share booking",
     support: "Support",
+    supportCall: "Call support",
+    supportWhatsapp: "WhatsApp support",
     whatsNext: "What happens next",
     nextRemindTitle: "We'll remind you",
     nextRemindBody: "A notification 1 hour before your booking.",
@@ -2145,6 +2205,7 @@ const en = {
     },
     common: {
       customer: "Customer",
+      greetingFallback: "there",
       service: "Service",
       loading: "Loading…",
       save: "Save changes",
@@ -2158,6 +2219,7 @@ const en = {
       whatsapp: "Message support on WhatsApp",
       call: "Call support",
       zoneChangeSubject: "Request to change my service areas",
+      bookingHelpSubject: "I need help with a booking",
     },
     statuses: {
       pending: "Pending",
@@ -2216,6 +2278,9 @@ const en = {
     },
     booking: {
       tooEarly: "It's too early for this step. Wait until closer to the booking time.",
+      bookingTimePassed:
+        "The booking time has passed. Contact support if you still need help with this job.",
+      messageCustomer: "Message customer",
       opensAt: "This button opens {{date}} at {{time}}",
       opensAtToday: "This button opens today at {{time}}",
       floor: "Floor {{floor}}",
@@ -2423,7 +2488,8 @@ const en = {
       statusPending: "Pending settlement",
       statusSettled: "Settled",
       statusCancelled: "Cancelled",
-      warnBody: "You are nearing the cash balance limit. Transfer {{amount}} to Famy (InstaPay) to keep receiving bookings",
+      warnBody:
+        "You are nearing the cash balance limit. Transfer {{amount}} to Famy (InstaPay) to keep receiving bookings",
     },
     earnings: {
       title: "Earnings",
@@ -2517,7 +2583,8 @@ const en = {
         notFound: "That service is no longer on your profile.",
         generic: "Could not remove this service. Please try again.",
       },
-      coverageHint: "Choose your main service area. You may add one nearby area if admin has linked it.",
+      coverageHint:
+        "Choose your main service area. You may add one nearby area if admin has linked it.",
       primaryZone: "Main service area",
       secondaryZoneOptional: "Optional second area",
       previousWork: "Relevant previous work",
@@ -2644,7 +2711,8 @@ const en = {
       preparationNotesSaved: "Customer instructions saved",
       priceSaved: "Price saved",
       addNewService: "Add a new service",
-      addNewServiceHint: "Pick a service to send to admin review. Your approved services keep working.",
+      addNewServiceHint:
+        "Pick a service to send to admin review. Your approved services keep working.",
       newServicePending: "Service added and sent for admin review",
       addSubjectsForService: "Add subjects for this service",
       allServicesOnProfile: "You already offer every available service.",
@@ -2722,7 +2790,8 @@ const en = {
       saveMode: "Save lesson mode",
       modeSaved: "Lesson mode saved",
       onlinePriceLabel: "Online session price",
-      onlinePriceHint: "Price per online session for this subject. Leave blank to use your in-person price.",
+      onlinePriceHint:
+        "Price per online session for this subject. Leave blank to use your in-person price.",
       onlinePriceSaved: "Online price saved",
       onlinePricePending:
         "Online price pending review: {{requested}} EGP (current {{current}} EGP)",
@@ -2762,7 +2831,8 @@ const en = {
     serviceRequest: {
       addServiceLink: "+ Add a service",
       pageTitle: "Request a new service",
-      intro: "Complete the details for {{service}}. We will review your request before it goes live.",
+      intro:
+        "Complete the details for {{service}}. We will review your request before it goes live.",
       notApproved: "Your provider account must be approved before you can request new services.",
       serviceUnavailable: "This service is not available right now.",
       alreadyActive: "This service is already active on your profile.",
@@ -2774,7 +2844,8 @@ const en = {
       statusActive: "Active",
       statusPending: "Under review",
       statusRejected: "Rejected",
-      pendingReadOnly: "Your submitted details are under review. You cannot change them until we respond.",
+      pendingReadOnly:
+        "Your submitted details are under review. You cannot change them until we respond.",
       cancelRequest: "Cancel request",
       cancelled: "Request cancelled",
       editAndResubmit: "Edit and send again",
@@ -2813,7 +2884,8 @@ const en = {
   },
   adminAreaRequests: {
     title: "New area requests",
-    subtitle: "Places where customers tried to save an address outside our zones and asked Famy to come. Grouped about every kilometre.",
+    subtitle:
+      "Places where customers tried to save an address outside our zones and asked Famy to come. Grouped about every kilometre.",
     empty: "No requests yet.",
     customers_zero: "No customers",
     customers_one: "1 customer",
@@ -2847,11 +2919,16 @@ const en = {
     notPending: "This price change is no longer pending.",
   },
   payment: {
+    errors: {
+      notCompleted: "You can confirm the payment once the booking is completed.",
+      notAllowed: "You're not allowed to change this payment.",
+    },
     walletWillCover: "Your balance ({{wallet}}) is used first, the remaining {{card}} by card",
     walletChecking: "Checking your wallet balance",
     walletCoversAll: "Your balance ({{wallet}}) covers the full amount",
     payWithWallet: "Pay from your balance",
-    refundOnTheWay: "The booking was cancelled after you paid. Famy will send the money back the same way you paid, minus the cancellation fee if you cancelled late",
+    refundOnTheWay:
+      "The booking was cancelled after you paid. Famy will send the money back the same way you paid, minus the cancellation fee if you cancelled late",
     openInstapay: "Open InstaPay to pay",
     cannotOpenInstapay: "Couldn't open InstaPay. Copy the address and pay from the app.",
     title: "Payment",
@@ -2877,6 +2954,7 @@ const en = {
     rejectedTitle: "Payment rejected",
     rejectedRetry: "Please re-transfer and contact support to upload a new receipt.",
     markReceived: "Mark as received",
+    famyReviewingTransfer: "Famy is reviewing the transfer receipt.",
     waitingForCompletion: "Payment can be captured once the booking is completed.",
     reject: "Reject",
     confirmed: "Payment confirmed",
@@ -2919,13 +2997,16 @@ const en = {
       overpaid: "Duplicate payments to refund",
       overpaidLine: "{{name}} paid {{amount}} after the fees were settled another way",
       recordRefund: "Record refund",
-      recordRefundHint: "Send the money back to the customer first, then record the refund reference here",
+      recordRefundHint:
+        "Send the money back to the customer first, then record the refund reference here",
       title: "Cancellation fees owed by customers",
-      subtitle: "Late-cancellation or no-show fees on bookings the customer hadn't prepaid. They are added to the customer's next booking unless paid before",
+      subtitle:
+        "Late-cancellation or no-show fees on bookings the customer hadn't prepaid. They are added to the customer's next booking unless paid before",
       toReview: "InstaPay receipts waiting for confirmation",
       instapayLine: "{{name}} sent a receipt for a {{amount}} transfer",
       reference: "Transaction number",
-      checkHint: "Open the receipt and check the money arrived in the InstaPay account before confirming. The fee is added to the provider's balance when you confirm",
+      checkHint:
+        "Open the receipt and check the money arrived in the InstaPay account before confirming. The fee is added to the provider's balance when you confirm",
       viewReceipt: "View receipt",
       receiptError: "Couldn't open the receipt",
       carriedOn: "Added to booking",
@@ -2943,17 +3024,29 @@ const en = {
       },
     },
     paymentSituation: {
-      refundFeeNote: "The {{fee}} cancellation fee stays with the provider and is added to their balance when you record this",
-      refundCarriedNote: "{{amount}} in earlier cancellation fees added to this booking stays with Famy and is added to the balances of the providers they belong to",
+      refundFeeNote:
+        "The {{fee}} cancellation fee stays with the provider and is added to their balance when you record this",
+      refundCarriedNote:
+        "{{amount}} in earlier cancellation fees added to this booking stays with Famy and is added to the balances of the providers they belong to",
       refundFeeError: "Couldn't calculate the cancellation fee, try again",
-      pageHint: "Each card shows what actually happened with the payment and what you need to do, if anything.",
+      pageHint:
+        "Each card shows what actually happened with the payment and what you need to do, if anything.",
       needsAction: "Payments that need your decision: {{count}}",
       confirmCash: "Confirm cash was received",
       confirmCashHint:
         "This records that the provider collected {{amount}} in cash and adds Famy's commission from this booking to what they owe. Write the reason or source of the confirmation.",
-      review: { label: "Needs your review", note: "The customer uploaded a transfer receipt. Review it, then confirm or reject." },
-      awaitingProof: { label: "Waiting for receipt", note: "The customer chose transfer but hasn't uploaded the receipt yet." },
-      awaitingCard: { label: "Waiting for card payment", note: "The customer hasn't finished paying by card yet." },
+      review: {
+        label: "Needs your review",
+        note: "The customer uploaded a transfer receipt. Review it, then confirm or reject.",
+      },
+      awaitingProof: {
+        label: "Waiting for receipt",
+        note: "The customer chose transfer but hasn't uploaded the receipt yet.",
+      },
+      awaitingCard: {
+        label: "Waiting for card payment",
+        note: "The customer hasn't finished paying by card yet.",
+      },
       cashAtVisit: {
         label: "Cash at the visit",
         note: "The provider collects the amount from the customer at the visit. Nothing to do now.",
@@ -2966,16 +3059,33 @@ const en = {
         label: "Needs your confirmation",
         note: "This booking was completed before the accounts system started. Confirm the cash was received to record Famy's commission.",
       },
-      noPaymentDue: { label: "Nothing owed", note: "The booking was cancelled before payment. Nothing to do." },
+      noPaymentDue: {
+        label: "Nothing owed",
+        note: "The booking was cancelled before payment. Nothing to do.",
+      },
       paid: { label: "Paid", note: "Famy received the amount." },
-      rejected: { label: "Transfer rejected", note: "The receipt was rejected and no amount was counted." },
-      failed: { label: "Payment failed", note: "The payment didn't go through and nothing was charged." },
+      rejected: {
+        label: "Transfer rejected",
+        note: "The receipt was rejected and no amount was counted.",
+      },
+      failed: {
+        label: "Payment failed",
+        note: "The payment didn't go through and nothing was charged.",
+      },
       recordRefund: "Record refund to customer",
-      recordRefundHint: "Send {{amount}} back to the customer first from the Paymob dashboard, then record the refund reference here. Recording does not move any money",
-      recordRefundHintTransfer: "Send {{amount}} back to the customer first by InstaPay (the sender account is on the transfer receipt), then record the refund reference here. Recording does not move any money",
+      recordRefundHint:
+        "Send {{amount}} back to the customer first from the Paymob dashboard, then record the refund reference here. Recording does not move any money",
+      recordRefundHintTransfer:
+        "Send {{amount}} back to the customer first by InstaPay (the sender account is on the transfer receipt), then record the refund reference here. Recording does not move any money",
       refundReference: "Refund transaction reference",
-      refundDue: { label: "Refund due", note: "The customer paid and the booking was cancelled. Send the money back and record it" },
-      partiallyRefunded: { label: "Refunded after fee", note: "The money was returned to the customer minus the cancellation fee, which was added to the provider balance" },
+      refundDue: {
+        label: "Refund due",
+        note: "The customer paid and the booking was cancelled. Send the money back and record it",
+      },
+      partiallyRefunded: {
+        label: "Refunded after fee",
+        note: "The money was returned to the customer minus the cancellation fee, which was added to the provider balance",
+      },
       refunded: { label: "Refunded", note: "The amount was returned to the customer." },
     },
     settlement: {
@@ -2991,7 +3101,8 @@ const en = {
       actionProviderPays: "Record that the provider's money arrived",
       confirmFamyPays: "You are recording that Famy paid the provider {{amount}}",
       confirmProviderPays: "You are recording that Famy received {{amount}} from the provider",
-      confirmHint: "Only record this after the transfer really happened. Recording does not move money.",
+      confirmHint:
+        "Only record this after the transfer really happened. Recording does not move money.",
       reference: "Transaction number or transfer reference",
       referencePlaceholder: "For example the InstaPay transaction number",
       referenceRequired: "Enter the transaction number or transfer reference",
@@ -4022,7 +4133,8 @@ const en = {
     },
     settings: {
       cancellationTitle: "Cancellation policy",
-      cancellationSubtitle: "Fees for late cancellation and customer no-show. The whole fee goes to the provider",
+      cancellationSubtitle:
+        "Fees for late cancellation and customer no-show. The whole fee goes to the provider",
       cancellationLoadError: "Couldn't load the cancellation policy",
       cancellationFeeMode: "How the fee is calculated",
       cancellationFeeFixed: "Fixed amount",
@@ -4032,10 +4144,13 @@ const en = {
       cancellationInPersonTitle: "In-person bookings",
       cancellationOnlineTitle: "Online lessons",
       cancellationFreeHours: "Free cancellation up to this many hours before the visit",
-      cancellationRule1: "The fee applies if the customer cancels less than {{hours}} hours before the visit",
+      cancellationRule1:
+        "The fee applies if the customer cancels less than {{hours}} hours before the visit",
       cancellationRule2: "The fee applies if the customer cancels after the provider set off",
-      cancellationRule3: "The fee applies if the customer doesn't show up and the provider reports it",
-      cancellationRule4: "No fee if the provider or admin cancels, or the provider doesn't show up. The rest of a prepaid amount goes back to the customer",
+      cancellationRule3:
+        "The fee applies if the customer doesn't show up and the provider reports it",
+      cancellationRule4:
+        "No fee if the provider or admin cancels, or the provider doesn't show up. The rest of a prepaid amount goes back to the customer",
       cancellationInvalid: "Enter a valid value; a percentage cannot exceed 100",
       cancellationSaveError: "Couldn't save the cancellation policy",
       releaseFeaturesTitle: "Release features",
@@ -4046,7 +4161,8 @@ const en = {
       releaseFeaturesLoadError: "Couldn't load release feature settings",
       releaseFeaturesSaveError: "Couldn't save release feature settings",
       appReleaseTitle: "App version and maintenance",
-      appReleaseSubtitle: "The minimum version forces users to update, the latest version shows an update banner, and maintenance mode pauses the app",
+      appReleaseSubtitle:
+        "The minimum version forces users to update, the latest version shows an update banner, and maintenance mode pauses the app",
       appReleaseMinAndroid: "Minimum Android version",
       appReleaseMinIos: "Minimum iOS version",
       appReleaseLatestAndroid: "Latest Android version",
@@ -4209,6 +4325,7 @@ const en = {
     hello: "Hi, {{name}}",
     today: "Today",
     nextJob: "Next job",
+    nextJobDate: "Next job: {{when}}",
     noJobToday: "No jobs today",
     monthValue: "Bookings this month",
     rating: "Your rating",
@@ -4227,10 +4344,37 @@ const en = {
     paymentDetails: "Payment details",
   },
 
-  providerClarity: {"selectAll": "Select all", "missingSubjects": "Add a subject for: {{services}}", "addSubject": "Missing: add a subject", "removeSubject": "Remove this subject", "rejectedReason": "This subject was not approved. Contact support for the reason"},
-  providerHoursFix: {"nightConflict": "You selected overnight babysitting from 6 PM to midnight, but your working hours end earlier", "packageConflict": "You selected a package from {{start}} to {{end}}, but your hours do not cover it", "addNight": "Add overnight hours", "removeNight": "Remove overnight service", "addPackage": "Add package hours", "editServices": "Edit services", "chooseDays": "Choose your working days first"},
-  providerComplete: { title: "Your application is complete ✓", message: "The Famy team will review your application and respond within 24 hours. We will notify you as soon as we finish." },
-  providerProfileFix: {"reviewLocked": "Your application is under review and these details cannot be changed now. Refresh the page and try again.", "signIn": "Sign in again to save your changes.", "notFound": "Your provider profile was not found. Refresh the page or contact support.", "invalidYears": "Years of experience must be a whole number from 0 to 60.", "invalidChildren": "The number of children must be a whole number from 1 to 20."},
+  providerClarity: {
+    selectAll: "Select all",
+    missingSubjects: "Add a subject for: {{services}}",
+    addSubject: "Missing: add a subject",
+    removeSubject: "Remove this subject",
+    rejectedReason: "This subject was not approved. Contact support for the reason",
+  },
+  providerHoursFix: {
+    nightConflict:
+      "You selected overnight babysitting from 6 PM to midnight, but your working hours end earlier",
+    packageConflict:
+      "You selected a package from {{start}} to {{end}}, but your hours do not cover it",
+    addNight: "Add overnight hours",
+    removeNight: "Remove overnight service",
+    addPackage: "Add package hours",
+    editServices: "Edit services",
+    chooseDays: "Choose your working days first",
+  },
+  providerComplete: {
+    title: "Your application is complete ✓",
+    message:
+      "The Famy team will review your application and respond within 24 hours. We will notify you as soon as we finish.",
+  },
+  providerProfileFix: {
+    reviewLocked:
+      "Your application is under review and these details cannot be changed now. Refresh the page and try again.",
+    signIn: "Sign in again to save your changes.",
+    notFound: "Your provider profile was not found. Refresh the page or contact support.",
+    invalidYears: "Years of experience must be a whole number from 0 to 60.",
+    invalidChildren: "The number of children must be a whole number from 1 to 20.",
+  },
   providerLocations: {
     livesIn: "Lives in",
     worksIn: "Works in",
@@ -4292,7 +4436,8 @@ const en = {
     teachingGroups: "Teaching subject groups",
     hoursZones: "Working hours and zones",
     rejectServicePlaceholder: "Why is this service request being rejected?",
-    reviewEach: "Approve, request changes or reject each pending item. Give a reason for changes or rejection.",
+    reviewEach:
+      "Approve, request changes or reject each pending item. Give a reason for changes or rejection.",
     noReferences: "No references added.",
     noAgeGroups: "No babysitting age groups declared.",
     noZones: "No work zones selected.",
@@ -4314,7 +4459,8 @@ const en = {
     noTeachingGroups: "No teaching groups submitted.",
     retry: "Try again",
     sectionChecked: "Section checked",
-    sectionApproveHint: "Checking this section does not approve the application. Use the main button when all details are ready.",
+    sectionApproveHint:
+      "Checking this section does not approve the application. Use the main button when all details are ready.",
     sectionSaveError: "Could not save this section decision.",
     levelRange: "{{first}} to {{last}}",
     openDocument: "Open document",
@@ -4326,7 +4472,8 @@ const en = {
     workZones: "Work zones",
     reviewApplication: "Review application",
     identityConflicts: "Identity conflicts",
-    identityConflictsHint: "These records are outside the normal customer and provider lists. Their history is retained.",
+    identityConflictsHint:
+      "These records are outside the normal customer and provider lists. Their history is retained.",
     clearQueue: "Show all providers",
     nationalId: "National ID",
     sectionGlobalEffect: "This decision changes the whole application, not just this section.",
@@ -4352,7 +4499,8 @@ const en = {
   },
   proRound2: {
     upcomingWork: "Upcoming work",
-    upcomingWorkCaption: "Accepted bookings or requests awaiting your reply that are not finished yet",
+    upcomingWorkCaption:
+      "Accepted bookings or requests awaiting your reply that are not finished yet",
     decline: "Decline",
     paid: "Paid",
     awaitingPayment: "Awaiting payment",
@@ -4444,8 +4592,7 @@ Object.assign(en, {
     confirmTransfer: "Transfer verified",
     rejectReason: "Reject with reason",
     confirmQuestion: "Have you verified receipt?",
-    confirmHint:
-      "Only this payment receipt is recorded; prices and commissions are unchanged.",
+    confirmHint: "Only this payment receipt is recorded; prices and commissions are unchanged.",
     proof: "Transfer proof",
     proofError: "Could not open the proof. Please retry.",
     noProof: "No transfer proof uploaded",
@@ -4516,23 +4663,21 @@ Object.assign(en, {
     confirmTitle: "Review before saving",
     serviceChange:
       "New prices and durations apply to new bookings. Existing bookings keep their terms.",
-    hideService:
-      "Customers will no longer see this service. Existing bookings are unchanged.",
+    hideService: "Customers will no longer see this service. Existing bookings are unchanged.",
     serviceExample:
       "Example: overnight babysitting, 360 minutes, starts at 18:00. Price limits are in EGP.",
     requirementsHint: "Choose a service to review its requirements.",
     priceRange: "Price: {{min}}–{{max}} EGP",
     duration: "Duration: {{count}} minutes",
     packageHours: "From {{start}} to {{end}}",
-    billingEditable: "VAT and the platform fee apply to new bookings only. The commission is not changed here.",
+    billingEditable:
+      "VAT and the platform fee apply to new bookings only. The commission is not changed here.",
     billingConfirm: "The new values apply to new bookings only. Existing bookings are not changed.",
     billingReadonly:
       "Current financial values, read-only. Pricing and commission cannot be changed here.",
     ownerDecision: "This change requires the business owner's decision",
-    settingsImpact:
-      "This setting takes effect after saving. Check the value before confirming.",
-    zoneImpact:
-      "Changing this zone's status affects covered services for new bookings.",
+    settingsImpact: "This setting takes effect after saving. Check the value before confirming.",
+    zoneImpact: "Changing this zone's status affects covered services for new bookings.",
     linkProvider: "Link a provider to a zone",
     providerSearch: "Search provider name",
     unnamedProvider: "Provider",
@@ -4610,7 +4755,8 @@ Object.assign(en, {
       "To protect the admin panel, turn on a second sign-in step. Open Google Authenticator or Microsoft Authenticator, scan this code, then enter the 6 digits it shows.",
     manualKey: "Or enter this key in the app manually:",
     qrAlt: "QR code for the authenticator app",
-    challengeBody: "Open the authenticator app on your phone and enter the 6 digits shown for Famy.",
+    challengeBody:
+      "Open the authenticator app on your phone and enter the 6 digits shown for Famy.",
     codeLabel: "Verification code",
     confirm: "Confirm",
     wrongCode: "The code is wrong or expired. Try the code shown now.",
@@ -4643,6 +4789,10 @@ Object.assign(en, {
       title: "Wallet",
       availableBalance: "Available: {{amount}}",
       terms: "Your balance is ready to use on any upcoming Famy booking.",
+      balanceHint: "Your balance is ready to use on any upcoming Famy booking.",
+      emptyTitle: "No wallet activity yet",
+      emptyBody: "Credits and debits from your bookings will show here",
+      bookNow: "Book now",
       reason: {
         provider_cancelled: "Provider cancellation credit",
         customer_cancelled_refund: "Cancellation credit",
@@ -4672,9 +4822,11 @@ Object.assign(en, {
       providerOwes: "The provider owes Famy",
       famyOwes: "Famy owes the provider",
       evenHint: "The account is balanced. No transfer needed.",
-      providerOwesHint: "The provider collected cash from customers. This is Famy's commission from it.",
+      providerOwesHint:
+        "The provider collected cash from customers. This is Famy's commission from it.",
       famyOwesHint: "Famy collected online payments from customers. This is the provider's share.",
-      blocked: "The amount owed is over the limit ({{limit}}). The provider can't receive new bookings until it's paid.",
+      blocked:
+        "The amount owed is over the limit ({{limit}}). The provider can't receive new bookings until it's paid.",
       actionReceive: "Record money received from the provider",
       actionPay: "Record money sent to the provider",
       amount: "Amount",
@@ -4716,7 +4868,8 @@ Object.assign(en, {
       providerOwes: "You owe Famy",
       famyOwes: "Famy owes you",
       evenHint: "Nothing is owed either way right now.",
-      providerOwesHint: "This is Famy's commission from bookings the customer paid you in cash. Send it to Famy by InstaPay and the team will record it.",
+      providerOwesHint:
+        "This is Famy's commission from bookings the customer paid you in cash. Send it to Famy by InstaPay and the team will record it.",
       famyOwesHint: "This is your money from bookings paid online. Famy will transfer it to you.",
       blocked: "You owe more than {{limit}}. You won't receive new bookings until you pay.",
       howTitle: "How your balance works",
@@ -4771,7 +4924,8 @@ Object.assign(en, {
       default: "Primary",
       loadError: "Couldn't load payout methods. Try again",
       payInTitle: "Pay Famy with InstaPay",
-      payInBody: "Send what you owe to Famy's InstaPay address and the Famy team will record it on your balance",
+      payInBody:
+        "Send what you owe to Famy's InstaPay address and the Famy team will record it on your balance",
       payInOpen: "Open InstaPay",
       copy: "Copy",
       copied: "Copied",
@@ -4785,7 +4939,8 @@ Object.assign(en, {
     },
     admin: {
       title: "Provider payout methods",
-      empty: "The provider hasn't added a payout method yet. Ask them to add one from their wallet page",
+      empty:
+        "The provider hasn't added a payout method yet. Ask them to add one from their wallet page",
       default: "Primary",
       copy: "Copy",
       copied: "Copied",
@@ -4801,9 +4956,11 @@ Object.assign(en, {
     body: "From a booking you cancelled late or weren't there for. It will be added to your next booking, or you can pay it now",
     payCard: "Pay by card",
     payInstapay: "Pay by InstaPay",
-    instapaySteps: "Send {{amount}} to Famy's InstaPay, then upload a photo of the receipt and the Famy team will confirm it",
+    instapaySteps:
+      "Send {{amount}} to Famy's InstaPay, then upload a photo of the receipt and the Famy team will confirm it",
     uploadReceipt: "Upload receipt photo",
-    inReview: "We're checking your transfer receipt ({{amount}}). The fees close once it's confirmed",
+    inReview:
+      "We're checking your transfer receipt ({{amount}}). The fees close once it's confirmed",
     rejected: "Your receipt wasn't confirmed: {{reason}}",
     cardFailed: "Couldn't open card payment. Try again or pay by InstaPay",
   },
@@ -4839,7 +4996,8 @@ Object.assign(en, {
     sheetHintTitle: "Move the map until the pin is on your place",
     sheetHintBody: "Pinch to zoom in on your exact building.",
     confirm: "Confirm location",
-    permissionDenied: "We can't reach your location. Allow location in your browser settings, or move the map yourself.",
+    permissionDenied:
+      "We can't reach your location. Allow location in your browser settings, or move the map yourself.",
   },
 });
 export default en;
@@ -4949,7 +5107,8 @@ Object.assign((en as any).admin, {
     cancelRateHint: "Of bookings that ended in the period",
     customersWithBooking: "Customers with bookings",
     appTitle: "Mobile app",
-    appHint: "Users signed in on the app with notifications on. Official download counts appear after publishing on Google Play and the App Store.",
+    appHint:
+      "Users signed in on the app with notifications on. Official download counts appear after publishing on Google Play and the App Store.",
     appCustomers: "Customers on the app",
     appProviders: "Providers on the app",
     appAndroid: "Android",

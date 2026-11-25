@@ -7,7 +7,7 @@ Based on Expo config (`app.json`, `app.config.js`) and code review (SDK 58).
 | Permission | Status | Why |
 | --- | --- | --- |
 | `ACCESS_COARSE_LOCATION` / `ACCESS_FINE_LOCATION` | **Requested** (foreground) | `expo-location` — pin service address (`LocationPicker.tsx`) |
-| `READ_MEDIA_IMAGES` / legacy storage reads | **Via image picker** | Photo library picks only; the image picker never opens the camera |
+| `READ_MEDIA_IMAGES` / legacy storage reads | **Blocked + picker** | Declared in `blockedPermissions`; library access uses the system photo picker only (no broad `READ_MEDIA_*` at install) |
 | `POST_NOTIFICATIONS` | **Via expo-notifications** | Push notification opt-in |
 | `INTERNET` | **Implicit** | API, auth, maps tiles |
 | `CAMERA` | **Requested** (only when joining a live online lesson) | LiveKit video in online lessons (`@config-plugins/react-native-webrtc`) |

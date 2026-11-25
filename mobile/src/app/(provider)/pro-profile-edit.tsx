@@ -124,8 +124,6 @@ export default function ProProfileEditScreen() {
     setBusy(true);
     setActionError(false);
     try {
-      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!perm.granted) throw new Error("denied");
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
         quality: 0.85,

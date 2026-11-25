@@ -168,9 +168,9 @@ export function PendingHomeScreen({
           ).length === 0,
       };
       const model = pendingHomeModel(pendingData);
-      const firstName = (data.profile?.full_name || t("pro.common.customer"))
-        .trim()
-        .split(/\s+/)[0];
+      const firstName = (
+        data.profile?.full_name?.trim().split(/\s+/)[0] || t("pro.common.greetingFallback")
+      ).trim();
       const awaitingReview =
         onboardingStatus === "SUBMITTED" ||
         onboardingStatus === "UNDER_REVIEW" ||

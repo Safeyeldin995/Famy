@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
+import { View } from "react-native";
 import { useTranslation } from "react-i18next";
-import { authorizeSessionJoin, type SessionBookingSnapshot } from "@shared/livekit/sessionAccess";
-import { moneyHeld } from "@shared/payments/refundOwed";
+import {
+  authorizeSessionJoin,
+  paymentCapturedForJoin,
+  type SessionBookingSnapshot,
+} from "@shared/livekit/sessionAccess";
 import { Button } from "./Button";
+import { Text } from "./Text";
+import { space } from "./theme";
 import { isJoinWindowOpen, JOIN_WINDOW_TICK_MS } from "@/lib/onlineSessionUi";
 
 type BookingLike = {
@@ -31,11 +37,15 @@ export function OnlineSessionJoinButton({
   viewerUserId,
   paymentStatus,
   paymentMethodType,
-  proofPath,
   party,
   onJoin,
 }: Props) {
   const { t } = useTranslation();
+
+  const paymentCaptured = paymentCapturedForJoin({
+    status: paymentStatus,
+    payment_method_type: paymentMethodType,
+  });
 
   const snapshot: SessionBookingSnapshot | null = useMemo(() => {
     if (!viewerUserId || !providerProfileId || booking.service_mode !== "online") return null;
@@ -48,20 +58,15 @@ export function OnlineSessionJoinButton({
       provider_profile_id: providerProfileId,
       start_at: booking.start_at,
       end_at: booking.end_at,
-      payment_captured: moneyHeld({
-        paymentStatus,
-        methodType: paymentMethodType,
-        proofPath,
-      }),
+      payment_captured: paymentCaptured,
     };
-  }, [booking, paymentMethodType, paymentStatus, proofPath, providerProfileId, viewerUserId]);
+  }, [booking, paymentCaptured, providerProfileId, viewerUserId]);
 
   const authz = useMemo(() => {
     if (!snapshot || !viewerUserId) return null;
     return authorizeSessionJoin(snapshot, viewerUserId);
   }, [snapshot, viewerUserId]);
 
-  // Re-check the window while the screen stays open, so the button appears on time.
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     if (booking.service_mode !== "online") return;
@@ -74,12 +79,25 @@ export function OnlineSessionJoinButton({
     [booking.end_at, booking.start_at, now],
   );
 
-  if (booking.service_mode !== "online" || !windowOpen || !authz?.ok) return null;
+  if (booking.service_mode !== "online" || !windowOpen) return null;
+
+  if (!authz?.ok) {
+    if (party === "provider" && authz?.code === "payment_required") {
+      return (
+        <Text size="sm" tone="muted">
+          {t("onlineSession.paymentRequiredProvider")}
+        </Text>
+      );
+    }
+    return null;
+  }
 
   const label =
-    party === "customer"
-      ? t("onlineSession.joinCustomer")
-      : t("onlineSession.joinProvider");
+    party === "customer" ? t("onlineSession.joinCustomer") : t("onlineSession.joinProvider");
 
-  return <Button label={label} onPress={onJoin} />;
+  return (
+    <View style={{ gap: space.xs }}>
+      <Button label={label} onPress={onJoin} />
+    </View>
+  );
 }

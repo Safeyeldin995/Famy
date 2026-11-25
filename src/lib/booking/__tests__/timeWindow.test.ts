@@ -4,6 +4,7 @@ import {
   isProviderCompletionTooEarly,
   isProviderStepTooEarly,
   providerStepOpensAt,
+  providerStepWindowState,
 } from "../timeWindow";
 import { sessionDurationEndsAt as sessionEnds } from "../sessionLifecycle";
 
@@ -18,8 +19,11 @@ describe("provider booking time window", () => {
     expect(isProviderStepTooEarly("confirmed", start, end, new Date("2026-10-14T07:59:00Z"))).toBe(
       true,
     );
+    expect(
+      providerStepWindowState("on_the_way", start, end, new Date("2026-10-14T12:30:00Z")),
+    ).toBe("closed");
     expect(isProviderStepTooEarly("on_the_way", start, end, new Date("2026-10-14T12:30:00Z"))).toBe(
-      true,
+      false,
     );
     expect(isProviderStepTooEarly("confirmed", start, end, new Date("2026-10-14T09:00:00Z"))).toBe(
       false,
@@ -35,6 +39,12 @@ describe("provider booking time window", () => {
     expect(isProviderCompletionTooEarly(booking, new Date("2026-10-14T11:00:00Z"))).toBe(true);
     expect(isProviderCompletionTooEarly(booking, new Date("2026-10-14T12:30:00Z"))).toBe(false);
     expect(sessionEnds(booking).toISOString()).toBe("2026-10-14T12:30:00.000Z");
+  });
+
+  it("marks travel steps closed after booking end", () => {
+    expect(providerStepWindowState("confirmed", start, end, new Date("2026-10-14T13:00:00Z"))).toBe(
+      "closed",
+    );
   });
 
   it("does not limit unrelated statuses", () => {
